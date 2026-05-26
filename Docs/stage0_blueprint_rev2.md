@@ -1929,9 +1929,9 @@ main 合并前必须通过：
 - [x] 实现 backend/worker/crawler metrics。
 - [x] 实现 frontend error reporting。
 - [x] 定义 dashboards。
-- [x] 导入并验证 staging dashboards runtime evidence。
+- [ ] 导入并验证 staging dashboards runtime evidence。
 - [x] 定义 alerts。
-- [x] 配置并验证 staging alert routes/runtime evidence。
+- [ ] 配置并验证 staging alert routes/runtime evidence。
 - [x] 定义 SLOs。
 - [x] 定义 incident severity/escalation/template/postmortem。
 - [x] 编写 runbooks。
