@@ -546,6 +546,8 @@ export const adminRbacEvidence: AdminRbacEvidence[] = [
     secondReviewStatus: "required",
     releaseGateImpact: "Skill release and production launch gates remain blocked until reviewer approval and second-review evidence are complete.",
     userVisibleOutcome: "Users remain on the previous active skill version while canary traffic stays paused.",
+    runtimeCheck: "release_gate rejects canary promotion while secondReviewStatus is required and the attempted role is below admin_reviewer.",
+    postDecisionControl: "Keep trafficAllocation at 0% public, retain rollback target skill-brand-kit@2.4.1, and require au-005 before any canary resume.",
     rationale: "High-risk skill release cannot enter canary from an operator-only action; reviewer and second-review evidence are required.",
     auditRef: "au-005",
     evidenceRefs: ["rv-100", "sv-248", "eg-001"]
@@ -563,6 +565,8 @@ export const adminRbacEvidence: AdminRbacEvidence[] = [
     secondReviewStatus: "required",
     releaseGateImpact: "Crawler-derived prompt and skill activation stay blocked while takedown, derivative-use, and retention evidence remain unresolved.",
     userVisibleOutcome: "No crawler-derived material from the disputed source appears in user workflows or generated packages.",
+    runtimeCheck: "crawler_activation gate denies source reactivation until cg-501 closes with derivative-use, takedown, and raw-retention evidence.",
+    postDecisionControl: "Leave cf-118 blocked, keep active prompt and skill import disabled, and require au-012 plus reviewer closure before retention changes.",
     rationale: "Crawler takedown and derivative material deletion must be reviewed by an admin reviewer before activation or retention changes.",
     auditRef: "au-012",
     evidenceRefs: ["cg-501", "cf-118", "ip-7001"]
@@ -580,6 +584,8 @@ export const adminRbacEvidence: AdminRbacEvidence[] = [
     secondReviewStatus: "not_required",
     releaseGateImpact: "Prompt activation remains blocked until reviewer-owned eval, QA, and audit evidence are attached.",
     userVisibleOutcome: "Existing prompt routing stays unchanged and the suspect feedback is excluded from learning paths.",
+    runtimeCheck: "prompt_activation gate rejects support_operator attempts and requires reviewer-owned eval, QA, and audit refs before pf-044 can become active.",
+    postDecisionControl: "Keep pf-044 in review, leave feedback fb-222 out of learning weights, and require a new reviewer audit before activation.",
     rationale: "Support operators can attach feedback but cannot approve prompt fragments into active routing without reviewer permission.",
     auditRef: "au-008",
     evidenceRefs: ["pf-044", "fb-222", "prompt-fragments"]
@@ -597,6 +603,8 @@ export const adminRbacEvidence: AdminRbacEvidence[] = [
     secondReviewStatus: "not_required",
     releaseGateImpact: "Provider launch gate remains blocked by degraded health even though the safety-preserving traffic reduction is allowed.",
     userVisibleOutcome: "Non-urgent retry latency may improve while QA and safety enforcement continue to run on the existing provider path.",
+    runtimeCheck: "provider_router permits only non-urgent retry-weight reduction because safety fallback, provider contract, and usage reconciliation remain unchanged.",
+    postDecisionControl: "Preserve degraded provider launch blocker eg-003, keep no silent fallback enabled, and require au-007 for any routing weight diff.",
     rationale: "Provider retry-weight reduction is allowed for an admin operator because safety fallback remains unchanged and evidence is audit-linked.",
     auditRef: "au-007",
     evidenceRefs: ["rv-101", "ph-1", "eg-003"]
@@ -614,6 +622,8 @@ export const adminRbacEvidence: AdminRbacEvidence[] = [
     secondReviewStatus: "not_required",
     releaseGateImpact: "Quota override gate stays blocked for support-only mutation attempts until operator-owned transaction evidence exists.",
     userVisibleOutcome: "The user sees the support ticket update, but the quota balance is not changed by the denied action.",
+    runtimeCheck: "quota_mutation rejects support_operator direct balance changes and requires an admin_operator transaction with support-ticket and export evidence.",
+    postDecisionControl: "Do not alter usr-301 balance, keep qt-904 pending operator review, and require au-004 before any credit or debit posts.",
     rationale: "Support can request quota credit, but direct quota mutation requires admin operator permission and immutable support-ticket evidence.",
     auditRef: "au-004",
     evidenceRefs: ["sup-2201", "qt-904", "ex-887"]
@@ -631,6 +641,8 @@ export const adminRbacEvidence: AdminRbacEvidence[] = [
     secondReviewStatus: "blocked",
     releaseGateImpact: "Safety and production launch gates remain blocked because superadmin approval and second review are incomplete.",
     userVisibleOutcome: "Forbidden-claim exports stay blocked and users receive the existing safety review message.",
+    runtimeCheck: "safety_policy refuses forbidden-claims relaxation while attemptedRole is admin_reviewer and secondReviewStatus is blocked.",
+    postDecisionControl: "Keep rx-41 blocking at export, preserve sv-098 review state, and require superadmin plus second-review audit before policy activation.",
     rationale: "Blocking safety policy changes affect export eligibility and need superadmin ownership plus completed second review before activation.",
     auditRef: "au-006",
     evidenceRefs: ["rx-41", "sv-098", "eg-002"]
@@ -648,6 +660,8 @@ export const adminRbacEvidence: AdminRbacEvidence[] = [
     secondReviewStatus: "blocked",
     releaseGateImpact: "Export release remains blocked because a reviewer role cannot override non-eligible blocking QA evidence.",
     userVisibleOutcome: "The affected export remains unavailable and support can only proceed with audited quota credit or safe regeneration.",
+    runtimeCheck: "export_release denies override for ex-887 because blocking forbidden-claim QA is not override eligible even with admin_reviewer role.",
+    postDecisionControl: "Keep ex-887 unavailable, allow only audited quota credit or safe regeneration paths, and preserve tr-1004 QA evidence for review.",
     rationale: "Reviewer role is present, but blocking forbidden-claim export overrides are never eligible; the RBAC result remains denied.",
     auditRef: "au-001",
     evidenceRefs: ["rv-102", "rx-41", "tr-1004"]

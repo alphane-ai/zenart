@@ -82,6 +82,8 @@ export default async function ReviewsPage() {
             },
             { key: "gate", header: "Release Gate Impact", render: (row) => row.releaseGateImpact },
             { key: "outcome", header: "User Outcome", render: (row) => row.userVisibleOutcome },
+            { key: "runtime", header: "Runtime Check", render: (row) => row.runtimeCheck },
+            { key: "post-decision", header: "Post Decision Control", render: (row) => row.postDecisionControl },
             { key: "rationale", header: "Rationale", render: (row) => row.rationale },
             { key: "audit", header: "Audit Ref", render: (row) => <span className="mono">{row.auditRef}</span> },
             { key: "evidence", header: "Evidence Refs", render: (row) => row.evidenceRefs.join(", ") }

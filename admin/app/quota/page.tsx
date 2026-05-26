@@ -67,6 +67,8 @@ export default async function QuotaPage() {
             { key: "required", header: "Required Role", render: (row) => row.requiredRole },
             { key: "attempted", header: "Attempted Role", render: (row) => row.attemptedRole },
             { key: "decision", header: "Decision", render: (row) => <StatusBadge value={row.decision} label={row.decision} /> },
+            { key: "runtime", header: "Runtime Check", render: (row) => row.runtimeCheck },
+            { key: "post-decision", header: "Post Decision Control", render: (row) => row.postDecisionControl },
             { key: "rationale", header: "Rationale", render: (row) => row.rationale },
             { key: "audit", header: "Audit Ref", render: (row) => <span className="mono">{row.auditRef}</span> },
             { key: "evidence", header: "Evidence Refs", render: (row) => row.evidenceRefs.join(", ") }

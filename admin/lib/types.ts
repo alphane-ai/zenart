@@ -683,6 +683,8 @@ export type AdminRbacEvidence = {
   secondReviewStatus: "not_required" | "required" | "completed" | "blocked";
   releaseGateImpact: string;
   userVisibleOutcome: string;
+  runtimeCheck: string;
+  postDecisionControl: string;
   rationale: string;
   auditRef: string;
   evidenceRefs: string[];

@@ -65,6 +65,8 @@ export default async function SafetyPage() {
             { key: "attempted", header: "Attempted Role", render: (row) => row.attemptedRole },
             { key: "decision", header: "Decision", render: (row) => <StatusBadge value={row.decision} label={row.decision} /> },
             { key: "second-review", header: "Second Review", render: (row) => <StatusBadge value={row.secondReviewStatus} label={row.secondReviewStatus} /> },
+            { key: "runtime", header: "Runtime Check", render: (row) => row.runtimeCheck },
+            { key: "post-decision", header: "Post Decision Control", render: (row) => row.postDecisionControl },
             { key: "rationale", header: "Rationale", render: (row) => row.rationale },
             { key: "audit", header: "Audit Ref", render: (row) => <span className="mono">{row.auditRef}</span> }
           ]}

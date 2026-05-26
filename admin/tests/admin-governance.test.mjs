@@ -1050,6 +1050,13 @@ test("admin RBAC evidence covers every governed override surface", () => {
     );
     assert.ok(item.releaseGateImpact.length > 90, `${item.id} needs release-gate impact evidence`);
     assert.ok(item.userVisibleOutcome.length > 70, `${item.id} needs user-visible outcome evidence`);
+    assert.ok(item.runtimeCheck.length > 90, `${item.id} needs runtime enforcement check evidence`);
+    assert.ok(item.postDecisionControl.length > 90, `${item.id} needs post-decision control evidence`);
+    assert.match(
+      item.runtimeCheck,
+      new RegExp(item.enforcementPoint),
+      `${item.id} runtime check must name its enforcement point`
+    );
     assert.ok(item.rationale.length > 80, `${item.id} needs rationale with role and risk context`);
 
     if (item.decision === "allowed") {
@@ -1068,6 +1075,14 @@ test("admin RBAC evidence covers every governed override surface", () => {
         item.secondReviewStatus,
         "not_required",
         `${item.id} second-review-required item cannot mark second review not required`
+      );
+    }
+
+    if (item.decision !== "allowed") {
+      assert.match(
+        item.postDecisionControl,
+        /keep|deny|do not|leave|preserve/i,
+        `${item.id} denied or gated decisions need a restrictive post-decision control`
       );
     }
   }

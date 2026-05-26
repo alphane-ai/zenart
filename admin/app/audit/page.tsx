@@ -141,6 +141,8 @@ export default async function AuditPage() {
             { key: "second-review", header: "Second Review Status", render: (row) => <StatusBadge value={row.secondReviewStatus} label={row.secondReviewStatus} /> },
             { key: "gate", header: "Release Gate Impact", render: (row) => row.releaseGateImpact },
             { key: "outcome", header: "User Outcome", render: (row) => row.userVisibleOutcome },
+            { key: "runtime", header: "Runtime Check", render: (row) => row.runtimeCheck },
+            { key: "post-decision", header: "Post Decision Control", render: (row) => row.postDecisionControl },
             { key: "audit", header: "Audit Ref", render: (row) => <span className="mono">{row.auditRef}</span> },
             { key: "rationale", header: "Rationale", render: (row) => row.rationale }
           ]}

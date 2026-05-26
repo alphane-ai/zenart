@@ -51,6 +51,8 @@ export default async function PromptFragmentsPage() {
             { key: "attempted", header: "Attempted Role", render: (row) => row.attemptedRole },
             { key: "decision", header: "Decision", render: (row) => <StatusBadge value={row.decision} label={row.decision} /> },
             { key: "second-review", header: "Second Review", render: (row) => <StatusBadge value={row.secondReviewStatus} label={row.secondReviewStatus} /> },
+            { key: "runtime", header: "Runtime Check", render: (row) => row.runtimeCheck },
+            { key: "post-decision", header: "Post Decision Control", render: (row) => row.postDecisionControl },
             { key: "evidence", header: "Evidence Refs", render: (row) => row.evidenceRefs.join(", ") },
             { key: "audit", header: "Audit Ref", render: (row) => <span className="mono">{row.auditRef}</span> },
             { key: "rationale", header: "Rationale", render: (row) => row.rationale }
