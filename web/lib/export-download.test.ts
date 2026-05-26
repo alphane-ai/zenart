@@ -2,6 +2,7 @@ import JSZip from "jszip";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DevZenArtClient } from "./api-client";
 import { ExportRecord } from "./contracts";
+import { ecommerceGrowthWorkflowAcceptance, requiredExportPackageOutputs } from "./dev-state";
 import { buildExportPackageBlob, downloadExportPackage } from "./export-download";
 
 const makeClient = () => new DevZenArtClient();
@@ -61,14 +62,12 @@ describe("reference upload and export download integration", () => {
       status: "ready",
       fileName: "zenart-001.zip"
     });
-    expect(record.manifest.required_outputs).toEqual([
-      "manifest.json",
-      "qa-report.json",
-      "safety-policy-report.json",
-      "provenance.json",
-      "ppt-ready-metadata.json",
-      "assets/"
-    ]);
+    expect(record.manifest.required_outputs).toEqual(
+      expect.arrayContaining([
+        ...requiredExportPackageOutputs,
+        ...ecommerceGrowthWorkflowAcceptance.required_files
+      ])
+    );
 
     const zipBlob = await buildExportPackageBlob(record);
     const zip = await JSZip.loadAsync(await readBlobAsArrayBuffer(zipBlob));
@@ -80,6 +79,10 @@ describe("reference upload and export download integration", () => {
       export_id: string;
       generated_by: string;
       items: Array<{ id: string; provenance: string }>;
+    };
+    const workflowAsset = JSON.parse(await zip.file("assets/square_social_ad.png")!.async("string")) as {
+      output_name: string;
+      workflow_id: string;
     };
     const readme = await zip.file("assets/README.txt")!.async("string");
 
@@ -153,6 +156,10 @@ describe("reference upload and export download integration", () => {
         { id: "pkg-item-001", provenance: "dev-client:cand-studio" },
         { id: "pkg-item-002", provenance: "dev-client-reference:ref-campaign-reference-webp" }
       ]
+    });
+    expect(workflowAsset).toMatchObject({
+      output_name: "assets/square_social_ad.png",
+      workflow_id: ecommerceGrowthWorkflowAcceptance.workflow_id
     });
     expect(readme).toContain("Deterministic local alpha export placeholder");
 

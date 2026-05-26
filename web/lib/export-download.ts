@@ -48,6 +48,29 @@ export const buildExportPackageBlob = async (record: ExportRecord) => {
     "assets/README.txt",
     "Deterministic local alpha export placeholder. Replace with object-storage asset references in backend export builder."
   );
+  for (const outputName of record.manifest.required_outputs) {
+    if (
+      outputName === "assets/" ||
+      zip.file(outputName) ||
+      outputName.endsWith("/")
+    ) {
+      continue;
+    }
+
+    zip.file(
+      outputName,
+      JSON.stringify(
+        {
+          export_id: record.id,
+          output_name: outputName,
+          generated_by: "zenart-web-dev-client",
+          workflow_id: record.manifest.workflow_acceptance?.workflow_id ?? "generic-stage0-export"
+        },
+        null,
+        2
+      )
+    );
+  }
 
   return zip.generateAsync({ type: "blob" });
 };

@@ -231,6 +231,7 @@ for (const expectedCapability of [
   "reference-validation",
   "reference-upload-export-contract",
   "workspace-rendering-performance-smoke",
+  "ecommerce-growth-api-smoke",
   "past-due-edge",
   "inactive-edge",
   "quota-exhausted-edge",
@@ -254,6 +255,7 @@ for (const expectedCapability of [
 
 for (const expectedIntegration of [
   "reference-upload-to-ready-zip-export",
+  "ecommerce-growth-pack-api-smoke",
   "generated-api-unsafe-operation-csrf-inventory",
   "workspace-rendering-performance-budget",
   "zip-download-manifest-qa-provenance-assets",
@@ -328,6 +330,27 @@ for (const expectedRenderingContract of [
 ]) {
   if (!devStateSource.includes(expectedRenderingContract)) {
     fail(`workspace rendering performance budget missing ${expectedRenderingContract}`);
+  }
+}
+
+for (const expectedWorkflowAcceptanceSnippet of [
+  "ecommerceGrowthWorkflowAcceptance",
+  "stage0.rev2.workflow-api-smoke",
+  "ecommerce_growth_pack",
+  "fx_ecommerce_growth_golden",
+  "conversion_offer",
+  "social_proof",
+  "feature_comparison",
+  "retention_bundle",
+  "assets/hero_product_ad.png",
+  "assets/square_social_ad.png",
+  "assets/story_variant.png",
+  "assets/marketplace_banner.png",
+  "qa-ecommerce-growth-taxonomy",
+  "workflow_acceptance"
+]) {
+  if (!devStateSource.includes(expectedWorkflowAcceptanceSnippet)) {
+    fail(`ecommerce growth API smoke contract missing ${expectedWorkflowAcceptanceSnippet}`);
   }
 }
 

@@ -9,6 +9,7 @@ import {
   createInitialWorkspace,
   createReferenceAsset,
   createSessionContract,
+  ecommerceGrowthWorkflowAcceptance,
   evaluatePackageQa,
   runSafetyPolicy
 } from "./dev-state";
@@ -19,6 +20,9 @@ describe("dev workspace contracts", () => {
 
     expect(state.candidates).toHaveLength(4);
     expect(new Set(state.candidates.map((candidate) => candidate.strategy)).size).toBe(4);
+    expect(state.candidates.map((candidate) => candidate.strategyTaxonomy)).toEqual(
+      ecommerceGrowthWorkflowAcceptance.strategy_taxonomy
+    );
   });
 
   it("blocks empty exports and includes required manifest outputs", () => {

@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { DevZenArtClient, workspaceStorageKey } from "./api-client";
+import { ecommerceGrowthWorkflowAcceptance } from "./dev-state";
 
 const makeClient = () => new DevZenArtClient();
 
@@ -88,6 +89,79 @@ describe("dev web client user lifecycle coverage", () => {
       title: "Studio System",
       type: "candidate"
     });
+  });
+
+  it("passes the ecommerce growth pack API smoke from brief to ready ZIP export", async () => {
+    const client = makeClient();
+    const fixtureBrief =
+      "Create a launch ad pack for the Aurora insulated bottle using the supplied packshot, targeting outdoor commuters on web and social.";
+
+    const briefed = await client.confirmBrief(fixtureBrief);
+    const referenced = await client.attachReference({ name: "aurora-bottle-packshot.png", kind: "image" });
+
+    expect(briefed.brief).toMatchObject({
+      prompt: fixtureBrief,
+      confirmed: true,
+      missingInfo: []
+    });
+    expect(referenced.brief.references.at(-1)).toMatchObject({
+      name: "aurora-bottle-packshot.png",
+      status: "attached",
+      validation: {
+        state: "accepted"
+      }
+    });
+
+    const candidates = (await client.loadWorkspace()).candidates;
+    expect(candidates).toHaveLength(4);
+    expect(new Set(candidates.map((candidate) => candidate.workflowId))).toEqual(
+      new Set([ecommerceGrowthWorkflowAcceptance.workflow_id])
+    );
+    expect(candidates.map((candidate) => candidate.strategyTaxonomy)).toEqual(
+      ecommerceGrowthWorkflowAcceptance.strategy_taxonomy
+    );
+
+    await client.selectCandidate("cand-editorial");
+    await client.iterateSelected("Adapt the ecommerce outputs for marketplace, square social, story, and web hero placements.");
+
+    for (const candidate of candidates) {
+      await client.addPackageItem(candidate.id);
+    }
+
+    const exported = await client.createExport("zip");
+    const latestExport = exported.exports[0];
+
+    expect(exported.packageItems.map((item) => item.strategyTaxonomy)).toEqual(
+      ecommerceGrowthWorkflowAcceptance.strategy_taxonomy
+    );
+    expect(latestExport).toMatchObject({
+      format: "zip",
+      status: "ready",
+      fileName: "zenart-001.zip",
+      manifest: {
+        workflow_acceptance: {
+          schema_version: "stage0.rev2.workflow-api-smoke",
+          workflow_id: ecommerceGrowthWorkflowAcceptance.workflow_id,
+          fixture_id: ecommerceGrowthWorkflowAcceptance.fixture_id,
+          strategy_taxonomy: ecommerceGrowthWorkflowAcceptance.strategy_taxonomy,
+          required_files: ecommerceGrowthWorkflowAcceptance.required_files,
+          export_target: "zip_delivery"
+        },
+        required_outputs: expect.arrayContaining([...ecommerceGrowthWorkflowAcceptance.required_files])
+      },
+      qaReport: expect.arrayContaining([
+        expect.objectContaining({
+          id: "qa-ecommerce-growth-taxonomy",
+          severity: "pass"
+        })
+      ]),
+      safetyReport: {
+        status: "pass",
+        enforcementStages: ["brief", "provider_request", "provider_response", "qa", "export"]
+      }
+    });
+    expect(latestExport.manifest.items).toHaveLength(4);
+    expect(latestExport.manifest.items.every((item) => item.provenance.startsWith("dev-client:"))).toBe(true);
   });
 
   it("records report-problem tickets with project, export, and quota context", async () => {

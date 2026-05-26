@@ -37,6 +37,25 @@ export const requiredExportPackageOutputs = [
   "assets/"
 ] as const;
 
+export const ecommerceGrowthWorkflowAcceptance = {
+  schema_version: "stage0.rev2.workflow-api-smoke",
+  workflow_id: "ecommerce_growth_pack",
+  fixture_id: "fx_ecommerce_growth_golden",
+  display_name: "Ecommerce Growth Pack",
+  strategy_taxonomy: ["conversion_offer", "social_proof", "feature_comparison", "retention_bundle"],
+  required_files: [
+    "manifest.json",
+    "assets/hero_product_ad.png",
+    "assets/square_social_ad.png",
+    "assets/story_variant.png",
+    "assets/marketplace_banner.png",
+    "metadata.json",
+    "qa_report.json",
+    "trace_provenance.json"
+  ],
+  export_target: "zip_delivery"
+} as const;
+
 export const createSessionContract = (
   user: SessionUser = devUser,
   status: SessionContract["status"] = "authenticated",
@@ -66,6 +85,9 @@ const candidates: Candidate[] = [
   {
     id: "cand-editorial",
     title: "Editorial Clarity",
+    workflowId: ecommerceGrowthWorkflowAcceptance.workflow_id,
+    strategyTaxonomy: "conversion_offer",
+    requiredOutputFiles: ["assets/hero_product_ad.png"],
     strategy: "Magazine layout with strong hierarchy and concise copy blocks.",
     palette: ["#111827", "#f4f1ea", "#2f855a", "#d97706"],
     rationale: "Best when the output needs to feel curated and explain a story quickly.",
@@ -74,6 +96,9 @@ const candidates: Candidate[] = [
   {
     id: "cand-studio",
     title: "Studio System",
+    workflowId: ecommerceGrowthWorkflowAcceptance.workflow_id,
+    strategyTaxonomy: "social_proof",
+    requiredOutputFiles: ["assets/square_social_ad.png"],
     strategy: "Reusable product tiles, neutral surfaces, and crisp asset annotations.",
     palette: ["#0f172a", "#e5e7eb", "#2563eb", "#dc2626"],
     rationale: "Best when repeatable production assets and handoff clarity matter.",
@@ -82,6 +107,9 @@ const candidates: Candidate[] = [
   {
     id: "cand-gallery",
     title: "Gallery Motion",
+    workflowId: ecommerceGrowthWorkflowAcceptance.workflow_id,
+    strategyTaxonomy: "feature_comparison",
+    requiredOutputFiles: ["assets/story_variant.png"],
     strategy: "Large art-led panels, cinematic crops, and transition notes.",
     palette: ["#18181b", "#fafafa", "#7c3aed", "#14b8a6"],
     rationale: "Best for expressive brand systems that need memorable visual impact.",
@@ -90,6 +118,9 @@ const candidates: Candidate[] = [
   {
     id: "cand-utility",
     title: "Utility Kit",
+    workflowId: ecommerceGrowthWorkflowAcceptance.workflow_id,
+    strategyTaxonomy: "retention_bundle",
+    requiredOutputFiles: ["assets/marketplace_banner.png"],
     strategy: "Dense asset matrix with accessibility notes and export variants.",
     palette: ["#1f2937", "#ffffff", "#0891b2", "#ca8a04"],
     rationale: "Best for operational campaigns that require fast comparison and QA.",
@@ -191,19 +222,51 @@ export const createInitialWorkspace = (): WorkspaceState => ({
 export const buildManifest = (
   projectId: string,
   items: PackageItem[]
-): PackageManifest => ({
-  package_id: `pkg-${String(items.length || 1).padStart(3, "0")}`,
-  project_id: projectId,
-  created_at: new Date().toISOString(),
-  required_outputs: [...requiredExportPackageOutputs],
-  ppt_ready_metadata: buildPptReadyMetadata(items),
-  items: items.map((item) => ({
-    id: item.id,
-    title: item.title,
-    type: item.type,
-    provenance: item.type === "reference" ? `dev-client-reference:${item.sourceId}` : `dev-client:${item.sourceId}`
-  }))
-});
+): PackageManifest => {
+  const workflowAcceptance = buildWorkflowAcceptanceManifest(items);
+
+  return {
+    package_id: `pkg-${String(items.length || 1).padStart(3, "0")}`,
+    project_id: projectId,
+    created_at: new Date().toISOString(),
+    required_outputs: Array.from(
+      new Set([
+        ...requiredExportPackageOutputs,
+        ...(workflowAcceptance?.required_files ?? []),
+        ...items.flatMap((item) => item.requiredOutputFiles ?? [])
+      ])
+    ),
+    workflow_acceptance: workflowAcceptance,
+    ppt_ready_metadata: buildPptReadyMetadata(items),
+    items: items.map((item) => ({
+      id: item.id,
+      title: item.title,
+      type: item.type,
+      provenance: item.type === "reference" ? `dev-client-reference:${item.sourceId}` : `dev-client:${item.sourceId}`
+    }))
+  };
+};
+
+const buildWorkflowAcceptanceManifest = (items: PackageItem[]): PackageManifest["workflow_acceptance"] | undefined => {
+  const ecommerceItems = items.filter((item) => item.workflowId === ecommerceGrowthWorkflowAcceptance.workflow_id);
+  if (ecommerceItems.length === 0) {
+    return undefined;
+  }
+
+  return {
+    schema_version: ecommerceGrowthWorkflowAcceptance.schema_version,
+    workflow_id: ecommerceGrowthWorkflowAcceptance.workflow_id,
+    fixture_id: ecommerceGrowthWorkflowAcceptance.fixture_id,
+    strategy_taxonomy: Array.from(new Set(ecommerceItems.flatMap((item) => item.strategyTaxonomy ?? []))),
+    required_files: Array.from(
+      new Set([
+        ...ecommerceGrowthWorkflowAcceptance.required_files,
+        ...ecommerceItems.flatMap((item) => item.requiredOutputFiles ?? [])
+      ])
+    ),
+    export_target: ecommerceGrowthWorkflowAcceptance.export_target
+  };
+};
 
 export const buildPptReadyMetadata = (items: PackageItem[]): PptReadyMetadata => ({
   schema_version: "stage0.rev2.ppt-ready-metadata",
@@ -264,7 +327,7 @@ export const evaluatePackageQa = (items: PackageItem[]): QaFinding[] => {
   }
 
   const hasCandidate = items.some((item) => item.type === "candidate");
-  return [
+  const findings: QaFinding[] = [
     {
       id: "qa-manifest",
       severity: "pass",
@@ -280,6 +343,24 @@ export const evaluatePackageQa = (items: PackageItem[]): QaFinding[] => {
         : "Export can continue, but adding the selected candidate is recommended."
     }
   ];
+
+  const ecommerceItems = items.filter((item) => item.workflowId === ecommerceGrowthWorkflowAcceptance.workflow_id);
+  if (ecommerceItems.length > 0) {
+    const coveredTaxonomy = new Set(ecommerceItems.flatMap((item) => item.strategyTaxonomy ?? []));
+    const missingTaxonomy = ecommerceGrowthWorkflowAcceptance.strategy_taxonomy.filter((taxonomy) => !coveredTaxonomy.has(taxonomy));
+
+    findings.push({
+      id: "qa-ecommerce-growth-taxonomy",
+      severity: missingTaxonomy.length === 0 ? "pass" : "warn",
+      title: missingTaxonomy.length === 0 ? "Ecommerce taxonomy covered" : "Ecommerce taxonomy partially covered",
+      detail:
+        missingTaxonomy.length === 0
+          ? "Package covers conversion_offer, social_proof, feature_comparison, and retention_bundle."
+          : `Package is missing ecommerce taxonomy coverage for ${missingTaxonomy.join(", ")}.`
+    });
+  }
+
+  return findings;
 };
 
 export const safetyPolicyEnforcementStages: SafetyPolicyReport["enforcementStages"] = [
@@ -403,7 +484,7 @@ export const buildPackageExportMetadataEvidence = (record: ExportRecord): Packag
   const missingRequiredOutputs = requiredExportPackageOutputs.filter(
     (outputName) => !record.manifest.required_outputs.includes(outputName)
   );
-  const zipPayloadNames = requiredExportPackageOutputs.map((outputName) =>
+  const zipPayloadNames = record.manifest.required_outputs.map((outputName) =>
     outputName === "assets/" ? "assets/README.txt" : outputName
   );
   const provenanceCount = record.manifest.items.filter((item) => item.provenance.trim().length > 0).length;

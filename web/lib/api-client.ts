@@ -47,6 +47,7 @@ const migrateManifest = (manifest: PackageManifest, createdAt: string): PackageM
   return {
     ...manifest,
     required_outputs: Array.from(requiredOutputs),
+    workflow_acceptance: manifest.workflow_acceptance,
     ppt_ready_metadata:
       manifest.ppt_ready_metadata ??
       buildPptReadyMetadata(
@@ -366,7 +367,10 @@ export class DevZenArtClient implements ZenArtClient {
       sourceId,
       title: candidate?.title ?? node?.title ?? reference?.name ?? "Canvas item",
       type: candidate ? "candidate" : reference ? "reference" : "canvas-frame",
-      addedAt: new Date().toISOString()
+      addedAt: new Date().toISOString(),
+      workflowId: candidate?.workflowId,
+      strategyTaxonomy: candidate?.strategyTaxonomy,
+      requiredOutputFiles: candidate?.requiredOutputFiles
     };
 
     return saveState({

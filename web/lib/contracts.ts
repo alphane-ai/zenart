@@ -112,6 +112,9 @@ export interface Candidate {
   id: string;
   title: string;
   strategy: string;
+  workflowId?: string;
+  strategyTaxonomy?: string;
+  requiredOutputFiles?: string[];
   palette: string[];
   rationale: string;
   assetPrompt: string;
@@ -163,6 +166,9 @@ export interface PackageItem {
   title: string;
   type: "candidate" | "canvas-frame" | "reference";
   addedAt: string;
+  workflowId?: string;
+  strategyTaxonomy?: string;
+  requiredOutputFiles?: string[];
 }
 
 export interface PptReadyMetadata {
@@ -199,6 +205,14 @@ export interface PackageManifest {
   project_id: string;
   created_at: string;
   required_outputs: string[];
+  workflow_acceptance?: {
+    schema_version: "stage0.rev2.workflow-api-smoke";
+    workflow_id: string;
+    fixture_id: string;
+    strategy_taxonomy: string[];
+    required_files: string[];
+    export_target: "zip_delivery";
+  };
   ppt_ready_metadata: PptReadyMetadata;
   items: Array<{
     id: string;
