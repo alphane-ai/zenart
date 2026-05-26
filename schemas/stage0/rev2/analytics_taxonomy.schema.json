@@ -1,0 +1,247 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zenart.local/schemas/stage0/rev2/analytics_taxonomy.schema.json",
+  "title": "ZenArt Stage 0 Rev2 Analytics Taxonomy",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "taxonomy_id",
+    "blueprint_source",
+    "event_taxonomy",
+    "admin_reports",
+    "governance",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "stage0.rev2"
+    },
+    "taxonomy_id": {
+      "type": "string",
+      "pattern": "^analytics_[a-z0-9_]+$"
+    },
+    "blueprint_source": {
+      "const": "Docs/stage0_blueprint_rev2.md"
+    },
+    "event_taxonomy": {
+      "type": "array",
+      "minItems": 16,
+      "items": {
+        "$ref": "#/$defs/event"
+      }
+    },
+    "admin_reports": {
+      "type": "array",
+      "minItems": 11,
+      "items": {
+        "$ref": "#/$defs/report"
+      }
+    },
+    "governance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "private_beta_go_no_go_required",
+        "production_go_no_go_required",
+        "pii_policy",
+        "tenant_scope_required"
+      ],
+      "properties": {
+        "private_beta_go_no_go_required": {
+          "type": "boolean",
+          "const": true
+        },
+        "production_go_no_go_required": {
+          "type": "boolean",
+          "const": true
+        },
+        "pii_policy": {
+          "enum": [
+            "no_raw_prompt_or_asset_payloads"
+          ]
+        },
+        "tenant_scope_required": {
+          "type": "boolean",
+          "const": true
+        }
+      }
+    },
+    "provenance": {
+      "$ref": "#/$defs/provenance"
+    }
+  },
+  "$defs": {
+    "event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event_name",
+        "category",
+        "capture_surface",
+        "required_context",
+        "success_metric_refs",
+        "privacy_classification"
+      ],
+      "properties": {
+        "event_name": {
+          "enum": [
+            "signup",
+            "onboarding_completed",
+            "project_created",
+            "first_chat_sent",
+            "candidate_set_generated",
+            "candidate_selected",
+            "iteration_requested",
+            "package_item_added",
+            "export_started",
+            "export_completed",
+            "export_failed",
+            "qa_warning_block",
+            "billing_viewed",
+            "subscription_started_cancelled",
+            "support_ticket_opened",
+            "safety_blocked"
+          ]
+        },
+        "category": {
+          "enum": [
+            "account",
+            "activation",
+            "workflow",
+            "package_export",
+            "billing",
+            "support",
+            "safety_quality"
+          ]
+        },
+        "capture_surface": {
+          "enum": [
+            "client",
+            "server",
+            "worker",
+            "admin"
+          ]
+        },
+        "required_context": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "tenant_id",
+              "user_id",
+              "session_id",
+              "project_id",
+              "workflow",
+              "task_id",
+              "trace_id",
+              "candidate_set_id",
+              "candidate_id",
+              "package_id",
+              "export_id",
+              "qa_result_id",
+              "safety_decision_id",
+              "plan_id",
+              "subscription_id",
+              "support_ticket_id",
+              "provider_id",
+              "model_id",
+              "occurred_at"
+            ]
+          }
+        },
+        "success_metric_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^report_[a-z0-9_]+$"
+          }
+        },
+        "privacy_classification": {
+          "enum": [
+            "operational_non_content",
+            "billing_state",
+            "support_metadata",
+            "safety_metadata"
+          ]
+        }
+      }
+    },
+    "report": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "report_id",
+        "metric_name",
+        "source_events",
+        "required_dimensions",
+        "go_no_go_signal"
+      ],
+      "properties": {
+        "report_id": {
+          "type": "string",
+          "pattern": "^report_[a-z0-9_]+$"
+        },
+        "metric_name": {
+          "enum": [
+            "first_prompt_to_four_candidates",
+            "four_option_selection_rate",
+            "iteration_rate",
+            "package_add_rate",
+            "export_completion_rate",
+            "weekly_return",
+            "average_assets_per_package",
+            "cost_per_successful_package",
+            "qa_warning_block_rate",
+            "failed_export_rate",
+            "support_ticket_rate",
+            "provider_cost_anomaly"
+          ]
+        },
+        "source_events": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "required_dimensions": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "go_no_go_signal": {
+          "type": "boolean"
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "blueprint_sections",
+        "created_by_lane"
+      ],
+      "properties": {
+        "blueprint_sections": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "^(22|25\\.19)"
+          }
+        },
+        "created_by_lane": {
+          "const": "lane2"
+        }
+      }
+    }
+  }
+}

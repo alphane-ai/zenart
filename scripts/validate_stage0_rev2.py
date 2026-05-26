@@ -120,6 +120,7 @@ GATE_CHECKLIST_ITEMS = {
 }
 
 SCHEMA_FIXTURE_TARGETS = [
+    ("analytics_taxonomy.schema.json", FIXTURE_DIR / "analytics" / "event_taxonomy.json", "object"),
     ("eval_suite.schema.json", FIXTURE_DIR / "eval" / "starter_eval_suite.json", "object"),
     ("qa_result.schema.json", FIXTURE_DIR / "eval" / "qa_results.json", "array_items"),
     ("safety_rule.schema.json", FIXTURE_DIR / "eval" / "safety_rules.json", "array_items"),
@@ -162,6 +163,7 @@ CHECKED_ITEMS = {
     "实现 feedback taxonomy。",
     "实现 feedback attribution。",
     "实现 abuse event model。",
+    "定义 analytics event taxonomy。",
 }
 
 FORBIDDEN_CHECKED_ITEMS = {
@@ -302,6 +304,8 @@ OPENAPI_REQUIRED_OPERATION_IDS = {
     "listFeedback",
     "listSafetyRules",
     "listAuditLogs",
+    "listAnalyticsEvents",
+    "listAnalyticsReports",
 }
 
 OPENAPI_REQUIRED_CONTRACT_TOKENS = {
@@ -329,6 +333,44 @@ OPENAPI_REQUIRED_CONTRACT_TOKENS = {
     "evaluation_contract:",
     "blocks_export_when_critical:",
     "const: SafetyDecision",
+    "AnalyticsEvent:",
+    "AnalyticsReport:",
+    "go_no_go_signal:",
+    "privacy_classification:",
+}
+
+ANALYTICS_EVENTS = {
+    "signup",
+    "onboarding_completed",
+    "project_created",
+    "first_chat_sent",
+    "candidate_set_generated",
+    "candidate_selected",
+    "iteration_requested",
+    "package_item_added",
+    "export_started",
+    "export_completed",
+    "export_failed",
+    "qa_warning_block",
+    "billing_viewed",
+    "subscription_started_cancelled",
+    "support_ticket_opened",
+    "safety_blocked",
+}
+
+ANALYTICS_REPORTS = {
+    "first_prompt_to_four_candidates",
+    "four_option_selection_rate",
+    "iteration_rate",
+    "package_add_rate",
+    "export_completion_rate",
+    "weekly_return",
+    "average_assets_per_package",
+    "cost_per_successful_package",
+    "qa_warning_block_rate",
+    "failed_export_rate",
+    "support_ticket_rate",
+    "provider_cost_anomaly",
 }
 
 OPS_EVIDENCE_REQUIRED_KEYS = {
@@ -530,6 +572,7 @@ def validate_json_files() -> None:
         SCHEMA_DIR / "crawler_governance.schema.json",
         SCHEMA_DIR / "feedback_event.schema.json",
         SCHEMA_DIR / "abuse_event.schema.json",
+        SCHEMA_DIR / "analytics_taxonomy.schema.json",
         SCHEMA_DIR / "release_gate_evidence.schema.json",
         FIXTURE_DIR / "eval" / "starter_eval_suite.json",
         FIXTURE_DIR / "eval" / "qa_results.json",
@@ -537,6 +580,7 @@ def validate_json_files() -> None:
         FIXTURE_DIR / "crawler" / "crawler_governance_cases.json",
         FIXTURE_DIR / "feedback" / "feedback_events.json",
         FIXTURE_DIR / "abuse" / "abuse_events.json",
+        FIXTURE_DIR / "analytics" / "event_taxonomy.json",
         FIXTURE_DIR / "release_gate_evidence.local_alpha.json",
         FIXTURE_DIR / "release_gate_evidence.ci.json",
         FIXTURE_DIR / "release_gate_evidence.private_beta_staging.json",
@@ -561,8 +605,8 @@ def validate_provenance() -> None:
         for value in walk_values(data):
             if isinstance(value, dict) and "created_by_lane" in value:
                 require(
-                    value["created_by_lane"] == "lane6",
-                    f"{path.relative_to(ROOT)} has non-lane6 provenance",
+                    value["created_by_lane"] in {"lane2", "lane6"},
+                    f"{path.relative_to(ROOT)} has unsupported lane provenance",
                 )
                 require(
                     value.get("blueprint_sections"),
@@ -743,6 +787,65 @@ def validate_crawler_feedback_abuse() -> None:
             controls["rate_limit"] or controls["temporary_hold"] or controls["admin_abuse_queue"],
             f"{event['event_id']} must have at least one control",
         )
+
+
+def validate_analytics_taxonomy() -> None:
+    taxonomy = load_json(FIXTURE_DIR / "analytics" / "event_taxonomy.json")
+    require(
+        taxonomy["blueprint_source"] == "Docs/stage0_blueprint_rev2.md",
+        "analytics taxonomy must cite authoritative Rev2 blueprint",
+    )
+    events = {event["event_name"]: event for event in taxonomy["event_taxonomy"]}
+    reports = {report["metric_name"]: report for report in taxonomy["admin_reports"]}
+    require(
+        set(events) == ANALYTICS_EVENTS,
+        f"analytics taxonomy event mismatch: missing {sorted(ANALYTICS_EVENTS - set(events))}, extra {sorted(set(events) - ANALYTICS_EVENTS)}",
+    )
+    require(
+        set(reports) == ANALYTICS_REPORTS,
+        f"analytics taxonomy report mismatch: missing {sorted(ANALYTICS_REPORTS - set(reports))}, extra {sorted(set(reports) - ANALYTICS_REPORTS)}",
+    )
+    require(
+        taxonomy["governance"]["private_beta_go_no_go_required"] is True
+        and taxonomy["governance"]["production_go_no_go_required"] is True,
+        "analytics taxonomy must be a private beta and production go/no-go input",
+    )
+    require(
+        taxonomy["governance"]["tenant_scope_required"] is True,
+        "analytics taxonomy must require tenant-scoped events",
+    )
+
+    report_ids = {report["report_id"] for report in taxonomy["admin_reports"]}
+    for event_name, event in events.items():
+        require("tenant_id" in event["required_context"], f"{event_name} must require tenant_id context")
+        require("occurred_at" in event["required_context"], f"{event_name} must require occurred_at context")
+        missing_refs = set(event["success_metric_refs"]) - report_ids
+        require(not missing_refs, f"{event_name} references unknown reports: {sorted(missing_refs)}")
+
+    event_names = set(events)
+    for metric_name, report in reports.items():
+        missing_sources = set(report["source_events"]) - event_names
+        require(not missing_sources, f"{metric_name} references unknown events: {sorted(missing_sources)}")
+        require(
+            "tenant_id" in report["required_dimensions"],
+            f"{metric_name} must include tenant_id dimension",
+        )
+
+    go_no_go_reports = {report["metric_name"] for report in taxonomy["admin_reports"] if report["go_no_go_signal"]}
+    require(
+        {
+            "first_prompt_to_four_candidates",
+            "four_option_selection_rate",
+            "export_completion_rate",
+            "cost_per_successful_package",
+            "qa_warning_block_rate",
+            "failed_export_rate",
+            "support_ticket_rate",
+            "provider_cost_anomaly",
+        }
+        <= go_no_go_reports,
+        "analytics taxonomy missing required go/no-go reports",
+    )
 
 
 def validate_release_gate_evidence() -> None:
@@ -1026,6 +1129,8 @@ def validate_openapi_contract() -> None:
         "listProviderStatus",
         "listProviderUsage",
         "listAbuseEvents",
+        "listAnalyticsEvents",
+        "listAnalyticsReports",
         "listAuditLogs",
     ]:
         match = re.search(rf"operationId: {operation_id}\n(?P<body>(?:^      .+\n|^        .+\n|^          .+\n)+)", text, flags=re.MULTILINE)
@@ -1075,6 +1180,8 @@ def validate_openapi_rev2_domain_contracts() -> None:
         "CrawlerSource": ["legal_metadata", "robots_policy"],
         "CrawlerFinding": ["provenance", "import_governance"],
         "SafetyRule": ["enforcement_points", "evaluation_contract"],
+        "AnalyticsEvent": ["event_name", "required_context", "success_metric_refs", "privacy_classification"],
+        "AnalyticsReport": ["metric_name", "source_events", "required_dimensions", "go_no_go_signal"],
     }
     for schema_name, fields in required_schema_fields.items():
         pattern = rf"^    {schema_name}:\n(?P<body>.*?)(?=^    [A-Za-z0-9]+:|\Z)"
@@ -1117,6 +1224,18 @@ def validate_openapi_rev2_domain_contracts() -> None:
         require(point in safety_body, f"SafetyRule enforcement_points missing {point}")
     require("uniqueItems: true" in safety_body, "SafetyRule enforcement_points must be unique")
     require("blocks_export_when_critical:" in safety_body, "SafetyRule must declare critical export blocking")
+
+    analytics_event = re.search(r"^    AnalyticsEvent:\n(?P<body>.*?)(?=^    [A-Za-z0-9]+:|\Z)", text, flags=re.MULTILINE | re.DOTALL)
+    analytics_event_body = analytics_event.group("body") if analytics_event else ""
+    for event_name in ANALYTICS_EVENTS:
+        require(event_name in analytics_event_body, f"AnalyticsEvent missing event enum {event_name}")
+    require("uniqueItems: true" in analytics_event_body, "AnalyticsEvent required_context must be unique")
+
+    analytics_report = re.search(r"^    AnalyticsReport:\n(?P<body>.*?)(?=^    [A-Za-z0-9]+:|\Z)", text, flags=re.MULTILINE | re.DOTALL)
+    analytics_report_body = analytics_report.group("body") if analytics_report else ""
+    for report_name in ANALYTICS_REPORTS:
+        require(report_name in analytics_report_body, f"AnalyticsReport missing metric enum {report_name}")
+    require("go_no_go_signal:" in analytics_report_body, "AnalyticsReport must identify go/no-go metrics")
 
 
 def validate_task_schema_compatibility_contract() -> None:
@@ -1323,6 +1442,7 @@ def main() -> int:
         validate_eval_suite,
         validate_qa_and_safety,
         validate_crawler_feedback_abuse,
+        validate_analytics_taxonomy,
         validate_local_alpha_presence,
         validate_release_gate_evidence,
         validate_blueprint_checklist,

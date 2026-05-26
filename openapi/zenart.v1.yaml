@@ -31,6 +31,7 @@ tags:
   - name: feedback
   - name: safety
   - name: abuse
+  - name: analytics
   - name: audit
 paths:
   /session:
@@ -999,6 +1000,44 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/SafetyDecision"
+        default:
+          $ref: "#/components/responses/Error"
+  /analytics/events:
+    get:
+      operationId: listAnalyticsEvents
+      tags: [analytics]
+      x-rbac: admin
+      parameters:
+        - $ref: "#/components/parameters/PageToken"
+        - $ref: "#/components/parameters/PageSize"
+        - $ref: "#/components/parameters/Sort"
+        - $ref: "#/components/parameters/Search"
+      responses:
+        "200":
+          description: Product analytics event taxonomy and captured event page for admin reporting.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnalyticsEventPage"
+        default:
+          $ref: "#/components/responses/Error"
+  /analytics/reports:
+    get:
+      operationId: listAnalyticsReports
+      tags: [analytics]
+      x-rbac: admin
+      parameters:
+        - $ref: "#/components/parameters/PageToken"
+        - $ref: "#/components/parameters/PageSize"
+        - $ref: "#/components/parameters/Sort"
+        - $ref: "#/components/parameters/Search"
+      responses:
+        "200":
+          description: Admin analytics report taxonomy used by private beta and production go/no-go gates.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnalyticsReportPage"
         default:
           $ref: "#/components/responses/Error"
   /audit:
@@ -2384,6 +2423,150 @@ components:
         created_at:
           type: string
           format: date-time
+    AnalyticsEvent:
+      type: object
+      required:
+        - id
+        - tenant_id
+        - event_name
+        - category
+        - capture_surface
+        - required_context
+        - success_metric_refs
+        - privacy_classification
+        - occurred_at
+      properties:
+        id:
+          type: string
+        tenant_id:
+          type: string
+        user_id:
+          type: string
+          nullable: true
+        project_id:
+          type: string
+          nullable: true
+        event_name:
+          type: string
+          enum:
+            - signup
+            - onboarding_completed
+            - project_created
+            - first_chat_sent
+            - candidate_set_generated
+            - candidate_selected
+            - iteration_requested
+            - package_item_added
+            - export_started
+            - export_completed
+            - export_failed
+            - qa_warning_block
+            - billing_viewed
+            - subscription_started_cancelled
+            - support_ticket_opened
+            - safety_blocked
+        category:
+          type: string
+          enum: [account, activation, workflow, package_export, billing, support, safety_quality]
+        capture_surface:
+          type: string
+          enum: [client, server, worker, admin]
+        required_context:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          items:
+            type: string
+        success_metric_refs:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          items:
+            type: string
+        privacy_classification:
+          type: string
+          enum: [operational_non_content, billing_state, support_metadata, safety_metadata]
+        context:
+          type: object
+          additionalProperties: true
+          description: Operational IDs only; raw prompt, image, export, or support body content is not allowed.
+        occurred_at:
+          type: string
+          format: date-time
+    AnalyticsEventPage:
+      allOf:
+        - $ref: "#/components/schemas/PageInfo"
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/AnalyticsEvent"
+    AnalyticsReport:
+      type: object
+      required:
+        - id
+        - metric_name
+        - source_events
+        - required_dimensions
+        - go_no_go_signal
+        - window
+        - value
+        - computed_at
+      properties:
+        id:
+          type: string
+        metric_name:
+          type: string
+          enum:
+            - first_prompt_to_four_candidates
+            - four_option_selection_rate
+            - iteration_rate
+            - package_add_rate
+            - export_completion_rate
+            - weekly_return
+            - average_assets_per_package
+            - cost_per_successful_package
+            - qa_warning_block_rate
+            - failed_export_rate
+            - support_ticket_rate
+            - provider_cost_anomaly
+        source_events:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          items:
+            type: string
+        required_dimensions:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          items:
+            type: string
+        go_no_go_signal:
+          type: boolean
+        window:
+          type: string
+          enum: [daily, weekly, release_gate]
+        value:
+          type: number
+        dimensions:
+          type: object
+          additionalProperties: true
+        computed_at:
+          type: string
+          format: date-time
+    AnalyticsReportPage:
+      allOf:
+        - $ref: "#/components/schemas/PageInfo"
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/AnalyticsReport"
     AbuseEvent:
       type: object
       required: [id, tenant_id, event_type, severity, status, evidence, controls, created_at, updated_at]

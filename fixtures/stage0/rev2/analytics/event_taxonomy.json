@@ -1,0 +1,231 @@
+{
+  "schema_version": "stage0.rev2",
+  "taxonomy_id": "analytics_stage0_rev2_core",
+  "blueprint_source": "Docs/stage0_blueprint_rev2.md",
+  "event_taxonomy": [
+    {
+      "event_name": "signup",
+      "category": "account",
+      "capture_surface": "server",
+      "required_context": ["tenant_id", "user_id", "session_id", "occurred_at"],
+      "success_metric_refs": ["report_weekly_return"],
+      "privacy_classification": "operational_non_content"
+    },
+    {
+      "event_name": "onboarding_completed",
+      "category": "activation",
+      "capture_surface": "client",
+      "required_context": ["tenant_id", "user_id", "session_id", "occurred_at"],
+      "success_metric_refs": ["report_weekly_return"],
+      "privacy_classification": "operational_non_content"
+    },
+    {
+      "event_name": "project_created",
+      "category": "activation",
+      "capture_surface": "server",
+      "required_context": ["tenant_id", "user_id", "project_id", "occurred_at"],
+      "success_metric_refs": ["report_weekly_return"],
+      "privacy_classification": "operational_non_content"
+    },
+    {
+      "event_name": "first_chat_sent",
+      "category": "workflow",
+      "capture_surface": "server",
+      "required_context": ["tenant_id", "user_id", "project_id", "workflow", "task_id", "trace_id", "occurred_at"],
+      "success_metric_refs": ["report_first_prompt_to_four_candidates"],
+      "privacy_classification": "operational_non_content"
+    },
+    {
+      "event_name": "candidate_set_generated",
+      "category": "workflow",
+      "capture_surface": "worker",
+      "required_context": ["tenant_id", "user_id", "project_id", "workflow", "task_id", "trace_id", "candidate_set_id", "provider_id", "model_id", "occurred_at"],
+      "success_metric_refs": ["report_first_prompt_to_four_candidates", "report_provider_cost_anomaly"],
+      "privacy_classification": "operational_non_content"
+    },
+    {
+      "event_name": "candidate_selected",
+      "category": "workflow",
+      "capture_surface": "server",
+      "required_context": ["tenant_id", "user_id", "project_id", "workflow", "trace_id", "candidate_set_id", "candidate_id", "occurred_at"],
+      "success_metric_refs": ["report_four_option_selection_rate"],
+      "privacy_classification": "operational_non_content"
+    },
+    {
+      "event_name": "iteration_requested",
+      "category": "workflow",
+      "capture_surface": "server",
+      "required_context": ["tenant_id", "user_id", "project_id", "workflow", "task_id", "trace_id", "candidate_id", "occurred_at"],
+      "success_metric_refs": ["report_iteration_rate"],
+      "privacy_classification": "operational_non_content"
+    },
+    {
+      "event_name": "package_item_added",
+      "category": "package_export",
+      "capture_surface": "server",
+      "required_context": ["tenant_id", "user_id", "project_id", "workflow", "trace_id", "candidate_id", "package_id", "occurred_at"],
+      "success_metric_refs": ["report_package_add_rate", "report_average_assets_per_package"],
+      "privacy_classification": "operational_non_content"
+    },
+    {
+      "event_name": "export_started",
+      "category": "package_export",
+      "capture_surface": "server",
+      "required_context": ["tenant_id", "user_id", "project_id", "workflow", "task_id", "trace_id", "package_id", "export_id", "occurred_at"],
+      "success_metric_refs": ["report_export_completion_rate", "report_failed_export_rate"],
+      "privacy_classification": "operational_non_content"
+    },
+    {
+      "event_name": "export_completed",
+      "category": "package_export",
+      "capture_surface": "worker",
+      "required_context": ["tenant_id", "user_id", "project_id", "workflow", "task_id", "trace_id", "package_id", "export_id", "provider_id", "model_id", "occurred_at"],
+      "success_metric_refs": ["report_export_completion_rate", "report_cost_per_successful_package"],
+      "privacy_classification": "operational_non_content"
+    },
+    {
+      "event_name": "export_failed",
+      "category": "package_export",
+      "capture_surface": "worker",
+      "required_context": ["tenant_id", "user_id", "project_id", "workflow", "task_id", "trace_id", "package_id", "export_id", "provider_id", "model_id", "occurred_at"],
+      "success_metric_refs": ["report_failed_export_rate", "report_provider_cost_anomaly"],
+      "privacy_classification": "operational_non_content"
+    },
+    {
+      "event_name": "qa_warning_block",
+      "category": "safety_quality",
+      "capture_surface": "worker",
+      "required_context": ["tenant_id", "user_id", "project_id", "workflow", "task_id", "trace_id", "qa_result_id", "occurred_at"],
+      "success_metric_refs": ["report_qa_warning_block_rate"],
+      "privacy_classification": "safety_metadata"
+    },
+    {
+      "event_name": "billing_viewed",
+      "category": "billing",
+      "capture_surface": "client",
+      "required_context": ["tenant_id", "user_id", "session_id", "plan_id", "occurred_at"],
+      "success_metric_refs": ["report_weekly_return"],
+      "privacy_classification": "billing_state"
+    },
+    {
+      "event_name": "subscription_started_cancelled",
+      "category": "billing",
+      "capture_surface": "server",
+      "required_context": ["tenant_id", "user_id", "plan_id", "subscription_id", "occurred_at"],
+      "success_metric_refs": ["report_weekly_return"],
+      "privacy_classification": "billing_state"
+    },
+    {
+      "event_name": "support_ticket_opened",
+      "category": "support",
+      "capture_surface": "server",
+      "required_context": ["tenant_id", "user_id", "project_id", "support_ticket_id", "occurred_at"],
+      "success_metric_refs": ["report_support_ticket_rate"],
+      "privacy_classification": "support_metadata"
+    },
+    {
+      "event_name": "safety_blocked",
+      "category": "safety_quality",
+      "capture_surface": "server",
+      "required_context": ["tenant_id", "user_id", "project_id", "workflow", "task_id", "trace_id", "safety_decision_id", "occurred_at"],
+      "success_metric_refs": ["report_qa_warning_block_rate", "report_failed_export_rate"],
+      "privacy_classification": "safety_metadata"
+    }
+  ],
+  "admin_reports": [
+    {
+      "report_id": "report_first_prompt_to_four_candidates",
+      "metric_name": "first_prompt_to_four_candidates",
+      "source_events": ["first_chat_sent", "candidate_set_generated"],
+      "required_dimensions": ["tenant_id", "workflow", "provider_id", "model_id"],
+      "go_no_go_signal": true
+    },
+    {
+      "report_id": "report_four_option_selection_rate",
+      "metric_name": "four_option_selection_rate",
+      "source_events": ["candidate_set_generated", "candidate_selected"],
+      "required_dimensions": ["tenant_id", "workflow"],
+      "go_no_go_signal": true
+    },
+    {
+      "report_id": "report_iteration_rate",
+      "metric_name": "iteration_rate",
+      "source_events": ["candidate_selected", "iteration_requested"],
+      "required_dimensions": ["tenant_id", "workflow"],
+      "go_no_go_signal": true
+    },
+    {
+      "report_id": "report_package_add_rate",
+      "metric_name": "package_add_rate",
+      "source_events": ["candidate_selected", "package_item_added"],
+      "required_dimensions": ["tenant_id", "workflow"],
+      "go_no_go_signal": true
+    },
+    {
+      "report_id": "report_export_completion_rate",
+      "metric_name": "export_completion_rate",
+      "source_events": ["export_started", "export_completed", "export_failed"],
+      "required_dimensions": ["tenant_id", "workflow"],
+      "go_no_go_signal": true
+    },
+    {
+      "report_id": "report_weekly_return",
+      "metric_name": "weekly_return",
+      "source_events": ["signup", "onboarding_completed", "project_created", "billing_viewed", "subscription_started_cancelled"],
+      "required_dimensions": ["tenant_id", "plan_id"],
+      "go_no_go_signal": true
+    },
+    {
+      "report_id": "report_average_assets_per_package",
+      "metric_name": "average_assets_per_package",
+      "source_events": ["package_item_added"],
+      "required_dimensions": ["tenant_id", "workflow"],
+      "go_no_go_signal": false
+    },
+    {
+      "report_id": "report_cost_per_successful_package",
+      "metric_name": "cost_per_successful_package",
+      "source_events": ["candidate_set_generated", "export_completed"],
+      "required_dimensions": ["tenant_id", "workflow", "provider_id", "model_id"],
+      "go_no_go_signal": true
+    },
+    {
+      "report_id": "report_qa_warning_block_rate",
+      "metric_name": "qa_warning_block_rate",
+      "source_events": ["qa_warning_block", "safety_blocked"],
+      "required_dimensions": ["tenant_id", "workflow"],
+      "go_no_go_signal": true
+    },
+    {
+      "report_id": "report_failed_export_rate",
+      "metric_name": "failed_export_rate",
+      "source_events": ["export_started", "export_failed", "safety_blocked"],
+      "required_dimensions": ["tenant_id", "workflow", "provider_id", "model_id"],
+      "go_no_go_signal": true
+    },
+    {
+      "report_id": "report_support_ticket_rate",
+      "metric_name": "support_ticket_rate",
+      "source_events": ["support_ticket_opened"],
+      "required_dimensions": ["tenant_id", "workflow"],
+      "go_no_go_signal": true
+    },
+    {
+      "report_id": "report_provider_cost_anomaly",
+      "metric_name": "provider_cost_anomaly",
+      "source_events": ["candidate_set_generated", "export_failed"],
+      "required_dimensions": ["tenant_id", "provider_id", "model_id"],
+      "go_no_go_signal": true
+    }
+  ],
+  "governance": {
+    "private_beta_go_no_go_required": true,
+    "production_go_no_go_required": true,
+    "pii_policy": "no_raw_prompt_or_asset_payloads",
+    "tenant_scope_required": true
+  },
+  "provenance": {
+    "blueprint_sections": ["22", "25.19"],
+    "created_by_lane": "lane2"
+  }
+}
