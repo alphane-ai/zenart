@@ -2177,6 +2177,50 @@ def validate_eval_results() -> None:
             require(item["export_contract"]["trace_provenance"] is True, f"{item['fixture_id']} export must include trace provenance")
         if fixture["expected_evidence"]["must_include_qa_report"]:
             require(item["export_contract"]["qa_report"] is True, f"{item['fixture_id']} export must include QA report")
+        qa_gate = item["qa_export_gate"]
+        blocking_check_ids = [
+            check_id
+            for check_id in item["qa_check_ids"]
+            if qa_by_id[check_id]["export_gate"]["blocks_final_export"] is True
+        ]
+        blocking_categories = sorted(
+            {
+                qa_by_id[check_id]["check_category"]
+                for check_id in blocking_check_ids
+            }
+        )
+        safety_blocks_export = item["observed_safety_action"] == "block"
+        export_artifacts_complete = all(
+            item["export_contract"][key]
+            for key in [
+                "manifest",
+                "qa_report",
+                "metadata",
+                "trace_provenance",
+                "safety_disclaimer_when_applicable",
+            ]
+        )
+        require(
+            qa_gate["blocking_qa_check_ids"] == blocking_check_ids,
+            f"{item['fixture_id']} QA export gate blocking checks mismatch",
+        )
+        require(
+            qa_gate["blocking_qa_categories"] == blocking_categories,
+            f"{item['fixture_id']} QA export gate blocking categories mismatch",
+        )
+        require(
+            qa_gate["safety_blocks_export"] is safety_blocks_export,
+            f"{item['fixture_id']} QA export gate safety decision mismatch",
+        )
+        require(
+            qa_gate["export_artifacts_complete"] is export_artifacts_complete,
+            f"{item['fixture_id']} QA export gate artifact completeness mismatch",
+        )
+        require(qa_gate["override_requires_audit"] is True, f"{item['fixture_id']} QA export override must require audit")
+        if item["status"] == "pass":
+            require(qa_gate["final_export_allowed"] is True, f"{item['fixture_id']} passed eval must allow final export")
+        else:
+            require(qa_gate["final_export_allowed"] is False, f"{item['fixture_id']} blocked eval must deny final export")
         for check_id in item["qa_check_ids"]:
             require(check_id in qa_by_id, f"{item['fixture_id']} references unknown QA check {check_id}")
             require(

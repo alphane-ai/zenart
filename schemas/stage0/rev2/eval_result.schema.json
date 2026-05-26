@@ -189,6 +189,7 @@
           "qa_check_ids",
           "trace_contract",
           "export_contract",
+          "qa_export_gate",
           "failure_reasons"
         ],
         "properties": {
@@ -254,6 +255,9 @@
           },
           "export_contract": {
             "$ref": "#/$defs/export_contract"
+          },
+          "qa_export_gate": {
+            "$ref": "#/$defs/qa_export_gate"
           },
           "failure_reasons": {
             "type": "array",
@@ -479,6 +483,65 @@
           "type": "boolean"
         },
         "blocks_when_incomplete": {
+          "type": "boolean",
+          "const": true
+        }
+      }
+    },
+    "qa_export_gate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "final_export_allowed",
+        "blocking_qa_check_ids",
+        "blocking_qa_categories",
+        "safety_blocks_export",
+        "export_artifacts_complete",
+        "admin_override_required_for_export",
+        "override_requires_audit"
+      ],
+      "properties": {
+        "final_export_allowed": {
+          "type": "boolean"
+        },
+        "blocking_qa_check_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^qa_[a-z0-9_]+$"
+          }
+        },
+        "blocking_qa_categories": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "file_integrity",
+              "dimensions",
+              "aspect_ratio",
+              "safe_area",
+              "blank_output",
+              "duplicate_similarity",
+              "four_option_distinctness",
+              "text_readability",
+              "structured_text",
+              "product_logo_preservation",
+              "forbidden_claims",
+              "watermark_signature_risk",
+              "export_completeness"
+            ]
+          }
+        },
+        "safety_blocks_export": {
+          "type": "boolean"
+        },
+        "export_artifacts_complete": {
+          "type": "boolean"
+        },
+        "admin_override_required_for_export": {
+          "type": "boolean"
+        },
+        "override_requires_audit": {
           "type": "boolean",
           "const": true
         }

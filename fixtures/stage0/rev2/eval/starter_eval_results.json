@@ -14,9 +14,9 @@
     "created_at": "2026-05-26T00:00:00Z",
     "summary": {
       "total_fixtures": 12,
-      "passed_fixtures": 4,
+      "passed_fixtures": 3,
       "failed_fixtures": 0,
-      "blocked_fixtures": 8,
+      "blocked_fixtures": 9,
       "golden_passed": false,
       "critical_safety_regressions": 0,
       "regression_pass_rate": 1.0,
@@ -75,6 +75,15 @@
           "safety_disclaimer_when_applicable": true,
           "blocks_when_incomplete": true
         },
+        "qa_export_gate": {
+          "final_export_allowed": true,
+          "blocking_qa_check_ids": [],
+          "blocking_qa_categories": [],
+          "safety_blocks_export": false,
+          "export_artifacts_complete": true,
+          "admin_override_required_for_export": false,
+          "override_requires_audit": true
+        },
         "failure_reasons": []
       },
       {
@@ -106,13 +115,22 @@
           "safety_disclaimer_when_applicable": true,
           "blocks_when_incomplete": true
         },
+        "qa_export_gate": {
+          "final_export_allowed": true,
+          "blocking_qa_check_ids": [],
+          "blocking_qa_categories": [],
+          "safety_blocks_export": false,
+          "export_artifacts_complete": true,
+          "admin_override_required_for_export": false,
+          "override_requires_audit": true
+        },
         "failure_reasons": []
       },
       {
         "fixture_id": "fx_local_merchant_campaign_golden",
         "category": "golden",
         "workflow": "local_merchant_campaign_pack",
-        "status": "pass",
+        "status": "blocked",
         "candidate_count": 4,
         "expected_safety_action": "allow",
         "observed_safety_action": "allow",
@@ -138,7 +156,22 @@
           "safety_disclaimer_when_applicable": true,
           "blocks_when_incomplete": true
         },
-        "failure_reasons": []
+        "qa_export_gate": {
+          "final_export_allowed": false,
+          "blocking_qa_check_ids": [
+            "qa_dimensions_platform_target"
+          ],
+          "blocking_qa_categories": [
+            "dimensions"
+          ],
+          "safety_blocks_export": false,
+          "export_artifacts_complete": true,
+          "admin_override_required_for_export": true,
+          "override_requires_audit": true
+        },
+        "failure_reasons": [
+          "dimensions_block"
+        ]
       },
       {
         "fixture_id": "fx_character_ip_concept_golden",
@@ -170,6 +203,19 @@
           "safety_disclaimer_when_applicable": true,
           "blocks_when_incomplete": true
         },
+        "qa_export_gate": {
+          "final_export_allowed": false,
+          "blocking_qa_check_ids": [
+            "qa_blank_output"
+          ],
+          "blocking_qa_categories": [
+            "blank_output"
+          ],
+          "safety_blocks_export": false,
+          "export_artifacts_complete": true,
+          "admin_override_required_for_export": true,
+          "override_requires_audit": true
+        },
         "failure_reasons": [
           "blank_output_block"
         ]
@@ -200,6 +246,15 @@
           "trace_provenance": true,
           "safety_disclaimer_when_applicable": true,
           "blocks_when_incomplete": true
+        },
+        "qa_export_gate": {
+          "final_export_allowed": false,
+          "blocking_qa_check_ids": [],
+          "blocking_qa_categories": [],
+          "safety_blocks_export": false,
+          "export_artifacts_complete": false,
+          "admin_override_required_for_export": true,
+          "override_requires_audit": true
         },
         "failure_reasons": [
           "clarification_required_before_generation"
@@ -234,6 +289,19 @@
           "safety_disclaimer_when_applicable": true,
           "blocks_when_incomplete": true
         },
+        "qa_export_gate": {
+          "final_export_allowed": false,
+          "blocking_qa_check_ids": [
+            "qa_forbidden_claims"
+          ],
+          "blocking_qa_categories": [
+            "forbidden_claims"
+          ],
+          "safety_blocks_export": true,
+          "export_artifacts_complete": false,
+          "admin_override_required_for_export": true,
+          "override_requires_audit": true
+        },
         "failure_reasons": [
           "safety_policy_block"
         ]
@@ -267,6 +335,21 @@
           "trace_provenance": true,
           "safety_disclaimer_when_applicable": true,
           "blocks_when_incomplete": true
+        },
+        "qa_export_gate": {
+          "final_export_allowed": false,
+          "blocking_qa_check_ids": [
+            "qa_duplicate_candidate_similarity",
+            "qa_four_option_distinctness"
+          ],
+          "blocking_qa_categories": [
+            "duplicate_similarity",
+            "four_option_distinctness"
+          ],
+          "safety_blocks_export": false,
+          "export_artifacts_complete": true,
+          "admin_override_required_for_export": true,
+          "override_requires_audit": true
         },
         "failure_reasons": [
           "generic_four_card_rendering_not_distinct"
@@ -304,6 +387,25 @@
           "safety_disclaimer_when_applicable": true,
           "blocks_when_incomplete": true
         },
+        "qa_export_gate": {
+          "final_export_allowed": false,
+          "blocking_qa_check_ids": [
+            "qa_file_integrity_checksum",
+            "qa_ecommerce_duplicate_candidate_similarity",
+            "qa_ecommerce_four_option_distinctness",
+            "qa_product_logo_preservation"
+          ],
+          "blocking_qa_categories": [
+            "duplicate_similarity",
+            "file_integrity",
+            "four_option_distinctness",
+            "product_logo_preservation"
+          ],
+          "safety_blocks_export": false,
+          "export_artifacts_complete": true,
+          "admin_override_required_for_export": true,
+          "override_requires_audit": true
+        },
         "failure_reasons": [
           "product_logo_preservation_block"
         ]
@@ -337,6 +439,15 @@
           "safety_disclaimer_when_applicable": true,
           "blocks_when_incomplete": true
         },
+        "qa_export_gate": {
+          "final_export_allowed": true,
+          "blocking_qa_check_ids": [],
+          "blocking_qa_categories": [],
+          "safety_blocks_export": false,
+          "export_artifacts_complete": true,
+          "admin_override_required_for_export": false,
+          "override_requires_audit": true
+        },
         "failure_reasons": []
       },
       {
@@ -367,6 +478,19 @@
           "trace_provenance": true,
           "safety_disclaimer_when_applicable": true,
           "blocks_when_incomplete": true
+        },
+        "qa_export_gate": {
+          "final_export_allowed": false,
+          "blocking_qa_check_ids": [
+            "qa_export_completeness"
+          ],
+          "blocking_qa_categories": [
+            "export_completeness"
+          ],
+          "safety_blocks_export": false,
+          "export_artifacts_complete": false,
+          "admin_override_required_for_export": true,
+          "override_requires_audit": true
         },
         "failure_reasons": [
           "export_completeness_block"
@@ -399,6 +523,15 @@
           "safety_disclaimer_when_applicable": true,
           "blocks_when_incomplete": true
         },
+        "qa_export_gate": {
+          "final_export_allowed": false,
+          "blocking_qa_check_ids": [],
+          "blocking_qa_categories": [],
+          "safety_blocks_export": false,
+          "export_artifacts_complete": false,
+          "admin_override_required_for_export": true,
+          "override_requires_audit": true
+        },
         "failure_reasons": [
           "user_confirmation_required_before_generation"
         ]
@@ -430,6 +563,15 @@
           "safety_disclaimer_when_applicable": true,
           "blocks_when_incomplete": true
         },
+        "qa_export_gate": {
+          "final_export_allowed": false,
+          "blocking_qa_check_ids": [],
+          "blocking_qa_categories": [],
+          "safety_blocks_export": true,
+          "export_artifacts_complete": false,
+          "admin_override_required_for_export": true,
+          "override_requires_audit": true
+        },
         "failure_reasons": [
           "safety_policy_block"
         ]
@@ -437,7 +579,7 @@
     ],
     "runner_contract": {
       "runner": "scripts/run_stage0_eval.py",
-      "runner_sha256": "1a454ae75fa5f8170f2868ce7b4170b04fd021834086f0254d724747e808e6aa",
+      "runner_sha256": "e926b8ca4d3b9cec6809a74e1ea231de608eeace982251e9332ac79d8f703676",
       "deterministic_replay_command": "python3 scripts/run_stage0_eval.py --check",
       "writes_stored_fixture": true,
       "check_mode_compares_exact_json": true

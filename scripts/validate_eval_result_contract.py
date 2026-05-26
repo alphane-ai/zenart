@@ -64,6 +64,16 @@ EXPORT_KEYS = {
     "blocks_when_incomplete",
 }
 
+QA_EXPORT_GATE_KEYS = {
+    "final_export_allowed",
+    "blocking_qa_check_ids",
+    "blocking_qa_categories",
+    "safety_blocks_export",
+    "export_artifacts_complete",
+    "admin_override_required_for_export",
+    "override_requires_audit",
+}
+
 STORAGE_COLUMNS = {
     "id",
     "tenant_id",
@@ -203,6 +213,7 @@ def validate_openapi_eval_result_schema() -> None:
         "qa_check_ids",
         "trace_contract",
         "export_contract",
+        "qa_export_gate",
         "failure_reasons",
     ]:
         require_field_in_schema(body, "EvalResult.fixture_results", field)
@@ -211,6 +222,8 @@ def validate_openapi_eval_result_schema() -> None:
         require_field_in_schema(body, "EvalResult.trace_contract", field)
     for field in EXPORT_KEYS:
         require_field_in_schema(body, "EvalResult.export_contract", field)
+    for field in QA_EXPORT_GATE_KEYS:
+        require_field_in_schema(body, "EvalResult.qa_export_gate", field)
     for field in ["runner", "runner_sha256", "deterministic_replay_command", "writes_stored_fixture", "check_mode_compares_exact_json"]:
         require_field_in_schema(body, "EvalResult.runner_contract", field)
     for field in ["required_columns", "required_indexes", "required_query_filters", "latest_result_resolvable"]:
@@ -289,6 +302,61 @@ def validate_fixture_result_links() -> None:
                 qa_by_id[check_id]["evidence"]["fixture_id"] == item["fixture_id"],
                 f"{item['fixture_id']} references QA check {check_id} from another fixture",
             )
+
+        qa_gate = item["qa_export_gate"]
+        require(set(QA_EXPORT_GATE_KEYS) <= set(qa_gate), f"{item['fixture_id']} QA export gate missing required keys")
+        expected_blocking_ids = [
+            check_id
+            for check_id in item["qa_check_ids"]
+            if qa_by_id[check_id]["export_gate"]["blocks_final_export"] is True
+        ]
+        expected_blocking_categories = sorted(
+            {
+                qa_by_id[check_id]["check_category"]
+                for check_id in expected_blocking_ids
+            }
+        )
+        safety_blocks_export = item["observed_safety_action"] == "block"
+        export_artifacts_complete = all(
+            export[key]
+            for key in [
+                "manifest",
+                "qa_report",
+                "metadata",
+                "trace_provenance",
+                "safety_disclaimer_when_applicable",
+            ]
+        )
+        expected_export_allowed = export_artifacts_complete and not expected_blocking_ids and not safety_blocks_export
+        require(
+            qa_gate["blocking_qa_check_ids"] == expected_blocking_ids,
+            f"{item['fixture_id']} QA export gate blocking checks mismatch",
+        )
+        require(
+            qa_gate["blocking_qa_categories"] == expected_blocking_categories,
+            f"{item['fixture_id']} QA export gate blocking categories mismatch",
+        )
+        require(
+            qa_gate["safety_blocks_export"] is safety_blocks_export,
+            f"{item['fixture_id']} QA export gate safety block mismatch",
+        )
+        require(
+            qa_gate["export_artifacts_complete"] is export_artifacts_complete,
+            f"{item['fixture_id']} QA export gate artifact completeness mismatch",
+        )
+        require(
+            qa_gate["final_export_allowed"] is expected_export_allowed,
+            f"{item['fixture_id']} QA export gate final export decision mismatch",
+        )
+        require(
+            qa_gate["admin_override_required_for_export"] is (not expected_export_allowed),
+            f"{item['fixture_id']} QA export gate override requirement mismatch",
+        )
+        require(qa_gate["override_requires_audit"] is True, f"{item['fixture_id']} QA export override must require audit")
+        if item["status"] == "pass":
+            require(qa_gate["final_export_allowed"] is True, f"{item['fixture_id']} pass result must allow final export")
+        else:
+            require(qa_gate["final_export_allowed"] is False, f"{item['fixture_id']} blocked result must deny final export")
 
 
 def validate_storage_contract() -> None:

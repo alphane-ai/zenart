@@ -70,16 +70,6 @@ QA_CATEGORY_ORDER = [
     "export_completeness",
 ]
 
-BLOCKING_QA_BY_CATEGORY = {
-    "file_integrity",
-    "blank_output",
-    "duplicate_similarity",
-    "four_option_distinctness",
-    "product_logo_preservation",
-    "forbidden_claims",
-    "export_completeness",
-}
-
 TRACE_KEYS = [
     "has_schema_validation",
     "has_provenance",
@@ -160,6 +150,50 @@ def export_contract_for(fixture: dict[str, Any], qa_items: list[dict[str, Any]])
     }
 
 
+def qa_export_gate_for(
+    fixture: dict[str, Any],
+    qa_items: list[dict[str, Any]],
+    export_contract: dict[str, bool],
+) -> dict[str, Any]:
+    blocking_checks = [
+        item["check_id"]
+        for item in qa_items
+        if item["export_gate"]["blocks_final_export"] is True
+    ]
+    blocking_categories = sorted(
+        {
+            item["check_category"]
+            for item in qa_items
+            if item["export_gate"]["blocks_final_export"] is True
+        }
+    )
+    requires_audit = any(
+        item["export_gate"]["override_requires_audit"] is True
+        for item in qa_items
+    )
+    safety_blocks_export = fixture["expected_evidence"]["expected_safety_action"] == "block"
+    export_artifacts_complete = all(
+        export_contract[key]
+        for key in [
+            "manifest",
+            "qa_report",
+            "metadata",
+            "trace_provenance",
+            "safety_disclaimer_when_applicable",
+        ]
+    )
+    export_allowed = export_artifacts_complete and not blocking_checks and not safety_blocks_export
+    return {
+        "final_export_allowed": export_allowed,
+        "blocking_qa_check_ids": blocking_checks,
+        "blocking_qa_categories": blocking_categories,
+        "safety_blocks_export": safety_blocks_export,
+        "export_artifacts_complete": export_artifacts_complete,
+        "admin_override_required_for_export": not export_allowed,
+        "override_requires_audit": requires_audit or not export_allowed,
+    }
+
+
 def observed_safety_action(fixture: dict[str, Any], qa_items: list[dict[str, Any]]) -> str:
     expected = fixture["expected_evidence"]["expected_safety_action"]
     if expected in {"block", "require_user_confirmation", "require_admin_review", "warn"}:
@@ -176,12 +210,7 @@ def fixture_status(fixture: dict[str, Any], qa_items: list[dict[str, Any]]) -> s
         return "blocked"
     if expected["expected_safety_action"] == "block":
         return "blocked"
-    blocking_categories = {
-        item["check_category"]
-        for item in qa_items
-        if item["severity"] == "blocking" and item["check_category"] in BLOCKING_QA_BY_CATEGORY
-    }
-    if blocking_categories:
+    if any(item["export_gate"]["blocks_final_export"] is True for item in qa_items):
         return "blocked"
     return "pass"
 
@@ -206,7 +235,7 @@ def failure_reasons_for(fixture: dict[str, Any], qa_items: list[dict[str, Any]])
     blocking = [
         item["check_category"] + "_block"
         for item in qa_items
-        if item["severity"] == "blocking" and item["check_category"] in BLOCKING_QA_BY_CATEGORY
+        if item["export_gate"]["blocks_final_export"] is True
     ]
     return sorted(set(blocking))
 
@@ -249,6 +278,7 @@ def run_eval() -> dict[str, Any]:
                 f"{qa_item['check_id']} trace must match {fixture['fixture_id']} eval fixture trace",
             )
         export_contract = export_contract_for(fixture, qa_items)
+        qa_export_gate = qa_export_gate_for(fixture, qa_items, export_contract)
         expected = fixture["expected_evidence"]
         candidate_count = expected["minimum_candidates"]
         status = fixture_status(fixture, qa_items)
@@ -262,6 +292,10 @@ def run_eval() -> dict[str, Any]:
         if expected["must_include_qa_report"]:
             require(export_contract["qa_report"], f"{fixture['fixture_id']} must include QA report")
         require(all(trace_contract[key] for key in TRACE_KEYS), f"{fixture['fixture_id']} trace contract incomplete")
+        if status == "pass":
+            require(qa_export_gate["final_export_allowed"], f"{fixture['fixture_id']} passed eval cannot block final export")
+        else:
+            require(not qa_export_gate["final_export_allowed"], f"{fixture['fixture_id']} blocked eval must deny final export")
 
         fixture_results.append(
             {
@@ -275,6 +309,7 @@ def run_eval() -> dict[str, Any]:
                 "qa_check_ids": [item["check_id"] for item in qa_items],
                 "trace_contract": trace_contract,
                 "export_contract": export_contract,
+                "qa_export_gate": qa_export_gate,
                 "failure_reasons": failure_reasons_for(fixture, qa_items),
             }
         )
