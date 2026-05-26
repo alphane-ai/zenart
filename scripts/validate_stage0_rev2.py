@@ -283,6 +283,97 @@ RUNTIME_EVIDENCE_RE = re.compile(
     r")"
 )
 
+RUNTIME_PASS_REQUIREMENTS = {
+    ("local_alpha", "local_alpha_e2e_workflow_smoke"): {
+        "path_patterns": (r"ops/evidence/(?:local_alpha|local)/",),
+        "tokens": ("workflow", "smoke"),
+    },
+    ("ci", "ci_installed_workflow"): {
+        "path_patterns": (r"\.github/workflows/",),
+        "tokens": (),
+    },
+    ("ci", "ci_gate_runtime_execution"): {
+        "path_patterns": (r"ops/evidence/ci/",),
+        "tokens": ("pr/main", "run"),
+    },
+    ("ci", "ci_playwright_smoke"): {
+        "path_patterns": (r"ops/evidence/ci/",),
+        "tokens": ("playwright",),
+    },
+    ("ci", "ci_docker_image_build"): {
+        "path_patterns": (r"ops/evidence/ci/",),
+        "tokens": ("docker",),
+    },
+    ("private_beta_staging", "staging_auth_rbac_tenant_audit"): {
+        "path_patterns": (r"ops/evidence/staging/",),
+        "tokens": ("staging",),
+    },
+    ("private_beta_staging", "staging_brief_upload_confirmation"): {
+        "path_patterns": (r"ops/evidence/staging/",),
+        "tokens": ("staging",),
+    },
+    ("private_beta_staging", "staging_object_storage_signed_downloads"): {
+        "path_patterns": (r"ops/evidence/staging/",),
+        "tokens": ("staging",),
+    },
+    ("private_beta_staging", "staging_quota_rate_limit_spend_cap"): {
+        "path_patterns": (r"ops/evidence/staging/",),
+        "tokens": ("staging",),
+    },
+    ("private_beta_staging", "staging_support_retry_abuse_ops"): {
+        "path_patterns": (r"ops/evidence/staging/",),
+        "tokens": ("staging",),
+    },
+    ("private_beta_staging", "staging_eval_qa_safety_runtime"): {
+        "path_patterns": (r"ops/evidence/staging/",),
+        "tokens": ("staging",),
+    },
+    ("private_beta_staging", "staging_crawler_approval_provenance"): {
+        "path_patterns": (r"ops/evidence/staging/",),
+        "tokens": ("staging",),
+    },
+    ("private_beta_staging", "staging_observability_backup_load"): {
+        "path_patterns": (r"ops/evidence/staging/",),
+        "tokens": ("staging",),
+    },
+    ("private_beta_staging", "staging_legal_external_user_pages"): {
+        "path_patterns": (r"ops/evidence/staging/",),
+        "tokens": ("staging",),
+    },
+    ("production_launch", "production_provider_or_comp_only_mode"): {
+        "path_patterns": (r"ops/evidence/production/",),
+        "tokens": ("production",),
+    },
+    ("production_launch", "production_paid_billing_lifecycle"): {
+        "path_patterns": (r"ops/evidence/production/",),
+        "tokens": ("production",),
+    },
+    ("production_launch", "production_skill_release_eval_canary"): {
+        "path_patterns": (r"ops/evidence/production/",),
+        "tokens": ("production",),
+    },
+    ("production_launch", "production_activation_review_audit"): {
+        "path_patterns": (r"ops/evidence/production/",),
+        "tokens": ("production",),
+    },
+    ("production_launch", "production_abuse_throttle_hold"): {
+        "path_patterns": (r"ops/evidence/production/",),
+        "tokens": ("production",),
+    },
+    ("production_launch", "production_security_launch_checks"): {
+        "path_patterns": (r"ops/evidence/production/",),
+        "tokens": ("production",),
+    },
+    ("production_launch", "production_backup_rollback_incident"): {
+        "path_patterns": (r"ops/evidence/production/",),
+        "tokens": ("production",),
+    },
+    ("production_launch", "production_legal_support_policy"): {
+        "path_patterns": (r"ops/evidence/production/",),
+        "tokens": ("production",),
+    },
+}
+
 DO_NOT_LAUNCH_CONDITION_COVERAGE = {
     "local_alpha": {
         "generic_workflow_only": "Vertical workflows 只通过 generic rendering tests，没有 domain fixtures、four-option taxonomy、required outputs、QA/safety checks、manifest validation。",
@@ -1216,6 +1307,26 @@ def validate_runtime_gate_evidence_refs(
             require(
                 DEFINITION_ONLY_EVIDENCE_RE.fullmatch(evidence_ref.strip()) is None,
                 f"{gate}.{check_id} pass evidence cannot be a definition-only artifact",
+            )
+            requirement = RUNTIME_PASS_REQUIREMENTS.get((gate, check_id))
+            require(
+                requirement is not None,
+                f"{gate}.{check_id} has no gate-specific runtime pass requirement",
+            )
+            evidence_ref_lower = evidence_ref.lower()
+            missing_tokens = [
+                token
+                for token in requirement["tokens"]
+                if token not in evidence_ref_lower
+            ]
+            require(
+                not missing_tokens,
+                f"{gate}.{check_id} pass evidence missing runtime tokens: {missing_tokens}",
+            )
+            require(
+                any(re.search(pattern, evidence_ref) for pattern in requirement["path_patterns"]),
+                f"{gate}.{check_id} pass evidence must cite gate-specific runtime/deployment evidence paths: "
+                + json.dumps(requirement["path_patterns"]),
             )
 
     runtime_items_open = RELEASE_GATE_RUNTIME_OPEN_ITEMS & unchecked_lines

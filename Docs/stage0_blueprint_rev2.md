@@ -2000,6 +2000,7 @@ Release gate closure policy:
 - Definition-only artifacts can close checklist subitems only when the corresponding runtime subitem remains open.
 - Fixture or contract evidence can never close CI, Private Beta/Staging, Production Launch, or Do-Not-Launch checklist items by itself; those gates require runtime or deployment evidence in their matching release gate fixture.
 - Runtime gate checks that pass must cite environment-specific evidence paths, not only schema, fixture, draft, README, blueprint, or contract artifacts.
+- Runtime pass evidence must be gate-specific: Local Alpha workflow smoke evidence under `ops/evidence/local_alpha/` or `ops/evidence/local/`, CI installed workflow/run evidence under `.github/workflows/` plus `ops/evidence/ci/`, staging evidence under `ops/evidence/staging/`, and production launch evidence under `ops/evidence/production/`. Source files, schemas, fixtures, README, or draft ops documents alone cannot close these runtime checks.
 - Local Alpha remains open until four workflow API/Playwright smokes prove brief -> 4 candidates -> select -> iterate -> package -> export ZIP against the running local stack.
 - CI remains open until an installed `.github/workflows` PR/main workflow runs and records Playwright smoke plus Docker image build evidence.
 - Private Beta/Staging remains open until external-user staging runtime evidence exists for auth/RBAC/tenant isolation, object storage signed downloads, quota/rate limits, support/abuse, safety/QA/crawler enforcement, observability/backup/load, and legal page visibility.
