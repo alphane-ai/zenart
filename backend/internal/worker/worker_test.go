@@ -140,6 +140,32 @@ func TestNewRunnerPassesSupportedTaskTypesToClaim(t *testing.T) {
 	}
 }
 
+func TestRunnerDrainUsesConfiguredWorkerIdentity(t *testing.T) {
+	db := &fakeDB{commandTag: pgconn.NewCommandTag("UPDATE 1")}
+	repo := NewRepository(db)
+	runner := NewRunner(repo, nil, agent.BaseStepContracts(1), Options{
+		SchemaVersion: 1,
+		InstanceID:    "instance-test",
+		WorkerVersion: "worker-test",
+		PollInterval:  time.Hour,
+		ClaimTimeout:  time.Minute,
+	})
+
+	drained, err := runner.Drain(context.Background())
+	if err != nil {
+		t.Fatalf("Drain() error = %v", err)
+	}
+	if drained != 1 {
+		t.Fatalf("drained = %d, want 1", drained)
+	}
+	if db.execArgs[0] != "worker-test" {
+		t.Fatalf("worker version arg = %#v, want worker-test", db.execArgs[0])
+	}
+	if db.execArgs[3] != "instance-test" {
+		t.Fatalf("worker instance arg = %#v, want instance-test", db.execArgs[3])
+	}
+}
+
 type fakeDB struct {
 	query      string
 	args       []any

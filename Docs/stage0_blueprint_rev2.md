@@ -1885,7 +1885,7 @@ main 合并前必须通过：
 - [x] 定义 production approval/release tag。
 - [x] 定义 feature flags。
 - [x] 定义 rollback procedures。
-- [ ] 实现 worker drain。
+- [x] 实现 worker drain。
 - [x] 实现 task schema compatibility checks。
 
 ### 25.18 Observability, Backup, Incident, Load
