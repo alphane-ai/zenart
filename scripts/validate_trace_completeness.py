@@ -36,6 +36,14 @@ REQUIRED_STEPS = {
     "export",
 }
 
+REQUIRED_STEP_ORDER = [
+    "brief",
+    "provider_request",
+    "provider_response",
+    "qa",
+    "export",
+]
+
 TRACE_CONTRACT_TO_FIXTURE_FIELD = {
     "schema_validation": "has_schema_validation",
     "provenance": "has_provenance",
@@ -141,6 +149,7 @@ def validate_trace_fixture() -> None:
         seen_fixtures.add(trace["fixture_id"])
         workflows.add(trace["workflow"])
         require(set(trace["covered_steps"]) == REQUIRED_STEPS, f"{trace_id} must cover every pipeline step")
+        validate_step_events(trace)
         require(trace_id in eval_by_trace, f"{trace_id} is missing from eval fixture trace contracts")
         require(
             trace["fixture_id"] == eval_by_trace[trace_id]["fixture_id"],
@@ -188,6 +197,44 @@ def validate_trace_fixture() -> None:
         seen_fixtures == eval_fixture_ids,
         "trace completeness fixture must cover every eval fixture exactly",
     )
+
+
+def validate_step_events(trace: dict[str, Any]) -> None:
+    trace_id = trace["trace_id"]
+    events = trace["step_events"]
+    require(len(events) == len(REQUIRED_STEP_ORDER), f"{trace_id} must emit one trace event per pipeline step")
+    require(
+        [event["step_name"] for event in events] == REQUIRED_STEP_ORDER,
+        f"{trace_id} step_events must follow Rev2 pipeline order",
+    )
+    require(
+        [event["emission_order"] for event in events] == list(range(1, len(REQUIRED_STEP_ORDER) + 1)),
+        f"{trace_id} step_events must have deterministic emission_order values",
+    )
+
+    for event in events:
+        step = event["step_name"]
+        require(event["trace_id"] == trace_id, f"{trace_id} {step} event trace_id mismatch")
+        require(event["task_id"] == trace["task_id"], f"{trace_id} {step} event task_id mismatch")
+        require(event["request_id"] == trace["request_id"], f"{trace_id} {step} event request_id mismatch")
+        require(event["storage_table"] == "agent_traces", f"{trace_id} {step} event must persist to agent_traces")
+        require(
+            event["quota_transaction_id"] == trace["quota_transaction_id"],
+            f"{trace_id} {step} event quota transaction mismatch",
+        )
+        for field in [
+            "schema_validation",
+            "provenance",
+            "safety_status",
+            "qa_eval_status",
+            "admin_visibility",
+            "user_failure_mapping",
+        ]:
+            require(event[field]["present"] is True, f"{trace_id} {step} event missing {field}")
+        require(
+            event["safety_status"]["source"] == f"safety_decisions.enforcement_point.{step}",
+            f"{trace_id} {step} event safety source must link to matching safety decision",
+        )
 
 
 def main() -> int:

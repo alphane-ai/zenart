@@ -67,6 +67,7 @@
           "task_id",
           "request_id",
           "covered_steps",
+          "step_events",
           "schema_validation",
           "provenance",
           "safety_status",
@@ -109,6 +110,14 @@
                 "qa",
                 "export"
               ]
+            }
+          },
+          "step_events": {
+            "type": "array",
+            "minItems": 5,
+            "maxItems": 5,
+            "items": {
+              "$ref": "#/$defs/trace_step_event"
             }
           },
           "schema_validation": {
@@ -197,6 +206,78 @@
         "source": {
           "type": "string",
           "minLength": 1
+        }
+      }
+    },
+    "trace_step_event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "step_name",
+        "emission_order",
+        "trace_id",
+        "task_id",
+        "request_id",
+        "storage_table",
+        "schema_validation",
+        "provenance",
+        "safety_status",
+        "qa_eval_status",
+        "quota_transaction_id",
+        "admin_visibility",
+        "user_failure_mapping"
+      ],
+      "properties": {
+        "step_name": {
+          "enum": [
+            "brief",
+            "provider_request",
+            "provider_response",
+            "qa",
+            "export"
+          ]
+        },
+        "emission_order": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5
+        },
+        "trace_id": {
+          "type": "string",
+          "pattern": "^trace_[a-z0-9_]+$"
+        },
+        "task_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "request_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "storage_table": {
+          "const": "agent_traces"
+        },
+        "schema_validation": {
+          "$ref": "#/$defs/trace_boolean_evidence"
+        },
+        "provenance": {
+          "$ref": "#/$defs/trace_boolean_evidence"
+        },
+        "safety_status": {
+          "$ref": "#/$defs/trace_boolean_evidence"
+        },
+        "qa_eval_status": {
+          "$ref": "#/$defs/trace_boolean_evidence"
+        },
+        "quota_transaction_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "admin_visibility": {
+          "$ref": "#/$defs/trace_boolean_evidence"
+        },
+        "user_failure_mapping": {
+          "$ref": "#/$defs/trace_boolean_evidence"
         }
       }
     }
