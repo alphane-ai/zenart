@@ -2032,6 +2032,7 @@ Release gate closure policy:
 - Fixture or contract evidence can never close CI, Private Beta/Staging, Production Launch, or Do-Not-Launch checklist items by itself; those gates require runtime or deployment evidence in their matching release gate fixture.
 - Runtime gate checks that pass must cite environment-specific evidence paths, not only schema, fixture, draft, README, blueprint, or contract artifacts.
 - Passed runtime gate checks must cite exact validator-owned evidence files when the checklist subitem is closed by a named `ops/evidence` artifact; citing only a broad evidence directory or prose summary is insufficient.
+- Checked runtime subitems that partially satisfy a larger release gate must have validator-owned file-level checks that prove environment, status, release gate check ID, matching checklist item, required runtime coverage, and preserved aggregate blockers.
 - CI aggregate runtime evidence may close only after all four CI runtime subitems are closed: installed workflow file, PR/main workflow run, Playwright smoke, and Docker image build.
 - Passed gate checks must not leave their directly related Do-Not-Launch condition active in the same release gate fixture.
 - CI, Private Beta/Staging, and Production blocked/failing release gate checks must each map to at least one active Do-Not-Launch condition in the same fixture, and every active Do-Not-Launch condition must map back to a blocked/failing check.

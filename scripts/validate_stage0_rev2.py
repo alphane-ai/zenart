@@ -44,6 +44,12 @@ PRODUCTION_ACTIVATION_REVIEW_AUDIT_EVIDENCE = (
 )
 OBSERVABILITY_DASHBOARD = ROOT / "ops" / "observability" / "dashboards" / "stage0_rev2_overview.json"
 OBSERVABILITY_ALERTS = ROOT / "ops" / "observability" / "alerts" / "stage0_rev2_alerts.json"
+STAGING_DASHBOARD_RUNTIME_EVIDENCE = (
+    ROOT / "ops" / "evidence" / "staging" / "20260526T1000Z-dashboard-runtime.json"
+)
+STAGING_ALERT_RUNTIME_EVIDENCE = (
+    ROOT / "ops" / "evidence" / "staging" / "20260526T1000Z-alert-runtime.json"
+)
 
 WORKFLOWS = {
     "ecommerce_growth_pack",
@@ -3333,6 +3339,120 @@ def validate_staging_backend_worker_crawler_metrics_evidence() -> None:
         )
 
 
+def validate_staging_dashboard_runtime_evidence() -> None:
+    evidence = load_json(STAGING_DASHBOARD_RUNTIME_EVIDENCE)
+    require(
+        evidence["schema_version"] == "stage0.rev2.staging_dashboard_runtime",
+        "staging dashboard runtime evidence schema mismatch",
+    )
+    require(evidence["environment"] == "staging", "dashboard runtime evidence must be staging-scoped")
+    require(
+        evidence["status"] == "pass_with_blockers_preserved",
+        "dashboard runtime evidence must pass only while preserving aggregate blockers",
+    )
+    require(
+        evidence["source_dashboard_definition"] == rel(OBSERVABILITY_DASHBOARD),
+        "dashboard runtime evidence must cite the validator-owned dashboard definition",
+    )
+    require(
+        evidence["release_gate_check_id"] == "staging_observability_backup_load",
+        "dashboard runtime evidence must target the observability/backup/load release-gate check",
+    )
+    require(
+        evidence["blueprint_checklist_item"] == "导入并验证 staging dashboards runtime evidence。",
+        "dashboard runtime evidence must name the checklist item it can close",
+    )
+    dashboard_results = evidence["dashboard_results"]
+    require(len(dashboard_results) >= 4, "dashboard runtime evidence must cover multiple operational panels")
+    require(
+        all(item["runtime_ref"].startswith("staging-dashboard-") for item in dashboard_results),
+        "dashboard runtime refs must be staging-scoped",
+    )
+    require(
+        any(item.get("release_blocker_ref") for item in dashboard_results),
+        "dashboard runtime evidence must preserve release blocker context instead of over-closing staging",
+    )
+    for item in dashboard_results:
+        require(item["signals"], f"{item['dashboard_id']} dashboard evidence must list runtime signals")
+        require(item["probe_result"], f"{item['dashboard_id']} dashboard evidence must include probe_result")
+        require(item["audit_ref"].startswith("au-"), f"{item['dashboard_id']} dashboard evidence must cite audit_ref")
+        require(
+            item.get("release_blocker_ref"),
+            f"{item['dashboard_id']} dashboard evidence must cite release blocker context",
+        )
+    gate_impact = evidence["gate_impact"]
+    require(
+        gate_impact["can_clear_dashboard_checklist_item"] is True,
+        "dashboard runtime evidence must explicitly allow dashboard checklist closure",
+    )
+    require(
+        gate_impact["aggregate_private_beta_gate_status"] == "blocked_by_other_staging_runtime_items",
+        "dashboard runtime evidence must keep aggregate private beta gate blocked",
+    )
+    for blocker in [
+        "staging request id propagation runtime evidence",
+        "staging structured JSON logs runtime evidence",
+        "staging OpenTelemetry traces runtime evidence",
+        "staging backup/restore/load runtime evidence",
+    ]:
+        require(
+            blocker in gate_impact["remaining_blockers"],
+            f"dashboard runtime evidence must preserve blocker: {blocker}",
+        )
+
+
+def validate_staging_alert_runtime_evidence() -> None:
+    evidence = load_json(STAGING_ALERT_RUNTIME_EVIDENCE)
+    require(
+        evidence["schema_version"] == "stage0.rev2.staging_alert_runtime",
+        "staging alert runtime evidence schema mismatch",
+    )
+    require(evidence["environment"] == "staging", "alert runtime evidence must be staging-scoped")
+    require(evidence["status"] == "pass", "alert runtime evidence must pass before checklist closure")
+    require(
+        evidence["source_alert_definition"] == rel(OBSERVABILITY_ALERTS),
+        "alert runtime evidence must cite the validator-owned alert definition",
+    )
+    require(
+        evidence["release_gate_check_id"] == "staging_observability_backup_load",
+        "alert runtime evidence must target the observability/backup/load release-gate check",
+    )
+    require(
+        evidence["blueprint_checklist_item"] == "配置并验证 staging alert routes/runtime evidence。",
+        "alert runtime evidence must name the checklist item it can close",
+    )
+    alert_results = evidence["alert_results"]
+    require(len(alert_results) >= 4, "alert runtime evidence must cover multiple alert routes")
+    severities = {item["severity"] for item in alert_results}
+    require({"sev1", "sev2"} <= severities, "alert runtime evidence must include sev1 and sev2 route coverage")
+    for item in alert_results:
+        require(item["validation_status"] == "verified", f"{item['alert_route_id']} alert route must be verified")
+        require(item["runtime_ref"].startswith("staging-alert-"), f"{item['alert_route_id']} runtime_ref must be staging-scoped")
+        require(item["route_target"], f"{item['alert_route_id']} alert evidence must include route target")
+        require(item["probe_result"], f"{item['alert_route_id']} alert evidence must include probe_result")
+        require(item["audit_ref"].startswith("au-"), f"{item['alert_route_id']} alert evidence must cite audit_ref")
+    gate_impact = evidence["gate_impact"]
+    require(
+        gate_impact["can_clear_alert_checklist_item"] is True,
+        "alert runtime evidence must explicitly allow alert checklist closure",
+    )
+    require(
+        gate_impact["aggregate_private_beta_gate_status"] == "blocked_by_other_staging_runtime_items",
+        "alert runtime evidence must keep aggregate private beta gate blocked",
+    )
+    for blocker in [
+        "staging request id propagation runtime evidence",
+        "staging structured JSON logs runtime evidence",
+        "staging OpenTelemetry traces runtime evidence",
+        "staging backend/worker/crawler metrics runtime evidence",
+        "staging backup/restore/load runtime evidence",
+    ]:
+        require(
+            blocker in gate_impact["remaining_blockers"],
+            f"alert runtime evidence must preserve blocker: {blocker}",
+        )
+
+
 def validate_production_abuse_throttle_hold_evidence() -> None:
     evidence = load_json(PRODUCTION_ABUSE_THROTTLE_HOLD_EVIDENCE)
     require(evidence["schema_version"] == "stage0.rev2", "production abuse throttle/hold evidence schema mismatch")
@@ -4435,6 +4555,7 @@ def validate_launch_readiness_split_contracts() -> None:
         "a fixture-level `go` decision is invalid while any check is blocked/failing or any Do-Not-Launch condition is active",
         "If a gate checklist item remains open, its release gate fixture must still contain at least one computed blocker",
         "Passed runtime gate checks must cite exact validator-owned evidence files when the checklist subitem is closed by a named `ops/evidence` artifact",
+        "Checked runtime subitems that partially satisfy a larger release gate must have validator-owned file-level checks",
         "Passed gate checks and cleared Do-Not-Launch conditions may not mix real and missing concrete artifact paths",
         "Private Beta/Staging check-level runtime subitems must remain open until each matching release gate check has staging evidence",
         "Production check-level runtime subitems must remain open until each matching release gate check has production evidence",
@@ -4938,6 +5059,8 @@ def main() -> int:
         validate_abuse_evidence_split_contracts,
         validate_staging_auth_rbac_tenant_audit_evidence,
         validate_staging_support_retry_abuse_evidence,
+        validate_staging_dashboard_runtime_evidence,
+        validate_staging_alert_runtime_evidence,
         validate_staging_backend_worker_crawler_metrics_evidence,
         validate_production_abuse_throttle_hold_evidence,
         validate_analytics_taxonomy,
