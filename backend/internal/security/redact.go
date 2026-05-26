@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -64,6 +65,15 @@ var secretValuePatterns = []struct {
 	{SecretKindToken, "npm_token", regexp.MustCompile(`\bnpm_[A-Za-z0-9]{20,}\b`)},
 	{SecretKindProviderKey, "anthropic_key", regexp.MustCompile(`\bsk-ant-[A-Za-z0-9_-]{20,}\b`)},
 	{SecretKindProviderKey, "linear_key", regexp.MustCompile(`\blin_api_[A-Za-z0-9]{20,}\b`)},
+	{SecretKindProviderKey, "huggingface_token", regexp.MustCompile(`\bhf_[A-Za-z0-9]{20,}\b`)},
+	{SecretKindProviderKey, "replicate_token", regexp.MustCompile(`\br8_[A-Za-z0-9]{20,}\b`)},
+	{SecretKindProviderKey, "stability_key", regexp.MustCompile(`\bsk-[A-Za-z0-9]{32,}\b`)},
+	{SecretKindProviderKey, "groq_key", regexp.MustCompile(`\bgsk_[A-Za-z0-9]{20,}\b`)},
+	{SecretKindProviderKey, "together_key", regexp.MustCompile(`\btgp_v1_[A-Za-z0-9_-]{20,}\b`)},
+	{SecretKindProviderKey, "pinecone_key", regexp.MustCompile(`\bpcsk_[A-Za-z0-9_-]{20,}\b`)},
+	{SecretKindToken, "supabase_jwt", regexp.MustCompile(`\bsb_[A-Za-z0-9_-]{20,}\b`)},
+	{SecretKindToken, "cloudflare_token", regexp.MustCompile(`\b(?:CFPAT|cfpat)_[A-Za-z0-9_-]{20,}\b`)},
+	{SecretKindToken, "datadog_key", regexp.MustCompile(`\b(?:dd|datadog)_[A-Za-z0-9]{20,}\b`)},
 }
 
 var assignmentPattern = regexp.MustCompile(`(?i)\b([A-Za-z0-9_.-]*(?:secret|token|password|passwd|pwd|api[_-]?key|access[_-]?key|private[_-]?key|credential|signature|session|cookie|authorization|client[_-]?secret|refresh[_-]?token|webhook[_-]?secret|signing[_-]?key|database[_-]?url|dsn)[A-Za-z0-9_.-]*)\s*([=:])\s*("[^"]*"|'[^']*'|[^\s,;&]+)`)
@@ -291,6 +301,68 @@ func RedactValue(value any) any {
 		return out
 	case string:
 		return RedactString(typed)
+	case error:
+		return RedactString(typed.Error())
+	default:
+		return value
+	}
+}
+
+type RedactingSlogHandler struct {
+	next slog.Handler
+}
+
+func NewRedactingSlogHandler(next slog.Handler) slog.Handler {
+	return RedactingSlogHandler{next: next}
+}
+
+func (h RedactingSlogHandler) Enabled(ctx context.Context, level slog.Level) bool {
+	return h.next.Enabled(ctx, level)
+}
+
+func (h RedactingSlogHandler) Handle(ctx context.Context, record slog.Record) error {
+	redacted := slog.NewRecord(record.Time, record.Level, RedactString(record.Message), record.PC)
+	record.Attrs(func(attr slog.Attr) bool {
+		redacted.AddAttrs(redactSlogAttr(attr))
+		return true
+	})
+	return h.next.Handle(ctx, redacted)
+}
+
+func (h RedactingSlogHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
+	redacted := make([]slog.Attr, len(attrs))
+	for i, attr := range attrs {
+		redacted[i] = redactSlogAttr(attr)
+	}
+	return RedactingSlogHandler{next: h.next.WithAttrs(redacted)}
+}
+
+func (h RedactingSlogHandler) WithGroup(name string) slog.Handler {
+	return RedactingSlogHandler{next: h.next.WithGroup(name)}
+}
+
+func redactSlogAttr(attr slog.Attr) slog.Attr {
+	attr.Value = redactSlogValue(attr.Key, attr.Value)
+	return attr
+}
+
+func redactSlogValue(key string, value slog.Value) slog.Value {
+	value = value.Resolve()
+	if IsSensitiveKey(key) {
+		return slog.StringValue(Redacted)
+	}
+	switch value.Kind() {
+	case slog.KindString:
+		return slog.StringValue(RedactString(value.String()))
+	case slog.KindAny:
+		return slog.AnyValue(RedactValue(value.Any()))
+	case slog.KindGroup:
+		group := value.Group()
+		redacted := make([]slog.Attr, len(group))
+		for i, attr := range group {
+			redacted[i] = redactSlogAttr(attr)
+		}
+		return slog.GroupValue(redacted...)
 	default:
 		return value
 	}

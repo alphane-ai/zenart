@@ -1,8 +1,11 @@
 package security
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -86,6 +89,50 @@ func TestRedactStringCoversCloudAndProviderTokens(t *testing.T) {
 	assertSignal(t, findings, "azure_storage_key")
 }
 
+func TestRedactStringCoversAIStorageAndObservabilityTokens(t *testing.T) {
+	input := strings.Join([]string{
+		"hf=hf_abcdefghijklmnopqrstuvwxyz123456",
+		"replicate=r8_abcdefghijklmnopqrstuvwxyz123456",
+		"stability=sk-abcdefghijklmnopqrstuvwxyz1234567890",
+		"groq=gsk_abcdefghijklmnopqrstuvwxyz123456",
+		"together=tgp_v1_abcdefghijklmnopqrstuvwxyz123456",
+		"pinecone=pcsk_abcdefghijklmnopqrstuvwxyz123456",
+		"supabase=sb_abcdefghijklmnopqrstuvwxyz123456",
+		"cloudflare=CFPAT_abcdefghijklmnopqrstuvwxyz123456",
+		"datadog=dd_abcdefghijklmnopqrstuvwxyz123456",
+	}, " ")
+	got := RedactString(input)
+	for _, leaked := range []string{
+		"hf_abcdefghijklmnopqrstuvwxyz123456",
+		"r8_abcdefghijklmnopqrstuvwxyz123456",
+		"sk-abcdefghijklmnopqrstuvwxyz1234567890",
+		"gsk_abcdefghijklmnopqrstuvwxyz123456",
+		"tgp_v1_abcdefghijklmnopqrstuvwxyz123456",
+		"pcsk_abcdefghijklmnopqrstuvwxyz123456",
+		"sb_abcdefghijklmnopqrstuvwxyz123456",
+		"CFPAT_abcdefghijklmnopqrstuvwxyz123456",
+		"dd_abcdefghijklmnopqrstuvwxyz123456",
+	} {
+		if strings.Contains(got, leaked) {
+			t.Fatalf("RedactString() = %q, leaked %s", got, leaked)
+		}
+	}
+	findings := ClassifyString(input)
+	for _, signal := range []string{
+		"huggingface_token",
+		"replicate_token",
+		"stability_key",
+		"groq_key",
+		"together_key",
+		"pinecone_key",
+		"supabase_jwt",
+		"cloudflare_token",
+		"datadog_key",
+	} {
+		assertSignal(t, findings, signal)
+	}
+}
+
 func TestRedactStringCoversEmbeddedSignedURLsAndRegistryTokens(t *testing.T) {
 	input := `download https://s3.local/zenart/export.zip?X-Amz-Credential=AKIAIOSFODNN7EXAMPLE&X-Amz-Signature=abcdef&response-content-type=application%2Fzip npm=npm_abcdefghijklmnopqrstuvwxyz123456`
 	got := RedactString(input)
@@ -155,6 +202,48 @@ func TestRedactValueCoversHeadersAndStringSlices(t *testing.T) {
 	for _, leaked := range []string{"abcdefghijklmnop", "abcdef", "npm_abcdefghijklmnopqrstuvwxyz123456"} {
 		if strings.Contains(string(body), leaked) {
 			t.Fatalf("redacted body = %s, leaked %s", string(body), leaked)
+		}
+	}
+}
+
+func TestRedactValueCoversErrors(t *testing.T) {
+	got := RedactValue(errors.New("provider failed with sk-ant-abcdefghijklmnopqrstuvwxyz123456"))
+	asString, ok := got.(string)
+	if !ok {
+		t.Fatalf("RedactValue(error) type = %T, want string", got)
+	}
+	if strings.Contains(asString, "sk-ant-abcdefghijklmnopqrstuvwxyz123456") || !strings.Contains(asString, Redacted) {
+		t.Fatalf("RedactValue(error) = %q, want redacted error string", asString)
+	}
+}
+
+func TestRedactingSlogHandlerRedactsMessagesAttrsGroupsAndContextAttrs(t *testing.T) {
+	var logs bytes.Buffer
+	logger := slog.New(NewRedactingSlogHandler(slog.NewJSONHandler(&logs, nil))).With(
+		"startup_api_key", "sk-proj-abcdefghijklmnopqrstuvwxyz123456",
+	)
+	logger.Error(
+		"provider failed with hf_abcdefghijklmnopqrstuvwxyz123456",
+		"error", errors.New("Authorization: Bearer abcdefghijklmnop"),
+		"headers", http.Header{"X-Download": []string{"https://storage.local/file.zip?X-Amz-Signature=abcdef"}},
+		slog.Group("provider", "api_key", "secret", "public", "ok"),
+	)
+
+	line := logs.String()
+	for _, leaked := range []string{
+		"sk-proj-abcdefghijklmnopqrstuvwxyz123456",
+		"hf_abcdefghijklmnopqrstuvwxyz123456",
+		"abcdefghijklmnop",
+		"abcdef",
+		`"api_key":"secret"`,
+	} {
+		if strings.Contains(line, leaked) {
+			t.Fatalf("redacted slog line = %s, leaked %s", line, leaked)
+		}
+	}
+	for _, fragment := range []string{Redacted, `"provider":{"api_key":"[REDACTED]","public":"ok"}`} {
+		if !strings.Contains(line, fragment) {
+			t.Fatalf("redacted slog line = %s, missing %s", line, fragment)
 		}
 	}
 }

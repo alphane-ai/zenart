@@ -21,7 +21,7 @@ import (
 )
 
 func Logger() *slog.Logger {
-	return slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{}))
+	return slog.New(security.NewRedactingSlogHandler(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{})))
 }
 
 func RunServer(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
