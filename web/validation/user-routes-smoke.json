@@ -96,6 +96,12 @@
     "session contract exposes HttpOnly Secure SameSite cookie evidence and same-site CSRF header evidence"
   ],
   "analyticsCoverage": ["analytics-event-taxonomy", "client-side-ui-funnel-capture", "frontend-error-reporting"],
+  "integrationCoverage": [
+    "reference-upload-to-ready-zip-export",
+    "zip-download-manifest-qa-provenance-assets",
+    "pdf-placeholder-download-contract",
+    "browser-download-handoff"
+  ],
   "analyticsEvents": [
     "route_viewed",
     "brief_confirmed",
@@ -123,6 +129,8 @@
     "report-problem tickets retain project, export, task, trace, asset, and quota context",
     "blocked exports do not consume quota and mock checkout activates the local alpha plan",
     "inactive, past_due, and quota-exhausted billing states block quota-consuming exports",
+    "reference upload validation flows into a ready ZIP export with manifest, QA report, provenance, and assets entries",
+    "download smoke verifies ZIP artifact contents, PDF placeholder blob, deterministic filenames, and browser download handoff",
     "legal policy routes expose Terms, Privacy Policy, Acceptable Use, IP complaint, and billing/refund policy content",
     "analytics taxonomy and client-side UI funnel events persist to local telemetry storage",
     "frontend error reports redact secrets and email addresses before persistence"

@@ -3,7 +3,7 @@
 import JSZip from "jszip";
 import { ExportRecord } from "./contracts";
 
-export const downloadExportPackage = async (record: ExportRecord) => {
+export const buildExportPackageBlob = async (record: ExportRecord) => {
   if (record.format === "pdf-placeholder") {
     const body = [
       "%PDF-1.4",
@@ -21,8 +21,7 @@ export const downloadExportPackage = async (record: ExportRecord) => {
       "0",
       "%%EOF"
     ].join("\n");
-    downloadBlob(new Blob([body], { type: "application/pdf" }), record.fileName);
-    return;
+    return new Blob([body], { type: "application/pdf" });
   }
 
   const zip = new JSZip();
@@ -48,7 +47,11 @@ export const downloadExportPackage = async (record: ExportRecord) => {
     "Deterministic local alpha export placeholder. Replace with object-storage asset references in backend export builder."
   );
 
-  downloadBlob(await zip.generateAsync({ type: "blob" }), record.fileName);
+  return zip.generateAsync({ type: "blob" });
+};
+
+export const downloadExportPackage = async (record: ExportRecord) => {
+  downloadBlob(await buildExportPackageBlob(record), record.fileName);
 };
 
 const downloadBlob = (blob: Blob, fileName: string) => {

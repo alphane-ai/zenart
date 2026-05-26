@@ -169,4 +169,32 @@ for (const expectedCapability of [
   }
 }
 
+for (const expectedIntegration of [
+  "reference-upload-to-ready-zip-export",
+  "zip-download-manifest-qa-provenance-assets",
+  "pdf-placeholder-download-contract",
+  "browser-download-handoff"
+]) {
+  if (!JSON.stringify(artifact).includes(expectedIntegration)) {
+    fail(`smoke artifact missing expected integration ${expectedIntegration}`);
+  }
+}
+
+for (const expectedDownloadSnippet of [
+  "buildExportPackageBlob",
+  "manifest.json",
+  "qa-report.json",
+  "provenance.json",
+  "assets/README.txt",
+  "application/pdf",
+  "URL.createObjectURL",
+  "link.download"
+]) {
+  const exportDownloadPath = path.join(root, "lib", "export-download.ts");
+  const exportDownloadSource = await readFile(exportDownloadPath, "utf8");
+  if (!exportDownloadSource.includes(expectedDownloadSnippet)) {
+    fail(`export download contract missing ${expectedDownloadSnippet}`);
+  }
+}
+
 console.log("user route smoke passed");

@@ -1732,7 +1732,7 @@ main 合并前必须通过：
 - [ ] 实现 Figma-ready layout spec。
 - [x] 实现 export retry/regenerate。
 - [ ] 实现 cleanup expired exports/orphaned objects。
-- [ ] 添加 upload/download/export integration tests。
+- [x] 添加 upload/download/export integration tests。
 
 ### 25.10 Agent and Provider Contracts
 
