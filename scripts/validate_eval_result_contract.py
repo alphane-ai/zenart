@@ -177,6 +177,26 @@ def runner_sha256() -> str:
     return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
 
 
+def file_sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def expected_source_fixture_digests() -> list[dict[str, str]]:
+    source_paths = [
+        SUITE,
+        QA_RESULTS,
+        FIXTURE_DIR / "eval" / "safety_rules.json",
+        *sorted((FIXTURE_DIR / "workflows").glob("*.json")),
+    ]
+    return [
+        {
+            "path": str(path.relative_to(ROOT)),
+            "sha256": file_sha256(path),
+        }
+        for path in source_paths
+    ]
+
+
 def schema_block(openapi_text: str, schema_name: str) -> str:
     match = re.search(
         rf"^    {schema_name}:\n(?P<body>.*?)(?=^    [A-Za-z0-9]+:|\Z)",
@@ -283,8 +303,31 @@ def validate_openapi_eval_result_schema() -> None:
         require_field_in_schema(body, "EvalResult.export_contract", field)
     for field in QA_EXPORT_GATE_KEYS:
         require_field_in_schema(body, "EvalResult.qa_export_gate", field)
-    for field in ["runner", "runner_sha256", "deterministic_replay_command", "writes_stored_fixture", "check_mode_compares_exact_json"]:
+    for field in [
+        "runner",
+        "runner_sha256",
+        "deterministic_replay_command",
+        "writes_stored_fixture",
+        "check_mode_compares_exact_json",
+        "source_fixture_digests",
+    ]:
         require_field_in_schema(body, "EvalResult.runner_contract", field)
+    require(
+        "fixtures/stage0/rev2/eval/starter_eval_suite.json" in body,
+        "OpenAPI EvalResult runner contract must enumerate eval suite digest path",
+    )
+    require(
+        "fixtures/stage0/rev2/eval/qa_results.json" in body,
+        "OpenAPI EvalResult runner contract must enumerate QA digest path",
+    )
+    require(
+        "fixtures/stage0/rev2/eval/safety_rules.json" in body,
+        "OpenAPI EvalResult runner contract must enumerate safety digest path",
+    )
+    require(
+        "fixtures/stage0/rev2/workflows/" in body,
+        "OpenAPI EvalResult runner contract must allow workflow digest paths",
+    )
     for field in ["required_columns", "required_indexes", "required_query_filters", "latest_result_resolvable"]:
         require_field_in_schema(body, "EvalResult.storage_contract", field)
     for field in ["immutable_rows", "idempotent_replay_key", "no_public_delete_operation"]:
@@ -328,6 +371,10 @@ def validate_fixture_result_links() -> None:
     )
     require(runner["writes_stored_fixture"] is True, "eval runner must write stored fixture")
     require(runner["check_mode_compares_exact_json"] is True, "eval runner check mode must compare exact JSON")
+    require(
+        runner["source_fixture_digests"] == expected_source_fixture_digests(),
+        "eval runner source fixture digests must match current fixture files",
+    )
 
     suite_fixtures = {fixture["fixture_id"]: fixture for fixture in suite["fixtures"]}
     qa_by_id = {item["check_id"]: item for item in qa_results}
@@ -540,6 +587,10 @@ def validate_storage_contract() -> None:
     require(read_contract["tenant_filter_required"] is True, "eval storage read contract must require tenant filter")
     require(replay_contract["check_command"] == "python3 scripts/run_stage0_eval.py --check", "eval replay command mismatch")
     require(replay_contract["check_mode_compares_exact_json"] is True, "eval replay contract must compare exact JSON")
+    require(
+        replay_contract["source_fixture_digests_required"] is True,
+        "eval replay contract must require source fixture digests",
+    )
 
 
 def main() -> int:

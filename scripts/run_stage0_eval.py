@@ -118,6 +118,26 @@ def runner_sha256() -> str:
     return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
 
 
+def file_sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def source_fixture_digests() -> list[dict[str, str]]:
+    source_paths = [
+        SUITE_PATH,
+        QA_PATH,
+        SAFETY_PATH,
+        *sorted(WORKFLOW_DIR.glob("*.json")),
+    ]
+    return [
+        {
+            "path": str(path.relative_to(ROOT)),
+            "sha256": file_sha256(path),
+        }
+        for path in source_paths
+    ]
+
+
 def load_json(path: Path) -> Any:
     try:
         return json.loads(path.read_text(encoding="utf-8"))
@@ -436,6 +456,7 @@ def run_eval() -> dict[str, Any]:
             "deterministic_replay_command": "python3 scripts/run_stage0_eval.py --check",
             "writes_stored_fixture": True,
             "check_mode_compares_exact_json": True,
+            "source_fixture_digests": source_fixture_digests(),
         },
         "storage_contract": {
             "table": "eval_results",

@@ -394,7 +394,8 @@
         "runner_sha256",
         "deterministic_replay_command",
         "writes_stored_fixture",
-        "check_mode_compares_exact_json"
+        "check_mode_compares_exact_json",
+        "source_fixture_digests"
       ],
       "properties": {
         "runner": {
@@ -412,6 +413,29 @@
         },
         "check_mode_compares_exact_json": {
           "const": true
+        },
+        "source_fixture_digests": {
+          "type": "array",
+          "minItems": 7,
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "path",
+              "sha256"
+            ],
+            "properties": {
+              "path": {
+                "type": "string",
+                "pattern": "^(fixtures/stage0/rev2/eval/(starter_eval_suite|qa_results|safety_rules)\\.json|fixtures/stage0/rev2/workflows/[a-z0-9_]+\\.json)$"
+              },
+              "sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              }
+            }
+          }
         }
       }
     },

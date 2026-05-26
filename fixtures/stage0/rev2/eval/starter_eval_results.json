@@ -921,10 +921,40 @@
     ],
     "runner_contract": {
       "runner": "scripts/run_stage0_eval.py",
-      "runner_sha256": "e8ecefba27461958bedaedaf3db45add26b230a774739d0925c9a1cdcd3469bc",
+      "runner_sha256": "2d070fcab845d42f422df77589cb95c547a01e06dbb1bc838b22de9aaed2f0cc",
       "deterministic_replay_command": "python3 scripts/run_stage0_eval.py --check",
       "writes_stored_fixture": true,
-      "check_mode_compares_exact_json": true
+      "check_mode_compares_exact_json": true,
+      "source_fixture_digests": [
+        {
+          "path": "fixtures/stage0/rev2/eval/starter_eval_suite.json",
+          "sha256": "4ef6b31cee5b826ea9c0e753f7460c712a0cba69659ba0102687fb325f81c41f"
+        },
+        {
+          "path": "fixtures/stage0/rev2/eval/qa_results.json",
+          "sha256": "b5fbb7db872c6f2bd9788ae88065edbb4e471bf37e8e106b24fcb21341dd2f14"
+        },
+        {
+          "path": "fixtures/stage0/rev2/eval/safety_rules.json",
+          "sha256": "ad09f820fab84dd482bfe774d62ceab67d7b500e5a50f8aabb5664ff31fedabf"
+        },
+        {
+          "path": "fixtures/stage0/rev2/workflows/business_visual_doc_pack.json",
+          "sha256": "47be1f9373e59b22e6ef18779e3973a3f2d4df7002e60af4018423dbad46f39d"
+        },
+        {
+          "path": "fixtures/stage0/rev2/workflows/character_ip_concept_pack.json",
+          "sha256": "cdc5ad60ce63077e28c56b96476db29a945270b8c9e40a6caabb45756b99d727"
+        },
+        {
+          "path": "fixtures/stage0/rev2/workflows/ecommerce_growth_pack.json",
+          "sha256": "a00273619f33128b4b9f81ac325a29a2a1e8c6709ef52fc11c01b086c2064f48"
+        },
+        {
+          "path": "fixtures/stage0/rev2/workflows/local_merchant_campaign_pack.json",
+          "sha256": "a93985a56c27e11a61a840cc3056f7803f7a1b30f82cfe9152aa435330edb25c"
+        }
+      ]
     },
     "storage_contract": {
       "table": "eval_results",

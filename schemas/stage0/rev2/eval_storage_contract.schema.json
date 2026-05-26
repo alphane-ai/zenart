@@ -273,7 +273,8 @@
         "check_command",
         "check_mode_compares_exact_json",
         "runner_sha256_matches_runner_file",
-        "source_fixtures"
+        "source_fixtures",
+        "source_fixture_digests_required"
       ],
       "properties": {
         "check_command": {
@@ -293,6 +294,9 @@
             "type": "string",
             "minLength": 1
           }
+        },
+        "source_fixture_digests_required": {
+          "const": true
         }
       }
     },

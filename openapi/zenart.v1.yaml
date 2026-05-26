@@ -2937,7 +2937,7 @@ components:
               const: true
         runner_contract:
           type: object
-          required: [runner, runner_sha256, deterministic_replay_command, writes_stored_fixture, check_mode_compares_exact_json]
+          required: [runner, runner_sha256, deterministic_replay_command, writes_stored_fixture, check_mode_compares_exact_json, source_fixture_digests]
           properties:
             runner:
               type: string
@@ -2954,6 +2954,22 @@ components:
             check_mode_compares_exact_json:
               type: boolean
               const: true
+            source_fixture_digests:
+              type: array
+              description: SHA-256 digests for every source fixture used by deterministic replay.
+              minItems: 7
+              uniqueItems: true
+              items:
+                type: object
+                required: [path, sha256]
+                properties:
+                  path:
+                    type: string
+                    pattern: "^(fixtures/stage0/rev2/eval/(starter_eval_suite|qa_results|safety_rules)\\.json|fixtures/stage0/rev2/workflows/[a-z0-9_]+\\.json)$"
+                    description: "Allowed examples include fixtures/stage0/rev2/eval/starter_eval_suite.json, fixtures/stage0/rev2/eval/qa_results.json, fixtures/stage0/rev2/eval/safety_rules.json, and fixtures/stage0/rev2/workflows/*.json."
+                  sha256:
+                    type: string
+                    pattern: "^[a-f0-9]{64}$"
     EvalResultPage:
       allOf:
         - $ref: "#/components/schemas/PageInfo"

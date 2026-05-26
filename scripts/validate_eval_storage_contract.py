@@ -95,6 +95,27 @@ def runner_sha256() -> str:
     return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
 
 
+def file_sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def expected_source_fixture_digests(contract: dict[str, Any]) -> list[dict[str, str]]:
+    source_paths: list[Path] = []
+    for source in contract["replay_contract"]["source_fixtures"]:
+        source_path = ROOT / source
+        if source_path.is_dir():
+            source_paths.extend(sorted(source_path.glob("*.json")))
+        else:
+            source_paths.append(source_path)
+    return [
+        {
+            "path": str(path.relative_to(ROOT)),
+            "sha256": file_sha256(path),
+        }
+        for path in source_paths
+    ]
+
+
 def path_block(openapi_text: str, path: str) -> str:
     match = re.search(
         rf"^  {re.escape(path)}:\n(?P<body>.*?)(?=^  /|\Z)",
@@ -134,6 +155,10 @@ def validate_stored_result(contract: dict[str, Any], result: dict[str, Any]) -> 
     require(
         result["runner_contract"]["runner_sha256"] == runner_sha256(),
         "stored result runner hash must match deterministic runner digest",
+    )
+    require(
+        result["runner_contract"]["source_fixture_digests"] == expected_source_fixture_digests(contract),
+        "stored result source fixture digests must match replay sources",
     )
 
 
@@ -196,6 +221,8 @@ def validate_write_and_replay_contract(contract: dict[str, Any]) -> None:
     require("--check" in runner_text and "stored eval results are stale" in runner_text, "runner must implement exact check mode")
     require(replay["check_mode_compares_exact_json"] is True, "replay check mode must compare exact JSON")
     require(replay["runner_sha256_matches_runner_file"] is True, "replay contract must require runner hash validation")
+    require(replay["source_fixture_digests_required"] is True, "replay contract must require source fixture digests")
+    require("source_fixture_digests" in runner_text, "runner must emit source fixture digests")
     for source in replay["source_fixtures"]:
         require((ROOT / source).exists(), f"replay source fixture missing: {source}")
 

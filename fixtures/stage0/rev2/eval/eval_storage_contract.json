@@ -84,6 +84,7 @@
     "check_command": "python3 scripts/run_stage0_eval.py --check",
     "check_mode_compares_exact_json": true,
     "runner_sha256_matches_runner_file": true,
+    "source_fixture_digests_required": true,
     "source_fixtures": [
       "fixtures/stage0/rev2/eval/starter_eval_suite.json",
       "fixtures/stage0/rev2/eval/qa_results.json",
