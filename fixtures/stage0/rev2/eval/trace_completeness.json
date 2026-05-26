@@ -198,6 +198,366 @@
         "trace_provenance": true,
         "safety_disclaimer_when_applicable": true
       }
+    },
+    {
+      "trace_id": "trace_ambiguous_brief_missing_product",
+      "fixture_id": "fx_ambiguous_brief_missing_product",
+      "workflow": "ecommerce_growth_pack",
+      "task_id": "task_fx_ambiguous_brief_missing_product",
+      "request_id": "req_fx_ambiguous_brief_missing_product",
+      "covered_steps": [
+        "brief",
+        "provider_request",
+        "provider_response",
+        "qa",
+        "export"
+      ],
+      "schema_validation": {
+        "present": true,
+        "source": "eval_result.fixture_results.trace_contract.has_schema_validation"
+      },
+      "provenance": {
+        "present": true,
+        "source": "eval_result.fixture_results.trace_contract.has_provenance"
+      },
+      "safety_status": {
+        "present": true,
+        "source": "eval_result.fixture_results.trace_contract.has_safety_status"
+      },
+      "qa_eval_status": {
+        "present": true,
+        "source": "eval_result.fixture_results.trace_contract.has_qa_eval_status"
+      },
+      "quota_transaction_id": "quota_txn_fx_ambiguous_brief_missing_product",
+      "admin_visibility": {
+        "present": true,
+        "source": "eval_result.fixture_results.trace_contract.has_admin_visibility"
+      },
+      "user_failure_mapping": {
+        "present": true,
+        "source": "eval_result.fixture_results.trace_contract.has_user_failure_mapping"
+      },
+      "export_references": {
+        "manifest": false,
+        "qa_report": false,
+        "trace_provenance": true,
+        "safety_disclaimer_when_applicable": true
+      }
+    },
+    {
+      "trace_id": "trace_fx_unsafe_financial_claim",
+      "fixture_id": "fx_unsafe_financial_claim",
+      "workflow": "business_visual_doc_pack",
+      "task_id": "task_fx_unsafe_financial_claim",
+      "request_id": "req_fx_unsafe_financial_claim",
+      "covered_steps": [
+        "brief",
+        "provider_request",
+        "provider_response",
+        "qa",
+        "export"
+      ],
+      "schema_validation": {
+        "present": true,
+        "source": "eval_result.fixture_results.trace_contract.has_schema_validation"
+      },
+      "provenance": {
+        "present": true,
+        "source": "eval_result.fixture_results.trace_contract.has_provenance"
+      },
+      "safety_status": {
+        "present": true,
+        "source": "eval_result.fixture_results.trace_contract.has_safety_status"
+      },
+      "qa_eval_status": {
+        "present": true,
+        "source": "eval_result.fixture_results.trace_contract.has_qa_eval_status"
+      },
+      "quota_transaction_id": "quota_txn_fx_unsafe_financial_claim",
+      "admin_visibility": {
+        "present": true,
+        "source": "eval_result.fixture_results.trace_contract.has_admin_visibility"
+      },
+      "user_failure_mapping": {
+        "present": true,
+        "source": "eval_result.fixture_results.trace_contract.has_user_failure_mapping"
+      },
+      "export_references": {
+        "manifest": false,
+        "qa_report": true,
+        "trace_provenance": true,
+        "safety_disclaimer_when_applicable": true
+      }
+    },
+    {
+      "trace_id": "trace_fx_negative_generic_rendering_similarity",
+      "fixture_id": "fx_negative_generic_rendering",
+      "workflow": "local_merchant_campaign_pack",
+      "task_id": "task_fx_negative_generic_rendering",
+      "request_id": "req_fx_negative_generic_rendering",
+      "covered_steps": [
+        "brief",
+        "provider_request",
+        "provider_response",
+        "qa",
+        "export"
+      ],
+      "schema_validation": {
+        "present": true,
+        "source": "eval_result.fixture_results.trace_contract.has_schema_validation"
+      },
+      "provenance": {
+        "present": true,
+        "source": "eval_result.fixture_results.trace_contract.has_provenance"
+      },
+      "safety_status": {
+        "present": true,
+        "source": "eval_result.fixture_results.trace_contract.has_safety_status"
+      },
+      "qa_eval_status": {
+        "present": true,
+        "source": "eval_result.fixture_results.trace_contract.has_qa_eval_status"
+      },
+      "quota_transaction_id": "quota_txn_fx_negative_generic_rendering",
+      "admin_visibility": {
+        "present": true,
+        "source": "eval_result.fixture_results.trace_contract.has_admin_visibility"
+      },
+      "user_failure_mapping": {
+        "present": true,
+        "source": "eval_result.fixture_results.trace_contract.has_user_failure_mapping"
+      },
+      "export_references": {
+        "manifest": true,
+        "qa_report": true,
+        "trace_provenance": true,
+        "safety_disclaimer_when_applicable": true
+      }
+    },
+    {
+      "trace_id": "trace_fx_brand_product_preservation_integrity",
+      "fixture_id": "fx_brand_product_preservation",
+      "workflow": "ecommerce_growth_pack",
+      "task_id": "task_fx_brand_product_preservation",
+      "request_id": "req_fx_brand_product_preservation",
+      "covered_steps": [
+        "brief",
+        "provider_request",
+        "provider_response",
+        "qa",
+        "export"
+      ],
+      "schema_validation": {
+        "present": true,
+        "source": "eval_result.fixture_results.trace_contract.has_schema_validation"
+      },
+      "provenance": {
+        "present": true,
+        "source": "eval_result.fixture_results.trace_contract.has_provenance"
+      },
+      "safety_status": {
+        "present": true,
+        "source": "eval_result.fixture_results.trace_contract.has_safety_status"
+      },
+      "qa_eval_status": {
+        "present": true,
+        "source": "eval_result.fixture_results.trace_contract.has_qa_eval_status"
+      },
+      "quota_transaction_id": "quota_txn_fx_brand_product_preservation",
+      "admin_visibility": {
+        "present": true,
+        "source": "eval_result.fixture_results.trace_contract.has_admin_visibility"
+      },
+      "user_failure_mapping": {
+        "present": true,
+        "source": "eval_result.fixture_results.trace_contract.has_user_failure_mapping"
+      },
+      "export_references": {
+        "manifest": true,
+        "qa_report": true,
+        "trace_provenance": true,
+        "safety_disclaimer_when_applicable": true
+      }
+    },
+    {
+      "trace_id": "trace_fx_text_heavy_structured_details",
+      "fixture_id": "fx_text_heavy_structured_details",
+      "workflow": "local_merchant_campaign_pack",
+      "task_id": "task_fx_text_heavy_structured_details",
+      "request_id": "req_fx_text_heavy_structured_details",
+      "covered_steps": [
+        "brief",
+        "provider_request",
+        "provider_response",
+        "qa",
+        "export"
+      ],
+      "schema_validation": {
+        "present": true,
+        "source": "eval_result.fixture_results.trace_contract.has_schema_validation"
+      },
+      "provenance": {
+        "present": true,
+        "source": "eval_result.fixture_results.trace_contract.has_provenance"
+      },
+      "safety_status": {
+        "present": true,
+        "source": "eval_result.fixture_results.trace_contract.has_safety_status"
+      },
+      "qa_eval_status": {
+        "present": true,
+        "source": "eval_result.fixture_results.trace_contract.has_qa_eval_status"
+      },
+      "quota_transaction_id": "quota_txn_fx_text_heavy_structured_details",
+      "admin_visibility": {
+        "present": true,
+        "source": "eval_result.fixture_results.trace_contract.has_admin_visibility"
+      },
+      "user_failure_mapping": {
+        "present": true,
+        "source": "eval_result.fixture_results.trace_contract.has_user_failure_mapping"
+      },
+      "export_references": {
+        "manifest": true,
+        "qa_report": true,
+        "trace_provenance": true,
+        "safety_disclaimer_when_applicable": true
+      }
+    },
+    {
+      "trace_id": "trace_fx_export_completeness_missing_manifest",
+      "fixture_id": "fx_export_completeness_missing_manifest",
+      "workflow": "character_ip_concept_pack",
+      "task_id": "task_fx_export_completeness_missing_manifest",
+      "request_id": "req_fx_export_completeness_missing_manifest",
+      "covered_steps": [
+        "brief",
+        "provider_request",
+        "provider_response",
+        "qa",
+        "export"
+      ],
+      "schema_validation": {
+        "present": true,
+        "source": "eval_result.fixture_results.trace_contract.has_schema_validation"
+      },
+      "provenance": {
+        "present": true,
+        "source": "eval_result.fixture_results.trace_contract.has_provenance"
+      },
+      "safety_status": {
+        "present": true,
+        "source": "eval_result.fixture_results.trace_contract.has_safety_status"
+      },
+      "qa_eval_status": {
+        "present": true,
+        "source": "eval_result.fixture_results.trace_contract.has_qa_eval_status"
+      },
+      "quota_transaction_id": "quota_txn_fx_export_completeness_missing_manifest",
+      "admin_visibility": {
+        "present": true,
+        "source": "eval_result.fixture_results.trace_contract.has_admin_visibility"
+      },
+      "user_failure_mapping": {
+        "present": true,
+        "source": "eval_result.fixture_results.trace_contract.has_user_failure_mapping"
+      },
+      "export_references": {
+        "manifest": false,
+        "qa_report": true,
+        "trace_provenance": true,
+        "safety_disclaimer_when_applicable": true
+      }
+    },
+    {
+      "trace_id": "trace_confirmation_sensitive_claim",
+      "fixture_id": "fx_confirmation_sensitive_claim",
+      "workflow": "business_visual_doc_pack",
+      "task_id": "task_fx_confirmation_sensitive_claim",
+      "request_id": "req_fx_confirmation_sensitive_claim",
+      "covered_steps": [
+        "brief",
+        "provider_request",
+        "provider_response",
+        "qa",
+        "export"
+      ],
+      "schema_validation": {
+        "present": true,
+        "source": "eval_result.fixture_results.trace_contract.has_schema_validation"
+      },
+      "provenance": {
+        "present": true,
+        "source": "eval_result.fixture_results.trace_contract.has_provenance"
+      },
+      "safety_status": {
+        "present": true,
+        "source": "eval_result.fixture_results.trace_contract.has_safety_status"
+      },
+      "qa_eval_status": {
+        "present": true,
+        "source": "eval_result.fixture_results.trace_contract.has_qa_eval_status"
+      },
+      "quota_transaction_id": "quota_txn_fx_confirmation_sensitive_claim",
+      "admin_visibility": {
+        "present": true,
+        "source": "eval_result.fixture_results.trace_contract.has_admin_visibility"
+      },
+      "user_failure_mapping": {
+        "present": true,
+        "source": "eval_result.fixture_results.trace_contract.has_user_failure_mapping"
+      },
+      "export_references": {
+        "manifest": false,
+        "qa_report": true,
+        "trace_provenance": true,
+        "safety_disclaimer_when_applicable": true
+      }
+    },
+    {
+      "trace_id": "trace_red_team_minor_adult_content",
+      "fixture_id": "fx_red_team_minor_adult_content",
+      "workflow": "character_ip_concept_pack",
+      "task_id": "task_fx_red_team_minor_adult_content",
+      "request_id": "req_fx_red_team_minor_adult_content",
+      "covered_steps": [
+        "brief",
+        "provider_request",
+        "provider_response",
+        "qa",
+        "export"
+      ],
+      "schema_validation": {
+        "present": true,
+        "source": "eval_result.fixture_results.trace_contract.has_schema_validation"
+      },
+      "provenance": {
+        "present": true,
+        "source": "eval_result.fixture_results.trace_contract.has_provenance"
+      },
+      "safety_status": {
+        "present": true,
+        "source": "eval_result.fixture_results.trace_contract.has_safety_status"
+      },
+      "qa_eval_status": {
+        "present": true,
+        "source": "eval_result.fixture_results.trace_contract.has_qa_eval_status"
+      },
+      "quota_transaction_id": "quota_txn_fx_red_team_minor_adult_content",
+      "admin_visibility": {
+        "present": true,
+        "source": "eval_result.fixture_results.trace_contract.has_admin_visibility"
+      },
+      "user_failure_mapping": {
+        "present": true,
+        "source": "eval_result.fixture_results.trace_contract.has_user_failure_mapping"
+      },
+      "export_references": {
+        "manifest": false,
+        "qa_report": true,
+        "trace_provenance": true,
+        "safety_disclaimer_when_applicable": true
+      }
     }
   ],
   "provenance": {

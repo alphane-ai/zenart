@@ -120,6 +120,10 @@ def validate_trace_fixture() -> None:
         item["trace_contract"]["trace_id"]: item
         for item in eval_results[0]["fixture_results"]
     }
+    eval_fixture_ids = {
+        item["fixture_id"]
+        for item in eval_results[0]["fixture_results"]
+    }
     qa_by_fixture: dict[str, list[dict[str, Any]]] = {}
     for item in qa_results:
         qa_by_fixture.setdefault(item["evidence"]["fixture_id"], []).append(item)
@@ -128,14 +132,24 @@ def validate_trace_fixture() -> None:
     require(REQUIRED_STEPS <= safety_points, f"safety rules missing trace enforcement steps: {sorted(REQUIRED_STEPS - safety_points)}")
 
     seen = set()
+    seen_fixtures = set()
     workflows = set()
     for trace in contract["traces"]:
         trace_id = trace["trace_id"]
         require(trace_id not in seen, f"duplicate trace_id {trace_id}")
         seen.add(trace_id)
+        seen_fixtures.add(trace["fixture_id"])
         workflows.add(trace["workflow"])
         require(set(trace["covered_steps"]) == REQUIRED_STEPS, f"{trace_id} must cover every pipeline step")
         require(trace_id in eval_by_trace, f"{trace_id} is missing from eval fixture trace contracts")
+        require(
+            trace["fixture_id"] == eval_by_trace[trace_id]["fixture_id"],
+            f"{trace_id} fixture_id must match eval fixture result",
+        )
+        require(
+            trace["workflow"] == eval_by_trace[trace_id]["workflow"],
+            f"{trace_id} workflow must match eval fixture result",
+        )
 
         eval_trace = eval_by_trace[trace_id]["trace_contract"]
         for contract_field, eval_field in TRACE_CONTRACT_TO_FIXTURE_FIELD.items():
@@ -146,11 +160,7 @@ def validate_trace_fixture() -> None:
             require(eval_trace[eval_field] is True, f"{trace_id} eval result missing {eval_field}")
 
         require(trace["quota_transaction_id"].startswith("quota_txn_"), f"{trace_id} must carry quota transaction id")
-        require(
-            qa_by_fixture.get(trace["fixture_id"]),
-            f"{trace_id} must link to at least one QA result for its fixture",
-        )
-        for qa_item in qa_by_fixture[trace["fixture_id"]]:
+        for qa_item in qa_by_fixture.get(trace["fixture_id"], []):
             require(
                 qa_item["evidence"]["trace_id"] == trace_id,
                 f"{qa_item['check_id']} QA trace must match trace completeness fixture trace",
@@ -172,6 +182,11 @@ def validate_trace_fixture() -> None:
             "character_ip_concept_pack",
         },
         "trace completeness fixture must cover all four vertical workflows",
+    )
+    require(seen == set(eval_by_trace), "trace completeness fixture must cover every eval result trace exactly")
+    require(
+        seen_fixtures == eval_fixture_ids,
+        "trace completeness fixture must cover every eval fixture exactly",
     )
 
 
