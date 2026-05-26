@@ -30,6 +30,9 @@ DRILL_PLAN_EVIDENCE = ROOT / "ops" / "evidence" / "stage0_drill_plan.json"
 OBSERVABILITY_EVIDENCE = ROOT / "ops" / "evidence" / "stage0_observability_evidence.json"
 RELEASE_OPS_EVIDENCE = ROOT / "ops" / "evidence" / "stage0_release_ops_evidence.json"
 STAGING_SUPPORT_RETRY_ABUSE_EVIDENCE = ROOT / "ops" / "evidence" / "staging" / "20260527T1000Z-support-retry-abuse.json"
+STAGING_BACKEND_WORKER_CRAWLER_METRICS_EVIDENCE = (
+    ROOT / "ops" / "evidence" / "staging" / "20260527T1215Z-backend-worker-crawler-metrics.json"
+)
 OBSERVABILITY_DASHBOARD = ROOT / "ops" / "observability" / "dashboards" / "stage0_rev2_overview.json"
 OBSERVABILITY_ALERTS = ROOT / "ops" / "observability" / "alerts" / "stage0_rev2_alerts.json"
 
@@ -999,7 +1002,6 @@ REQUIRED_OPEN_ITEMS = {
     "staging request id propagation runtime evidence 通过。",
     "staging structured JSON logs runtime evidence 通过。",
     "staging OpenTelemetry traces runtime evidence 通过。",
-    "staging backend/worker/crawler metrics runtime evidence 通过。",
     "Staging post-deploy smoke tests 通过。",
     "Production post-deploy smoke tests 通过。",
 }
@@ -2754,6 +2756,59 @@ def validate_staging_support_retry_abuse_evidence() -> None:
         require(evidence[key], f"support/retry/abuse evidence must include {key}")
 
 
+def validate_staging_backend_worker_crawler_metrics_evidence() -> None:
+    evidence = load_json(STAGING_BACKEND_WORKER_CRAWLER_METRICS_EVIDENCE)
+    require(
+        evidence["schema_version"] == "stage0.rev2.staging_backend_worker_crawler_metrics_runtime",
+        "staging backend/worker/crawler metrics evidence schema mismatch",
+    )
+    require(evidence["environment"] == "staging", "backend/worker/crawler metrics evidence must be staging-scoped")
+    require(
+        evidence["status"] == "pass_with_blockers_preserved",
+        "backend/worker/crawler metrics evidence must pass while preserving aggregate blockers",
+    )
+    require(
+        evidence["release_gate_check_id"] == "staging_observability_backup_load",
+        "backend/worker/crawler metrics evidence must target the observability/backup/load release-gate check",
+    )
+    require(
+        evidence["blueprint_checklist_item"] == "staging backend/worker/crawler metrics runtime evidence 通过。",
+        "backend/worker/crawler metrics evidence must name the checklist item it can close",
+    )
+    service_results = {item["service"]: item for item in evidence["metrics_results"]}
+    require(
+        set(service_results) == {"backend_api", "worker", "crawler"},
+        "backend/worker/crawler metrics evidence must cover backend_api, worker, and crawler",
+    )
+    for service, item in service_results.items():
+        require(item["validation_status"] == "verified", f"{service} metrics runtime evidence must be verified")
+        require(item["runtime_ref"].startswith("staging-metrics-"), f"{service} metrics runtime_ref must be staging-scoped")
+        require(item["scrape_target"].startswith("https://staging-"), f"{service} metrics scrape target must be staging-scoped")
+        require(item["required_signals"], f"{service} metrics evidence must list required signals")
+        require(item["cardinality_probe"], f"{service} metrics evidence must include cardinality/secret-safety probe")
+        require(item["slo_probe"], f"{service} metrics evidence must include SLO probe")
+        require(item["audit_ref"].startswith("au-"), f"{service} metrics evidence must cite audit_ref")
+    gate_impact = evidence["gate_impact"]
+    require(
+        gate_impact["can_clear_metrics_checklist_item"] is True,
+        "backend/worker/crawler metrics evidence must explicitly allow check-level closure",
+    )
+    require(
+        gate_impact["aggregate_private_beta_gate_status"] == "blocked_by_other_staging_runtime_items",
+        "backend/worker/crawler metrics evidence must keep aggregate private beta gate blocked",
+    )
+    for blocker in [
+        "staging request id propagation runtime evidence",
+        "staging structured JSON logs runtime evidence",
+        "staging OpenTelemetry traces runtime evidence",
+        "staging backup/restore/load runtime evidence",
+    ]:
+        require(
+            blocker in gate_impact["remaining_blockers"],
+            f"backend/worker/crawler metrics evidence must preserve blocker: {blocker}",
+        )
+
+
 def validate_analytics_taxonomy() -> None:
     taxonomy = load_json(FIXTURE_DIR / "analytics" / "event_taxonomy.json")
     require(
@@ -3729,7 +3784,6 @@ def validate_launch_readiness_split_contracts() -> None:
         "staging request id propagation runtime evidence 通过。",
         "staging structured JSON logs runtime evidence 通过。",
         "staging OpenTelemetry traces runtime evidence 通过。",
-        "staging backend/worker/crawler metrics runtime evidence 通过。",
         "Staging post-deploy smoke tests 通过。",
         "Production post-deploy smoke tests 通过。",
     ] + sorted(RELEASE_GATE_RUNTIME_OPEN_ITEMS) + sorted(
@@ -4263,6 +4317,7 @@ def main() -> int:
         validate_crawler_feedback_abuse,
         validate_abuse_evidence_split_contracts,
         validate_staging_support_retry_abuse_evidence,
+        validate_staging_backend_worker_crawler_metrics_evidence,
         validate_analytics_taxonomy,
         validate_local_alpha_presence,
         validate_release_gate_evidence,
