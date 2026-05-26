@@ -560,6 +560,41 @@ export type StagingSupportRetryAbuseEvidence = {
   };
 };
 
+export type ProductionAbuseThrottleHoldCoverage = {
+  area:
+    | "account_hold_enforcement"
+    | "rate_limit_enforcement"
+    | "rbac_audit_release"
+    | "gate_blocker_preservation";
+  status: "pass" | "blocked";
+  runtimeProbe: string;
+  deploymentEvidence: string;
+  rbacAuditEvidence: string;
+  linkedAdminArtifacts: string[];
+  evidenceRefs: string[];
+};
+
+export type ProductionAbuseThrottleHoldEvidence = {
+  id: string;
+  evidencePath: string;
+  environment: "production";
+  status: "pass_with_blockers_preserved" | "blocked";
+  validatedAt: string;
+  validatedByRole: AdminRole;
+  releaseGateCheckId: "production_abuse_throttle_hold";
+  doNotLaunchConditionId: "abuse_throttle_hold_missing";
+  runtimeRequestIds: string[];
+  abuseEventIds: string[];
+  abuseHookIds: string[];
+  coverage: ProductionAbuseThrottleHoldCoverage[];
+  gateImpact: {
+    checklistItem: string;
+    canClearCheckLevelItem: boolean;
+    aggregateProductionGateStatus: "blocked_by_other_production_runtime_items";
+    remainingBlockers: string[];
+  };
+};
+
 export type SupportTicket = {
   id: string;
   status: "open" | "waiting_user" | "resolved" | "escalated";

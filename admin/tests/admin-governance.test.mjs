@@ -12,7 +12,7 @@ const parseFixtures = () => {
   const moduleSource = source
     .replace(/^import type[\s\S]*?from "@\/lib\/types";\n\n/, "")
     .replaceAll(/export const (\w+)[^=]*=/g, "const $1 =");
-  return Function(`${moduleSource}\nreturn { skillVersions, skillReleaseStateDefinitions, skillCanaryMetrics, releaseEvidence, releaseBlockers, supportTickets, supportEscalationRunbooks, supportUsers, riskyExports, abuseEvents, abuseControlHooks, stagingSupportRetryAbuseEvidence, auditEvents, exportJobs, traces, quotaAccounts, feedbackItems, regressionFixtures, analyticsReports, queueHealth, failedTaskControls, crawlerFindings, crawlerSourceApprovals, crawlerGovernanceWorkflows, crawlerStagingRuntimeEvidence, adminRbacEvidence, operationalDashboards, operationalDashboardRuntimeEvidence, alertRoutes, alertRouteRuntimeEvidence, backendMetricsRuntimeEvidence };`)();
+  return Function(`${moduleSource}\nreturn { skillVersions, skillReleaseStateDefinitions, skillCanaryMetrics, releaseEvidence, releaseBlockers, supportTickets, supportEscalationRunbooks, supportUsers, riskyExports, abuseEvents, abuseControlHooks, stagingSupportRetryAbuseEvidence, productionAbuseThrottleHoldEvidence, auditEvents, exportJobs, traces, quotaAccounts, feedbackItems, regressionFixtures, analyticsReports, queueHealth, failedTaskControls, crawlerFindings, crawlerSourceApprovals, crawlerGovernanceWorkflows, crawlerStagingRuntimeEvidence, adminRbacEvidence, operationalDashboards, operationalDashboardRuntimeEvidence, alertRoutes, alertRouteRuntimeEvidence, backendMetricsRuntimeEvidence };`)();
 };
 
 const crawlerGovernanceCases = JSON.parse(
@@ -32,6 +32,7 @@ const {
   abuseEvents,
   abuseControlHooks,
   stagingSupportRetryAbuseEvidence,
+  productionAbuseThrottleHoldEvidence,
   auditEvents,
   exportJobs,
   feedbackItems,
@@ -128,6 +129,14 @@ const crawlerStagingRuntimePath = new URL(
 );
 const privateBetaGatePath = new URL(
   "../../fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json",
+  import.meta.url
+);
+const productionGatePath = new URL(
+  "../../fixtures/stage0/rev2/release_gate_evidence.production_launch.json",
+  import.meta.url
+);
+const productionAbuseThrottleHoldPath = new URL(
+  "../../ops/evidence/production/20260527T1330Z-abuse-throttle-hold.json",
   import.meta.url
 );
 
@@ -835,6 +844,149 @@ test("private beta gate consumes staging support retry abuse evidence without cl
   assert.ok(
     gateFixture.checks.some((check) => check.status === "blocked"),
     "aggregate private beta gate must remain blocked by other staging runtime items"
+  );
+});
+
+test("production abuse throttle hold evidence clears only the production abuse check", () => {
+  assert.ok(existsSync(productionAbuseThrottleHoldPath), "production abuse throttle/hold evidence file is missing");
+  assert.ok(existsSync(productionGatePath), "production launch gate evidence fixture is missing");
+
+  const evidenceFile = JSON.parse(readFileSync(productionAbuseThrottleHoldPath, "utf8"));
+  const gateFixture = JSON.parse(readFileSync(productionGatePath, "utf8"));
+
+  assert.equal(productionAbuseThrottleHoldEvidence.id, evidenceFile.evidence_id, "admin fixture must match production evidence id");
+  assert.equal(productionAbuseThrottleHoldEvidence.environment, "production", "evidence must be production scoped");
+  assert.equal(evidenceFile.environment, "production", "evidence file must be production scoped");
+  assert.equal(
+    productionAbuseThrottleHoldEvidence.status,
+    "pass_with_blockers_preserved",
+    "production abuse evidence must preserve unrelated blockers"
+  );
+  assert.equal(evidenceFile.status, "pass_with_blockers_preserved", "evidence file must preserve unrelated blockers");
+  assert.equal(
+    productionAbuseThrottleHoldEvidence.evidencePath,
+    "ops/evidence/production/20260527T1330Z-abuse-throttle-hold.json",
+    "evidence path must cite gate-specific production evidence"
+  );
+  assert.equal(
+    productionAbuseThrottleHoldEvidence.releaseGateCheckId,
+    "production_abuse_throttle_hold",
+    "evidence must bind the production abuse release-gate check"
+  );
+  assert.equal(
+    productionAbuseThrottleHoldEvidence.doNotLaunchConditionId,
+    "abuse_throttle_hold_missing",
+    "evidence must bind the production abuse do-not-launch condition"
+  );
+  assert.equal(
+    productionAbuseThrottleHoldEvidence.gateImpact.canClearCheckLevelItem,
+    true,
+    "validated evidence should clear only the check-level production abuse checklist item"
+  );
+  assert.equal(
+    productionAbuseThrottleHoldEvidence.gateImpact.aggregateProductionGateStatus,
+    "blocked_by_other_production_runtime_items",
+    "abuse evidence must not close the aggregate production gate"
+  );
+
+  for (const requestId of productionAbuseThrottleHoldEvidence.runtimeRequestIds) {
+    assert.match(
+      requestId,
+      /^production-abuse-throttle-hold-\d{8}T\d{4}Z-/,
+      `${requestId} must be a production abuse runtime probe`
+    );
+  }
+
+  for (const eventId of productionAbuseThrottleHoldEvidence.abuseEventIds) {
+    assert.ok(abuseEventById.has(eventId), `${eventId} must link an abuse event`);
+  }
+
+  for (const hookId of productionAbuseThrottleHoldEvidence.abuseHookIds) {
+    assert.ok(abuseHookIds.has(hookId), `${hookId} must link an abuse hold/throttle hook`);
+  }
+
+  const requiredAreas = new Set([
+    "account_hold_enforcement",
+    "rate_limit_enforcement",
+    "rbac_audit_release",
+    "gate_blocker_preservation"
+  ]);
+
+  for (const area of evidenceFile.coverage.map((item) => item.area)) {
+    assert.ok(requiredAreas.has(area), `${area} is not an expected production abuse evidence area`);
+  }
+
+  for (const coverage of productionAbuseThrottleHoldEvidence.coverage) {
+    requiredAreas.delete(coverage.area);
+    assert.equal(coverage.status, "pass", `${coverage.area} must pass`);
+    assert.ok(coverage.runtimeProbe.toLowerCase().includes("production"), `${coverage.area} must describe production runtime`);
+    assert.match(
+      coverage.runtimeProbe,
+      /hold|throttle|gateway|scheduler|release-gate|dry-run/i,
+      `${coverage.area} must cover abuse enforcement`
+    );
+    assert.ok(coverage.deploymentEvidence.length > 100, `${coverage.area} needs deployment evidence`);
+    assert.ok(coverage.rbacAuditEvidence.length > 100, `${coverage.area} needs RBAC and audit evidence`);
+    assert.ok(coverage.linkedAdminArtifacts.some((ref) => ref.startsWith("admin/")), `${coverage.area} needs admin artifacts`);
+    assert.ok(
+      coverage.evidenceRefs.includes("ops/evidence/production/20260527T1330Z-abuse-throttle-hold.json"),
+      `${coverage.area} must cite the production evidence path`
+    );
+    assert.ok(
+      coverage.evidenceRefs.some(
+        (ref) =>
+          supportTicketIds.has(ref) ||
+          abuseEventById.has(ref) ||
+          abuseHookIds.has(ref) ||
+          auditIds.has(ref) ||
+          traceIds.has(ref) ||
+          exportIds.has(ref) ||
+          crawlerFindingIds.has(ref) ||
+          ref.startsWith("rb-production-") ||
+          ref.startsWith("eg-")
+      ),
+      `${coverage.area} needs validator-resolvable admin evidence refs`
+    );
+  }
+
+  assert.deepEqual([...requiredAreas], [], "production abuse evidence is missing coverage areas");
+  assert.deepEqual(
+    evidenceFile.runtime_request_ids,
+    productionAbuseThrottleHoldEvidence.runtimeRequestIds,
+    "evidence file and admin fixture runtime probe ids must match"
+  );
+
+  const abuseCheck = gateFixture.checks.find((check) => check.check_id === "production_abuse_throttle_hold");
+  assert.ok(abuseCheck, "production gate needs abuse throttle/hold check");
+  assert.equal(abuseCheck.status, "pass", "validated production abuse evidence should clear only its check");
+  assert.ok(
+    abuseCheck.evidence_ref.includes(productionAbuseThrottleHoldEvidence.evidencePath),
+    "production abuse check must cite the production runtime evidence path"
+  );
+
+  const abuseDoNotLaunch = gateFixture.do_not_launch_checks.find(
+    (condition) => condition.condition_id === productionAbuseThrottleHoldEvidence.doNotLaunchConditionId
+  );
+  assert.ok(abuseDoNotLaunch, "production do-not-launch fixture needs abuse condition");
+  assert.equal(
+    abuseDoNotLaunch.is_present,
+    false,
+    "validated production abuse runtime evidence should clear the matching do-not-launch condition"
+  );
+  assert.ok(
+    abuseDoNotLaunch.evidence_ref.includes(productionAbuseThrottleHoldEvidence.evidencePath),
+    "cleared production abuse do-not-launch condition must cite the production runtime evidence path"
+  );
+
+  for (const blocker of productionAbuseThrottleHoldEvidence.gateImpact.remainingBlockers) {
+    const check = gateFixture.checks.find((entry) => entry.check_id === blocker);
+    assert.ok(check, `${blocker} must remain represented in the production gate fixture`);
+    assert.equal(check.status, "blocked", `${blocker} must stay blocked after abuse throttle/hold clears`);
+  }
+
+  assert.ok(
+    gateFixture.do_not_launch_checks.some((condition) => condition.is_present === true),
+    "aggregate production gate must remain blocked by other do-not-launch conditions"
   );
 });
 

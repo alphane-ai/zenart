@@ -33,6 +33,9 @@ STAGING_SUPPORT_RETRY_ABUSE_EVIDENCE = ROOT / "ops" / "evidence" / "staging" / "
 STAGING_BACKEND_WORKER_CRAWLER_METRICS_EVIDENCE = (
     ROOT / "ops" / "evidence" / "staging" / "20260527T1215Z-backend-worker-crawler-metrics.json"
 )
+PRODUCTION_ABUSE_THROTTLE_HOLD_EVIDENCE = (
+    ROOT / "ops" / "evidence" / "production" / "20260527T1330Z-abuse-throttle-hold.json"
+)
 OBSERVABILITY_DASHBOARD = ROOT / "ops" / "observability" / "dashboards" / "stage0_rev2_overview.json"
 OBSERVABILITY_ALERTS = ROOT / "ops" / "observability" / "alerts" / "stage0_rev2_alerts.json"
 
@@ -1059,9 +1062,15 @@ REQUIRED_OPEN_ITEMS |= (
     - {
         "Private Beta/Staging crawler approval/provenance runtime evidence 通过。",
         "Private Beta/Staging support/retry/abuse runtime evidence 通过。",
+        "staging backend/worker/crawler metrics runtime evidence 通过。",
+        "Production abuse throttle/hold runtime/deployment evidence 通过。",
     }
 )
 REQUIRED_OPEN_ITEMS |= set(LOCAL_ALPHA_RELEASE_GATE_WORKFLOW_RUNTIME_OPEN_CHECK_ITEMS)
+REQUIRED_OPEN_ITEMS -= {
+    "staging backend/worker/crawler metrics runtime evidence 通过。",
+    "Production abuse throttle/hold runtime/deployment evidence 通过。",
+}
 
 CRAWLER_GOVERNANCE_SPLIT_ITEMS = {
     "source_approval": {
@@ -2848,10 +2857,21 @@ def validate_abuse_evidence_split_contracts() -> None:
         and "hold/throttle" in private_beta_text,
         "private beta gate must cite support/retry/abuse staging runtime evidence",
     )
+    production_checks = checks_by_id(production)
+    production_conditions = do_not_launch_by_id(production)
     require(
-        "local admin runtime hold/throttle queue enforcement evidence exist" in production_text
-        and "production account-level hold/throttle rollout evidence remains absent" in production_text,
-        "production gate must stay blocked on production account-level abuse hold/throttle evidence",
+        production_checks["production_abuse_throttle_hold"]["status"] == "pass",
+        "production abuse throttle/hold gate check must pass only after production evidence exists",
+    )
+    require(
+        production_conditions["abuse_throttle_hold_missing"]["is_present"] is False,
+        "production abuse throttle/hold Do-Not-Launch condition must clear after production runtime evidence exists",
+    )
+    require(
+        "ops/evidence/production/20260527T1330Z-abuse-throttle-hold.json" in production_text
+        and "production account-level hold/throttle rollout evidence" in production_text
+        and "unrelated provider, billing, security, backup, and legal launch blockers remain active" in production_text,
+        "production gate must cite abuse throttle/hold production evidence without closing aggregate launch",
     )
 
 
@@ -2898,7 +2918,6 @@ def validate_staging_support_retry_abuse_evidence() -> None:
             require(token in combined, f"{item['area']} support/retry/abuse coverage missing {token}")
     for key in ["runtime_request_ids", "support_ticket_ids", "failed_task_ids", "abuse_event_ids", "abuse_hook_ids"]:
         require(evidence[key], f"support/retry/abuse evidence must include {key}")
-
 
 def validate_staging_backend_worker_crawler_metrics_evidence() -> None:
     evidence = load_json(STAGING_BACKEND_WORKER_CRAWLER_METRICS_EVIDENCE)
@@ -2951,6 +2970,54 @@ def validate_staging_backend_worker_crawler_metrics_evidence() -> None:
             blocker in gate_impact["remaining_blockers"],
             f"backend/worker/crawler metrics evidence must preserve blocker: {blocker}",
         )
+
+
+def validate_production_abuse_throttle_hold_evidence() -> None:
+    evidence = load_json(PRODUCTION_ABUSE_THROTTLE_HOLD_EVIDENCE)
+    require(evidence["schema_version"] == "stage0.rev2", "production abuse throttle/hold evidence schema mismatch")
+    require(evidence["environment"] == "production", "abuse throttle/hold evidence must be production-scoped")
+    require(
+        evidence["status"] == "pass_with_blockers_preserved",
+        "abuse throttle/hold production evidence must preserve unrelated launch blockers",
+    )
+    require(
+        evidence["release_gate_check_id"] == "production_abuse_throttle_hold",
+        "abuse throttle/hold evidence must target the production release-gate check",
+    )
+    require(
+        evidence["do_not_launch_condition_id"] == "abuse_throttle_hold_missing",
+        "abuse throttle/hold evidence must target the matching Do-Not-Launch condition",
+    )
+    require(
+        evidence["gate_impact"]["checklist_item"] == "Production abuse throttle/hold runtime/deployment evidence 通过。",
+        "abuse throttle/hold evidence must name the checklist item it can close",
+    )
+    require(
+        evidence["gate_impact"]["can_clear_check_level_item"] is True,
+        "abuse throttle/hold evidence must explicitly allow check-level closure",
+    )
+    require(
+        evidence["gate_impact"]["aggregate_production_gate_status"] == "blocked_by_other_production_runtime_items",
+        "abuse throttle/hold evidence must keep the aggregate production gate blocked",
+    )
+    required_areas = {
+        "account_hold_enforcement",
+        "rate_limit_enforcement",
+        "rbac_audit_release",
+        "gate_blocker_preservation",
+    }
+    coverage = evidence["coverage"]
+    require(
+        {item["area"] for item in coverage} == required_areas,
+        "abuse throttle/hold evidence must cover account hold, rate limit, RBAC/audit, and gate preservation",
+    )
+    for item in coverage:
+        require(item["status"] == "pass", f"{item['area']} production abuse coverage must pass")
+        combined = json.dumps(item, ensure_ascii=False).lower()
+        for token in ["production", "rbac", "audit", "ops/evidence/production/20260527t1330z-abuse-throttle-hold.json"]:
+            require(token in combined, f"{item['area']} production abuse coverage missing {token}")
+    for key in ["runtime_request_ids", "abuse_event_ids", "abuse_hook_ids"]:
+        require(evidence[key], f"abuse throttle/hold evidence must include {key}")
 
 
 def validate_analytics_taxonomy() -> None:
@@ -3181,18 +3248,22 @@ def validate_release_gate_evidence() -> None:
     production = load_json(FIXTURE_DIR / "release_gate_evidence.production_launch.json")
     require(production["gate"] == "production_launch", "production release gate fixture must target production_launch")
     production_checks, production_conditions = validate_release_gate_basics(production)
+    closed_production_runtime_checks = {"production_abuse_throttle_hold"}
     for check_id in RELEASE_GATE_REQUIRED_CHECKS["production_launch"]:
+        expected_status = "pass" if check_id in closed_production_runtime_checks else "blocked"
         require(
-            production_checks[check_id]["status"] == "blocked",
-            f"production release evidence {check_id} must remain blocked until launch evidence exists",
+            production_checks[check_id]["status"] == expected_status,
+            f"production release evidence {check_id} must be {expected_status} based on concrete production runtime evidence",
         )
     production_do_not_launch = {
         condition_id: item["is_present"] for condition_id, item in production_conditions.items()
     }
+    cleared_production_conditions = {"abuse_throttle_hold_missing"}
     for condition_id in RELEASE_GATE_REQUIRED_ACTIVE_CONDITIONS["production_launch"]:
+        expected_present = condition_id not in cleared_production_conditions
         require(
-            production_do_not_launch.get(condition_id) is True,
-            f"production release evidence must keep {condition_id} active",
+            production_do_not_launch.get(condition_id) is expected_present,
+            f"production release evidence {condition_id} active state must match concrete runtime evidence",
         )
     production_text = json.dumps(production, ensure_ascii=False)
     for token in [
@@ -3935,6 +4006,8 @@ def validate_launch_readiness_split_contracts() -> None:
         - {
             "Private Beta/Staging crawler approval/provenance runtime evidence 通过。",
             "Private Beta/Staging support/retry/abuse runtime evidence 通过。",
+            "staging backend/worker/crawler metrics runtime evidence 通过。",
+            "Production abuse throttle/hold runtime/deployment evidence 通过。",
         }
     ):
         require(item in unchecked_lines, f"blueprint must keep runtime launch-readiness subitem open: {item}")
@@ -4464,6 +4537,7 @@ def main() -> int:
         validate_abuse_evidence_split_contracts,
         validate_staging_support_retry_abuse_evidence,
         validate_staging_backend_worker_crawler_metrics_evidence,
+        validate_production_abuse_throttle_hold_evidence,
         validate_analytics_taxonomy,
         validate_local_alpha_presence,
         validate_release_gate_evidence,

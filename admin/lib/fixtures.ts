@@ -18,6 +18,7 @@ import type {
   OperationalDashboard,
   OperationalDashboardRuntimeEvidence,
   ProviderHealth,
+  ProductionAbuseThrottleHoldEvidence,
   AlertRoute,
   AlertRouteRuntimeEvidence,
   BackendMetricsRuntimeEvidence,
@@ -2071,6 +2072,119 @@ export const stagingSupportRetryAbuseEvidence: StagingSupportRetryAbuseEvidence 
       "staging_eval_qa_safety_runtime",
       "staging_observability_backup_load",
       "staging_legal_external_user_pages"
+    ]
+  }
+};
+
+export const productionAbuseThrottleHoldEvidence: ProductionAbuseThrottleHoldEvidence = {
+  id: "production_abuse_throttle_hold_20260527T1330Z",
+  evidencePath: "ops/evidence/production/20260527T1330Z-abuse-throttle-hold.json",
+  environment: "production",
+  status: "pass_with_blockers_preserved",
+  validatedAt: "2026-05-27T13:30:00Z",
+  validatedByRole: "admin_superadmin",
+  releaseGateCheckId: "production_abuse_throttle_hold",
+  doNotLaunchConditionId: "abuse_throttle_hold_missing",
+  runtimeRequestIds: [
+    "production-abuse-throttle-hold-20260527T1330Z-account-hold",
+    "production-abuse-throttle-hold-20260527T1330Z-rate-limit",
+    "production-abuse-throttle-hold-20260527T1330Z-rbac-audit",
+    "production-abuse-throttle-hold-20260527T1330Z-gate-preservation"
+  ],
+  abuseEventIds: ["ab-300", "ab-304", "ab-309"],
+  abuseHookIds: ["hook-ab-300-hold", "hook-ab-304-hold", "hook-ab-309-throttle"],
+  coverage: [
+    {
+      area: "account_hold_enforcement",
+      status: "pass",
+      runtimeProbe:
+        "Production gateway replay enforced hook-ab-300-hold as deny_423_account_hold for export and share mutations while preserving read-only project access, account settings, and support attachment upload.",
+      deploymentEvidence:
+        "The production evidence file records the account-level hold probe, the user-visible held state, the export-service enforcement point, and the rollback action tied to support ticket sup-2201.",
+      rbacAuditEvidence:
+        "The enforced hold used admin_reviewer authorization, immutable audit au-002, release audit au-004, and blocked QA/export evidence before any release condition can clear.",
+      linkedAdminArtifacts: ["admin/app/abuse/page.tsx", "admin/lib/abuse-runtime.ts", "admin/lib/fixtures.ts:abuseControlHooks"],
+      evidenceRefs: [
+        "ops/evidence/production/20260527T1330Z-abuse-throttle-hold.json",
+        "hook-ab-300-hold",
+        "ab-300",
+        "sup-2201",
+        "ex-887",
+        "tr-1004",
+        "au-002",
+        "au-004"
+      ]
+    },
+    {
+      area: "rate_limit_enforcement",
+      status: "pass",
+      runtimeProbe:
+        "Production crawler scheduler replay enforced hook-ab-309-throttle as throttle_429_rate_limited and kept crawler import concurrency at zero until source ownership, robots evidence, and support ticket evidence are attached.",
+      deploymentEvidence:
+        "The production evidence file records the crawler scheduler throttle probe, queue action throttle_until_review, and source import hold state for account usr-455.",
+      rbacAuditEvidence:
+        "The throttle used admin_operator authorization, support ticket sup-2212, crawler finding cf-118, and immutable audit au-002 without allowing support-only release.",
+      linkedAdminArtifacts: ["admin/app/abuse/page.tsx", "admin/app/crawler/page.tsx", "admin/lib/fixtures.ts:abuseControlHooks"],
+      evidenceRefs: [
+        "ops/evidence/production/20260527T1330Z-abuse-throttle-hold.json",
+        "hook-ab-309-throttle",
+        "ab-309",
+        "sup-2212",
+        "cf-118",
+        "au-002"
+      ]
+    },
+    {
+      area: "rbac_audit_release",
+      status: "pass",
+      runtimeProbe:
+        "Production dry-run replay kept hook-ab-304-hold as dry_run_denied because admin_operator cannot enforce a critical hidden prompt extraction hold that requires admin_superadmin review.",
+      deploymentEvidence:
+        "The production evidence file records the denied high-risk hold probe, the security escalation queue action, and the release condition requiring prompt extraction investigation closure.",
+      rbacAuditEvidence:
+        "The critical abuse path preserved audit au-008, trace tr-1004, second-review requirement, and the admin-security release blocker instead of mutating production state with an insufficient role.",
+      linkedAdminArtifacts: ["admin/app/abuse/page.tsx", "admin/app/audit/page.tsx", "admin/lib/abuse-runtime.ts"],
+      evidenceRefs: [
+        "ops/evidence/production/20260527T1330Z-abuse-throttle-hold.json",
+        "hook-ab-304-hold",
+        "ab-304",
+        "tr-1004",
+        "au-008",
+        "rb-production-admin-security"
+      ]
+    },
+    {
+      area: "gate_blocker_preservation",
+      status: "pass",
+      runtimeProbe:
+        "Production release-gate replay cleared only production_abuse_throttle_hold and kept provider, billing, skill canary, activation audit, security, backup rollback, and legal support deployment checks blocked.",
+      deploymentEvidence:
+        "The production gate fixture cites this production evidence path on the abuse check, clears only abuse_throttle_hold_missing, and preserves unrelated production do-not-launch conditions.",
+      rbacAuditEvidence:
+        "Gate preservation links release blocker rb-production-admin-security, release evidence eg-002, and immutable audit au-008 so verified abuse controls do not imply production launch readiness.",
+      linkedAdminArtifacts: ["admin/app/abuse/page.tsx", "admin/app/operations/page.tsx", "admin/tests/admin-governance.test.mjs"],
+      evidenceRefs: [
+        "ops/evidence/production/20260527T1330Z-abuse-throttle-hold.json",
+        "rb-production-admin-security",
+        "eg-002",
+        "au-008",
+        "hook-ab-300-hold",
+        "hook-ab-309-throttle"
+      ]
+    }
+  ],
+  gateImpact: {
+    checklistItem: "Production abuse throttle/hold runtime/deployment evidence 通过。",
+    canClearCheckLevelItem: true,
+    aggregateProductionGateStatus: "blocked_by_other_production_runtime_items",
+    remainingBlockers: [
+      "production_provider_or_comp_only_mode",
+      "production_paid_billing_lifecycle",
+      "production_skill_release_eval_canary",
+      "production_activation_review_audit",
+      "production_security_launch_checks",
+      "production_backup_rollback_incident",
+      "production_legal_support_policy"
     ]
   }
 };

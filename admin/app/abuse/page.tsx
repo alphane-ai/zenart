@@ -1,14 +1,27 @@
 import { DataTable } from "@/components/DataTable";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
-import { getAbuseControlHooks, getAbuseEvents, getAbuseQueueRuntime, getAbuseRuntimeDecisions } from "@/lib/admin-api";
-import type { AbuseControlHook, AbuseEvent, AbuseQueueRuntimeEntry, AbuseRuntimeDecision } from "@/lib/types";
+import {
+  getAbuseControlHooks,
+  getAbuseEvents,
+  getAbuseQueueRuntime,
+  getAbuseRuntimeDecisions,
+  getProductionAbuseThrottleHoldEvidence
+} from "@/lib/admin-api";
+import type {
+  AbuseControlHook,
+  AbuseEvent,
+  AbuseQueueRuntimeEntry,
+  AbuseRuntimeDecision,
+  ProductionAbuseThrottleHoldCoverage
+} from "@/lib/types";
 
 export default async function AbusePage() {
   const events = await getAbuseEvents();
   const hooks = await getAbuseControlHooks();
   const runtimeDecisions = await getAbuseRuntimeDecisions();
   const queueRuntime = await getAbuseQueueRuntime();
+  const productionEvidence = await getProductionAbuseThrottleHoldEvidence();
 
   return (
     <>
@@ -95,6 +108,26 @@ export default async function AbusePage() {
             { key: "expires", header: "Expires", render: (row) => row.expiresAt },
             { key: "audit", header: "Audit Ref", render: (row) => <span className="mono">{row.auditRef}</span> },
             { key: "rationale", header: "Rationale", render: (row) => row.rationale }
+          ]}
+        />
+      </section>
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>Production Abuse Gate Evidence</h3>
+            <p>Production probes clear only the abuse throttle/hold check and preserve unrelated launch blockers.</p>
+          </div>
+          <StatusBadge value="warning" label={productionEvidence.status} />
+        </div>
+        <DataTable<ProductionAbuseThrottleHoldCoverage>
+          rows={productionEvidence.coverage}
+          columns={[
+            { key: "area", header: "Area", render: (row) => row.area },
+            { key: "status", header: "Status", render: (row) => <StatusBadge value={row.status === "pass" ? "approved" : "blocked"} label={row.status} /> },
+            { key: "probe", header: "Runtime Probe", render: (row) => row.runtimeProbe },
+            { key: "deployment", header: "Deployment Evidence", render: (row) => row.deploymentEvidence },
+            { key: "rbac", header: "RBAC/Audit Evidence", render: (row) => row.rbacAuditEvidence },
+            { key: "refs", header: "Evidence Refs", render: (row) => row.evidenceRefs.join(", ") }
           ]}
         />
       </section>
