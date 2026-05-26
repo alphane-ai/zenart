@@ -294,6 +294,8 @@ export type QueueHealth = {
   action: string;
   retryPolicy: string;
   cancelPolicy: string;
+  idempotencyScope: string;
+  retryBackoffPolicy: string;
   ownerRole: "support_operator" | "admin_operator" | "admin_reviewer" | "admin_superadmin";
   linkedIncident: string;
   auditRef: string;
@@ -328,6 +330,11 @@ export type FailedTaskControl = {
   requestedAction: "retry" | "cancel" | "hold";
   actionEligibility: "eligible" | "requires_review" | "blocked";
   allowedRole: "support_operator" | "admin_operator" | "admin_reviewer" | "admin_superadmin";
+  requestedByRole: "support_operator" | "admin_operator" | "admin_reviewer" | "admin_superadmin";
+  rbacDecision: "allowed" | "denied" | "second_review_required";
+  idempotencyKey: string;
+  quotaEffect: "none" | "refund_pending" | "refund_on_cancel" | "reserved_credit_released";
+  closureEvidenceRefs: string[];
   operatorRunbook: string;
   auditRef: string;
 };
@@ -451,10 +458,13 @@ export type AbuseControlHook = {
   state: "armed" | "active" | "expired" | "released";
   hookPayload: string;
   threshold: string;
+  telemetrySignal: string;
+  userVisibleState: string;
   durationMinutes: number;
   expiresAt: string;
   rollbackAction: string;
   releaseCondition: string;
+  releaseEvidenceRefs: string[];
   requiredRole: "support_operator" | "admin_operator" | "admin_reviewer" | "admin_superadmin";
   attemptedRole: "support_operator" | "admin_operator" | "admin_reviewer" | "admin_superadmin";
   rbacDecision: "allowed" | "denied";

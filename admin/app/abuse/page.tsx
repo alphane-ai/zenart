@@ -56,6 +56,8 @@ export default async function AbusePage() {
             { key: "state", header: "State", render: (row) => <StatusBadge value={row.state === "active" ? "blocked" : "warning"} label={row.state} /> },
             { key: "payload", header: "Hook Payload", render: (row) => row.hookPayload },
             { key: "threshold", header: "Threshold", render: (row) => row.threshold },
+            { key: "telemetry", header: "Telemetry Signal", render: (row) => row.telemetrySignal },
+            { key: "user-state", header: "User Visible State", render: (row) => row.userVisibleState },
             { key: "expires", header: "Expires", render: (row) => `${row.durationMinutes} min, ${row.expiresAt}` },
             { key: "role", header: "Required Role", render: (row) => row.requiredRole },
             { key: "attempted-role", header: "Attempted Role", render: (row) => row.attemptedRole },
@@ -63,6 +65,7 @@ export default async function AbusePage() {
             { key: "ticket", header: "Support Ticket", render: (row) => <span className="mono">{row.supportTicketId}</span> },
             { key: "rollback", header: "Rollback Action", render: (row) => row.rollbackAction },
             { key: "release", header: "Release Condition", render: (row) => row.releaseCondition },
+            { key: "release-evidence", header: "Release Evidence", render: (row) => row.releaseEvidenceRefs.join(", ") },
             { key: "evidence", header: "Evidence Refs", render: (row) => row.evidenceRefs.join(", ") },
             { key: "runbook", header: "Operator Runbook", render: (row) => row.operatorRunbook },
             { key: "audit", header: "Audit Ref", render: (row) => <span className="mono">{row.auditRef}</span> }

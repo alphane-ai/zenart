@@ -142,8 +142,11 @@ test("temporary hold and throttle hooks enforce abuse controls with RBAC, expiry
     assert.notEqual(hook.expiresAt, "pending", `${hook.id} needs explicit expiration`);
     assert.ok(hook.hookPayload.length > 70, `${hook.id} needs executable hook payload`);
     assert.ok(hook.threshold.length > 50, `${hook.id} needs a concrete trigger threshold`);
+    assert.ok(hook.telemetrySignal.length > 80, `${hook.id} needs concrete telemetry signal`);
+    assert.ok(hook.userVisibleState.length > 70, `${hook.id} needs user-visible hold/throttle state`);
     assert.ok(hook.rollbackAction.length > 90, `${hook.id} needs rollback action`);
     assert.ok(hook.releaseCondition.length > 80, `${hook.id} needs release evidence condition`);
+    assert.ok(hook.releaseEvidenceRefs.length >= 3, `${hook.id} needs release evidence refs`);
     assert.ok(hook.operatorRunbook.length > 80, `${hook.id} needs operator runbook`);
     assert.ok(hook.evidenceRefs.length >= 3, `${hook.id} needs at least three evidence refs`);
     assert.ok(
@@ -157,6 +160,18 @@ test("temporary hold and throttle hooks enforce abuse controls with RBAC, expiry
         `${hook.id} links unknown evidence ref ${ref}`
       );
     }
+
+    for (const ref of hook.releaseEvidenceRefs) {
+      assert.ok(
+        ref === hook.abuseEventId || auditIds.has(ref) || supportTicketIds.has(ref) || traceIds.has(ref) || exportIds.has(ref) || crawlerFindingIds.has(ref),
+        `${hook.id} links unknown release evidence ref ${ref}`
+      );
+    }
+
+    assert.ok(
+      hook.releaseEvidenceRefs.some((ref) => supportTicketIds.has(ref) || auditIds.has(ref)),
+      `${hook.id} release condition needs support or audit evidence`
+    );
 
     if (hook.supportTicketId !== "pending") {
       assert.ok(supportTicketIds.has(hook.supportTicketId), `${hook.id} links unknown support ticket`);
@@ -440,6 +455,8 @@ test("queue and failed task controls gate retry and cancel with audit evidence",
   for (const queue of queueHealth) {
     assert.ok(queue.retryPolicy.length > 40, `${queue.id} needs retry policy`);
     assert.ok(queue.cancelPolicy.length > 40, `${queue.id} needs cancel policy`);
+    assert.ok(queue.idempotencyScope.length > 80, `${queue.id} needs idempotency scope`);
+    assert.ok(queue.retryBackoffPolicy.length > 70, `${queue.id} needs retry backoff policy`);
     assert.match(queue.ownerRole, /support_operator|admin_operator|admin_reviewer|admin_superadmin/, `${queue.id} needs owner role`);
     assert.ok(incidentIds.has(queue.linkedIncident), `${queue.id} links unknown incident ${queue.linkedIncident}`);
     assert.ok(auditIds.has(queue.auditRef), `${queue.id} links unknown audit ${queue.auditRef}`);
@@ -462,18 +479,45 @@ test("queue and failed task controls gate retry and cancel with audit evidence",
     assert.ok(task.appVersion.length > 0, `${task.id} needs app version`);
     assert.ok(task.workerVersion.length > 0, `${task.id} needs worker version`);
     assert.ok(task.schemaVersion.length > 0, `${task.id} needs schema version`);
+    assert.ok(roleOrder.has(task.requestedByRole), `${task.id} needs requesting role`);
+    assert.ok(task.idempotencyKey.startsWith(`${task.requestedAction}:${task.id}:`), `${task.id} needs stable action/task idempotency key`);
+    assert.ok(task.closureEvidenceRefs.length >= 4, `${task.id} needs closure evidence refs`);
     assert.ok(task.operatorRunbook.length > 60, `${task.id} needs operator runbook`);
+
+    for (const ref of task.closureEvidenceRefs) {
+      assert.ok(
+        ref === task.id ||
+          supportTicketIds.has(ref) ||
+          traceIds.has(ref) ||
+          exportIds.has(ref) ||
+          queueIds.has(ref) ||
+          auditIds.has(ref) ||
+          abuseEventById.has(ref),
+        `${task.id} links unknown closure evidence ref ${ref}`
+      );
+    }
+
+    if (roleOrder.get(task.requestedByRole) >= roleOrder.get(task.allowedRole) && task.actionEligibility === "eligible") {
+      assert.equal(task.rbacDecision, "allowed", `${task.id} eligible sufficient role should be allowed`);
+    }
+
+    if (roleOrder.get(task.requestedByRole) < roleOrder.get(task.allowedRole)) {
+      assert.notEqual(task.rbacDecision, "allowed", `${task.id} insufficient role cannot act`);
+    }
 
     if (task.requestedAction === "retry") {
       assert.equal(task.actionEligibility, "eligible", `${task.id} retry must be eligible`);
+      assert.notEqual(task.quotaEffect, "none", `${task.id} retry needs explicit quota handling`);
     }
 
     if (task.requestedAction === "cancel") {
       assert.notEqual(task.actionEligibility, "blocked", `${task.id} cancel must remain actionable`);
+      assert.match(task.rbacDecision, /allowed|second_review_required/, `${task.id} cancel needs RBAC path`);
     }
 
     if (task.requestedAction === "hold") {
       assert.equal(task.allowedRole, "admin_reviewer", `${task.id} hold needs reviewer role`);
+      assert.notEqual(task.rbacDecision, "allowed", `${task.id} blocked hold cannot be allowed`);
     }
   }
 });

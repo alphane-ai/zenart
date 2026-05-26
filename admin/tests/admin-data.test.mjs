@@ -81,6 +81,63 @@ test("admin skill release fixtures define state, allocation, canary, and rollbac
   }
 });
 
+test("admin queue fixtures expose retry idempotency, RBAC, and quota effects", () => {
+  const queuesPage = readFileSync(
+    new URL("../app/queues/page.tsx", import.meta.url),
+    "utf8"
+  );
+
+  for (const token of [
+    "Idempotency Scope",
+    "Retry Backoff",
+    "Requested By",
+    "RBAC Decision",
+    "Idempotency Key",
+    "Quota Effect",
+    "Closure Evidence"
+  ]) {
+    assert.match(queuesPage, new RegExp(token));
+  }
+
+  for (const token of [
+    "idempotencyScope",
+    "retryBackoffPolicy",
+    "requestedByRole",
+    "rbacDecision",
+    "idempotencyKey",
+    "quotaEffect",
+    "closureEvidenceRefs"
+  ]) {
+    assert.match(fixtures, new RegExp(token));
+  }
+});
+
+test("admin abuse fixtures expose hold throttle telemetry and release evidence", () => {
+  const abusePage = readFileSync(
+    new URL("../app/abuse/page.tsx", import.meta.url),
+    "utf8"
+  );
+
+  for (const token of [
+    "Telemetry Signal",
+    "User Visible State",
+    "Release Evidence",
+    "Temporary Hold and Throttle Hooks"
+  ]) {
+    assert.match(abusePage, new RegExp(token));
+  }
+
+  for (const token of [
+    "telemetrySignal",
+    "userVisibleState",
+    "releaseEvidenceRefs",
+    "hook-ab-304-hold",
+    "rbacDecision"
+  ]) {
+    assert.match(fixtures, new RegExp(token));
+  }
+});
+
 test("admin analytics reports cover stage 0 go/no-go reports", () => {
   const analyticsPage = readFileSync(
     new URL("../app/analytics/page.tsx", import.meta.url),
