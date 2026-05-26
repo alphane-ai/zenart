@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ZenArtApiClient } from "./zenart-api";
+import { defaultSameSiteCsrfContract } from "../request-security";
+import { apiOperations, OperationId, ZenArtApiClient } from "./zenart-api";
 
 describe("generated web API client CSRF contract", () => {
   afterEach(() => {
@@ -7,7 +8,7 @@ describe("generated web API client CSRF contract", () => {
   });
 
   it("sends same-site credentials and CSRF header on state-changing requests", async () => {
-    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(async () =>
       new Response(JSON.stringify({ ok: true }), {
         status: 200,
         headers: { "Content-Type": "application/json" }
@@ -56,4 +57,72 @@ describe("generated web API client CSRF contract", () => {
       })
     );
   });
+
+  it("covers every unsafe generated web operation with credentials, CSRF header, and required idempotency", async () => {
+    const unsafeOperations = Object.entries(apiOperations).filter(([, operation]) =>
+      defaultSameSiteCsrfContract.protectedMethods.includes(
+        operation.method as (typeof defaultSameSiteCsrfContract.protectedMethods)[number]
+      )
+    ) as Array<[OperationId, (typeof apiOperations)[OperationId]]>;
+
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(async () =>
+      new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" }
+      })
+    );
+    const client = new ZenArtApiClient();
+
+    for (const [operationId, operation] of unsafeOperations) {
+      await client.request(operationId, {
+        idempotencyKey: `idem-${operationId}`,
+        pathParams: buildPathParams(operation.path),
+        body: operation.method === "DELETE" ? undefined : { ok: true }
+      });
+    }
+
+    expect(unsafeOperations).toHaveLength(15);
+    expect(unsafeOperations.map(([operationId]) => operationId)).toEqual([
+      "deleteSession",
+      "updateAccount",
+      "createProject",
+      "updateProject",
+      "createChatSession",
+      "createChatMessage",
+      "createCandidateSet",
+      "selectDirection",
+      "createCanvasNode",
+      "createCanvasVersion",
+      "createUpload",
+      "createPackage",
+      "createExport",
+      "createShareLink",
+      "createSupportTicket"
+    ]);
+    for (const [callIndex, [operationId, operation]] of unsafeOperations.entries()) {
+      expect(fetchMock).toHaveBeenNthCalledWith(
+        callIndex + 1,
+        expect.any(String),
+        expect.objectContaining({
+          method: operation.method,
+          credentials: defaultSameSiteCsrfContract.credentialMode,
+          headers: expect.objectContaining({
+            [defaultSameSiteCsrfContract.headerName]: defaultSameSiteCsrfContract.headerValue
+          })
+        })
+      );
+      if (operation.idempotencyRequired) {
+        expect(fetchMock.mock.calls[callIndex][1]).toEqual(
+          expect.objectContaining({
+            headers: expect.objectContaining({
+              "Idempotency-Key": `idem-${operationId}`
+            })
+          })
+        );
+      }
+    }
+  });
 });
+
+const buildPathParams = (pathTemplate: string) =>
+  Object.fromEntries(Array.from(pathTemplate.matchAll(/\{([^}]+)\}/g)).map(([, key]) => [key, `${key}-001`]));

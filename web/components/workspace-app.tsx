@@ -34,6 +34,7 @@ import { AccountSettings, BillingScenario, Candidate, ExportFormat, QaSeverity, 
 import { zenArtClient } from "@/lib/api-client";
 import { buildSupportProblemContext, buildWorkspaceRenderingPerformanceSmoke } from "@/lib/dev-state";
 import { downloadExportPackage } from "@/lib/export-download";
+import { apiOperations } from "@/lib/generated/zenart-api";
 import { legalPolicyList, supportContactEmail } from "@/lib/legal-policies";
 import { AnalyticsEventName, captureAnalyticsEvent, reportFrontendError } from "@/lib/telemetry";
 
@@ -305,6 +306,13 @@ function SessionPanel({
   const expectedCsrfHeader = "X-ZenArt-CSRF";
   const expectedSameSiteRequirement = "lax-or-strict";
   const csrfProtectedMethods = state.sessionContract.csrf.protectedMethods.join(", ");
+  const csrfProtectedOperationIds = Object.entries(apiOperations)
+    .filter(([, operation]) =>
+      state.sessionContract.csrf.protectedMethods.includes(
+        operation.method as (typeof state.sessionContract.csrf.protectedMethods)[number]
+      )
+    )
+    .map(([operationId]) => operationId);
   const sameSiteRequirement = state.sessionContract.csrf.sameSiteRequired;
   const cookieAttributes = [
     state.sessionContract.cookie.httpOnly ? "HttpOnly" : "client-readable",
@@ -362,6 +370,14 @@ function SessionPanel({
           <dd>{sameSiteRequirement}</dd>
         </div>
       </dl>
+      <div
+        className="csrf-operation-inventory"
+        aria-label="Generated web API CSRF operation inventory"
+        data-csrf-operation-count={csrfProtectedOperationIds.length}
+      >
+        <strong>{csrfProtectedOperationIds.length} generated web operations require same-site CSRF headers</strong>
+        <span>{csrfProtectedOperationIds.join(", ")}</span>
+      </div>
       {sessionBlocked ? (
         <div className="inline-alert session-alert" role="alert">
           <AlertTriangle size={16} aria-hidden="true" />

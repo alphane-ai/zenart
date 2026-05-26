@@ -114,6 +114,10 @@ for (const requiredSnippet of [
   "credentialMode",
   "originPolicy",
   "protectedMethods",
+  "csrf-operation-inventory",
+  "Generated web API CSRF operation inventory",
+  "data-csrf-operation-count",
+  "generated web operations require same-site CSRF headers",
   "CSRF and same-site contract evidence",
   "lax-or-strict",
   "zenArtClient.login",
@@ -213,6 +217,7 @@ for (const expectedCapability of [
 
 for (const expectedIntegration of [
   "reference-upload-to-ready-zip-export",
+  "generated-api-unsafe-operation-csrf-inventory",
   "workspace-rendering-performance-budget",
   "zip-download-manifest-qa-provenance-assets",
   "ppt-ready-metadata-export-contract",

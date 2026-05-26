@@ -324,6 +324,29 @@ button:disabled {
   overflow-wrap: anywhere;
 }
 
+.csrf-operation-inventory {
+  grid-column: 1 / -1;
+  border: 1px solid rgba(15, 118, 110, 0.24);
+  border-radius: 8px;
+  background: #edfdfa;
+  color: #134e4a;
+  padding: 9px 10px;
+  display: grid;
+  gap: 4px;
+}
+
+.csrf-operation-inventory strong {
+  font-size: 12px;
+  line-height: 1.25;
+}
+
+.csrf-operation-inventory span {
+  color: #0f766e;
+  font-size: 12px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
 .session-actions {
   display: flex;
   align-items: center;

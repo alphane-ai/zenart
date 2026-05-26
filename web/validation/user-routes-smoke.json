@@ -107,6 +107,7 @@
   "analyticsCoverage": ["analytics-event-taxonomy", "client-side-ui-funnel-capture", "frontend-error-reporting"],
   "integrationCoverage": [
     "reference-upload-to-ready-zip-export",
+    "generated-api-unsafe-operation-csrf-inventory",
     "workspace-rendering-performance-budget",
     "zip-download-manifest-qa-provenance-assets",
     "ppt-ready-metadata-export-contract",
@@ -135,6 +136,7 @@
     "secure cookie contract exposes __Host cookie, HttpOnly, Secure, SameSite=Lax, and Path=/ attributes",
     "CSRF UX contract exposes same-site origin-check strategy and X-ZenArt-CSRF header evidence",
     "generated web API client sends same-site credentials and X-ZenArt-CSRF header on state-changing operations",
+    "generated web API unsafe-operation inventory proves every state-changing operation sends credentials and X-ZenArt-CSRF",
     "account settings persist through workspace reload",
     "candidate selection, workspace autosave, canvas versions, and package history survive reload",
     "workspace rendering performance smoke keeps canvas render elements within the local alpha budget",
