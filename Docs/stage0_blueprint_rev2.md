@@ -1591,10 +1591,10 @@ main 合并前必须通过：
 ### 25.1 Repository Bootstrap
 
 - [ ] 创建 Alphane-style 纯 Web 三端 monorepo 目录：`web/` 用户端、`admin/` 管理端、`backend/` Go API/worker/crawler/migrate、`scripts/`。
-- [ ] 新增根目录 `.env.example`，覆盖 web、admin、backend、Postgres、Redis、object storage、auth、session、provider、billing、observability、crawler、analytics。
-- [ ] 新增根目录 `docker-compose.yml`，可启动 web、admin、backend server、worker、crawler、Postgres、Redis、local object storage。
+- [x] 新增根目录 `.env.example`，覆盖 web、admin、backend、Postgres、Redis、object storage、auth、session、provider、billing、observability、crawler、analytics。
+- [x] 新增根目录 `docker-compose.yml`，可启动 web、admin、backend server、worker、crawler、Postgres、Redis、local object storage。
 - [ ] 新增 README，说明 Rev2 是唯一权威源，并给出本地启动命令。
-- [ ] 配置 git ignore，排除 `.cron/`、`.ops/`、logs、node_modules、build 输出、临时导出包、本地对象存储数据。
+- [x] 配置 git ignore，排除 `.cron/`、`.ops/`、logs、node_modules、build 输出、临时导出包、本地对象存储数据。
 
 ### 25.2 Backend Foundation
 
@@ -1867,23 +1867,23 @@ main 合并前必须通过：
 
 ### 25.17 CI/CD and Environments
 
-- [ ] 添加 PR/main CI。
-- [ ] CI 运行 Web/Admin lint/typecheck/unit/build。
-- [ ] CI 运行 backend fmt/lint/vet/unit/integration/build。
-- [ ] CI 启动 Postgres/Redis/object storage。
-- [ ] CI 运行 migration tests。
+- [x] 添加 PR/main CI。
+- [x] CI 运行 Web/Admin lint/typecheck/unit/build。
+- [x] CI 运行 backend fmt/lint/vet/unit/integration/build。
+- [x] CI 启动 Postgres/Redis/object storage。
+- [x] CI 运行 migration tests。
 - [ ] CI 运行 OpenAPI/client stale checks。
-- [ ] CI 运行 API/agent contract tests。
+- [x] CI 运行 API/agent contract tests。
 - [ ] CI 运行 Playwright smoke。
 - [ ] CI build Docker images。
-- [ ] CI 运行 security scans。
-- [ ] 定义 local/CI/staging/production。
-- [ ] Docker images 使用 git SHA tag。
+- [x] CI 运行 security scans。
+- [x] 定义 local/CI/staging/production。
+- [x] Docker images 使用 git SHA tag。
 - [ ] 实现 staging deploy。
 - [ ] 实现 staging smoke tests。
-- [ ] 定义 production approval/release tag。
-- [ ] 定义 feature flags。
-- [ ] 定义 rollback procedures。
+- [x] 定义 production approval/release tag。
+- [x] 定义 feature flags。
+- [x] 定义 rollback procedures。
 - [ ] 实现 worker drain。
 - [ ] 实现 task schema compatibility checks。
 
@@ -1896,16 +1896,16 @@ main 合并前必须通过：
 - [ ] 实现 frontend error reporting。
 - [ ] 实现 dashboards。
 - [ ] 实现 alerts。
-- [ ] 定义 SLOs。
-- [ ] 定义 incident severity/escalation/template/postmortem。
-- [ ] 编写 runbooks。
-- [ ] 定义 backup schedule。
-- [ ] 定义 object storage backup/versioning。
-- [ ] 定义 RPO/RTO。
+- [x] 定义 SLOs。
+- [x] 定义 incident severity/escalation/template/postmortem。
+- [x] 编写 runbooks。
+- [x] 定义 backup schedule。
+- [x] 定义 object storage backup/versioning。
+- [x] 定义 RPO/RTO。
 - [ ] 执行 Postgres restore drill。
 - [ ] 执行 object restore drill。
-- [ ] 定义 load assumptions。
-- [ ] 添加 chat/task load test。
+- [x] 定义 load assumptions。
+- [x] 添加 chat/task load test。
 - [ ] 添加 worker generation load test。
 - [ ] 添加 ZIP export load test。
 - [ ] 添加 signed download load test。

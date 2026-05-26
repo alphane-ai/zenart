@@ -1,0 +1,26 @@
+{
+  "blueprint_source": "Docs/stage0_blueprint_rev2.md",
+  "created_by_lane": "lane5",
+  "scope": "ops/repo scaffolding",
+  "files": [
+    ".env.example",
+    ".dockerignore",
+    "docker-compose.yml",
+    ".github/workflows/ci.yml",
+    "scripts/repo_validate.sh",
+    "scripts/load_smoke.sh",
+    "scripts/backup_restore_drill.sh",
+    "ops/runbooks/stage0_ops.md"
+  ],
+  "validation_commands": [
+    "bash scripts/repo_validate.sh",
+    "docker compose --env-file .env.example config --quiet",
+    "bash -n scripts/load_smoke.sh",
+    "bash -n scripts/backup_restore_drill.sh"
+  ],
+  "notes": [
+    "web and admin checks are conditional until those directories exist",
+    "backend validation is enabled because backend files already exist",
+    "runtime backup/load drills require docker compose services to be running"
+  ]
+}

@@ -12,3 +12,11 @@ tmp/
 exports/
 local-object-storage/
 Docs/todos_*.md
+.env
+.env.*
+!.env.example
+.docker-data/
+*.tmp
+*.zip
+*.tar
+*.tar.gz
