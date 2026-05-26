@@ -17,6 +17,11 @@ export const defaultSameSiteCsrfContract: SessionContract["csrf"] = {
 export const isCsrfProtectedMethod = (method: HttpMethod) =>
   csrfProtectedMethods.includes(method as Exclude<HttpMethod, "GET" | "HEAD" | "OPTIONS">);
 
+const meetsSameSiteRequirement = (
+  sameSite: SessionContract["cookie"]["sameSite"],
+  requirement: SessionContract["csrf"]["sameSiteRequired"]
+) => requirement === "lax-or-strict" && (sameSite === "lax" || sameSite === "strict");
+
 export const buildCsrfRequestHeaders = (
   method: HttpMethod,
   headers: Record<string, string> = {},
@@ -47,7 +52,7 @@ export const buildSessionSecurityContractEvidence = (
     sessionContract.cookie.name.startsWith("__Host-") ? "" : "cookie-prefix",
     sessionContract.cookie.httpOnly ? "" : "cookie-http-only",
     sessionContract.cookie.secure ? "" : "cookie-secure",
-    sessionContract.cookie.sameSite !== "none" ? "" : "cookie-same-site",
+    meetsSameSiteRequirement(sessionContract.cookie.sameSite, sessionContract.csrf.sameSiteRequired) ? "" : "cookie-same-site",
     sessionContract.cookie.path === "/" ? "" : "cookie-path"
   ].filter(Boolean);
   const csrfFailureReasons = [

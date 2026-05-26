@@ -95,6 +95,7 @@ if (
   sessionEvidence.cookie?.expectedSameSite !== "lax" ||
   sessionEvidence.cookie?.expectedPath !== "/" ||
   sessionEvidence.csrf?.expectedHeader !== "X-ZenArt-CSRF" ||
+  sessionEvidence.csrf?.expectedSameSiteRequirement !== "lax-or-strict" ||
   sessionEvidence.csrf?.expectedOriginPolicy !== "same-site-only" ||
   sessionEvidence.csrf?.expectedMissingOperationCount !== "0" ||
   sessionEvidence.csrf?.expectedCookieFailureCount !== "0" ||

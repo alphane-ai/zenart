@@ -145,6 +145,7 @@
         "csrfFailureCountAttribute": "data-session-csrf-failure-count",
         "csrfFailureReasonsAttribute": "data-session-csrf-failure-reasons",
         "expectedHeader": "X-ZenArt-CSRF",
+        "expectedSameSiteRequirement": "lax-or-strict",
         "expectedOriginPolicy": "same-site-only",
         "expectedMissingOperationCount": "0",
         "expectedCookieFailureCount": "0",

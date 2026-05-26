@@ -73,6 +73,35 @@ describe("same-site CSRF request contract", () => {
     ]);
   });
 
+  it("accepts only lax or strict cookies for the same-site CSRF requirement", () => {
+    const strictSession = createSessionContract();
+    strictSession.cookie = {
+      ...strictSession.cookie,
+      sameSite: "strict"
+    };
+
+    expect(buildSessionSecurityContractEvidence(strictSession, apiOperations)).toMatchObject({
+      status: "pass",
+      cookieAttributes: {
+        sameSite: "strict"
+      },
+      sameSiteRequirement: "lax-or-strict",
+      cookieFailureReasons: []
+    });
+
+    const noneSession = createSessionContract();
+    noneSession.cookie = {
+      ...noneSession.cookie,
+      sameSite: "none"
+    };
+
+    expect(buildSessionSecurityContractEvidence(noneSession, apiOperations)).toMatchObject({
+      status: "fail",
+      sameSiteRequirement: "lax-or-strict",
+      cookieFailureReasons: ["cookie-same-site"]
+    });
+  });
+
   it("keeps the user route smoke artifact pinned to the session/CSRF client contract", () => {
     const artifactEvidence = userRouteSmoke.securityEvidence.find(
       (entry) => entry.schemaVersion === "stage0.rev2.session-csrf-client-evidence"
@@ -104,6 +133,7 @@ describe("same-site CSRF request contract", () => {
         csrfFailureCountAttribute: "data-session-csrf-failure-count",
         csrfFailureReasonsAttribute: "data-session-csrf-failure-reasons",
         expectedHeader: runtimeEvidence.csrfHeaderName,
+        expectedSameSiteRequirement: runtimeEvidence.sameSiteRequirement,
         expectedOriginPolicy: runtimeEvidence.originPolicy,
         expectedMissingOperationCount: String(runtimeEvidence.missingCsrfOperationIds.length),
         expectedCookieFailureCount: String(runtimeEvidence.cookieFailureReasons.length),
