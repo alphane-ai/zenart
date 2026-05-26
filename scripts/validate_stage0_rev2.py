@@ -590,22 +590,9 @@ RELEASE_GATE_OPEN_ITEM_GUARD_CHECKS = {
         "在 brief/provider request/provider response/QA/export 运行 safety policy。": {
             "staging_eval_qa_safety_runtime",
         },
-        "crawler fetch/import 强制 source approval runtime gate。": {
+        "staging crawler fetch/import governance runtime evidence 通过：source approval、robots、SSRF、rate limits、retention、exact-text warning、provenance links、source blocklist 均有 staging evidence。": {
             "staging_crawler_approval_provenance",
         },
-        "crawler runtime 强制 robots evidence。": {"staging_crawler_approval_provenance"},
-        "crawler runtime 强制 SSRF protections。": {"staging_crawler_approval_provenance"},
-        "crawler runtime 强制 source/global rate limits。": {
-            "staging_crawler_approval_provenance",
-        },
-        "crawler runtime 强制 raw content retention limit。": {
-            "staging_crawler_approval_provenance",
-        },
-        "crawler runtime 强制 exact-text import warning。": {
-            "staging_crawler_approval_provenance",
-        },
-        "crawler runtime 强制 provenance links。": {"staging_crawler_approval_provenance"},
-        "crawler runtime 强制 source blocklist。": {"staging_crawler_approval_provenance"},
         "temporary hold/throttle hooks runtime enforcement 通过。": {
             "staging_support_retry_abuse_ops",
         },
@@ -787,41 +774,42 @@ REQUIRED_OPEN_ITEMS = {
     "staging backend/worker/crawler metrics runtime evidence 通过。",
     "Staging post-deploy smoke tests 通过。",
     "Production post-deploy smoke tests 通过。",
+    "staging crawler fetch/import governance runtime evidence 通过：source approval、robots、SSRF、rate limits、retention、exact-text warning、provenance links、source blocklist 均有 staging evidence。",
 }
 REQUIRED_OPEN_ITEMS |= RELEASE_GATE_CHECK_LEVEL_RUNTIME_OPEN_ITEMS.keys()
 
 CRAWLER_GOVERNANCE_SPLIT_ITEMS = {
     "source_approval": {
         "contract_item": "实现 admin crawler source approval evidence。",
-        "runtime_item": "crawler fetch/import 强制 source approval runtime gate。",
+        "runtime_item": "backend/local crawler fetch/import runtime 强制 source approval gate。",
     },
     "robots_evidence": {
         "contract_item": "定义 robots evidence fixture/contract。",
-        "runtime_item": "crawler runtime 强制 robots evidence。",
+        "runtime_item": "backend/local crawler runtime 强制 robots evidence。",
     },
     "ssrf_protection": {
         "contract_item": "定义 SSRF protection fixture/contract：private IP blocking、redirect validation、DNS rebinding guard。",
-        "runtime_item": "crawler runtime 强制 SSRF protections。",
+        "runtime_item": "backend/local crawler runtime 强制 SSRF protections。",
     },
     "rate_limits": {
         "contract_item": "定义 source/global rate limit fixture/contract。",
-        "runtime_item": "crawler runtime 强制 source/global rate limits。",
+        "runtime_item": "backend/local crawler runtime 强制 source/global rate limits。",
     },
     "retention": {
         "contract_item": "定义 raw content retention fixture/contract。",
-        "runtime_item": "crawler runtime 强制 raw content retention limit。",
+        "runtime_item": "backend/local crawler runtime 强制 raw content retention limit。",
     },
     "exact_text_warning": {
         "contract_item": "定义 exact-text import warning fixture/contract。",
-        "runtime_item": "crawler runtime 强制 exact-text import warning。",
+        "runtime_item": "backend/local crawler runtime 强制 exact-text import warning。",
     },
     "provenance_links": {
         "contract_item": "定义 provenance links fixture/contract。",
-        "runtime_item": "crawler runtime 强制 provenance links。",
+        "runtime_item": "backend/local crawler runtime 强制 provenance links。",
     },
     "source_blocklist": {
         "contract_item": "定义 source blocklist fixture/contract。",
-        "runtime_item": "crawler runtime 强制 source blocklist。",
+        "runtime_item": "backend/local crawler runtime 强制 source blocklist。",
     },
 }
 
@@ -3141,9 +3129,19 @@ def validate_launch_readiness_split_contracts() -> None:
         )
     private_beta = load_json(FIXTURE_DIR / "release_gate_evidence.private_beta_staging.json")
     staging_crawler_check = checks_by_id(private_beta)["staging_crawler_approval_provenance"]
+    staging_crawler_runtime_item = "staging crawler fetch/import governance runtime evidence 通过：source approval、robots、SSRF、rate limits、retention、exact-text warning、provenance links、source blocklist 均有 staging evidence。"
+    require(
+        staging_crawler_runtime_item in unchecked_lines,
+        "staging crawler runtime evidence checklist item must remain open until staging evidence exists",
+    )
     require(
         staging_crawler_check["status"] != "pass",
         "Private Beta/Staging crawler release gate must remain blocked until staging crawler runtime evidence exists",
+    )
+    require(
+        "staging runtime evidence for crawler fetch/import enforcement is absent"
+        in staging_crawler_check["evidence_ref"],
+        "Private Beta/Staging crawler gate must name the missing staging crawler runtime evidence",
     )
 
     crawler_runtime_tests = (ROOT / "backend" / "internal" / "stage0" / "services_test.go").read_text(encoding="utf-8")
