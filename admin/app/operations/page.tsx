@@ -1,8 +1,13 @@
 import { DataTable } from "@/components/DataTable";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
-import { getIncidentLogs, getMaintenanceBanners } from "@/lib/admin-api";
-import type { IncidentLog, MaintenanceBanner } from "@/lib/types";
+import {
+  getAlertRoutes,
+  getIncidentLogs,
+  getMaintenanceBanners,
+  getOperationalDashboards
+} from "@/lib/admin-api";
+import type { AlertRoute, IncidentLog, MaintenanceBanner, OperationalDashboard } from "@/lib/types";
 
 function incidentTone(status: IncidentLog["status"]) {
   if (status === "resolved") {
@@ -13,9 +18,11 @@ function incidentTone(status: IncidentLog["status"]) {
 }
 
 export default async function OperationsPage() {
-  const [incidents, banners] = await Promise.all([
+  const [incidents, banners, dashboards, alerts] = await Promise.all([
     getIncidentLogs(),
-    getMaintenanceBanners()
+    getMaintenanceBanners(),
+    getOperationalDashboards(),
+    getAlertRoutes()
   ]);
 
   return (
@@ -24,6 +31,51 @@ export default async function OperationsPage() {
         title="Operations Gate"
         description="Incident log and maintenance banner control surface for support, retry, rollback, and release gate evidence."
       />
+
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>Dashboards</h3>
+            <p>Stage 0 operational dashboards bind SLO thresholds, source signals, owner roles, release gate use, and evidence refs.</p>
+          </div>
+        </div>
+        <DataTable<OperationalDashboard>
+          rows={dashboards}
+          columns={[
+            { key: "id", header: "Dashboard", render: (row) => <span className="mono">{row.id}</span> },
+            { key: "status", header: "Status", render: (row) => <StatusBadge value={row.status} /> },
+            { key: "owner", header: "Owner Role", render: (row) => row.ownerRole },
+            { key: "current", header: "Current Value", render: (row) => row.currentValue },
+            { key: "slo", header: "SLO Threshold", render: (row) => row.sloThreshold },
+            { key: "signals", header: "Source Signals", render: (row) => row.sourceSignals.join(", ") },
+            { key: "release", header: "Release Gate Use", render: (row) => row.releaseGateUse },
+            { key: "evidence", header: "Evidence", render: (row) => row.evidenceRefs.join(", ") }
+          ]}
+        />
+      </section>
+
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>Alert Routes</h3>
+            <p>Alerts require severity, threshold, target, escalation role, runbook, incident linkage, and immutable audit evidence.</p>
+          </div>
+        </div>
+        <DataTable<AlertRoute>
+          rows={alerts}
+          columns={[
+            { key: "id", header: "Alert", render: (row) => <span className="mono">{row.id}</span> },
+            { key: "dashboard", header: "Dashboard", render: (row) => row.dashboardId },
+            { key: "severity", header: "Severity", render: (row) => <StatusBadge value={row.severity === "sev1" ? "critical" : row.severity === "sev2" ? "high" : "medium"} label={row.severity.toUpperCase()} /> },
+            { key: "status", header: "Status", render: (row) => <StatusBadge value={row.status === "firing" ? "blocked" : row.status === "armed" ? "warning" : row.status} label={row.status} /> },
+            { key: "threshold", header: "Threshold", render: (row) => row.threshold },
+            { key: "target", header: "Route Target", render: (row) => row.routeTarget },
+            { key: "role", header: "Escalation Role", render: (row) => row.escalationRole },
+            { key: "runbook", header: "Runbook", render: (row) => row.runbook },
+            { key: "audit", header: "Audit Ref", render: (row) => <span className="mono">{row.auditRef}</span> }
+          ]}
+        />
+      </section>
 
       <section className="panel">
         <div className="panel-header">

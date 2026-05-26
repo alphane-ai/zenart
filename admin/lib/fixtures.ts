@@ -14,7 +14,9 @@ import type {
   FeedbackItem,
   IncidentLog,
   MaintenanceBanner,
+  OperationalDashboard,
   ProviderHealth,
+  AlertRoute,
   PromptFragment,
   QuotaAccount,
   QueueHealth,
@@ -1139,6 +1141,116 @@ export const providerHealth: ProviderHealth[] = [
     contractEvidence: "Crawler governance cases require robots evidence and legal review before import.",
     canaryEvidence: "Canary stopped after source allowlist incident; pending-review import held.",
     releaseEvidence: "Release blocked until disallowed source and robots denied cases pass."
+  }
+];
+
+export const operationalDashboards: OperationalDashboard[] = [
+  {
+    id: "od-provider-latency",
+    name: "provider_latency_error",
+    ownerRole: "admin_operator",
+    status: "blocked",
+    window: "2026-05-26 09:00 to 10:00",
+    currentValue: "p95 9400 ms, error 4.7%",
+    sloThreshold: "p95 <= 8000 ms and error rate <= 4% for private beta provider routes.",
+    linkedSystems: ["providers", "worker-generation", "release-gate"],
+    sourceSignals: ["provider_request_latency_ms", "provider_error_total", "provider_usage_reconciled_total"],
+    releaseGateUse: "Private beta and production provider launch stay blocked until the alert resolves and provider usage reconciliation has matching audit evidence.",
+    evidenceRefs: ["ph-1", "eg-003", "au-007"]
+  },
+  {
+    id: "od-export-failure",
+    name: "export_failure",
+    ownerRole: "admin_reviewer",
+    status: "blocked",
+    window: "2026-05-26 09:00 to 10:00",
+    currentValue: "3 dead-letter exports, oldest 84 minutes",
+    sloThreshold: "Failed export rate <= 2% and queue oldest age <= 30 minutes before release can advance.",
+    linkedSystems: ["export-packaging", "queue-dead-letter", "support-console"],
+    sourceSignals: ["export_failed_total", "queue_dead_letter_total", "qa_report_packaging_failed_total"],
+    releaseGateUse: "Release gate requires manual regenerate, quota refund audit, and manifest validation evidence before export success can be marked healthy.",
+    evidenceRefs: ["q-export", "inc-20260526-queue", "au-004", "sup-2204"]
+  },
+  {
+    id: "od-crawler-policy",
+    name: "crawler_policy_violation",
+    ownerRole: "admin_reviewer",
+    status: "watch",
+    window: "2026-05-25 14:00 to 2026-05-26 10:00",
+    currentValue: "1 resolved blocklist incident, pending derivative review",
+    sloThreshold: "Zero active crawler policy violations and every approved import must include robots, provenance, legal metadata, and retention evidence.",
+    linkedSystems: ["crawler-findings", "review-queue", "prompt-fragments"],
+    sourceSignals: ["crawler_source_blocked_total", "robots_denied_total", "crawler_derivative_review_open_total"],
+    releaseGateUse: "Crawler-derived prompt or skill activation remains blocked whenever takedown, derivative-use, or retention evidence is unresolved.",
+    evidenceRefs: ["q-crawler", "inc-20260525-crawler", "au-012", "cg-501"]
+  },
+  {
+    id: "od-admin-security",
+    name: "admin_security",
+    ownerRole: "admin_superadmin",
+    status: "blocked",
+    window: "2026-05-26 10:00 to 10:30",
+    currentValue: "1 critical prompt extraction investigation open",
+    sloThreshold: "Zero critical admin/security abuse events before public release gates can pass.",
+    linkedSystems: ["admin-abuse", "prompt-fragments", "trace-redaction"],
+    sourceSignals: ["safety_block_total", "trace_redaction_violation_total", "admin_override_denied_total"],
+    releaseGateUse: "Production launch is blocked until the security-admin investigation closes with audit, support, and release evidence refs.",
+    evidenceRefs: ["ab-304", "au-008", "tr-1004"]
+  }
+];
+
+export const alertRoutes: AlertRoute[] = [
+  {
+    id: "al-provider-error",
+    dashboardId: "od-provider-latency",
+    severity: "sev2",
+    status: "firing",
+    threshold: "Provider error rate > 4% for 15 minutes or p95 latency > 8000 ms for 30 minutes.",
+    routeTarget: "ops-admin pager plus provider-routing review queue",
+    escalationRole: "admin_operator",
+    runbook: "Reduce non-urgent routing, verify provider usage reconciliation, attach audit evidence, and keep production provider launch blocked until the dashboard returns healthy.",
+    incidentRef: "none",
+    auditRef: "au-007",
+    evidenceRefs: ["od-provider-latency", "ph-1", "eg-003", "au-007"]
+  },
+  {
+    id: "al-export-dead-letter",
+    dashboardId: "od-export-failure",
+    severity: "sev2",
+    status: "firing",
+    threshold: "Export dead letters >= 3 or oldest export queue age > 60 minutes.",
+    routeTarget: "support-admin incident channel and export regeneration queue",
+    escalationRole: "admin_reviewer",
+    runbook: "Hold automatic retries, regenerate only eligible exports, verify quota refunds, and update support tickets before resolving the incident.",
+    incidentRef: "inc-20260526-queue",
+    auditRef: "au-004",
+    evidenceRefs: ["od-export-failure", "q-export", "inc-20260526-queue", "sup-2204", "au-004"]
+  },
+  {
+    id: "al-crawler-policy",
+    dashboardId: "od-crawler-policy",
+    severity: "sev3",
+    status: "resolved",
+    threshold: "Any crawler source blocklist hit, robots denial, or derivative review blocks activation.",
+    routeTarget: "trust-admin crawler review queue",
+    escalationRole: "admin_reviewer",
+    runbook: "Keep findings pending, block active prompt and skill import, complete takedown or derivative review, and retain raw content only inside the approved window.",
+    incidentRef: "inc-20260525-crawler",
+    auditRef: "au-012",
+    evidenceRefs: ["od-crawler-policy", "inc-20260525-crawler", "cf-118", "cg-501", "au-012"]
+  },
+  {
+    id: "al-admin-security",
+    dashboardId: "od-admin-security",
+    severity: "sev1",
+    status: "firing",
+    threshold: "Any critical hidden prompt extraction, trace redaction violation, or unsafe admin override attempt.",
+    routeTarget: "security-admin emergency queue",
+    escalationRole: "admin_superadmin",
+    runbook: "Place temporary hold, preserve trace and audit evidence, block prompt-fragment activation, and require security-admin closure before release gates advance.",
+    incidentRef: "none",
+    auditRef: "au-008",
+    evidenceRefs: ["od-admin-security", "ab-304", "au-008", "tr-1004"]
   }
 ];
 

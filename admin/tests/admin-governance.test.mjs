@@ -9,7 +9,7 @@ const parseFixtures = () => {
   const moduleSource = source
     .replace(/^import type[\s\S]*?from "@\/lib\/types";\n\n/, "")
     .replaceAll(/export const (\w+)[^=]*=/g, "const $1 =");
-  return Function(`${moduleSource}\nreturn { skillVersions, skillReleaseStateDefinitions, skillCanaryMetrics, releaseEvidence, supportTickets, supportEscalationRunbooks, supportUsers, riskyExports, abuseEvents, abuseControlHooks, auditEvents, exportJobs, traces, quotaAccounts, feedbackItems, regressionFixtures, analyticsReports, queueHealth, failedTaskControls, crawlerFindings, crawlerSourceApprovals, crawlerGovernanceWorkflows, adminRbacEvidence };`)();
+  return Function(`${moduleSource}\nreturn { skillVersions, skillReleaseStateDefinitions, skillCanaryMetrics, releaseEvidence, supportTickets, supportEscalationRunbooks, supportUsers, riskyExports, abuseEvents, abuseControlHooks, auditEvents, exportJobs, traces, quotaAccounts, feedbackItems, regressionFixtures, analyticsReports, queueHealth, failedTaskControls, crawlerFindings, crawlerSourceApprovals, crawlerGovernanceWorkflows, adminRbacEvidence, operationalDashboards, alertRoutes };`)();
 };
 
 const {
@@ -35,7 +35,9 @@ const {
   crawlerFindings,
   crawlerSourceApprovals,
   crawlerGovernanceWorkflows,
-  adminRbacEvidence
+  adminRbacEvidence,
+  operationalDashboards,
+  alertRoutes
 } = parseFixtures();
 
 const auditIds = new Set(auditEvents.map((event) => event.id));
@@ -50,6 +52,7 @@ const taskIds = new Set(failedTaskControls.map((task) => task.id));
 const crawlerFindingIds = new Set(crawlerFindings.map((finding) => finding.id));
 const crawlerFindingById = new Map(crawlerFindings.map((finding) => [finding.id, finding]));
 const incidentIds = new Set(["none", "inc-20260526-queue", "inc-20260525-crawler"]);
+const operationalDashboardIds = new Set(operationalDashboards.map((dashboard) => dashboard.id));
 const abuseEventById = new Map(abuseEvents.map((event) => [event.id, event]));
 const canaryMetricIds = new Set(skillCanaryMetrics.map((metric) => metric.id));
 
@@ -518,6 +521,69 @@ test("queue and failed task controls gate retry and cancel with audit evidence",
     if (task.requestedAction === "hold") {
       assert.equal(task.allowedRole, "admin_reviewer", `${task.id} hold needs reviewer role`);
       assert.notEqual(task.rbacDecision, "allowed", `${task.id} blocked hold cannot be allowed`);
+    }
+  }
+});
+
+test("operations dashboards and alert routes bind SLOs to release-gate evidence", () => {
+  assert.ok(operationalDashboards.length > 0, "operations dashboards need fixtures");
+  assert.ok(alertRoutes.length > 0, "alert routes need fixtures");
+
+  const requiredDashboards = new Set([
+    "provider_latency_error",
+    "export_failure",
+    "crawler_policy_violation",
+    "admin_security"
+  ]);
+
+  for (const dashboard of operationalDashboards) {
+    requiredDashboards.delete(dashboard.name);
+    assert.ok(roleOrder.has(dashboard.ownerRole), `${dashboard.id} has unknown owner role`);
+    assert.ok(dashboard.linkedSystems.length >= 2, `${dashboard.id} needs linked systems`);
+    assert.ok(dashboard.sourceSignals.length >= 2, `${dashboard.id} needs source signals`);
+    assert.ok(dashboard.sloThreshold.length > 50, `${dashboard.id} needs concrete SLO threshold`);
+    assert.ok(dashboard.releaseGateUse.length > 90, `${dashboard.id} needs release-gate usage`);
+    assert.ok(dashboard.evidenceRefs.length >= 3, `${dashboard.id} needs evidence refs`);
+
+    for (const ref of dashboard.evidenceRefs) {
+      assert.ok(
+        auditIds.has(ref) ||
+          ref.startsWith("eg-") ||
+          ref.startsWith("ph-") ||
+          ref.startsWith("q-") ||
+          ref.startsWith("cg-") ||
+          incidentIds.has(ref) ||
+          supportTicketIds.has(ref) ||
+          abuseEventById.has(ref) ||
+          traceIds.has(ref),
+        `${dashboard.id} links unknown dashboard evidence ref ${ref}`
+      );
+    }
+  }
+
+  assert.deepEqual([...requiredDashboards], [], "operations dashboards are missing required release surfaces");
+  assert.ok(
+    operationalDashboards.some((dashboard) => dashboard.status === "blocked"),
+    "operations dashboards need at least one blocked release signal"
+  );
+
+  for (const alert of alertRoutes) {
+    assert.ok(operationalDashboardIds.has(alert.dashboardId), `${alert.id} links unknown dashboard`);
+    assert.ok(incidentIds.has(alert.incidentRef), `${alert.id} links unknown incident ${alert.incidentRef}`);
+    assert.ok(auditIds.has(alert.auditRef), `${alert.id} links unknown audit ${alert.auditRef}`);
+    assert.ok(roleOrder.has(alert.escalationRole), `${alert.id} has unknown escalation role`);
+    assert.ok(alert.threshold.length > 50, `${alert.id} needs concrete threshold`);
+    assert.ok(alert.runbook.length > 90, `${alert.id} needs actionable runbook`);
+    assert.ok(alert.evidenceRefs.includes(alert.dashboardId), `${alert.id} evidence must include dashboard`);
+    assert.ok(alert.evidenceRefs.includes(alert.auditRef), `${alert.id} evidence must include audit`);
+
+    if (alert.status === "firing") {
+      assert.match(alert.incidentRef, /none|inc-/, `${alert.id} firing alerts need incident linkage state`);
+      assert.notEqual(alert.severity, "sev3", `${alert.id} firing alerts should not stay low severity`);
+    }
+
+    if (alert.severity === "sev1") {
+      assert.equal(alert.escalationRole, "admin_superadmin", `${alert.id} sev1 alerts need superadmin escalation`);
     }
   }
 });

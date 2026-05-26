@@ -3,6 +3,7 @@ import {
   adminRbacEvidence,
   abuseControlHooks,
   abuseEvents,
+  alertRoutes,
   analyticsReports,
   crawlerGovernanceWorkflows,
   crawlerSourceApprovals,
@@ -14,6 +15,7 @@ import {
   incidentLogs,
   maintenanceBanners,
   metaPrompts,
+  operationalDashboards,
   promptFragments,
   providerHealth,
   quotaAccounts,
@@ -153,6 +155,14 @@ export async function getIncidentLogs() {
 
 export async function getMaintenanceBanners() {
   return maintenanceBanners;
+}
+
+export async function getOperationalDashboards() {
+  return operationalDashboards;
+}
+
+export async function getAlertRoutes() {
+  return alertRoutes;
 }
 
 export async function getAnalyticsReports() {

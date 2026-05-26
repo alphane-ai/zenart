@@ -52,6 +52,8 @@ test("admin fixtures cover required operational surfaces", () => {
     "export const releaseEvidence",
     "export const abuseEvents",
     "export const abuseControlHooks",
+    "export const operationalDashboards",
+    "export const alertRoutes",
     "export const auditEvents",
     "export const analyticsReports",
     "export const skillReleaseStateDefinitions",
@@ -237,6 +239,12 @@ test("admin fixtures cover operations gate evidence", () => {
     "nextUpdateAt",
     "linkedSupportTickets",
     "rollbackPlan",
+    "operationalDashboards",
+    "alertRoutes",
+    "provider_latency_error",
+    "crawler_policy_violation",
+    "releaseGateUse",
+    "escalationRole",
     "audience",
     "approval",
     "auditRef"
@@ -306,6 +314,10 @@ test("admin routes surface governance evidence", () => {
   );
   assert.match(operationsPage, /Incident Log/);
   assert.match(operationsPage, /Maintenance Banner/);
+  assert.match(operationsPage, /Dashboards/);
+  assert.match(operationsPage, /Alert Routes/);
+  assert.match(operationsPage, /SLO Threshold/);
+  assert.match(operationsPage, /Escalation Role/);
   assert.match(operationsPage, /Rollback Plan/);
 
   const queuesPage = readFileSync(

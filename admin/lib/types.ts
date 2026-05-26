@@ -284,6 +284,41 @@ export type ProviderHealth = {
   releaseEvidence: string;
 };
 
+export type OperationalDashboard = {
+  id: string;
+  name:
+    | "provider_latency_error"
+    | "queue_dead_letter"
+    | "export_failure"
+    | "quota_anomaly"
+    | "safety_spike"
+    | "crawler_policy_violation"
+    | "admin_security";
+  ownerRole: AdminRole;
+  status: "healthy" | "watch" | "blocked";
+  window: string;
+  currentValue: string;
+  sloThreshold: string;
+  linkedSystems: string[];
+  sourceSignals: string[];
+  releaseGateUse: string;
+  evidenceRefs: string[];
+};
+
+export type AlertRoute = {
+  id: string;
+  dashboardId: string;
+  severity: "sev1" | "sev2" | "sev3";
+  status: "armed" | "firing" | "muted" | "resolved";
+  threshold: string;
+  routeTarget: string;
+  escalationRole: AdminRole;
+  runbook: string;
+  incidentRef: string;
+  auditRef: string;
+  evidenceRefs: string[];
+};
+
 export type QueueHealth = {
   id: string;
   name: string;
