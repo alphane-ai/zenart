@@ -21,6 +21,9 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.ObjectStorage.Bucket != "zenart-local" {
 		t.Fatalf("ObjectStorage.Bucket = %q, want zenart-local", cfg.ObjectStorage.Bucket)
 	}
+	if cfg.ObjectStorage.LocalRoot == "" {
+		t.Fatal("ObjectStorage.LocalRoot must have a local default")
+	}
 }
 
 func TestValidateRejectsInvalidObjectStorageEndpoint(t *testing.T) {

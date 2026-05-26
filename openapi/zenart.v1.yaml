@@ -693,6 +693,24 @@ paths:
                 $ref: "#/components/schemas/ExportPage"
         default:
           $ref: "#/components/responses/Error"
+  /exports/{export_id}/regenerate:
+    post:
+      operationId: regenerateExport
+      tags: [exports]
+      x-rbac: admin
+      x-idempotency-required: true
+      parameters:
+        - $ref: "#/components/parameters/ExportId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "202":
+          description: Export regeneration accepted for admin support.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Export"
+        default:
+          $ref: "#/components/responses/Error"
   /providers/status:
     get:
       operationId: listProviderStatus
@@ -952,6 +970,29 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/SafetyRulePage"
+        default:
+          $ref: "#/components/responses/Error"
+  /safety/decisions:
+    post:
+      operationId: createSafetyDecision
+      tags: [safety]
+      x-rbac: admin
+      x-idempotency-required: true
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SafetyDecisionCreate"
+      responses:
+        "201":
+          description: Safety policy decision captured for an enforcement point.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SafetyDecision"
         default:
           $ref: "#/components/responses/Error"
   /audit:
@@ -2302,6 +2343,41 @@ components:
               type: array
               items:
                 $ref: "#/components/schemas/SafetyRule"
+    SafetyDecisionCreate:
+      type: object
+      required: [subject_type, subject_id, enforcement_point]
+      properties:
+        subject_type:
+          type: string
+        subject_id:
+          type: string
+        enforcement_point:
+          type: string
+          enum: [brief, provider_request, provider_response, qa, export]
+    SafetyDecision:
+      type: object
+      required: [id, tenant_id, subject_type, subject_id, enforcement_point, decision, rationale, created_at]
+      properties:
+        id:
+          type: string
+        tenant_id:
+          type: string
+        rule_id:
+          type: string
+          nullable: true
+        subject_type:
+          type: string
+        subject_id:
+          type: string
+        enforcement_point:
+          type: string
+        decision:
+          type: string
+        rationale:
+          type: string
+        created_at:
+          type: string
+          format: date-time
     AbuseEvent:
       type: object
       required: [id, tenant_id, event_type, severity, status, evidence, controls, created_at, updated_at]

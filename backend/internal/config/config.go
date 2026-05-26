@@ -50,6 +50,8 @@ type ObjectStorageConfig struct {
 	AccessKey    string
 	SecretKey    string
 	UseSSL       bool
+	LocalRoot    string
+	SigningKey   string
 	CheckTimeout time.Duration
 }
 
@@ -92,6 +94,8 @@ func Load() (Config, error) {
 			AccessKey:    env("OBJECT_STORAGE_ACCESS_KEY", "minioadmin"),
 			SecretKey:    env("OBJECT_STORAGE_SECRET_KEY", "minioadmin"),
 			UseSSL:       boolEnv("OBJECT_STORAGE_USE_SSL", false),
+			LocalRoot:    env("OBJECT_STORAGE_LOCAL_ROOT", ".local-objectstore"),
+			SigningKey:   env("OBJECT_STORAGE_SIGNING_KEY", "stage0-local-object-signing"),
 			CheckTimeout: durationEnv("OBJECT_STORAGE_CHECK_TIMEOUT", 2*time.Second),
 		},
 		Auth: AuthConfig{

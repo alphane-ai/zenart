@@ -42,11 +42,14 @@ func TestOpenAPIContractCoversAdminSupportAbuseProviderAndExportRoutes(t *testin
 		"operationId: listProviderStatus",
 		"operationId: listProviderUsage",
 		"operationId: listExports",
+		"operationId: regenerateExport",
+		"operationId: createSafetyDecision",
 		"SupportTicketPage:",
 		"AbuseEventPage:",
 		"ProviderStatusPage:",
 		"ProviderUsagePage:",
 		"ExportPage:",
+		"SafetyDecision:",
 	} {
 		if !strings.Contains(contract, token) {
 			t.Fatalf("OpenAPI admin operations missing %q", token)

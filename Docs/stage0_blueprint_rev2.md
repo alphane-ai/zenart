@@ -1717,20 +1717,20 @@ main 合并前必须通过：
 
 ### 25.9 Object Storage and Export
 
-- [ ] 实现 object storage abstraction。
-- [ ] 实现 local object storage adapter。
+- [x] 实现 object storage abstraction。
+- [x] 实现 local object storage adapter。
 - [ ] 实现 S3-compatible config。
 - [ ] 实现 object metadata。
 - [ ] 实现 thumbnail generation。
-- [ ] 实现 signed URL。
-- [ ] 实现 cross-tenant object denial。
+- [x] 实现 signed URL。
+- [x] 实现 cross-tenant object denial。
 - [x] 实现 package manifest schema。
 - [x] 实现 deterministic file naming。
 - [x] 实现 ZIP export。
 - [x] 实现 PDF placeholder 或真实 PDF export。
 - [ ] 实现 PPT-ready metadata。
 - [ ] 实现 Figma-ready layout spec。
-- [ ] 实现 export retry/regenerate。
+- [x] 实现 export retry/regenerate。
 - [ ] 实现 cleanup expired exports/orphaned objects。
 - [ ] 添加 upload/download/export integration tests。
 
@@ -1835,11 +1835,11 @@ main 合并前必须通过：
 ### 25.15 Support and Operations
 
 - [x] 实现 report problem。
-- [ ] 实现 support ticket model。
+- [x] 实现 support ticket model。
 - [ ] support ticket 关联 user/project/task/trace/asset/export/quota。
 - [ ] 实现 admin user lookup。
 - [ ] 实现 failed task retry/cancel。
-- [ ] 实现 export regenerate。
+- [x] 实现 export regenerate。
 - [ ] 实现 queue/dead-letter dashboard。
 - [x] 实现 incident log model。
 - [x] 实现 maintenance banner。

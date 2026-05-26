@@ -6,11 +6,13 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/alphane-ai/zenart/backend/internal/config"
 	"github.com/alphane-ai/zenart/backend/internal/health"
 	"github.com/alphane-ai/zenart/backend/internal/readiness"
+	"github.com/alphane-ai/zenart/backend/internal/stage0"
 	"github.com/alphane-ai/zenart/backend/internal/task"
 )
 
@@ -40,10 +42,14 @@ func (s *Server) Handler() http.Handler {
 }
 
 func (s *Server) HTTPServer() *http.Server {
+	return NewHTTPServer(s.cfg, s.Handler())
+}
+
+func NewHTTPServer(cfg config.Config, handler http.Handler) *http.Server {
 	return &http.Server{
-		Addr:              s.cfg.HTTP.Addr,
-		Handler:           s.Handler(),
-		ReadHeaderTimeout: s.cfg.HTTP.ReadHeaderTimeout,
+		Addr:              cfg.HTTP.Addr,
+		Handler:           handler,
+		ReadHeaderTimeout: cfg.HTTP.ReadHeaderTimeout,
 	}
 }
 
@@ -51,6 +57,16 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /healthz", s.healthz)
 	s.mux.HandleFunc("GET /readyz", s.readyz)
 	s.mux.Handle("GET /api/v1/tasks/{id}", requirePrincipal(http.HandlerFunc(s.taskStatus)))
+	s.mux.Handle("POST /api/v1/packages/{id}/exports", requirePrincipal(http.HandlerFunc(s.createExport)))
+	s.mux.Handle("GET /api/v1/exports/{id}", requirePrincipal(http.HandlerFunc(s.getExport)))
+	s.mux.Handle("POST /api/v1/support/tickets", requirePrincipal(http.HandlerFunc(s.createSupportTicket)))
+	s.mux.Handle("GET /api/admin/v1/support/tickets", requireAdmin(http.HandlerFunc(s.listSupportTickets)))
+	s.mux.Handle("GET /api/admin/v1/exports", requireAdmin(http.HandlerFunc(s.listExports)))
+	s.mux.Handle("POST /api/admin/v1/exports/{id}/regenerate", requireAdmin(http.HandlerFunc(s.regenerateExport)))
+	s.mux.Handle("GET /api/admin/v1/crawler/sources", requireAdmin(http.HandlerFunc(s.listCrawlerSources)))
+	s.mux.Handle("GET /api/admin/v1/crawler/findings", requireAdmin(http.HandlerFunc(s.listCrawlerFindings)))
+	s.mux.Handle("GET /api/admin/v1/safety/rules", requireAdmin(http.HandlerFunc(s.listSafetyRules)))
+	s.mux.Handle("POST /api/admin/v1/safety/decisions", requireAdmin(http.HandlerFunc(s.enforceSafety)))
 	s.mux.Handle("GET /api/admin/v1/audit", requireAdmin(http.HandlerFunc(s.auditSearch)))
 }
 
@@ -102,6 +118,211 @@ func (s *Server) taskStatus(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) auditSearch(w http.ResponseWriter, r *http.Request) {
 	writeError(w, r, http.StatusNotImplemented, "audit_search_not_connected", "audit log search storage is not connected yet", nil)
+}
+
+func (s *Server) createExport(w http.ResponseWriter, r *http.Request) {
+	principal, _ := PrincipalFromContext(r.Context())
+	service, ok := stage0.ServiceFromContext(r.Context())
+	if !ok {
+		writeError(w, r, http.StatusNotImplemented, "export_service_not_connected", "export service is not connected yet", nil)
+		return
+	}
+	var input stage0.ExportCreate
+	if err := readJSON(r, &input); err != nil {
+		writeError(w, r, http.StatusBadRequest, "invalid_json", "request body must be valid JSON", nil)
+		return
+	}
+	taskStatus, err := service.CreateExport(r.Context(), principal.TenantID, r.PathValue("id"), input, s.cfg.Tasks.SchemaVersion)
+	if err != nil {
+		writeStage0Error(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusAccepted, taskStatus)
+}
+
+func (s *Server) getExport(w http.ResponseWriter, r *http.Request) {
+	principal, _ := PrincipalFromContext(r.Context())
+	service, ok := stage0.ServiceFromContext(r.Context())
+	if !ok {
+		writeError(w, r, http.StatusNotImplemented, "export_service_not_connected", "export service is not connected yet", nil)
+		return
+	}
+	export, err := service.GetExport(r.Context(), principal.TenantID, r.PathValue("id"))
+	if err != nil {
+		writeStage0Error(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, export)
+}
+
+func (s *Server) createSupportTicket(w http.ResponseWriter, r *http.Request) {
+	principal, _ := PrincipalFromContext(r.Context())
+	repo, ok := stage0RepoFrom(r)
+	if !ok {
+		writeError(w, r, http.StatusNotImplemented, "support_service_not_connected", "support ticket storage is not connected yet", nil)
+		return
+	}
+	var input stage0.SupportTicketCreate
+	if err := readJSON(r, &input); err != nil {
+		writeError(w, r, http.StatusBadRequest, "invalid_json", "request body must be valid JSON", nil)
+		return
+	}
+	ticket, err := repo.CreateSupportTicket(r.Context(), principal.TenantID, principal.UserID, input)
+	if err != nil {
+		writeStage0Error(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, ticket)
+}
+
+func (s *Server) listSupportTickets(w http.ResponseWriter, r *http.Request) {
+	principal, _ := PrincipalFromContext(r.Context())
+	repo, ok := stage0RepoFrom(r)
+	if !ok {
+		writeError(w, r, http.StatusNotImplemented, "support_service_not_connected", "support ticket storage is not connected yet", nil)
+		return
+	}
+	page, err := repo.ListSupportTickets(r.Context(), principal.TenantID, r.URL.Query().Get("status"), pageSize(r))
+	if err != nil {
+		writeStage0Error(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, page)
+}
+
+func (s *Server) listExports(w http.ResponseWriter, r *http.Request) {
+	principal, _ := PrincipalFromContext(r.Context())
+	repo, ok := stage0RepoFrom(r)
+	if !ok {
+		writeError(w, r, http.StatusNotImplemented, "export_service_not_connected", "export storage is not connected yet", nil)
+		return
+	}
+	page, err := repo.ListExports(r.Context(), principal.TenantID, r.URL.Query().Get("status"), pageSize(r))
+	if err != nil {
+		writeStage0Error(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, page)
+}
+
+func (s *Server) regenerateExport(w http.ResponseWriter, r *http.Request) {
+	principal, _ := PrincipalFromContext(r.Context())
+	repo, ok := stage0RepoFrom(r)
+	if !ok {
+		writeError(w, r, http.StatusNotImplemented, "export_service_not_connected", "export storage is not connected yet", nil)
+		return
+	}
+	export, err := repo.RegenerateExport(r.Context(), principal.TenantID, r.PathValue("id"))
+	if err != nil {
+		writeStage0Error(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusAccepted, export)
+}
+
+func (s *Server) listCrawlerSources(w http.ResponseWriter, r *http.Request) {
+	repo, ok := stage0RepoFrom(r)
+	if !ok {
+		writeError(w, r, http.StatusNotImplemented, "crawler_service_not_connected", "crawler storage is not connected yet", nil)
+		return
+	}
+	page, err := repo.ListCrawlerSources(r.Context(), r.URL.Query().Get("status"), pageSize(r))
+	if err != nil {
+		writeStage0Error(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, page)
+}
+
+func (s *Server) listCrawlerFindings(w http.ResponseWriter, r *http.Request) {
+	repo, ok := stage0RepoFrom(r)
+	if !ok {
+		writeError(w, r, http.StatusNotImplemented, "crawler_service_not_connected", "crawler storage is not connected yet", nil)
+		return
+	}
+	page, err := repo.ListCrawlerFindings(r.Context(), r.URL.Query().Get("status"), pageSize(r))
+	if err != nil {
+		writeStage0Error(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, page)
+}
+
+func (s *Server) listSafetyRules(w http.ResponseWriter, r *http.Request) {
+	repo, ok := stage0RepoFrom(r)
+	if !ok {
+		writeError(w, r, http.StatusNotImplemented, "safety_service_not_connected", "safety rule storage is not connected yet", nil)
+		return
+	}
+	page, err := repo.ListSafetyRules(r.Context(), r.URL.Query().Get("status"), pageSize(r))
+	if err != nil {
+		writeStage0Error(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, page)
+}
+
+func (s *Server) enforceSafety(w http.ResponseWriter, r *http.Request) {
+	principal, _ := PrincipalFromContext(r.Context())
+	repo, ok := stage0RepoFrom(r)
+	if !ok {
+		writeError(w, r, http.StatusNotImplemented, "safety_service_not_connected", "safety decision storage is not connected yet", nil)
+		return
+	}
+	var input struct {
+		SubjectType      string `json:"subject_type"`
+		SubjectID        string `json:"subject_id"`
+		EnforcementPoint string `json:"enforcement_point"`
+	}
+	if err := readJSON(r, &input); err != nil {
+		writeError(w, r, http.StatusBadRequest, "invalid_json", "request body must be valid JSON", nil)
+		return
+	}
+	decision, err := repo.EnforceSafety(r.Context(), principal.TenantID, input.SubjectType, input.SubjectID, input.EnforcementPoint)
+	if err != nil {
+		writeStage0Error(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, decision)
+}
+
+func stage0RepoFrom(r *http.Request) (stage0.Repository, bool) {
+	service, ok := stage0.ServiceFromContext(r.Context())
+	if !ok {
+		return stage0.Repository{}, false
+	}
+	return service.Repository(), true
+}
+
+func readJSON(r *http.Request, target any) error {
+	defer r.Body.Close()
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+	return decoder.Decode(target)
+}
+
+func pageSize(r *http.Request) int {
+	size, err := strconv.Atoi(r.URL.Query().Get("page_size"))
+	if err != nil || size <= 0 {
+		return 50
+	}
+	if size > 100 {
+		return 100
+	}
+	return size
+}
+
+func writeStage0Error(w http.ResponseWriter, r *http.Request, err error) {
+	switch {
+	case errors.Is(err, stage0.ErrValidation):
+		writeError(w, r, http.StatusBadRequest, "validation_error", err.Error(), nil)
+	case errors.Is(err, stage0.ErrNotFound):
+		writeError(w, r, http.StatusNotFound, "not_found", "requested record was not found for this tenant", nil)
+	case errors.Is(err, stage0.ErrSafetyBlocked):
+		writeError(w, r, http.StatusConflict, "safety_blocked", "operation is blocked by safety or QA policy", nil)
+	default:
+		writeError(w, r, http.StatusInternalServerError, "stage0_service_error", "stage0 service operation failed", nil)
+	}
 }
 
 func writeJSON(w http.ResponseWriter, status int, payload any) {
