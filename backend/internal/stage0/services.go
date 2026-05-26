@@ -821,12 +821,16 @@ WHERE e.tenant_id = $1 AND e.id = $2`,
 	}
 	_ = json.Unmarshal(manifestJSON, &export.Manifest)
 	_ = json.Unmarshal(deliveryJSON, &export.Delivery)
+	export.Manifest = security.RedactMap(export.Manifest)
+	export.Delivery = security.RedactMap(export.Delivery)
 	if len(errorJSON) > 0 {
 		_ = json.Unmarshal(errorJSON, &export.Error)
+		export.Error = security.RedactMap(export.Error)
 	}
 	if export.ObjectID != nil && len(objectMetadataJSON) > 0 && string(objectMetadataJSON) != "{}" {
 		var object ObjectMetadata
 		if err := json.Unmarshal(objectMetadataJSON, &object); err == nil {
+			object.Metadata = security.RedactMap(object.Metadata)
 			export.Object = &object
 		}
 	}
@@ -893,8 +897,11 @@ WHERE tenant_id = $1`
 		}
 		_ = json.Unmarshal(manifestJSON, &export.Manifest)
 		_ = json.Unmarshal(deliveryJSON, &export.Delivery)
+		export.Manifest = security.RedactMap(export.Manifest)
+		export.Delivery = security.RedactMap(export.Delivery)
 		if len(errorJSON) > 0 {
 			_ = json.Unmarshal(errorJSON, &export.Error)
+			export.Error = security.RedactMap(export.Error)
 		}
 		page.Items = append(page.Items, export)
 	}
@@ -1215,6 +1222,8 @@ WHERE tenant_id = $1`
 			return Page[SupportTicket]{}, err
 		}
 		_ = json.Unmarshal(metadataJSON, &ticket.Metadata)
+		ticket.Body = security.RedactString(ticket.Body)
+		ticket.Metadata = security.RedactMap(ticket.Metadata)
 		page.Items = append(page.Items, ticket)
 	}
 	return page, rows.Err()
@@ -1247,8 +1256,11 @@ WHERE (tenant_id IS NULL OR tenant_id = $1)`
 		if err := rows.Scan(&source.ID, &source.TenantID, &source.Name, &source.URL, &source.ApprovalStatus, &legalJSON, &robotsJSON, &source.CreatedAt, &source.UpdatedAt); err != nil {
 			return Page[CrawlerSource]{}, err
 		}
+		source.URL = security.RedactString(source.URL)
 		_ = json.Unmarshal(legalJSON, &source.LegalMetadata)
 		_ = json.Unmarshal(robotsJSON, &source.RobotsPolicy)
+		source.LegalMetadata = security.RedactMap(source.LegalMetadata)
+		source.RobotsPolicy = security.RedactMap(source.RobotsPolicy)
 		page.Items = append(page.Items, source)
 	}
 	return page, rows.Err()
@@ -1283,6 +1295,8 @@ WHERE (tenant_id IS NULL OR tenant_id = $1)`
 		}
 		_ = json.Unmarshal(payloadJSON, &finding.Payload)
 		_ = json.Unmarshal(provenanceJSON, &finding.Provenance)
+		finding.Payload = security.RedactMap(finding.Payload)
+		finding.Provenance = security.RedactMap(finding.Provenance)
 		page.Items = append(page.Items, finding)
 	}
 	return page, rows.Err()

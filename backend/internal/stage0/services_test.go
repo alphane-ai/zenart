@@ -144,6 +144,47 @@ func TestListSupportTicketsReturnsEvidenceLinks(t *testing.T) {
 	}
 }
 
+func TestListSupportTicketsRedactsStoredSecrets(t *testing.T) {
+	now := time.Now().UTC()
+	db := &fakeDB{queryRows: []rowSet{{
+		rows: [][]any{{
+			"support_1",
+			"tenant_1",
+			"user_1",
+			"project_1",
+			"task_1",
+			"trace_1",
+			"asset_1",
+			"export_failure",
+			"open",
+			"provider failed with Bearer abcdefghijklmnop",
+			"export_1",
+			"quota_1",
+			[]byte(`{"download_url":"https://storage.local/export.zip?X-Amz-Signature=abcdef","api_key":"secret"}`),
+			now,
+			now,
+		}},
+	}}}
+	repo := NewRepository(db)
+
+	page, err := repo.ListSupportTickets(context.Background(), "tenant_1", "open", 50)
+	if err != nil {
+		t.Fatalf("ListSupportTickets() error = %v", err)
+	}
+	body, err := json.Marshal(page.Items[0])
+	if err != nil {
+		t.Fatalf("marshal ticket: %v", err)
+	}
+	for _, leaked := range []string{"abcdefghijklmnop", "abcdef", "secret"} {
+		if strings.Contains(string(body), leaked) {
+			t.Fatalf("support ticket = %s, leaked %s", string(body), leaked)
+		}
+	}
+	if !strings.Contains(string(body), security.Redacted) {
+		t.Fatalf("support ticket = %s, want redaction marker", string(body))
+	}
+}
+
 func TestCreateExportBlocksWhenQAHasBlockingResult(t *testing.T) {
 	db := &fakeDB{
 		queryRows: []rowSet{{
@@ -695,6 +736,54 @@ func TestRecordExportArtifactBlocksWhenExportSafetyRuleBlocks(t *testing.T) {
 	assertSafetyDecision(t, db.execs[4], SafetyPointExport, "export")
 	if db.execs[4].args[6] != "block" {
 		t.Fatalf("blocking safety decision not recorded: %#v", db.execs[4])
+	}
+}
+
+func TestGetExportRedactsStoredSecretMetadata(t *testing.T) {
+	now := time.Date(2026, 5, 26, 12, 0, 0, 0, time.UTC)
+	db := &fakeDB{
+		queryRows: []rowSet{{
+			rows: [][]any{{
+				"export_1",
+				"tenant_1",
+				"package_1",
+				"project_1",
+				nil,
+				"zip",
+				"failed",
+				"failed",
+				"object_1",
+				[]byte(`{"package_id":"package_1","provider_key":"sk-ant-abcdefghijklmnopqrstuvwxyz123456"}`),
+				[]byte(`{"download_url":"https://storage.local/export.zip?X-Amz-Signature=abcdef","ppt_ready":{"status":"ready"}}`),
+				[]byte(`{"message":"provider failed with Bearer abcdefghijklmnop"}`),
+				now,
+				now,
+				[]byte(`{"id":"object_1","tenant_id":"tenant_1","project_id":"project_1","owner_id":"user_1","asset_type":"export","bucket":"exports-test","object_key":"tenants/tenant_1/exports/export_1.zip","content_type":"application/zip","byte_size":12,"checksum":"sha256:abc","provider":"local","retention_state":"active","metadata":{"signed_url":"https://storage.local/export.zip?AWSAccessKeyId=AKIAIOSFODNN7EXAMPLE&Signature=abcdef"},"created_at":"2026-05-26T00:00:00Z"}`),
+			}},
+		}},
+	}
+	repo := NewRepository(db)
+
+	export, err := repo.GetExport(context.Background(), "tenant_1", "export_1")
+	if err != nil {
+		t.Fatalf("GetExport() error = %v", err)
+	}
+	body, err := json.Marshal(export)
+	if err != nil {
+		t.Fatalf("marshal export: %v", err)
+	}
+	for _, leaked := range []string{
+		"sk-ant-abcdefghijklmnopqrstuvwxyz123456",
+		"abcdef",
+		"abcdefghijklmnop",
+		"AKIAIOSFODNN7EXAMPLE",
+	} {
+		if strings.Contains(string(body), leaked) {
+			t.Fatalf("export = %s, leaked %s", string(body), leaked)
+		}
+	}
+	if !strings.Contains(string(body), security.Redacted) {
+		t.Fatalf("export = %s, want redaction marker", string(body))
 	}
 }
 
@@ -1386,6 +1475,40 @@ func TestListCrawlerSourcesUsesTenantScopedFilters(t *testing.T) {
 	}
 }
 
+func TestListCrawlerSourcesRedactsStoredURLAndMetadataSecrets(t *testing.T) {
+	now := time.Date(2026, 5, 27, 8, 0, 0, 0, time.UTC)
+	tenantID := "tenant_1"
+	db := &fakeDB{queryRows: []rowSet{{rows: [][]any{{
+		"crawler_source_1",
+		&tenantID,
+		"Tenant Source",
+		"https://user:pass@example.com/docs?token=secret-token",
+		"approved",
+		[]byte(`{"license":"permissive","owner":"Example","api_key":"secret"}`),
+		[]byte(`{"robots":"allowed","signed_url":"https://storage.local/raw.html?X-Amz-Signature=abcdef"}`),
+		now,
+		now,
+	}}}}}
+	repo := NewRepository(db)
+
+	page, err := repo.ListCrawlerSources(context.Background(), "tenant_1", "approved", 25)
+	if err != nil {
+		t.Fatalf("ListCrawlerSources() error = %v", err)
+	}
+	body, err := json.Marshal(page.Items[0])
+	if err != nil {
+		t.Fatalf("marshal crawler source: %v", err)
+	}
+	for _, leaked := range []string{"user:pass", "secret-token", "secret", "abcdef"} {
+		if strings.Contains(string(body), leaked) {
+			t.Fatalf("crawler source = %s, leaked %s", string(body), leaked)
+		}
+	}
+	if !strings.Contains(string(body), security.Redacted) {
+		t.Fatalf("crawler source = %s, want redaction marker", string(body))
+	}
+}
+
 func TestListCrawlerFindingsUsesTenantScopedFilters(t *testing.T) {
 	now := time.Date(2026, 5, 27, 8, 0, 0, 0, time.UTC)
 	tenantID := "tenant_1"
@@ -1420,6 +1543,39 @@ func TestListCrawlerFindingsUsesTenantScopedFilters(t *testing.T) {
 		if query.args[i] != want {
 			t.Fatalf("query args[%d] = %#v, want %#v", i, query.args[i], want)
 		}
+	}
+}
+
+func TestListCrawlerFindingsRedactsStoredPayloadAndProvenanceSecrets(t *testing.T) {
+	now := time.Date(2026, 5, 27, 8, 0, 0, 0, time.UTC)
+	tenantID := "tenant_1"
+	db := &fakeDB{queryRows: []rowSet{{rows: [][]any{{
+		"crawler_finding_1",
+		&tenantID,
+		"crawler_doc_1",
+		"layout_pattern",
+		"pending_review",
+		[]byte(`{"kind":"grid","authorization":"Bearer abcdefghijklmnop"}`),
+		[]byte(`{"source_url":"https://user:pass@example.com/docs?token=secret-token","download_url":"https://storage.local/raw.html?X-Amz-Signature=abcdef"}`),
+		now,
+	}}}}}
+	repo := NewRepository(db)
+
+	page, err := repo.ListCrawlerFindings(context.Background(), "tenant_1", "pending_review", 25)
+	if err != nil {
+		t.Fatalf("ListCrawlerFindings() error = %v", err)
+	}
+	body, err := json.Marshal(page.Items[0])
+	if err != nil {
+		t.Fatalf("marshal crawler finding: %v", err)
+	}
+	for _, leaked := range []string{"abcdefghijklmnop", "user:pass", "secret-token", "abcdef"} {
+		if strings.Contains(string(body), leaked) {
+			t.Fatalf("crawler finding = %s, leaked %s", string(body), leaked)
+		}
+	}
+	if !strings.Contains(string(body), security.Redacted) {
+		t.Fatalf("crawler finding = %s, want redaction marker", string(body))
 	}
 }
 
