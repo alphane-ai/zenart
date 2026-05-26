@@ -1964,8 +1964,11 @@ main 合并前必须通过：
 - [ ] Private Beta/Staging Gate 全部通过。
 - [ ] Production Launch Gate 全部通过。
 - [ ] Do-Not-Launch Conditions 全部为 false。
+- [x] 定义 release gate evidence schema/fixtures 和 no-go release notes renderer。
+- [x] 定义 post-deploy smoke evidence contract。
 - [x] Release notes 包含 SHA、migration list、config diff、feature flags、owner、smoke plan、rollback plan、known risks、go/no-go。
-- [ ] Post-deploy smoke tests 通过。
+- [ ] Staging post-deploy smoke tests 通过。
+- [ ] Production post-deploy smoke tests 通过。
 
 Release gate evidence map:
 

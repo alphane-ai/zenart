@@ -220,6 +220,8 @@ CHECKED_ITEMS = {
     "定义 alerts。",
     "定义 analytics event taxonomy。",
     "添加 trace completeness tests。",
+    "定义 release gate evidence schema/fixtures 和 no-go release notes renderer。",
+    "定义 post-deploy smoke evidence contract。",
 }
 
 FORBIDDEN_CHECKED_ITEMS = {
@@ -238,6 +240,7 @@ FORBIDDEN_CHECKED_ITEMS = {
     "后端/API runtime 验证 CSRF 或 same-site strategy。",
     "实现 dashboards。",
     "实现 alerts。",
+    "Post-deploy smoke tests 通过。",
 }
 
 REQUIRED_OPEN_ITEMS = {
@@ -273,7 +276,8 @@ REQUIRED_OPEN_ITEMS = {
     "crawler runtime 强制 source blocklist。",
     "导入并验证 staging dashboards runtime evidence。",
     "配置并验证 staging alert routes/runtime evidence。",
-    "Post-deploy smoke tests 通过。",
+    "Staging post-deploy smoke tests 通过。",
+    "Production post-deploy smoke tests 通过。",
 }
 
 CRAWLER_GOVERNANCE_SPLIT_ITEMS = {
@@ -629,6 +633,21 @@ def gate_allows_checklist_completion(data: dict[str, Any]) -> bool:
     return all(check["status"] == "pass" for check in data["checks"]) and not any(
         item["is_present"] for item in data["do_not_launch_checks"]
     )
+
+
+def gate_blockers(data: dict[str, Any]) -> dict[str, list[str]]:
+    return {
+        "blocked_or_failing_checks": [
+            check["check_id"]
+            for check in data["checks"]
+            if check["status"] != "pass"
+        ],
+        "active_do_not_launch_conditions": [
+            item["condition_id"]
+            for item in data["do_not_launch_checks"]
+            if item["is_present"]
+        ],
+    }
 
 
 def checked_items(text: str) -> set[str]:
@@ -1591,11 +1610,18 @@ def validate_blueprint_checklist() -> None:
 
     evidence = release_evidence_by_gate()
     for item, gate in GATE_CHECKLIST_ITEMS.items():
+        require(item in unchecked_lines, f"blueprint launch gate item must remain open until evidence passes: {item}")
+        require(gate in evidence, f"missing release gate evidence for {gate}")
+        blockers = gate_blockers(evidence[gate])
+        require(
+            blockers["blocked_or_failing_checks"] or blockers["active_do_not_launch_conditions"],
+            f"{gate} evidence must retain at least one blocker while blueprint gate item remains open",
+        )
         if item in checked_lines:
-            require(gate in evidence, f"blueprint marks {item!r} complete but no {gate} evidence exists")
             require(
                 gate_allows_checklist_completion(evidence[gate]),
-                f"blueprint marks {item!r} complete but {gate} evidence has blocked/failing checks or active do-not-launch conditions",
+                f"blueprint marks {item!r} complete but {gate} evidence still has blockers: "
+                + json.dumps(blockers, ensure_ascii=False, sort_keys=True),
             )
 
     if GLOBAL_DO_NOT_LAUNCH_CHECKLIST_ITEM in checked_lines:
@@ -2068,6 +2094,8 @@ def validate_launch_readiness_split_contracts() -> None:
         "定义 backend/worker/crawler metrics contract。",
         "定义 dashboards。",
         "定义 alerts。",
+        "定义 release gate evidence schema/fixtures 和 no-go release notes renderer。",
+        "定义 post-deploy smoke evidence contract。",
     ]:
         require(item in checked_lines, f"blueprint must close definition-only evidence subitem: {item}")
 
@@ -2082,6 +2110,8 @@ def validate_launch_readiness_split_contracts() -> None:
         "实现 backend/worker/crawler metrics。",
         "导入并验证 staging dashboards runtime evidence。",
         "配置并验证 staging alert routes/runtime evidence。",
+        "Staging post-deploy smoke tests 通过。",
+        "Production post-deploy smoke tests 通过。",
     ]:
         require(item in unchecked_lines, f"blueprint must keep runtime launch-readiness subitem open: {item}")
 
@@ -2091,6 +2121,7 @@ def validate_launch_readiness_split_contracts() -> None:
         "实现 staging deploy。",
         "实现 dashboards。",
         "实现 alerts。",
+        "Post-deploy smoke tests 通过。",
     ]:
         require(
             ambiguous not in checked_lines and ambiguous not in unchecked_lines,
@@ -2129,6 +2160,21 @@ def validate_launch_readiness_split_contracts() -> None:
     require(
         policy.get("current_release_decision") == "no-go_until_runtime_release_evidence_and_gate_fixtures_pass",
         "release ops policy must keep the current release decision no-go",
+    )
+    post_deploy_contract = release_ops["post_deploy_smoke_go_no_go_contract"]
+    require(
+        post_deploy_contract["script"] == "scripts/staging_smoke.sh",
+        "post-deploy smoke contract must cite scripts/staging_smoke.sh",
+    )
+    require(
+        {"release_evidence", "release_gate_fixtures", "go_no_go"}
+        <= set(post_deploy_contract["report_summary_fields"]),
+        "post-deploy smoke contract must require release evidence, release gate fixtures, and go/no-go summary fields",
+    )
+    require(
+        "required release evidence is absent" in post_deploy_contract["gate_policy"]
+        and "production do-not-launch fixtures are present" in post_deploy_contract["gate_policy"],
+        "post-deploy smoke gate policy must keep runtime smoke blocked until evidence and do-not-launch blockers clear",
     )
 
     signals = {item["name"]: item for item in observability["signals"]}
