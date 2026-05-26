@@ -286,7 +286,18 @@ RUNTIME_EVIDENCE_RE = re.compile(
 RUNTIME_PASS_REQUIREMENTS = {
     ("local_alpha", "local_alpha_e2e_workflow_smoke"): {
         "path_patterns": (r"ops/evidence/(?:local_alpha|local)/",),
-        "tokens": ("workflow", "smoke"),
+        "tokens": (
+            "workflow",
+            "smoke",
+            "api",
+            "playwright",
+            "brief",
+            "4 candidates",
+            "select",
+            "iterate",
+            "package",
+            "export zip",
+        ),
     },
     ("ci", "ci_installed_workflow"): {
         "path_patterns": (r"\.github/workflows/",),
@@ -1005,6 +1016,21 @@ WORKFLOW_ACCEPTANCE_SPLITS = {
     },
 }
 
+WORKFLOW_RUNTIME_EVIDENCE_REQUIREMENTS = {
+    "api_item": {
+        "contract_key": "api_smoke_contract",
+        "status_label": "API smoke",
+        "required_status": "executed",
+        "required_evidence_terms": ("api", "smoke"),
+    },
+    "playwright_item": {
+        "contract_key": "playwright_happy_path_contract",
+        "status_label": "Playwright happy path",
+        "required_status": "executed",
+        "required_evidence_terms": ("playwright", "happy path"),
+    },
+}
+
 
 class ValidationError(Exception):
     pass
@@ -1642,6 +1668,9 @@ def validate_workflow_acceptance_split_contracts() -> None:
     text = BLUEPRINT.read_text(encoding="utf-8")
     checked_lines = checked_items(text)
     unchecked_lines = unchecked_items(text)
+    local_alpha = load_json(FIXTURE_DIR / "release_gate_evidence.local_alpha.json")
+    local_alpha_checks = checks_by_id(local_alpha)
+    local_alpha_smoke = local_alpha_checks["local_alpha_e2e_workflow_smoke"]
 
     for workflow_id, split in WORKFLOW_ACCEPTANCE_SPLITS.items():
         fixture_path = FIXTURE_DIR / "workflows" / f"{workflow_id}.json"
@@ -1649,11 +1678,6 @@ def validate_workflow_acceptance_split_contracts() -> None:
         data = load_json(fixture_path)
         require(data["workflow_id"] == workflow_id, f"{fixture_path.relative_to(ROOT)} workflow_id mismatch")
         require(split["fixture_item"] in checked_lines, f"blueprint must close fixture evidence item: {split['fixture_item']}")
-        require(split["api_item"] in unchecked_lines, f"blueprint must keep API runtime item open: {split['api_item']}")
-        require(
-            split["playwright_item"] in unchecked_lines,
-            f"blueprint must keep Playwright runtime item open: {split['playwright_item']}",
-        )
         require(
             split["ambiguous_item"] not in checked_lines and split["ambiguous_item"] not in unchecked_lines,
             f"ambiguous workflow acceptance checklist item must stay split: {split['ambiguous_item']}",
@@ -1675,6 +1699,42 @@ def validate_workflow_acceptance_split_contracts() -> None:
             "trace_provenance.json" in data["golden_fixture"]["expected_export_files"],
             f"{workflow_id} golden fixture must require trace provenance export evidence",
         )
+        for item_key, requirement in WORKFLOW_RUNTIME_EVIDENCE_REQUIREMENTS.items():
+            checklist_item = split[item_key]
+            contract = data[requirement["contract_key"]]
+            if checklist_item in unchecked_lines:
+                require(
+                    contract["execution_status"] == "not_executed",
+                    f"{workflow_id} {requirement['status_label']} contract must not claim runtime execution while checklist item is open",
+                )
+                continue
+
+            require(
+                checklist_item in checked_lines,
+                f"blueprint missing workflow runtime checklist item: {checklist_item}",
+            )
+            require(
+                contract["execution_status"] == requirement["required_status"],
+                f"{workflow_id} {requirement['status_label']} checklist item is closed but fixture contract is not executed",
+            )
+            require(
+                contract["blueprint_checklist_remains_open"] is False,
+                f"{workflow_id} {requirement['status_label']} executed contract must allow checklist closure",
+            )
+            require(
+                local_alpha_smoke["status"] == "pass",
+                f"{workflow_id} {requirement['status_label']} cannot close until local_alpha_e2e_workflow_smoke passes",
+            )
+            evidence_ref = local_alpha_smoke["evidence_ref"].lower()
+            missing_terms = [
+                term
+                for term in requirement["required_evidence_terms"]
+                if term not in evidence_ref
+            ]
+            require(
+                not missing_terms,
+                f"{workflow_id} {requirement['status_label']} closure missing Local Alpha evidence terms: {missing_terms}",
+            )
 
     workflow_contract = subprocess.run(
         [sys.executable, str(ROOT / "scripts" / "validate_workflow_acceptance_contract.py")],
