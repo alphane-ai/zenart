@@ -53,6 +53,7 @@ describe("dev web client user lifecycle coverage", () => {
 
   it("records report-problem tickets with project, export, and quota context", async () => {
     const client = makeClient();
+    await client.attachReference({ name: "product-angle.webp", kind: "image" });
     await client.selectCandidate("cand-utility");
     await client.addPackageItem("cand-utility");
     const exported = await client.createExport("zip");
@@ -67,14 +68,50 @@ describe("dev web client user lifecycle coverage", () => {
     expect(ticketed.supportTickets[0]).toMatchObject({
       id: "ticket-001",
       projectId: ticketed.activeProjectId,
+      projectName: "Launch Direction Board",
       category: "export",
       status: "open",
       linkedExportId: exported.exports[0]?.id,
+      linkedTaskId: "task-cand-utility",
+      linkedTraceId: `trace-${exported.exports[0]?.id}`,
+      linkedAssetIds: ["ref-001", "ref-product-angle-webp"],
       linkedQuotaSnapshot: {
         used: exported.billing.quotaUsed,
-        limit: exported.billing.quotaLimit
+        limit: exported.billing.quotaLimit,
+        remaining: exported.billing.quotaLimit - exported.billing.quotaUsed,
+        status: exported.billing.status,
+        resetAt: exported.billing.resetAt
       }
     });
+  });
+
+  it("validates reference uploads and keeps rejected assets visible but not support-linked", async () => {
+    const client = makeClient();
+
+    const rejected = await client.attachReference({ name: "campaign.exe", kind: "image" });
+    const acceptedUrl = await client.attachReference({ name: "https://example.com/brief", kind: "url" });
+    const ticketed = await client.reportProblem({
+      category: "quality",
+      body: "Reference validation should be visible.",
+      linkedExportId: undefined
+    });
+
+    expect(rejected.brief.references.at(-1)).toMatchObject({
+      name: "campaign.exe",
+      status: "queued",
+      validation: {
+        state: "rejected",
+        reason: "Images must be PNG, JPG, JPEG, or WEBP files."
+      }
+    });
+    expect(acceptedUrl.brief.references.at(-1)).toMatchObject({
+      name: "https://example.com/brief",
+      status: "attached",
+      validation: {
+        state: "accepted"
+      }
+    });
+    expect(ticketed.supportTickets[0].linkedAssetIds).toEqual(["ref-001", "ref-https-example-com-brief"]);
   });
 
   it("models billing quota states without charging blocked exports", async () => {
@@ -94,6 +131,38 @@ describe("dev web client user lifecycle coverage", () => {
       quotaLimit: 80,
       renewalMode: "mock-checkout"
     });
+  });
+
+  it("blocks quota-consuming exports for inactive, past-due, and exhausted billing states", async () => {
+    const client = makeClient();
+    await client.selectCandidate("cand-studio");
+    await client.addPackageItem("cand-studio");
+
+    const pastDue = await client.setBillingScenario("past_due");
+    const pastDueExport = await client.createExport("zip");
+    const exhausted = await client.setBillingScenario("quota_exhausted");
+    const exhaustedExport = await client.createExport("pdf-placeholder");
+
+    expect(pastDueExport.exports[0]).toMatchObject({
+      status: "blocked",
+      qaReport: expect.arrayContaining([
+        expect.objectContaining({
+          id: "qa-entitlement",
+          title: "Subscription action required"
+        })
+      ])
+    });
+    expect(pastDueExport.billing.quotaUsed).toBe(pastDue.billing.quotaUsed);
+    expect(exhaustedExport.exports[0]).toMatchObject({
+      status: "blocked",
+      qaReport: expect.arrayContaining([
+        expect.objectContaining({
+          id: "qa-entitlement",
+          title: "Quota exhausted"
+        })
+      ])
+    });
+    expect(exhaustedExport.billing.quotaUsed).toBe(exhausted.billing.quotaUsed);
   });
 
   it("can reset the persisted dev workspace for isolated smoke runs", async () => {

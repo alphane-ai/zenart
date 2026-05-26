@@ -27,7 +27,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { AccountSettings, Candidate, ExportFormat, QaSeverity, WorkspaceState } from "@/lib/contracts";
+import { AccountSettings, BillingScenario, Candidate, ExportFormat, QaSeverity, WorkspaceState } from "@/lib/contracts";
 import { zenArtClient } from "@/lib/api-client";
 import { downloadExportPackage } from "@/lib/export-download";
 
@@ -73,6 +73,7 @@ export function WorkspaceApp({ initialView = "workspace" }: { initialView?: View
   const [supportBody, setSupportBody] = useState("");
   const [supportCategory, setSupportCategory] = useState<"bug" | "billing" | "export" | "quality" | "other">("quality");
   const [referenceName, setReferenceName] = useState("visual-reference.png");
+  const [referenceKind, setReferenceKind] = useState<"image" | "document" | "url">("image");
   const [busy, setBusy] = useState<string | null>(null);
 
   useEffect(() => {
@@ -94,7 +95,6 @@ export function WorkspaceApp({ initialView = "workspace" }: { initialView?: View
   );
 
   const quotaPercent = state ? Math.min(100, Math.round((state.billing.quotaUsed / state.billing.quotaLimit) * 100)) : 0;
-
   const runAction = async (label: string, action: () => Promise<WorkspaceState>) => {
     setBusy(label);
     try {
@@ -192,10 +192,12 @@ export function WorkspaceApp({ initialView = "workspace" }: { initialView?: View
             briefInput={briefInput}
             iterationInput={iterationInput}
             referenceName={referenceName}
+            referenceKind={referenceKind}
             selectedCandidate={selectedCandidate}
             setBriefInput={setBriefInput}
             setIterationInput={setIterationInput}
             setReferenceName={setReferenceName}
+            setReferenceKind={setReferenceKind}
             confirmBrief={confirmBrief}
             iterate={iterate}
             runAction={runAction}
@@ -246,10 +248,12 @@ function WorkspaceView({
   briefInput,
   iterationInput,
   referenceName,
+  referenceKind,
   selectedCandidate,
   setBriefInput,
   setIterationInput,
   setReferenceName,
+  setReferenceKind,
   confirmBrief,
   iterate,
   runAction
@@ -259,14 +263,17 @@ function WorkspaceView({
   briefInput: string;
   iterationInput: string;
   referenceName: string;
+  referenceKind: "image" | "document" | "url";
   selectedCandidate?: Candidate;
   setBriefInput: (value: string) => void;
   setIterationInput: (value: string) => void;
   setReferenceName: (value: string) => void;
+  setReferenceKind: (value: "image" | "document" | "url") => void;
   confirmBrief: (event: FormEvent) => void;
   iterate: (event: FormEvent) => void;
   runAction: (label: string, action: () => Promise<WorkspaceState>) => Promise<void>;
 }) {
+  const latestReference = state.brief.references.at(-1);
   return (
     <div className="workspace-grid">
       <section className="panel chat-panel">
@@ -296,6 +303,12 @@ function WorkspaceView({
         <div className="reference-row">
           <label className="sr-only" htmlFor="reference-name">Reference asset name or URL</label>
           <input id="reference-name" value={referenceName} onChange={(event) => setReferenceName(event.target.value)} />
+          <label className="sr-only" htmlFor="reference-kind">Reference type</label>
+          <select id="reference-kind" value={referenceKind} onChange={(event) => setReferenceKind(event.target.value as typeof referenceKind)}>
+            <option value="image">Image</option>
+            <option value="document">Document</option>
+            <option value="url">URL</option>
+          </select>
           <button
             className="secondary-button"
             disabled={!referenceName.trim()}
@@ -303,7 +316,7 @@ function WorkspaceView({
               void runAction("reference", () =>
                 zenArtClient.attachReference({
                   name: referenceName,
-                  kind: referenceName.startsWith("http") ? "url" : "image"
+                  kind: referenceKind
                 })
               )
             }
@@ -312,11 +325,17 @@ function WorkspaceView({
             Attach
           </button>
         </div>
+        {latestReference?.validation.state === "rejected" ? (
+          <div className="inline-alert" role="alert">
+            <AlertTriangle size={16} aria-hidden="true" />
+            <span>{latestReference.validation.reason}</span>
+          </div>
+        ) : null}
         <div className="reference-list">
           {state.brief.references.map((reference) => (
-            <span key={reference.id}>
+            <span key={reference.id} className={reference.validation.state === "rejected" ? "rejected-reference" : ""}>
               <ImagePlus size={14} aria-hidden="true" />
-              {reference.name}
+              {reference.name} · {reference.validation.state}
             </span>
           ))}
         </div>
@@ -631,7 +650,16 @@ function BillingView({
   busy: string | null;
   runAction: (label: string, action: () => Promise<WorkspaceState>) => Promise<void>;
 }) {
-  const remaining = state.billing.quotaLimit - state.billing.quotaUsed;
+  const remaining = Math.max(0, state.billing.quotaLimit - state.billing.quotaUsed);
+  const billingScenarios: Array<{ key: BillingScenario; label: string }> = [
+    { key: "trialing", label: "Trial" },
+    { key: "active", label: "Active" },
+    { key: "past_due", label: "Past Due" },
+    { key: "inactive", label: "Inactive" },
+    { key: "quota_exhausted", label: "No Quota" }
+  ];
+  const isBlocked = state.billing.status === "inactive" || state.billing.status === "past_due" || remaining === 0;
+
   return (
     <section className="content-view">
       <div className="section-title">
@@ -643,6 +671,12 @@ function BillingView({
           <h3>{state.billing.name}</h3>
           <p>Status: {state.billing.status}</p>
           <p>Renewal: {state.billing.renewalMode}</p>
+          {isBlocked ? (
+            <div className="inline-alert" role="alert">
+              <AlertTriangle size={16} aria-hidden="true" />
+              <span>{remaining === 0 ? "Quota is exhausted. Exports are blocked without spending more credits." : "Subscription is not active. Quota-consuming actions are blocked."}</span>
+            </div>
+          ) : null}
           <button className="primary-button" disabled={busy === "checkout"} onClick={() => void runAction("checkout", () => zenArtClient.createMockCheckout())}>
             <CircleDollarSign size={18} aria-hidden="true" />
             Mock Checkout
@@ -654,6 +688,22 @@ function BillingView({
           <p>Weekly reset: {dateLabel(state.billing.resetAt)}</p>
           <div className="meter large" role="progressbar" aria-label="Billing quota used" aria-valuemin={0} aria-valuemax={state.billing.quotaLimit} aria-valuenow={state.billing.quotaUsed}>
             <span style={{ width: `${Math.round((state.billing.quotaUsed / state.billing.quotaLimit) * 100)}%` }} />
+          </div>
+        </article>
+        <article className="billing-card edge-state-panel">
+          <span className="eyebrow">Edge States</span>
+          <h3>Local alpha scenarios</h3>
+          <div className="segmented-control" aria-label="Billing edge state scenarios">
+            {billingScenarios.map((scenario) => (
+              <button
+                key={scenario.key}
+                className="secondary-button compact"
+                disabled={busy === "billing-scenario"}
+                onClick={() => void runAction("billing-scenario", () => zenArtClient.setBillingScenario(scenario.key))}
+              >
+                {scenario.label}
+              </button>
+            ))}
           </div>
         </article>
       </div>
@@ -735,6 +785,7 @@ function SupportView({
     <section className="content-view">
       <div className="section-title">
         <h2>Report Problem</h2>
+        <span>support@zenart.local</span>
       </div>
       <form className="support-form" onSubmit={reportProblem}>
         <label>
@@ -758,7 +809,10 @@ function SupportView({
         {state.supportTickets.map((ticket) => (
           <article key={ticket.id}>
             <strong>{ticket.id} · {ticket.category}</strong>
-            <span>{ticket.status} · quota {ticket.linkedQuotaSnapshot.used}/{ticket.linkedQuotaSnapshot.limit}</span>
+            <span>{ticket.status} · {ticket.projectName} · quota {ticket.linkedQuotaSnapshot.used}/{ticket.linkedQuotaSnapshot.limit}</span>
+            <span>
+              export {ticket.linkedExportId ?? "none"} · task {ticket.linkedTaskId} · trace {ticket.linkedTraceId} · assets {ticket.linkedAssetIds.length}
+            </span>
             <p>{ticket.body}</p>
           </article>
         ))}

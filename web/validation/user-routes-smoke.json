@@ -7,7 +7,7 @@
       "path": "/workspace",
       "component": "WorkspaceApp",
       "initialView": "workspace",
-      "expects": ["chatbox", "canvas", "candidate-set", "package-panel"]
+      "expects": ["chatbox", "canvas", "candidate-set", "package-panel", "reference-validation"]
     },
     {
       "path": "/project",
@@ -25,7 +25,7 @@
       "path": "/billing",
       "component": "WorkspaceApp",
       "initialView": "billing",
-      "expects": ["quota-meter", "subscription-status", "mock-checkout"]
+      "expects": ["quota-meter", "subscription-status", "mock-checkout", "past-due-edge", "inactive-edge", "quota-exhausted-edge"]
     },
     {
       "path": "/account",
@@ -37,7 +37,7 @@
       "path": "/support",
       "component": "WorkspaceApp",
       "initialView": "support",
-      "expects": ["report-problem", "ticket-history", "linked-quota-snapshot"]
+      "expects": ["report-problem", "visible-support-contact", "ticket-history", "linked-project-context", "linked-task-trace-asset-context", "linked-quota-snapshot"]
     }
   ],
   "accessibilityChecks": [
@@ -46,14 +46,18 @@
     "quota meters expose progressbar values",
     "icon-only reload control has an aria-label",
     "textareas and free-text inputs have programmatic labels",
-    "selection and version controls expose pressed/current state"
+    "reference type select has a programmatic label",
+    "selection and version controls expose pressed/current state",
+    "upload and billing edge errors use role alert"
   ],
   "unitCoverage": [
     "auth/session state is loaded from the persisted dev workspace",
     "account settings persist through workspace reload",
     "candidate selection, workspace autosave, canvas versions, and package history survive reload",
-    "report-problem tickets retain project, export, and quota context",
-    "blocked exports do not consume quota and mock checkout activates the local alpha plan"
+    "reference upload validation accepts safe images/documents/HTTPS URLs and rejects unsupported inputs",
+    "report-problem tickets retain project, export, task, trace, asset, and quota context",
+    "blocked exports do not consume quota and mock checkout activates the local alpha plan",
+    "inactive, past_due, and quota-exhausted billing states block quota-consuming exports"
   ],
   "validationCommands": ["npm run lint", "npm run typecheck", "npm run test", "npm run build", "npm run smoke:user-routes"]
 }

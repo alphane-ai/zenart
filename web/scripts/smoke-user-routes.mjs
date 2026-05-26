@@ -52,17 +52,37 @@ for (const view of expectedViews) {
 for (const requiredSnippet of [
   "aria-current",
   "role=\"status\"",
+  "role=\"alert\"",
   "role=\"progressbar\"",
   "aria-label=\"Reload workspace\"",
   "className=\"sr-only\"",
+  "id=\"reference-kind\"",
   "aria-pressed",
   "manifest-preview",
   "qa-report",
   "provenance-report",
-  "share-link-state"
+  "share-link-state",
+  "setBillingScenario",
+  "support@zenart.local",
+  "linkedAssetIds",
+  "linkedTraceId",
+  "validation.state"
 ]) {
   if (!componentSource.includes(requiredSnippet)) {
     fail(`WorkspaceApp missing accessible state snippet ${requiredSnippet}`);
+  }
+}
+
+for (const expectedCapability of [
+  "reference-validation",
+  "past-due-edge",
+  "inactive-edge",
+  "quota-exhausted-edge",
+  "visible-support-contact",
+  "linked-task-trace-asset-context"
+]) {
+  if (!JSON.stringify(artifact).includes(expectedCapability)) {
+    fail(`smoke artifact missing expected capability ${expectedCapability}`);
   }
 }
 

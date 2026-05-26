@@ -2,8 +2,10 @@
 
 import {
   AccountSettings,
+  BillingScenario,
   ExportFormat,
   PackageItem,
+  QaFinding,
   WorkspaceState,
   ZenArtClient
 } from "./contracts";
@@ -28,6 +30,8 @@ const saveState = (state: WorkspaceState) => {
   return clone(state);
 };
 
+const defaultBilling = createInitialWorkspace().billing;
+
 const loadState = (): WorkspaceState => {
   if (typeof window === "undefined") {
     return createInitialWorkspace();
@@ -45,18 +49,46 @@ const loadState = (): WorkspaceState => {
   }
 };
 
-const withQuota = (state: WorkspaceState, amount: number): WorkspaceState => ({
-  ...state,
-  billing: {
-    ...state.billing,
-    quotaUsed: Math.min(state.billing.quotaLimit, state.billing.quotaUsed + amount)
-  }
-});
-
 const migrateState = (state: WorkspaceState): WorkspaceState => ({
   ...state,
-  shareLinks: state.shareLinks ?? []
+  brief: {
+    ...state.brief,
+    references: state.brief.references.map((reference) => ({
+      ...reference,
+      validation: reference.validation ?? { state: "accepted" }
+    }))
+  },
+  shareLinks: state.shareLinks ?? [],
+  supportTickets: (state.supportTickets ?? []).map((ticket) => ({
+    ...ticket,
+    projectName: ticket.projectName ?? state.projects.find((project) => project.id === ticket.projectId)?.name ?? "Unknown project",
+    linkedTaskId: ticket.linkedTaskId ?? (state.selectedCandidateId ? `task-${state.selectedCandidateId}` : "task-brief"),
+    linkedTraceId: ticket.linkedTraceId ?? (ticket.linkedExportId ? `trace-${ticket.linkedExportId}` : "trace-local-workspace"),
+    linkedAssetIds: ticket.linkedAssetIds ?? state.brief.references.map((reference) => reference.id),
+    linkedQuotaSnapshot: {
+      ...ticket.linkedQuotaSnapshot,
+      remaining: ticket.linkedQuotaSnapshot.remaining ?? Math.max(0, ticket.linkedQuotaSnapshot.limit - ticket.linkedQuotaSnapshot.used),
+      status: ticket.linkedQuotaSnapshot.status ?? state.billing.status,
+      resetAt: ticket.linkedQuotaSnapshot.resetAt ?? state.billing.resetAt
+    }
+  }))
 });
+
+const canSpendQuota = (state: WorkspaceState, amount: number) =>
+  state.billing.status !== "inactive" &&
+  state.billing.status !== "past_due" &&
+  state.billing.quotaUsed + amount <= state.billing.quotaLimit;
+
+const withQuota = (state: WorkspaceState, amount: number): WorkspaceState =>
+  amount > 0 && canSpendQuota(state, amount)
+    ? {
+        ...state,
+        billing: {
+          ...state.billing,
+          quotaUsed: state.billing.quotaUsed + amount
+        }
+      }
+    : state;
 
 export class DevZenArtClient implements ZenArtClient {
   resetWorkspace() {
@@ -103,11 +135,12 @@ export class DevZenArtClient implements ZenArtClient {
 
   async attachReference(asset: { name: string; kind: "image" | "document" | "url" }) {
     const state = loadState();
+    const reference = createReferenceAsset(asset.name, asset.kind);
     return saveState({
       ...state,
       brief: {
         ...state.brief,
-        references: [...state.brief.references, createReferenceAsset(asset.name, asset.kind)]
+        references: [...state.brief.references, reference]
       }
     });
   }
@@ -251,7 +284,18 @@ export class DevZenArtClient implements ZenArtClient {
   async createExport(format: ExportFormat) {
     const state = migrateState(loadState());
     const qaReport = evaluatePackageQa(state.packageItems);
-    const blocked = qaReport.some((item) => item.severity === "block");
+    const entitlementBlock =
+      state.billing.status === "inactive" || state.billing.status === "past_due" || state.billing.quotaUsed >= state.billing.quotaLimit;
+    const blocked = entitlementBlock || qaReport.some((item) => item.severity === "block");
+    const entitlementFinding: QaFinding = {
+      id: "qa-entitlement",
+      severity: "block",
+      title: state.billing.quotaUsed >= state.billing.quotaLimit ? "Quota exhausted" : "Subscription action required",
+      detail:
+        state.billing.quotaUsed >= state.billing.quotaLimit
+          ? "Export is blocked until quota resets or the local alpha plan is activated."
+          : "Export is blocked while the subscription is inactive or past due."
+    };
     const manifest = buildManifest(state.activeProjectId, state.packageItems);
     const exportRecord = {
       id: `export-${String(state.exports.length + 1).padStart(3, "0")}`,
@@ -260,7 +304,7 @@ export class DevZenArtClient implements ZenArtClient {
       createdAt: new Date().toISOString(),
       fileName: formatExportFileName(format, state.exports.length),
       manifest,
-      qaReport
+      qaReport: entitlementBlock ? [...qaReport, entitlementFinding] : qaReport
     } as const;
 
     return saveState(
@@ -300,8 +344,44 @@ export class DevZenArtClient implements ZenArtClient {
         ...state.billing,
         status: "active",
         quotaLimit: 80,
+        quotaUsed: Math.min(state.billing.quotaUsed, 80),
         renewalMode: "mock-checkout"
       }
+    });
+  }
+
+  async setBillingScenario(scenario: BillingScenario) {
+    const state = migrateState(loadState());
+    const billingByScenario: Record<BillingScenario, WorkspaceState["billing"]> = {
+      trialing: {
+        ...defaultBilling
+      },
+      active: {
+        ...defaultBilling,
+        status: "active",
+        quotaLimit: 80,
+        renewalMode: "mock-checkout"
+      },
+      past_due: {
+        ...defaultBilling,
+        status: "past_due",
+        quotaUsed: 24
+      },
+      inactive: {
+        ...defaultBilling,
+        status: "inactive",
+        quotaUsed: 24
+      },
+      quota_exhausted: {
+        ...defaultBilling,
+        status: "active",
+        quotaUsed: defaultBilling.quotaLimit
+      }
+    };
+
+    return saveState({
+      ...state,
+      billing: billingByScenario[scenario]
     });
   }
 

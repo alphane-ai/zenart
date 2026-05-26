@@ -1,4 +1,5 @@
 export type SubscriptionStatus = "trialing" | "active" | "past_due" | "inactive";
+export type BillingScenario = "trialing" | "active" | "past_due" | "inactive" | "quota_exhausted";
 
 export type ChatRole = "user" | "assistant" | "system";
 
@@ -56,6 +57,10 @@ export interface ReferenceAsset {
   name: string;
   kind: "image" | "document" | "url";
   status: "attached" | "queued";
+  validation: {
+    state: "accepted" | "rejected";
+    reason?: string;
+  };
 }
 
 export interface Candidate {
@@ -140,13 +145,20 @@ export interface ShareLink {
 export interface SupportTicket {
   id: string;
   projectId: string;
+  projectName: string;
   category: "bug" | "billing" | "export" | "quality" | "other";
   body: string;
   status: "open" | "triaged";
   linkedExportId?: string;
+  linkedTaskId?: string;
+  linkedTraceId?: string;
+  linkedAssetIds: string[];
   linkedQuotaSnapshot: {
     used: number;
     limit: number;
+    remaining: number;
+    status: SubscriptionStatus;
+    resetAt: string;
   };
 }
 
@@ -184,6 +196,7 @@ export interface ZenArtClient {
   createExport(format: ExportFormat): Promise<WorkspaceState>;
   createShareLink(exportId: string): Promise<WorkspaceState>;
   createMockCheckout(): Promise<WorkspaceState>;
+  setBillingScenario(scenario: BillingScenario): Promise<WorkspaceState>;
   updateAccount(settings: AccountSettings): Promise<WorkspaceState>;
   reportProblem(input: Pick<SupportTicket, "category" | "body" | "linkedExportId">): Promise<WorkspaceState>;
 }

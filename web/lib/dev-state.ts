@@ -103,7 +103,10 @@ export const createInitialWorkspace = (): WorkspaceState => ({
         id: "ref-001",
         name: "brand-moodboard.png",
         kind: "image",
-        status: "attached"
+        status: "attached",
+        validation: {
+          state: "accepted"
+        }
       }
     ]
   },
@@ -185,12 +188,65 @@ export const evaluatePackageQa = (items: PackageItem[]): QaFinding[] => {
   ];
 };
 
-export const createReferenceAsset = (name: string, kind: ReferenceAsset["kind"]): ReferenceAsset => ({
-  id: `ref-${name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
-  name,
-  kind,
-  status: "attached"
-});
+const acceptedImageExtensions = [".png", ".jpg", ".jpeg", ".webp"];
+const acceptedDocumentExtensions = [".pdf"];
+
+export const validateReferenceAsset = (name: string, kind: ReferenceAsset["kind"]): ReferenceAsset["validation"] => {
+  const trimmed = name.trim();
+  const normalized = trimmed.toLowerCase();
+
+  if (!trimmed) {
+    return {
+      state: "rejected",
+      reason: "Reference is required."
+    };
+  }
+
+  if (kind === "url") {
+    try {
+      const parsed = new URL(trimmed);
+      if (parsed.protocol === "https:") {
+        return { state: "accepted" };
+      }
+    } catch {
+      return {
+        state: "rejected",
+        reason: "Use a valid HTTPS reference URL."
+      };
+    }
+
+    return {
+      state: "rejected",
+      reason: "Reference URLs must use HTTPS."
+    };
+  }
+
+  const allowedExtensions = kind === "document" ? acceptedDocumentExtensions : acceptedImageExtensions;
+  if (!allowedExtensions.some((extension) => normalized.endsWith(extension))) {
+    return {
+      state: "rejected",
+      reason:
+        kind === "document"
+          ? "Documents must be PDF files."
+          : "Images must be PNG, JPG, JPEG, or WEBP files."
+    };
+  }
+
+  return { state: "accepted" };
+};
+
+export const createReferenceAsset = (name: string, kind: ReferenceAsset["kind"]): ReferenceAsset => {
+  const trimmed = name.trim();
+  const validation = validateReferenceAsset(trimmed, kind);
+
+  return {
+    id: `ref-${trimmed.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
+    name: trimmed,
+    kind,
+    status: validation.state === "accepted" ? "attached" : "queued",
+    validation
+  };
+};
 
 export const createSupportTicket = (
   state: WorkspaceState,
@@ -198,13 +254,20 @@ export const createSupportTicket = (
 ): SupportTicket => ({
   id: `ticket-${String(state.supportTickets.length + 1).padStart(3, "0")}`,
   projectId: state.activeProjectId,
+  projectName: state.projects.find((project) => project.id === state.activeProjectId)?.name ?? "Unknown project",
   category: input.category,
   body: input.body,
   status: "open",
   linkedExportId: input.linkedExportId,
+  linkedTaskId: state.selectedCandidateId ? `task-${state.selectedCandidateId}` : "task-brief",
+  linkedTraceId: state.exports[0] ? `trace-${state.exports[0].id}` : "trace-local-workspace",
+  linkedAssetIds: state.brief.references.filter((reference) => reference.validation.state === "accepted").map((reference) => reference.id),
   linkedQuotaSnapshot: {
     used: state.billing.quotaUsed,
-    limit: state.billing.quotaLimit
+    limit: state.billing.quotaLimit,
+    remaining: Math.max(0, state.billing.quotaLimit - state.billing.quotaUsed),
+    status: state.billing.status,
+    resetAt: state.billing.resetAt
   }
 });
 
