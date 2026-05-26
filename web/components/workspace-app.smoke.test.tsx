@@ -424,6 +424,17 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(workflowSmoke.getAttribute("data-workflow-api-smoke-operations")).toBe(
       "createChatSession,createChatMessage,createCandidateSet,listCandidateAssets,selectDirection,createPackage,createExport,getExport"
     );
+    expect(workflowSmoke).toHaveAttribute("data-workflow-api-smoke-csrf-protected-operation-count", "6");
+    expect(workflowSmoke).toHaveAttribute("data-workflow-api-smoke-idempotency-required-operation-count", "6");
+    expect(workflowSmoke.getAttribute("data-workflow-api-smoke-operation-contracts")).toContain(
+      "createChatSession:POST:/projects/{project_id}/chat/sessions:include:X-ZenArt-CSRF:true"
+    );
+    expect(workflowSmoke.getAttribute("data-workflow-api-smoke-operation-contracts")).toContain(
+      "listCandidateAssets:GET:/candidate-sets/{candidate_set_id}/assets:include:not-required:false"
+    );
+    expect(workflowSmoke.getAttribute("data-workflow-api-smoke-operation-contracts")).toContain(
+      "createExport:POST:/packages/{package_id}/exports:include:X-ZenArt-CSRF:true"
+    );
 
     const renderingSmoke = container.querySelector("[data-rendering-smoke='stage0.rev2.workspace-rendering-performance']");
     expect(renderingSmoke).toHaveAttribute("data-rendering-status", "pass");
@@ -556,6 +567,11 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(workflowSmoke).toHaveAttribute("data-workflow-api-smoke-failures", "");
     expect(workflowSmoke?.getAttribute("data-workflow-api-smoke-operations")).toContain("createCandidateSet");
     expect(workflowSmoke?.getAttribute("data-workflow-api-smoke-operations")).toContain("getExport");
+    expect(workflowSmoke).toHaveAttribute("data-workflow-api-smoke-csrf-protected-operation-count", "6");
+    expect(workflowSmoke).toHaveAttribute("data-workflow-api-smoke-idempotency-required-operation-count", "6");
+    expect(workflowSmoke?.getAttribute("data-workflow-api-smoke-operation-contracts")).toContain(
+      "selectDirection:PUT:/projects/{project_id}/selected-direction:include:X-ZenArt-CSRF:true"
+    );
 
     rerender(<WorkspaceApp initialView="export" />);
     await screen.findByRole("heading", { name: "Export Preview" });
@@ -563,6 +579,11 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(exportSmoke).toHaveAttribute("data-workflow-api-smoke-export-status", "pass");
     expect(exportSmoke).toHaveAttribute("data-workflow-api-smoke-export-operation-count", "8");
     expect(exportSmoke).toHaveAttribute("data-workflow-api-smoke-export-missing-output-count", "0");
+    expect(exportSmoke).toHaveAttribute("data-workflow-api-smoke-export-csrf-protected-operation-count", "6");
+    expect(exportSmoke).toHaveAttribute("data-workflow-api-smoke-export-idempotency-required-operation-count", "6");
+    expect(exportSmoke?.getAttribute("data-workflow-api-smoke-export-operation-contracts")).toContain(
+      "createPackage:POST:/projects/{project_id}/packages:include:X-ZenArt-CSRF:true"
+    );
   });
 
   it("keeps the user route smoke artifact aligned with machine-checkable UI evidence attributes", () => {
@@ -714,7 +735,9 @@ describe("WorkspaceApp user route integration smoke", () => {
       expectedOperationCount: "8",
       expectedCandidateCount: "4",
       expectedTaxonomyCount: "4",
-      expectedMissingOutputCount: "0"
+      expectedMissingOutputCount: "0",
+      expectedCsrfProtectedOperationCount: "6",
+      expectedIdempotencyRequiredOperationCount: "6"
     });
   });
 });

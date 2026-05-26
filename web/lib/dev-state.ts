@@ -21,6 +21,7 @@ import {
   WorkflowApiSmokeEvidence,
   WorkspaceState
 } from "./contracts";
+import { ApiOperation, apiOperations } from "./generated/zenart-api";
 import { defaultSameSiteCsrfContract } from "./request-security";
 
 const now = "2026-05-26T09:00:00.000Z";
@@ -920,6 +921,22 @@ export const ecommerceGrowthApiSmokeOperationIds = [
 ] as const;
 
 export const buildEcommerceGrowthApiSmokeEvidence = (state: WorkspaceState): WorkflowApiSmokeEvidence => {
+  const apiOperationContracts = ecommerceGrowthApiSmokeOperationIds.map((operationId) => {
+    const operation: ApiOperation = apiOperations[operationId];
+    const csrfProtected = defaultSameSiteCsrfContract.protectedMethods.includes(
+      operation.method as (typeof defaultSameSiteCsrfContract.protectedMethods)[number]
+    );
+
+    return {
+      operationId,
+      method: operation.method,
+      path: operation.path,
+      credentialMode: defaultSameSiteCsrfContract.credentialMode,
+      csrfProtected,
+      csrfHeaderName: csrfProtected ? defaultSameSiteCsrfContract.headerName : "not-required" as const,
+      idempotencyRequired: operation.idempotencyRequired
+    };
+  });
   const candidateTaxonomies = state.candidates
     .filter((candidate) => candidate.workflowId === ecommerceGrowthWorkflowAcceptance.workflow_id)
     .map((candidate) => candidate.strategyTaxonomy)
@@ -977,6 +994,13 @@ export const buildEcommerceGrowthApiSmokeEvidence = (state: WorkspaceState): Wor
   if (latestReadyZip?.safetyReport.status !== "pass") {
     failures.push("safety");
   }
+  if (
+    apiOperationContracts.length !== ecommerceGrowthApiSmokeOperationIds.length ||
+    apiOperationContracts.some((contract) => contract.credentialMode !== "include") ||
+    apiOperationContracts.some((contract) => contract.csrfProtected && contract.csrfHeaderName !== "X-ZenArt-CSRF")
+  ) {
+    failures.push("operation-contract");
+  }
 
   return {
     schema_version: ecommerceGrowthWorkflowAcceptance.schema_version,
@@ -985,6 +1009,9 @@ export const buildEcommerceGrowthApiSmokeEvidence = (state: WorkspaceState): Wor
     status: failures.length === 0 ? "pass" : "fail",
     scenario: "brief-reference-four-candidates-select-iterate-package-export-zip",
     apiOperationIds: [...ecommerceGrowthApiSmokeOperationIds],
+    apiOperationContracts,
+    csrfProtectedOperationCount: apiOperationContracts.filter((contract) => contract.csrfProtected).length,
+    idempotencyRequiredOperationCount: apiOperationContracts.filter((contract) => contract.idempotencyRequired).length,
     candidateCount: candidateTaxonomies.length,
     taxonomyCount: new Set(candidateTaxonomies).size,
     packagedTaxonomyCount: new Set(packagedTaxonomies).size,

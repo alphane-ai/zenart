@@ -424,6 +424,8 @@
       "expectedPackagedTaxonomyCount": "4",
       "expectedReadyZipExportCount": "1",
       "expectedMissingOutputCount": "0",
+      "expectedCsrfProtectedOperationCount": "6",
+      "expectedIdempotencyRequiredOperationCount": "6",
       "requiredAttributes": [
         "data-workflow-api-smoke-workflow",
         "data-workflow-api-smoke-fixture",
@@ -436,7 +438,20 @@
         "data-workflow-api-smoke-missing-output-count",
         "data-workflow-api-smoke-qa-taxonomy-status",
         "data-workflow-api-smoke-safety-status",
+        "data-workflow-api-smoke-operation-contracts",
+        "data-workflow-api-smoke-csrf-protected-operation-count",
+        "data-workflow-api-smoke-idempotency-required-operation-count",
         "data-workflow-api-smoke-failures"
+      ],
+      "expectedOperationContracts": [
+        "createChatSession:POST:/projects/{project_id}/chat/sessions:include:X-ZenArt-CSRF:true",
+        "createChatMessage:POST:/chat/sessions/{chat_session_id}/messages:include:X-ZenArt-CSRF:true",
+        "createCandidateSet:POST:/projects/{project_id}/candidate-sets:include:X-ZenArt-CSRF:true",
+        "listCandidateAssets:GET:/candidate-sets/{candidate_set_id}/assets:include:not-required:false",
+        "selectDirection:PUT:/projects/{project_id}/selected-direction:include:X-ZenArt-CSRF:true",
+        "createPackage:POST:/projects/{project_id}/packages:include:X-ZenArt-CSRF:true",
+        "createExport:POST:/packages/{package_id}/exports:include:X-ZenArt-CSRF:true",
+        "getExport:GET:/exports/{export_id}:include:not-required:false"
       ]
     }
   ],

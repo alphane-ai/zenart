@@ -94,7 +94,9 @@ if (
   workflowApiSmokeEvidence.expectedTaxonomyCount !== String(ecommerceGrowthWebSmoke.workflow.expectedTaxonomyCount) ||
   workflowApiSmokeEvidence.expectedPackagedTaxonomyCount !== String(ecommerceGrowthWebSmoke.workflow.expectedPackagedTaxonomyCount) ||
   workflowApiSmokeEvidence.expectedReadyZipExportCount !== String(ecommerceGrowthWebSmoke.workflow.expectedReadyZipExportCount) ||
-  workflowApiSmokeEvidence.expectedMissingOutputCount !== String(ecommerceGrowthWebSmoke.workflow.expectedMissingOutputCount)
+  workflowApiSmokeEvidence.expectedMissingOutputCount !== String(ecommerceGrowthWebSmoke.workflow.expectedMissingOutputCount) ||
+  workflowApiSmokeEvidence.expectedCsrfProtectedOperationCount !== String(ecommerceGrowthWebSmoke.workflow.expectedCsrfProtectedOperationCount) ||
+  workflowApiSmokeEvidence.expectedIdempotencyRequiredOperationCount !== String(ecommerceGrowthWebSmoke.workflow.expectedIdempotencyRequiredOperationCount)
 ) {
   fail("ecommerce growth web smoke fixture does not match user route smoke workflow evidence");
 }
@@ -110,6 +112,44 @@ if (JSON.stringify(ecommerceGrowthWebSmoke.workflow.operationIds) !== JSON.strin
   "getExport"
 ])) {
   fail("ecommerce growth web smoke operation order drifted");
+}
+
+const generatedOperationMap = new Map(
+  Array.from(generatedApiSource.matchAll(/^  ([a-zA-Z0-9]+): \{ method: "([A-Z]+)", path: "([^"]+)", rbac: "user", idempotencyRequired: (true|false)/gm))
+    .map(([, operationId, method, operationPath, idempotencyRequired]) => [
+      operationId,
+      {
+        method,
+        path: operationPath,
+        idempotencyRequired: idempotencyRequired === "true"
+      }
+    ])
+);
+
+for (const expectedContract of ecommerceGrowthWebSmoke.workflow.operationContracts ?? []) {
+  const generatedOperation = generatedOperationMap.get(expectedContract.operationId);
+  if (!generatedOperation) {
+    fail(`ecommerce growth web smoke references unknown generated operation ${expectedContract.operationId}`);
+  }
+  if (
+    generatedOperation.method !== expectedContract.method ||
+    generatedOperation.path !== expectedContract.path ||
+    generatedOperation.idempotencyRequired !== expectedContract.idempotencyRequired
+  ) {
+    fail(`ecommerce growth web smoke operation contract drifted for ${expectedContract.operationId}`);
+  }
+  if (expectedContract.credentialMode !== generatedApiCsrfContract.credentialMode) {
+    fail(`ecommerce growth web smoke credential mode drifted for ${expectedContract.operationId}`);
+  }
+  const csrfProtected = generatedApiCsrfContract.protectedMethods.includes(expectedContract.method);
+  const expectedCsrfHeader = csrfProtected ? generatedApiCsrfContract.csrfHeaderName : "not-required";
+  if (expectedContract.csrfHeaderName !== expectedCsrfHeader) {
+    fail(`ecommerce growth web smoke CSRF header contract drifted for ${expectedContract.operationId}`);
+  }
+}
+
+if ((ecommerceGrowthWebSmoke.workflow.operationContracts ?? []).length !== ecommerceGrowthWebSmoke.workflow.operationIds.length) {
+  fail("ecommerce growth web smoke must define one operation contract per operation");
 }
 
 for (const attribute of ecommerceGrowthWebSmoke.uiEvidence?.requiredAttributes ?? []) {
@@ -270,7 +310,9 @@ if (
   workflowApiSmokeEvidence.expectedTaxonomyCount !== "4" ||
   workflowApiSmokeEvidence.expectedPackagedTaxonomyCount !== "4" ||
   workflowApiSmokeEvidence.expectedReadyZipExportCount !== "1" ||
-  workflowApiSmokeEvidence.expectedMissingOutputCount !== "0"
+  workflowApiSmokeEvidence.expectedMissingOutputCount !== "0" ||
+  workflowApiSmokeEvidence.expectedCsrfProtectedOperationCount !== "6" ||
+  workflowApiSmokeEvidence.expectedIdempotencyRequiredOperationCount !== "6"
 ) {
   fail("ecommerce workflow API smoke evidence must assert a passing local web workflow contract");
 }
@@ -278,6 +320,23 @@ if (
 for (const attribute of workflowApiSmokeEvidence.requiredAttributes ?? []) {
   if (!componentSource.includes(attribute)) {
     fail(`ecommerce workflow API smoke evidence missing attribute ${attribute}`);
+  }
+}
+
+for (const expectedContract of workflowApiSmokeEvidence.expectedOperationContracts ?? []) {
+  const structuredContractPresent = (ecommerceGrowthWebSmoke.workflow.operationContracts ?? []).some((contract) => {
+    const serializedContract = [
+      contract.operationId,
+      contract.method,
+      contract.path,
+      contract.credentialMode,
+      contract.csrfHeaderName,
+      String(contract.idempotencyRequired)
+    ].join(":");
+    return serializedContract === expectedContract;
+  });
+  if (!structuredContractPresent && !workspaceSmokeTestSource.includes(expectedContract)) {
+    fail(`ecommerce workflow API smoke evidence missing operation contract ${expectedContract}`);
   }
 }
 
@@ -603,9 +662,15 @@ for (const requiredSnippet of [
   "data-workflow-api-smoke-missing-output-count",
   "data-workflow-api-smoke-qa-taxonomy-status",
   "data-workflow-api-smoke-safety-status",
+  "data-workflow-api-smoke-operation-contracts",
+  "data-workflow-api-smoke-csrf-protected-operation-count",
+  "data-workflow-api-smoke-idempotency-required-operation-count",
   "data-workflow-api-smoke-failures",
   "data-workflow-api-smoke-export",
   "data-workflow-api-smoke-export-status",
+  "data-workflow-api-smoke-export-operation-contracts",
+  "data-workflow-api-smoke-export-csrf-protected-operation-count",
+  "data-workflow-api-smoke-export-idempotency-required-operation-count",
   "data-testid=\"candidate-grid\"",
   "data-testid={candidate.strategyTaxonomy",
   "data-testid=\"candidate-select\"",
@@ -941,6 +1006,9 @@ for (const expectedWorkflowAcceptanceSnippet of [
   "ecommerceGrowthApiSmokeOperationIds",
   "buildEcommerceGrowthApiSmokeEvidence",
   "stage0.rev2.workflow-api-smoke",
+  "apiOperationContracts",
+  "csrfProtectedOperationCount",
+  "idempotencyRequiredOperationCount",
   "brief-reference-four-candidates-select-iterate-package-export-zip",
   "createChatSession",
   "createChatMessage",

@@ -730,6 +730,82 @@ describe("dev workspace contracts", () => {
         "createExport",
         "getExport"
       ],
+      apiOperationContracts: [
+        {
+          operationId: "createChatSession",
+          method: "POST",
+          path: "/projects/{project_id}/chat/sessions",
+          credentialMode: "include",
+          csrfProtected: true,
+          csrfHeaderName: "X-ZenArt-CSRF",
+          idempotencyRequired: true
+        },
+        {
+          operationId: "createChatMessage",
+          method: "POST",
+          path: "/chat/sessions/{chat_session_id}/messages",
+          credentialMode: "include",
+          csrfProtected: true,
+          csrfHeaderName: "X-ZenArt-CSRF",
+          idempotencyRequired: true
+        },
+        {
+          operationId: "createCandidateSet",
+          method: "POST",
+          path: "/projects/{project_id}/candidate-sets",
+          credentialMode: "include",
+          csrfProtected: true,
+          csrfHeaderName: "X-ZenArt-CSRF",
+          idempotencyRequired: true
+        },
+        {
+          operationId: "listCandidateAssets",
+          method: "GET",
+          path: "/candidate-sets/{candidate_set_id}/assets",
+          credentialMode: "include",
+          csrfProtected: false,
+          csrfHeaderName: "not-required",
+          idempotencyRequired: false
+        },
+        {
+          operationId: "selectDirection",
+          method: "PUT",
+          path: "/projects/{project_id}/selected-direction",
+          credentialMode: "include",
+          csrfProtected: true,
+          csrfHeaderName: "X-ZenArt-CSRF",
+          idempotencyRequired: true
+        },
+        {
+          operationId: "createPackage",
+          method: "POST",
+          path: "/projects/{project_id}/packages",
+          credentialMode: "include",
+          csrfProtected: true,
+          csrfHeaderName: "X-ZenArt-CSRF",
+          idempotencyRequired: true
+        },
+        {
+          operationId: "createExport",
+          method: "POST",
+          path: "/packages/{package_id}/exports",
+          credentialMode: "include",
+          csrfProtected: true,
+          csrfHeaderName: "X-ZenArt-CSRF",
+          idempotencyRequired: true
+        },
+        {
+          operationId: "getExport",
+          method: "GET",
+          path: "/exports/{export_id}",
+          credentialMode: "include",
+          csrfProtected: false,
+          csrfHeaderName: "not-required",
+          idempotencyRequired: false
+        }
+      ],
+      csrfProtectedOperationCount: 6,
+      idempotencyRequiredOperationCount: 6,
       candidateCount: 4,
       taxonomyCount: 4,
       packagedTaxonomyCount: 4,

@@ -216,6 +216,17 @@ export interface WorkflowApiSmokeEvidence {
   status: "pass" | "fail";
   scenario: "brief-reference-four-candidates-select-iterate-package-export-zip";
   apiOperationIds: string[];
+  apiOperationContracts: Array<{
+    operationId: string;
+    method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+    path: string;
+    credentialMode: SessionContract["csrf"]["credentialMode"];
+    csrfProtected: boolean;
+    csrfHeaderName: SessionContract["csrf"]["headerName"] | "not-required";
+    idempotencyRequired: boolean;
+  }>;
+  csrfProtectedOperationCount: number;
+  idempotencyRequiredOperationCount: number;
   candidateCount: number;
   taxonomyCount: number;
   packagedTaxonomyCount: number;
@@ -236,6 +247,7 @@ export interface WorkflowApiSmokeEvidence {
     | "required-outputs"
     | "qa-taxonomy"
     | "safety"
+    | "operation-contract"
   >;
 }
 

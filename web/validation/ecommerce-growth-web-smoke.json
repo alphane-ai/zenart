@@ -23,6 +23,8 @@
     "expectedPackagedTaxonomyCount": 4,
     "expectedReadyZipExportCount": 1,
     "expectedMissingOutputCount": 0,
+    "expectedCsrfProtectedOperationCount": 6,
+    "expectedIdempotencyRequiredOperationCount": 6,
     "expectedQaTaxonomyStatus": "pass",
     "expectedSafetyStatus": "pass",
     "operationIds": [
@@ -34,6 +36,72 @@
       "createPackage",
       "createExport",
       "getExport"
+    ],
+    "operationContracts": [
+      {
+        "operationId": "createChatSession",
+        "method": "POST",
+        "path": "/projects/{project_id}/chat/sessions",
+        "credentialMode": "include",
+        "csrfHeaderName": "X-ZenArt-CSRF",
+        "idempotencyRequired": true
+      },
+      {
+        "operationId": "createChatMessage",
+        "method": "POST",
+        "path": "/chat/sessions/{chat_session_id}/messages",
+        "credentialMode": "include",
+        "csrfHeaderName": "X-ZenArt-CSRF",
+        "idempotencyRequired": true
+      },
+      {
+        "operationId": "createCandidateSet",
+        "method": "POST",
+        "path": "/projects/{project_id}/candidate-sets",
+        "credentialMode": "include",
+        "csrfHeaderName": "X-ZenArt-CSRF",
+        "idempotencyRequired": true
+      },
+      {
+        "operationId": "listCandidateAssets",
+        "method": "GET",
+        "path": "/candidate-sets/{candidate_set_id}/assets",
+        "credentialMode": "include",
+        "csrfHeaderName": "not-required",
+        "idempotencyRequired": false
+      },
+      {
+        "operationId": "selectDirection",
+        "method": "PUT",
+        "path": "/projects/{project_id}/selected-direction",
+        "credentialMode": "include",
+        "csrfHeaderName": "X-ZenArt-CSRF",
+        "idempotencyRequired": true
+      },
+      {
+        "operationId": "createPackage",
+        "method": "POST",
+        "path": "/projects/{project_id}/packages",
+        "credentialMode": "include",
+        "csrfHeaderName": "X-ZenArt-CSRF",
+        "idempotencyRequired": true
+      },
+      {
+        "operationId": "createExport",
+        "method": "POST",
+        "path": "/packages/{package_id}/exports",
+        "credentialMode": "include",
+        "csrfHeaderName": "X-ZenArt-CSRF",
+        "idempotencyRequired": true
+      },
+      {
+        "operationId": "getExport",
+        "method": "GET",
+        "path": "/exports/{export_id}",
+        "credentialMode": "include",
+        "csrfHeaderName": "not-required",
+        "idempotencyRequired": false
+      }
     ],
     "strategyTaxonomy": [
       "conversion_offer",
@@ -71,6 +139,9 @@
       "data-workflow-api-smoke-qa-taxonomy-status",
       "data-workflow-api-smoke-safety-status",
       "data-workflow-api-smoke-operations",
+      "data-workflow-api-smoke-operation-contracts",
+      "data-workflow-api-smoke-csrf-protected-operation-count",
+      "data-workflow-api-smoke-idempotency-required-operation-count",
       "data-workflow-api-smoke-failures"
     ],
     "requiredTestSnippets": [

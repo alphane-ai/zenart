@@ -702,6 +702,20 @@ function WorkspaceView({
           data-workflow-api-smoke-qa-taxonomy-status={ecommerceApiSmoke.qaTaxonomyStatus}
           data-workflow-api-smoke-safety-status={ecommerceApiSmoke.safetyStatus}
           data-workflow-api-smoke-operations={ecommerceApiSmoke.apiOperationIds.join(",")}
+          data-workflow-api-smoke-operation-contracts={ecommerceApiSmoke.apiOperationContracts
+            .map((contract) =>
+              [
+                contract.operationId,
+                contract.method,
+                contract.path,
+                contract.credentialMode,
+                contract.csrfHeaderName,
+                String(contract.idempotencyRequired)
+              ].join(":")
+            )
+            .join("|")}
+          data-workflow-api-smoke-csrf-protected-operation-count={ecommerceApiSmoke.csrfProtectedOperationCount}
+          data-workflow-api-smoke-idempotency-required-operation-count={ecommerceApiSmoke.idempotencyRequiredOperationCount}
           data-workflow-api-smoke-failures={ecommerceApiSmoke.failures.join(",")}
         >
           <strong>Ecommerce growth API smoke</strong>
@@ -1130,6 +1144,20 @@ function ExportView({
                   data-workflow-api-smoke-export-missing-output-count={ecommerceApiSmoke.missingRequiredOutputs.length}
                   data-workflow-api-smoke-export-qa-taxonomy-status={ecommerceApiSmoke.qaTaxonomyStatus}
                   data-workflow-api-smoke-export-safety-status={ecommerceApiSmoke.safetyStatus}
+                  data-workflow-api-smoke-export-operation-contracts={ecommerceApiSmoke.apiOperationContracts
+                    .map((contract) =>
+                      [
+                        contract.operationId,
+                        contract.method,
+                        contract.path,
+                        contract.credentialMode,
+                        contract.csrfHeaderName,
+                        String(contract.idempotencyRequired)
+                      ].join(":")
+                    )
+                    .join("|")}
+                  data-workflow-api-smoke-export-csrf-protected-operation-count={ecommerceApiSmoke.csrfProtectedOperationCount}
+                  data-workflow-api-smoke-export-idempotency-required-operation-count={ecommerceApiSmoke.idempotencyRequiredOperationCount}
                   data-workflow-api-smoke-export-failures={ecommerceApiSmoke.failures.join(",")}
                 >
                   <h4>Workflow API Smoke</h4>
