@@ -1975,6 +1975,17 @@ def validate_schema_value(schema: dict[str, Any], value: Any, path: str, root_sc
                 datetime.strptime(value, "%Y-%m-%d")
             except ValueError:
                 fail(f"{path} must be a YYYY-MM-DD date")
+        if schema.get("format") == "date-time":
+            require(
+                re.match(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$", value)
+                is not None,
+                f"{path} must be an RFC3339 date-time with timezone",
+            )
+            try:
+                parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+            except ValueError:
+                fail(f"{path} must be a valid RFC3339 date-time")
+            require(parsed.tzinfo is not None, f"{path} must include timezone information")
         if schema.get("format") == "uri":
             parsed = urlparse(value)
             require(bool(parsed.scheme and parsed.netloc), f"{path} must be an absolute URI")

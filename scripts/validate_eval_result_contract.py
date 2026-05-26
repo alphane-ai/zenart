@@ -7,6 +7,7 @@ import json
 import re
 import sys
 import hashlib
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -153,6 +154,20 @@ def require(condition: bool, message: str) -> None:
         raise EvalResultContractError(message)
 
 
+def require_rfc3339_datetime(value: Any, label: str) -> None:
+    require(isinstance(value, str), f"{label} must be a string")
+    require(
+        re.match(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$", value)
+        is not None,
+        f"{label} must be an RFC3339 date-time with timezone",
+    )
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise EvalResultContractError(f"{label} must be a valid RFC3339 date-time") from exc
+    require(parsed.tzinfo is not None, f"{label} must include timezone information")
+
+
 def runner_sha256() -> str:
     content = RUNNER.read_text(encoding="utf-8")
     normalized = "\n".join(
@@ -292,8 +307,8 @@ def validate_fixture_result_links() -> None:
     result = results[0]
     summary = result["summary"]
 
-    require(result["completed_at"], "stored eval result must include completed_at")
-    require(result["created_at"], "stored eval result must include created_at")
+    require_rfc3339_datetime(result["completed_at"], "stored eval result completed_at")
+    require_rfc3339_datetime(result["created_at"], "stored eval result created_at")
     require(set(summary["qa_categories_covered"]) == QA_CATEGORIES, "eval summary must cover every QA category")
     require(set(summary["safety_enforcement_points_covered"]) == SAFETY_POINTS, "eval summary must cover every safety point")
     require(summary["trace_complete"] is True, "eval summary must prove trace completeness")
