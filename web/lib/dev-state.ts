@@ -8,6 +8,7 @@ import {
   PptReadyMetadata,
   QaFinding,
   ReferenceAsset,
+  SafetyPolicyReport,
   SessionContract,
   SessionUser,
   WorkspaceRenderingPerformanceSmoke,
@@ -30,6 +31,7 @@ const devUser: SessionUser = {
 export const requiredExportPackageOutputs = [
   "manifest.json",
   "qa-report.json",
+  "safety-policy-report.json",
   "provenance.json",
   "ppt-ready-metadata.json",
   "assets/"
@@ -278,6 +280,69 @@ export const evaluatePackageQa = (items: PackageItem[]): QaFinding[] => {
         : "Export can continue, but adding the selected candidate is recommended."
     }
   ];
+};
+
+export const safetyPolicyEnforcementStages: SafetyPolicyReport["enforcementStages"] = [
+  "brief",
+  "provider_request",
+  "provider_response",
+  "qa",
+  "export"
+];
+
+const unsafeContentPatterns = [
+  {
+    ruleId: "safety-illegal-abuse-v1",
+    ruleVersion: "1.0.0",
+    pattern: /\b(?:malware|credential theft|phishing|exploit|abuse bypass)\b/i,
+    title: "Unsafe or abusive request",
+    userMessage: "Remove illegal, abusive, malware, credential, phishing, exploit, or safety-bypass instructions before export."
+  },
+  {
+    ruleId: "safety-private-data-v1",
+    ruleVersion: "1.0.0",
+    pattern: /\b(?:password|credential|credentials|api key|secret key|private key|ssn)\b/i,
+    title: "Private data risk",
+    userMessage: "Remove secrets, credentials, or unrelated personal data before export."
+  }
+];
+
+export const runSafetyPolicy = (
+  state: Pick<WorkspaceState, "brief" | "candidates" | "selectedCandidateId" | "packageItems">,
+  qaReport: QaFinding[]
+): SafetyPolicyReport => {
+  const selectedCandidate = state.candidates.find((candidate) => candidate.id === state.selectedCandidateId);
+  const stageText: Record<SafetyPolicyReport["enforcementStages"][number], string> = {
+    brief: state.brief.prompt,
+    provider_request: [
+      state.brief.prompt,
+      ...state.packageItems.map((item) => `${item.title} ${item.sourceId}`)
+    ].join(" "),
+    provider_response: selectedCandidate
+      ? `${selectedCandidate.title} ${selectedCandidate.strategy} ${selectedCandidate.rationale} ${selectedCandidate.assetPrompt}`
+      : state.candidates.map((candidate) => `${candidate.title} ${candidate.strategy} ${candidate.rationale}`).join(" "),
+    qa: qaReport.map((finding) => `${finding.title} ${finding.detail}`).join(" "),
+    export: state.packageItems.map((item) => `${item.title} ${item.type}`).join(" ")
+  };
+  const findings = safetyPolicyEnforcementStages.flatMap((stage) =>
+    unsafeContentPatterns
+      .filter((rule) => rule.pattern.test(stageText[stage]))
+      .map((rule) => ({
+        ruleId: rule.ruleId,
+        ruleVersion: rule.ruleVersion,
+        stage,
+        severity: "block" as const,
+        title: rule.title,
+        userMessage: rule.userMessage
+      }))
+  );
+
+  return {
+    schema_version: "stage0.rev2.safety-policy-export",
+    status: findings.some((finding) => finding.severity === "block") ? "block" : "pass",
+    enforcementStages: safetyPolicyEnforcementStages,
+    findings
+  };
 };
 
 export const workspaceRenderingPerformanceBudget: WorkspaceRenderingPerformanceSmoke["budgets"] = {

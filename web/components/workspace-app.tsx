@@ -799,6 +799,10 @@ function ExportView({
                   <dd>{latestExport.qaReport.length}</dd>
                 </div>
                 <div>
+                  <dt>Safety</dt>
+                  <dd>{latestExport.safetyReport.status} · {latestExport.safetyReport.enforcementStages.length} stages</dd>
+                </div>
+                <div>
                   <dt>Provenance</dt>
                   <dd>{latestExport.manifest.items.map((item) => item.provenance).join(", ") || "No package provenance yet"}</dd>
                 </div>
@@ -873,6 +877,34 @@ function ExportView({
                       </span>
                     ))}
                   </div>
+                </section>
+                <section
+                  className="export-detail-panel safety-policy-report"
+                  aria-label="Safety policy report"
+                  data-safety-policy-export={latestExport.safetyReport.schema_version}
+                  data-safety-policy-status={latestExport.safetyReport.status}
+                  data-safety-policy-stage-count={latestExport.safetyReport.enforcementStages.length}
+                  data-safety-policy-finding-count={latestExport.safetyReport.findings.length}
+                >
+                  <h4>Safety Policy</h4>
+                  <div className="metadata-evidence-grid">
+                    <span className={latestExport.safetyReport.status === "pass" ? "qa-pass" : "qa-block"}>
+                      {latestExport.safetyReport.status}
+                    </span>
+                    <span>{latestExport.safetyReport.enforcementStages.join(", ")}</span>
+                  </div>
+                  {latestExport.safetyReport.findings.length === 0 ? (
+                    <p>Brief, provider request, provider response, QA, and export checks passed.</p>
+                  ) : (
+                    <ul>
+                      {latestExport.safetyReport.findings.map((finding) => (
+                        <li key={`${finding.stage}-${finding.ruleId}`}>
+                          <strong>{finding.stage}: {finding.title}</strong>
+                          <span>{finding.userMessage}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </section>
                 <section className="export-detail-panel provenance-report" aria-label="Provenance report">
                   <h4>Provenance Report</h4>

@@ -189,6 +189,12 @@ describe("dev web client user lifecycle coverage", () => {
     expect(blockedReferencePackage.packageItems).toEqual(packaged.packageItems);
     expect(exported.exports[0]).toMatchObject({
       status: "ready",
+      safetyReport: {
+        schema_version: "stage0.rev2.safety-policy-export",
+        status: "pass",
+        enforcementStages: ["brief", "provider_request", "provider_response", "qa", "export"],
+        findings: []
+      },
       manifest: {
         items: [
           {
@@ -235,6 +241,34 @@ describe("dev web client user lifecycle coverage", () => {
       quotaLimit: 80,
       renewalMode: "mock-checkout"
     });
+  });
+
+  it("blocks exports when safety policy fails at brief/provider/export enforcement points", async () => {
+    const client = makeClient();
+    await client.confirmBrief("Campaign visual with phishing and secret key instructions.");
+    await client.selectCandidate("cand-studio");
+    await client.addPackageItem("cand-studio");
+
+    const exported = await client.createExport("zip");
+
+    expect(exported.exports[0]).toMatchObject({
+      status: "blocked",
+      safetyReport: {
+        status: "block",
+        enforcementStages: ["brief", "provider_request", "provider_response", "qa", "export"],
+        findings: expect.arrayContaining([
+          expect.objectContaining({
+            ruleId: "safety-illegal-abuse-v1",
+            stage: "brief"
+          }),
+          expect.objectContaining({
+            ruleId: "safety-private-data-v1",
+            stage: "brief"
+          })
+        ])
+      }
+    });
+    expect(exported.billing.quotaUsed).toBe(11);
   });
 
   it("blocks quota-consuming exports for inactive, past-due, and exhausted billing states", async () => {

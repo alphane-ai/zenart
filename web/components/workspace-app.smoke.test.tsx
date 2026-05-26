@@ -67,6 +67,12 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(metadataEvidence).toHaveAttribute("data-package-export-provenance-count", "2");
     expect(metadataEvidence).toHaveAttribute("data-package-export-blocking-qa-count", "0");
     expect(metadataEvidence).toHaveAttribute("data-package-export-ppt-slide-count", "2");
+    expect(metadataEvidence?.getAttribute("data-package-export-zip-payloads")).toContain("safety-policy-report.json");
     expect(metadataEvidence?.getAttribute("data-package-export-zip-payloads")).toContain("ppt-ready-metadata.json");
+
+    const safetyPolicy = container.querySelector("[data-safety-policy-export='stage0.rev2.safety-policy-export']");
+    expect(safetyPolicy).toHaveAttribute("data-safety-policy-status", "pass");
+    expect(safetyPolicy).toHaveAttribute("data-safety-policy-stage-count", "5");
+    expect(safetyPolicy).toHaveAttribute("data-safety-policy-finding-count", "0");
   });
 });

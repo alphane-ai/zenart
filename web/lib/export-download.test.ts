@@ -64,6 +64,7 @@ describe("reference upload and export download integration", () => {
     expect(record.manifest.required_outputs).toEqual([
       "manifest.json",
       "qa-report.json",
+      "safety-policy-report.json",
       "provenance.json",
       "ppt-ready-metadata.json",
       "assets/"
@@ -73,6 +74,7 @@ describe("reference upload and export download integration", () => {
     const zip = await JSZip.loadAsync(await readBlobAsArrayBuffer(zipBlob));
     const manifest = JSON.parse(await zip.file("manifest.json")!.async("string")) as ExportRecord["manifest"];
     const qaReport = JSON.parse(await zip.file("qa-report.json")!.async("string")) as ExportRecord["qaReport"];
+    const safetyReport = JSON.parse(await zip.file("safety-policy-report.json")!.async("string")) as ExportRecord["safetyReport"];
     const pptReadyMetadata = JSON.parse(await zip.file("ppt-ready-metadata.json")!.async("string")) as ExportRecord["manifest"]["ppt_ready_metadata"];
     const provenance = JSON.parse(await zip.file("provenance.json")!.async("string")) as {
       export_id: string;
@@ -107,6 +109,12 @@ describe("reference upload and export download integration", () => {
         })
       ])
     );
+    expect(safetyReport).toEqual({
+      schema_version: "stage0.rev2.safety-policy-export",
+      status: "pass",
+      enforcementStages: ["brief", "provider_request", "provider_response", "qa", "export"],
+      findings: []
+    });
     expect(pptReadyMetadata).toMatchObject({
       schema_version: "stage0.rev2.ppt-ready-metadata",
       aspect_ratio: "16:9",

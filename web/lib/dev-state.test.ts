@@ -9,7 +9,8 @@ import {
   createInitialWorkspace,
   createReferenceAsset,
   createSessionContract,
-  evaluatePackageQa
+  evaluatePackageQa,
+  runSafetyPolicy
 } from "./dev-state";
 
 describe("dev workspace contracts", () => {
@@ -26,7 +27,14 @@ describe("dev workspace contracts", () => {
     const manifest = buildManifest(state.activeProjectId, []);
 
     expect(qa.some((finding) => finding.severity === "block")).toBe(true);
-    expect(manifest.required_outputs).toEqual(["manifest.json", "qa-report.json", "provenance.json", "ppt-ready-metadata.json", "assets/"]);
+    expect(manifest.required_outputs).toEqual([
+      "manifest.json",
+      "qa-report.json",
+      "safety-policy-report.json",
+      "provenance.json",
+      "ppt-ready-metadata.json",
+      "assets/"
+    ]);
     expect(manifest.ppt_ready_metadata).toMatchObject({
       schema_version: "stage0.rev2.ppt-ready-metadata",
       aspect_ratio: "16:9",
@@ -98,6 +106,15 @@ describe("dev workspace contracts", () => {
         addedAt: "2026-05-26T10:03:00.000Z"
       }
     ]);
+    const qaReport = evaluatePackageQa([
+      {
+        id: "pkg-item-001",
+        sourceId: "cand-studio",
+        title: "Studio System",
+        type: "candidate",
+        addedAt: "2026-05-26T10:00:00.000Z"
+      }
+    ]);
     const record: ExportRecord = {
       id: "export-001",
       format: "zip",
@@ -105,21 +122,14 @@ describe("dev workspace contracts", () => {
       createdAt: "2026-05-26T10:04:00.000Z",
       fileName: "zenart-001.zip",
       manifest,
-      qaReport: evaluatePackageQa([
-        {
-          id: "pkg-item-001",
-          sourceId: "cand-studio",
-          title: "Studio System",
-          type: "candidate",
-          addedAt: "2026-05-26T10:00:00.000Z"
-        }
-      ])
+      qaReport,
+      safetyReport: runSafetyPolicy(state, qaReport)
     };
 
     expect(buildPackageExportMetadataEvidence(record)).toEqual({
       schema_version: "stage0.rev2.package-export-metadata-ui",
       status: "pass",
-      requiredOutputCount: 5,
+      requiredOutputCount: 6,
       missingRequiredOutputs: [],
       itemCount: 2,
       provenanceCount: 2,
@@ -130,6 +140,7 @@ describe("dev workspace contracts", () => {
       zipPayloadNames: [
         "manifest.json",
         "qa-report.json",
+        "safety-policy-report.json",
         "provenance.json",
         "ppt-ready-metadata.json",
         "assets/README.txt"
@@ -149,15 +160,72 @@ describe("dev workspace contracts", () => {
         ...buildManifest(state.activeProjectId, []),
         required_outputs: ["manifest.json"]
       },
-      qaReport: evaluatePackageQa([])
+      qaReport: evaluatePackageQa([]),
+      safetyReport: runSafetyPolicy(state, evaluatePackageQa([]))
     };
 
     expect(buildPackageExportMetadataEvidence(record)).toMatchObject({
       status: "fail",
-      missingRequiredOutputs: ["qa-report.json", "provenance.json", "ppt-ready-metadata.json", "assets/"],
+      missingRequiredOutputs: ["qa-report.json", "safety-policy-report.json", "provenance.json", "ppt-ready-metadata.json", "assets/"],
       itemCount: 0,
       provenanceCount: 0,
       blockingQaCount: 1
+    });
+  });
+
+  it("runs safety policy across brief, provider, QA, and export enforcement stages", () => {
+    const state = createInitialWorkspace();
+    const packageItems = [
+      {
+        id: "pkg-item-001",
+        sourceId: "cand-studio",
+        title: "Studio System",
+        type: "candidate" as const,
+        addedAt: "2026-05-26T10:00:00.000Z"
+      }
+    ];
+    const qaReport = evaluatePackageQa(packageItems);
+    const passingReport = runSafetyPolicy(
+      {
+        ...state,
+        selectedCandidateId: "cand-studio",
+        packageItems
+      },
+      qaReport
+    );
+    const blockedReport = runSafetyPolicy(
+      {
+        ...state,
+        brief: {
+          ...state.brief,
+          prompt: "Create phishing artwork with credential theft instructions."
+        },
+        packageItems
+      },
+      qaReport
+    );
+
+    expect(passingReport).toEqual({
+      schema_version: "stage0.rev2.safety-policy-export",
+      status: "pass",
+      enforcementStages: ["brief", "provider_request", "provider_response", "qa", "export"],
+      findings: []
+    });
+    expect(blockedReport).toMatchObject({
+      status: "block",
+      enforcementStages: ["brief", "provider_request", "provider_response", "qa", "export"],
+      findings: expect.arrayContaining([
+        expect.objectContaining({
+          ruleId: "safety-illegal-abuse-v1",
+          stage: "brief",
+          severity: "block"
+        }),
+        expect.objectContaining({
+          ruleId: "safety-private-data-v1",
+          stage: "brief",
+          severity: "block"
+        })
+      ])
     });
   });
 
@@ -329,7 +397,8 @@ describe("dev workspace contracts", () => {
       createdAt: "2026-05-26T10:00:00.000Z",
       fileName: "zenart-009.zip",
       manifest: buildManifest(state.activeProjectId, []),
-      qaReport: []
+      qaReport: [],
+      safetyReport: runSafetyPolicy(state, [])
     };
 
     const context = buildSupportProblemContext({

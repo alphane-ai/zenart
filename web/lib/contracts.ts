@@ -215,6 +215,24 @@ export interface QaFinding {
   detail: string;
 }
 
+export type SafetyPolicyStage = "brief" | "provider_request" | "provider_response" | "qa" | "export";
+
+export interface SafetyPolicyFinding {
+  ruleId: string;
+  ruleVersion: string;
+  stage: SafetyPolicyStage;
+  severity: QaSeverity;
+  title: string;
+  userMessage: string;
+}
+
+export interface SafetyPolicyReport {
+  schema_version: "stage0.rev2.safety-policy-export";
+  status: "pass" | "block";
+  enforcementStages: SafetyPolicyStage[];
+  findings: SafetyPolicyFinding[];
+}
+
 export interface ExportRecord {
   id: string;
   format: ExportFormat;
@@ -223,6 +241,7 @@ export interface ExportRecord {
   fileName: string;
   manifest: PackageManifest;
   qaReport: QaFinding[];
+  safetyReport: SafetyPolicyReport;
 }
 
 export interface PackageExportMetadataEvidence {

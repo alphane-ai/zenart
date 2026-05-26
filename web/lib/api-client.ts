@@ -21,7 +21,8 @@ import {
   createSessionContract,
   createSupportTicket,
   evaluatePackageQa,
-  formatExportFileName
+  formatExportFileName,
+  runSafetyPolicy
 } from "./dev-state";
 
 export const workspaceStorageKey = "zenart.dev.workspace.v1";
@@ -95,7 +96,8 @@ const migrateState = (state: WorkspaceState): WorkspaceState => ({
   },
   exports: (state.exports ?? []).map((item) => ({
     ...item,
-    manifest: migrateManifest(item.manifest, item.createdAt)
+    manifest: migrateManifest(item.manifest, item.createdAt),
+    safetyReport: item.safetyReport ?? runSafetyPolicy(state, item.qaReport)
   })),
   shareLinks: state.shareLinks ?? [],
   supportTickets: (state.supportTickets ?? []).map((ticket) => ({
@@ -376,9 +378,10 @@ export class DevZenArtClient implements ZenArtClient {
   async createExport(format: ExportFormat) {
     const state = migrateState(loadState());
     const qaReport = evaluatePackageQa(state.packageItems);
+    const safetyReport = runSafetyPolicy(state, qaReport);
     const entitlementBlock =
       state.billing.status === "inactive" || state.billing.status === "past_due" || state.billing.quotaUsed >= state.billing.quotaLimit;
-    const blocked = entitlementBlock || qaReport.some((item) => item.severity === "block");
+    const blocked = entitlementBlock || qaReport.some((item) => item.severity === "block") || safetyReport.status === "block";
     const entitlementFinding: QaFinding = {
       id: "qa-entitlement",
       severity: "block",
@@ -396,7 +399,8 @@ export class DevZenArtClient implements ZenArtClient {
       createdAt: new Date().toISOString(),
       fileName: formatExportFileName(format, state.exports.length),
       manifest,
-      qaReport: entitlementBlock ? [...qaReport, entitlementFinding] : qaReport
+      qaReport: entitlementBlock ? [...qaReport, entitlementFinding] : qaReport,
+      safetyReport
     } as const;
 
     return saveState(
