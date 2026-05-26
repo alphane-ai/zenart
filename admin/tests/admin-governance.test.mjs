@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { test } from "node:test";
 
 const source = readFileSync(new URL("../lib/fixtures.ts", import.meta.url), "utf8");
+const abuseRuntimeSource = readFileSync(new URL("../lib/abuse-runtime.ts", import.meta.url), "utf8");
 const repoRoot = new URL("../../", import.meta.url);
 const blueprint = readFileSync(new URL("../../Docs/stage0_blueprint_rev2.md", import.meta.url), "utf8");
 
@@ -44,6 +45,25 @@ const {
   operationalDashboards,
   alertRoutes
 } = parseFixtures();
+
+const parseAbuseRuntime = () => {
+  const runtimeSource = abuseRuntimeSource
+    .replace(/^import type[\s\S]*?from "@\/lib\/types";\n\n/, "")
+    .replaceAll(/export function (\w+)/g, "function $1")
+    .replaceAll(/: Record<AdminRole, number>/g, "")
+    .replaceAll(/: AbuseRuntimeDecision\["queueAction"\]/g, "")
+    .replaceAll(/: AbuseRuntimeDecision\[\]/g, "")
+    .replaceAll(/: AbuseQueueRuntimeEntry\[\]/g, "")
+    .replaceAll(/: AbuseEvent\[\]/g, "")
+    .replaceAll(/: AbuseControlHook\[\]/g, "")
+    .replaceAll(/: AdminRole/g, "")
+    .replaceAll(/: AbuseEvent/g, "")
+    .replaceAll(/: AbuseControlHook/g, "")
+    .replaceAll(/: string/g, "")
+    .replaceAll(/: Date/g, "")
+    .replaceAll(/ as const/g, "");
+  return Function(`${runtimeSource}\nreturn { buildAbuseRuntimeDecisions, buildAbuseQueueRuntime };`)();
+};
 
 const auditIds = new Set(auditEvents.map((event) => event.id));
 const supportTicketIds = new Set(supportTickets.map((ticket) => ticket.id));
@@ -215,6 +235,88 @@ test("temporary hold and throttle hooks enforce abuse controls with RBAC, expiry
     abuseControlHooks.some((hook) => hook.rbacDecision === "denied" && hook.action === "temporary_hold"),
     "temporary hold hooks need denied RBAC evidence"
   );
+});
+
+test("temporary hold and throttle runtime enforcement blocks quota-consuming work and preserves audit evidence", () => {
+  const { buildAbuseRuntimeDecisions } = parseAbuseRuntime();
+  const decisions = buildAbuseRuntimeDecisions(abuseEvents, abuseControlHooks, new Date("2026-05-26T11:00:00Z"));
+
+  assert.equal(decisions.length, abuseControlHooks.length, "every hook needs a runtime decision");
+  assert.ok(
+    decisions.some(
+      (decision) =>
+        decision.runtimeStatus === "enforced" &&
+        decision.requestOutcome === "deny_423_account_hold" &&
+        decision.canCreateQuotaConsumingTask === false
+    ),
+    "temporary holds must deny quota-consuming account work"
+  );
+  assert.ok(
+    decisions.some(
+      (decision) =>
+        decision.runtimeStatus === "enforced" &&
+        decision.requestOutcome === "throttle_429_rate_limited" &&
+        decision.queueAction === "throttle_until_review"
+    ),
+    "throttle hooks must enforce a rate-limited runtime outcome"
+  );
+  assert.ok(
+    decisions.some(
+      (decision) =>
+        decision.runtimeStatus === "dry_run_denied" &&
+        decision.requestOutcome === "dry_run_only" &&
+        decision.queueAction === "escalate_security_review"
+    ),
+    "denied critical holds must stay dry-run and escalate security review"
+  );
+
+  for (const decision of decisions) {
+    assert.ok(auditIds.has(decision.auditRef), `${decision.hookId} runtime decision links unknown audit`);
+    assert.ok(decision.evidenceRefs.length >= 3, `${decision.hookId} runtime decision needs evidence refs`);
+    assert.ok(decision.rationale.length > 120, `${decision.hookId} runtime decision needs rationale and release condition`);
+
+    if (decision.runtimeStatus === "enforced") {
+      assert.equal(
+        decision.canCreateQuotaConsumingTask,
+        false,
+        `${decision.hookId} enforced abuse control must block quota-consuming task creation`
+      );
+      assert.match(
+        decision.requestOutcome,
+        /deny_423_account_hold|throttle_429_rate_limited/,
+        `${decision.hookId} enforced abuse control needs concrete request outcome`
+      );
+    }
+  }
+});
+
+test("admin abuse queue runtime enforcement keeps events open until controls and release evidence pass", () => {
+  const { buildAbuseRuntimeDecisions, buildAbuseQueueRuntime } = parseAbuseRuntime();
+  const decisions = buildAbuseRuntimeDecisions(abuseEvents, abuseControlHooks, new Date("2026-05-26T11:00:00Z"));
+  const queueRuntime = buildAbuseQueueRuntime(abuseEvents, decisions);
+
+  assert.equal(queueRuntime.length, abuseEvents.length, "every abuse event needs queue runtime enforcement");
+  assert.ok(queueRuntime.some((entry) => entry.runtimeStatus === "controlled"), "queue needs controlled entries");
+  assert.ok(queueRuntime.some((entry) => entry.runtimeStatus === "blocked_by_rbac"), "queue needs RBAC-blocked entries");
+
+  for (const entry of queueRuntime) {
+    const event = abuseEventById.get(entry.abuseEventId);
+    assert.ok(event, `${entry.abuseEventId} queue runtime links unknown abuse event`);
+    assert.equal(entry.userId, event.userId, `${entry.abuseEventId} queue user must match event`);
+    assert.ok(auditIds.has(entry.auditRef), `${entry.abuseEventId} queue runtime links unknown audit`);
+    assert.equal(entry.closureAllowed, false, `${entry.abuseEventId} cannot close without release evidence`);
+    assert.ok(entry.blockingReason.length > 90, `${entry.abuseEventId} needs blocking reason`);
+    assert.ok(entry.nextAction.length > 90, `${entry.abuseEventId} needs next action`);
+
+    if (entry.runtimeStatus === "controlled") {
+      assert.ok(entry.activeHookIds.length > 0, `${entry.abuseEventId} controlled queue entry needs active hooks`);
+    }
+
+    if (event.severity === "critical") {
+      assert.equal(entry.runtimeStatus, "blocked_by_rbac", `${entry.abuseEventId} critical abuse needs RBAC/security block`);
+      assert.equal(entry.closureAllowed, false, `${entry.abuseEventId} critical abuse cannot auto-close`);
+    }
+  }
 });
 
 test("support tickets link user, trace, export, quota, and audit evidence", () => {
@@ -616,13 +718,13 @@ test("operations dashboards and alert routes bind SLOs to release-gate evidence"
 test("operations runtime evidence closes only the validated dashboard and alert checklist rows", () => {
   assert.match(
     blueprint,
-    /- \[x\] 导入并验证 staging dashboards runtime evidence。/,
-    "staging dashboard runtime evidence checklist row must be closed only with admin runtime evidence"
+    /- \[ \] 导入并验证 staging dashboards runtime evidence。/,
+    "staging dashboard runtime evidence checklist row must remain open until launch-readiness runtime validation"
   );
   assert.match(
     blueprint,
-    /- \[x\] 配置并验证 staging alert routes\/runtime evidence。/,
-    "staging alert route runtime evidence checklist row must be closed only with admin runtime evidence"
+    /- \[ \] 配置并验证 staging alert routes\/runtime evidence。/,
+    "staging alert route runtime evidence checklist row must remain open until launch-readiness runtime validation"
   );
 
   const dashboardRuntimeRefs = new Set(operationalDashboards.map((dashboard) => dashboard.runtimeEvidenceRef));

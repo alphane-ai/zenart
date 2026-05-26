@@ -26,7 +26,7 @@
     {
       "check_id": "staging_support_retry_abuse_ops",
       "status": "blocked",
-      "evidence_ref": "Report-problem context, admin support evidence view, retry/regenerate, queue/dead-letter, abuse model, and incident evidence exists, but backend-enforced support linkage, user lookup, temporary hold/throttle hooks, and runtime abuse queue evidence are absent"
+      "evidence_ref": "Report-problem context, admin support evidence view, retry/regenerate, queue/dead-letter, abuse model, user lookup, and local admin runtime queue/hold/throttle enforcement evidence exist, but external-user staging support linkage and abuse runtime evidence remain absent"
     },
     {
       "check_id": "staging_eval_qa_safety_runtime",
@@ -72,7 +72,7 @@
       "condition_id": "support_abuse_runtime_missing",
       "blueprint_condition": "Admin review decisions 可变更、缺 reviewer rationale，或 high-risk changes 绕过 RBAC/audit/second review。",
       "is_present": true,
-      "evidence_ref": "Support/admin evidence views exist, but support backend linkage and abuse runtime queue/hold/throttle evidence remain absent"
+      "evidence_ref": "Support/admin evidence views and local admin abuse runtime policy exist, but external-user staging support and abuse runtime evidence remain absent"
     },
     {
       "condition_id": "eval_qa_safety_runtime_missing",

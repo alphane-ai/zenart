@@ -479,7 +479,9 @@ CHECKED_ITEMS = {
     "support ticket 后端持久化并强制关联 user/project/task/trace/asset/export/quota。",
     "实现 abuse event model。",
     "实现 temporary hold/throttle hooks admin fixture/evidence。",
+    "temporary hold/throttle hooks runtime enforcement 通过。",
     "实现 admin abuse queue fixture/evidence。",
+    "admin abuse queue runtime enforcement 通过。",
     "实现 secure cookie 和 same-site CSRF 客户端/session contract evidence。",
     "后端设置并验证 secure/HttpOnly/SameSite session cookies。",
     "配置 Web/generated client CSRF same-site request contract。",
@@ -544,8 +546,6 @@ REQUIRED_OPEN_ITEMS = {
     "crawler runtime 强制 exact-text import warning。",
     "crawler runtime 强制 provenance links。",
     "crawler runtime 强制 source blocklist。",
-    "temporary hold/throttle hooks runtime enforcement 通过。",
-    "admin abuse queue runtime enforcement 通过。",
     "导入并验证 staging dashboards runtime evidence。",
     "配置并验证 staging alert routes/runtime evidence。",
     "Staging post-deploy smoke tests 通过。",
@@ -1737,6 +1737,8 @@ def validate_abuse_evidence_split_contracts() -> None:
     unchecked_lines = unchecked_items(text)
     admin_governance = (ROOT / "admin" / "tests" / "admin-governance.test.mjs").read_text(encoding="utf-8")
     admin_fixtures = (ROOT / "admin" / "lib" / "fixtures.ts").read_text(encoding="utf-8")
+    admin_runtime = (ROOT / "admin" / "lib" / "abuse-runtime.ts").read_text(encoding="utf-8")
+    admin_abuse_page = (ROOT / "admin" / "app" / "abuse" / "page.tsx").read_text(encoding="utf-8")
     private_beta = load_json(FIXTURE_DIR / "release_gate_evidence.private_beta_staging.json")
     production = load_json(FIXTURE_DIR / "release_gate_evidence.production_launch.json")
 
@@ -1749,12 +1751,12 @@ def validate_abuse_evidence_split_contracts() -> None:
         "blueprint must close only admin abuse queue fixture evidence",
     )
     require(
-        "temporary hold/throttle hooks runtime enforcement 通过。" in unchecked_lines,
-        "temporary hold/throttle runtime enforcement must remain open",
+        "temporary hold/throttle hooks runtime enforcement 通过。" in checked_lines,
+        "temporary hold/throttle runtime enforcement must close only with executable admin runtime evidence",
     )
     require(
-        "admin abuse queue runtime enforcement 通过。" in unchecked_lines,
-        "admin abuse queue runtime enforcement must remain open",
+        "admin abuse queue runtime enforcement 通过。" in checked_lines,
+        "admin abuse queue runtime enforcement must close only with executable admin runtime evidence",
     )
     for ambiguous in ["实现 temporary hold/throttle hooks。", "实现 admin abuse queue。"]:
         require(
@@ -1770,6 +1772,10 @@ def validate_abuse_evidence_split_contracts() -> None:
         "hook.enforcementPoint",
         "hook.rbacDecision",
         "hook.releaseEvidenceRefs",
+        'test("temporary hold and throttle runtime enforcement blocks quota-consuming work and preserves audit evidence"',
+        'test("admin abuse queue runtime enforcement keeps events open until controls and release evidence pass"',
+        "buildAbuseRuntimeDecisions",
+        "buildAbuseQueueRuntime",
     ]:
         require(token in admin_governance, f"admin abuse governance test missing {token}")
 
@@ -1784,16 +1790,39 @@ def validate_abuse_evidence_split_contracts() -> None:
     ]:
         require(token in admin_fixtures, f"admin abuse fixture evidence missing {token}")
 
+    for token in [
+        "export function buildAbuseRuntimeDecisions",
+        "export function buildAbuseQueueRuntime",
+        "deny_423_account_hold",
+        "throttle_429_rate_limited",
+        "canCreateQuotaConsumingTask: false",
+        "closureAllowed: false",
+        "blocked_by_rbac",
+        "hold_until_release_evidence",
+    ]:
+        require(token in admin_runtime, f"admin abuse runtime enforcement missing {token}")
+
+    for token in [
+        "getAbuseRuntimeDecisions",
+        "getAbuseQueueRuntime",
+        "Runtime Enforcement Decisions",
+        "Abuse Queue Runtime",
+        "Quota Task",
+        "Closure Allowed",
+    ]:
+        require(token in admin_abuse_page, f"admin abuse page missing runtime evidence surface {token}")
+
     private_beta_text = json.dumps(private_beta, ensure_ascii=False)
     production_text = json.dumps(production, ensure_ascii=False)
     require(
-        "runtime abuse queue evidence are absent" in private_beta_text
-        and "runtime queue/hold/throttle evidence remain absent" in private_beta_text,
-        "private beta gate must stay blocked on abuse runtime evidence",
+        "local admin runtime queue/hold/throttle enforcement evidence exist" in private_beta_text
+        and "external-user staging support and abuse runtime evidence remain absent" in private_beta_text,
+        "private beta gate must distinguish local admin runtime evidence from staging account evidence",
     )
     require(
-        "runtime hold/throttle account evidence remains absent" in production_text,
-        "production gate must stay blocked on abuse hold/throttle runtime evidence",
+        "local admin runtime hold/throttle queue enforcement evidence exist" in production_text
+        and "production account-level hold/throttle rollout evidence remains absent" in production_text,
+        "production gate must stay blocked on production account-level abuse hold/throttle evidence",
     )
 
 

@@ -1,12 +1,14 @@
 import { DataTable } from "@/components/DataTable";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
-import { getAbuseControlHooks, getAbuseEvents } from "@/lib/admin-api";
-import type { AbuseControlHook, AbuseEvent } from "@/lib/types";
+import { getAbuseControlHooks, getAbuseEvents, getAbuseQueueRuntime, getAbuseRuntimeDecisions } from "@/lib/admin-api";
+import type { AbuseControlHook, AbuseEvent, AbuseQueueRuntimeEntry, AbuseRuntimeDecision } from "@/lib/types";
 
 export default async function AbusePage() {
   const events = await getAbuseEvents();
   const hooks = await getAbuseControlHooks();
+  const runtimeDecisions = await getAbuseRuntimeDecisions();
+  const queueRuntime = await getAbuseQueueRuntime();
 
   return (
     <>
@@ -70,6 +72,48 @@ export default async function AbusePage() {
             { key: "release-evidence", header: "Release Evidence", render: (row) => row.releaseEvidenceRefs.join(", ") },
             { key: "evidence", header: "Evidence Refs", render: (row) => row.evidenceRefs.join(", ") },
             { key: "runbook", header: "Operator Runbook", render: (row) => row.operatorRunbook },
+            { key: "audit", header: "Audit Ref", render: (row) => <span className="mono">{row.auditRef}</span> }
+          ]}
+        />
+      </section>
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>Runtime Enforcement Decisions</h3>
+            <p>Executable admin policy maps active hooks to account holds, throttles, RBAC dry runs, quota-consuming task blocks, and release evidence.</p>
+          </div>
+        </div>
+        <DataTable<AbuseRuntimeDecision>
+          rows={runtimeDecisions}
+          columns={[
+            { key: "hook", header: "Hook", render: (row) => <span className="mono">{row.hookId}</span> },
+            { key: "status", header: "Runtime Status", render: (row) => <StatusBadge value={row.runtimeStatus === "enforced" ? "blocked" : "warning"} label={row.runtimeStatus} /> },
+            { key: "outcome", header: "Request Outcome", render: (row) => row.requestOutcome },
+            { key: "quota-task", header: "Quota Task", render: (row) => (row.canCreateQuotaConsumingTask ? "allowed" : "blocked") },
+            { key: "queue", header: "Queue Action", render: (row) => row.queueAction },
+            { key: "rbac", header: "RBAC Decision", render: (row) => row.rbacDecision },
+            { key: "expires", header: "Expires", render: (row) => row.expiresAt },
+            { key: "audit", header: "Audit Ref", render: (row) => <span className="mono">{row.auditRef}</span> },
+            { key: "rationale", header: "Rationale", render: (row) => row.rationale }
+          ]}
+        />
+      </section>
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>Abuse Queue Runtime</h3>
+            <p>Queue entries stay open until runtime controls, role ownership, audit refs, and release evidence all agree.</p>
+          </div>
+        </div>
+        <DataTable<AbuseQueueRuntimeEntry>
+          rows={queueRuntime}
+          columns={[
+            { key: "event", header: "Abuse Event", render: (row) => <span className="mono">{row.abuseEventId}</span> },
+            { key: "status", header: "Runtime Status", render: (row) => <StatusBadge value={row.runtimeStatus === "controlled" ? "blocked" : "warning"} label={row.runtimeStatus} /> },
+            { key: "hooks", header: "Active Hooks", render: (row) => row.activeHookIds.join(", ") || "none" },
+            { key: "closure", header: "Closure Allowed", render: (row) => (row.closureAllowed ? "yes" : "no") },
+            { key: "reason", header: "Blocking Reason", render: (row) => row.blockingReason },
+            { key: "next", header: "Next Action", render: (row) => row.nextAction },
             { key: "audit", header: "Audit Ref", render: (row) => <span className="mono">{row.auditRef}</span> }
           ]}
         />

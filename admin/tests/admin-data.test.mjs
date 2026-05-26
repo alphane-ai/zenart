@@ -119,6 +119,10 @@ test("admin abuse fixtures expose hold throttle telemetry and release evidence",
     new URL("../app/abuse/page.tsx", import.meta.url),
     "utf8"
   );
+  const abuseRuntime = readFileSync(
+    new URL("../lib/abuse-runtime.ts", import.meta.url),
+    "utf8"
+  );
 
   for (const token of [
     "Telemetry Signal",
@@ -126,7 +130,11 @@ test("admin abuse fixtures expose hold throttle telemetry and release evidence",
     "Execution Mode",
     "Dry Run Evidence",
     "Release Evidence",
-    "Temporary Hold and Throttle Hooks"
+    "Temporary Hold and Throttle Hooks",
+    "Runtime Enforcement Decisions",
+    "Abuse Queue Runtime",
+    "Quota Task",
+    "Closure Allowed"
   ]) {
     assert.match(abusePage, new RegExp(token));
   }
@@ -141,6 +149,17 @@ test("admin abuse fixtures expose hold throttle telemetry and release evidence",
     "rbacDecision"
   ]) {
     assert.match(fixtures, new RegExp(token));
+  }
+
+  for (const token of [
+    "buildAbuseRuntimeDecisions",
+    "buildAbuseQueueRuntime",
+    "deny_423_account_hold",
+    "throttle_429_rate_limited",
+    "canCreateQuotaConsumingTask: false",
+    "closureAllowed: false"
+  ]) {
+    assert.match(abuseRuntime, new RegExp(token));
   }
 });
 

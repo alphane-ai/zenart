@@ -32,6 +32,7 @@ import {
   supportUsers,
   traces
 } from "@/lib/fixtures";
+import { buildAbuseQueueRuntime, buildAbuseRuntimeDecisions } from "@/lib/abuse-runtime";
 
 export async function getSkills() {
   return skills;
@@ -143,6 +144,15 @@ export async function getAbuseEvents() {
 
 export async function getAbuseControlHooks() {
   return abuseControlHooks;
+}
+
+export async function getAbuseRuntimeDecisions() {
+  return buildAbuseRuntimeDecisions(abuseEvents, abuseControlHooks, new Date("2026-05-26T11:00:00Z"));
+}
+
+export async function getAbuseQueueRuntime() {
+  const decisions = await getAbuseRuntimeDecisions();
+  return buildAbuseQueueRuntime(abuseEvents, decisions);
 }
 
 export async function getAuditEvents() {

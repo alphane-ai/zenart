@@ -522,6 +522,51 @@ export type AbuseControlHook = {
   operatorRunbook: string;
 };
 
+export type AbuseRuntimeDecision = {
+  hookId: string;
+  abuseEventId: string;
+  userId: string;
+  action: AbuseControlHook["action"];
+  enforcementPoint: AbuseControlHook["enforcementPoint"];
+  evaluatedAt: string;
+  runtimeStatus: "enforced" | "dry_run_denied" | "expired" | "released";
+  requestOutcome:
+    | "deny_423_account_hold"
+    | "throttle_429_rate_limited"
+    | "allow_read_only"
+    | "allow"
+    | "dry_run_only";
+  queueAction:
+    | "hold_until_release_evidence"
+    | "throttle_until_review"
+    | "escalate_security_review"
+    | "release_after_evidence"
+    | "no_action";
+  canCreateQuotaConsumingTask: boolean;
+  userVisibleState: string;
+  requiredRole: AdminRole;
+  attemptedRole: AdminRole;
+  rbacDecision: "allowed" | "denied";
+  expiresAt: string;
+  auditRef: string;
+  evidenceRefs: string[];
+  rationale: string;
+};
+
+export type AbuseQueueRuntimeEntry = {
+  abuseEventId: string;
+  userId: string;
+  category: AbuseEvent["category"];
+  severity: RiskLevel;
+  assignedRole: AbuseEvent["assignedRole"];
+  runtimeStatus: "controlled" | "queued_for_review" | "blocked_by_rbac";
+  activeHookIds: string[];
+  closureAllowed: boolean;
+  blockingReason: string;
+  nextAction: string;
+  auditRef: string;
+};
+
 export type AuditEvent = {
   id: string;
   actor: string;

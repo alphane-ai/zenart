@@ -1847,9 +1847,9 @@ main 合并前必须通过：
 - [x] bad samples 转 regression fixtures。
 - [x] 实现 abuse event model。
 - [x] 实现 temporary hold/throttle hooks admin fixture/evidence。
-- [ ] temporary hold/throttle hooks runtime enforcement 通过。
+- [x] temporary hold/throttle hooks runtime enforcement 通过。
 - [x] 实现 admin abuse queue fixture/evidence。
-- [ ] admin abuse queue runtime enforcement 通过。
+- [x] admin abuse queue runtime enforcement 通过。
 
 ### 25.15 Support and Operations
 
