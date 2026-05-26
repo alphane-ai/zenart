@@ -7,6 +7,7 @@ const navGroups = [
     links: [
       ["Skill Registry", "/skills"],
       ["Skill Releases", "/skills/releases"],
+      ["Review Queue", "/reviews"],
       ["Crawler Review", "/crawler"],
       ["Prompt Fragments", "/prompt-fragments"],
       ["Meta Prompts", "/meta-prompts"]

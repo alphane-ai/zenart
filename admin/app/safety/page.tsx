@@ -29,7 +29,18 @@ export default async function SafetyPage() {
             { key: "severity", header: "Severity", render: (row) => <StatusBadge value={row.severity} /> },
             { key: "action", header: "Action", render: (row) => <StatusBadge value={row.action === "block" ? "blocked" : "warning"} label={row.action} /> },
             { key: "override", header: "Override", render: (row) => (row.overrideEligible ? "Eligible" : "Not eligible") },
-            { key: "audit", header: "Audit", render: (row) => (row.auditRequired ? "Required" : "Optional") }
+            { key: "audit", header: "Audit", render: (row) => (row.auditRequired ? "Required" : "Optional") },
+            {
+              key: "second-review",
+              header: "Second Review",
+              render: (row) => (
+                <StatusBadge
+                  value={row.secondReviewRequired ? "high" : "approved"}
+                  label={row.secondReviewRequired ? "Required" : "Not required"}
+                />
+              )
+            },
+            { key: "rationale", header: "Review Rationale", render: (row) => row.reviewRationale }
           ]}
         />
       </section>

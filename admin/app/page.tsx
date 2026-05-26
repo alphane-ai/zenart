@@ -4,6 +4,7 @@ import { StatGrid } from "@/components/StatGrid";
 import { StatusBadge } from "@/components/StatusBadge";
 import {
   getAbuseEvents,
+  getAdminReviewDecisions,
   getAuditEvents,
   getExportJobs,
   getFeedbackItems,
@@ -22,7 +23,8 @@ export default async function AdminHomePage() {
     riskyExports,
     abuse,
     audit,
-    skillVersions
+    skillVersions,
+    reviews
   ] = await Promise.all([
     getProviderHealth(),
     getQueueHealth(),
@@ -31,13 +33,15 @@ export default async function AdminHomePage() {
     getRiskyExports(),
     getAbuseEvents(),
     getAuditEvents(),
-    getSkillVersions()
+    getSkillVersions(),
+    getAdminReviewDecisions()
   ]);
 
   const unhealthyProviders = providers.filter((provider) => provider.status !== "healthy");
   const deadLetters = queues.reduce((sum, queue) => sum + queue.deadLetters, 0);
   const blockedExports = riskyExports.filter((item) => item.action === "block").length;
   const pendingSkillVersions = skillVersions.filter((item) => item.status === "review").length;
+  const secondReviews = reviews.filter((review) => review.secondReviewRequired).length;
 
   return (
     <>
@@ -77,6 +81,11 @@ export default async function AdminHomePage() {
             label: "Skill reviews",
             value: pendingSkillVersions,
             detail: "versions in review, canary, or rollback planning"
+          },
+          {
+            label: "Second reviews",
+            value: secondReviews,
+            detail: "high-risk admin changes blocked before activation"
           }
         ]}
       />

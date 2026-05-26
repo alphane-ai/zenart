@@ -1,11 +1,14 @@
 import { DataTable } from "@/components/DataTable";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
-import { getAuditEvents } from "@/lib/admin-api";
-import type { AuditEvent } from "@/lib/types";
+import { getAdminReviewDecisions, getAuditEvents } from "@/lib/admin-api";
+import type { AdminReviewDecision, AuditEvent } from "@/lib/types";
 
 export default async function AuditPage() {
-  const events = await getAuditEvents();
+  const [events, reviews] = await Promise.all([
+    getAuditEvents(),
+    getAdminReviewDecisions()
+  ]);
 
   return (
     <>
@@ -49,6 +52,36 @@ export default async function AuditPage() {
             { key: "target", header: "Target", render: (row) => <span className="mono">{row.target}</span> },
             { key: "risk", header: "Risk", render: (row) => <StatusBadge value={row.risk} /> },
             { key: "rationale", header: "Rationale", render: (row) => row.rationale }
+          ]}
+        />
+      </section>
+
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>Review Rationale Evidence</h3>
+            <p>High-risk admin decisions must preserve reviewer rationale, evidence refs, and second-review status.</p>
+          </div>
+        </div>
+        <DataTable<AdminReviewDecision>
+          rows={reviews}
+          columns={[
+            { key: "created", header: "Created", render: (row) => row.createdAt },
+            { key: "surface", header: "Surface", render: (row) => row.surface },
+            { key: "target", header: "Target", render: (row) => <span className="mono">{row.target}</span> },
+            { key: "risk", header: "Risk", render: (row) => <StatusBadge value={row.risk} /> },
+            {
+              key: "second-review",
+              header: "Second Review",
+              render: (row) => (
+                <StatusBadge
+                  value={row.secondReviewRequired ? "high" : "approved"}
+                  label={row.secondReviewRequired ? row.secondReviewer : "Not required"}
+                />
+              )
+            },
+            { key: "rationale", header: "Rationale", render: (row) => row.rationale },
+            { key: "evidence", header: "Evidence Refs", render: (row) => row.evidenceRefs.join(", ") }
           ]}
         />
       </section>

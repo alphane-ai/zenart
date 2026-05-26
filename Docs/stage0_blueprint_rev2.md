@@ -1819,10 +1819,10 @@ main 合并前必须通过：
 - [ ] 实现 canary metrics aggregation。
 - [ ] 实现 canary stop thresholds。
 - [ ] 实现 rollback with audit。
-- [ ] 实现 review queue model。
-- [ ] 实现 review detail with diff/provenance/eval/QA/risk。
-- [ ] 要求 reviewer rationale。
-- [ ] high-risk changes 要求 second review。
+- [x] 实现 review queue model。
+- [x] 实现 review detail with diff/provenance/eval/QA/risk。
+- [x] 要求 reviewer rationale。
+- [x] high-risk changes 要求 second review。
 - [x] 实现 feedback taxonomy。
 - [x] 实现 feedback attribution。
 - [ ] 实现 feedback filtering/weighting。

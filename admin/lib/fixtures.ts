@@ -1,5 +1,6 @@
 import type {
   AbuseEvent,
+  AdminReviewDecision,
   AgentTrace,
   AuditEvent,
   CrawlerFinding,
@@ -9,6 +10,7 @@ import type {
   PromptFragment,
   QuotaAccount,
   QueueHealth,
+  ReleaseEvidence,
   RiskyExport,
   Skill,
   SkillVersion,
@@ -55,10 +57,15 @@ export const skillVersions: SkillVersion[] = [
     version: "2.5.0",
     status: "review",
     reviewer: "unassigned",
+    secondReviewRequired: true,
+    secondReviewer: "required-before-canary",
+    reviewerRationale: "High-risk brand similarity regression requires explicit rationale before activation.",
     evalSummary: "92.1% pass, two regression fixtures need second reviewer.",
     provenance: "trace tr-1004, feedback fb-203, prompt mutation pm-44",
     rollbackPlan: "Restore 2.4.1 and disable launch campaign palette branch.",
-    canaryPercent: 0
+    canaryPercent: 0,
+    canaryEvidence: "Canary blocked until second reviewer accepts regression fixture variance.",
+    releaseEvidence: "Release notes draft linked to eval suite es-stage0-brand and rollback target 2.4.1."
   },
   {
     id: "sv-181",
@@ -66,10 +73,15 @@ export const skillVersions: SkillVersion[] = [
     version: "1.8.1",
     status: "canary",
     reviewer: "ops-admin",
+    secondReviewRequired: false,
+    secondReviewer: "not-required",
+    reviewerRationale: "Low-risk export completeness fix with passing ZIP and QA report fixtures.",
     evalSummary: "ZIP completeness and QA report fixtures passing.",
     provenance: "export failures ex-887 and ex-901",
     rollbackPlan: "Set router to 1.8.0 and replay failed jobs.",
-    canaryPercent: 15
+    canaryPercent: 15,
+    canaryEvidence: "15% internal canary, 0 blocking QA regressions, p95 packaging under 900 ms.",
+    releaseEvidence: "Release evidence includes manifest/QA/provenance fixtures and rollback replay plan."
   },
   {
     id: "sv-098",
@@ -77,10 +89,69 @@ export const skillVersions: SkillVersion[] = [
     version: "0.9.8",
     status: "review",
     reviewer: "trust-admin",
+    secondReviewRequired: true,
+    secondReviewer: "legal-admin",
+    reviewerRationale: "Claims policy affects export blocking and needs legal second-review signoff.",
     evalSummary: "Legal and financial claim fixtures passing; medical pending.",
     provenance: "safety rule sr-21, red-team run rt-12",
     rollbackPlan: "Keep 0.9.7 active; invalidate staged policy bundle.",
-    canaryPercent: 0
+    canaryPercent: 0,
+    canaryEvidence: "Canary disabled until medical claim fixture and legal second-review pass.",
+    releaseEvidence: "Production release blocked pending reviewer rationale and policy bundle audit."
+  }
+];
+
+export const adminReviewDecisions: AdminReviewDecision[] = [
+  {
+    id: "rv-100",
+    surface: "skill_release",
+    target: "skill-brand-kit@2.5.0",
+    status: "second_review_required",
+    risk: "high",
+    reviewer: "unassigned",
+    secondReviewer: "required-before-canary",
+    secondReviewRequired: true,
+    rationale: "Brand similarity and campaign claim changes cannot enter canary without a second reviewer.",
+    diffSummary: "Palette branch and launch-copy prompt mutation change candidate selection behavior.",
+    provenance: "trace tr-1004, feedback fb-203, prompt mutation pm-44",
+    evalSummary: "92.1% pass; two regression fixtures flagged as high-risk variance.",
+    qaSummary: "QA warning on competitor similarity remains unresolved.",
+    evidenceRefs: ["fixtures/stage0/rev2/eval/starter_eval_suite.json", "tr-1004", "au-001"],
+    createdAt: "2026-05-26 09:05"
+  },
+  {
+    id: "rv-101",
+    surface: "provider_routing",
+    target: "OpenAI/image-render-dev",
+    status: "pending",
+    risk: "medium",
+    reviewer: "ops-admin",
+    secondReviewer: "not-required",
+    secondReviewRequired: false,
+    rationale: "Degraded latency requires reduced non-urgent retries while QA provider remains active.",
+    diffSummary: "Routing weight lowered for non-urgent image retries; no fallback to weaker safety provider.",
+    provenance: "provider health ph-1, queue q-brief, trace tr-1004",
+    evalSummary: "Provider contract smoke passed for request/response provenance fields.",
+    qaSummary: "QA enforcement unchanged through internal qa-policy provider.",
+    evidenceRefs: ["ph-1", "tr-1004", "queues/q-brief"],
+    createdAt: "2026-05-26 09:20"
+  },
+  {
+    id: "rv-102",
+    surface: "export_override",
+    target: "ex-887",
+    status: "blocked",
+    risk: "high",
+    reviewer: "trust-admin",
+    secondReviewer: "not-eligible",
+    secondReviewRequired: false,
+    rationale: "Blocking forbidden-claim QA result is not override eligible.",
+    diffSummary: "Export package regeneration would preserve the same forbidden claim.",
+    provenance: "safety rule forbidden-claims:v3, trace tr-1004",
+    evalSummary: "Export enforcement fixture blocks final package.",
+    qaSummary: "Blocking severity at export enforcement point.",
+    evidenceRefs: ["rx-41", "ex-887", "au-001"],
+    createdAt: "2026-05-25 16:16"
   }
 ];
 
@@ -252,7 +323,10 @@ export const providerHealth: ProviderHealth[] = [
     p95LatencyMs: 9400,
     errorRate: 0.047,
     spendCapUsedPercent: 72,
-    routingAction: "Reduce non-urgent image retries by 25%."
+    routingAction: "Reduce non-urgent image retries by 25%.",
+    contractEvidence: "Request/response schema smoke captured provider, model, cost, latency, and safety provenance.",
+    canaryEvidence: "Routing reduction canary limited to non-urgent retries; no safety fallback allowed.",
+    releaseEvidence: "Production release blocked while status is degraded and error rate exceeds 4%."
   },
   {
     id: "ph-2",
@@ -262,7 +336,10 @@ export const providerHealth: ProviderHealth[] = [
     p95LatencyMs: 510,
     errorRate: 0.002,
     spendCapUsedPercent: 18,
-    routingAction: "Keep all QA enforcement points active."
+    routingAction: "Keep all QA enforcement points active.",
+    contractEvidence: "Safety policy contract validates brief, provider request, provider response, QA, and export points.",
+    canaryEvidence: "QA policy canary has zero blocking-regression misses across local alpha fixtures.",
+    releaseEvidence: "Eligible for local alpha enforcement; production needs staging alert evidence."
   },
   {
     id: "ph-3",
@@ -272,7 +349,10 @@ export const providerHealth: ProviderHealth[] = [
     p95LatencyMs: 0,
     errorRate: 1,
     spendCapUsedPercent: 3,
-    routingAction: "Blocked by source allowlist incident."
+    routingAction: "Blocked by source allowlist incident.",
+    contractEvidence: "Crawler governance cases require robots evidence and legal review before import.",
+    canaryEvidence: "Canary stopped after source allowlist incident; pending-review import held.",
+    releaseEvidence: "Release blocked until disallowed source and robots denied cases pass."
   }
 ];
 
@@ -385,7 +465,9 @@ export const riskyExports: RiskyExport[] = [
     severity: "high",
     action: "block",
     overrideEligible: false,
-    auditRequired: true
+    auditRequired: true,
+    reviewRationale: "Forbidden claims at export enforcement point cannot be overridden.",
+    secondReviewRequired: false
   },
   {
     id: "rx-42",
@@ -395,7 +477,9 @@ export const riskyExports: RiskyExport[] = [
     severity: "medium",
     action: "require_admin_review",
     overrideEligible: true,
-    auditRequired: true
+    auditRequired: true,
+    reviewRationale: "Financial claim needs reviewer rationale before export can proceed.",
+    secondReviewRequired: false
   },
   {
     id: "rx-43",
@@ -405,7 +489,48 @@ export const riskyExports: RiskyExport[] = [
     severity: "low",
     action: "warn",
     overrideEligible: true,
-    auditRequired: true
+    auditRequired: true,
+    reviewRationale: "Watermark risk warning must stay visible in audit and export metadata.",
+    secondReviewRequired: false
+  }
+];
+
+export const releaseEvidence: ReleaseEvidence[] = [
+  {
+    id: "eg-001",
+    target: "admin-route-smoke",
+    gate: "local_alpha",
+    status: "passed",
+    providerEvidence: "Provider health route exposes contract, canary, routing, and release evidence.",
+    canaryEvidence: "Skill release route exposes canary percent and canary evidence.",
+    releaseEvidence: "Skill release route exposes rollback and release evidence before activation.",
+    smokeEvidence: "admin/tests/admin-data.test.mjs verifies every Stage 0 admin route has PageHeader.",
+    rollbackEvidence: "Rollback plans are present for each skill release fixture.",
+    reviewerRationale: "Static route smoke is sufficient for the fixture-backed admin shell until backend APIs land."
+  },
+  {
+    id: "eg-002",
+    target: "skill-claims-review@0.9.8",
+    gate: "production_launch",
+    status: "blocked",
+    providerEvidence: "Internal QA provider contract passes, but real production provider evidence is missing.",
+    canaryEvidence: "Canary is disabled until medical claim fixture and legal second review pass.",
+    releaseEvidence: "Release blocked because high-risk policy lacks complete second-review evidence.",
+    smokeEvidence: "Safety route surfaces rationale, audit requirement, and override eligibility.",
+    rollbackEvidence: "Rollback target remains active skill-claims-review@0.9.7.",
+    reviewerRationale: "High-risk admin changes require rationale, immutable audit, and second review."
+  },
+  {
+    id: "eg-003",
+    target: "OpenAI/image-render-dev",
+    gate: "private_beta",
+    status: "blocked",
+    providerEvidence: "Provider degraded at 4.7% error rate; production contract and alert evidence incomplete.",
+    canaryEvidence: "Reduced retry canary is limited to non-urgent image tasks.",
+    releaseEvidence: "Private beta blocked until provider latency/error budget and spend alerts pass.",
+    smokeEvidence: "Provider route exposes status, spend cap, routing action, and evidence fields.",
+    rollbackEvidence: "Router can be shifted back to deterministic dev provider for local alpha only.",
+    reviewerRationale: "No silent fallback to weaker providers is allowed by Rev2."
   }
 ];
 

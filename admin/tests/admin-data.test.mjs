@@ -6,6 +6,7 @@ const fixtures = readFileSync(new URL("../lib/fixtures.ts", import.meta.url), "u
 const routes = [
   "skills",
   "skills/releases",
+  "reviews",
   "crawler",
   "prompt-fragments",
   "meta-prompts",
@@ -26,6 +27,7 @@ test("admin fixtures cover required operational surfaces", () => {
   for (const token of [
     "export const skills",
     "export const skillVersions",
+    "export const adminReviewDecisions",
     "export const crawlerFindings",
     "export const promptFragments",
     "export const metaPrompts",
@@ -37,10 +39,28 @@ test("admin fixtures cover required operational surfaces", () => {
     "export const supportUsers",
     "export const quotaAccounts",
     "export const riskyExports",
+    "export const releaseEvidence",
     "export const abuseEvents",
     "export const auditEvents"
   ]) {
     assert.match(fixtures, new RegExp(token.replaceAll(" ", "\\s+")));
+  }
+});
+
+test("admin fixtures expose review governance and release evidence", () => {
+  for (const token of [
+    "secondReviewRequired",
+    "secondReviewer",
+    "reviewerRationale",
+    "canaryEvidence",
+    "releaseEvidence",
+    "contractEvidence",
+    "reviewRationale",
+    "evidenceRefs",
+    "smokeEvidence",
+    "rollbackEvidence"
+  ]) {
+    assert.match(fixtures, new RegExp(token));
   }
 });
 
@@ -52,4 +72,44 @@ test("admin app exposes a route for every stage 0 admin surface", () => {
     );
     assert.match(page, /PageHeader/);
   }
+});
+
+test("admin routes surface governance evidence", () => {
+  const releasePage = readFileSync(
+    new URL("../app/skills/releases/page.tsx", import.meta.url),
+    "utf8"
+  );
+  assert.match(releasePage, /Second Review/);
+  assert.match(releasePage, /Reviewer Rationale/);
+  assert.match(releasePage, /Canary Evidence/);
+  assert.match(releasePage, /Release Gate Evidence/);
+
+  const providerPage = readFileSync(
+    new URL("../app/providers/page.tsx", import.meta.url),
+    "utf8"
+  );
+  assert.match(providerPage, /Contract Evidence/);
+  assert.match(providerPage, /Canary Evidence/);
+  assert.match(providerPage, /Release Evidence/);
+
+  const reviewsPage = readFileSync(
+    new URL("../app/reviews/page.tsx", import.meta.url),
+    "utf8"
+  );
+  assert.match(reviewsPage, /Review Queue/);
+  assert.match(reviewsPage, /Second Review/);
+  assert.match(reviewsPage, /Evidence Refs/);
+
+  const auditPage = readFileSync(
+    new URL("../app/audit/page.tsx", import.meta.url),
+    "utf8"
+  );
+  assert.match(auditPage, /Review Rationale Evidence/);
+  assert.match(auditPage, /Second Review/);
+
+  const safetyPage = readFileSync(
+    new URL("../app/safety/page.tsx", import.meta.url),
+    "utf8"
+  );
+  assert.match(safetyPage, /Review Rationale/);
 });

@@ -1,4 +1,5 @@
 import {
+  adminReviewDecisions,
   abuseEvents,
   auditEvents,
   crawlerFindings,
@@ -9,6 +10,7 @@ import {
   providerHealth,
   quotaAccounts,
   queueHealth,
+  releaseEvidence,
   riskyExports,
   skillVersions,
   skills,
@@ -22,6 +24,10 @@ export async function getSkills() {
 
 export async function getSkillVersions() {
   return skillVersions;
+}
+
+export async function getAdminReviewDecisions() {
+  return adminReviewDecisions;
 }
 
 export async function getCrawlerFindings() {
@@ -50,6 +56,10 @@ export async function getFeedbackItems() {
 
 export async function getProviderHealth() {
   return providerHealth;
+}
+
+export async function getReleaseEvidence() {
+  return releaseEvidence;
 }
 
 export async function getQueueHealth() {

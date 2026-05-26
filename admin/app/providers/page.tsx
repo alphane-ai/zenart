@@ -29,7 +29,10 @@ export default async function ProviderHealthPage() {
             { key: "latency", header: "P95 Latency", render: (row) => `${row.p95LatencyMs} ms` },
             { key: "errors", header: "Error Rate", render: (row) => `${(row.errorRate * 100).toFixed(1)}%` },
             { key: "spend", header: "Spend Cap", render: (row) => `${row.spendCapUsedPercent}%` },
-            { key: "action", header: "Routing Action", render: (row) => row.routingAction }
+            { key: "action", header: "Routing Action", render: (row) => row.routingAction },
+            { key: "contract", header: "Contract Evidence", render: (row) => row.contractEvidence },
+            { key: "canary", header: "Canary Evidence", render: (row) => row.canaryEvidence },
+            { key: "release", header: "Release Evidence", render: (row) => row.releaseEvidence }
           ]}
         />
       </section>

@@ -1,5 +1,13 @@
 export type StatusTone = "ok" | "warn" | "danger" | "info";
 export type RiskLevel = "low" | "medium" | "high" | "critical";
+export type AdminReviewSurface =
+  | "skill_release"
+  | "crawler_import"
+  | "prompt_approval"
+  | "provider_routing"
+  | "quota_override"
+  | "safety_rule"
+  | "export_override";
 
 export type AdminSession = {
   id: string;
@@ -25,10 +33,15 @@ export type SkillVersion = {
   version: string;
   status: "review" | "canary" | "approved" | "rolled-back";
   reviewer: string;
+  secondReviewRequired: boolean;
+  secondReviewer: string;
+  reviewerRationale: string;
   evalSummary: string;
   provenance: string;
   rollbackPlan: string;
   canaryPercent: number;
+  canaryEvidence: string;
+  releaseEvidence: string;
 };
 
 export type CrawlerFinding = {
@@ -102,6 +115,9 @@ export type ProviderHealth = {
   errorRate: number;
   spendCapUsedPercent: number;
   routingAction: string;
+  contractEvidence: string;
+  canaryEvidence: string;
+  releaseEvidence: string;
 };
 
 export type QueueHealth = {
@@ -152,6 +168,8 @@ export type RiskyExport = {
   action: "warn" | "require_admin_review" | "block";
   overrideEligible: boolean;
   auditRequired: boolean;
+  reviewRationale: string;
+  secondReviewRequired: boolean;
 };
 
 export type AbuseEvent = {
@@ -179,4 +197,35 @@ export type AuditEvent = {
   risk: RiskLevel;
   createdAt: string;
   rationale: string;
+};
+
+export type AdminReviewDecision = {
+  id: string;
+  surface: AdminReviewSurface;
+  target: string;
+  status: "pending" | "approved" | "blocked" | "second_review_required";
+  risk: RiskLevel;
+  reviewer: string;
+  secondReviewer: string;
+  secondReviewRequired: boolean;
+  rationale: string;
+  diffSummary: string;
+  provenance: string;
+  evalSummary: string;
+  qaSummary: string;
+  evidenceRefs: string[];
+  createdAt: string;
+};
+
+export type ReleaseEvidence = {
+  id: string;
+  target: string;
+  gate: "local_alpha" | "private_beta" | "production_launch";
+  status: "passed" | "blocked" | "missing";
+  providerEvidence: string;
+  canaryEvidence: string;
+  releaseEvidence: string;
+  smokeEvidence: string;
+  rollbackEvidence: string;
+  reviewerRationale: string;
 };
