@@ -6,6 +6,7 @@ from __future__ import annotations
 import json
 import re
 import sys
+import hashlib
 from pathlib import Path
 from typing import Any
 
@@ -17,6 +18,7 @@ SUITE = FIXTURE_DIR / "eval" / "starter_eval_suite.json"
 QA_RESULTS = FIXTURE_DIR / "eval" / "qa_results.json"
 OPENAPI = ROOT / "openapi" / "zenart.v1.yaml"
 MIGRATION = ROOT / "backend" / "migrations" / "0002_stage0_rev2_domains.sql"
+RUNNER = ROOT / "scripts" / "run_stage0_eval.py"
 
 QA_CATEGORIES = {
     "file_integrity",
@@ -61,6 +63,35 @@ EXPORT_KEYS = {
     "blocks_when_incomplete",
 }
 
+STORAGE_COLUMNS = {
+    "id",
+    "tenant_id",
+    "eval_suite_id",
+    "subject_type",
+    "subject_id",
+    "subject_version",
+    "status",
+    "summary",
+    "runner",
+    "runner_sha256",
+    "completed_at",
+    "created_at",
+}
+
+STORAGE_INDEXES = {
+    "idx_eval_results_tenant_suite_subject_created_at",
+    "idx_eval_results_subject_status_completed_at",
+}
+
+QUERY_FILTERS = {
+    "tenant_id",
+    "eval_suite_id",
+    "subject_type",
+    "subject_id",
+    "status",
+    "completed_after",
+}
+
 
 class EvalResultContractError(Exception):
     pass
@@ -76,6 +107,15 @@ def load_json(path: Path) -> Any:
 def require(condition: bool, message: str) -> None:
     if not condition:
         raise EvalResultContractError(message)
+
+
+def runner_sha256() -> str:
+    content = RUNNER.read_text(encoding="utf-8")
+    normalized = "\n".join(
+        '            "runner_sha256": "<self>",' if '"runner_sha256": runner_digest' in line else line
+        for line in content.splitlines()
+    )
+    return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
 
 
 def schema_block(openapi_text: str, schema_name: str) -> str:
@@ -98,7 +138,24 @@ def require_field_in_schema(body: str, schema_name: str, field: str) -> None:
 
 
 def validate_openapi_eval_result_schema() -> None:
-    body = schema_block(OPENAPI.read_text(encoding="utf-8"), "EvalResult")
+    openapi_text = OPENAPI.read_text(encoding="utf-8")
+    body = schema_block(openapi_text, "EvalResult")
+
+    eval_path = re.search(
+        r"^  /eval/results:\n(?P<body>.*?)(?=^  /|\Z)",
+        openapi_text,
+        flags=re.MULTILINE | re.DOTALL,
+    )
+    require(eval_path is not None, "OpenAPI /eval/results path missing")
+    eval_path_body = eval_path.group("body")
+    for parameter in [
+        "EvalSuiteIdFilter",
+        "EvalSubjectTypeFilter",
+        "SubjectIdFilter",
+        "CompletedAfterFilter",
+        "StatusFilter",
+    ]:
+        require(parameter in eval_path_body, f"OpenAPI /eval/results missing {parameter}")
 
     for field in [
         "id",
@@ -107,6 +164,7 @@ def validate_openapi_eval_result_schema() -> None:
         "status",
         "summary",
         "fixture_results",
+        "runner_contract",
         "storage_contract",
         "created_at",
     ]:
@@ -151,6 +209,12 @@ def validate_openapi_eval_result_schema() -> None:
         require_field_in_schema(body, "EvalResult.trace_contract", field)
     for field in EXPORT_KEYS:
         require_field_in_schema(body, "EvalResult.export_contract", field)
+    for field in ["runner", "runner_sha256", "deterministic_replay_command", "writes_stored_fixture", "check_mode_compares_exact_json"]:
+        require_field_in_schema(body, "EvalResult.runner_contract", field)
+    for field in ["required_columns", "required_indexes", "required_query_filters", "latest_result_resolvable"]:
+        require_field_in_schema(body, "EvalResult.storage_contract", field)
+    for token in STORAGE_COLUMNS | STORAGE_INDEXES | QUERY_FILTERS:
+        require(token in body or token in eval_path_body, f"OpenAPI EvalResult contract missing {token}")
     require("const: true" in body, "OpenAPI EvalResult must preserve required true contract fields")
 
 
@@ -167,6 +231,16 @@ def validate_fixture_result_links() -> None:
     require(set(summary["safety_enforcement_points_covered"]) == SAFETY_POINTS, "eval summary must cover every safety point")
     require(summary["trace_complete"] is True, "eval summary must prove trace completeness")
     require(summary["export_contract_complete"] is True, "eval summary must prove export contract completeness")
+
+    runner = result["runner_contract"]
+    require(runner["runner"] == "scripts/run_stage0_eval.py", "eval runner contract must identify runner script")
+    require(runner["runner_sha256"] == runner_sha256(), "eval runner hash must match deterministic runner digest")
+    require(
+        runner["deterministic_replay_command"] == "python3 scripts/run_stage0_eval.py --check",
+        "eval runner contract must expose exact replay command",
+    )
+    require(runner["writes_stored_fixture"] is True, "eval runner must write stored fixture")
+    require(runner["check_mode_compares_exact_json"] is True, "eval runner check mode must compare exact JSON")
 
     suite_fixtures = {fixture["fixture_id"]: fixture for fixture in suite["fixtures"]}
     qa_by_id = {item["check_id"]: item for item in qa_results}
@@ -219,13 +293,21 @@ def validate_storage_contract() -> None:
     storage = results[0]["storage_contract"]
 
     require("CREATE TABLE IF NOT EXISTS eval_results" in migration, "eval_results table missing")
-    for column in storage["required_columns"]:
+    require(set(storage["required_columns"]) == STORAGE_COLUMNS, "eval result storage columns mismatch")
+    require(set(storage["required_indexes"]) == STORAGE_INDEXES, "eval result storage indexes mismatch")
+    require(set(storage["required_query_filters"]) == QUERY_FILTERS, "eval result query filters mismatch")
+    for column in STORAGE_COLUMNS:
         require(column in migration, f"eval_results storage missing {column}")
     require("tenant_id text NOT NULL REFERENCES tenants(id)" in migration, "eval_results must be tenant scoped")
     require("summary jsonb NOT NULL" in migration, "eval_results summary must be persisted as jsonb")
+    require("runner_sha256 text NOT NULL" in migration, "eval_results must persist runner hash")
+    require("completed_at timestamptz NOT NULL" in migration, "eval_results must persist completion time")
+    for index in STORAGE_INDEXES:
+        require(index in migration, f"eval_results storage missing index {index}")
     require(storage["summary_json_contains_fixture_results"] is True, "eval fixture details must be stored in summary json")
     require(storage["tenant_scoped"] is True, "eval storage contract must be tenant scoped")
     require(storage["subject_scoped"] is True, "eval storage contract must be subject scoped")
+    require(storage["latest_result_resolvable"] is True, "eval storage must support latest-result resolution")
 
 
 def main() -> int:

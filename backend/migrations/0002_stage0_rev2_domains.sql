@@ -435,10 +435,20 @@ CREATE TABLE IF NOT EXISTS eval_results (
 	eval_suite_id text NOT NULL REFERENCES eval_suites(id),
 	subject_type text NOT NULL,
 	subject_id text NOT NULL,
+	subject_version text NOT NULL DEFAULT '',
 	status text NOT NULL,
 	summary jsonb NOT NULL DEFAULT '{}'::jsonb,
+	runner text NOT NULL DEFAULT '',
+	runner_sha256 text NOT NULL DEFAULT '',
+	completed_at timestamptz NOT NULL DEFAULT now(),
 	created_at timestamptz NOT NULL DEFAULT now()
 );
+
+CREATE INDEX IF NOT EXISTS idx_eval_results_tenant_suite_subject_created_at
+	ON eval_results(tenant_id, eval_suite_id, subject_type, subject_id, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_eval_results_subject_status_completed_at
+	ON eval_results(subject_type, subject_id, status, completed_at DESC);
 
 CREATE TABLE IF NOT EXISTS crawler_sources (
 	id text PRIMARY KEY,

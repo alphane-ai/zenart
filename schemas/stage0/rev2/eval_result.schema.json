@@ -12,6 +12,7 @@
     "status",
     "summary",
     "fixture_results",
+    "runner_contract",
     "storage_contract",
     "provenance"
   ],
@@ -260,9 +261,12 @@
       "required": [
         "table",
         "required_columns",
+        "required_indexes",
+        "required_query_filters",
         "summary_json_contains_fixture_results",
         "tenant_scoped",
-        "subject_scoped"
+        "subject_scoped",
+        "latest_result_resolvable"
       ],
       "properties": {
         "table": {
@@ -270,7 +274,7 @@
         },
         "required_columns": {
           "type": "array",
-          "minItems": 7,
+          "minItems": 11,
           "uniqueItems": true,
           "items": {
             "enum": [
@@ -279,9 +283,39 @@
               "eval_suite_id",
               "subject_type",
               "subject_id",
+              "subject_version",
               "status",
               "summary",
+              "runner",
+              "runner_sha256",
+              "completed_at",
               "created_at"
+            ]
+          }
+        },
+        "required_indexes": {
+          "type": "array",
+          "minItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "idx_eval_results_tenant_suite_subject_created_at",
+              "idx_eval_results_subject_status_completed_at"
+            ]
+          }
+        },
+        "required_query_filters": {
+          "type": "array",
+          "minItems": 4,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "tenant_id",
+              "eval_suite_id",
+              "subject_type",
+              "subject_id",
+              "status",
+              "completed_after"
             ]
           }
         },
@@ -295,6 +329,39 @@
         },
         "subject_scoped": {
           "type": "boolean",
+          "const": true
+        },
+        "latest_result_resolvable": {
+          "type": "boolean",
+          "const": true
+        }
+      }
+    },
+    "runner_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "runner",
+        "runner_sha256",
+        "deterministic_replay_command",
+        "writes_stored_fixture",
+        "check_mode_compares_exact_json"
+      ],
+      "properties": {
+        "runner": {
+          "const": "scripts/run_stage0_eval.py"
+        },
+        "runner_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "deterministic_replay_command": {
+          "const": "python3 scripts/run_stage0_eval.py --check"
+        },
+        "writes_stored_fixture": {
+          "const": true
+        },
+        "check_mode_compares_exact_json": {
           "const": true
         }
       }

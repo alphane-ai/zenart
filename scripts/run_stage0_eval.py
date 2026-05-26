@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sys
 from pathlib import Path
@@ -18,6 +19,7 @@ QA_PATH = FIXTURE_DIR / "eval" / "qa_results.json"
 SAFETY_PATH = FIXTURE_DIR / "eval" / "safety_rules.json"
 WORKFLOW_DIR = FIXTURE_DIR / "workflows"
 RESULT_PATH = FIXTURE_DIR / "eval" / "starter_eval_results.json"
+RUNNER_PATH = ROOT / "scripts" / "run_stage0_eval.py"
 
 SAFETY_POINTS = {
     "brief",
@@ -98,6 +100,15 @@ PASS_THROUGH_BLOCKED_CATEGORIES = {
 
 class EvalContractError(Exception):
     pass
+
+
+def runner_sha256() -> str:
+    content = RUNNER_PATH.read_text(encoding="utf-8")
+    normalized = "\n".join(
+        '            "runner_sha256": "<self>",' if '"runner_sha256": runner_digest' in line else line
+        for line in content.splitlines()
+    )
+    return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
 
 
 def load_json(path: Path) -> Any:
@@ -275,6 +286,7 @@ def run_eval() -> dict[str, Any]:
         if any(item["status"] == "blocked" for item in fixture_results)
         else "pass"
     )
+    runner_digest = runner_sha256()
 
     return {
         "schema_version": "stage0.rev2",
@@ -301,6 +313,13 @@ def run_eval() -> dict[str, Any]:
             "safety_enforcement_points_covered": SAFETY_ORDER,
         },
         "fixture_results": fixture_results,
+        "runner_contract": {
+            "runner": "scripts/run_stage0_eval.py",
+            "runner_sha256": runner_digest,
+            "deterministic_replay_command": "python3 scripts/run_stage0_eval.py --check",
+            "writes_stored_fixture": True,
+            "check_mode_compares_exact_json": True,
+        },
         "storage_contract": {
             "table": "eval_results",
             "required_columns": [
@@ -309,13 +328,30 @@ def run_eval() -> dict[str, Any]:
                 "eval_suite_id",
                 "subject_type",
                 "subject_id",
+                "subject_version",
                 "status",
                 "summary",
+                "runner",
+                "runner_sha256",
+                "completed_at",
                 "created_at",
+            ],
+            "required_indexes": [
+                "idx_eval_results_tenant_suite_subject_created_at",
+                "idx_eval_results_subject_status_completed_at",
+            ],
+            "required_query_filters": [
+                "tenant_id",
+                "eval_suite_id",
+                "subject_type",
+                "subject_id",
+                "status",
+                "completed_after",
             ],
             "summary_json_contains_fixture_results": True,
             "tenant_scoped": True,
             "subject_scoped": True,
+            "latest_result_resolvable": True,
         },
         "provenance": {
             "blueprint_sections": [
