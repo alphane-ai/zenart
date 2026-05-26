@@ -149,6 +149,8 @@ test("temporary hold and throttle hooks enforce abuse controls with RBAC, expiry
     assert.ok(hook.durationMinutes > 0, `${hook.id} needs positive duration`);
     assert.notEqual(hook.expiresAt, "pending", `${hook.id} needs explicit expiration`);
     assert.ok(hook.hookPayload.length > 70, `${hook.id} needs executable hook payload`);
+    assert.match(hook.executionMode, /dry_run|enforced/, `${hook.id} needs hook execution mode`);
+    assert.ok(hook.lastDryRunEvidence.length > 90, `${hook.id} needs dry-run execution evidence`);
     assert.ok(hook.threshold.length > 50, `${hook.id} needs a concrete trigger threshold`);
     assert.ok(hook.telemetrySignal.length > 80, `${hook.id} needs concrete telemetry signal`);
     assert.ok(hook.userVisibleState.length > 70, `${hook.id} needs user-visible hold/throttle state`);
@@ -196,9 +198,14 @@ test("temporary hold and throttle hooks enforce abuse controls with RBAC, expiry
       assert.notEqual(hook.state, "released", `${hook.id} active temporary hold cannot be released without evidence`);
     }
 
+    if (hook.rbacDecision === "denied") {
+      assert.equal(hook.executionMode, "dry_run", `${hook.id} denied hook can only be dry-run evidence`);
+    }
+
     if (hook.action === "rate_limit") {
       assert.match(hook.enforcementPoint, /gateway|scheduler|service/, `${hook.id} rate limit needs enforcement point`);
       assert.notEqual(hook.state, "expired", `${hook.id} throttle cannot expire without release condition evidence`);
+      assert.equal(hook.executionMode, "enforced", `${hook.id} allowed throttle hooks must be enforceable`);
     }
   }
 

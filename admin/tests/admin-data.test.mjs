@@ -123,6 +123,8 @@ test("admin abuse fixtures expose hold throttle telemetry and release evidence",
   for (const token of [
     "Telemetry Signal",
     "User Visible State",
+    "Execution Mode",
+    "Dry Run Evidence",
     "Release Evidence",
     "Temporary Hold and Throttle Hooks"
   ]) {
@@ -132,6 +134,8 @@ test("admin abuse fixtures expose hold throttle telemetry and release evidence",
   for (const token of [
     "telemetrySignal",
     "userVisibleState",
+    "executionMode",
+    "lastDryRunEvidence",
     "releaseEvidenceRefs",
     "hook-ab-304-hold",
     "rbacDecision"

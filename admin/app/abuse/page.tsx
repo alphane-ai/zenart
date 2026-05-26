@@ -54,6 +54,8 @@ export default async function AbusePage() {
             { key: "target", header: "Target Surface", render: (row) => row.targetSurface },
             { key: "enforcement", header: "Enforcement Point", render: (row) => row.enforcementPoint },
             { key: "state", header: "State", render: (row) => <StatusBadge value={row.state === "active" ? "blocked" : "warning"} label={row.state} /> },
+            { key: "execution", header: "Execution Mode", render: (row) => <StatusBadge value={row.executionMode === "enforced" ? "blocked" : "warning"} label={row.executionMode} /> },
+            { key: "dry-run", header: "Dry Run Evidence", render: (row) => row.lastDryRunEvidence },
             { key: "payload", header: "Hook Payload", render: (row) => row.hookPayload },
             { key: "threshold", header: "Threshold", render: (row) => row.threshold },
             { key: "telemetry", header: "Telemetry Signal", render: (row) => row.telemetrySignal },

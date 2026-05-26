@@ -494,6 +494,8 @@ export type AbuseControlHook = {
   targetSurface: "generation" | "crawler_import" | "export_share" | "quota";
   enforcementPoint: "api_gateway" | "worker_scheduler" | "crawler_scheduler" | "export_service";
   state: "armed" | "active" | "expired" | "released";
+  executionMode: "dry_run" | "enforced";
+  lastDryRunEvidence: string;
   hookPayload: string;
   threshold: string;
   telemetrySignal: string;
