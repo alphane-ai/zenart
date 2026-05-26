@@ -442,6 +442,18 @@ RUNTIME_PASS_REQUIREMENTS = {
     },
 }
 
+RUNTIME_PASS_EVIDENCE_FILES = {
+    ("private_beta_staging", "staging_support_retry_abuse_ops"): [
+        STAGING_SUPPORT_RETRY_ABUSE_EVIDENCE,
+    ],
+    ("private_beta_staging", "staging_crawler_approval_provenance"): [
+        ROOT / "ops" / "evidence" / "staging" / "20260527T1100Z-crawler-governance-runtime.json",
+    ],
+    ("production_launch", "production_abuse_throttle_hold"): [
+        PRODUCTION_ABUSE_THROTTLE_HOLD_EVIDENCE,
+    ],
+}
+
 ACTIVE_CONDITION_EVIDENCE_REQUIREMENTS = {
     ("local_alpha", "local_alpha_runtime_not_validated"): {
         "path_patterns": (r"docker-compose\.yml", r"\.env\.example", r"ops/evidence/(?:local_alpha|local)/"),
@@ -1466,6 +1478,24 @@ def require_concrete_evidence_ref(
     )
 
 
+def rel(path: Path) -> str:
+    return str(path.relative_to(ROOT))
+
+
+def require_evidence_ref_cites_files(
+    evidence_ref: str,
+    paths: list[Path],
+    context: str,
+) -> None:
+    missing_refs = [rel(path) for path in paths if rel(path) not in evidence_ref]
+    require(
+        not missing_refs,
+        f"{context} must cite exact evidence file paths: {missing_refs}",
+    )
+    missing_files = [rel(path) for path in paths if not path.exists()]
+    require(not missing_files, f"{context} cites missing evidence files: {missing_files}")
+
+
 def missing_repo_paths(paths: list[str]) -> list[str]:
     return [path for path in paths if not repo_path(path).exists()]
 
@@ -1847,6 +1877,13 @@ def validate_runtime_gate_evidence_refs(
                 f"{gate}.{check_id} pass evidence must cite gate-specific runtime/deployment evidence paths: "
                 + json.dumps(requirement["path_patterns"]),
             )
+            evidence_files = RUNTIME_PASS_EVIDENCE_FILES.get((gate, check_id))
+            if evidence_files is not None:
+                require_evidence_ref_cites_files(
+                    evidence_ref,
+                    evidence_files,
+                    f"{gate}.{check_id} pass evidence",
+                )
             if (gate, check_id) == ("local_alpha", "local_alpha_e2e_workflow_smoke"):
                 evidence_ref_lower = evidence_ref.lower()
                 for workflow_id, aliases in LOCAL_ALPHA_E2E_WORKFLOW_EVIDENCE_REQUIREMENTS.items():
@@ -4084,6 +4121,7 @@ def validate_launch_readiness_split_contracts() -> None:
     for token in [
         "Fixture or contract evidence can never close CI, Private Beta/Staging, Production Launch, or Do-Not-Launch checklist items by itself",
         "Runtime gate checks that pass must cite environment-specific evidence paths",
+        "Passed runtime gate checks must cite exact validator-owned evidence files when the checklist subitem is closed by a named `ops/evidence` artifact",
         "Passed gate checks and cleared Do-Not-Launch conditions may not mix real and missing concrete artifact paths",
         "Private Beta/Staging check-level runtime subitems must remain open until each matching release gate check has staging evidence",
         "Production check-level runtime subitems must remain open until each matching release gate check has production evidence",
