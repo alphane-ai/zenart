@@ -1611,34 +1611,34 @@ main 合并前必须通过：
 
 ### 25.3 Database Schema
 
-- [ ] 创建 users、sessions、roles、audit logs 表。
-- [ ] 创建 projects、workspaces、canvas nodes/edges/frames/versions 表。
-- [ ] 创建 chat sessions/messages、agent tasks、agent traces 表。
-- [ ] 创建 candidate sets/assets、selected directions 表。
-- [ ] 创建 uploads/assets/object metadata 表。
-- [ ] 创建 packages、package items、exports、share links 表。
-- [ ] 创建 skills、skill versions、skill sources、skill release channels、skill usage stats 表。
-- [ ] 创建 prompt fragments、fragment versions、mutations、mutation reviews 表。
-- [ ] 创建 meta prompts、meta prompt versions、image specs、spec instances、spec evaluations 表。
-- [ ] 创建 eval suites、eval fixtures、eval results 表。
-- [ ] 创建 crawler sources/runs/documents/findings/import reviews 表。
-- [ ] 创建 quota buckets、quota transactions、subscription plans、user subscriptions、provider usage logs 表。
-- [ ] 创建 feedback events/labels/performance daily 表。
-- [ ] 创建 safety rules/decisions、QA results 表。
-- [ ] 创建 support tickets、abuse events、incident logs 表。
-- [ ] 创建 seed：default plan、local admin、local user、internal skills、workflow fixtures、crawler test source。
+- [x] 创建 users、sessions、roles、audit logs 表。
+- [x] 创建 projects、workspaces、canvas nodes/edges/frames/versions 表。
+- [x] 创建 chat sessions/messages、agent tasks、agent traces 表。
+- [x] 创建 candidate sets/assets、selected directions 表。
+- [x] 创建 uploads/assets/object metadata 表。
+- [x] 创建 packages、package items、exports、share links 表。
+- [x] 创建 skills、skill versions、skill sources、skill release channels、skill usage stats 表。
+- [x] 创建 prompt fragments、fragment versions、mutations、mutation reviews 表。
+- [x] 创建 meta prompts、meta prompt versions、image specs、spec instances、spec evaluations 表。
+- [x] 创建 eval suites、eval fixtures、eval results 表。
+- [x] 创建 crawler sources/runs/documents/findings/import reviews 表。
+- [x] 创建 quota buckets、quota transactions、subscription plans、user subscriptions、provider usage logs 表。
+- [x] 创建 feedback events/labels/performance daily 表。
+- [x] 创建 safety rules/decisions、QA results 表。
+- [x] 创建 support tickets、abuse events、incident logs 表。
+- [x] 创建 seed：default plan、local admin、local user、internal skills、workflow fixtures、crawler test source。
 
 ### 25.4 API Contracts
 
-- [ ] 新增 OpenAPI 或等价 API schema。
-- [ ] 定义 shared error envelope。
-- [ ] 定义 auth/RBAC per endpoint。
-- [ ] 定义 pagination/filtering/sorting/search。
-- [ ] 定义 idempotency keys。
-- [ ] 定义 long-running task status。
-- [ ] 生成 Web typed client。
-- [ ] 生成 Admin typed client。
-- [ ] 添加 backend contract tests。
+- [x] 新增 OpenAPI 或等价 API schema。
+- [x] 定义 shared error envelope。
+- [x] 定义 auth/RBAC per endpoint。
+- [x] 定义 pagination/filtering/sorting/search。
+- [x] 定义 idempotency keys。
+- [x] 定义 long-running task status。
+- [x] 生成 Web typed client。
+- [x] 生成 Admin typed client。
+- [x] 添加 backend contract tests。
 - [ ] 添加 CI stale schema/client check。
 
 ### 25.5 Web Foundation

@@ -117,6 +117,11 @@ func TestTaskStatusUsesPrincipalTenant(t *testing.T) {
 		SchemaVersion: 1,
 		Status:        task.StatusRunning,
 		UserStatus:    "running",
+		Progress:      25,
+		RetryCount:    1,
+		UserMessage:   "Generating candidate directions",
+		AppVersion:    "stage0-test",
+		WorkerVersion: "stage0-test",
 		CreatedAt:     now,
 		UpdatedAt:     now,
 	}}
@@ -133,6 +138,16 @@ func TestTaskStatusUsesPrincipalTenant(t *testing.T) {
 	}
 	if repo.tenantID != "tenant_1" {
 		t.Fatalf("tenantID = %q, want tenant_1", repo.tenantID)
+	}
+
+	var body map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("response JSON error = %v", err)
+	}
+	for _, key := range []string{"progress", "retry_count", "timeout_at", "user_message", "app_version", "worker_version"} {
+		if _, ok := body[key]; !ok {
+			t.Fatalf("task status response missing %s", key)
+		}
 	}
 }
 

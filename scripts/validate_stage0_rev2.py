@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 import re
+import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -16,6 +17,8 @@ ROOT = Path(__file__).resolve().parents[1]
 BLUEPRINT = ROOT / "Docs" / "stage0_blueprint_rev2.md"
 SCHEMA_DIR = ROOT / "schemas" / "stage0" / "rev2"
 FIXTURE_DIR = ROOT / "fixtures" / "stage0" / "rev2"
+OPENAPI = ROOT / "openapi" / "zenart.v1.yaml"
+MIGRATION_DIR = ROOT / "backend" / "migrations"
 
 WORKFLOWS = {
     "ecommerce_growth_pack",
@@ -151,6 +154,128 @@ FORBIDDEN_CHECKED_ITEMS = {
     "实现 provenance links。",
     "实现 temporary hold/throttle hooks。",
     "实现 admin abuse queue。",
+}
+
+DATABASE_TABLES = {
+    "users",
+    "sessions",
+    "roles",
+    "audit_logs",
+    "projects",
+    "workspaces",
+    "canvas_nodes",
+    "canvas_edges",
+    "canvas_frames",
+    "canvas_versions",
+    "chat_sessions",
+    "chat_messages",
+    "agent_tasks",
+    "agent_traces",
+    "candidate_sets",
+    "candidate_assets",
+    "selected_directions",
+    "uploads",
+    "assets",
+    "object_metadata",
+    "packages",
+    "package_items",
+    "exports",
+    "share_links",
+    "skills",
+    "skill_versions",
+    "skill_sources",
+    "skill_release_channels",
+    "skill_usage_stats",
+    "prompt_fragments",
+    "fragment_versions",
+    "mutations",
+    "mutation_reviews",
+    "meta_prompts",
+    "meta_prompt_versions",
+    "image_specs",
+    "spec_instances",
+    "spec_evaluations",
+    "eval_suites",
+    "eval_fixtures",
+    "eval_results",
+    "crawler_sources",
+    "crawler_runs",
+    "crawler_documents",
+    "crawler_findings",
+    "crawler_import_reviews",
+    "quota_buckets",
+    "quota_transactions",
+    "subscription_plans",
+    "user_subscriptions",
+    "provider_usage_logs",
+    "feedback_events",
+    "feedback_labels",
+    "feedback_performance_daily",
+    "safety_rules",
+    "safety_decisions",
+    "qa_results",
+    "support_tickets",
+    "abuse_events",
+    "incident_logs",
+}
+
+DATABASE_SEED_TOKENS = {
+    "plan_default_local",
+    "user_local_admin",
+    "user_local_user",
+    "skill_internal_workflow_planner",
+    "skill_internal_export_builder",
+    "project_local_ecommerce_growth",
+    "project_local_business_doc",
+    "project_local_merchant_campaign",
+    "project_local_character_ip",
+    "crawler_source_stage0_allowed",
+}
+
+OPENAPI_REQUIRED_TOKENS = {
+    "openapi: 3.1.0",
+    "ErrorEnvelope:",
+    "request_id:",
+    "x-rbac: user",
+    "x-rbac: admin",
+    "page_token",
+    "page_size",
+    "sort",
+    "search",
+    "Idempotency-Key",
+    "x-idempotency-required: true",
+    "TaskStatus:",
+    "enum: [pending, running, succeeded, failed, cancelled]",
+    "progress:",
+    "retry_count:",
+    "timeout_at:",
+    "app_version:",
+    "worker_version:",
+}
+
+OPENAPI_REQUIRED_OPERATION_IDS = {
+    "getSession",
+    "getAccount",
+    "listProjects",
+    "getWorkspace",
+    "createChatMessage",
+    "getTask",
+    "listCandidateSets",
+    "listCanvasNodes",
+    "createUpload",
+    "listAssets",
+    "createPackage",
+    "createExport",
+    "getQuota",
+    "getSubscription",
+    "createSupportTicket",
+    "listSkills",
+    "listCrawlerSources",
+    "listPromptFragments",
+    "listTraces",
+    "listFeedback",
+    "listSafetyRules",
+    "listAuditLogs",
 }
 
 
@@ -581,6 +706,79 @@ def validate_local_alpha_presence() -> None:
     require(not missing, f"local alpha service presence missing required files: {missing}")
 
 
+def validate_database_schema_artifacts() -> None:
+    migrations = "\n".join(path.read_text(encoding="utf-8") for path in sorted(MIGRATION_DIR.glob("*.sql")))
+    runner = (ROOT / "backend" / "cmd" / "migrate" / "main.go").read_text(encoding="utf-8")
+    require("schema_migrations" in runner, "migration runner schema_migrations table must be present")
+    require("forward-only" in migrations, "migrations must document forward-only policy")
+    require("Rollback safety:" in migrations, "migrations must document rollback safety")
+    require("Expand/contract policy:" in migrations, "migrations must document expand/contract policy")
+
+    missing_tables = {
+        table
+        for table in DATABASE_TABLES
+        if f"CREATE TABLE IF NOT EXISTS {table}" not in migrations
+    }
+    require(not missing_tables, f"database migrations missing tables: {sorted(missing_tables)}")
+
+    missing_seed = {token for token in DATABASE_SEED_TOKENS if token not in migrations}
+    require(not missing_seed, f"database migrations missing seed artifacts: {sorted(missing_seed)}")
+
+    for token in ["progress", "retry_count", "timeout_at", "app_version", "worker_version", "schema_version"]:
+        require(token in migrations, f"agent task migration missing {token}")
+
+
+def validate_openapi_contract() -> None:
+    require(OPENAPI.exists(), "missing openapi/zenart.v1.yaml")
+    text = OPENAPI.read_text(encoding="utf-8")
+    missing = {token for token in OPENAPI_REQUIRED_TOKENS if token not in text}
+    require(not missing, f"OpenAPI contract missing required tokens: {sorted(missing)}")
+
+    operation_ids = set(re.findall(r"operationId: ([A-Za-z0-9_]+)", text))
+    missing_operations = OPENAPI_REQUIRED_OPERATION_IDS - operation_ids
+    require(not missing_operations, f"OpenAPI contract missing operations: {sorted(missing_operations)}")
+    require(len(operation_ids) == len(re.findall(r"operationId: ", text)), "OpenAPI operationIds must be unique")
+
+    mutating_blocks = re.findall(
+        r"^    (post|put|patch|delete):\n(?P<body>(?:^      .+\n|^        .+\n|^          .+\n|^            .+\n|^              .+\n|^                .+\n|^                  .+\n)+)",
+        text,
+        flags=re.MULTILINE,
+    )
+    for method, body in mutating_blocks:
+        operation_match = re.search(r"operationId: ([A-Za-z0-9_]+)", body)
+        operation_id = operation_match.group(1) if operation_match else f"{method} operation"
+        if operation_id == "deleteSession":
+            continue
+        require(
+            "x-idempotency-required: true" in body and "$ref: \"#/components/parameters/IdempotencyKey\"" in body,
+            f"{operation_id} must require idempotency key",
+        )
+
+
+def validate_generated_openapi_clients() -> None:
+    for target in [
+        ROOT / "web" / "lib" / "generated" / "zenart-api.ts",
+        ROOT / "admin" / "lib" / "generated" / "zenart-api.ts",
+    ]:
+        require(target.exists(), f"missing generated client: {target.relative_to(ROOT)}")
+        text = target.read_text(encoding="utf-8")
+        require("Generated by scripts/generate_openapi_clients.py" in text, f"{target.relative_to(ROOT)} must be generated")
+        require("ErrorEnvelope" in text, f"{target.relative_to(ROOT)} missing ErrorEnvelope")
+        require("TaskStatus" in text, f"{target.relative_to(ROOT)} missing TaskStatus")
+
+    result = subprocess.run(
+        [sys.executable, str(ROOT / "scripts" / "generate_openapi_clients.py"), "--check"],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    require(
+        result.returncode == 0,
+        "generated OpenAPI clients are stale: " + (result.stderr or result.stdout).strip(),
+    )
+
+
 def main() -> int:
     checks = [
         validate_json_files,
@@ -593,6 +791,9 @@ def main() -> int:
         validate_local_alpha_presence,
         validate_release_gate_evidence,
         validate_blueprint_checklist,
+        validate_database_schema_artifacts,
+        validate_openapi_contract,
+        validate_generated_openapi_clients,
     ]
     try:
         for check in checks:

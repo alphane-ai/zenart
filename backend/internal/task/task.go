@@ -29,7 +29,7 @@ func RepositoryFromContext(ctx context.Context) (Reader, bool) {
 type Status string
 
 const (
-	StatusQueued    Status = "queued"
+	StatusPending   Status = "pending"
 	StatusRunning   Status = "running"
 	StatusSucceeded Status = "succeeded"
 	StatusFailed    Status = "failed"
@@ -44,6 +44,12 @@ type Task struct {
 	Status         Status         `json:"status"`
 	UserStatus     string         `json:"user_status"`
 	IdempotencyKey string         `json:"idempotency_key,omitempty"`
+	Progress       float64        `json:"progress"`
+	RetryCount     int            `json:"retry_count"`
+	TimeoutAt      *time.Time     `json:"timeout_at"`
+	UserMessage    string         `json:"user_message"`
+	AppVersion     string         `json:"app_version"`
+	WorkerVersion  string         `json:"worker_version"`
 	Error          *TaskError     `json:"error,omitempty"`
 	Metadata       map[string]any `json:"metadata,omitempty"`
 	CreatedAt      time.Time      `json:"created_at"`
@@ -69,7 +75,7 @@ func (r Repository) Get(ctx context.Context, tenantID, taskID string) (Task, err
 	var errorJSON []byte
 	var metadataJSON []byte
 	err := r.db.QueryRow(ctx, `
-SELECT id, tenant_id, type, schema_version, status, user_status, idempotency_key, error, metadata, created_at, updated_at
+SELECT id, tenant_id, type, schema_version, status, user_status, idempotency_key, progress, retry_count, timeout_at, user_message, app_version, worker_version, error, metadata, created_at, updated_at
 FROM agent_tasks
 WHERE tenant_id = $1 AND id = $2`,
 		tenantID,
@@ -82,6 +88,12 @@ WHERE tenant_id = $1 AND id = $2`,
 		&task.Status,
 		&task.UserStatus,
 		&task.IdempotencyKey,
+		&task.Progress,
+		&task.RetryCount,
+		&task.TimeoutAt,
+		&task.UserMessage,
+		&task.AppVersion,
+		&task.WorkerVersion,
 		&errorJSON,
 		&metadataJSON,
 		&task.CreatedAt,

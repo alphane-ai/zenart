@@ -92,10 +92,11 @@ func BaseStepContracts(schemaVersion int) []StepContract {
 			Quota:       QuotaPolicy{Mode: "reserve_commit_refund", EstimateUnits: 0},
 			Safety:      SafetyPolicy{RequiredChecks: []string{"policy_version_present"}},
 			UserStatusMapping: map[string]string{
-				"queued":    "queued",
+				"pending":   "pending",
 				"running":   "running",
 				"succeeded": "completed",
 				"failed":    "failed",
+				"cancelled": "cancelled",
 			},
 			AdminDebugVisibility: AdminDebugVisibility{
 				ShowInput:      true,

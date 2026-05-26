@@ -1,0 +1,1973 @@
+openapi: 3.1.0
+info:
+  title: ZenArt API
+  version: 0.1.0-stage0-rev2
+  description: Stage 0 Rev2 API contract. Docs/stage0_blueprint_rev2.md is authoritative.
+servers:
+  - url: /api/v1
+    description: User API
+  - url: /api/admin/v1
+    description: Admin API
+security:
+  - ZenArtSession: []
+tags:
+  - name: auth
+  - name: projects
+  - name: workspace
+  - name: chat
+  - name: tasks
+  - name: candidates
+  - name: canvas
+  - name: assets
+  - name: packages
+  - name: quota
+  - name: support
+  - name: skills
+  - name: crawler
+  - name: prompts
+  - name: traces
+  - name: feedback
+  - name: safety
+  - name: audit
+paths:
+  /session:
+    get:
+      operationId: getSession
+      tags: [auth]
+      x-rbac: user
+      responses:
+        "200":
+          description: Active user session and account state.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Session"
+        default:
+          $ref: "#/components/responses/Error"
+    delete:
+      operationId: deleteSession
+      tags: [auth]
+      x-rbac: user
+      responses:
+        "204":
+          description: Session revoked.
+        default:
+          $ref: "#/components/responses/Error"
+  /account:
+    get:
+      operationId: getAccount
+      tags: [auth]
+      x-rbac: user
+      responses:
+        "200":
+          description: Account settings.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Account"
+        default:
+          $ref: "#/components/responses/Error"
+    patch:
+      operationId: updateAccount
+      tags: [auth]
+      x-rbac: user
+      x-idempotency-required: true
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AccountUpdate"
+      responses:
+        "200":
+          description: Updated account settings.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Account"
+        default:
+          $ref: "#/components/responses/Error"
+  /projects:
+    get:
+      operationId: listProjects
+      tags: [projects]
+      x-rbac: user
+      parameters:
+        - $ref: "#/components/parameters/PageToken"
+        - $ref: "#/components/parameters/PageSize"
+        - $ref: "#/components/parameters/Sort"
+        - $ref: "#/components/parameters/Search"
+        - $ref: "#/components/parameters/StatusFilter"
+      responses:
+        "200":
+          description: Project page.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectPage"
+        default:
+          $ref: "#/components/responses/Error"
+    post:
+      operationId: createProject
+      tags: [projects]
+      x-rbac: user
+      x-idempotency-required: true
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProjectCreate"
+      responses:
+        "201":
+          description: Created project.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Project"
+        default:
+          $ref: "#/components/responses/Error"
+  /projects/{project_id}:
+    get:
+      operationId: getProject
+      tags: [projects]
+      x-rbac: user
+      parameters:
+        - $ref: "#/components/parameters/ProjectId"
+      responses:
+        "200":
+          description: Project detail.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Project"
+        default:
+          $ref: "#/components/responses/Error"
+    patch:
+      operationId: updateProject
+      tags: [projects]
+      x-rbac: user
+      x-idempotency-required: true
+      parameters:
+        - $ref: "#/components/parameters/ProjectId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProjectUpdate"
+      responses:
+        "200":
+          description: Updated project.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Project"
+        default:
+          $ref: "#/components/responses/Error"
+  /projects/{project_id}/workspace:
+    get:
+      operationId: getWorkspace
+      tags: [workspace]
+      x-rbac: user
+      parameters:
+        - $ref: "#/components/parameters/ProjectId"
+      responses:
+        "200":
+          description: Workspace state.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Workspace"
+        default:
+          $ref: "#/components/responses/Error"
+  /projects/{project_id}/chat/sessions:
+    post:
+      operationId: createChatSession
+      tags: [chat]
+      x-rbac: user
+      x-idempotency-required: true
+      parameters:
+        - $ref: "#/components/parameters/ProjectId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatSessionCreate"
+      responses:
+        "201":
+          description: Chat session.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatSession"
+        default:
+          $ref: "#/components/responses/Error"
+  /chat/sessions/{chat_session_id}/messages:
+    get:
+      operationId: listChatMessages
+      tags: [chat]
+      x-rbac: user
+      parameters:
+        - $ref: "#/components/parameters/ChatSessionId"
+        - $ref: "#/components/parameters/PageToken"
+        - $ref: "#/components/parameters/PageSize"
+        - $ref: "#/components/parameters/Sort"
+      responses:
+        "200":
+          description: Chat message page.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatMessagePage"
+        default:
+          $ref: "#/components/responses/Error"
+    post:
+      operationId: createChatMessage
+      tags: [chat]
+      x-rbac: user
+      x-idempotency-required: true
+      parameters:
+        - $ref: "#/components/parameters/ChatSessionId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatMessageCreate"
+      responses:
+        "202":
+          description: Accepted agent task for message processing.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskStatus"
+        default:
+          $ref: "#/components/responses/Error"
+  /tasks/{task_id}:
+    get:
+      operationId: getTask
+      tags: [tasks]
+      x-rbac: user
+      parameters:
+        - $ref: "#/components/parameters/TaskId"
+      responses:
+        "200":
+          description: Long-running task status.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskStatus"
+        default:
+          $ref: "#/components/responses/Error"
+  /projects/{project_id}/candidate-sets:
+    get:
+      operationId: listCandidateSets
+      tags: [candidates]
+      x-rbac: user
+      parameters:
+        - $ref: "#/components/parameters/ProjectId"
+        - $ref: "#/components/parameters/PageToken"
+        - $ref: "#/components/parameters/PageSize"
+        - $ref: "#/components/parameters/StatusFilter"
+      responses:
+        "200":
+          description: Candidate set page.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CandidateSetPage"
+        default:
+          $ref: "#/components/responses/Error"
+    post:
+      operationId: createCandidateSet
+      tags: [candidates]
+      x-rbac: user
+      x-idempotency-required: true
+      parameters:
+        - $ref: "#/components/parameters/ProjectId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CandidateSetCreate"
+      responses:
+        "202":
+          description: Candidate generation task accepted.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskStatus"
+        default:
+          $ref: "#/components/responses/Error"
+  /candidate-sets/{candidate_set_id}/assets:
+    get:
+      operationId: listCandidateAssets
+      tags: [candidates]
+      x-rbac: user
+      parameters:
+        - $ref: "#/components/parameters/CandidateSetId"
+        - $ref: "#/components/parameters/PageToken"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: Candidate asset page.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CandidateAssetPage"
+        default:
+          $ref: "#/components/responses/Error"
+  /projects/{project_id}/selected-direction:
+    put:
+      operationId: selectDirection
+      tags: [candidates]
+      x-rbac: user
+      x-idempotency-required: true
+      parameters:
+        - $ref: "#/components/parameters/ProjectId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SelectedDirectionCreate"
+      responses:
+        "200":
+          description: Selected direction.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SelectedDirection"
+        default:
+          $ref: "#/components/responses/Error"
+  /workspaces/{workspace_id}/canvas/nodes:
+    get:
+      operationId: listCanvasNodes
+      tags: [canvas]
+      x-rbac: user
+      parameters:
+        - $ref: "#/components/parameters/WorkspaceId"
+        - $ref: "#/components/parameters/PageToken"
+        - $ref: "#/components/parameters/PageSize"
+        - $ref: "#/components/parameters/Search"
+      responses:
+        "200":
+          description: Canvas node page.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CanvasNodePage"
+        default:
+          $ref: "#/components/responses/Error"
+    post:
+      operationId: createCanvasNode
+      tags: [canvas]
+      x-rbac: user
+      x-idempotency-required: true
+      parameters:
+        - $ref: "#/components/parameters/WorkspaceId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CanvasNodeCreate"
+      responses:
+        "201":
+          description: Canvas node.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CanvasNode"
+        default:
+          $ref: "#/components/responses/Error"
+  /workspaces/{workspace_id}/canvas/frames:
+    get:
+      operationId: listCanvasFrames
+      tags: [canvas]
+      x-rbac: user
+      parameters:
+        - $ref: "#/components/parameters/WorkspaceId"
+        - $ref: "#/components/parameters/PageToken"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: Canvas frame page.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CanvasFramePage"
+        default:
+          $ref: "#/components/responses/Error"
+  /workspaces/{workspace_id}/canvas/versions:
+    get:
+      operationId: listCanvasVersions
+      tags: [canvas]
+      x-rbac: user
+      parameters:
+        - $ref: "#/components/parameters/WorkspaceId"
+        - $ref: "#/components/parameters/PageToken"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: Canvas version page.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CanvasVersionPage"
+        default:
+          $ref: "#/components/responses/Error"
+    post:
+      operationId: createCanvasVersion
+      tags: [canvas]
+      x-rbac: user
+      x-idempotency-required: true
+      parameters:
+        - $ref: "#/components/parameters/WorkspaceId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CanvasVersionCreate"
+      responses:
+        "201":
+          description: Canvas version.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CanvasVersion"
+        default:
+          $ref: "#/components/responses/Error"
+  /uploads:
+    post:
+      operationId: createUpload
+      tags: [assets]
+      x-rbac: user
+      x-idempotency-required: true
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UploadCreate"
+      responses:
+        "201":
+          description: Upload request and object metadata.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Upload"
+        default:
+          $ref: "#/components/responses/Error"
+  /assets:
+    get:
+      operationId: listAssets
+      tags: [assets]
+      x-rbac: user
+      parameters:
+        - $ref: "#/components/parameters/PageToken"
+        - $ref: "#/components/parameters/PageSize"
+        - $ref: "#/components/parameters/StatusFilter"
+        - $ref: "#/components/parameters/Search"
+      responses:
+        "200":
+          description: Asset page.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssetPage"
+        default:
+          $ref: "#/components/responses/Error"
+  /projects/{project_id}/packages:
+    get:
+      operationId: listPackages
+      tags: [packages]
+      x-rbac: user
+      parameters:
+        - $ref: "#/components/parameters/ProjectId"
+        - $ref: "#/components/parameters/PageToken"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: Package page.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PackagePage"
+        default:
+          $ref: "#/components/responses/Error"
+    post:
+      operationId: createPackage
+      tags: [packages]
+      x-rbac: user
+      x-idempotency-required: true
+      parameters:
+        - $ref: "#/components/parameters/ProjectId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PackageCreate"
+      responses:
+        "201":
+          description: Package.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Package"
+        default:
+          $ref: "#/components/responses/Error"
+  /packages/{package_id}/exports:
+    post:
+      operationId: createExport
+      tags: [packages]
+      x-rbac: user
+      x-idempotency-required: true
+      parameters:
+        - $ref: "#/components/parameters/PackageId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExportCreate"
+      responses:
+        "202":
+          description: Export task accepted.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskStatus"
+        default:
+          $ref: "#/components/responses/Error"
+  /exports/{export_id}:
+    get:
+      operationId: getExport
+      tags: [packages]
+      x-rbac: user
+      parameters:
+        - $ref: "#/components/parameters/ExportId"
+      responses:
+        "200":
+          description: Export record.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Export"
+        default:
+          $ref: "#/components/responses/Error"
+  /exports/{export_id}/share-links:
+    post:
+      operationId: createShareLink
+      tags: [packages]
+      x-rbac: user
+      x-idempotency-required: true
+      parameters:
+        - $ref: "#/components/parameters/ExportId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ShareLinkCreate"
+      responses:
+        "201":
+          description: Private share link.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ShareLink"
+        default:
+          $ref: "#/components/responses/Error"
+  /quota:
+    get:
+      operationId: getQuota
+      tags: [quota]
+      x-rbac: user
+      responses:
+        "200":
+          description: Quota state.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuotaState"
+        default:
+          $ref: "#/components/responses/Error"
+  /billing/subscription:
+    get:
+      operationId: getSubscription
+      tags: [quota]
+      x-rbac: user
+      responses:
+        "200":
+          description: Subscription state.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserSubscription"
+        default:
+          $ref: "#/components/responses/Error"
+  /support/tickets:
+    post:
+      operationId: createSupportTicket
+      tags: [support]
+      x-rbac: user
+      x-idempotency-required: true
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SupportTicketCreate"
+      responses:
+        "201":
+          description: Support ticket.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SupportTicket"
+        default:
+          $ref: "#/components/responses/Error"
+  /skills:
+    get:
+      operationId: listSkills
+      tags: [skills]
+      x-rbac: admin
+      parameters:
+        - $ref: "#/components/parameters/PageToken"
+        - $ref: "#/components/parameters/PageSize"
+        - $ref: "#/components/parameters/Search"
+        - $ref: "#/components/parameters/StatusFilter"
+      responses:
+        "200":
+          description: Skill page.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SkillPage"
+        default:
+          $ref: "#/components/responses/Error"
+  /skills/{skill_id}/versions:
+    get:
+      operationId: listSkillVersions
+      tags: [skills]
+      x-rbac: admin
+      parameters:
+        - $ref: "#/components/parameters/SkillId"
+        - $ref: "#/components/parameters/PageToken"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: Skill version page.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SkillVersionPage"
+        default:
+          $ref: "#/components/responses/Error"
+  /crawler/sources:
+    get:
+      operationId: listCrawlerSources
+      tags: [crawler]
+      x-rbac: admin
+      parameters:
+        - $ref: "#/components/parameters/PageToken"
+        - $ref: "#/components/parameters/PageSize"
+        - $ref: "#/components/parameters/StatusFilter"
+        - $ref: "#/components/parameters/Search"
+      responses:
+        "200":
+          description: Crawler source page.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CrawlerSourcePage"
+        default:
+          $ref: "#/components/responses/Error"
+  /crawler/runs:
+    get:
+      operationId: listCrawlerRuns
+      tags: [crawler]
+      x-rbac: admin
+      parameters:
+        - $ref: "#/components/parameters/PageToken"
+        - $ref: "#/components/parameters/PageSize"
+        - $ref: "#/components/parameters/StatusFilter"
+      responses:
+        "200":
+          description: Crawler run page.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CrawlerRunPage"
+        default:
+          $ref: "#/components/responses/Error"
+  /crawler/findings:
+    get:
+      operationId: listCrawlerFindings
+      tags: [crawler]
+      x-rbac: admin
+      parameters:
+        - $ref: "#/components/parameters/PageToken"
+        - $ref: "#/components/parameters/PageSize"
+        - $ref: "#/components/parameters/StatusFilter"
+        - $ref: "#/components/parameters/Search"
+      responses:
+        "200":
+          description: Crawler finding page.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CrawlerFindingPage"
+        default:
+          $ref: "#/components/responses/Error"
+  /prompt-fragments:
+    get:
+      operationId: listPromptFragments
+      tags: [prompts]
+      x-rbac: admin
+      parameters:
+        - $ref: "#/components/parameters/PageToken"
+        - $ref: "#/components/parameters/PageSize"
+        - $ref: "#/components/parameters/Search"
+        - $ref: "#/components/parameters/StatusFilter"
+      responses:
+        "200":
+          description: Prompt fragment page.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PromptFragmentPage"
+        default:
+          $ref: "#/components/responses/Error"
+  /meta-prompts:
+    get:
+      operationId: listMetaPrompts
+      tags: [prompts]
+      x-rbac: admin
+      parameters:
+        - $ref: "#/components/parameters/PageToken"
+        - $ref: "#/components/parameters/PageSize"
+        - $ref: "#/components/parameters/Search"
+        - $ref: "#/components/parameters/StatusFilter"
+      responses:
+        "200":
+          description: Meta prompt page.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MetaPromptPage"
+        default:
+          $ref: "#/components/responses/Error"
+  /traces:
+    get:
+      operationId: listTraces
+      tags: [traces]
+      x-rbac: admin
+      parameters:
+        - $ref: "#/components/parameters/PageToken"
+        - $ref: "#/components/parameters/PageSize"
+        - $ref: "#/components/parameters/StatusFilter"
+        - $ref: "#/components/parameters/Search"
+      responses:
+        "200":
+          description: Agent trace page.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgentTracePage"
+        default:
+          $ref: "#/components/responses/Error"
+  /traces/{trace_id}:
+    get:
+      operationId: getTrace
+      tags: [traces]
+      x-rbac: admin
+      parameters:
+        - $ref: "#/components/parameters/TraceId"
+      responses:
+        "200":
+          description: Agent trace detail.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgentTrace"
+        default:
+          $ref: "#/components/responses/Error"
+  /feedback:
+    get:
+      operationId: listFeedback
+      tags: [feedback]
+      x-rbac: admin
+      parameters:
+        - $ref: "#/components/parameters/PageToken"
+        - $ref: "#/components/parameters/PageSize"
+        - $ref: "#/components/parameters/StatusFilter"
+      responses:
+        "200":
+          description: Feedback event page.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FeedbackEventPage"
+        default:
+          $ref: "#/components/responses/Error"
+  /safety/rules:
+    get:
+      operationId: listSafetyRules
+      tags: [safety]
+      x-rbac: admin
+      parameters:
+        - $ref: "#/components/parameters/PageToken"
+        - $ref: "#/components/parameters/PageSize"
+        - $ref: "#/components/parameters/StatusFilter"
+        - $ref: "#/components/parameters/Search"
+      responses:
+        "200":
+          description: Safety rule page.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SafetyRulePage"
+        default:
+          $ref: "#/components/responses/Error"
+  /audit:
+    get:
+      operationId: listAuditLogs
+      tags: [audit]
+      x-rbac: admin
+      parameters:
+        - $ref: "#/components/parameters/PageToken"
+        - $ref: "#/components/parameters/PageSize"
+        - $ref: "#/components/parameters/Sort"
+        - $ref: "#/components/parameters/Search"
+      responses:
+        "200":
+          description: Audit log page.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditLogPage"
+        default:
+          $ref: "#/components/responses/Error"
+components:
+  securitySchemes:
+    ZenArtSession:
+      type: apiKey
+      in: header
+      name: X-Zenart-User-ID
+      description: Stage 0 local session header. Production auth must replace this with signed session validation.
+  parameters:
+    PageToken:
+      name: page_token
+      in: query
+      schema:
+        type: string
+      description: Cursor token returned by the previous page.
+    PageSize:
+      name: page_size
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 25
+      description: Maximum records to return.
+    Sort:
+      name: sort
+      in: query
+      schema:
+        type: string
+        example: "-created_at"
+      description: Comma-separated sort keys. Prefix with - for descending.
+    Search:
+      name: search
+      in: query
+      schema:
+        type: string
+        maxLength: 200
+      description: Search text applied to indexed text fields.
+    StatusFilter:
+      name: status
+      in: query
+      schema:
+        type: string
+      description: Filter by resource status.
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema:
+        type: string
+        minLength: 8
+        maxLength: 200
+      description: Required for mutating requests so retries are safe.
+    ProjectId:
+      name: project_id
+      in: path
+      required: true
+      schema:
+        type: string
+    WorkspaceId:
+      name: workspace_id
+      in: path
+      required: true
+      schema:
+        type: string
+    ChatSessionId:
+      name: chat_session_id
+      in: path
+      required: true
+      schema:
+        type: string
+    TaskId:
+      name: task_id
+      in: path
+      required: true
+      schema:
+        type: string
+    CandidateSetId:
+      name: candidate_set_id
+      in: path
+      required: true
+      schema:
+        type: string
+    PackageId:
+      name: package_id
+      in: path
+      required: true
+      schema:
+        type: string
+    ExportId:
+      name: export_id
+      in: path
+      required: true
+      schema:
+        type: string
+    SkillId:
+      name: skill_id
+      in: path
+      required: true
+      schema:
+        type: string
+    TraceId:
+      name: trace_id
+      in: path
+      required: true
+      schema:
+        type: string
+  responses:
+    Error:
+      description: Shared error envelope.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+  schemas:
+    ErrorEnvelope:
+      type: object
+      required: [code, message, request_id, details, field_errors]
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        request_id:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+        field_errors:
+          type: array
+          items:
+            $ref: "#/components/schemas/FieldError"
+    FieldError:
+      type: object
+      required: [field, message]
+      properties:
+        field:
+          type: string
+        message:
+          type: string
+        code:
+          type: string
+    PageInfo:
+      type: object
+      required: [next_page_token, total_count]
+      properties:
+        next_page_token:
+          type: string
+        total_count:
+          type: integer
+          minimum: 0
+    Session:
+      type: object
+      required: [id, user, tenant_id, roles, expires_at]
+      properties:
+        id:
+          type: string
+        user:
+          $ref: "#/components/schemas/User"
+        tenant_id:
+          type: string
+        roles:
+          type: array
+          items:
+            type: string
+        expires_at:
+          type: string
+          format: date-time
+    User:
+      type: object
+      required: [id, email, display_name]
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+          format: email
+        display_name:
+          type: string
+    Account:
+      type: object
+      required: [user, settings]
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+        settings:
+          type: object
+          additionalProperties: true
+    AccountUpdate:
+      type: object
+      properties:
+        display_name:
+          type: string
+        settings:
+          type: object
+          additionalProperties: true
+    Project:
+      type: object
+      required: [id, tenant_id, owner_id, name, status, workflow_id, brief, created_at, updated_at]
+      properties:
+        id:
+          type: string
+        tenant_id:
+          type: string
+        owner_id:
+          type: string
+        name:
+          type: string
+        status:
+          type: string
+        workflow_id:
+          type: string
+        brief:
+          type: string
+        metadata:
+          type: object
+          additionalProperties: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    ProjectCreate:
+      type: object
+      required: [name, workflow_id]
+      properties:
+        name:
+          type: string
+        workflow_id:
+          type: string
+        brief:
+          type: string
+    ProjectUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        brief:
+          type: string
+        status:
+          type: string
+    ProjectPage:
+      allOf:
+        - $ref: "#/components/schemas/PageInfo"
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/Project"
+    Workspace:
+      type: object
+      required: [id, project_id, nodes, edges, frames, versions]
+      properties:
+        id:
+          type: string
+        project_id:
+          type: string
+        nodes:
+          type: array
+          items:
+            $ref: "#/components/schemas/CanvasNode"
+        edges:
+          type: array
+          items:
+            $ref: "#/components/schemas/CanvasEdge"
+        frames:
+          type: array
+          items:
+            $ref: "#/components/schemas/CanvasFrame"
+        versions:
+          type: array
+          items:
+            $ref: "#/components/schemas/CanvasVersion"
+    ChatSessionCreate:
+      type: object
+      properties:
+        title:
+          type: string
+    ChatSession:
+      type: object
+      required: [id, project_id, status, created_at]
+      properties:
+        id:
+          type: string
+        project_id:
+          type: string
+        status:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+    ChatMessageCreate:
+      type: object
+      required: [body]
+      properties:
+        body:
+          type: string
+        references:
+          type: array
+          items:
+            type: string
+    ChatMessage:
+      type: object
+      required: [id, chat_session_id, role, body, created_at]
+      properties:
+        id:
+          type: string
+        chat_session_id:
+          type: string
+        role:
+          type: string
+          enum: [user, assistant, system]
+        body:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+    ChatMessagePage:
+      allOf:
+        - $ref: "#/components/schemas/PageInfo"
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/ChatMessage"
+    TaskStatus:
+      type: object
+      required:
+        - id
+        - tenant_id
+        - type
+        - schema_version
+        - status
+        - progress
+        - retry_count
+        - timeout_at
+        - user_message
+        - app_version
+        - worker_version
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+        tenant_id:
+          type: string
+        type:
+          type: string
+        schema_version:
+          type: integer
+        status:
+          type: string
+          enum: [pending, running, succeeded, failed, cancelled]
+        progress:
+          type: number
+          minimum: 0
+          maximum: 100
+        retry_count:
+          type: integer
+          minimum: 0
+        timeout_at:
+          type: string
+          format: date-time
+          nullable: true
+        error:
+          $ref: "#/components/schemas/TaskError"
+        user_message:
+          type: string
+        app_version:
+          type: string
+        worker_version:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    TaskError:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+    CandidateSetCreate:
+      type: object
+      required: [workflow_id, brief]
+      properties:
+        workflow_id:
+          type: string
+        brief:
+          type: string
+    CandidateSet:
+      type: object
+      required: [id, project_id, workflow_id, status, created_at]
+      properties:
+        id:
+          type: string
+        project_id:
+          type: string
+        workflow_id:
+          type: string
+        status:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+    CandidateSetPage:
+      allOf:
+        - $ref: "#/components/schemas/PageInfo"
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/CandidateSet"
+    CandidateAsset:
+      type: object
+      required: [id, candidate_set_id, asset_kind, status, provenance, qa_status]
+      properties:
+        id:
+          type: string
+        candidate_set_id:
+          type: string
+        asset_kind:
+          type: string
+        status:
+          type: string
+        provenance:
+          type: object
+          additionalProperties: true
+        qa_status:
+          type: string
+    CandidateAssetPage:
+      allOf:
+        - $ref: "#/components/schemas/PageInfo"
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/CandidateAsset"
+    SelectedDirectionCreate:
+      type: object
+      required: [candidate_asset_id]
+      properties:
+        candidate_asset_id:
+          type: string
+        rationale:
+          type: string
+    SelectedDirection:
+      type: object
+      required: [id, project_id, candidate_asset_id, selected_by, created_at]
+      properties:
+        id:
+          type: string
+        project_id:
+          type: string
+        candidate_asset_id:
+          type: string
+        selected_by:
+          type: string
+        rationale:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+    CanvasNodeCreate:
+      type: object
+      required: [node_type, body]
+      properties:
+        node_type:
+          type: string
+        title:
+          type: string
+        body:
+          type: object
+          additionalProperties: true
+        x:
+          type: number
+        y:
+          type: number
+    CanvasNode:
+      type: object
+      required: [id, workspace_id, node_type, body, x, y]
+      properties:
+        id:
+          type: string
+        workspace_id:
+          type: string
+        node_type:
+          type: string
+        title:
+          type: string
+        body:
+          type: object
+          additionalProperties: true
+        x:
+          type: number
+        y:
+          type: number
+    CanvasNodePage:
+      allOf:
+        - $ref: "#/components/schemas/PageInfo"
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/CanvasNode"
+    CanvasEdge:
+      type: object
+      required: [id, from_node_id, to_node_id, edge_type]
+      properties:
+        id:
+          type: string
+        from_node_id:
+          type: string
+        to_node_id:
+          type: string
+        edge_type:
+          type: string
+    CanvasFrame:
+      type: object
+      required: [id, workspace_id, name, width, height]
+      properties:
+        id:
+          type: string
+        workspace_id:
+          type: string
+        name:
+          type: string
+        width:
+          type: number
+        height:
+          type: number
+    CanvasFramePage:
+      allOf:
+        - $ref: "#/components/schemas/PageInfo"
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/CanvasFrame"
+    CanvasVersionCreate:
+      type: object
+      required: [label, snapshot]
+      properties:
+        label:
+          type: string
+        snapshot:
+          type: object
+          additionalProperties: true
+    CanvasVersion:
+      type: object
+      required: [id, workspace_id, version_number, label, created_at]
+      properties:
+        id:
+          type: string
+        workspace_id:
+          type: string
+        version_number:
+          type: integer
+        label:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+    CanvasVersionPage:
+      allOf:
+        - $ref: "#/components/schemas/PageInfo"
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/CanvasVersion"
+    UploadCreate:
+      type: object
+      required: [filename, content_type, byte_size]
+      properties:
+        filename:
+          type: string
+        content_type:
+          type: string
+        byte_size:
+          type: integer
+          minimum: 0
+    Upload:
+      type: object
+      required: [id, status, object_key]
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+        object_key:
+          type: string
+    Asset:
+      type: object
+      required: [id, asset_type, status, provenance, created_at]
+      properties:
+        id:
+          type: string
+        asset_type:
+          type: string
+        status:
+          type: string
+        provenance:
+          type: object
+          additionalProperties: true
+        created_at:
+          type: string
+          format: date-time
+    AssetPage:
+      allOf:
+        - $ref: "#/components/schemas/PageInfo"
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/Asset"
+    PackageCreate:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+    Package:
+      type: object
+      required: [id, project_id, status, manifest, created_at]
+      properties:
+        id:
+          type: string
+        project_id:
+          type: string
+        status:
+          type: string
+        manifest:
+          type: object
+          additionalProperties: true
+        created_at:
+          type: string
+          format: date-time
+    PackagePage:
+      allOf:
+        - $ref: "#/components/schemas/PageInfo"
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/Package"
+    ExportCreate:
+      type: object
+      required: [format]
+      properties:
+        format:
+          type: string
+          enum: [zip, pdf]
+    Export:
+      type: object
+      required: [id, package_id, format, status, qa_status, created_at]
+      properties:
+        id:
+          type: string
+        package_id:
+          type: string
+        format:
+          type: string
+        status:
+          type: string
+        qa_status:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+    ShareLinkCreate:
+      type: object
+      properties:
+        expires_at:
+          type: string
+          format: date-time
+    ShareLink:
+      type: object
+      required: [id, export_id, scope, expires_at, revoked_at, created_at]
+      properties:
+        id:
+          type: string
+        export_id:
+          type: string
+        scope:
+          type: string
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+        revoked_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+    QuotaState:
+      type: object
+      required: [buckets, transactions]
+      properties:
+        buckets:
+          type: array
+          items:
+            $ref: "#/components/schemas/QuotaBucket"
+        transactions:
+          type: array
+          items:
+            $ref: "#/components/schemas/QuotaTransaction"
+    QuotaBucket:
+      type: object
+      required: [id, limit_units, used_units, reserved_units, resets_at]
+      properties:
+        id:
+          type: string
+        limit_units:
+          type: integer
+        used_units:
+          type: integer
+        reserved_units:
+          type: integer
+        resets_at:
+          type: string
+          format: date-time
+    QuotaTransaction:
+      type: object
+      required: [id, kind, units, status, created_at]
+      properties:
+        id:
+          type: string
+        kind:
+          type: string
+        units:
+          type: integer
+        status:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+    UserSubscription:
+      type: object
+      required: [id, plan_id, status, current_period_start]
+      properties:
+        id:
+          type: string
+        plan_id:
+          type: string
+        status:
+          type: string
+        current_period_start:
+          type: string
+          format: date-time
+        current_period_end:
+          type: string
+          format: date-time
+          nullable: true
+    SupportTicketCreate:
+      type: object
+      required: [category, body]
+      properties:
+        category:
+          type: string
+        body:
+          type: string
+        linked_export_id:
+          type: string
+    SupportTicket:
+      type: object
+      required: [id, category, status, body, created_at]
+      properties:
+        id:
+          type: string
+        category:
+          type: string
+        status:
+          type: string
+        body:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+    Skill:
+      type: object
+      required: [id, name, domain, owner, risk_level, status]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        domain:
+          type: string
+        owner:
+          type: string
+        risk_level:
+          type: string
+        status:
+          type: string
+    SkillPage:
+      allOf:
+        - $ref: "#/components/schemas/PageInfo"
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/Skill"
+    SkillVersion:
+      type: object
+      required: [id, skill_id, version, status, release_notes]
+      properties:
+        id:
+          type: string
+        skill_id:
+          type: string
+        version:
+          type: string
+        status:
+          type: string
+        release_notes:
+          type: string
+    SkillVersionPage:
+      allOf:
+        - $ref: "#/components/schemas/PageInfo"
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/SkillVersion"
+    CrawlerSource:
+      type: object
+      required: [id, name, url, approval_status, legal_metadata]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        url:
+          type: string
+        approval_status:
+          type: string
+        legal_metadata:
+          type: object
+          additionalProperties: true
+    CrawlerSourcePage:
+      allOf:
+        - $ref: "#/components/schemas/PageInfo"
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/CrawlerSource"
+    CrawlerRun:
+      type: object
+      required: [id, source_id, status, created_at]
+      properties:
+        id:
+          type: string
+        source_id:
+          type: string
+        status:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+    CrawlerRunPage:
+      allOf:
+        - $ref: "#/components/schemas/PageInfo"
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/CrawlerRun"
+    CrawlerFinding:
+      type: object
+      required: [id, finding_type, status, payload, provenance]
+      properties:
+        id:
+          type: string
+        finding_type:
+          type: string
+        status:
+          type: string
+        payload:
+          type: object
+          additionalProperties: true
+        provenance:
+          type: object
+          additionalProperties: true
+    CrawlerFindingPage:
+      allOf:
+        - $ref: "#/components/schemas/PageInfo"
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/CrawlerFinding"
+    PromptFragment:
+      type: object
+      required: [id, name, surface, status, owner, risk_level]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        surface:
+          type: string
+        status:
+          type: string
+        owner:
+          type: string
+        risk_level:
+          type: string
+    PromptFragmentPage:
+      allOf:
+        - $ref: "#/components/schemas/PageInfo"
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/PromptFragment"
+    MetaPrompt:
+      type: object
+      required: [id, name, status, owner]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        status:
+          type: string
+        owner:
+          type: string
+    MetaPromptPage:
+      allOf:
+        - $ref: "#/components/schemas/PageInfo"
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/MetaPrompt"
+    AgentTrace:
+      type: object
+      required: [id, task_id, step_name, payload, created_at]
+      properties:
+        id:
+          type: string
+        task_id:
+          type: string
+        step_name:
+          type: string
+        payload:
+          type: object
+          additionalProperties: true
+        created_at:
+          type: string
+          format: date-time
+    AgentTracePage:
+      allOf:
+        - $ref: "#/components/schemas/PageInfo"
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/AgentTrace"
+    FeedbackEvent:
+      type: object
+      required: [id, event_type, subject_type, subject_id, signal, governance, created_at]
+      properties:
+        id:
+          type: string
+        event_type:
+          type: string
+        subject_type:
+          type: string
+        subject_id:
+          type: string
+        signal:
+          type: object
+          additionalProperties: true
+        governance:
+          type: object
+          additionalProperties: true
+        created_at:
+          type: string
+          format: date-time
+    FeedbackEventPage:
+      allOf:
+        - $ref: "#/components/schemas/PageInfo"
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/FeedbackEvent"
+    SafetyRule:
+      type: object
+      required: [id, rule_key, version, domain, severity, action, enforcement_points, status]
+      properties:
+        id:
+          type: string
+        rule_key:
+          type: string
+        version:
+          type: string
+        domain:
+          type: string
+        severity:
+          type: string
+        action:
+          type: string
+        enforcement_points:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+    SafetyRulePage:
+      allOf:
+        - $ref: "#/components/schemas/PageInfo"
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/SafetyRule"
+    AuditLog:
+      type: object
+      required: [id, actor_id, action, resource, metadata, created_at]
+      properties:
+        id:
+          type: string
+        actor_id:
+          type: string
+        action:
+          type: string
+        resource:
+          type: string
+        metadata:
+          type: object
+          additionalProperties: true
+        created_at:
+          type: string
+          format: date-time
+    AuditLogPage:
+      allOf:
+        - $ref: "#/components/schemas/PageInfo"
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/AuditLog"
