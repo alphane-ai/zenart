@@ -543,6 +543,7 @@ textarea {
   gap: 8px;
 }
 
+.brief-upload-confirmation-evidence,
 .reference-export-smoke,
 .workflow-api-smoke {
   border: 1px solid rgba(15, 118, 110, 0.24);
@@ -556,6 +557,7 @@ textarea {
   line-height: 1.35;
 }
 
+.brief-upload-confirmation-evidence span,
 .reference-export-smoke span,
 .workflow-api-smoke span {
   color: #0f766e;

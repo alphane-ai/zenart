@@ -1,5 +1,6 @@
 import {
   Candidate,
+  BriefUploadConfirmationRuntimeEvidence,
   ExportFormat,
   ExportRecord,
   PackageExportMetadataEvidence,
@@ -639,6 +640,67 @@ export const buildReferenceUploadIntegrationSmoke = (state: WorkspaceState): Ref
     readyExportCount: state.exports.filter((record) => record.status === "ready").length,
     provenanceCount: referenceProvenanceCount,
     pptAssetGridSlideCount,
+    failures
+  };
+};
+
+export const briefUploadConfirmationOperationIds: BriefUploadConfirmationRuntimeEvidence["apiOperationIds"] = [
+  "createChatSession",
+  "createChatMessage",
+  "createUpload",
+  "createCandidateSet"
+];
+
+export const buildBriefUploadConfirmationRuntimeEvidence = (
+  state: WorkspaceState
+): BriefUploadConfirmationRuntimeEvidence => {
+  const acceptedReferenceCount = state.brief.references.filter(
+    (reference) => reference.validation.state === "accepted"
+  ).length;
+  const rejectedReferenceCount = state.brief.references.filter(
+    (reference) => reference.validation.state === "rejected"
+  ).length;
+  const latestReferenceValidationState = state.brief.references.at(-1)?.validation.state ?? "missing";
+  const confirmationMessageVisible = state.chat.some((message) =>
+    message.body.includes("Brief confirmed. I generated four deterministic strategy candidates for review.")
+  );
+  const candidateSetReady =
+    state.candidates.length === 4 &&
+    new Set(state.candidates.map((candidate) => candidate.strategyTaxonomy).filter(Boolean)).size === 4;
+  const failures: BriefUploadConfirmationRuntimeEvidence["failures"] = [];
+
+  if (!state.brief.confirmed) {
+    failures.push("brief-confirmed");
+  }
+  if (state.brief.missingInfo.length > 0) {
+    failures.push("missing-info-cleared");
+  }
+  if (acceptedReferenceCount === 0) {
+    failures.push("accepted-reference");
+  }
+  if (rejectedReferenceCount > 0) {
+    failures.push("no-rejected-reference");
+  }
+  if (!confirmationMessageVisible) {
+    failures.push("confirmation-message");
+  }
+  if (!candidateSetReady) {
+    failures.push("candidate-set");
+  }
+
+  return {
+    schema_version: "stage0.rev2.brief-upload-confirmation-runtime-evidence",
+    status: failures.length === 0 ? "pass" : "fail",
+    scenario: "user-web-brief-upload-confirmation",
+    gateImpact: "user-web-evidence-only",
+    apiOperationIds: [...briefUploadConfirmationOperationIds],
+    briefConfirmed: state.brief.confirmed,
+    missingInfoCount: state.brief.missingInfo.length,
+    acceptedReferenceCount,
+    rejectedReferenceCount,
+    latestReferenceValidationState,
+    confirmationMessageVisible,
+    candidateSetReady,
     failures
   };
 };

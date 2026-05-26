@@ -129,6 +129,29 @@ export interface ReferenceUploadIntegrationSmoke {
   >;
 }
 
+export interface BriefUploadConfirmationRuntimeEvidence {
+  schema_version: "stage0.rev2.brief-upload-confirmation-runtime-evidence";
+  status: "pass" | "fail";
+  scenario: "user-web-brief-upload-confirmation";
+  gateImpact: "user-web-evidence-only";
+  apiOperationIds: Array<"createChatSession" | "createChatMessage" | "createUpload" | "createCandidateSet">;
+  briefConfirmed: boolean;
+  missingInfoCount: number;
+  acceptedReferenceCount: number;
+  rejectedReferenceCount: number;
+  latestReferenceValidationState: ReferenceAsset["validation"]["state"] | "missing";
+  confirmationMessageVisible: boolean;
+  candidateSetReady: boolean;
+  failures: Array<
+    | "brief-confirmed"
+    | "missing-info-cleared"
+    | "accepted-reference"
+    | "no-rejected-reference"
+    | "confirmation-message"
+    | "candidate-set"
+  >;
+}
+
 export interface WorkflowApiSmokeEvidence {
   schema_version: "stage0.rev2.workflow-api-smoke";
   workflow_id: "ecommerce_growth_pack";

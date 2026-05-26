@@ -35,6 +35,7 @@ import { AccountSettings, BillingScenario, Candidate, ExportFormat, QaSeverity, 
 import { zenArtClient } from "@/lib/api-client";
 import {
   buildPackageExportMetadataEvidence,
+  buildBriefUploadConfirmationRuntimeEvidence,
   buildEcommerceGrowthApiSmokeEvidence,
   buildReferenceUploadIntegrationSmoke,
   buildSupportProblemContext,
@@ -481,6 +482,7 @@ function WorkspaceView({
   );
   const renderingSmoke = buildWorkspaceRenderingPerformanceSmoke(state);
   const referenceIntegrationSmoke = buildReferenceUploadIntegrationSmoke(state);
+  const briefUploadConfirmationEvidence = buildBriefUploadConfirmationRuntimeEvidence(state);
   const ecommerceApiSmoke = buildEcommerceGrowthApiSmokeEvidence(state);
   return (
     <div className="workspace-grid">
@@ -539,6 +541,31 @@ function WorkspaceView({
             <span>{latestReference.validation.reason}</span>
           </div>
         ) : null}
+        <div
+          className="brief-upload-confirmation-evidence"
+          aria-label="Brief upload confirmation runtime evidence"
+          data-brief-upload-confirmation-runtime-evidence={briefUploadConfirmationEvidence.schema_version}
+          data-brief-upload-confirmation-status={briefUploadConfirmationEvidence.status}
+          data-brief-upload-confirmation-scenario={briefUploadConfirmationEvidence.scenario}
+          data-brief-upload-confirmation-gate-impact={briefUploadConfirmationEvidence.gateImpact}
+          data-brief-confirmed={String(briefUploadConfirmationEvidence.briefConfirmed)}
+          data-brief-missing-info-count={briefUploadConfirmationEvidence.missingInfoCount}
+          data-brief-accepted-reference-count={briefUploadConfirmationEvidence.acceptedReferenceCount}
+          data-brief-rejected-reference-count={briefUploadConfirmationEvidence.rejectedReferenceCount}
+          data-brief-latest-reference-validation={briefUploadConfirmationEvidence.latestReferenceValidationState}
+          data-brief-confirmation-message-visible={String(briefUploadConfirmationEvidence.confirmationMessageVisible)}
+          data-brief-candidate-set-ready={String(briefUploadConfirmationEvidence.candidateSetReady)}
+          data-brief-upload-confirmation-operation-count={briefUploadConfirmationEvidence.apiOperationIds.length}
+          data-brief-upload-confirmation-operations={briefUploadConfirmationEvidence.apiOperationIds.join(",")}
+          data-brief-upload-confirmation-failures={briefUploadConfirmationEvidence.failures.join(",")}
+        >
+          <strong>Brief upload confirmation</strong>
+          <span>
+            {briefUploadConfirmationEvidence.status} · {briefUploadConfirmationEvidence.acceptedReferenceCount} accepted references ·{" "}
+            {briefUploadConfirmationEvidence.missingInfoCount} missing fields · {briefUploadConfirmationEvidence.apiOperationIds.length} user
+            operations.
+          </span>
+        </div>
         <div
           className="reference-export-smoke"
           aria-label="Reference upload export integration smoke"

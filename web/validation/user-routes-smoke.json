@@ -13,6 +13,7 @@
         "candidate-set",
         "package-panel",
         "reference-validation",
+        "brief-upload-confirmation-runtime-evidence",
         "reference-upload-export-contract",
         "workspace-rendering-performance-smoke",
         "ecommerce-growth-api-smoke"
@@ -188,6 +189,32 @@
       ]
     },
     {
+      "schemaVersion": "stage0.rev2.brief-upload-confirmation-runtime-evidence",
+      "route": "/workspace",
+      "source": "web/components/workspace-app.tsx",
+      "statusAttribute": "data-brief-upload-confirmation-status",
+      "expectedStatus": "pass",
+      "scenario": "user-web-brief-upload-confirmation",
+      "gateImpact": "user-web-evidence-only",
+      "expectedOperationCount": "4",
+      "requiredAttributes": [
+        "data-brief-upload-confirmation-runtime-evidence",
+        "data-brief-upload-confirmation-scenario",
+        "data-brief-upload-confirmation-gate-impact",
+        "data-brief-confirmed",
+        "data-brief-missing-info-count",
+        "data-brief-accepted-reference-count",
+        "data-brief-rejected-reference-count",
+        "data-brief-latest-reference-validation",
+        "data-brief-confirmation-message-visible",
+        "data-brief-candidate-set-ready",
+        "data-brief-upload-confirmation-operation-count",
+        "data-brief-upload-confirmation-operations",
+        "data-brief-upload-confirmation-failures"
+      ],
+      "doesNotCloseChecklistGate": "Private Beta/Staging brief/upload/confirmation runtime evidence requires matching staging release gate evidence"
+    },
+    {
       "schemaVersion": "stage0.rev2.package-export-metadata-ui",
       "route": "/export",
       "source": "web/components/workspace-app.tsx",
@@ -238,6 +265,7 @@
   "analyticsCoverage": ["analytics-event-taxonomy", "client-side-ui-funnel-capture", "frontend-error-reporting"],
   "integrationCoverage": [
     "reference-upload-to-ready-zip-export",
+    "brief-upload-confirmation-runtime-evidence",
     "reference-upload-zip-provenance-ppt-asset-grid",
     "ecommerce-growth-pack-api-smoke",
     "generated-api-unsafe-operation-csrf-inventory",
@@ -279,6 +307,7 @@
     "workspace rendering performance smoke keeps canvas render elements within the local alpha budget",
     "workspace rendering performance smoke remains passing after brief confirmation, candidate selection, iteration, package add, export, and version restore",
     "reference upload validation accepts safe images/documents/HTTPS URLs and rejects unsupported inputs",
+    "brief/upload/confirmation runtime evidence proves the user web route shows a confirmed brief, accepted upload, cleared missing-info state, visible confirmation message, and ready candidate set",
     "report-problem tickets retain project, export, task, trace, asset, and quota context",
     "blocked exports do not consume quota and mock checkout activates the local alpha plan",
     "inactive, past_due, and quota-exhausted billing states block quota-consuming exports",

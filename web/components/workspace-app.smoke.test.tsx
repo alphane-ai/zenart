@@ -126,6 +126,55 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(safetyPolicy).toHaveAttribute("data-safety-policy-finding-count", "0");
   });
 
+  it("exposes user-web brief, upload, and confirmation runtime evidence before export", async () => {
+    const { container } = render(<WorkspaceApp initialView="workspace" />);
+
+    await screen.findByRole("heading", { name: "Launch Direction Board" });
+
+    const initialEvidence = screen.getByLabelText("Brief upload confirmation runtime evidence");
+    expect(initialEvidence).toHaveAttribute(
+      "data-brief-upload-confirmation-runtime-evidence",
+      "stage0.rev2.brief-upload-confirmation-runtime-evidence"
+    );
+    expect(initialEvidence).toHaveAttribute("data-brief-upload-confirmation-status", "fail");
+    expect(initialEvidence).toHaveAttribute("data-brief-upload-confirmation-gate-impact", "user-web-evidence-only");
+    expect(initialEvidence).toHaveAttribute(
+      "data-brief-upload-confirmation-failures",
+      "brief-confirmed,missing-info-cleared,confirmation-message"
+    );
+
+    fireEvent.change(screen.getByLabelText("Brief"), {
+      target: {
+        value:
+          "Create an ecommerce launch package for the Aurora bottle with a packshot reference, shopper audience, and web/social export surfaces."
+      }
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Confirm Brief" }));
+    await screen.findByText("Brief confirmed. I generated four deterministic strategy candidates for review.");
+
+    fireEvent.change(screen.getByLabelText("Reference asset name or URL"), { target: { value: "aurora-packshot.webp" } });
+    fireEvent.click(screen.getByRole("button", { name: "Attach" }));
+
+    await waitFor(() => {
+      const evidence = container.querySelector(
+        "[data-brief-upload-confirmation-runtime-evidence='stage0.rev2.brief-upload-confirmation-runtime-evidence']"
+      );
+      expect(evidence).toHaveAttribute("data-brief-upload-confirmation-status", "pass");
+      expect(evidence).toHaveAttribute("data-brief-upload-confirmation-scenario", "user-web-brief-upload-confirmation");
+      expect(evidence).toHaveAttribute("data-brief-confirmed", "true");
+      expect(evidence).toHaveAttribute("data-brief-missing-info-count", "0");
+      expect(evidence).toHaveAttribute("data-brief-accepted-reference-count", "2");
+      expect(evidence).toHaveAttribute("data-brief-rejected-reference-count", "0");
+      expect(evidence).toHaveAttribute("data-brief-latest-reference-validation", "accepted");
+      expect(evidence).toHaveAttribute("data-brief-confirmation-message-visible", "true");
+      expect(evidence).toHaveAttribute("data-brief-candidate-set-ready", "true");
+      expect(evidence).toHaveAttribute("data-brief-upload-confirmation-operation-count", "4");
+      expect(evidence?.getAttribute("data-brief-upload-confirmation-operations")).toContain("createUpload");
+      expect(evidence?.getAttribute("data-brief-upload-confirmation-operations")).toContain("createCandidateSet");
+      expect(evidence).toHaveAttribute("data-brief-upload-confirmation-failures", "");
+    });
+  });
+
   it("keeps workspace rendering inside the smoke budget across the interactive canvas flow", async () => {
     const { container } = render(<WorkspaceApp initialView="workspace" />);
 
@@ -287,6 +336,25 @@ describe("WorkspaceApp user route integration smoke", () => {
         "data-reference-ready-export-count",
         "data-reference-provenance-count",
         "data-reference-ppt-asset-grid-slide-count"
+      ])
+    });
+    expect(evidenceBySchema.get("stage0.rev2.brief-upload-confirmation-runtime-evidence")).toMatchObject({
+      route: "/workspace",
+      source: "web/components/workspace-app.tsx",
+      statusAttribute: "data-brief-upload-confirmation-status",
+      expectedStatus: "pass",
+      scenario: "user-web-brief-upload-confirmation",
+      gateImpact: "user-web-evidence-only",
+      expectedOperationCount: "4",
+      requiredAttributes: expect.arrayContaining([
+        "data-brief-confirmed",
+        "data-brief-missing-info-count",
+        "data-brief-accepted-reference-count",
+        "data-brief-rejected-reference-count",
+        "data-brief-latest-reference-validation",
+        "data-brief-confirmation-message-visible",
+        "data-brief-candidate-set-ready",
+        "data-brief-upload-confirmation-failures"
       ])
     });
     expect(evidenceBySchema.get("stage0.rev2.package-export-metadata-ui")).toMatchObject({

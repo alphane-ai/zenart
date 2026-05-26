@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { ExportRecord } from "./contracts";
 import {
   buildManifest,
+  buildBriefUploadConfirmationRuntimeEvidence,
   buildEcommerceGrowthApiSmokeEvidence,
   buildPackageExportMetadataEvidence,
   buildReferenceUploadIntegrationSmoke,
@@ -434,6 +435,75 @@ describe("dev workspace contracts", () => {
       provenanceCount: 3,
       pptAssetGridSlideCount: 3,
       failures: []
+    });
+  });
+
+  it("summarizes user-web brief/upload/confirmation runtime evidence", () => {
+    const state = createInitialWorkspace();
+    const acceptedReference = createReferenceAsset("aurora-packshot.webp", "image");
+
+    expect(
+      buildBriefUploadConfirmationRuntimeEvidence({
+        ...state,
+        brief: {
+          ...state.brief,
+          confirmed: true,
+          missingInfo: [],
+          references: [...state.brief.references, acceptedReference]
+        },
+        chat: [
+          ...state.chat,
+          {
+            id: "msg-confirmed",
+            role: "assistant",
+            body: "Brief confirmed. I generated four deterministic strategy candidates for review.",
+            createdAt: "2026-05-26T10:00:00.000Z"
+          }
+        ]
+      })
+    ).toEqual({
+      schema_version: "stage0.rev2.brief-upload-confirmation-runtime-evidence",
+      status: "pass",
+      scenario: "user-web-brief-upload-confirmation",
+      gateImpact: "user-web-evidence-only",
+      apiOperationIds: ["createChatSession", "createChatMessage", "createUpload", "createCandidateSet"],
+      briefConfirmed: true,
+      missingInfoCount: 0,
+      acceptedReferenceCount: 2,
+      rejectedReferenceCount: 0,
+      latestReferenceValidationState: "accepted",
+      confirmationMessageVisible: true,
+      candidateSetReady: true,
+      failures: []
+    });
+  });
+
+  it("fails user-web brief/upload/confirmation evidence until confirmation and a clean upload are visible", () => {
+    const state = createInitialWorkspace();
+
+    expect(
+      buildBriefUploadConfirmationRuntimeEvidence({
+        ...state,
+        brief: {
+          ...state.brief,
+          references: [...state.brief.references, createReferenceAsset("unsafe-reference.exe", "image")]
+        }
+      })
+    ).toMatchObject({
+      status: "fail",
+      briefConfirmed: false,
+      missingInfoCount: 2,
+      acceptedReferenceCount: 1,
+      rejectedReferenceCount: 1,
+      latestReferenceValidationState: "rejected",
+      confirmationMessageVisible: false,
+      candidateSetReady: true,
+      failures: [
+        "brief-confirmed",
+        "missing-info-cleared",
+        "no-rejected-reference",
+        "confirmation-message"
+      ]
     });
   });
 

@@ -57,6 +57,7 @@ const sessionEvidence = requireSecurityEvidence("stage0.rev2.session-csrf-client
 const generatedCsrfEvidence = requireSecurityEvidence("stage0.rev2.generated-api-csrf-contract");
 const renderingEvidence = requireSecurityEvidence("stage0.rev2.workspace-rendering-performance");
 const referenceUploadEvidence = requireSecurityEvidence("stage0.rev2.reference-upload-integration-smoke");
+const briefUploadConfirmationEvidence = requireSecurityEvidence("stage0.rev2.brief-upload-confirmation-runtime-evidence");
 const packageExportEvidence = requireSecurityEvidence("stage0.rev2.package-export-metadata-ui");
 const workflowApiSmokeEvidence = requireSecurityEvidence("stage0.rev2.workflow-api-smoke");
 
@@ -155,6 +156,21 @@ if (referenceUploadEvidence.scenario !== "reference-upload-to-ready-zip-export")
   fail("reference upload evidence must pin the reference-upload-to-ready-zip-export scenario");
 }
 
+if (
+  briefUploadConfirmationEvidence.expectedStatus !== "pass" ||
+  briefUploadConfirmationEvidence.scenario !== "user-web-brief-upload-confirmation" ||
+  briefUploadConfirmationEvidence.gateImpact !== "user-web-evidence-only" ||
+  briefUploadConfirmationEvidence.expectedOperationCount !== "4" ||
+  !briefUploadConfirmationEvidence.doesNotCloseChecklistGate
+) {
+  fail("brief/upload/confirmation runtime evidence must be scoped as user-web evidence and not close the staging gate");
+}
+for (const attribute of briefUploadConfirmationEvidence.requiredAttributes ?? []) {
+  if (!componentSource.includes(attribute)) {
+    fail(`brief/upload/confirmation runtime evidence missing attribute ${attribute}`);
+  }
+}
+
 if (packageExportEvidence.expectedMissingOutputCount !== "0") {
   fail("package/export metadata evidence must assert zero missing required outputs");
 }
@@ -232,6 +248,21 @@ for (const requiredSnippet of [
   "data-package-export-ppt-slide-count",
   "data-package-export-zip-payloads",
   "reference-upload-export-contract",
+  "brief-upload-confirmation-evidence",
+  "Brief upload confirmation runtime evidence",
+  "data-brief-upload-confirmation-runtime-evidence",
+  "data-brief-upload-confirmation-status",
+  "data-brief-upload-confirmation-gate-impact",
+  "data-brief-confirmed",
+  "data-brief-missing-info-count",
+  "data-brief-accepted-reference-count",
+  "data-brief-rejected-reference-count",
+  "data-brief-latest-reference-validation",
+  "data-brief-confirmation-message-visible",
+  "data-brief-candidate-set-ready",
+  "data-brief-upload-confirmation-operation-count",
+  "data-brief-upload-confirmation-operations",
+  "data-brief-upload-confirmation-failures",
   "data-reference-upload-export-contract",
   "data-reference-provenance-count",
   "dev-client-reference",
@@ -440,6 +471,7 @@ for (const expectedPolicy of [
 
 for (const expectedCapability of [
   "reference-validation",
+  "brief-upload-confirmation-runtime-evidence",
   "reference-upload-export-contract",
   "workspace-rendering-performance-smoke",
   "ecommerce-growth-api-smoke",
@@ -466,6 +498,7 @@ for (const expectedCapability of [
 
 for (const expectedIntegration of [
   "reference-upload-to-ready-zip-export",
+  "brief-upload-confirmation-runtime-evidence",
   "reference-upload-zip-provenance-ppt-asset-grid",
   "ecommerce-growth-pack-api-smoke",
   "generated-api-unsafe-operation-csrf-inventory",
