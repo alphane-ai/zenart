@@ -31,7 +31,7 @@
     {
       "check_id": "production_security_launch_checks",
       "status": "pass",
-      "evidence_ref": "ops/evidence/production/20260527T1700Z-security-launch-checks.json validates production secure session cookies, CSRF same-site enforcement, secret redaction, admin surface privacy, immutable audit refs, and release-gate blocker preservation"
+      "evidence_ref": "ops/evidence/production/20260527T1700Z-security-launch-checks.json validates production security checks for secure session controls, tenant isolation, admin RBAC, signed URLs, CSRF/session, secret redaction, admin surface privacy, immutable audit refs, and release-gate blocker preservation"
     },
     {
       "check_id": "production_backup_rollback_incident",

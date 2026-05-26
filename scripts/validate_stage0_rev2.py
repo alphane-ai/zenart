@@ -1225,6 +1225,7 @@ REQUIRED_OPEN_ITEMS |= (
         "Production skill release/eval/canary runtime/deployment evidence 通过。",
         "Production activation review/audit runtime/deployment evidence 通过。",
         "Production abuse throttle/hold runtime/deployment evidence 通过。",
+        "Production security launch-check runtime/deployment evidence 通过。",
     }
 )
 REQUIRED_OPEN_ITEMS |= set(LOCAL_ALPHA_RELEASE_GATE_WORKFLOW_RUNTIME_OPEN_CHECK_ITEMS)
