@@ -71,9 +71,9 @@
       "config_diff_evidence": "must be local JSON, reference RELEASE_SHA, set environment=staging, set kind=config_diff, and use status passed, reviewed, or no_diff",
       "observability_evidence": "must be local JSON, reference RELEASE_SHA, set environment=staging, set kind=observability, and use status passed",
       "backup_restore_evidence": "must be local JSON, reference RELEASE_SHA, set environment=staging, set kind=backup_restore, and use status passed",
-      "load_evidence": "must be local JSON, reference RELEASE_SHA, set environment=staging, set kind=load, and use status passed",
-      "rollback_evidence": "must be local JSON, reference RELEASE_SHA, set environment=staging, set kind=rollback, and use status passed or validated",
-      "security_scan_evidence": "must be local JSON, reference RELEASE_SHA, set environment=staging, set kind=security_scan, and use status passed"
+      "load_evidence": "must be local JSON, reference RELEASE_SHA, set environment=staging, set kind=load, use status passed, and include passed/validated evidence refs for chat_task, worker_generation, zip_export, signed_download, crawler_throttle, quota_contention, and workspace_rendering",
+      "rollback_evidence": "must be local JSON, reference RELEASE_SHA, set environment=staging, set kind=rollback, use status passed or validated, and include passed/validated evidence refs for image_rollback, feature_flag_rollback, migration_compatibility, worker_drain, and post_rollback_smoke",
+      "security_scan_evidence": "must be local JSON, reference RELEASE_SHA, set environment=staging, set kind=security_scan, use status passed, and include passed/validated evidence refs for dependency_scan, image_scan, and secret_scan"
     },
     "staging_semantic_contracts": {
       "observability_evidence": {
@@ -95,6 +95,39 @@
         ],
         "entry_requirements": "each required drill must be passed or validated and carry a validator-visible report_path or evidence_ref",
         "gate_policy": "backup schedule or one restore class alone is insufficient to close private beta or production restore gates"
+      },
+      "load_evidence": {
+        "required_entries": [
+          "chat_task",
+          "worker_generation",
+          "zip_export",
+          "signed_download",
+          "crawler_throttle",
+          "quota_contention",
+          "workspace_rendering"
+        ],
+        "entry_requirements": "each load mode must be passed or validated and carry a validator-visible load_report, report_path, evidence_ref, or artifact_path",
+        "gate_policy": "one aggregate load status or one mode alone is insufficient to close private beta or production load gates"
+      },
+      "rollback_evidence": {
+        "required_entries": [
+          "image_rollback",
+          "feature_flag_rollback",
+          "migration_compatibility",
+          "worker_drain",
+          "post_rollback_smoke"
+        ],
+        "entry_requirements": "each rollback step must be passed or validated and carry a validator-visible rollback_report, smoke_report, report_path, evidence_ref, or artifact_path",
+        "gate_policy": "rollback prose or image rollback alone is insufficient to close private beta or production rollback gates"
+      },
+      "security_scan_evidence": {
+        "required_entries": [
+          "dependency_scan",
+          "image_scan",
+          "secret_scan"
+        ],
+        "entry_requirements": "each scan class must be passed or validated and carry a validator-visible scan_report, report_path, evidence_ref, or artifact_path",
+        "gate_policy": "a top-level security status without dependency, image, and secret scan reports is insufficient to close private beta or production security gates"
       }
     },
     "blocking_reason_contract": {

@@ -118,6 +118,7 @@ write_report() {
   required_json="$(printf '%s\n' "${REQUIRED_CATEGORIES[@]}" | json_array)"
   summary="$(python3 - "$RESULTS_PATH" "$required_json" "$status" "$RELEASE_SHA" "$RELEASE_TAG" "$RELEASE_NOTES_PATH" "$IMAGE_REFS" "$MIGRATION_EVIDENCE" "$CONFIG_DIFF_EVIDENCE" "$OBSERVABILITY_EVIDENCE" "$BACKUP_RESTORE_EVIDENCE" "$LOAD_EVIDENCE" "$ROLLBACK_EVIDENCE" "$SECURITY_SCAN_EVIDENCE" <<'PY'
 import json
+import re
 import sys
 from pathlib import Path
 from urllib.parse import urlparse
@@ -197,7 +198,7 @@ def collect_named_entries(parsed):
     entries = {}
     if not isinstance(parsed, dict):
         return entries
-    for container_key in ("signals", "checks", "drills", "restore_drills"):
+    for container_key in ("signals", "checks", "drills", "restore_drills", "modes", "scans", "steps"):
         container = parsed.get(container_key)
         if isinstance(container, dict):
             for key, value in container.items():
@@ -236,7 +237,9 @@ def entry_has_evidence_ref(entry):
         "evidence_ref",
         "evidence_refs",
         "report_path",
+        "report_paths",
         "source_report",
+        "source_reports",
         "query_ref",
         "dashboard_url",
         "dashboard_uid",
@@ -245,6 +248,14 @@ def entry_has_evidence_ref(entry):
         "log_query",
         "metrics_query",
         "artifact_path",
+        "artifact_paths",
+        "run_url",
+        "run_urls",
+        "scan_report",
+        "scan_reports",
+        "smoke_report",
+        "load_report",
+        "rollback_report",
     }
     for key, value in entry.items():
         if key in evidence_keys and value:
@@ -386,6 +397,48 @@ def validate_staging_evidence_ref(name, value, *, expected_kind, accepted_status
         )
         if result["backup_restore_contract"]["verified"] is not True:
             missing_semantics.append("backup_restore_contract")
+    elif expected_kind == "load":
+        result["load_contract"] = validate_named_contract(
+            parsed,
+            {
+                "chat_task": {"chat_task", "chat_task_load"},
+                "worker_generation": {"worker_generation", "worker_generation_load"},
+                "zip_export": {"zip_export", "export_package", "zip_export_load"},
+                "signed_download": {"signed_download", "signed_download_load"},
+                "crawler_throttle": {"crawler_throttle", "crawler_throttle_load"},
+                "quota_contention": {"quota_contention", "quota_contention_load"},
+                "workspace_rendering": {"workspace_rendering", "workspace_rendering_load"},
+            },
+            {"passed", "validated"},
+        )
+        if result["load_contract"]["verified"] is not True:
+            missing_semantics.append("load_contract")
+    elif expected_kind == "rollback":
+        result["rollback_contract"] = validate_named_contract(
+            parsed,
+            {
+                "image_rollback": {"image_rollback", "image_promote_previous_sha"},
+                "feature_flag_rollback": {"feature_flag_rollback", "flag_rollback"},
+                "migration_compatibility": {"migration_compatibility", "forward_repair", "db_compatibility"},
+                "worker_drain": {"worker_drain", "worker_pause_resume"},
+                "post_rollback_smoke": {"post_rollback_smoke", "rollback_smoke"},
+            },
+            {"passed", "validated"},
+        )
+        if result["rollback_contract"]["verified"] is not True:
+            missing_semantics.append("rollback_contract")
+    elif expected_kind == "security_scan":
+        result["security_scan_contract"] = validate_named_contract(
+            parsed,
+            {
+                "dependency_scan": {"dependency_scan", "deps", "npm_go_vulncheck"},
+                "image_scan": {"image_scan", "docker_image_scan", "container_scan"},
+                "secret_scan": {"secret_scan", "committed_secret_scan"},
+            },
+            {"passed", "validated"},
+        )
+        if result["security_scan_contract"]["verified"] is not True:
+            missing_semantics.append("security_scan_contract")
     result["verified"] = not missing_semantics
     if missing_semantics:
         result["reason"] = f"{name}_failed_semantic_checks:{','.join(missing_semantics)}"
@@ -408,15 +461,28 @@ def validate_release_notes_ref(value):
     ]
     result["required_fragments"] = required_fragments
     result["missing_fragments"] = required_fragments[:]
+    result["unresolved_placeholders"] = []
+    result["decision_recorded"] = False
     if not result.get("exists"):
         result["verified"] = False
         return result
     local_path = resolve_local_path(value)
     text = local_path.read_text(encoding="utf-8", errors="replace") if local_path else ""
     result["missing_fragments"] = [fragment for fragment in required_fragments if fragment not in text]
-    result["verified"] = result.get("sha_match") is True and not result["missing_fragments"]
+    result["unresolved_placeholders"] = sorted(set(re.findall(r"<[^>\n]+>", text)))
+    result["decision_recorded"] = "- Decision:" in text or "Decision:" in text
+    result["verified"] = (
+        result.get("sha_match") is True
+        and not result["missing_fragments"]
+        and not result["unresolved_placeholders"]
+        and result["decision_recorded"] is True
+    )
     if result["missing_fragments"]:
         result["reason"] = "release_notes_missing_required_sections"
+    elif result["unresolved_placeholders"]:
+        result["reason"] = "release_notes_have_unresolved_placeholders"
+    elif result["decision_recorded"] is not True:
+        result["reason"] = "release_notes_missing_go_no_go_decision"
     return result
 
 

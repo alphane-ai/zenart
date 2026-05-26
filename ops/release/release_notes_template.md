@@ -60,11 +60,11 @@ Release gate status: `no-go` until every required evidence slot below is filled 
 - Staging smoke: `<report path/url>`; required before private beta/production decisions.
 - Load smoke: `<report path/url>`; required before private beta/production decisions.
 - Config diff: `<local JSON path/url>`; local JSON must reference the release SHA, set `environment=staging`, set `kind=config_diff`, and record status `passed`, `reviewed`, or `no_diff`.
-- Observability: `<local JSON path/url>`; local JSON must reference the release SHA, set `environment=staging`, set `kind=observability`, and record status `passed` for logs, metrics, traces, dashboard import, and alert-route evidence.
+- Observability: `<local JSON path/url>`; local JSON must reference the release SHA, set `environment=staging`, set `kind=observability`, record status `passed`, and include passed/validated entries with evidence refs for request-id propagation, structured JSON logs, OpenTelemetry traces, backend/worker/crawler metrics, dashboard import, and alert routes.
 - Backup/restore drill: local evidence `ops/evidence/backup-restore/local/20260526T153126Z/report.json`; staging JSON must reference the release SHA, set `environment=staging`, set `kind=backup_restore`, and record status `passed`; production evidence remains required before production can close.
-- Load smoke: `<local JSON path/url>`; local JSON must reference the release SHA, set `environment=staging`, set `kind=load`, and record status `passed` before private beta/production decisions.
-- Rollback drill: `<local JSON path/url>`; local JSON must reference the release SHA, set `environment=staging`, set `kind=rollback`, and record status `passed` or `validated`.
-- Security scan: `<local JSON path/url>`; local JSON must reference the release SHA, set `environment=staging`, set `kind=security_scan`, and record status `passed` before private beta/production decisions.
+- Load smoke: `<local JSON path/url>`; local JSON must reference the release SHA, set `environment=staging`, set `kind=load`, record status `passed`, and include passed/validated entries with evidence refs for `chat_task`, `worker_generation`, `zip_export`, `signed_download`, `crawler_throttle`, `quota_contention`, and `workspace_rendering` before private beta/production decisions.
+- Rollback drill: `<local JSON path/url>`; local JSON must reference the release SHA, set `environment=staging`, set `kind=rollback`, record status `passed` or `validated`, and include passed/validated entries with evidence refs for image rollback, feature flag rollback, migration compatibility, worker drain, and post-rollback smoke.
+- Security scan: `<local JSON path/url>`; local JSON must reference the release SHA, set `environment=staging`, set `kind=security_scan`, record status `passed`, and include passed/validated entries with evidence refs for dependency, image/container, and committed-secret scans before private beta/production decisions.
 
 ## Rollback Plan
 

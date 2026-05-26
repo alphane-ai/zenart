@@ -328,6 +328,7 @@ Release SHA: $complete_sha
 ## Rollback Plan
 ## Known Risks
 ## Go/No-Go
+- Decision: \`no-go\`
 EOF
 printf '{"release_sha":"%s","environment":"staging","kind":"migration","status":"passed"}\n' "$complete_sha" >"$complete_validate_dir/migration.json"
 printf '{"release_sha":"%s","environment":"staging","kind":"config_diff","status":"reviewed"}\n' "$complete_sha" >"$complete_validate_dir/config.json"
@@ -359,9 +360,51 @@ cat >"$complete_validate_dir/backup.json" <<EOF
   ]
 }
 EOF
-printf '{"release_sha":"%s","environment":"staging","kind":"load","status":"passed"}\n' "$complete_sha" >"$complete_validate_dir/load.json"
-printf '{"release_sha":"%s","environment":"staging","kind":"rollback","status":"validated"}\n' "$complete_sha" >"$complete_validate_dir/rollback.json"
-printf '{"release_sha":"%s","environment":"staging","kind":"security_scan","status":"passed"}\n' "$complete_sha" >"$complete_validate_dir/security.json"
+cat >"$complete_validate_dir/load.json" <<EOF
+{
+  "release_sha": "$complete_sha",
+  "environment": "staging",
+  "kind": "load",
+  "status": "passed",
+  "modes": [
+    {"name": "chat_task", "status": "passed", "load_report": "staging/load/chat-task-$complete_sha.json"},
+    {"name": "worker_generation", "status": "passed", "load_report": "staging/load/worker-generation-$complete_sha.json"},
+    {"name": "zip_export", "status": "passed", "load_report": "staging/load/zip-export-$complete_sha.json"},
+    {"name": "signed_download", "status": "passed", "load_report": "staging/load/signed-download-$complete_sha.json"},
+    {"name": "crawler_throttle", "status": "passed", "load_report": "staging/load/crawler-throttle-$complete_sha.json"},
+    {"name": "quota_contention", "status": "passed", "load_report": "staging/load/quota-contention-$complete_sha.json"},
+    {"name": "workspace_rendering", "status": "passed", "load_report": "staging/load/workspace-rendering-$complete_sha.json"}
+  ]
+}
+EOF
+cat >"$complete_validate_dir/rollback.json" <<EOF
+{
+  "release_sha": "$complete_sha",
+  "environment": "staging",
+  "kind": "rollback",
+  "status": "validated",
+  "steps": [
+    {"name": "image_rollback", "status": "validated", "rollback_report": "staging/rollback/images-$complete_sha.json"},
+    {"name": "feature_flag_rollback", "status": "validated", "rollback_report": "staging/rollback/flags-$complete_sha.json"},
+    {"name": "migration_compatibility", "status": "validated", "rollback_report": "staging/rollback/migration-compat-$complete_sha.json"},
+    {"name": "worker_drain", "status": "validated", "rollback_report": "staging/rollback/worker-drain-$complete_sha.json"},
+    {"name": "post_rollback_smoke", "status": "passed", "smoke_report": "staging/rollback/post-smoke-$complete_sha.json"}
+  ]
+}
+EOF
+cat >"$complete_validate_dir/security.json" <<EOF
+{
+  "release_sha": "$complete_sha",
+  "environment": "staging",
+  "kind": "security_scan",
+  "status": "passed",
+  "scans": [
+    {"name": "dependency_scan", "status": "passed", "scan_report": "staging/security/dependencies-$complete_sha.json"},
+    {"name": "image_scan", "status": "passed", "scan_report": "staging/security/images-$complete_sha.json"},
+    {"name": "secret_scan", "status": "passed", "scan_report": "staging/security/secrets-$complete_sha.json"}
+  ]
+}
+EOF
 DRY_RUN=1 \
   OUT_DIR="$complete_validate_dir/staging" \
   RELEASE_SHA="$complete_sha" \
@@ -408,6 +451,12 @@ if release_evidence["local_evidence_verification"]["observability_evidence"].get
     raise SystemExit("complete-evidence staging smoke dry-run must verify observability signal contract")
 if release_evidence["local_evidence_verification"]["backup_restore_evidence"].get("backup_restore_contract", {}).get("verified") is not True:
     raise SystemExit("complete-evidence staging smoke dry-run must verify backup/restore drill contract")
+if release_evidence["local_evidence_verification"]["load_evidence"].get("load_contract", {}).get("verified") is not True:
+    raise SystemExit("complete-evidence staging smoke dry-run must verify load mode contract")
+if release_evidence["local_evidence_verification"]["rollback_evidence"].get("rollback_contract", {}).get("verified") is not True:
+    raise SystemExit("complete-evidence staging smoke dry-run must verify rollback contract")
+if release_evidence["local_evidence_verification"]["security_scan_evidence"].get("security_scan_contract", {}).get("verified") is not True:
+    raise SystemExit("complete-evidence staging smoke dry-run must verify security scan contract")
 if go_no_go.get("release_evidence_complete") is not True:
     raise SystemExit("complete-evidence staging smoke dry-run must expose release_evidence_complete=true")
 if go_no_go.get("gate_fixtures_clear") is not False:
@@ -441,6 +490,9 @@ PY
 incomplete_contract_dir="$(mktemp -d)"
 printf '{"release_sha":"%s","environment":"staging","kind":"observability","status":"passed","signals":[{"name":"request_id_propagation","status":"passed","evidence_ref":"only-one-signal.json"}]}\n' "$complete_sha" >"$incomplete_contract_dir/observability.json"
 printf '{"release_sha":"%s","environment":"staging","kind":"backup_restore","status":"passed","drills":[{"drill_id":"postgres_restore","status":"passed","report_path":"postgres.json"}]}\n' "$complete_sha" >"$incomplete_contract_dir/backup.json"
+printf '{"release_sha":"%s","environment":"staging","kind":"load","status":"passed","modes":[{"name":"chat_task","status":"passed","load_report":"chat-task.json"}]}\n' "$complete_sha" >"$incomplete_contract_dir/load.json"
+printf '{"release_sha":"%s","environment":"staging","kind":"rollback","status":"validated","steps":[{"name":"image_rollback","status":"validated","rollback_report":"image.json"}]}\n' "$complete_sha" >"$incomplete_contract_dir/rollback.json"
+printf '{"release_sha":"%s","environment":"staging","kind":"security_scan","status":"passed","scans":[{"name":"dependency_scan","status":"passed","scan_report":"dependencies.json"}]}\n' "$complete_sha" >"$incomplete_contract_dir/security.json"
 DRY_RUN=1 \
   OUT_DIR="$incomplete_contract_dir/staging" \
   RELEASE_SHA="$complete_sha" \
@@ -451,9 +503,9 @@ DRY_RUN=1 \
   CONFIG_DIFF_EVIDENCE="$complete_validate_dir/config.json" \
   OBSERVABILITY_EVIDENCE="$incomplete_contract_dir/observability.json" \
   BACKUP_RESTORE_EVIDENCE="$incomplete_contract_dir/backup.json" \
-  LOAD_EVIDENCE="$complete_validate_dir/load.json" \
-  ROLLBACK_EVIDENCE="$complete_validate_dir/rollback.json" \
-  SECURITY_SCAN_EVIDENCE="$complete_validate_dir/security.json" \
+  LOAD_EVIDENCE="$incomplete_contract_dir/load.json" \
+  ROLLBACK_EVIDENCE="$incomplete_contract_dir/rollback.json" \
+  SECURITY_SCAN_EVIDENCE="$incomplete_contract_dir/security.json" \
   scripts/staging_smoke.sh >/dev/null
 python3 - "$incomplete_contract_dir/staging" <<'PY'
 import json
@@ -471,14 +523,29 @@ if release_evidence.get("complete") is not False:
 verification = release_evidence["local_evidence_verification"]
 observability = verification["observability_evidence"]
 backup = verification["backup_restore_evidence"]
+load = verification["load_evidence"]
+rollback = verification["rollback_evidence"]
+security = verification["security_scan_evidence"]
 if observability.get("verified") is not False or "observability_contract" not in observability.get("reason", ""):
     raise SystemExit(f"incomplete observability contract must be unverified: {observability}")
 if backup.get("verified") is not False or "backup_restore_contract" not in backup.get("reason", ""):
     raise SystemExit(f"incomplete backup/restore contract must be unverified: {backup}")
+if load.get("verified") is not False or "load_contract" not in load.get("reason", ""):
+    raise SystemExit(f"incomplete load contract must be unverified: {load}")
+if rollback.get("verified") is not False or "rollback_contract" not in rollback.get("reason", ""):
+    raise SystemExit(f"incomplete rollback contract must be unverified: {rollback}")
+if security.get("verified") is not False or "security_scan_contract" not in security.get("reason", ""):
+    raise SystemExit(f"incomplete security scan contract must be unverified: {security}")
 if "unverified_release_evidence:observability_evidence" not in summary["go_no_go"]["blocking_reasons"]:
     raise SystemExit("incomplete observability evidence must block go/no-go")
 if "unverified_release_evidence:backup_restore_evidence" not in summary["go_no_go"]["blocking_reasons"]:
     raise SystemExit("incomplete backup/restore evidence must block go/no-go")
+if "unverified_release_evidence:load_evidence" not in summary["go_no_go"]["blocking_reasons"]:
+    raise SystemExit("incomplete load evidence must block go/no-go")
+if "unverified_release_evidence:rollback_evidence" not in summary["go_no_go"]["blocking_reasons"]:
+    raise SystemExit("incomplete rollback evidence must block go/no-go")
+if "unverified_release_evidence:security_scan_evidence" not in summary["go_no_go"]["blocking_reasons"]:
+    raise SystemExit("incomplete security scan evidence must block go/no-go")
 PY
 python3 - "$ops_validate_dir/observability" <<'PY'
 import json
