@@ -154,6 +154,42 @@ PY
 
 log "release no-go evidence validation"
 python3 scripts/render_no_go_release_notes.py --check
+release_bundle_tmp="$(mktemp -d)"
+trap 'rm -rf "$release_bundle_tmp"' EXIT
+if OUT_DIR="$release_bundle_tmp" DRY_RUN=1 scripts/release_evidence_bundle_smoke.sh >/tmp/stage0-release-bundle-smoke.out 2>/tmp/stage0-release-bundle-smoke.err; then
+  printf 'release evidence bundle dry-run unexpectedly returned go\n' >&2
+  cat /tmp/stage0-release-bundle-smoke.out >&2
+  cat /tmp/stage0-release-bundle-smoke.err >&2
+  exit 1
+fi
+python3 - "$release_bundle_tmp" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+out_dir = Path(sys.argv[1])
+reports = [
+    path
+    for path in sorted(out_dir.glob("*-release-evidence-bundle-*.json"))
+    if not path.name.endswith(".staging-smoke.json")
+]
+if len(reports) != 1:
+    raise SystemExit(f"expected one release bundle report, found {len(reports)}")
+report = json.loads(reports[0].read_text(encoding="utf-8"))
+source_report = Path(report["source_staging_smoke_report"])
+source_results = Path(report["source_staging_smoke_results"])
+if report["status"] != "blocked" or report["decision"] != "no-go":
+    raise SystemExit("release evidence bundle dry-run must remain blocked/no-go")
+if not source_report.exists() or source_report.parent != out_dir:
+    raise SystemExit("release bundle must promote nested staging smoke report into OUT_DIR")
+if not source_results.exists() or source_results.parent != out_dir:
+    raise SystemExit("release bundle must promote nested staging smoke NDJSON into OUT_DIR")
+if report.get("blocking_reason_count") != len(report.get("blocking_reasons", [])):
+    raise SystemExit("release bundle blocking_reason_count must match blocking_reasons length")
+decision_inputs = report.get("decision_inputs", {})
+if decision_inputs.get("gate_fixtures_clear") is not False:
+    raise SystemExit("release bundle dry-run must preserve blocked gate fixture context")
+PY
 python3 - <<'PY'
 import json
 from pathlib import Path
@@ -340,7 +376,12 @@ import json
 import sys
 from pathlib import Path
 
-reports = sorted(Path(sys.argv[1]).glob("*.json"))
+out_dir = Path(sys.argv[1])
+reports = [
+    path
+    for path in sorted(out_dir.glob("*.json"))
+    if not path.name.endswith(".staging-smoke.json")
+]
 if len(reports) != 1:
     raise SystemExit("release evidence bundle dry-run must write exactly one report")
 report = json.loads(reports[0].read_text(encoding="utf-8"))
@@ -398,6 +439,10 @@ if not any(reason.startswith("gate_fixture_blocked:production_launch:") for reas
     raise SystemExit("release evidence bundle must include production fixture blockers")
 if not report.get("source_staging_smoke_report"):
     raise SystemExit("release evidence bundle must cite source staging smoke report")
+if not Path(report["source_staging_smoke_report"]).exists():
+    raise SystemExit("release evidence bundle must preserve source staging smoke report")
+if not Path(report["source_staging_smoke_results"]).exists():
+    raise SystemExit("release evidence bundle must preserve source staging smoke results")
 PY
 python3 - "$ops_validate_dir/observability" <<'PY'
 import json
@@ -822,7 +867,12 @@ import json
 import sys
 from pathlib import Path
 
-reports = sorted(Path(sys.argv[1]).glob("*.json"))
+out_dir = Path(sys.argv[1])
+reports = [
+    path
+    for path in sorted(out_dir.glob("*.json"))
+    if not path.name.endswith(".staging-smoke.json")
+]
 expected_sha = sys.argv[2]
 if len(reports) != 1:
     raise SystemExit("complete-evidence release bundle dry-run must write exactly one report")
@@ -859,6 +909,10 @@ if not any(reason.startswith("gate_fixture_blocked:production_launch:") for reas
     raise SystemExit("complete-evidence release bundle must preserve production fixture blockers")
 if not report.get("source_staging_smoke_report"):
     raise SystemExit("complete-evidence release bundle must cite source staging smoke report")
+if not Path(report["source_staging_smoke_report"]).exists():
+    raise SystemExit("complete-evidence release bundle must preserve source staging smoke report")
+if not Path(report["source_staging_smoke_results"]).exists():
+    raise SystemExit("complete-evidence release bundle must preserve source staging smoke results")
 PY
 nested_only_dir="$(mktemp -d)"
 cat >"$nested_only_dir/observability.json" <<EOF

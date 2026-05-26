@@ -10,8 +10,14 @@ STAGING_OUT_DIR="$(mktemp -d)"
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 RUN_ID="${STAMP}-release-evidence-bundle-$$"
 REPORT_PATH="$OUT_DIR/${RUN_ID}.json"
+STAGING_REPORT_PATH="$OUT_DIR/${RUN_ID}.staging-smoke.json"
+STAGING_RESULTS_PATH="$OUT_DIR/${RUN_ID}.staging-smoke.ndjson"
 
 mkdir -p "$OUT_DIR"
+cleanup() {
+  rm -rf "$STAGING_OUT_DIR"
+}
+trap cleanup EXIT
 
 set +e
 DRY_RUN="$DRY_RUN" \
@@ -52,7 +58,27 @@ if [[ -z "$staging_report" ]]; then
   exit 1
 fi
 
-python3 - "$REPORT_PATH" "$staging_report" "$status" <<'PY'
+python3 - "$staging_report" "$STAGING_REPORT_PATH" "$STAGING_RESULTS_PATH" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+source_report_path = Path(sys.argv[1])
+target_report_path = Path(sys.argv[2])
+target_results_path = Path(sys.argv[3])
+target_report_path.parent.mkdir(parents=True, exist_ok=True)
+
+report = json.loads(source_report_path.read_text(encoding="utf-8"))
+source_results = Path(str(report.get("results_path", "")))
+if source_results.exists() and source_results.is_file():
+    target_results_path.write_text(source_results.read_text(encoding="utf-8"), encoding="utf-8")
+    report["results_path"] = str(target_results_path)
+
+report["promoted_from_temp_report"] = str(source_report_path)
+target_report_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+PY
+
+python3 - "$REPORT_PATH" "$STAGING_REPORT_PATH" "$status" <<'PY'
 import json
 import sys
 from pathlib import Path
@@ -82,6 +108,8 @@ missing_slots = [slot["slot"] for slot in slots if not slot["provided"]]
 unverified_slots = [slot["slot"] for slot in slots if not slot["verified"]]
 decision = go_no_go.get("decision", "no-go")
 status = "passed" if staging_exit_code == 0 and decision == "go" else "blocked"
+decision_inputs = go_no_go.get("decision_inputs", {})
+blocking_reasons = go_no_go.get("blocking_reasons", [])
 
 report_path.write_text(
     json.dumps(
@@ -96,14 +124,17 @@ report_path.write_text(
             "status": status,
             "decision": decision,
             "source_staging_smoke_report": str(staging_report_path),
+            "source_staging_smoke_results": staging.get("results_path", ""),
             "staging_smoke_exit_code": staging_exit_code,
             "release_evidence_complete": go_no_go.get("release_evidence_complete") is True,
             "post_deploy_smoke_verified": go_no_go.get("post_deploy_smoke_verified") is True,
             "gate_fixtures_clear": go_no_go.get("gate_fixtures_clear") is True,
+            "decision_inputs": decision_inputs,
             "missing_slots": missing_slots,
             "unverified_slots": unverified_slots,
             "slots": slots,
-            "blocking_reasons": go_no_go.get("blocking_reasons", []),
+            "blocking_reason_count": len(blocking_reasons),
+            "blocking_reasons": blocking_reasons,
             "private_beta_gate": "open_until_release_evidence_bundle_status_passed_and_private_beta_fixture_clear",
             "production_gate": "open_until_ci_private_beta_and_production_release_evidence_bundles_pass",
         },
