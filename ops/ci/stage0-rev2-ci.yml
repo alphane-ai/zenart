@@ -120,6 +120,12 @@ jobs:
           bash -n scripts/repo_validate.sh
           bash -n scripts/load_smoke.sh
           bash -n scripts/backup_restore_drill.sh
+          bash -n scripts/playwright_smoke.sh
+          bash -n scripts/docker_build_smoke.sh
+          bash -n scripts/staging_smoke.sh
+          DRY_RUN=1 scripts/playwright_smoke.sh
+          DRY_RUN=1 scripts/docker_build_smoke.sh
+          DRY_RUN=1 scripts/staging_smoke.sh
 
       - name: Secret scan smoke
         run: |
@@ -143,6 +149,16 @@ jobs:
 
       - name: Build SHA-tagged image
         run: docker build --tag ghcr.io/alphane-ai/zenart-${{ matrix.image.name }}:${{ github.sha }} ${{ matrix.image.context }}
+
+  playwright-smoke:
+    name: Playwright smoke draft
+    runs-on: ubuntu-latest
+    needs: repo-contracts
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Playwright smoke wrapper in planned mode
+        run: DRY_RUN=1 scripts/playwright_smoke.sh
 
   smoke-placeholders:
     name: Deferred smoke gates

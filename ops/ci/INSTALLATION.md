@@ -10,7 +10,7 @@ The executable workflow draft is `ops/ci/stage0-rev2-ci.yml`. It is intentionall
 - [ ] Protect `main` with the installed Stage 0 Rev2 CI as a required status check.
 - [ ] Confirm PR and `main` triggers run after installation.
 - [ ] Confirm SHA-tagged Docker image build jobs pass before staging promotion.
-- [ ] Add Playwright smoke as a required gate after the runtime server path is stable.
+- [ ] Confirm Playwright smoke runs against started web/admin services and is required before staging promotion.
 
 ## Draft Coverage
 
@@ -24,5 +24,6 @@ The draft covers:
 - OpenAPI/client stale checks through `scripts/generate_openapi_clients.py --check`.
 - security scan smoke.
 - Docker image build using the git SHA tag.
+- Playwright smoke wrapper/spec draft in planned mode until the installed workflow can start runtime services.
 
 Deferred gates are tracked in `ops/evidence/stage0_environment_evidence.json` instead of being marked complete in the blueprint.

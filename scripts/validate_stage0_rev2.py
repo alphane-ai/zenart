@@ -28,6 +28,7 @@ CI_DRAFT_EVIDENCE = OPS_FIXTURE_DIR / "stage0_rev2_ci_draft_evidence.json"
 ENVIRONMENT_EVIDENCE = ROOT / "ops" / "evidence" / "stage0_environment_evidence.json"
 DRILL_PLAN_EVIDENCE = ROOT / "ops" / "evidence" / "stage0_drill_plan.json"
 OBSERVABILITY_EVIDENCE = ROOT / "ops" / "evidence" / "stage0_observability_evidence.json"
+RELEASE_OPS_EVIDENCE = ROOT / "ops" / "evidence" / "stage0_release_ops_evidence.json"
 
 WORKFLOWS = {
     "ecommerce_growth_pack",
@@ -652,7 +653,13 @@ def validate_ops_ci_artifact_evidence() -> None:
     )
 
     artifact_ids = {item["artifact_id"] for item in evidence["artifact_checks"]}
-    required_artifacts = {"ops_ci_draft", "migration_artifacts", "openapi_artifacts"}
+    required_artifacts = {
+        "ops_ci_draft",
+        "migration_artifacts",
+        "openapi_artifacts",
+        "playwright_smoke_draft",
+        "docker_and_staging_smoke_draft",
+    }
     require(
         required_artifacts <= artifact_ids,
         f"ops evidence missing artifact checks: {sorted(required_artifacts - artifact_ids)}",
@@ -1324,7 +1331,20 @@ def validate_generated_openapi_clients() -> None:
 
 
 def validate_ops_ci_and_drill_evidence() -> None:
-    for path in [CI_DRAFT, CI_INSTALLATION, ENVIRONMENT_EVIDENCE, DRILL_PLAN_EVIDENCE, OBSERVABILITY_EVIDENCE]:
+    for path in [
+        CI_DRAFT,
+        CI_INSTALLATION,
+        ENVIRONMENT_EVIDENCE,
+        DRILL_PLAN_EVIDENCE,
+        OBSERVABILITY_EVIDENCE,
+        RELEASE_OPS_EVIDENCE,
+        ROOT / "ops" / "ci" / "playwright-smoke.spec.ts",
+        ROOT / "ops" / "release" / "staging_deploy.md",
+        ROOT / "ops" / "release" / "release_notes_template.md",
+        ROOT / "scripts" / "playwright_smoke.sh",
+        ROOT / "scripts" / "docker_build_smoke.sh",
+        ROOT / "scripts" / "staging_smoke.sh",
+    ]:
         require(path.exists(), f"missing ops evidence file: {path.relative_to(ROOT)}")
 
     ci_text = CI_DRAFT.read_text(encoding="utf-8")
@@ -1344,6 +1364,10 @@ def validate_ops_ci_and_drill_evidence() -> None:
         "npm run test",
         "npm run build",
         "docker build --tag ghcr.io/alphane-ai/zenart-${{ matrix.image.name }}:${{ github.sha }}",
+        "playwright-smoke",
+        "DRY_RUN=1 scripts/playwright_smoke.sh",
+        "bash -n scripts/docker_build_smoke.sh",
+        "bash -n scripts/staging_smoke.sh",
         "ops/evidence/stage0_environment_evidence.json",
     }
     missing_ci_tokens = {token for token in required_ci_tokens if token not in ci_text}
@@ -1372,6 +1396,7 @@ def validate_ops_ci_and_drill_evidence() -> None:
         "workflow installation must remain blocked_by_token_scope",
     )
     require("playwright_smoke" in open_items, "environment evidence must keep Playwright smoke open")
+    require("docker_image_build_runtime" in open_items, "environment evidence must keep Docker image runtime evidence open")
 
     drill = load_json(DRILL_PLAN_EVIDENCE)
     require(drill["blueprint_source"] == "Docs/stage0_blueprint_rev2.md", "drill plan must cite Rev2")
@@ -1396,6 +1421,10 @@ def validate_ops_ci_and_drill_evidence() -> None:
         }
         <= set(drill["load"]["modes"]),
         "drill plan missing required load modes",
+    )
+    require(
+        drill["load"].get("script_contract_status") == "validated",
+        "drill plan must record validated load smoke script coverage",
     )
 
     observability = load_json(OBSERVABILITY_EVIDENCE)
@@ -1430,6 +1459,28 @@ def validate_ops_ci_and_drill_evidence() -> None:
         slo_thresholds["error_rate_5xx_percent_30m"] == 1,
         "observability evidence must define 5xx error-rate threshold",
     )
+
+    release_ops = load_json(RELEASE_OPS_EVIDENCE)
+    require(release_ops["blueprint_source"] == "Docs/stage0_blueprint_rev2.md", "release ops evidence must cite Rev2")
+    require(release_ops["created_by_lane"] == "lane5", "release ops evidence must be lane5-owned")
+    scripts = release_ops["scripts"]
+    for key, script_path in {
+        "playwright_smoke": "scripts/playwright_smoke.sh",
+        "docker_build_smoke": "scripts/docker_build_smoke.sh",
+        "staging_smoke": "scripts/staging_smoke.sh",
+    }.items():
+        require(key in scripts, f"release ops evidence missing {key}")
+        require(scripts[key]["script"] == script_path, f"release ops evidence {key} must cite {script_path}")
+        require(repo_path(script_path).exists(), f"release ops evidence script missing: {script_path}")
+    policy = release_ops["checklist_policy"]
+    for key in [
+        "ci_playwright_smoke_remains_open",
+        "ci_docker_image_build_remains_open",
+        "staging_deploy_remains_open",
+        "staging_smoke_remains_open",
+        "release_notes_execution_remains_open",
+    ]:
+        require(policy.get(key) is True, f"release ops evidence must keep {key} true")
 
 
 def main() -> int:

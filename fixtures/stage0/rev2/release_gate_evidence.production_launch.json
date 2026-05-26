@@ -36,7 +36,7 @@
     {
       "check_id": "production_backup_rollback_incident",
       "status": "blocked",
-      "evidence_ref": "Docs/stage0_blueprint_rev2.md keeps restore drills, alerts, dashboards, and post-deploy smoke open in 25.18 and 25.20"
+      "evidence_ref": "ops/release/release_notes_template.md, ops/release/staging_deploy.md, and smoke/drill scripts define the release evidence shape, but production restore, rollback, alert, dashboard, and post-deploy smoke evidence is absent"
     },
     {
       "check_id": "production_legal_support_policy",

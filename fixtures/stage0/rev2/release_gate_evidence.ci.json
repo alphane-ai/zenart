@@ -21,12 +21,12 @@
     {
       "check_id": "ci_playwright_smoke",
       "status": "blocked",
-      "evidence_ref": "Docs/stage0_blueprint_rev2.md keeps CI Playwright smoke open"
+      "evidence_ref": "scripts/playwright_smoke.sh and ops/ci/playwright-smoke.spec.ts define draft smoke, but installed PR/main workflow runtime evidence is absent"
     },
     {
       "check_id": "ci_docker_image_build",
       "status": "blocked",
-      "evidence_ref": "Docs/stage0_blueprint_rev2.md keeps CI Docker image build open"
+      "evidence_ref": "scripts/docker_build_smoke.sh and ops/ci/stage0-rev2-ci.yml define SHA image builds, but installed PR/main workflow runtime evidence is absent"
     }
   ],
   "do_not_launch_checks": [
@@ -43,12 +43,12 @@
     {
       "condition_id": "ci_playwright_smoke_missing",
       "is_present": true,
-      "evidence_ref": "Stage 0 Rev2 checklist item for CI Playwright smoke remains open"
+      "evidence_ref": "CI Playwright smoke has draft artifacts but no installed PR/main runtime pass evidence"
     },
     {
       "condition_id": "ci_docker_image_build_missing",
       "is_present": true,
-      "evidence_ref": "Stage 0 Rev2 checklist item for CI Docker image builds remains open"
+      "evidence_ref": "CI Docker image build has draft artifacts but no installed PR/main runtime pass evidence"
     }
   ],
   "provenance": {

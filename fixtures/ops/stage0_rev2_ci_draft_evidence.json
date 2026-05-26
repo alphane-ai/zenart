@@ -66,6 +66,42 @@
       ]
     },
     {
+      "artifact_id": "playwright_smoke_draft",
+      "status": "pass",
+      "paths": [
+        "ops/ci/playwright-smoke.spec.ts",
+        "scripts/playwright_smoke.sh"
+      ],
+      "validation_commands": [
+        "DRY_RUN=1 scripts/playwright_smoke.sh",
+        "bash scripts/repo_validate.sh"
+      ],
+      "required_draft_tokens": [
+        "playwright-smoke",
+        "DRY_RUN=1 scripts/playwright_smoke.sh"
+      ]
+    },
+    {
+      "artifact_id": "docker_and_staging_smoke_draft",
+      "status": "pass",
+      "paths": [
+        "scripts/docker_build_smoke.sh",
+        "scripts/staging_smoke.sh",
+        "ops/release/staging_deploy.md",
+        "ops/release/release_notes_template.md"
+      ],
+      "validation_commands": [
+        "DRY_RUN=1 scripts/docker_build_smoke.sh",
+        "DRY_RUN=1 scripts/staging_smoke.sh",
+        "bash scripts/repo_validate.sh"
+      ],
+      "required_draft_tokens": [
+        "docker build --tag ghcr.io/alphane-ai/zenart-${{ matrix.image.name }}:${{ github.sha }}",
+        "bash -n scripts/docker_build_smoke.sh",
+        "bash -n scripts/staging_smoke.sh"
+      ]
+    },
+    {
       "artifact_id": "openapi_artifacts",
       "status": "pass",
       "paths": [

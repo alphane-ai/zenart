@@ -74,7 +74,8 @@
       "openapi_client_stale_check",
       "api_agent_contract_tests",
       "security_scan_smoke",
-      "docker_image_sha_build"
+      "docker_image_sha_build",
+      "playwright_smoke_wrapper"
     ]
   },
   "feature_flags": [
@@ -108,13 +109,19 @@
     },
     {
       "id": "playwright_smoke",
-      "status": "open",
-      "owner": "frontend lane",
-      "evidence": "Rev2 checklist 25.17 keeps CI Playwright smoke unchecked"
+      "status": "open_until_runtime_pass",
+      "owner": "ops lane",
+      "evidence": "scripts/playwright_smoke.sh and ops/ci/playwright-smoke.spec.ts define the draft smoke; installed PR/main CI runtime evidence is still required"
+    },
+    {
+      "id": "docker_image_build_runtime",
+      "status": "open_until_runtime_pass",
+      "owner": "ops lane",
+      "evidence": "scripts/docker_build_smoke.sh defines local SHA-tagged image build evidence; installed PR/main CI runtime evidence is still required"
     },
     {
       "id": "runtime_load_drills",
-      "status": "open",
+      "status": "open_until_runtime_pass",
       "owner": "ops lane",
       "evidence": "scripts/load_smoke.sh supports modes, but runtime pass evidence requires running compose services"
     },
@@ -128,7 +135,7 @@
       "id": "staging_deploy",
       "status": "open",
       "owner": "release owner",
-      "evidence": "staging deployment is not implemented in this lane"
+      "evidence": "ops/release/staging_deploy.md and scripts/staging_smoke.sh define the draft path; real staging deployment evidence is not present"
     }
   ]
 }

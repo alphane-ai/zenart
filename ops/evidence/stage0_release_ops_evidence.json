@@ -1,0 +1,40 @@
+{
+  "blueprint_source": "Docs/stage0_blueprint_rev2.md",
+  "created_by_lane": "lane5",
+  "scope": "release, docker, playwright, and staging smoke operations evidence",
+  "scripts": {
+    "playwright_smoke": {
+      "script": "scripts/playwright_smoke.sh",
+      "spec": "ops/ci/playwright-smoke.spec.ts",
+      "runtime_status": "local_or_ci_runtime_required",
+      "ci_gate": "open until installed GitHub Actions workflow runs this smoke on PR/main"
+    },
+    "docker_build_smoke": {
+      "script": "scripts/docker_build_smoke.sh",
+      "runtime_status": "local_or_ci_runtime_required",
+      "ci_gate": "open until installed GitHub Actions workflow builds SHA-tagged images on PR/main"
+    },
+    "staging_smoke": {
+      "script": "scripts/staging_smoke.sh",
+      "runtime_status": "requires real staging URLs",
+      "private_beta_gate": "open until staging smoke passes with production-like dependencies"
+    }
+  },
+  "release_docs": {
+    "staging_deploy_draft": "ops/release/staging_deploy.md",
+    "release_notes_template": "ops/release/release_notes_template.md"
+  },
+  "checklist_policy": {
+    "ci_playwright_smoke_remains_open": true,
+    "ci_docker_image_build_remains_open": true,
+    "staging_deploy_remains_open": true,
+    "staging_smoke_remains_open": true,
+    "release_notes_execution_remains_open": true
+  },
+  "validation_commands": [
+    "DRY_RUN=1 scripts/playwright_smoke.sh",
+    "DRY_RUN=1 scripts/docker_build_smoke.sh",
+    "DRY_RUN=1 scripts/staging_smoke.sh",
+    "bash scripts/repo_validate.sh"
+  ]
+}

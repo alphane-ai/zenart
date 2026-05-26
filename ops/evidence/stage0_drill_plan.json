@@ -15,6 +15,7 @@
       "optional object restore copy verifies copied object count",
       "JSON report records dump bytes, restore-list items, object manifest count, RPO/RTO, and restored object count"
     ],
+    "script_contract_status": "validated",
     "runtime_status": "requires docker compose services; script syntax and dry-run report shape are validated by repo validation",
     "production_gate": "open until automated backups, PITR, and isolated staging restore evidence pass"
   },
@@ -42,6 +43,7 @@
       "summary.p95_ms",
       "summary.statuses"
     ],
+    "script_contract_status": "validated",
     "runtime_status": "requires backend and optional web/admin services; mode coverage and dry-run report shape are validated statically",
     "production_gate": "open until staging load results enforce Rev2 SLO thresholds"
   },

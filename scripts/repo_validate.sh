@@ -51,8 +51,15 @@ test -f ops/ci/stage0-rev2-ci.yml
 test -f ops/ci/INSTALLATION.md
 test -f ops/evidence/stage0_environment_evidence.json
 test -f ops/evidence/stage0_drill_plan.json
+test -f ops/evidence/stage0_release_ops_evidence.json
+test -f ops/ci/playwright-smoke.spec.ts
+test -f ops/release/staging_deploy.md
+test -f ops/release/release_notes_template.md
 test -x scripts/load_smoke.sh
 test -x scripts/backup_restore_drill.sh
+test -x scripts/playwright_smoke.sh
+test -x scripts/docker_build_smoke.sh
+test -x scripts/staging_smoke.sh
 
 log "docker compose syntax"
 if docker compose version >/dev/null 2>&1; then
@@ -112,6 +119,16 @@ log "backup/restore drill script syntax"
 bash -n scripts/backup_restore_drill.sh
 backup_validate_dir="$(mktemp -d)"
 DRY_RUN=1 DRILL_DIR="$backup_validate_dir" scripts/backup_restore_drill.sh >/dev/null
+
+log "ops smoke wrappers"
+bash -n scripts/playwright_smoke.sh
+bash -n scripts/docker_build_smoke.sh
+bash -n scripts/staging_smoke.sh
+ops_validate_dir="$(mktemp -d)"
+DRY_RUN=1 OUT_DIR="$ops_validate_dir/playwright" scripts/playwright_smoke.sh >/dev/null
+DRY_RUN=1 OUT_DIR="$ops_validate_dir/docker" scripts/docker_build_smoke.sh >/dev/null
+DRY_RUN=1 OUT_DIR="$ops_validate_dir/staging" scripts/staging_smoke.sh >/dev/null
+find "$ops_validate_dir" -name '*.json' -type f | grep -q .
 
 log "secret scan smoke"
 if has_cmd git; then
