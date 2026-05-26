@@ -6,8 +6,10 @@ import process from "node:process";
 const root = process.cwd();
 const artifactPath = path.join(root, "validation", "user-routes-smoke.json");
 const generatedApiCsrfContractPath = path.join(root, "validation", "generated-api-csrf-contract.json");
+const ecommerceGrowthWebSmokePath = path.join(root, "validation", "ecommerce-growth-web-smoke.json");
 const appDir = path.join(root, "app");
 const componentPath = path.join(root, "components", "workspace-app.tsx");
+const workspaceSmokeTestPath = path.join(root, "components", "workspace-app.smoke.test.tsx");
 const layoutPath = path.join(root, "app", "layout.tsx");
 const legalPoliciesPath = path.join(root, "lib", "legal-policies.ts");
 const telemetryPath = path.join(root, "lib", "telemetry.ts");
@@ -22,6 +24,7 @@ const fail = (message) => {
 
 const artifact = JSON.parse(await readFile(artifactPath, "utf8"));
 const componentSource = await readFile(componentPath, "utf8");
+const workspaceSmokeTestSource = await readFile(workspaceSmokeTestPath, "utf8");
 const layoutSource = await readFile(layoutPath, "utf8");
 const legalPoliciesSource = await readFile(legalPoliciesPath, "utf8");
 const telemetrySource = await readFile(telemetryPath, "utf8");
@@ -29,6 +32,7 @@ const requestSecuritySource = await readFile(requestSecurityPath, "utf8");
 const generatedApiSource = await readFile(generatedApiPath, "utf8");
 const devStateSource = await readFile(devStatePath, "utf8");
 const generatedApiCsrfContract = JSON.parse(await readFile(generatedApiCsrfContractPath, "utf8"));
+const ecommerceGrowthWebSmoke = JSON.parse(await readFile(ecommerceGrowthWebSmokePath, "utf8"));
 const expectedViews = new Set(["workspace", "projects", "export", "billing", "account", "support"]);
 const seenViews = new Set();
 
@@ -38,6 +42,21 @@ if (artifact.blueprintSource !== "Docs/stage0_blueprint_rev2.md") {
 
 if (generatedApiCsrfContract.blueprintSource !== "Docs/stage0_blueprint_rev2.md") {
   fail("generated API CSRF contract must cite Docs/stage0_blueprint_rev2.md");
+}
+
+if (ecommerceGrowthWebSmoke.blueprintSource !== "Docs/stage0_blueprint_rev2.md") {
+  fail("ecommerce growth web smoke must cite Docs/stage0_blueprint_rev2.md");
+}
+
+if (
+  ecommerceGrowthWebSmoke.status !== "pass" ||
+  ecommerceGrowthWebSmoke.scope !== "user-web-local-dev-client" ||
+  ecommerceGrowthWebSmoke.doesNotCloseChecklistGates !== true ||
+  ecommerceGrowthWebSmoke.checklistPolicy?.ecommerceApiSmokeChecklistRemainsOpen !== true ||
+  ecommerceGrowthWebSmoke.checklistPolicy?.ecommercePlaywrightChecklistRemainsOpen !== true ||
+  ecommerceGrowthWebSmoke.checklistPolicy?.localAlphaGateRemainsOpen !== true
+) {
+  fail("ecommerce growth web smoke must be passing web-local evidence while keeping runtime gates open");
 }
 
 const securityEvidence = artifact.securityEvidence ?? [];
@@ -63,6 +82,58 @@ const referenceUploadEvidence = requireSecurityEvidence("stage0.rev2.reference-u
 const briefUploadConfirmationEvidence = requireSecurityEvidence("stage0.rev2.brief-upload-confirmation-runtime-evidence");
 const packageExportEvidence = requireSecurityEvidence("stage0.rev2.package-export-metadata-ui");
 const workflowApiSmokeEvidence = requireSecurityEvidence("stage0.rev2.workflow-api-smoke");
+
+if (
+  workflowApiSmokeEvidence.workflowId !== ecommerceGrowthWebSmoke.workflow.workflowId ||
+  workflowApiSmokeEvidence.fixtureId !== ecommerceGrowthWebSmoke.workflow.fixtureId ||
+  workflowApiSmokeEvidence.scenario !== ecommerceGrowthWebSmoke.workflow.scenario ||
+  workflowApiSmokeEvidence.expectedStatus !== ecommerceGrowthWebSmoke.workflow.expectedStatus ||
+  workflowApiSmokeEvidence.expectedOperationCount !== String(ecommerceGrowthWebSmoke.workflow.expectedOperationCount) ||
+  workflowApiSmokeEvidence.expectedCandidateCount !== String(ecommerceGrowthWebSmoke.workflow.expectedCandidateCount) ||
+  workflowApiSmokeEvidence.expectedTaxonomyCount !== String(ecommerceGrowthWebSmoke.workflow.expectedTaxonomyCount) ||
+  workflowApiSmokeEvidence.expectedPackagedTaxonomyCount !== String(ecommerceGrowthWebSmoke.workflow.expectedPackagedTaxonomyCount) ||
+  workflowApiSmokeEvidence.expectedReadyZipExportCount !== String(ecommerceGrowthWebSmoke.workflow.expectedReadyZipExportCount) ||
+  workflowApiSmokeEvidence.expectedMissingOutputCount !== String(ecommerceGrowthWebSmoke.workflow.expectedMissingOutputCount)
+) {
+  fail("ecommerce growth web smoke fixture does not match user route smoke workflow evidence");
+}
+
+if (JSON.stringify(ecommerceGrowthWebSmoke.workflow.operationIds) !== JSON.stringify([
+  "createChatSession",
+  "createChatMessage",
+  "createCandidateSet",
+  "listCandidateAssets",
+  "selectDirection",
+  "createPackage",
+  "createExport",
+  "getExport"
+])) {
+  fail("ecommerce growth web smoke operation order drifted");
+}
+
+for (const attribute of ecommerceGrowthWebSmoke.uiEvidence?.requiredAttributes ?? []) {
+  if (!componentSource.includes(attribute)) {
+    fail(`ecommerce growth web smoke UI source missing ${attribute}`);
+  }
+}
+
+for (const snippet of ecommerceGrowthWebSmoke.uiEvidence?.requiredTestSnippets ?? []) {
+  if (!workspaceSmokeTestSource.includes(snippet)) {
+    fail(`ecommerce growth web smoke test missing ${snippet}`);
+  }
+}
+
+for (const taxonomy of ecommerceGrowthWebSmoke.workflow.strategyTaxonomy ?? []) {
+  if (!devStateSource.includes(taxonomy) || !workspaceSmokeTestSource.includes(`candidate-card-${taxonomy}`) && !workspaceSmokeTestSource.includes(taxonomy)) {
+    fail(`ecommerce growth web smoke missing taxonomy ${taxonomy}`);
+  }
+}
+
+for (const requiredOutput of ecommerceGrowthWebSmoke.workflow.requiredOutputFiles ?? []) {
+  if (!devStateSource.includes(requiredOutput) && !JSON.stringify(artifact).includes(requiredOutput)) {
+    fail(`ecommerce growth web smoke missing required output ${requiredOutput}`);
+  }
+}
 
 if (sessionEvidence.route !== "/account") {
   fail("session/CSRF client evidence must be attached to /account");

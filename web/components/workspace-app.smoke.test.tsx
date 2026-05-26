@@ -238,6 +238,93 @@ describe("WorkspaceApp user route integration smoke", () => {
     });
   });
 
+  it("drives the ecommerce growth pack through all four taxonomy candidates to ready ZIP smoke evidence", async () => {
+    const { container } = render(<WorkspaceApp initialView="workspace" />);
+
+    await screen.findByRole("heading", { name: "Launch Direction Board" });
+    for (const taxonomy of ["conversion_offer", "social_proof", "feature_comparison", "retention_bundle"]) {
+      expect(screen.getByTestId(`candidate-card-${taxonomy}`)).toBeInTheDocument();
+    }
+
+    fireEvent.change(screen.getByLabelText("Brief"), {
+      target: {
+        value:
+          "Create an ecommerce growth package for the Aurora bottle using the uploaded packshot reference, shopper audience, and web, social, marketplace, and presentation export surfaces."
+      }
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Confirm Brief" }));
+    await screen.findByText("Brief confirmed. I generated four deterministic strategy candidates for review.");
+
+    fireEvent.change(screen.getByLabelText("Reference asset name or URL"), { target: { value: "aurora-packshot.webp" } });
+    fireEvent.click(screen.getByRole("button", { name: "Attach" }));
+
+    await waitFor(() => {
+      expect(container.querySelector("[data-brief-upload-confirmation-runtime-evidence='stage0.rev2.brief-upload-confirmation-runtime-evidence']")).toHaveAttribute(
+        "data-brief-upload-confirmation-status",
+        "pass"
+      );
+    });
+
+    const selectAndPackage = async (candidateTitle: string) => {
+      fireEvent.click(screen.getByRole("button", { name: `Select ${candidateTitle}` }));
+      await waitFor(() => {
+        expect(screen.getByRole("button", { name: `Select ${candidateTitle}` })).toHaveAttribute("aria-pressed", "true");
+      });
+      fireEvent.click(screen.getByRole("button", { name: "Add Selection" }));
+      await waitFor(() => {
+        expect(screen.getAllByText(candidateTitle).length).toBeGreaterThanOrEqual(2);
+      });
+    };
+
+    await selectAndPackage("Editorial Clarity");
+
+    fireEvent.change(screen.getByLabelText("Iteration instruction"), {
+      target: { value: "Refine the ecommerce story for clearer offer hierarchy and handoff notes." }
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Iterate" }));
+    await screen.findByText("Iteration");
+
+    await selectAndPackage("Studio System");
+    await selectAndPackage("Gallery Motion");
+    await selectAndPackage("Utility Kit");
+
+    fireEvent.click(screen.getByRole("button", { name: "Export ZIP" }));
+    await screen.findByText("zenart-001.zip");
+
+    const workflowSmoke = await waitFor(() => {
+      const evidence = container.querySelector("[data-workflow-api-smoke='stage0.rev2.workflow-api-smoke']");
+      expect(evidence).toHaveAttribute("data-workflow-api-smoke-status", "pass");
+      return evidence as HTMLElement;
+    });
+
+    expect(workflowSmoke).toHaveAttribute("data-workflow-api-smoke-workflow", "ecommerce_growth_pack");
+    expect(workflowSmoke).toHaveAttribute("data-workflow-api-smoke-fixture", "fx_ecommerce_growth_golden");
+    expect(workflowSmoke).toHaveAttribute(
+      "data-workflow-api-smoke-scenario",
+      "brief-reference-four-candidates-select-iterate-package-export-zip"
+    );
+    expect(workflowSmoke).toHaveAttribute("data-workflow-api-smoke-operation-count", "8");
+    expect(workflowSmoke).toHaveAttribute("data-workflow-api-smoke-candidate-count", "4");
+    expect(workflowSmoke).toHaveAttribute("data-workflow-api-smoke-taxonomy-count", "4");
+    expect(workflowSmoke).toHaveAttribute("data-workflow-api-smoke-packaged-taxonomy-count", "4");
+    expect(workflowSmoke).toHaveAttribute("data-workflow-api-smoke-ready-zip-export-count", "1");
+    expect(workflowSmoke).toHaveAttribute("data-workflow-api-smoke-missing-output-count", "0");
+    expect(workflowSmoke).toHaveAttribute("data-workflow-api-smoke-qa-taxonomy-status", "pass");
+    expect(workflowSmoke).toHaveAttribute("data-workflow-api-smoke-safety-status", "pass");
+    expect(workflowSmoke).toHaveAttribute("data-workflow-api-smoke-failures", "");
+    expect(workflowSmoke.getAttribute("data-workflow-api-smoke-operations")).toBe(
+      "createChatSession,createChatMessage,createCandidateSet,listCandidateAssets,selectDirection,createPackage,createExport,getExport"
+    );
+
+    const renderingSmoke = container.querySelector("[data-rendering-smoke='stage0.rev2.workspace-rendering-performance']");
+    expect(renderingSmoke).toHaveAttribute("data-rendering-status", "pass");
+    expect(renderingSmoke?.getAttribute("data-render-interaction-steps")).toContain("brief-confirm");
+    expect(renderingSmoke?.getAttribute("data-render-interaction-steps")).toContain("candidate-select");
+    expect(renderingSmoke?.getAttribute("data-render-interaction-steps")).toContain("iteration");
+    expect(renderingSmoke?.getAttribute("data-render-interaction-steps")).toContain("package-add");
+    expect(renderingSmoke?.getAttribute("data-render-interaction-steps")).toContain("export-ready");
+  });
+
   it("keeps workspace rendering inside the smoke budget across the interactive canvas flow", async () => {
     const { container } = render(<WorkspaceApp initialView="workspace" />);
 

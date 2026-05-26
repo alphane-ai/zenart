@@ -1,0 +1,89 @@
+{
+  "schemaVersion": "stage0.rev2.web-local-workflow-smoke",
+  "blueprintSource": "Docs/stage0_blueprint_rev2.md",
+  "owner": "lane3",
+  "scope": "user-web-local-dev-client",
+  "status": "pass",
+  "doesNotCloseChecklistGates": true,
+  "checklistPolicy": {
+    "ecommerceApiSmokeChecklistRemainsOpen": true,
+    "ecommercePlaywrightChecklistRemainsOpen": true,
+    "localAlphaGateRemainsOpen": true,
+    "reason": "This artifact proves the user web route and deterministic dev client contract only. The authoritative checklist requires full API and Playwright runtime evidence against the running local stack."
+  },
+  "workflow": {
+    "workflowId": "ecommerce_growth_pack",
+    "fixtureId": "fx_ecommerce_growth_golden",
+    "route": "/workspace",
+    "scenario": "brief-reference-four-candidates-select-iterate-package-export-zip",
+    "expectedStatus": "pass",
+    "expectedOperationCount": 8,
+    "expectedCandidateCount": 4,
+    "expectedTaxonomyCount": 4,
+    "expectedPackagedTaxonomyCount": 4,
+    "expectedReadyZipExportCount": 1,
+    "expectedMissingOutputCount": 0,
+    "expectedQaTaxonomyStatus": "pass",
+    "expectedSafetyStatus": "pass",
+    "operationIds": [
+      "createChatSession",
+      "createChatMessage",
+      "createCandidateSet",
+      "listCandidateAssets",
+      "selectDirection",
+      "createPackage",
+      "createExport",
+      "getExport"
+    ],
+    "strategyTaxonomy": [
+      "conversion_offer",
+      "social_proof",
+      "feature_comparison",
+      "retention_bundle"
+    ],
+    "requiredOutputFiles": [
+      "manifest.json",
+      "assets/hero_product_ad.png",
+      "assets/square_social_ad.png",
+      "assets/story_variant.png",
+      "assets/marketplace_banner.png",
+      "metadata.json",
+      "qa_report.json",
+      "trace_provenance.json"
+    ]
+  },
+  "uiEvidence": {
+    "source": "web/components/workspace-app.tsx",
+    "test": "web/components/workspace-app.smoke.test.tsx",
+    "statusAttribute": "data-workflow-api-smoke-status",
+    "requiredAttributes": [
+      "data-workflow-api-smoke",
+      "data-workflow-api-smoke-workflow",
+      "data-workflow-api-smoke-fixture",
+      "data-workflow-api-smoke-scenario",
+      "data-workflow-api-smoke-status",
+      "data-workflow-api-smoke-operation-count",
+      "data-workflow-api-smoke-candidate-count",
+      "data-workflow-api-smoke-taxonomy-count",
+      "data-workflow-api-smoke-packaged-taxonomy-count",
+      "data-workflow-api-smoke-ready-zip-export-count",
+      "data-workflow-api-smoke-missing-output-count",
+      "data-workflow-api-smoke-qa-taxonomy-status",
+      "data-workflow-api-smoke-safety-status",
+      "data-workflow-api-smoke-operations",
+      "data-workflow-api-smoke-failures"
+    ],
+    "requiredTestSnippets": [
+      "drives the ecommerce growth pack through all four taxonomy candidates to ready ZIP smoke evidence",
+      "Select Editorial Clarity",
+      "Select Studio System",
+      "Select Gallery Motion",
+      "Select Utility Kit",
+      "data-workflow-api-smoke-status",
+      "data-workflow-api-smoke-packaged-taxonomy-count",
+      "data-workflow-api-smoke-ready-zip-export-count",
+      "data-workflow-api-smoke-missing-output-count",
+      "data-render-interaction-steps"
+    ]
+  }
+}
