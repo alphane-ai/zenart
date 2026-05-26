@@ -2229,6 +2229,60 @@ def validate_global_do_not_launch_checklist_item(
     )
 
 
+def validate_release_gate_checklist_decision_alignment(
+    evidence: dict[str, dict[str, Any]],
+    checked_lines: set[str],
+    unchecked_lines: set[str],
+) -> None:
+    for item, gate in GATE_CHECKLIST_ITEMS.items():
+        gate_item_state_count = int(item in checked_lines) + int(item in unchecked_lines)
+        require(
+            gate_item_state_count == 1,
+            f"blueprint missing launch gate checklist item: {item}",
+        )
+        require(gate in evidence, f"missing release gate evidence for {gate}")
+        decision_status = evidence[gate]["gate_decision"]["status"]
+        if item in checked_lines:
+            require(
+                decision_status == "go",
+                f"blueprint marks {item!r} complete but {gate} gate_decision.status is {decision_status!r}",
+            )
+        else:
+            require(
+                decision_status == "no_go",
+                f"{gate} gate_decision.status cannot be {decision_status!r} while blueprint gate item remains open: {item}",
+            )
+
+    global_state_count = int(GLOBAL_DO_NOT_LAUNCH_CHECKLIST_ITEM in checked_lines) + int(
+        GLOBAL_DO_NOT_LAUNCH_CHECKLIST_ITEM in unchecked_lines
+    )
+    require(
+        global_state_count == 1,
+        f"blueprint missing global launch checklist item: {GLOBAL_DO_NOT_LAUNCH_CHECKLIST_ITEM}",
+    )
+    gate_decisions = {
+        gate: data["gate_decision"]["status"]
+        for gate, data in evidence.items()
+    }
+    if GLOBAL_DO_NOT_LAUNCH_CHECKLIST_ITEM in checked_lines:
+        non_go_gates = {
+            gate: status
+            for gate, status in gate_decisions.items()
+            if status != "go"
+        }
+        require(
+            not non_go_gates,
+            "global Do-Not-Launch checklist item cannot close while release gate decisions are not go: "
+            + json.dumps(non_go_gates, ensure_ascii=False, sort_keys=True),
+        )
+    else:
+        require(
+            any(status != "go" for status in gate_decisions.values())
+            or any(item in unchecked_lines for item in GATE_CHECKLIST_ITEMS),
+            "global Do-Not-Launch checklist item remains open even though all release gate decisions are go",
+        )
+
+
 def checked_items(text: str) -> set[str]:
     return {
         match.group(1)
@@ -3647,6 +3701,11 @@ def validate_release_gate_evidence() -> None:
         blueprint_checked,
         blueprint_unchecked,
     )
+    validate_release_gate_checklist_decision_alignment(
+        evidence,
+        blueprint_checked,
+        blueprint_unchecked,
+    )
 
     for gate, gate_evidence in evidence.items():
         validate_release_gate_basics(gate_evidence)
@@ -3917,6 +3976,11 @@ def validate_blueprint_checklist() -> None:
     evidence = release_evidence_by_gate()
     validate_release_gate_order_dependencies(evidence)
     validate_global_do_not_launch_checklist_item(
+        evidence,
+        checked_lines,
+        unchecked_lines,
+    )
+    validate_release_gate_checklist_decision_alignment(
         evidence,
         checked_lines,
         unchecked_lines,
@@ -4746,6 +4810,9 @@ def validate_launch_readiness_split_contracts() -> None:
         "Fixture or contract evidence can never close CI, Private Beta/Staging, Production Launch, or Do-Not-Launch checklist items by itself",
         "Runtime gate checks that pass must cite environment-specific evidence paths",
         "Each release gate fixture must include a `gate_decision` object",
+        "`gate_decision.status` must also align with the authoritative checklist",
+        "each open gate checklist item requires the matching fixture decision to stay `no_go`",
+        "each checked gate checklist item requires the matching fixture decision to be `go`",
         "a fixture-level `go` decision is invalid while any check is blocked/failing or any Do-Not-Launch condition is active",
         "If a gate checklist item remains open, its release gate fixture must still contain at least one computed blocker",
         "Passed runtime gate checks must cite exact validator-owned evidence files when the checklist subitem is closed by a named `ops/evidence` artifact",
@@ -4757,6 +4824,8 @@ def validate_launch_readiness_split_contracts() -> None:
         "Production Launch cannot clear `ci_staging_gates_not_passed` or pass backup/rollback/post-deploy evidence until both",
         "Do-Not-Launch Conditions 全部为 false。` remains open while any release-gate evidence fixture has `is_present: true`",
         "Do-Not-Launch Conditions 全部为 false。` may close only when all four release gate fixtures have no active Do-Not-Launch conditions",
+        "Do-Not-Launch Conditions 全部为 false。` also requires all four release gate `gate_decision.status` values to be `go`",
+        "a global close with any fixture-level `no_go` decision is invalid",
         "Release gate fixture IDs are closed-world",
     ]:
         require(token in text, f"blueprint release gate closure policy missing token: {token}")
