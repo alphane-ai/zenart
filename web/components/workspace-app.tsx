@@ -35,6 +35,7 @@ import { AccountSettings, BillingScenario, Candidate, ExportFormat, QaSeverity, 
 import { zenArtClient } from "@/lib/api-client";
 import {
   buildPackageExportMetadataEvidence,
+  buildReferenceUploadIntegrationSmoke,
   buildSupportProblemContext,
   buildWorkspaceRenderingPerformanceSmoke
 } from "@/lib/dev-state";
@@ -478,6 +479,7 @@ function WorkspaceView({
     state.packageItems.filter((item) => item.type === "reference").map((item) => item.sourceId)
   );
   const renderingSmoke = buildWorkspaceRenderingPerformanceSmoke(state);
+  const referenceIntegrationSmoke = buildReferenceUploadIntegrationSmoke(state);
   return (
     <div className="workspace-grid">
       <section className="panel chat-panel">
@@ -539,8 +541,17 @@ function WorkspaceView({
           className="reference-export-smoke"
           aria-label="Reference upload export integration smoke"
           data-reference-export-smoke="reference-upload-to-ready-zip-export"
+          data-reference-upload-integration-smoke={referenceIntegrationSmoke.schema_version}
+          data-reference-upload-integration-status={referenceIntegrationSmoke.status}
           data-reference-accepted-count={acceptedReferenceIds.length}
+          data-reference-accepted-kinds={referenceIntegrationSmoke.acceptedKinds.join(",")}
+          data-reference-rejected-count={referenceIntegrationSmoke.rejectedCount}
           data-reference-packaged-count={packagedReferenceIds.size}
+          data-reference-package-history-count={referenceIntegrationSmoke.packageHistoryReferenceCount}
+          data-reference-ready-export-count={referenceIntegrationSmoke.readyExportCount}
+          data-reference-provenance-count={referenceIntegrationSmoke.provenanceCount}
+          data-reference-ppt-asset-grid-slide-count={referenceIntegrationSmoke.pptAssetGridSlideCount}
+          data-reference-upload-integration-failures={referenceIntegrationSmoke.failures.join(",")}
         >
           <strong>Reference export path</strong>
           <span>Accepted references can be added to package history and ZIP manifest provenance.</span>

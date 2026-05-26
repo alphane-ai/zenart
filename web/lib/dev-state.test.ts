@@ -3,6 +3,7 @@ import { ExportRecord } from "./contracts";
 import {
   buildManifest,
   buildPackageExportMetadataEvidence,
+  buildReferenceUploadIntegrationSmoke,
   buildSupportProblemContext,
   buildWorkspaceRenderingPerformanceSmoke,
   createDisabledShareLink,
@@ -356,6 +357,97 @@ describe("dev workspace contracts", () => {
       renderElementCount: 99
     });
     expect(smoke.failures).toEqual(["nodes", "edges", "versions", "render-elements", "interaction"]);
+  });
+
+  it("summarizes reference upload integration through package history, provenance, and PPT asset-grid slides", () => {
+    const state = createInitialWorkspace();
+    const acceptedImage = createReferenceAsset("campaign-reference.webp", "image");
+    const acceptedDocument = createReferenceAsset("brief-source.pdf", "document");
+    const acceptedUrl = createReferenceAsset("https://assets.example.com/pack", "url");
+    const rejectedReference = createReferenceAsset("unsafe-reference.exe", "image");
+    const packageItems = [
+      {
+        id: "pkg-item-001",
+        sourceId: "cand-studio",
+        title: "Studio System",
+        type: "candidate" as const,
+        addedAt: "2026-05-26T10:00:00.000Z",
+        workflowId: ecommerceGrowthWorkflowAcceptance.workflow_id,
+        strategyTaxonomy: "social_proof",
+        requiredOutputFiles: ["assets/square_social_ad.png"]
+      },
+      {
+        id: "pkg-item-002",
+        sourceId: acceptedImage.id,
+        title: acceptedImage.name,
+        type: "reference" as const,
+        addedAt: "2026-05-26T10:03:00.000Z"
+      },
+      {
+        id: "pkg-item-003",
+        sourceId: acceptedDocument.id,
+        title: acceptedDocument.name,
+        type: "reference" as const,
+        addedAt: "2026-05-26T10:04:00.000Z"
+      },
+      {
+        id: "pkg-item-004",
+        sourceId: acceptedUrl.id,
+        title: acceptedUrl.name,
+        type: "reference" as const,
+        addedAt: "2026-05-26T10:05:00.000Z"
+      }
+    ];
+    const qaReport = evaluatePackageQa(packageItems);
+    const exportRecord: ExportRecord = {
+      id: "export-010",
+      format: "zip",
+      status: "ready",
+      createdAt: "2026-05-26T10:06:00.000Z",
+      fileName: "zenart-010.zip",
+      manifest: buildManifest(state.activeProjectId, packageItems),
+      qaReport,
+      safetyReport: runSafetyPolicy({ ...state, selectedCandidateId: "cand-studio", packageItems }, qaReport)
+    };
+
+    expect(
+      buildReferenceUploadIntegrationSmoke({
+        ...state,
+        brief: {
+          ...state.brief,
+          references: [...state.brief.references, acceptedImage, acceptedDocument, acceptedUrl, rejectedReference]
+        },
+        packageItems,
+        exports: [exportRecord]
+      })
+    ).toEqual({
+      schema_version: "stage0.rev2.reference-upload-integration-smoke",
+      status: "pass",
+      scenario: "reference-upload-to-ready-zip-export",
+      acceptedCount: 4,
+      acceptedKinds: ["image", "document", "url"],
+      rejectedCount: 1,
+      packagedReferenceCount: 3,
+      packageHistoryReferenceCount: 3,
+      readyExportCount: 1,
+      provenanceCount: 3,
+      pptAssetGridSlideCount: 3,
+      failures: []
+    });
+  });
+
+  it("fails reference upload integration smoke before references reach a ready export", () => {
+    const state = createInitialWorkspace();
+
+    expect(buildReferenceUploadIntegrationSmoke(state)).toMatchObject({
+      status: "fail",
+      acceptedCount: 1,
+      packagedReferenceCount: 0,
+      readyExportCount: 0,
+      provenanceCount: 0,
+      pptAssetGridSlideCount: 0,
+      failures: ["packaged-reference", "ready-export"]
+    });
   });
 
   it("models local alpha share links as disabled and private", () => {

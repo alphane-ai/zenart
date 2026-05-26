@@ -8,6 +8,7 @@ import {
   PptReadyMetadata,
   QaFinding,
   ReferenceAsset,
+  ReferenceUploadIntegrationSmoke,
   SafetyPolicyReport,
   SessionContract,
   SessionUser,
@@ -594,6 +595,50 @@ export const createReferenceAsset = (name: string, kind: ReferenceAsset["kind"])
     kind,
     status: validation.state === "accepted" ? "attached" : "queued",
     validation
+  };
+};
+
+export const buildReferenceUploadIntegrationSmoke = (state: WorkspaceState): ReferenceUploadIntegrationSmoke => {
+  const acceptedReferences = state.brief.references.filter((reference) => reference.validation.state === "accepted");
+  const packagedReferenceIds = new Set(
+    state.packageItems.filter((item) => item.type === "reference").map((item) => item.sourceId)
+  );
+  const latestReadyExport = state.exports.find((record) => record.status === "ready");
+  const referenceProvenanceCount =
+    latestReadyExport?.manifest.items.filter((item) => item.provenance.startsWith("dev-client-reference:")).length ?? 0;
+  const pptAssetGridSlideCount =
+    latestReadyExport?.manifest.ppt_ready_metadata.slides.filter((slide) => slide.layout === "asset-grid").length ?? 0;
+  const failures: ReferenceUploadIntegrationSmoke["failures"] = [];
+
+  if (acceptedReferences.length === 0) {
+    failures.push("accepted-reference");
+  }
+  if (packagedReferenceIds.size === 0) {
+    failures.push("packaged-reference");
+  }
+  if (!latestReadyExport) {
+    failures.push("ready-export");
+  }
+  if (latestReadyExport && referenceProvenanceCount < packagedReferenceIds.size) {
+    failures.push("manifest-provenance");
+  }
+  if (latestReadyExport && pptAssetGridSlideCount < packagedReferenceIds.size) {
+    failures.push("ppt-asset-grid");
+  }
+
+  return {
+    schema_version: "stage0.rev2.reference-upload-integration-smoke",
+    status: failures.length === 0 ? "pass" : "fail",
+    scenario: "reference-upload-to-ready-zip-export",
+    acceptedCount: acceptedReferences.length,
+    acceptedKinds: Array.from(new Set(acceptedReferences.map((reference) => reference.kind))),
+    rejectedCount: state.brief.references.filter((reference) => reference.validation.state === "rejected").length,
+    packagedReferenceCount: packagedReferenceIds.size,
+    packageHistoryReferenceCount: state.packageItems.filter((item) => item.type === "reference").length,
+    readyExportCount: state.exports.filter((record) => record.status === "ready").length,
+    provenanceCount: referenceProvenanceCount,
+    pptAssetGridSlideCount,
+    failures
   };
 };
 

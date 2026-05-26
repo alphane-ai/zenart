@@ -108,6 +108,27 @@ export interface ReferenceAsset {
   };
 }
 
+export interface ReferenceUploadIntegrationSmoke {
+  schema_version: "stage0.rev2.reference-upload-integration-smoke";
+  status: "pass" | "fail";
+  scenario: "reference-upload-to-ready-zip-export";
+  acceptedCount: number;
+  acceptedKinds: ReferenceAsset["kind"][];
+  rejectedCount: number;
+  packagedReferenceCount: number;
+  packageHistoryReferenceCount: number;
+  readyExportCount: number;
+  provenanceCount: number;
+  pptAssetGridSlideCount: number;
+  failures: Array<
+    | "accepted-reference"
+    | "packaged-reference"
+    | "ready-export"
+    | "manifest-provenance"
+    | "ppt-asset-grid"
+  >;
+}
+
 export interface Candidate {
   id: string;
   title: string;

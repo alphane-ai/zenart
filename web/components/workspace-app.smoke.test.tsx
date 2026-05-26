@@ -81,6 +81,18 @@ describe("WorkspaceApp user route integration smoke", () => {
     fireEvent.click(screen.getByRole("button", { name: "Export ZIP" }));
     await screen.findByText("zenart-001.zip");
 
+    await waitFor(() => {
+      const smoke = container.querySelector("[data-reference-upload-integration-smoke='stage0.rev2.reference-upload-integration-smoke']");
+      expect(smoke).toHaveAttribute("data-reference-upload-integration-status", "pass");
+      expect(smoke).toHaveAttribute("data-reference-accepted-kinds", "image");
+      expect(smoke).toHaveAttribute("data-reference-rejected-count", "0");
+      expect(smoke).toHaveAttribute("data-reference-package-history-count", "1");
+      expect(smoke).toHaveAttribute("data-reference-ready-export-count", "1");
+      expect(smoke).toHaveAttribute("data-reference-provenance-count", "1");
+      expect(smoke).toHaveAttribute("data-reference-ppt-asset-grid-slide-count", "1");
+      expect(smoke).toHaveAttribute("data-reference-upload-integration-failures", "");
+    });
+
     const renderingSmoke = container.querySelector("[data-rendering-smoke='stage0.rev2.workspace-rendering-performance']");
     expect(renderingSmoke).toHaveAttribute("data-rendering-status", "pass");
     expect(Number(renderingSmoke?.getAttribute("data-render-element-count"))).toBeLessThanOrEqual(

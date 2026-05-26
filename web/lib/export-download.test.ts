@@ -37,9 +37,14 @@ describe("reference upload and export download integration", () => {
 
     const rejectedReference = await client.attachReference({ name: "unsafe-reference.exe", kind: "image" });
     const acceptedReference = await client.attachReference({ name: "campaign-reference.webp", kind: "image" });
+    const acceptedDocument = await client.attachReference({ name: "launch-brief.pdf", kind: "document" });
+    const acceptedUrl = await client.attachReference({ name: "https://assets.example.com/reference-pack", kind: "url" });
+    const rejectedHttpUrl = await client.attachReference({ name: "http://assets.example.com/reference-pack", kind: "url" });
     await client.selectCandidate("cand-studio");
     await client.addPackageItem("cand-studio");
-    const packaged = await client.addPackageItem("ref-campaign-reference-webp");
+    await client.addPackageItem("ref-campaign-reference-webp");
+    await client.addPackageItem("ref-launch-brief-pdf");
+    const packaged = await client.addPackageItem("ref-https-assets-example-com-reference-pack");
     const exported = await client.createExport("zip");
     const record = exported.exports[0];
 
@@ -56,7 +61,28 @@ describe("reference upload and export download integration", () => {
         state: "accepted"
       }
     });
-    expect(packaged.packageItems).toHaveLength(2);
+    expect(acceptedDocument.brief.references.at(-1)).toMatchObject({
+      id: "ref-launch-brief-pdf",
+      kind: "document",
+      validation: {
+        state: "accepted"
+      }
+    });
+    expect(acceptedUrl.brief.references.at(-1)).toMatchObject({
+      id: "ref-https-assets-example-com-reference-pack",
+      kind: "url",
+      validation: {
+        state: "accepted"
+      }
+    });
+    expect(rejectedHttpUrl.brief.references.at(-1)).toMatchObject({
+      kind: "url",
+      validation: {
+        state: "rejected",
+        reason: "Reference URLs must use HTTPS."
+      }
+    });
+    expect(packaged.packageItems).toHaveLength(4);
     expect(record).toMatchObject({
       format: "zip",
       status: "ready",
@@ -98,6 +124,18 @@ describe("reference upload and export download integration", () => {
         title: "campaign-reference.webp",
         type: "reference",
         provenance: "dev-client-reference:ref-campaign-reference-webp"
+      },
+      {
+        id: "pkg-item-003",
+        title: "launch-brief.pdf",
+        type: "reference",
+        provenance: "dev-client-reference:ref-launch-brief-pdf"
+      },
+      {
+        id: "pkg-item-004",
+        title: "https://assets.example.com/reference-pack",
+        type: "reference",
+        provenance: "dev-client-reference:ref-https-assets-example-com-reference-pack"
       }
     ]);
     expect(qaReport).toEqual(
@@ -146,6 +184,18 @@ describe("reference upload and export download integration", () => {
           source_item_id: "pkg-item-002",
           title: "campaign-reference.webp",
           layout: "asset-grid"
+        },
+        {
+          id: "slide-03",
+          source_item_id: "pkg-item-003",
+          title: "launch-brief.pdf",
+          layout: "asset-grid"
+        },
+        {
+          id: "slide-04",
+          source_item_id: "pkg-item-004",
+          title: "https://assets.example.com/reference-pack",
+          layout: "asset-grid"
         }
       ]
     });
@@ -154,7 +204,9 @@ describe("reference upload and export download integration", () => {
       generated_by: "zenart-web-dev-client",
       items: [
         { id: "pkg-item-001", provenance: "dev-client:cand-studio" },
-        { id: "pkg-item-002", provenance: "dev-client-reference:ref-campaign-reference-webp" }
+        { id: "pkg-item-002", provenance: "dev-client-reference:ref-campaign-reference-webp" },
+        { id: "pkg-item-003", provenance: "dev-client-reference:ref-launch-brief-pdf" },
+        { id: "pkg-item-004", provenance: "dev-client-reference:ref-https-assets-example-com-reference-pack" }
       ]
     });
     expect(workflowAsset).toMatchObject({
