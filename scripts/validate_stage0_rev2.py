@@ -232,6 +232,13 @@ RELEASE_GATE_REQUIRED_ACTIVE_CONDITIONS = {
     },
 }
 
+RELEASE_GATE_EVIDENCE_FILES = {
+    "local_alpha": FIXTURE_DIR / "release_gate_evidence.local_alpha.json",
+    "ci": FIXTURE_DIR / "release_gate_evidence.ci.json",
+    "private_beta_staging": FIXTURE_DIR / "release_gate_evidence.private_beta_staging.json",
+    "production_launch": FIXTURE_DIR / "release_gate_evidence.production_launch.json",
+}
+
 RELEASE_GATE_BACKFILL_CHECKED_ITEMS = {
     "Backfill Local Alpha release gate fixture evidence: workflow/eval/crawler/schema/service/runtime-stack checks pass in `fixtures/stage0/rev2/release_gate_evidence.local_alpha.json`。",
     "Backfill CI draft/no-go evidence: ops CI draft coverage passes while installed `.github/workflows` runtime remains blocked in `fixtures/stage0/rev2/release_gate_evidence.ci.json`。",
@@ -580,15 +587,87 @@ LOCAL_ALPHA_WORKFLOW_RUNTIME_ITEMS = {
     "角色/IP 概念包 Playwright happy path 通过。",
 }
 
+LOCAL_ALPHA_RELEASE_GATE_WORKFLOW_RUNTIME_OPEN_CHECK_ITEMS = {
+    "Local Alpha 电商增长包 runtime smoke evidence 写入 release gate fixture：API smoke 与 Playwright happy path 均通过 running local stack。": {
+        "local_alpha_e2e_workflow_smoke",
+    },
+    "Local Alpha 商业视觉文档包 runtime smoke evidence 写入 release gate fixture：API smoke 与 Playwright happy path 均通过 running local stack。": {
+        "local_alpha_e2e_workflow_smoke",
+    },
+    "Local Alpha 本地商家活动包 runtime smoke evidence 写入 release gate fixture：API smoke 与 Playwright happy path 均通过 running local stack。": {
+        "local_alpha_e2e_workflow_smoke",
+    },
+    "Local Alpha 角色/IP 概念包 runtime smoke evidence 写入 release gate fixture：API smoke 与 Playwright happy path 均通过 running local stack。": {
+        "local_alpha_e2e_workflow_smoke",
+    },
+}
+
 RELEASE_GATE_AGGREGATE_REQUIREMENTS = {
     "local_alpha": {
-        LOCAL_ALPHA_AGGREGATE_RUNTIME_ITEM: LOCAL_ALPHA_WORKFLOW_RUNTIME_ITEMS,
+        LOCAL_ALPHA_AGGREGATE_RUNTIME_ITEM: (
+            LOCAL_ALPHA_WORKFLOW_RUNTIME_ITEMS
+            | set(LOCAL_ALPHA_RELEASE_GATE_WORKFLOW_RUNTIME_OPEN_CHECK_ITEMS)
+        ),
     },
     "private_beta_staging": {
         PRIVATE_BETA_STAGING_AGGREGATE_RUNTIME_ITEM: set(PRIVATE_BETA_STAGING_RUNTIME_OPEN_CHECK_ITEMS),
     },
     "production_launch": {
         PRODUCTION_AGGREGATE_RUNTIME_ITEM: set(PRODUCTION_RUNTIME_OPEN_CHECK_ITEMS),
+    },
+}
+
+RELEASE_GATE_CHECK_BLOCKING_CONDITIONS = {
+    "local_alpha": {
+        "workflow_fixture_coverage": {"generic_workflow_only"},
+        "eval_fixture_coverage": {"safety_red_team_fixture_failure"},
+        "crawler_governance_fixture_coverage": {"crawler_unapproved_source_fixture_gap"},
+        "schema_fixture_validation": {"schema_fixture_drift", "external_agent_contract_trace_gap"},
+        "local_alpha_service_presence": {"missing_web_admin_backend_presence"},
+        "local_alpha_runtime_stack": {"local_alpha_runtime_not_validated"},
+        "local_alpha_e2e_workflow_smoke": {"generic_workflow_only", "missing_export_provenance_fixture"},
+    },
+    "ci": {
+        "ci_installed_workflow": {"ci_workflow_not_installed"},
+        "ci_gate_runtime_execution": {"ci_gate_not_executed_on_main"},
+        "ci_playwright_smoke": {"ci_playwright_smoke_missing"},
+        "ci_docker_image_build": {"ci_docker_image_build_missing"},
+    },
+    "private_beta_staging": {
+        "staging_auth_rbac_tenant_audit": {"tenant_isolation_not_enforced"},
+        "staging_object_storage_signed_downloads": {"object_storage_signed_retention_runtime_missing"},
+        "staging_quota_rate_limit_spend_cap": {"rate_limit_spend_cap_runtime_missing"},
+        "staging_support_retry_abuse_ops": {"support_abuse_runtime_missing"},
+        "staging_eval_qa_safety_runtime": {"eval_qa_safety_runtime_missing"},
+        "staging_crawler_approval_provenance": {
+            "crawler_governance_runtime_missing",
+            "crawler_material_retention_takedown_runtime_missing",
+        },
+        "staging_observability_backup_load": {"staging_observability_restore_load_missing"},
+        "staging_legal_external_user_pages": {"external_user_legal_pages_missing"},
+    },
+    "production_launch": {
+        "production_provider_or_comp_only_mode": {
+            "dev_mock_provider_public_claims_unresolved",
+            "real_provider_or_comp_only_mode_missing",
+        },
+        "production_paid_billing_lifecycle": {"paid_billing_or_comp_only_mode_missing"},
+        "production_skill_release_eval_canary": {"skill_release_eval_canary_missing"},
+        "production_activation_review_audit": {
+            "activation_eval_review_audit_runtime_missing",
+            "admin_high_risk_review_runtime_missing",
+        },
+        "production_abuse_throttle_hold": {"abuse_throttle_hold_missing"},
+        "production_security_launch_checks": {
+            "security_privacy_legal_incomplete",
+            "secret_exposure_runtime_not_verified",
+        },
+        "production_backup_rollback_incident": {
+            "backup_restore_rollback_smoke_missing",
+            "production_deploy_rollback_smoke_missing",
+            "ci_staging_gates_not_passed",
+        },
+        "production_legal_support_policy": {"public_legal_support_policy_not_deployed"},
     },
 }
 
@@ -909,6 +988,10 @@ REQUIRED_OPEN_ITEMS = {
     "本地商家活动包 Playwright happy path 通过。",
     "角色/IP 概念包 API smoke test 通过。",
     "角色/IP 概念包 Playwright happy path 通过。",
+    "Local Alpha 电商增长包 runtime smoke evidence 写入 release gate fixture：API smoke 与 Playwright happy path 均通过 running local stack。",
+    "Local Alpha 商业视觉文档包 runtime smoke evidence 写入 release gate fixture：API smoke 与 Playwright happy path 均通过 running local stack。",
+    "Local Alpha 本地商家活动包 runtime smoke evidence 写入 release gate fixture：API smoke 与 Playwright happy path 均通过 running local stack。",
+    "Local Alpha 角色/IP 概念包 runtime smoke evidence 写入 release gate fixture：API smoke 与 Playwright happy path 均通过 running local stack。",
     "CI 在已安装 PR/main workflow 中运行 Playwright smoke。",
     "CI 在已安装 PR/main workflow 中 build Docker images。",
     "执行 staging deploy。",
@@ -927,6 +1010,7 @@ REQUIRED_OPEN_ITEMS |= (
         "Private Beta/Staging support/retry/abuse runtime evidence 通过。",
     }
 )
+REQUIRED_OPEN_ITEMS |= set(LOCAL_ALPHA_RELEASE_GATE_WORKFLOW_RUNTIME_OPEN_CHECK_ITEMS)
 
 CRAWLER_GOVERNANCE_SPLIT_ITEMS = {
     "source_approval": {
@@ -1325,8 +1409,37 @@ def local_alpha_runtime_stack_validated() -> bool:
 
 def release_evidence_by_gate() -> dict[str, dict[str, Any]]:
     evidence: dict[str, dict[str, Any]] = {}
-    for path in sorted(FIXTURE_DIR.glob("release_gate_evidence.*.json")):
+    expected_files = set(RELEASE_GATE_EVIDENCE_FILES.values())
+    actual_files = set(FIXTURE_DIR.glob("release_gate_evidence.*.json"))
+    unexpected_files = actual_files - expected_files
+    missing_files = expected_files - actual_files
+    require(
+        not unexpected_files,
+        "unexpected release gate evidence fixture files: "
+        + json.dumps(
+            sorted(str(path.relative_to(ROOT)) for path in unexpected_files),
+            ensure_ascii=False,
+        ),
+    )
+    require(
+        not missing_files,
+        "missing release gate evidence fixture files: "
+        + json.dumps(
+            sorted(str(path.relative_to(ROOT)) for path in missing_files),
+            ensure_ascii=False,
+        ),
+    )
+    for path in sorted(expected_files):
         data = load_json(path)
+        expected_gate = next(
+            gate
+            for gate, expected_path in RELEASE_GATE_EVIDENCE_FILES.items()
+            if expected_path == path
+        )
+        require(
+            data["gate"] == expected_gate,
+            f"{path.relative_to(ROOT)} gate must be {expected_gate!r}",
+        )
         evidence[data["gate"]] = data
     return evidence
 
@@ -1498,6 +1611,37 @@ def validate_active_condition_evidence_refs(data: dict[str, Any]) -> None:
         )
 
 
+def validate_check_condition_consistency(data: dict[str, Any]) -> None:
+    gate = data["gate"]
+    checks = checks_by_id(data)
+    conditions = do_not_launch_by_id(data)
+    for check_id, condition_ids in RELEASE_GATE_CHECK_BLOCKING_CONDITIONS.get(gate, {}).items():
+        require(check_id in checks, f"{gate} condition guard references unknown check {check_id}")
+        missing_conditions = condition_ids - set(conditions)
+        require(
+            not missing_conditions,
+            f"{gate}.{check_id} condition guard references unknown Do-Not-Launch IDs: "
+            + json.dumps(sorted(missing_conditions), ensure_ascii=False),
+        )
+        active_conditions = [
+            condition_id
+            for condition_id in sorted(condition_ids)
+            if conditions[condition_id]["is_present"]
+        ]
+        if checks[check_id]["status"] == "pass":
+            require(
+                not active_conditions,
+                f"{gate}.{check_id} cannot pass while related Do-Not-Launch conditions are active: "
+                + json.dumps(active_conditions, ensure_ascii=False),
+            )
+        if active_conditions:
+            require(
+                checks[check_id]["status"] != "pass",
+                f"{gate}.{check_id} must stay blocked/failing while related Do-Not-Launch conditions are active: "
+                + json.dumps(active_conditions, ensure_ascii=False),
+            )
+
+
 def validate_global_do_not_launch_condition_coverage(evidence: dict[str, dict[str, Any]]) -> None:
     blueprint_conditions = blueprint_do_not_launch_conditions()
     fixture_conditions = {
@@ -1619,6 +1763,9 @@ def validate_runtime_gate_evidence_refs(
         }
         concrete_runtime_open = relevant_runtime_open - aggregate_runtime_open_items
         check_level_guard_map = (
+            LOCAL_ALPHA_RELEASE_GATE_WORKFLOW_RUNTIME_OPEN_CHECK_ITEMS
+            if gate == "local_alpha"
+            else
             PRIVATE_BETA_STAGING_RUNTIME_OPEN_CHECK_ITEMS
             if gate == "private_beta_staging"
             else PRODUCTION_RUNTIME_OPEN_CHECK_ITEMS
@@ -2667,6 +2814,7 @@ def validate_release_gate_evidence() -> None:
         validate_release_gate_basics(gate_evidence)
         validate_do_not_launch_condition_coverage(gate_evidence)
         validate_active_condition_evidence_refs(gate_evidence)
+        validate_check_condition_consistency(gate_evidence)
         validate_gate_cannot_pass_with_open_items(gate, gate_evidence, blueprint_unchecked)
         validate_runtime_gate_evidence_refs(gate, gate_evidence, blueprint_unchecked)
         validate_aggregate_runtime_checklist_items(
@@ -2916,6 +3064,7 @@ def validate_blueprint_checklist() -> None:
         validate_release_gate_basics(evidence[gate])
         validate_do_not_launch_condition_coverage(evidence[gate])
         validate_active_condition_evidence_refs(evidence[gate])
+        validate_check_condition_consistency(evidence[gate])
         validate_gate_cannot_pass_with_open_items(gate, evidence[gate], unchecked_lines)
         validate_runtime_gate_evidence_refs(gate, evidence[gate], unchecked_lines)
         validate_aggregate_runtime_checklist_items(gate, evidence[gate], checked_lines, unchecked_lines)

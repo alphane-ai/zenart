@@ -1977,6 +1977,10 @@ main 合并前必须通过：
 - [x] Release notes 包含 SHA、migration list、config diff、feature flags、owner、smoke plan、rollback plan、known risks、go/no-go。
 - [x] Backfill Local Alpha release gate fixture evidence: workflow/eval/crawler/schema/service/runtime-stack checks pass in `fixtures/stage0/rev2/release_gate_evidence.local_alpha.json`。
 - [ ] Local Alpha workflow API/Playwright end-to-end smoke evidence 通过并写入 release gate fixture。
+- [ ] Local Alpha 电商增长包 runtime smoke evidence 写入 release gate fixture：API smoke 与 Playwright happy path 均通过 running local stack。
+- [ ] Local Alpha 商业视觉文档包 runtime smoke evidence 写入 release gate fixture：API smoke 与 Playwright happy path 均通过 running local stack。
+- [ ] Local Alpha 本地商家活动包 runtime smoke evidence 写入 release gate fixture：API smoke 与 Playwright happy path 均通过 running local stack。
+- [ ] Local Alpha 角色/IP 概念包 runtime smoke evidence 写入 release gate fixture：API smoke 与 Playwright happy path 均通过 running local stack。
 - [x] Backfill CI draft/no-go evidence: ops CI draft coverage passes while installed `.github/workflows` runtime remains blocked in `fixtures/stage0/rev2/release_gate_evidence.ci.json`。
 - [ ] CI installed workflow runtime evidence 通过：PR/main run、Playwright smoke、Docker image build 均有 validator-resolvable evidence。
 - [x] Backfill Private Beta/Staging no-go evidence: contract/fixture evidence is separated from external-user staging runtime blockers in `fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json`。
@@ -2019,6 +2023,8 @@ Release gate closure policy:
 - Definition-only artifacts can close checklist subitems only when the corresponding runtime subitem remains open.
 - Fixture or contract evidence can never close CI, Private Beta/Staging, Production Launch, or Do-Not-Launch checklist items by itself; those gates require runtime or deployment evidence in their matching release gate fixture.
 - Runtime gate checks that pass must cite environment-specific evidence paths, not only schema, fixture, draft, README, blueprint, or contract artifacts.
+- Passed gate checks must not leave their directly related Do-Not-Launch condition active in the same release gate fixture.
+- Release gate fixture files are closed-world: only `release_gate_evidence.local_alpha.json`, `release_gate_evidence.ci.json`, `release_gate_evidence.private_beta_staging.json`, and `release_gate_evidence.production_launch.json` are valid.
 - Private Beta/Staging check-level runtime subitems must remain open until each matching release gate check has staging evidence: auth/RBAC/tenant/audit; brief/upload/confirmation; object storage signed downloads/retention; quota/rate-limit/spend-cap; support/retry/abuse; eval/QA/safety; crawler approval/provenance; observability/backup/load; legal/support external-user visibility.
 - Production check-level runtime subitems must remain open until each matching release gate check has production evidence: provider-or-comp-only; paid billing lifecycle; skill release/eval/canary; activation review/audit; abuse throttle/hold; security launch checks; backup/rollback/incident/post-deploy smoke; legal/support policy deployment.
 - Runtime pass evidence must be gate-specific: Local Alpha workflow smoke evidence under `ops/evidence/local_alpha/` or `ops/evidence/local/`, CI installed workflow/run evidence under `.github/workflows/` plus `ops/evidence/ci/`, staging evidence under `ops/evidence/staging/`, and production launch evidence under `ops/evidence/production/`. Source files, schemas, fixtures, README, or draft ops documents alone cannot close these runtime checks.
