@@ -796,6 +796,70 @@ if decision_inputs != {
 }:
     raise SystemExit(f"complete-evidence staging smoke decision inputs mismatch: {decision_inputs}")
 PY
+set +e
+DRY_RUN=1 \
+  OUT_DIR="$complete_validate_dir/release-bundle" \
+  RELEASE_SHA="$complete_sha" \
+  RELEASE_TAG="stage0-synthetic" \
+  RELEASE_NOTES_PATH="$complete_validate_dir/release-notes.md" \
+  IMAGE_REFS="ghcr.io/alphane-ai/zenart-backend:$complete_sha,ghcr.io/alphane-ai/zenart-web:$complete_sha,ghcr.io/alphane-ai/zenart-admin:$complete_sha" \
+  MIGRATION_EVIDENCE="$complete_validate_dir/migration.json" \
+  CONFIG_DIFF_EVIDENCE="$complete_validate_dir/config.json" \
+  OBSERVABILITY_EVIDENCE="$complete_validate_dir/observability.json" \
+  BACKUP_RESTORE_EVIDENCE="$complete_validate_dir/backup.json" \
+  LOAD_EVIDENCE="$complete_validate_dir/load.json" \
+  ROLLBACK_EVIDENCE="$complete_validate_dir/rollback.json" \
+  SECURITY_SCAN_EVIDENCE="$complete_validate_dir/security.json" \
+  scripts/release_evidence_bundle_smoke.sh >/dev/null
+release_bundle_complete_status=$?
+set -e
+if [[ "$release_bundle_complete_status" -ne 2 ]]; then
+  printf 'complete-evidence release bundle must remain no-go with blocked gate fixtures, got %s\n' "$release_bundle_complete_status" >&2
+  exit 1
+fi
+python3 - "$complete_validate_dir/release-bundle" "$complete_sha" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+reports = sorted(Path(sys.argv[1]).glob("*.json"))
+expected_sha = sys.argv[2]
+if len(reports) != 1:
+    raise SystemExit("complete-evidence release bundle dry-run must write exactly one report")
+report = json.loads(reports[0].read_text(encoding="utf-8"))
+if report.get("kind") != "release_evidence_bundle":
+    raise SystemExit(f"complete-evidence release bundle report has wrong kind: {report}")
+if report.get("status") != "blocked":
+    raise SystemExit("complete-evidence release bundle must remain blocked while gate fixtures are no-go")
+if report.get("decision") != "no-go":
+    raise SystemExit("complete-evidence release bundle must preserve no-go decision")
+if report.get("release_sha") != expected_sha:
+    raise SystemExit(f"complete-evidence release bundle must forward release SHA: {report}")
+if report.get("release_evidence_complete") is not True:
+    raise SystemExit("complete-evidence release bundle must forward and verify all release evidence slots")
+if report.get("post_deploy_smoke_verified") is not False:
+    raise SystemExit("complete-evidence release bundle must not verify runtime post-deploy smoke from dry-run evidence")
+if report.get("gate_fixtures_clear") is not False:
+    raise SystemExit("complete-evidence release bundle must keep gate fixtures blocked")
+if report.get("missing_slots"):
+    raise SystemExit(f"complete-evidence release bundle must not report missing slots: {report.get('missing_slots')}")
+if report.get("unverified_slots"):
+    raise SystemExit(f"complete-evidence release bundle must not report unverified slots: {report.get('unverified_slots')}")
+blocking = report.get("blocking_reasons", [])
+if any(reason.startswith("missing_release_evidence:") for reason in blocking):
+    raise SystemExit(f"complete-evidence release bundle must not report missing release evidence: {blocking}")
+if any(reason.startswith("unverified_release_evidence:") for reason in blocking):
+    raise SystemExit(f"complete-evidence release bundle must not report unverified release evidence: {blocking}")
+for reason in ("staging_smoke_not_passed", "post_deploy_smoke_contract_unverified"):
+    if reason not in blocking:
+        raise SystemExit(f"complete-evidence release bundle missing runtime blocker {reason}: {blocking}")
+if not any(reason.startswith("gate_fixture_blocked:private_beta_staging:") for reason in blocking):
+    raise SystemExit("complete-evidence release bundle must preserve private beta fixture blockers")
+if not any(reason.startswith("gate_fixture_blocked:production_launch:") for reason in blocking):
+    raise SystemExit("complete-evidence release bundle must preserve production fixture blockers")
+if not report.get("source_staging_smoke_report"):
+    raise SystemExit("complete-evidence release bundle must cite source staging smoke report")
+PY
 nested_only_dir="$(mktemp -d)"
 cat >"$nested_only_dir/observability.json" <<EOF
 {
