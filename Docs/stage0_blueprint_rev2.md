@@ -1918,15 +1918,15 @@ main 合并前必须通过：
 
 - [x] 定义 request id propagation staging smoke contract。
 - [x] 实现 backend request id propagation local contract。
-- [ ] 实现 request id propagation。
+- [ ] staging request id propagation runtime evidence 通过。
 - [x] 定义 structured JSON logs contract。
 - [x] 实现 backend structured JSON access/error logs local contract。
-- [ ] 实现 structured JSON logs。
+- [ ] staging structured JSON logs runtime evidence 通过。
 - [x] 定义 OpenTelemetry traces contract。
-- [ ] 实现 OpenTelemetry traces。
+- [ ] staging OpenTelemetry traces runtime evidence 通过。
 - [x] 定义 backend/worker/crawler metrics contract。
 - [x] 实现 backend local metrics endpoint。
-- [ ] 实现 backend/worker/crawler metrics。
+- [ ] staging backend/worker/crawler metrics runtime evidence 通过。
 - [x] 实现 frontend error reporting。
 - [x] 定义 dashboards。
 - [ ] 导入并验证 staging dashboards runtime evidence。

@@ -16,22 +16,22 @@
     {
       "check_id": "production_skill_release_eval_canary",
       "status": "blocked",
-      "evidence_ref": "Skill release state, traffic allocation, canary metrics/threshold, rollback, review, and eval-gating evidence exists, but active production skill release go/no-go evidence is absent"
+      "evidence_ref": "Skill release state, traffic allocation, canary metrics/threshold, rollback, review, and eval-gating evidence exists, but production evidence for active skill release go/no-go is absent"
     },
     {
       "check_id": "production_activation_review_audit",
       "status": "blocked",
-      "evidence_ref": "Docs/stage0_blueprint_rev2.md keeps eval/review/audit activation gates for skill, prompt, crawler, provider, and safety changes incomplete"
+      "evidence_ref": "Activation gate contract evidence exists, but production evidence for eval/review/audit activation gates across skill, prompt, crawler, provider, and safety changes is absent"
     },
     {
       "check_id": "production_abuse_throttle_hold",
       "status": "blocked",
-      "evidence_ref": "Abuse event model and local admin runtime hold/throttle queue enforcement evidence exist, but production account-level hold/throttle evidence is absent"
+      "evidence_ref": "Abuse event model and local admin runtime hold/throttle queue enforcement evidence exist, but production evidence for account-level hold/throttle enforcement is absent"
     },
     {
       "check_id": "production_security_launch_checks",
       "status": "blocked",
-      "evidence_ref": "Security headers, CORS, upload validation, scan wrappers, config validation, client same-site CSRF contract, and secret redaction evidence exists, but backend secure cookie and CSRF/session runtime validation evidence is absent"
+      "evidence_ref": "Security headers, CORS, upload validation, scan wrappers, config validation, client same-site CSRF contract, and secret redaction evidence exists, but production evidence for secure cookie and CSRF/session runtime validation is absent"
     },
     {
       "check_id": "production_backup_rollback_incident",
@@ -41,7 +41,7 @@
     {
       "check_id": "production_legal_support_policy",
       "status": "blocked",
-      "evidence_ref": "Terms, Privacy, Acceptable Use, AI/content disclaimer, IP complaint flow, visible support contact, and paid billing policy artifacts exist, but production deployment/policy visibility evidence is absent"
+      "evidence_ref": "Terms, Privacy, Acceptable Use, AI/content disclaimer, IP complaint flow, visible support contact, and paid billing policy artifacts exist, but production deployment evidence for policy visibility is absent"
     }
   ],
   "do_not_launch_checks": [

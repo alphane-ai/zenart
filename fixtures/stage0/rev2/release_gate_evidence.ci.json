@@ -16,7 +16,7 @@
     {
       "check_id": "ci_gate_runtime_execution",
       "status": "blocked",
-      "evidence_ref": "CI Gate cannot pass until the workflow is installed under .github/workflows and runs on PR/main"
+      "evidence_ref": "CI Gate cannot pass until installed PR/main workflow runtime evidence exists under .github/workflows"
     },
     {
       "check_id": "ci_playwright_smoke",

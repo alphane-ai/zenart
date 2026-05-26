@@ -31,22 +31,22 @@
     {
       "check_id": "staging_eval_qa_safety_runtime",
       "status": "blocked",
-      "evidence_ref": "Eval, QA fixture, red-team, and safety contract evidence exists, but runtime proof that safety policy executes at brief/provider request/provider response/QA/export is absent"
+      "evidence_ref": "Eval, QA fixture, red-team, and safety contract evidence exists, but staging runtime evidence that safety policy executes at brief/provider request/provider response/QA/export is absent"
     },
     {
       "check_id": "staging_crawler_approval_provenance",
       "status": "blocked",
-      "evidence_ref": "Crawler approval, legal metadata, robots/SSRF/rate-limit/retention/exact-text/provenance/blocklist fixture contracts, and takedown workflow evidence exists, but crawler fetch/import runtime enforcement evidence is absent"
+      "evidence_ref": "Crawler approval, legal metadata, robots/SSRF/rate-limit/retention/exact-text/provenance/blocklist fixture contracts, and takedown workflow evidence exists, but staging runtime evidence for crawler fetch/import enforcement is absent"
     },
     {
       "check_id": "staging_observability_backup_load",
       "status": "blocked",
-      "evidence_ref": "ops/evidence/stage0_observability_evidence.json, ops/evidence/stage0_drill_plan.json, scripts/staging_smoke.sh, and ops/release/staging_deploy.md define the path, but runtime staging observability, restore, smoke, and load evidence is absent"
+      "evidence_ref": "ops/evidence/stage0_observability_evidence.json, ops/evidence/stage0_drill_plan.json, scripts/staging_smoke.sh, and ops/release/staging_deploy.md define the path, but staging runtime evidence for observability, restore, smoke, and load is absent"
     },
     {
       "check_id": "staging_legal_external_user_pages",
       "status": "blocked",
-      "evidence_ref": "Privacy notice, Terms, Privacy Policy, Acceptable Use, AI/content disclaimer, IP complaint flow, billing policy, and visible support contact evidence exists, but externally deployed staging page visibility evidence is absent"
+      "evidence_ref": "Privacy notice, Terms, Privacy Policy, Acceptable Use, AI/content disclaimer, IP complaint flow, billing policy, and visible support contact evidence exists, but external-user staging evidence for deployed page visibility is absent"
     }
   ],
   "do_not_launch_checks": [

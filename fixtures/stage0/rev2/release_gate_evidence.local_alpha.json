@@ -36,7 +36,7 @@
     {
       "check_id": "local_alpha_e2e_workflow_smoke",
       "status": "blocked",
-      "evidence_ref": "requires web/admin/backend/dev provider runtime outside Lane 6 fixture scope"
+      "evidence_ref": "Local Alpha workflow API/Playwright runtime evidence is absent; requires four workflow smokes against the running web/admin/backend/dev-provider stack"
     }
   ],
   "do_not_launch_checks": [

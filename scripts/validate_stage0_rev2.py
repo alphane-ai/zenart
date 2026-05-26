@@ -142,6 +142,33 @@ GLOBAL_DO_NOT_LAUNCH_CHECKLIST_ITEM = "Do-Not-Launch Conditions 全部为 false�
 
 CHECK_STATUS_VALUES = {"pass", "fail", "blocked", "not_applicable"}
 
+BLOCKED_RUNTIME_EVIDENCE_TERMS = {
+    "absent",
+    "missing",
+    "not present",
+    "cannot pass until",
+    "requires",
+    "remain",
+    "未",
+    "缺",
+    "open",
+}
+
+BLOCKED_GATE_EVIDENCE_TERMS = {
+    "runtime evidence",
+    "deployment evidence",
+    "installed PR/main workflow",
+    "staging evidence",
+    "production evidence",
+    "post-deploy smoke",
+    "real production provider",
+    "invite/comp-only",
+    "comp-only production mode",
+    "external-user",
+    "running web/admin/backend",
+    "workflow scope",
+}
+
 RELEASE_GATE_REQUIRED_CHECKS = {
     "local_alpha": {
         "workflow_fixture_coverage",
@@ -363,10 +390,10 @@ RELEASE_GATE_PASS_BLOCKED_BY_OPEN_ITEMS = {
         "crawler runtime 强制 source blocklist。",
         "执行 staging deploy。",
         "执行 staging smoke tests。",
-        "实现 request id propagation。",
-        "实现 structured JSON logs。",
-        "实现 OpenTelemetry traces。",
-        "实现 backend/worker/crawler metrics。",
+        "staging request id propagation runtime evidence 通过。",
+        "staging structured JSON logs runtime evidence 通过。",
+        "staging OpenTelemetry traces runtime evidence 通过。",
+        "staging backend/worker/crawler metrics runtime evidence 通过。",
         "导入并验证 staging dashboards runtime evidence。",
         "配置并验证 staging alert routes/runtime evidence。",
         "Staging post-deploy smoke tests 通过。",
@@ -431,10 +458,18 @@ RELEASE_GATE_OPEN_ITEM_GUARD_CHECKS = {
         },
         "执行 staging deploy。": {"staging_observability_backup_load"},
         "执行 staging smoke tests。": {"staging_observability_backup_load"},
-        "实现 request id propagation。": {"staging_observability_backup_load"},
-        "实现 structured JSON logs。": {"staging_observability_backup_load"},
-        "实现 OpenTelemetry traces。": {"staging_observability_backup_load"},
-        "实现 backend/worker/crawler metrics。": {"staging_observability_backup_load"},
+        "staging request id propagation runtime evidence 通过。": {
+            "staging_observability_backup_load",
+        },
+        "staging structured JSON logs runtime evidence 通过。": {
+            "staging_observability_backup_load",
+        },
+        "staging OpenTelemetry traces runtime evidence 通过。": {
+            "staging_observability_backup_load",
+        },
+        "staging backend/worker/crawler metrics runtime evidence 通过。": {
+            "staging_observability_backup_load",
+        },
         "导入并验证 staging dashboards runtime evidence。": {
             "staging_observability_backup_load",
         },
@@ -591,10 +626,10 @@ REQUIRED_OPEN_ITEMS = {
     "CI 在已安装 PR/main workflow 中 build Docker images。",
     "执行 staging deploy。",
     "执行 staging smoke tests。",
-    "实现 request id propagation。",
-    "实现 structured JSON logs。",
-    "实现 OpenTelemetry traces。",
-    "实现 backend/worker/crawler metrics。",
+    "staging request id propagation runtime evidence 通过。",
+    "staging structured JSON logs runtime evidence 通过。",
+    "staging OpenTelemetry traces runtime evidence 通过。",
+    "staging backend/worker/crawler metrics runtime evidence 通过。",
     "crawler runtime 强制 robots evidence。",
     "crawler runtime 强制 SSRF protections。",
     "crawler runtime 强制 source/global rate limits。",
@@ -1058,23 +1093,14 @@ def validate_release_gate_basics(data: dict[str, Any]) -> tuple[dict[str, dict[s
             f"{gate}.{check_id} must have a non-empty evidence_ref",
         )
         if check["status"] in {"fail", "blocked"}:
+            evidence_ref_lower = check["evidence_ref"].lower()
             require(
-                any(
-                    token in check["evidence_ref"].lower()
-                    for token in [
-                        "absent",
-                        "blocked",
-                        "incomplete",
-                        "missing",
-                        "not present",
-                        "cannot pass until",
-                        "requires",
-                        "未",
-                        "缺",
-                        "open",
-                    ]
-                ),
+                any(token in evidence_ref_lower for token in BLOCKED_RUNTIME_EVIDENCE_TERMS),
                 f"{gate}.{check_id} is {check['status']} but evidence_ref does not explain the blocker",
+            )
+            require(
+                any(token in evidence_ref_lower for token in BLOCKED_GATE_EVIDENCE_TERMS),
+                f"{gate}.{check_id} is {check['status']} but evidence_ref does not name missing runtime/deployment evidence",
             )
         if check["status"] == "pass":
             require_concrete_evidence_ref(
@@ -2129,8 +2155,8 @@ def validate_release_gate_evidence() -> None:
     private_beta_text = json.dumps(private_beta, ensure_ascii=False)
     for token in [
         "fixture contracts",
-        "runtime enforcement evidence is absent",
-        "externally deployed staging page visibility evidence is absent",
+        "staging runtime evidence",
+        "external-user staging evidence for deployed page visibility is absent",
     ]:
         require(token in private_beta_text, f"private beta/staging release evidence must distinguish contract/runtime evidence: {token}")
     for stale in [
@@ -2160,7 +2186,7 @@ def validate_release_gate_evidence() -> None:
     for token in [
         "evidence exists",
         "runtime evidence is absent",
-        "production deployment/policy visibility evidence is absent",
+        "production deployment evidence for policy visibility is absent",
     ]:
         require(token in production_text, f"production release evidence must distinguish artifact/runtime evidence: {token}")
     for stale in [
@@ -2842,10 +2868,10 @@ def validate_launch_readiness_split_contracts() -> None:
         "CI 在已安装 PR/main workflow 中 build Docker images。",
         "执行 staging deploy。",
         "执行 staging smoke tests。",
-        "实现 request id propagation。",
-        "实现 structured JSON logs。",
-        "实现 OpenTelemetry traces。",
-        "实现 backend/worker/crawler metrics。",
+        "staging request id propagation runtime evidence 通过。",
+        "staging structured JSON logs runtime evidence 通过。",
+        "staging OpenTelemetry traces runtime evidence 通过。",
+        "staging backend/worker/crawler metrics runtime evidence 通过。",
         "Staging post-deploy smoke tests 通过。",
         "Production post-deploy smoke tests 通过。",
     ] + sorted(RELEASE_GATE_RUNTIME_OPEN_ITEMS):
@@ -2857,6 +2883,10 @@ def validate_launch_readiness_split_contracts() -> None:
         "实现 staging deploy。",
         "实现 dashboards。",
         "实现 alerts。",
+        "实现 request id propagation。",
+        "实现 structured JSON logs。",
+        "实现 OpenTelemetry traces。",
+        "实现 backend/worker/crawler metrics。",
         "Post-deploy smoke tests 通过。",
         "Backfill release gate evidence。",
         "Runtime release gate evidence 通过。",
