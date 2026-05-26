@@ -1774,13 +1774,13 @@ main 合并前必须通过：
 - [ ] skill canary 前要求 eval pass。
 - [ ] prompt fragment active 前要求 eval pass。
 - [x] 定义 QA result schema。
-- [ ] 实现 file integrity/dimensions/aspect/safe-area QA。
-- [ ] 实现 blank/duplicate/four-option distinctness QA。
-- [ ] 实现 text readability 或 manual-review placeholder。
-- [ ] 实现 structured text QA。
-- [ ] 实现 product/logo preservation QA。
-- [ ] 实现 forbidden claims QA。
-- [ ] 实现 export completeness QA。
+- [x] 实现 file integrity/dimensions/aspect/safe-area QA。
+- [x] 实现 blank/duplicate/four-option distinctness QA。
+- [x] 实现 text readability 或 manual-review placeholder。
+- [x] 实现 structured text QA。
+- [x] 实现 product/logo preservation QA。
+- [x] 实现 forbidden claims QA。
+- [x] 实现 export completeness QA。
 - [x] 实现 safety rule schema。
 - [ ] 在 brief/provider request/provider response/QA/export 运行 safety policy。
 - [x] 实现 red-team fixtures。

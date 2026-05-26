@@ -176,6 +176,13 @@ CHECKED_ITEMS = {
     "创建 text-heavy fixtures。",
     "创建 export completeness fixtures。",
     "定义 QA result schema。",
+    "实现 file integrity/dimensions/aspect/safe-area QA。",
+    "实现 blank/duplicate/four-option distinctness QA。",
+    "实现 text readability 或 manual-review placeholder。",
+    "实现 structured text QA。",
+    "实现 product/logo preservation QA。",
+    "实现 forbidden claims QA。",
+    "实现 export completeness QA。",
     "实现 safety rule schema。",
     "实现 red-team fixtures。",
     "定义 vertical acceptance schema。",
@@ -889,22 +896,41 @@ def validate_eval_results() -> None:
 
 def validate_qa_and_safety() -> None:
     qa_results = load_json(FIXTURE_DIR / "eval" / "qa_results.json")
+    eval_results = load_json(FIXTURE_DIR / "eval" / "starter_eval_results.json")
     severities = {item["severity"] for item in qa_results}
     require({"warning", "blocking"} <= severities, "QA fixtures must include warning and blocking examples")
     categories = {item["check_category"] for item in qa_results}
-    require(QA_CATEGORIES <= categories, f"QA fixtures missing categories: {sorted(QA_CATEGORIES - categories)}")
+    require(categories == QA_CATEGORIES, f"QA fixtures category mismatch: {sorted(categories ^ QA_CATEGORIES)}")
     check_ids = [item["check_id"] for item in qa_results]
     require(len(check_ids) == len(set(check_ids)), "QA fixtures must have unique check_id values")
     fixture_ids = {
         fixture["fixture_id"]
         for fixture in load_json(FIXTURE_DIR / "eval" / "starter_eval_suite.json")["fixtures"]
     }
+    require(isinstance(eval_results, list) and len(eval_results) == 1, "starter eval results must contain one result")
+    eval_by_fixture = {item["fixture_id"]: item for item in eval_results[0]["fixture_results"]}
+    require(
+        set(eval_results[0]["summary"]["qa_categories_covered"]) == categories,
+        "eval result QA category summary must exactly match QA result fixtures",
+    )
     workflows = WORKFLOWS
     for item in qa_results:
         require(item["workflow"] in workflows, f"{item['check_id']} references unknown workflow")
         require(
             item["evidence"]["fixture_id"] in fixture_ids,
             f"{item['check_id']} references unknown eval fixture {item['evidence']['fixture_id']}",
+        )
+        require(
+            item["evidence"]["fixture_id"] in eval_by_fixture,
+            f"{item['check_id']} references fixture missing from eval results",
+        )
+        require(
+            item["check_id"] in eval_by_fixture[item["evidence"]["fixture_id"]]["qa_check_ids"],
+            f"{item['check_id']} is not linked from its eval result fixture",
+        )
+        require(
+            eval_by_fixture[item["evidence"]["fixture_id"]]["trace_contract"]["trace_id"].startswith("trace_"),
+            f"{item['check_id']} eval result trace contract must be trace-scoped",
         )
         require(item["evidence"]["trace_id"].startswith("trace_"), f"{item['check_id']} trace_id must be trace-scoped")
         require(item["evidence"]["observed"], f"{item['check_id']} must include observed QA evidence")
@@ -936,6 +962,17 @@ def validate_qa_and_safety() -> None:
             for item in qa_results
         ),
         "QA fixtures must include export completeness blocking missing manifest evidence",
+    )
+    qa_contract = subprocess.run(
+        [sys.executable, str(ROOT / "scripts" / "validate_qa_result_contract.py")],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    require(
+        qa_contract.returncode == 0,
+        "QA result contract validation failed: " + (qa_contract.stderr or qa_contract.stdout).strip(),
     )
 
     rules = load_json(FIXTURE_DIR / "eval" / "safety_rules.json")
