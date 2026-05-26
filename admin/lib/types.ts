@@ -621,11 +621,22 @@ export type AdminRbacEvidence = {
   id: string;
   surface: AdminReviewSurface;
   target: string;
+  requestedAction: string;
+  enforcementPoint:
+    | "release_gate"
+    | "crawler_activation"
+    | "prompt_activation"
+    | "provider_router"
+    | "quota_mutation"
+    | "safety_policy"
+    | "export_release";
   requiredRole: AdminRole;
   attemptedRole: AdminRole;
   decision: "allowed" | "denied" | "second_review_required";
   secondReviewRequired: boolean;
   secondReviewStatus: "not_required" | "required" | "completed" | "blocked";
+  releaseGateImpact: string;
+  userVisibleOutcome: string;
   rationale: string;
   auditRef: string;
   evidenceRefs: string[];

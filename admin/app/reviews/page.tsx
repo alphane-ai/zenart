@@ -65,6 +65,8 @@ export default async function ReviewsPage() {
             { key: "id", header: "Evidence", render: (row) => <span className="mono">{row.id}</span> },
             { key: "surface", header: "Surface", render: (row) => row.surface },
             { key: "target", header: "Target", render: (row) => <span className="mono">{row.target}</span> },
+            { key: "action", header: "Requested Action", render: (row) => row.requestedAction },
+            { key: "enforcement", header: "Enforcement Point", render: (row) => row.enforcementPoint },
             { key: "required", header: "Required Role", render: (row) => row.requiredRole },
             { key: "attempted", header: "Attempted Role", render: (row) => row.attemptedRole },
             { key: "decision", header: "Decision", render: (row) => <StatusBadge value={row.decision} label={row.decision} /> },
@@ -78,6 +80,8 @@ export default async function ReviewsPage() {
                 />
               )
             },
+            { key: "gate", header: "Release Gate Impact", render: (row) => row.releaseGateImpact },
+            { key: "outcome", header: "User Outcome", render: (row) => row.userVisibleOutcome },
             { key: "rationale", header: "Rationale", render: (row) => row.rationale },
             { key: "audit", header: "Audit Ref", render: (row) => <span className="mono">{row.auditRef}</span> },
             { key: "evidence", header: "Evidence Refs", render: (row) => row.evidenceRefs.join(", ") }

@@ -874,6 +874,14 @@ test("admin RBAC evidence covers every governed override surface", () => {
     assert.ok(roleOrder.has(item.attemptedRole), `${item.id} has unknown attempted role`);
     assert.ok(auditIds.has(item.auditRef), `${item.id} links unknown audit ${item.auditRef}`);
     assert.ok(item.evidenceRefs.length >= 3, `${item.id} needs at least three evidence refs`);
+    assert.ok(item.requestedAction.length > 40, `${item.id} needs a concrete requested action`);
+    assert.match(
+      item.enforcementPoint,
+      /release_gate|crawler_activation|prompt_activation|provider_router|quota_mutation|safety_policy|export_release/,
+      `${item.id} needs an executable admin enforcement point`
+    );
+    assert.ok(item.releaseGateImpact.length > 90, `${item.id} needs release-gate impact evidence`);
+    assert.ok(item.userVisibleOutcome.length > 70, `${item.id} needs user-visible outcome evidence`);
     assert.ok(item.rationale.length > 80, `${item.id} needs rationale with role and risk context`);
 
     if (item.decision === "allowed") {
@@ -905,6 +913,15 @@ test("admin RBAC evidence covers every governed override surface", () => {
     adminRbacEvidence.some((item) => item.surface === "safety_rule" && item.requiredRole === "admin_superadmin"),
     "safety rule overrides need superadmin evidence"
   );
+
+  const enforcementBySurface = new Map(adminRbacEvidence.map((item) => [item.surface, item.enforcementPoint]));
+  assert.equal(enforcementBySurface.get("skill_release"), "release_gate", "skill release RBAC must bind to release gate");
+  assert.equal(enforcementBySurface.get("crawler_import"), "crawler_activation", "crawler RBAC must bind to activation gate");
+  assert.equal(enforcementBySurface.get("prompt_approval"), "prompt_activation", "prompt RBAC must bind to activation gate");
+  assert.equal(enforcementBySurface.get("provider_routing"), "provider_router", "provider RBAC must bind to routing gate");
+  assert.equal(enforcementBySurface.get("quota_override"), "quota_mutation", "quota RBAC must bind to mutation gate");
+  assert.equal(enforcementBySurface.get("safety_rule"), "safety_policy", "safety RBAC must bind to policy gate");
+  assert.equal(enforcementBySurface.get("export_override"), "export_release", "export RBAC must bind to release gate");
 });
 
 test("blocking safety exports cannot be overridden without audit-safe eligibility", () => {
