@@ -1782,6 +1782,7 @@ main 合并前必须通过：
 - [x] 实现 forbidden claims QA。
 - [x] 实现 export completeness QA。
 - [x] 实现 safety rule schema。
+- [x] 定义并验证 brief/provider request/provider response/QA/export safety policy contract evidence。
 - [ ] 在 brief/provider request/provider response/QA/export 运行 safety policy。
 - [x] 实现 red-team fixtures。
 
@@ -1845,8 +1846,10 @@ main 合并前必须通过：
 - [x] 实现 delayed feedback。
 - [x] bad samples 转 regression fixtures。
 - [x] 实现 abuse event model。
-- [x] 实现 temporary hold/throttle hooks。
-- [x] 实现 admin abuse queue。
+- [x] 实现 temporary hold/throttle hooks admin fixture/evidence。
+- [ ] temporary hold/throttle hooks runtime enforcement 通过。
+- [x] 实现 admin abuse queue fixture/evidence。
+- [ ] admin abuse queue runtime enforcement 通过。
 
 ### 25.15 Support and Operations
 
@@ -1979,3 +1982,16 @@ Release gate evidence map:
 - CI Gate: `fixtures/stage0/rev2/release_gate_evidence.ci.json` records ops CI draft coverage and keeps installed workflow/runtime execution, Playwright smoke, and Docker image build blocked.
 - Private Beta/Staging Gate: `fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json` records fixture/definition evidence where present and keeps external-user runtime evidence blocked for auth/RBAC/tenant isolation, production-like object storage, quota/rate limits, support/abuse ops, eval/QA/safety enforcement, crawler governance, observability/restore/load, and legal pages.
 - Production Launch Gate: `fixtures/stage0/rev2/release_gate_evidence.production_launch.json` records fixture/definition evidence where present and keeps launch evidence blocked for provider/comp-only mode, paid billing lifecycle, skill eval/canary/release controls, activation review/audit, abuse throttle/hold, security, backup/rollback/incident readiness, and legal/support policy.
+
+Release gate closure policy:
+
+- `fixtures/stage0/rev2/release_gate_evidence.*.json` must cite the exact Do-Not-Launch condition text covered by each gate condition.
+- A gate checklist item may close only when every check in its evidence fixture is `pass` and every Do-Not-Launch condition in that fixture is false.
+- A cleared Do-Not-Launch condition must cite concrete repository evidence such as `fixtures/`, `schemas/`, `openapi/`, `scripts/`, `backend/`, `web/`, `admin/`, `ops/`, `.env.example`, or `docker-compose.yml`.
+- A blocked Do-Not-Launch condition must state the missing runtime or deployment evidence; prose-only readiness claims are not sufficient.
+- Definition-only artifacts can close checklist subitems only when the corresponding runtime subitem remains open.
+- Local Alpha remains open until four workflow API/Playwright smokes prove brief -> 4 candidates -> select -> iterate -> package -> export ZIP against the running local stack.
+- CI remains open until an installed `.github/workflows` PR/main workflow runs and records Playwright smoke plus Docker image build evidence.
+- Private Beta/Staging remains open until external-user staging runtime evidence exists for auth/RBAC/tenant isolation, object storage signed downloads, quota/rate limits, support/abuse, safety/QA/crawler enforcement, observability/backup/load, and legal page visibility.
+- Production Launch remains open until CI and Private Beta/Staging gates pass and production-specific provider/comp-only, paid billing, skill/canary, activation review, abuse throttle/hold, security, backup/rollback, post-deploy smoke, and legal/support deployment evidence exists.
+- `Do-Not-Launch Conditions 全部为 false。` remains open while any release-gate evidence fixture has `is_present: true`.

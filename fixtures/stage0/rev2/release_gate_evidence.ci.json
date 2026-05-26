@@ -32,21 +32,25 @@
   "do_not_launch_checks": [
     {
       "condition_id": "ci_workflow_not_installed",
+      "blueprint_condition": "Production deploy 缺 rollback plan、migration compatibility notes、post-deploy smoke test。",
       "is_present": true,
       "evidence_ref": "ops/ci/INSTALLATION.md records workflow-scope blocker"
     },
     {
       "condition_id": "ci_gate_not_executed_on_main",
+      "blueprint_condition": "Production deploy 缺 rollback plan、migration compatibility notes、post-deploy smoke test。",
       "is_present": true,
       "evidence_ref": "fixtures/ops/stage0_rev2_ci_draft_evidence.json release_gate_effect.ci_gate_status is blocked"
     },
     {
       "condition_id": "ci_playwright_smoke_missing",
+      "blueprint_condition": "Vertical workflows 只通过 generic rendering tests，没有 domain fixtures、four-option taxonomy、required outputs、QA/safety checks、manifest validation。",
       "is_present": true,
       "evidence_ref": "CI Playwright smoke has draft artifacts but no installed PR/main runtime pass evidence"
     },
     {
       "condition_id": "ci_docker_image_build_missing",
+      "blueprint_condition": "Production deploy 缺 rollback plan、migration compatibility notes、post-deploy smoke test。",
       "is_present": true,
       "evidence_ref": "CI Docker image build has draft artifacts but no installed PR/main runtime pass evidence"
     }

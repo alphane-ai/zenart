@@ -67,11 +67,16 @@
         "additionalProperties": false,
         "required": [
           "condition_id",
+          "blueprint_condition",
           "is_present",
           "evidence_ref"
         ],
         "properties": {
           "condition_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "blueprint_condition": {
             "type": "string",
             "minLength": 1
           },

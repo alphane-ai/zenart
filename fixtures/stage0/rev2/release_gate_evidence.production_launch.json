@@ -46,27 +46,80 @@
   ],
   "do_not_launch_checks": [
     {
+      "condition_id": "dev_mock_provider_public_claims_unresolved",
+      "blueprint_condition": "Dev/mock provider 被 UI、docs、marketing 或 billing 暗示为真实生产生成。",
+      "is_present": true,
+      "evidence_ref": "Production launch mode evidence is absent until real provider or invite/comp-only mode is verified"
+    },
+    {
       "condition_id": "real_provider_or_comp_only_mode_missing",
+      "blueprint_condition": "Dev/mock provider 被 UI、docs、marketing 或 billing 暗示为真实生产生成。",
       "is_present": true,
       "evidence_ref": "23.4 production provider or invite/comp-only condition is not satisfied"
     },
     {
+      "condition_id": "paid_billing_or_comp_only_mode_missing",
+      "blueprint_condition": "Paid launch 缺 checkout/subscription/cancellation/past_due/quota reset 流程测试，且没有明确 invite/comp-only 模式并隐藏付费声明。",
+      "is_present": true,
+      "evidence_ref": "Paid checkout/webhook lifecycle runtime evidence is absent and comp-only production mode is not verified"
+    },
+    {
       "condition_id": "skill_release_eval_canary_missing",
+      "blueprint_condition": "Active skills 缺 owner、risk level、eval suite、safety refs、release notes、canary metrics 或 rollback target。",
       "is_present": true,
       "evidence_ref": "Skill release/eval/canary/rollback contracts exist, but production active-skill launch evidence remains absent"
     },
     {
+      "condition_id": "activation_eval_review_audit_runtime_missing",
+      "blueprint_condition": "Prompt、skill、provider routing、safety rule、crawler-derived changes 可绕过 eval/review/audit activation。",
+      "is_present": true,
+      "evidence_ref": "Activation gate contracts exist, but production runtime eval/review/audit activation evidence remains absent"
+    },
+    {
+      "condition_id": "admin_high_risk_review_runtime_missing",
+      "blueprint_condition": "Admin review decisions 可变更、缺 reviewer rationale，或 high-risk changes 绕过 RBAC/audit/second review。",
+      "is_present": true,
+      "evidence_ref": "Admin review contracts exist, but production high-risk RBAC/rationale/second-review runtime evidence remains absent"
+    },
+    {
+      "condition_id": "abuse_throttle_hold_missing",
+      "blueprint_condition": "Rate limits、provider concurrency limits、spend cap 或 emergency kill switch 缺失。",
+      "is_present": true,
+      "evidence_ref": "Abuse event model evidence exists, but runtime hold/throttle account evidence remains absent"
+    },
+    {
       "condition_id": "security_privacy_legal_incomplete",
+      "blueprint_condition": "Secrets 或 provider keys 可进入 frontend bundle、logs、traces、exports、crawler findings、screenshots、support tickets 或 admin UI。",
       "is_present": true,
       "evidence_ref": "Security/privacy/legal artifacts exist, but production runtime validation and deployed policy visibility evidence remain absent"
     },
     {
+      "condition_id": "secret_exposure_runtime_not_verified",
+      "blueprint_condition": "Secrets 或 provider keys 可进入 frontend bundle、logs、traces、exports、crawler findings、screenshots、support tickets 或 admin UI。",
+      "is_present": true,
+      "evidence_ref": "Secret redaction tests exist, but production runtime scan/trace/export/support exposure evidence remains absent"
+    },
+    {
       "condition_id": "backup_restore_rollback_smoke_missing",
+      "blueprint_condition": "Backups 和 restore drills 未完成。",
       "is_present": true,
       "evidence_ref": "25.18 and 25.20 restore drills, rollback validation, and post-deploy smoke remain open"
     },
     {
+      "condition_id": "production_deploy_rollback_smoke_missing",
+      "blueprint_condition": "Production deploy 缺 rollback plan、migration compatibility notes、post-deploy smoke test。",
+      "is_present": true,
+      "evidence_ref": "Production deployment rollback and post-deploy smoke runtime evidence is absent"
+    },
+    {
+      "condition_id": "public_legal_support_policy_not_deployed",
+      "blueprint_condition": "Public launch 缺 Terms、Privacy、Acceptable Use、support contact、AI/content responsibility disclaimer 或 IP complaint flow。",
+      "is_present": true,
+      "evidence_ref": "Legal/support policy artifacts exist, but production deployed visibility evidence remains absent"
+    },
+    {
       "condition_id": "ci_staging_gates_not_passed",
+      "blueprint_condition": "Production deploy 缺 rollback plan、migration compatibility notes、post-deploy smoke test。",
       "is_present": true,
       "evidence_ref": "25.20 CI Gate and Private Beta/Staging Gate remain unchecked"
     }

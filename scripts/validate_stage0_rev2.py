@@ -204,6 +204,69 @@ RELEASE_GATE_REQUIRED_ACTIVE_CONDITIONS = {
     },
 }
 
+DO_NOT_LAUNCH_CONDITION_COVERAGE = {
+    "local_alpha": {
+        "generic_workflow_only": "Vertical workflows 只通过 generic rendering tests，没有 domain fixtures、four-option taxonomy、required outputs、QA/safety checks、manifest validation。",
+        "candidate_asset_provenance_missing": "Candidate assets 缺 provider/model/prompt/spec/skill/safety provenance。",
+        "external_agent_contract_trace_gap": "External APIs 或 internal agent steps 缺合同和 trace completeness。",
+        "missing_export_provenance_fixture": "Candidate assets 缺 provider/model/prompt/spec/skill/safety provenance。",
+        "schema_fixture_drift": "External APIs 或 internal agent steps 缺合同和 trace completeness。",
+        "crawler_unapproved_source_fixture_gap": "Crawler 可抓取或导入 unapproved source。",
+        "safety_red_team_fixture_failure": "Safety red-team fixtures 失败。",
+        "blocking_qa_export_without_audited_override": "Export package 可带 blocking QA failure 出口且没有 eligible audited override。",
+        "feedback_governance_fixture_gap": "Feedback 可影响 prompt/skill evolution，但缺 provenance、filtering、weighting、regression fixtures。",
+        "quota_transaction_tests_missing": "Quota reservation/commit/refund 未经过 retry/concurrency transaction tests。",
+        "missing_web_admin_backend_presence": "External APIs 或 internal agent steps 缺合同和 trace completeness。",
+        "local_alpha_runtime_not_validated": "Production deploy 缺 rollback plan、migration compatibility notes、post-deploy smoke test。",
+    },
+    "ci": {
+        "ci_workflow_not_installed": "Production deploy 缺 rollback plan、migration compatibility notes、post-deploy smoke test。",
+        "ci_gate_not_executed_on_main": "Production deploy 缺 rollback plan、migration compatibility notes、post-deploy smoke test。",
+        "ci_playwright_smoke_missing": "Vertical workflows 只通过 generic rendering tests，没有 domain fixtures、four-option taxonomy、required outputs、QA/safety checks、manifest validation。",
+        "ci_docker_image_build_missing": "Production deploy 缺 rollback plan、migration compatibility notes、post-deploy smoke test。",
+    },
+    "private_beta_staging": {
+        "tenant_isolation_not_enforced": "User projects、assets、exports、traces、quota、support tickets、audit logs 任何 tenant-isolation test 失败。",
+        "rate_limit_spend_cap_runtime_missing": "Rate limits、provider concurrency limits、spend cap 或 emergency kill switch 缺失。",
+        "object_storage_signed_retention_runtime_missing": "Object storage 缺 tenant-scoped signed access、retention policy、cleanup 或 cross-tenant denial tests。",
+        "support_abuse_runtime_missing": "Admin review decisions 可变更、缺 reviewer rationale，或 high-risk changes 绕过 RBAC/audit/second review。",
+        "eval_qa_safety_runtime_missing": "Safety 只是 disclaimer，没有在 brief/provider request/provider response/QA/export 强制执行。",
+        "crawler_governance_runtime_missing": "Crawler 可抓取或导入 unapproved source。",
+        "crawler_material_retention_takedown_runtime_missing": "Crawler-derived active materials 缺 provenance、raw-retention limits 或 takedown path。",
+        "staging_observability_restore_load_missing": "Staging 缺 provider、queue、export、quota、safety、crawler、object storage、billing、admin failure 的 logs/metrics/traces/dashboards/alerts/runbooks。",
+        "external_user_legal_pages_missing": "Public launch 缺 Terms、Privacy、Acceptable Use、support contact、AI/content responsibility disclaimer 或 IP complaint flow。",
+    },
+    "production_launch": {
+        "dev_mock_provider_public_claims_unresolved": "Dev/mock provider 被 UI、docs、marketing 或 billing 暗示为真实生产生成。",
+        "real_provider_or_comp_only_mode_missing": "Dev/mock provider 被 UI、docs、marketing 或 billing 暗示为真实生产生成。",
+        "paid_billing_or_comp_only_mode_missing": "Paid launch 缺 checkout/subscription/cancellation/past_due/quota reset 流程测试，且没有明确 invite/comp-only 模式并隐藏付费声明。",
+        "skill_release_eval_canary_missing": "Active skills 缺 owner、risk level、eval suite、safety refs、release notes、canary metrics 或 rollback target。",
+        "activation_eval_review_audit_runtime_missing": "Prompt、skill、provider routing、safety rule、crawler-derived changes 可绕过 eval/review/audit activation。",
+        "admin_high_risk_review_runtime_missing": "Admin review decisions 可变更、缺 reviewer rationale，或 high-risk changes 绕过 RBAC/audit/second review。",
+        "abuse_throttle_hold_missing": "Rate limits、provider concurrency limits、spend cap 或 emergency kill switch 缺失。",
+        "security_privacy_legal_incomplete": "Secrets 或 provider keys 可进入 frontend bundle、logs、traces、exports、crawler findings、screenshots、support tickets 或 admin UI。",
+        "secret_exposure_runtime_not_verified": "Secrets 或 provider keys 可进入 frontend bundle、logs、traces、exports、crawler findings、screenshots、support tickets 或 admin UI。",
+        "backup_restore_rollback_smoke_missing": "Backups 和 restore drills 未完成。",
+        "production_deploy_rollback_smoke_missing": "Production deploy 缺 rollback plan、migration compatibility notes、post-deploy smoke test。",
+        "public_legal_support_policy_not_deployed": "Public launch 缺 Terms、Privacy、Acceptable Use、support contact、AI/content responsibility disclaimer 或 IP complaint flow。",
+        "ci_staging_gates_not_passed": "Production deploy 缺 rollback plan、migration compatibility notes、post-deploy smoke test。",
+    },
+}
+
+STRONG_EVIDENCE_REF_TOKENS = (
+    ".env.example",
+    ".github/",
+    "admin/",
+    "backend/",
+    "docker-compose.yml",
+    "fixtures/",
+    "openapi/",
+    "ops/",
+    "schemas/",
+    "scripts/",
+    "web/",
+)
+
 RELEASE_GATE_PASS_BLOCKED_BY_OPEN_ITEMS = {
     "local_alpha": {
         "电商增长包 API smoke test 通过。",
@@ -233,8 +296,6 @@ RELEASE_GATE_PASS_BLOCKED_BY_OPEN_ITEMS = {
         "实现 temporary hold/throttle hooks。",
         "实现 admin abuse queue。",
         "support ticket 后端持久化并强制关联 user/project/task/trace/asset/export/quota。",
-        "后端设置并验证 secure/HttpOnly/SameSite session cookies。",
-        "后端/API runtime 验证 CSRF 或 same-site strategy。",
         "执行 staging deploy。",
         "执行 staging smoke tests。",
         "实现 request id propagation。",
@@ -299,6 +360,7 @@ CHECKED_ITEMS = {
     "实现 forbidden claims QA。",
     "实现 export completeness QA。",
     "实现 safety rule schema。",
+    "定义并验证 brief/provider request/provider response/QA/export safety policy contract evidence。",
     "实现 red-team fixtures。",
     "定义 vertical acceptance schema。",
     "实现电商增长包 acceptance fixture。",
@@ -317,9 +379,14 @@ CHECKED_ITEMS = {
     "实现 feedback attribution。",
     "实现 support ticket 前端上下文：project/task/trace/asset/export/quota 可见并随 report problem 生成。",
     "实现 admin support ticket 关联证据视图：user/trace/export/quota/audit 引用可查。",
+    "support ticket 后端持久化并强制关联 user/project/task/trace/asset/export/quota。",
     "实现 abuse event model。",
+    "实现 temporary hold/throttle hooks admin fixture/evidence。",
+    "实现 admin abuse queue fixture/evidence。",
     "实现 secure cookie 和 same-site CSRF 客户端/session contract evidence。",
+    "后端设置并验证 secure/HttpOnly/SameSite session cookies。",
     "配置 Web/generated client CSRF same-site request contract。",
+    "后端/API runtime 验证 CSRF 或 same-site strategy。",
     "实现 secret redaction。",
     "CI 定义 Playwright smoke draft/evidence。",
     "CI 定义 Docker image build draft/evidence。",
@@ -340,13 +407,11 @@ FORBIDDEN_CHECKED_ITEMS = {
     "实现 crawler source approval。",
     "crawler fetch/import 强制 source approval runtime gate。",
     "实现 provenance links。",
-    "support ticket 后端持久化并强制关联 user/project/task/trace/asset/export/quota。",
     "CI 运行 Playwright smoke。",
     "CI build Docker images。",
     "实现 staging deploy。",
     "实现 staging smoke tests。",
     "配置 CSRF 或 same-site strategy。",
-    "后端/API runtime 验证 CSRF 或 same-site strategy。",
     "实现 dashboards。",
     "实现 alerts。",
     "Post-deploy smoke tests 通过。",
@@ -359,7 +424,6 @@ REQUIRED_OPEN_ITEMS = {
     "Production Launch Gate 全部通过。",
     "Do-Not-Launch Conditions 全部为 false。",
     "crawler fetch/import 强制 source approval runtime gate。",
-    "后端/API runtime 验证 CSRF 或 same-site strategy。",
     "电商增长包 API smoke test 通过。",
     "电商增长包 Playwright happy path 通过。",
     "商业视觉文档包 API smoke test 通过。",
@@ -383,6 +447,8 @@ REQUIRED_OPEN_ITEMS = {
     "crawler runtime 强制 exact-text import warning。",
     "crawler runtime 强制 provenance links。",
     "crawler runtime 强制 source blocklist。",
+    "temporary hold/throttle hooks runtime enforcement 通过。",
+    "admin abuse queue runtime enforcement 通过。",
     "导入并验证 staging dashboards runtime evidence。",
     "配置并验证 staging alert routes/runtime evidence。",
     "Staging post-deploy smoke tests 通过。",
@@ -824,6 +890,11 @@ def validate_release_gate_basics(data: dict[str, Any]) -> tuple[dict[str, dict[s
                 ),
                 f"{gate}.{check_id} is {check['status']} but evidence_ref does not explain the blocker",
             )
+        if check["status"] == "pass":
+            require(
+                any(token in check["evidence_ref"] for token in STRONG_EVIDENCE_REF_TOKENS),
+                f"{gate}.{check_id} pass evidence must cite a concrete repo artifact",
+            )
 
     for condition_id, condition in conditions.items():
         require(
@@ -838,8 +909,47 @@ def validate_release_gate_basics(data: dict[str, Any]) -> tuple[dict[str, dict[s
                 ),
                 f"{gate}.{condition_id} is active but evidence_ref does not explain the launch blocker",
             )
+        else:
+            require(
+                any(token in condition["evidence_ref"] for token in STRONG_EVIDENCE_REF_TOKENS),
+                f"{gate}.{condition_id} cleared condition must cite a concrete repo artifact",
+            )
 
     return checks, conditions
+
+
+def validate_do_not_launch_condition_coverage(data: dict[str, Any]) -> None:
+    gate = data["gate"]
+    expected = DO_NOT_LAUNCH_CONDITION_COVERAGE[gate]
+    conditions = do_not_launch_by_id(data)
+    missing = set(expected) - set(conditions)
+    require(not missing, f"{gate} release evidence missing Do-Not-Launch coverage: {sorted(missing)}")
+    for condition_id, blueprint_text in expected.items():
+        require(
+            conditions[condition_id].get("blueprint_condition") == blueprint_text,
+            f"{gate}.{condition_id} must cite exact blueprint Do-Not-Launch condition text",
+        )
+
+
+def validate_global_do_not_launch_condition_coverage(evidence: dict[str, dict[str, Any]]) -> None:
+    blueprint_conditions = blueprint_do_not_launch_conditions()
+    fixture_conditions = {
+        condition["blueprint_condition"]
+        for data in evidence.values()
+        for condition in data["do_not_launch_checks"]
+    }
+    missing = blueprint_conditions - fixture_conditions
+    extra = fixture_conditions - blueprint_conditions
+    require(
+        not missing,
+        "release gate evidence does not cover every section 24 Do-Not-Launch condition: "
+        + json.dumps(sorted(missing), ensure_ascii=False),
+    )
+    require(
+        not extra,
+        "release gate evidence cites unknown Do-Not-Launch conditions: "
+        + json.dumps(sorted(extra), ensure_ascii=False),
+    )
 
 
 def validate_gate_cannot_pass_with_open_items(
@@ -867,6 +977,16 @@ def unchecked_items(text: str) -> set[str]:
     return {
         match.group(1)
         for match in re.finditer(r"^- \[ \] (.+)$", text, flags=re.MULTILINE)
+    }
+
+
+def blueprint_do_not_launch_conditions() -> set[str]:
+    text = BLUEPRINT.read_text(encoding="utf-8")
+    match = re.search(r"^## 24\. Do-Not-Launch Conditions\n(?P<body>.*?)(?=^## 25\.)", text, flags=re.MULTILINE | re.DOTALL)
+    require(match is not None, "blueprint missing section 24 Do-Not-Launch Conditions")
+    return {
+        item.strip()
+        for item in re.findall(r"^- (.+)$", match.group("body"), flags=re.MULTILINE)
     }
 
 
@@ -1467,6 +1587,72 @@ def validate_crawler_feedback_abuse() -> None:
         )
 
 
+def validate_abuse_evidence_split_contracts() -> None:
+    text = BLUEPRINT.read_text(encoding="utf-8")
+    checked_lines = checked_items(text)
+    unchecked_lines = unchecked_items(text)
+    admin_governance = (ROOT / "admin" / "tests" / "admin-governance.test.mjs").read_text(encoding="utf-8")
+    admin_fixtures = (ROOT / "admin" / "lib" / "fixtures.ts").read_text(encoding="utf-8")
+    private_beta = load_json(FIXTURE_DIR / "release_gate_evidence.private_beta_staging.json")
+    production = load_json(FIXTURE_DIR / "release_gate_evidence.production_launch.json")
+
+    require(
+        "实现 temporary hold/throttle hooks admin fixture/evidence。" in checked_lines,
+        "blueprint must close only temporary hold/throttle admin fixture evidence",
+    )
+    require(
+        "实现 admin abuse queue fixture/evidence。" in checked_lines,
+        "blueprint must close only admin abuse queue fixture evidence",
+    )
+    require(
+        "temporary hold/throttle hooks runtime enforcement 通过。" in unchecked_lines,
+        "temporary hold/throttle runtime enforcement must remain open",
+    )
+    require(
+        "admin abuse queue runtime enforcement 通过。" in unchecked_lines,
+        "admin abuse queue runtime enforcement must remain open",
+    )
+    for ambiguous in ["实现 temporary hold/throttle hooks。", "实现 admin abuse queue。"]:
+        require(
+            ambiguous not in checked_lines and ambiguous not in unchecked_lines,
+            f"ambiguous abuse checklist item must stay split: {ambiguous}",
+        )
+
+    for token in [
+        'test("temporary hold and throttle hooks enforce abuse controls with RBAC, expiry, and audit evidence"',
+        "abuseControlHooks.length > 0",
+        'actions.has("temporary_hold")',
+        'actions.has("rate_limit")',
+        "hook.enforcementPoint",
+        "hook.rbacDecision",
+        "hook.releaseEvidenceRefs",
+    ]:
+        require(token in admin_governance, f"admin abuse governance test missing {token}")
+
+    for token in [
+        "export const abuseEvents",
+        "export const abuseControlHooks",
+        "triggerSource: \"abuse_queue\"",
+        "action: \"temporary_hold\"",
+        "action: \"rate_limit\"",
+        "telemetrySignal",
+        "operatorRunbook",
+    ]:
+        require(token in admin_fixtures, f"admin abuse fixture evidence missing {token}")
+
+    private_beta_text = json.dumps(private_beta, ensure_ascii=False)
+    production_text = json.dumps(production, ensure_ascii=False)
+    require(
+        "runtime abuse queue evidence are absent" in private_beta_text
+        and "runtime queue/hold/throttle evidence remain absent" in private_beta_text,
+        "private beta gate must stay blocked on abuse runtime evidence",
+    )
+    require(
+        "runtime hold/throttle account evidence remains absent" in production_text,
+        "production gate must stay blocked on abuse hold/throttle runtime evidence",
+    )
+
+
 def validate_analytics_taxonomy() -> None:
     taxonomy = load_json(FIXTURE_DIR / "analytics" / "event_taxonomy.json")
     require(
@@ -1530,10 +1716,12 @@ def validate_release_gate_evidence() -> None:
     evidence = release_evidence_by_gate()
     missing_gates = set(GATE_CHECKLIST_ITEMS.values()) - set(evidence)
     require(not missing_gates, f"release gate evidence missing gates: {sorted(missing_gates)}")
+    validate_global_do_not_launch_condition_coverage(evidence)
     blueprint_unchecked = unchecked_items(BLUEPRINT.read_text(encoding="utf-8"))
 
     for gate, gate_evidence in evidence.items():
         validate_release_gate_basics(gate_evidence)
+        validate_do_not_launch_condition_coverage(gate_evidence)
         validate_gate_cannot_pass_with_open_items(gate, gate_evidence, blueprint_unchecked)
 
     local_alpha = load_json(FIXTURE_DIR / "release_gate_evidence.local_alpha.json")
@@ -1762,6 +1950,7 @@ def validate_blueprint_checklist() -> None:
         require(item in unchecked_lines, f"blueprint launch gate item must remain open until evidence passes: {item}")
         require(gate in evidence, f"missing release gate evidence for {gate}")
         validate_release_gate_basics(evidence[gate])
+        validate_do_not_launch_condition_coverage(evidence[gate])
         validate_gate_cannot_pass_with_open_items(gate, evidence[gate], unchecked_lines)
         blockers = gate_blockers(evidence[gate])
         require(
@@ -2113,9 +2302,48 @@ def validate_blueprint_evidence_backfill_contracts() -> None:
         require(token in admin_governance, f"admin support evidence test missing {token}")
     require(
         "support ticket 后端持久化并强制关联 user/project/task/trace/asset/export/quota。"
-        in unchecked_lines,
-        "backend-enforced support ticket linkage must remain open",
+        in checked_lines,
+        "backend-enforced support ticket linkage must close when backend evidence exists",
     )
+    support_service = (ROOT / "backend" / "internal" / "stage0" / "services.go").read_text(encoding="utf-8")
+    support_tests = (ROOT / "backend" / "internal" / "stage0" / "services_test.go").read_text(encoding="utf-8")
+    support_migration = (ROOT / "backend" / "migrations" / "0006_support_ticket_evidence_links.sql").read_text(encoding="utf-8")
+    for token in [
+        "TaskID",
+        "TraceID",
+        "AssetID",
+        "LinkedExportID",
+        "QuotaBucketID",
+        "INSERT INTO support_tickets",
+        "ListSupportTickets",
+    ]:
+        require(token in support_service, f"backend support ticket linkage implementation missing {token}")
+    for token in [
+        "TestCreateSupportTicketPersistsTenantUserAndLinks",
+        "TestListSupportTicketsReturnsEvidenceLinks",
+        "task_id",
+        "trace_id",
+        "asset_id",
+        "linked_export_id",
+        "quota_bucket_id",
+    ]:
+        require(token in support_tests, f"backend support ticket linkage test missing {token}")
+    for token in [
+        "task_id text",
+        "trace_id text",
+        "asset_id text",
+        "quota_bucket_id text",
+        "idx_support_tickets_tenant_task",
+        "idx_support_tickets_tenant_trace",
+        "idx_support_tickets_tenant_asset",
+        "idx_support_tickets_tenant_export",
+        "idx_support_tickets_tenant_quota",
+        "fk_support_tickets_tenant_task",
+        "fk_support_tickets_tenant_trace",
+        "fk_support_tickets_tenant_asset",
+        "fk_support_tickets_tenant_quota",
+    ]:
+        require(token in support_migration, f"backend support ticket linkage migration missing {token}")
     require(
         "support ticket 关联 user/project/task/trace/asset/export/quota。" not in unchecked_lines
         and "support ticket 关联 user/project/task/trace/asset/export/quota。" not in checked_lines,
@@ -2139,10 +2367,31 @@ def validate_blueprint_evidence_backfill_contracts() -> None:
         "配置 Web/generated client CSRF same-site request contract。" in checked_lines,
         "blueprint must close only Web/generated client CSRF request contract evidence",
     )
+    server_test = (ROOT / "backend" / "internal" / "server" / "server_test.go").read_text(encoding="utf-8")
+    middleware = (ROOT / "backend" / "internal" / "server" / "middleware.go").read_text(encoding="utf-8")
     require(
-        "后端/API runtime 验证 CSRF 或 same-site strategy。" in unchecked_lines,
-        "server-side CSRF/same-site runtime checklist must remain open",
+        "后端/API runtime 验证 CSRF 或 same-site strategy。" in checked_lines,
+        "server-side CSRF/same-site runtime checklist must close when backend evidence exists",
     )
+    for token in [
+        "TestStateChangingAPIRequiresSameSiteCSRFHeader",
+        "TestAdminRouteUsesAdminCookieWhenUserCookieAlsoPresent",
+        "TestUserRouteRejectsAdminCookieOnly",
+        "setSameSiteCSRFHeaders",
+        "X-ZenArt-CSRF",
+    ]:
+        require(token in server_test, f"backend CSRF/session runtime test missing {token}")
+    for token in [
+        "func withSameSiteCSRF",
+        "func csrfProtectedMethod",
+        "csrf_origin_denied",
+        "csrf_required",
+        "isAdminAPIPath",
+        "principalFromSessionCookieConfig",
+        "AdminSessionCookieName",
+        "SessionCookieName",
+    ]:
+        require(token in middleware, f"backend CSRF/session runtime implementation missing {token}")
     require(
         "配置 CSRF 或 same-site strategy。" not in unchecked_lines
         and "配置 CSRF 或 same-site strategy。" not in checked_lines,
@@ -2160,8 +2409,8 @@ def validate_blueprint_evidence_backfill_contracts() -> None:
         "web route smoke evidence must include generated client CSRF request contract",
     )
     require(
-        "后端设置并验证 secure/HttpOnly/SameSite session cookies。" in unchecked_lines,
-        "backend secure cookie enforcement checklist must remain open",
+        "后端设置并验证 secure/HttpOnly/SameSite session cookies。" in checked_lines,
+        "backend secure cookie enforcement checklist must close when backend session cookie evidence exists",
     )
     require(
         "实现 secure cookies。" not in unchecked_lines and "实现 secure cookies。" not in checked_lines,
@@ -2756,6 +3005,7 @@ def main() -> int:
         validate_eval_results,
         validate_qa_and_safety,
         validate_crawler_feedback_abuse,
+        validate_abuse_evidence_split_contracts,
         validate_analytics_taxonomy,
         validate_local_alpha_presence,
         validate_release_gate_evidence,

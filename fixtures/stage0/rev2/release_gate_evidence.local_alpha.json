@@ -42,33 +42,75 @@
   "do_not_launch_checks": [
     {
       "condition_id": "generic_workflow_only",
+      "blueprint_condition": "Vertical workflows 只通过 generic rendering tests，没有 domain fixtures、four-option taxonomy、required outputs、QA/safety checks、manifest validation。",
       "is_present": false,
-      "evidence_ref": "workflow fixtures define vertical taxonomy and required outputs"
+      "evidence_ref": "fixtures/stage0/rev2/workflows define vertical taxonomy and required outputs"
+    },
+    {
+      "condition_id": "candidate_asset_provenance_missing",
+      "blueprint_condition": "Candidate assets 缺 provider/model/prompt/spec/skill/safety provenance。",
+      "is_present": false,
+      "evidence_ref": "fixtures/stage0/rev2/eval/trace_completeness.json and openapi/zenart.v1.yaml require provider/model/prompt/spec/skill/safety provenance"
+    },
+    {
+      "condition_id": "external_agent_contract_trace_gap",
+      "blueprint_condition": "External APIs 或 internal agent steps 缺合同和 trace completeness。",
+      "is_present": false,
+      "evidence_ref": "fixtures/stage0/rev2/eval/trace_completeness.json and scripts/validate_trace_completeness.py cover agent-step trace completeness"
     },
     {
       "condition_id": "missing_export_provenance_fixture",
+      "blueprint_condition": "Candidate assets 缺 provider/model/prompt/spec/skill/safety provenance。",
       "is_present": false,
-      "evidence_ref": "workflow and eval fixtures require manifest, QA report, and trace provenance"
+      "evidence_ref": "fixtures/stage0/rev2/workflows and fixtures/stage0/rev2/eval require manifest, QA report, and trace provenance"
     },
     {
       "condition_id": "crawler_unapproved_source_fixture_gap",
+      "blueprint_condition": "Crawler 可抓取或导入 unapproved source。",
       "is_present": false,
-      "evidence_ref": "crawler_disallowed_source and crawler_robots_denied fixtures"
+      "evidence_ref": "fixtures/stage0/rev2/crawler/crawler_governance_cases.json includes crawler_disallowed_source and crawler_robots_denied fixtures"
     },
     {
       "condition_id": "schema_fixture_drift",
+      "blueprint_condition": "External APIs 或 internal agent steps 缺合同和 trace completeness。",
       "is_present": false,
       "evidence_ref": "scripts/validate_stage0_rev2.py schema fixture validation"
     },
     {
+      "condition_id": "safety_red_team_fixture_failure",
+      "blueprint_condition": "Safety red-team fixtures 失败。",
+      "is_present": false,
+      "evidence_ref": "fixtures/stage0/rev2/eval/starter_eval_suite.json and fixtures/stage0/rev2/eval/starter_eval_results.json include red_team coverage with no critical safety regressions"
+    },
+    {
+      "condition_id": "blocking_qa_export_without_audited_override",
+      "blueprint_condition": "Export package 可带 blocking QA failure 出口且没有 eligible audited override。",
+      "is_present": false,
+      "evidence_ref": "fixtures/stage0/rev2/eval/qa_results.json covers blocking export_completeness and requires audited override eligibility"
+    },
+    {
+      "condition_id": "feedback_governance_fixture_gap",
+      "blueprint_condition": "Feedback 可影响 prompt/skill evolution，但缺 provenance、filtering、weighting、regression fixtures。",
+      "is_present": false,
+      "evidence_ref": "fixtures/stage0/rev2/feedback/feedback_events.json and fixtures/stage0/rev2/regressions define attribution, filtering, weighting, and regression evidence"
+    },
+    {
+      "condition_id": "quota_transaction_tests_missing",
+      "blueprint_condition": "Quota reservation/commit/refund 未经过 retry/concurrency transaction tests。",
+      "is_present": false,
+      "evidence_ref": "backend/internal/billing/quota_postgres_test.go and backend/internal/billing/billing_test.go cover quota retry/concurrency transaction evidence"
+    },
+    {
       "condition_id": "missing_web_admin_backend_presence",
+      "blueprint_condition": "External APIs 或 internal agent steps 缺合同和 trace completeness。",
       "is_present": false,
       "evidence_ref": "scripts/validate_stage0_rev2.py validates web/admin/backend service presence"
     },
     {
       "condition_id": "local_alpha_runtime_not_validated",
+      "blueprint_condition": "Production deploy 缺 rollback plan、migration compatibility notes、post-deploy smoke test。",
       "is_present": false,
-      "evidence_ref": "local_alpha_runtime_stack is validated; local_alpha_e2e_workflow_smoke remains blocked separately"
+      "evidence_ref": "docker-compose.yml and .env.example validate local_alpha_runtime_stack; local_alpha_e2e_workflow_smoke remains blocked separately"
     }
   ],
   "provenance": {

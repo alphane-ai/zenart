@@ -52,26 +52,55 @@
   "do_not_launch_checks": [
     {
       "condition_id": "tenant_isolation_not_enforced",
+      "blueprint_condition": "User projects、assets、exports、traces、quota、support tickets、audit logs 任何 tenant-isolation test 失败。",
       "is_present": true,
       "evidence_ref": "Local denial-test evidence exists, but staging runtime tenant-isolation evidence remains absent"
     },
     {
+      "condition_id": "rate_limit_spend_cap_runtime_missing",
+      "blueprint_condition": "Rate limits、provider concurrency limits、spend cap 或 emergency kill switch 缺失。",
+      "is_present": true,
+      "evidence_ref": "Quota and spend-cap local evidence exists, but staging provider concurrency/rate-limit runtime evidence remains absent"
+    },
+    {
+      "condition_id": "object_storage_signed_retention_runtime_missing",
+      "blueprint_condition": "Object storage 缺 tenant-scoped signed access、retention policy、cleanup 或 cross-tenant denial tests。",
+      "is_present": true,
+      "evidence_ref": "Local object storage tests exist, but production-like staging signed access/retention runtime evidence remains absent"
+    },
+    {
+      "condition_id": "support_abuse_runtime_missing",
+      "blueprint_condition": "Admin review decisions 可变更、缺 reviewer rationale，或 high-risk changes 绕过 RBAC/audit/second review。",
+      "is_present": true,
+      "evidence_ref": "Support/admin evidence views exist, but support backend linkage and abuse runtime queue/hold/throttle evidence remain absent"
+    },
+    {
       "condition_id": "eval_qa_safety_runtime_missing",
+      "blueprint_condition": "Safety 只是 disclaimer，没有在 brief/provider request/provider response/QA/export 强制执行。",
       "is_present": true,
       "evidence_ref": "Safety and QA contracts exist, but required runtime safety enforcement evidence remains absent"
     },
     {
       "condition_id": "crawler_governance_runtime_missing",
+      "blueprint_condition": "Crawler 可抓取或导入 unapproved source。",
       "is_present": true,
       "evidence_ref": "Crawler governance fixtures exist, but fetch/import runtime enforcement evidence remains absent"
     },
     {
+      "condition_id": "crawler_material_retention_takedown_runtime_missing",
+      "blueprint_condition": "Crawler-derived active materials 缺 provenance、raw-retention limits 或 takedown path。",
+      "is_present": true,
+      "evidence_ref": "Crawler retention/provenance/takedown fixtures exist, but crawler-derived active material runtime enforcement evidence remains absent"
+    },
+    {
       "condition_id": "staging_observability_restore_load_missing",
+      "blueprint_condition": "Staging 缺 provider、queue、export、quota、safety、crawler、object storage、billing、admin failure 的 logs/metrics/traces/dashboards/alerts/runbooks。",
       "is_present": true,
       "evidence_ref": "25.18 observability, restore drill, and load evidence remain open"
     },
     {
       "condition_id": "external_user_legal_pages_missing",
+      "blueprint_condition": "Public launch 缺 Terms、Privacy、Acceptable Use、support contact、AI/content responsibility disclaimer 或 IP complaint flow。",
       "is_present": true,
       "evidence_ref": "Legal page artifacts exist, but external-user staging visibility evidence remains absent"
     }
