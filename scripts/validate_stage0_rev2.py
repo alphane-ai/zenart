@@ -6,7 +6,9 @@ from __future__ import annotations
 import json
 import re
 import sys
+from datetime import datetime
 from pathlib import Path
+from urllib.parse import urlparse
 from typing import Any
 
 
@@ -48,6 +50,17 @@ CRAWLER_CASES = {
     "duplicate_hash",
     "pending_review_import",
 }
+
+SCHEMA_FIXTURE_TARGETS = [
+    ("eval_suite.schema.json", FIXTURE_DIR / "eval" / "starter_eval_suite.json", "object"),
+    ("qa_result.schema.json", FIXTURE_DIR / "eval" / "qa_results.json", "array_items"),
+    ("safety_rule.schema.json", FIXTURE_DIR / "eval" / "safety_rules.json", "array_items"),
+    ("workflow_acceptance.schema.json", FIXTURE_DIR / "workflows", "directory_objects"),
+    ("crawler_governance.schema.json", FIXTURE_DIR / "crawler" / "crawler_governance_cases.json", "array_items"),
+    ("feedback_event.schema.json", FIXTURE_DIR / "feedback" / "feedback_events.json", "array_items"),
+    ("abuse_event.schema.json", FIXTURE_DIR / "abuse" / "abuse_events.json", "array_items"),
+    ("release_gate_evidence.schema.json", FIXTURE_DIR / "release_gate_evidence.local_alpha.json", "object"),
+]
 
 CHECKED_ITEMS = {
     "定义 eval suite schema。",
@@ -120,6 +133,96 @@ def walk_values(value: Any) -> list[Any]:
     return values
 
 
+def validate_schema_value(schema: dict[str, Any], value: Any, path: str, root_schema: dict[str, Any]) -> None:
+    if "$ref" in schema:
+        ref = schema["$ref"]
+        require(ref.startswith("#/$defs/"), f"{path} uses unsupported schema ref {ref}")
+        def_name = ref.removeprefix("#/$defs/")
+        try:
+            schema = root_schema["$defs"][def_name]
+        except KeyError:
+            fail(f"{path} references missing schema def {def_name}")
+
+    if "const" in schema:
+        require(value == schema["const"], f"{path} must equal {schema['const']!r}")
+    if "enum" in schema:
+        require(value in schema["enum"], f"{path} has unsupported value {value!r}")
+
+    expected_type = schema.get("type")
+    if expected_type == "object":
+        require(isinstance(value, dict), f"{path} must be an object")
+        required = set(schema.get("required", []))
+        missing = required - set(value)
+        require(not missing, f"{path} missing required keys: {sorted(missing)}")
+        properties = schema.get("properties", {})
+        if schema.get("additionalProperties") is False:
+            extra = set(value) - set(properties)
+            require(not extra, f"{path} has additional keys: {sorted(extra)}")
+        for key, child in value.items():
+            if key in properties:
+                validate_schema_value(properties[key], child, f"{path}.{key}", root_schema)
+    elif expected_type == "array":
+        require(isinstance(value, list), f"{path} must be an array")
+        if "minItems" in schema:
+            require(len(value) >= schema["minItems"], f"{path} must have at least {schema['minItems']} items")
+        if "maxItems" in schema:
+            require(len(value) <= schema["maxItems"], f"{path} must have at most {schema['maxItems']} items")
+        if schema.get("uniqueItems") is True:
+            encoded = [json.dumps(item, sort_keys=True) for item in value]
+            require(len(encoded) == len(set(encoded)), f"{path} must contain unique items")
+        if "items" in schema:
+            for index, item in enumerate(value):
+                validate_schema_value(schema["items"], item, f"{path}[{index}]", root_schema)
+    elif expected_type == "string":
+        require(isinstance(value, str), f"{path} must be a string")
+        if "minLength" in schema:
+            require(len(value) >= schema["minLength"], f"{path} must not be empty")
+        if "pattern" in schema:
+            require(re.search(schema["pattern"], value), f"{path} does not match {schema['pattern']}")
+        if schema.get("format") == "date":
+            try:
+                datetime.strptime(value, "%Y-%m-%d")
+            except ValueError:
+                fail(f"{path} must be a YYYY-MM-DD date")
+        if schema.get("format") == "uri":
+            parsed = urlparse(value)
+            require(bool(parsed.scheme and parsed.netloc), f"{path} must be an absolute URI")
+    elif expected_type == "integer":
+        require(isinstance(value, int) and not isinstance(value, bool), f"{path} must be an integer")
+        if "minimum" in schema:
+            require(value >= schema["minimum"], f"{path} must be >= {schema['minimum']}")
+        if "maximum" in schema:
+            require(value <= schema["maximum"], f"{path} must be <= {schema['maximum']}")
+    elif expected_type == "number":
+        require(
+            isinstance(value, (int, float)) and not isinstance(value, bool),
+            f"{path} must be a number",
+        )
+        if "minimum" in schema:
+            require(value >= schema["minimum"], f"{path} must be >= {schema['minimum']}")
+        if "maximum" in schema:
+            require(value <= schema["maximum"], f"{path} must be <= {schema['maximum']}")
+    elif expected_type == "boolean":
+        require(isinstance(value, bool), f"{path} must be a boolean")
+
+
+def validate_fixture_against_schema(schema_name: str, fixture_path: Path, mode: str) -> None:
+    schema_path = SCHEMA_DIR / schema_name
+    schema = load_json(schema_path)
+    if mode == "object":
+        validate_schema_value(schema, load_json(fixture_path), str(fixture_path.relative_to(ROOT)), schema)
+    elif mode == "array_items":
+        data = load_json(fixture_path)
+        require(isinstance(data, list), f"{fixture_path.relative_to(ROOT)} must be an array")
+        for index, item in enumerate(data):
+            validate_schema_value(schema, item, f"{fixture_path.relative_to(ROOT)}[{index}]", schema)
+    elif mode == "directory_objects":
+        for path in sorted(fixture_path.glob("*.json")):
+            validate_schema_value(schema, load_json(path), str(path.relative_to(ROOT)), schema)
+    else:
+        fail(f"unsupported schema validation mode: {mode}")
+
+
 def validate_json_files() -> None:
     required = [
         SCHEMA_DIR / "eval_suite.schema.json",
@@ -143,6 +246,11 @@ def validate_json_files() -> None:
 
     for path in sorted(SCHEMA_DIR.glob("*.json")) + sorted(FIXTURE_DIR.rglob("*.json")):
         load_json(path)
+
+
+def validate_schema_fixture_contracts() -> None:
+    for schema_name, fixture_path, mode in SCHEMA_FIXTURE_TARGETS:
+        validate_fixture_against_schema(schema_name, fixture_path, mode)
 
 
 def validate_provenance() -> None:
@@ -271,6 +379,10 @@ def validate_release_gate_evidence() -> None:
         {"workflow_fixture_coverage", "eval_fixture_coverage", "crawler_governance_fixture_coverage"} <= check_ids,
         "local alpha evidence missing fixture coverage checks",
     )
+    require(
+        "schema_fixture_validation" in check_ids,
+        "local alpha evidence missing schema fixture validation check",
+    )
     do_not_launch = {item["condition_id"]: item["is_present"] for item in data["do_not_launch_checks"]}
     require(
         do_not_launch.get("generic_workflow_only") is False,
@@ -301,6 +413,7 @@ def validate_blueprint_checklist() -> None:
 def main() -> int:
     checks = [
         validate_json_files,
+        validate_schema_fixture_contracts,
         validate_provenance,
         validate_workflows,
         validate_eval_suite,

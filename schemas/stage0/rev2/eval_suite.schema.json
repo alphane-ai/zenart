@@ -199,7 +199,7 @@
           "minItems": 1,
           "items": {
             "type": "string",
-            "pattern": "^(14|15|23|24|25)\\."
+            "pattern": "^((14|15|23|25)\\.|24$)"
           }
         },
         "created_by_lane": {

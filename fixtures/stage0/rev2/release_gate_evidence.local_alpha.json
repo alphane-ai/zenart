@@ -19,9 +19,19 @@
       "evidence_ref": "fixtures/stage0/rev2/crawler/crawler_governance_cases.json"
     },
     {
-      "check_id": "core_app_runtime",
+      "check_id": "schema_fixture_validation",
+      "status": "pass",
+      "evidence_ref": "scripts/validate_stage0_rev2.py validates fixtures against schemas/stage0/rev2"
+    },
+    {
+      "check_id": "local_alpha_runtime_stack",
       "status": "blocked",
       "evidence_ref": "web/admin/backend are not present in this lane checkout"
+    },
+    {
+      "check_id": "local_alpha_e2e_workflow_smoke",
+      "status": "blocked",
+      "evidence_ref": "requires web/admin/backend/dev provider runtime outside Lane 6 fixture scope"
     }
   ],
   "do_not_launch_checks": [
@@ -39,6 +49,16 @@
       "condition_id": "crawler_unapproved_source_fixture_gap",
       "is_present": false,
       "evidence_ref": "crawler_disallowed_source and crawler_robots_denied fixtures"
+    },
+    {
+      "condition_id": "schema_fixture_drift",
+      "is_present": false,
+      "evidence_ref": "scripts/validate_stage0_rev2.py schema fixture validation"
+    },
+    {
+      "condition_id": "local_alpha_runtime_not_validated",
+      "is_present": true,
+      "evidence_ref": "local_alpha_runtime_stack and local_alpha_e2e_workflow_smoke are blocked"
     }
   ],
   "provenance": {
