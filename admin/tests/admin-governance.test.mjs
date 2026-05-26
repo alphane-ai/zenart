@@ -109,6 +109,15 @@ const abuseEventById = new Map(abuseEvents.map((event) => [event.id, event]));
 const abuseHookIds = new Set(abuseControlHooks.map((hook) => hook.id));
 const canaryMetricIds = new Set(skillCanaryMetrics.map((metric) => metric.id));
 const runtimeEvidencePattern = /^staging-(dashboard|alert)-[a-z-]+-\d{8}T\d{4}Z$/;
+const overrideScopeBySurface = new Map([
+  ["skill_release", "release"],
+  ["crawler_import", "crawler"],
+  ["prompt_approval", "prompt"],
+  ["provider_routing", "provider"],
+  ["quota_override", "quota"],
+  ["safety_rule", "safety"],
+  ["export_override", "export"]
+]);
 const stagingAuthRbacTenantAuditPath = new URL(
   "../../ops/evidence/staging/20260527T1515Z-auth-rbac-tenant-audit.json",
   import.meta.url
@@ -1887,6 +1896,18 @@ test("admin RBAC evidence covers every governed override surface", () => {
     assert.ok(roleOrder.has(item.attemptedRole), `${item.id} has unknown attempted role`);
     assert.ok(auditIds.has(item.auditRef), `${item.id} links unknown audit ${item.auditRef}`);
     assert.ok(item.evidenceRefs.length >= 3, `${item.id} needs at least three evidence refs`);
+    assert.equal(
+      item.overrideScope,
+      overrideScopeBySurface.get(item.surface),
+      `${item.id} override scope must match governed surface`
+    );
+    assert.match(
+      item.overrideDurationPolicy,
+      /temporary_required|second_review_deadline|non_expiring_policy_block/,
+      `${item.id} needs override duration policy`
+    );
+    assert.equal(typeof item.expiryEnforced, "boolean", `${item.id} needs explicit expiry enforcement flag`);
+    assert.ok(item.releaseEvidenceRequired.length >= 4, `${item.id} needs release evidence requirements`);
     assert.ok(item.requestedAction.length > 40, `${item.id} needs a concrete requested action`);
     assert.match(
       item.enforcementPoint,
@@ -1922,6 +1943,8 @@ test("admin RBAC evidence covers every governed override surface", () => {
       );
       assert.equal(item.mutationOutcome, "applied", `${item.id} allowed decision must record applied mutation outcome`);
       assert.notEqual(item.overrideExpiresAt, "none", `${item.id} allowed temporary override must have an expiration`);
+      assert.equal(item.overrideDurationPolicy, "temporary_required", `${item.id} allowed admin override must be temporary`);
+      assert.equal(item.expiryEnforced, true, `${item.id} allowed temporary override must enforce expiry`);
     }
 
     if (roleOrder.get(item.attemptedRole) < roleOrder.get(item.requiredRole)) {
@@ -1947,6 +1970,15 @@ test("admin RBAC evidence covers every governed override surface", () => {
 
     if (item.secondReviewStatus === "blocked") {
       assert.notEqual(item.mutationOutcome, "applied", `${item.id} blocked second review cannot apply mutation`);
+    }
+
+    if (item.overrideDurationPolicy === "non_expiring_policy_block") {
+      assert.equal(item.overrideExpiresAt, "none", `${item.id} non-expiring policy block must not expose fake expiry`);
+      assert.equal(item.expiryEnforced, false, `${item.id} non-expiring policy block cannot rely on expiry enforcement`);
+      assert.equal(item.mutationOutcome, "blocked_no_mutation", `${item.id} non-expiring policy block must preserve state`);
+    } else {
+      assert.notEqual(item.overrideExpiresAt, "none", `${item.id} temporary/deadline override needs timestamp`);
+      assert.equal(item.expiryEnforced, true, `${item.id} temporary/deadline override must enforce expiry`);
     }
   }
 
@@ -2028,6 +2060,7 @@ test("admin RBAC runtime decisions enforce high-risk override outcomes", () => {
     const item = evidenceById.get(decision.evidenceId);
     assert.ok(item, `${decision.evidenceId} links unknown RBAC evidence`);
     assert.equal(decision.surface, item.surface, `${decision.evidenceId} surface mismatch`);
+    assert.equal(decision.overrideScope, item.overrideScope, `${decision.evidenceId} override scope mismatch`);
     assert.equal(decision.target, item.target, `${decision.evidenceId} target mismatch`);
     assert.equal(decision.enforcementPoint, item.enforcementPoint, `${decision.evidenceId} enforcement mismatch`);
     assert.ok(auditIds.has(decision.auditRef), `${decision.evidenceId} links unknown audit ${decision.auditRef}`);
@@ -2038,6 +2071,31 @@ test("admin RBAC runtime decisions enforce high-risk override outcomes", () => {
       new RegExp(item.enforcementPoint),
       `${decision.evidenceId} runtime rationale must name enforcement point`
     );
+
+    if (item.overrideDurationPolicy === "temporary_required" && decision.requestOutcome !== "denied_expired_override") {
+      assert.equal(
+        decision.expiryPolicyStatus,
+        "valid_temporary_window",
+        `${decision.evidenceId} active temporary override needs valid window status`
+      );
+    }
+
+    if (item.overrideDurationPolicy === "second_review_deadline" && decision.requestOutcome !== "denied_expired_override") {
+      assert.equal(
+        decision.expiryPolicyStatus,
+        "second_review_deadline_open",
+        `${decision.evidenceId} second-review override needs deadline-open status`
+      );
+    }
+
+    if (item.overrideDurationPolicy === "non_expiring_policy_block") {
+      assert.equal(
+        decision.expiryPolicyStatus,
+        "non_expiring_policy_block",
+        `${decision.evidenceId} policy block must not be treated as a temporary override`
+      );
+      assert.equal(decision.mutationAllowed, false, `${decision.evidenceId} policy block cannot mutate`);
+    }
 
     if (decision.mutationAllowed) {
       assert.equal(decision.effectiveDecision, "allow_mutation", `${decision.evidenceId} mutation allowed only for allow decisions`);
@@ -2056,6 +2114,7 @@ test("admin RBAC runtime decisions enforce high-risk override outcomes", () => {
       assert.notEqual(item.overrideExpiresAt, "none", `${decision.evidenceId} expired override needs a real expiration`);
       assert.equal(decision.queueAction, "block_and_preserve_state", `${decision.evidenceId} expired override must preserve state`);
       assert.equal(decision.releaseGateStatus, "release_gate_preserved", `${decision.evidenceId} expired override must preserve release gate`);
+      assert.equal(decision.expiryPolicyStatus, "expired_temporary_window", `${decision.evidenceId} expired override needs expired policy status`);
       assert.match(decision.rationale, /expired/i, `${decision.evidenceId} expired override rationale must name expiry`);
     }
 

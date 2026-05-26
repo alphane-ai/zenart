@@ -21,6 +21,18 @@ function hasSufficientRole(item: AdminRbacEvidence) {
   return roleRank[item.attemptedRole] >= roleRank[item.requiredRole];
 }
 
+function expiryPolicyStatus(item: AdminRbacEvidence, expired: boolean) {
+  if (item.overrideDurationPolicy === "non_expiring_policy_block") {
+    return "non_expiring_policy_block";
+  }
+
+  if (item.overrideDurationPolicy === "second_review_deadline") {
+    return expired ? "expired_temporary_window" : "second_review_deadline_open";
+  }
+
+  return expired ? "expired_temporary_window" : "valid_temporary_window";
+}
+
 export function buildAdminRbacRuntimeDecisions(
   evidence: AdminRbacEvidence[],
   now: Date
@@ -28,16 +40,19 @@ export function buildAdminRbacRuntimeDecisions(
   return evidence.map((item) => {
     const sufficientRole = hasSufficientRole(item);
     const expired = isExpired(item.overrideExpiresAt, now);
+    const policyStatus = expiryPolicyStatus(item, expired);
     const secondReviewOpen =
       item.secondReviewRequired &&
       (item.secondReviewStatus === "required" || item.secondReviewStatus === "blocked");
 
-    if (expired) {
+    if (expired && item.expiryEnforced) {
       return {
         evidenceId: item.id,
         surface: item.surface,
+        overrideScope: item.overrideScope,
         target: item.target,
         enforcementPoint: item.enforcementPoint,
+        expiryPolicyStatus: policyStatus,
         effectiveDecision: "deny_mutation",
         requestOutcome: "denied_expired_override",
         mutationAllowed: false,
@@ -53,8 +68,10 @@ export function buildAdminRbacRuntimeDecisions(
       return {
         evidenceId: item.id,
         surface: item.surface,
+        overrideScope: item.overrideScope,
         target: item.target,
         enforcementPoint: item.enforcementPoint,
+        expiryPolicyStatus: policyStatus,
         effectiveDecision: "queue_for_review",
         requestOutcome: "queued_second_review",
         mutationAllowed: false,
@@ -70,8 +87,10 @@ export function buildAdminRbacRuntimeDecisions(
       return {
         evidenceId: item.id,
         surface: item.surface,
+        overrideScope: item.overrideScope,
         target: item.target,
         enforcementPoint: item.enforcementPoint,
+        expiryPolicyStatus: policyStatus,
         effectiveDecision: "deny_mutation",
         requestOutcome: "denied_insufficient_role",
         mutationAllowed: false,
@@ -87,8 +106,10 @@ export function buildAdminRbacRuntimeDecisions(
       return {
         evidenceId: item.id,
         surface: item.surface,
+        overrideScope: item.overrideScope,
         target: item.target,
         enforcementPoint: item.enforcementPoint,
+        expiryPolicyStatus: policyStatus,
         effectiveDecision: "deny_mutation",
         requestOutcome: "denied_policy_block",
         mutationAllowed: false,
@@ -103,8 +124,10 @@ export function buildAdminRbacRuntimeDecisions(
     return {
       evidenceId: item.id,
       surface: item.surface,
+      overrideScope: item.overrideScope,
       target: item.target,
       enforcementPoint: item.enforcementPoint,
+      expiryPolicyStatus: policyStatus,
       effectiveDecision: "allow_mutation",
       requestOutcome: "applied",
       mutationAllowed: true,

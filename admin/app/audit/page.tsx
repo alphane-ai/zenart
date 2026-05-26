@@ -170,6 +170,8 @@ export default async function AuditPage() {
           columns={[
             { key: "evidence", header: "Evidence", render: (row) => <span className="mono">{row.evidenceId}</span> },
             { key: "surface", header: "Surface", render: (row) => row.surface },
+            { key: "scope", header: "Override Scope", render: (row) => row.overrideScope },
+            { key: "expiry-policy", header: "Expiry Policy Status", render: (row) => <StatusBadge value={row.expiryPolicyStatus} label={row.expiryPolicyStatus} /> },
             { key: "target", header: "Target", render: (row) => <span className="mono">{row.target}</span> },
             { key: "decision", header: "Effective Decision", render: (row) => <StatusBadge value={row.effectiveDecision === "allow_mutation" ? "allowed" : row.effectiveDecision === "queue_for_review" ? "warning" : "denied"} label={row.effectiveDecision} /> },
             { key: "outcome", header: "Request Outcome", render: (row) => row.requestOutcome },
@@ -263,6 +265,7 @@ export default async function AuditPage() {
           rows={rbacEvidence}
           columns={[
             { key: "surface", header: "Surface", render: (row) => row.surface },
+            { key: "scope", header: "Override Scope", render: (row) => row.overrideScope },
             { key: "target", header: "Target", render: (row) => <span className="mono">{row.target}</span> },
             { key: "action", header: "Requested Action", render: (row) => row.requestedAction },
             { key: "enforcement", header: "Enforcement Point", render: (row) => row.enforcementPoint },
@@ -274,9 +277,12 @@ export default async function AuditPage() {
             { key: "outcome", header: "User Outcome", render: (row) => row.userVisibleOutcome },
             { key: "api", header: "API Scope", render: (row) => <span className="mono">{row.apiScope}</span> },
             { key: "mutation", header: "Mutation Outcome", render: (row) => <StatusBadge value={row.mutationOutcome === "applied" ? "healthy" : row.mutationOutcome === "queued_for_review" ? "warning" : "blocked"} label={row.mutationOutcome} /> },
+            { key: "duration-policy", header: "Duration Policy", render: (row) => row.overrideDurationPolicy },
             { key: "expires", header: "Override Expiration", render: (row) => row.overrideExpiresAt },
+            { key: "expiry-enforced", header: "Expiry Enforced", render: (row) => (row.expiryEnforced ? "Yes" : "No") },
             { key: "runtime", header: "Runtime Check", render: (row) => row.runtimeCheck },
             { key: "post-decision", header: "Post Decision Control", render: (row) => row.postDecisionControl },
+            { key: "release-required", header: "Release Evidence Required", render: (row) => row.releaseEvidenceRequired.join(", ") },
             { key: "audit", header: "Audit Ref", render: (row) => <span className="mono">{row.auditRef}</span> },
             { key: "rationale", header: "Rationale", render: (row) => row.rationale }
           ]}

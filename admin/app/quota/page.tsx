@@ -63,6 +63,7 @@ export default async function QuotaPage() {
         <DataTable<AdminRbacEvidence>
           rows={quotaRbacEvidence}
           columns={[
+            { key: "scope", header: "Override Scope", render: (row) => row.overrideScope },
             { key: "target", header: "Target", render: (row) => <span className="mono">{row.target}</span> },
             { key: "required", header: "Required Role", render: (row) => row.requiredRole },
             { key: "attempted", header: "Attempted Role", render: (row) => row.attemptedRole },
@@ -70,9 +71,12 @@ export default async function QuotaPage() {
             { key: "second-review", header: "Second Review", render: (row) => <StatusBadge value={row.secondReviewStatus} label={row.secondReviewStatus} /> },
             { key: "api", header: "API Scope", render: (row) => <span className="mono">{row.apiScope}</span> },
             { key: "mutation", header: "Mutation Outcome", render: (row) => <StatusBadge value={row.mutationOutcome === "applied" ? "healthy" : row.mutationOutcome === "queued_for_review" ? "warning" : "blocked"} label={row.mutationOutcome} /> },
+            { key: "duration-policy", header: "Duration Policy", render: (row) => row.overrideDurationPolicy },
             { key: "expires", header: "Override Expiration", render: (row) => row.overrideExpiresAt },
+            { key: "expiry-enforced", header: "Expiry Enforced", render: (row) => (row.expiryEnforced ? "Yes" : "No") },
             { key: "runtime", header: "Runtime Check", render: (row) => row.runtimeCheck },
             { key: "post-decision", header: "Post Decision Control", render: (row) => row.postDecisionControl },
+            { key: "release-required", header: "Release Evidence Required", render: (row) => row.releaseEvidenceRequired.join(", ") },
             { key: "rationale", header: "Rationale", render: (row) => row.rationale },
             { key: "audit", header: "Audit Ref", render: (row) => <span className="mono">{row.auditRef}</span> },
             { key: "evidence", header: "Evidence Refs", render: (row) => row.evidenceRefs.join(", ") }

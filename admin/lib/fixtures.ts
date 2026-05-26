@@ -542,6 +542,9 @@ export const adminRbacEvidence: AdminRbacEvidence[] = [
   {
     id: "rbac-release-001",
     surface: "skill_release",
+    overrideScope: "release",
+    overrideDurationPolicy: "second_review_deadline",
+    expiryEnforced: true,
     target: "skill-brand-kit@2.5.0",
     requestedAction: "promote skill-brand-kit@2.5.0 into percent canary after rollback",
     enforcementPoint: "release_gate",
@@ -559,11 +562,15 @@ export const adminRbacEvidence: AdminRbacEvidence[] = [
     postDecisionControl: "Keep trafficAllocation at 0% public, retain rollback target skill-brand-kit@2.4.1, and require au-005 before any canary resume.",
     rationale: "High-risk skill release cannot enter canary from an operator-only action; reviewer and second-review evidence are required.",
     auditRef: "au-005",
-    evidenceRefs: ["rv-100", "sv-248", "eg-001"]
+    evidenceRefs: ["rv-100", "sv-248", "eg-001"],
+    releaseEvidenceRequired: ["reviewer rationale", "second reviewer", "eval pass", "rollback target", "immutable audit"]
   },
   {
     id: "rbac-crawler-001",
     surface: "crawler_import",
+    overrideScope: "crawler",
+    overrideDurationPolicy: "second_review_deadline",
+    expiryEnforced: true,
     target: "cf-118",
     requestedAction: "reactivate crawler-derived source after takedown and derivative review",
     enforcementPoint: "crawler_activation",
@@ -581,11 +588,15 @@ export const adminRbacEvidence: AdminRbacEvidence[] = [
     postDecisionControl: "Leave cf-118 blocked, keep active prompt and skill import disabled, and require au-012 plus reviewer closure before retention changes.",
     rationale: "Crawler takedown and derivative material deletion must be reviewed by an admin reviewer before activation or retention changes.",
     auditRef: "au-012",
-    evidenceRefs: ["cg-501", "cf-118", "ip-7001"]
+    evidenceRefs: ["cg-501", "cf-118", "ip-7001"],
+    releaseEvidenceRequired: ["takedown closure", "derivative-use review", "raw retention action", "source contact notice", "immutable audit"]
   },
   {
     id: "rbac-prompt-001",
     surface: "prompt_approval",
+    overrideScope: "prompt",
+    overrideDurationPolicy: "non_expiring_policy_block",
+    expiryEnforced: false,
     target: "pf-044",
     requestedAction: "activate prompt fragment from support-attached feedback",
     enforcementPoint: "prompt_activation",
@@ -603,11 +614,15 @@ export const adminRbacEvidence: AdminRbacEvidence[] = [
     postDecisionControl: "Keep pf-044 in review, leave feedback fb-222 out of learning weights, and require a new reviewer audit before activation.",
     rationale: "Support operators can attach feedback but cannot approve prompt fragments into active routing without reviewer permission.",
     auditRef: "au-008",
-    evidenceRefs: ["pf-044", "fb-222", "prompt-fragments"]
+    evidenceRefs: ["pf-044", "fb-222", "prompt-fragments"],
+    releaseEvidenceRequired: ["reviewer-owned eval", "QA evidence", "feedback attribution", "immutable audit"]
   },
   {
     id: "rbac-provider-001",
     surface: "provider_routing",
+    overrideScope: "provider",
+    overrideDurationPolicy: "temporary_required",
+    expiryEnforced: true,
     target: "OpenAI/image-render-dev",
     requestedAction: "reduce non-urgent image retry routing weight during provider degradation",
     enforcementPoint: "provider_router",
@@ -625,11 +640,15 @@ export const adminRbacEvidence: AdminRbacEvidence[] = [
     postDecisionControl: "Preserve degraded provider launch blocker eg-003, keep no silent fallback enabled, and require au-007 for any routing weight diff.",
     rationale: "Provider retry-weight reduction is allowed for an admin operator because safety fallback remains unchanged and evidence is audit-linked.",
     auditRef: "au-007",
-    evidenceRefs: ["rv-101", "ph-1", "eg-003"]
+    evidenceRefs: ["rv-101", "ph-1", "eg-003"],
+    releaseEvidenceRequired: ["provider health snapshot", "usage reconciliation", "no silent fallback", "expiry timestamp", "immutable audit"]
   },
   {
     id: "rbac-provider-002",
     surface: "provider_routing",
+    overrideScope: "provider",
+    overrideDurationPolicy: "temporary_required",
+    expiryEnforced: true,
     target: "OpenAI/image-render-dev",
     requestedAction: "extend emergency provider retry routing reduction after the temporary override window closed",
     enforcementPoint: "provider_router",
@@ -647,11 +666,15 @@ export const adminRbacEvidence: AdminRbacEvidence[] = [
     postDecisionControl: "Preserve the last audited provider routing weight, keep degraded provider blocker eg-003 open, and require a fresh au-007-linked operator action before any new routing diff.",
     rationale: "Provider routing overrides are time boxed; a sufficient operator role cannot keep an expired emergency retry-weight change active without a fresh audit-linked request.",
     auditRef: "au-007",
-    evidenceRefs: ["rv-101", "ph-1", "eg-003"]
+    evidenceRefs: ["rv-101", "ph-1", "eg-003"],
+    releaseEvidenceRequired: ["fresh provider health snapshot", "fresh operator action", "usage reconciliation", "expiry timestamp", "immutable audit"]
   },
   {
     id: "rbac-quota-001",
     surface: "quota_override",
+    overrideScope: "quota",
+    overrideDurationPolicy: "non_expiring_policy_block",
+    expiryEnforced: false,
     target: "usr-301",
     requestedAction: "mutate quota balance directly from support ticket context",
     enforcementPoint: "quota_mutation",
@@ -669,11 +692,15 @@ export const adminRbacEvidence: AdminRbacEvidence[] = [
     postDecisionControl: "Do not alter usr-301 balance, keep qt-904 pending operator review, and require au-004 before any credit or debit posts.",
     rationale: "Support can request quota credit, but direct quota mutation requires admin operator permission and immutable support-ticket evidence.",
     auditRef: "au-004",
-    evidenceRefs: ["sup-2201", "qt-904", "ex-887"]
+    evidenceRefs: ["sup-2201", "qt-904", "ex-887"],
+    releaseEvidenceRequired: ["support ticket", "quota transaction", "export evidence", "operator audit"]
   },
   {
     id: "rbac-safety-001",
     surface: "safety_rule",
+    overrideScope: "safety",
+    overrideDurationPolicy: "second_review_deadline",
+    expiryEnforced: true,
     target: "forbidden-claims:v3",
     requestedAction: "relax blocking forbidden-claims safety rule for export review",
     enforcementPoint: "safety_policy",
@@ -691,11 +718,15 @@ export const adminRbacEvidence: AdminRbacEvidence[] = [
     postDecisionControl: "Keep rx-41 blocking at export, preserve sv-098 review state, and require superadmin plus second-review audit before policy activation.",
     rationale: "Blocking safety policy changes affect export eligibility and need superadmin ownership plus completed second review before activation.",
     auditRef: "au-006",
-    evidenceRefs: ["rx-41", "sv-098", "eg-002"]
+    evidenceRefs: ["rx-41", "sv-098", "eg-002"],
+    releaseEvidenceRequired: ["superadmin approval", "second review", "safety fixture pass", "export gate proof", "immutable audit"]
   },
   {
     id: "rbac-export-001",
     surface: "export_override",
+    overrideScope: "export",
+    overrideDurationPolicy: "non_expiring_policy_block",
+    expiryEnforced: false,
     target: "ex-887",
     requestedAction: "override blocking final export QA result for package release",
     enforcementPoint: "export_release",
@@ -713,7 +744,8 @@ export const adminRbacEvidence: AdminRbacEvidence[] = [
     postDecisionControl: "Keep ex-887 unavailable, allow only audited quota credit or safe regeneration paths, and preserve tr-1004 QA evidence for review.",
     rationale: "Reviewer role is present, but blocking forbidden-claim export overrides are never eligible; the RBAC result remains denied.",
     auditRef: "au-001",
-    evidenceRefs: ["rv-102", "rx-41", "tr-1004"]
+    evidenceRefs: ["rv-102", "rx-41", "tr-1004"],
+    releaseEvidenceRequired: ["QA result", "safety decision", "trace provenance", "non-override eligibility proof", "immutable audit"]
   }
 ];
 

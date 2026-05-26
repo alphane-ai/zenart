@@ -441,6 +441,9 @@ test("admin fixtures cover RBAC evidence for governed override surfaces", () => 
     "quota_override",
     "safety_rule",
     "export_override",
+    "overrideScope",
+    "overrideDurationPolicy",
+    "expiryEnforced",
     "requiredRole",
     "attemptedRole",
     "secondReviewStatus",
@@ -448,7 +451,8 @@ test("admin fixtures cover RBAC evidence for governed override surfaces", () => 
     "mutationOutcome",
     "overrideExpiresAt",
     "runtimeCheck",
-    "postDecisionControl"
+    "postDecisionControl",
+    "releaseEvidenceRequired"
   ]) {
     assert.match(fixtures, new RegExp(token));
   }
@@ -495,15 +499,19 @@ test("admin action pages show scoped RBAC evidence at decision points", () => {
       "getAdminRbacEvidence",
       page.heading,
       page.surface,
+      "Override Scope",
       "Required Role",
       "Attempted Role",
       "Decision",
       "Second Review",
       "API Scope",
       "Mutation Outcome",
+      "Duration Policy",
       "Override Expiration",
+      "Expiry Enforced",
       "Runtime Check",
       "Post Decision Control",
+      "Release Evidence Required",
       "Evidence Refs",
       "Audit Ref",
       "Rationale"

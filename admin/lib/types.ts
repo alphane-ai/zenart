@@ -887,6 +887,9 @@ export type AdminReviewDecision = {
 export type AdminRbacEvidence = {
   id: string;
   surface: AdminReviewSurface;
+  overrideScope: "release" | "crawler" | "prompt" | "provider" | "quota" | "safety" | "export";
+  overrideDurationPolicy: "temporary_required" | "second_review_deadline" | "non_expiring_policy_block";
+  expiryEnforced: boolean;
   target: string;
   requestedAction: string;
   enforcementPoint:
@@ -912,13 +915,20 @@ export type AdminRbacEvidence = {
   rationale: string;
   auditRef: string;
   evidenceRefs: string[];
+  releaseEvidenceRequired: string[];
 };
 
 export type AdminRbacRuntimeDecision = {
   evidenceId: string;
   surface: AdminReviewSurface;
+  overrideScope: AdminRbacEvidence["overrideScope"];
   target: string;
   enforcementPoint: AdminRbacEvidence["enforcementPoint"];
+  expiryPolicyStatus:
+    | "valid_temporary_window"
+    | "expired_temporary_window"
+    | "second_review_deadline_open"
+    | "non_expiring_policy_block";
   effectiveDecision: "allow_mutation" | "queue_for_review" | "deny_mutation";
   requestOutcome: "applied" | "queued_second_review" | "denied_insufficient_role" | "denied_policy_block" | "denied_expired_override";
   mutationAllowed: boolean;
