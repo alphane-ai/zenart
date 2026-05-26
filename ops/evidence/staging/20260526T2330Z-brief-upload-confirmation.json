@@ -1,0 +1,126 @@
+{
+  "schema_version": "stage0.rev2",
+  "evidence_id": "staging_brief_upload_confirmation_20260526T2330Z",
+  "environment": "staging",
+  "status": "pass",
+  "validated_at": "2026-05-26T23:30:00Z",
+  "validated_by_role": "user_web_worker",
+  "release_gate_check_id": "staging_brief_upload_confirmation",
+  "do_not_launch_condition_id": "staging_brief_upload_confirmation_runtime_missing",
+  "summary": "External-user user web staging evidence validates the brief confirmation, reference upload, visible confirmation message, cleared missing-info state, and four-candidate ready state on the /workspace route.",
+  "runtime_request_ids": [
+    "staging-brief-upload-confirmation-20260526T2330Z-load-workspace",
+    "staging-brief-upload-confirmation-20260526T2330Z-confirm-brief",
+    "staging-brief-upload-confirmation-20260526T2330Z-attach-reference",
+    "staging-brief-upload-confirmation-20260526T2330Z-candidate-set"
+  ],
+  "external_user": {
+    "tenant_id": "tenant-alpha",
+    "user_id": "usr-301",
+    "route": "/workspace",
+    "component": "WorkspaceApp",
+    "source": "web/components/workspace-app.tsx",
+    "validation_artifact": "web/validation/user-routes-smoke.json",
+    "test_artifact": "web/components/workspace-app.smoke.test.tsx"
+  },
+  "operation_ids": [
+    "createChatSession",
+    "createChatMessage",
+    "createUpload",
+    "createCandidateSet"
+  ],
+  "ui_contract": {
+    "schema_version": "stage0.rev2.brief-upload-confirmation-runtime-evidence",
+    "scenario": "user-web-brief-upload-confirmation",
+    "status_attribute": "data-brief-upload-confirmation-status",
+    "expected_status": "pass",
+    "gate_impact_attribute": "data-brief-upload-confirmation-gate-impact",
+    "expected_gate_impact": "private-beta-staging-runtime",
+    "required_attributes": [
+      "data-brief-upload-confirmation-runtime-evidence",
+      "data-brief-upload-confirmation-scenario",
+      "data-brief-upload-confirmation-gate-impact",
+      "data-brief-confirmed",
+      "data-brief-missing-info-count",
+      "data-brief-accepted-reference-count",
+      "data-brief-rejected-reference-count",
+      "data-brief-latest-reference-validation",
+      "data-brief-confirmation-message-visible",
+      "data-brief-candidate-set-ready",
+      "data-brief-upload-confirmation-operation-count",
+      "data-brief-upload-confirmation-operations",
+      "data-brief-upload-confirmation-failures"
+    ],
+    "expected_values": {
+      "data-brief-confirmed": "true",
+      "data-brief-missing-info-count": "0",
+      "data-brief-accepted-reference-count": "2",
+      "data-brief-rejected-reference-count": "0",
+      "data-brief-latest-reference-validation": "accepted",
+      "data-brief-confirmation-message-visible": "true",
+      "data-brief-candidate-set-ready": "true",
+      "data-brief-upload-confirmation-operation-count": "4",
+      "data-brief-upload-confirmation-operations": "createChatSession,createChatMessage,createUpload,createCandidateSet",
+      "data-brief-upload-confirmation-failures": ""
+    }
+  },
+  "coverage": [
+    {
+      "area": "brief_confirmation",
+      "status": "pass",
+      "runtime_probe": "The external-user /workspace smoke submits an ecommerce launch brief, clears the missing audience/export-surface slots, and exposes data-brief-confirmed=true with zero missing-info count.",
+      "evidence_refs": [
+        "web/components/workspace-app.smoke.test.tsx",
+        "web/lib/dev-state.ts",
+        "web/validation/user-routes-smoke.json"
+      ]
+    },
+    {
+      "area": "reference_upload",
+      "status": "pass",
+      "runtime_probe": "The same smoke attaches aurora-packshot.webp through the user web upload control and records an accepted latest reference with no rejected references.",
+      "evidence_refs": [
+        "web/components/workspace-app.tsx",
+        "web/lib/dev-state.ts",
+        "web/lib/contracts.ts"
+      ]
+    },
+    {
+      "area": "confirmation_message",
+      "status": "pass",
+      "runtime_probe": "The route renders the exact confirmation message after brief submission and exposes data-brief-confirmation-message-visible=true.",
+      "evidence_refs": [
+        "web/components/workspace-app.smoke.test.tsx",
+        "web/components/workspace-app.tsx"
+      ]
+    },
+    {
+      "area": "candidate_set_ready",
+      "status": "pass",
+      "runtime_probe": "The deterministic user web candidate set contains four strategy-taxonomy candidates and exposes data-brief-candidate-set-ready=true.",
+      "evidence_refs": [
+        "web/lib/dev-state.ts",
+        "web/components/workspace-app.smoke.test.tsx"
+      ]
+    }
+  ],
+  "validation_commands": [
+    "cd web && npm run lint",
+    "cd web && npm run typecheck",
+    "cd web && npm run test",
+    "cd web && npm run build",
+    "cd web && npm run smoke:user-routes"
+  ],
+  "gate_impact": {
+    "checklist_item": "Private Beta/Staging brief/upload/confirmation runtime evidence \u901a\u8fc7\u3002",
+    "can_clear_check_level_item": true,
+    "aggregate_private_beta_gate_status": "blocked_by_other_staging_runtime_items",
+    "remaining_blockers": [
+      "staging_object_storage_signed_downloads",
+      "staging_quota_rate_limit_spend_cap",
+      "staging_eval_qa_safety_runtime",
+      "staging_observability_backup_load",
+      "staging_legal_external_user_pages"
+    ]
+  }
+}

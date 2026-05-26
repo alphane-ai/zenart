@@ -529,7 +529,7 @@ describe("dev workspace contracts", () => {
       schema_version: "stage0.rev2.brief-upload-confirmation-runtime-evidence",
       status: "pass",
       scenario: "user-web-brief-upload-confirmation",
-      gateImpact: "user-web-evidence-only",
+      gateImpact: "private-beta-staging-runtime",
       apiOperationIds: ["createChatSession", "createChatMessage", "createUpload", "createCandidateSet"],
       briefConfirmed: true,
       missingInfoCount: 0,

@@ -267,7 +267,7 @@ describe("WorkspaceApp user route integration smoke", () => {
       "stage0.rev2.brief-upload-confirmation-runtime-evidence"
     );
     expect(initialEvidence).toHaveAttribute("data-brief-upload-confirmation-status", "fail");
-    expect(initialEvidence).toHaveAttribute("data-brief-upload-confirmation-gate-impact", "user-web-evidence-only");
+    expect(initialEvidence).toHaveAttribute("data-brief-upload-confirmation-gate-impact", "private-beta-staging-runtime");
     expect(initialEvidence).toHaveAttribute(
       "data-brief-upload-confirmation-failures",
       "brief-confirmed,missing-info-cleared,confirmation-message"
@@ -585,7 +585,7 @@ describe("WorkspaceApp user route integration smoke", () => {
       statusAttribute: "data-brief-upload-confirmation-status",
       expectedStatus: "pass",
       scenario: "user-web-brief-upload-confirmation",
-      gateImpact: "user-web-evidence-only",
+      gateImpact: "private-beta-staging-runtime",
       expectedOperationCount: "4",
       requiredAttributes: expect.arrayContaining([
         "data-brief-confirmed",

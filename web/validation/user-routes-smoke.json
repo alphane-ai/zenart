@@ -269,10 +269,11 @@
       "schemaVersion": "stage0.rev2.brief-upload-confirmation-runtime-evidence",
       "route": "/workspace",
       "source": "web/components/workspace-app.tsx",
+      "stagingEvidencePath": "ops/evidence/staging/20260526T2330Z-brief-upload-confirmation.json",
       "statusAttribute": "data-brief-upload-confirmation-status",
       "expectedStatus": "pass",
       "scenario": "user-web-brief-upload-confirmation",
-      "gateImpact": "user-web-evidence-only",
+      "gateImpact": "private-beta-staging-runtime",
       "expectedOperationCount": "4",
       "requiredAttributes": [
         "data-brief-upload-confirmation-runtime-evidence",
@@ -289,7 +290,7 @@
         "data-brief-upload-confirmation-operations",
         "data-brief-upload-confirmation-failures"
       ],
-      "doesNotCloseChecklistGate": "Private Beta/Staging brief/upload/confirmation runtime evidence requires matching staging release gate evidence"
+      "canCloseChecklistGate": "Private Beta/Staging brief/upload/confirmation runtime evidence can close the matching check only with the validator-owned staging evidence artifact"
     },
     {
       "schemaVersion": "stage0.rev2.package-export-metadata-ui",

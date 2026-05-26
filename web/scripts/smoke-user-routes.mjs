@@ -334,11 +334,12 @@ for (const expectedSnippet of [
 if (
   briefUploadConfirmationEvidence.expectedStatus !== "pass" ||
   briefUploadConfirmationEvidence.scenario !== "user-web-brief-upload-confirmation" ||
-  briefUploadConfirmationEvidence.gateImpact !== "user-web-evidence-only" ||
+  briefUploadConfirmationEvidence.gateImpact !== "private-beta-staging-runtime" ||
   briefUploadConfirmationEvidence.expectedOperationCount !== "4" ||
-  !briefUploadConfirmationEvidence.doesNotCloseChecklistGate
+  briefUploadConfirmationEvidence.stagingEvidencePath !== "ops/evidence/staging/20260526T2330Z-brief-upload-confirmation.json" ||
+  !briefUploadConfirmationEvidence.canCloseChecklistGate
 ) {
-  fail("brief/upload/confirmation runtime evidence must be scoped as user-web evidence and not close the staging gate");
+  fail("brief/upload/confirmation runtime evidence must cite the validator-owned staging evidence artifact");
 }
 for (const attribute of briefUploadConfirmationEvidence.requiredAttributes ?? []) {
   if (!componentSource.includes(attribute)) {

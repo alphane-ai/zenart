@@ -1201,6 +1201,7 @@ REQUIRED_OPEN_ITEMS |= (
     RELEASE_GATE_CHECK_LEVEL_RUNTIME_OPEN_ITEMS.keys()
     - {
         "Private Beta/Staging auth/RBAC/tenant/audit runtime evidence 通过。",
+        "Private Beta/Staging brief/upload/confirmation runtime evidence 通过。",
         "Private Beta/Staging crawler approval/provenance runtime evidence 通过。",
         "Private Beta/Staging support/retry/abuse runtime evidence 通过。",
         "staging backend/worker/crawler metrics runtime evidence 通过。",
@@ -3327,6 +3328,20 @@ def validate_abuse_evidence_split_contracts() -> None:
         "private beta gate must cite auth/RBAC/tenant/audit staging runtime evidence",
     )
     require(
+        private_beta_checks["staging_brief_upload_confirmation"]["status"] == "pass",
+        "private beta brief/upload/confirmation gate check must pass only after staging evidence exists",
+    )
+    require(
+        private_beta_conditions["staging_brief_upload_confirmation_runtime_missing"]["is_present"] is False,
+        "private beta brief/upload/confirmation Do-Not-Launch condition must clear after staging runtime evidence exists",
+    )
+    require(
+        "ops/evidence/staging/20260526T2330Z-brief-upload-confirmation.json" in private_beta_text
+        and "external-user /workspace brief confirmation" in private_beta_text
+        and "four-candidate ready state" in private_beta_text,
+        "private beta gate must cite brief/upload/confirmation staging runtime evidence",
+    )
+    require(
         private_beta_checks["staging_support_retry_abuse_ops"]["status"] == "pass",
         "private beta support/retry/abuse gate check must pass only after staging evidence exists",
     )
@@ -3988,6 +4003,7 @@ def validate_release_gate_evidence() -> None:
     }
     cleared_private_beta_conditions = {
         "tenant_isolation_not_enforced",
+        "staging_brief_upload_confirmation_runtime_missing",
         "crawler_governance_runtime_missing",
         "crawler_material_retention_takedown_runtime_missing",
     }
@@ -4918,6 +4934,7 @@ def validate_launch_readiness_split_contracts() -> None:
         set(RELEASE_GATE_CHECK_LEVEL_RUNTIME_OPEN_ITEMS)
         - {
             "Private Beta/Staging auth/RBAC/tenant/audit runtime evidence 通过。",
+            "Private Beta/Staging brief/upload/confirmation runtime evidence 通过。",
             "Private Beta/Staging crawler approval/provenance runtime evidence 通过。",
             "Private Beta/Staging support/retry/abuse runtime evidence 通过。",
             "staging backend/worker/crawler metrics runtime evidence 通过。",

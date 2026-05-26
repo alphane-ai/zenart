@@ -837,7 +837,7 @@ export const buildBriefUploadConfirmationRuntimeEvidence = (
     schema_version: "stage0.rev2.brief-upload-confirmation-runtime-evidence",
     status: failures.length === 0 ? "pass" : "fail",
     scenario: "user-web-brief-upload-confirmation",
-    gateImpact: "user-web-evidence-only",
+    gateImpact: "private-beta-staging-runtime",
     apiOperationIds: [...briefUploadConfirmationOperationIds],
     briefConfirmed: state.brief.confirmed,
     missingInfoCount: state.brief.missingInfo.length,

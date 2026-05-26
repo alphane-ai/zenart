@@ -190,7 +190,7 @@ export interface BriefUploadConfirmationRuntimeEvidence {
   schema_version: "stage0.rev2.brief-upload-confirmation-runtime-evidence";
   status: "pass" | "fail";
   scenario: "user-web-brief-upload-confirmation";
-  gateImpact: "user-web-evidence-only";
+  gateImpact: "private-beta-staging-runtime";
   apiOperationIds: Array<"createChatSession" | "createChatMessage" | "createUpload" | "createCandidateSet">;
   briefConfirmed: boolean;
   missingInfoCount: number;

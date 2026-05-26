@@ -1991,7 +1991,7 @@ main 合并前必须通过：
 - [x] Backfill Private Beta/Staging no-go evidence: contract/fixture evidence is separated from external-user staging runtime blockers in `fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json`。
 - [ ] Private Beta/Staging external-user runtime evidence 通过：auth/RBAC/tenant、storage、quota/rate limit、support/abuse、safety/QA/crawler、observability/backup/load、legal visibility 均有 staging evidence。
 - [x] Private Beta/Staging auth/RBAC/tenant/audit runtime evidence 通过。
-- [ ] Private Beta/Staging brief/upload/confirmation runtime evidence 通过。
+- [x] Private Beta/Staging brief/upload/confirmation runtime evidence 通过。
 - [ ] Private Beta/Staging object storage signed download/retention runtime evidence 通过。
 - [ ] Private Beta/Staging quota/rate-limit/spend-cap runtime evidence 通过。
 - [x] Private Beta/Staging support/retry/abuse runtime evidence 通过。
@@ -2016,7 +2016,7 @@ Release gate evidence map:
 
 - Local Alpha Gate: `fixtures/stage0/rev2/release_gate_evidence.local_alpha.json` records fixture/runtime-stack pass evidence and keeps end-to-end workflow smoke blocked.
 - CI Gate: `fixtures/stage0/rev2/release_gate_evidence.ci.json` records ops CI draft coverage and keeps installed workflow/runtime execution, Playwright smoke, and Docker image build blocked.
-- Private Beta/Staging Gate: `fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json` records fixture/definition evidence where present, clears auth/RBAC/tenant/audit, support/retry/abuse, and crawler runtime checks with staging evidence, and keeps external-user runtime evidence blocked for production-like object storage, quota/rate limits, eval/QA/safety enforcement, observability/restore/load, and legal pages.
+- Private Beta/Staging Gate: `fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json` records fixture/definition evidence where present, clears auth/RBAC/tenant/audit, brief/upload/confirmation, support/retry/abuse, and crawler runtime checks with staging evidence, and keeps external-user runtime evidence blocked for production-like object storage, quota/rate limits, eval/QA/safety enforcement, observability/restore/load, and legal pages.
 - Production Launch Gate: `fixtures/stage0/rev2/release_gate_evidence.production_launch.json` records fixture/definition evidence where present, clears skill release/eval/canary, abuse throttle/hold, and activation review/audit with production evidence, and keeps launch evidence blocked for provider/comp-only mode, paid billing lifecycle, security, backup/rollback/incident readiness, and legal/support policy.
 
 Release gate closure policy:
