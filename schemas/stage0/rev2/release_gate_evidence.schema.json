@@ -10,6 +10,7 @@
     "evidence_id",
     "checks",
     "do_not_launch_checks",
+    "gate_decision",
     "provenance"
   ],
   "allOf": [
@@ -313,6 +314,44 @@
             "type": "string",
             "minLength": 1
           }
+        }
+      }
+    },
+    "gate_decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "blocked_by_checks",
+        "active_do_not_launch_conditions",
+        "evidence_ref"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "go",
+            "no_go"
+          ]
+        },
+        "blocked_by_checks": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "active_do_not_launch_conditions": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "evidence_ref": {
+          "type": "string",
+          "minLength": 1
         }
       }
     },

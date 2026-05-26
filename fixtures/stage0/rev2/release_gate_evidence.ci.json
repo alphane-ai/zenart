@@ -55,6 +55,22 @@
       "evidence_ref": "ops/ci/stage0-rev2-ci.yml and scripts/docker_build_smoke.sh define Docker image build steps, but CI Docker image build has no installed PR/main runtime pass evidence under ops/evidence/ci/"
     }
   ],
+  "gate_decision": {
+    "status": "no_go",
+    "blocked_by_checks": [
+      "ci_installed_workflow",
+      "ci_gate_runtime_execution",
+      "ci_playwright_smoke",
+      "ci_docker_image_build"
+    ],
+    "active_do_not_launch_conditions": [
+      "ci_workflow_not_installed",
+      "ci_gate_not_executed_on_main",
+      "ci_playwright_smoke_missing",
+      "ci_docker_image_build_missing"
+    ],
+    "evidence_ref": "fixtures/stage0/rev2/release_gate_evidence.ci.json remains no-go because installed PR/main workflow run, Playwright smoke, and Docker image build runtime evidence are blocked"
+  },
   "provenance": {
     "blueprint_sections": [
       "23.2",

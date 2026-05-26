@@ -124,6 +124,30 @@
       "evidence_ref": "fixtures/stage0/rev2/release_gate_evidence.ci.json and fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json show CI and staging gates remain unchecked"
     }
   ],
+  "gate_decision": {
+    "status": "no_go",
+    "blocked_by_checks": [
+      "production_provider_or_comp_only_mode",
+      "production_paid_billing_lifecycle",
+      "production_skill_release_eval_canary",
+      "production_security_launch_checks",
+      "production_backup_rollback_incident",
+      "production_legal_support_policy"
+    ],
+    "active_do_not_launch_conditions": [
+      "dev_mock_provider_public_claims_unresolved",
+      "real_provider_or_comp_only_mode_missing",
+      "paid_billing_or_comp_only_mode_missing",
+      "skill_release_eval_canary_missing",
+      "security_privacy_legal_incomplete",
+      "secret_exposure_runtime_not_verified",
+      "backup_restore_rollback_smoke_missing",
+      "production_deploy_rollback_smoke_missing",
+      "public_legal_support_policy_not_deployed",
+      "ci_staging_gates_not_passed"
+    ],
+    "evidence_ref": "fixtures/stage0/rev2/release_gate_evidence.production_launch.json remains no-go while production provider/comp-only, paid billing, skill canary, security, backup/rollback/post-deploy smoke, legal/support deployment, and upstream CI/staging evidence are blocked"
+  },
   "provenance": {
     "blueprint_sections": [
       "23.4",

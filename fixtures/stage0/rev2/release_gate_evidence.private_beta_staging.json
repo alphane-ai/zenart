@@ -111,6 +111,28 @@
       "evidence_ref": "web legal page artifacts exist, but ops/evidence/staging/ external-user staging visibility evidence remains absent"
     }
   ],
+  "gate_decision": {
+    "status": "no_go",
+    "blocked_by_checks": [
+      "staging_auth_rbac_tenant_audit",
+      "staging_brief_upload_confirmation",
+      "staging_object_storage_signed_downloads",
+      "staging_quota_rate_limit_spend_cap",
+      "staging_eval_qa_safety_runtime",
+      "staging_observability_backup_load",
+      "staging_legal_external_user_pages"
+    ],
+    "active_do_not_launch_conditions": [
+      "tenant_isolation_not_enforced",
+      "staging_brief_upload_confirmation_runtime_missing",
+      "rate_limit_spend_cap_runtime_missing",
+      "object_storage_signed_retention_runtime_missing",
+      "eval_qa_safety_runtime_missing",
+      "staging_observability_restore_load_missing",
+      "external_user_legal_pages_missing"
+    ],
+    "evidence_ref": "fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json remains no-go while external-user staging runtime evidence is blocked for auth/RBAC/tenant, brief/upload, object storage, quota/rate limits, eval/QA/safety, observability/backup/load, and legal visibility"
+  },
   "provenance": {
     "blueprint_sections": [
       "23.3",

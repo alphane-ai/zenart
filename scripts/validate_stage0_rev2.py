@@ -1589,6 +1589,56 @@ def gate_blockers(data: dict[str, Any]) -> dict[str, list[str]]:
     }
 
 
+def validate_gate_decision(data: dict[str, Any]) -> None:
+    gate = data["gate"]
+    decision = data.get("gate_decision")
+    require(isinstance(decision, dict), f"{gate} release evidence missing gate_decision")
+
+    blockers = gate_blockers(data)
+    expected_blocked_checks = sorted(blockers["blocked_or_failing_checks"])
+    expected_active_conditions = sorted(blockers["active_do_not_launch_conditions"])
+    expected_status = (
+        "go"
+        if not expected_blocked_checks and not expected_active_conditions
+        else "no_go"
+    )
+    require(
+        decision.get("status") == expected_status,
+        f"{gate} gate_decision.status must be {expected_status!r} based on computed blockers",
+    )
+    require(
+        sorted(decision.get("blocked_by_checks", [])) == expected_blocked_checks,
+        f"{gate} gate_decision.blocked_by_checks must match blocked/failing checks: {expected_blocked_checks}",
+    )
+    require(
+        sorted(decision.get("active_do_not_launch_conditions", [])) == expected_active_conditions,
+        f"{gate} gate_decision.active_do_not_launch_conditions must match active Do-Not-Launch conditions: {expected_active_conditions}",
+    )
+    evidence_ref = decision.get("evidence_ref", "")
+    require(
+        isinstance(evidence_ref, str) and evidence_ref.strip(),
+        f"{gate} gate_decision.evidence_ref must be non-empty",
+    )
+    require_concrete_evidence_ref(
+        evidence_ref,
+        f"{gate} gate_decision evidence",
+    )
+    require(
+        rel(RELEASE_GATE_EVIDENCE_FILES[gate]) in evidence_ref,
+        f"{gate} gate_decision evidence must cite its release gate fixture",
+    )
+    if expected_status == "no_go":
+        require(
+            "no-go" in evidence_ref.lower() or "no_go" in evidence_ref.lower() or "blocked" in evidence_ref.lower(),
+            f"{gate} gate_decision no-go evidence must explicitly state the blocked launch decision",
+        )
+    else:
+        require(
+            "go" in evidence_ref.lower(),
+            f"{gate} gate_decision go evidence must explicitly state the launch decision",
+        )
+
+
 def checks_by_id(data: dict[str, Any]) -> dict[str, dict[str, Any]]:
     checks = data["checks"]
     check_ids = [check["check_id"] for check in checks]
@@ -1620,6 +1670,7 @@ def validate_release_gate_basics(data: dict[str, Any]) -> tuple[dict[str, dict[s
         data["provenance"]["blueprint_sections"],
         f"{gate} release evidence must cite blueprint sections",
     )
+    validate_gate_decision(data)
 
     checks = checks_by_id(data)
     missing_checks = RELEASE_GATE_REQUIRED_CHECKS[gate] - set(checks)
@@ -4188,6 +4239,8 @@ def validate_launch_readiness_split_contracts() -> None:
     for token in [
         "Fixture or contract evidence can never close CI, Private Beta/Staging, Production Launch, or Do-Not-Launch checklist items by itself",
         "Runtime gate checks that pass must cite environment-specific evidence paths",
+        "Each release gate fixture must include a `gate_decision` object",
+        "a fixture-level `go` decision is invalid while any check is blocked/failing or any Do-Not-Launch condition is active",
         "Passed runtime gate checks must cite exact validator-owned evidence files when the checklist subitem is closed by a named `ops/evidence` artifact",
         "Passed gate checks and cleared Do-Not-Launch conditions may not mix real and missing concrete artifact paths",
         "Private Beta/Staging check-level runtime subitems must remain open until each matching release gate check has staging evidence",

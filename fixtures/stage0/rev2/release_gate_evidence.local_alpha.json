@@ -113,6 +113,14 @@
       "evidence_ref": "docker-compose.yml and .env.example validate local_alpha_runtime_stack; local_alpha_e2e_workflow_smoke remains blocked separately"
     }
   ],
+  "gate_decision": {
+    "status": "no_go",
+    "blocked_by_checks": [
+      "local_alpha_e2e_workflow_smoke"
+    ],
+    "active_do_not_launch_conditions": [],
+    "evidence_ref": "fixtures/stage0/rev2/release_gate_evidence.local_alpha.json remains no-go until local_alpha_e2e_workflow_smoke has per-workflow API, Playwright, and export ZIP runtime evidence"
+  },
   "provenance": {
     "blueprint_sections": [
       "23.1",

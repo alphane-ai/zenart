@@ -2018,6 +2018,7 @@ Release gate evidence map:
 Release gate closure policy:
 
 - `fixtures/stage0/rev2/release_gate_evidence.*.json` must cite the exact Do-Not-Launch condition text covered by each gate condition.
+- Each release gate fixture must include a `gate_decision` object whose `status`, `blocked_by_checks`, and `active_do_not_launch_conditions` exactly match the computed check statuses and active Do-Not-Launch conditions; a fixture-level `go` decision is invalid while any check is blocked/failing or any Do-Not-Launch condition is active.
 - A gate checklist item may close only when every check in its evidence fixture is `pass` and every Do-Not-Launch condition in that fixture is false.
 - Passed gate checks and cleared Do-Not-Launch conditions must cite validator-resolvable repository artifacts such as `fixtures/`, `schemas/`, `openapi/`, `scripts/`, `backend/`, `web/`, `admin/`, `ops/`, `.env.example`, or `docker-compose.yml`; prose-only evidence is not sufficient.
 - Passed gate checks and cleared Do-Not-Launch conditions may not mix real and missing concrete artifact paths in one evidence ref; every cited concrete artifact path must resolve, while active blockers may name the absent runtime/deployment evidence path they are waiting on.
