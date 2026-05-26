@@ -436,6 +436,30 @@ export interface PackageExportMetadataEvidence {
   workflowSafetyMetadataPresent: boolean;
 }
 
+export interface ExportZipPayloadSmokeEvidence {
+  schema_version: "stage0.rev2.export-zip-payload-smoke";
+  status: "pass" | "fail";
+  scenario: "manifest-required-output-to-downloadable-zip-payloads";
+  exportId: string;
+  packageId: string;
+  manifestRequiredOutputCount: number;
+  expectedPayloadCount: number;
+  requiredBaselinePayloadNames: string[];
+  expectedPayloadNames: string[];
+  missingPayloadNames: string[];
+  workflowPayloadNames: string[];
+  metadataPayloadPresent: boolean;
+  traceProvenancePayloadPresent: boolean;
+  assetsPayloadPresent: boolean;
+  failures: Array<
+    | "baseline-payloads"
+    | "manifest-required-payloads"
+    | "workflow-metadata"
+    | "trace-provenance"
+    | "assets-readme"
+  >;
+}
+
 export interface ShareLink {
   id: string;
   exportId: string;

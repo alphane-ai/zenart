@@ -13,6 +13,7 @@ import {
   createInitialWorkspace,
   createReferenceAsset,
   createSessionContract,
+  buildExportZipPayloadSmokeEvidence,
   ecommerceGrowthWorkflowAcceptance,
   evaluatePackageQa,
   runSafetyPolicy
@@ -190,6 +191,79 @@ describe("dev workspace contracts", () => {
       workflowPromptSpecMetadataPresent: false,
       workflowSkillMetadataPresent: false,
       workflowSafetyMetadataPresent: false
+    });
+  });
+
+  it("builds ZIP payload smoke evidence from manifest-required outputs", () => {
+    const state = createInitialWorkspace();
+    const packageItems = state.candidates.map((candidate, index) => ({
+      id: `pkg-item-${String(index + 1).padStart(3, "0")}`,
+      sourceId: candidate.id,
+      title: candidate.title,
+      type: "candidate" as const,
+      addedAt: "2026-05-26T10:00:00.000Z",
+      workflowId: candidate.workflowId,
+      strategyTaxonomy: candidate.strategyTaxonomy,
+      requiredOutputFiles: candidate.requiredOutputFiles
+    }));
+    const qaReport = evaluatePackageQa(packageItems);
+    const exportRecord: ExportRecord = {
+      id: "export-zip-001",
+      format: "zip",
+      status: "ready",
+      createdAt: "2026-05-26T10:06:00.000Z",
+      fileName: "zenart-zip-001.zip",
+      manifest: buildManifest(state.activeProjectId, packageItems),
+      qaReport,
+      safetyReport: runSafetyPolicy({ ...state, selectedCandidateId: "cand-editorial", packageItems }, qaReport)
+    };
+
+    expect(buildExportZipPayloadSmokeEvidence(exportRecord)).toEqual({
+      schema_version: "stage0.rev2.export-zip-payload-smoke",
+      status: "pass",
+      scenario: "manifest-required-output-to-downloadable-zip-payloads",
+      exportId: "export-zip-001",
+      packageId: "pkg-004",
+      manifestRequiredOutputCount: 13,
+      expectedPayloadCount: 13,
+      requiredBaselinePayloadNames: [
+        "manifest.json",
+        "qa-report.json",
+        "safety-policy-report.json",
+        "provenance.json",
+        "ppt-ready-metadata.json",
+        "assets/README.txt"
+      ],
+      expectedPayloadNames: [
+        "manifest.json",
+        "qa-report.json",
+        "safety-policy-report.json",
+        "provenance.json",
+        "ppt-ready-metadata.json",
+        "assets/README.txt",
+        "assets/hero_product_ad.png",
+        "assets/square_social_ad.png",
+        "assets/story_variant.png",
+        "assets/marketplace_banner.png",
+        "metadata.json",
+        "qa_report.json",
+        "trace_provenance.json"
+      ],
+      missingPayloadNames: [],
+      workflowPayloadNames: [
+        "manifest.json",
+        "assets/hero_product_ad.png",
+        "assets/square_social_ad.png",
+        "assets/story_variant.png",
+        "assets/marketplace_banner.png",
+        "metadata.json",
+        "qa_report.json",
+        "trace_provenance.json"
+      ],
+      metadataPayloadPresent: true,
+      traceProvenancePayloadPresent: true,
+      assetsPayloadPresent: true,
+      failures: []
     });
   });
 

@@ -250,6 +250,29 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(metadataEvidence?.getAttribute("data-package-export-required-zip-payloads")).toContain("manifest.json");
     expect(metadataEvidence?.getAttribute("data-package-export-required-zip-payloads")).toContain("assets/README.txt");
 
+    const zipPayloadSmoke = container.querySelector(
+      "[data-export-zip-payload-smoke='stage0.rev2.export-zip-payload-smoke']"
+    );
+    expect(zipPayloadSmoke).toHaveAttribute("data-export-zip-payload-smoke-status", "pass");
+    expect(zipPayloadSmoke).toHaveAttribute(
+      "data-export-zip-payload-smoke-scenario",
+      "manifest-required-output-to-downloadable-zip-payloads"
+    );
+    expect(zipPayloadSmoke).toHaveAttribute("data-export-zip-payload-export-id", "export-001");
+    expect(zipPayloadSmoke).toHaveAttribute("data-export-zip-payload-package-id", "pkg-002");
+    expect(zipPayloadSmoke).toHaveAttribute("data-export-zip-payload-manifest-required-output-count", "13");
+    expect(zipPayloadSmoke).toHaveAttribute("data-export-zip-payload-expected-count", "13");
+    expect(zipPayloadSmoke).toHaveAttribute("data-export-zip-payload-missing-count", "0");
+    expect(zipPayloadSmoke).toHaveAttribute("data-export-zip-payload-metadata-present", "true");
+    expect(zipPayloadSmoke).toHaveAttribute("data-export-zip-payload-trace-provenance-present", "true");
+    expect(zipPayloadSmoke).toHaveAttribute("data-export-zip-payload-assets-present", "true");
+    expect(zipPayloadSmoke).toHaveAttribute("data-export-zip-payload-failures", "");
+    expect(zipPayloadSmoke?.getAttribute("data-export-zip-payload-baseline-payloads")).toContain("manifest.json");
+    expect(zipPayloadSmoke?.getAttribute("data-export-zip-payload-baseline-payloads")).toContain("assets/README.txt");
+    expect(zipPayloadSmoke?.getAttribute("data-export-zip-payload-expected-payloads")).toContain("metadata.json");
+    expect(zipPayloadSmoke?.getAttribute("data-export-zip-payload-expected-payloads")).toContain("trace_provenance.json");
+    expect(zipPayloadSmoke?.getAttribute("data-export-zip-payload-workflow-payloads")).toContain("assets/square_social_ad.png");
+
     const safetyPolicy = container.querySelector("[data-safety-policy-export='stage0.rev2.safety-policy-export']");
     expect(safetyPolicy).toHaveAttribute("data-safety-policy-status", "pass");
     expect(safetyPolicy).toHaveAttribute("data-safety-policy-stage-count", "5");

@@ -130,7 +130,13 @@ describe("reference upload and export download integration", () => {
       safety: string;
     };
     const readme = await zip.file("assets/README.txt")!.async("string");
+    const expectedPayloadNames = record.manifest.required_outputs.map((outputName) =>
+      outputName === "assets/" ? "assets/README.txt" : outputName
+    );
 
+    for (const payloadName of expectedPayloadNames) {
+      expect(zip.file(payloadName), `ZIP payload ${payloadName} should exist`).toBeTruthy();
+    }
     expect(manifest.items).toEqual([
       {
         id: "pkg-item-001",

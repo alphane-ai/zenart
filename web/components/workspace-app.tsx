@@ -35,6 +35,7 @@ import { AccountSettings, BillingScenario, Candidate, ExportFormat, QaSeverity, 
 import { zenArtClient } from "@/lib/api-client";
 import {
   buildPackageExportMetadataEvidence,
+  buildExportZipPayloadSmokeEvidence,
   buildBriefUploadConfirmationRuntimeEvidence,
   buildEcommerceGrowthApiSmokeEvidence,
   buildReferenceUploadIntegrationSmoke,
@@ -947,6 +948,7 @@ function ExportView({
   const latestExport = state.exports[0];
   const latestShareLink = latestExport ? state.shareLinks.find((item) => item.exportId === latestExport.id) : undefined;
   const metadataEvidence = latestExport ? buildPackageExportMetadataEvidence(latestExport) : undefined;
+  const zipPayloadSmoke = latestExport ? buildExportZipPayloadSmokeEvidence(latestExport) : undefined;
   const ecommerceApiSmoke = buildEcommerceGrowthApiSmokeEvidence(state);
   return (
     <section className="content-view export-view" data-testid="export-preview">
@@ -1057,6 +1059,42 @@ function ExportView({
                       {metadataEvidence.missingRequiredOutputs.length > 0 || metadataEvidence.missingZipPayloadNames.length > 0
                         ? ` Missing ${[...metadataEvidence.missingRequiredOutputs, ...metadataEvidence.missingZipPayloadNames].join(", ")}.`
                         : " All required metadata outputs are present."}
+                    </p>
+                  </section>
+                ) : null}
+                {zipPayloadSmoke ? (
+                  <section
+                    className="export-detail-panel export-zip-payload-smoke"
+                    aria-label="Export ZIP payload smoke"
+                    data-export-zip-payload-smoke={zipPayloadSmoke.schema_version}
+                    data-export-zip-payload-smoke-status={zipPayloadSmoke.status}
+                    data-export-zip-payload-smoke-scenario={zipPayloadSmoke.scenario}
+                    data-export-zip-payload-export-id={zipPayloadSmoke.exportId}
+                    data-export-zip-payload-package-id={zipPayloadSmoke.packageId}
+                    data-export-zip-payload-manifest-required-output-count={zipPayloadSmoke.manifestRequiredOutputCount}
+                    data-export-zip-payload-expected-count={zipPayloadSmoke.expectedPayloadCount}
+                    data-export-zip-payload-baseline-payloads={zipPayloadSmoke.requiredBaselinePayloadNames.join(",")}
+                    data-export-zip-payload-expected-payloads={zipPayloadSmoke.expectedPayloadNames.join(",")}
+                    data-export-zip-payload-missing-count={zipPayloadSmoke.missingPayloadNames.length}
+                    data-export-zip-payload-missing-payloads={zipPayloadSmoke.missingPayloadNames.join(",")}
+                    data-export-zip-payload-workflow-payloads={zipPayloadSmoke.workflowPayloadNames.join(",")}
+                    data-export-zip-payload-metadata-present={String(zipPayloadSmoke.metadataPayloadPresent)}
+                    data-export-zip-payload-trace-provenance-present={String(zipPayloadSmoke.traceProvenancePayloadPresent)}
+                    data-export-zip-payload-assets-present={String(zipPayloadSmoke.assetsPayloadPresent)}
+                    data-export-zip-payload-failures={zipPayloadSmoke.failures.join(",")}
+                  >
+                    <h4>ZIP Payload Smoke</h4>
+                    <div className="metadata-evidence-grid">
+                      <span className={zipPayloadSmoke.status === "pass" ? "qa-pass" : "qa-block"}>
+                        {zipPayloadSmoke.status}
+                      </span>
+                      <span>{zipPayloadSmoke.expectedPayloadCount} expected payloads</span>
+                      <span>{zipPayloadSmoke.workflowPayloadNames.length} workflow payloads</span>
+                      <span>{zipPayloadSmoke.missingPayloadNames.length} missing payloads</span>
+                    </div>
+                    <p>
+                      Download ZIP must contain {zipPayloadSmoke.requiredBaselinePayloadNames.join(", ")} plus workflow metadata and trace
+                      provenance payloads declared by the manifest.
                     </p>
                   </section>
                 ) : null}

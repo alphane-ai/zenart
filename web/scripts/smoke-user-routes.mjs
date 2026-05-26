@@ -81,6 +81,7 @@ const referenceValidationEvidence = requireSecurityEvidence("stage0.rev2.referen
 const referenceUploadEvidence = requireSecurityEvidence("stage0.rev2.reference-upload-integration-smoke");
 const briefUploadConfirmationEvidence = requireSecurityEvidence("stage0.rev2.brief-upload-confirmation-runtime-evidence");
 const packageExportEvidence = requireSecurityEvidence("stage0.rev2.package-export-metadata-ui");
+const exportZipPayloadEvidence = requireSecurityEvidence("stage0.rev2.export-zip-payload-smoke");
 const workflowApiSmokeEvidence = requireSecurityEvidence("stage0.rev2.workflow-api-smoke");
 
 if (
@@ -235,7 +236,7 @@ for (const requestContract of generatedApiCsrfContract.unsafeRequestContracts ??
   }
 }
 
-for (const evidence of [renderingEvidence, referenceUploadEvidence, packageExportEvidence]) {
+for (const evidence of [renderingEvidence, referenceUploadEvidence, packageExportEvidence, exportZipPayloadEvidence]) {
   if (evidence.expectedStatus !== "pass") {
     fail(`${evidence.schemaVersion} must assert a passing local-alpha UI evidence status`);
   }
@@ -376,6 +377,38 @@ for (const payload of packageExportEvidence.requiredPayloads ?? []) {
   }
 }
 
+if (
+  exportZipPayloadEvidence.expectedMissingPayloadCount !== "0" ||
+  exportZipPayloadEvidence.expectedMetadataPayloadPresent !== "true" ||
+  exportZipPayloadEvidence.expectedTraceProvenancePayloadPresent !== "true" ||
+  exportZipPayloadEvidence.expectedAssetsPayloadPresent !== "true" ||
+  exportZipPayloadEvidence.scenario !== "manifest-required-output-to-downloadable-zip-payloads"
+) {
+  fail("export ZIP payload smoke must assert complete manifest-required downloadable payload coverage");
+}
+for (const attribute of exportZipPayloadEvidence.requiredAttributes ?? []) {
+  if (!componentSource.includes(attribute)) {
+    fail(`export ZIP payload smoke missing attribute ${attribute}`);
+  }
+}
+for (const payload of exportZipPayloadEvidence.requiredPayloads ?? []) {
+  if (!componentSource.includes(payload) && !devStateSource.includes(payload) && !JSON.stringify(artifact).includes(payload)) {
+    fail(`export ZIP payload smoke missing required payload ${payload}`);
+  }
+}
+for (const expectedSnippet of [
+  "buildExportZipPayloadSmokeEvidence",
+  "stage0.rev2.export-zip-payload-smoke",
+  "manifest-required-output-to-downloadable-zip-payloads",
+  "metadataPayloadPresent",
+  "traceProvenancePayloadPresent",
+  "assetsPayloadPresent"
+]) {
+  if (!devStateSource.includes(expectedSnippet) && !componentSource.includes(expectedSnippet)) {
+    fail(`export ZIP payload smoke missing source contract ${expectedSnippet}`);
+  }
+}
+
 for (const route of artifact.routes) {
   if (!expectedViews.has(route.initialView)) {
     fail(`${route.path} has unsupported initialView ${route.initialView}`);
@@ -432,6 +465,25 @@ for (const requiredSnippet of [
   "qa-report",
   "provenance-report",
   "package-export-metadata-evidence",
+  "export-zip-payload-smoke",
+  "Export ZIP payload smoke",
+  "ZIP Payload Smoke",
+  "data-export-zip-payload-smoke",
+  "data-export-zip-payload-smoke-status",
+  "data-export-zip-payload-smoke-scenario",
+  "data-export-zip-payload-export-id",
+  "data-export-zip-payload-package-id",
+  "data-export-zip-payload-manifest-required-output-count",
+  "data-export-zip-payload-expected-count",
+  "data-export-zip-payload-baseline-payloads",
+  "data-export-zip-payload-expected-payloads",
+  "data-export-zip-payload-missing-count",
+  "data-export-zip-payload-missing-payloads",
+  "data-export-zip-payload-workflow-payloads",
+  "data-export-zip-payload-metadata-present",
+  "data-export-zip-payload-trace-provenance-present",
+  "data-export-zip-payload-assets-present",
+  "data-export-zip-payload-failures",
   "data-package-export-metadata-ui",
   "data-package-export-metadata-status",
   "data-package-export-id",
@@ -750,6 +802,7 @@ for (const expectedIntegration of [
   "workspace-rendering-performance-budget",
   "zip-download-manifest-qa-provenance-assets",
   "zip-download-safety-policy-report",
+  "export-zip-payload-smoke",
   "package-export-metadata-ui-evidence",
   "ppt-ready-metadata-export-contract",
   "pdf-placeholder-download-contract",
@@ -790,7 +843,9 @@ for (const expectedDownloadSmokeSnippet of [
   "safety-policy-report.json",
   "assets/square_social_ad.png",
   "workflow_id: ecommerceGrowthWorkflowAcceptance.workflow_id",
-  "URL.createObjectURL"
+  "URL.createObjectURL",
+  "for (const payloadName of expectedPayloadNames)",
+  "ZIP payload ${payloadName} should exist"
 ]) {
   if (!exportDownloadTestSource.includes(expectedDownloadSmokeSnippet)) {
     fail(`reference upload ZIP integration smoke missing ${expectedDownloadSmokeSnippet}`);

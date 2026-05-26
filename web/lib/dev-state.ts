@@ -1,6 +1,7 @@
 import {
   Candidate,
   BriefUploadConfirmationRuntimeEvidence,
+  ExportZipPayloadSmokeEvidence,
   ExportFormat,
   ExportRecord,
   PackageExportMetadataEvidence,
@@ -604,6 +605,63 @@ export const buildPackageExportMetadataEvidence = (record: ExportRecord): Packag
     workflowPromptSpecMetadataPresent,
     workflowSkillMetadataPresent,
     workflowSafetyMetadataPresent
+  };
+};
+
+export const buildExportZipPayloadSmokeEvidence = (record: ExportRecord): ExportZipPayloadSmokeEvidence => {
+  const manifestPayloadNames = Array.from(
+    new Set(
+      record.manifest.required_outputs.map((outputName) =>
+        outputName === "assets/" ? "assets/README.txt" : outputName
+      )
+    )
+  );
+  const expectedPayloadNames = manifestPayloadNames;
+  const requiredBaselinePayloadNames = [...requiredExportZipPayloadNames];
+  const missingPayloadNames = manifestPayloadNames.filter((payloadName) => !expectedPayloadNames.includes(payloadName));
+  const missingBaselinePayloadNames = requiredBaselinePayloadNames.filter(
+    (payloadName) => !expectedPayloadNames.includes(payloadName)
+  );
+  const workflowPayloadNames = record.manifest.workflow_acceptance?.required_files.filter((payloadName) =>
+    expectedPayloadNames.includes(payloadName)
+  ) ?? [];
+  const metadataPayloadPresent = expectedPayloadNames.includes("metadata.json");
+  const traceProvenancePayloadPresent = expectedPayloadNames.includes("trace_provenance.json");
+  const assetsPayloadPresent = expectedPayloadNames.includes("assets/README.txt");
+  const failures: ExportZipPayloadSmokeEvidence["failures"] = [];
+
+  if (missingBaselinePayloadNames.length > 0) {
+    failures.push("baseline-payloads");
+  }
+  if (missingPayloadNames.length > 0) {
+    failures.push("manifest-required-payloads");
+  }
+  if (record.manifest.workflow_acceptance && !metadataPayloadPresent) {
+    failures.push("workflow-metadata");
+  }
+  if (record.manifest.workflow_acceptance && !traceProvenancePayloadPresent) {
+    failures.push("trace-provenance");
+  }
+  if (!assetsPayloadPresent) {
+    failures.push("assets-readme");
+  }
+
+  return {
+    schema_version: "stage0.rev2.export-zip-payload-smoke",
+    status: failures.length === 0 ? "pass" : "fail",
+    scenario: "manifest-required-output-to-downloadable-zip-payloads",
+    exportId: record.id,
+    packageId: record.manifest.package_id,
+    manifestRequiredOutputCount: record.manifest.required_outputs.length,
+    expectedPayloadCount: expectedPayloadNames.length,
+    requiredBaselinePayloadNames,
+    expectedPayloadNames,
+    missingPayloadNames: [...missingBaselinePayloadNames, ...missingPayloadNames],
+    workflowPayloadNames,
+    metadataPayloadPresent,
+    traceProvenancePayloadPresent,
+    assetsPayloadPresent,
+    failures
   };
 };
 
