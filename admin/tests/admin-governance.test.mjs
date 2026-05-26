@@ -8,7 +8,7 @@ const parseFixtures = () => {
   const moduleSource = source
     .replace(/^import type[\s\S]*?from "@\/lib\/types";\n\n/, "")
     .replaceAll(/export const (\w+)[^=]*=/g, "const $1 =");
-  return Function(`${moduleSource}\nreturn { skillVersions, skillReleaseStateDefinitions, skillCanaryMetrics, releaseEvidence, supportTickets, supportEscalationRunbooks, supportUsers, riskyExports, abuseEvents, auditEvents, exportJobs, traces, quotaAccounts, feedbackItems, analyticsReports, queueHealth, failedTaskControls, crawlerFindings, crawlerGovernanceWorkflows, adminRbacEvidence };`)();
+  return Function(`${moduleSource}\nreturn { skillVersions, skillReleaseStateDefinitions, skillCanaryMetrics, releaseEvidence, supportTickets, supportEscalationRunbooks, supportUsers, riskyExports, abuseEvents, abuseControlHooks, auditEvents, exportJobs, traces, quotaAccounts, feedbackItems, analyticsReports, queueHealth, failedTaskControls, crawlerFindings, crawlerGovernanceWorkflows, adminRbacEvidence };`)();
 };
 
 const {
@@ -21,6 +21,7 @@ const {
   supportUsers,
   riskyExports,
   abuseEvents,
+  abuseControlHooks,
   auditEvents,
   exportJobs,
   feedbackItems,
@@ -44,6 +45,7 @@ const quotaUserIds = new Set(quotaAccounts.map((account) => account.userId));
 const queueIds = new Set(queueHealth.map((queue) => queue.id));
 const crawlerFindingIds = new Set(crawlerFindings.map((finding) => finding.id));
 const incidentIds = new Set(["none", "inc-20260526-queue", "inc-20260525-crawler"]);
+const abuseEventById = new Map(abuseEvents.map((event) => [event.id, event]));
 
 const roleOrder = new Map([
   ["support_operator", 1],
@@ -114,6 +116,44 @@ test("abuse queue entries require actionable governance evidence", () => {
     if (event.severity === "critical") {
       assert.equal(event.assignedRole, "admin_superadmin", `${event.id} critical abuse needs superadmin ownership`);
       assert.equal(event.resolution, "open", `${event.id} critical abuse stays open until audited escalation`);
+    }
+  }
+});
+
+test("temporary hold and throttle hooks enforce abuse controls with RBAC, expiry, and audit evidence", () => {
+  assert.ok(abuseControlHooks.length > 0, "temporary hold/throttle hooks need fixtures");
+
+  const actions = new Set(abuseControlHooks.map((hook) => hook.action));
+  assert.ok(actions.has("temporary_hold"), "abuse controls need temporary hold hooks");
+  assert.ok(actions.has("rate_limit"), "abuse controls need throttle/rate-limit hooks");
+
+  for (const hook of abuseControlHooks) {
+    const event = abuseEventById.get(hook.abuseEventId);
+    assert.ok(event, `${hook.id} links unknown abuse event ${hook.abuseEventId}`);
+    assert.equal(hook.userId, event.userId, `${hook.id} user must match linked abuse event`);
+    assert.ok(auditIds.has(hook.auditRef), `${hook.id} links unknown audit ${hook.auditRef}`);
+    assert.ok(hook.durationMinutes > 0, `${hook.id} needs positive duration`);
+    assert.notEqual(hook.expiresAt, "pending", `${hook.id} needs explicit expiration`);
+    assert.ok(hook.threshold.length > 50, `${hook.id} needs a concrete trigger threshold`);
+    assert.ok(hook.releaseCondition.length > 80, `${hook.id} needs release evidence condition`);
+    assert.ok(hook.operatorRunbook.length > 80, `${hook.id} needs operator runbook`);
+    assert.ok(
+      ["api_gateway", "worker_scheduler", "crawler_scheduler", "export_service"].includes(hook.enforcementPoint),
+      `${hook.id} needs executable enforcement point`
+    );
+
+    if (hook.supportTicketId !== "pending") {
+      assert.ok(supportTicketIds.has(hook.supportTicketId), `${hook.id} links unknown support ticket`);
+    }
+
+    if (hook.action === "temporary_hold") {
+      assert.match(hook.requiredRole, /admin_reviewer|admin_superadmin/, `${hook.id} temporary hold needs reviewer or superadmin`);
+      assert.notEqual(hook.state, "released", `${hook.id} active temporary hold cannot be released without evidence`);
+    }
+
+    if (hook.action === "rate_limit") {
+      assert.match(hook.enforcementPoint, /gateway|scheduler|service/, `${hook.id} rate limit needs enforcement point`);
+      assert.notEqual(hook.state, "expired", `${hook.id} throttle cannot expire without release condition evidence`);
     }
   }
 });

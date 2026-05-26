@@ -363,6 +363,25 @@ export type AbuseEvent = {
   auditRef: string;
 };
 
+export type AbuseControlHook = {
+  id: string;
+  abuseEventId: string;
+  userId: string;
+  triggerSource: "abuse_queue" | "support_ticket" | "crawler_rate_limit" | "safety_block";
+  action: "rate_limit" | "temporary_hold" | "crawler_import_hold" | "quota_hold";
+  targetSurface: "generation" | "crawler_import" | "export_share" | "quota";
+  enforcementPoint: "api_gateway" | "worker_scheduler" | "crawler_scheduler" | "export_service";
+  state: "armed" | "active" | "expired" | "released";
+  threshold: string;
+  durationMinutes: number;
+  expiresAt: string;
+  releaseCondition: string;
+  requiredRole: "support_operator" | "admin_operator" | "admin_reviewer" | "admin_superadmin";
+  supportTicketId: string;
+  auditRef: string;
+  operatorRunbook: string;
+};
+
 export type AuditEvent = {
   id: string;
   actor: string;

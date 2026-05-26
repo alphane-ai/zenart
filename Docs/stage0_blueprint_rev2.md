@@ -1829,7 +1829,7 @@ main 合并前必须通过：
 - [x] 实现 delayed feedback。
 - [ ] bad samples 转 regression fixtures。
 - [x] 实现 abuse event model。
-- [ ] 实现 temporary hold/throttle hooks。
+- [x] 实现 temporary hold/throttle hooks。
 - [ ] 实现 admin abuse queue。
 
 ### 25.15 Support and Operations

@@ -49,6 +49,7 @@ test("admin fixtures cover required operational surfaces", () => {
     "export const riskyExports",
     "export const releaseEvidence",
     "export const abuseEvents",
+    "export const abuseControlHooks",
     "export const auditEvents",
     "export const analyticsReports",
     "export const skillReleaseStateDefinitions",
@@ -248,6 +249,16 @@ test("admin routes surface governance evidence", () => {
   assert.match(releasePage, /Release Gate Evidence/);
   assert.match(reviewsPage, /Admin RBAC Evidence/);
   assert.match(reviewsPage, /Attempted Role/);
+
+  const abusePage = readFileSync(
+    new URL("../app/abuse/page.tsx", import.meta.url),
+    "utf8"
+  );
+  assert.match(abusePage, /Temporary Hold and Throttle Hooks/);
+  assert.match(abusePage, /Enforcement Point/);
+  assert.match(abusePage, /Release Condition/);
+  assert.match(abusePage, /Operator Runbook/);
+  assert.match(abusePage, /Audit Ref/);
 });
 
 test("support console surfaces ticket linkage and audit evidence", () => {

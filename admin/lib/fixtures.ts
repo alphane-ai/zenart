@@ -1,5 +1,6 @@
 import type {
   AbuseEvent,
+  AbuseControlHook,
   AdminRbacEvidence,
   AdminReviewDecision,
   AnalyticsReport,
@@ -1407,6 +1408,63 @@ export const abuseEvents: AbuseEvent[] = [
     linkedSupportTicket: "sup-2212",
     reviewRationale: "Crawler import remains held until source ownership and robots evidence are reviewed.",
     auditRef: "au-002"
+  }
+];
+
+export const abuseControlHooks: AbuseControlHook[] = [
+  {
+    id: "hook-ab-300-hold",
+    abuseEventId: "ab-300",
+    userId: "usr-301",
+    triggerSource: "abuse_queue",
+    action: "temporary_hold",
+    targetSurface: "export_share",
+    enforcementPoint: "export_service",
+    state: "active",
+    threshold: "More than 25 blocked export retries or quota-drain attempts in 30 minutes.",
+    durationMinutes: 120,
+    expiresAt: "2026-05-26 12:30",
+    releaseCondition: "Admin reviewer confirms support ticket sup-2201, quota audit au-004, and blocked QA evidence before any export retry.",
+    requiredRole: "admin_reviewer",
+    supportTicketId: "sup-2201",
+    auditRef: "au-002",
+    operatorRunbook: "Keep export/share actions denied at the export service, allow read-only project access, and release only after support and quota evidence are reconciled."
+  },
+  {
+    id: "hook-ab-304-hold",
+    abuseEventId: "ab-304",
+    userId: "usr-411",
+    triggerSource: "safety_block",
+    action: "temporary_hold",
+    targetSurface: "generation",
+    enforcementPoint: "api_gateway",
+    state: "armed",
+    threshold: "Any critical hidden prompt extraction attempt with trace output probing.",
+    durationMinutes: 240,
+    expiresAt: "2026-05-26 14:18",
+    releaseCondition: "Security admin closes prompt extraction investigation and records second-review status before generation is restored.",
+    requiredRole: "admin_superadmin",
+    supportTicketId: "pending",
+    auditRef: "au-008",
+    operatorRunbook: "Block quota-consuming generation requests at the gateway, preserve trace evidence, and escalate to security before support messaging."
+  },
+  {
+    id: "hook-ab-309-throttle",
+    abuseEventId: "ab-309",
+    userId: "usr-455",
+    triggerSource: "crawler_rate_limit",
+    action: "rate_limit",
+    targetSurface: "crawler_import",
+    enforcementPoint: "crawler_scheduler",
+    state: "active",
+    threshold: "Crawler source import burst exceeds 20 pending sources or 5 denied robots checks in 10 minutes.",
+    durationMinutes: 60,
+    expiresAt: "2026-05-26 11:41",
+    releaseCondition: "Crawler operator attaches source ownership, robots evidence, and support ticket sup-2212 before the import queue resumes.",
+    requiredRole: "admin_operator",
+    supportTicketId: "sup-2212",
+    auditRef: "au-002",
+    operatorRunbook: "Throttle crawler imports to zero new fetches, keep existing findings pending, and require ownership proof before allowlist changes."
   }
 ];
 

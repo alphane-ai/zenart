@@ -1,6 +1,7 @@
 import {
   adminReviewDecisions,
   adminRbacEvidence,
+  abuseControlHooks,
   abuseEvents,
   analyticsReports,
   crawlerGovernanceWorkflows,
@@ -126,6 +127,10 @@ export async function getRiskyExports() {
 
 export async function getAbuseEvents() {
   return abuseEvents;
+}
+
+export async function getAbuseControlHooks() {
+  return abuseControlHooks;
 }
 
 export async function getAuditEvents() {
