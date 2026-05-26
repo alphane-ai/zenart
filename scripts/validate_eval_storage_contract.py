@@ -48,6 +48,7 @@ QUERY_FILTERS = {
     "subject_id",
     "status",
     "completed_after",
+    "latest_only",
 }
 
 IDEMPOTENCY_FIELDS = {
@@ -65,6 +66,7 @@ OPENAPI_PARAMETERS = {
     "EvalSubjectTypeFilter",
     "SubjectIdFilter",
     "CompletedAfterFilter",
+    "EvalLatestOnlyFilter",
 }
 
 
@@ -160,6 +162,12 @@ def validate_table_contract(contract: dict[str, Any], result: dict[str, Any]) ->
     require(table["subject_scoped"] is True, "eval storage must be subject scoped")
     require(table["summary_json_contains_fixture_results"] is True, "eval storage summary must contain fixture results")
     require(table["latest_result_resolvable"] is True, "eval storage must support latest-result resolution")
+    require(table["immutable_rows"] is True, "eval storage rows must be immutable")
+    require(set(table["idempotent_replay_key"]) == IDEMPOTENCY_FIELDS, "eval storage idempotent replay key mismatch")
+    require(table["no_public_delete_operation"] is True, "eval storage must not expose a public delete operation")
+    require(result_storage["immutable_rows"] is True, "eval result storage fixture must declare immutable rows")
+    require(set(result_storage["idempotent_replay_key"]) == IDEMPOTENCY_FIELDS, "eval result fixture idempotent replay key mismatch")
+    require(result_storage["no_public_delete_operation"] is True, "eval result storage fixture must block public delete")
 
 
 def validate_write_and_replay_contract(contract: dict[str, Any]) -> None:
@@ -215,6 +223,11 @@ def validate_read_and_openapi_contract(contract: dict[str, Any]) -> None:
     require(read["admin_rbac_required"] is True, "read contract must require admin RBAC")
     require(read["tenant_filter_required"] is True, "read contract must require tenant filtering")
     require(read["latest_result_order"] == "completed_at_desc", "read contract latest order mismatch")
+    require(read["stable_tie_break_order"] == "created_at_desc", "read contract must define stable created_at tie-break")
+    require(
+        read["subject_latest_resolution"] == "tenant_suite_subject_version_runner_hash",
+        "read contract latest resolution scope mismatch",
+    )
     require(read["page_schema"] == api["response_schema"] == "EvalResultPage", "read contract page schema mismatch")
     require('$ref: "#/components/schemas/EvalResultPage"' in eval_path, "OpenAPI /eval/results response schema mismatch")
     require("items:" in page and '$ref: "#/components/schemas/EvalResult"' in page, "EvalResultPage must contain EvalResult items")
@@ -223,8 +236,11 @@ def validate_read_and_openapi_contract(contract: dict[str, Any]) -> None:
     require(set(api["required_parameters"]) == OPENAPI_PARAMETERS, "OpenAPI contract parameters mismatch")
     for parameter in OPENAPI_PARAMETERS:
         require(parameter in eval_path, f"OpenAPI /eval/results missing {parameter}")
-    for token in STORAGE_COLUMNS | STORAGE_INDEXES | QUERY_FILTERS:
+    for token in STORAGE_COLUMNS | STORAGE_INDEXES | QUERY_FILTERS | IDEMPOTENCY_FIELDS:
         require(token in result or token in eval_path, f"OpenAPI EvalResult storage contract missing {token}")
+    require("EvalLatestOnlyFilter" in eval_path, "OpenAPI /eval/results must expose latest-only filter")
+    require("delete:" not in eval_path and "operationId: deleteEval" not in openapi, "eval results must not expose public delete")
+    require("immutable" in result.lower(), "OpenAPI EvalResult storage contract must document immutability")
 
 
 def validate_retention_and_release_gate(contract: dict[str, Any]) -> None:
@@ -237,8 +253,11 @@ def validate_retention_and_release_gate(contract: dict[str, Any]) -> None:
         "retain_summary_json",
         "retain_runner_hash",
         "deletion_requires_admin_audit",
+        "redaction_requires_admin_audit",
+        "no_public_delete_operation",
     ]:
         require(retention[field] is True, f"retention contract must set {field}")
+    require(retention["minimum_retention_days"] >= 365, "eval result retention must be at least 365 days")
 
     require(
         release["activation_contract_fixture"] == "fixtures/stage0/rev2/eval/activation_gate_contract.json",

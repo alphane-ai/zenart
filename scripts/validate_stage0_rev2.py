@@ -2125,6 +2125,21 @@ def validate_eval_results() -> None:
         <= set(result["storage_contract"]["required_columns"]),
         "eval result storage contract missing required persisted columns",
     )
+    require(
+        {"tenant_id", "eval_suite_id", "subject_type", "subject_id", "status", "completed_after", "latest_only"}
+        <= set(result["storage_contract"]["required_query_filters"]),
+        "eval result storage contract missing required read filters",
+    )
+    require(result["storage_contract"]["immutable_rows"] is True, "eval result storage contract must preserve immutable rows")
+    require(
+        result["storage_contract"]["no_public_delete_operation"] is True,
+        "eval result storage contract must not expose public delete",
+    )
+    require(
+        set(result["storage_contract"]["idempotent_replay_key"])
+        == {"tenant_id", "eval_suite_id", "subject_type", "subject_id", "subject_version", "runner_sha256"},
+        "eval result storage idempotent replay key mismatch",
+    )
 
     fixture_ids = {fixture["fixture_id"] for fixture in suite["fixtures"]}
     result_by_fixture = {item["fixture_id"]: item for item in result["fixture_results"]}

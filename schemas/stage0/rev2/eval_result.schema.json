@@ -280,7 +280,10 @@
         "summary_json_contains_fixture_results",
         "tenant_scoped",
         "subject_scoped",
-        "latest_result_resolvable"
+        "latest_result_resolvable",
+        "immutable_rows",
+        "idempotent_replay_key",
+        "no_public_delete_operation"
       ],
       "properties": {
         "table": {
@@ -329,7 +332,8 @@
               "subject_type",
               "subject_id",
               "status",
-              "completed_after"
+              "completed_after",
+              "latest_only"
             ]
           }
         },
@@ -346,6 +350,29 @@
           "const": true
         },
         "latest_result_resolvable": {
+          "type": "boolean",
+          "const": true
+        },
+        "immutable_rows": {
+          "type": "boolean",
+          "const": true
+        },
+        "idempotent_replay_key": {
+          "type": "array",
+          "minItems": 6,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "tenant_id",
+              "eval_suite_id",
+              "subject_type",
+              "subject_id",
+              "subject_version",
+              "runner_sha256"
+            ]
+          }
+        },
+        "no_public_delete_operation": {
           "type": "boolean",
           "const": true
         }

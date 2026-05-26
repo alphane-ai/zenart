@@ -101,6 +101,7 @@ QUERY_FILTERS = {
     "subject_id",
     "status",
     "completed_after",
+    "latest_only",
 }
 
 
@@ -165,6 +166,7 @@ def validate_openapi_eval_result_schema() -> None:
         "SubjectIdFilter",
         "CompletedAfterFilter",
         "StatusFilter",
+        "EvalLatestOnlyFilter",
     ]:
         require(parameter in eval_path_body, f"OpenAPI /eval/results missing {parameter}")
 
@@ -227,6 +229,8 @@ def validate_openapi_eval_result_schema() -> None:
     for field in ["runner", "runner_sha256", "deterministic_replay_command", "writes_stored_fixture", "check_mode_compares_exact_json"]:
         require_field_in_schema(body, "EvalResult.runner_contract", field)
     for field in ["required_columns", "required_indexes", "required_query_filters", "latest_result_resolvable"]:
+        require_field_in_schema(body, "EvalResult.storage_contract", field)
+    for field in ["immutable_rows", "idempotent_replay_key", "no_public_delete_operation"]:
         require_field_in_schema(body, "EvalResult.storage_contract", field)
     for token in STORAGE_COLUMNS | STORAGE_INDEXES | QUERY_FILTERS:
         require(token in body or token in eval_path_body, f"OpenAPI EvalResult contract missing {token}")
@@ -389,10 +393,22 @@ def validate_storage_contract() -> None:
     require(storage["tenant_scoped"] is True, "eval storage contract must be tenant scoped")
     require(storage["subject_scoped"] is True, "eval storage contract must be subject scoped")
     require(storage["latest_result_resolvable"] is True, "eval storage must support latest-result resolution")
+    require(storage["immutable_rows"] is True, "eval storage must preserve immutable rows")
+    require(storage["no_public_delete_operation"] is True, "eval storage must not expose public delete")
+    require(
+        set(storage["idempotent_replay_key"]) == set(write_contract["idempotency_key_fields"]),
+        "eval storage idempotent replay key mismatch",
+    )
     require(table_contract["summary_json_contains_fixture_results"] is True, "eval storage contract must retain fixture results")
     require(table_contract["tenant_scoped"] is True, "eval storage table contract must be tenant scoped")
     require(table_contract["subject_scoped"] is True, "eval storage table contract must be subject scoped")
     require(table_contract["latest_result_resolvable"] is True, "eval storage table contract must resolve latest results")
+    require(table_contract["immutable_rows"] is True, "eval storage table contract must preserve immutable rows")
+    require(table_contract["no_public_delete_operation"] is True, "eval storage table contract must not expose public delete")
+    require(
+        set(table_contract["idempotent_replay_key"]) == set(write_contract["idempotency_key_fields"]),
+        "eval storage table idempotent replay key mismatch",
+    )
     require(write_contract["write_command"] == "python3 scripts/run_stage0_eval.py --write", "eval storage write command mismatch")
     require(write_contract["persists_runner_sha256"] is True, "eval storage write contract must persist runner hash")
     require(write_contract["persists_completed_at"] is True, "eval storage write contract must persist completion time")

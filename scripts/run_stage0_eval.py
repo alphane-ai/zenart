@@ -390,11 +390,22 @@ def run_eval() -> dict[str, Any]:
                 "subject_id",
                 "status",
                 "completed_after",
+                "latest_only",
             ],
             "summary_json_contains_fixture_results": True,
             "tenant_scoped": True,
             "subject_scoped": True,
             "latest_result_resolvable": True,
+            "immutable_rows": True,
+            "idempotent_replay_key": [
+                "tenant_id",
+                "eval_suite_id",
+                "subject_type",
+                "subject_id",
+                "subject_version",
+                "runner_sha256",
+            ],
+            "no_public_delete_operation": True,
         },
         "provenance": {
             "blueprint_sections": [
