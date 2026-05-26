@@ -3,6 +3,8 @@ package worker
 import (
 	"context"
 	"errors"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
@@ -143,13 +145,14 @@ func TestNewRunnerPassesSupportedTaskTypesToClaim(t *testing.T) {
 func TestRunnerDrainUsesConfiguredWorkerIdentity(t *testing.T) {
 	db := &fakeDB{commandTag: pgconn.NewCommandTag("UPDATE 1")}
 	repo := NewRepository(db)
-	runner := NewRunner(repo, nil, agent.BaseStepContracts(1), Options{
+	metrics := NewMetrics()
+	runner := NewRunnerWithMetrics(repo, nil, agent.BaseStepContracts(1), Options{
 		SchemaVersion: 1,
 		InstanceID:    "instance-test",
 		WorkerVersion: "worker-test",
 		PollInterval:  time.Hour,
 		ClaimTimeout:  time.Minute,
-	})
+	}, metrics)
 
 	drained, err := runner.Drain(context.Background())
 	if err != nil {
@@ -164,6 +167,48 @@ func TestRunnerDrainUsesConfiguredWorkerIdentity(t *testing.T) {
 	if db.execArgs[3] != "instance-test" {
 		t.Fatalf("worker instance arg = %#v, want instance-test", db.execArgs[3])
 	}
+
+	body := renderMetrics(t, metrics)
+	if !strings.Contains(body, "worker_drain_operations_total 1") {
+		t.Fatalf("metrics body = %s, missing drain operation", body)
+	}
+	if !strings.Contains(body, "worker_drained_tasks_total 1") {
+		t.Fatalf("metrics body = %s, missing drained task", body)
+	}
+}
+
+func TestMetricsHandlerExposesWorkerCounters(t *testing.T) {
+	metrics := NewMetrics()
+	metrics.ObserveClaim(agent.ContractCandidateSetBuilder, 25*time.Millisecond)
+	metrics.ObserveEmptyPoll()
+	metrics.ObserveClaimError()
+	metrics.ObserveUnsupportedTask()
+	metrics.ObserveDrain(2)
+
+	body := renderMetrics(t, metrics)
+	for _, fragment := range []string{
+		"worker_process_uptime_seconds",
+		"worker_task_claims_total 1",
+		"worker_task_empty_polls_total 1",
+		"worker_task_claim_errors_total 1",
+		"worker_task_claim_duration_ms_total 25",
+		"worker_unsupported_task_claims_total 1",
+		"worker_drain_operations_total 1",
+		"worker_drained_tasks_total 2",
+		`worker_task_claims_by_type_total{task_type="candidate_set_builder"} 1`,
+	} {
+		if !strings.Contains(body, fragment) {
+			t.Fatalf("metrics body = %s, missing %s", body, fragment)
+		}
+	}
+}
+
+func renderMetrics(t *testing.T, metrics *Metrics) string {
+	t.Helper()
+	req := httptest.NewRequest(http.MethodGet, "/metrics", nil)
+	rec := httptest.NewRecorder()
+	metrics.Handler().ServeHTTP(rec, req)
+	return rec.Body.String()
 }
 
 type fakeDB struct {

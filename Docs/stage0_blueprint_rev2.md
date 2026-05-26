@@ -1926,7 +1926,7 @@ main 合并前必须通过：
 - [ ] 实现 OpenTelemetry traces。
 - [x] 定义 backend/worker/crawler metrics contract。
 - [x] 实现 backend local metrics endpoint。
-- [ ] 实现 backend/worker/crawler metrics。
+- [x] 实现 backend/worker/crawler metrics。
 - [x] 实现 frontend error reporting。
 - [x] 定义 dashboards。
 - [x] 导入并验证 staging dashboards runtime evidence。

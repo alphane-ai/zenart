@@ -7,6 +7,7 @@ import (
 
 	"github.com/alphane-ai/zenart/backend/internal/app"
 	"github.com/alphane-ai/zenart/backend/internal/config"
+	"github.com/alphane-ai/zenart/backend/internal/crawler"
 	"github.com/alphane-ai/zenart/backend/internal/health"
 	"github.com/alphane-ai/zenart/backend/internal/readiness"
 )
@@ -22,7 +23,11 @@ func main() {
 	ctx, stop := app.SignalContext()
 	defer stop()
 
+	metrics := crawler.NewMetrics()
+	app.StartMetricsServer(ctx, cfg, logger, metrics.Handler())
+
 	report := readiness.New(health.Checks(cfg)...).Run(ctx)
+	metrics.ObserveReadiness(report.Status == readiness.StatusOK)
 	if report.Status != readiness.StatusOK {
 		logger.Error("crawler dependencies are not ready", "report", report)
 		os.Exit(1)

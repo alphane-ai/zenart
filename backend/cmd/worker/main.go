@@ -33,6 +33,9 @@ func main() {
 	}
 
 	contracts := agent.BaseStepContracts(cfg.Tasks.SchemaVersion)
+	metrics := worker.NewMetrics()
+	app.StartMetricsServer(ctx, cfg, logger, metrics.Handler())
+
 	pool, err := store.OpenPool(ctx, cfg.Postgres.DSN)
 	if err != nil {
 		logger.Error("worker database open failed", "error", err)
@@ -40,7 +43,7 @@ func main() {
 	}
 	defer pool.Close()
 
-	runner := worker.NewRunner(
+	runner := worker.NewRunnerWithMetrics(
 		worker.NewRepository(store.NewPoolAdapter(pool)),
 		logger,
 		contracts,
@@ -51,6 +54,7 @@ func main() {
 			PollInterval:  cfg.Worker.PollInterval,
 			ClaimTimeout:  cfg.Worker.ClaimTimeout,
 		},
+		metrics,
 	)
 	logger.Info("worker ready", "contracts", len(contracts), "schema_version", cfg.Tasks.SchemaVersion, "worker_version", cfg.Worker.Version, "worker_instance_id", cfg.Worker.InstanceID)
 

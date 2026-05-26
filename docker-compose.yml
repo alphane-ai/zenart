@@ -141,6 +141,7 @@ services:
     environment:
       <<: *backend-env
       SERVICE_NAME: zenart-worker
+      METRICS_PORT: ${WORKER_METRICS_PORT:-9091}
     depends_on:
       postgres:
         condition: service_healthy
@@ -148,6 +149,8 @@ services:
         condition: service_healthy
       minio-init:
         condition: service_completed_successfully
+    ports:
+      - "${WORKER_METRICS_PORT:-9091}:${WORKER_METRICS_PORT:-9091}"
 
   crawler:
     build: *backend-build
@@ -155,6 +158,7 @@ services:
     environment:
       <<: *backend-env
       SERVICE_NAME: zenart-crawler
+      METRICS_PORT: ${CRAWLER_METRICS_PORT:-9092}
     depends_on:
       postgres:
         condition: service_healthy
@@ -162,6 +166,8 @@ services:
         condition: service_healthy
       minio-init:
         condition: service_completed_successfully
+    ports:
+      - "${CRAWLER_METRICS_PORT:-9092}:${CRAWLER_METRICS_PORT:-9092}"
 
   web:
     profiles: ["frontend"]

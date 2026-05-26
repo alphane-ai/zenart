@@ -3,7 +3,6 @@ package app
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -47,20 +46,7 @@ func RunServer(ctx context.Context, cfg config.Config, logger *slog.Logger) erro
 	})
 	srv := server.NewHTTPServer(cfg, handler)
 	errCh := make(chan error, 1)
-	var metricsSrv *http.Server
-	if cfg.Observability.MetricsEnabled {
-		metricsSrv = &http.Server{
-			Addr:              fmt.Sprintf(":%d", cfg.Observability.MetricsPort),
-			Handler:           api.MetricsHandler(),
-			ReadHeaderTimeout: cfg.HTTP.ReadHeaderTimeout,
-		}
-		go func() {
-			logger.Info("metrics listening", "addr", metricsSrv.Addr)
-			if err := metricsSrv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-				logger.Error("metrics server stopped", "error", err)
-			}
-		}()
-	}
+	metricsSrv := StartMetricsServer(ctx, cfg, logger, api.MetricsHandler())
 
 	go func() {
 		logger.Info("server listening", "addr", cfg.HTTP.Addr)

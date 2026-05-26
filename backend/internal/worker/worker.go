@@ -159,6 +159,7 @@ WHERE status = 'running'
 type Runner struct {
 	repo      Repository
 	logger    *slog.Logger
+	metrics   *Metrics
 	contracts map[string]agent.StepContract
 	taskTypes []string
 	opts      Options
@@ -173,6 +174,10 @@ type Options struct {
 }
 
 func NewRunner(repo Repository, logger *slog.Logger, contracts []agent.StepContract, opts Options) Runner {
+	return NewRunnerWithMetrics(repo, logger, contracts, opts, nil)
+}
+
+func NewRunnerWithMetrics(repo Repository, logger *slog.Logger, contracts []agent.StepContract, opts Options, metrics *Metrics) Runner {
 	contractMap := make(map[string]agent.StepContract, len(contracts))
 	taskTypes := make([]string, 0, len(contracts))
 	for _, contract := range contracts {
@@ -184,7 +189,7 @@ func NewRunner(repo Repository, logger *slog.Logger, contracts []agent.StepContr
 	if logger == nil {
 		logger = slog.Default()
 	}
-	return Runner{repo: repo, logger: logger, contracts: contractMap, taskTypes: taskTypes, opts: opts}
+	return Runner{repo: repo, logger: logger, metrics: metrics, contracts: contractMap, taskTypes: taskTypes, opts: opts}
 }
 
 func (r Runner) Run(ctx context.Context) error {
@@ -196,6 +201,7 @@ func (r Runner) Run(ctx context.Context) error {
 	defer ticker.Stop()
 
 	for {
+		claimStartedAt := time.Now()
 		claimed, err := r.repo.ClaimNext(ctx, ClaimOptions{
 			SchemaVersion: r.opts.SchemaVersion,
 			InstanceID:    r.opts.InstanceID,
@@ -205,16 +211,20 @@ func (r Runner) Run(ctx context.Context) error {
 		})
 		switch {
 		case err == nil:
+			r.metrics.ObserveClaim(claimed.Type, time.Since(claimStartedAt))
 			if _, ok := r.contracts[claimed.Type]; !ok {
+				r.metrics.ObserveUnsupportedTask()
 				r.logger.Warn("claimed unsupported task type", "task_id", claimed.ID, "task_type", claimed.Type, "schema_version", claimed.SchemaVersion)
 				continue
 			}
 			r.logger.Info("claimed task", "task_id", claimed.ID, "task_type", claimed.Type, "schema_version", claimed.SchemaVersion)
 			continue
 		case errors.Is(err, ErrNoTask):
+			r.metrics.ObserveEmptyPoll()
 		case errors.Is(err, context.Canceled), errors.Is(err, context.DeadlineExceeded):
 			return err
 		default:
+			r.metrics.ObserveClaimError()
 			r.logger.Error("worker claim failed", "error", err)
 		}
 
@@ -227,7 +237,11 @@ func (r Runner) Run(ctx context.Context) error {
 }
 
 func (r Runner) Drain(ctx context.Context) (int64, error) {
-	return r.repo.DrainOwned(ctx, r.opts.WorkerVersion, r.opts.InstanceID)
+	drained, err := r.repo.DrainOwned(ctx, r.opts.WorkerVersion, r.opts.InstanceID)
+	if err == nil {
+		r.metrics.ObserveDrain(drained)
+	}
+	return drained, err
 }
 
 func jsonObject(value any) []byte {
