@@ -401,12 +401,17 @@ export type AbuseControlHook = {
   targetSurface: "generation" | "crawler_import" | "export_share" | "quota";
   enforcementPoint: "api_gateway" | "worker_scheduler" | "crawler_scheduler" | "export_service";
   state: "armed" | "active" | "expired" | "released";
+  hookPayload: string;
   threshold: string;
   durationMinutes: number;
   expiresAt: string;
+  rollbackAction: string;
   releaseCondition: string;
   requiredRole: "support_operator" | "admin_operator" | "admin_reviewer" | "admin_superadmin";
+  attemptedRole: "support_operator" | "admin_operator" | "admin_reviewer" | "admin_superadmin";
+  rbacDecision: "allowed" | "denied";
   supportTicketId: string;
+  evidenceRefs: string[];
   auditRef: string;
   operatorRunbook: string;
 };

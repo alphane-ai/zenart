@@ -137,16 +137,32 @@ test("temporary hold and throttle hooks enforce abuse controls with RBAC, expiry
     assert.ok(auditIds.has(hook.auditRef), `${hook.id} links unknown audit ${hook.auditRef}`);
     assert.ok(hook.durationMinutes > 0, `${hook.id} needs positive duration`);
     assert.notEqual(hook.expiresAt, "pending", `${hook.id} needs explicit expiration`);
+    assert.ok(hook.hookPayload.length > 70, `${hook.id} needs executable hook payload`);
     assert.ok(hook.threshold.length > 50, `${hook.id} needs a concrete trigger threshold`);
+    assert.ok(hook.rollbackAction.length > 90, `${hook.id} needs rollback action`);
     assert.ok(hook.releaseCondition.length > 80, `${hook.id} needs release evidence condition`);
     assert.ok(hook.operatorRunbook.length > 80, `${hook.id} needs operator runbook`);
+    assert.ok(hook.evidenceRefs.length >= 3, `${hook.id} needs at least three evidence refs`);
     assert.ok(
       ["api_gateway", "worker_scheduler", "crawler_scheduler", "export_service"].includes(hook.enforcementPoint),
       `${hook.id} needs executable enforcement point`
     );
 
+    for (const ref of hook.evidenceRefs) {
+      assert.ok(
+        ref === hook.abuseEventId || auditIds.has(ref) || supportTicketIds.has(ref) || traceIds.has(ref) || exportIds.has(ref) || crawlerFindingIds.has(ref),
+        `${hook.id} links unknown evidence ref ${ref}`
+      );
+    }
+
     if (hook.supportTicketId !== "pending") {
       assert.ok(supportTicketIds.has(hook.supportTicketId), `${hook.id} links unknown support ticket`);
+    }
+
+    if (roleOrder.get(hook.attemptedRole) >= roleOrder.get(hook.requiredRole)) {
+      assert.equal(hook.rbacDecision, "allowed", `${hook.id} sufficient role should be allowed`);
+    } else {
+      assert.equal(hook.rbacDecision, "denied", `${hook.id} insufficient role must be denied`);
     }
 
     if (hook.action === "temporary_hold") {
@@ -159,6 +175,11 @@ test("temporary hold and throttle hooks enforce abuse controls with RBAC, expiry
       assert.notEqual(hook.state, "expired", `${hook.id} throttle cannot expire without release condition evidence`);
     }
   }
+
+  assert.ok(
+    abuseControlHooks.some((hook) => hook.rbacDecision === "denied" && hook.action === "temporary_hold"),
+    "temporary hold hooks need denied RBAC evidence"
+  );
 });
 
 test("support tickets link user, trace, export, quota, and audit evidence", () => {

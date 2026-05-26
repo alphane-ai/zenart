@@ -54,11 +54,16 @@ export default async function AbusePage() {
             { key: "target", header: "Target Surface", render: (row) => row.targetSurface },
             { key: "enforcement", header: "Enforcement Point", render: (row) => row.enforcementPoint },
             { key: "state", header: "State", render: (row) => <StatusBadge value={row.state === "active" ? "blocked" : "warning"} label={row.state} /> },
+            { key: "payload", header: "Hook Payload", render: (row) => row.hookPayload },
             { key: "threshold", header: "Threshold", render: (row) => row.threshold },
             { key: "expires", header: "Expires", render: (row) => `${row.durationMinutes} min, ${row.expiresAt}` },
             { key: "role", header: "Required Role", render: (row) => row.requiredRole },
+            { key: "attempted-role", header: "Attempted Role", render: (row) => row.attemptedRole },
+            { key: "rbac", header: "RBAC Decision", render: (row) => <StatusBadge value={row.rbacDecision === "allowed" ? "approved" : "blocked"} label={row.rbacDecision} /> },
             { key: "ticket", header: "Support Ticket", render: (row) => <span className="mono">{row.supportTicketId}</span> },
+            { key: "rollback", header: "Rollback Action", render: (row) => row.rollbackAction },
             { key: "release", header: "Release Condition", render: (row) => row.releaseCondition },
+            { key: "evidence", header: "Evidence Refs", render: (row) => row.evidenceRefs.join(", ") },
             { key: "runbook", header: "Operator Runbook", render: (row) => row.operatorRunbook },
             { key: "audit", header: "Audit Ref", render: (row) => <span className="mono">{row.auditRef}</span> }
           ]}

@@ -288,7 +288,12 @@ test("admin routes surface governance evidence", () => {
   );
   assert.match(abusePage, /Temporary Hold and Throttle Hooks/);
   assert.match(abusePage, /Enforcement Point/);
+  assert.match(abusePage, /Hook Payload/);
+  assert.match(abusePage, /Attempted Role/);
+  assert.match(abusePage, /RBAC Decision/);
+  assert.match(abusePage, /Rollback Action/);
   assert.match(abusePage, /Release Condition/);
+  assert.match(abusePage, /Evidence Refs/);
   assert.match(abusePage, /Operator Runbook/);
   assert.match(abusePage, /Audit Ref/);
 });
