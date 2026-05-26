@@ -1,0 +1,121 @@
+{
+  "blueprint_source": "Docs/stage0_blueprint_rev2.md",
+  "created_by_lane": "lane5",
+  "alert_set_id": "stage0-rev2-alerts",
+  "title": "ZenArt Stage 0 Rev2 Go/No-Go Alerts",
+  "status": "definition_ready_runtime_evidence_open",
+  "routing": {
+    "default_channel": "stage0-ops",
+    "sev1_channel": "stage0-incident-lead",
+    "business_hours_channel": "stage0-support"
+  },
+  "alerts": [
+    {
+      "alert_id": "api_5xx_rate_high",
+      "severity": "SEV2",
+      "signal": "backend_http_5xx_rate_percent_30m",
+      "condition": "> 1",
+      "duration": "30m",
+      "runbook": "ops/runbooks/stage0_ops.md#slo-alerts",
+      "go_no_go_signal": true
+    },
+    {
+      "alert_id": "api_latency_p95_high",
+      "severity": "SEV3",
+      "signal": "backend_http_request_duration_ms_p95",
+      "condition": "> 500",
+      "duration": "15m",
+      "runbook": "ops/runbooks/stage0_ops.md#slo-alerts",
+      "go_no_go_signal": true
+    },
+    {
+      "alert_id": "worker_queue_delay_high",
+      "severity": "SEV2",
+      "signal": "worker_queue_delay_seconds_p95",
+      "condition": "> 60",
+      "duration": "15m",
+      "runbook": "ops/runbooks/stage0_ops.md#worker-alerts",
+      "go_no_go_signal": true
+    },
+    {
+      "alert_id": "export_duration_high",
+      "severity": "SEV3",
+      "signal": "export_duration_seconds_p95",
+      "condition": "> 120",
+      "duration": "15m",
+      "runbook": "ops/runbooks/stage0_ops.md#export-alerts",
+      "go_no_go_signal": true
+    },
+    {
+      "alert_id": "provider_error_rate_high",
+      "severity": "SEV2",
+      "signal": "provider_error_rate_percent_30m",
+      "condition": "> 2",
+      "duration": "15m",
+      "runbook": "ops/runbooks/stage0_ops.md#provider-alerts",
+      "go_no_go_signal": true
+    },
+    {
+      "alert_id": "object_storage_errors_present",
+      "severity": "SEV2",
+      "signal": "object_storage_error_count",
+      "condition": "> 0",
+      "duration": "10m",
+      "runbook": "ops/runbooks/stage0_ops.md#object-storage-alerts",
+      "go_no_go_signal": true
+    },
+    {
+      "alert_id": "quota_contention_high",
+      "severity": "SEV3",
+      "signal": "quota_contention_count",
+      "condition": "> 10",
+      "duration": "30m",
+      "runbook": "ops/runbooks/stage0_ops.md#quota-alerts",
+      "go_no_go_signal": true
+    },
+    {
+      "alert_id": "crawler_governance_failure",
+      "severity": "SEV3",
+      "signal": "crawler_governance_denied_or_failed_count",
+      "condition": "> 0",
+      "duration": "30m",
+      "runbook": "ops/runbooks/stage0_ops.md#crawler-alerts",
+      "go_no_go_signal": true
+    },
+    {
+      "alert_id": "safety_critical_block",
+      "severity": "SEV2",
+      "signal": "safety_critical_block_count",
+      "condition": "> 0",
+      "duration": "5m",
+      "runbook": "ops/runbooks/stage0_ops.md#safety-alerts",
+      "go_no_go_signal": true
+    },
+    {
+      "alert_id": "admin_rbac_denial_spike",
+      "severity": "SEV2",
+      "signal": "admin_rbac_denial_count",
+      "condition": "> 5",
+      "duration": "15m",
+      "runbook": "ops/runbooks/stage0_ops.md#admin-alerts",
+      "go_no_go_signal": true
+    },
+    {
+      "alert_id": "frontend_error_rate_high",
+      "severity": "SEV3",
+      "signal": "frontend_error_rate_percent_30m",
+      "condition": "> 1",
+      "duration": "30m",
+      "runbook": "ops/runbooks/stage0_ops.md#frontend-alerts",
+      "go_no_go_signal": true
+    }
+  ],
+  "runtime_evidence_required_before_private_beta": [
+    "staging alert rules imported into the chosen monitoring system",
+    "test notification evidence for default, SEV1, and support routes",
+    "at least one synthetic threshold breach or dry-run evaluation per go_no_go_signal alert",
+    "release notes link to alert set status for go/no-go"
+  ],
+  "private_beta_gate": "open_until_alert_routes_and_threshold_evaluations_have_staging_runtime_evidence",
+  "production_gate": "open_until_release_go_no_go_links_runtime_alert_evidence"
+}

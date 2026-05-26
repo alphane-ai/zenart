@@ -1,0 +1,137 @@
+{
+  "blueprint_source": "Docs/stage0_blueprint_rev2.md",
+  "created_by_lane": "lane5",
+  "dashboard_id": "stage0-rev2-overview",
+  "title": "ZenArt Stage 0 Rev2 Operations Overview",
+  "status": "definition_ready_runtime_evidence_open",
+  "refresh_interval_seconds": 60,
+  "required_labels": [
+    "environment",
+    "service",
+    "route",
+    "status_code",
+    "tenant_id",
+    "request_id"
+  ],
+  "panels": [
+    {
+      "panel_id": "api_latency_p95",
+      "title": "Backend API p95 latency",
+      "signal": "backend_http_request_duration_ms_p95",
+      "owner": "backend",
+      "slo_threshold": {
+        "operator": "<=",
+        "value": 500,
+        "unit": "ms"
+      },
+      "go_no_go_signal": true
+    },
+    {
+      "panel_id": "api_5xx_rate",
+      "title": "Backend API 5xx rate",
+      "signal": "backend_http_5xx_rate_percent_30m",
+      "owner": "backend",
+      "slo_threshold": {
+        "operator": "<",
+        "value": 1,
+        "unit": "percent"
+      },
+      "go_no_go_signal": true
+    },
+    {
+      "panel_id": "worker_queue_delay_p95",
+      "title": "Worker queue delay p95",
+      "signal": "worker_queue_delay_seconds_p95",
+      "owner": "worker",
+      "slo_threshold": {
+        "operator": "<=",
+        "value": 60,
+        "unit": "seconds"
+      },
+      "go_no_go_signal": true
+    },
+    {
+      "panel_id": "generation_duration_p95",
+      "title": "Generation duration p95",
+      "signal": "worker_generation_duration_seconds_p95",
+      "owner": "worker",
+      "go_no_go_signal": true
+    },
+    {
+      "panel_id": "export_duration_p95",
+      "title": "Export duration p95",
+      "signal": "export_duration_seconds_p95",
+      "owner": "backend",
+      "slo_threshold": {
+        "operator": "<=",
+        "value": 120,
+        "unit": "seconds"
+      },
+      "go_no_go_signal": true
+    },
+    {
+      "panel_id": "provider_errors",
+      "title": "Provider error rate and fallback count",
+      "signal": "provider_error_rate_percent_30m",
+      "owner": "backend",
+      "go_no_go_signal": true
+    },
+    {
+      "panel_id": "quota_contention",
+      "title": "Quota reservation contention and refunds",
+      "signal": "quota_contention_count",
+      "owner": "backend",
+      "go_no_go_signal": true
+    },
+    {
+      "panel_id": "crawler_throttle",
+      "title": "Crawler throttle, robots, and blocklist outcomes",
+      "signal": "crawler_governance_decision_count",
+      "owner": "crawler",
+      "go_no_go_signal": true
+    },
+    {
+      "panel_id": "object_storage_errors",
+      "title": "Object storage upload/download/export errors",
+      "signal": "object_storage_error_count",
+      "owner": "backend",
+      "go_no_go_signal": true
+    },
+    {
+      "panel_id": "billing_and_subscription_failures",
+      "title": "Billing, subscription, and quota lifecycle failures",
+      "signal": "billing_subscription_failure_count",
+      "owner": "backend",
+      "go_no_go_signal": true
+    },
+    {
+      "panel_id": "safety_and_qa_blocks",
+      "title": "Safety and QA warnings, blocks, and overrides",
+      "signal": "safety_qa_decision_count",
+      "owner": "backend",
+      "go_no_go_signal": true
+    },
+    {
+      "panel_id": "admin_failures",
+      "title": "Admin auth, RBAC, review, and audit failures",
+      "signal": "admin_operation_failure_count",
+      "owner": "admin",
+      "go_no_go_signal": true
+    },
+    {
+      "panel_id": "frontend_error_rate",
+      "title": "Web/Admin frontend error rate",
+      "signal": "frontend_error_rate_percent_30m",
+      "owner": "web_admin",
+      "go_no_go_signal": true
+    }
+  ],
+  "runtime_evidence_required_before_private_beta": [
+    "published staging dashboard URL or exported dashboard UID",
+    "query screenshots or JSON snapshots for every go_no_go_signal panel",
+    "release SHA label present on backend, worker, crawler, web, and admin signals",
+    "request_id drill showing trace/log/metric correlation across backend and worker"
+  ],
+  "private_beta_gate": "open_until_dashboard_is_imported_and_populated_with_staging_runtime_data",
+  "production_gate": "open_until_release_go_no_go_links_runtime_dashboard_evidence"
+}

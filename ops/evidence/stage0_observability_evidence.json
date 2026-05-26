@@ -1,9 +1,11 @@
 {
   "blueprint_source": "Docs/stage0_blueprint_rev2.md",
   "created_by_lane": "lane5",
-  "scope": "observability, alerting, and production gate map",
-  "status": "definition_only",
+  "scope": "observability, alerting, dashboard, and production gate map",
+  "status": "definition_ready_runtime_evidence_open",
   "smoke_script": "scripts/observability_smoke.sh",
+  "dashboard_definition": "ops/observability/dashboards/stage0_rev2_overview.json",
+  "alert_definition": "ops/observability/alerts/stage0_rev2_alerts.json",
   "signals": [
     {
       "name": "request_id_propagation",
@@ -43,16 +45,16 @@
     {
       "name": "dashboards",
       "required_by_rev2": true,
-      "local_evidence": "ops/runbooks/stage0_ops.md defines SLOs and drill commands",
-      "runtime_status": "open",
-      "production_gate": "must publish staging dashboards for API, worker, provider, export, quota, crawler, object storage, billing, safety, and admin failures"
+      "local_evidence": "ops/observability/dashboards/stage0_rev2_overview.json defines required API, worker, provider, export, quota, crawler, object storage, billing, safety, admin, and frontend panels",
+      "runtime_status": "definition_validated",
+      "production_gate": "must import and populate staging dashboards for API, worker, provider, export, quota, crawler, object storage, billing, safety, admin failures, and frontend errors"
     },
     {
       "name": "alerts",
       "required_by_rev2": true,
-      "local_evidence": "ops/runbooks/stage0_ops.md defines incident severity and escalation",
-      "runtime_status": "open",
-      "production_gate": "must configure paging/notification routes and alert thresholds before private beta"
+      "local_evidence": "ops/observability/alerts/stage0_rev2_alerts.json defines go/no-go alert thresholds and routes",
+      "runtime_status": "definition_validated",
+      "production_gate": "must configure paging/notification routes and prove alert threshold evaluation before private beta"
     }
   ],
   "slo_thresholds": {
@@ -66,7 +68,7 @@
     "opentelemetry_traces",
     "backend_worker_crawler_metrics",
     "frontend_error_reporting",
-    "dashboards",
-    "alerts"
+    "staging_dashboard_import_and_runtime_data",
+    "staging_alert_routes_and_threshold_evaluations"
   ]
 }

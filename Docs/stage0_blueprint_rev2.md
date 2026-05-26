@@ -1898,8 +1898,8 @@ main 合并前必须通过：
 - [ ] 实现 OpenTelemetry traces。
 - [ ] 实现 backend/worker/crawler metrics。
 - [x] 实现 frontend error reporting。
-- [ ] 实现 dashboards。
-- [ ] 实现 alerts。
+- [x] 实现 dashboards。
+- [x] 实现 alerts。
 - [x] 定义 SLOs。
 - [x] 定义 incident severity/escalation/template/postmortem。
 - [x] 编写 runbooks。

@@ -23,7 +23,63 @@ Authoritative source: `Docs/stage0_blueprint_rev2.md`
 
 Evidence map: `ops/evidence/stage0_observability_evidence.json`.
 
-Rev2 production gates remain open until request id propagation, structured JSON logs, OpenTelemetry traces, backend/worker/crawler metrics, frontend error reporting, dashboards, and alerts have runtime evidence in staging.
+Dashboard definition: `ops/observability/dashboards/stage0_rev2_overview.json`.
+
+Alert definition: `ops/observability/alerts/stage0_rev2_alerts.json`.
+
+Rev2 production gates remain open until request id propagation, structured JSON logs, OpenTelemetry traces, backend/worker/crawler metrics, frontend error reporting, imported dashboards, and evaluated alerts have runtime evidence in staging.
+
+## SLO Alerts
+
+The Stage 0 dashboard and alert contracts are versioned under `ops/observability/`. They define the go/no-go signals required before private beta, but they are not staging evidence until imported into the selected monitoring system and populated with release-SHA-labelled runtime data.
+
+Before private beta:
+
+1. Import `ops/observability/dashboards/stage0_rev2_overview.json` into the monitoring stack or translate it losslessly to the provider's native format.
+2. Import `ops/observability/alerts/stage0_rev2_alerts.json` and bind `stage0-ops`, `stage0-incident-lead`, and `stage0-support` routes.
+3. Run `scripts/observability_smoke.sh` against staging with a unique `X-Request-ID`.
+4. Attach dashboard snapshots, alert dry-run evaluations, and notification-route evidence to release notes.
+5. Keep the private beta and production gates open if any go/no-go signal lacks data or an alert route is untested.
+
+### SLO Alerts
+
+API p95 latency above 500 ms for 15 minutes is SEV3. API 5xx rate above 1% for 30 minutes is SEV2. Preserve the request id, release SHA, route, status code, tenant id, and trace id labels while investigating.
+
+### Worker Alerts
+
+Worker queue delay p95 above 60 seconds for 15 minutes is SEV2. Drain workers before rollback when queued tasks may cross schema versions.
+
+### Export Alerts
+
+Export duration p95 above 120 seconds for 15 minutes is SEV3. Object storage errors above zero for 10 minutes are SEV2.
+
+### Provider Alerts
+
+Provider error rate above 2% for 15 minutes is SEV2. Confirm fallback behavior, cost logging, and quota refund behavior before reopening traffic.
+
+### Object Storage Alerts
+
+Upload, download, signed URL, or export object errors must be triaged with object metadata, package manifest, and tenant isolation evidence.
+
+### Quota Alerts
+
+Quota contention above 10 events in 30 minutes is SEV3. Verify reservation, commit, refund, and idempotency paths.
+
+### Crawler Alerts
+
+Crawler denied or failed governance decisions above zero in 30 minutes are SEV3. Stop imports until robots, blocklist, source approval, and retention evidence are checked.
+
+### Safety Alerts
+
+Any critical safety block is SEV2. Keep export override and release activation disabled until the safety decision, QA result, and audit log evidence are reviewed.
+
+### Admin Alerts
+
+Admin RBAC denial spikes above 5 events in 15 minutes are SEV2. Check role assignments, audit log integrity, and attempted endpoint scope.
+
+### Frontend Alerts
+
+Web/Admin frontend error rate above 1% for 30 minutes is SEV3. Attach release SHA and source map policy evidence before treating this as launch-ready.
 
 ## Incident Severity
 

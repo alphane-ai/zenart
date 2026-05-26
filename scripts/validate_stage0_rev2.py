@@ -29,6 +29,8 @@ ENVIRONMENT_EVIDENCE = ROOT / "ops" / "evidence" / "stage0_environment_evidence.
 DRILL_PLAN_EVIDENCE = ROOT / "ops" / "evidence" / "stage0_drill_plan.json"
 OBSERVABILITY_EVIDENCE = ROOT / "ops" / "evidence" / "stage0_observability_evidence.json"
 RELEASE_OPS_EVIDENCE = ROOT / "ops" / "evidence" / "stage0_release_ops_evidence.json"
+OBSERVABILITY_DASHBOARD = ROOT / "ops" / "observability" / "dashboards" / "stage0_rev2_overview.json"
+OBSERVABILITY_ALERTS = ROOT / "ops" / "observability" / "alerts" / "stage0_rev2_alerts.json"
 
 WORKFLOWS = {
     "ecommerce_growth_pack",
@@ -1814,7 +1816,18 @@ def validate_ops_ci_and_drill_evidence() -> None:
         "observability evidence must cite Rev2",
     )
     require(observability["created_by_lane"] == "lane5", "observability evidence must be lane5-owned")
-    require(observability["status"] == "definition_only", "observability evidence must not claim runtime completion")
+    require(
+        observability["status"] in {"definition_only", "definition_ready_runtime_evidence_open"},
+        "observability evidence must not claim runtime completion",
+    )
+    require(
+        observability.get("dashboard_definition") == "ops/observability/dashboards/stage0_rev2_overview.json",
+        "observability evidence must cite dashboard definition",
+    )
+    require(
+        observability.get("alert_definition") == "ops/observability/alerts/stage0_rev2_alerts.json",
+        "observability evidence must cite alert definition",
+    )
     required_signals = {
         "request_id_propagation",
         "structured_json_logs",
@@ -1832,7 +1845,7 @@ def validate_ops_ci_and_drill_evidence() -> None:
     )
     for signal_name in required_signals:
         require(
-            signals[signal_name]["runtime_status"] in {"contract_validated", "open"},
+            signals[signal_name]["runtime_status"] in {"contract_validated", "definition_validated", "open"},
             f"observability signal {signal_name} must be open or contract_validated",
         )
     slo_thresholds = observability["slo_thresholds"]
@@ -1843,6 +1856,89 @@ def validate_ops_ci_and_drill_evidence() -> None:
     require(
         slo_thresholds["error_rate_5xx_percent_30m"] == 1,
         "observability evidence must define 5xx error-rate threshold",
+    )
+
+    dashboard = load_json(OBSERVABILITY_DASHBOARD)
+    require(dashboard["blueprint_source"] == "Docs/stage0_blueprint_rev2.md", "dashboard must cite Rev2")
+    require(dashboard["created_by_lane"] == "lane5", "dashboard must be lane5-owned")
+    require(
+        dashboard["status"] == "definition_ready_runtime_evidence_open",
+        "dashboard must keep runtime evidence gate open",
+    )
+    required_dashboard_panels = {
+        "api_latency_p95",
+        "api_5xx_rate",
+        "worker_queue_delay_p95",
+        "generation_duration_p95",
+        "export_duration_p95",
+        "provider_errors",
+        "quota_contention",
+        "crawler_throttle",
+        "object_storage_errors",
+        "billing_and_subscription_failures",
+        "safety_and_qa_blocks",
+        "admin_failures",
+        "frontend_error_rate",
+    }
+    dashboard_panels = {panel["panel_id"]: panel for panel in dashboard["panels"]}
+    require(required_dashboard_panels <= dashboard_panels.keys(), "dashboard missing required Rev2 panels")
+    require(
+        dashboard_panels["api_latency_p95"]["slo_threshold"]["value"] == slo_thresholds["api_p95_latency_ms"],
+        "dashboard API latency threshold must match observability evidence",
+    )
+    require(
+        dashboard_panels["worker_queue_delay_p95"]["slo_threshold"]["value"]
+        == slo_thresholds["queue_delay_p95_seconds"],
+        "dashboard queue delay threshold must match observability evidence",
+    )
+    require(
+        dashboard_panels["export_duration_p95"]["slo_threshold"]["value"]
+        == slo_thresholds["export_duration_p95_seconds"],
+        "dashboard export duration threshold must match observability evidence",
+    )
+    require(
+        "open_until_dashboard_is_imported" in dashboard["private_beta_gate"],
+        "dashboard must keep private beta gate open until imported runtime evidence exists",
+    )
+
+    alerts = load_json(OBSERVABILITY_ALERTS)
+    require(alerts["blueprint_source"] == "Docs/stage0_blueprint_rev2.md", "alerts must cite Rev2")
+    require(alerts["created_by_lane"] == "lane5", "alerts must be lane5-owned")
+    require(alerts["status"] == "definition_ready_runtime_evidence_open", "alerts must keep runtime evidence gate open")
+    required_alerts = {
+        "api_5xx_rate_high",
+        "api_latency_p95_high",
+        "worker_queue_delay_high",
+        "export_duration_high",
+        "provider_error_rate_high",
+        "object_storage_errors_present",
+        "quota_contention_high",
+        "crawler_governance_failure",
+        "safety_critical_block",
+        "admin_rbac_denial_spike",
+        "frontend_error_rate_high",
+    }
+    alert_defs = {alert["alert_id"]: alert for alert in alerts["alerts"]}
+    require(required_alerts <= alert_defs.keys(), "alerts missing required Rev2 alert rules")
+    require(
+        alert_defs["api_5xx_rate_high"]["condition"] == "> 1",
+        "API 5xx alert must match Rev2 1 percent threshold",
+    )
+    require(
+        alert_defs["api_latency_p95_high"]["condition"] == "> 500",
+        "API latency alert must match Rev2 500 ms threshold",
+    )
+    require(
+        alert_defs["worker_queue_delay_high"]["condition"] == "> 60",
+        "worker queue alert must match Rev2 60 second threshold",
+    )
+    require(
+        alert_defs["export_duration_high"]["condition"] == "> 120",
+        "export duration alert must match Rev2 120 second threshold",
+    )
+    require(
+        "open_until_alert_routes" in alerts["private_beta_gate"],
+        "alerts must keep private beta gate open until route and threshold evidence exists",
     )
 
     release_ops = load_json(RELEASE_OPS_EVIDENCE)

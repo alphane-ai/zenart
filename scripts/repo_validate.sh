@@ -52,6 +52,8 @@ test -f ops/ci/INSTALLATION.md
 test -f ops/evidence/stage0_environment_evidence.json
 test -f ops/evidence/stage0_drill_plan.json
 test -f ops/evidence/stage0_release_ops_evidence.json
+test -f ops/observability/dashboards/stage0_rev2_overview.json
+test -f ops/observability/alerts/stage0_rev2_alerts.json
 test -f ops/ci/playwright-smoke.spec.ts
 test -f ops/release/staging_deploy.md
 test -f ops/release/release_notes_template.md
@@ -84,6 +86,56 @@ PY
 else
   printf 'skip: no ruby or python3 available for YAML smoke check\n'
 fi
+
+log "observability definition validation"
+python3 - <<'PY'
+import json
+from pathlib import Path
+
+dashboard = json.loads(Path("ops/observability/dashboards/stage0_rev2_overview.json").read_text(encoding="utf-8"))
+alerts = json.loads(Path("ops/observability/alerts/stage0_rev2_alerts.json").read_text(encoding="utf-8"))
+
+required_panels = {
+    "api_latency_p95",
+    "api_5xx_rate",
+    "worker_queue_delay_p95",
+    "generation_duration_p95",
+    "export_duration_p95",
+    "provider_errors",
+    "quota_contention",
+    "crawler_throttle",
+    "object_storage_errors",
+    "billing_and_subscription_failures",
+    "safety_and_qa_blocks",
+    "admin_failures",
+    "frontend_error_rate",
+}
+required_alerts = {
+    "api_5xx_rate_high",
+    "api_latency_p95_high",
+    "worker_queue_delay_high",
+    "export_duration_high",
+    "provider_error_rate_high",
+    "object_storage_errors_present",
+    "quota_contention_high",
+    "crawler_governance_failure",
+    "safety_critical_block",
+    "admin_rbac_denial_spike",
+    "frontend_error_rate_high",
+}
+panel_ids = {panel["panel_id"] for panel in dashboard["panels"]}
+alert_ids = {alert["alert_id"] for alert in alerts["alerts"]}
+missing_panels = sorted(required_panels - panel_ids)
+missing_alerts = sorted(required_alerts - alert_ids)
+if missing_panels:
+    raise SystemExit(f"observability dashboard missing panels: {missing_panels}")
+if missing_alerts:
+    raise SystemExit(f"observability alerts missing rules: {missing_alerts}")
+if dashboard["status"] != "definition_ready_runtime_evidence_open":
+    raise SystemExit("dashboard must not claim runtime completion")
+if alerts["status"] != "definition_ready_runtime_evidence_open":
+    raise SystemExit("alerts must not claim runtime completion")
+PY
 
 log "backend Go validation"
 if [[ -d backend ]]; then
@@ -138,7 +190,7 @@ find "$ops_validate_dir" -name '*.json' -type f | grep -q .
 
 log "secret scan smoke"
 if has_cmd git; then
-  git grep -nE '(AWS_SECRET_ACCESS_KEY|OPENAI_API_KEY|sk-[A-Za-z0-9_-]{20,}|ghp_[A-Za-z0-9_]{20,})' -- . ':!.env.example' ':!fixtures' ':!schemas' ':!ops/ci/stage0-rev2-ci.yml' ':!scripts/repo_validate.sh' ':!scripts/security_scan_smoke.sh' && {
+  git grep -nE '(AWS_SECRET_ACCESS_KEY|OPENAI_API_KEY|sk-[A-Za-z0-9_-]{20,}|ghp_[A-Za-z0-9_]{20,})' -- . ':!.env.example' ':!fixtures' ':!schemas' ':!backend/internal/security/redact_test.go' ':!ops/ci/stage0-rev2-ci.yml' ':!scripts/repo_validate.sh' ':!scripts/security_scan_smoke.sh' && {
     printf 'potential committed secret found\n' >&2
     exit 1
   } || true

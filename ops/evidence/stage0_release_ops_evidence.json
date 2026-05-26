@@ -21,7 +21,7 @@
     },
     "observability_smoke": {
       "script": "scripts/observability_smoke.sh",
-      "runtime_status": "local request-id and JSON contract smoke; staging logs/metrics/traces/dashboards/alerts remain open",
+      "runtime_status": "local request-id and JSON contract smoke plus dashboard/alert definitions; staging logs/metrics/traces/dashboard import/alert evaluation remain open",
       "private_beta_gate": "open until production-like observability evidence exists"
     },
     "security_scan_smoke": {
@@ -32,7 +32,9 @@
   },
   "release_docs": {
     "staging_deploy_draft": "ops/release/staging_deploy.md",
-    "release_notes_template": "ops/release/release_notes_template.md"
+    "release_notes_template": "ops/release/release_notes_template.md",
+    "dashboard_definition": "ops/observability/dashboards/stage0_rev2_overview.json",
+    "alert_definition": "ops/observability/alerts/stage0_rev2_alerts.json"
   },
   "checklist_policy": {
     "ci_playwright_smoke_remains_open": true,
