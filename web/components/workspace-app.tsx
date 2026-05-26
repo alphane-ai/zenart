@@ -32,7 +32,7 @@ import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { AccountSettings, BillingScenario, Candidate, ExportFormat, QaSeverity, WorkspaceState } from "@/lib/contracts";
 import { zenArtClient } from "@/lib/api-client";
-import { buildSupportProblemContext } from "@/lib/dev-state";
+import { buildSupportProblemContext, buildWorkspaceRenderingPerformanceSmoke } from "@/lib/dev-state";
 import { downloadExportPackage } from "@/lib/export-download";
 import { legalPolicyList, supportContactEmail } from "@/lib/legal-policies";
 import { AnalyticsEventName, captureAnalyticsEvent, reportFrontendError } from "@/lib/telemetry";
@@ -430,6 +430,7 @@ function WorkspaceView({
   runAction: (label: string, action: () => Promise<WorkspaceState>) => Promise<void>;
 }) {
   const latestReference = state.brief.references.at(-1);
+  const renderingSmoke = buildWorkspaceRenderingPerformanceSmoke(state);
   return (
     <div className="workspace-grid">
       <section className="panel chat-panel">
@@ -502,7 +503,16 @@ function WorkspaceView({
           <PanelTitle icon={<Save size={18} aria-hidden="true" />} title="Canvas" />
           <span className="soft-label">Autosaved {dateLabel(state.canvas.autosavedAt)}</span>
         </div>
-        <div className="canvas-surface">
+        <div
+          className="canvas-surface"
+          data-rendering-smoke={renderingSmoke.schema_version}
+          data-rendering-status={renderingSmoke.status}
+          data-render-node-count={renderingSmoke.nodeCount}
+          data-render-edge-count={renderingSmoke.edgeCount}
+          data-render-element-count={renderingSmoke.renderElementCount}
+          data-render-max-elements={renderingSmoke.budgets.maxRenderElements}
+          data-render-max-interaction-ms={renderingSmoke.budgets.maxInteractionMs}
+        >
           {state.canvas.edges.map((edge) => (
             <div key={`${edge.from}-${edge.to}`} className="canvas-edge" />
           ))}

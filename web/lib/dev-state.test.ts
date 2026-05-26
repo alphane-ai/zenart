@@ -3,6 +3,7 @@ import { ExportRecord } from "./contracts";
 import {
   buildManifest,
   buildSupportProblemContext,
+  buildWorkspaceRenderingPerformanceSmoke,
   createDisabledShareLink,
   createInitialWorkspace,
   createReferenceAsset,
@@ -76,6 +77,82 @@ describe("dev workspace contracts", () => {
       "speaker notes",
       "editable theme tokens"
     ]);
+  });
+
+  it("keeps workspace rendering within the local alpha smoke budget", () => {
+    const state = createInitialWorkspace();
+    const smoke = buildWorkspaceRenderingPerformanceSmoke({
+      ...state,
+      selectedCandidateId: "cand-studio",
+      canvas: {
+        ...state.canvas,
+        nodes: [
+          ...state.canvas.nodes,
+          {
+            id: "node-cand-studio",
+            title: "Studio System",
+            kind: "candidate",
+            x: 360,
+            y: 180,
+            body: "Reusable product tiles, neutral surfaces, and crisp asset annotations."
+          },
+          {
+            id: "node-iteration-003",
+            title: "Iteration",
+            kind: "iteration",
+            x: 650,
+            y: 260,
+            body: "Studio System refined with production handoff states."
+          }
+        ],
+        edges: [
+          { from: "node-brief", to: "node-cand-studio" },
+          { from: "node-cand-studio", to: "node-iteration-003" }
+        ],
+        versions: [
+          ...state.canvas.versions,
+          {
+            id: "version-002",
+            label: "Selected Studio System",
+            createdAt: "2026-05-26T10:00:00.000Z",
+            nodeCount: 2
+          },
+          {
+            id: "version-003",
+            label: "Canvas iteration",
+            createdAt: "2026-05-26T10:05:00.000Z",
+            nodeCount: 3
+          }
+        ],
+        activeVersionId: "version-003"
+      },
+      packageItems: [
+        {
+          id: "pkg-item-001",
+          sourceId: "cand-studio",
+          title: "Studio System",
+          type: "candidate",
+          addedAt: "2026-05-26T10:10:00.000Z"
+        }
+      ]
+    });
+
+    expect(smoke).toMatchObject({
+      schema_version: "stage0.rev2.workspace-rendering-performance",
+      scenario: "local-alpha-canvas",
+      status: "pass",
+      nodeCount: 3,
+      edgeCount: 2,
+      versionCount: 3,
+      budgets: {
+        maxNodes: 24,
+        maxEdges: 24,
+        maxVersions: 32,
+        maxRenderElements: 96,
+        maxInteractionMs: 100
+      }
+    });
+    expect(smoke.renderElementCount).toBeLessThanOrEqual(smoke.budgets.maxRenderElements);
   });
 
   it("models local alpha share links as disabled and private", () => {

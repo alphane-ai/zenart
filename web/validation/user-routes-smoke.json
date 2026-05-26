@@ -7,7 +7,7 @@
       "path": "/workspace",
       "component": "WorkspaceApp",
       "initialView": "workspace",
-      "expects": ["chatbox", "canvas", "candidate-set", "package-panel", "reference-validation"]
+      "expects": ["chatbox", "canvas", "candidate-set", "package-panel", "reference-validation", "workspace-rendering-performance-smoke"]
     },
     {
       "path": "/project",
@@ -107,6 +107,7 @@
   "analyticsCoverage": ["analytics-event-taxonomy", "client-side-ui-funnel-capture", "frontend-error-reporting"],
   "integrationCoverage": [
     "reference-upload-to-ready-zip-export",
+    "workspace-rendering-performance-budget",
     "zip-download-manifest-qa-provenance-assets",
     "ppt-ready-metadata-export-contract",
     "pdf-placeholder-download-contract",
@@ -135,6 +136,7 @@
     "CSRF UX contract exposes same-site origin-check strategy and X-ZenArt-CSRF header evidence",
     "account settings persist through workspace reload",
     "candidate selection, workspace autosave, canvas versions, and package history survive reload",
+    "workspace rendering performance smoke keeps canvas render elements within the local alpha budget",
     "reference upload validation accepts safe images/documents/HTTPS URLs and rejects unsupported inputs",
     "report-problem tickets retain project, export, task, trace, asset, and quota context",
     "blocked exports do not consume quota and mock checkout activates the local alpha plan",

@@ -114,6 +114,23 @@ export interface CanvasVersion {
   nodeCount: number;
 }
 
+export interface WorkspaceRenderingPerformanceSmoke {
+  schema_version: "stage0.rev2.workspace-rendering-performance";
+  status: "pass" | "fail";
+  scenario: "local-alpha-canvas";
+  nodeCount: number;
+  edgeCount: number;
+  versionCount: number;
+  renderElementCount: number;
+  budgets: {
+    maxNodes: number;
+    maxEdges: number;
+    maxVersions: number;
+    maxRenderElements: number;
+    maxInteractionMs: number;
+  };
+}
+
 export interface PackageItem {
   id: string;
   sourceId: string;

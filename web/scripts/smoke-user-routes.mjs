@@ -155,6 +155,7 @@ for (const expectedPolicy of [
 
 for (const expectedCapability of [
   "reference-validation",
+  "workspace-rendering-performance-smoke",
   "past-due-edge",
   "inactive-edge",
   "quota-exhausted-edge",
@@ -178,6 +179,7 @@ for (const expectedCapability of [
 
 for (const expectedIntegration of [
   "reference-upload-to-ready-zip-export",
+  "workspace-rendering-performance-budget",
   "zip-download-manifest-qa-provenance-assets",
   "ppt-ready-metadata-export-contract",
   "pdf-placeholder-download-contract",
@@ -203,6 +205,39 @@ for (const expectedDownloadSnippet of [
   const exportDownloadSource = await readFile(exportDownloadPath, "utf8");
   if (!exportDownloadSource.includes(expectedDownloadSnippet)) {
     fail(`export download contract missing ${expectedDownloadSnippet}`);
+  }
+}
+
+for (const expectedRenderingSnippet of [
+  "buildWorkspaceRenderingPerformanceSmoke",
+  "data-rendering-smoke",
+  "data-rendering-status",
+  "data-render-node-count",
+  "data-render-edge-count",
+  "data-render-element-count",
+  "data-render-max-elements",
+  "data-render-max-interaction-ms",
+  "maxRenderElements",
+  "maxInteractionMs"
+]) {
+  if (!componentSource.includes(expectedRenderingSnippet)) {
+    fail(`workspace rendering performance smoke missing ${expectedRenderingSnippet}`);
+  }
+}
+
+const devStatePath = path.join(root, "lib", "dev-state.ts");
+const devStateSource = await readFile(devStatePath, "utf8");
+for (const expectedRenderingContract of [
+  "workspaceRenderingPerformanceBudget",
+  "maxNodes: 24",
+  "maxEdges: 24",
+  "maxVersions: 32",
+  "maxRenderElements: 96",
+  "maxInteractionMs: 100",
+  "stage0.rev2.workspace-rendering-performance"
+]) {
+  if (!devStateSource.includes(expectedRenderingContract)) {
+    fail(`workspace rendering performance budget missing ${expectedRenderingContract}`);
   }
 }
 

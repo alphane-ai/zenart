@@ -8,6 +8,7 @@ import {
   ReferenceAsset,
   SessionContract,
   SessionUser,
+  WorkspaceRenderingPerformanceSmoke,
   ShareLink,
   SupportTicket,
   WorkspaceState
@@ -270,6 +271,44 @@ export const evaluatePackageQa = (items: PackageItem[]): QaFinding[] => {
         : "Export can continue, but adding the selected candidate is recommended."
     }
   ];
+};
+
+export const workspaceRenderingPerformanceBudget: WorkspaceRenderingPerformanceSmoke["budgets"] = {
+  maxNodes: 24,
+  maxEdges: 24,
+  maxVersions: 32,
+  maxRenderElements: 96,
+  maxInteractionMs: 100
+};
+
+export const buildWorkspaceRenderingPerformanceSmoke = (
+  state: WorkspaceState,
+  budgets = workspaceRenderingPerformanceBudget
+): WorkspaceRenderingPerformanceSmoke => {
+  const renderElementCount =
+    state.canvas.nodes.length +
+    state.canvas.edges.length +
+    state.canvas.versions.length +
+    state.candidates.length +
+    state.packageItems.length;
+  const status =
+    state.canvas.nodes.length <= budgets.maxNodes &&
+    state.canvas.edges.length <= budgets.maxEdges &&
+    state.canvas.versions.length <= budgets.maxVersions &&
+    renderElementCount <= budgets.maxRenderElements
+      ? "pass"
+      : "fail";
+
+  return {
+    schema_version: "stage0.rev2.workspace-rendering-performance",
+    status,
+    scenario: "local-alpha-canvas",
+    nodeCount: state.canvas.nodes.length,
+    edgeCount: state.canvas.edges.length,
+    versionCount: state.canvas.versions.length,
+    renderElementCount,
+    budgets
+  };
 };
 
 const acceptedImageExtensions = [".png", ".jpg", ".jpeg", ".webp"];
