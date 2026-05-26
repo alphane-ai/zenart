@@ -1643,24 +1643,24 @@ main 合并前必须通过：
 
 ### 25.5 Web Foundation
 
-- [ ] 初始化 `web/` Next.js TypeScript 应用。
-- [ ] 配置 lint/typecheck/test/build。
-- [ ] 实现 typed API client。
+- [x] 初始化 `web/` Next.js TypeScript 应用。
+- [x] 配置 lint/typecheck/test/build。
+- [x] 实现 typed API client。
 - [ ] 实现 auth/session flow。
-- [ ] 实现 account settings。
-- [ ] 实现 project dashboard。
-- [ ] 实现 workspace shell：顶栏、左侧、画布、右侧。
-- [ ] 实现 onboarding empty state 和 workflow examples。
-- [ ] 实现 chatbox、missing-info clarification、brief confirmation。
-- [ ] 实现 reference upload。
-- [ ] 实现 candidate set 4 卡片展示。
-- [ ] 实现 candidate select 和 iteration。
-- [ ] 实现 canvas node 基础渲染、autosave、version restore。
-- [ ] 实现 package panel、package history、export history。
-- [ ] 实现 export preview、ZIP download、QA warning/block UI。
-- [ ] 实现 billing/quota meter。
-- [ ] 实现 report problem。
-- [ ] 新增 web Dockerfile。
+- [x] 实现 account settings。
+- [x] 实现 project dashboard。
+- [x] 实现 workspace shell：顶栏、左侧、画布、右侧。
+- [x] 实现 onboarding empty state 和 workflow examples。
+- [x] 实现 chatbox、missing-info clarification、brief confirmation。
+- [x] 实现 reference upload。
+- [x] 实现 candidate set 4 卡片展示。
+- [x] 实现 candidate select 和 iteration。
+- [x] 实现 canvas node 基础渲染、autosave、version restore。
+- [x] 实现 package panel、package history、export history。
+- [x] 实现 export preview、ZIP download、QA warning/block UI。
+- [x] 实现 billing/quota meter。
+- [x] 实现 report problem。
+- [x] 新增 web Dockerfile。
 
 ### 25.6 Admin Foundation
 
@@ -1703,7 +1703,7 @@ main 合并前必须通过：
 - [ ] 实现 subscription state machine。
 - [ ] 实现 local mock checkout provider。
 - [ ] 实现 paid provider abstraction。
-- [ ] 实现 billing page。
+- [x] 实现 billing page。
 - [ ] 实现 entitlement middleware。
 - [ ] 实现 weekly quota reset。
 - [ ] 实现 quota reservation。
@@ -1724,10 +1724,10 @@ main 合并前必须通过：
 - [ ] 实现 thumbnail generation。
 - [ ] 实现 signed URL。
 - [ ] 实现 cross-tenant object denial。
-- [ ] 实现 package manifest schema。
-- [ ] 实现 deterministic file naming。
-- [ ] 实现 ZIP export。
-- [ ] 实现 PDF placeholder 或真实 PDF export。
+- [x] 实现 package manifest schema。
+- [x] 实现 deterministic file naming。
+- [x] 实现 ZIP export。
+- [x] 实现 PDF placeholder 或真实 PDF export。
 - [ ] 实现 PPT-ready metadata。
 - [ ] 实现 Figma-ready layout spec。
 - [ ] 实现 export retry/regenerate。
@@ -1834,7 +1834,7 @@ main 合并前必须通过：
 
 ### 25.15 Support and Operations
 
-- [ ] 实现 report problem。
+- [x] 实现 report problem。
 - [ ] 实现 support ticket model。
 - [ ] support ticket 关联 user/project/task/trace/asset/export/quota。
 - [ ] 实现 admin user lookup。
