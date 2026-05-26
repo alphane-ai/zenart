@@ -47,6 +47,118 @@
     "qa_report.json",
     "trace_provenance.json"
   ],
+  "required_generated_assets": [
+    {
+      "asset_id": "storefront_poster",
+      "file_name": "storefront_poster.png",
+      "asset_kind": "image",
+      "strategy_taxonomy": "grand_opening",
+      "export_target": "print_poster"
+    },
+    {
+      "asset_id": "flyer",
+      "file_name": "flyer.png",
+      "asset_kind": "image",
+      "strategy_taxonomy": "limited_time_offer",
+      "export_target": "print_flyer"
+    },
+    {
+      "asset_id": "social_square",
+      "file_name": "social_square.png",
+      "asset_kind": "image",
+      "strategy_taxonomy": "community_event",
+      "export_target": "social_square"
+    },
+    {
+      "asset_id": "story_panel",
+      "file_name": "story_panel.png",
+      "asset_kind": "image",
+      "strategy_taxonomy": "loyalty_push",
+      "export_target": "social_story"
+    }
+  ],
+  "required_qa_checks": [
+    "dimensions",
+    "safe_area",
+    "structured_text"
+  ],
+  "required_safety_checks": {
+    "enforcement_points": [
+      "brief",
+      "provider_request",
+      "provider_response",
+      "qa",
+      "export"
+    ],
+    "linked_rule_domains": [
+      "ip_brand"
+    ],
+    "linked_eval_fixtures": [
+      "fx_brand_product_preservation"
+    ]
+  },
+  "export_targets": [
+    {
+      "target_id": "zip_delivery",
+      "format": "zip",
+      "required_files": [
+        "manifest.json",
+        "assets/storefront_poster.png",
+        "assets/flyer.png",
+        "assets/social_square.png",
+        "assets/story_panel.png",
+        "metadata.json",
+        "qa_report.json",
+        "trace_provenance.json"
+      ]
+    }
+  ],
+  "negative_fixture_links": [
+    {
+      "fixture_id": "fx_negative_generic_rendering",
+      "category": "negative",
+      "expected_status": "blocked"
+    },
+    {
+      "fixture_id": "fx_text_heavy_structured_details",
+      "category": "text_heavy",
+      "expected_status": "pass"
+    }
+  ],
+  "api_smoke_contract": {
+    "execution_status": "not_executed",
+    "blueprint_checklist_remains_open": true,
+    "operation_ids": [
+      "createChatSession",
+      "createChatMessage",
+      "createCandidateSet",
+      "listCandidateAssets",
+      "selectDirection",
+      "createPackage",
+      "createExport",
+      "getExport"
+    ],
+    "expected_runtime_assertions": [
+      "brief preserves merchant name, event date, address, promotion, and QR placeholder",
+      "candidate assets cover four local merchant strategy options",
+      "structured text QA compares price, date, phone, address, and QR fields",
+      "export blocks when required package evidence is incomplete"
+    ]
+  },
+  "playwright_happy_path_contract": {
+    "execution_status": "not_executed",
+    "blueprint_checklist_remains_open": true,
+    "expected_user_steps": [
+      "create project",
+      "enter local merchant brief",
+      "confirm structured event details",
+      "review four candidates",
+      "select one direction",
+      "iterate selected direction",
+      "add campaign assets to package",
+      "preview and download export"
+    ]
+  },
   "pass_thresholds": {
     "qa": {
       "blocking_allowed": false,

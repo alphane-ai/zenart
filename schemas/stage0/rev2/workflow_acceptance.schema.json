@@ -12,6 +12,13 @@
     "clarification_questions",
     "four_option_taxonomy",
     "required_package_outputs",
+    "required_generated_assets",
+    "required_qa_checks",
+    "required_safety_checks",
+    "export_targets",
+    "negative_fixture_links",
+    "api_smoke_contract",
+    "playwright_happy_path_contract",
     "pass_thresholds",
     "golden_fixture",
     "provenance"
@@ -93,6 +100,244 @@
       "items": {
         "type": "string",
         "minLength": 1
+      }
+    },
+    "required_generated_assets": {
+      "type": "array",
+      "minItems": 4,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "asset_id",
+          "file_name",
+          "asset_kind",
+          "strategy_taxonomy",
+          "export_target"
+        ],
+        "properties": {
+          "asset_id": {
+            "type": "string",
+            "pattern": "^[a-z0-9_]+$"
+          },
+          "file_name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "asset_kind": {
+            "enum": [
+              "image",
+              "document_page",
+              "concept_sheet",
+              "metadata"
+            ]
+          },
+          "strategy_taxonomy": {
+            "type": "string",
+            "minLength": 1
+          },
+          "export_target": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "required_qa_checks": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "file_integrity",
+          "dimensions",
+          "aspect_ratio",
+          "safe_area",
+          "blank_output",
+          "duplicate_similarity",
+          "four_option_distinctness",
+          "text_readability",
+          "structured_text",
+          "product_logo_preservation",
+          "forbidden_claims",
+          "watermark_signature_risk",
+          "export_completeness"
+        ]
+      }
+    },
+    "required_safety_checks": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "enforcement_points",
+        "linked_rule_domains",
+        "linked_eval_fixtures"
+      ],
+      "properties": {
+        "enforcement_points": {
+          "type": "array",
+          "minItems": 5,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "brief",
+              "provider_request",
+              "provider_response",
+              "qa",
+              "export"
+            ]
+          }
+        },
+        "linked_rule_domains": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "linked_eval_fixtures": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^fx_[a-z0-9_]+$"
+          }
+        }
+      }
+    },
+    "export_targets": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "target_id",
+          "format",
+          "required_files"
+        ],
+        "properties": {
+          "target_id": {
+            "type": "string",
+            "pattern": "^[a-z0-9_]+$"
+          },
+          "format": {
+            "enum": [
+              "zip",
+              "pdf"
+            ]
+          },
+          "required_files": {
+            "type": "array",
+            "minItems": 4,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "negative_fixture_links": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "fixture_id",
+          "category",
+          "expected_status"
+        ],
+        "properties": {
+          "fixture_id": {
+            "type": "string",
+            "pattern": "^fx_[a-z0-9_]+$"
+          },
+          "category": {
+            "enum": [
+              "ambiguous_brief",
+              "unsafe",
+              "negative",
+              "brand_product_preservation",
+              "text_heavy",
+              "export_completeness",
+              "red_team"
+            ]
+          },
+          "expected_status": {
+            "enum": [
+              "pass",
+              "blocked",
+              "fail"
+            ]
+          }
+        }
+      }
+    },
+    "api_smoke_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "execution_status",
+        "blueprint_checklist_remains_open",
+        "operation_ids",
+        "expected_runtime_assertions"
+      ],
+      "properties": {
+        "execution_status": {
+          "const": "not_executed"
+        },
+        "blueprint_checklist_remains_open": {
+          "type": "boolean",
+          "const": true
+        },
+        "operation_ids": {
+          "type": "array",
+          "minItems": 5,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "expected_runtime_assertions": {
+          "type": "array",
+          "minItems": 4,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "playwright_happy_path_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "execution_status",
+        "blueprint_checklist_remains_open",
+        "expected_user_steps"
+      ],
+      "properties": {
+        "execution_status": {
+          "const": "not_executed"
+        },
+        "blueprint_checklist_remains_open": {
+          "type": "boolean",
+          "const": true
+        },
+        "expected_user_steps": {
+          "type": "array",
+          "minItems": 6,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
       }
     },
     "pass_thresholds": {

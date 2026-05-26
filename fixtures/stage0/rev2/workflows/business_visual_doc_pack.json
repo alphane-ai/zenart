@@ -47,6 +47,126 @@
     "qa_report.json",
     "trace_provenance.json"
   ],
+  "required_generated_assets": [
+    {
+      "asset_id": "cover",
+      "file_name": "cover.png",
+      "asset_kind": "document_page",
+      "strategy_taxonomy": "executive_brief",
+      "export_target": "memo_cover"
+    },
+    {
+      "asset_id": "summary_page",
+      "file_name": "summary_page.png",
+      "asset_kind": "document_page",
+      "strategy_taxonomy": "strategy_memo",
+      "export_target": "memo_summary"
+    },
+    {
+      "asset_id": "data_page",
+      "file_name": "data_page.png",
+      "asset_kind": "document_page",
+      "strategy_taxonomy": "board_update",
+      "export_target": "memo_data"
+    },
+    {
+      "asset_id": "recommendation_page",
+      "file_name": "recommendation_page.png",
+      "asset_kind": "document_page",
+      "strategy_taxonomy": "sales_leave_behind",
+      "export_target": "memo_recommendations"
+    }
+  ],
+  "required_qa_checks": [
+    "text_readability",
+    "forbidden_claims"
+  ],
+  "required_safety_checks": {
+    "enforcement_points": [
+      "brief",
+      "provider_request",
+      "provider_response",
+      "qa",
+      "export"
+    ],
+    "linked_rule_domains": [
+      "financial"
+    ],
+    "linked_eval_fixtures": [
+      "fx_unsafe_financial_claim"
+    ]
+  },
+  "export_targets": [
+    {
+      "target_id": "zip_delivery",
+      "format": "zip",
+      "required_files": [
+        "manifest.json",
+        "assets/cover.png",
+        "assets/summary_page.png",
+        "assets/data_page.png",
+        "assets/recommendation_page.png",
+        "metadata.json",
+        "qa_report.json",
+        "trace_provenance.json"
+      ]
+    },
+    {
+      "target_id": "pdf_preview",
+      "format": "pdf",
+      "required_files": [
+        "manifest.json",
+        "assets/cover.png",
+        "assets/summary_page.png",
+        "assets/data_page.png",
+        "assets/recommendation_page.png",
+        "metadata.json",
+        "qa_report.json",
+        "trace_provenance.json"
+      ]
+    }
+  ],
+  "negative_fixture_links": [
+    {
+      "fixture_id": "fx_unsafe_financial_claim",
+      "category": "unsafe",
+      "expected_status": "blocked"
+    }
+  ],
+  "api_smoke_contract": {
+    "execution_status": "not_executed",
+    "blueprint_checklist_remains_open": true,
+    "operation_ids": [
+      "createChatSession",
+      "createChatMessage",
+      "createCandidateSet",
+      "listCandidateAssets",
+      "selectDirection",
+      "createPackage",
+      "createExport",
+      "getExport"
+    ],
+    "expected_runtime_assertions": [
+      "brief with source_notes, audience, and format produces four document candidates",
+      "text-heavy pages expose readability QA evidence",
+      "unsupported financial claims trigger safety block or warning as configured",
+      "export includes manifest, metadata, QA report, and trace provenance"
+    ]
+  },
+  "playwright_happy_path_contract": {
+    "execution_status": "not_executed",
+    "blueprint_checklist_remains_open": true,
+    "expected_user_steps": [
+      "create project",
+      "enter business document brief",
+      "upload source notes",
+      "review four candidates",
+      "select one direction",
+      "iterate selected direction",
+      "add pages to package",
+      "preview and download export"
+    ]
+  },
   "pass_thresholds": {
     "qa": {
       "blocking_allowed": false,

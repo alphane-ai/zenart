@@ -47,6 +47,120 @@
     "qa_report.json",
     "trace_provenance.json"
   ],
+  "required_generated_assets": [
+    {
+      "asset_id": "hero_product_ad",
+      "file_name": "hero_product_ad.png",
+      "asset_kind": "image",
+      "strategy_taxonomy": "conversion_offer",
+      "export_target": "web_hero"
+    },
+    {
+      "asset_id": "square_social_ad",
+      "file_name": "square_social_ad.png",
+      "asset_kind": "image",
+      "strategy_taxonomy": "social_proof",
+      "export_target": "social_square"
+    },
+    {
+      "asset_id": "story_variant",
+      "file_name": "story_variant.png",
+      "asset_kind": "image",
+      "strategy_taxonomy": "feature_comparison",
+      "export_target": "social_story"
+    },
+    {
+      "asset_id": "marketplace_banner",
+      "file_name": "marketplace_banner.png",
+      "asset_kind": "image",
+      "strategy_taxonomy": "retention_bundle",
+      "export_target": "marketplace_banner"
+    }
+  ],
+  "required_qa_checks": [
+    "file_integrity",
+    "aspect_ratio",
+    "duplicate_similarity",
+    "four_option_distinctness",
+    "product_logo_preservation"
+  ],
+  "required_safety_checks": {
+    "enforcement_points": [
+      "brief",
+      "provider_request",
+      "provider_response",
+      "qa",
+      "export"
+    ],
+    "linked_rule_domains": [
+      "ip_brand"
+    ],
+    "linked_eval_fixtures": [
+      "fx_brand_product_preservation"
+    ]
+  },
+  "export_targets": [
+    {
+      "target_id": "zip_delivery",
+      "format": "zip",
+      "required_files": [
+        "manifest.json",
+        "assets/hero_product_ad.png",
+        "assets/square_social_ad.png",
+        "assets/story_variant.png",
+        "assets/marketplace_banner.png",
+        "metadata.json",
+        "qa_report.json",
+        "trace_provenance.json"
+      ]
+    }
+  ],
+  "negative_fixture_links": [
+    {
+      "fixture_id": "fx_ambiguous_brief_missing_product",
+      "category": "ambiguous_brief",
+      "expected_status": "blocked"
+    },
+    {
+      "fixture_id": "fx_brand_product_preservation",
+      "category": "brand_product_preservation",
+      "expected_status": "blocked"
+    }
+  ],
+  "api_smoke_contract": {
+    "execution_status": "not_executed",
+    "blueprint_checklist_remains_open": true,
+    "operation_ids": [
+      "createChatSession",
+      "createChatMessage",
+      "createCandidateSet",
+      "listCandidateAssets",
+      "selectDirection",
+      "createPackage",
+      "createExport",
+      "getExport"
+    ],
+    "expected_runtime_assertions": [
+      "brief with product_name, product_image, target_channel produces four candidates",
+      "candidate assets cover all four strategy taxonomy entries",
+      "selected direction can be packaged with all required outputs",
+      "export blocks when required manifest, QA report, metadata, or trace provenance is missing"
+    ]
+  },
+  "playwright_happy_path_contract": {
+    "execution_status": "not_executed",
+    "blueprint_checklist_remains_open": true,
+    "expected_user_steps": [
+      "create project",
+      "enter ecommerce brief",
+      "upload product image",
+      "review four candidates",
+      "select one direction",
+      "iterate selected direction",
+      "add assets to package",
+      "preview and download export"
+    ]
+  },
   "pass_thresholds": {
     "qa": {
       "blocking_allowed": false,

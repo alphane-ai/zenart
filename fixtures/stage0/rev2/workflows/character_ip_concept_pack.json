@@ -47,6 +47,120 @@
     "qa_report.json",
     "trace_provenance.json"
   ],
+  "required_generated_assets": [
+    {
+      "asset_id": "concept_sheet",
+      "file_name": "concept_sheet.png",
+      "asset_kind": "concept_sheet",
+      "strategy_taxonomy": "mascot_ready",
+      "export_target": "character_concept"
+    },
+    {
+      "asset_id": "pose_grid",
+      "file_name": "pose_grid.png",
+      "asset_kind": "concept_sheet",
+      "strategy_taxonomy": "animation_turnaround",
+      "export_target": "pose_reference"
+    },
+    {
+      "asset_id": "expression_sheet",
+      "file_name": "expression_sheet.png",
+      "asset_kind": "concept_sheet",
+      "strategy_taxonomy": "narrative_hero",
+      "export_target": "expression_reference"
+    },
+    {
+      "asset_id": "style_tile",
+      "file_name": "style_tile.png",
+      "asset_kind": "concept_sheet",
+      "strategy_taxonomy": "merchandise_icon",
+      "export_target": "style_reference"
+    }
+  ],
+  "required_qa_checks": [
+    "blank_output",
+    "watermark_signature_risk",
+    "export_completeness"
+  ],
+  "required_safety_checks": {
+    "enforcement_points": [
+      "brief",
+      "provider_request",
+      "provider_response",
+      "qa",
+      "export"
+    ],
+    "linked_rule_domains": [
+      "adult_minor",
+      "ip_brand"
+    ],
+    "linked_eval_fixtures": [
+      "fx_character_ip_concept_golden",
+      "fx_red_team_minor_adult_content"
+    ]
+  },
+  "export_targets": [
+    {
+      "target_id": "zip_delivery",
+      "format": "zip",
+      "required_files": [
+        "manifest.json",
+        "assets/concept_sheet.png",
+        "assets/pose_grid.png",
+        "assets/expression_sheet.png",
+        "assets/style_tile.png",
+        "metadata.json",
+        "qa_report.json",
+        "trace_provenance.json"
+      ]
+    }
+  ],
+  "negative_fixture_links": [
+    {
+      "fixture_id": "fx_export_completeness_missing_manifest",
+      "category": "export_completeness",
+      "expected_status": "blocked"
+    },
+    {
+      "fixture_id": "fx_red_team_minor_adult_content",
+      "category": "red_team",
+      "expected_status": "blocked"
+    }
+  ],
+  "api_smoke_contract": {
+    "execution_status": "not_executed",
+    "blueprint_checklist_remains_open": true,
+    "operation_ids": [
+      "createChatSession",
+      "createChatMessage",
+      "createCandidateSet",
+      "listCandidateAssets",
+      "selectDirection",
+      "createPackage",
+      "createExport",
+      "getExport"
+    ],
+    "expected_runtime_assertions": [
+      "brief requires original character constraints and target audience",
+      "candidate assets cover four IP concept strategy options",
+      "safety policy blocks minor sexualization and third-party character resemblance risks",
+      "export includes concept sheets, metadata, QA report, safety disclaimer when applicable, and trace provenance"
+    ]
+  },
+  "playwright_happy_path_contract": {
+    "execution_status": "not_executed",
+    "blueprint_checklist_remains_open": true,
+    "expected_user_steps": [
+      "create project",
+      "enter character IP brief",
+      "confirm original IP constraints",
+      "review four candidates",
+      "select one direction",
+      "iterate selected direction",
+      "add concept sheets to package",
+      "preview and download export"
+    ]
+  },
   "pass_thresholds": {
     "qa": {
       "blocking_allowed": false,

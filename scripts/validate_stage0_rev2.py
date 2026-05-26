@@ -899,6 +899,19 @@ def validate_workflow_acceptance_split_contracts() -> None:
             f"{workflow_id} golden fixture must require trace provenance export evidence",
         )
 
+    workflow_contract = subprocess.run(
+        [sys.executable, str(ROOT / "scripts" / "validate_workflow_acceptance_contract.py")],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    require(
+        workflow_contract.returncode == 0,
+        "workflow acceptance contract validation failed: "
+        + (workflow_contract.stderr or workflow_contract.stdout).strip(),
+    )
+
 
 def validate_eval_suite() -> None:
     data = load_json(FIXTURE_DIR / "eval" / "starter_eval_suite.json")

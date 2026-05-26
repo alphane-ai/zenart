@@ -74,6 +74,7 @@ BLOCKING_QA_BY_CATEGORY = {
     "four_option_distinctness",
     "product_logo_preservation",
     "forbidden_claims",
+    "export_completeness",
 }
 
 TRACE_KEYS = [
