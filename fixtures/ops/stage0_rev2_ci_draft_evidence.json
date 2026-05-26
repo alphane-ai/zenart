@@ -1,0 +1,91 @@
+{
+  "schema_version": "stage0.rev2.ops",
+  "evidence_id": "ops_ci_draft_artifact_gate",
+  "blueprint_source": "Docs/stage0_blueprint_rev2.md",
+  "created_by_lane": "lane6",
+  "blueprint_sections": [
+    "20.1",
+    "21.2",
+    "23.2",
+    "25.17"
+  ],
+  "installation_status": "token_blocked",
+  "token_blocked_reason": "Current GitHub token lacks workflow scope, so .github/workflows is intentionally not created, modified, or deleted.",
+  "draft_ref": "ops/ci/stage0-rev2-ci.yml",
+  "checklist_policy": {
+    "ci_installation_checklist_remains_open": true,
+    "blocked_blueprint_items": [
+      "添加 PR/main CI 到 `.github/workflows`。",
+      "CI Gate 全部通过。"
+    ]
+  },
+  "artifact_checks": [
+    {
+      "artifact_id": "ops_ci_draft",
+      "status": "pass",
+      "paths": [
+        "ops/ci/stage0-rev2-ci.yml",
+        "ops/ci/INSTALLATION.md",
+        "scripts/repo_validate.sh",
+        "scripts/validate_stage0_rev2.py"
+      ],
+      "validation_commands": [
+        "python3 scripts/validate_stage0_rev2.py",
+        "bash scripts/repo_validate.sh"
+      ],
+      "required_draft_tokens": [
+        "pull_request:",
+        "push:",
+        "branches:",
+        "- main",
+        "permissions:",
+        "contents: read",
+        "postgres:",
+        "redis:",
+        "minio:",
+        "python3 scripts/generate_openapi_clients.py --check",
+        "python3 scripts/validate_stage0_rev2.py"
+      ]
+    },
+    {
+      "artifact_id": "migration_artifacts",
+      "status": "pass",
+      "paths": [
+        "backend/cmd/migrate/main.go",
+        "backend/migrations/0001_lane1_core.sql",
+        "backend/migrations/0002_stage0_rev2_domains.sql"
+      ],
+      "validation_commands": [
+        "python3 scripts/validate_stage0_rev2.py",
+        "cd backend && go test ./..."
+      ],
+      "required_draft_tokens": [
+        "go test ./...",
+        "backend",
+        "scripts/validate_stage0_rev2.py"
+      ]
+    },
+    {
+      "artifact_id": "openapi_artifacts",
+      "status": "pass",
+      "paths": [
+        "openapi/zenart.v1.yaml",
+        "scripts/generate_openapi_clients.py",
+        "web/lib/generated/zenart-api.ts",
+        "admin/lib/generated/zenart-api.ts"
+      ],
+      "validation_commands": [
+        "python3 scripts/generate_openapi_clients.py --check",
+        "python3 scripts/validate_stage0_rev2.py"
+      ],
+      "required_draft_tokens": [
+        "python3 scripts/generate_openapi_clients.py --check",
+        "scripts/validate_stage0_rev2.py"
+      ]
+    }
+  ],
+  "release_gate_effect": {
+    "ci_gate_status": "blocked",
+    "reason": "Draft coverage is validated, but installed GitHub Actions workflow remains token-blocked."
+  }
+}

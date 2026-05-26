@@ -17,10 +17,13 @@ ROOT = Path(__file__).resolve().parents[1]
 BLUEPRINT = ROOT / "Docs" / "stage0_blueprint_rev2.md"
 SCHEMA_DIR = ROOT / "schemas" / "stage0" / "rev2"
 FIXTURE_DIR = ROOT / "fixtures" / "stage0" / "rev2"
+OPS_FIXTURE_DIR = ROOT / "fixtures" / "ops"
 OPENAPI = ROOT / "openapi" / "zenart.v1.yaml"
 MIGRATION_DIR = ROOT / "backend" / "migrations"
+CI_WORKFLOW = ROOT / ".github" / "workflows" / "stage0-rev2-ci.yml"
 CI_DRAFT = ROOT / "ops" / "ci" / "stage0-rev2-ci.yml"
 CI_INSTALLATION = ROOT / "ops" / "ci" / "INSTALLATION.md"
+CI_DRAFT_EVIDENCE = OPS_FIXTURE_DIR / "stage0_rev2_ci_draft_evidence.json"
 ENVIRONMENT_EVIDENCE = ROOT / "ops" / "evidence" / "stage0_environment_evidence.json"
 DRILL_PLAN_EVIDENCE = ROOT / "ops" / "evidence" / "stage0_drill_plan.json"
 
@@ -315,6 +318,20 @@ OPENAPI_REQUIRED_CONTRACT_TOKENS = {
     "const: SafetyDecision",
 }
 
+OPS_EVIDENCE_REQUIRED_KEYS = {
+    "schema_version",
+    "evidence_id",
+    "blueprint_source",
+    "created_by_lane",
+    "blueprint_sections",
+    "installation_status",
+    "token_blocked_reason",
+    "draft_ref",
+    "checklist_policy",
+    "artifact_checks",
+    "release_gate_effect",
+}
+
 
 class ValidationError(Exception):
     pass
@@ -508,11 +525,12 @@ def validate_json_files() -> None:
         FIXTURE_DIR / "feedback" / "feedback_events.json",
         FIXTURE_DIR / "abuse" / "abuse_events.json",
         FIXTURE_DIR / "release_gate_evidence.local_alpha.json",
+        CI_DRAFT_EVIDENCE,
     ]
     for path in required:
         require(path.exists(), f"missing required file: {path.relative_to(ROOT)}")
 
-    for path in sorted(SCHEMA_DIR.glob("*.json")) + sorted(FIXTURE_DIR.rglob("*.json")):
+    for path in sorted(SCHEMA_DIR.glob("*.json")) + sorted(FIXTURE_DIR.rglob("*.json")) + sorted(OPS_FIXTURE_DIR.rglob("*.json")):
         load_json(path)
 
 
@@ -522,7 +540,7 @@ def validate_schema_fixture_contracts() -> None:
 
 
 def validate_provenance() -> None:
-    for path in sorted(FIXTURE_DIR.rglob("*.json")):
+    for path in sorted(FIXTURE_DIR.rglob("*.json")) + sorted(OPS_FIXTURE_DIR.rglob("*.json")):
         data = load_json(path)
         for value in walk_values(data):
             if isinstance(value, dict) and "created_by_lane" in value:
@@ -534,6 +552,78 @@ def validate_provenance() -> None:
                     value.get("blueprint_sections"),
                     f"{path.relative_to(ROOT)} provenance lacks blueprint_sections",
                 )
+
+
+def validate_ops_ci_artifact_evidence() -> None:
+    ci_text = CI_DRAFT.read_text(encoding="utf-8")
+    evidence = load_json(CI_DRAFT_EVIDENCE)
+    missing_keys = OPS_EVIDENCE_REQUIRED_KEYS - set(evidence)
+    require(not missing_keys, f"ops CI draft evidence missing keys: {sorted(missing_keys)}")
+    require(
+        evidence["schema_version"] == "stage0.rev2.ops",
+        "ops CI draft evidence must use stage0.rev2.ops schema version",
+    )
+    require(
+        evidence["blueprint_source"] == "Docs/stage0_blueprint_rev2.md",
+        "ops CI draft evidence must cite authoritative Rev2 blueprint",
+    )
+    require(evidence["created_by_lane"] == "lane6", "ops CI draft evidence must be lane6-owned")
+    require(
+        evidence["installation_status"] == "token_blocked",
+        "ops CI draft evidence must mark workflow installation token-blocked",
+    )
+    require(
+        ".github/workflows" in evidence["token_blocked_reason"],
+        "ops CI draft evidence must explain that .github/workflows cannot be changed",
+    )
+    require(
+        evidence["draft_ref"] == "ops/ci/stage0-rev2-ci.yml",
+        "ops CI draft evidence must point at the ops/ci draft",
+    )
+
+    policy = evidence["checklist_policy"]
+    require(
+        policy.get("ci_installation_checklist_remains_open") is True,
+        "CI installation checklist must remain open while workflow scope is token-blocked",
+    )
+    require(
+        any("CI Gate" in item for item in policy.get("blocked_blueprint_items", [])),
+        "ops evidence must keep CI Gate blocked until installed workflow can run",
+    )
+
+    artifact_ids = {item["artifact_id"] for item in evidence["artifact_checks"]}
+    required_artifacts = {"ops_ci_draft", "migration_artifacts", "openapi_artifacts"}
+    require(
+        required_artifacts <= artifact_ids,
+        f"ops evidence missing artifact checks: {sorted(required_artifacts - artifact_ids)}",
+    )
+    for item in evidence["artifact_checks"]:
+        require(item["status"] == "pass", f"{item['artifact_id']} evidence must pass")
+        for path in item["paths"]:
+            require(repo_path(path).exists(), f"{item['artifact_id']} evidence path missing: {path}")
+        for token in item["required_draft_tokens"]:
+            require(token in ci_text, f"{item['artifact_id']} draft token missing: {token}")
+
+    gate_effect = evidence["release_gate_effect"]
+    require(
+        gate_effect.get("ci_gate_status") == "blocked",
+        "CI gate evidence must remain blocked until the workflow is installed and passing",
+    )
+
+    if not CI_WORKFLOW.exists():
+        text = BLUEPRINT.read_text(encoding="utf-8")
+        require(
+            "- [ ] 添加 PR/main CI 到 `.github/workflows`。" in text,
+            "PR/main CI workflow installation checklist must remain open when no installed workflow exists",
+        )
+        require(
+            "- [x] 添加 PR/main CI draft/evidence 到 `ops/ci/` 和 `fixtures/ops/`。" in text,
+            "PR/main CI draft/evidence checklist must be complete when ops and fixture evidence exists",
+        )
+        require(
+            "- [ ] CI Gate 全部通过。" in text,
+            "CI Gate checklist must remain open when no installed workflow exists",
+        )
 
 
 def validate_workflows() -> None:
@@ -992,6 +1082,7 @@ def main() -> int:
         validate_json_files,
         validate_schema_fixture_contracts,
         validate_provenance,
+        validate_ops_ci_artifact_evidence,
         validate_workflows,
         validate_eval_suite,
         validate_qa_and_safety,

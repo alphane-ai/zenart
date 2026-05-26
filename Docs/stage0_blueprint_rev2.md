@@ -1867,7 +1867,8 @@ main 合并前必须通过：
 
 ### 25.17 CI/CD and Environments
 
-- [x] 添加 PR/main CI。
+- [ ] 添加 PR/main CI 到 `.github/workflows`。（token-blocked：当前 token 缺 workflow scope；draft/evidence 已落在 `ops/ci/` 和 `fixtures/ops/`。）
+- [x] 添加 PR/main CI draft/evidence 到 `ops/ci/` 和 `fixtures/ops/`。
 - [x] CI 运行 Web/Admin lint/typecheck/unit/build。
 - [x] CI 运行 backend fmt/lint/vet/unit/integration/build。
 - [x] CI 启动 Postgres/Redis/object storage。
