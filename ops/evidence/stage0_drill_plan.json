@@ -1,0 +1,33 @@
+{
+  "blueprint_source": "Docs/stage0_blueprint_rev2.md",
+  "created_by_lane": "lane5",
+  "scope": "backup restore and load drill plan",
+  "backup_restore": {
+    "script": "scripts/backup_restore_drill.sh",
+    "default_output_dir": "ops/evidence/backup-restore/local",
+    "checks": [
+      "postgres container is running",
+      "object storage container is running",
+      "pg_dump creates a custom-format dump",
+      "pg_restore --list validates dump readability",
+      "object storage manifest is captured",
+      "optional object restore copy runs when RUN_OBJECT_RESTORE_COPY=true",
+      "JSON report records RPO/RTO and restored object count"
+    ],
+    "runtime_status": "requires docker compose services; script syntax is validated by repo validation"
+  },
+  "load": {
+    "script": "scripts/load_smoke.sh",
+    "default_output_dir": "ops/evidence/load/local",
+    "modes": [
+      "chat_task",
+      "worker_generation",
+      "zip_export",
+      "signed_download",
+      "crawler_throttle",
+      "quota_contention",
+      "workspace_rendering"
+    ],
+    "runtime_status": "requires backend and optional web/admin services; mode coverage is validated statically"
+  }
+}

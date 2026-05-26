@@ -1,0 +1,128 @@
+{
+  "blueprint_source": "Docs/stage0_blueprint_rev2.md",
+  "created_by_lane": "lane5",
+  "scope": "ci environments evidence",
+  "environments": [
+    {
+      "name": "local",
+      "purpose": "deterministic dev-provider alpha loop",
+      "entrypoint": "docker compose --env-file .env.example up --build",
+      "required_services": [
+        "web",
+        "admin",
+        "backend",
+        "worker",
+        "crawler",
+        "postgres",
+        "redis",
+        "minio"
+      ],
+      "release_control": "developer branch"
+    },
+    {
+      "name": "CI",
+      "purpose": "contract, fixture, app, compose, generated-client, image-build, and scan validation",
+      "entrypoint": "ops/ci/stage0-rev2-ci.yml draft; install under .github/workflows only with workflow-scoped token",
+      "required_services": [
+        "postgres",
+        "redis",
+        "minio"
+      ],
+      "release_control": "pull request and main checks after workflow installation"
+    },
+    {
+      "name": "staging",
+      "purpose": "private beta rehearsal with production-like dependencies",
+      "entrypoint": "SHA-tagged CI image promotion after CI gate",
+      "required_services": [
+        "managed postgres",
+        "managed redis",
+        "production-like object storage",
+        "logs",
+        "metrics",
+        "traces",
+        "alerts",
+        "backups"
+      ],
+      "release_control": "manual environment approval"
+    },
+    {
+      "name": "production",
+      "purpose": "invite/comp-only or public launch after do-not-launch gate passes",
+      "entrypoint": "approved release tag using SHA-tagged images",
+      "required_services": [
+        "production postgres",
+        "production redis",
+        "versioned object storage",
+        "observability",
+        "incident response",
+        "backup restore",
+        "rollback"
+      ],
+      "release_control": "protected production approval"
+    }
+  ],
+  "ci_draft": {
+    "path": "ops/ci/stage0-rev2-ci.yml",
+    "not_installed_reason": "current automation token lacks workflow scope; do not create .github/workflows from this lane",
+    "installation_checklist": "ops/ci/INSTALLATION.md",
+    "required_checks": [
+      "web_admin_lint_typecheck_unit_build",
+      "backend_fmt_vet_unit_integration_build",
+      "postgres_redis_object_storage_services",
+      "migration_tests",
+      "openapi_client_stale_check",
+      "api_agent_contract_tests",
+      "security_scan_smoke",
+      "docker_image_sha_build"
+    ]
+  },
+  "feature_flags": [
+    {
+      "name": "PROVIDER_EMERGENCY_KILL_SWITCH",
+      "default": "false",
+      "rollback_use": "stop provider calls without redeploy"
+    },
+    {
+      "name": "CRAWLER_ENABLED",
+      "default": "false",
+      "rollback_use": "disable crawler ingestion"
+    },
+    {
+      "name": "ANALYTICS_ENABLED",
+      "default": "false",
+      "rollback_use": "disable event capture/export"
+    },
+    {
+      "name": "OTEL_ENABLED",
+      "default": "false",
+      "rollback_use": "disable trace export if collector causes instability"
+    }
+  ],
+  "open_items": [
+    {
+      "id": "install_github_actions_workflow",
+      "status": "blocked_by_token_scope",
+      "owner": "maintainer_with_workflow_scope",
+      "evidence": "ops/ci/INSTALLATION.md"
+    },
+    {
+      "id": "playwright_smoke",
+      "status": "open",
+      "owner": "frontend lane",
+      "evidence": "Rev2 checklist 25.17 keeps CI Playwright smoke unchecked"
+    },
+    {
+      "id": "runtime_load_drills",
+      "status": "open",
+      "owner": "ops lane",
+      "evidence": "scripts/load_smoke.sh supports modes, but runtime pass evidence requires running compose services"
+    },
+    {
+      "id": "staging_deploy",
+      "status": "open",
+      "owner": "release owner",
+      "evidence": "staging deployment is not implemented in this lane"
+    }
+  ]
+}

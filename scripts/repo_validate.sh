@@ -47,7 +47,10 @@ log "repo scaffolding files"
 test -f .env.example
 test -f .dockerignore
 test -f docker-compose.yml
-test -f .github/workflows/ci.yml
+test -f ops/ci/stage0-rev2-ci.yml
+test -f ops/ci/INSTALLATION.md
+test -f ops/evidence/stage0_environment_evidence.json
+test -f ops/evidence/stage0_drill_plan.json
 test -x scripts/load_smoke.sh
 test -x scripts/backup_restore_drill.sh
 
@@ -60,11 +63,11 @@ fi
 
 log "yaml syntax"
 if has_cmd ruby; then
-  ruby -e "require 'yaml'; YAML.load_file('docker-compose.yml'); YAML.load_file('.github/workflows/ci.yml')"
+  ruby -e "require 'yaml'; YAML.load_file('docker-compose.yml'); YAML.load_file('ops/ci/stage0-rev2-ci.yml')"
 elif has_cmd python3; then
   python3 - <<'PY'
 from pathlib import Path
-for path in ("docker-compose.yml", ".github/workflows/ci.yml"):
+for path in ("docker-compose.yml", "ops/ci/stage0-rev2-ci.yml"):
     text = Path(path).read_text(encoding="utf-8")
     if "\t" in text:
         raise SystemExit(f"{path}: tabs are not allowed in YAML indentation")
@@ -100,13 +103,19 @@ run_node_project_checks admin
 
 log "load smoke script syntax"
 bash -n scripts/load_smoke.sh
+load_validate_dir="$(mktemp -d)"
+for mode in chat_task worker_generation zip_export signed_download crawler_throttle quota_contention workspace_rendering; do
+  LOAD_MODE="$mode" DRY_RUN=1 OUT_DIR="$load_validate_dir" scripts/load_smoke.sh >/dev/null
+done
 
 log "backup/restore drill script syntax"
 bash -n scripts/backup_restore_drill.sh
+backup_validate_dir="$(mktemp -d)"
+DRY_RUN=1 DRILL_DIR="$backup_validate_dir" scripts/backup_restore_drill.sh >/dev/null
 
 log "secret scan smoke"
 if has_cmd git; then
-  git grep -nE '(AWS_SECRET_ACCESS_KEY|OPENAI_API_KEY|sk-[A-Za-z0-9_-]{20,}|ghp_[A-Za-z0-9_]{20,})' -- . ':!.env.example' ':!fixtures' ':!schemas' ':!.github/workflows/ci.yml' ':!scripts/repo_validate.sh' && {
+  git grep -nE '(AWS_SECRET_ACCESS_KEY|OPENAI_API_KEY|sk-[A-Za-z0-9_-]{20,}|ghp_[A-Za-z0-9_]{20,})' -- . ':!.env.example' ':!fixtures' ':!schemas' ':!ops/ci/stage0-rev2-ci.yml' ':!scripts/repo_validate.sh' && {
     printf 'potential committed secret found\n' >&2
     exit 1
   } || true

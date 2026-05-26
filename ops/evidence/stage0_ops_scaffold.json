@@ -6,7 +6,10 @@
     ".env.example",
     ".dockerignore",
     "docker-compose.yml",
-    ".github/workflows/ci.yml",
+    "ops/ci/stage0-rev2-ci.yml",
+    "ops/ci/INSTALLATION.md",
+    "ops/evidence/stage0_environment_evidence.json",
+    "ops/evidence/stage0_drill_plan.json",
     "scripts/repo_validate.sh",
     "scripts/load_smoke.sh",
     "scripts/backup_restore_drill.sh",
@@ -16,9 +19,11 @@
     "bash scripts/repo_validate.sh",
     "docker compose --env-file .env.example config --quiet",
     "bash -n scripts/load_smoke.sh",
-    "bash -n scripts/backup_restore_drill.sh"
+    "bash -n scripts/backup_restore_drill.sh",
+    "python3 scripts/generate_openapi_clients.py --check"
   ],
   "notes": [
+    "CI workflow draft is intentionally under ops/ci because this lane cannot create .github/workflows without workflow token scope",
     "web and admin checks are conditional until those directories exist",
     "backend validation is enabled because backend files already exist",
     "runtime backup/load drills require docker compose services to be running"

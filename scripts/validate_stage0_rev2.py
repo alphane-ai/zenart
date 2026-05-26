@@ -19,6 +19,10 @@ SCHEMA_DIR = ROOT / "schemas" / "stage0" / "rev2"
 FIXTURE_DIR = ROOT / "fixtures" / "stage0" / "rev2"
 OPENAPI = ROOT / "openapi" / "zenart.v1.yaml"
 MIGRATION_DIR = ROOT / "backend" / "migrations"
+CI_DRAFT = ROOT / "ops" / "ci" / "stage0-rev2-ci.yml"
+CI_INSTALLATION = ROOT / "ops" / "ci" / "INSTALLATION.md"
+ENVIRONMENT_EVIDENCE = ROOT / "ops" / "evidence" / "stage0_environment_evidence.json"
+DRILL_PLAN_EVIDENCE = ROOT / "ops" / "evidence" / "stage0_drill_plan.json"
 
 WORKFLOWS = {
     "ecommerce_growth_pack",
@@ -907,6 +911,82 @@ def validate_generated_openapi_clients() -> None:
     )
 
 
+def validate_ops_ci_and_drill_evidence() -> None:
+    for path in [CI_DRAFT, CI_INSTALLATION, ENVIRONMENT_EVIDENCE, DRILL_PLAN_EVIDENCE]:
+        require(path.exists(), f"missing ops evidence file: {path.relative_to(ROOT)}")
+
+    ci_text = CI_DRAFT.read_text(encoding="utf-8")
+    required_ci_tokens = {
+        "pull_request:",
+        "branches:",
+        "- main",
+        "postgres:",
+        "redis:",
+        "minio:",
+        "python3 scripts/generate_openapi_clients.py --check",
+        "python3 scripts/validate_stage0_rev2.py",
+        "go test ./...",
+        "go vet ./...",
+        "npm run lint",
+        "npm run typecheck",
+        "npm run test",
+        "npm run build",
+        "docker build --tag ghcr.io/alphane-ai/zenart-${{ matrix.image.name }}:${{ github.sha }}",
+        "ops/evidence/stage0_environment_evidence.json",
+    }
+    missing_ci_tokens = {token for token in required_ci_tokens if token not in ci_text}
+    require(not missing_ci_tokens, f"CI draft missing required coverage tokens: {sorted(missing_ci_tokens)}")
+
+    installation = CI_INSTALLATION.read_text(encoding="utf-8")
+    require(
+        "Blocked by token scope" in installation and ".github/workflows/stage0-rev2-ci.yml" in installation,
+        "CI installation checklist must keep workflow install blocked by token scope",
+    )
+
+    env = load_json(ENVIRONMENT_EVIDENCE)
+    require(env["blueprint_source"] == "Docs/stage0_blueprint_rev2.md", "environment evidence must cite Rev2")
+    require(env["created_by_lane"] == "lane5", "environment evidence must be lane5-owned")
+    require(
+        {item["name"] for item in env["environments"]} == {"local", "CI", "staging", "production"},
+        "environment evidence must define local/CI/staging/production",
+    )
+    require(
+        env["ci_draft"]["path"] == "ops/ci/stage0-rev2-ci.yml",
+        "environment evidence must point at ops/ci CI draft",
+    )
+    open_items = {item["id"]: item for item in env["open_items"]}
+    require(
+        open_items.get("install_github_actions_workflow", {}).get("status") == "blocked_by_token_scope",
+        "workflow installation must remain blocked_by_token_scope",
+    )
+    require("playwright_smoke" in open_items, "environment evidence must keep Playwright smoke open")
+
+    drill = load_json(DRILL_PLAN_EVIDENCE)
+    require(drill["blueprint_source"] == "Docs/stage0_blueprint_rev2.md", "drill plan must cite Rev2")
+    require(drill["created_by_lane"] == "lane5", "drill plan must be lane5-owned")
+    require(
+        drill["backup_restore"]["script"] == "scripts/backup_restore_drill.sh",
+        "drill plan must cite backup restore script",
+    )
+    require(
+        drill["load"]["script"] == "scripts/load_smoke.sh",
+        "drill plan must cite load smoke script",
+    )
+    require(
+        {
+            "chat_task",
+            "worker_generation",
+            "zip_export",
+            "signed_download",
+            "crawler_throttle",
+            "quota_contention",
+            "workspace_rendering",
+        }
+        <= set(drill["load"]["modes"]),
+        "drill plan missing required load modes",
+    )
+
+
 def main() -> int:
     checks = [
         validate_json_files,
@@ -923,6 +1003,7 @@ def main() -> int:
         validate_openapi_contract,
         validate_openapi_rev2_domain_contracts,
         validate_generated_openapi_clients,
+        validate_ops_ci_and_drill_evidence,
     ]
     try:
         for check in checks:
