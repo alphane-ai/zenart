@@ -73,6 +73,16 @@
       "rollback_evidence": "must exist locally and reference RELEASE_SHA",
       "security_scan_evidence": "must exist locally and reference RELEASE_SHA"
     },
+    "blocking_reason_contract": {
+      "field": "summary.go_no_go.blocking_reasons",
+      "required_prefixes": [
+        "staging_smoke_not_passed",
+        "missing_release_evidence:",
+        "unverified_release_evidence:",
+        "gate_fixture_blocked:"
+      ],
+      "local_validation": "bash scripts/repo_validate.sh exercises both all-missing release evidence and complete local release evidence dry-runs; both remain no-go while runtime smoke and gate fixtures are blocked"
+    },
     "gate_policy": "report decision remains no-go when smoke fails, required release evidence is absent or locally unverifiable, release-SHA-bound evidence does not reference the deploy SHA, private beta fixtures are blocked, production do-not-launch fixtures are present, or go/no-go decision inputs are incomplete"
   },
   "checklist_policy": {

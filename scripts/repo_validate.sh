@@ -274,6 +274,20 @@ if go_no_go.get("release_evidence_verified") is not False:
     raise SystemExit("staging smoke dry-run must keep release evidence unverified")
 if go_no_go.get("gate_fixtures_clear") is not False:
     raise SystemExit("staging smoke dry-run must keep gate fixtures blocked")
+blocking_reasons = go_no_go.get("blocking_reasons", [])
+for reason in (
+    "staging_smoke_not_passed",
+    "missing_release_evidence:release_sha",
+    "missing_release_evidence:release_notes_path",
+    "unverified_release_evidence:release_notes_path",
+    "unverified_release_evidence:image_refs",
+):
+    if reason not in blocking_reasons:
+        raise SystemExit(f"staging smoke dry-run missing blocking reason {reason}")
+if not any(reason.startswith("gate_fixture_blocked:private_beta_staging:") for reason in blocking_reasons):
+    raise SystemExit("staging smoke dry-run must include private beta gate blocking reasons")
+if not any(reason.startswith("gate_fixture_blocked:production_launch:") for reason in blocking_reasons):
+    raise SystemExit("staging smoke dry-run must include production gate blocking reasons")
 decision_inputs = go_no_go.get("decision_inputs", {})
 if decision_inputs.get("smoke_passed") is not False:
     raise SystemExit("staging smoke dry-run decision inputs must record smoke_passed=false")
@@ -347,6 +361,17 @@ if not any(item.startswith("private_beta_staging:") for item in blocked):
     raise SystemExit("complete-evidence staging smoke dry-run must include private beta blockers")
 if not any(item.startswith("production_launch:") for item in blocked):
     raise SystemExit("complete-evidence staging smoke dry-run must include production blockers")
+blocking_reasons = go_no_go.get("blocking_reasons", [])
+if "staging_smoke_not_passed" not in blocking_reasons:
+    raise SystemExit("complete-evidence staging smoke dry-run must still block on missing runtime smoke pass")
+if any(reason.startswith("missing_release_evidence:") for reason in blocking_reasons):
+    raise SystemExit(f"complete-evidence staging smoke dry-run must not report missing release evidence: {blocking_reasons}")
+if any(reason.startswith("unverified_release_evidence:") for reason in blocking_reasons):
+    raise SystemExit(f"complete-evidence staging smoke dry-run must not report unverified release evidence: {blocking_reasons}")
+if not any(reason.startswith("gate_fixture_blocked:private_beta_staging:") for reason in blocking_reasons):
+    raise SystemExit("complete-evidence staging smoke dry-run must include private beta gate blocking reasons")
+if not any(reason.startswith("gate_fixture_blocked:production_launch:") for reason in blocking_reasons):
+    raise SystemExit("complete-evidence staging smoke dry-run must include production gate blocking reasons")
 decision_inputs = go_no_go.get("decision_inputs", {})
 if decision_inputs != {
     "smoke_passed": False,

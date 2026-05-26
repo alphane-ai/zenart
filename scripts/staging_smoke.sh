@@ -333,13 +333,28 @@ local_evidence_verification = {
 release_evidence_verified = all(item["verified"] for item in local_evidence_verification.values())
 release_evidence_complete = all(release_evidence_required.values()) and release_evidence_verified
 smoke_passed = status == "passed" and all(row.get("ok") is not False for row in rows) and not (required - set(categories))
+missing_release_evidence_slots = sorted(
+    key for key, value in release_evidence_required.items() if not value
+)
+unverified_release_evidence_slots = sorted(
+    key for key, value in local_evidence_verification.items() if not value.get("verified")
+)
+blocking_reasons = []
+if not smoke_passed:
+    blocking_reasons.append("staging_smoke_not_passed")
+blocking_reasons.extend(f"missing_release_evidence:{slot}" for slot in missing_release_evidence_slots)
+blocking_reasons.extend(f"unverified_release_evidence:{slot}" for slot in unverified_release_evidence_slots)
+blocking_reasons.extend(f"gate_fixture_blocked:{condition}" for condition in blocked_conditions)
 go_no_go = {
     "decision": "go" if smoke_passed and release_evidence_complete and not blocked_conditions else "no-go",
     "smoke_passed": smoke_passed,
     "release_evidence_complete": release_evidence_complete,
     "release_evidence_verified": release_evidence_verified,
+    "missing_release_evidence_slots": missing_release_evidence_slots,
+    "unverified_release_evidence_slots": unverified_release_evidence_slots,
     "gate_fixtures_clear": not blocked_conditions,
     "blocked_conditions": blocked_conditions,
+    "blocking_reasons": blocking_reasons,
     "decision_inputs": {
         "smoke_passed": smoke_passed,
         "release_evidence_complete": release_evidence_complete,
