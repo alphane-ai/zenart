@@ -378,6 +378,68 @@ func TestSessionCookieAuthenticatesRequest(t *testing.T) {
 	}
 }
 
+func TestAdminRouteUsesAdminCookieWhenUserCookieAlsoPresent(t *testing.T) {
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+
+	userLogin := httptest.NewRequest(http.MethodPost, "/api/v1/auth/local/session", bytes.NewBufferString(`{"tenant_id":"tenant_cookie"}`))
+	setSameSiteCSRFHeaders(userLogin)
+	userRec := httptest.NewRecorder()
+	New(cfg, nil).Handler().ServeHTTP(userRec, userLogin)
+	userCookie := findCookie(userRec.Result().Cookies(), cfg.Auth.SessionCookieName)
+	if userCookie == nil {
+		t.Fatal("user session cookie was not set")
+	}
+
+	adminLogin := httptest.NewRequest(http.MethodPost, "/api/admin/v1/auth/local/session", bytes.NewBufferString(`{"tenant_id":"admin_tenant"}`))
+	setSameSiteCSRFHeaders(adminLogin)
+	adminRec := httptest.NewRecorder()
+	New(cfg, nil).Handler().ServeHTTP(adminRec, adminLogin)
+	adminCookie := findCookie(adminRec.Result().Cookies(), cfg.Auth.AdminSessionCookieName)
+	if adminCookie == nil {
+		t.Fatal("admin session cookie was not set")
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/admin/v1/audit", nil)
+	req.AddCookie(userCookie)
+	req.AddCookie(adminCookie)
+	rec := httptest.NewRecorder()
+
+	New(cfg, nil).Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNotImplemented {
+		t.Fatalf("status = %d, want admin cookie to authorize audit stub: %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestUserRouteRejectsAdminCookieOnly(t *testing.T) {
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+
+	adminLogin := httptest.NewRequest(http.MethodPost, "/api/admin/v1/auth/local/session", bytes.NewBufferString(`{"tenant_id":"admin_tenant"}`))
+	setSameSiteCSRFHeaders(adminLogin)
+	adminRec := httptest.NewRecorder()
+	New(cfg, nil).Handler().ServeHTTP(adminRec, adminLogin)
+	adminCookie := findCookie(adminRec.Result().Cookies(), cfg.Auth.AdminSessionCookieName)
+	if adminCookie == nil {
+		t.Fatal("admin session cookie was not set")
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/tasks/task_123", nil)
+	req.AddCookie(adminCookie)
+	rec := httptest.NewRecorder()
+
+	New(cfg, nil).Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("status = %d, want user route to reject admin cookie: %s", rec.Code, rec.Body.String())
+	}
+}
+
 func TestStateChangingAPIRequiresSameSiteCSRFHeader(t *testing.T) {
 	cfg, err := config.Load()
 	if err != nil {

@@ -136,7 +136,7 @@ func principalFromRequest(r *http.Request) (auth.Principal, bool) {
 
 func principalFromRequestWithAuthConfig(r *http.Request, cfg config.AuthConfig, cfgOK bool) (auth.Principal, bool) {
 	if cfgOK {
-		if principal, ok := principalFromSessionCookieConfig(r, cfg, time.Now().UTC()); ok {
+		if principal, ok := principalFromSessionCookieConfig(r, cfg, time.Now().UTC(), isAdminAPIPath(r.URL.Path)); ok {
 			return principal, true
 		}
 	}
@@ -154,15 +154,14 @@ func authConfigFromRequest(r *http.Request) (config.AuthConfig, bool) {
 	return cfg.Auth, true
 }
 
-func principalFromSessionCookieConfig(r *http.Request, cfg config.AuthConfig, now time.Time) (auth.Principal, bool) {
-	cookie, err := r.Cookie(cfg.SessionCookieName)
-	adminCookie, adminErr := r.Cookie(cfg.AdminSessionCookieName)
+func principalFromSessionCookieConfig(r *http.Request, cfg config.AuthConfig, now time.Time, adminRoute bool) (auth.Principal, bool) {
 	secret := cfg.SessionSecret
-	if err != nil && adminErr == nil {
-		cookie = adminCookie
+	cookieName := cfg.SessionCookieName
+	if adminRoute {
+		cookieName = cfg.AdminSessionCookieName
 		secret = cfg.AdminSessionSecret
-		err = nil
 	}
+	cookie, err := r.Cookie(cookieName)
 	if err != nil || cookie == nil {
 		return auth.Principal{}, false
 	}
@@ -182,7 +181,11 @@ func principalFromSessionCookie(r *http.Request, ctx context.Context) (auth.Prin
 	if !ok {
 		return auth.Principal{}, false
 	}
-	return principalFromSessionCookieConfig(r, cfg, time.Now().UTC())
+	return principalFromSessionCookieConfig(r, cfg, time.Now().UTC(), isAdminAPIPath(r.URL.Path))
+}
+
+func isAdminAPIPath(path string) bool {
+	return strings.HasPrefix(path, "/api/admin/")
 }
 
 func principalFromHeaders(r *http.Request) (auth.Principal, bool) {
