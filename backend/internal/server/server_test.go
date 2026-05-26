@@ -337,6 +337,63 @@ func TestAdminExportRegenerateRequiresReviewer(t *testing.T) {
 	}
 }
 
+func TestAdminCrawlerStartRunRequiresOperator(t *testing.T) {
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/api/admin/v1/crawler/sources/crawler_source_1/runs", nil)
+	req.Header.Set("X-Zenart-User-ID", "admin_viewer_1")
+	req.Header.Set("X-Zenart-Tenant-ID", "tenant_1")
+	req.Header.Set("X-Zenart-Roles", "admin_viewer")
+	setSameSiteCSRFHeaders(req)
+	rec := httptest.NewRecorder()
+
+	New(cfg, nil).Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusForbidden)
+	}
+	var body map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("response JSON error = %v", err)
+	}
+	details := body["details"].(map[string]any)
+	if details["required_permission"] != "crawler_import:admin" {
+		t.Fatalf("required_permission = %v, want crawler_import:admin", details["required_permission"])
+	}
+}
+
+func TestAdminCrawlerStartRunReturnsPolicyBlock(t *testing.T) {
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	cfg.Crawler.Enabled = false
+
+	req := httptest.NewRequest(http.MethodPost, "/api/admin/v1/crawler/sources/crawler_source_1/runs", nil)
+	req = req.WithContext(stage0.ContextWithService(req.Context(), stage0.NewService(stage0.NewRepository(noExecDB{}), nil)))
+	req.Header.Set("X-Zenart-User-ID", "admin_operator_1")
+	req.Header.Set("X-Zenart-Tenant-ID", "tenant_1")
+	req.Header.Set("X-Zenart-Roles", "admin_operator")
+	setSameSiteCSRFHeaders(req)
+	rec := httptest.NewRecorder()
+
+	New(cfg, nil).Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusConflict {
+		t.Fatalf("status = %d, want crawler policy conflict: %s", rec.Code, rec.Body.String())
+	}
+	var body map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("response JSON error = %v", err)
+	}
+	if body["code"] != "crawler_blocked" {
+		t.Fatalf("code = %v, want crawler_blocked", body["code"])
+	}
+}
+
 func TestLocalSessionSetsSecureHttpOnlySameSiteCookie(t *testing.T) {
 	cfg, err := config.Load()
 	if err != nil {

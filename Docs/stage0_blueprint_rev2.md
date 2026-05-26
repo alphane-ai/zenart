@@ -1810,22 +1810,22 @@ main 合并前必须通过：
 ### 25.13 Crawler Governance
 
 - [x] 实现 admin crawler source approval evidence。
-- [ ] crawler fetch/import 强制 source approval runtime gate。
+- [x] crawler fetch/import 强制 source approval runtime gate。
 - [x] 实现 source legal metadata。
 - [x] 定义 robots evidence fixture/contract。
-- [ ] crawler runtime 强制 robots evidence。
+- [x] crawler runtime 强制 robots evidence。
 - [x] 定义 SSRF protection fixture/contract：private IP blocking、redirect validation、DNS rebinding guard。
-- [ ] crawler runtime 强制 SSRF protections。
+- [x] crawler runtime 强制 SSRF protections。
 - [x] 定义 source/global rate limit fixture/contract。
-- [ ] crawler runtime 强制 source/global rate limits。
+- [x] crawler runtime 强制 source/global rate limits。
 - [x] 定义 raw content retention fixture/contract。
-- [ ] crawler runtime 强制 raw content retention limit。
+- [x] crawler runtime 强制 raw content retention limit。
 - [x] 定义 exact-text import warning fixture/contract。
-- [ ] crawler runtime 强制 exact-text import warning。
+- [x] crawler runtime 强制 exact-text import warning。
 - [x] 定义 provenance links fixture/contract。
-- [ ] crawler runtime 强制 provenance links。
+- [x] crawler runtime 强制 provenance links。
 - [x] 定义 source blocklist fixture/contract。
-- [ ] crawler runtime 强制 source blocklist。
+- [x] crawler runtime 强制 source blocklist。
 - [x] 实现 takedown/derivative review workflow。
 - [x] 添加 disallowed source、robots denied、duplicate hash、pending-review import tests。
 

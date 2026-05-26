@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"net"
 	"strings"
 	"testing"
 	"time"
@@ -112,6 +113,8 @@ func TestListSupportTicketsReturnsEvidenceLinks(t *testing.T) {
 			now,
 			now,
 		}},
+	}, {
+		rows: [][]any{{"crawler_doc_1"}},
 	}}}
 	repo := NewRepository(db)
 
@@ -843,6 +846,283 @@ func TestRecordAnalyticsEventRedactsProperties(t *testing.T) {
 	}
 }
 
+func TestStartCrawlerRunRequiresApprovalRobotsLegalAndRatePolicy(t *testing.T) {
+	now := time.Now().UTC()
+	db := &fakeDB{queryRows: []rowSet{{
+		rows: [][]any{{
+			"crawler_source_1",
+			nil,
+			"Allowed Source",
+			"https://example.com/docs",
+			"approved",
+			[]byte(`{"license":"permissive","owner":"Example"}`),
+			[]byte(`{"robots":"allowed","direct_activation_allowed":false}`),
+			now,
+			now,
+		}},
+	}, {
+		rows: [][]any{{0, 0}},
+	}}}
+	repo := NewRepository(db)
+
+	run, err := repo.StartCrawlerRun(context.Background(), "crawler_source_1", CrawlerPolicy{
+		Enabled:          true,
+		UserAgent:        "ZenArtStage0Bot/0.1",
+		GlobalRPS:        0.2,
+		SourceRPS:        0.1,
+		RawRetentionDays: 14,
+		BlocklistHosts:   []string{"localhost", "169.254.169.254"},
+		ResolveHost:      publicTestResolver,
+	})
+	if err != nil {
+		t.Fatalf("StartCrawlerRun() error = %v", err)
+	}
+	if run.SourceID != "crawler_source_1" || run.Status != "running" {
+		t.Fatalf("run = %#v", run)
+	}
+	if len(db.execs) != 1 || !strings.Contains(db.execs[0].sql, "INSERT INTO crawler_runs") {
+		t.Fatalf("crawler run insert not recorded: %#v", db.execs)
+	}
+	summary, ok := db.execs[0].args[4].([]byte)
+	if !ok {
+		t.Fatalf("summary arg type = %T, want []byte", db.execs[0].args[4])
+	}
+	for _, fragment := range []string{`"user_agent":"ZenArtStage0Bot/0.1"`, `"global_rps":0.2`, `"source_rps":0.1`, `"raw_retention_days":14`, `"robots_policy"`} {
+		if !strings.Contains(string(summary), fragment) {
+			t.Fatalf("summary = %s, missing %s", string(summary), fragment)
+		}
+	}
+}
+
+func TestStartCrawlerRunBlocksUnapprovedRobotsDeniedAndPrivateHosts(t *testing.T) {
+	now := time.Now().UTC()
+	policy := CrawlerPolicy{
+		Enabled:          true,
+		UserAgent:        "ZenArtStage0Bot/0.1",
+		GlobalRPS:        0.2,
+		SourceRPS:        0.1,
+		RawRetentionDays: 14,
+		BlocklistHosts:   []string{"blocked.example"},
+		ResolveHost:      publicTestResolver,
+	}
+	for _, tc := range []struct {
+		name     string
+		url      string
+		status   string
+		legal    []byte
+		robots   []byte
+		wantExec bool
+	}{
+		{
+			name:   "unapproved",
+			url:    "https://example.com/docs",
+			status: "pending",
+			legal:  []byte(`{"license":"permissive","owner":"Example"}`),
+			robots: []byte(`{"robots":"allowed","direct_activation_allowed":false}`),
+		},
+		{
+			name:   "robots denied",
+			url:    "https://example.com/docs",
+			status: "approved",
+			legal:  []byte(`{"license":"permissive","owner":"Example"}`),
+			robots: []byte(`{"robots":"denied","direct_activation_allowed":false}`),
+		},
+		{
+			name:   "private host",
+			url:    "http://127.0.0.1/docs",
+			status: "approved",
+			legal:  []byte(`{"license":"permissive","owner":"Example"}`),
+			robots: []byte(`{"robots":"allowed","direct_activation_allowed":false}`),
+		},
+		{
+			name:   "missing legal metadata",
+			url:    "https://example.com/docs",
+			status: "approved",
+			legal:  []byte(`{"license":"permissive"}`),
+			robots: []byte(`{"robots":"allowed","direct_activation_allowed":false}`),
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			db := &fakeDB{queryRows: []rowSet{{
+				rows: [][]any{{
+					"crawler_source_1",
+					nil,
+					"Source",
+					tc.url,
+					tc.status,
+					tc.legal,
+					tc.robots,
+					now,
+					now,
+				}},
+			}}}
+			repo := NewRepository(db)
+			_, err := repo.StartCrawlerRun(context.Background(), "crawler_source_1", policy)
+			if !errors.Is(err, ErrCrawlerBlocked) {
+				t.Fatalf("StartCrawlerRun() error = %v, want ErrCrawlerBlocked", err)
+			}
+			if len(db.execs) != 0 {
+				t.Fatalf("blocked crawler run should not write rows: %#v", db.execs)
+			}
+		})
+	}
+}
+
+func TestStartCrawlerRunBlocksWhenRateLimitExceeded(t *testing.T) {
+	now := time.Now().UTC()
+	db := &fakeDB{queryRows: []rowSet{{
+		rows: [][]any{{
+			"crawler_source_1",
+			nil,
+			"Allowed Source",
+			"https://example.com/docs",
+			"approved",
+			[]byte(`{"license":"permissive","owner":"Example"}`),
+			[]byte(`{"robots":"allowed","direct_activation_allowed":false}`),
+			now,
+			now,
+		}},
+	}, {
+		rows: [][]any{{1, 0}},
+	}}}
+	repo := NewRepository(db)
+
+	_, err := repo.StartCrawlerRun(context.Background(), "crawler_source_1", CrawlerPolicy{
+		Enabled:          true,
+		UserAgent:        "ZenArtStage0Bot/0.1",
+		GlobalRPS:        0.2,
+		SourceRPS:        0.1,
+		RawRetentionDays: 14,
+		ResolveHost:      publicTestResolver,
+	})
+	if !errors.Is(err, ErrCrawlerBlocked) {
+		t.Fatalf("StartCrawlerRun() error = %v, want ErrCrawlerBlocked", err)
+	}
+	if len(db.execs) != 0 {
+		t.Fatalf("rate-limited crawler run should not write rows: %#v", db.execs)
+	}
+}
+
+func TestImportCrawlerFindingRequiresProvenanceRetentionAndExactTextWarning(t *testing.T) {
+	now := time.Now().UTC()
+	db := &fakeDB{queryRows: []rowSet{{
+		rows: [][]any{{
+			"crawler_source_1",
+			nil,
+			"Allowed Source",
+			"https://example.com/docs",
+			"approved",
+			[]byte(`{"license":"permissive","owner":"Example"}`),
+			[]byte(`{"robots":"allowed","direct_activation_allowed":false}`),
+			now,
+			now,
+		}},
+	}, {
+		rows: [][]any{{"crawler_doc_1"}},
+	}}}
+	repo := NewRepository(db)
+
+	result, err := repo.ImportCrawlerFinding(context.Background(), CrawlerImport{
+		TenantID:    "tenant_1",
+		RunID:       "crawler_run_1",
+		SourceID:    "crawler_source_1",
+		DocumentURL: "https://example.com/docs/page",
+		ContentHash: "sha256:abc",
+		Metadata: map[string]any{
+			"raw_secret_token": "secret",
+		},
+		FindingType: "exact_text",
+		FindingPayload: map[string]any{
+			"excerpt": "Original source text",
+		},
+		Provenance: map[string]any{
+			"source_url":    "https://example.com/docs/page",
+			"fetched_at":    "2026-05-26T00:00:00Z",
+			"content_hash":  "sha256:abc",
+			"robots_policy": map[string]any{"robots": "allowed"},
+		},
+	}, CrawlerPolicy{
+		Enabled:          true,
+		UserAgent:        "ZenArtStage0Bot/0.1",
+		GlobalRPS:        0.2,
+		SourceRPS:        0.1,
+		RawRetentionDays: 14,
+		ResolveHost:      publicTestResolver,
+	})
+	if err != nil {
+		t.Fatalf("ImportCrawlerFinding() error = %v", err)
+	}
+	if result.DocumentID == "" || result.FindingID == "" || result.RetentionUntil.IsZero() {
+		t.Fatalf("result = %#v", result)
+	}
+	if len(db.execs) != 1 {
+		t.Fatalf("exec count = %d, want finding insert after document upsert", len(db.execs))
+	}
+	if len(db.queryRows) != 0 {
+		t.Fatalf("document upsert row was not consumed")
+	}
+	documentUpsert := db.queryRowsUsed[1]
+	if !strings.Contains(documentUpsert.sql, "INSERT INTO crawler_documents") || !strings.Contains(documentUpsert.sql, "retention_until") || !strings.Contains(documentUpsert.sql, "RETURNING id") {
+		t.Fatalf("document upsert missing retention/returning id: %s", documentUpsert.sql)
+	}
+	metadata, ok := documentUpsert.args[7].([]byte)
+	if !ok {
+		t.Fatalf("metadata arg type = %T, want []byte", documentUpsert.args[7])
+	}
+	if !strings.Contains(string(metadata), `"raw_secret_token":"[REDACTED]"`) {
+		t.Fatalf("metadata = %s, want redacted secret metadata", string(metadata))
+	}
+	if !strings.Contains(db.execs[0].sql, "INSERT INTO crawler_findings") {
+		t.Fatalf("finding insert not recorded: %s", db.execs[0].sql)
+	}
+	payload, ok := db.execs[0].args[5].([]byte)
+	if !ok {
+		t.Fatalf("payload arg type = %T, want []byte", db.execs[0].args[5])
+	}
+	if !strings.Contains(string(payload), "exact-text import requires review") {
+		t.Fatalf("payload = %s, want exact-text warning", string(payload))
+	}
+	provenance, ok := db.execs[0].args[6].([]byte)
+	if !ok {
+		t.Fatalf("provenance arg type = %T, want []byte", db.execs[0].args[6])
+	}
+	if !strings.Contains(string(provenance), `"robots_policy"`) || !strings.Contains(string(provenance), `"content_hash":"sha256:abc"`) {
+		t.Fatalf("provenance = %s, want robots and content hash evidence", string(provenance))
+	}
+}
+
+func TestImportCrawlerFindingRejectsMissingProvenance(t *testing.T) {
+	db := &fakeDB{}
+	repo := NewRepository(db)
+
+	_, err := repo.ImportCrawlerFinding(context.Background(), CrawlerImport{
+		RunID:       "crawler_run_1",
+		SourceID:    "crawler_source_1",
+		DocumentURL: "https://example.com/docs/page",
+		ContentHash: "sha256:abc",
+		FindingType: "exact_text",
+		Provenance: map[string]any{
+			"source_url": "https://example.com/docs/page",
+		},
+	}, CrawlerPolicy{
+		Enabled:          true,
+		UserAgent:        "ZenArtStage0Bot/0.1",
+		GlobalRPS:        0.2,
+		SourceRPS:        0.1,
+		RawRetentionDays: 14,
+	})
+	if !errors.Is(err, ErrValidation) {
+		t.Fatalf("ImportCrawlerFinding() error = %v, want ErrValidation", err)
+	}
+	if len(db.execs) != 0 {
+		t.Fatalf("invalid crawler import should not write rows: %#v", db.execs)
+	}
+}
+
+func publicTestResolver(_ context.Context, _ string) ([]net.IP, error) {
+	return []net.IP{net.ParseIP("93.184.216.34")}, nil
+}
+
 func assertSafetyDecision(t *testing.T, call execCall, point, subjectType string) {
 	t.Helper()
 	if !strings.Contains(call.sql, "INSERT INTO safety_decisions") {
@@ -864,13 +1144,19 @@ func assertSafetyAnalytics(t *testing.T, call execCall) {
 }
 
 type fakeDB struct {
-	execs     []execCall
-	execTags  []pgconn.CommandTag
-	queryRows []rowSet
-	queryErr  error
+	execs         []execCall
+	execTags      []pgconn.CommandTag
+	queryRows     []rowSet
+	queryRowsUsed []queryCall
+	queryErr      error
 }
 
 type execCall struct {
+	sql  string
+	args []any
+}
+
+type queryCall struct {
 	sql  string
 	args []any
 }
@@ -885,7 +1171,8 @@ func (f *fakeDB) Exec(_ context.Context, sql string, arguments ...any) (pgconn.C
 	return tag, nil
 }
 
-func (f *fakeDB) Query(_ context.Context, _ string, _ ...any) (store.Rows, error) {
+func (f *fakeDB) Query(_ context.Context, sql string, args ...any) (store.Rows, error) {
+	f.queryRowsUsed = append(f.queryRowsUsed, queryCall{sql: sql, args: args})
 	if f.queryErr != nil {
 		return nil, f.queryErr
 	}
@@ -897,7 +1184,8 @@ func (f *fakeDB) Query(_ context.Context, _ string, _ ...any) (store.Rows, error
 	return &fakeRows{rows: rows.rows}, nil
 }
 
-func (f *fakeDB) QueryRow(context.Context, string, ...any) store.Row {
+func (f *fakeDB) QueryRow(_ context.Context, sql string, args ...any) store.Row {
+	f.queryRowsUsed = append(f.queryRowsUsed, queryCall{sql: sql, args: args})
 	if len(f.queryRows) > 0 && len(f.queryRows[0].rows) > 0 {
 		row := f.queryRows[0].rows[0]
 		f.queryRows = f.queryRows[1:]
@@ -973,6 +1261,8 @@ func assign(dest any, value any) {
 			return
 		}
 		*ptr = value.([]byte)
+	case *int:
+		*ptr = value.(int)
 	case *time.Time:
 		*ptr = value.(time.Time)
 	default:

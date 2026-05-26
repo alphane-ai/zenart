@@ -81,6 +81,7 @@ func (s *Server) routes() {
 	s.mux.Handle("POST /api/admin/v1/exports/{id}/regenerate", requirePermission(auth.PermissionExportOverrideAdmin, http.HandlerFunc(s.regenerateExport)))
 	s.mux.Handle("GET /api/admin/v1/crawler/sources", requirePermission(auth.PermissionCrawlerRead, http.HandlerFunc(s.listCrawlerSources)))
 	s.mux.Handle("GET /api/admin/v1/crawler/findings", requirePermission(auth.PermissionCrawlerRead, http.HandlerFunc(s.listCrawlerFindings)))
+	s.mux.Handle("POST /api/admin/v1/crawler/sources/{id}/runs", requirePermission(auth.PermissionCrawlerImportAdmin, http.HandlerFunc(s.startCrawlerRun)))
 	s.mux.Handle("GET /api/admin/v1/safety/rules", requirePermission(auth.PermissionSafetyRead, http.HandlerFunc(s.listSafetyRules)))
 	s.mux.Handle("POST /api/admin/v1/safety/decisions", requirePermission(auth.PermissionSafetyRuleAdmin, http.HandlerFunc(s.enforceSafety)))
 	s.mux.Handle("GET /api/admin/v1/audit", requirePermission(auth.PermissionAuditRead, http.HandlerFunc(s.auditSearch)))
@@ -439,6 +440,27 @@ func (s *Server) listCrawlerFindings(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, page)
 }
 
+func (s *Server) startCrawlerRun(w http.ResponseWriter, r *http.Request) {
+	repo, ok := stage0RepoFrom(r)
+	if !ok {
+		writeError(w, r, http.StatusNotImplemented, "crawler_service_not_connected", "crawler storage is not connected yet", nil)
+		return
+	}
+	run, err := repo.StartCrawlerRun(r.Context(), r.PathValue("id"), stage0.CrawlerPolicy{
+		Enabled:          s.cfg.Crawler.Enabled,
+		UserAgent:        s.cfg.Crawler.UserAgent,
+		GlobalRPS:        s.cfg.Crawler.GlobalRPS,
+		SourceRPS:        s.cfg.Crawler.SourceRPS,
+		RawRetentionDays: s.cfg.Crawler.RawRetentionDays,
+		BlocklistHosts:   s.cfg.Crawler.BlocklistHosts,
+	})
+	if err != nil {
+		writeStage0Error(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusAccepted, run)
+}
+
 func (s *Server) listSafetyRules(w http.ResponseWriter, r *http.Request) {
 	repo, ok := stage0RepoFrom(r)
 	if !ok {
@@ -513,6 +535,8 @@ func writeStage0Error(w http.ResponseWriter, r *http.Request, err error) {
 		writeError(w, r, http.StatusConflict, "safety_blocked", "operation is blocked by safety or QA policy", nil)
 	case errors.Is(err, stage0.ErrMalwareBlocked):
 		writeError(w, r, http.StatusConflict, "malware_blocked", "upload is blocked by malware scan policy", nil)
+	case errors.Is(err, stage0.ErrCrawlerBlocked):
+		writeError(w, r, http.StatusConflict, "crawler_blocked", "crawler runtime policy blocked the operation", nil)
 	default:
 		writeError(w, r, http.StatusInternalServerError, "stage0_service_error", "stage0 service operation failed", nil)
 	}

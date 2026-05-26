@@ -8,6 +8,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net"
+	"net/url"
 	"strings"
 	"time"
 
@@ -37,6 +39,7 @@ var (
 	ErrSafetyBlocked     = errors.New("export blocked by safety or QA")
 	ErrSafetyReviewHold  = errors.New("operation held by safety policy")
 	ErrMalwareBlocked    = errors.New("upload blocked by malware scan")
+	ErrCrawlerBlocked    = errors.New("crawler runtime policy blocked")
 	ErrMissingRepository = errors.New("stage0 repository missing")
 )
 
@@ -237,6 +240,44 @@ type CrawlerFinding struct {
 	Payload     map[string]any `json:"payload"`
 	Provenance  map[string]any `json:"provenance"`
 	CreatedAt   time.Time      `json:"created_at"`
+}
+
+type CrawlerPolicy struct {
+	Enabled          bool
+	UserAgent        string
+	GlobalRPS        float64
+	SourceRPS        float64
+	RawRetentionDays int
+	BlocklistHosts   []string
+	ResolveHost      func(context.Context, string) ([]net.IP, error) `json:"-"`
+}
+
+type CrawlerRun struct {
+	ID        string         `json:"id"`
+	TenantID  *string        `json:"tenant_id,omitempty"`
+	SourceID  string         `json:"source_id"`
+	Status    string         `json:"status"`
+	Summary   map[string]any `json:"summary"`
+	StartedAt time.Time      `json:"started_at"`
+	CreatedAt time.Time      `json:"created_at"`
+}
+
+type CrawlerImport struct {
+	TenantID       string         `json:"tenant_id,omitempty"`
+	RunID          string         `json:"run_id"`
+	SourceID       string         `json:"source_id"`
+	DocumentURL    string         `json:"url"`
+	ContentHash    string         `json:"content_hash"`
+	Metadata       map[string]any `json:"metadata,omitempty"`
+	FindingType    string         `json:"finding_type"`
+	FindingPayload map[string]any `json:"payload,omitempty"`
+	Provenance     map[string]any `json:"provenance"`
+}
+
+type CrawlerImportResult struct {
+	DocumentID     string    `json:"document_id"`
+	FindingID      string    `json:"finding_id"`
+	RetentionUntil time.Time `json:"retention_until"`
 }
 
 type SafetyRule struct {
@@ -1097,6 +1138,131 @@ WHERE TRUE`
 	return page, rows.Err()
 }
 
+func (r Repository) StartCrawlerRun(ctx context.Context, sourceID string, policy CrawlerPolicy) (CrawlerRun, error) {
+	sourceID = strings.TrimSpace(sourceID)
+	if sourceID == "" {
+		return CrawlerRun{}, errors.Join(ErrValidation, errors.New("source_id is required"))
+	}
+	if err := validateCrawlerPolicy(policy); err != nil {
+		return CrawlerRun{}, err
+	}
+	source, err := r.getCrawlerSource(ctx, sourceID)
+	if err != nil {
+		return CrawlerRun{}, err
+	}
+	now := time.Now().UTC()
+	if err := enforceCrawlerSourcePolicy(ctx, source, policy); err != nil {
+		return CrawlerRun{}, err
+	}
+	if err := r.enforceCrawlerRateLimit(ctx, source.ID, policy, now); err != nil {
+		return CrawlerRun{}, err
+	}
+	run := CrawlerRun{
+		ID:        id.New("crawler_run"),
+		TenantID:  source.TenantID,
+		SourceID:  source.ID,
+		Status:    "running",
+		StartedAt: now,
+		CreatedAt: now,
+		Summary: security.RedactMap(map[string]any{
+			"user_agent":         policy.UserAgent,
+			"global_rps":         policy.GlobalRPS,
+			"source_rps":         policy.SourceRPS,
+			"raw_retention_days": policy.RawRetentionDays,
+			"robots_policy":      source.RobotsPolicy,
+		}),
+	}
+	_, err = r.db.Exec(ctx, `
+INSERT INTO crawler_runs(id, tenant_id, source_id, status, started_at, summary, created_at)
+VALUES($1, $2, $3, 'running', $4, $5, $4)`,
+		run.ID,
+		run.TenantID,
+		run.SourceID,
+		run.StartedAt,
+		jsonObject(run.Summary),
+	)
+	if err != nil {
+		return CrawlerRun{}, err
+	}
+	return run, nil
+}
+
+func (r Repository) ImportCrawlerFinding(ctx context.Context, input CrawlerImport, policy CrawlerPolicy) (CrawlerImportResult, error) {
+	if err := validateCrawlerPolicy(policy); err != nil {
+		return CrawlerImportResult{}, err
+	}
+	runID := strings.TrimSpace(input.RunID)
+	sourceID := strings.TrimSpace(input.SourceID)
+	documentURL := strings.TrimSpace(input.DocumentURL)
+	contentHash := strings.TrimSpace(input.ContentHash)
+	findingType := strings.TrimSpace(input.FindingType)
+	if runID == "" || sourceID == "" || documentURL == "" || contentHash == "" || findingType == "" {
+		return CrawlerImportResult{}, errors.Join(ErrValidation, errors.New("run_id, source_id, url, content_hash, and finding_type are required"))
+	}
+	if policy.RawRetentionDays <= 0 {
+		return CrawlerImportResult{}, errors.Join(ErrValidation, errors.New("raw retention policy is required"))
+	}
+	provenance := security.RedactMap(input.Provenance)
+	if !crawlerProvenanceComplete(provenance) {
+		return CrawlerImportResult{}, errors.Join(ErrValidation, errors.New("crawler import provenance must include source_url, fetched_at, robots_policy, and content_hash"))
+	}
+	source, err := r.getCrawlerSource(ctx, sourceID)
+	if err != nil {
+		return CrawlerImportResult{}, err
+	}
+	if err := enforceCrawlerSourcePolicy(ctx, source, policy); err != nil {
+		return CrawlerImportResult{}, err
+	}
+	if err := enforceCrawlerDocumentURL(ctx, source, documentURL, policy); err != nil {
+		return CrawlerImportResult{}, err
+	}
+	payload := security.RedactMap(input.FindingPayload)
+	status := "pending_review"
+	if findingType == "exact_text" {
+		payload["warning"] = "exact-text import requires review before use"
+	}
+	now := time.Now().UTC()
+	retentionUntil := now.Add(time.Duration(policy.RawRetentionDays) * 24 * time.Hour)
+	documentID := id.New("crawler_doc")
+	findingID := id.New("crawler_finding")
+	err = r.db.QueryRow(ctx, `
+INSERT INTO crawler_documents(id, tenant_id, run_id, source_id, url, content_hash, retention_until, metadata, created_at)
+VALUES($1, NULLIF($2, ''), $3, $4, $5, $6, $7, $8, $9)
+ON CONFLICT (source_id, content_hash) DO UPDATE
+SET retention_until = LEAST(COALESCE(crawler_documents.retention_until, EXCLUDED.retention_until), EXCLUDED.retention_until),
+    metadata = crawler_documents.metadata || EXCLUDED.metadata
+RETURNING id`,
+		documentID,
+		strings.TrimSpace(input.TenantID),
+		runID,
+		sourceID,
+		documentURL,
+		contentHash,
+		retentionUntil,
+		jsonObject(security.RedactMap(input.Metadata)),
+		now,
+	).Scan(&documentID)
+	if err != nil {
+		return CrawlerImportResult{}, err
+	}
+	_, err = r.db.Exec(ctx, `
+INSERT INTO crawler_findings(id, tenant_id, document_id, finding_type, status, payload, provenance, created_at)
+VALUES($1, NULLIF($2, ''), $3, $4, $5, $6, $7, $8)`,
+		findingID,
+		strings.TrimSpace(input.TenantID),
+		documentID,
+		findingType,
+		status,
+		jsonObject(payload),
+		jsonObject(provenance),
+		now,
+	)
+	if err != nil {
+		return CrawlerImportResult{}, err
+	}
+	return CrawlerImportResult{DocumentID: documentID, FindingID: findingID, RetentionUntil: retentionUntil}, nil
+}
+
 func (r Repository) ListSafetyRules(ctx context.Context, status string, limit int) (Page[SafetyRule], error) {
 	if limit <= 0 || limit > 100 {
 		limit = 50
@@ -1461,6 +1627,211 @@ ORDER BY q.created_at DESC`,
 	return false, rows.Err()
 }
 
+func (r Repository) getCrawlerSource(ctx context.Context, sourceID string) (CrawlerSource, error) {
+	var source CrawlerSource
+	var legalJSON, robotsJSON []byte
+	err := r.db.QueryRow(ctx, `
+SELECT id, tenant_id, name, url, approval_status, legal_metadata, robots_policy, created_at, updated_at
+FROM crawler_sources
+WHERE id = $1`,
+		sourceID,
+	).Scan(&source.ID, &source.TenantID, &source.Name, &source.URL, &source.ApprovalStatus, &legalJSON, &robotsJSON, &source.CreatedAt, &source.UpdatedAt)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return CrawlerSource{}, ErrNotFound
+	}
+	if err != nil {
+		return CrawlerSource{}, err
+	}
+	_ = json.Unmarshal(legalJSON, &source.LegalMetadata)
+	_ = json.Unmarshal(robotsJSON, &source.RobotsPolicy)
+	return source, nil
+}
+
+func validateCrawlerPolicy(policy CrawlerPolicy) error {
+	if !policy.Enabled {
+		return errors.Join(ErrCrawlerBlocked, errors.New("crawler is disabled"))
+	}
+	if strings.TrimSpace(policy.UserAgent) == "" {
+		return errors.Join(ErrValidation, errors.New("crawler user agent is required"))
+	}
+	if policy.GlobalRPS <= 0 || policy.SourceRPS <= 0 {
+		return errors.Join(ErrValidation, errors.New("crawler global and source rate limits must be positive"))
+	}
+	if policy.RawRetentionDays <= 0 || policy.RawRetentionDays > 30 {
+		return errors.Join(ErrValidation, errors.New("crawler raw retention must be between 1 and 30 days"))
+	}
+	return nil
+}
+
+func (r Repository) enforceCrawlerRateLimit(ctx context.Context, sourceID string, policy CrawlerPolicy, now time.Time) error {
+	if policy.GlobalRPS <= 0 || policy.SourceRPS <= 0 {
+		return errors.Join(ErrValidation, errors.New("crawler global and source rate limits must be positive"))
+	}
+	var globalCount, sourceCount int
+	globalWindow := now.Add(-crawlerRateWindow(policy.GlobalRPS))
+	sourceWindow := now.Add(-crawlerRateWindow(policy.SourceRPS))
+	err := r.db.QueryRow(ctx, `
+SELECT
+	COUNT(*) FILTER (WHERE started_at >= $1),
+	COUNT(*) FILTER (WHERE source_id = $2 AND started_at >= $3)
+FROM crawler_runs
+WHERE started_at >= LEAST($1, $3)`,
+		globalWindow,
+		sourceID,
+		sourceWindow,
+	).Scan(&globalCount, &sourceCount)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	if globalCount >= crawlerRateBurst(policy.GlobalRPS) {
+		return errors.Join(ErrCrawlerBlocked, errors.New("crawler global rate limit exceeded"))
+	}
+	if sourceCount >= crawlerRateBurst(policy.SourceRPS) {
+		return errors.Join(ErrCrawlerBlocked, errors.New("crawler source rate limit exceeded"))
+	}
+	return nil
+}
+
+func crawlerRateWindow(rps float64) time.Duration {
+	if rps >= 1 {
+		return time.Second
+	}
+	return time.Duration(float64(time.Second) / rps)
+}
+
+func crawlerRateBurst(rps float64) int {
+	if rps < 1 {
+		return 1
+	}
+	return int(rps)
+}
+
+func enforceCrawlerSourcePolicy(ctx context.Context, source CrawlerSource, policy CrawlerPolicy) error {
+	if !strings.EqualFold(strings.TrimSpace(source.ApprovalStatus), "approved") {
+		return errors.Join(ErrCrawlerBlocked, errors.New("crawler source approval is required"))
+	}
+	if _, err := validateCrawlerURL(ctx, source.URL, policy); err != nil {
+		return err
+	}
+	if !crawlerRobotsAllowed(source.RobotsPolicy) {
+		return errors.Join(ErrCrawlerBlocked, errors.New("crawler robots evidence does not allow fetch"))
+	}
+	if !crawlerLegalMetadataComplete(source.LegalMetadata) {
+		return errors.Join(ErrCrawlerBlocked, errors.New("crawler source legal metadata is incomplete"))
+	}
+	return nil
+}
+
+func enforceCrawlerDocumentURL(ctx context.Context, source CrawlerSource, documentURL string, policy CrawlerPolicy) error {
+	sourceParsed, err := validateCrawlerURL(ctx, source.URL, policy)
+	if err != nil {
+		return err
+	}
+	documentParsed, err := validateCrawlerURL(ctx, documentURL, policy)
+	if err != nil {
+		return err
+	}
+	if !strings.EqualFold(sourceParsed.Hostname(), documentParsed.Hostname()) {
+		return errors.Join(ErrCrawlerBlocked, errors.New("crawler document URL must stay on the approved source host"))
+	}
+	return nil
+}
+
+func validateCrawlerURL(ctx context.Context, rawURL string, policy CrawlerPolicy) (*url.URL, error) {
+	parsed, err := url.Parse(rawURL)
+	if err != nil || parsed.Scheme == "" || parsed.Host == "" {
+		return nil, errors.Join(ErrValidation, errors.New("crawler URL must be absolute"))
+	}
+	if parsed.Scheme != "https" && parsed.Scheme != "http" {
+		return nil, errors.Join(ErrCrawlerBlocked, errors.New("crawler URL scheme is not allowed"))
+	}
+	host := strings.ToLower(strings.Trim(parsed.Hostname(), "[]"))
+	for _, blocked := range policy.BlocklistHosts {
+		if strings.EqualFold(strings.TrimSpace(blocked), host) {
+			return nil, errors.Join(ErrCrawlerBlocked, errors.New("crawler URL host is blocklisted"))
+		}
+	}
+	if isPrivateCrawlerHost(host) {
+		return nil, errors.Join(ErrCrawlerBlocked, errors.New("crawler URL host is private or local"))
+	}
+	ips, err := resolveCrawlerHost(ctx, host, policy)
+	if err != nil {
+		return nil, err
+	}
+	for _, ip := range ips {
+		if isBlockedCrawlerIP(ip) {
+			return nil, errors.Join(ErrCrawlerBlocked, errors.New("crawler URL resolved to a private or local address"))
+		}
+	}
+	return parsed, nil
+}
+
+func resolveCrawlerHost(ctx context.Context, host string, policy CrawlerPolicy) ([]net.IP, error) {
+	if ip := net.ParseIP(host); ip != nil {
+		return []net.IP{ip}, nil
+	}
+	if policy.ResolveHost != nil {
+		ips, err := policy.ResolveHost(ctx, host)
+		if err != nil {
+			return nil, err
+		}
+		return ips, nil
+	}
+	resolver := net.DefaultResolver
+	addrs, err := resolver.LookupIPAddr(ctx, host)
+	if err != nil {
+		return nil, errors.Join(ErrCrawlerBlocked, fmt.Errorf("crawler URL host resolution failed: %w", err))
+	}
+	ips := make([]net.IP, 0, len(addrs))
+	for _, addr := range addrs {
+		ips = append(ips, addr.IP)
+	}
+	return ips, nil
+}
+
+func isPrivateCrawlerHost(host string) bool {
+	if host == "localhost" || strings.HasSuffix(host, ".localhost") {
+		return true
+	}
+	ip := net.ParseIP(host)
+	if ip == nil {
+		return false
+	}
+	return isBlockedCrawlerIP(ip)
+}
+
+func isBlockedCrawlerIP(ip net.IP) bool {
+	return ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() || ip.IsUnspecified()
+}
+
+func crawlerRobotsAllowed(policy map[string]any) bool {
+	if len(policy) == 0 {
+		return false
+	}
+	robots := strings.ToLower(strings.TrimSpace(stringFromMap(policy, "robots", "")))
+	if robots != "allowed" && robots != "allow" {
+		return false
+	}
+	if allowed, ok := policy["direct_activation_allowed"].(bool); ok && allowed {
+		return false
+	}
+	return true
+}
+
+func crawlerLegalMetadataComplete(metadata map[string]any) bool {
+	return stringFromMap(metadata, "license", "") != "" && stringFromMap(metadata, "owner", "") != ""
+}
+
+func crawlerProvenanceComplete(provenance map[string]any) bool {
+	return stringFromMap(provenance, "source_url", "") != "" &&
+		stringFromMap(provenance, "fetched_at", "") != "" &&
+		stringFromMap(provenance, "content_hash", "") != "" &&
+		provenance["robots_policy"] != nil
+}
+
 func jsonObject(value map[string]any) []byte {
 	if value == nil {
 		value = map[string]any{}
@@ -1751,6 +2122,14 @@ func (s Service) EnforceExportSafety(ctx context.Context, tenantID, exportID str
 
 func (s Service) RunRuntimeSafetyPolicy(ctx context.Context, input RuntimeSafetyPolicyInput) (RuntimeSafetyPolicyResult, error) {
 	return s.repo.RunRuntimeSafetyPolicy(ctx, input)
+}
+
+func (s Service) StartCrawlerRun(ctx context.Context, sourceID string, policy CrawlerPolicy) (CrawlerRun, error) {
+	return s.repo.StartCrawlerRun(ctx, sourceID, policy)
+}
+
+func (s Service) ImportCrawlerFinding(ctx context.Context, input CrawlerImport, policy CrawlerPolicy) (CrawlerImportResult, error) {
+	return s.repo.ImportCrawlerFinding(ctx, input, policy)
 }
 
 func (s Service) RecordExportArtifact(ctx context.Context, artifact ExportArtifact) (Export, error) {

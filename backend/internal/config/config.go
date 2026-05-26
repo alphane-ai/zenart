@@ -21,6 +21,7 @@ type Config struct {
 	Auth          AuthConfig
 	Billing       BillingConfig
 	Observability ObservabilityConfig
+	Crawler       CrawlerConfig
 	Tasks         TaskConfig
 	Worker        WorkerConfig
 }
@@ -97,6 +98,15 @@ type BillingConfig struct {
 type ObservabilityConfig struct {
 	MetricsEnabled bool
 	MetricsPort    int
+}
+
+type CrawlerConfig struct {
+	Enabled          bool
+	UserAgent        string
+	GlobalRPS        float64
+	SourceRPS        float64
+	RawRetentionDays int
+	BlocklistHosts   []string
 }
 
 type TaskConfig struct {
@@ -177,6 +187,14 @@ func Load() (Config, error) {
 		Observability: ObservabilityConfig{
 			MetricsEnabled: boolEnv("METRICS_ENABLED", true),
 			MetricsPort:    intEnv("METRICS_PORT", 9090),
+		},
+		Crawler: CrawlerConfig{
+			Enabled:          boolEnv("CRAWLER_ENABLED", false),
+			UserAgent:        env("CRAWLER_USER_AGENT", "ZenArtStage0Bot/0.1"),
+			GlobalRPS:        float64Env("CRAWLER_GLOBAL_RPS", 0.2),
+			SourceRPS:        float64Env("CRAWLER_SOURCE_RPS", 0.1),
+			RawRetentionDays: intEnv("CRAWLER_RAW_RETENTION_DAYS", 14),
+			BlocklistHosts:   listEnv("CRAWLER_BLOCKLIST_HOSTS", nil),
 		},
 		Tasks: TaskConfig{
 			SchemaVersion: intEnv("TASK_SCHEMA_VERSION", 1),
@@ -311,6 +329,18 @@ func (c Config) Validate() error {
 	if c.Observability.MetricsPort <= 0 || c.Observability.MetricsPort > 65535 {
 		errs = append(errs, "METRICS_PORT must be between 1 and 65535")
 	}
+	if strings.TrimSpace(c.Crawler.UserAgent) == "" {
+		errs = append(errs, "CRAWLER_USER_AGENT must not be empty")
+	}
+	if c.Crawler.GlobalRPS <= 0 {
+		errs = append(errs, "CRAWLER_GLOBAL_RPS must be > 0")
+	}
+	if c.Crawler.SourceRPS <= 0 {
+		errs = append(errs, "CRAWLER_SOURCE_RPS must be > 0")
+	}
+	if c.Crawler.RawRetentionDays <= 0 || c.Crawler.RawRetentionDays > 30 {
+		errs = append(errs, "CRAWLER_RAW_RETENTION_DAYS must be between 1 and 30")
+	}
 	if c.Tasks.SchemaVersion < 1 {
 		errs = append(errs, "TASK_SCHEMA_VERSION must be >= 1")
 	}
@@ -371,6 +401,18 @@ func int64Env(key string, fallback int64) int64 {
 		return fallback
 	}
 	parsed, err := strconv.ParseInt(value, 10, 64)
+	if err != nil {
+		return fallback
+	}
+	return parsed
+}
+
+func float64Env(key string, fallback float64) float64 {
+	value, ok := os.LookupEnv(key)
+	if !ok || strings.TrimSpace(value) == "" {
+		return fallback
+	}
+	parsed, err := strconv.ParseFloat(value, 64)
 	if err != nil {
 		return fallback
 	}
