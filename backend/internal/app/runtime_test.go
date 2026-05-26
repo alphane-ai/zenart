@@ -14,7 +14,7 @@ func TestMalwareScannerFromConfigSelectsHTTPScanner(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Load() error = %v", err)
 	}
-	cfg.Security.MalwareScanProvider = "http"
+	cfg.Security.MalwareScanProvider = " HTTP "
 	cfg.Security.MalwareScanEndpoint = "http://scanner.local/scan"
 	cfg.Security.MalwareScanAPIKey = "secret"
 	cfg.Security.MalwareScanTimeout = 3 * time.Second

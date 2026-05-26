@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -76,7 +77,8 @@ func RunServer(ctx context.Context, cfg config.Config, logger *slog.Logger) erro
 }
 
 func malwareScannerFromConfig(cfg config.Config, client *http.Client) security.MalwareScanner {
-	switch cfg.Security.MalwareScanProvider {
+	provider := strings.ToLower(strings.TrimSpace(cfg.Security.MalwareScanProvider))
+	switch provider {
 	case "http":
 		return security.HTTPMalwareScanner{
 			Endpoint: cfg.Security.MalwareScanEndpoint,
@@ -86,7 +88,7 @@ func malwareScannerFromConfig(cfg config.Config, client *http.Client) security.M
 			Timeout:  cfg.Security.MalwareScanTimeout,
 		}
 	default:
-		return security.PlaceholderMalwareScanner{Provider: cfg.Security.MalwareScanProvider}
+		return security.PlaceholderMalwareScanner{Provider: provider}
 	}
 }
 

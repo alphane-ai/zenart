@@ -100,6 +100,7 @@ func TestRedactStringCoversAIStorageAndObservabilityTokens(t *testing.T) {
 		"supabase=sb_abcdefghijklmnopqrstuvwxyz123456",
 		"cloudflare=CFPAT_abcdefghijklmnopqrstuvwxyz123456",
 		"datadog=dd_abcdefghijklmnopqrstuvwxyz123456",
+		"sentry=sntrys_abcdefghijklmnopqrstuvwxyz123456",
 	}, " ")
 	got := RedactString(input)
 	for _, leaked := range []string{
@@ -112,6 +113,7 @@ func TestRedactStringCoversAIStorageAndObservabilityTokens(t *testing.T) {
 		"sb_abcdefghijklmnopqrstuvwxyz123456",
 		"CFPAT_abcdefghijklmnopqrstuvwxyz123456",
 		"dd_abcdefghijklmnopqrstuvwxyz123456",
+		"sntrys_abcdefghijklmnopqrstuvwxyz123456",
 	} {
 		if strings.Contains(got, leaked) {
 			t.Fatalf("RedactString() = %q, leaked %s", got, leaked)
@@ -128,20 +130,45 @@ func TestRedactStringCoversAIStorageAndObservabilityTokens(t *testing.T) {
 		"supabase_jwt",
 		"cloudflare_token",
 		"datadog_key",
+		"sentry_auth_token",
 	} {
 		assertSignal(t, findings, signal)
 	}
 }
 
-func TestRedactStringCoversEmbeddedSignedURLsAndRegistryTokens(t *testing.T) {
-	input := `download https://s3.local/zenart/export.zip?X-Amz-Credential=AKIAIOSFODNN7EXAMPLE&X-Amz-Signature=abcdef&response-content-type=application%2Fzip npm=npm_abcdefghijklmnopqrstuvwxyz123456`
+func TestRedactStringCoversWebhookAndGitLabTokens(t *testing.T) {
+	input := strings.Join([]string{
+		"gitlab=glpat-abcdefghijklmnopqrstuvwxyz123456",
+		"slack=https://hooks.slack.com/services/T00000000/B00000000/abcdefghijklmnopqrstuvwxyz",
+		"discord=https://discord.com/api/webhooks/123456789012345678/abcdefghijklmnopqrstuvwxyz123456",
+		"Authorization: Bearer abcdefghijklmnop",
+	}, " ")
 	got := RedactString(input)
-	for _, leaked := range []string{"AKIAIOSFODNN7EXAMPLE", "abcdef", "npm_abcdefghijklmnopqrstuvwxyz123456"} {
+	for _, leaked := range []string{
+		"glpat-abcdefghijklmnopqrstuvwxyz123456",
+		"hooks.slack.com/services/T00000000",
+		"discord.com/api/webhooks/123456789012345678",
+		"abcdefghijklmnop",
+	} {
 		if strings.Contains(got, leaked) {
 			t.Fatalf("RedactString() = %q, leaked %s", got, leaked)
 		}
 	}
-	for _, fragment := range []string{"X-Amz-Credential=", "X-Amz-Signature=", Redacted} {
+	findings := ClassifyString(input)
+	assertSignal(t, findings, "gitlab_token")
+	assertSignal(t, findings, "slack_webhook_url")
+	assertSignal(t, findings, "discord_webhook_url")
+}
+
+func TestRedactStringCoversEmbeddedSignedURLsAndRegistryTokens(t *testing.T) {
+	input := `download https://s3.local/zenart/export.zip?X-Amz-Credential=AKIAIOSFODNN7EXAMPLE&X-Amz-Signature=abcdef&X-Goog-Signature=secret-goog&se=2026-05-27&sp=r&sv=2024-01-01&response-content-type=application%2Fzip npm=npm_abcdefghijklmnopqrstuvwxyz123456`
+	got := RedactString(input)
+	for _, leaked := range []string{"AKIAIOSFODNN7EXAMPLE", "abcdef", "secret-goog", "npm_abcdefghijklmnopqrstuvwxyz123456"} {
+		if strings.Contains(got, leaked) {
+			t.Fatalf("RedactString() = %q, leaked %s", got, leaked)
+		}
+	}
+	for _, fragment := range []string{"X-Amz-Credential=", "X-Amz-Signature=", "X-Goog-Signature=", "se=", "sp=", "sv=", Redacted} {
 		if !strings.Contains(got, fragment) {
 			t.Fatalf("RedactString() = %q, missing %s", got, fragment)
 		}
@@ -305,8 +332,9 @@ func TestHTTPMalwareScannerPostsTargetAndRedactsMetadata(t *testing.T) {
 			t.Fatalf("decode request: %v", err)
 		}
 		_ = json.NewEncoder(w).Encode(MalwareScanResult{
-			Status:   MalwareScanStatusClean,
-			Provider: "scanner",
+			Status:    " CLEAN ",
+			Provider:  "scanner sk-ant-abcdefghijklmnopqrstuvwxyz123456",
+			Rationale: "checked with Bearer abcdefghijklmnop",
 			Metadata: map[string]string{
 				"engine_version": "1",
 				"api_key":        "secret",
@@ -325,7 +353,7 @@ func TestHTTPMalwareScannerPostsTargetAndRedactsMetadata(t *testing.T) {
 		ObjectKey:   "uploads/file.png",
 		ContentType: "image/png",
 		ByteSize:    12,
-		Metadata:    map[string]string{"slot": "reference"},
+		Metadata:    map[string]string{"slot": "reference", "api_key": "secret"},
 	})
 	if err != nil {
 		t.Fatalf("Scan() error = %v", err)
@@ -333,11 +361,35 @@ func TestHTTPMalwareScannerPostsTargetAndRedactsMetadata(t *testing.T) {
 	if received.TenantID != "tenant_1" || received.ObjectKey != "uploads/file.png" {
 		t.Fatalf("received target = %#v", received)
 	}
+	if received.Metadata["api_key"] != Redacted {
+		t.Fatalf("received metadata = %#v, want redacted before external scan", received.Metadata)
+	}
 	if result.Status != MalwareScanStatusClean || result.Signature != "http-v1" || !result.ScannedAt.Equal(now) {
 		t.Fatalf("result = %#v, want clean defaulted result", result)
 	}
+	if strings.Contains(result.Provider, "sk-ant") || strings.Contains(result.Rationale, "abcdefghijklmnop") {
+		t.Fatalf("result = %#v, want redacted provider/rationale", result)
+	}
 	if result.Metadata["api_key"] != Redacted || result.Metadata["engine_version"] != "1" {
 		t.Fatalf("metadata = %#v, want redacted api_key and public engine version", result.Metadata)
+	}
+}
+
+func TestHTTPMalwareScannerRejectsUnsupportedStatus(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode(MalwareScanResult{Status: "infected"})
+	}))
+	defer server.Close()
+
+	_, err := (HTTPMalwareScanner{
+		Endpoint: server.URL,
+		Timeout:  time.Second,
+	}).Scan(context.Background(), MalwareScanTarget{
+		TenantID:  "tenant_1",
+		ObjectKey: "uploads/file.png",
+	})
+	if err == nil {
+		t.Fatal("Scan() error = nil, want unsupported status error")
 	}
 }
 

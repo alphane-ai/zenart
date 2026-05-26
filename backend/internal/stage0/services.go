@@ -1745,18 +1745,28 @@ func scanUpload(ctx context.Context, scanner security.MalwareScanner, target sec
 	if scanner == nil {
 		scanner = security.PlaceholderMalwareScanner{}
 	}
+	target.Metadata = security.RedactStringMap(target.Metadata)
 	result, err := scanner.Scan(ctx, target)
 	if err != nil {
 		return security.MalwareScanResult{}, err
 	}
+	status, ok := security.NormalizeMalwareScanStatus(result.Status)
+	if !ok {
+		return security.MalwareScanResult{}, errors.Join(ErrValidation, errors.New("malware scan returned unsupported status"))
+	}
+	result.Status = status
 	if result.ScannedAt.IsZero() {
 		result.ScannedAt = time.Now().UTC()
 	}
+	result.Provider = security.RedactString(strings.TrimSpace(result.Provider))
 	if result.Provider == "" {
 		result.Provider = "unknown"
 	}
-	if result.Status == "" {
-		result.Status = security.MalwareScanStatusUnavailable
+	result.Signature = security.RedactString(strings.TrimSpace(result.Signature))
+	result.Rationale = security.RedactString(result.Rationale)
+	result.Metadata = security.RedactStringMap(result.Metadata)
+	if result.Signature == "" {
+		result.Signature = "unspecified"
 	}
 	return result, nil
 }

@@ -1879,6 +1879,7 @@ main 合并前必须通过：
 - [x] 实现 secret classification。
 - [x] 实现 startup config validation。
 - [x] 实现 secret redaction。
+- [x] 硬化 malware scan 外部边界：scanner request/response metadata redaction、status normalization、unsupported status fail-closed tests。
 - [x] 添加 dependency/image/secret scans。
 - [x] 添加 Privacy notice。
 - [x] 添加 Terms of Service。

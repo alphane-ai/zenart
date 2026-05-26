@@ -2,6 +2,7 @@ package stage0
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
 	"net"
@@ -410,6 +411,98 @@ func TestCreateUploadBlocksSuspiciousMalwareScan(t *testing.T) {
 	}
 	if signed {
 		t.Fatal("suspicious upload should not issue a signed upload URL")
+	}
+}
+
+func TestCreateUploadRedactsMalwareScannerBoundary(t *testing.T) {
+	db := &fakeDB{}
+	repo := NewRepository(db)
+	scanner := captureScanner{
+		result: security.MalwareScanResult{
+			Status:    security.MalwareScanStatusClean,
+			Provider:  "scanner hf_abcdefghijklmnopqrstuvwxyz123456",
+			Signature: "sig sk-ant-abcdefghijklmnopqrstuvwxyz123456",
+			Rationale: "looked up with Bearer abcdefghijklmnop",
+			Metadata: map[string]string{
+				"api_key": "secret",
+				"note":    "https://storage.local/file.zip?X-Amz-Signature=abcdef",
+			},
+		},
+	}
+
+	upload, err := repo.CreateUpload(context.Background(), UploadOptions{
+		TenantID:            "tenant_1",
+		UserID:              "user_1",
+		AllowedContentTypes: []string{"image/png"},
+		MaxBytes:            1024,
+		URLTTL:              5 * time.Minute,
+		Input: UploadCreate{
+			Filename:    "Logo.png",
+			ContentType: "image/png",
+			ByteSize:    512,
+			Metadata: map[string]any{
+				"slot":    "reference",
+				"api_key": "secret",
+			},
+		},
+		SignURL: func(_ string, objectKey string, _ time.Duration) (string, time.Time) {
+			return "/signed/" + objectKey, time.Now().UTC().Add(5 * time.Minute)
+		},
+		MalwareScanner: &scanner,
+	})
+	if err != nil {
+		t.Fatalf("CreateUpload() error = %v", err)
+	}
+	if scanner.target.Metadata["api_key"] != security.Redacted {
+		t.Fatalf("scanner target metadata = %#v, want redacted external scanner input", scanner.target.Metadata)
+	}
+	body, err := json.Marshal(upload.Metadata["malware_scan"])
+	if err != nil {
+		t.Fatalf("marshal malware metadata: %v", err)
+	}
+	for _, leaked := range []string{
+		"hf_abcdefghijklmnopqrstuvwxyz123456",
+		"sk-ant-abcdefghijklmnopqrstuvwxyz123456",
+		"abcdefghijklmnop",
+		"secret",
+		"abcdef",
+	} {
+		if strings.Contains(string(body), leaked) {
+			t.Fatalf("malware metadata = %s, leaked %s", string(body), leaked)
+		}
+	}
+}
+
+func TestCreateUploadRejectsUnsupportedMalwareStatus(t *testing.T) {
+	db := &fakeDB{}
+	repo := NewRepository(db)
+	signed := false
+
+	_, err := repo.CreateUpload(context.Background(), UploadOptions{
+		TenantID:            "tenant_1",
+		UserID:              "user_1",
+		AllowedContentTypes: []string{"image/png"},
+		MaxBytes:            1024,
+		URLTTL:              5 * time.Minute,
+		Input: UploadCreate{
+			Filename:    "Logo.png",
+			ContentType: "image/png",
+			ByteSize:    512,
+		},
+		SignURL: func(_ string, objectKey string, _ time.Duration) (string, time.Time) {
+			signed = true
+			return "/signed/" + objectKey, time.Now().UTC().Add(5 * time.Minute)
+		},
+		MalwareScanner: &captureScanner{result: security.MalwareScanResult{Status: "infected"}},
+	})
+	if !errors.Is(err, ErrValidation) {
+		t.Fatalf("CreateUpload() error = %v, want ErrValidation", err)
+	}
+	if len(db.execs) != 0 {
+		t.Fatalf("unsupported malware status should not write rows: %#v", db.execs)
+	}
+	if signed {
+		t.Fatal("unsupported malware status should not issue a signed upload URL")
 	}
 }
 
@@ -1519,6 +1612,20 @@ func assertSafetyAnalytics(t *testing.T, call execCall) {
 	if call.args[5] != "safety_decision_recorded" {
 		t.Fatalf("analytics event name = %#v, want safety_decision_recorded", call.args[5])
 	}
+}
+
+type captureScanner struct {
+	target security.MalwareScanTarget
+	result security.MalwareScanResult
+	err    error
+}
+
+func (s *captureScanner) Scan(_ context.Context, target security.MalwareScanTarget) (security.MalwareScanResult, error) {
+	s.target = target
+	if s.err != nil {
+		return security.MalwareScanResult{}, s.err
+	}
+	return s.result, nil
 }
 
 type fakeDB struct {

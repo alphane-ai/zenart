@@ -42,7 +42,7 @@ type SecretFinding struct {
 	Location string     `json:"location,omitempty"`
 }
 
-var sensitiveKeyPattern = regexp.MustCompile(`(?i)(secret|token|password|passwd|pwd|api[_-]?key|access[_-]?key|private[_-]?key|credential|signature|session|cookie|authorization|client[_-]?secret|refresh[_-]?token|id[_-]?token|jwt|oauth|webhook[_-]?secret|signing[_-]?key|stripe|openai|anthropic|provider[_-]?key|database[_-]?url|dsn)`)
+var sensitiveKeyPattern = regexp.MustCompile(`(?i)(secret|token|password|passwd|pwd|passphrase|api[_-]?key|access[_-]?key|private[_-]?key|credential|signature|session|cookie|authorization|client[_-]?secret|refresh[_-]?token|id[_-]?token|jwt|oauth|webhook[_-]?secret|signing[_-]?key|shared[_-]?access[_-]?signature|sas|stripe|openai|anthropic|provider[_-]?key|database[_-]?url|dsn)`)
 
 var secretValuePatterns = []struct {
 	kind    SecretKind
@@ -60,9 +60,12 @@ var secretValuePatterns = []struct {
 	{SecretKindCloudKey, "azure_storage_key", regexp.MustCompile(`(?i)\bDefaultEndpointsProtocol=https?;AccountName=[A-Za-z0-9]+;AccountKey=[A-Za-z0-9+/=]{20,}`)},
 	{SecretKindToken, "github_token", regexp.MustCompile(`\b(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9_]{20,}\b`)},
 	{SecretKindToken, "github_fine_grained_token", regexp.MustCompile(`\bgithub_pat_[A-Za-z0-9_]{20,}\b`)},
+	{SecretKindToken, "gitlab_token", regexp.MustCompile(`\b(?:glpat|glrt|glcbt|glimt|glsoat|glagent)-[A-Za-z0-9_-]{20,}\b`)},
 	{SecretKindToken, "jwt", regexp.MustCompile(`\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b`)},
 	{SecretKindToken, "vercel_token", regexp.MustCompile(`\bvercel_[A-Za-z0-9]{20,}\b`)},
 	{SecretKindToken, "npm_token", regexp.MustCompile(`\bnpm_[A-Za-z0-9]{20,}\b`)},
+	{SecretKindWebhookSecret, "slack_webhook_url", regexp.MustCompile(`https://hooks\.slack\.com/services/[A-Za-z0-9/_-]{20,}`)},
+	{SecretKindWebhookSecret, "discord_webhook_url", regexp.MustCompile(`https://discord(?:app)?\.com/api/webhooks/[0-9]+/[A-Za-z0-9._-]{20,}`)},
 	{SecretKindProviderKey, "anthropic_key", regexp.MustCompile(`\bsk-ant-[A-Za-z0-9_-]{20,}\b`)},
 	{SecretKindProviderKey, "linear_key", regexp.MustCompile(`\blin_api_[A-Za-z0-9]{20,}\b`)},
 	{SecretKindProviderKey, "huggingface_token", regexp.MustCompile(`\bhf_[A-Za-z0-9]{20,}\b`)},
@@ -74,9 +77,10 @@ var secretValuePatterns = []struct {
 	{SecretKindToken, "supabase_jwt", regexp.MustCompile(`\bsb_[A-Za-z0-9_-]{20,}\b`)},
 	{SecretKindToken, "cloudflare_token", regexp.MustCompile(`\b(?:CFPAT|cfpat)_[A-Za-z0-9_-]{20,}\b`)},
 	{SecretKindToken, "datadog_key", regexp.MustCompile(`\b(?:dd|datadog)_[A-Za-z0-9]{20,}\b`)},
+	{SecretKindToken, "sentry_auth_token", regexp.MustCompile(`\bsntrys_[A-Za-z0-9_-]{20,}\b`)},
 }
 
-var assignmentPattern = regexp.MustCompile(`(?i)\b([A-Za-z0-9_.-]*(?:secret|token|password|passwd|pwd|api[_-]?key|access[_-]?key|private[_-]?key|credential|signature|session|cookie|authorization|client[_-]?secret|refresh[_-]?token|webhook[_-]?secret|signing[_-]?key|database[_-]?url|dsn)[A-Za-z0-9_.-]*)\s*([=:])\s*("[^"]*"|'[^']*'|[^\s,;&]+)`)
+var assignmentPattern = regexp.MustCompile(`(?i)\b([A-Za-z0-9_.-]*(?:secret|token|password|passwd|pwd|passphrase|api[_-]?key|access[_-]?key|private[_-]?key|credential|signature|session|cookie|authorization|client[_-]?secret|refresh[_-]?token|webhook[_-]?secret|signing[_-]?key|shared[_-]?access[_-]?signature|database[_-]?url|dsn)[A-Za-z0-9_.-]*)\s*([=:])\s*("[^"]*"|'[^']*'|[^\s,;&]+)`)
 var embeddedURLPattern = regexp.MustCompile(`https?://[^\s"'<>]+`)
 
 type MalwareScanStatus string
@@ -127,6 +131,7 @@ func (s HTTPMalwareScanner) Scan(ctx context.Context, target MalwareScanTarget) 
 	if strings.TrimSpace(target.TenantID) == "" || strings.TrimSpace(target.ObjectKey) == "" {
 		return MalwareScanResult{}, errors.New("malware scan tenant_id and object_key are required")
 	}
+	target.Metadata = RedactStringMap(target.Metadata)
 	body, err := json.Marshal(target)
 	if err != nil {
 		return MalwareScanResult{}, err
@@ -162,20 +167,43 @@ func (s HTTPMalwareScanner) Scan(ctx context.Context, target MalwareScanTarget) 
 	if err := json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&result); err != nil {
 		return MalwareScanResult{}, err
 	}
+	status, ok := NormalizeMalwareScanStatus(result.Status)
+	if !ok {
+		return MalwareScanResult{}, fmt.Errorf("malware scan endpoint returned unsupported status %q", result.Status)
+	}
+	result.Status = status
+	result.Provider = RedactString(strings.TrimSpace(result.Provider))
 	if result.Provider == "" {
 		result.Provider = strings.TrimSpace(s.Provider)
 	}
 	if result.Provider == "" {
 		result.Provider = "http"
 	}
+	result.Signature = RedactString(strings.TrimSpace(result.Signature))
 	if result.Signature == "" {
 		result.Signature = "http-v1"
 	}
+	result.Rationale = RedactString(result.Rationale)
 	if result.ScannedAt.IsZero() {
 		result.ScannedAt = s.clock()
 	}
 	result.Metadata = RedactStringMap(result.Metadata)
 	return result, nil
+}
+
+func NormalizeMalwareScanStatus(status MalwareScanStatus) (MalwareScanStatus, bool) {
+	switch MalwareScanStatus(strings.ToLower(strings.TrimSpace(string(status)))) {
+	case MalwareScanStatusClean:
+		return MalwareScanStatusClean, true
+	case MalwareScanStatusSuspicious:
+		return MalwareScanStatusSuspicious, true
+	case MalwareScanStatusUnavailable, "":
+		return MalwareScanStatusUnavailable, true
+	case MalwareScanStatusError:
+		return MalwareScanStatusError, true
+	default:
+		return "", false
+	}
 }
 
 func (s HTTPMalwareScanner) clock() time.Time {
@@ -533,7 +561,8 @@ func isSignedURLQueryKey(key string) bool {
 	switch normalized {
 	case "x-amz-algorithm", "x-amz-credential", "x-amz-signature", "x-amz-security-token",
 		"x-goog-credential", "x-goog-signature", "x-goog-security-token",
-		"awsaccesskeyid", "signature", "sig", "token", "access-token", "download-token":
+		"awsaccesskeyid", "signature", "sig", "token", "access-token", "download-token",
+		"se", "sp", "spr", "sr", "sv", "skoid", "sktid", "skt", "ske", "sks", "skv":
 		return true
 	default:
 		return false
