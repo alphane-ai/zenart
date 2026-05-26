@@ -199,7 +199,7 @@ func (s *Server) createExport(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, http.StatusBadRequest, "invalid_json", "request body must be valid JSON", nil)
 		return
 	}
-	taskStatus, err := service.CreateExport(r.Context(), principal.TenantID, r.PathValue("id"), input, s.cfg.Tasks.SchemaVersion)
+	taskStatus, err := service.CreateExport(r.Context(), principal.TenantID, principal.UserID, r.PathValue("id"), input, s.cfg.Tasks.SchemaVersion)
 	if err != nil {
 		writeStage0Error(w, r, err)
 		return

@@ -184,6 +184,19 @@ type CleanupResult struct {
 	DeletedObjects  int `json:"deleted_objects"`
 }
 
+type AnalyticsEvent struct {
+	ID          string         `json:"id"`
+	TenantID    string         `json:"tenant_id"`
+	UserID      string         `json:"user_id,omitempty"`
+	ProjectID   string         `json:"project_id,omitempty"`
+	WorkflowID  string         `json:"workflow_id,omitempty"`
+	EventName   string         `json:"event_name"`
+	SubjectType string         `json:"subject_type"`
+	SubjectID   string         `json:"subject_id"`
+	Properties  map[string]any `json:"properties,omitempty"`
+	CreatedAt   time.Time      `json:"created_at"`
+}
+
 type CrawlerSource struct {
 	ID             string         `json:"id"`
 	TenantID       *string        `json:"tenant_id,omitempty"`
@@ -240,13 +253,17 @@ func NewRepository(db store.DBTX) Repository {
 	return Repository{db: db}
 }
 
-func (r Repository) CreateExport(ctx context.Context, tenantID, packageID string, input ExportCreate, schemaVersion int) (task.Task, error) {
+func (r Repository) CreateExport(ctx context.Context, tenantID, userID, packageID string, input ExportCreate, schemaVersion int) (task.Task, error) {
 	format := strings.TrimSpace(input.Format)
 	if format == "" {
 		format = "zip"
 	}
 	if format != "zip" && format != "pdf" {
 		return task.Task{}, errors.Join(ErrValidation, errors.New("format must be zip or pdf"))
+	}
+	pkg, err := r.packageContext(ctx, tenantID, packageID)
+	if err != nil {
+		return task.Task{}, err
 	}
 	blocked, err := r.hasBlockingExportQA(ctx, tenantID, packageID)
 	if err != nil {
@@ -265,23 +282,41 @@ VALUES($1, $2, 'package_export_builder', $3, 'pending', 'pending', 0, 'Export qu
 		taskID,
 		tenantID,
 		schemaVersion,
-		jsonObject(map[string]any{"package_id": packageID, "format": format, "export_id": exportID}),
+		jsonObject(map[string]any{"package_id": packageID, "project_id": pkg.ProjectID, "workflow_id": pkg.WorkflowID, "format": format, "export_id": exportID}),
 		now,
 	)
 	if err != nil {
 		return task.Task{}, err
 	}
 	_, err = r.db.Exec(ctx, `
-INSERT INTO exports(id, tenant_id, package_id, task_id, format, status, qa_status, created_at, updated_at)
-VALUES($1, $2, $3, $4, $5, 'pending', 'pending', $6, $6)`,
+INSERT INTO exports(id, tenant_id, package_id, project_id, task_id, format, status, qa_status, created_at, updated_at)
+VALUES($1, $2, $3, $4, $5, $6, 'pending', 'pending', $7, $7)`,
 		exportID,
 		tenantID,
 		packageID,
+		pkg.ProjectID,
 		taskID,
 		format,
 		now,
 	)
 	if err != nil {
+		return task.Task{}, err
+	}
+	if err := r.RecordAnalyticsEvent(ctx, AnalyticsEvent{
+		TenantID:    tenantID,
+		UserID:      userID,
+		ProjectID:   pkg.ProjectID,
+		WorkflowID:  pkg.WorkflowID,
+		EventName:   "export_started",
+		SubjectType: "export",
+		SubjectID:   exportID,
+		Properties: map[string]any{
+			"package_id": packageID,
+			"task_id":    taskID,
+			"format":     format,
+		},
+		CreatedAt: now,
+	}); err != nil {
 		return task.Task{}, err
 	}
 	return task.Task{
@@ -295,7 +330,7 @@ VALUES($1, $2, $3, $4, $5, 'pending', 'pending', $6, $6)`,
 		UserMessage:   "Export queued",
 		AppVersion:    "stage0-local",
 		WorkerVersion: "stage0-local",
-		Metadata:      map[string]any{"package_id": packageID, "format": format, "export_id": exportID},
+		Metadata:      map[string]any{"package_id": packageID, "project_id": pkg.ProjectID, "workflow_id": pkg.WorkflowID, "format": format, "export_id": exportID},
 		CreatedAt:     now,
 		UpdatedAt:     now,
 	}, nil
@@ -417,6 +452,23 @@ VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, '', $11, $12, $13, $14)`,
 		now,
 	)
 	if err != nil {
+		return Upload{}, err
+	}
+	if err := r.RecordAnalyticsEvent(ctx, AnalyticsEvent{
+		TenantID:    opts.TenantID,
+		UserID:      opts.UserID,
+		ProjectID:   stringValue(upload.ProjectID),
+		EventName:   "upload_created",
+		SubjectType: "upload",
+		SubjectID:   upload.ID,
+		Properties: map[string]any{
+			"upload_type":  upload.UploadType,
+			"content_type": upload.ContentType,
+			"byte_size":    upload.ByteSize,
+			"object_id":    upload.ObjectMetadata.ID,
+		},
+		CreatedAt: now,
+	}); err != nil {
 		return Upload{}, err
 	}
 	return upload, nil
@@ -558,6 +610,25 @@ WHERE tenant_id = $1 AND id = $2`,
 		now,
 	)
 	if err != nil {
+		return Export{}, err
+	}
+	if err := r.RecordAnalyticsEvent(ctx, AnalyticsEvent{
+		TenantID:    artifact.TenantID,
+		UserID:      artifact.OwnerID,
+		ProjectID:   artifact.ProjectID,
+		WorkflowID:  stringFromMap(artifact.Manifest, "workflow_id", ""),
+		EventName:   "export_completed",
+		SubjectType: "export",
+		SubjectID:   artifact.ExportID,
+		Properties: map[string]any{
+			"format":             artifact.Format,
+			"byte_size":          artifact.ByteSize,
+			"object_metadata_id": objectID,
+			"qa_report":          artifact.QAReport,
+			"delivery":           delivery,
+		},
+		CreatedAt: now,
+	}); err != nil {
 		return Export{}, err
 	}
 	return r.GetExport(ctx, artifact.TenantID, artifact.ExportID)
@@ -744,6 +815,20 @@ WHERE tenant_id = $1 AND id = $2`,
 	if err != nil {
 		return Export{}, err
 	}
+	if err := r.RecordAnalyticsEvent(ctx, AnalyticsEvent{
+		TenantID:    tenantID,
+		ProjectID:   stringValue(export.ProjectID),
+		EventName:   "export_regenerated",
+		SubjectType: "export",
+		SubjectID:   exportID,
+		Properties: map[string]any{
+			"package_id": export.PackageID,
+			"format":     export.Format,
+		},
+		CreatedAt: now,
+	}); err != nil {
+		return Export{}, err
+	}
 	export.Status = "pending"
 	export.QAStatus = "pending"
 	export.Error = nil
@@ -796,6 +881,22 @@ VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $10)`,
 		now,
 	)
 	if err != nil {
+		return SupportTicket{}, err
+	}
+	if err := r.RecordAnalyticsEvent(ctx, AnalyticsEvent{
+		TenantID:    tenantID,
+		UserID:      userID,
+		ProjectID:   stringValue(ticket.ProjectID),
+		EventName:   "support_ticket_created",
+		SubjectType: "support_ticket",
+		SubjectID:   ticket.ID,
+		Properties: map[string]any{
+			"category":         ticket.Category,
+			"linked_export_id": stringValue(ticket.LinkedExportID),
+			"metadata":         ticket.Metadata,
+		},
+		CreatedAt: now,
+	}); err != nil {
 		return SupportTicket{}, err
 	}
 	return ticket, nil
@@ -978,7 +1079,84 @@ VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
 	if err != nil {
 		return SafetyDecision{}, err
 	}
+	if err := r.RecordAnalyticsEvent(ctx, AnalyticsEvent{
+		TenantID:    tenantID,
+		EventName:   "safety_decision_recorded",
+		SubjectType: subjectType,
+		SubjectID:   subjectID,
+		Properties: map[string]any{
+			"enforcement_point": point,
+			"decision":          decision,
+			"rule_id":           stringValue(ruleID),
+		},
+		CreatedAt: record.CreatedAt,
+	}); err != nil {
+		return SafetyDecision{}, err
+	}
 	return record, nil
+}
+
+func (r Repository) RecordAnalyticsEvent(ctx context.Context, event AnalyticsEvent) error {
+	event.TenantID = strings.TrimSpace(event.TenantID)
+	event.UserID = strings.TrimSpace(event.UserID)
+	event.ProjectID = strings.TrimSpace(event.ProjectID)
+	event.WorkflowID = strings.TrimSpace(event.WorkflowID)
+	event.EventName = strings.TrimSpace(event.EventName)
+	event.SubjectType = strings.TrimSpace(event.SubjectType)
+	event.SubjectID = strings.TrimSpace(event.SubjectID)
+	if event.TenantID == "" || event.EventName == "" || event.SubjectType == "" || event.SubjectID == "" {
+		return errors.Join(ErrValidation, errors.New("tenant_id, event_name, subject_type, and subject_id are required"))
+	}
+	if event.ID == "" {
+		event.ID = id.New("analytics")
+	}
+	if event.CreatedAt.IsZero() {
+		event.CreatedAt = time.Now().UTC()
+	}
+	properties := security.RedactMap(event.Properties)
+	if properties == nil {
+		properties = map[string]any{}
+	}
+	_, err := r.db.Exec(ctx, `
+INSERT INTO analytics_events(id, tenant_id, user_id, project_id, workflow_id, event_name, subject_type, subject_id, properties, created_at)
+VALUES($1, $2, NULLIF($3, ''), NULLIF($4, ''), $5, $6, $7, $8, $9, $10)`,
+		event.ID,
+		event.TenantID,
+		event.UserID,
+		event.ProjectID,
+		event.WorkflowID,
+		event.EventName,
+		event.SubjectType,
+		event.SubjectID,
+		jsonObject(properties),
+		event.CreatedAt.UTC(),
+	)
+	return err
+}
+
+type packageContext struct {
+	ProjectID  string
+	CreatedBy  string
+	WorkflowID string
+}
+
+func (r Repository) packageContext(ctx context.Context, tenantID, packageID string) (packageContext, error) {
+	var pkg packageContext
+	err := r.db.QueryRow(ctx, `
+SELECT p.project_id, p.created_by, COALESCE(pr.workflow_id, '')
+FROM packages p
+LEFT JOIN projects pr ON pr.tenant_id = p.tenant_id AND pr.id = p.project_id
+WHERE p.tenant_id = $1 AND p.id = $2`,
+		tenantID,
+		packageID,
+	).Scan(&pkg.ProjectID, &pkg.CreatedBy, &pkg.WorkflowID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return packageContext{}, ErrNotFound
+	}
+	if err != nil {
+		return packageContext{}, err
+	}
+	return pkg, nil
 }
 
 func (r Repository) findBlockingRule(ctx context.Context, point string) (SafetyRule, bool, error) {
@@ -1248,6 +1426,13 @@ func nullableString(value string) *string {
 	return &value
 }
 
+func stringValue(value *string) string {
+	if value == nil {
+		return ""
+	}
+	return strings.TrimSpace(*value)
+}
+
 func tenantScopedObjectKey(tenantID, key string) string {
 	prefix := "tenants/" + strings.Trim(strings.TrimSpace(tenantID), "/") + "/"
 	key = strings.Trim(strings.TrimSpace(key), "/")
@@ -1270,8 +1455,8 @@ func (s Service) Repository() Repository {
 	return s.repo
 }
 
-func (s Service) CreateExport(ctx context.Context, tenantID, packageID string, input ExportCreate, schemaVersion int) (task.Task, error) {
-	return s.repo.CreateExport(ctx, tenantID, packageID, input, schemaVersion)
+func (s Service) CreateExport(ctx context.Context, tenantID, userID, packageID string, input ExportCreate, schemaVersion int) (task.Task, error) {
+	return s.repo.CreateExport(ctx, tenantID, userID, packageID, input, schemaVersion)
 }
 
 func (s Service) RecordExportArtifact(ctx context.Context, artifact ExportArtifact) (Export, error) {

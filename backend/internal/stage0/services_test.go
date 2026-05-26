@@ -41,20 +41,25 @@ func TestCreateSupportTicketPersistsTenantUserAndLinks(t *testing.T) {
 	if ticket.Metadata["api_key"] != "[REDACTED]" {
 		t.Fatalf("ticket api_key metadata = %v, want redacted", ticket.Metadata["api_key"])
 	}
-	if len(db.execs) != 1 || !strings.Contains(db.execs[0].sql, "INSERT INTO support_tickets") {
+	if len(db.execs) != 2 || !strings.Contains(db.execs[0].sql, "INSERT INTO support_tickets") {
 		t.Fatalf("support ticket insert not recorded: %#v", db.execs)
+	}
+	if !strings.Contains(db.execs[1].sql, "INSERT INTO analytics_events") {
+		t.Fatalf("support ticket analytics event not recorded: %s", db.execs[1].sql)
 	}
 }
 
 func TestCreateExportBlocksWhenQAHasBlockingResult(t *testing.T) {
 	db := &fakeDB{
 		queryRows: []rowSet{{
+			rows: [][]any{{"project_1", "user_1", "workflow_1"}},
+		}, {
 			rows: [][]any{{"block", "blocking"}},
 		}},
 	}
 	repo := NewRepository(db)
 
-	_, err := repo.CreateExport(context.Background(), "tenant_1", "package_1", ExportCreate{Format: "zip"}, 1)
+	_, err := repo.CreateExport(context.Background(), "tenant_1", "user_1", "package_1", ExportCreate{Format: "zip"}, 1)
 	if !errors.Is(err, ErrSafetyBlocked) {
 		t.Fatalf("CreateExport() error = %v, want ErrSafetyBlocked", err)
 	}
@@ -64,24 +69,45 @@ func TestCreateExportBlocksWhenQAHasBlockingResult(t *testing.T) {
 }
 
 func TestCreateExportCreatesTaskAndExport(t *testing.T) {
-	db := &fakeDB{queryRows: []rowSet{{}}}
+	db := &fakeDB{queryRows: []rowSet{{
+		rows: [][]any{{"project_1", "user_1", "workflow_1"}},
+	}, {}}}
 	repo := NewRepository(db)
 
-	task, err := repo.CreateExport(context.Background(), "tenant_1", "package_1", ExportCreate{Format: "zip"}, 7)
+	task, err := repo.CreateExport(context.Background(), "tenant_1", "user_1", "package_1", ExportCreate{Format: "zip"}, 7)
 	if err != nil {
 		t.Fatalf("CreateExport() error = %v", err)
 	}
 	if task.SchemaVersion != 7 || task.Type != "package_export_builder" {
 		t.Fatalf("task = %#v", task)
 	}
-	if len(db.execs) != 2 {
-		t.Fatalf("exec count = %d, want 2", len(db.execs))
+	if task.Metadata["project_id"] != "project_1" || task.Metadata["workflow_id"] != "workflow_1" {
+		t.Fatalf("task metadata = %#v, want project/workflow analytics context", task.Metadata)
+	}
+	if len(db.execs) != 3 {
+		t.Fatalf("exec count = %d, want 3", len(db.execs))
 	}
 	if !strings.Contains(db.execs[0].sql, "INSERT INTO agent_tasks") {
 		t.Fatalf("first exec should create task: %s", db.execs[0].sql)
 	}
-	if !strings.Contains(db.execs[1].sql, "INSERT INTO exports") {
+	if !strings.Contains(db.execs[1].sql, "INSERT INTO exports") || !strings.Contains(db.execs[1].sql, "project_id") {
 		t.Fatalf("second exec should create export: %s", db.execs[1].sql)
+	}
+	if !strings.Contains(db.execs[2].sql, "INSERT INTO analytics_events") {
+		t.Fatalf("third exec should create export analytics event: %s", db.execs[2].sql)
+	}
+}
+
+func TestCreateExportRequiresTenantScopedPackage(t *testing.T) {
+	db := &fakeDB{}
+	repo := NewRepository(db)
+
+	_, err := repo.CreateExport(context.Background(), "tenant_1", "user_1", "package_cross_tenant", ExportCreate{Format: "zip"}, 7)
+	if !errors.Is(err, ErrNotFound) {
+		t.Fatalf("CreateExport() error = %v, want ErrNotFound", err)
+	}
+	if len(db.execs) != 0 {
+		t.Fatalf("cross-tenant package should not write rows: %#v", db.execs)
 	}
 }
 
@@ -122,8 +148,8 @@ func TestCreateUploadValidatesAndPersistsMetadata(t *testing.T) {
 	if upload.Metadata["session_token"] != "[REDACTED]" {
 		t.Fatalf("upload session token metadata = %v, want redacted", upload.Metadata["session_token"])
 	}
-	if len(db.execs) != 2 {
-		t.Fatalf("exec count = %d, want 2", len(db.execs))
+	if len(db.execs) != 3 {
+		t.Fatalf("exec count = %d, want 3", len(db.execs))
 	}
 	if !strings.Contains(db.execs[0].sql, "INSERT INTO uploads") {
 		t.Fatalf("first exec should create upload: %s", db.execs[0].sql)
@@ -133,6 +159,9 @@ func TestCreateUploadValidatesAndPersistsMetadata(t *testing.T) {
 	}
 	if !strings.Contains(db.execs[1].sql, "project_id, owner_id, asset_type") {
 		t.Fatalf("object metadata insert missing ownership fields: %s", db.execs[1].sql)
+	}
+	if !strings.Contains(db.execs[2].sql, "INSERT INTO analytics_events") {
+		t.Fatalf("upload analytics event not recorded: %s", db.execs[2].sql)
 	}
 }
 
@@ -226,8 +255,8 @@ func TestRecordExportArtifactPersistsObjectMetadataAndDeliveryDescriptors(t *tes
 	if export.Delivery["thumbnail"] == nil {
 		t.Fatalf("delivery metadata missing thumbnail descriptor: %#v", export.Delivery)
 	}
-	if len(db.execs) != 3 {
-		t.Fatalf("exec count = %d, want export metadata, thumbnail metadata, and export update", len(db.execs))
+	if len(db.execs) != 4 {
+		t.Fatalf("exec count = %d, want export metadata, thumbnail metadata, export update, and analytics event", len(db.execs))
 	}
 	if !strings.Contains(db.execs[0].sql, "INSERT INTO object_metadata") || !strings.Contains(db.execs[0].sql, "derived_from_object_id") {
 		t.Fatalf("first exec missing rich object metadata insert: %s", db.execs[0].sql)
@@ -243,6 +272,9 @@ func TestRecordExportArtifactPersistsObjectMetadataAndDeliveryDescriptors(t *tes
 	}
 	if !strings.Contains(db.execs[2].sql, "delivery_metadata") {
 		t.Fatalf("third exec should update export delivery metadata: %s", db.execs[2].sql)
+	}
+	if !strings.Contains(db.execs[3].sql, "INSERT INTO analytics_events") {
+		t.Fatalf("fourth exec should create export completion analytics event: %s", db.execs[3].sql)
 	}
 }
 
@@ -372,8 +404,44 @@ func TestEnforceSafetyRecordsBlockDecisionForActiveRule(t *testing.T) {
 	if decision.Decision != "block" || decision.RuleID == nil || *decision.RuleID != "rule_1" {
 		t.Fatalf("decision = %#v", decision)
 	}
-	if len(db.execs) != 1 || !strings.Contains(db.execs[0].sql, "INSERT INTO safety_decisions") {
+	if len(db.execs) != 2 || !strings.Contains(db.execs[0].sql, "INSERT INTO safety_decisions") {
 		t.Fatalf("safety decision insert not recorded: %#v", db.execs)
+	}
+	if !strings.Contains(db.execs[1].sql, "INSERT INTO analytics_events") {
+		t.Fatalf("safety decision analytics event not recorded: %s", db.execs[1].sql)
+	}
+}
+
+func TestRecordAnalyticsEventRedactsProperties(t *testing.T) {
+	db := &fakeDB{}
+	repo := NewRepository(db)
+
+	err := repo.RecordAnalyticsEvent(context.Background(), AnalyticsEvent{
+		ID:          "analytics_1",
+		TenantID:    "tenant_1",
+		UserID:      "user_1",
+		ProjectID:   "project_1",
+		WorkflowID:  "workflow_1",
+		EventName:   "export_started",
+		SubjectType: "export",
+		SubjectID:   "export_1",
+		Properties: map[string]any{
+			"format":  "zip",
+			"api_key": "secret",
+		},
+	})
+	if err != nil {
+		t.Fatalf("RecordAnalyticsEvent() error = %v", err)
+	}
+	if len(db.execs) != 1 || !strings.Contains(db.execs[0].sql, "INSERT INTO analytics_events") {
+		t.Fatalf("analytics insert not recorded: %#v", db.execs)
+	}
+	properties, ok := db.execs[0].args[8].([]byte)
+	if !ok {
+		t.Fatalf("properties arg type = %T, want []byte", db.execs[0].args[8])
+	}
+	if !strings.Contains(string(properties), `"api_key":"[REDACTED]"`) {
+		t.Fatalf("properties = %s, want redacted api_key", string(properties))
 	}
 }
 

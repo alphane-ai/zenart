@@ -1920,7 +1920,7 @@ main 合并前必须通过：
 ### 25.19 Product Analytics
 
 - [x] 定义 analytics event taxonomy。
-- [ ] 实现 server-side core workflow event capture。
+- [x] 实现 server-side core workflow event capture。
 - [x] 实现 client-side onboarding/UI funnel capture。
 - [x] 实现 admin report：first prompt to four candidates。
 - [x] 实现 admin report：selection rate。
