@@ -1,0 +1,61 @@
+{
+  "schema_version": "stage0.rev2",
+  "gate": "ci",
+  "evidence_id": "gate_ci_draft_blocked",
+  "checks": [
+    {
+      "check_id": "ci_draft_artifact_coverage",
+      "status": "pass",
+      "evidence_ref": "fixtures/ops/stage0_rev2_ci_draft_evidence.json validates ops/ci/stage0-rev2-ci.yml coverage"
+    },
+    {
+      "check_id": "ci_installed_workflow",
+      "status": "blocked",
+      "evidence_ref": ".github/workflows/stage0-rev2-ci.yml is absent because current token lacks workflow scope"
+    },
+    {
+      "check_id": "ci_gate_runtime_execution",
+      "status": "blocked",
+      "evidence_ref": "CI Gate cannot pass until the workflow is installed under .github/workflows and runs on PR/main"
+    },
+    {
+      "check_id": "ci_playwright_smoke",
+      "status": "blocked",
+      "evidence_ref": "Docs/stage0_blueprint_rev2.md keeps CI Playwright smoke open"
+    },
+    {
+      "check_id": "ci_docker_image_build",
+      "status": "blocked",
+      "evidence_ref": "Docs/stage0_blueprint_rev2.md keeps CI Docker image build open"
+    }
+  ],
+  "do_not_launch_checks": [
+    {
+      "condition_id": "ci_workflow_not_installed",
+      "is_present": true,
+      "evidence_ref": "ops/ci/INSTALLATION.md records workflow-scope blocker"
+    },
+    {
+      "condition_id": "ci_gate_not_executed_on_main",
+      "is_present": true,
+      "evidence_ref": "fixtures/ops/stage0_rev2_ci_draft_evidence.json release_gate_effect.ci_gate_status is blocked"
+    },
+    {
+      "condition_id": "ci_playwright_smoke_missing",
+      "is_present": true,
+      "evidence_ref": "Stage 0 Rev2 checklist item for CI Playwright smoke remains open"
+    },
+    {
+      "condition_id": "ci_docker_image_build_missing",
+      "is_present": true,
+      "evidence_ref": "Stage 0 Rev2 checklist item for CI Docker image builds remains open"
+    }
+  ],
+  "provenance": {
+    "blueprint_sections": [
+      "23.2",
+      "24"
+    ],
+    "created_by_lane": "lane6"
+  }
+}

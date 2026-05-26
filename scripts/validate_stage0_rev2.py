@@ -126,6 +126,7 @@ SCHEMA_FIXTURE_TARGETS = [
     ("feedback_event.schema.json", FIXTURE_DIR / "feedback" / "feedback_events.json", "array_items"),
     ("abuse_event.schema.json", FIXTURE_DIR / "abuse" / "abuse_events.json", "array_items"),
     ("release_gate_evidence.schema.json", FIXTURE_DIR / "release_gate_evidence.local_alpha.json", "object"),
+    ("release_gate_evidence.schema.json", FIXTURE_DIR / "release_gate_evidence.ci.json", "object"),
 ]
 
 CHECKED_ITEMS = {
@@ -525,6 +526,7 @@ def validate_json_files() -> None:
         FIXTURE_DIR / "feedback" / "feedback_events.json",
         FIXTURE_DIR / "abuse" / "abuse_events.json",
         FIXTURE_DIR / "release_gate_evidence.local_alpha.json",
+        FIXTURE_DIR / "release_gate_evidence.ci.json",
         CI_DRAFT_EVIDENCE,
     ]
     for path in required:
@@ -730,10 +732,10 @@ def validate_crawler_feedback_abuse() -> None:
 
 
 def validate_release_gate_evidence() -> None:
-    data = load_json(FIXTURE_DIR / "release_gate_evidence.local_alpha.json")
-    require(data["gate"] == "local_alpha", "release gate fixture must target local alpha")
-    check_ids = {check["check_id"] for check in data["checks"]}
-    checks = {check["check_id"]: check for check in data["checks"]}
+    local_alpha = load_json(FIXTURE_DIR / "release_gate_evidence.local_alpha.json")
+    require(local_alpha["gate"] == "local_alpha", "release gate fixture must target local alpha")
+    check_ids = {check["check_id"] for check in local_alpha["checks"]}
+    checks = {check["check_id"]: check for check in local_alpha["checks"]}
     require(
         {"workflow_fixture_coverage", "eval_fixture_coverage", "crawler_governance_fixture_coverage"} <= check_ids,
         "local alpha evidence missing fixture coverage checks",
@@ -776,7 +778,7 @@ def validate_release_gate_evidence() -> None:
             "local alpha runtime stack cannot pass before docker compose and env evidence validate",
         )
 
-    do_not_launch = {item["condition_id"]: item["is_present"] for item in data["do_not_launch_checks"]}
+    do_not_launch = {item["condition_id"]: item["is_present"] for item in local_alpha["do_not_launch_checks"]}
     require(
         do_not_launch.get("generic_workflow_only") is False,
         "release evidence must guard against generic workflow-only completion",
@@ -792,6 +794,45 @@ def validate_release_gate_evidence() -> None:
     require(
         do_not_launch.get("local_alpha_runtime_not_validated") is (not local_alpha_runtime_stack_validated()),
         "release evidence local_alpha_runtime_not_validated must reflect computed runtime validation state",
+    )
+
+    ci = load_json(FIXTURE_DIR / "release_gate_evidence.ci.json")
+    require(ci["gate"] == "ci", "CI release gate fixture must target CI")
+    ci_checks = {check["check_id"]: check for check in ci["checks"]}
+    for check_id in [
+        "ci_draft_artifact_coverage",
+        "ci_installed_workflow",
+        "ci_gate_runtime_execution",
+        "ci_playwright_smoke",
+        "ci_docker_image_build",
+    ]:
+        require(check_id in ci_checks, f"CI release evidence missing {check_id}")
+    require(
+        ci_checks["ci_draft_artifact_coverage"]["status"] == "pass",
+        "CI draft artifact coverage must pass when ops CI draft evidence validates",
+    )
+    if CI_WORKFLOW.exists():
+        require(
+            ci_checks["ci_installed_workflow"]["status"] == "pass",
+            "CI installed workflow check must pass when .github workflow exists",
+        )
+    else:
+        require(
+            ci_checks["ci_installed_workflow"]["status"] == "blocked",
+            "CI installed workflow check must stay blocked while .github workflow is absent",
+        )
+    require(
+        ci_checks["ci_gate_runtime_execution"]["status"] == "blocked",
+        "CI gate runtime execution must stay blocked until installed PR/main workflow evidence exists",
+    )
+    ci_do_not_launch = {item["condition_id"]: item["is_present"] for item in ci["do_not_launch_checks"]}
+    require(
+        ci_do_not_launch.get("ci_workflow_not_installed") is (not CI_WORKFLOW.exists()),
+        "CI release evidence ci_workflow_not_installed must reflect installed workflow presence",
+    )
+    require(
+        ci_do_not_launch.get("ci_gate_not_executed_on_main") is True,
+        "CI release evidence must keep CI gate blocked until PR/main runtime execution exists",
     )
 
 
