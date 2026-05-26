@@ -1851,7 +1851,7 @@ main 合并前必须通过：
 - [x] 实现 secure cookie 和 same-site CSRF 客户端/session contract evidence。
 - [ ] 后端设置并验证 secure/HttpOnly/SameSite session cookies。
 - [x] 配置 CORS。
-- [x] 配置 CSRF 或 same-site strategy。
+- [ ] 配置 CSRF 或 same-site strategy。
 - [x] 配置 security headers。
 - [x] 实现 upload validation。
 - [x] 实现 malware-scan placeholder/interface。
