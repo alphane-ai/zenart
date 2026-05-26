@@ -85,7 +85,7 @@ mkdir -p "$OUT_DIR"
 rm -f "$SECRET_FINDINGS" "$SECRET_CANDIDATES" "$NPM_AUDIT_WEB" "$NPM_AUDIT_ADMIN" "$GO_VULN" "$TRIVY_IMAGE"
 
 if git grep -nE '(AWS_SECRET_ACCESS_KEY|OPENAI_API_KEY|sk-[A-Za-z0-9_-]{20,}|ghp_[A-Za-z0-9_]{20,})' -- . >"$SECRET_CANDIDATES"; then
-  grep -Ev '^(\.env\.example|fixtures/|schemas/|ops/ci/stage0-rev2-ci\.yml|scripts/repo_validate\.sh|scripts/security_scan_smoke\.sh|backend/internal/security/redact_test\.go):|^backend/internal/server/server_test\.go:[0-9]+:.*sk-proj-abcdefghijklmnopqrstuvwxyz123456' "$SECRET_CANDIDATES" >"$SECRET_FINDINGS" || true
+  grep -Ev '^(\.env\.example|fixtures/|schemas/|ops/ci/stage0-rev2-ci\.yml|scripts/repo_validate\.sh|scripts/security_scan_smoke\.sh|backend/internal/security/redact_test\.go):|^backend/internal/server/server_test\.go:[0-9]+:.*sk-proj-abcdefghijklmnopqrstuvwxyz123456|^backend/internal/stage0/services_test\.go:[0-9]+:.*sk-ant-abcdefghijklmnopqrstuvwxyz123456' "$SECRET_CANDIDATES" >"$SECRET_FINDINGS" || true
   rm -f "$SECRET_CANDIDATES"
   if [[ -s "$SECRET_FINDINGS" ]]; then
     write_report "failed"

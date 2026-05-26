@@ -205,6 +205,16 @@ def normalized_token(value):
     return str(value).strip().lower().replace("-", "_").replace(" ", "_")
 
 
+def direct_string_values(value, keys):
+    if not isinstance(value, dict):
+        return []
+    return [
+        str(nested)
+        for key, nested in value.items()
+        if key in keys and isinstance(nested, str)
+    ]
+
+
 def collect_named_entries(parsed):
     entries = {}
     if not isinstance(parsed, dict):
@@ -235,7 +245,7 @@ def collect_named_entries(parsed):
 def entry_passed(entry, accepted_statuses):
     status_values = [
         normalized_token(value)
-        for value in collect_key_values(entry, {"status", "result", "runtime_status"})
+        for value in direct_string_values(entry, {"status", "result", "runtime_status"})
     ]
     accepted = {normalized_token(value) for value in accepted_statuses}
     return any(value in accepted for value in status_values)
@@ -401,9 +411,9 @@ def validate_staging_evidence_ref(name, value, *, expected_kind, accepted_status
         result["verified"] = False
         return result
 
-    status_values = [item.lower() for item in collect_key_values(parsed, {"status", "result", "runtime_status"})]
-    environment_values = [item.lower() for item in collect_key_values(parsed, {"environment", "env"})]
-    kind_values = [item.lower() for item in collect_key_values(parsed, {"kind", "evidence_kind", "type", "evidence_type"})]
+    status_values = [item.lower() for item in direct_string_values(parsed, {"status", "result", "runtime_status"})]
+    environment_values = [item.lower() for item in direct_string_values(parsed, {"environment", "env"})]
+    kind_values = [item.lower() for item in direct_string_values(parsed, {"kind", "evidence_kind", "type", "evidence_type"})]
     result["status_values"] = status_values
     result["environment_values"] = environment_values
     result["evidence_kind_values"] = kind_values

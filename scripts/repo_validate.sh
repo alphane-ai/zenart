@@ -574,6 +574,62 @@ if decision_inputs != {
 }:
     raise SystemExit(f"complete-evidence staging smoke decision inputs mismatch: {decision_inputs}")
 PY
+nested_only_dir="$(mktemp -d)"
+cat >"$nested_only_dir/observability.json" <<EOF
+{
+  "release_sha": "$complete_sha",
+  "environment": "qa",
+  "kind": "ops_bundle",
+  "status": "failed",
+  "signals": [
+    {"name": "request_id_propagation", "status": "passed", "evidence_ref": "staging/logs/request-id-$complete_sha.json"},
+    {"name": "structured_json_logs", "status": "passed", "evidence_ref": "staging/logs/json-logs-$complete_sha.json"},
+    {"name": "opentelemetry_traces", "status": "passed", "trace_id": "trace-$complete_sha"},
+    {"name": "backend_worker_crawler_metrics", "status": "passed", "metrics_query": "staging metrics release_sha=$complete_sha"},
+    {"name": "dashboard_import", "status": "passed", "dashboard_uid": "stage0-rev2-$complete_sha"},
+    {"name": "alert_routes", "status": "validated", "alert_rule_url": "https://monitoring.example.invalid/stage0/$complete_sha"}
+  ]
+}
+EOF
+DRY_RUN=1 \
+  OUT_DIR="$nested_only_dir/staging" \
+  RELEASE_SHA="$complete_sha" \
+  RELEASE_TAG="stage0-synthetic" \
+  RELEASE_NOTES_PATH="$complete_validate_dir/release-notes.md" \
+  IMAGE_REFS="ghcr.io/alphane-ai/zenart-backend:$complete_sha,ghcr.io/alphane-ai/zenart-web:$complete_sha,ghcr.io/alphane-ai/zenart-admin:$complete_sha" \
+  MIGRATION_EVIDENCE="$complete_validate_dir/migration.json" \
+  CONFIG_DIFF_EVIDENCE="$complete_validate_dir/config.json" \
+  OBSERVABILITY_EVIDENCE="$nested_only_dir/observability.json" \
+  BACKUP_RESTORE_EVIDENCE="$complete_validate_dir/backup.json" \
+  LOAD_EVIDENCE="$complete_validate_dir/load.json" \
+  ROLLBACK_EVIDENCE="$complete_validate_dir/rollback.json" \
+  SECURITY_SCAN_EVIDENCE="$complete_validate_dir/security.json" \
+  scripts/staging_smoke.sh >/dev/null
+python3 - "$nested_only_dir/staging" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+reports = sorted(Path(sys.argv[1]).glob("*.json"))
+if len(reports) != 1:
+    raise SystemExit("nested-only staging smoke dry-run must write exactly one report")
+report = json.loads(reports[0].read_text(encoding="utf-8"))
+summary = report["summary"]
+release_evidence = summary["release_evidence"]
+observability = release_evidence["local_evidence_verification"]["observability_evidence"]
+semantic_checks = observability.get("semantic_checks", {})
+for key in ("environment_staging", "evidence_kind_match", "status_accepted"):
+    if semantic_checks.get(key) is not False:
+        raise SystemExit(f"nested-only observability evidence must fail top-level {key}: {semantic_checks}")
+if observability.get("observability_contract", {}).get("verified") is not True:
+    raise SystemExit("nested-only observability sub-signals should still be recognized independently")
+if observability.get("verified") is not False:
+    raise SystemExit(f"nested-only observability evidence must not verify from nested metadata: {observability}")
+if release_evidence.get("complete") is not False:
+    raise SystemExit("nested-only staging smoke must reject release evidence with wrong top-level metadata")
+if "unverified_release_evidence:observability_evidence" not in summary["go_no_go"].get("blocking_reasons", []):
+    raise SystemExit("nested-only staging smoke must block on unverified observability evidence")
+PY
 incomplete_contract_dir="$(mktemp -d)"
 printf '{"release_sha":"%s","environment":"staging","kind":"observability","status":"passed","signals":[{"name":"request_id_propagation","status":"passed","evidence_ref":"only-one-signal.json"}]}\n' "$complete_sha" >"$incomplete_contract_dir/observability.json"
 printf '{"release_sha":"%s","environment":"staging","kind":"backup_restore","status":"passed","drills":[{"drill_id":"postgres_restore","status":"passed","report_path":"postgres.json"}]}\n' "$complete_sha" >"$incomplete_contract_dir/backup.json"
@@ -683,7 +739,7 @@ if has_cmd git; then
   secret_candidates="$(mktemp)"
   secret_findings="$(mktemp)"
   git grep -nE '(AWS_SECRET_ACCESS_KEY|OPENAI_API_KEY|sk-[A-Za-z0-9_-]{20,}|ghp_[A-Za-z0-9_]{20,})' -- . >"$secret_candidates" || true
-  grep -Ev '^(\.env\.example|fixtures/|schemas/|ops/ci/stage0-rev2-ci\.yml|scripts/repo_validate\.sh|scripts/security_scan_smoke\.sh|backend/internal/security/redact_test\.go):|^backend/internal/server/server_test\.go:[0-9]+:.*sk-proj-abcdefghijklmnopqrstuvwxyz123456' "$secret_candidates" >"$secret_findings" || true
+  grep -Ev '^(\.env\.example|fixtures/|schemas/|ops/ci/stage0-rev2-ci\.yml|scripts/repo_validate\.sh|scripts/security_scan_smoke\.sh|backend/internal/security/redact_test\.go):|^backend/internal/server/server_test\.go:[0-9]+:.*sk-proj-abcdefghijklmnopqrstuvwxyz123456|^backend/internal/stage0/services_test\.go:[0-9]+:.*sk-ant-abcdefghijklmnopqrstuvwxyz123456' "$secret_candidates" >"$secret_findings" || true
   if [[ -s "$secret_findings" ]]; then
     cat "$secret_findings"
     printf 'potential committed secret found\n' >&2

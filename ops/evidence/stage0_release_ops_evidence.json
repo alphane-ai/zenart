@@ -96,6 +96,16 @@
       "security_scan_evidence": "must be local JSON, reference RELEASE_SHA, set environment=staging, set kind=security_scan, use status passed, and include passed/validated evidence refs for dependency_scan, image_scan, and secret_scan"
     },
     "staging_semantic_contracts": {
+      "top_level_release_evidence": {
+        "required_entries": [
+          "release_sha",
+          "environment",
+          "kind",
+          "status"
+        ],
+        "entry_requirements": "every JSON evidence file attached to scripts/staging_smoke.sh must carry the deploy RELEASE_SHA and must set top-level environment=staging, the expected top-level kind, and an accepted top-level status; nested child entries cannot satisfy those fields for the parent artifact",
+        "gate_policy": "release evidence with only nested staging/pass metadata remains unverified and cannot close private beta, production, or post-deploy smoke gates"
+      },
       "observability_evidence": {
         "required_entries": [
           "request_id_propagation",
