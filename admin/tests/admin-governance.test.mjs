@@ -11,7 +11,7 @@ const parseFixtures = () => {
   const moduleSource = source
     .replace(/^import type[\s\S]*?from "@\/lib\/types";\n\n/, "")
     .replaceAll(/export const (\w+)[^=]*=/g, "const $1 =");
-  return Function(`${moduleSource}\nreturn { skillVersions, skillReleaseStateDefinitions, skillCanaryMetrics, releaseEvidence, supportTickets, supportEscalationRunbooks, supportUsers, riskyExports, abuseEvents, abuseControlHooks, auditEvents, exportJobs, traces, quotaAccounts, feedbackItems, regressionFixtures, analyticsReports, queueHealth, failedTaskControls, crawlerFindings, crawlerSourceApprovals, crawlerGovernanceWorkflows, adminRbacEvidence, operationalDashboards, alertRoutes, alertRouteRuntimeEvidence };`)();
+  return Function(`${moduleSource}\nreturn { skillVersions, skillReleaseStateDefinitions, skillCanaryMetrics, releaseEvidence, releaseBlockers, supportTickets, supportEscalationRunbooks, supportUsers, riskyExports, abuseEvents, abuseControlHooks, auditEvents, exportJobs, traces, quotaAccounts, feedbackItems, regressionFixtures, analyticsReports, queueHealth, failedTaskControls, crawlerFindings, crawlerSourceApprovals, crawlerGovernanceWorkflows, adminRbacEvidence, operationalDashboards, alertRoutes, alertRouteRuntimeEvidence };`)();
 };
 
 const crawlerGovernanceCases = JSON.parse(
@@ -23,6 +23,7 @@ const {
   skillReleaseStateDefinitions,
   skillCanaryMetrics,
   releaseEvidence,
+  releaseBlockers,
   supportTickets,
   supportEscalationRunbooks,
   supportUsers,
@@ -81,6 +82,7 @@ const crawlerGovernanceCaseById = new Map(crawlerGovernanceCases.map((entry) => 
 const incidentIds = new Set(["none", "inc-20260526-queue", "inc-20260525-crawler"]);
 const operationalDashboardIds = new Set(operationalDashboards.map((dashboard) => dashboard.id));
 const alertRouteIds = new Set(alertRoutes.map((alert) => alert.id));
+const releaseEvidenceIds = new Set(releaseEvidence.map((evidence) => evidence.id));
 const abuseEventById = new Map(abuseEvents.map((event) => [event.id, event]));
 const canaryMetricIds = new Set(skillCanaryMetrics.map((metric) => metric.id));
 const runtimeEvidencePattern = /^staging-(dashboard|alert)-[a-z-]+-\d{8}T\d{4}Z$/;
@@ -776,6 +778,55 @@ test("alert route runtime evidence verifies staging delivery without closing das
   assert.ok(
     operationalDashboards.some((dashboard) => dashboard.runtimeEvidenceStatus === "blocked"),
     "verified alert-route evidence must not imply all dashboards are runtime-verified"
+  );
+});
+
+test("release blocker matrix prevents partial operations evidence from closing beta and production gates", () => {
+  assert.ok(releaseBlockers.length > 0, "release blocker matrix needs fixtures");
+
+  const gates = new Set(releaseBlockers.map((blocker) => blocker.gate));
+  assert.ok(gates.has("private_beta"), "release blockers need private beta coverage");
+  assert.ok(gates.has("production_launch"), "release blockers need production launch coverage");
+
+  for (const blocker of releaseBlockers) {
+    assert.ok(operationalDashboardIds.has(blocker.dashboardId), `${blocker.id} links unknown dashboard`);
+    assert.ok(alertRouteIds.has(blocker.alertRouteId), `${blocker.id} links unknown alert route`);
+    assert.ok(releaseEvidenceIds.has(blocker.releaseEvidenceId), `${blocker.id} links unknown release evidence`);
+    assert.ok(auditIds.has(blocker.auditRef), `${blocker.id} links unknown audit ${blocker.auditRef}`);
+    assert.ok(roleOrder.has(blocker.ownerRole), `${blocker.id} has unknown owner role`);
+    assert.match(blocker.runtimeEvidenceRef, runtimeEvidencePattern, `${blocker.id} needs staging runtime evidence ref`);
+    assert.ok(blocker.blockingSignal.length > 90, `${blocker.id} needs concrete blocking signal`);
+    assert.ok(blocker.requiredEvidence.length > 100, `${blocker.id} needs required evidence`);
+    assert.ok(blocker.unblockCriteria.length > 100, `${blocker.id} needs unblock criteria`);
+    assert.notEqual(blocker.nextReviewAt, "pending", `${blocker.id} needs next review timestamp`);
+    assert.ok(blocker.evidenceRefs.includes(blocker.dashboardId), `${blocker.id} evidence must include dashboard`);
+    assert.ok(blocker.evidenceRefs.includes(blocker.alertRouteId), `${blocker.id} evidence must include alert route`);
+    assert.ok(blocker.evidenceRefs.includes(blocker.releaseEvidenceId), `${blocker.id} evidence must include release evidence`);
+    assert.ok(blocker.evidenceRefs.includes(blocker.auditRef), `${blocker.id} evidence must include audit`);
+    assert.ok(blocker.evidenceRefs.includes(blocker.runtimeEvidenceRef), `${blocker.id} evidence must include runtime ref`);
+
+    if (blocker.severity === "sev1") {
+      assert.equal(blocker.ownerRole, "admin_superadmin", `${blocker.id} sev1 blockers need superadmin ownership`);
+      assert.equal(blocker.status, "open", `${blocker.id} sev1 blockers cannot be review-ready`);
+    }
+
+    if (blocker.gate === "production_launch") {
+      assert.notEqual(blocker.status, "ready_for_review", `${blocker.id} production blockers cannot close on partial evidence`);
+      assert.match(
+        blocker.unblockCriteria,
+        /closes|reaches|stays|no open|no longer/i,
+        `${blocker.id} production blocker needs closure criteria`
+      );
+    }
+  }
+
+  assert.ok(
+    releaseBlockers.some((blocker) => blocker.blockerKind === "dashboard_slo" && blocker.status === "open"),
+    "provider SLO blockers must stay open despite verified alert route probes"
+  );
+  assert.ok(
+    releaseBlockers.some((blocker) => blocker.blockerKind === "runtime_evidence" && blocker.status === "mitigating"),
+    "runtime evidence blockers need a mitigation state before gate closure"
   );
 });
 

@@ -6,9 +6,17 @@ import {
   getAlertRouteRuntimeEvidence,
   getIncidentLogs,
   getMaintenanceBanners,
-  getOperationalDashboards
+  getOperationalDashboards,
+  getReleaseBlockers
 } from "@/lib/admin-api";
-import type { AlertRoute, AlertRouteRuntimeEvidence, IncidentLog, MaintenanceBanner, OperationalDashboard } from "@/lib/types";
+import type {
+  AlertRoute,
+  AlertRouteRuntimeEvidence,
+  IncidentLog,
+  MaintenanceBanner,
+  OperationalDashboard,
+  ReleaseBlocker
+} from "@/lib/types";
 
 function incidentTone(status: IncidentLog["status"]) {
   if (status === "resolved") {
@@ -26,6 +34,7 @@ export default async function OperationsPage() {
     getAlertRoutes(),
     getAlertRouteRuntimeEvidence()
   ]);
+  const releaseBlockers = await getReleaseBlockers();
 
   return (
     <>
@@ -108,6 +117,35 @@ export default async function OperationsPage() {
             { key: "release", header: "Release Gate Use", render: (row) => row.releaseGateUse },
             { key: "validated", header: "Validated At", render: (row) => row.validatedAt },
             { key: "audit", header: "Audit Ref", render: (row) => <span className="mono">{row.auditRef}</span> }
+          ]}
+        />
+      </section>
+
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>Release Blocker Matrix</h3>
+            <p>Verified dashboard or alert probes do not close beta or production gates while linked blocker evidence remains open.</p>
+          </div>
+        </div>
+        <DataTable<ReleaseBlocker>
+          rows={releaseBlockers}
+          columns={[
+            { key: "id", header: "Blocker", render: (row) => <span className="mono">{row.id}</span> },
+            { key: "gate", header: "Gate", render: (row) => <StatusBadge value={row.status} label={row.gate} /> },
+            { key: "kind", header: "Kind", render: (row) => row.blockerKind },
+            { key: "severity", header: "Severity", render: (row) => <StatusBadge value={row.severity === "sev1" ? "critical" : row.severity === "sev2" ? "high" : "medium"} label={row.severity.toUpperCase()} /> },
+            { key: "status", header: "Status", render: (row) => <StatusBadge value={row.status === "open" ? "blocked" : row.status === "mitigating" ? "warning" : "review"} label={row.status} /> },
+            { key: "owner", header: "Owner Role", render: (row) => row.ownerRole },
+            { key: "dashboard", header: "Dashboard", render: (row) => row.dashboardId },
+            { key: "alert", header: "Alert Route", render: (row) => row.alertRouteId },
+            { key: "runtime", header: "Runtime Evidence", render: (row) => row.runtimeEvidenceRef },
+            { key: "signal", header: "Blocking Signal", render: (row) => row.blockingSignal },
+            { key: "required", header: "Required Evidence", render: (row) => row.requiredEvidence },
+            { key: "unblock", header: "Unblock Criteria", render: (row) => row.unblockCriteria },
+            { key: "review", header: "Next Review", render: (row) => row.nextReviewAt },
+            { key: "audit", header: "Audit Ref", render: (row) => <span className="mono">{row.auditRef}</span> },
+            { key: "evidence", header: "Evidence Refs", render: (row) => row.evidenceRefs.join(", ") }
           ]}
         />
       </section>

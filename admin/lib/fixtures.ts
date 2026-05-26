@@ -18,6 +18,7 @@ import type {
   ProviderHealth,
   AlertRoute,
   AlertRouteRuntimeEvidence,
+  ReleaseBlocker,
   PromptFragment,
   QuotaAccount,
   QueueHealth,
@@ -1402,6 +1403,63 @@ export const alertRouteRuntimeEvidence: AlertRouteRuntimeEvidence[] = [
     auditRef: "au-008",
     releaseGateUse: "Production launch remains blocked until the security-admin investigation closes with audit, support, and release evidence refs.",
     evidenceRefs: ["al-admin-security", "od-admin-security", "ab-304", "au-008", "tr-1004", "staging-alert-admin-security-20260526T1030Z"]
+  }
+];
+
+export const releaseBlockers: ReleaseBlocker[] = [
+  {
+    id: "rb-private-beta-provider-slo",
+    gate: "private_beta",
+    blockerKind: "dashboard_slo",
+    status: "open",
+    severity: "sev2",
+    ownerRole: "admin_operator",
+    dashboardId: "od-provider-latency",
+    alertRouteId: "al-provider-error",
+    runtimeEvidenceRef: "staging-dashboard-provider-20260526T1000Z",
+    releaseEvidenceId: "eg-003",
+    blockingSignal: "Provider p95 latency and error rate breach the private beta provider SLO even though the alert route probe delivered successfully.",
+    requiredEvidence: "Attach a healthy provider dashboard window, provider usage reconciliation, verified alert route probe, and immutable provider-routing audit before beta access expands.",
+    unblockCriteria: "Provider latency stays <= 8000 ms, error rate stays <= 4%, spend reconciliation is complete, and release evidence eg-003 changes from blocked to reviewed.",
+    nextReviewAt: "2026-05-26 12:00",
+    auditRef: "au-007",
+    evidenceRefs: ["od-provider-latency", "al-provider-error", "eg-003", "ph-1", "au-007", "staging-dashboard-provider-20260526T1000Z"]
+  },
+  {
+    id: "rb-production-admin-security",
+    gate: "production_launch",
+    blockerKind: "alert_route",
+    status: "open",
+    severity: "sev1",
+    ownerRole: "admin_superadmin",
+    dashboardId: "od-admin-security",
+    alertRouteId: "al-admin-security",
+    runtimeEvidenceRef: "staging-alert-admin-security-20260526T1030Z",
+    releaseEvidenceId: "eg-002",
+    blockingSignal: "Critical hidden prompt extraction investigation keeps the admin-security dashboard blocked despite verified SEV1 alert routing.",
+    requiredEvidence: "Security-admin closure must include prompt-fragment activation block evidence, temporary-hold release evidence, trace redaction proof, second review, and immutable audit.",
+    unblockCriteria: "Abuse event ab-304 closes under superadmin review, trace redaction has no open violations, and production release evidence no longer depends on incomplete high-risk review.",
+    nextReviewAt: "2026-05-26 11:30",
+    auditRef: "au-008",
+    evidenceRefs: ["od-admin-security", "al-admin-security", "eg-002", "ab-304", "tr-1004", "au-008", "staging-alert-admin-security-20260526T1030Z"]
+  },
+  {
+    id: "rb-production-crawler-derivative",
+    gate: "production_launch",
+    blockerKind: "runtime_evidence",
+    status: "mitigating",
+    severity: "sev3",
+    ownerRole: "admin_reviewer",
+    dashboardId: "od-crawler-policy",
+    alertRouteId: "al-crawler-policy",
+    runtimeEvidenceRef: "staging-dashboard-crawler-20260526T1000Z",
+    releaseEvidenceId: "eg-002",
+    blockingSignal: "Crawler derivative review remains open, so crawler-derived prompt or skill activation cannot use verified alert delivery as launch evidence.",
+    requiredEvidence: "Close takedown or derivative review with source contact, raw deletion or retention decision, provenance links, and audit before activation can proceed.",
+    unblockCriteria: "Governance workflow cg-501 reaches approved or deleted state, crawler finding cf-118 cannot activate without provenance, and release gate evidence cites the closure audit.",
+    nextReviewAt: "2026-05-26 13:00",
+    auditRef: "au-012",
+    evidenceRefs: ["od-crawler-policy", "al-crawler-policy", "eg-002", "cf-118", "cg-501", "au-012", "staging-dashboard-crawler-20260526T1000Z"]
   }
 ];
 

@@ -55,6 +55,7 @@ test("admin fixtures cover required operational surfaces", () => {
     "export const operationalDashboards",
     "export const alertRoutes",
     "export const alertRouteRuntimeEvidence",
+    "export const releaseBlockers",
     "export const auditEvents",
     "export const analyticsReports",
     "export const skillReleaseStateDefinitions",
@@ -323,12 +324,32 @@ test("admin fixtures cover operations gate evidence", () => {
     "escalationProbe",
     "runbookProbe",
     "incidentLinkage",
+    "releaseBlockers",
+    "blockingSignal",
+    "requiredEvidence",
+    "unblockCriteria",
+    "rb-production-admin-security",
     "escalationRole",
     "audience",
     "approval",
     "auditRef"
   ]) {
     assert.match(fixtures, new RegExp(token));
+  }
+
+  const operationsPage = readFileSync(
+    new URL("../app/operations/page.tsx", import.meta.url),
+    "utf8"
+  );
+
+  for (const token of [
+    "Release Blocker Matrix",
+    "getReleaseBlockers",
+    "Blocking Signal",
+    "Required Evidence",
+    "Unblock Criteria"
+  ]) {
+    assert.match(operationsPage, new RegExp(token));
   }
 });
 

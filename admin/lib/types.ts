@@ -349,6 +349,25 @@ export type AlertRouteRuntimeEvidence = {
   evidenceRefs: string[];
 };
 
+export type ReleaseBlocker = {
+  id: string;
+  gate: "private_beta" | "production_launch";
+  blockerKind: "dashboard_slo" | "alert_route" | "runtime_evidence" | "release_evidence";
+  status: "open" | "mitigating" | "ready_for_review";
+  severity: "sev1" | "sev2" | "sev3";
+  ownerRole: AdminRole;
+  dashboardId: string;
+  alertRouteId: string;
+  runtimeEvidenceRef: string;
+  releaseEvidenceId: string;
+  blockingSignal: string;
+  requiredEvidence: string;
+  unblockCriteria: string;
+  nextReviewAt: string;
+  auditRef: string;
+  evidenceRefs: string[];
+};
+
 export type QueueHealth = {
   id: string;
   name: string;
