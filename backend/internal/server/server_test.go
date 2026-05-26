@@ -436,11 +436,35 @@ func TestSignedDownloadEndpointServesTenantScopedLocalObject(t *testing.T) {
 	if rec.Body.String() != "zip-bytes" {
 		t.Fatalf("download body = %q, want zip-bytes", rec.Body.String())
 	}
-	if rec.Header().Get("X-ZenArt-Object-Key") != "tenants/tenant_1/exports/export_1.zip" {
-		t.Fatalf("object key header = %q", rec.Header().Get("X-ZenArt-Object-Key"))
+	if rec.Header().Get("X-ZenArt-Object-Key") != "" {
+		t.Fatalf("object key header should not disclose tenant-scoped key: %q", rec.Header().Get("X-ZenArt-Object-Key"))
+	}
+	if rec.Header().Get("Cache-Control") != "private, no-store, max-age=0" {
+		t.Fatalf("Cache-Control = %q, want private no-store", rec.Header().Get("Cache-Control"))
+	}
+	if rec.Header().Get("Pragma") != "no-cache" {
+		t.Fatalf("Pragma = %q, want no-cache", rec.Header().Get("Pragma"))
+	}
+	if rec.Header().Get("Content-Disposition") != `attachment; filename="export_1.zip"` {
+		t.Fatalf("Content-Disposition = %q", rec.Header().Get("Content-Disposition"))
 	}
 	if db.query.sql == "" || !strings.Contains(db.query.sql, "retention_state = 'active'") {
 		t.Fatalf("download guard query = %s, want active retention guard", db.query.sql)
+	}
+}
+
+func TestDownloadFilenameFromKeySanitizesHeaderValue(t *testing.T) {
+	cases := map[string]string{
+		`tenants/tenant_1/exports/pack.zip`:                "pack.zip",
+		`tenants/tenant_1/exports/bad";name.zip`:           "bad__name.zip",
+		"tenants/tenant_1/exports/bad\r\nname.zip":         "bad__name.zip",
+		`tenants/tenant_1/exports/nested\windows-name.zip`: "nested_windows-name.zip",
+		"": "download.bin",
+	}
+	for input, want := range cases {
+		if got := downloadFilenameFromKey(input); got != want {
+			t.Fatalf("downloadFilenameFromKey(%q) = %q, want %q", input, got, want)
+		}
 	}
 }
 

@@ -456,12 +456,32 @@ func (s *Server) getSignedDownloadObject(w http.ResponseWriter, r *http.Request)
 	} else {
 		w.Header().Set("Content-Type", "application/octet-stream")
 	}
-	w.Header().Set("X-ZenArt-Object-Key", reader.Object.Key)
+	w.Header().Set("Cache-Control", "private, no-store, max-age=0")
+	w.Header().Set("Pragma", "no-cache")
+	w.Header().Set("Content-Disposition", `attachment; filename="`+downloadFilenameFromKey(reader.Object.Key)+`"`)
 	if reader.Object.ByteSize > 0 {
 		w.Header().Set("Content-Length", strconv.FormatInt(reader.Object.ByteSize, 10))
 	}
 	w.WriteHeader(http.StatusOK)
 	_, _ = io.Copy(w, reader.Body)
+}
+
+func downloadFilenameFromKey(key string) string {
+	key = strings.Trim(strings.TrimSpace(key), "/")
+	if key == "" {
+		return "download.bin"
+	}
+	parts := strings.Split(key, "/")
+	filename := strings.TrimSpace(parts[len(parts)-1])
+	if filename == "" || filename == "." || filename == ".." {
+		return "download.bin"
+	}
+	replacer := strings.NewReplacer(`\`, "_", `/`, "_", `"`, "_", "\r", "_", "\n", "_", ";", "_")
+	filename = replacer.Replace(filename)
+	if filename == "" {
+		return "download.bin"
+	}
+	return filename
 }
 
 func signedObjectParams(r *http.Request) (string, int64, string, bool) {
