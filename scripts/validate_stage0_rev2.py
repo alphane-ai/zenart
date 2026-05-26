@@ -181,6 +181,7 @@ DATABASE_TABLES = {
     "package_items",
     "exports",
     "share_links",
+    "share_link_access_logs",
     "skills",
     "skill_versions",
     "skill_sources",
@@ -281,6 +282,33 @@ OPENAPI_REQUIRED_OPERATION_IDS = {
     "listFeedback",
     "listSafetyRules",
     "listAuditLogs",
+}
+
+OPENAPI_REQUIRED_CONTRACT_TOKENS = {
+    "ObjectMetadata:",
+    "upload_url:",
+    "download_url:",
+    "object_metadata:",
+    "manifest:",
+    "qa_report:",
+    "provenance:",
+    "ShareLink:",
+    "access_policy:",
+    "token_hash:",
+    "direct_object_access_allowed:",
+    "audit_access_required:",
+    "CrawlerSource:",
+    "legal_metadata:",
+    "robots_policy:",
+    "CrawlerFinding:",
+    "import_governance:",
+    "admin_review_required:",
+    "SafetyRule:",
+    "enforcement_points:",
+    "enum: [brief, provider_request, provider_response, qa, export]",
+    "evaluation_contract:",
+    "blocks_export_when_critical:",
+    "const: SafetyDecision",
 }
 
 
@@ -732,12 +760,37 @@ def validate_database_schema_artifacts() -> None:
     for token in ["progress", "retry_count", "timeout_at", "app_version", "worker_version", "schema_version"]:
         require(token in migrations, f"agent task migration missing {token}")
 
+    for token in [
+        "object_metadata_id text REFERENCES object_metadata(id)",
+        "bucket text NOT NULL",
+        "object_key text NOT NULL",
+        "checksum text NOT NULL",
+        "retention_until timestamptz",
+        "manifest jsonb NOT NULL",
+        "qa_status text NOT NULL",
+        "token_hash text NOT NULL UNIQUE",
+        "share_link_access_logs",
+        "legal_metadata jsonb NOT NULL",
+        "robots_policy jsonb NOT NULL",
+        "provenance jsonb NOT NULL",
+        "enforcement_points jsonb NOT NULL",
+        "enforcement_point text NOT NULL",
+        "qa_results",
+    ]:
+        require(token in migrations, f"database migrations missing contract token: {token}")
+
 
 def validate_openapi_contract() -> None:
     require(OPENAPI.exists(), "missing openapi/zenart.v1.yaml")
     text = OPENAPI.read_text(encoding="utf-8")
     missing = {token for token in OPENAPI_REQUIRED_TOKENS if token not in text}
     require(not missing, f"OpenAPI contract missing required tokens: {sorted(missing)}")
+
+    missing_contract_tokens = {token for token in OPENAPI_REQUIRED_CONTRACT_TOKENS if token not in text}
+    require(
+        not missing_contract_tokens,
+        f"OpenAPI contract missing storage/export/share/crawler/safety tokens: {sorted(missing_contract_tokens)}",
+    )
 
     operation_ids = set(re.findall(r"operationId: ([A-Za-z0-9_]+)", text))
     missing_operations = OPENAPI_REQUIRED_OPERATION_IDS - operation_ids
@@ -772,6 +825,62 @@ def validate_openapi_contract() -> None:
             "x-idempotency-required: true" in body and "$ref: \"#/components/parameters/IdempotencyKey\"" in body,
             f"{operation_id} must require idempotency key",
         )
+
+
+def validate_openapi_rev2_domain_contracts() -> None:
+    text = OPENAPI.read_text(encoding="utf-8")
+
+    required_schema_fields = {
+        "Upload": ["upload_url", "expires_at", "object_metadata"],
+        "Asset": ["object_metadata", "provenance"],
+        "Package": ["manifest", "qa_report", "provenance"],
+        "Export": ["manifest", "qa_report", "provenance", "download_url"],
+        "ShareLink": ["url", "access_policy"],
+        "CrawlerSource": ["legal_metadata", "robots_policy"],
+        "CrawlerFinding": ["provenance", "import_governance"],
+        "SafetyRule": ["enforcement_points", "evaluation_contract"],
+    }
+    for schema_name, fields in required_schema_fields.items():
+        pattern = rf"^    {schema_name}:\n(?P<body>.*?)(?=^    [A-Za-z0-9]+:|\Z)"
+        match = re.search(pattern, text, flags=re.MULTILINE | re.DOTALL)
+        require(match is not None, f"OpenAPI schema {schema_name} missing")
+        body = match.group("body")
+        for field in fields:
+            require(f"{field}:" in body, f"OpenAPI schema {schema_name} missing field {field}")
+            require(
+                re.search(rf"required: \[[^\]]*\b{re.escape(field)}\b", body) or re.search(
+                    rf"^\s+- {re.escape(field)}$", body, flags=re.MULTILINE
+                ),
+                f"OpenAPI schema {schema_name} must require {field}",
+            )
+
+    for schema_name in ["Upload", "Export"]:
+        match = re.search(
+            rf"^    {schema_name}:\n(?P<body>.*?)(?=^    [A-Za-z0-9]+:|\Z)",
+            text,
+            flags=re.MULTILINE | re.DOTALL,
+        )
+        body = match.group("body") if match else ""
+        require("format: uri" in body, f"OpenAPI schema {schema_name} must expose signed URL fields as URI")
+
+    share = re.search(r"^    ShareLink:\n(?P<body>.*?)(?=^    [A-Za-z0-9]+:|\Z)", text, flags=re.MULTILINE | re.DOTALL)
+    share_body = share.group("body") if share else ""
+    require("token_hash:" in share_body, "ShareLink access_policy must return token_hash, not raw token")
+    require("const: false" in share_body, "ShareLink must forbid direct object access")
+    require("const: true" in share_body, "ShareLink must require audited access")
+
+    crawler = re.search(r"^    CrawlerFinding:\n(?P<body>.*?)(?=^    [A-Za-z0-9]+:|\Z)", text, flags=re.MULTILINE | re.DOTALL)
+    crawler_body = crawler.group("body") if crawler else ""
+    require("direct_activation_allowed:" in crawler_body, "CrawlerFinding must declare direct activation governance")
+    require("provenance_links_required:" in crawler_body, "CrawlerFinding must require provenance links")
+    require("admin_review_required:" in crawler_body, "CrawlerFinding must require admin review before import")
+
+    safety = re.search(r"^    SafetyRule:\n(?P<body>.*?)(?=^    [A-Za-z0-9]+:|\Z)", text, flags=re.MULTILINE | re.DOTALL)
+    safety_body = safety.group("body") if safety else ""
+    for point in SAFETY_POINTS:
+        require(point in safety_body, f"SafetyRule enforcement_points missing {point}")
+    require("uniqueItems: true" in safety_body, "SafetyRule enforcement_points must be unique")
+    require("blocks_export_when_critical:" in safety_body, "SafetyRule must declare critical export blocking")
 
 
 def validate_generated_openapi_clients() -> None:
@@ -812,6 +921,7 @@ def main() -> int:
         validate_blueprint_checklist,
         validate_database_schema_artifacts,
         validate_openapi_contract,
+        validate_openapi_rev2_domain_contracts,
         validate_generated_openapi_clients,
     ]
     try:

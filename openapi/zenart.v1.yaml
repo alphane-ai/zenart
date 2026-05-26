@@ -1578,7 +1578,7 @@ components:
           minimum: 0
     Upload:
       type: object
-      required: [id, status, object_key]
+      required: [id, status, object_key, upload_url, expires_at, object_metadata]
       properties:
         id:
           type: string
@@ -1586,9 +1586,18 @@ components:
           type: string
         object_key:
           type: string
+        upload_url:
+          type: string
+          format: uri
+          description: Short-lived signed URL for local or production-like object storage upload.
+        expires_at:
+          type: string
+          format: date-time
+        object_metadata:
+          $ref: "#/components/schemas/ObjectMetadata"
     Asset:
       type: object
-      required: [id, asset_type, status, provenance, created_at]
+      required: [id, asset_type, status, object_metadata, provenance, created_at]
       properties:
         id:
           type: string
@@ -1596,7 +1605,36 @@ components:
           type: string
         status:
           type: string
+        object_metadata:
+          $ref: "#/components/schemas/ObjectMetadata"
         provenance:
+          type: object
+          additionalProperties: true
+        created_at:
+          type: string
+          format: date-time
+    ObjectMetadata:
+      type: object
+      required: [id, bucket, object_key, content_type, byte_size, checksum, created_at]
+      properties:
+        id:
+          type: string
+        bucket:
+          type: string
+        object_key:
+          type: string
+        content_type:
+          type: string
+        byte_size:
+          type: integer
+          minimum: 0
+        checksum:
+          type: string
+        retention_until:
+          type: string
+          format: date-time
+          nullable: true
+        metadata:
           type: object
           additionalProperties: true
         created_at:
@@ -1623,7 +1661,7 @@ components:
             additionalProperties: true
     Package:
       type: object
-      required: [id, project_id, status, manifest, created_at]
+      required: [id, project_id, status, manifest, qa_report, provenance, created_at]
       properties:
         id:
           type: string
@@ -1632,6 +1670,12 @@ components:
         status:
           type: string
         manifest:
+          type: object
+          additionalProperties: true
+        qa_report:
+          type: object
+          additionalProperties: true
+        provenance:
           type: object
           additionalProperties: true
         created_at:
@@ -1656,7 +1700,17 @@ components:
           enum: [zip, pdf]
     Export:
       type: object
-      required: [id, package_id, format, status, qa_status, created_at]
+      required:
+        - id
+        - package_id
+        - format
+        - status
+        - qa_status
+        - manifest
+        - qa_report
+        - provenance
+        - download_url
+        - created_at
       properties:
         id:
           type: string
@@ -1673,6 +1727,26 @@ components:
           type: string
         qa_status:
           type: string
+        object_metadata:
+          $ref: "#/components/schemas/ObjectMetadata"
+        manifest:
+          type: object
+          additionalProperties: true
+        qa_report:
+          type: object
+          additionalProperties: true
+        provenance:
+          type: object
+          additionalProperties: true
+        download_url:
+          type: string
+          format: uri
+          nullable: true
+          description: Short-lived signed URL for export download when the object is ready.
+        download_expires_at:
+          type: string
+          format: date-time
+          nullable: true
         error:
           type: object
           additionalProperties: true
@@ -1700,7 +1774,7 @@ components:
           format: date-time
     ShareLink:
       type: object
-      required: [id, export_id, scope, expires_at, revoked_at, created_at]
+      required: [id, export_id, scope, url, expires_at, revoked_at, access_policy, created_at]
       properties:
         id:
           type: string
@@ -1708,6 +1782,22 @@ components:
           type: string
         scope:
           type: string
+        url:
+          type: string
+          format: uri
+        access_policy:
+          type: object
+          required: [token_hash, direct_object_access_allowed, audit_access_required]
+          properties:
+            token_hash:
+              type: string
+              description: Token digest only; raw share tokens must not be returned after creation.
+            direct_object_access_allowed:
+              type: boolean
+              const: false
+            audit_access_required:
+              type: boolean
+              const: true
         expires_at:
           type: string
           format: date-time
@@ -1968,7 +2058,7 @@ components:
                 $ref: "#/components/schemas/SkillVersion"
     CrawlerSource:
       type: object
-      required: [id, name, url, approval_status, legal_metadata]
+      required: [id, name, url, approval_status, legal_metadata, robots_policy]
       properties:
         id:
           type: string
@@ -1981,6 +2071,15 @@ components:
         legal_metadata:
           type: object
           additionalProperties: true
+        robots_policy:
+          type: object
+          required: [robots_allowed, direct_activation_allowed]
+          properties:
+            robots_allowed:
+              type: boolean
+            direct_activation_allowed:
+              type: boolean
+              const: false
     CrawlerSourcePage:
       allOf:
         - $ref: "#/components/schemas/PageInfo"
@@ -2016,7 +2115,7 @@ components:
                 $ref: "#/components/schemas/CrawlerRun"
     CrawlerFinding:
       type: object
-      required: [id, finding_type, status, payload, provenance]
+      required: [id, finding_type, status, payload, provenance, import_governance]
       properties:
         id:
           type: string
@@ -2030,6 +2129,19 @@ components:
         provenance:
           type: object
           additionalProperties: true
+        import_governance:
+          type: object
+          required: [direct_activation_allowed, provenance_links_required, admin_review_required]
+          properties:
+            direct_activation_allowed:
+              type: boolean
+              const: false
+            provenance_links_required:
+              type: boolean
+              const: true
+            admin_review_required:
+              type: boolean
+              const: true
     CrawlerFindingPage:
       allOf:
         - $ref: "#/components/schemas/PageInfo"
@@ -2147,7 +2259,7 @@ components:
                 $ref: "#/components/schemas/FeedbackEvent"
     SafetyRule:
       type: object
-      required: [id, rule_key, version, domain, severity, action, enforcement_points, status]
+      required: [id, rule_key, version, domain, severity, action, enforcement_points, evaluation_contract, status]
       properties:
         id:
           type: string
@@ -2165,6 +2277,19 @@ components:
           type: array
           items:
             type: string
+            enum: [brief, provider_request, provider_response, qa, export]
+          minItems: 5
+          uniqueItems: true
+        evaluation_contract:
+          type: object
+          required: [decision_schema, blocks_export_when_critical]
+          properties:
+            decision_schema:
+              type: string
+              const: SafetyDecision
+            blocks_export_when_critical:
+              type: boolean
+              const: true
         status:
           type: string
     SafetyRulePage:
