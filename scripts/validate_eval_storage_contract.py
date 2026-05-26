@@ -242,7 +242,130 @@ def validate_table_contract(contract: dict[str, Any], result: dict[str, Any]) ->
     require(table["no_public_delete_operation"] is True, "eval storage must not expose a public delete operation")
     require(result_storage["immutable_rows"] is True, "eval result storage fixture must declare immutable rows")
     require(set(result_storage["idempotent_replay_key"]) == IDEMPOTENCY_FIELDS, "eval result fixture idempotent replay key mismatch")
+    require(
+        result_storage["idempotent_replay_conflict_policy"]["exact_replay_returns_existing_row"] is True,
+        "eval result storage fixture must return existing rows for exact replay",
+    )
+    require(
+        result_storage["idempotent_replay_conflict_policy"]["same_key_different_result_rejected"] is True,
+        "eval result storage fixture must reject divergent same-key replay",
+    )
+    require(
+        result_storage["idempotent_replay_conflict_policy"]["same_subject_other_tenant_inserts_new_row"] is True,
+        "eval result storage fixture must keep replay idempotency tenant-scoped",
+    )
+    require(
+        result_storage["idempotent_replay_conflict_policy"]["conflict_requires_admin_audit"] is True,
+        "eval result storage fixture must require admin audit for replay conflicts",
+    )
+    require(
+        result_storage["idempotent_replay_conflict_policy"]["blocked_conflict_denies_activation"] is True,
+        "eval result storage fixture must deny activation for replay conflicts",
+    )
     require(result_storage["no_public_delete_operation"] is True, "eval result storage fixture must block public delete")
+
+
+def write_row_key(row: dict[str, Any], key_fields: set[str]) -> tuple[str, ...]:
+    return tuple(row[field] for field in key_fields)
+
+
+def write_row_digest(row: dict[str, Any], digest_fields: set[str]) -> tuple[str, ...]:
+    digest_row_fields = {
+        "status": "status",
+        "summary": "summary_sha256",
+        "fixture_results": "fixture_results_sha256",
+        "completed_at": "completed_at",
+        "source_fixture_digests": "source_fixture_digests_sha256",
+    }
+    return tuple(row[digest_row_fields[field]] for field in sorted(digest_fields))
+
+
+def validate_write_fixture_contract(contract: dict[str, Any]) -> None:
+    fixture = contract["write_fixture_contract"]
+    write = contract["write_contract"]
+    key_fields = set(fixture["idempotency_key_fields"])
+    digest_fields = set(fixture["result_digest_fields"])
+
+    require(key_fields == IDEMPOTENCY_FIELDS, "eval write fixture idempotency fields mismatch")
+    require(key_fields == set(write["idempotency_key_fields"]), "eval write fixture must mirror write idempotency fields")
+    require(
+        digest_fields == {"status", "summary", "fixture_results", "completed_at", "source_fixture_digests"},
+        "eval write fixture result digest fields mismatch",
+    )
+
+    required_cases = {
+        "exact_replay_returns_existing_row",
+        "same_key_changed_summary_rejects_conflict",
+        "same_subject_other_tenant_inserts_new_row",
+    }
+    cases = {case["case_id"]: case for case in fixture["cases"]}
+    require(set(cases) == required_cases, "eval write fixture cases mismatch")
+
+    exact = cases["exact_replay_returns_existing_row"]
+    require(
+        write_row_key(exact["existing_row"], key_fields) == write_row_key(exact["attempted_write"], key_fields),
+        "exact replay must use the same idempotency key",
+    )
+    require(
+        write_row_digest(exact["existing_row"], digest_fields) == write_row_digest(exact["attempted_write"], digest_fields),
+        "exact replay must use the same result digest",
+    )
+    require(
+        exact["expected_outcome"] == {
+            "action": "return_existing_row",
+            "stored_row_source": "existing_row",
+            "requires_admin_audit": False,
+            "activation_allowed": False,
+            "reason": "exact_idempotent_replay",
+        },
+        "exact replay expected outcome mismatch",
+    )
+
+    conflict = cases["same_key_changed_summary_rejects_conflict"]
+    require(
+        write_row_key(conflict["existing_row"], key_fields) == write_row_key(conflict["attempted_write"], key_fields),
+        "divergent replay must use the same idempotency key",
+    )
+    require(
+        write_row_digest(conflict["existing_row"], digest_fields) != write_row_digest(conflict["attempted_write"], digest_fields),
+        "divergent replay must change the result digest",
+    )
+    require(
+        conflict["expected_outcome"] == {
+            "action": "reject_conflict",
+            "stored_row_source": "none",
+            "requires_admin_audit": True,
+            "activation_allowed": False,
+            "reason": "divergent_replay_summary_conflict",
+        },
+        "divergent replay expected outcome mismatch",
+    )
+
+    cross_tenant = cases["same_subject_other_tenant_inserts_new_row"]
+    existing = cross_tenant["existing_row"]
+    attempted = cross_tenant["attempted_write"]
+    require(existing["tenant_id"] != attempted["tenant_id"], "cross-tenant write case must use a different tenant")
+    require(
+        all(
+            existing[field] == attempted[field]
+            for field in ["eval_suite_id", "subject_type", "subject_id", "subject_version", "runner_sha256"]
+        ),
+        "cross-tenant write case must keep the same subject and runner outside tenant",
+    )
+    require(
+        write_row_key(existing, key_fields) != write_row_key(attempted, key_fields),
+        "cross-tenant write must not collide on the tenant-scoped idempotency key",
+    )
+    require(
+        cross_tenant["expected_outcome"] == {
+            "action": "insert_new_row",
+            "stored_row_source": "attempted_write",
+            "requires_admin_audit": False,
+            "activation_allowed": False,
+            "reason": "cross_tenant_insert_allowed",
+        },
+        "cross-tenant write expected outcome mismatch",
+    )
 
 
 def validate_write_and_replay_contract(contract: dict[str, Any]) -> None:
@@ -376,6 +499,7 @@ def main() -> int:
         result = results[0]
         validate_stored_result(contract, result)
         validate_table_contract(contract, result)
+        validate_write_fixture_contract(contract)
         validate_write_and_replay_contract(contract)
         validate_read_and_openapi_contract(contract)
         validate_retention_and_release_gate(contract)

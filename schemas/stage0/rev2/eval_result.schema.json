@@ -295,6 +295,7 @@
         "latest_result_resolvable",
         "immutable_rows",
         "idempotent_replay_key",
+        "idempotent_replay_conflict_policy",
         "no_public_delete_operation"
       ],
       "properties": {
@@ -396,6 +397,34 @@
               "subject_version",
               "runner_sha256"
             ]
+          }
+        },
+        "idempotent_replay_conflict_policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "exact_replay_returns_existing_row",
+            "same_key_different_result_rejected",
+            "same_subject_other_tenant_inserts_new_row",
+            "conflict_requires_admin_audit",
+            "blocked_conflict_denies_activation"
+          ],
+          "properties": {
+            "exact_replay_returns_existing_row": {
+              "const": true
+            },
+            "same_key_different_result_rejected": {
+              "const": true
+            },
+            "same_subject_other_tenant_inserts_new_row": {
+              "const": true
+            },
+            "conflict_requires_admin_audit": {
+              "const": true
+            },
+            "blocked_conflict_denies_activation": {
+              "const": true
+            }
           }
         },
         "no_public_delete_operation": {

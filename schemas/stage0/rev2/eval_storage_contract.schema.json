@@ -11,6 +11,7 @@
     "stored_result_fixture",
     "table_contract",
     "write_contract",
+    "write_fixture_contract",
     "read_contract",
     "read_fixture_contract",
     "replay_contract",
@@ -227,6 +228,54 @@
             "single_eval_result_insert",
             "single_eval_result_upsert"
           ]
+        }
+      }
+    },
+    "write_fixture_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "idempotency_key_fields",
+        "result_digest_fields",
+        "cases"
+      ],
+      "properties": {
+        "idempotency_key_fields": {
+          "type": "array",
+          "minItems": 6,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "tenant_id",
+              "eval_suite_id",
+              "subject_type",
+              "subject_id",
+              "subject_version",
+              "runner_sha256"
+            ]
+          }
+        },
+        "result_digest_fields": {
+          "type": "array",
+          "minItems": 4,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "status",
+              "summary",
+              "fixture_results",
+              "completed_at",
+              "source_fixture_digests"
+            ]
+          }
+        },
+        "cases": {
+          "type": "array",
+          "minItems": 3,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/write_fixture_case"
+          }
         }
       }
     },
@@ -678,6 +727,140 @@
           "items": {
             "type": "string",
             "pattern": "^eval_result_[a-z0-9_]+$"
+          }
+        }
+      }
+    },
+    "write_fixture_row": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tenant_id",
+        "eval_suite_id",
+        "subject_type",
+        "subject_id",
+        "subject_version",
+        "runner_sha256",
+        "status",
+        "summary_sha256",
+        "fixture_results_sha256",
+        "completed_at",
+        "source_fixture_digests_sha256"
+      ],
+      "properties": {
+        "tenant_id": {
+          "type": "string",
+          "pattern": "^tenant_[a-z0-9_]+$"
+        },
+        "eval_suite_id": {
+          "type": "string",
+          "pattern": "^eval_[a-z0-9_]+$"
+        },
+        "subject_type": {
+          "enum": [
+            "skill_version",
+            "prompt_fragment",
+            "prompt_mutation",
+            "meta_prompt",
+            "image_spec",
+            "vertical_workflow_pack"
+          ]
+        },
+        "subject_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "subject_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "runner_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "status": {
+          "enum": [
+            "pass",
+            "fail",
+            "blocked"
+          ]
+        },
+        "summary_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "fixture_results_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "completed_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "source_fixture_digests_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "write_fixture_case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "existing_row",
+        "attempted_write",
+        "expected_outcome"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9_]+$"
+        },
+        "existing_row": {
+          "$ref": "#/$defs/write_fixture_row"
+        },
+        "attempted_write": {
+          "$ref": "#/$defs/write_fixture_row"
+        },
+        "expected_outcome": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "action",
+            "stored_row_source",
+            "requires_admin_audit",
+            "activation_allowed",
+            "reason"
+          ],
+          "properties": {
+            "action": {
+              "enum": [
+                "return_existing_row",
+                "insert_new_row",
+                "reject_conflict"
+              ]
+            },
+            "stored_row_source": {
+              "enum": [
+                "existing_row",
+                "attempted_write",
+                "none"
+              ]
+            },
+            "requires_admin_audit": {
+              "type": "boolean"
+            },
+            "activation_allowed": {
+              "type": "boolean"
+            },
+            "reason": {
+              "enum": [
+                "exact_idempotent_replay",
+                "cross_tenant_insert_allowed",
+                "divergent_replay_summary_conflict"
+              ]
+            }
           }
         }
       }

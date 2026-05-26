@@ -92,6 +92,133 @@
     ],
     "transaction_boundary": "single_eval_result_insert"
   },
+  "write_fixture_contract": {
+    "idempotency_key_fields": [
+      "tenant_id",
+      "eval_suite_id",
+      "subject_type",
+      "subject_id",
+      "subject_version",
+      "runner_sha256"
+    ],
+    "result_digest_fields": [
+      "status",
+      "summary",
+      "fixture_results",
+      "completed_at",
+      "source_fixture_digests"
+    ],
+    "cases": [
+      {
+        "case_id": "exact_replay_returns_existing_row",
+        "existing_row": {
+          "tenant_id": "tenant_stage0_acme",
+          "eval_suite_id": "eval_stage0_rev2_starter",
+          "subject_type": "vertical_workflow_pack",
+          "subject_id": "stage0_rev2_starter_workflows",
+          "subject_version": "rev2.fixture-contract.1",
+          "runner_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "status": "blocked",
+          "summary_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "fixture_results_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "completed_at": "2026-05-26T00:00:00Z",
+          "source_fixture_digests_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+        },
+        "attempted_write": {
+          "tenant_id": "tenant_stage0_acme",
+          "eval_suite_id": "eval_stage0_rev2_starter",
+          "subject_type": "vertical_workflow_pack",
+          "subject_id": "stage0_rev2_starter_workflows",
+          "subject_version": "rev2.fixture-contract.1",
+          "runner_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "status": "blocked",
+          "summary_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "fixture_results_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "completed_at": "2026-05-26T00:00:00Z",
+          "source_fixture_digests_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+        },
+        "expected_outcome": {
+          "action": "return_existing_row",
+          "stored_row_source": "existing_row",
+          "requires_admin_audit": false,
+          "activation_allowed": false,
+          "reason": "exact_idempotent_replay"
+        }
+      },
+      {
+        "case_id": "same_key_changed_summary_rejects_conflict",
+        "existing_row": {
+          "tenant_id": "tenant_stage0_acme",
+          "eval_suite_id": "eval_stage0_rev2_starter",
+          "subject_type": "vertical_workflow_pack",
+          "subject_id": "stage0_rev2_starter_workflows",
+          "subject_version": "rev2.fixture-contract.1",
+          "runner_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "status": "blocked",
+          "summary_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "fixture_results_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "completed_at": "2026-05-26T00:00:00Z",
+          "source_fixture_digests_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+        },
+        "attempted_write": {
+          "tenant_id": "tenant_stage0_acme",
+          "eval_suite_id": "eval_stage0_rev2_starter",
+          "subject_type": "vertical_workflow_pack",
+          "subject_id": "stage0_rev2_starter_workflows",
+          "subject_version": "rev2.fixture-contract.1",
+          "runner_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "status": "pass",
+          "summary_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+          "fixture_results_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+          "completed_at": "2026-05-26T00:00:00Z",
+          "source_fixture_digests_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+        },
+        "expected_outcome": {
+          "action": "reject_conflict",
+          "stored_row_source": "none",
+          "requires_admin_audit": true,
+          "activation_allowed": false,
+          "reason": "divergent_replay_summary_conflict"
+        }
+      },
+      {
+        "case_id": "same_subject_other_tenant_inserts_new_row",
+        "existing_row": {
+          "tenant_id": "tenant_stage0_acme",
+          "eval_suite_id": "eval_stage0_rev2_starter",
+          "subject_type": "vertical_workflow_pack",
+          "subject_id": "stage0_rev2_starter_workflows",
+          "subject_version": "rev2.fixture-contract.1",
+          "runner_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "status": "blocked",
+          "summary_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "fixture_results_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "completed_at": "2026-05-26T00:00:00Z",
+          "source_fixture_digests_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+        },
+        "attempted_write": {
+          "tenant_id": "tenant_stage0_beta",
+          "eval_suite_id": "eval_stage0_rev2_starter",
+          "subject_type": "vertical_workflow_pack",
+          "subject_id": "stage0_rev2_starter_workflows",
+          "subject_version": "rev2.fixture-contract.1",
+          "runner_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "status": "blocked",
+          "summary_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "fixture_results_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "completed_at": "2026-05-26T00:00:00Z",
+          "source_fixture_digests_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+        },
+        "expected_outcome": {
+          "action": "insert_new_row",
+          "stored_row_source": "attempted_write",
+          "requires_admin_audit": false,
+          "activation_allowed": false,
+          "reason": "cross_tenant_insert_allowed"
+        }
+      }
+    ]
+  },
   "read_contract": {
     "list_operation_id": "listEvalResults",
     "required_query_filters": [

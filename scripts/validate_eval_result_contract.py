@@ -626,6 +626,26 @@ def validate_storage_contract() -> None:
         set(storage["idempotent_replay_key"]) == set(write_contract["idempotency_key_fields"]),
         "eval storage idempotent replay key mismatch",
     )
+    require(
+        storage["idempotent_replay_conflict_policy"]["exact_replay_returns_existing_row"] is True,
+        "eval storage conflict policy must return existing rows for exact replay",
+    )
+    require(
+        storage["idempotent_replay_conflict_policy"]["same_key_different_result_rejected"] is True,
+        "eval storage conflict policy must reject divergent same-key replay",
+    )
+    require(
+        storage["idempotent_replay_conflict_policy"]["same_subject_other_tenant_inserts_new_row"] is True,
+        "eval storage conflict policy must keep replay idempotency tenant-scoped",
+    )
+    require(
+        storage["idempotent_replay_conflict_policy"]["conflict_requires_admin_audit"] is True,
+        "eval storage conflict policy must require admin audit for replay conflicts",
+    )
+    require(
+        storage["idempotent_replay_conflict_policy"]["blocked_conflict_denies_activation"] is True,
+        "eval storage conflict policy must deny activation for replay conflicts",
+    )
     require(table_contract["summary_json_contains_fixture_results"] is True, "eval storage contract must retain fixture results")
     require(table_contract["tenant_scoped"] is True, "eval storage table contract must be tenant scoped")
     require(table_contract["subject_scoped"] is True, "eval storage table contract must be subject scoped")

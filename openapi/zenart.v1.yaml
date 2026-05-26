@@ -3010,6 +3010,31 @@ components:
               items:
                 type: string
                 enum: [tenant_id, eval_suite_id, subject_type, subject_id, subject_version, runner_sha256]
+            idempotent_replay_conflict_policy:
+              type: object
+              description: Exact deterministic replay returns an existing immutable row, divergent same-key replay is rejected for admin audit, and same subject across another tenant inserts a separate row.
+              required:
+                - exact_replay_returns_existing_row
+                - same_key_different_result_rejected
+                - same_subject_other_tenant_inserts_new_row
+                - conflict_requires_admin_audit
+                - blocked_conflict_denies_activation
+              properties:
+                exact_replay_returns_existing_row:
+                  type: boolean
+                  const: true
+                same_key_different_result_rejected:
+                  type: boolean
+                  const: true
+                same_subject_other_tenant_inserts_new_row:
+                  type: boolean
+                  const: true
+                conflict_requires_admin_audit:
+                  type: boolean
+                  const: true
+                blocked_conflict_denies_activation:
+                  type: boolean
+                  const: true
             no_public_delete_operation:
               type: boolean
               const: true

@@ -534,6 +534,13 @@ def run_eval() -> dict[str, Any]:
                 "subject_version",
                 "runner_sha256",
             ],
+            "idempotent_replay_conflict_policy": {
+                "exact_replay_returns_existing_row": True,
+                "same_key_different_result_rejected": True,
+                "same_subject_other_tenant_inserts_new_row": True,
+                "conflict_requires_admin_audit": True,
+                "blocked_conflict_denies_activation": True,
+            },
             "no_public_delete_operation": True,
         },
         "provenance": {

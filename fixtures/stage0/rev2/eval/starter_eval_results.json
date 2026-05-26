@@ -921,7 +921,7 @@
     ],
     "runner_contract": {
       "runner": "scripts/run_stage0_eval.py",
-      "runner_sha256": "add32bfe5b56078b264b5a8379fc3d9819bff129d957220eca315563e3e31257",
+      "runner_sha256": "06c984e4d9685e42589358a2bf878916f2fc39c2169aa95167df7158007332d4",
       "deterministic_replay_command": "python3 scripts/run_stage0_eval.py --check",
       "writes_stored_fixture": true,
       "check_mode_compares_exact_json": true,
@@ -1028,6 +1028,13 @@
         "subject_version",
         "runner_sha256"
       ],
+      "idempotent_replay_conflict_policy": {
+        "exact_replay_returns_existing_row": true,
+        "same_key_different_result_rejected": true,
+        "same_subject_other_tenant_inserts_new_row": true,
+        "conflict_requires_admin_audit": true,
+        "blocked_conflict_denies_activation": true
+      },
       "no_public_delete_operation": true
     },
     "provenance": {
