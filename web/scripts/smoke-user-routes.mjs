@@ -185,7 +185,10 @@ for (const expectedSecuritySnippet of [
 for (const expectedApiSnippet of [
   "buildCsrfRequestHeaders(operation.method",
   "credentials: defaultSameSiteCsrfContract.credentialMode",
-  "\"X-ZenArt-CSRF\""
+  "\"X-ZenArt-CSRF\"",
+  "assertSameSiteBaseUrl",
+  "same-origin for same-site CSRF protection",
+  "isUnsafePathParam"
 ]) {
   if (!generatedApiSource.includes(expectedApiSnippet) && !requestSecuritySource.includes(expectedApiSnippet)) {
     fail(`generated web API client CSRF integration missing ${expectedApiSnippet}`);

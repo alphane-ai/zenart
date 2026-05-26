@@ -112,7 +112,9 @@ export class ZenArtApiClient {
   constructor(
     private readonly baseUrl = "",
     private readonly defaultHeaders: Record<string, string> = {}
-  ) {}
+  ) {
+    this.assertSameSiteBaseUrl(baseUrl);
+  }
 
   async request<TResponse>(operationId: OperationId, options: RequestOptions = {}): Promise<TResponse> {
     const operation = apiOperations[operationId];
@@ -161,7 +163,33 @@ export class ZenArtApiClient {
       if (!value) {
         throw new Error(`Missing path parameter: ${key}`);
       }
+      if (this.isUnsafePathParam(value)) {
+        throw new Error(`Unsafe path parameter: ${key}`);
+      }
       return encodeURIComponent(value);
     });
+  }
+
+  private assertSameSiteBaseUrl(baseUrl: string) {
+    if (!baseUrl || baseUrl.startsWith("/")) {
+      return;
+    }
+
+    const parsed = new URL(baseUrl);
+    const currentOrigin = typeof window === "undefined" ? parsed.origin : window.location.origin;
+    if (parsed.origin !== currentOrigin) {
+      throw new Error("ZenArtApiClient baseUrl must be same-origin for same-site CSRF protection");
+    }
+  }
+
+  private isUnsafePathParam(value: string) {
+    return (
+      value.includes("/") ||
+      value.includes("\\") ||
+      value === "." ||
+      value === ".." ||
+      value.startsWith(".") ||
+      value.includes("..")
+    );
   }
 }

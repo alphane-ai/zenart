@@ -122,6 +122,34 @@ describe("generated web API client CSRF contract", () => {
       }
     }
   });
+
+  it("rejects cross-origin API bases before same-site credentialed requests can be made", () => {
+    expect(() => new ZenArtApiClient("https://api.example.invalid")).toThrow(
+      "ZenArtApiClient baseUrl must be same-origin for same-site CSRF protection"
+    );
+  });
+
+  it("rejects path parameters that could escape generated API route templates", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(async () =>
+      new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" }
+      })
+    );
+    const client = new ZenArtApiClient();
+
+    await expect(
+      client.request("getProject", {
+        pathParams: { project_id: "../admin/secrets" }
+      })
+    ).rejects.toThrow("Unsafe path parameter: project_id");
+    await expect(
+      client.request("getExport", {
+        pathParams: { export_id: "https://evil.example/export-001" }
+      })
+    ).rejects.toThrow("Unsafe path parameter: export_id");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
 });
 
 const buildPathParams = (pathTemplate: string) =>
