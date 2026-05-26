@@ -1159,6 +1159,7 @@ test("production activation review audit evidence covers every high-risk admin o
   const runtimeDecisions = buildAdminRbacRuntimeDecisions(adminRbacEvidence, new Date("2026-05-26T11:00:00Z"));
   const decisionByEvidenceId = new Map(runtimeDecisions.map((decision) => [decision.evidenceId, decision]));
   const rbacById = new Map(adminRbacEvidence.map((item) => [item.id, item]));
+  const insufficientRoleSecondReviewDecisions = [];
 
   assert.equal(
     productionActivationReviewAuditEvidence.id,
@@ -1216,11 +1217,26 @@ test("production activation review audit evidence covers every high-risk admin o
     assert.equal(runtimeDecision.auditRef, rbac.auditRef, `${evidenceId} runtime audit ref must match RBAC evidence`);
     assert.ok(auditIds.has(rbac.auditRef), `${evidenceId} links unknown audit ${rbac.auditRef}`);
 
-    if (rbac.decision === "allowed") {
-      assert.equal(runtimeDecision.effectiveDecision, "allow_mutation", `${evidenceId} allowed RBAC evidence should apply with expiry`);
-      assert.equal(runtimeDecision.releaseGateStatus, "runtime_override_applied_with_expiry");
+    if (roleOrder.get(rbac.attemptedRole) < roleOrder.get(rbac.requiredRole)) {
+      insufficientRoleSecondReviewDecisions.push(runtimeDecision);
+      assert.equal(
+        runtimeDecision.effectiveDecision,
+        "deny_mutation",
+        `${evidenceId} insufficient role must deny before second-review routing`
+      );
+      assert.equal(runtimeDecision.requestOutcome, "denied_insufficient_role");
+      assert.equal(runtimeDecision.queueAction, "block_and_preserve_state");
+      assert.equal(runtimeDecision.releaseGateStatus, "release_gate_preserved");
+    } else if (rbac.decision === "allowed") {
+      if (rbac.overrideExpiresAt !== "none" && new Date(`${rbac.overrideExpiresAt.replace(" ", "T")}:00Z`).getTime() <= new Date("2026-05-26T11:00:00Z").getTime() && rbac.expiryEnforced) {
+        assert.equal(runtimeDecision.effectiveDecision, "deny_mutation", `${evidenceId} expired allowed evidence must be denied`);
+        assert.equal(runtimeDecision.requestOutcome, "denied_expired_override");
+      } else {
+        assert.equal(runtimeDecision.effectiveDecision, "allow_mutation", `${evidenceId} allowed RBAC evidence should apply with expiry`);
+        assert.equal(runtimeDecision.releaseGateStatus, "runtime_override_applied_with_expiry");
+      }
     } else if (rbac.decision === "second_review_required") {
-      assert.equal(runtimeDecision.effectiveDecision, "queue_for_review", `${evidenceId} second-review evidence should queue`);
+      assert.equal(runtimeDecision.effectiveDecision, "queue_for_review", `${evidenceId} sufficient second-review evidence should queue`);
       assert.equal(runtimeDecision.releaseGateStatus, "canary_or_release_blocked");
     } else {
       assert.equal(runtimeDecision.effectiveDecision, "deny_mutation", `${evidenceId} denied evidence should block mutation`);
@@ -1228,6 +1244,37 @@ test("production activation review audit evidence covers every high-risk admin o
     }
   }
   assert.deepEqual([...requiredSurfaces], [], "production activation evidence must include every admin override surface");
+  assert.ok(
+    insufficientRoleSecondReviewDecisions.some((decision) => decision.evidenceId === "rbac-safety-001"),
+    "insufficient role second-review requests must be represented as hard denials"
+  );
+  assert.ok(
+    runtimeDecisions.some(
+      (decision) =>
+        decision.evidenceId === "rbac-release-001" &&
+        decision.effectiveDecision === "queue_for_review" &&
+        decision.releaseGateStatus === "canary_or_release_blocked"
+    ),
+    "sufficient reviewer role can queue release changes that still require second review"
+  );
+  assert.ok(
+    runtimeDecisions.some(
+      (decision) =>
+        decision.evidenceId === "rbac-safety-001" &&
+        decision.requestOutcome === "denied_insufficient_role" &&
+        decision.releaseGateStatus === "release_gate_preserved"
+    ),
+    "admin reviewer cannot queue superadmin-only safety overrides through second-review routing"
+  );
+  assert.ok(
+    runtimeDecisions.some(
+      (decision) =>
+        decision.effectiveDecision === "queue_for_review" &&
+        roleOrder.get(rbacById.get(decision.evidenceId).attemptedRole) >=
+          roleOrder.get(rbacById.get(decision.evidenceId).requiredRole)
+    ),
+    "second-review queues require a sufficient attempted admin role"
+  );
 
   for (const reviewId of productionActivationReviewAuditEvidence.adminReviewDecisionIds) {
     assert.ok(
@@ -2410,8 +2457,9 @@ test("admin RBAC runtime decisions enforce high-risk override outcomes", () => {
     }
 
     if (item.surface === "safety_rule") {
-      assert.equal(decision.effectiveDecision, "queue_for_review", "safety rule override must remain queued for superadmin/second review");
-      assert.equal(decision.releaseGateStatus, "canary_or_release_blocked", "safety rule override must keep release gate blocked");
+      assert.equal(decision.effectiveDecision, "deny_mutation", "safety rule override must deny before review when role is below superadmin");
+      assert.equal(decision.requestOutcome, "denied_insufficient_role", "safety rule override needs insufficient-role outcome");
+      assert.equal(decision.releaseGateStatus, "release_gate_preserved", "safety rule override must preserve the release gate");
     }
   }
 });

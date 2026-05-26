@@ -64,25 +64,6 @@ export function buildAdminRbacRuntimeDecisions(
       };
     }
 
-    if (item.decision === "second_review_required" || (item.decision !== "denied" && secondReviewOpen)) {
-      return {
-        evidenceId: item.id,
-        surface: item.surface,
-        overrideScope: item.overrideScope,
-        target: item.target,
-        enforcementPoint: item.enforcementPoint,
-        expiryPolicyStatus: policyStatus,
-        effectiveDecision: "queue_for_review",
-        requestOutcome: "queued_second_review",
-        mutationAllowed: false,
-        queueAction: "hold_for_second_review",
-        releaseGateStatus: "canary_or_release_blocked",
-        auditRef: item.auditRef,
-        evidenceRefs: item.evidenceRefs,
-        rationale: `${item.enforcementPoint} queued ${item.requestedAction} for second review; ${item.releaseGateImpact} ${item.postDecisionControl}`
-      };
-    }
-
     if (!sufficientRole) {
       return {
         evidenceId: item.id,
@@ -99,6 +80,25 @@ export function buildAdminRbacRuntimeDecisions(
         auditRef: item.auditRef,
         evidenceRefs: item.evidenceRefs,
         rationale: `${item.enforcementPoint} denied ${item.requestedAction} because ${item.attemptedRole} is below ${item.requiredRole}; ${item.postDecisionControl}`
+      };
+    }
+
+    if (item.decision === "second_review_required" || (item.decision !== "denied" && secondReviewOpen)) {
+      return {
+        evidenceId: item.id,
+        surface: item.surface,
+        overrideScope: item.overrideScope,
+        target: item.target,
+        enforcementPoint: item.enforcementPoint,
+        expiryPolicyStatus: policyStatus,
+        effectiveDecision: "queue_for_review",
+        requestOutcome: "queued_second_review",
+        mutationAllowed: false,
+        queueAction: "hold_for_second_review",
+        releaseGateStatus: "canary_or_release_blocked",
+        auditRef: item.auditRef,
+        evidenceRefs: item.evidenceRefs,
+        rationale: `${item.enforcementPoint} queued ${item.requestedAction} for second review; ${item.releaseGateImpact} ${item.postDecisionControl}`
       };
     }
 

@@ -551,7 +551,7 @@ export const adminRbacEvidence: AdminRbacEvidence[] = [
     requestedAction: "promote skill-brand-kit@2.5.0 into percent canary after rollback",
     enforcementPoint: "release_gate",
     requiredRole: "admin_reviewer",
-    attemptedRole: "admin_operator",
+    attemptedRole: "admin_reviewer",
     decision: "second_review_required",
     secondReviewRequired: true,
     secondReviewStatus: "required",
@@ -560,9 +560,9 @@ export const adminRbacEvidence: AdminRbacEvidence[] = [
     apiScope: "PATCH /api/admin/skills/skill-brand-kit/releases/2.5.0/canary",
     mutationOutcome: "queued_for_review",
     overrideExpiresAt: "2026-05-26 18:00",
-    runtimeCheck: "release_gate rejects canary promotion while secondReviewStatus is required and the attempted role is below admin_reviewer.",
+    runtimeCheck: "release_gate queues canary promotion while secondReviewStatus is required even though the attempted admin_reviewer role is sufficient for review intake.",
     postDecisionControl: "Keep trafficAllocation at 0% public, retain rollback target skill-brand-kit@2.4.1, and require au-005 before any canary resume.",
-    rationale: "High-risk skill release cannot enter canary from an operator-only action; reviewer and second-review evidence are required.",
+    rationale: "High-risk skill release cannot enter canary from reviewer intake alone; second-review evidence is required before release traffic changes.",
     auditRef: "au-005",
     evidenceRefs: ["rv-100", "sv-248", "eg-001"],
     releaseEvidenceRequired: ["reviewer rationale", "second reviewer", "eval pass", "rollback target", "immutable audit"]
@@ -2408,7 +2408,7 @@ export const productionActivationReviewAuditEvidence: ProductionActivationReview
       deploymentEvidence:
         "The production activation evidence file records the skill release runtime request, admin review rv-100, immutable audit au-005, release evidence eg-001, and blocked canary mutation outcome before any production skill traffic can change.",
       rbacAuditEvidence:
-        "rbac-release-001 requires admin_reviewer while the attempted role is admin_operator, so runtime holds the change for second review and cites au-005, rv-100, sv-248, and eg-001.",
+        "rbac-release-001 is attempted by admin_reviewer but still requires second-review completion, so runtime holds the change for second review and cites au-005, rv-100, sv-248, and eg-001.",
       linkedAdminArtifacts: [
         "admin/app/skills/releases/page.tsx",
         "admin/app/audit/page.tsx",
@@ -2518,11 +2518,11 @@ export const productionActivationReviewAuditEvidence: ProductionActivationReview
       area: "safety_policy_gate",
       status: "pass",
       runtimeProbe:
-        "Production safety policy replay queued rbac-safety-001 for superadmin and second review, kept forbidden-claims:v3 blocking at export, and blocked production launch activation for the policy relaxation.",
+        "Production safety policy replay denied rbac-safety-001 before second-review routing because admin_reviewer is below admin_superadmin, kept forbidden-claims:v3 blocking at export, and blocked production launch activation for the policy relaxation.",
       deploymentEvidence:
         "The production evidence file records the safety policy runtime request, risky export rx-41, release evidence eg-002, skill sv-098, and immutable audit au-006 without relaxing the blocking rule.",
       rbacAuditEvidence:
-        "rbac-safety-001 requires admin_superadmin while attempted role is admin_reviewer and secondReviewStatus is blocked, so runtime returns queued_second_review and preserves the safety gate.",
+        "rbac-safety-001 requires admin_superadmin while attempted role is admin_reviewer, so runtime returns denied_insufficient_role before second-review routing and preserves the safety gate.",
       linkedAdminArtifacts: [
         "admin/app/safety/page.tsx",
         "admin/app/audit/page.tsx",

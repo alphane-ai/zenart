@@ -1,5 +1,6 @@
 import { DataTable } from "@/components/DataTable";
 import { PageHeader } from "@/components/PageHeader";
+import { StatGrid } from "@/components/StatGrid";
 import { StatusBadge } from "@/components/StatusBadge";
 import {
   getAdminRbacEvidence,
@@ -53,6 +54,23 @@ export default async function AuditPage() {
       name: "Release and canary changes",
       filter: "action:started skill canary OR surface:skill_release",
       evidence: "Must preserve eval, canary, release, smoke, and rollback evidence."
+    }
+  ];
+  const rbacRuntimeStats = [
+    {
+      label: "Denied Mutations",
+      value: rbacRuntime.filter((decision) => decision.effectiveDecision === "deny_mutation").length,
+      detail: "Insufficient role, expired override, or policy block preserved."
+    },
+    {
+      label: "Second Review Holds",
+      value: rbacRuntime.filter((decision) => decision.effectiveDecision === "queue_for_review").length,
+      detail: "Sufficient role requests waiting on reviewer evidence."
+    },
+    {
+      label: "Timed Overrides",
+      value: rbacRuntime.filter((decision) => decision.effectiveDecision === "allow_mutation").length,
+      detail: "Allowed admin changes with enforced expiration evidence."
     }
   ];
 
@@ -210,6 +228,7 @@ export default async function AuditPage() {
             <p>Audit search includes the effective runtime outcome for every high-risk admin override surface.</p>
           </div>
         </div>
+        <StatGrid stats={rbacRuntimeStats} />
         <DataTable<AdminRbacRuntimeDecision>
           rows={rbacRuntime}
           columns={[
