@@ -1360,6 +1360,25 @@ WORKFLOW_RUNTIME_EVIDENCE_REQUIREMENTS = {
     },
 }
 
+LOCAL_ALPHA_E2E_WORKFLOW_EVIDENCE_REQUIREMENTS = {
+    "ecommerce_growth_pack": (
+        "ecommerce_growth_pack",
+        "电商增长包",
+    ),
+    "business_visual_doc_pack": (
+        "business_visual_doc_pack",
+        "商业视觉文档包",
+    ),
+    "local_merchant_campaign_pack": (
+        "local_merchant_campaign_pack",
+        "本地商家活动包",
+    ),
+    "character_ip_concept_pack": (
+        "character_ip_concept_pack",
+        "角色/IP 概念包",
+    ),
+}
+
 
 class ValidationError(Exception):
     pass
@@ -1827,6 +1846,18 @@ def validate_runtime_gate_evidence_refs(
                 f"{gate}.{check_id} pass evidence must cite gate-specific runtime/deployment evidence paths: "
                 + json.dumps(requirement["path_patterns"]),
             )
+            if (gate, check_id) == ("local_alpha", "local_alpha_e2e_workflow_smoke"):
+                evidence_ref_lower = evidence_ref.lower()
+                for workflow_id, aliases in LOCAL_ALPHA_E2E_WORKFLOW_EVIDENCE_REQUIREMENTS.items():
+                    require(
+                        any(alias.lower() in evidence_ref_lower for alias in aliases),
+                        f"{gate}.{check_id} pass evidence must name workflow runtime coverage for {workflow_id}",
+                    )
+                for token in ["api", "playwright", "export zip"]:
+                    require(
+                        evidence_ref_lower.count(token) >= len(LOCAL_ALPHA_E2E_WORKFLOW_EVIDENCE_REQUIREMENTS),
+                        f"{gate}.{check_id} pass evidence must cite per-workflow {token!r} evidence for all four workflows",
+                    )
 
     runtime_items_open = RELEASE_GATE_RUNTIME_OPEN_ITEMS & unchecked_lines
     if gate == "local_alpha":
