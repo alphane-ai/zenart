@@ -41,22 +41,39 @@ type AdminDebugVisibility struct {
 	ShowProviderIO bool `json:"show_provider_io"`
 }
 
+const (
+	ContractIntentRouter           = "intent_router"
+	ContractBriefCompletion        = "brief_completion"
+	ContractWorkflowPlanner        = "workflow_planner"
+	ContractHiddenSkillSelector    = "hidden_skill_selector"
+	ContractMetaPromptSpecResolver = "meta_prompt_spec_resolver"
+	ContractPromptFragmentComposer = "prompt_fragment_composer"
+	ContractSafetyPolicyInjector   = "safety_policy_injector"
+	ContractProviderModelRouter    = "provider_model_router"
+	ContractCandidateSetBuilder    = "candidate_set_builder"
+	ContractIterationPlanner       = "iteration_planner"
+	ContractDesignQARunner         = "design_qa_runner"
+	ContractPackageExportBuilder   = "package_export_builder"
+	ContractFeedbackExtractor      = "feedback_extractor"
+	ContractPromptMutationProposer = "prompt_mutation_proposer"
+)
+
 func BaseStepContracts(schemaVersion int) []StepContract {
 	names := []string{
-		"intent_router",
-		"brief_completion",
-		"workflow_planner",
-		"hidden_skill_selector",
-		"meta_prompt_spec_resolver",
-		"prompt_fragment_composer",
-		"safety_policy_injector",
-		"provider_model_router",
-		"candidate_set_builder",
-		"iteration_planner",
-		"design_qa_runner",
-		"package_export_builder",
-		"feedback_extractor",
-		"prompt_mutation_proposer",
+		ContractIntentRouter,
+		ContractBriefCompletion,
+		ContractWorkflowPlanner,
+		ContractHiddenSkillSelector,
+		ContractMetaPromptSpecResolver,
+		ContractPromptFragmentComposer,
+		ContractSafetyPolicyInjector,
+		ContractProviderModelRouter,
+		ContractCandidateSetBuilder,
+		ContractIterationPlanner,
+		ContractDesignQARunner,
+		ContractPackageExportBuilder,
+		ContractFeedbackExtractor,
+		ContractPromptMutationProposer,
 	}
 
 	contracts := make([]StepContract, 0, len(names))
@@ -90,4 +107,13 @@ func BaseStepContracts(schemaVersion int) []StepContract {
 		})
 	}
 	return contracts
+}
+
+func ContractByName(schemaVersion int, name string) (StepContract, bool) {
+	for _, contract := range BaseStepContracts(schemaVersion) {
+		if contract.Name == name {
+			return contract, true
+		}
+	}
+	return StepContract{}, false
 }

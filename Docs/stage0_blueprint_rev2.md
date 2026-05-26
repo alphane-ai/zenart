@@ -1688,7 +1688,7 @@ main 合并前必须通过：
 
 ### 25.7 Auth, RBAC, Tenant Isolation, Audit
 
-- [ ] 决定 Stage 0 access mode。
+- [x] 决定 Stage 0 access mode。
 - [ ] 实现 Web user auth。
 - [ ] 实现 Admin auth。
 - [x] 定义角色和权限矩阵。
@@ -1700,16 +1700,16 @@ main 合并前必须通过：
 
 ### 25.8 Billing, Quota, Entitlement
 
-- [ ] 实现 subscription state machine。
-- [ ] 实现 local mock checkout provider。
-- [ ] 实现 paid provider abstraction。
+- [x] 实现 subscription state machine。
+- [x] 实现 local mock checkout provider。
+- [x] 实现 paid provider abstraction。
 - [x] 实现 billing page。
-- [ ] 实现 entitlement middleware。
+- [x] 实现 entitlement middleware。
 - [ ] 实现 weekly quota reset。
 - [x] 实现 quota reservation。
 - [x] 实现 quota commit/refund。
-- [ ] 实现 quota retry/idempotency。
-- [ ] 实现 admin quota credit/debit。
+- [x] 实现 quota retry/idempotency。
+- [x] 实现 admin quota credit/debit。
 - [ ] 实现 provider usage reconciliation。
 - [ ] 实现 daily spend cap。
 - [ ] 实现 emergency kill switch。
@@ -1737,20 +1737,20 @@ main 合并前必须通过：
 ### 25.10 Agent and Provider Contracts
 
 - [x] 定义 `AgentStepContract`。
-- [ ] 实现 intent router contract。
-- [ ] 实现 brief completion contract。
-- [ ] 实现 workflow planner contract。
-- [ ] 实现 hidden skill selector contract。
-- [ ] 实现 meta prompt/spec resolver contract。
-- [ ] 实现 prompt fragment composer contract。
-- [ ] 实现 safety injector contract。
-- [ ] 实现 provider router contract。
-- [ ] 实现 candidate builder contract。
-- [ ] 实现 iteration planner contract。
-- [ ] 实现 QA runner contract。
-- [ ] 实现 export builder contract。
-- [ ] 实现 feedback extractor contract。
-- [ ] 实现 prompt mutation proposer contract。
+- [x] 实现 intent router contract。
+- [x] 实现 brief completion contract。
+- [x] 实现 workflow planner contract。
+- [x] 实现 hidden skill selector contract。
+- [x] 实现 meta prompt/spec resolver contract。
+- [x] 实现 prompt fragment composer contract。
+- [x] 实现 safety injector contract。
+- [x] 实现 provider router contract。
+- [x] 实现 candidate builder contract。
+- [x] 实现 iteration planner contract。
+- [x] 实现 QA runner contract。
+- [x] 实现 export builder contract。
+- [x] 实现 feedback extractor contract。
+- [x] 实现 prompt mutation proposer contract。
 - [ ] 定义 provider request/response schema。
 - [ ] 定义 provider capability matrix。
 - [ ] 实现 dev provider。

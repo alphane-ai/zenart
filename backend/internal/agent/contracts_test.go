@@ -40,3 +40,16 @@ func TestBaseStepContractsCoverRequiredStage0Contracts(t *testing.T) {
 		}
 	}
 }
+
+func TestContractByName(t *testing.T) {
+	contract, ok := ContractByName(1, ContractProviderModelRouter)
+	if !ok {
+		t.Fatal("ContractByName() missing provider model router")
+	}
+	if contract.Name != ContractProviderModelRouter {
+		t.Fatalf("Name = %q, want %q", contract.Name, ContractProviderModelRouter)
+	}
+	if _, ok := ContractByName(1, "unknown"); ok {
+		t.Fatal("ContractByName() found unknown contract")
+	}
+}

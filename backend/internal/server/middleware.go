@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/alphane-ai/zenart/backend/internal/auth"
+	"github.com/alphane-ai/zenart/backend/internal/billing"
 )
 
 type principalKey struct{}
@@ -33,6 +34,10 @@ func requireAdmin(next http.Handler) http.Handler {
 	}))
 }
 
+func requireEntitlement(service billing.EntitlementService, action string, cost int64, next http.Handler) http.Handler {
+	return billing.EntitlementMiddleware(service, action, cost, principalForEntitlement, denyEntitlement)(next)
+}
+
 func PrincipalFromContext(ctx context.Context) (auth.Principal, bool) {
 	principal, ok := ctx.Value(principalKey{}).(auth.Principal)
 	return principal, ok
@@ -57,6 +62,20 @@ func principalFromHeaders(r *http.Request) (auth.Principal, bool) {
 		TenantID: tenantID,
 		Roles:    roles,
 	}, true
+}
+
+func principalForEntitlement(r *http.Request) (tenantID, userID string, ok bool) {
+	principal, ok := PrincipalFromContext(r.Context())
+	if !ok {
+		return "", "", false
+	}
+	return principal.TenantID, principal.UserID, true
+}
+
+func denyEntitlement(w http.ResponseWriter, r *http.Request, decision billing.EntitlementDecision) {
+	writeError(w, r, http.StatusPaymentRequired, "entitlement_denied", "entitlement check failed", map[string]any{
+		"reason": decision.Reason,
+	})
 }
 
 func writeError(w http.ResponseWriter, r *http.Request, status int, code, message string, details map[string]any) {
