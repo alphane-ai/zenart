@@ -2023,6 +2023,7 @@ Release gate closure policy:
 
 - `fixtures/stage0/rev2/release_gate_evidence.*.json` must cite the exact Do-Not-Launch condition text covered by each gate condition.
 - Each release gate fixture must include a `gate_decision` object whose `status`, `blocked_by_checks`, and `active_do_not_launch_conditions` exactly match the computed check statuses and active Do-Not-Launch conditions; a fixture-level `go` decision is invalid while any check is blocked/failing or any Do-Not-Launch condition is active.
+- For a `no_go` fixture, `gate_decision.evidence_ref` must name every blocked/failing check ID and every active Do-Not-Launch condition ID from the same fixture; summary prose cannot hide a still-active blocker.
 - `gate_decision.status` must also align with the authoritative checklist: each open gate checklist item requires the matching fixture decision to stay `no_go`, and each checked gate checklist item requires the matching fixture decision to be `go`.
 - A gate checklist item may close only when every check in its evidence fixture is `pass` and every Do-Not-Launch condition in that fixture is false.
 - If a gate checklist item remains open, its release gate fixture must still contain at least one computed blocker; if the fixture becomes fully passable, the checklist must be updated in the same change.

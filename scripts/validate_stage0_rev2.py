@@ -1849,6 +1849,25 @@ def validate_gate_decision(data: dict[str, Any]) -> None:
             "no-go" in evidence_ref.lower() or "no_go" in evidence_ref.lower() or "blocked" in evidence_ref.lower(),
             f"{gate} gate_decision no-go evidence must explicitly state the blocked launch decision",
         )
+        evidence_ref_lower = evidence_ref.lower()
+        missing_check_ids = [
+            check_id
+            for check_id in expected_blocked_checks
+            if check_id.lower() not in evidence_ref_lower
+        ]
+        require(
+            not missing_check_ids,
+            f"{gate} gate_decision no-go evidence must name every blocked/failing check ID: {missing_check_ids}",
+        )
+        missing_condition_ids = [
+            condition_id
+            for condition_id in expected_active_conditions
+            if condition_id.lower() not in evidence_ref_lower
+        ]
+        require(
+            not missing_condition_ids,
+            f"{gate} gate_decision no-go evidence must name every active Do-Not-Launch condition ID: {missing_condition_ids}",
+        )
     else:
         require(
             "go" in evidence_ref.lower(),
@@ -5231,6 +5250,8 @@ def validate_launch_readiness_split_contracts() -> None:
         "each open gate checklist item requires the matching fixture decision to stay `no_go`",
         "each checked gate checklist item requires the matching fixture decision to be `go`",
         "a fixture-level `go` decision is invalid while any check is blocked/failing or any Do-Not-Launch condition is active",
+        "For a `no_go` fixture, `gate_decision.evidence_ref` must name every blocked/failing check ID",
+        "and every active Do-Not-Launch condition ID from the same fixture",
         "If a gate checklist item remains open, its release gate fixture must still contain at least one computed blocker",
         "Passed runtime gate checks must cite exact validator-owned evidence files when the checklist subitem is closed by a named `ops/evidence` artifact",
         "Passed runtime evidence files must declare the expected environment",

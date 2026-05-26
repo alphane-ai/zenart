@@ -127,7 +127,7 @@
       "staging_observability_restore_load_missing",
       "external_user_legal_pages_missing"
     ],
-    "evidence_ref": "fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json remains no-go while external-user staging runtime evidence is blocked for object storage, quota/rate limits, eval/QA/safety, observability/backup/load, and legal visibility after auth/RBAC/tenant/audit evidence passed in ops/evidence/staging/20260527T1515Z-auth-rbac-tenant-audit.json and brief/upload/confirmation evidence passed in ops/evidence/staging/20260526T2330Z-brief-upload-confirmation.json"
+    "evidence_ref": "fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json remains no-go while staging_object_storage_signed_downloads, staging_quota_rate_limit_spend_cap, staging_eval_qa_safety_runtime, staging_observability_backup_load, and staging_legal_external_user_pages are blocked and rate_limit_spend_cap_runtime_missing, object_storage_signed_retention_runtime_missing, eval_qa_safety_runtime_missing, staging_observability_restore_load_missing, and external_user_legal_pages_missing remain active after auth/RBAC/tenant/audit evidence passed in ops/evidence/staging/20260527T1515Z-auth-rbac-tenant-audit.json and brief/upload/confirmation evidence passed in ops/evidence/staging/20260526T2330Z-brief-upload-confirmation.json"
   },
   "provenance": {
     "blueprint_sections": [

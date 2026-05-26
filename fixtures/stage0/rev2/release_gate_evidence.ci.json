@@ -69,7 +69,7 @@
       "ci_playwright_smoke_missing",
       "ci_docker_image_build_missing"
     ],
-    "evidence_ref": "fixtures/stage0/rev2/release_gate_evidence.ci.json remains no-go because installed PR/main workflow run, Playwright smoke, and Docker image build runtime evidence are blocked"
+    "evidence_ref": "fixtures/stage0/rev2/release_gate_evidence.ci.json remains no-go because ci_installed_workflow, ci_gate_runtime_execution, ci_playwright_smoke, and ci_docker_image_build are blocked while ci_workflow_not_installed, ci_gate_not_executed_on_main, ci_playwright_smoke_missing, and ci_docker_image_build_missing remain active"
   },
   "provenance": {
     "blueprint_sections": [
