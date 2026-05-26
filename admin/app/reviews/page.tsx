@@ -1,13 +1,14 @@
 import { DataTable } from "@/components/DataTable";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
-import { getAdminRbacEvidence, getAdminReviewDecisions } from "@/lib/admin-api";
-import type { AdminRbacEvidence, AdminReviewDecision } from "@/lib/types";
+import { getAdminRbacEvidence, getAdminRbacRuntimeDecisions, getAdminReviewDecisions } from "@/lib/admin-api";
+import type { AdminRbacEvidence, AdminRbacRuntimeDecision, AdminReviewDecision } from "@/lib/types";
 
 export default async function ReviewsPage() {
-  const [reviews, rbacEvidence] = await Promise.all([
+  const [reviews, rbacEvidence, rbacRuntime] = await Promise.all([
     getAdminReviewDecisions(),
-    getAdminRbacEvidence()
+    getAdminRbacEvidence(),
+    getAdminRbacRuntimeDecisions()
   ]);
 
   return (
@@ -48,6 +49,31 @@ export default async function ReviewsPage() {
             { key: "eval", header: "Eval", render: (row) => row.evalSummary },
             { key: "qa", header: "QA", render: (row) => row.qaSummary },
             { key: "evidence", header: "Evidence Refs", render: (row) => row.evidenceRefs.join(", ") }
+          ]}
+        />
+      </section>
+
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>RBAC Runtime Decisions</h3>
+            <p>Effective override outcomes are evaluated from role rank, second-review state, policy blocks, expiry, mutation result, and audit evidence.</p>
+          </div>
+        </div>
+        <DataTable<AdminRbacRuntimeDecision>
+          rows={rbacRuntime}
+          columns={[
+            { key: "evidence", header: "Evidence", render: (row) => <span className="mono">{row.evidenceId}</span> },
+            { key: "surface", header: "Surface", render: (row) => row.surface },
+            { key: "target", header: "Target", render: (row) => <span className="mono">{row.target}</span> },
+            { key: "enforcement", header: "Enforcement", render: (row) => row.enforcementPoint },
+            { key: "decision", header: "Effective Decision", render: (row) => <StatusBadge value={row.effectiveDecision === "allow_mutation" ? "allowed" : row.effectiveDecision === "queue_for_review" ? "warning" : "denied"} label={row.effectiveDecision} /> },
+            { key: "outcome", header: "Request Outcome", render: (row) => row.requestOutcome },
+            { key: "mutation", header: "Mutation Allowed", render: (row) => (row.mutationAllowed ? "Yes" : "No") },
+            { key: "queue", header: "Queue Action", render: (row) => row.queueAction },
+            { key: "gate", header: "Release Gate Status", render: (row) => row.releaseGateStatus },
+            { key: "audit", header: "Audit Ref", render: (row) => <span className="mono">{row.auditRef}</span> },
+            { key: "rationale", header: "Runtime Rationale", render: (row) => row.rationale }
           ]}
         />
       </section>

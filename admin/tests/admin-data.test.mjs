@@ -318,6 +318,48 @@ test("admin fixtures expose review governance and release evidence", () => {
   }
 });
 
+test("admin review and audit pages expose RBAC runtime decisions", () => {
+  const reviewsPage = readFileSync(
+    new URL("../app/reviews/page.tsx", import.meta.url),
+    "utf8"
+  );
+  const auditPage = readFileSync(
+    new URL("../app/audit/page.tsx", import.meta.url),
+    "utf8"
+  );
+  const adminApi = readFileSync(
+    new URL("../lib/admin-api.ts", import.meta.url),
+    "utf8"
+  );
+  const rbacRuntime = readFileSync(
+    new URL("../lib/rbac-runtime.ts", import.meta.url),
+    "utf8"
+  );
+
+  for (const token of [
+    "getAdminRbacRuntimeDecisions",
+    "RBAC Runtime Decisions",
+    "Effective Decision",
+    "Request Outcome",
+    "Queue Action",
+    "Release Gate Status",
+    "Runtime Rationale"
+  ]) {
+    assert.match(reviewsPage, new RegExp(token));
+    assert.match(auditPage, new RegExp(token));
+  }
+
+  for (const token of [
+    "buildAdminRbacRuntimeDecisions",
+    "denied_insufficient_role",
+    "denied_policy_block",
+    "queued_second_review",
+    "apply_with_expiry"
+  ]) {
+    assert.match(adminApi + rbacRuntime, new RegExp(token));
+  }
+});
+
 test("admin fixtures cover RBAC evidence for governed override surfaces", () => {
   for (const token of [
     "adminRbacEvidence",

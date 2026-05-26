@@ -38,6 +38,7 @@ import {
   traces
 } from "@/lib/fixtures";
 import { buildAbuseQueueRuntime, buildAbuseRuntimeDecisions } from "@/lib/abuse-runtime";
+import { buildAdminRbacRuntimeDecisions } from "@/lib/rbac-runtime";
 
 export async function getSkills() {
   return skills;
@@ -61,6 +62,10 @@ export async function getAdminReviewDecisions() {
 
 export async function getAdminRbacEvidence() {
   return adminRbacEvidence;
+}
+
+export async function getAdminRbacRuntimeDecisions() {
+  return buildAdminRbacRuntimeDecisions(adminRbacEvidence, new Date("2026-05-26T11:00:00Z"));
 }
 
 export async function getCrawlerFindings() {

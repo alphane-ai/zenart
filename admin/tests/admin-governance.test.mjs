@@ -4,6 +4,7 @@ import { test } from "node:test";
 
 const source = readFileSync(new URL("../lib/fixtures.ts", import.meta.url), "utf8");
 const abuseRuntimeSource = readFileSync(new URL("../lib/abuse-runtime.ts", import.meta.url), "utf8");
+const rbacRuntimeSource = readFileSync(new URL("../lib/rbac-runtime.ts", import.meta.url), "utf8");
 const repoRoot = new URL("../../", import.meta.url);
 const blueprint = readFileSync(new URL("../../Docs/stage0_blueprint_rev2.md", import.meta.url), "utf8");
 
@@ -68,6 +69,20 @@ const parseAbuseRuntime = () => {
     .replaceAll(/: Date/g, "")
     .replaceAll(/ as const/g, "");
   return Function(`${runtimeSource}\nreturn { buildAbuseRuntimeDecisions, buildAbuseQueueRuntime };`)();
+};
+
+const parseRbacRuntime = () => {
+  const runtimeSource = rbacRuntimeSource
+    .replace(/^import type[\s\S]*?from "@\/lib\/types";\n\n/, "")
+    .replaceAll(/const roleRank: Record<AdminRole, number> =/g, "const roleRank =")
+    .replaceAll(/export function (\w+)/g, "function $1")
+    .replaceAll(/: AdminRbacEvidence\[\]/g, "")
+    .replaceAll(/: AdminRbacRuntimeDecision\[\]/g, "")
+    .replaceAll(/: AdminRbacEvidence/g, "")
+    .replaceAll(/: string/g, "")
+    .replaceAll(/: Date/g, "")
+    .replaceAll(/: boolean/g, "");
+  return Function(`${runtimeSource}\nreturn { buildAdminRbacRuntimeDecisions };`)();
 };
 
 const auditIds = new Set(auditEvents.map((event) => event.id));
@@ -1320,6 +1335,70 @@ test("admin RBAC evidence covers every governed override surface", () => {
   assert.equal(enforcementBySurface.get("quota_override"), "quota_mutation", "quota RBAC must bind to mutation gate");
   assert.equal(enforcementBySurface.get("safety_rule"), "safety_policy", "safety RBAC must bind to policy gate");
   assert.equal(enforcementBySurface.get("export_override"), "export_release", "export RBAC must bind to release gate");
+});
+
+test("admin RBAC runtime decisions enforce high-risk override outcomes", () => {
+  const { buildAdminRbacRuntimeDecisions } = parseRbacRuntime();
+  const decisions = buildAdminRbacRuntimeDecisions(adminRbacEvidence, new Date("2026-05-26T11:00:00Z"));
+
+  assert.equal(decisions.length, adminRbacEvidence.length, "every RBAC evidence item needs a runtime decision");
+  assert.ok(
+    decisions.some((decision) => decision.effectiveDecision === "allow_mutation" && decision.requestOutcome === "applied"),
+    "RBAC runtime needs an allowed mutation with expiry"
+  );
+  assert.ok(
+    decisions.some((decision) => decision.effectiveDecision === "queue_for_review" && decision.requestOutcome === "queued_second_review"),
+    "RBAC runtime needs queued second-review decisions"
+  );
+  assert.ok(
+    decisions.some((decision) => decision.effectiveDecision === "deny_mutation" && decision.requestOutcome === "denied_insufficient_role"),
+    "RBAC runtime needs insufficient-role denials"
+  );
+  assert.ok(
+    decisions.some((decision) => decision.effectiveDecision === "deny_mutation" && decision.requestOutcome === "denied_policy_block"),
+    "RBAC runtime needs policy-block denials"
+  );
+
+  const evidenceById = new Map(adminRbacEvidence.map((item) => [item.id, item]));
+
+  for (const decision of decisions) {
+    const item = evidenceById.get(decision.evidenceId);
+    assert.ok(item, `${decision.evidenceId} links unknown RBAC evidence`);
+    assert.equal(decision.surface, item.surface, `${decision.evidenceId} surface mismatch`);
+    assert.equal(decision.target, item.target, `${decision.evidenceId} target mismatch`);
+    assert.equal(decision.enforcementPoint, item.enforcementPoint, `${decision.evidenceId} enforcement mismatch`);
+    assert.ok(auditIds.has(decision.auditRef), `${decision.evidenceId} links unknown audit ${decision.auditRef}`);
+    assert.deepEqual(decision.evidenceRefs, item.evidenceRefs, `${decision.evidenceId} evidence refs must be preserved`);
+    assert.ok(decision.rationale.length > 120, `${decision.evidenceId} needs runtime rationale`);
+    assert.match(
+      decision.rationale,
+      new RegExp(item.enforcementPoint),
+      `${decision.evidenceId} runtime rationale must name enforcement point`
+    );
+
+    if (decision.mutationAllowed) {
+      assert.equal(decision.effectiveDecision, "allow_mutation", `${decision.evidenceId} mutation allowed only for allow decisions`);
+      assert.equal(decision.queueAction, "apply_with_expiry", `${decision.evidenceId} allowed mutation needs expiry action`);
+      assert.equal(decision.releaseGateStatus, "runtime_override_applied_with_expiry", `${decision.evidenceId} allowed mutation needs runtime gate status`);
+    } else {
+      assert.notEqual(decision.effectiveDecision, "allow_mutation", `${decision.evidenceId} denied or queued decision cannot allow mutation`);
+      assert.match(
+        decision.queueAction,
+        /hold_for_second_review|block_and_preserve_state/,
+        `${decision.evidenceId} denied or queued decision needs restrictive queue action`
+      );
+    }
+
+    if (item.surface === "export_override") {
+      assert.equal(decision.effectiveDecision, "deny_mutation", "blocking export override must be denied at runtime");
+      assert.equal(decision.requestOutcome, "denied_policy_block", "blocking export override needs policy-block outcome");
+    }
+
+    if (item.surface === "safety_rule") {
+      assert.equal(decision.effectiveDecision, "queue_for_review", "safety rule override must remain queued for superadmin/second review");
+      assert.equal(decision.releaseGateStatus, "canary_or_release_blocked", "safety rule override must keep release gate blocked");
+    }
+  }
 });
 
 test("blocking safety exports cannot be overridden without audit-safe eligibility", () => {

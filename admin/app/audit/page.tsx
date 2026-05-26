@@ -1,14 +1,15 @@
 import { DataTable } from "@/components/DataTable";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
-import { getAdminRbacEvidence, getAdminReviewDecisions, getAuditEvents } from "@/lib/admin-api";
-import type { AdminRbacEvidence, AdminReviewDecision, AuditEvent } from "@/lib/types";
+import { getAdminRbacEvidence, getAdminRbacRuntimeDecisions, getAdminReviewDecisions, getAuditEvents } from "@/lib/admin-api";
+import type { AdminRbacEvidence, AdminRbacRuntimeDecision, AdminReviewDecision, AuditEvent } from "@/lib/types";
 
 export default async function AuditPage() {
-  const [events, reviews, rbacEvidence] = await Promise.all([
+  const [events, reviews, rbacEvidence, rbacRuntime] = await Promise.all([
     getAuditEvents(),
     getAdminReviewDecisions(),
-    getAdminRbacEvidence()
+    getAdminRbacEvidence(),
+    getAdminRbacRuntimeDecisions()
   ]);
   const filterPresets = [
     {
@@ -87,6 +88,29 @@ export default async function AuditPage() {
             { key: "second-review", header: "Second Review Status", render: (row) => <StatusBadge value={row.secondReviewStatus} label={row.secondReviewStatus} /> },
             { key: "evidence", header: "Evidence Refs", render: (row) => row.evidenceRefs.join(", ") },
             { key: "rationale", header: "Rationale", render: (row) => row.rationale }
+          ]}
+        />
+      </section>
+
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>RBAC Runtime Decisions</h3>
+            <p>Audit search includes the effective runtime outcome for every high-risk admin override surface.</p>
+          </div>
+        </div>
+        <DataTable<AdminRbacRuntimeDecision>
+          rows={rbacRuntime}
+          columns={[
+            { key: "evidence", header: "Evidence", render: (row) => <span className="mono">{row.evidenceId}</span> },
+            { key: "surface", header: "Surface", render: (row) => row.surface },
+            { key: "target", header: "Target", render: (row) => <span className="mono">{row.target}</span> },
+            { key: "decision", header: "Effective Decision", render: (row) => <StatusBadge value={row.effectiveDecision === "allow_mutation" ? "allowed" : row.effectiveDecision === "queue_for_review" ? "warning" : "denied"} label={row.effectiveDecision} /> },
+            { key: "outcome", header: "Request Outcome", render: (row) => row.requestOutcome },
+            { key: "queue", header: "Queue Action", render: (row) => row.queueAction },
+            { key: "gate", header: "Release Gate Status", render: (row) => row.releaseGateStatus },
+            { key: "audit", header: "Audit Ref", render: (row) => <span className="mono">{row.auditRef}</span> },
+            { key: "rationale", header: "Runtime Rationale", render: (row) => row.rationale }
           ]}
         />
       </section>

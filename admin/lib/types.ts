@@ -774,6 +774,21 @@ export type AdminRbacEvidence = {
   evidenceRefs: string[];
 };
 
+export type AdminRbacRuntimeDecision = {
+  evidenceId: string;
+  surface: AdminReviewSurface;
+  target: string;
+  enforcementPoint: AdminRbacEvidence["enforcementPoint"];
+  effectiveDecision: "allow_mutation" | "queue_for_review" | "deny_mutation";
+  requestOutcome: "applied" | "queued_second_review" | "denied_insufficient_role" | "denied_policy_block" | "denied_expired_override";
+  mutationAllowed: boolean;
+  queueAction: "apply_with_expiry" | "hold_for_second_review" | "block_and_preserve_state";
+  releaseGateStatus: "canary_or_release_blocked" | "runtime_override_applied_with_expiry" | "release_gate_preserved";
+  auditRef: string;
+  evidenceRefs: string[];
+  rationale: string;
+};
+
 export type ReleaseEvidence = {
   id: string;
   target: string;
