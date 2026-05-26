@@ -577,6 +577,7 @@ function WorkspaceView({
           data-rendering-smoke-summary={renderingSmoke.schema_version}
           data-rendering-smoke-status={renderingSmoke.status}
           data-rendering-smoke-failures={renderingSmoke.failures.join(",")}
+          data-rendering-interaction-steps={renderingSmoke.interactionSteps.join(",")}
           data-rendering-estimated-interaction-ms={renderingSmoke.estimatedInteractionMs}
           data-rendering-budget-node-count={renderingSmoke.budgets.maxNodes}
           data-rendering-budget-edge-count={renderingSmoke.budgets.maxEdges}
@@ -597,6 +598,7 @@ function WorkspaceView({
           data-render-edge-count={renderingSmoke.edgeCount}
           data-render-element-count={renderingSmoke.renderElementCount}
           data-render-estimated-interaction-ms={renderingSmoke.estimatedInteractionMs}
+          data-render-interaction-steps={renderingSmoke.interactionSteps.join(",")}
           data-render-failure-count={renderingSmoke.failures.length}
           data-render-max-elements={renderingSmoke.budgets.maxRenderElements}
           data-render-max-interaction-ms={renderingSmoke.budgets.maxInteractionMs}

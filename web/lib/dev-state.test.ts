@@ -295,6 +295,7 @@ describe("dev workspace contracts", () => {
       schema_version: "stage0.rev2.workspace-rendering-performance",
       scenario: "local-alpha-canvas",
       status: "pass",
+      interactionSteps: ["load", "candidate-select", "iteration", "package-add"],
       nodeCount: 3,
       edgeCount: 2,
       versionCount: 3,

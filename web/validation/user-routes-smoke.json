@@ -166,6 +166,7 @@
     "account settings persist through workspace reload",
     "candidate selection, workspace autosave, canvas versions, and package history survive reload",
     "workspace rendering performance smoke keeps canvas render elements within the local alpha budget",
+    "workspace rendering performance smoke remains passing after brief confirmation, candidate selection, iteration, package add, export, and version restore",
     "reference upload validation accepts safe images/documents/HTTPS URLs and rejects unsupported inputs",
     "report-problem tickets retain project, export, task, trace, asset, and quota context",
     "blocked exports do not consume quota and mock checkout activates the local alpha plan",

@@ -145,6 +145,9 @@ export interface WorkspaceRenderingPerformanceSmoke {
   schema_version: "stage0.rev2.workspace-rendering-performance";
   status: "pass" | "fail";
   scenario: "local-alpha-canvas";
+  interactionSteps: Array<
+    "load" | "brief-confirm" | "candidate-select" | "iteration" | "package-add" | "export-ready" | "version-restore"
+  >;
   nodeCount: number;
   edgeCount: number;
   versionCount: number;

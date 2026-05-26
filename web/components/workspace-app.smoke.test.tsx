@@ -112,4 +112,65 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(safetyPolicy).toHaveAttribute("data-safety-policy-stage-count", "5");
     expect(safetyPolicy).toHaveAttribute("data-safety-policy-finding-count", "0");
   });
+
+  it("keeps workspace rendering inside the smoke budget across the interactive canvas flow", async () => {
+    const { container } = render(<WorkspaceApp initialView="workspace" />);
+
+    await screen.findByRole("heading", { name: "Launch Direction Board" });
+
+    const assertRenderingBudget = (expectedSteps: string[]) => {
+      const canvas = container.querySelector("[data-rendering-smoke='stage0.rev2.workspace-rendering-performance']");
+      const summary = screen.getByLabelText("Workspace rendering performance smoke");
+
+      expect(canvas).toHaveAttribute("data-rendering-status", "pass");
+      expect(canvas).toHaveAttribute("data-render-failure-count", "0");
+      expect(Number(canvas?.getAttribute("data-render-element-count"))).toBeLessThanOrEqual(
+        Number(canvas?.getAttribute("data-render-max-elements"))
+      );
+      expect(Number(canvas?.getAttribute("data-render-estimated-interaction-ms"))).toBeLessThanOrEqual(
+        Number(canvas?.getAttribute("data-render-max-interaction-ms"))
+      );
+      for (const step of expectedSteps) {
+        expect(canvas?.getAttribute("data-render-interaction-steps")).toContain(step);
+        expect(summary.getAttribute("data-rendering-interaction-steps")).toContain(step);
+      }
+    };
+
+    assertRenderingBudget(["load"]);
+
+    fireEvent.click(screen.getByRole("button", { name: "Confirm Brief" }));
+    await waitFor(() => {
+      expect(screen.getByText("Brief confirmed. I generated four deterministic strategy candidates for review.")).toBeInTheDocument();
+    });
+    assertRenderingBudget(["brief-confirm"]);
+
+    fireEvent.click(screen.getByRole("button", { name: "Select Studio System" }));
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Select Studio System" })).toHaveAttribute("aria-pressed", "true");
+    });
+    assertRenderingBudget(["candidate-select"]);
+
+    fireEvent.change(screen.getByLabelText("Iteration instruction"), {
+      target: { value: "Make the production handoff states more explicit." }
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Iterate" }));
+    await screen.findByText("Studio System refined with: Make the production handoff states more explicit.");
+    assertRenderingBudget(["iteration"]);
+
+    fireEvent.click(screen.getByRole("button", { name: "Add Selection" }));
+    await waitFor(() => {
+      expect(screen.getAllByText("Studio System").length).toBeGreaterThanOrEqual(3);
+    });
+    assertRenderingBudget(["package-add"]);
+
+    fireEvent.click(screen.getByRole("button", { name: "Export ZIP" }));
+    await screen.findByText("zenart-001.zip");
+    assertRenderingBudget(["export-ready"]);
+
+    fireEvent.click(screen.getByRole("button", { name: "Initial brief" }));
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Initial brief" })).toHaveAttribute("aria-pressed", "true");
+    });
+    assertRenderingBudget(["version-restore"]);
+  });
 });

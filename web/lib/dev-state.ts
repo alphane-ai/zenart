@@ -438,6 +438,25 @@ export const buildWorkspaceRenderingPerformanceSmoke = (
   state: WorkspaceState,
   budgets = workspaceRenderingPerformanceBudget
 ): WorkspaceRenderingPerformanceSmoke => {
+  const interactionSteps: WorkspaceRenderingPerformanceSmoke["interactionSteps"] = ["load"];
+  if (state.brief.confirmed) {
+    interactionSteps.push("brief-confirm");
+  }
+  if (state.selectedCandidateId) {
+    interactionSteps.push("candidate-select");
+  }
+  if (state.canvas.nodes.some((node) => node.kind === "iteration")) {
+    interactionSteps.push("iteration");
+  }
+  if (state.packageItems.length > 0) {
+    interactionSteps.push("package-add");
+  }
+  if (state.exports.some((record) => record.status === "ready")) {
+    interactionSteps.push("export-ready");
+  }
+  if (state.canvas.activeVersionId !== state.canvas.versions.at(-1)?.id) {
+    interactionSteps.push("version-restore");
+  }
   const renderElementCount =
     state.canvas.nodes.length +
     state.canvas.edges.length +
@@ -470,6 +489,7 @@ export const buildWorkspaceRenderingPerformanceSmoke = (
     schema_version: "stage0.rev2.workspace-rendering-performance",
     status: failures.length === 0 ? "pass" : "fail",
     scenario: "local-alpha-canvas",
+    interactionSteps,
     nodeCount: state.canvas.nodes.length,
     edgeCount: state.canvas.edges.length,
     versionCount: state.canvas.versions.length,
