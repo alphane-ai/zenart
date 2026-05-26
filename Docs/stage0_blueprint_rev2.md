@@ -1851,10 +1851,10 @@ main 合并前必须通过：
 - [ ] 配置 CSRF 或 same-site strategy。
 - [x] 配置 security headers。
 - [x] 实现 upload validation。
-- [ ] 实现 malware-scan placeholder/interface。
-- [ ] 实现 secret classification。
+- [x] 实现 malware-scan placeholder/interface。
+- [x] 实现 secret classification。
 - [x] 实现 startup config validation。
-- [ ] 实现 secret redaction。
+- [x] 实现 secret redaction。
 - [x] 添加 dependency/image/secret scans。
 - [x] 添加 Privacy notice。
 - [x] 添加 Terms of Service。
