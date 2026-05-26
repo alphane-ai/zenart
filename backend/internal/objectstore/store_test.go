@@ -44,6 +44,50 @@ func TestLocalStoreScopesKeysByTenant(t *testing.T) {
 	}
 }
 
+func TestLocalStoreRejectsUnsafeTenantIDBeforeFilesystemWrite(t *testing.T) {
+	root := t.TempDir()
+	store, err := NewLocalStore(root, "zenart-test", "secret")
+	if err != nil {
+		t.Fatalf("NewLocalStore() error = %v", err)
+	}
+
+	for _, tenantID := range []string{"../tenant_1", "tenant_1/../../escape", "tenant 1", ".tenant"} {
+		_, err := store.Put(context.Background(), Object{
+			TenantID: tenantID,
+			Key:      "exports/package.zip",
+		}, strings.NewReader("zip bytes"))
+		if err == nil || !strings.Contains(err.Error(), "tenant_id is invalid") {
+			t.Fatalf("Put() tenant %q error = %v, want invalid tenant_id", tenantID, err)
+		}
+	}
+	if entries, err := os.ReadDir(root); err != nil {
+		t.Fatalf("ReadDir(root) error = %v", err)
+	} else if len(entries) != 0 {
+		t.Fatalf("unsafe tenant write created entries: %#v", entries)
+	}
+}
+
+func TestLocalStoreRejectsUnsafeObjectKeyBeforeFilesystemWrite(t *testing.T) {
+	root := t.TempDir()
+	store, err := NewLocalStore(root, "zenart-test", "secret")
+	if err != nil {
+		t.Fatalf("NewLocalStore() error = %v", err)
+	}
+
+	for _, key := range []string{"../package.zip", "exports/../package.zip", "exports//package.zip", `exports\package.zip`} {
+		_, err := store.Put(context.Background(), Object{
+			TenantID: "tenant_1",
+			Key:      key,
+		}, strings.NewReader("zip bytes"))
+		if err == nil || !strings.Contains(err.Error(), "object key is invalid") {
+			t.Fatalf("Put() key %q error = %v, want invalid object key", key, err)
+		}
+	}
+	if _, err := os.Stat(filepath.Join(root, "zenart-test")); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("unsafe object key created bucket path error = %v, want not exist", err)
+	}
+}
+
 func TestLocalStoreSignedURLIncludesTenantScopedKey(t *testing.T) {
 	store, err := NewLocalStore(t.TempDir(), "zenart-test", "secret")
 	if err != nil {
@@ -241,5 +285,35 @@ func TestS3StoreDeleteRejectsCrossTenantKeyBeforeRequest(t *testing.T) {
 	}
 	if requests != 0 {
 		t.Fatalf("cross-tenant delete should not send request, got %d", requests)
+	}
+}
+
+func TestS3StoreRejectsUnsafeTenantAndKeyBeforeRequest(t *testing.T) {
+	requests := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests++
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer server.Close()
+	store, err := NewS3Store(config.ObjectStorageConfig{
+		Provider:       "s3-compatible",
+		Endpoint:       server.URL,
+		Region:         "us-east-1",
+		Bucket:         "zenart-test",
+		AccessKey:      "access",
+		SecretKey:      "secret",
+		ForcePathStyle: true,
+	}, server.Client())
+	if err != nil {
+		t.Fatalf("NewS3Store() error = %v", err)
+	}
+	if err := store.Delete(context.Background(), "tenant_1/../../tenant_2", "exports/package.zip"); err == nil || !strings.Contains(err.Error(), "tenant_id is invalid") {
+		t.Fatalf("Delete() unsafe tenant error = %v, want invalid tenant_id", err)
+	}
+	if err := store.Delete(context.Background(), "tenant_1", "exports/../package.zip"); err == nil || !strings.Contains(err.Error(), "object key is invalid") {
+		t.Fatalf("Delete() unsafe key error = %v, want invalid object key", err)
+	}
+	if requests != 0 {
+		t.Fatalf("unsafe delete should not send request, got %d", requests)
 	}
 }

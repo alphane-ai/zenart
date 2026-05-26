@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -22,6 +23,8 @@ var (
 	ErrNotFound     = errors.New("object not found")
 	ErrTenantDenied = errors.New("object tenant denied")
 )
+
+var tenantIDPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]*$`)
 
 type Object struct {
 	ID             string         `json:"id"`
@@ -257,7 +260,13 @@ func (s LocalStore) CleanupExpired(ctx context.Context, now time.Time) (int, err
 }
 
 func (s LocalStore) pathForKey(key string) string {
-	return filepath.Join(s.root, s.bucket, filepath.FromSlash(key))
+	bucketRoot := filepath.Clean(filepath.Join(s.root, s.bucket))
+	path := filepath.Clean(filepath.Join(bucketRoot, filepath.FromSlash(key)))
+	rel, err := filepath.Rel(bucketRoot, path)
+	if err != nil || rel == "." || strings.HasPrefix(rel, ".."+string(os.PathSeparator)) || rel == ".." || filepath.IsAbs(rel) {
+		return filepath.Join(bucketRoot, ".invalid-object-key")
+	}
+	return path
 }
 
 func (s LocalStore) clock() time.Time {
@@ -268,15 +277,15 @@ func (s LocalStore) clock() time.Time {
 }
 
 func tenantKey(tenantID, key string) (string, error) {
-	tenantID = strings.Trim(strings.TrimSpace(tenantID), "/")
-	key = strings.Trim(strings.TrimSpace(key), "/")
-	if tenantID == "" {
-		return "", errors.New("tenant_id is required")
+	tenantID, err := normalizeTenantID(tenantID)
+	if err != nil {
+		return "", err
 	}
+	key = strings.Trim(strings.TrimSpace(key), "/")
 	if key == "" {
 		return "", errors.New("object key is required")
 	}
-	if strings.Contains(key, "..") || strings.HasPrefix(key, "/") {
+	if strings.Contains(key, "\\") || strings.HasPrefix(key, "/") || hasUnsafePathSegment(key) {
 		return "", errors.New("object key is invalid")
 	}
 	prefix := "tenants/" + tenantID + "/"
@@ -287,4 +296,24 @@ func tenantKey(tenantID, key string) (string, error) {
 		return key, nil
 	}
 	return prefix + key, nil
+}
+
+func normalizeTenantID(tenantID string) (string, error) {
+	tenantID = strings.TrimSpace(tenantID)
+	if tenantID == "" {
+		return "", errors.New("tenant_id is required")
+	}
+	if strings.ContainsAny(tenantID, `/\`) || tenantID == "." || tenantID == ".." || !tenantIDPattern.MatchString(tenantID) {
+		return "", errors.New("tenant_id is invalid")
+	}
+	return tenantID, nil
+}
+
+func hasUnsafePathSegment(key string) bool {
+	for _, segment := range strings.Split(key, "/") {
+		if segment == "" || segment == "." || segment == ".." {
+			return true
+		}
+	}
+	return false
 }
