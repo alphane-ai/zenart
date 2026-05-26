@@ -1857,13 +1857,13 @@ main 合并前必须通过：
 - [ ] 实现 secret redaction。
 - [ ] 添加 dependency/image/secret scans。
 - [x] 添加 Privacy notice。
-- [ ] 添加 Terms of Service。
-- [ ] 添加 Privacy Policy。
-- [ ] 添加 Acceptable Use Policy。
+- [x] 添加 Terms of Service。
+- [x] 添加 Privacy Policy。
+- [x] 添加 Acceptable Use Policy。
 - [x] 添加 AI/content disclaimer。
-- [ ] 添加 IP complaint flow。
-- [ ] paid launch 添加 billing/cancellation/refund policy。
-- [ ] 添加 visible support contact。
+- [x] 添加 IP complaint flow。
+- [x] paid launch 添加 billing/cancellation/refund policy。
+- [x] 添加 visible support contact。
 
 ### 25.17 CI/CD and Environments
 
@@ -1894,7 +1894,7 @@ main 合并前必须通过：
 - [ ] 实现 structured JSON logs。
 - [ ] 实现 OpenTelemetry traces。
 - [ ] 实现 backend/worker/crawler metrics。
-- [ ] 实现 frontend error reporting。
+- [x] 实现 frontend error reporting。
 - [ ] 实现 dashboards。
 - [ ] 实现 alerts。
 - [x] 定义 SLOs。
@@ -1918,7 +1918,7 @@ main 合并前必须通过：
 
 - [x] 定义 analytics event taxonomy。
 - [ ] 实现 server-side core workflow event capture。
-- [ ] 实现 client-side onboarding/UI funnel capture。
+- [x] 实现 client-side onboarding/UI funnel capture。
 - [x] 实现 admin report：first prompt to four candidates。
 - [x] 实现 admin report：selection rate。
 - [x] 实现 admin report：iteration rate。

@@ -26,11 +26,13 @@ import {
   User
 } from "lucide-react";
 import Link from "next/link";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { AccountSettings, BillingScenario, Candidate, ExportFormat, QaSeverity, WorkspaceState } from "@/lib/contracts";
 import { zenArtClient } from "@/lib/api-client";
 import { buildSupportProblemContext } from "@/lib/dev-state";
 import { downloadExportPackage } from "@/lib/export-download";
+import { legalPolicyList, supportContactEmail } from "@/lib/legal-policies";
+import { AnalyticsEventName, captureAnalyticsEvent, reportFrontendError } from "@/lib/telemetry";
 
 export type ViewKey = "workspace" | "projects" | "export" | "billing" | "account" | "support";
 
@@ -76,6 +78,7 @@ export function WorkspaceApp({ initialView = "workspace" }: { initialView?: View
   const [referenceName, setReferenceName] = useState("visual-reference.png");
   const [referenceKind, setReferenceKind] = useState<"image" | "document" | "url">("image");
   const [busy, setBusy] = useState<string | null>(null);
+  const capturedBillingView = useRef(false);
 
   useEffect(() => {
     let mounted = true;
@@ -90,6 +93,15 @@ export function WorkspaceApp({ initialView = "workspace" }: { initialView?: View
     };
   }, []);
 
+  useEffect(() => {
+    if (state && view === "billing" && !capturedBillingView.current) {
+      capturedBillingView.current = true;
+      captureAnalyticsEvent("billing_viewed", state, {
+        view
+      });
+    }
+  }, [state, view]);
+
   const selectedCandidate = useMemo(
     () => state?.candidates.find((candidate) => candidate.id === state.selectedCandidateId),
     [state]
@@ -99,29 +111,42 @@ export function WorkspaceApp({ initialView = "workspace" }: { initialView?: View
   const runAction = async (label: string, action: () => Promise<WorkspaceState>) => {
     setBusy(label);
     try {
-      setState(await action());
+      const nextState = await action();
+      setState(nextState);
+      captureAnalyticsEvent(eventNameByAction(label), nextState, {
+        action: label,
+        view
+      });
     } finally {
       setBusy(null);
     }
   };
 
+  const runTrackedAction = async (label: string, action: () => Promise<WorkspaceState>) => {
+    try {
+      await runAction(label, action);
+    } catch (error) {
+      reportFrontendError(error, "action-error", state ?? undefined, label);
+    }
+  };
+
   const confirmBrief = (event: FormEvent) => {
     event.preventDefault();
-    void runAction("brief", () => zenArtClient.confirmBrief(briefInput));
+    void runTrackedAction("brief", () => zenArtClient.confirmBrief(briefInput));
   };
 
   const iterate = (event: FormEvent) => {
     event.preventDefault();
     const instruction = iterationInput;
     setIterationInput("");
-    void runAction("iterate", () => zenArtClient.iterateSelected(instruction));
+    void runTrackedAction("iterate", () => zenArtClient.iterateSelected(instruction));
   };
 
   const reportProblem = (event: FormEvent) => {
     event.preventDefault();
     const body = supportBody;
     setSupportBody("");
-    void runAction("support", () =>
+    void runTrackedAction("support", () =>
       zenArtClient.reportProblem({
         category: supportCategory,
         body,
@@ -167,6 +192,14 @@ export function WorkspaceApp({ initialView = "workspace" }: { initialView?: View
           </div>
           <small>{state.billing.quotaUsed} of {state.billing.quotaLimit} credits used</small>
         </div>
+        <div className="sidebar-links" aria-label="Support and legal links">
+          <a href={`mailto:${supportContactEmail}`}>{supportContactEmail}</a>
+          {legalPolicyList.map((policy) => (
+            <Link key={policy.key} href={policy.route}>
+              {policy.title}
+            </Link>
+          ))}
+        </div>
       </aside>
 
       <section className="main-column">
@@ -176,7 +209,7 @@ export function WorkspaceApp({ initialView = "workspace" }: { initialView?: View
             <h1>{state.projects.find((project) => project.id === state.activeProjectId)?.name}</h1>
           </div>
           <div className="topbar-actions">
-            <button className="icon-button" onClick={() => void runAction("load", () => zenArtClient.loadWorkspace())} aria-label="Reload workspace">
+            <button className="icon-button" onClick={() => void runTrackedAction("load", () => zenArtClient.loadWorkspace())} aria-label="Reload workspace">
               <RefreshCcw size={18} aria-hidden="true" />
             </button>
             <span className="session-pill">{state.session.email}</span>
@@ -201,13 +234,13 @@ export function WorkspaceApp({ initialView = "workspace" }: { initialView?: View
             setReferenceKind={setReferenceKind}
             confirmBrief={confirmBrief}
             iterate={iterate}
-            runAction={runAction}
+            runAction={runTrackedAction}
           />
         )}
         {view === "projects" && <ProjectsView state={state} />}
-        {view === "export" && <ExportView state={state} runAction={runAction} />}
-        {view === "billing" && <BillingView state={state} busy={busy} runAction={runAction} />}
-        {view === "account" && <AccountView state={state} runAction={runAction} />}
+        {view === "export" && <ExportView state={state} runAction={runTrackedAction} />}
+        {view === "billing" && <BillingView state={state} busy={busy} runAction={runTrackedAction} />}
+        {view === "account" && <AccountView state={state} runAction={runTrackedAction} />}
         {view === "support" && (
           <SupportView
             state={state}
@@ -222,6 +255,23 @@ export function WorkspaceApp({ initialView = "workspace" }: { initialView?: View
       </section>
     </main>
   );
+}
+
+function eventNameByAction(action: string): AnalyticsEventName {
+  const eventByAction: Record<string, AnalyticsEventName> = {
+    brief: "brief_confirmed",
+    reference: "reference_attached",
+    select: "candidate_selected",
+    iterate: "iteration_submitted",
+    package: "package_item_added",
+    export: "export_requested",
+    checkout: "checkout_started",
+    "billing-scenario": "billing_scenario_selected",
+    account: "account_updated",
+    support: "support_ticket_opened"
+  };
+
+  return eventByAction[action] ?? "route_viewed";
 }
 
 function NavButton({
@@ -665,6 +715,7 @@ function BillingView({
     <section className="content-view">
       <div className="section-title">
         <h2>Billing and Quota</h2>
+        <Link href="/legal/billing-policy">Billing policy</Link>
       </div>
       <div className="billing-layout">
         <article className="billing-card">
@@ -788,7 +839,7 @@ function SupportView({
     <section className="content-view">
       <div className="section-title">
         <h2>Report Problem</h2>
-        <span>support@zenart.local</span>
+        <a href={`mailto:${supportContactEmail}`}>{supportContactEmail}</a>
       </div>
       <section className="support-context" aria-label="Attached support context">
         <div>
@@ -828,6 +879,7 @@ function SupportView({
             Support tickets attach project, export, task, trace, accepted reference, and quota context for investigation. Do not include secrets,
             credentials, or unrelated personal data in ticket text.
           </p>
+          <Link href="/legal/privacy">Privacy Policy</Link>
         </article>
         <article className="legal-notice ai-content-disclaimer">
           <span className="eyebrow">AI Content Responsibility</span>
@@ -835,7 +887,16 @@ function SupportView({
             Local alpha previews use deterministic generation evidence unless a real provider is explicitly configured. Review rights, claims,
             likeness, and brand usage before sharing exported assets.
           </p>
+          <Link href="/legal/acceptable-use">Acceptable Use Policy</Link>
         </article>
+      </section>
+      <section className="policy-link-grid" aria-label="Legal and policy routes">
+        {legalPolicyList.map((policy) => (
+          <Link key={policy.key} href={policy.route}>
+            <strong>{policy.title}</strong>
+            <span>{policy.summary}</span>
+          </Link>
+        ))}
       </section>
       <form className="support-form" onSubmit={reportProblem}>
         <label>
