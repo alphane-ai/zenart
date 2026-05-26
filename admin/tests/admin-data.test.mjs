@@ -36,6 +36,7 @@ test("admin fixtures cover required operational surfaces", () => {
     "export const metaPrompts",
     "export const traces",
     "export const feedbackItems",
+    "export const regressionFixtures",
     "export const providerHealth",
     "export const queueHealth",
     "export const failedTaskControls",
@@ -103,6 +104,37 @@ test("admin analytics reports cover stage 0 go/no-go reports", () => {
   assert.match(fixtures, /first_prompt_to_four_candidates/);
   assert.match(fixtures, /package_add_export_completion/);
   assert.match(fixtures, /support_ticket_failure_rate/);
+});
+
+test("admin feedback page surfaces bad samples converted to regression fixtures", () => {
+  const feedbackPage = readFileSync(
+    new URL("../app/feedback/page.tsx", import.meta.url),
+    "utf8"
+  );
+
+  for (const token of [
+    "Bad Samples to Regression Fixtures",
+    "RegressionFixture",
+    "Expected Assertion",
+    "Reviewer Rationale",
+    "Canary Metric",
+    "fixturePath"
+  ]) {
+    assert.match(feedbackPage, new RegExp(token));
+  }
+
+  for (const token of [
+    "regressionFixtures",
+    "brand_similarity_fb_203",
+    "mobile_readability_fb_211",
+    "export_manifest_sup_2204",
+    "admin_bad_sample",
+    "requiredGate",
+    "linkedCanaryMetric",
+    "reviewerRationale"
+  ]) {
+    assert.match(fixtures, new RegExp(token));
+  }
 });
 
 test("admin fixtures expose review governance and release evidence", () => {

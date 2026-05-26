@@ -1,0 +1,27 @@
+{
+  "id": "reg-mobile-readability-fb-211",
+  "source_feedback_id": "fb-211",
+  "source_kind": "qa_warning",
+  "workflow_id": "wf-790",
+  "skill_version": "skill-export-pack@1.8.2",
+  "failure_mode": "structured_text_readability",
+  "severity": "medium",
+  "gate": "skill_canary",
+  "expected_assertions": [
+    "required_phone_text_preserved == true",
+    "mobile_contrast_ratio >= 4.5",
+    "safe_area_overlap == false",
+    "qa_warning_resolved_before_canary_advance == true"
+  ],
+  "bad_sample": {
+    "trace_id": "tr-1019",
+    "export_id": "ex-901",
+    "signal": "Structured phone number was low contrast on mobile export.",
+    "admin_label": "mobile_text_readability"
+  },
+  "release_block": {
+    "canary_metric": "cm-012",
+    "audit_ref": "au-009",
+    "rollback_target": "skill-export-pack@1.8.0"
+  }
+}

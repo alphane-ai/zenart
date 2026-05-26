@@ -17,6 +17,7 @@ import type {
   PromptFragment,
   QuotaAccount,
   QueueHealth,
+  RegressionFixture,
   ReleaseEvidence,
   RiskyExport,
   Skill,
@@ -861,6 +862,69 @@ export const feedbackItems: FeedbackItem[] = [
     availableForLearningAt: "blocked",
     blockedReason: "Suspected abuse and crawler ownership evidence unresolved.",
     regressionFixtureRef: "none-abuse-filtered"
+  }
+];
+
+export const regressionFixtures: RegressionFixture[] = [
+  {
+    id: "reg-brand-similarity-fb-203",
+    sourceFeedbackId: "fb-203",
+    sourceKind: "admin_bad_sample",
+    fixturePath: "fixtures/stage0/rev2/regressions/brand_similarity_fb_203.json",
+    workflowId: "wf-774",
+    skillVersionId: "sv-240",
+    failureMode: "brand_similarity",
+    severity: "critical",
+    status: "eval_blocking",
+    evalSuiteId: "es-stage0-brand",
+    requiredGate: "skill_canary",
+    expectedAssertion:
+      "Candidate visual direction must stay below the configured competitor-similarity threshold and preserve distinct brand marks before canary traffic resumes.",
+    owner: "trust-admin",
+    linkedCanaryMetric: "cm-014",
+    linkedAuditRef: "au-010",
+    reviewerRationale:
+      "The admin bad-sample cluster caused a rollback, so this fixture is blocking until the brand/IP regression passes in the release eval suite."
+  },
+  {
+    id: "reg-mobile-readability-fb-211",
+    sourceFeedbackId: "fb-211",
+    sourceKind: "qa_warning",
+    fixturePath: "fixtures/stage0/rev2/regressions/mobile_readability_fb_211.json",
+    workflowId: "wf-790",
+    skillVersionId: "sv-182",
+    failureMode: "structured_text_readability",
+    severity: "medium",
+    status: "converted",
+    evalSuiteId: "es-stage0-export",
+    requiredGate: "skill_canary",
+    expectedAssertion:
+      "Mobile export text must preserve required phone and offer copy with contrast and safe-area checks before export-pack canary advances.",
+    owner: "ops-admin",
+    linkedCanaryMetric: "cm-012",
+    linkedAuditRef: "au-009",
+    reviewerRationale:
+      "Delayed QA feedback was converted after regeneration review and now guards the export canary pass-rate threshold."
+  },
+  {
+    id: "reg-export-manifest-sup-2204",
+    sourceFeedbackId: "sup-2204",
+    sourceKind: "support_ticket",
+    fixturePath: "fixtures/stage0/rev2/regressions/export_manifest_sup_2204.json",
+    workflowId: "wf-790",
+    skillVersionId: "sv-182",
+    failureMode: "export_manifest_completeness",
+    severity: "medium",
+    status: "converted",
+    evalSuiteId: "es-stage0-export",
+    requiredGate: "skill_canary",
+    expectedAssertion:
+      "Regenerated ZIP exports must include manifest, QA report, provenance metadata, and deterministic file names for every package item.",
+    owner: "ops-admin",
+    linkedCanaryMetric: "cm-012",
+    linkedAuditRef: "au-011",
+    reviewerRationale:
+      "A support-linked export failure became a regression fixture so future release gates cannot pass on visual output alone."
   }
 ];
 

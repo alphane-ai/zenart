@@ -1827,7 +1827,7 @@ main 合并前必须通过：
 - [x] 实现 feedback attribution。
 - [x] 实现 feedback filtering/weighting。
 - [x] 实现 delayed feedback。
-- [ ] bad samples 转 regression fixtures。
+- [x] bad samples 转 regression fixtures。
 - [x] 实现 abuse event model。
 - [ ] 实现 temporary hold/throttle hooks。
 - [ ] 实现 admin abuse queue。

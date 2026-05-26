@@ -17,6 +17,7 @@ import {
   providerHealth,
   quotaAccounts,
   queueHealth,
+  regressionFixtures,
   releaseEvidence,
   riskyExports,
   skillCanaryMetrics,
@@ -79,6 +80,10 @@ export async function getTrace(id: string) {
 
 export async function getFeedbackItems() {
   return feedbackItems;
+}
+
+export async function getRegressionFixtures() {
+  return regressionFixtures;
 }
 
 export async function getProviderHealth() {

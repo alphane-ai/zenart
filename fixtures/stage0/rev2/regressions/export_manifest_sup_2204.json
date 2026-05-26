@@ -1,0 +1,27 @@
+{
+  "id": "reg-export-manifest-sup-2204",
+  "source_feedback_id": "sup-2204",
+  "source_kind": "support_ticket",
+  "workflow_id": "wf-790",
+  "skill_version": "skill-export-pack@1.8.2",
+  "failure_mode": "export_manifest_completeness",
+  "severity": "medium",
+  "gate": "skill_canary",
+  "expected_assertions": [
+    "manifest_present == true",
+    "qa_report_present == true",
+    "provenance_metadata_present == true",
+    "deterministic_file_names == true"
+  ],
+  "bad_sample": {
+    "task_id": "task-export-489",
+    "support_ticket_id": "sup-2204",
+    "signal": "Manifest packaging failure required a support-authorized retry.",
+    "admin_label": "export_manifest_missing"
+  },
+  "release_block": {
+    "canary_metric": "cm-012",
+    "audit_ref": "au-011",
+    "rollback_target": "skill-export-pack@1.8.0"
+  }
+}

@@ -1,14 +1,15 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { test } from "node:test";
 
 const source = readFileSync(new URL("../lib/fixtures.ts", import.meta.url), "utf8");
+const repoRoot = new URL("../../", import.meta.url);
 
 const parseFixtures = () => {
   const moduleSource = source
     .replace(/^import type[\s\S]*?from "@\/lib\/types";\n\n/, "")
     .replaceAll(/export const (\w+)[^=]*=/g, "const $1 =");
-  return Function(`${moduleSource}\nreturn { skillVersions, skillReleaseStateDefinitions, skillCanaryMetrics, releaseEvidence, supportTickets, supportEscalationRunbooks, supportUsers, riskyExports, abuseEvents, abuseControlHooks, auditEvents, exportJobs, traces, quotaAccounts, feedbackItems, analyticsReports, queueHealth, failedTaskControls, crawlerFindings, crawlerGovernanceWorkflows, adminRbacEvidence };`)();
+  return Function(`${moduleSource}\nreturn { skillVersions, skillReleaseStateDefinitions, skillCanaryMetrics, releaseEvidence, supportTickets, supportEscalationRunbooks, supportUsers, riskyExports, abuseEvents, abuseControlHooks, auditEvents, exportJobs, traces, quotaAccounts, feedbackItems, regressionFixtures, analyticsReports, queueHealth, failedTaskControls, crawlerFindings, crawlerGovernanceWorkflows, adminRbacEvidence };`)();
 };
 
 const {
@@ -25,6 +26,7 @@ const {
   auditEvents,
   exportJobs,
   feedbackItems,
+  regressionFixtures,
   analyticsReports,
   traces,
   quotaAccounts,
@@ -46,6 +48,7 @@ const queueIds = new Set(queueHealth.map((queue) => queue.id));
 const crawlerFindingIds = new Set(crawlerFindings.map((finding) => finding.id));
 const incidentIds = new Set(["none", "inc-20260526-queue", "inc-20260525-crawler"]);
 const abuseEventById = new Map(abuseEvents.map((event) => [event.id, event]));
+const canaryMetricIds = new Set(skillCanaryMetrics.map((metric) => metric.id));
 
 const roleOrder = new Map([
   ["support_operator", 1],
@@ -228,6 +231,53 @@ test("feedback filtering and delayed feedback cannot bypass review", () => {
     if (item.filterDecision === "eligible") {
       assert.ok(item.weight > 0, `${item.id} eligible feedback needs positive weight`);
       assert.notEqual(item.availableForLearningAt, "blocked", `${item.id} eligible feedback needs availability`);
+    }
+  }
+});
+
+test("admin bad samples convert into regression fixtures before release gates pass", () => {
+  assert.ok(regressionFixtures.length > 0, "bad samples need regression fixture conversion");
+
+  const sourceIds = new Set([
+    ...feedbackItems.map((item) => item.id),
+    ...supportTickets.map((ticket) => ticket.id),
+    ...exportJobs.map((job) => job.id)
+  ]);
+  const statuses = new Set(regressionFixtures.map((fixture) => fixture.status));
+  const fixturePaths = new Set(regressionFixtures.map((fixture) => fixture.fixturePath));
+
+  assert.ok(statuses.has("converted"), "regression fixtures need converted samples");
+  assert.ok(statuses.has("eval_blocking"), "regression fixtures need eval-blocking bad samples");
+  assert.ok(
+    regressionFixtures.some((fixture) => fixture.sourceKind === "admin_bad_sample"),
+    "admin bad samples must be represented as regression fixtures"
+  );
+  assert.ok(
+    regressionFixtures.some((fixture) => fixture.requiredGate === "skill_canary"),
+    "regression fixtures must gate skill canary advancement"
+  );
+
+  for (const fixture of regressionFixtures) {
+    assert.ok(sourceIds.has(fixture.sourceFeedbackId), `${fixture.id} links unknown source ${fixture.sourceFeedbackId}`);
+    assert.ok(canaryMetricIds.has(fixture.linkedCanaryMetric), `${fixture.id} links unknown metric ${fixture.linkedCanaryMetric}`);
+    assert.ok(auditIds.has(fixture.linkedAuditRef), `${fixture.id} links unknown audit ${fixture.linkedAuditRef}`);
+    assert.match(fixture.fixturePath, /^fixtures\/stage0\/rev2\/regressions\/.+\.json$/, `${fixture.id} needs a regression fixture path`);
+    assert.ok(existsSync(new URL(fixture.fixturePath, repoRoot)), `${fixture.id} fixture file is missing`);
+    assert.ok(fixture.expectedAssertion.length > 90, `${fixture.id} needs concrete expected assertion`);
+    assert.ok(fixture.reviewerRationale.length > 90, `${fixture.id} needs reviewer rationale`);
+
+    if (fixture.severity === "high" || fixture.severity === "critical") {
+      assert.notEqual(fixture.status, "candidate", `${fixture.id} high-risk samples cannot stay candidate only`);
+      assert.notEqual(fixture.requiredGate, "production_launch", `${fixture.id} high-risk samples must block earlier gates`);
+    }
+  }
+
+  for (const item of feedbackItems) {
+    if (item.filterDecision === "eligible" && item.regressionFixtureRef.startsWith("fixtures/")) {
+      assert.ok(
+        fixturePaths.has(item.regressionFixtureRef),
+        `${item.id} points at missing regression fixture inventory entry`
+      );
     }
   }
 });

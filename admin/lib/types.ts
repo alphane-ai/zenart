@@ -197,6 +197,35 @@ export type FeedbackItem = {
   regressionFixtureRef: string;
 };
 
+export type RegressionFixtureStatus =
+  | "candidate"
+  | "converted"
+  | "eval_blocking"
+  | "resolved";
+
+export type RegressionFixture = {
+  id: string;
+  sourceFeedbackId: string;
+  sourceKind: "admin_bad_sample" | "support_ticket" | "qa_warning" | "export_failure";
+  fixturePath: string;
+  workflowId: string;
+  skillVersionId: string;
+  failureMode:
+    | "brand_similarity"
+    | "structured_text_readability"
+    | "export_manifest_completeness"
+    | "safety_policy_miss";
+  severity: RiskLevel;
+  status: RegressionFixtureStatus;
+  evalSuiteId: string;
+  requiredGate: "skill_canary" | "prompt_activation" | "production_launch";
+  expectedAssertion: string;
+  owner: string;
+  linkedCanaryMetric: string;
+  linkedAuditRef: string;
+  reviewerRationale: string;
+};
+
 export type AnalyticsReport = {
   id: string;
   name:

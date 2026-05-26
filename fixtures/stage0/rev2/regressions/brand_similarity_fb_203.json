@@ -1,0 +1,27 @@
+{
+  "id": "reg-brand-similarity-fb-203",
+  "source_feedback_id": "fb-203",
+  "source_kind": "admin_bad_sample",
+  "workflow_id": "wf-774",
+  "skill_version": "skill-brand-kit@2.4.0",
+  "failure_mode": "brand_similarity",
+  "severity": "critical",
+  "gate": "skill_canary",
+  "expected_assertions": [
+    "candidate_similarity_score <= 0.72",
+    "competitor_mark_overlap == false",
+    "distinct_brand_palette == true",
+    "reviewer_rationale_present == true"
+  ],
+  "bad_sample": {
+    "trace_id": "tr-1004",
+    "asset_id": "asset-441",
+    "signal": "Candidate looked too close to existing competitor campaign.",
+    "admin_label": "brand_ip_bad_sample"
+  },
+  "release_block": {
+    "canary_metric": "cm-014",
+    "audit_ref": "au-010",
+    "rollback_target": "skill-brand-kit@2.4.1"
+  }
+}
