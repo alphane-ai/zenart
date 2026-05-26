@@ -11,14 +11,14 @@
       "name": "request_id_propagation",
       "required_by_rev2": true,
       "local_evidence": ".env.example defines REQUEST_ID_HEADER=X-Request-ID",
-      "runtime_status": "contract_validated",
-      "production_gate": "must propagate request id through web, admin, backend, worker, crawler, logs, and traces"
+      "runtime_status": "local_healthz_contract_validated_staging_runtime_open",
+      "production_gate": "must propagate request id through web, admin, backend, worker, crawler, logs, metrics exemplars, and traces in staging"
     },
     {
       "name": "structured_json_logs",
       "required_by_rev2": true,
       "local_evidence": ".env.example and docker-compose.yml define LOG_FORMAT=json and LOG_LEVEL",
-      "runtime_status": "contract_validated",
+      "runtime_status": "definition_validated_recovery_log_request_id_open",
       "production_gate": "must verify backend, worker, crawler, and access logs are JSON with request_id, user_id, tenant_id, route, status, latency_ms, and error fields"
     },
     {
@@ -65,6 +65,8 @@
     "error_rate_5xx_percent_30m": 1
   },
   "open_items": [
+    "staging_request_id_propagation_across_web_admin_backend_worker_crawler_logs_metrics_traces",
+    "structured_json_log_capture_with_request_id_user_id_tenant_id_route_status_latency",
     "opentelemetry_traces",
     "backend_worker_crawler_metrics",
     "frontend_error_reporting",

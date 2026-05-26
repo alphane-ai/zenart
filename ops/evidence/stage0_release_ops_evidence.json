@@ -33,6 +33,7 @@
   "release_docs": {
     "staging_deploy_draft": "ops/release/staging_deploy.md",
     "release_notes_template": "ops/release/release_notes_template.md",
+    "current_no_go_release_notes": "ops/release/stage0_rev2_current_no_go_release_notes.md",
     "dashboard_definition": "ops/observability/dashboards/stage0_rev2_overview.json",
     "alert_definition": "ops/observability/alerts/stage0_rev2_alerts.json"
   },
@@ -61,7 +62,8 @@
     "ci_docker_image_build_remains_open": true,
     "staging_deploy_remains_open": true,
     "staging_smoke_remains_open": true,
-    "release_notes_execution_remains_open": true
+    "release_notes_template_complete": true,
+    "current_release_decision": "no-go_until_runtime_release_evidence_and_gate_fixtures_pass"
   },
   "validation_commands": [
     "DRY_RUN=1 scripts/playwright_smoke.sh",

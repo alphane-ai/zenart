@@ -1988,9 +1988,16 @@ def validate_launch_readiness_split_contracts() -> None:
         "ci_docker_image_build_remains_open",
         "staging_deploy_remains_open",
         "staging_smoke_remains_open",
-        "release_notes_execution_remains_open",
     ]:
         require(policy.get(key) is True, f"release ops policy must keep {key} true")
+    require(
+        policy.get("release_notes_template_complete") is True,
+        "release ops policy must mark the release notes template complete",
+    )
+    require(
+        policy.get("current_release_decision") == "no-go_until_runtime_release_evidence_and_gate_fixtures_pass",
+        "release ops policy must keep the current release decision no-go",
+    )
 
     signals = {item["name"]: item for item in observability["signals"]}
     runtime_open_signals = {
@@ -2002,7 +2009,13 @@ def validate_launch_readiness_split_contracts() -> None:
     for signal in runtime_open_signals:
         require(signal in signals, f"observability evidence missing signal {signal}")
         require(
-            signals[signal]["runtime_status"] in {"contract_validated", "definition_validated", "open"},
+            signals[signal]["runtime_status"]
+            in {
+                "local_healthz_contract_validated_staging_runtime_open",
+                "definition_validated_recovery_log_request_id_open",
+                "definition_validated",
+                "open",
+            },
             f"observability signal {signal} must not claim production runtime pass",
         )
         require(
@@ -2221,7 +2234,13 @@ def validate_ops_ci_and_drill_evidence() -> None:
     )
     for signal_name in required_signals:
         require(
-            signals[signal_name]["runtime_status"] in {"contract_validated", "definition_validated", "open"},
+            signals[signal_name]["runtime_status"]
+            in {
+                "local_healthz_contract_validated_staging_runtime_open",
+                "definition_validated_recovery_log_request_id_open",
+                "definition_validated",
+                "open",
+            },
             f"observability signal {signal_name} must be open or contract_validated",
         )
     slo_thresholds = observability["slo_thresholds"]
@@ -2337,9 +2356,25 @@ def validate_ops_ci_and_drill_evidence() -> None:
         "ci_docker_image_build_remains_open",
         "staging_deploy_remains_open",
         "staging_smoke_remains_open",
-        "release_notes_execution_remains_open",
     ]:
         require(policy.get(key) is True, f"release ops evidence must keep {key} true")
+    require(
+        policy.get("release_notes_template_complete") is True,
+        "release ops evidence must mark release_notes_template_complete true",
+    )
+    require(
+        policy.get("current_release_decision") == "no-go_until_runtime_release_evidence_and_gate_fixtures_pass",
+        "release ops evidence must keep current release decision no-go",
+    )
+    release_docs = release_ops["release_docs"]
+    require(
+        release_docs.get("current_no_go_release_notes") == "ops/release/stage0_rev2_current_no_go_release_notes.md",
+        "release ops evidence must cite the current no-go release notes",
+    )
+    require(
+        repo_path(release_docs["current_no_go_release_notes"]).exists(),
+        "current no-go release notes file must exist",
+    )
 
 
 def main() -> int:

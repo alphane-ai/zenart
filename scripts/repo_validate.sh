@@ -57,6 +57,7 @@ test -f ops/observability/alerts/stage0_rev2_alerts.json
 test -f ops/ci/playwright-smoke.spec.ts
 test -f ops/release/staging_deploy.md
 test -f ops/release/release_notes_template.md
+test -f ops/release/stage0_rev2_current_no_go_release_notes.md
 test -x scripts/load_smoke.sh
 test -x scripts/backup_restore_drill.sh
 test -x scripts/playwright_smoke.sh
@@ -94,6 +95,7 @@ from pathlib import Path
 
 dashboard = json.loads(Path("ops/observability/dashboards/stage0_rev2_overview.json").read_text(encoding="utf-8"))
 alerts = json.loads(Path("ops/observability/alerts/stage0_rev2_alerts.json").read_text(encoding="utf-8"))
+observability_evidence = json.loads(Path("ops/evidence/stage0_observability_evidence.json").read_text(encoding="utf-8"))
 
 required_panels = {
     "api_latency_p95",
@@ -135,6 +137,30 @@ if dashboard["status"] != "definition_ready_runtime_evidence_open":
     raise SystemExit("dashboard must not claim runtime completion")
 if alerts["status"] != "definition_ready_runtime_evidence_open":
     raise SystemExit("alerts must not claim runtime completion")
+signals = {signal["name"]: signal["runtime_status"] for signal in observability_evidence["signals"]}
+if signals.get("request_id_propagation") != "local_healthz_contract_validated_staging_runtime_open":
+    raise SystemExit("request-id evidence must keep staging/runtime propagation open")
+if signals.get("structured_json_logs") != "definition_validated_recovery_log_request_id_open":
+    raise SystemExit("structured log evidence must not claim full runtime completion")
+if "staging_request_id_propagation_across_web_admin_backend_worker_crawler_logs_metrics_traces" not in observability_evidence.get("open_items", []):
+    raise SystemExit("observability evidence must keep staging request-id propagation open")
+PY
+
+log "release no-go evidence validation"
+python3 - <<'PY'
+from pathlib import Path
+
+notes = Path("ops/release/stage0_rev2_current_no_go_release_notes.md").read_text(encoding="utf-8")
+required_fragments = [
+    "Release gate status: `no-go`.",
+    "- Decision: `no-go`",
+    "fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json",
+    "fixtures/stage0/rev2/release_gate_evidence.production_launch.json",
+    "staging logs, metrics, traces, dashboard import, and alert-route evidence required",
+]
+missing = [fragment for fragment in required_fragments if fragment not in notes]
+if missing:
+    raise SystemExit(f"release no-go notes missing required fragments: {missing}")
 PY
 
 log "backend Go validation"
