@@ -269,6 +269,11 @@ OPENAPI_REQUIRED_OPERATION_IDS = {
     "getQuota",
     "getSubscription",
     "createSupportTicket",
+    "listSupportTickets",
+    "listExports",
+    "listProviderStatus",
+    "listProviderUsage",
+    "listAbuseEvents",
     "listSkills",
     "listCrawlerSources",
     "listPromptFragments",
@@ -738,6 +743,20 @@ def validate_openapi_contract() -> None:
     missing_operations = OPENAPI_REQUIRED_OPERATION_IDS - operation_ids
     require(not missing_operations, f"OpenAPI contract missing operations: {sorted(missing_operations)}")
     require(len(operation_ids) == len(re.findall(r"operationId: ", text)), "OpenAPI operationIds must be unique")
+
+    for operation_id in [
+        "listSupportTickets",
+        "listExports",
+        "listProviderStatus",
+        "listProviderUsage",
+        "listAbuseEvents",
+        "listAuditLogs",
+    ]:
+        match = re.search(rf"operationId: {operation_id}\n(?P<body>(?:^      .+\n|^        .+\n|^          .+\n)+)", text, flags=re.MULTILINE)
+        require(match is not None, f"OpenAPI operation {operation_id} missing operation block")
+        body = match.group("body")
+        require("x-rbac: admin" in body, f"{operation_id} must be admin scoped")
+        require("PageToken" in body and "PageSize" in body, f"{operation_id} must define pagination parameters")
 
     mutating_blocks = re.findall(
         r"^    (post|put|patch|delete):\n(?P<body>(?:^      .+\n|^        .+\n|^          .+\n|^            .+\n|^              .+\n|^                .+\n|^                  .+\n)+)",

@@ -22,12 +22,15 @@ tags:
   - name: packages
   - name: quota
   - name: support
+  - name: exports
   - name: skills
   - name: crawler
   - name: prompts
+  - name: providers
   - name: traces
   - name: feedback
   - name: safety
+  - name: abuse
   - name: audit
 paths:
   /session:
@@ -629,6 +632,25 @@ paths:
         default:
           $ref: "#/components/responses/Error"
   /support/tickets:
+    get:
+      operationId: listSupportTickets
+      tags: [support]
+      x-rbac: admin
+      parameters:
+        - $ref: "#/components/parameters/PageToken"
+        - $ref: "#/components/parameters/PageSize"
+        - $ref: "#/components/parameters/Sort"
+        - $ref: "#/components/parameters/Search"
+        - $ref: "#/components/parameters/StatusFilter"
+      responses:
+        "200":
+          description: Support ticket page for admin review and triage.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SupportTicketPage"
+        default:
+          $ref: "#/components/responses/Error"
     post:
       operationId: createSupportTicket
       tags: [support]
@@ -649,6 +671,84 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/SupportTicket"
+        default:
+          $ref: "#/components/responses/Error"
+  /exports:
+    get:
+      operationId: listExports
+      tags: [exports]
+      x-rbac: admin
+      parameters:
+        - $ref: "#/components/parameters/PageToken"
+        - $ref: "#/components/parameters/PageSize"
+        - $ref: "#/components/parameters/Sort"
+        - $ref: "#/components/parameters/Search"
+        - $ref: "#/components/parameters/StatusFilter"
+      responses:
+        "200":
+          description: Export job page for admin support and operations.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExportPage"
+        default:
+          $ref: "#/components/responses/Error"
+  /providers/status:
+    get:
+      operationId: listProviderStatus
+      tags: [providers]
+      x-rbac: admin
+      parameters:
+        - $ref: "#/components/parameters/PageToken"
+        - $ref: "#/components/parameters/PageSize"
+        - $ref: "#/components/parameters/StatusFilter"
+      responses:
+        "200":
+          description: Provider availability and capability status page.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProviderStatusPage"
+        default:
+          $ref: "#/components/responses/Error"
+  /providers/usage:
+    get:
+      operationId: listProviderUsage
+      tags: [providers]
+      x-rbac: admin
+      parameters:
+        - $ref: "#/components/parameters/PageToken"
+        - $ref: "#/components/parameters/PageSize"
+        - $ref: "#/components/parameters/Sort"
+        - $ref: "#/components/parameters/Search"
+        - $ref: "#/components/parameters/StatusFilter"
+      responses:
+        "200":
+          description: Provider usage and cost log page.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProviderUsagePage"
+        default:
+          $ref: "#/components/responses/Error"
+  /abuse/events:
+    get:
+      operationId: listAbuseEvents
+      tags: [abuse]
+      x-rbac: admin
+      parameters:
+        - $ref: "#/components/parameters/PageToken"
+        - $ref: "#/components/parameters/PageSize"
+        - $ref: "#/components/parameters/Sort"
+        - $ref: "#/components/parameters/Search"
+        - $ref: "#/components/parameters/StatusFilter"
+      responses:
+        "200":
+          description: Abuse event page for rate-limit, hold, and queue review.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AbuseEventPage"
         default:
           $ref: "#/components/responses/Error"
   /skills:
@@ -1560,17 +1660,38 @@ components:
       properties:
         id:
           type: string
+        tenant_id:
+          type: string
         package_id:
           type: string
+        task_id:
+          type: string
+          nullable: true
         format:
           type: string
         status:
           type: string
         qa_status:
           type: string
+        error:
+          type: object
+          additionalProperties: true
         created_at:
           type: string
           format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    ExportPage:
+      allOf:
+        - $ref: "#/components/schemas/PageInfo"
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/Export"
     ShareLinkCreate:
       type: object
       properties:
@@ -1669,19 +1790,132 @@ components:
           type: string
     SupportTicket:
       type: object
-      required: [id, category, status, body, created_at]
+      required: [id, tenant_id, user_id, category, status, body, created_at, updated_at]
       properties:
         id:
           type: string
+        tenant_id:
+          type: string
+        user_id:
+          type: string
+        project_id:
+          type: string
+          nullable: true
         category:
           type: string
         status:
           type: string
         body:
           type: string
+        linked_export_id:
+          type: string
+          nullable: true
+        metadata:
+          type: object
+          additionalProperties: true
         created_at:
           type: string
           format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    SupportTicketPage:
+      allOf:
+        - $ref: "#/components/schemas/PageInfo"
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/SupportTicket"
+    ProviderStatus:
+      type: object
+      required: [provider_id, model_id, status, available, endpoints, updated_at]
+      properties:
+        provider_id:
+          type: string
+        model_id:
+          type: string
+        status:
+          type: string
+        available:
+          type: boolean
+        endpoints:
+          type: array
+          items:
+            type: string
+        supports_reference_image:
+          type: boolean
+        supports_batch:
+          type: boolean
+        supports_seed:
+          type: boolean
+        concurrency_limit:
+          type: integer
+          minimum: 0
+        updated_at:
+          type: string
+          format: date-time
+    ProviderStatusPage:
+      allOf:
+        - $ref: "#/components/schemas/PageInfo"
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/ProviderStatus"
+    ProviderUsage:
+      type: object
+      required: [id, tenant_id, provider_id, model_id, usage_units, cost_cents, status, created_at]
+      properties:
+        id:
+          type: string
+        tenant_id:
+          type: string
+        user_id:
+          type: string
+          nullable: true
+        project_id:
+          type: string
+          nullable: true
+        task_id:
+          type: string
+          nullable: true
+        provider_id:
+          type: string
+        model_id:
+          type: string
+        endpoint_version:
+          type: string
+        request_hash:
+          type: string
+        usage_units:
+          type: integer
+          minimum: 0
+        cost_cents:
+          type: integer
+          minimum: 0
+        status:
+          type: string
+        metadata:
+          type: object
+          additionalProperties: true
+        created_at:
+          type: string
+          format: date-time
+    ProviderUsagePage:
+      allOf:
+        - $ref: "#/components/schemas/PageInfo"
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/ProviderUsage"
     Skill:
       type: object
       required: [id, name, domain, owner, risk_level, status]
@@ -1943,6 +2177,45 @@ components:
               type: array
               items:
                 $ref: "#/components/schemas/SafetyRule"
+    AbuseEvent:
+      type: object
+      required: [id, tenant_id, event_type, severity, status, evidence, controls, created_at, updated_at]
+      properties:
+        id:
+          type: string
+        tenant_id:
+          type: string
+        user_id:
+          type: string
+          nullable: true
+        event_type:
+          type: string
+        severity:
+          type: string
+        status:
+          type: string
+        evidence:
+          type: object
+          additionalProperties: true
+        controls:
+          type: object
+          additionalProperties: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    AbuseEventPage:
+      allOf:
+        - $ref: "#/components/schemas/PageInfo"
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/AbuseEvent"
     AuditLog:
       type: object
       required: [id, actor_id, action, resource, metadata, created_at]

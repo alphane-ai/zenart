@@ -13,6 +13,11 @@ func TestOpenAPIContractCoversServerRoutes(t *testing.T) {
 	required := []string{
 		"/tasks/{task_id}",
 		"/audit",
+		"/support/tickets",
+		"/abuse/events",
+		"/providers/status",
+		"/providers/usage",
+		"/exports",
 		"TaskStatus:",
 		"ErrorEnvelope:",
 		"IdempotencyKey:",
@@ -25,6 +30,26 @@ func TestOpenAPIContractCoversServerRoutes(t *testing.T) {
 	for _, token := range required {
 		if !bytes.Contains(contract, []byte(token)) {
 			t.Fatalf("OpenAPI contract missing %q", token)
+		}
+	}
+}
+
+func TestOpenAPIContractCoversAdminSupportAbuseProviderAndExportRoutes(t *testing.T) {
+	contract := string(readOpenAPIContract(t))
+	for _, token := range []string{
+		"operationId: listSupportTickets",
+		"operationId: listAbuseEvents",
+		"operationId: listProviderStatus",
+		"operationId: listProviderUsage",
+		"operationId: listExports",
+		"SupportTicketPage:",
+		"AbuseEventPage:",
+		"ProviderStatusPage:",
+		"ProviderUsagePage:",
+		"ExportPage:",
+	} {
+		if !strings.Contains(contract, token) {
+			t.Fatalf("OpenAPI admin operations missing %q", token)
 		}
 	}
 }
