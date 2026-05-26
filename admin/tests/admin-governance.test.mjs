@@ -886,6 +886,16 @@ test("staging auth rbac tenant audit evidence clears only its private beta check
     stagingAuthRbacTenantAuditEvidence.adminRbacEvidenceIds,
     "evidence file and admin fixture RBAC ids must match"
   );
+  assert.deepEqual(
+    [...new Set(evidenceFile.admin_rbac_evidence_ids)].sort(),
+    evidenceFile.admin_rbac_evidence_ids.toSorted(),
+    "staging auth/RBAC evidence file cannot cite duplicate RBAC rows"
+  );
+  assert.deepEqual(
+    [...new Set(stagingAuthRbacTenantAuditEvidence.adminRbacEvidenceIds)].sort(),
+    stagingAuthRbacTenantAuditEvidence.adminRbacEvidenceIds.toSorted(),
+    "admin auth/RBAC fixture cannot cite duplicate RBAC rows"
+  );
   assert.equal(
     evidenceFile.gate_impact.aggregate_private_beta_gate_status,
     "blocked_by_other_staging_runtime_items",
@@ -931,7 +941,18 @@ test("staging auth rbac tenant audit evidence clears only its private beta check
   assert.deepEqual([...requiredAreas], [], "staging auth/RBAC/tenant/audit evidence is missing coverage areas");
 
   for (const id of stagingAuthRbacTenantAuditEvidence.adminRbacEvidenceIds) {
-    assert.ok(rbacIds.has(id), `${id} must link to admin RBAC evidence`);
+    const rbac = adminRbacEvidence.find((item) => item.id === id);
+    assert.ok(rbac, `${id} must link to admin RBAC evidence`);
+    assert.match(
+      rbac.apiScope,
+      /^(GET|POST|PATCH|DELETE) \/api\/admin\//,
+      `${id} staging auth/RBAC evidence must stay scoped to admin APIs`
+    );
+    assert.ok(auditIds.has(rbac.auditRef), `${id} must link immutable audit evidence`);
+    assert.ok(
+      rbac.runtimeCheck.includes(rbac.enforcementPoint),
+      `${id} runtime check must identify the governed enforcement point`
+    );
   }
   for (const auditRef of stagingAuthRbacTenantAuditEvidence.auditRefs) {
     assert.ok(auditIds.has(auditRef), `${auditRef} must link to immutable audit evidence`);
@@ -1946,6 +1967,22 @@ test("admin RBAC evidence covers every governed override surface", () => {
     adminRbacEvidence.some((item) => item.mutationOutcome === "blocked_no_mutation"),
     "denied overrides need no-mutation evidence"
   );
+  assert.ok(
+    adminRbacEvidence.some(
+      (item) => item.surface === "provider_routing" && item.decision === "allowed" && item.overrideExpiresAt !== "none"
+    ),
+    "provider routing needs an allowed temporary override fixture"
+  );
+  assert.ok(
+    adminRbacEvidence.some(
+      (item) =>
+        item.surface === "provider_routing" &&
+        item.decision === "allowed" &&
+        new Date(`${item.overrideExpiresAt.replace(" ", "T")}:00Z`).getTime() <=
+          new Date("2026-05-26T11:00:00Z").getTime()
+    ),
+    "provider routing needs an expired temporary override fixture"
+  );
 
   const enforcementBySurface = new Map(adminRbacEvidence.map((item) => [item.surface, item.enforcementPoint]));
   assert.equal(enforcementBySurface.get("skill_release"), "release_gate", "skill release RBAC must bind to release gate");
@@ -1978,6 +2015,12 @@ test("admin RBAC runtime decisions enforce high-risk override outcomes", () => {
     decisions.some((decision) => decision.effectiveDecision === "deny_mutation" && decision.requestOutcome === "denied_policy_block"),
     "RBAC runtime needs policy-block denials"
   );
+  assert.ok(
+    decisions.some(
+      (decision) => decision.effectiveDecision === "deny_mutation" && decision.requestOutcome === "denied_expired_override"
+    ),
+    "RBAC runtime needs expired temporary override denials"
+  );
 
   const evidenceById = new Map(adminRbacEvidence.map((item) => [item.id, item]));
 
@@ -2007,6 +2050,13 @@ test("admin RBAC runtime decisions enforce high-risk override outcomes", () => {
         /hold_for_second_review|block_and_preserve_state/,
         `${decision.evidenceId} denied or queued decision needs restrictive queue action`
       );
+    }
+
+    if (decision.requestOutcome === "denied_expired_override") {
+      assert.notEqual(item.overrideExpiresAt, "none", `${decision.evidenceId} expired override needs a real expiration`);
+      assert.equal(decision.queueAction, "block_and_preserve_state", `${decision.evidenceId} expired override must preserve state`);
+      assert.equal(decision.releaseGateStatus, "release_gate_preserved", `${decision.evidenceId} expired override must preserve release gate`);
+      assert.match(decision.rationale, /expired/i, `${decision.evidenceId} expired override rationale must name expiry`);
     }
 
     if (item.surface === "export_override") {

@@ -628,6 +628,28 @@ export const adminRbacEvidence: AdminRbacEvidence[] = [
     evidenceRefs: ["rv-101", "ph-1", "eg-003"]
   },
   {
+    id: "rbac-provider-002",
+    surface: "provider_routing",
+    target: "OpenAI/image-render-dev",
+    requestedAction: "extend emergency provider retry routing reduction after the temporary override window closed",
+    enforcementPoint: "provider_router",
+    requiredRole: "admin_operator",
+    attemptedRole: "admin_operator",
+    decision: "allowed",
+    secondReviewRequired: false,
+    secondReviewStatus: "not_required",
+    releaseGateImpact: "Provider routing remains constrained by the degraded-health release blocker because the prior emergency retry override has expired and cannot silently persist.",
+    userVisibleOutcome: "Users stay on the audited provider routing state; no stale retry reduction continues after the operator-approved window closes.",
+    apiScope: "PATCH /api/admin/providers/OpenAI/image-render-dev/routing-weight",
+    mutationOutcome: "applied",
+    overrideExpiresAt: "2026-05-26 10:30",
+    runtimeCheck: "provider_router denies stale extension after overrideExpiresAt even when the attempted admin_operator role is sufficient for the original temporary routing mutation.",
+    postDecisionControl: "Preserve the last audited provider routing weight, keep degraded provider blocker eg-003 open, and require a fresh au-007-linked operator action before any new routing diff.",
+    rationale: "Provider routing overrides are time boxed; a sufficient operator role cannot keep an expired emergency retry-weight change active without a fresh audit-linked request.",
+    auditRef: "au-007",
+    evidenceRefs: ["rv-101", "ph-1", "eg-003"]
+  },
+  {
     id: "rbac-quota-001",
     surface: "quota_override",
     target: "usr-301",
