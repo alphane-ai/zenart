@@ -14,6 +14,7 @@ const routes = [
   "feedback",
   "providers",
   "queues",
+  "operations",
   "exports",
   "exports/[id]",
   "support",
@@ -35,6 +36,8 @@ test("admin fixtures cover required operational surfaces", () => {
     "export const feedbackItems",
     "export const providerHealth",
     "export const queueHealth",
+    "export const incidentLogs",
+    "export const maintenanceBanners",
     "export const exportJobs",
     "export const supportUsers",
     "export const quotaAccounts",
@@ -59,6 +62,21 @@ test("admin fixtures expose review governance and release evidence", () => {
     "evidenceRefs",
     "smokeEvidence",
     "rollbackEvidence"
+  ]) {
+    assert.match(fixtures, new RegExp(token));
+  }
+});
+
+test("admin fixtures cover operations gate evidence", () => {
+  for (const token of [
+    "customerImpact",
+    "mitigation",
+    "nextUpdateAt",
+    "linkedSupportTickets",
+    "rollbackPlan",
+    "audience",
+    "approval",
+    "auditRef"
   ]) {
     assert.match(fixtures, new RegExp(token));
   }
@@ -112,4 +130,12 @@ test("admin routes surface governance evidence", () => {
     "utf8"
   );
   assert.match(safetyPage, /Review Rationale/);
+
+  const operationsPage = readFileSync(
+    new URL("../app/operations/page.tsx", import.meta.url),
+    "utf8"
+  );
+  assert.match(operationsPage, /Incident Log/);
+  assert.match(operationsPage, /Maintenance Banner/);
+  assert.match(operationsPage, /Rollback Plan/);
 });

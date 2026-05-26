@@ -5,6 +5,8 @@ import {
   crawlerFindings,
   exportJobs,
   feedbackItems,
+  incidentLogs,
+  maintenanceBanners,
   metaPrompts,
   promptFragments,
   providerHealth,
@@ -92,4 +94,12 @@ export async function getAbuseEvents() {
 
 export async function getAuditEvents() {
   return auditEvents;
+}
+
+export async function getIncidentLogs() {
+  return incidentLogs;
+}
+
+export async function getMaintenanceBanners() {
+  return maintenanceBanners;
 }

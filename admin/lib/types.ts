@@ -229,3 +229,33 @@ export type ReleaseEvidence = {
   rollbackEvidence: string;
   reviewerRationale: string;
 };
+
+export type IncidentLog = {
+  id: string;
+  severity: "sev1" | "sev2" | "sev3";
+  status: "open" | "mitigating" | "resolved";
+  startedAt: string;
+  detectedBy: string;
+  impactedSystems: string[];
+  customerImpact: string;
+  mitigation: string;
+  owner: string;
+  nextUpdateAt: string;
+  linkedQueues: string[];
+  linkedSupportTickets: string[];
+  auditRefs: string[];
+  rollbackPlan: string;
+};
+
+export type MaintenanceBanner = {
+  id: string;
+  status: "draft" | "scheduled" | "active" | "expired";
+  scope: "admin" | "web" | "all";
+  audience: "internal" | "private_beta" | "all_users";
+  message: string;
+  startsAt: string;
+  endsAt: string;
+  owner: string;
+  approval: string;
+  auditRef: string;
+};

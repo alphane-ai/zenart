@@ -6,6 +6,8 @@ import type {
   CrawlerFinding,
   ExportJob,
   FeedbackItem,
+  IncidentLog,
+  MaintenanceBanner,
   ProviderHealth,
   PromptFragment,
   QuotaAccount,
@@ -597,5 +599,67 @@ export const auditEvents: AuditEvent[] = [
     risk: "low",
     createdAt: "2026-05-26 09:40",
     rationale: "Refund for blocked export package regeneration."
+  }
+];
+
+export const incidentLogs: IncidentLog[] = [
+  {
+    id: "inc-20260526-queue",
+    severity: "sev2",
+    status: "mitigating",
+    startedAt: "2026-05-26 09:12",
+    detectedBy: "queue q-export dead-letter threshold",
+    impactedSystems: ["export-packaging", "support-console", "quota-refund"],
+    customerImpact: "Three private-beta export jobs failed after QA report packaging.",
+    mitigation: "Hold automatic retries, regenerate eligible packages manually, and credit affected users after audit.",
+    owner: "ops-admin",
+    nextUpdateAt: "2026-05-26 10:00",
+    linkedQueues: ["q-export"],
+    linkedSupportTickets: ["sup-2201", "sup-2204"],
+    auditRefs: ["au-004"],
+    rollbackPlan: "Route package jobs back to skill-export-pack@1.8.0 and replay failed exports after manifest validation."
+  },
+  {
+    id: "inc-20260525-crawler",
+    severity: "sev3",
+    status: "resolved",
+    startedAt: "2026-05-25 14:30",
+    detectedBy: "crawler source blocklist alert",
+    impactedSystems: ["crawler-findings", "review-queue"],
+    customerImpact: "No user-visible impact; pending imports held for source review.",
+    mitigation: "Blocked disallowed source, kept pending-review imports out of active prompt and skill flows.",
+    owner: "trust-admin",
+    nextUpdateAt: "resolved",
+    linkedQueues: ["q-crawler"],
+    linkedSupportTickets: [],
+    auditRefs: ["au-002"],
+    rollbackPlan: "Keep source-normalizer canary stopped until robots evidence and legal metadata are reviewed."
+  }
+];
+
+export const maintenanceBanners: MaintenanceBanner[] = [
+  {
+    id: "mb-exports-20260526",
+    status: "scheduled",
+    scope: "web",
+    audience: "private_beta",
+    message: "Export regeneration is under maintenance while failed packages are replayed.",
+    startsAt: "2026-05-26 10:00",
+    endsAt: "2026-05-26 11:00",
+    owner: "ops-admin",
+    approval: "support_operator approval required before activation",
+    auditRef: "au-004"
+  },
+  {
+    id: "mb-admin-local",
+    status: "active",
+    scope: "admin",
+    audience: "internal",
+    message: "Local alpha admin data is fixture-backed until backend admin APIs are connected.",
+    startsAt: "2026-05-26 00:00",
+    endsAt: "2026-05-27 00:00",
+    owner: "platform-admin",
+    approval: "local-dev-admin",
+    auditRef: "eg-001"
   }
 ];

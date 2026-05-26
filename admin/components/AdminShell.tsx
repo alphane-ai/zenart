@@ -18,6 +18,7 @@ const navGroups = [
     links: [
       ["Provider Health", "/providers"],
       ["Queue / Dead-letter", "/queues"],
+      ["Operations Gate", "/operations"],
       ["Export Jobs", "/exports"],
       ["Trace Detail", "/traces"],
       ["Feedback Queue", "/feedback"]
