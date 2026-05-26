@@ -289,6 +289,41 @@ button:disabled {
   line-height: 1.35;
 }
 
+.session-contract-evidence {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(120px, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.session-contract-evidence div {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfe;
+  padding: 8px 9px;
+}
+
+.session-contract-evidence dt,
+.session-contract-evidence dd {
+  margin: 0;
+}
+
+.session-contract-evidence dt {
+  color: var(--muted);
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.session-contract-evidence dd {
+  margin-top: 3px;
+  color: var(--ink);
+  font-size: 12px;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
 .session-actions {
   display: flex;
   align-items: center;
@@ -1177,7 +1212,8 @@ textarea {
   .project-grid,
   .billing-layout,
   .export-layout,
-  .session-contract {
+  .session-contract,
+  .session-contract-evidence {
     grid-template-columns: 1fr;
   }
 

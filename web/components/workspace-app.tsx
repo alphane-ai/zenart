@@ -303,6 +303,8 @@ function SessionPanel({
   const expectedSessionCookieName = "__Host-zenart_session";
   const expectedCsrfStrategy = "same-site-origin-check";
   const expectedCsrfHeader = "X-ZenArt-CSRF";
+  const expectedSameSiteRequirement = "lax-or-strict";
+  const sameSiteRequirement = state.sessionContract.csrf.sameSiteRequired;
   const cookieAttributes = [
     state.sessionContract.cookie.httpOnly ? "HttpOnly" : "client-readable",
     state.sessionContract.cookie.secure ? "Secure" : "insecure",
@@ -314,7 +316,7 @@ function SessionPanel({
     <section
       className="session-contract"
       aria-label="Auth and session status"
-      data-session-contract={`${expectedSessionCookieName}:${expectedCsrfStrategy}:${expectedCsrfHeader}`}
+      data-session-contract={`${expectedSessionCookieName}:${expectedCsrfStrategy}:${expectedCsrfHeader}:${expectedSameSiteRequirement}`}
     >
       <div className="session-contract-main">
         <ShieldCheck size={18} aria-hidden="true" />
@@ -325,6 +327,28 @@ function SessionPanel({
           </span>
         </div>
       </div>
+      <dl className="session-contract-evidence" aria-label="CSRF and same-site contract evidence">
+        <div>
+          <dt>Cookie</dt>
+          <dd>{state.sessionContract.cookie.name}</dd>
+        </div>
+        <div>
+          <dt>SameSite</dt>
+          <dd>{state.sessionContract.cookie.sameSite}</dd>
+        </div>
+        <div>
+          <dt>CSRF</dt>
+          <dd>{state.sessionContract.csrf.strategy}</dd>
+        </div>
+        <div>
+          <dt>Header</dt>
+          <dd>{state.sessionContract.csrf.headerName}</dd>
+        </div>
+        <div>
+          <dt>Requirement</dt>
+          <dd>{sameSiteRequirement}</dd>
+        </div>
+      </dl>
       {sessionBlocked ? (
         <div className="inline-alert session-alert" role="alert">
           <AlertTriangle size={16} aria-hidden="true" />
