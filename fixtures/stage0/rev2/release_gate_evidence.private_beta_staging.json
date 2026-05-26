@@ -57,6 +57,12 @@
       "evidence_ref": "backend local denial-test evidence exists, but ops/evidence/staging/ tenant-isolation runtime evidence remains absent"
     },
     {
+      "condition_id": "staging_brief_upload_confirmation_runtime_missing",
+      "blueprint_condition": "Vertical workflows 只通过 generic rendering tests，没有 domain fixtures、four-option taxonomy、required outputs、QA/safety checks、manifest validation。",
+      "is_present": true,
+      "evidence_ref": "fixtures/stage0/rev2/workflows/ define brief slots and upload/confirmation expectations, but ops/evidence/staging/ brief/upload/confirmation runtime evidence remains absent"
+    },
+    {
       "condition_id": "rate_limit_spend_cap_runtime_missing",
       "blueprint_condition": "Rate limits、provider concurrency limits、spend cap 或 emergency kill switch 缺失。",
       "is_present": true,

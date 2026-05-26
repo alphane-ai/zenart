@@ -160,6 +160,7 @@
                 "condition_id": {
                   "enum": [
                     "tenant_isolation_not_enforced",
+                    "staging_brief_upload_confirmation_runtime_missing",
                     "rate_limit_spend_cap_runtime_missing",
                     "object_storage_signed_retention_runtime_missing",
                     "support_abuse_runtime_missing",

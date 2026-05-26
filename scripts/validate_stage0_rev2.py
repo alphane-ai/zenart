@@ -247,22 +247,33 @@ RELEASE_GATE_REQUIRED_CHECKS = {
 
 RELEASE_GATE_REQUIRED_ACTIVE_CONDITIONS = {
     "ci": {
+        "ci_workflow_not_installed",
         "ci_gate_not_executed_on_main",
         "ci_playwright_smoke_missing",
         "ci_docker_image_build_missing",
     },
     "private_beta_staging": {
         "tenant_isolation_not_enforced",
+        "staging_brief_upload_confirmation_runtime_missing",
+        "object_storage_signed_retention_runtime_missing",
+        "rate_limit_spend_cap_runtime_missing",
         "eval_qa_safety_runtime_missing",
-        "crawler_governance_runtime_missing",
         "staging_observability_restore_load_missing",
         "external_user_legal_pages_missing",
     },
     "production_launch": {
+        "dev_mock_provider_public_claims_unresolved",
         "real_provider_or_comp_only_mode_missing",
+        "paid_billing_or_comp_only_mode_missing",
         "skill_release_eval_canary_missing",
+        "activation_eval_review_audit_runtime_missing",
+        "admin_high_risk_review_runtime_missing",
+        "abuse_throttle_hold_missing",
         "security_privacy_legal_incomplete",
+        "secret_exposure_runtime_not_verified",
         "backup_restore_rollback_smoke_missing",
+        "production_deploy_rollback_smoke_missing",
+        "public_legal_support_policy_not_deployed",
         "ci_staging_gates_not_passed",
     },
 }
@@ -452,6 +463,10 @@ ACTIVE_CONDITION_EVIDENCE_REQUIREMENTS = {
     ("private_beta_staging", "tenant_isolation_not_enforced"): {
         "path_patterns": (r"ops/evidence/staging/", r"backend/", r"openapi/"),
         "tokens": ("staging", "tenant"),
+    },
+    ("private_beta_staging", "staging_brief_upload_confirmation_runtime_missing"): {
+        "path_patterns": (r"ops/evidence/staging/", r"fixtures/stage0/rev2/workflows/", r"web/"),
+        "tokens": ("staging", "brief", "upload", "confirmation"),
     },
     ("private_beta_staging", "rate_limit_spend_cap_runtime_missing"): {
         "path_patterns": (r"ops/evidence/staging/", r"backend/", r"fixtures/stage0/rev2/"),
@@ -670,6 +685,7 @@ RELEASE_GATE_CHECK_BLOCKING_CONDITIONS = {
     },
     "private_beta_staging": {
         "staging_auth_rbac_tenant_audit": {"tenant_isolation_not_enforced"},
+        "staging_brief_upload_confirmation": {"staging_brief_upload_confirmation_runtime_missing"},
         "staging_object_storage_signed_downloads": {"object_storage_signed_retention_runtime_missing"},
         "staging_quota_rate_limit_spend_cap": {"rate_limit_spend_cap_runtime_missing"},
         "staging_support_retry_abuse_ops": {"support_abuse_runtime_missing"},
@@ -729,6 +745,7 @@ DO_NOT_LAUNCH_CONDITION_COVERAGE = {
     },
     "private_beta_staging": {
         "tenant_isolation_not_enforced": "User projects、assets、exports、traces、quota、support tickets、audit logs 任何 tenant-isolation test 失败。",
+        "staging_brief_upload_confirmation_runtime_missing": "Vertical workflows 只通过 generic rendering tests，没有 domain fixtures、four-option taxonomy、required outputs、QA/safety checks、manifest validation。",
         "rate_limit_spend_cap_runtime_missing": "Rate limits、provider concurrency limits、spend cap 或 emergency kill switch 缺失。",
         "object_storage_signed_retention_runtime_missing": "Object storage 缺 tenant-scoped signed access、retention policy、cleanup 或 cross-tenant denial tests。",
         "support_abuse_runtime_missing": "Admin review decisions 可变更、缺 reviewer rationale，或 high-risk changes 绕过 RBAC/audit/second review。",
@@ -1661,6 +1678,11 @@ def validate_check_condition_consistency(data: dict[str, Any]) -> None:
     gate = data["gate"]
     checks = checks_by_id(data)
     conditions = do_not_launch_by_id(data)
+    active_condition_to_blocked_checks: dict[str, list[str]] = {
+        condition_id: []
+        for condition_id, condition in conditions.items()
+        if condition["is_present"]
+    }
     for check_id, condition_ids in RELEASE_GATE_CHECK_BLOCKING_CONDITIONS.get(gate, {}).items():
         require(check_id in checks, f"{gate} condition guard references unknown check {check_id}")
         missing_conditions = condition_ids - set(conditions)
@@ -1674,6 +1696,17 @@ def validate_check_condition_consistency(data: dict[str, Any]) -> None:
             for condition_id in sorted(condition_ids)
             if conditions[condition_id]["is_present"]
         ]
+        if checks[check_id]["status"] in {"blocked", "fail"} and gate in {
+            "ci",
+            "private_beta_staging",
+            "production_launch",
+        }:
+            require(
+                active_conditions,
+                f"{gate}.{check_id} is {checks[check_id]['status']} but has no active mapped Do-Not-Launch condition",
+            )
+            for condition_id in active_conditions:
+                active_condition_to_blocked_checks[condition_id].append(check_id)
         if checks[check_id]["status"] == "pass":
             require(
                 not active_conditions,
@@ -1686,6 +1719,13 @@ def validate_check_condition_consistency(data: dict[str, Any]) -> None:
                 f"{gate}.{check_id} must stay blocked/failing while related Do-Not-Launch conditions are active: "
                 + json.dumps(active_conditions, ensure_ascii=False),
             )
+    for condition_id, blocked_check_ids in active_condition_to_blocked_checks.items():
+        if gate not in {"ci", "private_beta_staging", "production_launch"}:
+            continue
+        require(
+            blocked_check_ids,
+            f"{gate}.{condition_id} is active but is not mapped to a blocked/failing release gate check",
+        )
 
 
 def validate_global_do_not_launch_condition_coverage(evidence: dict[str, dict[str, Any]]) -> None:
