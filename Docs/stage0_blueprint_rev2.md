@@ -1763,17 +1763,17 @@ main 合并前必须通过：
 
 ### 25.11 Eval, QA, Safety
 
-- [ ] 定义 eval suite schema。
-- [ ] 创建四条 workflow golden fixtures。
-- [ ] 创建 ambiguous/unsafe/negative fixtures。
-- [ ] 创建 brand/product preservation fixtures。
-- [ ] 创建 text-heavy fixtures。
-- [ ] 创建 export completeness fixtures。
+- [x] 定义 eval suite schema。
+- [x] 创建四条 workflow golden fixtures。
+- [x] 创建 ambiguous/unsafe/negative fixtures。
+- [x] 创建 brand/product preservation fixtures。
+- [x] 创建 text-heavy fixtures。
+- [x] 创建 export completeness fixtures。
 - [ ] 实现 eval runner。
 - [ ] 存储 eval results。
 - [ ] skill canary 前要求 eval pass。
 - [ ] prompt fragment active 前要求 eval pass。
-- [ ] 定义 QA result schema。
+- [x] 定义 QA result schema。
 - [ ] 实现 file integrity/dimensions/aspect/safe-area QA。
 - [ ] 实现 blank/duplicate/four-option distinctness QA。
 - [ ] 实现 text readability 或 manual-review placeholder。
@@ -1781,27 +1781,27 @@ main 合并前必须通过：
 - [ ] 实现 product/logo preservation QA。
 - [ ] 实现 forbidden claims QA。
 - [ ] 实现 export completeness QA。
-- [ ] 实现 safety rule schema。
+- [x] 实现 safety rule schema。
 - [ ] 在 brief/provider request/provider response/QA/export 运行 safety policy。
-- [ ] 实现 red-team fixtures。
+- [x] 实现 red-team fixtures。
 
 ### 25.12 Workflow Acceptance
 
-- [ ] 定义 vertical acceptance schema。
+- [x] 定义 vertical acceptance schema。
 - [ ] 实现电商增长包 fixture/API test/Playwright test。
 - [ ] 实现商业视觉文档包 fixture/API test/Playwright test。
 - [ ] 实现本地商家活动包 fixture/API test/Playwright test。
 - [ ] 实现角色/IP 概念包 fixture/API test/Playwright test。
-- [ ] 每条 workflow 定义 required inputs。
-- [ ] 每条 workflow 定义 clarification questions。
-- [ ] 每条 workflow 定义 4-option taxonomy。
-- [ ] 每条 workflow 定义 required package outputs。
-- [ ] 每条 workflow 定义 QA/safety/export pass thresholds。
+- [x] 每条 workflow 定义 required inputs。
+- [x] 每条 workflow 定义 clarification questions。
+- [x] 每条 workflow 定义 4-option taxonomy。
+- [x] 每条 workflow 定义 required package outputs。
+- [x] 每条 workflow 定义 QA/safety/export pass thresholds。
 
 ### 25.13 Crawler Governance
 
 - [ ] 实现 crawler source approval。
-- [ ] 实现 source legal metadata。
+- [x] 实现 source legal metadata。
 - [ ] 实现 robots evidence。
 - [ ] 实现 SSRF protections。
 - [ ] 实现 source/global rate limits。
@@ -1810,7 +1810,7 @@ main 合并前必须通过：
 - [ ] 实现 provenance links。
 - [ ] 实现 source blocklist。
 - [ ] 实现 takedown/derivative review workflow。
-- [ ] 添加 disallowed source、robots denied、duplicate hash、pending-review import tests。
+- [x] 添加 disallowed source、robots denied、duplicate hash、pending-review import tests。
 
 ### 25.14 Skill, Review, Feedback, Abuse
 
@@ -1823,12 +1823,12 @@ main 合并前必须通过：
 - [ ] 实现 review detail with diff/provenance/eval/QA/risk。
 - [ ] 要求 reviewer rationale。
 - [ ] high-risk changes 要求 second review。
-- [ ] 实现 feedback taxonomy。
-- [ ] 实现 feedback attribution。
+- [x] 实现 feedback taxonomy。
+- [x] 实现 feedback attribution。
 - [ ] 实现 feedback filtering/weighting。
 - [ ] 实现 delayed feedback。
 - [ ] bad samples 转 regression fixtures。
-- [ ] 实现 abuse event model。
+- [x] 实现 abuse event model。
 - [ ] 实现 temporary hold/throttle hooks。
 - [ ] 实现 admin abuse queue。
 

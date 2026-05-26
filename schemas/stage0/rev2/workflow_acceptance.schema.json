@@ -1,0 +1,253 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zenart.local/schemas/stage0/rev2/workflow_acceptance.schema.json",
+  "title": "ZenArt Stage 0 Rev2 Workflow Acceptance Pack",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "workflow_id",
+    "display_name",
+    "required_inputs",
+    "clarification_questions",
+    "four_option_taxonomy",
+    "required_package_outputs",
+    "pass_thresholds",
+    "golden_fixture",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "stage0.rev2"
+    },
+    "workflow_id": {
+      "enum": [
+        "ecommerce_growth_pack",
+        "business_visual_doc_pack",
+        "local_merchant_campaign_pack",
+        "character_ip_concept_pack"
+      ]
+    },
+    "display_name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "required_inputs": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "key",
+          "label",
+          "type",
+          "required"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "pattern": "^[a-z0-9_]+$"
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1
+          },
+          "type": {
+            "enum": [
+              "text",
+              "url",
+              "file",
+              "enum",
+              "number",
+              "date"
+            ]
+          },
+          "required": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "clarification_questions": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "four_option_taxonomy": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "required_package_outputs": {
+      "type": "array",
+      "minItems": 4,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "pass_thresholds": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "qa",
+        "safety",
+        "export"
+      ],
+      "properties": {
+        "qa": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "blocking_allowed",
+            "max_warning_count"
+          ],
+          "properties": {
+            "blocking_allowed": {
+              "type": "boolean",
+              "const": false
+            },
+            "max_warning_count": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "safety": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "required_enforcement_points",
+            "critical_regression_allowed"
+          ],
+          "properties": {
+            "required_enforcement_points": {
+              "type": "array",
+              "minItems": 5,
+              "uniqueItems": true,
+              "items": {
+                "enum": [
+                  "brief",
+                  "provider_request",
+                  "provider_response",
+                  "qa",
+                  "export"
+                ]
+              }
+            },
+            "critical_regression_allowed": {
+              "type": "boolean",
+              "const": false
+            }
+          }
+        },
+        "export": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "requires_manifest",
+            "requires_assets",
+            "requires_qa_report",
+            "requires_metadata",
+            "requires_safety_disclaimer_when_applicable",
+            "requires_trace_provenance"
+          ],
+          "properties": {
+            "requires_manifest": {
+              "type": "boolean",
+              "const": true
+            },
+            "requires_assets": {
+              "type": "boolean",
+              "const": true
+            },
+            "requires_qa_report": {
+              "type": "boolean",
+              "const": true
+            },
+            "requires_metadata": {
+              "type": "boolean",
+              "const": true
+            },
+            "requires_safety_disclaimer_when_applicable": {
+              "type": "boolean",
+              "const": true
+            },
+            "requires_trace_provenance": {
+              "type": "boolean",
+              "const": true
+            }
+          }
+        }
+      }
+    },
+    "golden_fixture": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fixture_id",
+        "brief",
+        "expected_candidate_count",
+        "expected_export_files"
+      ],
+      "properties": {
+        "fixture_id": {
+          "type": "string",
+          "pattern": "^fx_[a-z0-9_]+$"
+        },
+        "brief": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expected_candidate_count": {
+          "type": "integer",
+          "minimum": 4,
+          "maximum": 4
+        },
+        "expected_export_files": {
+          "type": "array",
+          "minItems": 4,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "provenance": {
+      "$ref": "#/$defs/provenance"
+    }
+  },
+  "$defs": {
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "blueprint_sections",
+        "created_by_lane"
+      ],
+      "properties": {
+        "blueprint_sections": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "^25\\.12$"
+          }
+        },
+        "created_by_lane": {
+          "const": "lane6"
+        }
+      }
+    }
+  }
+}

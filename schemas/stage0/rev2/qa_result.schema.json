@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zenart.local/schemas/stage0/rev2/qa_result.schema.json",
+  "title": "ZenArt Stage 0 Rev2 QA Result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "check_id",
+    "severity",
+    "workflow",
+    "asset_id",
+    "evidence",
+    "auto_fix_available",
+    "review_required",
+    "user_visible_message",
+    "admin_reason",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "stage0.rev2"
+    },
+    "check_id": {
+      "type": "string",
+      "pattern": "^qa_[a-z0-9_]+$"
+    },
+    "severity": {
+      "enum": [
+        "info",
+        "warning",
+        "blocking"
+      ]
+    },
+    "workflow": {
+      "type": "string",
+      "minLength": 1
+    },
+    "asset_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evidence": {
+      "type": "object",
+      "required": [
+        "observed",
+        "expected",
+        "trace_id"
+      ],
+      "properties": {
+        "observed": {
+          "type": "object"
+        },
+        "expected": {
+          "type": "object"
+        },
+        "trace_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "auto_fix_available": {
+      "type": "boolean"
+    },
+    "review_required": {
+      "type": "boolean"
+    },
+    "user_visible_message": {
+      "type": "string"
+    },
+    "admin_reason": {
+      "type": "string",
+      "minLength": 1
+    },
+    "provenance": {
+      "$ref": "#/$defs/provenance"
+    }
+  },
+  "$defs": {
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "blueprint_sections",
+        "created_by_lane"
+      ],
+      "properties": {
+        "blueprint_sections": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "^15\\."
+          }
+        },
+        "created_by_lane": {
+          "const": "lane6"
+        }
+      }
+    }
+  }
+}

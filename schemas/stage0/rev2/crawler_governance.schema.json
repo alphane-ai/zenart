@@ -1,0 +1,253 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zenart.local/schemas/stage0/rev2/crawler_governance.schema.json",
+  "title": "ZenArt Stage 0 Rev2 Crawler Governance Fixture",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "fixture_id",
+    "case_type",
+    "source",
+    "fetch_controls",
+    "import_governance",
+    "expected_decision",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "stage0.rev2"
+    },
+    "fixture_id": {
+      "type": "string",
+      "pattern": "^crawler_[a-z0-9_]+$"
+    },
+    "case_type": {
+      "enum": [
+        "approved_source",
+        "disallowed_source",
+        "robots_denied",
+        "duplicate_hash",
+        "pending_review_import"
+      ]
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "owner_publisher",
+        "source_type",
+        "url",
+        "terms_url",
+        "license_classification",
+        "commercial_use_status",
+        "derivative_use_status",
+        "attribution_requirement",
+        "prohibited_use_notes",
+        "legal_review_date",
+        "reviewer_id",
+        "takedown_contact_process",
+        "approved"
+      ],
+      "properties": {
+        "owner_publisher": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "terms_url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "license_classification": {
+          "type": "string",
+          "minLength": 1
+        },
+        "commercial_use_status": {
+          "enum": [
+            "allowed",
+            "restricted",
+            "prohibited",
+            "unknown"
+          ]
+        },
+        "derivative_use_status": {
+          "enum": [
+            "allowed",
+            "restricted",
+            "prohibited",
+            "unknown"
+          ]
+        },
+        "attribution_requirement": {
+          "type": "string"
+        },
+        "prohibited_use_notes": {
+          "type": "string"
+        },
+        "legal_review_date": {
+          "type": "string",
+          "format": "date"
+        },
+        "reviewer_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "takedown_contact_process": {
+          "type": "string",
+          "minLength": 1
+        },
+        "approved": {
+          "type": "boolean"
+        }
+      }
+    },
+    "fetch_controls": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "allowlist_match",
+        "robots_evidence",
+        "private_ip_blocking",
+        "redirect_validation",
+        "dns_rebinding_guard",
+        "max_response_size_bytes",
+        "timeout_ms",
+        "allowed_content_types",
+        "source_rate_limit_per_hour",
+        "global_rate_limit_per_hour"
+      ],
+      "properties": {
+        "allowlist_match": {
+          "type": "boolean"
+        },
+        "robots_evidence": {
+          "enum": [
+            "allowed",
+            "denied",
+            "missing"
+          ]
+        },
+        "private_ip_blocking": {
+          "type": "boolean"
+        },
+        "redirect_validation": {
+          "type": "boolean"
+        },
+        "dns_rebinding_guard": {
+          "type": "boolean"
+        },
+        "max_response_size_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "timeout_ms": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "allowed_content_types": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "source_rate_limit_per_hour": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "global_rate_limit_per_hour": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "import_governance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "raw_content_retention_days",
+        "exact_third_party_import_warning",
+        "exact_text_special_approval_required",
+        "provenance_links_required",
+        "source_blocklist_checked",
+        "takedown_workflow_required",
+        "derivative_review_delete_required",
+        "direct_activation_allowed"
+      ],
+      "properties": {
+        "raw_content_retention_days": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 90
+        },
+        "exact_third_party_import_warning": {
+          "type": "boolean"
+        },
+        "exact_text_special_approval_required": {
+          "type": "boolean"
+        },
+        "provenance_links_required": {
+          "type": "boolean",
+          "const": true
+        },
+        "source_blocklist_checked": {
+          "type": "boolean"
+        },
+        "takedown_workflow_required": {
+          "type": "boolean"
+        },
+        "derivative_review_delete_required": {
+          "type": "boolean"
+        },
+        "direct_activation_allowed": {
+          "type": "boolean",
+          "const": false
+        }
+      }
+    },
+    "expected_decision": {
+      "enum": [
+        "allow_pending_finding",
+        "deny_fetch",
+        "deny_import",
+        "hold_for_review",
+        "dedupe_existing"
+      ]
+    },
+    "provenance": {
+      "$ref": "#/$defs/provenance"
+    }
+  },
+  "$defs": {
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "blueprint_sections",
+        "created_by_lane"
+      ],
+      "properties": {
+        "blueprint_sections": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "^(16|25\\.13)"
+          }
+        },
+        "created_by_lane": {
+          "const": "lane6"
+        }
+      }
+    }
+  }
+}

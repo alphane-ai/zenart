@@ -1,0 +1,146 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zenart.local/schemas/stage0/rev2/feedback_event.schema.json",
+  "title": "ZenArt Stage 0 Rev2 Feedback Event",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "event_id",
+    "event_type",
+    "attribution",
+    "governance",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "stage0.rev2"
+    },
+    "event_id": {
+      "type": "string",
+      "pattern": "^feedback_[a-z0-9_]+$"
+    },
+    "event_type": {
+      "enum": [
+        "select",
+        "reject",
+        "iterate",
+        "edit",
+        "package_add",
+        "export",
+        "rating",
+        "text_feedback",
+        "qa_warning",
+        "export_failure",
+        "admin_label",
+        "support_ticket"
+      ]
+    },
+    "attribution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "workflow",
+        "skill_version",
+        "prompt_spec_version",
+        "provider_model",
+        "asset_id",
+        "package_or_export_id",
+        "trace_id"
+      ],
+      "properties": {
+        "workflow": {
+          "type": "string",
+          "minLength": 1
+        },
+        "skill_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "prompt_spec_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "provider_model": {
+          "type": "string",
+          "minLength": 1
+        },
+        "asset_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "package_or_export_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "trace_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "governance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "is_test_account",
+        "suspected_abuse",
+        "delayed_feedback",
+        "non_selection_vs_rejection",
+        "may_activate_prompt_or_skill_directly",
+        "regression_fixture_candidate"
+      ],
+      "properties": {
+        "is_test_account": {
+          "type": "boolean"
+        },
+        "suspected_abuse": {
+          "type": "boolean"
+        },
+        "delayed_feedback": {
+          "type": "boolean"
+        },
+        "non_selection_vs_rejection": {
+          "enum": [
+            "non_selection",
+            "explicit_rejection",
+            "not_applicable"
+          ]
+        },
+        "may_activate_prompt_or_skill_directly": {
+          "type": "boolean",
+          "const": false
+        },
+        "regression_fixture_candidate": {
+          "type": "boolean"
+        }
+      }
+    },
+    "provenance": {
+      "$ref": "#/$defs/provenance"
+    }
+  },
+  "$defs": {
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "blueprint_sections",
+        "created_by_lane"
+      ],
+      "properties": {
+        "blueprint_sections": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "^(17|25\\.14)"
+          }
+        },
+        "created_by_lane": {
+          "const": "lane6"
+        }
+      }
+    }
+  }
+}

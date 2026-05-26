@@ -1,0 +1,92 @@
+[
+  {
+    "schema_version": "stage0.rev2",
+    "event_id": "feedback_select_ecommerce_a",
+    "event_type": "select",
+    "attribution": {
+      "workflow": "ecommerce_growth_pack",
+      "skill_version": "skill_ecommerce_growth@0.1.0",
+      "prompt_spec_version": "spec_ecommerce_growth@0.1.0",
+      "provider_model": "dev_deterministic@stage0",
+      "asset_id": "candidate_aurora_conversion_offer",
+      "package_or_export_id": "pkg_aurora_launch",
+      "trace_id": "trace_fx_ecommerce_growth_golden"
+    },
+    "governance": {
+      "is_test_account": true,
+      "suspected_abuse": false,
+      "delayed_feedback": false,
+      "non_selection_vs_rejection": "not_applicable",
+      "may_activate_prompt_or_skill_directly": false,
+      "regression_fixture_candidate": false
+    },
+    "provenance": {
+      "blueprint_sections": [
+        "17.1",
+        "17.2",
+        "25.14"
+      ],
+      "created_by_lane": "lane6"
+    }
+  },
+  {
+    "schema_version": "stage0.rev2",
+    "event_id": "feedback_reject_generic_cards",
+    "event_type": "reject",
+    "attribution": {
+      "workflow": "local_merchant_campaign_pack",
+      "skill_version": "skill_local_merchant@0.1.0",
+      "prompt_spec_version": "spec_local_merchant@0.1.0",
+      "provider_model": "dev_deterministic@stage0",
+      "asset_id": "candidate_generic_card_set",
+      "package_or_export_id": "pkg_north_pier_weekend",
+      "trace_id": "trace_fx_negative_generic_rendering"
+    },
+    "governance": {
+      "is_test_account": false,
+      "suspected_abuse": false,
+      "delayed_feedback": true,
+      "non_selection_vs_rejection": "explicit_rejection",
+      "may_activate_prompt_or_skill_directly": false,
+      "regression_fixture_candidate": true
+    },
+    "provenance": {
+      "blueprint_sections": [
+        "17.1",
+        "17.2",
+        "25.14"
+      ],
+      "created_by_lane": "lane6"
+    }
+  },
+  {
+    "schema_version": "stage0.rev2",
+    "event_id": "feedback_qa_warning_text",
+    "event_type": "qa_warning",
+    "attribution": {
+      "workflow": "local_merchant_campaign_pack",
+      "skill_version": "skill_local_merchant@0.1.0",
+      "prompt_spec_version": "spec_local_merchant@0.1.0",
+      "provider_model": "dev_deterministic@stage0",
+      "asset_id": "candidate_north_pier_flyer_a",
+      "package_or_export_id": "pkg_north_pier_weekend",
+      "trace_id": "trace_fx_text_heavy_structured_details"
+    },
+    "governance": {
+      "is_test_account": false,
+      "suspected_abuse": false,
+      "delayed_feedback": false,
+      "non_selection_vs_rejection": "not_applicable",
+      "may_activate_prompt_or_skill_directly": false,
+      "regression_fixture_candidate": true
+    },
+    "provenance": {
+      "blueprint_sections": [
+        "17.1",
+        "17.2",
+        "25.14"
+      ],
+      "created_by_lane": "lane6"
+    }
+  }
+]

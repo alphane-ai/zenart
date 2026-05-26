@@ -1,0 +1,119 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zenart.local/schemas/stage0/rev2/abuse_event.schema.json",
+  "title": "ZenArt Stage 0 Rev2 Abuse Event",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "event_id",
+    "event_type",
+    "account_id",
+    "incident_severity",
+    "controls",
+    "resolution",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "stage0.rev2"
+    },
+    "event_id": {
+      "type": "string",
+      "pattern": "^abuse_[a-z0-9_]+$"
+    },
+    "event_type": {
+      "enum": [
+        "generation_spike",
+        "quota_drain",
+        "repeated_safety_blocks",
+        "prompt_injection",
+        "hidden_prompt_extraction",
+        "brand_ip_impersonation",
+        "crawler_abuse",
+        "export_share_abuse"
+      ]
+    },
+    "account_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "incident_severity": {
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ]
+    },
+    "controls": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rate_limit",
+        "temporary_hold",
+        "admin_abuse_queue"
+      ],
+      "properties": {
+        "rate_limit": {
+          "type": "boolean"
+        },
+        "temporary_hold": {
+          "type": "boolean"
+        },
+        "admin_abuse_queue": {
+          "type": "boolean"
+        }
+      }
+    },
+    "resolution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "admin_rationale_required"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "open",
+            "held",
+            "throttled",
+            "resolved_false_positive",
+            "resolved_enforced"
+          ]
+        },
+        "admin_rationale_required": {
+          "type": "boolean",
+          "const": true
+        }
+      }
+    },
+    "provenance": {
+      "$ref": "#/$defs/provenance"
+    }
+  },
+  "$defs": {
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "blueprint_sections",
+        "created_by_lane"
+      ],
+      "properties": {
+        "blueprint_sections": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "^(17\\.3|25\\.14)"
+          }
+        },
+        "created_by_lane": {
+          "const": "lane6"
+        }
+      }
+    }
+  }
+}

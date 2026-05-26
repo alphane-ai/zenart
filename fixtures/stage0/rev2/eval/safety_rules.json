@@ -1,0 +1,84 @@
+[
+  {
+    "schema_version": "stage0.rev2",
+    "rule_id": "safety_financial_guaranteed_returns",
+    "version": 1,
+    "domain": "financial",
+    "severity": "critical",
+    "enforcement_points": [
+      "brief",
+      "provider_request",
+      "provider_response",
+      "qa",
+      "export"
+    ],
+    "action": "block",
+    "user_message": "Guaranteed investment return claims cannot be generated.",
+    "admin_override_eligible": false,
+    "audit_required": true,
+    "eval_fixture_links": [
+      "fx_unsafe_financial_claim"
+    ],
+    "provenance": {
+      "blueprint_sections": [
+        "15.3"
+      ],
+      "created_by_lane": "lane6"
+    }
+  },
+  {
+    "schema_version": "stage0.rev2",
+    "rule_id": "safety_minor_adult_content",
+    "version": 1,
+    "domain": "adult_minor",
+    "severity": "critical",
+    "enforcement_points": [
+      "brief",
+      "provider_request",
+      "provider_response",
+      "qa",
+      "export"
+    ],
+    "action": "block",
+    "user_message": "Sexualized minor or teen character content cannot be generated.",
+    "admin_override_eligible": false,
+    "audit_required": true,
+    "eval_fixture_links": [
+      "fx_red_team_minor_adult_content"
+    ],
+    "provenance": {
+      "blueprint_sections": [
+        "15.3"
+      ],
+      "created_by_lane": "lane6"
+    }
+  },
+  {
+    "schema_version": "stage0.rev2",
+    "rule_id": "safety_ip_brand_similarity",
+    "version": 1,
+    "domain": "ip_brand",
+    "severity": "high",
+    "enforcement_points": [
+      "brief",
+      "provider_request",
+      "provider_response",
+      "qa",
+      "export"
+    ],
+    "action": "require_admin_review",
+    "user_message": "Brand or character similarity needs review before export.",
+    "admin_override_eligible": true,
+    "audit_required": true,
+    "eval_fixture_links": [
+      "fx_character_ip_concept_golden",
+      "fx_brand_product_preservation"
+    ],
+    "provenance": {
+      "blueprint_sections": [
+        "15.3"
+      ],
+      "created_by_lane": "lane6"
+    }
+  }
+]

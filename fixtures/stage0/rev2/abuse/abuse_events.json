@@ -1,0 +1,71 @@
+[
+  {
+    "schema_version": "stage0.rev2",
+    "event_id": "abuse_repeated_safety_blocks",
+    "event_type": "repeated_safety_blocks",
+    "account_id": "acct_fixture_repeated_blocks",
+    "incident_severity": "high",
+    "controls": {
+      "rate_limit": true,
+      "temporary_hold": true,
+      "admin_abuse_queue": true
+    },
+    "resolution": {
+      "status": "held",
+      "admin_rationale_required": true
+    },
+    "provenance": {
+      "blueprint_sections": [
+        "17.3",
+        "25.14"
+      ],
+      "created_by_lane": "lane6"
+    }
+  },
+  {
+    "schema_version": "stage0.rev2",
+    "event_id": "abuse_prompt_injection",
+    "event_type": "prompt_injection",
+    "account_id": "acct_fixture_prompt_injection",
+    "incident_severity": "medium",
+    "controls": {
+      "rate_limit": true,
+      "temporary_hold": false,
+      "admin_abuse_queue": true
+    },
+    "resolution": {
+      "status": "throttled",
+      "admin_rationale_required": true
+    },
+    "provenance": {
+      "blueprint_sections": [
+        "17.3",
+        "25.14"
+      ],
+      "created_by_lane": "lane6"
+    }
+  },
+  {
+    "schema_version": "stage0.rev2",
+    "event_id": "abuse_crawler_abuse",
+    "event_type": "crawler_abuse",
+    "account_id": "acct_fixture_crawler_abuse",
+    "incident_severity": "critical",
+    "controls": {
+      "rate_limit": true,
+      "temporary_hold": true,
+      "admin_abuse_queue": true
+    },
+    "resolution": {
+      "status": "open",
+      "admin_rationale_required": true
+    },
+    "provenance": {
+      "blueprint_sections": [
+        "17.3",
+        "25.14"
+      ],
+      "created_by_lane": "lane6"
+    }
+  }
+]

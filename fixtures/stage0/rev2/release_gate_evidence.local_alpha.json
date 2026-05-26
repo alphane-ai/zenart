@@ -1,0 +1,51 @@
+{
+  "schema_version": "stage0.rev2",
+  "gate": "local_alpha",
+  "evidence_id": "gate_local_alpha_fixture_baseline",
+  "checks": [
+    {
+      "check_id": "workflow_fixture_coverage",
+      "status": "pass",
+      "evidence_ref": "fixtures/stage0/rev2/workflows"
+    },
+    {
+      "check_id": "eval_fixture_coverage",
+      "status": "pass",
+      "evidence_ref": "fixtures/stage0/rev2/eval/starter_eval_suite.json"
+    },
+    {
+      "check_id": "crawler_governance_fixture_coverage",
+      "status": "pass",
+      "evidence_ref": "fixtures/stage0/rev2/crawler/crawler_governance_cases.json"
+    },
+    {
+      "check_id": "core_app_runtime",
+      "status": "blocked",
+      "evidence_ref": "web/admin/backend are not present in this lane checkout"
+    }
+  ],
+  "do_not_launch_checks": [
+    {
+      "condition_id": "generic_workflow_only",
+      "is_present": false,
+      "evidence_ref": "workflow fixtures define vertical taxonomy and required outputs"
+    },
+    {
+      "condition_id": "missing_export_provenance_fixture",
+      "is_present": false,
+      "evidence_ref": "workflow and eval fixtures require manifest, QA report, and trace provenance"
+    },
+    {
+      "condition_id": "crawler_unapproved_source_fixture_gap",
+      "is_present": false,
+      "evidence_ref": "crawler_disallowed_source and crawler_robots_denied fixtures"
+    }
+  ],
+  "provenance": {
+    "blueprint_sections": [
+      "23.1",
+      "24"
+    ],
+    "created_by_lane": "lane6"
+  }
+}

@@ -1,0 +1,92 @@
+{
+  "schema_version": "stage0.rev2",
+  "workflow_id": "ecommerce_growth_pack",
+  "display_name": "Ecommerce Growth Pack",
+  "required_inputs": [
+    {
+      "key": "product_name",
+      "label": "Product name",
+      "type": "text",
+      "required": true
+    },
+    {
+      "key": "product_image",
+      "label": "Product image",
+      "type": "file",
+      "required": true
+    },
+    {
+      "key": "target_channel",
+      "label": "Target channel",
+      "type": "enum",
+      "required": true
+    },
+    {
+      "key": "offer",
+      "label": "Offer",
+      "type": "text",
+      "required": false
+    }
+  ],
+  "clarification_questions": [
+    "Which audience segment should the pack prioritize?",
+    "Are there restricted claims or approved phrases for the product?"
+  ],
+  "four_option_taxonomy": [
+    "conversion_offer",
+    "social_proof",
+    "feature_comparison",
+    "retention_bundle"
+  ],
+  "required_package_outputs": [
+    "hero_product_ad.png",
+    "square_social_ad.png",
+    "story_variant.png",
+    "marketplace_banner.png",
+    "manifest.json",
+    "qa_report.json",
+    "trace_provenance.json"
+  ],
+  "pass_thresholds": {
+    "qa": {
+      "blocking_allowed": false,
+      "max_warning_count": 2
+    },
+    "safety": {
+      "required_enforcement_points": [
+        "brief",
+        "provider_request",
+        "provider_response",
+        "qa",
+        "export"
+      ],
+      "critical_regression_allowed": false
+    },
+    "export": {
+      "requires_manifest": true,
+      "requires_assets": true,
+      "requires_qa_report": true,
+      "requires_metadata": true,
+      "requires_safety_disclaimer_when_applicable": true,
+      "requires_trace_provenance": true
+    }
+  },
+  "golden_fixture": {
+    "fixture_id": "fx_ecommerce_growth_golden",
+    "brief": "Create a launch ad pack for the Aurora insulated bottle using the supplied packshot, targeting outdoor commuters on web and social.",
+    "expected_candidate_count": 4,
+    "expected_export_files": [
+      "manifest.json",
+      "assets/hero_product_ad.png",
+      "assets/square_social_ad.png",
+      "qa_report.json",
+      "trace_provenance.json"
+    ]
+  },
+  "provenance": {
+    "blueprint_sections": [
+      "25.12"
+    ],
+    "created_by_lane": "lane6"
+  }
+}

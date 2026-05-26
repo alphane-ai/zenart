@@ -1,0 +1,99 @@
+[
+  {
+    "schema_version": "stage0.rev2",
+    "check_id": "qa_export_completeness",
+    "severity": "blocking",
+    "workflow": "character_ip_concept_pack",
+    "asset_id": "export_nova_spark_missing_manifest",
+    "evidence": {
+      "observed": {
+        "manifest_json": false,
+        "qa_report_json": true,
+        "trace_provenance_json": true
+      },
+      "expected": {
+        "manifest_json": true,
+        "qa_report_json": true,
+        "trace_provenance_json": true
+      },
+      "trace_id": "trace_fx_export_completeness_missing_manifest"
+    },
+    "auto_fix_available": false,
+    "review_required": true,
+    "user_visible_message": "The export is incomplete and cannot be downloaded yet.",
+    "admin_reason": "Stage 0 Rev2 requires manifest, QA report, metadata, and trace provenance in every export package.",
+    "provenance": {
+      "blueprint_sections": [
+        "15.1",
+        "15.2"
+      ],
+      "created_by_lane": "lane6"
+    }
+  },
+  {
+    "schema_version": "stage0.rev2",
+    "check_id": "qa_structured_text",
+    "severity": "warning",
+    "workflow": "local_merchant_campaign_pack",
+    "asset_id": "candidate_north_pier_flyer_a",
+    "evidence": {
+      "observed": {
+        "price": "$12",
+        "date": "July 18 2026",
+        "phone": "415-010-0188",
+        "address": "18 Dock Street",
+        "qr_placeholder": true
+      },
+      "expected": {
+        "price": "$12",
+        "date": "July 18 2026",
+        "phone": "415-010-0188",
+        "address": "18 Dock Street",
+        "qr_placeholder": true
+      },
+      "trace_id": "trace_fx_text_heavy_structured_details"
+    },
+    "auto_fix_available": true,
+    "review_required": false,
+    "user_visible_message": "Some text may need review before publishing.",
+    "admin_reason": "Structured text was detected and must be preserved through export.",
+    "provenance": {
+      "blueprint_sections": [
+        "15.1",
+        "15.2"
+      ],
+      "created_by_lane": "lane6"
+    }
+  },
+  {
+    "schema_version": "stage0.rev2",
+    "check_id": "qa_blank_duplicate_distinctness",
+    "severity": "blocking",
+    "workflow": "ecommerce_growth_pack",
+    "asset_id": "candidate_aurora_generic_cards",
+    "evidence": {
+      "observed": {
+        "near_blank": false,
+        "duplicate_similarity": 0.96,
+        "strategic_options": 1
+      },
+      "expected": {
+        "near_blank": false,
+        "duplicate_similarity_below": 0.9,
+        "strategic_options": 4
+      },
+      "trace_id": "trace_fx_negative_generic_rendering"
+    },
+    "auto_fix_available": false,
+    "review_required": true,
+    "user_visible_message": "The four options are not distinct enough to package.",
+    "admin_reason": "Vertical workflows cannot pass with generic four-card rendering.",
+    "provenance": {
+      "blueprint_sections": [
+        "15.1",
+        "15.2"
+      ],
+      "created_by_lane": "lane6"
+    }
+  }
+]

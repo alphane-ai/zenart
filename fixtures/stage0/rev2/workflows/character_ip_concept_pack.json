@@ -1,0 +1,92 @@
+{
+  "schema_version": "stage0.rev2",
+  "workflow_id": "character_ip_concept_pack",
+  "display_name": "Character IP Concept Pack",
+  "required_inputs": [
+    {
+      "key": "character_brief",
+      "label": "Character brief",
+      "type": "text",
+      "required": true
+    },
+    {
+      "key": "target_audience",
+      "label": "Target audience",
+      "type": "text",
+      "required": true
+    },
+    {
+      "key": "style_constraints",
+      "label": "Style constraints",
+      "type": "text",
+      "required": true
+    },
+    {
+      "key": "reference_images",
+      "label": "Reference images",
+      "type": "file",
+      "required": false
+    }
+  ],
+  "clarification_questions": [
+    "Is the character original, licensed, or inspired by existing IP?",
+    "Which traits must remain stable across all four options?"
+  ],
+  "four_option_taxonomy": [
+    "mascot_ready",
+    "narrative_hero",
+    "merchandise_icon",
+    "animation_turnaround"
+  ],
+  "required_package_outputs": [
+    "concept_sheet.png",
+    "pose_grid.png",
+    "expression_sheet.png",
+    "style_tile.png",
+    "manifest.json",
+    "qa_report.json",
+    "trace_provenance.json"
+  ],
+  "pass_thresholds": {
+    "qa": {
+      "blocking_allowed": false,
+      "max_warning_count": 2
+    },
+    "safety": {
+      "required_enforcement_points": [
+        "brief",
+        "provider_request",
+        "provider_response",
+        "qa",
+        "export"
+      ],
+      "critical_regression_allowed": false
+    },
+    "export": {
+      "requires_manifest": true,
+      "requires_assets": true,
+      "requires_qa_report": true,
+      "requires_metadata": true,
+      "requires_safety_disclaimer_when_applicable": true,
+      "requires_trace_provenance": true
+    }
+  },
+  "golden_fixture": {
+    "fixture_id": "fx_character_ip_concept_golden",
+    "brief": "Develop an original educational mascot named Nova Spark with consistent colors, no third-party character resemblance, and export-ready concept sheets.",
+    "expected_candidate_count": 4,
+    "expected_export_files": [
+      "manifest.json",
+      "assets/concept_sheet.png",
+      "assets/pose_grid.png",
+      "qa_report.json",
+      "trace_provenance.json"
+    ]
+  },
+  "provenance": {
+    "blueprint_sections": [
+      "25.12"
+    ],
+    "created_by_lane": "lane6"
+  }
+}

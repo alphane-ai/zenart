@@ -1,0 +1,92 @@
+{
+  "schema_version": "stage0.rev2",
+  "workflow_id": "business_visual_doc_pack",
+  "display_name": "Business Visual Document Pack",
+  "required_inputs": [
+    {
+      "key": "document_goal",
+      "label": "Document goal",
+      "type": "text",
+      "required": true
+    },
+    {
+      "key": "source_notes",
+      "label": "Source notes",
+      "type": "file",
+      "required": true
+    },
+    {
+      "key": "audience",
+      "label": "Audience",
+      "type": "text",
+      "required": true
+    },
+    {
+      "key": "format",
+      "label": "Format",
+      "type": "enum",
+      "required": true
+    }
+  ],
+  "clarification_questions": [
+    "Should the document optimize for executive summary or operational detail?",
+    "Which brand palette and logo constraints apply?"
+  ],
+  "four_option_taxonomy": [
+    "executive_brief",
+    "strategy_memo",
+    "sales_leave_behind",
+    "board_update"
+  ],
+  "required_package_outputs": [
+    "cover.png",
+    "summary_page.png",
+    "data_page.png",
+    "recommendation_page.png",
+    "manifest.json",
+    "qa_report.json",
+    "trace_provenance.json"
+  ],
+  "pass_thresholds": {
+    "qa": {
+      "blocking_allowed": false,
+      "max_warning_count": 3
+    },
+    "safety": {
+      "required_enforcement_points": [
+        "brief",
+        "provider_request",
+        "provider_response",
+        "qa",
+        "export"
+      ],
+      "critical_regression_allowed": false
+    },
+    "export": {
+      "requires_manifest": true,
+      "requires_assets": true,
+      "requires_qa_report": true,
+      "requires_metadata": true,
+      "requires_safety_disclaimer_when_applicable": true,
+      "requires_trace_provenance": true
+    }
+  },
+  "golden_fixture": {
+    "fixture_id": "fx_business_visual_doc_golden",
+    "brief": "Turn the quarterly retention notes into a concise investor-ready visual memo with clear charts and no unsupported claims.",
+    "expected_candidate_count": 4,
+    "expected_export_files": [
+      "manifest.json",
+      "assets/cover.png",
+      "assets/summary_page.png",
+      "qa_report.json",
+      "trace_provenance.json"
+    ]
+  },
+  "provenance": {
+    "blueprint_sections": [
+      "25.12"
+    ],
+    "created_by_lane": "lane6"
+  }
+}

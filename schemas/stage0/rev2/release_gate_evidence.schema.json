@@ -1,0 +1,110 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zenart.local/schemas/stage0/rev2/release_gate_evidence.schema.json",
+  "title": "ZenArt Stage 0 Rev2 Release Gate Evidence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "gate",
+    "evidence_id",
+    "checks",
+    "do_not_launch_checks",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "stage0.rev2"
+    },
+    "gate": {
+      "enum": [
+        "local_alpha",
+        "ci",
+        "private_beta_staging",
+        "production_launch"
+      ]
+    },
+    "evidence_id": {
+      "type": "string",
+      "pattern": "^gate_[a-z0-9_]+$"
+    },
+    "checks": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "check_id",
+          "status",
+          "evidence_ref"
+        ],
+        "properties": {
+          "check_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "enum": [
+              "pass",
+              "fail",
+              "blocked",
+              "not_applicable"
+            ]
+          },
+          "evidence_ref": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "do_not_launch_checks": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "condition_id",
+          "is_present",
+          "evidence_ref"
+        ],
+        "properties": {
+          "condition_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "is_present": {
+            "type": "boolean"
+          },
+          "evidence_ref": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "blueprint_sections",
+        "created_by_lane"
+      ],
+      "properties": {
+        "blueprint_sections": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "^(23|24)"
+          }
+        },
+        "created_by_lane": {
+          "const": "lane6"
+        }
+      }
+    }
+  }
+}

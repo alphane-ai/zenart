@@ -1,0 +1,92 @@
+{
+  "schema_version": "stage0.rev2",
+  "workflow_id": "local_merchant_campaign_pack",
+  "display_name": "Local Merchant Campaign Pack",
+  "required_inputs": [
+    {
+      "key": "merchant_name",
+      "label": "Merchant name",
+      "type": "text",
+      "required": true
+    },
+    {
+      "key": "event_date",
+      "label": "Event date",
+      "type": "date",
+      "required": true
+    },
+    {
+      "key": "address",
+      "label": "Address",
+      "type": "text",
+      "required": true
+    },
+    {
+      "key": "promotion",
+      "label": "Promotion",
+      "type": "text",
+      "required": false
+    }
+  ],
+  "clarification_questions": [
+    "Which local audience should see the campaign first?",
+    "Do price, date, phone, address, or QR details need exact preservation?"
+  ],
+  "four_option_taxonomy": [
+    "grand_opening",
+    "limited_time_offer",
+    "community_event",
+    "loyalty_push"
+  ],
+  "required_package_outputs": [
+    "storefront_poster.png",
+    "flyer.png",
+    "social_square.png",
+    "story_panel.png",
+    "manifest.json",
+    "qa_report.json",
+    "trace_provenance.json"
+  ],
+  "pass_thresholds": {
+    "qa": {
+      "blocking_allowed": false,
+      "max_warning_count": 2
+    },
+    "safety": {
+      "required_enforcement_points": [
+        "brief",
+        "provider_request",
+        "provider_response",
+        "qa",
+        "export"
+      ],
+      "critical_regression_allowed": false
+    },
+    "export": {
+      "requires_manifest": true,
+      "requires_assets": true,
+      "requires_qa_report": true,
+      "requires_metadata": true,
+      "requires_safety_disclaimer_when_applicable": true,
+      "requires_trace_provenance": true
+    }
+  },
+  "golden_fixture": {
+    "fixture_id": "fx_local_merchant_campaign_golden",
+    "brief": "Create a weekend tasting campaign for North Pier Coffee at 18 Dock Street with exact date, address, and QR placeholder preserved.",
+    "expected_candidate_count": 4,
+    "expected_export_files": [
+      "manifest.json",
+      "assets/storefront_poster.png",
+      "assets/flyer.png",
+      "qa_report.json",
+      "trace_provenance.json"
+    ]
+  },
+  "provenance": {
+    "blueprint_sections": [
+      "25.12"
+    ],
+    "created_by_lane": "lane6"
+  }
+}

@@ -1,0 +1,266 @@
+[
+  {
+    "schema_version": "stage0.rev2",
+    "fixture_id": "crawler_approved_local_test_source",
+    "case_type": "approved_source",
+    "source": {
+      "owner_publisher": "ZenArt Test Fixtures",
+      "source_type": "local_test_page",
+      "url": "https://fixtures.zenart.local/crawler/approved-style-notes.html",
+      "terms_url": "https://fixtures.zenart.local/terms",
+      "license_classification": "internal_test_fixture",
+      "commercial_use_status": "allowed",
+      "derivative_use_status": "allowed",
+      "attribution_requirement": "internal fixture attribution",
+      "prohibited_use_notes": "not for production publishing",
+      "legal_review_date": "2026-05-26",
+      "reviewer_id": "legal_fixture_reviewer",
+      "takedown_contact_process": "Create internal support ticket tagged crawler-takedown.",
+      "approved": true
+    },
+    "fetch_controls": {
+      "allowlist_match": true,
+      "robots_evidence": "allowed",
+      "private_ip_blocking": true,
+      "redirect_validation": true,
+      "dns_rebinding_guard": true,
+      "max_response_size_bytes": 1048576,
+      "timeout_ms": 3000,
+      "allowed_content_types": [
+        "text/html",
+        "text/plain"
+      ],
+      "source_rate_limit_per_hour": 12,
+      "global_rate_limit_per_hour": 120
+    },
+    "import_governance": {
+      "raw_content_retention_days": 30,
+      "exact_third_party_import_warning": true,
+      "exact_text_special_approval_required": true,
+      "provenance_links_required": true,
+      "source_blocklist_checked": true,
+      "takedown_workflow_required": true,
+      "derivative_review_delete_required": true,
+      "direct_activation_allowed": false
+    },
+    "expected_decision": "allow_pending_finding",
+    "provenance": {
+      "blueprint_sections": [
+        "16.1",
+        "16.2",
+        "16.3",
+        "25.13"
+      ],
+      "created_by_lane": "lane6"
+    }
+  },
+  {
+    "schema_version": "stage0.rev2",
+    "fixture_id": "crawler_disallowed_source",
+    "case_type": "disallowed_source",
+    "source": {
+      "owner_publisher": "Unknown Example",
+      "source_type": "public_web",
+      "url": "https://example.invalid/private-prompts",
+      "terms_url": "https://example.invalid/terms",
+      "license_classification": "unknown",
+      "commercial_use_status": "unknown",
+      "derivative_use_status": "unknown",
+      "attribution_requirement": "",
+      "prohibited_use_notes": "source is not approved",
+      "legal_review_date": "2026-05-26",
+      "reviewer_id": "legal_fixture_reviewer",
+      "takedown_contact_process": "Do not fetch; no approved contact.",
+      "approved": false
+    },
+    "fetch_controls": {
+      "allowlist_match": false,
+      "robots_evidence": "missing",
+      "private_ip_blocking": true,
+      "redirect_validation": true,
+      "dns_rebinding_guard": true,
+      "max_response_size_bytes": 1048576,
+      "timeout_ms": 3000,
+      "allowed_content_types": [
+        "text/html"
+      ],
+      "source_rate_limit_per_hour": 1,
+      "global_rate_limit_per_hour": 120
+    },
+    "import_governance": {
+      "raw_content_retention_days": 1,
+      "exact_third_party_import_warning": true,
+      "exact_text_special_approval_required": true,
+      "provenance_links_required": true,
+      "source_blocklist_checked": true,
+      "takedown_workflow_required": true,
+      "derivative_review_delete_required": true,
+      "direct_activation_allowed": false
+    },
+    "expected_decision": "deny_fetch",
+    "provenance": {
+      "blueprint_sections": [
+        "16.1",
+        "16.2",
+        "25.13"
+      ],
+      "created_by_lane": "lane6"
+    }
+  },
+  {
+    "schema_version": "stage0.rev2",
+    "fixture_id": "crawler_robots_denied",
+    "case_type": "robots_denied",
+    "source": {
+      "owner_publisher": "Robots Denied Fixture",
+      "source_type": "public_web",
+      "url": "https://fixtures.zenart.local/crawler/robots-denied.html",
+      "terms_url": "https://fixtures.zenart.local/terms",
+      "license_classification": "internal_test_fixture",
+      "commercial_use_status": "restricted",
+      "derivative_use_status": "restricted",
+      "attribution_requirement": "internal fixture attribution",
+      "prohibited_use_notes": "robots denies crawler path",
+      "legal_review_date": "2026-05-26",
+      "reviewer_id": "legal_fixture_reviewer",
+      "takedown_contact_process": "Create internal support ticket tagged crawler-takedown.",
+      "approved": true
+    },
+    "fetch_controls": {
+      "allowlist_match": true,
+      "robots_evidence": "denied",
+      "private_ip_blocking": true,
+      "redirect_validation": true,
+      "dns_rebinding_guard": true,
+      "max_response_size_bytes": 1048576,
+      "timeout_ms": 3000,
+      "allowed_content_types": [
+        "text/html"
+      ],
+      "source_rate_limit_per_hour": 12,
+      "global_rate_limit_per_hour": 120
+    },
+    "import_governance": {
+      "raw_content_retention_days": 1,
+      "exact_third_party_import_warning": true,
+      "exact_text_special_approval_required": true,
+      "provenance_links_required": true,
+      "source_blocklist_checked": true,
+      "takedown_workflow_required": true,
+      "derivative_review_delete_required": true,
+      "direct_activation_allowed": false
+    },
+    "expected_decision": "deny_fetch",
+    "provenance": {
+      "blueprint_sections": [
+        "16.2",
+        "25.13"
+      ],
+      "created_by_lane": "lane6"
+    }
+  },
+  {
+    "schema_version": "stage0.rev2",
+    "fixture_id": "crawler_duplicate_hash",
+    "case_type": "duplicate_hash",
+    "source": {
+      "owner_publisher": "ZenArt Test Fixtures",
+      "source_type": "local_test_page",
+      "url": "https://fixtures.zenart.local/crawler/approved-style-notes-copy.html",
+      "terms_url": "https://fixtures.zenart.local/terms",
+      "license_classification": "internal_test_fixture",
+      "commercial_use_status": "allowed",
+      "derivative_use_status": "allowed",
+      "attribution_requirement": "internal fixture attribution",
+      "prohibited_use_notes": "duplicate content hash must dedupe",
+      "legal_review_date": "2026-05-26",
+      "reviewer_id": "legal_fixture_reviewer",
+      "takedown_contact_process": "Create internal support ticket tagged crawler-takedown.",
+      "approved": true
+    },
+    "fetch_controls": {
+      "allowlist_match": true,
+      "robots_evidence": "allowed",
+      "private_ip_blocking": true,
+      "redirect_validation": true,
+      "dns_rebinding_guard": true,
+      "max_response_size_bytes": 1048576,
+      "timeout_ms": 3000,
+      "allowed_content_types": [
+        "text/html"
+      ],
+      "source_rate_limit_per_hour": 12,
+      "global_rate_limit_per_hour": 120
+    },
+    "import_governance": {
+      "raw_content_retention_days": 30,
+      "exact_third_party_import_warning": true,
+      "exact_text_special_approval_required": true,
+      "provenance_links_required": true,
+      "source_blocklist_checked": true,
+      "takedown_workflow_required": true,
+      "derivative_review_delete_required": true,
+      "direct_activation_allowed": false
+    },
+    "expected_decision": "dedupe_existing",
+    "provenance": {
+      "blueprint_sections": [
+        "16.3",
+        "25.13"
+      ],
+      "created_by_lane": "lane6"
+    }
+  },
+  {
+    "schema_version": "stage0.rev2",
+    "fixture_id": "crawler_pending_review_import",
+    "case_type": "pending_review_import",
+    "source": {
+      "owner_publisher": "ZenArt Test Fixtures",
+      "source_type": "local_test_page",
+      "url": "https://fixtures.zenart.local/crawler/exact-text-warning.html",
+      "terms_url": "https://fixtures.zenart.local/terms",
+      "license_classification": "internal_test_fixture",
+      "commercial_use_status": "restricted",
+      "derivative_use_status": "restricted",
+      "attribution_requirement": "internal fixture attribution",
+      "prohibited_use_notes": "exact text import requires special approval",
+      "legal_review_date": "2026-05-26",
+      "reviewer_id": "legal_fixture_reviewer",
+      "takedown_contact_process": "Create internal support ticket tagged crawler-takedown.",
+      "approved": true
+    },
+    "fetch_controls": {
+      "allowlist_match": true,
+      "robots_evidence": "allowed",
+      "private_ip_blocking": true,
+      "redirect_validation": true,
+      "dns_rebinding_guard": true,
+      "max_response_size_bytes": 1048576,
+      "timeout_ms": 3000,
+      "allowed_content_types": [
+        "text/plain"
+      ],
+      "source_rate_limit_per_hour": 12,
+      "global_rate_limit_per_hour": 120
+    },
+    "import_governance": {
+      "raw_content_retention_days": 7,
+      "exact_third_party_import_warning": true,
+      "exact_text_special_approval_required": true,
+      "provenance_links_required": true,
+      "source_blocklist_checked": true,
+      "takedown_workflow_required": true,
+      "derivative_review_delete_required": true,
+      "direct_activation_allowed": false
+    },
+    "expected_decision": "hold_for_review",
+    "provenance": {
+      "blueprint_sections": [
+        "16.3",
+        "25.13"
+      ],
+      "created_by_lane": "lane6"
+    }
+  }
+]
