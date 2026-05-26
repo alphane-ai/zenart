@@ -1788,10 +1788,18 @@ main 合并前必须通过：
 ### 25.12 Workflow Acceptance
 
 - [x] 定义 vertical acceptance schema。
-- [ ] 实现电商增长包 fixture/API test/Playwright test。
-- [ ] 实现商业视觉文档包 fixture/API test/Playwright test。
-- [ ] 实现本地商家活动包 fixture/API test/Playwright test。
-- [ ] 实现角色/IP 概念包 fixture/API test/Playwright test。
+- [x] 实现电商增长包 acceptance fixture。
+- [ ] 电商增长包 API smoke test 通过。
+- [ ] 电商增长包 Playwright happy path 通过。
+- [x] 实现商业视觉文档包 acceptance fixture。
+- [ ] 商业视觉文档包 API smoke test 通过。
+- [ ] 商业视觉文档包 Playwright happy path 通过。
+- [x] 实现本地商家活动包 acceptance fixture。
+- [ ] 本地商家活动包 API smoke test 通过。
+- [ ] 本地商家活动包 Playwright happy path 通过。
+- [x] 实现角色/IP 概念包 acceptance fixture。
+- [ ] 角色/IP 概念包 API smoke test 通过。
+- [ ] 角色/IP 概念包 Playwright happy path 通过。
 - [x] 每条 workflow 定义 required inputs。
 - [x] 每条 workflow 定义 clarification questions。
 - [x] 每条 workflow 定义 4-option taxonomy。
@@ -1800,7 +1808,8 @@ main 合并前必须通过：
 
 ### 25.13 Crawler Governance
 
-- [x] 实现 crawler source approval。
+- [x] 实现 admin crawler source approval evidence。
+- [ ] crawler fetch/import 强制 source approval runtime gate。
 - [x] 实现 source legal metadata。
 - [ ] 实现 robots evidence。
 - [ ] 实现 SSRF protections。
@@ -1851,7 +1860,8 @@ main 合并前必须通过：
 - [x] 实现 secure cookie 和 same-site CSRF 客户端/session contract evidence。
 - [ ] 后端设置并验证 secure/HttpOnly/SameSite session cookies。
 - [x] 配置 CORS。
-- [x] 配置 CSRF 或 same-site strategy。
+- [x] 配置 Web/generated client CSRF same-site request contract。
+- [ ] 后端/API runtime 验证 CSRF 或 same-site strategy。
 - [x] 配置 security headers。
 - [x] 实现 upload validation。
 - [x] 实现 malware-scan placeholder/interface。

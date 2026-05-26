@@ -186,11 +186,16 @@ CHECKED_ITEMS = {
     "实现 safety rule schema。",
     "实现 red-team fixtures。",
     "定义 vertical acceptance schema。",
+    "实现电商增长包 acceptance fixture。",
+    "实现商业视觉文档包 acceptance fixture。",
+    "实现本地商家活动包 acceptance fixture。",
+    "实现角色/IP 概念包 acceptance fixture。",
     "每条 workflow 定义 required inputs。",
     "每条 workflow 定义 clarification questions。",
     "每条 workflow 定义 4-option taxonomy。",
     "每条 workflow 定义 required package outputs。",
     "每条 workflow 定义 QA/safety/export pass thresholds。",
+    "实现 admin crawler source approval evidence。",
     "实现 source legal metadata。",
     "添加 disallowed source、robots denied、duplicate hash、pending-review import tests。",
     "实现 feedback taxonomy。",
@@ -199,6 +204,7 @@ CHECKED_ITEMS = {
     "实现 admin support ticket 关联证据视图：user/trace/export/quota/audit 引用可查。",
     "实现 abuse event model。",
     "实现 secure cookie 和 same-site CSRF 客户端/session contract evidence。",
+    "配置 Web/generated client CSRF same-site request contract。",
     "实现 secret redaction。",
     "CI 定义 Playwright smoke draft/evidence。",
     "CI 定义 Docker image build draft/evidence。",
@@ -218,6 +224,7 @@ FORBIDDEN_CHECKED_ITEMS = {
     "prompt fragment active 前要求 eval pass。",
     "在 brief/provider request/provider response/QA/export 运行 safety policy。",
     "实现 crawler source approval。",
+    "crawler fetch/import 强制 source approval runtime gate。",
     "实现 provenance links。",
     "实现 temporary hold/throttle hooks。",
     "实现 admin abuse queue。",
@@ -226,6 +233,8 @@ FORBIDDEN_CHECKED_ITEMS = {
     "CI build Docker images。",
     "实现 staging deploy。",
     "实现 staging smoke tests。",
+    "配置 CSRF 或 same-site strategy。",
+    "后端/API runtime 验证 CSRF 或 same-site strategy。",
     "实现 dashboards。",
     "实现 alerts。",
 }
@@ -236,6 +245,16 @@ REQUIRED_OPEN_ITEMS = {
     "Private Beta/Staging Gate 全部通过。",
     "Production Launch Gate 全部通过。",
     "Do-Not-Launch Conditions 全部为 false。",
+    "crawler fetch/import 强制 source approval runtime gate。",
+    "后端/API runtime 验证 CSRF 或 same-site strategy。",
+    "电商增长包 API smoke test 通过。",
+    "电商增长包 Playwright happy path 通过。",
+    "商业视觉文档包 API smoke test 通过。",
+    "商业视觉文档包 Playwright happy path 通过。",
+    "本地商家活动包 API smoke test 通过。",
+    "本地商家活动包 Playwright happy path 通过。",
+    "角色/IP 概念包 API smoke test 通过。",
+    "角色/IP 概念包 Playwright happy path 通过。",
     "CI 在已安装 PR/main workflow 中运行 Playwright smoke。",
     "CI 在已安装 PR/main workflow 中 build Docker images。",
     "执行 staging deploy。",
@@ -458,6 +477,33 @@ OPS_EVIDENCE_REQUIRED_KEYS = {
     "checklist_policy",
     "artifact_checks",
     "release_gate_effect",
+}
+
+WORKFLOW_ACCEPTANCE_SPLITS = {
+    "ecommerce_growth_pack": {
+        "fixture_item": "实现电商增长包 acceptance fixture。",
+        "api_item": "电商增长包 API smoke test 通过。",
+        "playwright_item": "电商增长包 Playwright happy path 通过。",
+        "ambiguous_item": "实现电商增长包 fixture/API test/Playwright test。",
+    },
+    "business_visual_doc_pack": {
+        "fixture_item": "实现商业视觉文档包 acceptance fixture。",
+        "api_item": "商业视觉文档包 API smoke test 通过。",
+        "playwright_item": "商业视觉文档包 Playwright happy path 通过。",
+        "ambiguous_item": "实现商业视觉文档包 fixture/API test/Playwright test。",
+    },
+    "local_merchant_campaign_pack": {
+        "fixture_item": "实现本地商家活动包 acceptance fixture。",
+        "api_item": "本地商家活动包 API smoke test 通过。",
+        "playwright_item": "本地商家活动包 Playwright happy path 通过。",
+        "ambiguous_item": "实现本地商家活动包 fixture/API test/Playwright test。",
+    },
+    "character_ip_concept_pack": {
+        "fixture_item": "实现角色/IP 概念包 acceptance fixture。",
+        "api_item": "角色/IP 概念包 API smoke test 通过。",
+        "playwright_item": "角色/IP 概念包 Playwright happy path 通过。",
+        "ambiguous_item": "实现角色/IP 概念包 fixture/API test/Playwright test。",
+    },
 }
 
 
@@ -810,6 +856,45 @@ def validate_workflows() -> None:
         ]:
             require(export.get(key) is True, f"{path.relative_to(ROOT)} export threshold {key} must be true")
     require(workflow_ids == WORKFLOWS, f"workflow fixtures mismatch: {sorted(workflow_ids)}")
+
+
+def validate_workflow_acceptance_split_contracts() -> None:
+    text = BLUEPRINT.read_text(encoding="utf-8")
+    checked_lines = checked_items(text)
+    unchecked_lines = unchecked_items(text)
+
+    for workflow_id, split in WORKFLOW_ACCEPTANCE_SPLITS.items():
+        fixture_path = FIXTURE_DIR / "workflows" / f"{workflow_id}.json"
+        require(fixture_path.exists(), f"workflow acceptance fixture missing: {fixture_path.relative_to(ROOT)}")
+        data = load_json(fixture_path)
+        require(data["workflow_id"] == workflow_id, f"{fixture_path.relative_to(ROOT)} workflow_id mismatch")
+        require(split["fixture_item"] in checked_lines, f"blueprint must close fixture evidence item: {split['fixture_item']}")
+        require(split["api_item"] in unchecked_lines, f"blueprint must keep API runtime item open: {split['api_item']}")
+        require(
+            split["playwright_item"] in unchecked_lines,
+            f"blueprint must keep Playwright runtime item open: {split['playwright_item']}",
+        )
+        require(
+            split["ambiguous_item"] not in checked_lines and split["ambiguous_item"] not in unchecked_lines,
+            f"ambiguous workflow acceptance checklist item must stay split: {split['ambiguous_item']}",
+        )
+        require(data["required_inputs"], f"{workflow_id} fixture must define required inputs")
+        require(data["clarification_questions"], f"{workflow_id} fixture must define clarification questions")
+        require(len(data["four_option_taxonomy"]) == 4, f"{workflow_id} fixture must define four taxonomy options")
+        require(data["required_package_outputs"], f"{workflow_id} fixture must define required package outputs")
+        require(data["golden_fixture"]["expected_candidate_count"] == 4, f"{workflow_id} golden fixture must expect four candidates")
+        require(
+            "manifest.json" in data["golden_fixture"]["expected_export_files"],
+            f"{workflow_id} golden fixture must require manifest export evidence",
+        )
+        require(
+            "qa_report.json" in data["golden_fixture"]["expected_export_files"],
+            f"{workflow_id} golden fixture must require QA report export evidence",
+        )
+        require(
+            "trace_provenance.json" in data["golden_fixture"]["expected_export_files"],
+            f"{workflow_id} golden fixture must require trace provenance export evidence",
+        )
 
 
 def validate_eval_suite() -> None:
@@ -1736,8 +1821,28 @@ def validate_blueprint_evidence_backfill_contracts() -> None:
     ]:
         require(token in web_state_test, f"web session contract test missing {token}")
     require(
-        "配置 CSRF 或 same-site strategy。" in unchecked_lines,
-        "server-side CSRF/same-site strategy checklist must remain open",
+        "配置 Web/generated client CSRF same-site request contract。" in checked_lines,
+        "blueprint must close only Web/generated client CSRF request contract evidence",
+    )
+    require(
+        "后端/API runtime 验证 CSRF 或 same-site strategy。" in unchecked_lines,
+        "server-side CSRF/same-site runtime checklist must remain open",
+    )
+    require(
+        "配置 CSRF 或 same-site strategy。" not in unchecked_lines
+        and "配置 CSRF 或 same-site strategy。" not in checked_lines,
+        "ambiguous CSRF/same-site checklist item must stay split into web contract and backend runtime subitems",
+    )
+    generated_client = (ROOT / "web" / "lib" / "generated" / "zenart-api.ts").read_text(encoding="utf-8")
+    for token in [
+        "credentials: defaultSameSiteCsrfContract.credentialMode",
+        "headers: buildCsrfRequestHeaders(operation.method, headers)",
+    ]:
+        require(token in generated_client, f"generated web API client CSRF contract missing {token}")
+    require(
+        "generated web API client sends same-site credentials and X-ZenArt-CSRF header on state-changing operations"
+        in (ROOT / "web" / "validation" / "user-routes-smoke.json").read_text(encoding="utf-8"),
+        "web route smoke evidence must include generated client CSRF request contract",
     )
     require(
         "后端设置并验证 secure/HttpOnly/SameSite session cookies。" in unchecked_lines,
@@ -2214,6 +2319,7 @@ def main() -> int:
         validate_provenance,
         validate_ops_ci_artifact_evidence,
         validate_workflows,
+        validate_workflow_acceptance_split_contracts,
         validate_eval_suite,
         validate_eval_results,
         validate_qa_and_safety,
