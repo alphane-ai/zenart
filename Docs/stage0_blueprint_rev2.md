@@ -1984,7 +1984,7 @@ main 合并前必须通过：
 - [ ] Private Beta/Staging brief/upload/confirmation runtime evidence 通过。
 - [ ] Private Beta/Staging object storage signed download/retention runtime evidence 通过。
 - [ ] Private Beta/Staging quota/rate-limit/spend-cap runtime evidence 通过。
-- [ ] Private Beta/Staging support/retry/abuse runtime evidence 通过。
+- [x] Private Beta/Staging support/retry/abuse runtime evidence 通过。
 - [ ] Private Beta/Staging eval/QA/safety enforcement runtime evidence 通过。
 - [x] Private Beta/Staging crawler approval/provenance runtime evidence 通过。
 - [ ] Private Beta/Staging observability/backup/load runtime evidence 通过。
@@ -2006,7 +2006,7 @@ Release gate evidence map:
 
 - Local Alpha Gate: `fixtures/stage0/rev2/release_gate_evidence.local_alpha.json` records fixture/runtime-stack pass evidence and keeps end-to-end workflow smoke blocked.
 - CI Gate: `fixtures/stage0/rev2/release_gate_evidence.ci.json` records ops CI draft coverage and keeps installed workflow/runtime execution, Playwright smoke, and Docker image build blocked.
-- Private Beta/Staging Gate: `fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json` records fixture/definition evidence where present and keeps external-user runtime evidence blocked for auth/RBAC/tenant isolation, production-like object storage, quota/rate limits, support/abuse ops, eval/QA/safety enforcement, crawler governance, observability/restore/load, and legal pages.
+- Private Beta/Staging Gate: `fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json` records fixture/definition evidence where present, clears support/retry/abuse and crawler runtime checks with staging evidence, and keeps external-user runtime evidence blocked for auth/RBAC/tenant isolation, production-like object storage, quota/rate limits, eval/QA/safety enforcement, observability/restore/load, and legal pages.
 - Production Launch Gate: `fixtures/stage0/rev2/release_gate_evidence.production_launch.json` records fixture/definition evidence where present and keeps launch evidence blocked for provider/comp-only mode, paid billing lifecycle, skill eval/canary/release controls, activation review/audit, abuse throttle/hold, security, backup/rollback/incident readiness, and legal/support policy.
 
 Release gate closure policy:

@@ -25,8 +25,8 @@
     },
     {
       "check_id": "staging_support_retry_abuse_ops",
-      "status": "blocked",
-      "evidence_ref": "Report-problem context, admin support evidence view, retry/regenerate, queue/dead-letter, abuse model, user lookup, and local admin runtime queue/hold/throttle enforcement evidence exist, but external-user staging support linkage and abuse runtime evidence remain absent"
+      "status": "pass",
+      "evidence_ref": "Staging support/retry/abuse runtime evidence verifies external-user support linkage, failed task retry/cancel, account hold/throttle, abuse queue closure blocking, RBAC decisions, and immutable audit refs in ops/evidence/staging/20260527T1000Z-support-retry-abuse.json"
     },
     {
       "check_id": "staging_eval_qa_safety_runtime",
@@ -71,8 +71,8 @@
     {
       "condition_id": "support_abuse_runtime_missing",
       "blueprint_condition": "Admin review decisions 可变更、缺 reviewer rationale，或 high-risk changes 绕过 RBAC/audit/second review。",
-      "is_present": true,
-      "evidence_ref": "admin support evidence views and fixtures/stage0/rev2/abuse/ local admin abuse runtime policy exist, but ops/evidence/staging/ external-user staging support and abuse runtime evidence remain absent"
+      "is_present": false,
+      "evidence_ref": "Staging support/retry/abuse runtime evidence clears external-user support linkage, retry/cancel, hold/throttle, abuse queue closure blocking, RBAC, and audit coverage in ops/evidence/staging/20260527T1000Z-support-retry-abuse.json"
     },
     {
       "condition_id": "eval_qa_safety_runtime_missing",

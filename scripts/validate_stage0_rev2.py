@@ -29,6 +29,7 @@ ENVIRONMENT_EVIDENCE = ROOT / "ops" / "evidence" / "stage0_environment_evidence.
 DRILL_PLAN_EVIDENCE = ROOT / "ops" / "evidence" / "stage0_drill_plan.json"
 OBSERVABILITY_EVIDENCE = ROOT / "ops" / "evidence" / "stage0_observability_evidence.json"
 RELEASE_OPS_EVIDENCE = ROOT / "ops" / "evidence" / "stage0_release_ops_evidence.json"
+STAGING_SUPPORT_RETRY_ABUSE_EVIDENCE = ROOT / "ops" / "evidence" / "staging" / "20260527T1000Z-support-retry-abuse.json"
 OBSERVABILITY_DASHBOARD = ROOT / "ops" / "observability" / "dashboards" / "stage0_rev2_overview.json"
 OBSERVABILITY_ALERTS = ROOT / "ops" / "observability" / "alerts" / "stage0_rev2_alerts.json"
 
@@ -921,7 +922,10 @@ REQUIRED_OPEN_ITEMS = {
 }
 REQUIRED_OPEN_ITEMS |= (
     RELEASE_GATE_CHECK_LEVEL_RUNTIME_OPEN_ITEMS.keys()
-    - {"Private Beta/Staging crawler approval/provenance runtime evidence 通过。"}
+    - {
+        "Private Beta/Staging crawler approval/provenance runtime evidence 通过。",
+        "Private Beta/Staging support/retry/abuse runtime evidence 通过。",
+    }
 )
 
 CRAWLER_GOVERNANCE_SPLIT_ITEMS = {
@@ -2508,16 +2512,72 @@ def validate_abuse_evidence_split_contracts() -> None:
 
     private_beta_text = json.dumps(private_beta, ensure_ascii=False)
     production_text = json.dumps(production, ensure_ascii=False)
+    private_beta_checks = checks_by_id(private_beta)
+    private_beta_conditions = do_not_launch_by_id(private_beta)
     require(
-        "local admin runtime queue/hold/throttle enforcement evidence exist" in private_beta_text
-        and "external-user staging support and abuse runtime evidence remain absent" in private_beta_text,
-        "private beta gate must distinguish local admin runtime evidence from staging account evidence",
+        private_beta_checks["staging_support_retry_abuse_ops"]["status"] == "pass",
+        "private beta support/retry/abuse gate check must pass only after staging evidence exists",
+    )
+    require(
+        private_beta_conditions["support_abuse_runtime_missing"]["is_present"] is False,
+        "private beta support/abuse Do-Not-Launch condition must clear after staging runtime evidence exists",
+    )
+    require(
+        "ops/evidence/staging/20260527T1000Z-support-retry-abuse.json" in private_beta_text
+        and "external-user support linkage" in private_beta_text
+        and "hold/throttle" in private_beta_text,
+        "private beta gate must cite support/retry/abuse staging runtime evidence",
     )
     require(
         "local admin runtime hold/throttle queue enforcement evidence exist" in production_text
         and "production account-level hold/throttle rollout evidence remains absent" in production_text,
         "production gate must stay blocked on production account-level abuse hold/throttle evidence",
     )
+
+
+def validate_staging_support_retry_abuse_evidence() -> None:
+    evidence = load_json(STAGING_SUPPORT_RETRY_ABUSE_EVIDENCE)
+    require(evidence["schema_version"] == "stage0.rev2", "staging support/retry/abuse evidence schema mismatch")
+    require(evidence["environment"] == "staging", "support/retry/abuse evidence must be staging-scoped")
+    require(evidence["status"] == "pass", "support/retry/abuse evidence must pass before checklist closure")
+    require(
+        evidence["release_gate_check_id"] == "staging_support_retry_abuse_ops",
+        "support/retry/abuse evidence must target the private beta release-gate check",
+    )
+    require(
+        evidence["do_not_launch_condition_id"] == "support_abuse_runtime_missing",
+        "support/retry/abuse evidence must target the matching Do-Not-Launch condition",
+    )
+    require(
+        evidence["gate_impact"]["checklist_item"] == "Private Beta/Staging support/retry/abuse runtime evidence 通过。",
+        "support/retry/abuse evidence must name the checklist item it can close",
+    )
+    require(
+        evidence["gate_impact"]["can_clear_check_level_item"] is True,
+        "support/retry/abuse evidence must explicitly allow check-level closure",
+    )
+    require(
+        evidence["gate_impact"]["aggregate_private_beta_gate_status"] == "blocked_by_other_staging_runtime_items",
+        "support/retry/abuse evidence must keep the aggregate private beta gate blocked",
+    )
+    required_areas = {
+        "support_ticket_linkage",
+        "failed_task_retry_cancel",
+        "abuse_hold_throttle",
+        "abuse_queue_closure",
+    }
+    coverage = evidence["coverage"]
+    require(
+        {item["area"] for item in coverage} == required_areas,
+        "support/retry/abuse evidence must cover support linkage, retry/cancel, hold/throttle, and abuse queue closure",
+    )
+    for item in coverage:
+        require(item["status"] == "pass", f"{item['area']} staging support/retry/abuse coverage must pass")
+        combined = json.dumps(item, ensure_ascii=False).lower()
+        for token in ["external-user", "rbac", "audit", "ops/evidence/staging/20260527t1000z-support-retry-abuse.json"]:
+            require(token in combined, f"{item['area']} support/retry/abuse coverage missing {token}")
+    for key in ["runtime_request_ids", "support_ticket_ids", "failed_task_ids", "abuse_event_ids", "abuse_hook_ids"]:
+        require(evidence[key], f"support/retry/abuse evidence must include {key}")
 
 
 def validate_analytics_taxonomy() -> None:
@@ -3498,7 +3558,10 @@ def validate_launch_readiness_split_contracts() -> None:
         "Production post-deploy smoke tests 通过。",
     ] + sorted(RELEASE_GATE_RUNTIME_OPEN_ITEMS) + sorted(
         set(RELEASE_GATE_CHECK_LEVEL_RUNTIME_OPEN_ITEMS)
-        - {"Private Beta/Staging crawler approval/provenance runtime evidence 通过。"}
+        - {
+            "Private Beta/Staging crawler approval/provenance runtime evidence 通过。",
+            "Private Beta/Staging support/retry/abuse runtime evidence 通过。",
+        }
     ):
         require(item in unchecked_lines, f"blueprint must keep runtime launch-readiness subitem open: {item}")
 
@@ -4022,6 +4085,7 @@ def main() -> int:
         validate_qa_and_safety,
         validate_crawler_feedback_abuse,
         validate_abuse_evidence_split_contracts,
+        validate_staging_support_retry_abuse_evidence,
         validate_analytics_taxonomy,
         validate_local_alpha_presence,
         validate_release_gate_evidence,

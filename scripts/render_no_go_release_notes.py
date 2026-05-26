@@ -69,7 +69,7 @@ def backtick(value: str) -> str:
 def gate_blockers(gate: dict) -> list[str]:
     blockers: list[str] = []
     for check in gate.get("checks", []):
-        if check.get("status") != "passed":
+        if check.get("status") not in {"pass", "passed"}:
             blockers.append(str(check.get("check_id", "unknown_check")))
     return blockers
 
