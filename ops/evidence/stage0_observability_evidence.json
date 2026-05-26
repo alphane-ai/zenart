@@ -3,19 +3,20 @@
   "created_by_lane": "lane5",
   "scope": "observability, alerting, and production gate map",
   "status": "definition_only",
+  "smoke_script": "scripts/observability_smoke.sh",
   "signals": [
     {
       "name": "request_id_propagation",
       "required_by_rev2": true,
       "local_evidence": ".env.example defines REQUEST_ID_HEADER=X-Request-ID",
-      "runtime_status": "open",
+      "runtime_status": "contract_validated",
       "production_gate": "must propagate request id through web, admin, backend, worker, crawler, logs, and traces"
     },
     {
       "name": "structured_json_logs",
       "required_by_rev2": true,
       "local_evidence": ".env.example and docker-compose.yml define LOG_FORMAT=json and LOG_LEVEL",
-      "runtime_status": "open",
+      "runtime_status": "contract_validated",
       "production_gate": "must verify backend, worker, crawler, and access logs are JSON with request_id, user_id, tenant_id, route, status, latency_ms, and error fields"
     },
     {
@@ -62,8 +63,6 @@
     "error_rate_5xx_percent_30m": 1
   },
   "open_items": [
-    "request_id_propagation",
-    "structured_json_logs",
     "opentelemetry_traces",
     "backend_worker_crawler_metrics",
     "frontend_error_reporting",

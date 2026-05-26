@@ -10,10 +10,20 @@
       "object storage container is running",
       "pg_dump creates a custom-format dump",
       "pg_restore --list validates dump readability",
+      "actual temporary database restore verifies restored table count",
       "object storage manifest is captured",
       "optional object restore copy runs when RUN_OBJECT_RESTORE_COPY=true",
       "optional object restore copy verifies copied object count",
       "JSON report records dump bytes, restore-list items, object manifest count, RPO/RTO, and restored object count"
+    ],
+    "report_fields": [
+      "postgres_dump_bytes",
+      "postgres_restore_items",
+      "postgres_restore_database",
+      "postgres_restore_tables",
+      "postgres_restore_verify",
+      "object_manifest_count",
+      "restored_object_count"
     ],
     "script_contract_status": "validated",
     "runtime_status": "requires docker compose services; script syntax and dry-run report shape are validated by repo validation",
@@ -49,6 +59,17 @@
   },
   "observability": {
     "evidence": "ops/evidence/stage0_observability_evidence.json",
+    "script": "scripts/observability_smoke.sh",
     "runtime_status": "definition only; implementation gates intentionally open"
+  },
+  "security_scans": {
+    "script": "scripts/security_scan_smoke.sh",
+    "scan_types": [
+      "dependency",
+      "docker_image",
+      "secret"
+    ],
+    "script_contract_status": "validated",
+    "runtime_status": "local smoke only; release scans must run in CI/staging context before private beta or production"
   }
 }

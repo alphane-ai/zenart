@@ -1,0 +1,148 @@
+{
+  "backup_restore": {
+    "object_manifest_count": 3,
+    "postgres_dump_bytes": 150114,
+    "postgres_restore_items": 363,
+    "postgres_restore_tables": 65,
+    "production_gate": "open_until_automated_backups_pitr_and_isolated_staging_restore_pass",
+    "restored_object_count": 3,
+    "source_report": "ops/evidence/backup-restore/local/20260526T141928Z/report.json",
+    "status": "passed"
+  },
+  "blueprint_source": "Docs/stage0_blueprint_rev2.md",
+  "created_at": "2026-05-26T14:20:40Z",
+  "created_by_lane": "lane5",
+  "gate_policy": {
+    "private_beta_staging_gate": "open_until_runtime_staging_evidence_exists_for all Rev2 checks",
+    "production_launch_gate": "open_until_real_provider_or_comp_only, release scans, observability, backup, rollback, and post-deploy smoke evidence exist"
+  },
+  "load_smoke": [
+    {
+      "failure_count": 0,
+      "mode": "chat_task",
+      "p95_ms": 15,
+      "report_path": "ops/evidence/load/local/20260526T142030Z-chat_task-64820.json",
+      "request_count": 8,
+      "status": "passed",
+      "statuses": {
+        "/api/v1/tasks/load-smoke:401": 2,
+        "/healthz:200": 3,
+        "/readyz:200": 3
+      }
+    },
+    {
+      "failure_count": 0,
+      "mode": "crawler_throttle",
+      "p95_ms": 27,
+      "report_path": "ops/evidence/load/local/20260526T142032Z-crawler_throttle-65070.json",
+      "request_count": 8,
+      "status": "passed",
+      "statuses": {
+        "/api/v1/admin/crawler/sources:404": 4,
+        "/readyz:200": 4
+      }
+    },
+    {
+      "failure_count": 0,
+      "mode": "quota_contention",
+      "p95_ms": 13,
+      "report_path": "ops/evidence/load/local/20260526T142033Z-quota_contention-64819.json",
+      "request_count": 8,
+      "status": "passed",
+      "statuses": {
+        "/api/v1/quota:404": 4,
+        "/readyz:200": 4
+      }
+    },
+    {
+      "failure_count": 0,
+      "mode": "signed_download",
+      "p95_ms": 18,
+      "report_path": "ops/evidence/load/local/20260526T142032Z-signed_download-65015.json",
+      "request_count": 8,
+      "status": "passed",
+      "statuses": {
+        "/api/v1/assets/load-smoke/download:404": 4,
+        "/readyz:200": 4
+      }
+    },
+    {
+      "failure_count": 0,
+      "mode": "worker_generation",
+      "p95_ms": 28,
+      "report_path": "ops/evidence/load/local/20260526T142031Z-worker_generation-64877.json",
+      "request_count": 8,
+      "status": "passed",
+      "statuses": {
+        "/api/v1/agent-tasks/load-smoke:404": 2,
+        "/api/v1/tasks/load-smoke:401": 3,
+        "/readyz:200": 3
+      }
+    },
+    {
+      "failure_count": 0,
+      "mode": "workspace_rendering",
+      "p95_ms": 35,
+      "report_path": "ops/evidence/load/local/20260526T142132Z-workspace_rendering-66662.json",
+      "request_count": 8,
+      "status": "passed",
+      "statuses": {
+        "/:200": 8
+      }
+    },
+    {
+      "failure_count": 0,
+      "mode": "zip_export",
+      "p95_ms": 13,
+      "report_path": "ops/evidence/load/local/20260526T142031Z-zip_export-64960.json",
+      "request_count": 8,
+      "status": "passed",
+      "statuses": {
+        "/api/v1/exports/load-smoke.zip:401": 4,
+        "/readyz:200": 4
+      }
+    }
+  ],
+  "observability_smoke": {
+    "checks": {
+      "json_response_body": true,
+      "metrics_config_declared": true,
+      "otel_config_declared": true,
+      "recover_log_includes_request_id": true,
+      "request_id_json_body_echo": true,
+      "request_id_response_header_echo": true,
+      "structured_log_contract_defined": true
+    },
+    "http_status": 200,
+    "private_beta_gate": "open_until_staging_logs_metrics_traces_dashboards_alerts_have_runtime_evidence",
+    "source_report": "ops/evidence/observability/local/20260526T142006Z-observability-smoke-64024.json",
+    "status": "passed"
+  },
+  "scope": "local ops drill runtime evidence summary",
+  "security_scan_smoke": {
+    "private_beta_gate": "open_until_dependency_image_secret_scans_run_in_staging_release_context",
+    "scan_contract": {
+      "dependency_scan": {
+        "admin_npm_audit": "ops/evidence/security/local/20260526T142040Z-security-scan-smoke-65314.admin-npm-audit.json",
+        "go_vulncheck": "ops/evidence/security/local/20260526T142040Z-security-scan-smoke-65314.govulncheck.txt",
+        "go_vulncheck_installed": false,
+        "web_npm_audit": "ops/evidence/security/local/20260526T142040Z-security-scan-smoke-65314.web-npm-audit.json"
+      },
+      "docker_image_scan": {
+        "image_set": [
+          "zenart-stage0-backend",
+          "zenart-stage0-web",
+          "zenart-stage0-admin"
+        ],
+        "trivy_installed": true,
+        "trivy_output": "ops/evidence/security/local/20260526T142040Z-security-scan-smoke-65314.trivy-image.txt"
+      },
+      "secret_scan": {
+        "committed_secret_findings": false,
+        "patterns_file": "ops/evidence/security/local/20260526T142040Z-security-scan-smoke-65314.secrets.txt"
+      }
+    },
+    "source_report": "ops/evidence/security/local/20260526T142040Z-security-scan-smoke-65314.json",
+    "status": "passed"
+  }
+}

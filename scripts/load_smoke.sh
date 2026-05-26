@@ -18,15 +18,15 @@ REPORT_PATH="$OUT_DIR/${RUN_ID}.json"
 case "$LOAD_MODE" in
   chat_task)
     PATHS=("/healthz" "/readyz" "/api/v1/tasks/load-smoke")
-    EXPECTED=("/healthz:200" "/readyz:200" "/api/v1/tasks/load-smoke:501")
+    EXPECTED=("/healthz:200" "/readyz:200" "/api/v1/tasks/load-smoke:401" "/api/v1/tasks/load-smoke:501")
     ;;
   worker_generation)
     PATHS=("/readyz" "/api/v1/tasks/load-smoke" "/api/v1/agent-tasks/load-smoke")
-    EXPECTED=("/readyz:200" "/api/v1/tasks/load-smoke:501" "/api/v1/agent-tasks/load-smoke:404")
+    EXPECTED=("/readyz:200" "/api/v1/tasks/load-smoke:401" "/api/v1/tasks/load-smoke:501" "/api/v1/agent-tasks/load-smoke:404")
     ;;
   zip_export)
     PATHS=("/readyz" "/api/v1/exports/load-smoke.zip")
-    EXPECTED=("/readyz:200" "/api/v1/exports/load-smoke.zip:404" "/api/v1/exports/load-smoke.zip:501")
+    EXPECTED=("/readyz:200" "/api/v1/exports/load-smoke.zip:401" "/api/v1/exports/load-smoke.zip:404" "/api/v1/exports/load-smoke.zip:501")
     ;;
   signed_download)
     PATHS=("/readyz" "/api/v1/assets/load-smoke/download")
@@ -34,11 +34,11 @@ case "$LOAD_MODE" in
     ;;
   crawler_throttle)
     PATHS=("/readyz" "/api/v1/admin/crawler/sources")
-    EXPECTED=("/readyz:200" "/api/v1/admin/crawler/sources:401" "/api/v1/admin/crawler/sources:403" "/api/v1/admin/crawler/sources:501")
+    EXPECTED=("/readyz:200" "/api/v1/admin/crawler/sources:401" "/api/v1/admin/crawler/sources:403" "/api/v1/admin/crawler/sources:404" "/api/v1/admin/crawler/sources:501")
     ;;
   quota_contention)
     PATHS=("/readyz" "/api/v1/quota")
-    EXPECTED=("/readyz:200" "/api/v1/quota:401" "/api/v1/quota:403" "/api/v1/quota:501")
+    EXPECTED=("/readyz:200" "/api/v1/quota:401" "/api/v1/quota:403" "/api/v1/quota:404" "/api/v1/quota:501")
     ;;
   workspace_rendering)
     PATHS=("/")

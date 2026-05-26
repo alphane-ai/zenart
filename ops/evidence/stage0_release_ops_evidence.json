@@ -18,6 +18,16 @@
       "script": "scripts/staging_smoke.sh",
       "runtime_status": "requires real staging URLs",
       "private_beta_gate": "open until staging smoke passes with production-like dependencies"
+    },
+    "observability_smoke": {
+      "script": "scripts/observability_smoke.sh",
+      "runtime_status": "local request-id and JSON contract smoke; staging logs/metrics/traces/dashboards/alerts remain open",
+      "private_beta_gate": "open until production-like observability evidence exists"
+    },
+    "security_scan_smoke": {
+      "script": "scripts/security_scan_smoke.sh",
+      "runtime_status": "local dependency/image/secret scan wrapper; release blocking thresholds remain open",
+      "private_beta_gate": "open until dependency, image, and secret scans run in CI/staging release context"
     }
   },
   "release_docs": {
@@ -35,6 +45,8 @@
     "DRY_RUN=1 scripts/playwright_smoke.sh",
     "DRY_RUN=1 scripts/docker_build_smoke.sh",
     "DRY_RUN=1 scripts/staging_smoke.sh",
+    "DRY_RUN=1 scripts/observability_smoke.sh",
+    "DRY_RUN=1 scripts/security_scan_smoke.sh",
     "bash scripts/repo_validate.sh"
   ]
 }

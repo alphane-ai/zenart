@@ -1458,6 +1458,8 @@ def validate_ops_ci_and_drill_evidence() -> None:
         ROOT / "scripts" / "playwright_smoke.sh",
         ROOT / "scripts" / "docker_build_smoke.sh",
         ROOT / "scripts" / "staging_smoke.sh",
+        ROOT / "scripts" / "observability_smoke.sh",
+        ROOT / "scripts" / "security_scan_smoke.sh",
     ]:
         require(path.exists(), f"missing ops evidence file: {path.relative_to(ROOT)}")
 
@@ -1482,6 +1484,8 @@ def validate_ops_ci_and_drill_evidence() -> None:
         "DRY_RUN=1 scripts/playwright_smoke.sh",
         "bash -n scripts/docker_build_smoke.sh",
         "bash -n scripts/staging_smoke.sh",
+        "bash -n scripts/observability_smoke.sh",
+        "bash -n scripts/security_scan_smoke.sh",
         "ops/evidence/stage0_environment_evidence.json",
     }
     missing_ci_tokens = {token for token in required_ci_tokens if token not in ci_text}
@@ -1540,6 +1544,14 @@ def validate_ops_ci_and_drill_evidence() -> None:
         drill["load"].get("script_contract_status") == "validated",
         "drill plan must record validated load smoke script coverage",
     )
+    require(
+        "actual temporary database restore verifies restored table count" in drill["backup_restore"]["checks"],
+        "drill plan must require actual temporary Postgres restore verification",
+    )
+    require(
+        "postgres_restore_verify" in drill["backup_restore"]["report_fields"],
+        "drill plan must record Postgres restore verification report field",
+    )
 
     observability = load_json(OBSERVABILITY_EVIDENCE)
     require(
@@ -1559,10 +1571,14 @@ def validate_ops_ci_and_drill_evidence() -> None:
     }
     signals = {item["name"]: item for item in observability["signals"]}
     require(required_signals <= signals.keys(), "observability evidence missing required Rev2 signals")
+    require(
+        observability.get("smoke_script") == "scripts/observability_smoke.sh",
+        "observability evidence must cite observability smoke script",
+    )
     for signal_name in required_signals:
         require(
-            signals[signal_name]["runtime_status"] == "open",
-            f"observability signal {signal_name} must remain open until implemented",
+            signals[signal_name]["runtime_status"] in {"contract_validated", "open"},
+            f"observability signal {signal_name} must be open or contract_validated",
         )
     slo_thresholds = observability["slo_thresholds"]
     require(slo_thresholds["api_p95_latency_ms"] == 500, "observability evidence must define API p95 threshold")
@@ -1582,6 +1598,8 @@ def validate_ops_ci_and_drill_evidence() -> None:
         "playwright_smoke": "scripts/playwright_smoke.sh",
         "docker_build_smoke": "scripts/docker_build_smoke.sh",
         "staging_smoke": "scripts/staging_smoke.sh",
+        "observability_smoke": "scripts/observability_smoke.sh",
+        "security_scan_smoke": "scripts/security_scan_smoke.sh",
     }.items():
         require(key in scripts, f"release ops evidence missing {key}")
         require(scripts[key]["script"] == script_path, f"release ops evidence {key} must cite {script_path}")

@@ -60,6 +60,8 @@ test -x scripts/backup_restore_drill.sh
 test -x scripts/playwright_smoke.sh
 test -x scripts/docker_build_smoke.sh
 test -x scripts/staging_smoke.sh
+test -x scripts/observability_smoke.sh
+test -x scripts/security_scan_smoke.sh
 
 log "docker compose syntax"
 if docker compose version >/dev/null 2>&1; then
@@ -124,10 +126,14 @@ log "ops smoke wrappers"
 bash -n scripts/playwright_smoke.sh
 bash -n scripts/docker_build_smoke.sh
 bash -n scripts/staging_smoke.sh
+bash -n scripts/observability_smoke.sh
+bash -n scripts/security_scan_smoke.sh
 ops_validate_dir="$(mktemp -d)"
 DRY_RUN=1 OUT_DIR="$ops_validate_dir/playwright" scripts/playwright_smoke.sh >/dev/null
 DRY_RUN=1 OUT_DIR="$ops_validate_dir/docker" scripts/docker_build_smoke.sh >/dev/null
 DRY_RUN=1 OUT_DIR="$ops_validate_dir/staging" scripts/staging_smoke.sh >/dev/null
+DRY_RUN=1 OUT_DIR="$ops_validate_dir/observability" scripts/observability_smoke.sh >/dev/null
+DRY_RUN=1 OUT_DIR="$ops_validate_dir/security" scripts/security_scan_smoke.sh >/dev/null
 find "$ops_validate_dir" -name '*.json' -type f | grep -q .
 
 log "secret scan smoke"

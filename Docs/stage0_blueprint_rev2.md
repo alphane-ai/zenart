@@ -1855,7 +1855,7 @@ main 合并前必须通过：
 - [ ] 实现 secret classification。
 - [x] 实现 startup config validation。
 - [ ] 实现 secret redaction。
-- [ ] 添加 dependency/image/secret scans。
+- [x] 添加 dependency/image/secret scans。
 - [x] 添加 Privacy notice。
 - [x] 添加 Terms of Service。
 - [x] 添加 Privacy Policy。
@@ -1907,12 +1907,12 @@ main 合并前必须通过：
 - [ ] 执行 object restore drill。
 - [x] 定义 load assumptions。
 - [x] 添加 chat/task load test。
-- [ ] 添加 worker generation load test。
-- [ ] 添加 ZIP export load test。
-- [ ] 添加 signed download load test。
-- [ ] 添加 crawler throttle load test。
-- [ ] 添加 quota contention test。
-- [ ] 添加 workspace rendering performance test。
+- [x] 添加 worker generation load test。
+- [x] 添加 ZIP export load test。
+- [x] 添加 signed download load test。
+- [x] 添加 crawler throttle load test。
+- [x] 添加 quota contention test。
+- [x] 添加 workspace rendering performance test。
 
 ### 25.19 Product Analytics
 
