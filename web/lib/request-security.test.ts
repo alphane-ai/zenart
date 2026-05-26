@@ -50,7 +50,9 @@ describe("same-site CSRF request contract", () => {
       csrfHeaderName: "X-ZenArt-CSRF",
       credentialMode: "include",
       originPolicy: "same-site-only",
-      missingCsrfOperationIds: []
+      missingCsrfOperationIds: [],
+      cookieFailureReasons: [],
+      csrfFailureReasons: []
     });
     expect(evidence.protectedOperationIds).toEqual([
       "deleteSession",
@@ -97,10 +99,61 @@ describe("same-site CSRF request contract", () => {
         headerAttribute: "data-session-csrf-header",
         originPolicyAttribute: "data-session-csrf-origin-policy",
         missingOperationCountAttribute: "data-session-csrf-missing-operation-count",
+        cookieFailureCountAttribute: "data-session-cookie-failure-count",
+        cookieFailureReasonsAttribute: "data-session-cookie-failure-reasons",
+        csrfFailureCountAttribute: "data-session-csrf-failure-count",
+        csrfFailureReasonsAttribute: "data-session-csrf-failure-reasons",
         expectedHeader: runtimeEvidence.csrfHeaderName,
         expectedOriginPolicy: runtimeEvidence.originPolicy,
-        expectedMissingOperationCount: String(runtimeEvidence.missingCsrfOperationIds.length)
+        expectedMissingOperationCount: String(runtimeEvidence.missingCsrfOperationIds.length),
+        expectedCookieFailureCount: String(runtimeEvidence.cookieFailureReasons.length),
+        expectedCsrfFailureCount: String(runtimeEvidence.csrfFailureReasons.length)
       }
     });
+  });
+
+  it("fails closed with explicit reasons when secure-cookie or CSRF fields drift", () => {
+    const insecureSession = createSessionContract();
+    insecureSession.cookie = {
+      name: "zenart_session",
+      httpOnly: false,
+      secure: false,
+      sameSite: "none",
+      path: "/app"
+    };
+    insecureSession.csrf = {
+      ...defaultSameSiteCsrfContract,
+      headerName: "X-Unsafe-CSRF",
+      protectedMethods: []
+    };
+
+    const evidence = buildSessionSecurityContractEvidence(insecureSession, apiOperations);
+
+    expect(evidence.status).toBe("fail");
+    expect(evidence.cookieFailureReasons).toEqual([
+      "cookie-prefix",
+      "cookie-http-only",
+      "cookie-secure",
+      "cookie-same-site",
+      "cookie-path"
+    ]);
+    expect(evidence.csrfFailureReasons).toEqual(["csrf-header", "csrf-operation-coverage"]);
+    expect(evidence.missingCsrfOperationIds).toEqual([
+      "deleteSession",
+      "updateAccount",
+      "createProject",
+      "updateProject",
+      "createChatSession",
+      "createChatMessage",
+      "createCandidateSet",
+      "selectDirection",
+      "createCanvasNode",
+      "createCanvasVersion",
+      "createUpload",
+      "createPackage",
+      "createExport",
+      "createShareLink",
+      "createSupportTicket"
+    ]);
   });
 });

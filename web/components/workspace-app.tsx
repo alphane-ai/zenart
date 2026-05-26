@@ -341,6 +341,10 @@ function SessionPanel({
       data-session-csrf-header={evidence.csrfHeaderName}
       data-session-csrf-origin-policy={evidence.originPolicy}
       data-session-csrf-missing-operation-count={evidence.missingCsrfOperationIds.length}
+      data-session-cookie-failure-count={evidence.cookieFailureReasons.length}
+      data-session-cookie-failure-reasons={evidence.cookieFailureReasons.join(",")}
+      data-session-csrf-failure-count={evidence.csrfFailureReasons.length}
+      data-session-csrf-failure-reasons={evidence.csrfFailureReasons.join(",")}
     >
       <div className="session-contract-main">
         <ShieldCheck size={18} aria-hidden="true" />

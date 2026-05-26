@@ -24,6 +24,10 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(sessionContract).toHaveAttribute("data-session-csrf-header", "X-ZenArt-CSRF");
     expect(sessionContract).toHaveAttribute("data-session-csrf-origin-policy", "same-site-only");
     expect(sessionContract).toHaveAttribute("data-session-csrf-missing-operation-count", "0");
+    expect(sessionContract).toHaveAttribute("data-session-cookie-failure-count", "0");
+    expect(sessionContract).toHaveAttribute("data-session-cookie-failure-reasons", "");
+    expect(sessionContract).toHaveAttribute("data-session-csrf-failure-count", "0");
+    expect(sessionContract).toHaveAttribute("data-session-csrf-failure-reasons", "");
 
     const csrfInventory = screen.getByLabelText("Generated web API CSRF operation inventory");
     expect(csrfInventory).toHaveAttribute("data-csrf-operation-count", "15");

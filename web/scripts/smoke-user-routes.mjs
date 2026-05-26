@@ -73,7 +73,11 @@ for (const requiredSessionAttribute of [
   sessionEvidence.cookie?.pathAttribute,
   sessionEvidence.csrf?.headerAttribute,
   sessionEvidence.csrf?.originPolicyAttribute,
-  sessionEvidence.csrf?.missingOperationCountAttribute
+  sessionEvidence.csrf?.missingOperationCountAttribute,
+  sessionEvidence.csrf?.cookieFailureCountAttribute,
+  sessionEvidence.csrf?.cookieFailureReasonsAttribute,
+  sessionEvidence.csrf?.csrfFailureCountAttribute,
+  sessionEvidence.csrf?.csrfFailureReasonsAttribute
 ]) {
   if (!requiredSessionAttribute || !componentSource.includes(requiredSessionAttribute)) {
     fail(`session/CSRF UI evidence missing ${requiredSessionAttribute}`);
@@ -89,7 +93,9 @@ if (
   sessionEvidence.cookie?.expectedPath !== "/" ||
   sessionEvidence.csrf?.expectedHeader !== "X-ZenArt-CSRF" ||
   sessionEvidence.csrf?.expectedOriginPolicy !== "same-site-only" ||
-  sessionEvidence.csrf?.expectedMissingOperationCount !== "0"
+  sessionEvidence.csrf?.expectedMissingOperationCount !== "0" ||
+  sessionEvidence.csrf?.expectedCookieFailureCount !== "0" ||
+  sessionEvidence.csrf?.expectedCsrfFailureCount !== "0"
 ) {
   fail("session/CSRF UI evidence does not assert the secure-cookie and same-site contract");
 }
@@ -359,6 +365,10 @@ for (const requiredSnippet of [
   "data-session-csrf-header",
   "data-session-csrf-origin-policy",
   "data-session-csrf-missing-operation-count",
+  "data-session-cookie-failure-count",
+  "data-session-cookie-failure-reasons",
+  "data-session-csrf-failure-count",
+  "data-session-csrf-failure-reasons",
   "__Host-zenart_session",
   "HttpOnly",
   "Secure",
@@ -370,6 +380,8 @@ for (const requiredSnippet of [
   "credentialMode",
   "originPolicy",
   "protectedMethods",
+  "cookieFailureReasons",
+  "csrfFailureReasons",
   "csrf-operation-inventory",
   "Generated web API CSRF operation inventory",
   "data-csrf-operation-count",
@@ -396,6 +408,8 @@ for (const expectedSecuritySnippet of [
   "originPolicy: \"same-site-only\"",
   "protectedMethods",
   "missingCsrfOperationIds",
+  "cookieFailureReasons",
+  "csrfFailureReasons",
   "POST",
   "PUT",
   "PATCH",

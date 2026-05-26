@@ -139,9 +139,15 @@
         "headerAttribute": "data-session-csrf-header",
         "originPolicyAttribute": "data-session-csrf-origin-policy",
         "missingOperationCountAttribute": "data-session-csrf-missing-operation-count",
+        "cookieFailureCountAttribute": "data-session-cookie-failure-count",
+        "cookieFailureReasonsAttribute": "data-session-cookie-failure-reasons",
+        "csrfFailureCountAttribute": "data-session-csrf-failure-count",
+        "csrfFailureReasonsAttribute": "data-session-csrf-failure-reasons",
         "expectedHeader": "X-ZenArt-CSRF",
         "expectedOriginPolicy": "same-site-only",
-        "expectedMissingOperationCount": "0"
+        "expectedMissingOperationCount": "0",
+        "expectedCookieFailureCount": "0",
+        "expectedCsrfFailureCount": "0"
       }
     },
     {

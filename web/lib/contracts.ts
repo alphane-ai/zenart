@@ -56,6 +56,8 @@ export interface SessionSecurityContractEvidence {
   protectedMethods: SessionContract["csrf"]["protectedMethods"];
   protectedOperationIds: string[];
   missingCsrfOperationIds: string[];
+  cookieFailureReasons: string[];
+  csrfFailureReasons: string[];
 }
 
 export interface AccountSettings {

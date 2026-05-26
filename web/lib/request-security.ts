@@ -43,20 +43,24 @@ export const buildSessionSecurityContractEvidence = (
     .filter(([, operation]) => isCsrfProtectedMethod(operation.method))
     .filter(([, operation]) => !sessionContract.csrf.protectedMethods.includes(operation.method as SessionContract["csrf"]["protectedMethods"][number]))
     .map(([operationId]) => operationId);
-  const cookiePass =
-    sessionContract.cookie.name.startsWith("__Host-") &&
-    sessionContract.cookie.httpOnly &&
-    sessionContract.cookie.secure &&
-    sessionContract.cookie.sameSite !== "none" &&
-    sessionContract.cookie.path === "/";
-  const csrfPass =
-    sessionContract.csrf.strategy === "same-site-origin-check" &&
-    sessionContract.csrf.headerName === "X-ZenArt-CSRF" &&
-    sessionContract.csrf.credentialMode === "include" &&
-    sessionContract.csrf.originPolicy === "same-site-only" &&
-    sessionContract.csrf.sameSiteRequired === "lax-or-strict" &&
-    missingCsrfOperationIds.length === 0 &&
-    protectedOperationIds.length > 0;
+  const cookieFailureReasons = [
+    sessionContract.cookie.name.startsWith("__Host-") ? "" : "cookie-prefix",
+    sessionContract.cookie.httpOnly ? "" : "cookie-http-only",
+    sessionContract.cookie.secure ? "" : "cookie-secure",
+    sessionContract.cookie.sameSite !== "none" ? "" : "cookie-same-site",
+    sessionContract.cookie.path === "/" ? "" : "cookie-path"
+  ].filter(Boolean);
+  const csrfFailureReasons = [
+    sessionContract.csrf.strategy === "same-site-origin-check" ? "" : "csrf-strategy",
+    sessionContract.csrf.headerName === "X-ZenArt-CSRF" ? "" : "csrf-header",
+    sessionContract.csrf.credentialMode === "include" ? "" : "csrf-credentials",
+    sessionContract.csrf.originPolicy === "same-site-only" ? "" : "csrf-origin-policy",
+    sessionContract.csrf.sameSiteRequired === "lax-or-strict" ? "" : "csrf-same-site-requirement",
+    missingCsrfOperationIds.length === 0 ? "" : "csrf-operation-coverage",
+    protectedOperationIds.length > 0 ? "" : "csrf-operation-inventory"
+  ].filter(Boolean);
+  const cookiePass = cookieFailureReasons.length === 0;
+  const csrfPass = csrfFailureReasons.length === 0;
 
   return {
     schema_version: "stage0.rev2.session-csrf-client-evidence",
@@ -75,6 +79,8 @@ export const buildSessionSecurityContractEvidence = (
     originPolicy: sessionContract.csrf.originPolicy,
     protectedMethods: sessionContract.csrf.protectedMethods,
     protectedOperationIds,
-    missingCsrfOperationIds
+    missingCsrfOperationIds,
+    cookieFailureReasons,
+    csrfFailureReasons
   };
 };
