@@ -12,6 +12,231 @@
     "do_not_launch_checks",
     "provenance"
   ],
+  "allOf": [
+    {
+      "if": {
+        "type": "object",
+        "properties": {
+          "gate": {
+            "const": "local_alpha"
+          }
+        }
+      },
+      "then": {
+        "type": "object",
+        "properties": {
+          "checks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "check_id": {
+                  "enum": [
+                    "workflow_fixture_coverage",
+                    "eval_fixture_coverage",
+                    "crawler_governance_fixture_coverage",
+                    "schema_fixture_validation",
+                    "local_alpha_service_presence",
+                    "local_alpha_runtime_stack",
+                    "local_alpha_e2e_workflow_smoke"
+                  ]
+                }
+              }
+            }
+          },
+          "do_not_launch_checks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "condition_id": {
+                  "enum": [
+                    "generic_workflow_only",
+                    "candidate_asset_provenance_missing",
+                    "external_agent_contract_trace_gap",
+                    "missing_export_provenance_fixture",
+                    "schema_fixture_drift",
+                    "crawler_unapproved_source_fixture_gap",
+                    "safety_red_team_fixture_failure",
+                    "blocking_qa_export_without_audited_override",
+                    "feedback_governance_fixture_gap",
+                    "quota_transaction_tests_missing",
+                    "missing_web_admin_backend_presence",
+                    "local_alpha_runtime_not_validated"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "type": "object",
+        "properties": {
+          "gate": {
+            "const": "ci"
+          }
+        }
+      },
+      "then": {
+        "type": "object",
+        "properties": {
+          "checks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "check_id": {
+                  "enum": [
+                    "ci_draft_artifact_coverage",
+                    "ci_installed_workflow",
+                    "ci_gate_runtime_execution",
+                    "ci_playwright_smoke",
+                    "ci_docker_image_build"
+                  ]
+                }
+              }
+            }
+          },
+          "do_not_launch_checks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "condition_id": {
+                  "enum": [
+                    "ci_workflow_not_installed",
+                    "ci_gate_not_executed_on_main",
+                    "ci_playwright_smoke_missing",
+                    "ci_docker_image_build_missing"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "type": "object",
+        "properties": {
+          "gate": {
+            "const": "private_beta_staging"
+          }
+        }
+      },
+      "then": {
+        "type": "object",
+        "properties": {
+          "checks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "check_id": {
+                  "enum": [
+                    "staging_auth_rbac_tenant_audit",
+                    "staging_brief_upload_confirmation",
+                    "staging_object_storage_signed_downloads",
+                    "staging_quota_rate_limit_spend_cap",
+                    "staging_support_retry_abuse_ops",
+                    "staging_eval_qa_safety_runtime",
+                    "staging_crawler_approval_provenance",
+                    "staging_observability_backup_load",
+                    "staging_legal_external_user_pages"
+                  ]
+                }
+              }
+            }
+          },
+          "do_not_launch_checks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "condition_id": {
+                  "enum": [
+                    "tenant_isolation_not_enforced",
+                    "rate_limit_spend_cap_runtime_missing",
+                    "object_storage_signed_retention_runtime_missing",
+                    "support_abuse_runtime_missing",
+                    "eval_qa_safety_runtime_missing",
+                    "crawler_governance_runtime_missing",
+                    "crawler_material_retention_takedown_runtime_missing",
+                    "staging_observability_restore_load_missing",
+                    "external_user_legal_pages_missing"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "type": "object",
+        "properties": {
+          "gate": {
+            "const": "production_launch"
+          }
+        }
+      },
+      "then": {
+        "type": "object",
+        "properties": {
+          "checks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "check_id": {
+                  "enum": [
+                    "production_provider_or_comp_only_mode",
+                    "production_paid_billing_lifecycle",
+                    "production_skill_release_eval_canary",
+                    "production_activation_review_audit",
+                    "production_abuse_throttle_hold",
+                    "production_security_launch_checks",
+                    "production_backup_rollback_incident",
+                    "production_legal_support_policy"
+                  ]
+                }
+              }
+            }
+          },
+          "do_not_launch_checks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "condition_id": {
+                  "enum": [
+                    "dev_mock_provider_public_claims_unresolved",
+                    "real_provider_or_comp_only_mode_missing",
+                    "paid_billing_or_comp_only_mode_missing",
+                    "skill_release_eval_canary_missing",
+                    "activation_eval_review_audit_runtime_missing",
+                    "admin_high_risk_review_runtime_missing",
+                    "abuse_throttle_hold_missing",
+                    "security_privacy_legal_incomplete",
+                    "secret_exposure_runtime_not_verified",
+                    "backup_restore_rollback_smoke_missing",
+                    "production_deploy_rollback_smoke_missing",
+                    "public_legal_support_policy_not_deployed",
+                    "ci_staging_gates_not_passed"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
   "properties": {
     "schema_version": {
       "const": "stage0.rev2"

@@ -54,31 +54,31 @@
       "condition_id": "tenant_isolation_not_enforced",
       "blueprint_condition": "User projects、assets、exports、traces、quota、support tickets、audit logs 任何 tenant-isolation test 失败。",
       "is_present": true,
-      "evidence_ref": "Local denial-test evidence exists, but staging runtime tenant-isolation evidence remains absent"
+      "evidence_ref": "backend local denial-test evidence exists, but ops/evidence/staging/ tenant-isolation runtime evidence remains absent"
     },
     {
       "condition_id": "rate_limit_spend_cap_runtime_missing",
       "blueprint_condition": "Rate limits、provider concurrency limits、spend cap 或 emergency kill switch 缺失。",
       "is_present": true,
-      "evidence_ref": "Quota and spend-cap local evidence exists, but staging provider concurrency/rate-limit runtime evidence remains absent"
+      "evidence_ref": "backend quota and spend-cap local evidence exists, but ops/evidence/staging/ provider concurrency/rate-limit/spend-cap runtime evidence remains absent"
     },
     {
       "condition_id": "object_storage_signed_retention_runtime_missing",
       "blueprint_condition": "Object storage 缺 tenant-scoped signed access、retention policy、cleanup 或 cross-tenant denial tests。",
       "is_present": true,
-      "evidence_ref": "Local object storage tests exist, but production-like staging signed access/retention runtime evidence remains absent"
+      "evidence_ref": "backend and docker-compose.yml local object storage tests exist, but ops/evidence/staging/ production-like signed access/retention runtime evidence remains absent"
     },
     {
       "condition_id": "support_abuse_runtime_missing",
       "blueprint_condition": "Admin review decisions 可变更、缺 reviewer rationale，或 high-risk changes 绕过 RBAC/audit/second review。",
       "is_present": true,
-      "evidence_ref": "Support/admin evidence views and local admin abuse runtime policy exist, but external-user staging support and abuse runtime evidence remain absent"
+      "evidence_ref": "admin support evidence views and fixtures/stage0/rev2/abuse/ local admin abuse runtime policy exist, but ops/evidence/staging/ external-user staging support and abuse runtime evidence remain absent"
     },
     {
       "condition_id": "eval_qa_safety_runtime_missing",
       "blueprint_condition": "Safety 只是 disclaimer，没有在 brief/provider request/provider response/QA/export 强制执行。",
       "is_present": true,
-      "evidence_ref": "Safety and QA contracts exist, but required runtime safety enforcement evidence remains absent"
+      "evidence_ref": "fixtures/stage0/rev2/eval/ safety and QA contracts exist, but ops/evidence/staging/ required staging runtime safety enforcement evidence remains absent"
     },
     {
       "condition_id": "crawler_governance_runtime_missing",
@@ -96,13 +96,13 @@
       "condition_id": "staging_observability_restore_load_missing",
       "blueprint_condition": "Staging 缺 provider、queue、export、quota、safety、crawler、object storage、billing、admin failure 的 logs/metrics/traces/dashboards/alerts/runbooks。",
       "is_present": true,
-      "evidence_ref": "Dashboard and alert route staging runtime evidence passed, but logs, metrics, traces, restore drill, smoke, and load evidence remain open"
+      "evidence_ref": "ops/evidence/staging/ dashboard and alert route staging runtime evidence passed, but logs, metrics, traces, restore drill, smoke, and load evidence remain open"
     },
     {
       "condition_id": "external_user_legal_pages_missing",
       "blueprint_condition": "Public launch 缺 Terms、Privacy、Acceptable Use、support contact、AI/content responsibility disclaimer 或 IP complaint flow。",
       "is_present": true,
-      "evidence_ref": "Legal page artifacts exist, but external-user staging visibility evidence remains absent"
+      "evidence_ref": "web legal page artifacts exist, but ops/evidence/staging/ external-user staging visibility evidence remains absent"
     }
   ],
   "provenance": {

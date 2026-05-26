@@ -385,6 +385,117 @@ RUNTIME_PASS_REQUIREMENTS = {
     },
 }
 
+ACTIVE_CONDITION_EVIDENCE_REQUIREMENTS = {
+    ("local_alpha", "local_alpha_runtime_not_validated"): {
+        "path_patterns": (r"docker-compose\.yml", r"\.env\.example", r"ops/evidence/(?:local_alpha|local)/"),
+        "tokens": ("local", "runtime"),
+    },
+    ("ci", "ci_workflow_not_installed"): {
+        "path_patterns": (r"ops/ci/", r"\.github/workflows/"),
+        "tokens": ("workflow",),
+    },
+    ("ci", "ci_gate_not_executed_on_main"): {
+        "path_patterns": (r"fixtures/ops/", r"ops/evidence/ci/"),
+        "tokens": ("ci", "blocked"),
+    },
+    ("ci", "ci_playwright_smoke_missing"): {
+        "path_patterns": (r"ops/ci/", r"scripts/playwright_smoke\.sh", r"ops/evidence/ci/"),
+        "tokens": ("playwright",),
+    },
+    ("ci", "ci_docker_image_build_missing"): {
+        "path_patterns": (r"ops/ci/", r"scripts/docker_build_smoke\.sh", r"ops/evidence/ci/"),
+        "tokens": ("docker",),
+    },
+    ("private_beta_staging", "tenant_isolation_not_enforced"): {
+        "path_patterns": (r"ops/evidence/staging/", r"backend/", r"openapi/"),
+        "tokens": ("staging", "tenant"),
+    },
+    ("private_beta_staging", "rate_limit_spend_cap_runtime_missing"): {
+        "path_patterns": (r"ops/evidence/staging/", r"backend/", r"fixtures/stage0/rev2/"),
+        "tokens": ("staging", "rate", "spend"),
+    },
+    ("private_beta_staging", "object_storage_signed_retention_runtime_missing"): {
+        "path_patterns": (r"ops/evidence/staging/", r"backend/", r"docker-compose\.yml"),
+        "tokens": ("staging", "signed", "retention"),
+    },
+    ("private_beta_staging", "support_abuse_runtime_missing"): {
+        "path_patterns": (r"ops/evidence/staging/", r"admin/", r"fixtures/stage0/rev2/abuse/"),
+        "tokens": ("staging", "support", "abuse"),
+    },
+    ("private_beta_staging", "eval_qa_safety_runtime_missing"): {
+        "path_patterns": (r"ops/evidence/staging/", r"fixtures/stage0/rev2/eval/", r"scripts/"),
+        "tokens": ("staging", "safety"),
+    },
+    ("private_beta_staging", "crawler_governance_runtime_missing"): {
+        "path_patterns": (r"ops/evidence/staging/", r"fixtures/stage0/rev2/crawler/", r"backend/"),
+        "tokens": ("staging", "crawler"),
+    },
+    ("private_beta_staging", "crawler_material_retention_takedown_runtime_missing"): {
+        "path_patterns": (r"ops/evidence/staging/", r"fixtures/stage0/rev2/crawler/", r"backend/"),
+        "tokens": ("staging", "crawler", "retention"),
+    },
+    ("private_beta_staging", "staging_observability_restore_load_missing"): {
+        "path_patterns": (r"ops/evidence/staging/", r"ops/evidence/backup-restore/", r"ops/evidence/observability/"),
+        "tokens": ("staging",),
+    },
+    ("private_beta_staging", "external_user_legal_pages_missing"): {
+        "path_patterns": (r"ops/evidence/staging/", r"web/", r"ops/"),
+        "tokens": ("staging", "external"),
+    },
+    ("production_launch", "dev_mock_provider_public_claims_unresolved"): {
+        "path_patterns": (r"ops/evidence/production/", r"fixtures/stage0/rev2/release_gate_evidence\.production_launch\.json"),
+        "tokens": ("production", "provider"),
+    },
+    ("production_launch", "real_provider_or_comp_only_mode_missing"): {
+        "path_patterns": (r"ops/evidence/production/", r"fixtures/stage0/rev2/release_gate_evidence\.production_launch\.json"),
+        "tokens": ("production", "provider"),
+    },
+    ("production_launch", "paid_billing_or_comp_only_mode_missing"): {
+        "path_patterns": (r"ops/evidence/production/", r"backend/", r"web/"),
+        "tokens": ("production", "billing"),
+    },
+    ("production_launch", "skill_release_eval_canary_missing"): {
+        "path_patterns": (r"ops/evidence/production/", r"admin/", r"fixtures/stage0/rev2/eval/"),
+        "tokens": ("production", "skill"),
+    },
+    ("production_launch", "activation_eval_review_audit_runtime_missing"): {
+        "path_patterns": (r"ops/evidence/production/", r"fixtures/stage0/rev2/eval/", r"admin/"),
+        "tokens": ("production", "activation"),
+    },
+    ("production_launch", "admin_high_risk_review_runtime_missing"): {
+        "path_patterns": (r"ops/evidence/production/", r"admin/", r"backend/"),
+        "tokens": ("production", "review"),
+    },
+    ("production_launch", "abuse_throttle_hold_missing"): {
+        "path_patterns": (r"ops/evidence/production/", r"admin/", r"fixtures/stage0/rev2/abuse/"),
+        "tokens": ("production", "abuse"),
+    },
+    ("production_launch", "security_privacy_legal_incomplete"): {
+        "path_patterns": (r"ops/evidence/production/", r"scripts/security_scan_smoke\.sh", r"web/"),
+        "tokens": ("production", "security"),
+    },
+    ("production_launch", "secret_exposure_runtime_not_verified"): {
+        "path_patterns": (r"ops/evidence/production/", r"scripts/security_scan_smoke\.sh", r"backend/"),
+        "tokens": ("production", "secret"),
+    },
+    ("production_launch", "backup_restore_rollback_smoke_missing"): {
+        "path_patterns": (r"ops/evidence/production/", r"ops/evidence/backup-restore/", r"ops/release/"),
+        "tokens": ("production", "backup"),
+    },
+    ("production_launch", "production_deploy_rollback_smoke_missing"): {
+        "path_patterns": (r"ops/evidence/production/", r"ops/release/", r"scripts/staging_smoke\.sh"),
+        "tokens": ("production", "deploy"),
+    },
+    ("production_launch", "public_legal_support_policy_not_deployed"): {
+        "path_patterns": (r"ops/evidence/production/", r"web/", r"ops/"),
+        "tokens": ("production", "policy"),
+    },
+    ("production_launch", "ci_staging_gates_not_passed"): {
+        "path_patterns": (r"fixtures/stage0/rev2/release_gate_evidence\.ci\.json", r"fixtures/stage0/rev2/release_gate_evidence\.private_beta_staging\.json"),
+        "tokens": ("ci", "staging"),
+    },
+}
+
 PRIVATE_BETA_STAGING_RUNTIME_OPEN_CHECK_ITEMS = {
     "Private Beta/Staging auth/RBAC/tenant/audit runtime evidence 通过。": {
         "staging_auth_rbac_tenant_audit",
@@ -807,9 +918,11 @@ REQUIRED_OPEN_ITEMS = {
     "staging backend/worker/crawler metrics runtime evidence 通过。",
     "Staging post-deploy smoke tests 通过。",
     "Production post-deploy smoke tests 通过。",
-    "staging crawler fetch/import governance runtime evidence 通过：source approval、robots、SSRF、rate limits、retention、exact-text warning、provenance links、source blocklist 均有 staging evidence。",
 }
-REQUIRED_OPEN_ITEMS |= RELEASE_GATE_CHECK_LEVEL_RUNTIME_OPEN_ITEMS.keys()
+REQUIRED_OPEN_ITEMS |= (
+    RELEASE_GATE_CHECK_LEVEL_RUNTIME_OPEN_ITEMS.keys()
+    - {"Private Beta/Staging crawler approval/provenance runtime evidence 通过。"}
+)
 
 CRAWLER_GOVERNANCE_SPLIT_ITEMS = {
     "source_approval": {
@@ -1321,6 +1434,10 @@ def validate_release_gate_basics(data: dict[str, Any]) -> tuple[dict[str, dict[s
                 ),
                 f"{gate}.{condition_id} is active but evidence_ref does not explain the launch blocker",
             )
+            require_concrete_evidence_ref(
+                condition["evidence_ref"],
+                f"{gate}.{condition_id} active condition evidence",
+            )
         else:
             require_concrete_evidence_ref(
                 condition["evidence_ref"],
@@ -1345,6 +1462,35 @@ def validate_do_not_launch_condition_coverage(data: dict[str, Any]) -> None:
         require(
             conditions[condition_id].get("blueprint_condition") == blueprint_text,
             f"{gate}.{condition_id} must cite exact blueprint Do-Not-Launch condition text",
+        )
+
+
+def validate_active_condition_evidence_refs(data: dict[str, Any]) -> None:
+    gate = data["gate"]
+    conditions = do_not_launch_by_id(data)
+    for condition_id, condition in conditions.items():
+        if not condition["is_present"]:
+            continue
+        requirement = ACTIVE_CONDITION_EVIDENCE_REQUIREMENTS.get((gate, condition_id))
+        require(
+            requirement is not None,
+            f"{gate}.{condition_id} has no active Do-Not-Launch evidence requirement",
+        )
+        evidence_ref = condition["evidence_ref"]
+        evidence_ref_lower = evidence_ref.lower()
+        missing_tokens = [
+            token
+            for token in requirement["tokens"]
+            if token not in evidence_ref_lower
+        ]
+        require(
+            not missing_tokens,
+            f"{gate}.{condition_id} active blocker evidence missing required terms: {missing_tokens}",
+        )
+        require(
+            any(re.search(pattern, evidence_ref) for pattern in requirement["path_patterns"]),
+            f"{gate}.{condition_id} active blocker evidence must cite gate-specific repository evidence paths: "
+            + json.dumps(requirement["path_patterns"]),
         )
 
 
@@ -1462,6 +1608,12 @@ def validate_runtime_gate_evidence_refs(
         relevant_runtime_open = set()
 
     if relevant_runtime_open:
+        aggregate_runtime_open_items = {
+            LOCAL_ALPHA_AGGREGATE_RUNTIME_ITEM,
+            PRIVATE_BETA_STAGING_AGGREGATE_RUNTIME_ITEM,
+            PRODUCTION_AGGREGATE_RUNTIME_ITEM,
+        }
+        concrete_runtime_open = relevant_runtime_open - aggregate_runtime_open_items
         check_level_guard_map = (
             PRIVATE_BETA_STAGING_RUNTIME_OPEN_CHECK_ITEMS
             if gate == "private_beta_staging"
@@ -1472,7 +1624,7 @@ def validate_runtime_gate_evidence_refs(
         for check_id in runtime_check_ids:
             specific_open_items = [
                 item
-                for item in relevant_runtime_open
+                for item in concrete_runtime_open
                 if check_id in check_level_guard_map.get(item, runtime_check_ids)
             ]
             if not specific_open_items:
@@ -2395,6 +2547,7 @@ def validate_release_gate_evidence() -> None:
     for gate, gate_evidence in evidence.items():
         validate_release_gate_basics(gate_evidence)
         validate_do_not_launch_condition_coverage(gate_evidence)
+        validate_active_condition_evidence_refs(gate_evidence)
         validate_gate_cannot_pass_with_open_items(gate, gate_evidence, blueprint_unchecked)
         validate_runtime_gate_evidence_refs(gate, gate_evidence, blueprint_unchecked)
         validate_aggregate_runtime_checklist_items(
@@ -2508,22 +2661,34 @@ def validate_release_gate_evidence() -> None:
         "private beta/staging release gate fixture must target private_beta_staging",
     )
     private_beta_checks, private_beta_conditions = validate_release_gate_basics(private_beta)
+    closed_private_beta_runtime_checks = {
+        check_id
+        for item, check_ids in PRIVATE_BETA_STAGING_RUNTIME_OPEN_CHECK_ITEMS.items()
+        if item in blueprint_checked
+        for check_id in check_ids
+    }
     for check_id in RELEASE_GATE_REQUIRED_CHECKS["private_beta_staging"]:
+        expected_status = "pass" if check_id in closed_private_beta_runtime_checks else "blocked"
         require(
-            private_beta_checks[check_id]["status"] == "blocked",
-            f"private beta/staging release evidence {check_id} must remain blocked until runtime evidence exists",
+            private_beta_checks[check_id]["status"] == expected_status,
+            f"private beta/staging release evidence {check_id} must be {expected_status} based on concrete runtime checklist evidence",
         )
     private_beta_do_not_launch = {
         condition_id: item["is_present"] for condition_id, item in private_beta_conditions.items()
     }
+    cleared_private_beta_conditions = {
+        "crawler_governance_runtime_missing",
+        "crawler_material_retention_takedown_runtime_missing",
+    }
     for condition_id in RELEASE_GATE_REQUIRED_ACTIVE_CONDITIONS["private_beta_staging"]:
+        expected_present = condition_id not in cleared_private_beta_conditions
         require(
-            private_beta_do_not_launch.get(condition_id) is True,
-            f"private beta/staging release evidence must keep {condition_id} active",
+            private_beta_do_not_launch.get(condition_id) is expected_present,
+            f"private beta/staging release evidence {condition_id} active state must match concrete runtime evidence",
         )
     private_beta_text = json.dumps(private_beta, ensure_ascii=False)
     for token in [
-        "fixture contracts",
+        "fixture",
         "staging runtime evidence",
         "external-user staging evidence for deployed page visibility is absent",
     ]:
@@ -2631,6 +2796,7 @@ def validate_blueprint_checklist() -> None:
         require(gate in evidence, f"missing release gate evidence for {gate}")
         validate_release_gate_basics(evidence[gate])
         validate_do_not_launch_condition_coverage(evidence[gate])
+        validate_active_condition_evidence_refs(evidence[gate])
         validate_gate_cannot_pass_with_open_items(gate, evidence[gate], unchecked_lines)
         validate_runtime_gate_evidence_refs(gate, evidence[gate], unchecked_lines)
         validate_aggregate_runtime_checklist_items(gate, evidence[gate], checked_lines, unchecked_lines)
@@ -3207,17 +3373,17 @@ def validate_launch_readiness_split_contracts() -> None:
     staging_crawler_check = checks_by_id(private_beta)["staging_crawler_approval_provenance"]
     staging_crawler_runtime_item = "staging crawler fetch/import governance runtime evidence 通过：source approval、robots、SSRF、rate limits、retention、exact-text warning、provenance links、source blocklist 均有 staging evidence。"
     require(
-        staging_crawler_runtime_item in unchecked_lines,
-        "staging crawler runtime evidence checklist item must remain open until staging evidence exists",
+        staging_crawler_runtime_item in checked_lines,
+        "staging crawler runtime evidence checklist item must close only after staging evidence exists",
     )
     require(
-        staging_crawler_check["status"] != "pass",
-        "Private Beta/Staging crawler release gate must remain blocked until staging crawler runtime evidence exists",
+        staging_crawler_check["status"] == "pass",
+        "Private Beta/Staging crawler release gate check must pass after staging crawler runtime evidence exists",
     )
     require(
-        "staging runtime evidence for crawler fetch/import enforcement is absent"
+        "ops/evidence/staging/20260527T1100Z-crawler-governance-runtime.json"
         in staging_crawler_check["evidence_ref"],
-        "Private Beta/Staging crawler gate must name the missing staging crawler runtime evidence",
+        "Private Beta/Staging crawler gate must cite staging crawler runtime evidence",
     )
 
     crawler_runtime_tests = (ROOT / "backend" / "internal" / "stage0" / "services_test.go").read_text(encoding="utf-8")
@@ -3286,7 +3452,10 @@ def validate_launch_readiness_split_contracts() -> None:
         "staging backend/worker/crawler metrics runtime evidence 通过。",
         "Staging post-deploy smoke tests 通过。",
         "Production post-deploy smoke tests 通过。",
-    ] + sorted(RELEASE_GATE_RUNTIME_OPEN_ITEMS) + sorted(RELEASE_GATE_CHECK_LEVEL_RUNTIME_OPEN_ITEMS):
+    ] + sorted(RELEASE_GATE_RUNTIME_OPEN_ITEMS) + sorted(
+        set(RELEASE_GATE_CHECK_LEVEL_RUNTIME_OPEN_ITEMS)
+        - {"Private Beta/Staging crawler approval/provenance runtime evidence 通过。"}
+    ):
         require(item in unchecked_lines, f"blueprint must keep runtime launch-readiness subitem open: {item}")
 
     for ambiguous in [
