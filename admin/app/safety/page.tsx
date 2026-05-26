@@ -65,10 +65,14 @@ export default async function SafetyPage() {
             { key: "attempted", header: "Attempted Role", render: (row) => row.attemptedRole },
             { key: "decision", header: "Decision", render: (row) => <StatusBadge value={row.decision} label={row.decision} /> },
             { key: "second-review", header: "Second Review", render: (row) => <StatusBadge value={row.secondReviewStatus} label={row.secondReviewStatus} /> },
+            { key: "api", header: "API Scope", render: (row) => <span className="mono">{row.apiScope}</span> },
+            { key: "mutation", header: "Mutation Outcome", render: (row) => <StatusBadge value={row.mutationOutcome === "applied" ? "healthy" : row.mutationOutcome === "queued_for_review" ? "warning" : "blocked"} label={row.mutationOutcome} /> },
+            { key: "expires", header: "Override Expiration", render: (row) => row.overrideExpiresAt },
             { key: "runtime", header: "Runtime Check", render: (row) => row.runtimeCheck },
             { key: "post-decision", header: "Post Decision Control", render: (row) => row.postDecisionControl },
             { key: "rationale", header: "Rationale", render: (row) => row.rationale },
-            { key: "audit", header: "Audit Ref", render: (row) => <span className="mono">{row.auditRef}</span> }
+            { key: "audit", header: "Audit Ref", render: (row) => <span className="mono">{row.auditRef}</span> },
+            { key: "evidence", header: "Evidence Refs", render: (row) => row.evidenceRefs.join(", ") }
           ]}
         />
       </section>

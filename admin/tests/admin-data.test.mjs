@@ -331,6 +331,9 @@ test("admin fixtures cover RBAC evidence for governed override surfaces", () => 
     "requiredRole",
     "attemptedRole",
     "secondReviewStatus",
+    "apiScope",
+    "mutationOutcome",
+    "overrideExpiresAt",
     "runtimeCheck",
     "postDecisionControl"
   ]) {
@@ -359,6 +362,16 @@ test("admin action pages show scoped RBAC evidence at decision points", () => {
       path: "../app/providers/page.tsx",
       heading: "Provider Routing RBAC Evidence",
       surface: "provider_routing"
+    },
+    {
+      path: "../app/quota/page.tsx",
+      heading: "Quota Override RBAC",
+      surface: "quota_override"
+    },
+    {
+      path: "../app/safety/page.tsx",
+      heading: "Safety and Export Override RBAC",
+      surface: "safety_rule"
     }
   ];
 
@@ -373,6 +386,9 @@ test("admin action pages show scoped RBAC evidence at decision points", () => {
       "Attempted Role",
       "Decision",
       "Second Review",
+      "API Scope",
+      "Mutation Outcome",
+      "Override Expiration",
       "Runtime Check",
       "Post Decision Control",
       "Evidence Refs",

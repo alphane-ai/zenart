@@ -764,6 +764,9 @@ export type AdminRbacEvidence = {
   secondReviewStatus: "not_required" | "required" | "completed" | "blocked";
   releaseGateImpact: string;
   userVisibleOutcome: string;
+  apiScope: string;
+  mutationOutcome: "applied" | "queued_for_review" | "blocked_no_mutation";
+  overrideExpiresAt: string;
   runtimeCheck: string;
   postDecisionControl: string;
   rationale: string;

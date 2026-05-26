@@ -1239,6 +1239,17 @@ test("admin RBAC evidence covers every governed override surface", () => {
     );
     assert.ok(item.releaseGateImpact.length > 90, `${item.id} needs release-gate impact evidence`);
     assert.ok(item.userVisibleOutcome.length > 70, `${item.id} needs user-visible outcome evidence`);
+    assert.match(item.apiScope, /^(GET|POST|PATCH|DELETE) \/api\/admin\//, `${item.id} API scope must stay inside admin API`);
+    assert.match(
+      item.mutationOutcome,
+      /applied|queued_for_review|blocked_no_mutation/,
+      `${item.id} needs explicit mutation outcome`
+    );
+    assert.notEqual(item.overrideExpiresAt, "pending", `${item.id} needs explicit temporary override expiration state`);
+    assert.ok(
+      item.overrideExpiresAt === "none" || /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(item.overrideExpiresAt),
+      `${item.id} override expiration must be none or an operator-readable timestamp`
+    );
     assert.ok(item.runtimeCheck.length > 90, `${item.id} needs runtime enforcement check evidence`);
     assert.ok(item.postDecisionControl.length > 90, `${item.id} needs post-decision control evidence`);
     assert.match(
@@ -1253,6 +1264,8 @@ test("admin RBAC evidence covers every governed override surface", () => {
         roleOrder.get(item.attemptedRole) >= roleOrder.get(item.requiredRole),
         `${item.id} allowed decision needs sufficient attempted role`
       );
+      assert.equal(item.mutationOutcome, "applied", `${item.id} allowed decision must record applied mutation outcome`);
+      assert.notEqual(item.overrideExpiresAt, "none", `${item.id} allowed temporary override must have an expiration`);
     }
 
     if (roleOrder.get(item.attemptedRole) < roleOrder.get(item.requiredRole)) {
@@ -1268,11 +1281,16 @@ test("admin RBAC evidence covers every governed override surface", () => {
     }
 
     if (item.decision !== "allowed") {
+      assert.notEqual(item.mutationOutcome, "applied", `${item.id} denied or gated decisions cannot apply mutations`);
       assert.match(
         item.postDecisionControl,
         /keep|deny|do not|leave|preserve/i,
         `${item.id} denied or gated decisions need a restrictive post-decision control`
       );
+    }
+
+    if (item.secondReviewStatus === "blocked") {
+      assert.notEqual(item.mutationOutcome, "applied", `${item.id} blocked second review cannot apply mutation`);
     }
   }
 
@@ -1284,6 +1302,14 @@ test("admin RBAC evidence covers every governed override surface", () => {
   assert.ok(
     adminRbacEvidence.some((item) => item.surface === "safety_rule" && item.requiredRole === "admin_superadmin"),
     "safety rule overrides need superadmin evidence"
+  );
+  assert.ok(
+    adminRbacEvidence.some((item) => item.mutationOutcome === "queued_for_review"),
+    "high-risk overrides need queued-for-review mutation evidence"
+  );
+  assert.ok(
+    adminRbacEvidence.some((item) => item.mutationOutcome === "blocked_no_mutation"),
+    "denied overrides need no-mutation evidence"
   );
 
   const enforcementBySurface = new Map(adminRbacEvidence.map((item) => [item.surface, item.enforcementPoint]));
