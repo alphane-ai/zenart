@@ -7,6 +7,43 @@ describe("WorkspaceApp user route integration smoke", () => {
     window.localStorage.clear();
   });
 
+  it("renders secure-cookie and same-site CSRF session UX evidence as an interactive client contract", async () => {
+    const { container } = render(<WorkspaceApp initialView="account" />);
+
+    await screen.findByRole("heading", { name: "Account Settings" });
+
+    const sessionContract = screen.getByLabelText("Auth and session status");
+    expect(sessionContract).toHaveAttribute("data-session-security-evidence", "stage0.rev2.session-csrf-client-evidence");
+    expect(sessionContract).toHaveAttribute("data-session-security-status", "pass");
+    expect(sessionContract).toHaveAttribute("data-session-cookie-name", "__Host-zenart_session");
+    expect(sessionContract).toHaveAttribute("data-session-cookie-http-only", "true");
+    expect(sessionContract).toHaveAttribute("data-session-cookie-secure", "true");
+    expect(sessionContract).toHaveAttribute("data-session-cookie-same-site", "lax");
+    expect(sessionContract).toHaveAttribute("data-session-cookie-path", "/");
+    expect(sessionContract).toHaveAttribute("data-session-csrf-header", "X-ZenArt-CSRF");
+    expect(sessionContract).toHaveAttribute("data-session-csrf-origin-policy", "same-site-only");
+    expect(sessionContract).toHaveAttribute("data-session-csrf-missing-operation-count", "0");
+
+    const csrfInventory = screen.getByLabelText("Generated web API CSRF operation inventory");
+    expect(csrfInventory).toHaveAttribute("data-csrf-operation-count", "15");
+    expect(csrfInventory).toHaveTextContent("createUpload");
+    expect(csrfInventory).toHaveTextContent("createExport");
+    expect(csrfInventory).toHaveTextContent("createSupportTicket");
+
+    fireEvent.click(screen.getByRole("button", { name: "Expire" }));
+    await screen.findByText("Session expired. Refresh or sign in to continue.");
+    expect(container.querySelector(".session-pill")).toHaveTextContent("expired");
+    expect(screen.getByRole("button", { name: "Refresh Session" })).toBeDisabled();
+
+    fireEvent.change(screen.getByLabelText("Email"), { target: { value: "dev@zenart.local" } });
+    fireEvent.click(screen.getByRole("button", { name: "Sign In" }));
+    await waitFor(() => {
+      expect(screen.getByLabelText("Auth and session status")).toHaveAttribute("data-session-security-status", "pass");
+    });
+    expect(screen.queryByText("Session expired. Refresh or sign in to continue.")).not.toBeInTheDocument();
+    expect(container.querySelector(".session-pill")).toHaveTextContent("authenticated");
+  });
+
   it("drives an accepted reference through package history, ZIP export, and export metadata UI evidence", async () => {
     const { container, rerender } = render(<WorkspaceApp initialView="workspace" />);
 
