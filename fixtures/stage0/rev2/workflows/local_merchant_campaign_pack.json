@@ -80,6 +80,8 @@
   "required_qa_checks": [
     "dimensions",
     "safe_area",
+    "duplicate_similarity",
+    "four_option_distinctness",
     "structured_text"
   ],
   "required_safety_checks": {

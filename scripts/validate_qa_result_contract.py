@@ -163,31 +163,6 @@ CATEGORY_CONTRACTS: dict[str, dict[str, Any]] = {
     },
 }
 
-WORKFLOW_TO_REQUIRED_CHECKS = {
-    "ecommerce_growth_pack": {
-        "file_integrity",
-        "aspect_ratio",
-        "duplicate_similarity",
-        "four_option_distinctness",
-        "product_logo_preservation",
-    },
-    "business_visual_doc_pack": {
-        "text_readability",
-        "forbidden_claims",
-    },
-    "local_merchant_campaign_pack": {
-        "dimensions",
-        "safe_area",
-        "structured_text",
-    },
-    "character_ip_concept_pack": {
-        "blank_output",
-        "watermark_signature_risk",
-        "export_completeness",
-    },
-}
-
-
 class QAContractError(Exception):
     pass
 
@@ -260,10 +235,11 @@ def validate_category_item(item: dict[str, Any]) -> None:
 def validate_fixture_links(qa_results: list[dict[str, Any]]) -> None:
     suite = load_json(EVAL_SUITE)
     results = load_json(EVAL_RESULTS)
-    workflow_ids = {
-        load_json(path)["workflow_id"]
-        for path in sorted(WORKFLOW_DIR.glob("*.json"))
+    workflows = {
+        workflow["workflow_id"]: workflow
+        for workflow in (load_json(path) for path in sorted(WORKFLOW_DIR.glob("*.json")))
     }
+    workflow_ids = set(workflows)
     fixture_ids = {fixture["fixture_id"] for fixture in suite["fixtures"]}
     suite_workflows = {fixture["workflow"] for fixture in suite["fixtures"]}
     require(workflow_ids == suite_workflows, "workflow acceptance fixtures must match eval suite workflows")
@@ -271,13 +247,30 @@ def validate_fixture_links(qa_results: list[dict[str, Any]]) -> None:
     require(isinstance(results, list) and len(results) == 1, "starter eval results must contain one result")
     result_by_fixture = {item["fixture_id"]: item for item in results[0]["fixture_results"]}
     summary_categories = set(results[0]["summary"]["qa_categories_covered"])
+    required_categories = {
+        category
+        for workflow in workflows.values()
+        for category in workflow["required_qa_checks"]
+    }
 
-    require(summary_categories == QA_CATEGORIES, "eval result summary must list every QA category exactly")
+    require(
+        required_categories == QA_CATEGORIES,
+        f"workflow acceptance required_qa_checks must cover every QA category exactly: {sorted(required_categories ^ QA_CATEGORIES)}",
+    )
+    require(summary_categories == required_categories, "eval result summary must match workflow required QA categories")
     for item in qa_results:
         fixture_id = item["evidence"]["fixture_id"]
         require(item["workflow"] in workflow_ids, f"{item['check_id']} references unknown workflow")
+        require(
+            item["check_category"] in workflows[item["workflow"]]["required_qa_checks"],
+            f"{item['check_id']} category is not declared in {item['workflow']} required_qa_checks",
+        )
         require(fixture_id in fixture_ids, f"{item['check_id']} references unknown eval fixture {fixture_id}")
         require(fixture_id in result_by_fixture, f"{item['check_id']} fixture missing eval result")
+        require(
+            result_by_fixture[fixture_id]["workflow"] == item["workflow"],
+            f"{item['check_id']} workflow must match its eval result fixture",
+        )
         require(
             item["check_id"] in result_by_fixture[fixture_id]["qa_check_ids"],
             f"{item['check_id']} missing from eval result fixture qa_check_ids",
@@ -289,14 +282,21 @@ def validate_fixture_links(qa_results: list[dict[str, Any]]) -> None:
 
 
 def validate_workflow_coverage(qa_results: list[dict[str, Any]]) -> None:
+    workflows = {
+        workflow["workflow_id"]: workflow
+        for workflow in (load_json(path) for path in sorted(WORKFLOW_DIR.glob("*.json")))
+    }
     categories_by_workflow: dict[str, set[str]] = {}
     for item in qa_results:
         categories_by_workflow.setdefault(item["workflow"], set()).add(item["check_category"])
 
-    for workflow, required_categories in WORKFLOW_TO_REQUIRED_CHECKS.items():
+    for workflow, contract in workflows.items():
+        required_categories = set(contract["required_qa_checks"])
         observed = categories_by_workflow.get(workflow, set())
         missing = required_categories - observed
         require(not missing, f"{workflow} missing QA categories: {sorted(missing)}")
+        unexpected = observed - required_categories
+        require(not unexpected, f"{workflow} has QA categories not declared in required_qa_checks: {sorted(unexpected)}")
 
 
 def validate_qa_contract() -> None:

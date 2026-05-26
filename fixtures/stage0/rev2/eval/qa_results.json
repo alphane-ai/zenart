@@ -213,8 +213,8 @@
     "check_id": "qa_duplicate_candidate_similarity",
     "check_category": "duplicate_similarity",
     "severity": "blocking",
-    "workflow": "ecommerce_growth_pack",
-    "asset_id": "candidate_aurora_generic_cards",
+    "workflow": "local_merchant_campaign_pack",
+    "asset_id": "candidate_north_pier_generic_cards",
     "evidence": {
       "observed": {
         "duplicate_similarity": 0.96,
@@ -230,7 +230,7 @@
       "trace_id": "trace_fx_negative_generic_rendering_similarity",
       "fixture_id": "fx_negative_generic_rendering",
       "source_artifacts": [
-        "candidate_set.json",
+        "local_merchant_candidate_set.json",
         "qa_report.json"
       ]
     },
@@ -256,29 +256,29 @@
     "check_id": "qa_four_option_distinctness",
     "check_category": "four_option_distinctness",
     "severity": "blocking",
-    "workflow": "ecommerce_growth_pack",
-    "asset_id": "candidate_aurora_generic_cards",
+    "workflow": "local_merchant_campaign_pack",
+    "asset_id": "candidate_north_pier_generic_cards",
     "evidence": {
       "observed": {
         "strategic_options": 1,
         "taxonomy_coverage": [
-          "promotion_event"
+          "limited_time_offer"
         ]
       },
       "expected": {
         "strategic_options": 4,
         "taxonomy_coverage": [
-          "conversion",
-          "lifestyle",
-          "proof",
-          "promotion_event"
+          "grand_opening",
+          "limited_time_offer",
+          "community_event",
+          "loyalty_push"
         ]
       },
       "trace_id": "trace_fx_negative_generic_rendering_distinctness",
       "fixture_id": "fx_negative_generic_rendering",
       "source_artifacts": [
-        "workflow_acceptance.ecommerce_growth_pack.json",
-        "candidate_set.json"
+        "workflow_acceptance.local_merchant_campaign_pack.json",
+        "local_merchant_candidate_set.json"
       ]
     },
     "export_gate": {
@@ -293,6 +293,100 @@
     "provenance": {
       "blueprint_sections": [
         "6.1",
+        "15.2"
+      ],
+      "created_by_lane": "lane2"
+    }
+  },
+  {
+    "schema_version": "stage0.rev2",
+    "check_id": "qa_ecommerce_duplicate_candidate_similarity",
+    "check_category": "duplicate_similarity",
+    "severity": "blocking",
+    "workflow": "ecommerce_growth_pack",
+    "asset_id": "candidate_aurora_me_too_social_ads",
+    "evidence": {
+      "observed": {
+        "duplicate_similarity": 0.94,
+        "candidate_pair": [
+          "conversion_offer",
+          "social_proof"
+        ]
+      },
+      "expected": {
+        "duplicate_similarity_below": 0.9,
+        "candidate_pair_must_differ": true
+      },
+      "trace_id": "trace_fx_brand_product_preservation_duplicate",
+      "fixture_id": "fx_brand_product_preservation",
+      "source_artifacts": [
+        "workflow_acceptance.ecommerce_growth_pack.json",
+        "aurora_candidate_set.json",
+        "qa_report.json"
+      ]
+    },
+    "export_gate": {
+      "blocks_final_export": true,
+      "eligible_admin_override": true,
+      "override_requires_audit": true
+    },
+    "auto_fix_available": false,
+    "review_required": true,
+    "user_visible_message": "Two generated ecommerce options are too similar to count as distinct choices.",
+    "admin_reason": "Ecommerce workflow acceptance requires four strategically distinct campaign options, not duplicated product-card variants.",
+    "provenance": {
+      "blueprint_sections": [
+        "6.1",
+        "6.2",
+        "15.2"
+      ],
+      "created_by_lane": "lane2"
+    }
+  },
+  {
+    "schema_version": "stage0.rev2",
+    "check_id": "qa_ecommerce_four_option_distinctness",
+    "check_category": "four_option_distinctness",
+    "severity": "blocking",
+    "workflow": "ecommerce_growth_pack",
+    "asset_id": "candidate_aurora_me_too_social_ads",
+    "evidence": {
+      "observed": {
+        "strategic_options": 2,
+        "taxonomy_coverage": [
+          "conversion_offer",
+          "social_proof"
+        ]
+      },
+      "expected": {
+        "strategic_options": 4,
+        "taxonomy_coverage": [
+          "conversion_offer",
+          "social_proof",
+          "feature_comparison",
+          "retention_bundle"
+        ]
+      },
+      "trace_id": "trace_fx_brand_product_preservation_distinctness",
+      "fixture_id": "fx_brand_product_preservation",
+      "source_artifacts": [
+        "workflow_acceptance.ecommerce_growth_pack.json",
+        "aurora_candidate_set.json"
+      ]
+    },
+    "export_gate": {
+      "blocks_final_export": true,
+      "eligible_admin_override": true,
+      "override_requires_audit": true
+    },
+    "auto_fix_available": false,
+    "review_required": true,
+    "user_visible_message": "The ecommerce options do not cover all four campaign strategies.",
+    "admin_reason": "Ecommerce growth pack acceptance requires conversion, social proof, feature comparison, and retention-bundle strategies.",
+    "provenance": {
+      "blueprint_sections": [
+        "6.1",
+        "6.2",
         "15.2"
       ],
       "created_by_lane": "lane2"

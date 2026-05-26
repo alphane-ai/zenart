@@ -282,6 +282,8 @@
         "observed_safety_action": "allow",
         "qa_check_ids": [
           "qa_file_integrity_checksum",
+          "qa_ecommerce_duplicate_candidate_similarity",
+          "qa_ecommerce_four_option_distinctness",
           "qa_product_logo_preservation"
         ],
         "trace_contract": {
