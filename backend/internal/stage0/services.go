@@ -1165,20 +1165,20 @@ WHERE tenant_id = $1`
 	return page, rows.Err()
 }
 
-func (r Repository) ListCrawlerSources(ctx context.Context, status string, limit int) (Page[CrawlerSource], error) {
+func (r Repository) ListCrawlerSources(ctx context.Context, tenantID, status string, limit int) (Page[CrawlerSource], error) {
 	if limit <= 0 || limit > 100 {
 		limit = 50
 	}
-	args := []any{limit}
+	args := []any{strings.TrimSpace(tenantID), limit}
 	query := `
 SELECT id, tenant_id, name, url, approval_status, legal_metadata, robots_policy, created_at, updated_at
 FROM crawler_sources
-WHERE TRUE`
+WHERE (tenant_id IS NULL OR tenant_id = $1)`
 	if strings.TrimSpace(status) != "" {
-		query += " AND approval_status = $2"
+		query += " AND approval_status = $3"
 		args = append(args, strings.TrimSpace(status))
 	}
-	query += " ORDER BY updated_at DESC LIMIT $1"
+	query += " ORDER BY updated_at DESC LIMIT $2"
 	rows, err := r.db.Query(ctx, query, args...)
 	if err != nil {
 		return Page[CrawlerSource]{}, err
@@ -1199,20 +1199,20 @@ WHERE TRUE`
 	return page, rows.Err()
 }
 
-func (r Repository) ListCrawlerFindings(ctx context.Context, status string, limit int) (Page[CrawlerFinding], error) {
+func (r Repository) ListCrawlerFindings(ctx context.Context, tenantID, status string, limit int) (Page[CrawlerFinding], error) {
 	if limit <= 0 || limit > 100 {
 		limit = 50
 	}
-	args := []any{limit}
+	args := []any{strings.TrimSpace(tenantID), limit}
 	query := `
 SELECT id, tenant_id, document_id, finding_type, status, payload, provenance, created_at
 FROM crawler_findings
-WHERE TRUE`
+WHERE (tenant_id IS NULL OR tenant_id = $1)`
 	if strings.TrimSpace(status) != "" {
-		query += " AND status = $2"
+		query += " AND status = $3"
 		args = append(args, strings.TrimSpace(status))
 	}
-	query += " ORDER BY created_at DESC LIMIT $1"
+	query += " ORDER BY created_at DESC LIMIT $2"
 	rows, err := r.db.Query(ctx, query, args...)
 	if err != nil {
 		return Page[CrawlerFinding]{}, err
@@ -1233,7 +1233,7 @@ WHERE TRUE`
 	return page, rows.Err()
 }
 
-func (r Repository) StartCrawlerRun(ctx context.Context, sourceID string, policy CrawlerPolicy) (CrawlerRun, error) {
+func (r Repository) StartCrawlerRun(ctx context.Context, tenantID, sourceID string, policy CrawlerPolicy) (CrawlerRun, error) {
 	sourceID = strings.TrimSpace(sourceID)
 	if sourceID == "" {
 		return CrawlerRun{}, errors.Join(ErrValidation, errors.New("source_id is required"))
@@ -1241,7 +1241,7 @@ func (r Repository) StartCrawlerRun(ctx context.Context, sourceID string, policy
 	if err := validateCrawlerPolicy(policy); err != nil {
 		return CrawlerRun{}, err
 	}
-	source, err := r.getCrawlerSource(ctx, sourceID)
+	source, err := r.getCrawlerSource(ctx, tenantID, sourceID)
 	if err != nil {
 		return CrawlerRun{}, err
 	}
@@ -1304,7 +1304,7 @@ func (r Repository) ImportCrawlerFinding(ctx context.Context, input CrawlerImpor
 	if !crawlerProvenanceMatchesImport(provenance, documentURL, contentHash) {
 		return CrawlerImportResult{}, errors.Join(ErrValidation, errors.New("crawler import provenance must match the imported document URL and content hash"))
 	}
-	source, err := r.getCrawlerSource(ctx, sourceID)
+	source, err := r.getCrawlerSource(ctx, input.TenantID, sourceID)
 	if err != nil {
 		return CrawlerImportResult{}, err
 	}
@@ -1361,20 +1361,20 @@ VALUES($1, NULLIF($2, ''), $3, $4, $5, $6, $7, $8)`,
 	return CrawlerImportResult{DocumentID: documentID, FindingID: findingID, RetentionUntil: retentionUntil}, nil
 }
 
-func (r Repository) ListSafetyRules(ctx context.Context, status string, limit int) (Page[SafetyRule], error) {
+func (r Repository) ListSafetyRules(ctx context.Context, tenantID, status string, limit int) (Page[SafetyRule], error) {
 	if limit <= 0 || limit > 100 {
 		limit = 50
 	}
-	args := []any{limit}
+	args := []any{strings.TrimSpace(tenantID), limit}
 	query := `
 SELECT id, tenant_id, rule_key, version, domain, severity, action, enforcement_points, status, created_at
 FROM safety_rules
-WHERE TRUE`
+WHERE (tenant_id IS NULL OR tenant_id = $1)`
 	if strings.TrimSpace(status) != "" {
-		query += " AND status = $2"
+		query += " AND status = $3"
 		args = append(args, strings.TrimSpace(status))
 	}
-	query += " ORDER BY created_at DESC LIMIT $1"
+	query += " ORDER BY created_at DESC LIMIT $2"
 	rows, err := r.db.Query(ctx, query, args...)
 	if err != nil {
 		return Page[SafetyRule]{}, err
@@ -1897,14 +1897,16 @@ ORDER BY q.created_at DESC`,
 	return false, rows.Err()
 }
 
-func (r Repository) getCrawlerSource(ctx context.Context, sourceID string) (CrawlerSource, error) {
+func (r Repository) getCrawlerSource(ctx context.Context, tenantID, sourceID string) (CrawlerSource, error) {
 	var source CrawlerSource
 	var legalJSON, robotsJSON []byte
 	err := r.db.QueryRow(ctx, `
 SELECT id, tenant_id, name, url, approval_status, legal_metadata, robots_policy, created_at, updated_at
 FROM crawler_sources
-WHERE id = $1`,
+WHERE id = $1
+  AND (tenant_id IS NULL OR tenant_id = $2)`,
 		sourceID,
+		strings.TrimSpace(tenantID),
 	).Scan(&source.ID, &source.TenantID, &source.Name, &source.URL, &source.ApprovalStatus, &legalJSON, &robotsJSON, &source.CreatedAt, &source.UpdatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return CrawlerSource{}, ErrNotFound
@@ -2399,8 +2401,8 @@ func (s Service) RunRuntimeSafetyPolicy(ctx context.Context, input RuntimeSafety
 	return s.repo.RunRuntimeSafetyPolicy(ctx, input)
 }
 
-func (s Service) StartCrawlerRun(ctx context.Context, sourceID string, policy CrawlerPolicy) (CrawlerRun, error) {
-	return s.repo.StartCrawlerRun(ctx, sourceID, policy)
+func (s Service) StartCrawlerRun(ctx context.Context, tenantID, sourceID string, policy CrawlerPolicy) (CrawlerRun, error) {
+	return s.repo.StartCrawlerRun(ctx, tenantID, sourceID, policy)
 }
 
 func (s Service) ImportCrawlerFinding(ctx context.Context, input CrawlerImport, policy CrawlerPolicy) (CrawlerImportResult, error) {

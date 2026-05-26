@@ -1199,6 +1199,120 @@ func TestListAnalyticsReportsUsesTenantScopedWeeklyAggregation(t *testing.T) {
 	}
 }
 
+func TestListCrawlerSourcesUsesTenantScopedFilters(t *testing.T) {
+	now := time.Date(2026, 5, 27, 8, 0, 0, 0, time.UTC)
+	tenantID := "tenant_1"
+	db := &fakeDB{queryRows: []rowSet{{rows: [][]any{{
+		"crawler_source_1",
+		&tenantID,
+		"Tenant Source",
+		"https://example.com/docs",
+		"approved",
+		[]byte(`{"license":"permissive","owner":"Example"}`),
+		[]byte(`{"robots":"allowed"}`),
+		now,
+		now,
+	}}}}}
+	repo := NewRepository(db)
+
+	page, err := repo.ListCrawlerSources(context.Background(), "tenant_1", "approved", 25)
+	if err != nil {
+		t.Fatalf("ListCrawlerSources() error = %v", err)
+	}
+	if len(page.Items) != 1 || page.Items[0].ID != "crawler_source_1" {
+		t.Fatalf("crawler sources = %#v, want crawler_source_1", page.Items)
+	}
+	query := db.queryRowsUsed[0]
+	if !strings.Contains(query.sql, "(tenant_id IS NULL OR tenant_id = $1)") || !strings.Contains(query.sql, "approval_status = $3") || !strings.Contains(query.sql, "LIMIT $2") {
+		t.Fatalf("crawler source query missing tenant/status/limit guard: %s", query.sql)
+	}
+	wantArgs := []any{"tenant_1", 25, "approved"}
+	if len(query.args) != len(wantArgs) {
+		t.Fatalf("query args = %#v, want %#v", query.args, wantArgs)
+	}
+	for i, want := range wantArgs {
+		if query.args[i] != want {
+			t.Fatalf("query args[%d] = %#v, want %#v", i, query.args[i], want)
+		}
+	}
+}
+
+func TestListCrawlerFindingsUsesTenantScopedFilters(t *testing.T) {
+	now := time.Date(2026, 5, 27, 8, 0, 0, 0, time.UTC)
+	tenantID := "tenant_1"
+	db := &fakeDB{queryRows: []rowSet{{rows: [][]any{{
+		"crawler_finding_1",
+		&tenantID,
+		"crawler_doc_1",
+		"layout_pattern",
+		"pending_review",
+		[]byte(`{"kind":"grid"}`),
+		[]byte(`{"source_url":"https://example.com/docs"}`),
+		now,
+	}}}}}
+	repo := NewRepository(db)
+
+	page, err := repo.ListCrawlerFindings(context.Background(), "tenant_1", "pending_review", 25)
+	if err != nil {
+		t.Fatalf("ListCrawlerFindings() error = %v", err)
+	}
+	if len(page.Items) != 1 || page.Items[0].ID != "crawler_finding_1" {
+		t.Fatalf("crawler findings = %#v, want crawler_finding_1", page.Items)
+	}
+	query := db.queryRowsUsed[0]
+	if !strings.Contains(query.sql, "(tenant_id IS NULL OR tenant_id = $1)") || !strings.Contains(query.sql, "status = $3") || !strings.Contains(query.sql, "LIMIT $2") {
+		t.Fatalf("crawler finding query missing tenant/status/limit guard: %s", query.sql)
+	}
+	wantArgs := []any{"tenant_1", 25, "pending_review"}
+	if len(query.args) != len(wantArgs) {
+		t.Fatalf("query args = %#v, want %#v", query.args, wantArgs)
+	}
+	for i, want := range wantArgs {
+		if query.args[i] != want {
+			t.Fatalf("query args[%d] = %#v, want %#v", i, query.args[i], want)
+		}
+	}
+}
+
+func TestListSafetyRulesUsesTenantScopedFilters(t *testing.T) {
+	now := time.Date(2026, 5, 27, 8, 0, 0, 0, time.UTC)
+	tenantID := "tenant_1"
+	db := &fakeDB{queryRows: []rowSet{{rows: [][]any{{
+		"safety_rule_1",
+		&tenantID,
+		"export_block",
+		"1",
+		"exports",
+		"critical",
+		"block",
+		[]byte(`["export"]`),
+		"active",
+		now,
+	}}}}}
+	repo := NewRepository(db)
+
+	page, err := repo.ListSafetyRules(context.Background(), "tenant_1", "active", 25)
+	if err != nil {
+		t.Fatalf("ListSafetyRules() error = %v", err)
+	}
+	if len(page.Items) != 1 || page.Items[0].ID != "safety_rule_1" {
+		t.Fatalf("safety rules = %#v, want safety_rule_1", page.Items)
+	}
+	query := db.queryRowsUsed[0]
+	if !strings.Contains(query.sql, "(tenant_id IS NULL OR tenant_id = $1)") || !strings.Contains(query.sql, "status = $3") || !strings.Contains(query.sql, "LIMIT $2") {
+		t.Fatalf("safety rules query missing tenant/status/limit guard: %s", query.sql)
+	}
+	wantArgs := []any{"tenant_1", 25, "active"}
+	if len(query.args) != len(wantArgs) {
+		t.Fatalf("query args = %#v, want %#v", query.args, wantArgs)
+	}
+	for i, want := range wantArgs {
+		if query.args[i] != want {
+			t.Fatalf("query args[%d] = %#v, want %#v", i, query.args[i], want)
+		}
+	}
+}
+
 func TestStartCrawlerRunRequiresApprovalRobotsLegalAndRatePolicy(t *testing.T) {
 	now := time.Now().UTC()
 	db := &fakeDB{queryRows: []rowSet{{
@@ -1218,7 +1332,7 @@ func TestStartCrawlerRunRequiresApprovalRobotsLegalAndRatePolicy(t *testing.T) {
 	}}}
 	repo := NewRepository(db)
 
-	run, err := repo.StartCrawlerRun(context.Background(), "crawler_source_1", CrawlerPolicy{
+	run, err := repo.StartCrawlerRun(context.Background(), "tenant_1", "crawler_source_1", CrawlerPolicy{
 		Enabled:          true,
 		UserAgent:        "ZenArtStage0Bot/0.1",
 		GlobalRPS:        0.2,
@@ -1236,6 +1350,13 @@ func TestStartCrawlerRunRequiresApprovalRobotsLegalAndRatePolicy(t *testing.T) {
 	if len(db.execs) != 1 || !strings.Contains(db.execs[0].sql, "INSERT INTO crawler_runs") {
 		t.Fatalf("crawler run insert not recorded: %#v", db.execs)
 	}
+	sourceLookup := db.queryRowsUsed[0]
+	if !strings.Contains(sourceLookup.sql, "(tenant_id IS NULL OR tenant_id = $2)") {
+		t.Fatalf("crawler source lookup missing tenant guard: %s", sourceLookup.sql)
+	}
+	if sourceLookup.args[1] != "tenant_1" {
+		t.Fatalf("crawler source tenant arg = %#v, want tenant_1", sourceLookup.args[1])
+	}
 	summary, ok := db.execs[0].args[4].([]byte)
 	if !ok {
 		t.Fatalf("summary arg type = %T, want []byte", db.execs[0].args[4])
@@ -1244,6 +1365,32 @@ func TestStartCrawlerRunRequiresApprovalRobotsLegalAndRatePolicy(t *testing.T) {
 		if !strings.Contains(string(summary), fragment) {
 			t.Fatalf("summary = %s, missing %s", string(summary), fragment)
 		}
+	}
+}
+
+func TestStartCrawlerRunRejectsCrossTenantSource(t *testing.T) {
+	db := &fakeDB{}
+	repo := NewRepository(db)
+
+	_, err := repo.StartCrawlerRun(context.Background(), "tenant_1", "crawler_source_cross_tenant", CrawlerPolicy{
+		Enabled:          true,
+		UserAgent:        "ZenArtStage0Bot/0.1",
+		GlobalRPS:        0.2,
+		SourceRPS:        0.1,
+		RawRetentionDays: 14,
+		ResolveHost:      publicTestResolver,
+	})
+	if !errors.Is(err, ErrNotFound) {
+		t.Fatalf("StartCrawlerRun() error = %v, want ErrNotFound", err)
+	}
+	if len(db.execs) != 0 {
+		t.Fatalf("cross-tenant crawler source should not write rows: %#v", db.execs)
+	}
+	if len(db.queryRowsUsed) != 1 || !strings.Contains(db.queryRowsUsed[0].sql, "(tenant_id IS NULL OR tenant_id = $2)") {
+		t.Fatalf("source lookup should use tenant guard: %#v", db.queryRowsUsed)
+	}
+	if db.queryRowsUsed[0].args[1] != "tenant_1" {
+		t.Fatalf("source lookup tenant arg = %#v, want tenant_1", db.queryRowsUsed[0].args[1])
 	}
 }
 
@@ -1317,7 +1464,7 @@ func TestStartCrawlerRunBlocksUnapprovedRobotsDeniedAndPrivateHosts(t *testing.T
 				}},
 			}}}
 			repo := NewRepository(db)
-			_, err := repo.StartCrawlerRun(context.Background(), "crawler_source_1", policy)
+			_, err := repo.StartCrawlerRun(context.Background(), "tenant_1", "crawler_source_1", policy)
 			if !errors.Is(err, ErrCrawlerBlocked) {
 				t.Fatalf("StartCrawlerRun() error = %v, want ErrCrawlerBlocked", err)
 			}
@@ -1345,7 +1492,7 @@ func TestStartCrawlerRunBlocksDNSRebindingToPrivateIP(t *testing.T) {
 	}}}
 	repo := NewRepository(db)
 
-	_, err := repo.StartCrawlerRun(context.Background(), "crawler_source_1", CrawlerPolicy{
+	_, err := repo.StartCrawlerRun(context.Background(), "tenant_1", "crawler_source_1", CrawlerPolicy{
 		Enabled:          true,
 		UserAgent:        "ZenArtStage0Bot/0.1",
 		GlobalRPS:        0.2,
@@ -1382,7 +1529,7 @@ func TestStartCrawlerRunBlocksWhenRateLimitExceeded(t *testing.T) {
 	}}}
 	repo := NewRepository(db)
 
-	_, err := repo.StartCrawlerRun(context.Background(), "crawler_source_1", CrawlerPolicy{
+	_, err := repo.StartCrawlerRun(context.Background(), "tenant_1", "crawler_source_1", CrawlerPolicy{
 		Enabled:          true,
 		UserAgent:        "ZenArtStage0Bot/0.1",
 		GlobalRPS:        0.2,
@@ -1738,8 +1885,14 @@ func assign(dest any, value any) {
 			*ptr = nil
 			return
 		}
-		v := value.(string)
-		*ptr = &v
+		switch v := value.(type) {
+		case string:
+			*ptr = &v
+		case *string:
+			*ptr = v
+		default:
+			panic("unsupported nullable string scan value")
+		}
 	case *[]byte:
 		if value == nil {
 			*ptr = nil

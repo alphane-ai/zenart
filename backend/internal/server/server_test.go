@@ -487,6 +487,117 @@ func TestAdminCrawlerStartRunReturnsPolicyBlock(t *testing.T) {
 	}
 }
 
+func TestAdminCrawlerSourcesUsesPrincipalTenant(t *testing.T) {
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	now := time.Date(2026, 5, 27, 8, 0, 0, 0, time.UTC)
+	tenantID := "tenant_1"
+	db := &fakeStage0DB{queryRows: []stage0RowSet{{rows: [][]any{{
+		"crawler_source_1",
+		&tenantID,
+		"Tenant Source",
+		"https://example.com/docs",
+		"approved",
+		[]byte(`{"license":"permissive","owner":"Example"}`),
+		[]byte(`{"robots":"allowed"}`),
+		now,
+		now,
+	}}}}}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/admin/v1/crawler/sources?tenant_id=tenant_2&status=approved&page_size=25", nil)
+	req = req.WithContext(stage0.ContextWithService(req.Context(), stage0.NewService(stage0.NewRepository(db), nil)))
+	req.Header.Set("X-Zenart-User-ID", "admin_viewer_1")
+	req.Header.Set("X-Zenart-Tenant-ID", "tenant_1")
+	req.Header.Set("X-Zenart-Roles", "admin_viewer")
+	rec := httptest.NewRecorder()
+
+	New(cfg, nil).Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d: %s", rec.Code, http.StatusOK, rec.Body.String())
+	}
+	query := db.queries[0]
+	if query.args[0] != "tenant_1" || query.args[1] != 25 || query.args[2] != "approved" {
+		t.Fatalf("query args = %#v, want principal tenant tenant_1, limit 25, status approved", query.args)
+	}
+}
+
+func TestAdminCrawlerFindingsUsesPrincipalTenant(t *testing.T) {
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	now := time.Date(2026, 5, 27, 8, 0, 0, 0, time.UTC)
+	tenantID := "tenant_1"
+	db := &fakeStage0DB{queryRows: []stage0RowSet{{rows: [][]any{{
+		"crawler_finding_1",
+		&tenantID,
+		"crawler_doc_1",
+		"layout_pattern",
+		"pending_review",
+		[]byte(`{"kind":"grid"}`),
+		[]byte(`{"source_url":"https://example.com/docs"}`),
+		now,
+	}}}}}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/admin/v1/crawler/findings?tenant_id=tenant_2&status=pending_review&page_size=25", nil)
+	req = req.WithContext(stage0.ContextWithService(req.Context(), stage0.NewService(stage0.NewRepository(db), nil)))
+	req.Header.Set("X-Zenart-User-ID", "admin_viewer_1")
+	req.Header.Set("X-Zenart-Tenant-ID", "tenant_1")
+	req.Header.Set("X-Zenart-Roles", "admin_viewer")
+	rec := httptest.NewRecorder()
+
+	New(cfg, nil).Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d: %s", rec.Code, http.StatusOK, rec.Body.String())
+	}
+	query := db.queries[0]
+	if query.args[0] != "tenant_1" || query.args[1] != 25 || query.args[2] != "pending_review" {
+		t.Fatalf("query args = %#v, want principal tenant tenant_1, limit 25, status pending_review", query.args)
+	}
+}
+
+func TestAdminSafetyRulesUsesPrincipalTenant(t *testing.T) {
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	now := time.Date(2026, 5, 27, 8, 0, 0, 0, time.UTC)
+	tenantID := "tenant_1"
+	db := &fakeStage0DB{queryRows: []stage0RowSet{{rows: [][]any{{
+		"safety_rule_1",
+		&tenantID,
+		"export_block",
+		"1",
+		"exports",
+		"critical",
+		"block",
+		[]byte(`["export"]`),
+		"active",
+		now,
+	}}}}}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/admin/v1/safety/rules?tenant_id=tenant_2&status=active&page_size=25", nil)
+	req = req.WithContext(stage0.ContextWithService(req.Context(), stage0.NewService(stage0.NewRepository(db), nil)))
+	req.Header.Set("X-Zenart-User-ID", "admin_viewer_1")
+	req.Header.Set("X-Zenart-Tenant-ID", "tenant_1")
+	req.Header.Set("X-Zenart-Roles", "admin_viewer")
+	rec := httptest.NewRecorder()
+
+	New(cfg, nil).Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d: %s", rec.Code, http.StatusOK, rec.Body.String())
+	}
+	query := db.queries[0]
+	if query.args[0] != "tenant_1" || query.args[1] != 25 || query.args[2] != "active" {
+		t.Fatalf("query args = %#v, want principal tenant tenant_1, limit 25, status active", query.args)
+	}
+}
+
 func TestAdminAnalyticsEventsRequiresAdminViewer(t *testing.T) {
 	cfg, err := config.Load()
 	if err != nil {
@@ -1129,6 +1240,19 @@ func assignScan(dest any, value any) {
 	switch ptr := dest.(type) {
 	case *string:
 		*ptr = value.(string)
+	case **string:
+		if value == nil {
+			*ptr = nil
+			return
+		}
+		switch v := value.(type) {
+		case string:
+			*ptr = &v
+		case *string:
+			*ptr = v
+		default:
+			panic("unsupported nullable string scan value")
+		}
 	case *[]byte:
 		*ptr = value.([]byte)
 	case *[]string:

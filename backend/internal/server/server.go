@@ -435,12 +435,13 @@ func (s *Server) regenerateExport(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) listCrawlerSources(w http.ResponseWriter, r *http.Request) {
+	principal, _ := PrincipalFromContext(r.Context())
 	repo, ok := stage0RepoFrom(r)
 	if !ok {
 		writeError(w, r, http.StatusNotImplemented, "crawler_service_not_connected", "crawler storage is not connected yet", nil)
 		return
 	}
-	page, err := repo.ListCrawlerSources(r.Context(), r.URL.Query().Get("status"), pageSize(r))
+	page, err := repo.ListCrawlerSources(r.Context(), principal.TenantID, r.URL.Query().Get("status"), pageSize(r))
 	if err != nil {
 		writeStage0Error(w, r, err)
 		return
@@ -449,12 +450,13 @@ func (s *Server) listCrawlerSources(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) listCrawlerFindings(w http.ResponseWriter, r *http.Request) {
+	principal, _ := PrincipalFromContext(r.Context())
 	repo, ok := stage0RepoFrom(r)
 	if !ok {
 		writeError(w, r, http.StatusNotImplemented, "crawler_service_not_connected", "crawler storage is not connected yet", nil)
 		return
 	}
-	page, err := repo.ListCrawlerFindings(r.Context(), r.URL.Query().Get("status"), pageSize(r))
+	page, err := repo.ListCrawlerFindings(r.Context(), principal.TenantID, r.URL.Query().Get("status"), pageSize(r))
 	if err != nil {
 		writeStage0Error(w, r, err)
 		return
@@ -463,12 +465,13 @@ func (s *Server) listCrawlerFindings(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) startCrawlerRun(w http.ResponseWriter, r *http.Request) {
+	principal, _ := PrincipalFromContext(r.Context())
 	repo, ok := stage0RepoFrom(r)
 	if !ok {
 		writeError(w, r, http.StatusNotImplemented, "crawler_service_not_connected", "crawler storage is not connected yet", nil)
 		return
 	}
-	run, err := repo.StartCrawlerRun(r.Context(), r.PathValue("id"), stage0.CrawlerPolicy{
+	run, err := repo.StartCrawlerRun(r.Context(), principal.TenantID, r.PathValue("id"), stage0.CrawlerPolicy{
 		Enabled:          s.cfg.Crawler.Enabled,
 		UserAgent:        s.cfg.Crawler.UserAgent,
 		GlobalRPS:        s.cfg.Crawler.GlobalRPS,
@@ -484,12 +487,13 @@ func (s *Server) startCrawlerRun(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) listSafetyRules(w http.ResponseWriter, r *http.Request) {
+	principal, _ := PrincipalFromContext(r.Context())
 	repo, ok := stage0RepoFrom(r)
 	if !ok {
 		writeError(w, r, http.StatusNotImplemented, "safety_service_not_connected", "safety rule storage is not connected yet", nil)
 		return
 	}
-	page, err := repo.ListSafetyRules(r.Context(), r.URL.Query().Get("status"), pageSize(r))
+	page, err := repo.ListSafetyRules(r.Context(), principal.TenantID, r.URL.Query().Get("status"), pageSize(r))
 	if err != nil {
 		writeStage0Error(w, r, err)
 		return
