@@ -130,7 +130,7 @@ export class ZenArtApiClient {
       headers["Idempotency-Key"] = options.idempotencyKey;
     }
 
-    const url = new URL(this.interpolate(operation.path, options.pathParams), this.baseUrl || "http://localhost");
+    const url = this.buildRequestUrl(this.interpolate(operation.path, options.pathParams));
     for (const [key, value] of Object.entries(options.query ?? {})) {
       if (value !== undefined) {
         url.searchParams.set(key, String(value));
@@ -141,7 +141,7 @@ export class ZenArtApiClient {
       headers["Content-Type"] = headers["Content-Type"] ?? "application/json";
     }
 
-    const response = await fetch(this.baseUrl ? url.toString() : `${url.pathname}${url.search}`, {
+    const response = await fetch(this.serializeRequestUrl(url), {
       method: operation.method,
       credentials: defaultSameSiteCsrfContract.credentialMode,
       headers: buildCsrfRequestHeaders(operation.method, headers),
@@ -170,8 +170,36 @@ export class ZenArtApiClient {
     });
   }
 
+  private buildRequestUrl(path: string): URL {
+    if (!this.baseUrl) {
+      return new URL(path, "http://localhost");
+    }
+
+    if (this.baseUrl.startsWith("/")) {
+      return new URL(`${this.baseUrl.replace(/\/$/, "")}${path}`, "http://localhost");
+    }
+
+    return new URL(path, this.baseUrl);
+  }
+
+  private serializeRequestUrl(url: URL): string {
+    if (!this.baseUrl || this.baseUrl.startsWith("/")) {
+      return `${url.pathname}${url.search}`;
+    }
+
+    return url.toString();
+  }
+
   private assertSameSiteBaseUrl(baseUrl: string) {
-    if (!baseUrl || baseUrl.startsWith("/")) {
+    if (!baseUrl) {
+      return;
+    }
+
+    if (baseUrl.startsWith("//")) {
+      throw new Error("ZenArtApiClient baseUrl must not be protocol-relative for same-site CSRF protection");
+    }
+
+    if (baseUrl.startsWith("/")) {
       return;
     }
 

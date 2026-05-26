@@ -161,6 +161,32 @@ describe("generated web API client CSRF contract", () => {
     expect(() => new ZenArtApiClient("https://api.example.invalid")).toThrow(
       "ZenArtApiClient baseUrl must be same-origin for same-site CSRF protection"
     );
+    expect(() => new ZenArtApiClient("//api.example.invalid")).toThrow(
+      "ZenArtApiClient baseUrl must not be protocol-relative for same-site CSRF protection"
+    );
+  });
+
+  it("keeps slash-relative API bases same-origin without serializing an absolute origin", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ id: "session-001" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" }
+      })
+    );
+    const client = new ZenArtApiClient("/api");
+
+    await client.request("getProject", {
+      pathParams: { project_id: "project-001" },
+      query: { include_archived: false }
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/projects/project-001?include_archived=false",
+      expect.objectContaining({
+        method: "GET",
+        credentials: defaultSameSiteCsrfContract.credentialMode
+      })
+    );
   });
 
   it("rejects path parameters that could escape generated API route templates", async () => {
