@@ -1979,8 +1979,25 @@ main 合并前必须通过：
 - [ ] CI installed workflow runtime evidence 通过：PR/main run、Playwright smoke、Docker image build 均有 validator-resolvable evidence。
 - [x] Backfill Private Beta/Staging no-go evidence: contract/fixture evidence is separated from external-user staging runtime blockers in `fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json`。
 - [ ] Private Beta/Staging external-user runtime evidence 通过：auth/RBAC/tenant、storage、quota/rate limit、support/abuse、safety/QA/crawler、observability/backup/load、legal visibility 均有 staging evidence。
+- [ ] Private Beta/Staging auth/RBAC/tenant/audit runtime evidence 通过。
+- [ ] Private Beta/Staging brief/upload/confirmation runtime evidence 通过。
+- [ ] Private Beta/Staging object storage signed download/retention runtime evidence 通过。
+- [ ] Private Beta/Staging quota/rate-limit/spend-cap runtime evidence 通过。
+- [ ] Private Beta/Staging support/retry/abuse runtime evidence 通过。
+- [ ] Private Beta/Staging eval/QA/safety enforcement runtime evidence 通过。
+- [ ] Private Beta/Staging crawler approval/provenance runtime evidence 通过。
+- [ ] Private Beta/Staging observability/backup/load runtime evidence 通过。
+- [ ] Private Beta/Staging legal/support external-user visibility runtime evidence 通过。
 - [x] Backfill Production Launch no-go evidence: provider/billing/skill/activation/abuse/security/backup/legal blockers remain active in `fixtures/stage0/rev2/release_gate_evidence.production_launch.json`。
 - [ ] Production Launch runtime/deployment evidence 通过：provider-or-comp-only、paid lifecycle、skill canary、activation audit、abuse hold、security、backup/rollback/post-deploy smoke、legal/support policy 均有 production evidence。
+- [ ] Production provider-or-comp-only runtime/deployment evidence 通过。
+- [ ] Production paid billing lifecycle runtime/deployment evidence 通过。
+- [ ] Production skill release/eval/canary runtime/deployment evidence 通过。
+- [ ] Production activation review/audit runtime/deployment evidence 通过。
+- [ ] Production abuse throttle/hold runtime/deployment evidence 通过。
+- [ ] Production security launch-check runtime/deployment evidence 通过。
+- [ ] Production backup/rollback/incident/post-deploy smoke runtime/deployment evidence 通过。
+- [ ] Production legal/support policy deployment evidence 通过。
 - [ ] Staging post-deploy smoke tests 通过。
 - [ ] Production post-deploy smoke tests 通过。
 
@@ -2000,6 +2017,8 @@ Release gate closure policy:
 - Definition-only artifacts can close checklist subitems only when the corresponding runtime subitem remains open.
 - Fixture or contract evidence can never close CI, Private Beta/Staging, Production Launch, or Do-Not-Launch checklist items by itself; those gates require runtime or deployment evidence in their matching release gate fixture.
 - Runtime gate checks that pass must cite environment-specific evidence paths, not only schema, fixture, draft, README, blueprint, or contract artifacts.
+- Private Beta/Staging check-level runtime subitems must remain open until each matching release gate check has staging evidence: auth/RBAC/tenant/audit; brief/upload/confirmation; object storage signed downloads/retention; quota/rate-limit/spend-cap; support/retry/abuse; eval/QA/safety; crawler approval/provenance; observability/backup/load; legal/support external-user visibility.
+- Production check-level runtime subitems must remain open until each matching release gate check has production evidence: provider-or-comp-only; paid billing lifecycle; skill release/eval/canary; activation review/audit; abuse throttle/hold; security launch checks; backup/rollback/incident/post-deploy smoke; legal/support policy deployment.
 - Runtime pass evidence must be gate-specific: Local Alpha workflow smoke evidence under `ops/evidence/local_alpha/` or `ops/evidence/local/`, CI installed workflow/run evidence under `.github/workflows/` plus `ops/evidence/ci/`, staging evidence under `ops/evidence/staging/`, and production launch evidence under `ops/evidence/production/`. Source files, schemas, fixtures, README, or draft ops documents alone cannot close these runtime checks.
 - Local Alpha remains open until four workflow API/Playwright smokes prove brief -> 4 candidates -> select -> iterate -> package -> export ZIP against the running local stack.
 - CI remains open until an installed `.github/workflows` PR/main workflow runs and records Playwright smoke plus Docker image build evidence.

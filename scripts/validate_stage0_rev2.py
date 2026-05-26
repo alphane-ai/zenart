@@ -317,72 +317,134 @@ RUNTIME_PASS_REQUIREMENTS = {
     },
     ("private_beta_staging", "staging_auth_rbac_tenant_audit"): {
         "path_patterns": (r"ops/evidence/staging/",),
-        "tokens": ("staging",),
+        "tokens": ("staging", "auth", "rbac", "tenant", "audit"),
     },
     ("private_beta_staging", "staging_brief_upload_confirmation"): {
         "path_patterns": (r"ops/evidence/staging/",),
-        "tokens": ("staging",),
+        "tokens": ("staging", "brief", "upload", "confirmation"),
     },
     ("private_beta_staging", "staging_object_storage_signed_downloads"): {
         "path_patterns": (r"ops/evidence/staging/",),
-        "tokens": ("staging",),
+        "tokens": ("staging", "object storage", "signed", "download", "retention", "cross-tenant"),
     },
     ("private_beta_staging", "staging_quota_rate_limit_spend_cap"): {
         "path_patterns": (r"ops/evidence/staging/",),
-        "tokens": ("staging",),
+        "tokens": ("staging", "quota", "rate limit", "spend cap"),
     },
     ("private_beta_staging", "staging_support_retry_abuse_ops"): {
         "path_patterns": (r"ops/evidence/staging/",),
-        "tokens": ("staging",),
+        "tokens": ("staging", "support", "retry", "abuse"),
     },
     ("private_beta_staging", "staging_eval_qa_safety_runtime"): {
         "path_patterns": (r"ops/evidence/staging/",),
-        "tokens": ("staging",),
+        "tokens": ("staging", "eval", "qa", "safety", "brief", "provider request", "provider response", "export"),
     },
     ("private_beta_staging", "staging_crawler_approval_provenance"): {
         "path_patterns": (r"ops/evidence/staging/",),
-        "tokens": ("staging",),
+        "tokens": ("staging", "crawler", "approval", "provenance", "robots", "ssrf", "blocklist"),
     },
     ("private_beta_staging", "staging_observability_backup_load"): {
         "path_patterns": (r"ops/evidence/staging/",),
-        "tokens": ("staging",),
+        "tokens": ("staging", "logs", "metrics", "traces", "alerts", "dashboard", "backup", "restore", "load"),
     },
     ("private_beta_staging", "staging_legal_external_user_pages"): {
         "path_patterns": (r"ops/evidence/staging/",),
-        "tokens": ("staging",),
+        "tokens": ("staging", "external user", "terms", "privacy", "acceptable use", "support", "ai/content", "ip complaint"),
     },
     ("production_launch", "production_provider_or_comp_only_mode"): {
         "path_patterns": (r"ops/evidence/production/",),
-        "tokens": ("production",),
+        "tokens": ("production", "provider", "real", "cost", "monitoring", "comp-only"),
     },
     ("production_launch", "production_paid_billing_lifecycle"): {
         "path_patterns": (r"ops/evidence/production/",),
-        "tokens": ("production",),
+        "tokens": ("production", "checkout", "subscription", "cancellation", "past_due", "quota reset", "webhook"),
     },
     ("production_launch", "production_skill_release_eval_canary"): {
         "path_patterns": (r"ops/evidence/production/",),
-        "tokens": ("production",),
+        "tokens": ("production", "skill", "eval", "canary", "release notes", "rollback"),
     },
     ("production_launch", "production_activation_review_audit"): {
         "path_patterns": (r"ops/evidence/production/",),
-        "tokens": ("production",),
+        "tokens": ("production", "activation", "eval", "review", "audit"),
     },
     ("production_launch", "production_abuse_throttle_hold"): {
         "path_patterns": (r"ops/evidence/production/",),
-        "tokens": ("production",),
+        "tokens": ("production", "abuse", "throttle", "hold"),
     },
     ("production_launch", "production_security_launch_checks"): {
         "path_patterns": (r"ops/evidence/production/",),
-        "tokens": ("production",),
+        "tokens": ("production", "security", "tenant isolation", "admin rbac", "signed url", "csrf", "secret"),
     },
     ("production_launch", "production_backup_rollback_incident"): {
         "path_patterns": (r"ops/evidence/production/",),
-        "tokens": ("production",),
+        "tokens": ("production", "backup", "restore", "rollback", "incident", "post-deploy smoke"),
     },
     ("production_launch", "production_legal_support_policy"): {
         "path_patterns": (r"ops/evidence/production/",),
-        "tokens": ("production",),
+        "tokens": ("production", "terms", "privacy", "acceptable use", "support", "ai/content", "ip complaint"),
     },
+}
+
+PRIVATE_BETA_STAGING_RUNTIME_OPEN_CHECK_ITEMS = {
+    "Private Beta/Staging auth/RBAC/tenant/audit runtime evidence 通过。": {
+        "staging_auth_rbac_tenant_audit",
+    },
+    "Private Beta/Staging brief/upload/confirmation runtime evidence 通过。": {
+        "staging_brief_upload_confirmation",
+    },
+    "Private Beta/Staging object storage signed download/retention runtime evidence 通过。": {
+        "staging_object_storage_signed_downloads",
+    },
+    "Private Beta/Staging quota/rate-limit/spend-cap runtime evidence 通过。": {
+        "staging_quota_rate_limit_spend_cap",
+    },
+    "Private Beta/Staging support/retry/abuse runtime evidence 通过。": {
+        "staging_support_retry_abuse_ops",
+    },
+    "Private Beta/Staging eval/QA/safety enforcement runtime evidence 通过。": {
+        "staging_eval_qa_safety_runtime",
+    },
+    "Private Beta/Staging crawler approval/provenance runtime evidence 通过。": {
+        "staging_crawler_approval_provenance",
+    },
+    "Private Beta/Staging observability/backup/load runtime evidence 通过。": {
+        "staging_observability_backup_load",
+    },
+    "Private Beta/Staging legal/support external-user visibility runtime evidence 通过。": {
+        "staging_legal_external_user_pages",
+    },
+}
+
+PRODUCTION_RUNTIME_OPEN_CHECK_ITEMS = {
+    "Production provider-or-comp-only runtime/deployment evidence 通过。": {
+        "production_provider_or_comp_only_mode",
+    },
+    "Production paid billing lifecycle runtime/deployment evidence 通过。": {
+        "production_paid_billing_lifecycle",
+    },
+    "Production skill release/eval/canary runtime/deployment evidence 通过。": {
+        "production_skill_release_eval_canary",
+    },
+    "Production activation review/audit runtime/deployment evidence 通过。": {
+        "production_activation_review_audit",
+    },
+    "Production abuse throttle/hold runtime/deployment evidence 通过。": {
+        "production_abuse_throttle_hold",
+    },
+    "Production security launch-check runtime/deployment evidence 通过。": {
+        "production_security_launch_checks",
+    },
+    "Production backup/rollback/incident/post-deploy smoke runtime/deployment evidence 通过。": {
+        "production_backup_rollback_incident",
+    },
+    "Production legal/support policy deployment evidence 通过。": {
+        "production_legal_support_policy",
+    },
+}
+
+RELEASE_GATE_CHECK_LEVEL_RUNTIME_OPEN_ITEMS = {
+    **PRIVATE_BETA_STAGING_RUNTIME_OPEN_CHECK_ITEMS,
+    **PRODUCTION_RUNTIME_OPEN_CHECK_ITEMS,
 }
 
 DO_NOT_LAUNCH_CONDITION_COVERAGE = {
@@ -725,6 +787,7 @@ REQUIRED_OPEN_ITEMS = {
     "Staging post-deploy smoke tests 通过。",
     "Production post-deploy smoke tests 通过。",
 }
+REQUIRED_OPEN_ITEMS |= RELEASE_GATE_CHECK_LEVEL_RUNTIME_OPEN_ITEMS.keys()
 
 CRAWLER_GOVERNANCE_SPLIT_ITEMS = {
     "source_approval": {
@@ -1351,19 +1414,35 @@ def validate_runtime_gate_evidence_refs(
         relevant_runtime_open = {
             "Private Beta/Staging external-user runtime evidence 通过：auth/RBAC/tenant、storage、quota/rate limit、support/abuse、safety/QA/crawler、observability/backup/load、legal visibility 均有 staging evidence。"
         } & runtime_items_open
+        relevant_runtime_open |= set(PRIVATE_BETA_STAGING_RUNTIME_OPEN_CHECK_ITEMS) & unchecked_lines
     elif gate == "production_launch":
         relevant_runtime_open = {
             "Production Launch runtime/deployment evidence 通过：provider-or-comp-only、paid lifecycle、skill canary、activation audit、abuse hold、security、backup/rollback/post-deploy smoke、legal/support policy 均有 production evidence。"
         } & runtime_items_open
+        relevant_runtime_open |= set(PRODUCTION_RUNTIME_OPEN_CHECK_ITEMS) & unchecked_lines
     else:
         relevant_runtime_open = set()
 
     if relevant_runtime_open:
+        check_level_guard_map = (
+            PRIVATE_BETA_STAGING_RUNTIME_OPEN_CHECK_ITEMS
+            if gate == "private_beta_staging"
+            else PRODUCTION_RUNTIME_OPEN_CHECK_ITEMS
+            if gate == "production_launch"
+            else {}
+        )
         for check_id in runtime_check_ids:
+            specific_open_items = [
+                item
+                for item in relevant_runtime_open
+                if check_id in check_level_guard_map.get(item, runtime_check_ids)
+            ]
+            if not specific_open_items:
+                continue
             require(
                 checks[check_id]["status"] != "pass",
                 f"{gate}.{check_id} cannot pass while runtime evidence checklist item remains open: "
-                + json.dumps(sorted(relevant_runtime_open), ensure_ascii=False),
+                + json.dumps(sorted(specific_open_items), ensure_ascii=False),
             )
 
 
@@ -2991,6 +3070,12 @@ def validate_launch_readiness_split_contracts() -> None:
             split["runtime_item"] in checked_lines,
             f"blueprint must close crawler governance runtime subitem after implementation evidence {split_id}: {split['runtime_item']}",
         )
+    private_beta = load_json(FIXTURE_DIR / "release_gate_evidence.private_beta_staging.json")
+    staging_crawler_check = checks_by_id(private_beta)["staging_crawler_approval_provenance"]
+    require(
+        staging_crawler_check["status"] != "pass",
+        "Private Beta/Staging crawler release gate must remain blocked until staging crawler runtime evidence exists",
+    )
 
     for ambiguous in [
         "实现 robots evidence。",
@@ -3032,7 +3117,7 @@ def validate_launch_readiness_split_contracts() -> None:
         "staging backend/worker/crawler metrics runtime evidence 通过。",
         "Staging post-deploy smoke tests 通过。",
         "Production post-deploy smoke tests 通过。",
-    ] + sorted(RELEASE_GATE_RUNTIME_OPEN_ITEMS):
+    ] + sorted(RELEASE_GATE_RUNTIME_OPEN_ITEMS) + sorted(RELEASE_GATE_CHECK_LEVEL_RUNTIME_OPEN_ITEMS):
         require(item in unchecked_lines, f"blueprint must keep runtime launch-readiness subitem open: {item}")
 
     for ambiguous in [
@@ -3048,6 +3133,8 @@ def validate_launch_readiness_split_contracts() -> None:
         "Post-deploy smoke tests 通过。",
         "Backfill release gate evidence。",
         "Runtime release gate evidence 通过。",
+        "Private Beta/Staging runtime evidence 通过。",
+        "Production runtime evidence 通过。",
     ]:
         require(
             ambiguous not in checked_lines and ambiguous not in unchecked_lines,
@@ -3057,6 +3144,8 @@ def validate_launch_readiness_split_contracts() -> None:
     for token in [
         "Fixture or contract evidence can never close CI, Private Beta/Staging, Production Launch, or Do-Not-Launch checklist items by itself",
         "Runtime gate checks that pass must cite environment-specific evidence paths",
+        "Private Beta/Staging check-level runtime subitems must remain open until each matching release gate check has staging evidence",
+        "Production check-level runtime subitems must remain open until each matching release gate check has production evidence",
         "Local Alpha remains open until four workflow API/Playwright smokes",
         "Do-Not-Launch Conditions 全部为 false。` remains open while any release-gate evidence fixture has `is_present: true`",
     ]:
