@@ -131,6 +131,24 @@ export interface ReferenceUploadIntegrationSmoke {
   >;
 }
 
+export interface ReferenceUploadValidationMatrixEvidence {
+  schema_version: "stage0.rev2.reference-upload-validation-matrix";
+  status: "pass" | "fail";
+  scenario: "safe-image-document-https-url-reject-unsupported";
+  acceptedKinds: ReferenceAsset["kind"][];
+  acceptedSampleNames: string[];
+  rejectedSampleNames: string[];
+  expectedAcceptedKinds: ReferenceAsset["kind"][];
+  expectedRejectedCount: number;
+  failures: Array<
+    | "image-acceptance"
+    | "document-acceptance"
+    | "url-acceptance"
+    | "unsupported-rejection"
+    | "unexpected-rejection"
+  >;
+}
+
 export interface BriefUploadConfirmationRuntimeEvidence {
   schema_version: "stage0.rev2.brief-upload-confirmation-runtime-evidence";
   status: "pass" | "fail";

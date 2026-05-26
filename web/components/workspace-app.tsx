@@ -38,6 +38,7 @@ import {
   buildBriefUploadConfirmationRuntimeEvidence,
   buildEcommerceGrowthApiSmokeEvidence,
   buildReferenceUploadIntegrationSmoke,
+  buildReferenceUploadValidationMatrixEvidence,
   buildSupportProblemContext,
   buildWorkspaceRenderingPerformanceSmoke
 } from "@/lib/dev-state";
@@ -486,6 +487,7 @@ function WorkspaceView({
   );
   const renderingSmoke = buildWorkspaceRenderingPerformanceSmoke(state);
   const referenceIntegrationSmoke = buildReferenceUploadIntegrationSmoke(state);
+  const referenceValidationMatrix = buildReferenceUploadValidationMatrixEvidence();
   const briefUploadConfirmationEvidence = buildBriefUploadConfirmationRuntimeEvidence(state);
   const ecommerceApiSmoke = buildEcommerceGrowthApiSmokeEvidence(state);
   return (
@@ -568,6 +570,26 @@ function WorkspaceView({
             {briefUploadConfirmationEvidence.status} · {briefUploadConfirmationEvidence.acceptedReferenceCount} accepted references ·{" "}
             {briefUploadConfirmationEvidence.missingInfoCount} missing fields · {briefUploadConfirmationEvidence.apiOperationIds.length} user
             operations.
+          </span>
+        </div>
+        <div
+          className="reference-validation-matrix"
+          aria-label="Reference upload validation matrix"
+          data-reference-upload-validation-matrix={referenceValidationMatrix.schema_version}
+          data-reference-upload-validation-status={referenceValidationMatrix.status}
+          data-reference-upload-validation-scenario={referenceValidationMatrix.scenario}
+          data-reference-upload-validation-accepted-kinds={referenceValidationMatrix.acceptedKinds.join(",")}
+          data-reference-upload-validation-expected-kinds={referenceValidationMatrix.expectedAcceptedKinds.join(",")}
+          data-reference-upload-validation-accepted-samples={referenceValidationMatrix.acceptedSampleNames.join(",")}
+          data-reference-upload-validation-rejected-samples={referenceValidationMatrix.rejectedSampleNames.join(",")}
+          data-reference-upload-validation-rejected-count={referenceValidationMatrix.rejectedSampleNames.length}
+          data-reference-upload-validation-expected-rejected-count={referenceValidationMatrix.expectedRejectedCount}
+          data-reference-upload-validation-failures={referenceValidationMatrix.failures.join(",")}
+        >
+          <strong>Reference validation</strong>
+          <span>
+            {referenceValidationMatrix.status} · accepts {referenceValidationMatrix.acceptedKinds.join(", ")} · rejects unsupported files and
+            non-HTTPS URLs.
           </span>
         </div>
         <div

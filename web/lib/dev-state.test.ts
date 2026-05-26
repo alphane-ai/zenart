@@ -6,6 +6,7 @@ import {
   buildEcommerceGrowthApiSmokeEvidence,
   buildPackageExportMetadataEvidence,
   buildReferenceUploadIntegrationSmoke,
+  buildReferenceUploadValidationMatrixEvidence,
   buildSupportProblemContext,
   buildWorkspaceRenderingPerformanceSmoke,
   createDisabledShareLink,
@@ -451,6 +452,24 @@ describe("dev workspace contracts", () => {
       readyExportCount: 1,
       provenanceCount: 3,
       pptAssetGridSlideCount: 3,
+      failures: []
+    });
+  });
+
+  it("summarizes reference upload validation matrix evidence for safe and unsupported inputs", () => {
+    expect(buildReferenceUploadValidationMatrixEvidence()).toEqual({
+      schema_version: "stage0.rev2.reference-upload-validation-matrix",
+      status: "pass",
+      scenario: "safe-image-document-https-url-reject-unsupported",
+      acceptedKinds: ["image", "document", "url"],
+      acceptedSampleNames: [
+        "accepted-product-angle.webp",
+        "launch-brief.pdf",
+        "https://assets.example.com/reference-pack"
+      ],
+      rejectedSampleNames: ["unsafe-reference.exe", "http://assets.example.com/reference-pack"],
+      expectedAcceptedKinds: ["image", "document", "url"],
+      expectedRejectedCount: 2,
       failures: []
     });
   });

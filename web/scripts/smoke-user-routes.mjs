@@ -13,6 +13,7 @@ const legalPoliciesPath = path.join(root, "lib", "legal-policies.ts");
 const telemetryPath = path.join(root, "lib", "telemetry.ts");
 const requestSecurityPath = path.join(root, "lib", "request-security.ts");
 const generatedApiPath = path.join(root, "lib", "generated", "zenart-api.ts");
+const devStatePath = path.join(root, "lib", "dev-state.ts");
 
 const fail = (message) => {
   console.error(`user route smoke failed: ${message}`);
@@ -26,6 +27,7 @@ const legalPoliciesSource = await readFile(legalPoliciesPath, "utf8");
 const telemetrySource = await readFile(telemetryPath, "utf8");
 const requestSecuritySource = await readFile(requestSecurityPath, "utf8");
 const generatedApiSource = await readFile(generatedApiPath, "utf8");
+const devStateSource = await readFile(devStatePath, "utf8");
 const generatedApiCsrfContract = JSON.parse(await readFile(generatedApiCsrfContractPath, "utf8"));
 const expectedViews = new Set(["workspace", "projects", "export", "billing", "account", "support"]);
 const seenViews = new Set();
@@ -56,6 +58,7 @@ const requireSecurityEvidence = (schemaVersion) => {
 const sessionEvidence = requireSecurityEvidence("stage0.rev2.session-csrf-client-evidence");
 const generatedCsrfEvidence = requireSecurityEvidence("stage0.rev2.generated-api-csrf-contract");
 const renderingEvidence = requireSecurityEvidence("stage0.rev2.workspace-rendering-performance");
+const referenceValidationEvidence = requireSecurityEvidence("stage0.rev2.reference-upload-validation-matrix");
 const referenceUploadEvidence = requireSecurityEvidence("stage0.rev2.reference-upload-integration-smoke");
 const briefUploadConfirmationEvidence = requireSecurityEvidence("stage0.rev2.brief-upload-confirmation-runtime-evidence");
 const packageExportEvidence = requireSecurityEvidence("stage0.rev2.package-export-metadata-ui");
@@ -151,6 +154,28 @@ for (const attribute of renderingEvidence.budgetAttributes ?? []) {
 }
 if (renderingEvidence.expectedFailureCount !== "0") {
   fail("workspace rendering evidence must assert zero failures");
+}
+
+if (
+  referenceValidationEvidence.expectedStatus !== "pass" ||
+  referenceValidationEvidence.scenario !== "safe-image-document-https-url-reject-unsupported" ||
+  referenceValidationEvidence.expectedRejectedCount !== "2" ||
+  JSON.stringify(referenceValidationEvidence.expectedAcceptedKinds) !== JSON.stringify(["image", "document", "url"])
+) {
+  fail("reference upload validation matrix must assert safe image, PDF, HTTPS URL acceptance and unsupported input rejection");
+}
+for (const attribute of referenceValidationEvidence.requiredAttributes ?? []) {
+  if (!componentSource.includes(attribute)) {
+    fail(`reference upload validation matrix missing attribute ${attribute}`);
+  }
+}
+for (const sample of [
+  ...(referenceValidationEvidence.requiredAcceptedSamples ?? []),
+  ...(referenceValidationEvidence.requiredRejectedSamples ?? [])
+]) {
+  if (!componentSource.includes(sample) && !devStateSource.includes(sample) && !JSON.stringify(artifact).includes(sample)) {
+    fail(`reference upload validation matrix missing sample ${sample}`);
+  }
 }
 
 for (const attribute of referenceUploadEvidence.requiredAttributes ?? []) {
@@ -510,6 +535,7 @@ for (const expectedPolicy of [
 
 for (const expectedCapability of [
   "reference-validation",
+  "reference-upload-validation-matrix",
   "brief-upload-confirmation-runtime-evidence",
   "reference-upload-export-contract",
   "workspace-rendering-performance-smoke",
@@ -537,6 +563,7 @@ for (const expectedCapability of [
 
 for (const expectedIntegration of [
   "reference-upload-to-ready-zip-export",
+  "safe-image-document-https-url-reject-unsupported",
   "brief-upload-confirmation-runtime-evidence",
   "reference-upload-zip-provenance-ppt-asset-grid",
   "ecommerce-growth-pack-api-smoke",
@@ -591,6 +618,27 @@ for (const expectedDownloadSmokeSnippet of [
   }
 }
 
+for (const expectedReferenceValidationSnippet of [
+  "buildReferenceUploadValidationMatrixEvidence",
+  "referenceUploadValidationSamples",
+  "stage0.rev2.reference-upload-validation-matrix",
+  "safe-image-document-https-url-reject-unsupported",
+  "accepted-product-angle.webp",
+  "launch-brief.pdf",
+  "https://assets.example.com/reference-pack",
+  "unsafe-reference.exe",
+  "http://assets.example.com/reference-pack",
+  "data-reference-upload-validation-matrix",
+  "data-reference-upload-validation-status",
+  "data-reference-upload-validation-accepted-kinds",
+  "data-reference-upload-validation-rejected-samples",
+  "data-reference-upload-validation-failures"
+]) {
+  if (!componentSource.includes(expectedReferenceValidationSnippet) && !devStateSource.includes(expectedReferenceValidationSnippet)) {
+    fail(`reference upload validation matrix source missing ${expectedReferenceValidationSnippet}`);
+  }
+}
+
 for (const expectedRenderingSnippet of [
   "buildWorkspaceRenderingPerformanceSmoke",
   "data-rendering-smoke",
@@ -622,8 +670,6 @@ for (const expectedRenderingSnippet of [
   }
 }
 
-const devStatePath = path.join(root, "lib", "dev-state.ts");
-const devStateSource = await readFile(devStatePath, "utf8");
 for (const expectedRenderingContract of [
   "workspaceRenderingPerformanceBudget",
   "maxNodes: 24",

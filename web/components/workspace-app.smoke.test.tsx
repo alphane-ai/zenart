@@ -54,6 +54,33 @@ describe("WorkspaceApp user route integration smoke", () => {
 
     await screen.findByRole("heading", { name: "Launch Direction Board" });
 
+    const referenceValidationMatrix = screen.getByLabelText("Reference upload validation matrix");
+    expect(referenceValidationMatrix).toHaveAttribute(
+      "data-reference-upload-validation-matrix",
+      "stage0.rev2.reference-upload-validation-matrix"
+    );
+    expect(referenceValidationMatrix).toHaveAttribute("data-reference-upload-validation-status", "pass");
+    expect(referenceValidationMatrix).toHaveAttribute(
+      "data-reference-upload-validation-scenario",
+      "safe-image-document-https-url-reject-unsupported"
+    );
+    expect(referenceValidationMatrix).toHaveAttribute("data-reference-upload-validation-accepted-kinds", "image,document,url");
+    expect(referenceValidationMatrix).toHaveAttribute("data-reference-upload-validation-expected-kinds", "image,document,url");
+    expect(referenceValidationMatrix).toHaveAttribute("data-reference-upload-validation-rejected-count", "2");
+    expect(referenceValidationMatrix).toHaveAttribute("data-reference-upload-validation-expected-rejected-count", "2");
+    expect(referenceValidationMatrix).toHaveAttribute("data-reference-upload-validation-failures", "");
+    expect(referenceValidationMatrix.getAttribute("data-reference-upload-validation-accepted-samples")).toContain(
+      "accepted-product-angle.webp"
+    );
+    expect(referenceValidationMatrix.getAttribute("data-reference-upload-validation-accepted-samples")).toContain("launch-brief.pdf");
+    expect(referenceValidationMatrix.getAttribute("data-reference-upload-validation-accepted-samples")).toContain(
+      "https://assets.example.com/reference-pack"
+    );
+    expect(referenceValidationMatrix.getAttribute("data-reference-upload-validation-rejected-samples")).toContain("unsafe-reference.exe");
+    expect(referenceValidationMatrix.getAttribute("data-reference-upload-validation-rejected-samples")).toContain(
+      "http://assets.example.com/reference-pack"
+    );
+
     const referenceName = screen.getByLabelText("Reference asset name or URL");
     fireEvent.change(referenceName, { target: { value: "campaign-reference.webp" } });
     fireEvent.click(screen.getByRole("button", { name: "Attach" }));

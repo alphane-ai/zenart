@@ -10,6 +10,7 @@ import {
   QaFinding,
   ReferenceAsset,
   ReferenceUploadIntegrationSmoke,
+  ReferenceUploadValidationMatrixEvidence,
   SafetyPolicyReport,
   SessionContract,
   SessionUser,
@@ -626,6 +627,51 @@ export const createReferenceAsset = (name: string, kind: ReferenceAsset["kind"])
     kind,
     status: validation.state === "accepted" ? "attached" : "queued",
     validation
+  };
+};
+
+export const referenceUploadValidationSamples = [
+  { name: "accepted-product-angle.webp", kind: "image" },
+  { name: "launch-brief.pdf", kind: "document" },
+  { name: "https://assets.example.com/reference-pack", kind: "url" },
+  { name: "unsafe-reference.exe", kind: "image" },
+  { name: "http://assets.example.com/reference-pack", kind: "url" }
+] satisfies Array<Pick<ReferenceAsset, "name" | "kind">>;
+
+export const buildReferenceUploadValidationMatrixEvidence = (): ReferenceUploadValidationMatrixEvidence => {
+  const sampleAssets = referenceUploadValidationSamples.map((sample) => createReferenceAsset(sample.name, sample.kind));
+  const acceptedSamples = sampleAssets.filter((asset) => asset.validation.state === "accepted");
+  const rejectedSamples = sampleAssets.filter((asset) => asset.validation.state === "rejected");
+  const acceptedKinds = Array.from(new Set(acceptedSamples.map((asset) => asset.kind)));
+  const expectedAcceptedKinds: ReferenceAsset["kind"][] = ["image", "document", "url"];
+  const failures: ReferenceUploadValidationMatrixEvidence["failures"] = [];
+
+  if (!acceptedSamples.some((asset) => asset.kind === "image" && asset.name.endsWith(".webp"))) {
+    failures.push("image-acceptance");
+  }
+  if (!acceptedSamples.some((asset) => asset.kind === "document" && asset.name.endsWith(".pdf"))) {
+    failures.push("document-acceptance");
+  }
+  if (!acceptedSamples.some((asset) => asset.kind === "url" && asset.name.startsWith("https://"))) {
+    failures.push("url-acceptance");
+  }
+  if (rejectedSamples.length !== 2) {
+    failures.push("unsupported-rejection");
+  }
+  if (acceptedSamples.length !== 3 || expectedAcceptedKinds.some((kind) => !acceptedKinds.includes(kind))) {
+    failures.push("unexpected-rejection");
+  }
+
+  return {
+    schema_version: "stage0.rev2.reference-upload-validation-matrix",
+    status: failures.length === 0 ? "pass" : "fail",
+    scenario: "safe-image-document-https-url-reject-unsupported",
+    acceptedKinds,
+    acceptedSampleNames: acceptedSamples.map((asset) => asset.name),
+    rejectedSampleNames: rejectedSamples.map((asset) => asset.name),
+    expectedAcceptedKinds,
+    expectedRejectedCount: 2,
+    failures
   };
 };
 
