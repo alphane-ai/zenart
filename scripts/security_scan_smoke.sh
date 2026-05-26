@@ -6,6 +6,8 @@ cd "$ROOT"
 
 DRY_RUN="${DRY_RUN:-0}"
 OUT_DIR="${OUT_DIR:-ops/evidence/security/local}"
+RELEASE_SHA="${RELEASE_SHA:-${GITHUB_SHA:-}}"
+EVIDENCE_ENVIRONMENT="${EVIDENCE_ENVIRONMENT:-${ENVIRONMENT:-local}}"
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 RUN_ID="${STAMP}-security-scan-smoke-$$"
 REPORT_PATH="$OUT_DIR/${RUN_ID}.json"
@@ -31,7 +33,7 @@ artifact_path() {
 write_report() {
   local status="$1"
   mkdir -p "$OUT_DIR"
-  python3 - "$REPORT_PATH" "$status" "$SECRET_FINDINGS" "$NPM_AUDIT_WEB" "$NPM_AUDIT_ADMIN" "$GO_VULN" "$TRIVY_IMAGE" "$IMAGE_SET" <<'PY'
+  python3 - "$REPORT_PATH" "$status" "$SECRET_FINDINGS" "$NPM_AUDIT_WEB" "$NPM_AUDIT_ADMIN" "$GO_VULN" "$TRIVY_IMAGE" "$IMAGE_SET" "$RELEASE_SHA" "$EVIDENCE_ENVIRONMENT" <<'PY'
 import json
 import sys
 from pathlib import Path
@@ -42,6 +44,8 @@ admin_audit = Path(sys.argv[5])
 govuln = Path(sys.argv[6])
 trivy = Path(sys.argv[7])
 images = [item for item in sys.argv[8].split() if item]
+release_sha = sys.argv[9]
+environment = sys.argv[10]
 
 def exists_nonempty(path: Path) -> bool:
     return path.exists() and path.stat().st_size > 0
@@ -49,7 +53,29 @@ def exists_nonempty(path: Path) -> bool:
 Path(sys.argv[1]).write_text(json.dumps({
     "blueprint_source": "Docs/stage0_blueprint_rev2.md",
     "created_by_lane": "lane5",
+    "created_at": Path(sys.argv[1]).name.split("-security-scan-smoke-")[0],
+    "run_id": Path(sys.argv[1]).stem,
+    "kind": "security_scan",
+    "environment": environment,
+    "release_sha": release_sha,
     "status": sys.argv[2],
+    "checks": [
+        {
+            "check_id": "dependency_scan",
+            "status": "passed" if sys.argv[2] == "passed" and (web_audit.exists() or admin_audit.exists() or govuln.exists()) else "open",
+            "evidence_refs": [str(web_audit), str(admin_audit), str(govuln)],
+        },
+        {
+            "check_id": "image_scan",
+            "status": "passed" if sys.argv[2] == "passed" and trivy.exists() and "trivy not installed" not in trivy.read_text(encoding="utf-8", errors="replace") else "open",
+            "evidence_refs": [str(trivy)],
+        },
+        {
+            "check_id": "secret_scan",
+            "status": "passed" if sys.argv[2] == "passed" and not exists_nonempty(secret_findings) else "open",
+            "evidence_refs": [str(secret_findings), "scripts/security_scan_smoke.sh"],
+        },
+    ],
     "scan_contract": {
         "dependency_scan": {
             "web_npm_audit": str(web_audit),

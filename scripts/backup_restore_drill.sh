@@ -5,6 +5,8 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
 DRILL_DIR="${DRILL_DIR:-ops/evidence/backup-restore/local}"
+RELEASE_SHA="${RELEASE_SHA:-${GITHUB_SHA:-}}"
+EVIDENCE_ENVIRONMENT="${EVIDENCE_ENVIRONMENT:-${ENVIRONMENT:-local}}"
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 OUT_DIR="$DRILL_DIR/$STAMP"
 mkdir -p "$OUT_DIR"
@@ -15,7 +17,7 @@ POSTGRES_DB="${POSTGRES_DB:-zenart}"
 POSTGRES_USER="${POSTGRES_USER:-zenart}"
 OBJECT_STORAGE_BUCKET="${OBJECT_STORAGE_BUCKET:-zenart-local}"
 DRY_RUN="${DRY_RUN:-0}"
-RUN_OBJECT_RESTORE_COPY="${RUN_OBJECT_RESTORE_COPY:-false}"
+RUN_OBJECT_RESTORE_COPY="${RUN_OBJECT_RESTORE_COPY:-true}"
 RESTORE_PREFIX="${RESTORE_PREFIX:-restore-drill-$STAMP}"
 SEED_EMPTY_OBJECT_BUCKET="${SEED_EMPTY_OBJECT_BUCKET:-true}"
 RESTORE_DB="${POSTGRES_RESTORE_DB:-zenart_restore_drill_$(printf '%s' "$STAMP" | tr '[:upper:]' '[:lower:]' | tr -cd 'a-z0-9_')}"
@@ -36,11 +38,22 @@ file_bytes() {
 
 write_report() {
   local status="$1"
+  local postgres_drill_status="open"
+  local object_drill_status="open"
+  if [[ "$status" == "passed" && "${POSTGRES_RESTORE_TABLES:-0}" =~ ^[0-9]+$ && "$POSTGRES_RESTORE_TABLES" -ge 1 ]]; then
+    postgres_drill_status="passed"
+  fi
+  if [[ "$status" == "passed" && "${RESTORED_OBJECT_COUNT:-0}" =~ ^[0-9]+$ && "$RESTORED_OBJECT_COUNT" -ge 1 ]]; then
+    object_drill_status="passed"
+  fi
   cat >"$OUT_DIR/report.json" <<JSON
 {
   "blueprint_source": "Docs/stage0_blueprint_rev2.md",
   "created_by_lane": "lane5",
   "created_at": "$STAMP",
+  "kind": "backup_restore",
+  "environment": "$EVIDENCE_ENVIRONMENT",
+  "release_sha": "$RELEASE_SHA",
   "status": "$status",
   "postgres_dump": "$OUT_DIR/postgres.dump",
   "postgres_dump_bytes": $POSTGRES_DUMP_BYTES,
@@ -56,6 +69,26 @@ write_report() {
   "seed_empty_object_bucket": "$SEED_EMPTY_OBJECT_BUCKET",
   "restore_prefix": "$RESTORE_PREFIX",
   "restored_object_count": $RESTORED_OBJECT_COUNT,
+  "drills": [
+    {
+      "drill_id": "postgres_restore",
+      "status": "$postgres_drill_status",
+      "evidence_refs": [
+        "$OUT_DIR/postgres.dump",
+        "$OUT_DIR/postgres.restore.list",
+        "$OUT_DIR/postgres.restore.verify.json"
+      ]
+    },
+    {
+      "drill_id": "object_restore",
+      "status": "$object_drill_status",
+      "evidence_refs": [
+        "$OUT_DIR/object-storage-manifest.txt",
+        "$OUT_DIR/object-restore-count.txt",
+        "$OUT_DIR/object-restore-verify-count.txt"
+      ]
+    }
+  ],
   "rpo_target": "24h for local alpha scaffold; staging/prod value must be tightened before launch",
   "rto_target": "4h for local alpha scaffold; staging/prod value must be tightened before launch",
   "production_gate": "open_until_automated_backups_pitr_and_isolated_staging_restore_pass"

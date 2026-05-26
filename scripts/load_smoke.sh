@@ -17,6 +17,116 @@ RUN_ID="${STAMP}-${LOAD_MODE}-$$"
 RESULTS_PATH="$OUT_DIR/${RUN_ID}.ndjson"
 REPORT_PATH="$OUT_DIR/${RUN_ID}.json"
 
+if [[ "$LOAD_MODE" == "all" ]]; then
+  ALL_MODES=(
+    chat_task
+    worker_generation
+    zip_export
+    signed_download
+    crawler_throttle
+    quota_contention
+    workspace_rendering
+  )
+  mkdir -p "$OUT_DIR"
+  reports=()
+  aggregate_status="passed"
+  for mode in "${ALL_MODES[@]}"; do
+    if LOAD_MODE="$mode" OUT_DIR="$OUT_DIR" BASE_URL="$BASE_URL" WEB_URL="$WEB_URL" ADMIN_URL="$ADMIN_URL" REQUESTS="$REQUESTS" CONCURRENCY="$CONCURRENCY" TIMEOUT_SECONDS="$TIMEOUT_SECONDS" RELEASE_SHA="$RELEASE_SHA" EVIDENCE_ENVIRONMENT="$EVIDENCE_ENVIRONMENT" DRY_RUN="$DRY_RUN" "$0"; then
+      report="$(ls -t "$OUT_DIR"/*-"$mode"-*.json 2>/dev/null | head -n 1 || true)"
+      if [[ -n "$report" ]]; then
+        reports+=("$report")
+      else
+        aggregate_status="failed"
+      fi
+    else
+      aggregate_status="failed"
+      report="$(ls -t "$OUT_DIR"/*-"$mode"-*.json 2>/dev/null | head -n 1 || true)"
+      if [[ -n "$report" ]]; then
+        reports+=("$report")
+      fi
+    fi
+  done
+  python3 - "$REPORT_PATH" "$aggregate_status" "$RELEASE_SHA" "$EVIDENCE_ENVIRONMENT" "$REQUESTS" "$CONCURRENCY" "${reports[@]}" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+report_path = Path(sys.argv[1])
+aggregate_status = sys.argv[2]
+release_sha = sys.argv[3]
+environment = sys.argv[4]
+requests = int(sys.argv[5])
+concurrency = int(sys.argv[6])
+report_refs = sys.argv[7:]
+required_modes = [
+    "chat_task",
+    "worker_generation",
+    "zip_export",
+    "signed_download",
+    "crawler_throttle",
+    "quota_contention",
+    "workspace_rendering",
+]
+reports = []
+for ref in report_refs:
+    path = Path(ref)
+    try:
+        reports.append(json.loads(path.read_text(encoding="utf-8")))
+    except (OSError, json.JSONDecodeError):
+        reports.append({"mode": path.stem, "status": "unreadable", "report_path": ref})
+status_by_mode = {report.get("mode"): report.get("status") for report in reports}
+missing_modes = [mode for mode in required_modes if mode not in status_by_mode]
+failed_modes = [
+    mode for mode in required_modes
+    if status_by_mode.get(mode) != "passed"
+]
+checks = []
+for mode in required_modes:
+    mode_report = next((report for report in reports if report.get("mode") == mode), {})
+    checks.append({
+        "check_id": mode,
+        "status": "passed" if status_by_mode.get(mode) == "passed" else "open",
+        "evidence_refs": [
+            mode_report.get("results_path", ""),
+            next((ref for ref, report in zip(report_refs, reports) if report.get("mode") == mode), ""),
+        ],
+        "summary": mode_report.get("summary", {}),
+    })
+status = "passed" if aggregate_status == "passed" and not missing_modes and not failed_modes else "failed"
+if all(report.get("status") == "planned" for report in reports):
+    status = "planned"
+report_path.write_text(json.dumps({
+    "blueprint_source": "Docs/stage0_blueprint_rev2.md",
+    "created_by_lane": "lane5",
+    "created_at": report_path.name.split("-all-")[0],
+    "run_id": report_path.stem,
+    "kind": "load",
+    "environment": environment,
+    "release_sha": release_sha,
+    "mode": "all",
+    "status": status,
+    "requests_per_mode": requests,
+    "concurrency": concurrency,
+    "mode_reports": report_refs,
+    "missing_modes": missing_modes,
+    "failed_modes": failed_modes,
+    "checks": checks,
+    "private_beta_gate": "open_until_this_all_mode_report_is_generated_from_staging_targets_and_attached_to_post_deploy_smoke",
+    "production_gate": "open_until_runtime_thresholds_and_full_production_load_results_exist",
+}, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+PY
+  if [[ "$DRY_RUN" == "1" ]]; then
+    printf 'aggregate load smoke dry-run planned; evidence written to %s\n' "$REPORT_PATH"
+    exit 0
+  fi
+  if [[ "$aggregate_status" == "passed" ]]; then
+    printf 'aggregate load smoke passed; evidence written to %s\n' "$REPORT_PATH"
+    exit 0
+  fi
+  printf 'aggregate load smoke failed; evidence written to %s\n' "$REPORT_PATH" >&2
+  exit 1
+fi
+
 case "$LOAD_MODE" in
   chat_task)
     PATHS=("/healthz" "/readyz" "/api/v1/tasks/load-smoke")
@@ -117,6 +227,64 @@ PY
   "expected_statuses": $expected_json,
   "results_path": "$RESULTS_PATH",
   "summary": $summary_json,
+  "checks": [
+    {
+      "check_id": "chat_task",
+      "status": "$([[ "$status" == "passed" && "$LOAD_MODE" == "chat_task" ]] && printf 'passed' || printf 'open')",
+      "evidence_refs": [
+        "$REPORT_PATH",
+        "$RESULTS_PATH"
+      ]
+    },
+    {
+      "check_id": "worker_generation",
+      "status": "$([[ "$status" == "passed" && "$LOAD_MODE" == "worker_generation" ]] && printf 'passed' || printf 'open')",
+      "evidence_refs": [
+        "$REPORT_PATH",
+        "$RESULTS_PATH"
+      ]
+    },
+    {
+      "check_id": "zip_export",
+      "status": "$([[ "$status" == "passed" && "$LOAD_MODE" == "zip_export" ]] && printf 'passed' || printf 'open')",
+      "evidence_refs": [
+        "$REPORT_PATH",
+        "$RESULTS_PATH"
+      ]
+    },
+    {
+      "check_id": "signed_download",
+      "status": "$([[ "$status" == "passed" && "$LOAD_MODE" == "signed_download" ]] && printf 'passed' || printf 'open')",
+      "evidence_refs": [
+        "$REPORT_PATH",
+        "$RESULTS_PATH"
+      ]
+    },
+    {
+      "check_id": "crawler_throttle",
+      "status": "$([[ "$status" == "passed" && "$LOAD_MODE" == "crawler_throttle" ]] && printf 'passed' || printf 'open')",
+      "evidence_refs": [
+        "$REPORT_PATH",
+        "$RESULTS_PATH"
+      ]
+    },
+    {
+      "check_id": "quota_contention",
+      "status": "$([[ "$status" == "passed" && "$LOAD_MODE" == "quota_contention" ]] && printf 'passed' || printf 'open')",
+      "evidence_refs": [
+        "$REPORT_PATH",
+        "$RESULTS_PATH"
+      ]
+    },
+    {
+      "check_id": "workspace_rendering",
+      "status": "$([[ "$status" == "passed" && "$LOAD_MODE" == "workspace_rendering" ]] && printf 'passed' || printf 'open')",
+      "evidence_refs": [
+        "$REPORT_PATH",
+        "$RESULTS_PATH"
+      ]
+    }
+  ],
   "production_gate": "open_until_runtime_thresholds_and_full_staging_load_results_exist"
 }
 JSON
