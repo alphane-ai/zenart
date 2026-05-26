@@ -83,6 +83,7 @@ type AuthConfig struct {
 	SessionCookieSecure    bool
 	SessionCookieSameSite  string
 	SessionCookieDomain    string
+	DevIdentityHeaders     bool
 	LocalSeedUserEmail     string
 	LocalSeedAdminEmail    string
 }
@@ -163,6 +164,7 @@ func Load() (Config, error) {
 			SessionCookieSecure:    boolEnv("SESSION_COOKIE_SECURE", true),
 			SessionCookieSameSite:  env("SESSION_COOKIE_SAME_SITE", "lax"),
 			SessionCookieDomain:    env("SESSION_COOKIE_DOMAIN", ""),
+			DevIdentityHeaders:     boolEnv("DEV_IDENTITY_HEADERS_ENABLED", true),
 			LocalSeedUserEmail:     env("LOCAL_SEED_USER_EMAIL", "local.user@example.com"),
 			LocalSeedAdminEmail:    env("LOCAL_SEED_ADMIN_EMAIL", "local.admin@example.com"),
 		},
@@ -236,6 +238,9 @@ func (c Config) Validate() error {
 	}
 	if strings.TrimSpace(c.Auth.AccessMode) == "" {
 		errs = append(errs, "STAGE0_ACCESS_MODE must not be empty")
+	}
+	if c.Auth.DevIdentityHeaders && strings.TrimSpace(c.Auth.AccessMode) != "local" {
+		errs = append(errs, "DEV_IDENTITY_HEADERS_ENABLED may only be true when STAGE0_ACCESS_MODE=local")
 	}
 	if strings.TrimSpace(c.Auth.SessionCookieName) == "" {
 		errs = append(errs, "SESSION_COOKIE_NAME must not be empty")

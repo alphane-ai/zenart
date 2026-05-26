@@ -139,6 +139,10 @@ func principalFromRequestWithAuthConfig(r *http.Request, cfg config.AuthConfig, 
 		if principal, ok := principalFromSessionCookieConfig(r, cfg, time.Now().UTC(), isAdminAPIPath(r.URL.Path)); ok {
 			return principal, true
 		}
+		if cfg.DevIdentityHeaders && cfg.AccessMode == string(auth.AccessModeLocal) {
+			return principalFromHeaders(r)
+		}
+		return auth.Principal{}, false
 	}
 	return principalFromHeaders(r)
 }

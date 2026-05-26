@@ -114,3 +114,21 @@ func TestValidateRejectsInvalidSecurityConfig(t *testing.T) {
 		t.Fatal("Validate() error = nil, want invalid upload content type error")
 	}
 }
+
+func TestValidateRestrictsDevIdentityHeadersToLocalAccessMode(t *testing.T) {
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+
+	cfg.Auth.AccessMode = "invite-only"
+	cfg.Auth.DevIdentityHeaders = true
+	if err := cfg.Validate(); err == nil {
+		t.Fatal("Validate() error = nil, want dev identity headers access-mode error")
+	}
+
+	cfg.Auth.DevIdentityHeaders = false
+	if err := cfg.Validate(); err != nil {
+		t.Fatalf("Validate() error = %v, want nil when dev identity headers are disabled", err)
+	}
+}

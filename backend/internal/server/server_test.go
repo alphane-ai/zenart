@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alphane-ai/zenart/backend/internal/auth"
 	"github.com/alphane-ai/zenart/backend/internal/config"
 	"github.com/alphane-ai/zenart/backend/internal/stage0"
 	"github.com/alphane-ai/zenart/backend/internal/store"
@@ -344,6 +345,42 @@ func TestLocalSessionSetsSecureHttpOnlySameSiteCookie(t *testing.T) {
 	}
 }
 
+func TestLocalAdminSessionSetsSecureHttpOnlySameSiteCookie(t *testing.T) {
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/api/admin/v1/auth/local/session", bytes.NewBufferString(`{"tenant_id":"tenant_admin"}`))
+	setSameSiteCSRFHeaders(req)
+	rec := httptest.NewRecorder()
+
+	New(cfg, nil).Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status = %d, want %d: %s", rec.Code, http.StatusCreated, rec.Body.String())
+	}
+	cookie := findCookie(rec.Result().Cookies(), cfg.Auth.AdminSessionCookieName)
+	if cookie == nil {
+		t.Fatalf("admin session cookie %q was not set", cfg.Auth.AdminSessionCookieName)
+	}
+	if !cookie.HttpOnly {
+		t.Fatal("admin session cookie must be HttpOnly")
+	}
+	if !cookie.Secure {
+		t.Fatal("admin session cookie must be Secure")
+	}
+	if cookie.SameSite != http.SameSiteLaxMode {
+		t.Fatalf("SameSite = %v, want lax", cookie.SameSite)
+	}
+	if cookie.Path != "/" {
+		t.Fatalf("Path = %q, want /", cookie.Path)
+	}
+	if cookie.Domain != "" {
+		t.Fatalf("Domain = %q, want empty for __Host- cookie", cookie.Domain)
+	}
+}
+
 func TestSessionCookieAuthenticatesRequest(t *testing.T) {
 	cfg, err := config.Load()
 	if err != nil {
@@ -437,6 +474,68 @@ func TestUserRouteRejectsAdminCookieOnly(t *testing.T) {
 
 	if rec.Code != http.StatusUnauthorized {
 		t.Fatalf("status = %d, want user route to reject admin cookie: %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestNonLocalRuntimeRejectsDevIdentityHeaders(t *testing.T) {
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	cfg.Auth.AccessMode = "invite-only"
+	cfg.Auth.DevIdentityHeaders = false
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/tasks/task_123", nil)
+	req.Header.Set("X-Zenart-User-ID", "user_1")
+	req.Header.Set("X-Zenart-Tenant-ID", "tenant_1")
+	rec := httptest.NewRecorder()
+
+	New(cfg, nil).Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("status = %d, want %d when header identity is disabled: %s", rec.Code, http.StatusUnauthorized, rec.Body.String())
+	}
+}
+
+func TestNonLocalRuntimeAcceptsSignedSessionCookie(t *testing.T) {
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	cfg.Auth.AccessMode = "invite-only"
+	cfg.Auth.DevIdentityHeaders = false
+	expiresAt := time.Now().UTC().Add(time.Hour)
+	cookieValue, err := signSessionCookie(sessionCookiePayload{
+		UserID:    "user_cookie",
+		TenantID:  "tenant_cookie",
+		Roles:     []auth.Role{auth.RoleUserOwner},
+		ExpiresAt: expiresAt.Unix(),
+	}, cfg.Auth.SessionSecret)
+	if err != nil {
+		t.Fatalf("signSessionCookie() error = %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/tasks/task_123", nil)
+	req.AddCookie(&http.Cookie{
+		Name:    cfg.Auth.SessionCookieName,
+		Value:   cookieValue,
+		Path:    "/",
+		Expires: expiresAt,
+	})
+	rec := httptest.NewRecorder()
+
+	New(cfg, nil).Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNotImplemented {
+		t.Fatalf("status = %d, want signed cookie to authenticate stub response: %s", rec.Code, rec.Body.String())
+	}
+	var body map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("response JSON error = %v", err)
+	}
+	details := body["details"].(map[string]any)
+	if details["tenant_id"] != "tenant_cookie" {
+		t.Fatalf("tenant_id = %v, want tenant_cookie", details["tenant_id"])
 	}
 }
 
