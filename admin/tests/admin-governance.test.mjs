@@ -121,6 +121,10 @@ const crawlerStagingRuntimePath = new URL(
   "../../ops/evidence/staging/20260527T1100Z-crawler-governance-runtime.json",
   import.meta.url
 );
+const privateBetaGatePath = new URL(
+  "../../fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json",
+  import.meta.url
+);
 
 const roleOrder = new Map([
   ["support_operator", 1],
@@ -780,6 +784,52 @@ test("staging support retry abuse evidence validates external-user support, retr
     evidenceFile.runtime_request_ids,
     stagingSupportRetryAbuseEvidence.runtimeRequestIds,
     "evidence file and admin fixture runtime probe ids must match"
+  );
+});
+
+test("private beta gate consumes staging support retry abuse evidence without closing aggregate gate", () => {
+  assert.ok(existsSync(privateBetaGatePath), "private beta gate evidence fixture is missing");
+  const gateFixture = JSON.parse(readFileSync(privateBetaGatePath, "utf8"));
+  const supportEvidenceFile = JSON.parse(readFileSync(stagingSupportRetryAbusePath, "utf8"));
+
+  assert.equal(gateFixture.gate, "private_beta_staging", "gate fixture must remain private beta scoped");
+
+  const supportCheck = gateFixture.checks.find((check) => check.check_id === "staging_support_retry_abuse_ops");
+  assert.ok(supportCheck, "private beta gate needs support/retry/abuse check");
+  assert.equal(supportCheck.status, "pass", "validated support/retry/abuse evidence should clear only its check");
+  assert.ok(
+    supportCheck.evidence_ref.includes(stagingSupportRetryAbuseEvidence.evidencePath),
+    "support/retry/abuse gate check must cite the staging runtime evidence path"
+  );
+  assert.equal(
+    supportEvidenceFile.gate_impact.aggregate_private_beta_gate_status,
+    "blocked_by_other_staging_runtime_items",
+    "support/retry/abuse evidence cannot close the aggregate private beta gate"
+  );
+
+  const supportDoNotLaunch = gateFixture.do_not_launch_checks.find(
+    (condition) => condition.condition_id === stagingSupportRetryAbuseEvidence.doNotLaunchConditionId
+  );
+  assert.ok(supportDoNotLaunch, "private beta do-not-launch fixture needs support/abuse condition");
+  assert.equal(
+    supportDoNotLaunch.is_present,
+    false,
+    "validated support/retry/abuse runtime evidence should clear the matching do-not-launch condition"
+  );
+  assert.ok(
+    supportDoNotLaunch.evidence_ref.includes(stagingSupportRetryAbuseEvidence.evidencePath),
+    "cleared support/abuse do-not-launch condition must cite the staging runtime evidence path"
+  );
+
+  for (const blocker of stagingSupportRetryAbuseEvidence.gateImpact.remainingBlockers) {
+    const check = gateFixture.checks.find((entry) => entry.check_id === blocker);
+    assert.ok(check, `${blocker} must remain represented in the private beta gate fixture`);
+    assert.equal(check.status, "blocked", `${blocker} must stay blocked after support/retry/abuse clears`);
+  }
+
+  assert.ok(
+    gateFixture.checks.some((check) => check.status === "blocked"),
+    "aggregate private beta gate must remain blocked by other staging runtime items"
   );
 });
 
