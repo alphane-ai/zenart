@@ -1,0 +1,231 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zenart.local/schemas/stage0/rev2/activation_gate_contract.schema.json",
+  "title": "ZenArt Stage 0 Rev2 Activation Gate Contract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "contract_id",
+    "blueprint_source",
+    "gates",
+    "storage_contract",
+    "bypass_policy",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "stage0.rev2"
+    },
+    "contract_id": {
+      "type": "string",
+      "pattern": "^activation_gate_contract_[a-z0-9_]+$"
+    },
+    "blueprint_source": {
+      "const": "Docs/stage0_blueprint_rev2.md"
+    },
+    "gates": {
+      "type": "array",
+      "minItems": 3,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "gate_id",
+          "subject_type",
+          "subject_table",
+          "target_statuses",
+          "required_eval_result",
+          "activation_allowed_without_passing_eval",
+          "openapi_evidence",
+          "migration_evidence"
+        ],
+        "properties": {
+          "gate_id": {
+            "enum": [
+              "skill_version_canary_requires_eval_pass",
+              "skill_version_active_requires_eval_pass",
+              "prompt_fragment_active_requires_eval_pass"
+            ]
+          },
+          "subject_type": {
+            "enum": [
+              "skill_version",
+              "prompt_fragment"
+            ]
+          },
+          "subject_table": {
+            "enum": [
+              "skill_versions",
+              "prompt_fragments"
+            ]
+          },
+          "target_statuses": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "enum": [
+                "internal_canary",
+                "allowlist_canary",
+                "percent_canary",
+                "active"
+              ]
+            }
+          },
+          "required_eval_result": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "table",
+              "subject_type",
+              "status",
+              "summary_requires"
+            ],
+            "properties": {
+              "table": {
+                "const": "eval_results"
+              },
+              "subject_type": {
+                "enum": [
+                  "skill_version",
+                  "prompt_fragment"
+                ]
+              },
+              "status": {
+                "const": "pass"
+              },
+              "summary_requires": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "golden_passed",
+                  "critical_safety_regressions",
+                  "trace_complete",
+                  "export_contract_complete"
+                ],
+                "properties": {
+                  "golden_passed": {
+                    "const": true
+                  },
+                  "critical_safety_regressions": {
+                    "const": 0
+                  },
+                  "trace_complete": {
+                    "const": true
+                  },
+                  "export_contract_complete": {
+                    "const": true
+                  }
+                }
+              }
+            }
+          },
+          "activation_allowed_without_passing_eval": {
+            "const": false
+          },
+          "openapi_evidence": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "migration_evidence": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "storage_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "table",
+        "required_columns",
+        "tenant_scoped",
+        "subject_scoped",
+        "summary_json_required"
+      ],
+      "properties": {
+        "table": {
+          "const": "eval_results"
+        },
+        "required_columns": {
+          "type": "array",
+          "minItems": 7,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "id",
+              "tenant_id",
+              "eval_suite_id",
+              "subject_type",
+              "subject_id",
+              "status",
+              "summary",
+              "created_at"
+            ]
+          }
+        },
+        "tenant_scoped": {
+          "const": true
+        },
+        "subject_scoped": {
+          "const": true
+        },
+        "summary_json_required": {
+          "const": true
+        }
+      }
+    },
+    "bypass_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "crawler_feedback_direct_activation_allowed",
+        "blocked_eval_result_allows_activation",
+        "critical_safety_regression_allows_activation"
+      ],
+      "properties": {
+        "crawler_feedback_direct_activation_allowed": {
+          "const": false
+        },
+        "blocked_eval_result_allows_activation": {
+          "const": false
+        },
+        "critical_safety_regression_allows_activation": {
+          "const": false
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "blueprint_sections",
+        "created_by_lane"
+      ],
+      "properties": {
+        "blueprint_sections": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "^14\\.[12]$"
+          }
+        },
+        "created_by_lane": {
+          "const": "lane2"
+        }
+      }
+    }
+  }
+}

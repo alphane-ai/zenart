@@ -1771,8 +1771,8 @@ main 合并前必须通过：
 - [x] 创建 export completeness fixtures。
 - [x] 实现 eval runner。
 - [x] 存储 eval results。
-- [ ] skill canary 前要求 eval pass。
-- [ ] prompt fragment active 前要求 eval pass。
+- [x] skill canary 前要求 eval pass。
+- [x] prompt fragment active 前要求 eval pass。
 - [x] 定义 QA result schema。
 - [x] 实现 file integrity/dimensions/aspect/safe-area QA。
 - [x] 实现 blank/duplicate/four-option distinctness QA。

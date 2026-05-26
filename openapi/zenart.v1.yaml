@@ -2140,7 +2140,7 @@ components:
                 $ref: "#/components/schemas/Skill"
     SkillVersion:
       type: object
-      required: [id, skill_id, version, status, release_notes]
+      required: [id, skill_id, version, status, eval_suite_id, release_gate, release_notes]
       properties:
         id:
           type: string
@@ -2150,6 +2150,22 @@ components:
           type: string
         status:
           type: string
+          enum: [draft, review, eval_passed, internal_canary, allowlist_canary, percent_canary, active, paused, rolled_back, deprecated]
+        eval_suite_id:
+          type: string
+          nullable: true
+        release_gate:
+          type: object
+          required: [requires_eval_pass, eligible_for_canary, eligible_for_active, blocking_reason]
+          properties:
+            requires_eval_pass:
+              const: true
+            eligible_for_canary:
+              type: boolean
+            eligible_for_active:
+              type: boolean
+            blocking_reason:
+              type: string
         release_notes:
           type: string
     SkillVersionPage:
@@ -2260,7 +2276,7 @@ components:
                 $ref: "#/components/schemas/CrawlerFinding"
     PromptFragment:
       type: object
-      required: [id, name, surface, status, owner, risk_level]
+      required: [id, name, surface, status, owner, risk_level, release_gate]
       properties:
         id:
           type: string
@@ -2270,10 +2286,21 @@ components:
           type: string
         status:
           type: string
+          enum: [draft, review, eval_passed, active, paused, deprecated]
         owner:
           type: string
         risk_level:
           type: string
+        release_gate:
+          type: object
+          required: [requires_eval_pass, eligible_for_active, blocking_reason]
+          properties:
+            requires_eval_pass:
+              const: true
+            eligible_for_active:
+              type: boolean
+            blocking_reason:
+              type: string
     PromptFragmentPage:
       allOf:
         - $ref: "#/components/schemas/PageInfo"

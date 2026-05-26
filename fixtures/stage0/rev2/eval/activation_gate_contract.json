@@ -1,0 +1,121 @@
+{
+  "schema_version": "stage0.rev2",
+  "contract_id": "activation_gate_contract_stage0_rev2_eval_required",
+  "blueprint_source": "Docs/stage0_blueprint_rev2.md",
+  "gates": [
+    {
+      "gate_id": "skill_version_canary_requires_eval_pass",
+      "subject_type": "skill_version",
+      "subject_table": "skill_versions",
+      "target_statuses": [
+        "internal_canary",
+        "allowlist_canary",
+        "percent_canary"
+      ],
+      "required_eval_result": {
+        "table": "eval_results",
+        "subject_type": "skill_version",
+        "status": "pass",
+        "summary_requires": {
+          "golden_passed": true,
+          "critical_safety_regressions": 0,
+          "trace_complete": true,
+          "export_contract_complete": true
+        }
+      },
+      "activation_allowed_without_passing_eval": false,
+      "openapi_evidence": [
+        "openapi/zenart.v1.yaml:EvalResult.subject.subject_type.skill_version",
+        "openapi/zenart.v1.yaml:EvalResult.subject.candidate_status_after_eval.eligible_for_canary"
+      ],
+      "migration_evidence": [
+        "backend/migrations/0002_stage0_rev2_domains.sql:skill_versions.status",
+        "backend/migrations/0002_stage0_rev2_domains.sql:eval_results.subject_type"
+      ]
+    },
+    {
+      "gate_id": "skill_version_active_requires_eval_pass",
+      "subject_type": "skill_version",
+      "subject_table": "skill_versions",
+      "target_statuses": [
+        "active"
+      ],
+      "required_eval_result": {
+        "table": "eval_results",
+        "subject_type": "skill_version",
+        "status": "pass",
+        "summary_requires": {
+          "golden_passed": true,
+          "critical_safety_regressions": 0,
+          "trace_complete": true,
+          "export_contract_complete": true
+        }
+      },
+      "activation_allowed_without_passing_eval": false,
+      "openapi_evidence": [
+        "openapi/zenart.v1.yaml:EvalResult.subject.subject_type.skill_version",
+        "openapi/zenart.v1.yaml:EvalResult.subject.candidate_status_after_eval.eligible_for_active"
+      ],
+      "migration_evidence": [
+        "backend/migrations/0002_stage0_rev2_domains.sql:skill_versions.status",
+        "backend/migrations/0002_stage0_rev2_domains.sql:eval_results.status"
+      ]
+    },
+    {
+      "gate_id": "prompt_fragment_active_requires_eval_pass",
+      "subject_type": "prompt_fragment",
+      "subject_table": "prompt_fragments",
+      "target_statuses": [
+        "active"
+      ],
+      "required_eval_result": {
+        "table": "eval_results",
+        "subject_type": "prompt_fragment",
+        "status": "pass",
+        "summary_requires": {
+          "golden_passed": true,
+          "critical_safety_regressions": 0,
+          "trace_complete": true,
+          "export_contract_complete": true
+        }
+      },
+      "activation_allowed_without_passing_eval": false,
+      "openapi_evidence": [
+        "openapi/zenart.v1.yaml:EvalResult.subject.subject_type.prompt_fragment",
+        "openapi/zenart.v1.yaml:EvalResult.subject.candidate_status_after_eval.eligible_for_active"
+      ],
+      "migration_evidence": [
+        "backend/migrations/0002_stage0_rev2_domains.sql:prompt_fragments.status",
+        "backend/migrations/0002_stage0_rev2_domains.sql:eval_results.subject_id"
+      ]
+    }
+  ],
+  "storage_contract": {
+    "table": "eval_results",
+    "required_columns": [
+      "id",
+      "tenant_id",
+      "eval_suite_id",
+      "subject_type",
+      "subject_id",
+      "status",
+      "summary",
+      "created_at"
+    ],
+    "tenant_scoped": true,
+    "subject_scoped": true,
+    "summary_json_required": true
+  },
+  "bypass_policy": {
+    "crawler_feedback_direct_activation_allowed": false,
+    "blocked_eval_result_allows_activation": false,
+    "critical_safety_regression_allows_activation": false
+  },
+  "provenance": {
+    "blueprint_sections": [
+      "14.1",
+      "14.2"
+    ],
+    "created_by_lane": "lane2"
+  }
+}
