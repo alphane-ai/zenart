@@ -949,6 +949,42 @@ func TestServiceCleanupDeletesMarkedObjectsAndMarksRowsDeleted(t *testing.T) {
 	}
 }
 
+func TestServiceCleanupMarksMissingExpiredObjectsDeleted(t *testing.T) {
+	now := time.Date(2026, 5, 26, 12, 0, 0, 0, time.UTC)
+	db := &fakeDB{
+		execTags: []pgconn.CommandTag{
+			pgconn.NewCommandTag("UPDATE 1"),
+			pgconn.NewCommandTag("UPDATE 1"),
+			pgconn.NewCommandTag("UPDATE 2"),
+		},
+		queryRows: []rowSet{{
+			rows: [][]any{
+				{"object_1", "tenant_1", "tenants/tenant_1/exports/missing.zip"},
+				{"object_2", "tenant_1", "tenants/tenant_1/thumbnails/missing.zip.svg"},
+			},
+		}},
+	}
+	objects, err := objectstore.NewLocalStore(t.TempDir(), "zenart-test", "secret")
+	if err != nil {
+		t.Fatalf("NewLocalStore() error = %v", err)
+	}
+	service := NewService(NewRepository(db), objects)
+
+	result, err := service.CleanupExpiredExportsAndOrphanedObjects(context.Background(), now, 50)
+	if err != nil {
+		t.Fatalf("CleanupExpiredExportsAndOrphanedObjects() error = %v", err)
+	}
+	if result.DeletedObjects != 2 {
+		t.Fatalf("deleted objects = %d, want metadata rows marked deleted after missing storage objects", result.DeletedObjects)
+	}
+	if len(db.execs) != 3 {
+		t.Fatalf("exec count = %d, want repository mark, orphan mark, deleted mark", len(db.execs))
+	}
+	if !strings.Contains(db.execs[2].sql, "retention_state = 'deleted'") {
+		t.Fatalf("third exec should mark missing object metadata deleted: %s", db.execs[2].sql)
+	}
+}
+
 func TestEnforceSafetyRecordsBlockDecisionForActiveRule(t *testing.T) {
 	now := time.Now().UTC()
 	db := &fakeDB{queryRows: []rowSet{{

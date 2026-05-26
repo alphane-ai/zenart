@@ -2539,7 +2539,9 @@ func (s Service) CleanupExpiredExportsAndOrphanedObjects(ctx context.Context, no
 	deletedIDs := make([]string, 0, len(objects))
 	for _, object := range objects {
 		if err := s.objects.Delete(ctx, object.TenantID, object.Key); err != nil {
-			return CleanupResult{}, err
+			if !errors.Is(err, objectstore.ErrNotFound) {
+				return CleanupResult{}, err
+			}
 		}
 		deletedIDs = append(deletedIDs, object.ID)
 	}
