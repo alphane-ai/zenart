@@ -64,6 +64,8 @@ for (const requiredSnippet of [
   "share-link-state",
   "setBillingScenario",
   "support@zenart.local",
+  "privacy-notice",
+  "ai-content-disclaimer",
   "linkedAssetIds",
   "linkedTraceId",
   "validation.state"
@@ -79,6 +81,8 @@ for (const expectedCapability of [
   "inactive-edge",
   "quota-exhausted-edge",
   "visible-support-contact",
+  "privacy-notice",
+  "ai-content-disclaimer",
   "linked-task-trace-asset-context"
 ]) {
   if (!JSON.stringify(artifact).includes(expectedCapability)) {

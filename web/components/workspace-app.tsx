@@ -821,6 +821,22 @@ function SupportView({
           </div>
         </dl>
       </section>
+      <section className="legal-notice-grid" aria-label="Privacy and AI content notices">
+        <article className="legal-notice privacy-notice">
+          <span className="eyebrow">Privacy Notice</span>
+          <p>
+            Support tickets attach project, export, task, trace, accepted reference, and quota context for investigation. Do not include secrets,
+            credentials, or unrelated personal data in ticket text.
+          </p>
+        </article>
+        <article className="legal-notice ai-content-disclaimer">
+          <span className="eyebrow">AI Content Responsibility</span>
+          <p>
+            Local alpha previews use deterministic generation evidence unless a real provider is explicitly configured. Review rights, claims,
+            likeness, and brand usage before sharing exported assets.
+          </p>
+        </article>
+      </section>
       <form className="support-form" onSubmit={reportProblem}>
         <label>
           Category

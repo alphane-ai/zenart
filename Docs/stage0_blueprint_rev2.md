@@ -1856,11 +1856,11 @@ main 合并前必须通过：
 - [ ] 实现 startup config validation。
 - [ ] 实现 secret redaction。
 - [ ] 添加 dependency/image/secret scans。
-- [ ] 添加 Privacy notice。
+- [x] 添加 Privacy notice。
 - [ ] 添加 Terms of Service。
 - [ ] 添加 Privacy Policy。
 - [ ] 添加 Acceptable Use Policy。
-- [ ] 添加 AI/content disclaimer。
+- [x] 添加 AI/content disclaimer。
 - [ ] 添加 IP complaint flow。
 - [ ] paid launch 添加 billing/cancellation/refund policy。
 - [ ] 添加 visible support contact。

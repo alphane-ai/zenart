@@ -37,7 +37,16 @@
       "path": "/support",
       "component": "WorkspaceApp",
       "initialView": "support",
-      "expects": ["report-problem", "visible-support-contact", "ticket-history", "linked-project-context", "linked-task-trace-asset-context", "linked-quota-snapshot"]
+      "expects": [
+        "report-problem",
+        "visible-support-contact",
+        "privacy-notice",
+        "ai-content-disclaimer",
+        "ticket-history",
+        "linked-project-context",
+        "linked-task-trace-asset-context",
+        "linked-quota-snapshot"
+      ]
     }
   ],
   "accessibilityChecks": [
@@ -48,7 +57,8 @@
     "textareas and free-text inputs have programmatic labels",
     "reference type select has a programmatic label",
     "selection and version controls expose pressed/current state",
-    "upload and billing edge errors use role alert"
+    "upload and billing edge errors use role alert",
+    "support route exposes privacy and AI content responsibility notices"
   ],
   "unitCoverage": [
     "auth/session state is loaded from the persisted dev workspace",

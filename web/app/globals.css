@@ -856,6 +856,30 @@ textarea {
   overflow-wrap: anywhere;
 }
 
+.legal-notice-grid {
+  max-width: 720px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+.legal-notice {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  padding: 14px;
+  display: grid;
+  gap: 8px;
+}
+
+.legal-notice p {
+  margin: 0;
+  color: #344054;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
 .settings-form label,
 .support-form label {
   display: grid;
@@ -932,6 +956,10 @@ textarea {
   }
 
   .support-context dl {
+    grid-template-columns: 1fr;
+  }
+
+  .legal-notice-grid {
     grid-template-columns: 1fr;
   }
 }
