@@ -80,10 +80,14 @@ type SupportTicket struct {
 	TenantID       string         `json:"tenant_id"`
 	UserID         string         `json:"user_id"`
 	ProjectID      *string        `json:"project_id,omitempty"`
+	TaskID         *string        `json:"task_id,omitempty"`
+	TraceID        *string        `json:"trace_id,omitempty"`
+	AssetID        *string        `json:"asset_id,omitempty"`
 	Category       string         `json:"category"`
 	Status         string         `json:"status"`
 	Body           string         `json:"body"`
 	LinkedExportID *string        `json:"linked_export_id,omitempty"`
+	QuotaBucketID  *string        `json:"quota_bucket_id,omitempty"`
 	Metadata       map[string]any `json:"metadata"`
 	CreatedAt      time.Time      `json:"created_at"`
 	UpdatedAt      time.Time      `json:"updated_at"`
@@ -91,9 +95,13 @@ type SupportTicket struct {
 
 type SupportTicketCreate struct {
 	ProjectID      string         `json:"project_id"`
+	TaskID         string         `json:"task_id"`
+	TraceID        string         `json:"trace_id"`
+	AssetID        string         `json:"asset_id"`
 	Category       string         `json:"category"`
 	Body           string         `json:"body"`
 	LinkedExportID string         `json:"linked_export_id"`
+	QuotaBucketID  string         `json:"quota_bucket_id"`
 	Metadata       map[string]any `json:"metadata"`
 }
 
@@ -879,21 +887,41 @@ func (r Repository) CreateSupportTicket(ctx context.Context, tenantID, userID st
 		projectID := strings.TrimSpace(input.ProjectID)
 		ticket.ProjectID = &projectID
 	}
+	if strings.TrimSpace(input.TaskID) != "" {
+		taskID := strings.TrimSpace(input.TaskID)
+		ticket.TaskID = &taskID
+	}
+	if strings.TrimSpace(input.TraceID) != "" {
+		traceID := strings.TrimSpace(input.TraceID)
+		ticket.TraceID = &traceID
+	}
+	if strings.TrimSpace(input.AssetID) != "" {
+		assetID := strings.TrimSpace(input.AssetID)
+		ticket.AssetID = &assetID
+	}
 	if strings.TrimSpace(input.LinkedExportID) != "" {
 		exportID := strings.TrimSpace(input.LinkedExportID)
 		ticket.LinkedExportID = &exportID
 	}
+	if strings.TrimSpace(input.QuotaBucketID) != "" {
+		quotaBucketID := strings.TrimSpace(input.QuotaBucketID)
+		ticket.QuotaBucketID = &quotaBucketID
+	}
 	_, err := r.db.Exec(ctx, `
-INSERT INTO support_tickets(id, tenant_id, user_id, project_id, category, status, body, linked_export_id, metadata, created_at, updated_at)
-VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $10)`,
+INSERT INTO support_tickets(id, tenant_id, user_id, project_id, task_id, trace_id, asset_id, category, status, body, linked_export_id, quota_bucket_id, metadata, created_at, updated_at)
+VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $14)`,
 		ticket.ID,
 		ticket.TenantID,
 		ticket.UserID,
 		ticket.ProjectID,
+		ticket.TaskID,
+		ticket.TraceID,
+		ticket.AssetID,
 		ticket.Category,
 		ticket.Status,
 		ticket.Body,
 		ticket.LinkedExportID,
+		ticket.QuotaBucketID,
 		jsonObject(ticket.Metadata),
 		now,
 	)
@@ -909,7 +937,11 @@ VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $10)`,
 		SubjectID:   ticket.ID,
 		Properties: map[string]any{
 			"category":         ticket.Category,
+			"task_id":          stringValue(ticket.TaskID),
+			"trace_id":         stringValue(ticket.TraceID),
+			"asset_id":         stringValue(ticket.AssetID),
 			"linked_export_id": stringValue(ticket.LinkedExportID),
+			"quota_bucket_id":  stringValue(ticket.QuotaBucketID),
 			"metadata":         ticket.Metadata,
 		},
 		CreatedAt: now,
@@ -925,7 +957,7 @@ func (r Repository) ListSupportTickets(ctx context.Context, tenantID, status str
 	}
 	args := []any{tenantID, limit}
 	query := `
-SELECT id, tenant_id, user_id, project_id, category, status, body, linked_export_id, metadata, created_at, updated_at
+SELECT id, tenant_id, user_id, project_id, task_id, trace_id, asset_id, category, status, body, linked_export_id, quota_bucket_id, metadata, created_at, updated_at
 FROM support_tickets
 WHERE tenant_id = $1`
 	if strings.TrimSpace(status) != "" {
@@ -943,7 +975,7 @@ WHERE tenant_id = $1`
 	for rows.Next() {
 		var ticket SupportTicket
 		var metadataJSON []byte
-		if err := rows.Scan(&ticket.ID, &ticket.TenantID, &ticket.UserID, &ticket.ProjectID, &ticket.Category, &ticket.Status, &ticket.Body, &ticket.LinkedExportID, &metadataJSON, &ticket.CreatedAt, &ticket.UpdatedAt); err != nil {
+		if err := rows.Scan(&ticket.ID, &ticket.TenantID, &ticket.UserID, &ticket.ProjectID, &ticket.TaskID, &ticket.TraceID, &ticket.AssetID, &ticket.Category, &ticket.Status, &ticket.Body, &ticket.LinkedExportID, &ticket.QuotaBucketID, &metadataJSON, &ticket.CreatedAt, &ticket.UpdatedAt); err != nil {
 			return Page[SupportTicket]{}, err
 		}
 		_ = json.Unmarshal(metadataJSON, &ticket.Metadata)

@@ -21,9 +21,13 @@ func TestCreateSupportTicketPersistsTenantUserAndLinks(t *testing.T) {
 
 	ticket, err := repo.CreateSupportTicket(context.Background(), "tenant_1", "user_1", SupportTicketCreate{
 		ProjectID:      "project_1",
+		TaskID:         "task_1",
+		TraceID:        "trace_1",
+		AssetID:        "asset_1",
 		Category:       "export_failure",
 		Body:           "The export failed.",
 		LinkedExportID: "export_1",
+		QuotaBucketID:  "quota_1",
 		Metadata:       map[string]any{"trace_id": "trace_1", "api_key": "secret"},
 	})
 	if err != nil {
@@ -38,14 +42,79 @@ func TestCreateSupportTicketPersistsTenantUserAndLinks(t *testing.T) {
 	if ticket.LinkedExportID == nil || *ticket.LinkedExportID != "export_1" {
 		t.Fatalf("ticket LinkedExportID = %v", ticket.LinkedExportID)
 	}
+	if ticket.TaskID == nil || *ticket.TaskID != "task_1" {
+		t.Fatalf("ticket TaskID = %v", ticket.TaskID)
+	}
+	if ticket.TraceID == nil || *ticket.TraceID != "trace_1" {
+		t.Fatalf("ticket TraceID = %v", ticket.TraceID)
+	}
+	if ticket.AssetID == nil || *ticket.AssetID != "asset_1" {
+		t.Fatalf("ticket AssetID = %v", ticket.AssetID)
+	}
+	if ticket.QuotaBucketID == nil || *ticket.QuotaBucketID != "quota_1" {
+		t.Fatalf("ticket QuotaBucketID = %v", ticket.QuotaBucketID)
+	}
 	if ticket.Metadata["api_key"] != "[REDACTED]" {
 		t.Fatalf("ticket api_key metadata = %v, want redacted", ticket.Metadata["api_key"])
 	}
 	if len(db.execs) != 2 || !strings.Contains(db.execs[0].sql, "INSERT INTO support_tickets") {
 		t.Fatalf("support ticket insert not recorded: %#v", db.execs)
 	}
+	for _, column := range []string{"task_id", "trace_id", "asset_id", "linked_export_id", "quota_bucket_id"} {
+		if !strings.Contains(db.execs[0].sql, column) {
+			t.Fatalf("support ticket insert missing evidence column %s: %s", column, db.execs[0].sql)
+		}
+	}
 	if !strings.Contains(db.execs[1].sql, "INSERT INTO analytics_events") {
 		t.Fatalf("support ticket analytics event not recorded: %s", db.execs[1].sql)
+	}
+}
+
+func TestListSupportTicketsReturnsEvidenceLinks(t *testing.T) {
+	now := time.Now().UTC()
+	db := &fakeDB{queryRows: []rowSet{{
+		rows: [][]any{{
+			"support_1",
+			"tenant_1",
+			"user_1",
+			"project_1",
+			"task_1",
+			"trace_1",
+			"asset_1",
+			"export_failure",
+			"open",
+			"The export failed.",
+			"export_1",
+			"quota_1",
+			[]byte(`{"source":"report_problem"}`),
+			now,
+			now,
+		}},
+	}}}
+	repo := NewRepository(db)
+
+	page, err := repo.ListSupportTickets(context.Background(), "tenant_1", "open", 50)
+	if err != nil {
+		t.Fatalf("ListSupportTickets() error = %v", err)
+	}
+	if len(page.Items) != 1 {
+		t.Fatalf("ticket count = %d, want 1", len(page.Items))
+	}
+	ticket := page.Items[0]
+	if ticket.TaskID == nil || *ticket.TaskID != "task_1" {
+		t.Fatalf("TaskID = %v, want task_1", ticket.TaskID)
+	}
+	if ticket.TraceID == nil || *ticket.TraceID != "trace_1" {
+		t.Fatalf("TraceID = %v, want trace_1", ticket.TraceID)
+	}
+	if ticket.AssetID == nil || *ticket.AssetID != "asset_1" {
+		t.Fatalf("AssetID = %v, want asset_1", ticket.AssetID)
+	}
+	if ticket.LinkedExportID == nil || *ticket.LinkedExportID != "export_1" {
+		t.Fatalf("LinkedExportID = %v, want export_1", ticket.LinkedExportID)
+	}
+	if ticket.QuotaBucketID == nil || *ticket.QuotaBucketID != "quota_1" {
+		t.Fatalf("QuotaBucketID = %v, want quota_1", ticket.QuotaBucketID)
 	}
 }
 

@@ -82,6 +82,33 @@ func TestTenantIsolationMigrationCoversRev2BackendSurfaces(t *testing.T) {
 	}
 }
 
+func TestSupportTicketEvidenceMigrationAddsRev2Links(t *testing.T) {
+	data, err := os.ReadFile("../../migrations/0006_support_ticket_evidence_links.sql")
+	if err != nil {
+		t.Fatalf("read support ticket evidence migration: %v", err)
+	}
+	sql := string(data)
+	for _, needle := range []string{
+		"ALTER TABLE support_tickets ADD COLUMN IF NOT EXISTS task_id text;",
+		"ALTER TABLE support_tickets ADD COLUMN IF NOT EXISTS trace_id text;",
+		"ALTER TABLE support_tickets ADD COLUMN IF NOT EXISTS asset_id text;",
+		"ALTER TABLE support_tickets ADD COLUMN IF NOT EXISTS quota_bucket_id text;",
+		"idx_support_tickets_tenant_task",
+		"idx_support_tickets_tenant_trace",
+		"idx_support_tickets_tenant_asset",
+		"idx_support_tickets_tenant_quota",
+		"fk_support_tickets_tenant_task",
+		"fk_support_tickets_tenant_trace",
+		"fk_support_tickets_tenant_asset",
+		"fk_support_tickets_tenant_quota",
+		"NOT VALID",
+	} {
+		if !strings.Contains(sql, needle) {
+			t.Fatalf("support ticket evidence migration missing %q", needle)
+		}
+	}
+}
+
 func TestDomainMigrationSeedsRuntimeSafetyPolicy(t *testing.T) {
 	data, err := os.ReadFile("../../migrations/0002_stage0_rev2_domains.sql")
 	if err != nil {
