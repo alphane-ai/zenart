@@ -40,6 +40,10 @@ export const requiredExportPackageOutputs = [
   "assets/"
 ] as const;
 
+export const requiredExportZipPayloadNames = requiredExportPackageOutputs.map((outputName) =>
+  outputName === "assets/" ? "assets/README.txt" : outputName
+);
+
 export const ecommerceGrowthWorkflowAcceptance = {
   schema_version: "stage0.rev2.workflow-api-smoke",
   workflow_id: "ecommerce_growth_pack",
@@ -510,12 +514,29 @@ export const buildPackageExportMetadataEvidence = (record: ExportRecord): Packag
   const zipPayloadNames = record.manifest.required_outputs.map((outputName) =>
     outputName === "assets/" ? "assets/README.txt" : outputName
   );
+  const requiredZipPayloadNames = [...requiredExportZipPayloadNames];
+  const missingZipPayloadNames = requiredZipPayloadNames.filter((payloadName) => !zipPayloadNames.includes(payloadName));
+  const workflowZipPayloadCount = record.manifest.workflow_acceptance?.required_files.filter((payloadName) =>
+    zipPayloadNames.includes(payloadName)
+  ).length ?? 0;
   const provenanceCount = record.manifest.items.filter((item) => item.provenance.trim().length > 0).length;
   const blockingQaCount = record.qaReport.filter((finding) => finding.severity === "block").length;
   const pptSlideCount = record.manifest.ppt_ready_metadata.slides.length;
   const handoffChecklistCount = record.manifest.ppt_ready_metadata.handoff_checklist.length;
+  const downloadArtifactStatus =
+    record.format === "zip" &&
+    missingZipPayloadNames.length === 0 &&
+    zipPayloadNames.includes("manifest.json") &&
+    zipPayloadNames.includes("qa-report.json") &&
+    zipPayloadNames.includes("safety-policy-report.json") &&
+    zipPayloadNames.includes("provenance.json") &&
+    zipPayloadNames.includes("ppt-ready-metadata.json") &&
+    zipPayloadNames.includes("assets/README.txt")
+      ? "pass"
+      : "fail";
   const status =
     record.status === "ready" &&
+    downloadArtifactStatus === "pass" &&
     missingRequiredOutputs.length === 0 &&
     record.manifest.items.length === provenanceCount &&
     record.qaReport.length > 0 &&
@@ -530,6 +551,8 @@ export const buildPackageExportMetadataEvidence = (record: ExportRecord): Packag
     status,
     exportId: record.id,
     packageId: record.manifest.package_id,
+    downloadArtifactStatus,
+    downloadArtifactFormat: record.format,
     requiredOutputCount: record.manifest.required_outputs.length,
     missingRequiredOutputs,
     itemCount: record.manifest.items.length,
@@ -539,7 +562,10 @@ export const buildPackageExportMetadataEvidence = (record: ExportRecord): Packag
     pptSlideCount,
     handoffChecklistCount,
     zipPayloadCount: zipPayloadNames.length,
-    zipPayloadNames
+    zipPayloadNames,
+    requiredZipPayloadNames,
+    missingZipPayloadNames,
+    workflowZipPayloadCount
   };
 };
 

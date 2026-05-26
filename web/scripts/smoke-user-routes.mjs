@@ -174,11 +174,20 @@ for (const attribute of briefUploadConfirmationEvidence.requiredAttributes ?? []
 if (packageExportEvidence.expectedMissingOutputCount !== "0") {
   fail("package/export metadata evidence must assert zero missing required outputs");
 }
+if (packageExportEvidence.expectedDownloadArtifactStatus !== "pass") {
+  fail("package/export metadata evidence must assert a passing downloadable artifact contract");
+}
+if (packageExportEvidence.expectedMissingZipPayloadCount !== "0") {
+  fail("package/export metadata evidence must assert zero missing ZIP payloads");
+}
 if (packageExportEvidence.minimumZipPayloadCount !== "6") {
   fail("package/export metadata evidence must assert at least the six required ZIP payloads");
 }
 if (!componentSource.includes(packageExportEvidence.payloadAttribute)) {
   fail(`package/export metadata evidence missing payload attribute ${packageExportEvidence.payloadAttribute}`);
+}
+if (!componentSource.includes(packageExportEvidence.requiredPayloadAttribute)) {
+  fail(`package/export metadata evidence missing required payload attribute ${packageExportEvidence.requiredPayloadAttribute}`);
 }
 for (const attribute of packageExportEvidence.requiredIdentityAttributes ?? []) {
   if (!componentSource.includes(attribute)) {
@@ -251,6 +260,8 @@ for (const requiredSnippet of [
   "data-package-export-metadata-status",
   "data-package-export-id",
   "data-package-export-package-id",
+  "data-package-export-download-artifact-status",
+  "data-package-export-download-artifact-format",
   "data-package-export-required-output-count",
   "data-package-export-missing-output-count",
   "data-package-export-provenance-count",
@@ -258,6 +269,9 @@ for (const requiredSnippet of [
   "data-package-export-ppt-slide-count",
   "data-package-export-zip-payload-count",
   "data-package-export-zip-payloads",
+  "data-package-export-required-zip-payloads",
+  "data-package-export-missing-zip-payload-count",
+  "data-package-export-workflow-zip-payload-count",
   "reference-upload-export-contract",
   "brief-upload-confirmation-evidence",
   "Brief upload confirmation runtime evidence",
@@ -528,6 +542,7 @@ for (const expectedIntegration of [
 
 for (const expectedDownloadSnippet of [
   "buildExportPackageBlob",
+  "requiredExportZipPayloadNames",
   "manifest.json",
   "qa-report.json",
   "safety-policy-report.json",

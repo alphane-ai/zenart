@@ -911,6 +911,8 @@ function ExportView({
                     data-package-export-metadata-status={metadataEvidence.status}
                     data-package-export-id={metadataEvidence.exportId}
                     data-package-export-package-id={metadataEvidence.packageId}
+                    data-package-export-download-artifact-status={metadataEvidence.downloadArtifactStatus}
+                    data-package-export-download-artifact-format={metadataEvidence.downloadArtifactFormat}
                     data-package-export-required-output-count={metadataEvidence.requiredOutputCount}
                     data-package-export-missing-output-count={metadataEvidence.missingRequiredOutputs.length}
                     data-package-export-provenance-count={metadataEvidence.provenanceCount}
@@ -918,6 +920,9 @@ function ExportView({
                     data-package-export-ppt-slide-count={metadataEvidence.pptSlideCount}
                     data-package-export-zip-payload-count={metadataEvidence.zipPayloadCount}
                     data-package-export-zip-payloads={metadataEvidence.zipPayloadNames.join(",")}
+                    data-package-export-required-zip-payloads={metadataEvidence.requiredZipPayloadNames.join(",")}
+                    data-package-export-missing-zip-payload-count={metadataEvidence.missingZipPayloadNames.length}
+                    data-package-export-workflow-zip-payload-count={metadataEvidence.workflowZipPayloadCount}
                   >
                     <h4>Metadata Evidence</h4>
                     <div className="metadata-evidence-grid">
@@ -928,11 +933,12 @@ function ExportView({
                       <span>{metadataEvidence.provenanceCount}/{metadataEvidence.itemCount} provenance entries</span>
                       <span>{metadataEvidence.qaFindingCount} QA findings</span>
                       <span>{metadataEvidence.pptSlideCount} PPT slides</span>
+                      <span>{metadataEvidence.downloadArtifactStatus} ZIP payload contract</span>
                     </div>
                     <p>
                       ZIP payload contract: {metadataEvidence.zipPayloadNames.join(", ")}.
-                      {metadataEvidence.missingRequiredOutputs.length > 0
-                        ? ` Missing ${metadataEvidence.missingRequiredOutputs.join(", ")}.`
+                      {metadataEvidence.missingRequiredOutputs.length > 0 || metadataEvidence.missingZipPayloadNames.length > 0
+                        ? ` Missing ${[...metadataEvidence.missingRequiredOutputs, ...metadataEvidence.missingZipPayloadNames].join(", ")}.`
                         : " All required metadata outputs are present."}
                     </p>
                   </section>

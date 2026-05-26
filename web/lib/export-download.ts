@@ -2,6 +2,7 @@
 
 import JSZip from "jszip";
 import { ExportRecord } from "./contracts";
+import { requiredExportZipPayloadNames } from "./dev-state";
 
 export const buildExportPackageBlob = async (record: ExportRecord) => {
   if (record.format === "pdf-placeholder") {
@@ -48,6 +49,22 @@ export const buildExportPackageBlob = async (record: ExportRecord) => {
     "assets/README.txt",
     "Deterministic local alpha export placeholder. Replace with object-storage asset references in backend export builder."
   );
+  for (const requiredPayload of requiredExportZipPayloadNames) {
+    if (!zip.file(requiredPayload)) {
+      zip.file(
+        requiredPayload,
+        JSON.stringify(
+          {
+            export_id: record.id,
+            output_name: requiredPayload,
+            generated_by: "zenart-web-dev-client"
+          },
+          null,
+          2
+        )
+      );
+    }
+  }
   for (const outputName of record.manifest.required_outputs) {
     if (
       outputName === "assets/" ||

@@ -115,13 +115,18 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(metadataEvidence).toHaveAttribute("data-package-export-metadata-status", "pass");
     expect(metadataEvidence).toHaveAttribute("data-package-export-id", "export-001");
     expect(metadataEvidence).toHaveAttribute("data-package-export-package-id", "pkg-002");
+    expect(metadataEvidence).toHaveAttribute("data-package-export-download-artifact-status", "pass");
+    expect(metadataEvidence).toHaveAttribute("data-package-export-download-artifact-format", "zip");
     expect(metadataEvidence).toHaveAttribute("data-package-export-missing-output-count", "0");
+    expect(metadataEvidence).toHaveAttribute("data-package-export-missing-zip-payload-count", "0");
     expect(metadataEvidence).toHaveAttribute("data-package-export-provenance-count", "2");
     expect(metadataEvidence).toHaveAttribute("data-package-export-blocking-qa-count", "0");
     expect(metadataEvidence).toHaveAttribute("data-package-export-ppt-slide-count", "2");
     expect(Number(metadataEvidence?.getAttribute("data-package-export-zip-payload-count"))).toBeGreaterThanOrEqual(6);
     expect(metadataEvidence?.getAttribute("data-package-export-zip-payloads")).toContain("safety-policy-report.json");
     expect(metadataEvidence?.getAttribute("data-package-export-zip-payloads")).toContain("ppt-ready-metadata.json");
+    expect(metadataEvidence?.getAttribute("data-package-export-required-zip-payloads")).toContain("manifest.json");
+    expect(metadataEvidence?.getAttribute("data-package-export-required-zip-payloads")).toContain("assets/README.txt");
 
     const safetyPolicy = container.querySelector("[data-safety-policy-export='stage0.rev2.safety-policy-export']");
     expect(safetyPolicy).toHaveAttribute("data-safety-policy-status", "pass");
@@ -366,11 +371,16 @@ describe("WorkspaceApp user route integration smoke", () => {
       statusAttribute: "data-package-export-metadata-status",
       expectedStatus: "pass",
       expectedMissingOutputCount: "0",
+      expectedDownloadArtifactStatus: "pass",
+      expectedMissingZipPayloadCount: "0",
       minimumZipPayloadCount: "6",
       payloadAttribute: "data-package-export-zip-payloads",
+      requiredPayloadAttribute: "data-package-export-required-zip-payloads",
       requiredIdentityAttributes: expect.arrayContaining([
         "data-package-export-id",
         "data-package-export-package-id",
+        "data-package-export-download-artifact-status",
+        "data-package-export-download-artifact-format",
         "data-package-export-zip-payload-count"
       ]),
       requiredPayloads: expect.arrayContaining([

@@ -340,6 +340,8 @@ export interface PackageExportMetadataEvidence {
   status: "pass" | "fail";
   exportId: string;
   packageId: string;
+  downloadArtifactStatus: "pass" | "fail";
+  downloadArtifactFormat: ExportFormat;
   requiredOutputCount: number;
   missingRequiredOutputs: string[];
   itemCount: number;
@@ -350,6 +352,9 @@ export interface PackageExportMetadataEvidence {
   handoffChecklistCount: number;
   zipPayloadCount: number;
   zipPayloadNames: string[];
+  requiredZipPayloadNames: string[];
+  missingZipPayloadNames: string[];
+  workflowZipPayloadCount: number;
 }
 
 export interface ShareLink {

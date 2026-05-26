@@ -138,6 +138,8 @@ describe("dev workspace contracts", () => {
       status: "pass",
       exportId: "export-001",
       packageId: "pkg-002",
+      downloadArtifactStatus: "pass",
+      downloadArtifactFormat: "zip",
       requiredOutputCount: 6,
       missingRequiredOutputs: [],
       itemCount: 2,
@@ -154,7 +156,17 @@ describe("dev workspace contracts", () => {
         "provenance.json",
         "ppt-ready-metadata.json",
         "assets/README.txt"
-      ]
+      ],
+      requiredZipPayloadNames: [
+        "manifest.json",
+        "qa-report.json",
+        "safety-policy-report.json",
+        "provenance.json",
+        "ppt-ready-metadata.json",
+        "assets/README.txt"
+      ],
+      missingZipPayloadNames: [],
+      workflowZipPayloadCount: 0
     });
   });
 
@@ -176,7 +188,9 @@ describe("dev workspace contracts", () => {
 
     expect(buildPackageExportMetadataEvidence(record)).toMatchObject({
       status: "fail",
+      downloadArtifactStatus: "fail",
       missingRequiredOutputs: ["qa-report.json", "safety-policy-report.json", "provenance.json", "ppt-ready-metadata.json", "assets/"],
+      missingZipPayloadNames: ["qa-report.json", "safety-policy-report.json", "provenance.json", "ppt-ready-metadata.json", "assets/README.txt"],
       itemCount: 0,
       provenanceCount: 0,
       blockingQaCount: 1
