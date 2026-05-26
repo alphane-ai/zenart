@@ -16,7 +16,7 @@
     },
     "staging_smoke": {
       "script": "scripts/staging_smoke.sh",
-      "runtime_status": "requires real staging URLs",
+      "runtime_status": "requires real staging URLs plus release SHA, release notes, image refs, migration/config/observability/backup/rollback/security evidence, and seeded smoke records",
       "private_beta_gate": "open until staging smoke passes with production-like dependencies"
     },
     "observability_smoke": {
@@ -35,6 +35,26 @@
     "release_notes_template": "ops/release/release_notes_template.md",
     "dashboard_definition": "ops/observability/dashboards/stage0_rev2_overview.json",
     "alert_definition": "ops/observability/alerts/stage0_rev2_alerts.json"
+  },
+  "post_deploy_smoke_go_no_go_contract": {
+    "script": "scripts/staging_smoke.sh",
+    "report_summary_fields": [
+      "release_evidence",
+      "release_gate_fixtures",
+      "go_no_go"
+    ],
+    "required_release_evidence_slots": [
+      "release_sha",
+      "release_notes_path",
+      "image_refs",
+      "migration_evidence",
+      "config_diff_evidence",
+      "observability_evidence",
+      "backup_restore_evidence",
+      "rollback_evidence",
+      "security_scan_evidence"
+    ],
+    "gate_policy": "report decision remains no-go when smoke fails, required release evidence is absent, private beta fixtures are blocked, or production do-not-launch fixtures are present"
   },
   "checklist_policy": {
     "ci_playwright_smoke_remains_open": true,

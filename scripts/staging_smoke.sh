@@ -15,6 +15,17 @@ RUN_ID="${STAMP}-staging-smoke-$$"
 REPORT_PATH="$OUT_DIR/${RUN_ID}.json"
 RESULTS_PATH="$OUT_DIR/${RUN_ID}.ndjson"
 
+RELEASE_SHA="${RELEASE_SHA:-${GITHUB_SHA:-}}"
+RELEASE_TAG="${RELEASE_TAG:-}"
+RELEASE_NOTES_PATH="${RELEASE_NOTES_PATH:-}"
+IMAGE_REFS="${IMAGE_REFS:-}"
+MIGRATION_EVIDENCE="${MIGRATION_EVIDENCE:-}"
+CONFIG_DIFF_EVIDENCE="${CONFIG_DIFF_EVIDENCE:-}"
+OBSERVABILITY_EVIDENCE="${OBSERVABILITY_EVIDENCE:-}"
+BACKUP_RESTORE_EVIDENCE="${BACKUP_RESTORE_EVIDENCE:-}"
+ROLLBACK_EVIDENCE="${ROLLBACK_EVIDENCE:-}"
+SECURITY_SCAN_EVIDENCE="${SECURITY_SCAN_EVIDENCE:-}"
+
 SMOKE_USER_ID="${SMOKE_USER_ID:-}"
 SMOKE_TENANT_ID="${SMOKE_TENANT_ID:-}"
 SMOKE_ADMIN_USER_ID="${SMOKE_ADMIN_USER_ID:-$SMOKE_USER_ID}"
@@ -104,13 +115,26 @@ write_report() {
   mkdir -p "$OUT_DIR"
   local summary required_json
   required_json="$(printf '%s\n' "${REQUIRED_CATEGORIES[@]}" | json_array)"
-  summary="$(python3 - "$RESULTS_PATH" "$required_json" <<'PY'
+  summary="$(python3 - "$RESULTS_PATH" "$required_json" "$status" "$RELEASE_SHA" "$RELEASE_TAG" "$RELEASE_NOTES_PATH" "$IMAGE_REFS" "$MIGRATION_EVIDENCE" "$CONFIG_DIFF_EVIDENCE" "$OBSERVABILITY_EVIDENCE" "$BACKUP_RESTORE_EVIDENCE" "$ROLLBACK_EVIDENCE" "$SECURITY_SCAN_EVIDENCE" <<'PY'
 import json
 import sys
 from pathlib import Path
 
 path = Path(sys.argv[1])
 required = set(json.loads(sys.argv[2]))
+status = sys.argv[3]
+release_sha = sys.argv[4].strip()
+release_tag = sys.argv[5].strip()
+release_notes_path = sys.argv[6].strip()
+image_refs = [value.strip() for value in sys.argv[7].split(",") if value.strip()]
+evidence_refs = {
+    "migration": sys.argv[8].strip(),
+    "config_diff": sys.argv[9].strip(),
+    "observability": sys.argv[10].strip(),
+    "backup_restore": sys.argv[11].strip(),
+    "rollback": sys.argv[12].strip(),
+    "security_scan": sys.argv[13].strip(),
+}
 rows = []
 if path.exists():
     rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
@@ -119,12 +143,71 @@ statuses = {}
 for row in rows:
     key = f"{row.get('name')}:{row.get('status_code', 'planned')}"
     statuses[key] = row.get("url")
+gate_paths = {
+    "private_beta_staging": Path("fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json"),
+    "production_launch": Path("fixtures/stage0/rev2/release_gate_evidence.production_launch.json"),
+}
+gate_statuses = {}
+blocked_conditions = []
+for gate_name, gate_path in gate_paths.items():
+    if not gate_path.exists():
+        gate_statuses[gate_name] = {"path": str(gate_path), "blocked_checks": None, "do_not_launch_present": None}
+        blocked_conditions.append(f"{gate_name}:missing_gate_fixture")
+        continue
+    gate = json.loads(gate_path.read_text(encoding="utf-8"))
+    blocked_checks = [
+        check.get("check_id")
+        for check in gate.get("checks", [])
+        if check.get("status") != "passed"
+    ]
+    do_not_launch = [
+        check.get("condition_id")
+        for check in gate.get("do_not_launch_checks", [])
+        if check.get("is_present") is True
+    ]
+    gate_statuses[gate_name] = {
+        "path": str(gate_path),
+        "blocked_checks": blocked_checks,
+        "do_not_launch_present": do_not_launch,
+    }
+    blocked_conditions.extend(f"{gate_name}:{check}" for check in blocked_checks)
+    blocked_conditions.extend(f"{gate_name}:{condition}" for condition in do_not_launch)
+release_evidence_required = {
+    "release_sha": bool(release_sha),
+    "release_notes_path": bool(release_notes_path),
+    "image_refs": bool(image_refs),
+    "migration_evidence": bool(evidence_refs["migration"]),
+    "config_diff_evidence": bool(evidence_refs["config_diff"]),
+    "observability_evidence": bool(evidence_refs["observability"]),
+    "backup_restore_evidence": bool(evidence_refs["backup_restore"]),
+    "rollback_evidence": bool(evidence_refs["rollback"]),
+    "security_scan_evidence": bool(evidence_refs["security_scan"]),
+}
+release_evidence_complete = all(release_evidence_required.values())
+smoke_passed = status == "passed" and all(row.get("ok") is not False for row in rows) and not (required - set(categories))
+go_no_go = {
+    "decision": "go" if smoke_passed and release_evidence_complete and not blocked_conditions else "no-go",
+    "smoke_passed": smoke_passed,
+    "release_evidence_complete": release_evidence_complete,
+    "blocked_conditions": blocked_conditions,
+}
 print(json.dumps({
     "check_count": len(rows),
     "failure_count": sum(1 for row in rows if row.get("ok") is False),
     "categories": categories,
     "missing_required_categories": sorted(required - set(categories)),
     "statuses": statuses,
+    "release_evidence": {
+        "release_sha": release_sha,
+        "release_tag": release_tag,
+        "release_notes_path": release_notes_path,
+        "image_refs": image_refs,
+        "evidence_refs": evidence_refs,
+        "required_slots": release_evidence_required,
+        "complete": release_evidence_complete,
+    },
+    "release_gate_fixtures": gate_statuses,
+    "go_no_go": go_no_go,
 }, sort_keys=True))
 PY
 )"
@@ -136,6 +219,9 @@ PY
   "run_id": "$RUN_ID",
   "status": "$status",
   "profile": "$STAGING_SMOKE_PROFILE",
+  "release_sha": "$RELEASE_SHA",
+  "release_tag": "$RELEASE_TAG",
+  "release_notes_path": "$RELEASE_NOTES_PATH",
   "base_url": "$BASE_URL",
   "web_url": "$WEB_URL",
   "admin_url": "$ADMIN_URL",
@@ -247,7 +333,7 @@ require_post_deploy_inputs() {
     return 0
   fi
   local missing=()
-  for key in SMOKE_USER_ID SMOKE_TENANT_ID SMOKE_ADMIN_USER_ID SMOKE_ADMIN_TENANT_ID SMOKE_TASK_ID SMOKE_PACKAGE_ID SMOKE_EXPORT_ID; do
+  for key in RELEASE_SHA RELEASE_NOTES_PATH IMAGE_REFS MIGRATION_EVIDENCE CONFIG_DIFF_EVIDENCE OBSERVABILITY_EVIDENCE BACKUP_RESTORE_EVIDENCE ROLLBACK_EVIDENCE SECURITY_SCAN_EVIDENCE SMOKE_USER_ID SMOKE_TENANT_ID SMOKE_ADMIN_USER_ID SMOKE_ADMIN_TENANT_ID SMOKE_TASK_ID SMOKE_PACKAGE_ID SMOKE_EXPORT_ID; do
     if [[ -z "${!key}" ]]; then
       missing+=("$key")
     fi

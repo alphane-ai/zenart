@@ -187,6 +187,50 @@ DRY_RUN=1 OUT_DIR="$ops_validate_dir/staging" scripts/staging_smoke.sh >/dev/nul
 DRY_RUN=1 OUT_DIR="$ops_validate_dir/observability" scripts/observability_smoke.sh >/dev/null
 DRY_RUN=1 OUT_DIR="$ops_validate_dir/security" scripts/security_scan_smoke.sh >/dev/null
 find "$ops_validate_dir" -name '*.json' -type f | grep -q .
+python3 - "$ops_validate_dir/staging" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+reports = sorted(Path(sys.argv[1]).glob("*.json"))
+if len(reports) != 1:
+    raise SystemExit("staging smoke dry-run must write exactly one report")
+report = json.loads(reports[0].read_text(encoding="utf-8"))
+summary = report.get("summary", {})
+required_summary_keys = {
+    "release_evidence",
+    "release_gate_fixtures",
+    "go_no_go",
+    "missing_required_categories",
+    "statuses",
+}
+missing = sorted(required_summary_keys - set(summary))
+if missing:
+    raise SystemExit(f"staging smoke summary missing release gate keys: {missing}")
+release_evidence = summary["release_evidence"]
+required_slots = release_evidence.get("required_slots", {})
+for slot in (
+    "release_sha",
+    "release_notes_path",
+    "image_refs",
+    "migration_evidence",
+    "config_diff_evidence",
+    "observability_evidence",
+    "backup_restore_evidence",
+    "rollback_evidence",
+    "security_scan_evidence",
+):
+    if slot not in required_slots:
+        raise SystemExit(f"staging smoke release evidence missing slot {slot}")
+if release_evidence.get("complete") is not False:
+    raise SystemExit("staging smoke dry-run must keep release evidence incomplete")
+go_no_go = summary["go_no_go"]
+if go_no_go.get("decision") != "no-go":
+    raise SystemExit("staging smoke dry-run must remain no-go")
+for gate in ("private_beta_staging", "production_launch"):
+    if gate not in summary["release_gate_fixtures"]:
+        raise SystemExit(f"staging smoke missing gate fixture summary for {gate}")
+PY
 python3 - "$ops_validate_dir/observability" <<'PY'
 import json
 import sys
