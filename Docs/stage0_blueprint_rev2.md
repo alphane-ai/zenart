@@ -1836,7 +1836,6 @@ main 合并前必须通过：
 
 - [x] 实现 report problem。
 - [x] 实现 support ticket model。
-- [ ] support ticket 关联 user/project/task/trace/asset/export/quota。
 - [x] 实现 support ticket 前端上下文：project/task/trace/asset/export/quota 可见并随 report problem 生成。
 - [x] 实现 admin support ticket 关联证据视图：user/trace/export/quota/audit 引用可查。
 - [ ] support ticket 后端持久化并强制关联 user/project/task/trace/asset/export/quota。
@@ -1849,7 +1848,6 @@ main 合并前必须通过：
 
 ### 25.16 Security, Privacy, Legal
 
-- [ ] 实现 secure cookies。
 - [x] 实现 secure cookie 和 same-site CSRF 客户端/session contract evidence。
 - [ ] 后端设置并验证 secure/HttpOnly/SameSite session cookies。
 - [x] 配置 CORS。

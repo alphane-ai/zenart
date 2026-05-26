@@ -1579,6 +1579,11 @@ def validate_blueprint_evidence_backfill_contracts() -> None:
         in unchecked_lines,
         "backend-enforced support ticket linkage must remain open",
     )
+    require(
+        "support ticket 关联 user/project/task/trace/asset/export/quota。" not in unchecked_lines
+        and "support ticket 关联 user/project/task/trace/asset/export/quota。" not in checked_lines,
+        "ambiguous support ticket linkage checklist item must stay split into evidence and backend-enforcement subitems",
+    )
 
     require(
         "实现 secure cookie 和 same-site CSRF 客户端/session contract evidence。" in checked_lines,
@@ -1596,6 +1601,14 @@ def validate_blueprint_evidence_backfill_contracts() -> None:
     require(
         "配置 CSRF 或 same-site strategy。" in unchecked_lines,
         "server-side CSRF/same-site strategy checklist must remain open",
+    )
+    require(
+        "后端设置并验证 secure/HttpOnly/SameSite session cookies。" in unchecked_lines,
+        "backend secure cookie enforcement checklist must remain open",
+    )
+    require(
+        "实现 secure cookies。" not in unchecked_lines and "实现 secure cookies。" not in checked_lines,
+        "ambiguous secure cookies checklist item must stay split into client evidence and backend-enforcement subitems",
     )
 
     require("实现 secret redaction。" in checked_lines, "blueprint must close secret redaction evidence")
