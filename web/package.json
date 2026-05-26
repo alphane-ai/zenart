@@ -7,7 +7,8 @@
     "lint": "eslint . --max-warnings=0",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "build": "next build"
+    "build": "next build",
+    "smoke:user-routes": "node scripts/smoke-user-routes.mjs"
   },
   "dependencies": {
     "jszip": "^3.10.1",

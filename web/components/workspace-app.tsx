@@ -24,12 +24,31 @@ import {
   Upload,
   User
 } from "lucide-react";
+import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { AccountSettings, Candidate, ExportFormat, QaSeverity, WorkspaceState } from "@/lib/contracts";
 import { zenArtClient } from "@/lib/api-client";
 import { downloadExportPackage } from "@/lib/export-download";
 
-type ViewKey = "workspace" | "projects" | "billing" | "account" | "support";
+export type ViewKey = "workspace" | "projects" | "export" | "billing" | "account" | "support";
+
+const routeByView: Record<ViewKey, string> = {
+  workspace: "/workspace",
+  projects: "/project",
+  export: "/export",
+  billing: "/billing",
+  account: "/account",
+  support: "/support"
+};
+
+const titleByView: Record<ViewKey, string> = {
+  workspace: "Workspace",
+  projects: "Projects",
+  export: "Export",
+  billing: "Billing",
+  account: "Account",
+  support: "Support"
+};
 
 const dateLabel = (value: string) =>
   new Intl.DateTimeFormat("en", {
@@ -45,9 +64,9 @@ const severityClass: Record<QaSeverity, string> = {
   block: "qa-block"
 };
 
-export function WorkspaceApp() {
+export function WorkspaceApp({ initialView = "workspace" }: { initialView?: ViewKey }) {
   const [state, setState] = useState<WorkspaceState | null>(null);
-  const [view, setView] = useState<ViewKey>("workspace");
+  const view = initialView;
   const [briefInput, setBriefInput] = useState("");
   const [iterationInput, setIterationInput] = useState("");
   const [supportBody, setSupportBody] = useState("");
@@ -73,7 +92,7 @@ export function WorkspaceApp() {
     [state]
   );
 
-  const quotaPercent = state ? Math.round((state.billing.quotaUsed / state.billing.quotaLimit) * 100) : 0;
+  const quotaPercent = state ? Math.min(100, Math.round((state.billing.quotaUsed / state.billing.quotaLimit) * 100)) : 0;
 
   const runAction = async (label: string, action: () => Promise<WorkspaceState>) => {
     setBusy(label);
@@ -129,18 +148,19 @@ export function WorkspaceApp() {
           </div>
         </div>
         <nav>
-          <NavButton icon={<Sparkles size={18} />} label="Workspace" active={view === "workspace"} onClick={() => setView("workspace")} />
-          <NavButton icon={<LayoutDashboard size={18} />} label="Projects" active={view === "projects"} onClick={() => setView("projects")} />
-          <NavButton icon={<CircleDollarSign size={18} />} label="Billing" active={view === "billing"} onClick={() => setView("billing")} />
-          <NavButton icon={<User size={18} />} label="Account" active={view === "account"} onClick={() => setView("account")} />
-          <NavButton icon={<LifeBuoy size={18} />} label="Support" active={view === "support"} onClick={() => setView("support")} />
+          <NavButton icon={<Sparkles size={18} aria-hidden="true" />} label="Workspace" view="workspace" active={view === "workspace"} />
+          <NavButton icon={<LayoutDashboard size={18} aria-hidden="true" />} label="Projects" view="projects" active={view === "projects"} />
+          <NavButton icon={<FileArchive size={18} aria-hidden="true" />} label="Export" view="export" active={view === "export"} />
+          <NavButton icon={<CircleDollarSign size={18} aria-hidden="true" />} label="Billing" view="billing" active={view === "billing"} />
+          <NavButton icon={<User size={18} aria-hidden="true" />} label="Account" view="account" active={view === "account"} />
+          <NavButton icon={<LifeBuoy size={18} aria-hidden="true" />} label="Support" view="support" active={view === "support"} />
         </nav>
         <div className="quota-card">
           <div className="quota-head">
             <span>{state.billing.name}</span>
             <strong>{state.billing.quotaLimit - state.billing.quotaUsed}</strong>
           </div>
-          <div className="meter" aria-label={`${quotaPercent}% quota used`}>
+          <div className="meter" role="progressbar" aria-label="Quota used" aria-valuemin={0} aria-valuemax={state.billing.quotaLimit} aria-valuenow={state.billing.quotaUsed}>
             <span style={{ width: `${quotaPercent}%` }} />
           </div>
           <small>{state.billing.quotaUsed} of {state.billing.quotaLimit} credits used</small>
@@ -150,16 +170,19 @@ export function WorkspaceApp() {
       <section className="main-column">
         <header className="topbar">
           <div>
-            <span className="eyebrow">Project</span>
+            <span className="eyebrow">{titleByView[view]}</span>
             <h1>{state.projects.find((project) => project.id === state.activeProjectId)?.name}</h1>
           </div>
           <div className="topbar-actions">
             <button className="icon-button" onClick={() => void runAction("load", () => zenArtClient.loadWorkspace())} aria-label="Reload workspace">
-              <RefreshCcw size={18} />
+              <RefreshCcw size={18} aria-hidden="true" />
             </button>
             <span className="session-pill">{state.session.email}</span>
           </div>
         </header>
+        <div className="action-status" role="status" aria-live="polite">
+          {busy ? `${titleByView[view]} action in progress` : `${titleByView[view]} ready`}
+        </div>
 
         {view === "workspace" && (
           <WorkspaceView
@@ -178,6 +201,7 @@ export function WorkspaceApp() {
           />
         )}
         {view === "projects" && <ProjectsView state={state} />}
+        {view === "export" && <ExportView state={state} runAction={runAction} />}
         {view === "billing" && <BillingView state={state} busy={busy} runAction={runAction} />}
         {view === "account" && <AccountView state={state} runAction={runAction} />}
         {view === "support" && (
@@ -199,19 +223,19 @@ export function WorkspaceApp() {
 function NavButton({
   icon,
   label,
+  view,
   active,
-  onClick
 }: {
   icon: React.ReactNode;
   label: string;
+  view: ViewKey;
   active: boolean;
-  onClick: () => void;
 }) {
   return (
-    <button className={active ? "nav-button active" : "nav-button"} onClick={onClick}>
+    <Link className={active ? "nav-button active" : "nav-button"} href={routeByView[view]} aria-current={active ? "page" : undefined}>
       {icon}
       <span>{label}</span>
-    </button>
+    </Link>
   );
 }
 
@@ -245,7 +269,7 @@ function WorkspaceView({
   return (
     <div className="workspace-grid">
       <section className="panel chat-panel">
-        <PanelTitle icon={<Sparkles size={18} />} title="Brief" />
+        <PanelTitle icon={<Sparkles size={18} aria-hidden="true" />} title="Brief" />
         <div className="messages" aria-live="polite">
           {state.chat.map((message) => (
             <article key={message.id} className={`message ${message.role}`}>
@@ -256,21 +280,24 @@ function WorkspaceView({
         </div>
         <form onSubmit={confirmBrief} className="stack">
           {state.brief.missingInfo.length > 0 && (
-            <div className="missing-info">
-              <AlertTriangle size={16} />
+            <div className="missing-info" id="brief-missing-info">
+              <AlertTriangle size={16} aria-hidden="true" />
               <span>Missing: {state.brief.missingInfo.join(", ")}</span>
             </div>
           )}
-          <textarea value={briefInput} onChange={(event) => setBriefInput(event.target.value)} rows={5} />
+          <label className="sr-only" htmlFor="brief-input">Brief</label>
+          <textarea id="brief-input" value={briefInput} onChange={(event) => setBriefInput(event.target.value)} rows={5} aria-describedby={state.brief.missingInfo.length > 0 ? "brief-missing-info" : undefined} />
           <button className="primary-button" disabled={busy === "brief" || !briefInput.trim()}>
-            <Check size={18} />
+            <Check size={18} aria-hidden="true" />
             Confirm Brief
           </button>
         </form>
         <div className="reference-row">
-          <input value={referenceName} onChange={(event) => setReferenceName(event.target.value)} />
+          <label className="sr-only" htmlFor="reference-name">Reference asset name or URL</label>
+          <input id="reference-name" value={referenceName} onChange={(event) => setReferenceName(event.target.value)} />
           <button
             className="secondary-button"
+            disabled={!referenceName.trim()}
             onClick={() =>
               void runAction("reference", () =>
                 zenArtClient.attachReference({
@@ -280,14 +307,14 @@ function WorkspaceView({
               )
             }
           >
-            <Upload size={17} />
+            <Upload size={17} aria-hidden="true" />
             Attach
           </button>
         </div>
         <div className="reference-list">
           {state.brief.references.map((reference) => (
             <span key={reference.id}>
-              <ImagePlus size={14} />
+              <ImagePlus size={14} aria-hidden="true" />
               {reference.name}
             </span>
           ))}
@@ -296,7 +323,7 @@ function WorkspaceView({
 
       <section className="panel canvas-panel">
         <div className="panel-header">
-          <PanelTitle icon={<Save size={18} />} title="Canvas" />
+          <PanelTitle icon={<Save size={18} aria-hidden="true" />} title="Canvas" />
           <span className="soft-label">Autosaved {dateLabel(state.canvas.autosavedAt)}</span>
         </div>
         <div className="canvas-surface">
@@ -316,8 +343,9 @@ function WorkspaceView({
               key={version.id}
               className={version.id === state.canvas.activeVersionId ? "version-chip active" : "version-chip"}
               onClick={() => void runAction("restore", () => zenArtClient.restoreCanvasVersion(version.id))}
+              aria-pressed={version.id === state.canvas.activeVersionId}
             >
-              <History size={14} />
+              <History size={14} aria-hidden="true" />
               {version.label}
             </button>
           ))}
@@ -325,10 +353,10 @@ function WorkspaceView({
       </section>
 
       <section className="panel candidates-panel">
-        <PanelTitle icon={<Archive size={18} />} title="Candidates" />
+        <PanelTitle icon={<Archive size={18} aria-hidden="true" />} title="Candidates" />
         <div className="candidate-grid">
           {state.candidates.map((candidate) => (
-            <article key={candidate.id} className={state.selectedCandidateId === candidate.id ? "candidate-card selected" : "candidate-card"}>
+            <article key={candidate.id} className={state.selectedCandidateId === candidate.id ? "candidate-card selected" : "candidate-card"} aria-current={state.selectedCandidateId === candidate.id ? "true" : undefined}>
               <div className="swatches">
                 {candidate.palette.map((color) => (
                   <span key={color} style={{ background: color }} />
@@ -337,21 +365,23 @@ function WorkspaceView({
               <h2>{candidate.title}</h2>
               <p>{candidate.strategy}</p>
               <small>{candidate.rationale}</small>
-              <button className="secondary-button" onClick={() => void runAction("select", () => zenArtClient.selectCandidate(candidate.id))}>
-                <ChevronRight size={17} />
+              <button className="secondary-button" onClick={() => void runAction("select", () => zenArtClient.selectCandidate(candidate.id))} aria-pressed={state.selectedCandidateId === candidate.id} aria-label={`Select ${candidate.title}`}>
+                <ChevronRight size={17} aria-hidden="true" />
                 Select
               </button>
             </article>
           ))}
         </div>
         <form className="iteration-form" onSubmit={iterate}>
+          <label className="sr-only" htmlFor="iteration-input">Iteration instruction</label>
           <input
+            id="iteration-input"
             value={iterationInput}
             onChange={(event) => setIterationInput(event.target.value)}
             placeholder={selectedCandidate ? `Iterate ${selectedCandidate.title}` : "Select a candidate to iterate"}
           />
           <button className="primary-button" disabled={!selectedCandidate || !iterationInput.trim()}>
-            <Send size={18} />
+            <Send size={18} aria-hidden="true" />
             Iterate
           </button>
         </form>
@@ -371,7 +401,7 @@ function PackagePanel({
 }) {
   return (
     <section className="panel package-panel">
-      <PanelTitle icon={<PackagePlus size={18} />} title="Package" />
+      <PanelTitle icon={<PackagePlus size={18} aria-hidden="true" />} title="Package" />
       <div className="package-actions">
         <button
           className="secondary-button"
@@ -383,15 +413,15 @@ function PackagePanel({
             }
           }}
         >
-          <PackagePlus size={17} />
+          <PackagePlus size={17} aria-hidden="true" />
           Add Selection
         </button>
         <button className="primary-button" onClick={() => void runAction("export", () => zenArtClient.createExport("zip"))}>
-          <Download size={17} />
+          <Download size={17} aria-hidden="true" />
           Export ZIP
         </button>
         <button className="secondary-button" onClick={() => void runAction("export", () => zenArtClient.createExport("pdf-placeholder"))}>
-          <FileArchive size={17} />
+          <FileArchive size={17} aria-hidden="true" />
           PDF
         </button>
       </div>
@@ -421,7 +451,7 @@ function PackagePanel({
             </div>
             {item.status === "ready" ? (
               <button className="secondary-button compact" onClick={() => void downloadExportPackage(item)}>
-                <Download size={15} />
+                <Download size={15} aria-hidden="true" />
                 Download
               </button>
             ) : null}
@@ -448,9 +478,54 @@ function ProjectsView({ state }: { state: WorkspaceState }) {
         ))}
       </div>
       <div className="empty-state">
-        <Sparkles size={22} />
+        <Sparkles size={22} aria-hidden="true" />
         <strong>Workflow examples</strong>
         <span>Campaign direction, product launch kit, editorial board, presentation asset package.</span>
+      </div>
+    </section>
+  );
+}
+
+function ExportView({
+  state,
+  runAction
+}: {
+  state: WorkspaceState;
+  runAction: (label: string, action: () => Promise<WorkspaceState>) => Promise<void>;
+}) {
+  const latestExport = state.exports[0];
+  return (
+    <section className="content-view export-view">
+      <div className="section-title">
+        <h2>Export Preview</h2>
+      </div>
+      <div className="export-layout">
+        <PackagePanel state={state} runAction={runAction} />
+        <article className="export-summary">
+          <span className="eyebrow">Latest package</span>
+          {latestExport ? (
+            <>
+              <h3>{latestExport.fileName}</h3>
+              <p>{latestExport.status} · {dateLabel(latestExport.createdAt)}</p>
+              <dl>
+                <div>
+                  <dt>Manifest</dt>
+                  <dd>{latestExport.manifest.required_outputs.join(", ")}</dd>
+                </div>
+                <div>
+                  <dt>Items</dt>
+                  <dd>{latestExport.manifest.items.length}</dd>
+                </div>
+                <div>
+                  <dt>QA findings</dt>
+                  <dd>{latestExport.qaReport.length}</dd>
+                </div>
+              </dl>
+            </>
+          ) : (
+            <p>No export has been created for this local alpha workspace.</p>
+          )}
+        </article>
       </div>
     </section>
   );
@@ -478,7 +553,7 @@ function BillingView({
           <p>Status: {state.billing.status}</p>
           <p>Renewal: {state.billing.renewalMode}</p>
           <button className="primary-button" disabled={busy === "checkout"} onClick={() => void runAction("checkout", () => zenArtClient.createMockCheckout())}>
-            <CircleDollarSign size={18} />
+            <CircleDollarSign size={18} aria-hidden="true" />
             Mock Checkout
           </button>
         </article>
@@ -486,7 +561,7 @@ function BillingView({
           <span className="eyebrow">Quota</span>
           <h3>{remaining} credits remaining</h3>
           <p>Weekly reset: {dateLabel(state.billing.resetAt)}</p>
-          <div className="meter large">
+          <div className="meter large" role="progressbar" aria-label="Billing quota used" aria-valuemin={0} aria-valuemax={state.billing.quotaLimit} aria-valuenow={state.billing.quotaUsed}>
             <span style={{ width: `${Math.round((state.billing.quotaUsed / state.billing.quotaLimit) * 100)}%` }} />
           </div>
         </article>
@@ -540,7 +615,7 @@ function AccountView({
           Email notifications
         </label>
         <button className="primary-button">
-          <Settings size={18} />
+          <Settings size={18} aria-hidden="true" />
           Save Settings
         </button>
       </form>
@@ -581,9 +656,10 @@ function SupportView({
             <option value="other">Other</option>
           </select>
         </label>
-        <textarea value={body} onChange={(event) => setBody(event.target.value)} rows={6} placeholder="Describe what went wrong." />
+        <label className="sr-only" htmlFor="support-body">Problem description</label>
+        <textarea id="support-body" value={body} onChange={(event) => setBody(event.target.value)} rows={6} placeholder="Describe what went wrong." />
         <button className="primary-button" disabled={busy === "support" || !body.trim()}>
-          <Flag size={18} />
+          <Flag size={18} aria-hidden="true" />
           Submit Ticket
         </button>
       </form>

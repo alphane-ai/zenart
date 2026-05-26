@@ -1,0 +1,52 @@
+{
+  "schemaVersion": "stage0.rev2.web-smoke",
+  "blueprintSource": "Docs/stage0_blueprint_rev2.md",
+  "owner": "lane3",
+  "routes": [
+    {
+      "path": "/workspace",
+      "component": "WorkspaceApp",
+      "initialView": "workspace",
+      "expects": ["chatbox", "canvas", "candidate-set", "package-panel"]
+    },
+    {
+      "path": "/project",
+      "component": "WorkspaceApp",
+      "initialView": "projects",
+      "expects": ["project-dashboard", "recent-projects", "workflow-examples"]
+    },
+    {
+      "path": "/export",
+      "component": "WorkspaceApp",
+      "initialView": "export",
+      "expects": ["package-history", "export-history", "manifest-preview", "qa-report"]
+    },
+    {
+      "path": "/billing",
+      "component": "WorkspaceApp",
+      "initialView": "billing",
+      "expects": ["quota-meter", "subscription-status", "mock-checkout"]
+    },
+    {
+      "path": "/account",
+      "component": "WorkspaceApp",
+      "initialView": "account",
+      "expects": ["account-settings", "default-export-format", "email-notifications"]
+    },
+    {
+      "path": "/support",
+      "component": "WorkspaceApp",
+      "initialView": "support",
+      "expects": ["report-problem", "ticket-history", "linked-quota-snapshot"]
+    }
+  ],
+  "accessibilityChecks": [
+    "route navigation exposes aria-current on active page",
+    "loading and action status use aria-live regions",
+    "quota meters expose progressbar values",
+    "icon-only reload control has an aria-label",
+    "textareas and free-text inputs have programmatic labels",
+    "selection and version controls expose pressed/current state"
+  ],
+  "validationCommands": ["npm run lint", "npm run typecheck", "npm run test", "npm run build", "npm run smoke:user-routes"]
+}

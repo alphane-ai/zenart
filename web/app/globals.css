@@ -38,9 +38,26 @@ button {
   cursor: pointer;
 }
 
+a {
+  color: inherit;
+}
+
 button:disabled {
   cursor: not-allowed;
   opacity: 0.56;
+}
+
+.sr-only,
+.action-status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .loading-screen {
@@ -123,6 +140,7 @@ button:disabled {
   gap: 10px;
   padding: 0 12px;
   text-align: left;
+  text-decoration: none;
 }
 
 .nav-button.active,
@@ -527,6 +545,11 @@ textarea {
   gap: 14px;
 }
 
+.export-view .package-panel {
+  grid-column: auto;
+  grid-row: auto;
+}
+
 .package-actions {
   flex-wrap: wrap;
 }
@@ -602,7 +625,8 @@ textarea {
 }
 
 .project-grid,
-.billing-layout {
+.billing-layout,
+.export-layout {
   display: grid;
   grid-template-columns: repeat(2, minmax(260px, 1fr));
   gap: 14px;
@@ -610,6 +634,7 @@ textarea {
 
 .project-card,
 .billing-card,
+.export-summary,
 .empty-state,
 .settings-form,
 .support-form {
@@ -641,9 +666,42 @@ textarea {
   gap: 10px;
 }
 
-.billing-card h3 {
+.billing-card h3,
+.export-summary h3 {
   margin: 0;
   font-size: 26px;
+}
+
+.export-summary {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+}
+
+.export-summary p {
+  margin: 0;
+  color: #344054;
+}
+
+.export-summary dl {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+
+.export-summary dl div {
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+}
+
+.export-summary dt {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.export-summary dd {
+  margin: 3px 0 0;
+  color: #344054;
 }
 
 .settings-form,
@@ -706,7 +764,8 @@ textarea {
 
   .workspace-grid,
   .project-grid,
-  .billing-layout {
+  .billing-layout,
+  .export-layout {
     grid-template-columns: 1fr;
   }
 
