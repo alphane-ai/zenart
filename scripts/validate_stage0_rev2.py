@@ -140,6 +140,118 @@ GATE_CHECKLIST_ITEMS = {
 
 GLOBAL_DO_NOT_LAUNCH_CHECKLIST_ITEM = "Do-Not-Launch Conditions 全部为 false。"
 
+CHECK_STATUS_VALUES = {"pass", "fail", "blocked", "not_applicable"}
+
+RELEASE_GATE_REQUIRED_CHECKS = {
+    "local_alpha": {
+        "workflow_fixture_coverage",
+        "eval_fixture_coverage",
+        "crawler_governance_fixture_coverage",
+        "schema_fixture_validation",
+        "local_alpha_service_presence",
+        "local_alpha_runtime_stack",
+        "local_alpha_e2e_workflow_smoke",
+    },
+    "ci": {
+        "ci_draft_artifact_coverage",
+        "ci_installed_workflow",
+        "ci_gate_runtime_execution",
+        "ci_playwright_smoke",
+        "ci_docker_image_build",
+    },
+    "private_beta_staging": {
+        "staging_auth_rbac_tenant_audit",
+        "staging_brief_upload_confirmation",
+        "staging_object_storage_signed_downloads",
+        "staging_quota_rate_limit_spend_cap",
+        "staging_support_retry_abuse_ops",
+        "staging_eval_qa_safety_runtime",
+        "staging_crawler_approval_provenance",
+        "staging_observability_backup_load",
+        "staging_legal_external_user_pages",
+    },
+    "production_launch": {
+        "production_provider_or_comp_only_mode",
+        "production_paid_billing_lifecycle",
+        "production_skill_release_eval_canary",
+        "production_activation_review_audit",
+        "production_abuse_throttle_hold",
+        "production_security_launch_checks",
+        "production_backup_rollback_incident",
+        "production_legal_support_policy",
+    },
+}
+
+RELEASE_GATE_REQUIRED_ACTIVE_CONDITIONS = {
+    "ci": {
+        "ci_gate_not_executed_on_main",
+        "ci_playwright_smoke_missing",
+        "ci_docker_image_build_missing",
+    },
+    "private_beta_staging": {
+        "tenant_isolation_not_enforced",
+        "eval_qa_safety_runtime_missing",
+        "crawler_governance_runtime_missing",
+        "staging_observability_restore_load_missing",
+        "external_user_legal_pages_missing",
+    },
+    "production_launch": {
+        "real_provider_or_comp_only_mode_missing",
+        "skill_release_eval_canary_missing",
+        "security_privacy_legal_incomplete",
+        "backup_restore_rollback_smoke_missing",
+        "ci_staging_gates_not_passed",
+    },
+}
+
+RELEASE_GATE_PASS_BLOCKED_BY_OPEN_ITEMS = {
+    "local_alpha": {
+        "电商增长包 API smoke test 通过。",
+        "电商增长包 Playwright happy path 通过。",
+        "商业视觉文档包 API smoke test 通过。",
+        "商业视觉文档包 Playwright happy path 通过。",
+        "本地商家活动包 API smoke test 通过。",
+        "本地商家活动包 Playwright happy path 通过。",
+        "角色/IP 概念包 API smoke test 通过。",
+        "角色/IP 概念包 Playwright happy path 通过。",
+    },
+    "ci": {
+        "添加 PR/main CI 到 `.github/workflows`。（token-blocked：当前 token 缺 workflow scope；draft/evidence 已落在 `ops/ci/` 和 `fixtures/ops/`。）",
+        "CI 在已安装 PR/main workflow 中运行 Playwright smoke。",
+        "CI 在已安装 PR/main workflow 中 build Docker images。",
+    },
+    "private_beta_staging": {
+        "在 brief/provider request/provider response/QA/export 运行 safety policy。",
+        "crawler fetch/import 强制 source approval runtime gate。",
+        "crawler runtime 强制 robots evidence。",
+        "crawler runtime 强制 SSRF protections。",
+        "crawler runtime 强制 source/global rate limits。",
+        "crawler runtime 强制 raw content retention limit。",
+        "crawler runtime 强制 exact-text import warning。",
+        "crawler runtime 强制 provenance links。",
+        "crawler runtime 强制 source blocklist。",
+        "实现 temporary hold/throttle hooks。",
+        "实现 admin abuse queue。",
+        "support ticket 后端持久化并强制关联 user/project/task/trace/asset/export/quota。",
+        "后端设置并验证 secure/HttpOnly/SameSite session cookies。",
+        "后端/API runtime 验证 CSRF 或 same-site strategy。",
+        "执行 staging deploy。",
+        "执行 staging smoke tests。",
+        "实现 request id propagation。",
+        "实现 structured JSON logs。",
+        "实现 OpenTelemetry traces。",
+        "实现 backend/worker/crawler metrics。",
+        "导入并验证 staging dashboards runtime evidence。",
+        "配置并验证 staging alert routes/runtime evidence。",
+        "Staging post-deploy smoke tests 通过。",
+    },
+    "production_launch": {
+        "CI Gate 全部通过。",
+        "Private Beta/Staging Gate 全部通过。",
+        "Production post-deploy smoke tests 通过。",
+    },
+}
+
 SCHEMA_FIXTURE_TARGETS = [
     ("activation_gate_contract.schema.json", FIXTURE_DIR / "eval" / "activation_gate_contract.json", "object"),
     ("analytics_taxonomy.schema.json", FIXTURE_DIR / "analytics" / "event_taxonomy.json", "object"),
@@ -648,6 +760,103 @@ def gate_blockers(data: dict[str, Any]) -> dict[str, list[str]]:
             if item["is_present"]
         ],
     }
+
+
+def checks_by_id(data: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    checks = data["checks"]
+    check_ids = [check["check_id"] for check in checks]
+    require(
+        len(check_ids) == len(set(check_ids)),
+        f"{data['gate']} release evidence has duplicate check_id values",
+    )
+    return {check["check_id"]: check for check in checks}
+
+
+def do_not_launch_by_id(data: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    conditions = data["do_not_launch_checks"]
+    condition_ids = [condition["condition_id"] for condition in conditions]
+    require(
+        len(condition_ids) == len(set(condition_ids)),
+        f"{data['gate']} release evidence has duplicate condition_id values",
+    )
+    return {condition["condition_id"]: condition for condition in conditions}
+
+
+def validate_release_gate_basics(data: dict[str, Any]) -> tuple[dict[str, dict[str, Any]], dict[str, dict[str, Any]]]:
+    gate = data["gate"]
+    require(gate in RELEASE_GATE_REQUIRED_CHECKS, f"unexpected release gate evidence target: {gate}")
+    require(
+        data["provenance"]["created_by_lane"] == "lane6",
+        f"{gate} release evidence must be lane6-owned",
+    )
+    require(
+        data["provenance"]["blueprint_sections"],
+        f"{gate} release evidence must cite blueprint sections",
+    )
+
+    checks = checks_by_id(data)
+    missing_checks = RELEASE_GATE_REQUIRED_CHECKS[gate] - set(checks)
+    require(not missing_checks, f"{gate} release evidence missing checks: {sorted(missing_checks)}")
+
+    conditions = do_not_launch_by_id(data)
+    for check_id, check in checks.items():
+        require(
+            check["status"] in CHECK_STATUS_VALUES,
+            f"{gate}.{check_id} has unsupported status {check['status']!r}",
+        )
+        require(
+            check["evidence_ref"].strip(),
+            f"{gate}.{check_id} must have a non-empty evidence_ref",
+        )
+        if check["status"] in {"fail", "blocked"}:
+            require(
+                any(
+                    token in check["evidence_ref"].lower()
+                    for token in [
+                        "absent",
+                        "blocked",
+                        "incomplete",
+                        "missing",
+                        "not present",
+                        "cannot pass until",
+                        "requires",
+                        "未",
+                        "缺",
+                        "open",
+                    ]
+                ),
+                f"{gate}.{check_id} is {check['status']} but evidence_ref does not explain the blocker",
+            )
+
+    for condition_id, condition in conditions.items():
+        require(
+            condition["evidence_ref"].strip(),
+            f"{gate}.{condition_id} must have a non-empty evidence_ref",
+        )
+        if condition["is_present"]:
+            require(
+                any(
+                    token in condition["evidence_ref"].lower()
+                    for token in ["absent", "blocked", "blocker", "missing", "remain", "not ", "no ", "until", "未", "缺", "open"]
+                ),
+                f"{gate}.{condition_id} is active but evidence_ref does not explain the launch blocker",
+            )
+
+    return checks, conditions
+
+
+def validate_gate_cannot_pass_with_open_items(
+    gate: str,
+    data: dict[str, Any],
+    unchecked_lines: set[str],
+) -> None:
+    relevant_open_items = RELEASE_GATE_PASS_BLOCKED_BY_OPEN_ITEMS.get(gate, set()) & unchecked_lines
+    if relevant_open_items:
+        require(
+            not gate_allows_checklist_completion(data),
+            f"{gate} gate evidence allows checklist completion while blocking checklist items remain open: "
+            + json.dumps(sorted(relevant_open_items), ensure_ascii=False),
+        )
 
 
 def checked_items(text: str) -> set[str]:
@@ -1324,31 +1533,15 @@ def validate_release_gate_evidence() -> None:
     evidence = release_evidence_by_gate()
     missing_gates = set(GATE_CHECKLIST_ITEMS.values()) - set(evidence)
     require(not missing_gates, f"release gate evidence missing gates: {sorted(missing_gates)}")
+    blueprint_unchecked = unchecked_items(BLUEPRINT.read_text(encoding="utf-8"))
+
+    for gate, gate_evidence in evidence.items():
+        validate_release_gate_basics(gate_evidence)
+        validate_gate_cannot_pass_with_open_items(gate, gate_evidence, blueprint_unchecked)
 
     local_alpha = load_json(FIXTURE_DIR / "release_gate_evidence.local_alpha.json")
     require(local_alpha["gate"] == "local_alpha", "release gate fixture must target local alpha")
-    check_ids = {check["check_id"] for check in local_alpha["checks"]}
-    checks = {check["check_id"]: check for check in local_alpha["checks"]}
-    require(
-        {"workflow_fixture_coverage", "eval_fixture_coverage", "crawler_governance_fixture_coverage"} <= check_ids,
-        "local alpha evidence missing fixture coverage checks",
-    )
-    require(
-        "schema_fixture_validation" in check_ids,
-        "local alpha evidence missing schema fixture validation check",
-    )
-    require(
-        "local_alpha_service_presence" in check_ids,
-        "local alpha evidence missing web/admin/backend presence check",
-    )
-    require(
-        "local_alpha_runtime_stack" in check_ids,
-        "local alpha evidence missing runtime stack check",
-    )
-    require(
-        "local_alpha_e2e_workflow_smoke" in check_ids,
-        "local alpha evidence missing end-to-end workflow smoke check",
-    )
+    checks, local_alpha_conditions = validate_release_gate_basics(local_alpha)
 
     service_missing = local_alpha_service_missing()
     service_status = checks["local_alpha_service_presence"]["status"]
@@ -1379,7 +1572,7 @@ def validate_release_gate_evidence() -> None:
         "local alpha end-to-end workflow smoke must remain blocked until runtime smoke evidence exists",
     )
 
-    do_not_launch = {item["condition_id"]: item["is_present"] for item in local_alpha["do_not_launch_checks"]}
+    do_not_launch = {condition_id: item["is_present"] for condition_id, item in local_alpha_conditions.items()}
     require(
         do_not_launch.get("generic_workflow_only") is False,
         "release evidence must guard against generic workflow-only completion",
@@ -1399,15 +1592,7 @@ def validate_release_gate_evidence() -> None:
 
     ci = load_json(FIXTURE_DIR / "release_gate_evidence.ci.json")
     require(ci["gate"] == "ci", "CI release gate fixture must target CI")
-    ci_checks = {check["check_id"]: check for check in ci["checks"]}
-    for check_id in [
-        "ci_draft_artifact_coverage",
-        "ci_installed_workflow",
-        "ci_gate_runtime_execution",
-        "ci_playwright_smoke",
-        "ci_docker_image_build",
-    ]:
-        require(check_id in ci_checks, f"CI release evidence missing {check_id}")
+    ci_checks, ci_conditions = validate_release_gate_basics(ci)
     require(
         ci_checks["ci_draft_artifact_coverage"]["status"] == "pass",
         "CI draft artifact coverage must pass when ops CI draft evidence validates",
@@ -1434,7 +1619,7 @@ def validate_release_gate_evidence() -> None:
         ci_checks["ci_docker_image_build"]["status"] == "blocked",
         "CI Docker image build must stay blocked until installed PR/main runtime evidence exists",
     )
-    ci_do_not_launch = {item["condition_id"]: item["is_present"] for item in ci["do_not_launch_checks"]}
+    ci_do_not_launch = {condition_id: item["is_present"] for condition_id, item in ci_conditions.items()}
     require(
         ci_do_not_launch.get("ci_workflow_not_installed") is (not CI_WORKFLOW.exists()),
         "CI release evidence ci_workflow_not_installed must reflect installed workflow presence",
@@ -1457,33 +1642,16 @@ def validate_release_gate_evidence() -> None:
         private_beta["gate"] == "private_beta_staging",
         "private beta/staging release gate fixture must target private_beta_staging",
     )
-    private_beta_checks = {check["check_id"]: check for check in private_beta["checks"]}
-    for check_id in [
-        "staging_auth_rbac_tenant_audit",
-        "staging_brief_upload_confirmation",
-        "staging_object_storage_signed_downloads",
-        "staging_quota_rate_limit_spend_cap",
-        "staging_support_retry_abuse_ops",
-        "staging_eval_qa_safety_runtime",
-        "staging_crawler_approval_provenance",
-        "staging_observability_backup_load",
-        "staging_legal_external_user_pages",
-    ]:
-        require(check_id in private_beta_checks, f"private beta/staging release evidence missing {check_id}")
+    private_beta_checks, private_beta_conditions = validate_release_gate_basics(private_beta)
+    for check_id in RELEASE_GATE_REQUIRED_CHECKS["private_beta_staging"]:
         require(
             private_beta_checks[check_id]["status"] == "blocked",
             f"private beta/staging release evidence {check_id} must remain blocked until runtime evidence exists",
         )
     private_beta_do_not_launch = {
-        item["condition_id"]: item["is_present"] for item in private_beta["do_not_launch_checks"]
+        condition_id: item["is_present"] for condition_id, item in private_beta_conditions.items()
     }
-    for condition_id in [
-        "tenant_isolation_not_enforced",
-        "eval_qa_safety_runtime_missing",
-        "crawler_governance_runtime_missing",
-        "staging_observability_restore_load_missing",
-        "external_user_legal_pages_missing",
-    ]:
+    for condition_id in RELEASE_GATE_REQUIRED_ACTIVE_CONDITIONS["private_beta_staging"]:
         require(
             private_beta_do_not_launch.get(condition_id) is True,
             f"private beta/staging release evidence must keep {condition_id} active",
@@ -1504,32 +1672,16 @@ def validate_release_gate_evidence() -> None:
 
     production = load_json(FIXTURE_DIR / "release_gate_evidence.production_launch.json")
     require(production["gate"] == "production_launch", "production release gate fixture must target production_launch")
-    production_checks = {check["check_id"]: check for check in production["checks"]}
-    for check_id in [
-        "production_provider_or_comp_only_mode",
-        "production_paid_billing_lifecycle",
-        "production_skill_release_eval_canary",
-        "production_activation_review_audit",
-        "production_abuse_throttle_hold",
-        "production_security_launch_checks",
-        "production_backup_rollback_incident",
-        "production_legal_support_policy",
-    ]:
-        require(check_id in production_checks, f"production release evidence missing {check_id}")
+    production_checks, production_conditions = validate_release_gate_basics(production)
+    for check_id in RELEASE_GATE_REQUIRED_CHECKS["production_launch"]:
         require(
             production_checks[check_id]["status"] == "blocked",
             f"production release evidence {check_id} must remain blocked until launch evidence exists",
         )
     production_do_not_launch = {
-        item["condition_id"]: item["is_present"] for item in production["do_not_launch_checks"]
+        condition_id: item["is_present"] for condition_id, item in production_conditions.items()
     }
-    for condition_id in [
-        "real_provider_or_comp_only_mode_missing",
-        "skill_release_eval_canary_missing",
-        "security_privacy_legal_incomplete",
-        "backup_restore_rollback_smoke_missing",
-        "ci_staging_gates_not_passed",
-    ]:
+    for condition_id in RELEASE_GATE_REQUIRED_ACTIVE_CONDITIONS["production_launch"]:
         require(
             production_do_not_launch.get(condition_id) is True,
             f"production release evidence must keep {condition_id} active",
@@ -1612,6 +1764,8 @@ def validate_blueprint_checklist() -> None:
     for item, gate in GATE_CHECKLIST_ITEMS.items():
         require(item in unchecked_lines, f"blueprint launch gate item must remain open until evidence passes: {item}")
         require(gate in evidence, f"missing release gate evidence for {gate}")
+        validate_release_gate_basics(evidence[gate])
+        validate_gate_cannot_pass_with_open_items(gate, evidence[gate], unchecked_lines)
         blockers = gate_blockers(evidence[gate])
         require(
             blockers["blocked_or_failing_checks"] or blockers["active_do_not_launch_conditions"],
