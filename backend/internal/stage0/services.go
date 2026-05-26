@@ -1207,6 +1207,9 @@ func (r Repository) ImportCrawlerFinding(ctx context.Context, input CrawlerImpor
 	if !crawlerProvenanceComplete(provenance) {
 		return CrawlerImportResult{}, errors.Join(ErrValidation, errors.New("crawler import provenance must include source_url, fetched_at, robots_policy, and content_hash"))
 	}
+	if !crawlerProvenanceMatchesImport(provenance, documentURL, contentHash) {
+		return CrawlerImportResult{}, errors.Join(ErrValidation, errors.New("crawler import provenance must match the imported document URL and content hash"))
+	}
 	source, err := r.getCrawlerSource(ctx, sourceID)
 	if err != nil {
 		return CrawlerImportResult{}, err
@@ -1831,6 +1834,11 @@ func crawlerProvenanceComplete(provenance map[string]any) bool {
 		stringFromMap(provenance, "fetched_at", "") != "" &&
 		stringFromMap(provenance, "content_hash", "") != "" &&
 		provenance["robots_policy"] != nil
+}
+
+func crawlerProvenanceMatchesImport(provenance map[string]any, documentURL, contentHash string) bool {
+	return strings.TrimSpace(stringFromMap(provenance, "source_url", "")) == strings.TrimSpace(documentURL) &&
+		strings.TrimSpace(stringFromMap(provenance, "content_hash", "")) == strings.TrimSpace(contentHash)
 }
 
 func jsonObject(value map[string]any) []byte {

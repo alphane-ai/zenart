@@ -969,6 +969,13 @@ func TestStartCrawlerRunBlocksUnapprovedRobotsDeniedAndPrivateHosts(t *testing.T
 			robots: []byte(`{"robots":"allowed","direct_activation_allowed":false}`),
 		},
 		{
+			name:   "source blocklist",
+			url:    "https://blocked.example/docs",
+			status: "approved",
+			legal:  []byte(`{"license":"permissive","owner":"Example"}`),
+			robots: []byte(`{"robots":"allowed","direct_activation_allowed":false}`),
+		},
+		{
 			name:   "missing legal metadata",
 			url:    "https://example.com/docs",
 			status: "approved",
@@ -999,6 +1006,41 @@ func TestStartCrawlerRunBlocksUnapprovedRobotsDeniedAndPrivateHosts(t *testing.T
 				t.Fatalf("blocked crawler run should not write rows: %#v", db.execs)
 			}
 		})
+	}
+}
+
+func TestStartCrawlerRunBlocksDNSRebindingToPrivateIP(t *testing.T) {
+	now := time.Now().UTC()
+	db := &fakeDB{queryRows: []rowSet{{
+		rows: [][]any{{
+			"crawler_source_1",
+			nil,
+			"Allowed Source",
+			"https://example.com/docs",
+			"approved",
+			[]byte(`{"license":"permissive","owner":"Example"}`),
+			[]byte(`{"robots":"allowed","direct_activation_allowed":false}`),
+			now,
+			now,
+		}},
+	}}}
+	repo := NewRepository(db)
+
+	_, err := repo.StartCrawlerRun(context.Background(), "crawler_source_1", CrawlerPolicy{
+		Enabled:          true,
+		UserAgent:        "ZenArtStage0Bot/0.1",
+		GlobalRPS:        0.2,
+		SourceRPS:        0.1,
+		RawRetentionDays: 14,
+		ResolveHost: func(context.Context, string) ([]net.IP, error) {
+			return []net.IP{net.ParseIP("10.0.0.5")}, nil
+		},
+	})
+	if !errors.Is(err, ErrCrawlerBlocked) {
+		t.Fatalf("StartCrawlerRun() error = %v, want ErrCrawlerBlocked", err)
+	}
+	if len(db.execs) != 0 {
+		t.Fatalf("DNS-rebound crawler run should not write rows: %#v", db.execs)
 	}
 }
 
@@ -1125,6 +1167,51 @@ func TestImportCrawlerFindingRequiresProvenanceRetentionAndExactTextWarning(t *t
 	}
 }
 
+func TestImportCrawlerFindingRejectsOffSourceHost(t *testing.T) {
+	now := time.Now().UTC()
+	db := &fakeDB{queryRows: []rowSet{{
+		rows: [][]any{{
+			"crawler_source_1",
+			nil,
+			"Allowed Source",
+			"https://example.com/docs",
+			"approved",
+			[]byte(`{"license":"permissive","owner":"Example"}`),
+			[]byte(`{"robots":"allowed","direct_activation_allowed":false}`),
+			now,
+			now,
+		}},
+	}}}
+	repo := NewRepository(db)
+
+	_, err := repo.ImportCrawlerFinding(context.Background(), CrawlerImport{
+		RunID:       "crawler_run_1",
+		SourceID:    "crawler_source_1",
+		DocumentURL: "https://evil.example/docs/page",
+		ContentHash: "sha256:abc",
+		FindingType: "layout_pattern",
+		Provenance: map[string]any{
+			"source_url":    "https://evil.example/docs/page",
+			"fetched_at":    "2026-05-26T00:00:00Z",
+			"content_hash":  "sha256:abc",
+			"robots_policy": map[string]any{"robots": "allowed"},
+		},
+	}, CrawlerPolicy{
+		Enabled:          true,
+		UserAgent:        "ZenArtStage0Bot/0.1",
+		GlobalRPS:        0.2,
+		SourceRPS:        0.1,
+		RawRetentionDays: 14,
+		ResolveHost:      publicTestResolver,
+	})
+	if !errors.Is(err, ErrCrawlerBlocked) {
+		t.Fatalf("ImportCrawlerFinding() error = %v, want ErrCrawlerBlocked", err)
+	}
+	if len(db.execs) != 0 || len(db.queryRows) != 0 {
+		t.Fatalf("off-host crawler import should not write rows or upsert documents: execs=%#v queryRows=%#v", db.execs, db.queryRows)
+	}
+}
+
 func TestImportCrawlerFindingRejectsMissingProvenance(t *testing.T) {
 	db := &fakeDB{}
 	repo := NewRepository(db)
@@ -1150,6 +1237,37 @@ func TestImportCrawlerFindingRejectsMissingProvenance(t *testing.T) {
 	}
 	if len(db.execs) != 0 {
 		t.Fatalf("invalid crawler import should not write rows: %#v", db.execs)
+	}
+}
+
+func TestImportCrawlerFindingRejectsMismatchedProvenance(t *testing.T) {
+	db := &fakeDB{}
+	repo := NewRepository(db)
+
+	_, err := repo.ImportCrawlerFinding(context.Background(), CrawlerImport{
+		RunID:       "crawler_run_1",
+		SourceID:    "crawler_source_1",
+		DocumentURL: "https://example.com/docs/page",
+		ContentHash: "sha256:abc",
+		FindingType: "layout_pattern",
+		Provenance: map[string]any{
+			"source_url":    "https://example.com/docs/other",
+			"fetched_at":    "2026-05-26T00:00:00Z",
+			"content_hash":  "sha256:def",
+			"robots_policy": map[string]any{"robots": "allowed"},
+		},
+	}, CrawlerPolicy{
+		Enabled:          true,
+		UserAgent:        "ZenArtStage0Bot/0.1",
+		GlobalRPS:        0.2,
+		SourceRPS:        0.1,
+		RawRetentionDays: 14,
+	})
+	if !errors.Is(err, ErrValidation) {
+		t.Fatalf("ImportCrawlerFinding() error = %v, want ErrValidation", err)
+	}
+	if len(db.execs) != 0 || len(db.queryRowsUsed) != 0 {
+		t.Fatalf("mismatched provenance should fail before storage access: execs=%#v queries=%#v", db.execs, db.queryRowsUsed)
 	}
 }
 
