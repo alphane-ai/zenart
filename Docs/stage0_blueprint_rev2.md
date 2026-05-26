@@ -1720,7 +1720,7 @@ main 合并前必须通过：
 - [x] 实现 object storage abstraction。
 - [x] 实现 local object storage adapter。
 - [x] 实现 S3-compatible config。
-- [ ] 实现 object metadata。
+- [x] 实现 object metadata。
 - [ ] 实现 thumbnail generation。
 - [x] 实现 signed URL。
 - [x] 实现 cross-tenant object denial。
@@ -1728,10 +1728,10 @@ main 合并前必须通过：
 - [x] 实现 deterministic file naming。
 - [x] 实现 ZIP export。
 - [x] 实现 PDF placeholder 或真实 PDF export。
-- [ ] 实现 PPT-ready metadata。
+- [x] 实现 PPT-ready metadata。
 - [ ] 实现 Figma-ready layout spec。
 - [x] 实现 export retry/regenerate。
-- [ ] 实现 cleanup expired exports/orphaned objects。
+- [x] 实现 cleanup expired exports/orphaned objects。
 - [x] 添加 upload/download/export integration tests。
 
 ### 25.10 Agent and Provider Contracts

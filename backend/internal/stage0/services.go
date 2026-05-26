@@ -40,19 +40,23 @@ type Page[T any] struct {
 }
 
 type Export struct {
-	ID            string         `json:"id"`
-	TenantID      string         `json:"tenant_id,omitempty"`
-	PackageID     string         `json:"package_id"`
-	TaskID        *string        `json:"task_id,omitempty"`
-	Format        string         `json:"format"`
-	Status        string         `json:"status"`
-	QAStatus      string         `json:"qa_status"`
-	ObjectID      *string        `json:"object_metadata_id,omitempty"`
-	DownloadURL   string         `json:"download_url,omitempty"`
-	Error         map[string]any `json:"error,omitempty"`
-	CreatedAt     time.Time      `json:"created_at"`
-	UpdatedAt     time.Time      `json:"updated_at"`
-	RegeneratedAt *time.Time     `json:"regenerated_at,omitempty"`
+	ID            string          `json:"id"`
+	TenantID      string          `json:"tenant_id,omitempty"`
+	PackageID     string          `json:"package_id"`
+	ProjectID     *string         `json:"project_id,omitempty"`
+	TaskID        *string         `json:"task_id,omitempty"`
+	Format        string          `json:"format"`
+	Status        string          `json:"status"`
+	QAStatus      string          `json:"qa_status"`
+	ObjectID      *string         `json:"object_metadata_id,omitempty"`
+	Object        *ObjectMetadata `json:"object_metadata,omitempty"`
+	Manifest      map[string]any  `json:"manifest,omitempty"`
+	Delivery      map[string]any  `json:"delivery,omitempty"`
+	DownloadURL   string          `json:"download_url,omitempty"`
+	Error         map[string]any  `json:"error,omitempty"`
+	CreatedAt     time.Time       `json:"created_at"`
+	UpdatedAt     time.Time       `json:"updated_at"`
+	RegeneratedAt *time.Time      `json:"regenerated_at,omitempty"`
 }
 
 type ExportCreate struct {
@@ -123,13 +127,45 @@ type Upload struct {
 type ObjectMetadata struct {
 	ID          string         `json:"id"`
 	TenantID    string         `json:"tenant_id,omitempty"`
+	ProjectID   *string        `json:"project_id,omitempty"`
+	OwnerID     *string        `json:"owner_id,omitempty"`
+	AssetType   string         `json:"asset_type"`
 	Bucket      string         `json:"bucket"`
 	ObjectKey   string         `json:"object_key"`
 	ContentType string         `json:"content_type"`
 	ByteSize    int64          `json:"byte_size"`
 	Checksum    string         `json:"checksum"`
+	Provider    string         `json:"provider"`
+	Retention   string         `json:"retention_state"`
+	DerivedFrom *string        `json:"derived_from_object_id,omitempty"`
 	Metadata    map[string]any `json:"metadata"`
 	CreatedAt   time.Time      `json:"created_at"`
+}
+
+type ExportArtifact struct {
+	ExportID        string
+	TenantID        string
+	ProjectID       string
+	OwnerID         string
+	Bucket          string
+	ObjectKey       string
+	Format          string
+	ContentType     string
+	ByteSize        int64
+	Checksum        string
+	StorageProvider string
+	RetentionUntil  *time.Time
+	Manifest        map[string]any
+	QAReport        map[string]any
+	Provenance      map[string]any
+	Delivery        map[string]any
+	DerivedFromID   string
+}
+
+type CleanupResult struct {
+	ExpiredExports  int `json:"expired_exports"`
+	OrphanedObjects int `json:"orphaned_objects"`
+	DeletedObjects  int `json:"deleted_objects"`
 }
 
 type CrawlerSource struct {
@@ -311,10 +347,15 @@ func (r Repository) CreateUpload(ctx context.Context, opts UploadOptions) (Uploa
 		ObjectMetadata: ObjectMetadata{
 			ID:          objectID,
 			TenantID:    opts.TenantID,
+			ProjectID:   nil,
+			OwnerID:     &opts.UserID,
+			AssetType:   "upload:" + uploadType,
 			Bucket:      opts.Bucket,
 			ObjectKey:   "tenants/" + opts.TenantID + "/" + objectKey,
 			ContentType: contentType,
 			ByteSize:    opts.Input.ByteSize,
+			Provider:    "configured",
+			Retention:   "active",
 			Metadata:    metadata,
 			CreatedAt:   now,
 		},
@@ -322,6 +363,7 @@ func (r Repository) CreateUpload(ctx context.Context, opts UploadOptions) (Uploa
 	if strings.TrimSpace(opts.Input.ProjectID) != "" {
 		projectID := strings.TrimSpace(opts.Input.ProjectID)
 		upload.ProjectID = &projectID
+		upload.ObjectMetadata.ProjectID = &projectID
 	}
 
 	_, err := r.db.Exec(ctx, `
@@ -341,15 +383,20 @@ VALUES($1, $2, $3, $4, $5, 'pending', $6, $7, $8, $9, $9)`,
 		return Upload{}, err
 	}
 	_, err = r.db.Exec(ctx, `
-INSERT INTO object_metadata(id, tenant_id, upload_id, bucket, object_key, content_type, byte_size, checksum, metadata, created_at)
-VALUES($1, $2, $3, $4, $5, $6, $7, '', $8, $9)`,
+INSERT INTO object_metadata(id, tenant_id, upload_id, project_id, owner_id, asset_type, bucket, object_key, content_type, byte_size, checksum, provider, retention_state, metadata, created_at)
+VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, '', $11, $12, $13, $14)`,
 		upload.ObjectMetadata.ID,
 		upload.TenantID,
 		upload.ID,
+		upload.ProjectID,
+		upload.UserID,
+		upload.ObjectMetadata.AssetType,
 		upload.ObjectMetadata.Bucket,
 		upload.ObjectMetadata.ObjectKey,
 		upload.ObjectMetadata.ContentType,
 		upload.ObjectMetadata.ByteSize,
+		upload.ObjectMetadata.Provider,
+		upload.ObjectMetadata.Retention,
 		jsonObject(metadata),
 		now,
 	)
@@ -359,27 +406,152 @@ VALUES($1, $2, $3, $4, $5, $6, $7, '', $8, $9)`,
 	return upload, nil
 }
 
+func (r Repository) RecordExportArtifact(ctx context.Context, artifact ExportArtifact) (Export, error) {
+	artifact.TenantID = strings.TrimSpace(artifact.TenantID)
+	artifact.ExportID = strings.TrimSpace(artifact.ExportID)
+	artifact.ProjectID = strings.TrimSpace(artifact.ProjectID)
+	artifact.ObjectKey = strings.Trim(strings.TrimSpace(artifact.ObjectKey), "/")
+	artifact.Format = strings.TrimSpace(artifact.Format)
+	artifact.ContentType = strings.TrimSpace(artifact.ContentType)
+	if artifact.TenantID == "" || artifact.ExportID == "" || artifact.ProjectID == "" {
+		return Export{}, errors.Join(ErrValidation, errors.New("tenant_id, export_id, and project_id are required"))
+	}
+	if artifact.ObjectKey == "" {
+		return Export{}, errors.Join(ErrValidation, errors.New("object_key is required"))
+	}
+	if artifact.Format == "" {
+		artifact.Format = "zip"
+	}
+	if artifact.ContentType == "" {
+		artifact.ContentType = contentTypeForExport(artifact.Format)
+	}
+	if artifact.StorageProvider == "" {
+		artifact.StorageProvider = "configured"
+	}
+	if artifact.Bucket == "" {
+		artifact.Bucket = "zenart-local"
+	}
+	if artifact.Manifest == nil {
+		artifact.Manifest = map[string]any{}
+	}
+	if artifact.QAReport == nil {
+		artifact.QAReport = map[string]any{}
+	}
+	if artifact.Provenance == nil {
+		artifact.Provenance = map[string]any{}
+	}
+	delivery := exportDeliveryMetadata(artifact.Format, artifact.Manifest, artifact.Delivery)
+	objectID := id.New("object")
+	now := time.Now().UTC()
+	retentionState := "active"
+	if artifact.RetentionUntil != nil && !artifact.RetentionUntil.After(now) {
+		retentionState = "expired"
+	}
+	metadata := security.RedactMap(map[string]any{
+		"format":     artifact.Format,
+		"manifest":   artifact.Manifest,
+		"qa_report":  artifact.QAReport,
+		"provenance": artifact.Provenance,
+		"delivery":   delivery,
+	})
+	var derivedFrom *string
+	if strings.TrimSpace(artifact.DerivedFromID) != "" {
+		value := strings.TrimSpace(artifact.DerivedFromID)
+		derivedFrom = &value
+	}
+	_, err := r.db.Exec(ctx, `
+INSERT INTO object_metadata(id, tenant_id, project_id, owner_id, asset_type, bucket, object_key, content_type, byte_size, checksum, provider, retention_state, retention_until, derived_from_object_id, metadata, created_at)
+VALUES($1, $2, $3, $4, 'export', $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
+		objectID,
+		artifact.TenantID,
+		artifact.ProjectID,
+		nullableString(artifact.OwnerID),
+		artifact.Bucket,
+		tenantScopedObjectKey(artifact.TenantID, artifact.ObjectKey),
+		artifact.ContentType,
+		artifact.ByteSize,
+		artifact.Checksum,
+		artifact.StorageProvider,
+		retentionState,
+		artifact.RetentionUntil,
+		derivedFrom,
+		jsonObject(metadata),
+		now,
+	)
+	if err != nil {
+		return Export{}, err
+	}
+	_, err = r.db.Exec(ctx, `
+UPDATE exports
+SET project_id = $3,
+    object_metadata_id = $4,
+    manifest = $5,
+    delivery_metadata = $6,
+    status = 'ready',
+    qa_status = CASE WHEN qa_status = 'pending' THEN 'passed' ELSE qa_status END,
+    updated_at = $7
+WHERE tenant_id = $1 AND id = $2`,
+		artifact.TenantID,
+		artifact.ExportID,
+		artifact.ProjectID,
+		objectID,
+		jsonObject(security.RedactMap(artifact.Manifest)),
+		jsonObject(delivery),
+		now,
+	)
+	if err != nil {
+		return Export{}, err
+	}
+	return r.GetExport(ctx, artifact.TenantID, artifact.ExportID)
+}
+
 func (r Repository) GetExport(ctx context.Context, tenantID, exportID string) (Export, error) {
 	var export Export
-	var errorJSON []byte
+	var errorJSON, manifestJSON, deliveryJSON, objectMetadataJSON []byte
 	err := r.db.QueryRow(ctx, `
-SELECT id, tenant_id, package_id, task_id, format, status, qa_status, object_metadata_id, error, created_at, updated_at
-FROM exports
-WHERE tenant_id = $1 AND id = $2`,
+SELECT e.id, e.tenant_id, e.package_id, e.project_id, e.task_id, e.format, e.status, e.qa_status,
+       e.object_metadata_id, e.manifest, e.delivery_metadata, e.error, e.created_at, e.updated_at,
+       COALESCE(
+         jsonb_build_object(
+           'id', o.id,
+           'tenant_id', o.tenant_id,
+           'project_id', o.project_id,
+           'owner_id', o.owner_id,
+           'asset_type', o.asset_type,
+           'bucket', o.bucket,
+           'object_key', o.object_key,
+           'content_type', o.content_type,
+           'byte_size', o.byte_size,
+           'checksum', o.checksum,
+           'provider', o.provider,
+           'retention_state', o.retention_state,
+           'derived_from_object_id', o.derived_from_object_id,
+           'metadata', o.metadata,
+           'created_at', o.created_at
+         ),
+         '{}'::jsonb
+       )
+FROM exports e
+LEFT JOIN object_metadata o ON o.tenant_id = e.tenant_id AND o.id = e.object_metadata_id
+WHERE e.tenant_id = $1 AND e.id = $2`,
 		tenantID,
 		exportID,
 	).Scan(
 		&export.ID,
 		&export.TenantID,
 		&export.PackageID,
+		&export.ProjectID,
 		&export.TaskID,
 		&export.Format,
 		&export.Status,
 		&export.QAStatus,
 		&export.ObjectID,
+		&manifestJSON,
+		&deliveryJSON,
 		&errorJSON,
 		&export.CreatedAt,
 		&export.UpdatedAt,
+		&objectMetadataJSON,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Export{}, ErrNotFound
@@ -387,8 +559,16 @@ WHERE tenant_id = $1 AND id = $2`,
 	if err != nil {
 		return Export{}, err
 	}
+	_ = json.Unmarshal(manifestJSON, &export.Manifest)
+	_ = json.Unmarshal(deliveryJSON, &export.Delivery)
 	if len(errorJSON) > 0 {
 		_ = json.Unmarshal(errorJSON, &export.Error)
+	}
+	if export.ObjectID != nil && len(objectMetadataJSON) > 0 && string(objectMetadataJSON) != "{}" {
+		var object ObjectMetadata
+		if err := json.Unmarshal(objectMetadataJSON, &object); err == nil {
+			export.Object = &object
+		}
 	}
 	return export, nil
 }
@@ -399,7 +579,7 @@ func (r Repository) ListExports(ctx context.Context, tenantID, status string, li
 	}
 	args := []any{tenantID, limit}
 	query := `
-SELECT id, tenant_id, package_id, task_id, format, status, qa_status, object_metadata_id, error, created_at, updated_at
+SELECT id, tenant_id, package_id, project_id, task_id, format, status, qa_status, object_metadata_id, manifest, delivery_metadata, error, created_at, updated_at
 FROM exports
 WHERE tenant_id = $1`
 	if strings.TrimSpace(status) != "" {
@@ -416,16 +596,70 @@ WHERE tenant_id = $1`
 	var page Page[Export]
 	for rows.Next() {
 		var export Export
-		var errorJSON []byte
-		if err := rows.Scan(&export.ID, &export.TenantID, &export.PackageID, &export.TaskID, &export.Format, &export.Status, &export.QAStatus, &export.ObjectID, &errorJSON, &export.CreatedAt, &export.UpdatedAt); err != nil {
+		var errorJSON, manifestJSON, deliveryJSON []byte
+		if err := rows.Scan(&export.ID, &export.TenantID, &export.PackageID, &export.ProjectID, &export.TaskID, &export.Format, &export.Status, &export.QAStatus, &export.ObjectID, &manifestJSON, &deliveryJSON, &errorJSON, &export.CreatedAt, &export.UpdatedAt); err != nil {
 			return Page[Export]{}, err
 		}
+		_ = json.Unmarshal(manifestJSON, &export.Manifest)
+		_ = json.Unmarshal(deliveryJSON, &export.Delivery)
 		if len(errorJSON) > 0 {
 			_ = json.Unmarshal(errorJSON, &export.Error)
 		}
 		page.Items = append(page.Items, export)
 	}
 	return page, rows.Err()
+}
+
+func (r Repository) CleanupExpiredExportsAndOrphanedObjects(ctx context.Context, now time.Time, objectCleanup func(context.Context, time.Time) (int, error)) (CleanupResult, error) {
+	if now.IsZero() {
+		now = time.Now().UTC()
+	}
+	expiredTag, err := r.db.Exec(ctx, `
+WITH expired AS (
+	SELECT e.id, e.tenant_id, e.object_metadata_id
+	FROM exports e
+	JOIN object_metadata o ON o.tenant_id = e.tenant_id AND o.id = e.object_metadata_id
+	WHERE e.status IN ('ready', 'failed', 'pending')
+	  AND o.retention_until IS NOT NULL
+	  AND o.retention_until <= $1
+)
+UPDATE exports e
+SET status = 'expired',
+    delivery_metadata = delivery_metadata || jsonb_build_object('expired_at', $1::timestamptz),
+    updated_at = $1
+FROM expired
+WHERE e.tenant_id = expired.tenant_id AND e.id = expired.id`,
+		now,
+	)
+	if err != nil {
+		return CleanupResult{}, err
+	}
+	orphanedTag, err := r.db.Exec(ctx, `
+UPDATE object_metadata o
+SET retention_state = 'orphaned'
+WHERE o.retention_state = 'active'
+  AND o.asset_type = 'export'
+  AND NOT EXISTS (
+    SELECT 1
+    FROM exports e
+    WHERE e.tenant_id = o.tenant_id AND e.object_metadata_id = o.id
+  )`,
+	)
+	if err != nil {
+		return CleanupResult{}, err
+	}
+	result := CleanupResult{
+		ExpiredExports:  int(expiredTag.RowsAffected()),
+		OrphanedObjects: int(orphanedTag.RowsAffected()),
+	}
+	if objectCleanup != nil {
+		deleted, err := objectCleanup(ctx, now)
+		if err != nil {
+			return CleanupResult{}, err
+		}
+		result.DeletedObjects = deleted
+	}
+	return result, nil
 }
 
 func (r Repository) RegenerateExport(ctx context.Context, tenantID, exportID string) (Export, error) {
@@ -782,6 +1016,60 @@ func contentTypeAllowed(contentType string, allowed []string) bool {
 		}
 	}
 	return false
+}
+
+func contentTypeForExport(format string) string {
+	switch strings.TrimSpace(format) {
+	case "pdf":
+		return "application/pdf"
+	default:
+		return "application/zip"
+	}
+}
+
+func exportDeliveryMetadata(format string, manifest map[string]any, extra map[string]any) map[string]any {
+	delivery := map[string]any{
+		"format":                    format,
+		"deterministic_file_naming": true,
+		"manifest_embedded":         true,
+		"qa_report_embedded":        true,
+		"ppt_ready": map[string]any{
+			"status":        "placeholder",
+			"descriptor":    "slide_manifest",
+			"frames_key":    "ppt/frames.json",
+			"assets_prefix": "assets/",
+		},
+		"figma_ready": map[string]any{
+			"status":        "placeholder",
+			"descriptor":    "layout_spec",
+			"spec_key":      "figma/layout.json",
+			"assets_prefix": "assets/",
+		},
+	}
+	if projectID, ok := manifest["project_id"].(string); ok && projectID != "" {
+		delivery["project_id"] = projectID
+	}
+	for key, value := range extra {
+		delivery[key] = value
+	}
+	return security.RedactMap(delivery)
+}
+
+func nullableString(value string) *string {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return nil
+	}
+	return &value
+}
+
+func tenantScopedObjectKey(tenantID, key string) string {
+	prefix := "tenants/" + strings.Trim(strings.TrimSpace(tenantID), "/") + "/"
+	key = strings.Trim(strings.TrimSpace(key), "/")
+	if strings.HasPrefix(key, prefix) {
+		return key
+	}
+	return prefix + key
 }
 
 type Service struct {

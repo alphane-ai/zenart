@@ -129,6 +129,9 @@ func TestCreateUploadValidatesAndPersistsMetadata(t *testing.T) {
 	if !strings.Contains(db.execs[1].sql, "INSERT INTO object_metadata") {
 		t.Fatalf("second exec should create object metadata: %s", db.execs[1].sql)
 	}
+	if !strings.Contains(db.execs[1].sql, "project_id, owner_id, asset_type") {
+		t.Fatalf("object metadata insert missing ownership fields: %s", db.execs[1].sql)
+	}
 }
 
 func TestCreateUploadRejectsUnsupportedContentTypeAndOversize(t *testing.T) {
@@ -156,6 +159,103 @@ func TestCreateUploadRejectsUnsupportedContentTypeAndOversize(t *testing.T) {
 	base.Input.ByteSize = 11
 	if _, err := repo.CreateUpload(context.Background(), base); !errors.Is(err, ErrValidation) {
 		t.Fatalf("CreateUpload() error = %v, want validation for oversize upload", err)
+	}
+}
+
+func TestRecordExportArtifactPersistsObjectMetadataAndDeliveryDescriptors(t *testing.T) {
+	now := time.Now().UTC()
+	db := &fakeDB{
+		queryRows: []rowSet{{
+			rows: [][]any{{
+				"export_1",
+				"tenant_1",
+				"package_1",
+				"project_1",
+				nil,
+				"zip",
+				"ready",
+				"passed",
+				"object_1",
+				[]byte(`{"package_id":"package_1","project_id":"project_1"}`),
+				[]byte(`{"ppt_ready":{"status":"placeholder"},"figma_ready":{"status":"placeholder"}}`),
+				nil,
+				now,
+				now,
+				[]byte(`{"id":"object_1","tenant_id":"tenant_1","project_id":"project_1","owner_id":"user_1","asset_type":"export","bucket":"exports-test","object_key":"tenants/tenant_1/exports/export_1.zip","content_type":"application/zip","byte_size":12,"checksum":"sha256:abc","provider":"local","retention_state":"active","metadata":{},"created_at":"2026-05-26T00:00:00Z"}`),
+			}},
+		}},
+	}
+	repo := NewRepository(db)
+
+	export, err := repo.RecordExportArtifact(context.Background(), ExportArtifact{
+		ExportID:        "export_1",
+		TenantID:        "tenant_1",
+		ProjectID:       "project_1",
+		OwnerID:         "user_1",
+		Bucket:          "exports-test",
+		ObjectKey:       "exports/export_1.zip",
+		Format:          "zip",
+		ByteSize:        12,
+		Checksum:        "sha256:abc",
+		StorageProvider: "local",
+		Manifest:        map[string]any{"package_id": "package_1", "project_id": "project_1"},
+		QAReport:        map[string]any{"status": "passed"},
+		Provenance:      map[string]any{"provider": "dev"},
+	})
+	if err != nil {
+		t.Fatalf("RecordExportArtifact() error = %v", err)
+	}
+	if export.Object == nil || export.Object.AssetType != "export" {
+		t.Fatalf("export object metadata = %#v, want export metadata", export.Object)
+	}
+	if export.Delivery["ppt_ready"] == nil || export.Delivery["figma_ready"] == nil {
+		t.Fatalf("delivery metadata missing PPT/Figma descriptors: %#v", export.Delivery)
+	}
+	if len(db.execs) != 2 {
+		t.Fatalf("exec count = %d, want object metadata insert and export update", len(db.execs))
+	}
+	if !strings.Contains(db.execs[0].sql, "INSERT INTO object_metadata") || !strings.Contains(db.execs[0].sql, "derived_from_object_id") {
+		t.Fatalf("first exec missing rich object metadata insert: %s", db.execs[0].sql)
+	}
+	if objectKey, ok := db.execs[0].args[5].(string); !ok || objectKey != "tenants/tenant_1/exports/export_1.zip" {
+		t.Fatalf("object key arg = %#v, want tenant-scoped export key", db.execs[0].args[5])
+	}
+	if !strings.Contains(db.execs[1].sql, "delivery_metadata") {
+		t.Fatalf("second exec should update export delivery metadata: %s", db.execs[1].sql)
+	}
+}
+
+func TestCleanupExpiredExportsAndOrphanedObjects(t *testing.T) {
+	db := &fakeDB{
+		execTags: []pgconn.CommandTag{
+			pgconn.NewCommandTag("UPDATE 2"),
+			pgconn.NewCommandTag("UPDATE 3"),
+		},
+	}
+	repo := NewRepository(db)
+	cleanupCalled := false
+
+	result, err := repo.CleanupExpiredExportsAndOrphanedObjects(context.Background(), time.Date(2026, 5, 26, 12, 0, 0, 0, time.UTC), func(_ context.Context, _ time.Time) (int, error) {
+		cleanupCalled = true
+		return 4, nil
+	})
+	if err != nil {
+		t.Fatalf("CleanupExpiredExportsAndOrphanedObjects() error = %v", err)
+	}
+	if !cleanupCalled {
+		t.Fatal("object cleanup callback was not called")
+	}
+	if result.ExpiredExports != 2 || result.OrphanedObjects != 3 || result.DeletedObjects != 4 {
+		t.Fatalf("cleanup result = %#v", result)
+	}
+	if len(db.execs) != 2 {
+		t.Fatalf("exec count = %d, want 2", len(db.execs))
+	}
+	if !strings.Contains(db.execs[0].sql, "retention_until") || !strings.Contains(db.execs[0].sql, "status = 'expired'") {
+		t.Fatalf("expired export cleanup SQL missing retention/status: %s", db.execs[0].sql)
+	}
+	if !strings.Contains(db.execs[1].sql, "retention_state = 'orphaned'") {
+		t.Fatalf("orphan cleanup SQL missing orphaned retention state: %s", db.execs[1].sql)
 	}
 }
 
@@ -191,6 +291,7 @@ func TestEnforceSafetyRecordsBlockDecisionForActiveRule(t *testing.T) {
 
 type fakeDB struct {
 	execs     []execCall
+	execTags  []pgconn.CommandTag
 	queryRows []rowSet
 	queryErr  error
 }
@@ -202,7 +303,12 @@ type execCall struct {
 
 func (f *fakeDB) Exec(_ context.Context, sql string, arguments ...any) (pgconn.CommandTag, error) {
 	f.execs = append(f.execs, execCall{sql: sql, args: arguments})
-	return pgconn.CommandTag{}, nil
+	if len(f.execTags) == 0 {
+		return pgconn.CommandTag{}, nil
+	}
+	tag := f.execTags[0]
+	f.execTags = f.execTags[1:]
+	return tag, nil
 }
 
 func (f *fakeDB) Query(_ context.Context, _ string, _ ...any) (store.Rows, error) {
@@ -218,6 +324,11 @@ func (f *fakeDB) Query(_ context.Context, _ string, _ ...any) (store.Rows, error
 }
 
 func (f *fakeDB) QueryRow(context.Context, string, ...any) store.Row {
+	if len(f.queryRows) > 0 && len(f.queryRows[0].rows) > 0 {
+		row := f.queryRows[0].rows[0]
+		f.queryRows = f.queryRows[1:]
+		return fakeRow{row: row}
+	}
 	return fakeRow{err: pgx.ErrNoRows}
 }
 
@@ -258,10 +369,17 @@ func (r *fakeRows) Scan(dest ...any) error {
 
 type fakeRow struct {
 	err error
+	row []any
 }
 
-func (r fakeRow) Scan(...any) error {
-	return r.err
+func (r fakeRow) Scan(dest ...any) error {
+	if r.err != nil {
+		return r.err
+	}
+	for i := range dest {
+		assign(dest[i], r.row[i])
+	}
+	return nil
 }
 
 func assign(dest any, value any) {
@@ -276,6 +394,10 @@ func assign(dest any, value any) {
 		v := value.(string)
 		*ptr = &v
 	case *[]byte:
+		if value == nil {
+			*ptr = nil
+			return
+		}
 		*ptr = value.([]byte)
 	case *time.Time:
 		*ptr = value.(time.Time)
