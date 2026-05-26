@@ -2025,3 +2025,4 @@ Release gate closure policy:
 - Private Beta/Staging remains open until external-user staging runtime evidence exists for auth/RBAC/tenant isolation, object storage signed downloads, quota/rate limits, support/abuse, safety/QA/crawler enforcement, observability/backup/load, and legal page visibility.
 - Production Launch remains open until CI and Private Beta/Staging gates pass and production-specific provider/comp-only, paid billing, skill/canary, activation review, abuse throttle/hold, security, backup/rollback, post-deploy smoke, and legal/support deployment evidence exists.
 - `Do-Not-Launch Conditions 全部为 false。` remains open while any release-gate evidence fixture has `is_present: true`.
+- Release gate fixture IDs are closed-world: unknown check IDs or unknown Do-Not-Launch condition IDs are invalid, even when their status is blocked.

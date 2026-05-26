@@ -1248,9 +1248,20 @@ def validate_release_gate_basics(data: dict[str, Any]) -> tuple[dict[str, dict[s
 
     checks = checks_by_id(data)
     missing_checks = RELEASE_GATE_REQUIRED_CHECKS[gate] - set(checks)
+    extra_checks = set(checks) - RELEASE_GATE_REQUIRED_CHECKS[gate]
     require(not missing_checks, f"{gate} release evidence missing checks: {sorted(missing_checks)}")
+    require(
+        not extra_checks,
+        f"{gate} release evidence has unknown checks that are not defined by the Rev2 gate contract: {sorted(extra_checks)}",
+    )
 
     conditions = do_not_launch_by_id(data)
+    expected_conditions = set(DO_NOT_LAUNCH_CONDITION_COVERAGE[gate])
+    extra_conditions = set(conditions) - expected_conditions
+    require(
+        not extra_conditions,
+        f"{gate} release evidence has unknown Do-Not-Launch condition IDs: {sorted(extra_conditions)}",
+    )
     for check_id, check in checks.items():
         require(
             check["status"] in CHECK_STATUS_VALUES,
@@ -1303,7 +1314,12 @@ def validate_do_not_launch_condition_coverage(data: dict[str, Any]) -> None:
     expected = DO_NOT_LAUNCH_CONDITION_COVERAGE[gate]
     conditions = do_not_launch_by_id(data)
     missing = set(expected) - set(conditions)
+    extra = set(conditions) - set(expected)
     require(not missing, f"{gate} release evidence missing Do-Not-Launch coverage: {sorted(missing)}")
+    require(
+        not extra,
+        f"{gate} release evidence has Do-Not-Launch coverage outside the validator-owned Rev2 map: {sorted(extra)}",
+    )
     for condition_id, blueprint_text in expected.items():
         require(
             conditions[condition_id].get("blueprint_condition") == blueprint_text,
@@ -3190,6 +3206,7 @@ def validate_launch_readiness_split_contracts() -> None:
         "Production check-level runtime subitems must remain open until each matching release gate check has production evidence",
         "Local Alpha remains open until four workflow API/Playwright smokes",
         "Do-Not-Launch Conditions 全部为 false。` remains open while any release-gate evidence fixture has `is_present: true`",
+        "Release gate fixture IDs are closed-world",
     ]:
         require(token in text, f"blueprint release gate closure policy missing token: {token}")
 
