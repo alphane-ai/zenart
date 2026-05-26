@@ -5,6 +5,7 @@ import {
   BillingScenario,
   ExportFormat,
   PackageItem,
+  PackageManifest,
   QaFinding,
   SessionUser,
   WorkspaceState,
@@ -12,6 +13,7 @@ import {
 } from "./contracts";
 import {
   buildManifest,
+  buildPptReadyMetadata,
   createDisabledShareLink,
   createInitialWorkspace,
   createReferenceAsset,
@@ -33,6 +35,33 @@ const saveState = (state: WorkspaceState) => {
 };
 
 const defaultBilling = createInitialWorkspace().billing;
+
+const migrateManifest = (manifest: PackageManifest, createdAt: string): PackageManifest => {
+  const requiredOutputs = new Set([
+    ...manifest.required_outputs,
+    "manifest.json",
+    "qa-report.json",
+    "provenance.json",
+    "ppt-ready-metadata.json",
+    "assets/"
+  ]);
+
+  return {
+    ...manifest,
+    required_outputs: Array.from(requiredOutputs),
+    ppt_ready_metadata:
+      manifest.ppt_ready_metadata ??
+      buildPptReadyMetadata(
+        manifest.items.map((item) => ({
+          id: item.id,
+          sourceId: item.provenance.replace(/^dev-client:/, ""),
+          title: item.title,
+          type: item.type,
+          addedAt: createdAt
+        }))
+      )
+  };
+};
 
 const loadState = (): WorkspaceState => {
   if (typeof window === "undefined") {
@@ -67,6 +96,10 @@ const migrateState = (state: WorkspaceState): WorkspaceState => ({
       validation: reference.validation ?? { state: "accepted" }
     }))
   },
+  exports: (state.exports ?? []).map((item) => ({
+    ...item,
+    manifest: migrateManifest(item.manifest, item.createdAt)
+  })),
   shareLinks: state.shareLinks ?? [],
   supportTickets: (state.supportTickets ?? []).map((ticket) => ({
     ...ticket,

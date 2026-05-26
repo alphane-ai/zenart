@@ -59,12 +59,19 @@ describe("reference upload and export download integration", () => {
       status: "ready",
       fileName: "zenart-001.zip"
     });
-    expect(record.manifest.required_outputs).toEqual(["manifest.json", "qa-report.json", "provenance.json", "assets/"]);
+    expect(record.manifest.required_outputs).toEqual([
+      "manifest.json",
+      "qa-report.json",
+      "provenance.json",
+      "ppt-ready-metadata.json",
+      "assets/"
+    ]);
 
     const zipBlob = await buildExportPackageBlob(record);
     const zip = await JSZip.loadAsync(await readBlobAsArrayBuffer(zipBlob));
     const manifest = JSON.parse(await zip.file("manifest.json")!.async("string")) as ExportRecord["manifest"];
     const qaReport = JSON.parse(await zip.file("qa-report.json")!.async("string")) as ExportRecord["qaReport"];
+    const pptReadyMetadata = JSON.parse(await zip.file("ppt-ready-metadata.json")!.async("string")) as ExportRecord["manifest"]["ppt_ready_metadata"];
     const provenance = JSON.parse(await zip.file("provenance.json")!.async("string")) as {
       export_id: string;
       generated_by: string;
@@ -92,6 +99,31 @@ describe("reference upload and export download integration", () => {
         })
       ])
     );
+    expect(pptReadyMetadata).toMatchObject({
+      schema_version: "stage0.rev2.ppt-ready-metadata",
+      aspect_ratio: "16:9",
+      canvas_size: {
+        width: 1920,
+        height: 1080
+      },
+      safe_area: {
+        top: 72,
+        right: 96,
+        bottom: 72,
+        left: 96
+      },
+      theme: {
+        accent: "#2563eb"
+      },
+      slides: [
+        {
+          id: "slide-01",
+          source_item_id: "pkg-item-001",
+          title: "Studio System",
+          layout: "title-and-asset"
+        }
+      ]
+    });
     expect(provenance).toMatchObject({
       export_id: record.id,
       generated_by: "zenart-web-dev-client",

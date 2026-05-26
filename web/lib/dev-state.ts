@@ -3,6 +3,7 @@ import {
   ExportFormat,
   PackageItem,
   PackageManifest,
+  PptReadyMetadata,
   QaFinding,
   ReferenceAsset,
   SessionContract,
@@ -184,13 +185,60 @@ export const buildManifest = (
   package_id: `pkg-${String(items.length || 1).padStart(3, "0")}`,
   project_id: projectId,
   created_at: new Date().toISOString(),
-  required_outputs: ["manifest.json", "qa-report.json", "provenance.json", "assets/"],
+  required_outputs: ["manifest.json", "qa-report.json", "provenance.json", "ppt-ready-metadata.json", "assets/"],
+  ppt_ready_metadata: buildPptReadyMetadata(items),
   items: items.map((item) => ({
     id: item.id,
     title: item.title,
     type: item.type,
     provenance: `dev-client:${item.sourceId}`
   }))
+});
+
+export const buildPptReadyMetadata = (items: PackageItem[]): PptReadyMetadata => ({
+  schema_version: "stage0.rev2.ppt-ready-metadata",
+  aspect_ratio: "16:9",
+  canvas_size: {
+    width: 1920,
+    height: 1080
+  },
+  safe_area: {
+    top: 72,
+    right: 96,
+    bottom: 72,
+    left: 96
+  },
+  theme: {
+    background: "#ffffff",
+    foreground: "#111827",
+    accent: "#2563eb",
+    font_family: "Inter, Arial, sans-serif"
+  },
+  slides:
+    items.length > 0
+      ? items.map((item, index) => ({
+          id: `slide-${String(index + 1).padStart(2, "0")}`,
+          source_item_id: item.id,
+          title: item.title,
+          layout: item.type === "candidate" ? "title-and-asset" : "handoff-notes",
+          notes: `${item.type} exported from ${item.sourceId} with safe-area bounds and presenter handoff context.`
+        }))
+      : [
+          {
+            id: "slide-01",
+            source_item_id: "empty-package",
+            title: "Package placeholder",
+            layout: "handoff-notes",
+            notes: "Export is blocked until package items are added."
+          }
+        ],
+  handoff_checklist: [
+    "16:9 presentation canvas",
+    "safe-area bounds",
+    "source item mapping",
+    "speaker notes",
+    "editable theme tokens"
+  ]
 });
 
 export const evaluatePackageQa = (items: PackageItem[]): QaFinding[] => {

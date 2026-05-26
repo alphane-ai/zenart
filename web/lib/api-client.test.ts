@@ -158,7 +158,14 @@ describe("dev web client user lifecycle coverage", () => {
 
     expect(blockedExport.exports[0]).toMatchObject({
       status: "blocked",
-      fileName: "zenart-001.zip"
+      fileName: "zenart-001.zip",
+      manifest: {
+        required_outputs: expect.arrayContaining(["ppt-ready-metadata.json"]),
+        ppt_ready_metadata: {
+          schema_version: "stage0.rev2.ppt-ready-metadata",
+          aspect_ratio: "16:9"
+        }
+      }
     });
     expect(blockedExport.billing.quotaUsed).toBe(initial.billing.quotaUsed);
     expect(checkedOut.billing).toMatchObject({

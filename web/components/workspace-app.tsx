@@ -704,6 +704,14 @@ function ExportView({
                   <dd>{latestExport.manifest.items.map((item) => item.provenance).join(", ") || "No package provenance yet"}</dd>
                 </div>
                 <div>
+                  <dt>PPT-ready</dt>
+                  <dd>
+                    {latestExport.manifest.ppt_ready_metadata.aspect_ratio} · {latestExport.manifest.ppt_ready_metadata.slides.length} slide
+                    {latestExport.manifest.ppt_ready_metadata.slides.length === 1 ? "" : "s"} · {latestExport.manifest.ppt_ready_metadata.canvas_size.width}x
+                    {latestExport.manifest.ppt_ready_metadata.canvas_size.height}
+                  </dd>
+                </div>
+                <div>
                   <dt>Share link</dt>
                   <dd>{latestShareLink ? `${latestShareLink.status} · ${latestShareLink.access}` : "Not requested"}</dd>
                 </div>
@@ -750,6 +758,39 @@ function ExportView({
                       ))}
                     </ul>
                   )}
+                </section>
+                <section className="export-detail-panel ppt-ready-metadata" aria-label="PPT-ready metadata">
+                  <h4>PPT-ready Metadata</h4>
+                  <dl>
+                    <div>
+                      <dt>Canvas</dt>
+                      <dd>
+                        {latestExport.manifest.ppt_ready_metadata.canvas_size.width}x{latestExport.manifest.ppt_ready_metadata.canvas_size.height} ·{" "}
+                        {latestExport.manifest.ppt_ready_metadata.aspect_ratio}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Safe area</dt>
+                      <dd>
+                        {latestExport.manifest.ppt_ready_metadata.safe_area.top}/{latestExport.manifest.ppt_ready_metadata.safe_area.right}/
+                        {latestExport.manifest.ppt_ready_metadata.safe_area.bottom}/{latestExport.manifest.ppt_ready_metadata.safe_area.left}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Theme</dt>
+                      <dd>
+                        {latestExport.manifest.ppt_ready_metadata.theme.font_family} · {latestExport.manifest.ppt_ready_metadata.theme.accent}
+                      </dd>
+                    </div>
+                  </dl>
+                  <ul>
+                    {latestExport.manifest.ppt_ready_metadata.slides.map((slide) => (
+                      <li key={slide.id}>
+                        <strong>{slide.title}</strong>
+                        <span>{slide.layout} · {slide.notes}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </section>
                 <section className="export-detail-panel share-link-state" aria-label="Share link state">
                   <h4>Share Link State</h4>

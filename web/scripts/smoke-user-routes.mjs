@@ -83,6 +83,9 @@ for (const requiredSnippet of [
   "manifest-preview",
   "qa-report",
   "provenance-report",
+  "ppt-ready-metadata",
+  "PPT-ready Metadata",
+  "ppt_ready_metadata",
   "share-link-state",
   "setBillingScenario",
   "supportContactEmail",
@@ -176,6 +179,7 @@ for (const expectedCapability of [
 for (const expectedIntegration of [
   "reference-upload-to-ready-zip-export",
   "zip-download-manifest-qa-provenance-assets",
+  "ppt-ready-metadata-export-contract",
   "pdf-placeholder-download-contract",
   "browser-download-handoff"
 ]) {
@@ -189,6 +193,7 @@ for (const expectedDownloadSnippet of [
   "manifest.json",
   "qa-report.json",
   "provenance.json",
+  "ppt-ready-metadata.json",
   "assets/README.txt",
   "application/pdf",
   "URL.createObjectURL",

@@ -24,7 +24,58 @@ describe("dev workspace contracts", () => {
     const manifest = buildManifest(state.activeProjectId, []);
 
     expect(qa.some((finding) => finding.severity === "block")).toBe(true);
-    expect(manifest.required_outputs).toEqual(["manifest.json", "qa-report.json", "provenance.json", "assets/"]);
+    expect(manifest.required_outputs).toEqual(["manifest.json", "qa-report.json", "provenance.json", "ppt-ready-metadata.json", "assets/"]);
+    expect(manifest.ppt_ready_metadata).toMatchObject({
+      schema_version: "stage0.rev2.ppt-ready-metadata",
+      aspect_ratio: "16:9",
+      canvas_size: {
+        width: 1920,
+        height: 1080
+      },
+      safe_area: {
+        top: 72,
+        right: 96,
+        bottom: 72,
+        left: 96
+      },
+      slides: [
+        {
+          id: "slide-01",
+          source_item_id: "empty-package",
+          layout: "handoff-notes"
+        }
+      ]
+    });
+  });
+
+  it("maps package items into PPT-ready slide metadata", () => {
+    const state = createInitialWorkspace();
+    const manifest = buildManifest(state.activeProjectId, [
+      {
+        id: "pkg-item-001",
+        sourceId: "cand-studio",
+        title: "Studio System",
+        type: "candidate",
+        addedAt: "2026-05-26T10:00:00.000Z"
+      }
+    ]);
+
+    expect(manifest.ppt_ready_metadata.slides).toEqual([
+      {
+        id: "slide-01",
+        source_item_id: "pkg-item-001",
+        title: "Studio System",
+        layout: "title-and-asset",
+        notes: "candidate exported from cand-studio with safe-area bounds and presenter handoff context."
+      }
+    ]);
+    expect(manifest.ppt_ready_metadata.handoff_checklist).toEqual([
+      "16:9 presentation canvas",
+      "safe-area bounds",
+      "source item mapping",
+      "speaker notes",
+      "editable theme tokens"
+    ]);
   });
 
   it("models local alpha share links as disabled and private", () => {

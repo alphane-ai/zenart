@@ -19,7 +19,15 @@
       "path": "/export",
       "component": "WorkspaceApp",
       "initialView": "export",
-      "expects": ["package-history", "export-history", "manifest-preview", "qa-report", "provenance-report", "share-link-state"]
+      "expects": [
+        "package-history",
+        "export-history",
+        "manifest-preview",
+        "qa-report",
+        "provenance-report",
+        "ppt-ready-metadata",
+        "share-link-state"
+      ]
     },
     {
       "path": "/billing",
@@ -90,6 +98,7 @@
     "reference type select has a programmatic label",
     "selection and version controls expose pressed/current state",
     "upload and billing edge errors use role alert",
+    "export preview exposes PPT-ready metadata with canvas size, safe area, theme, and slide mapping",
     "support route exposes privacy and AI content responsibility notices",
     "legal routes expose active route state and visible support contact",
     "auth/session flow exposes sign-in, refresh, expire, logout, and expired-session alerts",
@@ -99,6 +108,7 @@
   "integrationCoverage": [
     "reference-upload-to-ready-zip-export",
     "zip-download-manifest-qa-provenance-assets",
+    "ppt-ready-metadata-export-contract",
     "pdf-placeholder-download-contract",
     "browser-download-handoff"
   ],
@@ -130,6 +140,7 @@
     "blocked exports do not consume quota and mock checkout activates the local alpha plan",
     "inactive, past_due, and quota-exhausted billing states block quota-consuming exports",
     "reference upload validation flows into a ready ZIP export with manifest, QA report, provenance, and assets entries",
+    "export manifest includes PPT-ready metadata and ZIP download emits ppt-ready-metadata.json",
     "download smoke verifies ZIP artifact contents, PDF placeholder blob, deterministic filenames, and browser download handoff",
     "legal policy routes expose Terms, Privacy Policy, Acceptable Use, IP complaint, and billing/refund policy content",
     "analytics taxonomy and client-side UI funnel events persist to local telemetry storage",

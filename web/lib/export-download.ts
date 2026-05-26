@@ -27,6 +27,7 @@ export const buildExportPackageBlob = async (record: ExportRecord) => {
   const zip = new JSZip();
   zip.file("manifest.json", JSON.stringify(record.manifest, null, 2));
   zip.file("qa-report.json", JSON.stringify(record.qaReport, null, 2));
+  zip.file("ppt-ready-metadata.json", JSON.stringify(record.manifest.ppt_ready_metadata, null, 2));
   zip.file(
     "provenance.json",
     JSON.stringify(

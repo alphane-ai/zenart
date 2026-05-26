@@ -122,11 +122,41 @@ export interface PackageItem {
   addedAt: string;
 }
 
+export interface PptReadyMetadata {
+  schema_version: "stage0.rev2.ppt-ready-metadata";
+  aspect_ratio: "16:9";
+  canvas_size: {
+    width: number;
+    height: number;
+  };
+  safe_area: {
+    top: number;
+    right: number;
+    bottom: number;
+    left: number;
+  };
+  theme: {
+    background: string;
+    foreground: string;
+    accent: string;
+    font_family: string;
+  };
+  slides: Array<{
+    id: string;
+    source_item_id: string;
+    title: string;
+    layout: "title-and-asset" | "asset-grid" | "handoff-notes";
+    notes: string;
+  }>;
+  handoff_checklist: string[];
+}
+
 export interface PackageManifest {
   package_id: string;
   project_id: string;
   created_at: string;
   required_outputs: string[];
+  ppt_ready_metadata: PptReadyMetadata;
   items: Array<{
     id: string;
     title: string;
