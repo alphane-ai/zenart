@@ -187,6 +187,48 @@ DRY_RUN=1 OUT_DIR="$ops_validate_dir/staging" scripts/staging_smoke.sh >/dev/nul
 DRY_RUN=1 OUT_DIR="$ops_validate_dir/observability" scripts/observability_smoke.sh >/dev/null
 DRY_RUN=1 OUT_DIR="$ops_validate_dir/security" scripts/security_scan_smoke.sh >/dev/null
 find "$ops_validate_dir" -name '*.json' -type f | grep -q .
+python3 - "$ops_validate_dir/observability" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+reports = sorted(Path(sys.argv[1]).glob("*.json"))
+if len(reports) != 1:
+    raise SystemExit("observability smoke dry-run must write exactly one report")
+report = json.loads(reports[0].read_text(encoding="utf-8"))
+required_checks = {
+    "request_id_response_header_echo",
+    "request_id_json_body_echo",
+    "json_response_body",
+    "structured_log_json_handler_declared",
+    "compose_log_format_json_declared",
+    "recover_log_includes_request_id",
+    "metrics_config_declared",
+    "metrics_runtime_endpoint_passed",
+    "otel_config_declared",
+    "otel_runtime_instrumentation_detected",
+    "dashboard_definition_validated",
+    "alert_definition_validated",
+}
+required_signals = {
+    "request_id_propagation",
+    "structured_json_logs",
+    "opentelemetry_traces",
+    "backend_worker_crawler_metrics",
+    "dashboards",
+    "alerts",
+}
+missing_checks = sorted(required_checks - set(report.get("checks", {})))
+missing_signals = sorted(required_signals - set(report.get("signal_statuses", {})))
+if missing_checks:
+    raise SystemExit(f"observability smoke report missing checks: {missing_checks}")
+if missing_signals:
+    raise SystemExit(f"observability smoke report missing signal statuses: {missing_signals}")
+if "private_beta_gate" not in report or "production_gate" not in report:
+    raise SystemExit("observability smoke report must keep launch gates explicit")
+if report.get("status") != "planned":
+    raise SystemExit("observability dry-run report must remain planned, not runtime-passed")
+PY
 
 log "secret scan smoke"
 if has_cmd git; then
