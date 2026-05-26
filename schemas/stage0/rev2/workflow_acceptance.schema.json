@@ -394,7 +394,13 @@
       "required": [
         "execution_status",
         "blueprint_checklist_remains_open",
-        "expected_user_steps"
+        "start_route",
+        "completion_route",
+        "expected_user_steps",
+        "required_selectors",
+        "user_journey",
+        "network_assertions",
+        "artifact_assertions"
       ],
       "properties": {
         "execution_status": {
@@ -404,9 +410,124 @@
           "type": "boolean",
           "const": true
         },
+        "start_route": {
+          "type": "string",
+          "pattern": "^/"
+        },
+        "completion_route": {
+          "type": "string",
+          "pattern": "^/"
+        },
         "expected_user_steps": {
           "type": "array",
           "minItems": 6,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required_selectors": {
+          "type": "array",
+          "minItems": 8,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^\\[data-testid="
+          }
+        },
+        "user_journey": {
+          "type": "array",
+          "minItems": 9,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "step",
+              "action",
+              "route",
+              "selector",
+              "assertions"
+            ],
+            "properties": {
+              "step": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "action": {
+                "enum": [
+                  "create_project",
+                  "fill_brief",
+                  "upload_reference",
+                  "confirm_structured_details",
+                  "confirm_original_ip_constraints",
+                  "generate_candidates",
+                  "review_four_candidates",
+                  "select_candidate",
+                  "iterate_selection",
+                  "add_to_package",
+                  "preview_export",
+                  "download_export"
+                ]
+              },
+              "route": {
+                "type": "string",
+                "pattern": "^/"
+              },
+              "selector": {
+                "type": "string",
+                "pattern": "^\\[data-testid="
+              },
+              "assertions": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          }
+        },
+        "network_assertions": {
+          "type": "array",
+          "minItems": 6,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "operation_id",
+              "method",
+              "path_template",
+              "success_status"
+            ],
+            "properties": {
+              "operation_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "method": {
+                "enum": [
+                  "get",
+                  "post",
+                  "put",
+                  "patch",
+                  "delete"
+                ]
+              },
+              "path_template": {
+                "type": "string",
+                "pattern": "^/"
+              },
+              "success_status": {
+                "type": "string",
+                "pattern": "^[0-9]{3}$"
+              }
+            }
+          }
+        },
+        "artifact_assertions": {
+          "type": "array",
+          "minItems": 4,
           "items": {
             "type": "string",
             "minLength": 1

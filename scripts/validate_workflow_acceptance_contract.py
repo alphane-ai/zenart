@@ -64,6 +64,18 @@ RUNTIME_OPERATION_ORDER = [
     "getExport",
 ]
 
+PLAYWRIGHT_REQUIRED_ACTIONS = [
+    "create_project",
+    "fill_brief",
+    "generate_candidates",
+    "review_four_candidates",
+    "select_candidate",
+    "iterate_selection",
+    "add_to_package",
+    "preview_export",
+    "download_export",
+]
+
 PATH_PARAM_COMPONENTS = {
     "project_id": "ProjectId",
     "chat_session_id": "ChatSessionId",
@@ -254,6 +266,102 @@ def validate_api_smoke_sequence(workflow_id: str, workflow: dict[str, Any], open
                 )
 
 
+def validate_playwright_contract(workflow_id: str, workflow: dict[str, Any], operations: dict[str, dict[str, str]]) -> None:
+    contract = workflow["playwright_happy_path_contract"]
+    journey = contract["user_journey"]
+    selectors = set(contract["required_selectors"])
+    actions = [step["action"] for step in journey]
+
+    require(contract["execution_status"] == "not_executed", f"{workflow_id} Playwright contract must not claim runtime execution")
+    require(
+        contract["blueprint_checklist_remains_open"] is True,
+        f"{workflow_id} Playwright contract must keep runtime checklist open",
+    )
+    require(
+        contract["start_route"] == f"/projects/new?workflow={workflow_id}",
+        f"{workflow_id} Playwright start route must deep-link the workflow",
+    )
+    require(
+        contract["completion_route"] == "/projects/{project_id}/exports/{export_id}",
+        f"{workflow_id} Playwright completion route must target export detail",
+    )
+    require([step["step"] for step in journey] == list(range(1, len(journey) + 1)), f"{workflow_id} Playwright journey steps must be sequential")
+    for required_action in PLAYWRIGHT_REQUIRED_ACTIONS:
+        require(required_action in actions, f"{workflow_id} Playwright journey missing {required_action}")
+
+    optional_input_actions = {
+        "file": "upload_reference",
+        "date": "confirm_structured_details",
+    }
+    required_input_keys = {item["key"] for item in workflow["required_inputs"] if item["required"] is True}
+    assertion_text = " ".join(
+        assertion
+        for step in journey
+        for assertion in step["assertions"]
+    )
+    missing_inputs = required_input_keys - {key for key in required_input_keys if key in assertion_text}
+    require(not missing_inputs, f"{workflow_id} Playwright journey does not assert required inputs: {sorted(missing_inputs)}")
+
+    for item in workflow["required_inputs"]:
+        expected_selector = f'[data-testid="brief-{item["key"]}"]'
+        if item["type"] == "file":
+            expected_selector = f'[data-testid="reference-upload-{item["key"]}"]'
+        require(expected_selector in selectors, f"{workflow_id} Playwright selectors missing input selector {expected_selector}")
+        if item["required"] and item["type"] in optional_input_actions:
+            require(optional_input_actions[item["type"]] in actions, f"{workflow_id} Playwright journey missing {optional_input_actions[item['type']]}")
+
+    workflow_selector = f'[data-testid="workflow-{workflow_id}"]'
+    require(workflow_selector in selectors, f"{workflow_id} Playwright selectors missing {workflow_selector}")
+    for selector in [
+        '[data-testid="project-create"]',
+        '[data-testid="generate-candidates"]',
+        '[data-testid="candidate-grid"]',
+        '[data-testid="candidate-select"]',
+        '[data-testid="iterate-selected-direction"]',
+        '[data-testid="package-add-selected"]',
+        '[data-testid="export-preview"]',
+        '[data-testid="export-download"]',
+    ]:
+        require(selector in selectors, f"{workflow_id} Playwright selectors missing {selector}")
+    for step in journey:
+        require(step["selector"] in selectors, f"{workflow_id} Playwright journey selector not declared: {step['selector']}")
+        require(step["route"].startswith("/projects/"), f"{workflow_id} Playwright journey route must stay inside project workspace")
+
+    taxonomy_text = " ".join(workflow["four_option_taxonomy"])
+    for option in workflow["four_option_taxonomy"]:
+        require(option in assertion_text or option in selectors or option in taxonomy_text, f"{workflow_id} Playwright journey missing taxonomy option {option}")
+    review_steps = [step for step in journey if step["action"] == "review_four_candidates"]
+    require(review_steps, f"{workflow_id} Playwright journey must review four candidates")
+    require(
+        any("exactly four" in assertion for step in review_steps for assertion in step["assertions"]),
+        f"{workflow_id} Playwright candidate review must assert exactly four cards",
+    )
+
+    network_ids = [item["operation_id"] for item in contract["network_assertions"]]
+    require(network_ids == RUNTIME_OPERATION_ORDER, f"{workflow_id} Playwright network operation order mismatch: {network_ids}")
+    require(set(network_ids) == set(workflow["api_smoke_contract"]["operation_ids"]), f"{workflow_id} Playwright network operations must match API smoke operations")
+    for assertion in contract["network_assertions"]:
+        operation_id = assertion["operation_id"]
+        operation = operations.get(operation_id)
+        require(operation is not None, f"{workflow_id} Playwright network assertion cites unknown operation {operation_id}")
+        require(assertion["method"] == operation["method"], f"{workflow_id} Playwright network {operation_id} method mismatch")
+        require(assertion["path_template"] == operation["path_template"], f"{workflow_id} Playwright network {operation_id} path mismatch")
+        require(f'        "{assertion["success_status"]}":' in operation["block"], f"{workflow_id} Playwright network {operation_id} success status missing in OpenAPI")
+
+    artifact_text = " ".join(contract["artifact_assertions"])
+    required_asset_files = {asset["file_name"] for asset in workflow["required_generated_assets"]}
+    for file_name in required_asset_files:
+        require(f"assets/{file_name}" in artifact_text, f"{workflow_id} Playwright artifact assertions missing assets/{file_name}")
+    for evidence_file in REQUIRED_EXPORT_FILES:
+        require(evidence_file in artifact_text, f"{workflow_id} Playwright artifact assertions missing {evidence_file}")
+
+    require(
+        contract["expected_user_steps"][0] == "create project"
+        and contract["expected_user_steps"][-1] == "preview and download export",
+        f"{workflow_id} Playwright expected user steps must span project creation through export download",
+    )
+
+
 def validate_blueprint_split(workflows: dict[str, dict[str, Any]]) -> None:
     text = BLUEPRINT.read_text(encoding="utf-8")
     checked = checked_items(text)
@@ -296,6 +404,7 @@ def validate_openapi_operations(workflows: dict[str, dict[str, Any]]) -> None:
             workflow["playwright_happy_path_contract"]["execution_status"] == "not_executed",
             f"{workflow_id} Playwright contract must not claim runtime execution",
         )
+        validate_playwright_contract(workflow_id, workflow, operations)
 
 
 def validate_fixture_links(workflows: dict[str, dict[str, Any]]) -> None:

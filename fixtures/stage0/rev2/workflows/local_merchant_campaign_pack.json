@@ -284,6 +284,8 @@
   "playwright_happy_path_contract": {
     "execution_status": "not_executed",
     "blueprint_checklist_remains_open": true,
+    "start_route": "/projects/new?workflow=local_merchant_campaign_pack",
+    "completion_route": "/projects/{project_id}/exports/{export_id}",
     "expected_user_steps": [
       "create project",
       "enter local merchant brief",
@@ -293,6 +295,174 @@
       "iterate selected direction",
       "add campaign assets to package",
       "preview and download export"
+    ],
+    "required_selectors": [
+      "[data-testid=\"project-create\"]",
+      "[data-testid=\"workflow-local_merchant_campaign_pack\"]",
+      "[data-testid=\"brief-merchant_name\"]",
+      "[data-testid=\"brief-event_date\"]",
+      "[data-testid=\"brief-address\"]",
+      "[data-testid=\"brief-promotion\"]",
+      "[data-testid=\"structured-detail-confirm\"]",
+      "[data-testid=\"generate-candidates\"]",
+      "[data-testid=\"candidate-grid\"]",
+      "[data-testid=\"candidate-card-grand_opening\"]",
+      "[data-testid=\"candidate-select\"]",
+      "[data-testid=\"iterate-selected-direction\"]",
+      "[data-testid=\"package-add-selected\"]",
+      "[data-testid=\"export-preview\"]",
+      "[data-testid=\"export-download\"]"
+    ],
+    "user_journey": [
+      {
+        "step": 1,
+        "action": "create_project",
+        "route": "/projects/new?workflow=local_merchant_campaign_pack",
+        "selector": "[data-testid=\"project-create\"]",
+        "assertions": [
+          "project workspace route opens with workflow=local_merchant_campaign_pack"
+        ]
+      },
+      {
+        "step": 2,
+        "action": "fill_brief",
+        "route": "/projects/{project_id}",
+        "selector": "[data-testid=\"brief-merchant_name\"]",
+        "assertions": [
+          "merchant_name is captured in brief",
+          "event_date and address are captured in brief"
+        ]
+      },
+      {
+        "step": 3,
+        "action": "confirm_structured_details",
+        "route": "/projects/{project_id}",
+        "selector": "[data-testid=\"structured-detail-confirm\"]",
+        "assertions": [
+          "price, date, phone, address, and QR fields are locked for structured text QA"
+        ]
+      },
+      {
+        "step": 4,
+        "action": "generate_candidates",
+        "route": "/projects/{project_id}",
+        "selector": "[data-testid=\"generate-candidates\"]",
+        "assertions": [
+          "candidate generation task is accepted"
+        ]
+      },
+      {
+        "step": 5,
+        "action": "review_four_candidates",
+        "route": "/projects/{project_id}",
+        "selector": "[data-testid=\"candidate-grid\"]",
+        "assertions": [
+          "candidate grid contains exactly four cards",
+          "cards cover grand_opening, limited_time_offer, community_event, loyalty_push"
+        ]
+      },
+      {
+        "step": 6,
+        "action": "select_candidate",
+        "route": "/projects/{project_id}",
+        "selector": "[data-testid=\"candidate-card-grand_opening\"]",
+        "assertions": [
+          "selected direction references one local merchant candidate"
+        ]
+      },
+      {
+        "step": 7,
+        "action": "iterate_selection",
+        "route": "/projects/{project_id}",
+        "selector": "[data-testid=\"iterate-selected-direction\"]",
+        "assertions": [
+          "iteration keeps structured text QA and trace provenance attached"
+        ]
+      },
+      {
+        "step": 8,
+        "action": "add_to_package",
+        "route": "/projects/{project_id}",
+        "selector": "[data-testid=\"package-add-selected\"]",
+        "assertions": [
+          "package contains storefront_poster.png, flyer.png, social_square.png, story_panel.png"
+        ]
+      },
+      {
+        "step": 9,
+        "action": "preview_export",
+        "route": "/projects/{project_id}/exports/{export_id}",
+        "selector": "[data-testid=\"export-preview\"]",
+        "assertions": [
+          "export preview shows manifest, metadata, qa_report, trace_provenance, and structured text evidence"
+        ]
+      },
+      {
+        "step": 10,
+        "action": "download_export",
+        "route": "/projects/{project_id}/exports/{export_id}",
+        "selector": "[data-testid=\"export-download\"]",
+        "assertions": [
+          "downloaded ZIP contains all required local merchant campaign assets"
+        ]
+      }
+    ],
+    "network_assertions": [
+      {
+        "operation_id": "createChatSession",
+        "method": "post",
+        "path_template": "/projects/{project_id}/chat/sessions",
+        "success_status": "201"
+      },
+      {
+        "operation_id": "createChatMessage",
+        "method": "post",
+        "path_template": "/chat/sessions/{chat_session_id}/messages",
+        "success_status": "202"
+      },
+      {
+        "operation_id": "createCandidateSet",
+        "method": "post",
+        "path_template": "/projects/{project_id}/candidate-sets",
+        "success_status": "202"
+      },
+      {
+        "operation_id": "listCandidateAssets",
+        "method": "get",
+        "path_template": "/candidate-sets/{candidate_set_id}/assets",
+        "success_status": "200"
+      },
+      {
+        "operation_id": "selectDirection",
+        "method": "put",
+        "path_template": "/projects/{project_id}/selected-direction",
+        "success_status": "200"
+      },
+      {
+        "operation_id": "createPackage",
+        "method": "post",
+        "path_template": "/projects/{project_id}/packages",
+        "success_status": "201"
+      },
+      {
+        "operation_id": "createExport",
+        "method": "post",
+        "path_template": "/packages/{package_id}/exports",
+        "success_status": "202"
+      },
+      {
+        "operation_id": "getExport",
+        "method": "get",
+        "path_template": "/exports/{export_id}",
+        "success_status": "200"
+      }
+    ],
+    "artifact_assertions": [
+      "export includes assets/storefront_poster.png",
+      "export includes assets/flyer.png",
+      "export includes assets/social_square.png",
+      "export includes assets/story_panel.png",
+      "export includes manifest.json, metadata.json, qa_report.json, trace_provenance.json"
     ]
   },
   "pass_thresholds": {

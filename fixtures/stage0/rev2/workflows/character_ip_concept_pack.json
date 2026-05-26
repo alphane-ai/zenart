@@ -286,6 +286,8 @@
   "playwright_happy_path_contract": {
     "execution_status": "not_executed",
     "blueprint_checklist_remains_open": true,
+    "start_route": "/projects/new?workflow=character_ip_concept_pack",
+    "completion_route": "/projects/{project_id}/exports/{export_id}",
     "expected_user_steps": [
       "create project",
       "enter character IP brief",
@@ -295,6 +297,175 @@
       "iterate selected direction",
       "add concept sheets to package",
       "preview and download export"
+    ],
+    "required_selectors": [
+      "[data-testid=\"project-create\"]",
+      "[data-testid=\"workflow-character_ip_concept_pack\"]",
+      "[data-testid=\"brief-character_brief\"]",
+      "[data-testid=\"brief-target_audience\"]",
+      "[data-testid=\"brief-style_constraints\"]",
+      "[data-testid=\"reference-upload-reference_images\"]",
+      "[data-testid=\"original-ip-confirm\"]",
+      "[data-testid=\"generate-candidates\"]",
+      "[data-testid=\"candidate-grid\"]",
+      "[data-testid=\"candidate-card-mascot_ready\"]",
+      "[data-testid=\"candidate-select\"]",
+      "[data-testid=\"iterate-selected-direction\"]",
+      "[data-testid=\"package-add-selected\"]",
+      "[data-testid=\"export-preview\"]",
+      "[data-testid=\"export-download\"]"
+    ],
+    "user_journey": [
+      {
+        "step": 1,
+        "action": "create_project",
+        "route": "/projects/new?workflow=character_ip_concept_pack",
+        "selector": "[data-testid=\"project-create\"]",
+        "assertions": [
+          "project workspace route opens with workflow=character_ip_concept_pack"
+        ]
+      },
+      {
+        "step": 2,
+        "action": "fill_brief",
+        "route": "/projects/{project_id}",
+        "selector": "[data-testid=\"brief-character_brief\"]",
+        "assertions": [
+          "character_brief is captured in brief",
+          "target_audience and style_constraints are captured in brief"
+        ]
+      },
+      {
+        "step": 3,
+        "action": "confirm_original_ip_constraints",
+        "route": "/projects/{project_id}",
+        "selector": "[data-testid=\"original-ip-confirm\"]",
+        "assertions": [
+          "original IP confirmation is required before generation",
+          "third-party character resemblance safety policy is attached"
+        ]
+      },
+      {
+        "step": 4,
+        "action": "generate_candidates",
+        "route": "/projects/{project_id}",
+        "selector": "[data-testid=\"generate-candidates\"]",
+        "assertions": [
+          "candidate generation task is accepted"
+        ]
+      },
+      {
+        "step": 5,
+        "action": "review_four_candidates",
+        "route": "/projects/{project_id}",
+        "selector": "[data-testid=\"candidate-grid\"]",
+        "assertions": [
+          "candidate grid contains exactly four cards",
+          "cards cover mascot_ready, narrative_hero, merchandise_icon, animation_turnaround"
+        ]
+      },
+      {
+        "step": 6,
+        "action": "select_candidate",
+        "route": "/projects/{project_id}",
+        "selector": "[data-testid=\"candidate-card-mascot_ready\"]",
+        "assertions": [
+          "selected direction references one character IP candidate"
+        ]
+      },
+      {
+        "step": 7,
+        "action": "iterate_selection",
+        "route": "/projects/{project_id}",
+        "selector": "[data-testid=\"iterate-selected-direction\"]",
+        "assertions": [
+          "iteration keeps safety policy and trace provenance attached"
+        ]
+      },
+      {
+        "step": 8,
+        "action": "add_to_package",
+        "route": "/projects/{project_id}",
+        "selector": "[data-testid=\"package-add-selected\"]",
+        "assertions": [
+          "package contains concept_sheet.png, pose_grid.png, expression_sheet.png, style_tile.png"
+        ]
+      },
+      {
+        "step": 9,
+        "action": "preview_export",
+        "route": "/projects/{project_id}/exports/{export_id}",
+        "selector": "[data-testid=\"export-preview\"]",
+        "assertions": [
+          "export preview shows manifest, metadata, qa_report, trace_provenance, and applicable safety disclaimer"
+        ]
+      },
+      {
+        "step": 10,
+        "action": "download_export",
+        "route": "/projects/{project_id}/exports/{export_id}",
+        "selector": "[data-testid=\"export-download\"]",
+        "assertions": [
+          "downloaded ZIP contains all required character concept assets"
+        ]
+      }
+    ],
+    "network_assertions": [
+      {
+        "operation_id": "createChatSession",
+        "method": "post",
+        "path_template": "/projects/{project_id}/chat/sessions",
+        "success_status": "201"
+      },
+      {
+        "operation_id": "createChatMessage",
+        "method": "post",
+        "path_template": "/chat/sessions/{chat_session_id}/messages",
+        "success_status": "202"
+      },
+      {
+        "operation_id": "createCandidateSet",
+        "method": "post",
+        "path_template": "/projects/{project_id}/candidate-sets",
+        "success_status": "202"
+      },
+      {
+        "operation_id": "listCandidateAssets",
+        "method": "get",
+        "path_template": "/candidate-sets/{candidate_set_id}/assets",
+        "success_status": "200"
+      },
+      {
+        "operation_id": "selectDirection",
+        "method": "put",
+        "path_template": "/projects/{project_id}/selected-direction",
+        "success_status": "200"
+      },
+      {
+        "operation_id": "createPackage",
+        "method": "post",
+        "path_template": "/projects/{project_id}/packages",
+        "success_status": "201"
+      },
+      {
+        "operation_id": "createExport",
+        "method": "post",
+        "path_template": "/packages/{package_id}/exports",
+        "success_status": "202"
+      },
+      {
+        "operation_id": "getExport",
+        "method": "get",
+        "path_template": "/exports/{export_id}",
+        "success_status": "200"
+      }
+    ],
+    "artifact_assertions": [
+      "export includes assets/concept_sheet.png",
+      "export includes assets/pose_grid.png",
+      "export includes assets/expression_sheet.png",
+      "export includes assets/style_tile.png",
+      "export includes manifest.json, metadata.json, qa_report.json, trace_provenance.json"
     ]
   },
   "pass_thresholds": {
