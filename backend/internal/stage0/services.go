@@ -965,13 +965,15 @@ WITH orphaned_sources AS (
 	  )
 )
 UPDATE object_metadata o
-SET retention_state = 'orphaned'
+SET retention_state = 'orphaned',
+    updated_at = $1
 FROM orphaned_sources source
 WHERE o.retention_state = 'active'
   AND (
     (o.id = source.id AND o.tenant_id = source.tenant_id)
     OR (o.derived_from_object_id = source.id AND o.tenant_id = source.tenant_id)
   )`,
+		now,
 	)
 	if err != nil {
 		return CleanupResult{}, err
@@ -979,6 +981,9 @@ WHERE o.retention_state = 'active'
 	result := CleanupResult{
 		ExpiredExports:  int(expiredTag.RowsAffected()),
 		OrphanedObjects: int(orphanedTag.RowsAffected()),
+	}
+	if err := r.recordCleanupLifecycleAnalytics(ctx, now); err != nil {
+		return CleanupResult{}, err
 	}
 	if objectCleanup != nil {
 		deleted, err := objectCleanup(ctx, now)
@@ -1051,7 +1056,102 @@ WHERE id = ANY($1)
 	if err != nil {
 		return 0, err
 	}
-	return int(tag.RowsAffected()), nil
+	deleted := int(tag.RowsAffected())
+	if err := r.recordDeletedObjectAnalytics(ctx, ids, now); err != nil {
+		return 0, err
+	}
+	return deleted, nil
+}
+
+func (r Repository) recordCleanupLifecycleAnalytics(ctx context.Context, now time.Time) error {
+	_, err := r.db.Exec(ctx, `
+WITH expired_export_events AS (
+	INSERT INTO analytics_events(id, tenant_id, user_id, project_id, workflow_id, event_name, subject_type, subject_id, properties, created_at)
+	SELECT
+		'analytics_' || md5(e.tenant_id || ':' || e.id || ':export_expired'),
+		e.tenant_id,
+		p.created_by,
+		e.project_id,
+		COALESCE(pr.workflow_id, ''),
+		'export_expired',
+		'export',
+		e.id,
+		jsonb_build_object(
+			'package_id', e.package_id,
+			'object_metadata_id', COALESCE(e.object_metadata_id, ''),
+			'format', e.format,
+			'retention_state', 'expired'
+		),
+		$1
+	FROM exports e
+	LEFT JOIN packages p ON p.tenant_id = e.tenant_id AND p.id = e.package_id
+	LEFT JOIN projects pr ON pr.tenant_id = e.tenant_id AND pr.id = e.project_id
+	WHERE e.status = 'expired'
+	  AND e.updated_at = $1
+	ON CONFLICT (id) DO NOTHING
+	RETURNING 1
+),
+orphaned_object_events AS (
+	INSERT INTO analytics_events(id, tenant_id, user_id, project_id, workflow_id, event_name, subject_type, subject_id, properties, created_at)
+	SELECT
+		'analytics_' || md5(o.tenant_id || ':' || o.id || ':object_orphaned'),
+		o.tenant_id,
+		o.owner_id,
+		o.project_id,
+		COALESCE(pr.workflow_id, ''),
+		'object_orphaned',
+		'object_metadata',
+		o.id,
+		jsonb_build_object(
+			'asset_type', o.asset_type,
+			'bucket', o.bucket,
+			'retention_state', o.retention_state,
+			'derived_from_object_id', COALESCE(o.derived_from_object_id, '')
+		),
+		$1
+	FROM object_metadata o
+	LEFT JOIN projects pr ON pr.tenant_id = o.tenant_id AND pr.id = o.project_id
+	WHERE o.retention_state = 'orphaned'
+	  AND o.updated_at = $1
+	ON CONFLICT (id) DO NOTHING
+	RETURNING 1
+)
+SELECT 1`)
+	return err
+}
+
+func (r Repository) recordDeletedObjectAnalytics(ctx context.Context, ids []string, now time.Time) error {
+	if len(ids) == 0 {
+		return nil
+	}
+	_, err := r.db.Exec(ctx, `
+INSERT INTO analytics_events(id, tenant_id, user_id, project_id, workflow_id, event_name, subject_type, subject_id, properties, created_at)
+SELECT
+	'analytics_' || md5(o.tenant_id || ':' || o.id || ':object_deleted'),
+	o.tenant_id,
+	o.owner_id,
+	o.project_id,
+	COALESCE(pr.workflow_id, ''),
+	'object_deleted',
+	'object_metadata',
+	o.id,
+	jsonb_build_object(
+		'asset_type', o.asset_type,
+		'bucket', o.bucket,
+		'retention_state', o.retention_state,
+		'derived_from_object_id', COALESCE(o.derived_from_object_id, '')
+	),
+	$2
+FROM object_metadata o
+LEFT JOIN projects pr ON pr.tenant_id = o.tenant_id AND pr.id = o.project_id
+WHERE o.id = ANY($1)
+  AND o.retention_state = 'deleted'
+  AND o.updated_at = $2
+ON CONFLICT (id) DO NOTHING`,
+		ids,
+		now,
+	)
+	return err
 }
 
 func (r Repository) RegenerateExport(ctx context.Context, tenantID, exportID string) (Export, error) {
@@ -1719,7 +1819,10 @@ WITH event_counts AS (
 		COUNT(*) FILTER (WHERE event_name = 'export_failed') AS export_failed,
 		COUNT(*) FILTER (WHERE event_name = 'support_ticket_created') AS support_ticket_created,
 		COUNT(*) FILTER (WHERE event_name = 'safety_decision_recorded') AS safety_decision_recorded,
-		COUNT(*) FILTER (WHERE event_name = 'export_regenerated') AS export_regenerated
+		COUNT(*) FILTER (WHERE event_name = 'export_regenerated') AS export_regenerated,
+		COUNT(*) FILTER (WHERE event_name = 'export_expired') AS export_expired,
+		COUNT(*) FILTER (WHERE event_name = 'object_orphaned') AS object_orphaned,
+		COUNT(*) FILTER (WHERE event_name = 'object_deleted') AS object_deleted
 	FROM analytics_events
 	WHERE tenant_id = $1
 	  AND created_at >= $2
@@ -1814,6 +1917,16 @@ FROM (
 	       'weekly',
 	       CASE WHEN package_item_added = 0 THEN export_completed::numeric ELSE export_completed::numeric / NULLIF(package_item_added, 0) END,
 	       jsonb_build_object('package_items_added', package_item_added, 'exports_completed', export_completed)
+	FROM event_counts
+	UNION ALL
+	SELECT 10,
+	       'export_object_cleanup',
+	       ARRAY['export_expired','object_orphaned','object_deleted']::text[],
+	       ARRAY['tenant_id','project_id','asset_type','retention_state']::text[],
+	       (object_deleted >= object_orphaned),
+	       'weekly',
+	       object_deleted::numeric,
+	       jsonb_build_object('export_expired', export_expired, 'object_orphaned', object_orphaned, 'object_deleted', object_deleted)
 	FROM event_counts
 ) reports
 ORDER BY ord
