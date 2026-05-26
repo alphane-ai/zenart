@@ -2247,7 +2247,11 @@ func (s Service) GetExport(ctx context.Context, tenantID, exportID string) (Expo
 		return Export{}, err
 	}
 	if s.objects != nil && export.ObjectID != nil {
-		if signed, err := s.objects.SignGetURL(ctx, tenantID, "exports/"+export.ID+"."+export.Format, 10*time.Minute); err == nil {
+		objectKey := "exports/" + export.ID + "." + export.Format
+		if export.Object != nil && strings.TrimSpace(export.Object.ObjectKey) != "" {
+			objectKey = export.Object.ObjectKey
+		}
+		if signed, err := s.objects.SignGetURL(ctx, tenantID, objectKey, 10*time.Minute); err == nil {
 			export.DownloadURL = signed
 		}
 	}

@@ -672,6 +672,50 @@ func TestServiceRecordExportArtifactGeneratesAndStoresThumbnail(t *testing.T) {
 	}
 }
 
+func TestServiceGetExportSignsPersistedObjectKey(t *testing.T) {
+	now := time.Date(2026, 5, 26, 12, 0, 0, 0, time.UTC)
+	db := &fakeDB{
+		queryRows: []rowSet{{
+			rows: [][]any{{
+				"export_1",
+				"tenant_1",
+				"package_1",
+				"project_1",
+				nil,
+				"zip",
+				"ready",
+				"passed",
+				"object_1",
+				[]byte(`{"package_id":"package_1"}`),
+				[]byte(`{"download":{"status":"ready"}}`),
+				nil,
+				now,
+				now,
+				[]byte(`{"id":"object_1","tenant_id":"tenant_1","project_id":"project_1","owner_id":"user_1","asset_type":"export","bucket":"exports-test","object_key":"tenants/tenant_1/exports/custom-export-object.zip","content_type":"application/zip","byte_size":12,"checksum":"sha256:abc","provider":"local","retention_state":"active","metadata":{},"created_at":"2026-05-26T00:00:00Z"}`),
+			}},
+		}},
+	}
+	objects, err := objectstore.NewLocalStore(t.TempDir(), "exports-test", "secret")
+	if err != nil {
+		t.Fatalf("NewLocalStore() error = %v", err)
+	}
+	service := NewService(NewRepository(db), objects)
+
+	export, err := service.GetExport(context.Background(), "tenant_1", "export_1")
+	if err != nil {
+		t.Fatalf("GetExport() error = %v", err)
+	}
+	if export.DownloadURL == "" {
+		t.Fatal("DownloadURL should be signed for ready object metadata")
+	}
+	if !strings.Contains(export.DownloadURL, "custom-export-object.zip") {
+		t.Fatalf("DownloadURL = %q, want persisted object key", export.DownloadURL)
+	}
+	if strings.Contains(export.DownloadURL, "exports%2Fexport_1.zip") {
+		t.Fatalf("DownloadURL = %q, should not use reconstructed export id path", export.DownloadURL)
+	}
+}
+
 func TestCleanupExpiredExportsAndOrphanedObjects(t *testing.T) {
 	db := &fakeDB{
 		execTags: []pgconn.CommandTag{
