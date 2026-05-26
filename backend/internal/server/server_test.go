@@ -486,6 +486,7 @@ func TestAdminAuditDeniesNonAdmin(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Load() error = %v", err)
 	}
+	cfg.Auth.AdminDevIdentityHeaders = true
 
 	req := httptest.NewRequest(http.MethodGet, "/api/admin/v1/audit", nil)
 	req.Header.Set("X-Zenart-User-ID", "user_1")
@@ -499,11 +500,31 @@ func TestAdminAuditDeniesNonAdmin(t *testing.T) {
 	}
 }
 
+func TestAdminRouteRejectsDevIdentityHeadersByDefault(t *testing.T) {
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/admin/v1/audit", nil)
+	req.Header.Set("X-Zenart-User-ID", "admin_1")
+	req.Header.Set("X-Zenart-Tenant-ID", "tenant_1")
+	req.Header.Set("X-Zenart-Roles", "admin_superadmin")
+	rec := httptest.NewRecorder()
+
+	New(cfg, nil).Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("status = %d, want %d: %s", rec.Code, http.StatusUnauthorized, rec.Body.String())
+	}
+}
+
 func TestAdminAuditRequiresSuperadmin(t *testing.T) {
 	cfg, err := config.Load()
 	if err != nil {
 		t.Fatalf("Load() error = %v", err)
 	}
+	cfg.Auth.AdminDevIdentityHeaders = true
 
 	req := httptest.NewRequest(http.MethodGet, "/api/admin/v1/audit", nil)
 	req.Header.Set("X-Zenart-User-ID", "admin_viewer_1")
@@ -531,6 +552,7 @@ func TestAdminAuditSearchUsesPrincipalTenantAndFilters(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Load() error = %v", err)
 	}
+	cfg.Auth.AdminDevIdentityHeaders = true
 	searcher := &fakeAuditSearcher{page: audit.Page{Items: []audit.Event{{
 		ID:        "audit_1",
 		TenantID:  "tenant_1",
@@ -575,6 +597,7 @@ func TestAdminExportRegenerateRequiresReviewer(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Load() error = %v", err)
 	}
+	cfg.Auth.AdminDevIdentityHeaders = true
 
 	req := httptest.NewRequest(http.MethodPost, "/api/admin/v1/exports/export_1/regenerate", nil)
 	req.Header.Set("X-Zenart-User-ID", "admin_viewer_1")
@@ -603,6 +626,7 @@ func TestAdminCrawlerStartRunRequiresOperator(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Load() error = %v", err)
 	}
+	cfg.Auth.AdminDevIdentityHeaders = true
 
 	req := httptest.NewRequest(http.MethodPost, "/api/admin/v1/crawler/sources/crawler_source_1/runs", nil)
 	req.Header.Set("X-Zenart-User-ID", "admin_viewer_1")
@@ -631,6 +655,7 @@ func TestAdminCrawlerStartRunReturnsPolicyBlock(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Load() error = %v", err)
 	}
+	cfg.Auth.AdminDevIdentityHeaders = true
 	cfg.Crawler.Enabled = false
 
 	req := httptest.NewRequest(http.MethodPost, "/api/admin/v1/crawler/sources/crawler_source_1/runs", nil)
@@ -660,6 +685,7 @@ func TestAdminCrawlerSourcesUsesPrincipalTenant(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Load() error = %v", err)
 	}
+	cfg.Auth.AdminDevIdentityHeaders = true
 	now := time.Date(2026, 5, 27, 8, 0, 0, 0, time.UTC)
 	tenantID := "tenant_1"
 	db := &fakeStage0DB{queryRows: []stage0RowSet{{rows: [][]any{{
@@ -697,6 +723,7 @@ func TestAdminCrawlerFindingsUsesPrincipalTenant(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Load() error = %v", err)
 	}
+	cfg.Auth.AdminDevIdentityHeaders = true
 	now := time.Date(2026, 5, 27, 8, 0, 0, 0, time.UTC)
 	tenantID := "tenant_1"
 	db := &fakeStage0DB{queryRows: []stage0RowSet{{rows: [][]any{{
@@ -733,6 +760,7 @@ func TestAdminSafetyRulesUsesPrincipalTenant(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Load() error = %v", err)
 	}
+	cfg.Auth.AdminDevIdentityHeaders = true
 	now := time.Date(2026, 5, 27, 8, 0, 0, 0, time.UTC)
 	tenantID := "tenant_1"
 	db := &fakeStage0DB{queryRows: []stage0RowSet{{rows: [][]any{{
@@ -771,6 +799,7 @@ func TestAdminAnalyticsEventsRequiresAdminViewer(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Load() error = %v", err)
 	}
+	cfg.Auth.AdminDevIdentityHeaders = true
 
 	req := httptest.NewRequest(http.MethodGet, "/api/admin/v1/analytics/events", nil)
 	req.Header.Set("X-Zenart-User-ID", "user_1")
@@ -797,6 +826,7 @@ func TestAdminAnalyticsEventsUsesPrincipalTenantAndFilters(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Load() error = %v", err)
 	}
+	cfg.Auth.AdminDevIdentityHeaders = true
 	now := time.Date(2026, 5, 27, 8, 0, 0, 0, time.UTC)
 	db := &fakeStage0DB{queryRows: []stage0RowSet{{rows: [][]any{{
 		"analytics_1",
@@ -846,6 +876,7 @@ func TestAdminAnalyticsReportsUsesPrincipalTenant(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Load() error = %v", err)
 	}
+	cfg.Auth.AdminDevIdentityHeaders = true
 	db := &fakeStage0DB{queryRows: []stage0RowSet{{rows: [][]any{{
 		"export_completion_rate",
 		[]string{"export_started", "export_completed", "export_failed"},

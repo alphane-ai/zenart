@@ -1697,6 +1697,7 @@ main 合并前必须通过：
 - [x] 实现 immutable audit log。
 - [x] 添加 cross-tenant denial tests。
 - [x] 添加 non-admin `/api/admin/*` denial tests。
+- [x] 默认禁用 `/api/admin/*` dev identity headers；admin endpoints 默认只接受独立 admin session cookie，local dev header fallback 需显式 `ADMIN_DEV_IDENTITY_HEADERS_ENABLED=true`。
 
 ### 25.8 Billing, Quota, Entitlement
 

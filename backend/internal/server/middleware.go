@@ -136,15 +136,26 @@ func principalFromRequest(r *http.Request) (auth.Principal, bool) {
 
 func principalFromRequestWithAuthConfig(r *http.Request, cfg config.AuthConfig, cfgOK bool) (auth.Principal, bool) {
 	if cfgOK {
-		if principal, ok := principalFromSessionCookieConfig(r, cfg, time.Now().UTC(), isAdminAPIPath(r.URL.Path)); ok {
+		adminRoute := isAdminAPIPath(r.URL.Path)
+		if principal, ok := principalFromSessionCookieConfig(r, cfg, time.Now().UTC(), adminRoute); ok {
 			return principal, true
 		}
-		if cfg.DevIdentityHeaders && cfg.AccessMode == string(auth.AccessModeLocal) {
+		if devHeadersAllowedForRoute(cfg, adminRoute) {
 			return principalFromHeaders(r)
 		}
 		return auth.Principal{}, false
 	}
 	return principalFromHeaders(r)
+}
+
+func devHeadersAllowedForRoute(cfg config.AuthConfig, adminRoute bool) bool {
+	if cfg.AccessMode != string(auth.AccessModeLocal) {
+		return false
+	}
+	if adminRoute {
+		return cfg.AdminDevIdentityHeaders
+	}
+	return cfg.DevIdentityHeaders
 }
 
 func authConfigFromRequest(r *http.Request) (config.AuthConfig, bool) {

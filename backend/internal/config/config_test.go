@@ -42,6 +42,9 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.ObjectStorage.LocalRoot == "" {
 		t.Fatal("ObjectStorage.LocalRoot must have a local default")
 	}
+	if cfg.Auth.AdminDevIdentityHeaders {
+		t.Fatal("Auth.AdminDevIdentityHeaders must default to false")
+	}
 	if cfg.Worker.Version != "stage0-local" {
 		t.Fatalf("Worker.Version = %q, want stage0-local", cfg.Worker.Version)
 	}
@@ -169,5 +172,24 @@ func TestValidateRestrictsDevIdentityHeadersToLocalAccessMode(t *testing.T) {
 	cfg.Auth.DevIdentityHeaders = false
 	if err := cfg.Validate(); err != nil {
 		t.Fatalf("Validate() error = %v, want nil when dev identity headers are disabled", err)
+	}
+}
+
+func TestValidateRestrictsAdminDevIdentityHeadersToLocalAccessMode(t *testing.T) {
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+
+	cfg.Auth.AccessMode = "invite-only"
+	cfg.Auth.DevIdentityHeaders = false
+	cfg.Auth.AdminDevIdentityHeaders = true
+	if err := cfg.Validate(); err == nil {
+		t.Fatal("Validate() error = nil, want admin dev identity headers access-mode error")
+	}
+
+	cfg.Auth.AccessMode = "local"
+	if err := cfg.Validate(); err != nil {
+		t.Fatalf("Validate() error = %v, want nil for local admin dev identity headers", err)
 	}
 }

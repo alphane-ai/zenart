@@ -79,19 +79,20 @@ type ObjectStorageConfig struct {
 }
 
 type AuthConfig struct {
-	AccessMode             string
-	SessionCookieName      string
-	SessionSecret          string
-	SessionTTL             time.Duration
-	AdminSessionCookieName string
-	AdminSessionSecret     string
-	AdminSessionTTL        time.Duration
-	SessionCookieSecure    bool
-	SessionCookieSameSite  string
-	SessionCookieDomain    string
-	DevIdentityHeaders     bool
-	LocalSeedUserEmail     string
-	LocalSeedAdminEmail    string
+	AccessMode              string
+	SessionCookieName       string
+	SessionSecret           string
+	SessionTTL              time.Duration
+	AdminSessionCookieName  string
+	AdminSessionSecret      string
+	AdminSessionTTL         time.Duration
+	SessionCookieSecure     bool
+	SessionCookieSameSite   string
+	SessionCookieDomain     string
+	DevIdentityHeaders      bool
+	AdminDevIdentityHeaders bool
+	LocalSeedUserEmail      string
+	LocalSeedAdminEmail     string
 }
 
 type BillingConfig struct {
@@ -175,19 +176,20 @@ func Load() (Config, error) {
 			CheckTimeout:   durationEnv("OBJECT_STORAGE_CHECK_TIMEOUT", 2*time.Second),
 		},
 		Auth: AuthConfig{
-			AccessMode:             env("STAGE0_ACCESS_MODE", "local"),
-			SessionCookieName:      env("SESSION_COOKIE_NAME", "__Host-zenart_session"),
-			SessionSecret:          env("SESSION_SECRET", "stage0-local-session-secret-minimum-32-bytes"),
-			SessionTTL:             durationEnv("SESSION_TTL", 24*time.Hour),
-			AdminSessionCookieName: env("ADMIN_SESSION_COOKIE_NAME", "__Host-zenart_admin_session"),
-			AdminSessionSecret:     env("ADMIN_SESSION_SECRET", "stage0-local-admin-session-secret-minimum-32-bytes"),
-			AdminSessionTTL:        durationEnv("ADMIN_SESSION_TTL", 8*time.Hour),
-			SessionCookieSecure:    boolEnv("SESSION_COOKIE_SECURE", true),
-			SessionCookieSameSite:  env("SESSION_COOKIE_SAME_SITE", "lax"),
-			SessionCookieDomain:    env("SESSION_COOKIE_DOMAIN", ""),
-			DevIdentityHeaders:     boolEnv("DEV_IDENTITY_HEADERS_ENABLED", true),
-			LocalSeedUserEmail:     env("LOCAL_SEED_USER_EMAIL", "local.user@example.com"),
-			LocalSeedAdminEmail:    env("LOCAL_SEED_ADMIN_EMAIL", "local.admin@example.com"),
+			AccessMode:              env("STAGE0_ACCESS_MODE", "local"),
+			SessionCookieName:       env("SESSION_COOKIE_NAME", "__Host-zenart_session"),
+			SessionSecret:           env("SESSION_SECRET", "stage0-local-session-secret-minimum-32-bytes"),
+			SessionTTL:              durationEnv("SESSION_TTL", 24*time.Hour),
+			AdminSessionCookieName:  env("ADMIN_SESSION_COOKIE_NAME", "__Host-zenart_admin_session"),
+			AdminSessionSecret:      env("ADMIN_SESSION_SECRET", "stage0-local-admin-session-secret-minimum-32-bytes"),
+			AdminSessionTTL:         durationEnv("ADMIN_SESSION_TTL", 8*time.Hour),
+			SessionCookieSecure:     boolEnv("SESSION_COOKIE_SECURE", true),
+			SessionCookieSameSite:   env("SESSION_COOKIE_SAME_SITE", "lax"),
+			SessionCookieDomain:     env("SESSION_COOKIE_DOMAIN", ""),
+			DevIdentityHeaders:      boolEnv("DEV_IDENTITY_HEADERS_ENABLED", true),
+			AdminDevIdentityHeaders: boolEnv("ADMIN_DEV_IDENTITY_HEADERS_ENABLED", false),
+			LocalSeedUserEmail:      env("LOCAL_SEED_USER_EMAIL", "local.user@example.com"),
+			LocalSeedAdminEmail:     env("LOCAL_SEED_ADMIN_EMAIL", "local.admin@example.com"),
 		},
 		Billing: BillingConfig{
 			CheckoutProvider: env("CHECKOUT_PROVIDER", "mock"),
@@ -288,6 +290,9 @@ func (c Config) Validate() error {
 	}
 	if c.Auth.DevIdentityHeaders && strings.TrimSpace(c.Auth.AccessMode) != "local" {
 		errs = append(errs, "DEV_IDENTITY_HEADERS_ENABLED may only be true when STAGE0_ACCESS_MODE=local")
+	}
+	if c.Auth.AdminDevIdentityHeaders && strings.TrimSpace(c.Auth.AccessMode) != "local" {
+		errs = append(errs, "ADMIN_DEV_IDENTITY_HEADERS_ENABLED may only be true when STAGE0_ACCESS_MODE=local")
 	}
 	if strings.TrimSpace(c.Auth.SessionCookieName) == "" {
 		errs = append(errs, "SESSION_COOKIE_NAME must not be empty")
