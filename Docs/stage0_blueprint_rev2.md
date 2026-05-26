@@ -1984,6 +1984,10 @@ main 合并前必须通过：
 - [ ] Local Alpha 角色/IP 概念包 runtime smoke evidence 写入 release gate fixture：API smoke 与 Playwright happy path 均通过 running local stack。
 - [x] Backfill CI draft/no-go evidence: ops CI draft coverage passes while installed `.github/workflows` runtime remains blocked in `fixtures/stage0/rev2/release_gate_evidence.ci.json`。
 - [ ] CI installed workflow runtime evidence 通过：PR/main run、Playwright smoke、Docker image build 均有 validator-resolvable evidence。
+- [ ] CI installed workflow file evidence 通过：`.github/workflows/stage0-rev2-ci.yml` 存在且被 release gate fixture 引用。
+- [ ] CI PR/main workflow run evidence 通过：已安装 workflow 的 PR/main run 结果写入 `ops/evidence/ci/`。
+- [ ] CI Playwright smoke runtime evidence 通过：已安装 PR/main workflow 运行 Playwright smoke 并写入 `ops/evidence/ci/`。
+- [ ] CI Docker image build runtime evidence 通过：已安装 PR/main workflow build Docker images 并写入 `ops/evidence/ci/`。
 - [x] Backfill Private Beta/Staging no-go evidence: contract/fixture evidence is separated from external-user staging runtime blockers in `fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json`。
 - [ ] Private Beta/Staging external-user runtime evidence 通过：auth/RBAC/tenant、storage、quota/rate limit、support/abuse、safety/QA/crawler、observability/backup/load、legal visibility 均有 staging evidence。
 - [x] Private Beta/Staging auth/RBAC/tenant/audit runtime evidence 通过。
@@ -2028,6 +2032,7 @@ Release gate closure policy:
 - Fixture or contract evidence can never close CI, Private Beta/Staging, Production Launch, or Do-Not-Launch checklist items by itself; those gates require runtime or deployment evidence in their matching release gate fixture.
 - Runtime gate checks that pass must cite environment-specific evidence paths, not only schema, fixture, draft, README, blueprint, or contract artifacts.
 - Passed runtime gate checks must cite exact validator-owned evidence files when the checklist subitem is closed by a named `ops/evidence` artifact; citing only a broad evidence directory or prose summary is insufficient.
+- CI aggregate runtime evidence may close only after all four CI runtime subitems are closed: installed workflow file, PR/main workflow run, Playwright smoke, and Docker image build.
 - Passed gate checks must not leave their directly related Do-Not-Launch condition active in the same release gate fixture.
 - CI, Private Beta/Staging, and Production blocked/failing release gate checks must each map to at least one active Do-Not-Launch condition in the same fixture, and every active Do-Not-Launch condition must map back to a blocked/failing check.
 - Release gate fixture files are closed-world: only `release_gate_evidence.local_alpha.json`, `release_gate_evidence.ci.json`, `release_gate_evidence.private_beta_staging.json`, and `release_gate_evidence.production_launch.json` are valid.

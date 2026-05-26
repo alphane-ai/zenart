@@ -338,6 +338,21 @@ RELEASE_GATE_RUNTIME_OPEN_ITEMS = {
     "Production Launch runtime/deployment evidence 通过：provider-or-comp-only、paid lifecycle、skill canary、activation audit、abuse hold、security、backup/rollback/post-deploy smoke、legal/support policy 均有 production evidence。",
 }
 
+CI_RUNTIME_OPEN_CHECK_ITEMS = {
+    "CI installed workflow file evidence 通过：`.github/workflows/stage0-rev2-ci.yml` 存在且被 release gate fixture 引用。": {
+        "ci_installed_workflow",
+    },
+    "CI PR/main workflow run evidence 通过：已安装 workflow 的 PR/main run 结果写入 `ops/evidence/ci/`。": {
+        "ci_gate_runtime_execution",
+    },
+    "CI Playwright smoke runtime evidence 通过：已安装 PR/main workflow 运行 Playwright smoke 并写入 `ops/evidence/ci/`。": {
+        "ci_playwright_smoke",
+    },
+    "CI Docker image build runtime evidence 通过：已安装 PR/main workflow build Docker images 并写入 `ops/evidence/ci/`。": {
+        "ci_docker_image_build",
+    },
+}
+
 RUNTIME_GATE_CHECK_IDS = {
     "local_alpha": {"local_alpha_e2e_workflow_smoke"},
     "ci": {
@@ -669,12 +684,16 @@ PRODUCTION_RUNTIME_OPEN_CHECK_ITEMS = {
 }
 
 RELEASE_GATE_CHECK_LEVEL_RUNTIME_OPEN_ITEMS = {
+    **CI_RUNTIME_OPEN_CHECK_ITEMS,
     **PRIVATE_BETA_STAGING_RUNTIME_OPEN_CHECK_ITEMS,
     **PRODUCTION_RUNTIME_OPEN_CHECK_ITEMS,
 }
 
 LOCAL_ALPHA_AGGREGATE_RUNTIME_ITEM = (
     "Local Alpha workflow API/Playwright end-to-end smoke evidence 通过并写入 release gate fixture。"
+)
+CI_AGGREGATE_RUNTIME_ITEM = (
+    "CI installed workflow runtime evidence 通过：PR/main run、Playwright smoke、Docker image build 均有 validator-resolvable evidence。"
 )
 PRIVATE_BETA_STAGING_AGGREGATE_RUNTIME_ITEM = (
     "Private Beta/Staging external-user runtime evidence 通过：auth/RBAC/tenant、storage、quota/rate limit、support/abuse、safety/QA/crawler、observability/backup/load、legal visibility 均有 staging evidence。"
@@ -715,6 +734,9 @@ RELEASE_GATE_AGGREGATE_REQUIREMENTS = {
             LOCAL_ALPHA_WORKFLOW_RUNTIME_ITEMS
             | set(LOCAL_ALPHA_RELEASE_GATE_WORKFLOW_RUNTIME_OPEN_CHECK_ITEMS)
         ),
+    },
+    "ci": {
+        CI_AGGREGATE_RUNTIME_ITEM: set(CI_RUNTIME_OPEN_CHECK_ITEMS),
     },
     "private_beta_staging": {
         PRIVATE_BETA_STAGING_AGGREGATE_RUNTIME_ITEM: set(PRIVATE_BETA_STAGING_RUNTIME_OPEN_CHECK_ITEMS),
@@ -1113,6 +1135,7 @@ REQUIRED_OPEN_ITEMS = {
     "Staging post-deploy smoke tests 通过。",
     "Production post-deploy smoke tests 通过。",
 }
+REQUIRED_OPEN_ITEMS |= set(CI_RUNTIME_OPEN_CHECK_ITEMS)
 REQUIRED_OPEN_ITEMS |= (
     RELEASE_GATE_CHECK_LEVEL_RUNTIME_OPEN_ITEMS.keys()
     - {
@@ -2003,6 +2026,7 @@ def validate_runtime_gate_evidence_refs(
         relevant_runtime_open = {
             "CI installed workflow runtime evidence 通过：PR/main run、Playwright smoke、Docker image build 均有 validator-resolvable evidence。"
         } & runtime_items_open
+        relevant_runtime_open |= set(CI_RUNTIME_OPEN_CHECK_ITEMS) & unchecked_lines
     elif gate == "private_beta_staging":
         relevant_runtime_open = {
             "Private Beta/Staging external-user runtime evidence 通过：auth/RBAC/tenant、storage、quota/rate limit、support/abuse、safety/QA/crawler、observability/backup/load、legal visibility 均有 staging evidence。"
@@ -2026,6 +2050,8 @@ def validate_runtime_gate_evidence_refs(
         check_level_guard_map = (
             LOCAL_ALPHA_RELEASE_GATE_WORKFLOW_RUNTIME_OPEN_CHECK_ITEMS
             if gate == "local_alpha"
+            else CI_RUNTIME_OPEN_CHECK_ITEMS
+            if gate == "ci"
             else
             PRIVATE_BETA_STAGING_RUNTIME_OPEN_CHECK_ITEMS
             if gate == "private_beta_staging"
@@ -4368,7 +4394,7 @@ def validate_launch_readiness_split_contracts() -> None:
         "staging OpenTelemetry traces runtime evidence 通过。",
         "Staging post-deploy smoke tests 通过。",
         "Production post-deploy smoke tests 通过。",
-    ] + sorted(RELEASE_GATE_RUNTIME_OPEN_ITEMS) + sorted(
+    ] + sorted(CI_RUNTIME_OPEN_CHECK_ITEMS) + sorted(RELEASE_GATE_RUNTIME_OPEN_ITEMS) + sorted(
         set(RELEASE_GATE_CHECK_LEVEL_RUNTIME_OPEN_ITEMS)
         - {
             "Private Beta/Staging auth/RBAC/tenant/audit runtime evidence 通过。",
