@@ -46,6 +46,8 @@ export default async function SkillReleasesPage() {
             { key: "provenance", header: "Provenance", render: (row) => row.provenance },
             { key: "canary-evidence", header: "Canary Evidence", render: (row) => row.canaryEvidence },
             { key: "release-evidence", header: "Release Evidence", render: (row) => row.releaseEvidence },
+            { key: "rollback-target", header: "Rollback Target", render: (row) => <span className="mono">{row.rollbackTarget}</span> },
+            { key: "rollback-audit", header: "Rollback Audit", render: (row) => <span className="mono">{row.rollbackAuditRef}</span> },
             { key: "rollback", header: "Rollback Plan", render: (row) => row.rollbackPlan }
           ]}
         />
@@ -99,7 +101,9 @@ export default async function SkillReleasesPage() {
             { key: "canary", header: "Canary Evidence", render: (row) => row.canaryEvidence },
             { key: "release", header: "Release Evidence", render: (row) => row.releaseEvidence },
             { key: "smoke", header: "Route Smoke", render: (row) => row.smokeEvidence },
-            { key: "rollback", header: "Rollback", render: (row) => row.rollbackEvidence }
+            { key: "rollback", header: "Rollback", render: (row) => row.rollbackEvidence },
+            { key: "rollback-target", header: "Rollback Target", render: (row) => <span className="mono">{row.rollbackTarget}</span> },
+            { key: "audit", header: "Audit Ref", render: (row) => <span className="mono">{row.auditRef}</span> }
           ]}
         />
       </section>

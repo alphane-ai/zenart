@@ -68,7 +68,9 @@ export const skillVersions: SkillVersion[] = [
     rollbackPlan: "Restore 2.4.1 and disable launch campaign palette branch.",
     canaryPercent: 0,
     canaryEvidence: "Canary blocked until second reviewer accepts regression fixture variance.",
-    releaseEvidence: "Release notes draft linked to eval suite es-stage0-brand and rollback target 2.4.1."
+    releaseEvidence: "Release notes draft linked to eval suite es-stage0-brand and rollback target 2.4.1.",
+    rollbackTarget: "skill-brand-kit@2.4.1",
+    rollbackAuditRef: "au-005"
   },
   {
     id: "sv-181",
@@ -84,7 +86,9 @@ export const skillVersions: SkillVersion[] = [
     rollbackPlan: "Set router to 1.8.0 and replay failed jobs.",
     canaryPercent: 15,
     canaryEvidence: "15% internal canary, 0 blocking QA regressions, p95 packaging under 900 ms.",
-    releaseEvidence: "Release evidence includes manifest/QA/provenance fixtures and rollback replay plan."
+    releaseEvidence: "Release evidence includes manifest/QA/provenance fixtures and rollback replay plan.",
+    rollbackTarget: "skill-export-pack@1.8.0",
+    rollbackAuditRef: "au-003"
   },
   {
     id: "sv-098",
@@ -100,7 +104,9 @@ export const skillVersions: SkillVersion[] = [
     rollbackPlan: "Keep 0.9.7 active; invalidate staged policy bundle.",
     canaryPercent: 0,
     canaryEvidence: "Canary disabled until medical claim fixture and legal second-review pass.",
-    releaseEvidence: "Production release blocked pending reviewer rationale and policy bundle audit."
+    releaseEvidence: "Production release blocked pending reviewer rationale and policy bundle audit.",
+    rollbackTarget: "skill-claims-review@0.9.7",
+    rollbackAuditRef: "au-006"
   }
 ];
 
@@ -485,6 +491,15 @@ export const supportUsers: SupportUser[] = [
     recentTasks: 31,
     traces: ["tr-1019"],
     riskFlags: []
+  },
+  {
+    id: "usr-455",
+    email: "crawler-owner@example.test",
+    plan: "Team trial",
+    projects: 2,
+    recentTasks: 7,
+    traces: [],
+    riskFlags: ["crawler-rate-limit"]
   }
 ];
 
@@ -557,7 +572,9 @@ export const releaseEvidence: ReleaseEvidence[] = [
     releaseEvidence: "Skill release route exposes rollback and release evidence before activation.",
     smokeEvidence: "admin/tests/admin-data.test.mjs verifies every Stage 0 admin route has PageHeader.",
     rollbackEvidence: "Rollback plans are present for each skill release fixture.",
-    reviewerRationale: "Static route smoke is sufficient for the fixture-backed admin shell until backend APIs land."
+    reviewerRationale: "Static route smoke is sufficient for the fixture-backed admin shell until backend APIs land.",
+    rollbackTarget: "last-known-good-admin-shell",
+    auditRef: "eg-001"
   },
   {
     id: "eg-002",
@@ -569,7 +586,9 @@ export const releaseEvidence: ReleaseEvidence[] = [
     releaseEvidence: "Release blocked because high-risk policy lacks complete second-review evidence.",
     smokeEvidence: "Safety route surfaces rationale, audit requirement, and override eligibility.",
     rollbackEvidence: "Rollback target remains active skill-claims-review@0.9.7.",
-    reviewerRationale: "High-risk admin changes require rationale, immutable audit, and second review."
+    reviewerRationale: "High-risk admin changes require rationale, immutable audit, and second review.",
+    rollbackTarget: "skill-claims-review@0.9.7",
+    auditRef: "au-006"
   },
   {
     id: "eg-003",
@@ -581,7 +600,9 @@ export const releaseEvidence: ReleaseEvidence[] = [
     releaseEvidence: "Private beta blocked until provider latency/error budget and spend alerts pass.",
     smokeEvidence: "Provider route exposes status, spend cap, routing action, and evidence fields.",
     rollbackEvidence: "Router can be shifted back to deterministic dev provider for local alpha only.",
-    reviewerRationale: "No silent fallback to weaker providers is allowed by Rev2."
+    reviewerRationale: "No silent fallback to weaker providers is allowed by Rev2.",
+    rollbackTarget: "deterministic-dev-provider",
+    auditRef: "au-007"
   }
 ];
 
@@ -592,7 +613,12 @@ export const abuseEvents: AbuseEvent[] = [
     category: "quota_drain",
     severity: "high",
     resolution: "temporary_hold",
-    evidence: "43 blocked export retries in 25 minutes."
+    evidence: "43 blocked export retries in 25 minutes.",
+    assignedRole: "admin_reviewer",
+    allowedActions: ["temporary_hold", "quota_credit_after_audit", "support_escalation"],
+    linkedSupportTicket: "sup-2201",
+    reviewRationale: "Repeated blocked exports indicate quota drain and require hold before retry or credit.",
+    auditRef: "au-002"
   },
   {
     id: "ab-304",
@@ -600,7 +626,12 @@ export const abuseEvents: AbuseEvent[] = [
     category: "hidden_prompt_extraction",
     severity: "critical",
     resolution: "open",
-    evidence: "Repeated attempts to extract prompt fragments from trace output."
+    evidence: "Repeated attempts to extract prompt fragments from trace output.",
+    assignedRole: "admin_superadmin",
+    allowedActions: ["temporary_hold", "trace_redaction_review", "security_escalation"],
+    linkedSupportTicket: "pending",
+    reviewRationale: "Critical prompt extraction attempt cannot be resolved by support without security review.",
+    auditRef: "au-008"
   },
   {
     id: "ab-309",
@@ -608,7 +639,12 @@ export const abuseEvents: AbuseEvent[] = [
     category: "crawler_abuse",
     severity: "medium",
     resolution: "rate_limited",
-    evidence: "Source import burst tripped global crawler limit."
+    evidence: "Source import burst tripped global crawler limit.",
+    assignedRole: "admin_operator",
+    allowedActions: ["rate_limit", "source_ownership_request", "crawler_import_hold"],
+    linkedSupportTicket: "sup-2212",
+    reviewRationale: "Crawler import remains held until source ownership and robots evidence are reviewed.",
+    auditRef: "au-002"
   }
 ];
 
@@ -620,7 +656,10 @@ export const auditEvents: AuditEvent[] = [
     target: "ex-887",
     risk: "high",
     createdAt: "2026-05-25 16:16",
-    rationale: "Forbidden claim detected at export enforcement point."
+    rationale: "Forbidden claim detected at export enforcement point.",
+    immutable: true,
+    evidenceRefs: ["rx-41", "tr-1004", "sup-2201"],
+    secondReviewStatus: "blocked"
   },
   {
     id: "au-002",
@@ -629,7 +668,10 @@ export const auditEvents: AuditEvent[] = [
     target: "usr-301",
     risk: "high",
     createdAt: "2026-05-25 16:30",
-    rationale: "Quota drain and repeated safety blocks."
+    rationale: "Quota drain and repeated safety blocks.",
+    immutable: true,
+    evidenceRefs: ["ab-300", "sup-2201", "qt-904"],
+    secondReviewStatus: "required"
   },
   {
     id: "au-003",
@@ -638,7 +680,10 @@ export const auditEvents: AuditEvent[] = [
     target: "skill-export-pack@1.8.1",
     risk: "medium",
     createdAt: "2026-05-26 08:00",
-    rationale: "Export completeness fixtures passed."
+    rationale: "Export completeness fixtures passed.",
+    immutable: true,
+    evidenceRefs: ["sv-181", "eg-001", "q-export"],
+    secondReviewStatus: "not_required"
   },
   {
     id: "au-004",
@@ -647,7 +692,58 @@ export const auditEvents: AuditEvent[] = [
     target: "usr-301",
     risk: "low",
     createdAt: "2026-05-26 09:40",
-    rationale: "Refund for blocked export package regeneration."
+    rationale: "Refund for blocked export package regeneration.",
+    immutable: true,
+    evidenceRefs: ["sup-2201", "qt-904", "ex-887"],
+    secondReviewStatus: "not_required"
+  },
+  {
+    id: "au-005",
+    actor: "ops-admin",
+    action: "prepared rollback target",
+    target: "skill-brand-kit@2.4.1",
+    risk: "high",
+    createdAt: "2026-05-26 09:55",
+    rationale: "High-risk brand-kit release cannot enter canary without rollback target and second review.",
+    immutable: true,
+    evidenceRefs: ["sv-248", "rv-100", "eg-001"],
+    secondReviewStatus: "required"
+  },
+  {
+    id: "au-006",
+    actor: "legal-admin",
+    action: "blocked production release",
+    target: "skill-claims-review@0.9.8",
+    risk: "high",
+    createdAt: "2026-05-26 10:05",
+    rationale: "Medical claim fixture and legal second-review evidence are incomplete.",
+    immutable: true,
+    evidenceRefs: ["sv-098", "eg-002", "rx-41"],
+    secondReviewStatus: "blocked"
+  },
+  {
+    id: "au-007",
+    actor: "ops-admin",
+    action: "blocked provider launch",
+    target: "OpenAI/image-render-dev",
+    risk: "medium",
+    createdAt: "2026-05-26 10:12",
+    rationale: "Provider private-beta gate blocked by degraded latency and incomplete alert evidence.",
+    immutable: true,
+    evidenceRefs: ["ph-1", "eg-003", "rv-101"],
+    secondReviewStatus: "not_required"
+  },
+  {
+    id: "au-008",
+    actor: "security-admin",
+    action: "opened prompt extraction investigation",
+    target: "ab-304",
+    risk: "critical",
+    createdAt: "2026-05-26 10:18",
+    rationale: "Critical prompt extraction abuse requires security investigation before support resolution.",
+    immutable: true,
+    evidenceRefs: ["ab-304", "tr-1004", "prompt-fragments"],
+    secondReviewStatus: "required"
   }
 ];
 

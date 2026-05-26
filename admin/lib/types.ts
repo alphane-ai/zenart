@@ -42,6 +42,8 @@ export type SkillVersion = {
   canaryPercent: number;
   canaryEvidence: string;
   releaseEvidence: string;
+  rollbackTarget: string;
+  rollbackAuditRef: string;
 };
 
 export type CrawlerFinding = {
@@ -203,6 +205,11 @@ export type AbuseEvent = {
   severity: RiskLevel;
   resolution: "open" | "rate_limited" | "temporary_hold" | "resolved";
   evidence: string;
+  assignedRole: "support_operator" | "admin_operator" | "admin_reviewer" | "admin_superadmin";
+  allowedActions: string[];
+  linkedSupportTicket: string;
+  reviewRationale: string;
+  auditRef: string;
 };
 
 export type AuditEvent = {
@@ -213,6 +220,9 @@ export type AuditEvent = {
   risk: RiskLevel;
   createdAt: string;
   rationale: string;
+  immutable: true;
+  evidenceRefs: string[];
+  secondReviewStatus: "not_required" | "required" | "completed" | "blocked";
 };
 
 export type AdminReviewDecision = {
@@ -244,6 +254,8 @@ export type ReleaseEvidence = {
   smokeEvidence: string;
   rollbackEvidence: string;
   reviewerRationale: string;
+  rollbackTarget: string;
+  auditRef: string;
 };
 
 export type IncidentLog = {

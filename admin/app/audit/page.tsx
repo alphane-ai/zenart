@@ -82,6 +82,9 @@ export default async function AuditPage() {
             { key: "action", header: "Action", render: (row) => row.action },
             { key: "target", header: "Target", render: (row) => <span className="mono">{row.target}</span> },
             { key: "risk", header: "Risk", render: (row) => <StatusBadge value={row.risk} /> },
+            { key: "immutable", header: "Immutable", render: (row) => (row.immutable ? "Yes" : "No") },
+            { key: "second-review", header: "Second Review Status", render: (row) => <StatusBadge value={row.secondReviewStatus} label={row.secondReviewStatus} /> },
+            { key: "evidence", header: "Evidence Refs", render: (row) => row.evidenceRefs.join(", ") },
             { key: "rationale", header: "Rationale", render: (row) => row.rationale }
           ]}
         />

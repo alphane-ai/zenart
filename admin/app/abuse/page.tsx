@@ -28,6 +28,11 @@ export default async function AbusePage() {
             { key: "category", header: "Category", render: (row) => row.category },
             { key: "severity", header: "Severity", render: (row) => <StatusBadge value={row.severity} /> },
             { key: "resolution", header: "Resolution", render: (row) => <StatusBadge value={row.resolution === "temporary_hold" ? "blocked" : row.resolution} label={row.resolution} /> },
+            { key: "role", header: "Assigned Role", render: (row) => row.assignedRole },
+            { key: "actions", header: "Allowed Actions", render: (row) => row.allowedActions.join(", ") },
+            { key: "ticket", header: "Support Ticket", render: (row) => <span className="mono">{row.linkedSupportTicket}</span> },
+            { key: "rationale", header: "Review Rationale", render: (row) => row.reviewRationale },
+            { key: "audit", header: "Audit Ref", render: (row) => <span className="mono">{row.auditRef}</span> },
             { key: "evidence", header: "Evidence", render: (row) => row.evidence }
           ]}
         />
