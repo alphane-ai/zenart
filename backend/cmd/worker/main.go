@@ -71,7 +71,7 @@ func main() {
 			logger.Error("worker object store open failed", "error", err)
 			os.Exit(1)
 		}
-		cleanupService := stage0.NewService(stage0.NewRepository(store.NewPoolAdapter(pool)), objects)
+		cleanupService := stage0.NewService(stage0.NewRepository(store.NewPoolAdapter(pool)), objects).WithDownloadURLTTL(cfg.ObjectStorage.DownloadURLTTL)
 		go runCleanupLoop(ctx, cleanupService, logger, cfg.Worker.CleanupInterval)
 	}
 

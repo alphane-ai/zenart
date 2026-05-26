@@ -75,6 +75,7 @@ type ObjectStorageConfig struct {
 	ForcePathStyle bool
 	LocalRoot      string
 	SigningKey     string
+	DownloadURLTTL time.Duration
 	CheckTimeout   time.Duration
 }
 
@@ -173,6 +174,7 @@ func Load() (Config, error) {
 			ForcePathStyle: boolEnv("OBJECT_STORAGE_FORCE_PATH_STYLE", true),
 			LocalRoot:      env("OBJECT_STORAGE_LOCAL_ROOT", ".local-objectstore"),
 			SigningKey:     env("OBJECT_STORAGE_SIGNING_KEY", "stage0-local-object-signing"),
+			DownloadURLTTL: durationEnv("OBJECT_STORAGE_DOWNLOAD_URL_TTL", 10*time.Minute),
 			CheckTimeout:   durationEnv("OBJECT_STORAGE_CHECK_TIMEOUT", 2*time.Second),
 		},
 		Auth: AuthConfig{
@@ -343,6 +345,9 @@ func (c Config) Validate() error {
 	}
 	if c.ObjectStorage.Provider == "local" && strings.TrimSpace(c.ObjectStorage.LocalRoot) == "" {
 		errs = append(errs, "OBJECT_STORAGE_LOCAL_ROOT must not be empty for local object storage")
+	}
+	if c.ObjectStorage.DownloadURLTTL <= 0 {
+		errs = append(errs, "OBJECT_STORAGE_DOWNLOAD_URL_TTL must be > 0")
 	}
 	if c.ObjectStorage.Provider == "s3-compatible" {
 		if strings.TrimSpace(c.ObjectStorage.Region) == "" {

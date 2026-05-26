@@ -939,6 +939,47 @@ func TestServiceGetExportDoesNotSignExpiredObject(t *testing.T) {
 	}
 }
 
+func TestServiceGetExportSignsWithConfiguredTTL(t *testing.T) {
+	now := time.Date(2026, 5, 26, 12, 0, 0, 0, time.UTC)
+	db := &fakeDB{
+		queryRows: []rowSet{{
+			rows: [][]any{{
+				"export_1",
+				"tenant_1",
+				"package_1",
+				"project_1",
+				nil,
+				"zip",
+				"ready",
+				"passed",
+				"object_1",
+				[]byte(`{"package_id":"package_1"}`),
+				[]byte(`{"download":{"status":"ready"}}`),
+				nil,
+				now,
+				now,
+				[]byte(`{"id":"object_1","tenant_id":"tenant_1","project_id":"project_1","owner_id":"user_1","asset_type":"export","bucket":"exports-test","object_key":"tenants/tenant_1/exports/export_1.zip","content_type":"application/zip","byte_size":12,"checksum":"sha256:abc","provider":"local","retention_state":"active","metadata":{},"created_at":"2026-05-26T00:00:00Z"}`),
+			}},
+		}},
+	}
+	objects := &recordingObjectStore{signedURL: "https://storage.local/signed-export.zip"}
+	service := NewService(NewRepository(db), objects).WithDownloadURLTTL(2 * time.Minute)
+
+	export, err := service.GetExport(context.Background(), "tenant_1", "export_1")
+	if err != nil {
+		t.Fatalf("GetExport() error = %v", err)
+	}
+	if export.DownloadURL != objects.signedURL {
+		t.Fatalf("DownloadURL = %q, want signed URL", export.DownloadURL)
+	}
+	if objects.signTTL != 2*time.Minute {
+		t.Fatalf("SignGetURL ttl = %s, want configured 2m", objects.signTTL)
+	}
+	if objects.signTenantID != "tenant_1" || objects.signKey != "tenants/tenant_1/exports/export_1.zip" {
+		t.Fatalf("SignGetURL tenant/key = %q/%q", objects.signTenantID, objects.signKey)
+	}
+}
+
 func TestRequireDownloadableObjectEnforcesRetentionStateAndExpiry(t *testing.T) {
 	now := time.Date(2026, 5, 26, 12, 0, 0, 0, time.UTC)
 	db := &fakeDB{queryRows: []rowSet{{rows: [][]any{{"object_1"}}}}}
@@ -971,16 +1012,19 @@ func TestRequireDownloadableObjectEnforcesRetentionStateAndExpiry(t *testing.T) 
 	}
 }
 
-func TestDownloadTTLForObjectIsCappedByRetentionUntil(t *testing.T) {
+func TestDownloadTTLForObjectUsesConfiguredTTLAndIsCappedByRetentionUntil(t *testing.T) {
 	now := time.Date(2026, 5, 26, 12, 0, 0, 0, time.UTC)
 	retentionUntil := now.Add(90 * time.Second)
 
-	if ttl := downloadTTLForObject(ObjectMetadata{RetentionUntil: &retentionUntil}, now); ttl != 90*time.Second {
+	if ttl := downloadTTLForObject(ObjectMetadata{RetentionUntil: &retentionUntil}, now, 5*time.Minute); ttl != 90*time.Second {
 		t.Fatalf("downloadTTLForObject() = %s, want retention-limited 90s", ttl)
 	}
 	retentionUntil = now.Add(30 * time.Minute)
-	if ttl := downloadTTLForObject(ObjectMetadata{RetentionUntil: &retentionUntil}, now); ttl != 10*time.Minute {
-		t.Fatalf("downloadTTLForObject() = %s, want default 10m cap", ttl)
+	if ttl := downloadTTLForObject(ObjectMetadata{RetentionUntil: &retentionUntil}, now, 5*time.Minute); ttl != 5*time.Minute {
+		t.Fatalf("downloadTTLForObject() = %s, want configured 5m cap", ttl)
+	}
+	if ttl := downloadTTLForObject(ObjectMetadata{}, now, 0); ttl != 10*time.Minute {
+		t.Fatalf("downloadTTLForObject() = %s, want default 10m fallback", ttl)
 	}
 }
 
@@ -2133,6 +2177,36 @@ func (f *fakeDB) QueryRow(_ context.Context, sql string, args ...any) store.Row 
 
 type rowSet struct {
 	rows [][]any
+}
+
+type recordingObjectStore struct {
+	signedURL    string
+	signTenantID string
+	signKey      string
+	signTTL      time.Duration
+}
+
+func (s *recordingObjectStore) Put(_ context.Context, object objectstore.Object, _ io.Reader) (objectstore.Object, error) {
+	return object, nil
+}
+
+func (s *recordingObjectStore) Get(_ context.Context, _ string, _ string) (objectstore.Reader, error) {
+	return objectstore.Reader{}, objectstore.ErrNotFound
+}
+
+func (s *recordingObjectStore) SignGetURL(_ context.Context, tenantID, key string, ttl time.Duration) (string, error) {
+	s.signTenantID = tenantID
+	s.signKey = key
+	s.signTTL = ttl
+	return s.signedURL, nil
+}
+
+func (s *recordingObjectStore) Delete(_ context.Context, _ string, _ string) error {
+	return nil
+}
+
+func (s *recordingObjectStore) CleanupExpired(_ context.Context, _ time.Time) (int, error) {
+	return 0, nil
 }
 
 type fakeRows struct {

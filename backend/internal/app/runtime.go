@@ -38,7 +38,7 @@ func RunServer(ctx context.Context, cfg config.Config, logger *slog.Logger) erro
 	}
 	db := store.NewPoolAdapter(pool)
 	scanner := malwareScannerFromConfig(cfg, http.DefaultClient)
-	stage0Service := stage0.NewService(stage0.NewRepository(db), objects, scanner)
+	stage0Service := stage0.NewService(stage0.NewRepository(db), objects, scanner).WithDownloadURLTTL(cfg.ObjectStorage.DownloadURLTTL)
 	api := server.New(cfg, logger)
 	baseHandler := api.Handler()
 	auditStore := audit.NewPostgresRecorder(db)

@@ -2443,9 +2443,10 @@ func tenantScopedObjectKey(tenantID, key string) string {
 }
 
 type Service struct {
-	repo    Repository
-	objects objectstore.Store
-	scanner security.MalwareScanner
+	repo           Repository
+	objects        objectstore.Store
+	scanner        security.MalwareScanner
+	downloadURLTTL time.Duration
 }
 
 func NewService(repo Repository, objects objectstore.Store, scanners ...security.MalwareScanner) Service {
@@ -2453,7 +2454,19 @@ func NewService(repo Repository, objects objectstore.Store, scanners ...security
 	if len(scanners) > 0 {
 		scanner = scanners[0]
 	}
-	return Service{repo: repo, objects: objects, scanner: scanner}
+	return Service{
+		repo:           repo,
+		objects:        objects,
+		scanner:        scanner,
+		downloadURLTTL: 10 * time.Minute,
+	}
+}
+
+func (s Service) WithDownloadURLTTL(ttl time.Duration) Service {
+	if ttl > 0 {
+		s.downloadURLTTL = ttl
+	}
+	return s
 }
 
 func (s Service) Repository() Repository {
@@ -2568,7 +2581,7 @@ func (s Service) GetExport(ctx context.Context, tenantID, exportID string) (Expo
 		if strings.TrimSpace(export.Object.ObjectKey) != "" {
 			objectKey = export.Object.ObjectKey
 		}
-		if signed, err := s.objects.SignGetURL(ctx, tenantID, objectKey, downloadTTLForObject(*export.Object, now)); err == nil {
+		if signed, err := s.objects.SignGetURL(ctx, tenantID, objectKey, downloadTTLForObject(*export.Object, now, s.downloadURLTTL)); err == nil {
 			export.DownloadURL = signed
 		}
 	}
@@ -2582,14 +2595,16 @@ func objectDownloadable(object ObjectMetadata, now time.Time) bool {
 	return object.RetentionUntil == nil || object.RetentionUntil.After(now)
 }
 
-func downloadTTLForObject(object ObjectMetadata, now time.Time) time.Duration {
-	const defaultDownloadTTL = 10 * time.Minute
+func downloadTTLForObject(object ObjectMetadata, now time.Time, configuredTTL time.Duration) time.Duration {
+	if configuredTTL <= 0 {
+		configuredTTL = 10 * time.Minute
+	}
 	if object.RetentionUntil == nil {
-		return defaultDownloadTTL
+		return configuredTTL
 	}
 	remaining := object.RetentionUntil.Sub(now)
-	if remaining <= 0 || remaining > defaultDownloadTTL {
-		return defaultDownloadTTL
+	if remaining <= 0 || remaining > configuredTTL {
+		return configuredTTL
 	}
 	return remaining
 }

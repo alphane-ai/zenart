@@ -42,6 +42,9 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.ObjectStorage.LocalRoot == "" {
 		t.Fatal("ObjectStorage.LocalRoot must have a local default")
 	}
+	if cfg.ObjectStorage.DownloadURLTTL <= 0 {
+		t.Fatalf("ObjectStorage.DownloadURLTTL = %s, want positive", cfg.ObjectStorage.DownloadURLTTL)
+	}
 	if cfg.Auth.AdminDevIdentityHeaders {
 		t.Fatal("Auth.AdminDevIdentityHeaders must default to false")
 	}
@@ -88,6 +91,18 @@ func TestValidateRequiresS3CompatibleCredentials(t *testing.T) {
 	cfg.ObjectStorage.SecretKey = ""
 	if err := cfg.Validate(); err == nil {
 		t.Fatal("Validate() error = nil, want missing secret key error")
+	}
+}
+
+func TestValidateRejectsInvalidDownloadURLTTL(t *testing.T) {
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+
+	cfg.ObjectStorage.DownloadURLTTL = 0
+	if err := cfg.Validate(); err == nil {
+		t.Fatal("Validate() error = nil, want invalid download URL TTL error")
 	}
 }
 
