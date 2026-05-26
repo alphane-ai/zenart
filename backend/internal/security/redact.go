@@ -323,6 +323,10 @@ func RedactValue(value any) any {
 		return RedactStringSliceMap(map[string][]string(typed))
 	case map[string][]string:
 		return RedactStringSliceMap(typed)
+	case json.RawMessage:
+		return json.RawMessage(RedactString(string(typed)))
+	case []byte:
+		return []byte(RedactString(string(typed)))
 	case []any:
 		out := make([]any, len(typed))
 		for i, item := range typed {
@@ -339,6 +343,15 @@ func RedactValue(value any) any {
 		return RedactString(typed)
 	case error:
 		return RedactString(typed.Error())
+	case url.URL:
+		return RedactString(typed.String())
+	case *url.URL:
+		if typed == nil {
+			return typed
+		}
+		return RedactString(typed.String())
+	case fmt.Stringer:
+		return RedactString(typed.String())
 	default:
 		return value
 	}
@@ -668,13 +681,45 @@ func classifyValueAt(value any, location string) []SecretFinding {
 		for i, item := range typed {
 			childLocation := fmt.Sprintf("%s[%d]", location, i)
 			for _, finding := range ClassifyString(item) {
-				finding.Location = childLocation
+				finding.Location = joinFindingLocation(childLocation, finding.Location)
 				findings = append(findings, finding)
 			}
 		}
+	case json.RawMessage:
+		for _, finding := range ClassifyString(string(typed)) {
+			finding.Location = joinFindingLocation(location, finding.Location)
+			findings = append(findings, finding)
+		}
+	case []byte:
+		for _, finding := range ClassifyString(string(typed)) {
+			finding.Location = joinFindingLocation(location, finding.Location)
+			findings = append(findings, finding)
+		}
 	case string:
 		for _, finding := range ClassifyString(typed) {
-			finding.Location = location
+			finding.Location = joinFindingLocation(location, finding.Location)
+			findings = append(findings, finding)
+		}
+	case error:
+		for _, finding := range ClassifyString(typed.Error()) {
+			finding.Location = joinFindingLocation(location, finding.Location)
+			findings = append(findings, finding)
+		}
+	case url.URL:
+		for _, finding := range ClassifyString(typed.String()) {
+			finding.Location = joinFindingLocation(location, finding.Location)
+			findings = append(findings, finding)
+		}
+	case *url.URL:
+		if typed != nil {
+			for _, finding := range ClassifyString(typed.String()) {
+				finding.Location = joinFindingLocation(location, finding.Location)
+				findings = append(findings, finding)
+			}
+		}
+	case fmt.Stringer:
+		for _, finding := range ClassifyString(typed.String()) {
+			finding.Location = joinFindingLocation(location, finding.Location)
 			findings = append(findings, finding)
 		}
 	}
@@ -695,10 +740,23 @@ func classifyStringSliceMapAt(input map[string][]string, location string) []Secr
 		for i, value := range values {
 			valueLocation := fmt.Sprintf("%s[%d]", childLocation, i)
 			for _, finding := range ClassifyString(value) {
-				finding.Location = valueLocation
+				finding.Location = joinFindingLocation(valueLocation, finding.Location)
 				findings = append(findings, finding)
 			}
 		}
 	}
 	return findings
+}
+
+func joinFindingLocation(parent, child string) string {
+	if parent == "" {
+		return child
+	}
+	if child == "" {
+		return parent
+	}
+	if strings.HasPrefix(child, "[") {
+		return parent + child
+	}
+	return parent + "." + child
 }

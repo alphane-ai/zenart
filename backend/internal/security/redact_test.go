@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -242,6 +243,70 @@ func TestRedactValueCoversErrors(t *testing.T) {
 	if strings.Contains(asString, "sk-ant-abcdefghijklmnopqrstuvwxyz123456") || !strings.Contains(asString, Redacted) {
 		t.Fatalf("RedactValue(error) = %q, want redacted error string", asString)
 	}
+}
+
+func TestRedactValueCoversRawMessagesBytesURLsAndStringers(t *testing.T) {
+	raw := json.RawMessage(`{"signed_url":"https://storage.local/export.zip?X-Amz-Signature=abcdef","provider_key":"sk-ant-abcdefghijklmnopqrstuvwxyz123456"}`)
+	redactedRaw, ok := RedactValue(raw).(json.RawMessage)
+	if !ok {
+		t.Fatalf("RedactValue(raw) type = %T, want json.RawMessage", RedactValue(raw))
+	}
+	if strings.Contains(string(redactedRaw), "abcdef") || strings.Contains(string(redactedRaw), "sk-ant-abcdefghijklmnopqrstuvwxyz123456") {
+		t.Fatalf("redacted raw = %s, leaked secret", string(redactedRaw))
+	}
+
+	redactedBytes, ok := RedactValue([]byte(`{"Authorization":"Bearer abcdefghijklmnop"}`)).([]byte)
+	if !ok {
+		t.Fatalf("RedactValue(bytes) type = %T, want []byte", RedactValue([]byte{}))
+	}
+	if strings.Contains(string(redactedBytes), "abcdefghijklmnop") {
+		t.Fatalf("redacted bytes = %s, leaked bearer token", string(redactedBytes))
+	}
+
+	parsed, err := url.Parse("https://user:pass@example.test/export.zip?AWSAccessKeyId=AKIAIOSFODNN7EXAMPLE&Signature=abcdef")
+	if err != nil {
+		t.Fatalf("parse URL: %v", err)
+	}
+	redactedURL := RedactValue(parsed)
+	asString, ok := redactedURL.(string)
+	if !ok {
+		t.Fatalf("RedactValue(url) type = %T, want string", redactedURL)
+	}
+	for _, leaked := range []string{"user:pass", "AKIAIOSFODNN7EXAMPLE", "abcdef"} {
+		if strings.Contains(asString, leaked) {
+			t.Fatalf("redacted URL = %q, leaked %s", asString, leaked)
+		}
+	}
+
+	stringer := stringerValue("provider token=npm_abcdefghijklmnopqrstuvwxyz123456")
+	redactedStringer, ok := RedactValue(stringer).(string)
+	if !ok {
+		t.Fatalf("RedactValue(stringer) type = %T, want string", RedactValue(stringer))
+	}
+	if strings.Contains(redactedStringer, "npm_abcdefghijklmnopqrstuvwxyz123456") {
+		t.Fatalf("redacted stringer = %q, leaked token", redactedStringer)
+	}
+}
+
+func TestClassifyValueCoversRawMessagesBytesURLsErrorsAndStringers(t *testing.T) {
+	parsed, err := url.Parse("https://user:pass@example.test/export.zip?X-Amz-Signature=abcdef")
+	if err != nil {
+		t.Fatalf("parse URL: %v", err)
+	}
+	findings := ClassifyValue(map[string]any{
+		"raw":      json.RawMessage(`{"webhook_secret":"whsec_abcdefghijklmnopqrstuvwxyz123456"}`),
+		"bytes":    []byte(`{"provider_key":"sk-ant-abcdefghijklmnopqrstuvwxyz123456"}`),
+		"url":      parsed,
+		"error":    errors.New("failed with Bearer abcdefghijklmnop"),
+		"stringer": stringerValue("token=npm_abcdefghijklmnopqrstuvwxyz123456"),
+	})
+
+	assertFinding(t, findings, SecretKindWebhookSecret, "raw.webhook_secret")
+	assertFinding(t, findings, SecretKindProviderKey, "bytes.provider_key")
+	assertFinding(t, findings, SecretKindDSN, "url")
+	assertFinding(t, findings, SecretKindSignedURL, "url")
+	assertFinding(t, findings, SecretKindAuthorization, "error")
+	assertFinding(t, findings, SecretKindToken, "stringer")
 }
 
 func TestRedactStringCoversRawJSONPayloads(t *testing.T) {
@@ -479,4 +544,10 @@ func assertSignal(t *testing.T, findings []SecretFinding, signal string) {
 		}
 	}
 	t.Fatalf("missing finding signal=%s in %#v", signal, findings)
+}
+
+type stringerValue string
+
+func (s stringerValue) String() string {
+	return string(s)
 }
