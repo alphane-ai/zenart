@@ -11,7 +11,7 @@ const parseFixtures = () => {
   const moduleSource = source
     .replace(/^import type[\s\S]*?from "@\/lib\/types";\n\n/, "")
     .replaceAll(/export const (\w+)[^=]*=/g, "const $1 =");
-  return Function(`${moduleSource}\nreturn { skillVersions, skillReleaseStateDefinitions, skillCanaryMetrics, releaseEvidence, releaseBlockers, supportTickets, supportEscalationRunbooks, supportUsers, riskyExports, abuseEvents, abuseControlHooks, auditEvents, exportJobs, traces, quotaAccounts, feedbackItems, regressionFixtures, analyticsReports, queueHealth, failedTaskControls, crawlerFindings, crawlerSourceApprovals, crawlerGovernanceWorkflows, adminRbacEvidence, operationalDashboards, operationalDashboardRuntimeEvidence, alertRoutes, alertRouteRuntimeEvidence };`)();
+  return Function(`${moduleSource}\nreturn { skillVersions, skillReleaseStateDefinitions, skillCanaryMetrics, releaseEvidence, releaseBlockers, supportTickets, supportEscalationRunbooks, supportUsers, riskyExports, abuseEvents, abuseControlHooks, stagingSupportRetryAbuseEvidence, auditEvents, exportJobs, traces, quotaAccounts, feedbackItems, regressionFixtures, analyticsReports, queueHealth, failedTaskControls, crawlerFindings, crawlerSourceApprovals, crawlerGovernanceWorkflows, adminRbacEvidence, operationalDashboards, operationalDashboardRuntimeEvidence, alertRoutes, alertRouteRuntimeEvidence };`)();
 };
 
 const crawlerGovernanceCases = JSON.parse(
@@ -30,6 +30,7 @@ const {
   riskyExports,
   abuseEvents,
   abuseControlHooks,
+  stagingSupportRetryAbuseEvidence,
   auditEvents,
   exportJobs,
   feedbackItems,
@@ -85,8 +86,13 @@ const operationalDashboardIds = new Set(operationalDashboards.map((dashboard) =>
 const alertRouteIds = new Set(alertRoutes.map((alert) => alert.id));
 const releaseEvidenceIds = new Set(releaseEvidence.map((evidence) => evidence.id));
 const abuseEventById = new Map(abuseEvents.map((event) => [event.id, event]));
+const abuseHookIds = new Set(abuseControlHooks.map((hook) => hook.id));
 const canaryMetricIds = new Set(skillCanaryMetrics.map((metric) => metric.id));
 const runtimeEvidencePattern = /^staging-(dashboard|alert)-[a-z-]+-\d{8}T\d{4}Z$/;
+const stagingSupportRetryAbusePath = new URL(
+  "../../ops/evidence/staging/20260527T1000Z-support-retry-abuse.json",
+  import.meta.url
+);
 
 const roleOrder = new Map([
   ["support_operator", 1],
@@ -644,6 +650,109 @@ test("queue and failed task controls gate retry and cancel with audit evidence",
       assert.notEqual(task.rbacDecision, "allowed", `${task.id} blocked hold cannot be allowed`);
     }
   }
+});
+
+test("staging support retry abuse evidence validates external-user support, retry, hold, and audit paths", () => {
+  assert.ok(existsSync(stagingSupportRetryAbusePath), "staging support/retry/abuse evidence file is missing");
+  const evidenceFile = JSON.parse(readFileSync(stagingSupportRetryAbusePath, "utf8"));
+
+  assert.equal(stagingSupportRetryAbuseEvidence.id, evidenceFile.evidence_id, "admin fixture must match evidence id");
+  assert.equal(stagingSupportRetryAbuseEvidence.environment, "staging", "evidence must be staging scoped");
+  assert.equal(stagingSupportRetryAbuseEvidence.status, "pass", "check-level evidence must pass");
+  assert.equal(evidenceFile.environment, "staging", "evidence file must be staging scoped");
+  assert.equal(evidenceFile.status, "pass", "evidence file must pass");
+  assert.equal(
+    stagingSupportRetryAbuseEvidence.evidencePath,
+    "ops/evidence/staging/20260527T1000Z-support-retry-abuse.json",
+    "evidence path must cite gate-specific staging evidence"
+  );
+  assert.equal(
+    stagingSupportRetryAbuseEvidence.releaseGateCheckId,
+    "staging_support_retry_abuse_ops",
+    "evidence must bind the support/retry/abuse release-gate check"
+  );
+  assert.equal(
+    stagingSupportRetryAbuseEvidence.doNotLaunchConditionId,
+    "support_abuse_runtime_missing",
+    "evidence must bind the support abuse do-not-launch condition"
+  );
+  assert.equal(
+    stagingSupportRetryAbuseEvidence.gateImpact.canClearCheckLevelItem,
+    true,
+    "validated evidence should clear only the check-level support/retry/abuse checklist item"
+  );
+  assert.equal(
+    stagingSupportRetryAbuseEvidence.gateImpact.aggregatePrivateBetaGateStatus,
+    "blocked_by_other_staging_runtime_items",
+    "support/retry/abuse evidence must not close the aggregate private beta gate"
+  );
+
+  for (const requestId of stagingSupportRetryAbuseEvidence.runtimeRequestIds) {
+    assert.match(
+      requestId,
+      /^staging-support-retry-abuse-\d{8}T\d{4}Z-/,
+      `${requestId} must be a staging support/retry/abuse runtime probe`
+    );
+  }
+
+  for (const ticketId of stagingSupportRetryAbuseEvidence.supportTicketIds) {
+    assert.ok(supportTicketIds.has(ticketId), `${ticketId} must link an admin support ticket`);
+  }
+
+  for (const taskId of stagingSupportRetryAbuseEvidence.failedTaskIds) {
+    assert.ok(taskIds.has(taskId), `${taskId} must link a failed task control`);
+  }
+
+  for (const eventId of stagingSupportRetryAbuseEvidence.abuseEventIds) {
+    assert.ok(abuseEventById.has(eventId), `${eventId} must link an abuse event`);
+  }
+
+  for (const hookId of stagingSupportRetryAbuseEvidence.abuseHookIds) {
+    assert.ok(abuseHookIds.has(hookId), `${hookId} must link an abuse hold/throttle hook`);
+  }
+
+  const requiredAreas = new Set([
+    "support_ticket_linkage",
+    "failed_task_retry_cancel",
+    "abuse_hold_throttle",
+    "abuse_queue_closure"
+  ]);
+  for (const area of evidenceFile.coverage.map((item) => item.area)) {
+    assert.ok(requiredAreas.has(area), `${area} is not an expected evidence area`);
+  }
+
+  for (const coverage of stagingSupportRetryAbuseEvidence.coverage) {
+    requiredAreas.delete(coverage.area);
+    assert.equal(coverage.status, "pass", `${coverage.area} must pass`);
+    assert.ok(coverage.runtimeProbe.toLowerCase().includes("staging"), `${coverage.area} must describe staging runtime`);
+    assert.match(coverage.runtimeProbe, /support|retry|hold|throttle|abuse|queue/i, `${coverage.area} must cover admin operations`);
+    assert.ok(coverage.externalUserEvidence.length > 90, `${coverage.area} needs external-user evidence`);
+    assert.ok(coverage.rbacAuditEvidence.length > 90, `${coverage.area} needs RBAC and audit evidence`);
+    assert.ok(coverage.linkedAdminArtifacts.some((ref) => ref.startsWith("admin/")), `${coverage.area} needs admin artifacts`);
+    assert.ok(
+      coverage.evidenceRefs.includes("ops/evidence/staging/20260527T1000Z-support-retry-abuse.json"),
+      `${coverage.area} must cite the staging evidence path`
+    );
+    assert.ok(
+      coverage.evidenceRefs.some(
+        (ref) =>
+          supportTicketIds.has(ref) ||
+          taskIds.has(ref) ||
+          abuseEventById.has(ref) ||
+          abuseHookIds.has(ref) ||
+          auditIds.has(ref) ||
+          queueIds.has(ref)
+      ),
+      `${coverage.area} needs validator-resolvable admin evidence refs`
+    );
+  }
+
+  assert.deepEqual([...requiredAreas], [], "staging support/retry/abuse evidence is missing coverage areas");
+  assert.deepEqual(
+    evidenceFile.runtime_request_ids,
+    stagingSupportRetryAbuseEvidence.runtimeRequestIds,
+    "evidence file and admin fixture runtime probe ids must match"
+  );
 });
 
 test("export regeneration requests require idempotency, support linkage, RBAC, quota handling, and audit evidence", () => {

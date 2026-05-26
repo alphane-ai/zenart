@@ -30,6 +30,7 @@ import {
   skillReleaseStateDefinitions,
   skillVersions,
   skills,
+  stagingSupportRetryAbuseEvidence,
   supportEscalationRunbooks,
   supportTickets,
   supportUsers,
@@ -115,6 +116,10 @@ export async function getExportJobs() {
 
 export async function getFailedTaskControls() {
   return failedTaskControls;
+}
+
+export async function getStagingSupportRetryAbuseEvidence() {
+  return stagingSupportRetryAbuseEvidence;
 }
 
 export async function getExportJob(id: string) {

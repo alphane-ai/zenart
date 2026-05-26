@@ -1,14 +1,21 @@
 import { DataTable } from "@/components/DataTable";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
-import { getSupportEscalationRunbooks, getSupportTickets, getSupportUsers } from "@/lib/admin-api";
-import type { SupportEscalationRunbook, SupportLookupAction, SupportTicket, SupportUser } from "@/lib/types";
+import { getStagingSupportRetryAbuseEvidence, getSupportEscalationRunbooks, getSupportTickets, getSupportUsers } from "@/lib/admin-api";
+import type {
+  StagingSupportRetryAbuseCoverage,
+  SupportEscalationRunbook,
+  SupportLookupAction,
+  SupportTicket,
+  SupportUser
+} from "@/lib/types";
 
 export default async function SupportPage() {
-  const [users, tickets, runbooks] = await Promise.all([
+  const [users, tickets, runbooks, stagingEvidence] = await Promise.all([
     getSupportUsers(),
     getSupportTickets(),
-    getSupportEscalationRunbooks()
+    getSupportEscalationRunbooks(),
+    getStagingSupportRetryAbuseEvidence()
   ]);
 
   return (
@@ -17,6 +24,42 @@ export default async function SupportPage() {
         title="Support Console"
         description="User lookup surface for projects, recent tasks, traces, assets, exports, quota, tickets, and risk flags."
       />
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>Staging Support Retry Abuse Evidence</h3>
+            <p>Check-level private beta evidence for external-user support linkage, failed task retry/cancel, abuse hold/throttle, RBAC, and audit closure blocking.</p>
+          </div>
+          <StatusBadge value={stagingEvidence.status === "pass" ? "approved" : "blocked"} label={stagingEvidence.status} />
+        </div>
+        <div className="panel-body">
+          <div className="evidence-line">
+            <strong>Evidence path</strong>
+            <span className="mono">{stagingEvidence.evidencePath}</span>
+          </div>
+          <div className="evidence-line">
+            <strong>Gate impact</strong>
+            <span>{stagingEvidence.gateImpact.checklistItem} · {stagingEvidence.gateImpact.aggregatePrivateBetaGateStatus}</span>
+          </div>
+          <div className="evidence-line">
+            <strong>Runtime request ids</strong>
+            <span className="mono">{stagingEvidence.runtimeRequestIds.join(", ")}</span>
+          </div>
+        </div>
+        <DataTable<StagingSupportRetryAbuseCoverage>
+          rows={stagingEvidence.coverage}
+          columns={[
+            { key: "area", header: "Area", render: (row) => row.area },
+            { key: "status", header: "Status", render: (row) => <StatusBadge value={row.status === "pass" ? "approved" : "blocked"} label={row.status} /> },
+            { key: "runtime", header: "Runtime Probe", render: (row) => row.runtimeProbe },
+            { key: "external", header: "External User Evidence", render: (row) => row.externalUserEvidence },
+            { key: "rbac", header: "RBAC Audit Evidence", render: (row) => row.rbacAuditEvidence },
+            { key: "artifacts", header: "Admin Artifacts", render: (row) => row.linkedAdminArtifacts.join(", ") },
+            { key: "evidence", header: "Evidence Refs", render: (row) => row.evidenceRefs.join(", ") }
+          ]}
+        />
+      </section>
+
       <section className="panel">
         <div className="panel-header">
           <div>

@@ -52,6 +52,7 @@ test("admin fixtures cover required operational surfaces", () => {
     "export const releaseEvidence",
     "export const abuseEvents",
     "export const abuseControlHooks",
+    "export const stagingSupportRetryAbuseEvidence",
     "export const operationalDashboards",
     "export const operationalDashboardRuntimeEvidence",
     "export const alertRoutes",
@@ -264,6 +265,36 @@ test("admin feedback page surfaces bad samples converted to regression fixtures"
     "requiredGate",
     "linkedCanaryMetric",
     "reviewerRationale"
+  ]) {
+    assert.match(fixtures, new RegExp(token));
+  }
+});
+
+test("admin support page surfaces staging support retry abuse evidence", () => {
+  const supportPage = readFileSync(
+    new URL("../app/support/page.tsx", import.meta.url),
+    "utf8"
+  );
+
+  for (const token of [
+    "Staging Support Retry Abuse Evidence",
+    "Runtime Probe",
+    "External User Evidence",
+    "RBAC Audit Evidence",
+    "Gate impact",
+    "Runtime request ids"
+  ]) {
+    assert.match(supportPage, new RegExp(token));
+  }
+
+  for (const token of [
+    "stagingSupportRetryAbuseEvidence",
+    "staging_support_retry_abuse_20260527T1000Z",
+    "ops/evidence/staging/20260527T1000Z-support-retry-abuse.json",
+    "support_ticket_linkage",
+    "failed_task_retry_cancel",
+    "abuse_hold_throttle",
+    "abuse_queue_closure"
   ]) {
     assert.match(fixtures, new RegExp(token));
   }

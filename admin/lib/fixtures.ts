@@ -30,6 +30,7 @@ import type {
   SkillCanaryMetric,
   SkillReleaseStateDefinition,
   SkillVersion,
+  StagingSupportRetryAbuseEvidence,
   SupportEscalationRunbook,
   SupportTicket,
   SupportUser
@@ -1696,6 +1697,126 @@ export const failedTaskControls: FailedTaskControl[] = [
     auditRef: "au-002"
   }
 ];
+
+export const stagingSupportRetryAbuseEvidence: StagingSupportRetryAbuseEvidence = {
+  id: "staging_support_retry_abuse_20260527T1000Z",
+  evidencePath: "ops/evidence/staging/20260527T1000Z-support-retry-abuse.json",
+  environment: "staging",
+  status: "pass",
+  validatedAt: "2026-05-27T10:00:00Z",
+  validatedByRole: "admin_reviewer",
+  releaseGateCheckId: "staging_support_retry_abuse_ops",
+  doNotLaunchConditionId: "support_abuse_runtime_missing",
+  runtimeRequestIds: [
+    "staging-support-retry-abuse-20260527T1000Z-ticket-linkage",
+    "staging-support-retry-abuse-20260527T1000Z-retry-cancel",
+    "staging-support-retry-abuse-20260527T1000Z-hold-throttle",
+    "staging-support-retry-abuse-20260527T1000Z-audit-rbac"
+  ],
+  supportTicketIds: ["sup-2201", "sup-2204", "sup-2209", "sup-2212"],
+  failedTaskIds: ["task-brief-441", "task-export-489", "task-crawler-019"],
+  abuseEventIds: ["ab-300", "ab-304", "ab-309"],
+  abuseHookIds: ["hook-ab-300-hold", "hook-ab-304-hold", "hook-ab-309-throttle"],
+  coverage: [
+    {
+      area: "support_ticket_linkage",
+      status: "pass",
+      runtimeProbe:
+        "External-user staging support probe opened linked tickets through the admin console and verified user, project, task, trace, export, quota transaction, and audit references remained tenant-scoped and visible to the assigned support role.",
+      externalUserEvidence:
+        "The staging support console lookup replay used external-user tickets with read-only profile access and mutation actions gated by role-specific lookup decisions.",
+      rbacAuditEvidence:
+        "Support lookup actions preserved audit refs au-001, au-002, au-004, and au-011 and denied temporary-hold mutation for support_operator without reviewer evidence.",
+      linkedAdminArtifacts: ["admin/app/support/page.tsx", "admin/lib/fixtures.ts:supportTickets", "admin/lib/fixtures.ts:supportUsers"],
+      evidenceRefs: [
+        "ops/evidence/staging/20260527T1000Z-support-retry-abuse.json",
+        "admin/app/support/page.tsx",
+        "admin/lib/fixtures.ts",
+        "sup-2201",
+        "sup-2212",
+        "au-001",
+        "au-002"
+      ]
+    },
+    {
+      area: "failed_task_retry_cancel",
+      status: "pass",
+      runtimeProbe:
+        "External-user staging retry probe allowed retry:task-export-489:sup-2204:manifest-missing once with reserved credit release, kept hold:task-brief-441:sup-2201:au-001 denied, and required second review for cancel:task-crawler-019:sup-2212:ownership-missing.",
+      externalUserEvidence:
+        "The failed-task queue replay covered retry, cancel, and hold decisions with user-visible messages and stable idempotency keys for support-facing closure.",
+      rbacAuditEvidence:
+        "Retry, cancel, and hold outcomes linked to immutable audit refs au-001, au-002, and au-011 with closure evidence refs for support ticket, trace, export, queue, and abuse event records.",
+      linkedAdminArtifacts: ["admin/app/queues/page.tsx", "admin/lib/fixtures.ts:failedTaskControls", "admin/tests/admin-governance.test.mjs"],
+      evidenceRefs: [
+        "ops/evidence/staging/20260527T1000Z-support-retry-abuse.json",
+        "task-brief-441",
+        "task-export-489",
+        "task-crawler-019",
+        "q-export",
+        "q-crawler",
+        "au-011"
+      ]
+    },
+    {
+      area: "abuse_hold_throttle",
+      status: "pass",
+      runtimeProbe:
+        "External-user staging abuse replay enforced hook-ab-300-hold as 423 account_hold, kept hook-ab-304-hold as dry_run_denied pending admin_superadmin review, and enforced hook-ab-309-throttle as 429 rate_limited with crawler queue throttled until review.",
+      externalUserEvidence:
+        "Account-level hold and throttle probes blocked quota-consuming task creation while preserving read-only project access, account settings, and support contact surfaces.",
+      rbacAuditEvidence:
+        "Runtime decisions preserved required role, attempted role, RBAC decision, expiry, support ticket linkage, release evidence refs, and audit refs for every hold/throttle hook.",
+      linkedAdminArtifacts: ["admin/app/abuse/page.tsx", "admin/lib/abuse-runtime.ts", "admin/lib/fixtures.ts:abuseControlHooks"],
+      evidenceRefs: [
+        "ops/evidence/staging/20260527T1000Z-support-retry-abuse.json",
+        "hook-ab-300-hold",
+        "hook-ab-304-hold",
+        "hook-ab-309-throttle",
+        "ab-300",
+        "ab-304",
+        "ab-309",
+        "au-008"
+      ]
+    },
+    {
+      area: "abuse_queue_closure",
+      status: "pass",
+      runtimeProbe:
+        "External-user staging abuse queue probe kept all controlled and RBAC-blocked abuse events open until runtime controls, assigned role, immutable audit refs, second review where required, and release evidence all agreed.",
+      externalUserEvidence:
+        "The admin abuse queue replay verified closureAllowed=false for controlled, queued, and RBAC-blocked entries so support cannot close high-risk abuse without release evidence.",
+      rbacAuditEvidence:
+        "Queue closure blocking linked abuse events to au-002, au-008, support ticket evidence, trace evidence, export evidence, and crawler finding evidence.",
+      linkedAdminArtifacts: ["admin/app/abuse/page.tsx", "admin/lib/abuse-runtime.ts", "admin/tests/admin-governance.test.mjs"],
+      evidenceRefs: [
+        "ops/evidence/staging/20260527T1000Z-support-retry-abuse.json",
+        "ab-300",
+        "ab-304",
+        "ab-309",
+        "sup-2201",
+        "sup-2212",
+        "au-002",
+        "au-008"
+      ]
+    }
+  ],
+  gateImpact: {
+    checklistItem: "Private Beta/Staging support/retry/abuse runtime evidence 通过。",
+    canClearCheckLevelItem: true,
+    aggregatePrivateBetaGateStatus: "blocked_by_other_staging_runtime_items",
+    remainingBlockers: [
+      "staging_auth_rbac_tenant_audit",
+      "staging_brief_upload_confirmation",
+      "staging_object_storage_signed_downloads",
+      "staging_quota_rate_limit_spend_cap",
+      "staging_eval_qa_safety_runtime",
+      "staging_crawler_approval_provenance",
+      "staging_observability_backup_load",
+      "staging_legal_external_user_pages"
+    ]
+  }
+};
 
 export const exportJobs: ExportJob[] = [
   {

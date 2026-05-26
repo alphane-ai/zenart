@@ -457,6 +457,43 @@ export type FailedTaskControl = {
   auditRef: string;
 };
 
+export type StagingSupportRetryAbuseCoverage = {
+  area:
+    | "support_ticket_linkage"
+    | "failed_task_retry_cancel"
+    | "abuse_hold_throttle"
+    | "abuse_queue_closure";
+  status: "pass" | "blocked";
+  runtimeProbe: string;
+  externalUserEvidence: string;
+  rbacAuditEvidence: string;
+  linkedAdminArtifacts: string[];
+  evidenceRefs: string[];
+};
+
+export type StagingSupportRetryAbuseEvidence = {
+  id: string;
+  evidencePath: string;
+  environment: "staging";
+  status: "pass" | "blocked";
+  validatedAt: string;
+  validatedByRole: AdminRole;
+  releaseGateCheckId: "staging_support_retry_abuse_ops";
+  doNotLaunchConditionId: "support_abuse_runtime_missing";
+  runtimeRequestIds: string[];
+  supportTicketIds: string[];
+  failedTaskIds: string[];
+  abuseEventIds: string[];
+  abuseHookIds: string[];
+  coverage: StagingSupportRetryAbuseCoverage[];
+  gateImpact: {
+    checklistItem: string;
+    canClearCheckLevelItem: boolean;
+    aggregatePrivateBetaGateStatus: "blocked_by_other_staging_runtime_items";
+    remainingBlockers: string[];
+  };
+};
+
 export type SupportTicket = {
   id: string;
   status: "open" | "waiting_user" | "resolved" | "escalated";
