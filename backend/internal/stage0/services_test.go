@@ -809,6 +809,92 @@ func TestServiceGetExportSignsPersistedObjectKey(t *testing.T) {
 	}
 }
 
+func TestServiceGetExportDoesNotSignExpiredObject(t *testing.T) {
+	now := time.Date(2026, 5, 26, 12, 0, 0, 0, time.UTC)
+	db := &fakeDB{
+		queryRows: []rowSet{{
+			rows: [][]any{{
+				"export_1",
+				"tenant_1",
+				"package_1",
+				"project_1",
+				nil,
+				"zip",
+				"expired",
+				"passed",
+				"object_1",
+				[]byte(`{"package_id":"package_1"}`),
+				[]byte(`{"download":{"status":"expired"}}`),
+				nil,
+				now,
+				now,
+				[]byte(`{"id":"object_1","tenant_id":"tenant_1","project_id":"project_1","owner_id":"user_1","asset_type":"export","bucket":"exports-test","object_key":"tenants/tenant_1/exports/export_1.zip","content_type":"application/zip","byte_size":12,"checksum":"sha256:abc","provider":"local","retention_state":"expired","retention_until":"2026-05-25T00:00:00Z","metadata":{},"created_at":"2026-05-24T00:00:00Z"}`),
+			}},
+		}},
+	}
+	objects, err := objectstore.NewLocalStore(t.TempDir(), "exports-test", "secret")
+	if err != nil {
+		t.Fatalf("NewLocalStore() error = %v", err)
+	}
+	service := NewService(NewRepository(db), objects)
+
+	export, err := service.GetExport(context.Background(), "tenant_1", "export_1")
+	if err != nil {
+		t.Fatalf("GetExport() error = %v", err)
+	}
+	if export.DownloadURL != "" {
+		t.Fatalf("DownloadURL = %q, want empty for expired object metadata", export.DownloadURL)
+	}
+	if export.Object == nil || export.Object.Retention != "expired" || export.Object.RetentionUntil == nil {
+		t.Fatalf("object retention metadata = %#v, want expired with retention_until", export.Object)
+	}
+}
+
+func TestRequireDownloadableObjectEnforcesRetentionStateAndExpiry(t *testing.T) {
+	now := time.Date(2026, 5, 26, 12, 0, 0, 0, time.UTC)
+	db := &fakeDB{queryRows: []rowSet{{rows: [][]any{{"object_1"}}}}}
+	repo := NewRepository(db)
+
+	if err := repo.RequireDownloadableObject(context.Background(), "tenant_1", "exports/export_1.zip", now); err != nil {
+		t.Fatalf("RequireDownloadableObject() error = %v", err)
+	}
+	query := db.queryRowsUsed[0]
+	for _, fragment := range []string{
+		"FROM object_metadata",
+		"tenant_id = $1",
+		"object_key = $2",
+		"asset_type IN ('export', 'thumbnail')",
+		"retention_state = 'active'",
+		"retention_until > $3",
+	} {
+		if !strings.Contains(query.sql, fragment) {
+			t.Fatalf("download guard query = %s, missing %s", query.sql, fragment)
+		}
+	}
+	if query.args[0] != "tenant_1" || query.args[1] != "tenants/tenant_1/exports/export_1.zip" || query.args[2] != now {
+		t.Fatalf("download guard args = %#v", query.args)
+	}
+
+	db = &fakeDB{}
+	repo = NewRepository(db)
+	if err := repo.RequireDownloadableObject(context.Background(), "tenant_1", "exports/expired.zip", now); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("RequireDownloadableObject() error = %v, want ErrNotFound for expired/missing metadata", err)
+	}
+}
+
+func TestDownloadTTLForObjectIsCappedByRetentionUntil(t *testing.T) {
+	now := time.Date(2026, 5, 26, 12, 0, 0, 0, time.UTC)
+	retentionUntil := now.Add(90 * time.Second)
+
+	if ttl := downloadTTLForObject(ObjectMetadata{RetentionUntil: &retentionUntil}, now); ttl != 90*time.Second {
+		t.Fatalf("downloadTTLForObject() = %s, want retention-limited 90s", ttl)
+	}
+	retentionUntil = now.Add(30 * time.Minute)
+	if ttl := downloadTTLForObject(ObjectMetadata{RetentionUntil: &retentionUntil}, now); ttl != 10*time.Minute {
+		t.Fatalf("downloadTTLForObject() = %s, want default 10m cap", ttl)
+	}
+}
+
 func TestCleanupExpiredExportsAndOrphanedObjects(t *testing.T) {
 	db := &fakeDB{
 		execTags: []pgconn.CommandTag{

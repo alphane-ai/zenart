@@ -20,6 +20,7 @@ import (
 	"github.com/alphane-ai/zenart/backend/internal/stage0"
 	"github.com/alphane-ai/zenart/backend/internal/store"
 	"github.com/alphane-ai/zenart/backend/internal/task"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
@@ -422,8 +423,9 @@ func TestSignedDownloadEndpointServesTenantScopedLocalObject(t *testing.T) {
 		t.Fatalf("SignGetURL() error = %v", err)
 	}
 
+	db := &downloadGuardDB{found: true}
 	req := httptest.NewRequest(http.MethodGet, downloadURL, nil)
-	req = req.WithContext(stage0.ContextWithService(req.Context(), stage0.NewService(stage0.NewRepository(noExecDB{}), objects)))
+	req = req.WithContext(stage0.ContextWithService(req.Context(), stage0.NewService(stage0.NewRepository(db), objects)))
 	rec := httptest.NewRecorder()
 
 	New(cfg, nil).Handler().ServeHTTP(rec, req)
@@ -436,6 +438,59 @@ func TestSignedDownloadEndpointServesTenantScopedLocalObject(t *testing.T) {
 	}
 	if rec.Header().Get("X-ZenArt-Object-Key") != "tenants/tenant_1/exports/export_1.zip" {
 		t.Fatalf("object key header = %q", rec.Header().Get("X-ZenArt-Object-Key"))
+	}
+	if db.query.sql == "" || !strings.Contains(db.query.sql, "retention_state = 'active'") {
+		t.Fatalf("download guard query = %s, want active retention guard", db.query.sql)
+	}
+}
+
+func TestSignedDownloadEndpointRejectsExpiredObjectMetadata(t *testing.T) {
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	cfg.ObjectStorage.LocalRoot = t.TempDir()
+	cfg.ObjectStorage.Bucket = "signed-download-test"
+	cfg.ObjectStorage.SigningKey = "signed-download-test-secret"
+	objects, err := objectstore.NewStore(cfg.ObjectStorage, nil)
+	if err != nil {
+		t.Fatalf("NewStore() error = %v", err)
+	}
+	stored, err := objects.Put(context.Background(), objectstore.Object{
+		TenantID:    "tenant_1",
+		Key:         "exports/export_1.zip",
+		ContentType: "application/zip",
+	}, strings.NewReader("zip-bytes"))
+	if err != nil {
+		t.Fatalf("Put() error = %v", err)
+	}
+	downloadURL, err := objects.SignGetURL(context.Background(), "tenant_1", stored.Key, time.Minute)
+	if err != nil {
+		t.Fatalf("SignGetURL() error = %v", err)
+	}
+	db := &downloadGuardDB{}
+
+	req := httptest.NewRequest(http.MethodGet, downloadURL, nil)
+	req = req.WithContext(stage0.ContextWithService(req.Context(), stage0.NewService(stage0.NewRepository(db), objects)))
+	rec := httptest.NewRecorder()
+
+	New(cfg, nil).Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("status = %d, want %d: %s", rec.Code, http.StatusNotFound, rec.Body.String())
+	}
+	var body map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("response JSON error = %v", err)
+	}
+	if body["code"] != "not_found" {
+		t.Fatalf("code = %v, want not_found", body["code"])
+	}
+	if db.query.sql == "" || !strings.Contains(db.query.sql, "retention_state = 'active'") || !strings.Contains(db.query.sql, "retention_until > $3") {
+		t.Fatalf("download guard query = %s, want active retention guard", db.query.sql)
+	}
+	if db.query.args[1] != "tenants/tenant_1/exports/export_1.zip" {
+		t.Fatalf("download guard object key arg = %#v", db.query.args[1])
 	}
 }
 
@@ -1482,6 +1537,42 @@ func findCookie(cookies []*http.Cookie, name string) *http.Cookie {
 
 func (noExecDB) QueryRow(context.Context, string, ...any) store.Row {
 	panic("QueryRow must not be called for invalid upload validation")
+}
+
+type downloadGuardDB struct {
+	query stage0QueryCall
+	found bool
+}
+
+func (downloadGuardDB) Exec(context.Context, string, ...any) (pgconn.CommandTag, error) {
+	panic("Exec must not be called for signed download guard")
+}
+
+func (downloadGuardDB) Query(context.Context, string, ...any) (store.Rows, error) {
+	panic("Query must not be called for signed download guard")
+}
+
+func (d *downloadGuardDB) QueryRow(_ context.Context, sql string, args ...any) store.Row {
+	d.query = stage0QueryCall{sql: sql, args: args}
+	if d.found {
+		return downloadGuardRow{row: []any{"object_1"}}
+	}
+	return downloadGuardRow{err: pgx.ErrNoRows}
+}
+
+type downloadGuardRow struct {
+	err error
+	row []any
+}
+
+func (r downloadGuardRow) Scan(dest ...any) error {
+	if r.err != nil {
+		return r.err
+	}
+	for i := range dest {
+		assignScan(dest[i], r.row[i])
+	}
+	return nil
 }
 
 type fakeStage0DB struct {

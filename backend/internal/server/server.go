@@ -447,7 +447,7 @@ func (s *Server) getSignedDownloadObject(w http.ResponseWriter, r *http.Request)
 	}
 	reader, err := service.GetObject(r.Context(), tenantID, key)
 	if err != nil {
-		writeObjectStoreError(w, r, err)
+		writeDownloadObjectError(w, r, err)
 		return
 	}
 	defer reader.Body.Close()
@@ -791,6 +791,15 @@ func writeObjectStoreError(w http.ResponseWriter, r *http.Request, err error) {
 		writeError(w, r, http.StatusNotImplemented, "object_store_not_connected", "object storage is not connected yet", nil)
 	default:
 		writeError(w, r, http.StatusInternalServerError, "object_store_error", "object storage operation failed", nil)
+	}
+}
+
+func writeDownloadObjectError(w http.ResponseWriter, r *http.Request, err error) {
+	switch {
+	case errors.Is(err, stage0.ErrValidation), errors.Is(err, stage0.ErrNotFound):
+		writeStage0Error(w, r, err)
+	default:
+		writeObjectStoreError(w, r, err)
 	}
 }
 

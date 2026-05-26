@@ -153,21 +153,22 @@ type Upload struct {
 }
 
 type ObjectMetadata struct {
-	ID          string         `json:"id"`
-	TenantID    string         `json:"tenant_id,omitempty"`
-	ProjectID   *string        `json:"project_id,omitempty"`
-	OwnerID     *string        `json:"owner_id,omitempty"`
-	AssetType   string         `json:"asset_type"`
-	Bucket      string         `json:"bucket"`
-	ObjectKey   string         `json:"object_key"`
-	ContentType string         `json:"content_type"`
-	ByteSize    int64          `json:"byte_size"`
-	Checksum    string         `json:"checksum"`
-	Provider    string         `json:"provider"`
-	Retention   string         `json:"retention_state"`
-	DerivedFrom *string        `json:"derived_from_object_id,omitempty"`
-	Metadata    map[string]any `json:"metadata"`
-	CreatedAt   time.Time      `json:"created_at"`
+	ID             string         `json:"id"`
+	TenantID       string         `json:"tenant_id,omitempty"`
+	ProjectID      *string        `json:"project_id,omitempty"`
+	OwnerID        *string        `json:"owner_id,omitempty"`
+	AssetType      string         `json:"asset_type"`
+	Bucket         string         `json:"bucket"`
+	ObjectKey      string         `json:"object_key"`
+	ContentType    string         `json:"content_type"`
+	ByteSize       int64          `json:"byte_size"`
+	Checksum       string         `json:"checksum"`
+	Provider       string         `json:"provider"`
+	Retention      string         `json:"retention_state"`
+	RetentionUntil *time.Time     `json:"retention_until,omitempty"`
+	DerivedFrom    *string        `json:"derived_from_object_id,omitempty"`
+	Metadata       map[string]any `json:"metadata"`
+	CreatedAt      time.Time      `json:"created_at"`
 }
 
 type ExportArtifact struct {
@@ -783,6 +784,7 @@ SELECT e.id, e.tenant_id, e.package_id, e.project_id, e.task_id, e.format, e.sta
            'checksum', o.checksum,
            'provider', o.provider,
            'retention_state', o.retention_state,
+           'retention_until', o.retention_until,
            'derived_from_object_id', o.derived_from_object_id,
            'metadata', o.metadata,
            'created_at', o.created_at
@@ -829,6 +831,37 @@ WHERE e.tenant_id = $1 AND e.id = $2`,
 		}
 	}
 	return export, nil
+}
+
+func (r Repository) RequireDownloadableObject(ctx context.Context, tenantID, objectKey string, now time.Time) error {
+	tenantID = strings.TrimSpace(tenantID)
+	if tenantID == "" || objectKey == "" {
+		return errors.Join(ErrValidation, errors.New("tenant_id and object_key are required"))
+	}
+	objectKey = tenantScopedObjectKey(tenantID, objectKey)
+	if now.IsZero() {
+		now = time.Now().UTC()
+	}
+	var id string
+	err := r.db.QueryRow(ctx, `
+SELECT id
+FROM object_metadata
+WHERE tenant_id = $1
+  AND object_key = $2
+  AND asset_type IN ('export', 'thumbnail')
+  AND retention_state = 'active'
+  AND (
+    retention_until IS NULL
+    OR retention_until > $3
+  )`,
+		tenantID,
+		objectKey,
+		now,
+	).Scan(&id)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return ErrNotFound
+	}
+	return err
 }
 
 func (r Repository) ListExports(ctx context.Context, tenantID, status string, limit int) (Page[Export], error) {
@@ -2424,6 +2457,9 @@ func (s Service) GetObject(ctx context.Context, tenantID, key string) (objectsto
 	if s.objects == nil {
 		return objectstore.Reader{}, ErrMissingRepository
 	}
+	if err := s.repo.RequireDownloadableObject(ctx, tenantID, key, time.Now().UTC()); err != nil {
+		return objectstore.Reader{}, err
+	}
 	return s.objects.Get(ctx, tenantID, key)
 }
 
@@ -2512,16 +2548,36 @@ func (s Service) GetExport(ctx context.Context, tenantID, exportID string) (Expo
 	if err != nil {
 		return Export{}, err
 	}
-	if s.objects != nil && export.ObjectID != nil {
+	now := time.Now().UTC()
+	if s.objects != nil && export.ObjectID != nil && export.Object != nil && objectDownloadable(*export.Object, now) {
 		objectKey := "exports/" + export.ID + "." + export.Format
-		if export.Object != nil && strings.TrimSpace(export.Object.ObjectKey) != "" {
+		if strings.TrimSpace(export.Object.ObjectKey) != "" {
 			objectKey = export.Object.ObjectKey
 		}
-		if signed, err := s.objects.SignGetURL(ctx, tenantID, objectKey, 10*time.Minute); err == nil {
+		if signed, err := s.objects.SignGetURL(ctx, tenantID, objectKey, downloadTTLForObject(*export.Object, now)); err == nil {
 			export.DownloadURL = signed
 		}
 	}
 	return export, nil
+}
+
+func objectDownloadable(object ObjectMetadata, now time.Time) bool {
+	if !strings.EqualFold(strings.TrimSpace(object.Retention), "active") {
+		return false
+	}
+	return object.RetentionUntil == nil || object.RetentionUntil.After(now)
+}
+
+func downloadTTLForObject(object ObjectMetadata, now time.Time) time.Duration {
+	const defaultDownloadTTL = 10 * time.Minute
+	if object.RetentionUntil == nil {
+		return defaultDownloadTTL
+	}
+	remaining := object.RetentionUntil.Sub(now)
+	if remaining <= 0 || remaining > defaultDownloadTTL {
+		return defaultDownloadTTL
+	}
+	return remaining
 }
 
 func (s Service) CleanupExpiredExportsAndOrphanedObjects(ctx context.Context, now time.Time, limit int) (CleanupResult, error) {
