@@ -2,85 +2,85 @@
 
 Authoritative source: `Docs/stage0_blueprint_rev2.md`.
 
-Release gate status: `go / no-go`
+Release gate status: `no-go` until every required evidence slot below is filled and approved.
 
 ## Identity
 
-- Release SHA:
-- Release tag:
-- Owner:
-- Reviewer:
-- Environment:
-- Date:
+- Release SHA: `<git-sha>`
+- Release tag: `<release-tag-or-n/a>`
+- Owner: `<release-owner>`
+- Reviewer: `<reviewer>`
+- Environment: `local | ci | staging | production`
+- Date: `<YYYY-MM-DD>`
 
 ## Scope
 
-- User-facing changes:
-- Admin/operator changes:
-- Backend/worker/crawler changes:
-- Ops/config changes:
+- User-facing changes: `<summary or n/a>`
+- Admin/operator changes: `<summary or n/a>`
+- Backend/worker/crawler changes: `<summary or n/a>`
+- Ops/config changes: `<summary or n/a>`
 
 ## Migration List
 
-- Migration files:
-- Expand/contract compatibility notes:
-- Worker schema compatibility notes:
-- Rollback constraints:
+- Migration files: `<list migration IDs or n/a>`
+- Expand/contract compatibility notes: `<compatible | blocked: reason>`
+- Worker schema compatibility notes: `<compatible | blocked: reason>`
+- Rollback constraints: `<forward repair required | no DB rollback | n/a>`
 
 ## Config Diff
 
-- Environment variables added:
-- Environment variables changed:
-- Secret source changes:
-- Object storage changes:
-- Provider/model routing changes:
+- Environment variables added: `<names or n/a>`
+- Environment variables changed: `<names or n/a>`
+- Secret source changes: `<source/ref or n/a>`
+- Object storage changes: `<bucket/policy/signing/versioning diff or n/a>`
+- Provider/model routing changes: `<diff or n/a>`
 
 ## Feature Flags
 
-- Enabled:
-- Disabled:
-- Emergency rollback flags:
+- Enabled: `<flags>`
+- Disabled: `<flags>`
+- Emergency rollback flags: `<flags and exact rollback values>`
 
 ## Smoke Plan
 
-- Backend health/readiness:
-- Web smoke:
-- Admin smoke:
-- Export/package smoke:
-- Signed download smoke:
-- Worker/crawler smoke:
-- Quota/rate-limit smoke:
+- Backend health/readiness: `scripts/staging_smoke.sh` or local equivalent, evidence `<path/url>`
+- Web smoke: `scripts/playwright_smoke.sh` or manual browser smoke, evidence `<path/url>`
+- Admin smoke: `scripts/playwright_smoke.sh` or manual browser smoke, evidence `<path/url>`
+- Export/package smoke: `<command and evidence>`
+- Signed download smoke: `<command and evidence>`
+- Worker/crawler smoke: `<command and evidence>`
+- Quota/rate-limit smoke: `<command and evidence>`
 
 ## Evidence
 
-- CI run:
-- Docker image build:
-- Playwright smoke:
-- Migration run:
-- Staging smoke:
-- Load smoke:
-- Backup/restore drill:
-- Security scan:
+- CI run: `<run url>`; required for CI/private beta/production decisions.
+- Docker image build: `<image refs>`; required for CI/private beta/production decisions.
+- Playwright smoke: `<report path/url>`; required before CI gate can close.
+- Migration run: `<migration evidence path/url>`; required before staging/production decisions.
+- Staging smoke: `<report path/url>`; required before private beta/production decisions.
+- Load smoke: `<report path/url>`; required before private beta/production decisions.
+- Backup/restore drill: local evidence `ops/evidence/backup-restore/local/20260526T153126Z/report.json`; staging/production evidence `<path/url>` required before those gates can close.
+- Security scan: `<report path/url>`; required before private beta/production decisions.
 
 ## Rollback Plan
 
-- Previous SHA:
-- Image rollback command:
-- Feature flag rollback:
-- Migration repair plan:
-- Worker drain plan:
-- Owner and escalation:
+- Previous SHA: `<sha>`
+- Image rollback command: `<exact command>`
+- Feature flag rollback: `<exact flag values>`
+- Migration repair plan: `<forward repair plan or n/a>`
+- Worker drain plan: `<exact command/procedure>`
+- Owner and escalation: `<owner, channel, severity policy>`
 
 ## Known Risks
 
-- Open private beta blockers:
-- Open production do-not-launch conditions:
-- Operational risks:
-- User/support risks:
+- Open private beta blockers: `<list from fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json>`
+- Open production do-not-launch conditions: `<list from fixtures/stage0/rev2/release_gate_evidence.production_launch.json>`
+- Operational risks: `<observability/backup/rollback/support risks>`
+- User/support risks: `<customer impact and support readiness risks>`
 
 ## Go/No-Go
 
-- Decision:
-- Approver:
-- Conditions:
-- Follow-up deadline:
+- Decision: `no-go` unless CI, staging, smoke, observability, restore, rollback, security, and release owner evidence are attached.
+- Approver: `<name>`
+- Conditions: `<explicit go/no-go conditions>`
+- Follow-up deadline: `<YYYY-MM-DD or n/a>`

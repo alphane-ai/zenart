@@ -138,7 +138,7 @@ find "$ops_validate_dir" -name '*.json' -type f | grep -q .
 
 log "secret scan smoke"
 if has_cmd git; then
-  git grep -nE '(AWS_SECRET_ACCESS_KEY|OPENAI_API_KEY|sk-[A-Za-z0-9_-]{20,}|ghp_[A-Za-z0-9_]{20,})' -- . ':!.env.example' ':!fixtures' ':!schemas' ':!ops/ci/stage0-rev2-ci.yml' ':!scripts/repo_validate.sh' && {
+  git grep -nE '(AWS_SECRET_ACCESS_KEY|OPENAI_API_KEY|sk-[A-Za-z0-9_-]{20,}|ghp_[A-Za-z0-9_]{20,})' -- . ':!.env.example' ':!fixtures' ':!schemas' ':!ops/ci/stage0-rev2-ci.yml' ':!scripts/repo_validate.sh' ':!scripts/security_scan_smoke.sh' && {
     printf 'potential committed secret found\n' >&2
     exit 1
   } || true

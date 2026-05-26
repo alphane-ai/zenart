@@ -26,7 +26,7 @@
       "restored_object_count"
     ],
     "script_contract_status": "validated",
-    "runtime_status": "requires docker compose services; script syntax and dry-run report shape are validated by repo validation",
+    "runtime_status": "local runtime passed at ops/evidence/backup-restore/local/20260526T153126Z/report.json with Postgres restore and object restore copy; staging/prod drill gates remain open",
     "production_gate": "open until automated backups, PITR, and isolated staging restore evidence pass"
   },
   "load": {

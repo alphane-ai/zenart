@@ -1,0 +1,378 @@
+;
+; Archive created at 2026-05-26 15:31:26 UTC
+;     dbname: zenart
+;     TOC Entries: 367
+;     Compression: gzip
+;     Dump Version: 1.15-0
+;     Format: CUSTOM
+;     Integer: 4 bytes
+;     Offset: 8 bytes
+;     Dumped from database version: 16.14
+;     Dumped by pg_dump version: 16.14
+;
+;
+; Selected TOC Entries:
+;
+278; 1259 17762 TABLE public abuse_events zenart
+225; 1259 16537 TABLE public agent_tasks zenart
+226; 1259 16553 TABLE public agent_traces zenart
+240; 1259 16940 TABLE public assets zenart
+221; 1259 16460 TABLE public audit_logs zenart
+236; 1259 16817 TABLE public candidate_assets zenart
+235; 1259 16792 TABLE public candidate_sets zenart
+232; 1259 16713 TABLE public canvas_edges zenart
+230; 1259 16650 TABLE public canvas_frames zenart
+231; 1259 16679 TABLE public canvas_nodes zenart
+229; 1259 16622 TABLE public canvas_versions zenart
+234; 1259 16773 TABLE public chat_messages zenart
+233; 1259 16748 TABLE public chat_sessions zenart
+265; 1259 17462 TABLE public crawler_documents zenart
+266; 1259 17488 TABLE public crawler_findings zenart
+267; 1259 17509 TABLE public crawler_import_reviews zenart
+264; 1259 17442 TABLE public crawler_runs zenart
+263; 1259 17425 TABLE public crawler_sources zenart
+261; 1259 17391 TABLE public eval_fixtures zenart
+262; 1259 17406 TABLE public eval_results zenart
+260; 1259 17374 TABLE public eval_suites zenart
+243; 1259 17027 TABLE public exports zenart
+271; 1259 17612 TABLE public feedback_events zenart
+272; 1259 17637 TABLE public feedback_labels zenart
+273; 1259 17660 TABLE public feedback_performance_daily zenart
+252; 1259 17223 TABLE public fragment_versions zenart
+257; 1259 17314 TABLE public image_specs zenart
+279; 1259 17784 TABLE public incident_logs zenart
+256; 1259 17298 TABLE public meta_prompt_versions zenart
+255; 1259 17283 TABLE public meta_prompts zenart
+254; 1259 17260 TABLE public mutation_reviews zenart
+253; 1259 17240 TABLE public mutations zenart
+239; 1259 16915 TABLE public object_metadata zenart
+242; 1259 16997 TABLE public package_items zenart
+241; 1259 16971 TABLE public packages zenart
+227; 1259 16579 TABLE public projects zenart
+251; 1259 17206 TABLE public prompt_fragments zenart
+270; 1259 17576 TABLE public provider_usage_logs zenart
+276; 1259 17712 TABLE public qa_results zenart
+222; 1259 16474 TABLE public quota_buckets zenart
+223; 1259 16495 TABLE public quota_transactions zenart
+219; 1259 16435 TABLE public roles zenart
+275; 1259 17693 TABLE public safety_decisions zenart
+274; 1259 17676 TABLE public safety_rules zenart
+215; 1259 16385 TABLE public schema_migrations zenart
+237; 1259 16855 TABLE public selected_directions zenart
+218; 1259 16417 TABLE public sessions zenart
+245; 1259 17089 TABLE public share_link_access_logs zenart
+244; 1259 17058 TABLE public share_links zenart
+249; 1259 17157 TABLE public skill_release_channels zenart
+248; 1259 17143 TABLE public skill_sources zenart
+250; 1259 17179 TABLE public skill_usage_stats zenart
+247; 1259 17125 TABLE public skill_versions zenart
+246; 1259 17109 TABLE public skills zenart
+259; 1259 17355 TABLE public spec_evaluations zenart
+258; 1259 17330 TABLE public spec_instances zenart
+268; 1259 17533 TABLE public subscription_plans zenart
+224; 1259 16517 TABLE public subscriptions zenart
+277; 1259 17731 TABLE public support_tickets zenart
+216; 1259 16393 TABLE public tenants zenart
+238; 1259 16886 TABLE public uploads zenart
+220; 1259 16443 TABLE public user_roles zenart
+269; 1259 17548 TABLE public user_subscriptions zenart
+217; 1259 16401 TABLE public users zenart
+228; 1259 16602 TABLE public workspaces zenart
+4278; 0 17762 TABLE DATA public abuse_events zenart
+4225; 0 16537 TABLE DATA public agent_tasks zenart
+4226; 0 16553 TABLE DATA public agent_traces zenart
+4240; 0 16940 TABLE DATA public assets zenart
+4221; 0 16460 TABLE DATA public audit_logs zenart
+4236; 0 16817 TABLE DATA public candidate_assets zenart
+4235; 0 16792 TABLE DATA public candidate_sets zenart
+4232; 0 16713 TABLE DATA public canvas_edges zenart
+4230; 0 16650 TABLE DATA public canvas_frames zenart
+4231; 0 16679 TABLE DATA public canvas_nodes zenart
+4229; 0 16622 TABLE DATA public canvas_versions zenart
+4234; 0 16773 TABLE DATA public chat_messages zenart
+4233; 0 16748 TABLE DATA public chat_sessions zenart
+4265; 0 17462 TABLE DATA public crawler_documents zenart
+4266; 0 17488 TABLE DATA public crawler_findings zenart
+4267; 0 17509 TABLE DATA public crawler_import_reviews zenart
+4264; 0 17442 TABLE DATA public crawler_runs zenart
+4263; 0 17425 TABLE DATA public crawler_sources zenart
+4261; 0 17391 TABLE DATA public eval_fixtures zenart
+4262; 0 17406 TABLE DATA public eval_results zenart
+4260; 0 17374 TABLE DATA public eval_suites zenart
+4243; 0 17027 TABLE DATA public exports zenart
+4271; 0 17612 TABLE DATA public feedback_events zenart
+4272; 0 17637 TABLE DATA public feedback_labels zenart
+4273; 0 17660 TABLE DATA public feedback_performance_daily zenart
+4252; 0 17223 TABLE DATA public fragment_versions zenart
+4257; 0 17314 TABLE DATA public image_specs zenart
+4279; 0 17784 TABLE DATA public incident_logs zenart
+4256; 0 17298 TABLE DATA public meta_prompt_versions zenart
+4255; 0 17283 TABLE DATA public meta_prompts zenart
+4254; 0 17260 TABLE DATA public mutation_reviews zenart
+4253; 0 17240 TABLE DATA public mutations zenart
+4239; 0 16915 TABLE DATA public object_metadata zenart
+4242; 0 16997 TABLE DATA public package_items zenart
+4241; 0 16971 TABLE DATA public packages zenart
+4227; 0 16579 TABLE DATA public projects zenart
+4251; 0 17206 TABLE DATA public prompt_fragments zenart
+4270; 0 17576 TABLE DATA public provider_usage_logs zenart
+4276; 0 17712 TABLE DATA public qa_results zenart
+4222; 0 16474 TABLE DATA public quota_buckets zenart
+4223; 0 16495 TABLE DATA public quota_transactions zenart
+4219; 0 16435 TABLE DATA public roles zenart
+4275; 0 17693 TABLE DATA public safety_decisions zenart
+4274; 0 17676 TABLE DATA public safety_rules zenart
+4215; 0 16385 TABLE DATA public schema_migrations zenart
+4237; 0 16855 TABLE DATA public selected_directions zenart
+4218; 0 16417 TABLE DATA public sessions zenart
+4245; 0 17089 TABLE DATA public share_link_access_logs zenart
+4244; 0 17058 TABLE DATA public share_links zenart
+4249; 0 17157 TABLE DATA public skill_release_channels zenart
+4248; 0 17143 TABLE DATA public skill_sources zenart
+4250; 0 17179 TABLE DATA public skill_usage_stats zenart
+4247; 0 17125 TABLE DATA public skill_versions zenart
+4246; 0 17109 TABLE DATA public skills zenart
+4259; 0 17355 TABLE DATA public spec_evaluations zenart
+4258; 0 17330 TABLE DATA public spec_instances zenart
+4268; 0 17533 TABLE DATA public subscription_plans zenart
+4224; 0 16517 TABLE DATA public subscriptions zenart
+4277; 0 17731 TABLE DATA public support_tickets zenart
+4216; 0 16393 TABLE DATA public tenants zenart
+4238; 0 16886 TABLE DATA public uploads zenart
+4220; 0 16443 TABLE DATA public user_roles zenart
+4269; 0 17548 TABLE DATA public user_subscriptions zenart
+4217; 0 16401 TABLE DATA public users zenart
+4228; 0 16602 TABLE DATA public workspaces zenart
+3931; 2606 17773 CONSTRAINT public abuse_events abuse_events_pkey zenart
+3786; 2606 16547 CONSTRAINT public agent_tasks agent_tasks_pkey zenart
+3789; 2606 16561 CONSTRAINT public agent_traces agent_traces_pkey zenart
+3829; 2606 16950 CONSTRAINT public assets assets_pkey zenart
+3773; 2606 16468 CONSTRAINT public audit_logs audit_logs_pkey zenart
+3816; 2606 16834 CONSTRAINT public candidate_assets candidate_assets_pkey zenart
+3814; 2606 16801 CONSTRAINT public candidate_sets candidate_sets_pkey zenart
+3807; 2606 16722 CONSTRAINT public canvas_edges canvas_edges_pkey zenart
+3802; 2606 16663 CONSTRAINT public canvas_frames canvas_frames_pkey zenart
+3804; 2606 16692 CONSTRAINT public canvas_nodes canvas_nodes_pkey zenart
+3798; 2606 16632 CONSTRAINT public canvas_versions canvas_versions_pkey zenart
+3800; 2606 16634 CONSTRAINT public canvas_versions canvas_versions_workspace_id_version_number_key zenart
+3811; 2606 16781 CONSTRAINT public chat_messages chat_messages_pkey zenart
+3809; 2606 16757 CONSTRAINT public chat_sessions chat_sessions_pkey zenart
+3895; 2606 17470 CONSTRAINT public crawler_documents crawler_documents_pkey zenart
+3897; 2606 17472 CONSTRAINT public crawler_documents crawler_documents_source_id_content_hash_key zenart
+3899; 2606 17498 CONSTRAINT public crawler_findings crawler_findings_pkey zenart
+3901; 2606 17517 CONSTRAINT public crawler_import_reviews crawler_import_reviews_pkey zenart
+3893; 2606 17451 CONSTRAINT public crawler_runs crawler_runs_pkey zenart
+3891; 2606 17436 CONSTRAINT public crawler_sources crawler_sources_pkey zenart
+3887; 2606 17400 CONSTRAINT public eval_fixtures eval_fixtures_pkey zenart
+3889; 2606 17414 CONSTRAINT public eval_results eval_results_pkey zenart
+3883; 2606 17385 CONSTRAINT public eval_suites eval_suites_name_version_key zenart
+3885; 2606 17383 CONSTRAINT public eval_suites eval_suites_pkey zenart
+3836; 2606 17037 CONSTRAINT public exports exports_pkey zenart
+3910; 2606 17621 CONSTRAINT public feedback_events feedback_events_pkey zenart
+3913; 2606 17644 CONSTRAINT public feedback_labels feedback_labels_pkey zenart
+3915; 2606 17668 CONSTRAINT public feedback_performance_daily feedback_performance_daily_pkey zenart
+3917; 2606 17670 CONSTRAINT public feedback_performance_daily feedback_performance_daily_tenant_id_day_workflow_id_metric_key zenart
+3863; 2606 17234 CONSTRAINT public fragment_versions fragment_versions_fragment_id_version_key zenart
+3865; 2606 17232 CONSTRAINT public fragment_versions fragment_versions_pkey zenart
+3877; 2606 17324 CONSTRAINT public image_specs image_specs_pkey zenart
+3933; 2606 17795 CONSTRAINT public incident_logs incident_logs_pkey zenart
+3873; 2606 17308 CONSTRAINT public meta_prompt_versions meta_prompt_versions_meta_prompt_id_version_key zenart
+3875; 2606 17306 CONSTRAINT public meta_prompt_versions meta_prompt_versions_pkey zenart
+3871; 2606 17292 CONSTRAINT public meta_prompts meta_prompts_pkey zenart
+3869; 2606 17267 CONSTRAINT public mutation_reviews mutation_reviews_pkey zenart
+3867; 2606 17249 CONSTRAINT public mutations mutations_pkey zenart
+3825; 2606 16929 CONSTRAINT public object_metadata object_metadata_bucket_object_key_key zenart
+3827; 2606 16927 CONSTRAINT public object_metadata object_metadata_pkey zenart
+3834; 2606 17006 CONSTRAINT public package_items package_items_pkey zenart
+3832; 2606 16981 CONSTRAINT public packages packages_pkey zenart
+3793; 2606 16591 CONSTRAINT public projects projects_pkey zenart
+3861; 2606 17217 CONSTRAINT public prompt_fragments prompt_fragments_pkey zenart
+3908; 2606 17591 CONSTRAINT public provider_usage_logs provider_usage_logs_pkey zenart
+3926; 2606 17720 CONSTRAINT public qa_results qa_results_pkey zenart
+3776; 2606 16487 CONSTRAINT public quota_buckets quota_buckets_pkey zenart
+3778; 2606 16489 CONSTRAINT public quota_buckets quota_buckets_tenant_id_subject_type_subject_id_period_key zenart
+3780; 2606 16504 CONSTRAINT public quota_transactions quota_transactions_pkey zenart
+3782; 2606 16506 CONSTRAINT public quota_transactions quota_transactions_tenant_id_idempotency_key_kind_key zenart
+3769; 2606 16442 CONSTRAINT public roles roles_pkey zenart
+3924; 2606 17701 CONSTRAINT public safety_decisions safety_decisions_pkey zenart
+3919; 2606 17685 CONSTRAINT public safety_rules safety_rules_pkey zenart
+3921; 2606 17687 CONSTRAINT public safety_rules safety_rules_rule_key_version_key zenart
+3759; 2606 16392 CONSTRAINT public schema_migrations schema_migrations_pkey zenart
+3819; 2606 16863 CONSTRAINT public selected_directions selected_directions_pkey zenart
+3821; 2606 16865 CONSTRAINT public selected_directions selected_directions_project_id_candidate_asset_id_key zenart
+3767; 2606 16424 CONSTRAINT public sessions sessions_pkey zenart
+3843; 2606 17098 CONSTRAINT public share_link_access_logs share_link_access_logs_pkey zenart
+3839; 2606 17066 CONSTRAINT public share_links share_links_pkey zenart
+3841; 2606 17068 CONSTRAINT public share_links share_links_token_hash_key zenart
+3853; 2606 17166 CONSTRAINT public skill_release_channels skill_release_channels_pkey zenart
+3855; 2606 17168 CONSTRAINT public skill_release_channels skill_release_channels_skill_id_channel_key zenart
+3851; 2606 17151 CONSTRAINT public skill_sources skill_sources_pkey zenart
+3857; 2606 17193 CONSTRAINT public skill_usage_stats skill_usage_stats_pkey zenart
+3859; 2606 17195 CONSTRAINT public skill_usage_stats skill_usage_stats_tenant_id_skill_version_id_day_key zenart
+3847; 2606 17135 CONSTRAINT public skill_versions skill_versions_pkey zenart
+3849; 2606 17137 CONSTRAINT public skill_versions skill_versions_skill_id_version_key zenart
+3845; 2606 17119 CONSTRAINT public skills skills_pkey zenart
+3881; 2606 17363 CONSTRAINT public spec_evaluations spec_evaluations_pkey zenart
+3879; 2606 17339 CONSTRAINT public spec_instances spec_instances_pkey zenart
+3903; 2606 17547 CONSTRAINT public subscription_plans subscription_plans_pkey zenart
+3784; 2606 16526 CONSTRAINT public subscriptions subscriptions_pkey zenart
+3929; 2606 17741 CONSTRAINT public support_tickets support_tickets_pkey zenart
+3761; 2606 16400 CONSTRAINT public tenants tenants_pkey zenart
+3823; 2606 16899 CONSTRAINT public uploads uploads_pkey zenart
+3771; 2606 16449 CONSTRAINT public user_roles user_roles_pkey zenart
+3905; 2606 17560 CONSTRAINT public user_subscriptions user_subscriptions_pkey zenart
+3763; 2606 16411 CONSTRAINT public users users_email_key zenart
+3765; 2606 16409 CONSTRAINT public users users_pkey zenart
+3796; 2606 16611 CONSTRAINT public workspaces workspaces_pkey zenart
+3787; 1259 17805 INDEX public idx_agent_tasks_tenant_status zenart
+3790; 1259 17806 INDEX public idx_agent_traces_task zenart
+3830; 1259 17808 INDEX public idx_assets_project zenart
+3774; 1259 17810 INDEX public idx_audit_logs_tenant_created zenart
+3817; 1259 17807 INDEX public idx_candidate_assets_project zenart
+3805; 1259 17803 INDEX public idx_canvas_nodes_workspace zenart
+3812; 1259 17804 INDEX public idx_chat_messages_session zenart
+3837; 1259 17809 INDEX public idx_exports_package zenart
+3911; 1259 17811 INDEX public idx_feedback_events_subject zenart
+3791; 1259 17801 INDEX public idx_projects_tenant_owner zenart
+3906; 1259 17812 INDEX public idx_provider_usage_task zenart
+3922; 1259 17813 INDEX public idx_safety_decisions_subject zenart
+3927; 1259 17814 INDEX public idx_support_tickets_tenant_status zenart
+3794; 1259 17802 INDEX public idx_workspaces_project zenart
+4069; 2606 17774 FK CONSTRAINT public abuse_events abuse_events_tenant_id_fkey zenart
+4070; 2606 17779 FK CONSTRAINT public abuse_events abuse_events_user_id_fkey zenart
+3945; 2606 16548 FK CONSTRAINT public agent_tasks agent_tasks_tenant_id_fkey zenart
+3946; 2606 16562 FK CONSTRAINT public agent_traces agent_traces_task_id_fkey zenart
+3947; 2606 16567 FK CONSTRAINT public agent_traces agent_traces_tenant_id_fkey zenart
+3988; 2606 16966 FK CONSTRAINT public assets assets_candidate_asset_id_fkey zenart
+3989; 2606 16961 FK CONSTRAINT public assets assets_object_metadata_id_fkey zenart
+3990; 2606 16956 FK CONSTRAINT public assets assets_project_id_fkey zenart
+3991; 2606 16951 FK CONSTRAINT public assets assets_tenant_id_fkey zenart
+3939; 2606 16469 FK CONSTRAINT public audit_logs audit_logs_tenant_id_fkey zenart
+3975; 2606 16840 FK CONSTRAINT public candidate_assets candidate_assets_candidate_set_id_fkey zenart
+3976; 2606 16845 FK CONSTRAINT public candidate_assets candidate_assets_project_id_fkey zenart
+3977; 2606 16835 FK CONSTRAINT public candidate_assets candidate_assets_tenant_id_fkey zenart
+3978; 2606 16850 FK CONSTRAINT public candidate_assets candidate_assets_trace_id_fkey zenart
+3972; 2606 16807 FK CONSTRAINT public candidate_sets candidate_sets_project_id_fkey zenart
+3973; 2606 16812 FK CONSTRAINT public candidate_sets candidate_sets_task_id_fkey zenart
+3974; 2606 16802 FK CONSTRAINT public candidate_sets candidate_sets_tenant_id_fkey zenart
+3962; 2606 16738 FK CONSTRAINT public canvas_edges canvas_edges_from_node_id_fkey zenart
+3963; 2606 16723 FK CONSTRAINT public canvas_edges canvas_edges_tenant_id_fkey zenart
+3964; 2606 16743 FK CONSTRAINT public canvas_edges canvas_edges_to_node_id_fkey zenart
+3965; 2606 16733 FK CONSTRAINT public canvas_edges canvas_edges_version_id_fkey zenart
+3966; 2606 16728 FK CONSTRAINT public canvas_edges canvas_edges_workspace_id_fkey zenart
+3955; 2606 16664 FK CONSTRAINT public canvas_frames canvas_frames_tenant_id_fkey zenart
+3956; 2606 16674 FK CONSTRAINT public canvas_frames canvas_frames_version_id_fkey zenart
+3957; 2606 16669 FK CONSTRAINT public canvas_frames canvas_frames_workspace_id_fkey zenart
+3958; 2606 16703 FK CONSTRAINT public canvas_nodes canvas_nodes_frame_id_fkey zenart
+3959; 2606 16693 FK CONSTRAINT public canvas_nodes canvas_nodes_tenant_id_fkey zenart
+3960; 2606 16708 FK CONSTRAINT public canvas_nodes canvas_nodes_version_id_fkey zenart
+3961; 2606 16698 FK CONSTRAINT public canvas_nodes canvas_nodes_workspace_id_fkey zenart
+3952; 2606 16645 FK CONSTRAINT public canvas_versions canvas_versions_created_by_fkey zenart
+3953; 2606 16635 FK CONSTRAINT public canvas_versions canvas_versions_tenant_id_fkey zenart
+3954; 2606 16640 FK CONSTRAINT public canvas_versions canvas_versions_workspace_id_fkey zenart
+3970; 2606 16787 FK CONSTRAINT public chat_messages chat_messages_chat_session_id_fkey zenart
+3971; 2606 16782 FK CONSTRAINT public chat_messages chat_messages_tenant_id_fkey zenart
+3967; 2606 16763 FK CONSTRAINT public chat_sessions chat_sessions_project_id_fkey zenart
+3968; 2606 16758 FK CONSTRAINT public chat_sessions chat_sessions_tenant_id_fkey zenart
+3969; 2606 16768 FK CONSTRAINT public chat_sessions chat_sessions_user_id_fkey zenart
+4038; 2606 17478 FK CONSTRAINT public crawler_documents crawler_documents_run_id_fkey zenart
+4039; 2606 17483 FK CONSTRAINT public crawler_documents crawler_documents_source_id_fkey zenart
+4040; 2606 17473 FK CONSTRAINT public crawler_documents crawler_documents_tenant_id_fkey zenart
+4041; 2606 17504 FK CONSTRAINT public crawler_findings crawler_findings_document_id_fkey zenart
+4042; 2606 17499 FK CONSTRAINT public crawler_findings crawler_findings_tenant_id_fkey zenart
+4043; 2606 17523 FK CONSTRAINT public crawler_import_reviews crawler_import_reviews_finding_id_fkey zenart
+4044; 2606 17528 FK CONSTRAINT public crawler_import_reviews crawler_import_reviews_reviewer_id_fkey zenart
+4045; 2606 17518 FK CONSTRAINT public crawler_import_reviews crawler_import_reviews_tenant_id_fkey zenart
+4036; 2606 17457 FK CONSTRAINT public crawler_runs crawler_runs_source_id_fkey zenart
+4037; 2606 17452 FK CONSTRAINT public crawler_runs crawler_runs_tenant_id_fkey zenart
+4035; 2606 17437 FK CONSTRAINT public crawler_sources crawler_sources_tenant_id_fkey zenart
+4032; 2606 17401 FK CONSTRAINT public eval_fixtures eval_fixtures_eval_suite_id_fkey zenart
+4033; 2606 17420 FK CONSTRAINT public eval_results eval_results_eval_suite_id_fkey zenart
+4034; 2606 17415 FK CONSTRAINT public eval_results eval_results_tenant_id_fkey zenart
+4031; 2606 17386 FK CONSTRAINT public eval_suites eval_suites_tenant_id_fkey zenart
+3999; 2606 17053 FK CONSTRAINT public exports exports_object_metadata_id_fkey zenart
+4000; 2606 17043 FK CONSTRAINT public exports exports_package_id_fkey zenart
+4001; 2606 17048 FK CONSTRAINT public exports exports_task_id_fkey zenart
+4002; 2606 17038 FK CONSTRAINT public exports exports_tenant_id_fkey zenart
+4053; 2606 17632 FK CONSTRAINT public feedback_events feedback_events_project_id_fkey zenart
+4054; 2606 17622 FK CONSTRAINT public feedback_events feedback_events_tenant_id_fkey zenart
+4055; 2606 17627 FK CONSTRAINT public feedback_events feedback_events_user_id_fkey zenart
+4056; 2606 17655 FK CONSTRAINT public feedback_labels feedback_labels_applied_by_fkey zenart
+4057; 2606 17650 FK CONSTRAINT public feedback_labels feedback_labels_feedback_event_id_fkey zenart
+4058; 2606 17645 FK CONSTRAINT public feedback_labels feedback_labels_tenant_id_fkey zenart
+4059; 2606 17671 FK CONSTRAINT public feedback_performance_daily feedback_performance_daily_tenant_id_fkey zenart
+4017; 2606 17235 FK CONSTRAINT public fragment_versions fragment_versions_fragment_id_fkey zenart
+4025; 2606 17325 FK CONSTRAINT public image_specs image_specs_tenant_id_fkey zenart
+4071; 2606 17796 FK CONSTRAINT public incident_logs incident_logs_tenant_id_fkey zenart
+4024; 2606 17309 FK CONSTRAINT public meta_prompt_versions meta_prompt_versions_meta_prompt_id_fkey zenart
+4023; 2606 17293 FK CONSTRAINT public meta_prompts meta_prompts_tenant_id_fkey zenart
+4020; 2606 17273 FK CONSTRAINT public mutation_reviews mutation_reviews_mutation_id_fkey zenart
+4021; 2606 17278 FK CONSTRAINT public mutation_reviews mutation_reviews_reviewer_id_fkey zenart
+4022; 2606 17268 FK CONSTRAINT public mutation_reviews mutation_reviews_tenant_id_fkey zenart
+4018; 2606 17255 FK CONSTRAINT public mutations mutations_fragment_id_fkey zenart
+4019; 2606 17250 FK CONSTRAINT public mutations mutations_tenant_id_fkey zenart
+3986; 2606 16930 FK CONSTRAINT public object_metadata object_metadata_tenant_id_fkey zenart
+3987; 2606 16935 FK CONSTRAINT public object_metadata object_metadata_upload_id_fkey zenart
+3995; 2606 17017 FK CONSTRAINT public package_items package_items_asset_id_fkey zenart
+3996; 2606 17022 FK CONSTRAINT public package_items package_items_canvas_frame_id_fkey zenart
+3997; 2606 17012 FK CONSTRAINT public package_items package_items_package_id_fkey zenart
+3998; 2606 17007 FK CONSTRAINT public package_items package_items_tenant_id_fkey zenart
+3992; 2606 16992 FK CONSTRAINT public packages packages_created_by_fkey zenart
+3993; 2606 16987 FK CONSTRAINT public packages packages_project_id_fkey zenart
+3994; 2606 16982 FK CONSTRAINT public packages packages_tenant_id_fkey zenart
+3948; 2606 16597 FK CONSTRAINT public projects projects_owner_id_fkey zenart
+3949; 2606 16592 FK CONSTRAINT public projects projects_tenant_id_fkey zenart
+4016; 2606 17218 FK CONSTRAINT public prompt_fragments prompt_fragments_tenant_id_fkey zenart
+4049; 2606 17602 FK CONSTRAINT public provider_usage_logs provider_usage_logs_project_id_fkey zenart
+4050; 2606 17607 FK CONSTRAINT public provider_usage_logs provider_usage_logs_task_id_fkey zenart
+4051; 2606 17592 FK CONSTRAINT public provider_usage_logs provider_usage_logs_tenant_id_fkey zenart
+4052; 2606 17597 FK CONSTRAINT public provider_usage_logs provider_usage_logs_user_id_fkey zenart
+4063; 2606 17726 FK CONSTRAINT public qa_results qa_results_project_id_fkey zenart
+4064; 2606 17721 FK CONSTRAINT public qa_results qa_results_tenant_id_fkey zenart
+3940; 2606 16490 FK CONSTRAINT public quota_buckets quota_buckets_tenant_id_fkey zenart
+3941; 2606 16507 FK CONSTRAINT public quota_transactions quota_transactions_bucket_id_fkey zenart
+3942; 2606 16512 FK CONSTRAINT public quota_transactions quota_transactions_tenant_id_fkey zenart
+4061; 2606 17707 FK CONSTRAINT public safety_decisions safety_decisions_rule_id_fkey zenart
+4062; 2606 17702 FK CONSTRAINT public safety_decisions safety_decisions_tenant_id_fkey zenart
+4060; 2606 17688 FK CONSTRAINT public safety_rules safety_rules_tenant_id_fkey zenart
+3979; 2606 16876 FK CONSTRAINT public selected_directions selected_directions_candidate_asset_id_fkey zenart
+3980; 2606 16871 FK CONSTRAINT public selected_directions selected_directions_project_id_fkey zenart
+3981; 2606 16881 FK CONSTRAINT public selected_directions selected_directions_selected_by_fkey zenart
+3982; 2606 16866 FK CONSTRAINT public selected_directions selected_directions_tenant_id_fkey zenart
+3935; 2606 16430 FK CONSTRAINT public sessions sessions_tenant_id_fkey zenart
+3936; 2606 16425 FK CONSTRAINT public sessions sessions_user_id_fkey zenart
+4007; 2606 17104 FK CONSTRAINT public share_link_access_logs share_link_access_logs_share_link_id_fkey zenart
+4008; 2606 17099 FK CONSTRAINT public share_link_access_logs share_link_access_logs_tenant_id_fkey zenart
+4003; 2606 17084 FK CONSTRAINT public share_links share_links_created_by_fkey zenart
+4004; 2606 17079 FK CONSTRAINT public share_links share_links_export_id_fkey zenart
+4005; 2606 17074 FK CONSTRAINT public share_links share_links_project_id_fkey zenart
+4006; 2606 17069 FK CONSTRAINT public share_links share_links_tenant_id_fkey zenart
+4012; 2606 17174 FK CONSTRAINT public skill_release_channels skill_release_channels_active_version_id_fkey zenart
+4013; 2606 17169 FK CONSTRAINT public skill_release_channels skill_release_channels_skill_id_fkey zenart
+4011; 2606 17152 FK CONSTRAINT public skill_sources skill_sources_skill_id_fkey zenart
+4014; 2606 17201 FK CONSTRAINT public skill_usage_stats skill_usage_stats_skill_version_id_fkey zenart
+4015; 2606 17196 FK CONSTRAINT public skill_usage_stats skill_usage_stats_tenant_id_fkey zenart
+4010; 2606 17138 FK CONSTRAINT public skill_versions skill_versions_skill_id_fkey zenart
+4009; 2606 17120 FK CONSTRAINT public skills skills_tenant_id_fkey zenart
+4029; 2606 17369 FK CONSTRAINT public spec_evaluations spec_evaluations_spec_instance_id_fkey zenart
+4030; 2606 17364 FK CONSTRAINT public spec_evaluations spec_evaluations_tenant_id_fkey zenart
+4026; 2606 17345 FK CONSTRAINT public spec_instances spec_instances_image_spec_id_fkey zenart
+4027; 2606 17350 FK CONSTRAINT public spec_instances spec_instances_project_id_fkey zenart
+4028; 2606 17340 FK CONSTRAINT public spec_instances spec_instances_tenant_id_fkey zenart
+3943; 2606 16527 FK CONSTRAINT public subscriptions subscriptions_tenant_id_fkey zenart
+3944; 2606 16532 FK CONSTRAINT public subscriptions subscriptions_user_id_fkey zenart
+4065; 2606 17757 FK CONSTRAINT public support_tickets support_tickets_linked_export_id_fkey zenart
+4066; 2606 17752 FK CONSTRAINT public support_tickets support_tickets_project_id_fkey zenart
+4067; 2606 17742 FK CONSTRAINT public support_tickets support_tickets_tenant_id_fkey zenart
+4068; 2606 17747 FK CONSTRAINT public support_tickets support_tickets_user_id_fkey zenart
+3983; 2606 16905 FK CONSTRAINT public uploads uploads_project_id_fkey zenart
+3984; 2606 16900 FK CONSTRAINT public uploads uploads_tenant_id_fkey zenart
+3985; 2606 16910 FK CONSTRAINT public uploads uploads_user_id_fkey zenart
+3937; 2606 16455 FK CONSTRAINT public user_roles user_roles_role_name_fkey zenart
+3938; 2606 16450 FK CONSTRAINT public user_roles user_roles_user_id_fkey zenart
+4046; 2606 17571 FK CONSTRAINT public user_subscriptions user_subscriptions_plan_id_fkey zenart
+4047; 2606 17561 FK CONSTRAINT public user_subscriptions user_subscriptions_tenant_id_fkey zenart
+4048; 2606 17566 FK CONSTRAINT public user_subscriptions user_subscriptions_user_id_fkey zenart
+3934; 2606 16412 FK CONSTRAINT public users users_tenant_id_fkey zenart
+3950; 2606 16617 FK CONSTRAINT public workspaces workspaces_project_id_fkey zenart
+3951; 2606 16612 FK CONSTRAINT public workspaces workspaces_tenant_id_fkey zenart

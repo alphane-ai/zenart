@@ -1,0 +1,6 @@
+/data/zenart-local/drill-source/package-manifest.json
+/data/zenart-local/restore-drill-20260526T141840Z/package-manifest.json
+/data/zenart-local/restore-drill-20260526T141859Z/package-manifest.json
+/data/zenart-local/restore-drill-20260526T141928Z/0-package-manifest.json
+/data/zenart-local/restore-drill-20260526T141928Z/1-package-manifest.json
+/data/zenart-local/restore-drill-20260526T141928Z/2-package-manifest.json

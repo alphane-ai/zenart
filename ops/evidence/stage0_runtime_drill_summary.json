@@ -1,16 +1,16 @@
 {
   "backup_restore": {
-    "object_manifest_count": 3,
-    "postgres_dump_bytes": 150114,
+    "object_manifest_count": 6,
+    "postgres_dump_bytes": 150480,
     "postgres_restore_items": 363,
     "postgres_restore_tables": 65,
     "production_gate": "open_until_automated_backups_pitr_and_isolated_staging_restore_pass",
-    "restored_object_count": 3,
-    "source_report": "ops/evidence/backup-restore/local/20260526T141928Z/report.json",
+    "restored_object_count": 6,
+    "source_report": "ops/evidence/backup-restore/local/20260526T153126Z/report.json",
     "status": "passed"
   },
   "blueprint_source": "Docs/stage0_blueprint_rev2.md",
-  "created_at": "2026-05-26T14:20:40Z",
+  "created_at": "2026-05-26T15:31:26Z",
   "created_by_lane": "lane5",
   "gate_policy": {
     "private_beta_staging_gate": "open_until_runtime_staging_evidence_exists_for all Rev2 checks",

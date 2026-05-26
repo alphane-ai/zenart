@@ -1,0 +1,6 @@
+{
+  "database": "zenart_restore_drill_20260526t153126z",
+  "minimum_expected_tables": 1,
+  "passed": true,
+  "restored_table_count": 65
+}

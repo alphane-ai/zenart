@@ -1906,8 +1906,8 @@ main 合并前必须通过：
 - [x] 定义 backup schedule。
 - [x] 定义 object storage backup/versioning。
 - [x] 定义 RPO/RTO。
-- [ ] 执行 Postgres restore drill。
-- [ ] 执行 object restore drill。
+- [x] 执行 Postgres restore drill。
+- [x] 执行 object restore drill。
 - [x] 定义 load assumptions。
 - [x] 添加 chat/task load test。
 - [x] 添加 worker generation load test。
@@ -1938,7 +1938,7 @@ main 合并前必须通过：
 - [ ] Private Beta/Staging Gate 全部通过。
 - [ ] Production Launch Gate 全部通过。
 - [ ] Do-Not-Launch Conditions 全部为 false。
-- [ ] Release notes 包含 SHA、migration list、config diff、feature flags、owner、smoke plan、rollback plan、known risks、go/no-go。
+- [x] Release notes 包含 SHA、migration list、config diff、feature flags、owner、smoke plan、rollback plan、known risks、go/no-go。
 - [ ] Post-deploy smoke tests 通过。
 
 Release gate evidence map:

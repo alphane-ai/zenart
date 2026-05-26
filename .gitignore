@@ -20,3 +20,4 @@ Docs/todos_*.md
 *.zip
 *.tar
 *.tar.gz
+ops/evidence/**/postgres.dump
