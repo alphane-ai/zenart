@@ -32,7 +32,11 @@ import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { AccountSettings, BillingScenario, Candidate, ExportFormat, QaSeverity, WorkspaceState } from "@/lib/contracts";
 import { zenArtClient } from "@/lib/api-client";
-import { buildSupportProblemContext, buildWorkspaceRenderingPerformanceSmoke } from "@/lib/dev-state";
+import {
+  buildPackageExportMetadataEvidence,
+  buildSupportProblemContext,
+  buildWorkspaceRenderingPerformanceSmoke
+} from "@/lib/dev-state";
 import { downloadExportPackage } from "@/lib/export-download";
 import { apiOperations } from "@/lib/generated/zenart-api";
 import { legalPolicyList, supportContactEmail } from "@/lib/legal-policies";
@@ -738,6 +742,7 @@ function ExportView({
 }) {
   const latestExport = state.exports[0];
   const latestShareLink = latestExport ? state.shareLinks.find((item) => item.exportId === latestExport.id) : undefined;
+  const metadataEvidence = latestExport ? buildPackageExportMetadataEvidence(latestExport) : undefined;
   return (
     <section className="content-view export-view">
       <div className="section-title">
@@ -782,6 +787,37 @@ function ExportView({
                 </div>
               </dl>
               <div className="export-detail-grid">
+                {metadataEvidence ? (
+                  <section
+                    className="export-detail-panel package-export-metadata-evidence"
+                    aria-label="Package export metadata UI evidence"
+                    data-package-export-metadata-ui={metadataEvidence.schema_version}
+                    data-package-export-metadata-status={metadataEvidence.status}
+                    data-package-export-required-output-count={metadataEvidence.requiredOutputCount}
+                    data-package-export-missing-output-count={metadataEvidence.missingRequiredOutputs.length}
+                    data-package-export-provenance-count={metadataEvidence.provenanceCount}
+                    data-package-export-blocking-qa-count={metadataEvidence.blockingQaCount}
+                    data-package-export-ppt-slide-count={metadataEvidence.pptSlideCount}
+                    data-package-export-zip-payloads={metadataEvidence.zipPayloadNames.join(",")}
+                  >
+                    <h4>Metadata Evidence</h4>
+                    <div className="metadata-evidence-grid">
+                      <span className={metadataEvidence.status === "pass" ? "qa-pass" : "qa-block"}>
+                        {metadataEvidence.status}
+                      </span>
+                      <span>{metadataEvidence.requiredOutputCount} required outputs</span>
+                      <span>{metadataEvidence.provenanceCount}/{metadataEvidence.itemCount} provenance entries</span>
+                      <span>{metadataEvidence.qaFindingCount} QA findings</span>
+                      <span>{metadataEvidence.pptSlideCount} PPT slides</span>
+                    </div>
+                    <p>
+                      ZIP payload contract: {metadataEvidence.zipPayloadNames.join(", ")}.
+                      {metadataEvidence.missingRequiredOutputs.length > 0
+                        ? ` Missing ${metadataEvidence.missingRequiredOutputs.join(", ")}.`
+                        : " All required metadata outputs are present."}
+                    </p>
+                  </section>
+                ) : null}
                 <section className="export-detail-panel manifest-preview" aria-label="Manifest preview">
                   <h4>Manifest Preview</h4>
                   <dl>

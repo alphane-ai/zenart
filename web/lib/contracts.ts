@@ -203,6 +203,20 @@ export interface ExportRecord {
   qaReport: QaFinding[];
 }
 
+export interface PackageExportMetadataEvidence {
+  schema_version: "stage0.rev2.package-export-metadata-ui";
+  status: "pass" | "fail";
+  requiredOutputCount: number;
+  missingRequiredOutputs: string[];
+  itemCount: number;
+  provenanceCount: number;
+  qaFindingCount: number;
+  blockingQaCount: number;
+  pptSlideCount: number;
+  handoffChecklistCount: number;
+  zipPayloadNames: string[];
+}
+
 export interface ShareLink {
   id: string;
   exportId: string;

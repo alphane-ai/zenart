@@ -33,6 +33,7 @@
         "manifest-preview",
         "qa-report",
         "provenance-report",
+        "package-export-metadata-ui-evidence",
         "reference-upload-export-contract",
         "ppt-ready-metadata",
         "share-link-state"
@@ -108,6 +109,7 @@
     "selection and version controls expose pressed/current state",
     "upload and billing edge errors use role alert",
     "export preview exposes PPT-ready metadata with canvas size, safe area, theme, and slide mapping",
+    "export preview exposes machine-checkable package/export metadata UI evidence",
     "support route exposes privacy and AI content responsibility notices",
     "legal routes expose active route state and visible support contact",
     "auth/session flow exposes sign-in, refresh, expire, logout, and expired-session alerts",
@@ -119,6 +121,7 @@
     "generated-api-unsafe-operation-csrf-inventory",
     "workspace-rendering-performance-budget",
     "zip-download-manifest-qa-provenance-assets",
+    "package-export-metadata-ui-evidence",
     "ppt-ready-metadata-export-contract",
     "pdf-placeholder-download-contract",
     "browser-download-handoff"

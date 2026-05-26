@@ -1,6 +1,8 @@
 import {
   Candidate,
   ExportFormat,
+  ExportRecord,
+  PackageExportMetadataEvidence,
   PackageItem,
   PackageManifest,
   PptReadyMetadata,
@@ -24,6 +26,14 @@ const devUser: SessionUser = {
   name: "Dev User",
   email: "dev@zenart.local"
 };
+
+export const requiredExportPackageOutputs = [
+  "manifest.json",
+  "qa-report.json",
+  "provenance.json",
+  "ppt-ready-metadata.json",
+  "assets/"
+] as const;
 
 export const createSessionContract = (
   user: SessionUser = devUser,
@@ -183,7 +193,7 @@ export const buildManifest = (
   package_id: `pkg-${String(items.length || 1).padStart(3, "0")}`,
   project_id: projectId,
   created_at: new Date().toISOString(),
-  required_outputs: ["manifest.json", "qa-report.json", "provenance.json", "ppt-ready-metadata.json", "assets/"],
+  required_outputs: [...requiredExportPackageOutputs],
   ppt_ready_metadata: buildPptReadyMetadata(items),
   items: items.map((item) => ({
     id: item.id,
@@ -305,6 +315,43 @@ export const buildWorkspaceRenderingPerformanceSmoke = (
     versionCount: state.canvas.versions.length,
     renderElementCount,
     budgets
+  };
+};
+
+export const buildPackageExportMetadataEvidence = (record: ExportRecord): PackageExportMetadataEvidence => {
+  const missingRequiredOutputs = requiredExportPackageOutputs.filter(
+    (outputName) => !record.manifest.required_outputs.includes(outputName)
+  );
+  const zipPayloadNames = requiredExportPackageOutputs.map((outputName) =>
+    outputName === "assets/" ? "assets/README.txt" : outputName
+  );
+  const provenanceCount = record.manifest.items.filter((item) => item.provenance.trim().length > 0).length;
+  const blockingQaCount = record.qaReport.filter((finding) => finding.severity === "block").length;
+  const pptSlideCount = record.manifest.ppt_ready_metadata.slides.length;
+  const handoffChecklistCount = record.manifest.ppt_ready_metadata.handoff_checklist.length;
+  const status =
+    record.status === "ready" &&
+    missingRequiredOutputs.length === 0 &&
+    record.manifest.items.length === provenanceCount &&
+    record.qaReport.length > 0 &&
+    blockingQaCount === 0 &&
+    pptSlideCount > 0 &&
+    handoffChecklistCount > 0
+      ? "pass"
+      : "fail";
+
+  return {
+    schema_version: "stage0.rev2.package-export-metadata-ui",
+    status,
+    requiredOutputCount: record.manifest.required_outputs.length,
+    missingRequiredOutputs,
+    itemCount: record.manifest.items.length,
+    provenanceCount,
+    qaFindingCount: record.qaReport.length,
+    blockingQaCount,
+    pptSlideCount,
+    handoffChecklistCount,
+    zipPayloadNames
   };
 };
 

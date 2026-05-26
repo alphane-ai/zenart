@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { ExportRecord } from "./contracts";
 import {
   buildManifest,
+  buildPackageExportMetadataEvidence,
   buildSupportProblemContext,
   buildWorkspaceRenderingPerformanceSmoke,
   createDisabledShareLink,
@@ -77,6 +78,87 @@ describe("dev workspace contracts", () => {
       "speaker notes",
       "editable theme tokens"
     ]);
+  });
+
+  it("builds package/export metadata UI evidence for ready exports", () => {
+    const state = createInitialWorkspace();
+    const manifest = buildManifest(state.activeProjectId, [
+      {
+        id: "pkg-item-001",
+        sourceId: "cand-studio",
+        title: "Studio System",
+        type: "candidate",
+        addedAt: "2026-05-26T10:00:00.000Z"
+      },
+      {
+        id: "pkg-item-002",
+        sourceId: "ref-001",
+        title: "brand-moodboard.png",
+        type: "reference",
+        addedAt: "2026-05-26T10:03:00.000Z"
+      }
+    ]);
+    const record: ExportRecord = {
+      id: "export-001",
+      format: "zip",
+      status: "ready",
+      createdAt: "2026-05-26T10:04:00.000Z",
+      fileName: "zenart-001.zip",
+      manifest,
+      qaReport: evaluatePackageQa([
+        {
+          id: "pkg-item-001",
+          sourceId: "cand-studio",
+          title: "Studio System",
+          type: "candidate",
+          addedAt: "2026-05-26T10:00:00.000Z"
+        }
+      ])
+    };
+
+    expect(buildPackageExportMetadataEvidence(record)).toEqual({
+      schema_version: "stage0.rev2.package-export-metadata-ui",
+      status: "pass",
+      requiredOutputCount: 5,
+      missingRequiredOutputs: [],
+      itemCount: 2,
+      provenanceCount: 2,
+      qaFindingCount: 2,
+      blockingQaCount: 0,
+      pptSlideCount: 2,
+      handoffChecklistCount: 5,
+      zipPayloadNames: [
+        "manifest.json",
+        "qa-report.json",
+        "provenance.json",
+        "ppt-ready-metadata.json",
+        "assets/README.txt"
+      ]
+    });
+  });
+
+  it("fails package/export metadata UI evidence when manifest or QA are incomplete", () => {
+    const state = createInitialWorkspace();
+    const record: ExportRecord = {
+      id: "export-002",
+      format: "zip",
+      status: "blocked",
+      createdAt: "2026-05-26T10:04:00.000Z",
+      fileName: "zenart-002.zip",
+      manifest: {
+        ...buildManifest(state.activeProjectId, []),
+        required_outputs: ["manifest.json"]
+      },
+      qaReport: evaluatePackageQa([])
+    };
+
+    expect(buildPackageExportMetadataEvidence(record)).toMatchObject({
+      status: "fail",
+      missingRequiredOutputs: ["qa-report.json", "provenance.json", "ppt-ready-metadata.json", "assets/"],
+      itemCount: 0,
+      provenanceCount: 0,
+      blockingQaCount: 1
+    });
   });
 
   it("keeps workspace rendering within the local alpha smoke budget", () => {

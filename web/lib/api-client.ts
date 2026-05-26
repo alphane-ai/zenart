@@ -14,6 +14,7 @@ import {
 import {
   buildManifest,
   buildPptReadyMetadata,
+  requiredExportPackageOutputs,
   createDisabledShareLink,
   createInitialWorkspace,
   createReferenceAsset,
@@ -39,11 +40,7 @@ const defaultBilling = createInitialWorkspace().billing;
 const migrateManifest = (manifest: PackageManifest, createdAt: string): PackageManifest => {
   const requiredOutputs = new Set([
     ...manifest.required_outputs,
-    "manifest.json",
-    "qa-report.json",
-    "provenance.json",
-    "ppt-ready-metadata.json",
-    "assets/"
+    ...requiredExportPackageOutputs
   ]);
 
   return {

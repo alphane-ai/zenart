@@ -952,6 +952,21 @@ textarea {
   font-size: 12px;
 }
 
+.metadata-evidence-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.metadata-evidence-grid span {
+  border-radius: 999px;
+  background: #eef2f7;
+  color: #344054;
+  padding: 4px 8px;
+  font-size: 12px;
+  line-height: 1.25;
+}
+
 .share-state {
   border: 1px solid rgba(37, 99, 235, 0.24);
   border-radius: 8px;
