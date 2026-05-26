@@ -28,12 +28,18 @@
       "script": "scripts/security_scan_smoke.sh",
       "runtime_status": "local dependency/image/secret scan wrapper; release blocking thresholds remain open",
       "private_beta_gate": "open until dependency, image, and secret scans run in CI/staging release context"
+    },
+    "no_go_release_notes_renderer": {
+      "script": "scripts/render_no_go_release_notes.py",
+      "runtime_status": "renders current no-go release notes from gate fixtures and local ops drill summary",
+      "gate_policy": "checked-in no-go notes must match generated output and must not claim staging, private beta, or production completion"
     }
   },
   "release_docs": {
     "staging_deploy_draft": "ops/release/staging_deploy.md",
     "release_notes_template": "ops/release/release_notes_template.md",
     "current_no_go_release_notes": "ops/release/stage0_rev2_current_no_go_release_notes.md",
+    "current_no_go_release_notes_renderer": "scripts/render_no_go_release_notes.py",
     "dashboard_definition": "ops/observability/dashboards/stage0_rev2_overview.json",
     "alert_definition": "ops/observability/alerts/stage0_rev2_alerts.json"
   },
@@ -71,6 +77,7 @@
     "DRY_RUN=1 scripts/staging_smoke.sh",
     "DRY_RUN=1 scripts/observability_smoke.sh",
     "DRY_RUN=1 scripts/security_scan_smoke.sh",
+    "scripts/render_no_go_release_notes.py --check",
     "bash scripts/repo_validate.sh"
   ]
 }

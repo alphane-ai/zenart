@@ -65,6 +65,7 @@ test -x scripts/docker_build_smoke.sh
 test -x scripts/staging_smoke.sh
 test -x scripts/observability_smoke.sh
 test -x scripts/security_scan_smoke.sh
+test -x scripts/render_no_go_release_notes.py
 
 log "docker compose syntax"
 if docker compose version >/dev/null 2>&1; then
@@ -147,6 +148,7 @@ if "staging_request_id_propagation_across_web_admin_backend_worker_crawler_logs_
 PY
 
 log "release no-go evidence validation"
+python3 scripts/render_no_go_release_notes.py --check
 python3 - <<'PY'
 from pathlib import Path
 

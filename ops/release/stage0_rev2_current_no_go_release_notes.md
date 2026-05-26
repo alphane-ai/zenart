@@ -6,7 +6,7 @@ Release gate status: `no-go`.
 
 ## Identity
 
-- Release SHA: `not selected; current evidence base aa0f164bb8b6`
+- Release SHA: `not selected; set RELEASE_SHA for a deploy candidate`
 - Release tag: `n/a`
 - Owner: `lane5`
 - Reviewer: `pending`
@@ -58,10 +58,10 @@ Release gate status: `no-go`.
 - Playwright smoke: `missing`; required before CI gate can close.
 - Migration run: `missing`; required before staging/production decisions.
 - Staging smoke: `missing`; required before private beta/production decisions.
-- Load smoke: local summary `ops/evidence/stage0_runtime_drill_summary.json`; staging evidence required before private beta/production decisions.
-- Observability smoke: local request-id evidence summarized in `ops/evidence/stage0_runtime_drill_summary.json`; staging logs, metrics, traces, dashboard import, and alert-route evidence required.
-- Backup/restore drill: local evidence `ops/evidence/backup-restore/local/20260526T153126Z/report.json`; staging/production restore evidence required before those gates can close.
-- Security scan: local summary `ops/evidence/stage0_runtime_drill_summary.json`; CI/staging release-context scan evidence required.
+- Load smoke: local 7/7 modes passed; first report ops/evidence/load/local/20260526T142030Z-chat_task-64820.json; staging evidence required before private beta/production decisions.
+- Observability smoke: local status `passed` from `ops/evidence/observability/local/20260526T142006Z-observability-smoke-64024.json`; staging logs, metrics, traces, dashboard import, and alert-route evidence required.
+- Backup/restore drill: local status `passed` from `ops/evidence/backup-restore/local/20260526T153126Z/report.json`; staging/production restore evidence required before those gates can close.
+- Security scan: local status `passed` from `ops/evidence/security/local/20260526T142040Z-security-scan-smoke-65314.json`; CI/staging release-context scan evidence required.
 
 ## Rollback Plan
 
@@ -74,8 +74,10 @@ Release gate status: `no-go`.
 
 ## Known Risks
 
-- Open private beta blockers: `fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json`
-- Open production do-not-launch conditions: `fixtures/stage0/rev2/release_gate_evidence.production_launch.json`
+- Open private beta blockers: `fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json`: staging_auth_rbac_tenant_audit, staging_brief_upload_confirmation, staging_object_storage_signed_downloads, staging_quota_rate_limit_spend_cap, staging_support_retry_abuse_ops, staging_eval_qa_safety_runtime, staging_crawler_approval_provenance, staging_observability_backup_load, staging_legal_external_user_pages.
+- Private beta do-not-launch conditions present: tenant_isolation_not_enforced, eval_qa_safety_runtime_missing, crawler_governance_runtime_missing, staging_observability_restore_load_missing, external_user_legal_pages_missing.
+- Open production blockers: `fixtures/stage0/rev2/release_gate_evidence.production_launch.json`: production_provider_or_comp_only_mode, production_paid_billing_lifecycle, production_skill_release_eval_canary, production_activation_review_audit, production_abuse_throttle_hold, production_security_launch_checks, production_backup_rollback_incident, production_legal_support_policy.
+- Production do-not-launch conditions present: real_provider_or_comp_only_mode_missing, skill_release_eval_canary_missing, security_privacy_legal_incomplete, backup_restore_rollback_smoke_missing, ci_staging_gates_not_passed.
 - Operational risks: staging observability, restore, rollback, load, and post-deploy smoke evidence are absent.
 - User/support risks: external-user legal/support pages and support readiness remain blocked by Rev2 gate evidence.
 
