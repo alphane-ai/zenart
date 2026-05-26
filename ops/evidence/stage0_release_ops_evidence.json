@@ -153,6 +153,7 @@
     "blocking_reason_contract": {
       "field": "summary.go_no_go.blocking_reasons",
       "required_prefixes": [
+        "post_deploy_profile_required",
         "staging_smoke_not_passed",
         "post_deploy_smoke_contract_unverified",
         "missing_release_evidence:",

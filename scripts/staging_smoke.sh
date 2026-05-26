@@ -719,7 +719,13 @@ local_evidence_verification = {
 }
 release_evidence_verified = all(item["verified"] for item in local_evidence_verification.values())
 release_evidence_complete = all(release_evidence_required.values()) and release_evidence_verified
-smoke_passed = status == "passed" and all(row.get("ok") is not False for row in rows) and not (required - set(categories))
+profile_post_deploy = profile == "post_deploy"
+smoke_passed = (
+    profile_post_deploy
+    and status == "passed"
+    and all(row.get("ok") is not False for row in rows)
+    and not (required - set(categories))
+)
 post_deploy_smoke_contract = validate_post_deploy_smoke_contract(
     rows,
     required,
@@ -735,6 +741,8 @@ unverified_release_evidence_slots = sorted(
     key for key, value in local_evidence_verification.items() if not value.get("verified")
 )
 blocking_reasons = []
+if not profile_post_deploy:
+    blocking_reasons.append("post_deploy_profile_required")
 if not smoke_passed:
     blocking_reasons.append("staging_smoke_not_passed")
 if post_deploy_smoke_contract.get("verified") is not True:
@@ -754,6 +762,7 @@ go_no_go = {
     "blocked_conditions": blocked_conditions,
     "blocking_reasons": blocking_reasons,
     "decision_inputs": {
+        "profile_post_deploy": profile_post_deploy,
         "smoke_passed": smoke_passed,
         "post_deploy_smoke_verified": post_deploy_smoke_contract.get("verified") is True,
         "release_evidence_complete": release_evidence_complete,

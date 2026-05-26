@@ -316,6 +316,8 @@ if not any(reason.startswith("gate_fixture_blocked:production_launch:") for reas
 decision_inputs = go_no_go.get("decision_inputs", {})
 if decision_inputs.get("smoke_passed") is not False:
     raise SystemExit("staging smoke dry-run decision inputs must record smoke_passed=false")
+if decision_inputs.get("profile_post_deploy") is not True:
+    raise SystemExit("staging smoke default dry-run decision inputs must record profile_post_deploy=true")
 if decision_inputs.get("post_deploy_smoke_verified") is not False:
     raise SystemExit("staging smoke dry-run decision inputs must record post_deploy_smoke_verified=false")
 if decision_inputs.get("release_evidence_complete") is not False:
@@ -325,6 +327,36 @@ if decision_inputs.get("gate_fixtures_clear") is not False:
 for gate in ("private_beta_staging", "production_launch"):
     if gate not in summary["release_gate_fixtures"]:
         raise SystemExit(f"staging smoke missing gate fixture summary for {gate}")
+PY
+contract_profile_dir="$(mktemp -d)"
+DRY_RUN=1 \
+  STAGING_SMOKE_PROFILE=contract \
+  OUT_DIR="$contract_profile_dir/staging" \
+  scripts/staging_smoke.sh >/dev/null
+python3 - "$contract_profile_dir/staging" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+reports = sorted(Path(sys.argv[1]).glob("*.json"))
+if len(reports) != 1:
+    raise SystemExit("contract-profile staging smoke dry-run must write exactly one report")
+report = json.loads(reports[0].read_text(encoding="utf-8"))
+summary = report["summary"]
+go_no_go = summary["go_no_go"]
+decision_inputs = go_no_go.get("decision_inputs", {})
+if decision_inputs.get("profile_post_deploy") is not False:
+    raise SystemExit(f"contract-profile staging smoke must record profile_post_deploy=false: {decision_inputs}")
+if decision_inputs.get("smoke_passed") is not False:
+    raise SystemExit(f"contract-profile staging smoke must not count as post-deploy smoke passed: {decision_inputs}")
+if "post_deploy_profile_required" not in go_no_go.get("blocking_reasons", []):
+    raise SystemExit(f"contract-profile staging smoke must block on post_deploy_profile_required: {go_no_go}")
+post_deploy_smoke = summary["post_deploy_smoke_evidence"]
+if post_deploy_smoke.get("verified") is not False:
+    raise SystemExit("contract-profile staging smoke must not verify post-deploy smoke evidence")
+semantic_checks = post_deploy_smoke.get("semantic_checks", {})
+if semantic_checks.get("profile_post_deploy") is not False:
+    raise SystemExit(f"contract-profile post-deploy contract must fail profile_post_deploy: {semantic_checks}")
 PY
 complete_validate_dir="$(mktemp -d)"
 complete_sha="1234567890abcdef1234567890abcdef12345678"
@@ -534,6 +566,7 @@ if not any(reason.startswith("gate_fixture_blocked:production_launch:") for reas
     raise SystemExit("complete-evidence staging smoke dry-run must include production gate blocking reasons")
 decision_inputs = go_no_go.get("decision_inputs", {})
 if decision_inputs != {
+    "profile_post_deploy": True,
     "smoke_passed": False,
     "post_deploy_smoke_verified": False,
     "release_evidence_complete": True,
