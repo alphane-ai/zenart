@@ -13,6 +13,7 @@ import (
 
 	"github.com/alphane-ai/zenart/backend/internal/auth"
 	"github.com/alphane-ai/zenart/backend/internal/config"
+	"github.com/alphane-ai/zenart/backend/internal/security"
 	"github.com/alphane-ai/zenart/backend/internal/stage0"
 	"github.com/alphane-ai/zenart/backend/internal/store"
 	"github.com/alphane-ai/zenart/backend/internal/task"
@@ -233,6 +234,33 @@ func TestUploadCreateRejectsUnsupportedContentType(t *testing.T) {
 	}
 	if bodyJSON["code"] != "validation_error" {
 		t.Fatalf("code = %v, want validation_error", bodyJSON["code"])
+	}
+}
+
+func TestUploadCreateReturnsConflictForSuspiciousMalwareScan(t *testing.T) {
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	body := bytes.NewBufferString(`{"filename":"logo.png","content_type":"image/png","byte_size":100,"metadata":{"stage0_force_malware_status":"suspicious"}}`)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/uploads", body)
+	req = req.WithContext(stage0.ContextWithService(req.Context(), stage0.NewService(stage0.NewRepository(noExecDB{}), nil, security.PlaceholderMalwareScanner{Provider: "stage0-test"})))
+	req.Header.Set("X-Zenart-User-ID", "user_1")
+	req.Header.Set("X-Zenart-Tenant-ID", "tenant_1")
+	setSameSiteCSRFHeaders(req)
+	rec := httptest.NewRecorder()
+
+	New(cfg, nil).Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusConflict {
+		t.Fatalf("status = %d, want conflict: %s", rec.Code, rec.Body.String())
+	}
+	var bodyJSON map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &bodyJSON); err != nil {
+		t.Fatalf("response JSON error = %v", err)
+	}
+	if bodyJSON["code"] != "malware_blocked" {
+		t.Fatalf("code = %v, want malware_blocked", bodyJSON["code"])
 	}
 }
 

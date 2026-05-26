@@ -36,6 +36,7 @@ var (
 	ErrValidation        = errors.New("stage0 validation failed")
 	ErrSafetyBlocked     = errors.New("export blocked by safety or QA")
 	ErrSafetyReviewHold  = errors.New("operation held by safety policy")
+	ErrMalwareBlocked    = errors.New("upload blocked by malware scan")
 	ErrMissingRepository = errors.New("stage0 repository missing")
 )
 
@@ -124,6 +125,7 @@ type UploadOptions struct {
 	MaxBytes            int64
 	URLTTL              time.Duration
 	SignURL             func(tenantID, objectKey string, ttl time.Duration) (string, time.Time)
+	MalwareScanner      security.MalwareScanner
 }
 
 type Upload struct {
@@ -418,8 +420,22 @@ func (r Repository) CreateUpload(ctx context.Context, opts UploadOptions) (Uploa
 	uploadID := id.New("upload")
 	objectID := id.New("object")
 	objectKey := "uploads/" + uploadID + "/" + filename
-	uploadURL, expiresAt := opts.SignURL(opts.TenantID, objectKey, opts.URLTTL)
 	metadata := security.RedactMap(opts.Input.Metadata)
+	scanResult, err := scanUpload(ctx, opts.MalwareScanner, security.MalwareScanTarget{
+		TenantID:    opts.TenantID,
+		ObjectKey:   objectKey,
+		ContentType: contentType,
+		ByteSize:    opts.Input.ByteSize,
+		Metadata:    malwareScanMetadata(metadata),
+	})
+	if err != nil {
+		return Upload{}, err
+	}
+	metadata["malware_scan"] = malwareScanMetadataValue(scanResult)
+	if scanResult.Status == security.MalwareScanStatusSuspicious {
+		return Upload{}, ErrMalwareBlocked
+	}
+	uploadURL, expiresAt := opts.SignURL(opts.TenantID, objectKey, opts.URLTTL)
 	upload := Upload{
 		ID:           uploadID,
 		TenantID:     opts.TenantID,
@@ -457,7 +473,7 @@ func (r Repository) CreateUpload(ctx context.Context, opts UploadOptions) (Uploa
 		upload.ObjectMetadata.ProjectID = &projectID
 	}
 
-	_, err := r.db.Exec(ctx, `
+	_, err = r.db.Exec(ctx, `
 INSERT INTO uploads(id, tenant_id, project_id, user_id, upload_type, status, original_filename, content_type, byte_size, created_at, updated_at)
 VALUES($1, $2, $3, $4, $5, 'pending', $6, $7, $8, $9, $9)`,
 		upload.ID,
@@ -1299,6 +1315,50 @@ VALUES($1, $2, NULLIF($3, ''), NULLIF($4, ''), $5, $6, $7, $8, $9, $10)`,
 	return err
 }
 
+func scanUpload(ctx context.Context, scanner security.MalwareScanner, target security.MalwareScanTarget) (security.MalwareScanResult, error) {
+	if scanner == nil {
+		scanner = security.PlaceholderMalwareScanner{}
+	}
+	result, err := scanner.Scan(ctx, target)
+	if err != nil {
+		return security.MalwareScanResult{}, err
+	}
+	if result.ScannedAt.IsZero() {
+		result.ScannedAt = time.Now().UTC()
+	}
+	if result.Provider == "" {
+		result.Provider = "unknown"
+	}
+	if result.Status == "" {
+		result.Status = security.MalwareScanStatusUnavailable
+	}
+	return result, nil
+}
+
+func malwareScanMetadata(input map[string]any) map[string]string {
+	if len(input) == 0 {
+		return nil
+	}
+	out := make(map[string]string, len(input))
+	for key, value := range input {
+		if stringValue, ok := value.(string); ok {
+			out[key] = security.RedactString(stringValue)
+		}
+	}
+	return out
+}
+
+func malwareScanMetadataValue(result security.MalwareScanResult) map[string]any {
+	return security.RedactMap(map[string]any{
+		"status":     string(result.Status),
+		"provider":   result.Provider,
+		"definition": result.Signature,
+		"rationale":  result.Rationale,
+		"scanned_at": result.ScannedAt.UTC().Format(time.RFC3339),
+		"metadata":   result.Metadata,
+	})
+}
+
 type packageContext struct {
 	ProjectID  string
 	CreatedBy  string
@@ -1633,14 +1693,26 @@ func tenantScopedObjectKey(tenantID, key string) string {
 type Service struct {
 	repo    Repository
 	objects objectstore.Store
+	scanner security.MalwareScanner
 }
 
-func NewService(repo Repository, objects objectstore.Store) Service {
-	return Service{repo: repo, objects: objects}
+func NewService(repo Repository, objects objectstore.Store, scanners ...security.MalwareScanner) Service {
+	var scanner security.MalwareScanner
+	if len(scanners) > 0 {
+		scanner = scanners[0]
+	}
+	return Service{repo: repo, objects: objects, scanner: scanner}
 }
 
 func (s Service) Repository() Repository {
 	return s.repo
+}
+
+func (s Service) CreateUpload(ctx context.Context, opts UploadOptions) (Upload, error) {
+	if opts.MalwareScanner == nil {
+		opts.MalwareScanner = s.scanner
+	}
+	return s.repo.CreateUpload(ctx, opts)
 }
 
 func (s Service) CreateExport(ctx context.Context, tenantID, userID, packageID string, input ExportCreate, schemaVersion int) (task.Task, error) {

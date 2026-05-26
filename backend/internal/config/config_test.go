@@ -27,6 +27,9 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.Security.UploadURLTTL <= 0 {
 		t.Fatalf("Security.UploadURLTTL = %s, want positive", cfg.Security.UploadURLTTL)
 	}
+	if cfg.Security.MalwareScanProvider != "stage0-placeholder" {
+		t.Fatalf("Security.MalwareScanProvider = %q, want stage0-placeholder", cfg.Security.MalwareScanProvider)
+	}
 	if cfg.ObjectStorage.Bucket != "zenart-local" {
 		t.Fatalf("ObjectStorage.Bucket = %q, want zenart-local", cfg.ObjectStorage.Bucket)
 	}
@@ -112,6 +115,15 @@ func TestValidateRejectsInvalidSecurityConfig(t *testing.T) {
 	cfg.Security.AllowedUploadTypes = []string{"png"}
 	if err := cfg.Validate(); err == nil {
 		t.Fatal("Validate() error = nil, want invalid upload content type error")
+	}
+
+	cfg, err = Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	cfg.Security.MalwareScanProvider = ""
+	if err := cfg.Validate(); err == nil {
+		t.Fatal("Validate() error = nil, want missing malware scan provider error")
 	}
 }
 

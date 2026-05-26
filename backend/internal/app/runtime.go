@@ -13,6 +13,7 @@ import (
 
 	"github.com/alphane-ai/zenart/backend/internal/config"
 	"github.com/alphane-ai/zenart/backend/internal/objectstore"
+	"github.com/alphane-ai/zenart/backend/internal/security"
 	"github.com/alphane-ai/zenart/backend/internal/server"
 	"github.com/alphane-ai/zenart/backend/internal/stage0"
 	"github.com/alphane-ai/zenart/backend/internal/store"
@@ -35,7 +36,8 @@ func RunServer(ctx context.Context, cfg config.Config, logger *slog.Logger) erro
 		return err
 	}
 	db := store.NewPoolAdapter(pool)
-	stage0Service := stage0.NewService(stage0.NewRepository(db), objects)
+	scanner := security.PlaceholderMalwareScanner{Provider: cfg.Security.MalwareScanProvider}
+	stage0Service := stage0.NewService(stage0.NewRepository(db), objects, scanner)
 	api := server.New(cfg, logger)
 	baseHandler := api.Handler()
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

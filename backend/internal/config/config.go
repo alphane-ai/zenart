@@ -40,6 +40,7 @@ type SecurityConfig struct {
 	MaxUploadBytes        int64
 	AllowedUploadTypes    []string
 	UploadURLTTL          time.Duration
+	MalwareScanProvider   string
 	ContentSecurityPolicy string
 	CSRFHeaderName        string
 	CSRFHeaderValue       string
@@ -125,6 +126,7 @@ func Load() (Config, error) {
 			MaxUploadBytes:        int64Env("MAX_UPLOAD_BYTES", 25*1024*1024),
 			AllowedUploadTypes:    listEnv("ALLOWED_UPLOAD_CONTENT_TYPES", []string{"image/png", "image/jpeg", "image/webp", "image/gif", "application/pdf"}),
 			UploadURLTTL:          durationEnv("UPLOAD_URL_TTL", 10*time.Minute),
+			MalwareScanProvider:   env("MALWARE_SCAN_PROVIDER", "stage0-placeholder"),
 			ContentSecurityPolicy: env("CONTENT_SECURITY_POLICY", "default-src 'none'; frame-ancestors 'none'; base-uri 'none'"),
 			CSRFHeaderName:        env("CSRF_HEADER_NAME", "X-ZenArt-CSRF"),
 			CSRFHeaderValue:       env("CSRF_HEADER_VALUE", "same-site-origin-check"),
@@ -223,6 +225,9 @@ func (c Config) Validate() error {
 	}
 	if c.Security.UploadURLTTL <= 0 {
 		errs = append(errs, "UPLOAD_URL_TTL must be > 0")
+	}
+	if strings.TrimSpace(c.Security.MalwareScanProvider) == "" {
+		errs = append(errs, "MALWARE_SCAN_PROVIDER must not be empty")
 	}
 	if strings.TrimSpace(c.Security.CSRFHeaderName) == "" {
 		errs = append(errs, "CSRF_HEADER_NAME must not be empty")

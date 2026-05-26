@@ -271,7 +271,7 @@ func (s *Server) auditSearch(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) createUpload(w http.ResponseWriter, r *http.Request) {
 	principal, _ := PrincipalFromContext(r.Context())
-	repo, ok := stage0RepoFrom(r)
+	service, ok := stage0.ServiceFromContext(r.Context())
 	if !ok {
 		writeError(w, r, http.StatusNotImplemented, "upload_service_not_connected", "upload storage is not connected yet", nil)
 		return
@@ -281,7 +281,7 @@ func (s *Server) createUpload(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, http.StatusBadRequest, "invalid_json", "request body must be valid JSON", nil)
 		return
 	}
-	upload, err := repo.CreateUpload(r.Context(), stage0.UploadOptions{
+	upload, err := service.CreateUpload(r.Context(), stage0.UploadOptions{
 		TenantID:            principal.TenantID,
 		UserID:              principal.UserID,
 		Bucket:              s.cfg.ObjectStorage.Bucket,
@@ -511,6 +511,8 @@ func writeStage0Error(w http.ResponseWriter, r *http.Request, err error) {
 		writeError(w, r, http.StatusNotFound, "not_found", "requested record was not found for this tenant", nil)
 	case errors.Is(err, stage0.ErrSafetyBlocked):
 		writeError(w, r, http.StatusConflict, "safety_blocked", "operation is blocked by safety or QA policy", nil)
+	case errors.Is(err, stage0.ErrMalwareBlocked):
+		writeError(w, r, http.StatusConflict, "malware_blocked", "upload is blocked by malware scan policy", nil)
 	default:
 		writeError(w, r, http.StatusInternalServerError, "stage0_service_error", "stage0 service operation failed", nil)
 	}

@@ -12,6 +12,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 
 	"github.com/alphane-ai/zenart/backend/internal/objectstore"
+	"github.com/alphane-ai/zenart/backend/internal/security"
 	"github.com/alphane-ai/zenart/backend/internal/store"
 )
 
@@ -319,6 +320,12 @@ func TestCreateUploadValidatesAndPersistsMetadata(t *testing.T) {
 		SignURL: func(_ string, objectKey string, _ time.Duration) (string, time.Time) {
 			return "/signed/" + objectKey, time.Now().UTC().Add(5 * time.Minute)
 		},
+		MalwareScanner: security.PlaceholderMalwareScanner{
+			Provider: "stage0-test",
+			Now: func() time.Time {
+				return time.Date(2026, 5, 26, 12, 0, 0, 0, time.UTC)
+			},
+		},
 	})
 	if err != nil {
 		t.Fatalf("CreateUpload() error = %v", err)
@@ -335,6 +342,16 @@ func TestCreateUploadValidatesAndPersistsMetadata(t *testing.T) {
 	if upload.Metadata["session_token"] != "[REDACTED]" {
 		t.Fatalf("upload session token metadata = %v, want redacted", upload.Metadata["session_token"])
 	}
+	scanMetadata, ok := upload.Metadata["malware_scan"].(map[string]any)
+	if !ok {
+		t.Fatalf("upload metadata missing malware_scan result: %#v", upload.Metadata)
+	}
+	if scanMetadata["status"] != string(security.MalwareScanStatusUnavailable) || scanMetadata["provider"] != "stage0-test" {
+		t.Fatalf("malware scan metadata = %#v, want unavailable stage0-test", scanMetadata)
+	}
+	if scanMetadata["definition"] != "placeholder-v1" {
+		t.Fatalf("malware scan definition = %#v, want placeholder-v1", scanMetadata["definition"])
+	}
 	if len(db.execs) != 3 {
 		t.Fatalf("exec count = %d, want 3", len(db.execs))
 	}
@@ -347,8 +364,49 @@ func TestCreateUploadValidatesAndPersistsMetadata(t *testing.T) {
 	if !strings.Contains(db.execs[1].sql, "project_id, owner_id, asset_type") {
 		t.Fatalf("object metadata insert missing ownership fields: %s", db.execs[1].sql)
 	}
+	objectMetadataJSON, ok := db.execs[1].args[12].([]byte)
+	if !ok {
+		t.Fatalf("object metadata arg type = %T, want []byte", db.execs[1].args[12])
+	}
+	if !strings.Contains(string(objectMetadataJSON), `"malware_scan"`) || strings.Contains(string(objectMetadataJSON), "secret") {
+		t.Fatalf("object metadata JSON = %s, want scan result and redacted secrets", string(objectMetadataJSON))
+	}
 	if !strings.Contains(db.execs[2].sql, "INSERT INTO analytics_events") {
 		t.Fatalf("upload analytics event not recorded: %s", db.execs[2].sql)
+	}
+}
+
+func TestCreateUploadBlocksSuspiciousMalwareScan(t *testing.T) {
+	db := &fakeDB{}
+	repo := NewRepository(db)
+	signed := false
+
+	_, err := repo.CreateUpload(context.Background(), UploadOptions{
+		TenantID:            "tenant_1",
+		UserID:              "user_1",
+		AllowedContentTypes: []string{"image/png"},
+		MaxBytes:            1024,
+		URLTTL:              5 * time.Minute,
+		Input: UploadCreate{
+			Filename:    "Logo.png",
+			ContentType: "image/png",
+			ByteSize:    512,
+			Metadata:    map[string]any{"stage0_force_malware_status": "suspicious", "api_key": "secret"},
+		},
+		SignURL: func(_ string, objectKey string, _ time.Duration) (string, time.Time) {
+			signed = true
+			return "/signed/" + objectKey, time.Now().UTC().Add(5 * time.Minute)
+		},
+		MalwareScanner: security.PlaceholderMalwareScanner{Provider: "stage0-test"},
+	})
+	if !errors.Is(err, ErrMalwareBlocked) {
+		t.Fatalf("CreateUpload() error = %v, want ErrMalwareBlocked", err)
+	}
+	if len(db.execs) != 0 {
+		t.Fatalf("suspicious upload should not write rows: %#v", db.execs)
+	}
+	if signed {
+		t.Fatal("suspicious upload should not issue a signed upload URL")
 	}
 }
 
