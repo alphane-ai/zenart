@@ -157,11 +157,32 @@
         "statusAttribute": "data-session-unsafe-action-status",
         "safeLabelsAttribute": "data-session-unsafe-action-safe-labels",
         "protectedMethodsAttribute": "data-session-unsafe-action-protected-methods",
+        "guardCountAttribute": "data-session-unsafe-action-guard-count",
+        "guardLabelsAttribute": "data-session-unsafe-action-guard-labels",
         "expectedGuard": "authenticated-same-site-session",
         "expectedEnabledStatus": "enabled",
         "expectedBlockedStatus": "blocked",
         "expectedSafeLabels": "load,login",
-        "expectedProtectedMethods": "POST,PUT,PATCH,DELETE"
+        "expectedProtectedMethods": "POST,PUT,PATCH,DELETE",
+        "expectedGuardCount": "16",
+        "expectedGuardLabels": [
+          "Confirm Brief",
+          "Attach",
+          "Package Reference",
+          "Select Candidate",
+          "Iterate",
+          "Restore Version",
+          "Add Selection",
+          "Export ZIP",
+          "Export PDF",
+          "Request Share",
+          "Mock Checkout",
+          "Billing Scenario",
+          "Save Settings",
+          "Submit Ticket",
+          "Refresh Session",
+          "Expire Session"
+        ]
       }
     },
     {

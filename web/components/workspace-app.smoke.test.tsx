@@ -20,6 +20,25 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(sessionContract).toHaveAttribute("data-session-unsafe-action-status", "enabled");
     expect(sessionContract).toHaveAttribute("data-session-unsafe-action-safe-labels", "load,login");
     expect(sessionContract).toHaveAttribute("data-session-unsafe-action-protected-methods", "POST,PUT,PATCH,DELETE");
+    expect(sessionContract).toHaveAttribute("data-session-unsafe-action-guard-count", "16");
+    expect(sessionContract.getAttribute("data-session-unsafe-action-guard-labels")?.split("|")).toEqual([
+      "Confirm Brief",
+      "Attach",
+      "Package Reference",
+      "Select Candidate",
+      "Iterate",
+      "Restore Version",
+      "Add Selection",
+      "Export ZIP",
+      "Export PDF",
+      "Request Share",
+      "Mock Checkout",
+      "Billing Scenario",
+      "Save Settings",
+      "Submit Ticket",
+      "Refresh Session",
+      "Expire Session"
+    ]);
     expect(sessionContract).toHaveAttribute("data-session-cookie-name", "__Host-zenart_session");
     expect(sessionContract).toHaveAttribute("data-session-cookie-http-only", "true");
     expect(sessionContract).toHaveAttribute("data-session-cookie-secure", "true");
@@ -565,7 +584,26 @@ describe("WorkspaceApp user route integration smoke", () => {
         expectedEnabledStatus: "enabled",
         expectedBlockedStatus: "blocked",
         expectedSafeLabels: "load,login",
-        expectedProtectedMethods: "POST,PUT,PATCH,DELETE"
+        expectedProtectedMethods: "POST,PUT,PATCH,DELETE",
+        expectedGuardCount: "16",
+        expectedGuardLabels: expect.arrayContaining([
+          "Confirm Brief",
+          "Attach",
+          "Package Reference",
+          "Select Candidate",
+          "Iterate",
+          "Restore Version",
+          "Add Selection",
+          "Export ZIP",
+          "Export PDF",
+          "Request Share",
+          "Mock Checkout",
+          "Billing Scenario",
+          "Save Settings",
+          "Submit Ticket",
+          "Refresh Session",
+          "Expire Session"
+        ])
       }
     });
     expect(evidenceBySchema.get("stage0.rev2.workspace-rendering-performance")).toMatchObject({

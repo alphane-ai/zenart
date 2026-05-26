@@ -85,6 +85,24 @@ const severityClass: Record<QaSeverity, string> = {
 
 const sessionSecurityEvidenceSchema = "stage0.rev2.session-csrf-client-evidence";
 const sessionSafeActionLabels = new Set(["load", "login"]);
+const sameSiteUnsafeActionGuardLabels = [
+  "Confirm Brief",
+  "Attach",
+  "Package Reference",
+  "Select Candidate",
+  "Iterate",
+  "Restore Version",
+  "Add Selection",
+  "Export ZIP",
+  "Export PDF",
+  "Request Share",
+  "Mock Checkout",
+  "Billing Scenario",
+  "Save Settings",
+  "Submit Ticket",
+  "Refresh Session",
+  "Expire Session"
+] as const;
 
 const requiresAuthenticatedSession = (label: string) => !sessionSafeActionLabels.has(label);
 
@@ -370,6 +388,8 @@ function SessionPanel({
       data-session-unsafe-action-status={sessionBlocked ? "blocked" : "enabled"}
       data-session-unsafe-action-safe-labels={Array.from(sessionSafeActionLabels).join(",")}
       data-session-unsafe-action-protected-methods={state.sessionContract.csrf.protectedMethods.join(",")}
+      data-session-unsafe-action-guard-count={sameSiteUnsafeActionGuardLabels.length}
+      data-session-unsafe-action-guard-labels={sameSiteUnsafeActionGuardLabels.join("|")}
     >
       <div className="session-contract-main">
         <ShieldCheck size={18} aria-hidden="true" />

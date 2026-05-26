@@ -156,7 +156,9 @@ for (const requiredSessionAttribute of [
   sessionEvidence.unsafeActionGuard?.guardAttribute,
   sessionEvidence.unsafeActionGuard?.statusAttribute,
   sessionEvidence.unsafeActionGuard?.safeLabelsAttribute,
-  sessionEvidence.unsafeActionGuard?.protectedMethodsAttribute
+  sessionEvidence.unsafeActionGuard?.protectedMethodsAttribute,
+  sessionEvidence.unsafeActionGuard?.guardCountAttribute,
+  sessionEvidence.unsafeActionGuard?.guardLabelsAttribute
 ]) {
   if (!requiredSessionAttribute || !componentSource.includes(requiredSessionAttribute)) {
     fail(`session/CSRF UI evidence missing ${requiredSessionAttribute}`);
@@ -180,18 +182,28 @@ if (
   sessionEvidence.unsafeActionGuard?.expectedEnabledStatus !== "enabled" ||
   sessionEvidence.unsafeActionGuard?.expectedBlockedStatus !== "blocked" ||
   sessionEvidence.unsafeActionGuard?.expectedSafeLabels !== "load,login" ||
-  sessionEvidence.unsafeActionGuard?.expectedProtectedMethods !== "POST,PUT,PATCH,DELETE"
+  sessionEvidence.unsafeActionGuard?.expectedProtectedMethods !== "POST,PUT,PATCH,DELETE" ||
+  sessionEvidence.unsafeActionGuard?.expectedGuardCount !== "16"
 ) {
   fail("session/CSRF UI evidence does not assert the secure-cookie and same-site contract");
+}
+
+for (const expectedGuardLabel of sessionEvidence.unsafeActionGuard?.expectedGuardLabels ?? []) {
+  if (!componentSource.includes(expectedGuardLabel) || !JSON.stringify(artifact).includes(expectedGuardLabel)) {
+    fail(`same-site CSRF unsafe-action guard matrix missing ${expectedGuardLabel}`);
+  }
 }
 
 for (const requiredGuardSnippet of [
   "requiresAuthenticatedSession",
   "sessionSafeActionLabels",
+  "sameSiteUnsafeActionGuardLabels",
   "data-session-unsafe-action-guard",
   "data-session-unsafe-action-status",
   "data-session-unsafe-action-safe-labels",
   "data-session-unsafe-action-protected-methods",
+  "data-session-unsafe-action-guard-count",
+  "data-session-unsafe-action-guard-labels",
   "authenticated-same-site-session",
   "sessionBlocked || busy === \"brief\"",
   "sessionBlocked || !referenceName.trim()",
