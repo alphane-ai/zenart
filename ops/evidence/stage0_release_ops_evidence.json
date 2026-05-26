@@ -75,6 +75,28 @@
       "rollback_evidence": "must be local JSON, reference RELEASE_SHA, set environment=staging, set kind=rollback, and use status passed or validated",
       "security_scan_evidence": "must be local JSON, reference RELEASE_SHA, set environment=staging, set kind=security_scan, and use status passed"
     },
+    "staging_semantic_contracts": {
+      "observability_evidence": {
+        "required_entries": [
+          "request_id_propagation",
+          "structured_json_logs",
+          "opentelemetry_traces",
+          "backend_worker_crawler_metrics",
+          "dashboard_import",
+          "alert_routes"
+        ],
+        "entry_requirements": "each required entry must be passed or validated and carry a validator-visible evidence reference such as evidence_ref, trace_id, metrics_query, dashboard_uid, or alert_rule_url",
+        "gate_policy": "generic staging observability status is insufficient to close private beta or production observability gates"
+      },
+      "backup_restore_evidence": {
+        "required_entries": [
+          "postgres_restore",
+          "object_restore"
+        ],
+        "entry_requirements": "each required drill must be passed or validated and carry a validator-visible report_path or evidence_ref",
+        "gate_policy": "backup schedule or one restore class alone is insufficient to close private beta or production restore gates"
+      }
+    },
     "blocking_reason_contract": {
       "field": "summary.go_no_go.blocking_reasons",
       "required_prefixes": [

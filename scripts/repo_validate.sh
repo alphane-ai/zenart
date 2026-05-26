@@ -327,8 +327,34 @@ Release SHA: $complete_sha
 EOF
 printf '{"release_sha":"%s","environment":"staging","kind":"migration","status":"passed"}\n' "$complete_sha" >"$complete_validate_dir/migration.json"
 printf '{"release_sha":"%s","environment":"staging","kind":"config_diff","status":"reviewed"}\n' "$complete_sha" >"$complete_validate_dir/config.json"
-printf '{"release_sha":"%s","environment":"staging","kind":"observability","status":"passed"}\n' "$complete_sha" >"$complete_validate_dir/observability.json"
-printf '{"release_sha":"%s","environment":"staging","kind":"backup_restore","status":"passed"}\n' "$complete_sha" >"$complete_validate_dir/backup.json"
+cat >"$complete_validate_dir/observability.json" <<EOF
+{
+  "release_sha": "$complete_sha",
+  "environment": "staging",
+  "kind": "observability",
+  "status": "passed",
+  "signals": [
+    {"name": "request_id_propagation", "status": "passed", "evidence_ref": "staging/logs/request-id-$complete_sha.json"},
+    {"name": "structured_json_logs", "status": "passed", "evidence_ref": "staging/logs/json-logs-$complete_sha.json"},
+    {"name": "opentelemetry_traces", "status": "passed", "trace_id": "trace-$complete_sha"},
+    {"name": "backend_worker_crawler_metrics", "status": "passed", "metrics_query": "staging metrics release_sha=$complete_sha"},
+    {"name": "dashboard_import", "status": "passed", "dashboard_uid": "stage0-rev2-$complete_sha"},
+    {"name": "alert_routes", "status": "validated", "alert_rule_url": "https://monitoring.example.invalid/stage0/$complete_sha"}
+  ]
+}
+EOF
+cat >"$complete_validate_dir/backup.json" <<EOF
+{
+  "release_sha": "$complete_sha",
+  "environment": "staging",
+  "kind": "backup_restore",
+  "status": "passed",
+  "drills": [
+    {"drill_id": "postgres_restore", "status": "passed", "report_path": "staging/restore/postgres-$complete_sha.json"},
+    {"drill_id": "object_restore", "status": "passed", "report_path": "staging/restore/object-$complete_sha.json"}
+  ]
+}
+EOF
 printf '{"release_sha":"%s","environment":"staging","kind":"load","status":"passed"}\n' "$complete_sha" >"$complete_validate_dir/load.json"
 printf '{"release_sha":"%s","environment":"staging","kind":"rollback","status":"validated"}\n' "$complete_sha" >"$complete_validate_dir/rollback.json"
 printf '{"release_sha":"%s","environment":"staging","kind":"security_scan","status":"passed"}\n' "$complete_sha" >"$complete_validate_dir/security.json"
@@ -374,6 +400,10 @@ for slot, evidence in release_evidence.get("local_evidence_verification", {}).it
         failed = sorted(key for key, value in checks.items() if value is not True)
         if failed:
             raise SystemExit(f"{slot} semantic checks failed in complete-evidence dry-run: {failed}")
+if release_evidence["local_evidence_verification"]["observability_evidence"].get("observability_contract", {}).get("verified") is not True:
+    raise SystemExit("complete-evidence staging smoke dry-run must verify observability signal contract")
+if release_evidence["local_evidence_verification"]["backup_restore_evidence"].get("backup_restore_contract", {}).get("verified") is not True:
+    raise SystemExit("complete-evidence staging smoke dry-run must verify backup/restore drill contract")
 if go_no_go.get("release_evidence_complete") is not True:
     raise SystemExit("complete-evidence staging smoke dry-run must expose release_evidence_complete=true")
 if go_no_go.get("gate_fixtures_clear") is not False:
@@ -403,6 +433,48 @@ if decision_inputs != {
     "gate_fixtures_clear": False,
 }:
     raise SystemExit(f"complete-evidence staging smoke decision inputs mismatch: {decision_inputs}")
+PY
+incomplete_contract_dir="$(mktemp -d)"
+printf '{"release_sha":"%s","environment":"staging","kind":"observability","status":"passed","signals":[{"name":"request_id_propagation","status":"passed","evidence_ref":"only-one-signal.json"}]}\n' "$complete_sha" >"$incomplete_contract_dir/observability.json"
+printf '{"release_sha":"%s","environment":"staging","kind":"backup_restore","status":"passed","drills":[{"drill_id":"postgres_restore","status":"passed","report_path":"postgres.json"}]}\n' "$complete_sha" >"$incomplete_contract_dir/backup.json"
+DRY_RUN=1 \
+  OUT_DIR="$incomplete_contract_dir/staging" \
+  RELEASE_SHA="$complete_sha" \
+  RELEASE_TAG="stage0-synthetic" \
+  RELEASE_NOTES_PATH="$complete_validate_dir/release-notes.md" \
+  IMAGE_REFS="ghcr.io/alphane-ai/zenart-backend:$complete_sha,ghcr.io/alphane-ai/zenart-web:$complete_sha,ghcr.io/alphane-ai/zenart-admin:$complete_sha" \
+  MIGRATION_EVIDENCE="$complete_validate_dir/migration.json" \
+  CONFIG_DIFF_EVIDENCE="$complete_validate_dir/config.json" \
+  OBSERVABILITY_EVIDENCE="$incomplete_contract_dir/observability.json" \
+  BACKUP_RESTORE_EVIDENCE="$incomplete_contract_dir/backup.json" \
+  LOAD_EVIDENCE="$complete_validate_dir/load.json" \
+  ROLLBACK_EVIDENCE="$complete_validate_dir/rollback.json" \
+  SECURITY_SCAN_EVIDENCE="$complete_validate_dir/security.json" \
+  scripts/staging_smoke.sh >/dev/null
+python3 - "$incomplete_contract_dir/staging" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+reports = sorted(Path(sys.argv[1]).glob("*.json"))
+if len(reports) != 1:
+    raise SystemExit("incomplete-contract staging smoke dry-run must write exactly one report")
+report = json.loads(reports[0].read_text(encoding="utf-8"))
+summary = report["summary"]
+release_evidence = summary["release_evidence"]
+if release_evidence.get("complete") is not False:
+    raise SystemExit("incomplete-contract staging smoke dry-run must reject incomplete observability/restore contracts")
+verification = release_evidence["local_evidence_verification"]
+observability = verification["observability_evidence"]
+backup = verification["backup_restore_evidence"]
+if observability.get("verified") is not False or "observability_contract" not in observability.get("reason", ""):
+    raise SystemExit(f"incomplete observability contract must be unverified: {observability}")
+if backup.get("verified") is not False or "backup_restore_contract" not in backup.get("reason", ""):
+    raise SystemExit(f"incomplete backup/restore contract must be unverified: {backup}")
+if "unverified_release_evidence:observability_evidence" not in summary["go_no_go"]["blocking_reasons"]:
+    raise SystemExit("incomplete observability evidence must block go/no-go")
+if "unverified_release_evidence:backup_restore_evidence" not in summary["go_no_go"]["blocking_reasons"]:
+    raise SystemExit("incomplete backup/restore evidence must block go/no-go")
 PY
 python3 - "$ops_validate_dir/observability" <<'PY'
 import json

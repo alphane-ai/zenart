@@ -189,6 +189,96 @@ def collect_key_values(value, keys):
     return values
 
 
+def normalized_token(value):
+    return str(value).strip().lower().replace("-", "_").replace(" ", "_")
+
+
+def collect_named_entries(parsed):
+    entries = {}
+    if not isinstance(parsed, dict):
+        return entries
+    for container_key in ("signals", "checks", "drills", "restore_drills"):
+        container = parsed.get(container_key)
+        if isinstance(container, dict):
+            for key, value in container.items():
+                if isinstance(value, dict):
+                    entries[normalized_token(key)] = value
+        elif isinstance(container, list):
+            for item in container:
+                if not isinstance(item, dict):
+                    continue
+                name = (
+                    item.get("name")
+                    or item.get("signal")
+                    or item.get("signal_id")
+                    or item.get("check_id")
+                    or item.get("drill_id")
+                    or item.get("id")
+                )
+                if name:
+                    entries[normalized_token(name)] = item
+    return entries
+
+
+def entry_passed(entry, accepted_statuses):
+    status_values = [
+        normalized_token(value)
+        for value in collect_key_values(entry, {"status", "result", "runtime_status"})
+    ]
+    accepted = {normalized_token(value) for value in accepted_statuses}
+    return any(value in accepted for value in status_values)
+
+
+def entry_has_evidence_ref(entry):
+    if not isinstance(entry, dict):
+        return False
+    evidence_keys = {
+        "evidence_ref",
+        "evidence_refs",
+        "report_path",
+        "source_report",
+        "query_ref",
+        "dashboard_url",
+        "dashboard_uid",
+        "alert_rule_url",
+        "trace_id",
+        "log_query",
+        "metrics_query",
+        "artifact_path",
+    }
+    for key, value in entry.items():
+        if key in evidence_keys and value:
+            return True
+        if isinstance(value, dict) and entry_has_evidence_ref(value):
+            return True
+        if isinstance(value, list) and any(entry_has_evidence_ref(item) for item in value if isinstance(item, dict)):
+            return True
+    return False
+
+
+def validate_named_contract(parsed, required_aliases, accepted_statuses):
+    entries = collect_named_entries(parsed)
+    result = {
+        "required": sorted(required_aliases),
+        "present": sorted(entries),
+        "missing": [],
+        "not_passed": [],
+        "missing_evidence_ref": [],
+        "verified": False,
+    }
+    for requirement, aliases in required_aliases.items():
+        entry = next((entries[normalized_token(alias)] for alias in aliases if normalized_token(alias) in entries), None)
+        if entry is None:
+            result["missing"].append(requirement)
+            continue
+        if not entry_passed(entry, accepted_statuses):
+            result["not_passed"].append(requirement)
+        if not entry_has_evidence_ref(entry):
+            result["missing_evidence_ref"].append(requirement)
+    result["verified"] = not result["missing"] and not result["not_passed"] and not result["missing_evidence_ref"]
+    return result
+
+
 def validate_local_ref(name, value, *, require_sha=False):
     local_path = resolve_local_path(value)
     result = {
@@ -270,6 +360,32 @@ def validate_staging_evidence_ref(name, value, *, expected_kind, accepted_status
     missing_semantics = [
         key for key, passed in result["semantic_checks"].items() if passed is not True
     ]
+    if expected_kind == "observability":
+        result["observability_contract"] = validate_named_contract(
+            parsed,
+            {
+                "request_id_propagation": {"request_id_propagation", "request_id"},
+                "structured_json_logs": {"structured_json_logs", "structured_logs", "json_logs"},
+                "opentelemetry_traces": {"opentelemetry_traces", "otel_traces", "traces"},
+                "backend_worker_crawler_metrics": {"backend_worker_crawler_metrics", "metrics"},
+                "dashboard_import": {"dashboard_import", "dashboard_runtime", "dashboards"},
+                "alert_routes": {"alert_routes", "alert_runtime", "alerts"},
+            },
+            {"passed", "validated"},
+        )
+        if result["observability_contract"]["verified"] is not True:
+            missing_semantics.append("observability_contract")
+    elif expected_kind == "backup_restore":
+        result["backup_restore_contract"] = validate_named_contract(
+            parsed,
+            {
+                "postgres_restore": {"postgres_restore", "postgres_restore_drill", "database_restore"},
+                "object_restore": {"object_restore", "object_restore_drill", "exported_package_object_restore"},
+            },
+            {"passed", "validated"},
+        )
+        if result["backup_restore_contract"]["verified"] is not True:
+            missing_semantics.append("backup_restore_contract")
     result["verified"] = not missing_semantics
     if missing_semantics:
         result["reason"] = f"{name}_failed_semantic_checks:{','.join(missing_semantics)}"
