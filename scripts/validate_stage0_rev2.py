@@ -1488,14 +1488,51 @@ def blueprint_do_not_launch_conditions() -> set[str]:
 
 
 def validate_schema_value(schema: dict[str, Any], value: Any, path: str, root_schema: dict[str, Any]) -> None:
-    if "$ref" in schema:
+    seen_refs: set[str] = set()
+    while "$ref" in schema:
         ref = schema["$ref"]
         require(ref.startswith("#/$defs/"), f"{path} uses unsupported schema ref {ref}")
+        require(ref not in seen_refs, f"{path} has recursive schema ref {ref}")
+        seen_refs.add(ref)
         def_name = ref.removeprefix("#/$defs/")
         try:
-            schema = root_schema["$defs"][def_name]
+            resolved = root_schema["$defs"][def_name]
         except KeyError:
             fail(f"{path} references missing schema def {def_name}")
+        siblings = {key: child for key, child in schema.items() if key != "$ref"}
+        schema = {**resolved, **siblings}
+        if "properties" in resolved or "properties" in siblings:
+            schema["properties"] = {
+                **resolved.get("properties", {}),
+                **siblings.get("properties", {}),
+            }
+        if "required" in resolved or "required" in siblings:
+            schema["required"] = sorted(set(resolved.get("required", [])) | set(siblings.get("required", [])))
+
+    for index, child in enumerate(schema.get("allOf", [])):
+        validate_schema_value(child, value, f"{path}.allOf[{index}]", root_schema)
+
+    if "oneOf" in schema:
+        matches = 0
+        errors: list[str] = []
+        for index, child in enumerate(schema["oneOf"]):
+            try:
+                validate_schema_value(child, value, f"{path}.oneOf[{index}]", root_schema)
+            except ValidationError as exc:
+                errors.append(str(exc))
+            else:
+                matches += 1
+        require(matches == 1, f"{path} must match exactly one oneOf schema; matched {matches}; errors: {errors[:3]}")
+
+    if "if" in schema:
+        try:
+            validate_schema_value(schema["if"], value, f"{path}.if", root_schema)
+        except ValidationError:
+            if "else" in schema:
+                validate_schema_value(schema["else"], value, f"{path}.else", root_schema)
+        else:
+            if "then" in schema:
+                validate_schema_value(schema["then"], value, f"{path}.then", root_schema)
 
     if "const" in schema:
         require(value == schema["const"], f"{path} must equal {schema['const']!r}")

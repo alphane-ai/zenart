@@ -131,7 +131,243 @@
       "$ref": "#/$defs/provenance"
     }
   },
+  "allOf": [
+    {
+      "if": {
+        "type": "object",
+        "required": [
+          "check_category"
+        ],
+        "properties": {
+          "check_category": {
+            "const": "file_integrity"
+          }
+        }
+      },
+      "then": {
+        "$ref": "#/$defs/file_integrity_contract"
+      }
+    },
+    {
+      "if": {
+        "type": "object",
+        "required": [
+          "check_category"
+        ],
+        "properties": {
+          "check_category": {
+            "const": "dimensions"
+          }
+        }
+      },
+      "then": {
+        "$ref": "#/$defs/dimensions_contract"
+      }
+    },
+    {
+      "if": {
+        "type": "object",
+        "required": [
+          "check_category"
+        ],
+        "properties": {
+          "check_category": {
+            "const": "aspect_ratio"
+          }
+        }
+      },
+      "then": {
+        "$ref": "#/$defs/aspect_ratio_contract"
+      }
+    },
+    {
+      "if": {
+        "type": "object",
+        "required": [
+          "check_category"
+        ],
+        "properties": {
+          "check_category": {
+            "const": "safe_area"
+          }
+        }
+      },
+      "then": {
+        "$ref": "#/$defs/safe_area_contract"
+      }
+    },
+    {
+      "if": {
+        "type": "object",
+        "required": [
+          "check_category"
+        ],
+        "properties": {
+          "check_category": {
+            "const": "blank_output"
+          }
+        }
+      },
+      "then": {
+        "$ref": "#/$defs/blank_output_contract"
+      }
+    },
+    {
+      "if": {
+        "type": "object",
+        "required": [
+          "check_category"
+        ],
+        "properties": {
+          "check_category": {
+            "const": "duplicate_similarity"
+          }
+        }
+      },
+      "then": {
+        "$ref": "#/$defs/duplicate_similarity_contract"
+      }
+    },
+    {
+      "if": {
+        "type": "object",
+        "required": [
+          "check_category"
+        ],
+        "properties": {
+          "check_category": {
+            "const": "four_option_distinctness"
+          }
+        }
+      },
+      "then": {
+        "$ref": "#/$defs/four_option_distinctness_contract"
+      }
+    },
+    {
+      "if": {
+        "type": "object",
+        "required": [
+          "check_category"
+        ],
+        "properties": {
+          "check_category": {
+            "const": "text_readability"
+          }
+        }
+      },
+      "then": {
+        "$ref": "#/$defs/text_readability_contract"
+      }
+    },
+    {
+      "if": {
+        "type": "object",
+        "required": [
+          "check_category"
+        ],
+        "properties": {
+          "check_category": {
+            "const": "structured_text"
+          }
+        }
+      },
+      "then": {
+        "$ref": "#/$defs/structured_text_contract"
+      }
+    },
+    {
+      "if": {
+        "type": "object",
+        "required": [
+          "check_category"
+        ],
+        "properties": {
+          "check_category": {
+            "const": "product_logo_preservation"
+          }
+        }
+      },
+      "then": {
+        "$ref": "#/$defs/product_logo_preservation_contract"
+      }
+    },
+    {
+      "if": {
+        "type": "object",
+        "required": [
+          "check_category"
+        ],
+        "properties": {
+          "check_category": {
+            "const": "forbidden_claims"
+          }
+        }
+      },
+      "then": {
+        "$ref": "#/$defs/forbidden_claims_contract"
+      }
+    },
+    {
+      "if": {
+        "type": "object",
+        "required": [
+          "check_category"
+        ],
+        "properties": {
+          "check_category": {
+            "const": "watermark_signature_risk"
+          }
+        }
+      },
+      "then": {
+        "$ref": "#/$defs/watermark_signature_risk_contract"
+      }
+    },
+    {
+      "if": {
+        "type": "object",
+        "required": [
+          "check_category"
+        ],
+        "properties": {
+          "check_category": {
+            "const": "export_completeness"
+          }
+        }
+      },
+      "then": {
+        "$ref": "#/$defs/export_completeness_contract"
+      }
+    }
+  ],
   "$defs": {
+    "blocking_export_gate": {
+      "type": "object",
+      "required": [
+        "blocks_final_export",
+        "override_requires_audit"
+      ],
+      "properties": {
+        "blocks_final_export": {
+          "const": true
+        },
+        "override_requires_audit": {
+          "const": true
+        }
+      }
+    },
+    "audited_export_gate": {
+      "type": "object",
+      "required": [
+        "override_requires_audit"
+      ],
+      "properties": {
+        "override_requires_audit": {
+          "const": true
+        }
+      }
+    },
     "evidence_map": {
       "type": "object",
       "additionalProperties": {
@@ -144,6 +380,570 @@
           "object"
         ]
       }
+    },
+    "file_integrity_contract": {
+      "$ref": "#/$defs/blocking_contract",
+      "properties": {
+        "evidence": {
+          "$ref": "#/$defs/file_integrity_evidence"
+        }
+      }
+    },
+    "dimensions_contract": {
+      "$ref": "#/$defs/blocking_contract",
+      "properties": {
+        "auto_fix_available": {
+          "const": true
+        },
+        "evidence": {
+          "$ref": "#/$defs/dimensions_evidence"
+        }
+      }
+    },
+    "aspect_ratio_contract": {
+      "type": "object",
+      "required": [
+        "auto_fix_available",
+        "export_gate",
+        "evidence"
+      ],
+      "properties": {
+        "auto_fix_available": {
+          "const": true
+        },
+        "export_gate": {
+          "$ref": "#/$defs/audited_export_gate"
+        },
+        "evidence": {
+          "$ref": "#/$defs/aspect_ratio_evidence"
+        }
+      }
+    },
+    "safe_area_contract": {
+      "type": "object",
+      "required": [
+        "auto_fix_available",
+        "export_gate",
+        "evidence"
+      ],
+      "properties": {
+        "auto_fix_available": {
+          "const": true
+        },
+        "export_gate": {
+          "$ref": "#/$defs/audited_export_gate"
+        },
+        "evidence": {
+          "$ref": "#/$defs/safe_area_evidence"
+        }
+      }
+    },
+    "blank_output_contract": {
+      "$ref": "#/$defs/blocking_contract",
+      "properties": {
+        "auto_fix_available": {
+          "const": true
+        },
+        "evidence": {
+          "$ref": "#/$defs/blank_output_evidence"
+        }
+      }
+    },
+    "duplicate_similarity_contract": {
+      "$ref": "#/$defs/blocking_contract",
+      "properties": {
+        "review_required": {
+          "const": true
+        },
+        "evidence": {
+          "$ref": "#/$defs/duplicate_similarity_evidence"
+        }
+      }
+    },
+    "four_option_distinctness_contract": {
+      "$ref": "#/$defs/blocking_contract",
+      "properties": {
+        "review_required": {
+          "const": true
+        },
+        "evidence": {
+          "$ref": "#/$defs/four_option_distinctness_evidence"
+        }
+      }
+    },
+    "text_readability_contract": {
+      "type": "object",
+      "required": [
+        "review_required",
+        "export_gate",
+        "evidence"
+      ],
+      "properties": {
+        "review_required": {
+          "const": true
+        },
+        "export_gate": {
+          "$ref": "#/$defs/audited_export_gate"
+        },
+        "evidence": {
+          "$ref": "#/$defs/text_readability_evidence"
+        }
+      }
+    },
+    "structured_text_contract": {
+      "type": "object",
+      "required": [
+        "auto_fix_available",
+        "export_gate",
+        "evidence"
+      ],
+      "properties": {
+        "auto_fix_available": {
+          "const": true
+        },
+        "export_gate": {
+          "$ref": "#/$defs/audited_export_gate"
+        },
+        "evidence": {
+          "$ref": "#/$defs/structured_text_evidence"
+        }
+      }
+    },
+    "product_logo_preservation_contract": {
+      "$ref": "#/$defs/blocking_contract",
+      "properties": {
+        "review_required": {
+          "const": true
+        },
+        "evidence": {
+          "$ref": "#/$defs/product_logo_preservation_evidence"
+        }
+      }
+    },
+    "forbidden_claims_contract": {
+      "$ref": "#/$defs/blocking_contract",
+      "properties": {
+        "review_required": {
+          "const": true
+        },
+        "evidence": {
+          "$ref": "#/$defs/forbidden_claims_evidence"
+        }
+      }
+    },
+    "watermark_signature_risk_contract": {
+      "type": "object",
+      "required": [
+        "review_required",
+        "export_gate",
+        "evidence"
+      ],
+      "properties": {
+        "review_required": {
+          "const": true
+        },
+        "export_gate": {
+          "$ref": "#/$defs/audited_export_gate"
+        },
+        "evidence": {
+          "$ref": "#/$defs/watermark_signature_risk_evidence"
+        }
+      }
+    },
+    "export_completeness_contract": {
+      "$ref": "#/$defs/blocking_contract",
+      "properties": {
+        "review_required": {
+          "const": true
+        },
+        "evidence": {
+          "$ref": "#/$defs/export_completeness_evidence"
+        }
+      }
+    },
+    "blocking_contract": {
+      "type": "object",
+      "required": [
+        "severity",
+        "export_gate",
+        "evidence"
+      ],
+      "properties": {
+        "severity": {
+          "const": "blocking"
+        },
+        "export_gate": {
+          "$ref": "#/$defs/blocking_export_gate"
+        }
+      }
+    },
+    "file_integrity_evidence": {
+      "$ref": "#/$defs/category_evidence",
+      "properties": {
+        "observed": {
+          "$ref": "#/$defs/file_integrity_observed"
+        },
+        "expected": {
+          "$ref": "#/$defs/file_integrity_expected"
+        }
+      }
+    },
+    "dimensions_evidence": {
+      "$ref": "#/$defs/category_evidence",
+      "properties": {
+        "observed": {
+          "$ref": "#/$defs/dimensions_observed"
+        },
+        "expected": {
+          "$ref": "#/$defs/dimensions_expected"
+        }
+      }
+    },
+    "aspect_ratio_evidence": {
+      "$ref": "#/$defs/category_evidence",
+      "properties": {
+        "observed": {
+          "$ref": "#/$defs/aspect_ratio_observed"
+        },
+        "expected": {
+          "$ref": "#/$defs/aspect_ratio_expected"
+        }
+      }
+    },
+    "safe_area_evidence": {
+      "$ref": "#/$defs/category_evidence",
+      "properties": {
+        "observed": {
+          "$ref": "#/$defs/safe_area_observed"
+        },
+        "expected": {
+          "$ref": "#/$defs/safe_area_expected"
+        }
+      }
+    },
+    "blank_output_evidence": {
+      "$ref": "#/$defs/category_evidence",
+      "properties": {
+        "observed": {
+          "$ref": "#/$defs/blank_output_observed"
+        },
+        "expected": {
+          "$ref": "#/$defs/blank_output_expected"
+        }
+      }
+    },
+    "duplicate_similarity_evidence": {
+      "$ref": "#/$defs/category_evidence",
+      "properties": {
+        "observed": {
+          "$ref": "#/$defs/duplicate_similarity_observed"
+        },
+        "expected": {
+          "$ref": "#/$defs/duplicate_similarity_expected"
+        }
+      }
+    },
+    "four_option_distinctness_evidence": {
+      "$ref": "#/$defs/category_evidence",
+      "properties": {
+        "observed": {
+          "$ref": "#/$defs/four_option_distinctness_observed"
+        },
+        "expected": {
+          "$ref": "#/$defs/four_option_distinctness_expected"
+        }
+      }
+    },
+    "text_readability_evidence": {
+      "$ref": "#/$defs/category_evidence",
+      "properties": {
+        "observed": {
+          "$ref": "#/$defs/text_readability_observed"
+        },
+        "expected": {
+          "$ref": "#/$defs/text_readability_expected"
+        }
+      }
+    },
+    "structured_text_evidence": {
+      "$ref": "#/$defs/category_evidence",
+      "properties": {
+        "observed": {
+          "$ref": "#/$defs/structured_text_observed"
+        },
+        "expected": {
+          "$ref": "#/$defs/structured_text_expected"
+        }
+      }
+    },
+    "product_logo_preservation_evidence": {
+      "$ref": "#/$defs/category_evidence",
+      "properties": {
+        "observed": {
+          "$ref": "#/$defs/product_logo_preservation_observed"
+        },
+        "expected": {
+          "$ref": "#/$defs/product_logo_preservation_expected"
+        }
+      }
+    },
+    "forbidden_claims_evidence": {
+      "$ref": "#/$defs/category_evidence",
+      "properties": {
+        "observed": {
+          "$ref": "#/$defs/forbidden_claims_observed"
+        },
+        "expected": {
+          "$ref": "#/$defs/forbidden_claims_expected"
+        }
+      }
+    },
+    "watermark_signature_risk_evidence": {
+      "$ref": "#/$defs/category_evidence",
+      "properties": {
+        "observed": {
+          "$ref": "#/$defs/watermark_signature_risk_observed"
+        },
+        "expected": {
+          "$ref": "#/$defs/watermark_signature_risk_expected"
+        }
+      }
+    },
+    "export_completeness_evidence": {
+      "$ref": "#/$defs/category_evidence",
+      "properties": {
+        "observed": {
+          "$ref": "#/$defs/export_completeness_observed"
+        },
+        "expected": {
+          "$ref": "#/$defs/export_completeness_expected"
+        }
+      }
+    },
+    "category_evidence": {
+      "type": "object",
+      "required": [
+        "observed",
+        "expected",
+        "trace_id",
+        "fixture_id",
+        "source_artifacts"
+      ]
+    },
+    "file_integrity_observed": {
+      "$ref": "#/$defs/evidence_object",
+      "required": [
+        "mime_type",
+        "checksum_sha256",
+        "decoder_status",
+        "byte_size"
+      ]
+    },
+    "file_integrity_expected": {
+      "$ref": "#/$defs/evidence_object",
+      "required": [
+        "mime_type",
+        "checksum_sha256",
+        "decoder_status",
+        "byte_size_min"
+      ]
+    },
+    "dimensions_observed": {
+      "$ref": "#/$defs/evidence_object",
+      "required": [
+        "width_px",
+        "height_px",
+        "export_target"
+      ]
+    },
+    "dimensions_expected": {
+      "$ref": "#/$defs/evidence_object",
+      "required": [
+        "width_px",
+        "height_px",
+        "export_target"
+      ]
+    },
+    "aspect_ratio_observed": {
+      "$ref": "#/$defs/evidence_object",
+      "required": [
+        "aspect_ratio",
+        "export_target"
+      ]
+    },
+    "aspect_ratio_expected": {
+      "$ref": "#/$defs/evidence_object",
+      "required": [
+        "aspect_ratio",
+        "export_target"
+      ]
+    },
+    "safe_area_observed": {
+      "$ref": "#/$defs/evidence_object",
+      "required": [
+        "cta_bottom_margin_px",
+        "safe_area_bottom_min_px",
+        "overlaps_platform_ui"
+      ]
+    },
+    "safe_area_expected": {
+      "$ref": "#/$defs/evidence_object",
+      "required": [
+        "cta_bottom_margin_px_min",
+        "overlaps_platform_ui"
+      ]
+    },
+    "blank_output_observed": {
+      "$ref": "#/$defs/evidence_object",
+      "required": [
+        "near_blank",
+        "non_background_pixel_ratio",
+        "detected_subjects"
+      ]
+    },
+    "blank_output_expected": {
+      "$ref": "#/$defs/evidence_object",
+      "required": [
+        "near_blank",
+        "non_background_pixel_ratio_min",
+        "detected_subjects_min"
+      ]
+    },
+    "duplicate_similarity_observed": {
+      "$ref": "#/$defs/evidence_object",
+      "required": [
+        "duplicate_similarity",
+        "candidate_pair"
+      ]
+    },
+    "duplicate_similarity_expected": {
+      "$ref": "#/$defs/evidence_object",
+      "required": [
+        "duplicate_similarity_below",
+        "candidate_pair_must_differ"
+      ]
+    },
+    "four_option_distinctness_observed": {
+      "$ref": "#/$defs/evidence_object",
+      "required": [
+        "strategic_options",
+        "taxonomy_coverage"
+      ]
+    },
+    "four_option_distinctness_expected": {
+      "$ref": "#/$defs/evidence_object",
+      "required": [
+        "strategic_options",
+        "taxonomy_coverage"
+      ]
+    },
+    "text_readability_observed": {
+      "$ref": "#/$defs/evidence_object",
+      "required": [
+        "ocr_confidence",
+        "min_font_px",
+        "manual_review_placeholder"
+      ]
+    },
+    "text_readability_expected": {
+      "$ref": "#/$defs/evidence_object",
+      "required": [
+        "ocr_confidence_min",
+        "min_font_px",
+        "manual_review_placeholder_allowed"
+      ]
+    },
+    "structured_text_observed": {
+      "$ref": "#/$defs/evidence_object",
+      "required": [
+        "price",
+        "date",
+        "phone",
+        "address",
+        "qr_placeholder"
+      ]
+    },
+    "structured_text_expected": {
+      "$ref": "#/$defs/evidence_object",
+      "required": [
+        "price",
+        "date",
+        "phone",
+        "address",
+        "qr_placeholder"
+      ]
+    },
+    "product_logo_preservation_observed": {
+      "$ref": "#/$defs/evidence_object",
+      "required": [
+        "logo_similarity",
+        "product_shape_similarity",
+        "unauthorized_color_change"
+      ]
+    },
+    "product_logo_preservation_expected": {
+      "$ref": "#/$defs/evidence_object",
+      "required": [
+        "logo_similarity_min",
+        "product_shape_similarity_min",
+        "unauthorized_color_change"
+      ]
+    },
+    "forbidden_claims_observed": {
+      "$ref": "#/$defs/evidence_object",
+      "required": [
+        "claim_text",
+        "claim_source",
+        "source_citation_present"
+      ]
+    },
+    "forbidden_claims_expected": {
+      "$ref": "#/$defs/evidence_object",
+      "required": [
+        "claim_text_allowed",
+        "requires_source_citation",
+        "expected_safety_action"
+      ]
+    },
+    "watermark_signature_risk_observed": {
+      "$ref": "#/$defs/evidence_object",
+      "required": [
+        "watermark_probability",
+        "signature_like_text_detected",
+        "review_region"
+      ]
+    },
+    "watermark_signature_risk_expected": {
+      "$ref": "#/$defs/evidence_object",
+      "required": [
+        "watermark_probability_below",
+        "signature_like_text_detected"
+      ]
+    },
+    "export_completeness_observed": {
+      "$ref": "#/$defs/evidence_object",
+      "required": [
+        "manifest_json",
+        "qa_report_json",
+        "metadata_json",
+        "safety_disclaimer_when_applicable",
+        "trace_provenance_json",
+        "deterministic_file_names"
+      ]
+    },
+    "export_completeness_expected": {
+      "$ref": "#/$defs/evidence_object",
+      "required": [
+        "manifest_json",
+        "qa_report_json",
+        "metadata_json",
+        "safety_disclaimer_when_applicable",
+        "trace_provenance_json",
+        "deterministic_file_names"
+      ]
+    },
+    "evidence_object": {
+      "type": "object"
     },
     "provenance": {
       "type": "object",

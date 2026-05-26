@@ -159,6 +159,9 @@ def render(audience: str, operations: list[Operation], digest: str) -> str:
         '''
 
   private assertSameSiteBaseUrl(baseUrl: string) {
+    if (baseUrl.startsWith("//")) {
+      throw new Error("ZenArtApiClient baseUrl must not be protocol-relative for same-site CSRF protection");
+    }
     if (!baseUrl || baseUrl.startsWith("/")) {
       return;
     }
@@ -282,7 +285,11 @@ export class ZenArtApiClient {{
       headers["Idempotency-Key"] = options.idempotencyKey;
     }}
 
-    const url = new URL(this.interpolate(operation.path, options.pathParams), this.baseUrl || "http://localhost");
+    const interpolatedPath = this.interpolate(operation.path, options.pathParams);
+    const pathForUrl = this.baseUrl.startsWith("/")
+      ? `${{this.baseUrl.replace(/\\/$/, "")}}${{interpolatedPath}}`
+      : interpolatedPath;
+    const url = new URL(pathForUrl, this.baseUrl.startsWith("http") ? this.baseUrl : "http://localhost");
     for (const [key, value] of Object.entries(options.query ?? {{}})) {{
       if (value !== undefined) {{
         url.searchParams.set(key, String(value));
@@ -293,11 +300,14 @@ export class ZenArtApiClient {{
       headers["Content-Type"] = headers["Content-Type"] ?? "application/json";
     }}
 
-    const response = await fetch(this.baseUrl ? url.toString() : `${{url.pathname}}${{url.search}}`, {{
+    const response = await fetch(
+      this.baseUrl.startsWith("http") ? url.toString() : `${{url.pathname}}${{url.search}}`,
+      {{
       method: operation.method,{fetch_credentials}
       {fetch_headers_line}
       body: options.body === undefined ? undefined : JSON.stringify(options.body)
-    }});
+      }}
+    );
 
     if (!response.ok) {{
       throw new ApiError((await response.json()) as ErrorEnvelope);
