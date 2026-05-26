@@ -447,6 +447,39 @@ RELEASE_GATE_CHECK_LEVEL_RUNTIME_OPEN_ITEMS = {
     **PRODUCTION_RUNTIME_OPEN_CHECK_ITEMS,
 }
 
+LOCAL_ALPHA_AGGREGATE_RUNTIME_ITEM = (
+    "Local Alpha workflow API/Playwright end-to-end smoke evidence 通过并写入 release gate fixture。"
+)
+PRIVATE_BETA_STAGING_AGGREGATE_RUNTIME_ITEM = (
+    "Private Beta/Staging external-user runtime evidence 通过：auth/RBAC/tenant、storage、quota/rate limit、support/abuse、safety/QA/crawler、observability/backup/load、legal visibility 均有 staging evidence。"
+)
+PRODUCTION_AGGREGATE_RUNTIME_ITEM = (
+    "Production Launch runtime/deployment evidence 通过：provider-or-comp-only、paid lifecycle、skill canary、activation audit、abuse hold、security、backup/rollback/post-deploy smoke、legal/support policy 均有 production evidence。"
+)
+
+LOCAL_ALPHA_WORKFLOW_RUNTIME_ITEMS = {
+    "电商增长包 API smoke test 通过。",
+    "电商增长包 Playwright happy path 通过。",
+    "商业视觉文档包 API smoke test 通过。",
+    "商业视觉文档包 Playwright happy path 通过。",
+    "本地商家活动包 API smoke test 通过。",
+    "本地商家活动包 Playwright happy path 通过。",
+    "角色/IP 概念包 API smoke test 通过。",
+    "角色/IP 概念包 Playwright happy path 通过。",
+}
+
+RELEASE_GATE_AGGREGATE_REQUIREMENTS = {
+    "local_alpha": {
+        LOCAL_ALPHA_AGGREGATE_RUNTIME_ITEM: LOCAL_ALPHA_WORKFLOW_RUNTIME_ITEMS,
+    },
+    "private_beta_staging": {
+        PRIVATE_BETA_STAGING_AGGREGATE_RUNTIME_ITEM: set(PRIVATE_BETA_STAGING_RUNTIME_OPEN_CHECK_ITEMS),
+    },
+    "production_launch": {
+        PRODUCTION_AGGREGATE_RUNTIME_ITEM: set(PRODUCTION_RUNTIME_OPEN_CHECK_ITEMS),
+    },
+}
+
 DO_NOT_LAUNCH_CONDITION_COVERAGE = {
     "local_alpha": {
         "generic_workflow_only": "Vertical workflows 只通过 generic rendering tests，没有 domain fixtures、four-option taxonomy、required outputs、QA/safety checks、manifest validation。",
@@ -1451,6 +1484,36 @@ def validate_runtime_gate_evidence_refs(
             )
 
 
+def validate_aggregate_runtime_checklist_items(
+    gate: str,
+    data: dict[str, Any],
+    checked_lines: set[str],
+    unchecked_lines: set[str],
+) -> None:
+    for aggregate_item, required_subitems in RELEASE_GATE_AGGREGATE_REQUIREMENTS.get(gate, {}).items():
+        require(
+            aggregate_item in checked_lines or aggregate_item in unchecked_lines,
+            f"{gate} aggregate runtime checklist item is missing: {aggregate_item}",
+        )
+        missing_subitems = required_subitems - checked_lines
+        if aggregate_item in checked_lines:
+            require(
+                not missing_subitems,
+                f"{gate} aggregate runtime item is closed before all concrete evidence subitems are closed: "
+                + json.dumps(sorted(missing_subitems), ensure_ascii=False),
+            )
+            require(
+                gate_allows_checklist_completion(data),
+                f"{gate} aggregate runtime item is closed but release gate evidence still has blockers: "
+                + json.dumps(gate_blockers(data), ensure_ascii=False, sort_keys=True),
+            )
+        else:
+            require(
+                missing_subitems or not gate_allows_checklist_completion(data),
+                f"{gate} aggregate runtime item remains open after concrete subitems and gate evidence allow closure",
+            )
+
+
 def checked_items(text: str) -> set[str]:
     return {
         match.group(1)
@@ -2325,13 +2388,21 @@ def validate_release_gate_evidence() -> None:
     missing_gates = set(GATE_CHECKLIST_ITEMS.values()) - set(evidence)
     require(not missing_gates, f"release gate evidence missing gates: {sorted(missing_gates)}")
     validate_global_do_not_launch_condition_coverage(evidence)
-    blueprint_unchecked = unchecked_items(BLUEPRINT.read_text(encoding="utf-8"))
+    blueprint_text = BLUEPRINT.read_text(encoding="utf-8")
+    blueprint_checked = checked_items(blueprint_text)
+    blueprint_unchecked = unchecked_items(blueprint_text)
 
     for gate, gate_evidence in evidence.items():
         validate_release_gate_basics(gate_evidence)
         validate_do_not_launch_condition_coverage(gate_evidence)
         validate_gate_cannot_pass_with_open_items(gate, gate_evidence, blueprint_unchecked)
         validate_runtime_gate_evidence_refs(gate, gate_evidence, blueprint_unchecked)
+        validate_aggregate_runtime_checklist_items(
+            gate,
+            gate_evidence,
+            blueprint_checked,
+            blueprint_unchecked,
+        )
 
     local_alpha = load_json(FIXTURE_DIR / "release_gate_evidence.local_alpha.json")
     require(local_alpha["gate"] == "local_alpha", "release gate fixture must target local alpha")
@@ -2562,6 +2633,7 @@ def validate_blueprint_checklist() -> None:
         validate_do_not_launch_condition_coverage(evidence[gate])
         validate_gate_cannot_pass_with_open_items(gate, evidence[gate], unchecked_lines)
         validate_runtime_gate_evidence_refs(gate, evidence[gate], unchecked_lines)
+        validate_aggregate_runtime_checklist_items(gate, evidence[gate], checked_lines, unchecked_lines)
         blockers = gate_blockers(evidence[gate])
         require(
             blockers["blocked_or_failing_checks"] or blockers["active_do_not_launch_conditions"],
