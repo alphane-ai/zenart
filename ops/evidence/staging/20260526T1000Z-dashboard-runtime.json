@@ -1,0 +1,86 @@
+{
+  "schema_version": "stage0.rev2.staging_dashboard_runtime",
+  "evidence_id": "staging_dashboard_runtime_20260526T1000Z",
+  "environment": "staging",
+  "status": "pass_with_blockers_preserved",
+  "validated_at": "2026-05-26T10:31:00Z",
+  "validated_by_role": "admin_superadmin",
+  "source_dashboard_definition": "ops/observability/dashboards/stage0_rev2_overview.json",
+  "release_gate_check_id": "staging_observability_backup_load",
+  "blueprint_checklist_item": "导入并验证 staging dashboards runtime evidence。",
+  "runtime_refs": [
+    "staging-dashboard-provider-20260526T1000Z",
+    "staging-dashboard-export-20260526T1000Z",
+    "staging-dashboard-crawler-20260526T1000Z",
+    "staging-dashboard-admin-security-20260526T1030Z"
+  ],
+  "dashboard_results": [
+    {
+      "dashboard_id": "od-provider-latency",
+      "runtime_ref": "staging-dashboard-provider-20260526T1000Z",
+      "validation_status": "blocked",
+      "validated_at": "2026-05-26 10:05",
+      "signals": [
+        "provider_request_latency_ms",
+        "provider_error_total",
+        "provider_usage_reconciled_total"
+      ],
+      "probe_result": "Imported and populated, but p95 9400 ms and 4.7% error rate exceed private beta provider SLO.",
+      "audit_ref": "au-007",
+      "release_blocker_ref": "rb-private-beta-provider-slo"
+    },
+    {
+      "dashboard_id": "od-export-failure",
+      "runtime_ref": "staging-dashboard-export-20260526T1000Z",
+      "validation_status": "verified",
+      "validated_at": "2026-05-26 10:06",
+      "signals": [
+        "export_failed_total",
+        "queue_dead_letter_total",
+        "qa_report_packaging_failed_total"
+      ],
+      "probe_result": "Imported and populated with export failure, dead-letter, QA packaging, and support ticket panels.",
+      "audit_ref": "au-004",
+      "release_blocker_ref": "inc-20260526-queue"
+    },
+    {
+      "dashboard_id": "od-crawler-policy",
+      "runtime_ref": "staging-dashboard-crawler-20260526T1000Z",
+      "validation_status": "verified",
+      "validated_at": "2026-05-26 10:07",
+      "signals": [
+        "crawler_source_blocked_total",
+        "robots_denied_total",
+        "crawler_derivative_review_open_total"
+      ],
+      "probe_result": "Imported and populated with crawler blocklist, robots denial, derivative review, and retention panels.",
+      "audit_ref": "au-012",
+      "release_blocker_ref": "rb-production-crawler-derivative"
+    },
+    {
+      "dashboard_id": "od-admin-security",
+      "runtime_ref": "staging-dashboard-admin-security-20260526T1030Z",
+      "validation_status": "blocked",
+      "validated_at": "2026-05-26 10:31",
+      "signals": [
+        "safety_block_total",
+        "trace_redaction_violation_total",
+        "admin_override_denied_total"
+      ],
+      "probe_result": "Imported and populated, but critical hidden prompt extraction investigation remains open.",
+      "audit_ref": "au-008",
+      "release_blocker_ref": "rb-production-admin-security"
+    }
+  ],
+  "gate_impact": {
+    "can_clear_dashboard_checklist_item": true,
+    "aggregate_private_beta_gate_status": "blocked_by_other_staging_runtime_items",
+    "remaining_blockers": [
+      "staging request id propagation runtime evidence",
+      "staging structured JSON logs runtime evidence",
+      "staging OpenTelemetry traces runtime evidence",
+      "staging backend/worker/crawler metrics runtime evidence",
+      "staging backup/restore/load runtime evidence"
+    ]
+  }
+}

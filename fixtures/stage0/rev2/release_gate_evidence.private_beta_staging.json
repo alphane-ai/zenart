@@ -41,7 +41,7 @@
     {
       "check_id": "staging_observability_backup_load",
       "status": "blocked",
-      "evidence_ref": "ops/evidence/stage0_observability_evidence.json, ops/evidence/stage0_drill_plan.json, scripts/staging_smoke.sh, and ops/release/staging_deploy.md define the path, but staging runtime evidence for observability, restore, smoke, and load is absent"
+      "evidence_ref": "Dashboard and alert route staging runtime evidence passed in ops/evidence/staging/20260526T1000Z-dashboard-runtime.json and ops/evidence/staging/20260526T1000Z-alert-runtime.json, but request-id, structured log, trace, metrics, restore, smoke, and load staging runtime evidence remains absent"
     },
     {
       "check_id": "staging_legal_external_user_pages",
@@ -96,7 +96,7 @@
       "condition_id": "staging_observability_restore_load_missing",
       "blueprint_condition": "Staging 缺 provider、queue、export、quota、safety、crawler、object storage、billing、admin failure 的 logs/metrics/traces/dashboards/alerts/runbooks。",
       "is_present": true,
-      "evidence_ref": "25.18 observability, restore drill, and load evidence remain open"
+      "evidence_ref": "Dashboard and alert route staging runtime evidence passed, but logs, metrics, traces, restore drill, smoke, and load evidence remain open"
     },
     {
       "condition_id": "external_user_legal_pages_missing",

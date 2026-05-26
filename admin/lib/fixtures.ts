@@ -1309,7 +1309,7 @@ export const operationalDashboardRuntimeEvidence: OperationalDashboardRuntimeEvi
     signalProbe: "Signal probe joined provider_request_latency_ms, provider_error_total, and provider_usage_reconciled_total into the dashboard window without missing series.",
     sloProbe: "SLO probe remained blocked because p95 9400 ms and 4.7% error rate exceeded the private beta provider thresholds.",
     blockerProbe: "Release blocker rb-private-beta-provider-slo stayed open and linked provider routing audit au-007 plus provider health evidence ph-1.",
-    releaseGateUse: "Private beta and production provider launch remain blocked until a healthy dashboard window and usage reconciliation evidence are attached.",
+    releaseGateUse: "Private beta and production provider launch remain blocked until a healthy dashboard window and usage reconciliation evidence are attached; staging dashboard import evidence is recorded in ops/evidence/staging/20260526T1000Z-dashboard-runtime.json.",
     auditRef: "au-007",
     evidenceRefs: ["od-provider-latency", "rb-private-beta-provider-slo", "ph-1", "eg-003", "au-007", "staging-dashboard-provider-20260526T1000Z"]
   },
@@ -1324,7 +1324,7 @@ export const operationalDashboardRuntimeEvidence: OperationalDashboardRuntimeEvi
     signalProbe: "Signal probe joined export_failed_total, queue_dead_letter_total, and qa_report_packaging_failed_total with support ticket sup-2204.",
     sloProbe: "SLO probe verified the dashboard query and intentionally preserved the blocked status while three dead-letter exports remain unresolved.",
     blockerProbe: "Export dashboard evidence is linked to incident inc-20260526-queue, audit au-004, queue q-export, and support ticket sup-2204 before closure.",
-    releaseGateUse: "Export release success cannot be marked healthy until regenerate, quota refund, support update, and manifest validation evidence are attached.",
+    releaseGateUse: "Export release success cannot be marked healthy until regenerate, quota refund, support update, and manifest validation evidence are attached; staging dashboard import evidence is recorded in ops/evidence/staging/20260526T1000Z-dashboard-runtime.json.",
     auditRef: "au-004",
     evidenceRefs: ["od-export-failure", "q-export", "inc-20260526-queue", "sup-2204", "au-004", "staging-dashboard-export-20260526T1000Z"]
   },
@@ -1339,7 +1339,7 @@ export const operationalDashboardRuntimeEvidence: OperationalDashboardRuntimeEvi
     signalProbe: "Signal probe joined crawler_source_blocked_total, robots_denied_total, and crawler_derivative_review_open_total with governance workflow cg-501.",
     sloProbe: "SLO probe verified zero active crawler policy violations while preserving watch status for the pending derivative-use review.",
     blockerProbe: "Production blocker rb-production-crawler-derivative stayed mitigating until takedown or derivative review closes with provenance and audit evidence.",
-    releaseGateUse: "Crawler-derived prompt or skill activation remains blocked whenever takedown, derivative-use, provenance, or retention evidence is unresolved.",
+    releaseGateUse: "Crawler-derived prompt or skill activation remains blocked whenever takedown, derivative-use, provenance, or retention evidence is unresolved; staging dashboard import evidence is recorded in ops/evidence/staging/20260526T1000Z-dashboard-runtime.json.",
     auditRef: "au-012",
     evidenceRefs: ["od-crawler-policy", "rb-production-crawler-derivative", "q-crawler", "inc-20260525-crawler", "cg-501", "au-012", "staging-dashboard-crawler-20260526T1000Z"]
   },
@@ -1354,7 +1354,7 @@ export const operationalDashboardRuntimeEvidence: OperationalDashboardRuntimeEvi
     signalProbe: "Signal probe joined safety_block_total, trace_redaction_violation_total, and admin_override_denied_total with abuse event ab-304.",
     sloProbe: "SLO probe stayed blocked because the critical hidden prompt extraction investigation is still open.",
     blockerProbe: "Production blocker rb-production-admin-security stayed open and linked abuse event ab-304, trace tr-1004, and immutable audit au-008.",
-    releaseGateUse: "Production launch remains blocked until the security-admin investigation closes with audit, support, trace-redaction, and release evidence refs.",
+    releaseGateUse: "Production launch remains blocked until the security-admin investigation closes with audit, support, trace-redaction, and release evidence refs; staging dashboard import evidence is recorded in ops/evidence/staging/20260526T1000Z-dashboard-runtime.json.",
     auditRef: "au-008",
     evidenceRefs: ["od-admin-security", "rb-production-admin-security", "ab-304", "au-008", "tr-1004", "staging-dashboard-admin-security-20260526T1030Z"]
   }
@@ -1447,7 +1447,7 @@ export const alertRouteRuntimeEvidence: AlertRouteRuntimeEvidence[] = [
     runbookProbe: "Runbook opened provider routing mitigation, usage reconciliation, and release-gate block instructions.",
     incidentLinkage: "No incident opened because this probe validates the route while the dashboard remains blocked for launch readiness.",
     auditRef: "au-007",
-    releaseGateUse: "Private beta and production provider launch remain blocked until dashboard health and provider usage reconciliation are both verified.",
+    releaseGateUse: "Private beta and production provider launch remain blocked until dashboard health and provider usage reconciliation are both verified; staging alert route evidence is recorded in ops/evidence/staging/20260526T1000Z-alert-runtime.json.",
     evidenceRefs: ["al-provider-error", "od-provider-latency", "ph-1", "eg-003", "au-007", "staging-alert-provider-20260526T1000Z"]
   },
   {
@@ -1465,7 +1465,7 @@ export const alertRouteRuntimeEvidence: AlertRouteRuntimeEvidence[] = [
     runbookProbe: "Runbook opened retry hold, export regenerate eligibility, quota refund audit, and support-update instructions.",
     incidentLinkage: "Incident inc-20260526-queue remained linked to the alert route and export queue evidence.",
     auditRef: "au-004",
-    releaseGateUse: "Export release success cannot be marked healthy until dead-letter closure, regenerate, quota refund, and manifest evidence are attached.",
+    releaseGateUse: "Export release success cannot be marked healthy until dead-letter closure, regenerate, quota refund, and manifest evidence are attached; staging alert route evidence is recorded in ops/evidence/staging/20260526T1000Z-alert-runtime.json.",
     evidenceRefs: ["al-export-dead-letter", "od-export-failure", "q-export", "inc-20260526-queue", "sup-2204", "au-004", "staging-alert-export-20260526T1000Z"]
   },
   {
@@ -1483,7 +1483,7 @@ export const alertRouteRuntimeEvidence: AlertRouteRuntimeEvidence[] = [
     runbookProbe: "Runbook opened finding hold, active prompt/skill import block, takedown review, derivative review, and raw-retention instructions.",
     incidentLinkage: "Incident inc-20260525-crawler stayed attached with crawler finding cf-118 and governance workflow cg-501 evidence.",
     auditRef: "au-012",
-    releaseGateUse: "Crawler-derived activation remains blocked whenever takedown, derivative-use, provenance, or retention evidence is unresolved.",
+    releaseGateUse: "Crawler-derived activation remains blocked whenever takedown, derivative-use, provenance, or retention evidence is unresolved; staging alert route evidence is recorded in ops/evidence/staging/20260526T1000Z-alert-runtime.json.",
     evidenceRefs: ["al-crawler-policy", "od-crawler-policy", "inc-20260525-crawler", "cf-118", "cg-501", "au-012", "staging-alert-crawler-20260526T1000Z"]
   },
   {
@@ -1501,7 +1501,7 @@ export const alertRouteRuntimeEvidence: AlertRouteRuntimeEvidence[] = [
     runbookProbe: "Runbook opened temporary hold, trace preservation, immutable audit, prompt-fragment activation block, and security closure instructions.",
     incidentLinkage: "No separate incident opened because the critical abuse queue ab-304 remains the authoritative investigation record.",
     auditRef: "au-008",
-    releaseGateUse: "Production launch remains blocked until the security-admin investigation closes with audit, support, and release evidence refs.",
+    releaseGateUse: "Production launch remains blocked until the security-admin investigation closes with audit, support, and release evidence refs; staging alert route evidence is recorded in ops/evidence/staging/20260526T1000Z-alert-runtime.json.",
     evidenceRefs: ["al-admin-security", "od-admin-security", "ab-304", "au-008", "tr-1004", "staging-alert-admin-security-20260526T1030Z"]
   }
 ];

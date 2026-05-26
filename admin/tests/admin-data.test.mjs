@@ -402,6 +402,8 @@ test("admin fixtures cover operations gate evidence", () => {
     "runtimeValidatedAt",
     "staging-dashboard-crawler",
     "staging-alert-crawler",
+    "ops/evidence/staging/20260526T1000Z-dashboard-runtime.json",
+    "ops/evidence/staging/20260526T1000Z-alert-runtime.json",
     "importProbe",
     "signalProbe",
     "sloProbe",

@@ -93,6 +93,14 @@ const stagingSupportRetryAbusePath = new URL(
   "../../ops/evidence/staging/20260527T1000Z-support-retry-abuse.json",
   import.meta.url
 );
+const stagingDashboardRuntimePath = new URL(
+  "../../ops/evidence/staging/20260526T1000Z-dashboard-runtime.json",
+  import.meta.url
+);
+const stagingAlertRuntimePath = new URL(
+  "../../ops/evidence/staging/20260526T1000Z-alert-runtime.json",
+  import.meta.url
+);
 
 const roleOrder = new Map([
   ["support_operator", 1],
@@ -887,6 +895,27 @@ test("operations dashboards and alert routes bind SLOs to release-gate evidence"
 });
 
 test("dashboard runtime evidence verifies staging imports and preserves release blockers", () => {
+  assert.ok(existsSync(stagingDashboardRuntimePath), "staging dashboard runtime evidence file is missing");
+  const evidenceFile = JSON.parse(readFileSync(stagingDashboardRuntimePath, "utf8"));
+
+  assert.equal(evidenceFile.environment, "staging", "dashboard evidence file must be staging scoped");
+  assert.equal(evidenceFile.status, "pass_with_blockers_preserved", "dashboard evidence must pass while preserving blockers");
+  assert.equal(
+    evidenceFile.blueprint_checklist_item,
+    "导入并验证 staging dashboards runtime evidence。",
+    "dashboard evidence must bind the exact checklist item"
+  );
+  assert.equal(
+    evidenceFile.gate_impact.can_clear_dashboard_checklist_item,
+    true,
+    "dashboard evidence should clear only the dashboard checklist row"
+  );
+  assert.equal(
+    evidenceFile.gate_impact.aggregate_private_beta_gate_status,
+    "blocked_by_other_staging_runtime_items",
+    "dashboard evidence must not close the aggregate private beta gate"
+  );
+
   assert.equal(
     operationalDashboardRuntimeEvidence.length,
     operationalDashboards.length,
@@ -894,6 +923,8 @@ test("dashboard runtime evidence verifies staging imports and preserves release 
   );
 
   const evidenceByDashboard = new Map();
+  const runtimeFileRefs = new Set(evidenceFile.runtime_refs);
+  const runtimeFileResults = new Map(evidenceFile.dashboard_results.map((result) => [result.dashboard_id, result]));
   const releaseBlockerIds = new Set(releaseBlockers.map((blocker) => blocker.id));
 
   for (const evidence of operationalDashboardRuntimeEvidence) {
@@ -914,6 +945,10 @@ test("dashboard runtime evidence verifies staging imports and preserves release 
       evidence.evidenceRefs.some((ref) => /^staging-dashboard-[a-z-]+-\d{8}T\d{4}Z$/.test(ref)),
       `${evidence.id} needs staging dashboard runtime ref`
     );
+    assert.ok(
+      evidence.evidenceRefs.some((ref) => runtimeFileRefs.has(ref)),
+      `${evidence.id} must cite a runtime ref from the staging dashboard evidence file`
+    );
 
     if (evidence.validationStatus === "blocked") {
       assert.ok(
@@ -929,9 +964,13 @@ test("dashboard runtime evidence verifies staging imports and preserves release 
 
   for (const dashboard of operationalDashboards) {
     const evidence = evidenceByDashboard.get(dashboard.id);
+    const fileResult = runtimeFileResults.get(dashboard.id);
     assert.ok(evidence, `${dashboard.id} missing runtime evidence`);
+    assert.ok(fileResult, `${dashboard.id} missing dashboard evidence file result`);
     assert.equal(evidence.validatedAt, dashboard.runtimeValidatedAt, `${dashboard.id} validation timestamp mismatch`);
     assert.equal(evidence.validationStatus, dashboard.runtimeEvidenceStatus, `${dashboard.id} runtime status mismatch`);
+    assert.equal(fileResult.validation_status, dashboard.runtimeEvidenceStatus, `${dashboard.id} evidence file status mismatch`);
+    assert.equal(fileResult.runtime_ref, dashboard.runtimeEvidenceRef, `${dashboard.id} evidence file runtime ref mismatch`);
     assert.ok(evidence.evidenceRefs.includes(dashboard.runtimeEvidenceRef), `${dashboard.id} evidence missing runtime ref`);
 
     if (dashboard.ownerRole === "admin_superadmin") {
@@ -946,6 +985,27 @@ test("dashboard runtime evidence verifies staging imports and preserves release 
 });
 
 test("alert route runtime evidence verifies staging delivery without closing dashboard blockers", () => {
+  assert.ok(existsSync(stagingAlertRuntimePath), "staging alert runtime evidence file is missing");
+  const evidenceFile = JSON.parse(readFileSync(stagingAlertRuntimePath, "utf8"));
+
+  assert.equal(evidenceFile.environment, "staging", "alert evidence file must be staging scoped");
+  assert.equal(evidenceFile.status, "pass", "alert route evidence must pass");
+  assert.equal(
+    evidenceFile.blueprint_checklist_item,
+    "配置并验证 staging alert routes/runtime evidence。",
+    "alert evidence must bind the exact checklist item"
+  );
+  assert.equal(
+    evidenceFile.gate_impact.can_clear_alert_checklist_item,
+    true,
+    "alert evidence should clear only the alert checklist row"
+  );
+  assert.equal(
+    evidenceFile.gate_impact.aggregate_private_beta_gate_status,
+    "blocked_by_other_staging_runtime_items",
+    "alert evidence must not close the aggregate private beta gate"
+  );
+
   assert.equal(
     alertRouteRuntimeEvidence.length,
     alertRoutes.length,
@@ -953,6 +1013,8 @@ test("alert route runtime evidence verifies staging delivery without closing das
   );
 
   const evidenceByAlertRoute = new Map();
+  const runtimeFileRefs = new Set(evidenceFile.runtime_refs);
+  const runtimeFileResults = new Map(evidenceFile.alert_results.map((result) => [result.alert_route_id, result]));
 
   for (const evidence of alertRouteRuntimeEvidence) {
     assert.ok(alertRouteIds.has(evidence.alertRouteId), `${evidence.id} links unknown alert route`);
@@ -976,6 +1038,10 @@ test("alert route runtime evidence verifies staging delivery without closing das
       evidence.evidenceRefs.some((ref) => /^staging-alert-[a-z-]+-\d{8}T\d{4}Z$/.test(ref)),
       `${evidence.id} needs staging alert runtime ref`
     );
+    assert.ok(
+      evidence.evidenceRefs.some((ref) => runtimeFileRefs.has(ref)),
+      `${evidence.id} must cite a runtime ref from the staging alert evidence file`
+    );
 
     assert.equal(evidenceByAlertRoute.has(evidence.alertRouteId), false, `${evidence.alertRouteId} has duplicate evidence`);
     evidenceByAlertRoute.set(evidence.alertRouteId, evidence);
@@ -983,10 +1049,14 @@ test("alert route runtime evidence verifies staging delivery without closing das
 
   for (const alert of alertRoutes) {
     const evidence = evidenceByAlertRoute.get(alert.id);
+    const fileResult = runtimeFileResults.get(alert.id);
     assert.ok(evidence, `${alert.id} missing runtime evidence`);
+    assert.ok(fileResult, `${alert.id} missing alert evidence file result`);
     assert.equal(evidence.dashboardId, alert.dashboardId, `${alert.id} dashboard mismatch`);
     assert.equal(evidence.validatedAt, alert.runtimeValidatedAt, `${alert.id} validation timestamp mismatch`);
     assert.equal(evidence.auditRef, alert.auditRef, `${alert.id} audit mismatch`);
+    assert.equal(fileResult.validation_status, alert.runtimeEvidenceStatus, `${alert.id} evidence file status mismatch`);
+    assert.equal(fileResult.runtime_ref, alert.runtimeEvidenceRef, `${alert.id} evidence file runtime ref mismatch`);
 
     if (alert.severity === "sev1") {
       assert.equal(evidence.validatedByRole, "admin_superadmin", `${alert.id} sev1 evidence needs superadmin validation`);
@@ -1059,13 +1129,18 @@ test("release blocker matrix prevents partial operations evidence from closing b
 test("operations runtime evidence closes only the validated dashboard and alert checklist rows", () => {
   assert.match(
     blueprint,
-    /- \[ \] 导入并验证 staging dashboards runtime evidence。/,
-    "staging dashboard runtime evidence checklist row must remain open until launch-readiness runtime validation"
+    /- \[x\] 导入并验证 staging dashboards runtime evidence。/,
+    "staging dashboard runtime evidence checklist row should close after validator-backed staging evidence"
   );
   assert.match(
     blueprint,
-    /- \[ \] 配置并验证 staging alert routes\/runtime evidence。/,
-    "staging alert route runtime evidence checklist row must remain open until launch-readiness runtime validation"
+    /- \[x\] 配置并验证 staging alert routes\/runtime evidence。/,
+    "staging alert route runtime evidence checklist row should close after validator-backed staging evidence"
+  );
+  assert.match(
+    blueprint,
+    /- \[ \] staging backend\/worker\/crawler metrics runtime evidence 通过。/,
+    "metrics runtime evidence must remain open"
   );
 
   const dashboardRuntimeRefs = new Set(operationalDashboards.map((dashboard) => dashboard.runtimeEvidenceRef));

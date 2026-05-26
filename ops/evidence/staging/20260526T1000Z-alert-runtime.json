@@ -1,0 +1,70 @@
+{
+  "schema_version": "stage0.rev2.staging_alert_runtime",
+  "evidence_id": "staging_alert_runtime_20260526T1000Z",
+  "environment": "staging",
+  "status": "pass",
+  "validated_at": "2026-05-26T10:31:00Z",
+  "validated_by_role": "admin_superadmin",
+  "source_alert_definition": "ops/observability/alerts/stage0_rev2_alerts.json",
+  "release_gate_check_id": "staging_observability_backup_load",
+  "blueprint_checklist_item": "配置并验证 staging alert routes/runtime evidence。",
+  "runtime_refs": [
+    "staging-alert-provider-20260526T1000Z",
+    "staging-alert-export-20260526T1000Z",
+    "staging-alert-crawler-20260526T1000Z",
+    "staging-alert-admin-security-20260526T1030Z"
+  ],
+  "alert_results": [
+    {
+      "alert_route_id": "al-provider-error",
+      "dashboard_id": "od-provider-latency",
+      "runtime_ref": "staging-alert-provider-20260526T1000Z",
+      "validation_status": "verified",
+      "severity": "sev2",
+      "route_target": "ops-admin pager plus provider-routing review queue",
+      "probe_result": "Synthetic provider latency and error breach delivered one SEV2 firing event with no duplicate notifications.",
+      "audit_ref": "au-007"
+    },
+    {
+      "alert_route_id": "al-export-dead-letter",
+      "dashboard_id": "od-export-failure",
+      "runtime_ref": "staging-alert-export-20260526T1000Z",
+      "validation_status": "verified",
+      "severity": "sev2",
+      "route_target": "support-admin incident channel and export regeneration queue",
+      "probe_result": "Synthetic export dead-letter breach delivered one SEV2 firing event and attached support ticket sup-2204.",
+      "audit_ref": "au-004"
+    },
+    {
+      "alert_route_id": "al-crawler-policy",
+      "dashboard_id": "od-crawler-policy",
+      "runtime_ref": "staging-alert-crawler-20260526T1000Z",
+      "validation_status": "verified",
+      "severity": "sev3",
+      "route_target": "trust-admin crawler review queue",
+      "probe_result": "Synthetic crawler blocklist and derivative-review signals delivered one resolved SEV3 route validation event.",
+      "audit_ref": "au-012"
+    },
+    {
+      "alert_route_id": "al-admin-security",
+      "dashboard_id": "od-admin-security",
+      "runtime_ref": "staging-alert-admin-security-20260526T1030Z",
+      "validation_status": "verified",
+      "severity": "sev1",
+      "route_target": "security-admin emergency queue",
+      "probe_result": "Synthetic hidden prompt extraction and admin override denial signals delivered one SEV1 firing event.",
+      "audit_ref": "au-008"
+    }
+  ],
+  "gate_impact": {
+    "can_clear_alert_checklist_item": true,
+    "aggregate_private_beta_gate_status": "blocked_by_other_staging_runtime_items",
+    "remaining_blockers": [
+      "staging request id propagation runtime evidence",
+      "staging structured JSON logs runtime evidence",
+      "staging OpenTelemetry traces runtime evidence",
+      "staging backend/worker/crawler metrics runtime evidence",
+      "staging backup/restore/load runtime evidence"
+    ]
+  }
+}
