@@ -258,6 +258,29 @@ for (const attribute of referenceUploadEvidence.requiredAttributes ?? []) {
 if (referenceUploadEvidence.scenario !== "reference-upload-to-ready-zip-export") {
   fail("reference upload evidence must pin the reference-upload-to-ready-zip-export scenario");
 }
+if (
+  referenceUploadEvidence.expectedOperationCount !== "4" ||
+  JSON.stringify(referenceUploadEvidence.expectedOperations) !== JSON.stringify([
+    "createUpload",
+    "createPackage",
+    "createExport",
+    "getExport"
+  ])
+) {
+  fail("reference upload evidence must prove createUpload -> createPackage -> createExport -> getExport operation coverage");
+}
+for (const expectedSnippet of [
+  "latestAcceptedReferenceId",
+  "latestAcceptedReferenceName",
+  "latestAcceptedReferencePackaged",
+  "latestAcceptedReferenceProvenancePresent",
+  "latestAcceptedReferencePptSlidePresent",
+  "referenceUploadIntegrationOperationIds"
+]) {
+  if (!devStateSource.includes(expectedSnippet)) {
+    fail(`reference upload integration smoke missing latest-reference contract field ${expectedSnippet}`);
+  }
+}
 
 if (
   briefUploadConfirmationEvidence.expectedStatus !== "pass" ||
@@ -435,9 +458,16 @@ for (const requiredSnippet of [
   "data-reference-export-smoke",
   "data-reference-upload-integration-smoke",
   "data-reference-upload-integration-status",
+  "data-reference-upload-integration-operation-count",
+  "data-reference-upload-integration-operations",
   "data-reference-accepted-count",
   "data-reference-accepted-kinds",
   "data-reference-rejected-count",
+  "data-reference-latest-accepted-id",
+  "data-reference-latest-accepted-name",
+  "data-reference-latest-packaged",
+  "data-reference-latest-provenance-present",
+  "data-reference-latest-ppt-slide-present",
   "data-reference-packaged-count",
   "data-reference-package-history-count",
   "data-reference-ready-export-count",

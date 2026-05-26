@@ -114,9 +114,15 @@ export interface ReferenceUploadIntegrationSmoke {
   schema_version: "stage0.rev2.reference-upload-integration-smoke";
   status: "pass" | "fail";
   scenario: "reference-upload-to-ready-zip-export";
+  apiOperationIds: Array<"createUpload" | "createPackage" | "createExport" | "getExport">;
   acceptedCount: number;
   acceptedKinds: ReferenceAsset["kind"][];
   rejectedCount: number;
+  latestAcceptedReferenceId: string;
+  latestAcceptedReferenceName: string;
+  latestAcceptedReferencePackaged: boolean;
+  latestAcceptedReferenceProvenancePresent: boolean;
+  latestAcceptedReferencePptSlidePresent: boolean;
   packagedReferenceCount: number;
   packageHistoryReferenceCount: number;
   readyExportCount: number;
@@ -125,9 +131,12 @@ export interface ReferenceUploadIntegrationSmoke {
   failures: Array<
     | "accepted-reference"
     | "packaged-reference"
+    | "latest-reference-packaged"
     | "ready-export"
     | "manifest-provenance"
+    | "latest-reference-provenance"
     | "ppt-asset-grid"
+    | "latest-reference-ppt-slide"
   >;
 }
 

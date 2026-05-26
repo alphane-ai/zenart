@@ -712,8 +712,16 @@ export const buildReferenceUploadValidationMatrixEvidence = (): ReferenceUploadV
   };
 };
 
+export const referenceUploadIntegrationOperationIds: ReferenceUploadIntegrationSmoke["apiOperationIds"] = [
+  "createUpload",
+  "createPackage",
+  "createExport",
+  "getExport"
+];
+
 export const buildReferenceUploadIntegrationSmoke = (state: WorkspaceState): ReferenceUploadIntegrationSmoke => {
   const acceptedReferences = state.brief.references.filter((reference) => reference.validation.state === "accepted");
+  const latestAcceptedReference = acceptedReferences.at(-1);
   const packagedReferenceIds = new Set(
     state.packageItems.filter((item) => item.type === "reference").map((item) => item.sourceId)
   );
@@ -722,6 +730,16 @@ export const buildReferenceUploadIntegrationSmoke = (state: WorkspaceState): Ref
     latestReadyExport?.manifest.items.filter((item) => item.provenance.startsWith("dev-client-reference:")).length ?? 0;
   const pptAssetGridSlideCount =
     latestReadyExport?.manifest.ppt_ready_metadata.slides.filter((slide) => slide.layout === "asset-grid").length ?? 0;
+  const latestAcceptedReferencePackaged = latestAcceptedReference ? packagedReferenceIds.has(latestAcceptedReference.id) : false;
+  const latestAcceptedReferenceProvenancePresent = latestAcceptedReference
+    ? latestReadyExport?.manifest.items.some((item) => item.provenance === `dev-client-reference:${latestAcceptedReference.id}`) ?? false
+    : false;
+  const latestAcceptedReferencePptSlidePresent = latestAcceptedReference
+    ? latestReadyExport?.manifest.ppt_ready_metadata.slides.some((slide) => {
+        const sourceItem = state.packageItems.find((item) => item.id === slide.source_item_id);
+        return slide.layout === "asset-grid" && sourceItem?.sourceId === latestAcceptedReference.id;
+      }) ?? false
+    : false;
   const failures: ReferenceUploadIntegrationSmoke["failures"] = [];
 
   if (acceptedReferences.length === 0) {
@@ -730,23 +748,38 @@ export const buildReferenceUploadIntegrationSmoke = (state: WorkspaceState): Ref
   if (packagedReferenceIds.size === 0) {
     failures.push("packaged-reference");
   }
+  if (!latestAcceptedReferencePackaged) {
+    failures.push("latest-reference-packaged");
+  }
   if (!latestReadyExport) {
     failures.push("ready-export");
   }
   if (latestReadyExport && referenceProvenanceCount < packagedReferenceIds.size) {
     failures.push("manifest-provenance");
   }
+  if (latestReadyExport && !latestAcceptedReferenceProvenancePresent) {
+    failures.push("latest-reference-provenance");
+  }
   if (latestReadyExport && pptAssetGridSlideCount < packagedReferenceIds.size) {
     failures.push("ppt-asset-grid");
+  }
+  if (latestReadyExport && !latestAcceptedReferencePptSlidePresent) {
+    failures.push("latest-reference-ppt-slide");
   }
 
   return {
     schema_version: "stage0.rev2.reference-upload-integration-smoke",
     status: failures.length === 0 ? "pass" : "fail",
     scenario: "reference-upload-to-ready-zip-export",
+    apiOperationIds: [...referenceUploadIntegrationOperationIds],
     acceptedCount: acceptedReferences.length,
     acceptedKinds: Array.from(new Set(acceptedReferences.map((reference) => reference.kind))),
     rejectedCount: state.brief.references.filter((reference) => reference.validation.state === "rejected").length,
+    latestAcceptedReferenceId: latestAcceptedReference?.id ?? "missing",
+    latestAcceptedReferenceName: latestAcceptedReference?.name ?? "missing",
+    latestAcceptedReferencePackaged,
+    latestAcceptedReferenceProvenancePresent,
+    latestAcceptedReferencePptSlidePresent,
     packagedReferenceCount: packagedReferenceIds.size,
     packageHistoryReferenceCount: state.packageItems.filter((item) => item.type === "reference").length,
     readyExportCount: state.exports.filter((record) => record.status === "ready").length,

@@ -598,9 +598,16 @@ function WorkspaceView({
           data-reference-export-smoke="reference-upload-to-ready-zip-export"
           data-reference-upload-integration-smoke={referenceIntegrationSmoke.schema_version}
           data-reference-upload-integration-status={referenceIntegrationSmoke.status}
+          data-reference-upload-integration-operation-count={referenceIntegrationSmoke.apiOperationIds.length}
+          data-reference-upload-integration-operations={referenceIntegrationSmoke.apiOperationIds.join(",")}
           data-reference-accepted-count={acceptedReferenceIds.length}
           data-reference-accepted-kinds={referenceIntegrationSmoke.acceptedKinds.join(",")}
           data-reference-rejected-count={referenceIntegrationSmoke.rejectedCount}
+          data-reference-latest-accepted-id={referenceIntegrationSmoke.latestAcceptedReferenceId}
+          data-reference-latest-accepted-name={referenceIntegrationSmoke.latestAcceptedReferenceName}
+          data-reference-latest-packaged={String(referenceIntegrationSmoke.latestAcceptedReferencePackaged)}
+          data-reference-latest-provenance-present={String(referenceIntegrationSmoke.latestAcceptedReferenceProvenancePresent)}
+          data-reference-latest-ppt-slide-present={String(referenceIntegrationSmoke.latestAcceptedReferencePptSlidePresent)}
           data-reference-packaged-count={packagedReferenceIds.size}
           data-reference-package-history-count={referenceIntegrationSmoke.packageHistoryReferenceCount}
           data-reference-ready-export-count={referenceIntegrationSmoke.readyExportCount}
@@ -609,7 +616,10 @@ function WorkspaceView({
           data-reference-upload-integration-failures={referenceIntegrationSmoke.failures.join(",")}
         >
           <strong>Reference export path</strong>
-          <span>Accepted references can be added to package history and ZIP manifest provenance.</span>
+          <span>
+            {referenceIntegrationSmoke.latestAcceptedReferenceName} · package {String(referenceIntegrationSmoke.latestAcceptedReferencePackaged)} ·
+            provenance {String(referenceIntegrationSmoke.latestAcceptedReferenceProvenancePresent)}.
+          </span>
         </div>
         <div
           className="workflow-api-smoke"

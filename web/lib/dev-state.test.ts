@@ -466,9 +466,15 @@ describe("dev workspace contracts", () => {
       schema_version: "stage0.rev2.reference-upload-integration-smoke",
       status: "pass",
       scenario: "reference-upload-to-ready-zip-export",
+      apiOperationIds: ["createUpload", "createPackage", "createExport", "getExport"],
       acceptedCount: 4,
       acceptedKinds: ["image", "document", "url"],
       rejectedCount: 1,
+      latestAcceptedReferenceId: acceptedUrl.id,
+      latestAcceptedReferenceName: acceptedUrl.name,
+      latestAcceptedReferencePackaged: true,
+      latestAcceptedReferenceProvenancePresent: true,
+      latestAcceptedReferencePptSlidePresent: true,
       packagedReferenceCount: 3,
       packageHistoryReferenceCount: 3,
       readyExportCount: 1,
@@ -571,11 +577,16 @@ describe("dev workspace contracts", () => {
     expect(buildReferenceUploadIntegrationSmoke(state)).toMatchObject({
       status: "fail",
       acceptedCount: 1,
+      latestAcceptedReferenceId: "ref-001",
+      latestAcceptedReferenceName: "brand-moodboard.png",
+      latestAcceptedReferencePackaged: false,
+      latestAcceptedReferenceProvenancePresent: false,
+      latestAcceptedReferencePptSlidePresent: false,
       packagedReferenceCount: 0,
       readyExportCount: 0,
       provenanceCount: 0,
       pptAssetGridSlideCount: 0,
-      failures: ["packaged-reference", "ready-export"]
+      failures: ["packaged-reference", "latest-reference-packaged", "ready-export"]
     });
   });
 

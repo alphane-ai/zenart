@@ -116,8 +116,15 @@ describe("WorkspaceApp user route integration smoke", () => {
     await waitFor(() => {
       const smoke = container.querySelector("[data-reference-upload-integration-smoke='stage0.rev2.reference-upload-integration-smoke']");
       expect(smoke).toHaveAttribute("data-reference-upload-integration-status", "pass");
+      expect(smoke).toHaveAttribute("data-reference-upload-integration-operation-count", "4");
+      expect(smoke).toHaveAttribute("data-reference-upload-integration-operations", "createUpload,createPackage,createExport,getExport");
       expect(smoke).toHaveAttribute("data-reference-accepted-kinds", "image");
       expect(smoke).toHaveAttribute("data-reference-rejected-count", "0");
+      expect(smoke).toHaveAttribute("data-reference-latest-accepted-id", "ref-campaign-reference-webp");
+      expect(smoke).toHaveAttribute("data-reference-latest-accepted-name", "campaign-reference.webp");
+      expect(smoke).toHaveAttribute("data-reference-latest-packaged", "true");
+      expect(smoke).toHaveAttribute("data-reference-latest-provenance-present", "true");
+      expect(smoke).toHaveAttribute("data-reference-latest-ppt-slide-present", "true");
       expect(smoke).toHaveAttribute("data-reference-package-history-count", "1");
       expect(smoke).toHaveAttribute("data-reference-ready-export-count", "1");
       expect(smoke).toHaveAttribute("data-reference-provenance-count", "1");
@@ -402,7 +409,7 @@ describe("WorkspaceApp user route integration smoke", () => {
 
     fireEvent.change(screen.getByLabelText("Reference asset name or URL"), { target: { value: "aurora-bottle-packshot.png" } });
     fireEvent.click(screen.getByRole("button", { name: "Attach" }));
-    await screen.findByText(/aurora-bottle-packshot.png/);
+    await screen.findByRole("button", { name: "Add reference aurora-bottle-packshot.png to package" });
 
     const candidateGrid = screen.getByTestId("candidate-grid");
     expect(within(candidateGrid).getAllByRole("article")).toHaveLength(4);
@@ -481,7 +488,14 @@ describe("WorkspaceApp user route integration smoke", () => {
       expectedStatus: "pass",
       scenario: "reference-upload-to-ready-zip-export",
       requiredAttributes: expect.arrayContaining([
+        "data-reference-upload-integration-operation-count",
+        "data-reference-upload-integration-operations",
         "data-reference-accepted-count",
+        "data-reference-latest-accepted-id",
+        "data-reference-latest-accepted-name",
+        "data-reference-latest-packaged",
+        "data-reference-latest-provenance-present",
+        "data-reference-latest-ppt-slide-present",
         "data-reference-package-history-count",
         "data-reference-ready-export-count",
         "data-reference-provenance-count",
