@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import generatedApiCsrfContract from "../../validation/generated-api-csrf-contract.json";
+import userRouteSmoke from "../../validation/user-routes-smoke.json";
 import { defaultSameSiteCsrfContract } from "../request-security";
 import { apiOperations, OperationId, ZenArtApiClient } from "./zenart-api";
 
@@ -125,6 +126,7 @@ describe("generated web API client CSRF contract", () => {
   });
 
   it("matches the machine-checkable generated client CSRF evidence artifact", () => {
+    const routeSmokeEvidence = generatedApiCsrfContractFromRouteSmoke();
     const unsafeOperations = Object.entries(apiOperations)
       .filter(([, operation]) =>
         generatedApiCsrfContract.protectedMethods.includes(
@@ -151,6 +153,18 @@ describe("generated web API client CSRF contract", () => {
       sameSiteRequirement: defaultSameSiteCsrfContract.sameSiteRequired,
       originPolicy: defaultSameSiteCsrfContract.originPolicy,
       protectedMethods: defaultSameSiteCsrfContract.protectedMethods
+    });
+    expect(routeSmokeEvidence).toMatchObject({
+      route: "/account",
+      source: "web/validation/generated-api-csrf-contract.json",
+      generatedClient: "web/lib/generated/zenart-api.ts",
+      requestSecurityContract: "web/lib/request-security.ts",
+      credentialMode: generatedApiCsrfContract.credentialMode,
+      csrfHeaderName: generatedApiCsrfContract.csrfHeaderName,
+      sameSiteRequirement: generatedApiCsrfContract.sameSiteRequirement,
+      originPolicy: generatedApiCsrfContract.originPolicy,
+      unsafeOperationCount: generatedApiCsrfContract.unsafeOperationCount,
+      missingUnsafeOperationCount: 0
     });
     expect(generatedApiCsrfContract.unsafeOperationCount).toBe(unsafeOperations.length);
     expect(generatedApiCsrfContract.unsafeOperations).toEqual(unsafeOperations);
@@ -214,3 +228,14 @@ describe("generated web API client CSRF contract", () => {
 
 const buildPathParams = (pathTemplate: string) =>
   Object.fromEntries(Array.from(pathTemplate.matchAll(/\{([^}]+)\}/g)).map(([, key]) => [key, `${key}-001`]));
+
+const generatedApiCsrfContractFromRouteSmoke = () => {
+  const routeSmoke = generatedApiCsrfContract as unknown as {
+    schemaVersion: string;
+  };
+  expect(routeSmoke.schemaVersion).toBe("stage0.rev2.generated-api-csrf-contract");
+
+  return userRouteSmoke.securityEvidence.find(
+    (entry) => entry.schemaVersion === "stage0.rev2.generated-api-csrf-contract"
+  );
+};

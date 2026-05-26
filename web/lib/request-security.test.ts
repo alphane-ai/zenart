@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import userRouteSmoke from "../validation/user-routes-smoke.json";
 import { apiOperations } from "./generated/zenart-api";
 import { createSessionContract } from "./dev-state";
 import {
@@ -68,5 +69,38 @@ describe("same-site CSRF request contract", () => {
       "createShareLink",
       "createSupportTicket"
     ]);
+  });
+
+  it("keeps the user route smoke artifact pinned to the session/CSRF client contract", () => {
+    const artifactEvidence = userRouteSmoke.securityEvidence.find(
+      (entry) => entry.schemaVersion === "stage0.rev2.session-csrf-client-evidence"
+    );
+    const runtimeEvidence = buildSessionSecurityContractEvidence(createSessionContract(), apiOperations);
+
+    expect(artifactEvidence).toMatchObject({
+      route: "/account",
+      source: "web/components/workspace-app.tsx",
+      statusAttribute: "data-session-security-status",
+      expectedStatus: runtimeEvidence.status,
+      cookie: {
+        name: runtimeEvidence.cookieName,
+        httpOnlyAttribute: "data-session-cookie-http-only",
+        secureAttribute: "data-session-cookie-secure",
+        sameSiteAttribute: "data-session-cookie-same-site",
+        pathAttribute: "data-session-cookie-path",
+        expectedHttpOnly: String(runtimeEvidence.cookieAttributes.httpOnly),
+        expectedSecure: String(runtimeEvidence.cookieAttributes.secure),
+        expectedSameSite: runtimeEvidence.cookieAttributes.sameSite,
+        expectedPath: runtimeEvidence.cookieAttributes.path
+      },
+      csrf: {
+        headerAttribute: "data-session-csrf-header",
+        originPolicyAttribute: "data-session-csrf-origin-policy",
+        missingOperationCountAttribute: "data-session-csrf-missing-operation-count",
+        expectedHeader: runtimeEvidence.csrfHeaderName,
+        expectedOriginPolicy: runtimeEvidence.originPolicy,
+        expectedMissingOperationCount: String(runtimeEvidence.missingCsrfOperationIds.length)
+      }
+    });
   });
 });

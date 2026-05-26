@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
+import userRouteSmoke from "../validation/user-routes-smoke.json";
 import { WorkspaceApp } from "./workspace-app";
 
 describe("WorkspaceApp user route integration smoke", () => {
@@ -184,5 +185,55 @@ describe("WorkspaceApp user route integration smoke", () => {
       expect(screen.getByRole("button", { name: "Initial brief" })).toHaveAttribute("aria-pressed", "true");
     });
     assertRenderingBudget(["version-restore"]);
+  });
+
+  it("keeps the user route smoke artifact aligned with machine-checkable UI evidence attributes", () => {
+    const evidenceBySchema = new Map(
+      userRouteSmoke.securityEvidence.map((entry) => [entry.schemaVersion, entry])
+    );
+
+    expect(evidenceBySchema.get("stage0.rev2.workspace-rendering-performance")).toMatchObject({
+      route: "/workspace",
+      source: "web/components/workspace-app.tsx",
+      statusAttribute: "data-rendering-status",
+      expectedStatus: "pass",
+      expectedFailureCount: "0",
+      budgetAttributes: expect.arrayContaining([
+        "data-render-max-elements",
+        "data-render-max-interaction-ms",
+        "data-render-failure-count",
+        "data-render-interaction-steps"
+      ])
+    });
+    expect(evidenceBySchema.get("stage0.rev2.reference-upload-integration-smoke")).toMatchObject({
+      route: "/workspace",
+      source: "web/components/workspace-app.tsx",
+      statusAttribute: "data-reference-upload-integration-status",
+      expectedStatus: "pass",
+      scenario: "reference-upload-to-ready-zip-export",
+      requiredAttributes: expect.arrayContaining([
+        "data-reference-accepted-count",
+        "data-reference-package-history-count",
+        "data-reference-ready-export-count",
+        "data-reference-provenance-count",
+        "data-reference-ppt-asset-grid-slide-count"
+      ])
+    });
+    expect(evidenceBySchema.get("stage0.rev2.package-export-metadata-ui")).toMatchObject({
+      route: "/export",
+      source: "web/components/workspace-app.tsx",
+      statusAttribute: "data-package-export-metadata-status",
+      expectedStatus: "pass",
+      expectedMissingOutputCount: "0",
+      payloadAttribute: "data-package-export-zip-payloads",
+      requiredPayloads: expect.arrayContaining([
+        "manifest.json",
+        "qa-report.json",
+        "safety-policy-report.json",
+        "provenance.json",
+        "ppt-ready-metadata.json",
+        "assets/README.txt"
+      ])
+    });
   });
 });

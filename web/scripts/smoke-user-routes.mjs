@@ -38,6 +38,113 @@ if (generatedApiCsrfContract.blueprintSource !== "Docs/stage0_blueprint_rev2.md"
   fail("generated API CSRF contract must cite Docs/stage0_blueprint_rev2.md");
 }
 
+const securityEvidence = artifact.securityEvidence ?? [];
+const securityEvidenceBySchema = new Map(
+  securityEvidence
+    .filter((entry) => typeof entry === "object" && entry !== null)
+    .map((entry) => [entry.schemaVersion, entry])
+);
+
+const requireSecurityEvidence = (schemaVersion) => {
+  const evidence = securityEvidenceBySchema.get(schemaVersion);
+  if (!evidence) {
+    fail(`smoke artifact missing structured security evidence ${schemaVersion}`);
+  }
+  return evidence;
+};
+
+const sessionEvidence = requireSecurityEvidence("stage0.rev2.session-csrf-client-evidence");
+const generatedCsrfEvidence = requireSecurityEvidence("stage0.rev2.generated-api-csrf-contract");
+const renderingEvidence = requireSecurityEvidence("stage0.rev2.workspace-rendering-performance");
+const referenceUploadEvidence = requireSecurityEvidence("stage0.rev2.reference-upload-integration-smoke");
+const packageExportEvidence = requireSecurityEvidence("stage0.rev2.package-export-metadata-ui");
+
+if (sessionEvidence.route !== "/account") {
+  fail("session/CSRF client evidence must be attached to /account");
+}
+
+for (const requiredSessionAttribute of [
+  sessionEvidence.statusAttribute,
+  sessionEvidence.cookie?.httpOnlyAttribute,
+  sessionEvidence.cookie?.secureAttribute,
+  sessionEvidence.cookie?.sameSiteAttribute,
+  sessionEvidence.cookie?.pathAttribute,
+  sessionEvidence.csrf?.headerAttribute,
+  sessionEvidence.csrf?.originPolicyAttribute,
+  sessionEvidence.csrf?.missingOperationCountAttribute
+]) {
+  if (!requiredSessionAttribute || !componentSource.includes(requiredSessionAttribute)) {
+    fail(`session/CSRF UI evidence missing ${requiredSessionAttribute}`);
+  }
+}
+
+if (
+  sessionEvidence.expectedStatus !== "pass" ||
+  sessionEvidence.cookie?.name !== "__Host-zenart_session" ||
+  sessionEvidence.cookie?.expectedHttpOnly !== "true" ||
+  sessionEvidence.cookie?.expectedSecure !== "true" ||
+  sessionEvidence.cookie?.expectedSameSite !== "lax" ||
+  sessionEvidence.cookie?.expectedPath !== "/" ||
+  sessionEvidence.csrf?.expectedHeader !== "X-ZenArt-CSRF" ||
+  sessionEvidence.csrf?.expectedOriginPolicy !== "same-site-only" ||
+  sessionEvidence.csrf?.expectedMissingOperationCount !== "0"
+) {
+  fail("session/CSRF UI evidence does not assert the secure-cookie and same-site contract");
+}
+
+if (
+  generatedCsrfEvidence.credentialMode !== generatedApiCsrfContract.credentialMode ||
+  generatedCsrfEvidence.csrfHeaderName !== generatedApiCsrfContract.csrfHeaderName ||
+  generatedCsrfEvidence.sameSiteRequirement !== generatedApiCsrfContract.sameSiteRequirement ||
+  generatedCsrfEvidence.originPolicy !== generatedApiCsrfContract.originPolicy ||
+  generatedCsrfEvidence.unsafeOperationCount !== generatedApiCsrfContract.unsafeOperationCount ||
+  generatedCsrfEvidence.missingUnsafeOperationCount !== 0
+) {
+  fail("structured generated API CSRF evidence does not match validation/generated-api-csrf-contract.json");
+}
+
+for (const evidence of [renderingEvidence, referenceUploadEvidence, packageExportEvidence]) {
+  if (evidence.expectedStatus !== "pass") {
+    fail(`${evidence.schemaVersion} must assert a passing local-alpha UI evidence status`);
+  }
+  if (!artifact.routes.some((route) => route.path === evidence.route)) {
+    fail(`${evidence.schemaVersion} is attached to an unknown route ${evidence.route}`);
+  }
+  if (!componentSource.includes(evidence.statusAttribute)) {
+    fail(`${evidence.schemaVersion} UI source missing ${evidence.statusAttribute}`);
+  }
+}
+
+for (const attribute of renderingEvidence.budgetAttributes ?? []) {
+  if (!componentSource.includes(attribute)) {
+    fail(`workspace rendering evidence missing budget attribute ${attribute}`);
+  }
+}
+if (renderingEvidence.expectedFailureCount !== "0") {
+  fail("workspace rendering evidence must assert zero failures");
+}
+
+for (const attribute of referenceUploadEvidence.requiredAttributes ?? []) {
+  if (!componentSource.includes(attribute)) {
+    fail(`reference upload evidence missing attribute ${attribute}`);
+  }
+}
+if (referenceUploadEvidence.scenario !== "reference-upload-to-ready-zip-export") {
+  fail("reference upload evidence must pin the reference-upload-to-ready-zip-export scenario");
+}
+
+if (packageExportEvidence.expectedMissingOutputCount !== "0") {
+  fail("package/export metadata evidence must assert zero missing required outputs");
+}
+if (!componentSource.includes(packageExportEvidence.payloadAttribute)) {
+  fail(`package/export metadata evidence missing payload attribute ${packageExportEvidence.payloadAttribute}`);
+}
+for (const payload of packageExportEvidence.requiredPayloads ?? []) {
+  if (!JSON.stringify(artifact).includes(payload)) {
+    fail(`package/export metadata evidence missing required payload ${payload}`);
+  }
+}
+
 for (const route of artifact.routes) {
   if (!expectedViews.has(route.initialView)) {
     fail(`${route.path} has unsupported initialView ${route.initialView}`);

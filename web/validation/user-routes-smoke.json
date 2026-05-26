@@ -117,12 +117,93 @@
     "session contract exposes HttpOnly Secure SameSite cookie evidence and same-site CSRF header evidence"
   ],
   "securityEvidence": [
-    "stage0.rev2.session-csrf-client-evidence",
-    "secure __Host session cookie contract is exposed as machine-checkable UI data attributes",
-    "same-site CSRF contract exposes origin policy, credential mode, protected methods, protected operation count, and missing-operation count",
-    "stage0.rev2.generated-api-csrf-contract pins the generated client unsafe-operation inventory to credentialed same-site CSRF requests",
-    "generated unsafe web operations have zero missing same-site CSRF evidence",
-    "generated web API client rejects cross-origin base URLs and unsafe path params before credentialed same-site requests"
+    {
+      "schemaVersion": "stage0.rev2.session-csrf-client-evidence",
+      "route": "/account",
+      "source": "web/components/workspace-app.tsx",
+      "statusAttribute": "data-session-security-status",
+      "expectedStatus": "pass",
+      "cookie": {
+        "name": "__Host-zenart_session",
+        "httpOnlyAttribute": "data-session-cookie-http-only",
+        "secureAttribute": "data-session-cookie-secure",
+        "sameSiteAttribute": "data-session-cookie-same-site",
+        "pathAttribute": "data-session-cookie-path",
+        "expectedHttpOnly": "true",
+        "expectedSecure": "true",
+        "expectedSameSite": "lax",
+        "expectedPath": "/"
+      },
+      "csrf": {
+        "headerAttribute": "data-session-csrf-header",
+        "originPolicyAttribute": "data-session-csrf-origin-policy",
+        "missingOperationCountAttribute": "data-session-csrf-missing-operation-count",
+        "expectedHeader": "X-ZenArt-CSRF",
+        "expectedOriginPolicy": "same-site-only",
+        "expectedMissingOperationCount": "0"
+      }
+    },
+    {
+      "schemaVersion": "stage0.rev2.generated-api-csrf-contract",
+      "route": "/account",
+      "source": "web/validation/generated-api-csrf-contract.json",
+      "generatedClient": "web/lib/generated/zenart-api.ts",
+      "requestSecurityContract": "web/lib/request-security.ts",
+      "credentialMode": "include",
+      "csrfHeaderName": "X-ZenArt-CSRF",
+      "sameSiteRequirement": "lax-or-strict",
+      "originPolicy": "same-site-only",
+      "unsafeOperationCount": 15,
+      "missingUnsafeOperationCount": 0
+    },
+    {
+      "schemaVersion": "stage0.rev2.workspace-rendering-performance",
+      "route": "/workspace",
+      "source": "web/components/workspace-app.tsx",
+      "statusAttribute": "data-rendering-status",
+      "expectedStatus": "pass",
+      "budgetAttributes": [
+        "data-render-max-elements",
+        "data-render-max-interaction-ms",
+        "data-render-failure-count",
+        "data-render-interaction-steps"
+      ],
+      "expectedFailureCount": "0"
+    },
+    {
+      "schemaVersion": "stage0.rev2.reference-upload-integration-smoke",
+      "route": "/workspace",
+      "source": "web/components/workspace-app.tsx",
+      "statusAttribute": "data-reference-upload-integration-status",
+      "expectedStatus": "pass",
+      "scenario": "reference-upload-to-ready-zip-export",
+      "requiredAttributes": [
+        "data-reference-accepted-count",
+        "data-reference-accepted-kinds",
+        "data-reference-package-history-count",
+        "data-reference-ready-export-count",
+        "data-reference-provenance-count",
+        "data-reference-ppt-asset-grid-slide-count",
+        "data-reference-upload-integration-failures"
+      ]
+    },
+    {
+      "schemaVersion": "stage0.rev2.package-export-metadata-ui",
+      "route": "/export",
+      "source": "web/components/workspace-app.tsx",
+      "statusAttribute": "data-package-export-metadata-status",
+      "expectedStatus": "pass",
+      "expectedMissingOutputCount": "0",
+      "payloadAttribute": "data-package-export-zip-payloads",
+      "requiredPayloads": [
+        "manifest.json",
+        "qa-report.json",
+        "safety-policy-report.json",
+        "provenance.json",
+        "ppt-ready-metadata.json",
+        "assets/README.txt"
+      ]
+    }
   ],
   "analyticsCoverage": ["analytics-event-taxonomy", "client-side-ui-funnel-capture", "frontend-error-reporting"],
   "integrationCoverage": [
