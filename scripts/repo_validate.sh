@@ -65,6 +65,7 @@ test -x scripts/docker_build_smoke.sh
 test -x scripts/staging_smoke.sh
 test -x scripts/observability_smoke.sh
 test -x scripts/security_scan_smoke.sh
+test -x scripts/release_evidence_bundle_smoke.sh
 test -x scripts/render_no_go_release_notes.py
 test -x scripts/run_workflow_api_smoke.py
 test -x scripts/validate_workflow_api_smoke_evidence.py
@@ -271,13 +272,87 @@ bash -n scripts/docker_build_smoke.sh
 bash -n scripts/staging_smoke.sh
 bash -n scripts/observability_smoke.sh
 bash -n scripts/security_scan_smoke.sh
+bash -n scripts/release_evidence_bundle_smoke.sh
 ops_validate_dir="$(mktemp -d)"
 DRY_RUN=1 OUT_DIR="$ops_validate_dir/playwright" scripts/playwright_smoke.sh >/dev/null
 DRY_RUN=1 OUT_DIR="$ops_validate_dir/docker" scripts/docker_build_smoke.sh >/dev/null
 DRY_RUN=1 OUT_DIR="$ops_validate_dir/staging" scripts/staging_smoke.sh >/dev/null
 DRY_RUN=1 OUT_DIR="$ops_validate_dir/observability" scripts/observability_smoke.sh >/dev/null
 DRY_RUN=1 OUT_DIR="$ops_validate_dir/security" scripts/security_scan_smoke.sh >/dev/null
+set +e
+DRY_RUN=1 OUT_DIR="$ops_validate_dir/release-bundle" scripts/release_evidence_bundle_smoke.sh >/dev/null
+release_bundle_status=$?
+set -e
+if [[ "$release_bundle_status" -ne 2 ]]; then
+  raise_msg="release evidence bundle dry-run must exit 2 while release gates are no-go, got $release_bundle_status"
+  printf '%s\n' "$raise_msg" >&2
+  exit 1
+fi
 find "$ops_validate_dir" -name '*.json' -type f | grep -q .
+python3 - "$ops_validate_dir/release-bundle" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+reports = sorted(Path(sys.argv[1]).glob("*.json"))
+if len(reports) != 1:
+    raise SystemExit("release evidence bundle dry-run must write exactly one report")
+report = json.loads(reports[0].read_text(encoding="utf-8"))
+if report.get("kind") != "release_evidence_bundle":
+    raise SystemExit(f"release evidence bundle report has wrong kind: {report}")
+if report.get("status") != "blocked":
+    raise SystemExit("release evidence bundle dry-run must remain blocked")
+if report.get("decision") != "no-go":
+    raise SystemExit("release evidence bundle dry-run must keep no-go decision")
+if report.get("release_evidence_complete") is not False:
+    raise SystemExit("release evidence bundle dry-run must keep release evidence incomplete")
+if report.get("post_deploy_smoke_verified") is not False:
+    raise SystemExit("release evidence bundle dry-run must keep post-deploy smoke unverified")
+if report.get("gate_fixtures_clear") is not False:
+    raise SystemExit("release evidence bundle dry-run must keep gate fixtures blocked")
+for slot in (
+    "release_sha",
+    "release_notes_path",
+    "image_refs",
+    "migration_evidence",
+    "config_diff_evidence",
+    "observability_evidence",
+    "backup_restore_evidence",
+    "load_evidence",
+    "rollback_evidence",
+    "security_scan_evidence",
+):
+    if slot not in report.get("missing_slots", []):
+        raise SystemExit(f"release evidence bundle missing expected absent slot {slot}")
+for slot in (
+    "release_notes_path",
+    "image_refs",
+    "migration_evidence",
+    "config_diff_evidence",
+    "observability_evidence",
+    "backup_restore_evidence",
+    "load_evidence",
+    "rollback_evidence",
+    "security_scan_evidence",
+):
+    if slot not in report.get("unverified_slots", []):
+        raise SystemExit(f"release evidence bundle missing expected unverified slot {slot}")
+blocking = report.get("blocking_reasons", [])
+for reason in (
+    "staging_smoke_not_passed",
+    "post_deploy_smoke_contract_unverified",
+    "missing_release_evidence:release_sha",
+    "missing_release_evidence:observability_evidence",
+):
+    if reason not in blocking:
+        raise SystemExit(f"release evidence bundle missing blocking reason {reason}")
+if not any(reason.startswith("gate_fixture_blocked:private_beta_staging:") for reason in blocking):
+    raise SystemExit("release evidence bundle must include private beta fixture blockers")
+if not any(reason.startswith("gate_fixture_blocked:production_launch:") for reason in blocking):
+    raise SystemExit("release evidence bundle must include production fixture blockers")
+if not report.get("source_staging_smoke_report"):
+    raise SystemExit("release evidence bundle must cite source staging smoke report")
+PY
 python3 - "$ops_validate_dir/observability" <<'PY'
 import json
 import sys
