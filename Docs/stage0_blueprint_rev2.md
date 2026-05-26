@@ -1828,7 +1828,7 @@ main 合并前必须通过：
 - [x] backend/local crawler runtime 强制 source blocklist。
 - [x] 实现 takedown/derivative review workflow。
 - [x] 添加 disallowed source、robots denied、duplicate hash、pending-review import tests。
-- [ ] staging crawler fetch/import governance runtime evidence 通过：source approval、robots、SSRF、rate limits、retention、exact-text warning、provenance links、source blocklist 均有 staging evidence。
+- [x] staging crawler fetch/import governance runtime evidence 通过：source approval、robots、SSRF、rate limits、retention、exact-text warning、provenance links、source blocklist 均有 staging evidence。
 
 ### 25.14 Skill, Review, Feedback, Abuse
 

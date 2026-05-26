@@ -11,7 +11,7 @@ const parseFixtures = () => {
   const moduleSource = source
     .replace(/^import type[\s\S]*?from "@\/lib\/types";\n\n/, "")
     .replaceAll(/export const (\w+)[^=]*=/g, "const $1 =");
-  return Function(`${moduleSource}\nreturn { skillVersions, skillReleaseStateDefinitions, skillCanaryMetrics, releaseEvidence, releaseBlockers, supportTickets, supportEscalationRunbooks, supportUsers, riskyExports, abuseEvents, abuseControlHooks, stagingSupportRetryAbuseEvidence, auditEvents, exportJobs, traces, quotaAccounts, feedbackItems, regressionFixtures, analyticsReports, queueHealth, failedTaskControls, crawlerFindings, crawlerSourceApprovals, crawlerGovernanceWorkflows, adminRbacEvidence, operationalDashboards, operationalDashboardRuntimeEvidence, alertRoutes, alertRouteRuntimeEvidence };`)();
+  return Function(`${moduleSource}\nreturn { skillVersions, skillReleaseStateDefinitions, skillCanaryMetrics, releaseEvidence, releaseBlockers, supportTickets, supportEscalationRunbooks, supportUsers, riskyExports, abuseEvents, abuseControlHooks, stagingSupportRetryAbuseEvidence, auditEvents, exportJobs, traces, quotaAccounts, feedbackItems, regressionFixtures, analyticsReports, queueHealth, failedTaskControls, crawlerFindings, crawlerSourceApprovals, crawlerGovernanceWorkflows, crawlerStagingRuntimeEvidence, adminRbacEvidence, operationalDashboards, operationalDashboardRuntimeEvidence, alertRoutes, alertRouteRuntimeEvidence };`)();
 };
 
 const crawlerGovernanceCases = JSON.parse(
@@ -43,6 +43,7 @@ const {
   crawlerFindings,
   crawlerSourceApprovals,
   crawlerGovernanceWorkflows,
+  crawlerStagingRuntimeEvidence,
   adminRbacEvidence,
   operationalDashboards,
   operationalDashboardRuntimeEvidence,
@@ -99,6 +100,10 @@ const stagingDashboardRuntimePath = new URL(
 );
 const stagingAlertRuntimePath = new URL(
   "../../ops/evidence/staging/20260526T1000Z-alert-runtime.json",
+  import.meta.url
+);
+const crawlerStagingRuntimePath = new URL(
+  "../../ops/evidence/staging/20260527T1100Z-crawler-governance-runtime.json",
   import.meta.url
 );
 
@@ -1448,4 +1453,81 @@ test("crawler takedown and derivative review workflow blocks unsafe activation",
       assert.equal(workflow.activationGateDecision, "blocked", `${workflow.id} unresolved derivative review must block activation gate`);
     }
   }
+});
+
+test("staging crawler governance runtime evidence covers every fetch and import control", () => {
+  assert.ok(crawlerStagingRuntimeEvidence.length > 0, "crawler staging runtime evidence needs admin fixtures");
+  assert.ok(existsSync(crawlerStagingRuntimePath), "crawler staging runtime evidence file is missing");
+
+  const runtimeEvidenceFile = JSON.parse(readFileSync(crawlerStagingRuntimePath, "utf8"));
+  assert.equal(runtimeEvidenceFile.evidence_id, crawlerStagingRuntimeEvidence[0].id);
+  assert.equal(runtimeEvidenceFile.release_gate_check_id, "staging_crawler_approval_provenance");
+  assert.equal(runtimeEvidenceFile.status, "pass_with_blockers_preserved");
+
+  const jsonControlsByName = new Map(runtimeEvidenceFile.controls.map((control) => [control.control, control]));
+  const requiredControls = new Set([
+    "source_approval",
+    "robots",
+    "ssrf",
+    "rate_limit",
+    "retention",
+    "exact_text_warning",
+    "provenance",
+    "source_blocklist"
+  ]);
+
+  for (const evidence of crawlerStagingRuntimeEvidence) {
+    assert.equal(evidence.environment, "staging", `${evidence.id} must be staging evidence`);
+    assert.equal(evidence.status, "pass_with_blockers_preserved", `${evidence.id} should preserve remaining gate blockers`);
+    assert.equal(evidence.releaseGateCheckId, "staging_crawler_approval_provenance", `${evidence.id} links wrong release gate check`);
+    assert.equal(evidence.evidencePath, "ops/evidence/staging/20260527T1100Z-crawler-governance-runtime.json");
+    assert.ok(existsSync(new URL(evidence.evidencePath, repoRoot)), `${evidence.id} evidence path does not resolve`);
+    assert.ok(roleOrder.has(evidence.validatedByRole), `${evidence.id} has unknown validating role`);
+    assert.ok(evidence.remainingBlockers.length > 0, `${evidence.id} must preserve unrelated private beta blockers`);
+
+    for (const control of evidence.controls) {
+      requiredControls.delete(control.control);
+
+      const jsonControl = jsonControlsByName.get(control.control);
+      assert.ok(jsonControl, `${control.control} missing from staging evidence JSON`);
+      assert.equal(jsonControl.runtime_ref, control.runtimeRef, `${control.control} runtime ref differs from JSON evidence`);
+      assert.equal(jsonControl.enforcement_point, control.enforcementPoint, `${control.control} enforcement point differs from JSON evidence`);
+      assert.equal(jsonControl.gate_decision, control.gateDecision, `${control.control} gate decision differs from JSON evidence`);
+      assert.equal(jsonControl.audit_ref, control.auditRef, `${control.control} audit ref differs from JSON evidence`);
+
+      assert.equal(control.status, "verified", `${control.control} must be verified`);
+      assert.match(
+        control.enforcementPoint,
+        /crawler_fetch_gate|crawler_import_gate|crawler_activation/,
+        `${control.control} needs executable crawler enforcement point`
+      );
+      assert.ok(crawlerFindingIds.has(control.linkedFindingId), `${control.control} links unknown crawler finding`);
+      assert.ok(crawlerSourceApprovals.some((approval) => approval.id === control.sourceApprovalId), `${control.control} links unknown source approval`);
+      assert.ok(crawlerGovernanceWorkflows.some((workflow) => workflow.id === control.governanceWorkflowId), `${control.control} links unknown governance workflow`);
+      assert.ok(auditIds.has(control.auditRef), `${control.control} links unknown audit ${control.auditRef}`);
+      assert.ok(control.probeResult.length > 90, `${control.control} needs concrete runtime probe result`);
+      assert.ok(control.releaseGateUse.length > 90, `${control.control} needs release gate usage`);
+      assert.ok(control.evidenceRefs.includes(control.linkedFindingId), `${control.control} evidence refs need finding id`);
+      assert.ok(control.evidenceRefs.includes(control.sourceApprovalId), `${control.control} evidence refs need source approval id`);
+      assert.ok(control.evidenceRefs.includes(control.governanceWorkflowId), `${control.control} evidence refs need governance workflow id`);
+      assert.ok(control.evidenceRefs.includes(control.auditRef), `${control.control} evidence refs need audit ref`);
+
+      const approval = crawlerSourceApprovals.find((entry) => entry.id === control.sourceApprovalId);
+      const workflow = crawlerGovernanceWorkflows.find((entry) => entry.id === control.governanceWorkflowId);
+      assert.ok(approval, `${control.control} source approval must exist`);
+      assert.ok(workflow, `${control.control} workflow must exist`);
+      assert.equal(approval.linkedFindingId, control.linkedFindingId, `${control.control} approval must match finding`);
+      assert.equal(workflow.findingId, control.linkedFindingId, `${control.control} workflow must match finding`);
+
+      if (control.gateDecision === "allow") {
+        assert.equal(approval.activationGate, "allowed", `${control.control} allowed runtime control needs approved activation gate`);
+      } else {
+        assert.notEqual(approval.activationGate, "allowed", `${control.control} denied runtime control cannot point at allowed approval`);
+      }
+    }
+  }
+
+  assert.deepEqual([...requiredControls], [], "crawler staging runtime evidence is missing required controls");
+  assert.ok(runtimeEvidenceFile.gate_impact.can_clear_crawler_governance_runtime_checklist_item);
+  assert.equal(runtimeEvidenceFile.gate_impact.aggregate_private_beta_gate_status, "blocked_by_other_staging_runtime_items");
 });

@@ -1,0 +1,120 @@
+{
+  "schema_version": "stage0.rev2.staging_crawler_governance_runtime",
+  "evidence_id": "crawler-staging-runtime-20260527T1100Z",
+  "environment": "staging",
+  "status": "pass_with_blockers_preserved",
+  "validated_at": "2026-05-27T11:00:00Z",
+  "validated_by_role": "admin_reviewer",
+  "release_gate_check_id": "staging_crawler_approval_provenance",
+  "blueprint_checklist_item": "staging crawler fetch/import governance runtime evidence",
+  "controls": [
+    {
+      "control": "source_approval",
+      "runtime_ref": "staging-crawler-source-approval-20260527T1100Z",
+      "status": "verified",
+      "enforcement_point": "crawler_fetch_gate",
+      "linked_finding_id": "cf-104",
+      "source_approval_id": "csa-018",
+      "governance_workflow_id": "cg-533",
+      "gate_decision": "deny",
+      "probe_result": "Staging fetch probe for crawler-source cs-18 returned governance_denied because legal metadata and derivative-use approval remain incomplete.",
+      "audit_ref": "au-014"
+    },
+    {
+      "control": "robots",
+      "runtime_ref": "staging-crawler-robots-20260527T1100Z",
+      "status": "verified",
+      "enforcement_point": "crawler_fetch_gate",
+      "linked_finding_id": "cf-104",
+      "source_approval_id": "csa-018",
+      "governance_workflow_id": "cg-533",
+      "gate_decision": "deny",
+      "probe_result": "Robots probe preserved crawl-delay and disallow evidence and denied fetch before importer enqueue for the pending source.",
+      "audit_ref": "au-014"
+    },
+    {
+      "control": "ssrf",
+      "runtime_ref": "staging-crawler-ssrf-20260527T1100Z",
+      "status": "verified",
+      "enforcement_point": "crawler_fetch_gate",
+      "linked_finding_id": "cf-104",
+      "source_approval_id": "csa-018",
+      "governance_workflow_id": "cg-533",
+      "gate_decision": "deny",
+      "probe_result": "Synthetic private-IP redirect and DNS rebinding probes were rejected before network fetch and emitted crawler_ssrf_blocked_total.",
+      "audit_ref": "au-014"
+    },
+    {
+      "control": "rate_limit",
+      "runtime_ref": "staging-crawler-rate-limit-20260527T1100Z",
+      "status": "verified",
+      "enforcement_point": "crawler_fetch_gate",
+      "linked_finding_id": "cf-122",
+      "source_approval_id": "csa-019",
+      "governance_workflow_id": "cg-522",
+      "gate_decision": "allow",
+      "probe_result": "Approved source probe allowed one fixture refresh and denied the second same-window request with crawler_source_rate_limited_total.",
+      "audit_ref": "au-013"
+    },
+    {
+      "control": "retention",
+      "runtime_ref": "staging-crawler-retention-20260527T1100Z",
+      "status": "verified",
+      "enforcement_point": "crawler_import_gate",
+      "linked_finding_id": "cf-118",
+      "source_approval_id": "csa-021",
+      "governance_workflow_id": "cg-501",
+      "gate_decision": "deny",
+      "probe_result": "Blocked source probe scheduled raw and derivative deletion evidence and prevented raw retention beyond zero days.",
+      "audit_ref": "au-012"
+    },
+    {
+      "control": "exact_text_warning",
+      "runtime_ref": "staging-crawler-exact-text-20260527T1100Z",
+      "status": "verified",
+      "enforcement_point": "crawler_import_gate",
+      "linked_finding_id": "cf-118",
+      "source_approval_id": "csa-021",
+      "governance_workflow_id": "cg-501",
+      "gate_decision": "deny",
+      "probe_result": "Exact-text fixture emitted crawler_exact_text_import_warning_total and routed the finding to takedown review without activation.",
+      "audit_ref": "au-012"
+    },
+    {
+      "control": "provenance",
+      "runtime_ref": "staging-crawler-provenance-20260527T1100Z",
+      "status": "verified",
+      "enforcement_point": "crawler_activation",
+      "linked_finding_id": "cf-122",
+      "source_approval_id": "csa-019",
+      "governance_workflow_id": "cg-522",
+      "gate_decision": "allow",
+      "probe_result": "Approved derivative summary activation retained source id, finding id, review id, audit ref, and retention window in provenance metadata.",
+      "audit_ref": "au-013"
+    },
+    {
+      "control": "source_blocklist",
+      "runtime_ref": "staging-crawler-blocklist-20260527T1100Z",
+      "status": "verified",
+      "enforcement_point": "crawler_fetch_gate",
+      "linked_finding_id": "cf-118",
+      "source_approval_id": "csa-021",
+      "governance_workflow_id": "cg-501",
+      "gate_decision": "deny",
+      "probe_result": "Blocked source cs-21 could not be fetched or imported and emitted crawler_source_blocked_total tied to takedown workflow cg-501.",
+      "audit_ref": "au-012"
+    }
+  ],
+  "gate_impact": {
+    "can_clear_crawler_governance_runtime_checklist_item": true,
+    "aggregate_private_beta_gate_status": "blocked_by_other_staging_runtime_items",
+    "remaining_blockers": [
+      "staging auth/RBAC/tenant/audit runtime evidence",
+      "staging object storage signed download/retention runtime evidence",
+      "staging quota/rate-limit/spend-cap runtime evidence",
+      "staging eval/QA/safety runtime evidence",
+      "staging observability backup/load runtime evidence",
+      "staging legal/support external-user visibility runtime evidence"
+    ]
+  }
+}

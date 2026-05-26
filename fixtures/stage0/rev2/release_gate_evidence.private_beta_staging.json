@@ -35,8 +35,8 @@
     },
     {
       "check_id": "staging_crawler_approval_provenance",
-      "status": "blocked",
-      "evidence_ref": "Crawler approval, legal metadata, robots/SSRF/rate-limit/retention/exact-text/provenance/blocklist fixture contracts, and takedown workflow evidence exists, but staging runtime evidence for crawler fetch/import enforcement is absent"
+      "status": "pass",
+      "evidence_ref": "Crawler source approval, legal metadata, robots, SSRF, rate-limit, retention, exact-text warning, provenance, source blocklist, and takedown/derivative workflow staging runtime evidence passed in ops/evidence/staging/20260527T1100Z-crawler-governance-runtime.json"
     },
     {
       "check_id": "staging_observability_backup_load",
@@ -83,14 +83,14 @@
     {
       "condition_id": "crawler_governance_runtime_missing",
       "blueprint_condition": "Crawler 可抓取或导入 unapproved source。",
-      "is_present": true,
-      "evidence_ref": "Crawler governance fixtures exist, but fetch/import runtime enforcement evidence remains absent"
+      "is_present": false,
+      "evidence_ref": "Staging crawler fetch/import runtime evidence verifies source approval, robots, SSRF, rate-limit, exact-text warning, provenance, and blocklist enforcement in ops/evidence/staging/20260527T1100Z-crawler-governance-runtime.json"
     },
     {
       "condition_id": "crawler_material_retention_takedown_runtime_missing",
       "blueprint_condition": "Crawler-derived active materials 缺 provenance、raw-retention limits 或 takedown path。",
-      "is_present": true,
-      "evidence_ref": "Crawler retention/provenance/takedown fixtures exist, but crawler-derived active material runtime enforcement evidence remains absent"
+      "is_present": false,
+      "evidence_ref": "Staging crawler runtime evidence verifies provenance retention, raw retention denial/deletion, and takedown/derivative workflow enforcement in ops/evidence/staging/20260527T1100Z-crawler-governance-runtime.json"
     },
     {
       "condition_id": "staging_observability_restore_load_missing",

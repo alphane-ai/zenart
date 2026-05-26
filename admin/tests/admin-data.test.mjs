@@ -33,6 +33,7 @@ test("admin fixtures cover required operational surfaces", () => {
     "export const crawlerFindings",
     "export const crawlerSourceApprovals",
     "export const crawlerGovernanceWorkflows",
+    "export const crawlerStagingRuntimeEvidence",
     "export const promptFragments",
     "export const metaPrompts",
     "export const traces",
@@ -380,6 +381,37 @@ test("admin action pages show scoped RBAC evidence at decision points", () => {
     ]) {
       assert.match(source, new RegExp(token));
     }
+  }
+});
+
+test("admin crawler page exposes staging runtime governance evidence", () => {
+  const crawlerPage = readFileSync(new URL("../app/crawler/page.tsx", import.meta.url), "utf8");
+
+  for (const token of [
+    "getCrawlerStagingRuntimeEvidence",
+    "Staging Crawler Governance Runtime Evidence",
+    "source approval, robots, SSRF, rate limits, retention, exact-text warnings, provenance, and blocklist controls",
+    "Runtime Controls",
+    "Evidence Path",
+    "Release Gate Check",
+    "Remaining Blockers"
+  ]) {
+    assert.match(crawlerPage, new RegExp(token));
+  }
+
+  for (const token of [
+    "crawlerStagingRuntimeEvidence",
+    "source_approval",
+    "robots",
+    "ssrf",
+    "rate_limit",
+    "retention",
+    "exact_text_warning",
+    "provenance",
+    "source_blocklist",
+    "ops/evidence/staging/20260527T1100Z-crawler-governance-runtime.json"
+  ]) {
+    assert.match(fixtures, new RegExp(token));
   }
 });
 

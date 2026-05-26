@@ -7,6 +7,7 @@ import {
   alertRoutes,
   analyticsReports,
   crawlerGovernanceWorkflows,
+  crawlerStagingRuntimeEvidence,
   crawlerSourceApprovals,
   auditEvents,
   crawlerFindings,
@@ -72,6 +73,10 @@ export async function getCrawlerSourceApprovals() {
 
 export async function getCrawlerGovernanceWorkflows() {
   return crawlerGovernanceWorkflows;
+}
+
+export async function getCrawlerStagingRuntimeEvidence() {
+  return crawlerStagingRuntimeEvidence;
 }
 
 export async function getPromptFragments() {

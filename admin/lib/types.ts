@@ -171,6 +171,43 @@ export type CrawlerGovernanceWorkflow = {
   auditRef: string;
 };
 
+export type CrawlerStagingRuntimeControlName =
+  | "source_approval"
+  | "robots"
+  | "ssrf"
+  | "rate_limit"
+  | "retention"
+  | "exact_text_warning"
+  | "provenance"
+  | "source_blocklist";
+
+export type CrawlerStagingRuntimeControl = {
+  control: CrawlerStagingRuntimeControlName;
+  runtimeRef: string;
+  status: "verified" | "blocked";
+  enforcementPoint: "crawler_fetch_gate" | "crawler_import_gate" | "crawler_activation";
+  linkedFindingId: string;
+  sourceApprovalId: string;
+  governanceWorkflowId: string;
+  gateDecision: "allow" | "deny";
+  probeResult: string;
+  releaseGateUse: string;
+  auditRef: string;
+  evidenceRefs: string[];
+};
+
+export type CrawlerStagingRuntimeEvidence = {
+  id: string;
+  environment: "staging";
+  status: "pass_with_blockers_preserved";
+  validatedAt: string;
+  validatedByRole: AdminRole;
+  evidencePath: string;
+  releaseGateCheckId: "staging_crawler_approval_provenance";
+  controls: CrawlerStagingRuntimeControl[];
+  remainingBlockers: string[];
+};
+
 export type PromptFragment = {
   id: string;
   name: string;

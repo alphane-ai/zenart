@@ -1,14 +1,27 @@
 import { DataTable } from "@/components/DataTable";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
-import { getAdminRbacEvidence, getCrawlerFindings, getCrawlerGovernanceWorkflows, getCrawlerSourceApprovals } from "@/lib/admin-api";
-import type { AdminRbacEvidence, CrawlerFinding, CrawlerGovernanceWorkflow, CrawlerSourceApproval } from "@/lib/types";
+import {
+  getAdminRbacEvidence,
+  getCrawlerFindings,
+  getCrawlerGovernanceWorkflows,
+  getCrawlerSourceApprovals,
+  getCrawlerStagingRuntimeEvidence
+} from "@/lib/admin-api";
+import type {
+  AdminRbacEvidence,
+  CrawlerFinding,
+  CrawlerGovernanceWorkflow,
+  CrawlerSourceApproval,
+  CrawlerStagingRuntimeEvidence
+} from "@/lib/types";
 
 export default async function CrawlerReviewPage() {
-  const [findings, sourceApprovals, governanceWorkflows, rbacEvidence] = await Promise.all([
+  const [findings, sourceApprovals, governanceWorkflows, stagingRuntimeEvidence, rbacEvidence] = await Promise.all([
     getCrawlerFindings(),
     getCrawlerSourceApprovals(),
     getCrawlerGovernanceWorkflows(),
+    getCrawlerStagingRuntimeEvidence(),
     getAdminRbacEvidence()
   ]);
   const crawlerRbacEvidence = rbacEvidence.filter((item) => item.surface === "crawler_import");
@@ -120,6 +133,31 @@ export default async function CrawlerReviewPage() {
             { key: "evidence", header: "Evidence Refs", render: (row) => row.requiredEvidenceRefs.join(", ") },
             { key: "rationale", header: "Review Rationale", render: (row) => row.reviewRationale },
             { key: "audit", header: "Audit Ref", render: (row) => <span className="mono">{row.auditRef}</span> }
+          ]}
+        />
+      </section>
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>Staging Crawler Governance Runtime Evidence</h3>
+            <p>Staging fetch/import probes must cover source approval, robots, SSRF, rate limits, retention, exact-text warnings, provenance, and blocklist controls.</p>
+          </div>
+        </div>
+        <DataTable<CrawlerStagingRuntimeEvidence>
+          rows={stagingRuntimeEvidence}
+          columns={[
+            { key: "id", header: "ID", render: (row) => <span className="mono">{row.id}</span> },
+            { key: "status", header: "Status", render: (row) => <StatusBadge value={row.status} label={row.status} /> },
+            { key: "validated", header: "Validated At", render: (row) => row.validatedAt },
+            { key: "role", header: "Validated By", render: (row) => row.validatedByRole },
+            { key: "path", header: "Evidence Path", render: (row) => <span className="mono">{row.evidencePath}</span> },
+            { key: "check", header: "Release Gate Check", render: (row) => row.releaseGateCheckId },
+            {
+              key: "controls",
+              header: "Runtime Controls",
+              render: (row) => row.controls.map((control) => `${control.control}:${control.gateDecision}`).join(", ")
+            },
+            { key: "blockers", header: "Remaining Blockers", render: (row) => row.remainingBlockers.join(" ") }
           ]}
         />
       </section>

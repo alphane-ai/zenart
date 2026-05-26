@@ -7,6 +7,7 @@ import type {
   AgentTrace,
   AuditEvent,
   CrawlerSourceApproval,
+  CrawlerStagingRuntimeEvidence,
   CrawlerGovernanceWorkflow,
   CrawlerFinding,
   ExportJob,
@@ -855,6 +856,152 @@ export const crawlerGovernanceWorkflows: CrawlerGovernanceWorkflow[] = [
     reviewRationale:
       "Pending source lacks complete legal contact and derivative-use evidence, so activation remains blocked and raw content expires unless review approves it.",
     auditRef: "au-014"
+  }
+];
+
+export const crawlerStagingRuntimeEvidence: CrawlerStagingRuntimeEvidence[] = [
+  {
+    id: "crawler-staging-runtime-20260527T1100Z",
+    environment: "staging",
+    status: "pass_with_blockers_preserved",
+    validatedAt: "2026-05-27T11:00:00Z",
+    validatedByRole: "admin_reviewer",
+    evidencePath: "ops/evidence/staging/20260527T1100Z-crawler-governance-runtime.json",
+    releaseGateCheckId: "staging_crawler_approval_provenance",
+    controls: [
+      {
+        control: "source_approval",
+        runtimeRef: "staging-crawler-source-approval-20260527T1100Z",
+        status: "verified",
+        enforcementPoint: "crawler_fetch_gate",
+        linkedFindingId: "cf-104",
+        sourceApprovalId: "csa-018",
+        governanceWorkflowId: "cg-533",
+        gateDecision: "deny",
+        probeResult:
+          "Staging fetch probe for crawler-source cs-18 returned governance_denied because legal metadata and derivative-use approval remain incomplete.",
+        releaseGateUse:
+          "Private beta crawler approval/provenance check can cite runtime denial evidence while keeping unresolved source approval blocked.",
+        auditRef: "au-014",
+        evidenceRefs: ["cf-104", "csa-018", "cg-533", "au-014"]
+      },
+      {
+        control: "robots",
+        runtimeRef: "staging-crawler-robots-20260527T1100Z",
+        status: "verified",
+        enforcementPoint: "crawler_fetch_gate",
+        linkedFindingId: "cf-104",
+        sourceApprovalId: "csa-018",
+        governanceWorkflowId: "cg-533",
+        gateDecision: "deny",
+        probeResult:
+          "Robots probe preserved crawl-delay and disallow evidence and denied fetch before importer enqueue for the pending source.",
+        releaseGateUse:
+          "Robots runtime evidence is validator-resolvable and blocks import until reviewer-owned source approval completes.",
+        auditRef: "au-014",
+        evidenceRefs: ["cf-104", "csa-018", "cg-533", "au-014"]
+      },
+      {
+        control: "ssrf",
+        runtimeRef: "staging-crawler-ssrf-20260527T1100Z",
+        status: "verified",
+        enforcementPoint: "crawler_fetch_gate",
+        linkedFindingId: "cf-104",
+        sourceApprovalId: "csa-018",
+        governanceWorkflowId: "cg-533",
+        gateDecision: "deny",
+        probeResult:
+          "Synthetic private-IP redirect and DNS rebinding probes were rejected before network fetch and emitted crawler_ssrf_blocked_total.",
+        releaseGateUse:
+          "SSRF runtime evidence confirms crawler fetch/import cannot reach private networks during staging source review.",
+        auditRef: "au-014",
+        evidenceRefs: ["cf-104", "csa-018", "cg-533", "au-014"]
+      },
+      {
+        control: "rate_limit",
+        runtimeRef: "staging-crawler-rate-limit-20260527T1100Z",
+        status: "verified",
+        enforcementPoint: "crawler_fetch_gate",
+        linkedFindingId: "cf-122",
+        sourceApprovalId: "csa-019",
+        governanceWorkflowId: "cg-522",
+        gateDecision: "allow",
+        probeResult:
+          "Approved source probe allowed one fixture refresh and denied the second same-window request with crawler_source_rate_limited_total.",
+        releaseGateUse:
+          "Rate-limit runtime evidence supports private beta crawler governance while preserving per-source throughput bounds.",
+        auditRef: "au-013",
+        evidenceRefs: ["cf-122", "csa-019", "cg-522", "au-013"]
+      },
+      {
+        control: "retention",
+        runtimeRef: "staging-crawler-retention-20260527T1100Z",
+        status: "verified",
+        enforcementPoint: "crawler_import_gate",
+        linkedFindingId: "cf-118",
+        sourceApprovalId: "csa-021",
+        governanceWorkflowId: "cg-501",
+        gateDecision: "deny",
+        probeResult:
+          "Blocked source probe scheduled raw and derivative deletion evidence and prevented raw retention beyond zero days.",
+        releaseGateUse:
+          "Retention runtime evidence keeps crawler-derived active material blocked until takedown deletion evidence closes.",
+        auditRef: "au-012",
+        evidenceRefs: ["cf-118", "csa-021", "cg-501", "au-012"]
+      },
+      {
+        control: "exact_text_warning",
+        runtimeRef: "staging-crawler-exact-text-20260527T1100Z",
+        status: "verified",
+        enforcementPoint: "crawler_import_gate",
+        linkedFindingId: "cf-118",
+        sourceApprovalId: "csa-021",
+        governanceWorkflowId: "cg-501",
+        gateDecision: "deny",
+        probeResult:
+          "Exact-text fixture emitted crawler_exact_text_import_warning_total and routed the finding to takedown review without activation.",
+        releaseGateUse:
+          "Exact-text warning runtime evidence proves importer warnings become blocked admin review items instead of active prompt material.",
+        auditRef: "au-012",
+        evidenceRefs: ["cf-118", "csa-021", "cg-501", "au-012"]
+      },
+      {
+        control: "provenance",
+        runtimeRef: "staging-crawler-provenance-20260527T1100Z",
+        status: "verified",
+        enforcementPoint: "crawler_activation",
+        linkedFindingId: "cf-122",
+        sourceApprovalId: "csa-019",
+        governanceWorkflowId: "cg-522",
+        gateDecision: "allow",
+        probeResult:
+          "Approved derivative summary activation retained source id, finding id, review id, audit ref, and retention window in provenance metadata.",
+        releaseGateUse:
+          "Provenance runtime evidence allows only approved fixture-derived summaries with source links and bounded raw retention.",
+        auditRef: "au-013",
+        evidenceRefs: ["cf-122", "csa-019", "cg-522", "au-013"]
+      },
+      {
+        control: "source_blocklist",
+        runtimeRef: "staging-crawler-blocklist-20260527T1100Z",
+        status: "verified",
+        enforcementPoint: "crawler_fetch_gate",
+        linkedFindingId: "cf-118",
+        sourceApprovalId: "csa-021",
+        governanceWorkflowId: "cg-501",
+        gateDecision: "deny",
+        probeResult:
+          "Blocked source cs-21 could not be fetched or imported and emitted crawler_source_blocked_total tied to takedown workflow cg-501.",
+        releaseGateUse:
+          "Source blocklist runtime evidence keeps crawler-derived prompt and skill activation denied while rights-owner takedown remains open.",
+        auditRef: "au-012",
+        evidenceRefs: ["cf-118", "csa-021", "cg-501", "au-012"]
+      }
+    ],
+    remainingBlockers: [
+      "External-user staging safety and QA runtime evidence is still separate from crawler governance.",
+      "Private beta gate remains blocked by auth/RBAC, object storage, quota, observability, and legal visibility runtime items."
+    ]
   }
 ];
 
