@@ -10,7 +10,11 @@
   "sameSiteRequirement": "lax-or-strict",
   "originPolicy": "same-site-only",
   "protectedMethods": ["POST", "PUT", "PATCH", "DELETE"],
+  "status": "pass",
   "unsafeOperationCount": 15,
+  "safeOperationCount": 17,
+  "missingUnsafeOperationCount": 0,
+  "failureCount": 0,
   "unsafeOperations": [
     "deleteSession",
     "updateAccount",
@@ -46,6 +50,23 @@
     "getExport",
     "getQuota",
     "getSubscription"
+  ],
+  "unsafeRequestContracts": [
+    { "operationId": "deleteSession", "method": "DELETE", "path": "/session", "credentials": "include", "csrfHeaderName": "X-ZenArt-CSRF", "csrfHeaderValue": "same-site-origin-check", "idempotencyHeaderRequired": false },
+    { "operationId": "updateAccount", "method": "PATCH", "path": "/account", "credentials": "include", "csrfHeaderName": "X-ZenArt-CSRF", "csrfHeaderValue": "same-site-origin-check", "idempotencyHeaderRequired": true },
+    { "operationId": "createProject", "method": "POST", "path": "/projects", "credentials": "include", "csrfHeaderName": "X-ZenArt-CSRF", "csrfHeaderValue": "same-site-origin-check", "idempotencyHeaderRequired": true },
+    { "operationId": "updateProject", "method": "PATCH", "path": "/projects/{project_id}", "credentials": "include", "csrfHeaderName": "X-ZenArt-CSRF", "csrfHeaderValue": "same-site-origin-check", "idempotencyHeaderRequired": true },
+    { "operationId": "createChatSession", "method": "POST", "path": "/projects/{project_id}/chat/sessions", "credentials": "include", "csrfHeaderName": "X-ZenArt-CSRF", "csrfHeaderValue": "same-site-origin-check", "idempotencyHeaderRequired": true },
+    { "operationId": "createChatMessage", "method": "POST", "path": "/chat/sessions/{chat_session_id}/messages", "credentials": "include", "csrfHeaderName": "X-ZenArt-CSRF", "csrfHeaderValue": "same-site-origin-check", "idempotencyHeaderRequired": true },
+    { "operationId": "createCandidateSet", "method": "POST", "path": "/projects/{project_id}/candidate-sets", "credentials": "include", "csrfHeaderName": "X-ZenArt-CSRF", "csrfHeaderValue": "same-site-origin-check", "idempotencyHeaderRequired": true },
+    { "operationId": "selectDirection", "method": "PUT", "path": "/projects/{project_id}/selected-direction", "credentials": "include", "csrfHeaderName": "X-ZenArt-CSRF", "csrfHeaderValue": "same-site-origin-check", "idempotencyHeaderRequired": true },
+    { "operationId": "createCanvasNode", "method": "POST", "path": "/workspaces/{workspace_id}/canvas/nodes", "credentials": "include", "csrfHeaderName": "X-ZenArt-CSRF", "csrfHeaderValue": "same-site-origin-check", "idempotencyHeaderRequired": true },
+    { "operationId": "createCanvasVersion", "method": "POST", "path": "/workspaces/{workspace_id}/canvas/versions", "credentials": "include", "csrfHeaderName": "X-ZenArt-CSRF", "csrfHeaderValue": "same-site-origin-check", "idempotencyHeaderRequired": true },
+    { "operationId": "createUpload", "method": "POST", "path": "/uploads", "credentials": "include", "csrfHeaderName": "X-ZenArt-CSRF", "csrfHeaderValue": "same-site-origin-check", "idempotencyHeaderRequired": true },
+    { "operationId": "createPackage", "method": "POST", "path": "/projects/{project_id}/packages", "credentials": "include", "csrfHeaderName": "X-ZenArt-CSRF", "csrfHeaderValue": "same-site-origin-check", "idempotencyHeaderRequired": true },
+    { "operationId": "createExport", "method": "POST", "path": "/packages/{package_id}/exports", "credentials": "include", "csrfHeaderName": "X-ZenArt-CSRF", "csrfHeaderValue": "same-site-origin-check", "idempotencyHeaderRequired": true },
+    { "operationId": "createShareLink", "method": "POST", "path": "/exports/{export_id}/share-links", "credentials": "include", "csrfHeaderName": "X-ZenArt-CSRF", "csrfHeaderValue": "same-site-origin-check", "idempotencyHeaderRequired": true },
+    { "operationId": "createSupportTicket", "method": "POST", "path": "/support/tickets", "credentials": "include", "csrfHeaderName": "X-ZenArt-CSRF", "csrfHeaderValue": "same-site-origin-check", "idempotencyHeaderRequired": true }
   ],
   "assertions": [
     "Generated web API client uses same-site credentials on every request.",

@@ -1,4 +1,4 @@
-import { SessionContract, SessionSecurityContractEvidence } from "./contracts";
+import { GeneratedApiCsrfRequestContractEvidence, SessionContract, SessionSecurityContractEvidence } from "./contracts";
 
 export type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "HEAD" | "OPTIONS";
 
@@ -87,5 +87,50 @@ export const buildSessionSecurityContractEvidence = (
     missingCsrfOperationIds,
     cookieFailureReasons,
     csrfFailureReasons
+  };
+};
+
+export const buildGeneratedApiCsrfRequestContractEvidence = (
+  operations: Record<string, { method: HttpMethod; path: string; idempotencyRequired: boolean }>,
+  contract = defaultSameSiteCsrfContract
+): GeneratedApiCsrfRequestContractEvidence => {
+  const entries = Object.entries(operations);
+  const unsafeEntries = entries.filter(([, operation]) => isCsrfProtectedMethod(operation.method));
+  const missingUnsafeOperationIds = unsafeEntries
+    .filter(([, operation]) => !contract.protectedMethods.includes(operation.method as SessionContract["csrf"]["protectedMethods"][number]))
+    .map(([operationId]) => operationId);
+  const unsafeRequestContracts = unsafeEntries.map(([operationId, operation]) => ({
+    operationId,
+    method: operation.method,
+    path: operation.path,
+    credentials: contract.credentialMode,
+    csrfHeaderName: contract.headerName,
+    csrfHeaderValue: contract.headerValue,
+    idempotencyHeaderRequired: operation.idempotencyRequired
+  }));
+  const failureReasons = [
+    contract.credentialMode === "include" ? "" : "csrf-credentials",
+    contract.headerName === "X-ZenArt-CSRF" ? "" : "csrf-header",
+    contract.headerValue === "same-site-origin-check" ? "" : "csrf-header-value",
+    contract.originPolicy === "same-site-only" ? "" : "csrf-origin-policy",
+    contract.sameSiteRequired === "lax-or-strict" ? "" : "csrf-same-site-requirement",
+    unsafeRequestContracts.length > 0 ? "" : "csrf-operation-inventory",
+    missingUnsafeOperationIds.length === 0 ? "" : "csrf-operation-coverage"
+  ].filter(Boolean);
+
+  return {
+    schema_version: "stage0.rev2.generated-api-csrf-contract",
+    status: failureReasons.length === 0 ? "pass" : "fail",
+    credentialMode: contract.credentialMode,
+    csrfHeaderName: contract.headerName,
+    csrfHeaderValue: contract.headerValue,
+    sameSiteRequirement: contract.sameSiteRequired,
+    originPolicy: contract.originPolicy,
+    protectedMethods: contract.protectedMethods,
+    unsafeOperationCount: unsafeRequestContracts.length,
+    safeOperationCount: entries.length - unsafeRequestContracts.length,
+    missingUnsafeOperationIds,
+    unsafeRequestContracts,
+    failureReasons
   };
 };

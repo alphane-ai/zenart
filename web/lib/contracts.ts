@@ -60,6 +60,30 @@ export interface SessionSecurityContractEvidence {
   csrfFailureReasons: string[];
 }
 
+export interface GeneratedApiCsrfRequestContractEvidence {
+  schema_version: "stage0.rev2.generated-api-csrf-contract";
+  status: "pass" | "fail";
+  credentialMode: SessionContract["csrf"]["credentialMode"];
+  csrfHeaderName: SessionContract["csrf"]["headerName"];
+  csrfHeaderValue: SessionContract["csrf"]["headerValue"];
+  sameSiteRequirement: SessionContract["csrf"]["sameSiteRequired"];
+  originPolicy: SessionContract["csrf"]["originPolicy"];
+  protectedMethods: SessionContract["csrf"]["protectedMethods"];
+  unsafeOperationCount: number;
+  safeOperationCount: number;
+  missingUnsafeOperationIds: string[];
+  unsafeRequestContracts: Array<{
+    operationId: string;
+    method: string;
+    path: string;
+    credentials: SessionContract["csrf"]["credentialMode"];
+    csrfHeaderName: SessionContract["csrf"]["headerName"];
+    csrfHeaderValue: SessionContract["csrf"]["headerValue"];
+    idempotencyHeaderRequired: boolean;
+  }>;
+  failureReasons: string[];
+}
+
 export interface AccountSettings {
   brandName: string;
   defaultExportFormat: ExportFormat;

@@ -3,6 +3,7 @@ import userRouteSmoke from "../validation/user-routes-smoke.json";
 import { apiOperations } from "./generated/zenart-api";
 import { createSessionContract } from "./dev-state";
 import {
+  buildGeneratedApiCsrfRequestContractEvidence,
   buildCsrfRequestHeaders,
   buildSessionSecurityContractEvidence,
   defaultSameSiteCsrfContract,
@@ -71,6 +72,60 @@ describe("same-site CSRF request contract", () => {
       "createShareLink",
       "createSupportTicket"
     ]);
+  });
+
+  it("builds per-operation generated client request evidence for unsafe operations", () => {
+    const evidence = buildGeneratedApiCsrfRequestContractEvidence(apiOperations);
+
+    expect(evidence).toMatchObject({
+      schema_version: "stage0.rev2.generated-api-csrf-contract",
+      status: "pass",
+      credentialMode: "include",
+      csrfHeaderName: "X-ZenArt-CSRF",
+      csrfHeaderValue: "same-site-origin-check",
+      sameSiteRequirement: "lax-or-strict",
+      originPolicy: "same-site-only",
+      protectedMethods: ["POST", "PUT", "PATCH", "DELETE"],
+      unsafeOperationCount: 15,
+      safeOperationCount: 17,
+      missingUnsafeOperationIds: [],
+      failureReasons: []
+    });
+    expect(evidence.unsafeRequestContracts.map((contract) => contract.operationId)).toEqual([
+      "deleteSession",
+      "updateAccount",
+      "createProject",
+      "updateProject",
+      "createChatSession",
+      "createChatMessage",
+      "createCandidateSet",
+      "selectDirection",
+      "createCanvasNode",
+      "createCanvasVersion",
+      "createUpload",
+      "createPackage",
+      "createExport",
+      "createShareLink",
+      "createSupportTicket"
+    ]);
+    expect(evidence.unsafeRequestContracts).toContainEqual({
+      operationId: "createUpload",
+      method: "POST",
+      path: "/uploads",
+      credentials: "include",
+      csrfHeaderName: "X-ZenArt-CSRF",
+      csrfHeaderValue: "same-site-origin-check",
+      idempotencyHeaderRequired: true
+    });
+    expect(evidence.unsafeRequestContracts).toContainEqual({
+      operationId: "deleteSession",
+      method: "DELETE",
+      path: "/session",
+      credentials: "include",
+      csrfHeaderName: "X-ZenArt-CSRF",
+      csrfHeaderValue: "same-site-origin-check",
+      idempotencyHeaderRequired: false
+    });
   });
 
   it("accepts only lax or strict cookies for the same-site CSRF requirement", () => {
@@ -169,6 +224,35 @@ describe("same-site CSRF request contract", () => {
     ]);
     expect(evidence.csrfFailureReasons).toEqual(["csrf-header", "csrf-operation-coverage"]);
     expect(evidence.missingCsrfOperationIds).toEqual([
+      "deleteSession",
+      "updateAccount",
+      "createProject",
+      "updateProject",
+      "createChatSession",
+      "createChatMessage",
+      "createCandidateSet",
+      "selectDirection",
+      "createCanvasNode",
+      "createCanvasVersion",
+      "createUpload",
+      "createPackage",
+      "createExport",
+      "createShareLink",
+      "createSupportTicket"
+    ]);
+  });
+
+  it("fails generated client request evidence when the same-site contract drifts", () => {
+    const evidence = buildGeneratedApiCsrfRequestContractEvidence(apiOperations, {
+      ...defaultSameSiteCsrfContract,
+      headerName: "X-Unsafe-CSRF",
+      credentialMode: "include",
+      protectedMethods: []
+    });
+
+    expect(evidence.status).toBe("fail");
+    expect(evidence.failureReasons).toEqual(["csrf-header", "csrf-operation-coverage"]);
+    expect(evidence.missingUnsafeOperationIds).toEqual([
       "deleteSession",
       "updateAccount",
       "createProject",

@@ -176,14 +176,33 @@ if (
 }
 
 if (
+  generatedCsrfEvidence.expectedStatus !== generatedApiCsrfContract.status ||
   generatedCsrfEvidence.credentialMode !== generatedApiCsrfContract.credentialMode ||
   generatedCsrfEvidence.csrfHeaderName !== generatedApiCsrfContract.csrfHeaderName ||
+  generatedCsrfEvidence.csrfHeaderValue !== generatedApiCsrfContract.csrfHeaderValue ||
   generatedCsrfEvidence.sameSiteRequirement !== generatedApiCsrfContract.sameSiteRequirement ||
   generatedCsrfEvidence.originPolicy !== generatedApiCsrfContract.originPolicy ||
   generatedCsrfEvidence.unsafeOperationCount !== generatedApiCsrfContract.unsafeOperationCount ||
-  generatedCsrfEvidence.missingUnsafeOperationCount !== 0
+  generatedCsrfEvidence.safeOperationCount !== generatedApiCsrfContract.safeOperationCount ||
+  generatedCsrfEvidence.missingUnsafeOperationCount !== generatedApiCsrfContract.missingUnsafeOperationCount ||
+  generatedCsrfEvidence.failureCount !== generatedApiCsrfContract.failureCount
 ) {
   fail("structured generated API CSRF evidence does not match validation/generated-api-csrf-contract.json");
+}
+for (const attribute of generatedCsrfEvidence.requiredAttributes ?? []) {
+  if (!componentSource.includes(attribute)) {
+    fail(`generated API CSRF UI evidence missing ${attribute}`);
+  }
+}
+for (const requestContract of generatedApiCsrfContract.unsafeRequestContracts ?? []) {
+  if (
+    requestContract.credentials !== generatedApiCsrfContract.credentialMode ||
+    requestContract.csrfHeaderName !== generatedApiCsrfContract.csrfHeaderName ||
+    requestContract.csrfHeaderValue !== generatedApiCsrfContract.csrfHeaderValue ||
+    !generatedApiSource.includes(requestContract.operationId)
+  ) {
+    fail(`generated API CSRF request contract drifted for ${requestContract.operationId}`);
+  }
 }
 
 for (const evidence of [renderingEvidence, referenceUploadEvidence, packageExportEvidence]) {

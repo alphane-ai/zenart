@@ -160,10 +160,28 @@
       "requestSecurityContract": "web/lib/request-security.ts",
       "credentialMode": "include",
       "csrfHeaderName": "X-ZenArt-CSRF",
+      "csrfHeaderValue": "same-site-origin-check",
       "sameSiteRequirement": "lax-or-strict",
       "originPolicy": "same-site-only",
+      "statusAttribute": "data-generated-api-csrf-status",
+      "expectedStatus": "pass",
       "unsafeOperationCount": 15,
-      "missingUnsafeOperationCount": 0
+      "safeOperationCount": 17,
+      "missingUnsafeOperationCount": 0,
+      "failureCount": 0,
+      "requiredAttributes": [
+        "data-generated-api-csrf-contract",
+        "data-generated-api-csrf-status",
+        "data-generated-api-csrf-credential-mode",
+        "data-generated-api-csrf-header",
+        "data-generated-api-csrf-header-value",
+        "data-generated-api-csrf-origin-policy",
+        "data-generated-api-csrf-unsafe-operation-count",
+        "data-generated-api-csrf-safe-operation-count",
+        "data-generated-api-csrf-missing-unsafe-operation-count",
+        "data-generated-api-csrf-failure-count",
+        "data-generated-api-csrf-operation-contracts"
+      ]
     },
     {
       "schemaVersion": "stage0.rev2.workspace-rendering-performance",

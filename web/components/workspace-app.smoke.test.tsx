@@ -31,6 +31,22 @@ describe("WorkspaceApp user route integration smoke", () => {
 
     const csrfInventory = screen.getByLabelText("Generated web API CSRF operation inventory");
     expect(csrfInventory).toHaveAttribute("data-csrf-operation-count", "15");
+    expect(csrfInventory).toHaveAttribute("data-generated-api-csrf-contract", "stage0.rev2.generated-api-csrf-contract");
+    expect(csrfInventory).toHaveAttribute("data-generated-api-csrf-status", "pass");
+    expect(csrfInventory).toHaveAttribute("data-generated-api-csrf-credential-mode", "include");
+    expect(csrfInventory).toHaveAttribute("data-generated-api-csrf-header", "X-ZenArt-CSRF");
+    expect(csrfInventory).toHaveAttribute("data-generated-api-csrf-header-value", "same-site-origin-check");
+    expect(csrfInventory).toHaveAttribute("data-generated-api-csrf-origin-policy", "same-site-only");
+    expect(csrfInventory).toHaveAttribute("data-generated-api-csrf-unsafe-operation-count", "15");
+    expect(csrfInventory).toHaveAttribute("data-generated-api-csrf-safe-operation-count", "17");
+    expect(csrfInventory).toHaveAttribute("data-generated-api-csrf-missing-unsafe-operation-count", "0");
+    expect(csrfInventory).toHaveAttribute("data-generated-api-csrf-failure-count", "0");
+    expect(csrfInventory.getAttribute("data-generated-api-csrf-operation-contracts")).toContain(
+      "createUpload:POST:include:X-ZenArt-CSRF:true"
+    );
+    expect(csrfInventory.getAttribute("data-generated-api-csrf-operation-contracts")).toContain(
+      "deleteSession:DELETE:include:X-ZenArt-CSRF:false"
+    );
     expect(csrfInventory).toHaveTextContent("createUpload");
     expect(csrfInventory).toHaveTextContent("createExport");
     expect(csrfInventory).toHaveTextContent("createSupportTicket");

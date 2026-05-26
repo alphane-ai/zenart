@@ -45,7 +45,7 @@ import {
 import { downloadExportPackage } from "@/lib/export-download";
 import { apiOperations } from "@/lib/generated/zenart-api";
 import { legalPolicyList, supportContactEmail } from "@/lib/legal-policies";
-import { buildSessionSecurityContractEvidence } from "@/lib/request-security";
+import { buildGeneratedApiCsrfRequestContractEvidence, buildSessionSecurityContractEvidence } from "@/lib/request-security";
 import { AnalyticsEventName, captureAnalyticsEvent, reportFrontendError } from "@/lib/telemetry";
 
 export type ViewKey = "workspace" | "projects" | "export" | "billing" | "account" | "support";
@@ -318,6 +318,7 @@ function SessionPanel({
   const expectedCsrfHeader = "X-ZenArt-CSRF";
   const expectedSameSiteRequirement = "lax-or-strict";
   const evidence = buildSessionSecurityContractEvidence(state.sessionContract, apiOperations);
+  const generatedRequestEvidence = buildGeneratedApiCsrfRequestContractEvidence(apiOperations, state.sessionContract.csrf);
   const csrfProtectedMethods = evidence.protectedMethods.join(", ");
   const sameSiteRequirement = state.sessionContract.csrf.sameSiteRequired;
   const cookieAttributes = [
@@ -394,6 +395,19 @@ function SessionPanel({
         className="csrf-operation-inventory"
         aria-label="Generated web API CSRF operation inventory"
         data-csrf-operation-count={evidence.protectedOperationIds.length}
+        data-generated-api-csrf-contract="stage0.rev2.generated-api-csrf-contract"
+        data-generated-api-csrf-status={generatedRequestEvidence.status}
+        data-generated-api-csrf-credential-mode={generatedRequestEvidence.credentialMode}
+        data-generated-api-csrf-header={generatedRequestEvidence.csrfHeaderName}
+        data-generated-api-csrf-header-value={generatedRequestEvidence.csrfHeaderValue}
+        data-generated-api-csrf-origin-policy={generatedRequestEvidence.originPolicy}
+        data-generated-api-csrf-unsafe-operation-count={generatedRequestEvidence.unsafeOperationCount}
+        data-generated-api-csrf-safe-operation-count={generatedRequestEvidence.safeOperationCount}
+        data-generated-api-csrf-missing-unsafe-operation-count={generatedRequestEvidence.missingUnsafeOperationIds.length}
+        data-generated-api-csrf-failure-count={generatedRequestEvidence.failureReasons.length}
+        data-generated-api-csrf-operation-contracts={generatedRequestEvidence.unsafeRequestContracts
+          .map((contract) => `${contract.operationId}:${contract.method}:${contract.credentials}:${contract.csrfHeaderName}:${contract.idempotencyHeaderRequired}`)
+          .join("|")}
       >
         <strong>{evidence.protectedOperationIds.length} generated web operations require same-site CSRF headers</strong>
         <span>{evidence.protectedOperationIds.join(", ")}</span>

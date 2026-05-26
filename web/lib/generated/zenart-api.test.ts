@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import generatedApiCsrfContract from "../../validation/generated-api-csrf-contract.json";
 import userRouteSmoke from "../../validation/user-routes-smoke.json";
-import { defaultSameSiteCsrfContract } from "../request-security";
+import { buildGeneratedApiCsrfRequestContractEvidence, defaultSameSiteCsrfContract } from "../request-security";
 import { apiOperations, OperationId, ZenArtApiClient } from "./zenart-api";
 
 describe("generated web API client CSRF contract", () => {
@@ -127,6 +127,7 @@ describe("generated web API client CSRF contract", () => {
 
   it("matches the machine-checkable generated client CSRF evidence artifact", () => {
     const routeSmokeEvidence = generatedApiCsrfContractFromRouteSmoke();
+    const requestContractEvidence = buildGeneratedApiCsrfRequestContractEvidence(apiOperations);
     const unsafeOperations = Object.entries(apiOperations)
       .filter(([, operation]) =>
         generatedApiCsrfContract.protectedMethods.includes(
@@ -152,21 +153,37 @@ describe("generated web API client CSRF contract", () => {
       csrfHeaderValue: defaultSameSiteCsrfContract.headerValue,
       sameSiteRequirement: defaultSameSiteCsrfContract.sameSiteRequired,
       originPolicy: defaultSameSiteCsrfContract.originPolicy,
-      protectedMethods: defaultSameSiteCsrfContract.protectedMethods
+      protectedMethods: defaultSameSiteCsrfContract.protectedMethods,
+      status: requestContractEvidence.status,
+      safeOperationCount: requestContractEvidence.safeOperationCount,
+      missingUnsafeOperationCount: requestContractEvidence.missingUnsafeOperationIds.length,
+      failureCount: requestContractEvidence.failureReasons.length,
+      unsafeRequestContracts: requestContractEvidence.unsafeRequestContracts
     });
     expect(routeSmokeEvidence).toMatchObject({
       route: "/account",
       source: "web/validation/generated-api-csrf-contract.json",
       generatedClient: "web/lib/generated/zenart-api.ts",
       requestSecurityContract: "web/lib/request-security.ts",
+      expectedStatus: "pass",
       credentialMode: generatedApiCsrfContract.credentialMode,
       csrfHeaderName: generatedApiCsrfContract.csrfHeaderName,
+      csrfHeaderValue: generatedApiCsrfContract.csrfHeaderValue,
       sameSiteRequirement: generatedApiCsrfContract.sameSiteRequirement,
       originPolicy: generatedApiCsrfContract.originPolicy,
       unsafeOperationCount: generatedApiCsrfContract.unsafeOperationCount,
-      missingUnsafeOperationCount: 0
+      safeOperationCount: generatedApiCsrfContract.safeOperationCount,
+      missingUnsafeOperationCount: 0,
+      failureCount: 0,
+      requiredAttributes: expect.arrayContaining([
+        "data-generated-api-csrf-status",
+        "data-generated-api-csrf-credential-mode",
+        "data-generated-api-csrf-header",
+        "data-generated-api-csrf-operation-contracts"
+      ])
     });
     expect(generatedApiCsrfContract.unsafeOperationCount).toBe(unsafeOperations.length);
+    expect(generatedApiCsrfContract.safeOperationCount).toBe(safeOperations.length);
     expect(generatedApiCsrfContract.unsafeOperations).toEqual(unsafeOperations);
     expect(generatedApiCsrfContract.safeOperations).toEqual(safeOperations);
   });
