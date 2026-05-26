@@ -184,7 +184,11 @@ CHECKED_ITEMS = {
     "添加 disallowed source、robots denied、duplicate hash、pending-review import tests。",
     "实现 feedback taxonomy。",
     "实现 feedback attribution。",
+    "实现 support ticket 前端上下文：project/task/trace/asset/export/quota 可见并随 report problem 生成。",
+    "实现 admin support ticket 关联证据视图：user/trace/export/quota/audit 引用可查。",
     "实现 abuse event model。",
+    "实现 secure cookie 和 same-site CSRF 客户端/session contract evidence。",
+    "实现 secret redaction。",
     "定义 analytics event taxonomy。",
 }
 
@@ -196,6 +200,7 @@ FORBIDDEN_CHECKED_ITEMS = {
     "实现 provenance links。",
     "实现 temporary hold/throttle hooks。",
     "实现 admin abuse queue。",
+    "support ticket 后端持久化并强制关联 user/project/task/trace/asset/export/quota。",
 }
 
 DATABASE_TABLES = {
@@ -493,6 +498,20 @@ def gate_allows_checklist_completion(data: dict[str, Any]) -> bool:
     return all(check["status"] == "pass" for check in data["checks"]) and not any(
         item["is_present"] for item in data["do_not_launch_checks"]
     )
+
+
+def checked_items(text: str) -> set[str]:
+    return {
+        match.group(1)
+        for match in re.finditer(r"^- \[x\] (.+)$", text, flags=re.MULTILINE)
+    }
+
+
+def unchecked_items(text: str) -> set[str]:
+    return {
+        match.group(1)
+        for match in re.finditer(r"^- \[ \] (.+)$", text, flags=re.MULTILINE)
+    }
 
 
 def validate_schema_value(schema: dict[str, Any], value: Any, path: str, root_schema: dict[str, Any]) -> None:
@@ -1044,6 +1063,10 @@ def validate_release_gate_evidence() -> None:
         "local_alpha_runtime_stack" in check_ids,
         "local alpha evidence missing runtime stack check",
     )
+    require(
+        "local_alpha_e2e_workflow_smoke" in check_ids,
+        "local alpha evidence missing end-to-end workflow smoke check",
+    )
 
     service_missing = local_alpha_service_missing()
     service_status = checks["local_alpha_service_presence"]["status"]
@@ -1069,6 +1092,10 @@ def validate_release_gate_evidence() -> None:
             runtime_status in {"fail", "blocked"},
             "local alpha runtime stack cannot pass before docker compose and env evidence validate",
         )
+    require(
+        checks["local_alpha_e2e_workflow_smoke"]["status"] == "blocked",
+        "local alpha end-to-end workflow smoke must remain blocked until runtime smoke evidence exists",
+    )
 
     do_not_launch = {item["condition_id"]: item["is_present"] for item in local_alpha["do_not_launch_checks"]}
     require(
@@ -1117,6 +1144,14 @@ def validate_release_gate_evidence() -> None:
         ci_checks["ci_gate_runtime_execution"]["status"] == "blocked",
         "CI gate runtime execution must stay blocked until installed PR/main workflow evidence exists",
     )
+    require(
+        ci_checks["ci_playwright_smoke"]["status"] == "blocked",
+        "CI Playwright smoke must stay blocked until installed PR/main runtime evidence exists",
+    )
+    require(
+        ci_checks["ci_docker_image_build"]["status"] == "blocked",
+        "CI Docker image build must stay blocked until installed PR/main runtime evidence exists",
+    )
     ci_do_not_launch = {item["condition_id"]: item["is_present"] for item in ci["do_not_launch_checks"]}
     require(
         ci_do_not_launch.get("ci_workflow_not_installed") is (not CI_WORKFLOW.exists()),
@@ -1125,6 +1160,14 @@ def validate_release_gate_evidence() -> None:
     require(
         ci_do_not_launch.get("ci_gate_not_executed_on_main") is True,
         "CI release evidence must keep CI gate blocked until PR/main runtime execution exists",
+    )
+    require(
+        ci_do_not_launch.get("ci_playwright_smoke_missing") is True,
+        "CI release evidence must keep Playwright smoke blocker active until runtime evidence exists",
+    )
+    require(
+        ci_do_not_launch.get("ci_docker_image_build_missing") is True,
+        "CI release evidence must keep Docker image build blocker active until runtime evidence exists",
     )
 
     private_beta = load_json(FIXTURE_DIR / "release_gate_evidence.private_beta_staging.json")
@@ -1232,10 +1275,7 @@ def validate_readme_and_architecture_contract() -> None:
 
 def validate_blueprint_checklist() -> None:
     text = BLUEPRINT.read_text(encoding="utf-8")
-    checked_lines = {
-        match.group(1)
-        for match in re.finditer(r"^- \[x\] (.+)$", text, flags=re.MULTILINE)
-    }
+    checked_lines = checked_items(text)
     missing = CHECKED_ITEMS - checked_lines
     require(not missing, f"blueprint missing completed fixture/schema checklist marks: {sorted(missing)}")
 
@@ -1489,6 +1529,106 @@ def validate_task_schema_compatibility_contract() -> None:
     require("TestTaskStatusRejectsUnsupportedSchemaVersion" in server_test_text, "server tests must cover unsupported task schema response")
 
 
+def validate_blueprint_evidence_backfill_contracts() -> None:
+    text = BLUEPRINT.read_text(encoding="utf-8")
+    checked_lines = checked_items(text)
+    unchecked_lines = unchecked_items(text)
+
+    web_validation = (ROOT / "web" / "validation" / "user-routes-smoke.json").read_text(encoding="utf-8")
+    web_state_test = (ROOT / "web" / "lib" / "dev-state.test.ts").read_text(encoding="utf-8")
+    web_legal = (ROOT / "web" / "lib" / "legal-policies.ts").read_text(encoding="utf-8")
+    admin_governance = (ROOT / "admin" / "tests" / "admin-governance.test.mjs").read_text(encoding="utf-8")
+    security_redact = (ROOT / "backend" / "internal" / "security" / "redact.go").read_text(encoding="utf-8")
+    security_redact_test = (ROOT / "backend" / "internal" / "security" / "redact_test.go").read_text(encoding="utf-8")
+
+    require(
+        "实现 support ticket 前端上下文：project/task/trace/asset/export/quota 可见并随 report problem 生成。"
+        in checked_lines,
+        "blueprint must close only the support ticket frontend context evidence subitem",
+    )
+    for token in [
+        "report-problem tickets retain project, export, task, trace, asset, and quota context",
+        "linked-task-trace-asset-context",
+        "linked-quota-snapshot",
+    ]:
+        require(token in web_validation, f"web support context evidence missing {token}")
+    for token in [
+        "buildSupportProblemContext",
+        "linkedTraceId: \"trace-export-009\"",
+        "linkedAssetIds",
+        "linkedQuotaSnapshot",
+    ]:
+        require(token in web_state_test, f"web support context test missing {token}")
+
+    require(
+        "实现 admin support ticket 关联证据视图：user/trace/export/quota/audit 引用可查。"
+        in checked_lines,
+        "blueprint must close only the admin support evidence view subitem",
+    )
+    for token in [
+        'test("support tickets link user, trace, export, quota, and audit evidence"',
+        "supportUserIds.has(ticket.userId)",
+        "traceIds.has(ticket.traceId)",
+        "exportIds.has(ticket.exportId)",
+        "quotaUserIds.has(ticket.userId)",
+        "auditIds.has(ticket.auditRef)",
+    ]:
+        require(token in admin_governance, f"admin support evidence test missing {token}")
+    require(
+        "support ticket 后端持久化并强制关联 user/project/task/trace/asset/export/quota。"
+        in unchecked_lines,
+        "backend-enforced support ticket linkage must remain open",
+    )
+
+    require(
+        "实现 secure cookie 和 same-site CSRF 客户端/session contract evidence。" in checked_lines,
+        "blueprint must close only secure cookie / same-site CSRF client contract evidence",
+    )
+    for token in [
+        "__Host-zenart_session",
+        "httpOnly: true",
+        "secure: true",
+        "sameSite: \"lax\"",
+        "same-site-origin-check",
+        "X-ZenArt-CSRF",
+    ]:
+        require(token in web_state_test, f"web session contract test missing {token}")
+    require(
+        "配置 CSRF 或 same-site strategy。" in unchecked_lines,
+        "server-side CSRF/same-site strategy checklist must remain open",
+    )
+
+    require("实现 secret redaction。" in checked_lines, "blueprint must close secret redaction evidence")
+    for token in [
+        "func RedactValue",
+        "func RedactMap",
+        "func RedactString",
+        "exported traces",
+        "support records",
+    ]:
+        require(token in security_redact, f"secret redaction implementation missing {token}")
+    for token in [
+        "TestRedactMapRemovesNestedSecrets",
+        "TestRedactStringHandlesBearerAndAssignments",
+        "api_key",
+        "session_token",
+        "Bearer abc123",
+        "password=hunter2",
+    ]:
+        require(token in security_redact_test, f"secret redaction tests missing {token}")
+    require(
+        "Secrets 或 provider keys 可进入 frontend bundle、logs、traces、exports、crawler findings、screenshots、support tickets 或 admin UI。"
+        in text,
+        "Do-Not-Launch secret exposure condition must remain in the blueprint",
+    )
+
+    require(
+        "visible support contact" in web_legal
+        or "support@zenart.local" in web_legal,
+        "legal evidence must expose visible support contact",
+    )
+
+
 def validate_generated_openapi_clients() -> None:
     openapi_text = OPENAPI.read_text(encoding="utf-8")
     expected_digest = hashlib.sha256(openapi_text.encode("utf-8")).hexdigest()
@@ -1737,6 +1877,7 @@ def main() -> int:
         validate_openapi_contract,
         validate_openapi_rev2_domain_contracts,
         validate_task_schema_compatibility_contract,
+        validate_blueprint_evidence_backfill_contracts,
         validate_generated_openapi_clients,
         validate_ops_ci_and_drill_evidence,
     ]
