@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"net/url"
 	"strings"
@@ -2354,6 +2355,20 @@ func NewService(repo Repository, objects objectstore.Store, scanners ...security
 
 func (s Service) Repository() Repository {
 	return s.repo
+}
+
+func (s Service) PutObject(ctx context.Context, object objectstore.Object, body io.Reader) (objectstore.Object, error) {
+	if s.objects == nil {
+		return objectstore.Object{}, ErrMissingRepository
+	}
+	return s.objects.Put(ctx, object, body)
+}
+
+func (s Service) GetObject(ctx context.Context, tenantID, key string) (objectstore.Reader, error) {
+	if s.objects == nil {
+		return objectstore.Reader{}, ErrMissingRepository
+	}
+	return s.objects.Get(ctx, tenantID, key)
 }
 
 func (s Service) CreateUpload(ctx context.Context, opts UploadOptions) (Upload, error) {

@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"net/url"
@@ -19,6 +20,7 @@ import (
 	"github.com/alphane-ai/zenart/backend/internal/auth"
 	"github.com/alphane-ai/zenart/backend/internal/config"
 	"github.com/alphane-ai/zenart/backend/internal/health"
+	"github.com/alphane-ai/zenart/backend/internal/objectstore"
 	"github.com/alphane-ai/zenart/backend/internal/readiness"
 	"github.com/alphane-ai/zenart/backend/internal/security"
 	"github.com/alphane-ai/zenart/backend/internal/stage0"
@@ -75,6 +77,8 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /api/admin/v1/auth/local/session", s.createLocalAdminSession)
 	s.mux.Handle("GET /api/v1/tasks/{id}", requirePrincipal(http.HandlerFunc(s.taskStatus)))
 	s.mux.Handle("POST /api/v1/uploads", requirePrincipal(http.HandlerFunc(s.createUpload)))
+	s.mux.Handle("PUT /api/v1/objects/upload", requirePrincipal(http.HandlerFunc(s.putSignedUploadObject)))
+	s.mux.HandleFunc("GET /api/v1/objects/download", s.getSignedDownloadObject)
 	s.mux.Handle("POST /api/v1/packages/{id}/exports", requirePrincipal(http.HandlerFunc(s.createExport)))
 	s.mux.Handle("GET /api/v1/exports/{id}", requirePrincipal(http.HandlerFunc(s.getExport)))
 	s.mux.Handle("POST /api/v1/support/tickets", requirePrincipal(http.HandlerFunc(s.createSupportTicket)))
@@ -324,14 +328,159 @@ func (s *Server) createUpload(w http.ResponseWriter, r *http.Request) {
 func (s *Server) signUploadURL(tenantID, objectKey string, ttl time.Duration) (string, time.Time) {
 	expiresAt := time.Now().UTC().Add(ttl)
 	key := strings.Trim(strings.TrimSpace(objectKey), "/")
-	payload := fmt.Sprintf("%s:%s:%d", tenantID, key, expiresAt.Unix())
-	mac := hmac.New(sha256.New, []byte(s.cfg.ObjectStorage.SigningKey))
-	_, _ = mac.Write([]byte(payload))
 	values := make([]string, 0, 3)
 	values = append(values, "key="+urlQueryEscape(key))
 	values = append(values, "expires="+strconv.FormatInt(expiresAt.Unix(), 10))
-	values = append(values, "sig="+hex.EncodeToString(mac.Sum(nil)))
+	values = append(values, "sig="+s.signUploadObjectKey(tenantID, key, expiresAt.Unix()))
 	return "/api/v1/objects/upload?" + strings.Join(values, "&"), expiresAt
+}
+
+func (s *Server) putSignedUploadObject(w http.ResponseWriter, r *http.Request) {
+	principal, _ := PrincipalFromContext(r.Context())
+	service, ok := stage0.ServiceFromContext(r.Context())
+	if !ok {
+		writeError(w, r, http.StatusNotImplemented, "object_store_not_connected", "object storage is not connected yet", nil)
+		return
+	}
+	key, expires, sig, ok := signedObjectParams(r)
+	if !ok {
+		writeError(w, r, http.StatusBadRequest, "invalid_signed_object_url", "signed object URL is missing key, expires, or signature", nil)
+		return
+	}
+	if time.Now().UTC().Unix() > expires {
+		writeError(w, r, http.StatusForbidden, "signed_url_expired", "signed upload URL has expired", nil)
+		return
+	}
+	if !hmac.Equal([]byte(sig), []byte(s.signUploadObjectKey(principal.TenantID, key, expires))) {
+		writeError(w, r, http.StatusForbidden, "signed_url_invalid", "signed upload URL is not valid for this tenant", nil)
+		return
+	}
+	if r.ContentLength > s.cfg.Security.MaxUploadBytes {
+		writeError(w, r, http.StatusRequestEntityTooLarge, "upload_too_large", "upload body exceeds configured upload limit", nil)
+		return
+	}
+	contentType := strings.ToLower(strings.TrimSpace(r.Header.Get("Content-Type")))
+	if contentType == "" {
+		contentType = "application/octet-stream"
+	}
+	if !contentTypeAllowed(contentType, s.cfg.Security.AllowedUploadTypes) {
+		writeError(w, r, http.StatusBadRequest, "unsupported_content_type", "upload content type is not allowed", map[string]any{
+			"content_type": contentType,
+		})
+		return
+	}
+	reader := io.Reader(r.Body)
+	if s.cfg.Security.MaxUploadBytes > 0 {
+		reader = http.MaxBytesReader(w, r.Body, s.cfg.Security.MaxUploadBytes)
+	}
+	stored, err := service.PutObject(r.Context(), objectstore.Object{
+		TenantID:    principal.TenantID,
+		Bucket:      s.cfg.ObjectStorage.Bucket,
+		Key:         key,
+		ContentType: contentType,
+	}, reader)
+	if err != nil {
+		writeObjectStoreError(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, map[string]any{
+		"tenant_id":    stored.TenantID,
+		"bucket":       stored.Bucket,
+		"object_key":   stored.Key,
+		"content_type": stored.ContentType,
+		"byte_size":    stored.ByteSize,
+		"checksum":     stored.Checksum,
+		"created_at":   stored.CreatedAt.Format(time.RFC3339),
+	})
+}
+
+func (s *Server) getSignedDownloadObject(w http.ResponseWriter, r *http.Request) {
+	service, ok := stage0.ServiceFromContext(r.Context())
+	if !ok {
+		writeError(w, r, http.StatusNotImplemented, "object_store_not_connected", "object storage is not connected yet", nil)
+		return
+	}
+	key, expires, sig, ok := signedObjectParams(r)
+	if !ok {
+		writeError(w, r, http.StatusBadRequest, "invalid_signed_object_url", "signed object URL is missing key, expires, or signature", nil)
+		return
+	}
+	if time.Now().UTC().Unix() > expires {
+		writeError(w, r, http.StatusForbidden, "signed_url_expired", "signed download URL has expired", nil)
+		return
+	}
+	tenantID, err := tenantIDFromScopedObjectKey(key)
+	if err != nil {
+		writeError(w, r, http.StatusBadRequest, "invalid_object_key", "signed download object key must be tenant scoped", nil)
+		return
+	}
+	if !hmac.Equal([]byte(sig), []byte(s.signDownloadObjectKey(key, expires))) {
+		writeError(w, r, http.StatusForbidden, "signed_url_invalid", "signed download URL is not valid", nil)
+		return
+	}
+	reader, err := service.GetObject(r.Context(), tenantID, key)
+	if err != nil {
+		writeObjectStoreError(w, r, err)
+		return
+	}
+	defer reader.Body.Close()
+	if reader.Object.ContentType != "" {
+		w.Header().Set("Content-Type", reader.Object.ContentType)
+	} else {
+		w.Header().Set("Content-Type", "application/octet-stream")
+	}
+	w.Header().Set("X-ZenArt-Object-Key", reader.Object.Key)
+	if reader.Object.ByteSize > 0 {
+		w.Header().Set("Content-Length", strconv.FormatInt(reader.Object.ByteSize, 10))
+	}
+	w.WriteHeader(http.StatusOK)
+	_, _ = io.Copy(w, reader.Body)
+}
+
+func signedObjectParams(r *http.Request) (string, int64, string, bool) {
+	key := strings.Trim(strings.TrimSpace(r.URL.Query().Get("key")), "/")
+	sig := strings.TrimSpace(r.URL.Query().Get("sig"))
+	expires, err := strconv.ParseInt(r.URL.Query().Get("expires"), 10, 64)
+	if key == "" || sig == "" || err != nil {
+		return "", 0, "", false
+	}
+	return key, expires, sig, true
+}
+
+func (s *Server) signUploadObjectKey(tenantID, objectKey string, expires int64) string {
+	payload := fmt.Sprintf("%s:%s:%d", tenantID, strings.Trim(strings.TrimSpace(objectKey), "/"), expires)
+	mac := hmac.New(sha256.New, []byte(s.cfg.ObjectStorage.SigningKey))
+	_, _ = mac.Write([]byte(payload))
+	return hex.EncodeToString(mac.Sum(nil))
+}
+
+func (s *Server) signDownloadObjectKey(objectKey string, expires int64) string {
+	payload := fmt.Sprintf("%s:%d", strings.Trim(strings.TrimSpace(objectKey), "/"), expires)
+	mac := hmac.New(sha256.New, []byte(s.cfg.ObjectStorage.SigningKey))
+	_, _ = mac.Write([]byte(payload))
+	return hex.EncodeToString(mac.Sum(nil))
+}
+
+func tenantIDFromScopedObjectKey(key string) (string, error) {
+	key = strings.Trim(strings.TrimSpace(key), "/")
+	parts := strings.SplitN(key, "/", 3)
+	if len(parts) != 3 || parts[0] != "tenants" || parts[1] == "" || parts[2] == "" {
+		return "", errors.New("object key is missing tenant scope")
+	}
+	if strings.ContainsAny(parts[1], `/\`) || parts[1] == "." || parts[1] == ".." {
+		return "", errors.New("tenant_id is invalid")
+	}
+	return parts[1], nil
+}
+
+func contentTypeAllowed(contentType string, allowed []string) bool {
+	contentType = strings.ToLower(strings.TrimSpace(strings.Split(contentType, ";")[0]))
+	for _, item := range allowed {
+		if contentType == strings.ToLower(strings.TrimSpace(item)) {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *Server) createExport(w http.ResponseWriter, r *http.Request) {
@@ -602,6 +751,19 @@ func writeStage0Error(w http.ResponseWriter, r *http.Request, err error) {
 		writeError(w, r, http.StatusConflict, "crawler_blocked", "crawler runtime policy blocked the operation", nil)
 	default:
 		writeError(w, r, http.StatusInternalServerError, "stage0_service_error", "stage0 service operation failed", nil)
+	}
+}
+
+func writeObjectStoreError(w http.ResponseWriter, r *http.Request, err error) {
+	switch {
+	case errors.Is(err, objectstore.ErrTenantDenied):
+		writeError(w, r, http.StatusForbidden, "object_tenant_denied", "object key is not available for this tenant", nil)
+	case errors.Is(err, objectstore.ErrNotFound):
+		writeError(w, r, http.StatusNotFound, "object_not_found", "object was not found", nil)
+	case errors.Is(err, stage0.ErrMissingRepository):
+		writeError(w, r, http.StatusNotImplemented, "object_store_not_connected", "object storage is not connected yet", nil)
+	default:
+		writeError(w, r, http.StatusInternalServerError, "object_store_error", "object storage operation failed", nil)
 	}
 }
 

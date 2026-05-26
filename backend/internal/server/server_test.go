@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -14,6 +15,7 @@ import (
 	"github.com/alphane-ai/zenart/backend/internal/audit"
 	"github.com/alphane-ai/zenart/backend/internal/auth"
 	"github.com/alphane-ai/zenart/backend/internal/config"
+	"github.com/alphane-ai/zenart/backend/internal/objectstore"
 	"github.com/alphane-ai/zenart/backend/internal/security"
 	"github.com/alphane-ai/zenart/backend/internal/stage0"
 	"github.com/alphane-ai/zenart/backend/internal/store"
@@ -310,6 +312,172 @@ func TestUploadCreateReturnsConflictForSuspiciousMalwareScan(t *testing.T) {
 	}
 	if bodyJSON["code"] != "malware_blocked" {
 		t.Fatalf("code = %v, want malware_blocked", bodyJSON["code"])
+	}
+}
+
+func TestSignedUploadEndpointStoresTenantScopedObject(t *testing.T) {
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	cfg.ObjectStorage.LocalRoot = t.TempDir()
+	cfg.ObjectStorage.Bucket = "signed-upload-test"
+	cfg.ObjectStorage.SigningKey = "signed-upload-test-secret"
+	objects, err := objectstore.NewStore(cfg.ObjectStorage, nil)
+	if err != nil {
+		t.Fatalf("NewStore() error = %v", err)
+	}
+	srv := New(cfg, nil)
+	uploadURL, _ := srv.signUploadURL("tenant_1", "uploads/upload_1/logo.png", time.Minute)
+
+	req := httptest.NewRequest(http.MethodPut, uploadURL, strings.NewReader("png-bytes"))
+	req = req.WithContext(stage0.ContextWithService(req.Context(), stage0.NewService(stage0.NewRepository(noExecDB{}), objects)))
+	req.Header.Set("X-Zenart-User-ID", "user_1")
+	req.Header.Set("X-Zenart-Tenant-ID", "tenant_1")
+	req.Header.Set("Content-Type", "image/png")
+	setSameSiteCSRFHeaders(req)
+	rec := httptest.NewRecorder()
+
+	srv.Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status = %d, want %d: %s", rec.Code, http.StatusCreated, rec.Body.String())
+	}
+	reader, err := objects.Get(context.Background(), "tenant_1", "uploads/upload_1/logo.png")
+	if err != nil {
+		t.Fatalf("stored object Get() error = %v", err)
+	}
+	defer reader.Body.Close()
+	if reader.Object.Key != "tenants/tenant_1/uploads/upload_1/logo.png" {
+		t.Fatalf("stored key = %q, want tenant-scoped key", reader.Object.Key)
+	}
+	var body map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("response JSON error = %v", err)
+	}
+	if body["object_key"] != "tenants/tenant_1/uploads/upload_1/logo.png" {
+		t.Fatalf("object_key = %v, want tenant-scoped key", body["object_key"])
+	}
+}
+
+func TestSignedUploadEndpointRejectsCrossTenantSignature(t *testing.T) {
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	cfg.ObjectStorage.LocalRoot = t.TempDir()
+	cfg.ObjectStorage.Bucket = "signed-upload-test"
+	cfg.ObjectStorage.SigningKey = "signed-upload-test-secret"
+	objects, err := objectstore.NewStore(cfg.ObjectStorage, nil)
+	if err != nil {
+		t.Fatalf("NewStore() error = %v", err)
+	}
+	srv := New(cfg, nil)
+	uploadURL, _ := srv.signUploadURL("tenant_1", "uploads/upload_1/logo.png", time.Minute)
+
+	req := httptest.NewRequest(http.MethodPut, uploadURL, strings.NewReader("png-bytes"))
+	req = req.WithContext(stage0.ContextWithService(req.Context(), stage0.NewService(stage0.NewRepository(noExecDB{}), objects)))
+	req.Header.Set("X-Zenart-User-ID", "user_2")
+	req.Header.Set("X-Zenart-Tenant-ID", "tenant_2")
+	req.Header.Set("Content-Type", "image/png")
+	setSameSiteCSRFHeaders(req)
+	rec := httptest.NewRecorder()
+
+	srv.Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("status = %d, want %d: %s", rec.Code, http.StatusForbidden, rec.Body.String())
+	}
+	var body map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("response JSON error = %v", err)
+	}
+	if body["code"] != "signed_url_invalid" {
+		t.Fatalf("code = %v, want signed_url_invalid", body["code"])
+	}
+}
+
+func TestSignedDownloadEndpointServesTenantScopedLocalObject(t *testing.T) {
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	cfg.ObjectStorage.LocalRoot = t.TempDir()
+	cfg.ObjectStorage.Bucket = "signed-download-test"
+	cfg.ObjectStorage.SigningKey = "signed-download-test-secret"
+	objects, err := objectstore.NewStore(cfg.ObjectStorage, nil)
+	if err != nil {
+		t.Fatalf("NewStore() error = %v", err)
+	}
+	stored, err := objects.Put(context.Background(), objectstore.Object{
+		TenantID:    "tenant_1",
+		Key:         "exports/export_1.zip",
+		ContentType: "application/zip",
+	}, strings.NewReader("zip-bytes"))
+	if err != nil {
+		t.Fatalf("Put() error = %v", err)
+	}
+	downloadURL, err := objects.SignGetURL(context.Background(), "tenant_1", stored.Key, time.Minute)
+	if err != nil {
+		t.Fatalf("SignGetURL() error = %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, downloadURL, nil)
+	req = req.WithContext(stage0.ContextWithService(req.Context(), stage0.NewService(stage0.NewRepository(noExecDB{}), objects)))
+	rec := httptest.NewRecorder()
+
+	New(cfg, nil).Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d: %s", rec.Code, http.StatusOK, rec.Body.String())
+	}
+	if rec.Body.String() != "zip-bytes" {
+		t.Fatalf("download body = %q, want zip-bytes", rec.Body.String())
+	}
+	if rec.Header().Get("X-ZenArt-Object-Key") != "tenants/tenant_1/exports/export_1.zip" {
+		t.Fatalf("object key header = %q", rec.Header().Get("X-ZenArt-Object-Key"))
+	}
+}
+
+func TestSignedDownloadEndpointRejectsTamperedTenantKey(t *testing.T) {
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	cfg.ObjectStorage.LocalRoot = t.TempDir()
+	cfg.ObjectStorage.Bucket = "signed-download-test"
+	cfg.ObjectStorage.SigningKey = "signed-download-test-secret"
+	objects, err := objectstore.NewStore(cfg.ObjectStorage, nil)
+	if err != nil {
+		t.Fatalf("NewStore() error = %v", err)
+	}
+	downloadURL, err := objects.SignGetURL(context.Background(), "tenant_1", "exports/export_1.zip", time.Minute)
+	if err != nil {
+		t.Fatalf("SignGetURL() error = %v", err)
+	}
+	parsed, err := url.Parse(downloadURL)
+	if err != nil {
+		t.Fatalf("parse download URL: %v", err)
+	}
+	query := parsed.Query()
+	query.Set("key", "tenants/tenant_2/exports/export_1.zip")
+	parsed.RawQuery = query.Encode()
+
+	req := httptest.NewRequest(http.MethodGet, parsed.String(), nil)
+	req = req.WithContext(stage0.ContextWithService(req.Context(), stage0.NewService(stage0.NewRepository(noExecDB{}), objects)))
+	rec := httptest.NewRecorder()
+
+	New(cfg, nil).Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("status = %d, want %d: %s", rec.Code, http.StatusForbidden, rec.Body.String())
+	}
+	var body map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("response JSON error = %v", err)
+	}
+	if body["code"] != "signed_url_invalid" {
+		t.Fatalf("code = %v, want signed_url_invalid", body["code"])
 	}
 }
 
