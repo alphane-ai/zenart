@@ -1610,6 +1610,20 @@ def validate_trace_completeness_contract() -> None:
     )
 
 
+def validate_eval_result_contract() -> None:
+    result = subprocess.run(
+        [sys.executable, str(ROOT / "scripts" / "validate_eval_result_contract.py")],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    require(
+        result.returncode == 0,
+        "eval result contract validation failed: " + (result.stderr or result.stdout).strip(),
+    )
+
+
 def validate_safety_enforcement_contract() -> None:
     result = subprocess.run(
         [sys.executable, str(ROOT / "scripts" / "validate_safety_enforcement_contract.py")],
@@ -2212,6 +2226,7 @@ def main() -> int:
         validate_database_schema_artifacts,
         validate_openapi_contract,
         validate_openapi_rev2_domain_contracts,
+        validate_eval_result_contract,
         validate_trace_completeness_contract,
         validate_safety_enforcement_contract,
         validate_task_schema_compatibility_contract,

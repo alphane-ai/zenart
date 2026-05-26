@@ -2558,7 +2558,18 @@ components:
           enum: [pass, fail, blocked]
         summary:
           type: object
-          required: [total_fixtures, passed_fixtures, failed_fixtures, blocked_fixtures, trace_complete, export_contract_complete, critical_safety_regressions]
+          required:
+            - total_fixtures
+            - passed_fixtures
+            - failed_fixtures
+            - blocked_fixtures
+            - golden_passed
+            - critical_safety_regressions
+            - regression_pass_rate
+            - trace_complete
+            - export_contract_complete
+            - qa_categories_covered
+            - safety_enforcement_points_covered
           properties:
             total_fixtures:
               type: integer
@@ -2568,25 +2579,82 @@ components:
               type: integer
             blocked_fixtures:
               type: integer
+            golden_passed:
+              type: boolean
+            critical_safety_regressions:
+              type: integer
+            regression_pass_rate:
+              type: number
+              minimum: 0
+              maximum: 1
             trace_complete:
               type: boolean
             export_contract_complete:
               type: boolean
-            critical_safety_regressions:
-              type: integer
+            qa_categories_covered:
+              type: array
+              uniqueItems: true
+              items:
+                type: string
+                enum:
+                  - file_integrity
+                  - dimensions
+                  - aspect_ratio
+                  - safe_area
+                  - blank_output
+                  - duplicate_similarity
+                  - four_option_distinctness
+                  - text_readability
+                  - structured_text
+                  - product_logo_preservation
+                  - forbidden_claims
+                  - watermark_signature_risk
+                  - export_completeness
+            safety_enforcement_points_covered:
+              type: array
+              uniqueItems: true
+              items:
+                type: string
+                enum: [brief, provider_request, provider_response, qa, export]
         fixture_results:
           type: array
           items:
             type: object
-            required: [fixture_id, workflow, status, trace_contract, export_contract]
+            required:
+              - fixture_id
+              - category
+              - workflow
+              - status
+              - candidate_count
+              - expected_safety_action
+              - observed_safety_action
+              - qa_check_ids
+              - trace_contract
+              - export_contract
+              - failure_reasons
             properties:
               fixture_id:
                 type: string
+              category:
+                type: string
+                enum: [golden, ambiguous_brief, unsafe, negative, brand_product_preservation, text_heavy, export_completeness, regression, red_team]
               workflow:
                 type: string
               status:
                 type: string
                 enum: [pass, fail, blocked]
+              candidate_count:
+                type: integer
+              expected_safety_action:
+                type: string
+                enum: [allow, warn, require_user_confirmation, require_admin_review, block]
+              observed_safety_action:
+                type: string
+                enum: [allow, warn, require_user_confirmation, require_admin_review, block]
+              qa_check_ids:
+                type: array
+                items:
+                  type: string
               trace_contract:
                 type: object
                 required: [trace_id, has_schema_validation, has_provenance, has_safety_status, has_qa_eval_status, has_quota_transaction, has_admin_visibility, has_user_failure_mapping]
@@ -2616,7 +2684,7 @@ components:
                     const: true
               export_contract:
                 type: object
-                required: [manifest, qa_report, metadata, trace_provenance, blocks_when_incomplete]
+                required: [manifest, qa_report, metadata, trace_provenance, safety_disclaimer_when_applicable, blocks_when_incomplete]
                 properties:
                   manifest:
                     type: boolean
@@ -2626,9 +2694,15 @@ components:
                     type: boolean
                   trace_provenance:
                     type: boolean
+                  safety_disclaimer_when_applicable:
+                    type: boolean
                   blocks_when_incomplete:
                     type: boolean
                     const: true
+              failure_reasons:
+                type: array
+                items:
+                  type: string
         storage_contract:
           type: object
           required: [table, tenant_scoped, subject_scoped, summary_json_contains_fixture_results]

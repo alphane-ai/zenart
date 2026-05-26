@@ -1,0 +1,244 @@
+#!/usr/bin/env python3
+"""Validate Stage 0 Rev2 eval result storage and OpenAPI contract coverage."""
+
+from __future__ import annotations
+
+import json
+import re
+import sys
+from pathlib import Path
+from typing import Any
+
+
+ROOT = Path(__file__).resolve().parents[1]
+FIXTURE_DIR = ROOT / "fixtures" / "stage0" / "rev2"
+RESULTS = FIXTURE_DIR / "eval" / "starter_eval_results.json"
+SUITE = FIXTURE_DIR / "eval" / "starter_eval_suite.json"
+QA_RESULTS = FIXTURE_DIR / "eval" / "qa_results.json"
+OPENAPI = ROOT / "openapi" / "zenart.v1.yaml"
+MIGRATION = ROOT / "backend" / "migrations" / "0002_stage0_rev2_domains.sql"
+
+QA_CATEGORIES = {
+    "file_integrity",
+    "dimensions",
+    "aspect_ratio",
+    "safe_area",
+    "blank_output",
+    "duplicate_similarity",
+    "four_option_distinctness",
+    "text_readability",
+    "structured_text",
+    "product_logo_preservation",
+    "forbidden_claims",
+    "watermark_signature_risk",
+    "export_completeness",
+}
+
+SAFETY_POINTS = {
+    "brief",
+    "provider_request",
+    "provider_response",
+    "qa",
+    "export",
+}
+
+TRACE_KEYS = {
+    "has_schema_validation",
+    "has_provenance",
+    "has_safety_status",
+    "has_qa_eval_status",
+    "has_quota_transaction",
+    "has_admin_visibility",
+    "has_user_failure_mapping",
+}
+
+EXPORT_KEYS = {
+    "manifest",
+    "qa_report",
+    "metadata",
+    "trace_provenance",
+    "safety_disclaimer_when_applicable",
+    "blocks_when_incomplete",
+}
+
+
+class EvalResultContractError(Exception):
+    pass
+
+
+def load_json(path: Path) -> Any:
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise EvalResultContractError(f"{path.relative_to(ROOT)} is not valid JSON: {exc}") from exc
+
+
+def require(condition: bool, message: str) -> None:
+    if not condition:
+        raise EvalResultContractError(message)
+
+
+def schema_block(openapi_text: str, schema_name: str) -> str:
+    match = re.search(
+        rf"^    {schema_name}:\n(?P<body>.*?)(?=^    [A-Za-z0-9]+:|\Z)",
+        openapi_text,
+        flags=re.MULTILINE | re.DOTALL,
+    )
+    require(match is not None, f"OpenAPI schema {schema_name} missing")
+    return match.group("body")
+
+
+def require_field_in_schema(body: str, schema_name: str, field: str) -> None:
+    require(f"{field}:" in body, f"OpenAPI schema {schema_name} missing {field}")
+    require(
+        re.search(rf"required: \[[^\]]*\b{re.escape(field)}\b", body)
+        or re.search(rf"^\s+- {re.escape(field)}$", body, flags=re.MULTILINE),
+        f"OpenAPI schema {schema_name} must require {field}",
+    )
+
+
+def validate_openapi_eval_result_schema() -> None:
+    body = schema_block(OPENAPI.read_text(encoding="utf-8"), "EvalResult")
+
+    for field in [
+        "id",
+        "suite_id",
+        "subject",
+        "status",
+        "summary",
+        "fixture_results",
+        "storage_contract",
+        "created_at",
+    ]:
+        require_field_in_schema(body, "EvalResult", field)
+
+    for field in [
+        "total_fixtures",
+        "passed_fixtures",
+        "failed_fixtures",
+        "blocked_fixtures",
+        "golden_passed",
+        "critical_safety_regressions",
+        "regression_pass_rate",
+        "trace_complete",
+        "export_contract_complete",
+        "qa_categories_covered",
+        "safety_enforcement_points_covered",
+    ]:
+        require_field_in_schema(body, "EvalResult.summary", field)
+
+    for category in QA_CATEGORIES:
+        require(category in body, f"OpenAPI EvalResult summary missing QA category enum {category}")
+    for point in SAFETY_POINTS:
+        require(point in body, f"OpenAPI EvalResult summary missing safety point enum {point}")
+
+    for field in [
+        "fixture_id",
+        "category",
+        "workflow",
+        "status",
+        "candidate_count",
+        "expected_safety_action",
+        "observed_safety_action",
+        "qa_check_ids",
+        "trace_contract",
+        "export_contract",
+        "failure_reasons",
+    ]:
+        require_field_in_schema(body, "EvalResult.fixture_results", field)
+
+    for field in TRACE_KEYS:
+        require_field_in_schema(body, "EvalResult.trace_contract", field)
+    for field in EXPORT_KEYS:
+        require_field_in_schema(body, "EvalResult.export_contract", field)
+    require("const: true" in body, "OpenAPI EvalResult must preserve required true contract fields")
+
+
+def validate_fixture_result_links() -> None:
+    results = load_json(RESULTS)
+    suite = load_json(SUITE)
+    qa_results = load_json(QA_RESULTS)
+
+    require(isinstance(results, list) and len(results) == 1, "starter eval results must contain one result")
+    result = results[0]
+    summary = result["summary"]
+
+    require(set(summary["qa_categories_covered"]) == QA_CATEGORIES, "eval summary must cover every QA category")
+    require(set(summary["safety_enforcement_points_covered"]) == SAFETY_POINTS, "eval summary must cover every safety point")
+    require(summary["trace_complete"] is True, "eval summary must prove trace completeness")
+    require(summary["export_contract_complete"] is True, "eval summary must prove export contract completeness")
+
+    suite_fixtures = {fixture["fixture_id"]: fixture for fixture in suite["fixtures"]}
+    qa_by_id = {item["check_id"]: item for item in qa_results}
+    require(
+        {item["fixture_id"] for item in result["fixture_results"]} == set(suite_fixtures),
+        "eval result must include exactly one entry per suite fixture",
+    )
+
+    for item in result["fixture_results"]:
+        fixture = suite_fixtures[item["fixture_id"]]
+        require(item["category"] == fixture["category"], f"{item['fixture_id']} category mismatch")
+        require(item["workflow"] == fixture["workflow"], f"{item['fixture_id']} workflow mismatch")
+        require(
+            item["candidate_count"] >= fixture["expected_evidence"]["minimum_candidates"],
+            f"{item['fixture_id']} candidate count below fixture minimum",
+        )
+        require(
+            item["expected_safety_action"] == fixture["expected_evidence"]["expected_safety_action"],
+            f"{item['fixture_id']} expected safety action mismatch",
+        )
+        require(
+            item["observed_safety_action"] in {"allow", "warn", "require_user_confirmation", "require_admin_review", "block"},
+            f"{item['fixture_id']} observed safety action unsupported",
+        )
+
+        trace = item["trace_contract"]
+        require(trace["trace_id"].startswith("trace_"), f"{item['fixture_id']} trace_id must be trace-scoped")
+        for key in TRACE_KEYS:
+            require(trace[key] is True, f"{item['fixture_id']} trace contract missing {key}")
+
+        export = item["export_contract"]
+        require(set(EXPORT_KEYS) <= set(export), f"{item['fixture_id']} export contract missing required keys")
+        require(export["blocks_when_incomplete"] is True, f"{item['fixture_id']} incomplete export must block")
+        if fixture["expected_evidence"]["must_include_qa_report"]:
+            require(export["qa_report"] is True, f"{item['fixture_id']} export must include QA report")
+        if fixture["expected_evidence"]["must_include_trace_provenance"]:
+            require(export["trace_provenance"] is True, f"{item['fixture_id']} export must include trace provenance")
+
+        for check_id in item["qa_check_ids"]:
+            require(check_id in qa_by_id, f"{item['fixture_id']} references unknown QA check {check_id}")
+            require(
+                qa_by_id[check_id]["evidence"]["fixture_id"] == item["fixture_id"],
+                f"{item['fixture_id']} references QA check {check_id} from another fixture",
+            )
+
+
+def validate_storage_contract() -> None:
+    migration = MIGRATION.read_text(encoding="utf-8")
+    results = load_json(RESULTS)
+    storage = results[0]["storage_contract"]
+
+    require("CREATE TABLE IF NOT EXISTS eval_results" in migration, "eval_results table missing")
+    for column in storage["required_columns"]:
+        require(column in migration, f"eval_results storage missing {column}")
+    require("tenant_id text NOT NULL REFERENCES tenants(id)" in migration, "eval_results must be tenant scoped")
+    require("summary jsonb NOT NULL" in migration, "eval_results summary must be persisted as jsonb")
+    require(storage["summary_json_contains_fixture_results"] is True, "eval fixture details must be stored in summary json")
+    require(storage["tenant_scoped"] is True, "eval storage contract must be tenant scoped")
+    require(storage["subject_scoped"] is True, "eval storage contract must be subject scoped")
+
+
+def main() -> int:
+    try:
+        validate_openapi_eval_result_schema()
+        validate_fixture_result_links()
+        validate_storage_contract()
+    except EvalResultContractError as exc:
+        print(f"eval result contract validation failed: {exc}", file=sys.stderr)
+        return 1
+    print("eval result contract validation passed")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
