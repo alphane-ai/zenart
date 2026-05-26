@@ -120,6 +120,7 @@
     "stage0.rev2.session-csrf-client-evidence",
     "secure __Host session cookie contract is exposed as machine-checkable UI data attributes",
     "same-site CSRF contract exposes origin policy, credential mode, protected methods, protected operation count, and missing-operation count",
+    "stage0.rev2.generated-api-csrf-contract pins the generated client unsafe-operation inventory to credentialed same-site CSRF requests",
     "generated unsafe web operations have zero missing same-site CSRF evidence",
     "generated web API client rejects cross-origin base URLs and unsafe path params before credentialed same-site requests"
   ],
@@ -158,6 +159,7 @@
     "CSRF UX contract exposes same-site origin-check strategy and X-ZenArt-CSRF header evidence",
     "generated web API client sends same-site credentials and X-ZenArt-CSRF header on state-changing operations",
     "generated web API unsafe-operation inventory proves every state-changing operation sends credentials and X-ZenArt-CSRF",
+    "generated web API unsafe-operation inventory matches validation/generated-api-csrf-contract.json",
     "generated web API client rejects cross-origin base URLs and unsafe path params before credentialed same-site requests",
     "account settings persist through workspace reload",
     "candidate selection, workspace autosave, canvas versions, and package history survive reload",

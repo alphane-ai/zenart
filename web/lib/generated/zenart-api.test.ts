@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import generatedApiCsrfContract from "../../validation/generated-api-csrf-contract.json";
 import { defaultSameSiteCsrfContract } from "../request-security";
 import { apiOperations, OperationId, ZenArtApiClient } from "./zenart-api";
 
@@ -121,6 +122,39 @@ describe("generated web API client CSRF contract", () => {
         );
       }
     }
+  });
+
+  it("matches the machine-checkable generated client CSRF evidence artifact", () => {
+    const unsafeOperations = Object.entries(apiOperations)
+      .filter(([, operation]) =>
+        generatedApiCsrfContract.protectedMethods.includes(
+          operation.method as (typeof generatedApiCsrfContract.protectedMethods)[number]
+        )
+      )
+      .map(([operationId]) => operationId);
+    const safeOperations = Object.entries(apiOperations)
+      .filter(([, operation]) =>
+        !generatedApiCsrfContract.protectedMethods.includes(
+          operation.method as (typeof generatedApiCsrfContract.protectedMethods)[number]
+        )
+      )
+      .map(([operationId]) => operationId);
+
+    expect(generatedApiCsrfContract).toMatchObject({
+      schemaVersion: "stage0.rev2.generated-api-csrf-contract",
+      blueprintSource: "Docs/stage0_blueprint_rev2.md",
+      generatedClient: "web/lib/generated/zenart-api.ts",
+      requestSecurityContract: "web/lib/request-security.ts",
+      credentialMode: defaultSameSiteCsrfContract.credentialMode,
+      csrfHeaderName: defaultSameSiteCsrfContract.headerName,
+      csrfHeaderValue: defaultSameSiteCsrfContract.headerValue,
+      sameSiteRequirement: defaultSameSiteCsrfContract.sameSiteRequired,
+      originPolicy: defaultSameSiteCsrfContract.originPolicy,
+      protectedMethods: defaultSameSiteCsrfContract.protectedMethods
+    });
+    expect(generatedApiCsrfContract.unsafeOperationCount).toBe(unsafeOperations.length);
+    expect(generatedApiCsrfContract.unsafeOperations).toEqual(unsafeOperations);
+    expect(generatedApiCsrfContract.safeOperations).toEqual(safeOperations);
   });
 
   it("rejects cross-origin API bases before same-site credentialed requests can be made", () => {

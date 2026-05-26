@@ -5,6 +5,7 @@ import process from "node:process";
 
 const root = process.cwd();
 const artifactPath = path.join(root, "validation", "user-routes-smoke.json");
+const generatedApiCsrfContractPath = path.join(root, "validation", "generated-api-csrf-contract.json");
 const appDir = path.join(root, "app");
 const componentPath = path.join(root, "components", "workspace-app.tsx");
 const layoutPath = path.join(root, "app", "layout.tsx");
@@ -25,11 +26,16 @@ const legalPoliciesSource = await readFile(legalPoliciesPath, "utf8");
 const telemetrySource = await readFile(telemetryPath, "utf8");
 const requestSecuritySource = await readFile(requestSecurityPath, "utf8");
 const generatedApiSource = await readFile(generatedApiPath, "utf8");
+const generatedApiCsrfContract = JSON.parse(await readFile(generatedApiCsrfContractPath, "utf8"));
 const expectedViews = new Set(["workspace", "projects", "export", "billing", "account", "support"]);
 const seenViews = new Set();
 
 if (artifact.blueprintSource !== "Docs/stage0_blueprint_rev2.md") {
   fail("artifact must cite Docs/stage0_blueprint_rev2.md");
+}
+
+if (generatedApiCsrfContract.blueprintSource !== "Docs/stage0_blueprint_rev2.md") {
+  fail("generated API CSRF contract must cite Docs/stage0_blueprint_rev2.md");
 }
 
 for (const route of artifact.routes) {
@@ -193,6 +199,47 @@ for (const expectedApiSnippet of [
   if (!generatedApiSource.includes(expectedApiSnippet) && !requestSecuritySource.includes(expectedApiSnippet)) {
     fail(`generated web API client CSRF integration missing ${expectedApiSnippet}`);
   }
+}
+
+const generatedOperationIds = Array.from(generatedApiSource.matchAll(/^  ([a-zA-Z0-9]+): \{ method: "([A-Z]+)"/gm)).map(
+  ([, operationId, method]) => ({ operationId, method })
+);
+const generatedUnsafeOperationIds = generatedOperationIds
+  .filter(({ method }) => generatedApiCsrfContract.protectedMethods.includes(method))
+  .map(({ operationId }) => operationId);
+const generatedSafeOperationIds = generatedOperationIds
+  .filter(({ method }) => !generatedApiCsrfContract.protectedMethods.includes(method))
+  .map(({ operationId }) => operationId);
+
+for (const expectedContractField of [
+  "stage0.rev2.generated-api-csrf-contract",
+  "web/lib/generated/zenart-api.ts",
+  "web/lib/request-security.ts",
+  "include",
+  "X-ZenArt-CSRF",
+  "same-site-origin-check",
+  "lax-or-strict",
+  "same-site-only"
+]) {
+  if (!JSON.stringify(generatedApiCsrfContract).includes(expectedContractField)) {
+    fail(`generated API CSRF contract artifact missing ${expectedContractField}`);
+  }
+}
+
+if (generatedApiCsrfContract.unsafeOperationCount !== generatedUnsafeOperationIds.length) {
+  fail("generated API CSRF unsafe operation count does not match generated client");
+}
+
+if (JSON.stringify(generatedApiCsrfContract.unsafeOperations) !== JSON.stringify(generatedUnsafeOperationIds)) {
+  fail("generated API CSRF unsafe operation inventory does not match generated client");
+}
+
+if (JSON.stringify(generatedApiCsrfContract.safeOperations) !== JSON.stringify(generatedSafeOperationIds)) {
+  fail("generated API CSRF safe operation inventory does not match generated client");
+}
+
+if (generatedApiCsrfContract.credentialMode !== "include") {
+  fail("generated API CSRF contract must require same-site credentials include mode");
 }
 
 for (const requiredSnippet of [
