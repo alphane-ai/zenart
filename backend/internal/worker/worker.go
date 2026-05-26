@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"time"
 
@@ -130,8 +131,15 @@ func (r Repository) DrainOwned(ctx context.Context, workerVersion, instanceID st
 	if instanceID == "" {
 		return 0, errors.New("worker instance id is required")
 	}
-	result, err := r.db.Exec(ctx, `
-UPDATE agent_tasks
+	completedAt := time.Now().UTC()
+	taskError := task.TaskError{
+		Code:    "worker_drained",
+		Message: "worker drained before task completion",
+	}
+	var drained int64
+	err := r.db.QueryRow(ctx, `
+WITH drained_tasks AS (
+	UPDATE agent_tasks
 SET status = 'failed',
     user_status = 'failed',
     progress = CASE WHEN progress > 0 THEN progress ELSE 1 END,
@@ -141,19 +149,56 @@ SET status = 'failed',
     updated_at = $3
 WHERE status = 'running'
   AND worker_version = $1
-  AND metadata->>'worker_instance_id' = $4`,
+  AND metadata->>'worker_instance_id' = $4
+	RETURNING id, tenant_id, type, error, metadata, completed_at
+),
+failed_exports AS (
+	UPDATE exports e
+	SET status = 'failed',
+	    qa_status = CASE WHEN e.qa_status = 'pending' THEN 'failed' ELSE e.qa_status END,
+	    error = drained_tasks.error,
+	    delivery_metadata = e.delivery_metadata || jsonb_build_object('failed_at', $3::timestamptz),
+	    updated_at = $3
+	FROM drained_tasks
+	WHERE e.tenant_id = drained_tasks.tenant_id
+	  AND e.task_id = drained_tasks.id
+	  AND drained_tasks.type = 'package_export_builder'
+	  AND e.status IN ('pending', 'running')
+	RETURNING e.id, e.tenant_id, e.package_id, e.project_id, e.format, drained_tasks.id AS task_id, drained_tasks.metadata
+),
+export_failure_analytics AS (
+	INSERT INTO analytics_events(id, tenant_id, user_id, project_id, workflow_id, event_name, subject_type, subject_id, properties, created_at)
+	SELECT
+		'analytics_' || md5(failed_exports.tenant_id || ':' || failed_exports.id || ':export_failed:' || $3::text),
+		failed_exports.tenant_id,
+		NULL,
+		failed_exports.project_id,
+		COALESCE(failed_exports.metadata->>'workflow_id', ''),
+		'export_failed',
+		'export',
+		failed_exports.id,
+		jsonb_build_object(
+			'package_id', failed_exports.package_id,
+			'task_id', failed_exports.task_id,
+			'worker_version', $1,
+			'worker_instance_id', $4,
+			'format', failed_exports.format,
+			'failure_code', 'worker_drained'
+		),
+		$3
+	FROM failed_exports
+	ON CONFLICT (id) DO NOTHING
+)
+SELECT count(*) FROM drained_tasks`,
 		workerVersion,
-		jsonObject(task.TaskError{
-			Code:    "worker_drained",
-			Message: "worker drained before task completion",
-		}),
-		time.Now().UTC(),
+		jsonObject(taskError),
+		completedAt,
 		instanceID,
-	)
+	).Scan(&drained)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("drain owned worker tasks: %w", err)
 	}
-	return result.RowsAffected(), nil
+	return drained, nil
 }
 
 type Runner struct {

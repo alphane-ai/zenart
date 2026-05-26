@@ -93,7 +93,7 @@ func TestClaimNextReturnsErrNoTask(t *testing.T) {
 }
 
 func TestDrainOwnedFailsOnlyOwnedRunningTasks(t *testing.T) {
-	db := &fakeDB{commandTag: pgconn.NewCommandTag("UPDATE 2")}
+	db := &fakeDB{row: fakeRow{values: []any{int64(2)}}}
 	repo := NewRepository(db)
 
 	drained, err := repo.DrainOwned(context.Background(), "worker-test", "instance-test")
@@ -103,21 +103,27 @@ func TestDrainOwnedFailsOnlyOwnedRunningTasks(t *testing.T) {
 	if drained != 2 {
 		t.Fatalf("drained = %d, want 2", drained)
 	}
-	if !strings.Contains(db.execSQL, "WHERE status = 'running'") {
-		t.Fatalf("drain query must only affect running rows: %s", db.execSQL)
+	if !strings.Contains(db.query, "WHERE status = 'running'") {
+		t.Fatalf("drain query must only affect running rows: %s", db.query)
 	}
-	if !strings.Contains(db.execSQL, "worker_version = $1") {
-		t.Fatalf("drain query must only affect this worker version: %s", db.execSQL)
+	if !strings.Contains(db.query, "worker_version = $1") {
+		t.Fatalf("drain query must only affect this worker version: %s", db.query)
 	}
-	if !strings.Contains(db.execSQL, "worker_instance_id") {
-		t.Fatalf("drain query must only affect this worker instance: %s", db.execSQL)
+	if !strings.Contains(db.query, "worker_instance_id") {
+		t.Fatalf("drain query must only affect this worker instance: %s", db.query)
 	}
-	errorJSON, ok := db.execArgs[1].([]byte)
+	if !strings.Contains(db.query, "UPDATE exports e") || !strings.Contains(db.query, "'export_failed'") {
+		t.Fatalf("drain query must fail linked exports and emit analytics: %s", db.query)
+	}
+	if !strings.Contains(db.query, "drained_tasks.type = 'package_export_builder'") {
+		t.Fatalf("drain query must only fail package export tasks: %s", db.query)
+	}
+	errorJSON, ok := db.args[1].([]byte)
 	if !ok || !strings.Contains(string(errorJSON), "worker_drained") {
-		t.Fatalf("drain error payload = %#v", db.execArgs[1])
+		t.Fatalf("drain error payload = %#v", db.args[1])
 	}
-	if db.execArgs[3] != "instance-test" {
-		t.Fatalf("worker instance arg = %#v", db.execArgs[3])
+	if db.args[3] != "instance-test" {
+		t.Fatalf("worker instance arg = %#v", db.args[3])
 	}
 }
 
@@ -143,7 +149,7 @@ func TestNewRunnerPassesSupportedTaskTypesToClaim(t *testing.T) {
 }
 
 func TestRunnerDrainUsesConfiguredWorkerIdentity(t *testing.T) {
-	db := &fakeDB{commandTag: pgconn.NewCommandTag("UPDATE 1")}
+	db := &fakeDB{row: fakeRow{values: []any{int64(1)}}}
 	repo := NewRepository(db)
 	metrics := NewMetrics()
 	runner := NewRunnerWithMetrics(repo, nil, agent.BaseStepContracts(1), Options{
@@ -161,11 +167,11 @@ func TestRunnerDrainUsesConfiguredWorkerIdentity(t *testing.T) {
 	if drained != 1 {
 		t.Fatalf("drained = %d, want 1", drained)
 	}
-	if db.execArgs[0] != "worker-test" {
-		t.Fatalf("worker version arg = %#v, want worker-test", db.execArgs[0])
+	if db.args[0] != "worker-test" {
+		t.Fatalf("worker version arg = %#v, want worker-test", db.args[0])
 	}
-	if db.execArgs[3] != "instance-test" {
-		t.Fatalf("worker instance arg = %#v, want instance-test", db.execArgs[3])
+	if db.args[3] != "instance-test" {
+		t.Fatalf("worker instance arg = %#v, want instance-test", db.args[3])
 	}
 
 	body := renderMetrics(t, metrics)
@@ -257,6 +263,8 @@ func assign(dest any, value any) {
 		*ptr = value.(string)
 	case *int:
 		*ptr = value.(int)
+	case *int64:
+		*ptr = value.(int64)
 	case *float64:
 		*ptr = value.(float64)
 	case *task.Status:
