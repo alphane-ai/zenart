@@ -223,6 +223,42 @@ load_validate_dir="$(mktemp -d)"
 for mode in chat_task worker_generation zip_export signed_download crawler_throttle quota_contention workspace_rendering; do
   LOAD_MODE="$mode" DRY_RUN=1 OUT_DIR="$load_validate_dir" scripts/load_smoke.sh >/dev/null
 done
+python3 - "$load_validate_dir" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+reports = sorted(Path(sys.argv[1]).glob("*.json"))
+if len(reports) != 7:
+    raise SystemExit(f"load smoke dry-run must write one report per mode, got {len(reports)}")
+by_mode = {}
+for path in reports:
+    report = json.loads(path.read_text(encoding="utf-8"))
+    by_mode[report.get("mode")] = report
+required_modes = {
+    "chat_task",
+    "worker_generation",
+    "zip_export",
+    "signed_download",
+    "crawler_throttle",
+    "quota_contention",
+    "workspace_rendering",
+}
+missing = sorted(required_modes - set(by_mode))
+if missing:
+    raise SystemExit(f"load smoke dry-run missing modes: {missing}")
+crawler = by_mode["crawler_throttle"]
+paths = set(crawler.get("paths", []))
+expected = set(crawler.get("expected_statuses", []))
+if "/api/admin/v1/crawler/sources" not in paths:
+    raise SystemExit(f"crawler throttle load smoke must use admin route contract: {crawler}")
+if any(value.startswith("/api/v1/admin/") for value in paths | expected):
+    raise SystemExit(f"crawler throttle load smoke must not use stale /api/v1/admin route: {crawler}")
+for status in ("401", "403", "404", "501"):
+    expected_value = f"/api/admin/v1/crawler/sources:{status}"
+    if expected_value not in expected:
+        raise SystemExit(f"crawler throttle load smoke missing expected status {expected_value}")
+PY
 
 log "backup/restore drill script syntax"
 bash -n scripts/backup_restore_drill.sh

@@ -145,8 +145,8 @@ case "$LOAD_MODE" in
     EXPECTED=("/readyz:200" "/api/v1/assets/load-smoke/download:404" "/api/v1/assets/load-smoke/download:501")
     ;;
   crawler_throttle)
-    PATHS=("/readyz" "/api/v1/admin/crawler/sources")
-    EXPECTED=("/readyz:200" "/api/v1/admin/crawler/sources:401" "/api/v1/admin/crawler/sources:403" "/api/v1/admin/crawler/sources:404" "/api/v1/admin/crawler/sources:501")
+    PATHS=("/readyz" "/api/admin/v1/crawler/sources")
+    EXPECTED=("/readyz:200" "/api/admin/v1/crawler/sources:401" "/api/admin/v1/crawler/sources:403" "/api/admin/v1/crawler/sources:404" "/api/admin/v1/crawler/sources:501")
     ;;
   quota_contention)
     PATHS=("/readyz" "/api/v1/quota")
