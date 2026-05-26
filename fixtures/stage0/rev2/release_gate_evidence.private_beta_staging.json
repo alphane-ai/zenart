@@ -6,7 +6,7 @@
     {
       "check_id": "staging_auth_rbac_tenant_audit",
       "status": "blocked",
-      "evidence_ref": "Docs/stage0_blueprint_rev2.md keeps tenant isolation and admin RBAC enforcement open in 25.7"
+      "evidence_ref": "Local contract and denial-test evidence exists, but external-user staging session/RBAC/tenant/audit runtime evidence is absent"
     },
     {
       "check_id": "staging_brief_upload_confirmation",
@@ -16,27 +16,27 @@
     {
       "check_id": "staging_object_storage_signed_downloads",
       "status": "blocked",
-      "evidence_ref": "Docs/stage0_blueprint_rev2.md keeps S3-compatible config, object metadata, retention cleanup, and export integration tests open in 25.9"
+      "evidence_ref": "Local object storage, S3-compatible config, object metadata, signed URL, cleanup, and integration-test evidence exists, but production-like staging object storage and signed-download runtime evidence is absent"
     },
     {
       "check_id": "staging_quota_rate_limit_spend_cap",
       "status": "blocked",
-      "evidence_ref": "Docs/stage0_blueprint_rev2.md keeps quota transaction/concurrency tests open in 25.8"
+      "evidence_ref": "Quota reservation/commit/refund/idempotency, spend-cap, and concurrency-test evidence exists, but staging entitlement, rate-limit, and provider spend-cap runtime evidence is absent"
     },
     {
       "check_id": "staging_support_retry_abuse_ops",
       "status": "blocked",
-      "evidence_ref": "Docs/stage0_blueprint_rev2.md keeps failed task retry/cancel, queue/dead-letter dashboard, support linkage, and admin abuse queue open in 25.14 and 25.15"
+      "evidence_ref": "Report-problem context, admin support evidence view, retry/regenerate, queue/dead-letter, abuse model, and incident evidence exists, but backend-enforced support linkage, user lookup, temporary hold/throttle hooks, and runtime abuse queue evidence are absent"
     },
     {
       "check_id": "staging_eval_qa_safety_runtime",
       "status": "blocked",
-      "evidence_ref": "Docs/stage0_blueprint_rev2.md keeps QA implementations and required safety enforcement open in 25.11"
+      "evidence_ref": "Eval, QA fixture, red-team, and safety contract evidence exists, but runtime proof that safety policy executes at brief/provider request/provider response/QA/export is absent"
     },
     {
       "check_id": "staging_crawler_approval_provenance",
       "status": "blocked",
-      "evidence_ref": "Docs/stage0_blueprint_rev2.md keeps crawler source approval, robots evidence, SSRF protections, provenance links, retention, and takedown workflow open in 25.13"
+      "evidence_ref": "Crawler approval, legal metadata, robots/SSRF/rate-limit/retention/exact-text/provenance/blocklist fixture contracts, and takedown workflow evidence exists, but crawler fetch/import runtime enforcement evidence is absent"
     },
     {
       "check_id": "staging_observability_backup_load",
@@ -46,24 +46,24 @@
     {
       "check_id": "staging_legal_external_user_pages",
       "status": "blocked",
-      "evidence_ref": "Docs/stage0_blueprint_rev2.md keeps privacy, terms, acceptable use, AI/content disclaimer, IP complaint flow, and visible support contact open in 25.16"
+      "evidence_ref": "Privacy notice, Terms, Privacy Policy, Acceptable Use, AI/content disclaimer, IP complaint flow, billing policy, and visible support contact evidence exists, but externally deployed staging page visibility evidence is absent"
     }
   ],
   "do_not_launch_checks": [
     {
       "condition_id": "tenant_isolation_not_enforced",
       "is_present": true,
-      "evidence_ref": "25.7 tenant isolation enforcement remains open"
+      "evidence_ref": "Local denial-test evidence exists, but staging runtime tenant-isolation evidence remains absent"
     },
     {
       "condition_id": "eval_qa_safety_runtime_missing",
       "is_present": true,
-      "evidence_ref": "25.11 QA runtime and required safety enforcement remain open"
+      "evidence_ref": "Safety and QA contracts exist, but required runtime safety enforcement evidence remains absent"
     },
     {
       "condition_id": "crawler_governance_runtime_missing",
       "is_present": true,
-      "evidence_ref": "25.13 crawler approval, provenance, SSRF, retention, and takedown runtime controls remain open"
+      "evidence_ref": "Crawler governance fixtures exist, but fetch/import runtime enforcement evidence remains absent"
     },
     {
       "condition_id": "staging_observability_restore_load_missing",
@@ -73,7 +73,7 @@
     {
       "condition_id": "external_user_legal_pages_missing",
       "is_present": true,
-      "evidence_ref": "25.16 legal, privacy, disclaimer, support, and IP complaint items remain open"
+      "evidence_ref": "Legal page artifacts exist, but external-user staging visibility evidence remains absent"
     }
   ],
   "provenance": {

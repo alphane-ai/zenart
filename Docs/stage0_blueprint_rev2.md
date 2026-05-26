@@ -1811,13 +1811,20 @@ main 合并前必须通过：
 - [x] 实现 admin crawler source approval evidence。
 - [ ] crawler fetch/import 强制 source approval runtime gate。
 - [x] 实现 source legal metadata。
-- [ ] 实现 robots evidence。
-- [ ] 实现 SSRF protections。
-- [ ] 实现 source/global rate limits。
-- [ ] 实现 raw content retention limit。
-- [ ] 实现 exact-text import warning。
-- [ ] 实现 provenance links。
-- [ ] 实现 source blocklist。
+- [x] 定义 robots evidence fixture/contract。
+- [ ] crawler runtime 强制 robots evidence。
+- [x] 定义 SSRF protection fixture/contract：private IP blocking、redirect validation、DNS rebinding guard。
+- [ ] crawler runtime 强制 SSRF protections。
+- [x] 定义 source/global rate limit fixture/contract。
+- [ ] crawler runtime 强制 source/global rate limits。
+- [x] 定义 raw content retention fixture/contract。
+- [ ] crawler runtime 强制 raw content retention limit。
+- [x] 定义 exact-text import warning fixture/contract。
+- [ ] crawler runtime 强制 exact-text import warning。
+- [x] 定义 provenance links fixture/contract。
+- [ ] crawler runtime 强制 provenance links。
+- [x] 定义 source blocklist fixture/contract。
+- [ ] crawler runtime 强制 source blocklist。
 - [x] 实现 takedown/derivative review workflow。
 - [x] 添加 disallowed source、robots denied、duplicate hash、pending-review import tests。
 
@@ -1964,5 +1971,5 @@ Release gate evidence map:
 
 - Local Alpha Gate: `fixtures/stage0/rev2/release_gate_evidence.local_alpha.json` records fixture/runtime-stack pass evidence and keeps end-to-end workflow smoke blocked.
 - CI Gate: `fixtures/stage0/rev2/release_gate_evidence.ci.json` records ops CI draft coverage and keeps installed workflow/runtime execution, Playwright smoke, and Docker image build blocked.
-- Private Beta/Staging Gate: `fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json` records the current blocked evidence for auth/RBAC/tenant isolation, object storage, quota, support/abuse ops, eval/QA/safety, crawler governance, observability/restore/load, and external-user legal pages.
-- Production Launch Gate: `fixtures/stage0/rev2/release_gate_evidence.production_launch.json` records the current blocked evidence for provider/comp-only mode, paid billing lifecycle, skill eval/canary/release controls, activation review/audit, abuse throttle/hold, security, backup/rollback/incident readiness, and legal/support policy.
+- Private Beta/Staging Gate: `fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json` records fixture/definition evidence where present and keeps external-user runtime evidence blocked for auth/RBAC/tenant isolation, production-like object storage, quota/rate limits, support/abuse ops, eval/QA/safety enforcement, crawler governance, observability/restore/load, and legal pages.
+- Production Launch Gate: `fixtures/stage0/rev2/release_gate_evidence.production_launch.json` records fixture/definition evidence where present and keeps launch evidence blocked for provider/comp-only mode, paid billing lifecycle, skill eval/canary/release controls, activation review/audit, abuse throttle/hold, security, backup/rollback/incident readiness, and legal/support policy.

@@ -264,9 +264,47 @@ REQUIRED_OPEN_ITEMS = {
     "实现 structured JSON logs。",
     "实现 OpenTelemetry traces。",
     "实现 backend/worker/crawler metrics。",
+    "crawler runtime 强制 robots evidence。",
+    "crawler runtime 强制 SSRF protections。",
+    "crawler runtime 强制 source/global rate limits。",
+    "crawler runtime 强制 raw content retention limit。",
+    "crawler runtime 强制 exact-text import warning。",
+    "crawler runtime 强制 provenance links。",
+    "crawler runtime 强制 source blocklist。",
     "导入并验证 staging dashboards runtime evidence。",
     "配置并验证 staging alert routes/runtime evidence。",
     "Post-deploy smoke tests 通过。",
+}
+
+CRAWLER_GOVERNANCE_SPLIT_ITEMS = {
+    "robots_evidence": {
+        "contract_item": "定义 robots evidence fixture/contract。",
+        "runtime_item": "crawler runtime 强制 robots evidence。",
+    },
+    "ssrf_protection": {
+        "contract_item": "定义 SSRF protection fixture/contract：private IP blocking、redirect validation、DNS rebinding guard。",
+        "runtime_item": "crawler runtime 强制 SSRF protections。",
+    },
+    "rate_limits": {
+        "contract_item": "定义 source/global rate limit fixture/contract。",
+        "runtime_item": "crawler runtime 强制 source/global rate limits。",
+    },
+    "retention": {
+        "contract_item": "定义 raw content retention fixture/contract。",
+        "runtime_item": "crawler runtime 强制 raw content retention limit。",
+    },
+    "exact_text_warning": {
+        "contract_item": "定义 exact-text import warning fixture/contract。",
+        "runtime_item": "crawler runtime 强制 exact-text import warning。",
+    },
+    "provenance_links": {
+        "contract_item": "定义 provenance links fixture/contract。",
+        "runtime_item": "crawler runtime 强制 provenance links。",
+    },
+    "source_blocklist": {
+        "contract_item": "定义 source blocklist fixture/contract。",
+        "runtime_item": "crawler runtime 强制 source blocklist。",
+    },
 }
 
 DATABASE_TABLES = {
@@ -1126,6 +1164,32 @@ def validate_crawler_feedback_abuse() -> None:
     crawler = load_json(FIXTURE_DIR / "crawler" / "crawler_governance_cases.json")
     cases = {item["case_type"] for item in crawler}
     require(CRAWLER_CASES <= cases, f"crawler fixtures missing cases: {sorted(CRAWLER_CASES - cases)}")
+    require(
+        any(
+            item["case_type"] == "robots_denied"
+            and item["fetch_controls"]["robots_evidence"] == "denied"
+            and item["expected_decision"] == "deny_fetch"
+            for item in crawler
+        ),
+        "crawler fixtures must include robots-denied deny-fetch evidence",
+    )
+    require(
+        all(
+            item["fetch_controls"]["private_ip_blocking"] is True
+            and item["fetch_controls"]["redirect_validation"] is True
+            and item["fetch_controls"]["dns_rebinding_guard"] is True
+            for item in crawler
+        ),
+        "crawler fixtures must define SSRF protection controls for every case",
+    )
+    require(
+        all(
+            item["fetch_controls"]["source_rate_limit_per_hour"] > 0
+            and item["fetch_controls"]["global_rate_limit_per_hour"] > 0
+            for item in crawler
+        ),
+        "crawler fixtures must define source/global rate limits",
+    )
     for case in crawler:
         require(
             case["import_governance"]["direct_activation_allowed"] is False,
@@ -1134,6 +1198,24 @@ def validate_crawler_feedback_abuse() -> None:
         require(
             case["import_governance"]["provenance_links_required"] is True,
             f"{case['fixture_id']} must require provenance links",
+        )
+        require(
+            case["import_governance"]["raw_content_retention_days"] <= 30,
+            f"{case['fixture_id']} raw content retention must be capped at 30 days or less",
+        )
+        require(
+            case["import_governance"]["exact_third_party_import_warning"] is True
+            and case["import_governance"]["exact_text_special_approval_required"] is True,
+            f"{case['fixture_id']} must require exact-text warning and special approval",
+        )
+        require(
+            case["import_governance"]["source_blocklist_checked"] is True,
+            f"{case['fixture_id']} must check source blocklist",
+        )
+        require(
+            case["import_governance"]["takedown_workflow_required"] is True
+            and case["import_governance"]["derivative_review_delete_required"] is True,
+            f"{case['fixture_id']} must require takedown and derivative review/delete workflow",
         )
 
     feedback = load_json(FIXTURE_DIR / "feedback" / "feedback_events.json")
@@ -1387,6 +1469,19 @@ def validate_release_gate_evidence() -> None:
             private_beta_do_not_launch.get(condition_id) is True,
             f"private beta/staging release evidence must keep {condition_id} active",
         )
+    private_beta_text = json.dumps(private_beta, ensure_ascii=False)
+    for token in [
+        "fixture contracts",
+        "runtime enforcement evidence is absent",
+        "externally deployed staging page visibility evidence is absent",
+    ]:
+        require(token in private_beta_text, f"private beta/staging release evidence must distinguish contract/runtime evidence: {token}")
+    for stale in [
+        "tenant isolation enforcement remains open",
+        "QA runtime and required safety enforcement remain open",
+        "25.16 legal, privacy, disclaimer, support, and IP complaint items remain open",
+    ]:
+        require(stale not in private_beta_text, f"private beta/staging release evidence has stale checklist wording: {stale}")
 
     production = load_json(FIXTURE_DIR / "release_gate_evidence.production_launch.json")
     require(production["gate"] == "production_launch", "production release gate fixture must target production_launch")
@@ -1420,6 +1515,19 @@ def validate_release_gate_evidence() -> None:
             production_do_not_launch.get(condition_id) is True,
             f"production release evidence must keep {condition_id} active",
         )
+    production_text = json.dumps(production, ensure_ascii=False)
+    for token in [
+        "evidence exists",
+        "runtime evidence is absent",
+        "production deployment/policy visibility evidence is absent",
+    ]:
+        require(token in production_text, f"production release evidence must distinguish artifact/runtime evidence: {token}")
+    for stale in [
+        "paid launch policies remain open",
+        "skill release states, traffic allocation, canary metrics, thresholds, rollback, and eval gating open",
+        "25.16 security, privacy, legal, support, and paid policy requirements remain open",
+    ]:
+        require(stale not in production_text, f"production release evidence has stale checklist wording: {stale}")
 
 
 def validate_readme_and_architecture_contract() -> None:
@@ -1925,6 +2033,30 @@ def validate_launch_readiness_split_contracts() -> None:
     observability = load_json(OBSERVABILITY_EVIDENCE)
     dashboard = load_json(OBSERVABILITY_DASHBOARD)
     alerts = load_json(OBSERVABILITY_ALERTS)
+
+    for split_id, split in CRAWLER_GOVERNANCE_SPLIT_ITEMS.items():
+        require(
+            split["contract_item"] in checked_lines,
+            f"blueprint must close crawler governance contract evidence subitem {split_id}: {split['contract_item']}",
+        )
+        require(
+            split["runtime_item"] in unchecked_lines,
+            f"blueprint must keep crawler governance runtime subitem open {split_id}: {split['runtime_item']}",
+        )
+
+    for ambiguous in [
+        "实现 robots evidence。",
+        "实现 SSRF protections。",
+        "实现 source/global rate limits。",
+        "实现 raw content retention limit。",
+        "实现 exact-text import warning。",
+        "实现 provenance links。",
+        "实现 source blocklist。",
+    ]:
+        require(
+            ambiguous not in checked_lines and ambiguous not in unchecked_lines,
+            f"ambiguous crawler governance checklist item must stay split: {ambiguous}",
+        )
 
     for item in [
         "CI 定义 Playwright smoke draft/evidence。",
