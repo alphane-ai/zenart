@@ -543,7 +543,8 @@ textarea {
   gap: 8px;
 }
 
-.reference-export-smoke {
+.reference-export-smoke,
+.workflow-api-smoke {
   border: 1px solid rgba(15, 118, 110, 0.24);
   border-radius: 8px;
   background: #edfdfa;
@@ -555,7 +556,8 @@ textarea {
   line-height: 1.35;
 }
 
-.reference-export-smoke span {
+.reference-export-smoke span,
+.workflow-api-smoke span {
   color: #0f766e;
 }
 

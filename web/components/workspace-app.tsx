@@ -35,6 +35,7 @@ import { AccountSettings, BillingScenario, Candidate, ExportFormat, QaSeverity, 
 import { zenArtClient } from "@/lib/api-client";
 import {
   buildPackageExportMetadataEvidence,
+  buildEcommerceGrowthApiSmokeEvidence,
   buildReferenceUploadIntegrationSmoke,
   buildSupportProblemContext,
   buildWorkspaceRenderingPerformanceSmoke
@@ -480,6 +481,7 @@ function WorkspaceView({
   );
   const renderingSmoke = buildWorkspaceRenderingPerformanceSmoke(state);
   const referenceIntegrationSmoke = buildReferenceUploadIntegrationSmoke(state);
+  const ecommerceApiSmoke = buildEcommerceGrowthApiSmokeEvidence(state);
   return (
     <div className="workspace-grid">
       <section className="panel chat-panel">
@@ -555,6 +557,32 @@ function WorkspaceView({
         >
           <strong>Reference export path</strong>
           <span>Accepted references can be added to package history and ZIP manifest provenance.</span>
+        </div>
+        <div
+          className="workflow-api-smoke"
+          aria-label="Ecommerce growth pack API smoke"
+          data-workflow-api-smoke={ecommerceApiSmoke.schema_version}
+          data-workflow-api-smoke-workflow={ecommerceApiSmoke.workflow_id}
+          data-workflow-api-smoke-fixture={ecommerceApiSmoke.fixture_id}
+          data-workflow-api-smoke-scenario={ecommerceApiSmoke.scenario}
+          data-workflow-api-smoke-status={ecommerceApiSmoke.status}
+          data-workflow-api-smoke-operation-count={ecommerceApiSmoke.apiOperationIds.length}
+          data-workflow-api-smoke-candidate-count={ecommerceApiSmoke.candidateCount}
+          data-workflow-api-smoke-taxonomy-count={ecommerceApiSmoke.taxonomyCount}
+          data-workflow-api-smoke-packaged-taxonomy-count={ecommerceApiSmoke.packagedTaxonomyCount}
+          data-workflow-api-smoke-ready-zip-export-count={ecommerceApiSmoke.readyZipExportCount}
+          data-workflow-api-smoke-required-output-count={ecommerceApiSmoke.requiredOutputCount}
+          data-workflow-api-smoke-missing-output-count={ecommerceApiSmoke.missingRequiredOutputs.length}
+          data-workflow-api-smoke-qa-taxonomy-status={ecommerceApiSmoke.qaTaxonomyStatus}
+          data-workflow-api-smoke-safety-status={ecommerceApiSmoke.safetyStatus}
+          data-workflow-api-smoke-operations={ecommerceApiSmoke.apiOperationIds.join(",")}
+          data-workflow-api-smoke-failures={ecommerceApiSmoke.failures.join(",")}
+        >
+          <strong>Ecommerce growth API smoke</strong>
+          <span>
+            {ecommerceApiSmoke.status} · {ecommerceApiSmoke.candidateCount} candidates · {ecommerceApiSmoke.packagedTaxonomyCount} packaged taxonomy routes ·{" "}
+            {ecommerceApiSmoke.missingRequiredOutputs.length} missing outputs.
+          </span>
         </div>
         <div className="reference-list">
           {state.brief.references.map((reference) => (
@@ -639,11 +667,18 @@ function WorkspaceView({
         </div>
       </section>
 
-      <section className="panel candidates-panel">
+      <section className="panel candidates-panel" data-testid="candidate-grid">
         <PanelTitle icon={<Archive size={18} aria-hidden="true" />} title="Candidates" />
         <div className="candidate-grid">
           {state.candidates.map((candidate) => (
-            <article key={candidate.id} className={state.selectedCandidateId === candidate.id ? "candidate-card selected" : "candidate-card"} aria-current={state.selectedCandidateId === candidate.id ? "true" : undefined}>
+            <article
+              key={candidate.id}
+              className={state.selectedCandidateId === candidate.id ? "candidate-card selected" : "candidate-card"}
+              aria-current={state.selectedCandidateId === candidate.id ? "true" : undefined}
+              data-testid={candidate.strategyTaxonomy ? `candidate-card-${candidate.strategyTaxonomy}` : undefined}
+              data-workflow-id={candidate.workflowId}
+              data-strategy-taxonomy={candidate.strategyTaxonomy}
+            >
               <div className="swatches">
                 {candidate.palette.map((color) => (
                   <span key={color} style={{ background: color }} />
@@ -652,14 +687,20 @@ function WorkspaceView({
               <h2>{candidate.title}</h2>
               <p>{candidate.strategy}</p>
               <small>{candidate.rationale}</small>
-              <button className="secondary-button" onClick={() => void runAction("select", () => zenArtClient.selectCandidate(candidate.id))} aria-pressed={state.selectedCandidateId === candidate.id} aria-label={`Select ${candidate.title}`}>
+              <button
+                className="secondary-button"
+                data-testid="candidate-select"
+                onClick={() => void runAction("select", () => zenArtClient.selectCandidate(candidate.id))}
+                aria-pressed={state.selectedCandidateId === candidate.id}
+                aria-label={`Select ${candidate.title}`}
+              >
                 <ChevronRight size={17} aria-hidden="true" />
                 Select
               </button>
             </article>
           ))}
         </div>
-        <form className="iteration-form" onSubmit={iterate}>
+        <form className="iteration-form" onSubmit={iterate} data-testid="iterate-selected-direction">
           <label className="sr-only" htmlFor="iteration-input">Iteration instruction</label>
           <input
             id="iteration-input"
@@ -692,6 +733,7 @@ function PackagePanel({
       <div className="package-actions">
         <button
           className="secondary-button"
+          data-testid="package-add-selected"
           disabled={!state.selectedCandidateId}
           onClick={() => {
             const candidateId = state.selectedCandidateId;
@@ -703,7 +745,7 @@ function PackagePanel({
           <PackagePlus size={17} aria-hidden="true" />
           Add Selection
         </button>
-        <button className="primary-button" onClick={() => void runAction("export", () => zenArtClient.createExport("zip"))}>
+        <button className="primary-button" data-testid="export-download" onClick={() => void runAction("export", () => zenArtClient.createExport("zip"))}>
           <Download size={17} aria-hidden="true" />
           Export ZIP
         </button>
@@ -785,8 +827,9 @@ function ExportView({
   const latestExport = state.exports[0];
   const latestShareLink = latestExport ? state.shareLinks.find((item) => item.exportId === latestExport.id) : undefined;
   const metadataEvidence = latestExport ? buildPackageExportMetadataEvidence(latestExport) : undefined;
+  const ecommerceApiSmoke = buildEcommerceGrowthApiSmokeEvidence(state);
   return (
-    <section className="content-view export-view">
+    <section className="content-view export-view" data-testid="export-preview">
       <div className="section-title">
         <h2>Export Preview</h2>
       </div>
@@ -864,6 +907,34 @@ function ExportView({
                     </p>
                   </section>
                 ) : null}
+                <section
+                  className="export-detail-panel workflow-api-smoke-evidence"
+                  aria-label="Ecommerce growth pack API smoke export evidence"
+                  data-workflow-api-smoke-export={ecommerceApiSmoke.schema_version}
+                  data-workflow-api-smoke-export-status={ecommerceApiSmoke.status}
+                  data-workflow-api-smoke-export-workflow={ecommerceApiSmoke.workflow_id}
+                  data-workflow-api-smoke-export-fixture={ecommerceApiSmoke.fixture_id}
+                  data-workflow-api-smoke-export-scenario={ecommerceApiSmoke.scenario}
+                  data-workflow-api-smoke-export-operation-count={ecommerceApiSmoke.apiOperationIds.length}
+                  data-workflow-api-smoke-export-missing-output-count={ecommerceApiSmoke.missingRequiredOutputs.length}
+                  data-workflow-api-smoke-export-qa-taxonomy-status={ecommerceApiSmoke.qaTaxonomyStatus}
+                  data-workflow-api-smoke-export-safety-status={ecommerceApiSmoke.safetyStatus}
+                  data-workflow-api-smoke-export-failures={ecommerceApiSmoke.failures.join(",")}
+                >
+                  <h4>Workflow API Smoke</h4>
+                  <div className="metadata-evidence-grid">
+                    <span className={ecommerceApiSmoke.status === "pass" ? "qa-pass" : "qa-block"}>
+                      {ecommerceApiSmoke.status}
+                    </span>
+                    <span>{ecommerceApiSmoke.workflow_id}</span>
+                    <span>{ecommerceApiSmoke.apiOperationIds.length} API operations</span>
+                    <span>{ecommerceApiSmoke.packagedTaxonomyCount}/4 packaged taxonomy routes</span>
+                  </div>
+                  <p>
+                    Brief, product reference, four candidates, selection, iteration, package, and ZIP export are represented in the local web client
+                    contract.
+                  </p>
+                </section>
                 <section className="export-detail-panel manifest-preview" aria-label="Manifest preview">
                   <h4>Manifest Preview</h4>
                   <dl>

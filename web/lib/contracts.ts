@@ -129,6 +129,36 @@ export interface ReferenceUploadIntegrationSmoke {
   >;
 }
 
+export interface WorkflowApiSmokeEvidence {
+  schema_version: "stage0.rev2.workflow-api-smoke";
+  workflow_id: "ecommerce_growth_pack";
+  fixture_id: "fx_ecommerce_growth_golden";
+  status: "pass" | "fail";
+  scenario: "brief-reference-four-candidates-select-iterate-package-export-zip";
+  apiOperationIds: string[];
+  candidateCount: number;
+  taxonomyCount: number;
+  packagedTaxonomyCount: number;
+  readyZipExportCount: number;
+  requiredOutputCount: number;
+  missingRequiredOutputs: string[];
+  qaTaxonomyStatus: "pass" | "warn" | "missing";
+  safetyStatus: "pass" | "block" | "missing";
+  failures: Array<
+    | "brief"
+    | "reference"
+    | "candidate-count"
+    | "candidate-taxonomy"
+    | "selection"
+    | "iteration"
+    | "package-taxonomy"
+    | "ready-zip-export"
+    | "required-outputs"
+    | "qa-taxonomy"
+    | "safety"
+  >;
+}
+
 export interface Candidate {
   id: string;
   title: string;

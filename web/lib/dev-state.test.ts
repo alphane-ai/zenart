@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { ExportRecord } from "./contracts";
 import {
   buildManifest,
+  buildEcommerceGrowthApiSmokeEvidence,
   buildPackageExportMetadataEvidence,
   buildReferenceUploadIntegrationSmoke,
   buildSupportProblemContext,
@@ -447,6 +448,99 @@ describe("dev workspace contracts", () => {
       provenanceCount: 0,
       pptAssetGridSlideCount: 0,
       failures: ["packaged-reference", "ready-export"]
+    });
+  });
+
+  it("summarizes ecommerce growth API smoke evidence after the full local web workflow", () => {
+    const state = createInitialWorkspace();
+    const packageItems = state.candidates.map((candidate, index) => ({
+      id: `pkg-item-${String(index + 1).padStart(3, "0")}`,
+      sourceId: candidate.id,
+      title: candidate.title,
+      type: "candidate" as const,
+      addedAt: "2026-05-26T10:00:00.000Z",
+      workflowId: candidate.workflowId,
+      strategyTaxonomy: candidate.strategyTaxonomy,
+      requiredOutputFiles: candidate.requiredOutputFiles
+    }));
+    const qaReport = evaluatePackageQa(packageItems);
+    const exportRecord: ExportRecord = {
+      id: "export-011",
+      format: "zip",
+      status: "ready",
+      createdAt: "2026-05-26T10:06:00.000Z",
+      fileName: "zenart-011.zip",
+      manifest: buildManifest(state.activeProjectId, packageItems),
+      qaReport,
+      safetyReport: runSafetyPolicy({ ...state, selectedCandidateId: "cand-editorial", packageItems }, qaReport)
+    };
+
+    expect(
+      buildEcommerceGrowthApiSmokeEvidence({
+        ...state,
+        brief: {
+          ...state.brief,
+          confirmed: true,
+          missingInfo: []
+        },
+        selectedCandidateId: "cand-editorial",
+        canvas: {
+          ...state.canvas,
+          nodes: [
+            ...state.canvas.nodes,
+            {
+              id: "node-iteration-002",
+              title: "Iteration",
+              kind: "iteration",
+              x: 650,
+              y: 260,
+              body: "Ecommerce output placements refined."
+            }
+          ]
+        },
+        packageItems,
+        exports: [exportRecord]
+      })
+    ).toEqual({
+      schema_version: "stage0.rev2.workflow-api-smoke",
+      workflow_id: ecommerceGrowthWorkflowAcceptance.workflow_id,
+      fixture_id: ecommerceGrowthWorkflowAcceptance.fixture_id,
+      status: "pass",
+      scenario: "brief-reference-four-candidates-select-iterate-package-export-zip",
+      apiOperationIds: [
+        "createChatSession",
+        "createChatMessage",
+        "createCandidateSet",
+        "listCandidateAssets",
+        "selectDirection",
+        "createPackage",
+        "createExport",
+        "getExport"
+      ],
+      candidateCount: 4,
+      taxonomyCount: 4,
+      packagedTaxonomyCount: 4,
+      readyZipExportCount: 1,
+      requiredOutputCount: 13,
+      missingRequiredOutputs: [],
+      qaTaxonomyStatus: "pass",
+      safetyStatus: "pass",
+      failures: []
+    });
+  });
+
+  it("fails ecommerce growth API smoke evidence until the complete package/export path is present", () => {
+    const state = createInitialWorkspace();
+
+    expect(buildEcommerceGrowthApiSmokeEvidence(state)).toMatchObject({
+      status: "fail",
+      candidateCount: 4,
+      taxonomyCount: 4,
+      packagedTaxonomyCount: 0,
+      readyZipExportCount: 0,
+      qaTaxonomyStatus: "missing",
+      safetyStatus: "missing",
+      failures: ["brief", "selection", "iteration", "package-taxonomy", "ready-zip-export", "required-outputs", "qa-taxonomy", "safety"]
     });
   });
 

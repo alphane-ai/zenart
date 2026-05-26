@@ -187,6 +187,76 @@ describe("WorkspaceApp user route integration smoke", () => {
     assertRenderingBudget(["version-restore"]);
   });
 
+  it("exposes ecommerce growth workflow API smoke evidence through the user web happy path", async () => {
+    const { container, rerender } = render(<WorkspaceApp initialView="workspace" />);
+
+    await screen.findByRole("heading", { name: "Launch Direction Board" });
+
+    fireEvent.change(screen.getByLabelText("Brief"), {
+      target: {
+        value:
+          "Create a launch ad pack for the Aurora insulated bottle using the supplied packshot, targeting outdoor commuters on web and social."
+      }
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Confirm Brief" }));
+    await screen.findByText("Brief confirmed. I generated four deterministic strategy candidates for review.");
+
+    fireEvent.change(screen.getByLabelText("Reference asset name or URL"), { target: { value: "aurora-bottle-packshot.png" } });
+    fireEvent.click(screen.getByRole("button", { name: "Attach" }));
+    await screen.findByText(/aurora-bottle-packshot.png/);
+
+    const candidateGrid = screen.getByTestId("candidate-grid");
+    expect(within(candidateGrid).getAllByRole("article")).toHaveLength(4);
+    for (const taxonomy of ["conversion_offer", "social_proof", "feature_comparison", "retention_bundle"]) {
+      expect(container.querySelector(`[data-testid="candidate-card-${taxonomy}"]`)).toBeInTheDocument();
+    }
+
+    fireEvent.click(screen.getByRole("button", { name: "Select Editorial Clarity" }));
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Select Editorial Clarity" })).toHaveAttribute("aria-pressed", "true");
+    });
+
+    fireEvent.change(screen.getByLabelText("Iteration instruction"), {
+      target: { value: "Adapt ecommerce output placements for marketplace, square social, story, and web hero." }
+    });
+    fireEvent.submit(screen.getByTestId("iterate-selected-direction"));
+    await screen.findByText("Editorial Clarity refined with: Adapt ecommerce output placements for marketplace, square social, story, and web hero.");
+
+    for (const label of ["Select Editorial Clarity", "Select Studio System", "Select Gallery Motion", "Select Utility Kit"]) {
+      fireEvent.click(screen.getByRole("button", { name: label }));
+      await waitFor(() => {
+        expect(screen.getByRole("button", { name: label })).toHaveAttribute("aria-pressed", "true");
+      });
+      fireEvent.click(screen.getByTestId("package-add-selected"));
+    }
+
+    fireEvent.click(screen.getByTestId("export-download"));
+    await screen.findByText("zenart-001.zip");
+
+    const workflowSmoke = container.querySelector("[data-workflow-api-smoke='stage0.rev2.workflow-api-smoke']");
+    expect(workflowSmoke).toHaveAttribute("data-workflow-api-smoke-status", "pass");
+    expect(workflowSmoke).toHaveAttribute("data-workflow-api-smoke-workflow", "ecommerce_growth_pack");
+    expect(workflowSmoke).toHaveAttribute("data-workflow-api-smoke-fixture", "fx_ecommerce_growth_golden");
+    expect(workflowSmoke).toHaveAttribute("data-workflow-api-smoke-operation-count", "8");
+    expect(workflowSmoke).toHaveAttribute("data-workflow-api-smoke-candidate-count", "4");
+    expect(workflowSmoke).toHaveAttribute("data-workflow-api-smoke-taxonomy-count", "4");
+    expect(workflowSmoke).toHaveAttribute("data-workflow-api-smoke-packaged-taxonomy-count", "4");
+    expect(workflowSmoke).toHaveAttribute("data-workflow-api-smoke-ready-zip-export-count", "1");
+    expect(workflowSmoke).toHaveAttribute("data-workflow-api-smoke-missing-output-count", "0");
+    expect(workflowSmoke).toHaveAttribute("data-workflow-api-smoke-qa-taxonomy-status", "pass");
+    expect(workflowSmoke).toHaveAttribute("data-workflow-api-smoke-safety-status", "pass");
+    expect(workflowSmoke).toHaveAttribute("data-workflow-api-smoke-failures", "");
+    expect(workflowSmoke?.getAttribute("data-workflow-api-smoke-operations")).toContain("createCandidateSet");
+    expect(workflowSmoke?.getAttribute("data-workflow-api-smoke-operations")).toContain("getExport");
+
+    rerender(<WorkspaceApp initialView="export" />);
+    await screen.findByRole("heading", { name: "Export Preview" });
+    const exportSmoke = container.querySelector("[data-workflow-api-smoke-export='stage0.rev2.workflow-api-smoke']");
+    expect(exportSmoke).toHaveAttribute("data-workflow-api-smoke-export-status", "pass");
+    expect(exportSmoke).toHaveAttribute("data-workflow-api-smoke-export-operation-count", "8");
+    expect(exportSmoke).toHaveAttribute("data-workflow-api-smoke-export-missing-output-count", "0");
+  });
+
   it("keeps the user route smoke artifact aligned with machine-checkable UI evidence attributes", () => {
     const evidenceBySchema = new Map(
       userRouteSmoke.securityEvidence.map((entry) => [entry.schemaVersion, entry])
@@ -234,6 +304,18 @@ describe("WorkspaceApp user route integration smoke", () => {
         "ppt-ready-metadata.json",
         "assets/README.txt"
       ])
+    });
+    expect(evidenceBySchema.get("stage0.rev2.workflow-api-smoke")).toMatchObject({
+      route: "/workspace",
+      source: "web/components/workspace-app.tsx",
+      statusAttribute: "data-workflow-api-smoke-status",
+      expectedStatus: "pass",
+      workflowId: "ecommerce_growth_pack",
+      fixtureId: "fx_ecommerce_growth_golden",
+      expectedOperationCount: "8",
+      expectedCandidateCount: "4",
+      expectedTaxonomyCount: "4",
+      expectedMissingOutputCount: "0"
     });
   });
 });

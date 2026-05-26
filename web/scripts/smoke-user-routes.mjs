@@ -58,6 +58,7 @@ const generatedCsrfEvidence = requireSecurityEvidence("stage0.rev2.generated-api
 const renderingEvidence = requireSecurityEvidence("stage0.rev2.workspace-rendering-performance");
 const referenceUploadEvidence = requireSecurityEvidence("stage0.rev2.reference-upload-integration-smoke");
 const packageExportEvidence = requireSecurityEvidence("stage0.rev2.package-export-metadata-ui");
+const workflowApiSmokeEvidence = requireSecurityEvidence("stage0.rev2.workflow-api-smoke");
 
 if (sessionEvidence.route !== "/account") {
   fail("session/CSRF client evidence must be attached to /account");
@@ -112,6 +113,27 @@ for (const evidence of [renderingEvidence, referenceUploadEvidence, packageExpor
   }
   if (!componentSource.includes(evidence.statusAttribute)) {
     fail(`${evidence.schemaVersion} UI source missing ${evidence.statusAttribute}`);
+  }
+}
+
+if (
+  workflowApiSmokeEvidence.expectedStatus !== "pass" ||
+  workflowApiSmokeEvidence.workflowId !== "ecommerce_growth_pack" ||
+  workflowApiSmokeEvidence.fixtureId !== "fx_ecommerce_growth_golden" ||
+  workflowApiSmokeEvidence.scenario !== "brief-reference-four-candidates-select-iterate-package-export-zip" ||
+  workflowApiSmokeEvidence.expectedOperationCount !== "8" ||
+  workflowApiSmokeEvidence.expectedCandidateCount !== "4" ||
+  workflowApiSmokeEvidence.expectedTaxonomyCount !== "4" ||
+  workflowApiSmokeEvidence.expectedPackagedTaxonomyCount !== "4" ||
+  workflowApiSmokeEvidence.expectedReadyZipExportCount !== "1" ||
+  workflowApiSmokeEvidence.expectedMissingOutputCount !== "0"
+) {
+  fail("ecommerce workflow API smoke evidence must assert a passing local web workflow contract");
+}
+
+for (const attribute of workflowApiSmokeEvidence.requiredAttributes ?? []) {
+  if (!componentSource.includes(attribute)) {
+    fail(`ecommerce workflow API smoke evidence missing attribute ${attribute}`);
   }
 }
 
@@ -240,6 +262,31 @@ for (const requiredSnippet of [
   "data-reference-provenance-count",
   "data-reference-ppt-asset-grid-slide-count",
   "data-reference-upload-integration-failures",
+  "workflow-api-smoke",
+  "Ecommerce growth API smoke",
+  "data-workflow-api-smoke",
+  "data-workflow-api-smoke-status",
+  "data-workflow-api-smoke-workflow",
+  "data-workflow-api-smoke-fixture",
+  "data-workflow-api-smoke-scenario",
+  "data-workflow-api-smoke-operation-count",
+  "data-workflow-api-smoke-candidate-count",
+  "data-workflow-api-smoke-taxonomy-count",
+  "data-workflow-api-smoke-packaged-taxonomy-count",
+  "data-workflow-api-smoke-ready-zip-export-count",
+  "data-workflow-api-smoke-missing-output-count",
+  "data-workflow-api-smoke-qa-taxonomy-status",
+  "data-workflow-api-smoke-safety-status",
+  "data-workflow-api-smoke-failures",
+  "data-workflow-api-smoke-export",
+  "data-workflow-api-smoke-export-status",
+  "data-testid=\"candidate-grid\"",
+  "data-testid={candidate.strategyTaxonomy",
+  "data-testid=\"candidate-select\"",
+  "data-testid=\"iterate-selected-direction\"",
+  "data-testid=\"package-add-selected\"",
+  "data-testid=\"export-preview\"",
+  "data-testid=\"export-download\"",
   "Add reference",
   "reference-package-button",
   "session-contract",
@@ -526,7 +573,18 @@ for (const expectedRenderingContract of [
 
 for (const expectedWorkflowAcceptanceSnippet of [
   "ecommerceGrowthWorkflowAcceptance",
+  "ecommerceGrowthApiSmokeOperationIds",
+  "buildEcommerceGrowthApiSmokeEvidence",
   "stage0.rev2.workflow-api-smoke",
+  "brief-reference-four-candidates-select-iterate-package-export-zip",
+  "createChatSession",
+  "createChatMessage",
+  "createCandidateSet",
+  "listCandidateAssets",
+  "selectDirection",
+  "createPackage",
+  "createExport",
+  "getExport",
   "ecommerce_growth_pack",
   "fx_ecommerce_growth_golden",
   "conversion_offer",

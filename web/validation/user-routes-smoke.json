@@ -203,6 +203,36 @@
         "ppt-ready-metadata.json",
         "assets/README.txt"
       ]
+    },
+    {
+      "schemaVersion": "stage0.rev2.workflow-api-smoke",
+      "route": "/workspace",
+      "source": "web/components/workspace-app.tsx",
+      "statusAttribute": "data-workflow-api-smoke-status",
+      "expectedStatus": "pass",
+      "workflowId": "ecommerce_growth_pack",
+      "fixtureId": "fx_ecommerce_growth_golden",
+      "scenario": "brief-reference-four-candidates-select-iterate-package-export-zip",
+      "expectedOperationCount": "8",
+      "expectedCandidateCount": "4",
+      "expectedTaxonomyCount": "4",
+      "expectedPackagedTaxonomyCount": "4",
+      "expectedReadyZipExportCount": "1",
+      "expectedMissingOutputCount": "0",
+      "requiredAttributes": [
+        "data-workflow-api-smoke-workflow",
+        "data-workflow-api-smoke-fixture",
+        "data-workflow-api-smoke-scenario",
+        "data-workflow-api-smoke-operation-count",
+        "data-workflow-api-smoke-candidate-count",
+        "data-workflow-api-smoke-taxonomy-count",
+        "data-workflow-api-smoke-packaged-taxonomy-count",
+        "data-workflow-api-smoke-ready-zip-export-count",
+        "data-workflow-api-smoke-missing-output-count",
+        "data-workflow-api-smoke-qa-taxonomy-status",
+        "data-workflow-api-smoke-safety-status",
+        "data-workflow-api-smoke-failures"
+      ]
     }
   ],
   "analyticsCoverage": ["analytics-event-taxonomy", "client-side-ui-funnel-capture", "frontend-error-reporting"],

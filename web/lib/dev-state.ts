@@ -15,6 +15,7 @@ import {
   WorkspaceRenderingPerformanceSmoke,
   ShareLink,
   SupportTicket,
+  WorkflowApiSmokeEvidence,
   WorkspaceState
 } from "./contracts";
 import { defaultSameSiteCsrfContract } from "./request-security";
@@ -638,6 +639,95 @@ export const buildReferenceUploadIntegrationSmoke = (state: WorkspaceState): Ref
     readyExportCount: state.exports.filter((record) => record.status === "ready").length,
     provenanceCount: referenceProvenanceCount,
     pptAssetGridSlideCount,
+    failures
+  };
+};
+
+export const ecommerceGrowthApiSmokeOperationIds = [
+  "createChatSession",
+  "createChatMessage",
+  "createCandidateSet",
+  "listCandidateAssets",
+  "selectDirection",
+  "createPackage",
+  "createExport",
+  "getExport"
+] as const;
+
+export const buildEcommerceGrowthApiSmokeEvidence = (state: WorkspaceState): WorkflowApiSmokeEvidence => {
+  const candidateTaxonomies = state.candidates
+    .filter((candidate) => candidate.workflowId === ecommerceGrowthWorkflowAcceptance.workflow_id)
+    .map((candidate) => candidate.strategyTaxonomy)
+    .filter((taxonomy): taxonomy is string => Boolean(taxonomy));
+  const packagedTaxonomies = state.packageItems
+    .filter((item) => item.workflowId === ecommerceGrowthWorkflowAcceptance.workflow_id)
+    .map((item) => item.strategyTaxonomy)
+    .filter((taxonomy): taxonomy is string => Boolean(taxonomy));
+  const latestReadyZip = state.exports.find((record) => record.format === "zip" && record.status === "ready");
+  const requiredOutputNames = new Set([
+    ...ecommerceGrowthWorkflowAcceptance.required_files,
+    ...requiredExportPackageOutputs
+  ]);
+  const missingRequiredOutputs = latestReadyZip
+    ? Array.from(requiredOutputNames).filter((outputName) => !latestReadyZip.manifest.required_outputs.includes(outputName))
+    : Array.from(requiredOutputNames);
+  const qaTaxonomyFinding = latestReadyZip?.qaReport.find((finding) => finding.id === "qa-ecommerce-growth-taxonomy");
+  const hasIteration = state.canvas.nodes.some((node) => node.kind === "iteration");
+  const failures: WorkflowApiSmokeEvidence["failures"] = [];
+
+  if (!state.brief.confirmed) {
+    failures.push("brief");
+  }
+  if (!state.brief.references.some((reference) => reference.validation.state === "accepted")) {
+    failures.push("reference");
+  }
+  if (candidateTaxonomies.length !== 4) {
+    failures.push("candidate-count");
+  }
+  if (
+    ecommerceGrowthWorkflowAcceptance.strategy_taxonomy.some((taxonomy) => !candidateTaxonomies.includes(taxonomy))
+  ) {
+    failures.push("candidate-taxonomy");
+  }
+  if (!state.selectedCandidateId) {
+    failures.push("selection");
+  }
+  if (!hasIteration) {
+    failures.push("iteration");
+  }
+  if (
+    ecommerceGrowthWorkflowAcceptance.strategy_taxonomy.some((taxonomy) => !packagedTaxonomies.includes(taxonomy))
+  ) {
+    failures.push("package-taxonomy");
+  }
+  if (!latestReadyZip) {
+    failures.push("ready-zip-export");
+  }
+  if (missingRequiredOutputs.length > 0) {
+    failures.push("required-outputs");
+  }
+  if (qaTaxonomyFinding?.severity !== "pass") {
+    failures.push("qa-taxonomy");
+  }
+  if (latestReadyZip?.safetyReport.status !== "pass") {
+    failures.push("safety");
+  }
+
+  return {
+    schema_version: ecommerceGrowthWorkflowAcceptance.schema_version,
+    workflow_id: ecommerceGrowthWorkflowAcceptance.workflow_id,
+    fixture_id: ecommerceGrowthWorkflowAcceptance.fixture_id,
+    status: failures.length === 0 ? "pass" : "fail",
+    scenario: "brief-reference-four-candidates-select-iterate-package-export-zip",
+    apiOperationIds: [...ecommerceGrowthApiSmokeOperationIds],
+    candidateCount: candidateTaxonomies.length,
+    taxonomyCount: new Set(candidateTaxonomies).size,
+    packagedTaxonomyCount: new Set(packagedTaxonomies).size,
+    readyZipExportCount: state.exports.filter((record) => record.format === "zip" && record.status === "ready").length,
+    requiredOutputCount: requiredOutputNames.size,
+    missingRequiredOutputs,
+    qaTaxonomyStatus: qaTaxonomyFinding?.severity === "pass" ? "pass" : qaTaxonomyFinding?.severity === "warn" ? "warn" : "missing",
+    safetyStatus: latestReadyZip?.safetyReport.status ?? "missing",
     failures
   };
 };
