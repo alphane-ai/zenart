@@ -71,6 +71,10 @@ export interface GeneratedApiCsrfRequestContractEvidence {
   protectedMethods: SessionContract["csrf"]["protectedMethods"];
   unsafeOperationCount: number;
   safeOperationCount: number;
+  unsafeOperationIds: string[];
+  safeOperationIds: string[];
+  unsafeIdempotencyRequiredOperationIds: string[];
+  unsafeIdempotencyExemptOperationIds: string[];
   missingUnsafeOperationIds: string[];
   unsafeRequestContracts: Array<{
     operationId: string;

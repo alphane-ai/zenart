@@ -96,8 +96,15 @@ export const buildGeneratedApiCsrfRequestContractEvidence = (
 ): GeneratedApiCsrfRequestContractEvidence => {
   const entries = Object.entries(operations);
   const unsafeEntries = entries.filter(([, operation]) => isCsrfProtectedMethod(operation.method));
+  const safeEntries = entries.filter(([, operation]) => !isCsrfProtectedMethod(operation.method));
   const missingUnsafeOperationIds = unsafeEntries
     .filter(([, operation]) => !contract.protectedMethods.includes(operation.method as SessionContract["csrf"]["protectedMethods"][number]))
+    .map(([operationId]) => operationId);
+  const unsafeIdempotencyRequiredOperationIds = unsafeEntries
+    .filter(([, operation]) => operation.idempotencyRequired)
+    .map(([operationId]) => operationId);
+  const unsafeIdempotencyExemptOperationIds = unsafeEntries
+    .filter(([, operation]) => !operation.idempotencyRequired)
     .map(([operationId]) => operationId);
   const unsafeRequestContracts = unsafeEntries.map(([operationId, operation]) => ({
     operationId,
@@ -128,7 +135,11 @@ export const buildGeneratedApiCsrfRequestContractEvidence = (
     originPolicy: contract.originPolicy,
     protectedMethods: contract.protectedMethods,
     unsafeOperationCount: unsafeRequestContracts.length,
-    safeOperationCount: entries.length - unsafeRequestContracts.length,
+    safeOperationCount: safeEntries.length,
+    unsafeOperationIds: unsafeEntries.map(([operationId]) => operationId),
+    safeOperationIds: safeEntries.map(([operationId]) => operationId),
+    unsafeIdempotencyRequiredOperationIds,
+    unsafeIdempotencyExemptOperationIds,
     missingUnsafeOperationIds,
     unsafeRequestContracts,
     failureReasons

@@ -43,6 +43,19 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(csrfInventory).toHaveAttribute("data-generated-api-csrf-origin-policy", "same-site-only");
     expect(csrfInventory).toHaveAttribute("data-generated-api-csrf-unsafe-operation-count", "15");
     expect(csrfInventory).toHaveAttribute("data-generated-api-csrf-safe-operation-count", "17");
+    expect(csrfInventory).toHaveAttribute(
+      "data-generated-api-csrf-unsafe-operations",
+      "deleteSession,updateAccount,createProject,updateProject,createChatSession,createChatMessage,createCandidateSet,selectDirection,createCanvasNode,createCanvasVersion,createUpload,createPackage,createExport,createShareLink,createSupportTicket"
+    );
+    expect(csrfInventory).toHaveAttribute(
+      "data-generated-api-csrf-safe-operations",
+      "getSession,getAccount,listProjects,getProject,getWorkspace,listChatMessages,getTask,listCandidateSets,listCandidateAssets,listCanvasNodes,listCanvasFrames,listCanvasVersions,listAssets,listPackages,getExport,getQuota,getSubscription"
+    );
+    expect(csrfInventory).toHaveAttribute(
+      "data-generated-api-csrf-idempotency-required-operations",
+      "updateAccount,createProject,updateProject,createChatSession,createChatMessage,createCandidateSet,selectDirection,createCanvasNode,createCanvasVersion,createUpload,createPackage,createExport,createShareLink,createSupportTicket"
+    );
+    expect(csrfInventory).toHaveAttribute("data-generated-api-csrf-idempotency-exempt-operations", "deleteSession");
     expect(csrfInventory).toHaveAttribute("data-generated-api-csrf-missing-unsafe-operation-count", "0");
     expect(csrfInventory).toHaveAttribute("data-generated-api-csrf-failure-count", "0");
     expect(csrfInventory.getAttribute("data-generated-api-csrf-operation-contracts")).toContain(

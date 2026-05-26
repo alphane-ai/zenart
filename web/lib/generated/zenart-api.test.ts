@@ -179,11 +179,23 @@ describe("generated web API client CSRF contract", () => {
         "data-generated-api-csrf-status",
         "data-generated-api-csrf-credential-mode",
         "data-generated-api-csrf-header",
+        "data-generated-api-csrf-unsafe-operations",
+        "data-generated-api-csrf-safe-operations",
+        "data-generated-api-csrf-idempotency-required-operations",
+        "data-generated-api-csrf-idempotency-exempt-operations",
         "data-generated-api-csrf-operation-contracts"
       ])
     });
     expect(generatedApiCsrfContract.unsafeOperationCount).toBe(unsafeOperations.length);
     expect(generatedApiCsrfContract.safeOperationCount).toBe(safeOperations.length);
+    expect(requestContractEvidence.unsafeOperationIds).toEqual(unsafeOperations);
+    expect(requestContractEvidence.safeOperationIds).toEqual(safeOperations);
+    expect(requestContractEvidence.unsafeIdempotencyRequiredOperationIds).toEqual(
+      generatedApiCsrfContract.unsafeRequestContracts
+        .filter((contract) => contract.idempotencyHeaderRequired)
+        .map((contract) => contract.operationId)
+    );
+    expect(requestContractEvidence.unsafeIdempotencyExemptOperationIds).toEqual(["deleteSession"]);
     expect(generatedApiCsrfContract.unsafeOperations).toEqual(unsafeOperations);
     expect(generatedApiCsrfContract.safeOperations).toEqual(safeOperations);
   });

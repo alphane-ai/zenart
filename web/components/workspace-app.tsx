@@ -425,6 +425,10 @@ function SessionPanel({
         data-generated-api-csrf-origin-policy={generatedRequestEvidence.originPolicy}
         data-generated-api-csrf-unsafe-operation-count={generatedRequestEvidence.unsafeOperationCount}
         data-generated-api-csrf-safe-operation-count={generatedRequestEvidence.safeOperationCount}
+        data-generated-api-csrf-unsafe-operations={generatedRequestEvidence.unsafeOperationIds.join(",")}
+        data-generated-api-csrf-safe-operations={generatedRequestEvidence.safeOperationIds.join(",")}
+        data-generated-api-csrf-idempotency-required-operations={generatedRequestEvidence.unsafeIdempotencyRequiredOperationIds.join(",")}
+        data-generated-api-csrf-idempotency-exempt-operations={generatedRequestEvidence.unsafeIdempotencyExemptOperationIds.join(",")}
         data-generated-api-csrf-missing-unsafe-operation-count={generatedRequestEvidence.missingUnsafeOperationIds.length}
         data-generated-api-csrf-failure-count={generatedRequestEvidence.failureReasons.length}
         data-generated-api-csrf-operation-contracts={generatedRequestEvidence.unsafeRequestContracts

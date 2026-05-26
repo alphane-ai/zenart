@@ -189,6 +189,10 @@
         "data-generated-api-csrf-origin-policy",
         "data-generated-api-csrf-unsafe-operation-count",
         "data-generated-api-csrf-safe-operation-count",
+        "data-generated-api-csrf-unsafe-operations",
+        "data-generated-api-csrf-safe-operations",
+        "data-generated-api-csrf-idempotency-required-operations",
+        "data-generated-api-csrf-idempotency-exempt-operations",
         "data-generated-api-csrf-missing-unsafe-operation-count",
         "data-generated-api-csrf-failure-count",
         "data-generated-api-csrf-operation-contracts"
