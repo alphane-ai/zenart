@@ -1790,7 +1790,7 @@ main 合并前必须通过：
 
 - [x] 定义 vertical acceptance schema。
 - [x] 实现电商增长包 acceptance fixture。
-- [x] 电商增长包 API smoke test 通过。
+- [ ] 电商增长包 API smoke test 通过。
 - [ ] 电商增长包 Playwright happy path 通过。
 - [x] 实现商业视觉文档包 acceptance fixture。
 - [ ] 商业视觉文档包 API smoke test 通过。
@@ -1926,7 +1926,7 @@ main 合并前必须通过：
 - [ ] 实现 OpenTelemetry traces。
 - [x] 定义 backend/worker/crawler metrics contract。
 - [x] 实现 backend local metrics endpoint。
-- [x] 实现 backend/worker/crawler metrics。
+- [ ] 实现 backend/worker/crawler metrics。
 - [x] 实现 frontend error reporting。
 - [x] 定义 dashboards。
 - [ ] 导入并验证 staging dashboards runtime evidence。
