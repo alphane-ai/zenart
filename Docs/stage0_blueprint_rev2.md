@@ -1664,27 +1664,27 @@ main 合并前必须通过：
 
 ### 25.6 Admin Foundation
 
-- [ ] 初始化 `admin/` Next.js TypeScript 应用。
-- [ ] 配置 lint/typecheck/test/build。
-- [ ] 实现 typed admin API client。
-- [ ] 实现独立 admin auth。
-- [ ] 实现 admin shell。
-- [ ] 实现 Skill Registry。
-- [ ] 实现 Skill Version review/release/rollback/canary dashboard。
-- [ ] 实现 Crawler Source/Finding review。
-- [ ] 实现 Prompt Fragment candidate review。
-- [ ] 实现 Meta Prompt/Image Spec review。
-- [ ] 实现 Agent Invocation Trace detail。
-- [ ] 实现 Feedback Queue。
-- [ ] 实现 Provider Health dashboard。
-- [ ] 实现 Queue/Dead-letter dashboard。
-- [ ] 实现 Export Job detail/regenerate。
-- [ ] 实现 Support Console/user lookup。
-- [ ] 实现 Quota credit/debit。
-- [ ] 实现 Safety/Risky Export queue。
-- [ ] 实现 Abuse queue。
-- [ ] 实现 Audit Log search。
-- [ ] 新增 admin Dockerfile。
+- [x] 初始化 `admin/` Next.js TypeScript 应用。
+- [x] 配置 lint/typecheck/test/build。
+- [x] 实现 typed admin API client。
+- [x] 实现独立 admin auth。
+- [x] 实现 admin shell。
+- [x] 实现 Skill Registry。
+- [x] 实现 Skill Version review/release/rollback/canary dashboard。
+- [x] 实现 Crawler Source/Finding review。
+- [x] 实现 Prompt Fragment candidate review。
+- [x] 实现 Meta Prompt/Image Spec review。
+- [x] 实现 Agent Invocation Trace detail。
+- [x] 实现 Feedback Queue。
+- [x] 实现 Provider Health dashboard。
+- [x] 实现 Queue/Dead-letter dashboard。
+- [x] 实现 Export Job detail/regenerate。
+- [x] 实现 Support Console/user lookup。
+- [x] 实现 Quota credit/debit。
+- [x] 实现 Safety/Risky Export queue。
+- [x] 实现 Abuse queue。
+- [x] 实现 Audit Log search。
+- [x] 新增 admin Dockerfile。
 
 ### 25.7 Auth, RBAC, Tenant Isolation, Audit
 
