@@ -93,6 +93,7 @@ const (
 	PermissionExportRead           Permission = "export:read"
 	PermissionCrawlerRead          Permission = "crawler:read"
 	PermissionSafetyRead           Permission = "safety:read"
+	PermissionAnalyticsRead        Permission = "analytics:read"
 	PermissionAdminQuotaEdit       Permission = "quota:admin_edit"
 	PermissionAuditRead            Permission = "audit:read"
 	PermissionSkillReleaseAdmin    Permission = "skill_release:admin"
@@ -169,6 +170,7 @@ func Matrix() map[Permission]Policy {
 		PermissionExportRead:           {Required: PermissionExportRead, Admin: true, AllowedRoles: readOnlyAdminRoles},
 		PermissionCrawlerRead:          {Required: PermissionCrawlerRead, Admin: true, AllowedRoles: readOnlyAdminRoles},
 		PermissionSafetyRead:           {Required: PermissionSafetyRead, Admin: true, AllowedRoles: readOnlyAdminRoles},
+		PermissionAnalyticsRead:        {Required: PermissionAnalyticsRead, Admin: true, AllowedRoles: readOnlyAdminRoles},
 		PermissionAdminQuotaEdit:       {Required: PermissionAdminQuotaEdit, Admin: true, AllowedRoles: operatorRoles},
 		PermissionAuditRead:            {Required: PermissionAuditRead, Admin: true, AllowedRoles: superadminRoles},
 		PermissionSkillReleaseAdmin:    {Required: PermissionSkillReleaseAdmin, Admin: true, AllowedRoles: reviewerRoles},

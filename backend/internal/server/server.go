@@ -86,6 +86,8 @@ func (s *Server) routes() {
 	s.mux.Handle("POST /api/admin/v1/crawler/sources/{id}/runs", requirePermission(auth.PermissionCrawlerImportAdmin, http.HandlerFunc(s.startCrawlerRun)))
 	s.mux.Handle("GET /api/admin/v1/safety/rules", requirePermission(auth.PermissionSafetyRead, http.HandlerFunc(s.listSafetyRules)))
 	s.mux.Handle("POST /api/admin/v1/safety/decisions", requirePermission(auth.PermissionSafetyRuleAdmin, http.HandlerFunc(s.enforceSafety)))
+	s.mux.Handle("GET /api/admin/v1/analytics/events", requirePermission(auth.PermissionAnalyticsRead, http.HandlerFunc(s.listAnalyticsEvents)))
+	s.mux.Handle("GET /api/admin/v1/analytics/reports", requirePermission(auth.PermissionAnalyticsRead, http.HandlerFunc(s.listAnalyticsReports)))
 	s.mux.Handle("GET /api/admin/v1/audit", requirePermission(auth.PermissionAuditRead, http.HandlerFunc(s.auditSearch)))
 }
 
@@ -517,6 +519,43 @@ func (s *Server) enforceSafety(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusCreated, decision)
+}
+
+func (s *Server) listAnalyticsEvents(w http.ResponseWriter, r *http.Request) {
+	principal, _ := PrincipalFromContext(r.Context())
+	repo, ok := stage0RepoFrom(r)
+	if !ok {
+		writeError(w, r, http.StatusNotImplemented, "analytics_service_not_connected", "analytics storage is not connected yet", nil)
+		return
+	}
+	page, err := repo.ListAnalyticsEvents(r.Context(), stage0.AnalyticsEventFilters{
+		TenantID:    principal.TenantID,
+		EventName:   r.URL.Query().Get("event_name"),
+		WorkflowID:  r.URL.Query().Get("workflow_id"),
+		SubjectType: r.URL.Query().Get("subject_type"),
+		SubjectID:   r.URL.Query().Get("subject_id"),
+		Limit:       pageSize(r),
+	})
+	if err != nil {
+		writeStage0Error(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, page)
+}
+
+func (s *Server) listAnalyticsReports(w http.ResponseWriter, r *http.Request) {
+	principal, _ := PrincipalFromContext(r.Context())
+	repo, ok := stage0RepoFrom(r)
+	if !ok {
+		writeError(w, r, http.StatusNotImplemented, "analytics_service_not_connected", "analytics storage is not connected yet", nil)
+		return
+	}
+	page, err := repo.ListAnalyticsReports(r.Context(), principal.TenantID, pageSize(r), time.Now().UTC())
+	if err != nil {
+		writeStage0Error(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, page)
 }
 
 func stage0RepoFrom(r *http.Request) (stage0.Repository, bool) {

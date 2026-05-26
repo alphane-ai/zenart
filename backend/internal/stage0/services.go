@@ -220,6 +220,27 @@ type AnalyticsEvent struct {
 	CreatedAt   time.Time      `json:"created_at"`
 }
 
+type AnalyticsEventFilters struct {
+	TenantID    string
+	EventName   string
+	WorkflowID  string
+	SubjectType string
+	SubjectID   string
+	Limit       int
+}
+
+type AnalyticsReport struct {
+	ID                 string         `json:"id"`
+	MetricName         string         `json:"metric_name"`
+	SourceEvents       []string       `json:"source_events"`
+	RequiredDimensions []string       `json:"required_dimensions"`
+	GoNoGoSignal       bool           `json:"go_no_go_signal"`
+	Window             string         `json:"window"`
+	Value              float64        `json:"value"`
+	Dimensions         map[string]any `json:"dimensions,omitempty"`
+	ComputedAt         time.Time      `json:"computed_at"`
+}
+
 type CrawlerSource struct {
 	ID             string         `json:"id"`
 	TenantID       *string        `json:"tenant_id,omitempty"`
@@ -1556,6 +1577,168 @@ VALUES($1, $2, NULLIF($3, ''), NULLIF($4, ''), $5, $6, $7, $8, $9, $10)`,
 		event.CreatedAt.UTC(),
 	)
 	return err
+}
+
+func (r Repository) ListAnalyticsEvents(ctx context.Context, filters AnalyticsEventFilters) (Page[AnalyticsEvent], error) {
+	filters.TenantID = strings.TrimSpace(filters.TenantID)
+	if filters.TenantID == "" {
+		return Page[AnalyticsEvent]{}, errors.Join(ErrValidation, errors.New("tenant_id is required"))
+	}
+	if filters.Limit <= 0 || filters.Limit > 100 {
+		filters.Limit = 50
+	}
+	args := []any{filters.TenantID, filters.Limit}
+	query := `
+SELECT id, tenant_id, COALESCE(user_id, ''), COALESCE(project_id, ''), workflow_id, event_name, subject_type, subject_id, properties, created_at
+FROM analytics_events
+WHERE tenant_id = $1`
+	addFilter := func(column, value string) {
+		value = strings.TrimSpace(value)
+		if value == "" {
+			return
+		}
+		args = append(args, value)
+		query += fmt.Sprintf(" AND %s = $%d", column, len(args))
+	}
+	addFilter("event_name", filters.EventName)
+	addFilter("workflow_id", filters.WorkflowID)
+	addFilter("subject_type", filters.SubjectType)
+	addFilter("subject_id", filters.SubjectID)
+	query += " ORDER BY created_at DESC LIMIT $2"
+	rows, err := r.db.Query(ctx, query, args...)
+	if err != nil {
+		return Page[AnalyticsEvent]{}, err
+	}
+	defer rows.Close()
+
+	var page Page[AnalyticsEvent]
+	for rows.Next() {
+		var event AnalyticsEvent
+		var propertiesJSON []byte
+		if err := rows.Scan(&event.ID, &event.TenantID, &event.UserID, &event.ProjectID, &event.WorkflowID, &event.EventName, &event.SubjectType, &event.SubjectID, &propertiesJSON, &event.CreatedAt); err != nil {
+			return Page[AnalyticsEvent]{}, err
+		}
+		_ = json.Unmarshal(propertiesJSON, &event.Properties)
+		event.Properties = security.RedactMap(event.Properties)
+		page.Items = append(page.Items, event)
+	}
+	return page, rows.Err()
+}
+
+func (r Repository) ListAnalyticsReports(ctx context.Context, tenantID string, limit int, now time.Time) (Page[AnalyticsReport], error) {
+	tenantID = strings.TrimSpace(tenantID)
+	if tenantID == "" {
+		return Page[AnalyticsReport]{}, errors.Join(ErrValidation, errors.New("tenant_id is required"))
+	}
+	if limit <= 0 || limit > 100 {
+		limit = 50
+	}
+	if now.IsZero() {
+		now = time.Now().UTC()
+	}
+	rows, err := r.db.Query(ctx, `
+WITH event_counts AS (
+	SELECT
+		COUNT(*) FILTER (WHERE event_name = 'export_started') AS export_started,
+		COUNT(*) FILTER (WHERE event_name = 'export_completed') AS export_completed,
+		COUNT(*) FILTER (WHERE event_name = 'export_failed') AS export_failed,
+		COUNT(*) FILTER (WHERE event_name = 'support_ticket_created') AS support_ticket_created,
+		COUNT(*) FILTER (WHERE event_name = 'safety_decision_recorded') AS safety_decision_recorded,
+		COUNT(*) FILTER (WHERE event_name = 'upload_created') AS upload_created,
+		COUNT(*) FILTER (WHERE event_name = 'export_regenerated') AS export_regenerated
+	FROM analytics_events
+	WHERE tenant_id = $1
+	  AND created_at >= $2
+)
+SELECT metric_name, source_events, required_dimensions, go_no_go_signal, window_name, metric_value, dimensions
+FROM (
+	SELECT 1 AS ord,
+	       'export_completion_rate' AS metric_name,
+	       ARRAY['export_started','export_completed','export_failed']::text[] AS source_events,
+	       ARRAY['tenant_id','workflow_id','format']::text[] AS required_dimensions,
+	       (CASE WHEN export_started = 0 THEN true ELSE export_completed::numeric / NULLIF(export_started, 0) >= 0.95 END) AS go_no_go_signal,
+	       'weekly' AS window_name,
+	       CASE WHEN export_started = 0 THEN 0 ELSE export_completed::numeric / NULLIF(export_started, 0) END AS metric_value,
+	       jsonb_build_object('started', export_started, 'completed', export_completed, 'failed', export_failed) AS dimensions
+	FROM event_counts
+	UNION ALL
+	SELECT 2,
+	       'failed_export_rate',
+	       ARRAY['export_started','export_failed']::text[],
+	       ARRAY['tenant_id','workflow_id','format']::text[],
+	       (CASE WHEN export_started = 0 THEN true ELSE export_failed::numeric / NULLIF(export_started, 0) <= 0.05 END),
+	       'weekly',
+	       CASE WHEN export_started = 0 THEN 0 ELSE export_failed::numeric / NULLIF(export_started, 0) END,
+	       jsonb_build_object('started', export_started, 'failed', export_failed)
+	FROM event_counts
+	UNION ALL
+	SELECT 3,
+	       'support_ticket_rate',
+	       ARRAY['support_ticket_created','export_started']::text[],
+	       ARRAY['tenant_id','category']::text[],
+	       (support_ticket_created <= 5),
+	       'weekly',
+	       support_ticket_created::numeric,
+	       jsonb_build_object('support_tickets', support_ticket_created)
+	FROM event_counts
+	UNION ALL
+	SELECT 4,
+	       'qa_warning_block_rate',
+	       ARRAY['safety_decision_recorded']::text[],
+	       ARRAY['tenant_id','enforcement_point','decision']::text[],
+	       (safety_decision_recorded <= 10),
+	       'weekly',
+	       safety_decision_recorded::numeric,
+	       jsonb_build_object('safety_decisions', safety_decision_recorded)
+	FROM event_counts
+	UNION ALL
+	SELECT 5,
+	       'package_add_rate',
+	       ARRAY['upload_created']::text[],
+	       ARRAY['tenant_id','upload_type']::text[],
+	       true,
+	       'weekly',
+	       upload_created::numeric,
+	       jsonb_build_object('uploads', upload_created)
+	FROM event_counts
+	UNION ALL
+	SELECT 6,
+	       'iteration_rate',
+	       ARRAY['export_regenerated']::text[],
+	       ARRAY['tenant_id','export_id']::text[],
+	       true,
+	       'weekly',
+	       export_regenerated::numeric,
+	       jsonb_build_object('regenerated_exports', export_regenerated)
+	FROM event_counts
+) reports
+ORDER BY ord
+LIMIT $3`,
+		tenantID,
+		now.UTC().AddDate(0, 0, -7),
+		limit,
+	)
+	if err != nil {
+		return Page[AnalyticsReport]{}, err
+	}
+	defer rows.Close()
+
+	var page Page[AnalyticsReport]
+	for rows.Next() {
+		var report AnalyticsReport
+		var dimensionsJSON []byte
+		var value float64
+		if err := rows.Scan(&report.MetricName, &report.SourceEvents, &report.RequiredDimensions, &report.GoNoGoSignal, &report.Window, &value, &dimensionsJSON); err != nil {
+			return Page[AnalyticsReport]{}, err
+		}
+		report.ID = "analytics_report_" + report.MetricName
+		report.Value = value
+		report.ComputedAt = now.UTC()
+		_ = json.Unmarshal(dimensionsJSON, &report.Dimensions)
+		report.Dimensions = security.RedactMap(report.Dimensions)
+		page.Items = append(page.Items, report)
+	}
+	return page, rows.Err()
 }
 
 func scanUpload(ctx context.Context, scanner security.MalwareScanner, target security.MalwareScanTarget) (security.MalwareScanResult, error) {

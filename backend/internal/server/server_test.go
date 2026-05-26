@@ -487,6 +487,123 @@ func TestAdminCrawlerStartRunReturnsPolicyBlock(t *testing.T) {
 	}
 }
 
+func TestAdminAnalyticsEventsRequiresAdminViewer(t *testing.T) {
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/admin/v1/analytics/events", nil)
+	req.Header.Set("X-Zenart-User-ID", "user_1")
+	req.Header.Set("X-Zenart-Tenant-ID", "tenant_1")
+	rec := httptest.NewRecorder()
+
+	New(cfg, nil).Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusForbidden)
+	}
+	var body map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("response JSON error = %v", err)
+	}
+	details := body["details"].(map[string]any)
+	if details["required_permission"] != "analytics:read" {
+		t.Fatalf("required_permission = %v, want analytics:read", details["required_permission"])
+	}
+}
+
+func TestAdminAnalyticsEventsUsesPrincipalTenantAndFilters(t *testing.T) {
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	now := time.Date(2026, 5, 27, 8, 0, 0, 0, time.UTC)
+	db := &fakeStage0DB{queryRows: []stage0RowSet{{rows: [][]any{{
+		"analytics_1",
+		"tenant_1",
+		"user_1",
+		"project_1",
+		"workflow_1",
+		"export_completed",
+		"export",
+		"export_1",
+		[]byte(`{"format":"zip","api_key":"secret"}`),
+		now,
+	}}}}}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/admin/v1/analytics/events?tenant_id=tenant_2&event_name=export_completed&workflow_id=workflow_1&subject_type=export&subject_id=export_1&page_size=25", nil)
+	req = req.WithContext(stage0.ContextWithService(req.Context(), stage0.NewService(stage0.NewRepository(db), nil)))
+	req.Header.Set("X-Zenart-User-ID", "admin_viewer_1")
+	req.Header.Set("X-Zenart-Tenant-ID", "tenant_1")
+	req.Header.Set("X-Zenart-Roles", "admin_viewer")
+	rec := httptest.NewRecorder()
+
+	New(cfg, nil).Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d: %s", rec.Code, http.StatusOK, rec.Body.String())
+	}
+	query := db.queries[0]
+	if query.args[0] != "tenant_1" {
+		t.Fatalf("tenant arg = %#v, want principal tenant tenant_1", query.args[0])
+	}
+	var body struct {
+		Items []stage0.AnalyticsEvent `json:"items"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("response JSON error = %v", err)
+	}
+	if len(body.Items) != 1 || body.Items[0].ID != "analytics_1" {
+		t.Fatalf("items = %#v, want analytics_1", body.Items)
+	}
+	if body.Items[0].Properties["api_key"] != security.Redacted {
+		t.Fatalf("properties = %#v, want api_key redacted", body.Items[0].Properties)
+	}
+}
+
+func TestAdminAnalyticsReportsUsesPrincipalTenant(t *testing.T) {
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	db := &fakeStage0DB{queryRows: []stage0RowSet{{rows: [][]any{{
+		"export_completion_rate",
+		[]string{"export_started", "export_completed", "export_failed"},
+		[]string{"tenant_id", "workflow_id", "format"},
+		true,
+		"weekly",
+		float64(1),
+		[]byte(`{"started":1,"completed":1}`),
+	}}}}}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/admin/v1/analytics/reports?tenant_id=tenant_2&page_size=5", nil)
+	req = req.WithContext(stage0.ContextWithService(req.Context(), stage0.NewService(stage0.NewRepository(db), nil)))
+	req.Header.Set("X-Zenart-User-ID", "admin_viewer_1")
+	req.Header.Set("X-Zenart-Tenant-ID", "tenant_1")
+	req.Header.Set("X-Zenart-Roles", "admin_viewer")
+	rec := httptest.NewRecorder()
+
+	New(cfg, nil).Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d: %s", rec.Code, http.StatusOK, rec.Body.String())
+	}
+	query := db.queries[0]
+	if query.args[0] != "tenant_1" || query.args[2] != 5 {
+		t.Fatalf("query args = %#v, want principal tenant tenant_1 and limit 5", query.args)
+	}
+	var body struct {
+		Items []stage0.AnalyticsReport `json:"items"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("response JSON error = %v", err)
+	}
+	if len(body.Items) != 1 || body.Items[0].MetricName != "export_completion_rate" {
+		t.Fatalf("items = %#v, want export_completion_rate", body.Items)
+	}
+}
+
 func TestLocalSessionSetsSecureHttpOnlySameSiteCookie(t *testing.T) {
 	cfg, err := config.Load()
 	if err != nil {
@@ -947,4 +1064,82 @@ func findCookie(cookies []*http.Cookie, name string) *http.Cookie {
 
 func (noExecDB) QueryRow(context.Context, string, ...any) store.Row {
 	panic("QueryRow must not be called for invalid upload validation")
+}
+
+type fakeStage0DB struct {
+	queryRows []stage0RowSet
+	queries   []stage0QueryCall
+}
+
+type stage0RowSet struct {
+	rows [][]any
+}
+
+type stage0QueryCall struct {
+	sql  string
+	args []any
+}
+
+func (f *fakeStage0DB) Exec(context.Context, string, ...any) (pgconn.CommandTag, error) {
+	return pgconn.CommandTag{}, nil
+}
+
+func (f *fakeStage0DB) Query(_ context.Context, sql string, args ...any) (store.Rows, error) {
+	f.queries = append(f.queries, stage0QueryCall{sql: sql, args: args})
+	if len(f.queryRows) == 0 {
+		return &stage0Rows{}, nil
+	}
+	rows := f.queryRows[0]
+	f.queryRows = f.queryRows[1:]
+	return &stage0Rows{rows: rows.rows}, nil
+}
+
+func (f *fakeStage0DB) QueryRow(context.Context, string, ...any) store.Row {
+	panic("QueryRow must not be called for analytics list tests")
+}
+
+type stage0Rows struct {
+	rows  [][]any
+	index int
+}
+
+func (r *stage0Rows) Close() {}
+
+func (r *stage0Rows) Err() error {
+	return nil
+}
+
+func (r *stage0Rows) Next() bool {
+	if r.index >= len(r.rows) {
+		return false
+	}
+	r.index++
+	return true
+}
+
+func (r *stage0Rows) Scan(dest ...any) error {
+	row := r.rows[r.index-1]
+	for i := range dest {
+		assignScan(dest[i], row[i])
+	}
+	return nil
+}
+
+func assignScan(dest any, value any) {
+	switch ptr := dest.(type) {
+	case *string:
+		*ptr = value.(string)
+	case *[]byte:
+		*ptr = value.([]byte)
+	case *[]string:
+		*ptr = value.([]string)
+	case *bool:
+		*ptr = value.(bool)
+	case *float64:
+		*ptr = value.(float64)
+	case *time.Time:
+		*ptr = value.(time.Time)
+	default:
+		panic("unsupported scan destination")
+	}
 }

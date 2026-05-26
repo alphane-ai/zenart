@@ -1017,6 +1017,95 @@ func TestRecordAnalyticsEventRedactsProperties(t *testing.T) {
 	}
 }
 
+func TestListAnalyticsEventsUsesTenantScopedFiltersAndRedactsProperties(t *testing.T) {
+	now := time.Date(2026, 5, 27, 8, 0, 0, 0, time.UTC)
+	db := &fakeDB{queryRows: []rowSet{{rows: [][]any{{
+		"analytics_1",
+		"tenant_1",
+		"user_1",
+		"project_1",
+		"workflow_1",
+		"export_completed",
+		"export",
+		"export_1",
+		[]byte(`{"format":"zip","api_key":"secret"}`),
+		now,
+	}}}}}
+	repo := NewRepository(db)
+
+	page, err := repo.ListAnalyticsEvents(context.Background(), AnalyticsEventFilters{
+		TenantID:    "tenant_1",
+		EventName:   "export_completed",
+		WorkflowID:  "workflow_1",
+		SubjectType: "export",
+		SubjectID:   "export_1",
+		Limit:       25,
+	})
+	if err != nil {
+		t.Fatalf("ListAnalyticsEvents() error = %v", err)
+	}
+	if len(page.Items) != 1 || page.Items[0].ID != "analytics_1" {
+		t.Fatalf("analytics events = %#v, want analytics_1", page.Items)
+	}
+	if page.Items[0].Properties["api_key"] != security.Redacted {
+		t.Fatalf("analytics properties = %#v, want api_key redacted", page.Items[0].Properties)
+	}
+	query := db.queryRowsUsed[0]
+	for _, fragment := range []string{"WHERE tenant_id = $1", "event_name =", "workflow_id =", "subject_type =", "subject_id =", "ORDER BY created_at DESC"} {
+		if !strings.Contains(query.sql, fragment) {
+			t.Fatalf("analytics query = %s, missing %s", query.sql, fragment)
+		}
+	}
+	wantArgs := []any{"tenant_1", 25, "export_completed", "workflow_1", "export", "export_1"}
+	if len(query.args) != len(wantArgs) {
+		t.Fatalf("query args = %#v, want %#v", query.args, wantArgs)
+	}
+	for i, want := range wantArgs {
+		if query.args[i] != want {
+			t.Fatalf("query args[%d] = %#v, want %#v", i, query.args[i], want)
+		}
+	}
+}
+
+func TestListAnalyticsReportsUsesTenantScopedWeeklyAggregation(t *testing.T) {
+	now := time.Date(2026, 5, 27, 8, 0, 0, 0, time.UTC)
+	db := &fakeDB{queryRows: []rowSet{{rows: [][]any{{
+		"export_completion_rate",
+		[]string{"export_started", "export_completed", "export_failed"},
+		[]string{"tenant_id", "workflow_id", "format"},
+		true,
+		"weekly",
+		float64(0.95),
+		[]byte(`{"started":20,"completed":19,"api_key":"secret"}`),
+	}}}}}
+	repo := NewRepository(db)
+
+	page, err := repo.ListAnalyticsReports(context.Background(), "tenant_1", 10, now)
+	if err != nil {
+		t.Fatalf("ListAnalyticsReports() error = %v", err)
+	}
+	if len(page.Items) != 1 || page.Items[0].MetricName != "export_completion_rate" {
+		t.Fatalf("analytics reports = %#v, want export_completion_rate", page.Items)
+	}
+	report := page.Items[0]
+	if report.ID != "analytics_report_export_completion_rate" || report.Window != "weekly" || report.Value != 0.95 || !report.GoNoGoSignal {
+		t.Fatalf("report = %#v, want computed weekly pass report", report)
+	}
+	if report.Dimensions["api_key"] != security.Redacted {
+		t.Fatalf("report dimensions = %#v, want api_key redacted", report.Dimensions)
+	}
+	query := db.queryRowsUsed[0]
+	if !strings.Contains(query.sql, "FROM analytics_events") || !strings.Contains(query.sql, "WHERE tenant_id = $1") {
+		t.Fatalf("analytics reports query missing tenant scoped event aggregation: %s", query.sql)
+	}
+	if query.args[0] != "tenant_1" || query.args[2] != 10 {
+		t.Fatalf("query args = %#v, want tenant_1 weekly window limit 10", query.args)
+	}
+	if since, ok := query.args[1].(time.Time); !ok || !since.Equal(now.AddDate(0, 0, -7)) {
+		t.Fatalf("weekly window arg = %#v, want %s", query.args[1], now.AddDate(0, 0, -7))
+	}
+}
+
 func TestStartCrawlerRunRequiresApprovalRobotsLegalAndRatePolicy(t *testing.T) {
 	now := time.Now().UTC()
 	db := &fakeDB{queryRows: []rowSet{{
@@ -1552,6 +1641,12 @@ func assign(dest any, value any) {
 		*ptr = value.([]byte)
 	case *int:
 		*ptr = value.(int)
+	case *float64:
+		*ptr = value.(float64)
+	case *bool:
+		*ptr = value.(bool)
+	case *[]string:
+		*ptr = value.([]string)
 	case *time.Time:
 		*ptr = value.(time.Time)
 	default:
