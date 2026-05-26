@@ -177,6 +177,54 @@ func TestTaskStatusDoesNotUseRequestedTenant(t *testing.T) {
 	}
 }
 
+func TestTaskStatusRejectsUnsupportedSchemaVersion(t *testing.T) {
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	cfg.Tasks.SchemaVersion = 1
+
+	repo := &fakeTaskReader{task: task.Task{
+		ID:            "task_future",
+		TenantID:      "tenant_1",
+		Type:          "candidate_set_builder",
+		SchemaVersion: 2,
+		Status:        task.StatusPending,
+		UserStatus:    "pending",
+		AppVersion:    "stage0-test",
+		WorkerVersion: "stage0-test",
+	}}
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/tasks/task_future", nil)
+	req = req.WithContext(task.ContextWithRepository(req.Context(), repo))
+	req.Header.Set("X-Zenart-User-ID", "user_1")
+	req.Header.Set("X-Zenart-Tenant-ID", "tenant_1")
+	rec := httptest.NewRecorder()
+
+	New(cfg, nil).Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusConflict {
+		t.Fatalf("status = %d, want %d: %s", rec.Code, http.StatusConflict, rec.Body.String())
+	}
+
+	var body map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("response JSON error = %v", err)
+	}
+	if body["code"] != "unsupported_task_schema" {
+		t.Fatalf("code = %v, want unsupported_task_schema", body["code"])
+	}
+	details, ok := body["details"].(map[string]any)
+	if !ok {
+		t.Fatalf("details type = %T, want object", body["details"])
+	}
+	if details["task_schema_version"] != float64(2) {
+		t.Fatalf("task_schema_version = %v, want 2", details["task_schema_version"])
+	}
+	if details["max_schema_version"] != float64(1) {
+		t.Fatalf("max_schema_version = %v, want 1", details["max_schema_version"])
+	}
+}
+
 type fakeTaskReader struct {
 	task        task.Task
 	tenantID    string

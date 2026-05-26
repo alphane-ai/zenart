@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -54,6 +55,31 @@ type Task struct {
 	Metadata       map[string]any `json:"metadata,omitempty"`
 	CreatedAt      time.Time      `json:"created_at"`
 	UpdatedAt      time.Time      `json:"updated_at"`
+}
+
+type UnsupportedSchemaError struct {
+	TaskSchemaVersion int
+	MaxSchemaVersion  int
+}
+
+func (e UnsupportedSchemaError) Error() string {
+	return fmt.Sprintf("task schema version %d is newer than supported version %d", e.TaskSchemaVersion, e.MaxSchemaVersion)
+}
+
+func CheckSchemaCompatibility(taskSchemaVersion, maxSchemaVersion int) error {
+	if taskSchemaVersion < 1 {
+		return fmt.Errorf("task schema version must be >= 1: %d", taskSchemaVersion)
+	}
+	if maxSchemaVersion < 1 {
+		return fmt.Errorf("max task schema version must be >= 1: %d", maxSchemaVersion)
+	}
+	if taskSchemaVersion > maxSchemaVersion {
+		return UnsupportedSchemaError{
+			TaskSchemaVersion: taskSchemaVersion,
+			MaxSchemaVersion:  maxSchemaVersion,
+		}
+	}
+	return nil
 }
 
 type TaskError struct {

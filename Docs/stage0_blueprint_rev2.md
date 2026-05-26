@@ -1639,7 +1639,7 @@ main 合并前必须通过：
 - [x] 生成 Web typed client。
 - [x] 生成 Admin typed client。
 - [x] 添加 backend contract tests。
-- [ ] 添加 CI stale schema/client check。
+- [x] 添加 CI stale schema/client check。
 
 ### 25.5 Web Foundation
 
@@ -1873,7 +1873,7 @@ main 合并前必须通过：
 - [x] CI 运行 backend fmt/lint/vet/unit/integration/build。
 - [x] CI 启动 Postgres/Redis/object storage。
 - [x] CI 运行 migration tests。
-- [ ] CI 运行 OpenAPI/client stale checks。
+- [x] CI 运行 OpenAPI/client stale checks。
 - [x] CI 运行 API/agent contract tests。
 - [ ] CI 运行 Playwright smoke。
 - [ ] CI build Docker images。
@@ -1886,7 +1886,7 @@ main 合并前必须通过：
 - [x] 定义 feature flags。
 - [x] 定义 rollback procedures。
 - [ ] 实现 worker drain。
-- [ ] 实现 task schema compatibility checks。
+- [x] 实现 task schema compatibility checks。
 
 ### 25.18 Observability, Backup, Incident, Load
 

@@ -113,6 +113,24 @@ func (s *Server) taskStatus(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, http.StatusInternalServerError, "task_status_error", "task status lookup failed", nil)
 		return
 	}
+	if err := task.CheckSchemaCompatibility(taskStatus.SchemaVersion, s.cfg.Tasks.SchemaVersion); err != nil {
+		var unsupported task.UnsupportedSchemaError
+		if errors.As(err, &unsupported) {
+			writeError(w, r, http.StatusConflict, "unsupported_task_schema", "task schema version is not supported by this API/worker version", map[string]any{
+				"task_id":             taskID,
+				"task_schema_version": unsupported.TaskSchemaVersion,
+				"max_schema_version":  unsupported.MaxSchemaVersion,
+				"action":              "wait_for_deploy_or_retry_after_worker_upgrade",
+			})
+			return
+		}
+		writeError(w, r, http.StatusInternalServerError, "task_schema_contract_error", "task schema compatibility check failed", map[string]any{
+			"task_id":             taskID,
+			"task_schema_version": taskStatus.SchemaVersion,
+			"max_schema_version":  s.cfg.Tasks.SchemaVersion,
+		})
+		return
+	}
 	writeJSON(w, http.StatusOK, taskStatus)
 }
 

@@ -269,6 +269,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/TaskStatus"
+        "409":
+          description: Task schema is newer than this API/worker deployment supports.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
         default:
           $ref: "#/components/responses/Error"
   /projects/{project_id}/candidate-sets:

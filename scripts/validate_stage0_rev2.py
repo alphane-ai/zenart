@@ -977,6 +977,34 @@ def validate_openapi_rev2_domain_contracts() -> None:
     require("blocks_export_when_critical:" in safety_body, "SafetyRule must declare critical export blocking")
 
 
+def validate_task_schema_compatibility_contract() -> None:
+    task_go = ROOT / "backend" / "internal" / "task" / "task.go"
+    task_test_go = ROOT / "backend" / "internal" / "task" / "task_test.go"
+    server_go = ROOT / "backend" / "internal" / "server" / "server.go"
+    server_test_go = ROOT / "backend" / "internal" / "server" / "server_test.go"
+
+    require(task_go.exists(), "missing backend task contract implementation")
+    require(task_test_go.exists(), "missing backend task schema compatibility tests")
+    task_text = task_go.read_text(encoding="utf-8")
+    task_test_text = task_test_go.read_text(encoding="utf-8")
+    server_text = server_go.read_text(encoding="utf-8")
+    server_test_text = server_test_go.read_text(encoding="utf-8")
+
+    for token in [
+        "type UnsupportedSchemaError struct",
+        "TaskSchemaVersion int",
+        "MaxSchemaVersion  int",
+        "func CheckSchemaCompatibility",
+    ]:
+        require(token in task_text, f"task schema compatibility contract missing {token}")
+    require("taskSchemaVersion > maxSchemaVersion" in task_text, "task schema compatibility must reject newer task schemas")
+    require("CheckSchemaCompatibility(taskStatus.SchemaVersion, s.cfg.Tasks.SchemaVersion)" in server_text, "task status route must enforce schema compatibility")
+    require("unsupported_task_schema" in server_text, "task status route must return unsupported_task_schema contract error")
+    require("http.StatusConflict" in server_text, "unsupported task schema must be a conflict response")
+    require("TestCheckSchemaCompatibilityRejectsNewerVersion" in task_test_text, "task schema compatibility tests must reject newer versions")
+    require("TestTaskStatusRejectsUnsupportedSchemaVersion" in server_test_text, "server tests must cover unsupported task schema response")
+
+
 def validate_generated_openapi_clients() -> None:
     for target in [
         ROOT / "web" / "lib" / "generated" / "zenart-api.ts",
@@ -1093,6 +1121,7 @@ def main() -> int:
         validate_database_schema_artifacts,
         validate_openapi_contract,
         validate_openapi_rev2_domain_contracts,
+        validate_task_schema_compatibility_contract,
         validate_generated_openapi_clients,
         validate_ops_ci_and_drill_evidence,
     ]
