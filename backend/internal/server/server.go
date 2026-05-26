@@ -2,11 +2,17 @@ package server
 
 import (
 	"context"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/alphane-ai/zenart/backend/internal/config"
@@ -38,7 +44,7 @@ func New(cfg config.Config, logger *slog.Logger) *Server {
 }
 
 func (s *Server) Handler() http.Handler {
-	return withRequestID(withRecover(s.logger, s.mux))
+	return withRequestID(withRecover(s.logger, withSecurityHeaders(s.cfg.Security, s.mux)))
 }
 
 func (s *Server) HTTPServer() *http.Server {
@@ -57,6 +63,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /healthz", s.healthz)
 	s.mux.HandleFunc("GET /readyz", s.readyz)
 	s.mux.Handle("GET /api/v1/tasks/{id}", requirePrincipal(http.HandlerFunc(s.taskStatus)))
+	s.mux.Handle("POST /api/v1/uploads", requirePrincipal(http.HandlerFunc(s.createUpload)))
 	s.mux.Handle("POST /api/v1/packages/{id}/exports", requirePrincipal(http.HandlerFunc(s.createExport)))
 	s.mux.Handle("GET /api/v1/exports/{id}", requirePrincipal(http.HandlerFunc(s.getExport)))
 	s.mux.Handle("POST /api/v1/support/tickets", requirePrincipal(http.HandlerFunc(s.createSupportTicket)))
@@ -136,6 +143,48 @@ func (s *Server) taskStatus(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) auditSearch(w http.ResponseWriter, r *http.Request) {
 	writeError(w, r, http.StatusNotImplemented, "audit_search_not_connected", "audit log search storage is not connected yet", nil)
+}
+
+func (s *Server) createUpload(w http.ResponseWriter, r *http.Request) {
+	principal, _ := PrincipalFromContext(r.Context())
+	repo, ok := stage0RepoFrom(r)
+	if !ok {
+		writeError(w, r, http.StatusNotImplemented, "upload_service_not_connected", "upload storage is not connected yet", nil)
+		return
+	}
+	var input stage0.UploadCreate
+	if err := readJSON(r, &input); err != nil {
+		writeError(w, r, http.StatusBadRequest, "invalid_json", "request body must be valid JSON", nil)
+		return
+	}
+	upload, err := repo.CreateUpload(r.Context(), stage0.UploadOptions{
+		TenantID:            principal.TenantID,
+		UserID:              principal.UserID,
+		Bucket:              s.cfg.ObjectStorage.Bucket,
+		Input:               input,
+		AllowedContentTypes: s.cfg.Security.AllowedUploadTypes,
+		MaxBytes:            s.cfg.Security.MaxUploadBytes,
+		URLTTL:              s.cfg.Security.UploadURLTTL,
+		SignURL:             s.signUploadURL,
+	})
+	if err != nil {
+		writeStage0Error(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, upload)
+}
+
+func (s *Server) signUploadURL(tenantID, objectKey string, ttl time.Duration) (string, time.Time) {
+	expiresAt := time.Now().UTC().Add(ttl)
+	key := strings.Trim(strings.TrimSpace(objectKey), "/")
+	payload := fmt.Sprintf("%s:%s:%d", tenantID, key, expiresAt.Unix())
+	mac := hmac.New(sha256.New, []byte(s.cfg.ObjectStorage.SigningKey))
+	_, _ = mac.Write([]byte(payload))
+	values := make([]string, 0, 3)
+	values = append(values, "key="+urlQueryEscape(key))
+	values = append(values, "expires="+strconv.FormatInt(expiresAt.Unix(), 10))
+	values = append(values, "sig="+hex.EncodeToString(mac.Sum(nil)))
+	return "/api/v1/objects/upload?" + strings.Join(values, "&"), expiresAt
 }
 
 func (s *Server) createExport(w http.ResponseWriter, r *http.Request) {
@@ -341,6 +390,10 @@ func writeStage0Error(w http.ResponseWriter, r *http.Request, err error) {
 	default:
 		writeError(w, r, http.StatusInternalServerError, "stage0_service_error", "stage0 service operation failed", nil)
 	}
+}
+
+func urlQueryEscape(value string) string {
+	return url.QueryEscape(value)
 }
 
 func writeJSON(w http.ResponseWriter, status int, payload any) {

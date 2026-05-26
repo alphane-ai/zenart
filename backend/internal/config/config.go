@@ -14,6 +14,7 @@ import (
 type Config struct {
 	App           AppConfig
 	HTTP          HTTPConfig
+	Security      SecurityConfig
 	Postgres      PostgresConfig
 	Redis         RedisConfig
 	ObjectStorage ObjectStorageConfig
@@ -31,6 +32,14 @@ type AppConfig struct {
 type HTTPConfig struct {
 	Addr              string
 	ReadHeaderTimeout time.Duration
+}
+
+type SecurityConfig struct {
+	AllowedOrigins        []string
+	MaxUploadBytes        int64
+	AllowedUploadTypes    []string
+	UploadURLTTL          time.Duration
+	ContentSecurityPolicy string
 }
 
 type PostgresConfig struct {
@@ -86,6 +95,13 @@ func Load() (Config, error) {
 		HTTP: HTTPConfig{
 			Addr:              env("HTTP_ADDR", ":8080"),
 			ReadHeaderTimeout: durationEnv("HTTP_READ_HEADER_TIMEOUT", 5*time.Second),
+		},
+		Security: SecurityConfig{
+			AllowedOrigins:        listEnv("CORS_ALLOWED_ORIGINS", []string{"http://localhost:3000", "http://localhost:3001"}),
+			MaxUploadBytes:        int64Env("MAX_UPLOAD_BYTES", 25*1024*1024),
+			AllowedUploadTypes:    listEnv("ALLOWED_UPLOAD_CONTENT_TYPES", []string{"image/png", "image/jpeg", "image/webp", "image/gif", "application/pdf"}),
+			UploadURLTTL:          durationEnv("UPLOAD_URL_TTL", 10*time.Minute),
+			ContentSecurityPolicy: env("CONTENT_SECURITY_POLICY", "default-src 'none'; frame-ancestors 'none'; base-uri 'none'"),
 		},
 		Postgres: PostgresConfig{
 			DSN:          env("DATABASE_URL", "postgres://zenart:zenart@localhost:5432/zenart?sslmode=disable"),
@@ -146,6 +162,27 @@ func (c Config) Validate() error {
 	}
 	if strings.TrimSpace(c.Redis.Addr) == "" {
 		errs = append(errs, "REDIS_ADDR must not be empty")
+	}
+	if c.Security.MaxUploadBytes <= 0 {
+		errs = append(errs, "MAX_UPLOAD_BYTES must be > 0")
+	}
+	if len(c.Security.AllowedUploadTypes) == 0 {
+		errs = append(errs, "ALLOWED_UPLOAD_CONTENT_TYPES must include at least one content type")
+	}
+	for _, contentType := range c.Security.AllowedUploadTypes {
+		if !strings.Contains(contentType, "/") {
+			errs = append(errs, "ALLOWED_UPLOAD_CONTENT_TYPES entries must be media types")
+			break
+		}
+	}
+	if c.Security.UploadURLTTL <= 0 {
+		errs = append(errs, "UPLOAD_URL_TTL must be > 0")
+	}
+	for _, origin := range c.Security.AllowedOrigins {
+		parsed, err := url.ParseRequestURI(origin)
+		if err != nil || parsed.Scheme == "" || parsed.Host == "" {
+			errs = append(errs, fmt.Sprintf("CORS_ALLOWED_ORIGINS entry must be an absolute origin: %q", origin))
+		}
 	}
 	if _, err := url.ParseRequestURI(c.ObjectStorage.Endpoint); err != nil {
 		errs = append(errs, fmt.Sprintf("OBJECT_STORAGE_ENDPOINT must be a URL: %v", err))
@@ -229,6 +266,25 @@ func boolEnv(key string, fallback bool) bool {
 		return fallback
 	}
 	return parsed
+}
+
+func listEnv(key string, fallback []string) []string {
+	value, ok := os.LookupEnv(key)
+	if !ok || strings.TrimSpace(value) == "" {
+		return fallback
+	}
+	parts := strings.Split(value, ",")
+	items := make([]string, 0, len(parts))
+	for _, part := range parts {
+		item := strings.TrimSpace(part)
+		if item != "" {
+			items = append(items, item)
+		}
+	}
+	if len(items) == 0 {
+		return fallback
+	}
+	return items
 }
 
 func durationEnv(key string, fallback time.Duration) time.Duration {

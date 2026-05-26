@@ -22,7 +22,7 @@ func TestCreateSupportTicketPersistsTenantUserAndLinks(t *testing.T) {
 		Category:       "export_failure",
 		Body:           "The export failed.",
 		LinkedExportID: "export_1",
-		Metadata:       map[string]any{"trace_id": "trace_1"},
+		Metadata:       map[string]any{"trace_id": "trace_1", "api_key": "secret"},
 	})
 	if err != nil {
 		t.Fatalf("CreateSupportTicket() error = %v", err)
@@ -35,6 +35,9 @@ func TestCreateSupportTicketPersistsTenantUserAndLinks(t *testing.T) {
 	}
 	if ticket.LinkedExportID == nil || *ticket.LinkedExportID != "export_1" {
 		t.Fatalf("ticket LinkedExportID = %v", ticket.LinkedExportID)
+	}
+	if ticket.Metadata["api_key"] != "[REDACTED]" {
+		t.Fatalf("ticket api_key metadata = %v, want redacted", ticket.Metadata["api_key"])
 	}
 	if len(db.execs) != 1 || !strings.Contains(db.execs[0].sql, "INSERT INTO support_tickets") {
 		t.Fatalf("support ticket insert not recorded: %#v", db.execs)
@@ -77,6 +80,82 @@ func TestCreateExportCreatesTaskAndExport(t *testing.T) {
 	}
 	if !strings.Contains(db.execs[1].sql, "INSERT INTO exports") {
 		t.Fatalf("second exec should create export: %s", db.execs[1].sql)
+	}
+}
+
+func TestCreateUploadValidatesAndPersistsMetadata(t *testing.T) {
+	db := &fakeDB{}
+	repo := NewRepository(db)
+
+	upload, err := repo.CreateUpload(context.Background(), UploadOptions{
+		TenantID:            "tenant_1",
+		UserID:              "user_1",
+		Bucket:              "uploads-test",
+		AllowedContentTypes: []string{"image/png"},
+		MaxBytes:            1024,
+		URLTTL:              5 * time.Minute,
+		Input: UploadCreate{
+			Filename:    "../Logo Draft.png",
+			ContentType: "IMAGE/PNG",
+			ByteSize:    512,
+			UploadType:  "reference",
+			Metadata:    map[string]any{"slot": "reference", "session_token": "secret"},
+		},
+		SignURL: func(_ string, objectKey string, _ time.Duration) (string, time.Time) {
+			return "/signed/" + objectKey, time.Now().UTC().Add(5 * time.Minute)
+		},
+	})
+	if err != nil {
+		t.Fatalf("CreateUpload() error = %v", err)
+	}
+	if upload.OriginalName != "Logo_Draft.png" {
+		t.Fatalf("filename = %q, want sanitized basename", upload.OriginalName)
+	}
+	if upload.ContentType != "image/png" {
+		t.Fatalf("content type = %q, want image/png", upload.ContentType)
+	}
+	if upload.ObjectMetadata.Bucket != "uploads-test" {
+		t.Fatalf("bucket = %q, want uploads-test", upload.ObjectMetadata.Bucket)
+	}
+	if upload.Metadata["session_token"] != "[REDACTED]" {
+		t.Fatalf("upload session token metadata = %v, want redacted", upload.Metadata["session_token"])
+	}
+	if len(db.execs) != 2 {
+		t.Fatalf("exec count = %d, want 2", len(db.execs))
+	}
+	if !strings.Contains(db.execs[0].sql, "INSERT INTO uploads") {
+		t.Fatalf("first exec should create upload: %s", db.execs[0].sql)
+	}
+	if !strings.Contains(db.execs[1].sql, "INSERT INTO object_metadata") {
+		t.Fatalf("second exec should create object metadata: %s", db.execs[1].sql)
+	}
+}
+
+func TestCreateUploadRejectsUnsupportedContentTypeAndOversize(t *testing.T) {
+	repo := NewRepository(&fakeDB{})
+	base := UploadOptions{
+		TenantID:            "tenant_1",
+		UserID:              "user_1",
+		AllowedContentTypes: []string{"image/png"},
+		MaxBytes:            10,
+		URLTTL:              time.Minute,
+		Input: UploadCreate{
+			Filename:    "file.exe",
+			ContentType: "application/octet-stream",
+			ByteSize:    8,
+		},
+		SignURL: func(_ string, _ string, _ time.Duration) (string, time.Time) {
+			return "/signed", time.Now().UTC()
+		},
+	}
+
+	if _, err := repo.CreateUpload(context.Background(), base); !errors.Is(err, ErrValidation) {
+		t.Fatalf("CreateUpload() error = %v, want validation for content type", err)
+	}
+	base.Input.ContentType = "image/png"
+	base.Input.ByteSize = 11
+	if _, err := repo.CreateUpload(context.Background(), base); !errors.Is(err, ErrValidation) {
+		t.Fatalf("CreateUpload() error = %v, want validation for oversize upload", err)
 	}
 }
 

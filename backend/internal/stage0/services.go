@@ -11,6 +11,7 @@ import (
 
 	"github.com/alphane-ai/zenart/backend/internal/id"
 	"github.com/alphane-ai/zenart/backend/internal/objectstore"
+	"github.com/alphane-ai/zenart/backend/internal/security"
 	"github.com/alphane-ai/zenart/backend/internal/store"
 	"github.com/alphane-ai/zenart/backend/internal/task"
 )
@@ -78,6 +79,57 @@ type SupportTicketCreate struct {
 	Body           string         `json:"body"`
 	LinkedExportID string         `json:"linked_export_id"`
 	Metadata       map[string]any `json:"metadata"`
+}
+
+type UploadCreate struct {
+	ProjectID   string         `json:"project_id,omitempty"`
+	Filename    string         `json:"filename"`
+	ContentType string         `json:"content_type"`
+	ByteSize    int64          `json:"byte_size"`
+	UploadType  string         `json:"upload_type,omitempty"`
+	Metadata    map[string]any `json:"metadata,omitempty"`
+}
+
+type UploadOptions struct {
+	TenantID            string
+	UserID              string
+	Bucket              string
+	Input               UploadCreate
+	AllowedContentTypes []string
+	MaxBytes            int64
+	URLTTL              time.Duration
+	SignURL             func(tenantID, objectKey string, ttl time.Duration) (string, time.Time)
+}
+
+type Upload struct {
+	ID             string         `json:"id"`
+	TenantID       string         `json:"tenant_id,omitempty"`
+	ProjectID      *string        `json:"project_id,omitempty"`
+	UserID         string         `json:"user_id,omitempty"`
+	Status         string         `json:"status"`
+	UploadType     string         `json:"upload_type"`
+	OriginalName   string         `json:"filename"`
+	ContentType    string         `json:"content_type"`
+	ByteSize       int64          `json:"byte_size"`
+	ObjectKey      string         `json:"object_key"`
+	UploadURL      string         `json:"upload_url"`
+	ExpiresAt      time.Time      `json:"expires_at"`
+	ObjectMetadata ObjectMetadata `json:"object_metadata"`
+	Metadata       map[string]any `json:"metadata,omitempty"`
+	CreatedAt      time.Time      `json:"created_at"`
+	UpdatedAt      time.Time      `json:"updated_at"`
+}
+
+type ObjectMetadata struct {
+	ID          string         `json:"id"`
+	TenantID    string         `json:"tenant_id,omitempty"`
+	Bucket      string         `json:"bucket"`
+	ObjectKey   string         `json:"object_key"`
+	ContentType string         `json:"content_type"`
+	ByteSize    int64          `json:"byte_size"`
+	Checksum    string         `json:"checksum"`
+	Metadata    map[string]any `json:"metadata"`
+	CreatedAt   time.Time      `json:"created_at"`
 }
 
 type CrawlerSource struct {
@@ -197,6 +249,116 @@ VALUES($1, $2, $3, $4, $5, 'pending', 'pending', $6, $6)`,
 	}, nil
 }
 
+func (r Repository) CreateUpload(ctx context.Context, opts UploadOptions) (Upload, error) {
+	filename := cleanFilename(opts.Input.Filename)
+	contentType := strings.ToLower(strings.TrimSpace(opts.Input.ContentType))
+	uploadType := strings.TrimSpace(opts.Input.UploadType)
+	if uploadType == "" {
+		uploadType = "reference"
+	}
+	if strings.TrimSpace(opts.TenantID) == "" || strings.TrimSpace(opts.UserID) == "" {
+		return Upload{}, errors.Join(ErrValidation, errors.New("tenant_id and user_id are required"))
+	}
+	if filename == "" {
+		return Upload{}, errors.Join(ErrValidation, errors.New("filename is required"))
+	}
+	if contentType == "" {
+		return Upload{}, errors.Join(ErrValidation, errors.New("content_type is required"))
+	}
+	if opts.Input.ByteSize <= 0 {
+		return Upload{}, errors.Join(ErrValidation, errors.New("byte_size must be positive"))
+	}
+	if opts.MaxBytes > 0 && opts.Input.ByteSize > opts.MaxBytes {
+		return Upload{}, errors.Join(ErrValidation, errors.New("byte_size exceeds configured upload limit"))
+	}
+	if !contentTypeAllowed(contentType, opts.AllowedContentTypes) {
+		return Upload{}, errors.Join(ErrValidation, errors.New("content_type is not allowed"))
+	}
+	if uploadType != "reference" && uploadType != "brief_attachment" {
+		return Upload{}, errors.Join(ErrValidation, errors.New("upload_type must be reference or brief_attachment"))
+	}
+	if opts.URLTTL <= 0 {
+		opts.URLTTL = 10 * time.Minute
+	}
+	if strings.TrimSpace(opts.Bucket) == "" {
+		opts.Bucket = "zenart-local"
+	}
+	if opts.SignURL == nil {
+		return Upload{}, errors.New("upload URL signer is required")
+	}
+
+	now := time.Now().UTC()
+	uploadID := id.New("upload")
+	objectID := id.New("object")
+	objectKey := "uploads/" + uploadID + "/" + filename
+	uploadURL, expiresAt := opts.SignURL(opts.TenantID, objectKey, opts.URLTTL)
+	metadata := security.RedactMap(opts.Input.Metadata)
+	upload := Upload{
+		ID:           uploadID,
+		TenantID:     opts.TenantID,
+		UserID:       opts.UserID,
+		Status:       "pending",
+		UploadType:   uploadType,
+		OriginalName: filename,
+		ContentType:  contentType,
+		ByteSize:     opts.Input.ByteSize,
+		ObjectKey:    objectKey,
+		UploadURL:    uploadURL,
+		ExpiresAt:    expiresAt,
+		Metadata:     metadata,
+		CreatedAt:    now,
+		UpdatedAt:    now,
+		ObjectMetadata: ObjectMetadata{
+			ID:          objectID,
+			TenantID:    opts.TenantID,
+			Bucket:      opts.Bucket,
+			ObjectKey:   "tenants/" + opts.TenantID + "/" + objectKey,
+			ContentType: contentType,
+			ByteSize:    opts.Input.ByteSize,
+			Metadata:    metadata,
+			CreatedAt:   now,
+		},
+	}
+	if strings.TrimSpace(opts.Input.ProjectID) != "" {
+		projectID := strings.TrimSpace(opts.Input.ProjectID)
+		upload.ProjectID = &projectID
+	}
+
+	_, err := r.db.Exec(ctx, `
+INSERT INTO uploads(id, tenant_id, project_id, user_id, upload_type, status, original_filename, content_type, byte_size, created_at, updated_at)
+VALUES($1, $2, $3, $4, $5, 'pending', $6, $7, $8, $9, $9)`,
+		upload.ID,
+		upload.TenantID,
+		upload.ProjectID,
+		upload.UserID,
+		upload.UploadType,
+		upload.OriginalName,
+		upload.ContentType,
+		upload.ByteSize,
+		now,
+	)
+	if err != nil {
+		return Upload{}, err
+	}
+	_, err = r.db.Exec(ctx, `
+INSERT INTO object_metadata(id, tenant_id, upload_id, bucket, object_key, content_type, byte_size, checksum, metadata, created_at)
+VALUES($1, $2, $3, $4, $5, $6, $7, '', $8, $9)`,
+		upload.ObjectMetadata.ID,
+		upload.TenantID,
+		upload.ID,
+		upload.ObjectMetadata.Bucket,
+		upload.ObjectMetadata.ObjectKey,
+		upload.ObjectMetadata.ContentType,
+		upload.ObjectMetadata.ByteSize,
+		jsonObject(metadata),
+		now,
+	)
+	if err != nil {
+		return Upload{}, err
+	}
+	return upload, nil
+}
+
 func (r Repository) GetExport(ctx context.Context, tenantID, exportID string) (Export, error) {
 	var export Export
 	var errorJSON []byte
@@ -300,7 +462,7 @@ WHERE tenant_id = $1 AND id = $2`,
 
 func (r Repository) CreateSupportTicket(ctx context.Context, tenantID, userID string, input SupportTicketCreate) (SupportTicket, error) {
 	category := strings.TrimSpace(input.Category)
-	body := strings.TrimSpace(input.Body)
+	body := security.RedactString(strings.TrimSpace(input.Body))
 	if category == "" || body == "" {
 		return SupportTicket{}, errors.Join(ErrValidation, errors.New("category and body are required"))
 	}
@@ -312,7 +474,7 @@ func (r Repository) CreateSupportTicket(ctx context.Context, tenantID, userID st
 		Category:  category,
 		Status:    "open",
 		Body:      body,
-		Metadata:  input.Metadata,
+		Metadata:  security.RedactMap(input.Metadata),
 		CreatedAt: now,
 		UpdatedAt: now,
 	}
@@ -587,6 +749,39 @@ func jsonObject(value map[string]any) []byte {
 	}
 	data, _ := json.Marshal(value)
 	return data
+}
+
+func cleanFilename(filename string) string {
+	filename = strings.TrimSpace(strings.ReplaceAll(filename, "\\", "/"))
+	parts := strings.Split(filename, "/")
+	filename = strings.TrimSpace(parts[len(parts)-1])
+	if filename == "." || filename == ".." || strings.Contains(filename, "\x00") {
+		return ""
+	}
+	filename = strings.Map(func(r rune) rune {
+		switch {
+		case r >= 'a' && r <= 'z':
+			return r
+		case r >= 'A' && r <= 'Z':
+			return r
+		case r >= '0' && r <= '9':
+			return r
+		case r == '.', r == '-', r == '_':
+			return r
+		default:
+			return '_'
+		}
+	}, filename)
+	return strings.Trim(filename, ".")
+}
+
+func contentTypeAllowed(contentType string, allowed []string) bool {
+	for _, candidate := range allowed {
+		if strings.EqualFold(strings.TrimSpace(candidate), contentType) {
+			return true
+		}
+	}
+	return false
 }
 
 type Service struct {

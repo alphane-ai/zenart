@@ -18,6 +18,15 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.Redis.Addr != "localhost:6379" {
 		t.Fatalf("Redis.Addr = %q, want localhost:6379", cfg.Redis.Addr)
 	}
+	if cfg.Security.MaxUploadBytes <= 0 {
+		t.Fatalf("Security.MaxUploadBytes = %d, want positive", cfg.Security.MaxUploadBytes)
+	}
+	if len(cfg.Security.AllowedUploadTypes) == 0 {
+		t.Fatal("Security.AllowedUploadTypes must have local defaults")
+	}
+	if cfg.Security.UploadURLTTL <= 0 {
+		t.Fatalf("Security.UploadURLTTL = %s, want positive", cfg.Security.UploadURLTTL)
+	}
 	if cfg.ObjectStorage.Bucket != "zenart-local" {
 		t.Fatalf("ObjectStorage.Bucket = %q, want zenart-local", cfg.ObjectStorage.Bucket)
 	}
@@ -44,5 +53,26 @@ func TestValidateRejectsInvalidObjectStorageEndpoint(t *testing.T) {
 	cfg.ObjectStorage.Endpoint = "%"
 	if err := cfg.Validate(); err == nil {
 		t.Fatal("Validate() error = nil, want invalid endpoint error")
+	}
+}
+
+func TestValidateRejectsInvalidSecurityConfig(t *testing.T) {
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+
+	cfg.Security.MaxUploadBytes = 0
+	if err := cfg.Validate(); err == nil {
+		t.Fatal("Validate() error = nil, want invalid max upload size error")
+	}
+
+	cfg, err = Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	cfg.Security.AllowedUploadTypes = []string{"png"}
+	if err := cfg.Validate(); err == nil {
+		t.Fatal("Validate() error = nil, want invalid upload content type error")
 	}
 }

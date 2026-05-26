@@ -1847,13 +1847,13 @@ main 合并前必须通过：
 ### 25.16 Security, Privacy, Legal
 
 - [ ] 实现 secure cookies。
-- [ ] 配置 CORS。
+- [x] 配置 CORS。
 - [ ] 配置 CSRF 或 same-site strategy。
-- [ ] 配置 security headers。
-- [ ] 实现 upload validation。
+- [x] 配置 security headers。
+- [x] 实现 upload validation。
 - [ ] 实现 malware-scan placeholder/interface。
 - [ ] 实现 secret classification。
-- [ ] 实现 startup config validation。
+- [x] 实现 startup config validation。
 - [ ] 实现 secret redaction。
 - [ ] 添加 dependency/image/secret scans。
 - [x] 添加 Privacy notice。

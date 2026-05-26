@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"net/http"
@@ -9,7 +10,10 @@ import (
 	"time"
 
 	"github.com/alphane-ai/zenart/backend/internal/config"
+	"github.com/alphane-ai/zenart/backend/internal/stage0"
+	"github.com/alphane-ai/zenart/backend/internal/store"
 	"github.com/alphane-ai/zenart/backend/internal/task"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 func TestHealthz(t *testing.T) {
@@ -82,6 +86,55 @@ func TestTaskStatusRequiresAuth(t *testing.T) {
 
 	if rec.Code != http.StatusUnauthorized {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusUnauthorized)
+	}
+}
+
+func TestSecurityHeadersAndCORS(t *testing.T) {
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
+	req.Header.Set("Origin", "http://localhost:3000")
+	rec := httptest.NewRecorder()
+
+	New(cfg, nil).Handler().ServeHTTP(rec, req)
+
+	if rec.Header().Get("X-Content-Type-Options") != "nosniff" {
+		t.Fatalf("X-Content-Type-Options = %q, want nosniff", rec.Header().Get("X-Content-Type-Options"))
+	}
+	if rec.Header().Get("X-Frame-Options") != "DENY" {
+		t.Fatalf("X-Frame-Options = %q, want DENY", rec.Header().Get("X-Frame-Options"))
+	}
+	if rec.Header().Get("Access-Control-Allow-Origin") != "http://localhost:3000" {
+		t.Fatalf("Access-Control-Allow-Origin = %q, want localhost web origin", rec.Header().Get("Access-Control-Allow-Origin"))
+	}
+}
+
+func TestUploadCreateRejectsUnsupportedContentType(t *testing.T) {
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	body := bytes.NewBufferString(`{"filename":"bad.exe","content_type":"application/octet-stream","byte_size":100}`)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/uploads", body)
+	req = req.WithContext(stage0.ContextWithService(req.Context(), stage0.NewService(stage0.NewRepository(noExecDB{}), nil)))
+	req.Header.Set("X-Zenart-User-ID", "user_1")
+	req.Header.Set("X-Zenart-Tenant-ID", "tenant_1")
+	rec := httptest.NewRecorder()
+
+	New(cfg, nil).Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want validation error: %s", rec.Code, rec.Body.String())
+	}
+	var bodyJSON map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &bodyJSON); err != nil {
+		t.Fatalf("response JSON error = %v", err)
+	}
+	if bodyJSON["code"] != "validation_error" {
+		t.Fatalf("code = %v, want validation_error", bodyJSON["code"])
 	}
 }
 
@@ -240,4 +293,18 @@ func (f *fakeTaskReader) Get(_ context.Context, tenantID, taskID string) (task.T
 		return task.Task{}, task.ErrNotFound
 	}
 	return f.task, nil
+}
+
+type noExecDB struct{}
+
+func (noExecDB) Exec(context.Context, string, ...any) (pgconn.CommandTag, error) {
+	panic("Exec must not be called for invalid upload validation")
+}
+
+func (noExecDB) Query(context.Context, string, ...any) (store.Rows, error) {
+	panic("Query must not be called for invalid upload validation")
+}
+
+func (noExecDB) QueryRow(context.Context, string, ...any) store.Row {
+	panic("QueryRow must not be called for invalid upload validation")
 }
