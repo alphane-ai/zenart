@@ -1,0 +1,236 @@
+package worker
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"log/slog"
+	"time"
+
+	"github.com/jackc/pgx/v5"
+
+	"github.com/alphane-ai/zenart/backend/internal/agent"
+	"github.com/alphane-ai/zenart/backend/internal/store"
+	"github.com/alphane-ai/zenart/backend/internal/task"
+)
+
+var ErrNoTask = errors.New("worker task not found")
+
+type Repository struct {
+	db store.DBTX
+}
+
+func NewRepository(db store.DBTX) Repository {
+	return Repository{db: db}
+}
+
+type ClaimOptions struct {
+	SchemaVersion int
+	InstanceID    string
+	WorkerVersion string
+	Timeout       time.Duration
+	TaskTypes     []string
+}
+
+func (r Repository) ClaimNext(ctx context.Context, opts ClaimOptions) (task.Task, error) {
+	if opts.SchemaVersion < 1 {
+		return task.Task{}, errors.New("schema version must be >= 1")
+	}
+	if opts.WorkerVersion == "" {
+		return task.Task{}, errors.New("worker version is required")
+	}
+	if opts.InstanceID == "" {
+		return task.Task{}, errors.New("worker instance id is required")
+	}
+	if opts.Timeout <= 0 {
+		return task.Task{}, errors.New("claim timeout must be > 0")
+	}
+	if len(opts.TaskTypes) == 0 {
+		return task.Task{}, errors.New("at least one task type is required")
+	}
+
+	now := time.Now().UTC()
+	timeoutAt := now.Add(opts.Timeout)
+	var claimed task.Task
+	var metadataJSON []byte
+	var errorJSON []byte
+	err := r.db.QueryRow(ctx, `
+WITH next_task AS (
+	SELECT id
+	FROM agent_tasks
+	WHERE status = 'pending'
+	  AND schema_version <= $1
+	  AND type = ANY($5)
+	ORDER BY created_at ASC
+	FOR UPDATE SKIP LOCKED
+	LIMIT 1
+)
+UPDATE agent_tasks
+SET status = 'running',
+    user_status = 'running',
+    progress = CASE WHEN progress < 1 THEN 1 ELSE progress END,
+    user_message = 'Worker claimed task',
+    worker_version = $2,
+    timeout_at = $3,
+    metadata = metadata || $6,
+    started_at = COALESCE(started_at, $4),
+    updated_at = $4
+WHERE id IN (SELECT id FROM next_task)
+RETURNING id, tenant_id, type, schema_version, status, user_status, idempotency_key, progress, retry_count, timeout_at, user_message, app_version, worker_version, error, metadata, created_at, updated_at`,
+		opts.SchemaVersion,
+		opts.WorkerVersion,
+		timeoutAt,
+		now,
+		opts.TaskTypes,
+		jsonObject(map[string]any{"worker_instance_id": opts.InstanceID}),
+	).Scan(
+		&claimed.ID,
+		&claimed.TenantID,
+		&claimed.Type,
+		&claimed.SchemaVersion,
+		&claimed.Status,
+		&claimed.UserStatus,
+		&claimed.IdempotencyKey,
+		&claimed.Progress,
+		&claimed.RetryCount,
+		&claimed.TimeoutAt,
+		&claimed.UserMessage,
+		&claimed.AppVersion,
+		&claimed.WorkerVersion,
+		&errorJSON,
+		&metadataJSON,
+		&claimed.CreatedAt,
+		&claimed.UpdatedAt,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return task.Task{}, ErrNoTask
+	}
+	if err != nil {
+		return task.Task{}, err
+	}
+	if len(errorJSON) > 0 {
+		var taskError task.TaskError
+		if err := json.Unmarshal(errorJSON, &taskError); err != nil {
+			return task.Task{}, err
+		}
+		claimed.Error = &taskError
+	}
+	if len(metadataJSON) > 0 {
+		if err := json.Unmarshal(metadataJSON, &claimed.Metadata); err != nil {
+			return task.Task{}, err
+		}
+	}
+	return claimed, nil
+}
+
+func (r Repository) DrainOwned(ctx context.Context, workerVersion, instanceID string) (int64, error) {
+	if workerVersion == "" {
+		return 0, errors.New("worker version is required")
+	}
+	if instanceID == "" {
+		return 0, errors.New("worker instance id is required")
+	}
+	result, err := r.db.Exec(ctx, `
+UPDATE agent_tasks
+SET status = 'failed',
+    user_status = 'failed',
+    progress = CASE WHEN progress > 0 THEN progress ELSE 1 END,
+    user_message = 'Worker drained before completion',
+    error = $2,
+    completed_at = COALESCE(completed_at, $3),
+    updated_at = $3
+WHERE status = 'running'
+  AND worker_version = $1
+  AND metadata->>'worker_instance_id' = $4`,
+		workerVersion,
+		jsonObject(task.TaskError{
+			Code:    "worker_drained",
+			Message: "worker drained before task completion",
+		}),
+		time.Now().UTC(),
+		instanceID,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+type Runner struct {
+	repo      Repository
+	logger    *slog.Logger
+	contracts map[string]agent.StepContract
+	taskTypes []string
+	opts      Options
+}
+
+type Options struct {
+	SchemaVersion int
+	InstanceID    string
+	WorkerVersion string
+	PollInterval  time.Duration
+	ClaimTimeout  time.Duration
+}
+
+func NewRunner(repo Repository, logger *slog.Logger, contracts []agent.StepContract, opts Options) Runner {
+	contractMap := make(map[string]agent.StepContract, len(contracts))
+	taskTypes := make([]string, 0, len(contracts))
+	for _, contract := range contracts {
+		contractMap[contract.Name] = contract
+		if contract.SchemaVersion <= opts.SchemaVersion {
+			taskTypes = append(taskTypes, contract.Name)
+		}
+	}
+	if logger == nil {
+		logger = slog.Default()
+	}
+	return Runner{repo: repo, logger: logger, contracts: contractMap, taskTypes: taskTypes, opts: opts}
+}
+
+func (r Runner) Run(ctx context.Context) error {
+	pollInterval := r.opts.PollInterval
+	if pollInterval <= 0 {
+		pollInterval = 2 * time.Second
+	}
+	ticker := time.NewTicker(pollInterval)
+	defer ticker.Stop()
+
+	for {
+		claimed, err := r.repo.ClaimNext(ctx, ClaimOptions{
+			SchemaVersion: r.opts.SchemaVersion,
+			InstanceID:    r.opts.InstanceID,
+			WorkerVersion: r.opts.WorkerVersion,
+			Timeout:       r.opts.ClaimTimeout,
+			TaskTypes:     r.taskTypes,
+		})
+		switch {
+		case err == nil:
+			if _, ok := r.contracts[claimed.Type]; !ok {
+				r.logger.Warn("claimed unsupported task type", "task_id", claimed.ID, "task_type", claimed.Type, "schema_version", claimed.SchemaVersion)
+				continue
+			}
+			r.logger.Info("claimed task", "task_id", claimed.ID, "task_type", claimed.Type, "schema_version", claimed.SchemaVersion)
+			continue
+		case errors.Is(err, ErrNoTask):
+		case errors.Is(err, context.Canceled), errors.Is(err, context.DeadlineExceeded):
+			return err
+		default:
+			r.logger.Error("worker claim failed", "error", err)
+		}
+
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-ticker.C:
+		}
+	}
+}
+
+func (r Runner) Drain(ctx context.Context) (int64, error) {
+	return r.repo.DrainOwned(ctx, r.opts.WorkerVersion, r.opts.InstanceID)
+}
+
+func jsonObject(value any) []byte {
+	data, _ := json.Marshal(value)
+	return data
+}

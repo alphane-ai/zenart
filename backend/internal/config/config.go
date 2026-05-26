@@ -20,6 +20,7 @@ type Config struct {
 	Auth          AuthConfig
 	Billing       BillingConfig
 	Tasks         TaskConfig
+	Worker        WorkerConfig
 }
 
 type AppConfig struct {
@@ -68,6 +69,14 @@ type TaskConfig struct {
 	SchemaVersion int
 }
 
+type WorkerConfig struct {
+	InstanceID        string
+	Version           string
+	PollInterval      time.Duration
+	ClaimTimeout      time.Duration
+	DrainGraceTimeout time.Duration
+}
+
 func Load() (Config, error) {
 	cfg := Config{
 		App: AppConfig{
@@ -108,6 +117,13 @@ func Load() (Config, error) {
 		Tasks: TaskConfig{
 			SchemaVersion: intEnv("TASK_SCHEMA_VERSION", 1),
 		},
+		Worker: WorkerConfig{
+			InstanceID:        env("WORKER_INSTANCE_ID", "stage0-local-worker"),
+			Version:           env("WORKER_VERSION", "stage0-local"),
+			PollInterval:      durationEnv("WORKER_POLL_INTERVAL", 2*time.Second),
+			ClaimTimeout:      durationEnv("WORKER_CLAIM_TIMEOUT", 15*time.Minute),
+			DrainGraceTimeout: durationEnv("WORKER_DRAIN_GRACE_TIMEOUT", 10*time.Second),
+		},
 	}
 
 	if err := cfg.Validate(); err != nil {
@@ -139,6 +155,21 @@ func (c Config) Validate() error {
 	}
 	if c.Tasks.SchemaVersion < 1 {
 		errs = append(errs, "TASK_SCHEMA_VERSION must be >= 1")
+	}
+	if strings.TrimSpace(c.Worker.Version) == "" {
+		errs = append(errs, "WORKER_VERSION must not be empty")
+	}
+	if strings.TrimSpace(c.Worker.InstanceID) == "" {
+		errs = append(errs, "WORKER_INSTANCE_ID must not be empty")
+	}
+	if c.Worker.PollInterval <= 0 {
+		errs = append(errs, "WORKER_POLL_INTERVAL must be > 0")
+	}
+	if c.Worker.ClaimTimeout <= 0 {
+		errs = append(errs, "WORKER_CLAIM_TIMEOUT must be > 0")
+	}
+	if c.Worker.DrainGraceTimeout <= 0 {
+		errs = append(errs, "WORKER_DRAIN_GRACE_TIMEOUT must be > 0")
 	}
 
 	if len(errs) > 0 {
