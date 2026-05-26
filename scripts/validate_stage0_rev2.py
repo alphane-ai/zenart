@@ -64,6 +64,22 @@ CRAWLER_CASES = {
     "pending_review_import",
 }
 
+QA_CATEGORIES = {
+    "file_integrity",
+    "dimensions",
+    "aspect_ratio",
+    "safe_area",
+    "blank_output",
+    "duplicate_similarity",
+    "four_option_distinctness",
+    "text_readability",
+    "structured_text",
+    "product_logo_preservation",
+    "forbidden_claims",
+    "watermark_signature_risk",
+    "export_completeness",
+}
+
 LOCAL_ALPHA_SERVICE_PATHS = {
     "web": [
         "web/package.json",
@@ -747,6 +763,52 @@ def validate_qa_and_safety() -> None:
     qa_results = load_json(FIXTURE_DIR / "eval" / "qa_results.json")
     severities = {item["severity"] for item in qa_results}
     require({"warning", "blocking"} <= severities, "QA fixtures must include warning and blocking examples")
+    categories = {item["check_category"] for item in qa_results}
+    require(QA_CATEGORIES <= categories, f"QA fixtures missing categories: {sorted(QA_CATEGORIES - categories)}")
+    check_ids = [item["check_id"] for item in qa_results]
+    require(len(check_ids) == len(set(check_ids)), "QA fixtures must have unique check_id values")
+    fixture_ids = {
+        fixture["fixture_id"]
+        for fixture in load_json(FIXTURE_DIR / "eval" / "starter_eval_suite.json")["fixtures"]
+    }
+    workflows = WORKFLOWS
+    for item in qa_results:
+        require(item["workflow"] in workflows, f"{item['check_id']} references unknown workflow")
+        require(
+            item["evidence"]["fixture_id"] in fixture_ids,
+            f"{item['check_id']} references unknown eval fixture {item['evidence']['fixture_id']}",
+        )
+        require(item["evidence"]["trace_id"].startswith("trace_"), f"{item['check_id']} trace_id must be trace-scoped")
+        require(item["evidence"]["observed"], f"{item['check_id']} must include observed QA evidence")
+        require(item["evidence"]["expected"], f"{item['check_id']} must include expected QA evidence")
+        require(item["evidence"]["source_artifacts"], f"{item['check_id']} must cite source artifacts")
+        gate = item["export_gate"]
+        if item["severity"] == "blocking":
+            require(
+                gate["blocks_final_export"] is True,
+                f"{item['check_id']} blocking QA result must block final export",
+            )
+        require(
+            gate["override_requires_audit"] is True,
+            f"{item['check_id']} export override eligibility must require audit",
+        )
+    require(
+        any(
+            item["check_category"] == "text_readability"
+            and item["evidence"]["observed"].get("manual_review_placeholder") is True
+            for item in qa_results
+        ),
+        "QA fixtures must cover OCR/text readability with a manual-review placeholder",
+    )
+    require(
+        any(
+            item["check_category"] == "export_completeness"
+            and item["evidence"]["observed"].get("manifest_json") is False
+            and item["export_gate"]["blocks_final_export"] is True
+            for item in qa_results
+        ),
+        "QA fixtures must include export completeness blocking missing manifest evidence",
+    )
 
     rules = load_json(FIXTURE_DIR / "eval" / "safety_rules.json")
     domains = {item["domain"] for item in rules}

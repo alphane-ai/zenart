@@ -7,10 +7,12 @@
   "required": [
     "schema_version",
     "check_id",
+    "check_category",
     "severity",
     "workflow",
     "asset_id",
     "evidence",
+    "export_gate",
     "auto_fix_available",
     "review_required",
     "user_visible_message",
@@ -24,6 +26,23 @@
     "check_id": {
       "type": "string",
       "pattern": "^qa_[a-z0-9_]+$"
+    },
+    "check_category": {
+      "enum": [
+        "file_integrity",
+        "dimensions",
+        "aspect_ratio",
+        "safe_area",
+        "blank_output",
+        "duplicate_similarity",
+        "four_option_distinctness",
+        "text_readability",
+        "structured_text",
+        "product_logo_preservation",
+        "forbidden_claims",
+        "watermark_signature_risk",
+        "export_completeness"
+      ]
     },
     "severity": {
       "enum": [
@@ -42,21 +61,56 @@
     },
     "evidence": {
       "type": "object",
+      "additionalProperties": false,
       "required": [
         "observed",
         "expected",
-        "trace_id"
+        "trace_id",
+        "fixture_id",
+        "source_artifacts"
       ],
       "properties": {
         "observed": {
-          "type": "object"
+          "$ref": "#/$defs/evidence_map"
         },
         "expected": {
-          "type": "object"
+          "$ref": "#/$defs/evidence_map"
         },
         "trace_id": {
           "type": "string",
           "minLength": 1
+        },
+        "fixture_id": {
+          "type": "string",
+          "pattern": "^fx_[a-z0-9_]+$"
+        },
+        "source_artifacts": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "export_gate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "blocks_final_export",
+        "eligible_admin_override",
+        "override_requires_audit"
+      ],
+      "properties": {
+        "blocks_final_export": {
+          "type": "boolean"
+        },
+        "eligible_admin_override": {
+          "type": "boolean"
+        },
+        "override_requires_audit": {
+          "type": "boolean"
         }
       }
     },
@@ -78,6 +132,19 @@
     }
   },
   "$defs": {
+    "evidence_map": {
+      "type": "object",
+      "additionalProperties": {
+        "type": [
+          "string",
+          "number",
+          "integer",
+          "boolean",
+          "array",
+          "object"
+        ]
+      }
+    },
     "provenance": {
       "type": "object",
       "additionalProperties": false,
@@ -91,11 +158,14 @@
           "minItems": 1,
           "items": {
             "type": "string",
-            "pattern": "^15\\."
+            "pattern": "^((6|8|15)\\.)"
           }
         },
         "created_by_lane": {
-          "const": "lane6"
+          "enum": [
+            "lane2",
+            "lane6"
+          ]
         }
       }
     }
