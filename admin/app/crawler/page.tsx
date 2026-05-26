@@ -1,12 +1,13 @@
 import { DataTable } from "@/components/DataTable";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
-import { getCrawlerFindings, getCrawlerGovernanceWorkflows } from "@/lib/admin-api";
-import type { CrawlerFinding, CrawlerGovernanceWorkflow } from "@/lib/types";
+import { getCrawlerFindings, getCrawlerGovernanceWorkflows, getCrawlerSourceApprovals } from "@/lib/admin-api";
+import type { CrawlerFinding, CrawlerGovernanceWorkflow, CrawlerSourceApproval } from "@/lib/types";
 
 export default async function CrawlerReviewPage() {
-  const [findings, governanceWorkflows] = await Promise.all([
+  const [findings, sourceApprovals, governanceWorkflows] = await Promise.all([
     getCrawlerFindings(),
+    getCrawlerSourceApprovals(),
     getCrawlerGovernanceWorkflows()
   ]);
 
@@ -32,6 +33,33 @@ export default async function CrawlerReviewPage() {
             { key: "status", header: "Status", render: (row) => <StatusBadge value={row.status} /> },
             { key: "provenance", header: "Provenance", render: (row) => row.provenance },
             { key: "risk", header: "Risk Labels", render: (row) => row.riskLabels.join(", ") }
+          ]}
+        />
+      </section>
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>Crawler Source Approval</h3>
+            <p>Source approval needs RBAC, legal metadata, robots evidence, exact-text policy, rate limits, retention limits, and immutable audit evidence.</p>
+          </div>
+        </div>
+        <DataTable<CrawlerSourceApproval>
+          rows={sourceApprovals}
+          columns={[
+            { key: "id", header: "ID", render: (row) => <span className="mono">{row.id}</span> },
+            { key: "source", header: "Source", render: (row) => row.sourceName },
+            { key: "status", header: "Status", render: (row) => <StatusBadge value={row.status} /> },
+            { key: "rbac", header: "RBAC", render: (row) => <StatusBadge value={row.rbacDecision} label={`${row.attemptedRole} -> ${row.requiredRole}`} /> },
+            { key: "legal", header: "Legal Metadata", render: (row) => <StatusBadge value={row.legalMetadataStatus} /> },
+            { key: "robots", header: "Robots Evidence", render: (row) => row.robotsEvidence },
+            { key: "derivative", header: "Derivative Policy", render: (row) => row.derivativeUsePolicy },
+            { key: "exactText", header: "Exact-text Policy", render: (row) => row.exactTextPolicy },
+            { key: "retention", header: "Retention", render: (row) => `${row.rawRetentionDays} days` },
+            { key: "rateLimit", header: "Rate Limit", render: (row) => row.rateLimitPolicy },
+            { key: "activation", header: "Activation", render: (row) => <StatusBadge value={row.activationGate} /> },
+            { key: "evidence", header: "Evidence Refs", render: (row) => row.requiredEvidenceRefs.join(", ") },
+            { key: "rationale", header: "Reviewer Rationale", render: (row) => row.reviewerRationale },
+            { key: "audit", header: "Audit Ref", render: (row) => <span className="mono">{row.auditRef}</span> }
           ]}
         />
       </section>

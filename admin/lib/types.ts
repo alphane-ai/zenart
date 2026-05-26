@@ -121,6 +121,29 @@ export type CrawlerFinding = {
   riskLabels: string[];
 };
 
+export type CrawlerSourceApproval = {
+  id: string;
+  sourceId: string;
+  sourceName: string;
+  linkedFindingId: string;
+  status: "pending" | "approved" | "blocked" | "rejected";
+  requester: string;
+  requiredRole: "admin_operator" | "admin_reviewer" | "admin_superadmin";
+  attemptedRole: "support_operator" | "admin_operator" | "admin_reviewer" | "admin_superadmin";
+  rbacDecision: "allowed" | "denied" | "second_review_required";
+  legalMetadataStatus: "complete" | "incomplete" | "blocked";
+  robotsEvidence: string;
+  allowedContent: string;
+  derivativeUsePolicy: string;
+  exactTextPolicy: string;
+  rawRetentionDays: number;
+  rateLimitPolicy: string;
+  activationGate: "allowed" | "blocked" | "requires_review";
+  requiredEvidenceRefs: string[];
+  reviewerRationale: string;
+  auditRef: string;
+};
+
 export type CrawlerGovernanceWorkflow = {
   id: string;
   findingId: string;

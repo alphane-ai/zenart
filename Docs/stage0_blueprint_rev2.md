@@ -1800,7 +1800,7 @@ main 合并前必须通过：
 
 ### 25.13 Crawler Governance
 
-- [ ] 实现 crawler source approval。
+- [x] 实现 crawler source approval。
 - [x] 实现 source legal metadata。
 - [ ] 实现 robots evidence。
 - [ ] 实现 SSRF protections。

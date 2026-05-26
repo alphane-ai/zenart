@@ -5,6 +5,7 @@ import {
   abuseEvents,
   analyticsReports,
   crawlerGovernanceWorkflows,
+  crawlerSourceApprovals,
   auditEvents,
   crawlerFindings,
   exportJobs,
@@ -56,6 +57,10 @@ export async function getAdminRbacEvidence() {
 
 export async function getCrawlerFindings() {
   return crawlerFindings;
+}
+
+export async function getCrawlerSourceApprovals() {
+  return crawlerSourceApprovals;
 }
 
 export async function getCrawlerGovernanceWorkflows() {

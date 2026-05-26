@@ -31,6 +31,7 @@ test("admin fixtures cover required operational surfaces", () => {
     "export const skillVersions",
     "export const adminReviewDecisions",
     "export const crawlerFindings",
+    "export const crawlerSourceApprovals",
     "export const crawlerGovernanceWorkflows",
     "export const promptFragments",
     "export const metaPrompts",
@@ -265,6 +266,9 @@ test("admin routes surface governance evidence", () => {
     "utf8"
   );
   assert.match(crawlerPage, /Takedown and Derivative Review Workflow/);
+  assert.match(crawlerPage, /Crawler Source Approval/);
+  assert.match(crawlerPage, /Robots Evidence/);
+  assert.match(crawlerPage, /Exact-text Policy/);
   assert.match(crawlerPage, /Derivative Use/);
   assert.match(crawlerPage, /Retention Action/);
   assert.match(crawlerPage, /Activation/);

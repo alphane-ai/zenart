@@ -6,6 +6,7 @@ import type {
   AnalyticsReport,
   AgentTrace,
   AuditEvent,
+  CrawlerSourceApproval,
   CrawlerGovernanceWorkflow,
   CrawlerFinding,
   ExportJob,
@@ -644,6 +645,78 @@ export const crawlerFindings: CrawlerFinding[] = [
     status: "approved",
     provenance: "crawler-source cs-19",
     riskLabels: ["derivative-ok", "source-linked"]
+  }
+];
+
+export const crawlerSourceApprovals: CrawlerSourceApproval[] = [
+  {
+    id: "csa-018",
+    sourceId: "crawler-source cs-18",
+    sourceName: "public design guideline RSS",
+    linkedFindingId: "cf-104",
+    status: "pending",
+    requester: "crawler-ops",
+    requiredRole: "admin_reviewer",
+    attemptedRole: "admin_operator",
+    rbacDecision: "second_review_required",
+    legalMetadataStatus: "incomplete",
+    robotsEvidence: "robots snapshot recorded at 2026-05-26 10:44; crawl delay is present but source contact and derivative grant are still missing.",
+    allowedContent: "Metadata-only review is allowed while raw documents stay out of activation paths.",
+    derivativeUsePolicy: "Derivative use is blocked until legal metadata and reviewer approval are complete.",
+    exactTextPolicy: "Exact text import is forbidden; any exact-text finding must become a blocked crawler finding before prompt or skill activation.",
+    rawRetentionDays: 3,
+    rateLimitPolicy: "One fetch per source per 24 hours during pending review; no active import while approval is incomplete.",
+    activationGate: "blocked",
+    requiredEvidenceRefs: ["cf-104", "cg-533", "au-014"],
+    reviewerRationale:
+      "Operator request lacks complete legal contact and derivative-use evidence, so source approval requires reviewer signoff and activation remains blocked.",
+    auditRef: "au-014"
+  },
+  {
+    id: "csa-019",
+    sourceId: "crawler-source cs-19",
+    sourceName: "platform safe-area documentation",
+    linkedFindingId: "cf-122",
+    status: "approved",
+    requester: "legal_fixture_reviewer",
+    requiredRole: "admin_reviewer",
+    attemptedRole: "admin_reviewer",
+    rbacDecision: "allowed",
+    legalMetadataStatus: "complete",
+    robotsEvidence: "robots snapshot and source metadata permit the documented private-beta fixture crawl scope.",
+    allowedContent: "Only safe-area metadata, transform notes, and source-linked derivative summaries are allowed into fixtures.",
+    derivativeUsePolicy: "Derivative summaries are allowed with provenance links, retention limits, and no exact source text in active prompts.",
+    exactTextPolicy: "Exact text is stripped before import and any violation routes to crawler takedown workflow.",
+    rawRetentionDays: 14,
+    rateLimitPolicy: "At most one fixture refresh per day with manual reviewer approval before promotion.",
+    activationGate: "allowed",
+    requiredEvidenceRefs: ["cf-122", "cg-522", "au-013"],
+    reviewerRationale:
+      "Reviewer approval is allowed because legal metadata, robots evidence, derivative-use policy, retention limit, and provenance refs are complete.",
+    auditRef: "au-013"
+  },
+  {
+    id: "csa-021",
+    sourceId: "crawler-source cs-21",
+    sourceName: "brand asset pattern collection",
+    linkedFindingId: "cf-118",
+    status: "blocked",
+    requester: "rights-owner@example.invalid",
+    requiredRole: "admin_reviewer",
+    attemptedRole: "admin_operator",
+    rbacDecision: "denied",
+    legalMetadataStatus: "blocked",
+    robotsEvidence: "Source has an active rights-owner takedown claim; robots status cannot override the complaint evidence.",
+    allowedContent: "No raw, derivative, or summary material is allowed while the takedown request is open.",
+    derivativeUsePolicy: "Derivative use is blocked and queued for deletion with the raw source material.",
+    exactTextPolicy: "Exact text and brand-pattern imports are blocked from activation and converted to deletion evidence.",
+    rawRetentionDays: 0,
+    rateLimitPolicy: "Crawler fetches are disabled for this source and imports remain held at zero throughput.",
+    activationGate: "blocked",
+    requiredEvidenceRefs: ["cf-118", "cg-501", "ip-7001", "au-012"],
+    reviewerRationale:
+      "Rights-owner complaint and exact-text risk require blocked source approval, derivative deletion, and reviewer-owned takedown audit before any future review.",
+    auditRef: "au-012"
   }
 ];
 

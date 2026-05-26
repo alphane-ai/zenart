@@ -9,7 +9,7 @@ const parseFixtures = () => {
   const moduleSource = source
     .replace(/^import type[\s\S]*?from "@\/lib\/types";\n\n/, "")
     .replaceAll(/export const (\w+)[^=]*=/g, "const $1 =");
-  return Function(`${moduleSource}\nreturn { skillVersions, skillReleaseStateDefinitions, skillCanaryMetrics, releaseEvidence, supportTickets, supportEscalationRunbooks, supportUsers, riskyExports, abuseEvents, abuseControlHooks, auditEvents, exportJobs, traces, quotaAccounts, feedbackItems, regressionFixtures, analyticsReports, queueHealth, failedTaskControls, crawlerFindings, crawlerGovernanceWorkflows, adminRbacEvidence };`)();
+  return Function(`${moduleSource}\nreturn { skillVersions, skillReleaseStateDefinitions, skillCanaryMetrics, releaseEvidence, supportTickets, supportEscalationRunbooks, supportUsers, riskyExports, abuseEvents, abuseControlHooks, auditEvents, exportJobs, traces, quotaAccounts, feedbackItems, regressionFixtures, analyticsReports, queueHealth, failedTaskControls, crawlerFindings, crawlerSourceApprovals, crawlerGovernanceWorkflows, adminRbacEvidence };`)();
 };
 
 const {
@@ -33,6 +33,7 @@ const {
   queueHealth,
   failedTaskControls,
   crawlerFindings,
+  crawlerSourceApprovals,
   crawlerGovernanceWorkflows,
   adminRbacEvidence
 } = parseFixtures();
@@ -46,6 +47,7 @@ const exportIds = new Set(exportJobs.map((job) => job.id));
 const quotaUserIds = new Set(quotaAccounts.map((account) => account.userId));
 const queueIds = new Set(queueHealth.map((queue) => queue.id));
 const crawlerFindingIds = new Set(crawlerFindings.map((finding) => finding.id));
+const crawlerFindingById = new Map(crawlerFindings.map((finding) => [finding.id, finding]));
 const incidentIds = new Set(["none", "inc-20260526-queue", "inc-20260525-crawler"]);
 const abuseEventById = new Map(abuseEvents.map((event) => [event.id, event]));
 const canaryMetricIds = new Set(skillCanaryMetrics.map((metric) => metric.id));
@@ -462,6 +464,57 @@ test("blocking safety exports cannot be overridden without audit-safe eligibilit
 
     if (riskyExport.overrideEligible) {
       assert.notEqual(riskyExport.action, "block", `${riskyExport.id} override must not bypass blocking action`);
+    }
+  }
+});
+
+test("crawler source approvals gate activation with RBAC, legal, robots, retention, and audit evidence", () => {
+  assert.ok(crawlerSourceApprovals.length > 0, "crawler source approval needs fixtures");
+
+  const statuses = new Set(crawlerSourceApprovals.map((approval) => approval.status));
+  assert.ok(statuses.has("approved"), "source approvals need an approved source");
+  assert.ok(statuses.has("pending"), "source approvals need a pending source");
+  assert.ok(statuses.has("blocked"), "source approvals need a blocked source");
+
+  for (const approval of crawlerSourceApprovals) {
+    const finding = crawlerFindingById.get(approval.linkedFindingId);
+    assert.ok(finding, `${approval.id} links unknown crawler finding ${approval.linkedFindingId}`);
+    assert.equal(approval.sourceId, finding.provenance, `${approval.id} source id must match finding provenance`);
+    assert.ok(roleOrder.has(approval.requiredRole), `${approval.id} has unknown required role`);
+    assert.ok(roleOrder.has(approval.attemptedRole), `${approval.id} has unknown attempted role`);
+    assert.ok(auditIds.has(approval.auditRef), `${approval.id} links unknown audit ${approval.auditRef}`);
+    assert.ok(approval.requiredEvidenceRefs.length >= 3, `${approval.id} needs at least three evidence refs`);
+    assert.ok(approval.robotsEvidence.length > 70, `${approval.id} needs robots evidence`);
+    assert.ok(approval.allowedContent.length > 50, `${approval.id} needs allowed content policy`);
+    assert.ok(approval.derivativeUsePolicy.length > 70, `${approval.id} needs derivative-use policy`);
+    assert.ok(approval.exactTextPolicy.length > 70, `${approval.id} needs exact-text policy`);
+    assert.ok(approval.rateLimitPolicy.length > 50, `${approval.id} needs source rate-limit policy`);
+    assert.ok(approval.rawRetentionDays >= 0 && approval.rawRetentionDays <= 30, `${approval.id} raw retention must be bounded`);
+    assert.ok(approval.reviewerRationale.length > 90, `${approval.id} needs reviewer rationale`);
+
+    for (const ref of approval.requiredEvidenceRefs) {
+      assert.ok(
+        ref === approval.linkedFindingId || auditIds.has(ref) || ref.startsWith("cg-") || ref.startsWith("ip-"),
+        `${approval.id} links unknown source approval evidence ref ${ref}`
+      );
+    }
+
+    if (roleOrder.get(approval.attemptedRole) < roleOrder.get(approval.requiredRole)) {
+      assert.notEqual(approval.rbacDecision, "allowed", `${approval.id} insufficient role cannot approve source`);
+    }
+
+    if (approval.status === "approved") {
+      assert.equal(approval.rbacDecision, "allowed", `${approval.id} approved source needs allowed RBAC`);
+      assert.equal(approval.legalMetadataStatus, "complete", `${approval.id} approved source needs legal metadata`);
+      assert.equal(approval.activationGate, "allowed", `${approval.id} approved source should allow activation`);
+      assert.ok(approval.rawRetentionDays > 0, `${approval.id} approved source needs retention window`);
+    } else {
+      assert.notEqual(approval.activationGate, "allowed", `${approval.id} unresolved source cannot activate`);
+    }
+
+    if (approval.status === "blocked") {
+      assert.equal(approval.rawRetentionDays, 0, `${approval.id} blocked source should not retain raw content`);
+      assert.match(approval.exactTextPolicy, /blocked|forbidden/i, `${approval.id} blocked source needs exact-text block`);
     }
   }
 });
