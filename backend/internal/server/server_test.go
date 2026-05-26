@@ -156,6 +156,60 @@ func TestAdminAuditDeniesNonAdmin(t *testing.T) {
 	}
 }
 
+func TestAdminAuditRequiresSuperadmin(t *testing.T) {
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/admin/v1/audit", nil)
+	req.Header.Set("X-Zenart-User-ID", "admin_viewer_1")
+	req.Header.Set("X-Zenart-Tenant-ID", "tenant_1")
+	req.Header.Set("X-Zenart-Roles", "admin_viewer")
+	rec := httptest.NewRecorder()
+
+	New(cfg, nil).Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusForbidden)
+	}
+	var body map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("response JSON error = %v", err)
+	}
+	details := body["details"].(map[string]any)
+	if details["required_permission"] != "audit:read" {
+		t.Fatalf("required_permission = %v, want audit:read", details["required_permission"])
+	}
+}
+
+func TestAdminExportRegenerateRequiresReviewer(t *testing.T) {
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/api/admin/v1/exports/export_1/regenerate", nil)
+	req.Header.Set("X-Zenart-User-ID", "admin_viewer_1")
+	req.Header.Set("X-Zenart-Tenant-ID", "tenant_1")
+	req.Header.Set("X-Zenart-Roles", "admin_viewer")
+	rec := httptest.NewRecorder()
+
+	New(cfg, nil).Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusForbidden)
+	}
+	var body map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("response JSON error = %v", err)
+	}
+	details := body["details"].(map[string]any)
+	if details["required_permission"] != "export_override:admin" {
+		t.Fatalf("required_permission = %v, want export_override:admin", details["required_permission"])
+	}
+}
+
 func TestTaskStatusUsesPrincipalTenant(t *testing.T) {
 	cfg, err := config.Load()
 	if err != nil {

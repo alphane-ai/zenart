@@ -74,14 +74,25 @@ func (s Session) Principal() Principal {
 type Role string
 
 const (
-	RoleUser  Role = "user"
-	RoleAdmin Role = "admin"
+	RoleUser            Role = "user"
+	RoleUserOwner       Role = "user_owner"
+	RoleUserMember      Role = "user_member"
+	RoleSupportOperator Role = "support_operator"
+	RoleAdminViewer     Role = "admin_viewer"
+	RoleAdminOperator   Role = "admin_operator"
+	RoleAdminReviewer   Role = "admin_reviewer"
+	RoleAdminSuperadmin Role = "admin_superadmin"
+	RoleAdmin           Role = "admin" // legacy local/dev superadmin alias
 )
 
 type Permission string
 
 const (
 	PermissionTaskRead             Permission = "task:read"
+	PermissionSupportRead          Permission = "support:read"
+	PermissionExportRead           Permission = "export:read"
+	PermissionCrawlerRead          Permission = "crawler:read"
+	PermissionSafetyRead           Permission = "safety:read"
 	PermissionAdminQuotaEdit       Permission = "quota:admin_edit"
 	PermissionAuditRead            Permission = "audit:read"
 	PermissionSkillReleaseAdmin    Permission = "skill_release:admin"
@@ -93,15 +104,29 @@ const (
 )
 
 type Policy struct {
-	Required Permission
-	Admin    bool
+	Required     Permission
+	Admin        bool
+	AllowedRoles []Role
 }
 
 func Authorize(_ context.Context, principal Principal, policy Policy) bool {
-	if policy.Admin {
-		return hasRole(principal.Roles, RoleAdmin)
+	if principal.UserID == "" || principal.TenantID == "" {
+		return false
 	}
-	return principal.UserID != "" && principal.TenantID != ""
+	if policy.Required != "" {
+		permissionPolicy, ok := Matrix()[policy.Required]
+		if !ok {
+			return false
+		}
+		return hasAllowedRole(principal.Roles, permissionPolicy.AllowedRoles)
+	}
+	if len(policy.AllowedRoles) > 0 {
+		return hasAllowedRole(principal.Roles, policy.AllowedRoles)
+	}
+	if policy.Admin {
+		return hasAnyAdminRole(principal.Roles)
+	}
+	return true
 }
 
 func SameTenant(principal Principal, tenantID string) bool {
@@ -109,23 +134,76 @@ func SameTenant(principal Principal, tenantID string) bool {
 }
 
 func Matrix() map[Permission]Policy {
-	adminPermissions := []Permission{
-		PermissionAdminQuotaEdit,
-		PermissionAuditRead,
-		PermissionSkillReleaseAdmin,
-		PermissionCrawlerImportAdmin,
-		PermissionPromptApprovalAdmin,
-		PermissionProviderRoutingAdmin,
-		PermissionSafetyRuleAdmin,
-		PermissionExportOverrideAdmin,
+	readOnlyAdminRoles := []Role{
+		RoleAdminViewer,
+		RoleAdminOperator,
+		RoleAdminReviewer,
+		RoleAdminSuperadmin,
+		RoleAdmin,
+	}
+	supportReadRoles := []Role{
+		RoleSupportOperator,
+		RoleAdminViewer,
+		RoleAdminOperator,
+		RoleAdminReviewer,
+		RoleAdminSuperadmin,
+		RoleAdmin,
+	}
+	operatorRoles := []Role{
+		RoleAdminOperator,
+		RoleAdminSuperadmin,
+		RoleAdmin,
+	}
+	reviewerRoles := []Role{
+		RoleAdminReviewer,
+		RoleAdminSuperadmin,
+		RoleAdmin,
+	}
+	superadminRoles := []Role{
+		RoleAdminSuperadmin,
+		RoleAdmin,
 	}
 	matrix := map[Permission]Policy{
-		PermissionTaskRead: {Required: PermissionTaskRead},
-	}
-	for _, permission := range adminPermissions {
-		matrix[permission] = Policy{Required: permission, Admin: true}
+		PermissionTaskRead:             {Required: PermissionTaskRead},
+		PermissionSupportRead:          {Required: PermissionSupportRead, Admin: true, AllowedRoles: supportReadRoles},
+		PermissionExportRead:           {Required: PermissionExportRead, Admin: true, AllowedRoles: readOnlyAdminRoles},
+		PermissionCrawlerRead:          {Required: PermissionCrawlerRead, Admin: true, AllowedRoles: readOnlyAdminRoles},
+		PermissionSafetyRead:           {Required: PermissionSafetyRead, Admin: true, AllowedRoles: readOnlyAdminRoles},
+		PermissionAdminQuotaEdit:       {Required: PermissionAdminQuotaEdit, Admin: true, AllowedRoles: operatorRoles},
+		PermissionAuditRead:            {Required: PermissionAuditRead, Admin: true, AllowedRoles: superadminRoles},
+		PermissionSkillReleaseAdmin:    {Required: PermissionSkillReleaseAdmin, Admin: true, AllowedRoles: reviewerRoles},
+		PermissionCrawlerImportAdmin:   {Required: PermissionCrawlerImportAdmin, Admin: true, AllowedRoles: operatorRoles},
+		PermissionPromptApprovalAdmin:  {Required: PermissionPromptApprovalAdmin, Admin: true, AllowedRoles: reviewerRoles},
+		PermissionProviderRoutingAdmin: {Required: PermissionProviderRoutingAdmin, Admin: true, AllowedRoles: superadminRoles},
+		PermissionSafetyRuleAdmin:      {Required: PermissionSafetyRuleAdmin, Admin: true, AllowedRoles: reviewerRoles},
+		PermissionExportOverrideAdmin:  {Required: PermissionExportOverrideAdmin, Admin: true, AllowedRoles: reviewerRoles},
 	}
 	return matrix
+}
+
+func ParseRole(value string) (Role, bool) {
+	switch Role(strings.TrimSpace(value)) {
+	case RoleUser:
+		return RoleUser, true
+	case RoleUserOwner:
+		return RoleUserOwner, true
+	case RoleUserMember:
+		return RoleUserMember, true
+	case RoleSupportOperator:
+		return RoleSupportOperator, true
+	case RoleAdminViewer:
+		return RoleAdminViewer, true
+	case RoleAdminOperator:
+		return RoleAdminOperator, true
+	case RoleAdminReviewer:
+		return RoleAdminReviewer, true
+	case RoleAdminSuperadmin:
+		return RoleAdminSuperadmin, true
+	case RoleAdmin:
+		return RoleAdmin, true
+	default:
+		return "", false
+	}
 }
 
 func hasRole(roles []Role, want Role) bool {
@@ -135,4 +213,24 @@ func hasRole(roles []Role, want Role) bool {
 		}
 	}
 	return false
+}
+
+func hasAllowedRole(roles []Role, allowed []Role) bool {
+	for _, want := range allowed {
+		if hasRole(roles, want) {
+			return true
+		}
+	}
+	return false
+}
+
+func hasAnyAdminRole(roles []Role) bool {
+	return hasAllowedRole(roles, []Role{
+		RoleSupportOperator,
+		RoleAdminViewer,
+		RoleAdminOperator,
+		RoleAdminReviewer,
+		RoleAdminSuperadmin,
+		RoleAdmin,
+	})
 }

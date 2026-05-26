@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/alphane-ai/zenart/backend/internal/auth"
 	"github.com/alphane-ai/zenart/backend/internal/config"
 	"github.com/alphane-ai/zenart/backend/internal/health"
 	"github.com/alphane-ai/zenart/backend/internal/readiness"
@@ -67,14 +68,14 @@ func (s *Server) routes() {
 	s.mux.Handle("POST /api/v1/packages/{id}/exports", requirePrincipal(http.HandlerFunc(s.createExport)))
 	s.mux.Handle("GET /api/v1/exports/{id}", requirePrincipal(http.HandlerFunc(s.getExport)))
 	s.mux.Handle("POST /api/v1/support/tickets", requirePrincipal(http.HandlerFunc(s.createSupportTicket)))
-	s.mux.Handle("GET /api/admin/v1/support/tickets", requireAdmin(http.HandlerFunc(s.listSupportTickets)))
-	s.mux.Handle("GET /api/admin/v1/exports", requireAdmin(http.HandlerFunc(s.listExports)))
-	s.mux.Handle("POST /api/admin/v1/exports/{id}/regenerate", requireAdmin(http.HandlerFunc(s.regenerateExport)))
-	s.mux.Handle("GET /api/admin/v1/crawler/sources", requireAdmin(http.HandlerFunc(s.listCrawlerSources)))
-	s.mux.Handle("GET /api/admin/v1/crawler/findings", requireAdmin(http.HandlerFunc(s.listCrawlerFindings)))
-	s.mux.Handle("GET /api/admin/v1/safety/rules", requireAdmin(http.HandlerFunc(s.listSafetyRules)))
-	s.mux.Handle("POST /api/admin/v1/safety/decisions", requireAdmin(http.HandlerFunc(s.enforceSafety)))
-	s.mux.Handle("GET /api/admin/v1/audit", requireAdmin(http.HandlerFunc(s.auditSearch)))
+	s.mux.Handle("GET /api/admin/v1/support/tickets", requirePermission(auth.PermissionSupportRead, http.HandlerFunc(s.listSupportTickets)))
+	s.mux.Handle("GET /api/admin/v1/exports", requirePermission(auth.PermissionExportRead, http.HandlerFunc(s.listExports)))
+	s.mux.Handle("POST /api/admin/v1/exports/{id}/regenerate", requirePermission(auth.PermissionExportOverrideAdmin, http.HandlerFunc(s.regenerateExport)))
+	s.mux.Handle("GET /api/admin/v1/crawler/sources", requirePermission(auth.PermissionCrawlerRead, http.HandlerFunc(s.listCrawlerSources)))
+	s.mux.Handle("GET /api/admin/v1/crawler/findings", requirePermission(auth.PermissionCrawlerRead, http.HandlerFunc(s.listCrawlerFindings)))
+	s.mux.Handle("GET /api/admin/v1/safety/rules", requirePermission(auth.PermissionSafetyRead, http.HandlerFunc(s.listSafetyRules)))
+	s.mux.Handle("POST /api/admin/v1/safety/decisions", requirePermission(auth.PermissionSafetyRuleAdmin, http.HandlerFunc(s.enforceSafety)))
+	s.mux.Handle("GET /api/admin/v1/audit", requirePermission(auth.PermissionAuditRead, http.HandlerFunc(s.auditSearch)))
 }
 
 func (s *Server) healthz(w http.ResponseWriter, r *http.Request) {

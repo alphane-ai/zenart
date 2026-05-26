@@ -26,10 +26,22 @@ func requirePrincipal(next http.Handler) http.Handler {
 }
 
 func requireAdmin(next http.Handler) http.Handler {
+	return requirePermission("", next)
+}
+
+func requirePermission(permission auth.Permission, next http.Handler) http.Handler {
 	return requirePrincipal(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		principal, _ := PrincipalFromContext(r.Context())
-		if !auth.Authorize(r.Context(), principal, auth.Policy{Admin: true}) {
-			writeError(w, r, http.StatusForbidden, "forbidden", "admin role is required", nil)
+		policy := auth.Policy{Admin: true}
+		if permission != "" {
+			policy = auth.Policy{Required: permission}
+		}
+		if !auth.Authorize(r.Context(), principal, policy) {
+			details := map[string]any{}
+			if permission != "" {
+				details["required_permission"] = string(permission)
+			}
+			writeError(w, r, http.StatusForbidden, "forbidden", "required admin permission is missing", details)
 			return
 		}
 		next.ServeHTTP(w, r)
@@ -54,8 +66,9 @@ func principalFromHeaders(r *http.Request) (auth.Principal, bool) {
 
 	roles := []auth.Role{auth.RoleUser}
 	for _, role := range strings.Split(r.Header.Get("X-Zenart-Roles"), ",") {
-		if strings.TrimSpace(role) == string(auth.RoleAdmin) {
-			roles = append(roles, auth.RoleAdmin)
+		parsed, ok := auth.ParseRole(role)
+		if ok && parsed != auth.RoleUser {
+			roles = append(roles, parsed)
 		}
 	}
 
