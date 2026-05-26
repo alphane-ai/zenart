@@ -81,3 +81,24 @@ func TestTenantIsolationMigrationCoversRev2BackendSurfaces(t *testing.T) {
 		t.Fatal("tenant isolation constraints should be deploy-safe NOT VALID constraints")
 	}
 }
+
+func TestDomainMigrationSeedsRuntimeSafetyPolicy(t *testing.T) {
+	data, err := os.ReadFile("../../migrations/0002_stage0_rev2_domains.sql")
+	if err != nil {
+		t.Fatalf("read domain migration: %v", err)
+	}
+	sql := string(data)
+	for _, needle := range []string{
+		"safety_stage0_runtime_allow_v1",
+		`"brief"`,
+		`"provider_request"`,
+		`"provider_response"`,
+		`"qa"`,
+		`"export"`,
+		"'active'",
+	} {
+		if !strings.Contains(sql, needle) {
+			t.Fatalf("runtime safety policy seed missing %q", needle)
+		}
+	}
+}

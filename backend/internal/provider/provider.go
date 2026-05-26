@@ -72,6 +72,51 @@ type Client interface {
 	Capabilities() []Capability
 }
 
+type SafetyHooks struct {
+	EnforceProviderRequest  func(ctx context.Context, tenantID, taskID string) error
+	EnforceProviderResponse func(ctx context.Context, tenantID, taskID string) error
+}
+
+type SafetyClient struct {
+	Inner Client
+	Hooks SafetyHooks
+}
+
+func (c SafetyClient) Invoke(ctx context.Context, req Request) (Response, error) {
+	if c.Inner == nil {
+		return Response{}, errors.New("inner provider client is required")
+	}
+	if c.Hooks.EnforceProviderRequest != nil {
+		if err := c.Hooks.EnforceProviderRequest(ctx, req.TenantID, req.TaskID); err != nil {
+			return Response{}, err
+		}
+	}
+	resp, err := c.Inner.Invoke(ctx, req)
+	if err != nil {
+		return Response{}, err
+	}
+	if c.Hooks.EnforceProviderResponse != nil {
+		if err := c.Hooks.EnforceProviderResponse(ctx, req.TenantID, req.TaskID); err != nil {
+			return Response{}, err
+		}
+	}
+	return resp, nil
+}
+
+func (c SafetyClient) Status(ctx context.Context) Status {
+	if c.Inner == nil {
+		return Status{ProviderID: "unconfigured", Available: false, CheckedAt: time.Now().UTC(), Message: "inner provider client is required"}
+	}
+	return c.Inner.Status(ctx)
+}
+
+func (c SafetyClient) Capabilities() []Capability {
+	if c.Inner == nil {
+		return nil
+	}
+	return c.Inner.Capabilities()
+}
+
 type DevProvider struct {
 	Now func() time.Time
 }

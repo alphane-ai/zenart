@@ -84,17 +84,58 @@ func TestCreateExportCreatesTaskAndExport(t *testing.T) {
 	if task.Metadata["project_id"] != "project_1" || task.Metadata["workflow_id"] != "workflow_1" {
 		t.Fatalf("task metadata = %#v, want project/workflow analytics context", task.Metadata)
 	}
-	if len(db.execs) != 3 {
-		t.Fatalf("exec count = %d, want 3", len(db.execs))
+	if len(db.execs) != 5 {
+		t.Fatalf("exec count = %d, want 5", len(db.execs))
 	}
-	if !strings.Contains(db.execs[0].sql, "INSERT INTO agent_tasks") {
-		t.Fatalf("first exec should create task: %s", db.execs[0].sql)
+	if !strings.Contains(db.execs[0].sql, "INSERT INTO safety_decisions") {
+		t.Fatalf("first exec should record export safety decision: %s", db.execs[0].sql)
 	}
-	if !strings.Contains(db.execs[1].sql, "INSERT INTO exports") || !strings.Contains(db.execs[1].sql, "project_id") {
-		t.Fatalf("second exec should create export: %s", db.execs[1].sql)
+	if !strings.Contains(db.execs[1].sql, "INSERT INTO analytics_events") {
+		t.Fatalf("second exec should record safety analytics event: %s", db.execs[1].sql)
 	}
-	if !strings.Contains(db.execs[2].sql, "INSERT INTO analytics_events") {
-		t.Fatalf("third exec should create export analytics event: %s", db.execs[2].sql)
+	if !strings.Contains(db.execs[2].sql, "INSERT INTO agent_tasks") {
+		t.Fatalf("third exec should create task: %s", db.execs[2].sql)
+	}
+	if !strings.Contains(db.execs[3].sql, "INSERT INTO exports") || !strings.Contains(db.execs[3].sql, "project_id") {
+		t.Fatalf("fourth exec should create export: %s", db.execs[3].sql)
+	}
+	if !strings.Contains(db.execs[4].sql, "INSERT INTO analytics_events") {
+		t.Fatalf("fifth exec should create export analytics event: %s", db.execs[4].sql)
+	}
+}
+
+func TestCreateExportBlocksWhenExportSafetyRuleBlocks(t *testing.T) {
+	now := time.Now().UTC()
+	db := &fakeDB{queryRows: []rowSet{{
+		rows: [][]any{{"project_1", "user_1", "workflow_1"}},
+	}, {}, {
+		rows: [][]any{{
+			"rule_1",
+			nil,
+			"export_block",
+			"1",
+			"exports",
+			"critical",
+			"block",
+			[]byte(`["export"]`),
+			"active",
+			now,
+		}},
+	}}}
+	repo := NewRepository(db)
+
+	_, err := repo.CreateExport(context.Background(), "tenant_1", "user_1", "package_1", ExportCreate{Format: "zip"}, 7)
+	if !errors.Is(err, ErrSafetyBlocked) {
+		t.Fatalf("CreateExport() error = %v, want ErrSafetyBlocked", err)
+	}
+	if len(db.execs) != 2 {
+		t.Fatalf("exec count = %d, want safety decision and analytics only", len(db.execs))
+	}
+	if !strings.Contains(db.execs[0].sql, "INSERT INTO safety_decisions") || db.execs[0].args[6] != "block" {
+		t.Fatalf("blocking safety decision not recorded: %#v", db.execs[0])
+	}
+	if strings.Contains(db.execs[1].sql, "INSERT INTO agent_tasks") {
+		t.Fatalf("blocked export should not create task: %#v", db.execs)
 	}
 }
 
@@ -196,7 +237,7 @@ func TestCreateUploadRejectsUnsupportedContentTypeAndOversize(t *testing.T) {
 func TestRecordExportArtifactPersistsObjectMetadataAndDeliveryDescriptors(t *testing.T) {
 	now := time.Now().UTC()
 	db := &fakeDB{
-		queryRows: []rowSet{{
+		queryRows: []rowSet{{}, {
 			rows: [][]any{{
 				"export_1",
 				"tenant_1",
@@ -255,33 +296,75 @@ func TestRecordExportArtifactPersistsObjectMetadataAndDeliveryDescriptors(t *tes
 	if export.Delivery["thumbnail"] == nil {
 		t.Fatalf("delivery metadata missing thumbnail descriptor: %#v", export.Delivery)
 	}
-	if len(db.execs) != 4 {
-		t.Fatalf("exec count = %d, want export metadata, thumbnail metadata, export update, and analytics event", len(db.execs))
+	if len(db.execs) != 6 {
+		t.Fatalf("exec count = %d, want safety decision, safety analytics, export metadata, thumbnail metadata, export update, and analytics event", len(db.execs))
 	}
-	if !strings.Contains(db.execs[0].sql, "INSERT INTO object_metadata") || !strings.Contains(db.execs[0].sql, "derived_from_object_id") {
-		t.Fatalf("first exec missing rich object metadata insert: %s", db.execs[0].sql)
+	if !strings.Contains(db.execs[0].sql, "INSERT INTO safety_decisions") {
+		t.Fatalf("first exec should record export safety decision: %s", db.execs[0].sql)
 	}
-	if objectKey, ok := db.execs[0].args[5].(string); !ok || objectKey != "tenants/tenant_1/exports/export_1.zip" {
-		t.Fatalf("object key arg = %#v, want tenant-scoped export key", db.execs[0].args[5])
+	if !strings.Contains(db.execs[1].sql, "INSERT INTO analytics_events") {
+		t.Fatalf("second exec should record safety analytics event: %s", db.execs[1].sql)
 	}
-	if !strings.Contains(db.execs[1].sql, "'thumbnail'") {
-		t.Fatalf("second exec should create thumbnail metadata: %s", db.execs[1].sql)
+	if !strings.Contains(db.execs[2].sql, "INSERT INTO object_metadata") || !strings.Contains(db.execs[2].sql, "derived_from_object_id") {
+		t.Fatalf("third exec missing rich object metadata insert: %s", db.execs[2].sql)
 	}
-	if objectKey, ok := db.execs[1].args[5].(string); !ok || objectKey != "tenants/tenant_1/thumbnails/export_1.zip.svg" {
-		t.Fatalf("thumbnail key arg = %#v, want tenant-scoped thumbnail key", db.execs[1].args[5])
+	if objectKey, ok := db.execs[2].args[5].(string); !ok || objectKey != "tenants/tenant_1/exports/export_1.zip" {
+		t.Fatalf("object key arg = %#v, want tenant-scoped export key", db.execs[2].args[5])
 	}
-	if !strings.Contains(db.execs[2].sql, "delivery_metadata") {
-		t.Fatalf("third exec should update export delivery metadata: %s", db.execs[2].sql)
+	if !strings.Contains(db.execs[3].sql, "'thumbnail'") {
+		t.Fatalf("fourth exec should create thumbnail metadata: %s", db.execs[3].sql)
 	}
-	if !strings.Contains(db.execs[3].sql, "INSERT INTO analytics_events") {
-		t.Fatalf("fourth exec should create export completion analytics event: %s", db.execs[3].sql)
+	if objectKey, ok := db.execs[3].args[5].(string); !ok || objectKey != "tenants/tenant_1/thumbnails/export_1.zip.svg" {
+		t.Fatalf("thumbnail key arg = %#v, want tenant-scoped thumbnail key", db.execs[3].args[5])
+	}
+	if !strings.Contains(db.execs[4].sql, "delivery_metadata") {
+		t.Fatalf("fifth exec should update export delivery metadata: %s", db.execs[4].sql)
+	}
+	if !strings.Contains(db.execs[5].sql, "INSERT INTO analytics_events") {
+		t.Fatalf("sixth exec should create export completion analytics event: %s", db.execs[5].sql)
+	}
+}
+
+func TestRecordExportArtifactBlocksWhenExportSafetyRuleBlocks(t *testing.T) {
+	now := time.Now().UTC()
+	db := &fakeDB{queryRows: []rowSet{{
+		rows: [][]any{{
+			"rule_1",
+			nil,
+			"export_block",
+			"1",
+			"exports",
+			"critical",
+			"block",
+			[]byte(`["export"]`),
+			"active",
+			now,
+		}},
+	}}}
+	repo := NewRepository(db)
+
+	_, err := repo.RecordExportArtifact(context.Background(), ExportArtifact{
+		ExportID:  "export_1",
+		TenantID:  "tenant_1",
+		ProjectID: "project_1",
+		ObjectKey: "exports/export_1.zip",
+		Format:    "zip",
+	})
+	if !errors.Is(err, ErrSafetyBlocked) {
+		t.Fatalf("RecordExportArtifact() error = %v, want ErrSafetyBlocked", err)
+	}
+	if len(db.execs) != 2 {
+		t.Fatalf("exec count = %d, want safety decision and analytics only", len(db.execs))
+	}
+	if !strings.Contains(db.execs[0].sql, "INSERT INTO safety_decisions") || db.execs[0].args[6] != "block" {
+		t.Fatalf("blocking safety decision not recorded: %#v", db.execs[0])
 	}
 }
 
 func TestServiceRecordExportArtifactGeneratesAndStoresThumbnail(t *testing.T) {
 	now := time.Now().UTC()
 	db := &fakeDB{
-		queryRows: []rowSet{{
+		queryRows: []rowSet{{}, {
 			rows: [][]any{{
 				"export_1",
 				"tenant_1",
@@ -409,6 +492,41 @@ func TestEnforceSafetyRecordsBlockDecisionForActiveRule(t *testing.T) {
 	}
 	if !strings.Contains(db.execs[1].sql, "INSERT INTO analytics_events") {
 		t.Fatalf("safety decision analytics event not recorded: %s", db.execs[1].sql)
+	}
+}
+
+func TestSafetyEnforcementHelpersCoverRev2RuntimePoints(t *testing.T) {
+	for name, run := range map[string]func(Repository) (SafetyDecision, error){
+		SafetyPointBrief: func(repo Repository) (SafetyDecision, error) {
+			return repo.EnforceBriefSafety(context.Background(), "tenant_1", "project_1")
+		},
+		SafetyPointProviderRequest: func(repo Repository) (SafetyDecision, error) {
+			return repo.EnforceProviderRequestSafety(context.Background(), "tenant_1", "task_1")
+		},
+		SafetyPointProviderResponse: func(repo Repository) (SafetyDecision, error) {
+			return repo.EnforceProviderResponseSafety(context.Background(), "tenant_1", "task_1")
+		},
+		SafetyPointQA: func(repo Repository) (SafetyDecision, error) {
+			return repo.EnforceQASafety(context.Background(), "tenant_1", "asset", "asset_1")
+		},
+		SafetyPointExport: func(repo Repository) (SafetyDecision, error) {
+			return repo.EnforceExportSafety(context.Background(), "tenant_1", "export_1")
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			db := &fakeDB{}
+			repo := NewRepository(db)
+			decision, err := run(repo)
+			if err != nil {
+				t.Fatalf("safety helper error = %v", err)
+			}
+			if decision.EnforcementPoint != name || decision.Decision != "allow" {
+				t.Fatalf("decision = %#v, want allow at %s", decision, name)
+			}
+			if len(db.execs) != 2 || !strings.Contains(db.execs[0].sql, "INSERT INTO safety_decisions") {
+				t.Fatalf("safety helper did not persist decision: %#v", db.execs)
+			}
+		})
 	}
 }
 

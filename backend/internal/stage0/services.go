@@ -38,6 +38,14 @@ var (
 	ErrMissingRepository = errors.New("stage0 repository missing")
 )
 
+const (
+	SafetyPointBrief            = "brief"
+	SafetyPointProviderRequest  = "provider_request"
+	SafetyPointProviderResponse = "provider_response"
+	SafetyPointQA               = "qa"
+	SafetyPointExport           = "export"
+)
+
 type Page[T any] struct {
 	Items         []T    `json:"items"`
 	NextPageToken string `json:"next_page_token,omitempty"`
@@ -272,6 +280,9 @@ func (r Repository) CreateExport(ctx context.Context, tenantID, userID, packageI
 	if blocked {
 		return task.Task{}, ErrSafetyBlocked
 	}
+	if _, err := r.RequireSafetyAllowed(ctx, tenantID, "package", packageID, SafetyPointExport); err != nil {
+		return task.Task{}, err
+	}
 
 	now := time.Now().UTC()
 	taskID := id.New("task")
@@ -492,6 +503,9 @@ func (r Repository) RecordExportArtifact(ctx context.Context, artifact ExportArt
 	}
 	if artifact.ContentType == "" {
 		artifact.ContentType = contentTypeForExport(artifact.Format)
+	}
+	if _, err := r.RequireSafetyAllowed(ctx, artifact.TenantID, "export", artifact.ExportID, SafetyPointExport); err != nil {
+		return Export{}, err
 	}
 	if artifact.StorageProvider == "" {
 		artifact.StorageProvider = "configured"
@@ -803,6 +817,9 @@ func (r Repository) RegenerateExport(ctx context.Context, tenantID, exportID str
 	if blocked {
 		return Export{}, ErrSafetyBlocked
 	}
+	if _, err := r.RequireSafetyAllowed(ctx, tenantID, "export", exportID, SafetyPointExport); err != nil {
+		return Export{}, err
+	}
 	now := time.Now().UTC()
 	_, err = r.db.Exec(ctx, `
 UPDATE exports
@@ -1037,15 +1054,19 @@ WHERE TRUE`
 }
 
 func (r Repository) EnforceSafety(ctx context.Context, tenantID, subjectType, subjectID, point string) (SafetyDecision, error) {
-	if strings.TrimSpace(subjectType) == "" || strings.TrimSpace(subjectID) == "" || strings.TrimSpace(point) == "" {
+	tenantID = strings.TrimSpace(tenantID)
+	subjectType = strings.TrimSpace(subjectType)
+	subjectID = strings.TrimSpace(subjectID)
+	point = normalizeSafetyPoint(point)
+	if tenantID == "" || subjectType == "" || subjectID == "" || point == "" {
 		return SafetyDecision{}, errors.Join(ErrValidation, errors.New("subject_type, subject_id, and enforcement_point are required"))
 	}
-	rule, ok, err := r.findBlockingRule(ctx, point)
+	rule, ok, err := r.findActiveSafetyRule(ctx, tenantID, point)
 	if err != nil {
 		return SafetyDecision{}, err
 	}
 	decision := "allow"
-	rationale := "no active blocking rule matched"
+	rationale := "no active safety rule matched"
 	var ruleID *string
 	if ok {
 		decision = rule.Action
@@ -1094,6 +1115,37 @@ VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
 		return SafetyDecision{}, err
 	}
 	return record, nil
+}
+
+func (r Repository) RequireSafetyAllowed(ctx context.Context, tenantID, subjectType, subjectID, point string) (SafetyDecision, error) {
+	decision, err := r.EnforceSafety(ctx, tenantID, subjectType, subjectID, point)
+	if err != nil {
+		return SafetyDecision{}, err
+	}
+	if decision.Decision == "block" {
+		return decision, ErrSafetyBlocked
+	}
+	return decision, nil
+}
+
+func (r Repository) EnforceBriefSafety(ctx context.Context, tenantID, projectID string) (SafetyDecision, error) {
+	return r.RequireSafetyAllowed(ctx, tenantID, "project", projectID, SafetyPointBrief)
+}
+
+func (r Repository) EnforceProviderRequestSafety(ctx context.Context, tenantID, taskID string) (SafetyDecision, error) {
+	return r.RequireSafetyAllowed(ctx, tenantID, "agent_task", taskID, SafetyPointProviderRequest)
+}
+
+func (r Repository) EnforceProviderResponseSafety(ctx context.Context, tenantID, taskID string) (SafetyDecision, error) {
+	return r.RequireSafetyAllowed(ctx, tenantID, "agent_task", taskID, SafetyPointProviderResponse)
+}
+
+func (r Repository) EnforceQASafety(ctx context.Context, tenantID, subjectType, subjectID string) (SafetyDecision, error) {
+	return r.RequireSafetyAllowed(ctx, tenantID, subjectType, subjectID, SafetyPointQA)
+}
+
+func (r Repository) EnforceExportSafety(ctx context.Context, tenantID, exportID string) (SafetyDecision, error) {
+	return r.RequireSafetyAllowed(ctx, tenantID, "export", exportID, SafetyPointExport)
 }
 
 func (r Repository) RecordAnalyticsEvent(ctx context.Context, event AnalyticsEvent) error {
@@ -1159,12 +1211,18 @@ WHERE p.tenant_id = $1 AND p.id = $2`,
 	return pkg, nil
 }
 
-func (r Repository) findBlockingRule(ctx context.Context, point string) (SafetyRule, bool, error) {
+func (r Repository) findActiveSafetyRule(ctx context.Context, tenantID, point string) (SafetyRule, bool, error) {
 	rows, err := r.db.Query(ctx, `
 SELECT id, tenant_id, rule_key, version, domain, severity, action, enforcement_points, status, created_at
 FROM safety_rules
-WHERE status = 'active' AND action = 'block'
-ORDER BY created_at DESC`)
+WHERE status = 'active'
+  AND (tenant_id IS NULL OR tenant_id = $1)
+ORDER BY
+  CASE action WHEN 'block' THEN 0 WHEN 'review' THEN 1 WHEN 'warn' THEN 2 ELSE 3 END,
+  tenant_id NULLS LAST,
+  created_at DESC`,
+		tenantID,
+	)
 	if err != nil {
 		return SafetyRule{}, false, err
 	}
@@ -1183,6 +1241,23 @@ ORDER BY created_at DESC`)
 		}
 	}
 	return SafetyRule{}, false, rows.Err()
+}
+
+func normalizeSafetyPoint(point string) string {
+	switch strings.TrimSpace(point) {
+	case SafetyPointBrief:
+		return SafetyPointBrief
+	case SafetyPointProviderRequest:
+		return SafetyPointProviderRequest
+	case SafetyPointProviderResponse:
+		return SafetyPointProviderResponse
+	case SafetyPointQA:
+		return SafetyPointQA
+	case SafetyPointExport:
+		return SafetyPointExport
+	default:
+		return strings.TrimSpace(point)
+	}
 }
 
 func (r Repository) hasBlockingExportQA(ctx context.Context, tenantID, packageID string) (bool, error) {
@@ -1457,6 +1532,36 @@ func (s Service) Repository() Repository {
 
 func (s Service) CreateExport(ctx context.Context, tenantID, userID, packageID string, input ExportCreate, schemaVersion int) (task.Task, error) {
 	return s.repo.CreateExport(ctx, tenantID, userID, packageID, input, schemaVersion)
+}
+
+func (s Service) EnforceBriefSafety(ctx context.Context, tenantID, projectID string) (SafetyDecision, error) {
+	return s.repo.EnforceBriefSafety(ctx, tenantID, projectID)
+}
+
+func (s Service) EnforceProviderRequestSafety(ctx context.Context, tenantID, taskID string) (SafetyDecision, error) {
+	return s.repo.EnforceProviderRequestSafety(ctx, tenantID, taskID)
+}
+
+func (s Service) RequireProviderRequestSafety(ctx context.Context, tenantID, taskID string) error {
+	_, err := s.EnforceProviderRequestSafety(ctx, tenantID, taskID)
+	return err
+}
+
+func (s Service) EnforceProviderResponseSafety(ctx context.Context, tenantID, taskID string) (SafetyDecision, error) {
+	return s.repo.EnforceProviderResponseSafety(ctx, tenantID, taskID)
+}
+
+func (s Service) RequireProviderResponseSafety(ctx context.Context, tenantID, taskID string) error {
+	_, err := s.EnforceProviderResponseSafety(ctx, tenantID, taskID)
+	return err
+}
+
+func (s Service) EnforceQASafety(ctx context.Context, tenantID, subjectType, subjectID string) (SafetyDecision, error) {
+	return s.repo.EnforceQASafety(ctx, tenantID, subjectType, subjectID)
+}
+
+func (s Service) EnforceExportSafety(ctx context.Context, tenantID, exportID string) (SafetyDecision, error) {
+	return s.repo.EnforceExportSafety(ctx, tenantID, exportID)
 }
 
 func (s Service) RecordExportArtifact(ctx context.Context, artifact ExportArtifact) (Export, error) {

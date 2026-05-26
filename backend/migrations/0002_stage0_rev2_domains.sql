@@ -708,6 +708,10 @@ INSERT INTO eval_suites(id, tenant_id, name, version, status) VALUES
 	('eval_stage0_rev2_starter', NULL, 'Stage 0 Rev2 Starter Eval Suite', '0.0.1', 'draft')
 ON CONFLICT (id) DO NOTHING;
 
+INSERT INTO safety_rules(id, tenant_id, rule_key, version, domain, severity, action, enforcement_points, status) VALUES
+	('safety_stage0_runtime_allow_v1', NULL, 'stage0_runtime_policy', '1', 'stage0', 'info', 'allow', '["brief","provider_request","provider_response","qa","export"]'::jsonb, 'active')
+ON CONFLICT (id) DO NOTHING;
+
 INSERT INTO projects(id, tenant_id, owner_id, name, status, workflow_id, brief) VALUES
 	('project_local_ecommerce_growth', 'tenant_local', 'user_local_user', 'Local Ecommerce Growth Fixture', 'active', 'ecommerce_growth_pack', 'Local seed project for ecommerce growth workflow.'),
 	('project_local_business_doc', 'tenant_local', 'user_local_user', 'Local Business Visual Doc Fixture', 'active', 'business_visual_doc_pack', 'Local seed project for business visual document workflow.'),
