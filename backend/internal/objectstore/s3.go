@@ -6,6 +6,7 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/xml"
 	"errors"
 	"fmt"
 	"io"
@@ -93,21 +94,18 @@ func (s S3Store) Put(ctx context.Context, object Object, body io.Reader) (Object
 	object.ByteSize = int64(len(payload))
 	object.Checksum = "sha256:" + hex.EncodeToString(sum[:])
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPut, s.objectURL(s.endpoint, key).String(), bytes.NewReader(payload))
-	if err != nil {
+	if err := s.putRaw(ctx, key, object.ContentType, payload); err != nil {
 		return Object{}, err
 	}
-	req.Header.Set("Content-Type", object.ContentType)
-	req.Header.Set("X-Amz-Content-Sha256", hex.EncodeToString(sum[:]))
-	s.sign(req, hex.EncodeToString(sum[:]), s.clock())
-
-	resp, err := s.client.Do(req)
-	if err != nil {
+	if object.RetentionUntil != nil {
+		marker := []byte(object.RetentionUntil.UTC().Format(time.RFC3339))
+		if err := s.putRaw(ctx, key+".expires", "text/plain; charset=utf-8", marker); err != nil {
+			_ = s.deleteRaw(context.Background(), key)
+			return Object{}, err
+		}
+	} else if err := s.deleteRaw(ctx, key+".expires"); err != nil && !errors.Is(err, ErrNotFound) {
+		_ = s.deleteRaw(context.Background(), key)
 		return Object{}, err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode < 200 || resp.StatusCode > 299 {
-		return Object{}, fmt.Errorf("s3 put object status %d", resp.StatusCode)
 	}
 	return object, nil
 }
@@ -209,6 +207,90 @@ func (s S3Store) Delete(ctx context.Context, tenantID, key string) error {
 	if err != nil {
 		return err
 	}
+	if err := s.deleteRaw(ctx, key); err != nil && !errors.Is(err, ErrNotFound) {
+		return err
+	}
+	if err := s.deleteRaw(ctx, key+".expires"); err != nil && !errors.Is(err, ErrNotFound) {
+		return err
+	}
+	return nil
+}
+
+func (s S3Store) CleanupExpired(ctx context.Context, now time.Time) (int, error) {
+	if err := ctx.Err(); err != nil {
+		return 0, err
+	}
+	deleted := 0
+	token := ""
+	for {
+		keys, nextToken, err := s.listKeys(ctx, "tenants/", token)
+		if err != nil {
+			return deleted, err
+		}
+		for _, key := range keys {
+			if !strings.HasSuffix(key, ".expires") {
+				continue
+			}
+			expiry, err := s.readExpiryMarker(ctx, key)
+			if err != nil {
+				if errors.Is(err, ErrNotFound) {
+					continue
+				}
+				return deleted, err
+			}
+			if now.Before(expiry) {
+				continue
+			}
+			objectKey := strings.TrimSuffix(key, ".expires")
+			if err := s.deleteTenantScopedRaw(ctx, objectKey); err != nil && !errors.Is(err, ErrNotFound) {
+				return deleted, err
+			}
+			if err := s.deleteTenantScopedRaw(ctx, key); err != nil && !errors.Is(err, ErrNotFound) {
+				return deleted, err
+			}
+			deleted++
+		}
+		if nextToken == "" {
+			return deleted, nil
+		}
+		token = nextToken
+	}
+}
+
+func (s S3Store) putRaw(ctx context.Context, key, contentType string, payload []byte) error {
+	sum := sha256.Sum256(payload)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, s.objectURL(s.endpoint, key).String(), bytes.NewReader(payload))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", contentType)
+	req.Header.Set("X-Amz-Content-Sha256", hex.EncodeToString(sum[:]))
+	s.sign(req, hex.EncodeToString(sum[:]), s.clock())
+
+	resp, err := s.client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		return fmt.Errorf("s3 put object status %d", resp.StatusCode)
+	}
+	return nil
+}
+
+func (s S3Store) deleteTenantScopedRaw(ctx context.Context, key string) error {
+	tenantID, err := tenantIDFromScopedKey(key)
+	if err != nil {
+		return err
+	}
+	scopedKey, err := tenantKey(tenantID, key)
+	if err != nil {
+		return err
+	}
+	return s.deleteRaw(ctx, scopedKey)
+}
+
+func (s S3Store) deleteRaw(ctx context.Context, key string) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, s.objectURL(s.endpoint, key).String(), nil)
 	if err != nil {
 		return err
@@ -223,7 +305,7 @@ func (s S3Store) Delete(ctx context.Context, tenantID, key string) error {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode == http.StatusNotFound {
-		return nil
+		return ErrNotFound
 	}
 	if resp.StatusCode == http.StatusForbidden {
 		return ErrTenantDenied
@@ -234,11 +316,82 @@ func (s S3Store) Delete(ctx context.Context, tenantID, key string) error {
 	return nil
 }
 
-func (s S3Store) CleanupExpired(ctx context.Context, now time.Time) (int, error) {
-	if err := ctx.Err(); err != nil {
-		return 0, err
+func (s S3Store) readExpiryMarker(ctx context.Context, key string) (time.Time, error) {
+	tenantID, err := tenantIDFromScopedKey(key)
+	if err != nil {
+		return time.Time{}, err
 	}
-	return 0, nil
+	reader, err := s.Get(ctx, tenantID, key)
+	if err != nil {
+		return time.Time{}, err
+	}
+	defer reader.Body.Close()
+	data, err := io.ReadAll(io.LimitReader(reader.Body, 128))
+	if err != nil {
+		return time.Time{}, err
+	}
+	expiry, err := time.Parse(time.RFC3339, strings.TrimSpace(string(data)))
+	if err != nil {
+		return time.Time{}, err
+	}
+	return expiry, nil
+}
+
+type listBucketResult struct {
+	IsTruncated           bool               `xml:"IsTruncated"`
+	NextContinuationToken string             `xml:"NextContinuationToken"`
+	Contents              []listBucketObject `xml:"Contents"`
+}
+
+type listBucketObject struct {
+	Key string `xml:"Key"`
+}
+
+func (s S3Store) listKeys(ctx context.Context, prefix, continuationToken string) ([]string, string, error) {
+	u := s.bucketURL(s.endpoint)
+	query := u.Query()
+	query.Set("list-type", "2")
+	query.Set("prefix", prefix)
+	if continuationToken != "" {
+		query.Set("continuation-token", continuationToken)
+	}
+	u.RawQuery = query.Encode()
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return nil, "", err
+	}
+	emptyHash := hashHex(nil)
+	req.Header.Set("X-Amz-Content-Sha256", emptyHash)
+	s.sign(req, emptyHash, s.clock())
+
+	resp, err := s.client.Do(req)
+	if err != nil {
+		return nil, "", err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, "", nil
+	}
+	if resp.StatusCode == http.StatusForbidden {
+		return nil, "", ErrTenantDenied
+	}
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		return nil, "", fmt.Errorf("s3 list objects status %d", resp.StatusCode)
+	}
+	var result listBucketResult
+	if err := xml.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&result); err != nil {
+		return nil, "", err
+	}
+	keys := make([]string, 0, len(result.Contents))
+	for _, object := range result.Contents {
+		if object.Key != "" {
+			keys = append(keys, object.Key)
+		}
+	}
+	if !result.IsTruncated {
+		result.NextContinuationToken = ""
+	}
+	return keys, result.NextContinuationToken, nil
 }
 
 func (s S3Store) objectURL(base *url.URL, key string) *url.URL {
@@ -250,6 +403,19 @@ func (s S3Store) objectURL(base *url.URL, key string) *url.URL {
 	}
 	u.Host = s.bucket + "." + u.Host
 	u.Path = strings.TrimRight(u.Path, "/") + cleanKey
+	return &u
+}
+
+func (s S3Store) bucketURL(base *url.URL) *url.URL {
+	u := *base
+	if s.forcePathStyle {
+		u.Path = strings.TrimRight(u.Path, "/") + "/" + s.bucket
+		return &u
+	}
+	u.Host = s.bucket + "." + u.Host
+	if u.Path == "" {
+		u.Path = "/"
+	}
 	return &u
 }
 

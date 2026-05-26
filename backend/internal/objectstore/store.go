@@ -309,6 +309,18 @@ func normalizeTenantID(tenantID string) (string, error) {
 	return tenantID, nil
 }
 
+func tenantIDFromScopedKey(key string) (string, error) {
+	key = strings.Trim(strings.TrimSpace(key), "/")
+	if !strings.HasPrefix(key, "tenants/") {
+		return "", errors.New("object key is missing tenant scope")
+	}
+	parts := strings.SplitN(key, "/", 3)
+	if len(parts) < 3 || parts[1] == "" || parts[2] == "" {
+		return "", errors.New("object key is missing tenant scope")
+	}
+	return normalizeTenantID(parts[1])
+}
+
 func hasUnsafePathSegment(key string) bool {
 	for _, segment := range strings.Split(key, "/") {
 		if segment == "" || segment == "." || segment == ".." {
