@@ -642,6 +642,10 @@ REQUIRED_OPEN_ITEMS = {
 }
 
 CRAWLER_GOVERNANCE_SPLIT_ITEMS = {
+    "source_approval": {
+        "contract_item": "实现 admin crawler source approval evidence。",
+        "runtime_item": "crawler fetch/import 强制 source approval runtime gate。",
+    },
     "robots_evidence": {
         "contract_item": "定义 robots evidence fixture/contract。",
         "runtime_item": "crawler runtime 强制 robots evidence。",
