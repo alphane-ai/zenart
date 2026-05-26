@@ -115,6 +115,12 @@
     "auth/session flow exposes sign-in, refresh, expire, logout, and expired-session alerts",
     "session contract exposes HttpOnly Secure SameSite cookie evidence and same-site CSRF header evidence"
   ],
+  "securityEvidence": [
+    "stage0.rev2.session-csrf-client-evidence",
+    "secure __Host session cookie contract is exposed as machine-checkable UI data attributes",
+    "same-site CSRF contract exposes origin policy, credential mode, protected methods, protected operation count, and missing-operation count",
+    "generated unsafe web operations have zero missing same-site CSRF evidence"
+  ],
   "analyticsCoverage": ["analytics-event-taxonomy", "client-side-ui-funnel-capture", "frontend-error-reporting"],
   "integrationCoverage": [
     "reference-upload-to-ready-zip-export",

@@ -38,6 +38,26 @@ export interface SessionContract {
   };
 }
 
+export interface SessionSecurityContractEvidence {
+  schema_version: "stage0.rev2.session-csrf-client-evidence";
+  status: "pass" | "fail";
+  cookieName: string;
+  cookieAttributes: {
+    httpOnly: boolean;
+    secure: boolean;
+    sameSite: SessionContract["cookie"]["sameSite"];
+    path: string;
+  };
+  sameSiteRequirement: SessionContract["csrf"]["sameSiteRequired"];
+  csrfStrategy: SessionContract["csrf"]["strategy"];
+  csrfHeaderName: SessionContract["csrf"]["headerName"];
+  credentialMode: SessionContract["csrf"]["credentialMode"];
+  originPolicy: SessionContract["csrf"]["originPolicy"];
+  protectedMethods: SessionContract["csrf"]["protectedMethods"];
+  protectedOperationIds: string[];
+  missingCsrfOperationIds: string[];
+}
+
 export interface AccountSettings {
   brandName: string;
   defaultExportFormat: ExportFormat;

@@ -40,6 +40,7 @@ import {
 import { downloadExportPackage } from "@/lib/export-download";
 import { apiOperations } from "@/lib/generated/zenart-api";
 import { legalPolicyList, supportContactEmail } from "@/lib/legal-policies";
+import { buildSessionSecurityContractEvidence } from "@/lib/request-security";
 import { AnalyticsEventName, captureAnalyticsEvent, reportFrontendError } from "@/lib/telemetry";
 
 export type ViewKey = "workspace" | "projects" | "export" | "billing" | "account" | "support";
@@ -75,6 +76,8 @@ const severityClass: Record<QaSeverity, string> = {
   warn: "qa-warn",
   block: "qa-block"
 };
+
+const sessionSecurityEvidenceSchema = "stage0.rev2.session-csrf-client-evidence";
 
 export function WorkspaceApp({ initialView = "workspace" }: { initialView?: ViewKey }) {
   const [state, setState] = useState<WorkspaceState | null>(null);
@@ -309,14 +312,8 @@ function SessionPanel({
   const expectedCsrfStrategy = "same-site-origin-check";
   const expectedCsrfHeader = "X-ZenArt-CSRF";
   const expectedSameSiteRequirement = "lax-or-strict";
-  const csrfProtectedMethods = state.sessionContract.csrf.protectedMethods.join(", ");
-  const csrfProtectedOperationIds = Object.entries(apiOperations)
-    .filter(([, operation]) =>
-      state.sessionContract.csrf.protectedMethods.includes(
-        operation.method as (typeof state.sessionContract.csrf.protectedMethods)[number]
-      )
-    )
-    .map(([operationId]) => operationId);
+  const evidence = buildSessionSecurityContractEvidence(state.sessionContract, apiOperations);
+  const csrfProtectedMethods = evidence.protectedMethods.join(", ");
   const sameSiteRequirement = state.sessionContract.csrf.sameSiteRequired;
   const cookieAttributes = [
     state.sessionContract.cookie.httpOnly ? "HttpOnly" : "client-readable",
@@ -330,6 +327,16 @@ function SessionPanel({
       className="session-contract"
       aria-label="Auth and session status"
       data-session-contract={`${expectedSessionCookieName}:${expectedCsrfStrategy}:${expectedCsrfHeader}:${expectedSameSiteRequirement}`}
+      data-session-security-evidence={sessionSecurityEvidenceSchema}
+      data-session-security-status={evidence.status}
+      data-session-cookie-name={evidence.cookieName}
+      data-session-cookie-http-only={String(evidence.cookieAttributes.httpOnly)}
+      data-session-cookie-secure={String(evidence.cookieAttributes.secure)}
+      data-session-cookie-same-site={evidence.cookieAttributes.sameSite}
+      data-session-cookie-path={evidence.cookieAttributes.path}
+      data-session-csrf-header={evidence.csrfHeaderName}
+      data-session-csrf-origin-policy={evidence.originPolicy}
+      data-session-csrf-missing-operation-count={evidence.missingCsrfOperationIds.length}
     >
       <div className="session-contract-main">
         <ShieldCheck size={18} aria-hidden="true" />
@@ -377,10 +384,10 @@ function SessionPanel({
       <div
         className="csrf-operation-inventory"
         aria-label="Generated web API CSRF operation inventory"
-        data-csrf-operation-count={csrfProtectedOperationIds.length}
+        data-csrf-operation-count={evidence.protectedOperationIds.length}
       >
-        <strong>{csrfProtectedOperationIds.length} generated web operations require same-site CSRF headers</strong>
-        <span>{csrfProtectedOperationIds.join(", ")}</span>
+        <strong>{evidence.protectedOperationIds.length} generated web operations require same-site CSRF headers</strong>
+        <span>{evidence.protectedOperationIds.join(", ")}</span>
       </div>
       {sessionBlocked ? (
         <div className="inline-alert session-alert" role="alert">

@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { buildCsrfRequestHeaders, defaultSameSiteCsrfContract, isCsrfProtectedMethod } from "./request-security";
+import { apiOperations } from "./generated/zenart-api";
+import { createSessionContract } from "./dev-state";
+import {
+  buildCsrfRequestHeaders,
+  buildSessionSecurityContractEvidence,
+  defaultSameSiteCsrfContract,
+  isCsrfProtectedMethod
+} from "./request-security";
 
 describe("same-site CSRF request contract", () => {
   it("marks only state-changing methods as CSRF protected", () => {
@@ -22,5 +29,44 @@ describe("same-site CSRF request contract", () => {
     expect(buildCsrfRequestHeaders("PATCH", { [defaultSameSiteCsrfContract.headerName]: "caller-token" })).toEqual({
       [defaultSameSiteCsrfContract.headerName]: "caller-token"
     });
+  });
+
+  it("builds machine-checkable secure-cookie and same-site CSRF evidence for generated operations", () => {
+    const evidence = buildSessionSecurityContractEvidence(createSessionContract(), apiOperations);
+
+    expect(evidence).toMatchObject({
+      schema_version: "stage0.rev2.session-csrf-client-evidence",
+      status: "pass",
+      cookieName: "__Host-zenart_session",
+      cookieAttributes: {
+        httpOnly: true,
+        secure: true,
+        sameSite: "lax",
+        path: "/"
+      },
+      sameSiteRequirement: "lax-or-strict",
+      csrfStrategy: "same-site-origin-check",
+      csrfHeaderName: "X-ZenArt-CSRF",
+      credentialMode: "include",
+      originPolicy: "same-site-only",
+      missingCsrfOperationIds: []
+    });
+    expect(evidence.protectedOperationIds).toEqual([
+      "deleteSession",
+      "updateAccount",
+      "createProject",
+      "updateProject",
+      "createChatSession",
+      "createChatMessage",
+      "createCandidateSet",
+      "selectDirection",
+      "createCanvasNode",
+      "createCanvasVersion",
+      "createUpload",
+      "createPackage",
+      "createExport",
+      "createShareLink",
+      "createSupportTicket"
+    ]);
   });
 });
