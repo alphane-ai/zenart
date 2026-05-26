@@ -18,6 +18,17 @@ DRY_RUN="${DRY_RUN:-0}"
 RUN_OBJECT_RESTORE_COPY="${RUN_OBJECT_RESTORE_COPY:-false}"
 RESTORE_PREFIX="${RESTORE_PREFIX:-restore-drill-$STAMP}"
 RESTORED_OBJECT_COUNT=0
+POSTGRES_DUMP_BYTES=0
+POSTGRES_RESTORE_ITEMS=0
+OBJECT_MANIFEST_COUNT=0
+
+file_bytes() {
+  if [[ -f "$1" ]]; then
+    wc -c <"$1" | tr -d ' '
+  else
+    printf '0'
+  fi
+}
 
 write_report() {
   local status="$1"
@@ -28,13 +39,17 @@ write_report() {
   "created_at": "$STAMP",
   "status": "$status",
   "postgres_dump": "$OUT_DIR/postgres.dump",
+  "postgres_dump_bytes": $POSTGRES_DUMP_BYTES,
   "postgres_restore_list": "$OUT_DIR/postgres.restore.list",
+  "postgres_restore_items": $POSTGRES_RESTORE_ITEMS,
   "object_manifest": "$OUT_DIR/object-storage-manifest.txt",
+  "object_manifest_count": $OBJECT_MANIFEST_COUNT,
   "run_object_restore_copy": "$RUN_OBJECT_RESTORE_COPY",
   "restore_prefix": "$RESTORE_PREFIX",
   "restored_object_count": $RESTORED_OBJECT_COUNT,
   "rpo_target": "24h for local alpha scaffold; staging/prod value must be tightened before launch",
-  "rto_target": "4h for local alpha scaffold; staging/prod value must be tightened before launch"
+  "rto_target": "4h for local alpha scaffold; staging/prod value must be tightened before launch",
+  "production_gate": "open_until_automated_backups_pitr_and_isolated_staging_restore_pass"
 }
 JSON
 }
@@ -65,8 +80,15 @@ fi
 
 docker exec "$POSTGRES_CONTAINER" pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" --format=custom >"$OUT_DIR/postgres.dump"
 docker exec "$POSTGRES_CONTAINER" pg_restore --list <"$OUT_DIR/postgres.dump" >"$OUT_DIR/postgres.restore.list"
+POSTGRES_DUMP_BYTES="$(file_bytes "$OUT_DIR/postgres.dump")"
+POSTGRES_RESTORE_ITEMS="$(grep -Ec '^[0-9]+; ' "$OUT_DIR/postgres.restore.list" || true)"
 
-docker exec "$MINIO_CONTAINER" sh -ec "find /data/${OBJECT_STORAGE_BUCKET} -maxdepth 3 -type f | sort" >"$OUT_DIR/object-storage-manifest.txt"
+docker exec "$MINIO_CONTAINER" sh -ec "
+  if [ -d /data/${OBJECT_STORAGE_BUCKET} ]; then
+    find /data/${OBJECT_STORAGE_BUCKET} -maxdepth 3 -type f | sort
+  fi
+" >"$OUT_DIR/object-storage-manifest.txt"
+OBJECT_MANIFEST_COUNT="$(grep -c . "$OUT_DIR/object-storage-manifest.txt" || true)"
 test -s "$OUT_DIR/postgres.restore.list"
 test -f "$OUT_DIR/object-storage-manifest.txt"
 
@@ -83,6 +105,13 @@ if [[ "$RUN_OBJECT_RESTORE_COPY" == "true" ]]; then
     printf '%s\n' \"\$count\"
   " >"$OUT_DIR/object-restore-count.txt"
   RESTORED_OBJECT_COUNT="$(cat "$OUT_DIR/object-restore-count.txt")"
+  docker exec "$MINIO_CONTAINER" sh -ec "find /data/${OBJECT_STORAGE_BUCKET}/${RESTORE_PREFIX} -maxdepth 1 -type f 2>/dev/null | wc -l" >"$OUT_DIR/object-restore-verify-count.txt"
+  RESTORE_VERIFY_COUNT="$(tr -d ' ' <"$OUT_DIR/object-restore-verify-count.txt")"
+  if [[ "$RESTORE_VERIFY_COUNT" != "$RESTORED_OBJECT_COUNT" ]]; then
+    printf 'object restore verification mismatch: copied=%s verified=%s\n' "$RESTORED_OBJECT_COUNT" "$RESTORE_VERIFY_COUNT" >&2
+    write_report "failed_object_restore_verify"
+    exit 1
+  fi
 fi
 
 write_report "passed"

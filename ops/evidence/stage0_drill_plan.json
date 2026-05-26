@@ -12,9 +12,11 @@
       "pg_restore --list validates dump readability",
       "object storage manifest is captured",
       "optional object restore copy runs when RUN_OBJECT_RESTORE_COPY=true",
-      "JSON report records RPO/RTO and restored object count"
+      "optional object restore copy verifies copied object count",
+      "JSON report records dump bytes, restore-list items, object manifest count, RPO/RTO, and restored object count"
     ],
-    "runtime_status": "requires docker compose services; script syntax is validated by repo validation"
+    "runtime_status": "requires docker compose services; script syntax and dry-run report shape are validated by repo validation",
+    "production_gate": "open until automated backups, PITR, and isolated staging restore evidence pass"
   },
   "load": {
     "script": "scripts/load_smoke.sh",
@@ -28,6 +30,23 @@
       "quota_contention",
       "workspace_rendering"
     ],
-    "runtime_status": "requires backend and optional web/admin services; mode coverage is validated statically"
+    "report_fields": [
+      "run_id",
+      "base_url",
+      "requests",
+      "concurrency",
+      "expected_statuses",
+      "results_path",
+      "summary.request_count",
+      "summary.failure_count",
+      "summary.p95_ms",
+      "summary.statuses"
+    ],
+    "runtime_status": "requires backend and optional web/admin services; mode coverage and dry-run report shape are validated statically",
+    "production_gate": "open until staging load results enforce Rev2 SLO thresholds"
+  },
+  "observability": {
+    "evidence": "ops/evidence/stage0_observability_evidence.json",
+    "runtime_status": "definition only; implementation gates intentionally open"
   }
 }

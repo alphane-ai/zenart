@@ -26,6 +26,7 @@ CI_INSTALLATION = ROOT / "ops" / "ci" / "INSTALLATION.md"
 CI_DRAFT_EVIDENCE = OPS_FIXTURE_DIR / "stage0_rev2_ci_draft_evidence.json"
 ENVIRONMENT_EVIDENCE = ROOT / "ops" / "evidence" / "stage0_environment_evidence.json"
 DRILL_PLAN_EVIDENCE = ROOT / "ops" / "evidence" / "stage0_drill_plan.json"
+OBSERVABILITY_EVIDENCE = ROOT / "ops" / "evidence" / "stage0_observability_evidence.json"
 
 WORKFLOWS = {
     "ecommerce_growth_pack",
@@ -1085,7 +1086,7 @@ def validate_generated_openapi_clients() -> None:
 
 
 def validate_ops_ci_and_drill_evidence() -> None:
-    for path in [CI_DRAFT, CI_INSTALLATION, ENVIRONMENT_EVIDENCE, DRILL_PLAN_EVIDENCE]:
+    for path in [CI_DRAFT, CI_INSTALLATION, ENVIRONMENT_EVIDENCE, DRILL_PLAN_EVIDENCE, OBSERVABILITY_EVIDENCE]:
         require(path.exists(), f"missing ops evidence file: {path.relative_to(ROOT)}")
 
     ci_text = CI_DRAFT.read_text(encoding="utf-8")
@@ -1157,6 +1158,39 @@ def validate_ops_ci_and_drill_evidence() -> None:
         }
         <= set(drill["load"]["modes"]),
         "drill plan missing required load modes",
+    )
+
+    observability = load_json(OBSERVABILITY_EVIDENCE)
+    require(
+        observability["blueprint_source"] == "Docs/stage0_blueprint_rev2.md",
+        "observability evidence must cite Rev2",
+    )
+    require(observability["created_by_lane"] == "lane5", "observability evidence must be lane5-owned")
+    require(observability["status"] == "definition_only", "observability evidence must not claim runtime completion")
+    required_signals = {
+        "request_id_propagation",
+        "structured_json_logs",
+        "opentelemetry_traces",
+        "backend_worker_crawler_metrics",
+        "frontend_error_reporting",
+        "dashboards",
+        "alerts",
+    }
+    signals = {item["name"]: item for item in observability["signals"]}
+    require(required_signals <= signals.keys(), "observability evidence missing required Rev2 signals")
+    for signal_name in required_signals:
+        require(
+            signals[signal_name]["runtime_status"] == "open",
+            f"observability signal {signal_name} must remain open until implemented",
+        )
+    slo_thresholds = observability["slo_thresholds"]
+    require(slo_thresholds["api_p95_latency_ms"] == 500, "observability evidence must define API p95 threshold")
+    require(slo_thresholds["queue_delay_p95_seconds"] == 60, "observability evidence must define queue p95 threshold")
+    require(slo_thresholds["export_duration_p95_seconds"] == 120, "observability evidence must define export p95 threshold")
+    require(slo_thresholds["ui_load_p95_seconds"] == 3, "observability evidence must define UI p95 threshold")
+    require(
+        slo_thresholds["error_rate_5xx_percent_30m"] == 1,
+        "observability evidence must define 5xx error-rate threshold",
     )
 
 

@@ -21,6 +21,10 @@ Authoritative source: `Docs/stage0_blueprint_rev2.md`
 | UI load p95 | Conditional Playwright/web perf check when web exists | <= 3 s dashboard and workspace shell |
 | Error rate | Load smoke must return expected status codes | < 1% 5xx over 30 minutes |
 
+Evidence map: `ops/evidence/stage0_observability_evidence.json`.
+
+Rev2 production gates remain open until request id propagation, structured JSON logs, OpenTelemetry traces, backend/worker/crawler metrics, frontend error reporting, dashboards, and alerts have runtime evidence in staging.
+
 ## Incident Severity
 
 | Severity | Examples | Escalation | Initial update |
@@ -60,6 +64,34 @@ RPO target: 24 hours for local alpha scaffold; staging/production must set a tig
 
 RTO target: 4 hours for local alpha scaffold; staging/production must set a tighter value before launch.
 
+Local drill command:
+
+```bash
+scripts/backup_restore_drill.sh
+```
+
+Optional local object-copy verification:
+
+```bash
+RUN_OBJECT_RESTORE_COPY=true scripts/backup_restore_drill.sh
+```
+
+The local drill writes `report.json` under `ops/evidence/backup-restore/local/<timestamp>/` with Postgres dump bytes, restore-list item count, object manifest count, and optional object restore-copy verification. This is not production restore evidence; staging and production still require automated backups, PITR, isolated restore, bucket versioning, and release-owner sign-off.
+
 ## Load Assumptions
 
 Local smoke starts with 20 requests at concurrency 4 across health, readiness, and task status endpoints. Before private beta, expand the same script family to cover chat/task creation, worker generation, ZIP export, signed download, crawler throttle, quota contention, and workspace rendering.
+
+Mode examples:
+
+```bash
+LOAD_MODE=chat_task scripts/load_smoke.sh
+LOAD_MODE=worker_generation scripts/load_smoke.sh
+LOAD_MODE=zip_export scripts/load_smoke.sh
+LOAD_MODE=signed_download scripts/load_smoke.sh
+LOAD_MODE=crawler_throttle scripts/load_smoke.sh
+LOAD_MODE=quota_contention scripts/load_smoke.sh
+LOAD_MODE=workspace_rendering scripts/load_smoke.sh
+```
+
+Each run writes a JSON summary and NDJSON request records under `ops/evidence/load/local/`. Runtime load evidence is local smoke only until staging runs enforce the Rev2 SLO thresholds.

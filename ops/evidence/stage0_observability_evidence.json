@@ -1,0 +1,73 @@
+{
+  "blueprint_source": "Docs/stage0_blueprint_rev2.md",
+  "created_by_lane": "lane5",
+  "scope": "observability, alerting, and production gate map",
+  "status": "definition_only",
+  "signals": [
+    {
+      "name": "request_id_propagation",
+      "required_by_rev2": true,
+      "local_evidence": ".env.example defines REQUEST_ID_HEADER=X-Request-ID",
+      "runtime_status": "open",
+      "production_gate": "must propagate request id through web, admin, backend, worker, crawler, logs, and traces"
+    },
+    {
+      "name": "structured_json_logs",
+      "required_by_rev2": true,
+      "local_evidence": ".env.example and docker-compose.yml define LOG_FORMAT=json and LOG_LEVEL",
+      "runtime_status": "open",
+      "production_gate": "must verify backend, worker, crawler, and access logs are JSON with request_id, user_id, tenant_id, route, status, latency_ms, and error fields"
+    },
+    {
+      "name": "opentelemetry_traces",
+      "required_by_rev2": true,
+      "local_evidence": ".env.example defines OTEL_ENABLED=false and OTEL_EXPORTER_OTLP_ENDPOINT",
+      "runtime_status": "open",
+      "production_gate": "must verify backend, worker, crawler, provider, export, and object storage spans in staging"
+    },
+    {
+      "name": "backend_worker_crawler_metrics",
+      "required_by_rev2": true,
+      "local_evidence": ".env.example defines METRICS_ENABLED=true and METRICS_PORT=9090",
+      "runtime_status": "open",
+      "production_gate": "must expose API latency, queue delay, generation duration, export duration, crawler throttle, quota contention, and error counters"
+    },
+    {
+      "name": "frontend_error_reporting",
+      "required_by_rev2": true,
+      "local_evidence": ".env.example defines FRONTEND_ERROR_REPORTING_DSN empty for local alpha",
+      "runtime_status": "open",
+      "production_gate": "must configure web/admin error reporting with release SHA and source map policy"
+    },
+    {
+      "name": "dashboards",
+      "required_by_rev2": true,
+      "local_evidence": "ops/runbooks/stage0_ops.md defines SLOs and drill commands",
+      "runtime_status": "open",
+      "production_gate": "must publish staging dashboards for API, worker, provider, export, quota, crawler, object storage, billing, safety, and admin failures"
+    },
+    {
+      "name": "alerts",
+      "required_by_rev2": true,
+      "local_evidence": "ops/runbooks/stage0_ops.md defines incident severity and escalation",
+      "runtime_status": "open",
+      "production_gate": "must configure paging/notification routes and alert thresholds before private beta"
+    }
+  ],
+  "slo_thresholds": {
+    "api_p95_latency_ms": 500,
+    "queue_delay_p95_seconds": 60,
+    "export_duration_p95_seconds": 120,
+    "ui_load_p95_seconds": 3,
+    "error_rate_5xx_percent_30m": 1
+  },
+  "open_items": [
+    "request_id_propagation",
+    "structured_json_logs",
+    "opentelemetry_traces",
+    "backend_worker_crawler_metrics",
+    "frontend_error_reporting",
+    "dashboards",
+    "alerts"
+  ]
+}
