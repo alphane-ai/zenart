@@ -163,6 +163,7 @@ def validate_openapi_eval_result_schema() -> None:
         "suite_id",
         "subject",
         "status",
+        "completed_at",
         "summary",
         "fixture_results",
         "runner_contract",
@@ -228,6 +229,8 @@ def validate_fixture_result_links() -> None:
     result = results[0]
     summary = result["summary"]
 
+    require(result["completed_at"], "stored eval result must include completed_at")
+    require(result["created_at"], "stored eval result must include created_at")
     require(set(summary["qa_categories_covered"]) == QA_CATEGORIES, "eval summary must cover every QA category")
     require(set(summary["safety_enforcement_points_covered"]) == SAFETY_POINTS, "eval summary must cover every safety point")
     require(summary["trace_complete"] is True, "eval summary must prove trace completeness")
@@ -298,6 +301,7 @@ def validate_storage_contract() -> None:
     read_contract = storage_contract["read_contract"]
     replay_contract = storage_contract["replay_contract"]
 
+    require(results[0]["completed_at"] == results[0]["created_at"], "deterministic fixture timestamps must match")
     require("CREATE TABLE IF NOT EXISTS eval_results" in migration, "eval_results table missing")
     require(set(storage["required_columns"]) == STORAGE_COLUMNS, "eval result storage columns mismatch")
     require(set(table_contract["required_columns"]) == STORAGE_COLUMNS, "eval storage contract columns mismatch")

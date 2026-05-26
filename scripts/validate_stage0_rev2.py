@@ -1578,9 +1578,11 @@ def validate_eval_results() -> None:
     qa_results = load_json(FIXTURE_DIR / "eval" / "qa_results.json")
 
     require(result["suite_id"] == suite["suite_id"], "eval result must reference starter eval suite")
+    require(result["completed_at"], "eval result must persist completed_at")
+    require(result["created_at"], "eval result must persist created_at")
     require(result["storage_contract"]["table"] == "eval_results", "eval result must declare eval_results storage")
     require(
-        {"tenant_id", "eval_suite_id", "subject_type", "subject_id", "status", "summary", "created_at"}
+        {"tenant_id", "eval_suite_id", "subject_type", "subject_id", "status", "summary", "completed_at", "created_at"}
         <= set(result["storage_contract"]["required_columns"]),
         "eval result storage contract missing required persisted columns",
     )

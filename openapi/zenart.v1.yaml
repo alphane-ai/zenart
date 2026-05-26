@@ -2614,7 +2614,7 @@ components:
           format: date-time
     EvalResult:
       type: object
-      required: [id, suite_id, subject, status, summary, fixture_results, runner_contract, storage_contract, created_at]
+      required: [id, suite_id, subject, status, completed_at, created_at, summary, fixture_results, runner_contract, storage_contract]
       properties:
         id:
           type: string
@@ -2637,6 +2637,14 @@ components:
         status:
           type: string
           enum: [pass, fail, blocked]
+        completed_at:
+          type: string
+          format: date-time
+          description: Completion timestamp persisted in eval_results.completed_at and used for latest-result ordering.
+        created_at:
+          type: string
+          format: date-time
+          description: Storage insertion timestamp persisted in eval_results.created_at.
         summary:
           type: object
           required:
@@ -2848,9 +2856,6 @@ components:
             check_mode_compares_exact_json:
               type: boolean
               const: true
-        created_at:
-          type: string
-          format: date-time
     EvalResultPage:
       allOf:
         - $ref: "#/components/schemas/PageInfo"

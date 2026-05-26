@@ -20,6 +20,7 @@ SAFETY_PATH = FIXTURE_DIR / "eval" / "safety_rules.json"
 WORKFLOW_DIR = FIXTURE_DIR / "workflows"
 RESULT_PATH = FIXTURE_DIR / "eval" / "starter_eval_results.json"
 RUNNER_PATH = ROOT / "scripts" / "run_stage0_eval.py"
+DETERMINISTIC_COMPLETED_AT = "2026-05-26T00:00:00Z"
 
 SAFETY_POINTS = {
     "brief",
@@ -299,6 +300,8 @@ def run_eval() -> dict[str, Any]:
             "candidate_status_after_eval": "blocked" if status != "pass" else "eligible_for_canary",
         },
         "status": status,
+        "completed_at": DETERMINISTIC_COMPLETED_AT,
+        "created_at": DETERMINISTIC_COMPLETED_AT,
         "summary": {
             "total_fixtures": len(fixture_results),
             "passed_fixtures": sum(1 for item in fixture_results if item["status"] == "pass"),

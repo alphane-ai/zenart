@@ -118,6 +118,12 @@ def validate_stored_result(contract: dict[str, Any], result: dict[str, Any]) -> 
     require(stored["result_id"] == result["result_id"], "stored result_id must match eval result fixture")
     require(stored["suite_id"] == result["suite_id"], "stored suite_id must match eval result fixture")
     require(stored["status"] == result["status"], "stored status must match eval result fixture")
+    require(result["completed_at"], "stored eval result must persist completed_at")
+    require(result["created_at"], "stored eval result must persist created_at")
+    require(
+        result["completed_at"] == result["created_at"],
+        "stored eval result fixture must use deterministic matching timestamps",
+    )
     require(
         stored["candidate_status_after_eval"] == result["subject"]["candidate_status_after_eval"],
         "stored candidate_status_after_eval must match eval result fixture",
@@ -168,6 +174,10 @@ def validate_write_and_replay_contract(contract: dict[str, Any]) -> None:
     require(write["persists_runner_sha256"] is True, "write contract must persist runner hash")
     require(write["persists_completed_at"] is True, "write contract must persist completion time")
     require(write["persists_subject_version"] is True, "write contract must persist subject version")
+    require(
+        "DETERMINISTIC_COMPLETED_AT" in runner_text and '"completed_at": DETERMINISTIC_COMPLETED_AT' in runner_text,
+        "runner must emit a deterministic completed_at for stored fixture replay",
+    )
     require(set(write["idempotency_key_fields"]) == IDEMPOTENCY_FIELDS, "eval storage idempotency fields mismatch")
     require(
         write["transaction_boundary"] in {"single_eval_result_insert", "single_eval_result_upsert"},

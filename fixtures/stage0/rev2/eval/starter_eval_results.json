@@ -10,6 +10,8 @@
       "candidate_status_after_eval": "blocked"
     },
     "status": "blocked",
+    "completed_at": "2026-05-26T00:00:00Z",
+    "created_at": "2026-05-26T00:00:00Z",
     "summary": {
       "total_fixtures": 12,
       "passed_fixtures": 4,
@@ -433,7 +435,7 @@
     ],
     "runner_contract": {
       "runner": "scripts/run_stage0_eval.py",
-      "runner_sha256": "b8f0e22b3de4b95849b49f25f39daef723ed65920dda54666ad53285c20535df",
+      "runner_sha256": "33e065c9e49fa23a4397f31d5d591ead3bbc1be90e8c5a014a812a3ab70ef2c5",
       "deterministic_replay_command": "python3 scripts/run_stage0_eval.py --check",
       "writes_stored_fixture": true,
       "check_mode_compares_exact_json": true

@@ -10,6 +10,8 @@
     "suite_id",
     "subject",
     "status",
+    "completed_at",
+    "created_at",
     "summary",
     "fixture_results",
     "runner_contract",
@@ -72,6 +74,14 @@
         "fail",
         "blocked"
       ]
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
     },
     "summary": {
       "type": "object",
