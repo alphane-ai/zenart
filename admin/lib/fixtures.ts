@@ -1612,7 +1612,7 @@ export const failedTaskControls: FailedTaskControl[] = [
     userId: "usr-318",
     projectId: "proj-790",
     traceId: "tr-1019",
-    supportTicketId: "sup-2204",
+    supportTicketId: "sup-2209",
     status: "failed",
     retryCount: 1,
     maxRetries: 3,
@@ -1670,7 +1670,18 @@ export const exportJobs: ExportJob[] = [
     status: "blocked",
     qaSeverity: "blocking",
     regenerateEligible: true,
-    failureReason: "Forbidden claim in final export QA."
+    failureReason: "Forbidden claim in final export QA.",
+    supportTicketId: "sup-2201",
+    requestedByRole: "admin_reviewer",
+    requiredRole: "admin_reviewer",
+    rbacDecision: "denied",
+    idempotencyKey: "regenerate:ex-887:sup-2201:blocking-forbidden-claim",
+    quotaEffect: "credit_after_audit",
+    regenerationMode: "not_allowed",
+    regenerationRationale: "Blocking forbidden-claim QA cannot be regenerated into a releasable package; only audited quota credit and safe user messaging may proceed.",
+    closureEvidenceRefs: ["ex-887", "sup-2201", "tr-1004", "au-001", "au-004"],
+    auditRef: "au-001",
+    operatorRunbook: "Keep the blocked export immutable, deny regeneration, apply audited quota credit through the support ticket, and preserve the final QA evidence for release review."
   },
   {
     id: "ex-901",
@@ -1679,16 +1690,38 @@ export const exportJobs: ExportJob[] = [
     status: "completed",
     qaSeverity: "warning",
     regenerateEligible: false,
-    failureReason: "None"
+    failureReason: "None",
+    supportTicketId: "sup-2204",
+    requestedByRole: "support_operator",
+    requiredRole: "admin_operator",
+    rbacDecision: "second_review_required",
+    idempotencyKey: "regenerate:ex-901:sup-2204:qa-warning-review",
+    quotaEffect: "none",
+    regenerationMode: "qa_preserving",
+    regenerationRationale: "Completed warning-only export stays immutable until support attaches QA warning evidence and an admin operator approves a QA-preserving rebuild.",
+    closureEvidenceRefs: ["ex-901", "sup-2204", "tr-1019", "q-export"],
+    auditRef: "pending",
+    operatorRunbook: "Attach the mobile readability QA warning, create the missing audit ref, then request admin_operator review before a QA-preserving regeneration can run."
   },
   {
     id: "ex-909",
-    userId: "usr-355",
+    userId: "usr-318",
     packageId: "pkg-510",
     status: "failed",
     qaSeverity: "info",
     regenerateEligible: true,
-    failureReason: "ZIP manifest missing QA report."
+    failureReason: "ZIP manifest missing QA report.",
+    supportTicketId: "sup-2209",
+    requestedByRole: "admin_operator",
+    requiredRole: "admin_operator",
+    rbacDecision: "allowed",
+    idempotencyKey: "regenerate:ex-909:sup-2209:missing-qa-report",
+    quotaEffect: "reserved_credit_released",
+    regenerationMode: "full_rebuild",
+    regenerationRationale: "The original failed package is immutable, but a full rebuild is allowed because the failure is export completeness, the QA severity is informational, and quota reservation release is linked.",
+    closureEvidenceRefs: ["ex-909", "sup-2209", "q-export", "au-003"],
+    auditRef: "au-003",
+    operatorRunbook: "Submit one idempotent full rebuild, verify the regenerated ZIP contains manifest and QA report, then attach audit au-003 before support closure."
   }
 ];
 
@@ -1722,6 +1755,21 @@ export const supportTickets: SupportTicket[] = [
     subject: "Low contrast phone number in mobile export.",
     nextAction: "Attach QA warning to regeneration request and keep original package immutable.",
     auditRef: "pending"
+  },
+  {
+    id: "sup-2209",
+    status: "open",
+    priority: "high",
+    userId: "usr-318",
+    projectId: "proj-790",
+    taskId: "task-export-489",
+    traceId: "tr-1019",
+    assetId: "asset-489",
+    exportId: "ex-909",
+    quotaTransactionId: "qt-912",
+    subject: "ZIP export failed without QA report in package manifest.",
+    nextAction: "Run one idempotent full rebuild, verify manifest and QA report evidence, and release reserved credits before support closure.",
+    auditRef: "au-003"
   },
   {
     id: "sup-2212",
@@ -1764,6 +1812,18 @@ export const supportEscalationRunbooks: SupportEscalationRunbook[] = [
     runbook: "Attach QA warning evidence, create an audit ref, then submit a regenerate request from the export detail page.",
     requiredEvidenceRefs: ["tr-1019", "ex-901", "fb-211"],
     closureBlockers: ["Audit ref is pending", "Regeneration rationale is not attached"]
+  },
+  {
+    ticketId: "sup-2209",
+    readiness: "ready",
+    escalationRole: "admin_operator",
+    owner: "export-ops-admin",
+    dueAt: "2026-05-26 11:15",
+    customerUpdateCadence: "Send one update before full rebuild and one after manifest and QA report evidence is attached.",
+    customerMessage: "The failed ZIP export is being rebuilt once with the same package inputs while the original failed package remains immutable.",
+    runbook: "Submit the idempotent export regeneration, verify manifest and QA report files, release reserved credits, and link audit au-003 before closure.",
+    requiredEvidenceRefs: ["au-003", "ex-909", "q-export", "tr-1019"],
+    closureBlockers: []
   },
   {
     ticketId: "sup-2212",
@@ -1844,10 +1904,10 @@ export const supportUsers: SupportUser[] = [
     recentTasks: 31,
     taskIds: ["task-export-489"],
     traces: ["tr-1019"],
-    exportIds: ["ex-901"],
-    ticketIds: ["sup-2204"],
+    exportIds: ["ex-901", "ex-909"],
+    ticketIds: ["sup-2204", "sup-2209"],
     quotaAccountRef: "usr-318",
-    lookupKeys: ["usr-318", "ops@example.test", "tenant-ops", "sup-2204", "ex-901", "tr-1019"],
+    lookupKeys: ["usr-318", "ops@example.test", "tenant-ops", "sup-2204", "sup-2209", "ex-901", "ex-909", "tr-1019"],
     riskFlags: [],
     privacyRedaction: "Support can view package metadata and QA warning summary; uploaded source files require trace-level reviewer access.",
     auditRefs: ["au-011"],

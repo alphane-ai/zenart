@@ -13,7 +13,7 @@ export default async function ExportDetailPage({ params }: { params: { id: strin
         description="Export job detail with QA status, failure reason, and regenerate eligibility for support and operations."
         actions={
           <>
-            <button className="button" type="button">
+            <button className="button" type="button" disabled={!job.regenerateEligible || job.rbacDecision !== "allowed"}>
               Regenerate
             </button>
             <button className="ghost-button" type="button">
@@ -38,6 +38,12 @@ export default async function ExportDetailPage({ params }: { params: { id: strin
                 ["Package", job.packageId],
                 ["QA severity", <StatusBadge key="qa" value={job.qaSeverity === "blocking" ? "blocked" : job.qaSeverity} label={job.qaSeverity} />],
                 ["Regenerate", job.regenerateEligible ? "Eligible" : "Not eligible"],
+                ["Support ticket", <span key="ticket" className="mono">{job.supportTicketId}</span>],
+                ["Requested role", job.requestedByRole],
+                ["Required role", job.requiredRole],
+                ["RBAC decision", <StatusBadge key="rbac" value={job.rbacDecision} label={job.rbacDecision} />],
+                ["Quota effect", job.quotaEffect],
+                ["Audit ref", <span key="audit" className="mono">{job.auditRef}</span>],
                 ["Failure reason", job.failureReason]
               ]}
             />
@@ -46,25 +52,35 @@ export default async function ExportDetailPage({ params }: { params: { id: strin
         <div className="panel span-6">
           <div className="panel-header">
             <div>
-              <h3>Regenerate Request</h3>
-              <p>Static control shape for the future backend mutation contract.</p>
+            <h3>Regenerate Request</h3>
+              <p>Regeneration requires support linkage, idempotency, RBAC, quota handling, and immutable audit evidence.</p>
             </div>
           </div>
           <div className="panel-body">
+            <KeyValue
+              items={[
+                ["Idempotency key", <span key="idem" className="mono">{job.idempotencyKey}</span>],
+                ["Mode", job.regenerationMode],
+                ["Rationale", job.regenerationRationale],
+                ["Closure evidence", job.closureEvidenceRefs.join(", ")],
+                ["Operator runbook", job.operatorRunbook]
+              ]}
+            />
             <div className="form-row">
               <div className="field">
                 <label htmlFor="reason">Reason</label>
-                <input id="reason" defaultValue="Retry failed package with full QA report" />
+                <input id="reason" defaultValue={job.regenerationRationale} />
               </div>
               <div className="field">
                 <label htmlFor="ticket">Ticket</label>
-                <input id="ticket" defaultValue="sup-2201" />
+                <input id="ticket" defaultValue={job.supportTicketId} />
               </div>
               <div className="field">
                 <label htmlFor="mode">Mode</label>
-                <select id="mode" defaultValue="qa-preserving">
-                  <option value="qa-preserving">QA preserving</option>
-                  <option value="full-rebuild">Full rebuild</option>
+                <select id="mode" defaultValue={job.regenerationMode}>
+                  <option value="qa_preserving">QA preserving</option>
+                  <option value="full_rebuild">Full rebuild</option>
+                  <option value="not_allowed">Not allowed</option>
                 </select>
               </div>
             </div>

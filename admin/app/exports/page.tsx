@@ -30,6 +30,10 @@ export default async function ExportsPage() {
             { key: "status", header: "Status", render: (row) => <StatusBadge value={row.status} /> },
             { key: "qa", header: "QA", render: (row) => <StatusBadge value={row.qaSeverity === "blocking" ? "blocked" : row.qaSeverity} label={row.qaSeverity} /> },
             { key: "regen", header: "Regenerate", render: (row) => (row.regenerateEligible ? "Eligible" : "Not eligible") },
+            { key: "rbac", header: "RBAC Decision", render: (row) => <StatusBadge value={row.rbacDecision} label={row.rbacDecision} /> },
+            { key: "ticket", header: "Support Ticket", render: (row) => <span className="mono">{row.supportTicketId}</span> },
+            { key: "quota", header: "Quota Effect", render: (row) => row.quotaEffect },
+            { key: "audit", header: "Audit Ref", render: (row) => <span className="mono">{row.auditRef}</span> },
             { key: "reason", header: "Reason", render: (row) => row.failureReason }
           ]}
         />

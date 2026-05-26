@@ -646,6 +646,63 @@ test("queue and failed task controls gate retry and cancel with audit evidence",
   }
 });
 
+test("export regeneration requests require idempotency, support linkage, RBAC, quota handling, and audit evidence", () => {
+  assert.ok(exportJobs.length > 0, "export regenerate needs fixtures");
+
+  const decisions = new Set(exportJobs.map((job) => job.rbacDecision));
+  assert.ok(decisions.has("allowed"), "export regeneration needs an allowed fixture");
+  assert.ok(decisions.has("denied"), "export regeneration needs a denied fixture");
+  assert.ok(decisions.has("second_review_required"), "export regeneration needs a review-gated fixture");
+
+  for (const job of exportJobs) {
+    const ticket = supportTicketById.get(job.supportTicketId);
+    assert.ok(ticket, `${job.id} links unknown support ticket ${job.supportTicketId}`);
+    assert.equal(ticket.userId, job.userId, `${job.id} support ticket must belong to export user`);
+    assert.equal(ticket.exportId, job.id, `${job.id} support ticket must point at the same export`);
+    assert.ok(roleOrder.has(job.requestedByRole), `${job.id} needs requesting role`);
+    assert.ok(roleOrder.has(job.requiredRole), `${job.id} needs required role`);
+    assert.ok(job.idempotencyKey.startsWith(`regenerate:${job.id}:${job.supportTicketId}:`), `${job.id} needs stable regenerate idempotency key`);
+    assert.ok(job.regenerationRationale.length > 100, `${job.id} needs regeneration rationale`);
+    assert.ok(job.operatorRunbook.length > 100, `${job.id} needs operator runbook`);
+    assert.ok(job.closureEvidenceRefs.length >= 4, `${job.id} needs closure evidence refs`);
+    assert.ok(job.closureEvidenceRefs.includes(job.id), `${job.id} closure evidence must include export`);
+    assert.ok(job.closureEvidenceRefs.includes(job.supportTicketId), `${job.id} closure evidence must include support ticket`);
+
+    if (job.auditRef !== "pending") {
+      assert.ok(auditIds.has(job.auditRef), `${job.id} links unknown audit ${job.auditRef}`);
+      assert.ok(job.closureEvidenceRefs.includes(job.auditRef), `${job.id} closure evidence must include audit ref`);
+    }
+
+    for (const ref of job.closureEvidenceRefs) {
+      assert.ok(
+        ref === job.id || supportTicketIds.has(ref) || traceIds.has(ref) || queueIds.has(ref) || auditIds.has(ref),
+        `${job.id} links unknown closure evidence ref ${ref}`
+      );
+    }
+
+    if (roleOrder.get(job.requestedByRole) < roleOrder.get(job.requiredRole)) {
+      assert.notEqual(job.rbacDecision, "allowed", `${job.id} insufficient role cannot regenerate export`);
+    }
+
+    if (job.rbacDecision === "allowed") {
+      assert.equal(job.regenerateEligible, true, `${job.id} allowed regeneration must be eligible`);
+      assert.notEqual(job.auditRef, "pending", `${job.id} allowed regeneration needs audit ref`);
+      assert.notEqual(job.regenerationMode, "not_allowed", `${job.id} allowed regeneration needs executable mode`);
+    }
+
+    if (job.qaSeverity === "blocking") {
+      assert.equal(job.rbacDecision, "denied", `${job.id} blocking QA regeneration cannot be allowed`);
+      assert.equal(job.regenerationMode, "not_allowed", `${job.id} blocking QA regeneration must stay disabled`);
+      assert.match(job.quotaEffect, /credit|refund/, `${job.id} blocking QA needs quota remediation`);
+    }
+
+    if (job.auditRef === "pending") {
+      assert.equal(job.rbacDecision, "second_review_required", `${job.id} pending audit must stay review-gated`);
+      assert.equal(job.regenerateEligible, false, `${job.id} pending audit cannot be directly eligible`);
+    }
+  }
+});
+
 test("operations dashboards and alert routes bind SLOs to release-gate evidence", () => {
   assert.ok(operationalDashboards.length > 0, "operations dashboards need fixtures");
   assert.ok(alertRoutes.length > 0, "alert routes need fixtures");

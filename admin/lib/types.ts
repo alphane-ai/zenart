@@ -409,6 +409,17 @@ export type ExportJob = {
   qaSeverity: "info" | "warning" | "blocking";
   regenerateEligible: boolean;
   failureReason: string;
+  supportTicketId: string;
+  requestedByRole: AdminRole;
+  requiredRole: AdminRole;
+  rbacDecision: "allowed" | "denied" | "second_review_required";
+  idempotencyKey: string;
+  quotaEffect: "none" | "refund_pending" | "reserved_credit_released" | "credit_after_audit";
+  regenerationMode: "qa_preserving" | "full_rebuild" | "not_allowed";
+  regenerationRationale: string;
+  closureEvidenceRefs: string[];
+  auditRef: string;
+  operatorRunbook: string;
 };
 
 export type FailedTaskControl = {

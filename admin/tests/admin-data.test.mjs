@@ -117,6 +117,52 @@ test("admin queue fixtures expose retry idempotency, RBAC, and quota effects", (
   }
 });
 
+test("admin export pages expose regeneration governance evidence", () => {
+  const exportsPage = readFileSync(
+    new URL("../app/exports/page.tsx", import.meta.url),
+    "utf8"
+  );
+  const exportDetailPage = readFileSync(
+    new URL("../app/exports/[id]/page.tsx", import.meta.url),
+    "utf8"
+  );
+
+  for (const token of [
+    "RBAC Decision",
+    "Support Ticket",
+    "Quota Effect",
+    "Audit Ref"
+  ]) {
+    assert.match(exportsPage, new RegExp(token));
+  }
+
+  for (const token of [
+    "Idempotency key",
+    "Requested role",
+    "Required role",
+    "Closure evidence",
+    "Operator runbook",
+    "regenerationRationale",
+    "closureEvidenceRefs",
+    "rbacDecision"
+  ]) {
+    assert.match(exportDetailPage, new RegExp(token));
+  }
+
+  for (const token of [
+    "supportTicketId",
+    "requestedByRole",
+    "requiredRole",
+    "idempotencyKey",
+    "quotaEffect",
+    "regenerationMode",
+    "operatorRunbook",
+    "regenerate:ex-909:sup-2209:missing-qa-report"
+  ]) {
+    assert.match(fixtures, new RegExp(token));
+  }
+});
+
 test("admin abuse fixtures expose hold throttle telemetry and release evidence", () => {
   const abusePage = readFileSync(
     new URL("../app/abuse/page.tsx", import.meta.url),
