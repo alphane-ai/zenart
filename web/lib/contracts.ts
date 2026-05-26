@@ -360,20 +360,36 @@ export interface PackageExportMetadataEvidence {
   status: "pass" | "fail";
   exportId: string;
   packageId: string;
+  projectId: string;
   downloadArtifactStatus: "pass" | "fail";
   downloadArtifactFormat: ExportFormat;
+  manifestCreatedAt: string;
+  manifestItemCount: number;
+  manifestRequiredOutputCount: number;
   requiredOutputCount: number;
   missingRequiredOutputs: string[];
   itemCount: number;
+  itemTypes: PackageItem["type"][];
   provenanceCount: number;
   qaFindingCount: number;
   blockingQaCount: number;
+  safetyStatus: SafetyPolicyReport["status"];
+  safetyStageCount: number;
+  safetyFindingCount: number;
+  pptAspectRatio: PptReadyMetadata["aspect_ratio"];
   pptSlideCount: number;
+  pptCanvasSize: string;
+  pptSafeArea: string;
+  pptThemeFont: string;
   handoffChecklistCount: number;
   zipPayloadCount: number;
   zipPayloadNames: string[];
   requiredZipPayloadNames: string[];
   missingZipPayloadNames: string[];
+  workflowId: string;
+  workflowFixtureId: string;
+  workflowStrategyTaxonomyCount: number;
+  workflowRequiredFileCount: number;
   workflowZipPayloadCount: number;
 }
 

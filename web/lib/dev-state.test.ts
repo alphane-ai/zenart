@@ -139,15 +139,27 @@ describe("dev workspace contracts", () => {
       status: "pass",
       exportId: "export-001",
       packageId: "pkg-002",
+      projectId: "project-001",
       downloadArtifactStatus: "pass",
       downloadArtifactFormat: "zip",
+      manifestCreatedAt: manifest.created_at,
+      manifestItemCount: 2,
+      manifestRequiredOutputCount: 6,
       requiredOutputCount: 6,
       missingRequiredOutputs: [],
       itemCount: 2,
+      itemTypes: ["candidate", "reference"],
       provenanceCount: 2,
       qaFindingCount: 2,
       blockingQaCount: 0,
+      safetyStatus: "pass",
+      safetyStageCount: 5,
+      safetyFindingCount: 0,
+      pptAspectRatio: "16:9",
       pptSlideCount: 2,
+      pptCanvasSize: "1920x1080",
+      pptSafeArea: "72/96/72/96",
+      pptThemeFont: "Inter, Arial, sans-serif",
       handoffChecklistCount: 5,
       zipPayloadCount: 6,
       zipPayloadNames: [
@@ -167,6 +179,10 @@ describe("dev workspace contracts", () => {
         "assets/README.txt"
       ],
       missingZipPayloadNames: [],
+      workflowId: "generic-stage0-export",
+      workflowFixtureId: "none",
+      workflowStrategyTaxonomyCount: 0,
+      workflowRequiredFileCount: 0,
       workflowZipPayloadCount: 0
     });
   });

@@ -146,13 +146,29 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(metadataEvidence).toHaveAttribute("data-package-export-metadata-status", "pass");
     expect(metadataEvidence).toHaveAttribute("data-package-export-id", "export-001");
     expect(metadataEvidence).toHaveAttribute("data-package-export-package-id", "pkg-002");
+    expect(metadataEvidence).toHaveAttribute("data-package-export-project-id", "project-001");
+    expect(metadataEvidence).toHaveAttribute("data-package-export-manifest-item-count", "2");
+    expect(metadataEvidence).toHaveAttribute("data-package-export-manifest-required-output-count", "13");
     expect(metadataEvidence).toHaveAttribute("data-package-export-download-artifact-status", "pass");
     expect(metadataEvidence).toHaveAttribute("data-package-export-download-artifact-format", "zip");
+    expect(metadataEvidence).toHaveAttribute("data-package-export-item-types", "reference,candidate");
     expect(metadataEvidence).toHaveAttribute("data-package-export-missing-output-count", "0");
     expect(metadataEvidence).toHaveAttribute("data-package-export-missing-zip-payload-count", "0");
     expect(metadataEvidence).toHaveAttribute("data-package-export-provenance-count", "2");
     expect(metadataEvidence).toHaveAttribute("data-package-export-blocking-qa-count", "0");
+    expect(metadataEvidence).toHaveAttribute("data-package-export-safety-status", "pass");
+    expect(metadataEvidence).toHaveAttribute("data-package-export-safety-stage-count", "5");
+    expect(metadataEvidence).toHaveAttribute("data-package-export-safety-finding-count", "0");
+    expect(metadataEvidence).toHaveAttribute("data-package-export-ppt-aspect-ratio", "16:9");
     expect(metadataEvidence).toHaveAttribute("data-package-export-ppt-slide-count", "2");
+    expect(metadataEvidence).toHaveAttribute("data-package-export-ppt-canvas-size", "1920x1080");
+    expect(metadataEvidence).toHaveAttribute("data-package-export-ppt-safe-area", "72/96/72/96");
+    expect(metadataEvidence).toHaveAttribute("data-package-export-ppt-theme-font", "Inter, Arial, sans-serif");
+    expect(metadataEvidence).toHaveAttribute("data-package-export-ppt-handoff-checklist-count", "5");
+    expect(metadataEvidence).toHaveAttribute("data-package-export-workflow-id", "ecommerce_growth_pack");
+    expect(metadataEvidence).toHaveAttribute("data-package-export-workflow-fixture-id", "fx_ecommerce_growth_golden");
+    expect(metadataEvidence).toHaveAttribute("data-package-export-workflow-taxonomy-count", "1");
+    expect(metadataEvidence).toHaveAttribute("data-package-export-workflow-required-file-count", "8");
     expect(Number(metadataEvidence?.getAttribute("data-package-export-zip-payload-count"))).toBeGreaterThanOrEqual(6);
     expect(metadataEvidence?.getAttribute("data-package-export-zip-payloads")).toContain("safety-policy-report.json");
     expect(metadataEvidence?.getAttribute("data-package-export-zip-payloads")).toContain("ppt-ready-metadata.json");
@@ -410,9 +426,27 @@ describe("WorkspaceApp user route integration smoke", () => {
       requiredIdentityAttributes: expect.arrayContaining([
         "data-package-export-id",
         "data-package-export-package-id",
+        "data-package-export-project-id",
+        "data-package-export-manifest-created-at",
+        "data-package-export-manifest-item-count",
+        "data-package-export-manifest-required-output-count",
         "data-package-export-download-artifact-status",
         "data-package-export-download-artifact-format",
-        "data-package-export-zip-payload-count"
+        "data-package-export-item-types",
+        "data-package-export-safety-status",
+        "data-package-export-safety-stage-count",
+        "data-package-export-safety-finding-count",
+        "data-package-export-ppt-aspect-ratio",
+        "data-package-export-ppt-canvas-size",
+        "data-package-export-ppt-safe-area",
+        "data-package-export-ppt-theme-font",
+        "data-package-export-ppt-handoff-checklist-count",
+        "data-package-export-zip-payload-count",
+        "data-package-export-workflow-id",
+        "data-package-export-workflow-fixture-id",
+        "data-package-export-workflow-taxonomy-count",
+        "data-package-export-workflow-required-file-count",
+        "data-package-export-workflow-zip-payload-count"
       ]),
       requiredPayloads: expect.arrayContaining([
         "manifest.json",

@@ -937,17 +937,34 @@ function ExportView({
                     data-package-export-metadata-status={metadataEvidence.status}
                     data-package-export-id={metadataEvidence.exportId}
                     data-package-export-package-id={metadataEvidence.packageId}
+                    data-package-export-project-id={metadataEvidence.projectId}
+                    data-package-export-manifest-created-at={metadataEvidence.manifestCreatedAt}
+                    data-package-export-manifest-item-count={metadataEvidence.manifestItemCount}
+                    data-package-export-manifest-required-output-count={metadataEvidence.manifestRequiredOutputCount}
                     data-package-export-download-artifact-status={metadataEvidence.downloadArtifactStatus}
                     data-package-export-download-artifact-format={metadataEvidence.downloadArtifactFormat}
                     data-package-export-required-output-count={metadataEvidence.requiredOutputCount}
                     data-package-export-missing-output-count={metadataEvidence.missingRequiredOutputs.length}
+                    data-package-export-item-types={metadataEvidence.itemTypes.join(",")}
                     data-package-export-provenance-count={metadataEvidence.provenanceCount}
                     data-package-export-blocking-qa-count={metadataEvidence.blockingQaCount}
+                    data-package-export-safety-status={metadataEvidence.safetyStatus}
+                    data-package-export-safety-stage-count={metadataEvidence.safetyStageCount}
+                    data-package-export-safety-finding-count={metadataEvidence.safetyFindingCount}
+                    data-package-export-ppt-aspect-ratio={metadataEvidence.pptAspectRatio}
                     data-package-export-ppt-slide-count={metadataEvidence.pptSlideCount}
+                    data-package-export-ppt-canvas-size={metadataEvidence.pptCanvasSize}
+                    data-package-export-ppt-safe-area={metadataEvidence.pptSafeArea}
+                    data-package-export-ppt-theme-font={metadataEvidence.pptThemeFont}
+                    data-package-export-ppt-handoff-checklist-count={metadataEvidence.handoffChecklistCount}
                     data-package-export-zip-payload-count={metadataEvidence.zipPayloadCount}
                     data-package-export-zip-payloads={metadataEvidence.zipPayloadNames.join(",")}
                     data-package-export-required-zip-payloads={metadataEvidence.requiredZipPayloadNames.join(",")}
                     data-package-export-missing-zip-payload-count={metadataEvidence.missingZipPayloadNames.length}
+                    data-package-export-workflow-id={metadataEvidence.workflowId}
+                    data-package-export-workflow-fixture-id={metadataEvidence.workflowFixtureId}
+                    data-package-export-workflow-taxonomy-count={metadataEvidence.workflowStrategyTaxonomyCount}
+                    data-package-export-workflow-required-file-count={metadataEvidence.workflowRequiredFileCount}
                     data-package-export-workflow-zip-payload-count={metadataEvidence.workflowZipPayloadCount}
                   >
                     <h4>Metadata Evidence</h4>
