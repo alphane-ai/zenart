@@ -1713,7 +1713,7 @@ main 合并前必须通过：
 - [ ] 实现 provider usage reconciliation。
 - [x] 实现 daily spend cap。
 - [x] 实现 emergency kill switch。
-- [ ] 添加 quota transaction/concurrency tests。
+- [x] 添加 quota transaction/concurrency tests。
 
 ### 25.9 Object Storage and Export
 

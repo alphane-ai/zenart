@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/jackc/pgx/v5"
+
 	"github.com/alphane-ai/zenart/backend/internal/store"
 )
 
@@ -185,7 +187,14 @@ func (r QuotaRepository) Reserve(ctx context.Context, reservation QuotaReservati
 	if reservation.Units <= 0 {
 		return errors.New("reservation units must be positive")
 	}
-	insertTag, err := r.db.Exec(ctx, `
+
+	tx, err := r.begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer rollback(ctx, tx)
+
+	insertTag, err := tx.Exec(ctx, `
 INSERT INTO quota_transactions(id, bucket_id, tenant_id, idempotency_key, kind, units, status, created_at)
 VALUES($1, $2, $3, $4, 'reserve', $5, 'pending', $6)
 ON CONFLICT (tenant_id, idempotency_key, kind) DO NOTHING`,
@@ -200,10 +209,10 @@ ON CONFLICT (tenant_id, idempotency_key, kind) DO NOTHING`,
 		return err
 	}
 	if insertTag.RowsAffected() == 0 {
-		return nil
+		return tx.Commit(ctx)
 	}
 
-	tag, err := r.db.Exec(ctx, `
+	tag, err := tx.Exec(ctx, `
 UPDATE quota_buckets
 SET reserved_units = reserved_units + $1, updated_at = now()
 WHERE id = $2
@@ -220,14 +229,16 @@ WHERE id = $2
 		return ErrQuotaInsufficient
 	}
 
-	_, err = r.db.Exec(ctx, `
+	if _, err := tx.Exec(ctx, `
 UPDATE quota_transactions
 SET status = 'reserved'
 WHERE tenant_id = $1 AND idempotency_key = $2 AND kind = 'reserve'`,
 		reservation.TenantID,
 		reservation.IdempotencyKey,
-	)
-	return err
+	); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
 }
 
 func (r QuotaRepository) Commit(ctx context.Context, tenantID, bucketID, idempotencyKey string, units int64) error {
@@ -243,7 +254,13 @@ func (r QuotaRepository) moveReserved(ctx context.Context, tenantID, bucketID, i
 		return errors.New("units must be positive")
 	}
 
-	insertTag, err := r.db.Exec(ctx, `
+	tx, err := r.begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer rollback(ctx, tx)
+
+	insertTag, err := tx.Exec(ctx, `
 INSERT INTO quota_transactions(id, bucket_id, tenant_id, idempotency_key, kind, units, status, created_at)
 VALUES($1, $2, $3, $4, $5, $6, 'pending', now())
 ON CONFLICT (tenant_id, idempotency_key, kind) DO NOTHING`,
@@ -258,7 +275,7 @@ ON CONFLICT (tenant_id, idempotency_key, kind) DO NOTHING`,
 		return err
 	}
 	if insertTag.RowsAffected() == 0 {
-		return nil
+		return tx.Commit(ctx)
 	}
 
 	sql := `
@@ -276,7 +293,7 @@ WHERE id = $2
   AND reserved_units >= $1`
 	}
 
-	tag, err := r.db.Exec(ctx, sql, units, bucketID, tenantID)
+	tag, err := tx.Exec(ctx, sql, units, bucketID, tenantID)
 	if err != nil {
 		return err
 	}
@@ -284,7 +301,7 @@ WHERE id = $2
 		return fmt.Errorf("quota %s failed: reserved units unavailable", kind)
 	}
 
-	_, err = r.db.Exec(ctx, `
+	if _, err := tx.Exec(ctx, `
 UPDATE quota_transactions
 SET status = $1
 WHERE tenant_id = $2 AND idempotency_key = $3 AND kind = $4`,
@@ -292,8 +309,10 @@ WHERE tenant_id = $2 AND idempotency_key = $3 AND kind = $4`,
 		tenantID,
 		idempotencyKey,
 		kind,
-	)
-	return err
+	); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
 }
 
 func (r QuotaRepository) AdminCredit(ctx context.Context, tenantID, bucketID, idempotencyKey string, units int64) error {
@@ -326,7 +345,13 @@ WHERE period = 'weekly'
 }
 
 func (r QuotaRepository) adjustLimit(ctx context.Context, tenantID, bucketID, idempotencyKey string, delta int64, kind string) error {
-	insertTag, err := r.db.Exec(ctx, `
+	tx, err := r.begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer rollback(ctx, tx)
+
+	insertTag, err := tx.Exec(ctx, `
 INSERT INTO quota_transactions(id, bucket_id, tenant_id, idempotency_key, kind, units, status, created_at)
 VALUES($1, $2, $3, $4, $5, abs($6), 'pending', now())
 ON CONFLICT (tenant_id, idempotency_key, kind) DO NOTHING`,
@@ -341,10 +366,10 @@ ON CONFLICT (tenant_id, idempotency_key, kind) DO NOTHING`,
 		return err
 	}
 	if insertTag.RowsAffected() == 0 {
-		return nil
+		return tx.Commit(ctx)
 	}
 
-	tag, err := r.db.Exec(ctx, `
+	tag, err := tx.Exec(ctx, `
 UPDATE quota_buckets
 SET limit_units = limit_units + $1, updated_at = now()
 WHERE id = $2
@@ -361,15 +386,41 @@ WHERE id = $2
 		return fmt.Errorf("quota %s failed: limit would fall below used plus reserved units", kind)
 	}
 
-	_, err = r.db.Exec(ctx, `
+	if _, err := tx.Exec(ctx, `
 UPDATE quota_transactions
 SET status = 'committed'
 WHERE tenant_id = $1 AND idempotency_key = $2 AND kind = $3`,
 		tenantID,
 		idempotencyKey,
 		kind,
-	)
-	return err
+	); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
 }
 
 var ErrQuotaInsufficient = errors.New("quota insufficient")
+
+func (r QuotaRepository) begin(ctx context.Context) (store.Tx, error) {
+	transactor, ok := r.db.(store.Transactor)
+	if !ok {
+		return noopTx{DBTX: r.db}, nil
+	}
+	return transactor.Begin(ctx)
+}
+
+func rollback(ctx context.Context, tx store.Tx) {
+	_ = tx.Rollback(ctx)
+}
+
+type noopTx struct {
+	store.DBTX
+}
+
+func (noopTx) Commit(context.Context) error {
+	return nil
+}
+
+func (noopTx) Rollback(context.Context) error {
+	return pgx.ErrTxClosed
+}
