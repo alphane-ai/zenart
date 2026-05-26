@@ -1598,16 +1598,16 @@ main 合并前必须通过：
 
 ### 25.2 Backend Foundation
 
-- [ ] 初始化 `backend/go.mod`。
-- [ ] 实现 Go server 入口。
-- [ ] 实现 Go worker 入口。
-- [ ] 实现 Go crawler 入口。
-- [ ] 实现 Postgres 连接和 healthcheck。
-- [ ] 实现 Redis 连接和 healthcheck。
-- [ ] 实现 object storage 连接和 healthcheck。
-- [ ] 实现 migration runner。
-- [ ] 新增 backend Dockerfile。
-- [ ] 新增 `/healthz` 和 `/readyz`。
+- [x] 初始化 `backend/go.mod`。
+- [x] 实现 Go server 入口。
+- [x] 实现 Go worker 入口。
+- [x] 实现 Go crawler 入口。
+- [x] 实现 Postgres 连接和 healthcheck。
+- [x] 实现 Redis 连接和 healthcheck。
+- [x] 实现 object storage 连接和 healthcheck。
+- [x] 实现 migration runner。
+- [x] 新增 backend Dockerfile。
+- [x] 新增 `/healthz` 和 `/readyz`。
 
 ### 25.3 Database Schema
 
