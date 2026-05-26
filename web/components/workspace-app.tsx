@@ -25,6 +25,7 @@ import {
   Settings,
   ShieldCheck,
   Sparkles,
+  Gauge,
   Upload,
   User
 } from "lucide-react";
@@ -570,12 +571,33 @@ function WorkspaceView({
           <span className="soft-label">Autosaved {dateLabel(state.canvas.autosavedAt)}</span>
         </div>
         <div
+          className={renderingSmoke.status === "pass" ? "rendering-smoke pass" : "rendering-smoke fail"}
+          role="status"
+          aria-label="Workspace rendering performance smoke"
+          data-rendering-smoke-summary={renderingSmoke.schema_version}
+          data-rendering-smoke-status={renderingSmoke.status}
+          data-rendering-smoke-failures={renderingSmoke.failures.join(",")}
+          data-rendering-estimated-interaction-ms={renderingSmoke.estimatedInteractionMs}
+          data-rendering-budget-node-count={renderingSmoke.budgets.maxNodes}
+          data-rendering-budget-edge-count={renderingSmoke.budgets.maxEdges}
+          data-rendering-budget-version-count={renderingSmoke.budgets.maxVersions}
+        >
+          <Gauge size={15} aria-hidden="true" />
+          <span>
+            {renderingSmoke.status === "pass" ? "Render budget pass" : "Render budget fail"} · {renderingSmoke.renderElementCount}/
+            {renderingSmoke.budgets.maxRenderElements} elements · {renderingSmoke.estimatedInteractionMs}/
+            {renderingSmoke.budgets.maxInteractionMs} ms
+          </span>
+        </div>
+        <div
           className="canvas-surface"
           data-rendering-smoke={renderingSmoke.schema_version}
           data-rendering-status={renderingSmoke.status}
           data-render-node-count={renderingSmoke.nodeCount}
           data-render-edge-count={renderingSmoke.edgeCount}
           data-render-element-count={renderingSmoke.renderElementCount}
+          data-render-estimated-interaction-ms={renderingSmoke.estimatedInteractionMs}
+          data-render-failure-count={renderingSmoke.failures.length}
           data-render-max-elements={renderingSmoke.budgets.maxRenderElements}
           data-render-max-interaction-ms={renderingSmoke.budgets.maxInteractionMs}
         >

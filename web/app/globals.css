@@ -637,6 +637,32 @@ textarea {
   line-height: 1.35;
 }
 
+.rendering-smoke {
+  margin-bottom: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 7px 9px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #344054;
+  background: #fbfcfe;
+  font-size: 12px;
+  line-height: 1.25;
+}
+
+.rendering-smoke.pass {
+  border-color: rgba(15, 118, 110, 0.26);
+  background: #edfdfa;
+  color: #134e4a;
+}
+
+.rendering-smoke.fail {
+  border-color: rgba(185, 28, 28, 0.28);
+  background: #fff1f2;
+  color: #991b1b;
+}
+
 .canvas-edge {
   position: absolute;
   left: 305px;

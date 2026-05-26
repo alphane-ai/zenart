@@ -292,10 +292,21 @@ for (const expectedRenderingSnippet of [
   "data-render-node-count",
   "data-render-edge-count",
   "data-render-element-count",
+  "data-render-estimated-interaction-ms",
+  "data-render-failure-count",
   "data-render-max-elements",
   "data-render-max-interaction-ms",
+  "data-rendering-smoke-summary",
+  "data-rendering-smoke-status",
+  "data-rendering-smoke-failures",
+  "data-rendering-estimated-interaction-ms",
+  "data-rendering-budget-node-count",
+  "data-rendering-budget-edge-count",
+  "data-rendering-budget-version-count",
   "maxRenderElements",
-  "maxInteractionMs"
+  "maxInteractionMs",
+  "estimatedInteractionMs",
+  "failures"
 ]) {
   if (!componentSource.includes(expectedRenderingSnippet)) {
     fail(`workspace rendering performance smoke missing ${expectedRenderingSnippet}`);
@@ -311,7 +322,9 @@ for (const expectedRenderingContract of [
   "maxVersions: 32",
   "maxRenderElements: 96",
   "maxInteractionMs: 100",
-  "stage0.rev2.workspace-rendering-performance"
+  "stage0.rev2.workspace-rendering-performance",
+  "estimatedInteractionMs",
+  "failures.push(\"interaction\")"
 ]) {
   if (!devStateSource.includes(expectedRenderingContract)) {
     fail(`workspace rendering performance budget missing ${expectedRenderingContract}`);

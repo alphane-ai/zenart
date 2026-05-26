@@ -226,6 +226,7 @@ describe("dev workspace contracts", () => {
       nodeCount: 3,
       edgeCount: 2,
       versionCount: 3,
+      failures: [],
       budgets: {
         maxNodes: 24,
         maxEdges: 24,
@@ -235,6 +236,53 @@ describe("dev workspace contracts", () => {
       }
     });
     expect(smoke.renderElementCount).toBeLessThanOrEqual(smoke.budgets.maxRenderElements);
+    expect(smoke.estimatedInteractionMs).toBeLessThanOrEqual(smoke.budgets.maxInteractionMs);
+  });
+
+  it("fails workspace rendering smoke when local alpha budgets are exceeded", () => {
+    const state = createInitialWorkspace();
+    const nodes = Array.from({ length: 25 }, (_, index) => ({
+      id: `node-budget-${index}`,
+      title: `Budget node ${index}`,
+      kind: "iteration" as const,
+      x: 80 + index,
+      y: 120 + index,
+      body: "Budget overflow fixture."
+    }));
+    const smoke = buildWorkspaceRenderingPerformanceSmoke({
+      ...state,
+      canvas: {
+        ...state.canvas,
+        nodes,
+        edges: Array.from({ length: 25 }, (_, index) => ({
+          from: `node-budget-${index}`,
+          to: `node-budget-${index + 1}`
+        })),
+        versions: Array.from({ length: 33 }, (_, index) => ({
+          id: `version-budget-${index}`,
+          label: `Budget ${index}`,
+          createdAt: "2026-05-26T10:00:00.000Z",
+          nodeCount: index + 1
+        })),
+        activeVersionId: "version-budget-32"
+      },
+      packageItems: Array.from({ length: 12 }, (_, index) => ({
+        id: `pkg-item-budget-${index}`,
+        sourceId: `node-budget-${index}`,
+        title: `Budget item ${index}`,
+        type: "canvas-frame" as const,
+        addedAt: "2026-05-26T10:05:00.000Z"
+      }))
+    });
+
+    expect(smoke).toMatchObject({
+      status: "fail",
+      nodeCount: 25,
+      edgeCount: 25,
+      versionCount: 33,
+      renderElementCount: 99
+    });
+    expect(smoke.failures).toEqual(["nodes", "edges", "versions", "render-elements", "interaction"]);
   });
 
   it("models local alpha share links as disabled and private", () => {

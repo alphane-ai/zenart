@@ -146,6 +146,8 @@ export interface WorkspaceRenderingPerformanceSmoke {
   edgeCount: number;
   versionCount: number;
   renderElementCount: number;
+  estimatedInteractionMs: number;
+  failures: Array<"nodes" | "edges" | "versions" | "render-elements" | "interaction">;
   budgets: {
     maxNodes: number;
     maxEdges: number;

@@ -298,22 +298,38 @@ export const buildWorkspaceRenderingPerformanceSmoke = (
     state.canvas.versions.length +
     state.candidates.length +
     state.packageItems.length;
-  const status =
-    state.canvas.nodes.length <= budgets.maxNodes &&
-    state.canvas.edges.length <= budgets.maxEdges &&
-    state.canvas.versions.length <= budgets.maxVersions &&
-    renderElementCount <= budgets.maxRenderElements
-      ? "pass"
-      : "fail";
+  const estimatedInteractionMs = Math.min(
+    999,
+    Math.ceil(renderElementCount * 0.75 + state.canvas.nodes.length * 1.2 + state.canvas.edges.length * 0.8)
+  );
+  const failures: WorkspaceRenderingPerformanceSmoke["failures"] = [];
+
+  if (state.canvas.nodes.length > budgets.maxNodes) {
+    failures.push("nodes");
+  }
+  if (state.canvas.edges.length > budgets.maxEdges) {
+    failures.push("edges");
+  }
+  if (state.canvas.versions.length > budgets.maxVersions) {
+    failures.push("versions");
+  }
+  if (renderElementCount > budgets.maxRenderElements) {
+    failures.push("render-elements");
+  }
+  if (estimatedInteractionMs > budgets.maxInteractionMs) {
+    failures.push("interaction");
+  }
 
   return {
     schema_version: "stage0.rev2.workspace-rendering-performance",
-    status,
+    status: failures.length === 0 ? "pass" : "fail",
     scenario: "local-alpha-canvas",
     nodeCount: state.canvas.nodes.length,
     edgeCount: state.canvas.edges.length,
     versionCount: state.canvas.versions.length,
     renderElementCount,
+    estimatedInteractionMs,
+    failures,
     budgets
   };
 };
