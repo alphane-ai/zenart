@@ -655,7 +655,7 @@ for gate_name, gate_path in gate_paths.items():
     blocked_checks = [
         check.get("check_id")
         for check in gate.get("checks", [])
-        if check.get("status") != "passed"
+        if check.get("status") not in {"pass", "passed"}
     ]
     do_not_launch = [
         check.get("condition_id")

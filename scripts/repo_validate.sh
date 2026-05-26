@@ -385,6 +385,13 @@ if decision_inputs.get("gate_fixtures_clear") is not False:
 for gate in ("private_beta_staging", "production_launch"):
     if gate not in summary["release_gate_fixtures"]:
         raise SystemExit(f"staging smoke missing gate fixture summary for {gate}")
+for passed_check in (
+    "private_beta_staging:staging_support_retry_abuse_ops",
+    "private_beta_staging:staging_crawler_approval_provenance",
+    "production_launch:production_abuse_throttle_hold",
+):
+    if f"gate_fixture_blocked:{passed_check}" in blocking_reasons:
+        raise SystemExit(f"staging smoke must not report passed fixture check as blocked: {passed_check}")
 PY
 contract_profile_dir="$(mktemp -d)"
 DRY_RUN=1 \
