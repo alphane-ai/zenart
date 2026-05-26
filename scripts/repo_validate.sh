@@ -155,8 +155,11 @@ PY
 log "release no-go evidence validation"
 python3 scripts/render_no_go_release_notes.py --check
 python3 - <<'PY'
+import json
 from pathlib import Path
 
+private_beta = json.loads(Path("fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json").read_text(encoding="utf-8"))
+production = json.loads(Path("fixtures/stage0/rev2/release_gate_evidence.production_launch.json").read_text(encoding="utf-8"))
 notes = Path("ops/release/stage0_rev2_current_no_go_release_notes.md").read_text(encoding="utf-8")
 required_fragments = [
     "Release gate status: `no-go`.",
@@ -181,6 +184,49 @@ if notes.count("- Load evidence:") != 1:
     raise SystemExit("release no-go notes must contain exactly one Load evidence line")
 if notes.count("- Load smoke:") != 1:
     raise SystemExit("release no-go notes must contain exactly one local Load smoke summary line")
+
+def fixture_blockers(gate):
+    return [
+        str(check.get("check_id", "unknown_check"))
+        for check in gate.get("checks", [])
+        if check.get("status") not in {"pass", "passed"}
+    ]
+
+def present_do_not_launch(gate):
+    return [
+        str(check.get("condition_id", "unknown_condition"))
+        for check in gate.get("do_not_launch_checks", [])
+        if check.get("is_present") is True
+    ]
+
+def assert_line_matches(label, path, values):
+    expected = f"- {label}: `{path}`: {', '.join(values) if values else 'none recorded'}."
+    if expected not in notes:
+        raise SystemExit(f"release no-go notes drifted from fixture decision; expected line: {expected}")
+
+def assert_condition_line_matches(label, values):
+    expected = f"- {label}: {', '.join(values) if values else 'none recorded'}."
+    if expected not in notes:
+        raise SystemExit(f"release no-go notes drifted from fixture decision; expected line: {expected}")
+
+assert_line_matches(
+    "Open private beta blockers",
+    "fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json",
+    fixture_blockers(private_beta),
+)
+assert_condition_line_matches(
+    "Private beta do-not-launch conditions present",
+    present_do_not_launch(private_beta),
+)
+assert_line_matches(
+    "Open production blockers",
+    "fixtures/stage0/rev2/release_gate_evidence.production_launch.json",
+    fixture_blockers(production),
+)
+assert_condition_line_matches(
+    "Production do-not-launch conditions present",
+    present_do_not_launch(production),
+)
 
 template = Path("ops/release/release_notes_template.md").read_text(encoding="utf-8")
 if template.count("- Load evidence:") != 1:
