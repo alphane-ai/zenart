@@ -134,6 +134,7 @@
     "auth/session flow persists login, refresh, expired-session handling, and logout states",
     "secure cookie contract exposes __Host cookie, HttpOnly, Secure, SameSite=Lax, and Path=/ attributes",
     "CSRF UX contract exposes same-site origin-check strategy and X-ZenArt-CSRF header evidence",
+    "generated web API client sends same-site credentials and X-ZenArt-CSRF header on state-changing operations",
     "account settings persist through workspace reload",
     "candidate selection, workspace autosave, canvas versions, and package history survive reload",
     "workspace rendering performance smoke keeps canvas render elements within the local alpha budget",
