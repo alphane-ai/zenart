@@ -59,7 +59,7 @@ Release gate status: `no-go`.
 - Migration run: `missing`; required before staging/production decisions.
 - Staging smoke: `missing`; required before private beta/production decisions.
 - Load smoke: local 7/7 modes passed; first report ops/evidence/load/local/20260526T142030Z-chat_task-64820.json; staging evidence required before private beta/production decisions.
-- Observability smoke: local status `passed` from `ops/evidence/observability/local/20260526T142006Z-observability-smoke-64024.json`; staging logs, metrics, traces, dashboard import, and alert-route evidence required.
+- Observability smoke: local status `passed` from `ops/evidence/observability/local/20260526T192311Z-observability-smoke-7780.json`; staging logs, metrics, traces, dashboard import, and alert-route evidence required.
 - Backup/restore drill: local status `passed` from `ops/evidence/backup-restore/local/20260526T153126Z/report.json`; staging/production restore evidence required before those gates can close.
 - Security scan: local status `passed` from `ops/evidence/security/local/20260526T142040Z-security-scan-smoke-65314.json`; CI/staging release-context scan evidence required.
 

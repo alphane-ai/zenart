@@ -1914,12 +1914,15 @@ main 合并前必须通过：
 ### 25.18 Observability, Backup, Incident, Load
 
 - [x] 定义 request id propagation staging smoke contract。
+- [x] 实现 backend request id propagation local contract。
 - [ ] 实现 request id propagation。
 - [x] 定义 structured JSON logs contract。
+- [x] 实现 backend structured JSON access/error logs local contract。
 - [ ] 实现 structured JSON logs。
 - [x] 定义 OpenTelemetry traces contract。
 - [ ] 实现 OpenTelemetry traces。
 - [x] 定义 backend/worker/crawler metrics contract。
+- [x] 实现 backend local metrics endpoint。
 - [ ] 实现 backend/worker/crawler metrics。
 - [x] 实现 frontend error reporting。
 - [x] 定义 dashboards。

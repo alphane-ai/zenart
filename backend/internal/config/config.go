@@ -20,6 +20,7 @@ type Config struct {
 	ObjectStorage ObjectStorageConfig
 	Auth          AuthConfig
 	Billing       BillingConfig
+	Observability ObservabilityConfig
 	Tasks         TaskConfig
 	Worker        WorkerConfig
 }
@@ -89,6 +90,11 @@ type AuthConfig struct {
 type BillingConfig struct {
 	CheckoutProvider string
 	WeeklyQuotaUnits int64
+}
+
+type ObservabilityConfig struct {
+	MetricsEnabled bool
+	MetricsPort    int
 }
 
 type TaskConfig struct {
@@ -163,6 +169,10 @@ func Load() (Config, error) {
 		Billing: BillingConfig{
 			CheckoutProvider: env("CHECKOUT_PROVIDER", "mock"),
 			WeeklyQuotaUnits: int64Env("WEEKLY_QUOTA_UNITS", 1000),
+		},
+		Observability: ObservabilityConfig{
+			MetricsEnabled: boolEnv("METRICS_ENABLED", true),
+			MetricsPort:    intEnv("METRICS_PORT", 9090),
 		},
 		Tasks: TaskConfig{
 			SchemaVersion: intEnv("TASK_SCHEMA_VERSION", 1),
@@ -287,6 +297,9 @@ func (c Config) Validate() error {
 		if strings.TrimSpace(c.ObjectStorage.SecretKey) == "" {
 			errs = append(errs, "OBJECT_STORAGE_SECRET_KEY must not be empty for S3-compatible object storage")
 		}
+	}
+	if c.Observability.MetricsPort <= 0 || c.Observability.MetricsPort > 65535 {
+		errs = append(errs, "METRICS_PORT must be between 1 and 65535")
 	}
 	if c.Tasks.SchemaVersion < 1 {
 		errs = append(errs, "TASK_SCHEMA_VERSION must be >= 1")

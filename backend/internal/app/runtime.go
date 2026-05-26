@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -35,7 +36,8 @@ func RunServer(ctx context.Context, cfg config.Config, logger *slog.Logger) erro
 	}
 	db := store.NewPoolAdapter(pool)
 	stage0Service := stage0.NewService(stage0.NewRepository(db), objects)
-	baseHandler := server.New(cfg, logger).Handler()
+	api := server.New(cfg, logger)
+	baseHandler := api.Handler()
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reqCtx := task.ContextWithRepository(r.Context(), task.NewRepository(db))
 		reqCtx = stage0.ContextWithService(reqCtx, stage0Service)
@@ -43,6 +45,20 @@ func RunServer(ctx context.Context, cfg config.Config, logger *slog.Logger) erro
 	})
 	srv := server.NewHTTPServer(cfg, handler)
 	errCh := make(chan error, 1)
+	var metricsSrv *http.Server
+	if cfg.Observability.MetricsEnabled {
+		metricsSrv = &http.Server{
+			Addr:              fmt.Sprintf(":%d", cfg.Observability.MetricsPort),
+			Handler:           api.MetricsHandler(),
+			ReadHeaderTimeout: cfg.HTTP.ReadHeaderTimeout,
+		}
+		go func() {
+			logger.Info("metrics listening", "addr", metricsSrv.Addr)
+			if err := metricsSrv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+				logger.Error("metrics server stopped", "error", err)
+			}
+		}()
+	}
 
 	go func() {
 		logger.Info("server listening", "addr", cfg.HTTP.Addr)
@@ -53,6 +69,9 @@ func RunServer(ctx context.Context, cfg config.Config, logger *slog.Logger) erro
 	case <-ctx.Done():
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
+		if metricsSrv != nil {
+			_ = metricsSrv.Shutdown(shutdownCtx)
+		}
 		if err := srv.Shutdown(shutdownCtx); err != nil {
 			return err
 		}

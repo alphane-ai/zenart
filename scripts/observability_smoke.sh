@@ -58,6 +58,7 @@ except json.JSONDecodeError:
 root = Path(".")
 runtime_go = root.joinpath("backend/internal/app/runtime.go").read_text(encoding="utf-8", errors="replace")
 server_go = root.joinpath("backend/internal/server/server.go").read_text(encoding="utf-8", errors="replace")
+middleware_go = root.joinpath("backend/internal/server/middleware.go").read_text(encoding="utf-8", errors="replace")
 env_example = root.joinpath(".env.example").read_text(encoding="utf-8", errors="replace")
 compose = root.joinpath("docker-compose.yml").read_text(encoding="utf-8", errors="replace")
 dashboard = json.loads(root.joinpath("ops/observability/dashboards/stage0_rev2_overview.json").read_text(encoding="utf-8"))
@@ -70,6 +71,7 @@ otel_import_detected = "go.opentelemetry.io/otel" in "\n".join(
 )
 metrics_runtime_passed = metrics_http_status == 200 and (
     "backend_http_request_duration" in metrics_body
+    or "backend_http_requests_total" in metrics_body
     or "go_gc_duration_seconds" in metrics_body
     or "# HELP" in metrics_body
 )
@@ -97,6 +99,15 @@ report_path.write_text(json.dumps({
         "request_id_json_body_echo": body_echo,
         "json_response_body": json_body,
         "structured_log_json_handler_declared": "slog.NewJSONHandler" in runtime_go,
+        "access_log_request_context_declared": all(fragment in middleware_go for fragment in [
+            '"http request"',
+            '"request_id"',
+            '"user_id"',
+            '"tenant_id"',
+            '"route"',
+            '"status"',
+            '"latency_ms"',
+        ]),
         "compose_log_format_json_declared": "LOG_FORMAT: ${LOG_FORMAT:-json}" in compose,
         "recover_log_includes_request_id": recovery_log_includes_request_id,
         "metrics_config_declared": "METRICS_ENABLED=true" in env_example and "METRICS_PORT=9090" in env_example,
@@ -108,7 +119,7 @@ report_path.write_text(json.dumps({
     },
     "signal_statuses": {
         "request_id_propagation": "contract_validated" if request_id_contract_validated else "open",
-        "structured_json_logs": "definition_validated_recovery_log_request_id_open" if not recovery_log_includes_request_id else "contract_validated",
+        "structured_json_logs": "definition_validated_recovery_log_request_id_open" if not recovery_log_includes_request_id else "local_contract_validated_staging_log_capture_open",
         "opentelemetry_traces": "open" if not otel_import_detected else "instrumentation_detected_runtime_export_open",
         "backend_worker_crawler_metrics": "open" if not metrics_runtime_passed else "local_metrics_endpoint_detected_staging_runtime_open",
         "dashboards": "definition_validated_runtime_import_open" if dashboard_definition_validated else "open",

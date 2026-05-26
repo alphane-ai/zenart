@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -42,6 +43,100 @@ func TestHealthz(t *testing.T) {
 	}
 	if body["request_id"] != "test-request" {
 		t.Fatalf("request_id = %v, want test-request", body["request_id"])
+	}
+}
+
+func TestAccessLogIncludesRequestContext(t *testing.T) {
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+
+	var logs bytes.Buffer
+	logger := slog.New(slog.NewJSONHandler(&logs, nil))
+	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
+	req.Header.Set("X-Request-ID", "log-request")
+	rec := httptest.NewRecorder()
+
+	New(cfg, logger).Handler().ServeHTTP(rec, req)
+
+	line := logs.String()
+	for _, fragment := range []string{
+		`"msg":"http request"`,
+		`"request_id":"log-request"`,
+		`"method":"GET"`,
+		`"route":"/healthz"`,
+		`"status":200`,
+		`"latency_ms"`,
+		`"tenant_id"`,
+		`"user_id"`,
+	} {
+		if !strings.Contains(line, fragment) {
+			t.Fatalf("access log = %s, missing %s", line, fragment)
+		}
+	}
+}
+
+func TestAccessLogIncludesCookiePrincipal(t *testing.T) {
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+
+	login := httptest.NewRequest(http.MethodPost, "/api/v1/auth/local/session", bytes.NewBufferString(`{"tenant_id":"tenant_cookie"}`))
+	setSameSiteCSRFHeaders(login)
+	loginRec := httptest.NewRecorder()
+	New(cfg, nil).Handler().ServeHTTP(loginRec, login)
+	cookie := findCookie(loginRec.Result().Cookies(), cfg.Auth.SessionCookieName)
+	if cookie == nil {
+		t.Fatal("session cookie was not set")
+	}
+
+	var logs bytes.Buffer
+	logger := slog.New(slog.NewJSONHandler(&logs, nil))
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/tasks/task_123", nil)
+	req.AddCookie(cookie)
+	rec := httptest.NewRecorder()
+
+	New(cfg, logger).Handler().ServeHTTP(rec, req)
+
+	line := logs.String()
+	for _, fragment := range []string{
+		`"msg":"http request"`,
+		`"tenant_id":"tenant_cookie"`,
+		`"user_id":"local_local.user_example.com"`,
+	} {
+		if !strings.Contains(line, fragment) {
+			t.Fatalf("access log = %s, missing %s", line, fragment)
+		}
+	}
+}
+
+func TestMetricsHandlerExposesHTTPCounters(t *testing.T) {
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+
+	srv := New(cfg, nil)
+	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
+	rec := httptest.NewRecorder()
+	srv.Handler().ServeHTTP(rec, req)
+
+	metricsReq := httptest.NewRequest(http.MethodGet, "/metrics", nil)
+	metricsRec := httptest.NewRecorder()
+	srv.MetricsHandler().ServeHTTP(metricsRec, metricsReq)
+
+	body := metricsRec.Body.String()
+	for _, fragment := range []string{
+		"backend_http_requests_total 1",
+		`backend_http_requests_by_status_total{status="200"} 1`,
+		`backend_http_requests_by_route_total{route="GET /healthz"} 1`,
+		"backend_process_uptime_seconds",
+	} {
+		if !strings.Contains(body, fragment) {
+			t.Fatalf("metrics body = %s, missing %s", body, fragment)
+		}
 	}
 }
 

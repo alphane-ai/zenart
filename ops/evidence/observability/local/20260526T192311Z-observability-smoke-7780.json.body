@@ -1,0 +1,6 @@
+{
+  "environment": "local",
+  "request_id": "stage0-observability-smoke",
+  "service": "zenart-backend",
+  "status": "ok"
+}

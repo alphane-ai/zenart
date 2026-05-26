@@ -27,6 +27,7 @@ type Server struct {
 	cfg     config.Config
 	checker readiness.Checker
 	logger  *slog.Logger
+	metrics *Metrics
 	mux     *http.ServeMux
 }
 
@@ -38,6 +39,7 @@ func New(cfg config.Config, logger *slog.Logger) *Server {
 		cfg:     cfg,
 		checker: readiness.New(health.Checks(cfg)...),
 		logger:  logger,
+		metrics: NewMetrics(),
 		mux:     http.NewServeMux(),
 	}
 	s.routes()
@@ -45,7 +47,11 @@ func New(cfg config.Config, logger *slog.Logger) *Server {
 }
 
 func (s *Server) Handler() http.Handler {
-	return withRequestID(withRecover(s.logger, withSecurityHeaders(s.cfg.Security, withRuntimeSecurity(s.cfg, s.mux))))
+	return withRequestID(withRecover(s.logger, withAccessLog(s.logger, s.metrics, withSecurityHeaders(s.cfg.Security, withRuntimeSecurity(s.cfg, s.mux)))))
+}
+
+func (s *Server) MetricsHandler() http.Handler {
+	return s.metrics.Handler()
 }
 
 func (s *Server) HTTPServer() *http.Server {
@@ -526,7 +532,7 @@ func withRecover(logger *slog.Logger, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if recovered := recover(); recovered != nil {
-				logger.Error("request panic", "recover", recovered, "path", r.URL.Path)
+				logger.Error("request panic", "recover", recovered, "path", r.URL.Path, "request_id", requestIDFrom(r.Context()))
 				writeJSON(w, http.StatusInternalServerError, map[string]any{
 					"code":         "internal_error",
 					"message":      "internal server error",

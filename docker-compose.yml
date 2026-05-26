@@ -49,6 +49,8 @@ x-backend-env: &backend-env
   CRAWLER_ENABLED: ${CRAWLER_ENABLED:-false}
   CRAWLER_USER_AGENT: ${CRAWLER_USER_AGENT:-ZenArtStage0Bot/0.1}
   CRAWLER_GLOBAL_RPS: ${CRAWLER_GLOBAL_RPS:-0.2}
+  METRICS_ENABLED: ${METRICS_ENABLED:-true}
+  METRICS_PORT: ${METRICS_PORT:-9090}
 
 x-backend-build: &backend-build
   context: ./backend
@@ -130,6 +132,7 @@ services:
         condition: service_completed_successfully
     ports:
       - "${BACKEND_PORT:-8080}:8080"
+      - "${METRICS_PORT:-9090}:9090"
 
   worker:
     build: *backend-build

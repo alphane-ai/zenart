@@ -2344,6 +2344,9 @@ def validate_launch_readiness_split_contracts() -> None:
             signals[signal]["runtime_status"]
             in {
                 "local_healthz_contract_validated_staging_runtime_open",
+                "backend_local_contract_validated_staging_runtime_open",
+                "backend_local_contract_validated_staging_log_capture_open",
+                "backend_local_metrics_endpoint_validated_worker_crawler_staging_open",
                 "definition_validated_recovery_log_request_id_open",
                 "definition_validated",
                 "open",
@@ -2538,7 +2541,12 @@ def validate_ops_ci_and_drill_evidence() -> None:
     )
     require(observability["created_by_lane"] == "lane5", "observability evidence must be lane5-owned")
     require(
-        observability["status"] in {"definition_only", "definition_ready_runtime_evidence_open"},
+        observability["status"]
+        in {
+            "definition_only",
+            "definition_ready_runtime_evidence_open",
+            "local_runtime_hooks_validated_staging_runtime_evidence_open",
+        },
         "observability evidence must not claim runtime completion",
     )
     require(
@@ -2569,6 +2577,9 @@ def validate_ops_ci_and_drill_evidence() -> None:
             signals[signal_name]["runtime_status"]
             in {
                 "local_healthz_contract_validated_staging_runtime_open",
+                "backend_local_contract_validated_staging_runtime_open",
+                "backend_local_contract_validated_staging_log_capture_open",
+                "backend_local_metrics_endpoint_validated_worker_crawler_staging_open",
                 "definition_validated_recovery_log_request_id_open",
                 "definition_validated",
                 "open",

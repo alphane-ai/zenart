@@ -2,7 +2,7 @@
   "blueprint_source": "Docs/stage0_blueprint_rev2.md",
   "created_by_lane": "lane5",
   "scope": "observability, alerting, dashboard, and production gate map",
-  "status": "definition_ready_runtime_evidence_open",
+  "status": "local_runtime_hooks_validated_staging_runtime_evidence_open",
   "smoke_script": "scripts/observability_smoke.sh",
   "dashboard_definition": "ops/observability/dashboards/stage0_rev2_overview.json",
   "alert_definition": "ops/observability/alerts/stage0_rev2_alerts.json",
@@ -10,15 +10,15 @@
     {
       "name": "request_id_propagation",
       "required_by_rev2": true,
-      "local_evidence": ".env.example defines REQUEST_ID_HEADER=X-Request-ID",
-      "runtime_status": "local_healthz_contract_validated_staging_runtime_open",
+      "local_evidence": ".env.example defines REQUEST_ID_HEADER=X-Request-ID; backend health/ready responses echo X-Request-ID; backend request logs include request_id",
+      "runtime_status": "backend_local_contract_validated_staging_runtime_open",
       "production_gate": "must propagate request id through web, admin, backend, worker, crawler, logs, metrics exemplars, and traces in staging"
     },
     {
       "name": "structured_json_logs",
       "required_by_rev2": true,
-      "local_evidence": ".env.example and docker-compose.yml define LOG_FORMAT=json and LOG_LEVEL",
-      "runtime_status": "definition_validated_recovery_log_request_id_open",
+      "local_evidence": ".env.example and docker-compose.yml define LOG_FORMAT=json and LOG_LEVEL; backend uses slog JSON handler; access logs include request_id, user_id, tenant_id, route, status, latency_ms, and bytes; panic logs include request_id",
+      "runtime_status": "backend_local_contract_validated_staging_log_capture_open",
       "production_gate": "must verify backend, worker, crawler, and access logs are JSON with request_id, user_id, tenant_id, route, status, latency_ms, and error fields"
     },
     {
@@ -31,8 +31,8 @@
     {
       "name": "backend_worker_crawler_metrics",
       "required_by_rev2": true,
-      "local_evidence": ".env.example defines METRICS_ENABLED=true and METRICS_PORT=9090",
-      "runtime_status": "open",
+      "local_evidence": ".env.example and docker-compose.yml define METRICS_ENABLED=true and METRICS_PORT=9090; backend exposes Prometheus text metrics with HTTP request totals, status counts, route counts, duration total, and uptime",
+      "runtime_status": "backend_local_metrics_endpoint_validated_worker_crawler_staging_open",
       "production_gate": "must expose API latency, queue delay, generation duration, export duration, crawler throttle, quota contention, and error counters"
     },
     {
@@ -66,9 +66,9 @@
   },
   "open_items": [
     "staging_request_id_propagation_across_web_admin_backend_worker_crawler_logs_metrics_traces",
-    "structured_json_log_capture_with_request_id_user_id_tenant_id_route_status_latency",
+    "staging_structured_json_log_capture_with_request_id_user_id_tenant_id_route_status_latency",
     "opentelemetry_traces",
-    "backend_worker_crawler_metrics",
+    "worker_crawler_domain_metrics_and_staging_backend_metrics_runtime_capture",
     "frontend_error_reporting",
     "staging_dashboard_import_and_runtime_data",
     "staging_alert_routes_and_threshold_evaluations"

@@ -10,7 +10,7 @@
     "status": "passed"
   },
   "blueprint_source": "Docs/stage0_blueprint_rev2.md",
-  "created_at": "2026-05-26T15:31:26Z",
+  "created_at": "2026-05-26T19:23:11Z",
   "created_by_lane": "lane5",
   "gate_policy": {
     "private_beta_staging_gate": "open_until_runtime_staging_evidence_exists_for all Rev2 checks",
@@ -105,17 +105,23 @@
   ],
   "observability_smoke": {
     "checks": {
+      "access_log_request_context_declared": true,
+      "dashboard_definition_validated": true,
+      "alert_definition_validated": true,
       "json_response_body": true,
       "metrics_config_declared": true,
+      "metrics_runtime_endpoint_passed": true,
       "otel_config_declared": true,
+      "otel_runtime_instrumentation_detected": false,
       "recover_log_includes_request_id": true,
       "request_id_json_body_echo": true,
       "request_id_response_header_echo": true,
-      "structured_log_contract_defined": true
+      "structured_log_json_handler_declared": true
     },
     "http_status": 200,
+    "metrics_http_status": 200,
     "private_beta_gate": "open_until_staging_logs_metrics_traces_dashboards_alerts_have_runtime_evidence",
-    "source_report": "ops/evidence/observability/local/20260526T142006Z-observability-smoke-64024.json",
+    "source_report": "ops/evidence/observability/local/20260526T192311Z-observability-smoke-7780.json",
     "status": "passed"
   },
   "scope": "local ops drill runtime evidence summary",

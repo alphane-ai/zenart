@@ -1,0 +1,48 @@
+{
+  "base_url": "http://localhost:18080",
+  "blueprint_source": "Docs/stage0_blueprint_rev2.md",
+  "body_path": "ops/evidence/observability/local/20260526T192311Z-observability-smoke-7780.json.body",
+  "checks": {
+    "access_log_request_context_declared": true,
+    "alert_definition_validated": true,
+    "compose_log_format_json_declared": true,
+    "dashboard_definition_validated": true,
+    "json_response_body": true,
+    "metrics_config_declared": true,
+    "metrics_runtime_endpoint_passed": true,
+    "otel_config_declared": true,
+    "otel_runtime_instrumentation_detected": false,
+    "recover_log_includes_request_id": true,
+    "request_id_json_body_echo": true,
+    "request_id_response_header_echo": true,
+    "structured_log_json_handler_declared": true
+  },
+  "created_at": "20260526T192311Z",
+  "created_by_lane": "lane5",
+  "headers_path": "ops/evidence/observability/local/20260526T192311Z-observability-smoke-7780.headers",
+  "http_status": 200,
+  "metrics_body_path": "ops/evidence/observability/local/20260526T192311Z-observability-smoke-7780.metrics.body",
+  "metrics_http_status": 200,
+  "metrics_url": "http://localhost:19090/metrics",
+  "open_items": [
+    "staging_log_capture_with_request_id_user_id_tenant_id_route_status_latency",
+    "opentelemetry_backend_worker_crawler_span_export",
+    "backend_worker_crawler_metrics_endpoint_or_exporter_runtime_evidence",
+    "staging_dashboard_import_with_release_sha_labels",
+    "staging_alert_route_notifications_and_threshold_evaluations"
+  ],
+  "private_beta_gate": "open_until_staging_logs_metrics_traces_dashboards_alerts_have_runtime_evidence",
+  "production_gate": "open_until_observability_evidence_is_attached_to_release_go_no_go",
+  "request_id_header": "X-Request-ID",
+  "request_id_value": "stage0-observability-smoke",
+  "run_id": "20260526T192311Z-observability-smoke-7780",
+  "signal_statuses": {
+    "alerts": "definition_validated_runtime_route_evaluation_open",
+    "backend_worker_crawler_metrics": "local_metrics_endpoint_detected_staging_runtime_open",
+    "dashboards": "definition_validated_runtime_import_open",
+    "opentelemetry_traces": "open",
+    "request_id_propagation": "contract_validated",
+    "structured_json_logs": "local_contract_validated_staging_log_capture_open"
+  },
+  "status": "request_id_contract_passed_runtime_gates_open"
+}

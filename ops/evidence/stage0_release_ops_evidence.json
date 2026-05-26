@@ -21,7 +21,7 @@
     },
     "observability_smoke": {
       "script": "scripts/observability_smoke.sh",
-      "runtime_status": "local request-id and JSON contract smoke plus dashboard/alert definitions; staging logs/metrics/traces/dashboard import/alert evaluation remain open",
+      "runtime_status": "local backend request-id, structured JSON access log, panic request-id, and metrics endpoint contracts are validated; staging logs/metrics/traces/dashboard import/alert evaluation remain open",
       "private_beta_gate": "open until production-like observability evidence exists"
     },
     "security_scan_smoke": {

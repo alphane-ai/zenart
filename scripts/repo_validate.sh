@@ -139,12 +139,12 @@ if dashboard["status"] != "definition_ready_runtime_evidence_open":
 if alerts["status"] != "definition_ready_runtime_evidence_open":
     raise SystemExit("alerts must not claim runtime completion")
 signals = {signal["name"]: signal["runtime_status"] for signal in observability_evidence["signals"]}
-if signals.get("request_id_propagation") != "local_healthz_contract_validated_staging_runtime_open":
-    raise SystemExit("request-id evidence must keep staging/runtime propagation open")
-if signals.get("structured_json_logs") != "definition_validated_recovery_log_request_id_open":
-    raise SystemExit("structured log evidence must not claim full runtime completion")
+if signals.get("request_id_propagation") != "backend_local_contract_validated_staging_runtime_open":
+	raise SystemExit("request-id evidence must keep staging/runtime propagation open")
+if signals.get("structured_json_logs") != "backend_local_contract_validated_staging_log_capture_open":
+	raise SystemExit("structured log evidence must not claim full runtime completion")
 if "staging_request_id_propagation_across_web_admin_backend_worker_crawler_logs_metrics_traces" not in observability_evidence.get("open_items", []):
-    raise SystemExit("observability evidence must keep staging request-id propagation open")
+	raise SystemExit("observability evidence must keep staging request-id propagation open")
 PY
 
 log "release no-go evidence validation"
@@ -271,9 +271,10 @@ report = json.loads(reports[0].read_text(encoding="utf-8"))
 required_checks = {
     "request_id_response_header_echo",
     "request_id_json_body_echo",
-    "json_response_body",
-    "structured_log_json_handler_declared",
-    "compose_log_format_json_declared",
+	"json_response_body",
+	"structured_log_json_handler_declared",
+	"access_log_request_context_declared",
+	"compose_log_format_json_declared",
     "recover_log_includes_request_id",
     "metrics_config_declared",
     "metrics_runtime_endpoint_passed",

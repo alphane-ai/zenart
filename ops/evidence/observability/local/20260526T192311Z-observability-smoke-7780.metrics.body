@@ -1,0 +1,15 @@
+# HELP backend_http_requests_total Total backend HTTP requests observed by Stage 0 middleware.
+# TYPE backend_http_requests_total counter
+backend_http_requests_total 1
+# HELP backend_http_request_duration_ms_total Total backend HTTP request duration in milliseconds.
+# TYPE backend_http_request_duration_ms_total counter
+backend_http_request_duration_ms_total 0
+# HELP backend_process_uptime_seconds Backend process uptime in seconds.
+# TYPE backend_process_uptime_seconds gauge
+backend_process_uptime_seconds 13
+# HELP backend_http_requests_by_status_total Backend HTTP requests by response status.
+# TYPE backend_http_requests_by_status_total counter
+backend_http_requests_by_status_total{status="200"} 1
+# HELP backend_http_requests_by_route_total Backend HTTP requests by normalized route.
+# TYPE backend_http_requests_by_route_total counter
+backend_http_requests_by_route_total{route="GET /healthz"} 1

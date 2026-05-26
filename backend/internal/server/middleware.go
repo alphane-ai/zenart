@@ -6,8 +6,10 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -18,6 +20,71 @@ import (
 )
 
 type principalKey struct{}
+
+type statusRecorder struct {
+	http.ResponseWriter
+	status int
+	bytes  int
+}
+
+func (r *statusRecorder) WriteHeader(status int) {
+	if r.status == 0 {
+		r.status = status
+		r.ResponseWriter.WriteHeader(status)
+	}
+}
+
+func (r *statusRecorder) Write(body []byte) (int, error) {
+	if r.status == 0 {
+		r.WriteHeader(http.StatusOK)
+	}
+	n, err := r.ResponseWriter.Write(body)
+	r.bytes += n
+	return n, err
+}
+
+func (r *statusRecorder) Flush() {
+	if flusher, ok := r.ResponseWriter.(http.Flusher); ok {
+		flusher.Flush()
+	}
+}
+
+func (r *statusRecorder) Header() http.Header {
+	return r.ResponseWriter.Header()
+}
+
+func withAccessLog(logger *slog.Logger, metrics *Metrics, next http.Handler) http.Handler {
+	if logger == nil {
+		logger = slog.Default()
+	}
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		startedAt := time.Now()
+		rec := &statusRecorder{ResponseWriter: w}
+		next.ServeHTTP(rec, r)
+		status := rec.status
+		if status == 0 {
+			status = http.StatusOK
+		}
+		duration := time.Since(startedAt)
+		route := normalizeRoute(r)
+		authCfg, authCfgOK := authConfigFromRequest(r)
+		principal, _ := principalFromRequestWithAuthConfig(r, authCfg, authCfgOK)
+		logger.Info("http request",
+			"request_id", requestIDFrom(r.Context()),
+			"method", r.Method,
+			"path", r.URL.Path,
+			"route", route,
+			"status", status,
+			"latency_ms", duration.Milliseconds(),
+			"bytes", rec.bytes,
+			"user_id", principal.UserID,
+			"tenant_id", principal.TenantID,
+			"remote_addr", r.RemoteAddr,
+			"user_agent", r.UserAgent(),
+		)
+		metrics.ObserveHTTP(route, r.Method, status, duration)
+	})
+}
 
 func requirePrincipal(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -63,10 +130,59 @@ func PrincipalFromContext(ctx context.Context) (auth.Principal, bool) {
 }
 
 func principalFromRequest(r *http.Request) (auth.Principal, bool) {
-	if principal, ok := principalFromSessionCookie(r, r.Context()); ok {
-		return principal, true
+	authCfg, authCfgOK := authConfigFromRequest(r)
+	return principalFromRequestWithAuthConfig(r, authCfg, authCfgOK)
+}
+
+func principalFromRequestWithAuthConfig(r *http.Request, cfg config.AuthConfig, cfgOK bool) (auth.Principal, bool) {
+	if cfgOK {
+		if principal, ok := principalFromSessionCookieConfig(r, cfg, time.Now().UTC()); ok {
+			return principal, true
+		}
 	}
 	return principalFromHeaders(r)
+}
+
+func authConfigFromRequest(r *http.Request) (config.AuthConfig, bool) {
+	if cfg, ok := authConfigFromContext(r.Context()); ok {
+		return cfg, true
+	}
+	cfg, err := config.Load()
+	if err != nil {
+		return config.AuthConfig{}, false
+	}
+	return cfg.Auth, true
+}
+
+func principalFromSessionCookieConfig(r *http.Request, cfg config.AuthConfig, now time.Time) (auth.Principal, bool) {
+	cookie, err := r.Cookie(cfg.SessionCookieName)
+	adminCookie, adminErr := r.Cookie(cfg.AdminSessionCookieName)
+	secret := cfg.SessionSecret
+	if err != nil && adminErr == nil {
+		cookie = adminCookie
+		secret = cfg.AdminSessionSecret
+		err = nil
+	}
+	if err != nil || cookie == nil {
+		return auth.Principal{}, false
+	}
+	payload, ok := verifySessionCookie(cookie.Value, secret, now)
+	if !ok {
+		return auth.Principal{}, false
+	}
+	return auth.Principal{
+		UserID:   payload.UserID,
+		TenantID: payload.TenantID,
+		Roles:    payload.Roles,
+	}, true
+}
+
+func principalFromSessionCookie(r *http.Request, ctx context.Context) (auth.Principal, bool) {
+	cfg, ok := authConfigFromContext(ctx)
+	if !ok {
+		return auth.Principal{}, false
+	}
+	return principalFromSessionCookieConfig(r, cfg, time.Now().UTC())
 }
 
 func principalFromHeaders(r *http.Request) (auth.Principal, bool) {
@@ -96,33 +212,6 @@ type sessionCookiePayload struct {
 	TenantID  string      `json:"tenant_id"`
 	Roles     []auth.Role `json:"roles"`
 	ExpiresAt int64       `json:"expires_at"`
-}
-
-func principalFromSessionCookie(r *http.Request, ctx context.Context) (auth.Principal, bool) {
-	cfg, ok := authConfigFromContext(ctx)
-	if !ok {
-		return auth.Principal{}, false
-	}
-	cookie, err := r.Cookie(cfg.SessionCookieName)
-	adminCookie, adminErr := r.Cookie(cfg.AdminSessionCookieName)
-	secret := cfg.SessionSecret
-	if err != nil && adminErr == nil {
-		cookie = adminCookie
-		secret = cfg.AdminSessionSecret
-		err = nil
-	}
-	if err != nil || cookie == nil {
-		return auth.Principal{}, false
-	}
-	payload, ok := verifySessionCookie(cookie.Value, secret, time.Now().UTC())
-	if !ok {
-		return auth.Principal{}, false
-	}
-	return auth.Principal{
-		UserID:   payload.UserID,
-		TenantID: payload.TenantID,
-		Roles:    payload.Roles,
-	}, true
 }
 
 func principalForEntitlement(r *http.Request) (tenantID, userID string, ok bool) {
@@ -313,4 +402,38 @@ func writeError(w http.ResponseWriter, r *http.Request, status int, code, messag
 		"details":      details,
 		"field_errors": []json.RawMessage{},
 	})
+}
+
+func normalizeRoute(r *http.Request) string {
+	parts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
+	for i, part := range parts {
+		if part == "" {
+			continue
+		}
+		if looksLikeID(part) {
+			parts[i] = "{id}"
+		}
+	}
+	if len(parts) == 0 || (len(parts) == 1 && parts[0] == "") {
+		return "/"
+	}
+	return "/" + strings.Join(parts, "/")
+}
+
+func looksLikeID(value string) bool {
+	if _, err := strconv.ParseInt(value, 10, 64); err == nil {
+		return true
+	}
+	if strings.Contains(value, "_") {
+		return true
+	}
+	if len(value) >= 16 && strings.Contains(value, "-") {
+		for _, char := range value {
+			if (char < '0' || char > '9') && (char < 'a' || char > 'f') && (char < 'A' || char > 'F') && char != '-' {
+				return false
+			}
+		}
+		return true
+	}
+	return false
 }
