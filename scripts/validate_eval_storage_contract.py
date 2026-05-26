@@ -8,6 +8,7 @@ import json
 import re
 import subprocess
 import sys
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -52,6 +53,15 @@ QUERY_FILTERS = {
 }
 
 IDEMPOTENCY_FIELDS = {
+    "tenant_id",
+    "eval_suite_id",
+    "subject_type",
+    "subject_id",
+    "subject_version",
+    "runner_sha256",
+}
+
+LATEST_ONLY_GROUP_FIELDS = {
     "tenant_id",
     "eval_suite_id",
     "subject_type",
@@ -280,6 +290,53 @@ def write_row_digest(row: dict[str, Any], digest_fields: set[str]) -> tuple[str,
     return tuple(row[digest_row_fields[field]] for field in sorted(digest_fields))
 
 
+def parse_rfc3339(value: str) -> datetime:
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise EvalStorageContractError(f"invalid fixture timestamp {value}") from exc
+
+
+def row_sort_key(row: dict[str, Any]) -> tuple[datetime, datetime]:
+    return (parse_rfc3339(row["completed_at"]), parse_rfc3339(row["created_at"]))
+
+
+def apply_read_query(
+    rows: list[dict[str, Any]],
+    query: dict[str, Any],
+    latest_group_fields: list[str],
+) -> list[dict[str, Any]]:
+    filtered = [
+        row
+        for row in rows
+        if row["tenant_id"] == query["tenant_id"]
+    ]
+    for field in ["eval_suite_id", "subject_type", "subject_id", "status"]:
+        if field in query:
+            filtered = [row for row in filtered if row[field] == query[field]]
+    if "completed_after" in query:
+        completed_after = parse_rfc3339(query["completed_after"])
+        filtered = [
+            row
+            for row in filtered
+            if parse_rfc3339(row["completed_at"]) > completed_after
+        ]
+
+    ordered = sorted(filtered, key=row_sort_key, reverse=True)
+    if not query["latest_only"]:
+        return ordered
+
+    latest_rows: list[dict[str, Any]] = []
+    seen_groups: set[tuple[str, ...]] = set()
+    for row in ordered:
+        group = tuple(row[field] for field in latest_group_fields)
+        if group in seen_groups:
+            continue
+        seen_groups.add(group)
+        latest_rows.append(row)
+    return latest_rows
+
+
 def validate_write_fixture_contract(contract: dict[str, Any]) -> None:
     fixture = contract["write_fixture_contract"]
     write = contract["write_contract"]
@@ -366,6 +423,62 @@ def validate_write_fixture_contract(contract: dict[str, Any]) -> None:
         },
         "cross-tenant write expected outcome mismatch",
     )
+
+
+def validate_read_fixture_contract(contract: dict[str, Any]) -> None:
+    fixture = contract["read_fixture_contract"]
+    read = contract["read_contract"]
+    rows = fixture["fixture_rows"]
+    cases = fixture["cases"]
+    latest_group_fields = fixture["latest_only_groups_by"]
+
+    require(fixture["tenant_filter_required"] is True, "read fixture must require tenant filtering")
+    require(read["tenant_filter_required"] is True, "read contract must require tenant filtering")
+    require(fixture["ordering"] == ["completed_at_desc", "created_at_desc"], "read fixture ordering mismatch")
+    require(set(latest_group_fields) == LATEST_ONLY_GROUP_FIELDS, "latest_only grouping fields mismatch")
+
+    row_ids = [row["id"] for row in rows]
+    require(len(row_ids) == len(set(row_ids)), "read fixture row ids must be unique")
+    case_ids = [case["case_id"] for case in cases]
+    require(len(case_ids) == len(set(case_ids)), "read fixture case ids must be unique")
+    row_by_id = {row["id"]: row for row in rows}
+
+    for row in rows:
+        parse_rfc3339(row["completed_at"])
+        parse_rfc3339(row["created_at"])
+        require(row["tenant_id"].startswith("tenant_"), f"{row['id']} must be tenant scoped")
+
+    for case in cases:
+        query = case["query"]
+        require("tenant_id" in query, f"{case['case_id']} must include tenant_id")
+        require("latest_only" in query, f"{case['case_id']} must include latest_only")
+        require(
+            set(query) <= QUERY_FILTERS,
+            f"{case['case_id']} includes unsupported query filters: {sorted(set(query) - QUERY_FILTERS)}",
+        )
+        expected_ids = case["expected_result_ids"]
+        require(all(result_id in row_by_id for result_id in expected_ids), f"{case['case_id']} expects unknown rows")
+        expected_tenant_ids = {row_by_id[result_id]["tenant_id"] for result_id in expected_ids}
+        require(
+            expected_tenant_ids == {query["tenant_id"]},
+            f"{case['case_id']} expected rows must stay inside the queried tenant",
+        )
+        actual_ids = [
+            row["id"]
+            for row in apply_read_query(rows, query, latest_group_fields)
+        ]
+        require(
+            actual_ids == expected_ids,
+            f"{case['case_id']} read fixture mismatch: expected {expected_ids}, got {actual_ids}",
+        )
+
+    required_cases = {
+        "tenant_subject_filter_orders_by_completed_then_created",
+        "status_and_completed_after_are_applied_after_tenant_scope",
+        "latest_only_uses_runner_hash_scope_and_created_at_tiebreak",
+        "tenant_isolation_keeps_newer_other_tenant_out_of_acme_reads",
+    }
+    require(set(case_ids) == required_cases, "eval read fixture cases mismatch")
 
 
 def validate_write_and_replay_contract(contract: dict[str, Any]) -> None:
@@ -500,6 +613,7 @@ def main() -> int:
         validate_stored_result(contract, result)
         validate_table_contract(contract, result)
         validate_write_fixture_contract(contract)
+        validate_read_fixture_contract(contract)
         validate_write_and_replay_contract(contract)
         validate_read_and_openapi_contract(contract)
         validate_retention_and_release_gate(contract)

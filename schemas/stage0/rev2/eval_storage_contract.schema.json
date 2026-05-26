@@ -514,7 +514,8 @@
         },
         "required_parameters": {
           "type": "array",
-          "minItems": 5,
+          "minItems": 6,
+          "maxItems": 6,
           "uniqueItems": true,
           "items": {
             "enum": [
