@@ -83,6 +83,11 @@ const severityClass: Record<QaSeverity, string> = {
 };
 
 const sessionSecurityEvidenceSchema = "stage0.rev2.session-csrf-client-evidence";
+const sessionSafeActionLabels = new Set(["load", "login"]);
+
+const requiresAuthenticatedSession = (label: string) => !sessionSafeActionLabels.has(label);
+
+const isSessionBlocked = (state: WorkspaceState) => state.sessionContract.status !== "authenticated";
 
 export function WorkspaceApp({ initialView = "workspace" }: { initialView?: ViewKey }) {
   const [state, setState] = useState<WorkspaceState | null>(null);
@@ -123,9 +128,20 @@ export function WorkspaceApp({ initialView = "workspace" }: { initialView?: View
     () => state?.candidates.find((candidate) => candidate.id === state.selectedCandidateId),
     [state]
   );
+  const sessionBlocked = state ? isSessionBlocked(state) : false;
 
   const quotaPercent = state ? Math.min(100, Math.round((state.billing.quotaUsed / state.billing.quotaLimit) * 100)) : 0;
   const runAction = async (label: string, action: () => Promise<WorkspaceState>) => {
+    if (state && requiresAuthenticatedSession(label) && isSessionBlocked(state)) {
+      reportFrontendError(
+        new Error(`Blocked ${label}: authenticated same-site session required`),
+        "action-error",
+        state,
+        label
+      );
+      return;
+    }
+
     setBusy(label);
     try {
       const nextState = await action();
@@ -250,6 +266,7 @@ export function WorkspaceApp({ initialView = "workspace" }: { initialView?: View
             iterationInput={iterationInput}
             referenceName={referenceName}
             referenceKind={referenceKind}
+            sessionBlocked={sessionBlocked}
             selectedCandidate={selectedCandidate}
             setBriefInput={setBriefInput}
             setIterationInput={setIterationInput}
@@ -261,13 +278,14 @@ export function WorkspaceApp({ initialView = "workspace" }: { initialView?: View
           />
         )}
         {view === "projects" && <ProjectsView state={state} />}
-        {view === "export" && <ExportView state={state} runAction={runTrackedAction} />}
-        {view === "billing" && <BillingView state={state} busy={busy} runAction={runTrackedAction} />}
-        {view === "account" && <AccountView state={state} runAction={runTrackedAction} />}
+        {view === "export" && <ExportView state={state} sessionBlocked={sessionBlocked} runAction={runTrackedAction} />}
+        {view === "billing" && <BillingView state={state} busy={busy} sessionBlocked={sessionBlocked} runAction={runTrackedAction} />}
+        {view === "account" && <AccountView state={state} sessionBlocked={sessionBlocked} runAction={runTrackedAction} />}
         {view === "support" && (
           <SupportView
             state={state}
             busy={busy}
+            sessionBlocked={sessionBlocked}
             body={supportBody}
             category={supportCategory}
             setBody={setSupportBody}
@@ -347,6 +365,10 @@ function SessionPanel({
       data-session-cookie-failure-reasons={evidence.cookieFailureReasons.join(",")}
       data-session-csrf-failure-count={evidence.csrfFailureReasons.length}
       data-session-csrf-failure-reasons={evidence.csrfFailureReasons.join(",")}
+      data-session-unsafe-action-guard="authenticated-same-site-session"
+      data-session-unsafe-action-status={sessionBlocked ? "blocked" : "enabled"}
+      data-session-unsafe-action-safe-labels={Array.from(sessionSafeActionLabels).join(",")}
+      data-session-unsafe-action-protected-methods={state.sessionContract.csrf.protectedMethods.join(",")}
     >
       <div className="session-contract-main">
         <ShieldCheck size={18} aria-hidden="true" />
@@ -468,6 +490,7 @@ function WorkspaceView({
   iterationInput,
   referenceName,
   referenceKind,
+  sessionBlocked,
   selectedCandidate,
   setBriefInput,
   setIterationInput,
@@ -483,6 +506,7 @@ function WorkspaceView({
   iterationInput: string;
   referenceName: string;
   referenceKind: "image" | "document" | "url";
+  sessionBlocked: boolean;
   selectedCandidate?: Candidate;
   setBriefInput: (value: string) => void;
   setIterationInput: (value: string) => void;
@@ -525,7 +549,7 @@ function WorkspaceView({
           )}
           <label className="sr-only" htmlFor="brief-input">Brief</label>
           <textarea id="brief-input" value={briefInput} onChange={(event) => setBriefInput(event.target.value)} rows={5} aria-describedby={state.brief.missingInfo.length > 0 ? "brief-missing-info" : undefined} />
-          <button className="primary-button" disabled={busy === "brief" || !briefInput.trim()}>
+          <button className="primary-button" disabled={sessionBlocked || busy === "brief" || !briefInput.trim()}>
             <Check size={18} aria-hidden="true" />
             Confirm Brief
           </button>
@@ -541,7 +565,7 @@ function WorkspaceView({
           </select>
           <button
             className="secondary-button"
-            disabled={!referenceName.trim()}
+            disabled={sessionBlocked || !referenceName.trim()}
             onClick={() =>
               void runAction("reference", () =>
                 zenArtClient.attachReference({
@@ -669,7 +693,7 @@ function WorkspaceView({
               {reference.validation.state === "accepted" ? (
                 <button
                   className="reference-package-button"
-                  disabled={packagedReferenceIds.has(reference.id)}
+                  disabled={sessionBlocked || packagedReferenceIds.has(reference.id)}
                   onClick={() => void runAction("package", () => zenArtClient.addPackageItem(reference.id))}
                   aria-label={`Add reference ${reference.name} to package`}
                 >
@@ -734,6 +758,7 @@ function WorkspaceView({
             <button
               key={version.id}
               className={version.id === state.canvas.activeVersionId ? "version-chip active" : "version-chip"}
+              disabled={sessionBlocked}
               onClick={() => void runAction("restore", () => zenArtClient.restoreCanvasVersion(version.id))}
               aria-pressed={version.id === state.canvas.activeVersionId}
             >
@@ -767,6 +792,7 @@ function WorkspaceView({
               <button
                 className="secondary-button"
                 data-testid="candidate-select"
+                disabled={sessionBlocked}
                 onClick={() => void runAction("select", () => zenArtClient.selectCandidate(candidate.id))}
                 aria-pressed={state.selectedCandidateId === candidate.id}
                 aria-label={`Select ${candidate.title}`}
@@ -785,23 +811,25 @@ function WorkspaceView({
             onChange={(event) => setIterationInput(event.target.value)}
             placeholder={selectedCandidate ? `Iterate ${selectedCandidate.title}` : "Select a candidate to iterate"}
           />
-          <button className="primary-button" disabled={!selectedCandidate || !iterationInput.trim()}>
+          <button className="primary-button" disabled={sessionBlocked || !selectedCandidate || !iterationInput.trim()}>
             <Send size={18} aria-hidden="true" />
             Iterate
           </button>
         </form>
       </section>
 
-      <PackagePanel state={state} runAction={runAction} />
+      <PackagePanel state={state} sessionBlocked={sessionBlocked} runAction={runAction} />
     </div>
   );
 }
 
 function PackagePanel({
   state,
+  sessionBlocked,
   runAction
 }: {
   state: WorkspaceState;
+  sessionBlocked: boolean;
   runAction: (label: string, action: () => Promise<WorkspaceState>) => Promise<void>;
 }) {
   return (
@@ -811,7 +839,7 @@ function PackagePanel({
         <button
           className="secondary-button"
           data-testid="package-add-selected"
-          disabled={!state.selectedCandidateId}
+          disabled={sessionBlocked || !state.selectedCandidateId}
           onClick={() => {
             const candidateId = state.selectedCandidateId;
             if (candidateId) {
@@ -822,11 +850,20 @@ function PackagePanel({
           <PackagePlus size={17} aria-hidden="true" />
           Add Selection
         </button>
-        <button className="primary-button" data-testid="export-download" onClick={() => void runAction("export", () => zenArtClient.createExport("zip"))}>
+        <button
+          className="primary-button"
+          data-testid="export-download"
+          disabled={sessionBlocked}
+          onClick={() => void runAction("export", () => zenArtClient.createExport("zip"))}
+        >
           <Download size={17} aria-hidden="true" />
           Export ZIP
         </button>
-        <button className="secondary-button" onClick={() => void runAction("export", () => zenArtClient.createExport("pdf-placeholder"))}>
+        <button
+          className="secondary-button"
+          disabled={sessionBlocked}
+          onClick={() => void runAction("export", () => zenArtClient.createExport("pdf-placeholder"))}
+        >
           <FileArchive size={17} aria-hidden="true" />
           PDF
         </button>
@@ -862,7 +899,7 @@ function PackagePanel({
                 Download
               </button>
             ) : null}
-            <ShareLinkState state={state} exportId={item.id} runAction={runAction} compact />
+            <ShareLinkState state={state} exportId={item.id} sessionBlocked={sessionBlocked} runAction={runAction} compact />
           </article>
         ))}
       </div>
@@ -896,9 +933,11 @@ function ProjectsView({ state }: { state: WorkspaceState }) {
 
 function ExportView({
   state,
+  sessionBlocked,
   runAction
 }: {
   state: WorkspaceState;
+  sessionBlocked: boolean;
   runAction: (label: string, action: () => Promise<WorkspaceState>) => Promise<void>;
 }) {
   const latestExport = state.exports[0];
@@ -911,7 +950,7 @@ function ExportView({
         <h2>Export Preview</h2>
       </div>
       <div className="export-layout">
-        <PackagePanel state={state} runAction={runAction} />
+        <PackagePanel state={state} sessionBlocked={sessionBlocked} runAction={runAction} />
         <article className="export-summary">
           <span className="eyebrow">Latest package</span>
           {latestExport ? (
@@ -1175,7 +1214,7 @@ function ExportView({
                 </section>
                 <section className="export-detail-panel share-link-state" aria-label="Share link state">
                   <h4>Share Link State</h4>
-                  <ShareLinkState state={state} exportId={latestExport.id} runAction={runAction} />
+                  <ShareLinkState state={state} exportId={latestExport.id} sessionBlocked={sessionBlocked} runAction={runAction} />
                 </section>
               </div>
             </>
@@ -1191,11 +1230,13 @@ function ExportView({
 function ShareLinkState({
   state,
   exportId,
+  sessionBlocked,
   runAction,
   compact = false
 }: {
   state: WorkspaceState;
   exportId: string;
+  sessionBlocked: boolean;
   runAction: (label: string, action: () => Promise<WorkspaceState>) => Promise<void>;
   compact?: boolean;
 }) {
@@ -1209,7 +1250,7 @@ function ShareLinkState({
       </div>
       <button
         className="secondary-button compact"
-        disabled={Boolean(shareLink)}
+        disabled={sessionBlocked || Boolean(shareLink)}
         onClick={() => void runAction("share", () => zenArtClient.createShareLink(exportId))}
       >
         <Link2 size={15} aria-hidden="true" />
@@ -1222,10 +1263,12 @@ function ShareLinkState({
 function BillingView({
   state,
   busy,
+  sessionBlocked,
   runAction
 }: {
   state: WorkspaceState;
   busy: string | null;
+  sessionBlocked: boolean;
   runAction: (label: string, action: () => Promise<WorkspaceState>) => Promise<void>;
 }) {
   const remaining = Math.max(0, state.billing.quotaLimit - state.billing.quotaUsed);
@@ -1256,7 +1299,11 @@ function BillingView({
               <span>{remaining === 0 ? "Quota is exhausted. Exports are blocked without spending more credits." : "Subscription is not active. Quota-consuming actions are blocked."}</span>
             </div>
           ) : null}
-          <button className="primary-button" disabled={busy === "checkout"} onClick={() => void runAction("checkout", () => zenArtClient.createMockCheckout())}>
+          <button
+            className="primary-button"
+            disabled={sessionBlocked || busy === "checkout"}
+            onClick={() => void runAction("checkout", () => zenArtClient.createMockCheckout())}
+          >
             <CircleDollarSign size={18} aria-hidden="true" />
             Mock Checkout
           </button>
@@ -1277,7 +1324,7 @@ function BillingView({
               <button
                 key={scenario.key}
                 className="secondary-button compact"
-                disabled={busy === "billing-scenario"}
+                disabled={sessionBlocked || busy === "billing-scenario"}
                 onClick={() => void runAction("billing-scenario", () => zenArtClient.setBillingScenario(scenario.key))}
               >
                 {scenario.label}
@@ -1292,9 +1339,11 @@ function BillingView({
 
 function AccountView({
   state,
+  sessionBlocked,
   runAction
 }: {
   state: WorkspaceState;
+  sessionBlocked: boolean;
   runAction: (label: string, action: () => Promise<WorkspaceState>) => Promise<void>;
 }) {
   const [settings, setSettings] = useState<AccountSettings>(state.account);
@@ -1334,7 +1383,7 @@ function AccountView({
           />
           Email notifications
         </label>
-        <button className="primary-button">
+        <button className="primary-button" disabled={sessionBlocked}>
           <Settings size={18} aria-hidden="true" />
           Save Settings
         </button>
@@ -1346,6 +1395,7 @@ function AccountView({
 function SupportView({
   state,
   busy,
+  sessionBlocked,
   body,
   category,
   setBody,
@@ -1354,6 +1404,7 @@ function SupportView({
 }: {
   state: WorkspaceState;
   busy: string | null;
+  sessionBlocked: boolean;
   body: string;
   category: "bug" | "billing" | "export" | "quality" | "other";
   setBody: (value: string) => void;
@@ -1438,7 +1489,7 @@ function SupportView({
         </label>
         <label className="sr-only" htmlFor="support-body">Problem description</label>
         <textarea id="support-body" value={body} onChange={(event) => setBody(event.target.value)} rows={6} placeholder="Describe what went wrong." />
-        <button className="primary-button" disabled={busy === "support" || !body.trim()}>
+        <button className="primary-button" disabled={sessionBlocked || busy === "support" || !body.trim()}>
           <Flag size={18} aria-hidden="true" />
           Submit Ticket
         </button>

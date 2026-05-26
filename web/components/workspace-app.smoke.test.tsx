@@ -16,6 +16,10 @@ describe("WorkspaceApp user route integration smoke", () => {
     const sessionContract = screen.getByLabelText("Auth and session status");
     expect(sessionContract).toHaveAttribute("data-session-security-evidence", "stage0.rev2.session-csrf-client-evidence");
     expect(sessionContract).toHaveAttribute("data-session-security-status", "pass");
+    expect(sessionContract).toHaveAttribute("data-session-unsafe-action-guard", "authenticated-same-site-session");
+    expect(sessionContract).toHaveAttribute("data-session-unsafe-action-status", "enabled");
+    expect(sessionContract).toHaveAttribute("data-session-unsafe-action-safe-labels", "load,login");
+    expect(sessionContract).toHaveAttribute("data-session-unsafe-action-protected-methods", "POST,PUT,PATCH,DELETE");
     expect(sessionContract).toHaveAttribute("data-session-cookie-name", "__Host-zenart_session");
     expect(sessionContract).toHaveAttribute("data-session-cookie-http-only", "true");
     expect(sessionContract).toHaveAttribute("data-session-cookie-secure", "true");
@@ -54,7 +58,9 @@ describe("WorkspaceApp user route integration smoke", () => {
     fireEvent.click(screen.getByRole("button", { name: "Expire" }));
     await screen.findByText("Session expired. Refresh or sign in to continue.");
     expect(container.querySelector(".session-pill")).toHaveTextContent("expired");
+    expect(screen.getByLabelText("Auth and session status")).toHaveAttribute("data-session-unsafe-action-status", "blocked");
     expect(screen.getByRole("button", { name: "Refresh Session" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Save Settings" })).toBeDisabled();
 
     fireEvent.change(screen.getByLabelText("Email"), { target: { value: "dev@zenart.local" } });
     fireEvent.click(screen.getByRole("button", { name: "Sign In" }));
@@ -63,6 +69,31 @@ describe("WorkspaceApp user route integration smoke", () => {
     });
     expect(screen.queryByText("Session expired. Refresh or sign in to continue.")).not.toBeInTheDocument();
     expect(container.querySelector(".session-pill")).toHaveTextContent("authenticated");
+    expect(screen.getByRole("button", { name: "Save Settings" })).not.toBeDisabled();
+  });
+
+  it("blocks unsafe workspace actions when the same-site session is expired", async () => {
+    const { container } = render(<WorkspaceApp initialView="workspace" />);
+
+    await screen.findByRole("heading", { name: "Launch Direction Board" });
+    expect(screen.getByLabelText("Auth and session status")).toHaveAttribute("data-session-unsafe-action-status", "enabled");
+
+    fireEvent.click(screen.getByRole("button", { name: "Expire" }));
+    await screen.findByText("Session expired. Refresh or sign in to continue.");
+
+    const sessionContract = screen.getByLabelText("Auth and session status");
+    expect(sessionContract).toHaveAttribute("data-session-unsafe-action-status", "blocked");
+    expect(container.querySelector(".session-pill")).toHaveTextContent("expired");
+    expect(screen.getByRole("button", { name: "Confirm Brief" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Attach" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Select Studio System" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Add Selection" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Export ZIP" })).toBeDisabled();
+
+    const beforePackageCount = container.querySelectorAll(".history-list article").length;
+    fireEvent.click(screen.getByRole("button", { name: "Confirm Brief" }));
+    fireEvent.click(screen.getByRole("button", { name: "Export ZIP" }));
+    expect(container.querySelectorAll(".history-list article")).toHaveLength(beforePackageCount);
   });
 
   it("drives an accepted reference through package history, ZIP export, and export metadata UI evidence", async () => {
@@ -484,6 +515,23 @@ describe("WorkspaceApp user route integration smoke", () => {
       userRouteSmoke.securityEvidence.map((entry) => [entry.schemaVersion, entry])
     );
 
+    expect(evidenceBySchema.get("stage0.rev2.session-csrf-client-evidence")).toMatchObject({
+      route: "/account",
+      source: "web/components/workspace-app.tsx",
+      statusAttribute: "data-session-security-status",
+      expectedStatus: "pass",
+      unsafeActionGuard: {
+        guardAttribute: "data-session-unsafe-action-guard",
+        statusAttribute: "data-session-unsafe-action-status",
+        safeLabelsAttribute: "data-session-unsafe-action-safe-labels",
+        protectedMethodsAttribute: "data-session-unsafe-action-protected-methods",
+        expectedGuard: "authenticated-same-site-session",
+        expectedEnabledStatus: "enabled",
+        expectedBlockedStatus: "blocked",
+        expectedSafeLabels: "load,login",
+        expectedProtectedMethods: "POST,PUT,PATCH,DELETE"
+      }
+    });
     expect(evidenceBySchema.get("stage0.rev2.workspace-rendering-performance")).toMatchObject({
       route: "/workspace",
       source: "web/components/workspace-app.tsx",

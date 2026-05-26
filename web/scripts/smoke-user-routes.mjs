@@ -151,7 +151,11 @@ for (const requiredSessionAttribute of [
   sessionEvidence.csrf?.cookieFailureCountAttribute,
   sessionEvidence.csrf?.cookieFailureReasonsAttribute,
   sessionEvidence.csrf?.csrfFailureCountAttribute,
-  sessionEvidence.csrf?.csrfFailureReasonsAttribute
+  sessionEvidence.csrf?.csrfFailureReasonsAttribute,
+  sessionEvidence.unsafeActionGuard?.guardAttribute,
+  sessionEvidence.unsafeActionGuard?.statusAttribute,
+  sessionEvidence.unsafeActionGuard?.safeLabelsAttribute,
+  sessionEvidence.unsafeActionGuard?.protectedMethodsAttribute
 ]) {
   if (!requiredSessionAttribute || !componentSource.includes(requiredSessionAttribute)) {
     fail(`session/CSRF UI evidence missing ${requiredSessionAttribute}`);
@@ -170,9 +174,35 @@ if (
   sessionEvidence.csrf?.expectedOriginPolicy !== "same-site-only" ||
   sessionEvidence.csrf?.expectedMissingOperationCount !== "0" ||
   sessionEvidence.csrf?.expectedCookieFailureCount !== "0" ||
-  sessionEvidence.csrf?.expectedCsrfFailureCount !== "0"
+  sessionEvidence.csrf?.expectedCsrfFailureCount !== "0" ||
+  sessionEvidence.unsafeActionGuard?.expectedGuard !== "authenticated-same-site-session" ||
+  sessionEvidence.unsafeActionGuard?.expectedEnabledStatus !== "enabled" ||
+  sessionEvidence.unsafeActionGuard?.expectedBlockedStatus !== "blocked" ||
+  sessionEvidence.unsafeActionGuard?.expectedSafeLabels !== "load,login" ||
+  sessionEvidence.unsafeActionGuard?.expectedProtectedMethods !== "POST,PUT,PATCH,DELETE"
 ) {
   fail("session/CSRF UI evidence does not assert the secure-cookie and same-site contract");
+}
+
+for (const requiredGuardSnippet of [
+  "requiresAuthenticatedSession",
+  "sessionSafeActionLabels",
+  "data-session-unsafe-action-guard",
+  "data-session-unsafe-action-status",
+  "data-session-unsafe-action-safe-labels",
+  "data-session-unsafe-action-protected-methods",
+  "authenticated-same-site-session",
+  "sessionBlocked || busy === \"brief\"",
+  "sessionBlocked || !referenceName.trim()",
+  "sessionBlocked || !state.selectedCandidateId",
+  "sessionBlocked || !selectedCandidate",
+  "sessionBlocked || busy === \"checkout\"",
+  "sessionBlocked || busy === \"support\"",
+  "Blocked ${label}: authenticated same-site session required"
+]) {
+  if (!componentSource.includes(requiredGuardSnippet)) {
+    fail(`same-site CSRF unsafe-action guard missing ${requiredGuardSnippet}`);
+  }
 }
 
 if (

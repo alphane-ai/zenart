@@ -150,6 +150,17 @@
         "expectedMissingOperationCount": "0",
         "expectedCookieFailureCount": "0",
         "expectedCsrfFailureCount": "0"
+      },
+      "unsafeActionGuard": {
+        "guardAttribute": "data-session-unsafe-action-guard",
+        "statusAttribute": "data-session-unsafe-action-status",
+        "safeLabelsAttribute": "data-session-unsafe-action-safe-labels",
+        "protectedMethodsAttribute": "data-session-unsafe-action-protected-methods",
+        "expectedGuard": "authenticated-same-site-session",
+        "expectedEnabledStatus": "enabled",
+        "expectedBlockedStatus": "blocked",
+        "expectedSafeLabels": "load,login",
+        "expectedProtectedMethods": "POST,PUT,PATCH,DELETE"
       }
     },
     {
