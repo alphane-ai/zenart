@@ -81,7 +81,13 @@ export const buildExportPackageBlob = async (record: ExportRecord) => {
           export_id: record.id,
           output_name: outputName,
           generated_by: "zenart-web-dev-client",
-          workflow_id: record.manifest.workflow_acceptance?.workflow_id ?? "generic-stage0-export"
+          workflow_id: record.manifest.workflow_acceptance?.workflow_id ?? "generic-stage0-export",
+          workflow_fixture_id: record.manifest.workflow_acceptance?.fixture_id ?? "none",
+          provider: "dev-provider",
+          model: "deterministic-local-alpha",
+          prompt_spec: record.manifest.workflow_acceptance?.strategy_taxonomy ?? [],
+          skill: record.manifest.workflow_acceptance?.workflow_id ?? "generic-stage0-export",
+          safety: record.safetyReport.status
         },
         null,
         2

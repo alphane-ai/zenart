@@ -110,6 +110,25 @@ describe("reference upload and export download integration", () => {
       output_name: string;
       workflow_id: string;
     };
+    const workflowMetadata = JSON.parse(await zip.file("metadata.json")!.async("string")) as {
+      output_name: string;
+      workflow_id: string;
+      workflow_fixture_id: string;
+      provider: string;
+      model: string;
+      prompt_spec: string[];
+      skill: string;
+      safety: string;
+    };
+    const traceProvenance = JSON.parse(await zip.file("trace_provenance.json")!.async("string")) as {
+      output_name: string;
+      workflow_id: string;
+      provider: string;
+      model: string;
+      prompt_spec: string[];
+      skill: string;
+      safety: string;
+    };
     const readme = await zip.file("assets/README.txt")!.async("string");
 
     expect(manifest.items).toEqual([
@@ -212,6 +231,25 @@ describe("reference upload and export download integration", () => {
     expect(workflowAsset).toMatchObject({
       output_name: "assets/square_social_ad.png",
       workflow_id: ecommerceGrowthWorkflowAcceptance.workflow_id
+    });
+    expect(workflowMetadata).toMatchObject({
+      output_name: "metadata.json",
+      workflow_id: ecommerceGrowthWorkflowAcceptance.workflow_id,
+      workflow_fixture_id: ecommerceGrowthWorkflowAcceptance.fixture_id,
+      provider: "dev-provider",
+      model: "deterministic-local-alpha",
+      prompt_spec: ["social_proof"],
+      skill: ecommerceGrowthWorkflowAcceptance.workflow_id,
+      safety: "pass"
+    });
+    expect(traceProvenance).toMatchObject({
+      output_name: "trace_provenance.json",
+      workflow_id: ecommerceGrowthWorkflowAcceptance.workflow_id,
+      provider: "dev-provider",
+      model: "deterministic-local-alpha",
+      prompt_spec: ["social_proof"],
+      skill: ecommerceGrowthWorkflowAcceptance.workflow_id,
+      safety: "pass"
     });
     expect(readme).toContain("Deterministic local alpha export placeholder");
 

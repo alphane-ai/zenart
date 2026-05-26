@@ -284,7 +284,13 @@
         "data-package-export-workflow-fixture-id",
         "data-package-export-workflow-taxonomy-count",
         "data-package-export-workflow-required-file-count",
-        "data-package-export-workflow-zip-payload-count"
+        "data-package-export-workflow-zip-payload-count",
+        "data-package-export-workflow-metadata-payload-present",
+        "data-package-export-workflow-trace-provenance-payload-present",
+        "data-package-export-workflow-provider-metadata-present",
+        "data-package-export-workflow-prompt-spec-metadata-present",
+        "data-package-export-workflow-skill-metadata-present",
+        "data-package-export-workflow-safety-metadata-present"
       ],
       "requiredPayloads": [
         "manifest.json",
@@ -292,7 +298,9 @@
         "safety-policy-report.json",
         "provenance.json",
         "ppt-ready-metadata.json",
-        "assets/README.txt"
+        "assets/README.txt",
+        "metadata.json",
+        "trace_provenance.json"
       ]
     },
     {
@@ -382,6 +390,7 @@
     "accepted references can be packaged and exported with dev-client-reference provenance and PPT asset-grid metadata",
     "ecommerce growth pack API smoke runs fixture brief -> product reference -> four taxonomy candidates -> iterate -> package -> ready ZIP export",
     "export manifest includes PPT-ready metadata and ZIP download emits ppt-ready-metadata.json",
+    "export metadata UI proves metadata.json and trace_provenance.json are present with provider, prompt/spec, skill, and safety metadata",
     "ZIP download emits safety-policy-report.json beside manifest, QA report, provenance, PPT metadata, and assets",
     "download smoke verifies ZIP artifact contents, PDF placeholder blob, deterministic filenames, and browser download handoff",
     "legal policy routes expose Terms, Privacy Policy, Acceptable Use, IP complaint, and billing/refund policy content",

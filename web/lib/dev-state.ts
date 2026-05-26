@@ -520,6 +520,16 @@ export const buildPackageExportMetadataEvidence = (record: ExportRecord): Packag
   const workflowZipPayloadCount = record.manifest.workflow_acceptance?.required_files.filter((payloadName) =>
     zipPayloadNames.includes(payloadName)
   ).length ?? 0;
+  const workflowMetadataPayloadPresent = zipPayloadNames.includes("metadata.json");
+  const workflowTraceProvenancePayloadPresent = zipPayloadNames.includes("trace_provenance.json");
+  const workflowProviderMetadataPresent = workflowMetadataPayloadPresent && Boolean(record.manifest.workflow_acceptance?.workflow_id);
+  const workflowPromptSpecMetadataPresent =
+    workflowMetadataPayloadPresent && (record.manifest.workflow_acceptance?.strategy_taxonomy.length ?? 0) > 0;
+  const workflowSkillMetadataPresent =
+    workflowMetadataPayloadPresent && record.manifest.workflow_acceptance?.fixture_id === ecommerceGrowthWorkflowAcceptance.fixture_id;
+  const workflowSafetyMetadataPresent =
+    workflowTraceProvenancePayloadPresent &&
+    record.safetyReport.enforcementStages.every((stage) => safetyPolicyEnforcementStages.includes(stage));
   const provenanceCount = record.manifest.items.filter((item) => item.provenance.trim().length > 0).length;
   const blockingQaCount = record.qaReport.filter((finding) => finding.severity === "block").length;
   const pptSlideCount = record.manifest.ppt_ready_metadata.slides.length;
@@ -587,7 +597,13 @@ export const buildPackageExportMetadataEvidence = (record: ExportRecord): Packag
     workflowFixtureId: record.manifest.workflow_acceptance?.fixture_id ?? "none",
     workflowStrategyTaxonomyCount: record.manifest.workflow_acceptance?.strategy_taxonomy.length ?? 0,
     workflowRequiredFileCount: record.manifest.workflow_acceptance?.required_files.length ?? 0,
-    workflowZipPayloadCount
+    workflowZipPayloadCount,
+    workflowMetadataPayloadPresent,
+    workflowTraceProvenancePayloadPresent,
+    workflowProviderMetadataPresent,
+    workflowPromptSpecMetadataPresent,
+    workflowSkillMetadataPresent,
+    workflowSafetyMetadataPresent
   };
 };
 

@@ -966,6 +966,12 @@ function ExportView({
                     data-package-export-workflow-taxonomy-count={metadataEvidence.workflowStrategyTaxonomyCount}
                     data-package-export-workflow-required-file-count={metadataEvidence.workflowRequiredFileCount}
                     data-package-export-workflow-zip-payload-count={metadataEvidence.workflowZipPayloadCount}
+                    data-package-export-workflow-metadata-payload-present={String(metadataEvidence.workflowMetadataPayloadPresent)}
+                    data-package-export-workflow-trace-provenance-payload-present={String(metadataEvidence.workflowTraceProvenancePayloadPresent)}
+                    data-package-export-workflow-provider-metadata-present={String(metadataEvidence.workflowProviderMetadataPresent)}
+                    data-package-export-workflow-prompt-spec-metadata-present={String(metadataEvidence.workflowPromptSpecMetadataPresent)}
+                    data-package-export-workflow-skill-metadata-present={String(metadataEvidence.workflowSkillMetadataPresent)}
+                    data-package-export-workflow-safety-metadata-present={String(metadataEvidence.workflowSafetyMetadataPresent)}
                   >
                     <h4>Metadata Evidence</h4>
                     <div className="metadata-evidence-grid">
@@ -977,6 +983,7 @@ function ExportView({
                       <span>{metadataEvidence.qaFindingCount} QA findings</span>
                       <span>{metadataEvidence.pptSlideCount} PPT slides</span>
                       <span>{metadataEvidence.downloadArtifactStatus} ZIP payload contract</span>
+                      <span>{metadataEvidence.workflowZipPayloadCount}/{metadataEvidence.workflowRequiredFileCount} workflow payloads</span>
                     </div>
                     <p>
                       ZIP payload contract: {metadataEvidence.zipPayloadNames.join(", ")}.

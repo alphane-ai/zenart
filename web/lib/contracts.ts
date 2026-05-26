@@ -391,6 +391,12 @@ export interface PackageExportMetadataEvidence {
   workflowStrategyTaxonomyCount: number;
   workflowRequiredFileCount: number;
   workflowZipPayloadCount: number;
+  workflowMetadataPayloadPresent: boolean;
+  workflowTraceProvenancePayloadPresent: boolean;
+  workflowProviderMetadataPresent: boolean;
+  workflowPromptSpecMetadataPresent: boolean;
+  workflowSkillMetadataPresent: boolean;
+  workflowSafetyMetadataPresent: boolean;
 }
 
 export interface ShareLink {

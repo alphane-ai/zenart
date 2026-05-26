@@ -169,9 +169,17 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(metadataEvidence).toHaveAttribute("data-package-export-workflow-fixture-id", "fx_ecommerce_growth_golden");
     expect(metadataEvidence).toHaveAttribute("data-package-export-workflow-taxonomy-count", "1");
     expect(metadataEvidence).toHaveAttribute("data-package-export-workflow-required-file-count", "8");
+    expect(metadataEvidence).toHaveAttribute("data-package-export-workflow-metadata-payload-present", "true");
+    expect(metadataEvidence).toHaveAttribute("data-package-export-workflow-trace-provenance-payload-present", "true");
+    expect(metadataEvidence).toHaveAttribute("data-package-export-workflow-provider-metadata-present", "true");
+    expect(metadataEvidence).toHaveAttribute("data-package-export-workflow-prompt-spec-metadata-present", "true");
+    expect(metadataEvidence).toHaveAttribute("data-package-export-workflow-skill-metadata-present", "true");
+    expect(metadataEvidence).toHaveAttribute("data-package-export-workflow-safety-metadata-present", "true");
     expect(Number(metadataEvidence?.getAttribute("data-package-export-zip-payload-count"))).toBeGreaterThanOrEqual(6);
     expect(metadataEvidence?.getAttribute("data-package-export-zip-payloads")).toContain("safety-policy-report.json");
     expect(metadataEvidence?.getAttribute("data-package-export-zip-payloads")).toContain("ppt-ready-metadata.json");
+    expect(metadataEvidence?.getAttribute("data-package-export-zip-payloads")).toContain("metadata.json");
+    expect(metadataEvidence?.getAttribute("data-package-export-zip-payloads")).toContain("trace_provenance.json");
     expect(metadataEvidence?.getAttribute("data-package-export-required-zip-payloads")).toContain("manifest.json");
     expect(metadataEvidence?.getAttribute("data-package-export-required-zip-payloads")).toContain("assets/README.txt");
 

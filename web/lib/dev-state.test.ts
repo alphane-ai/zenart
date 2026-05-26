@@ -183,7 +183,13 @@ describe("dev workspace contracts", () => {
       workflowFixtureId: "none",
       workflowStrategyTaxonomyCount: 0,
       workflowRequiredFileCount: 0,
-      workflowZipPayloadCount: 0
+      workflowZipPayloadCount: 0,
+      workflowMetadataPayloadPresent: false,
+      workflowTraceProvenancePayloadPresent: false,
+      workflowProviderMetadataPresent: false,
+      workflowPromptSpecMetadataPresent: false,
+      workflowSkillMetadataPresent: false,
+      workflowSafetyMetadataPresent: false
     });
   });
 
