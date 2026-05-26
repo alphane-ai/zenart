@@ -1640,12 +1640,17 @@ func (r Repository) ListAnalyticsReports(ctx context.Context, tenantID string, l
 	rows, err := r.db.Query(ctx, `
 WITH event_counts AS (
 	SELECT
+		COUNT(*) FILTER (WHERE event_name = 'workflow_started') AS workflow_started,
+		COUNT(*) FILTER (WHERE event_name = 'candidate_set_created') AS candidate_set_created,
+		COUNT(*) FILTER (WHERE event_name = 'candidate_set_created' AND lower(COALESCE(properties->>'is_iteration', 'false')) IN ('true', 't', '1', 'yes')) AS workflow_iterations,
+		COUNT(*) FILTER (WHERE event_name = 'four_candidates_ready') AS four_candidates_ready,
+		COUNT(*) FILTER (WHERE event_name = 'direction_selected') AS direction_selected,
+		COUNT(*) FILTER (WHERE event_name = 'package_item_added') AS package_item_added,
 		COUNT(*) FILTER (WHERE event_name = 'export_started') AS export_started,
 		COUNT(*) FILTER (WHERE event_name = 'export_completed') AS export_completed,
 		COUNT(*) FILTER (WHERE event_name = 'export_failed') AS export_failed,
 		COUNT(*) FILTER (WHERE event_name = 'support_ticket_created') AS support_ticket_created,
 		COUNT(*) FILTER (WHERE event_name = 'safety_decision_recorded') AS safety_decision_recorded,
-		COUNT(*) FILTER (WHERE event_name = 'upload_created') AS upload_created,
 		COUNT(*) FILTER (WHERE event_name = 'export_regenerated') AS export_regenerated
 	FROM analytics_events
 	WHERE tenant_id = $1
@@ -1695,22 +1700,52 @@ FROM (
 	UNION ALL
 	SELECT 5,
 	       'package_add_rate',
-	       ARRAY['upload_created']::text[],
-	       ARRAY['tenant_id','upload_type']::text[],
+	       ARRAY['package_item_added','direction_selected']::text[],
+	       ARRAY['tenant_id','workflow_id','package_id','item_type']::text[],
 	       true,
 	       'weekly',
-	       upload_created::numeric,
-	       jsonb_build_object('uploads', upload_created)
+	       CASE WHEN direction_selected = 0 THEN package_item_added::numeric ELSE package_item_added::numeric / NULLIF(direction_selected, 0) END,
+	       jsonb_build_object('package_items_added', package_item_added, 'directions_selected', direction_selected)
 	FROM event_counts
 	UNION ALL
 	SELECT 6,
 	       'iteration_rate',
-	       ARRAY['export_regenerated']::text[],
-	       ARRAY['tenant_id','export_id']::text[],
+	       ARRAY['candidate_set_created','export_regenerated']::text[],
+	       ARRAY['tenant_id','workflow_id','is_iteration']::text[],
 	       true,
 	       'weekly',
-	       export_regenerated::numeric,
-	       jsonb_build_object('regenerated_exports', export_regenerated)
+	       CASE WHEN candidate_set_created = 0 THEN 0 ELSE workflow_iterations::numeric / NULLIF(candidate_set_created, 0) END,
+	       jsonb_build_object('candidate_sets', candidate_set_created, 'iterations', workflow_iterations, 'regenerated_exports', export_regenerated)
+	FROM event_counts
+	UNION ALL
+	SELECT 7,
+	       'first_prompt_to_four_candidates',
+	       ARRAY['workflow_started','four_candidates_ready']::text[],
+	       ARRAY['tenant_id','workflow_id','candidate_count']::text[],
+	       (CASE WHEN workflow_started = 0 THEN true ELSE four_candidates_ready >= workflow_started END),
+	       'weekly',
+	       CASE WHEN workflow_started = 0 THEN 0 ELSE four_candidates_ready::numeric / NULLIF(workflow_started, 0) END,
+	       jsonb_build_object('workflow_started', workflow_started, 'four_candidates_ready', four_candidates_ready)
+	FROM event_counts
+	UNION ALL
+	SELECT 8,
+	       'selection_rate',
+	       ARRAY['four_candidates_ready','direction_selected']::text[],
+	       ARRAY['tenant_id','workflow_id','candidate_set_id']::text[],
+	       true,
+	       'weekly',
+	       CASE WHEN four_candidates_ready = 0 THEN 0 ELSE direction_selected::numeric / NULLIF(four_candidates_ready, 0) END,
+	       jsonb_build_object('four_candidates_ready', four_candidates_ready, 'directions_selected', direction_selected)
+	FROM event_counts
+	UNION ALL
+	SELECT 9,
+	       'package_export_completion',
+	       ARRAY['package_item_added','export_completed']::text[],
+	       ARRAY['tenant_id','workflow_id','package_id','format']::text[],
+	       true,
+	       'weekly',
+	       CASE WHEN package_item_added = 0 THEN export_completed::numeric ELSE export_completed::numeric / NULLIF(package_item_added, 0) END,
+	       jsonb_build_object('package_items_added', package_item_added, 'exports_completed', export_completed)
 	FROM event_counts
 ) reports
 ORDER BY ord

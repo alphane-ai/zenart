@@ -153,3 +153,45 @@ func TestDomainMigrationSeedsRuntimeSafetyPolicy(t *testing.T) {
 		}
 	}
 }
+
+func TestWorkflowAnalyticsTriggerMigrationCapturesCoreFunnelEvents(t *testing.T) {
+	data, err := os.ReadFile("../../migrations/0009_server_side_workflow_analytics_triggers.sql")
+	if err != nil {
+		t.Fatalf("read workflow analytics trigger migration: %v", err)
+	}
+	sql := string(data)
+	for _, needle := range []string{
+		"projects_stage0_analytics_insert",
+		"candidate_sets_stage0_analytics_insert",
+		"candidate_sets_stage0_ready_analytics_update",
+		"candidate_assets_stage0_analytics_insert",
+		"selected_directions_stage0_analytics_insert",
+		"package_items_stage0_analytics_insert",
+		"'workflow_started'",
+		"'candidate_set_created'",
+		"'four_candidates_ready'",
+		"'direction_selected'",
+		"'package_item_added'",
+		"candidate_count < 4",
+		"is_iteration",
+		"backfilled",
+		"NOT EXISTS",
+		"HAVING COUNT(ca.id) >= 4",
+		"subject_type = 'candidate_set'",
+		"jsonb_build_object",
+	} {
+		if !strings.Contains(sql, needle) {
+			t.Fatalf("workflow analytics trigger migration missing %q", needle)
+		}
+	}
+	for _, forbidden := range []string{
+		"NEW.brief",
+		"chat_messages",
+		"body",
+		"rationale",
+	} {
+		if strings.Contains(sql, forbidden) {
+			t.Fatalf("workflow analytics trigger migration should not persist free-text payload token %q", forbidden)
+		}
+	}
+}

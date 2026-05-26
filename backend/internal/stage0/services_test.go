@@ -1191,6 +1191,20 @@ func TestListAnalyticsReportsUsesTenantScopedWeeklyAggregation(t *testing.T) {
 	if !strings.Contains(query.sql, "FROM analytics_events") || !strings.Contains(query.sql, "WHERE tenant_id = $1") {
 		t.Fatalf("analytics reports query missing tenant scoped event aggregation: %s", query.sql)
 	}
+	for _, fragment := range []string{
+		"workflow_started",
+		"candidate_set_created",
+		"four_candidates_ready",
+		"direction_selected",
+		"package_item_added",
+		"first_prompt_to_four_candidates",
+		"selection_rate",
+		"package_export_completion",
+	} {
+		if !strings.Contains(query.sql, fragment) {
+			t.Fatalf("analytics reports query missing core workflow event/report %q: %s", fragment, query.sql)
+		}
+	}
 	if query.args[0] != "tenant_1" || query.args[2] != 10 {
 		t.Fatalf("query args = %#v, want tenant_1 weekly window limit 10", query.args)
 	}
