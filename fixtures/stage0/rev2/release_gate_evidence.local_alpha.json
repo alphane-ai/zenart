@@ -24,9 +24,14 @@
       "evidence_ref": "scripts/validate_stage0_rev2.py validates fixtures against schemas/stage0/rev2"
     },
     {
+      "check_id": "local_alpha_service_presence",
+      "status": "pass",
+      "evidence_ref": "web/package.json, admin/package.json, backend/go.mod, backend/cmd/{server,worker,crawler,migrate}/main.go, and service Dockerfiles exist"
+    },
+    {
       "check_id": "local_alpha_runtime_stack",
       "status": "blocked",
-      "evidence_ref": "web/admin/backend are not present in this lane checkout"
+      "evidence_ref": "root .env.example and docker-compose.yml are not present, so docker compose up --build cannot yet validate web/admin/backend/worker/crawler/Postgres/Redis/local object storage"
     },
     {
       "check_id": "local_alpha_e2e_workflow_smoke",
@@ -54,6 +59,11 @@
       "condition_id": "schema_fixture_drift",
       "is_present": false,
       "evidence_ref": "scripts/validate_stage0_rev2.py schema fixture validation"
+    },
+    {
+      "condition_id": "missing_web_admin_backend_presence",
+      "is_present": false,
+      "evidence_ref": "scripts/validate_stage0_rev2.py validates web/admin/backend service presence"
     },
     {
       "condition_id": "local_alpha_runtime_not_validated",

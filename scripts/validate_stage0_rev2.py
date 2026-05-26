@@ -51,6 +51,62 @@ CRAWLER_CASES = {
     "pending_review_import",
 }
 
+LOCAL_ALPHA_SERVICE_PATHS = {
+    "web": [
+        "web/package.json",
+        "web/app/layout.tsx",
+        "web/app/page.tsx",
+        "web/Dockerfile",
+    ],
+    "admin": [
+        "admin/package.json",
+        "admin/app/layout.tsx",
+        "admin/app/page.tsx",
+        "admin/Dockerfile",
+    ],
+    "backend": [
+        "backend/go.mod",
+        "backend/cmd/server/main.go",
+        "backend/cmd/worker/main.go",
+        "backend/cmd/crawler/main.go",
+        "backend/cmd/migrate/main.go",
+        "backend/Dockerfile",
+    ],
+}
+
+LOCAL_ALPHA_RUNTIME_FILES = [
+    ".env.example",
+    "docker-compose.yml",
+]
+
+CHECKLIST_FILE_EVIDENCE = {
+    "创建 Alphane-style 纯 Web 三端 monorepo 目录：`web/` 用户端、`admin/` 管理端、`backend/` Go API/worker/crawler/migrate、`scripts/`。": [
+        "web",
+        "admin",
+        "backend",
+        "scripts",
+    ],
+    "新增根目录 `.env.example`，覆盖 web、admin、backend、Postgres、Redis、object storage、auth、session、provider、billing、observability、crawler、analytics。": [
+        ".env.example",
+    ],
+    "新增根目录 `docker-compose.yml`，可启动 web、admin、backend server、worker、crawler、Postgres、Redis、local object storage。": [
+        "docker-compose.yml",
+    ],
+    "新增 README，说明 Rev2 是唯一权威源，并给出本地启动命令。": [
+        "README.md",
+    ],
+    "配置 git ignore，排除 `.cron/`、`.ops/`、logs、node_modules、build 输出、临时导出包、本地对象存储数据。": [
+        ".gitignore",
+    ],
+}
+
+GATE_CHECKLIST_ITEMS = {
+    "Local Alpha Gate 全部通过。": "local_alpha",
+    "CI Gate 全部通过。": "ci",
+    "Private Beta/Staging Gate 全部通过。": "private_beta_staging",
+    "Production Launch Gate 全部通过。": "production_launch",
+}
+
 SCHEMA_FIXTURE_TARGETS = [
     ("eval_suite.schema.json", FIXTURE_DIR / "eval" / "starter_eval_suite.json", "object"),
     ("qa_result.schema.json", FIXTURE_DIR / "eval" / "qa_results.json", "array_items"),
@@ -131,6 +187,56 @@ def walk_values(value: Any) -> list[Any]:
         for child in value:
             values.extend(walk_values(child))
     return values
+
+
+def repo_path(path: str) -> Path:
+    return ROOT / path
+
+
+def missing_repo_paths(paths: list[str]) -> list[str]:
+    return [path for path in paths if not repo_path(path).exists()]
+
+
+def local_alpha_service_missing() -> dict[str, list[str]]:
+    return {
+        service: missing_repo_paths(paths)
+        for service, paths in LOCAL_ALPHA_SERVICE_PATHS.items()
+        if missing_repo_paths(paths)
+    }
+
+
+def local_alpha_runtime_missing() -> list[str]:
+    return missing_repo_paths(LOCAL_ALPHA_RUNTIME_FILES)
+
+
+def local_alpha_runtime_stack_validated() -> bool:
+    if local_alpha_runtime_missing():
+        return False
+    compose = (ROOT / "docker-compose.yml").read_text(encoding="utf-8")
+    required_tokens = [
+        "web",
+        "admin",
+        "backend",
+        "worker",
+        "crawler",
+        "postgres",
+        "redis",
+    ]
+    return all(re.search(rf"(^|\s){re.escape(token)}\s*:", compose, flags=re.MULTILINE) for token in required_tokens)
+
+
+def release_evidence_by_gate() -> dict[str, dict[str, Any]]:
+    evidence: dict[str, dict[str, Any]] = {}
+    for path in sorted(FIXTURE_DIR.glob("release_gate_evidence.*.json")):
+        data = load_json(path)
+        evidence[data["gate"]] = data
+    return evidence
+
+
+def gate_allows_checklist_completion(data: dict[str, Any]) -> bool:
+    return all(check["status"] == "pass" for check in data["checks"]) and not any(
+        item["is_present"] for item in data["do_not_launch_checks"]
+    )
 
 
 def validate_schema_value(schema: dict[str, Any], value: Any, path: str, root_schema: dict[str, Any]) -> None:
@@ -375,6 +481,7 @@ def validate_release_gate_evidence() -> None:
     data = load_json(FIXTURE_DIR / "release_gate_evidence.local_alpha.json")
     require(data["gate"] == "local_alpha", "release gate fixture must target local alpha")
     check_ids = {check["check_id"] for check in data["checks"]}
+    checks = {check["check_id"]: check for check in data["checks"]}
     require(
         {"workflow_fixture_coverage", "eval_fixture_coverage", "crawler_governance_fixture_coverage"} <= check_ids,
         "local alpha evidence missing fixture coverage checks",
@@ -383,6 +490,40 @@ def validate_release_gate_evidence() -> None:
         "schema_fixture_validation" in check_ids,
         "local alpha evidence missing schema fixture validation check",
     )
+    require(
+        "local_alpha_service_presence" in check_ids,
+        "local alpha evidence missing web/admin/backend presence check",
+    )
+    require(
+        "local_alpha_runtime_stack" in check_ids,
+        "local alpha evidence missing runtime stack check",
+    )
+
+    service_missing = local_alpha_service_missing()
+    service_status = checks["local_alpha_service_presence"]["status"]
+    if service_missing:
+        require(
+            service_status in {"fail", "blocked"},
+            "local alpha service presence cannot pass while required web/admin/backend files are missing",
+        )
+    else:
+        require(
+            service_status == "pass",
+            "local alpha service presence must pass when required web/admin/backend files exist",
+        )
+
+    runtime_status = checks["local_alpha_runtime_stack"]["status"]
+    if local_alpha_runtime_stack_validated():
+        require(
+            runtime_status == "pass",
+            "local alpha runtime stack evidence must pass when compose/env runtime files validate",
+        )
+    else:
+        require(
+            runtime_status in {"fail", "blocked"},
+            "local alpha runtime stack cannot pass before docker compose and env evidence validate",
+        )
+
     do_not_launch = {item["condition_id"]: item["is_present"] for item in data["do_not_launch_checks"]}
     require(
         do_not_launch.get("generic_workflow_only") is False,
@@ -391,6 +532,14 @@ def validate_release_gate_evidence() -> None:
     require(
         do_not_launch.get("missing_export_provenance_fixture") is False,
         "release evidence must guard against missing export provenance fixtures",
+    )
+    require(
+        do_not_launch.get("missing_web_admin_backend_presence") is False,
+        "release evidence must clear missing web/admin/backend do-not-launch condition when services are present",
+    )
+    require(
+        do_not_launch.get("local_alpha_runtime_not_validated") is (not local_alpha_runtime_stack_validated()),
+        "release evidence local_alpha_runtime_not_validated must reflect computed runtime validation state",
     )
 
 
@@ -409,6 +558,28 @@ def validate_blueprint_checklist() -> None:
         f"blueprint marks implementation items complete from lane6 fixture work: {sorted(forbidden)}",
     )
 
+    for item, paths in CHECKLIST_FILE_EVIDENCE.items():
+        if item in checked_lines:
+            missing = missing_repo_paths(paths)
+            require(
+                not missing,
+                f"blueprint marks {item!r} complete but required paths are missing: {missing}",
+            )
+
+    evidence = release_evidence_by_gate()
+    for item, gate in GATE_CHECKLIST_ITEMS.items():
+        if item in checked_lines:
+            require(gate in evidence, f"blueprint marks {item!r} complete but no {gate} evidence exists")
+            require(
+                gate_allows_checklist_completion(evidence[gate]),
+                f"blueprint marks {item!r} complete but {gate} evidence has blocked/failing checks or active do-not-launch conditions",
+            )
+
+
+def validate_local_alpha_presence() -> None:
+    missing = local_alpha_service_missing()
+    require(not missing, f"local alpha service presence missing required files: {missing}")
+
 
 def main() -> int:
     checks = [
@@ -419,6 +590,7 @@ def main() -> int:
         validate_eval_suite,
         validate_qa_and_safety,
         validate_crawler_feedback_abuse,
+        validate_local_alpha_presence,
         validate_release_gate_evidence,
         validate_blueprint_checklist,
     ]
