@@ -3322,6 +3322,44 @@ def validate_staging_auth_rbac_tenant_audit_evidence() -> None:
     for key in ["runtime_request_ids", "tenant_ids", "admin_rbac_evidence_ids", "audit_refs"]:
         require(evidence[key], f"auth/RBAC/tenant/audit evidence must include {key}")
 
+
+def validate_partial_staging_observability_gate_impact(
+    evidence: dict[str, Any],
+    *,
+    evidence_name: str,
+    check_level_item: str,
+) -> None:
+    gate_impact = evidence["gate_impact"]
+    require(
+        gate_impact["check_level_item"] == check_level_item,
+        f"{evidence_name} must name the exact check-level checklist item it can clear",
+    )
+    require(
+        gate_impact["can_clear_check_level_item"] is True,
+        f"{evidence_name} must explicitly allow only check-level closure",
+    )
+    require(
+        gate_impact["aggregate_checklist_item"] == "Private Beta/Staging observability/backup/load runtime evidence 通过。",
+        f"{evidence_name} must name the aggregate private beta observability/backup/load checklist item",
+    )
+    require(
+        gate_impact["can_clear_aggregate_item"] is False,
+        f"{evidence_name} must not claim aggregate private beta observability/backup/load closure",
+    )
+    require(
+        gate_impact["preserved_release_gate_check_id"] == "staging_observability_backup_load",
+        f"{evidence_name} must preserve the staging observability/backup/load release-gate check",
+    )
+    require(
+        gate_impact["preserved_do_not_launch_condition_id"] == "staging_observability_restore_load_missing",
+        f"{evidence_name} must preserve the staging observability/restore/load Do-Not-Launch condition",
+    )
+    require(
+        gate_impact["aggregate_private_beta_gate_status"] == "blocked_by_other_staging_runtime_items",
+        f"{evidence_name} must keep aggregate private beta gate blocked",
+    )
+
+
 def validate_staging_backend_worker_crawler_metrics_evidence() -> None:
     evidence = load_json(STAGING_BACKEND_WORKER_CRAWLER_METRICS_EVIDENCE)
     require(
@@ -3355,13 +3393,14 @@ def validate_staging_backend_worker_crawler_metrics_evidence() -> None:
         require(item["slo_probe"], f"{service} metrics evidence must include SLO probe")
         require(item["audit_ref"].startswith("au-"), f"{service} metrics evidence must cite audit_ref")
     gate_impact = evidence["gate_impact"]
+    validate_partial_staging_observability_gate_impact(
+        evidence,
+        evidence_name="backend/worker/crawler metrics evidence",
+        check_level_item="staging backend/worker/crawler metrics runtime evidence 通过。",
+    )
     require(
         gate_impact["can_clear_metrics_checklist_item"] is True,
         "backend/worker/crawler metrics evidence must explicitly allow check-level closure",
-    )
-    require(
-        gate_impact["aggregate_private_beta_gate_status"] == "blocked_by_other_staging_runtime_items",
-        "backend/worker/crawler metrics evidence must keep aggregate private beta gate blocked",
     )
     for blocker in [
         "staging request id propagation runtime evidence",
@@ -3417,13 +3456,14 @@ def validate_staging_dashboard_runtime_evidence() -> None:
             f"{item['dashboard_id']} dashboard evidence must cite release blocker context",
         )
     gate_impact = evidence["gate_impact"]
+    validate_partial_staging_observability_gate_impact(
+        evidence,
+        evidence_name="dashboard runtime evidence",
+        check_level_item="导入并验证 staging dashboards runtime evidence。",
+    )
     require(
         gate_impact["can_clear_dashboard_checklist_item"] is True,
         "dashboard runtime evidence must explicitly allow dashboard checklist closure",
-    )
-    require(
-        gate_impact["aggregate_private_beta_gate_status"] == "blocked_by_other_staging_runtime_items",
-        "dashboard runtime evidence must keep aggregate private beta gate blocked",
     )
     for blocker in [
         "staging request id propagation runtime evidence",
@@ -3468,13 +3508,14 @@ def validate_staging_alert_runtime_evidence() -> None:
         require(item["probe_result"], f"{item['alert_route_id']} alert evidence must include probe_result")
         require(item["audit_ref"].startswith("au-"), f"{item['alert_route_id']} alert evidence must cite audit_ref")
     gate_impact = evidence["gate_impact"]
+    validate_partial_staging_observability_gate_impact(
+        evidence,
+        evidence_name="alert runtime evidence",
+        check_level_item="配置并验证 staging alert routes/runtime evidence。",
+    )
     require(
         gate_impact["can_clear_alert_checklist_item"] is True,
         "alert runtime evidence must explicitly allow alert checklist closure",
-    )
-    require(
-        gate_impact["aggregate_private_beta_gate_status"] == "blocked_by_other_staging_runtime_items",
-        "alert runtime evidence must keep aggregate private beta gate blocked",
     )
     for blocker in [
         "staging request id propagation runtime evidence",

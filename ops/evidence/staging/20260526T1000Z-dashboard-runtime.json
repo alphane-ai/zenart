@@ -73,7 +73,13 @@
     }
   ],
   "gate_impact": {
+    "check_level_item": "导入并验证 staging dashboards runtime evidence。",
     "can_clear_dashboard_checklist_item": true,
+    "can_clear_check_level_item": true,
+    "aggregate_checklist_item": "Private Beta/Staging observability/backup/load runtime evidence 通过。",
+    "can_clear_aggregate_item": false,
+    "preserved_release_gate_check_id": "staging_observability_backup_load",
+    "preserved_do_not_launch_condition_id": "staging_observability_restore_load_missing",
     "aggregate_private_beta_gate_status": "blocked_by_other_staging_runtime_items",
     "remaining_blockers": [
       "staging request id propagation runtime evidence",
