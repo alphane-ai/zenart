@@ -2186,7 +2186,7 @@ components:
           nullable: true
         release_gate:
           type: object
-          required: [requires_eval_pass, eligible_for_canary, eligible_for_active, blocking_reason]
+          required: [requires_eval_pass, eligible_for_canary, eligible_for_active, blocking_reason, last_eval_result_id, last_eval_status, eval_contract_complete, critical_safety_regressions]
           properties:
             requires_eval_pass:
               const: true
@@ -2196,6 +2196,18 @@ components:
               type: boolean
             blocking_reason:
               type: string
+            last_eval_result_id:
+              type: string
+              nullable: true
+            last_eval_status:
+              type: string
+              nullable: true
+              enum: [pass, fail, blocked]
+            eval_contract_complete:
+              type: boolean
+            critical_safety_regressions:
+              type: integer
+              minimum: 0
         release_notes:
           type: string
     SkillVersionPage:
@@ -2323,7 +2335,7 @@ components:
           type: string
         release_gate:
           type: object
-          required: [requires_eval_pass, eligible_for_active, blocking_reason]
+          required: [requires_eval_pass, eligible_for_active, blocking_reason, last_eval_result_id, last_eval_status, eval_contract_complete, critical_safety_regressions]
           properties:
             requires_eval_pass:
               const: true
@@ -2331,6 +2343,18 @@ components:
               type: boolean
             blocking_reason:
               type: string
+            last_eval_result_id:
+              type: string
+              nullable: true
+            last_eval_status:
+              type: string
+              nullable: true
+              enum: [pass, fail, blocked]
+            eval_contract_complete:
+              type: boolean
+            critical_safety_regressions:
+              type: integer
+              minimum: 0
     PromptFragmentPage:
       allOf:
         - $ref: "#/components/schemas/PageInfo"

@@ -90,6 +90,209 @@
       ]
     }
   ],
+  "decision_cases": [
+    {
+      "case_id": "activation_case_skill_canary_pass_allowed",
+      "gate_id": "skill_version_canary_requires_eval_pass",
+      "subject_type": "skill_version",
+      "eval_result_status": "pass",
+      "candidate_status_after_eval": "eligible_for_canary",
+      "summary": {
+        "golden_passed": true,
+        "critical_safety_regressions": 0,
+        "trace_complete": true,
+        "export_contract_complete": true
+      },
+      "expected_release_gate": {
+        "requires_eval_pass": true,
+        "eligible_for_canary": true,
+        "eligible_for_active": false,
+        "blocking_reason": ""
+      },
+      "activation_outcome": {
+        "allowed": true,
+        "target_status": "internal_canary",
+        "deny_reason": ""
+      },
+      "evidence_refs": [
+        "Docs/stage0_blueprint_rev2.md:14.2",
+        "openapi/zenart.v1.yaml:SkillVersion.release_gate.eligible_for_canary",
+        "fixtures/stage0/rev2/eval/activation_gate_contract.json:gates.skill_version_canary_requires_eval_pass"
+      ]
+    },
+    {
+      "case_id": "activation_case_skill_active_pass_allowed",
+      "gate_id": "skill_version_active_requires_eval_pass",
+      "subject_type": "skill_version",
+      "eval_result_status": "pass",
+      "candidate_status_after_eval": "eligible_for_active",
+      "summary": {
+        "golden_passed": true,
+        "critical_safety_regressions": 0,
+        "trace_complete": true,
+        "export_contract_complete": true
+      },
+      "expected_release_gate": {
+        "requires_eval_pass": true,
+        "eligible_for_canary": true,
+        "eligible_for_active": true,
+        "blocking_reason": ""
+      },
+      "activation_outcome": {
+        "allowed": true,
+        "target_status": "active",
+        "deny_reason": ""
+      },
+      "evidence_refs": [
+        "Docs/stage0_blueprint_rev2.md:14.2",
+        "openapi/zenart.v1.yaml:SkillVersion.release_gate.eligible_for_active",
+        "fixtures/stage0/rev2/eval/activation_gate_contract.json:gates.skill_version_active_requires_eval_pass"
+      ]
+    },
+    {
+      "case_id": "activation_case_prompt_active_pass_allowed",
+      "gate_id": "prompt_fragment_active_requires_eval_pass",
+      "subject_type": "prompt_fragment",
+      "eval_result_status": "pass",
+      "candidate_status_after_eval": "eligible_for_active",
+      "summary": {
+        "golden_passed": true,
+        "critical_safety_regressions": 0,
+        "trace_complete": true,
+        "export_contract_complete": true
+      },
+      "expected_release_gate": {
+        "requires_eval_pass": true,
+        "eligible_for_canary": false,
+        "eligible_for_active": true,
+        "blocking_reason": ""
+      },
+      "activation_outcome": {
+        "allowed": true,
+        "target_status": "active",
+        "deny_reason": ""
+      },
+      "evidence_refs": [
+        "Docs/stage0_blueprint_rev2.md:14.2",
+        "openapi/zenart.v1.yaml:PromptFragment.release_gate.eligible_for_active",
+        "fixtures/stage0/rev2/eval/activation_gate_contract.json:gates.prompt_fragment_active_requires_eval_pass"
+      ]
+    },
+    {
+      "case_id": "activation_case_starter_blocked_eval_denied",
+      "gate_id": "skill_version_canary_requires_eval_pass",
+      "subject_type": "skill_version",
+      "eval_result_status": "blocked",
+      "candidate_status_after_eval": "blocked",
+      "summary": {
+        "golden_passed": false,
+        "critical_safety_regressions": 0,
+        "trace_complete": true,
+        "export_contract_complete": true
+      },
+      "expected_release_gate": {
+        "requires_eval_pass": true,
+        "eligible_for_canary": false,
+        "eligible_for_active": false,
+        "blocking_reason": "eval_result_status_blocked"
+      },
+      "activation_outcome": {
+        "allowed": false,
+        "target_status": "internal_canary",
+        "deny_reason": "eval_result_status_blocked"
+      },
+      "evidence_refs": [
+        "fixtures/stage0/rev2/eval/starter_eval_results.json:status.blocked",
+        "fixtures/stage0/rev2/eval/starter_eval_results.json:subject.candidate_status_after_eval.blocked",
+        "Docs/stage0_blueprint_rev2.md:14.2"
+      ]
+    },
+    {
+      "case_id": "activation_case_failed_eval_denied",
+      "gate_id": "skill_version_active_requires_eval_pass",
+      "subject_type": "skill_version",
+      "eval_result_status": "fail",
+      "candidate_status_after_eval": "blocked",
+      "summary": {
+        "golden_passed": false,
+        "critical_safety_regressions": 0,
+        "trace_complete": true,
+        "export_contract_complete": true
+      },
+      "expected_release_gate": {
+        "requires_eval_pass": true,
+        "eligible_for_canary": false,
+        "eligible_for_active": false,
+        "blocking_reason": "eval_result_status_fail"
+      },
+      "activation_outcome": {
+        "allowed": false,
+        "target_status": "active",
+        "deny_reason": "eval_result_status_fail"
+      },
+      "evidence_refs": [
+        "Docs/stage0_blueprint_rev2.md:14.2",
+        "fixtures/stage0/rev2/eval/activation_gate_contract.json:bypass_policy.blocked_eval_result_allows_activation"
+      ]
+    },
+    {
+      "case_id": "activation_case_critical_safety_regression_denied",
+      "gate_id": "prompt_fragment_active_requires_eval_pass",
+      "subject_type": "prompt_fragment",
+      "eval_result_status": "pass",
+      "candidate_status_after_eval": "eligible_for_active",
+      "summary": {
+        "golden_passed": true,
+        "critical_safety_regressions": 1,
+        "trace_complete": true,
+        "export_contract_complete": true
+      },
+      "expected_release_gate": {
+        "requires_eval_pass": true,
+        "eligible_for_canary": false,
+        "eligible_for_active": false,
+        "blocking_reason": "critical_safety_regression"
+      },
+      "activation_outcome": {
+        "allowed": false,
+        "target_status": "active",
+        "deny_reason": "critical_safety_regression"
+      },
+      "evidence_refs": [
+        "Docs/stage0_blueprint_rev2.md:14.4",
+        "fixtures/stage0/rev2/eval/activation_gate_contract.json:bypass_policy.critical_safety_regression_allows_activation"
+      ]
+    },
+    {
+      "case_id": "activation_case_incomplete_contract_denied",
+      "gate_id": "skill_version_canary_requires_eval_pass",
+      "subject_type": "skill_version",
+      "eval_result_status": "pass",
+      "candidate_status_after_eval": "eligible_for_canary",
+      "summary": {
+        "golden_passed": true,
+        "critical_safety_regressions": 0,
+        "trace_complete": false,
+        "export_contract_complete": false
+      },
+      "expected_release_gate": {
+        "requires_eval_pass": true,
+        "eligible_for_canary": false,
+        "eligible_for_active": false,
+        "blocking_reason": "eval_contract_incomplete"
+      },
+      "activation_outcome": {
+        "allowed": false,
+        "target_status": "internal_canary",
+        "deny_reason": "eval_contract_incomplete"
+      },
+      "evidence_refs": [
+        "Docs/stage0_blueprint_rev2.md:14.1",
+        "Docs/stage0_blueprint_rev2.md:15.2",
+        "Docs/stage0_blueprint_rev2.md:11"
+      ]
+    }
+  ],
   "storage_contract": {
     "table": "eval_results",
     "required_columns": [

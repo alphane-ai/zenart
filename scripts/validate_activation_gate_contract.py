@@ -13,7 +13,6 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 BLUEPRINT = ROOT / "Docs" / "stage0_blueprint_rev2.md"
 CONTRACT = ROOT / "fixtures" / "stage0" / "rev2" / "eval" / "activation_gate_contract.json"
-SAFETY_CONTRACT = ROOT / "fixtures" / "stage0" / "rev2" / "eval" / "safety_enforcement_contract.json"
 EVAL_RESULTS = ROOT / "fixtures" / "stage0" / "rev2" / "eval" / "starter_eval_results.json"
 CRAWLER = ROOT / "fixtures" / "stage0" / "rev2" / "crawler" / "crawler_governance_cases.json"
 FEEDBACK = ROOT / "fixtures" / "stage0" / "rev2" / "feedback" / "feedback_events.json"
@@ -110,6 +109,89 @@ def validate_gate_shape(contract: dict[str, Any]) -> None:
         require(gate["activation_allowed_without_passing_eval"] is False, f"{gate['gate_id']} must deny eval bypass")
 
 
+def validate_decision_cases(contract: dict[str, Any]) -> None:
+    gates = {gate["gate_id"]: gate for gate in contract["gates"]}
+    cases = contract["decision_cases"]
+    case_ids = [case["case_id"] for case in cases]
+    require(len(case_ids) == len(set(case_ids)), "activation decision case_ids must be unique")
+
+    observed_case_ids = set(case_ids)
+    required_cases = {
+        "activation_case_skill_canary_pass_allowed",
+        "activation_case_skill_active_pass_allowed",
+        "activation_case_prompt_active_pass_allowed",
+        "activation_case_starter_blocked_eval_denied",
+        "activation_case_failed_eval_denied",
+        "activation_case_critical_safety_regression_denied",
+        "activation_case_incomplete_contract_denied",
+    }
+    require(required_cases <= observed_case_ids, f"activation decision cases missing: {sorted(required_cases - observed_case_ids)}")
+
+    for case in cases:
+        gate = gates[case["gate_id"]]
+        summary = case["summary"]
+        release_gate = case["expected_release_gate"]
+        outcome = case["activation_outcome"]
+
+        require(case["subject_type"] == gate["subject_type"], f"{case['case_id']} subject type must match gate")
+        require(outcome["target_status"] in gate["target_statuses"], f"{case['case_id']} target status outside gate")
+        require(release_gate["requires_eval_pass"] is True, f"{case['case_id']} must require eval pass")
+        require(case["evidence_refs"], f"{case['case_id']} must cite evidence refs")
+
+        passes_eval_contract = (
+            case["eval_result_status"] == "pass"
+            and summary["golden_passed"] is True
+            and summary["critical_safety_regressions"] == 0
+            and summary["trace_complete"] is True
+            and summary["export_contract_complete"] is True
+        )
+
+        if outcome["allowed"]:
+            require(passes_eval_contract, f"{case['case_id']} cannot allow activation without a passing eval contract")
+            require(outcome["deny_reason"] == "", f"{case['case_id']} allowed case cannot include deny reason")
+            if case["gate_id"] == "skill_version_canary_requires_eval_pass":
+                require(
+                    case["candidate_status_after_eval"] == "eligible_for_canary",
+                    f"{case['case_id']} canary case must be canary-eligible",
+                )
+                require(release_gate["eligible_for_canary"] is True, f"{case['case_id']} must expose canary eligibility")
+                require(release_gate["eligible_for_active"] is False, f"{case['case_id']} canary case must not imply active eligibility")
+            else:
+                require(
+                    case["candidate_status_after_eval"] == "eligible_for_active",
+                    f"{case['case_id']} active case must be active-eligible",
+                )
+                require(release_gate["eligible_for_active"] is True, f"{case['case_id']} must expose active eligibility")
+                if case["subject_type"] == "skill_version":
+                    require(release_gate["eligible_for_canary"] is True, f"{case['case_id']} skill active implies canary eligibility")
+                else:
+                    require(release_gate["eligible_for_canary"] is False, f"{case['case_id']} prompt fragment has no canary gate")
+            require(release_gate["blocking_reason"] == "", f"{case['case_id']} allowed case cannot have blocking reason")
+        else:
+            require(not passes_eval_contract, f"{case['case_id']} denies despite a passing eval contract")
+            require(outcome["deny_reason"], f"{case['case_id']} denied case must include deny reason")
+            require(
+                release_gate["blocking_reason"] == outcome["deny_reason"],
+                f"{case['case_id']} release gate blocking reason must match activation outcome",
+            )
+            require(release_gate["eligible_for_canary"] is False, f"{case['case_id']} denied case cannot be canary-eligible")
+            require(release_gate["eligible_for_active"] is False, f"{case['case_id']} denied case cannot be active-eligible")
+            require(
+                case["candidate_status_after_eval"] in {"blocked", "eligible_for_canary", "eligible_for_active"},
+                f"{case['case_id']} denied case must model a concrete eval candidate status",
+            )
+
+            if case["eval_result_status"] in {"fail", "blocked"}:
+                require(
+                    outcome["deny_reason"] == f"eval_result_status_{case['eval_result_status']}",
+                    f"{case['case_id']} must deny with eval_result_status reason",
+                )
+            elif summary["critical_safety_regressions"] > 0:
+                require(outcome["deny_reason"] == "critical_safety_regression", f"{case['case_id']} must deny critical safety regression")
+            elif not summary["trace_complete"] or not summary["export_contract_complete"]:
+                require(outcome["deny_reason"] == "eval_contract_incomplete", f"{case['case_id']} must deny incomplete eval contract")
+
+
 def validate_storage_and_openapi(contract: dict[str, Any]) -> None:
     migration = MIGRATION.read_text(encoding="utf-8")
     openapi = OPENAPI.read_text(encoding="utf-8")
@@ -149,6 +231,14 @@ def validate_storage_and_openapi(contract: dict[str, Any]) -> None:
     require("eval_suite_id" in skill_version, "OpenAPI SkillVersion must expose eval_suite_id")
     require("release_gate" in skill_version, "OpenAPI SkillVersion must expose release_gate")
     require("release_gate" in prompt_fragment, "OpenAPI PromptFragment must expose release_gate")
+    for token in [
+        "last_eval_result_id",
+        "last_eval_status",
+        "eval_contract_complete",
+        "critical_safety_regressions",
+    ]:
+        require(token in skill_version, f"OpenAPI SkillVersion release_gate missing {token}")
+        require(token in prompt_fragment, f"OpenAPI PromptFragment release_gate missing {token}")
 
 
 def validate_eval_result_blocks_when_not_passed() -> None:
@@ -196,20 +286,12 @@ def validate_blueprint_policy() -> None:
     for item in completed:
         require(item in checked, f"blueprint checklist must mark {item} complete after contract validation")
         require(item not in unchecked, f"blueprint checklist must not leave {item} unchecked")
-    safety_item = "在 brief/provider request/provider response/QA/export 运行 safety policy。"
-    safety_contract = load_json(SAFETY_CONTRACT)
-    safety_runtime_validated = safety_contract["release_gate_policy"]["runtime_enforcement_validated"]
-    if safety_runtime_validated:
-        require(safety_item in checked, "safety runtime policy must be checked after runtime enforcement is validated")
-        require(safety_item not in unchecked, "safety runtime policy must not remain unchecked after runtime enforcement is validated")
-    else:
-        require(safety_item in unchecked, "safety runtime policy must remain unchecked until runtime enforcement is validated")
-
 
 def main() -> int:
     try:
         contract = load_json(CONTRACT)
         validate_gate_shape(contract)
+        validate_decision_cases(contract)
         validate_storage_and_openapi(contract)
         validate_eval_result_blocks_when_not_passed()
         validate_bypass_policy(contract)

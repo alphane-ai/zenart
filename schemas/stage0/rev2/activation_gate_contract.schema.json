@@ -9,6 +9,7 @@
     "contract_id",
     "blueprint_source",
     "gates",
+    "decision_cases",
     "storage_contract",
     "bypass_policy",
     "provenance"
@@ -134,6 +135,142 @@
             }
           },
           "migration_evidence": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "decision_cases": {
+      "type": "array",
+      "minItems": 6,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "gate_id",
+          "subject_type",
+          "eval_result_status",
+          "candidate_status_after_eval",
+          "summary",
+          "expected_release_gate",
+          "activation_outcome",
+          "evidence_refs"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "pattern": "^activation_case_[a-z0-9_]+$"
+          },
+          "gate_id": {
+            "enum": [
+              "skill_version_canary_requires_eval_pass",
+              "skill_version_active_requires_eval_pass",
+              "prompt_fragment_active_requires_eval_pass"
+            ]
+          },
+          "subject_type": {
+            "enum": [
+              "skill_version",
+              "prompt_fragment"
+            ]
+          },
+          "eval_result_status": {
+            "enum": [
+              "pass",
+              "fail",
+              "blocked"
+            ]
+          },
+          "candidate_status_after_eval": {
+            "enum": [
+              "draft",
+              "eligible_for_canary",
+              "eligible_for_active",
+              "blocked"
+            ]
+          },
+          "summary": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "golden_passed",
+              "critical_safety_regressions",
+              "trace_complete",
+              "export_contract_complete"
+            ],
+            "properties": {
+              "golden_passed": {
+                "type": "boolean"
+              },
+              "critical_safety_regressions": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "trace_complete": {
+                "type": "boolean"
+              },
+              "export_contract_complete": {
+                "type": "boolean"
+              }
+            }
+          },
+          "expected_release_gate": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "requires_eval_pass",
+              "eligible_for_canary",
+              "eligible_for_active",
+              "blocking_reason"
+            ],
+            "properties": {
+              "requires_eval_pass": {
+                "const": true
+              },
+              "eligible_for_canary": {
+                "type": "boolean"
+              },
+              "eligible_for_active": {
+                "type": "boolean"
+              },
+              "blocking_reason": {
+                "type": "string"
+              }
+            }
+          },
+          "activation_outcome": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "allowed",
+              "target_status",
+              "deny_reason"
+            ],
+            "properties": {
+              "allowed": {
+                "type": "boolean"
+              },
+              "target_status": {
+                "enum": [
+                  "internal_canary",
+                  "allowlist_canary",
+                  "percent_canary",
+                  "active"
+                ]
+              },
+              "deny_reason": {
+                "type": "string"
+              }
+            }
+          },
+          "evidence_refs": {
             "type": "array",
             "minItems": 1,
             "items": {
