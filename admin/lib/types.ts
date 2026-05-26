@@ -595,6 +595,46 @@ export type ProductionAbuseThrottleHoldEvidence = {
   };
 };
 
+export type ProductionActivationReviewAuditCoverage = {
+  area:
+    | "skill_release_gate"
+    | "crawler_activation_gate"
+    | "prompt_activation_gate"
+    | "provider_routing_gate"
+    | "quota_override_gate"
+    | "safety_policy_gate"
+    | "export_override_gate"
+    | "gate_blocker_preservation";
+  status: "pass" | "blocked";
+  runtimeProbe: string;
+  deploymentEvidence: string;
+  rbacAuditEvidence: string;
+  linkedAdminArtifacts: string[];
+  evidenceRefs: string[];
+};
+
+export type ProductionActivationReviewAuditEvidence = {
+  id: string;
+  evidencePath: string;
+  environment: "production";
+  status: "pass_with_blockers_preserved" | "blocked";
+  validatedAt: string;
+  validatedByRole: AdminRole;
+  releaseGateCheckId: "production_activation_review_audit";
+  doNotLaunchConditionIds: ["activation_eval_review_audit_runtime_missing", "admin_high_risk_review_runtime_missing"];
+  runtimeRequestIds: string[];
+  adminRbacEvidenceIds: string[];
+  adminReviewDecisionIds: string[];
+  auditRefs: string[];
+  coverage: ProductionActivationReviewAuditCoverage[];
+  gateImpact: {
+    checklistItem: string;
+    canClearCheckLevelItem: boolean;
+    aggregateProductionGateStatus: "blocked_by_other_production_runtime_items";
+    remainingBlockers: string[];
+  };
+};
+
 export type SupportTicket = {
   id: string;
   status: "open" | "waiting_user" | "resolved" | "escalated";

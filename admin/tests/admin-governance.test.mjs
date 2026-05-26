@@ -12,7 +12,7 @@ const parseFixtures = () => {
   const moduleSource = source
     .replace(/^import type[\s\S]*?from "@\/lib\/types";\n\n/, "")
     .replaceAll(/export const (\w+)[^=]*=/g, "const $1 =");
-  return Function(`${moduleSource}\nreturn { skillVersions, skillReleaseStateDefinitions, skillCanaryMetrics, releaseEvidence, releaseBlockers, supportTickets, supportEscalationRunbooks, supportUsers, riskyExports, abuseEvents, abuseControlHooks, stagingSupportRetryAbuseEvidence, productionAbuseThrottleHoldEvidence, auditEvents, exportJobs, traces, quotaAccounts, feedbackItems, regressionFixtures, analyticsReports, queueHealth, failedTaskControls, crawlerFindings, crawlerSourceApprovals, crawlerGovernanceWorkflows, crawlerStagingRuntimeEvidence, adminRbacEvidence, operationalDashboards, operationalDashboardRuntimeEvidence, alertRoutes, alertRouteRuntimeEvidence, backendMetricsRuntimeEvidence };`)();
+  return Function(`${moduleSource}\nreturn { skillVersions, skillReleaseStateDefinitions, skillCanaryMetrics, releaseEvidence, releaseBlockers, supportTickets, supportEscalationRunbooks, supportUsers, riskyExports, abuseEvents, abuseControlHooks, stagingSupportRetryAbuseEvidence, productionAbuseThrottleHoldEvidence, productionActivationReviewAuditEvidence, auditEvents, exportJobs, traces, quotaAccounts, feedbackItems, regressionFixtures, analyticsReports, queueHealth, failedTaskControls, crawlerFindings, crawlerSourceApprovals, crawlerGovernanceWorkflows, crawlerStagingRuntimeEvidence, adminRbacEvidence, operationalDashboards, operationalDashboardRuntimeEvidence, alertRoutes, alertRouteRuntimeEvidence, backendMetricsRuntimeEvidence };`)();
 };
 
 const crawlerGovernanceCases = JSON.parse(
@@ -33,6 +33,7 @@ const {
   abuseControlHooks,
   stagingSupportRetryAbuseEvidence,
   productionAbuseThrottleHoldEvidence,
+  productionActivationReviewAuditEvidence,
   auditEvents,
   exportJobs,
   feedbackItems,
@@ -137,6 +138,10 @@ const productionGatePath = new URL(
 );
 const productionAbuseThrottleHoldPath = new URL(
   "../../ops/evidence/production/20260527T1330Z-abuse-throttle-hold.json",
+  import.meta.url
+);
+const productionActivationReviewAuditPath = new URL(
+  "../../ops/evidence/production/20260527T1430Z-activation-review-audit.json",
   import.meta.url
 );
 
@@ -987,6 +992,177 @@ test("production abuse throttle hold evidence clears only the production abuse c
   assert.ok(
     gateFixture.do_not_launch_checks.some((condition) => condition.is_present === true),
     "aggregate production gate must remain blocked by other do-not-launch conditions"
+  );
+});
+
+test("production activation review audit evidence covers every high-risk admin override gate", () => {
+  assert.ok(existsSync(productionActivationReviewAuditPath), "production activation review/audit evidence file is missing");
+  assert.ok(existsSync(productionGatePath), "production launch gate evidence fixture is missing");
+
+  const evidenceFile = JSON.parse(readFileSync(productionActivationReviewAuditPath, "utf8"));
+  const gateFixture = JSON.parse(readFileSync(productionGatePath, "utf8"));
+  const { buildAdminRbacRuntimeDecisions } = parseRbacRuntime();
+  const runtimeDecisions = buildAdminRbacRuntimeDecisions(adminRbacEvidence, new Date("2026-05-26T11:00:00Z"));
+  const decisionByEvidenceId = new Map(runtimeDecisions.map((decision) => [decision.evidenceId, decision]));
+  const rbacById = new Map(adminRbacEvidence.map((item) => [item.id, item]));
+
+  assert.equal(
+    productionActivationReviewAuditEvidence.id,
+    evidenceFile.evidence_id,
+    "admin fixture must match production activation evidence id"
+  );
+  assert.equal(productionActivationReviewAuditEvidence.environment, "production", "evidence must be production scoped");
+  assert.equal(evidenceFile.environment, "production", "evidence file must be production scoped");
+  assert.equal(
+    productionActivationReviewAuditEvidence.status,
+    "pass_with_blockers_preserved",
+    "production activation evidence must preserve unrelated blockers"
+  );
+  assert.equal(evidenceFile.status, "pass_with_blockers_preserved", "evidence file must preserve unrelated blockers");
+  assert.equal(
+    productionActivationReviewAuditEvidence.evidencePath,
+    "ops/evidence/production/20260527T1430Z-activation-review-audit.json",
+    "evidence path must cite gate-specific production evidence"
+  );
+  assert.equal(
+    productionActivationReviewAuditEvidence.releaseGateCheckId,
+    "production_activation_review_audit",
+    "evidence must bind the production activation review/audit release-gate check"
+  );
+  assert.deepEqual(
+    productionActivationReviewAuditEvidence.doNotLaunchConditionIds,
+    ["activation_eval_review_audit_runtime_missing", "admin_high_risk_review_runtime_missing"],
+    "activation evidence must clear only the activation and high-risk admin review blockers"
+  );
+
+  for (const requestId of productionActivationReviewAuditEvidence.runtimeRequestIds) {
+    assert.match(
+      requestId,
+      /^production-activation-review-audit-\d{8}T\d{4}Z-/,
+      `${requestId} must be a production activation review/audit runtime probe`
+    );
+  }
+
+  const requiredSurfaces = new Set([
+    "skill_release",
+    "crawler_import",
+    "prompt_approval",
+    "provider_routing",
+    "quota_override",
+    "safety_rule",
+    "export_override"
+  ]);
+  for (const evidenceId of productionActivationReviewAuditEvidence.adminRbacEvidenceIds) {
+    const rbac = rbacById.get(evidenceId);
+    const runtimeDecision = decisionByEvidenceId.get(evidenceId);
+    assert.ok(rbac, `${evidenceId} must link admin RBAC evidence`);
+    assert.ok(runtimeDecision, `${evidenceId} must have a runtime RBAC decision`);
+    requiredSurfaces.delete(rbac.surface);
+    assert.equal(runtimeDecision.enforcementPoint, rbac.enforcementPoint, `${evidenceId} runtime enforcement must match RBAC evidence`);
+    assert.equal(runtimeDecision.auditRef, rbac.auditRef, `${evidenceId} runtime audit ref must match RBAC evidence`);
+    assert.ok(auditIds.has(rbac.auditRef), `${evidenceId} links unknown audit ${rbac.auditRef}`);
+
+    if (rbac.decision === "allowed") {
+      assert.equal(runtimeDecision.effectiveDecision, "allow_mutation", `${evidenceId} allowed RBAC evidence should apply with expiry`);
+      assert.equal(runtimeDecision.releaseGateStatus, "runtime_override_applied_with_expiry");
+    } else if (rbac.decision === "second_review_required") {
+      assert.equal(runtimeDecision.effectiveDecision, "queue_for_review", `${evidenceId} second-review evidence should queue`);
+      assert.equal(runtimeDecision.releaseGateStatus, "canary_or_release_blocked");
+    } else {
+      assert.equal(runtimeDecision.effectiveDecision, "deny_mutation", `${evidenceId} denied evidence should block mutation`);
+      assert.equal(runtimeDecision.releaseGateStatus, "release_gate_preserved");
+    }
+  }
+  assert.deepEqual([...requiredSurfaces], [], "production activation evidence must include every admin override surface");
+
+  for (const reviewId of productionActivationReviewAuditEvidence.adminReviewDecisionIds) {
+    assert.ok(
+      ["rv-100", "rv-101", "rv-102"].includes(reviewId),
+      `${reviewId} must link a production activation review fixture`
+    );
+  }
+
+  for (const auditRef of productionActivationReviewAuditEvidence.auditRefs) {
+    assert.ok(auditIds.has(auditRef), `${auditRef} must link immutable audit evidence`);
+  }
+
+  const requiredAreas = new Set([
+    "skill_release_gate",
+    "crawler_activation_gate",
+    "prompt_activation_gate",
+    "provider_routing_gate",
+    "quota_override_gate",
+    "safety_policy_gate",
+    "export_override_gate",
+    "gate_blocker_preservation"
+  ]);
+  for (const area of evidenceFile.coverage.map((item) => item.area)) {
+    assert.ok(requiredAreas.has(area), `${area} is not an expected production activation evidence area`);
+  }
+
+  for (const coverage of productionActivationReviewAuditEvidence.coverage) {
+    requiredAreas.delete(coverage.area);
+    assert.equal(coverage.status, "pass", `${coverage.area} must pass`);
+    assert.ok(coverage.runtimeProbe.toLowerCase().includes("production"), `${coverage.area} must describe production runtime`);
+    assert.match(
+      coverage.runtimeProbe,
+      /release|crawler|prompt|provider|quota|safety|export|release-gate/i,
+      `${coverage.area} must cover activation review/audit enforcement`
+    );
+    assert.ok(coverage.deploymentEvidence.length > 120, `${coverage.area} needs deployment evidence`);
+    assert.ok(coverage.rbacAuditEvidence.length > 120, `${coverage.area} needs RBAC and audit evidence`);
+    assert.ok(coverage.linkedAdminArtifacts.some((ref) => ref.startsWith("admin/")), `${coverage.area} needs admin artifacts`);
+    assert.ok(
+      coverage.evidenceRefs.includes("ops/evidence/production/20260527T1430Z-activation-review-audit.json"),
+      `${coverage.area} must cite the production evidence path`
+    );
+    assert.ok(
+      coverage.evidenceRefs.some((ref) => productionActivationReviewAuditEvidence.adminRbacEvidenceIds.includes(ref)),
+      `${coverage.area} needs RBAC evidence refs`
+    );
+    assert.ok(
+      coverage.evidenceRefs.some(
+        (ref) =>
+          auditIds.has(ref) ||
+          releaseEvidenceIds.has(ref) ||
+          crawlerFindingIds.has(ref) ||
+          supportTicketIds.has(ref) ||
+          traceIds.has(ref) ||
+          exportIds.has(ref)
+      ),
+      `${coverage.area} needs validator-resolvable audit, release, crawler, support, trace, or export refs`
+    );
+  }
+
+  assert.deepEqual([...requiredAreas], [], "production activation evidence is missing coverage areas");
+
+  const activationCheck = gateFixture.checks.find((check) => check.check_id === "production_activation_review_audit");
+  assert.ok(activationCheck, "production gate needs activation review/audit check");
+  assert.equal(activationCheck.status, "pass", "validated production activation evidence should clear only its check");
+  assert.ok(
+    activationCheck.evidence_ref.includes(productionActivationReviewAuditEvidence.evidencePath),
+    "production activation check must cite the production runtime evidence path"
+  );
+
+  for (const conditionId of productionActivationReviewAuditEvidence.doNotLaunchConditionIds) {
+    const condition = gateFixture.do_not_launch_checks.find((entry) => entry.condition_id === conditionId);
+    assert.ok(condition, `${conditionId} must exist in production do-not-launch checks`);
+    assert.equal(condition.is_present, false, `${conditionId} should be cleared by activation review/audit evidence`);
+    assert.ok(
+      condition.evidence_ref.includes(productionActivationReviewAuditEvidence.evidencePath),
+      `${conditionId} must cite the activation review/audit evidence path`
+    );
+  }
+
+  for (const blocker of productionActivationReviewAuditEvidence.gateImpact.remainingBlockers) {
+    const check = gateFixture.checks.find((entry) => entry.check_id === blocker);
+    assert.ok(check, `${blocker} must remain represented in the production gate fixture`);
+    assert.equal(check.status, "blocked", `${blocker} must stay blocked after activation review/audit clears`);
+  }
+
+  assert.ok(
+    gateFixture.do_not_launch_checks.some((condition) => condition.is_present === true),
+    "aggregate production gate must remain blocked by unrelated launch conditions"
   );
 });
 

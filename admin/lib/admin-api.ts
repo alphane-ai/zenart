@@ -20,6 +20,7 @@ import {
   operationalDashboardRuntimeEvidence,
   metaPrompts,
   operationalDashboards,
+  productionActivationReviewAuditEvidence,
   productionAbuseThrottleHoldEvidence,
   promptFragments,
   providerHealth,
@@ -136,6 +137,10 @@ export async function getStagingSupportRetryAbuseEvidence() {
 
 export async function getProductionAbuseThrottleHoldEvidence() {
   return productionAbuseThrottleHoldEvidence;
+}
+
+export async function getProductionActivationReviewAuditEvidence() {
+  return productionActivationReviewAuditEvidence;
 }
 
 export async function getExportJob(id: string) {

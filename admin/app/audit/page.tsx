@@ -1,15 +1,28 @@
 import { DataTable } from "@/components/DataTable";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
-import { getAdminRbacEvidence, getAdminRbacRuntimeDecisions, getAdminReviewDecisions, getAuditEvents } from "@/lib/admin-api";
-import type { AdminRbacEvidence, AdminRbacRuntimeDecision, AdminReviewDecision, AuditEvent } from "@/lib/types";
+import {
+  getAdminRbacEvidence,
+  getAdminRbacRuntimeDecisions,
+  getAdminReviewDecisions,
+  getAuditEvents,
+  getProductionActivationReviewAuditEvidence
+} from "@/lib/admin-api";
+import type {
+  AdminRbacEvidence,
+  AdminRbacRuntimeDecision,
+  AdminReviewDecision,
+  AuditEvent,
+  ProductionActivationReviewAuditCoverage
+} from "@/lib/types";
 
 export default async function AuditPage() {
-  const [events, reviews, rbacEvidence, rbacRuntime] = await Promise.all([
+  const [events, reviews, rbacEvidence, rbacRuntime, productionActivationEvidence] = await Promise.all([
     getAuditEvents(),
     getAdminReviewDecisions(),
     getAdminRbacEvidence(),
-    getAdminRbacRuntimeDecisions()
+    getAdminRbacRuntimeDecisions(),
+    getProductionActivationReviewAuditEvidence()
   ]);
   const filterPresets = [
     {
@@ -111,6 +124,47 @@ export default async function AuditPage() {
             { key: "gate", header: "Release Gate Status", render: (row) => row.releaseGateStatus },
             { key: "audit", header: "Audit Ref", render: (row) => <span className="mono">{row.auditRef}</span> },
             { key: "rationale", header: "Runtime Rationale", render: (row) => row.rationale }
+          ]}
+        />
+      </section>
+
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>Production Activation Evidence</h3>
+            <p>Production probes cover release, crawler, prompt, provider, quota, safety, and export activation review/audit gates without closing unrelated launch blockers.</p>
+          </div>
+          <StatusBadge
+            value={productionActivationEvidence.status === "pass_with_blockers_preserved" ? "warning" : "blocked"}
+            label={productionActivationEvidence.status}
+          />
+        </div>
+        <div className="panel-body">
+          <div className="record-card">
+            <header>
+              <div>
+                <h4>{productionActivationEvidence.id}</h4>
+                <p className="mono">{productionActivationEvidence.evidencePath}</p>
+              </div>
+              <StatusBadge value="info" label={productionActivationEvidence.validatedByRole} />
+            </header>
+            <p>{productionActivationEvidence.gateImpact.checklistItem}</p>
+            <p className="mono">
+              {productionActivationEvidence.doNotLaunchConditionIds.join(", ")} ·{" "}
+              {productionActivationEvidence.gateImpact.aggregateProductionGateStatus}
+            </p>
+          </div>
+        </div>
+        <DataTable<ProductionActivationReviewAuditCoverage>
+          rows={productionActivationEvidence.coverage}
+          columns={[
+            { key: "area", header: "Area", render: (row) => row.area },
+            { key: "status", header: "Status", render: (row) => <StatusBadge value={row.status === "pass" ? "approved" : "blocked"} label={row.status} /> },
+            { key: "probe", header: "Runtime Probe", render: (row) => row.runtimeProbe },
+            { key: "deployment", header: "Deployment Evidence", render: (row) => row.deploymentEvidence },
+            { key: "rbac", header: "RBAC Audit Evidence", render: (row) => row.rbacAuditEvidence },
+            { key: "artifacts", header: "Admin Artifacts", render: (row) => row.linkedAdminArtifacts.join(", ") },
+            { key: "evidence", header: "Evidence Refs", render: (row) => row.evidenceRefs.join(", ") }
           ]}
         />
       </section>

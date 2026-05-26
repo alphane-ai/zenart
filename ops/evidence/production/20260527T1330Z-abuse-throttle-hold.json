@@ -116,7 +116,6 @@
       "production_provider_or_comp_only_mode",
       "production_paid_billing_lifecycle",
       "production_skill_release_eval_canary",
-      "production_activation_review_audit",
       "production_security_launch_checks",
       "production_backup_rollback_incident",
       "production_legal_support_policy"

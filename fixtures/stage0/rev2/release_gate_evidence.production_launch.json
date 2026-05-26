@@ -20,8 +20,8 @@
     },
     {
       "check_id": "production_activation_review_audit",
-      "status": "blocked",
-      "evidence_ref": "Activation gate contract evidence exists, but production evidence for eval/review/audit activation gates across skill, prompt, crawler, provider, and safety changes is absent"
+      "status": "pass",
+      "evidence_ref": "ops/evidence/production/20260527T1430Z-activation-review-audit.json validates production activation review/audit enforcement across skill release, crawler activation, prompt activation, provider routing, quota override, safety policy, and export release admin gates while preserving unrelated launch blockers"
     },
     {
       "check_id": "production_abuse_throttle_hold",
@@ -72,14 +72,14 @@
     {
       "condition_id": "activation_eval_review_audit_runtime_missing",
       "blueprint_condition": "Prompt、skill、provider routing、safety rule、crawler-derived changes 可绕过 eval/review/audit activation。",
-      "is_present": true,
-      "evidence_ref": "fixtures/stage0/rev2/eval/ activation gate contracts exist, but ops/evidence/production/ production runtime eval/review/audit activation evidence remains absent"
+      "is_present": false,
+      "evidence_ref": "ops/evidence/production/20260527T1430Z-activation-review-audit.json records production runtime enforcement for skill release, crawler activation, prompt activation, provider routing, quota override, safety policy, and export release gates with eval/review/audit controls preserved"
     },
     {
       "condition_id": "admin_high_risk_review_runtime_missing",
       "blueprint_condition": "Admin review decisions 可变更、缺 reviewer rationale，或 high-risk changes 绕过 RBAC/audit/second review。",
-      "is_present": true,
-      "evidence_ref": "admin review contracts exist, but ops/evidence/production/ production high-risk RBAC/rationale/second-review runtime evidence remains absent"
+      "is_present": false,
+      "evidence_ref": "ops/evidence/production/20260527T1430Z-activation-review-audit.json records production high-risk admin RBAC, reviewer rationale, second-review state, immutable audit refs, temporary override expiry, and blocked/queued/applied mutation outcomes"
     },
     {
       "condition_id": "abuse_throttle_hold_missing",
