@@ -356,16 +356,17 @@ export class DevZenArtClient implements ZenArtClient {
     const state = loadState();
     const candidate = state.candidates.find((item) => item.id === sourceId);
     const node = state.canvas.nodes.find((item) => item.id === sourceId);
+    const reference = state.brief.references.find((item) => item.id === sourceId && item.validation.state === "accepted");
     const existing = state.packageItems.some((item) => item.sourceId === sourceId);
-    if ((!candidate && !node) || existing) {
+    if ((!candidate && !node && !reference) || existing) {
       return clone(state);
     }
 
     const item: PackageItem = {
       id: `pkg-item-${String(state.packageItems.length + 1).padStart(3, "0")}`,
       sourceId,
-      title: candidate?.title ?? node?.title ?? "Canvas item",
-      type: candidate ? "candidate" : "canvas-frame",
+      title: candidate?.title ?? node?.title ?? reference?.name ?? "Canvas item",
+      type: candidate ? "candidate" : reference ? "reference" : "canvas-frame",
       addedAt: new Date().toISOString()
     };
 

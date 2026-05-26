@@ -459,6 +459,12 @@ function WorkspaceView({
   runAction: (label: string, action: () => Promise<WorkspaceState>) => Promise<void>;
 }) {
   const latestReference = state.brief.references.at(-1);
+  const acceptedReferenceIds = state.brief.references
+    .filter((reference) => reference.validation.state === "accepted")
+    .map((reference) => reference.id);
+  const packagedReferenceIds = new Set(
+    state.packageItems.filter((item) => item.type === "reference").map((item) => item.sourceId)
+  );
   const renderingSmoke = buildWorkspaceRenderingPerformanceSmoke(state);
   return (
     <div className="workspace-grid">
@@ -517,11 +523,31 @@ function WorkspaceView({
             <span>{latestReference.validation.reason}</span>
           </div>
         ) : null}
+        <div
+          className="reference-export-smoke"
+          aria-label="Reference upload export integration smoke"
+          data-reference-export-smoke="reference-upload-to-ready-zip-export"
+          data-reference-accepted-count={acceptedReferenceIds.length}
+          data-reference-packaged-count={packagedReferenceIds.size}
+        >
+          <strong>Reference export path</strong>
+          <span>Accepted references can be added to package history and ZIP manifest provenance.</span>
+        </div>
         <div className="reference-list">
           {state.brief.references.map((reference) => (
             <span key={reference.id} className={reference.validation.state === "rejected" ? "rejected-reference" : ""}>
               <ImagePlus size={14} aria-hidden="true" />
               {reference.name} · {reference.validation.state}
+              {reference.validation.state === "accepted" ? (
+                <button
+                  className="reference-package-button"
+                  disabled={packagedReferenceIds.has(reference.id)}
+                  onClick={() => void runAction("package", () => zenArtClient.addPackageItem(reference.id))}
+                  aria-label={`Add reference ${reference.name} to package`}
+                >
+                  {packagedReferenceIds.has(reference.id) ? "Packaged" : "Package"}
+                </button>
+              ) : null}
             </span>
           ))}
         </div>
@@ -796,6 +822,31 @@ function ExportView({
                         </li>
                       ))}
                     </ul>
+                  )}
+                </section>
+                <section
+                  className="export-detail-panel reference-upload-export-contract"
+                  aria-label="Reference upload to ready ZIP export contract"
+                  data-reference-upload-export-contract="reference-upload-to-ready-zip-export"
+                  data-reference-provenance-count={
+                    latestExport.manifest.items.filter((item) => item.type === "reference").length
+                  }
+                >
+                  <h4>Reference Upload Export Contract</h4>
+                  <p>Accepted references enter package history as reference items and emit dev-client-reference provenance in ZIP exports.</p>
+                  {latestExport.manifest.items.some((item) => item.type === "reference") ? (
+                    <ul>
+                      {latestExport.manifest.items
+                        .filter((item) => item.type === "reference")
+                        .map((item) => (
+                          <li key={item.id}>
+                            <strong>{item.title}</strong>
+                            <span>{item.provenance}</span>
+                          </li>
+                        ))}
+                    </ul>
+                  ) : (
+                    <p>No reference items are packaged in the latest export.</p>
                   )}
                 </section>
                 <section className="export-detail-panel ppt-ready-metadata" aria-label="PPT-ready metadata">

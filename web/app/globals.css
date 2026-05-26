@@ -543,15 +543,42 @@ textarea {
   gap: 8px;
 }
 
+.reference-export-smoke {
+  border: 1px solid rgba(15, 118, 110, 0.24);
+  border-radius: 8px;
+  background: #edfdfa;
+  color: #134e4a;
+  padding: 9px 10px;
+  display: grid;
+  gap: 3px;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.reference-export-smoke span {
+  color: #0f766e;
+}
+
 .reference-list span {
   border: 1px solid var(--line);
   border-radius: 999px;
   display: inline-flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 5px;
   padding: 6px 9px;
   font-size: 12px;
   color: #475467;
+}
+
+.reference-package-button {
+  min-height: 24px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--accent-dark);
+  padding: 0 7px;
+  font-size: 11px;
 }
 
 .reference-list .rejected-reference {

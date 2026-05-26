@@ -7,7 +7,15 @@
       "path": "/workspace",
       "component": "WorkspaceApp",
       "initialView": "workspace",
-      "expects": ["chatbox", "canvas", "candidate-set", "package-panel", "reference-validation", "workspace-rendering-performance-smoke"]
+      "expects": [
+        "chatbox",
+        "canvas",
+        "candidate-set",
+        "package-panel",
+        "reference-validation",
+        "reference-upload-export-contract",
+        "workspace-rendering-performance-smoke"
+      ]
     },
     {
       "path": "/project",
@@ -25,6 +33,7 @@
         "manifest-preview",
         "qa-report",
         "provenance-report",
+        "reference-upload-export-contract",
         "ppt-ready-metadata",
         "share-link-state"
       ]
@@ -145,6 +154,7 @@
     "blocked exports do not consume quota and mock checkout activates the local alpha plan",
     "inactive, past_due, and quota-exhausted billing states block quota-consuming exports",
     "reference upload validation flows into a ready ZIP export with manifest, QA report, provenance, and assets entries",
+    "accepted references can be packaged and exported with dev-client-reference provenance and PPT asset-grid metadata",
     "export manifest includes PPT-ready metadata and ZIP download emits ppt-ready-metadata.json",
     "download smoke verifies ZIP artifact contents, PDF placeholder blob, deterministic filenames, and browser download handoff",
     "legal policy routes expose Terms, Privacy Policy, Acceptable Use, IP complaint, and billing/refund policy content",

@@ -153,6 +153,64 @@ describe("dev web client user lifecycle coverage", () => {
     expect(ticketed.supportTickets[0].linkedAssetIds).toEqual(["ref-001", "ref-https-example-com-brief"]);
   });
 
+  it("packages accepted references into ready ZIP export manifest and PPT metadata", async () => {
+    const client = makeClient();
+
+    const accepted = await client.attachReference({ name: "visual-style.pdf", kind: "document" });
+    const rejected = await client.attachReference({ name: "ftp://example.com/reference", kind: "url" });
+    const packaged = await client.addPackageItem("ref-visual-style-pdf");
+    const blockedReferencePackage = await client.addPackageItem("ref-ftp-example-com-reference");
+    const exported = await client.createExport("zip");
+
+    expect(accepted.brief.references.at(-1)).toMatchObject({
+      id: "ref-visual-style-pdf",
+      status: "attached",
+      validation: {
+        state: "accepted"
+      }
+    });
+    expect(rejected.brief.references.at(-1)).toMatchObject({
+      id: "ref-ftp-example-com-reference",
+      status: "queued",
+      validation: {
+        state: "rejected",
+        reason: "Reference URLs must use HTTPS."
+      }
+    });
+    expect(packaged.packageItems).toEqual([
+      {
+        id: "pkg-item-001",
+        sourceId: "ref-visual-style-pdf",
+        title: "visual-style.pdf",
+        type: "reference",
+        addedAt: expect.any(String)
+      }
+    ]);
+    expect(blockedReferencePackage.packageItems).toEqual(packaged.packageItems);
+    expect(exported.exports[0]).toMatchObject({
+      status: "ready",
+      manifest: {
+        items: [
+          {
+            id: "pkg-item-001",
+            title: "visual-style.pdf",
+            type: "reference",
+            provenance: "dev-client-reference:ref-visual-style-pdf"
+          }
+        ],
+        ppt_ready_metadata: {
+          slides: [
+            {
+              source_item_id: "pkg-item-001",
+              title: "visual-style.pdf",
+              layout: "asset-grid"
+            }
+          ]
+        }
+      }
+    });
+  });
+
   it("models billing quota states without charging blocked exports", async () => {
     const client = makeClient();
     const initial = await client.loadWorkspace();

@@ -37,7 +37,8 @@ describe("reference upload and export download integration", () => {
     const rejectedReference = await client.attachReference({ name: "unsafe-reference.exe", kind: "image" });
     const acceptedReference = await client.attachReference({ name: "campaign-reference.webp", kind: "image" });
     await client.selectCandidate("cand-studio");
-    const packaged = await client.addPackageItem("cand-studio");
+    await client.addPackageItem("cand-studio");
+    const packaged = await client.addPackageItem("ref-campaign-reference-webp");
     const exported = await client.createExport("zip");
     const record = exported.exports[0];
 
@@ -48,12 +49,13 @@ describe("reference upload and export download integration", () => {
       }
     });
     expect(acceptedReference.brief.references.at(-1)).toMatchObject({
+      id: "ref-campaign-reference-webp",
       status: "attached",
       validation: {
         state: "accepted"
       }
     });
-    expect(packaged.packageItems).toHaveLength(1);
+    expect(packaged.packageItems).toHaveLength(2);
     expect(record).toMatchObject({
       format: "zip",
       status: "ready",
@@ -85,6 +87,12 @@ describe("reference upload and export download integration", () => {
         title: "Studio System",
         type: "candidate",
         provenance: "dev-client:cand-studio"
+      },
+      {
+        id: "pkg-item-002",
+        title: "campaign-reference.webp",
+        type: "reference",
+        provenance: "dev-client-reference:ref-campaign-reference-webp"
       }
     ]);
     expect(qaReport).toEqual(
@@ -121,13 +129,22 @@ describe("reference upload and export download integration", () => {
           source_item_id: "pkg-item-001",
           title: "Studio System",
           layout: "title-and-asset"
+        },
+        {
+          id: "slide-02",
+          source_item_id: "pkg-item-002",
+          title: "campaign-reference.webp",
+          layout: "asset-grid"
         }
       ]
     });
     expect(provenance).toMatchObject({
       export_id: record.id,
       generated_by: "zenart-web-dev-client",
-      items: [{ id: "pkg-item-001", provenance: "dev-client:cand-studio" }]
+      items: [
+        { id: "pkg-item-001", provenance: "dev-client:cand-studio" },
+        { id: "pkg-item-002", provenance: "dev-client-reference:ref-campaign-reference-webp" }
+      ]
     });
     expect(readme).toContain("Deterministic local alpha export placeholder");
 

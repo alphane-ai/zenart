@@ -189,7 +189,7 @@ export const buildManifest = (
     id: item.id,
     title: item.title,
     type: item.type,
-    provenance: `dev-client:${item.sourceId}`
+    provenance: item.type === "reference" ? `dev-client-reference:${item.sourceId}` : `dev-client:${item.sourceId}`
   }))
 });
 
@@ -218,7 +218,7 @@ export const buildPptReadyMetadata = (items: PackageItem[]): PptReadyMetadata =>
           id: `slide-${String(index + 1).padStart(2, "0")}`,
           source_item_id: item.id,
           title: item.title,
-          layout: item.type === "candidate" ? "title-and-asset" : "handoff-notes",
+          layout: item.type === "candidate" ? "title-and-asset" : item.type === "reference" ? "asset-grid" : "handoff-notes",
           notes: `${item.type} exported from ${item.sourceId} with safe-area bounds and presenter handoff context.`
         }))
       : [
