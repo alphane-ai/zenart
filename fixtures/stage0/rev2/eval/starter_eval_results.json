@@ -437,7 +437,7 @@
     ],
     "runner_contract": {
       "runner": "scripts/run_stage0_eval.py",
-      "runner_sha256": "33e065c9e49fa23a4397f31d5d591ead3bbc1be90e8c5a014a812a3ab70ef2c5",
+      "runner_sha256": "1a454ae75fa5f8170f2868ce7b4170b04fd021834086f0254d724747e808e6aa",
       "deterministic_replay_command": "python3 scripts/run_stage0_eval.py --check",
       "writes_stored_fixture": true,
       "check_mode_compares_exact_json": true

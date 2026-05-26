@@ -142,7 +142,7 @@
         "cta_bottom_margin_px_min": 180,
         "overlaps_platform_ui": false
       },
-      "trace_id": "trace_fx_local_merchant_campaign_golden_safe_area",
+      "trace_id": "trace_fx_local_merchant_campaign_golden_dimensions",
       "fixture_id": "fx_local_merchant_campaign_golden",
       "source_artifacts": [
         "candidate_asset.layout.json",
@@ -274,7 +274,7 @@
           "loyalty_push"
         ]
       },
-      "trace_id": "trace_fx_negative_generic_rendering_distinctness",
+      "trace_id": "trace_fx_negative_generic_rendering_similarity",
       "fixture_id": "fx_negative_generic_rendering",
       "source_artifacts": [
         "workflow_acceptance.local_merchant_campaign_pack.json",
@@ -317,7 +317,7 @@
         "duplicate_similarity_below": 0.9,
         "candidate_pair_must_differ": true
       },
-      "trace_id": "trace_fx_brand_product_preservation_duplicate",
+      "trace_id": "trace_fx_brand_product_preservation_integrity",
       "fixture_id": "fx_brand_product_preservation",
       "source_artifacts": [
         "workflow_acceptance.ecommerce_growth_pack.json",
@@ -367,7 +367,7 @@
           "retention_bundle"
         ]
       },
-      "trace_id": "trace_fx_brand_product_preservation_distinctness",
+      "trace_id": "trace_fx_brand_product_preservation_integrity",
       "fixture_id": "fx_brand_product_preservation",
       "source_artifacts": [
         "workflow_acceptance.ecommerce_growth_pack.json",
@@ -498,7 +498,7 @@
         "product_shape_similarity_min": 0.93,
         "unauthorized_color_change": false
       },
-      "trace_id": "trace_fx_brand_product_preservation_logo",
+      "trace_id": "trace_fx_brand_product_preservation_integrity",
       "fixture_id": "fx_brand_product_preservation",
       "source_artifacts": [
         "fixtures/assets/aurora_logo.svg",
@@ -582,7 +582,7 @@
         "watermark_probability_below": 0.2,
         "signature_like_text_detected": false
       },
-      "trace_id": "trace_fx_character_ip_concept_golden_watermark",
+      "trace_id": "trace_fx_character_ip_concept_golden_blank",
       "fixture_id": "fx_character_ip_concept_golden",
       "source_artifacts": [
         "candidate_asset.preview.png",

@@ -279,6 +279,10 @@ def validate_fixture_links(qa_results: list[dict[str, Any]]) -> None:
             result_by_fixture[fixture_id]["trace_contract"]["trace_id"].startswith("trace_"),
             f"{item['check_id']} eval result trace contract must be trace-scoped",
         )
+        require(
+            item["evidence"]["trace_id"] == result_by_fixture[fixture_id]["trace_contract"]["trace_id"],
+            f"{item['check_id']} trace_id must match its eval result fixture trace",
+        )
 
 
 def validate_workflow_coverage(qa_results: list[dict[str, Any]]) -> None:

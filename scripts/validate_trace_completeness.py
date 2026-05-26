@@ -150,6 +150,11 @@ def validate_trace_fixture() -> None:
             qa_by_fixture.get(trace["fixture_id"]),
             f"{trace_id} must link to at least one QA result for its fixture",
         )
+        for qa_item in qa_by_fixture[trace["fixture_id"]]:
+            require(
+                qa_item["evidence"]["trace_id"] == trace_id,
+                f"{qa_item['check_id']} QA trace must match trace completeness fixture trace",
+            )
 
         export_contract = eval_by_trace[trace_id]["export_contract"]
         for field in ["manifest", "qa_report", "trace_provenance", "safety_disclaimer_when_applicable"]:

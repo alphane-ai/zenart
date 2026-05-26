@@ -2026,6 +2026,10 @@ def validate_qa_and_safety() -> None:
             f"{item['check_id']} eval result trace contract must be trace-scoped",
         )
         require(item["evidence"]["trace_id"].startswith("trace_"), f"{item['check_id']} trace_id must be trace-scoped")
+        require(
+            item["evidence"]["trace_id"] == eval_by_fixture[item["evidence"]["fixture_id"]]["trace_contract"]["trace_id"],
+            f"{item['check_id']} trace_id must match its eval result fixture trace",
+        )
         require(item["evidence"]["observed"], f"{item['check_id']} must include observed QA evidence")
         require(item["evidence"]["expected"], f"{item['check_id']} must include expected QA evidence")
         require(item["evidence"]["source_artifacts"], f"{item['check_id']} must cite source artifacts")

@@ -243,6 +243,11 @@ def run_eval() -> dict[str, Any]:
     for fixture in suite["fixtures"]:
         qa_items = qa_grouped.get(fixture["fixture_id"], [])
         trace_id = trace_id_for(fixture, qa_items)
+        for qa_item in qa_items:
+            require(
+                qa_item["evidence"]["trace_id"] == trace_id,
+                f"{qa_item['check_id']} trace must match {fixture['fixture_id']} eval fixture trace",
+            )
         export_contract = export_contract_for(fixture, qa_items)
         expected = fixture["expected_evidence"]
         candidate_count = expected["minimum_candidates"]
