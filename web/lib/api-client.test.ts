@@ -29,6 +29,41 @@ describe("dev web client user lifecycle coverage", () => {
     expect(window.localStorage.getItem(workspaceStorageKey)).toContain("Acme Launch Studio");
   });
 
+  it("runs login, refresh, expired-session handling, and logout states", async () => {
+    const client = makeClient();
+
+    const loggedIn = await client.login("member@example.com");
+    const refreshed = await client.refreshSession();
+    const expired = await client.expireSession();
+    const refreshWhileExpired = await client.refreshSession();
+    const signedOut = await client.logout();
+    const reloaded = await client.loadWorkspace();
+
+    expect(loggedIn.session).toMatchObject({
+      email: "member@example.com",
+      name: "member"
+    });
+    expect(loggedIn.sessionContract).toMatchObject({
+      status: "authenticated",
+      cookie: {
+        httpOnly: true,
+        secure: true,
+        sameSite: "lax"
+      },
+      csrf: {
+        strategy: "same-site-origin-check",
+        headerName: "X-ZenArt-CSRF"
+      }
+    });
+    expect(new Date(refreshed.sessionContract.issuedAt).getTime()).toBeGreaterThanOrEqual(
+      new Date(loggedIn.sessionContract.issuedAt).getTime()
+    );
+    expect(expired.sessionContract.status).toBe("expired");
+    expect(refreshWhileExpired.sessionContract.status).toBe("expired");
+    expect(signedOut.sessionContract.status).toBe("signed_out");
+    expect(reloaded.sessionContract.status).toBe("signed_out");
+  });
+
   it("autosaves project workspace selection, canvas versions, and package history", async () => {
     const client = makeClient();
     const initial = await client.loadWorkspace();

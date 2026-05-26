@@ -6,6 +6,7 @@ import {
   ExportFormat,
   PackageItem,
   QaFinding,
+  SessionUser,
   WorkspaceState,
   ZenArtClient
 } from "./contracts";
@@ -14,6 +15,7 @@ import {
   createDisabledShareLink,
   createInitialWorkspace,
   createReferenceAsset,
+  createSessionContract,
   createSupportTicket,
   evaluatePackageQa,
   formatExportFileName
@@ -51,6 +53,13 @@ const loadState = (): WorkspaceState => {
 
 const migrateState = (state: WorkspaceState): WorkspaceState => ({
   ...state,
+  sessionContract:
+    state.sessionContract ??
+    createSessionContract(state.session ?? {
+      id: "user-dev-001",
+      name: "Dev User",
+      email: "dev@zenart.local"
+    }),
   brief: {
     ...state.brief,
     references: state.brief.references.map((reference) => ({
@@ -99,6 +108,58 @@ export class DevZenArtClient implements ZenArtClient {
 
   async loadWorkspace() {
     return clone(migrateState(loadState()));
+  }
+
+  async login(email: string) {
+    const state = migrateState(loadState());
+    const normalizedEmail = email.trim().toLowerCase() || "dev@zenart.local";
+    const user: SessionUser = {
+      id: normalizedEmail === "dev@zenart.local" ? "user-dev-001" : `user-${normalizedEmail.replace(/[^a-z0-9]+/g, "-")}`,
+      name: normalizedEmail === "dev@zenart.local" ? "Dev User" : normalizedEmail.split("@")[0] || "Local User",
+      email: normalizedEmail
+    };
+
+    return saveState({
+      ...state,
+      session: user,
+      sessionContract: createSessionContract(user, "authenticated", new Date().toISOString())
+    });
+  }
+
+  async logout() {
+    const state = migrateState(loadState());
+    return saveState({
+      ...state,
+      sessionContract: {
+        ...state.sessionContract,
+        status: "signed_out"
+      }
+    });
+  }
+
+  async refreshSession() {
+    const state = migrateState(loadState());
+    if (state.sessionContract.status !== "authenticated") {
+      return clone(state);
+    }
+
+    return saveState({
+      ...state,
+      sessionContract: createSessionContract(state.session, "authenticated", new Date().toISOString())
+    });
+  }
+
+  async expireSession() {
+    const state = migrateState(loadState());
+    const expiredAt = new Date(Date.now() - 1000).toISOString();
+
+    return saveState({
+      ...state,
+      sessionContract: {
+        ...createSessionContract(state.session, "expired", new Date(Date.now() - 31 * 60 * 1000).toISOString()),
+        expiresAt: expiredAt
+      }
+    });
   }
 
   async confirmBrief(prompt: string) {

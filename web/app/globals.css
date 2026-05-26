@@ -252,6 +252,62 @@ button:disabled {
   color: var(--ink);
 }
 
+.session-expired,
+.session-signed_out {
+  border-color: rgba(180, 35, 24, 0.34);
+  color: var(--danger);
+}
+
+.session-contract {
+  margin: 14px 18px 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  padding: 12px;
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+}
+
+.session-contract-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.session-contract-main div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.session-contract-main span {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.session-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.session-actions input {
+  width: 210px;
+  min-height: 30px;
+  padding: 5px 8px;
+  font-size: 12px;
+}
+
+.session-alert {
+  grid-column: 1 / -1;
+}
+
 .workspace-grid {
   padding: 18px;
   display: grid;
@@ -1120,8 +1176,13 @@ textarea {
   .workspace-grid,
   .project-grid,
   .billing-layout,
-  .export-layout {
+  .export-layout,
+  .session-contract {
     grid-template-columns: 1fr;
+  }
+
+  .session-actions {
+    justify-content: flex-start;
   }
 
   .chat-panel,

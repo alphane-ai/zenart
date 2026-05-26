@@ -13,6 +13,27 @@ export interface SessionUser {
   email: string;
 }
 
+export interface SessionContract {
+  id: string;
+  user: SessionUser;
+  status: "authenticated" | "expired" | "signed_out";
+  issuedAt: string;
+  expiresAt: string;
+  refreshAfter: string;
+  cookie: {
+    name: string;
+    httpOnly: boolean;
+    secure: boolean;
+    sameSite: "strict" | "lax" | "none";
+    path: string;
+  };
+  csrf: {
+    strategy: "same-site-origin-check";
+    headerName: string;
+    sameSiteRequired: "lax-or-strict";
+  };
+}
+
 export interface AccountSettings {
   brandName: string;
   defaultExportFormat: ExportFormat;
@@ -164,6 +185,7 @@ export interface SupportTicket {
 
 export interface WorkspaceState {
   session: SessionUser;
+  sessionContract: SessionContract;
   account: AccountSettings;
   billing: BillingPlan;
   projects: ProjectSummary[];
@@ -187,6 +209,10 @@ export interface WorkspaceState {
 
 export interface ZenArtClient {
   loadWorkspace(): Promise<WorkspaceState>;
+  login(email: string): Promise<WorkspaceState>;
+  logout(): Promise<WorkspaceState>;
+  refreshSession(): Promise<WorkspaceState>;
+  expireSession(): Promise<WorkspaceState>;
   confirmBrief(prompt: string): Promise<WorkspaceState>;
   attachReference(asset: Pick<ReferenceAsset, "name" | "kind">): Promise<WorkspaceState>;
   selectCandidate(candidateId: string): Promise<WorkspaceState>;

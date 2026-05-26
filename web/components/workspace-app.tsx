@@ -14,6 +14,8 @@ import {
   LayoutDashboard,
   LifeBuoy,
   Link2,
+  LogIn,
+  LogOut,
   Loader2,
   PackagePlus,
   RefreshCcw,
@@ -21,6 +23,7 @@ import {
   Save,
   Send,
   Settings,
+  ShieldCheck,
   Sparkles,
   Upload,
   User
@@ -73,6 +76,7 @@ export function WorkspaceApp({ initialView = "workspace" }: { initialView?: View
   const view = initialView;
   const [briefInput, setBriefInput] = useState("");
   const [iterationInput, setIterationInput] = useState("");
+  const [loginEmail, setLoginEmail] = useState("dev@zenart.local");
   const [supportBody, setSupportBody] = useState("");
   const [supportCategory, setSupportCategory] = useState<"bug" | "billing" | "export" | "quality" | "other">("quality");
   const [referenceName, setReferenceName] = useState("visual-reference.png");
@@ -212,9 +216,15 @@ export function WorkspaceApp({ initialView = "workspace" }: { initialView?: View
             <button className="icon-button" onClick={() => void runTrackedAction("load", () => zenArtClient.loadWorkspace())} aria-label="Reload workspace">
               <RefreshCcw size={18} aria-hidden="true" />
             </button>
-            <span className="session-pill">{state.session.email}</span>
+            <span className={`session-pill session-${state.sessionContract.status}`}>{state.session.email} · {state.sessionContract.status}</span>
           </div>
         </header>
+        <SessionPanel
+          state={state}
+          loginEmail={loginEmail}
+          setLoginEmail={setLoginEmail}
+          runAction={runTrackedAction}
+        />
         <div className="action-status" role="status" aria-live="polite">
           {busy ? `${titleByView[view]} action in progress` : `${titleByView[view]} ready`}
         </div>
@@ -268,10 +278,81 @@ function eventNameByAction(action: string): AnalyticsEventName {
     checkout: "checkout_started",
     "billing-scenario": "billing_scenario_selected",
     account: "account_updated",
-    support: "support_ticket_opened"
+    support: "support_ticket_opened",
+    login: "route_viewed",
+    logout: "route_viewed",
+    "session-refresh": "route_viewed",
+    "session-expire": "route_viewed"
   };
 
   return eventByAction[action] ?? "route_viewed";
+}
+
+function SessionPanel({
+  state,
+  loginEmail,
+  setLoginEmail,
+  runAction
+}: {
+  state: WorkspaceState;
+  loginEmail: string;
+  setLoginEmail: (value: string) => void;
+  runAction: (label: string, action: () => Promise<WorkspaceState>) => Promise<void>;
+}) {
+  const sessionBlocked = state.sessionContract.status !== "authenticated";
+  const expectedSessionCookieName = "__Host-zenart_session";
+  const expectedCsrfStrategy = "same-site-origin-check";
+  const expectedCsrfHeader = "X-ZenArt-CSRF";
+  const cookieAttributes = [
+    state.sessionContract.cookie.httpOnly ? "HttpOnly" : "client-readable",
+    state.sessionContract.cookie.secure ? "Secure" : "insecure",
+    `SameSite=${state.sessionContract.cookie.sameSite}`,
+    `Path=${state.sessionContract.cookie.path}`
+  ].join(" · ");
+
+  return (
+    <section
+      className="session-contract"
+      aria-label="Auth and session status"
+      data-session-contract={`${expectedSessionCookieName}:${expectedCsrfStrategy}:${expectedCsrfHeader}`}
+    >
+      <div className="session-contract-main">
+        <ShieldCheck size={18} aria-hidden="true" />
+        <div>
+          <strong>Session {state.sessionContract.status}</strong>
+          <span>
+            Secure cookie {state.sessionContract.cookie.name} · {cookieAttributes} · CSRF {state.sessionContract.csrf.headerName}
+          </span>
+        </div>
+      </div>
+      {sessionBlocked ? (
+        <div className="inline-alert session-alert" role="alert">
+          <AlertTriangle size={16} aria-hidden="true" />
+          <span>{state.sessionContract.status === "expired" ? "Session expired. Refresh or sign in to continue." : "Signed out. Sign in to continue."}</span>
+        </div>
+      ) : null}
+      <div className="session-actions">
+        <label className="sr-only" htmlFor="login-email">Email</label>
+        <input id="login-email" type="email" value={loginEmail} onChange={(event) => setLoginEmail(event.target.value)} />
+        <button className="secondary-button compact" onClick={() => void runAction("login", () => zenArtClient.login(loginEmail))}>
+          <LogIn size={15} aria-hidden="true" />
+          Sign In
+        </button>
+        <button className="secondary-button compact" disabled={sessionBlocked} onClick={() => void runAction("session-refresh", () => zenArtClient.refreshSession())}>
+          <RefreshCcw size={15} aria-hidden="true" />
+          Refresh Session
+        </button>
+        <button className="secondary-button compact" disabled={sessionBlocked} onClick={() => void runAction("session-expire", () => zenArtClient.expireSession())}>
+          <RotateCcw size={15} aria-hidden="true" />
+          Expire
+        </button>
+        <button className="secondary-button compact" disabled={state.sessionContract.status === "signed_out"} onClick={() => void runAction("logout", () => zenArtClient.logout())}>
+          <LogOut size={15} aria-hidden="true" />
+          Log Out
+        </button>
+      </div>
+    </section>
+  );
 }
 
 function NavButton({

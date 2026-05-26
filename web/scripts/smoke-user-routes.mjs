@@ -92,7 +92,22 @@ for (const requiredSnippet of [
   "ai-content-disclaimer",
   "linkedAssetIds",
   "linkedTraceId",
-  "validation.state"
+  "validation.state",
+  "session-contract",
+  "Auth and session status",
+  "sessionContract.status",
+  "__Host-zenart_session",
+  "HttpOnly",
+  "Secure",
+  "SameSite=",
+  "X-ZenArt-CSRF",
+  "same-site-origin-check",
+  "zenArtClient.login",
+  "zenArtClient.refreshSession",
+  "zenArtClient.expireSession",
+  "zenArtClient.logout",
+  "Session expired",
+  "Signed out"
 ]) {
   if (!componentSource.includes(requiredSnippet)) {
     fail(`WorkspaceApp missing accessible state snippet ${requiredSnippet}`);

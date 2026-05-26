@@ -5,12 +5,51 @@ import {
   PackageManifest,
   QaFinding,
   ReferenceAsset,
+  SessionContract,
+  SessionUser,
   ShareLink,
   SupportTicket,
   WorkspaceState
 } from "./contracts";
 
 const now = "2026-05-26T09:00:00.000Z";
+const sessionTtlMs = 30 * 60 * 1000;
+const sessionRefreshMs = 20 * 60 * 1000;
+
+const devUser: SessionUser = {
+  id: "user-dev-001",
+  name: "Dev User",
+  email: "dev@zenart.local"
+};
+
+export const createSessionContract = (
+  user: SessionUser = devUser,
+  status: SessionContract["status"] = "authenticated",
+  issuedAt = now
+): SessionContract => {
+  const issuedTime = new Date(issuedAt).getTime();
+
+  return {
+    id: `session-${user.id}`,
+    user,
+    status,
+    issuedAt,
+    expiresAt: new Date(issuedTime + sessionTtlMs).toISOString(),
+    refreshAfter: new Date(issuedTime + sessionRefreshMs).toISOString(),
+    cookie: {
+      name: "__Host-zenart_session",
+      httpOnly: true,
+      secure: true,
+      sameSite: "lax",
+      path: "/"
+    },
+    csrf: {
+      strategy: "same-site-origin-check",
+      headerName: "X-ZenArt-CSRF",
+      sameSiteRequired: "lax-or-strict"
+    }
+  };
+};
 
 const candidates: Candidate[] = [
   {
@@ -48,11 +87,8 @@ const candidates: Candidate[] = [
 ];
 
 export const createInitialWorkspace = (): WorkspaceState => ({
-  session: {
-    id: "user-dev-001",
-    name: "Dev User",
-    email: "dev@zenart.local"
-  },
+  session: devUser,
+  sessionContract: createSessionContract(devUser),
   account: {
     brandName: "Northstar Studio",
     defaultExportFormat: "zip",

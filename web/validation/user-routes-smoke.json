@@ -31,7 +31,7 @@
       "path": "/account",
       "component": "WorkspaceApp",
       "initialView": "account",
-      "expects": ["account-settings", "default-export-format", "email-notifications"]
+      "expects": ["auth-session-flow", "secure-cookie-same-site-contract", "csrf-same-site-ux-contract", "account-settings", "default-export-format", "email-notifications"]
     },
     {
       "path": "/support",
@@ -91,7 +91,9 @@
     "selection and version controls expose pressed/current state",
     "upload and billing edge errors use role alert",
     "support route exposes privacy and AI content responsibility notices",
-    "legal routes expose active route state and visible support contact"
+    "legal routes expose active route state and visible support contact",
+    "auth/session flow exposes sign-in, refresh, expire, logout, and expired-session alerts",
+    "session contract exposes HttpOnly Secure SameSite cookie evidence and same-site CSRF header evidence"
   ],
   "analyticsCoverage": ["analytics-event-taxonomy", "client-side-ui-funnel-capture", "frontend-error-reporting"],
   "analyticsEvents": [
@@ -112,6 +114,9 @@
   ],
   "unitCoverage": [
     "auth/session state is loaded from the persisted dev workspace",
+    "auth/session flow persists login, refresh, expired-session handling, and logout states",
+    "secure cookie contract exposes __Host cookie, HttpOnly, Secure, SameSite=Lax, and Path=/ attributes",
+    "CSRF UX contract exposes same-site origin-check strategy and X-ZenArt-CSRF header evidence",
     "account settings persist through workspace reload",
     "candidate selection, workspace autosave, canvas versions, and package history survive reload",
     "reference upload validation accepts safe images/documents/HTTPS URLs and rejects unsupported inputs",

@@ -1646,7 +1646,7 @@ main 合并前必须通过：
 - [x] 初始化 `web/` Next.js TypeScript 应用。
 - [x] 配置 lint/typecheck/test/build。
 - [x] 实现 typed API client。
-- [ ] 实现 auth/session flow。
+- [x] 实现 auth/session flow。
 - [x] 实现 account settings。
 - [x] 实现 project dashboard。
 - [x] 实现 workspace shell：顶栏、左侧、画布、右侧。

@@ -6,6 +6,7 @@ import {
   createDisabledShareLink,
   createInitialWorkspace,
   createReferenceAsset,
+  createSessionContract,
   evaluatePackageQa
 } from "./dev-state";
 
@@ -32,6 +33,27 @@ describe("dev workspace contracts", () => {
     expect(shareLink.status).toBe("disabled");
     expect(shareLink.access).toBe("private");
     expect(shareLink.reason).toContain("disabled in local alpha");
+  });
+
+  it("defines secure cookie and same-site CSRF client session evidence", () => {
+    const session = createSessionContract();
+
+    expect(session).toMatchObject({
+      status: "authenticated",
+      cookie: {
+        name: "__Host-zenart_session",
+        httpOnly: true,
+        secure: true,
+        sameSite: "lax",
+        path: "/"
+      },
+      csrf: {
+        strategy: "same-site-origin-check",
+        headerName: "X-ZenArt-CSRF",
+        sameSiteRequired: "lax-or-strict"
+      }
+    });
+    expect(new Date(session.refreshAfter).getTime()).toBeLessThan(new Date(session.expiresAt).getTime());
   });
 
   it("builds visible report-problem context from accepted references and latest export", () => {
