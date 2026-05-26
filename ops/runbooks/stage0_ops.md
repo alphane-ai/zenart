@@ -151,3 +151,19 @@ LOAD_MODE=workspace_rendering scripts/load_smoke.sh
 ```
 
 Each run writes a JSON summary and NDJSON request records under `ops/evidence/load/local/`. Runtime load evidence is local smoke only until staging runs enforce the Rev2 SLO thresholds.
+
+## Staging Observability Backup Load Preflight
+
+The private beta `staging_observability_backup_load` check stays open until staging evidence exists for observability, restore, and load in one release-SHA-bound bundle. Use this preflight after the individual staging artifacts have been produced and before running the full post-deploy smoke bundle:
+
+```bash
+RELEASE_SHA=<deploy-sha> \
+OBSERVABILITY_EVIDENCE=ops/evidence/staging/<observability>.json \
+BACKUP_RESTORE_EVIDENCE=ops/evidence/staging/<backup-restore>.json \
+LOAD_EVIDENCE=ops/evidence/staging/<load>.json \
+scripts/staging_observability_backup_load_smoke.sh
+```
+
+The script requires top-level `environment=staging`, the deploy `release_sha`, and the expected `kind` on each JSON file. Observability must include request-id propagation, structured JSON logs, OpenTelemetry traces, backend/worker/crawler metrics, dashboard import, and alert routes. Restore must include Postgres restore and object restore. Load must include `chat_task`, `worker_generation`, `zip_export`, `signed_download`, `crawler_throttle`, `quota_contention`, and `workspace_rendering`.
+
+If any slot is missing or incomplete, the script exits 2 and writes a blocked report under `ops/evidence/staging-observability-backup-load/`. That blocked report is useful operational evidence, but it does not close private beta or production gates.

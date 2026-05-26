@@ -64,6 +64,7 @@ test -x scripts/playwright_smoke.sh
 test -x scripts/docker_build_smoke.sh
 test -x scripts/staging_smoke.sh
 test -x scripts/observability_smoke.sh
+test -x scripts/staging_observability_backup_load_smoke.sh
 test -x scripts/security_scan_smoke.sh
 test -x scripts/release_evidence_bundle_smoke.sh
 test -x scripts/render_no_go_release_notes.py
@@ -353,6 +354,7 @@ bash -n scripts/playwright_smoke.sh
 bash -n scripts/docker_build_smoke.sh
 bash -n scripts/staging_smoke.sh
 bash -n scripts/observability_smoke.sh
+bash -n scripts/staging_observability_backup_load_smoke.sh
 bash -n scripts/security_scan_smoke.sh
 bash -n scripts/release_evidence_bundle_smoke.sh
 ops_validate_dir="$(mktemp -d)"
@@ -360,6 +362,14 @@ DRY_RUN=1 OUT_DIR="$ops_validate_dir/playwright" scripts/playwright_smoke.sh >/d
 DRY_RUN=1 OUT_DIR="$ops_validate_dir/docker" scripts/docker_build_smoke.sh >/dev/null
 DRY_RUN=1 OUT_DIR="$ops_validate_dir/staging" scripts/staging_smoke.sh >/dev/null
 DRY_RUN=1 OUT_DIR="$ops_validate_dir/observability" scripts/observability_smoke.sh >/dev/null
+set +e
+OUT_DIR="$ops_validate_dir/staging-observability-backup-load" scripts/staging_observability_backup_load_smoke.sh >/dev/null
+staging_obl_status=$?
+set -e
+if [[ "$staging_obl_status" -ne 2 ]]; then
+  printf 'staging observability/backup/load preflight must exit 2 with missing evidence, got %s\n' "$staging_obl_status" >&2
+  exit 1
+fi
 DRY_RUN=1 OUT_DIR="$ops_validate_dir/security" scripts/security_scan_smoke.sh >/dev/null
 set +e
 DRY_RUN=1 OUT_DIR="$ops_validate_dir/release-bundle" scripts/release_evidence_bundle_smoke.sh >/dev/null
@@ -482,6 +492,122 @@ if statuses.get("backend_worker_crawler_metrics") != "open":
 open_items = report.get("open_items", [])
 if "staging_backend_worker_crawler_metrics_capture_with_release_sha_and_bounded_labels" not in open_items:
     raise SystemExit("observability smoke must keep staging metrics capture open")
+PY
+python3 - "$ops_validate_dir/staging-observability-backup-load" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+reports = sorted(Path(sys.argv[1]).glob("*.json"))
+if len(reports) != 1:
+    raise SystemExit("staging observability/backup/load preflight must write exactly one report")
+report = json.loads(reports[0].read_text(encoding="utf-8"))
+if report.get("kind") != "staging_observability_backup_load_preflight":
+    raise SystemExit(f"preflight report has wrong kind: {report}")
+if report.get("status") != "blocked":
+    raise SystemExit("preflight with missing evidence must remain blocked")
+if report.get("private_beta_check_id") != "staging_observability_backup_load":
+    raise SystemExit("preflight must map to the private beta observability/backup/load check")
+expected_slots = {
+    "observability_evidence",
+    "backup_restore_evidence",
+    "load_evidence",
+}
+if set(report.get("blocked_slots", [])) != expected_slots:
+    raise SystemExit(f"preflight missing-evidence blocked slots mismatch: {report.get('blocked_slots')}")
+checks = {check["slot"]: check for check in report.get("checks", [])}
+if set(checks) != expected_slots:
+    raise SystemExit(f"preflight checks missing required slots: {checks}")
+for slot, check in checks.items():
+    if check.get("verified") is not False:
+        raise SystemExit(f"missing {slot} must not verify")
+    if check.get("expected_environment") != "staging":
+        raise SystemExit(f"{slot} must require staging environment")
+    if check.get("semantic_checks", {}).get("local_json_file") is not False:
+        raise SystemExit(f"{slot} must fail local_json_file when missing")
+for reason in (
+    "unverified_observability_evidence:",
+    "unverified_backup_restore_evidence:",
+    "unverified_load_evidence:",
+):
+    if not any(item.startswith(reason) for item in report.get("blocking_reasons", [])):
+        raise SystemExit(f"preflight missing blocking reason prefix {reason}")
+PY
+preflight_pass_dir="$(mktemp -d)"
+preflight_sha="abcdef1234567890abcdef1234567890abcdef12"
+cat >"$preflight_pass_dir/observability.json" <<EOF
+{
+  "release_sha": "$preflight_sha",
+  "environment": "staging",
+  "kind": "observability",
+  "status": "passed",
+  "signals": [
+    {"signal_id": "request_id_propagation", "status": "passed", "evidence_ref": "ops/evidence/staging/request-id-$preflight_sha.json"},
+    {"signal_id": "structured_json_logs", "status": "passed", "log_query": "release_sha=$preflight_sha request_id:*"},
+    {"signal_id": "opentelemetry_traces", "status": "passed", "trace_id": "trace-$preflight_sha"},
+    {"signal_id": "backend_worker_crawler_metrics", "status": "passed", "metrics_query": "release_sha=$preflight_sha"},
+    {"signal_id": "dashboard_import", "status": "validated", "dashboard_uid": "stage0-$preflight_sha"},
+    {"signal_id": "alert_routes", "status": "validated", "alert_rule_url": "https://monitoring.example.invalid/$preflight_sha"}
+  ]
+}
+EOF
+cat >"$preflight_pass_dir/backup.json" <<EOF
+{
+  "release_sha": "$preflight_sha",
+  "environment": "staging",
+  "kind": "backup_restore",
+  "status": "passed",
+  "drills": [
+    {"drill_id": "postgres_restore", "status": "passed", "report_path": "ops/evidence/staging/postgres-restore-$preflight_sha.json"},
+    {"drill_id": "object_restore", "status": "validated", "report_path": "ops/evidence/staging/object-restore-$preflight_sha.json"}
+  ]
+}
+EOF
+cat >"$preflight_pass_dir/load.json" <<EOF
+{
+  "release_sha": "$preflight_sha",
+  "environment": "staging",
+  "kind": "load",
+  "status": "passed",
+  "modes": [
+    {"name": "chat_task", "status": "passed", "load_report": "ops/evidence/staging/load-chat-task-$preflight_sha.json"},
+    {"name": "worker_generation", "status": "passed", "load_report": "ops/evidence/staging/load-worker-generation-$preflight_sha.json"},
+    {"name": "zip_export", "status": "passed", "load_report": "ops/evidence/staging/load-zip-export-$preflight_sha.json"},
+    {"name": "signed_download", "status": "passed", "load_report": "ops/evidence/staging/load-signed-download-$preflight_sha.json"},
+    {"name": "crawler_throttle", "status": "passed", "load_report": "ops/evidence/staging/load-crawler-throttle-$preflight_sha.json"},
+    {"name": "quota_contention", "status": "passed", "load_report": "ops/evidence/staging/load-quota-contention-$preflight_sha.json"},
+    {"name": "workspace_rendering", "status": "passed", "load_report": "ops/evidence/staging/load-workspace-rendering-$preflight_sha.json"}
+  ]
+}
+EOF
+RELEASE_SHA="$preflight_sha" \
+  OUT_DIR="$preflight_pass_dir/out" \
+  OBSERVABILITY_EVIDENCE="$preflight_pass_dir/observability.json" \
+  BACKUP_RESTORE_EVIDENCE="$preflight_pass_dir/backup.json" \
+  LOAD_EVIDENCE="$preflight_pass_dir/load.json" \
+  scripts/staging_observability_backup_load_smoke.sh >/dev/null
+python3 - "$preflight_pass_dir/out" "$preflight_sha" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+reports = sorted(Path(sys.argv[1]).glob("*.json"))
+expected_sha = sys.argv[2]
+if len(reports) != 1:
+    raise SystemExit("passing preflight must write exactly one report")
+report = json.loads(reports[0].read_text(encoding="utf-8"))
+if report.get("status") != "passed":
+    raise SystemExit(f"synthetic complete preflight should pass: {report}")
+if report.get("release_sha") != expected_sha:
+    raise SystemExit("passing preflight must preserve release SHA")
+if report.get("blocked_slots"):
+    raise SystemExit(f"passing preflight must not have blocked slots: {report.get('blocked_slots')}")
+for check in report.get("checks", []):
+    if check.get("verified") is not True:
+        raise SystemExit(f"passing preflight must verify every check: {check}")
+    failed = [key for key, value in check.get("semantic_checks", {}).items() if value is not True]
+    if failed:
+        raise SystemExit(f"passing preflight semantic checks failed for {check.get('slot')}: {failed}")
 PY
 python3 - "$ops_validate_dir/staging" <<'PY'
 import json

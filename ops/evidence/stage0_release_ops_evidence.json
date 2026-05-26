@@ -24,6 +24,11 @@
       "runtime_status": "local backend request-id, structured JSON access log, panic request-id, and metrics endpoint contracts are validated; staging logs/metrics/traces/dashboard import/alert evaluation remain open",
       "private_beta_gate": "open until production-like observability evidence exists"
     },
+    "staging_observability_backup_load_smoke": {
+      "script": "scripts/staging_observability_backup_load_smoke.sh",
+      "runtime_status": "validates the private beta staging_observability_backup_load evidence bundle shape for observability, backup/restore, and load artifacts; default missing-evidence run remains blocked",
+      "private_beta_gate": "open until real staging evidence for request-id/logs/traces/metrics/dashboard/alerts, Postgres/object restore, and all required load modes is attached and release gate fixture blockers are cleared"
+    },
     "security_scan_smoke": {
       "script": "scripts/security_scan_smoke.sh",
       "runtime_status": "local dependency/image/secret scan wrapper; release blocking thresholds remain open",
@@ -187,6 +192,7 @@
     "DRY_RUN=1 scripts/docker_build_smoke.sh",
     "DRY_RUN=1 scripts/staging_smoke.sh",
     "DRY_RUN=1 scripts/observability_smoke.sh",
+    "scripts/staging_observability_backup_load_smoke.sh || test \"$?\" = 2",
     "DRY_RUN=1 scripts/security_scan_smoke.sh",
     "scripts/render_no_go_release_notes.py --check",
     "bash scripts/repo_validate.sh"

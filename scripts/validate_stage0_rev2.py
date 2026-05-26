@@ -5359,6 +5359,7 @@ def validate_ops_ci_and_drill_evidence() -> None:
         ROOT / "scripts" / "docker_build_smoke.sh",
         ROOT / "scripts" / "staging_smoke.sh",
         ROOT / "scripts" / "observability_smoke.sh",
+        ROOT / "scripts" / "staging_observability_backup_load_smoke.sh",
         ROOT / "scripts" / "security_scan_smoke.sh",
     ]:
         require(path.exists(), f"missing ops evidence file: {path.relative_to(ROOT)}")
@@ -5443,6 +5444,48 @@ def validate_ops_ci_and_drill_evidence() -> None:
     require(
         drill["load"].get("script_contract_status") == "validated",
         "drill plan must record validated load smoke script coverage",
+    )
+    staging_obl = drill.get("staging_observability_backup_load_preflight", {})
+    require(
+        staging_obl.get("script") == "scripts/staging_observability_backup_load_smoke.sh",
+        "drill plan must cite staging observability/backup/load preflight script",
+    )
+    require(
+        staging_obl.get("script_contract_status") == "validated_missing_evidence_blocks_by_default",
+        "staging observability/backup/load preflight must block by default without evidence",
+    )
+    require(
+        {
+            "request_id_propagation",
+            "structured_json_logs",
+            "opentelemetry_traces",
+            "backend_worker_crawler_metrics",
+            "dashboard_import",
+            "alert_routes",
+        }
+        <= set(staging_obl.get("required_observability_entries", [])),
+        "staging observability/backup/load preflight missing observability entries",
+    )
+    require(
+        {"postgres_restore", "object_restore"} <= set(staging_obl.get("required_restore_entries", [])),
+        "staging observability/backup/load preflight missing restore entries",
+    )
+    require(
+        {
+            "chat_task",
+            "worker_generation",
+            "zip_export",
+            "signed_download",
+            "crawler_throttle",
+            "quota_contention",
+            "workspace_rendering",
+        }
+        <= set(staging_obl.get("required_load_entries", [])),
+        "staging observability/backup/load preflight missing load entries",
+    )
+    require(
+        "open until the preflight passes with real staging evidence" in staging_obl.get("private_beta_gate", ""),
+        "staging observability/backup/load preflight must keep private beta gate open",
     )
     require(
         "actual temporary database restore verifies restored table count" in drill["backup_restore"]["checks"],
@@ -5608,6 +5651,7 @@ def validate_ops_ci_and_drill_evidence() -> None:
         "docker_build_smoke": "scripts/docker_build_smoke.sh",
         "staging_smoke": "scripts/staging_smoke.sh",
         "observability_smoke": "scripts/observability_smoke.sh",
+        "staging_observability_backup_load_smoke": "scripts/staging_observability_backup_load_smoke.sh",
         "security_scan_smoke": "scripts/security_scan_smoke.sh",
     }.items():
         require(key in scripts, f"release ops evidence missing {key}")

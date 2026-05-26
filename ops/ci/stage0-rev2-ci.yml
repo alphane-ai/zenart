@@ -124,11 +124,13 @@ jobs:
           bash -n scripts/docker_build_smoke.sh
           bash -n scripts/staging_smoke.sh
           bash -n scripts/observability_smoke.sh
+          bash -n scripts/staging_observability_backup_load_smoke.sh
           bash -n scripts/security_scan_smoke.sh
           DRY_RUN=1 scripts/playwright_smoke.sh
           DRY_RUN=1 scripts/docker_build_smoke.sh
           DRY_RUN=1 scripts/staging_smoke.sh
           DRY_RUN=1 scripts/observability_smoke.sh
+          scripts/staging_observability_backup_load_smoke.sh || test "$?" = 2
           DRY_RUN=1 scripts/security_scan_smoke.sh
 
       - name: Secret scan smoke

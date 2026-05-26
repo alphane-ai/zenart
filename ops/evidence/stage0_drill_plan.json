@@ -62,6 +62,38 @@
     "script": "scripts/observability_smoke.sh",
     "runtime_status": "definition only; implementation gates intentionally open"
   },
+  "staging_observability_backup_load_preflight": {
+    "script": "scripts/staging_observability_backup_load_smoke.sh",
+    "required_evidence_slots": [
+      "OBSERVABILITY_EVIDENCE",
+      "BACKUP_RESTORE_EVIDENCE",
+      "LOAD_EVIDENCE"
+    ],
+    "required_observability_entries": [
+      "request_id_propagation",
+      "structured_json_logs",
+      "opentelemetry_traces",
+      "backend_worker_crawler_metrics",
+      "dashboard_import",
+      "alert_routes"
+    ],
+    "required_restore_entries": [
+      "postgres_restore",
+      "object_restore"
+    ],
+    "required_load_entries": [
+      "chat_task",
+      "worker_generation",
+      "zip_export",
+      "signed_download",
+      "crawler_throttle",
+      "quota_contention",
+      "workspace_rendering"
+    ],
+    "script_contract_status": "validated_missing_evidence_blocks_by_default",
+    "runtime_status": "requires release-SHA-bound staging JSON evidence; default missing-evidence run exits 2 and writes blocked preflight report",
+    "private_beta_gate": "open until the preflight passes with real staging evidence and the private beta release gate fixture is updated by validator-owned evidence"
+  },
   "security_scans": {
     "script": "scripts/security_scan_smoke.sh",
     "scan_types": [
