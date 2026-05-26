@@ -55,14 +55,18 @@ type RedisConfig struct {
 }
 
 type ObjectStorageConfig struct {
-	Endpoint     string
-	Bucket       string
-	AccessKey    string
-	SecretKey    string
-	UseSSL       bool
-	LocalRoot    string
-	SigningKey   string
-	CheckTimeout time.Duration
+	Provider       string
+	Endpoint       string
+	PublicEndpoint string
+	Region         string
+	Bucket         string
+	AccessKey      string
+	SecretKey      string
+	UseSSL         bool
+	ForcePathStyle bool
+	LocalRoot      string
+	SigningKey     string
+	CheckTimeout   time.Duration
 }
 
 type AuthConfig struct {
@@ -114,14 +118,18 @@ func Load() (Config, error) {
 			CheckTimeout: durationEnv("REDIS_CHECK_TIMEOUT", 2*time.Second),
 		},
 		ObjectStorage: ObjectStorageConfig{
-			Endpoint:     env("OBJECT_STORAGE_ENDPOINT", "http://localhost:9000"),
-			Bucket:       env("OBJECT_STORAGE_BUCKET", "zenart-local"),
-			AccessKey:    env("OBJECT_STORAGE_ACCESS_KEY", "minioadmin"),
-			SecretKey:    env("OBJECT_STORAGE_SECRET_KEY", "minioadmin"),
-			UseSSL:       boolEnv("OBJECT_STORAGE_USE_SSL", false),
-			LocalRoot:    env("OBJECT_STORAGE_LOCAL_ROOT", ".local-objectstore"),
-			SigningKey:   env("OBJECT_STORAGE_SIGNING_KEY", "stage0-local-object-signing"),
-			CheckTimeout: durationEnv("OBJECT_STORAGE_CHECK_TIMEOUT", 2*time.Second),
+			Provider:       env("OBJECT_STORAGE_PROVIDER", "local"),
+			Endpoint:       env("OBJECT_STORAGE_ENDPOINT", "http://localhost:9000"),
+			PublicEndpoint: env("OBJECT_STORAGE_PUBLIC_ENDPOINT", ""),
+			Region:         env("OBJECT_STORAGE_REGION", "us-east-1"),
+			Bucket:         env("OBJECT_STORAGE_BUCKET", "zenart-local"),
+			AccessKey:      env("OBJECT_STORAGE_ACCESS_KEY", "minioadmin"),
+			SecretKey:      env("OBJECT_STORAGE_SECRET_KEY", "minioadmin"),
+			UseSSL:         boolEnv("OBJECT_STORAGE_USE_SSL", false),
+			ForcePathStyle: boolEnv("OBJECT_STORAGE_FORCE_PATH_STYLE", true),
+			LocalRoot:      env("OBJECT_STORAGE_LOCAL_ROOT", ".local-objectstore"),
+			SigningKey:     env("OBJECT_STORAGE_SIGNING_KEY", "stage0-local-object-signing"),
+			CheckTimeout:   durationEnv("OBJECT_STORAGE_CHECK_TIMEOUT", 2*time.Second),
 		},
 		Auth: AuthConfig{
 			AccessMode: env("STAGE0_ACCESS_MODE", "local"),
@@ -184,11 +192,35 @@ func (c Config) Validate() error {
 			errs = append(errs, fmt.Sprintf("CORS_ALLOWED_ORIGINS entry must be an absolute origin: %q", origin))
 		}
 	}
+	switch c.ObjectStorage.Provider {
+	case "local", "s3-compatible":
+	default:
+		errs = append(errs, `OBJECT_STORAGE_PROVIDER must be "local" or "s3-compatible"`)
+	}
 	if _, err := url.ParseRequestURI(c.ObjectStorage.Endpoint); err != nil {
 		errs = append(errs, fmt.Sprintf("OBJECT_STORAGE_ENDPOINT must be a URL: %v", err))
 	}
+	if strings.TrimSpace(c.ObjectStorage.PublicEndpoint) != "" {
+		if _, err := url.ParseRequestURI(c.ObjectStorage.PublicEndpoint); err != nil {
+			errs = append(errs, fmt.Sprintf("OBJECT_STORAGE_PUBLIC_ENDPOINT must be a URL: %v", err))
+		}
+	}
 	if strings.TrimSpace(c.ObjectStorage.Bucket) == "" {
 		errs = append(errs, "OBJECT_STORAGE_BUCKET must not be empty")
+	}
+	if c.ObjectStorage.Provider == "local" && strings.TrimSpace(c.ObjectStorage.LocalRoot) == "" {
+		errs = append(errs, "OBJECT_STORAGE_LOCAL_ROOT must not be empty for local object storage")
+	}
+	if c.ObjectStorage.Provider == "s3-compatible" {
+		if strings.TrimSpace(c.ObjectStorage.Region) == "" {
+			errs = append(errs, "OBJECT_STORAGE_REGION must not be empty for S3-compatible object storage")
+		}
+		if strings.TrimSpace(c.ObjectStorage.AccessKey) == "" {
+			errs = append(errs, "OBJECT_STORAGE_ACCESS_KEY must not be empty for S3-compatible object storage")
+		}
+		if strings.TrimSpace(c.ObjectStorage.SecretKey) == "" {
+			errs = append(errs, "OBJECT_STORAGE_SECRET_KEY must not be empty for S3-compatible object storage")
+		}
 	}
 	if c.Tasks.SchemaVersion < 1 {
 		errs = append(errs, "TASK_SCHEMA_VERSION must be >= 1")

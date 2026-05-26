@@ -1719,7 +1719,7 @@ main 合并前必须通过：
 
 - [x] 实现 object storage abstraction。
 - [x] 实现 local object storage adapter。
-- [ ] 实现 S3-compatible config。
+- [x] 实现 S3-compatible config。
 - [ ] 实现 object metadata。
 - [ ] 实现 thumbnail generation。
 - [x] 实现 signed URL。

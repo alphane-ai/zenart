@@ -44,6 +44,10 @@ func Checks(cfg config.Config) []readiness.Check {
 			Name:    "object_storage",
 			Timeout: cfg.ObjectStorage.CheckTimeout,
 			Run: func(ctx context.Context) error {
+				if cfg.ObjectStorage.Provider == "local" {
+					_, err := objectstore.NewLocalStore(cfg.ObjectStorage.LocalRoot, cfg.ObjectStorage.Bucket, cfg.ObjectStorage.SigningKey)
+					return readiness.Required("object_storage", err)
+				}
 				client := objectstore.NewHTTPProbe(http.DefaultClient, cfg.ObjectStorage)
 				return readiness.Required("object_storage", client.Check(ctx))
 			},

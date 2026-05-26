@@ -30,6 +30,9 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.ObjectStorage.Bucket != "zenart-local" {
 		t.Fatalf("ObjectStorage.Bucket = %q, want zenart-local", cfg.ObjectStorage.Bucket)
 	}
+	if cfg.ObjectStorage.Provider != "local" {
+		t.Fatalf("ObjectStorage.Provider = %q, want local", cfg.ObjectStorage.Provider)
+	}
 	if cfg.ObjectStorage.LocalRoot == "" {
 		t.Fatal("ObjectStorage.LocalRoot must have a local default")
 	}
@@ -53,6 +56,41 @@ func TestValidateRejectsInvalidObjectStorageEndpoint(t *testing.T) {
 	cfg.ObjectStorage.Endpoint = "%"
 	if err := cfg.Validate(); err == nil {
 		t.Fatal("Validate() error = nil, want invalid endpoint error")
+	}
+}
+
+func TestValidateRequiresS3CompatibleCredentials(t *testing.T) {
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+
+	cfg.ObjectStorage.Provider = "s3-compatible"
+	cfg.ObjectStorage.AccessKey = ""
+	if err := cfg.Validate(); err == nil {
+		t.Fatal("Validate() error = nil, want missing access key error")
+	}
+
+	cfg, err = Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	cfg.ObjectStorage.Provider = "s3-compatible"
+	cfg.ObjectStorage.SecretKey = ""
+	if err := cfg.Validate(); err == nil {
+		t.Fatal("Validate() error = nil, want missing secret key error")
+	}
+}
+
+func TestValidateRejectsUnknownObjectStorageProvider(t *testing.T) {
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+
+	cfg.ObjectStorage.Provider = "ftp"
+	if err := cfg.Validate(); err == nil {
+		t.Fatal("Validate() error = nil, want provider error")
 	}
 }
 

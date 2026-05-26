@@ -29,12 +29,12 @@ func RunServer(ctx context.Context, cfg config.Config, logger *slog.Logger) erro
 	}
 	defer pool.Close()
 
-	localObjects, err := objectstore.NewLocalStore(cfg.ObjectStorage.LocalRoot, cfg.ObjectStorage.Bucket, cfg.ObjectStorage.SigningKey)
+	objects, err := objectstore.NewStore(cfg.ObjectStorage, http.DefaultClient)
 	if err != nil {
 		return err
 	}
 	db := store.NewPoolAdapter(pool)
-	stage0Service := stage0.NewService(stage0.NewRepository(db), localObjects)
+	stage0Service := stage0.NewService(stage0.NewRepository(db), objects)
 	baseHandler := server.New(cfg, logger).Handler()
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reqCtx := task.ContextWithRepository(r.Context(), task.NewRepository(db))

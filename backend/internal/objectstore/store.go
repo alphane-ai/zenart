@@ -8,11 +8,14 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/alphane-ai/zenart/backend/internal/config"
 )
 
 var (
@@ -43,6 +46,17 @@ type Store interface {
 	Get(ctx context.Context, tenantID, key string) (Reader, error)
 	SignGetURL(ctx context.Context, tenantID, key string, ttl time.Duration) (string, error)
 	CleanupExpired(ctx context.Context, now time.Time) (int, error)
+}
+
+func NewStore(cfg config.ObjectStorageConfig, client *http.Client) (Store, error) {
+	switch cfg.Provider {
+	case "local":
+		return NewLocalStore(cfg.LocalRoot, cfg.Bucket, cfg.SigningKey)
+	case "s3-compatible":
+		return NewS3Store(cfg, client)
+	default:
+		return nil, fmt.Errorf("unsupported object storage provider %q", cfg.Provider)
+	}
 }
 
 type LocalStore struct {
