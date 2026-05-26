@@ -1086,6 +1086,7 @@ SCHEMA_FIXTURE_TARGETS = [
     ("qa_result.schema.json", FIXTURE_DIR / "eval" / "qa_results.json", "array_items"),
     ("qa_result_coverage.schema.json", FIXTURE_DIR / "eval" / "qa_result_coverage.json", "object"),
     ("qa_enforcement_matrix.schema.json", FIXTURE_DIR / "eval" / "qa_enforcement_matrix.json", "object"),
+    ("export_override_contract.schema.json", FIXTURE_DIR / "eval" / "export_override_contract.json", "object"),
     ("safety_rule.schema.json", FIXTURE_DIR / "eval" / "safety_rules.json", "array_items"),
     ("workflow_acceptance.schema.json", FIXTURE_DIR / "workflows", "directory_objects"),
     ("crawler_governance.schema.json", FIXTURE_DIR / "crawler" / "crawler_governance_cases.json", "array_items"),
@@ -4809,6 +4810,20 @@ def validate_qa_enforcement_matrix_contract() -> None:
     )
 
 
+def validate_export_override_contract() -> None:
+    result = subprocess.run(
+        [sys.executable, str(ROOT / "scripts" / "validate_export_override_contract.py")],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    require(
+        result.returncode == 0,
+        "export override contract validation failed: " + (result.stderr or result.stdout).strip(),
+    )
+
+
 def validate_task_schema_compatibility_contract() -> None:
     task_go = ROOT / "backend" / "internal" / "task" / "task.go"
     task_test_go = ROOT / "backend" / "internal" / "task" / "task_test.go"
@@ -5795,6 +5810,7 @@ def main() -> int:
         validate_safety_enforcement_contract,
         validate_qa_result_coverage_contract,
         validate_qa_enforcement_matrix_contract,
+        validate_export_override_contract,
         validate_task_schema_compatibility_contract,
         validate_blueprint_evidence_backfill_contracts,
         validate_launch_readiness_split_contracts,

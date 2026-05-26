@@ -719,6 +719,30 @@ paths:
                 $ref: "#/components/schemas/Export"
         default:
           $ref: "#/components/responses/Error"
+  /exports/{export_id}/override:
+    post:
+      operationId: createExportOverride
+      tags: [exports]
+      x-rbac: admin
+      x-idempotency-required: true
+      parameters:
+        - $ref: "#/components/parameters/ExportId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExportOverrideCreate"
+      responses:
+        "201":
+          description: Admin export override decision recorded with audit and gate outcome.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExportOverrideDecision"
+        default:
+          $ref: "#/components/responses/Error"
   /providers/status:
     get:
       operationId: listProviderStatus
@@ -1906,6 +1930,80 @@ components:
           type: string
           format: date-time
         updated_at:
+          type: string
+          format: date-time
+    ExportOverrideCreate:
+      type: object
+      required: [source_type, source_id, trace_id, decision, rationale]
+      properties:
+        source_type:
+          type: string
+          enum: [qa_result, safety_decision, export_contract]
+        source_id:
+          type: string
+        trace_id:
+          type: string
+        decision:
+          type: string
+          enum: [approved, denied]
+        denial_reason:
+          type: string
+          nullable: true
+          enum: [source_not_override_eligible, critical_safety_rule, incomplete_export_artifacts, missing_approval_audit]
+        rationale:
+          type: string
+          minLength: 1
+    ExportOverrideDecision:
+      type: object
+      required:
+        - id
+        - tenant_id
+        - export_id
+        - source_type
+        - source_id
+        - trace_id
+        - requested_by_role
+        - resolved_by_role
+        - outcome
+        - denial_reason
+        - source_gate_resolved
+        - final_export_allowed
+        - audit_log_id
+        - created_at
+      properties:
+        id:
+          type: string
+        tenant_id:
+          type: string
+        export_id:
+          type: string
+        source_type:
+          type: string
+          enum: [qa_result, safety_decision, export_contract]
+        source_id:
+          type: string
+        trace_id:
+          type: string
+        requested_by_role:
+          type: string
+          enum: [admin_reviewer, admin_superadmin]
+        resolved_by_role:
+          type: string
+          enum: [admin_reviewer, admin_superadmin]
+        outcome:
+          type: string
+          enum: [approved, denied]
+        denial_reason:
+          type: string
+          nullable: true
+          enum: [source_not_override_eligible, critical_safety_rule, incomplete_export_artifacts, missing_approval_audit]
+        source_gate_resolved:
+          type: boolean
+        final_export_allowed:
+          type: boolean
+        audit_log_id:
+          type: string
+        created_at:
           type: string
           format: date-time
     ExportPage:

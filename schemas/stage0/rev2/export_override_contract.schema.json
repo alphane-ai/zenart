@@ -1,0 +1,378 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zenart.local/schemas/stage0/rev2/export_override_contract.schema.json",
+  "title": "ZenArt Stage 0 Rev2 Export Override Contract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "contract_id",
+    "blueprint_source",
+    "openapi_contract",
+    "required_source_types",
+    "required_outcomes",
+    "required_denial_reasons",
+    "decisions",
+    "release_gate_policy",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "stage0.rev2"
+    },
+    "contract_id": {
+      "const": "export_override_contract_stage0_rev2"
+    },
+    "blueprint_source": {
+      "const": "Docs/stage0_blueprint_rev2.md"
+    },
+    "openapi_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "operation_id",
+        "request_schema",
+        "response_schema",
+        "rbac",
+        "idempotency_required"
+      ],
+      "properties": {
+        "path": {
+          "const": "/exports/{export_id}/override"
+        },
+        "operation_id": {
+          "const": "createExportOverride"
+        },
+        "request_schema": {
+          "const": "ExportOverrideCreate"
+        },
+        "response_schema": {
+          "const": "ExportOverrideDecision"
+        },
+        "rbac": {
+          "const": "admin"
+        },
+        "idempotency_required": {
+          "const": true
+        }
+      }
+    },
+    "required_source_types": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "qa_result",
+          "safety_decision",
+          "export_contract"
+        ]
+      }
+    },
+    "required_outcomes": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "approved",
+          "denied"
+        ]
+      }
+    },
+    "required_denial_reasons": {
+      "type": "array",
+      "minItems": 4,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "source_not_override_eligible",
+          "critical_safety_rule",
+          "incomplete_export_artifacts",
+          "missing_approval_audit"
+        ]
+      }
+    },
+    "decisions": {
+      "type": "array",
+      "minItems": 5,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "decision_id",
+          "source_type",
+          "source_id",
+          "fixture_id",
+          "workflow",
+          "trace_id",
+          "export_id",
+          "requested_by_role",
+          "resolved_by_role",
+          "source_blocks_final_export",
+          "source_override_eligible",
+          "source_severity",
+          "source_gate_before_override",
+          "approval_audit",
+          "decision",
+          "expected_export_gate_after_override"
+        ],
+        "properties": {
+          "decision_id": {
+            "type": "string",
+            "pattern": "^export_override_[a-z0-9_]+$"
+          },
+          "source_type": {
+            "enum": [
+              "qa_result",
+              "safety_decision",
+              "export_contract"
+            ]
+          },
+          "source_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "fixture_id": {
+            "type": "string",
+            "pattern": "^fx_[a-z0-9_]+$"
+          },
+          "workflow": {
+            "enum": [
+              "ecommerce_growth_pack",
+              "business_visual_doc_pack",
+              "local_merchant_campaign_pack",
+              "character_ip_concept_pack"
+            ]
+          },
+          "trace_id": {
+            "type": "string",
+            "pattern": "^trace_[a-z0-9_]+$"
+          },
+          "export_id": {
+            "type": "string",
+            "pattern": "^export_fx_[a-z0-9_]+$"
+          },
+          "requested_by_role": {
+            "$ref": "#/$defs/admin_override_role"
+          },
+          "resolved_by_role": {
+            "$ref": "#/$defs/admin_override_role"
+          },
+          "source_blocks_final_export": {
+            "type": "boolean"
+          },
+          "source_override_eligible": {
+            "type": "boolean"
+          },
+          "source_severity": {
+            "enum": [
+              "warning",
+              "blocking",
+              "critical"
+            ]
+          },
+          "source_gate_before_override": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "final_export_allowed",
+              "blocking_source_ids",
+              "safety_blocks_export",
+              "export_artifacts_complete",
+              "override_requires_audit"
+            ],
+            "properties": {
+              "final_export_allowed": {
+                "const": false
+              },
+              "blocking_source_ids": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "safety_blocks_export": {
+                "type": "boolean"
+              },
+              "export_artifacts_complete": {
+                "type": "boolean"
+              },
+              "override_requires_audit": {
+                "const": true
+              }
+            }
+          },
+          "approval_audit": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "decision_audit_log_id",
+              "approval_audit_log_id",
+              "rationale",
+              "trace_linked",
+              "export_linked",
+              "approval_audit_complete"
+            ],
+            "properties": {
+              "decision_audit_log_id": {
+                "type": "string",
+                "pattern": "^audit_[a-z0-9_]+$"
+              },
+              "approval_audit_log_id": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "pattern": "^audit_[a-z0-9_]+$"
+              },
+              "rationale": {
+                "type": "string"
+              },
+              "trace_linked": {
+                "const": true
+              },
+              "export_linked": {
+                "const": true
+              },
+              "approval_audit_complete": {
+                "type": "boolean"
+              }
+            }
+          },
+          "decision": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "outcome",
+              "denial_reason",
+              "source_gate_resolved"
+            ],
+            "properties": {
+              "outcome": {
+                "enum": [
+                  "approved",
+                  "denied"
+                ]
+              },
+              "denial_reason": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "enum": [
+                  "source_not_override_eligible",
+                  "critical_safety_rule",
+                  "incomplete_export_artifacts",
+                  "missing_approval_audit",
+                  null
+                ]
+              },
+              "source_gate_resolved": {
+                "type": "boolean"
+              }
+            }
+          },
+          "expected_export_gate_after_override": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "final_export_allowed",
+              "source_block_cleared",
+              "remaining_blocking_source_ids",
+              "remaining_gate_reasons"
+            ],
+            "properties": {
+              "final_export_allowed": {
+                "type": "boolean"
+              },
+              "source_block_cleared": {
+                "type": "boolean"
+              },
+              "remaining_blocking_source_ids": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "remaining_gate_reasons": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {
+                  "enum": [
+                    "unresolved_qa_coverage",
+                    "non_overrideable_qa_block",
+                    "critical_safety_block",
+                    "incomplete_export_artifacts",
+                    "missing_approval_audit"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "release_gate_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "blocking_export_may_open_only_with_eligible_audited_override",
+        "critical_safety_blocks_have_no_override_path",
+        "missing_manifest_or_trace_provenance_has_no_override_path",
+        "override_decisions_are_admin_only"
+      ],
+      "properties": {
+        "blocking_export_may_open_only_with_eligible_audited_override": {
+          "const": true
+        },
+        "critical_safety_blocks_have_no_override_path": {
+          "const": true
+        },
+        "missing_manifest_or_trace_provenance_has_no_override_path": {
+          "const": true
+        },
+        "override_decisions_are_admin_only": {
+          "const": true
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "blueprint_sections",
+        "created_by_lane"
+      ],
+      "properties": {
+        "blueprint_sections": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "created_by_lane": {
+          "const": "lane2"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "admin_override_role": {
+      "enum": [
+        "admin_reviewer",
+        "admin_superadmin"
+      ]
+    }
+  }
+}

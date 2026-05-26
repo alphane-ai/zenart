@@ -1,0 +1,286 @@
+{
+  "schema_version": "stage0.rev2",
+  "contract_id": "export_override_contract_stage0_rev2",
+  "blueprint_source": "Docs/stage0_blueprint_rev2.md",
+  "openapi_contract": {
+    "path": "/exports/{export_id}/override",
+    "operation_id": "createExportOverride",
+    "request_schema": "ExportOverrideCreate",
+    "response_schema": "ExportOverrideDecision",
+    "rbac": "admin",
+    "idempotency_required": true
+  },
+  "required_source_types": [
+    "qa_result",
+    "safety_decision",
+    "export_contract"
+  ],
+  "required_outcomes": [
+    "approved",
+    "denied"
+  ],
+  "required_denial_reasons": [
+    "source_not_override_eligible",
+    "critical_safety_rule",
+    "incomplete_export_artifacts",
+    "missing_approval_audit"
+  ],
+  "decisions": [
+    {
+      "decision_id": "export_override_qa_dimensions_approved",
+      "source_type": "qa_result",
+      "source_id": "qa_dimensions_platform_target",
+      "fixture_id": "fx_local_merchant_campaign_golden",
+      "workflow": "local_merchant_campaign_pack",
+      "trace_id": "trace_fx_local_merchant_campaign_golden_dimensions",
+      "export_id": "export_fx_local_merchant_campaign_golden",
+      "requested_by_role": "admin_reviewer",
+      "resolved_by_role": "admin_superadmin",
+      "source_blocks_final_export": true,
+      "source_override_eligible": true,
+      "source_severity": "blocking",
+      "source_gate_before_override": {
+        "final_export_allowed": false,
+        "blocking_source_ids": [
+          "qa_dimensions_platform_target"
+        ],
+        "safety_blocks_export": false,
+        "export_artifacts_complete": true,
+        "override_requires_audit": true
+      },
+      "approval_audit": {
+        "decision_audit_log_id": "audit_export_override_qa_dimensions_requested",
+        "approval_audit_log_id": "audit_export_override_qa_dimensions_approved",
+        "rationale": "Reviewer verified the platform target was intentionally switched to landscape and attached corrected package notes.",
+        "trace_linked": true,
+        "export_linked": true,
+        "approval_audit_complete": true
+      },
+      "decision": {
+        "outcome": "approved",
+        "denial_reason": null,
+        "source_gate_resolved": true
+      },
+      "expected_export_gate_after_override": {
+        "final_export_allowed": false,
+        "source_block_cleared": true,
+        "remaining_blocking_source_ids": [],
+        "remaining_gate_reasons": [
+          "unresolved_qa_coverage"
+        ]
+      }
+    },
+    {
+      "decision_id": "export_override_qa_duplicate_denied_audit",
+      "source_type": "qa_result",
+      "source_id": "qa_duplicate_candidate_similarity",
+      "fixture_id": "fx_negative_generic_rendering",
+      "workflow": "local_merchant_campaign_pack",
+      "trace_id": "trace_fx_negative_generic_rendering_similarity",
+      "export_id": "export_fx_negative_generic_rendering",
+      "requested_by_role": "admin_reviewer",
+      "resolved_by_role": "admin_reviewer",
+      "source_blocks_final_export": true,
+      "source_override_eligible": true,
+      "source_severity": "blocking",
+      "source_gate_before_override": {
+        "final_export_allowed": false,
+        "blocking_source_ids": [
+          "qa_duplicate_candidate_similarity",
+          "qa_four_option_distinctness"
+        ],
+        "safety_blocks_export": false,
+        "export_artifacts_complete": true,
+        "override_requires_audit": true
+      },
+      "approval_audit": {
+        "decision_audit_log_id": "audit_export_override_duplicate_requested",
+        "approval_audit_log_id": null,
+        "rationale": "",
+        "trace_linked": true,
+        "export_linked": true,
+        "approval_audit_complete": false
+      },
+      "decision": {
+        "outcome": "denied",
+        "denial_reason": "missing_approval_audit",
+        "source_gate_resolved": false
+      },
+      "expected_export_gate_after_override": {
+        "final_export_allowed": false,
+        "source_block_cleared": false,
+        "remaining_blocking_source_ids": [
+          "qa_duplicate_candidate_similarity",
+          "qa_four_option_distinctness"
+        ],
+        "remaining_gate_reasons": [
+          "missing_approval_audit",
+          "unresolved_qa_coverage"
+        ]
+      }
+    },
+    {
+      "decision_id": "export_override_qa_integrity_denied",
+      "source_type": "qa_result",
+      "source_id": "qa_file_integrity_checksum",
+      "fixture_id": "fx_brand_product_preservation",
+      "workflow": "ecommerce_growth_pack",
+      "trace_id": "trace_fx_brand_product_preservation_integrity",
+      "export_id": "export_fx_brand_product_preservation",
+      "requested_by_role": "admin_reviewer",
+      "resolved_by_role": "admin_superadmin",
+      "source_blocks_final_export": true,
+      "source_override_eligible": false,
+      "source_severity": "blocking",
+      "source_gate_before_override": {
+        "final_export_allowed": false,
+        "blocking_source_ids": [
+          "qa_file_integrity_checksum",
+          "qa_ecommerce_duplicate_candidate_similarity",
+          "qa_ecommerce_four_option_distinctness",
+          "qa_product_logo_preservation"
+        ],
+        "safety_blocks_export": false,
+        "export_artifacts_complete": true,
+        "override_requires_audit": true
+      },
+      "approval_audit": {
+        "decision_audit_log_id": "audit_export_override_integrity_requested",
+        "approval_audit_log_id": "audit_export_override_integrity_denied",
+        "rationale": "Corrupt or unverified files must be regenerated; file integrity blocks are not override eligible.",
+        "trace_linked": true,
+        "export_linked": true,
+        "approval_audit_complete": true
+      },
+      "decision": {
+        "outcome": "denied",
+        "denial_reason": "source_not_override_eligible",
+        "source_gate_resolved": false
+      },
+      "expected_export_gate_after_override": {
+        "final_export_allowed": false,
+        "source_block_cleared": false,
+        "remaining_blocking_source_ids": [
+          "qa_file_integrity_checksum",
+          "qa_ecommerce_duplicate_candidate_similarity",
+          "qa_ecommerce_four_option_distinctness",
+          "qa_product_logo_preservation"
+        ],
+        "remaining_gate_reasons": [
+          "non_overrideable_qa_block",
+          "unresolved_qa_coverage"
+        ]
+      }
+    },
+    {
+      "decision_id": "export_override_safety_critical_denied",
+      "source_type": "safety_decision",
+      "source_id": "safety_financial_guaranteed_returns",
+      "fixture_id": "fx_unsafe_financial_claim",
+      "workflow": "business_visual_doc_pack",
+      "trace_id": "trace_fx_unsafe_financial_claim",
+      "export_id": "export_fx_unsafe_financial_claim",
+      "requested_by_role": "admin_reviewer",
+      "resolved_by_role": "admin_superadmin",
+      "source_blocks_final_export": true,
+      "source_override_eligible": false,
+      "source_severity": "critical",
+      "source_gate_before_override": {
+        "final_export_allowed": false,
+        "blocking_source_ids": [
+          "safety_financial_guaranteed_returns",
+          "qa_forbidden_claims"
+        ],
+        "safety_blocks_export": true,
+        "export_artifacts_complete": false,
+        "override_requires_audit": true
+      },
+      "approval_audit": {
+        "decision_audit_log_id": "audit_export_override_financial_safety_requested",
+        "approval_audit_log_id": "audit_export_override_financial_safety_denied",
+        "rationale": "Critical financial guarantee claims are prohibited and have no export override path.",
+        "trace_linked": true,
+        "export_linked": true,
+        "approval_audit_complete": true
+      },
+      "decision": {
+        "outcome": "denied",
+        "denial_reason": "critical_safety_rule",
+        "source_gate_resolved": false
+      },
+      "expected_export_gate_after_override": {
+        "final_export_allowed": false,
+        "source_block_cleared": false,
+        "remaining_blocking_source_ids": [
+          "safety_financial_guaranteed_returns",
+          "qa_forbidden_claims"
+        ],
+        "remaining_gate_reasons": [
+          "critical_safety_block",
+          "incomplete_export_artifacts",
+          "non_overrideable_qa_block"
+        ]
+      }
+    },
+    {
+      "decision_id": "export_override_missing_manifest_denied",
+      "source_type": "export_contract",
+      "source_id": "qa_export_completeness",
+      "fixture_id": "fx_export_completeness_missing_manifest",
+      "workflow": "character_ip_concept_pack",
+      "trace_id": "trace_fx_export_completeness_missing_manifest",
+      "export_id": "export_fx_export_completeness_missing_manifest",
+      "requested_by_role": "admin_reviewer",
+      "resolved_by_role": "admin_superadmin",
+      "source_blocks_final_export": true,
+      "source_override_eligible": false,
+      "source_severity": "blocking",
+      "source_gate_before_override": {
+        "final_export_allowed": false,
+        "blocking_source_ids": [
+          "qa_export_completeness"
+        ],
+        "safety_blocks_export": false,
+        "export_artifacts_complete": false,
+        "override_requires_audit": true
+      },
+      "approval_audit": {
+        "decision_audit_log_id": "audit_export_override_manifest_requested",
+        "approval_audit_log_id": "audit_export_override_manifest_denied",
+        "rationale": "Export packages without manifest, metadata, QA report, or trace provenance must be rebuilt.",
+        "trace_linked": true,
+        "export_linked": true,
+        "approval_audit_complete": true
+      },
+      "decision": {
+        "outcome": "denied",
+        "denial_reason": "incomplete_export_artifacts",
+        "source_gate_resolved": false
+      },
+      "expected_export_gate_after_override": {
+        "final_export_allowed": false,
+        "source_block_cleared": false,
+        "remaining_blocking_source_ids": [
+          "qa_export_completeness"
+        ],
+        "remaining_gate_reasons": [
+          "incomplete_export_artifacts"
+        ]
+      }
+    }
+  ],
+  "release_gate_policy": {
+    "blocking_export_may_open_only_with_eligible_audited_override": true,
+    "critical_safety_blocks_have_no_override_path": true,
+    "missing_manifest_or_trace_provenance_has_no_override_path": true,
+    "override_decisions_are_admin_only": true
+  },
+  "provenance": {
+    "blueprint_sections": [
+      "15.1",
+      "15.3",
+      "24"
+    ],
+    "created_by_lane": "lane2"
+  }
+}
