@@ -338,9 +338,15 @@ test("admin routes surface governance evidence", () => {
   assert.match(crawlerPage, /Crawler Source Approval/);
   assert.match(crawlerPage, /Robots Evidence/);
   assert.match(crawlerPage, /Exact-text Policy/);
+  assert.match(crawlerPage, /Requester/);
+  assert.match(crawlerPage, /Source Contact/);
   assert.match(crawlerPage, /Derivative Use/);
   assert.match(crawlerPage, /Retention Action/);
   assert.match(crawlerPage, /Activation/);
+  assert.match(crawlerPage, /Linked Review/);
+  assert.match(crawlerPage, /Fixture Case/);
+  assert.match(crawlerPage, /Operator Next Action/);
+  assert.match(crawlerPage, /Closure Criteria/);
   assert.match(crawlerPage, /Review Rationale/);
   assert.match(crawlerPage, /Audit Ref/);
 

@@ -154,6 +154,9 @@ export type CrawlerGovernanceWorkflow = {
   derivativeUseStatus: "allowed" | "restricted" | "unknown" | "blocked";
   rawRetentionAction: "retain_with_limit" | "delete_raw" | "delete_raw_and_derivatives";
   linkedReview: string;
+  fixtureCaseId: string;
+  operatorNextAction: string;
+  closureCriteria: string;
   requiredEvidenceRefs: string[];
   blockedActivation: boolean;
   reviewerRole: "admin_operator" | "admin_reviewer" | "admin_superadmin";

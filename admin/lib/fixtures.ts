@@ -733,6 +733,11 @@ export const crawlerGovernanceWorkflows: CrawlerGovernanceWorkflow[] = [
     derivativeUseStatus: "blocked",
     rawRetentionAction: "delete_raw_and_derivatives",
     linkedReview: "rv-crawler-118",
+    fixtureCaseId: "crawler_disallowed_source",
+    operatorNextAction:
+      "Keep source cs-21 blocked, confirm the IP complaint owner, delete raw and derivative material, and keep any linked prompt or skill activation paused.",
+    closureCriteria:
+      "Close only after the takedown requester is notified, deletion evidence is attached, activation stays blocked, and audit au-012 remains immutable.",
     requiredEvidenceRefs: ["cf-118", "crawler-source cs-21", "ip-7001", "au-012"],
     blockedActivation: true,
     reviewerRole: "admin_reviewer",
@@ -750,6 +755,11 @@ export const crawlerGovernanceWorkflows: CrawlerGovernanceWorkflow[] = [
     derivativeUseStatus: "allowed",
     rawRetentionAction: "retain_with_limit",
     linkedReview: "rv-crawler-122",
+    fixtureCaseId: "crawler_approved_local_test_source",
+    operatorNextAction:
+      "Allow derivative summaries only for the approved fixture source, retain raw material within the review window, and keep provenance links visible.",
+    closureCriteria:
+      "Close after reviewer confirms robots evidence, derivative-use allowance, retention limit, active provenance references, and audit au-013 remain attached.",
     requiredEvidenceRefs: ["cf-122", "crawler-governance/crawler_approved_local_test_source", "au-013"],
     blockedActivation: false,
     reviewerRole: "admin_reviewer",
@@ -767,6 +777,11 @@ export const crawlerGovernanceWorkflows: CrawlerGovernanceWorkflow[] = [
     derivativeUseStatus: "unknown",
     rawRetentionAction: "delete_raw",
     linkedReview: "rv-crawler-104",
+    fixtureCaseId: "crawler_pending_review_import",
+    operatorNextAction:
+      "Keep the import held, delete raw material at expiry, request source contact evidence, and prevent crawler-derived prompt activation.",
+    closureCriteria:
+      "Close only after source contact, robots evidence, derivative-use status, and retention deletion proof are reviewed and audit au-014 is attached.",
     requiredEvidenceRefs: ["cf-104", "crawler-source cs-18", "au-014"],
     blockedActivation: true,
     reviewerRole: "admin_operator",
