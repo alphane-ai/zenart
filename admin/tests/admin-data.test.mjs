@@ -236,6 +236,50 @@ test("admin fixtures cover RBAC evidence for governed override surfaces", () => 
   }
 });
 
+test("admin action pages show scoped RBAC evidence at decision points", () => {
+  const pages = [
+    {
+      path: "../app/skills/releases/page.tsx",
+      heading: "Skill Release RBAC Evidence",
+      surface: "skill_release"
+    },
+    {
+      path: "../app/crawler/page.tsx",
+      heading: "Crawler Import RBAC Evidence",
+      surface: "crawler_import"
+    },
+    {
+      path: "../app/prompt-fragments/page.tsx",
+      heading: "Prompt Approval RBAC Evidence",
+      surface: "prompt_approval"
+    },
+    {
+      path: "../app/providers/page.tsx",
+      heading: "Provider Routing RBAC Evidence",
+      surface: "provider_routing"
+    }
+  ];
+
+  for (const page of pages) {
+    const source = readFileSync(new URL(page.path, import.meta.url), "utf8");
+
+    for (const token of [
+      "getAdminRbacEvidence",
+      page.heading,
+      page.surface,
+      "Required Role",
+      "Attempted Role",
+      "Decision",
+      "Second Review",
+      "Evidence Refs",
+      "Audit Ref",
+      "Rationale"
+    ]) {
+      assert.match(source, new RegExp(token));
+    }
+  }
+});
+
 test("admin fixtures cover operations gate evidence", () => {
   for (const token of [
     "customerImpact",

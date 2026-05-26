@@ -1,15 +1,17 @@
 import { DataTable } from "@/components/DataTable";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
-import { getCrawlerFindings, getCrawlerGovernanceWorkflows, getCrawlerSourceApprovals } from "@/lib/admin-api";
-import type { CrawlerFinding, CrawlerGovernanceWorkflow, CrawlerSourceApproval } from "@/lib/types";
+import { getAdminRbacEvidence, getCrawlerFindings, getCrawlerGovernanceWorkflows, getCrawlerSourceApprovals } from "@/lib/admin-api";
+import type { AdminRbacEvidence, CrawlerFinding, CrawlerGovernanceWorkflow, CrawlerSourceApproval } from "@/lib/types";
 
 export default async function CrawlerReviewPage() {
-  const [findings, sourceApprovals, governanceWorkflows] = await Promise.all([
+  const [findings, sourceApprovals, governanceWorkflows, rbacEvidence] = await Promise.all([
     getCrawlerFindings(),
     getCrawlerSourceApprovals(),
-    getCrawlerGovernanceWorkflows()
+    getCrawlerGovernanceWorkflows(),
+    getAdminRbacEvidence()
   ]);
+  const crawlerRbacEvidence = rbacEvidence.filter((item) => item.surface === "crawler_import");
 
   return (
     <>
@@ -33,6 +35,27 @@ export default async function CrawlerReviewPage() {
             { key: "status", header: "Status", render: (row) => <StatusBadge value={row.status} /> },
             { key: "provenance", header: "Provenance", render: (row) => row.provenance },
             { key: "risk", header: "Risk Labels", render: (row) => row.riskLabels.join(", ") }
+          ]}
+        />
+      </section>
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>Crawler Import RBAC Evidence</h3>
+            <p>Crawler import, source activation, takedown, and derivative-use changes must keep RBAC evidence visible beside review workflow evidence.</p>
+          </div>
+        </div>
+        <DataTable<AdminRbacEvidence>
+          rows={crawlerRbacEvidence}
+          columns={[
+            { key: "target", header: "Target", render: (row) => <span className="mono">{row.target}</span> },
+            { key: "required", header: "Required Role", render: (row) => row.requiredRole },
+            { key: "attempted", header: "Attempted Role", render: (row) => row.attemptedRole },
+            { key: "decision", header: "Decision", render: (row) => <StatusBadge value={row.decision} label={row.decision} /> },
+            { key: "second-review", header: "Second Review", render: (row) => <StatusBadge value={row.secondReviewStatus} label={row.secondReviewStatus} /> },
+            { key: "evidence", header: "Evidence Refs", render: (row) => row.evidenceRefs.join(", ") },
+            { key: "audit", header: "Audit Ref", render: (row) => <span className="mono">{row.auditRef}</span> },
+            { key: "rationale", header: "Rationale", render: (row) => row.rationale }
           ]}
         />
       </section>

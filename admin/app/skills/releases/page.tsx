@@ -1,15 +1,17 @@
 import { DataTable } from "@/components/DataTable";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
-import { getAdminReviewDecisions, getReleaseEvidence, getSkillVersions } from "@/lib/admin-api";
-import type { AdminReviewDecision, ReleaseEvidence, SkillVersion } from "@/lib/types";
+import { getAdminRbacEvidence, getAdminReviewDecisions, getReleaseEvidence, getSkillVersions } from "@/lib/admin-api";
+import type { AdminRbacEvidence, AdminReviewDecision, ReleaseEvidence, SkillVersion } from "@/lib/types";
 
 export default async function SkillReleasesPage() {
-  const [versions, reviews, evidence] = await Promise.all([
+  const [versions, reviews, evidence, rbacEvidence] = await Promise.all([
     getSkillVersions(),
     getAdminReviewDecisions(),
-    getReleaseEvidence()
+    getReleaseEvidence(),
+    getAdminRbacEvidence()
   ]);
+  const releaseRbacEvidence = rbacEvidence.filter((item) => item.surface === "skill_release");
 
   return (
     <>
@@ -49,6 +51,28 @@ export default async function SkillReleasesPage() {
             { key: "rollback-target", header: "Rollback Target", render: (row) => <span className="mono">{row.rollbackTarget}</span> },
             { key: "rollback-audit", header: "Rollback Audit", render: (row) => <span className="mono">{row.rollbackAuditRef}</span> },
             { key: "rollback", header: "Rollback Plan", render: (row) => row.rollbackPlan }
+          ]}
+        />
+      </section>
+
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>Skill Release RBAC Evidence</h3>
+            <p>Release and canary actions must expose attempted role, required role, second-review state, immutable audit ref, and release evidence refs.</p>
+          </div>
+        </div>
+        <DataTable<AdminRbacEvidence>
+          rows={releaseRbacEvidence}
+          columns={[
+            { key: "target", header: "Target", render: (row) => <span className="mono">{row.target}</span> },
+            { key: "required", header: "Required Role", render: (row) => row.requiredRole },
+            { key: "attempted", header: "Attempted Role", render: (row) => row.attemptedRole },
+            { key: "decision", header: "Decision", render: (row) => <StatusBadge value={row.decision} label={row.decision} /> },
+            { key: "second-review", header: "Second Review", render: (row) => <StatusBadge value={row.secondReviewStatus} label={row.secondReviewStatus} /> },
+            { key: "evidence", header: "Evidence Refs", render: (row) => row.evidenceRefs.join(", ") },
+            { key: "audit", header: "Audit Ref", render: (row) => <span className="mono">{row.auditRef}</span> },
+            { key: "rationale", header: "Rationale", render: (row) => row.rationale }
           ]}
         />
       </section>
