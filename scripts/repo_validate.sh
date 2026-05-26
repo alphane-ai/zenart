@@ -449,6 +449,18 @@ for slot, evidence in release_evidence.get("local_evidence_verification", {}).it
             raise SystemExit(f"{slot} semantic checks failed in complete-evidence dry-run: {failed}")
 if release_evidence["local_evidence_verification"]["observability_evidence"].get("observability_contract", {}).get("verified") is not True:
     raise SystemExit("complete-evidence staging smoke dry-run must verify observability signal contract")
+observability_refs = release_evidence["local_evidence_verification"]["observability_evidence"]["observability_contract"].get("evidence_refs", {})
+if sorted(observability_refs) != [
+    "alert_routes",
+    "backend_worker_crawler_metrics",
+    "dashboard_import",
+    "opentelemetry_traces",
+    "request_id_propagation",
+    "structured_json_logs",
+]:
+    raise SystemExit(f"complete-evidence staging smoke must expose observability evidence refs: {observability_refs}")
+if not all(observability_refs[key] for key in observability_refs):
+    raise SystemExit(f"complete-evidence staging smoke must expose non-empty observability refs: {observability_refs}")
 if release_evidence["local_evidence_verification"]["backup_restore_evidence"].get("backup_restore_contract", {}).get("verified") is not True:
     raise SystemExit("complete-evidence staging smoke dry-run must verify backup/restore drill contract")
 if release_evidence["local_evidence_verification"]["load_evidence"].get("load_contract", {}).get("verified") is not True:
@@ -457,6 +469,23 @@ if release_evidence["local_evidence_verification"]["rollback_evidence"].get("rol
     raise SystemExit("complete-evidence staging smoke dry-run must verify rollback contract")
 if release_evidence["local_evidence_verification"]["security_scan_evidence"].get("security_scan_contract", {}).get("verified") is not True:
     raise SystemExit("complete-evidence staging smoke dry-run must verify security scan contract")
+for contract_name, expected_keys in {
+    "backup_restore_contract": {"postgres_restore", "object_restore"},
+    "load_contract": {"chat_task", "worker_generation", "zip_export", "signed_download", "crawler_throttle", "quota_contention", "workspace_rendering"},
+    "rollback_contract": {"image_rollback", "feature_flag_rollback", "migration_compatibility", "worker_drain", "post_rollback_smoke"},
+    "security_scan_contract": {"dependency_scan", "image_scan", "secret_scan"},
+}.items():
+    owner_slot = {
+        "backup_restore_contract": "backup_restore_evidence",
+        "load_contract": "load_evidence",
+        "rollback_contract": "rollback_evidence",
+        "security_scan_contract": "security_scan_evidence",
+    }[contract_name]
+    refs = release_evidence["local_evidence_verification"][owner_slot][contract_name].get("evidence_refs", {})
+    if set(refs) != expected_keys:
+        raise SystemExit(f"{contract_name} must expose evidence refs for every required entry: {refs}")
+    if not all(refs[key] for key in refs):
+        raise SystemExit(f"{contract_name} evidence refs must be non-empty: {refs}")
 if go_no_go.get("release_evidence_complete") is not True:
     raise SystemExit("complete-evidence staging smoke dry-run must expose release_evidence_complete=true")
 if go_no_go.get("gate_fixtures_clear") is not False:

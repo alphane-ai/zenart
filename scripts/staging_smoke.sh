@@ -230,41 +230,71 @@ def entry_passed(entry, accepted_statuses):
     return any(value in accepted for value in status_values)
 
 
-def entry_has_evidence_ref(entry):
+EVIDENCE_REF_KEYS = {
+    "evidence_ref",
+    "evidence_refs",
+    "report_path",
+    "report_paths",
+    "source_report",
+    "source_reports",
+    "query_ref",
+    "dashboard_url",
+    "dashboard_uid",
+    "alert_rule_url",
+    "trace_id",
+    "log_query",
+    "metrics_query",
+    "artifact_path",
+    "artifact_paths",
+    "run_url",
+    "run_urls",
+    "scan_report",
+    "scan_reports",
+    "smoke_report",
+    "load_report",
+    "rollback_report",
+}
+
+
+def classify_evidence_ref(ref):
+    value = str(ref).strip()
+    if not value:
+        return {"ref": value, "kind": "empty", "exists": False}
+    if is_url(value):
+        return {"ref": value, "kind": "url", "exists": None}
+    local_path = resolve_local_path(value)
+    if local_path is not None:
+        return {
+            "ref": value,
+            "kind": "local_file" if local_path.exists() else "artifact_pointer",
+            "path": str(local_path),
+            "exists": local_path.exists(),
+        }
+    return {"ref": value, "kind": "artifact_pointer", "exists": None}
+
+
+def collect_evidence_refs(entry):
+    refs = []
     if not isinstance(entry, dict):
-        return False
-    evidence_keys = {
-        "evidence_ref",
-        "evidence_refs",
-        "report_path",
-        "report_paths",
-        "source_report",
-        "source_reports",
-        "query_ref",
-        "dashboard_url",
-        "dashboard_uid",
-        "alert_rule_url",
-        "trace_id",
-        "log_query",
-        "metrics_query",
-        "artifact_path",
-        "artifact_paths",
-        "run_url",
-        "run_urls",
-        "scan_report",
-        "scan_reports",
-        "smoke_report",
-        "load_report",
-        "rollback_report",
-    }
+        return refs
     for key, value in entry.items():
-        if key in evidence_keys and value:
-            return True
-        if isinstance(value, dict) and entry_has_evidence_ref(value):
-            return True
-        if isinstance(value, list) and any(entry_has_evidence_ref(item) for item in value if isinstance(item, dict)):
-            return True
-    return False
+        if key in EVIDENCE_REF_KEYS:
+            values = value if isinstance(value, list) else [value]
+            for item in values:
+                if isinstance(item, str) and item.strip():
+                    classified = classify_evidence_ref(item)
+                    classified["field"] = key
+                    refs.append(classified)
+        if isinstance(value, dict):
+            refs.extend(collect_evidence_refs(value))
+        elif isinstance(value, list):
+            for item in value:
+                refs.extend(collect_evidence_refs(item))
+    return refs
+
+
+def entry_has_evidence_ref(entry):
+    return bool(collect_evidence_refs(entry))
 
 
 def validate_named_contract(parsed, required_aliases, accepted_statuses):
@@ -275,6 +305,7 @@ def validate_named_contract(parsed, required_aliases, accepted_statuses):
         "missing": [],
         "not_passed": [],
         "missing_evidence_ref": [],
+        "evidence_refs": {},
         "verified": False,
     }
     for requirement, aliases in required_aliases.items():
@@ -284,8 +315,13 @@ def validate_named_contract(parsed, required_aliases, accepted_statuses):
             continue
         if not entry_passed(entry, accepted_statuses):
             result["not_passed"].append(requirement)
-        if not entry_has_evidence_ref(entry):
+        refs = collect_evidence_refs(entry)
+        result["evidence_refs"][requirement] = refs
+        if not refs:
             result["missing_evidence_ref"].append(requirement)
+    result["evidence_ref_counts"] = {
+        key: len(value) for key, value in result["evidence_refs"].items()
+    }
     result["verified"] = not result["missing"] and not result["not_passed"] and not result["missing_evidence_ref"]
     return result
 
