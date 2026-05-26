@@ -1710,7 +1710,7 @@ main 合并前必须通过：
 - [x] 实现 quota commit/refund。
 - [x] 实现 quota retry/idempotency。
 - [x] 实现 admin quota credit/debit。
-- [ ] 实现 provider usage reconciliation。
+- [x] 实现 provider usage reconciliation。
 - [x] 实现 daily spend cap。
 - [x] 实现 emergency kill switch。
 - [x] 添加 quota transaction/concurrency tests。

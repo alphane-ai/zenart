@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -192,9 +193,123 @@ func TestResetWeeklyQuota(t *testing.T) {
 	}
 }
 
+func TestRecordProviderUsagePersistsLog(t *testing.T) {
+	db := &fakeDB{}
+	repo := NewQuotaRepository(db)
+	err := repo.RecordProviderUsage(context.Background(), ProviderUsageLog{
+		ID:              "usage_1",
+		TenantID:        "tenant_1",
+		UserID:          "user_1",
+		ProjectID:       "project_1",
+		TaskID:          "task_1",
+		ProviderID:      "dev",
+		ModelID:         "dev-echo-v1",
+		EndpointVersion: "v1",
+		RequestHash:     "hash_1",
+		UsageUnits:      12,
+		CostCents:       34,
+		Metadata:        map[string]any{"trace_id": "trace_1"},
+		CreatedAt:       time.Date(2026, 5, 26, 12, 0, 0, 0, time.UTC),
+	})
+	if err != nil {
+		t.Fatalf("RecordProviderUsage() error = %v", err)
+	}
+	if db.execs != 1 {
+		t.Fatalf("execs = %d, want 1", db.execs)
+	}
+	if !strings.Contains(db.execSQL[0], "INSERT INTO provider_usage_logs") {
+		t.Fatalf("provider usage insert SQL = %s", db.execSQL[0])
+	}
+	if db.execArgs[0][11] != "recorded" {
+		t.Fatalf("status arg = %#v, want recorded", db.execArgs[0][11])
+	}
+}
+
+func TestRecordProviderUsageValidatesIdentityAndUnits(t *testing.T) {
+	repo := NewQuotaRepository(&fakeDB{})
+	if err := repo.RecordProviderUsage(context.Background(), ProviderUsageLog{UsageUnits: -1}); err == nil {
+		t.Fatal("RecordProviderUsage() error = nil, want validation error")
+	}
+}
+
+func TestReconcileProviderUsageDebitsQuotaForUnderAccountedActualUsage(t *testing.T) {
+	db := &fakeDB{
+		rowsAffected: []int64{1, 1, 2},
+		queryRows: []fakeQueryRow{
+			{values: []any{int64(15), int64(42), int64(2)}},
+			{values: []any{int64(10)}},
+		},
+	}
+	repo := NewQuotaRepository(db)
+
+	reconciliation, err := repo.ReconcileProviderUsage(context.Background(), "tenant_1", "bucket_1", "task_1", "generate_1")
+	if err != nil {
+		t.Fatalf("ReconcileProviderUsage() error = %v", err)
+	}
+	if reconciliation.ActualUsageUnits != 15 || reconciliation.AccountedQuotaUnits != 10 {
+		t.Fatalf("reconciliation usage = %+v", reconciliation)
+	}
+	if reconciliation.AdjustmentKind != "provider_usage_debit" || reconciliation.AdjustedUnits != 5 {
+		t.Fatalf("adjustment = %s/%d, want provider_usage_debit/5", reconciliation.AdjustmentKind, reconciliation.AdjustedUnits)
+	}
+	if db.execs != 3 {
+		t.Fatalf("execs = %d, want 3", db.execs)
+	}
+	if !strings.Contains(db.execSQL[0], "INSERT INTO quota_transactions") {
+		t.Fatalf("adjustment SQL = %s", db.execSQL[0])
+	}
+	if db.execArgs[0][4] != "provider_usage_debit" {
+		t.Fatalf("adjustment kind arg = %#v, want provider_usage_debit", db.execArgs[0][4])
+	}
+	if !strings.Contains(db.execSQL[1], "used_units = used_units + $1") {
+		t.Fatalf("bucket debit SQL = %s", db.execSQL[1])
+	}
+	if !strings.Contains(db.execSQL[2], "UPDATE provider_usage_logs") {
+		t.Fatalf("provider usage status SQL = %s", db.execSQL[2])
+	}
+}
+
+func TestReconcileProviderUsageCreditsQuotaForOverAccountedUsage(t *testing.T) {
+	db := &fakeDB{
+		rowsAffected: []int64{1, 1, 1},
+		queryRows: []fakeQueryRow{
+			{values: []any{int64(7), int64(0), int64(1)}},
+			{values: []any{int64(10)}},
+		},
+	}
+	repo := NewQuotaRepository(db)
+
+	reconciliation, err := repo.ReconcileProviderUsage(context.Background(), "tenant_1", "bucket_1", "task_1", "generate_1")
+	if err != nil {
+		t.Fatalf("ReconcileProviderUsage() error = %v", err)
+	}
+	if reconciliation.AdjustmentKind != "provider_usage_credit" || reconciliation.AdjustedUnits != 3 {
+		t.Fatalf("adjustment = %s/%d, want provider_usage_credit/3", reconciliation.AdjustmentKind, reconciliation.AdjustedUnits)
+	}
+	if !strings.Contains(db.execSQL[1], "used_units = used_units - $1") {
+		t.Fatalf("bucket credit SQL = %s", db.execSQL[1])
+	}
+}
+
+func TestReconcileProviderUsageReturnsMissingWhenNoLogsExist(t *testing.T) {
+	db := &fakeDB{queryRows: []fakeQueryRow{{values: []any{int64(0), int64(0), int64(0)}}}}
+	repo := NewQuotaRepository(db)
+
+	_, err := repo.ReconcileProviderUsage(context.Background(), "tenant_1", "bucket_1", "task_1", "generate_1")
+	if !errors.Is(err, ErrProviderUsageMissing) {
+		t.Fatalf("ReconcileProviderUsage() error = %v, want ErrProviderUsageMissing", err)
+	}
+	if db.execs != 0 {
+		t.Fatalf("missing usage should not write rows: %d", db.execs)
+	}
+}
+
 type fakeDB struct {
 	rowsAffected []int64
 	execs        int
+	execSQL      []string
+	execArgs     [][]any
+	queryRows    []fakeQueryRow
 }
 
 type staticEntitlements struct {
@@ -214,8 +329,10 @@ func testDeny(w http.ResponseWriter, _ *http.Request, _ EntitlementDecision) {
 	http.Error(w, "denied", http.StatusPaymentRequired)
 }
 
-func (f *fakeDB) Exec(context.Context, string, ...any) (pgconn.CommandTag, error) {
+func (f *fakeDB) Exec(_ context.Context, sql string, args ...any) (pgconn.CommandTag, error) {
 	f.execs++
+	f.execSQL = append(f.execSQL, sql)
+	f.execArgs = append(f.execArgs, args)
 	rowsAffected := int64(1)
 	if len(f.rowsAffected) >= f.execs {
 		rowsAffected = f.rowsAffected[f.execs-1]
@@ -228,12 +345,26 @@ func (f *fakeDB) Query(context.Context, string, ...any) (store.Rows, error) {
 }
 
 func (f *fakeDB) QueryRow(context.Context, string, ...any) store.Row {
-	return fakeRow{}
+	if len(f.queryRows) == 0 {
+		return fakeQueryRow{}
+	}
+	row := f.queryRows[0]
+	f.queryRows = f.queryRows[1:]
+	return row
 }
 
-type fakeRow struct{}
+type fakeQueryRow struct {
+	values []any
+	err    error
+}
 
-func (fakeRow) Scan(...any) error {
+func (r fakeQueryRow) Scan(dest ...any) error {
+	if r.err != nil {
+		return r.err
+	}
+	for i := range dest {
+		assign(dest[i], r.values[i])
+	}
 	return nil
 }
 
@@ -251,4 +382,13 @@ func (fakeRows) Next() bool {
 
 func (fakeRows) Scan(...any) error {
 	return nil
+}
+
+func assign(dest any, value any) {
+	switch ptr := dest.(type) {
+	case *int64:
+		*ptr = value.(int64)
+	default:
+		panic("unsupported scan destination")
+	}
 }

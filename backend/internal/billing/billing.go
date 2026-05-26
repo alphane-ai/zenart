@@ -2,6 +2,7 @@ package billing
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -175,6 +176,37 @@ type QuotaReservation struct {
 	CreatedAt      time.Time
 }
 
+type ProviderUsageLog struct {
+	ID              string
+	TenantID        string
+	UserID          string
+	ProjectID       string
+	TaskID          string
+	ProviderID      string
+	ModelID         string
+	EndpointVersion string
+	RequestHash     string
+	UsageUnits      int64
+	CostCents       int
+	Status          string
+	Metadata        map[string]any
+	CreatedAt       time.Time
+}
+
+type ProviderUsageReconciliation struct {
+	TenantID                  string
+	BucketID                  string
+	TaskID                    string
+	QuotaIdempotencyKey       string
+	ProviderLogCount          int64
+	ActualUsageUnits          int64
+	AccountedQuotaUnits       int64
+	AdjustmentKind            string
+	AdjustedUnits             int64
+	AdjustmentAlreadyRecorded bool
+	CostCents                 int64
+}
+
 type QuotaRepository struct {
 	db store.DBTX
 }
@@ -344,6 +376,202 @@ WHERE period = 'weekly'
 	return err
 }
 
+func (r QuotaRepository) RecordProviderUsage(ctx context.Context, usage ProviderUsageLog) error {
+	if usage.ID == "" || usage.TenantID == "" || usage.TaskID == "" || usage.ProviderID == "" || usage.ModelID == "" {
+		return errors.New("usage id, tenant_id, task_id, provider_id, and model_id are required")
+	}
+	if usage.UsageUnits < 0 {
+		return errors.New("usage units must be non-negative")
+	}
+	if usage.CostCents < 0 {
+		return errors.New("cost cents must be non-negative")
+	}
+	if usage.Status == "" {
+		usage.Status = "recorded"
+	}
+	if usage.CreatedAt.IsZero() {
+		usage.CreatedAt = time.Now().UTC()
+	}
+	_, err := r.db.Exec(ctx, `
+INSERT INTO provider_usage_logs(
+	id,
+	tenant_id,
+	user_id,
+	project_id,
+	task_id,
+	provider_id,
+	model_id,
+	endpoint_version,
+	request_hash,
+	usage_units,
+	cost_cents,
+	status,
+	metadata,
+	created_at
+)
+VALUES($1, $2, nullif($3, ''), nullif($4, ''), $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+ON CONFLICT (id) DO NOTHING`,
+		usage.ID,
+		usage.TenantID,
+		usage.UserID,
+		usage.ProjectID,
+		usage.TaskID,
+		usage.ProviderID,
+		usage.ModelID,
+		usage.EndpointVersion,
+		usage.RequestHash,
+		usage.UsageUnits,
+		usage.CostCents,
+		usage.Status,
+		jsonMap(usage.Metadata),
+		usage.CreatedAt.UTC(),
+	)
+	return err
+}
+
+func (r QuotaRepository) ReconcileProviderUsage(ctx context.Context, tenantID, bucketID, taskID, quotaIdempotencyKey string) (ProviderUsageReconciliation, error) {
+	if tenantID == "" || bucketID == "" || taskID == "" || quotaIdempotencyKey == "" {
+		return ProviderUsageReconciliation{}, errors.New("tenant_id, bucket_id, task_id, and quota idempotency key are required")
+	}
+
+	tx, err := r.begin(ctx)
+	if err != nil {
+		return ProviderUsageReconciliation{}, err
+	}
+	defer rollback(ctx, tx)
+
+	result := ProviderUsageReconciliation{
+		TenantID:            tenantID,
+		BucketID:            bucketID,
+		TaskID:              taskID,
+		QuotaIdempotencyKey: quotaIdempotencyKey,
+	}
+	err = tx.QueryRow(ctx, `
+SELECT
+	COALESCE(sum(usage_units), 0),
+	COALESCE(sum(cost_cents), 0),
+	count(*)
+FROM provider_usage_logs
+WHERE tenant_id = $1
+  AND task_id = $2
+  AND status IN ('recorded', 'reconciled')`,
+		tenantID,
+		taskID,
+	).Scan(&result.ActualUsageUnits, &result.CostCents, &result.ProviderLogCount)
+	if err != nil {
+		return ProviderUsageReconciliation{}, err
+	}
+	if result.ProviderLogCount == 0 {
+		return ProviderUsageReconciliation{}, ErrProviderUsageMissing
+	}
+
+	err = tx.QueryRow(ctx, `
+SELECT COALESCE(sum(
+	CASE
+		WHEN kind IN ('commit', 'provider_usage_debit') AND status = 'committed' THEN units
+		WHEN kind = 'provider_usage_credit' AND status = 'committed' THEN -units
+		ELSE 0
+	END
+), 0)
+FROM quota_transactions
+WHERE tenant_id = $1
+  AND bucket_id = $2
+  AND (
+    (idempotency_key = $3 AND kind = 'commit')
+    OR (metadata->>'reconciles_idempotency_key' = $3 AND kind IN ('provider_usage_debit', 'provider_usage_credit'))
+  )`,
+		tenantID,
+		bucketID,
+		quotaIdempotencyKey,
+	).Scan(&result.AccountedQuotaUnits)
+	if err != nil {
+		return ProviderUsageReconciliation{}, err
+	}
+
+	delta := result.ActualUsageUnits - result.AccountedQuotaUnits
+	if delta != 0 {
+		adjustmentKind := "provider_usage_debit"
+		adjustedUnits := delta
+		bucketSQL := `
+UPDATE quota_buckets
+SET used_units = used_units + $1, updated_at = now()
+WHERE id = $2
+  AND tenant_id = $3`
+		if delta < 0 {
+			adjustmentKind = "provider_usage_credit"
+			adjustedUnits = -delta
+			bucketSQL = `
+UPDATE quota_buckets
+SET used_units = used_units - $1, updated_at = now()
+WHERE id = $2
+  AND tenant_id = $3
+  AND used_units >= $1`
+		}
+		result.AdjustmentKind = adjustmentKind
+		result.AdjustedUnits = adjustedUnits
+
+		adjustmentIDKey := fmt.Sprintf("%s:%s:%s:%d", quotaIdempotencyKey, taskID, adjustmentKind, result.ActualUsageUnits)
+		insertTag, err := tx.Exec(ctx, `
+INSERT INTO quota_transactions(id, bucket_id, tenant_id, idempotency_key, kind, units, status, metadata, created_at)
+VALUES($1, $2, $3, $4, $5, $6, 'committed', $7, now())
+ON CONFLICT (tenant_id, idempotency_key, kind) DO NOTHING`,
+			adjustmentIDKey,
+			bucketID,
+			tenantID,
+			adjustmentIDKey,
+			adjustmentKind,
+			adjustedUnits,
+			jsonMap(map[string]any{
+				"task_id":                      taskID,
+				"actual_usage_units":           result.ActualUsageUnits,
+				"accounted_quota_units":        result.AccountedQuotaUnits,
+				"reconciles_idempotency_key":   quotaIdempotencyKey,
+				"provider_usage_log_count":     result.ProviderLogCount,
+				"provider_usage_cost_cents":    result.CostCents,
+				"provider_usage_reconciled_at": time.Now().UTC().Format(time.RFC3339Nano),
+			}),
+		)
+		if err != nil {
+			return ProviderUsageReconciliation{}, err
+		}
+		if insertTag.RowsAffected() == 0 {
+			result.AdjustmentAlreadyRecorded = true
+		} else {
+			tag, err := tx.Exec(ctx, bucketSQL, adjustedUnits, bucketID, tenantID)
+			if err != nil {
+				return ProviderUsageReconciliation{}, err
+			}
+			if tag.RowsAffected() != 1 {
+				return ProviderUsageReconciliation{}, fmt.Errorf("provider usage reconciliation failed: quota bucket adjustment unavailable")
+			}
+		}
+	}
+
+	_, err = tx.Exec(ctx, `
+UPDATE provider_usage_logs
+SET status = 'reconciled',
+    metadata = metadata || $3
+WHERE tenant_id = $1
+  AND task_id = $2
+  AND status IN ('recorded', 'reconciled')`,
+		tenantID,
+		taskID,
+		jsonMap(map[string]any{
+			"reconciled_quota_idempotency_key": quotaIdempotencyKey,
+			"reconciled_bucket_id":             bucketID,
+			"reconciled_actual_usage_units":    result.ActualUsageUnits,
+			"reconciled_accounted_quota_units": result.AccountedQuotaUnits,
+		}),
+	)
+	if err != nil {
+		return ProviderUsageReconciliation{}, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return ProviderUsageReconciliation{}, err
+	}
+	return result, nil
+}
+
 func (r QuotaRepository) adjustLimit(ctx context.Context, tenantID, bucketID, idempotencyKey string, delta int64, kind string) error {
 	tx, err := r.begin(ctx)
 	if err != nil {
@@ -400,6 +628,7 @@ WHERE tenant_id = $1 AND idempotency_key = $2 AND kind = $3`,
 }
 
 var ErrQuotaInsufficient = errors.New("quota insufficient")
+var ErrProviderUsageMissing = errors.New("provider usage missing")
 
 func (r QuotaRepository) begin(ctx context.Context) (store.Tx, error) {
 	transactor, ok := r.db.(store.Transactor)
@@ -423,4 +652,12 @@ func (noopTx) Commit(context.Context) error {
 
 func (noopTx) Rollback(context.Context) error {
 	return pgx.ErrTxClosed
+}
+
+func jsonMap(value map[string]any) []byte {
+	if value == nil {
+		value = map[string]any{}
+	}
+	data, _ := json.Marshal(value)
+	return data
 }
