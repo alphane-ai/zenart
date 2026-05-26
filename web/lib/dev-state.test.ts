@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { buildManifest, createDisabledShareLink, createInitialWorkspace, evaluatePackageQa } from "./dev-state";
+import { ExportRecord } from "./contracts";
+import {
+  buildManifest,
+  buildSupportProblemContext,
+  createDisabledShareLink,
+  createInitialWorkspace,
+  createReferenceAsset,
+  evaluatePackageQa
+} from "./dev-state";
 
 describe("dev workspace contracts", () => {
   it("creates four deterministic candidates", () => {
@@ -24,5 +32,47 @@ describe("dev workspace contracts", () => {
     expect(shareLink.status).toBe("disabled");
     expect(shareLink.access).toBe("private");
     expect(shareLink.reason).toContain("disabled in local alpha");
+  });
+
+  it("builds visible report-problem context from accepted references and latest export", () => {
+    const state = createInitialWorkspace();
+    const validReference = createReferenceAsset("accepted-product-angle.webp", "image");
+    const rejectedReference = createReferenceAsset("unsafe-reference.exe", "image");
+    const exportRecord: ExportRecord = {
+      id: "export-009",
+      format: "zip",
+      status: "ready",
+      createdAt: "2026-05-26T10:00:00.000Z",
+      fileName: "zenart-009.zip",
+      manifest: buildManifest(state.activeProjectId, []),
+      qaReport: []
+    };
+
+    const context = buildSupportProblemContext({
+      ...state,
+      selectedCandidateId: "cand-utility",
+      brief: {
+        ...state.brief,
+        references: [...state.brief.references, validReference, rejectedReference]
+      },
+      exports: [exportRecord]
+    });
+
+    expect(context).toMatchObject({
+      projectId: "project-001",
+      projectName: "Launch Direction Board",
+      linkedExportId: "export-009",
+      linkedTaskId: "task-cand-utility",
+      linkedTraceId: "trace-export-009",
+      linkedAssetIds: ["ref-001", "ref-accepted-product-angle-webp"],
+      linkedAssetNames: ["brand-moodboard.png", "accepted-product-angle.webp"],
+      linkedQuotaSnapshot: {
+        used: state.billing.quotaUsed,
+        limit: state.billing.quotaLimit,
+        remaining: state.billing.quotaLimit - state.billing.quotaUsed,
+        status: state.billing.status,
+        resetAt: state.billing.resetAt
+      }
+    });
   });
 });

@@ -818,6 +818,44 @@ textarea {
   gap: 14px;
 }
 
+.support-context {
+  max-width: 720px;
+  background: #fbfcfe;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 16px;
+  display: grid;
+  gap: 12px;
+}
+
+.support-context strong {
+  display: block;
+  margin-top: 3px;
+}
+
+.support-context dl {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.support-context div {
+  min-width: 0;
+}
+
+.support-context dt {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.support-context dd {
+  margin: 3px 0 0;
+  color: #344054;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
 .settings-form label,
 .support-form label {
   display: grid;
@@ -891,5 +929,9 @@ textarea {
     align-items: flex-start;
     gap: 12px;
     flex-direction: column;
+  }
+
+  .support-context dl {
+    grid-template-columns: 1fr;
   }
 }

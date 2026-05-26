@@ -29,6 +29,7 @@ import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { AccountSettings, BillingScenario, Candidate, ExportFormat, QaSeverity, WorkspaceState } from "@/lib/contracts";
 import { zenArtClient } from "@/lib/api-client";
+import { buildSupportProblemContext } from "@/lib/dev-state";
 import { downloadExportPackage } from "@/lib/export-download";
 
 export type ViewKey = "workspace" | "projects" | "export" | "billing" | "account" | "support";
@@ -781,12 +782,45 @@ function SupportView({
   setCategory: (value: "bug" | "billing" | "export" | "quality" | "other") => void;
   reportProblem: (event: FormEvent) => void;
 }) {
+  const problemContext = buildSupportProblemContext(state, state.exports[0]?.id);
+
   return (
     <section className="content-view">
       <div className="section-title">
         <h2>Report Problem</h2>
         <span>support@zenart.local</span>
       </div>
+      <section className="support-context" aria-label="Attached support context">
+        <div>
+          <span className="eyebrow">Attached Context</span>
+          <strong>{problemContext.projectName}</strong>
+        </div>
+        <dl>
+          <div>
+            <dt>Export</dt>
+            <dd>{problemContext.linkedExportId ?? "No export yet"}</dd>
+          </div>
+          <div>
+            <dt>Task</dt>
+            <dd>{problemContext.linkedTaskId}</dd>
+          </div>
+          <div>
+            <dt>Trace</dt>
+            <dd>{problemContext.linkedTraceId}</dd>
+          </div>
+          <div>
+            <dt>Assets</dt>
+            <dd>{problemContext.linkedAssetNames.length > 0 ? problemContext.linkedAssetNames.join(", ") : "No accepted references"}</dd>
+          </div>
+          <div>
+            <dt>Quota</dt>
+            <dd>
+              {problemContext.linkedQuotaSnapshot.used}/{problemContext.linkedQuotaSnapshot.limit} used ·{" "}
+              {problemContext.linkedQuotaSnapshot.status}
+            </dd>
+          </div>
+        </dl>
+      </section>
       <form className="support-form" onSubmit={reportProblem}>
         <label>
           Category

@@ -248,28 +248,50 @@ export const createReferenceAsset = (name: string, kind: ReferenceAsset["kind"])
   };
 };
 
+export const buildSupportProblemContext = (state: WorkspaceState, linkedExportId?: string) => {
+  const linkedExport = linkedExportId
+    ? state.exports.find((item) => item.id === linkedExportId)
+    : state.exports[0];
+  const acceptedReferences = state.brief.references.filter((reference) => reference.validation.state === "accepted");
+
+  return {
+    projectId: state.activeProjectId,
+    projectName: state.projects.find((project) => project.id === state.activeProjectId)?.name ?? "Unknown project",
+    linkedExportId: linkedExport?.id,
+    linkedTaskId: state.selectedCandidateId ? `task-${state.selectedCandidateId}` : "task-brief",
+    linkedTraceId: linkedExport ? `trace-${linkedExport.id}` : "trace-local-workspace",
+    linkedAssetIds: acceptedReferences.map((reference) => reference.id),
+    linkedAssetNames: acceptedReferences.map((reference) => reference.name),
+    linkedQuotaSnapshot: {
+      used: state.billing.quotaUsed,
+      limit: state.billing.quotaLimit,
+      remaining: Math.max(0, state.billing.quotaLimit - state.billing.quotaUsed),
+      status: state.billing.status,
+      resetAt: state.billing.resetAt
+    }
+  };
+};
+
 export const createSupportTicket = (
   state: WorkspaceState,
   input: Pick<SupportTicket, "category" | "body" | "linkedExportId">
-): SupportTicket => ({
-  id: `ticket-${String(state.supportTickets.length + 1).padStart(3, "0")}`,
-  projectId: state.activeProjectId,
-  projectName: state.projects.find((project) => project.id === state.activeProjectId)?.name ?? "Unknown project",
-  category: input.category,
-  body: input.body,
-  status: "open",
-  linkedExportId: input.linkedExportId,
-  linkedTaskId: state.selectedCandidateId ? `task-${state.selectedCandidateId}` : "task-brief",
-  linkedTraceId: state.exports[0] ? `trace-${state.exports[0].id}` : "trace-local-workspace",
-  linkedAssetIds: state.brief.references.filter((reference) => reference.validation.state === "accepted").map((reference) => reference.id),
-  linkedQuotaSnapshot: {
-    used: state.billing.quotaUsed,
-    limit: state.billing.quotaLimit,
-    remaining: Math.max(0, state.billing.quotaLimit - state.billing.quotaUsed),
-    status: state.billing.status,
-    resetAt: state.billing.resetAt
-  }
-});
+): SupportTicket => {
+  const context = buildSupportProblemContext(state, input.linkedExportId);
+
+  return {
+    id: `ticket-${String(state.supportTickets.length + 1).padStart(3, "0")}`,
+    projectId: context.projectId,
+    projectName: context.projectName,
+    category: input.category,
+    body: input.body,
+    status: "open",
+    linkedExportId: context.linkedExportId,
+    linkedTaskId: context.linkedTaskId,
+    linkedTraceId: context.linkedTraceId,
+    linkedAssetIds: context.linkedAssetIds,
+    linkedQuotaSnapshot: context.linkedQuotaSnapshot
+  };
+};
 
 export const createDisabledShareLink = (exportId: string, index: number): ShareLink => ({
   id: `share-${String(index + 1).padStart(3, "0")}`,
