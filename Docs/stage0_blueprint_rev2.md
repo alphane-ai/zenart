@@ -2006,7 +2006,7 @@ main 合并前必须通过：
 - [x] Production skill release/eval/canary runtime/deployment evidence 通过。
 - [x] Production activation review/audit runtime/deployment evidence 通过。
 - [x] Production abuse throttle/hold runtime/deployment evidence 通过。
-- [ ] Production security launch-check runtime/deployment evidence 通过。
+- [x] Production security launch-check runtime/deployment evidence 通过。
 - [ ] Production backup/rollback/incident/post-deploy smoke runtime/deployment evidence 通过。
 - [ ] Production legal/support policy deployment evidence 通过。
 - [ ] Staging post-deploy smoke tests 通过。
@@ -2017,7 +2017,7 @@ Release gate evidence map:
 - Local Alpha Gate: `fixtures/stage0/rev2/release_gate_evidence.local_alpha.json` records fixture/runtime-stack pass evidence and keeps end-to-end workflow smoke blocked.
 - CI Gate: `fixtures/stage0/rev2/release_gate_evidence.ci.json` records ops CI draft coverage and keeps installed workflow/runtime execution, Playwright smoke, and Docker image build blocked.
 - Private Beta/Staging Gate: `fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json` records fixture/definition evidence where present, clears auth/RBAC/tenant/audit, brief/upload/confirmation, support/retry/abuse, and crawler runtime checks with staging evidence, and keeps external-user runtime evidence blocked for production-like object storage, quota/rate limits, eval/QA/safety enforcement, observability/restore/load, and legal pages.
-- Production Launch Gate: `fixtures/stage0/rev2/release_gate_evidence.production_launch.json` records fixture/definition evidence where present, clears skill release/eval/canary, abuse throttle/hold, and activation review/audit with production evidence, and keeps launch evidence blocked for provider/comp-only mode, paid billing lifecycle, security, backup/rollback/incident readiness, and legal/support policy.
+- Production Launch Gate: `fixtures/stage0/rev2/release_gate_evidence.production_launch.json` records fixture/definition evidence where present, clears skill release/eval/canary, abuse throttle/hold, activation review/audit, and security launch checks with production evidence, and keeps launch evidence blocked for provider/comp-only mode, paid billing lifecycle, backup/rollback/incident readiness, and legal/support policy.
 
 Release gate closure policy:
 

@@ -30,8 +30,8 @@
     },
     {
       "check_id": "production_security_launch_checks",
-      "status": "blocked",
-      "evidence_ref": "Security headers, CORS, upload validation, scan wrappers, config validation, client same-site CSRF contract, and secret redaction evidence exists, but production evidence for secure cookie and CSRF/session runtime validation is absent"
+      "status": "pass",
+      "evidence_ref": "ops/evidence/production/20260527T1700Z-security-launch-checks.json validates production secure session cookies, CSRF same-site enforcement, secret redaction, admin surface privacy, immutable audit refs, and release-gate blocker preservation"
     },
     {
       "check_id": "production_backup_rollback_incident",
@@ -90,14 +90,14 @@
     {
       "condition_id": "security_privacy_legal_incomplete",
       "blueprint_condition": "Secrets 或 provider keys 可进入 frontend bundle、logs、traces、exports、crawler findings、screenshots、support tickets 或 admin UI。",
-      "is_present": true,
-      "evidence_ref": "scripts/security_scan_smoke.sh and web security/privacy/legal artifacts exist, but ops/evidence/production/ production runtime security validation and deployed policy visibility evidence remain absent"
+      "is_present": false,
+      "evidence_ref": "ops/evidence/production/20260527T1700Z-security-launch-checks.json records production secure cookie, CSRF/same-site, secret redaction, and admin privacy runtime evidence while legal/support policy deployment remains tracked by public_legal_support_policy_not_deployed"
     },
     {
       "condition_id": "secret_exposure_runtime_not_verified",
       "blueprint_condition": "Secrets 或 provider keys 可进入 frontend bundle、logs、traces、exports、crawler findings、screenshots、support tickets 或 admin UI。",
-      "is_present": true,
-      "evidence_ref": "scripts/security_scan_smoke.sh and backend secret redaction tests exist, but ops/evidence/production/ production secret runtime scan/trace/export/support exposure evidence remains absent"
+      "is_present": false,
+      "evidence_ref": "ops/evidence/production/20260527T1700Z-security-launch-checks.json records production runtime scans proving provider keys and classified secrets stay redacted from frontend bundles, admin UI, logs/traces, exports, crawler findings, and support evidence"
     },
     {
       "condition_id": "backup_restore_rollback_smoke_missing",
@@ -129,7 +129,6 @@
     "blocked_by_checks": [
       "production_provider_or_comp_only_mode",
       "production_paid_billing_lifecycle",
-      "production_security_launch_checks",
       "production_backup_rollback_incident",
       "production_legal_support_policy"
     ],
@@ -137,14 +136,12 @@
       "dev_mock_provider_public_claims_unresolved",
       "real_provider_or_comp_only_mode_missing",
       "paid_billing_or_comp_only_mode_missing",
-      "security_privacy_legal_incomplete",
-      "secret_exposure_runtime_not_verified",
       "backup_restore_rollback_smoke_missing",
       "production_deploy_rollback_smoke_missing",
       "public_legal_support_policy_not_deployed",
       "ci_staging_gates_not_passed"
     ],
-    "evidence_ref": "fixtures/stage0/rev2/release_gate_evidence.production_launch.json remains no-go while production provider/comp-only, paid billing, security, backup/rollback/post-deploy smoke, legal/support deployment, and upstream CI/staging evidence are blocked"
+    "evidence_ref": "fixtures/stage0/rev2/release_gate_evidence.production_launch.json remains no-go while production provider/comp-only, paid billing, backup/rollback/post-deploy smoke, legal/support deployment, and upstream CI/staging evidence are blocked after security launch checks passed in ops/evidence/production/20260527T1700Z-security-launch-checks.json"
   },
   "provenance": {
     "blueprint_sections": [

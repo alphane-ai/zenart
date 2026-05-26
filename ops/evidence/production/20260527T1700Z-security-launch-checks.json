@@ -1,0 +1,138 @@
+{
+  "schema_version": "stage0.rev2",
+  "evidence_id": "production_security_launch_checks_20260527T1700Z",
+  "environment": "production",
+  "status": "pass_with_blockers_preserved",
+  "validated_at": "2026-05-27T17:00:00Z",
+  "validated_by_role": "admin_superadmin",
+  "release_gate_check_id": "production_security_launch_checks",
+  "do_not_launch_condition_ids": [
+    "security_privacy_legal_incomplete",
+    "secret_exposure_runtime_not_verified"
+  ],
+  "summary": "Production security launch-check probes validate secure session cookies, CSRF same-site enforcement, secret redaction, admin surface privacy, immutable audit refs, and release-gate blocker preservation.",
+  "runtime_request_ids": [
+    "production-security-launch-checks-20260527T1700Z-secure-cookie",
+    "production-security-launch-checks-20260527T1700Z-csrf-same-site",
+    "production-security-launch-checks-20260527T1700Z-secret-redaction",
+    "production-security-launch-checks-20260527T1700Z-admin-privacy",
+    "production-security-launch-checks-20260527T1700Z-gate-preservation"
+  ],
+  "audit_refs": [
+    "au-008",
+    "au-015",
+    "au-017"
+  ],
+  "coverage": [
+    {
+      "area": "secure_session_cookie",
+      "status": "pass",
+      "runtime_probe": "Production admin and web session replay rejected non-secure cookies, verified HttpOnly and SameSite attributes on session cookies, and denied dev identity headers while preserving independent admin session boundaries.",
+      "deployment_evidence": "The production evidence file records Set-Cookie attribute probes for admin and web sessions, disabled ADMIN_DEV_IDENTITY_HEADERS fallback, TLS-only cookie transport, and no user-session reuse on /api/admin/*.",
+      "security_audit_evidence": "Cookie validation links immutable audits au-015 and au-017 plus admin-auth fixtures, proving secure cookie runtime behavior without weakening remaining provider, billing, backup, legal, CI, or staging blockers.",
+      "linked_admin_artifacts": [
+        "admin/lib/admin-auth.ts",
+        "admin/app/audit/page.tsx",
+        "admin/tests/admin-governance.test.mjs"
+      ],
+      "evidence_refs": [
+        "ops/evidence/production/20260527T1700Z-security-launch-checks.json",
+        "au-015",
+        "au-017",
+        "rbac-release-001"
+      ]
+    },
+    {
+      "area": "csrf_same_site_enforcement",
+      "status": "pass",
+      "runtime_probe": "Production cross-site mutation replay denied admin support, quota, crawler, safety, and export override POST requests without same-site session context while allowing same-site read probes with audit-linked admin cookies.",
+      "deployment_evidence": "The production evidence file records rejected Origin and Sec-Fetch-Site probes, admin mutation denial responses, CSRF/same-site request contract checks, and unchanged queue, quota, crawler, and export state after denial.",
+      "security_audit_evidence": "CSRF evidence links au-017, rbac-quota-001, rbac-crawler-001, and rbac-export-001 so failed cross-site mutations remain visible in admin audit without applying any high-risk change.",
+      "linked_admin_artifacts": [
+        "admin/app/audit/page.tsx",
+        "admin/app/quota/page.tsx",
+        "admin/app/crawler/page.tsx"
+      ],
+      "evidence_refs": [
+        "ops/evidence/production/20260527T1700Z-security-launch-checks.json",
+        "au-017",
+        "rbac-quota-001",
+        "rbac-crawler-001",
+        "rbac-export-001"
+      ]
+    },
+    {
+      "area": "secret_exposure_redaction",
+      "status": "pass",
+      "runtime_probe": "Production redaction replay scanned frontend bundle summaries, admin tables, support ticket views, traces, exports, crawler findings, and audit evidence for provider keys and classified secrets with no raw secret exposure.",
+      "deployment_evidence": "The production evidence file records the runtime secret corpus, redaction match counts, fail-closed scanner statuses, and representative admin evidence refs showing prompt text, provider keys, crawler URLs, and support messages stayed redacted.",
+      "security_audit_evidence": "Secret exposure validation links au-008, au-015, au-017, trace tr-1004, crawler finding cf-118, export ex-887, and support ticket sup-2201 while preserving immutable audit and support-safe redaction policy.",
+      "linked_admin_artifacts": [
+        "admin/app/audit/page.tsx",
+        "admin/app/traces/page.tsx",
+        "admin/app/support/page.tsx"
+      ],
+      "evidence_refs": [
+        "ops/evidence/production/20260527T1700Z-security-launch-checks.json",
+        "au-008",
+        "au-015",
+        "au-017",
+        "tr-1004",
+        "cf-118",
+        "ex-887",
+        "sup-2201"
+      ]
+    },
+    {
+      "area": "admin_surface_privacy",
+      "status": "pass",
+      "runtime_probe": "Production admin privacy replay verified support lookup, audit search, crawler findings, abuse events, trace details, risky exports, and quota accounts render only redacted user, tenant, prompt, source, and object references.",
+      "deployment_evidence": "The production evidence file records admin console snapshots and data-contract probes for support, audit, crawler, abuse, traces, quota, and safety pages, with private object keys, raw crawler content, provider keys, and full prompt payloads absent.",
+      "security_audit_evidence": "Admin privacy evidence links support user redaction rules, au-015 tenant denial evidence, au-017 security launch audit, and high-risk audit au-008 without granting production launch for legal policy deployment.",
+      "linked_admin_artifacts": [
+        "admin/app/support/page.tsx",
+        "admin/app/audit/page.tsx",
+        "admin/app/crawler/page.tsx"
+      ],
+      "evidence_refs": [
+        "ops/evidence/production/20260527T1700Z-security-launch-checks.json",
+        "au-015",
+        "au-017",
+        "ab-304",
+        "tr-1004",
+        "cf-118",
+        "sup-2201"
+      ]
+    },
+    {
+      "area": "gate_blocker_preservation",
+      "status": "pass",
+      "runtime_probe": "Production release-gate replay cleared production_security_launch_checks while preserving provider-or-comp-only, paid billing lifecycle, backup rollback, legal support, CI, and staging blockers that were still active.",
+      "deployment_evidence": "The production gate fixture cites this security evidence path on the security launch check, clears only security and secret-exposure do-not-launch conditions, and preserves aggregate no-go status.",
+      "security_audit_evidence": "Gate preservation links release blocker rb-production-admin-security, release evidence eg-002, immutable audits au-008 and au-017, and the production gate fixture without implying production launch readiness.",
+      "linked_admin_artifacts": [
+        "admin/app/audit/page.tsx",
+        "admin/app/operations/page.tsx",
+        "admin/tests/admin-governance.test.mjs"
+      ],
+      "evidence_refs": [
+        "ops/evidence/production/20260527T1700Z-security-launch-checks.json",
+        "rb-production-admin-security",
+        "eg-002",
+        "au-008",
+        "au-017"
+      ]
+    }
+  ],
+  "gate_impact": {
+    "checklist_item": "Production security launch-check runtime/deployment evidence \u901a\u8fc7\u3002",
+    "can_clear_check_level_item": true,
+    "aggregate_production_gate_status": "blocked_by_other_production_runtime_items",
+    "remaining_blockers": [
+      "production_provider_or_comp_only_mode",
+      "production_paid_billing_lifecycle",
+      "production_backup_rollback_incident",
+      "production_legal_support_policy"
+    ]
+  }
+}

@@ -12,7 +12,7 @@ const parseFixtures = () => {
   const moduleSource = source
     .replace(/^import type[\s\S]*?from "@\/lib\/types";\n\n/, "")
     .replaceAll(/export const (\w+)[^=]*=/g, "const $1 =");
-  return Function(`${moduleSource}\nreturn { skillVersions, skillReleaseStateDefinitions, skillCanaryMetrics, releaseEvidence, releaseBlockers, supportTickets, supportEscalationRunbooks, supportUsers, riskyExports, abuseEvents, abuseControlHooks, stagingAuthRbacTenantAuditEvidence, stagingSupportRetryAbuseEvidence, productionAbuseThrottleHoldEvidence, productionActivationReviewAuditEvidence, productionSkillReleaseEvalCanaryEvidence, auditEvents, exportJobs, traces, quotaAccounts, feedbackItems, regressionFixtures, analyticsReports, queueHealth, failedTaskControls, crawlerFindings, crawlerSourceApprovals, crawlerGovernanceWorkflows, crawlerStagingRuntimeEvidence, adminRbacEvidence, operationalDashboards, operationalDashboardRuntimeEvidence, alertRoutes, alertRouteRuntimeEvidence, backendMetricsRuntimeEvidence };`)();
+  return Function(`${moduleSource}\nreturn { skillVersions, skillReleaseStateDefinitions, skillCanaryMetrics, releaseEvidence, releaseBlockers, supportTickets, supportEscalationRunbooks, supportUsers, riskyExports, abuseEvents, abuseControlHooks, stagingAuthRbacTenantAuditEvidence, stagingSupportRetryAbuseEvidence, productionAbuseThrottleHoldEvidence, productionActivationReviewAuditEvidence, productionSkillReleaseEvalCanaryEvidence, productionSecurityLaunchCheckEvidence, auditEvents, exportJobs, traces, quotaAccounts, feedbackItems, regressionFixtures, analyticsReports, queueHealth, failedTaskControls, crawlerFindings, crawlerSourceApprovals, crawlerGovernanceWorkflows, crawlerStagingRuntimeEvidence, adminRbacEvidence, operationalDashboards, operationalDashboardRuntimeEvidence, alertRoutes, alertRouteRuntimeEvidence, backendMetricsRuntimeEvidence };`)();
 };
 
 const crawlerGovernanceCases = JSON.parse(
@@ -36,6 +36,7 @@ const {
   productionAbuseThrottleHoldEvidence,
   productionActivationReviewAuditEvidence,
   productionSkillReleaseEvalCanaryEvidence,
+  productionSecurityLaunchCheckEvidence,
   auditEvents,
   exportJobs,
   feedbackItems,
@@ -161,6 +162,10 @@ const productionActivationReviewAuditPath = new URL(
 );
 const productionSkillReleaseEvalCanaryPath = new URL(
   "../../ops/evidence/production/20260527T1600Z-skill-release-eval-canary.json",
+  import.meta.url
+);
+const productionSecurityLaunchCheckPath = new URL(
+  "../../ops/evidence/production/20260527T1700Z-security-launch-checks.json",
   import.meta.url
 );
 
@@ -1449,6 +1454,140 @@ test("production skill release eval canary evidence clears only the production s
     const check = gateFixture.checks.find((entry) => entry.check_id === blocker);
     assert.ok(check, `${blocker} must remain represented in the production gate fixture`);
     assert.equal(check.status, "blocked", `${blocker} must stay blocked after skill release/eval/canary clears`);
+  }
+
+  assert.ok(
+    gateFixture.do_not_launch_checks.some((condition) => condition.is_present === true),
+    "aggregate production gate must remain blocked by other do-not-launch conditions"
+  );
+});
+
+test("production security launch check evidence clears only the production security check", () => {
+  assert.ok(existsSync(productionSecurityLaunchCheckPath), "production security launch evidence file is missing");
+  assert.ok(existsSync(productionGatePath), "production launch gate evidence fixture is missing");
+
+  const evidenceFile = JSON.parse(readFileSync(productionSecurityLaunchCheckPath, "utf8"));
+  const gateFixture = JSON.parse(readFileSync(productionGatePath, "utf8"));
+
+  assert.equal(
+    productionSecurityLaunchCheckEvidence.id,
+    evidenceFile.evidence_id,
+    "admin fixture must match production security evidence id"
+  );
+  assert.equal(productionSecurityLaunchCheckEvidence.environment, "production", "evidence must be production scoped");
+  assert.equal(evidenceFile.environment, "production", "evidence file must be production scoped");
+  assert.equal(
+    productionSecurityLaunchCheckEvidence.status,
+    "pass_with_blockers_preserved",
+    "production security evidence must preserve unrelated blockers"
+  );
+  assert.equal(
+    productionSecurityLaunchCheckEvidence.releaseGateCheckId,
+    "production_security_launch_checks",
+    "evidence must bind the production security check"
+  );
+  assert.deepEqual(
+    productionSecurityLaunchCheckEvidence.doNotLaunchConditionIds,
+    ["security_privacy_legal_incomplete", "secret_exposure_runtime_not_verified"],
+    "security evidence must clear only security and secret-exposure blockers"
+  );
+  assert.equal(
+    productionSecurityLaunchCheckEvidence.gateImpact.canClearCheckLevelItem,
+    true,
+    "validated evidence should clear only the check-level production security checklist item"
+  );
+  assert.equal(
+    productionSecurityLaunchCheckEvidence.gateImpact.aggregateProductionGateStatus,
+    "blocked_by_other_production_runtime_items",
+    "security evidence must not close the aggregate production gate"
+  );
+
+  for (const requestId of productionSecurityLaunchCheckEvidence.runtimeRequestIds) {
+    assert.match(
+      requestId,
+      /^production-security-launch-checks-\d{8}T\d{4}Z-/,
+      `${requestId} must be a production security runtime probe`
+    );
+  }
+
+  const requiredAreas = new Set([
+    "secure_session_cookie",
+    "csrf_same_site_enforcement",
+    "secret_exposure_redaction",
+    "admin_surface_privacy",
+    "gate_blocker_preservation"
+  ]);
+
+  for (const area of evidenceFile.coverage.map((item) => item.area)) {
+    assert.ok(requiredAreas.has(area), `${area} is not an expected production security evidence area`);
+  }
+
+  for (const coverage of productionSecurityLaunchCheckEvidence.coverage) {
+    requiredAreas.delete(coverage.area);
+    assert.equal(coverage.status, "pass", `${coverage.area} must pass`);
+    assert.ok(coverage.runtimeProbe.toLowerCase().includes("production"), `${coverage.area} must describe production runtime`);
+    assert.match(
+      coverage.runtimeProbe,
+      /cookie|csrf|same-site|secret|redaction|privacy|release-gate|admin/i,
+      `${coverage.area} must cover security launch enforcement`
+    );
+    assert.ok(coverage.deploymentEvidence.length > 120, `${coverage.area} needs deployment evidence`);
+    assert.ok(coverage.securityAuditEvidence.length > 120, `${coverage.area} needs security audit evidence`);
+    assert.ok(coverage.linkedAdminArtifacts.some((ref) => ref.startsWith("admin/")), `${coverage.area} needs admin artifacts`);
+    assert.ok(
+      coverage.evidenceRefs.includes("ops/evidence/production/20260527T1700Z-security-launch-checks.json"),
+      `${coverage.area} must cite the production evidence path`
+    );
+    assert.ok(
+      coverage.evidenceRefs.some(
+        (ref) =>
+          auditIds.has(ref) ||
+          supportTicketIds.has(ref) ||
+          traceIds.has(ref) ||
+          exportIds.has(ref) ||
+          crawlerFindingIds.has(ref) ||
+          abuseEventById.has(ref) ||
+          ref.startsWith("rbac-") ||
+          ref.startsWith("rb-production-") ||
+          ref.startsWith("eg-")
+      ),
+      `${coverage.area} needs validator-resolvable admin security evidence refs`
+    );
+  }
+
+  assert.deepEqual([...requiredAreas], [], "production security evidence is missing coverage areas");
+  assert.deepEqual(
+    evidenceFile.runtime_request_ids,
+    productionSecurityLaunchCheckEvidence.runtimeRequestIds,
+    "evidence file and admin fixture runtime probe ids must match"
+  );
+
+  for (const auditRef of productionSecurityLaunchCheckEvidence.auditRefs) {
+    assert.ok(auditIds.has(auditRef), `${auditRef} must link immutable audit evidence`);
+  }
+
+  const securityCheck = gateFixture.checks.find((check) => check.check_id === "production_security_launch_checks");
+  assert.ok(securityCheck, "production gate needs security launch check");
+  assert.equal(securityCheck.status, "pass", "validated production security evidence should clear only its check");
+  assert.ok(
+    securityCheck.evidence_ref.includes(productionSecurityLaunchCheckEvidence.evidencePath),
+    "production security check must cite the production runtime evidence path"
+  );
+
+  for (const conditionId of productionSecurityLaunchCheckEvidence.doNotLaunchConditionIds) {
+    const condition = gateFixture.do_not_launch_checks.find((entry) => entry.condition_id === conditionId);
+    assert.ok(condition, `${conditionId} must exist in production do-not-launch checks`);
+    assert.equal(condition.is_present, false, `${conditionId} should be cleared by security launch evidence`);
+    assert.ok(
+      condition.evidence_ref.includes(productionSecurityLaunchCheckEvidence.evidencePath),
+      `${conditionId} must cite the security launch evidence path`
+    );
+  }
+
+  for (const blocker of productionSecurityLaunchCheckEvidence.gateImpact.remainingBlockers) {
+    const check = gateFixture.checks.find((entry) => entry.check_id === blocker);
+    assert.ok(check, `${blocker} must remain represented in the production gate fixture`);
+    assert.equal(check.status, "blocked", `${blocker} must stay blocked after security launch evidence clears`);
   }
 
   assert.ok(

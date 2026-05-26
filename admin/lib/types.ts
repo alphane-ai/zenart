@@ -709,6 +709,41 @@ export type ProductionSkillReleaseEvalCanaryEvidence = {
   };
 };
 
+export type ProductionSecurityLaunchCheckCoverage = {
+  area:
+    | "secure_session_cookie"
+    | "csrf_same_site_enforcement"
+    | "secret_exposure_redaction"
+    | "admin_surface_privacy"
+    | "gate_blocker_preservation";
+  status: "pass" | "blocked";
+  runtimeProbe: string;
+  deploymentEvidence: string;
+  securityAuditEvidence: string;
+  linkedAdminArtifacts: string[];
+  evidenceRefs: string[];
+};
+
+export type ProductionSecurityLaunchCheckEvidence = {
+  id: string;
+  evidencePath: string;
+  environment: "production";
+  status: "pass_with_blockers_preserved" | "blocked";
+  validatedAt: string;
+  validatedByRole: AdminRole;
+  releaseGateCheckId: "production_security_launch_checks";
+  doNotLaunchConditionIds: ["security_privacy_legal_incomplete", "secret_exposure_runtime_not_verified"];
+  runtimeRequestIds: string[];
+  auditRefs: string[];
+  coverage: ProductionSecurityLaunchCheckCoverage[];
+  gateImpact: {
+    checklistItem: string;
+    canClearCheckLevelItem: boolean;
+    aggregateProductionGateStatus: "blocked_by_other_production_runtime_items";
+    remainingBlockers: string[];
+  };
+};
+
 export type SupportTicket = {
   id: string;
   status: "open" | "waiting_user" | "resolved" | "escalated";

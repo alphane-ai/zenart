@@ -56,6 +56,7 @@ test("admin fixtures cover required operational surfaces", () => {
     "export const stagingAuthRbacTenantAuditEvidence",
     "export const stagingSupportRetryAbuseEvidence",
     "export const productionSkillReleaseEvalCanaryEvidence",
+    "export const productionSecurityLaunchCheckEvidence",
     "export const operationalDashboards",
     "export const operationalDashboardRuntimeEvidence",
     "export const alertRoutes",
@@ -362,6 +363,38 @@ test("admin support page surfaces staging support retry abuse evidence", () => {
     "failed_task_retry_cancel",
     "abuse_hold_throttle",
     "abuse_queue_closure"
+  ]) {
+    assert.match(fixtures, new RegExp(token));
+  }
+});
+
+test("admin audit page surfaces production security launch evidence", () => {
+  const auditPage = readFileSync(
+    new URL("../app/audit/page.tsx", import.meta.url),
+    "utf8"
+  );
+
+  for (const token of [
+    "Production Security Evidence",
+    "ProductionSecurityLaunchCheckCoverage",
+    "Security Audit Evidence",
+    "secure cookies",
+    "CSRF/same-site",
+    "secret redaction"
+  ]) {
+    assert.match(auditPage, new RegExp(token));
+  }
+
+  for (const token of [
+    "productionSecurityLaunchCheckEvidence",
+    "production_security_launch_checks_20260527T1700Z",
+    "ops/evidence/production/20260527T1700Z-security-launch-checks.json",
+    "secure_session_cookie",
+    "csrf_same_site_enforcement",
+    "secret_exposure_redaction",
+    "admin_surface_privacy",
+    "security_privacy_legal_incomplete",
+    "secret_exposure_runtime_not_verified"
   ]) {
     assert.match(fixtures, new RegExp(token));
   }

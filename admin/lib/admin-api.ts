@@ -22,6 +22,7 @@ import {
   operationalDashboards,
   productionActivationReviewAuditEvidence,
   productionAbuseThrottleHoldEvidence,
+  productionSecurityLaunchCheckEvidence,
   productionSkillReleaseEvalCanaryEvidence,
   promptFragments,
   providerHealth,
@@ -151,6 +152,10 @@ export async function getProductionActivationReviewAuditEvidence() {
 
 export async function getProductionSkillReleaseEvalCanaryEvidence() {
   return productionSkillReleaseEvalCanaryEvidence;
+}
+
+export async function getProductionSecurityLaunchCheckEvidence() {
+  return productionSecurityLaunchCheckEvidence;
 }
 
 export async function getExportJob(id: string) {

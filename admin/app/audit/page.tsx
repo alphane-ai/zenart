@@ -7,6 +7,7 @@ import {
   getAdminReviewDecisions,
   getAuditEvents,
   getProductionActivationReviewAuditEvidence,
+  getProductionSecurityLaunchCheckEvidence,
   getStagingAuthRbacTenantAuditEvidence
 } from "@/lib/admin-api";
 import type {
@@ -15,6 +16,7 @@ import type {
   AdminReviewDecision,
   AuditEvent,
   ProductionActivationReviewAuditCoverage,
+  ProductionSecurityLaunchCheckCoverage,
   StagingAuthRbacTenantAuditCoverage
 } from "@/lib/types";
 
@@ -25,6 +27,7 @@ export default async function AuditPage() {
     rbacEvidence,
     rbacRuntime,
     productionActivationEvidence,
+    productionSecurityEvidence,
     stagingAuthRbacTenantAuditEvidence
   ] = await Promise.all([
     getAuditEvents(),
@@ -32,6 +35,7 @@ export default async function AuditPage() {
     getAdminRbacEvidence(),
     getAdminRbacRuntimeDecisions(),
     getProductionActivationReviewAuditEvidence(),
+    getProductionSecurityLaunchCheckEvidence(),
     getStagingAuthRbacTenantAuditEvidence()
   ]);
   const filterPresets = [
@@ -111,6 +115,47 @@ export default async function AuditPage() {
             { key: "second-review", header: "Second Review Status", render: (row) => <StatusBadge value={row.secondReviewStatus} label={row.secondReviewStatus} /> },
             { key: "evidence", header: "Evidence Refs", render: (row) => row.evidenceRefs.join(", ") },
             { key: "rationale", header: "Rationale", render: (row) => row.rationale }
+          ]}
+        />
+      </section>
+
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>Production Security Evidence</h3>
+            <p>Production probes cover secure cookies, CSRF/same-site enforcement, secret redaction, and admin privacy without closing unrelated launch blockers.</p>
+          </div>
+          <StatusBadge
+            value={productionSecurityEvidence.status === "pass_with_blockers_preserved" ? "warning" : "blocked"}
+            label={productionSecurityEvidence.status}
+          />
+        </div>
+        <div className="panel-body">
+          <div className="record-card">
+            <header>
+              <div>
+                <h4>{productionSecurityEvidence.id}</h4>
+                <p className="mono">{productionSecurityEvidence.evidencePath}</p>
+              </div>
+              <StatusBadge value="info" label={productionSecurityEvidence.validatedByRole} />
+            </header>
+            <p>{productionSecurityEvidence.gateImpact.checklistItem}</p>
+            <p className="mono">
+              {productionSecurityEvidence.doNotLaunchConditionIds.join(", ")} ·{" "}
+              {productionSecurityEvidence.gateImpact.aggregateProductionGateStatus}
+            </p>
+          </div>
+        </div>
+        <DataTable<ProductionSecurityLaunchCheckCoverage>
+          rows={productionSecurityEvidence.coverage}
+          columns={[
+            { key: "area", header: "Area", render: (row) => row.area },
+            { key: "status", header: "Status", render: (row) => <StatusBadge value={row.status === "pass" ? "approved" : "blocked"} label={row.status} /> },
+            { key: "probe", header: "Runtime Probe", render: (row) => row.runtimeProbe },
+            { key: "deployment", header: "Deployment Evidence", render: (row) => row.deploymentEvidence },
+            { key: "audit", header: "Security Audit Evidence", render: (row) => row.securityAuditEvidence },
+            { key: "artifacts", header: "Admin Artifacts", render: (row) => row.linkedAdminArtifacts.join(", ") },
+            { key: "evidence", header: "Evidence Refs", render: (row) => row.evidenceRefs.join(", ") }
           ]}
         />
       </section>
