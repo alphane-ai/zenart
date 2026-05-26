@@ -1783,7 +1783,7 @@ main 合并前必须通过：
 - [x] 实现 export completeness QA。
 - [x] 实现 safety rule schema。
 - [x] 定义并验证 brief/provider request/provider response/QA/export safety policy contract evidence。
-- [ ] 在 brief/provider request/provider response/QA/export 运行 safety policy。
+- [x] 在 brief/provider request/provider response/QA/export 运行 safety policy。
 - [x] 实现 red-team fixtures。
 
 ### 25.12 Workflow Acceptance

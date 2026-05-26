@@ -261,6 +261,20 @@ type SafetyDecision struct {
 	CreatedAt        time.Time `json:"created_at"`
 }
 
+type RuntimeSafetyPolicyInput struct {
+	TenantID        string
+	ProjectID       string
+	TaskID          string
+	QASubjectType   string
+	QASubjectID     string
+	ExportID        string
+	IncludeProvider bool
+}
+
+type RuntimeSafetyPolicyResult struct {
+	Decisions []SafetyDecision `json:"decisions"`
+}
+
 type Repository struct {
 	db store.DBTX
 }
@@ -288,13 +302,19 @@ func (r Repository) CreateExport(ctx context.Context, tenantID, userID, packageI
 	if blocked {
 		return task.Task{}, ErrSafetyBlocked
 	}
-	if _, err := r.RequireSafetyAllowed(ctx, tenantID, "package", packageID, SafetyPointExport); err != nil {
+	exportID := id.New("export")
+	if _, err := r.RunRuntimeSafetyPolicy(ctx, RuntimeSafetyPolicyInput{
+		TenantID:      tenantID,
+		ProjectID:     pkg.ProjectID,
+		QASubjectType: "package",
+		QASubjectID:   packageID,
+		ExportID:      exportID,
+	}); err != nil {
 		return task.Task{}, err
 	}
 
 	now := time.Now().UTC()
 	taskID := id.New("task")
-	exportID := id.New("export")
 	_, err = r.db.Exec(ctx, `
 INSERT INTO agent_tasks(id, tenant_id, type, schema_version, status, user_status, progress, user_message, app_version, worker_version, metadata, created_at, updated_at)
 VALUES($1, $2, 'package_export_builder', $3, 'pending', 'pending', 0, 'Export queued', 'stage0-local', 'stage0-local', $4, $5, $5)`,
@@ -512,9 +532,6 @@ func (r Repository) RecordExportArtifact(ctx context.Context, artifact ExportArt
 	if artifact.ContentType == "" {
 		artifact.ContentType = contentTypeForExport(artifact.Format)
 	}
-	if _, err := r.RequireSafetyAllowed(ctx, artifact.TenantID, "export", artifact.ExportID, SafetyPointExport); err != nil {
-		return Export{}, err
-	}
 	if artifact.StorageProvider == "" {
 		artifact.StorageProvider = "configured"
 	}
@@ -529,6 +546,15 @@ func (r Repository) RecordExportArtifact(ctx context.Context, artifact ExportArt
 	}
 	if artifact.Provenance == nil {
 		artifact.Provenance = map[string]any{}
+	}
+	if _, err := r.RunRuntimeSafetyPolicy(ctx, RuntimeSafetyPolicyInput{
+		TenantID:      artifact.TenantID,
+		ProjectID:     artifact.ProjectID,
+		QASubjectType: "export",
+		QASubjectID:   artifact.ExportID,
+		ExportID:      artifact.ExportID,
+	}); err != nil {
+		return Export{}, err
 	}
 	if artifact.Thumbnail == nil {
 		thumbnail := BuildExportThumbnail(artifact.ExportID, artifact.Format, artifact.Manifest)
@@ -825,7 +851,13 @@ func (r Repository) RegenerateExport(ctx context.Context, tenantID, exportID str
 	if blocked {
 		return Export{}, ErrSafetyBlocked
 	}
-	if _, err := r.RequireSafetyAllowed(ctx, tenantID, "export", exportID, SafetyPointExport); err != nil {
+	if _, err := r.RunRuntimeSafetyPolicy(ctx, RuntimeSafetyPolicyInput{
+		TenantID:      tenantID,
+		ProjectID:     stringValue(export.ProjectID),
+		QASubjectType: "package",
+		QASubjectID:   export.PackageID,
+		ExportID:      exportID,
+	}); err != nil {
 		return Export{}, err
 	}
 	now := time.Now().UTC()
@@ -1178,6 +1210,54 @@ func (r Repository) EnforceQASafety(ctx context.Context, tenantID, subjectType, 
 
 func (r Repository) EnforceExportSafety(ctx context.Context, tenantID, exportID string) (SafetyDecision, error) {
 	return r.RequireSafetyAllowed(ctx, tenantID, "export", exportID, SafetyPointExport)
+}
+
+func (r Repository) RunRuntimeSafetyPolicy(ctx context.Context, input RuntimeSafetyPolicyInput) (RuntimeSafetyPolicyResult, error) {
+	input.TenantID = strings.TrimSpace(input.TenantID)
+	input.ProjectID = strings.TrimSpace(input.ProjectID)
+	input.TaskID = strings.TrimSpace(input.TaskID)
+	input.QASubjectType = strings.TrimSpace(input.QASubjectType)
+	input.QASubjectID = strings.TrimSpace(input.QASubjectID)
+	input.ExportID = strings.TrimSpace(input.ExportID)
+	if input.TenantID == "" {
+		return RuntimeSafetyPolicyResult{}, errors.Join(ErrValidation, errors.New("tenant_id is required for runtime safety policy"))
+	}
+
+	var result RuntimeSafetyPolicyResult
+	appendDecision := func(decision SafetyDecision, err error) error {
+		if err != nil {
+			return err
+		}
+		result.Decisions = append(result.Decisions, decision)
+		return nil
+	}
+	if input.ProjectID != "" {
+		if err := appendDecision(r.EnforceBriefSafety(ctx, input.TenantID, input.ProjectID)); err != nil {
+			return result, err
+		}
+	}
+	if input.IncludeProvider && input.TaskID != "" {
+		if err := appendDecision(r.EnforceProviderRequestSafety(ctx, input.TenantID, input.TaskID)); err != nil {
+			return result, err
+		}
+		if err := appendDecision(r.EnforceProviderResponseSafety(ctx, input.TenantID, input.TaskID)); err != nil {
+			return result, err
+		}
+	}
+	if input.QASubjectType != "" && input.QASubjectID != "" {
+		if err := appendDecision(r.EnforceQASafety(ctx, input.TenantID, input.QASubjectType, input.QASubjectID)); err != nil {
+			return result, err
+		}
+	}
+	if input.ExportID != "" {
+		if err := appendDecision(r.EnforceExportSafety(ctx, input.TenantID, input.ExportID)); err != nil {
+			return result, err
+		}
+	}
+	if len(result.Decisions) == 0 {
+		return RuntimeSafetyPolicyResult{}, errors.Join(ErrValidation, errors.New("at least one runtime safety subject is required"))
+	}
+	return result, nil
 }
 
 func (r Repository) RecordAnalyticsEvent(ctx context.Context, event AnalyticsEvent) error {
@@ -1605,6 +1685,10 @@ func (s Service) EnforceQASafety(ctx context.Context, tenantID, subjectType, sub
 
 func (s Service) EnforceExportSafety(ctx context.Context, tenantID, exportID string) (SafetyDecision, error) {
 	return s.repo.EnforceExportSafety(ctx, tenantID, exportID)
+}
+
+func (s Service) RunRuntimeSafetyPolicy(ctx context.Context, input RuntimeSafetyPolicyInput) (RuntimeSafetyPolicyResult, error) {
+	return s.repo.RunRuntimeSafetyPolicy(ctx, input)
 }
 
 func (s Service) RecordExportArtifact(ctx context.Context, artifact ExportArtifact) (Export, error) {
