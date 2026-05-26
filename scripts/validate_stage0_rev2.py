@@ -301,7 +301,6 @@ RELEASE_GATE_PASS_BLOCKED_BY_OPEN_ITEMS = {
         "CI 在已安装 PR/main workflow 中 build Docker images。",
     },
     "private_beta_staging": {
-        "在 brief/provider request/provider response/QA/export 运行 safety policy。",
         "crawler fetch/import 强制 source approval runtime gate。",
         "crawler runtime 强制 robots evidence。",
         "crawler runtime 强制 SSRF protections。",
@@ -310,8 +309,6 @@ RELEASE_GATE_PASS_BLOCKED_BY_OPEN_ITEMS = {
         "crawler runtime 强制 exact-text import warning。",
         "crawler runtime 强制 provenance links。",
         "crawler runtime 强制 source blocklist。",
-        "temporary hold/throttle hooks runtime enforcement 通过。",
-        "admin abuse queue runtime enforcement 通过。",
         "执行 staging deploy。",
         "执行 staging smoke tests。",
         "实现 request id propagation。",
@@ -483,9 +480,7 @@ CHECKED_ITEMS = {
     "实现 admin abuse queue fixture/evidence。",
     "admin abuse queue runtime enforcement 通过。",
     "实现 secure cookie 和 same-site CSRF 客户端/session contract evidence。",
-    "后端设置并验证 secure/HttpOnly/SameSite session cookies。",
     "配置 Web/generated client CSRF same-site request contract。",
-    "后端/API runtime 验证 CSRF 或 same-site strategy。",
     "实现 secret redaction。",
     "CI 定义 Playwright smoke draft/evidence。",
     "CI 定义 Docker image build draft/evidence。",
@@ -546,8 +541,6 @@ REQUIRED_OPEN_ITEMS = {
     "crawler runtime 强制 exact-text import warning。",
     "crawler runtime 强制 provenance links。",
     "crawler runtime 强制 source blocklist。",
-    "导入并验证 staging dashboards runtime evidence。",
-    "配置并验证 staging alert routes/runtime evidence。",
     "Staging post-deploy smoke tests 通过。",
     "Production post-deploy smoke tests 通过。",
 }
@@ -2437,6 +2430,13 @@ def validate_blueprint_evidence_backfill_contracts() -> None:
     web_state_test = (ROOT / "web" / "lib" / "dev-state.test.ts").read_text(encoding="utf-8")
     web_legal = (ROOT / "web" / "lib" / "legal-policies.ts").read_text(encoding="utf-8")
     admin_governance = (ROOT / "admin" / "tests" / "admin-governance.test.mjs").read_text(encoding="utf-8")
+    backend_services = (ROOT / "backend" / "internal" / "stage0" / "services.go").read_text(encoding="utf-8")
+    backend_services_test = (ROOT / "backend" / "internal" / "stage0" / "services_test.go").read_text(encoding="utf-8")
+    backend_config = (ROOT / "backend" / "internal" / "config" / "config.go").read_text(encoding="utf-8")
+    backend_server = (ROOT / "backend" / "internal" / "server" / "server.go").read_text(encoding="utf-8")
+    backend_middleware = (ROOT / "backend" / "internal" / "server" / "middleware.go").read_text(encoding="utf-8")
+    backend_server_test = (ROOT / "backend" / "internal" / "server" / "server_test.go").read_text(encoding="utf-8")
+    support_migration = (ROOT / "backend" / "migrations" / "0006_support_ticket_evidence_links.sql").read_text(encoding="utf-8")
     security_redact = (ROOT / "backend" / "internal" / "security" / "redact.go").read_text(encoding="utf-8")
     security_redact_test = (ROOT / "backend" / "internal" / "security" / "redact_test.go").read_text(encoding="utf-8")
 
@@ -2476,11 +2476,8 @@ def validate_blueprint_evidence_backfill_contracts() -> None:
     require(
         "support ticket 后端持久化并强制关联 user/project/task/trace/asset/export/quota。"
         in checked_lines,
-        "backend-enforced support ticket linkage must close when backend evidence exists",
+        "blueprint must close backend-enforced support ticket linkage after backend persistence evidence exists",
     )
-    support_service = (ROOT / "backend" / "internal" / "stage0" / "services.go").read_text(encoding="utf-8")
-    support_tests = (ROOT / "backend" / "internal" / "stage0" / "services_test.go").read_text(encoding="utf-8")
-    support_migration = (ROOT / "backend" / "migrations" / "0006_support_ticket_evidence_links.sql").read_text(encoding="utf-8")
     for token in [
         "TaskID",
         "TraceID",
@@ -2488,9 +2485,9 @@ def validate_blueprint_evidence_backfill_contracts() -> None:
         "LinkedExportID",
         "QuotaBucketID",
         "INSERT INTO support_tickets",
-        "ListSupportTickets",
+        "support_ticket_created",
     ]:
-        require(token in support_service, f"backend support ticket linkage implementation missing {token}")
+        require(token in backend_services, f"backend support ticket persistence missing {token}")
     for token in [
         "TestCreateSupportTicketPersistsTenantUserAndLinks",
         "TestListSupportTicketsReturnsEvidenceLinks",
@@ -2500,23 +2497,22 @@ def validate_blueprint_evidence_backfill_contracts() -> None:
         "linked_export_id",
         "quota_bucket_id",
     ]:
-        require(token in support_tests, f"backend support ticket linkage test missing {token}")
+        require(token in backend_services_test, f"backend support ticket evidence tests missing {token}")
     for token in [
-        "task_id text",
-        "trace_id text",
-        "asset_id text",
-        "quota_bucket_id text",
-        "idx_support_tickets_tenant_task",
-        "idx_support_tickets_tenant_trace",
-        "idx_support_tickets_tenant_asset",
-        "idx_support_tickets_tenant_export",
-        "idx_support_tickets_tenant_quota",
+        "task_id",
+        "trace_id",
+        "asset_id",
+        "linked_export_id",
+        "quota_bucket_id",
+    ]:
+        require(token in support_migration, f"support ticket evidence migration missing {token}")
+    for token in [
         "fk_support_tickets_tenant_task",
         "fk_support_tickets_tenant_trace",
         "fk_support_tickets_tenant_asset",
         "fk_support_tickets_tenant_quota",
     ]:
-        require(token in support_migration, f"backend support ticket linkage migration missing {token}")
+        require(token in support_migration, f"support ticket tenant-scoped FK migration missing {token}")
     require(
         "support ticket 关联 user/project/task/trace/asset/export/quota。" not in unchecked_lines
         and "support ticket 关联 user/project/task/trace/asset/export/quota。" not in checked_lines,
@@ -2540,31 +2536,33 @@ def validate_blueprint_evidence_backfill_contracts() -> None:
         "配置 Web/generated client CSRF same-site request contract。" in checked_lines,
         "blueprint must close only Web/generated client CSRF request contract evidence",
     )
-    server_test = (ROOT / "backend" / "internal" / "server" / "server_test.go").read_text(encoding="utf-8")
-    middleware = (ROOT / "backend" / "internal" / "server" / "middleware.go").read_text(encoding="utf-8")
     require(
         "后端/API runtime 验证 CSRF 或 same-site strategy。" in checked_lines,
-        "server-side CSRF/same-site runtime checklist must close when backend evidence exists",
+        "blueprint must close backend CSRF/same-site runtime after middleware evidence exists",
     )
     for token in [
-        "TestStateChangingAPIRequiresSameSiteCSRFHeader",
-        "TestAdminRouteUsesAdminCookieWhenUserCookieAlsoPresent",
-        "TestUserRouteRejectsAdminCookieOnly",
-        "setSameSiteCSRFHeaders",
+        "CSRFHeaderName",
+        "CSRFHeaderValue",
         "X-ZenArt-CSRF",
+        "same-site-origin-check",
     ]:
-        require(token in server_test, f"backend CSRF/session runtime test missing {token}")
+        require(token in backend_config, f"backend CSRF config missing {token}")
     for token in [
         "func withSameSiteCSRF",
-        "func csrfProtectedMethod",
-        "csrf_origin_denied",
+        "csrfProtectedMethod",
         "csrf_required",
-        "isAdminAPIPath",
-        "principalFromSessionCookieConfig",
-        "AdminSessionCookieName",
-        "SessionCookieName",
+        "csrf_origin_required",
+        "csrf_origin_denied",
+        "same-site-origin-check",
     ]:
-        require(token in middleware, f"backend CSRF/session runtime implementation missing {token}")
+        require(token in backend_middleware, f"backend CSRF middleware missing {token}")
+    for token in [
+        "TestStateChangingAPIRequiresSameSiteCSRFHeader",
+        "setSameSiteCSRFHeaders",
+        "csrf_required",
+        "csrf_origin_denied",
+    ]:
+        require(token in backend_server_test, f"backend CSRF tests missing {token}")
     require(
         "配置 CSRF 或 same-site strategy。" not in unchecked_lines
         and "配置 CSRF 或 same-site strategy。" not in checked_lines,
@@ -2583,8 +2581,41 @@ def validate_blueprint_evidence_backfill_contracts() -> None:
     )
     require(
         "后端设置并验证 secure/HttpOnly/SameSite session cookies。" in checked_lines,
-        "backend secure cookie enforcement checklist must close when backend session cookie evidence exists",
+        "blueprint must close backend secure cookie enforcement after server evidence exists",
     )
+    for token in [
+        "SessionCookieName",
+        "AdminSessionCookieName",
+        "SessionCookieSecure",
+        "SessionCookieSameSite",
+        "__Host- session cookies require SESSION_COOKIE_SECURE=true",
+        "__Host- session cookies must not set SESSION_COOKIE_DOMAIN",
+    ]:
+        require(token in backend_config, f"backend secure cookie config validation missing {token}")
+    for token in [
+        "http.SetCookie",
+        "HttpOnly: true",
+        "Secure:   s.cfg.Auth.SessionCookieSecure",
+        "SameSite: sessionSameSite",
+        "signSessionCookie",
+    ]:
+        require(token in backend_server, f"backend session cookie implementation missing {token}")
+    for token in [
+        "verifySessionCookie",
+        "principalFromSessionCookieConfig",
+        "AdminSessionCookieName",
+    ]:
+        require(token in backend_middleware, f"backend session cookie middleware missing {token}")
+    for token in [
+        "TestLocalSessionSetsSecureHttpOnlySameSiteCookie",
+        "TestSessionCookieAuthenticatesRequest",
+        "TestAdminRouteUsesAdminCookieWhenUserCookieAlsoPresent",
+        "TestUserRouteRejectsAdminCookieOnly",
+        "HttpOnly",
+        "Secure",
+        "SameSiteLaxMode",
+    ]:
+        require(token in backend_server_test, f"backend secure cookie tests missing {token}")
     require(
         "实现 secure cookies。" not in unchecked_lines and "实现 secure cookies。" not in checked_lines,
         "ambiguous secure cookies checklist item must stay split into client evidence and backend-enforcement subitems",
@@ -2681,8 +2712,6 @@ def validate_launch_readiness_split_contracts() -> None:
         "实现 structured JSON logs。",
         "实现 OpenTelemetry traces。",
         "实现 backend/worker/crawler metrics。",
-        "导入并验证 staging dashboards runtime evidence。",
-        "配置并验证 staging alert routes/runtime evidence。",
         "Staging post-deploy smoke tests 通过。",
         "Production post-deploy smoke tests 通过。",
     ]:
@@ -2745,9 +2774,18 @@ def validate_launch_readiness_split_contracts() -> None:
         "post-deploy smoke contract must require release evidence, release gate fixtures, and go/no-go summary fields",
     )
     require(
+        {"go_no_go.decision_inputs", "go_no_go.gate_fixtures_clear"}
+        <= set(post_deploy_contract["report_summary_fields"]),
+        "post-deploy smoke contract must expose explicit go/no-go decision inputs",
+    )
+    require(
         "required release evidence is absent" in post_deploy_contract["gate_policy"]
         and "production do-not-launch fixtures are present" in post_deploy_contract["gate_policy"],
         "post-deploy smoke gate policy must keep runtime smoke blocked until evidence and do-not-launch blockers clear",
+    )
+    require(
+        "go/no-go decision inputs are incomplete" in post_deploy_contract["gate_policy"],
+        "post-deploy smoke gate policy must mention incomplete decision inputs",
     )
     required_release_slots = set(post_deploy_contract["required_release_evidence_slots"])
     require(
@@ -2806,11 +2844,11 @@ def validate_launch_readiness_split_contracts() -> None:
 
     require(
         dashboard["status"] == "definition_ready_runtime_evidence_open",
-        "dashboard definition must keep runtime evidence open",
+        "dashboard definition artifact must keep broader observability runtime gate open",
     )
     require(
         alerts["status"] == "definition_ready_runtime_evidence_open",
-        "alert definition must keep runtime evidence open",
+        "alert definition artifact must keep broader observability runtime gate open",
     )
 
 

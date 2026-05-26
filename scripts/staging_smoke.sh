@@ -338,7 +338,13 @@ go_no_go = {
     "smoke_passed": smoke_passed,
     "release_evidence_complete": release_evidence_complete,
     "release_evidence_verified": release_evidence_verified,
+    "gate_fixtures_clear": not blocked_conditions,
     "blocked_conditions": blocked_conditions,
+    "decision_inputs": {
+        "smoke_passed": smoke_passed,
+        "release_evidence_complete": release_evidence_complete,
+        "gate_fixtures_clear": not blocked_conditions,
+    },
 }
 print(json.dumps({
     "check_count": len(rows),

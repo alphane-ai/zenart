@@ -272,9 +272,88 @@ if go_no_go.get("decision") != "no-go":
     raise SystemExit("staging smoke dry-run must remain no-go")
 if go_no_go.get("release_evidence_verified") is not False:
     raise SystemExit("staging smoke dry-run must keep release evidence unverified")
+if go_no_go.get("gate_fixtures_clear") is not False:
+    raise SystemExit("staging smoke dry-run must keep gate fixtures blocked")
+decision_inputs = go_no_go.get("decision_inputs", {})
+if decision_inputs.get("smoke_passed") is not False:
+    raise SystemExit("staging smoke dry-run decision inputs must record smoke_passed=false")
+if decision_inputs.get("release_evidence_complete") is not False:
+    raise SystemExit("staging smoke dry-run decision inputs must record release_evidence_complete=false")
+if decision_inputs.get("gate_fixtures_clear") is not False:
+    raise SystemExit("staging smoke dry-run decision inputs must record gate_fixtures_clear=false")
 for gate in ("private_beta_staging", "production_launch"):
     if gate not in summary["release_gate_fixtures"]:
         raise SystemExit(f"staging smoke missing gate fixture summary for {gate}")
+PY
+complete_validate_dir="$(mktemp -d)"
+complete_sha="1234567890abcdef1234567890abcdef12345678"
+cat >"$complete_validate_dir/release-notes.md" <<EOF
+# Synthetic Stage 0 Rev2 Release Notes
+
+Release SHA: $complete_sha
+
+## Identity
+## Scope
+## Migration List
+## Config Diff
+## Feature Flags
+## Smoke Plan
+## Evidence
+## Rollback Plan
+## Known Risks
+## Go/No-Go
+EOF
+printf '{"release_sha":"%s","kind":"migration"}\n' "$complete_sha" >"$complete_validate_dir/migration.json"
+printf '{"release_sha":"%s","kind":"config"}\n' "$complete_sha" >"$complete_validate_dir/config.json"
+printf '{"release_sha":"%s","kind":"observability"}\n' "$complete_sha" >"$complete_validate_dir/observability.json"
+printf '{"release_sha":"%s","kind":"backup_restore"}\n' "$complete_sha" >"$complete_validate_dir/backup.json"
+printf '{"release_sha":"%s","kind":"rollback"}\n' "$complete_sha" >"$complete_validate_dir/rollback.json"
+printf '{"release_sha":"%s","kind":"security"}\n' "$complete_sha" >"$complete_validate_dir/security.json"
+DRY_RUN=1 \
+  OUT_DIR="$complete_validate_dir/staging" \
+  RELEASE_SHA="$complete_sha" \
+  RELEASE_TAG="stage0-synthetic" \
+  RELEASE_NOTES_PATH="$complete_validate_dir/release-notes.md" \
+  IMAGE_REFS="ghcr.io/alphane-ai/zenart-backend:$complete_sha,ghcr.io/alphane-ai/zenart-web:$complete_sha,ghcr.io/alphane-ai/zenart-admin:$complete_sha" \
+  MIGRATION_EVIDENCE="$complete_validate_dir/migration.json" \
+  CONFIG_DIFF_EVIDENCE="$complete_validate_dir/config.json" \
+  OBSERVABILITY_EVIDENCE="$complete_validate_dir/observability.json" \
+  BACKUP_RESTORE_EVIDENCE="$complete_validate_dir/backup.json" \
+  ROLLBACK_EVIDENCE="$complete_validate_dir/rollback.json" \
+  SECURITY_SCAN_EVIDENCE="$complete_validate_dir/security.json" \
+  scripts/staging_smoke.sh >/dev/null
+python3 - "$complete_validate_dir/staging" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+reports = sorted(Path(sys.argv[1]).glob("*.json"))
+if len(reports) != 1:
+    raise SystemExit("complete-evidence staging smoke dry-run must write exactly one report")
+report = json.loads(reports[0].read_text(encoding="utf-8"))
+summary = report["summary"]
+release_evidence = summary["release_evidence"]
+go_no_go = summary["go_no_go"]
+if release_evidence.get("complete") is not True:
+    raise SystemExit("complete-evidence staging smoke dry-run must verify all local evidence slots")
+if go_no_go.get("release_evidence_complete") is not True:
+    raise SystemExit("complete-evidence staging smoke dry-run must expose release_evidence_complete=true")
+if go_no_go.get("gate_fixtures_clear") is not False:
+    raise SystemExit("complete-evidence staging smoke dry-run must keep gate_fixtures_clear=false")
+if go_no_go.get("decision") != "no-go":
+    raise SystemExit("complete-evidence staging smoke dry-run must remain no-go while gate fixtures are blocked")
+blocked = go_no_go.get("blocked_conditions", [])
+if not any(item.startswith("private_beta_staging:") for item in blocked):
+    raise SystemExit("complete-evidence staging smoke dry-run must include private beta blockers")
+if not any(item.startswith("production_launch:") for item in blocked):
+    raise SystemExit("complete-evidence staging smoke dry-run must include production blockers")
+decision_inputs = go_no_go.get("decision_inputs", {})
+if decision_inputs != {
+    "smoke_passed": False,
+    "release_evidence_complete": True,
+    "gate_fixtures_clear": False,
+}:
+    raise SystemExit(f"complete-evidence staging smoke decision inputs mismatch: {decision_inputs}")
 PY
 python3 - "$ops_validate_dir/observability" <<'PY'
 import json

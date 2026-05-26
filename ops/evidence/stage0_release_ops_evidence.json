@@ -48,7 +48,9 @@
     "report_summary_fields": [
       "release_evidence",
       "release_gate_fixtures",
-      "go_no_go"
+      "go_no_go",
+      "go_no_go.decision_inputs",
+      "go_no_go.gate_fixtures_clear"
     ],
     "required_release_evidence_slots": [
       "release_sha",
@@ -71,7 +73,7 @@
       "rollback_evidence": "must exist locally and reference RELEASE_SHA",
       "security_scan_evidence": "must exist locally and reference RELEASE_SHA"
     },
-    "gate_policy": "report decision remains no-go when smoke fails, required release evidence is absent or locally unverifiable, release-SHA-bound evidence does not reference the deploy SHA, private beta fixtures are blocked, or production do-not-launch fixtures are present"
+    "gate_policy": "report decision remains no-go when smoke fails, required release evidence is absent or locally unverifiable, release-SHA-bound evidence does not reference the deploy SHA, private beta fixtures are blocked, production do-not-launch fixtures are present, or go/no-go decision inputs are incomplete"
   },
   "checklist_policy": {
     "ci_playwright_smoke_remains_open": true,
