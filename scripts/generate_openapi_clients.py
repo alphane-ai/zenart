@@ -26,6 +26,7 @@ class Operation:
     operation_id: str
     rbac: str
     idempotency_required: bool
+    error_envelope: bool
 
 
 def parse_operations(text: str) -> list[Operation]:
@@ -34,11 +35,16 @@ def parse_operations(text: str) -> list[Operation]:
     current_path = ""
     current_method = ""
     current: dict[str, str] = {}
+    current_lines: list[str] = []
     mutating = {"post", "put", "patch", "delete"}
 
     def flush() -> None:
         if not current_path or not current_method or "operationId" not in current:
             return
+        error_envelope = (
+            "default:" in "\n".join(current_lines)
+            and '$ref: "#/components/responses/Error"' in "\n".join(current_lines)
+        )
         operations.append(
             Operation(
                 method=current_method.upper(),
@@ -46,6 +52,7 @@ def parse_operations(text: str) -> list[Operation]:
                 operation_id=current["operationId"],
                 rbac=current.get("x-rbac", ""),
                 idempotency_required=current.get("x-idempotency-required", "false") == "true",
+                error_envelope=error_envelope,
             )
         )
 
@@ -65,6 +72,7 @@ def parse_operations(text: str) -> list[Operation]:
             current_path = path_match.group(1)
             current_method = ""
             current = {}
+            current_lines = []
             continue
 
         method_match = re.match(r"^    (get|post|put|patch|delete):$", line)
@@ -72,7 +80,11 @@ def parse_operations(text: str) -> list[Operation]:
             flush()
             current_method = method_match.group(1)
             current = {}
+            current_lines = []
             continue
+
+        if current_method:
+            current_lines.append(line)
 
         field_match = re.match(r"^      (operationId|x-rbac|x-idempotency-required): (.+)$", line)
         if field_match and current_method:
@@ -91,6 +103,8 @@ def parse_operations(text: str) -> list[Operation]:
         if operation.method.lower() in mutating and operation.method != "GET" and operation.operation_id != "deleteSession":
             if not operation.idempotency_required:
                 raise ValueError(f"{operation.operation_id} must declare x-idempotency-required")
+        if not operation.error_envelope:
+            raise ValueError(f"{operation.operation_id} must declare default ErrorEnvelope response")
 
     return operations
 
@@ -108,7 +122,8 @@ def render(audience: str, operations: list[Operation], digest: str) -> str:
         (
             f'  {operation.operation_id}: {{ method: "{operation.method}", '
             f'path: "{operation.path}", rbac: "{operation.rbac}", '
-            f"idempotencyRequired: {str(operation.idempotency_required).lower()} }}"
+            f"idempotencyRequired: {str(operation.idempotency_required).lower()}, "
+            f"errorEnvelope: {str(operation.error_envelope).lower()} }}"
         )
         for operation in ops
     )
@@ -165,6 +180,7 @@ export type ApiOperation = {{
   path: string;
   rbac: "user" | "admin";
   idempotencyRequired: boolean;
+  errorEnvelope: true;
 }};
 
 export const apiOperations: Record<OperationId, ApiOperation> = {{

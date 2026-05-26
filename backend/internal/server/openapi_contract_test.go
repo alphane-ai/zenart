@@ -75,6 +75,65 @@ func TestOpenAPITaskStatusMatchesBackendContract(t *testing.T) {
 	}
 }
 
+func TestOpenAPIOperationsDeclareSharedErrorEnvelope(t *testing.T) {
+	contract := string(readOpenAPIContract(t))
+	blocks := openAPIOperationBlocks(contract)
+	if len(blocks) == 0 {
+		t.Fatal("no OpenAPI operation blocks found")
+	}
+	for operationID, block := range blocks {
+		if !strings.Contains(block, "default:") || !strings.Contains(block, `$ref: "#/components/responses/Error"`) {
+			t.Fatalf("%s must declare shared ErrorEnvelope default response", operationID)
+		}
+	}
+}
+
+func openAPIOperationBlocks(contract string) map[string]string {
+	blocks := make(map[string]string)
+	lines := strings.Split(contract, "\n")
+	var operationID string
+	var block strings.Builder
+
+	flush := func() {
+		if operationID == "" {
+			return
+		}
+		blocks[operationID] = block.String()
+		operationID = ""
+		block.Reset()
+	}
+
+	for _, line := range lines {
+		if strings.HasPrefix(line, "components:") {
+			flush()
+			break
+		}
+		if isOpenAPIMethodLine(line) {
+			flush()
+		}
+		if operationID != "" {
+			block.WriteString(line)
+			block.WriteString("\n")
+		}
+		if strings.HasPrefix(line, "      operationId: ") {
+			operationID = strings.TrimPrefix(strings.TrimSpace(line), "operationId: ")
+			block.WriteString(line)
+			block.WriteString("\n")
+		}
+	}
+	flush()
+	return blocks
+}
+
+func isOpenAPIMethodLine(line string) bool {
+	switch line {
+	case "    get:", "    post:", "    put:", "    patch:", "    delete:":
+		return true
+	default:
+		return false
+	}
+}
+
 func readOpenAPIContract(t *testing.T) []byte {
 	t.Helper()
 	path := filepath.Join("..", "..", "..", "openapi", "zenart.v1.yaml")
