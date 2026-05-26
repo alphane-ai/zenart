@@ -94,6 +94,12 @@ func TestOpenAPIAgentTraceRequiresCompletenessContract(t *testing.T) {
 		"admin_visibility:",
 		"user_failure_mapping:",
 		"export_references:",
+		"artifact_links:",
+		"asset_ids:",
+		"package_id:",
+		"export_id:",
+		"manifest_linked:",
+		"qa_report_linked:",
 		"trace_provenance:",
 		"safety_disclaimer_when_applicable:",
 	} {

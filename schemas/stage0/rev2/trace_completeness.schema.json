@@ -75,7 +75,8 @@
           "quota_transaction_id",
           "admin_visibility",
           "user_failure_mapping",
-          "export_references"
+          "export_references",
+          "artifact_links"
         ],
         "properties": {
           "trace_id": {
@@ -165,6 +166,9 @@
                 "type": "boolean"
               }
             }
+          },
+          "artifact_links": {
+            "$ref": "#/$defs/artifact_links"
           }
         }
       }
@@ -278,6 +282,45 @@
         },
         "user_failure_mapping": {
           "$ref": "#/$defs/trace_boolean_evidence"
+        }
+      }
+    },
+    "artifact_links": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "asset_ids",
+        "package_id",
+        "export_id",
+        "manifest_linked",
+        "qa_report_linked",
+        "trace_provenance_linked"
+      ],
+      "properties": {
+        "asset_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^asset_fx_[a-z0-9_]+_candidate_[0-9]+$"
+          }
+        },
+        "package_id": {
+          "type": "string",
+          "pattern": "^package_fx_[a-z0-9_]+$"
+        },
+        "export_id": {
+          "type": "string",
+          "pattern": "^export_fx_[a-z0-9_]+$"
+        },
+        "manifest_linked": {
+          "type": "boolean"
+        },
+        "qa_report_linked": {
+          "type": "boolean"
+        },
+        "trace_provenance_linked": {
+          "type": "boolean"
         }
       }
     }

@@ -4067,7 +4067,7 @@ def validate_openapi_rev2_domain_contracts() -> None:
         "ShareLink": ["url", "access_policy"],
         "CrawlerSource": ["legal_metadata", "robots_policy"],
         "CrawlerFinding": ["provenance", "import_governance"],
-        "AgentTrace": ["request_id", "workflow", "schema_validation", "provenance", "safety_status", "qa_eval_status", "quota_transaction_id", "admin_visibility", "user_failure_mapping", "export_references"],
+        "AgentTrace": ["request_id", "workflow", "schema_validation", "provenance", "safety_status", "qa_eval_status", "quota_transaction_id", "admin_visibility", "user_failure_mapping", "export_references", "artifact_links"],
         "SafetyRule": ["enforcement_points", "evaluation_contract"],
         "AnalyticsEvent": ["event_name", "required_context", "success_metric_refs", "privacy_classification"],
         "AnalyticsReport": ["metric_name", "source_events", "required_dimensions", "go_no_go_signal"],
@@ -4131,7 +4131,7 @@ def validate_openapi_rev2_domain_contracts() -> None:
     trace_body = trace.group("body") if trace else ""
     for point in SAFETY_POINTS:
         require(point in trace_body, f"AgentTrace step_name enum missing {point}")
-    for token in ["const: true", "trace_provenance:", "safety_disclaimer_when_applicable:"]:
+    for token in ["const: true", "trace_provenance:", "safety_disclaimer_when_applicable:", "artifact_links:", "manifest_linked:", "qa_report_linked:"]:
         require(token in trace_body, f"AgentTrace completeness schema missing {token}")
 
 

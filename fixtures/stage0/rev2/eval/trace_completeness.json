@@ -229,7 +229,20 @@
             "source": "eval_result.fixture_results.trace_contract.has_user_failure_mapping"
           }
         }
-      ]
+      ],
+      "artifact_links": {
+        "asset_ids": [
+          "asset_fx_ecommerce_growth_golden_candidate_1",
+          "asset_fx_ecommerce_growth_golden_candidate_2",
+          "asset_fx_ecommerce_growth_golden_candidate_3",
+          "asset_fx_ecommerce_growth_golden_candidate_4"
+        ],
+        "package_id": "package_fx_ecommerce_growth_golden",
+        "export_id": "export_fx_ecommerce_growth_golden",
+        "manifest_linked": true,
+        "qa_report_linked": true,
+        "trace_provenance_linked": true
+      }
     },
     {
       "trace_id": "trace_fx_business_visual_doc_golden_readability",
@@ -441,7 +454,20 @@
             "source": "eval_result.fixture_results.trace_contract.has_user_failure_mapping"
           }
         }
-      ]
+      ],
+      "artifact_links": {
+        "asset_ids": [
+          "asset_fx_business_visual_doc_golden_candidate_1",
+          "asset_fx_business_visual_doc_golden_candidate_2",
+          "asset_fx_business_visual_doc_golden_candidate_3",
+          "asset_fx_business_visual_doc_golden_candidate_4"
+        ],
+        "package_id": "package_fx_business_visual_doc_golden",
+        "export_id": "export_fx_business_visual_doc_golden",
+        "manifest_linked": true,
+        "qa_report_linked": true,
+        "trace_provenance_linked": true
+      }
     },
     {
       "trace_id": "trace_fx_local_merchant_campaign_golden_dimensions",
@@ -653,7 +679,20 @@
             "source": "eval_result.fixture_results.trace_contract.has_user_failure_mapping"
           }
         }
-      ]
+      ],
+      "artifact_links": {
+        "asset_ids": [
+          "asset_fx_local_merchant_campaign_golden_candidate_1",
+          "asset_fx_local_merchant_campaign_golden_candidate_2",
+          "asset_fx_local_merchant_campaign_golden_candidate_3",
+          "asset_fx_local_merchant_campaign_golden_candidate_4"
+        ],
+        "package_id": "package_fx_local_merchant_campaign_golden",
+        "export_id": "export_fx_local_merchant_campaign_golden",
+        "manifest_linked": true,
+        "qa_report_linked": true,
+        "trace_provenance_linked": true
+      }
     },
     {
       "trace_id": "trace_fx_character_ip_concept_golden_blank",
@@ -865,7 +904,20 @@
             "source": "eval_result.fixture_results.trace_contract.has_user_failure_mapping"
           }
         }
-      ]
+      ],
+      "artifact_links": {
+        "asset_ids": [
+          "asset_fx_character_ip_concept_golden_candidate_1",
+          "asset_fx_character_ip_concept_golden_candidate_2",
+          "asset_fx_character_ip_concept_golden_candidate_3",
+          "asset_fx_character_ip_concept_golden_candidate_4"
+        ],
+        "package_id": "package_fx_character_ip_concept_golden",
+        "export_id": "export_fx_character_ip_concept_golden",
+        "manifest_linked": true,
+        "qa_report_linked": true,
+        "trace_provenance_linked": true
+      }
     },
     {
       "trace_id": "trace_ambiguous_brief_missing_product",
@@ -1077,7 +1129,15 @@
             "source": "eval_result.fixture_results.trace_contract.has_user_failure_mapping"
           }
         }
-      ]
+      ],
+      "artifact_links": {
+        "asset_ids": [],
+        "package_id": "package_fx_ambiguous_brief_missing_product",
+        "export_id": "export_fx_ambiguous_brief_missing_product",
+        "manifest_linked": false,
+        "qa_report_linked": false,
+        "trace_provenance_linked": true
+      }
     },
     {
       "trace_id": "trace_fx_unsafe_financial_claim",
@@ -1289,7 +1349,15 @@
             "source": "eval_result.fixture_results.trace_contract.has_user_failure_mapping"
           }
         }
-      ]
+      ],
+      "artifact_links": {
+        "asset_ids": [],
+        "package_id": "package_fx_unsafe_financial_claim",
+        "export_id": "export_fx_unsafe_financial_claim",
+        "manifest_linked": false,
+        "qa_report_linked": true,
+        "trace_provenance_linked": true
+      }
     },
     {
       "trace_id": "trace_fx_negative_generic_rendering_similarity",
@@ -1501,7 +1569,20 @@
             "source": "eval_result.fixture_results.trace_contract.has_user_failure_mapping"
           }
         }
-      ]
+      ],
+      "artifact_links": {
+        "asset_ids": [
+          "asset_fx_negative_generic_rendering_candidate_1",
+          "asset_fx_negative_generic_rendering_candidate_2",
+          "asset_fx_negative_generic_rendering_candidate_3",
+          "asset_fx_negative_generic_rendering_candidate_4"
+        ],
+        "package_id": "package_fx_negative_generic_rendering",
+        "export_id": "export_fx_negative_generic_rendering",
+        "manifest_linked": true,
+        "qa_report_linked": true,
+        "trace_provenance_linked": true
+      }
     },
     {
       "trace_id": "trace_fx_brand_product_preservation_integrity",
@@ -1713,7 +1794,20 @@
             "source": "eval_result.fixture_results.trace_contract.has_user_failure_mapping"
           }
         }
-      ]
+      ],
+      "artifact_links": {
+        "asset_ids": [
+          "asset_fx_brand_product_preservation_candidate_1",
+          "asset_fx_brand_product_preservation_candidate_2",
+          "asset_fx_brand_product_preservation_candidate_3",
+          "asset_fx_brand_product_preservation_candidate_4"
+        ],
+        "package_id": "package_fx_brand_product_preservation",
+        "export_id": "export_fx_brand_product_preservation",
+        "manifest_linked": true,
+        "qa_report_linked": true,
+        "trace_provenance_linked": true
+      }
     },
     {
       "trace_id": "trace_fx_text_heavy_structured_details",
@@ -1925,7 +2019,20 @@
             "source": "eval_result.fixture_results.trace_contract.has_user_failure_mapping"
           }
         }
-      ]
+      ],
+      "artifact_links": {
+        "asset_ids": [
+          "asset_fx_text_heavy_structured_details_candidate_1",
+          "asset_fx_text_heavy_structured_details_candidate_2",
+          "asset_fx_text_heavy_structured_details_candidate_3",
+          "asset_fx_text_heavy_structured_details_candidate_4"
+        ],
+        "package_id": "package_fx_text_heavy_structured_details",
+        "export_id": "export_fx_text_heavy_structured_details",
+        "manifest_linked": true,
+        "qa_report_linked": true,
+        "trace_provenance_linked": true
+      }
     },
     {
       "trace_id": "trace_fx_export_completeness_missing_manifest",
@@ -2137,7 +2244,20 @@
             "source": "eval_result.fixture_results.trace_contract.has_user_failure_mapping"
           }
         }
-      ]
+      ],
+      "artifact_links": {
+        "asset_ids": [
+          "asset_fx_export_completeness_missing_manifest_candidate_1",
+          "asset_fx_export_completeness_missing_manifest_candidate_2",
+          "asset_fx_export_completeness_missing_manifest_candidate_3",
+          "asset_fx_export_completeness_missing_manifest_candidate_4"
+        ],
+        "package_id": "package_fx_export_completeness_missing_manifest",
+        "export_id": "export_fx_export_completeness_missing_manifest",
+        "manifest_linked": false,
+        "qa_report_linked": true,
+        "trace_provenance_linked": true
+      }
     },
     {
       "trace_id": "trace_confirmation_sensitive_claim",
@@ -2349,7 +2469,15 @@
             "source": "eval_result.fixture_results.trace_contract.has_user_failure_mapping"
           }
         }
-      ]
+      ],
+      "artifact_links": {
+        "asset_ids": [],
+        "package_id": "package_fx_confirmation_sensitive_claim",
+        "export_id": "export_fx_confirmation_sensitive_claim",
+        "manifest_linked": false,
+        "qa_report_linked": true,
+        "trace_provenance_linked": true
+      }
     },
     {
       "trace_id": "trace_red_team_minor_adult_content",
@@ -2561,7 +2689,15 @@
             "source": "eval_result.fixture_results.trace_contract.has_user_failure_mapping"
           }
         }
-      ]
+      ],
+      "artifact_links": {
+        "asset_ids": [],
+        "package_id": "package_fx_red_team_minor_adult_content",
+        "export_id": "export_fx_red_team_minor_adult_content",
+        "manifest_linked": false,
+        "qa_report_linked": true,
+        "trace_provenance_linked": true
+      }
     }
   ],
   "provenance": {

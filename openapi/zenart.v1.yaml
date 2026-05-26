@@ -2419,6 +2419,7 @@ components:
         - admin_visibility
         - user_failure_mapping
         - export_references
+        - artifact_links
         - payload
         - created_at
       properties:
@@ -2500,6 +2501,25 @@ components:
             trace_provenance:
               type: boolean
             safety_disclaimer_when_applicable:
+              type: boolean
+        artifact_links:
+          type: object
+          required: [asset_ids, package_id, export_id, manifest_linked, qa_report_linked, trace_provenance_linked]
+          properties:
+            asset_ids:
+              type: array
+              uniqueItems: true
+              items:
+                type: string
+            package_id:
+              type: string
+            export_id:
+              type: string
+            manifest_linked:
+              type: boolean
+            qa_report_linked:
+              type: boolean
+            trace_provenance_linked:
               type: boolean
         payload:
           type: object

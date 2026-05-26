@@ -106,6 +106,7 @@ def validate_openapi_trace_schema() -> None:
         "admin_visibility",
         "user_failure_mapping",
         "export_references",
+        "artifact_links",
         "created_at",
     ]:
         require_field_in_schema(body, "AgentTrace", field)
@@ -181,6 +182,7 @@ def validate_trace_fixture() -> None:
                 trace["export_references"][field] == export_contract[field],
                 f"{trace_id} export reference {field} must match eval export contract",
             )
+        validate_artifact_links(trace, eval_by_trace[trace_id])
 
     require(
         workflows
@@ -235,6 +237,46 @@ def validate_step_events(trace: dict[str, Any]) -> None:
             event["safety_status"]["source"] == f"safety_decisions.enforcement_point.{step}",
             f"{trace_id} {step} event safety source must link to matching safety decision",
         )
+
+
+def validate_artifact_links(trace: dict[str, Any], eval_result: dict[str, Any]) -> None:
+    trace_id = trace["trace_id"]
+    fixture_id = trace["fixture_id"]
+    links = trace["artifact_links"]
+    candidate_count = eval_result.get("candidate_count", 0)
+    expected_assets = [
+        f"asset_{fixture_id}_candidate_{index}"
+        for index in range(1, candidate_count + 1)
+    ]
+
+    require(
+        links["asset_ids"] == expected_assets,
+        f"{trace_id} artifact asset links must match fixture candidate_count",
+    )
+    require(
+        links["package_id"] == f"package_{fixture_id}",
+        f"{trace_id} artifact package link must be fixture-scoped",
+    )
+    require(
+        links["export_id"] == f"export_{fixture_id}",
+        f"{trace_id} artifact export link must be fixture-scoped",
+    )
+    require(
+        links["manifest_linked"] == trace["export_references"]["manifest"],
+        f"{trace_id} manifest artifact link must match export references",
+    )
+    require(
+        links["qa_report_linked"] == trace["export_references"]["qa_report"],
+        f"{trace_id} QA report artifact link must match export references",
+    )
+    require(
+        links["trace_provenance_linked"] == trace["export_references"]["trace_provenance"],
+        f"{trace_id} trace provenance artifact link must match export references",
+    )
+    require(
+        links["trace_provenance_linked"] is True,
+        f"{trace_id} must link trace provenance even when manifest or QA report is blocked",
+    )
 
 
 def main() -> int:
