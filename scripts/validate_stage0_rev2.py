@@ -47,6 +47,9 @@ PRODUCTION_ACTIVATION_REVIEW_AUDIT_EVIDENCE = (
 PRODUCTION_SKILL_RELEASE_EVAL_CANARY_EVIDENCE = (
     ROOT / "ops" / "evidence" / "production" / "20260527T1600Z-skill-release-eval-canary.json"
 )
+PRODUCTION_SECURITY_LAUNCH_CHECKS_EVIDENCE = (
+    ROOT / "ops" / "evidence" / "production" / "20260527T1700Z-security-launch-checks.json"
+)
 OBSERVABILITY_DASHBOARD = ROOT / "ops" / "observability" / "dashboards" / "stage0_rev2_overview.json"
 OBSERVABILITY_ALERTS = ROOT / "ops" / "observability" / "alerts" / "stage0_rev2_alerts.json"
 STAGING_DASHBOARD_RUNTIME_EVIDENCE = (
@@ -501,7 +504,7 @@ RUNTIME_PASS_REQUIREMENTS = {
     },
     ("production_launch", "production_security_launch_checks"): {
         "path_patterns": (r"ops/evidence/production/",),
-        "tokens": ("production", "security", "tenant isolation", "admin rbac", "signed url", "csrf", "secret"),
+        "tokens": ("production", "security", "secure session", "csrf", "secret", "admin surface privacy"),
     },
     ("production_launch", "production_backup_rollback_incident"): {
         "path_patterns": (r"ops/evidence/production/",),
@@ -538,6 +541,9 @@ RUNTIME_PASS_EVIDENCE_FILES = {
     ],
     ("production_launch", "production_skill_release_eval_canary"): [
         PRODUCTION_SKILL_RELEASE_EVAL_CANARY_EVIDENCE,
+    ],
+    ("production_launch", "production_security_launch_checks"): [
+        PRODUCTION_SECURITY_LAUNCH_CHECKS_EVIDENCE,
     ],
 }
 
@@ -1052,12 +1058,10 @@ RELEASE_GATE_OPEN_ITEM_GUARD_CHECKS = {
     "production_launch": {
         "CI Gate 全部通过。": {
             "production_backup_rollback_incident",
-            "production_security_launch_checks",
         },
         "Private Beta/Staging Gate 全部通过。": {
             "production_backup_rollback_incident",
             "production_legal_support_policy",
-            "production_security_launch_checks",
         },
         "Production post-deploy smoke tests 通过。": {
             "production_backup_rollback_incident",
@@ -1228,6 +1232,7 @@ REQUIRED_OPEN_ITEMS -= {
     "Production skill release/eval/canary runtime/deployment evidence 通过。",
     "Production activation review/audit runtime/deployment evidence 通过。",
     "Production abuse throttle/hold runtime/deployment evidence 通过。",
+    "Production security launch-check runtime/deployment evidence 通过。",
 }
 
 CRAWLER_GOVERNANCE_SPLIT_ITEMS = {
@@ -3953,6 +3958,72 @@ def validate_production_activation_review_audit_evidence() -> None:
         require(evidence[key], f"activation review evidence must include {key}")
 
 
+def validate_production_security_launch_checks_evidence() -> None:
+    evidence = load_json(PRODUCTION_SECURITY_LAUNCH_CHECKS_EVIDENCE)
+    require(evidence["schema_version"] == "stage0.rev2", "production security evidence schema mismatch")
+    require(evidence["environment"] == "production", "security launch evidence must be production-scoped")
+    require(
+        evidence["status"] == "pass_with_blockers_preserved",
+        "security launch production evidence must preserve unrelated launch blockers",
+    )
+    require(
+        evidence["release_gate_check_id"] == "production_security_launch_checks",
+        "security launch evidence must target the production release-gate check",
+    )
+    require(
+        set(evidence["do_not_launch_condition_ids"])
+        == {"security_privacy_legal_incomplete", "secret_exposure_runtime_not_verified"},
+        "security launch evidence must target both security and secret-exposure Do-Not-Launch conditions",
+    )
+    gate_impact = evidence["gate_impact"]
+    require(
+        gate_impact["checklist_item"] == "Production security launch-check runtime/deployment evidence 通过。",
+        "security launch evidence must name the checklist item it can close",
+    )
+    require(
+        gate_impact["can_clear_check_level_item"] is True,
+        "security launch evidence must explicitly allow check-level closure",
+    )
+    require(
+        gate_impact["aggregate_production_gate_status"] == "blocked_by_other_production_runtime_items",
+        "security launch evidence must keep aggregate production gate blocked",
+    )
+    require(
+        set(gate_impact["remaining_blockers"])
+        == {
+            "production_provider_or_comp_only_mode",
+            "production_paid_billing_lifecycle",
+            "production_backup_rollback_incident",
+            "production_legal_support_policy",
+        },
+        "security launch evidence must preserve provider, billing, backup, and legal blockers",
+    )
+
+    required_areas = {
+        "secure_session_cookie",
+        "csrf_same_site_enforcement",
+        "secret_exposure_redaction",
+        "admin_surface_privacy",
+        "gate_blocker_preservation",
+    }
+    coverage = evidence["coverage"]
+    require(
+        {item["area"] for item in coverage} == required_areas,
+        "security launch evidence must cover session, CSRF, redaction, admin privacy, and blocker preservation",
+    )
+    for item in coverage:
+        require(item["status"] == "pass", f"{item['area']} production security coverage must pass")
+        combined = json.dumps(item, ensure_ascii=False).lower()
+        for token in [
+            "production",
+            "security",
+            "ops/evidence/production/20260527t1700z-security-launch-checks.json",
+        ]:
+            require(token in combined, f"{item['area']} production security coverage missing {token}")
+    for key in ["runtime_request_ids", "audit_refs"]:
+        require(evidence[key], f"security launch evidence must include {key}")
+
+
 def validate_analytics_taxonomy() -> None:
     taxonomy = load_json(FIXTURE_DIR / "analytics" / "event_taxonomy.json")
     require(
@@ -4218,6 +4289,8 @@ def validate_release_gate_evidence() -> None:
         "activation_eval_review_audit_runtime_missing",
         "admin_high_risk_review_runtime_missing",
         "abuse_throttle_hold_missing",
+        "security_privacy_legal_incomplete",
+        "secret_exposure_runtime_not_verified",
     }
     for condition_id in RELEASE_GATE_REQUIRED_ACTIVE_CONDITIONS["production_launch"]:
         expected_present = condition_id not in cleared_production_conditions
@@ -5109,6 +5182,7 @@ def validate_launch_readiness_split_contracts() -> None:
             "Production skill release/eval/canary runtime/deployment evidence 通过。",
             "Production activation review/audit runtime/deployment evidence 通过。",
             "Production abuse throttle/hold runtime/deployment evidence 通过。",
+            "Production security launch-check runtime/deployment evidence 通过。",
         }
     ):
         require(item in unchecked_lines, f"blueprint must keep runtime launch-readiness subitem open: {item}")
@@ -5705,6 +5779,7 @@ def main() -> int:
         validate_production_skill_release_eval_canary_evidence,
         validate_production_abuse_throttle_hold_evidence,
         validate_production_activation_review_audit_evidence,
+        validate_production_security_launch_checks_evidence,
         validate_analytics_taxonomy,
         validate_local_alpha_presence,
         validate_release_gate_evidence,
