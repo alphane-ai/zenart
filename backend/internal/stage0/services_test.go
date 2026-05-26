@@ -838,11 +838,17 @@ func TestCleanupExpiredExportsAndOrphanedObjects(t *testing.T) {
 	if !strings.Contains(db.execs[0].sql, "retention_until") || !strings.Contains(db.execs[0].sql, "status = 'expired'") {
 		t.Fatalf("expired export cleanup SQL missing retention/status: %s", db.execs[0].sql)
 	}
-	if !strings.Contains(db.execs[0].sql, "expired_objects") || !strings.Contains(db.execs[0].sql, "retention_state = 'expired'") || !strings.Contains(db.execs[0].sql, "o.retention_until <= $1") {
+	if !strings.Contains(db.execs[0].sql, "expired_objects") || !strings.Contains(db.execs[0].sql, "retention_state = 'expired'") || !strings.Contains(db.execs[0].sql, "retention_until <= $1") {
 		t.Fatalf("expired export cleanup SQL should mark expired object metadata: %s", db.execs[0].sql)
+	}
+	if !strings.Contains(db.execs[0].sql, "expired_sources") || !strings.Contains(db.execs[0].sql, "o.derived_from_object_id = source.id") {
+		t.Fatalf("expired export cleanup SQL should mark derived thumbnail metadata expired: %s", db.execs[0].sql)
 	}
 	if !strings.Contains(db.execs[1].sql, "retention_state = 'orphaned'") {
 		t.Fatalf("orphan cleanup SQL missing orphaned retention state: %s", db.execs[1].sql)
+	}
+	if !strings.Contains(db.execs[1].sql, "orphaned_sources") || !strings.Contains(db.execs[1].sql, "o.derived_from_object_id = source.id") {
+		t.Fatalf("orphan cleanup SQL should cascade orphaned state to derived thumbnail metadata: %s", db.execs[1].sql)
 	}
 }
 
@@ -853,6 +859,10 @@ func TestListCleanupObjectsSelectsExpiredAndOrphanedObjects(t *testing.T) {
 			"object_1",
 			"tenant_1",
 			"tenants/tenant_1/exports/export_1.zip",
+		}, {
+			"object_2",
+			"tenant_1",
+			"tenants/tenant_1/thumbnails/export_1.zip.svg",
 		}},
 	}}}
 	repo := NewRepository(db)
@@ -861,11 +871,14 @@ func TestListCleanupObjectsSelectsExpiredAndOrphanedObjects(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ListCleanupObjects() error = %v", err)
 	}
-	if len(objects) != 1 {
-		t.Fatalf("cleanup object count = %d, want 1", len(objects))
+	if len(objects) != 2 {
+		t.Fatalf("cleanup object count = %d, want 2", len(objects))
 	}
 	if objects[0].TenantID != "tenant_1" || objects[0].Key != "tenants/tenant_1/exports/export_1.zip" {
 		t.Fatalf("cleanup object = %#v", objects[0])
+	}
+	if objects[1].TenantID != "tenant_1" || objects[1].Key != "tenants/tenant_1/thumbnails/export_1.zip.svg" {
+		t.Fatalf("cleanup derived object = %#v", objects[1])
 	}
 	if !strings.Contains(db.queryRowsUsed[0].sql, "retention_state IN ('expired', 'orphaned')") || !strings.Contains(db.queryRowsUsed[0].sql, "LIMIT $2") {
 		t.Fatalf("cleanup selection SQL missing retention/limit guard: %s", db.queryRowsUsed[0].sql)

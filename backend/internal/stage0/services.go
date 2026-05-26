@@ -881,13 +881,24 @@ WITH expired AS (
 	  AND o.retention_until IS NOT NULL
 	  AND o.retention_until <= $1
 ),
+expired_sources AS (
+	SELECT id, tenant_id, retention_until
+	FROM object_metadata
+	WHERE retention_until IS NOT NULL
+	  AND retention_until <= $1
+	  AND retention_state IN ('active', 'expired')
+),
 expired_objects AS (
 	UPDATE object_metadata o
 	SET retention_state = 'expired',
+	    retention_until = COALESCE(o.retention_until, source.retention_until),
 	    updated_at = $1
+	FROM expired_sources source
 	WHERE o.retention_state = 'active'
-	  AND o.retention_until IS NOT NULL
-	  AND o.retention_until <= $1
+	  AND (
+	    (o.id = source.id AND o.tenant_id = source.tenant_id)
+	    OR (o.derived_from_object_id = source.id AND o.tenant_id = source.tenant_id)
+	  )
 	RETURNING o.id
 )
 UPDATE exports e
@@ -902,14 +913,24 @@ WHERE e.tenant_id = expired.tenant_id AND e.id = expired.id`,
 		return CleanupResult{}, err
 	}
 	orphanedTag, err := r.db.Exec(ctx, `
+WITH orphaned_sources AS (
+	SELECT o.id, o.tenant_id
+	FROM object_metadata o
+	WHERE o.retention_state = 'active'
+	  AND o.asset_type = 'export'
+	  AND NOT EXISTS (
+	    SELECT 1
+	    FROM exports e
+	    WHERE e.tenant_id = o.tenant_id AND e.object_metadata_id = o.id
+	  )
+)
 UPDATE object_metadata o
 SET retention_state = 'orphaned'
+FROM orphaned_sources source
 WHERE o.retention_state = 'active'
-  AND o.asset_type = 'export'
-  AND NOT EXISTS (
-    SELECT 1
-    FROM exports e
-    WHERE e.tenant_id = o.tenant_id AND e.object_metadata_id = o.id
+  AND (
+    (o.id = source.id AND o.tenant_id = source.tenant_id)
+    OR (o.derived_from_object_id = source.id AND o.tenant_id = source.tenant_id)
   )`,
 	)
 	if err != nil {
