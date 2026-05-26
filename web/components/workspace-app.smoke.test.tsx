@@ -113,10 +113,13 @@ describe("WorkspaceApp user route integration smoke", () => {
       "[data-package-export-metadata-ui='stage0.rev2.package-export-metadata-ui']"
     );
     expect(metadataEvidence).toHaveAttribute("data-package-export-metadata-status", "pass");
+    expect(metadataEvidence).toHaveAttribute("data-package-export-id", "export-001");
+    expect(metadataEvidence).toHaveAttribute("data-package-export-package-id", "pkg-002");
     expect(metadataEvidence).toHaveAttribute("data-package-export-missing-output-count", "0");
     expect(metadataEvidence).toHaveAttribute("data-package-export-provenance-count", "2");
     expect(metadataEvidence).toHaveAttribute("data-package-export-blocking-qa-count", "0");
     expect(metadataEvidence).toHaveAttribute("data-package-export-ppt-slide-count", "2");
+    expect(Number(metadataEvidence?.getAttribute("data-package-export-zip-payload-count"))).toBeGreaterThanOrEqual(6);
     expect(metadataEvidence?.getAttribute("data-package-export-zip-payloads")).toContain("safety-policy-report.json");
     expect(metadataEvidence?.getAttribute("data-package-export-zip-payloads")).toContain("ppt-ready-metadata.json");
 
@@ -363,7 +366,13 @@ describe("WorkspaceApp user route integration smoke", () => {
       statusAttribute: "data-package-export-metadata-status",
       expectedStatus: "pass",
       expectedMissingOutputCount: "0",
+      minimumZipPayloadCount: "6",
       payloadAttribute: "data-package-export-zip-payloads",
+      requiredIdentityAttributes: expect.arrayContaining([
+        "data-package-export-id",
+        "data-package-export-package-id",
+        "data-package-export-zip-payload-count"
+      ]),
       requiredPayloads: expect.arrayContaining([
         "manifest.json",
         "qa-report.json",

@@ -338,6 +338,8 @@ export interface ExportRecord {
 export interface PackageExportMetadataEvidence {
   schema_version: "stage0.rev2.package-export-metadata-ui";
   status: "pass" | "fail";
+  exportId: string;
+  packageId: string;
   requiredOutputCount: number;
   missingRequiredOutputs: string[];
   itemCount: number;
@@ -346,6 +348,7 @@ export interface PackageExportMetadataEvidence {
   blockingQaCount: number;
   pptSlideCount: number;
   handoffChecklistCount: number;
+  zipPayloadCount: number;
   zipPayloadNames: string[];
 }
 

@@ -909,11 +909,14 @@ function ExportView({
                     aria-label="Package export metadata UI evidence"
                     data-package-export-metadata-ui={metadataEvidence.schema_version}
                     data-package-export-metadata-status={metadataEvidence.status}
+                    data-package-export-id={metadataEvidence.exportId}
+                    data-package-export-package-id={metadataEvidence.packageId}
                     data-package-export-required-output-count={metadataEvidence.requiredOutputCount}
                     data-package-export-missing-output-count={metadataEvidence.missingRequiredOutputs.length}
                     data-package-export-provenance-count={metadataEvidence.provenanceCount}
                     data-package-export-blocking-qa-count={metadataEvidence.blockingQaCount}
                     data-package-export-ppt-slide-count={metadataEvidence.pptSlideCount}
+                    data-package-export-zip-payload-count={metadataEvidence.zipPayloadCount}
                     data-package-export-zip-payloads={metadataEvidence.zipPayloadNames.join(",")}
                   >
                     <h4>Metadata Evidence</h4>

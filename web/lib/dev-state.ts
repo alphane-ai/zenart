@@ -528,6 +528,8 @@ export const buildPackageExportMetadataEvidence = (record: ExportRecord): Packag
   return {
     schema_version: "stage0.rev2.package-export-metadata-ui",
     status,
+    exportId: record.id,
+    packageId: record.manifest.package_id,
     requiredOutputCount: record.manifest.required_outputs.length,
     missingRequiredOutputs,
     itemCount: record.manifest.items.length,
@@ -536,6 +538,7 @@ export const buildPackageExportMetadataEvidence = (record: ExportRecord): Packag
     blockingQaCount,
     pptSlideCount,
     handoffChecklistCount,
+    zipPayloadCount: zipPayloadNames.length,
     zipPayloadNames
   };
 };

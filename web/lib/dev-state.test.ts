@@ -136,6 +136,8 @@ describe("dev workspace contracts", () => {
     expect(buildPackageExportMetadataEvidence(record)).toEqual({
       schema_version: "stage0.rev2.package-export-metadata-ui",
       status: "pass",
+      exportId: "export-001",
+      packageId: "pkg-002",
       requiredOutputCount: 6,
       missingRequiredOutputs: [],
       itemCount: 2,
@@ -144,6 +146,7 @@ describe("dev workspace contracts", () => {
       blockingQaCount: 0,
       pptSlideCount: 2,
       handoffChecklistCount: 5,
+      zipPayloadCount: 6,
       zipPayloadNames: [
         "manifest.json",
         "qa-report.json",

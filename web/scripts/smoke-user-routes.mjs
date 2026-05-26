@@ -174,8 +174,16 @@ for (const attribute of briefUploadConfirmationEvidence.requiredAttributes ?? []
 if (packageExportEvidence.expectedMissingOutputCount !== "0") {
   fail("package/export metadata evidence must assert zero missing required outputs");
 }
+if (packageExportEvidence.minimumZipPayloadCount !== "6") {
+  fail("package/export metadata evidence must assert at least the six required ZIP payloads");
+}
 if (!componentSource.includes(packageExportEvidence.payloadAttribute)) {
   fail(`package/export metadata evidence missing payload attribute ${packageExportEvidence.payloadAttribute}`);
+}
+for (const attribute of packageExportEvidence.requiredIdentityAttributes ?? []) {
+  if (!componentSource.includes(attribute)) {
+    fail(`package/export metadata evidence missing identity attribute ${attribute}`);
+  }
 }
 for (const payload of packageExportEvidence.requiredPayloads ?? []) {
   if (!JSON.stringify(artifact).includes(payload)) {
@@ -241,11 +249,14 @@ for (const requiredSnippet of [
   "package-export-metadata-evidence",
   "data-package-export-metadata-ui",
   "data-package-export-metadata-status",
+  "data-package-export-id",
+  "data-package-export-package-id",
   "data-package-export-required-output-count",
   "data-package-export-missing-output-count",
   "data-package-export-provenance-count",
   "data-package-export-blocking-qa-count",
   "data-package-export-ppt-slide-count",
+  "data-package-export-zip-payload-count",
   "data-package-export-zip-payloads",
   "reference-upload-export-contract",
   "brief-upload-confirmation-evidence",
