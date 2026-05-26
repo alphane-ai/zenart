@@ -32,6 +32,7 @@ const (
 	SecretKindDSN           SecretKind = "dsn_credentials"
 	SecretKindProviderKey   SecretKind = "provider_key"
 	SecretKindCloudKey      SecretKind = "cloud_key"
+	SecretKindSignedURL     SecretKind = "signed_url_secret"
 )
 
 type SecretFinding struct {
@@ -60,11 +61,13 @@ var secretValuePatterns = []struct {
 	{SecretKindToken, "github_fine_grained_token", regexp.MustCompile(`\bgithub_pat_[A-Za-z0-9_]{20,}\b`)},
 	{SecretKindToken, "jwt", regexp.MustCompile(`\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b`)},
 	{SecretKindToken, "vercel_token", regexp.MustCompile(`\bvercel_[A-Za-z0-9]{20,}\b`)},
+	{SecretKindToken, "npm_token", regexp.MustCompile(`\bnpm_[A-Za-z0-9]{20,}\b`)},
 	{SecretKindProviderKey, "anthropic_key", regexp.MustCompile(`\bsk-ant-[A-Za-z0-9_-]{20,}\b`)},
 	{SecretKindProviderKey, "linear_key", regexp.MustCompile(`\blin_api_[A-Za-z0-9]{20,}\b`)},
 }
 
 var assignmentPattern = regexp.MustCompile(`(?i)\b([A-Za-z0-9_.-]*(?:secret|token|password|passwd|pwd|api[_-]?key|access[_-]?key|private[_-]?key|credential|signature|session|cookie|authorization|client[_-]?secret|refresh[_-]?token|webhook[_-]?secret|signing[_-]?key|database[_-]?url|dsn)[A-Za-z0-9_.-]*)\s*([=:])\s*("[^"]*"|'[^']*'|[^\s,;&]+)`)
+var embeddedURLPattern = regexp.MustCompile(`https?://[^\s"'<>]+`)
 
 type MalwareScanStatus string
 
@@ -241,6 +244,9 @@ func ClassifyString(value string) []SecretFinding {
 	if hasURLCredentials(value) {
 		findings = append(findings, SecretFinding{Kind: SecretKindDSN, Signal: "url_credentials"})
 	}
+	if hasSensitiveURLQuery(value) {
+		findings = append(findings, SecretFinding{Kind: SecretKindSignedURL, Signal: "url_query_secret"})
+	}
 	for _, detector := range secretValuePatterns {
 		if detector.pattern.MatchString(value) {
 			findings = append(findings, SecretFinding{Kind: detector.kind, Signal: detector.signal})
@@ -312,20 +318,50 @@ func IsSensitiveKey(key string) bool {
 }
 
 func RedactString(value string) string {
-	value = redactURLCredentials(value)
+	value = redactURLSecrets(value)
 	value = redactAuthorization(value)
 	value = redactKnownSecretValues(value)
 	value = redactAssignments(value)
 	return value
 }
 
-func redactURLCredentials(value string) string {
+func redactURLSecrets(value string) string {
+	if strings.Contains(value, "://") {
+		if redacted, ok := redactSingleURL(value); ok {
+			return redacted
+		}
+		return embeddedURLPattern.ReplaceAllStringFunc(value, func(raw string) string {
+			redacted, ok := redactSingleURL(raw)
+			if !ok {
+				return raw
+			}
+			return redacted
+		})
+	}
+	return value
+}
+
+func redactSingleURL(value string) (string, bool) {
 	parsed, err := url.Parse(value)
 	if err != nil || parsed.User == nil {
-		return value
+		if err != nil {
+			return value, false
+		}
+	} else {
+		parsed.User = url.UserPassword(Redacted, Redacted)
 	}
-	parsed.User = url.UserPassword(Redacted, Redacted)
-	return parsed.String()
+	query := parsed.Query()
+	changedQuery := false
+	for key := range query {
+		if IsSensitiveKey(key) || isSignedURLQueryKey(key) {
+			query.Set(key, Redacted)
+			changedQuery = true
+		}
+	}
+	if changedQuery {
+		parsed.RawQuery = query.Encode()
+	}
+	return parsed.String(), parsed.User != nil || changedQuery
 }
 
 func redactAuthorization(value string) string {
@@ -351,7 +387,53 @@ func redactKnownSecretValues(value string) string {
 
 func hasURLCredentials(value string) bool {
 	parsed, err := url.Parse(value)
-	return err == nil && parsed.User != nil
+	if err == nil && parsed.User != nil {
+		return true
+	}
+	for _, raw := range embeddedURLPattern.FindAllString(value, -1) {
+		parsed, err := url.Parse(raw)
+		if err == nil && parsed.User != nil {
+			return true
+		}
+	}
+	return false
+}
+
+func hasSensitiveURLQuery(value string) bool {
+	if hasSensitiveQuery(value) {
+		return true
+	}
+	for _, raw := range embeddedURLPattern.FindAllString(value, -1) {
+		if hasSensitiveQuery(raw) {
+			return true
+		}
+	}
+	return false
+}
+
+func hasSensitiveQuery(raw string) bool {
+	parsed, err := url.Parse(raw)
+	if err != nil {
+		return false
+	}
+	for key := range parsed.Query() {
+		if IsSensitiveKey(key) || isSignedURLQueryKey(key) {
+			return true
+		}
+	}
+	return false
+}
+
+func isSignedURLQueryKey(key string) bool {
+	normalized := strings.ToLower(strings.ReplaceAll(strings.TrimSpace(key), "_", "-"))
+	switch normalized {
+	case "x-amz-algorithm", "x-amz-credential", "x-amz-signature", "x-amz-security-token",
+		"x-goog-credential", "x-goog-signature", "x-goog-security-token",
+		"awsaccesskeyid", "signature", "sig", "token", "access-token", "download-token":
+		return true
+	default:
+		return false
+	}
 }
 
 func classifyValueAt(value any, location string) []SecretFinding {

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 )
@@ -83,6 +84,48 @@ func TestRedactStringCoversCloudAndProviderTokens(t *testing.T) {
 	assertSignal(t, findings, "anthropic_key")
 	assertSignal(t, findings, "linear_key")
 	assertSignal(t, findings, "azure_storage_key")
+}
+
+func TestRedactStringCoversEmbeddedSignedURLsAndRegistryTokens(t *testing.T) {
+	input := `download https://s3.local/zenart/export.zip?X-Amz-Credential=AKIAIOSFODNN7EXAMPLE&X-Amz-Signature=abcdef&response-content-type=application%2Fzip npm=npm_abcdefghijklmnopqrstuvwxyz123456`
+	got := RedactString(input)
+	for _, leaked := range []string{"AKIAIOSFODNN7EXAMPLE", "abcdef", "npm_abcdefghijklmnopqrstuvwxyz123456"} {
+		if strings.Contains(got, leaked) {
+			t.Fatalf("RedactString() = %q, leaked %s", got, leaked)
+		}
+	}
+	for _, fragment := range []string{"X-Amz-Credential=", "X-Amz-Signature=", Redacted} {
+		if !strings.Contains(got, fragment) {
+			t.Fatalf("RedactString() = %q, missing %s", got, fragment)
+		}
+	}
+	findings := ClassifyString(input)
+	assertSignal(t, findings, "url_query_secret")
+	assertSignal(t, findings, "npm_token")
+}
+
+func TestRedactMapCoversExportAndCrawlerMetadataURLs(t *testing.T) {
+	redacted := RedactMap(map[string]any{
+		"export": map[string]any{
+			"download_url": "https://storage.local/tenants/tenant_1/exports/pkg.zip?AWSAccessKeyId=AKIAIOSFODNN7EXAMPLE&Signature=abcdef",
+		},
+		"crawler": map[string]any{
+			"source_url": "https://user:pass@example.com/source?token=secret-token",
+		},
+	})
+
+	body, err := json.Marshal(redacted)
+	if err != nil {
+		t.Fatalf("marshal redacted metadata: %v", err)
+	}
+	for _, leaked := range []string{"AKIAIOSFODNN7EXAMPLE", "abcdef", "user:pass", "secret-token"} {
+		if strings.Contains(string(body), leaked) {
+			t.Fatalf("redacted metadata = %s, leaked %s", string(body), leaked)
+		}
+	}
+	if !strings.Contains(string(body), Redacted) {
+		t.Fatalf("redacted metadata = %s, want redaction marker", string(body))
+	}
 }
 
 func TestPlaceholderMalwareScannerReportsUnavailableAndForcedSuspicious(t *testing.T) {
