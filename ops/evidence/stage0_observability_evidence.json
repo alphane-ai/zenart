@@ -31,8 +31,8 @@
     {
       "name": "backend_worker_crawler_metrics",
       "required_by_rev2": true,
-      "local_evidence": ".env.example and docker-compose.yml define METRICS_ENABLED=true and METRICS_PORT=9090; backend exposes Prometheus text metrics with HTTP request totals, status counts, route counts, duration total, and uptime",
-      "runtime_status": "backend_local_metrics_endpoint_validated_worker_crawler_staging_open",
+      "local_evidence": ".env.example and docker-compose.yml define METRICS_ENABLED=true and METRICS_PORT=9090; backend exposes Prometheus text metrics with HTTP request totals, status counts, route counts, duration total, and uptime; worker and crawler metric handler definitions expose bounded process/domain counters",
+      "runtime_status": "backend_runtime_worker_crawler_definitions_validated_staging_capture_open",
       "production_gate": "must expose API latency, queue delay, generation duration, export duration, crawler throttle, quota contention, and error counters"
     },
     {

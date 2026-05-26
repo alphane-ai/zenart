@@ -71,6 +71,9 @@ root = Path(".")
 runtime_go = root.joinpath("backend/internal/app/runtime.go").read_text(encoding="utf-8", errors="replace")
 server_go = root.joinpath("backend/internal/server/server.go").read_text(encoding="utf-8", errors="replace")
 middleware_go = root.joinpath("backend/internal/server/middleware.go").read_text(encoding="utf-8", errors="replace")
+backend_metrics_go = root.joinpath("backend/internal/server/metrics.go").read_text(encoding="utf-8", errors="replace")
+worker_metrics_go = root.joinpath("backend/internal/worker/metrics.go").read_text(encoding="utf-8", errors="replace")
+crawler_metrics_go = root.joinpath("backend/internal/crawler/metrics.go").read_text(encoding="utf-8", errors="replace")
 env_example = root.joinpath(".env.example").read_text(encoding="utf-8", errors="replace")
 compose = root.joinpath("docker-compose.yml").read_text(encoding="utf-8", errors="replace")
 dashboard = json.loads(root.joinpath("ops/observability/dashboards/stage0_rev2_overview.json").read_text(encoding="utf-8"))
@@ -86,6 +89,37 @@ metrics_runtime_passed = metrics_http_status == 200 and (
     or "backend_http_requests_total" in metrics_body
     or "go_gc_duration_seconds" in metrics_body
     or "# HELP" in metrics_body
+)
+backend_metrics_runtime_passed = metrics_http_status == 200 and all(fragment in metrics_body for fragment in [
+    "backend_http_requests_total",
+    "backend_http_request_duration_ms_total",
+    "backend_http_requests_by_status_total",
+    "backend_http_requests_by_route_total",
+])
+backend_metrics_definition_validated = all(fragment in backend_metrics_go for fragment in [
+    "backend_http_requests_total",
+    "backend_http_request_duration_ms_total",
+    "backend_http_requests_by_status_total",
+    "backend_http_requests_by_route_total",
+])
+worker_metrics_definition_validated = all(fragment in worker_metrics_go for fragment in [
+    "worker_task_claims_total",
+    "worker_task_claim_errors_total",
+    "worker_task_claim_duration_ms_total",
+    "worker_unsupported_task_claims_total",
+    "worker_drain_operations_total",
+    "worker_task_claims_by_type_total",
+])
+crawler_metrics_definition_validated = all(fragment in crawler_metrics_go for fragment in [
+    "crawler_readiness_checks_total",
+    "crawler_readiness_failures_total",
+    "crawler_process_uptime_seconds",
+])
+metrics_contract_validated = (
+    backend_metrics_runtime_passed
+    and backend_metrics_definition_validated
+    and worker_metrics_definition_validated
+    and crawler_metrics_definition_validated
 )
 request_id_contract_validated = header_echo and body_echo and json_body
 dashboard_definition_validated = dashboard.get("status") == "definition_ready_runtime_evidence_open" and len(dashboard.get("panels", [])) >= 13
@@ -121,8 +155,14 @@ signals = [
     },
     {
         "signal_id": "backend_worker_crawler_metrics",
-        "status": "passed" if metrics_runtime_passed else "open",
-        "evidence_refs": [str(metrics_body_path), str(metrics_status_path)],
+        "status": "passed" if metrics_contract_validated else "open",
+        "evidence_refs": [
+            str(metrics_body_path),
+            str(metrics_status_path),
+            "backend/internal/server/metrics.go",
+            "backend/internal/worker/metrics.go",
+            "backend/internal/crawler/metrics.go",
+        ],
     },
     {
         "signal_id": "dashboard_import",
@@ -176,6 +216,11 @@ report_path.write_text(json.dumps({
         "recover_log_includes_request_id": recovery_log_includes_request_id,
         "metrics_config_declared": "METRICS_ENABLED=true" in env_example and "METRICS_PORT=9090" in env_example,
         "metrics_runtime_endpoint_passed": metrics_runtime_passed,
+        "backend_metrics_runtime_endpoint_passed": backend_metrics_runtime_passed,
+        "backend_metrics_definition_validated": backend_metrics_definition_validated,
+        "worker_metrics_definition_validated": worker_metrics_definition_validated,
+        "crawler_metrics_definition_validated": crawler_metrics_definition_validated,
+        "backend_worker_crawler_metrics_contract_validated": metrics_contract_validated,
         "otel_config_declared": "OTEL_EXPORTER_OTLP_ENDPOINT" in env_example,
         "otel_runtime_instrumentation_detected": otel_import_detected,
         "dashboard_definition_validated": dashboard_definition_validated,
@@ -186,14 +231,14 @@ report_path.write_text(json.dumps({
         "request_id_propagation": "contract_validated" if request_id_contract_validated else "open",
         "structured_json_logs": "passed" if structured_logs_validated else "definition_validated_recovery_log_request_id_open",
         "opentelemetry_traces": "passed" if traces_validated else ("instrumentation_detected_runtime_export_open" if otel_import_detected else "open"),
-        "backend_worker_crawler_metrics": "open" if not metrics_runtime_passed else "local_metrics_endpoint_detected_staging_runtime_open",
+        "backend_worker_crawler_metrics": "open" if not metrics_contract_validated else "backend_runtime_worker_crawler_definitions_validated_staging_capture_open",
         "dashboards": "passed" if dashboard_runtime_validated else ("definition_validated_runtime_import_open" if dashboard_definition_validated else "open"),
         "alerts": "passed" if alert_runtime_validated else ("definition_validated_runtime_route_evaluation_open" if alert_definition_validated else "open"),
     },
     "open_items": [
         "staging_log_capture_with_request_id_user_id_tenant_id_route_status_latency",
         "opentelemetry_backend_worker_crawler_span_export",
-        "backend_worker_crawler_metrics_endpoint_or_exporter_runtime_evidence",
+        "staging_backend_worker_crawler_metrics_capture_with_release_sha_and_bounded_labels",
         "staging_dashboard_import_with_release_sha_labels",
         "staging_alert_route_notifications_and_threshold_evaluations"
     ],

@@ -145,6 +145,8 @@ if signals.get("request_id_propagation") != "backend_local_contract_validated_st
 	raise SystemExit("request-id evidence must keep staging/runtime propagation open")
 if signals.get("structured_json_logs") != "backend_local_contract_validated_staging_log_capture_open":
 	raise SystemExit("structured log evidence must not claim full runtime completion")
+if signals.get("backend_worker_crawler_metrics") != "backend_runtime_worker_crawler_definitions_validated_staging_capture_open":
+	raise SystemExit("metrics evidence must validate backend runtime plus worker/crawler definitions while keeping staging capture open")
 if "staging_request_id_propagation_across_web_admin_backend_worker_crawler_logs_metrics_traces" not in observability_evidence.get("open_items", []):
 	raise SystemExit("observability evidence must keep staging request-id propagation open")
 PY
@@ -223,6 +225,45 @@ DRY_RUN=1 OUT_DIR="$ops_validate_dir/staging" scripts/staging_smoke.sh >/dev/nul
 DRY_RUN=1 OUT_DIR="$ops_validate_dir/observability" scripts/observability_smoke.sh >/dev/null
 DRY_RUN=1 OUT_DIR="$ops_validate_dir/security" scripts/security_scan_smoke.sh >/dev/null
 find "$ops_validate_dir" -name '*.json' -type f | grep -q .
+python3 - "$ops_validate_dir/observability" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+reports = sorted(Path(sys.argv[1]).glob("*.json"))
+if len(reports) != 1:
+    raise SystemExit("observability smoke dry-run must write exactly one report")
+report = json.loads(reports[0].read_text(encoding="utf-8"))
+signals = {signal["signal_id"]: signal for signal in report.get("signals", [])}
+metrics = signals.get("backend_worker_crawler_metrics")
+if not metrics:
+    raise SystemExit("observability smoke report missing backend_worker_crawler_metrics signal")
+refs = set(metrics.get("evidence_refs", []))
+for ref in (
+    "backend/internal/server/metrics.go",
+    "backend/internal/worker/metrics.go",
+    "backend/internal/crawler/metrics.go",
+):
+    if ref not in refs:
+        raise SystemExit(f"observability metrics evidence refs missing {ref}")
+checks = report.get("checks", {})
+for key in (
+    "backend_metrics_definition_validated",
+    "worker_metrics_definition_validated",
+    "crawler_metrics_definition_validated",
+    "backend_worker_crawler_metrics_contract_validated",
+):
+    if key not in checks:
+        raise SystemExit(f"observability smoke checks missing {key}")
+if checks["backend_worker_crawler_metrics_contract_validated"] is not False:
+    raise SystemExit("observability dry-run must not claim metrics runtime contract without backend scrape evidence")
+statuses = report.get("signal_statuses", {})
+if statuses.get("backend_worker_crawler_metrics") != "open":
+    raise SystemExit("observability dry-run must keep backend/worker/crawler metrics runtime evidence open")
+open_items = report.get("open_items", [])
+if "staging_backend_worker_crawler_metrics_capture_with_release_sha_and_bounded_labels" not in open_items:
+    raise SystemExit("observability smoke must keep staging metrics capture open")
+PY
 python3 - "$ops_validate_dir/staging" <<'PY'
 import json
 import sys
