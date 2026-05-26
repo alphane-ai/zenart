@@ -330,6 +330,25 @@ export type AlertRoute = {
   evidenceRefs: string[];
 };
 
+export type AlertRouteRuntimeEvidence = {
+  id: string;
+  alertRouteId: string;
+  dashboardId: string;
+  environment: "staging";
+  validationStatus: "verified";
+  validatedAt: string;
+  validatedByRole: AdminRole;
+  routeBinding: string;
+  deliveryProbe: string;
+  thresholdProbe: string;
+  escalationProbe: string;
+  runbookProbe: string;
+  incidentLinkage: string;
+  auditRef: string;
+  releaseGateUse: string;
+  evidenceRefs: string[];
+};
+
 export type QueueHealth = {
   id: string;
   name: string;

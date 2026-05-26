@@ -3,6 +3,7 @@ import {
   adminRbacEvidence,
   abuseControlHooks,
   abuseEvents,
+  alertRouteRuntimeEvidence,
   alertRoutes,
   analyticsReports,
   crawlerGovernanceWorkflows,
@@ -173,6 +174,10 @@ export async function getOperationalDashboards() {
 
 export async function getAlertRoutes() {
   return alertRoutes;
+}
+
+export async function getAlertRouteRuntimeEvidence() {
+  return alertRouteRuntimeEvidence;
 }
 
 export async function getAnalyticsReports() {

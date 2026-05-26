@@ -11,7 +11,7 @@ const parseFixtures = () => {
   const moduleSource = source
     .replace(/^import type[\s\S]*?from "@\/lib\/types";\n\n/, "")
     .replaceAll(/export const (\w+)[^=]*=/g, "const $1 =");
-  return Function(`${moduleSource}\nreturn { skillVersions, skillReleaseStateDefinitions, skillCanaryMetrics, releaseEvidence, supportTickets, supportEscalationRunbooks, supportUsers, riskyExports, abuseEvents, abuseControlHooks, auditEvents, exportJobs, traces, quotaAccounts, feedbackItems, regressionFixtures, analyticsReports, queueHealth, failedTaskControls, crawlerFindings, crawlerSourceApprovals, crawlerGovernanceWorkflows, adminRbacEvidence, operationalDashboards, alertRoutes };`)();
+  return Function(`${moduleSource}\nreturn { skillVersions, skillReleaseStateDefinitions, skillCanaryMetrics, releaseEvidence, supportTickets, supportEscalationRunbooks, supportUsers, riskyExports, abuseEvents, abuseControlHooks, auditEvents, exportJobs, traces, quotaAccounts, feedbackItems, regressionFixtures, analyticsReports, queueHealth, failedTaskControls, crawlerFindings, crawlerSourceApprovals, crawlerGovernanceWorkflows, adminRbacEvidence, operationalDashboards, alertRoutes, alertRouteRuntimeEvidence };`)();
 };
 
 const crawlerGovernanceCases = JSON.parse(
@@ -43,7 +43,8 @@ const {
   crawlerGovernanceWorkflows,
   adminRbacEvidence,
   operationalDashboards,
-  alertRoutes
+  alertRoutes,
+  alertRouteRuntimeEvidence
 } = parseFixtures();
 
 const parseAbuseRuntime = () => {
@@ -79,6 +80,7 @@ const crawlerFindingById = new Map(crawlerFindings.map((finding) => [finding.id,
 const crawlerGovernanceCaseById = new Map(crawlerGovernanceCases.map((entry) => [entry.fixture_id, entry]));
 const incidentIds = new Set(["none", "inc-20260526-queue", "inc-20260525-crawler"]);
 const operationalDashboardIds = new Set(operationalDashboards.map((dashboard) => dashboard.id));
+const alertRouteIds = new Set(alertRoutes.map((alert) => alert.id));
 const abuseEventById = new Map(abuseEvents.map((event) => [event.id, event]));
 const canaryMetricIds = new Set(skillCanaryMetrics.map((metric) => metric.id));
 const runtimeEvidencePattern = /^staging-(dashboard|alert)-[a-z-]+-\d{8}T\d{4}Z$/;
@@ -715,6 +717,68 @@ test("operations dashboards and alert routes bind SLOs to release-gate evidence"
   }
 });
 
+test("alert route runtime evidence verifies staging delivery without closing dashboard blockers", () => {
+  assert.equal(
+    alertRouteRuntimeEvidence.length,
+    alertRoutes.length,
+    "every alert route needs one staging runtime evidence record"
+  );
+
+  const evidenceByAlertRoute = new Map();
+
+  for (const evidence of alertRouteRuntimeEvidence) {
+    assert.ok(alertRouteIds.has(evidence.alertRouteId), `${evidence.id} links unknown alert route`);
+    assert.ok(operationalDashboardIds.has(evidence.dashboardId), `${evidence.id} links unknown dashboard`);
+    assert.equal(evidence.environment, "staging", `${evidence.id} must be staging runtime evidence`);
+    assert.equal(evidence.validationStatus, "verified", `${evidence.id} must be verified`);
+    assert.notEqual(evidence.validatedAt, "pending", `${evidence.id} needs validation timestamp`);
+    assert.ok(roleOrder.has(evidence.validatedByRole), `${evidence.id} has unknown validator role`);
+    assert.ok(auditIds.has(evidence.auditRef), `${evidence.id} links unknown audit ${evidence.auditRef}`);
+    assert.ok(evidence.routeBinding.length > 70, `${evidence.id} needs route binding proof`);
+    assert.ok(evidence.deliveryProbe.length > 80, `${evidence.id} needs delivery probe proof`);
+    assert.ok(evidence.thresholdProbe.length > 60, `${evidence.id} needs threshold probe proof`);
+    assert.ok(evidence.escalationProbe.length > 70, `${evidence.id} needs escalation probe proof`);
+    assert.ok(evidence.runbookProbe.length > 80, `${evidence.id} needs runbook probe proof`);
+    assert.ok(evidence.incidentLinkage.length > 70, `${evidence.id} needs incident linkage proof`);
+    assert.ok(evidence.releaseGateUse.length > 90, `${evidence.id} needs release-gate use proof`);
+    assert.ok(evidence.evidenceRefs.includes(evidence.alertRouteId), `${evidence.id} evidence must include alert route`);
+    assert.ok(evidence.evidenceRefs.includes(evidence.dashboardId), `${evidence.id} evidence must include dashboard`);
+    assert.ok(evidence.evidenceRefs.includes(evidence.auditRef), `${evidence.id} evidence must include audit`);
+    assert.ok(
+      evidence.evidenceRefs.some((ref) => /^staging-alert-[a-z-]+-\d{8}T\d{4}Z$/.test(ref)),
+      `${evidence.id} needs staging alert runtime ref`
+    );
+
+    assert.equal(evidenceByAlertRoute.has(evidence.alertRouteId), false, `${evidence.alertRouteId} has duplicate evidence`);
+    evidenceByAlertRoute.set(evidence.alertRouteId, evidence);
+  }
+
+  for (const alert of alertRoutes) {
+    const evidence = evidenceByAlertRoute.get(alert.id);
+    assert.ok(evidence, `${alert.id} missing runtime evidence`);
+    assert.equal(evidence.dashboardId, alert.dashboardId, `${alert.id} dashboard mismatch`);
+    assert.equal(evidence.validatedAt, alert.runtimeValidatedAt, `${alert.id} validation timestamp mismatch`);
+    assert.equal(evidence.auditRef, alert.auditRef, `${alert.id} audit mismatch`);
+
+    if (alert.severity === "sev1") {
+      assert.equal(evidence.validatedByRole, "admin_superadmin", `${alert.id} sev1 evidence needs superadmin validation`);
+    }
+
+    if (alert.status === "firing") {
+      assert.match(
+        evidence.escalationProbe,
+        /required|stayed|Escalation/,
+        `${alert.id} firing alert needs explicit escalation proof`
+      );
+    }
+  }
+
+  assert.ok(
+    operationalDashboards.some((dashboard) => dashboard.runtimeEvidenceStatus === "blocked"),
+    "verified alert-route evidence must not imply all dashboards are runtime-verified"
+  );
+});
+
 test("operations runtime evidence closes only the validated dashboard and alert checklist rows", () => {
   assert.match(
     blueprint,
@@ -759,6 +823,10 @@ test("operations runtime evidence closes only the validated dashboard and alert 
   assert.ok(
     alertRoutes.every((alert) => alert.runtimeEnvironment === "staging" && alert.runtimeEvidenceStatus === "verified"),
     "alert route checklist cannot close until every route has verified staging evidence"
+  );
+  assert.ok(
+    alertRouteRuntimeEvidence.every((evidence) => evidence.validationStatus === "verified"),
+    "alert route checklist cannot close until every runtime evidence record is verified"
   );
 });
 

@@ -3,11 +3,12 @@ import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import {
   getAlertRoutes,
+  getAlertRouteRuntimeEvidence,
   getIncidentLogs,
   getMaintenanceBanners,
   getOperationalDashboards
 } from "@/lib/admin-api";
-import type { AlertRoute, IncidentLog, MaintenanceBanner, OperationalDashboard } from "@/lib/types";
+import type { AlertRoute, AlertRouteRuntimeEvidence, IncidentLog, MaintenanceBanner, OperationalDashboard } from "@/lib/types";
 
 function incidentTone(status: IncidentLog["status"]) {
   if (status === "resolved") {
@@ -18,11 +19,12 @@ function incidentTone(status: IncidentLog["status"]) {
 }
 
 export default async function OperationsPage() {
-  const [incidents, banners, dashboards, alerts] = await Promise.all([
+  const [incidents, banners, dashboards, alerts, alertRuntimeEvidence] = await Promise.all([
     getIncidentLogs(),
     getMaintenanceBanners(),
     getOperationalDashboards(),
-    getAlertRoutes()
+    getAlertRoutes(),
+    getAlertRouteRuntimeEvidence()
   ]);
 
   return (
@@ -78,6 +80,33 @@ export default async function OperationsPage() {
             { key: "runtime", header: "Runtime Evidence", render: (row) => `${row.runtimeEnvironment} / ${row.runtimeEvidenceRef}` },
             { key: "runtime-status", header: "Runtime Status", render: (row) => <StatusBadge value={row.runtimeEvidenceStatus} label={row.runtimeEvidenceStatus} /> },
             { key: "validated", header: "Validated At", render: (row) => row.runtimeValidatedAt },
+            { key: "audit", header: "Audit Ref", render: (row) => <span className="mono">{row.auditRef}</span> }
+          ]}
+        />
+      </section>
+
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>Alert Runtime Evidence</h3>
+            <p>Each staging alert route must prove delivery, threshold, escalation, runbook, incident linkage, and release-gate handling.</p>
+          </div>
+        </div>
+        <DataTable<AlertRouteRuntimeEvidence>
+          rows={alertRuntimeEvidence}
+          columns={[
+            { key: "id", header: "Evidence", render: (row) => <span className="mono">{row.id}</span> },
+            { key: "alert", header: "Alert Route", render: (row) => row.alertRouteId },
+            { key: "status", header: "Validation", render: (row) => <StatusBadge value={row.validationStatus} label={row.validationStatus} /> },
+            { key: "role", header: "Validated By", render: (row) => row.validatedByRole },
+            { key: "binding", header: "Route Binding", render: (row) => row.routeBinding },
+            { key: "delivery", header: "Delivery Probe", render: (row) => row.deliveryProbe },
+            { key: "threshold", header: "Threshold Probe", render: (row) => row.thresholdProbe },
+            { key: "escalation", header: "Escalation Probe", render: (row) => row.escalationProbe },
+            { key: "runbook", header: "Runbook Probe", render: (row) => row.runbookProbe },
+            { key: "incident", header: "Incident Linkage", render: (row) => row.incidentLinkage },
+            { key: "release", header: "Release Gate Use", render: (row) => row.releaseGateUse },
+            { key: "validated", header: "Validated At", render: (row) => row.validatedAt },
             { key: "audit", header: "Audit Ref", render: (row) => <span className="mono">{row.auditRef}</span> }
           ]}
         />

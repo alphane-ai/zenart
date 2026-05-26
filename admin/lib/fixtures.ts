@@ -17,6 +17,7 @@ import type {
   OperationalDashboard,
   ProviderHealth,
   AlertRoute,
+  AlertRouteRuntimeEvidence,
   PromptFragment,
   QuotaAccount,
   QueueHealth,
@@ -1298,6 +1299,81 @@ export const alertRoutes: AlertRoute[] = [
     incidentRef: "none",
     auditRef: "au-008",
     evidenceRefs: ["od-admin-security", "ab-304", "au-008", "tr-1004", "staging-alert-admin-security-20260526T1030Z"]
+  }
+];
+
+export const alertRouteRuntimeEvidence: AlertRouteRuntimeEvidence[] = [
+  {
+    id: "are-provider-error-20260526T1000Z",
+    alertRouteId: "al-provider-error",
+    dashboardId: "od-provider-latency",
+    environment: "staging",
+    validationStatus: "verified",
+    validatedAt: "2026-05-26 10:05",
+    validatedByRole: "admin_operator",
+    routeBinding: "stage0-ops pager and provider-routing review queue received the staging-alert-provider-20260526T1000Z probe.",
+    deliveryProbe: "Synthetic provider_error_total and provider_request_latency_ms breach delivered one SEV2 firing event with no duplicate notifications.",
+    thresholdProbe: "Threshold matched p95 latency > 8000 ms for 30 minutes or provider error rate > 4% for 15 minutes.",
+    escalationProbe: "Escalation stayed on admin_operator because severity is SEV2 and the provider dashboard still blocks release.",
+    runbookProbe: "Runbook opened provider routing mitigation, usage reconciliation, and release-gate block instructions.",
+    incidentLinkage: "No incident opened because this probe validates the route while the dashboard remains blocked for launch readiness.",
+    auditRef: "au-007",
+    releaseGateUse: "Private beta and production provider launch remain blocked until dashboard health and provider usage reconciliation are both verified.",
+    evidenceRefs: ["al-provider-error", "od-provider-latency", "ph-1", "eg-003", "au-007", "staging-alert-provider-20260526T1000Z"]
+  },
+  {
+    id: "are-export-dead-letter-20260526T1000Z",
+    alertRouteId: "al-export-dead-letter",
+    dashboardId: "od-export-failure",
+    environment: "staging",
+    validationStatus: "verified",
+    validatedAt: "2026-05-26 10:06",
+    validatedByRole: "admin_reviewer",
+    routeBinding: "stage0-support incident channel and export regeneration queue received the staging-alert-export-20260526T1000Z probe.",
+    deliveryProbe: "Synthetic export dead-letter count breach delivered one SEV2 firing event and attached support ticket sup-2204.",
+    thresholdProbe: "Threshold matched export dead letters >= 3 or oldest export queue age > 60 minutes.",
+    escalationProbe: "Escalation required admin_reviewer ownership before retry, cancel, regenerate, or quota refund actions could proceed.",
+    runbookProbe: "Runbook opened retry hold, export regenerate eligibility, quota refund audit, and support-update instructions.",
+    incidentLinkage: "Incident inc-20260526-queue remained linked to the alert route and export queue evidence.",
+    auditRef: "au-004",
+    releaseGateUse: "Export release success cannot be marked healthy until dead-letter closure, regenerate, quota refund, and manifest evidence are attached.",
+    evidenceRefs: ["al-export-dead-letter", "od-export-failure", "q-export", "inc-20260526-queue", "sup-2204", "au-004", "staging-alert-export-20260526T1000Z"]
+  },
+  {
+    id: "are-crawler-policy-20260526T1000Z",
+    alertRouteId: "al-crawler-policy",
+    dashboardId: "od-crawler-policy",
+    environment: "staging",
+    validationStatus: "verified",
+    validatedAt: "2026-05-26 10:08",
+    validatedByRole: "admin_reviewer",
+    routeBinding: "trust-admin crawler review queue received the staging-alert-crawler-20260526T1000Z probe.",
+    deliveryProbe: "Synthetic crawler blocklist and derivative-review signals delivered one resolved SEV3 route validation event.",
+    thresholdProbe: "Threshold matched any crawler source blocklist hit, robots denial, or derivative review block.",
+    escalationProbe: "Escalation stayed with admin_reviewer because crawler-derived activation is blocked until review closes.",
+    runbookProbe: "Runbook opened finding hold, active prompt/skill import block, takedown review, derivative review, and raw-retention instructions.",
+    incidentLinkage: "Incident inc-20260525-crawler stayed attached with crawler finding cf-118 and governance workflow cg-501 evidence.",
+    auditRef: "au-012",
+    releaseGateUse: "Crawler-derived activation remains blocked whenever takedown, derivative-use, provenance, or retention evidence is unresolved.",
+    evidenceRefs: ["al-crawler-policy", "od-crawler-policy", "inc-20260525-crawler", "cf-118", "cg-501", "au-012", "staging-alert-crawler-20260526T1000Z"]
+  },
+  {
+    id: "are-admin-security-20260526T1030Z",
+    alertRouteId: "al-admin-security",
+    dashboardId: "od-admin-security",
+    environment: "staging",
+    validationStatus: "verified",
+    validatedAt: "2026-05-26 10:31",
+    validatedByRole: "admin_superadmin",
+    routeBinding: "security-admin emergency queue received the staging-alert-admin-security-20260526T1030Z probe.",
+    deliveryProbe: "Synthetic hidden prompt extraction and admin override denial signals delivered one SEV1 firing event.",
+    thresholdProbe: "Threshold matched any critical hidden prompt extraction, trace redaction violation, or unsafe admin override attempt.",
+    escalationProbe: "Escalation required admin_superadmin ownership before release gates, prompt activation, or override closure could proceed.",
+    runbookProbe: "Runbook opened temporary hold, trace preservation, immutable audit, prompt-fragment activation block, and security closure instructions.",
+    incidentLinkage: "No separate incident opened because the critical abuse queue ab-304 remains the authoritative investigation record.",
+    auditRef: "au-008",
+    releaseGateUse: "Production launch remains blocked until the security-admin investigation closes with audit, support, and release evidence refs.",
+    evidenceRefs: ["al-admin-security", "od-admin-security", "ab-304", "au-008", "tr-1004", "staging-alert-admin-security-20260526T1030Z"]
   }
 ];
 
