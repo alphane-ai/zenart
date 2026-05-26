@@ -244,6 +244,74 @@ func TestRedactValueCoversErrors(t *testing.T) {
 	}
 }
 
+func TestRedactStringCoversRawJSONPayloads(t *testing.T) {
+	input := `{"event":"export_failed","headers":{"Authorization":["Bearer abcdefghijklmnop"]},"provider":{"openai_api_key":"sk-proj-abcdefghijklmnopqrstuvwxyz123456"},"signed_url":"https://storage.local/export.zip?X-Amz-Signature=abcdef","items":[{"webhook_secret":"whsec_abcdefghijklmnopqrstuvwxyz123456"}]}`
+	got := RedactString(input)
+
+	for _, leaked := range []string{
+		"abcdefghijklmnop",
+		"sk-proj-abcdefghijklmnopqrstuvwxyz123456",
+		"abcdef",
+		"whsec_abcdefghijklmnopqrstuvwxyz123456",
+	} {
+		if strings.Contains(got, leaked) {
+			t.Fatalf("RedactString() = %q, leaked %s", got, leaked)
+		}
+	}
+	for _, fragment := range []string{`"event":"export_failed"`, Redacted} {
+		if !strings.Contains(got, fragment) {
+			t.Fatalf("RedactString() = %q, missing %s", got, fragment)
+		}
+	}
+
+	findings := ClassifyString(input)
+	assertFinding(t, findings, SecretKindAuthorization, "headers.Authorization")
+	assertFinding(t, findings, SecretKindAPIKey, "provider.openai_api_key")
+	assertFinding(t, findings, SecretKindSignedURL, "signed_url")
+	assertFinding(t, findings, SecretKindWebhookSecret, "items[0].webhook_secret")
+}
+
+func TestRedactStringCoversLaunchProviderAndCommerceTokens(t *testing.T) {
+	twilioKey := "SK" + strings.Repeat("0", 32)
+	input := strings.Join([]string{
+		"sendgrid=SG.abcdefghijklmnopqrstuvwxyz123456.abcdefghijklmnopqrstuvwxyz123456",
+		"mailgun=key-abcdefghijklmnopqrstuvwxyz123456",
+		"stripe_webhook=whsec_abcdefghijklmnopqrstuvwxyz123456",
+		"shopify=shpat_abcdefghijklmnopqrstuvwxyz123456",
+		"twilio=" + twilioKey,
+		"square=EAAAabcdefghijklmnopqrstuvwxyz123456",
+		"aws_secret_access_key=abcdefghijklmnopqrstuvwxyz1234567890/+=",
+	}, " ")
+	got := RedactString(input)
+
+	for _, leaked := range []string{
+		"SG.abcdefghijklmnopqrstuvwxyz123456.abcdefghijklmnopqrstuvwxyz123456",
+		"key-abcdefghijklmnopqrstuvwxyz123456",
+		"whsec_abcdefghijklmnopqrstuvwxyz123456",
+		"shpat_abcdefghijklmnopqrstuvwxyz123456",
+		twilioKey,
+		"EAAAabcdefghijklmnopqrstuvwxyz123456",
+		"abcdefghijklmnopqrstuvwxyz1234567890/+=",
+	} {
+		if strings.Contains(got, leaked) {
+			t.Fatalf("RedactString() = %q, leaked %s", got, leaked)
+		}
+	}
+
+	findings := ClassifyString(input)
+	for _, signal := range []string{
+		"sendgrid_key",
+		"mailgun_key",
+		"stripe_webhook_secret",
+		"shopify_access_token",
+		"twilio_key",
+		"square_token",
+		"aws_secret_access_key_assignment",
+	} {
+		assertSignal(t, findings, signal)
+	}
+}
+
 func TestRedactingSlogHandlerRedactsMessagesAttrsGroupsAndContextAttrs(t *testing.T) {
 	var logs bytes.Buffer
 	logger := slog.New(NewRedactingSlogHandler(slog.NewJSONHandler(&logs, nil))).With(

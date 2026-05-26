@@ -78,6 +78,13 @@ var secretValuePatterns = []struct {
 	{SecretKindToken, "cloudflare_token", regexp.MustCompile(`\b(?:CFPAT|cfpat)_[A-Za-z0-9_-]{20,}\b`)},
 	{SecretKindToken, "datadog_key", regexp.MustCompile(`\b(?:dd|datadog)_[A-Za-z0-9]{20,}\b`)},
 	{SecretKindToken, "sentry_auth_token", regexp.MustCompile(`\bsntrys_[A-Za-z0-9_-]{20,}\b`)},
+	{SecretKindToken, "sendgrid_key", regexp.MustCompile(`\bSG\.[A-Za-z0-9_-]{16,}\.[A-Za-z0-9_-]{16,}\b`)},
+	{SecretKindToken, "mailgun_key", regexp.MustCompile(`\bkey-[A-Za-z0-9]{20,}\b`)},
+	{SecretKindWebhookSecret, "stripe_webhook_secret", regexp.MustCompile(`\bwhsec_[A-Za-z0-9]{20,}\b`)},
+	{SecretKindToken, "shopify_access_token", regexp.MustCompile(`\bshp(?:at|ca|ss)_[A-Za-z0-9]{20,}\b`)},
+	{SecretKindAccessKey, "aws_secret_access_key_assignment", regexp.MustCompile(`(?i)\b(?:aws[_-]?)?secret[_-]?access[_-]?key\s*[=:]\s*("[A-Za-z0-9/+=]{32,}"|'[A-Za-z0-9/+=]{32,}'|[A-Za-z0-9/+=]{32,})`)},
+	{SecretKindToken, "twilio_key", regexp.MustCompile(`\bSK[0-9a-fA-F]{32}\b`)},
+	{SecretKindToken, "square_token", regexp.MustCompile(`\bEAAA[A-Za-z0-9_-]{20,}\b`)},
 }
 
 var assignmentPattern = regexp.MustCompile(`(?i)\b([A-Za-z0-9_.-]*(?:secret|token|password|passwd|pwd|passphrase|api[_-]?key|access[_-]?key|private[_-]?key|credential|signature|session|cookie|authorization|client[_-]?secret|refresh[_-]?token|webhook[_-]?secret|signing[_-]?key|shared[_-]?access[_-]?signature|database[_-]?url|dsn)[A-Za-z0-9_.-]*)\s*([=:])\s*("[^"]*"|'[^']*'|[^\s,;&]+)`)
@@ -279,6 +286,7 @@ func ClassifyKey(key string) []SecretFinding {
 
 func ClassifyString(value string) []SecretFinding {
 	var findings []SecretFinding
+	findings = append(findings, classifyJSONString(value)...)
 	if hasURLCredentials(value) {
 		findings = append(findings, SecretFinding{Kind: SecretKindDSN, Signal: "url_credentials"})
 	}
@@ -450,11 +458,59 @@ func IsSensitiveKey(key string) bool {
 }
 
 func RedactString(value string) string {
+	value = redactJSONString(value)
 	value = redactURLSecrets(value)
 	value = redactAuthorization(value)
 	value = redactKnownSecretValues(value)
 	value = redactAssignments(value)
 	return value
+}
+
+func redactJSONString(value string) string {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" || (!strings.HasPrefix(trimmed, "{") && !strings.HasPrefix(trimmed, "[")) {
+		return value
+	}
+	var decoded any
+	decoder := json.NewDecoder(strings.NewReader(trimmed))
+	decoder.UseNumber()
+	if err := decoder.Decode(&decoded); err != nil {
+		return value
+	}
+	var trailing any
+	if err := decoder.Decode(&trailing); err != io.EOF {
+		return value
+	}
+	redacted, err := json.Marshal(RedactValue(decoded))
+	if err != nil {
+		return value
+	}
+	if len(value) == len(trimmed) {
+		return string(redacted)
+	}
+	prefixLen := strings.Index(value, trimmed)
+	if prefixLen < 0 {
+		return string(redacted)
+	}
+	return value[:prefixLen] + string(redacted) + value[prefixLen+len(trimmed):]
+}
+
+func classifyJSONString(value string) []SecretFinding {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" || (!strings.HasPrefix(trimmed, "{") && !strings.HasPrefix(trimmed, "[")) {
+		return nil
+	}
+	var decoded any
+	decoder := json.NewDecoder(strings.NewReader(trimmed))
+	decoder.UseNumber()
+	if err := decoder.Decode(&decoded); err != nil {
+		return nil
+	}
+	var trailing any
+	if err := decoder.Decode(&trailing); err != io.EOF {
+		return nil
+	}
+	return classifyValueAt(decoded, "")
 }
 
 func redactURLSecrets(value string) string {
