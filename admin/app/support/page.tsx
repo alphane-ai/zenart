@@ -1,11 +1,14 @@
 import { DataTable } from "@/components/DataTable";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
-import { getSupportUsers } from "@/lib/admin-api";
-import type { SupportUser } from "@/lib/types";
+import { getSupportTickets, getSupportUsers } from "@/lib/admin-api";
+import type { SupportTicket, SupportUser } from "@/lib/types";
 
 export default async function SupportPage() {
-  const users = await getSupportUsers();
+  const [users, tickets] = await Promise.all([
+    getSupportUsers(),
+    getSupportTickets()
+  ]);
 
   return (
     <>
@@ -50,6 +53,33 @@ export default async function SupportPage() {
             { key: "tasks", header: "Recent Tasks", render: (row) => row.recentTasks },
             { key: "traces", header: "Traces", render: (row) => row.traces.join(", ") },
             { key: "risk", header: "Risk Flags", render: (row) => row.riskFlags.length ? row.riskFlags.map((flag) => <StatusBadge key={flag} value="warning" label={flag} />) : "None" }
+          ]}
+        />
+      </section>
+
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>Ticket Linkage</h3>
+            <p>Each support ticket must preserve user, project, task, trace, asset, export, quota, next action, and audit evidence.</p>
+          </div>
+        </div>
+        <DataTable<SupportTicket>
+          rows={tickets}
+          columns={[
+            { key: "ticket", header: "Ticket", render: (row) => <span className="mono">{row.id}</span> },
+            { key: "status", header: "Status", render: (row) => <StatusBadge value={row.status === "escalated" ? "danger" : row.status} label={row.status} /> },
+            { key: "priority", header: "Priority", render: (row) => <StatusBadge value={row.priority} /> },
+            { key: "user", header: "User", render: (row) => <span className="mono">{row.userId}</span> },
+            { key: "project", header: "Project", render: (row) => <span className="mono">{row.projectId}</span> },
+            { key: "task", header: "Task", render: (row) => <span className="mono">{row.taskId}</span> },
+            { key: "trace", header: "Trace", render: (row) => <span className="mono">{row.traceId}</span> },
+            { key: "asset", header: "Asset", render: (row) => <span className="mono">{row.assetId}</span> },
+            { key: "export", header: "Export", render: (row) => <span className="mono">{row.exportId}</span> },
+            { key: "quota", header: "Quota Txn", render: (row) => <span className="mono">{row.quotaTransactionId}</span> },
+            { key: "subject", header: "Subject", render: (row) => row.subject },
+            { key: "action", header: "Next Action", render: (row) => row.nextAction },
+            { key: "audit", header: "Audit Ref", render: (row) => <span className="mono">{row.auditRef}</span> }
           ]}
         />
       </section>

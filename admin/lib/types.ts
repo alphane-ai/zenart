@@ -140,6 +140,22 @@ export type ExportJob = {
   failureReason: string;
 };
 
+export type SupportTicket = {
+  id: string;
+  status: "open" | "waiting_user" | "resolved" | "escalated";
+  priority: "low" | "medium" | "high" | "critical";
+  userId: string;
+  projectId: string;
+  taskId: string;
+  traceId: string;
+  assetId: string;
+  exportId: string;
+  quotaTransactionId: string;
+  subject: string;
+  nextAction: string;
+  auditRef: string;
+};
+
 export type SupportUser = {
   id: string;
   email: string;

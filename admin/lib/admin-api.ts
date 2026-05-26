@@ -16,6 +16,7 @@ import {
   riskyExports,
   skillVersions,
   skills,
+  supportTickets,
   supportUsers,
   traces
 } from "@/lib/fixtures";
@@ -78,6 +79,10 @@ export async function getExportJob(id: string) {
 
 export async function getSupportUsers() {
   return supportUsers;
+}
+
+export async function getSupportTickets() {
+  return supportTickets;
 }
 
 export async function getQuotaAccounts() {

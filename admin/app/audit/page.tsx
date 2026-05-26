@@ -9,6 +9,23 @@ export default async function AuditPage() {
     getAuditEvents(),
     getAdminReviewDecisions()
   ]);
+  const filterPresets = [
+    {
+      name: "High-risk admin changes",
+      filter: "risk:high OR risk:critical",
+      evidence: "Requires rationale, immutable audit, and second-review status."
+    },
+    {
+      name: "Support and quota actions",
+      filter: "action:credited quota OR target:usr-*",
+      evidence: "Must include support ticket, quota transaction, and reviewer reason."
+    },
+    {
+      name: "Release and canary changes",
+      filter: "action:started skill canary OR surface:skill_release",
+      evidence: "Must preserve eval, canary, release, smoke, and rollback evidence."
+    }
+  ];
 
   return (
     <>
@@ -42,6 +59,20 @@ export default async function AuditPage() {
               </select>
             </div>
           </div>
+        </div>
+        <div className="panel-body filter-presets">
+          {filterPresets.map((preset) => (
+            <article className="record-card" key={preset.name}>
+              <header>
+                <div>
+                  <h4>{preset.name}</h4>
+                  <p className="mono">{preset.filter}</p>
+                </div>
+                <StatusBadge value="info" label="preset" />
+              </header>
+              <p>{preset.evidence}</p>
+            </article>
+          ))}
         </div>
         <DataTable<AuditEvent>
           rows={events}

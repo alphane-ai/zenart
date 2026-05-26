@@ -390,6 +390,13 @@ tr:last-child td {
   gap: 12px;
 }
 
+.filter-presets {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  border-bottom: 1px solid var(--line);
+}
+
 .record-card {
   display: grid;
   gap: 10px;
@@ -508,6 +515,7 @@ tr:last-child td {
   }
 
   .stat-grid,
+  .filter-presets,
   .form-row {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -526,6 +534,7 @@ tr:last-child td {
 
   .nav-group,
   .stat-grid,
+  .filter-presets,
   .form-row,
   .timeline-item,
   .kv {

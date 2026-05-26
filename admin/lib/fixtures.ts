@@ -16,6 +16,7 @@ import type {
   RiskyExport,
   Skill,
   SkillVersion,
+  SupportTicket,
   SupportUser
 } from "@/lib/types";
 
@@ -415,6 +416,54 @@ export const exportJobs: ExportJob[] = [
     qaSeverity: "info",
     regenerateEligible: true,
     failureReason: "ZIP manifest missing QA report."
+  }
+];
+
+export const supportTickets: SupportTicket[] = [
+  {
+    id: "sup-2201",
+    status: "escalated",
+    priority: "high",
+    userId: "usr-301",
+    projectId: "proj-774",
+    taskId: "task-brief-441",
+    traceId: "tr-1004",
+    assetId: "asset-441",
+    exportId: "ex-887",
+    quotaTransactionId: "qt-904",
+    subject: "Blocked export consumed retries and quota.",
+    nextAction: "Confirm blocked QA result, keep export closed, and apply audited quota credit.",
+    auditRef: "au-004"
+  },
+  {
+    id: "sup-2204",
+    status: "open",
+    priority: "medium",
+    userId: "usr-318",
+    projectId: "proj-790",
+    taskId: "task-export-489",
+    traceId: "tr-1019",
+    assetId: "asset-489",
+    exportId: "ex-901",
+    quotaTransactionId: "qt-911",
+    subject: "Low contrast phone number in mobile export.",
+    nextAction: "Attach QA warning to regeneration request and keep original package immutable.",
+    auditRef: "pending"
+  },
+  {
+    id: "sup-2212",
+    status: "waiting_user",
+    priority: "low",
+    userId: "usr-455",
+    projectId: "proj-812",
+    taskId: "task-crawler-019",
+    traceId: "none",
+    assetId: "none",
+    exportId: "none",
+    quotaTransactionId: "none",
+    subject: "Crawler source import paused after abuse rate limit.",
+    nextAction: "Request source ownership details before any retry or allowlist change.",
+    auditRef: "au-002"
   }
 ];
 

@@ -39,6 +39,7 @@ test("admin fixtures cover required operational surfaces", () => {
     "export const incidentLogs",
     "export const maintenanceBanners",
     "export const exportJobs",
+    "export const supportTickets",
     "export const supportUsers",
     "export const quotaAccounts",
     "export const riskyExports",
@@ -124,6 +125,9 @@ test("admin routes surface governance evidence", () => {
   );
   assert.match(auditPage, /Review Rationale Evidence/);
   assert.match(auditPage, /Second Review/);
+  assert.match(auditPage, /High-risk admin changes/);
+  assert.match(auditPage, /Support and quota actions/);
+  assert.match(auditPage, /Release and canary changes/);
 
   const safetyPage = readFileSync(
     new URL("../app/safety/page.tsx", import.meta.url),
@@ -138,4 +142,36 @@ test("admin routes surface governance evidence", () => {
   assert.match(operationsPage, /Incident Log/);
   assert.match(operationsPage, /Maintenance Banner/);
   assert.match(operationsPage, /Rollback Plan/);
+});
+
+test("support console surfaces ticket linkage and audit evidence", () => {
+  const supportPage = readFileSync(
+    new URL("../app/support/page.tsx", import.meta.url),
+    "utf8"
+  );
+  for (const token of [
+    "Ticket Linkage",
+    "Project",
+    "Task",
+    "Trace",
+    "Asset",
+    "Export",
+    "Quota Txn",
+    "Next Action",
+    "Audit Ref"
+  ]) {
+    assert.match(supportPage, new RegExp(token));
+  }
+
+  for (const token of [
+    "projectId",
+    "taskId",
+    "traceId",
+    "assetId",
+    "exportId",
+    "quotaTransactionId",
+    "auditRef"
+  ]) {
+    assert.match(fixtures, new RegExp(token));
+  }
 });
