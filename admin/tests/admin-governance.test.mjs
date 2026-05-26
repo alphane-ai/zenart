@@ -8,7 +8,7 @@ const parseFixtures = () => {
   const moduleSource = source
     .replace(/^import type[\s\S]*?from "@\/lib\/types";\n\n/, "")
     .replaceAll(/export const (\w+)[^=]*=/g, "const $1 =");
-  return Function(`${moduleSource}\nreturn { skillVersions, releaseEvidence, supportTickets, supportEscalationRunbooks, supportUsers, riskyExports, abuseEvents, auditEvents, exportJobs, traces, quotaAccounts };`)();
+  return Function(`${moduleSource}\nreturn { skillVersions, releaseEvidence, supportTickets, supportEscalationRunbooks, supportUsers, riskyExports, abuseEvents, auditEvents, exportJobs, traces, quotaAccounts, feedbackItems, analyticsReports };`)();
 };
 
 const {
@@ -21,6 +21,8 @@ const {
   abuseEvents,
   auditEvents,
   exportJobs,
+  feedbackItems,
+  analyticsReports,
   traces,
   quotaAccounts
 } = parseFixtures();
@@ -101,6 +103,61 @@ test("support escalation runbooks gate customer updates and closure safety", () 
       assert.notEqual(runbook.escalationRole, "support_operator", `${runbook.ticketId} escalated ticket needs admin role boundary`);
     }
   }
+});
+
+test("feedback filtering and delayed feedback cannot bypass review", () => {
+  const decisions = new Set(feedbackItems.map((item) => item.filterDecision));
+
+  assert.ok(decisions.has("eligible"), "feedback filters need eligible signals");
+  assert.ok(decisions.has("hold"), "feedback filters need held delayed signals");
+  assert.ok(decisions.has("discard"), "feedback filters need discarded abuse signals");
+
+  for (const item of feedbackItems) {
+    assert.ok(item.weight >= 0 && item.weight <= 1, `${item.id} weight must stay between 0 and 1`);
+    assert.ok(item.weightingReason.length > 30, `${item.id} needs weighting rationale`);
+
+    if (item.delayed) {
+      assert.equal(item.filterDecision, "hold", `${item.id} delayed feedback must stay on hold`);
+      assert.notEqual(item.availableForLearningAt, "blocked", `${item.id} delayed feedback needs a release time`);
+      assert.notEqual(item.regressionFixtureRef, "none-positive-signal", `${item.id} delayed feedback needs explicit fixture state`);
+    }
+
+    if (item.filterDecision === "discard") {
+      assert.equal(item.weight, 0, `${item.id} discarded feedback cannot influence learning`);
+      assert.match(item.blockedReason, /abuse|unresolved/i, `${item.id} discarded feedback needs a blocking reason`);
+    }
+
+    if (item.filterDecision === "eligible") {
+      assert.ok(item.weight > 0, `${item.id} eligible feedback needs positive weight`);
+      assert.notEqual(item.availableForLearningAt, "blocked", `${item.id} eligible feedback needs availability`);
+    }
+  }
+});
+
+test("analytics reports cover product funnel and operational go/no-go metrics", () => {
+  const requiredReports = new Set([
+    "first_prompt_to_four_candidates",
+    "selection_rate",
+    "iteration_rate",
+    "package_add_export_completion",
+    "weekly_return",
+    "qa_warning_block",
+    "cost_per_successful_package",
+    "support_ticket_failure_rate"
+  ]);
+
+  for (const report of analyticsReports) {
+    requiredReports.delete(report.name);
+    assert.ok(report.sourceEvents.length > 0, `${report.id} needs source events`);
+    assert.ok(report.decisionUse.length > 30, `${report.id} needs go/no-go decision use`);
+    assert.ok(report.sampleSize > 0, `${report.id} needs sample size`);
+  }
+
+  assert.deepEqual([...requiredReports], [], "analytics reports are missing required Stage 0 surfaces");
+  assert.ok(
+    analyticsReports.some((report) => report.status === "blocked"),
+    "analytics reports need at least one blocked gate signal"
+  );
 });
 
 test("high-risk audit and release operations are immutable and rollback-linked", () => {

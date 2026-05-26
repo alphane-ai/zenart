@@ -21,7 +21,8 @@ const navGroups = [
       ["Operations Gate", "/operations"],
       ["Export Jobs", "/exports"],
       ["Trace Detail", "/traces"],
-      ["Feedback Queue", "/feedback"]
+      ["Feedback Queue", "/feedback"],
+      ["Analytics Reports", "/analytics"]
     ]
   },
   {

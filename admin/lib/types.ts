@@ -106,6 +106,33 @@ export type FeedbackItem = {
   attribution: string;
   signal: string;
   delayed: boolean;
+  filterDecision: "eligible" | "hold" | "discard";
+  weight: number;
+  weightingReason: string;
+  availableForLearningAt: string;
+  blockedReason: string;
+  regressionFixtureRef: string;
+};
+
+export type AnalyticsReport = {
+  id: string;
+  name:
+    | "first_prompt_to_four_candidates"
+    | "selection_rate"
+    | "iteration_rate"
+    | "package_add_export_completion"
+    | "weekly_return"
+    | "qa_warning_block"
+    | "cost_per_successful_package"
+    | "support_ticket_failure_rate";
+  window: string;
+  value: string;
+  target: string;
+  status: "healthy" | "watch" | "blocked";
+  sampleSize: number;
+  segment: string;
+  sourceEvents: string[];
+  decisionUse: string;
 };
 
 export type ProviderHealth = {

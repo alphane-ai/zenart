@@ -27,8 +27,13 @@ export default async function FeedbackPage() {
             { key: "kind", header: "Kind", render: (row) => row.kind },
             { key: "status", header: "Status", render: (row) => <StatusBadge value={row.status} /> },
             { key: "delayed", header: "Delayed", render: (row) => (row.delayed ? "Yes" : "No") },
+            { key: "filter", header: "Filter Decision", render: (row) => <StatusBadge value={row.filterDecision === "eligible" ? "approved" : row.filterDecision === "hold" ? "warning" : "blocked"} label={row.filterDecision} /> },
+            { key: "weight", header: "Weight", render: (row) => row.weight.toFixed(2) },
             { key: "attribution", header: "Attribution", render: (row) => row.attribution },
-            { key: "signal", header: "Signal", render: (row) => row.signal }
+            { key: "available", header: "Learning At", render: (row) => row.availableForLearningAt },
+            { key: "fixture", header: "Regression Fixture", render: (row) => row.regressionFixtureRef },
+            { key: "signal", header: "Signal", render: (row) => row.signal },
+            { key: "reason", header: "Weighting Reason", render: (row) => row.weightingReason }
           ]}
         />
       </section>

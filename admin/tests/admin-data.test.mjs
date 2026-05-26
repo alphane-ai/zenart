@@ -21,7 +21,8 @@ const routes = [
   "quota",
   "safety",
   "abuse",
-  "audit"
+  "audit",
+  "analytics"
 ];
 
 test("admin fixtures cover required operational surfaces", () => {
@@ -46,10 +47,37 @@ test("admin fixtures cover required operational surfaces", () => {
     "export const riskyExports",
     "export const releaseEvidence",
     "export const abuseEvents",
-    "export const auditEvents"
+    "export const auditEvents",
+    "export const analyticsReports"
   ]) {
     assert.match(fixtures, new RegExp(token.replaceAll(" ", "\\s+")));
   }
+});
+
+test("admin analytics reports cover stage 0 go/no-go reports", () => {
+  const analyticsPage = readFileSync(
+    new URL("../app/analytics/page.tsx", import.meta.url),
+    "utf8"
+  );
+
+  for (const token of [
+    "first prompt to four candidates",
+    "selection",
+    "iteration",
+    "package/export completion",
+    "weekly return",
+    "QA",
+    "cost",
+    "support failure rate",
+    "Decision Use",
+    "Source Events"
+  ]) {
+    assert.match(analyticsPage, new RegExp(token));
+  }
+
+  assert.match(fixtures, /first_prompt_to_four_candidates/);
+  assert.match(fixtures, /package_add_export_completion/);
+  assert.match(fixtures, /support_ticket_failure_rate/);
 });
 
 test("admin fixtures expose review governance and release evidence", () => {

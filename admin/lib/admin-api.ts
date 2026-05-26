@@ -1,6 +1,7 @@
 import {
   adminReviewDecisions,
   abuseEvents,
+  analyticsReports,
   auditEvents,
   crawlerFindings,
   exportJobs,
@@ -112,4 +113,8 @@ export async function getIncidentLogs() {
 
 export async function getMaintenanceBanners() {
   return maintenanceBanners;
+}
+
+export async function getAnalyticsReports() {
+  return analyticsReports;
 }

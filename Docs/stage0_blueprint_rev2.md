@@ -1825,8 +1825,8 @@ main 合并前必须通过：
 - [x] high-risk changes 要求 second review。
 - [x] 实现 feedback taxonomy。
 - [x] 实现 feedback attribution。
-- [ ] 实现 feedback filtering/weighting。
-- [ ] 实现 delayed feedback。
+- [x] 实现 feedback filtering/weighting。
+- [x] 实现 delayed feedback。
 - [ ] bad samples 转 regression fixtures。
 - [x] 实现 abuse event model。
 - [ ] 实现 temporary hold/throttle hooks。
@@ -1916,17 +1916,17 @@ main 合并前必须通过：
 
 ### 25.19 Product Analytics
 
-- [ ] 定义 analytics event taxonomy。
+- [x] 定义 analytics event taxonomy。
 - [ ] 实现 server-side core workflow event capture。
 - [ ] 实现 client-side onboarding/UI funnel capture。
-- [ ] 实现 admin report：first prompt to four candidates。
-- [ ] 实现 admin report：selection rate。
-- [ ] 实现 admin report：iteration rate。
-- [ ] 实现 admin report：package add/export completion。
-- [ ] 实现 admin report：weekly return。
-- [ ] 实现 admin report：QA warning/block。
-- [ ] 实现 admin report：cost per successful package。
-- [ ] 实现 admin report：support ticket/failure rate。
+- [x] 实现 admin report：first prompt to four candidates。
+- [x] 实现 admin report：selection rate。
+- [x] 实现 admin report：iteration rate。
+- [x] 实现 admin report：package add/export completion。
+- [x] 实现 admin report：weekly return。
+- [x] 实现 admin report：QA warning/block。
+- [x] 实现 admin report：cost per successful package。
+- [x] 实现 admin report：support ticket/failure rate。
 
 ### 25.20 Release Gate Execution
 

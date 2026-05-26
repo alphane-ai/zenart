@@ -1,6 +1,7 @@
 import type {
   AbuseEvent,
   AdminReviewDecision,
+  AnalyticsReport,
   AgentTrace,
   AuditEvent,
   CrawlerFinding,
@@ -304,7 +305,13 @@ export const feedbackItems: FeedbackItem[] = [
     status: "open",
     attribution: "wf-774 · skill-brand-kit@2.5.0 · tr-1004",
     signal: "Candidate looked too close to existing competitor campaign.",
-    delayed: false
+    delayed: false,
+    filterDecision: "eligible",
+    weight: 0.9,
+    weightingReason: "Explicit rejection with trace, export, and reviewer evidence; high learning value but still gated by review.",
+    availableForLearningAt: "2026-05-26 09:30",
+    blockedReason: "none",
+    regressionFixtureRef: "fixtures/stage0/rev2/regressions/brand_similarity_fb_203.json"
   },
   {
     id: "fb-211",
@@ -312,7 +319,13 @@ export const feedbackItems: FeedbackItem[] = [
     status: "open",
     attribution: "wf-790 · export ex-901 · tr-1019",
     signal: "Structured phone number was low contrast on mobile export.",
-    delayed: true
+    delayed: true,
+    filterDecision: "hold",
+    weight: 0.65,
+    weightingReason: "QA warning is useful after the delayed export review confirms the regeneration result.",
+    availableForLearningAt: "2026-05-27 08:15",
+    blockedReason: "Delayed feedback window remains open until mobile export regeneration is reviewed.",
+    regressionFixtureRef: "pending-delayed-feedback"
   },
   {
     id: "fb-217",
@@ -320,7 +333,126 @@ export const feedbackItems: FeedbackItem[] = [
     status: "resolved",
     attribution: "wf-799 · prompt pf-051",
     signal: "Five-star rating after package add and export.",
-    delayed: false
+    delayed: false,
+    filterDecision: "eligible",
+    weight: 0.35,
+    weightingReason: "Positive rating has weak attribution, so it receives low weight and cannot activate a prompt alone.",
+    availableForLearningAt: "2026-05-25 18:00",
+    blockedReason: "none",
+    regressionFixtureRef: "none-positive-signal"
+  },
+  {
+    id: "fb-222",
+    kind: "text_feedback",
+    status: "open",
+    attribution: "wf-812 · crawler source cs-21 · support sup-2212",
+    signal: "User pasted prompt-extraction instructions inside a source ownership note.",
+    delayed: false,
+    filterDecision: "discard",
+    weight: 0,
+    weightingReason: "Suspected abuse signal is routed to abuse review and cannot train prompt or skill evolution.",
+    availableForLearningAt: "blocked",
+    blockedReason: "Suspected abuse and crawler ownership evidence unresolved.",
+    regressionFixtureRef: "none-abuse-filtered"
+  }
+];
+
+export const analyticsReports: AnalyticsReport[] = [
+  {
+    id: "ar-001",
+    name: "first_prompt_to_four_candidates",
+    window: "2026-05-19 to 2026-05-26",
+    value: "84.2%",
+    target: ">= 80%",
+    status: "healthy",
+    sampleSize: 214,
+    segment: "private-beta starter workflows",
+    sourceEvents: ["prompt_submitted", "four_candidates_ready", "task_failed"],
+    decisionUse: "Local alpha gate can keep four-candidate workflow enabled while task failures stay below threshold."
+  },
+  {
+    id: "ar-002",
+    name: "selection_rate",
+    window: "2026-05-19 to 2026-05-26",
+    value: "61.8%",
+    target: ">= 55%",
+    status: "healthy",
+    sampleSize: 178,
+    segment: "candidate sets with four rendered options",
+    sourceEvents: ["four_candidates_ready", "candidate_selected", "candidate_rejected"],
+    decisionUse: "Selection rate supports candidate distinction quality but does not bypass eval or review."
+  },
+  {
+    id: "ar-003",
+    name: "iteration_rate",
+    window: "2026-05-19 to 2026-05-26",
+    value: "38.6%",
+    target: "25% to 55%",
+    status: "healthy",
+    sampleSize: 110,
+    segment: "selected directions",
+    sourceEvents: ["candidate_selected", "iteration_requested", "iteration_completed"],
+    decisionUse: "Iteration rate is inside the expected range for starter workflows."
+  },
+  {
+    id: "ar-004",
+    name: "package_add_export_completion",
+    window: "2026-05-19 to 2026-05-26",
+    value: "72.4% / 66.1%",
+    target: ">= 70% package add and >= 60% export completion",
+    status: "healthy",
+    sampleSize: 98,
+    segment: "sessions with selected direction",
+    sourceEvents: ["package_item_added", "export_started", "export_completed"],
+    decisionUse: "Package and export funnel remains eligible for private-beta observation."
+  },
+  {
+    id: "ar-005",
+    name: "weekly_return",
+    window: "2026-05-19 to 2026-05-26",
+    value: "31.5%",
+    target: ">= 30%",
+    status: "watch",
+    sampleSize: 89,
+    segment: "private-beta activated accounts",
+    sourceEvents: ["user_signed_in", "project_opened", "weekly_return"],
+    decisionUse: "Retention is barely above target, so do not expand allowlist without support and failure-rate review."
+  },
+  {
+    id: "ar-006",
+    name: "qa_warning_block",
+    window: "2026-05-19 to 2026-05-26",
+    value: "9.1% warning / 2.3% block",
+    target: "<= 12% warning and <= 3% block",
+    status: "watch",
+    sampleSize: 132,
+    segment: "export QA runs",
+    sourceEvents: ["qa_warning", "safety_block", "export_blocked"],
+    decisionUse: "QA remains under threshold but blocks must stay visible in safety and support queues."
+  },
+  {
+    id: "ar-007",
+    name: "cost_per_successful_package",
+    window: "2026-05-19 to 2026-05-26",
+    value: "$0.42",
+    target: "<= $0.50",
+    status: "healthy",
+    sampleSize: 76,
+    segment: "successful package exports",
+    sourceEvents: ["provider_usage_recorded", "package_completed", "export_completed"],
+    decisionUse: "Cost is below local-alpha budget but provider reconciliation remains required before production."
+  },
+  {
+    id: "ar-008",
+    name: "support_ticket_failure_rate",
+    window: "2026-05-19 to 2026-05-26",
+    value: "4.7%",
+    target: "<= 4%",
+    status: "blocked",
+    sampleSize: 214,
+    segment: "workflow sessions",
+    sourceEvents: ["support_ticket_opened", "task_failed", "export_failed"],
+    decisionUse: "Private beta expansion blocked until support tickets and failed exports return below threshold."
   }
 ];
 
