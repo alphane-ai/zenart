@@ -1,0 +1,354 @@
+{
+  "schema_version": "stage0.rev2",
+  "contract_id": "qa_result_coverage_stage0_rev2_export_gate_matrix",
+  "blueprint_source": "Docs/stage0_blueprint_rev2.md",
+  "qa_fixture": {
+    "path": "fixtures/stage0/rev2/eval/qa_results.json",
+    "minimum_fixture_count": 16,
+    "check_id_unique": true,
+    "trace_link_required": true,
+    "eval_fixture_link_required": true
+  },
+  "required_categories": [
+    "file_integrity",
+    "dimensions",
+    "aspect_ratio",
+    "safe_area",
+    "blank_output",
+    "duplicate_similarity",
+    "four_option_distinctness",
+    "text_readability",
+    "structured_text",
+    "product_logo_preservation",
+    "forbidden_claims",
+    "watermark_signature_risk",
+    "export_completeness"
+  ],
+  "required_outcomes": [
+    "pass",
+    "warn",
+    "block"
+  ],
+  "category_contracts": [
+    {
+      "check_category": "file_integrity",
+      "expected_outcomes": [
+        "block"
+      ],
+      "required_observed_fields": [
+        "mime_type",
+        "checksum_sha256",
+        "decoder_status",
+        "byte_size"
+      ],
+      "required_expected_fields": [
+        "mime_type",
+        "checksum_sha256",
+        "decoder_status",
+        "byte_size_min"
+      ],
+      "blocks_final_export_when_blocking": true,
+      "override_requires_audit": true,
+      "trace_link_required": true,
+      "source_artifacts_required": true
+    },
+    {
+      "check_category": "dimensions",
+      "expected_outcomes": [
+        "block"
+      ],
+      "required_observed_fields": [
+        "width_px",
+        "height_px",
+        "export_target"
+      ],
+      "required_expected_fields": [
+        "width_px",
+        "height_px",
+        "export_target"
+      ],
+      "blocks_final_export_when_blocking": true,
+      "override_requires_audit": true,
+      "trace_link_required": true,
+      "source_artifacts_required": true
+    },
+    {
+      "check_category": "aspect_ratio",
+      "expected_outcomes": [
+        "pass",
+        "warn"
+      ],
+      "required_observed_fields": [
+        "aspect_ratio",
+        "export_target"
+      ],
+      "required_expected_fields": [
+        "aspect_ratio",
+        "export_target"
+      ],
+      "blocks_final_export_when_blocking": true,
+      "override_requires_audit": true,
+      "trace_link_required": true,
+      "source_artifacts_required": true
+    },
+    {
+      "check_category": "safe_area",
+      "expected_outcomes": [
+        "warn"
+      ],
+      "required_observed_fields": [
+        "cta_bottom_margin_px",
+        "safe_area_bottom_min_px",
+        "overlaps_platform_ui"
+      ],
+      "required_expected_fields": [
+        "cta_bottom_margin_px_min",
+        "overlaps_platform_ui"
+      ],
+      "blocks_final_export_when_blocking": true,
+      "override_requires_audit": true,
+      "trace_link_required": true,
+      "source_artifacts_required": true
+    },
+    {
+      "check_category": "blank_output",
+      "expected_outcomes": [
+        "block"
+      ],
+      "required_observed_fields": [
+        "near_blank",
+        "non_background_pixel_ratio",
+        "detected_subjects"
+      ],
+      "required_expected_fields": [
+        "near_blank",
+        "non_background_pixel_ratio_min",
+        "detected_subjects_min"
+      ],
+      "blocks_final_export_when_blocking": true,
+      "override_requires_audit": true,
+      "trace_link_required": true,
+      "source_artifacts_required": true
+    },
+    {
+      "check_category": "duplicate_similarity",
+      "expected_outcomes": [
+        "block"
+      ],
+      "required_observed_fields": [
+        "duplicate_similarity",
+        "candidate_pair"
+      ],
+      "required_expected_fields": [
+        "duplicate_similarity_below",
+        "candidate_pair_must_differ"
+      ],
+      "blocks_final_export_when_blocking": true,
+      "override_requires_audit": true,
+      "trace_link_required": true,
+      "source_artifacts_required": true
+    },
+    {
+      "check_category": "four_option_distinctness",
+      "expected_outcomes": [
+        "block"
+      ],
+      "required_observed_fields": [
+        "strategic_options",
+        "taxonomy_coverage"
+      ],
+      "required_expected_fields": [
+        "strategic_options",
+        "taxonomy_coverage"
+      ],
+      "blocks_final_export_when_blocking": true,
+      "override_requires_audit": true,
+      "trace_link_required": true,
+      "source_artifacts_required": true
+    },
+    {
+      "check_category": "text_readability",
+      "expected_outcomes": [
+        "warn"
+      ],
+      "required_observed_fields": [
+        "ocr_confidence",
+        "min_font_px",
+        "manual_review_placeholder"
+      ],
+      "required_expected_fields": [
+        "ocr_confidence_min",
+        "min_font_px",
+        "manual_review_placeholder_allowed"
+      ],
+      "blocks_final_export_when_blocking": true,
+      "override_requires_audit": true,
+      "trace_link_required": true,
+      "source_artifacts_required": true
+    },
+    {
+      "check_category": "structured_text",
+      "expected_outcomes": [
+        "warn"
+      ],
+      "required_observed_fields": [
+        "price",
+        "date",
+        "phone",
+        "address",
+        "qr_placeholder"
+      ],
+      "required_expected_fields": [
+        "price",
+        "date",
+        "phone",
+        "address",
+        "qr_placeholder"
+      ],
+      "blocks_final_export_when_blocking": true,
+      "override_requires_audit": true,
+      "trace_link_required": true,
+      "source_artifacts_required": true
+    },
+    {
+      "check_category": "product_logo_preservation",
+      "expected_outcomes": [
+        "block"
+      ],
+      "required_observed_fields": [
+        "logo_similarity",
+        "product_shape_similarity",
+        "unauthorized_color_change"
+      ],
+      "required_expected_fields": [
+        "logo_similarity_min",
+        "product_shape_similarity_min",
+        "unauthorized_color_change"
+      ],
+      "blocks_final_export_when_blocking": true,
+      "override_requires_audit": true,
+      "trace_link_required": true,
+      "source_artifacts_required": true
+    },
+    {
+      "check_category": "forbidden_claims",
+      "expected_outcomes": [
+        "block"
+      ],
+      "required_observed_fields": [
+        "claim_text",
+        "claim_source",
+        "source_citation_present"
+      ],
+      "required_expected_fields": [
+        "claim_text_allowed",
+        "requires_source_citation",
+        "expected_safety_action"
+      ],
+      "blocks_final_export_when_blocking": true,
+      "override_requires_audit": true,
+      "trace_link_required": true,
+      "source_artifacts_required": true
+    },
+    {
+      "check_category": "watermark_signature_risk",
+      "expected_outcomes": [
+        "warn"
+      ],
+      "required_observed_fields": [
+        "watermark_probability",
+        "signature_like_text_detected",
+        "review_region"
+      ],
+      "required_expected_fields": [
+        "watermark_probability_below",
+        "signature_like_text_detected"
+      ],
+      "blocks_final_export_when_blocking": true,
+      "override_requires_audit": true,
+      "trace_link_required": true,
+      "source_artifacts_required": true
+    },
+    {
+      "check_category": "export_completeness",
+      "expected_outcomes": [
+        "block"
+      ],
+      "required_observed_fields": [
+        "manifest_json",
+        "qa_report_json",
+        "metadata_json",
+        "safety_disclaimer_when_applicable",
+        "trace_provenance_json",
+        "deterministic_file_names"
+      ],
+      "required_expected_fields": [
+        "manifest_json",
+        "qa_report_json",
+        "metadata_json",
+        "safety_disclaimer_when_applicable",
+        "trace_provenance_json",
+        "deterministic_file_names"
+      ],
+      "blocks_final_export_when_blocking": true,
+      "override_requires_audit": true,
+      "trace_link_required": true,
+      "source_artifacts_required": true
+    }
+  ],
+  "outcome_examples": [
+    {
+      "outcome": "pass",
+      "source": "qa_result_fixture",
+      "fixture_id": "fx_ecommerce_growth_golden",
+      "workflow": "ecommerce_growth_pack",
+      "trace_id": "trace_fx_ecommerce_growth_golden_aspect",
+      "check_ids": [
+        "qa_aspect_ratio_square_pass"
+      ],
+      "final_export_allowed": false
+    },
+    {
+      "outcome": "warn",
+      "source": "qa_result_fixture",
+      "fixture_id": "fx_business_visual_doc_golden",
+      "workflow": "business_visual_doc_pack",
+      "trace_id": "trace_fx_business_visual_doc_golden_readability",
+      "check_ids": [
+        "qa_text_readability_ocr"
+      ],
+      "final_export_allowed": false
+    },
+    {
+      "outcome": "block",
+      "source": "qa_result_fixture",
+      "fixture_id": "fx_export_completeness_missing_manifest",
+      "workflow": "character_ip_concept_pack",
+      "trace_id": "trace_fx_export_completeness_missing_manifest",
+      "check_ids": [
+        "qa_export_completeness"
+      ],
+      "final_export_allowed": false
+    }
+  ],
+  "eval_result_link": {
+    "path": "fixtures/stage0/rev2/eval/starter_eval_results.json",
+    "requires_qa_categories_covered_match": true,
+    "requires_qa_export_gate_match": true,
+    "requires_trace_contract_match": true
+  },
+  "export_gate_policy": {
+    "blocking_severity_blocks_final_export": true,
+    "warning_severity_does_not_block_final_export": true,
+    "pass_outcome_allows_final_export_when_export_contract_complete": true,
+    "admin_override_requires_audit": true
+  },
+  "provenance": {
+    "blueprint_sections": [
+      "15.1",
+      "15.2",
+      "25.11"
+    ],
+    "created_by_lane": "lane2"
+  }
+}

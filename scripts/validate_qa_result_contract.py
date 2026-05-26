@@ -221,6 +221,16 @@ def validate_category_item(item: dict[str, Any]) -> None:
         require(item["auto_fix_available"] is True, f"{label} must expose auto-fix availability")
     if contract.get("review_required"):
         require(item["review_required"] is True, f"{label} must require review")
+    if item["severity"] == "blocking":
+        require(
+            item["export_gate"]["blocks_final_export"] is True,
+            f"{label} blocking QA result must block final export",
+        )
+    if item["severity"] in {"info", "warning"}:
+        require(
+            item["export_gate"]["blocks_final_export"] is False,
+            f"{label} non-blocking QA result must not block final export",
+        )
     if contract.get("must_have_manual_review_placeholder"):
         require(
             observed["manual_review_placeholder"] is True

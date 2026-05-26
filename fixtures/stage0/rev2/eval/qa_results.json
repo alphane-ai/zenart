@@ -127,6 +127,46 @@
   },
   {
     "schema_version": "stage0.rev2",
+    "check_id": "qa_aspect_ratio_square_pass",
+    "check_category": "aspect_ratio",
+    "severity": "info",
+    "workflow": "ecommerce_growth_pack",
+    "asset_id": "asset_aurora_marketplace_square",
+    "evidence": {
+      "observed": {
+        "aspect_ratio": "1:1",
+        "export_target": "marketplace_square"
+      },
+      "expected": {
+        "aspect_ratio": "1:1",
+        "export_target": "marketplace_square"
+      },
+      "trace_id": "trace_fx_ecommerce_growth_golden_aspect",
+      "fixture_id": "fx_ecommerce_growth_golden",
+      "source_artifacts": [
+        "workflow_acceptance.ecommerce_growth_pack.json",
+        "manifest.json"
+      ]
+    },
+    "export_gate": {
+      "blocks_final_export": false,
+      "eligible_admin_override": false,
+      "override_requires_audit": true
+    },
+    "auto_fix_available": true,
+    "review_required": false,
+    "user_visible_message": "The asset matches the selected placement aspect ratio.",
+    "admin_reason": "Passing aspect ratio evidence proves QA checks can record non-blocking pass outcomes, not only warnings and blocks.",
+    "provenance": {
+      "blueprint_sections": [
+        "6.2",
+        "15.2"
+      ],
+      "created_by_lane": "lane2"
+    }
+  },
+  {
+    "schema_version": "stage0.rev2",
     "check_id": "qa_platform_safe_area",
     "check_category": "safe_area",
     "severity": "warning",

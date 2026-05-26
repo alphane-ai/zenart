@@ -56,7 +56,8 @@
         "expected_safety_action": "allow",
         "observed_safety_action": "allow",
         "qa_check_ids": [
-          "qa_aspect_ratio_channel"
+          "qa_aspect_ratio_channel",
+          "qa_aspect_ratio_square_pass"
         ],
         "qa_coverage_contract": {
           "expected_qa_categories": [
