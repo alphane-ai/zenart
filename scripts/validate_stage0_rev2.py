@@ -120,6 +120,8 @@ GATE_CHECKLIST_ITEMS = {
     "Production Launch Gate 全部通过。": "production_launch",
 }
 
+GLOBAL_DO_NOT_LAUNCH_CHECKLIST_ITEM = "Do-Not-Launch Conditions 全部为 false。"
+
 SCHEMA_FIXTURE_TARGETS = [
     ("analytics_taxonomy.schema.json", FIXTURE_DIR / "analytics" / "event_taxonomy.json", "object"),
     ("eval_suite.schema.json", FIXTURE_DIR / "eval" / "starter_eval_suite.json", "object"),
@@ -1034,6 +1036,38 @@ def validate_release_gate_evidence() -> None:
         )
 
 
+def validate_readme_and_architecture_contract() -> None:
+    readme = ROOT / "README.md"
+    require(readme.exists(), "missing README.md")
+
+    readme_text = readme.read_text(encoding="utf-8")
+    blueprint_text = BLUEPRINT.read_text(encoding="utf-8")
+
+    for token in [
+        "Docs/stage0_blueprint_rev2.md",
+        "authoritative source of truth",
+        "Alphane-style pure Web three-surface monorepo",
+        "`web/`: user-facing Next.js application.",
+        "`admin/`: admin Next.js application.",
+        "`backend/`: Go API, worker, crawler, and migration commands.",
+        "docker compose up --build",
+    ]:
+        require(token in readme_text, f"README.md missing Rev2 local-launch token: {token}")
+
+    for token in [
+        "ZenArt Stage 0 Rev2 是纯 Web 三端架构",
+        "沿用 Alphane-style 三目录落地方式",
+        "- `web/`：用户端。",
+        "- `admin/`：管理端。",
+        "- `backend/`：Go API、worker、crawler、migrate。",
+        "不得拆成移动端、桌面端或多仓库服务矩阵。",
+    ]:
+        require(token in blueprint_text, f"blueprint missing Alphane-style pure web architecture token: {token}")
+
+    missing = missing_repo_paths(["web", "admin", "backend", "scripts", "README.md"])
+    require(not missing, f"Alphane-style pure web monorepo evidence missing paths: {missing}")
+
+
 def validate_blueprint_checklist() -> None:
     text = BLUEPRINT.read_text(encoding="utf-8")
     checked_lines = {
@@ -1065,6 +1099,24 @@ def validate_blueprint_checklist() -> None:
                 gate_allows_checklist_completion(evidence[gate]),
                 f"blueprint marks {item!r} complete but {gate} evidence has blocked/failing checks or active do-not-launch conditions",
             )
+
+    if GLOBAL_DO_NOT_LAUNCH_CHECKLIST_ITEM in checked_lines:
+        active_conditions = {
+            gate: sorted(
+                item["condition_id"]
+                for item in data["do_not_launch_checks"]
+                if item["is_present"]
+            )
+            for gate, data in evidence.items()
+        }
+        active_conditions = {
+            gate: conditions for gate, conditions in active_conditions.items() if conditions
+        }
+        require(
+            not active_conditions,
+            "blueprint marks Do-Not-Launch Conditions complete while active release blockers remain: "
+            + json.dumps(active_conditions, sort_keys=True),
+        )
 
 
 def validate_local_alpha_presence() -> None:
@@ -1496,6 +1548,7 @@ def main() -> int:
         validate_analytics_taxonomy,
         validate_local_alpha_presence,
         validate_release_gate_evidence,
+        validate_readme_and_architecture_contract,
         validate_blueprint_checklist,
         validate_database_schema_artifacts,
         validate_openapi_contract,

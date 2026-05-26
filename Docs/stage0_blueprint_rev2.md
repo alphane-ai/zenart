@@ -1590,10 +1590,10 @@ main 合并前必须通过：
 
 ### 25.1 Repository Bootstrap
 
-- [ ] 创建 Alphane-style 纯 Web 三端 monorepo 目录：`web/` 用户端、`admin/` 管理端、`backend/` Go API/worker/crawler/migrate、`scripts/`。
+- [x] 创建 Alphane-style 纯 Web 三端 monorepo 目录：`web/` 用户端、`admin/` 管理端、`backend/` Go API/worker/crawler/migrate、`scripts/`。
 - [x] 新增根目录 `.env.example`，覆盖 web、admin、backend、Postgres、Redis、object storage、auth、session、provider、billing、observability、crawler、analytics。
 - [x] 新增根目录 `docker-compose.yml`，可启动 web、admin、backend server、worker、crawler、Postgres、Redis、local object storage。
-- [ ] 新增 README，说明 Rev2 是唯一权威源，并给出本地启动命令。
+- [x] 新增 README，说明 Rev2 是唯一权威源，并给出本地启动命令。
 - [x] 配置 git ignore，排除 `.cron/`、`.ops/`、logs、node_modules、build 输出、临时导出包、本地对象存储数据。
 
 ### 25.2 Backend Foundation
