@@ -2327,6 +2327,33 @@ def validate_launch_readiness_split_contracts() -> None:
         and "production do-not-launch fixtures are present" in post_deploy_contract["gate_policy"],
         "post-deploy smoke gate policy must keep runtime smoke blocked until evidence and do-not-launch blockers clear",
     )
+    required_release_slots = set(post_deploy_contract["required_release_evidence_slots"])
+    require(
+        {
+            "release_sha",
+            "release_notes_path",
+            "image_refs",
+            "migration_evidence",
+            "config_diff_evidence",
+            "observability_evidence",
+            "backup_restore_evidence",
+            "rollback_evidence",
+            "security_scan_evidence",
+        }
+        <= required_release_slots,
+        "post-deploy smoke contract must require every release evidence slot",
+    )
+    local_verification = post_deploy_contract["local_evidence_verification"]
+    require(
+        "Identity" in local_verification["release_notes_path"]
+        and "Go/No-Go" in local_verification["release_notes_path"],
+        "release notes verification must require the Rev2 release sections",
+    )
+    require(
+        "backend, web, and admin" in local_verification["image_refs"]
+        and "RELEASE_SHA" in local_verification["image_refs"],
+        "image ref verification must require SHA-tagged backend/web/admin images",
+    )
 
     signals = {item["name"]: item for item in observability["signals"]}
     runtime_open_signals = {

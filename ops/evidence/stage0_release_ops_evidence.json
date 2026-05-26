@@ -62,7 +62,8 @@
       "security_scan_evidence"
     ],
     "local_evidence_verification": {
-      "release_notes_path": "must exist locally and reference RELEASE_SHA",
+      "release_notes_path": "must exist locally, reference RELEASE_SHA, and contain Identity, Scope, Migration List, Config Diff, Feature Flags, Smoke Plan, Evidence, Rollback Plan, Known Risks, and Go/No-Go sections",
+      "image_refs": "must include backend, web, and admin image refs tagged with RELEASE_SHA or its 12-character short SHA",
       "migration_evidence": "must exist locally",
       "config_diff_evidence": "must exist locally",
       "observability_evidence": "must exist locally and reference RELEASE_SHA",

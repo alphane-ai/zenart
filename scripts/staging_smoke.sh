@@ -211,6 +211,67 @@ def validate_local_ref(name, value, *, require_sha=False):
     return result
 
 
+def validate_release_notes_ref(value):
+    result = validate_local_ref("release_notes_path", value, require_sha=True)
+    required_fragments = [
+        "## Identity",
+        "## Scope",
+        "## Migration List",
+        "## Config Diff",
+        "## Feature Flags",
+        "## Smoke Plan",
+        "## Evidence",
+        "## Rollback Plan",
+        "## Known Risks",
+        "## Go/No-Go",
+    ]
+    result["required_fragments"] = required_fragments
+    result["missing_fragments"] = required_fragments[:]
+    if not result.get("exists"):
+        result["verified"] = False
+        return result
+    local_path = resolve_local_path(value)
+    text = local_path.read_text(encoding="utf-8", errors="replace") if local_path else ""
+    result["missing_fragments"] = [fragment for fragment in required_fragments if fragment not in text]
+    result["verified"] = result.get("sha_match") is True and not result["missing_fragments"]
+    if result["missing_fragments"]:
+        result["reason"] = "release_notes_missing_required_sections"
+    return result
+
+
+def validate_image_refs(refs):
+    required_images = ["backend", "web", "admin"]
+    sha_tokens = [release_sha]
+    if len(release_sha) >= 12:
+        sha_tokens.append(release_sha[:12])
+    result = {
+        "refs": refs,
+        "required_images": required_images,
+        "release_sha": release_sha,
+        "sha_tokens": [token for token in sha_tokens if token],
+        "missing_images": [],
+        "refs_without_release_sha": [],
+        "verified": False,
+    }
+    if not refs:
+        result["reason"] = "missing_image_refs"
+        result["missing_images"] = required_images
+        return result
+    if not release_sha:
+        result["reason"] = "missing_release_sha"
+        result["missing_images"] = [name for name in required_images if not any(name in ref for ref in refs)]
+        result["refs_without_release_sha"] = refs
+        return result
+    result["missing_images"] = [name for name in required_images if not any(name in ref for ref in refs)]
+    result["refs_without_release_sha"] = [
+        ref for ref in refs if not any(token and token in ref for token in sha_tokens)
+    ]
+    result["verified"] = not result["missing_images"] and not result["refs_without_release_sha"]
+    if not result["verified"]:
+        result["reason"] = "image_refs_missing_required_images_or_release_sha"
+    return result
+
+
 rows = []
 if path.exists():
     rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
@@ -260,7 +321,8 @@ release_evidence_required = {
     "security_scan_evidence": bool(evidence_refs["security_scan"]),
 }
 local_evidence_verification = {
-    "release_notes_path": validate_local_ref("release_notes_path", release_notes_path, require_sha=True),
+    "release_notes_path": validate_release_notes_ref(release_notes_path),
+    "image_refs": validate_image_refs(image_refs),
     "migration_evidence": validate_local_ref("migration_evidence", evidence_refs["migration"]),
     "config_diff_evidence": validate_local_ref("config_diff_evidence", evidence_refs["config_diff"]),
     "observability_evidence": validate_local_ref("observability_evidence", evidence_refs["observability"], require_sha=True),

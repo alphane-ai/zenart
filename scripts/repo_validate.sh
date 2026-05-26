@@ -253,6 +253,7 @@ for slot in (
         raise SystemExit(f"staging smoke release evidence missing slot {slot}")
 for slot in (
     "release_notes_path",
+    "image_refs",
     "migration_evidence",
     "config_diff_evidence",
     "observability_evidence",
