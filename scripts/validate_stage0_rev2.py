@@ -1121,11 +1121,6 @@ FORBIDDEN_CHECKED_ITEMS = {
 }
 
 REQUIRED_OPEN_ITEMS = {
-    "Local Alpha Gate 全部通过。",
-    "CI Gate 全部通过。",
-    "Private Beta/Staging Gate 全部通过。",
-    "Production Launch Gate 全部通过。",
-    "Do-Not-Launch Conditions 全部为 false。",
     "Local Alpha workflow API/Playwright end-to-end smoke evidence 通过并写入 release gate fixture。",
     "CI installed workflow runtime evidence 通过：PR/main run、Playwright smoke、Docker image build 均有 validator-resolvable evidence。",
     "Private Beta/Staging external-user runtime evidence 通过：auth/RBAC/tenant、storage、quota/rate limit、support/abuse、safety/QA/crawler、observability/backup/load、legal visibility 均有 staging evidence。",
@@ -2200,9 +2195,11 @@ def validate_global_do_not_launch_checklist_item(
     checked_lines: set[str],
     unchecked_lines: set[str],
 ) -> None:
+    global_state_count = int(GLOBAL_DO_NOT_LAUNCH_CHECKLIST_ITEM in checked_lines) + int(
+        GLOBAL_DO_NOT_LAUNCH_CHECKLIST_ITEM in unchecked_lines
+    )
     require(
-        GLOBAL_DO_NOT_LAUNCH_CHECKLIST_ITEM in checked_lines
-        or GLOBAL_DO_NOT_LAUNCH_CHECKLIST_ITEM in unchecked_lines,
+        global_state_count == 1,
         f"blueprint missing global launch checklist item: {GLOBAL_DO_NOT_LAUNCH_CHECKLIST_ITEM}",
     )
     active_conditions = {
@@ -3925,7 +3922,11 @@ def validate_blueprint_checklist() -> None:
         unchecked_lines,
     )
     for item, gate in GATE_CHECKLIST_ITEMS.items():
-        require(item in unchecked_lines, f"blueprint launch gate item must remain open until evidence passes: {item}")
+        gate_item_state_count = int(item in checked_lines) + int(item in unchecked_lines)
+        require(
+            gate_item_state_count == 1,
+            f"blueprint missing launch gate checklist item: {item}",
+        )
         require(gate in evidence, f"missing release gate evidence for {gate}")
         validate_release_gate_basics(evidence[gate])
         validate_do_not_launch_condition_coverage(evidence[gate])
@@ -3935,11 +3936,12 @@ def validate_blueprint_checklist() -> None:
         validate_runtime_gate_evidence_refs(gate, evidence[gate], unchecked_lines)
         validate_aggregate_runtime_checklist_items(gate, evidence[gate], checked_lines, unchecked_lines)
         blockers = gate_blockers(evidence[gate])
-        require(
-            blockers["blocked_or_failing_checks"] or blockers["active_do_not_launch_conditions"],
-            f"{gate} evidence must retain at least one blocker while blueprint gate item remains open",
-        )
-        if item in checked_lines:
+        if item in unchecked_lines:
+            require(
+                blockers["blocked_or_failing_checks"] or blockers["active_do_not_launch_conditions"],
+                f"{gate} evidence must retain at least one blocker while blueprint gate item remains open",
+            )
+        else:
             require(
                 gate_allows_checklist_completion(evidence[gate]),
                 f"blueprint marks {item!r} complete but {gate} evidence still has blockers: "
