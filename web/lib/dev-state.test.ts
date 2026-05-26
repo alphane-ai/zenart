@@ -178,7 +178,11 @@ describe("dev workspace contracts", () => {
       csrf: {
         strategy: "same-site-origin-check",
         headerName: "X-ZenArt-CSRF",
-        sameSiteRequired: "lax-or-strict"
+        headerValue: "same-site-origin-check",
+        sameSiteRequired: "lax-or-strict",
+        credentialMode: "include",
+        originPolicy: "same-site-only",
+        protectedMethods: ["POST", "PUT", "PATCH", "DELETE"]
       }
     });
     expect(new Date(session.refreshAfter).getTime()).toBeLessThan(new Date(session.expiresAt).getTime());

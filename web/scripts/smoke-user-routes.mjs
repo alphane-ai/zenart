@@ -10,6 +10,8 @@ const componentPath = path.join(root, "components", "workspace-app.tsx");
 const layoutPath = path.join(root, "app", "layout.tsx");
 const legalPoliciesPath = path.join(root, "lib", "legal-policies.ts");
 const telemetryPath = path.join(root, "lib", "telemetry.ts");
+const requestSecurityPath = path.join(root, "lib", "request-security.ts");
+const generatedApiPath = path.join(root, "lib", "generated", "zenart-api.ts");
 
 const fail = (message) => {
   console.error(`user route smoke failed: ${message}`);
@@ -21,6 +23,8 @@ const componentSource = await readFile(componentPath, "utf8");
 const layoutSource = await readFile(layoutPath, "utf8");
 const legalPoliciesSource = await readFile(legalPoliciesPath, "utf8");
 const telemetrySource = await readFile(telemetryPath, "utf8");
+const requestSecuritySource = await readFile(requestSecurityPath, "utf8");
+const generatedApiSource = await readFile(generatedApiPath, "utf8");
 const expectedViews = new Set(["workspace", "projects", "export", "billing", "account", "support"]);
 const seenViews = new Set();
 
@@ -107,6 +111,9 @@ for (const requiredSnippet of [
   "same-site-origin-check",
   "sameSiteRequired",
   "sameSiteRequirement",
+  "credentialMode",
+  "originPolicy",
+  "protectedMethods",
   "CSRF and same-site contract evidence",
   "lax-or-strict",
   "zenArtClient.login",
@@ -118,6 +125,33 @@ for (const requiredSnippet of [
 ]) {
   if (!componentSource.includes(requiredSnippet)) {
     fail(`WorkspaceApp missing accessible state snippet ${requiredSnippet}`);
+  }
+}
+
+for (const expectedSecuritySnippet of [
+  "defaultSameSiteCsrfContract",
+  "credentialMode: \"include\"",
+  "originPolicy: \"same-site-only\"",
+  "protectedMethods",
+  "POST",
+  "PUT",
+  "PATCH",
+  "DELETE",
+  "buildCsrfRequestHeaders",
+  "headers[contract.headerName] ?? contract.headerValue"
+]) {
+  if (!requestSecuritySource.includes(expectedSecuritySnippet)) {
+    fail(`same-site CSRF request contract missing ${expectedSecuritySnippet}`);
+  }
+}
+
+for (const expectedApiSnippet of [
+  "buildCsrfRequestHeaders(operation.method",
+  "credentials: defaultSameSiteCsrfContract.credentialMode",
+  "\"X-ZenArt-CSRF\""
+]) {
+  if (!generatedApiSource.includes(expectedApiSnippet) && !requestSecuritySource.includes(expectedApiSnippet)) {
+    fail(`generated web API client CSRF integration missing ${expectedApiSnippet}`);
   }
 }
 

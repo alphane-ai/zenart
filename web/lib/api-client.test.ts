@@ -52,7 +52,11 @@ describe("dev web client user lifecycle coverage", () => {
       },
       csrf: {
         strategy: "same-site-origin-check",
-        headerName: "X-ZenArt-CSRF"
+        headerName: "X-ZenArt-CSRF",
+        headerValue: "same-site-origin-check",
+        credentialMode: "include",
+        originPolicy: "same-site-only",
+        protectedMethods: ["POST", "PUT", "PATCH", "DELETE"]
       }
     });
     expect(new Date(refreshed.sessionContract.issuedAt).getTime()).toBeGreaterThanOrEqual(

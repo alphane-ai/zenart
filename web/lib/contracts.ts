@@ -30,7 +30,11 @@ export interface SessionContract {
   csrf: {
     strategy: "same-site-origin-check";
     headerName: string;
+    headerValue: string;
     sameSiteRequired: "lax-or-strict";
+    credentialMode: "include";
+    originPolicy: "same-site-only";
+    protectedMethods: Array<"POST" | "PUT" | "PATCH" | "DELETE">;
   };
 }
 

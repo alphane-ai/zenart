@@ -304,6 +304,7 @@ function SessionPanel({
   const expectedCsrfStrategy = "same-site-origin-check";
   const expectedCsrfHeader = "X-ZenArt-CSRF";
   const expectedSameSiteRequirement = "lax-or-strict";
+  const csrfProtectedMethods = state.sessionContract.csrf.protectedMethods.join(", ");
   const sameSiteRequirement = state.sessionContract.csrf.sameSiteRequired;
   const cookieAttributes = [
     state.sessionContract.cookie.httpOnly ? "HttpOnly" : "client-readable",
@@ -343,6 +344,18 @@ function SessionPanel({
         <div>
           <dt>Header</dt>
           <dd>{state.sessionContract.csrf.headerName}</dd>
+        </div>
+        <div>
+          <dt>Credentials</dt>
+          <dd>{state.sessionContract.csrf.credentialMode}</dd>
+        </div>
+        <div>
+          <dt>Origin policy</dt>
+          <dd>{state.sessionContract.csrf.originPolicy}</dd>
+        </div>
+        <div>
+          <dt>Protected</dt>
+          <dd>{csrfProtectedMethods}</dd>
         </div>
         <div>
           <dt>Requirement</dt>

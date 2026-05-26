@@ -13,6 +13,7 @@ import {
   SupportTicket,
   WorkspaceState
 } from "./contracts";
+import { defaultSameSiteCsrfContract } from "./request-security";
 
 const now = "2026-05-26T09:00:00.000Z";
 const sessionTtlMs = 30 * 60 * 1000;
@@ -45,11 +46,7 @@ export const createSessionContract = (
       sameSite: "lax",
       path: "/"
     },
-    csrf: {
-      strategy: "same-site-origin-check",
-      headerName: "X-ZenArt-CSRF",
-      sameSiteRequired: "lax-or-strict"
-    }
+    csrf: defaultSameSiteCsrfContract
   };
 };
 
