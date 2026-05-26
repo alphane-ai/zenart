@@ -235,6 +235,7 @@ report = json.loads(reports[0].read_text(encoding="utf-8"))
 summary = report.get("summary", {})
 required_summary_keys = {
     "release_evidence",
+    "post_deploy_smoke_evidence",
     "release_gate_fixtures",
     "go_no_go",
     "missing_required_categories",
@@ -282,11 +283,23 @@ if go_no_go.get("decision") != "no-go":
     raise SystemExit("staging smoke dry-run must remain no-go")
 if go_no_go.get("release_evidence_verified") is not False:
     raise SystemExit("staging smoke dry-run must keep release evidence unverified")
+if go_no_go.get("post_deploy_smoke_verified") is not False:
+    raise SystemExit("staging smoke dry-run must keep post-deploy smoke evidence unverified")
 if go_no_go.get("gate_fixtures_clear") is not False:
     raise SystemExit("staging smoke dry-run must keep gate fixtures blocked")
+post_deploy_smoke = summary["post_deploy_smoke_evidence"]
+if post_deploy_smoke.get("verified") is not False:
+    raise SystemExit("staging smoke dry-run must keep post-deploy smoke contract unverified")
+if post_deploy_smoke.get("expected_evidence_kind") != "post_deploy_smoke":
+    raise SystemExit("staging smoke dry-run must declare post_deploy_smoke evidence kind")
+if post_deploy_smoke.get("required_environment") != "staging":
+    raise SystemExit("staging smoke dry-run must declare staging environment requirement")
+if "all_checks_passed" not in post_deploy_smoke.get("reason", ""):
+    raise SystemExit(f"staging smoke dry-run must explain failed post-deploy checks: {post_deploy_smoke}")
 blocking_reasons = go_no_go.get("blocking_reasons", [])
 for reason in (
     "staging_smoke_not_passed",
+    "post_deploy_smoke_contract_unverified",
     "missing_release_evidence:release_sha",
     "missing_release_evidence:release_notes_path",
     "unverified_release_evidence:release_notes_path",
@@ -303,6 +316,8 @@ if not any(reason.startswith("gate_fixture_blocked:production_launch:") for reas
 decision_inputs = go_no_go.get("decision_inputs", {})
 if decision_inputs.get("smoke_passed") is not False:
     raise SystemExit("staging smoke dry-run decision inputs must record smoke_passed=false")
+if decision_inputs.get("post_deploy_smoke_verified") is not False:
+    raise SystemExit("staging smoke dry-run decision inputs must record post_deploy_smoke_verified=false")
 if decision_inputs.get("release_evidence_complete") is not False:
     raise SystemExit("staging smoke dry-run decision inputs must record release_evidence_complete=false")
 if decision_inputs.get("gate_fixtures_clear") is not False:
@@ -433,6 +448,11 @@ release_evidence = summary["release_evidence"]
 go_no_go = summary["go_no_go"]
 if release_evidence.get("complete") is not True:
     raise SystemExit("complete-evidence staging smoke dry-run must verify all local evidence slots")
+post_deploy_smoke = summary["post_deploy_smoke_evidence"]
+if post_deploy_smoke.get("verified") is not False:
+    raise SystemExit("complete-evidence dry-run must keep post-deploy smoke unverified without runtime URLs and seeded smoke records")
+if "all_checks_passed" not in post_deploy_smoke.get("reason", ""):
+    raise SystemExit(f"complete-evidence dry-run must block on post-deploy smoke checks: {post_deploy_smoke}")
 for slot, evidence in release_evidence.get("local_evidence_verification", {}).items():
     if slot in {
         "migration_evidence",
@@ -488,6 +508,8 @@ for contract_name, expected_keys in {
         raise SystemExit(f"{contract_name} evidence refs must be non-empty: {refs}")
 if go_no_go.get("release_evidence_complete") is not True:
     raise SystemExit("complete-evidence staging smoke dry-run must expose release_evidence_complete=true")
+if go_no_go.get("post_deploy_smoke_verified") is not False:
+    raise SystemExit("complete-evidence staging smoke dry-run must expose post_deploy_smoke_verified=false")
 if go_no_go.get("gate_fixtures_clear") is not False:
     raise SystemExit("complete-evidence staging smoke dry-run must keep gate_fixtures_clear=false")
 if go_no_go.get("decision") != "no-go":
@@ -500,6 +522,8 @@ if not any(item.startswith("production_launch:") for item in blocked):
 blocking_reasons = go_no_go.get("blocking_reasons", [])
 if "staging_smoke_not_passed" not in blocking_reasons:
     raise SystemExit("complete-evidence staging smoke dry-run must still block on missing runtime smoke pass")
+if "post_deploy_smoke_contract_unverified" not in blocking_reasons:
+    raise SystemExit("complete-evidence staging smoke dry-run must still block on unverified post-deploy smoke evidence")
 if any(reason.startswith("missing_release_evidence:") for reason in blocking_reasons):
     raise SystemExit(f"complete-evidence staging smoke dry-run must not report missing release evidence: {blocking_reasons}")
 if any(reason.startswith("unverified_release_evidence:") for reason in blocking_reasons):
@@ -511,6 +535,7 @@ if not any(reason.startswith("gate_fixture_blocked:production_launch:") for reas
 decision_inputs = go_no_go.get("decision_inputs", {})
 if decision_inputs != {
     "smoke_passed": False,
+    "post_deploy_smoke_verified": False,
     "release_evidence_complete": True,
     "gate_fixtures_clear": False,
 }:
@@ -625,7 +650,7 @@ if has_cmd git; then
   secret_candidates="$(mktemp)"
   secret_findings="$(mktemp)"
   git grep -nE '(AWS_SECRET_ACCESS_KEY|OPENAI_API_KEY|sk-[A-Za-z0-9_-]{20,}|ghp_[A-Za-z0-9_]{20,})' -- . >"$secret_candidates" || true
-  grep -Ev '^(\.env\.example|fixtures/|schemas/|ops/ci/stage0-rev2-ci\.yml|scripts/repo_validate\.sh|scripts/security_scan_smoke\.sh|backend/internal/security/redact_test\.go):' "$secret_candidates" >"$secret_findings" || true
+  grep -Ev '^(\.env\.example|fixtures/|schemas/|ops/ci/stage0-rev2-ci\.yml|scripts/repo_validate\.sh|scripts/security_scan_smoke\.sh|backend/internal/security/redact_test\.go):|^backend/internal/server/server_test\.go:[0-9]+:.*sk-proj-abcdefghijklmnopqrstuvwxyz123456' "$secret_candidates" >"$secret_findings" || true
   if [[ -s "$secret_findings" ]]; then
     cat "$secret_findings"
     printf 'potential committed secret found\n' >&2

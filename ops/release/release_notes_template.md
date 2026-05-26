@@ -57,7 +57,7 @@ Release gate status: `no-go` until every required evidence slot below is filled 
 - Docker image build: `<image refs>`; required for CI/private beta/production decisions.
 - Playwright smoke: `<report path/url>`; required before CI gate can close.
 - Migration run: `<local JSON path/url>`; local JSON must reference the release SHA, set `environment=staging`, set `kind=migration`, and record status `passed` or `compatible` before staging/private beta decisions.
-- Staging smoke: `<report path/url>`; required before private beta/production decisions.
+- Staging smoke: `<local JSON path/url>`; required before private beta/production decisions. Local JSON must reference the release SHA, set `environment=staging`, set `kind=post_deploy_smoke`, record status `passed`, and prove backend health/readiness, web, admin, auth boundary, worker task, export/package, signed download, crawler admin, quota/rate-limit, and request-id observability categories.
 - Load smoke: `<report path/url>`; required before private beta/production decisions.
 - Config diff: `<local JSON path/url>`; local JSON must reference the release SHA, set `environment=staging`, set `kind=config_diff`, and record status `passed`, `reviewed`, or `no_diff`.
 - Observability: `<local JSON path/url>`; local JSON must reference the release SHA, set `environment=staging`, set `kind=observability`, record status `passed`, and include passed/validated entries with evidence refs for request-id propagation, structured JSON logs, OpenTelemetry traces, backend/worker/crawler metrics, dashboard import, and alert routes.

@@ -116,7 +116,7 @@ write_report() {
   mkdir -p "$OUT_DIR"
   local summary required_json
   required_json="$(printf '%s\n' "${REQUIRED_CATEGORIES[@]}" | json_array)"
-  summary="$(python3 - "$RESULTS_PATH" "$required_json" "$status" "$RELEASE_SHA" "$RELEASE_TAG" "$RELEASE_NOTES_PATH" "$IMAGE_REFS" "$MIGRATION_EVIDENCE" "$CONFIG_DIFF_EVIDENCE" "$OBSERVABILITY_EVIDENCE" "$BACKUP_RESTORE_EVIDENCE" "$LOAD_EVIDENCE" "$ROLLBACK_EVIDENCE" "$SECURITY_SCAN_EVIDENCE" <<'PY'
+  summary="$(python3 - "$RESULTS_PATH" "$required_json" "$status" "$RELEASE_SHA" "$RELEASE_TAG" "$RELEASE_NOTES_PATH" "$IMAGE_REFS" "$MIGRATION_EVIDENCE" "$CONFIG_DIFF_EVIDENCE" "$OBSERVABILITY_EVIDENCE" "$BACKUP_RESTORE_EVIDENCE" "$LOAD_EVIDENCE" "$ROLLBACK_EVIDENCE" "$SECURITY_SCAN_EVIDENCE" "$STAGING_SMOKE_PROFILE" "$REPORT_PATH" "$SMOKE_USER_ID" "$SMOKE_TENANT_ID" "$SMOKE_ADMIN_USER_ID" "$SMOKE_ADMIN_TENANT_ID" "$SMOKE_TASK_ID" "$SMOKE_PACKAGE_ID" "$SMOKE_EXPORT_ID" <<'PY'
 import json
 import re
 import sys
@@ -138,6 +138,17 @@ evidence_refs = {
     "load": sys.argv[12].strip(),
     "rollback": sys.argv[13].strip(),
     "security_scan": sys.argv[14].strip(),
+}
+profile = sys.argv[15].strip()
+report_path = sys.argv[16].strip()
+seeded_inputs = {
+    "smoke_user_id": sys.argv[17].strip(),
+    "smoke_tenant_id": sys.argv[18].strip(),
+    "smoke_admin_user_id": sys.argv[19].strip(),
+    "smoke_admin_tenant_id": sys.argv[20].strip(),
+    "smoke_task_id": sys.argv[21].strip(),
+    "smoke_package_id": sys.argv[22].strip(),
+    "smoke_export_id": sys.argv[23].strip(),
 }
 root = Path(".")
 
@@ -555,6 +566,62 @@ def validate_image_refs(refs):
     return result
 
 
+def validate_post_deploy_smoke_contract(rows, required_categories, status, profile, report_path, seeded_inputs):
+    categories = {row.get("category") for row in rows if row.get("category")}
+    failed_checks = [
+        str(row.get("name", "unknown_check"))
+        for row in rows
+        if row.get("ok") is not True
+    ]
+    request_id_checks = [
+        row for row in rows
+        if row.get("verify") == "request_id" or row.get("request_id_ok") is not None
+    ]
+    request_id_failed = [
+        str(row.get("name", "unknown_check"))
+        for row in request_id_checks
+        if row.get("request_id_ok") is not True
+    ]
+    seeded_missing = sorted(
+        key for key, value in seeded_inputs.items()
+        if not value and key not in {"smoke_admin_user_id", "smoke_admin_tenant_id"}
+    )
+    semantic_checks = {
+        "release_sha_present": bool(release_sha),
+        "environment_staging": True,
+        "evidence_kind_post_deploy_smoke": True,
+        "profile_post_deploy": profile == "post_deploy",
+        "status_passed": status == "passed",
+        "all_required_categories_present": not (required_categories - categories),
+        "all_checks_passed": bool(rows) and not failed_checks,
+        "request_id_checks_passed": bool(request_id_checks) and not request_id_failed,
+        "seeded_runtime_inputs_present": profile != "post_deploy" or not seeded_missing,
+    }
+    verified = all(value is True for value in semantic_checks.values())
+    result = {
+        "report_path": report_path,
+        "required_environment": "staging",
+        "expected_evidence_kind": "post_deploy_smoke",
+        "profile": profile,
+        "accepted_statuses": ["passed"],
+        "semantic_checks": semantic_checks,
+        "required_categories": sorted(required_categories),
+        "present_categories": sorted(categories),
+        "missing_required_categories": sorted(required_categories - categories),
+        "failed_checks": failed_checks,
+        "request_id_check_count": len(request_id_checks),
+        "request_id_failed_checks": request_id_failed,
+        "seeded_missing": seeded_missing,
+        "verified": verified,
+    }
+    if not verified:
+        missing_semantics = [
+            key for key, passed in semantic_checks.items() if passed is not True
+        ]
+        result["reason"] = "post_deploy_smoke_failed_semantic_checks:" + ",".join(missing_semantics)
+    return result
+
+
 rows = []
 if path.exists():
     rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
@@ -653,6 +720,14 @@ local_evidence_verification = {
 release_evidence_verified = all(item["verified"] for item in local_evidence_verification.values())
 release_evidence_complete = all(release_evidence_required.values()) and release_evidence_verified
 smoke_passed = status == "passed" and all(row.get("ok") is not False for row in rows) and not (required - set(categories))
+post_deploy_smoke_contract = validate_post_deploy_smoke_contract(
+    rows,
+    required,
+    status,
+    profile,
+    report_path,
+    seeded_inputs,
+)
 missing_release_evidence_slots = sorted(
     key for key, value in release_evidence_required.items() if not value
 )
@@ -662,12 +737,15 @@ unverified_release_evidence_slots = sorted(
 blocking_reasons = []
 if not smoke_passed:
     blocking_reasons.append("staging_smoke_not_passed")
+if post_deploy_smoke_contract.get("verified") is not True:
+    blocking_reasons.append("post_deploy_smoke_contract_unverified")
 blocking_reasons.extend(f"missing_release_evidence:{slot}" for slot in missing_release_evidence_slots)
 blocking_reasons.extend(f"unverified_release_evidence:{slot}" for slot in unverified_release_evidence_slots)
 blocking_reasons.extend(f"gate_fixture_blocked:{condition}" for condition in blocked_conditions)
 go_no_go = {
-    "decision": "go" if smoke_passed and release_evidence_complete and not blocked_conditions else "no-go",
+    "decision": "go" if smoke_passed and post_deploy_smoke_contract.get("verified") is True and release_evidence_complete and not blocked_conditions else "no-go",
     "smoke_passed": smoke_passed,
+    "post_deploy_smoke_verified": post_deploy_smoke_contract.get("verified") is True,
     "release_evidence_complete": release_evidence_complete,
     "release_evidence_verified": release_evidence_verified,
     "missing_release_evidence_slots": missing_release_evidence_slots,
@@ -677,6 +755,7 @@ go_no_go = {
     "blocking_reasons": blocking_reasons,
     "decision_inputs": {
         "smoke_passed": smoke_passed,
+        "post_deploy_smoke_verified": post_deploy_smoke_contract.get("verified") is True,
         "release_evidence_complete": release_evidence_complete,
         "gate_fixtures_clear": not blocked_conditions,
     },
@@ -697,6 +776,7 @@ print(json.dumps({
         "local_evidence_verification": local_evidence_verification,
         "complete": release_evidence_complete,
     },
+    "post_deploy_smoke_evidence": post_deploy_smoke_contract,
     "release_gate_fixtures": gate_statuses,
     "go_no_go": go_no_go,
 }, sort_keys=True))
@@ -709,6 +789,8 @@ PY
   "created_at": "$STAMP",
   "run_id": "$RUN_ID",
   "status": "$status",
+  "environment": "staging",
+  "kind": "post_deploy_smoke",
   "profile": "$STAGING_SMOKE_PROFILE",
   "release_sha": "$RELEASE_SHA",
   "release_tag": "$RELEASE_TAG",

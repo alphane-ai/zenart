@@ -47,6 +47,7 @@
     "script": "scripts/staging_smoke.sh",
     "report_summary_fields": [
       "release_evidence",
+      "post_deploy_smoke_evidence",
       "release_gate_fixtures",
       "go_no_go",
       "go_no_go.decision_inputs",
@@ -64,6 +65,25 @@
       "rollback_evidence",
       "security_scan_evidence"
     ],
+    "post_deploy_smoke_contract": {
+      "environment": "staging",
+      "kind": "post_deploy_smoke",
+      "status": "passed",
+      "required_categories": [
+        "backend_health",
+        "web",
+        "admin",
+        "auth_boundary",
+        "worker_task",
+        "export_package",
+        "signed_download",
+        "crawler_admin",
+        "quota_rate_limit",
+        "observability"
+      ],
+      "entry_requirements": "the generated staging smoke report must reference RELEASE_SHA, use the post_deploy profile, pass all checks, pass request-id checks, and include seeded runtime IDs for user, tenant, task, package, and export records",
+      "gate_policy": "release evidence files alone are insufficient; post-deploy smoke remains unverified until scripts/staging_smoke.sh passes against staging with seeded release smoke records"
+    },
     "local_evidence_verification": {
       "release_notes_path": "must exist locally, reference RELEASE_SHA, and contain Identity, Scope, Migration List, Config Diff, Feature Flags, Smoke Plan, Evidence, Rollback Plan, Known Risks, and Go/No-Go sections",
       "image_refs": "must include backend, web, and admin image refs tagged with RELEASE_SHA or its 12-character short SHA",
@@ -134,6 +154,7 @@
       "field": "summary.go_no_go.blocking_reasons",
       "required_prefixes": [
         "staging_smoke_not_passed",
+        "post_deploy_smoke_contract_unverified",
         "missing_release_evidence:",
         "unverified_release_evidence:",
         "gate_fixture_blocked:"
