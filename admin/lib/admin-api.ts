@@ -16,6 +16,7 @@ import {
   riskyExports,
   skillVersions,
   skills,
+  supportEscalationRunbooks,
   supportTickets,
   supportUsers,
   traces
@@ -83,6 +84,10 @@ export async function getSupportUsers() {
 
 export async function getSupportTickets() {
   return supportTickets;
+}
+
+export async function getSupportEscalationRunbooks() {
+  return supportEscalationRunbooks;
 }
 
 export async function getQuotaAccounts() {

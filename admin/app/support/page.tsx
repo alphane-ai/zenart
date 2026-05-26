@@ -1,13 +1,14 @@
 import { DataTable } from "@/components/DataTable";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
-import { getSupportTickets, getSupportUsers } from "@/lib/admin-api";
-import type { SupportTicket, SupportUser } from "@/lib/types";
+import { getSupportEscalationRunbooks, getSupportTickets, getSupportUsers } from "@/lib/admin-api";
+import type { SupportEscalationRunbook, SupportTicket, SupportUser } from "@/lib/types";
 
 export default async function SupportPage() {
-  const [users, tickets] = await Promise.all([
+  const [users, tickets, runbooks] = await Promise.all([
     getSupportUsers(),
-    getSupportTickets()
+    getSupportTickets(),
+    getSupportEscalationRunbooks()
   ]);
 
   return (
@@ -53,6 +54,30 @@ export default async function SupportPage() {
             { key: "tasks", header: "Recent Tasks", render: (row) => row.recentTasks },
             { key: "traces", header: "Traces", render: (row) => row.traces.join(", ") },
             { key: "risk", header: "Risk Flags", render: (row) => row.riskFlags.length ? row.riskFlags.map((flag) => <StatusBadge key={flag} value="warning" label={flag} />) : "None" }
+          ]}
+        />
+      </section>
+
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>Escalation Readiness</h3>
+            <p>Escalated support work needs an owner, role boundary, update cadence, user-facing message, evidence refs, and closure blockers.</p>
+          </div>
+        </div>
+        <DataTable<SupportEscalationRunbook>
+          rows={runbooks}
+          columns={[
+            { key: "ticket", header: "Ticket", render: (row) => <span className="mono">{row.ticketId}</span> },
+            { key: "readiness", header: "Readiness", render: (row) => <StatusBadge value={row.readiness === "ready" ? "approved" : row.readiness} label={row.readiness} /> },
+            { key: "role", header: "Escalation Role", render: (row) => row.escalationRole },
+            { key: "owner", header: "Owner", render: (row) => row.owner },
+            { key: "due", header: "Due", render: (row) => row.dueAt },
+            { key: "cadence", header: "Update Cadence", render: (row) => row.customerUpdateCadence },
+            { key: "message", header: "Customer Message", render: (row) => row.customerMessage },
+            { key: "runbook", header: "Runbook", render: (row) => row.runbook },
+            { key: "evidence", header: "Evidence Refs", render: (row) => row.requiredEvidenceRefs.join(", ") },
+            { key: "blockers", header: "Closure Blockers", render: (row) => row.closureBlockers.length ? row.closureBlockers.join(", ") : "None" }
           ]}
         />
       </section>

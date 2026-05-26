@@ -40,6 +40,7 @@ test("admin fixtures cover required operational surfaces", () => {
     "export const maintenanceBanners",
     "export const exportJobs",
     "export const supportTickets",
+    "export const supportEscalationRunbooks",
     "export const supportUsers",
     "export const quotaAccounts",
     "export const riskyExports",
@@ -158,6 +159,10 @@ test("support console surfaces ticket linkage and audit evidence", () => {
     "Export",
     "Quota Txn",
     "Next Action",
+    "Escalation Readiness",
+    "Update Cadence",
+    "Customer Message",
+    "Closure Blockers",
     "Audit Ref"
   ]) {
     assert.match(supportPage, new RegExp(token));
@@ -170,6 +175,10 @@ test("support console surfaces ticket linkage and audit evidence", () => {
     "assetId",
     "exportId",
     "quotaTransactionId",
+    "customerUpdateCadence",
+    "customerMessage",
+    "requiredEvidenceRefs",
+    "closureBlockers",
     "auditRef"
   ]) {
     assert.match(fixtures, new RegExp(token));

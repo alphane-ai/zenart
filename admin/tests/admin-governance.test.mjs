@@ -8,13 +8,14 @@ const parseFixtures = () => {
   const moduleSource = source
     .replace(/^import type[\s\S]*?from "@\/lib\/types";\n\n/, "")
     .replaceAll(/export const (\w+)[^=]*=/g, "const $1 =");
-  return Function(`${moduleSource}\nreturn { skillVersions, releaseEvidence, supportTickets, supportUsers, riskyExports, abuseEvents, auditEvents, exportJobs, traces, quotaAccounts };`)();
+  return Function(`${moduleSource}\nreturn { skillVersions, releaseEvidence, supportTickets, supportEscalationRunbooks, supportUsers, riskyExports, abuseEvents, auditEvents, exportJobs, traces, quotaAccounts };`)();
 };
 
 const {
   skillVersions,
   releaseEvidence,
   supportTickets,
+  supportEscalationRunbooks,
   supportUsers,
   riskyExports,
   abuseEvents,
@@ -26,6 +27,7 @@ const {
 
 const auditIds = new Set(auditEvents.map((event) => event.id));
 const supportTicketIds = new Set(supportTickets.map((ticket) => ticket.id));
+const supportTicketById = new Map(supportTickets.map((ticket) => [ticket.id, ticket]));
 const supportUserIds = new Set(supportUsers.map((user) => user.id));
 const traceIds = new Set(traces.map((trace) => trace.id));
 const exportIds = new Set(exportJobs.map((job) => job.id));
@@ -74,6 +76,29 @@ test("support tickets link user, trace, export, quota, and audit evidence", () =
 
     if (ticket.auditRef !== "pending") {
       assert.ok(auditIds.has(ticket.auditRef), `${ticket.id} links unknown audit event ${ticket.auditRef}`);
+    }
+  }
+});
+
+test("support escalation runbooks gate customer updates and closure safety", () => {
+  for (const runbook of supportEscalationRunbooks) {
+    const ticket = supportTicketById.get(runbook.ticketId);
+    assert.ok(ticket, `${runbook.ticketId} must link an existing support ticket`);
+    assert.ok(runbook.owner.length > 0, `${runbook.ticketId} needs an escalation owner`);
+    assert.ok(runbook.customerUpdateCadence.length > 20, `${runbook.ticketId} needs customer update cadence`);
+    assert.ok(runbook.customerMessage.length > 20, `${runbook.ticketId} needs customer-safe message`);
+    assert.ok(runbook.runbook.length > 30, `${runbook.ticketId} needs operator runbook guidance`);
+    assert.ok(runbook.requiredEvidenceRefs.length > 0, `${runbook.ticketId} needs required evidence refs`);
+
+    if (runbook.readiness === "ready") {
+      assert.equal(runbook.closureBlockers.length, 0, `${runbook.ticketId} ready runbook cannot keep closure blockers`);
+      assert.notEqual(ticket.auditRef, "pending", `${runbook.ticketId} ready runbook needs ticket audit ref`);
+    } else {
+      assert.ok(runbook.closureBlockers.length > 0, `${runbook.ticketId} blocked runbook needs closure blockers`);
+    }
+
+    if (ticket.status === "escalated") {
+      assert.notEqual(runbook.escalationRole, "support_operator", `${runbook.ticketId} escalated ticket needs admin role boundary`);
     }
   }
 });

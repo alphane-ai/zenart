@@ -158,6 +158,19 @@ export type SupportTicket = {
   auditRef: string;
 };
 
+export type SupportEscalationRunbook = {
+  ticketId: string;
+  readiness: "ready" | "blocked" | "waiting_user";
+  escalationRole: "support_operator" | "admin_operator" | "admin_reviewer" | "admin_superadmin";
+  owner: string;
+  dueAt: string;
+  customerUpdateCadence: string;
+  customerMessage: string;
+  runbook: string;
+  requiredEvidenceRefs: string[];
+  closureBlockers: string[];
+};
+
 export type SupportUser = {
   id: string;
   email: string;

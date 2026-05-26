@@ -16,6 +16,7 @@ import type {
   RiskyExport,
   Skill,
   SkillVersion,
+  SupportEscalationRunbook,
   SupportTicket,
   SupportUser
 } from "@/lib/types";
@@ -470,6 +471,45 @@ export const supportTickets: SupportTicket[] = [
     subject: "Crawler source import paused after abuse rate limit.",
     nextAction: "Request source ownership details before any retry or allowlist change.",
     auditRef: "au-002"
+  }
+];
+
+export const supportEscalationRunbooks: SupportEscalationRunbook[] = [
+  {
+    ticketId: "sup-2201",
+    readiness: "ready",
+    escalationRole: "admin_reviewer",
+    owner: "trust-admin",
+    dueAt: "2026-05-26 10:30",
+    customerUpdateCadence: "Every 30 minutes until quota credit and export closure are confirmed.",
+    customerMessage: "A blocked QA export remains closed while an audited quota credit is applied.",
+    runbook: "Keep the export blocked, verify quota credit audit au-004, and link the abuse hold before closure.",
+    requiredEvidenceRefs: ["au-001", "au-004", "rx-41", "tr-1004"],
+    closureBlockers: []
+  },
+  {
+    ticketId: "sup-2204",
+    readiness: "blocked",
+    escalationRole: "support_operator",
+    owner: "support-admin",
+    dueAt: "2026-05-26 11:00",
+    customerUpdateCadence: "Send one update before regeneration and another after QA warning review.",
+    customerMessage: "The original package stays immutable while a QA-preserving regeneration is reviewed.",
+    runbook: "Attach QA warning evidence, create an audit ref, then submit a regenerate request from the export detail page.",
+    requiredEvidenceRefs: ["tr-1019", "ex-901", "fb-211"],
+    closureBlockers: ["Audit ref is pending", "Regeneration rationale is not attached"]
+  },
+  {
+    ticketId: "sup-2212",
+    readiness: "waiting_user",
+    escalationRole: "admin_operator",
+    owner: "crawler-admin",
+    dueAt: "waiting on source owner",
+    customerUpdateCadence: "Hold every retry until the user provides source ownership details.",
+    customerMessage: "Crawler import remains paused until source ownership and robots evidence are reviewed.",
+    runbook: "Keep crawler import held, collect ownership proof, and link robots evidence before allowlist changes.",
+    requiredEvidenceRefs: ["au-002", "ab-309", "q-crawler"],
+    closureBlockers: ["Source ownership details missing", "Robots evidence missing"]
   }
 ];
 
