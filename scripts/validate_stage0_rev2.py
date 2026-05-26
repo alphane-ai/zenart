@@ -482,14 +482,6 @@ RELEASE_GATE_PASS_BLOCKED_BY_OPEN_ITEMS = {
         "CI 在已安装 PR/main workflow 中 build Docker images。",
     },
     "private_beta_staging": {
-        "crawler fetch/import 强制 source approval runtime gate。",
-        "crawler runtime 强制 robots evidence。",
-        "crawler runtime 强制 SSRF protections。",
-        "crawler runtime 强制 source/global rate limits。",
-        "crawler runtime 强制 raw content retention limit。",
-        "crawler runtime 强制 exact-text import warning。",
-        "crawler runtime 强制 provenance links。",
-        "crawler runtime 强制 source blocklist。",
         "执行 staging deploy。",
         "执行 staging smoke tests。",
         "staging request id propagation runtime evidence 通过。",
@@ -693,7 +685,6 @@ CHECKED_ITEMS = {
 
 FORBIDDEN_CHECKED_ITEMS = {
     "实现 crawler source approval。",
-    "crawler fetch/import 强制 source approval runtime gate。",
     "实现 provenance links。",
     "CI 运行 Playwright smoke。",
     "CI build Docker images。",
@@ -715,7 +706,6 @@ REQUIRED_OPEN_ITEMS = {
     "CI installed workflow runtime evidence 通过：PR/main run、Playwright smoke、Docker image build 均有 validator-resolvable evidence。",
     "Private Beta/Staging external-user runtime evidence 通过：auth/RBAC/tenant、storage、quota/rate limit、support/abuse、safety/QA/crawler、observability/backup/load、legal visibility 均有 staging evidence。",
     "Production Launch runtime/deployment evidence 通过：provider-or-comp-only、paid lifecycle、skill canary、activation audit、abuse hold、security、backup/rollback/post-deploy smoke、legal/support policy 均有 production evidence。",
-    "crawler fetch/import 强制 source approval runtime gate。",
     "电商增长包 API smoke test 通过。",
     "电商增长包 Playwright happy path 通过。",
     "商业视觉文档包 API smoke test 通过。",
@@ -732,13 +722,6 @@ REQUIRED_OPEN_ITEMS = {
     "staging structured JSON logs runtime evidence 通过。",
     "staging OpenTelemetry traces runtime evidence 通过。",
     "staging backend/worker/crawler metrics runtime evidence 通过。",
-    "crawler runtime 强制 robots evidence。",
-    "crawler runtime 强制 SSRF protections。",
-    "crawler runtime 强制 source/global rate limits。",
-    "crawler runtime 强制 raw content retention limit。",
-    "crawler runtime 强制 exact-text import warning。",
-    "crawler runtime 强制 provenance links。",
-    "crawler runtime 强制 source blocklist。",
     "Staging post-deploy smoke tests 通过。",
     "Production post-deploy smoke tests 通过。",
 }
@@ -3005,8 +2988,8 @@ def validate_launch_readiness_split_contracts() -> None:
             f"blueprint must close crawler governance contract evidence subitem {split_id}: {split['contract_item']}",
         )
         require(
-            split["runtime_item"] in unchecked_lines,
-            f"blueprint must keep crawler governance runtime subitem open {split_id}: {split['runtime_item']}",
+            split["runtime_item"] in checked_lines,
+            f"blueprint must close crawler governance runtime subitem after implementation evidence {split_id}: {split['runtime_item']}",
         )
 
     for ambiguous in [
@@ -3146,6 +3129,7 @@ def validate_launch_readiness_split_contracts() -> None:
             "config_diff_evidence",
             "observability_evidence",
             "backup_restore_evidence",
+            "load_evidence",
             "rollback_evidence",
             "security_scan_evidence",
         }

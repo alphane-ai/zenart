@@ -213,6 +213,7 @@ def render(release_sha: str, release_tag: str, owner: str, reviewer: str, date: 
         f"- Load smoke: {load_smoke_summary(runtime)}; staging evidence required before private beta/production decisions.",
         f"- Observability smoke: local status `{local_status(runtime, 'observability_smoke')}` from `{observability_report}`; staging logs, metrics, traces, dashboard import, and alert-route evidence required.",
         f"- Backup/restore drill: local status `{local_status(runtime, 'backup_restore')}` from `{backup_report}`; staging/production restore evidence required before those gates can close.",
+        "- Staging load evidence: `missing`; required JSON must reference the release SHA, set `environment=staging`, set `kind=load`, and record status `passed` before private beta/production decisions.",
         f"- Security scan: local status `{local_status(runtime, 'security_scan_smoke')}` from `{security_report}`; CI/staging release-context scan evidence required.",
         "",
         "## Rollback Plan",

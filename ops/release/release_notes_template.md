@@ -62,6 +62,7 @@ Release gate status: `no-go` until every required evidence slot below is filled 
 - Config diff: `<local JSON path/url>`; local JSON must reference the release SHA, set `environment=staging`, set `kind=config_diff`, and record status `passed`, `reviewed`, or `no_diff`.
 - Observability: `<local JSON path/url>`; local JSON must reference the release SHA, set `environment=staging`, set `kind=observability`, and record status `passed` for logs, metrics, traces, dashboard import, and alert-route evidence.
 - Backup/restore drill: local evidence `ops/evidence/backup-restore/local/20260526T153126Z/report.json`; staging JSON must reference the release SHA, set `environment=staging`, set `kind=backup_restore`, and record status `passed`; production evidence remains required before production can close.
+- Load smoke: `<local JSON path/url>`; local JSON must reference the release SHA, set `environment=staging`, set `kind=load`, and record status `passed` before private beta/production decisions.
 - Rollback drill: `<local JSON path/url>`; local JSON must reference the release SHA, set `environment=staging`, set `kind=rollback`, and record status `passed` or `validated`.
 - Security scan: `<local JSON path/url>`; local JSON must reference the release SHA, set `environment=staging`, set `kind=security_scan`, and record status `passed` before private beta/production decisions.
 

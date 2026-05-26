@@ -23,6 +23,7 @@ MIGRATION_EVIDENCE="${MIGRATION_EVIDENCE:-}"
 CONFIG_DIFF_EVIDENCE="${CONFIG_DIFF_EVIDENCE:-}"
 OBSERVABILITY_EVIDENCE="${OBSERVABILITY_EVIDENCE:-}"
 BACKUP_RESTORE_EVIDENCE="${BACKUP_RESTORE_EVIDENCE:-}"
+LOAD_EVIDENCE="${LOAD_EVIDENCE:-}"
 ROLLBACK_EVIDENCE="${ROLLBACK_EVIDENCE:-}"
 SECURITY_SCAN_EVIDENCE="${SECURITY_SCAN_EVIDENCE:-}"
 
@@ -115,7 +116,7 @@ write_report() {
   mkdir -p "$OUT_DIR"
   local summary required_json
   required_json="$(printf '%s\n' "${REQUIRED_CATEGORIES[@]}" | json_array)"
-  summary="$(python3 - "$RESULTS_PATH" "$required_json" "$status" "$RELEASE_SHA" "$RELEASE_TAG" "$RELEASE_NOTES_PATH" "$IMAGE_REFS" "$MIGRATION_EVIDENCE" "$CONFIG_DIFF_EVIDENCE" "$OBSERVABILITY_EVIDENCE" "$BACKUP_RESTORE_EVIDENCE" "$ROLLBACK_EVIDENCE" "$SECURITY_SCAN_EVIDENCE" <<'PY'
+  summary="$(python3 - "$RESULTS_PATH" "$required_json" "$status" "$RELEASE_SHA" "$RELEASE_TAG" "$RELEASE_NOTES_PATH" "$IMAGE_REFS" "$MIGRATION_EVIDENCE" "$CONFIG_DIFF_EVIDENCE" "$OBSERVABILITY_EVIDENCE" "$BACKUP_RESTORE_EVIDENCE" "$LOAD_EVIDENCE" "$ROLLBACK_EVIDENCE" "$SECURITY_SCAN_EVIDENCE" <<'PY'
 import json
 import sys
 from pathlib import Path
@@ -133,8 +134,9 @@ evidence_refs = {
     "config_diff": sys.argv[9].strip(),
     "observability": sys.argv[10].strip(),
     "backup_restore": sys.argv[11].strip(),
-    "rollback": sys.argv[12].strip(),
-    "security_scan": sys.argv[13].strip(),
+    "load": sys.argv[12].strip(),
+    "rollback": sys.argv[13].strip(),
+    "security_scan": sys.argv[14].strip(),
 }
 root = Path(".")
 
@@ -380,6 +382,7 @@ release_evidence_required = {
     "config_diff_evidence": bool(evidence_refs["config_diff"]),
     "observability_evidence": bool(evidence_refs["observability"]),
     "backup_restore_evidence": bool(evidence_refs["backup_restore"]),
+    "load_evidence": bool(evidence_refs["load"]),
     "rollback_evidence": bool(evidence_refs["rollback"]),
     "security_scan_evidence": bool(evidence_refs["security_scan"]),
 }
@@ -408,6 +411,12 @@ local_evidence_verification = {
         "backup_restore_evidence",
         evidence_refs["backup_restore"],
         expected_kind="backup_restore",
+        accepted_statuses={"passed"},
+    ),
+    "load_evidence": validate_staging_evidence_ref(
+        "load_evidence",
+        evidence_refs["load"],
+        expected_kind="load",
         accepted_statuses={"passed"},
     ),
     "rollback_evidence": validate_staging_evidence_ref(
@@ -597,7 +606,7 @@ require_post_deploy_inputs() {
     return 0
   fi
   local missing=()
-  for key in RELEASE_SHA RELEASE_NOTES_PATH IMAGE_REFS MIGRATION_EVIDENCE CONFIG_DIFF_EVIDENCE OBSERVABILITY_EVIDENCE BACKUP_RESTORE_EVIDENCE ROLLBACK_EVIDENCE SECURITY_SCAN_EVIDENCE SMOKE_USER_ID SMOKE_TENANT_ID SMOKE_ADMIN_USER_ID SMOKE_ADMIN_TENANT_ID SMOKE_TASK_ID SMOKE_PACKAGE_ID SMOKE_EXPORT_ID; do
+  for key in RELEASE_SHA RELEASE_NOTES_PATH IMAGE_REFS MIGRATION_EVIDENCE CONFIG_DIFF_EVIDENCE OBSERVABILITY_EVIDENCE BACKUP_RESTORE_EVIDENCE LOAD_EVIDENCE ROLLBACK_EVIDENCE SECURITY_SCAN_EVIDENCE SMOKE_USER_ID SMOKE_TENANT_ID SMOKE_ADMIN_USER_ID SMOKE_ADMIN_TENANT_ID SMOKE_TASK_ID SMOKE_PACKAGE_ID SMOKE_EXPORT_ID; do
     if [[ -z "${!key}" ]]; then
       missing+=("$key")
     fi

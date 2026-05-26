@@ -61,6 +61,7 @@ Release gate status: `no-go`.
 - Load smoke: local 7/7 modes passed; first report ops/evidence/load/local/20260526T142030Z-chat_task-64820.json; staging evidence required before private beta/production decisions.
 - Observability smoke: local status `passed` from `ops/evidence/observability/local/20260526T192311Z-observability-smoke-7780.json`; staging logs, metrics, traces, dashboard import, and alert-route evidence required.
 - Backup/restore drill: local status `passed` from `ops/evidence/backup-restore/local/20260526T153126Z/report.json`; staging/production restore evidence required before those gates can close.
+- Staging load evidence: `missing`; required JSON must reference the release SHA, set `environment=staging`, set `kind=load`, and record status `passed` before private beta/production decisions.
 - Security scan: local status `passed` from `ops/evidence/security/local/20260526T142040Z-security-scan-smoke-65314.json`; CI/staging release-context scan evidence required.
 
 ## Rollback Plan
@@ -83,7 +84,6 @@ Release gate status: `no-go`.
 
 ## Open Rev2 Runtime Checklist
 
-- Crawler governance runtime: crawler fetch/import 强制 source approval runtime gate; crawler runtime 强制 robots evidence; crawler runtime 强制 SSRF protections; crawler runtime 强制 source/global rate limits; crawler runtime 强制 raw content retention limit; crawler runtime 强制 exact-text import warning; crawler runtime 强制 provenance links; crawler runtime 强制 source blocklist.
 - CI and staging runtime: 添加 PR/main CI 到 `.github/workflows`。（token-blocked：当前 token 缺 workflow scope；draft/evidence 已落在 `ops/ci/` 和 `fixtures/ops/`。）; CI 在已安装 PR/main workflow 中运行 Playwright smoke; CI 在已安装 PR/main workflow 中 build Docker images; 执行 staging deploy; 执行 staging smoke tests.
 - Observability runtime: staging request id propagation runtime evidence 通过; staging structured JSON logs runtime evidence 通过; staging OpenTelemetry traces runtime evidence 通过; staging backend/worker/crawler metrics runtime evidence 通过; 导入并验证 staging dashboards runtime evidence; 配置并验证 staging alert routes/runtime evidence.
 - Release gate runtime: Local Alpha Gate 全部通过; CI Gate 全部通过; Private Beta/Staging Gate 全部通过; Production Launch Gate 全部通过; Do-Not-Launch Conditions 全部为 false; Local Alpha workflow API/Playwright end-to-end smoke evidence 通过并写入 release gate fixture; CI installed workflow runtime evidence 通过：PR/main run、Playwright smoke、Docker image build 均有 validator-resolvable evidence; Private Beta/Staging external-user runtime evidence 通过：auth/RBAC/tenant、storage、quota/rate limit、support/abuse、safety/QA/crawler、observability/backup/load、legal visibility 均有 staging evidence; Production Launch runtime/deployment evidence 通过：provider-or-comp-only、paid lifecycle、skill canary、activation audit、abuse hold、security、backup/rollback/post-deploy smoke、legal/support policy 均有 production evidence; Staging post-deploy smoke tests 通过; Production post-deploy smoke tests 通过.

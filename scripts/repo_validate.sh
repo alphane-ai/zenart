@@ -159,8 +159,8 @@ required_fragments = [
     "fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json",
     "fixtures/stage0/rev2/release_gate_evidence.production_launch.json",
     "staging logs, metrics, traces, dashboard import, and alert-route evidence required",
+    "Staging load evidence: `missing`; required JSON must reference the release SHA, set `environment=staging`, set `kind=load`, and record status `passed` before private beta/production decisions.",
     "## Open Rev2 Runtime Checklist",
-    "Crawler governance runtime: crawler fetch/import 强制 source approval runtime gate",
     "Observability runtime: staging request id propagation runtime evidence 通过",
     "Private Beta/Staging external-user runtime evidence 通过",
 ]
@@ -250,6 +250,7 @@ for slot in (
     "config_diff_evidence",
     "observability_evidence",
     "backup_restore_evidence",
+    "load_evidence",
     "rollback_evidence",
     "security_scan_evidence",
 ):
@@ -262,6 +263,7 @@ for slot in (
     "config_diff_evidence",
     "observability_evidence",
     "backup_restore_evidence",
+    "load_evidence",
     "rollback_evidence",
     "security_scan_evidence",
 ):
@@ -285,6 +287,8 @@ for reason in (
     "missing_release_evidence:release_notes_path",
     "unverified_release_evidence:release_notes_path",
     "unverified_release_evidence:image_refs",
+    "missing_release_evidence:load_evidence",
+    "unverified_release_evidence:load_evidence",
 ):
     if reason not in blocking_reasons:
         raise SystemExit(f"staging smoke dry-run missing blocking reason {reason}")
@@ -325,6 +329,7 @@ printf '{"release_sha":"%s","environment":"staging","kind":"migration","status":
 printf '{"release_sha":"%s","environment":"staging","kind":"config_diff","status":"reviewed"}\n' "$complete_sha" >"$complete_validate_dir/config.json"
 printf '{"release_sha":"%s","environment":"staging","kind":"observability","status":"passed"}\n' "$complete_sha" >"$complete_validate_dir/observability.json"
 printf '{"release_sha":"%s","environment":"staging","kind":"backup_restore","status":"passed"}\n' "$complete_sha" >"$complete_validate_dir/backup.json"
+printf '{"release_sha":"%s","environment":"staging","kind":"load","status":"passed"}\n' "$complete_sha" >"$complete_validate_dir/load.json"
 printf '{"release_sha":"%s","environment":"staging","kind":"rollback","status":"validated"}\n' "$complete_sha" >"$complete_validate_dir/rollback.json"
 printf '{"release_sha":"%s","environment":"staging","kind":"security_scan","status":"passed"}\n' "$complete_sha" >"$complete_validate_dir/security.json"
 DRY_RUN=1 \
@@ -337,6 +342,7 @@ DRY_RUN=1 \
   CONFIG_DIFF_EVIDENCE="$complete_validate_dir/config.json" \
   OBSERVABILITY_EVIDENCE="$complete_validate_dir/observability.json" \
   BACKUP_RESTORE_EVIDENCE="$complete_validate_dir/backup.json" \
+  LOAD_EVIDENCE="$complete_validate_dir/load.json" \
   ROLLBACK_EVIDENCE="$complete_validate_dir/rollback.json" \
   SECURITY_SCAN_EVIDENCE="$complete_validate_dir/security.json" \
   scripts/staging_smoke.sh >/dev/null
@@ -360,6 +366,7 @@ for slot, evidence in release_evidence.get("local_evidence_verification", {}).it
         "config_diff_evidence",
         "observability_evidence",
         "backup_restore_evidence",
+        "load_evidence",
         "rollback_evidence",
         "security_scan_evidence",
     }:

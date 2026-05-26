@@ -16,7 +16,7 @@
     },
     "staging_smoke": {
       "script": "scripts/staging_smoke.sh",
-      "runtime_status": "requires real staging URLs plus release SHA, release notes, image refs, migration/config/observability/backup/rollback/security evidence, and seeded smoke records",
+      "runtime_status": "requires real staging URLs plus release SHA, release notes, image refs, migration/config/observability/backup/load/rollback/security evidence, and seeded smoke records",
       "private_beta_gate": "open until staging smoke passes with production-like dependencies"
     },
     "observability_smoke": {
@@ -60,6 +60,7 @@
       "config_diff_evidence",
       "observability_evidence",
       "backup_restore_evidence",
+      "load_evidence",
       "rollback_evidence",
       "security_scan_evidence"
     ],
@@ -70,6 +71,7 @@
       "config_diff_evidence": "must be local JSON, reference RELEASE_SHA, set environment=staging, set kind=config_diff, and use status passed, reviewed, or no_diff",
       "observability_evidence": "must be local JSON, reference RELEASE_SHA, set environment=staging, set kind=observability, and use status passed",
       "backup_restore_evidence": "must be local JSON, reference RELEASE_SHA, set environment=staging, set kind=backup_restore, and use status passed",
+      "load_evidence": "must be local JSON, reference RELEASE_SHA, set environment=staging, set kind=load, and use status passed",
       "rollback_evidence": "must be local JSON, reference RELEASE_SHA, set environment=staging, set kind=rollback, and use status passed or validated",
       "security_scan_evidence": "must be local JSON, reference RELEASE_SHA, set environment=staging, set kind=security_scan, and use status passed"
     },
