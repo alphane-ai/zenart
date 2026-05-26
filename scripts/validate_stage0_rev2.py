@@ -2103,6 +2103,54 @@ def validate_release_gate_order_dependencies(evidence: dict[str, dict[str, Any]]
         )
 
 
+def active_do_not_launch_conditions_by_gate(evidence: dict[str, dict[str, Any]]) -> dict[str, list[str]]:
+    return {
+        gate: sorted(
+            item["condition_id"]
+            for item in data["do_not_launch_checks"]
+            if item["is_present"]
+        )
+        for gate, data in evidence.items()
+    }
+
+
+def validate_global_do_not_launch_checklist_item(
+    evidence: dict[str, dict[str, Any]],
+    checked_lines: set[str],
+    unchecked_lines: set[str],
+) -> None:
+    require(
+        GLOBAL_DO_NOT_LAUNCH_CHECKLIST_ITEM in checked_lines
+        or GLOBAL_DO_NOT_LAUNCH_CHECKLIST_ITEM in unchecked_lines,
+        f"blueprint missing global launch checklist item: {GLOBAL_DO_NOT_LAUNCH_CHECKLIST_ITEM}",
+    )
+    active_conditions = {
+        gate: conditions
+        for gate, conditions in active_do_not_launch_conditions_by_gate(evidence).items()
+        if conditions
+    }
+    open_gate_items = sorted(item for item in GATE_CHECKLIST_ITEMS if item in unchecked_lines)
+
+    if GLOBAL_DO_NOT_LAUNCH_CHECKLIST_ITEM in checked_lines:
+        require(
+            not active_conditions,
+            "blueprint marks Do-Not-Launch Conditions complete while active release blockers remain: "
+            + json.dumps(active_conditions, ensure_ascii=False, sort_keys=True),
+        )
+        require(
+            not open_gate_items,
+            "blueprint marks Do-Not-Launch Conditions complete while release gate checklist items remain open: "
+            + json.dumps(open_gate_items, ensure_ascii=False),
+        )
+        return
+
+    require(
+        active_conditions or open_gate_items,
+        "global Do-Not-Launch checklist item remains open even though release-gate fixtures have no active "
+        "Do-Not-Launch conditions and all release gate checklist items are closed",
+    )
+
+
 def checked_items(text: str) -> set[str]:
     return {
         match.group(1)
@@ -3298,6 +3346,11 @@ def validate_release_gate_evidence() -> None:
     blueprint_text = BLUEPRINT.read_text(encoding="utf-8")
     blueprint_checked = checked_items(blueprint_text)
     blueprint_unchecked = unchecked_items(blueprint_text)
+    validate_global_do_not_launch_checklist_item(
+        evidence,
+        blueprint_checked,
+        blueprint_unchecked,
+    )
 
     for gate, gate_evidence in evidence.items():
         validate_release_gate_basics(gate_evidence)
@@ -3560,6 +3613,11 @@ def validate_blueprint_checklist() -> None:
 
     evidence = release_evidence_by_gate()
     validate_release_gate_order_dependencies(evidence)
+    validate_global_do_not_launch_checklist_item(
+        evidence,
+        checked_lines,
+        unchecked_lines,
+    )
     for item, gate in GATE_CHECKLIST_ITEMS.items():
         require(item in unchecked_lines, f"blueprint launch gate item must remain open until evidence passes: {item}")
         require(gate in evidence, f"missing release gate evidence for {gate}")
@@ -3581,24 +3639,6 @@ def validate_blueprint_checklist() -> None:
                 f"blueprint marks {item!r} complete but {gate} evidence still has blockers: "
                 + json.dumps(blockers, ensure_ascii=False, sort_keys=True),
             )
-
-    if GLOBAL_DO_NOT_LAUNCH_CHECKLIST_ITEM in checked_lines:
-        active_conditions = {
-            gate: sorted(
-                item["condition_id"]
-                for item in data["do_not_launch_checks"]
-                if item["is_present"]
-            )
-            for gate, data in evidence.items()
-        }
-        active_conditions = {
-            gate: conditions for gate, conditions in active_conditions.items() if conditions
-        }
-        require(
-            not active_conditions,
-            "blueprint marks Do-Not-Launch Conditions complete while active release blockers remain: "
-            + json.dumps(active_conditions, sort_keys=True),
-        )
 
 
 def validate_local_alpha_presence() -> None:
@@ -4287,6 +4327,7 @@ def validate_launch_readiness_split_contracts() -> None:
         "Runtime gate checks that pass must cite environment-specific evidence paths",
         "Each release gate fixture must include a `gate_decision` object",
         "a fixture-level `go` decision is invalid while any check is blocked/failing or any Do-Not-Launch condition is active",
+        "If a gate checklist item remains open, its release gate fixture must still contain at least one computed blocker",
         "Passed runtime gate checks must cite exact validator-owned evidence files when the checklist subitem is closed by a named `ops/evidence` artifact",
         "Passed gate checks and cleared Do-Not-Launch conditions may not mix real and missing concrete artifact paths",
         "Private Beta/Staging check-level runtime subitems must remain open until each matching release gate check has staging evidence",
@@ -4294,6 +4335,7 @@ def validate_launch_readiness_split_contracts() -> None:
         "Local Alpha remains open until four workflow API/Playwright smokes",
         "Production Launch cannot clear `ci_staging_gates_not_passed` or pass backup/rollback/post-deploy evidence until both",
         "Do-Not-Launch Conditions 全部为 false。` remains open while any release-gate evidence fixture has `is_present: true`",
+        "Do-Not-Launch Conditions 全部为 false。` may close only when all four release gate fixtures have no active Do-Not-Launch conditions",
         "Release gate fixture IDs are closed-world",
     ]:
         require(token in text, f"blueprint release gate closure policy missing token: {token}")

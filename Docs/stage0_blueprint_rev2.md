@@ -2020,6 +2020,7 @@ Release gate closure policy:
 - `fixtures/stage0/rev2/release_gate_evidence.*.json` must cite the exact Do-Not-Launch condition text covered by each gate condition.
 - Each release gate fixture must include a `gate_decision` object whose `status`, `blocked_by_checks`, and `active_do_not_launch_conditions` exactly match the computed check statuses and active Do-Not-Launch conditions; a fixture-level `go` decision is invalid while any check is blocked/failing or any Do-Not-Launch condition is active.
 - A gate checklist item may close only when every check in its evidence fixture is `pass` and every Do-Not-Launch condition in that fixture is false.
+- If a gate checklist item remains open, its release gate fixture must still contain at least one computed blocker; if the fixture becomes fully passable, the checklist must be updated in the same change.
 - Passed gate checks and cleared Do-Not-Launch conditions must cite validator-resolvable repository artifacts such as `fixtures/`, `schemas/`, `openapi/`, `scripts/`, `backend/`, `web/`, `admin/`, `ops/`, `.env.example`, or `docker-compose.yml`; prose-only evidence is not sufficient.
 - Passed gate checks and cleared Do-Not-Launch conditions may not mix real and missing concrete artifact paths in one evidence ref; every cited concrete artifact path must resolve, while active blockers may name the absent runtime/deployment evidence path they are waiting on.
 - A blocked Do-Not-Launch condition must state the missing runtime or deployment evidence; prose-only readiness claims are not sufficient.
@@ -2041,4 +2042,5 @@ Release gate closure policy:
 - Private Beta/Staging remains open until external-user staging runtime evidence exists for auth/RBAC/tenant isolation, object storage signed downloads, quota/rate limits, support/abuse, safety/QA/crawler enforcement, observability/backup/load, and legal page visibility.
 - Production Launch remains open until CI and Private Beta/Staging gates pass and production-specific provider/comp-only, paid billing, skill/canary, activation review, abuse throttle/hold, security, backup/rollback, post-deploy smoke, and legal/support deployment evidence exists.
 - `Do-Not-Launch Conditions 全部为 false。` remains open while any release-gate evidence fixture has `is_present: true`.
+- `Do-Not-Launch Conditions 全部为 false。` may close only when all four release gate fixtures have no active Do-Not-Launch conditions and Local Alpha, CI, Private Beta/Staging, and Production Launch gate checklist items are also closed in the blueprint.
 - Release gate fixture IDs are closed-world: unknown check IDs or unknown Do-Not-Launch condition IDs are invalid, even when their status is blocked.
