@@ -3,6 +3,7 @@ package stage0
 import (
 	"context"
 	"errors"
+	"io"
 	"strings"
 	"testing"
 	"time"
@@ -10,6 +11,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 
+	"github.com/alphane-ai/zenart/backend/internal/objectstore"
 	"github.com/alphane-ai/zenart/backend/internal/store"
 )
 
@@ -177,7 +179,7 @@ func TestRecordExportArtifactPersistsObjectMetadataAndDeliveryDescriptors(t *tes
 				"passed",
 				"object_1",
 				[]byte(`{"package_id":"package_1","project_id":"project_1"}`),
-				[]byte(`{"ppt_ready":{"status":"placeholder"},"figma_ready":{"status":"placeholder"}}`),
+				[]byte(`{"ppt_ready":{"status":"placeholder"},"figma_ready":{"status":"ready","schema":"zenart.figma_layout_spec.v1","layout":{"schema":"zenart.figma_layout_spec.v1"}},"thumbnail":{"status":"ready"}}`),
 				nil,
 				now,
 				now,
@@ -198,9 +200,15 @@ func TestRecordExportArtifactPersistsObjectMetadataAndDeliveryDescriptors(t *tes
 		ByteSize:        12,
 		Checksum:        "sha256:abc",
 		StorageProvider: "local",
-		Manifest:        map[string]any{"package_id": "package_1", "project_id": "project_1"},
-		QAReport:        map[string]any{"status": "passed"},
-		Provenance:      map[string]any{"provider": "dev"},
+		Manifest: map[string]any{
+			"package_id": "package_1",
+			"project_id": "project_1",
+			"items": []any{
+				map[string]any{"id": "asset_1", "title": "Hero asset", "type": "candidate"},
+			},
+		},
+		QAReport:   map[string]any{"status": "passed"},
+		Provenance: map[string]any{"provider": "dev"},
 	})
 	if err != nil {
 		t.Fatalf("RecordExportArtifact() error = %v", err)
@@ -211,8 +219,15 @@ func TestRecordExportArtifactPersistsObjectMetadataAndDeliveryDescriptors(t *tes
 	if export.Delivery["ppt_ready"] == nil || export.Delivery["figma_ready"] == nil {
 		t.Fatalf("delivery metadata missing PPT/Figma descriptors: %#v", export.Delivery)
 	}
-	if len(db.execs) != 2 {
-		t.Fatalf("exec count = %d, want object metadata insert and export update", len(db.execs))
+	figmaReady := export.Delivery["figma_ready"].(map[string]any)
+	if figmaReady["status"] != "ready" || figmaReady["schema"] != "zenart.figma_layout_spec.v1" {
+		t.Fatalf("figma ready descriptor = %#v, want ready v1 layout spec", figmaReady)
+	}
+	if export.Delivery["thumbnail"] == nil {
+		t.Fatalf("delivery metadata missing thumbnail descriptor: %#v", export.Delivery)
+	}
+	if len(db.execs) != 3 {
+		t.Fatalf("exec count = %d, want export metadata, thumbnail metadata, and export update", len(db.execs))
 	}
 	if !strings.Contains(db.execs[0].sql, "INSERT INTO object_metadata") || !strings.Contains(db.execs[0].sql, "derived_from_object_id") {
 		t.Fatalf("first exec missing rich object metadata insert: %s", db.execs[0].sql)
@@ -220,8 +235,81 @@ func TestRecordExportArtifactPersistsObjectMetadataAndDeliveryDescriptors(t *tes
 	if objectKey, ok := db.execs[0].args[5].(string); !ok || objectKey != "tenants/tenant_1/exports/export_1.zip" {
 		t.Fatalf("object key arg = %#v, want tenant-scoped export key", db.execs[0].args[5])
 	}
-	if !strings.Contains(db.execs[1].sql, "delivery_metadata") {
-		t.Fatalf("second exec should update export delivery metadata: %s", db.execs[1].sql)
+	if !strings.Contains(db.execs[1].sql, "'thumbnail'") {
+		t.Fatalf("second exec should create thumbnail metadata: %s", db.execs[1].sql)
+	}
+	if objectKey, ok := db.execs[1].args[5].(string); !ok || objectKey != "tenants/tenant_1/thumbnails/export_1.zip.svg" {
+		t.Fatalf("thumbnail key arg = %#v, want tenant-scoped thumbnail key", db.execs[1].args[5])
+	}
+	if !strings.Contains(db.execs[2].sql, "delivery_metadata") {
+		t.Fatalf("third exec should update export delivery metadata: %s", db.execs[2].sql)
+	}
+}
+
+func TestServiceRecordExportArtifactGeneratesAndStoresThumbnail(t *testing.T) {
+	now := time.Now().UTC()
+	db := &fakeDB{
+		queryRows: []rowSet{{
+			rows: [][]any{{
+				"export_1",
+				"tenant_1",
+				"package_1",
+				"project_1",
+				nil,
+				"zip",
+				"ready",
+				"passed",
+				"object_1",
+				[]byte(`{"package_id":"package_1","project_id":"project_1"}`),
+				[]byte(`{"thumbnail":{"status":"ready"},"figma_ready":{"status":"ready","layout":{"schema":"zenart.figma_layout_spec.v1"}}}`),
+				nil,
+				now,
+				now,
+				[]byte(`{"id":"object_1","tenant_id":"tenant_1","project_id":"project_1","owner_id":"user_1","asset_type":"export","bucket":"exports-test","object_key":"tenants/tenant_1/exports/export_1.zip","content_type":"application/zip","byte_size":12,"checksum":"sha256:abc","provider":"local","retention_state":"active","metadata":{},"created_at":"2026-05-26T00:00:00Z"}`),
+			}},
+		}},
+	}
+	objects, err := objectstore.NewLocalStore(t.TempDir(), "exports-test", "secret")
+	if err != nil {
+		t.Fatalf("NewLocalStore() error = %v", err)
+	}
+	service := NewService(NewRepository(db), objects)
+
+	_, err = service.RecordExportArtifact(context.Background(), ExportArtifact{
+		ExportID:        "export_1",
+		TenantID:        "tenant_1",
+		ProjectID:       "project_1",
+		OwnerID:         "user_1",
+		Bucket:          "exports-test",
+		ObjectKey:       "exports/export_1.zip",
+		Format:          "zip",
+		ByteSize:        12,
+		Checksum:        "sha256:abc",
+		StorageProvider: "local",
+		Manifest: map[string]any{
+			"package_id": "package_1",
+			"project_id": "project_1",
+			"items": []any{
+				map[string]any{"id": "asset_1", "title": "Hero asset", "type": "candidate"},
+			},
+		},
+		QAReport:   map[string]any{"status": "passed"},
+		Provenance: map[string]any{"provider": "dev"},
+	})
+	if err != nil {
+		t.Fatalf("RecordExportArtifact() error = %v", err)
+	}
+	reader, err := objects.Get(context.Background(), "tenant_1", "thumbnails/export_1.zip.svg")
+	if err != nil {
+		t.Fatalf("stored thumbnail Get() error = %v", err)
+	}
+	defer reader.Body.Close()
+	data, err := io.ReadAll(reader.Body)
+	if err != nil {
+		t.Fatalf("read stored thumbnail error = %v", err)
+	}
+	if !strings.Contains(string(data), "<svg") || !strings.Contains(string(data), "project_1 ZIP package, 1 items") {
+		t.Fatalf("stored thumbnail body = %q", string(data))
 	}
 }
 

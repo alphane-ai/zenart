@@ -2308,14 +2308,102 @@ components:
                 $ref: "#/components/schemas/MetaPrompt"
     AgentTrace:
       type: object
-      required: [id, task_id, step_name, payload, created_at]
+      required:
+        - id
+        - task_id
+        - request_id
+        - workflow
+        - step_name
+        - schema_validation
+        - provenance
+        - safety_status
+        - qa_eval_status
+        - quota_transaction_id
+        - admin_visibility
+        - user_failure_mapping
+        - export_references
+        - payload
+        - created_at
       properties:
         id:
           type: string
         task_id:
           type: string
+        request_id:
+          type: string
+        workflow:
+          type: string
         step_name:
           type: string
+          enum: [brief, provider_request, provider_response, qa, export]
+        schema_validation:
+          type: object
+          required: [present, source]
+          properties:
+            present:
+              type: boolean
+              const: true
+            source:
+              type: string
+        provenance:
+          type: object
+          required: [present, source]
+          properties:
+            present:
+              type: boolean
+              const: true
+            source:
+              type: string
+        safety_status:
+          type: object
+          required: [present, source]
+          properties:
+            present:
+              type: boolean
+              const: true
+            source:
+              type: string
+        qa_eval_status:
+          type: object
+          required: [present, source]
+          properties:
+            present:
+              type: boolean
+              const: true
+            source:
+              type: string
+        quota_transaction_id:
+          type: string
+        admin_visibility:
+          type: object
+          required: [present, source]
+          properties:
+            present:
+              type: boolean
+              const: true
+            source:
+              type: string
+        user_failure_mapping:
+          type: object
+          required: [present, source]
+          properties:
+            present:
+              type: boolean
+              const: true
+            source:
+              type: string
+        export_references:
+          type: object
+          required: [manifest, qa_report, trace_provenance, safety_disclaimer_when_applicable]
+          properties:
+            manifest:
+              type: boolean
+            qa_report:
+              type: boolean
+            trace_provenance:
+              type: boolean
+            safety_disclaimer_when_applicable:
+              type: boolean
         payload:
           type: object
           additionalProperties: true

@@ -79,6 +79,30 @@ func TestOpenAPITaskStatusMatchesBackendContract(t *testing.T) {
 	}
 }
 
+func TestOpenAPIAgentTraceRequiresCompletenessContract(t *testing.T) {
+	contract := string(readOpenAPIContract(t))
+	for _, token := range []string{
+		"AgentTrace:",
+		"request_id:",
+		"workflow:",
+		"enum: [brief, provider_request, provider_response, qa, export]",
+		"schema_validation:",
+		"provenance:",
+		"safety_status:",
+		"qa_eval_status:",
+		"quota_transaction_id:",
+		"admin_visibility:",
+		"user_failure_mapping:",
+		"export_references:",
+		"trace_provenance:",
+		"safety_disclaimer_when_applicable:",
+	} {
+		if !strings.Contains(contract, token) {
+			t.Fatalf("AgentTrace completeness contract missing %q", token)
+		}
+	}
+}
+
 func TestOpenAPIOperationsDeclareSharedErrorEnvelope(t *testing.T) {
 	contract := string(readOpenAPIContract(t))
 	blocks := openAPIOperationBlocks(contract)

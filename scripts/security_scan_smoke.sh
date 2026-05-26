@@ -10,6 +10,7 @@ STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 RUN_ID="${STAMP}-security-scan-smoke-$$"
 REPORT_PATH="$OUT_DIR/${RUN_ID}.json"
 SECRET_FINDINGS="$OUT_DIR/${RUN_ID}.secrets.txt"
+SECRET_CANDIDATES="$OUT_DIR/${RUN_ID}.secret-candidates.txt"
 NPM_AUDIT_WEB="$OUT_DIR/${RUN_ID}.web-npm-audit.json"
 NPM_AUDIT_ADMIN="$OUT_DIR/${RUN_ID}.admin-npm-audit.json"
 GO_VULN="$OUT_DIR/${RUN_ID}.govulncheck.txt"
@@ -67,21 +68,25 @@ PY
 }
 
 if [[ "$DRY_RUN" == "1" ]]; then
-  rm -f "$SECRET_FINDINGS" "$NPM_AUDIT_WEB" "$NPM_AUDIT_ADMIN" "$GO_VULN" "$TRIVY_IMAGE"
+  rm -f "$SECRET_FINDINGS" "$SECRET_CANDIDATES" "$NPM_AUDIT_WEB" "$NPM_AUDIT_ADMIN" "$GO_VULN" "$TRIVY_IMAGE"
   write_report "planned"
   printf 'security scan smoke dry-run planned\n'
   exit 0
 fi
 
 mkdir -p "$OUT_DIR"
-rm -f "$SECRET_FINDINGS" "$NPM_AUDIT_WEB" "$NPM_AUDIT_ADMIN" "$GO_VULN" "$TRIVY_IMAGE"
+rm -f "$SECRET_FINDINGS" "$SECRET_CANDIDATES" "$NPM_AUDIT_WEB" "$NPM_AUDIT_ADMIN" "$GO_VULN" "$TRIVY_IMAGE"
 
-if git grep -nE '(AWS_SECRET_ACCESS_KEY|OPENAI_API_KEY|sk-[A-Za-z0-9_-]{20,}|ghp_[A-Za-z0-9_]{20,})' -- . ':!.env.example' ':!fixtures' ':!schemas' ':!backend/internal/security/redact_test.go' ':!ops/ci/stage0-rev2-ci.yml' ':!scripts/repo_validate.sh' ':!scripts/security_scan_smoke.sh' >"$SECRET_FINDINGS"; then
-  write_report "failed"
-  printf 'potential committed secret found; see %s\n' "$SECRET_FINDINGS" >&2
-  exit 1
+if git grep -nE '(AWS_SECRET_ACCESS_KEY|OPENAI_API_KEY|sk-[A-Za-z0-9_-]{20,}|ghp_[A-Za-z0-9_]{20,})' -- . >"$SECRET_CANDIDATES"; then
+  grep -Ev '^(\.env\.example|fixtures/|schemas/|ops/ci/stage0-rev2-ci\.yml|scripts/repo_validate\.sh|scripts/security_scan_smoke\.sh|backend/internal/security/redact_test\.go):' "$SECRET_CANDIDATES" >"$SECRET_FINDINGS" || true
+  rm -f "$SECRET_CANDIDATES"
+  if [[ -s "$SECRET_FINDINGS" ]]; then
+    write_report "failed"
+    printf 'potential committed secret found; see %s\n' "$SECRET_FINDINGS" >&2
+    exit 1
+  fi
 fi
-rm -f "$SECRET_FINDINGS"
+rm -f "$SECRET_FINDINGS" "$SECRET_CANDIDATES"
 
 if has_cmd npm; then
   (cd web && npm audit --omit=dev --json >"$ROOT/$NPM_AUDIT_WEB" || true)

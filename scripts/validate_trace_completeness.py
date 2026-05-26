@@ -1,0 +1,185 @@
+#!/usr/bin/env python3
+"""Validate the Stage 0 Rev2 trace completeness fixture contract."""
+
+from __future__ import annotations
+
+import json
+import re
+import sys
+from pathlib import Path
+from typing import Any
+
+
+ROOT = Path(__file__).resolve().parents[1]
+FIXTURE_DIR = ROOT / "fixtures" / "stage0" / "rev2" / "eval"
+OPENAPI = ROOT / "openapi" / "zenart.v1.yaml"
+TRACE_FIXTURE = FIXTURE_DIR / "trace_completeness.json"
+EVAL_RESULTS = FIXTURE_DIR / "starter_eval_results.json"
+QA_RESULTS = FIXTURE_DIR / "qa_results.json"
+SAFETY_RULES = FIXTURE_DIR / "safety_rules.json"
+
+REQUIRED_TRACE_FIELDS = {
+    "schema_validation",
+    "provenance",
+    "safety_status",
+    "qa_eval_status",
+    "quota_transaction_id",
+    "admin_visibility",
+    "user_failure_mapping",
+}
+
+REQUIRED_STEPS = {
+    "brief",
+    "provider_request",
+    "provider_response",
+    "qa",
+    "export",
+}
+
+TRACE_CONTRACT_TO_FIXTURE_FIELD = {
+    "schema_validation": "has_schema_validation",
+    "provenance": "has_provenance",
+    "safety_status": "has_safety_status",
+    "qa_eval_status": "has_qa_eval_status",
+    "admin_visibility": "has_admin_visibility",
+    "user_failure_mapping": "has_user_failure_mapping",
+}
+
+
+class TraceContractError(Exception):
+    pass
+
+
+def load_json(path: Path) -> Any:
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise TraceContractError(f"{path.relative_to(ROOT)} is not valid JSON: {exc}") from exc
+
+
+def require(condition: bool, message: str) -> None:
+    if not condition:
+        raise TraceContractError(message)
+
+
+def schema_block(openapi_text: str, schema_name: str) -> str:
+    match = re.search(
+        rf"^    {schema_name}:\n(?P<body>.*?)(?=^    [A-Za-z0-9]+:|\Z)",
+        openapi_text,
+        flags=re.MULTILINE | re.DOTALL,
+    )
+    require(match is not None, f"OpenAPI schema {schema_name} missing")
+    return match.group("body")
+
+
+def require_field_in_schema(body: str, schema_name: str, field: str) -> None:
+    require(f"{field}:" in body, f"OpenAPI schema {schema_name} missing {field}")
+    require(
+        re.search(rf"required: \[[^\]]*\b{re.escape(field)}\b", body)
+        or re.search(rf"^\s+- {re.escape(field)}$", body, flags=re.MULTILINE),
+        f"OpenAPI schema {schema_name} must require {field}",
+    )
+
+
+def validate_openapi_trace_schema() -> None:
+    text = OPENAPI.read_text(encoding="utf-8")
+    body = schema_block(text, "AgentTrace")
+    for field in [
+        "id",
+        "task_id",
+        "request_id",
+        "workflow",
+        "step_name",
+        "schema_validation",
+        "provenance",
+        "safety_status",
+        "qa_eval_status",
+        "quota_transaction_id",
+        "admin_visibility",
+        "user_failure_mapping",
+        "export_references",
+        "created_at",
+    ]:
+        require_field_in_schema(body, "AgentTrace", field)
+    for point in REQUIRED_STEPS:
+        require(point in body, f"OpenAPI AgentTrace step_name enum missing {point}")
+
+
+def validate_trace_fixture() -> None:
+    contract = load_json(TRACE_FIXTURE)
+    eval_results = load_json(EVAL_RESULTS)
+    qa_results = load_json(QA_RESULTS)
+    safety_rules = load_json(SAFETY_RULES)
+
+    require(contract["blueprint_source"] == "Docs/stage0_blueprint_rev2.md", "trace contract must cite Rev2")
+    require(set(contract["required_trace_fields"]) == REQUIRED_TRACE_FIELDS, "trace contract required fields mismatch")
+    require(set(contract["required_pipeline_steps"]) == REQUIRED_STEPS, "trace contract required steps mismatch")
+
+    require(isinstance(eval_results, list) and len(eval_results) == 1, "starter eval results must contain one result")
+    eval_by_trace = {
+        item["trace_contract"]["trace_id"]: item
+        for item in eval_results[0]["fixture_results"]
+    }
+    qa_by_fixture: dict[str, list[dict[str, Any]]] = {}
+    for item in qa_results:
+        qa_by_fixture.setdefault(item["evidence"]["fixture_id"], []).append(item)
+
+    safety_points = set().union(*(set(rule["enforcement_points"]) for rule in safety_rules))
+    require(REQUIRED_STEPS <= safety_points, f"safety rules missing trace enforcement steps: {sorted(REQUIRED_STEPS - safety_points)}")
+
+    seen = set()
+    workflows = set()
+    for trace in contract["traces"]:
+        trace_id = trace["trace_id"]
+        require(trace_id not in seen, f"duplicate trace_id {trace_id}")
+        seen.add(trace_id)
+        workflows.add(trace["workflow"])
+        require(set(trace["covered_steps"]) == REQUIRED_STEPS, f"{trace_id} must cover every pipeline step")
+        require(trace_id in eval_by_trace, f"{trace_id} is missing from eval fixture trace contracts")
+
+        eval_trace = eval_by_trace[trace_id]["trace_contract"]
+        for contract_field, eval_field in TRACE_CONTRACT_TO_FIXTURE_FIELD.items():
+            require(
+                trace[contract_field]["present"] is True,
+                f"{trace_id} fixture field {contract_field} must be present",
+            )
+            require(eval_trace[eval_field] is True, f"{trace_id} eval result missing {eval_field}")
+
+        require(trace["quota_transaction_id"].startswith("quota_txn_"), f"{trace_id} must carry quota transaction id")
+        require(
+            qa_by_fixture.get(trace["fixture_id"]),
+            f"{trace_id} must link to at least one QA result for its fixture",
+        )
+
+        export_contract = eval_by_trace[trace_id]["export_contract"]
+        for field in ["manifest", "qa_report", "trace_provenance", "safety_disclaimer_when_applicable"]:
+            require(
+                trace["export_references"][field] == export_contract[field],
+                f"{trace_id} export reference {field} must match eval export contract",
+            )
+
+    require(
+        workflows
+        == {
+            "ecommerce_growth_pack",
+            "business_visual_doc_pack",
+            "local_merchant_campaign_pack",
+            "character_ip_concept_pack",
+        },
+        "trace completeness fixture must cover all four vertical workflows",
+    )
+
+
+def main() -> int:
+    try:
+        validate_openapi_trace_schema()
+        validate_trace_fixture()
+    except TraceContractError as exc:
+        print(f"trace completeness validation failed: {exc}", file=sys.stderr)
+        return 1
+    print("trace completeness validation passed")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

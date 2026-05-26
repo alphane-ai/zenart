@@ -190,10 +190,16 @@ find "$ops_validate_dir" -name '*.json' -type f | grep -q .
 
 log "secret scan smoke"
 if has_cmd git; then
-  git grep -nE '(AWS_SECRET_ACCESS_KEY|OPENAI_API_KEY|sk-[A-Za-z0-9_-]{20,}|ghp_[A-Za-z0-9_]{20,})' -- . ':!.env.example' ':!fixtures' ':!schemas' ':!backend/internal/security/redact_test.go' ':!ops/ci/stage0-rev2-ci.yml' ':!scripts/repo_validate.sh' ':!scripts/security_scan_smoke.sh' && {
+  secret_candidates="$(mktemp)"
+  secret_findings="$(mktemp)"
+  git grep -nE '(AWS_SECRET_ACCESS_KEY|OPENAI_API_KEY|sk-[A-Za-z0-9_-]{20,}|ghp_[A-Za-z0-9_]{20,})' -- . >"$secret_candidates" || true
+  grep -Ev '^(\.env\.example|fixtures/|schemas/|ops/ci/stage0-rev2-ci\.yml|scripts/repo_validate\.sh|scripts/security_scan_smoke\.sh|backend/internal/security/redact_test\.go):' "$secret_candidates" >"$secret_findings" || true
+  if [[ -s "$secret_findings" ]]; then
+    cat "$secret_findings"
     printf 'potential committed secret found\n' >&2
     exit 1
-  } || true
+  fi
+  rm -f "$secret_candidates" "$secret_findings"
 fi
 
 log "repo validation complete"

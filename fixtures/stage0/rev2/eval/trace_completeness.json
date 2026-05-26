@@ -1,0 +1,213 @@
+{
+  "schema_version": "stage0.rev2",
+  "contract_id": "trace_contract_stage0_rev2_eval_export",
+  "blueprint_source": "Docs/stage0_blueprint_rev2.md",
+  "required_trace_fields": [
+    "schema_validation",
+    "provenance",
+    "safety_status",
+    "qa_eval_status",
+    "quota_transaction_id",
+    "admin_visibility",
+    "user_failure_mapping"
+  ],
+  "required_pipeline_steps": [
+    "brief",
+    "provider_request",
+    "provider_response",
+    "qa",
+    "export"
+  ],
+  "traces": [
+    {
+      "trace_id": "trace_fx_ecommerce_growth_golden_aspect",
+      "fixture_id": "fx_ecommerce_growth_golden",
+      "workflow": "ecommerce_growth_pack",
+      "task_id": "task_fx_ecommerce_growth_golden",
+      "request_id": "req_fx_ecommerce_growth_golden",
+      "covered_steps": [
+        "brief",
+        "provider_request",
+        "provider_response",
+        "qa",
+        "export"
+      ],
+      "schema_validation": {
+        "present": true,
+        "source": "eval_result.fixture_results.trace_contract.has_schema_validation"
+      },
+      "provenance": {
+        "present": true,
+        "source": "eval_result.fixture_results.trace_contract.has_provenance"
+      },
+      "safety_status": {
+        "present": true,
+        "source": "eval_result.fixture_results.trace_contract.has_safety_status"
+      },
+      "qa_eval_status": {
+        "present": true,
+        "source": "eval_result.fixture_results.trace_contract.has_qa_eval_status"
+      },
+      "quota_transaction_id": "quota_txn_fx_ecommerce_growth_golden",
+      "admin_visibility": {
+        "present": true,
+        "source": "eval_result.fixture_results.trace_contract.has_admin_visibility"
+      },
+      "user_failure_mapping": {
+        "present": true,
+        "source": "eval_result.fixture_results.trace_contract.has_user_failure_mapping"
+      },
+      "export_references": {
+        "manifest": true,
+        "qa_report": true,
+        "trace_provenance": true,
+        "safety_disclaimer_when_applicable": true
+      }
+    },
+    {
+      "trace_id": "trace_fx_business_visual_doc_golden_readability",
+      "fixture_id": "fx_business_visual_doc_golden",
+      "workflow": "business_visual_doc_pack",
+      "task_id": "task_fx_business_visual_doc_golden",
+      "request_id": "req_fx_business_visual_doc_golden",
+      "covered_steps": [
+        "brief",
+        "provider_request",
+        "provider_response",
+        "qa",
+        "export"
+      ],
+      "schema_validation": {
+        "present": true,
+        "source": "eval_result.fixture_results.trace_contract.has_schema_validation"
+      },
+      "provenance": {
+        "present": true,
+        "source": "eval_result.fixture_results.trace_contract.has_provenance"
+      },
+      "safety_status": {
+        "present": true,
+        "source": "eval_result.fixture_results.trace_contract.has_safety_status"
+      },
+      "qa_eval_status": {
+        "present": true,
+        "source": "eval_result.fixture_results.trace_contract.has_qa_eval_status"
+      },
+      "quota_transaction_id": "quota_txn_fx_business_visual_doc_golden",
+      "admin_visibility": {
+        "present": true,
+        "source": "eval_result.fixture_results.trace_contract.has_admin_visibility"
+      },
+      "user_failure_mapping": {
+        "present": true,
+        "source": "eval_result.fixture_results.trace_contract.has_user_failure_mapping"
+      },
+      "export_references": {
+        "manifest": true,
+        "qa_report": true,
+        "trace_provenance": true,
+        "safety_disclaimer_when_applicable": true
+      }
+    },
+    {
+      "trace_id": "trace_fx_local_merchant_campaign_golden_dimensions",
+      "fixture_id": "fx_local_merchant_campaign_golden",
+      "workflow": "local_merchant_campaign_pack",
+      "task_id": "task_fx_local_merchant_campaign_golden",
+      "request_id": "req_fx_local_merchant_campaign_golden",
+      "covered_steps": [
+        "brief",
+        "provider_request",
+        "provider_response",
+        "qa",
+        "export"
+      ],
+      "schema_validation": {
+        "present": true,
+        "source": "eval_result.fixture_results.trace_contract.has_schema_validation"
+      },
+      "provenance": {
+        "present": true,
+        "source": "eval_result.fixture_results.trace_contract.has_provenance"
+      },
+      "safety_status": {
+        "present": true,
+        "source": "eval_result.fixture_results.trace_contract.has_safety_status"
+      },
+      "qa_eval_status": {
+        "present": true,
+        "source": "eval_result.fixture_results.trace_contract.has_qa_eval_status"
+      },
+      "quota_transaction_id": "quota_txn_fx_local_merchant_campaign_golden",
+      "admin_visibility": {
+        "present": true,
+        "source": "eval_result.fixture_results.trace_contract.has_admin_visibility"
+      },
+      "user_failure_mapping": {
+        "present": true,
+        "source": "eval_result.fixture_results.trace_contract.has_user_failure_mapping"
+      },
+      "export_references": {
+        "manifest": true,
+        "qa_report": true,
+        "trace_provenance": true,
+        "safety_disclaimer_when_applicable": true
+      }
+    },
+    {
+      "trace_id": "trace_fx_character_ip_concept_golden_blank",
+      "fixture_id": "fx_character_ip_concept_golden",
+      "workflow": "character_ip_concept_pack",
+      "task_id": "task_fx_character_ip_concept_golden",
+      "request_id": "req_fx_character_ip_concept_golden",
+      "covered_steps": [
+        "brief",
+        "provider_request",
+        "provider_response",
+        "qa",
+        "export"
+      ],
+      "schema_validation": {
+        "present": true,
+        "source": "eval_result.fixture_results.trace_contract.has_schema_validation"
+      },
+      "provenance": {
+        "present": true,
+        "source": "eval_result.fixture_results.trace_contract.has_provenance"
+      },
+      "safety_status": {
+        "present": true,
+        "source": "eval_result.fixture_results.trace_contract.has_safety_status"
+      },
+      "qa_eval_status": {
+        "present": true,
+        "source": "eval_result.fixture_results.trace_contract.has_qa_eval_status"
+      },
+      "quota_transaction_id": "quota_txn_fx_character_ip_concept_golden",
+      "admin_visibility": {
+        "present": true,
+        "source": "eval_result.fixture_results.trace_contract.has_admin_visibility"
+      },
+      "user_failure_mapping": {
+        "present": true,
+        "source": "eval_result.fixture_results.trace_contract.has_user_failure_mapping"
+      },
+      "export_references": {
+        "manifest": true,
+        "qa_report": true,
+        "trace_provenance": true,
+        "safety_disclaimer_when_applicable": true
+      }
+    }
+  ],
+  "provenance": {
+    "blueprint_sections": [
+      "8.2",
+      "12.1",
+      "15.1",
+      "24",
+      "25.10"
+    ],
+    "created_by_lane": "lane2"
+  }
+}

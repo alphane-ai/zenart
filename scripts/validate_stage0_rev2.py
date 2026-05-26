@@ -144,6 +144,7 @@ SCHEMA_FIXTURE_TARGETS = [
     ("analytics_taxonomy.schema.json", FIXTURE_DIR / "analytics" / "event_taxonomy.json", "object"),
     ("eval_suite.schema.json", FIXTURE_DIR / "eval" / "starter_eval_suite.json", "object"),
     ("eval_result.schema.json", FIXTURE_DIR / "eval" / "starter_eval_results.json", "array_items"),
+    ("trace_completeness.schema.json", FIXTURE_DIR / "eval" / "trace_completeness.json", "object"),
     ("qa_result.schema.json", FIXTURE_DIR / "eval" / "qa_results.json", "array_items"),
     ("safety_rule.schema.json", FIXTURE_DIR / "eval" / "safety_rules.json", "array_items"),
     ("workflow_acceptance.schema.json", FIXTURE_DIR / "workflows", "directory_objects"),
@@ -192,6 +193,7 @@ CHECKED_ITEMS = {
     "实现 secure cookie 和 same-site CSRF 客户端/session contract evidence。",
     "实现 secret redaction。",
     "定义 analytics event taxonomy。",
+    "添加 trace completeness tests。",
 }
 
 FORBIDDEN_CHECKED_ITEMS = {
@@ -617,9 +619,11 @@ def validate_json_files() -> None:
         SCHEMA_DIR / "feedback_event.schema.json",
         SCHEMA_DIR / "abuse_event.schema.json",
         SCHEMA_DIR / "analytics_taxonomy.schema.json",
+        SCHEMA_DIR / "trace_completeness.schema.json",
         SCHEMA_DIR / "release_gate_evidence.schema.json",
         FIXTURE_DIR / "eval" / "starter_eval_suite.json",
         FIXTURE_DIR / "eval" / "starter_eval_results.json",
+        FIXTURE_DIR / "eval" / "trace_completeness.json",
         FIXTURE_DIR / "eval" / "qa_results.json",
         FIXTURE_DIR / "eval" / "safety_rules.json",
         FIXTURE_DIR / "crawler" / "crawler_governance_cases.json",
@@ -1443,6 +1447,7 @@ def validate_openapi_rev2_domain_contracts() -> None:
         "ShareLink": ["url", "access_policy"],
         "CrawlerSource": ["legal_metadata", "robots_policy"],
         "CrawlerFinding": ["provenance", "import_governance"],
+        "AgentTrace": ["request_id", "workflow", "schema_validation", "provenance", "safety_status", "qa_eval_status", "quota_transaction_id", "admin_visibility", "user_failure_mapping", "export_references"],
         "SafetyRule": ["enforcement_points", "evaluation_contract"],
         "AnalyticsEvent": ["event_name", "required_context", "success_metric_refs", "privacy_classification"],
         "AnalyticsReport": ["metric_name", "source_events", "required_dimensions", "go_no_go_signal"],
@@ -1501,6 +1506,27 @@ def validate_openapi_rev2_domain_contracts() -> None:
     for report_name in ANALYTICS_REPORTS:
         require(report_name in analytics_report_body, f"AnalyticsReport missing metric enum {report_name}")
     require("go_no_go_signal:" in analytics_report_body, "AnalyticsReport must identify go/no-go metrics")
+
+    trace = re.search(r"^    AgentTrace:\n(?P<body>.*?)(?=^    [A-Za-z0-9]+:|\Z)", text, flags=re.MULTILINE | re.DOTALL)
+    trace_body = trace.group("body") if trace else ""
+    for point in SAFETY_POINTS:
+        require(point in trace_body, f"AgentTrace step_name enum missing {point}")
+    for token in ["const: true", "trace_provenance:", "safety_disclaimer_when_applicable:"]:
+        require(token in trace_body, f"AgentTrace completeness schema missing {token}")
+
+
+def validate_trace_completeness_contract() -> None:
+    result = subprocess.run(
+        [sys.executable, str(ROOT / "scripts" / "validate_trace_completeness.py")],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    require(
+        result.returncode == 0,
+        "trace completeness validation failed: " + (result.stderr or result.stdout).strip(),
+    )
 
 
 def validate_task_schema_compatibility_contract() -> None:
@@ -1985,6 +2011,7 @@ def main() -> int:
         validate_database_schema_artifacts,
         validate_openapi_contract,
         validate_openapi_rev2_domain_contracts,
+        validate_trace_completeness_contract,
         validate_task_schema_compatibility_contract,
         validate_blueprint_evidence_backfill_contracts,
         validate_generated_openapi_clients,

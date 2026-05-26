@@ -1,9 +1,13 @@
 package stage0
 
 import (
+	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -160,6 +164,18 @@ type ExportArtifact struct {
 	Provenance      map[string]any
 	Delivery        map[string]any
 	DerivedFromID   string
+	Thumbnail       *ThumbnailArtifact
+}
+
+type ThumbnailArtifact struct {
+	ObjectKey   string         `json:"object_key"`
+	ContentType string         `json:"content_type"`
+	Width       int            `json:"width"`
+	Height      int            `json:"height"`
+	ByteSize    int64          `json:"byte_size"`
+	Checksum    string         `json:"checksum"`
+	Metadata    map[string]any `json:"metadata,omitempty"`
+	Data        []byte         `json:"-"`
 }
 
 type CleanupResult struct {
@@ -440,7 +456,22 @@ func (r Repository) RecordExportArtifact(ctx context.Context, artifact ExportArt
 	if artifact.Provenance == nil {
 		artifact.Provenance = map[string]any{}
 	}
+	if artifact.Thumbnail == nil {
+		thumbnail := BuildExportThumbnail(artifact.ExportID, artifact.Format, artifact.Manifest)
+		artifact.Thumbnail = &thumbnail
+	}
 	delivery := exportDeliveryMetadata(artifact.Format, artifact.Manifest, artifact.Delivery)
+	if artifact.Thumbnail != nil {
+		delivery["thumbnail"] = map[string]any{
+			"status":       "ready",
+			"object_key":   tenantScopedObjectKey(artifact.TenantID, artifact.Thumbnail.ObjectKey),
+			"content_type": artifact.Thumbnail.ContentType,
+			"width":        artifact.Thumbnail.Width,
+			"height":       artifact.Thumbnail.Height,
+			"byte_size":    artifact.Thumbnail.ByteSize,
+			"checksum":     artifact.Thumbnail.Checksum,
+		}
+	}
 	objectID := id.New("object")
 	now := time.Now().UTC()
 	retentionState := "active"
@@ -480,6 +511,33 @@ VALUES($1, $2, $3, $4, 'export', $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $1
 	)
 	if err != nil {
 		return Export{}, err
+	}
+	if artifact.Thumbnail != nil {
+		_, err = r.db.Exec(ctx, `
+INSERT INTO object_metadata(id, tenant_id, project_id, owner_id, asset_type, bucket, object_key, content_type, byte_size, checksum, provider, retention_state, retention_until, derived_from_object_id, metadata, created_at)
+VALUES($1, $2, $3, $4, 'thumbnail', $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
+			id.New("object"),
+			artifact.TenantID,
+			artifact.ProjectID,
+			nullableString(artifact.OwnerID),
+			artifact.Bucket,
+			tenantScopedObjectKey(artifact.TenantID, artifact.Thumbnail.ObjectKey),
+			artifact.Thumbnail.ContentType,
+			artifact.Thumbnail.ByteSize,
+			artifact.Thumbnail.Checksum,
+			artifact.StorageProvider,
+			retentionState,
+			artifact.RetentionUntil,
+			objectID,
+			jsonObject(security.RedactMap(map[string]any{
+				"thumbnail": artifact.Thumbnail,
+				"format":    artifact.Format,
+			})),
+			now,
+		)
+		if err != nil {
+			return Export{}, err
+		}
 	}
 	_, err = r.db.Exec(ctx, `
 UPDATE exports
@@ -1027,7 +1085,36 @@ func contentTypeForExport(format string) string {
 	}
 }
 
+func BuildExportThumbnail(exportID, format string, manifest map[string]any) ThumbnailArtifact {
+	if strings.TrimSpace(exportID) == "" {
+		exportID = "export"
+	}
+	if strings.TrimSpace(format) == "" {
+		format = "zip"
+	}
+	projectID, _ := manifest["project_id"].(string)
+	itemCount := len(manifestItems(manifest))
+	svg := fmt.Sprintf(`<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360"><rect width="640" height="360" fill="#f7f4ee"/><rect x="32" y="32" width="576" height="296" rx="16" fill="#ffffff" stroke="#202124" stroke-width="4"/><rect x="64" y="74" width="256" height="28" fill="#0f766e"/><rect x="64" y="126" width="420" height="18" fill="#d97706"/><rect x="64" y="164" width="352" height="18" fill="#2563eb"/><rect x="64" y="222" width="128" height="72" fill="#111827"/><rect x="216" y="222" width="128" height="72" fill="#6d28d9"/><rect x="368" y="222" width="128" height="72" fill="#be123c"/><text x="64" y="314" font-family="Arial, sans-serif" font-size="20" fill="#202124">%s %s package, %d items</text></svg>`, xmlEscape(projectID), strings.ToUpper(strings.TrimSpace(format)), itemCount)
+	data := []byte(svg)
+	sum := sha256.Sum256(data)
+	return ThumbnailArtifact{
+		ObjectKey:   "thumbnails/" + cleanFilename(exportID+"."+format+".svg"),
+		ContentType: "image/svg+xml",
+		Width:       640,
+		Height:      360,
+		ByteSize:    int64(len(data)),
+		Checksum:    "sha256:" + hex.EncodeToString(sum[:]),
+		Data:        data,
+		Metadata: map[string]any{
+			"generator":  "stage0_export_thumbnail_svg",
+			"project_id": projectID,
+			"item_count": itemCount,
+		},
+	}
+}
+
 func exportDeliveryMetadata(format string, manifest map[string]any, extra map[string]any) map[string]any {
+	layoutSpec := figmaLayoutSpec(manifest)
 	delivery := map[string]any{
 		"format":                    format,
 		"deterministic_file_naming": true,
@@ -1040,10 +1127,12 @@ func exportDeliveryMetadata(format string, manifest map[string]any, extra map[st
 			"assets_prefix": "assets/",
 		},
 		"figma_ready": map[string]any{
-			"status":        "placeholder",
+			"status":        "ready",
 			"descriptor":    "layout_spec",
+			"schema":        "zenart.figma_layout_spec.v1",
 			"spec_key":      "figma/layout.json",
 			"assets_prefix": "assets/",
+			"layout":        layoutSpec,
 		},
 	}
 	if projectID, ok := manifest["project_id"].(string); ok && projectID != "" {
@@ -1053,6 +1142,102 @@ func exportDeliveryMetadata(format string, manifest map[string]any, extra map[st
 		delivery[key] = value
 	}
 	return security.RedactMap(delivery)
+}
+
+func figmaLayoutSpec(manifest map[string]any) map[string]any {
+	projectID, _ := manifest["project_id"].(string)
+	packageID, _ := manifest["package_id"].(string)
+	items := manifestItems(manifest)
+	frames := make([]map[string]any, 0, len(items))
+	for index, item := range items {
+		itemID := stringFromMap(item, "id", fmt.Sprintf("item_%02d", index+1))
+		title := stringFromMap(item, "title", itemID)
+		itemType := stringFromMap(item, "type", "asset")
+		x := (index % 2) * 1224
+		y := (index / 2) * 844
+		frames = append(frames, map[string]any{
+			"id":          "frame_" + cleanFilename(itemID),
+			"name":        title,
+			"source_id":   itemID,
+			"source_type": itemType,
+			"x":           x,
+			"y":           y,
+			"width":       1080,
+			"height":      720,
+			"constraints": map[string]any{
+				"horizontal": "scale",
+				"vertical":   "scale",
+			},
+			"asset_ref": "assets/" + cleanFilename(itemID) + ".png",
+		})
+	}
+	if len(frames) == 0 {
+		frames = append(frames, map[string]any{
+			"id":          "frame_empty_package",
+			"name":        "Empty package handoff",
+			"source_id":   "",
+			"source_type": "placeholder",
+			"x":           0,
+			"y":           0,
+			"width":       1080,
+			"height":      720,
+			"constraints": map[string]any{"horizontal": "scale", "vertical": "scale"},
+			"asset_ref":   "",
+		})
+	}
+	return map[string]any{
+		"schema":     "zenart.figma_layout_spec.v1",
+		"project_id": projectID,
+		"package_id": packageID,
+		"document": map[string]any{
+			"name":          "ZenArt Export " + packageID,
+			"color_profile": "srgb",
+			"units":         "px",
+		},
+		"pages": []map[string]any{{
+			"id":     "page_export",
+			"name":   "Export handoff",
+			"frames": frames,
+		}},
+		"tokens": map[string]any{
+			"layout_grid": 8,
+			"frame_gap":   144,
+		},
+	}
+}
+
+func manifestItems(manifest map[string]any) []map[string]any {
+	raw, ok := manifest["items"].([]map[string]any)
+	if ok {
+		return raw
+	}
+	values, ok := manifest["items"].([]any)
+	if !ok {
+		return nil
+	}
+	items := make([]map[string]any, 0, len(values))
+	for _, value := range values {
+		item, ok := value.(map[string]any)
+		if ok {
+			items = append(items, item)
+		}
+	}
+	return items
+}
+
+func stringFromMap(values map[string]any, key, fallback string) string {
+	if value, ok := values[key].(string); ok && strings.TrimSpace(value) != "" {
+		return strings.TrimSpace(value)
+	}
+	return fallback
+}
+
+func xmlEscape(value string) string {
+	value = strings.ReplaceAll(value, "&", "&amp;")
+	value = strings.ReplaceAll(value, "<", "&lt;")
+	value = strings.ReplaceAll(value, ">", "&gt;")
+	value = strings.ReplaceAll(value, `"`, "&quot;")
+	return value
 }
 
 func nullableString(value string) *string {
@@ -1087,6 +1272,33 @@ func (s Service) Repository() Repository {
 
 func (s Service) CreateExport(ctx context.Context, tenantID, packageID string, input ExportCreate, schemaVersion int) (task.Task, error) {
 	return s.repo.CreateExport(ctx, tenantID, packageID, input, schemaVersion)
+}
+
+func (s Service) RecordExportArtifact(ctx context.Context, artifact ExportArtifact) (Export, error) {
+	if artifact.Thumbnail == nil {
+		thumbnail := BuildExportThumbnail(artifact.ExportID, artifact.Format, artifact.Manifest)
+		artifact.Thumbnail = &thumbnail
+	}
+	if s.objects != nil && artifact.Thumbnail != nil && len(artifact.Thumbnail.Data) > 0 {
+		stored, err := s.objects.Put(ctx, objectstore.Object{
+			TenantID:       artifact.TenantID,
+			Bucket:         artifact.Bucket,
+			Key:            artifact.Thumbnail.ObjectKey,
+			ContentType:    artifact.Thumbnail.ContentType,
+			RetentionUntil: artifact.RetentionUntil,
+			Metadata:       artifact.Thumbnail.Metadata,
+		}, bytes.NewReader(artifact.Thumbnail.Data))
+		if err != nil {
+			return Export{}, err
+		}
+		artifact.Thumbnail.ObjectKey = stored.Key
+		artifact.Thumbnail.ByteSize = stored.ByteSize
+		artifact.Thumbnail.Checksum = stored.Checksum
+		if stored.Bucket != "" {
+			artifact.Bucket = stored.Bucket
+		}
+	}
+	return s.repo.RecordExportArtifact(ctx, artifact)
 }
 
 func (s Service) GetExport(ctx context.Context, tenantID, exportID string) (Export, error) {
