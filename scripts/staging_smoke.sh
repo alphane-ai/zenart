@@ -174,6 +174,19 @@ def collect_sha_values(value):
     return values
 
 
+def collect_key_values(value, keys):
+    values = []
+    if isinstance(value, dict):
+        for key, nested in value.items():
+            if key in keys and isinstance(nested, str):
+                values.append(nested)
+            values.extend(collect_key_values(nested, keys))
+    elif isinstance(value, list):
+        for item in value:
+            values.extend(collect_key_values(item, keys))
+    return values
+
+
 def validate_local_ref(name, value, *, require_sha=False):
     local_path = resolve_local_path(value)
     result = {
@@ -208,6 +221,56 @@ def validate_local_ref(name, value, *, require_sha=False):
     result["verified"] = result["sha_match"]
     if not result["verified"]:
         result["reason"] = f"{name}_does_not_reference_release_sha"
+    return result
+
+
+def validate_staging_evidence_ref(name, value, *, expected_kind, accepted_statuses):
+    result = validate_local_ref(name, value, require_sha=True)
+    result["expected_evidence_kind"] = expected_kind
+    result["accepted_statuses"] = sorted(accepted_statuses)
+    result["required_environment"] = "staging"
+    result["semantic_checks"] = {
+        "json_parseable": False,
+        "release_sha_present": bool(release_sha),
+        "release_sha_match": result.get("sha_match") is True,
+        "environment_staging": False,
+        "evidence_kind_match": False,
+        "status_accepted": False,
+    }
+    if not value or not result.get("exists"):
+        result["verified"] = False
+        return result
+    if not release_sha:
+        result["reason"] = "missing_release_sha_for_staging_evidence"
+        result["verified"] = False
+        return result
+    local_path = resolve_local_path(value)
+    parsed, _ = read_json_or_text(local_path)
+    if parsed is None:
+        result["reason"] = f"{name}_must_be_json_for_validator_resolvable_release_evidence"
+        result["verified"] = False
+        return result
+
+    status_values = [item.lower() for item in collect_key_values(parsed, {"status", "result", "runtime_status"})]
+    environment_values = [item.lower() for item in collect_key_values(parsed, {"environment", "env"})]
+    kind_values = [item.lower() for item in collect_key_values(parsed, {"kind", "evidence_kind", "type", "evidence_type"})]
+    result["status_values"] = status_values
+    result["environment_values"] = environment_values
+    result["evidence_kind_values"] = kind_values
+    result["semantic_checks"] = {
+        "json_parseable": True,
+        "release_sha_present": True,
+        "release_sha_match": result.get("sha_match") is True,
+        "environment_staging": "staging" in environment_values,
+        "evidence_kind_match": expected_kind in kind_values,
+        "status_accepted": any(status in accepted_statuses for status in status_values),
+    }
+    missing_semantics = [
+        key for key, passed in result["semantic_checks"].items() if passed is not True
+    ]
+    result["verified"] = not missing_semantics
+    if missing_semantics:
+        result["reason"] = f"{name}_failed_semantic_checks:{','.join(missing_semantics)}"
     return result
 
 
@@ -323,12 +386,42 @@ release_evidence_required = {
 local_evidence_verification = {
     "release_notes_path": validate_release_notes_ref(release_notes_path),
     "image_refs": validate_image_refs(image_refs),
-    "migration_evidence": validate_local_ref("migration_evidence", evidence_refs["migration"]),
-    "config_diff_evidence": validate_local_ref("config_diff_evidence", evidence_refs["config_diff"]),
-    "observability_evidence": validate_local_ref("observability_evidence", evidence_refs["observability"], require_sha=True),
-    "backup_restore_evidence": validate_local_ref("backup_restore_evidence", evidence_refs["backup_restore"]),
-    "rollback_evidence": validate_local_ref("rollback_evidence", evidence_refs["rollback"], require_sha=True),
-    "security_scan_evidence": validate_local_ref("security_scan_evidence", evidence_refs["security_scan"], require_sha=True),
+    "migration_evidence": validate_staging_evidence_ref(
+        "migration_evidence",
+        evidence_refs["migration"],
+        expected_kind="migration",
+        accepted_statuses={"passed", "compatible"},
+    ),
+    "config_diff_evidence": validate_staging_evidence_ref(
+        "config_diff_evidence",
+        evidence_refs["config_diff"],
+        expected_kind="config_diff",
+        accepted_statuses={"passed", "reviewed", "no_diff"},
+    ),
+    "observability_evidence": validate_staging_evidence_ref(
+        "observability_evidence",
+        evidence_refs["observability"],
+        expected_kind="observability",
+        accepted_statuses={"passed"},
+    ),
+    "backup_restore_evidence": validate_staging_evidence_ref(
+        "backup_restore_evidence",
+        evidence_refs["backup_restore"],
+        expected_kind="backup_restore",
+        accepted_statuses={"passed"},
+    ),
+    "rollback_evidence": validate_staging_evidence_ref(
+        "rollback_evidence",
+        evidence_refs["rollback"],
+        expected_kind="rollback",
+        accepted_statuses={"passed", "validated"},
+    ),
+    "security_scan_evidence": validate_staging_evidence_ref(
+        "security_scan_evidence",
+        evidence_refs["security_scan"],
+        expected_kind="security_scan",
+        accepted_statuses={"passed"},
+    ),
 }
 release_evidence_verified = all(item["verified"] for item in local_evidence_verification.values())
 release_evidence_complete = all(release_evidence_required.values()) and release_evidence_verified

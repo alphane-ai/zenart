@@ -321,12 +321,12 @@ Release SHA: $complete_sha
 ## Known Risks
 ## Go/No-Go
 EOF
-printf '{"release_sha":"%s","kind":"migration"}\n' "$complete_sha" >"$complete_validate_dir/migration.json"
-printf '{"release_sha":"%s","kind":"config"}\n' "$complete_sha" >"$complete_validate_dir/config.json"
-printf '{"release_sha":"%s","kind":"observability"}\n' "$complete_sha" >"$complete_validate_dir/observability.json"
-printf '{"release_sha":"%s","kind":"backup_restore"}\n' "$complete_sha" >"$complete_validate_dir/backup.json"
-printf '{"release_sha":"%s","kind":"rollback"}\n' "$complete_sha" >"$complete_validate_dir/rollback.json"
-printf '{"release_sha":"%s","kind":"security"}\n' "$complete_sha" >"$complete_validate_dir/security.json"
+printf '{"release_sha":"%s","environment":"staging","kind":"migration","status":"passed"}\n' "$complete_sha" >"$complete_validate_dir/migration.json"
+printf '{"release_sha":"%s","environment":"staging","kind":"config_diff","status":"reviewed"}\n' "$complete_sha" >"$complete_validate_dir/config.json"
+printf '{"release_sha":"%s","environment":"staging","kind":"observability","status":"passed"}\n' "$complete_sha" >"$complete_validate_dir/observability.json"
+printf '{"release_sha":"%s","environment":"staging","kind":"backup_restore","status":"passed"}\n' "$complete_sha" >"$complete_validate_dir/backup.json"
+printf '{"release_sha":"%s","environment":"staging","kind":"rollback","status":"validated"}\n' "$complete_sha" >"$complete_validate_dir/rollback.json"
+printf '{"release_sha":"%s","environment":"staging","kind":"security_scan","status":"passed"}\n' "$complete_sha" >"$complete_validate_dir/security.json"
 DRY_RUN=1 \
   OUT_DIR="$complete_validate_dir/staging" \
   RELEASE_SHA="$complete_sha" \
@@ -354,6 +354,19 @@ release_evidence = summary["release_evidence"]
 go_no_go = summary["go_no_go"]
 if release_evidence.get("complete") is not True:
     raise SystemExit("complete-evidence staging smoke dry-run must verify all local evidence slots")
+for slot, evidence in release_evidence.get("local_evidence_verification", {}).items():
+    if slot in {
+        "migration_evidence",
+        "config_diff_evidence",
+        "observability_evidence",
+        "backup_restore_evidence",
+        "rollback_evidence",
+        "security_scan_evidence",
+    }:
+        checks = evidence.get("semantic_checks", {})
+        failed = sorted(key for key, value in checks.items() if value is not True)
+        if failed:
+            raise SystemExit(f"{slot} semantic checks failed in complete-evidence dry-run: {failed}")
 if go_no_go.get("release_evidence_complete") is not True:
     raise SystemExit("complete-evidence staging smoke dry-run must expose release_evidence_complete=true")
 if go_no_go.get("gate_fixtures_clear") is not False:

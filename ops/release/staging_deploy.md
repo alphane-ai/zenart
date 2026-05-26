@@ -19,10 +19,11 @@ This is an operations draft only. Private beta and production gates remain open 
 2. Drain or pause worker intake before migrations when a schema compatibility note requires it.
 3. Run forward-only migrations against staging.
 4. Deploy the SHA-tagged backend, worker, crawler, web, and admin images.
-5. Run `scripts/staging_smoke.sh` with `STAGING_BASE_URL`, `STAGING_WEB_URL`, and `STAGING_ADMIN_URL`.
-6. Run representative load smoke modes from `scripts/load_smoke.sh` against staging URLs.
-7. Confirm logs, metrics, traces, dashboards, alerts, and backup jobs are producing staging evidence.
-8. Attach smoke/load/restore evidence to the release notes before any private beta decision.
+5. Produce validator-resolvable staging JSON evidence for migration, config diff, observability, backup/restore, rollback, and security. Each evidence file must reference the release SHA, set `environment=staging`, set the required `kind`, and record an accepted pass/review status.
+6. Run `scripts/staging_smoke.sh` with `STAGING_BASE_URL`, `STAGING_WEB_URL`, `STAGING_ADMIN_URL`, `RELEASE_SHA`, release notes, image refs, seeded smoke IDs, and every evidence path from the previous step.
+7. Run representative load smoke modes from `scripts/load_smoke.sh` against staging URLs.
+8. Confirm logs, metrics, traces, dashboards, alerts, and backup jobs are producing staging evidence.
+9. Attach smoke/load/restore evidence to the release notes before any private beta decision.
 
 ## Rollback
 

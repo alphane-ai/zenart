@@ -66,12 +66,12 @@
     "local_evidence_verification": {
       "release_notes_path": "must exist locally, reference RELEASE_SHA, and contain Identity, Scope, Migration List, Config Diff, Feature Flags, Smoke Plan, Evidence, Rollback Plan, Known Risks, and Go/No-Go sections",
       "image_refs": "must include backend, web, and admin image refs tagged with RELEASE_SHA or its 12-character short SHA",
-      "migration_evidence": "must exist locally",
-      "config_diff_evidence": "must exist locally",
-      "observability_evidence": "must exist locally and reference RELEASE_SHA",
-      "backup_restore_evidence": "must exist locally",
-      "rollback_evidence": "must exist locally and reference RELEASE_SHA",
-      "security_scan_evidence": "must exist locally and reference RELEASE_SHA"
+      "migration_evidence": "must be local JSON, reference RELEASE_SHA, set environment=staging, set kind=migration, and use status passed or compatible",
+      "config_diff_evidence": "must be local JSON, reference RELEASE_SHA, set environment=staging, set kind=config_diff, and use status passed, reviewed, or no_diff",
+      "observability_evidence": "must be local JSON, reference RELEASE_SHA, set environment=staging, set kind=observability, and use status passed",
+      "backup_restore_evidence": "must be local JSON, reference RELEASE_SHA, set environment=staging, set kind=backup_restore, and use status passed",
+      "rollback_evidence": "must be local JSON, reference RELEASE_SHA, set environment=staging, set kind=rollback, and use status passed or validated",
+      "security_scan_evidence": "must be local JSON, reference RELEASE_SHA, set environment=staging, set kind=security_scan, and use status passed"
     },
     "blocking_reason_contract": {
       "field": "summary.go_no_go.blocking_reasons",

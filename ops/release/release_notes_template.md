@@ -56,11 +56,14 @@ Release gate status: `no-go` until every required evidence slot below is filled 
 - CI run: `<run url>`; required for CI/private beta/production decisions.
 - Docker image build: `<image refs>`; required for CI/private beta/production decisions.
 - Playwright smoke: `<report path/url>`; required before CI gate can close.
-- Migration run: `<migration evidence path/url>`; required before staging/production decisions.
+- Migration run: `<local JSON path/url>`; local JSON must reference the release SHA, set `environment=staging`, set `kind=migration`, and record status `passed` or `compatible` before staging/private beta decisions.
 - Staging smoke: `<report path/url>`; required before private beta/production decisions.
 - Load smoke: `<report path/url>`; required before private beta/production decisions.
-- Backup/restore drill: local evidence `ops/evidence/backup-restore/local/20260526T153126Z/report.json`; staging/production evidence `<path/url>` required before those gates can close.
-- Security scan: `<report path/url>`; required before private beta/production decisions.
+- Config diff: `<local JSON path/url>`; local JSON must reference the release SHA, set `environment=staging`, set `kind=config_diff`, and record status `passed`, `reviewed`, or `no_diff`.
+- Observability: `<local JSON path/url>`; local JSON must reference the release SHA, set `environment=staging`, set `kind=observability`, and record status `passed` for logs, metrics, traces, dashboard import, and alert-route evidence.
+- Backup/restore drill: local evidence `ops/evidence/backup-restore/local/20260526T153126Z/report.json`; staging JSON must reference the release SHA, set `environment=staging`, set `kind=backup_restore`, and record status `passed`; production evidence remains required before production can close.
+- Rollback drill: `<local JSON path/url>`; local JSON must reference the release SHA, set `environment=staging`, set `kind=rollback`, and record status `passed` or `validated`.
+- Security scan: `<local JSON path/url>`; local JSON must reference the release SHA, set `environment=staging`, set `kind=security_scan`, and record status `passed` before private beta/production decisions.
 
 ## Rollback Plan
 
