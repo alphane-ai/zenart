@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/alphane-ai/zenart/backend/internal/audit"
 	"github.com/alphane-ai/zenart/backend/internal/config"
 	"github.com/alphane-ai/zenart/backend/internal/objectstore"
 	"github.com/alphane-ai/zenart/backend/internal/security"
@@ -39,9 +40,11 @@ func RunServer(ctx context.Context, cfg config.Config, logger *slog.Logger) erro
 	stage0Service := stage0.NewService(stage0.NewRepository(db), objects, scanner)
 	api := server.New(cfg, logger)
 	baseHandler := api.Handler()
+	auditStore := audit.NewPostgresRecorder(db)
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reqCtx := task.ContextWithRepository(r.Context(), task.NewRepository(db))
 		reqCtx = stage0.ContextWithService(reqCtx, stage0Service)
+		reqCtx = audit.ContextWithSearcher(reqCtx, auditStore)
 		baseHandler.ServeHTTP(w, r.WithContext(reqCtx))
 	})
 	srv := server.NewHTTPServer(cfg, handler)

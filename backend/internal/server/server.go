@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/alphane-ai/zenart/backend/internal/audit"
 	"github.com/alphane-ai/zenart/backend/internal/auth"
 	"github.com/alphane-ai/zenart/backend/internal/config"
 	"github.com/alphane-ai/zenart/backend/internal/health"
@@ -267,7 +268,24 @@ func (s *Server) taskStatus(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) auditSearch(w http.ResponseWriter, r *http.Request) {
-	writeError(w, r, http.StatusNotImplemented, "audit_search_not_connected", "audit log search storage is not connected yet", nil)
+	principal, _ := PrincipalFromContext(r.Context())
+	searcher, ok := audit.SearcherFromContext(r.Context())
+	if !ok {
+		writeError(w, r, http.StatusNotImplemented, "audit_search_not_connected", "audit log search storage is not connected yet", nil)
+		return
+	}
+	page, err := searcher.Search(r.Context(), audit.SearchFilters{
+		TenantID: principal.TenantID,
+		ActorID:  r.URL.Query().Get("actor_id"),
+		Action:   r.URL.Query().Get("action"),
+		Resource: r.URL.Query().Get("resource"),
+		Limit:    pageSize(r),
+	})
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "audit_search_error", "audit log search failed", nil)
+		return
+	}
+	writeJSON(w, http.StatusOK, page)
 }
 
 func (s *Server) createUpload(w http.ResponseWriter, r *http.Request) {

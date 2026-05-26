@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alphane-ai/zenart/backend/internal/audit"
 	"github.com/alphane-ai/zenart/backend/internal/auth"
 	"github.com/alphane-ai/zenart/backend/internal/config"
 	"github.com/alphane-ai/zenart/backend/internal/security"
@@ -306,6 +307,50 @@ func TestAdminAuditRequiresSuperadmin(t *testing.T) {
 	details := body["details"].(map[string]any)
 	if details["required_permission"] != "audit:read" {
 		t.Fatalf("required_permission = %v, want audit:read", details["required_permission"])
+	}
+}
+
+func TestAdminAuditSearchUsesPrincipalTenantAndFilters(t *testing.T) {
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	searcher := &fakeAuditSearcher{page: audit.Page{Items: []audit.Event{{
+		ID:        "audit_1",
+		TenantID:  "tenant_1",
+		ActorID:   "admin_1",
+		Action:    "export.regenerate",
+		Resource:  "exports/export_1",
+		Metadata:  map[string]any{"reason": "retry"},
+		CreatedAt: time.Date(2026, 5, 26, 1, 2, 3, 0, time.UTC),
+	}}}}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/admin/v1/audit?tenant_id=tenant_2&actor_id=admin_1&action=export.regenerate&resource=exports/export_1&page_size=25", nil)
+	req = req.WithContext(audit.ContextWithSearcher(req.Context(), searcher))
+	req.Header.Set("X-Zenart-User-ID", "admin_1")
+	req.Header.Set("X-Zenart-Tenant-ID", "tenant_1")
+	req.Header.Set("X-Zenart-Roles", "admin_superadmin")
+	rec := httptest.NewRecorder()
+
+	New(cfg, nil).Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d: %s", rec.Code, http.StatusOK, rec.Body.String())
+	}
+	if searcher.filters.TenantID != "tenant_1" {
+		t.Fatalf("tenant filter = %q, want principal tenant tenant_1", searcher.filters.TenantID)
+	}
+	if searcher.filters.ActorID != "admin_1" || searcher.filters.Action != "export.regenerate" || searcher.filters.Resource != "exports/export_1" || searcher.filters.Limit != 25 {
+		t.Fatalf("filters = %#v, want requested actor/action/resource/page size", searcher.filters)
+	}
+	var body struct {
+		Items []audit.Event `json:"items"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("response JSON error = %v", err)
+	}
+	if len(body.Items) != 1 || body.Items[0].ID != "audit_1" {
+		t.Fatalf("items = %#v, want audit_1", body.Items)
 	}
 }
 
@@ -812,6 +857,20 @@ func (f *fakeTaskReader) Get(_ context.Context, tenantID, taskID string) (task.T
 		return task.Task{}, task.ErrNotFound
 	}
 	return f.task, nil
+}
+
+type fakeAuditSearcher struct {
+	filters audit.SearchFilters
+	page    audit.Page
+	err     error
+}
+
+func (f *fakeAuditSearcher) Search(_ context.Context, filters audit.SearchFilters) (audit.Page, error) {
+	f.filters = filters
+	if f.err != nil {
+		return audit.Page{}, f.err
+	}
+	return f.page, nil
 }
 
 type noExecDB struct{}
