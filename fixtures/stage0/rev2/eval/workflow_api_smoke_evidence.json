@@ -1,0 +1,718 @@
+{
+  "schema_version": "stage0.rev2",
+  "evidence_id": "workflow_api_smoke_stage0_rev2_verticals",
+  "blueprint_source": "Docs/stage0_blueprint_rev2.md",
+  "created_by_lane": "lane2",
+  "created_at": "2026-05-26T00:00:00Z",
+  "blueprint_sections": [
+    "6.1",
+    "14.1",
+    "15.2",
+    "24.1",
+    "25.11"
+  ],
+  "runner": "scripts/run_workflow_api_smoke.py",
+  "mode": "dry_run",
+  "status": "planned",
+  "api_base_url": "http://localhost:8080/api/v1",
+  "checklist_policy": {
+    "api_smoke_checklist_remains_open": true,
+    "local_alpha_gate_remains_open": true,
+    "runtime_evidence_required_for_closure": true,
+    "blocked_blueprint_items": [
+      "\u7535\u5546\u589e\u957f\u5305 API smoke test \u901a\u8fc7\u3002",
+      "\u5546\u4e1a\u89c6\u89c9\u6587\u6863\u5305 API smoke test \u901a\u8fc7\u3002",
+      "\u672c\u5730\u5546\u5bb6\u6d3b\u52a8\u5305 API smoke test \u901a\u8fc7\u3002",
+      "\u89d2\u8272/IP \u6982\u5ff5\u5305 API smoke test \u901a\u8fc7\u3002"
+    ]
+  },
+  "workflow_results": [
+    {
+      "workflow_id": "ecommerce_growth_pack",
+      "status": "planned",
+      "checklist_item": "\u7535\u5546\u589e\u957f\u5305 API smoke test \u901a\u8fc7\u3002",
+      "operation_ids": [
+        "createChatSession",
+        "createChatMessage",
+        "createCandidateSet",
+        "listCandidateAssets",
+        "selectDirection",
+        "createPackage",
+        "createExport",
+        "getExport"
+      ],
+      "request_results": [
+        {
+          "step": 1,
+          "operation_id": "createChatSession",
+          "method": "post",
+          "path_template": "/projects/{project_id}/chat/sessions",
+          "resolved_path": "/projects/project_ecommerce_growth_smoke/chat/sessions",
+          "request_schema": "ChatSessionCreate",
+          "response_schema": "ChatSession",
+          "expected_status": "201",
+          "actual_status": "not_executed",
+          "result": "planned",
+          "requires_idempotency_key": true,
+          "body_assertions": [
+            "title includes Ecommerce Growth Pack"
+          ]
+        },
+        {
+          "step": 2,
+          "operation_id": "createChatMessage",
+          "method": "post",
+          "path_template": "/chat/sessions/{chat_session_id}/messages",
+          "resolved_path": "/chat/sessions/chat_ecommerce_growth_smoke/messages",
+          "request_schema": "ChatMessageCreate",
+          "response_schema": "TaskStatus",
+          "expected_status": "202",
+          "actual_status": "not_executed",
+          "result": "planned",
+          "requires_idempotency_key": true,
+          "body_assertions": [
+            "body contains product_name",
+            "body contains target_channel",
+            "references includes product_image upload"
+          ]
+        },
+        {
+          "step": 3,
+          "operation_id": "createCandidateSet",
+          "method": "post",
+          "path_template": "/projects/{project_id}/candidate-sets",
+          "resolved_path": "/projects/project_ecommerce_growth_smoke/candidate-sets",
+          "request_schema": "CandidateSetCreate",
+          "response_schema": "TaskStatus",
+          "expected_status": "202",
+          "actual_status": "not_executed",
+          "result": "planned",
+          "requires_idempotency_key": true,
+          "body_assertions": [
+            "workflow_id equals ecommerce_growth_pack",
+            "brief contains product_name, product_image, target_channel"
+          ]
+        },
+        {
+          "step": 4,
+          "operation_id": "listCandidateAssets",
+          "method": "get",
+          "path_template": "/candidate-sets/{candidate_set_id}/assets",
+          "resolved_path": "/candidate-sets/candidate_set_ecommerce_growth_smoke/assets",
+          "request_schema": "none",
+          "response_schema": "CandidateAssetPage",
+          "expected_status": "200",
+          "actual_status": "not_executed",
+          "result": "planned",
+          "requires_idempotency_key": false,
+          "body_assertions": [
+            "response contains four candidate assets",
+            "assets cover conversion_offer, social_proof, feature_comparison, retention_bundle"
+          ]
+        },
+        {
+          "step": 5,
+          "operation_id": "selectDirection",
+          "method": "put",
+          "path_template": "/projects/{project_id}/selected-direction",
+          "resolved_path": "/projects/project_ecommerce_growth_smoke/selected-direction",
+          "request_schema": "SelectedDirectionCreate",
+          "response_schema": "SelectedDirection",
+          "expected_status": "200",
+          "actual_status": "not_executed",
+          "result": "planned",
+          "requires_idempotency_key": true,
+          "body_assertions": [
+            "candidate_asset_id references selected ecommerce candidate"
+          ]
+        },
+        {
+          "step": 6,
+          "operation_id": "createPackage",
+          "method": "post",
+          "path_template": "/projects/{project_id}/packages",
+          "resolved_path": "/projects/project_ecommerce_growth_smoke/packages",
+          "request_schema": "PackageCreate",
+          "response_schema": "Package",
+          "expected_status": "201",
+          "actual_status": "not_executed",
+          "result": "planned",
+          "requires_idempotency_key": true,
+          "body_assertions": [
+            "items include hero_product_ad.png, square_social_ad.png, story_variant.png, marketplace_banner.png"
+          ]
+        },
+        {
+          "step": 7,
+          "operation_id": "createExport",
+          "method": "post",
+          "path_template": "/packages/{package_id}/exports",
+          "resolved_path": "/packages/package_ecommerce_growth_smoke/exports",
+          "request_schema": "ExportCreate",
+          "response_schema": "TaskStatus",
+          "expected_status": "202",
+          "actual_status": "not_executed",
+          "result": "planned",
+          "requires_idempotency_key": true,
+          "body_assertions": [
+            "format equals zip"
+          ]
+        },
+        {
+          "step": 8,
+          "operation_id": "getExport",
+          "method": "get",
+          "path_template": "/exports/{export_id}",
+          "resolved_path": "/exports/export_ecommerce_growth_smoke",
+          "request_schema": "none",
+          "response_schema": "Export",
+          "expected_status": "200",
+          "actual_status": "not_executed",
+          "result": "planned",
+          "requires_idempotency_key": false,
+          "body_assertions": [
+            "manifest, metadata, qa_report, trace_provenance, and required asset files are present",
+            "download_url is short-lived when export is ready"
+          ]
+        }
+      ],
+      "expected_runtime_assertions": [
+        "brief with product_name, product_image, target_channel produces four candidates",
+        "candidate assets cover all four strategy taxonomy entries",
+        "selected direction can be packaged with all required outputs",
+        "export blocks when required manifest, QA report, metadata, or trace provenance is missing"
+      ],
+      "contract_assertions": {
+        "required_inputs_checked": true,
+        "taxonomy_checked": true,
+        "required_assets_checked": true,
+        "export_manifest_checked": true,
+        "qa_report_checked": true,
+        "trace_provenance_checked": true
+      }
+    },
+    {
+      "workflow_id": "business_visual_doc_pack",
+      "status": "planned",
+      "checklist_item": "\u5546\u4e1a\u89c6\u89c9\u6587\u6863\u5305 API smoke test \u901a\u8fc7\u3002",
+      "operation_ids": [
+        "createChatSession",
+        "createChatMessage",
+        "createCandidateSet",
+        "listCandidateAssets",
+        "selectDirection",
+        "createPackage",
+        "createExport",
+        "getExport"
+      ],
+      "request_results": [
+        {
+          "step": 1,
+          "operation_id": "createChatSession",
+          "method": "post",
+          "path_template": "/projects/{project_id}/chat/sessions",
+          "resolved_path": "/projects/project_business_visual_doc_smoke/chat/sessions",
+          "request_schema": "ChatSessionCreate",
+          "response_schema": "ChatSession",
+          "expected_status": "201",
+          "actual_status": "not_executed",
+          "result": "planned",
+          "requires_idempotency_key": true,
+          "body_assertions": [
+            "title includes Business Visual Document Pack"
+          ]
+        },
+        {
+          "step": 2,
+          "operation_id": "createChatMessage",
+          "method": "post",
+          "path_template": "/chat/sessions/{chat_session_id}/messages",
+          "resolved_path": "/chat/sessions/chat_business_visual_doc_smoke/messages",
+          "request_schema": "ChatMessageCreate",
+          "response_schema": "TaskStatus",
+          "expected_status": "202",
+          "actual_status": "not_executed",
+          "result": "planned",
+          "requires_idempotency_key": true,
+          "body_assertions": [
+            "body contains document_goal",
+            "body contains audience",
+            "body contains format",
+            "references includes source_notes upload"
+          ]
+        },
+        {
+          "step": 3,
+          "operation_id": "createCandidateSet",
+          "method": "post",
+          "path_template": "/projects/{project_id}/candidate-sets",
+          "resolved_path": "/projects/project_business_visual_doc_smoke/candidate-sets",
+          "request_schema": "CandidateSetCreate",
+          "response_schema": "TaskStatus",
+          "expected_status": "202",
+          "actual_status": "not_executed",
+          "result": "planned",
+          "requires_idempotency_key": true,
+          "body_assertions": [
+            "workflow_id equals business_visual_doc_pack",
+            "brief contains document_goal, source_notes, audience, format"
+          ]
+        },
+        {
+          "step": 4,
+          "operation_id": "listCandidateAssets",
+          "method": "get",
+          "path_template": "/candidate-sets/{candidate_set_id}/assets",
+          "resolved_path": "/candidate-sets/candidate_set_business_visual_doc_smoke/assets",
+          "request_schema": "none",
+          "response_schema": "CandidateAssetPage",
+          "expected_status": "200",
+          "actual_status": "not_executed",
+          "result": "planned",
+          "requires_idempotency_key": false,
+          "body_assertions": [
+            "response contains four candidate assets",
+            "assets cover executive_brief, strategy_memo, sales_leave_behind, board_update"
+          ]
+        },
+        {
+          "step": 5,
+          "operation_id": "selectDirection",
+          "method": "put",
+          "path_template": "/projects/{project_id}/selected-direction",
+          "resolved_path": "/projects/project_business_visual_doc_smoke/selected-direction",
+          "request_schema": "SelectedDirectionCreate",
+          "response_schema": "SelectedDirection",
+          "expected_status": "200",
+          "actual_status": "not_executed",
+          "result": "planned",
+          "requires_idempotency_key": true,
+          "body_assertions": [
+            "candidate_asset_id references selected document candidate"
+          ]
+        },
+        {
+          "step": 6,
+          "operation_id": "createPackage",
+          "method": "post",
+          "path_template": "/projects/{project_id}/packages",
+          "resolved_path": "/projects/project_business_visual_doc_smoke/packages",
+          "request_schema": "PackageCreate",
+          "response_schema": "Package",
+          "expected_status": "201",
+          "actual_status": "not_executed",
+          "result": "planned",
+          "requires_idempotency_key": true,
+          "body_assertions": [
+            "items include cover.png, summary_page.png, data_page.png, recommendation_page.png"
+          ]
+        },
+        {
+          "step": 7,
+          "operation_id": "createExport",
+          "method": "post",
+          "path_template": "/packages/{package_id}/exports",
+          "resolved_path": "/packages/package_business_visual_doc_smoke/exports",
+          "request_schema": "ExportCreate",
+          "response_schema": "TaskStatus",
+          "expected_status": "202",
+          "actual_status": "not_executed",
+          "result": "planned",
+          "requires_idempotency_key": true,
+          "body_assertions": [
+            "format equals zip or pdf"
+          ]
+        },
+        {
+          "step": 8,
+          "operation_id": "getExport",
+          "method": "get",
+          "path_template": "/exports/{export_id}",
+          "resolved_path": "/exports/export_business_visual_doc_smoke",
+          "request_schema": "none",
+          "response_schema": "Export",
+          "expected_status": "200",
+          "actual_status": "not_executed",
+          "result": "planned",
+          "requires_idempotency_key": false,
+          "body_assertions": [
+            "manifest, metadata, qa_report, trace_provenance, and required document pages are present",
+            "qa_report contains text readability evidence"
+          ]
+        }
+      ],
+      "expected_runtime_assertions": [
+        "brief with source_notes, audience, and format produces four document candidates",
+        "text-heavy pages expose readability QA evidence",
+        "unsupported financial claims trigger safety block or warning as configured",
+        "export includes manifest, metadata, QA report, and trace provenance"
+      ],
+      "contract_assertions": {
+        "required_inputs_checked": true,
+        "taxonomy_checked": true,
+        "required_assets_checked": true,
+        "export_manifest_checked": true,
+        "qa_report_checked": true,
+        "trace_provenance_checked": true
+      }
+    },
+    {
+      "workflow_id": "local_merchant_campaign_pack",
+      "status": "planned",
+      "checklist_item": "\u672c\u5730\u5546\u5bb6\u6d3b\u52a8\u5305 API smoke test \u901a\u8fc7\u3002",
+      "operation_ids": [
+        "createChatSession",
+        "createChatMessage",
+        "createCandidateSet",
+        "listCandidateAssets",
+        "selectDirection",
+        "createPackage",
+        "createExport",
+        "getExport"
+      ],
+      "request_results": [
+        {
+          "step": 1,
+          "operation_id": "createChatSession",
+          "method": "post",
+          "path_template": "/projects/{project_id}/chat/sessions",
+          "resolved_path": "/projects/project_local_merchant_campaign_smoke/chat/sessions",
+          "request_schema": "ChatSessionCreate",
+          "response_schema": "ChatSession",
+          "expected_status": "201",
+          "actual_status": "not_executed",
+          "result": "planned",
+          "requires_idempotency_key": true,
+          "body_assertions": [
+            "title includes Local Merchant Campaign Pack"
+          ]
+        },
+        {
+          "step": 2,
+          "operation_id": "createChatMessage",
+          "method": "post",
+          "path_template": "/chat/sessions/{chat_session_id}/messages",
+          "resolved_path": "/chat/sessions/chat_local_merchant_campaign_smoke/messages",
+          "request_schema": "ChatMessageCreate",
+          "response_schema": "TaskStatus",
+          "expected_status": "202",
+          "actual_status": "not_executed",
+          "result": "planned",
+          "requires_idempotency_key": true,
+          "body_assertions": [
+            "body contains merchant_name",
+            "body contains event_date",
+            "body contains address",
+            "body contains promotion when provided"
+          ]
+        },
+        {
+          "step": 3,
+          "operation_id": "createCandidateSet",
+          "method": "post",
+          "path_template": "/projects/{project_id}/candidate-sets",
+          "resolved_path": "/projects/project_local_merchant_campaign_smoke/candidate-sets",
+          "request_schema": "CandidateSetCreate",
+          "response_schema": "TaskStatus",
+          "expected_status": "202",
+          "actual_status": "not_executed",
+          "result": "planned",
+          "requires_idempotency_key": true,
+          "body_assertions": [
+            "workflow_id equals local_merchant_campaign_pack",
+            "brief contains merchant_name, event_date, address, promotion"
+          ]
+        },
+        {
+          "step": 4,
+          "operation_id": "listCandidateAssets",
+          "method": "get",
+          "path_template": "/candidate-sets/{candidate_set_id}/assets",
+          "resolved_path": "/candidate-sets/candidate_set_local_merchant_campaign_smoke/assets",
+          "request_schema": "none",
+          "response_schema": "CandidateAssetPage",
+          "expected_status": "200",
+          "actual_status": "not_executed",
+          "result": "planned",
+          "requires_idempotency_key": false,
+          "body_assertions": [
+            "response contains four candidate assets",
+            "assets cover grand_opening, limited_time_offer, community_event, loyalty_push"
+          ]
+        },
+        {
+          "step": 5,
+          "operation_id": "selectDirection",
+          "method": "put",
+          "path_template": "/projects/{project_id}/selected-direction",
+          "resolved_path": "/projects/project_local_merchant_campaign_smoke/selected-direction",
+          "request_schema": "SelectedDirectionCreate",
+          "response_schema": "SelectedDirection",
+          "expected_status": "200",
+          "actual_status": "not_executed",
+          "result": "planned",
+          "requires_idempotency_key": true,
+          "body_assertions": [
+            "candidate_asset_id references selected merchant campaign candidate"
+          ]
+        },
+        {
+          "step": 6,
+          "operation_id": "createPackage",
+          "method": "post",
+          "path_template": "/projects/{project_id}/packages",
+          "resolved_path": "/projects/project_local_merchant_campaign_smoke/packages",
+          "request_schema": "PackageCreate",
+          "response_schema": "Package",
+          "expected_status": "201",
+          "actual_status": "not_executed",
+          "result": "planned",
+          "requires_idempotency_key": true,
+          "body_assertions": [
+            "items include storefront_poster.png, flyer.png, social_square.png, story_panel.png"
+          ]
+        },
+        {
+          "step": 7,
+          "operation_id": "createExport",
+          "method": "post",
+          "path_template": "/packages/{package_id}/exports",
+          "resolved_path": "/packages/package_local_merchant_campaign_smoke/exports",
+          "request_schema": "ExportCreate",
+          "response_schema": "TaskStatus",
+          "expected_status": "202",
+          "actual_status": "not_executed",
+          "result": "planned",
+          "requires_idempotency_key": true,
+          "body_assertions": [
+            "format equals zip"
+          ]
+        },
+        {
+          "step": 8,
+          "operation_id": "getExport",
+          "method": "get",
+          "path_template": "/exports/{export_id}",
+          "resolved_path": "/exports/export_local_merchant_campaign_smoke",
+          "request_schema": "none",
+          "response_schema": "Export",
+          "expected_status": "200",
+          "actual_status": "not_executed",
+          "result": "planned",
+          "requires_idempotency_key": false,
+          "body_assertions": [
+            "manifest, metadata, qa_report, trace_provenance, and required campaign assets are present",
+            "qa_report contains structured text evidence for date, address, phone, and QR placeholders"
+          ]
+        }
+      ],
+      "expected_runtime_assertions": [
+        "brief preserves merchant name, event date, address, promotion, and QR placeholder",
+        "candidate assets cover four local merchant strategy options",
+        "structured text QA compares price, date, phone, address, and QR fields",
+        "export blocks when required package evidence is incomplete"
+      ],
+      "contract_assertions": {
+        "required_inputs_checked": true,
+        "taxonomy_checked": true,
+        "required_assets_checked": true,
+        "export_manifest_checked": true,
+        "qa_report_checked": true,
+        "trace_provenance_checked": true
+      }
+    },
+    {
+      "workflow_id": "character_ip_concept_pack",
+      "status": "planned",
+      "checklist_item": "\u89d2\u8272/IP \u6982\u5ff5\u5305 API smoke test \u901a\u8fc7\u3002",
+      "operation_ids": [
+        "createChatSession",
+        "createChatMessage",
+        "createCandidateSet",
+        "listCandidateAssets",
+        "selectDirection",
+        "createPackage",
+        "createExport",
+        "getExport"
+      ],
+      "request_results": [
+        {
+          "step": 1,
+          "operation_id": "createChatSession",
+          "method": "post",
+          "path_template": "/projects/{project_id}/chat/sessions",
+          "resolved_path": "/projects/project_character_ip_concept_smoke/chat/sessions",
+          "request_schema": "ChatSessionCreate",
+          "response_schema": "ChatSession",
+          "expected_status": "201",
+          "actual_status": "not_executed",
+          "result": "planned",
+          "requires_idempotency_key": true,
+          "body_assertions": [
+            "title includes Character IP Concept Pack"
+          ]
+        },
+        {
+          "step": 2,
+          "operation_id": "createChatMessage",
+          "method": "post",
+          "path_template": "/chat/sessions/{chat_session_id}/messages",
+          "resolved_path": "/chat/sessions/chat_character_ip_concept_smoke/messages",
+          "request_schema": "ChatMessageCreate",
+          "response_schema": "TaskStatus",
+          "expected_status": "202",
+          "actual_status": "not_executed",
+          "result": "planned",
+          "requires_idempotency_key": true,
+          "body_assertions": [
+            "body contains character_brief",
+            "body contains target_audience",
+            "body contains style_constraints",
+            "references includes reference_images when provided"
+          ]
+        },
+        {
+          "step": 3,
+          "operation_id": "createCandidateSet",
+          "method": "post",
+          "path_template": "/projects/{project_id}/candidate-sets",
+          "resolved_path": "/projects/project_character_ip_concept_smoke/candidate-sets",
+          "request_schema": "CandidateSetCreate",
+          "response_schema": "TaskStatus",
+          "expected_status": "202",
+          "actual_status": "not_executed",
+          "result": "planned",
+          "requires_idempotency_key": true,
+          "body_assertions": [
+            "workflow_id equals character_ip_concept_pack",
+            "brief contains character_brief, target_audience, style_constraints"
+          ]
+        },
+        {
+          "step": 4,
+          "operation_id": "listCandidateAssets",
+          "method": "get",
+          "path_template": "/candidate-sets/{candidate_set_id}/assets",
+          "resolved_path": "/candidate-sets/candidate_set_character_ip_concept_smoke/assets",
+          "request_schema": "none",
+          "response_schema": "CandidateAssetPage",
+          "expected_status": "200",
+          "actual_status": "not_executed",
+          "result": "planned",
+          "requires_idempotency_key": false,
+          "body_assertions": [
+            "response contains four candidate assets",
+            "assets cover mascot_ready, narrative_hero, merchandise_icon, animation_turnaround"
+          ]
+        },
+        {
+          "step": 5,
+          "operation_id": "selectDirection",
+          "method": "put",
+          "path_template": "/projects/{project_id}/selected-direction",
+          "resolved_path": "/projects/project_character_ip_concept_smoke/selected-direction",
+          "request_schema": "SelectedDirectionCreate",
+          "response_schema": "SelectedDirection",
+          "expected_status": "200",
+          "actual_status": "not_executed",
+          "result": "planned",
+          "requires_idempotency_key": true,
+          "body_assertions": [
+            "candidate_asset_id references selected character concept candidate"
+          ]
+        },
+        {
+          "step": 6,
+          "operation_id": "createPackage",
+          "method": "post",
+          "path_template": "/projects/{project_id}/packages",
+          "resolved_path": "/projects/project_character_ip_concept_smoke/packages",
+          "request_schema": "PackageCreate",
+          "response_schema": "Package",
+          "expected_status": "201",
+          "actual_status": "not_executed",
+          "result": "planned",
+          "requires_idempotency_key": true,
+          "body_assertions": [
+            "items include concept_sheet.png, pose_grid.png, expression_sheet.png, style_tile.png"
+          ]
+        },
+        {
+          "step": 7,
+          "operation_id": "createExport",
+          "method": "post",
+          "path_template": "/packages/{package_id}/exports",
+          "resolved_path": "/packages/package_character_ip_concept_smoke/exports",
+          "request_schema": "ExportCreate",
+          "response_schema": "TaskStatus",
+          "expected_status": "202",
+          "actual_status": "not_executed",
+          "result": "planned",
+          "requires_idempotency_key": true,
+          "body_assertions": [
+            "format equals zip"
+          ]
+        },
+        {
+          "step": 8,
+          "operation_id": "getExport",
+          "method": "get",
+          "path_template": "/exports/{export_id}",
+          "resolved_path": "/exports/export_character_ip_concept_smoke",
+          "request_schema": "none",
+          "response_schema": "Export",
+          "expected_status": "200",
+          "actual_status": "not_executed",
+          "result": "planned",
+          "requires_idempotency_key": false,
+          "body_assertions": [
+            "manifest, metadata, qa_report, trace_provenance, and required concept sheets are present",
+            "qa_report contains blank output and watermark signature risk evidence"
+          ]
+        }
+      ],
+      "expected_runtime_assertions": [
+        "brief requires original character constraints and target audience",
+        "candidate assets cover four IP concept strategy options",
+        "safety policy blocks minor sexualization and third-party character resemblance risks",
+        "export includes concept sheets, metadata, QA report, safety disclaimer when applicable, and trace provenance"
+      ],
+      "contract_assertions": {
+        "required_inputs_checked": true,
+        "taxonomy_checked": true,
+        "required_assets_checked": true,
+        "export_manifest_checked": true,
+        "qa_report_checked": true,
+        "trace_provenance_checked": true
+      }
+    }
+  ],
+  "summary": {
+    "workflow_count": 4,
+    "planned_workflows": 4,
+    "passed_workflows": 0,
+    "failed_workflows": 0,
+    "blocked_workflows": 0,
+    "operation_count": 32,
+    "required_runtime_assertions_covered": true,
+    "openapi_contract_validated": true,
+    "fixture_contract_validated": true
+  },
+  "provenance": {
+    "blueprint_sections": [
+      "6.1",
+      "14.1",
+      "15.2",
+      "24.1",
+      "25.11"
+    ],
+    "created_by_lane": "lane2",
+    "source_fixtures": [
+      "fixtures/stage0/rev2/workflows/ecommerce_growth_pack.json",
+      "fixtures/stage0/rev2/workflows/business_visual_doc_pack.json",
+      "fixtures/stage0/rev2/workflows/local_merchant_campaign_pack.json",
+      "fixtures/stage0/rev2/workflows/character_ip_concept_pack.json"
+    ],
+    "validator": "scripts/validate_workflow_api_smoke_evidence.py"
+  }
+}

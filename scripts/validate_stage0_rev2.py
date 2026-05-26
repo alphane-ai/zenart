@@ -654,6 +654,7 @@ SCHEMA_FIXTURE_TARGETS = [
     ("activation_gate_contract.schema.json", FIXTURE_DIR / "eval" / "activation_gate_contract.json", "object"),
     ("analytics_taxonomy.schema.json", FIXTURE_DIR / "analytics" / "event_taxonomy.json", "object"),
     ("eval_storage_contract.schema.json", FIXTURE_DIR / "eval" / "eval_storage_contract.json", "object"),
+    ("workflow_api_smoke_evidence.schema.json", FIXTURE_DIR / "eval" / "workflow_api_smoke_evidence.json", "object"),
     ("eval_suite.schema.json", FIXTURE_DIR / "eval" / "starter_eval_suite.json", "object"),
     ("eval_result.schema.json", FIXTURE_DIR / "eval" / "starter_eval_results.json", "array_items"),
     ("trace_completeness.schema.json", FIXTURE_DIR / "eval" / "trace_completeness.json", "object"),
@@ -1565,6 +1566,7 @@ def validate_json_files() -> None:
         SCHEMA_DIR / "eval_suite.schema.json",
         SCHEMA_DIR / "eval_result.schema.json",
         SCHEMA_DIR / "eval_storage_contract.schema.json",
+        SCHEMA_DIR / "workflow_api_smoke_evidence.schema.json",
         SCHEMA_DIR / "activation_gate_contract.schema.json",
         SCHEMA_DIR / "qa_result.schema.json",
         SCHEMA_DIR / "safety_rule.schema.json",
@@ -1579,6 +1581,7 @@ def validate_json_files() -> None:
         FIXTURE_DIR / "eval" / "starter_eval_suite.json",
         FIXTURE_DIR / "eval" / "starter_eval_results.json",
         FIXTURE_DIR / "eval" / "eval_storage_contract.json",
+        FIXTURE_DIR / "eval" / "workflow_api_smoke_evidence.json",
         FIXTURE_DIR / "eval" / "activation_gate_contract.json",
         FIXTURE_DIR / "eval" / "trace_completeness.json",
         FIXTURE_DIR / "eval" / "safety_enforcement_contract.json",
@@ -1809,6 +1812,19 @@ def validate_workflow_acceptance_split_contracts() -> None:
         workflow_contract.returncode == 0,
         "workflow acceptance contract validation failed: "
         + (workflow_contract.stderr or workflow_contract.stdout).strip(),
+    )
+
+    api_smoke_evidence = subprocess.run(
+        [sys.executable, str(ROOT / "scripts" / "validate_workflow_api_smoke_evidence.py")],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    require(
+        api_smoke_evidence.returncode == 0,
+        "workflow API smoke evidence validation failed: "
+        + (api_smoke_evidence.stderr or api_smoke_evidence.stdout).strip(),
     )
 
 
@@ -3076,6 +3092,32 @@ def validate_launch_readiness_split_contracts() -> None:
         staging_crawler_check["status"] != "pass",
         "Private Beta/Staging crawler release gate must remain blocked until staging crawler runtime evidence exists",
     )
+
+    crawler_runtime_tests = (ROOT / "backend" / "internal" / "stage0" / "services_test.go").read_text(encoding="utf-8")
+    crawler_runtime_impl = (ROOT / "backend" / "internal" / "stage0" / "services.go").read_text(encoding="utf-8")
+    for token in [
+        "TestStartCrawlerRunRequiresApprovalRobotsLegalAndRatePolicy",
+        "TestStartCrawlerRunBlocksUnapprovedRobotsDeniedAndPrivateHosts",
+        "TestStartCrawlerRunBlocksDNSRebindingToPrivateIP",
+        "TestStartCrawlerRunBlocksWhenRateLimitExceeded",
+        "TestImportCrawlerFindingRequiresProvenanceRetentionAndExactTextWarning",
+        "TestImportCrawlerFindingRejectsOffSourceHost",
+        "TestImportCrawlerFindingRejectsMissingProvenance",
+        "TestImportCrawlerFindingRejectsMismatchedProvenance",
+    ]:
+        require(token in crawler_runtime_tests, f"crawler runtime evidence test missing {token}")
+    for token in [
+        "crawler source approval is required",
+        "crawler robots evidence does not allow fetch",
+        "crawler URL resolved to a private or local address",
+        "crawler global rate limit exceeded",
+        "crawler source rate limit exceeded",
+        "crawler raw retention must be between 1 and 30 days",
+        "exact-text import requires review before use",
+        "crawler import provenance must include source_url, fetched_at, robots_policy, and content_hash",
+        "crawler URL host is blocklisted",
+    ]:
+        require(token in crawler_runtime_impl, f"crawler runtime enforcement missing {token}")
 
     for ambiguous in [
         "实现 robots evidence。",

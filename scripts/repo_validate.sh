@@ -66,6 +66,8 @@ test -x scripts/staging_smoke.sh
 test -x scripts/observability_smoke.sh
 test -x scripts/security_scan_smoke.sh
 test -x scripts/render_no_go_release_notes.py
+test -x scripts/run_workflow_api_smoke.py
+test -x scripts/validate_workflow_api_smoke_evidence.py
 
 log "docker compose syntax"
 if docker compose version >/dev/null 2>&1; then
@@ -189,6 +191,8 @@ if [[ -f scripts/validate_stage0_rev2.py ]]; then
 else
   printf 'skip: scripts/validate_stage0_rev2.py is not present yet\n'
 fi
+python3 scripts/validate_workflow_api_smoke_evidence.py
+python3 scripts/run_workflow_api_smoke.py --check-fixture
 
 log "web/admin conditional validation"
 run_node_project_checks web
