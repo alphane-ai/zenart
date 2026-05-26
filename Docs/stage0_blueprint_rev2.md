@@ -1769,8 +1769,8 @@ main 合并前必须通过：
 - [x] 创建 brand/product preservation fixtures。
 - [x] 创建 text-heavy fixtures。
 - [x] 创建 export completeness fixtures。
-- [ ] 实现 eval runner。
-- [ ] 存储 eval results。
+- [x] 实现 eval runner。
+- [x] 存储 eval results。
 - [ ] skill canary 前要求 eval pass。
 - [ ] prompt fragment active 前要求 eval pass。
 - [x] 定义 QA result schema。

@@ -1,0 +1,411 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zenart.local/schemas/stage0/rev2/eval_result.schema.json",
+  "title": "ZenArt Stage 0 Rev2 Eval Result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "result_id",
+    "suite_id",
+    "subject",
+    "status",
+    "summary",
+    "fixture_results",
+    "storage_contract",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "stage0.rev2"
+    },
+    "result_id": {
+      "type": "string",
+      "pattern": "^eval_result_[a-z0-9_]+$"
+    },
+    "suite_id": {
+      "type": "string",
+      "pattern": "^eval_[a-z0-9_]+$"
+    },
+    "subject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "subject_type",
+        "subject_id",
+        "version",
+        "candidate_status_after_eval"
+      ],
+      "properties": {
+        "subject_type": {
+          "enum": [
+            "skill_version",
+            "prompt_fragment",
+            "prompt_mutation",
+            "meta_prompt",
+            "image_spec",
+            "vertical_workflow_pack"
+          ]
+        },
+        "subject_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "candidate_status_after_eval": {
+          "enum": [
+            "draft",
+            "eligible_for_canary",
+            "eligible_for_active",
+            "blocked"
+          ]
+        }
+      }
+    },
+    "status": {
+      "enum": [
+        "pass",
+        "fail",
+        "blocked"
+      ]
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "total_fixtures",
+        "passed_fixtures",
+        "failed_fixtures",
+        "blocked_fixtures",
+        "golden_passed",
+        "critical_safety_regressions",
+        "regression_pass_rate",
+        "trace_complete",
+        "export_contract_complete",
+        "qa_categories_covered",
+        "safety_enforcement_points_covered"
+      ],
+      "properties": {
+        "total_fixtures": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "passed_fixtures": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "failed_fixtures": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "blocked_fixtures": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "golden_passed": {
+          "type": "boolean"
+        },
+        "critical_safety_regressions": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "regression_pass_rate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "trace_complete": {
+          "type": "boolean"
+        },
+        "export_contract_complete": {
+          "type": "boolean"
+        },
+        "qa_categories_covered": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "file_integrity",
+              "dimensions",
+              "aspect_ratio",
+              "safe_area",
+              "blank_output",
+              "duplicate_similarity",
+              "four_option_distinctness",
+              "text_readability",
+              "structured_text",
+              "product_logo_preservation",
+              "forbidden_claims",
+              "watermark_signature_risk",
+              "export_completeness"
+            ]
+          }
+        },
+        "safety_enforcement_points_covered": {
+          "type": "array",
+          "minItems": 5,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "brief",
+              "provider_request",
+              "provider_response",
+              "qa",
+              "export"
+            ]
+          }
+        }
+      }
+    },
+    "fixture_results": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "fixture_id",
+          "category",
+          "workflow",
+          "status",
+          "candidate_count",
+          "expected_safety_action",
+          "observed_safety_action",
+          "qa_check_ids",
+          "trace_contract",
+          "export_contract",
+          "failure_reasons"
+        ],
+        "properties": {
+          "fixture_id": {
+            "type": "string",
+            "pattern": "^fx_[a-z0-9_]+$"
+          },
+          "category": {
+            "enum": [
+              "golden",
+              "ambiguous_brief",
+              "unsafe",
+              "negative",
+              "brand_product_preservation",
+              "text_heavy",
+              "export_completeness",
+              "regression",
+              "red_team"
+            ]
+          },
+          "workflow": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "enum": [
+              "pass",
+              "fail",
+              "blocked"
+            ]
+          },
+          "candidate_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "expected_safety_action": {
+            "enum": [
+              "allow",
+              "warn",
+              "require_user_confirmation",
+              "require_admin_review",
+              "block"
+            ]
+          },
+          "observed_safety_action": {
+            "enum": [
+              "allow",
+              "warn",
+              "require_user_confirmation",
+              "require_admin_review",
+              "block"
+            ]
+          },
+          "qa_check_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^qa_[a-z0-9_]+$"
+            }
+          },
+          "trace_contract": {
+            "$ref": "#/$defs/trace_contract"
+          },
+          "export_contract": {
+            "$ref": "#/$defs/export_contract"
+          },
+          "failure_reasons": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "storage_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "table",
+        "required_columns",
+        "summary_json_contains_fixture_results",
+        "tenant_scoped",
+        "subject_scoped"
+      ],
+      "properties": {
+        "table": {
+          "const": "eval_results"
+        },
+        "required_columns": {
+          "type": "array",
+          "minItems": 7,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "id",
+              "tenant_id",
+              "eval_suite_id",
+              "subject_type",
+              "subject_id",
+              "status",
+              "summary",
+              "created_at"
+            ]
+          }
+        },
+        "summary_json_contains_fixture_results": {
+          "type": "boolean",
+          "const": true
+        },
+        "tenant_scoped": {
+          "type": "boolean",
+          "const": true
+        },
+        "subject_scoped": {
+          "type": "boolean",
+          "const": true
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "blueprint_sections",
+        "created_by_lane",
+        "runner"
+      ],
+      "properties": {
+        "blueprint_sections": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "^((12|14|15|23|25)(\\.|$)|24$)"
+          }
+        },
+        "created_by_lane": {
+          "const": "lane2"
+        },
+        "runner": {
+          "const": "scripts/run_stage0_eval.py"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "trace_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "trace_id",
+        "has_schema_validation",
+        "has_provenance",
+        "has_safety_status",
+        "has_qa_eval_status",
+        "has_quota_transaction",
+        "has_admin_visibility",
+        "has_user_failure_mapping"
+      ],
+      "properties": {
+        "trace_id": {
+          "type": "string",
+          "pattern": "^trace_[a-z0-9_]+$"
+        },
+        "has_schema_validation": {
+          "type": "boolean",
+          "const": true
+        },
+        "has_provenance": {
+          "type": "boolean",
+          "const": true
+        },
+        "has_safety_status": {
+          "type": "boolean",
+          "const": true
+        },
+        "has_qa_eval_status": {
+          "type": "boolean",
+          "const": true
+        },
+        "has_quota_transaction": {
+          "type": "boolean",
+          "const": true
+        },
+        "has_admin_visibility": {
+          "type": "boolean",
+          "const": true
+        },
+        "has_user_failure_mapping": {
+          "type": "boolean",
+          "const": true
+        }
+      }
+    },
+    "export_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "manifest",
+        "qa_report",
+        "metadata",
+        "trace_provenance",
+        "safety_disclaimer_when_applicable",
+        "blocks_when_incomplete"
+      ],
+      "properties": {
+        "manifest": {
+          "type": "boolean"
+        },
+        "qa_report": {
+          "type": "boolean"
+        },
+        "metadata": {
+          "type": "boolean"
+        },
+        "trace_provenance": {
+          "type": "boolean"
+        },
+        "safety_disclaimer_when_applicable": {
+          "type": "boolean"
+        },
+        "blocks_when_incomplete": {
+          "type": "boolean",
+          "const": true
+        }
+      }
+    }
+  }
+}

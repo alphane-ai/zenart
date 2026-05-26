@@ -31,7 +31,7 @@
     {
       "check_id": "staging_eval_qa_safety_runtime",
       "status": "blocked",
-      "evidence_ref": "Docs/stage0_blueprint_rev2.md keeps eval runner, eval result storage, QA implementations, and required safety enforcement open in 25.11"
+      "evidence_ref": "Docs/stage0_blueprint_rev2.md keeps QA implementations and required safety enforcement open in 25.11"
     },
     {
       "check_id": "staging_crawler_approval_provenance",
@@ -58,7 +58,7 @@
     {
       "condition_id": "eval_qa_safety_runtime_missing",
       "is_present": true,
-      "evidence_ref": "25.11 eval runner, QA runtime, and required safety enforcement remain open"
+      "evidence_ref": "25.11 QA runtime and required safety enforcement remain open"
     },
     {
       "condition_id": "crawler_governance_runtime_missing",

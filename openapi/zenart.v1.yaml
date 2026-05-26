@@ -30,6 +30,7 @@ tags:
   - name: traces
   - name: feedback
   - name: safety
+  - name: eval
   - name: abuse
   - name: analytics
   - name: audit
@@ -1000,6 +1001,25 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/SafetyDecision"
+        default:
+          $ref: "#/components/responses/Error"
+  /eval/results:
+    get:
+      operationId: listEvalResults
+      tags: [eval]
+      x-rbac: admin
+      parameters:
+        - $ref: "#/components/parameters/PageToken"
+        - $ref: "#/components/parameters/PageSize"
+        - $ref: "#/components/parameters/StatusFilter"
+        - $ref: "#/components/parameters/Search"
+      responses:
+        "200":
+          description: Stored eval result page for skill, prompt, spec, and workflow release gates.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EvalResultPage"
         default:
           $ref: "#/components/responses/Error"
   /analytics/events:
@@ -2423,6 +2443,133 @@ components:
         created_at:
           type: string
           format: date-time
+    EvalResult:
+      type: object
+      required: [id, suite_id, subject, status, summary, fixture_results, storage_contract, created_at]
+      properties:
+        id:
+          type: string
+        suite_id:
+          type: string
+        subject:
+          type: object
+          required: [subject_type, subject_id, version, candidate_status_after_eval]
+          properties:
+            subject_type:
+              type: string
+              enum: [skill_version, prompt_fragment, prompt_mutation, meta_prompt, image_spec, vertical_workflow_pack]
+            subject_id:
+              type: string
+            version:
+              type: string
+            candidate_status_after_eval:
+              type: string
+              enum: [draft, eligible_for_canary, eligible_for_active, blocked]
+        status:
+          type: string
+          enum: [pass, fail, blocked]
+        summary:
+          type: object
+          required: [total_fixtures, passed_fixtures, failed_fixtures, blocked_fixtures, trace_complete, export_contract_complete, critical_safety_regressions]
+          properties:
+            total_fixtures:
+              type: integer
+            passed_fixtures:
+              type: integer
+            failed_fixtures:
+              type: integer
+            blocked_fixtures:
+              type: integer
+            trace_complete:
+              type: boolean
+            export_contract_complete:
+              type: boolean
+            critical_safety_regressions:
+              type: integer
+        fixture_results:
+          type: array
+          items:
+            type: object
+            required: [fixture_id, workflow, status, trace_contract, export_contract]
+            properties:
+              fixture_id:
+                type: string
+              workflow:
+                type: string
+              status:
+                type: string
+                enum: [pass, fail, blocked]
+              trace_contract:
+                type: object
+                required: [trace_id, has_schema_validation, has_provenance, has_safety_status, has_qa_eval_status, has_quota_transaction, has_admin_visibility, has_user_failure_mapping]
+                properties:
+                  trace_id:
+                    type: string
+                  has_schema_validation:
+                    type: boolean
+                    const: true
+                  has_provenance:
+                    type: boolean
+                    const: true
+                  has_safety_status:
+                    type: boolean
+                    const: true
+                  has_qa_eval_status:
+                    type: boolean
+                    const: true
+                  has_quota_transaction:
+                    type: boolean
+                    const: true
+                  has_admin_visibility:
+                    type: boolean
+                    const: true
+                  has_user_failure_mapping:
+                    type: boolean
+                    const: true
+              export_contract:
+                type: object
+                required: [manifest, qa_report, metadata, trace_provenance, blocks_when_incomplete]
+                properties:
+                  manifest:
+                    type: boolean
+                  qa_report:
+                    type: boolean
+                  metadata:
+                    type: boolean
+                  trace_provenance:
+                    type: boolean
+                  blocks_when_incomplete:
+                    type: boolean
+                    const: true
+        storage_contract:
+          type: object
+          required: [table, tenant_scoped, subject_scoped, summary_json_contains_fixture_results]
+          properties:
+            table:
+              type: string
+              const: eval_results
+            tenant_scoped:
+              type: boolean
+              const: true
+            subject_scoped:
+              type: boolean
+              const: true
+            summary_json_contains_fixture_results:
+              type: boolean
+              const: true
+        created_at:
+          type: string
+          format: date-time
+    EvalResultPage:
+      allOf:
+        - $ref: "#/components/schemas/PageInfo"
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/EvalResult"
     AnalyticsEvent:
       type: object
       required:

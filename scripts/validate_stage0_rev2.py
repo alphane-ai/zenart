@@ -141,6 +141,7 @@ GLOBAL_DO_NOT_LAUNCH_CHECKLIST_ITEM = "Do-Not-Launch Conditions 全部为 false�
 SCHEMA_FIXTURE_TARGETS = [
     ("analytics_taxonomy.schema.json", FIXTURE_DIR / "analytics" / "event_taxonomy.json", "object"),
     ("eval_suite.schema.json", FIXTURE_DIR / "eval" / "starter_eval_suite.json", "object"),
+    ("eval_result.schema.json", FIXTURE_DIR / "eval" / "starter_eval_results.json", "array_items"),
     ("qa_result.schema.json", FIXTURE_DIR / "eval" / "qa_results.json", "array_items"),
     ("safety_rule.schema.json", FIXTURE_DIR / "eval" / "safety_rules.json", "array_items"),
     ("workflow_acceptance.schema.json", FIXTURE_DIR / "workflows", "directory_objects"),
@@ -163,6 +164,8 @@ SCHEMA_FIXTURE_TARGETS = [
 
 CHECKED_ITEMS = {
     "定义 eval suite schema。",
+    "实现 eval runner。",
+    "存储 eval results。",
     "创建四条 workflow golden fixtures。",
     "创建 ambiguous/unsafe/negative fixtures。",
     "创建 brand/product preservation fixtures。",
@@ -186,8 +189,6 @@ CHECKED_ITEMS = {
 }
 
 FORBIDDEN_CHECKED_ITEMS = {
-    "实现 eval runner。",
-    "存储 eval results。",
     "skill canary 前要求 eval pass。",
     "prompt fragment active 前要求 eval pass。",
     "在 brief/provider request/provider response/QA/export 运行 safety policy。",
@@ -325,6 +326,7 @@ OPENAPI_REQUIRED_OPERATION_IDS = {
     "listAuditLogs",
     "listAnalyticsEvents",
     "listAnalyticsReports",
+    "listEvalResults",
 }
 
 OPENAPI_REQUIRED_CONTRACT_TOKENS = {
@@ -354,6 +356,7 @@ OPENAPI_REQUIRED_CONTRACT_TOKENS = {
     "const: SafetyDecision",
     "AnalyticsEvent:",
     "AnalyticsReport:",
+    "EvalResult:",
     "go_no_go_signal:",
     "privacy_classification:",
 }
@@ -585,6 +588,7 @@ def validate_fixture_against_schema(schema_name: str, fixture_path: Path, mode: 
 def validate_json_files() -> None:
     required = [
         SCHEMA_DIR / "eval_suite.schema.json",
+        SCHEMA_DIR / "eval_result.schema.json",
         SCHEMA_DIR / "qa_result.schema.json",
         SCHEMA_DIR / "safety_rule.schema.json",
         SCHEMA_DIR / "workflow_acceptance.schema.json",
@@ -594,6 +598,7 @@ def validate_json_files() -> None:
         SCHEMA_DIR / "analytics_taxonomy.schema.json",
         SCHEMA_DIR / "release_gate_evidence.schema.json",
         FIXTURE_DIR / "eval" / "starter_eval_suite.json",
+        FIXTURE_DIR / "eval" / "starter_eval_results.json",
         FIXTURE_DIR / "eval" / "qa_results.json",
         FIXTURE_DIR / "eval" / "safety_rules.json",
         FIXTURE_DIR / "crawler" / "crawler_governance_cases.json",
@@ -757,6 +762,101 @@ def validate_eval_suite() -> None:
             require(evidence["must_include_manifest"], f"{fixture['fixture_id']} must require manifest")
             require(evidence["must_include_qa_report"], f"{fixture['fixture_id']} must require QA report")
             require(evidence["must_include_trace_provenance"], f"{fixture['fixture_id']} must require trace provenance")
+
+
+def validate_eval_results() -> None:
+    results = load_json(FIXTURE_DIR / "eval" / "starter_eval_results.json")
+    require(isinstance(results, list) and len(results) == 1, "starter eval results must contain one result")
+    result = results[0]
+    suite = load_json(FIXTURE_DIR / "eval" / "starter_eval_suite.json")
+    qa_results = load_json(FIXTURE_DIR / "eval" / "qa_results.json")
+
+    require(result["suite_id"] == suite["suite_id"], "eval result must reference starter eval suite")
+    require(result["storage_contract"]["table"] == "eval_results", "eval result must declare eval_results storage")
+    require(
+        {"tenant_id", "eval_suite_id", "subject_type", "subject_id", "status", "summary", "created_at"}
+        <= set(result["storage_contract"]["required_columns"]),
+        "eval result storage contract missing required persisted columns",
+    )
+
+    fixture_ids = {fixture["fixture_id"] for fixture in suite["fixtures"]}
+    result_by_fixture = {item["fixture_id"]: item for item in result["fixture_results"]}
+    require(set(result_by_fixture) == fixture_ids, "eval result must include one fixture result per suite fixture")
+
+    qa_by_id = {item["check_id"]: item for item in qa_results}
+    qa_categories = {item["check_category"] for item in qa_results}
+    require(
+        QA_CATEGORIES <= set(result["summary"]["qa_categories_covered"]),
+        "eval result summary must cover every required QA category",
+    )
+    require(
+        set(result["summary"]["qa_categories_covered"]) == qa_categories,
+        "eval result QA category summary must match QA fixtures",
+    )
+    require(
+        set(result["summary"]["safety_enforcement_points_covered"]) == SAFETY_POINTS,
+        "eval result summary must cover every safety enforcement point",
+    )
+    require(result["summary"]["trace_complete"] is True, "eval result must prove trace completeness")
+    require(result["summary"]["export_contract_complete"] is True, "eval result must prove export contract completeness")
+    require(result["summary"]["critical_safety_regressions"] == 0, "eval result must have no critical safety regressions")
+    if result["summary"]["golden_passed"] is False:
+        require(
+            result["status"] in {"blocked", "fail"},
+            "eval result with incomplete golden coverage cannot report pass status",
+        )
+
+    for fixture in suite["fixtures"]:
+        item = result_by_fixture[fixture["fixture_id"]]
+        require(item["workflow"] == fixture["workflow"], f"{item['fixture_id']} workflow mismatch")
+        require(item["category"] == fixture["category"], f"{item['fixture_id']} category mismatch")
+        require(
+            item["candidate_count"] >= fixture["expected_evidence"]["minimum_candidates"],
+            f"{item['fixture_id']} candidate count below expected minimum",
+        )
+        require(
+            item["expected_safety_action"] == fixture["expected_evidence"]["expected_safety_action"],
+            f"{item['fixture_id']} expected safety action mismatch",
+        )
+        trace = item["trace_contract"]
+        require(trace["trace_id"].startswith("trace_"), f"{item['fixture_id']} trace_id must be trace-scoped")
+        for key in [
+            "has_schema_validation",
+            "has_provenance",
+            "has_safety_status",
+            "has_qa_eval_status",
+            "has_quota_transaction",
+            "has_admin_visibility",
+            "has_user_failure_mapping",
+        ]:
+            require(trace[key] is True, f"{item['fixture_id']} trace contract missing {key}")
+        if fixture["expected_evidence"]["must_include_trace_provenance"]:
+            require(item["export_contract"]["trace_provenance"] is True, f"{item['fixture_id']} export must include trace provenance")
+        if fixture["expected_evidence"]["must_include_qa_report"]:
+            require(item["export_contract"]["qa_report"] is True, f"{item['fixture_id']} export must include QA report")
+        for check_id in item["qa_check_ids"]:
+            require(check_id in qa_by_id, f"{item['fixture_id']} references unknown QA check {check_id}")
+            require(
+                qa_by_id[check_id]["evidence"]["fixture_id"] == item["fixture_id"],
+                f"{item['fixture_id']} references QA check from another fixture",
+            )
+        if item["observed_safety_action"] == "block":
+            require(
+                item["status"] == "blocked" or item["failure_reasons"],
+                f"{item['fixture_id']} safety block must block or include failure reason",
+            )
+
+    generated = subprocess.run(
+        [sys.executable, str(ROOT / "scripts" / "run_stage0_eval.py"), "--check"],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    require(
+        generated.returncode == 0,
+        "stored eval results are stale: " + (generated.stderr or generated.stdout).strip(),
+    )
 
 
 def validate_qa_and_safety() -> None:
@@ -1252,6 +1352,7 @@ def validate_openapi_contract() -> None:
         "listAbuseEvents",
         "listAnalyticsEvents",
         "listAnalyticsReports",
+        "listEvalResults",
         "listAuditLogs",
     ]:
         match = re.search(rf"operationId: {operation_id}\n(?P<body>(?:^      .+\n|^        .+\n|^          .+\n)+)", text, flags=re.MULTILINE)
@@ -1303,6 +1404,7 @@ def validate_openapi_rev2_domain_contracts() -> None:
         "SafetyRule": ["enforcement_points", "evaluation_contract"],
         "AnalyticsEvent": ["event_name", "required_context", "success_metric_refs", "privacy_classification"],
         "AnalyticsReport": ["metric_name", "source_events", "required_dimensions", "go_no_go_signal"],
+        "EvalResult": ["suite_id", "subject", "status", "summary", "fixture_results", "storage_contract"],
     }
     for schema_name, fields in required_schema_fields.items():
         pattern = rf"^    {schema_name}:\n(?P<body>.*?)(?=^    [A-Za-z0-9]+:|\Z)"
@@ -1623,6 +1725,7 @@ def main() -> int:
         validate_ops_ci_artifact_evidence,
         validate_workflows,
         validate_eval_suite,
+        validate_eval_results,
         validate_qa_and_safety,
         validate_crawler_feedback_abuse,
         validate_analytics_taxonomy,

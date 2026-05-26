@@ -16,7 +16,7 @@
     {
       "check_id": "production_skill_release_eval_canary",
       "status": "blocked",
-      "evidence_ref": "Docs/stage0_blueprint_rev2.md keeps skill release states, traffic allocation, canary metrics, thresholds, rollback, eval runner, and eval gating open in 25.11 and 25.14"
+      "evidence_ref": "Docs/stage0_blueprint_rev2.md keeps skill release states, traffic allocation, canary metrics, thresholds, rollback, and eval gating open in 25.11 and 25.14"
     },
     {
       "check_id": "production_activation_review_audit",
