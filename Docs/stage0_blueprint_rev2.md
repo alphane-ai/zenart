@@ -1937,3 +1937,10 @@ main 合并前必须通过：
 - [ ] Do-Not-Launch Conditions 全部为 false。
 - [ ] Release notes 包含 SHA、migration list、config diff、feature flags、owner、smoke plan、rollback plan、known risks、go/no-go。
 - [ ] Post-deploy smoke tests 通过。
+
+Release gate evidence map:
+
+- Local Alpha Gate: `fixtures/stage0/rev2/release_gate_evidence.local_alpha.json` records fixture/runtime-stack pass evidence and keeps end-to-end workflow smoke blocked.
+- CI Gate: `fixtures/stage0/rev2/release_gate_evidence.ci.json` records ops CI draft coverage and keeps installed workflow/runtime execution, Playwright smoke, and Docker image build blocked.
+- Private Beta/Staging Gate: `fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json` records the current blocked evidence for auth/RBAC/tenant isolation, object storage, quota, support/abuse ops, eval/QA/safety, crawler governance, observability/restore/load, and external-user legal pages.
+- Production Launch Gate: `fixtures/stage0/rev2/release_gate_evidence.production_launch.json` records the current blocked evidence for provider/comp-only mode, paid billing lifecycle, skill eval/canary/release controls, activation review/audit, abuse throttle/hold, security, backup/rollback/incident readiness, and legal/support policy.

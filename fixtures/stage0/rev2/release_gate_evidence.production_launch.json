@@ -1,0 +1,81 @@
+{
+  "schema_version": "stage0.rev2",
+  "gate": "production_launch",
+  "evidence_id": "gate_production_launch_blocked",
+  "checks": [
+    {
+      "check_id": "production_provider_or_comp_only_mode",
+      "status": "blocked",
+      "evidence_ref": "Docs/stage0_blueprint_rev2.md requires real production provider evidence or explicit invite/comp-only launch mode in 23.4"
+    },
+    {
+      "check_id": "production_paid_billing_lifecycle",
+      "status": "blocked",
+      "evidence_ref": "Docs/stage0_blueprint_rev2.md keeps provider usage reconciliation and quota concurrency tests open in 25.8; paid launch policies remain open in 25.16"
+    },
+    {
+      "check_id": "production_skill_release_eval_canary",
+      "status": "blocked",
+      "evidence_ref": "Docs/stage0_blueprint_rev2.md keeps skill release states, traffic allocation, canary metrics, thresholds, rollback, eval runner, and eval gating open in 25.11 and 25.14"
+    },
+    {
+      "check_id": "production_activation_review_audit",
+      "status": "blocked",
+      "evidence_ref": "Docs/stage0_blueprint_rev2.md keeps eval/review/audit activation gates for skill, prompt, crawler, provider, and safety changes incomplete"
+    },
+    {
+      "check_id": "production_abuse_throttle_hold",
+      "status": "blocked",
+      "evidence_ref": "Docs/stage0_blueprint_rev2.md keeps temporary hold/throttle hooks and admin abuse queue open in 25.14"
+    },
+    {
+      "check_id": "production_security_launch_checks",
+      "status": "blocked",
+      "evidence_ref": "Docs/stage0_blueprint_rev2.md keeps secure cookies, CORS, CSRF/session strategy, security headers, upload validation, scans, config validation, and secret redaction open in 25.16"
+    },
+    {
+      "check_id": "production_backup_rollback_incident",
+      "status": "blocked",
+      "evidence_ref": "Docs/stage0_blueprint_rev2.md keeps restore drills, alerts, dashboards, and post-deploy smoke open in 25.18 and 25.20"
+    },
+    {
+      "check_id": "production_legal_support_policy",
+      "status": "blocked",
+      "evidence_ref": "Docs/stage0_blueprint_rev2.md keeps Terms, Privacy, Acceptable Use, AI/content disclaimer, IP complaint flow, visible support contact, and paid billing policies open in 25.16"
+    }
+  ],
+  "do_not_launch_checks": [
+    {
+      "condition_id": "real_provider_or_comp_only_mode_missing",
+      "is_present": true,
+      "evidence_ref": "23.4 production provider or invite/comp-only condition is not satisfied"
+    },
+    {
+      "condition_id": "skill_release_eval_canary_missing",
+      "is_present": true,
+      "evidence_ref": "25.11 and 25.14 skill release, eval, canary, and rollback controls remain open"
+    },
+    {
+      "condition_id": "security_privacy_legal_incomplete",
+      "is_present": true,
+      "evidence_ref": "25.16 security, privacy, legal, support, and paid policy requirements remain open"
+    },
+    {
+      "condition_id": "backup_restore_rollback_smoke_missing",
+      "is_present": true,
+      "evidence_ref": "25.18 and 25.20 restore drills, rollback validation, and post-deploy smoke remain open"
+    },
+    {
+      "condition_id": "ci_staging_gates_not_passed",
+      "is_present": true,
+      "evidence_ref": "25.20 CI Gate and Private Beta/Staging Gate remain unchecked"
+    }
+  ],
+  "provenance": {
+    "blueprint_sections": [
+      "23.4",
+      "24"
+    ],
+    "created_by_lane": "lane6"
+  }
+}

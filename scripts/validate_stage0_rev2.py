@@ -128,6 +128,16 @@ SCHEMA_FIXTURE_TARGETS = [
     ("abuse_event.schema.json", FIXTURE_DIR / "abuse" / "abuse_events.json", "array_items"),
     ("release_gate_evidence.schema.json", FIXTURE_DIR / "release_gate_evidence.local_alpha.json", "object"),
     ("release_gate_evidence.schema.json", FIXTURE_DIR / "release_gate_evidence.ci.json", "object"),
+    (
+        "release_gate_evidence.schema.json",
+        FIXTURE_DIR / "release_gate_evidence.private_beta_staging.json",
+        "object",
+    ),
+    (
+        "release_gate_evidence.schema.json",
+        FIXTURE_DIR / "release_gate_evidence.production_launch.json",
+        "object",
+    ),
 ]
 
 CHECKED_ITEMS = {
@@ -528,6 +538,8 @@ def validate_json_files() -> None:
         FIXTURE_DIR / "abuse" / "abuse_events.json",
         FIXTURE_DIR / "release_gate_evidence.local_alpha.json",
         FIXTURE_DIR / "release_gate_evidence.ci.json",
+        FIXTURE_DIR / "release_gate_evidence.private_beta_staging.json",
+        FIXTURE_DIR / "release_gate_evidence.production_launch.json",
         CI_DRAFT_EVIDENCE,
     ]
     for path in required:
@@ -733,6 +745,10 @@ def validate_crawler_feedback_abuse() -> None:
 
 
 def validate_release_gate_evidence() -> None:
+    evidence = release_evidence_by_gate()
+    missing_gates = set(GATE_CHECKLIST_ITEMS.values()) - set(evidence)
+    require(not missing_gates, f"release gate evidence missing gates: {sorted(missing_gates)}")
+
     local_alpha = load_json(FIXTURE_DIR / "release_gate_evidence.local_alpha.json")
     require(local_alpha["gate"] == "local_alpha", "release gate fixture must target local alpha")
     check_ids = {check["check_id"] for check in local_alpha["checks"]}
@@ -835,6 +851,76 @@ def validate_release_gate_evidence() -> None:
         ci_do_not_launch.get("ci_gate_not_executed_on_main") is True,
         "CI release evidence must keep CI gate blocked until PR/main runtime execution exists",
     )
+
+    private_beta = load_json(FIXTURE_DIR / "release_gate_evidence.private_beta_staging.json")
+    require(
+        private_beta["gate"] == "private_beta_staging",
+        "private beta/staging release gate fixture must target private_beta_staging",
+    )
+    private_beta_checks = {check["check_id"]: check for check in private_beta["checks"]}
+    for check_id in [
+        "staging_auth_rbac_tenant_audit",
+        "staging_brief_upload_confirmation",
+        "staging_object_storage_signed_downloads",
+        "staging_quota_rate_limit_spend_cap",
+        "staging_support_retry_abuse_ops",
+        "staging_eval_qa_safety_runtime",
+        "staging_crawler_approval_provenance",
+        "staging_observability_backup_load",
+        "staging_legal_external_user_pages",
+    ]:
+        require(check_id in private_beta_checks, f"private beta/staging release evidence missing {check_id}")
+        require(
+            private_beta_checks[check_id]["status"] == "blocked",
+            f"private beta/staging release evidence {check_id} must remain blocked until runtime evidence exists",
+        )
+    private_beta_do_not_launch = {
+        item["condition_id"]: item["is_present"] for item in private_beta["do_not_launch_checks"]
+    }
+    for condition_id in [
+        "tenant_isolation_not_enforced",
+        "eval_qa_safety_runtime_missing",
+        "crawler_governance_runtime_missing",
+        "staging_observability_restore_load_missing",
+        "external_user_legal_pages_missing",
+    ]:
+        require(
+            private_beta_do_not_launch.get(condition_id) is True,
+            f"private beta/staging release evidence must keep {condition_id} active",
+        )
+
+    production = load_json(FIXTURE_DIR / "release_gate_evidence.production_launch.json")
+    require(production["gate"] == "production_launch", "production release gate fixture must target production_launch")
+    production_checks = {check["check_id"]: check for check in production["checks"]}
+    for check_id in [
+        "production_provider_or_comp_only_mode",
+        "production_paid_billing_lifecycle",
+        "production_skill_release_eval_canary",
+        "production_activation_review_audit",
+        "production_abuse_throttle_hold",
+        "production_security_launch_checks",
+        "production_backup_rollback_incident",
+        "production_legal_support_policy",
+    ]:
+        require(check_id in production_checks, f"production release evidence missing {check_id}")
+        require(
+            production_checks[check_id]["status"] == "blocked",
+            f"production release evidence {check_id} must remain blocked until launch evidence exists",
+        )
+    production_do_not_launch = {
+        item["condition_id"]: item["is_present"] for item in production["do_not_launch_checks"]
+    }
+    for condition_id in [
+        "real_provider_or_comp_only_mode_missing",
+        "skill_release_eval_canary_missing",
+        "security_privacy_legal_incomplete",
+        "backup_restore_rollback_smoke_missing",
+        "ci_staging_gates_not_passed",
+    ]:
+        require(
+            production_do_not_launch.get(condition_id) is True,
+            f"production release evidence must keep {condition_id} active",
+        )
 
 
 def validate_blueprint_checklist() -> None:

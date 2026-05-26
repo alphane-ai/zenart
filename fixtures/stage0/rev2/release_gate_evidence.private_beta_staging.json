@@ -1,0 +1,86 @@
+{
+  "schema_version": "stage0.rev2",
+  "gate": "private_beta_staging",
+  "evidence_id": "gate_private_beta_staging_blocked",
+  "checks": [
+    {
+      "check_id": "staging_auth_rbac_tenant_audit",
+      "status": "blocked",
+      "evidence_ref": "Docs/stage0_blueprint_rev2.md keeps tenant isolation and admin RBAC enforcement open in 25.7"
+    },
+    {
+      "check_id": "staging_brief_upload_confirmation",
+      "status": "blocked",
+      "evidence_ref": "Private beta brief-slot, upload, and confirmation runtime evidence is not present"
+    },
+    {
+      "check_id": "staging_object_storage_signed_downloads",
+      "status": "blocked",
+      "evidence_ref": "Docs/stage0_blueprint_rev2.md keeps S3-compatible config, object metadata, retention cleanup, and export integration tests open in 25.9"
+    },
+    {
+      "check_id": "staging_quota_rate_limit_spend_cap",
+      "status": "blocked",
+      "evidence_ref": "Docs/stage0_blueprint_rev2.md keeps quota transaction/concurrency tests open in 25.8"
+    },
+    {
+      "check_id": "staging_support_retry_abuse_ops",
+      "status": "blocked",
+      "evidence_ref": "Docs/stage0_blueprint_rev2.md keeps failed task retry/cancel, queue/dead-letter dashboard, support linkage, and admin abuse queue open in 25.14 and 25.15"
+    },
+    {
+      "check_id": "staging_eval_qa_safety_runtime",
+      "status": "blocked",
+      "evidence_ref": "Docs/stage0_blueprint_rev2.md keeps eval runner, eval result storage, QA implementations, and required safety enforcement open in 25.11"
+    },
+    {
+      "check_id": "staging_crawler_approval_provenance",
+      "status": "blocked",
+      "evidence_ref": "Docs/stage0_blueprint_rev2.md keeps crawler source approval, robots evidence, SSRF protections, provenance links, retention, and takedown workflow open in 25.13"
+    },
+    {
+      "check_id": "staging_observability_backup_load",
+      "status": "blocked",
+      "evidence_ref": "Docs/stage0_blueprint_rev2.md keeps logs, metrics, traces, dashboards, alerts, restore drills, and load tests open in 25.18"
+    },
+    {
+      "check_id": "staging_legal_external_user_pages",
+      "status": "blocked",
+      "evidence_ref": "Docs/stage0_blueprint_rev2.md keeps privacy, terms, acceptable use, AI/content disclaimer, IP complaint flow, and visible support contact open in 25.16"
+    }
+  ],
+  "do_not_launch_checks": [
+    {
+      "condition_id": "tenant_isolation_not_enforced",
+      "is_present": true,
+      "evidence_ref": "25.7 tenant isolation enforcement remains open"
+    },
+    {
+      "condition_id": "eval_qa_safety_runtime_missing",
+      "is_present": true,
+      "evidence_ref": "25.11 eval runner, QA runtime, and required safety enforcement remain open"
+    },
+    {
+      "condition_id": "crawler_governance_runtime_missing",
+      "is_present": true,
+      "evidence_ref": "25.13 crawler approval, provenance, SSRF, retention, and takedown runtime controls remain open"
+    },
+    {
+      "condition_id": "staging_observability_restore_load_missing",
+      "is_present": true,
+      "evidence_ref": "25.18 observability, restore drill, and load evidence remain open"
+    },
+    {
+      "condition_id": "external_user_legal_pages_missing",
+      "is_present": true,
+      "evidence_ref": "25.16 legal, privacy, disclaimer, support, and IP complaint items remain open"
+    }
+  ],
+  "provenance": {
+    "blueprint_sections": [
+      "23.3",
+      "24"
+    ],
+    "created_by_lane": "lane6"
+  }
+}
