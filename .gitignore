@@ -1,0 +1,14 @@
+.cron/
+.ops/
+debating-runs/
+logs/
+*.log
+node_modules/
+.next/
+dist/
+build/
+coverage/
+tmp/
+exports/
+local-object-storage/
+Docs/todos_*.md
