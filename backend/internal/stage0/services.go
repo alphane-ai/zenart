@@ -35,6 +35,7 @@ var (
 	ErrNotFound          = errors.New("stage0 record not found")
 	ErrValidation        = errors.New("stage0 validation failed")
 	ErrSafetyBlocked     = errors.New("export blocked by safety or QA")
+	ErrSafetyReviewHold  = errors.New("operation held by safety policy")
 	ErrMissingRepository = errors.New("stage0 repository missing")
 )
 
@@ -1121,7 +1122,7 @@ func (r Repository) EnforceSafety(ctx context.Context, tenantID, subjectType, su
 	if tenantID == "" || subjectType == "" || subjectID == "" || point == "" {
 		return SafetyDecision{}, errors.Join(ErrValidation, errors.New("subject_type, subject_id, and enforcement_point are required"))
 	}
-	rule, ok, err := r.findBlockingRule(ctx, tenantID, point)
+	rule, ok, err := r.findActiveSafetyRule(ctx, tenantID, point)
 	if err != nil {
 		return SafetyDecision{}, err
 	}
@@ -1184,6 +1185,10 @@ func (r Repository) RequireSafetyAllowed(ctx context.Context, tenantID, subjectT
 	}
 	if decision.Decision == "block" {
 		return decision, ErrSafetyBlocked
+	}
+	switch decision.Decision {
+	case "require_user_confirmation", "require_admin_review":
+		return decision, ErrSafetyReviewHold
 	}
 	return decision, nil
 }
@@ -1349,17 +1354,6 @@ ORDER BY
 		}
 	}
 	return SafetyRule{}, false, rows.Err()
-}
-
-func (r Repository) findBlockingRule(ctx context.Context, tenantID, point string) (SafetyRule, bool, error) {
-	rule, ok, err := r.findActiveSafetyRule(ctx, tenantID, point)
-	if err != nil || !ok {
-		return rule, ok, err
-	}
-	if rule.Action != "block" {
-		return SafetyRule{}, false, nil
-	}
-	return rule, true, nil
 }
 
 func normalizeSafetyPoint(point string) string {

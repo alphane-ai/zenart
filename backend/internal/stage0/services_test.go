@@ -644,6 +644,79 @@ func TestEnforceSafetyRecordsBlockDecisionForActiveRule(t *testing.T) {
 	}
 }
 
+func TestEnforceSafetyRecordsWarnConfirmationAndAdminReviewDecisions(t *testing.T) {
+	now := time.Now().UTC()
+	for _, tc := range []struct {
+		name     string
+		action   string
+		severity string
+	}{
+		{name: "warn", action: "warn", severity: "medium"},
+		{name: "confirmation", action: "require_user_confirmation", severity: "high"},
+		{name: "admin review", action: "require_admin_review", severity: "high"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			db := &fakeDB{queryRows: []rowSet{{
+				rows: [][]any{{
+					"rule_" + tc.action,
+					nil,
+					"runtime_" + tc.action,
+					"1",
+					"stage0",
+					tc.severity,
+					tc.action,
+					[]byte(`["brief","provider_request","provider_response","qa","export"]`),
+					"active",
+					now,
+				}},
+			}}}
+			repo := NewRepository(db)
+
+			decision, err := repo.EnforceSafety(context.Background(), "tenant_1", "project", "project_1", SafetyPointBrief)
+			if err != nil {
+				t.Fatalf("EnforceSafety() error = %v", err)
+			}
+			if decision.Decision != tc.action || decision.RuleID == nil || *decision.RuleID != "rule_"+tc.action {
+				t.Fatalf("decision = %#v, want action %s", decision, tc.action)
+			}
+			if len(db.execs) != 2 || !strings.Contains(db.execs[0].sql, "INSERT INTO safety_decisions") {
+				t.Fatalf("safety decision insert not recorded: %#v", db.execs)
+			}
+		})
+	}
+}
+
+func TestRequireSafetyAllowedHoldsForConfirmationAndAdminReview(t *testing.T) {
+	now := time.Now().UTC()
+	for _, action := range []string{"require_user_confirmation", "require_admin_review"} {
+		t.Run(action, func(t *testing.T) {
+			db := &fakeDB{queryRows: []rowSet{{
+				rows: [][]any{{
+					"rule_" + action,
+					nil,
+					"runtime_" + action,
+					"1",
+					"stage0",
+					"high",
+					action,
+					[]byte(`["export"]`),
+					"active",
+					now,
+				}},
+			}}}
+			repo := NewRepository(db)
+
+			decision, err := repo.RequireSafetyAllowed(context.Background(), "tenant_1", "export", "export_1", SafetyPointExport)
+			if !errors.Is(err, ErrSafetyReviewHold) {
+				t.Fatalf("RequireSafetyAllowed() error = %v, want ErrSafetyReviewHold", err)
+			}
+			if decision.Decision != action {
+				t.Fatalf("decision = %#v, want %s", decision, action)
+			}
+		})
+	}
+}
+
 func TestSafetyEnforcementHelpersCoverRev2RuntimePoints(t *testing.T) {
 	for name, run := range map[string]func(Repository) (SafetyDecision, error){
 		SafetyPointBrief: func(repo Repository) (SafetyDecision, error) {
