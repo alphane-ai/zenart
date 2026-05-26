@@ -23,6 +23,8 @@ OPENAPI = ROOT / "openapi" / "zenart.v1.yaml"
 MIGRATION_DIR = ROOT / "backend" / "migrations"
 CI_WORKFLOW = ROOT / ".github" / "workflows" / "stage0-rev2-ci.yml"
 CI_DRAFT = ROOT / "ops" / "ci" / "stage0-rev2-ci.yml"
+CI_WORKFLOW_REL = ".github/workflows/stage0-rev2-ci.yml"
+CI_DRAFT_REL = "ops/ci/stage0-rev2-ci.yml"
 CI_INSTALLATION = ROOT / "ops" / "ci" / "INSTALLATION.md"
 CI_DRAFT_EVIDENCE = OPS_FIXTURE_DIR / "stage0_rev2_ci_draft_evidence.json"
 ENVIRONMENT_EVIDENCE = ROOT / "ops" / "evidence" / "stage0_environment_evidence.json"
@@ -423,8 +425,8 @@ RUNTIME_PASS_REQUIREMENTS = {
         ),
     },
     ("ci", "ci_installed_workflow"): {
-        "path_patterns": (r"\.github/workflows/",),
-        "tokens": (),
+        "path_patterns": (re.escape(CI_WORKFLOW_REL),),
+        "tokens": ("stage0-rev2-ci",),
     },
     ("ci", "ci_gate_runtime_execution"): {
         "path_patterns": (r"ops/evidence/ci/",),
@@ -2019,6 +2021,31 @@ def validate_runtime_gate_evidence_refs(
                     evidence_files,
                     f"{gate}.{check_id} pass evidence",
                 )
+            if (gate, check_id) == ("ci", "ci_installed_workflow"):
+                require(
+                    CI_WORKFLOW_REL in evidence_ref,
+                    f"{gate}.{check_id} pass evidence must cite exact installed workflow path {CI_WORKFLOW_REL}",
+                )
+                require(
+                    CI_WORKFLOW.exists(),
+                    f"{gate}.{check_id} cannot pass until {CI_WORKFLOW_REL} exists",
+                )
+                installed_workflow = CI_WORKFLOW.read_text(encoding="utf-8")
+                draft_workflow = CI_DRAFT.read_text(encoding="utf-8")
+                for token in [
+                    "stage0-rev2",
+                    "playwright",
+                    "docker",
+                    "validate_stage0_rev2.py",
+                ]:
+                    require(
+                        token in installed_workflow.lower(),
+                        f"{gate}.{check_id} installed workflow missing required Stage 0 CI token: {token}",
+                    )
+                    require(
+                        token in draft_workflow.lower(),
+                        f"{gate}.{check_id} CI draft missing required Stage 0 CI token: {token}",
+                    )
             if (gate, check_id) == ("local_alpha", "local_alpha_e2e_workflow_smoke"):
                 evidence_ref_lower = evidence_ref.lower()
                 for workflow_id, aliases in LOCAL_ALPHA_E2E_WORKFLOW_EVIDENCE_REQUIREMENTS.items():
@@ -2457,7 +2484,7 @@ def validate_ops_ci_artifact_evidence() -> None:
         "ops CI draft evidence must explain that .github/workflows cannot be changed",
     )
     require(
-        evidence["draft_ref"] == "ops/ci/stage0-rev2-ci.yml",
+        evidence["draft_ref"] == CI_DRAFT_REL,
         "ops CI draft evidence must point at the ops/ci draft",
     )
 
@@ -3660,6 +3687,10 @@ def validate_release_gate_evidence() -> None:
         require(
             ci_checks["ci_installed_workflow"]["status"] == "pass",
             "CI installed workflow check must pass when .github workflow exists",
+        )
+        require(
+            CI_WORKFLOW_REL in ci_checks["ci_installed_workflow"]["evidence_ref"],
+            f"CI installed workflow pass evidence must cite exact installed workflow path {CI_WORKFLOW_REL}",
         )
     else:
         require(
@@ -4929,7 +4960,7 @@ def validate_ops_ci_and_drill_evidence() -> None:
         "environment evidence must define local/CI/staging/production",
     )
     require(
-        env["ci_draft"]["path"] == "ops/ci/stage0-rev2-ci.yml",
+        env["ci_draft"]["path"] == CI_DRAFT_REL,
         "environment evidence must point at ops/ci CI draft",
     )
     open_items = {item["id"]: item for item in env["open_items"]}
