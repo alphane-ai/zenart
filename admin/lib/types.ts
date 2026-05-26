@@ -27,11 +27,40 @@ export type Skill = {
   updatedAt: string;
 };
 
+export type SkillReleaseState =
+  | "draft"
+  | "review"
+  | "eval_passed"
+  | "internal_canary"
+  | "allowlist_canary"
+  | "percent_canary"
+  | "active"
+  | "paused"
+  | "rolled_back"
+  | "deprecated";
+
+export type SkillReleaseStateDefinition = {
+  state: SkillReleaseState;
+  entryCriteria: string;
+  allowedNextStates: SkillReleaseState[];
+  adminAction: string;
+  rollbackAllowed: boolean;
+  auditRequirement: string;
+};
+
+export type SkillTrafficAllocation = {
+  internalPercent: number;
+  allowlistPercent: number;
+  publicPercent: number;
+  holdoutPercent: number;
+  routeEvidence: string;
+};
+
 export type SkillVersion = {
   id: string;
   skillId: string;
   version: string;
-  status: "review" | "canary" | "approved" | "rolled-back";
+  status: SkillReleaseState;
   reviewer: string;
   secondReviewRequired: boolean;
   secondReviewer: string;
@@ -40,10 +69,40 @@ export type SkillVersion = {
   provenance: string;
   rollbackPlan: string;
   canaryPercent: number;
+  trafficAllocation: SkillTrafficAllocation;
   canaryEvidence: string;
   releaseEvidence: string;
   rollbackTarget: string;
   rollbackAuditRef: string;
+};
+
+export type SkillCanaryMetricName =
+  | "task_success"
+  | "provider_failure"
+  | "cost_per_package"
+  | "selection_rate"
+  | "iteration_rate"
+  | "package_add_rate"
+  | "export_success"
+  | "qa_warning_blocking"
+  | "safety_block"
+  | "user_rating"
+  | "admin_bad_sample"
+  | "regression_fixture_pass_rate";
+
+export type SkillCanaryMetric = {
+  id: string;
+  skillVersionId: string;
+  metric: SkillCanaryMetricName;
+  window: string;
+  value: string;
+  target: string;
+  sampleSize: number;
+  status: "healthy" | "watch" | "stop";
+  stopThreshold: string;
+  stopAction: "continue" | "pause_release" | "rollback";
+  criticalSafetyRegression: boolean;
+  auditRef: string;
 };
 
 export type CrawlerFinding = {

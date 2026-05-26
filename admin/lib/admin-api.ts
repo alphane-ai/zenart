@@ -15,6 +15,8 @@ import {
   queueHealth,
   releaseEvidence,
   riskyExports,
+  skillCanaryMetrics,
+  skillReleaseStateDefinitions,
   skillVersions,
   skills,
   supportEscalationRunbooks,
@@ -29,6 +31,14 @@ export async function getSkills() {
 
 export async function getSkillVersions() {
   return skillVersions;
+}
+
+export async function getSkillReleaseStateDefinitions() {
+  return skillReleaseStateDefinitions;
+}
+
+export async function getSkillCanaryMetrics() {
+  return skillCanaryMetrics;
 }
 
 export async function getAdminReviewDecisions() {

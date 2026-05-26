@@ -16,6 +16,8 @@ import type {
   ReleaseEvidence,
   RiskyExport,
   Skill,
+  SkillCanaryMetric,
+  SkillReleaseStateDefinition,
   SkillVersion,
   SupportEscalationRunbook,
   SupportTicket,
@@ -55,6 +57,89 @@ export const skills: Skill[] = [
   }
 ];
 
+export const skillReleaseStateDefinitions: SkillReleaseStateDefinition[] = [
+  {
+    state: "draft",
+    entryCriteria: "Owner has created version metadata, provenance, and rollback target draft.",
+    allowedNextStates: ["review", "deprecated"],
+    adminAction: "Submit for review or discard the draft.",
+    rollbackAllowed: false,
+    auditRequirement: "Draft changes are audit-linked once submitted for review."
+  },
+  {
+    state: "review",
+    entryCriteria: "Reviewer rationale, diff, provenance, QA samples, and risk labels are visible.",
+    allowedNextStates: ["eval_passed", "paused", "deprecated"],
+    adminAction: "Approve only after required reviewer and second-review checks pass.",
+    rollbackAllowed: false,
+    auditRequirement: "Reviewer rationale and evidence refs are required before eval_passed."
+  },
+  {
+    state: "eval_passed",
+    entryCriteria: "Required eval suite and regression fixtures pass for the target workflow scope.",
+    allowedNextStates: ["internal_canary", "paused"],
+    adminAction: "Start internal canary with zero public traffic.",
+    rollbackAllowed: true,
+    auditRequirement: "Eval result refs and rollback target must be immutable."
+  },
+  {
+    state: "internal_canary",
+    entryCriteria: "Internal users only; stop thresholds and alert owner are configured.",
+    allowedNextStates: ["allowlist_canary", "paused", "rolled_back"],
+    adminAction: "Advance only if canary metrics stay inside thresholds.",
+    rollbackAllowed: true,
+    auditRequirement: "Canary start, metric window, and rollback target require audit refs."
+  },
+  {
+    state: "allowlist_canary",
+    entryCriteria: "Named beta users allowed; support and abuse links are active.",
+    allowedNextStates: ["percent_canary", "paused", "rolled_back"],
+    adminAction: "Monitor user-facing failure, support, safety, and cost metrics.",
+    rollbackAllowed: true,
+    auditRequirement: "Allowlist membership and support linkage require audit evidence."
+  },
+  {
+    state: "percent_canary",
+    entryCriteria: "Percent rollout has holdout traffic and rollback drill evidence.",
+    allowedNextStates: ["active", "paused", "rolled_back"],
+    adminAction: "Increase traffic only while all stop thresholds remain healthy.",
+    rollbackAllowed: true,
+    auditRequirement: "Traffic allocation changes and threshold decisions require audit refs."
+  },
+  {
+    state: "active",
+    entryCriteria: "Release gate passed and active routing points at this version.",
+    allowedNextStates: ["paused", "rolled_back", "deprecated"],
+    adminAction: "Keep release metrics and rollback target visible.",
+    rollbackAllowed: true,
+    auditRequirement: "Activation and every rollback target change require immutable audit."
+  },
+  {
+    state: "paused",
+    entryCriteria: "Canary, support, cost, QA, or safety threshold stopped release traffic.",
+    allowedNextStates: ["review", "internal_canary", "rolled_back", "deprecated"],
+    adminAction: "Keep traffic at zero until review resolves the stop reason.",
+    rollbackAllowed: true,
+    auditRequirement: "Pause reason and stop-threshold evidence require audit refs."
+  },
+  {
+    state: "rolled_back",
+    entryCriteria: "Traffic has been restored to the rollback target.",
+    allowedNextStates: ["review", "deprecated"],
+    adminAction: "Verify rollback audit, support notice, and regression fixture conversion.",
+    rollbackAllowed: false,
+    auditRequirement: "Rollback execution audit and target version evidence are mandatory."
+  },
+  {
+    state: "deprecated",
+    entryCriteria: "Version is unavailable for new routing and retained only for audit/history.",
+    allowedNextStates: [],
+    adminAction: "No activation allowed without a new review version.",
+    rollbackAllowed: false,
+    auditRequirement: "Deprecation reason and replacement/rollback target must be recorded."
+  }
+];
+
 export const skillVersions: SkillVersion[] = [
   {
     id: "sv-248",
@@ -69,6 +154,13 @@ export const skillVersions: SkillVersion[] = [
     provenance: "trace tr-1004, feedback fb-203, prompt mutation pm-44",
     rollbackPlan: "Restore 2.4.1 and disable launch campaign palette branch.",
     canaryPercent: 0,
+    trafficAllocation: {
+      internalPercent: 0,
+      allowlistPercent: 0,
+      publicPercent: 0,
+      holdoutPercent: 100,
+      routeEvidence: "No traffic until second reviewer accepts brand similarity regression variance."
+    },
     canaryEvidence: "Canary blocked until second reviewer accepts regression fixture variance.",
     releaseEvidence: "Release notes draft linked to eval suite es-stage0-brand and rollback target 2.4.1.",
     rollbackTarget: "skill-brand-kit@2.4.1",
@@ -78,7 +170,7 @@ export const skillVersions: SkillVersion[] = [
     id: "sv-181",
     skillId: "skill-export-pack",
     version: "1.8.1",
-    status: "canary",
+    status: "internal_canary",
     reviewer: "ops-admin",
     secondReviewRequired: false,
     secondReviewer: "not-required",
@@ -87,6 +179,13 @@ export const skillVersions: SkillVersion[] = [
     provenance: "export failures ex-887 and ex-901",
     rollbackPlan: "Set router to 1.8.0 and replay failed jobs.",
     canaryPercent: 15,
+    trafficAllocation: {
+      internalPercent: 15,
+      allowlistPercent: 0,
+      publicPercent: 0,
+      holdoutPercent: 85,
+      routeEvidence: "Internal-only canary with deterministic 85% holdout still routed to skill-export-pack@1.8.0."
+    },
     canaryEvidence: "15% internal canary, 0 blocking QA regressions, p95 packaging under 900 ms.",
     releaseEvidence: "Release evidence includes manifest/QA/provenance fixtures and rollback replay plan.",
     rollbackTarget: "skill-export-pack@1.8.0",
@@ -105,10 +204,266 @@ export const skillVersions: SkillVersion[] = [
     provenance: "safety rule sr-21, red-team run rt-12",
     rollbackPlan: "Keep 0.9.7 active; invalidate staged policy bundle.",
     canaryPercent: 0,
+    trafficAllocation: {
+      internalPercent: 0,
+      allowlistPercent: 0,
+      publicPercent: 0,
+      holdoutPercent: 100,
+      routeEvidence: "No traffic until medical claim fixture and legal second-review evidence pass."
+    },
     canaryEvidence: "Canary disabled until medical claim fixture and legal second-review pass.",
     releaseEvidence: "Production release blocked pending reviewer rationale and policy bundle audit.",
     rollbackTarget: "skill-claims-review@0.9.7",
     rollbackAuditRef: "au-006"
+  },
+  {
+    id: "sv-182",
+    skillId: "skill-export-pack",
+    version: "1.8.2",
+    status: "paused",
+    reviewer: "ops-admin",
+    secondReviewRequired: false,
+    secondReviewer: "not-required",
+    reviewerRationale: "Canary paused automatically after export success dropped below the stop threshold.",
+    evalSummary: "Eval passed before canary, but live export success breached stop threshold.",
+    provenance: "canary metrics cm-011, cm-012, audit au-009",
+    rollbackPlan: "Keep active routing on 1.8.0 and convert failed export samples to regression fixtures.",
+    canaryPercent: 0,
+    trafficAllocation: {
+      internalPercent: 0,
+      allowlistPercent: 0,
+      publicPercent: 0,
+      holdoutPercent: 100,
+      routeEvidence: "Traffic automatically stopped; all requests route to rollback target skill-export-pack@1.8.0."
+    },
+    canaryEvidence: "Paused when export success fell to 94.1% against the 97% stop threshold.",
+    releaseEvidence: "Release remains blocked until export success and regression fixture pass rate recover.",
+    rollbackTarget: "skill-export-pack@1.8.0",
+    rollbackAuditRef: "au-009"
+  },
+  {
+    id: "sv-240",
+    skillId: "skill-brand-kit",
+    version: "2.4.0",
+    status: "rolled_back",
+    reviewer: "design-systems-admin",
+    secondReviewRequired: true,
+    secondReviewer: "trust-admin",
+    reviewerRationale: "Rolled back after brand/IP bad-sample cluster exceeded the stop threshold.",
+    evalSummary: "Superseded by 2.4.1 after regression fixture fix.",
+    provenance: "feedback fb-203, canary metric cm-018, audit au-010",
+    rollbackPlan: "Traffic restored to 2.4.1 and 2.4.0 kept for audit only.",
+    canaryPercent: 0,
+    trafficAllocation: {
+      internalPercent: 0,
+      allowlistPercent: 0,
+      publicPercent: 0,
+      holdoutPercent: 100,
+      routeEvidence: "No traffic; router points to active rollback target skill-brand-kit@2.4.1."
+    },
+    canaryEvidence: "Canary stopped after admin bad-sample threshold breach.",
+    releaseEvidence: "Rolled-back version is retained for audit and cannot be reactivated without a new review.",
+    rollbackTarget: "skill-brand-kit@2.4.1",
+    rollbackAuditRef: "au-010"
+  }
+];
+
+export const skillCanaryMetrics: SkillCanaryMetric[] = [
+  {
+    id: "cm-001",
+    skillVersionId: "sv-181",
+    metric: "task_success",
+    window: "2026-05-26 08:00 to 09:00",
+    value: "99.2%",
+    target: ">= 98%",
+    sampleSize: 126,
+    status: "healthy",
+    stopThreshold: "< 96% for 30 minutes",
+    stopAction: "continue",
+    criticalSafetyRegression: false,
+    auditRef: "au-003"
+  },
+  {
+    id: "cm-002",
+    skillVersionId: "sv-181",
+    metric: "provider_failure",
+    window: "2026-05-26 08:00 to 09:00",
+    value: "0.6%",
+    target: "<= 1%",
+    sampleSize: 126,
+    status: "healthy",
+    stopThreshold: "> 2% provider failures",
+    stopAction: "continue",
+    criticalSafetyRegression: false,
+    auditRef: "au-003"
+  },
+  {
+    id: "cm-003",
+    skillVersionId: "sv-181",
+    metric: "cost_per_package",
+    window: "2026-05-26 08:00 to 09:00",
+    value: "$0.18",
+    target: "<= $0.25",
+    sampleSize: 94,
+    status: "healthy",
+    stopThreshold: "> $0.35 for 20 packages",
+    stopAction: "continue",
+    criticalSafetyRegression: false,
+    auditRef: "au-003"
+  },
+  {
+    id: "cm-004",
+    skillVersionId: "sv-181",
+    metric: "selection_rate",
+    window: "2026-05-26 08:00 to 09:00",
+    value: "62.4%",
+    target: ">= 55%",
+    sampleSize: 88,
+    status: "healthy",
+    stopThreshold: "< 45% with 50+ selections",
+    stopAction: "continue",
+    criticalSafetyRegression: false,
+    auditRef: "au-003"
+  },
+  {
+    id: "cm-005",
+    skillVersionId: "sv-181",
+    metric: "iteration_rate",
+    window: "2026-05-26 08:00 to 09:00",
+    value: "34.8%",
+    target: "25% to 55%",
+    sampleSize: 72,
+    status: "healthy",
+    stopThreshold: "< 15% or > 70%",
+    stopAction: "continue",
+    criticalSafetyRegression: false,
+    auditRef: "au-003"
+  },
+  {
+    id: "cm-006",
+    skillVersionId: "sv-181",
+    metric: "package_add_rate",
+    window: "2026-05-26 08:00 to 09:00",
+    value: "74.1%",
+    target: ">= 70%",
+    sampleSize: 72,
+    status: "healthy",
+    stopThreshold: "< 60% with 50+ sessions",
+    stopAction: "continue",
+    criticalSafetyRegression: false,
+    auditRef: "au-003"
+  },
+  {
+    id: "cm-007",
+    skillVersionId: "sv-181",
+    metric: "export_success",
+    window: "2026-05-26 08:00 to 09:00",
+    value: "98.7%",
+    target: ">= 98%",
+    sampleSize: 64,
+    status: "healthy",
+    stopThreshold: "< 97% export success",
+    stopAction: "continue",
+    criticalSafetyRegression: false,
+    auditRef: "au-003"
+  },
+  {
+    id: "cm-008",
+    skillVersionId: "sv-181",
+    metric: "qa_warning_blocking",
+    window: "2026-05-26 08:00 to 09:00",
+    value: "4 warning / 0 blocking",
+    target: "0 blocking",
+    sampleSize: 64,
+    status: "healthy",
+    stopThreshold: ">= 1 blocking QA regression",
+    stopAction: "continue",
+    criticalSafetyRegression: false,
+    auditRef: "au-003"
+  },
+  {
+    id: "cm-009",
+    skillVersionId: "sv-181",
+    metric: "safety_block",
+    window: "2026-05-26 08:00 to 09:00",
+    value: "0",
+    target: "0 new safety regressions",
+    sampleSize: 64,
+    status: "healthy",
+    stopThreshold: ">= 1 critical safety regression",
+    stopAction: "continue",
+    criticalSafetyRegression: false,
+    auditRef: "au-003"
+  },
+  {
+    id: "cm-010",
+    skillVersionId: "sv-181",
+    metric: "user_rating",
+    window: "2026-05-26 08:00 to 09:00",
+    value: "4.6/5",
+    target: ">= 4.2/5",
+    sampleSize: 31,
+    status: "healthy",
+    stopThreshold: "< 3.8/5 with 25+ ratings",
+    stopAction: "continue",
+    criticalSafetyRegression: false,
+    auditRef: "au-003"
+  },
+  {
+    id: "cm-011",
+    skillVersionId: "sv-182",
+    metric: "export_success",
+    window: "2026-05-26 09:00 to 09:30",
+    value: "94.1%",
+    target: ">= 98%",
+    sampleSize: 68,
+    status: "stop",
+    stopThreshold: "< 97% export success",
+    stopAction: "pause_release",
+    criticalSafetyRegression: false,
+    auditRef: "au-009"
+  },
+  {
+    id: "cm-012",
+    skillVersionId: "sv-182",
+    metric: "regression_fixture_pass_rate",
+    window: "2026-05-26 09:00 to 09:30",
+    value: "91.6%",
+    target: "100%",
+    sampleSize: 24,
+    status: "stop",
+    stopThreshold: "< 100% on required regression fixtures",
+    stopAction: "pause_release",
+    criticalSafetyRegression: false,
+    auditRef: "au-009"
+  },
+  {
+    id: "cm-013",
+    skillVersionId: "sv-098",
+    metric: "safety_block",
+    window: "pre-canary red-team run rt-12",
+    value: "1 medical-claims miss",
+    target: "0 critical safety regressions",
+    sampleSize: 18,
+    status: "stop",
+    stopThreshold: ">= 1 critical safety regression",
+    stopAction: "pause_release",
+    criticalSafetyRegression: true,
+    auditRef: "au-006"
+  },
+  {
+    id: "cm-014",
+    skillVersionId: "sv-240",
+    metric: "admin_bad_sample",
+    window: "2026-05-24 canary",
+    value: "3 bad samples",
+    target: "0 high-risk bad samples",
+    sampleSize: 40,
+    status: "stop",
+    stopThreshold: ">= 1 high-risk admin bad-sample cluster",
+    stopAction: "rollback",
+    criticalSafetyRegression: true,
+    auditRef: "au-010"
   }
 ];
 
@@ -916,6 +1271,30 @@ export const auditEvents: AuditEvent[] = [
     immutable: true,
     evidenceRefs: ["ab-304", "tr-1004", "prompt-fragments"],
     secondReviewStatus: "required"
+  },
+  {
+    id: "au-009",
+    actor: "ops-admin",
+    action: "paused skill canary",
+    target: "skill-export-pack@1.8.2",
+    risk: "medium",
+    createdAt: "2026-05-26 09:32",
+    rationale: "Export success and regression fixture pass rate crossed configured stop thresholds.",
+    immutable: true,
+    evidenceRefs: ["sv-182", "cm-011", "cm-012"],
+    secondReviewStatus: "not_required"
+  },
+  {
+    id: "au-010",
+    actor: "trust-admin",
+    action: "rolled back skill version",
+    target: "skill-brand-kit@2.4.0",
+    risk: "high",
+    createdAt: "2026-05-24 17:10",
+    rationale: "Critical brand/IP bad-sample cluster required rollback to skill-brand-kit@2.4.1.",
+    immutable: true,
+    evidenceRefs: ["sv-240", "cm-014", "fb-203"],
+    secondReviewStatus: "completed"
   }
 ];
 

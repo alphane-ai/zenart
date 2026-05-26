@@ -1814,11 +1814,11 @@ main 合并前必须通过：
 
 ### 25.14 Skill, Review, Feedback, Abuse
 
-- [ ] 实现 skill release states。
-- [ ] 实现 skill traffic allocation。
-- [ ] 实现 canary metrics aggregation。
-- [ ] 实现 canary stop thresholds。
-- [ ] 实现 rollback with audit。
+- [x] 实现 skill release states。
+- [x] 实现 skill traffic allocation。
+- [x] 实现 canary metrics aggregation。
+- [x] 实现 canary stop thresholds。
+- [x] 实现 rollback with audit。
 - [x] 实现 review queue model。
 - [x] 实现 review detail with diff/provenance/eval/QA/risk。
 - [x] 要求 reviewer rationale。

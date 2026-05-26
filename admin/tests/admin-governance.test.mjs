@@ -8,11 +8,13 @@ const parseFixtures = () => {
   const moduleSource = source
     .replace(/^import type[\s\S]*?from "@\/lib\/types";\n\n/, "")
     .replaceAll(/export const (\w+)[^=]*=/g, "const $1 =");
-  return Function(`${moduleSource}\nreturn { skillVersions, releaseEvidence, supportTickets, supportEscalationRunbooks, supportUsers, riskyExports, abuseEvents, auditEvents, exportJobs, traces, quotaAccounts, feedbackItems, analyticsReports };`)();
+  return Function(`${moduleSource}\nreturn { skillVersions, skillReleaseStateDefinitions, skillCanaryMetrics, releaseEvidence, supportTickets, supportEscalationRunbooks, supportUsers, riskyExports, abuseEvents, auditEvents, exportJobs, traces, quotaAccounts, feedbackItems, analyticsReports };`)();
 };
 
 const {
   skillVersions,
+  skillReleaseStateDefinitions,
+  skillCanaryMetrics,
   releaseEvidence,
   supportTickets,
   supportEscalationRunbooks,
@@ -34,6 +36,46 @@ const supportUserIds = new Set(supportUsers.map((user) => user.id));
 const traceIds = new Set(traces.map((trace) => trace.id));
 const exportIds = new Set(exportJobs.map((job) => job.id));
 const quotaUserIds = new Set(quotaAccounts.map((account) => account.userId));
+
+test("skill release governance defines states, traffic allocation, canary thresholds, and rollback audit", () => {
+  const states = new Set(skillReleaseStateDefinitions.map((definition) => definition.state));
+  for (const state of [
+    "draft",
+    "review",
+    "eval_passed",
+    "internal_canary",
+    "allowlist_canary",
+    "percent_canary",
+    "active",
+    "paused",
+    "rolled_back",
+    "deprecated"
+  ]) {
+    assert.ok(states.has(state), `missing release state ${state}`);
+  }
+
+  for (const version of skillVersions) {
+    const allocationTotal =
+      version.trafficAllocation.internalPercent +
+      version.trafficAllocation.allowlistPercent +
+      version.trafficAllocation.publicPercent +
+      version.trafficAllocation.holdoutPercent;
+    assert.equal(allocationTotal, 100, `${version.id} traffic allocation must total 100`);
+    assert.ok(version.trafficAllocation.routeEvidence.length > 20, `${version.id} needs route evidence`);
+    assert.ok(auditIds.has(version.rollbackAuditRef), `${version.id} needs rollback audit`);
+  }
+
+  assert.ok(skillCanaryMetrics.some((metric) => metric.status === "stop"), "canary metrics need stop signals");
+  assert.ok(
+    skillCanaryMetrics.some((metric) => metric.stopAction === "rollback"),
+    "canary metrics need rollback stop actions"
+  );
+  for (const metric of skillCanaryMetrics) {
+    assert.ok(metric.sampleSize > 0, `${metric.id} needs sample size`);
+    assert.ok(metric.stopThreshold.length > 10, `${metric.id} needs stop threshold`);
+    assert.ok(auditIds.has(metric.auditRef), `${metric.id} links unknown audit ${metric.auditRef}`);
+  }
+});
 
 test("abuse queue entries require actionable governance evidence", () => {
   for (const event of abuseEvents) {

@@ -48,9 +48,30 @@ test("admin fixtures cover required operational surfaces", () => {
     "export const releaseEvidence",
     "export const abuseEvents",
     "export const auditEvents",
-    "export const analyticsReports"
+    "export const analyticsReports",
+    "export const skillReleaseStateDefinitions",
+    "export const skillCanaryMetrics"
   ]) {
     assert.match(fixtures, new RegExp(token.replaceAll(" ", "\\s+")));
+  }
+});
+
+test("admin skill release fixtures define state, allocation, canary, and rollback controls", () => {
+  for (const token of [
+    "internal_canary",
+    "allowlist_canary",
+    "percent_canary",
+    "trafficAllocation",
+    "holdoutPercent",
+    "routeEvidence",
+    "stopThreshold",
+    "pause_release",
+    "regression_fixture_pass_rate",
+    "criticalSafetyRegression",
+    "rolled_back",
+    "rollbackAuditRef"
+  ]) {
+    assert.match(fixtures, new RegExp(token));
   }
 });
 
