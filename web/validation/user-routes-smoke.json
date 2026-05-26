@@ -48,5 +48,12 @@
     "textareas and free-text inputs have programmatic labels",
     "selection and version controls expose pressed/current state"
   ],
+  "unitCoverage": [
+    "auth/session state is loaded from the persisted dev workspace",
+    "account settings persist through workspace reload",
+    "candidate selection, workspace autosave, canvas versions, and package history survive reload",
+    "report-problem tickets retain project, export, and quota context",
+    "blocked exports do not consume quota and mock checkout activates the local alpha plan"
+  ],
   "validationCommands": ["npm run lint", "npm run typecheck", "npm run test", "npm run build", "npm run smoke:user-routes"]
 }

@@ -17,13 +17,13 @@ import {
   formatExportFileName
 } from "./dev-state";
 
-const storageKey = "zenart.dev.workspace.v1";
+export const workspaceStorageKey = "zenart.dev.workspace.v1";
 
 const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 
 const saveState = (state: WorkspaceState) => {
   if (typeof window !== "undefined") {
-    window.localStorage.setItem(storageKey, JSON.stringify(state));
+    window.localStorage.setItem(workspaceStorageKey, JSON.stringify(state));
   }
   return clone(state);
 };
@@ -33,7 +33,7 @@ const loadState = (): WorkspaceState => {
     return createInitialWorkspace();
   }
 
-  const stored = window.localStorage.getItem(storageKey);
+  const stored = window.localStorage.getItem(workspaceStorageKey);
   if (!stored) {
     return saveState(createInitialWorkspace());
   }
@@ -59,6 +59,12 @@ const migrateState = (state: WorkspaceState): WorkspaceState => ({
 });
 
 export class DevZenArtClient implements ZenArtClient {
+  resetWorkspace() {
+    if (typeof window !== "undefined") {
+      window.localStorage.removeItem(workspaceStorageKey);
+    }
+  }
+
   async loadWorkspace() {
     return clone(migrateState(loadState()));
   }
