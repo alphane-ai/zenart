@@ -52,7 +52,8 @@ test("admin fixtures cover required operational surfaces", () => {
     "export const auditEvents",
     "export const analyticsReports",
     "export const skillReleaseStateDefinitions",
-    "export const skillCanaryMetrics"
+    "export const skillCanaryMetrics",
+    "export const adminRbacEvidence"
   ]) {
     assert.match(fixtures, new RegExp(token.replaceAll(" ", "\\s+")));
   }
@@ -120,6 +121,24 @@ test("admin fixtures expose review governance and release evidence", () => {
   }
 });
 
+test("admin fixtures cover RBAC evidence for governed override surfaces", () => {
+  for (const token of [
+    "adminRbacEvidence",
+    "skill_release",
+    "crawler_import",
+    "prompt_approval",
+    "provider_routing",
+    "quota_override",
+    "safety_rule",
+    "export_override",
+    "requiredRole",
+    "attemptedRole",
+    "secondReviewStatus"
+  ]) {
+    assert.match(fixtures, new RegExp(token));
+  }
+});
+
 test("admin fixtures cover operations gate evidence", () => {
   for (const token of [
     "customerImpact",
@@ -180,12 +199,15 @@ test("admin routes surface governance evidence", () => {
   assert.match(auditPage, /High-risk admin changes/);
   assert.match(auditPage, /Support and quota actions/);
   assert.match(auditPage, /Release and canary changes/);
+  assert.match(auditPage, /RBAC Override Evidence/);
+  assert.match(auditPage, /Required Role/);
 
   const safetyPage = readFileSync(
     new URL("../app/safety/page.tsx", import.meta.url),
     "utf8"
   );
   assert.match(safetyPage, /Review Rationale/);
+  assert.match(safetyPage, /Safety and Export Override RBAC/);
 
   const operationsPage = readFileSync(
     new URL("../app/operations/page.tsx", import.meta.url),
@@ -215,6 +237,17 @@ test("admin routes surface governance evidence", () => {
   assert.match(crawlerPage, /Activation/);
   assert.match(crawlerPage, /Review Rationale/);
   assert.match(crawlerPage, /Audit Ref/);
+
+  const quotaPage = readFileSync(
+    new URL("../app/quota/page.tsx", import.meta.url),
+    "utf8"
+  );
+  assert.match(quotaPage, /Quota Override RBAC/);
+  assert.match(quotaPage, /Attempted Role/);
+
+  assert.match(releasePage, /Release Gate Evidence/);
+  assert.match(reviewsPage, /Admin RBAC Evidence/);
+  assert.match(reviewsPage, /Attempted Role/);
 });
 
 test("support console surfaces ticket linkage and audit evidence", () => {

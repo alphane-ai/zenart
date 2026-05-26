@@ -1,13 +1,14 @@
 import { DataTable } from "@/components/DataTable";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
-import { getAdminReviewDecisions, getAuditEvents } from "@/lib/admin-api";
-import type { AdminReviewDecision, AuditEvent } from "@/lib/types";
+import { getAdminRbacEvidence, getAdminReviewDecisions, getAuditEvents } from "@/lib/admin-api";
+import type { AdminRbacEvidence, AdminReviewDecision, AuditEvent } from "@/lib/types";
 
 export default async function AuditPage() {
-  const [events, reviews] = await Promise.all([
+  const [events, reviews, rbacEvidence] = await Promise.all([
     getAuditEvents(),
-    getAdminReviewDecisions()
+    getAdminReviewDecisions(),
+    getAdminRbacEvidence()
   ]);
   const filterPresets = [
     {
@@ -116,6 +117,28 @@ export default async function AuditPage() {
             },
             { key: "rationale", header: "Rationale", render: (row) => row.rationale },
             { key: "evidence", header: "Evidence Refs", render: (row) => row.evidenceRefs.join(", ") }
+          ]}
+        />
+      </section>
+
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>RBAC Override Evidence</h3>
+            <p>High-risk release, crawler, prompt, provider, quota, safety, and export overrides must prove the attempted role, required role, decision, rationale, and audit ref.</p>
+          </div>
+        </div>
+        <DataTable<AdminRbacEvidence>
+          rows={rbacEvidence}
+          columns={[
+            { key: "surface", header: "Surface", render: (row) => row.surface },
+            { key: "target", header: "Target", render: (row) => <span className="mono">{row.target}</span> },
+            { key: "required", header: "Required Role", render: (row) => row.requiredRole },
+            { key: "attempted", header: "Attempted Role", render: (row) => row.attemptedRole },
+            { key: "decision", header: "Decision", render: (row) => <StatusBadge value={row.decision} label={row.decision} /> },
+            { key: "second-review", header: "Second Review Status", render: (row) => <StatusBadge value={row.secondReviewStatus} label={row.secondReviewStatus} /> },
+            { key: "audit", header: "Audit Ref", render: (row) => <span className="mono">{row.auditRef}</span> },
+            { key: "rationale", header: "Rationale", render: (row) => row.rationale }
           ]}
         />
       </section>

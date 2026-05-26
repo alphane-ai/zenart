@@ -1,5 +1,6 @@
 import type {
   AbuseEvent,
+  AdminRbacEvidence,
   AdminReviewDecision,
   AnalyticsReport,
   AgentTrace,
@@ -520,6 +521,100 @@ export const adminReviewDecisions: AdminReviewDecision[] = [
     qaSummary: "Blocking severity at export enforcement point.",
     evidenceRefs: ["rx-41", "ex-887", "au-001"],
     createdAt: "2026-05-25 16:16"
+  }
+];
+
+export const adminRbacEvidence: AdminRbacEvidence[] = [
+  {
+    id: "rbac-release-001",
+    surface: "skill_release",
+    target: "skill-brand-kit@2.5.0",
+    requiredRole: "admin_reviewer",
+    attemptedRole: "admin_operator",
+    decision: "second_review_required",
+    secondReviewRequired: true,
+    secondReviewStatus: "required",
+    rationale: "High-risk skill release cannot enter canary from an operator-only action; reviewer and second-review evidence are required.",
+    auditRef: "au-005",
+    evidenceRefs: ["rv-100", "sv-248", "eg-001"]
+  },
+  {
+    id: "rbac-crawler-001",
+    surface: "crawler_import",
+    target: "cf-118",
+    requiredRole: "admin_reviewer",
+    attemptedRole: "admin_operator",
+    decision: "denied",
+    secondReviewRequired: true,
+    secondReviewStatus: "required",
+    rationale: "Crawler takedown and derivative material deletion must be reviewed by an admin reviewer before activation or retention changes.",
+    auditRef: "au-012",
+    evidenceRefs: ["cg-501", "cf-118", "ip-7001"]
+  },
+  {
+    id: "rbac-prompt-001",
+    surface: "prompt_approval",
+    target: "pf-044",
+    requiredRole: "admin_reviewer",
+    attemptedRole: "support_operator",
+    decision: "denied",
+    secondReviewRequired: false,
+    secondReviewStatus: "not_required",
+    rationale: "Support operators can attach feedback but cannot approve prompt fragments into active routing without reviewer permission.",
+    auditRef: "au-008",
+    evidenceRefs: ["pf-044", "fb-222", "prompt-fragments"]
+  },
+  {
+    id: "rbac-provider-001",
+    surface: "provider_routing",
+    target: "OpenAI/image-render-dev",
+    requiredRole: "admin_operator",
+    attemptedRole: "admin_operator",
+    decision: "allowed",
+    secondReviewRequired: false,
+    secondReviewStatus: "not_required",
+    rationale: "Provider retry-weight reduction is allowed for an admin operator because safety fallback remains unchanged and evidence is audit-linked.",
+    auditRef: "au-007",
+    evidenceRefs: ["rv-101", "ph-1", "eg-003"]
+  },
+  {
+    id: "rbac-quota-001",
+    surface: "quota_override",
+    target: "usr-301",
+    requiredRole: "admin_operator",
+    attemptedRole: "support_operator",
+    decision: "denied",
+    secondReviewRequired: false,
+    secondReviewStatus: "not_required",
+    rationale: "Support can request quota credit, but direct quota mutation requires admin operator permission and immutable support-ticket evidence.",
+    auditRef: "au-004",
+    evidenceRefs: ["sup-2201", "qt-904", "ex-887"]
+  },
+  {
+    id: "rbac-safety-001",
+    surface: "safety_rule",
+    target: "forbidden-claims:v3",
+    requiredRole: "admin_superadmin",
+    attemptedRole: "admin_reviewer",
+    decision: "second_review_required",
+    secondReviewRequired: true,
+    secondReviewStatus: "blocked",
+    rationale: "Blocking safety policy changes affect export eligibility and need superadmin ownership plus completed second review before activation.",
+    auditRef: "au-006",
+    evidenceRefs: ["rx-41", "sv-098", "eg-002"]
+  },
+  {
+    id: "rbac-export-001",
+    surface: "export_override",
+    target: "ex-887",
+    requiredRole: "admin_reviewer",
+    attemptedRole: "admin_reviewer",
+    decision: "denied",
+    secondReviewRequired: false,
+    secondReviewStatus: "blocked",
+    rationale: "Reviewer role is present, but blocking forbidden-claim export overrides are never eligible; the RBAC result remains denied.",
+    auditRef: "au-001",
+    evidenceRefs: ["rv-102", "rx-41", "tr-1004"]
   }
 ];
 

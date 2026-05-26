@@ -1,11 +1,14 @@
 import { DataTable } from "@/components/DataTable";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
-import { getAdminReviewDecisions } from "@/lib/admin-api";
-import type { AdminReviewDecision } from "@/lib/types";
+import { getAdminRbacEvidence, getAdminReviewDecisions } from "@/lib/admin-api";
+import type { AdminRbacEvidence, AdminReviewDecision } from "@/lib/types";
 
 export default async function ReviewsPage() {
-  const reviews = await getAdminReviewDecisions();
+  const [reviews, rbacEvidence] = await Promise.all([
+    getAdminReviewDecisions(),
+    getAdminRbacEvidence()
+  ]);
 
   return (
     <>
@@ -44,6 +47,39 @@ export default async function ReviewsPage() {
             { key: "provenance", header: "Provenance", render: (row) => row.provenance },
             { key: "eval", header: "Eval", render: (row) => row.evalSummary },
             { key: "qa", header: "QA", render: (row) => row.qaSummary },
+            { key: "evidence", header: "Evidence Refs", render: (row) => row.evidenceRefs.join(", ") }
+          ]}
+        />
+      </section>
+
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>Admin RBAC Evidence</h3>
+            <p>Release, crawler, prompt, provider, quota, safety, and export overrides require role checks, rationale, evidence refs, and audit linkage.</p>
+          </div>
+        </div>
+        <DataTable<AdminRbacEvidence>
+          rows={rbacEvidence}
+          columns={[
+            { key: "id", header: "Evidence", render: (row) => <span className="mono">{row.id}</span> },
+            { key: "surface", header: "Surface", render: (row) => row.surface },
+            { key: "target", header: "Target", render: (row) => <span className="mono">{row.target}</span> },
+            { key: "required", header: "Required Role", render: (row) => row.requiredRole },
+            { key: "attempted", header: "Attempted Role", render: (row) => row.attemptedRole },
+            { key: "decision", header: "Decision", render: (row) => <StatusBadge value={row.decision} label={row.decision} /> },
+            {
+              key: "second-review",
+              header: "Second Review",
+              render: (row) => (
+                <StatusBadge
+                  value={row.secondReviewRequired ? row.secondReviewStatus : "approved"}
+                  label={row.secondReviewRequired ? row.secondReviewStatus : "Not required"}
+                />
+              )
+            },
+            { key: "rationale", header: "Rationale", render: (row) => row.rationale },
+            { key: "audit", header: "Audit Ref", render: (row) => <span className="mono">{row.auditRef}</span> },
             { key: "evidence", header: "Evidence Refs", render: (row) => row.evidenceRefs.join(", ") }
           ]}
         />

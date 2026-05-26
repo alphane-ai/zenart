@@ -9,6 +9,13 @@ export type AdminReviewSurface =
   | "safety_rule"
   | "export_override";
 
+export type AdminRole =
+  | "support_operator"
+  | "admin_viewer"
+  | "admin_operator"
+  | "admin_reviewer"
+  | "admin_superadmin";
+
 export type AdminSession = {
   id: string;
   name: string;
@@ -385,6 +392,20 @@ export type AdminReviewDecision = {
   qaSummary: string;
   evidenceRefs: string[];
   createdAt: string;
+};
+
+export type AdminRbacEvidence = {
+  id: string;
+  surface: AdminReviewSurface;
+  target: string;
+  requiredRole: AdminRole;
+  attemptedRole: AdminRole;
+  decision: "allowed" | "denied" | "second_review_required";
+  secondReviewRequired: boolean;
+  secondReviewStatus: "not_required" | "required" | "completed" | "blocked";
+  rationale: string;
+  auditRef: string;
+  evidenceRefs: string[];
 };
 
 export type ReleaseEvidence = {

@@ -1,5 +1,6 @@
 import {
   adminReviewDecisions,
+  adminRbacEvidence,
   abuseEvents,
   analyticsReports,
   crawlerGovernanceWorkflows,
@@ -45,6 +46,10 @@ export async function getSkillCanaryMetrics() {
 
 export async function getAdminReviewDecisions() {
   return adminReviewDecisions;
+}
+
+export async function getAdminRbacEvidence() {
+  return adminRbacEvidence;
 }
 
 export async function getCrawlerFindings() {

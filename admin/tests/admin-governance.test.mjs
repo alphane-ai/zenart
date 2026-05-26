@@ -8,7 +8,7 @@ const parseFixtures = () => {
   const moduleSource = source
     .replace(/^import type[\s\S]*?from "@\/lib\/types";\n\n/, "")
     .replaceAll(/export const (\w+)[^=]*=/g, "const $1 =");
-  return Function(`${moduleSource}\nreturn { skillVersions, skillReleaseStateDefinitions, skillCanaryMetrics, releaseEvidence, supportTickets, supportEscalationRunbooks, supportUsers, riskyExports, abuseEvents, auditEvents, exportJobs, traces, quotaAccounts, feedbackItems, analyticsReports, queueHealth, failedTaskControls, crawlerFindings, crawlerGovernanceWorkflows };`)();
+  return Function(`${moduleSource}\nreturn { skillVersions, skillReleaseStateDefinitions, skillCanaryMetrics, releaseEvidence, supportTickets, supportEscalationRunbooks, supportUsers, riskyExports, abuseEvents, auditEvents, exportJobs, traces, quotaAccounts, feedbackItems, analyticsReports, queueHealth, failedTaskControls, crawlerFindings, crawlerGovernanceWorkflows, adminRbacEvidence };`)();
 };
 
 const {
@@ -30,7 +30,8 @@ const {
   queueHealth,
   failedTaskControls,
   crawlerFindings,
-  crawlerGovernanceWorkflows
+  crawlerGovernanceWorkflows,
+  adminRbacEvidence
 } = parseFixtures();
 
 const auditIds = new Set(auditEvents.map((event) => event.id));
@@ -43,6 +44,14 @@ const quotaUserIds = new Set(quotaAccounts.map((account) => account.userId));
 const queueIds = new Set(queueHealth.map((queue) => queue.id));
 const crawlerFindingIds = new Set(crawlerFindings.map((finding) => finding.id));
 const incidentIds = new Set(["none", "inc-20260526-queue", "inc-20260525-crawler"]);
+
+const roleOrder = new Map([
+  ["support_operator", 1],
+  ["admin_viewer", 1],
+  ["admin_operator", 2],
+  ["admin_reviewer", 3],
+  ["admin_superadmin", 4]
+]);
 
 test("skill release governance defines states, traffic allocation, canary thresholds, and rollback audit", () => {
   const states = new Set(skillReleaseStateDefinitions.map((definition) => definition.state));
@@ -277,6 +286,58 @@ test("high-risk audit and release operations are immutable and rollback-linked",
     assert.ok(evidence.rollbackTarget.length > 0, `${evidence.id} needs rollback target`);
     assert.ok(auditIds.has(evidence.auditRef) || evidence.auditRef === evidence.id, `${evidence.id} links unknown audit ref`);
   }
+});
+
+test("admin RBAC evidence covers every governed override surface", () => {
+  const requiredSurfaces = new Set([
+    "skill_release",
+    "crawler_import",
+    "prompt_approval",
+    "provider_routing",
+    "quota_override",
+    "safety_rule",
+    "export_override"
+  ]);
+
+  assert.ok(adminRbacEvidence.length >= requiredSurfaces.size, "admin RBAC evidence needs every override surface");
+
+  for (const item of adminRbacEvidence) {
+    requiredSurfaces.delete(item.surface);
+    assert.ok(roleOrder.has(item.requiredRole), `${item.id} has unknown required role`);
+    assert.ok(roleOrder.has(item.attemptedRole), `${item.id} has unknown attempted role`);
+    assert.ok(auditIds.has(item.auditRef), `${item.id} links unknown audit ${item.auditRef}`);
+    assert.ok(item.evidenceRefs.length >= 3, `${item.id} needs at least three evidence refs`);
+    assert.ok(item.rationale.length > 80, `${item.id} needs rationale with role and risk context`);
+
+    if (item.decision === "allowed") {
+      assert.ok(
+        roleOrder.get(item.attemptedRole) >= roleOrder.get(item.requiredRole),
+        `${item.id} allowed decision needs sufficient attempted role`
+      );
+    }
+
+    if (roleOrder.get(item.attemptedRole) < roleOrder.get(item.requiredRole)) {
+      assert.notEqual(item.decision, "allowed", `${item.id} insufficient role cannot be allowed`);
+    }
+
+    if (item.secondReviewRequired) {
+      assert.notEqual(
+        item.secondReviewStatus,
+        "not_required",
+        `${item.id} second-review-required item cannot mark second review not required`
+      );
+    }
+  }
+
+  assert.deepEqual([...requiredSurfaces], [], "admin RBAC evidence missing override surfaces");
+  assert.ok(
+    adminRbacEvidence.some((item) => item.surface === "export_override" && item.decision === "denied"),
+    "blocking export override must stay denied even with reviewer role"
+  );
+  assert.ok(
+    adminRbacEvidence.some((item) => item.surface === "safety_rule" && item.requiredRole === "admin_superadmin"),
+    "safety rule overrides need superadmin evidence"
+  );
 });
 
 test("blocking safety exports cannot be overridden without audit-safe eligibility", () => {
