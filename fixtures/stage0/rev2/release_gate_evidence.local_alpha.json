@@ -31,7 +31,7 @@
     {
       "check_id": "local_alpha_runtime_stack",
       "status": "pass",
-      "evidence_ref": ".env.example and docker-compose.yml define web/admin/backend/worker/crawler/Postgres/Redis/local object storage runtime stack; docker compose --env-file .env.example config --quiet passes"
+      "evidence_ref": ".env.example and docker-compose.yml define the Web, Admin, Backend, worker, crawler, Postgres, Redis, and local object storage runtime stack; docker compose --env-file .env.example config --quiet passes"
     },
     {
       "check_id": "local_alpha_e2e_workflow_smoke",
@@ -104,7 +104,7 @@
       "condition_id": "missing_web_admin_backend_presence",
       "blueprint_condition": "External APIs 或 internal agent steps 缺合同和 trace completeness。",
       "is_present": false,
-      "evidence_ref": "scripts/validate_stage0_rev2.py validates web/admin/backend service presence"
+      "evidence_ref": "scripts/validate_stage0_rev2.py validates web, admin, and backend service presence"
     },
     {
       "condition_id": "local_alpha_runtime_not_validated",

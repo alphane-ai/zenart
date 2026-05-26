@@ -1366,9 +1366,20 @@ def concrete_evidence_paths(evidence_ref: str) -> set[str]:
     return paths
 
 
-def require_concrete_evidence_ref(evidence_ref: str, context: str) -> None:
+def require_concrete_evidence_ref(
+    evidence_ref: str,
+    context: str,
+    *,
+    require_all_paths_exist: bool = True,
+) -> None:
     paths = concrete_evidence_paths(evidence_ref)
     require(paths, f"{context} must cite at least one concrete repo artifact path")
+    if require_all_paths_exist:
+        missing_paths = sorted(path for path in paths if not evidence_path_exists(path))
+        require(
+            not missing_paths,
+            f"{context} cites concrete repo artifact paths that do not exist: {missing_paths}",
+        )
     require(
         any(evidence_path_exists(path) for path in paths),
         f"{context} cites repo artifact paths but none exist: {sorted(paths)}",
@@ -1554,6 +1565,7 @@ def validate_release_gate_basics(data: dict[str, Any]) -> tuple[dict[str, dict[s
             require_concrete_evidence_ref(
                 condition["evidence_ref"],
                 f"{gate}.{condition_id} active condition evidence",
+                require_all_paths_exist=False,
             )
         else:
             require_concrete_evidence_ref(
@@ -3753,6 +3765,7 @@ def validate_launch_readiness_split_contracts() -> None:
     for token in [
         "Fixture or contract evidence can never close CI, Private Beta/Staging, Production Launch, or Do-Not-Launch checklist items by itself",
         "Runtime gate checks that pass must cite environment-specific evidence paths",
+        "Passed gate checks and cleared Do-Not-Launch conditions may not mix real and missing concrete artifact paths",
         "Private Beta/Staging check-level runtime subitems must remain open until each matching release gate check has staging evidence",
         "Production check-level runtime subitems must remain open until each matching release gate check has production evidence",
         "Local Alpha remains open until four workflow API/Playwright smokes",

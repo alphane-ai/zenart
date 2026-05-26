@@ -2019,6 +2019,7 @@ Release gate closure policy:
 - `fixtures/stage0/rev2/release_gate_evidence.*.json` must cite the exact Do-Not-Launch condition text covered by each gate condition.
 - A gate checklist item may close only when every check in its evidence fixture is `pass` and every Do-Not-Launch condition in that fixture is false.
 - Passed gate checks and cleared Do-Not-Launch conditions must cite validator-resolvable repository artifacts such as `fixtures/`, `schemas/`, `openapi/`, `scripts/`, `backend/`, `web/`, `admin/`, `ops/`, `.env.example`, or `docker-compose.yml`; prose-only evidence is not sufficient.
+- Passed gate checks and cleared Do-Not-Launch conditions may not mix real and missing concrete artifact paths in one evidence ref; every cited concrete artifact path must resolve, while active blockers may name the absent runtime/deployment evidence path they are waiting on.
 - A blocked Do-Not-Launch condition must state the missing runtime or deployment evidence; prose-only readiness claims are not sufficient.
 - Definition-only artifacts can close checklist subitems only when the corresponding runtime subitem remains open.
 - Fixture or contract evidence can never close CI, Private Beta/Staging, Production Launch, or Do-Not-Launch checklist items by itself; those gates require runtime or deployment evidence in their matching release gate fixture.
