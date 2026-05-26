@@ -302,10 +302,12 @@ for (const expectedCapability of [
 
 for (const expectedIntegration of [
   "reference-upload-to-ready-zip-export",
+  "reference-upload-zip-provenance-ppt-asset-grid",
   "ecommerce-growth-pack-api-smoke",
   "generated-api-unsafe-operation-csrf-inventory",
   "workspace-rendering-performance-budget",
   "zip-download-manifest-qa-provenance-assets",
+  "zip-download-safety-policy-report",
   "package-export-metadata-ui-evidence",
   "ppt-ready-metadata-export-contract",
   "pdf-placeholder-download-contract",
@@ -320,6 +322,7 @@ for (const expectedDownloadSnippet of [
   "buildExportPackageBlob",
   "manifest.json",
   "qa-report.json",
+  "safety-policy-report.json",
   "provenance.json",
   "ppt-ready-metadata.json",
   "assets/README.txt",
@@ -331,6 +334,21 @@ for (const expectedDownloadSnippet of [
   const exportDownloadSource = await readFile(exportDownloadPath, "utf8");
   if (!exportDownloadSource.includes(expectedDownloadSnippet)) {
     fail(`export download contract missing ${expectedDownloadSnippet}`);
+  }
+}
+
+const exportDownloadTestPath = path.join(root, "lib", "export-download.test.ts");
+const exportDownloadTestSource = await readFile(exportDownloadTestPath, "utf8");
+for (const expectedDownloadSmokeSnippet of [
+  "dev-client-reference:ref-campaign-reference-webp",
+  "layout: \"asset-grid\"",
+  "safety-policy-report.json",
+  "assets/square_social_ad.png",
+  "workflow_id: ecommerceGrowthWorkflowAcceptance.workflow_id",
+  "URL.createObjectURL"
+]) {
+  if (!exportDownloadTestSource.includes(expectedDownloadSmokeSnippet)) {
+    fail(`reference upload ZIP integration smoke missing ${expectedDownloadSmokeSnippet}`);
   }
 }
 
