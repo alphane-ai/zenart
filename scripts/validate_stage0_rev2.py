@@ -737,17 +737,60 @@ LOCAL_ALPHA_WORKFLOW_RUNTIME_ITEMS = {
 }
 
 LOCAL_ALPHA_RELEASE_GATE_WORKFLOW_RUNTIME_OPEN_CHECK_ITEMS = {
-    "Local Alpha 电商增长包 runtime smoke evidence 写入 release gate fixture：API smoke 与 Playwright happy path 均通过 running local stack。": {
+    "Local Alpha 电商增长包 runtime smoke evidence 写入 release gate fixture：`ops/evidence/local_alpha/ecommerce_growth_pack.api_smoke.json`、`ops/evidence/local_alpha/ecommerce_growth_pack.playwright_happy_path.json`、`ops/evidence/local_alpha/ecommerce_growth_pack.export_zip.json` 均证明 running local stack。": {
         "local_alpha_e2e_workflow_smoke",
     },
-    "Local Alpha 商业视觉文档包 runtime smoke evidence 写入 release gate fixture：API smoke 与 Playwright happy path 均通过 running local stack。": {
+    "Local Alpha 商业视觉文档包 runtime smoke evidence 写入 release gate fixture：`ops/evidence/local_alpha/business_visual_doc_pack.api_smoke.json`、`ops/evidence/local_alpha/business_visual_doc_pack.playwright_happy_path.json`、`ops/evidence/local_alpha/business_visual_doc_pack.export_zip.json` 均证明 running local stack。": {
         "local_alpha_e2e_workflow_smoke",
     },
-    "Local Alpha 本地商家活动包 runtime smoke evidence 写入 release gate fixture：API smoke 与 Playwright happy path 均通过 running local stack。": {
+    "Local Alpha 本地商家活动包 runtime smoke evidence 写入 release gate fixture：`ops/evidence/local_alpha/local_merchant_campaign_pack.api_smoke.json`、`ops/evidence/local_alpha/local_merchant_campaign_pack.playwright_happy_path.json`、`ops/evidence/local_alpha/local_merchant_campaign_pack.export_zip.json` 均证明 running local stack。": {
         "local_alpha_e2e_workflow_smoke",
     },
-    "Local Alpha 角色/IP 概念包 runtime smoke evidence 写入 release gate fixture：API smoke 与 Playwright happy path 均通过 running local stack。": {
+    "Local Alpha 角色/IP 概念包 runtime smoke evidence 写入 release gate fixture：`ops/evidence/local_alpha/character_ip_concept_pack.api_smoke.json`、`ops/evidence/local_alpha/character_ip_concept_pack.playwright_happy_path.json`、`ops/evidence/local_alpha/character_ip_concept_pack.export_zip.json` 均证明 running local stack。": {
         "local_alpha_e2e_workflow_smoke",
+    },
+}
+
+LOCAL_ALPHA_WORKFLOW_RUNTIME_EVIDENCE_FILES = {
+    "ecommerce_growth_pack": {
+        "api": ROOT / "ops" / "evidence" / "local_alpha" / "ecommerce_growth_pack.api_smoke.json",
+        "playwright": ROOT
+        / "ops"
+        / "evidence"
+        / "local_alpha"
+        / "ecommerce_growth_pack.playwright_happy_path.json",
+        "export": ROOT / "ops" / "evidence" / "local_alpha" / "ecommerce_growth_pack.export_zip.json",
+    },
+    "business_visual_doc_pack": {
+        "api": ROOT / "ops" / "evidence" / "local_alpha" / "business_visual_doc_pack.api_smoke.json",
+        "playwright": ROOT
+        / "ops"
+        / "evidence"
+        / "local_alpha"
+        / "business_visual_doc_pack.playwright_happy_path.json",
+        "export": ROOT / "ops" / "evidence" / "local_alpha" / "business_visual_doc_pack.export_zip.json",
+    },
+    "local_merchant_campaign_pack": {
+        "api": ROOT / "ops" / "evidence" / "local_alpha" / "local_merchant_campaign_pack.api_smoke.json",
+        "playwright": ROOT
+        / "ops"
+        / "evidence"
+        / "local_alpha"
+        / "local_merchant_campaign_pack.playwright_happy_path.json",
+        "export": ROOT
+        / "ops"
+        / "evidence"
+        / "local_alpha"
+        / "local_merchant_campaign_pack.export_zip.json",
+    },
+    "character_ip_concept_pack": {
+        "api": ROOT / "ops" / "evidence" / "local_alpha" / "character_ip_concept_pack.api_smoke.json",
+        "playwright": ROOT
+        / "ops"
+        / "evidence"
+        / "local_alpha"
+        / "character_ip_concept_pack.playwright_happy_path.json",
+        "export": ROOT / "ops" / "evidence" / "local_alpha" / "character_ip_concept_pack.export_zip.json",
     },
 }
 
@@ -1139,10 +1182,10 @@ REQUIRED_OPEN_ITEMS = {
     "本地商家活动包 Playwright happy path 通过。",
     "角色/IP 概念包 API smoke test 通过。",
     "角色/IP 概念包 Playwright happy path 通过。",
-    "Local Alpha 电商增长包 runtime smoke evidence 写入 release gate fixture：API smoke 与 Playwright happy path 均通过 running local stack。",
-    "Local Alpha 商业视觉文档包 runtime smoke evidence 写入 release gate fixture：API smoke 与 Playwright happy path 均通过 running local stack。",
-    "Local Alpha 本地商家活动包 runtime smoke evidence 写入 release gate fixture：API smoke 与 Playwright happy path 均通过 running local stack。",
-    "Local Alpha 角色/IP 概念包 runtime smoke evidence 写入 release gate fixture：API smoke 与 Playwright happy path 均通过 running local stack。",
+    "Local Alpha 电商增长包 runtime smoke evidence 写入 release gate fixture：`ops/evidence/local_alpha/ecommerce_growth_pack.api_smoke.json`、`ops/evidence/local_alpha/ecommerce_growth_pack.playwright_happy_path.json`、`ops/evidence/local_alpha/ecommerce_growth_pack.export_zip.json` 均证明 running local stack。",
+    "Local Alpha 商业视觉文档包 runtime smoke evidence 写入 release gate fixture：`ops/evidence/local_alpha/business_visual_doc_pack.api_smoke.json`、`ops/evidence/local_alpha/business_visual_doc_pack.playwright_happy_path.json`、`ops/evidence/local_alpha/business_visual_doc_pack.export_zip.json` 均证明 running local stack。",
+    "Local Alpha 本地商家活动包 runtime smoke evidence 写入 release gate fixture：`ops/evidence/local_alpha/local_merchant_campaign_pack.api_smoke.json`、`ops/evidence/local_alpha/local_merchant_campaign_pack.playwright_happy_path.json`、`ops/evidence/local_alpha/local_merchant_campaign_pack.export_zip.json` 均证明 running local stack。",
+    "Local Alpha 角色/IP 概念包 runtime smoke evidence 写入 release gate fixture：`ops/evidence/local_alpha/character_ip_concept_pack.api_smoke.json`、`ops/evidence/local_alpha/character_ip_concept_pack.playwright_happy_path.json`、`ops/evidence/local_alpha/character_ip_concept_pack.export_zip.json` 均证明 running local stack。",
     "CI 在已安装 PR/main workflow 中运行 Playwright smoke。",
     "CI 在已安装 PR/main workflow 中 build Docker images。",
     "执行 staging deploy。",
@@ -1583,6 +1626,15 @@ def require_evidence_ref_cites_files(
     )
     missing_files = [rel(path) for path in paths if not path.exists()]
     require(not missing_files, f"{context} cites missing evidence files: {missing_files}")
+
+
+def require_local_alpha_workflow_runtime_files(evidence_ref: str, context: str) -> None:
+    required_files = [
+        path
+        for workflow_files in LOCAL_ALPHA_WORKFLOW_RUNTIME_EVIDENCE_FILES.values()
+        for path in workflow_files.values()
+    ]
+    require_evidence_ref_cites_files(evidence_ref, required_files, context)
 
 
 def missing_repo_paths(paths: list[str]) -> list[str]:
@@ -2056,11 +2108,20 @@ def validate_runtime_gate_evidence_refs(
                         any(alias.lower() in evidence_ref_lower for alias in aliases),
                         f"{gate}.{check_id} pass evidence must name workflow runtime coverage for {workflow_id}",
                     )
+                    for evidence_kind, path in LOCAL_ALPHA_WORKFLOW_RUNTIME_EVIDENCE_FILES[workflow_id].items():
+                        require(
+                            rel(path) in evidence_ref,
+                            f"{gate}.{check_id} pass evidence must cite exact {workflow_id} {evidence_kind} runtime artifact: {rel(path)}",
+                        )
                 for token in ["api", "playwright", "export zip"]:
                     require(
                         evidence_ref_lower.count(token) >= len(LOCAL_ALPHA_E2E_WORKFLOW_EVIDENCE_REQUIREMENTS),
                         f"{gate}.{check_id} pass evidence must cite per-workflow {token!r} evidence for all four workflows",
                     )
+                require_local_alpha_workflow_runtime_files(
+                    evidence_ref,
+                    f"{gate}.{check_id} pass evidence",
+                )
 
     runtime_items_open = RELEASE_GATE_RUNTIME_OPEN_ITEMS & unchecked_lines
     if gate == "local_alpha":
@@ -2695,6 +2756,15 @@ def validate_workflow_acceptance_split_contracts() -> None:
             require(
                 not missing_terms,
                 f"{workflow_id} {requirement['status_label']} closure missing Local Alpha evidence terms: {missing_terms}",
+            )
+            require(
+                rel(LOCAL_ALPHA_WORKFLOW_RUNTIME_EVIDENCE_FILES[workflow_id][item_key.split("_")[0]])
+                in local_alpha_smoke["evidence_ref"],
+                f"{workflow_id} {requirement['status_label']} closure must cite exact runtime evidence file",
+            )
+            require_local_alpha_workflow_runtime_files(
+                local_alpha_smoke["evidence_ref"],
+                f"{workflow_id} {requirement['status_label']} Local Alpha aggregate evidence",
             )
 
     workflow_contract = subprocess.run(
@@ -4893,6 +4963,8 @@ def validate_launch_readiness_split_contracts() -> None:
         "Passed gate checks and cleared Do-Not-Launch conditions may not mix real and missing concrete artifact paths",
         "Private Beta/Staging check-level runtime subitems must remain open until each matching release gate check has staging evidence",
         "Production check-level runtime subitems must remain open until each matching release gate check has production evidence",
+        "exact per-workflow API, Playwright, and export ZIP runtime evidence files under `ops/evidence/local_alpha/`",
+        "one generic local smoke artifact or directory-level reference cannot close the aggregate Local Alpha runtime check",
         "Local Alpha remains open until four workflow API/Playwright smokes",
         "Production Launch cannot clear `ci_staging_gates_not_passed` or pass backup/rollback/post-deploy evidence until both",
         "Do-Not-Launch Conditions 全部为 false。` remains open while any release-gate evidence fixture has `is_present: true`",
