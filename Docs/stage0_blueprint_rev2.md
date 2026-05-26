@@ -1878,13 +1878,16 @@ main 合并前必须通过：
 - [x] CI 运行 migration tests。
 - [x] CI 运行 OpenAPI/client stale checks。
 - [x] CI 运行 API/agent contract tests。
-- [ ] CI 运行 Playwright smoke。
-- [ ] CI build Docker images。
+- [x] CI 定义 Playwright smoke draft/evidence。
+- [ ] CI 在已安装 PR/main workflow 中运行 Playwright smoke。
+- [x] CI 定义 Docker image build draft/evidence。
+- [ ] CI 在已安装 PR/main workflow 中 build Docker images。
 - [x] CI 运行 security scans。
 - [x] 定义 local/CI/staging/production。
 - [x] Docker images 使用 git SHA tag。
-- [ ] 实现 staging deploy。
-- [ ] 实现 staging smoke tests。
+- [x] 定义 staging deploy plan。
+- [ ] 执行 staging deploy。
+- [ ] 执行 staging smoke tests。
 - [x] 定义 production approval/release tag。
 - [x] 定义 feature flags。
 - [x] 定义 rollback procedures。
@@ -1893,13 +1896,19 @@ main 合并前必须通过：
 
 ### 25.18 Observability, Backup, Incident, Load
 
+- [x] 定义 request id propagation staging smoke contract。
 - [ ] 实现 request id propagation。
+- [x] 定义 structured JSON logs contract。
 - [ ] 实现 structured JSON logs。
+- [x] 定义 OpenTelemetry traces contract。
 - [ ] 实现 OpenTelemetry traces。
+- [x] 定义 backend/worker/crawler metrics contract。
 - [ ] 实现 backend/worker/crawler metrics。
 - [x] 实现 frontend error reporting。
-- [x] 实现 dashboards。
-- [x] 实现 alerts。
+- [x] 定义 dashboards。
+- [ ] 导入并验证 staging dashboards runtime evidence。
+- [x] 定义 alerts。
+- [ ] 配置并验证 staging alert routes/runtime evidence。
 - [x] 定义 SLOs。
 - [x] 定义 incident severity/escalation/template/postmortem。
 - [x] 编写 runbooks。

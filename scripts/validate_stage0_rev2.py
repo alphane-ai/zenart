@@ -200,6 +200,15 @@ CHECKED_ITEMS = {
     "实现 abuse event model。",
     "实现 secure cookie 和 same-site CSRF 客户端/session contract evidence。",
     "实现 secret redaction。",
+    "CI 定义 Playwright smoke draft/evidence。",
+    "CI 定义 Docker image build draft/evidence。",
+    "定义 staging deploy plan。",
+    "定义 request id propagation staging smoke contract。",
+    "定义 structured JSON logs contract。",
+    "定义 OpenTelemetry traces contract。",
+    "定义 backend/worker/crawler metrics contract。",
+    "定义 dashboards。",
+    "定义 alerts。",
     "定义 analytics event taxonomy。",
     "添加 trace completeness tests。",
 }
@@ -213,6 +222,31 @@ FORBIDDEN_CHECKED_ITEMS = {
     "实现 temporary hold/throttle hooks。",
     "实现 admin abuse queue。",
     "support ticket 后端持久化并强制关联 user/project/task/trace/asset/export/quota。",
+    "CI 运行 Playwright smoke。",
+    "CI build Docker images。",
+    "实现 staging deploy。",
+    "实现 staging smoke tests。",
+    "实现 dashboards。",
+    "实现 alerts。",
+}
+
+REQUIRED_OPEN_ITEMS = {
+    "Local Alpha Gate 全部通过。",
+    "CI Gate 全部通过。",
+    "Private Beta/Staging Gate 全部通过。",
+    "Production Launch Gate 全部通过。",
+    "Do-Not-Launch Conditions 全部为 false。",
+    "CI 在已安装 PR/main workflow 中运行 Playwright smoke。",
+    "CI 在已安装 PR/main workflow 中 build Docker images。",
+    "执行 staging deploy。",
+    "执行 staging smoke tests。",
+    "实现 request id propagation。",
+    "实现 structured JSON logs。",
+    "实现 OpenTelemetry traces。",
+    "实现 backend/worker/crawler metrics。",
+    "导入并验证 staging dashboards runtime evidence。",
+    "配置并验证 staging alert routes/runtime evidence。",
+    "Post-deploy smoke tests 通过。",
 }
 
 DATABASE_TABLES = {
@@ -1324,6 +1358,13 @@ def validate_blueprint_checklist() -> None:
     checked_lines = checked_items(text)
     missing = CHECKED_ITEMS - checked_lines
     require(not missing, f"blueprint missing completed fixture/schema checklist marks: {sorted(missing)}")
+    unchecked_lines = unchecked_items(text)
+    missing_open = REQUIRED_OPEN_ITEMS - unchecked_lines
+    require(
+        not missing_open,
+        "blueprint must keep launch-runtime checklist items open until gate evidence passes: "
+        + json.dumps(sorted(missing_open), ensure_ascii=False),
+    )
 
     forbidden = FORBIDDEN_CHECKED_ITEMS & checked_lines
     require(
@@ -1724,6 +1765,112 @@ def validate_blueprint_evidence_backfill_contracts() -> None:
     )
 
 
+def validate_launch_readiness_split_contracts() -> None:
+    text = BLUEPRINT.read_text(encoding="utf-8")
+    checked_lines = checked_items(text)
+    unchecked_lines = unchecked_items(text)
+
+    ci_text = CI_DRAFT.read_text(encoding="utf-8")
+    ci_evidence = load_json(CI_DRAFT_EVIDENCE)
+    release_ops = load_json(RELEASE_OPS_EVIDENCE)
+    observability = load_json(OBSERVABILITY_EVIDENCE)
+    dashboard = load_json(OBSERVABILITY_DASHBOARD)
+    alerts = load_json(OBSERVABILITY_ALERTS)
+
+    for item in [
+        "CI 定义 Playwright smoke draft/evidence。",
+        "CI 定义 Docker image build draft/evidence。",
+        "定义 staging deploy plan。",
+        "定义 request id propagation staging smoke contract。",
+        "定义 structured JSON logs contract。",
+        "定义 OpenTelemetry traces contract。",
+        "定义 backend/worker/crawler metrics contract。",
+        "定义 dashboards。",
+        "定义 alerts。",
+    ]:
+        require(item in checked_lines, f"blueprint must close definition-only evidence subitem: {item}")
+
+    for item in [
+        "CI 在已安装 PR/main workflow 中运行 Playwright smoke。",
+        "CI 在已安装 PR/main workflow 中 build Docker images。",
+        "执行 staging deploy。",
+        "执行 staging smoke tests。",
+        "实现 request id propagation。",
+        "实现 structured JSON logs。",
+        "实现 OpenTelemetry traces。",
+        "实现 backend/worker/crawler metrics。",
+        "导入并验证 staging dashboards runtime evidence。",
+        "配置并验证 staging alert routes/runtime evidence。",
+    ]:
+        require(item in unchecked_lines, f"blueprint must keep runtime launch-readiness subitem open: {item}")
+
+    for ambiguous in [
+        "CI 运行 Playwright smoke。",
+        "CI build Docker images。",
+        "实现 staging deploy。",
+        "实现 dashboards。",
+        "实现 alerts。",
+    ]:
+        require(
+            ambiguous not in checked_lines and ambiguous not in unchecked_lines,
+            f"ambiguous launch-readiness checklist item must stay split: {ambiguous}",
+        )
+
+    required_ci_tokens = [
+        "playwright-smoke",
+        "DRY_RUN=1 scripts/playwright_smoke.sh",
+        "docker build --tag ghcr.io/alphane-ai/zenart-${{ matrix.image.name }}:${{ github.sha }}",
+        "DRY_RUN=1 scripts/docker_build_smoke.sh",
+    ]
+    for token in required_ci_tokens:
+        require(token in ci_text, f"CI draft evidence missing launch-readiness token: {token}")
+
+    artifact_ids = {item["artifact_id"] for item in ci_evidence["artifact_checks"]}
+    require("playwright_smoke_draft" in artifact_ids, "CI evidence must include Playwright smoke draft artifact")
+    require("docker_and_staging_smoke_draft" in artifact_ids, "CI evidence must include Docker/staging smoke draft artifact")
+    require(
+        ci_evidence["release_gate_effect"]["ci_gate_status"] == "blocked",
+        "CI draft evidence must not mark CI Gate passable",
+    )
+
+    policy = release_ops["checklist_policy"]
+    for key in [
+        "ci_playwright_smoke_remains_open",
+        "ci_docker_image_build_remains_open",
+        "staging_deploy_remains_open",
+        "staging_smoke_remains_open",
+        "release_notes_execution_remains_open",
+    ]:
+        require(policy.get(key) is True, f"release ops policy must keep {key} true")
+
+    signals = {item["name"]: item for item in observability["signals"]}
+    runtime_open_signals = {
+        "request_id_propagation",
+        "structured_json_logs",
+        "opentelemetry_traces",
+        "backend_worker_crawler_metrics",
+    }
+    for signal in runtime_open_signals:
+        require(signal in signals, f"observability evidence missing signal {signal}")
+        require(
+            signals[signal]["runtime_status"] in {"contract_validated", "definition_validated", "open"},
+            f"observability signal {signal} must not claim production runtime pass",
+        )
+        require(
+            "production_gate" in signals[signal] or "private_beta_gate" in signals[signal],
+            f"observability signal {signal} must describe remaining launch gate evidence",
+        )
+
+    require(
+        dashboard["status"] == "definition_ready_runtime_evidence_open",
+        "dashboard definition must keep runtime evidence open",
+    )
+    require(
+        alerts["status"] == "definition_ready_runtime_evidence_open",
+        "alert definition must keep runtime evidence open",
+    )
+
+
 def validate_generated_openapi_clients() -> None:
     openapi_text = OPENAPI.read_text(encoding="utf-8")
     expected_digest = hashlib.sha256(openapi_text.encode("utf-8")).hexdigest()
@@ -2069,6 +2216,7 @@ def main() -> int:
         validate_safety_enforcement_contract,
         validate_task_schema_compatibility_contract,
         validate_blueprint_evidence_backfill_contracts,
+        validate_launch_readiness_split_contracts,
         validate_generated_openapi_clients,
         validate_ops_ci_and_drill_evidence,
     ]
