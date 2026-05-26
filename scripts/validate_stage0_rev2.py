@@ -1076,12 +1076,14 @@ REQUIRED_OPEN_ITEMS |= (
         "Private Beta/Staging crawler approval/provenance runtime evidence 通过。",
         "Private Beta/Staging support/retry/abuse runtime evidence 通过。",
         "staging backend/worker/crawler metrics runtime evidence 通过。",
+        "Production activation review/audit runtime/deployment evidence 通过。",
         "Production abuse throttle/hold runtime/deployment evidence 通过。",
     }
 )
 REQUIRED_OPEN_ITEMS |= set(LOCAL_ALPHA_RELEASE_GATE_WORKFLOW_RUNTIME_OPEN_CHECK_ITEMS)
 REQUIRED_OPEN_ITEMS -= {
     "staging backend/worker/crawler metrics runtime evidence 通过。",
+    "Production activation review/audit runtime/deployment evidence 通过。",
     "Production abuse throttle/hold runtime/deployment evidence 通过。",
 }
 
@@ -1979,6 +1981,44 @@ def validate_aggregate_runtime_checklist_items(
                 missing_subitems or not gate_allows_checklist_completion(data),
                 f"{gate} aggregate runtime item remains open after concrete subitems and gate evidence allow closure",
             )
+
+
+def validate_release_gate_order_dependencies(evidence: dict[str, dict[str, Any]]) -> None:
+    ci = evidence["ci"]
+    private_beta = evidence["private_beta_staging"]
+    production = evidence["production_launch"]
+
+    ci_ready = gate_allows_checklist_completion(ci)
+    private_beta_ready = gate_allows_checklist_completion(private_beta)
+    upstream_ready = ci_ready and private_beta_ready
+
+    production_checks = checks_by_id(production)
+    production_conditions = do_not_launch_by_id(production)
+    dependency_condition = production_conditions["ci_staging_gates_not_passed"]
+    require(
+        dependency_condition["is_present"] is (not upstream_ready),
+        "production ci_staging_gates_not_passed condition must reflect computed CI and Private Beta/Staging readiness",
+    )
+    if upstream_ready:
+        return
+
+    require(
+        production_checks["production_backup_rollback_incident"]["status"] != "pass",
+        "production backup/rollback/post-deploy check cannot pass while CI or Private Beta/Staging gates remain blocked",
+    )
+    require(
+        not gate_allows_checklist_completion(production),
+        "production gate cannot allow checklist completion while CI or Private Beta/Staging gates remain blocked",
+    )
+    evidence_ref = dependency_condition["evidence_ref"]
+    for path in [
+        "fixtures/stage0/rev2/release_gate_evidence.ci.json",
+        "fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json",
+    ]:
+        require(
+            path in evidence_ref,
+            "production CI/staging dependency condition must cite both upstream release gate fixtures",
+        )
 
 
 def checked_items(text: str) -> set[str]:
@@ -3172,6 +3212,7 @@ def validate_release_gate_evidence() -> None:
             blueprint_checked,
             blueprint_unchecked,
         )
+    validate_release_gate_order_dependencies(evidence)
 
     local_alpha = load_json(FIXTURE_DIR / "release_gate_evidence.local_alpha.json")
     require(local_alpha["gate"] == "local_alpha", "release gate fixture must target local alpha")
@@ -3319,7 +3360,10 @@ def validate_release_gate_evidence() -> None:
     production = load_json(FIXTURE_DIR / "release_gate_evidence.production_launch.json")
     require(production["gate"] == "production_launch", "production release gate fixture must target production_launch")
     production_checks, production_conditions = validate_release_gate_basics(production)
-    closed_production_runtime_checks = {"production_abuse_throttle_hold"}
+    closed_production_runtime_checks = {
+        "production_abuse_throttle_hold",
+        "production_activation_review_audit",
+    }
     for check_id in RELEASE_GATE_REQUIRED_CHECKS["production_launch"]:
         expected_status = "pass" if check_id in closed_production_runtime_checks else "blocked"
         require(
@@ -3329,7 +3373,11 @@ def validate_release_gate_evidence() -> None:
     production_do_not_launch = {
         condition_id: item["is_present"] for condition_id, item in production_conditions.items()
     }
-    cleared_production_conditions = {"abuse_throttle_hold_missing"}
+    cleared_production_conditions = {
+        "abuse_throttle_hold_missing",
+        "activation_eval_review_audit_runtime_missing",
+        "admin_high_risk_review_runtime_missing",
+    }
     for condition_id in RELEASE_GATE_REQUIRED_ACTIVE_CONDITIONS["production_launch"]:
         expected_present = condition_id not in cleared_production_conditions
         require(
@@ -3411,6 +3459,7 @@ def validate_blueprint_checklist() -> None:
             )
 
     evidence = release_evidence_by_gate()
+    validate_release_gate_order_dependencies(evidence)
     for item, gate in GATE_CHECKLIST_ITEMS.items():
         require(item in unchecked_lines, f"blueprint launch gate item must remain open until evidence passes: {item}")
         require(gate in evidence, f"missing release gate evidence for {gate}")
@@ -4092,6 +4141,7 @@ def validate_launch_readiness_split_contracts() -> None:
             "Private Beta/Staging crawler approval/provenance runtime evidence 通过。",
             "Private Beta/Staging support/retry/abuse runtime evidence 通过。",
             "staging backend/worker/crawler metrics runtime evidence 通过。",
+            "Production activation review/audit runtime/deployment evidence 通过。",
             "Production abuse throttle/hold runtime/deployment evidence 通过。",
         }
     ):
@@ -4126,6 +4176,7 @@ def validate_launch_readiness_split_contracts() -> None:
         "Private Beta/Staging check-level runtime subitems must remain open until each matching release gate check has staging evidence",
         "Production check-level runtime subitems must remain open until each matching release gate check has production evidence",
         "Local Alpha remains open until four workflow API/Playwright smokes",
+        "Production Launch cannot clear `ci_staging_gates_not_passed` or pass backup/rollback/post-deploy evidence until both",
         "Do-Not-Launch Conditions 全部为 false。` remains open while any release-gate evidence fixture has `is_present: true`",
         "Release gate fixture IDs are closed-world",
     ]:

@@ -21,7 +21,7 @@
     {
       "check_id": "production_activation_review_audit",
       "status": "pass",
-      "evidence_ref": "ops/evidence/production/20260527T1430Z-activation-review-audit.json validates production activation review/audit enforcement across skill release, crawler activation, prompt activation, provider routing, quota override, safety policy, and export release admin gates while preserving unrelated launch blockers"
+      "evidence_ref": "ops/evidence/production/20260527T1430Z-activation-review-audit.json validates production activation eval/review/audit enforcement across skill release, crawler activation, prompt activation, provider routing, quota override, safety policy, and export release admin gates while preserving unrelated launch blockers"
     },
     {
       "check_id": "production_abuse_throttle_hold",
