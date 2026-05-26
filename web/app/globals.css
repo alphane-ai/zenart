@@ -704,6 +704,80 @@ textarea {
   color: #344054;
 }
 
+.export-detail-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.export-detail-panel {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+  background: #fbfcfe;
+}
+
+.export-detail-panel h4 {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.export-detail-panel dl {
+  margin: 0;
+}
+
+.export-detail-panel ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 8px;
+}
+
+.export-detail-panel li {
+  display: grid;
+  gap: 3px;
+}
+
+.export-detail-panel p,
+.export-detail-panel li span {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.share-state {
+  border: 1px solid rgba(37, 99, 235, 0.24);
+  border-radius: 8px;
+  background: #eff6ff;
+  padding: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.share-state div {
+  display: grid;
+  gap: 3px;
+}
+
+.share-state strong {
+  font-size: 13px;
+}
+
+.share-state span {
+  color: #475467;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.compact-share {
+  margin-top: 4px;
+  background: #f8fafc;
+}
+
 .settings-form,
 .support-form {
   max-width: 620px;

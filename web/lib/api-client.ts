@@ -9,6 +9,7 @@ import {
 } from "./contracts";
 import {
   buildManifest,
+  createDisabledShareLink,
   createInitialWorkspace,
   createReferenceAsset,
   createSupportTicket,
@@ -38,7 +39,7 @@ const loadState = (): WorkspaceState => {
   }
 
   try {
-    return JSON.parse(stored) as WorkspaceState;
+    return migrateState(JSON.parse(stored) as WorkspaceState);
   } catch {
     return saveState(createInitialWorkspace());
   }
@@ -52,9 +53,14 @@ const withQuota = (state: WorkspaceState, amount: number): WorkspaceState => ({
   }
 });
 
+const migrateState = (state: WorkspaceState): WorkspaceState => ({
+  ...state,
+  shareLinks: state.shareLinks ?? []
+});
+
 export class DevZenArtClient implements ZenArtClient {
   async loadWorkspace() {
-    return clone(loadState());
+    return clone(migrateState(loadState()));
   }
 
   async confirmBrief(prompt: string) {
@@ -237,7 +243,7 @@ export class DevZenArtClient implements ZenArtClient {
   }
 
   async createExport(format: ExportFormat) {
-    const state = loadState();
+    const state = migrateState(loadState());
     const qaReport = evaluatePackageQa(state.packageItems);
     const blocked = qaReport.some((item) => item.severity === "block");
     const manifest = buildManifest(state.activeProjectId, state.packageItems);
@@ -262,8 +268,26 @@ export class DevZenArtClient implements ZenArtClient {
     );
   }
 
+  async createShareLink(exportId: string) {
+    const state = migrateState(loadState());
+    const targetExport = state.exports.find((item) => item.id === exportId);
+    if (!targetExport) {
+      return clone(state);
+    }
+
+    const existing = state.shareLinks.find((item) => item.exportId === exportId);
+    if (existing) {
+      return clone(state);
+    }
+
+    return saveState({
+      ...state,
+      shareLinks: [...state.shareLinks, createDisabledShareLink(exportId, state.shareLinks.length)]
+    });
+  }
+
   async createMockCheckout() {
-    const state = loadState();
+    const state = migrateState(loadState());
     return saveState({
       ...state,
       billing: {

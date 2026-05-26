@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildManifest, createInitialWorkspace, evaluatePackageQa } from "./dev-state";
+import { buildManifest, createDisabledShareLink, createInitialWorkspace, evaluatePackageQa } from "./dev-state";
 
 describe("dev workspace contracts", () => {
   it("creates four deterministic candidates", () => {
@@ -16,5 +16,13 @@ describe("dev workspace contracts", () => {
 
     expect(qa.some((finding) => finding.severity === "block")).toBe(true);
     expect(manifest.required_outputs).toEqual(["manifest.json", "qa-report.json", "provenance.json", "assets/"]);
+  });
+
+  it("models local alpha share links as disabled and private", () => {
+    const shareLink = createDisabledShareLink("export-001", 0);
+
+    expect(shareLink.status).toBe("disabled");
+    expect(shareLink.access).toBe("private");
+    expect(shareLink.reason).toContain("disabled in local alpha");
   });
 });

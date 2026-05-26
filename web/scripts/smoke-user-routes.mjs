@@ -55,7 +55,11 @@ for (const requiredSnippet of [
   "role=\"progressbar\"",
   "aria-label=\"Reload workspace\"",
   "className=\"sr-only\"",
-  "aria-pressed"
+  "aria-pressed",
+  "manifest-preview",
+  "qa-report",
+  "provenance-report",
+  "share-link-state"
 ]) {
   if (!componentSource.includes(requiredSnippet)) {
     fail(`WorkspaceApp missing accessible state snippet ${requiredSnippet}`);

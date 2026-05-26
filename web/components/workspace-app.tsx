@@ -13,6 +13,7 @@ import {
   ImagePlus,
   LayoutDashboard,
   LifeBuoy,
+  Link2,
   Loader2,
   PackagePlus,
   RefreshCcw,
@@ -442,6 +443,7 @@ function PackagePanel({
           <article key={item.id} className={item.status === "blocked" ? "blocked-export" : ""}>
             <strong>{item.fileName}</strong>
             <span>{item.status} · {dateLabel(item.createdAt)}</span>
+            <span>Manifest {item.manifest.package_id} · {item.manifest.items.length} provenance entries</span>
             <div className="qa-list">
               {item.qaReport.map((finding) => (
                 <span key={finding.id} className={severityClass[finding.severity]}>
@@ -455,6 +457,7 @@ function PackagePanel({
                 Download
               </button>
             ) : null}
+            <ShareLinkState state={state} exportId={item.id} runAction={runAction} compact />
           </article>
         ))}
       </div>
@@ -494,6 +497,7 @@ function ExportView({
   runAction: (label: string, action: () => Promise<WorkspaceState>) => Promise<void>;
 }) {
   const latestExport = state.exports[0];
+  const latestShareLink = latestExport ? state.shareLinks.find((item) => item.exportId === latestExport.id) : undefined;
   return (
     <section className="content-view export-view">
       <div className="section-title">
@@ -520,7 +524,63 @@ function ExportView({
                   <dt>QA findings</dt>
                   <dd>{latestExport.qaReport.length}</dd>
                 </div>
+                <div>
+                  <dt>Provenance</dt>
+                  <dd>{latestExport.manifest.items.map((item) => item.provenance).join(", ") || "No package provenance yet"}</dd>
+                </div>
+                <div>
+                  <dt>Share link</dt>
+                  <dd>{latestShareLink ? `${latestShareLink.status} · ${latestShareLink.access}` : "Not requested"}</dd>
+                </div>
               </dl>
+              <div className="export-detail-grid">
+                <section className="export-detail-panel manifest-preview" aria-label="Manifest preview">
+                  <h4>Manifest Preview</h4>
+                  <dl>
+                    <div>
+                      <dt>Package</dt>
+                      <dd>{latestExport.manifest.package_id}</dd>
+                    </div>
+                    <div>
+                      <dt>Project</dt>
+                      <dd>{latestExport.manifest.project_id}</dd>
+                    </div>
+                    <div>
+                      <dt>Created</dt>
+                      <dd>{dateLabel(latestExport.manifest.created_at)}</dd>
+                    </div>
+                  </dl>
+                </section>
+                <section className="export-detail-panel qa-report" aria-label="QA report">
+                  <h4>QA Report</h4>
+                  <div className="qa-list">
+                    {latestExport.qaReport.map((finding) => (
+                      <span key={finding.id} className={severityClass[finding.severity]}>
+                        {finding.severity}: {finding.title}
+                      </span>
+                    ))}
+                  </div>
+                </section>
+                <section className="export-detail-panel provenance-report" aria-label="Provenance report">
+                  <h4>Provenance Report</h4>
+                  {latestExport.manifest.items.length === 0 ? (
+                    <p>No package items are eligible for final export.</p>
+                  ) : (
+                    <ul>
+                      {latestExport.manifest.items.map((item) => (
+                        <li key={item.id}>
+                          <strong>{item.title}</strong>
+                          <span>{item.type} · {item.provenance}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </section>
+                <section className="export-detail-panel share-link-state" aria-label="Share link state">
+                  <h4>Share Link State</h4>
+                  <ShareLinkState state={state} exportId={latestExport.id} runAction={runAction} />
+                </section>
+              </div>
             </>
           ) : (
             <p>No export has been created for this local alpha workspace.</p>
@@ -528,6 +588,37 @@ function ExportView({
         </article>
       </div>
     </section>
+  );
+}
+
+function ShareLinkState({
+  state,
+  exportId,
+  runAction,
+  compact = false
+}: {
+  state: WorkspaceState;
+  exportId: string;
+  runAction: (label: string, action: () => Promise<WorkspaceState>) => Promise<void>;
+  compact?: boolean;
+}) {
+  const shareLink = state.shareLinks.find((item) => item.exportId === exportId);
+
+  return (
+    <div className={compact ? "share-state compact-share" : "share-state"}>
+      <div>
+        <strong>{shareLink ? `Share ${shareLink.status}` : "Share private"}</strong>
+        <span>{shareLink?.reason ?? "Local alpha exports stay private until signed sharing is available."}</span>
+      </div>
+      <button
+        className="secondary-button compact"
+        disabled={Boolean(shareLink)}
+        onClick={() => void runAction("share", () => zenArtClient.createShareLink(exportId))}
+      >
+        <Link2 size={15} aria-hidden="true" />
+        Request Share
+      </button>
+    </div>
   );
 }
 

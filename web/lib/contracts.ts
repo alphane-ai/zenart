@@ -126,6 +126,17 @@ export interface ExportRecord {
   qaReport: QaFinding[];
 }
 
+export interface ShareLink {
+  id: string;
+  exportId: string;
+  status: "disabled" | "active" | "revoked";
+  access: "private" | "link";
+  createdAt: string;
+  expiresAt?: string;
+  url?: string;
+  reason?: string;
+}
+
 export interface SupportTicket {
   id: string;
   projectId: string;
@@ -158,6 +169,7 @@ export interface WorkspaceState {
   };
   packageItems: PackageItem[];
   exports: ExportRecord[];
+  shareLinks: ShareLink[];
   supportTickets: SupportTicket[];
 }
 
@@ -170,6 +182,7 @@ export interface ZenArtClient {
   restoreCanvasVersion(versionId: string): Promise<WorkspaceState>;
   addPackageItem(sourceId: string): Promise<WorkspaceState>;
   createExport(format: ExportFormat): Promise<WorkspaceState>;
+  createShareLink(exportId: string): Promise<WorkspaceState>;
   createMockCheckout(): Promise<WorkspaceState>;
   updateAccount(settings: AccountSettings): Promise<WorkspaceState>;
   reportProblem(input: Pick<SupportTicket, "category" | "body" | "linkedExportId">): Promise<WorkspaceState>;

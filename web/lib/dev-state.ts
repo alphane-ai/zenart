@@ -5,6 +5,7 @@ import {
   PackageManifest,
   QaFinding,
   ReferenceAsset,
+  ShareLink,
   SupportTicket,
   WorkspaceState
 } from "./contracts";
@@ -133,6 +134,7 @@ export const createInitialWorkspace = (): WorkspaceState => ({
   },
   packageItems: [],
   exports: [],
+  shareLinks: [],
   supportTickets: []
 });
 
@@ -204,6 +206,15 @@ export const createSupportTicket = (
     used: state.billing.quotaUsed,
     limit: state.billing.quotaLimit
   }
+});
+
+export const createDisabledShareLink = (exportId: string, index: number): ShareLink => ({
+  id: `share-${String(index + 1).padStart(3, "0")}`,
+  exportId,
+  status: "disabled",
+  access: "private",
+  createdAt: new Date().toISOString(),
+  reason: "Share links are modeled for Rev2 but disabled in local alpha until signed URLs and tenant checks are backed by the API."
 });
 
 export const formatExportFileName = (format: ExportFormat, exportCount: number) =>

@@ -19,7 +19,7 @@
       "path": "/export",
       "component": "WorkspaceApp",
       "initialView": "export",
-      "expects": ["package-history", "export-history", "manifest-preview", "qa-report"]
+      "expects": ["package-history", "export-history", "manifest-preview", "qa-report", "provenance-report", "share-link-state"]
     },
     {
       "path": "/billing",
