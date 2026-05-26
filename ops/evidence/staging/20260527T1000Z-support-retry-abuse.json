@@ -128,7 +128,6 @@
     "can_clear_check_level_item": true,
     "aggregate_private_beta_gate_status": "blocked_by_other_staging_runtime_items",
     "remaining_blockers": [
-      "staging_auth_rbac_tenant_audit",
       "staging_brief_upload_confirmation",
       "staging_object_storage_signed_downloads",
       "staging_quota_rate_limit_spend_cap",

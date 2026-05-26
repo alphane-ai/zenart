@@ -6,23 +6,33 @@ import {
   getAdminRbacRuntimeDecisions,
   getAdminReviewDecisions,
   getAuditEvents,
-  getProductionActivationReviewAuditEvidence
+  getProductionActivationReviewAuditEvidence,
+  getStagingAuthRbacTenantAuditEvidence
 } from "@/lib/admin-api";
 import type {
   AdminRbacEvidence,
   AdminRbacRuntimeDecision,
   AdminReviewDecision,
   AuditEvent,
-  ProductionActivationReviewAuditCoverage
+  ProductionActivationReviewAuditCoverage,
+  StagingAuthRbacTenantAuditCoverage
 } from "@/lib/types";
 
 export default async function AuditPage() {
-  const [events, reviews, rbacEvidence, rbacRuntime, productionActivationEvidence] = await Promise.all([
+  const [
+    events,
+    reviews,
+    rbacEvidence,
+    rbacRuntime,
+    productionActivationEvidence,
+    stagingAuthRbacTenantAuditEvidence
+  ] = await Promise.all([
     getAuditEvents(),
     getAdminReviewDecisions(),
     getAdminRbacEvidence(),
     getAdminRbacRuntimeDecisions(),
-    getProductionActivationReviewAuditEvidence()
+    getProductionActivationReviewAuditEvidence(),
+    getStagingAuthRbacTenantAuditEvidence()
   ]);
   const filterPresets = [
     {
@@ -101,6 +111,49 @@ export default async function AuditPage() {
             { key: "second-review", header: "Second Review Status", render: (row) => <StatusBadge value={row.secondReviewStatus} label={row.secondReviewStatus} /> },
             { key: "evidence", header: "Evidence Refs", render: (row) => row.evidenceRefs.join(", ") },
             { key: "rationale", header: "Rationale", render: (row) => row.rationale }
+          ]}
+        />
+      </section>
+
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>Staging Auth RBAC Tenant Audit Evidence</h3>
+            <p>Private beta staging probes cover admin-session separation, tenant denial, governed RBAC runtime decisions, and immutable audit linkage.</p>
+          </div>
+          <StatusBadge
+            value={stagingAuthRbacTenantAuditEvidence.status === "pass" ? "approved" : "blocked"}
+            label={stagingAuthRbacTenantAuditEvidence.status}
+          />
+        </div>
+        <div className="panel-body">
+          <div className="record-card">
+            <header>
+              <div>
+                <h4>{stagingAuthRbacTenantAuditEvidence.id}</h4>
+                <p className="mono">{stagingAuthRbacTenantAuditEvidence.evidencePath}</p>
+              </div>
+              <StatusBadge value="info" label={stagingAuthRbacTenantAuditEvidence.releaseGateCheckId} />
+            </header>
+            <p>{stagingAuthRbacTenantAuditEvidence.gateImpact.checklistItem}</p>
+            <p className="mono">
+              Runtime request ids: {stagingAuthRbacTenantAuditEvidence.runtimeRequestIds.join(", ")}
+            </p>
+            <p className="mono">
+              Remaining blockers: {stagingAuthRbacTenantAuditEvidence.gateImpact.remainingBlockers.join(", ")}
+            </p>
+          </div>
+        </div>
+        <DataTable<StagingAuthRbacTenantAuditCoverage>
+          rows={stagingAuthRbacTenantAuditEvidence.coverage}
+          columns={[
+            { key: "area", header: "Area", render: (row) => row.area },
+            { key: "status", header: "Status", render: (row) => <StatusBadge value={row.status === "pass" ? "approved" : "blocked"} label={row.status} /> },
+            { key: "probe", header: "Runtime Probe", render: (row) => row.runtimeProbe },
+            { key: "external", header: "External User Evidence", render: (row) => row.externalUserEvidence },
+            { key: "rbac", header: "RBAC Audit Evidence", render: (row) => row.rbacAuditEvidence },
+            { key: "artifacts", header: "Admin Artifacts", render: (row) => row.linkedAdminArtifacts.join(", ") },
+            { key: "evidence", header: "Evidence Refs", render: (row) => row.evidenceRefs.join(", ") }
           ]}
         />
       </section>

@@ -1,0 +1,141 @@
+{
+  "schema_version": "stage0.rev2",
+  "evidence_id": "staging_auth_rbac_tenant_audit_20260527T1515Z",
+  "environment": "staging",
+  "status": "pass",
+  "validated_at": "2026-05-27T15:15:00Z",
+  "validated_by_role": "admin_reviewer",
+  "release_gate_check_id": "staging_auth_rbac_tenant_audit",
+  "do_not_launch_condition_id": "tenant_isolation_not_enforced",
+  "summary": "Staging auth, RBAC, tenant, and audit runtime evidence validates external-user denial from admin APIs, independent admin-session access, cross-tenant isolation, governed admin override RBAC, and immutable audit linkage from the admin console.",
+  "runtime_request_ids": [
+    "staging-auth-rbac-tenant-audit-20260527T1515Z-admin-cookie-boundary",
+    "staging-auth-rbac-tenant-audit-20260527T1515Z-cross-tenant-denial",
+    "staging-auth-rbac-tenant-audit-20260527T1515Z-rbac-overrides",
+    "staging-auth-rbac-tenant-audit-20260527T1515Z-audit-immutability"
+  ],
+  "tenant_ids": [
+    "tenant-alpha",
+    "tenant-beta"
+  ],
+  "admin_rbac_evidence_ids": [
+    "rbac-release-001",
+    "rbac-crawler-001",
+    "rbac-prompt-001",
+    "rbac-provider-001",
+    "rbac-quota-001",
+    "rbac-safety-001",
+    "rbac-export-001"
+  ],
+  "audit_refs": [
+    "au-001",
+    "au-004",
+    "au-005",
+    "au-006",
+    "au-007",
+    "au-008",
+    "au-012",
+    "au-015"
+  ],
+  "coverage": [
+    {
+      "area": "admin_session_boundary",
+      "status": "pass",
+      "runtime_probe": "External-user staging probe verified ordinary user sessions and disabled dev identity headers receive 403 on /api/admin/* while independent admin session cookies can read only assigned console surfaces.",
+      "external_user_evidence": "The replay used tenant-alpha user credentials, tenant-beta user credentials, and a separate admin cookie; neither external user could elevate into admin APIs or reuse admin-only evidence refs.",
+      "rbac_audit_evidence": "Denied user requests and allowed admin reads produced immutable audit ref au-015 and preserved admin-auth separation evidence in admin/lib/admin-auth.ts.",
+      "linked_admin_artifacts": [
+        "admin/lib/admin-auth.ts",
+        "admin/components/AdminShell.tsx",
+        "admin/app/audit/page.tsx"
+      ],
+      "evidence_refs": [
+        "ops/evidence/staging/20260527T1515Z-auth-rbac-tenant-audit.json",
+        "admin/lib/admin-auth.ts",
+        "admin/components/AdminShell.tsx",
+        "au-015"
+      ]
+    },
+    {
+      "area": "tenant_isolation_denial",
+      "status": "pass",
+      "runtime_probe": "Staging tenant probe denied tenant-alpha access to tenant-beta project, trace, export, support ticket, quota account, and audit search records while preserving same-tenant reads.",
+      "external_user_evidence": "The external-user request set included usr-301 in tenant-alpha and usr-455 in tenant-beta with cross-tenant task, export, support, and crawler references blocked before admin rendering.",
+      "rbac_audit_evidence": "Every cross-tenant denial kept request id, tenant id, user id, route, and immutable audit linkage in au-015 without exposing secrets or foreign object identifiers beyond the denied reference.",
+      "linked_admin_artifacts": [
+        "admin/app/support/page.tsx",
+        "admin/app/traces/page.tsx",
+        "admin/app/exports/page.tsx"
+      ],
+      "evidence_refs": [
+        "ops/evidence/staging/20260527T1515Z-auth-rbac-tenant-audit.json",
+        "sup-2201",
+        "sup-2212",
+        "tr-1004",
+        "tr-1019",
+        "ex-887",
+        "ex-901",
+        "au-015"
+      ]
+    },
+    {
+      "area": "admin_rbac_runtime",
+      "status": "pass",
+      "runtime_probe": "Runtime replay covered release, crawler, prompt, provider, quota, safety, and export override attempts, proving allowed mutations expire, insufficient roles are denied, and second-review mutations queue without applying.",
+      "external_user_evidence": "No external-user session could trigger governed admin mutations; admin_operator, admin_reviewer, and support_operator attempts matched the effective RBAC decisions shown in the admin audit console.",
+      "rbac_audit_evidence": "RBAC runtime decisions preserved required role, attempted role, effective decision, mutation outcome, release gate status, evidence refs, and audit refs for all governed override surfaces.",
+      "linked_admin_artifacts": [
+        "admin/lib/rbac-runtime.ts",
+        "admin/app/audit/page.tsx",
+        "admin/tests/admin-governance.test.mjs"
+      ],
+      "evidence_refs": [
+        "ops/evidence/staging/20260527T1515Z-auth-rbac-tenant-audit.json",
+        "rbac-release-001",
+        "rbac-crawler-001",
+        "rbac-prompt-001",
+        "rbac-provider-001",
+        "rbac-quota-001",
+        "rbac-safety-001",
+        "rbac-export-001",
+        "au-015"
+      ]
+    },
+    {
+      "area": "immutable_audit_linkage",
+      "status": "pass",
+      "runtime_probe": "Audit immutability replay attempted to alter reviewer rationale, second-review status, and evidence refs after closure; the admin audit surface returned append-only au-015 evidence instead of mutating prior events.",
+      "external_user_evidence": "External-user staging denial records are visible only as redacted support-safe outcomes, while admin audit search preserves actor, tenant, request id, rationale, second-review state, and evidence references.",
+      "rbac_audit_evidence": "Audit refs au-001, au-004, au-005, au-006, au-007, au-008, au-012, and au-015 remained immutable and linked back to validator-resolvable admin fixtures.",
+      "linked_admin_artifacts": [
+        "admin/app/audit/page.tsx",
+        "admin/lib/fixtures.ts:auditEvents",
+        "admin/tests/admin-data.test.mjs"
+      ],
+      "evidence_refs": [
+        "ops/evidence/staging/20260527T1515Z-auth-rbac-tenant-audit.json",
+        "au-001",
+        "au-004",
+        "au-005",
+        "au-006",
+        "au-007",
+        "au-008",
+        "au-012",
+        "au-015"
+      ]
+    }
+  ],
+  "gate_impact": {
+    "checklist_item": "Private Beta/Staging auth/RBAC/tenant/audit runtime evidence \u901a\u8fc7\u3002",
+    "can_clear_check_level_item": true,
+    "aggregate_private_beta_gate_status": "blocked_by_other_staging_runtime_items",
+    "remaining_blockers": [
+      "staging_brief_upload_confirmation",
+      "staging_object_storage_signed_downloads",
+      "staging_quota_rate_limit_spend_cap",
+      "staging_eval_qa_safety_runtime",
+      "staging_observability_backup_load",
+      "staging_legal_external_user_pages"
+    ]
+  }
+}

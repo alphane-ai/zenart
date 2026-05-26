@@ -1986,7 +1986,7 @@ main 合并前必须通过：
 - [ ] CI installed workflow runtime evidence 通过：PR/main run、Playwright smoke、Docker image build 均有 validator-resolvable evidence。
 - [x] Backfill Private Beta/Staging no-go evidence: contract/fixture evidence is separated from external-user staging runtime blockers in `fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json`。
 - [ ] Private Beta/Staging external-user runtime evidence 通过：auth/RBAC/tenant、storage、quota/rate limit、support/abuse、safety/QA/crawler、observability/backup/load、legal visibility 均有 staging evidence。
-- [ ] Private Beta/Staging auth/RBAC/tenant/audit runtime evidence 通过。
+- [x] Private Beta/Staging auth/RBAC/tenant/audit runtime evidence 通过。
 - [ ] Private Beta/Staging brief/upload/confirmation runtime evidence 通过。
 - [ ] Private Beta/Staging object storage signed download/retention runtime evidence 通过。
 - [ ] Private Beta/Staging quota/rate-limit/spend-cap runtime evidence 通过。
@@ -2012,7 +2012,7 @@ Release gate evidence map:
 
 - Local Alpha Gate: `fixtures/stage0/rev2/release_gate_evidence.local_alpha.json` records fixture/runtime-stack pass evidence and keeps end-to-end workflow smoke blocked.
 - CI Gate: `fixtures/stage0/rev2/release_gate_evidence.ci.json` records ops CI draft coverage and keeps installed workflow/runtime execution, Playwright smoke, and Docker image build blocked.
-- Private Beta/Staging Gate: `fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json` records fixture/definition evidence where present, clears support/retry/abuse and crawler runtime checks with staging evidence, and keeps external-user runtime evidence blocked for auth/RBAC/tenant isolation, production-like object storage, quota/rate limits, eval/QA/safety enforcement, observability/restore/load, and legal pages.
+- Private Beta/Staging Gate: `fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json` records fixture/definition evidence where present, clears auth/RBAC/tenant/audit, support/retry/abuse, and crawler runtime checks with staging evidence, and keeps external-user runtime evidence blocked for production-like object storage, quota/rate limits, eval/QA/safety enforcement, observability/restore/load, and legal pages.
 - Production Launch Gate: `fixtures/stage0/rev2/release_gate_evidence.production_launch.json` records fixture/definition evidence where present, clears abuse throttle/hold and activation review/audit with production evidence, and keeps launch evidence blocked for provider/comp-only mode, paid billing lifecycle, skill eval/canary/release controls, security, backup/rollback/incident readiness, and legal/support policy.
 
 Release gate closure policy:
@@ -2039,7 +2039,7 @@ Release gate closure policy:
 - Production Launch cannot clear `ci_staging_gates_not_passed` or pass backup/rollback/post-deploy evidence until both `fixtures/stage0/rev2/release_gate_evidence.ci.json` and `fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json` allow checklist completion.
 - Local Alpha remains open until four workflow API/Playwright smokes prove brief -> 4 candidates -> select -> iterate -> package -> export ZIP against the running local stack.
 - CI remains open until an installed `.github/workflows` PR/main workflow runs and records Playwright smoke plus Docker image build evidence.
-- Private Beta/Staging remains open until external-user staging runtime evidence exists for auth/RBAC/tenant isolation, object storage signed downloads, quota/rate limits, support/abuse, safety/QA/crawler enforcement, observability/backup/load, and legal page visibility.
+- Private Beta/Staging remains open until external-user staging runtime evidence exists for object storage signed downloads, quota/rate limits, safety/QA enforcement, observability/backup/load, legal page visibility, and the remaining aggregate workflow evidence.
 - Production Launch remains open until CI and Private Beta/Staging gates pass and production-specific provider/comp-only, paid billing, skill/canary, activation review, abuse throttle/hold, security, backup/rollback, post-deploy smoke, and legal/support deployment evidence exists.
 - `Do-Not-Launch Conditions 全部为 false。` remains open while any release-gate evidence fixture has `is_present: true`.
 - `Do-Not-Launch Conditions 全部为 false。` may close only when all four release gate fixtures have no active Do-Not-Launch conditions and Local Alpha, CI, Private Beta/Staging, and Production Launch gate checklist items are also closed in the blueprint.

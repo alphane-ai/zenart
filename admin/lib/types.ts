@@ -560,6 +560,42 @@ export type StagingSupportRetryAbuseEvidence = {
   };
 };
 
+export type StagingAuthRbacTenantAuditCoverage = {
+  area:
+    | "admin_session_boundary"
+    | "tenant_isolation_denial"
+    | "admin_rbac_runtime"
+    | "immutable_audit_linkage";
+  status: "pass" | "blocked";
+  runtimeProbe: string;
+  externalUserEvidence: string;
+  rbacAuditEvidence: string;
+  linkedAdminArtifacts: string[];
+  evidenceRefs: string[];
+};
+
+export type StagingAuthRbacTenantAuditEvidence = {
+  id: string;
+  evidencePath: string;
+  environment: "staging";
+  status: "pass" | "blocked";
+  validatedAt: string;
+  validatedByRole: AdminRole;
+  releaseGateCheckId: "staging_auth_rbac_tenant_audit";
+  doNotLaunchConditionId: "tenant_isolation_not_enforced";
+  runtimeRequestIds: string[];
+  tenantIds: string[];
+  adminRbacEvidenceIds: string[];
+  auditRefs: string[];
+  coverage: StagingAuthRbacTenantAuditCoverage[];
+  gateImpact: {
+    checklistItem: string;
+    canClearCheckLevelItem: boolean;
+    aggregatePrivateBetaGateStatus: "blocked_by_other_staging_runtime_items";
+    remainingBlockers: string[];
+  };
+};
+
 export type ProductionAbuseThrottleHoldCoverage = {
   area:
     | "account_hold_enforcement"

@@ -12,7 +12,7 @@ const parseFixtures = () => {
   const moduleSource = source
     .replace(/^import type[\s\S]*?from "@\/lib\/types";\n\n/, "")
     .replaceAll(/export const (\w+)[^=]*=/g, "const $1 =");
-  return Function(`${moduleSource}\nreturn { skillVersions, skillReleaseStateDefinitions, skillCanaryMetrics, releaseEvidence, releaseBlockers, supportTickets, supportEscalationRunbooks, supportUsers, riskyExports, abuseEvents, abuseControlHooks, stagingSupportRetryAbuseEvidence, productionAbuseThrottleHoldEvidence, productionActivationReviewAuditEvidence, auditEvents, exportJobs, traces, quotaAccounts, feedbackItems, regressionFixtures, analyticsReports, queueHealth, failedTaskControls, crawlerFindings, crawlerSourceApprovals, crawlerGovernanceWorkflows, crawlerStagingRuntimeEvidence, adminRbacEvidence, operationalDashboards, operationalDashboardRuntimeEvidence, alertRoutes, alertRouteRuntimeEvidence, backendMetricsRuntimeEvidence };`)();
+  return Function(`${moduleSource}\nreturn { skillVersions, skillReleaseStateDefinitions, skillCanaryMetrics, releaseEvidence, releaseBlockers, supportTickets, supportEscalationRunbooks, supportUsers, riskyExports, abuseEvents, abuseControlHooks, stagingAuthRbacTenantAuditEvidence, stagingSupportRetryAbuseEvidence, productionAbuseThrottleHoldEvidence, productionActivationReviewAuditEvidence, auditEvents, exportJobs, traces, quotaAccounts, feedbackItems, regressionFixtures, analyticsReports, queueHealth, failedTaskControls, crawlerFindings, crawlerSourceApprovals, crawlerGovernanceWorkflows, crawlerStagingRuntimeEvidence, adminRbacEvidence, operationalDashboards, operationalDashboardRuntimeEvidence, alertRoutes, alertRouteRuntimeEvidence, backendMetricsRuntimeEvidence };`)();
 };
 
 const crawlerGovernanceCases = JSON.parse(
@@ -31,6 +31,7 @@ const {
   riskyExports,
   abuseEvents,
   abuseControlHooks,
+  stagingAuthRbacTenantAuditEvidence,
   stagingSupportRetryAbuseEvidence,
   productionAbuseThrottleHoldEvidence,
   productionActivationReviewAuditEvidence,
@@ -108,6 +109,10 @@ const abuseEventById = new Map(abuseEvents.map((event) => [event.id, event]));
 const abuseHookIds = new Set(abuseControlHooks.map((hook) => hook.id));
 const canaryMetricIds = new Set(skillCanaryMetrics.map((metric) => metric.id));
 const runtimeEvidencePattern = /^staging-(dashboard|alert)-[a-z-]+-\d{8}T\d{4}Z$/;
+const stagingAuthRbacTenantAuditPath = new URL(
+  "../../ops/evidence/staging/20260527T1515Z-auth-rbac-tenant-audit.json",
+  import.meta.url
+);
 const stagingSupportRetryAbusePath = new URL(
   "../../ops/evidence/staging/20260527T1000Z-support-retry-abuse.json",
   import.meta.url
@@ -850,6 +855,115 @@ test("private beta gate consumes staging support retry abuse evidence without cl
     gateFixture.checks.some((check) => check.status === "blocked"),
     "aggregate private beta gate must remain blocked by other staging runtime items"
   );
+});
+
+test("staging auth rbac tenant audit evidence clears only its private beta check", () => {
+  assert.ok(existsSync(stagingAuthRbacTenantAuditPath), "staging auth/RBAC/tenant/audit evidence file is missing");
+  assert.ok(existsSync(privateBetaGatePath), "private beta gate evidence fixture is missing");
+
+  const evidenceFile = JSON.parse(readFileSync(stagingAuthRbacTenantAuditPath, "utf8"));
+  const gateFixture = JSON.parse(readFileSync(privateBetaGatePath, "utf8"));
+
+  assert.equal(evidenceFile.environment, "staging", "auth/RBAC/tenant/audit evidence must be staging scoped");
+  assert.equal(evidenceFile.status, "pass", "auth/RBAC/tenant/audit evidence must pass");
+  assert.equal(
+    evidenceFile.release_gate_check_id,
+    "staging_auth_rbac_tenant_audit",
+    "auth/RBAC/tenant/audit evidence must target the matching release gate check"
+  );
+  assert.equal(
+    evidenceFile.do_not_launch_condition_id,
+    "tenant_isolation_not_enforced",
+    "auth/RBAC/tenant/audit evidence must target the tenant isolation condition"
+  );
+  assert.deepEqual(
+    evidenceFile.runtime_request_ids,
+    stagingAuthRbacTenantAuditEvidence.runtimeRequestIds,
+    "evidence file and admin fixture runtime request ids must match"
+  );
+  assert.deepEqual(
+    evidenceFile.admin_rbac_evidence_ids,
+    stagingAuthRbacTenantAuditEvidence.adminRbacEvidenceIds,
+    "evidence file and admin fixture RBAC ids must match"
+  );
+  assert.equal(
+    evidenceFile.gate_impact.aggregate_private_beta_gate_status,
+    "blocked_by_other_staging_runtime_items",
+    "auth/RBAC/tenant/audit evidence cannot close the aggregate private beta gate"
+  );
+
+  const requiredAreas = new Set([
+    "admin_session_boundary",
+    "tenant_isolation_denial",
+    "admin_rbac_runtime",
+    "immutable_audit_linkage"
+  ]);
+  const rbacIds = new Set(adminRbacEvidence.map((item) => item.id));
+  const fileCoverageByArea = new Map(evidenceFile.coverage.map((coverage) => [coverage.area, coverage]));
+
+  for (const coverage of stagingAuthRbacTenantAuditEvidence.coverage) {
+    requiredAreas.delete(coverage.area);
+    const fileCoverage = fileCoverageByArea.get(coverage.area);
+    assert.ok(fileCoverage, `${coverage.area} missing from evidence file`);
+    assert.equal(coverage.status, "pass", `${coverage.area} admin fixture coverage must pass`);
+    assert.equal(fileCoverage.status, coverage.status, `${coverage.area} file and fixture status mismatch`);
+    assert.ok(coverage.runtimeProbe.length > 100, `${coverage.area} needs runtime probe detail`);
+    assert.ok(coverage.externalUserEvidence.length > 90, `${coverage.area} needs external-user evidence`);
+    assert.ok(coverage.rbacAuditEvidence.length > 90, `${coverage.area} needs RBAC and audit evidence`);
+    assert.ok(coverage.linkedAdminArtifacts.some((ref) => ref.startsWith("admin/")), `${coverage.area} needs admin artifacts`);
+    assert.ok(
+      coverage.evidenceRefs.includes(stagingAuthRbacTenantAuditEvidence.evidencePath),
+      `${coverage.area} must cite the staging evidence path`
+    );
+    assert.ok(
+      coverage.evidenceRefs.some(
+        (ref) =>
+          auditIds.has(ref) ||
+          rbacIds.has(ref) ||
+          supportTicketIds.has(ref) ||
+          traceIds.has(ref) ||
+          exportIds.has(ref)
+      ),
+      `${coverage.area} needs validator-resolvable admin evidence refs`
+    );
+  }
+
+  assert.deepEqual([...requiredAreas], [], "staging auth/RBAC/tenant/audit evidence is missing coverage areas");
+
+  for (const id of stagingAuthRbacTenantAuditEvidence.adminRbacEvidenceIds) {
+    assert.ok(rbacIds.has(id), `${id} must link to admin RBAC evidence`);
+  }
+  for (const auditRef of stagingAuthRbacTenantAuditEvidence.auditRefs) {
+    assert.ok(auditIds.has(auditRef), `${auditRef} must link to immutable audit evidence`);
+  }
+
+  const gateCheck = gateFixture.checks.find((check) => check.check_id === "staging_auth_rbac_tenant_audit");
+  assert.ok(gateCheck, "private beta gate needs auth/RBAC/tenant/audit check");
+  assert.equal(gateCheck.status, "pass", "validated auth/RBAC/tenant/audit evidence should clear only its check");
+  assert.ok(
+    gateCheck.evidence_ref.includes(stagingAuthRbacTenantAuditEvidence.evidencePath),
+    "auth/RBAC/tenant/audit gate check must cite the staging runtime evidence path"
+  );
+
+  const tenantCondition = gateFixture.do_not_launch_checks.find(
+    (condition) => condition.condition_id === stagingAuthRbacTenantAuditEvidence.doNotLaunchConditionId
+  );
+  assert.ok(tenantCondition, "private beta do-not-launch fixture needs tenant isolation condition");
+  assert.equal(
+    tenantCondition.is_present,
+    false,
+    "validated auth/RBAC/tenant/audit runtime evidence should clear the matching tenant condition"
+  );
+  assert.ok(
+    tenantCondition.evidence_ref.includes(stagingAuthRbacTenantAuditEvidence.evidencePath),
+    "cleared tenant isolation condition must cite the staging runtime evidence path"
+  );
+
+  for (const blocker of stagingAuthRbacTenantAuditEvidence.gateImpact.remainingBlockers) {
+    const check = gateFixture.checks.find((entry) => entry.check_id === blocker);
+    assert.ok(check, `${blocker} must remain represented in the private beta gate fixture`);
+    assert.equal(check.status, "blocked", `${blocker} must stay blocked after auth/RBAC/tenant/audit clears`);
+  }
 });
 
 test("production abuse throttle hold evidence clears only the production abuse check", () => {

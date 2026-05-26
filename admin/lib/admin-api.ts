@@ -34,6 +34,7 @@ import {
   skillReleaseStateDefinitions,
   skillVersions,
   skills,
+  stagingAuthRbacTenantAuditEvidence,
   stagingSupportRetryAbuseEvidence,
   supportEscalationRunbooks,
   supportTickets,
@@ -133,6 +134,10 @@ export async function getFailedTaskControls() {
 
 export async function getStagingSupportRetryAbuseEvidence() {
   return stagingSupportRetryAbuseEvidence;
+}
+
+export async function getStagingAuthRbacTenantAuditEvidence() {
+  return stagingAuthRbacTenantAuditEvidence;
 }
 
 export async function getProductionAbuseThrottleHoldEvidence() {

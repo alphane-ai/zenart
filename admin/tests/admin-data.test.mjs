@@ -53,6 +53,7 @@ test("admin fixtures cover required operational surfaces", () => {
     "export const releaseEvidence",
     "export const abuseEvents",
     "export const abuseControlHooks",
+    "export const stagingAuthRbacTenantAuditEvidence",
     "export const stagingSupportRetryAbuseEvidence",
     "export const operationalDashboards",
     "export const operationalDashboardRuntimeEvidence",
@@ -331,6 +332,41 @@ test("admin support page surfaces staging support retry abuse evidence", () => {
     "failed_task_retry_cancel",
     "abuse_hold_throttle",
     "abuse_queue_closure"
+  ]) {
+    assert.match(fixtures, new RegExp(token));
+  }
+});
+
+test("admin audit page surfaces staging auth rbac tenant audit evidence", () => {
+  const auditPage = readFileSync(
+    new URL("../app/audit/page.tsx", import.meta.url),
+    "utf8"
+  );
+  const adminApi = readFileSync(
+    new URL("../lib/admin-api.ts", import.meta.url),
+    "utf8"
+  );
+
+  for (const token of [
+    "getStagingAuthRbacTenantAuditEvidence",
+    "Staging Auth RBAC Tenant Audit Evidence",
+    "Runtime request ids",
+    "Remaining blockers",
+    "Runtime Probe",
+    "External User Evidence",
+    "RBAC Audit Evidence"
+  ]) {
+    assert.match(auditPage + adminApi, new RegExp(token));
+  }
+
+  for (const token of [
+    "stagingAuthRbacTenantAuditEvidence",
+    "staging_auth_rbac_tenant_audit_20260527T1515Z",
+    "ops/evidence/staging/20260527T1515Z-auth-rbac-tenant-audit.json",
+    "admin_session_boundary",
+    "tenant_isolation_denial",
+    "admin_rbac_runtime",
+    "immutable_audit_linkage"
   ]) {
     assert.match(fixtures, new RegExp(token));
   }

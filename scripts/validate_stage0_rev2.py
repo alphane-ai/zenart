@@ -30,11 +30,17 @@ DRILL_PLAN_EVIDENCE = ROOT / "ops" / "evidence" / "stage0_drill_plan.json"
 OBSERVABILITY_EVIDENCE = ROOT / "ops" / "evidence" / "stage0_observability_evidence.json"
 RELEASE_OPS_EVIDENCE = ROOT / "ops" / "evidence" / "stage0_release_ops_evidence.json"
 STAGING_SUPPORT_RETRY_ABUSE_EVIDENCE = ROOT / "ops" / "evidence" / "staging" / "20260527T1000Z-support-retry-abuse.json"
+STAGING_AUTH_RBAC_TENANT_AUDIT_EVIDENCE = (
+    ROOT / "ops" / "evidence" / "staging" / "20260527T1515Z-auth-rbac-tenant-audit.json"
+)
 STAGING_BACKEND_WORKER_CRAWLER_METRICS_EVIDENCE = (
     ROOT / "ops" / "evidence" / "staging" / "20260527T1215Z-backend-worker-crawler-metrics.json"
 )
 PRODUCTION_ABUSE_THROTTLE_HOLD_EVIDENCE = (
     ROOT / "ops" / "evidence" / "production" / "20260527T1330Z-abuse-throttle-hold.json"
+)
+PRODUCTION_ACTIVATION_REVIEW_AUDIT_EVIDENCE = (
+    ROOT / "ops" / "evidence" / "production" / "20260527T1430Z-activation-review-audit.json"
 )
 OBSERVABILITY_DASHBOARD = ROOT / "ops" / "observability" / "dashboards" / "stage0_rev2_overview.json"
 OBSERVABILITY_ALERTS = ROOT / "ops" / "observability" / "alerts" / "stage0_rev2_alerts.json"
@@ -473,11 +479,17 @@ RUNTIME_PASS_REQUIREMENTS = {
 }
 
 RUNTIME_PASS_EVIDENCE_FILES = {
+    ("private_beta_staging", "staging_auth_rbac_tenant_audit"): [
+        STAGING_AUTH_RBAC_TENANT_AUDIT_EVIDENCE,
+    ],
     ("private_beta_staging", "staging_support_retry_abuse_ops"): [
         STAGING_SUPPORT_RETRY_ABUSE_EVIDENCE,
     ],
     ("private_beta_staging", "staging_crawler_approval_provenance"): [
         ROOT / "ops" / "evidence" / "staging" / "20260527T1100Z-crawler-governance-runtime.json",
+    ],
+    ("production_launch", "production_activation_review_audit"): [
+        PRODUCTION_ACTIVATION_REVIEW_AUDIT_EVIDENCE,
     ],
     ("production_launch", "production_abuse_throttle_hold"): [
         PRODUCTION_ABUSE_THROTTLE_HOLD_EVIDENCE,
@@ -1104,6 +1116,7 @@ REQUIRED_OPEN_ITEMS = {
 REQUIRED_OPEN_ITEMS |= (
     RELEASE_GATE_CHECK_LEVEL_RUNTIME_OPEN_ITEMS.keys()
     - {
+        "Private Beta/Staging auth/RBAC/tenant/audit runtime evidence 通过。",
         "Private Beta/Staging crawler approval/provenance runtime evidence 通过。",
         "Private Beta/Staging support/retry/abuse runtime evidence 通过。",
         "staging backend/worker/crawler metrics runtime evidence 通过。",
@@ -3103,6 +3116,20 @@ def validate_abuse_evidence_split_contracts() -> None:
     private_beta_checks = checks_by_id(private_beta)
     private_beta_conditions = do_not_launch_by_id(private_beta)
     require(
+        private_beta_checks["staging_auth_rbac_tenant_audit"]["status"] == "pass",
+        "private beta auth/RBAC/tenant/audit gate check must pass only after staging evidence exists",
+    )
+    require(
+        private_beta_conditions["tenant_isolation_not_enforced"]["is_present"] is False,
+        "private beta tenant isolation Do-Not-Launch condition must clear after staging runtime evidence exists",
+    )
+    require(
+        "ops/evidence/staging/20260527T1515Z-auth-rbac-tenant-audit.json" in private_beta_text
+        and "external-user admin API denial" in private_beta_text
+        and "cross-tenant isolation denial" in private_beta_text,
+        "private beta gate must cite auth/RBAC/tenant/audit staging runtime evidence",
+    )
+    require(
         private_beta_checks["staging_support_retry_abuse_ops"]["status"] == "pass",
         "private beta support/retry/abuse gate check must pass only after staging evidence exists",
     )
@@ -3177,6 +3204,55 @@ def validate_staging_support_retry_abuse_evidence() -> None:
             require(token in combined, f"{item['area']} support/retry/abuse coverage missing {token}")
     for key in ["runtime_request_ids", "support_ticket_ids", "failed_task_ids", "abuse_event_ids", "abuse_hook_ids"]:
         require(evidence[key], f"support/retry/abuse evidence must include {key}")
+
+def validate_staging_auth_rbac_tenant_audit_evidence() -> None:
+    evidence = load_json(STAGING_AUTH_RBAC_TENANT_AUDIT_EVIDENCE)
+    require(evidence["schema_version"] == "stage0.rev2", "staging auth/RBAC/tenant/audit evidence schema mismatch")
+    require(evidence["environment"] == "staging", "auth/RBAC/tenant/audit evidence must be staging-scoped")
+    require(evidence["status"] == "pass", "auth/RBAC/tenant/audit evidence must pass before checklist closure")
+    require(
+        evidence["release_gate_check_id"] == "staging_auth_rbac_tenant_audit",
+        "auth/RBAC/tenant/audit evidence must target the private beta release-gate check",
+    )
+    require(
+        evidence["do_not_launch_condition_id"] == "tenant_isolation_not_enforced",
+        "auth/RBAC/tenant/audit evidence must target the matching Do-Not-Launch condition",
+    )
+    require(
+        evidence["gate_impact"]["checklist_item"] == "Private Beta/Staging auth/RBAC/tenant/audit runtime evidence 通过。",
+        "auth/RBAC/tenant/audit evidence must name the checklist item it can close",
+    )
+    require(
+        evidence["gate_impact"]["can_clear_check_level_item"] is True,
+        "auth/RBAC/tenant/audit evidence must explicitly allow check-level closure",
+    )
+    require(
+        evidence["gate_impact"]["aggregate_private_beta_gate_status"] == "blocked_by_other_staging_runtime_items",
+        "auth/RBAC/tenant/audit evidence must keep the aggregate private beta gate blocked",
+    )
+    required_areas = {
+        "admin_session_boundary",
+        "tenant_isolation_denial",
+        "admin_rbac_runtime",
+        "immutable_audit_linkage",
+    }
+    coverage = evidence["coverage"]
+    require(
+        {item["area"] for item in coverage} == required_areas,
+        "auth/RBAC/tenant/audit evidence must cover admin session boundary, tenant denial, RBAC runtime, and immutable audit linkage",
+    )
+    for item in coverage:
+        require(item["status"] == "pass", f"{item['area']} staging auth/RBAC/tenant/audit coverage must pass")
+        combined = json.dumps(item, ensure_ascii=False).lower()
+        for token in [
+            "external-user",
+            "rbac",
+            "audit",
+            "ops/evidence/staging/20260527t1515z-auth-rbac-tenant-audit.json",
+        ]:
+            require(token in combined, f"{item['area']} auth/RBAC/tenant/audit coverage missing {token}")
+    for key in ["runtime_request_ids", "tenant_ids", "admin_rbac_evidence_ids", "audit_refs"]:
+        require(evidence[key], f"auth/RBAC/tenant/audit evidence must include {key}")
 
 def validate_staging_backend_worker_crawler_metrics_evidence() -> None:
     evidence = load_json(STAGING_BACKEND_WORKER_CRAWLER_METRICS_EVIDENCE)
@@ -3487,6 +3563,7 @@ def validate_release_gate_evidence() -> None:
         condition_id: item["is_present"] for condition_id, item in private_beta_conditions.items()
     }
     cleared_private_beta_conditions = {
+        "tenant_isolation_not_enforced",
         "crawler_governance_runtime_missing",
         "crawler_material_retention_takedown_runtime_missing",
     }
@@ -3514,8 +3591,10 @@ def validate_release_gate_evidence() -> None:
     require(production["gate"] == "production_launch", "production release gate fixture must target production_launch")
     production_checks, production_conditions = validate_release_gate_basics(production)
     closed_production_runtime_checks = {
-        "production_abuse_throttle_hold",
-        "production_activation_review_audit",
+        check_id
+        for item, check_ids in PRODUCTION_RUNTIME_OPEN_CHECK_ITEMS.items()
+        if item in blueprint_checked
+        for check_id in check_ids
     }
     for check_id in RELEASE_GATE_REQUIRED_CHECKS["production_launch"]:
         expected_status = "pass" if check_id in closed_production_runtime_checks else "blocked"
@@ -3527,9 +3606,9 @@ def validate_release_gate_evidence() -> None:
         condition_id: item["is_present"] for condition_id, item in production_conditions.items()
     }
     cleared_production_conditions = {
-        "abuse_throttle_hold_missing",
         "activation_eval_review_audit_runtime_missing",
         "admin_high_risk_review_runtime_missing",
+        "abuse_throttle_hold_missing",
     }
     for condition_id in RELEASE_GATE_REQUIRED_ACTIVE_CONDITIONS["production_launch"]:
         expected_present = condition_id not in cleared_production_conditions
@@ -4292,6 +4371,7 @@ def validate_launch_readiness_split_contracts() -> None:
     ] + sorted(RELEASE_GATE_RUNTIME_OPEN_ITEMS) + sorted(
         set(RELEASE_GATE_CHECK_LEVEL_RUNTIME_OPEN_ITEMS)
         - {
+            "Private Beta/Staging auth/RBAC/tenant/audit runtime evidence 通过。",
             "Private Beta/Staging crawler approval/provenance runtime evidence 通过。",
             "Private Beta/Staging support/retry/abuse runtime evidence 通过。",
             "staging backend/worker/crawler metrics runtime evidence 通过。",
@@ -4830,6 +4910,7 @@ def main() -> int:
         validate_qa_and_safety,
         validate_crawler_feedback_abuse,
         validate_abuse_evidence_split_contracts,
+        validate_staging_auth_rbac_tenant_audit_evidence,
         validate_staging_support_retry_abuse_evidence,
         validate_staging_backend_worker_crawler_metrics_evidence,
         validate_production_abuse_throttle_hold_evidence,
