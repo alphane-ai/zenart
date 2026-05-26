@@ -70,6 +70,22 @@ QA_CATEGORY_ORDER = [
     "export_completeness",
 ]
 
+DIMENSION_QA_CATEGORIES = {
+    "four_option_distinctness": {"four_option_distinctness"},
+    "image_qa": {
+        "file_integrity",
+        "dimensions",
+        "aspect_ratio",
+        "safe_area",
+        "blank_output",
+        "duplicate_similarity",
+        "watermark_signature_risk",
+    },
+    "text_readability": {"text_readability"},
+    "product_logo_preservation": {"product_logo_preservation"},
+    "package_export_completeness": {"export_completeness"},
+}
+
 TRACE_KEYS = [
     "has_schema_validation",
     "has_provenance",
@@ -154,6 +170,7 @@ def qa_export_gate_for(
     fixture: dict[str, Any],
     qa_items: list[dict[str, Any]],
     export_contract: dict[str, bool],
+    qa_coverage_contract: dict[str, Any],
 ) -> dict[str, Any]:
     blocking_checks = [
         item["check_id"]
@@ -182,7 +199,12 @@ def qa_export_gate_for(
             "safety_disclaimer_when_applicable",
         ]
     )
-    export_allowed = export_artifacts_complete and not blocking_checks and not safety_blocks_export
+    export_allowed = (
+        export_artifacts_complete
+        and qa_coverage_contract["coverage_complete"]
+        and not blocking_checks
+        and not safety_blocks_export
+    )
     return {
         "final_export_allowed": export_allowed,
         "blocking_qa_check_ids": blocking_checks,
@@ -203,19 +225,61 @@ def observed_safety_action(fixture: dict[str, Any], qa_items: list[dict[str, Any
     return "allow"
 
 
-def fixture_status(fixture: dict[str, Any], qa_items: list[dict[str, Any]]) -> str:
+def expected_qa_categories_for(fixture: dict[str, Any]) -> list[str]:
+    categories: set[str] = set()
+    for dimension in fixture["expected_dimensions"]:
+        categories.update(DIMENSION_QA_CATEGORIES.get(dimension, set()))
+    return [category for category in QA_CATEGORY_ORDER if category in categories]
+
+
+def qa_coverage_contract_for(
+    fixture: dict[str, Any],
+    qa_items: list[dict[str, Any]],
+    workflow: dict[str, Any],
+) -> dict[str, Any]:
+    expected = expected_qa_categories_for(fixture)
+    observed = sorted(
+        {item["check_category"] for item in qa_items},
+        key=QA_CATEGORY_ORDER.index,
+    )
+    missing = [category for category in expected if category not in observed]
+    workflow_required = [
+        category
+        for category in QA_CATEGORY_ORDER
+        if category in set(workflow["required_qa_checks"])
+    ]
+    return {
+        "expected_qa_categories": expected,
+        "observed_qa_categories": observed,
+        "missing_qa_categories": missing,
+        "workflow_required_qa_categories": workflow_required,
+        "coverage_complete": not missing,
+    }
+
+
+def fixture_status(
+    fixture: dict[str, Any],
+    qa_items: list[dict[str, Any]],
+    qa_coverage_contract: dict[str, Any],
+) -> str:
     expected = fixture["expected_evidence"]
     category = fixture["category"]
     if category in PASS_THROUGH_BLOCKED_CATEGORIES:
         return "blocked"
     if expected["expected_safety_action"] == "block":
         return "blocked"
+    if not qa_coverage_contract["coverage_complete"]:
+        return "blocked"
     if any(item["export_gate"]["blocks_final_export"] is True for item in qa_items):
         return "blocked"
     return "pass"
 
 
-def failure_reasons_for(fixture: dict[str, Any], qa_items: list[dict[str, Any]]) -> list[str]:
+def failure_reasons_for(
+    fixture: dict[str, Any],
+    qa_items: list[dict[str, Any]],
+    qa_coverage_contract: dict[str, Any],
+) -> list[str]:
     category = fixture["category"]
     if category == "ambiguous_brief":
         return ["clarification_required_before_generation"]
@@ -237,6 +301,10 @@ def failure_reasons_for(fixture: dict[str, Any], qa_items: list[dict[str, Any]])
         for item in qa_items
         if item["export_gate"]["blocks_final_export"] is True
     ]
+    blocking.extend(
+        f"qa_coverage_missing_{category}"
+        for category in qa_coverage_contract["missing_qa_categories"]
+    )
     return sorted(set(blocking))
 
 
@@ -278,10 +346,11 @@ def run_eval() -> dict[str, Any]:
                 f"{qa_item['check_id']} trace must match {fixture['fixture_id']} eval fixture trace",
             )
         export_contract = export_contract_for(fixture, qa_items)
-        qa_export_gate = qa_export_gate_for(fixture, qa_items, export_contract)
+        qa_coverage_contract = qa_coverage_contract_for(fixture, qa_items, workflows[fixture["workflow"]])
+        qa_export_gate = qa_export_gate_for(fixture, qa_items, export_contract, qa_coverage_contract)
         expected = fixture["expected_evidence"]
         candidate_count = expected["minimum_candidates"]
-        status = fixture_status(fixture, qa_items)
+        status = fixture_status(fixture, qa_items, qa_coverage_contract)
         trace_contract = {"trace_id": trace_id, **{key: True for key in TRACE_KEYS}}
 
         require(trace_id.startswith("trace_"), f"{fixture['fixture_id']} trace must be trace-scoped")
@@ -307,10 +376,11 @@ def run_eval() -> dict[str, Any]:
                 "expected_safety_action": expected["expected_safety_action"],
                 "observed_safety_action": observed_safety_action(fixture, qa_items),
                 "qa_check_ids": [item["check_id"] for item in qa_items],
+                "qa_coverage_contract": qa_coverage_contract,
                 "trace_contract": trace_contract,
                 "export_contract": export_contract,
                 "qa_export_gate": qa_export_gate,
-                "failure_reasons": failure_reasons_for(fixture, qa_items),
+                "failure_reasons": failure_reasons_for(fixture, qa_items, qa_coverage_contract),
             }
         )
 
@@ -352,6 +422,10 @@ def run_eval() -> dict[str, Any]:
             "regression_pass_rate": regression_pass_rate,
             "trace_complete": all(all(item["trace_contract"][key] for key in TRACE_KEYS) for item in fixture_results),
             "export_contract_complete": all(item["export_contract"]["blocks_when_incomplete"] for item in fixture_results),
+            "qa_fixture_coverage_complete": all(
+                item["qa_coverage_contract"]["coverage_complete"]
+                for item in fixture_results
+            ),
             "qa_categories_covered": QA_CATEGORY_ORDER,
             "safety_enforcement_points_covered": SAFETY_ORDER,
         },

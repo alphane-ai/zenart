@@ -124,7 +124,7 @@
     {
       "fixture_id": "fx_text_heavy_structured_details",
       "category": "text_heavy",
-      "expected_status": "pass"
+      "expected_status": "blocked"
     }
   ],
   "api_smoke_contract": {

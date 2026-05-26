@@ -2665,6 +2665,7 @@ components:
             - regression_pass_rate
             - trace_complete
             - export_contract_complete
+            - qa_fixture_coverage_complete
             - qa_categories_covered
             - safety_enforcement_points_covered
           properties:
@@ -2687,6 +2688,8 @@ components:
             trace_complete:
               type: boolean
             export_contract_complete:
+              type: boolean
+            qa_fixture_coverage_complete:
               type: boolean
             qa_categories_covered:
               type: array
@@ -2726,6 +2729,7 @@ components:
               - expected_safety_action
               - observed_safety_action
               - qa_check_ids
+              - qa_coverage_contract
               - trace_contract
               - export_contract
               - qa_export_gate
@@ -2753,6 +2757,36 @@ components:
                 type: array
                 items:
                   type: string
+              qa_coverage_contract:
+                type: object
+                required: [expected_qa_categories, observed_qa_categories, missing_qa_categories, workflow_required_qa_categories, coverage_complete]
+                properties:
+                  expected_qa_categories:
+                    type: array
+                    uniqueItems: true
+                    items:
+                      type: string
+                      enum: [file_integrity, dimensions, aspect_ratio, safe_area, blank_output, duplicate_similarity, four_option_distinctness, text_readability, structured_text, product_logo_preservation, forbidden_claims, watermark_signature_risk, export_completeness]
+                  observed_qa_categories:
+                    type: array
+                    uniqueItems: true
+                    items:
+                      type: string
+                      enum: [file_integrity, dimensions, aspect_ratio, safe_area, blank_output, duplicate_similarity, four_option_distinctness, text_readability, structured_text, product_logo_preservation, forbidden_claims, watermark_signature_risk, export_completeness]
+                  missing_qa_categories:
+                    type: array
+                    uniqueItems: true
+                    items:
+                      type: string
+                      enum: [file_integrity, dimensions, aspect_ratio, safe_area, blank_output, duplicate_similarity, four_option_distinctness, text_readability, structured_text, product_logo_preservation, forbidden_claims, watermark_signature_risk, export_completeness]
+                  workflow_required_qa_categories:
+                    type: array
+                    uniqueItems: true
+                    items:
+                      type: string
+                      enum: [file_integrity, dimensions, aspect_ratio, safe_area, blank_output, duplicate_similarity, four_option_distinctness, text_readability, structured_text, product_logo_preservation, forbidden_claims, watermark_signature_risk, export_completeness]
+                  coverage_complete:
+                    type: boolean
               trace_contract:
                 type: object
                 required: [trace_id, has_schema_validation, has_provenance, has_safety_status, has_qa_eval_status, has_quota_transaction, has_admin_visibility, has_user_failure_mapping]

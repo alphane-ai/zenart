@@ -86,6 +86,38 @@ QA_CATEGORIES = {
     "export_completeness",
 }
 
+QA_CATEGORY_ORDER = [
+    "file_integrity",
+    "dimensions",
+    "aspect_ratio",
+    "safe_area",
+    "blank_output",
+    "duplicate_similarity",
+    "four_option_distinctness",
+    "text_readability",
+    "structured_text",
+    "product_logo_preservation",
+    "forbidden_claims",
+    "watermark_signature_risk",
+    "export_completeness",
+]
+
+DIMENSION_QA_CATEGORIES = {
+    "four_option_distinctness": {"four_option_distinctness"},
+    "image_qa": {
+        "file_integrity",
+        "dimensions",
+        "aspect_ratio",
+        "safe_area",
+        "blank_output",
+        "duplicate_similarity",
+        "watermark_signature_risk",
+    },
+    "text_readability": {"text_readability"},
+    "product_logo_preservation": {"product_logo_preservation"},
+    "package_export_completeness": {"export_completeness"},
+}
+
 LOCAL_ALPHA_SERVICE_PATHS = {
     "web": [
         "web/package.json",
@@ -2322,6 +2354,11 @@ def validate_eval_results() -> None:
     )
     require(result["summary"]["trace_complete"] is True, "eval result must prove trace completeness")
     require(result["summary"]["export_contract_complete"] is True, "eval result must prove export contract completeness")
+    require(
+        result["summary"]["qa_fixture_coverage_complete"]
+        is all(item["qa_coverage_contract"]["coverage_complete"] for item in result["fixture_results"]),
+        "eval result QA fixture coverage summary must match fixture results",
+    )
     require(result["summary"]["critical_safety_regressions"] == 0, "eval result must have no critical safety regressions")
     if result["summary"]["golden_passed"] is False:
         require(
@@ -2357,6 +2394,43 @@ def validate_eval_results() -> None:
             require(item["export_contract"]["trace_provenance"] is True, f"{item['fixture_id']} export must include trace provenance")
         if fixture["expected_evidence"]["must_include_qa_report"]:
             require(item["export_contract"]["qa_report"] is True, f"{item['fixture_id']} export must include QA report")
+        expected_qa_categories = sorted(
+            {
+                category
+                for dimension in fixture["expected_dimensions"]
+                for category in DIMENSION_QA_CATEGORIES.get(dimension, set())
+            },
+            key=QA_CATEGORY_ORDER.index,
+        )
+        observed_qa_categories = sorted(
+            {
+                qa_by_id[check_id]["check_category"]
+                for check_id in item["qa_check_ids"]
+            },
+            key=QA_CATEGORY_ORDER.index,
+        )
+        missing_qa_categories = [
+            category
+            for category in expected_qa_categories
+            if category not in observed_qa_categories
+        ]
+        coverage = item["qa_coverage_contract"]
+        require(
+            coverage["expected_qa_categories"] == expected_qa_categories,
+            f"{item['fixture_id']} QA coverage expected categories mismatch",
+        )
+        require(
+            coverage["observed_qa_categories"] == observed_qa_categories,
+            f"{item['fixture_id']} QA coverage observed categories mismatch",
+        )
+        require(
+            coverage["missing_qa_categories"] == missing_qa_categories,
+            f"{item['fixture_id']} QA coverage missing categories mismatch",
+        )
+        require(
+            coverage["coverage_complete"] is (not missing_qa_categories),
+            f"{item['fixture_id']} QA coverage completeness mismatch",
+        )
         qa_gate = item["qa_export_gate"]
         blocking_check_ids = [
             check_id
@@ -2380,6 +2454,12 @@ def validate_eval_results() -> None:
                 "safety_disclaimer_when_applicable",
             ]
         )
+        expected_export_allowed = (
+            export_artifacts_complete
+            and coverage["coverage_complete"]
+            and not blocking_check_ids
+            and not safety_blocks_export
+        )
         require(
             qa_gate["blocking_qa_check_ids"] == blocking_check_ids,
             f"{item['fixture_id']} QA export gate blocking checks mismatch",
@@ -2396,8 +2476,16 @@ def validate_eval_results() -> None:
             qa_gate["export_artifacts_complete"] is export_artifacts_complete,
             f"{item['fixture_id']} QA export gate artifact completeness mismatch",
         )
+        require(
+            qa_gate["final_export_allowed"] is expected_export_allowed,
+            f"{item['fixture_id']} QA export gate final export decision mismatch",
+        )
         require(qa_gate["override_requires_audit"] is True, f"{item['fixture_id']} QA export override must require audit")
         if item["status"] == "pass":
+            require(
+                coverage["coverage_complete"] is True,
+                f"{item['fixture_id']} passed eval must have complete expected QA coverage",
+            )
             require(qa_gate["final_export_allowed"] is True, f"{item['fixture_id']} passed eval must allow final export")
         else:
             require(qa_gate["final_export_allowed"] is False, f"{item['fixture_id']} blocked eval must deny final export")
@@ -2459,6 +2547,11 @@ def validate_qa_and_safety() -> None:
         require(
             item["check_id"] in eval_by_fixture[item["evidence"]["fixture_id"]]["qa_check_ids"],
             f"{item['check_id']} is not linked from its eval result fixture",
+        )
+        coverage = eval_by_fixture[item["evidence"]["fixture_id"]]["qa_coverage_contract"]
+        require(
+            item["check_category"] in coverage["observed_qa_categories"],
+            f"{item['check_id']} category must be represented in eval QA coverage contract",
         )
         require(
             eval_by_fixture[item["evidence"]["fixture_id"]]["trace_contract"]["trace_id"].startswith("trace_"),

@@ -34,6 +34,22 @@ QA_CATEGORY_ORDER = [
 
 QA_CATEGORIES = set(QA_CATEGORY_ORDER)
 
+DIMENSION_QA_CATEGORIES = {
+    "four_option_distinctness": {"four_option_distinctness"},
+    "image_qa": {
+        "file_integrity",
+        "dimensions",
+        "aspect_ratio",
+        "safe_area",
+        "blank_output",
+        "duplicate_similarity",
+        "watermark_signature_risk",
+    },
+    "text_readability": {"text_readability"},
+    "product_logo_preservation": {"product_logo_preservation"},
+    "package_export_completeness": {"export_completeness"},
+}
+
 CHECKLIST_CATEGORY_GROUPS = {
     "file integrity/dimensions/aspect/safe-area QA": {
         "file_integrity",
@@ -275,6 +291,19 @@ def validate_fixture_links(qa_results: list[dict[str, Any]]) -> None:
             item["check_id"] in result_by_fixture[fixture_id]["qa_check_ids"],
             f"{item['check_id']} missing from eval result fixture qa_check_ids",
         )
+        observed_categories = sorted(
+            {
+                linked["check_category"]
+                for linked in qa_results
+                if linked["evidence"]["fixture_id"] == fixture_id
+            },
+            key=QA_CATEGORY_ORDER.index,
+        )
+        coverage = result_by_fixture[fixture_id]["qa_coverage_contract"]
+        require(
+            coverage["observed_qa_categories"] == observed_categories,
+            f"{item['check_id']} eval QA coverage observed categories must match QA fixtures",
+        )
         require(
             result_by_fixture[fixture_id]["trace_contract"]["trace_id"].startswith("trace_"),
             f"{item['check_id']} eval result trace contract must be trace-scoped",
@@ -303,6 +332,78 @@ def validate_workflow_coverage(qa_results: list[dict[str, Any]]) -> None:
         require(not unexpected, f"{workflow} has QA categories not declared in required_qa_checks: {sorted(unexpected)}")
 
 
+def expected_qa_categories_for(fixture: dict[str, Any]) -> list[str]:
+    categories: set[str] = set()
+    for dimension in fixture["expected_dimensions"]:
+        categories.update(DIMENSION_QA_CATEGORIES.get(dimension, set()))
+    return [category for category in QA_CATEGORY_ORDER if category in categories]
+
+
+def validate_eval_fixture_coverage(qa_results: list[dict[str, Any]]) -> None:
+    suite = load_json(EVAL_SUITE)
+    results = load_json(EVAL_RESULTS)
+    workflows = {
+        workflow["workflow_id"]: workflow
+        for workflow in (load_json(path) for path in sorted(WORKFLOW_DIR.glob("*.json")))
+    }
+    require(isinstance(results, list) and len(results) == 1, "starter eval results must contain one result")
+    result_by_fixture = {item["fixture_id"]: item for item in results[0]["fixture_results"]}
+    qa_by_fixture: dict[str, list[dict[str, Any]]] = {}
+    for item in qa_results:
+        qa_by_fixture.setdefault(item["evidence"]["fixture_id"], []).append(item)
+
+    for fixture in suite["fixtures"]:
+        fixture_id = fixture["fixture_id"]
+        expected = expected_qa_categories_for(fixture)
+        observed = sorted(
+            {
+                item["check_category"]
+                for item in qa_by_fixture.get(fixture_id, [])
+            },
+            key=QA_CATEGORY_ORDER.index,
+        )
+        missing = [category for category in expected if category not in observed]
+        workflow_required = [
+            category
+            for category in QA_CATEGORY_ORDER
+            if category in set(workflows[fixture["workflow"]]["required_qa_checks"])
+        ]
+        result = result_by_fixture[fixture_id]
+        coverage = result["qa_coverage_contract"]
+        require(
+            coverage["expected_qa_categories"] == expected,
+            f"{fixture_id} eval QA coverage expected categories mismatch",
+        )
+        require(
+            coverage["observed_qa_categories"] == observed,
+            f"{fixture_id} eval QA coverage observed categories mismatch",
+        )
+        require(
+            coverage["missing_qa_categories"] == missing,
+            f"{fixture_id} eval QA coverage missing categories mismatch",
+        )
+        require(
+            coverage["workflow_required_qa_categories"] == workflow_required,
+            f"{fixture_id} eval QA coverage workflow categories mismatch",
+        )
+        require(
+            coverage["coverage_complete"] is (not missing),
+            f"{fixture_id} eval QA coverage completeness mismatch",
+        )
+        if result["status"] == "pass":
+            require(
+                coverage["coverage_complete"] is True,
+                f"{fixture_id} cannot pass with missing expected QA categories",
+            )
+        else:
+            for category in missing:
+                require(
+                    f"qa_coverage_missing_{category}" in result["failure_reasons"]
+                    or fixture["category"] in {"ambiguous_brief", "unsafe", "negative", "brand_product_preservation", "red_team"},
+                    f"{fixture_id} missing QA category {category} must be represented in failure reasons",
+                )
+
+
 def validate_qa_contract() -> None:
     qa_results = load_json(QA_RESULTS)
     require(isinstance(qa_results, list), "QA result fixture must be an array")
@@ -321,6 +422,7 @@ def validate_qa_contract() -> None:
         validate_category_item(item)
     validate_fixture_links(qa_results)
     validate_workflow_coverage(qa_results)
+    validate_eval_fixture_coverage(qa_results)
 
 
 def main() -> int:

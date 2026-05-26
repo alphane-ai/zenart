@@ -96,6 +96,7 @@
         "regression_pass_rate",
         "trace_complete",
         "export_contract_complete",
+        "qa_fixture_coverage_complete",
         "qa_categories_covered",
         "safety_enforcement_points_covered"
       ],
@@ -132,6 +133,9 @@
           "type": "boolean"
         },
         "export_contract_complete": {
+          "type": "boolean"
+        },
+        "qa_fixture_coverage_complete": {
           "type": "boolean"
         },
         "qa_categories_covered": {
@@ -187,6 +191,7 @@
           "expected_safety_action",
           "observed_safety_action",
           "qa_check_ids",
+          "qa_coverage_contract",
           "trace_contract",
           "export_contract",
           "qa_export_gate",
@@ -249,6 +254,9 @@
               "type": "string",
               "pattern": "^qa_[a-z0-9_]+$"
             }
+          },
+          "qa_coverage_contract": {
+            "$ref": "#/$defs/qa_coverage_contract"
           },
           "trace_contract": {
             "$ref": "#/$defs/trace_contract"
@@ -434,6 +442,55 @@
     }
   },
   "$defs": {
+    "qa_category_list": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "file_integrity",
+          "dimensions",
+          "aspect_ratio",
+          "safe_area",
+          "blank_output",
+          "duplicate_similarity",
+          "four_option_distinctness",
+          "text_readability",
+          "structured_text",
+          "product_logo_preservation",
+          "forbidden_claims",
+          "watermark_signature_risk",
+          "export_completeness"
+        ]
+      }
+    },
+    "qa_coverage_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_qa_categories",
+        "observed_qa_categories",
+        "missing_qa_categories",
+        "workflow_required_qa_categories",
+        "coverage_complete"
+      ],
+      "properties": {
+        "expected_qa_categories": {
+          "$ref": "#/$defs/qa_category_list"
+        },
+        "observed_qa_categories": {
+          "$ref": "#/$defs/qa_category_list"
+        },
+        "missing_qa_categories": {
+          "$ref": "#/$defs/qa_category_list"
+        },
+        "workflow_required_qa_categories": {
+          "$ref": "#/$defs/qa_category_list"
+        },
+        "coverage_complete": {
+          "type": "boolean"
+        }
+      }
+    },
     "trace_contract": {
       "type": "object",
       "additionalProperties": false,
