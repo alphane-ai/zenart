@@ -1691,12 +1691,12 @@ main 合并前必须通过：
 - [ ] 决定 Stage 0 access mode。
 - [ ] 实现 Web user auth。
 - [ ] 实现 Admin auth。
-- [ ] 定义角色和权限矩阵。
+- [x] 定义角色和权限矩阵。
 - [ ] 对项目、工作区、聊天、画布、资产、package、export、quota、feedback、support ticket、trace 强制 tenant isolation。
 - [ ] 对 skill release、crawler import、prompt approval、provider routing、quota override、safety rule、export override 强制 admin RBAC。
-- [ ] 实现 immutable audit log。
-- [ ] 添加 cross-tenant denial tests。
-- [ ] 添加 non-admin `/api/admin/*` denial tests。
+- [x] 实现 immutable audit log。
+- [x] 添加 cross-tenant denial tests。
+- [x] 添加 non-admin `/api/admin/*` denial tests。
 
 ### 25.8 Billing, Quota, Entitlement
 
@@ -1706,8 +1706,8 @@ main 合并前必须通过：
 - [x] 实现 billing page。
 - [ ] 实现 entitlement middleware。
 - [ ] 实现 weekly quota reset。
-- [ ] 实现 quota reservation。
-- [ ] 实现 quota commit/refund。
+- [x] 实现 quota reservation。
+- [x] 实现 quota commit/refund。
 - [ ] 实现 quota retry/idempotency。
 - [ ] 实现 admin quota credit/debit。
 - [ ] 实现 provider usage reconciliation。
@@ -1736,7 +1736,7 @@ main 合并前必须通过：
 
 ### 25.10 Agent and Provider Contracts
 
-- [ ] 定义 `AgentStepContract`。
+- [x] 定义 `AgentStepContract`。
 - [ ] 实现 intent router contract。
 - [ ] 实现 brief completion contract。
 - [ ] 实现 workflow planner contract。
