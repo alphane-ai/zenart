@@ -137,6 +137,36 @@ QUERY_FILTERS = {
     "latest_only",
 }
 
+SUMMARY_PROJECTION_FIELDS = {
+    "total_fixtures",
+    "passed_fixtures",
+    "failed_fixtures",
+    "blocked_fixtures",
+    "golden_passed",
+    "critical_safety_regressions",
+    "regression_pass_rate",
+    "trace_complete",
+    "export_contract_complete",
+    "qa_fixture_coverage_complete",
+    "qa_categories_covered",
+    "safety_enforcement_points_covered",
+}
+
+FIXTURE_RESULT_PROJECTION_FIELDS = {
+    "fixture_id",
+    "category",
+    "workflow",
+    "status",
+    "expected_safety_action",
+    "observed_safety_action",
+    "qa_check_ids",
+    "qa_coverage_contract",
+    "trace_contract",
+    "export_contract",
+    "qa_export_gate",
+    "failure_reasons",
+}
+
 
 class EvalResultContractError(Exception):
     pass
@@ -330,9 +360,17 @@ def validate_openapi_eval_result_schema() -> None:
     )
     for field in ["required_columns", "required_indexes", "required_query_filters", "latest_result_resolvable"]:
         require_field_in_schema(body, "EvalResult.storage_contract", field)
-    for field in ["immutable_rows", "idempotent_replay_key", "no_public_delete_operation"]:
+    for field in [
+        "summary_projection_fields",
+        "fixture_result_projection_fields",
+        "admin_read_projection_required",
+        "read_without_eval_rerun",
+        "immutable_rows",
+        "idempotent_replay_key",
+        "no_public_delete_operation",
+    ]:
         require_field_in_schema(body, "EvalResult.storage_contract", field)
-    for token in STORAGE_COLUMNS | STORAGE_INDEXES | QUERY_FILTERS:
+    for token in STORAGE_COLUMNS | STORAGE_INDEXES | QUERY_FILTERS | SUMMARY_PROJECTION_FIELDS | FIXTURE_RESULT_PROJECTION_FIELDS:
         require(token in body or token in eval_path_body, f"OpenAPI EvalResult contract missing {token}")
     require("const: true" in body, "OpenAPI EvalResult must preserve required true contract fields")
 
@@ -559,6 +597,26 @@ def validate_storage_contract() -> None:
     for index in STORAGE_INDEXES:
         require(index in migration, f"eval_results storage missing index {index}")
     require(storage["summary_json_contains_fixture_results"] is True, "eval fixture details must be stored in summary json")
+    require(
+        set(storage["summary_projection_fields"]) == SUMMARY_PROJECTION_FIELDS,
+        "eval storage summary projection fields mismatch",
+    )
+    require(
+        set(storage["fixture_result_projection_fields"]) == FIXTURE_RESULT_PROJECTION_FIELDS,
+        "eval storage fixture result projection fields mismatch",
+    )
+    require(storage["admin_read_projection_required"] is True, "eval storage must require admin read projections")
+    require(storage["read_without_eval_rerun"] is True, "eval storage reads must not require eval rerun")
+    require(
+        set(table_contract["summary_projection_fields"]) == SUMMARY_PROJECTION_FIELDS,
+        "eval table summary projection fields mismatch",
+    )
+    require(
+        set(table_contract["fixture_result_projection_fields"]) == FIXTURE_RESULT_PROJECTION_FIELDS,
+        "eval table fixture result projection fields mismatch",
+    )
+    require(table_contract["admin_read_projection_required"] is True, "eval table must require admin read projections")
+    require(table_contract["read_without_eval_rerun"] is True, "eval table reads must not require eval rerun")
     require(storage["tenant_scoped"] is True, "eval storage contract must be tenant scoped")
     require(storage["subject_scoped"] is True, "eval storage contract must be subject scoped")
     require(storage["latest_result_resolvable"] is True, "eval storage must support latest-result resolution")

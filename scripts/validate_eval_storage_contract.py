@@ -69,6 +69,36 @@ OPENAPI_PARAMETERS = {
     "EvalLatestOnlyFilter",
 }
 
+SUMMARY_PROJECTION_FIELDS = {
+    "total_fixtures",
+    "passed_fixtures",
+    "failed_fixtures",
+    "blocked_fixtures",
+    "golden_passed",
+    "critical_safety_regressions",
+    "regression_pass_rate",
+    "trace_complete",
+    "export_contract_complete",
+    "qa_fixture_coverage_complete",
+    "qa_categories_covered",
+    "safety_enforcement_points_covered",
+}
+
+FIXTURE_RESULT_PROJECTION_FIELDS = {
+    "fixture_id",
+    "category",
+    "workflow",
+    "status",
+    "expected_safety_action",
+    "observed_safety_action",
+    "qa_check_ids",
+    "qa_coverage_contract",
+    "trace_contract",
+    "export_contract",
+    "qa_export_gate",
+    "failure_reasons",
+}
+
 
 class EvalStorageContractError(Exception):
     pass
@@ -186,6 +216,26 @@ def validate_table_contract(contract: dict[str, Any], result: dict[str, Any]) ->
     require(table["tenant_scoped"] is True, "eval storage must be tenant scoped")
     require(table["subject_scoped"] is True, "eval storage must be subject scoped")
     require(table["summary_json_contains_fixture_results"] is True, "eval storage summary must contain fixture results")
+    require(
+        set(table["summary_projection_fields"]) == SUMMARY_PROJECTION_FIELDS,
+        "eval storage summary projection fields mismatch",
+    )
+    require(
+        set(table["fixture_result_projection_fields"]) == FIXTURE_RESULT_PROJECTION_FIELDS,
+        "eval storage fixture result projection fields mismatch",
+    )
+    require(table["admin_read_projection_required"] is True, "eval storage must require admin read projections")
+    require(table["read_without_eval_rerun"] is True, "eval storage reads must not require eval rerun")
+    require(
+        set(result_storage["summary_projection_fields"]) == SUMMARY_PROJECTION_FIELDS,
+        "eval result summary projection fields mismatch",
+    )
+    require(
+        set(result_storage["fixture_result_projection_fields"]) == FIXTURE_RESULT_PROJECTION_FIELDS,
+        "eval result fixture projection fields mismatch",
+    )
+    require(result_storage["admin_read_projection_required"] is True, "eval result must require admin read projections")
+    require(result_storage["read_without_eval_rerun"] is True, "eval result reads must not require eval rerun")
     require(table["latest_result_resolvable"] is True, "eval storage must support latest-result resolution")
     require(table["immutable_rows"] is True, "eval storage rows must be immutable")
     require(set(table["idempotent_replay_key"]) == IDEMPOTENCY_FIELDS, "eval storage idempotent replay key mismatch")
@@ -263,11 +313,12 @@ def validate_read_and_openapi_contract(contract: dict[str, Any]) -> None:
     require(set(api["required_parameters"]) == OPENAPI_PARAMETERS, "OpenAPI contract parameters mismatch")
     for parameter in OPENAPI_PARAMETERS:
         require(parameter in eval_path, f"OpenAPI /eval/results missing {parameter}")
-    for token in STORAGE_COLUMNS | STORAGE_INDEXES | QUERY_FILTERS | IDEMPOTENCY_FIELDS:
+    for token in STORAGE_COLUMNS | STORAGE_INDEXES | QUERY_FILTERS | IDEMPOTENCY_FIELDS | SUMMARY_PROJECTION_FIELDS | FIXTURE_RESULT_PROJECTION_FIELDS:
         require(token in result or token in eval_path, f"OpenAPI EvalResult storage contract missing {token}")
     require("EvalLatestOnlyFilter" in eval_path, "OpenAPI /eval/results must expose latest-only filter")
     require("delete:" not in eval_path and "operationId: deleteEval" not in openapi, "eval results must not expose public delete")
     require("immutable" in result.lower(), "OpenAPI EvalResult storage contract must document immutability")
+    require("read_without_eval_rerun" in result, "OpenAPI EvalResult storage contract must expose read_without_eval_rerun")
 
 
 def validate_retention_and_release_gate(contract: dict[str, Any]) -> None:

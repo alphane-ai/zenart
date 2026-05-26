@@ -2883,6 +2883,10 @@ components:
             - tenant_scoped
             - subject_scoped
             - summary_json_contains_fixture_results
+            - summary_projection_fields
+            - fixture_result_projection_fields
+            - admin_read_projection_required
+            - read_without_eval_rerun
             - latest_result_resolvable
             - immutable_rows
             - idempotent_replay_key
@@ -2916,6 +2920,52 @@ components:
               type: boolean
               const: true
             summary_json_contains_fixture_results:
+              type: boolean
+              const: true
+            summary_projection_fields:
+              type: array
+              description: Persisted summary fields that admin reads can render without re-running the eval suite.
+              minItems: 12
+              uniqueItems: true
+              items:
+                type: string
+                enum:
+                  - total_fixtures
+                  - passed_fixtures
+                  - failed_fixtures
+                  - blocked_fixtures
+                  - golden_passed
+                  - critical_safety_regressions
+                  - regression_pass_rate
+                  - trace_complete
+                  - export_contract_complete
+                  - qa_fixture_coverage_complete
+                  - qa_categories_covered
+                  - safety_enforcement_points_covered
+            fixture_result_projection_fields:
+              type: array
+              description: Persisted per-fixture fields that expose QA, trace, export, and safety gate evidence from summary JSON.
+              minItems: 12
+              uniqueItems: true
+              items:
+                type: string
+                enum:
+                  - fixture_id
+                  - category
+                  - workflow
+                  - status
+                  - expected_safety_action
+                  - observed_safety_action
+                  - qa_check_ids
+                  - qa_coverage_contract
+                  - trace_contract
+                  - export_contract
+                  - qa_export_gate
+                  - failure_reasons
+            admin_read_projection_required:
+              type: boolean
+              const: true
+            read_without_eval_rerun:
               type: boolean
               const: true
             latest_result_resolvable:

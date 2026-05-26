@@ -70,6 +70,36 @@ QA_CATEGORY_ORDER = [
     "export_completeness",
 ]
 
+SUMMARY_PROJECTION_FIELDS = [
+    "total_fixtures",
+    "passed_fixtures",
+    "failed_fixtures",
+    "blocked_fixtures",
+    "golden_passed",
+    "critical_safety_regressions",
+    "regression_pass_rate",
+    "trace_complete",
+    "export_contract_complete",
+    "qa_fixture_coverage_complete",
+    "qa_categories_covered",
+    "safety_enforcement_points_covered",
+]
+
+FIXTURE_RESULT_PROJECTION_FIELDS = [
+    "fixture_id",
+    "category",
+    "workflow",
+    "status",
+    "expected_safety_action",
+    "observed_safety_action",
+    "qa_check_ids",
+    "qa_coverage_contract",
+    "trace_contract",
+    "export_contract",
+    "qa_export_gate",
+    "failure_reasons",
+]
+
 DIMENSION_QA_CATEGORIES = {
     "four_option_distinctness": {"four_option_distinctness"},
     "image_qa": {
@@ -488,6 +518,10 @@ def run_eval() -> dict[str, Any]:
                 "latest_only",
             ],
             "summary_json_contains_fixture_results": True,
+            "summary_projection_fields": SUMMARY_PROJECTION_FIELDS,
+            "fixture_result_projection_fields": FIXTURE_RESULT_PROJECTION_FIELDS,
+            "admin_read_projection_required": True,
+            "read_without_eval_rerun": True,
             "tenant_scoped": True,
             "subject_scoped": True,
             "latest_result_resolvable": True,
