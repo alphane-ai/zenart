@@ -1,0 +1,313 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zenart.local/schemas/stage0/rev2/qa_enforcement_matrix.schema.json",
+  "title": "ZenArt Stage 0 Rev2 QA Enforcement Matrix",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "contract_id",
+    "blueprint_source",
+    "qa_fixture",
+    "eval_result_link",
+    "trace_contract_link",
+    "required_families",
+    "family_contracts",
+    "export_gate_policy",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "stage0.rev2"
+    },
+    "contract_id": {
+      "const": "qa_enforcement_matrix_stage0_rev2"
+    },
+    "blueprint_source": {
+      "const": "Docs/stage0_blueprint_rev2.md"
+    },
+    "qa_fixture": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "requires_qa_result_schema",
+        "requires_unique_check_ids",
+        "requires_source_artifacts",
+        "requires_user_message",
+        "requires_admin_reason"
+      ],
+      "properties": {
+        "path": {
+          "const": "fixtures/stage0/rev2/eval/qa_results.json"
+        },
+        "requires_qa_result_schema": {
+          "const": "schemas/stage0/rev2/qa_result.schema.json"
+        },
+        "requires_unique_check_ids": {
+          "const": true
+        },
+        "requires_source_artifacts": {
+          "const": true
+        },
+        "requires_user_message": {
+          "const": true
+        },
+        "requires_admin_reason": {
+          "const": true
+        }
+      }
+    },
+    "eval_result_link": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "requires_fixture_result",
+        "requires_qa_export_gate_match"
+      ],
+      "properties": {
+        "path": {
+          "const": "fixtures/stage0/rev2/eval/starter_eval_results.json"
+        },
+        "requires_fixture_result": {
+          "const": true
+        },
+        "requires_qa_export_gate_match": {
+          "const": true
+        }
+      }
+    },
+    "trace_contract_link": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "requires_trace_id_match",
+        "requires_all_pipeline_steps"
+      ],
+      "properties": {
+        "path": {
+          "const": "fixtures/stage0/rev2/eval/trace_completeness.json"
+        },
+        "requires_trace_id_match": {
+          "const": true
+        },
+        "requires_all_pipeline_steps": {
+          "const": true
+        }
+      }
+    },
+    "required_families": {
+      "type": "array",
+      "minItems": 7,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/qa_family"
+      }
+    },
+    "family_contracts": {
+      "type": "array",
+      "minItems": 7,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "family",
+          "qa_categories",
+          "required_check_ids",
+          "fixture_id",
+          "trace_id",
+          "workflow",
+          "expected_outcome",
+          "expected_severity",
+          "expected_final_export_allowed",
+          "expected_blocks_final_export",
+          "expected_admin_override_eligible",
+          "required_observed_fields",
+          "required_expected_fields",
+          "required_trace_steps",
+          "source_artifacts_required",
+          "user_visible_message_required",
+          "admin_reason_required"
+        ],
+        "properties": {
+          "family": {
+            "$ref": "#/$defs/qa_family"
+          },
+          "qa_categories": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "$ref": "#/$defs/qa_category"
+            }
+          },
+          "required_check_ids": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^qa_[a-z0-9_]+$"
+            }
+          },
+          "fixture_id": {
+            "type": "string",
+            "pattern": "^fx_[a-z0-9_]+$"
+          },
+          "trace_id": {
+            "type": "string",
+            "pattern": "^trace_[a-z0-9_]+$"
+          },
+          "workflow": {
+            "enum": [
+              "ecommerce_growth_pack",
+              "business_visual_doc_pack",
+              "local_merchant_campaign_pack",
+              "character_ip_concept_pack"
+            ]
+          },
+          "expected_outcome": {
+            "enum": [
+              "pass",
+              "warn",
+              "block"
+            ]
+          },
+          "expected_severity": {
+            "enum": [
+              "info",
+              "warning",
+              "blocking"
+            ]
+          },
+          "expected_final_export_allowed": {
+            "type": "boolean"
+          },
+          "expected_blocks_final_export": {
+            "type": "boolean"
+          },
+          "expected_admin_override_eligible": {
+            "type": "boolean"
+          },
+          "required_observed_fields": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required_expected_fields": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required_trace_steps": {
+            "type": "array",
+            "minItems": 5,
+            "maxItems": 5,
+            "uniqueItems": true,
+            "items": {
+              "enum": [
+                "brief",
+                "provider_request",
+                "provider_response",
+                "qa",
+                "export"
+              ]
+            }
+          },
+          "source_artifacts_required": {
+            "const": true
+          },
+          "user_visible_message_required": {
+            "const": true
+          },
+          "admin_reason_required": {
+            "const": true
+          }
+        }
+      }
+    },
+    "export_gate_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "blocking_checks_block_final_export",
+        "warning_checks_do_not_directly_block_final_export",
+        "blocking_override_requires_audit",
+        "export_completeness_missing_artifact_blocks_download",
+        "safety_block_also_blocks_export"
+      ],
+      "properties": {
+        "blocking_checks_block_final_export": {
+          "const": true
+        },
+        "warning_checks_do_not_directly_block_final_export": {
+          "const": true
+        },
+        "blocking_override_requires_audit": {
+          "const": true
+        },
+        "export_completeness_missing_artifact_blocks_download": {
+          "const": true
+        },
+        "safety_block_also_blocks_export": {
+          "const": true
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "blueprint_sections",
+        "created_by_lane"
+      ],
+      "properties": {
+        "blueprint_sections": {
+          "type": "array",
+          "minItems": 3,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "created_by_lane": {
+          "const": "lane2"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "qa_family": {
+      "enum": [
+        "integrity",
+        "blank",
+        "readability",
+        "structured_text",
+        "logo_preservation",
+        "claims",
+        "export_completeness"
+      ]
+    },
+    "qa_category": {
+      "enum": [
+        "file_integrity",
+        "blank_output",
+        "text_readability",
+        "structured_text",
+        "product_logo_preservation",
+        "forbidden_claims",
+        "export_completeness"
+      ]
+    }
+  }
+}

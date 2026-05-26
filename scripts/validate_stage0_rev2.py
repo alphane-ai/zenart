@@ -939,6 +939,7 @@ SCHEMA_FIXTURE_TARGETS = [
     ("safety_enforcement_contract.schema.json", FIXTURE_DIR / "eval" / "safety_enforcement_contract.json", "object"),
     ("qa_result.schema.json", FIXTURE_DIR / "eval" / "qa_results.json", "array_items"),
     ("qa_result_coverage.schema.json", FIXTURE_DIR / "eval" / "qa_result_coverage.json", "object"),
+    ("qa_enforcement_matrix.schema.json", FIXTURE_DIR / "eval" / "qa_enforcement_matrix.json", "object"),
     ("safety_rule.schema.json", FIXTURE_DIR / "eval" / "safety_rules.json", "array_items"),
     ("workflow_acceptance.schema.json", FIXTURE_DIR / "workflows", "directory_objects"),
     ("crawler_governance.schema.json", FIXTURE_DIR / "crawler" / "crawler_governance_cases.json", "array_items"),
@@ -2200,6 +2201,7 @@ def validate_json_files() -> None:
         SCHEMA_DIR / "trace_completeness.schema.json",
         SCHEMA_DIR / "safety_enforcement_contract.schema.json",
         SCHEMA_DIR / "qa_result_coverage.schema.json",
+        SCHEMA_DIR / "qa_enforcement_matrix.schema.json",
         SCHEMA_DIR / "release_gate_evidence.schema.json",
         FIXTURE_DIR / "eval" / "starter_eval_suite.json",
         FIXTURE_DIR / "eval" / "starter_eval_results.json",
@@ -2209,6 +2211,7 @@ def validate_json_files() -> None:
         FIXTURE_DIR / "eval" / "trace_completeness.json",
         FIXTURE_DIR / "eval" / "safety_enforcement_contract.json",
         FIXTURE_DIR / "eval" / "qa_result_coverage.json",
+        FIXTURE_DIR / "eval" / "qa_enforcement_matrix.json",
         FIXTURE_DIR / "eval" / "qa_results.json",
         FIXTURE_DIR / "eval" / "safety_rules.json",
         FIXTURE_DIR / "crawler" / "crawler_governance_cases.json",
@@ -3773,6 +3776,20 @@ def validate_qa_result_coverage_contract() -> None:
     )
 
 
+def validate_qa_enforcement_matrix_contract() -> None:
+    result = subprocess.run(
+        [sys.executable, str(ROOT / "scripts" / "validate_qa_enforcement_matrix.py")],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    require(
+        result.returncode == 0,
+        "QA enforcement matrix validation failed: " + (result.stderr or result.stdout).strip(),
+    )
+
+
 def validate_task_schema_compatibility_contract() -> None:
     task_go = ROOT / "backend" / "internal" / "task" / "task.go"
     task_test_go = ROOT / "backend" / "internal" / "task" / "task_test.go"
@@ -4689,6 +4706,7 @@ def main() -> int:
         validate_trace_completeness_contract,
         validate_safety_enforcement_contract,
         validate_qa_result_coverage_contract,
+        validate_qa_enforcement_matrix_contract,
         validate_task_schema_compatibility_contract,
         validate_blueprint_evidence_backfill_contracts,
         validate_launch_readiness_split_contracts,
