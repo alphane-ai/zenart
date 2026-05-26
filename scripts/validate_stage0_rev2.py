@@ -253,18 +253,35 @@ DO_NOT_LAUNCH_CONDITION_COVERAGE = {
     },
 }
 
-STRONG_EVIDENCE_REF_TOKENS = (
+CONCRETE_EVIDENCE_PATH_PREFIXES = (
     ".env.example",
-    ".github/",
-    "admin/",
-    "backend/",
+    ".github",
+    "admin",
+    "backend",
     "docker-compose.yml",
-    "fixtures/",
-    "openapi/",
-    "ops/",
-    "schemas/",
-    "scripts/",
-    "web/",
+    "fixtures",
+    "openapi",
+    "ops",
+    "schemas",
+    "scripts",
+    "web",
+)
+
+CONCRETE_EVIDENCE_PATH_RE = re.compile(
+    r"(?<![A-Za-z0-9_./-])"
+    r"("
+    r"\.env\.example|"
+    r"\.github(?:/[A-Za-z0-9._{}*,-]+)*|"
+    r"admin(?:/[A-Za-z0-9._{}*,-]+)*|"
+    r"backend(?:/[A-Za-z0-9._{}*,-]+)*|"
+    r"docker-compose\.yml|"
+    r"fixtures(?:/[A-Za-z0-9._{}*,-]+)*|"
+    r"openapi(?:/[A-Za-z0-9._{}*,-]+)*|"
+    r"ops(?:/[A-Za-z0-9._{}*,-]+)*|"
+    r"schemas(?:/[A-Za-z0-9._{}*,-]+)*|"
+    r"scripts(?:/[A-Za-z0-9._{}*,-]+)*|"
+    r"web(?:/[A-Za-z0-9._{}*,-]+)*"
+    r")"
 )
 
 RELEASE_GATE_PASS_BLOCKED_BY_OPEN_ITEMS = {
@@ -844,6 +861,41 @@ def repo_path(path: str) -> Path:
     return ROOT / path
 
 
+def normalize_evidence_path(path: str) -> str:
+    return path.rstrip(".,;:)。")
+
+
+def evidence_path_exists(path: str) -> bool:
+    normalized = normalize_evidence_path(path)
+    if normalized == ".github":
+        return (ROOT / ".github").exists()
+    candidate = repo_path(normalized)
+    if candidate.exists():
+        return True
+    if "{" in normalized or "*" in normalized:
+        glob_pattern = re.sub(r"\{([^{}]+)\}", r"*", normalized).replace("*", "*")
+        return any(ROOT.glob(glob_pattern))
+    return False
+
+
+def concrete_evidence_paths(evidence_ref: str) -> set[str]:
+    paths: set[str] = set()
+    for match in CONCRETE_EVIDENCE_PATH_RE.finditer(evidence_ref):
+        path = normalize_evidence_path(match.group(1))
+        if path.startswith(CONCRETE_EVIDENCE_PATH_PREFIXES):
+            paths.add(path)
+    return paths
+
+
+def require_concrete_evidence_ref(evidence_ref: str, context: str) -> None:
+    paths = concrete_evidence_paths(evidence_ref)
+    require(paths, f"{context} must cite at least one concrete repo artifact path")
+    require(
+        any(evidence_path_exists(path) for path in paths),
+        f"{context} cites repo artifact paths but none exist: {sorted(paths)}",
+    )
+
+
 def missing_repo_paths(paths: list[str]) -> list[str]:
     return [path for path in paths if not repo_path(path).exists()]
 
@@ -971,9 +1023,9 @@ def validate_release_gate_basics(data: dict[str, Any]) -> tuple[dict[str, dict[s
                 f"{gate}.{check_id} is {check['status']} but evidence_ref does not explain the blocker",
             )
         if check["status"] == "pass":
-            require(
-                any(token in check["evidence_ref"] for token in STRONG_EVIDENCE_REF_TOKENS),
-                f"{gate}.{check_id} pass evidence must cite a concrete repo artifact",
+            require_concrete_evidence_ref(
+                check["evidence_ref"],
+                f"{gate}.{check_id} pass evidence",
             )
 
     for condition_id, condition in conditions.items():
@@ -990,9 +1042,9 @@ def validate_release_gate_basics(data: dict[str, Any]) -> tuple[dict[str, dict[s
                 f"{gate}.{condition_id} is active but evidence_ref does not explain the launch blocker",
             )
         else:
-            require(
-                any(token in condition["evidence_ref"] for token in STRONG_EVIDENCE_REF_TOKENS),
-                f"{gate}.{condition_id} cleared condition must cite a concrete repo artifact",
+            require_concrete_evidence_ref(
+                condition["evidence_ref"],
+                f"{gate}.{condition_id} cleared condition",
             )
 
     return checks, conditions
