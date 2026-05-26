@@ -35,7 +35,7 @@ func RunServer(ctx context.Context, cfg config.Config, logger *slog.Logger) erro
 		return err
 	}
 	db := store.NewPoolAdapter(pool)
-	scanner := security.PlaceholderMalwareScanner{Provider: cfg.Security.MalwareScanProvider}
+	scanner := malwareScannerFromConfig(cfg, http.DefaultClient)
 	stage0Service := stage0.NewService(stage0.NewRepository(db), objects, scanner)
 	api := server.New(cfg, logger)
 	baseHandler := api.Handler()
@@ -69,6 +69,21 @@ func RunServer(ctx context.Context, cfg config.Config, logger *slog.Logger) erro
 			return nil
 		}
 		return err
+	}
+}
+
+func malwareScannerFromConfig(cfg config.Config, client *http.Client) security.MalwareScanner {
+	switch cfg.Security.MalwareScanProvider {
+	case "http":
+		return security.HTTPMalwareScanner{
+			Endpoint: cfg.Security.MalwareScanEndpoint,
+			APIKey:   cfg.Security.MalwareScanAPIKey,
+			Provider: "http",
+			Client:   client,
+			Timeout:  cfg.Security.MalwareScanTimeout,
+		}
+	default:
+		return security.PlaceholderMalwareScanner{Provider: cfg.Security.MalwareScanProvider}
 	}
 }
 

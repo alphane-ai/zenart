@@ -413,6 +413,40 @@ func TestCreateUploadBlocksSuspiciousMalwareScan(t *testing.T) {
 	}
 }
 
+func TestCreateUploadFailClosedBlocksUnavailableMalwareScan(t *testing.T) {
+	db := &fakeDB{}
+	repo := NewRepository(db)
+	signed := false
+
+	_, err := repo.CreateUpload(context.Background(), UploadOptions{
+		TenantID:            "tenant_1",
+		UserID:              "user_1",
+		AllowedContentTypes: []string{"image/png"},
+		MaxBytes:            1024,
+		URLTTL:              5 * time.Minute,
+		Input: UploadCreate{
+			Filename:    "Logo.png",
+			ContentType: "image/png",
+			ByteSize:    512,
+		},
+		SignURL: func(_ string, objectKey string, _ time.Duration) (string, time.Time) {
+			signed = true
+			return "/signed/" + objectKey, time.Now().UTC().Add(5 * time.Minute)
+		},
+		MalwareScanner:    security.PlaceholderMalwareScanner{Provider: "stage0-test"},
+		MalwareFailClosed: true,
+	})
+	if !errors.Is(err, ErrMalwareBlocked) {
+		t.Fatalf("CreateUpload() error = %v, want ErrMalwareBlocked", err)
+	}
+	if len(db.execs) != 0 {
+		t.Fatalf("fail-closed unavailable scan should not write rows: %#v", db.execs)
+	}
+	if signed {
+		t.Fatal("fail-closed unavailable scan should not issue a signed upload URL")
+	}
+}
+
 func TestCreateUploadRejectsUnsupportedContentTypeAndOversize(t *testing.T) {
 	repo := NewRepository(&fakeDB{})
 	base := UploadOptions{

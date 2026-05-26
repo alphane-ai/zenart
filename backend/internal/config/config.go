@@ -42,6 +42,10 @@ type SecurityConfig struct {
 	AllowedUploadTypes    []string
 	UploadURLTTL          time.Duration
 	MalwareScanProvider   string
+	MalwareScanEndpoint   string
+	MalwareScanAPIKey     string
+	MalwareScanTimeout    time.Duration
+	MalwareScanFailClosed bool
 	ContentSecurityPolicy string
 	CSRFHeaderName        string
 	CSRFHeaderValue       string
@@ -137,6 +141,10 @@ func Load() (Config, error) {
 			AllowedUploadTypes:    listEnv("ALLOWED_UPLOAD_CONTENT_TYPES", []string{"image/png", "image/jpeg", "image/webp", "image/gif", "application/pdf"}),
 			UploadURLTTL:          durationEnv("UPLOAD_URL_TTL", 10*time.Minute),
 			MalwareScanProvider:   env("MALWARE_SCAN_PROVIDER", "stage0-placeholder"),
+			MalwareScanEndpoint:   env("MALWARE_SCAN_ENDPOINT", ""),
+			MalwareScanAPIKey:     env("MALWARE_SCAN_API_KEY", ""),
+			MalwareScanTimeout:    durationEnv("MALWARE_SCAN_TIMEOUT", 5*time.Second),
+			MalwareScanFailClosed: boolEnv("MALWARE_SCAN_FAIL_CLOSED", false),
 			ContentSecurityPolicy: env("CONTENT_SECURITY_POLICY", "default-src 'none'; frame-ancestors 'none'; base-uri 'none'"),
 			CSRFHeaderName:        env("CSRF_HEADER_NAME", "X-ZenArt-CSRF"),
 			CSRFHeaderValue:       env("CSRF_HEADER_VALUE", "same-site-origin-check"),
@@ -246,6 +254,20 @@ func (c Config) Validate() error {
 	}
 	if strings.TrimSpace(c.Security.MalwareScanProvider) == "" {
 		errs = append(errs, "MALWARE_SCAN_PROVIDER must not be empty")
+	}
+	if c.Security.MalwareScanTimeout <= 0 {
+		errs = append(errs, "MALWARE_SCAN_TIMEOUT must be > 0")
+	}
+	switch strings.ToLower(strings.TrimSpace(c.Security.MalwareScanProvider)) {
+	case "stage0-placeholder", "placeholder":
+	case "http":
+		if strings.TrimSpace(c.Security.MalwareScanEndpoint) == "" {
+			errs = append(errs, "MALWARE_SCAN_ENDPOINT must not be empty when MALWARE_SCAN_PROVIDER=http")
+		} else if parsed, err := url.ParseRequestURI(c.Security.MalwareScanEndpoint); err != nil || parsed.Scheme == "" || parsed.Host == "" {
+			errs = append(errs, fmt.Sprintf("MALWARE_SCAN_ENDPOINT must be an absolute URL: %q", c.Security.MalwareScanEndpoint))
+		}
+	default:
+		errs = append(errs, `MALWARE_SCAN_PROVIDER must be "stage0-placeholder" or "http"`)
 	}
 	if strings.TrimSpace(c.Security.CSRFHeaderName) == "" {
 		errs = append(errs, "CSRF_HEADER_NAME must not be empty")

@@ -291,6 +291,7 @@ func (s *Server) createUpload(w http.ResponseWriter, r *http.Request) {
 		MaxBytes:            s.cfg.Security.MaxUploadBytes,
 		URLTTL:              s.cfg.Security.UploadURLTTL,
 		SignURL:             s.signUploadURL,
+		MalwareFailClosed:   s.cfg.Security.MalwareScanFailClosed,
 	})
 	if err != nil {
 		writeStage0Error(w, r, err)

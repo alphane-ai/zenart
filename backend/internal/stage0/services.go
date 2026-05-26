@@ -129,6 +129,7 @@ type UploadOptions struct {
 	URLTTL              time.Duration
 	SignURL             func(tenantID, objectKey string, ttl time.Duration) (string, time.Time)
 	MalwareScanner      security.MalwareScanner
+	MalwareFailClosed   bool
 }
 
 type Upload struct {
@@ -473,7 +474,7 @@ func (r Repository) CreateUpload(ctx context.Context, opts UploadOptions) (Uploa
 		return Upload{}, err
 	}
 	metadata["malware_scan"] = malwareScanMetadataValue(scanResult)
-	if scanResult.Status == security.MalwareScanStatusSuspicious {
+	if scanResult.Status == security.MalwareScanStatusSuspicious || (opts.MalwareFailClosed && scanResult.Status != security.MalwareScanStatusClean) {
 		return Upload{}, ErrMalwareBlocked
 	}
 	uploadURL, expiresAt := opts.SignURL(opts.TenantID, objectKey, opts.URLTTL)

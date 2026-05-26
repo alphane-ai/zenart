@@ -1,8 +1,13 @@
 package security
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
+	"net/http"
 	"net/url"
 	"regexp"
 	"strings"
@@ -26,6 +31,7 @@ const (
 	SecretKindWebhookSecret SecretKind = "webhook_secret"
 	SecretKindDSN           SecretKind = "dsn_credentials"
 	SecretKindProviderKey   SecretKind = "provider_key"
+	SecretKindCloudKey      SecretKind = "cloud_key"
 )
 
 type SecretFinding struct {
@@ -48,9 +54,14 @@ var secretValuePatterns = []struct {
 	{SecretKindProviderKey, "stripe_key", regexp.MustCompile(`\b(?:sk|rk)_(?:live|test)_[A-Za-z0-9]{16,}\b`)},
 	{SecretKindProviderKey, "slack_token", regexp.MustCompile(`\bxox[abprs]-[A-Za-z0-9-]{10,}\b`)},
 	{SecretKindAccessKey, "aws_access_key", regexp.MustCompile(`\b(?:AKIA|ASIA)[A-Z0-9]{16}\b`)},
+	{SecretKindCloudKey, "google_api_key", regexp.MustCompile(`\bAIza[0-9A-Za-z_-]{35}\b`)},
+	{SecretKindCloudKey, "azure_storage_key", regexp.MustCompile(`(?i)\bDefaultEndpointsProtocol=https?;AccountName=[A-Za-z0-9]+;AccountKey=[A-Za-z0-9+/=]{20,}`)},
 	{SecretKindToken, "github_token", regexp.MustCompile(`\b(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9_]{20,}\b`)},
 	{SecretKindToken, "github_fine_grained_token", regexp.MustCompile(`\bgithub_pat_[A-Za-z0-9_]{20,}\b`)},
 	{SecretKindToken, "jwt", regexp.MustCompile(`\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b`)},
+	{SecretKindToken, "vercel_token", regexp.MustCompile(`\bvercel_[A-Za-z0-9]{20,}\b`)},
+	{SecretKindProviderKey, "anthropic_key", regexp.MustCompile(`\bsk-ant-[A-Za-z0-9_-]{20,}\b`)},
+	{SecretKindProviderKey, "linear_key", regexp.MustCompile(`\blin_api_[A-Za-z0-9]{20,}\b`)},
 }
 
 var assignmentPattern = regexp.MustCompile(`(?i)\b([A-Za-z0-9_.-]*(?:secret|token|password|passwd|pwd|api[_-]?key|access[_-]?key|private[_-]?key|credential|signature|session|cookie|authorization|client[_-]?secret|refresh[_-]?token|webhook[_-]?secret|signing[_-]?key|database[_-]?url|dsn)[A-Za-z0-9_.-]*)\s*([=:])\s*("[^"]*"|'[^']*'|[^\s,;&]+)`)
@@ -84,6 +95,81 @@ type MalwareScanResult struct {
 
 type MalwareScanner interface {
 	Scan(ctx context.Context, target MalwareScanTarget) (MalwareScanResult, error)
+}
+
+type HTTPMalwareScanner struct {
+	Endpoint string
+	APIKey   string
+	Provider string
+	Client   *http.Client
+	Timeout  time.Duration
+	Now      func() time.Time
+}
+
+func (s HTTPMalwareScanner) Scan(ctx context.Context, target MalwareScanTarget) (MalwareScanResult, error) {
+	endpoint := strings.TrimSpace(s.Endpoint)
+	if endpoint == "" {
+		return MalwareScanResult{}, errors.New("malware scan endpoint is required")
+	}
+	if strings.TrimSpace(target.TenantID) == "" || strings.TrimSpace(target.ObjectKey) == "" {
+		return MalwareScanResult{}, errors.New("malware scan tenant_id and object_key are required")
+	}
+	body, err := json.Marshal(target)
+	if err != nil {
+		return MalwareScanResult{}, err
+	}
+	if s.Timeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, s.Timeout)
+		defer cancel()
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(body))
+	if err != nil {
+		return MalwareScanResult{}, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+	if strings.TrimSpace(s.APIKey) != "" {
+		req.Header.Set("Authorization", "Bearer "+strings.TrimSpace(s.APIKey))
+	}
+	client := s.Client
+	if client == nil {
+		client = http.DefaultClient
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return MalwareScanResult{}, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		limited, _ := io.ReadAll(io.LimitReader(resp.Body, 1024))
+		return MalwareScanResult{}, fmt.Errorf("malware scan endpoint returned %d: %s", resp.StatusCode, strings.TrimSpace(string(limited)))
+	}
+	var result MalwareScanResult
+	if err := json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&result); err != nil {
+		return MalwareScanResult{}, err
+	}
+	if result.Provider == "" {
+		result.Provider = strings.TrimSpace(s.Provider)
+	}
+	if result.Provider == "" {
+		result.Provider = "http"
+	}
+	if result.Signature == "" {
+		result.Signature = "http-v1"
+	}
+	if result.ScannedAt.IsZero() {
+		result.ScannedAt = s.clock()
+	}
+	result.Metadata = RedactStringMap(result.Metadata)
+	return result, nil
+}
+
+func (s HTTPMalwareScanner) clock() time.Time {
+	if s.Now != nil {
+		return s.Now().UTC()
+	}
+	return time.Now().UTC()
 }
 
 type PlaceholderMalwareScanner struct {
@@ -180,15 +266,7 @@ func RedactValue(value any) any {
 	case map[string]any:
 		return RedactMap(typed)
 	case map[string]string:
-		out := make(map[string]string, len(typed))
-		for key, val := range typed {
-			if IsSensitiveKey(key) {
-				out[key] = Redacted
-				continue
-			}
-			out[key] = RedactString(val)
-		}
-		return out
+		return RedactStringMap(typed)
 	case []any:
 		out := make([]any, len(typed))
 		for i, item := range typed {
@@ -210,6 +288,21 @@ func RedactMap(input map[string]any) map[string]any {
 			continue
 		}
 		out[key] = RedactValue(value)
+	}
+	return out
+}
+
+func RedactStringMap(input map[string]string) map[string]string {
+	if input == nil {
+		return nil
+	}
+	out := make(map[string]string, len(input))
+	for key, val := range input {
+		if IsSensitiveKey(key) {
+			out[key] = Redacted
+			continue
+		}
+		out[key] = RedactString(val)
 	}
 	return out
 }

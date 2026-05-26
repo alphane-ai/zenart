@@ -2,6 +2,9 @@ package security
 
 import (
 	"context"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 )
@@ -69,6 +72,19 @@ func TestRedactStringHandlesProviderKeysAndInlineAssignments(t *testing.T) {
 	}
 }
 
+func TestRedactStringCoversCloudAndProviderTokens(t *testing.T) {
+	input := `google=AIza12345678901234567890123456789012345 anthropic=sk-ant-abcdefghijklmnopqrstuvwxyz123456 linear=lin_api_abcdefghijklmnopqrstuvwxyz azure=DefaultEndpointsProtocol=https;AccountName=zenart;AccountKey=abcdefghijklmnopqrstuvwxyz1234567890==`
+	got := RedactString(input)
+	if got != `google=`+Redacted+` anthropic=`+Redacted+` linear=`+Redacted+` azure=`+Redacted {
+		t.Fatalf("RedactString() = %q", got)
+	}
+	findings := ClassifyString(input)
+	assertSignal(t, findings, "google_api_key")
+	assertSignal(t, findings, "anthropic_key")
+	assertSignal(t, findings, "linear_key")
+	assertSignal(t, findings, "azure_storage_key")
+}
+
 func TestPlaceholderMalwareScannerReportsUnavailableAndForcedSuspicious(t *testing.T) {
 	now := time.Date(2026, 5, 26, 1, 2, 3, 0, time.UTC)
 	scanner := PlaceholderMalwareScanner{Now: func() time.Time { return now }}
@@ -99,6 +115,56 @@ func TestPlaceholderMalwareScannerReportsUnavailableAndForcedSuspicious(t *testi
 	}
 }
 
+func TestHTTPMalwareScannerPostsTargetAndRedactsMetadata(t *testing.T) {
+	now := time.Date(2026, 5, 26, 12, 0, 0, 0, time.UTC)
+	var received MalwareScanTarget
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Fatalf("method = %s, want POST", r.Method)
+		}
+		if r.Header.Get("Authorization") != "Bearer scan-secret" {
+			t.Fatalf("Authorization = %q, want bearer API key", r.Header.Get("Authorization"))
+		}
+		if err := json.NewDecoder(r.Body).Decode(&received); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+		_ = json.NewEncoder(w).Encode(MalwareScanResult{
+			Status:   MalwareScanStatusClean,
+			Provider: "scanner",
+			Metadata: map[string]string{
+				"engine_version": "1",
+				"api_key":        "secret",
+			},
+		})
+	}))
+	defer server.Close()
+
+	result, err := (HTTPMalwareScanner{
+		Endpoint: server.URL,
+		APIKey:   "scan-secret",
+		Timeout:  time.Second,
+		Now:      func() time.Time { return now },
+	}).Scan(context.Background(), MalwareScanTarget{
+		TenantID:    "tenant_1",
+		ObjectKey:   "uploads/file.png",
+		ContentType: "image/png",
+		ByteSize:    12,
+		Metadata:    map[string]string{"slot": "reference"},
+	})
+	if err != nil {
+		t.Fatalf("Scan() error = %v", err)
+	}
+	if received.TenantID != "tenant_1" || received.ObjectKey != "uploads/file.png" {
+		t.Fatalf("received target = %#v", received)
+	}
+	if result.Status != MalwareScanStatusClean || result.Signature != "http-v1" || !result.ScannedAt.Equal(now) {
+		t.Fatalf("result = %#v, want clean defaulted result", result)
+	}
+	if result.Metadata["api_key"] != Redacted || result.Metadata["engine_version"] != "1" {
+		t.Fatalf("metadata = %#v, want redacted api_key and public engine version", result.Metadata)
+	}
+}
+
 func assertFinding(t *testing.T, findings []SecretFinding, kind SecretKind, location string) {
 	t.Helper()
 	for _, finding := range findings {
@@ -107,4 +173,14 @@ func assertFinding(t *testing.T, findings []SecretFinding, kind SecretKind, loca
 		}
 	}
 	t.Fatalf("missing finding kind=%s location=%s in %#v", kind, location, findings)
+}
+
+func assertSignal(t *testing.T, findings []SecretFinding, signal string) {
+	t.Helper()
+	for _, finding := range findings {
+		if finding.Signal == signal {
+			return
+		}
+	}
+	t.Fatalf("missing finding signal=%s in %#v", signal, findings)
 }

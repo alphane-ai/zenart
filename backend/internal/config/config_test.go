@@ -30,6 +30,9 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.Security.MalwareScanProvider != "stage0-placeholder" {
 		t.Fatalf("Security.MalwareScanProvider = %q, want stage0-placeholder", cfg.Security.MalwareScanProvider)
 	}
+	if cfg.Security.MalwareScanTimeout <= 0 {
+		t.Fatalf("Security.MalwareScanTimeout = %s, want positive", cfg.Security.MalwareScanTimeout)
+	}
 	if cfg.ObjectStorage.Bucket != "zenart-local" {
 		t.Fatalf("ObjectStorage.Bucket = %q, want zenart-local", cfg.ObjectStorage.Bucket)
 	}
@@ -124,6 +127,30 @@ func TestValidateRejectsInvalidSecurityConfig(t *testing.T) {
 	cfg.Security.MalwareScanProvider = ""
 	if err := cfg.Validate(); err == nil {
 		t.Fatal("Validate() error = nil, want missing malware scan provider error")
+	}
+
+	cfg, err = Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	cfg.Security.MalwareScanProvider = "clamav"
+	if err := cfg.Validate(); err == nil {
+		t.Fatal("Validate() error = nil, want unsupported malware scan provider error")
+	}
+
+	cfg, err = Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	cfg.Security.MalwareScanProvider = "http"
+	cfg.Security.MalwareScanEndpoint = ""
+	if err := cfg.Validate(); err == nil {
+		t.Fatal("Validate() error = nil, want missing HTTP malware scan endpoint error")
+	}
+
+	cfg.Security.MalwareScanEndpoint = "http://scanner.local/scan"
+	if err := cfg.Validate(); err != nil {
+		t.Fatalf("Validate() error = %v, want valid HTTP malware scanner config", err)
 	}
 }
 
