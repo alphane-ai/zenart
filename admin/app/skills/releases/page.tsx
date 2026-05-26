@@ -1,15 +1,28 @@
 import { DataTable } from "@/components/DataTable";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
-import { getAdminRbacEvidence, getAdminReviewDecisions, getReleaseEvidence, getSkillVersions } from "@/lib/admin-api";
-import type { AdminRbacEvidence, AdminReviewDecision, ReleaseEvidence, SkillVersion } from "@/lib/types";
+import {
+  getAdminRbacEvidence,
+  getAdminReviewDecisions,
+  getProductionSkillReleaseEvalCanaryEvidence,
+  getReleaseEvidence,
+  getSkillVersions
+} from "@/lib/admin-api";
+import type {
+  AdminRbacEvidence,
+  AdminReviewDecision,
+  ProductionSkillReleaseEvalCanaryCoverage,
+  ReleaseEvidence,
+  SkillVersion
+} from "@/lib/types";
 
 export default async function SkillReleasesPage() {
-  const [versions, reviews, evidence, rbacEvidence] = await Promise.all([
+  const [versions, reviews, evidence, rbacEvidence, productionSkillEvidence] = await Promise.all([
     getSkillVersions(),
     getAdminReviewDecisions(),
     getReleaseEvidence(),
-    getAdminRbacEvidence()
+    getAdminRbacEvidence(),
+    getProductionSkillReleaseEvalCanaryEvidence()
   ]);
   const releaseRbacEvidence = rbacEvidence.filter((item) => item.surface === "skill_release");
 
@@ -139,6 +152,32 @@ export default async function SkillReleasesPage() {
             { key: "audit", header: "Audit Ref", render: (row) => <span className="mono">{row.auditRef}</span> }
           ]}
         />
+      </section>
+
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>Production Skill Release Runtime Evidence</h3>
+            <p>Production skill release/eval/canary evidence can clear only its check while provider, billing, security, backup, and legal blockers stay open.</p>
+          </div>
+        </div>
+        <DataTable<ProductionSkillReleaseEvalCanaryCoverage>
+          rows={productionSkillEvidence.coverage}
+          columns={[
+            { key: "area", header: "Coverage Area", render: (row) => row.area },
+            { key: "status", header: "Status", render: (row) => <StatusBadge value={row.status} label={row.status} /> },
+            { key: "runtime", header: "Runtime Probe", render: (row) => row.runtimeProbe },
+            { key: "deployment", header: "Deployment Evidence", render: (row) => row.deploymentEvidence },
+            { key: "rbac", header: "RBAC Audit Evidence", render: (row) => row.rbacAuditEvidence },
+            { key: "artifacts", header: "Admin Artifacts", render: (row) => row.linkedAdminArtifacts.join(", ") },
+            { key: "evidence", header: "Evidence Refs", render: (row) => row.evidenceRefs.join(", ") }
+          ]}
+        />
+        <div className="evidence-line panel-body">
+          <span className="mono">{productionSkillEvidence.evidencePath}</span>
+          <span>{productionSkillEvidence.gateImpact.checklistItem}</span>
+          <span>Remaining blockers: {productionSkillEvidence.gateImpact.remainingBlockers.join(", ")}</span>
+        </div>
       </section>
     </>
   );

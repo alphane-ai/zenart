@@ -55,6 +55,7 @@ test("admin fixtures cover required operational surfaces", () => {
     "export const abuseControlHooks",
     "export const stagingAuthRbacTenantAuditEvidence",
     "export const stagingSupportRetryAbuseEvidence",
+    "export const productionSkillReleaseEvalCanaryEvidence",
     "export const operationalDashboards",
     "export const operationalDashboardRuntimeEvidence",
     "export const alertRoutes",
@@ -72,6 +73,11 @@ test("admin fixtures cover required operational surfaces", () => {
 });
 
 test("admin skill release fixtures define state, allocation, canary, and rollback controls", () => {
+  const releasesPage = readFileSync(
+    new URL("../app/skills/releases/page.tsx", import.meta.url),
+    "utf8"
+  );
+
   for (const token of [
     "internal_canary",
     "allowlist_canary",
@@ -85,6 +91,30 @@ test("admin skill release fixtures define state, allocation, canary, and rollbac
     "criticalSafetyRegression",
     "rolled_back",
     "rollbackAuditRef"
+  ]) {
+    assert.match(fixtures, new RegExp(token));
+  }
+
+  for (const token of [
+    "Production Skill Release Runtime Evidence",
+    "ProductionSkillReleaseEvalCanaryCoverage",
+    "Runtime Probe",
+    "Deployment Evidence",
+    "RBAC Audit Evidence",
+    "Remaining blockers"
+  ]) {
+    assert.match(releasesPage, new RegExp(token));
+  }
+
+  for (const token of [
+    "productionSkillReleaseEvalCanaryEvidence",
+    "production_skill_release_eval_canary_20260527T1600Z",
+    "ops/evidence/production/20260527T1600Z-skill-release-eval-canary.json",
+    "eval_suite_gate",
+    "canary_threshold_gate",
+    "release_notes_gate",
+    "rollback_gate",
+    "gate_blocker_preservation"
   ]) {
     assert.match(fixtures, new RegExp(token));
   }

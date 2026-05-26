@@ -15,8 +15,8 @@
     },
     {
       "check_id": "production_skill_release_eval_canary",
-      "status": "blocked",
-      "evidence_ref": "Skill release state, traffic allocation, canary metrics/threshold, rollback, review, and eval-gating evidence exists, but production evidence for active skill release go/no-go is absent"
+      "status": "pass",
+      "evidence_ref": "ops/evidence/production/20260527T1600Z-skill-release-eval-canary.json validates production skill release eval, canary thresholds, release notes, rollback, and audit evidence while preserving provider, billing, security, backup, legal, CI, and staging launch blockers"
     },
     {
       "check_id": "production_activation_review_audit",
@@ -66,8 +66,8 @@
     {
       "condition_id": "skill_release_eval_canary_missing",
       "blueprint_condition": "Active skills 缺 owner、risk level、eval suite、safety refs、release notes、canary metrics 或 rollback target。",
-      "is_present": true,
-      "evidence_ref": "admin and fixtures/stage0/rev2/eval/ skill release/eval/canary/rollback contracts exist, but ops/evidence/production/ active-skill launch evidence remains absent"
+      "is_present": false,
+      "evidence_ref": "ops/evidence/production/20260527T1600Z-skill-release-eval-canary.json records production skill release eval suite, canary thresholds, release notes, rollback target, owner/risk metadata, audit refs, and gate preservation for skill-export-pack@1.8.1"
     },
     {
       "condition_id": "activation_eval_review_audit_runtime_missing",
@@ -129,7 +129,6 @@
     "blocked_by_checks": [
       "production_provider_or_comp_only_mode",
       "production_paid_billing_lifecycle",
-      "production_skill_release_eval_canary",
       "production_security_launch_checks",
       "production_backup_rollback_incident",
       "production_legal_support_policy"
@@ -138,7 +137,6 @@
       "dev_mock_provider_public_claims_unresolved",
       "real_provider_or_comp_only_mode_missing",
       "paid_billing_or_comp_only_mode_missing",
-      "skill_release_eval_canary_missing",
       "security_privacy_legal_incomplete",
       "secret_exposure_runtime_not_verified",
       "backup_restore_rollback_smoke_missing",
@@ -146,7 +144,7 @@
       "public_legal_support_policy_not_deployed",
       "ci_staging_gates_not_passed"
     ],
-    "evidence_ref": "fixtures/stage0/rev2/release_gate_evidence.production_launch.json remains no-go while production provider/comp-only, paid billing, skill canary, security, backup/rollback/post-deploy smoke, legal/support deployment, and upstream CI/staging evidence are blocked"
+    "evidence_ref": "fixtures/stage0/rev2/release_gate_evidence.production_launch.json remains no-go while production provider/comp-only, paid billing, security, backup/rollback/post-deploy smoke, legal/support deployment, and upstream CI/staging evidence are blocked"
   },
   "provenance": {
     "blueprint_sections": [

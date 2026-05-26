@@ -22,6 +22,7 @@ import {
   operationalDashboards,
   productionActivationReviewAuditEvidence,
   productionAbuseThrottleHoldEvidence,
+  productionSkillReleaseEvalCanaryEvidence,
   promptFragments,
   providerHealth,
   quotaAccounts,
@@ -146,6 +147,10 @@ export async function getProductionAbuseThrottleHoldEvidence() {
 
 export async function getProductionActivationReviewAuditEvidence() {
   return productionActivationReviewAuditEvidence;
+}
+
+export async function getProductionSkillReleaseEvalCanaryEvidence() {
+  return productionSkillReleaseEvalCanaryEvidence;
 }
 
 export async function getExportJob(id: string) {

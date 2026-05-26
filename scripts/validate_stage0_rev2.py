@@ -44,6 +44,9 @@ PRODUCTION_ABUSE_THROTTLE_HOLD_EVIDENCE = (
 PRODUCTION_ACTIVATION_REVIEW_AUDIT_EVIDENCE = (
     ROOT / "ops" / "evidence" / "production" / "20260527T1430Z-activation-review-audit.json"
 )
+PRODUCTION_SKILL_RELEASE_EVAL_CANARY_EVIDENCE = (
+    ROOT / "ops" / "evidence" / "production" / "20260527T1600Z-skill-release-eval-canary.json"
+)
 OBSERVABILITY_DASHBOARD = ROOT / "ops" / "observability" / "dashboards" / "stage0_rev2_overview.json"
 OBSERVABILITY_ALERTS = ROOT / "ops" / "observability" / "alerts" / "stage0_rev2_alerts.json"
 STAGING_DASHBOARD_RUNTIME_EVIDENCE = (
@@ -486,7 +489,7 @@ RUNTIME_PASS_REQUIREMENTS = {
     },
     ("production_launch", "production_skill_release_eval_canary"): {
         "path_patterns": (r"ops/evidence/production/",),
-        "tokens": ("production", "skill", "eval", "canary", "release notes", "rollback"),
+        "tokens": ("production", "skill", "eval", "canary", "release notes", "rollback", "audit"),
     },
     ("production_launch", "production_activation_review_audit"): {
         "path_patterns": (r"ops/evidence/production/",),
@@ -525,6 +528,9 @@ RUNTIME_PASS_EVIDENCE_FILES = {
     ],
     ("production_launch", "production_abuse_throttle_hold"): [
         PRODUCTION_ABUSE_THROTTLE_HOLD_EVIDENCE,
+    ],
+    ("production_launch", "production_skill_release_eval_canary"): [
+        PRODUCTION_SKILL_RELEASE_EVAL_CANARY_EVIDENCE,
     ],
 }
 
@@ -1155,6 +1161,7 @@ REQUIRED_OPEN_ITEMS |= (
         "Private Beta/Staging crawler approval/provenance runtime evidence 通过。",
         "Private Beta/Staging support/retry/abuse runtime evidence 通过。",
         "staging backend/worker/crawler metrics runtime evidence 通过。",
+        "Production skill release/eval/canary runtime/deployment evidence 通过。",
         "Production activation review/audit runtime/deployment evidence 通过。",
         "Production abuse throttle/hold runtime/deployment evidence 通过。",
     }
@@ -1162,6 +1169,7 @@ REQUIRED_OPEN_ITEMS |= (
 REQUIRED_OPEN_ITEMS |= set(LOCAL_ALPHA_RELEASE_GATE_WORKFLOW_RUNTIME_OPEN_CHECK_ITEMS)
 REQUIRED_OPEN_ITEMS -= {
     "staging backend/worker/crawler metrics runtime evidence 通过。",
+    "Production skill release/eval/canary runtime/deployment evidence 通过。",
     "Production activation review/audit runtime/deployment evidence 通过。",
     "Production abuse throttle/hold runtime/deployment evidence 通过。",
 }
@@ -3629,6 +3637,69 @@ def validate_production_abuse_throttle_hold_evidence() -> None:
         require(evidence[key], f"abuse throttle/hold evidence must include {key}")
 
 
+def validate_production_skill_release_eval_canary_evidence() -> None:
+    evidence = load_json(PRODUCTION_SKILL_RELEASE_EVAL_CANARY_EVIDENCE)
+    require(evidence["schema_version"] == "stage0.rev2", "production skill release evidence schema mismatch")
+    require(evidence["environment"] == "production", "skill release evidence must be production-scoped")
+    require(
+        evidence["status"] == "pass_with_blockers_preserved",
+        "skill release production evidence must preserve unrelated launch blockers",
+    )
+    require(
+        evidence["release_gate_check_id"] == "production_skill_release_eval_canary",
+        "skill release evidence must target the production release-gate check",
+    )
+    require(
+        evidence["do_not_launch_condition_id"] == "skill_release_eval_canary_missing",
+        "skill release evidence must target the matching Do-Not-Launch condition",
+    )
+    gate_impact = evidence["gate_impact"]
+    require(
+        gate_impact["checklist_item"] == "Production skill release/eval/canary runtime/deployment evidence 通过。",
+        "skill release evidence must name the checklist item it can close",
+    )
+    require(
+        gate_impact["can_clear_check_level_item"] is True,
+        "skill release evidence must explicitly allow check-level closure",
+    )
+    require(
+        gate_impact["aggregate_production_gate_status"] == "blocked_by_other_production_runtime_items",
+        "skill release evidence must keep aggregate production gate blocked",
+    )
+    for blocker in [
+        "production_provider_or_comp_only_mode",
+        "production_paid_billing_lifecycle",
+        "production_security_launch_checks",
+        "production_backup_rollback_incident",
+        "production_legal_support_policy",
+    ]:
+        require(blocker in gate_impact["remaining_blockers"], f"skill release evidence must preserve blocker: {blocker}")
+
+    required_areas = {
+        "eval_suite_gate",
+        "canary_threshold_gate",
+        "release_notes_gate",
+        "rollback_gate",
+        "gate_blocker_preservation",
+    }
+    coverage = evidence["coverage"]
+    require(
+        {item["area"] for item in coverage} == required_areas,
+        "skill release evidence must cover eval, canary, release notes, rollback, and gate preservation",
+    )
+    for item in coverage:
+        require(item["status"] == "pass", f"{item['area']} production skill release coverage must pass")
+        combined = json.dumps(item, ensure_ascii=False).lower()
+        for token in [
+            "production",
+            "audit",
+            "ops/evidence/production/20260527t1600z-skill-release-eval-canary.json",
+        ]:
+            require(token in combined, f"{item['area']} production skill release coverage missing {token}")
+    for key in ["runtime_request_ids", "skill_version_ids", "canary_metric_ids", "release_evidence_ids", "audit_refs"]:
+        require(evidence[key], f"skill release evidence must include {key}")
+
+
 def validate_analytics_taxonomy() -> None:
     taxonomy = load_json(FIXTURE_DIR / "analytics" / "event_taxonomy.json")
     require(
@@ -3889,6 +3960,7 @@ def validate_release_gate_evidence() -> None:
         condition_id: item["is_present"] for condition_id, item in production_conditions.items()
     }
     cleared_production_conditions = {
+        "skill_release_eval_canary_missing",
         "activation_eval_review_audit_runtime_missing",
         "admin_high_risk_review_runtime_missing",
         "abuse_throttle_hold_missing",
@@ -4779,6 +4851,7 @@ def validate_launch_readiness_split_contracts() -> None:
             "Private Beta/Staging crawler approval/provenance runtime evidence 通过。",
             "Private Beta/Staging support/retry/abuse runtime evidence 通过。",
             "staging backend/worker/crawler metrics runtime evidence 通过。",
+            "Production skill release/eval/canary runtime/deployment evidence 通过。",
             "Production activation review/audit runtime/deployment evidence 通过。",
             "Production abuse throttle/hold runtime/deployment evidence 通过。",
         }
@@ -5325,6 +5398,7 @@ def main() -> int:
         validate_staging_dashboard_runtime_evidence,
         validate_staging_alert_runtime_evidence,
         validate_staging_backend_worker_crawler_metrics_evidence,
+        validate_production_skill_release_eval_canary_evidence,
         validate_production_abuse_throttle_hold_evidence,
         validate_analytics_taxonomy,
         validate_local_alpha_presence,

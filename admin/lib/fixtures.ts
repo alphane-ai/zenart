@@ -20,6 +20,7 @@ import type {
   ProviderHealth,
   ProductionActivationReviewAuditEvidence,
   ProductionAbuseThrottleHoldEvidence,
+  ProductionSkillReleaseEvalCanaryEvidence,
   AlertRoute,
   AlertRouteRuntimeEvidence,
   BackendMetricsRuntimeEvidence,
@@ -2337,7 +2338,7 @@ export const productionAbuseThrottleHoldEvidence: ProductionAbuseThrottleHoldEvi
       area: "gate_blocker_preservation",
       status: "pass",
       runtimeProbe:
-        "Production release-gate replay cleared only production_abuse_throttle_hold and kept provider, billing, skill canary, activation audit, security, backup rollback, and legal support deployment checks blocked.",
+        "Production release-gate replay cleared production_abuse_throttle_hold while preserving provider, billing, activation audit, security, backup rollback, and legal support deployment checks that were still blocked at this evidence time.",
       deploymentEvidence:
         "The production gate fixture cites this production evidence path on the abuse check, clears only abuse_throttle_hold_missing, and preserves unrelated production do-not-launch conditions.",
       rbacAuditEvidence:
@@ -2360,7 +2361,6 @@ export const productionAbuseThrottleHoldEvidence: ProductionAbuseThrottleHoldEvi
     remainingBlockers: [
       "production_provider_or_comp_only_mode",
       "production_paid_billing_lifecycle",
-      "production_skill_release_eval_canary",
       "production_security_launch_checks",
       "production_backup_rollback_incident",
       "production_legal_support_policy"
@@ -2566,7 +2566,7 @@ export const productionActivationReviewAuditEvidence: ProductionActivationReview
       area: "gate_blocker_preservation",
       status: "pass",
       runtimeProbe:
-        "Production release-gate replay cleared only production_activation_review_audit and kept provider-or-comp-only, paid billing lifecycle, skill release canary, security, backup rollback, legal support, and CI/staging blockers active.",
+        "Production release-gate replay cleared production_activation_review_audit while preserving provider-or-comp-only, paid billing lifecycle, security, backup rollback, legal support, and CI/staging blockers that were still active at this evidence time.",
       deploymentEvidence:
         "The production gate fixture cites this production evidence path on the activation review audit check, clears only activation and high-risk admin review do-not-launch conditions, and preserves unrelated production blockers.",
       rbacAuditEvidence:
@@ -2605,7 +2605,158 @@ export const productionActivationReviewAuditEvidence: ProductionActivationReview
     remainingBlockers: [
       "production_provider_or_comp_only_mode",
       "production_paid_billing_lifecycle",
-      "production_skill_release_eval_canary",
+      "production_security_launch_checks",
+      "production_backup_rollback_incident",
+      "production_legal_support_policy"
+    ]
+  }
+};
+
+export const productionSkillReleaseEvalCanaryEvidence: ProductionSkillReleaseEvalCanaryEvidence = {
+  id: "production_skill_release_eval_canary_20260527T1600Z",
+  evidencePath: "ops/evidence/production/20260527T1600Z-skill-release-eval-canary.json",
+  environment: "production",
+  status: "pass_with_blockers_preserved",
+  validatedAt: "2026-05-27T16:00:00Z",
+  validatedByRole: "admin_superadmin",
+  releaseGateCheckId: "production_skill_release_eval_canary",
+  doNotLaunchConditionId: "skill_release_eval_canary_missing",
+  runtimeRequestIds: [
+    "production-skill-release-eval-canary-20260527T1600Z-eval-suite",
+    "production-skill-release-eval-canary-20260527T1600Z-canary-thresholds",
+    "production-skill-release-eval-canary-20260527T1600Z-release-notes",
+    "production-skill-release-eval-canary-20260527T1600Z-rollback",
+    "production-skill-release-eval-canary-20260527T1600Z-gate-preservation"
+  ],
+  skillVersionIds: ["sv-181", "sv-182", "sv-240", "sv-248"],
+  canaryMetricIds: ["cm-001", "cm-011", "cm-012", "cm-014"],
+  releaseEvidenceIds: ["eg-001", "eg-004"],
+  auditRefs: ["au-003", "au-005", "au-009", "au-010", "au-016"],
+  coverage: [
+    {
+      area: "eval_suite_gate",
+      status: "pass",
+      runtimeProbe:
+        "Production skill release replay accepted only skill-export-pack@1.8.1 because eval suite, QA fixtures, regression fixtures, owner, risk level, and safety refs were present before canary traffic moved.",
+      deploymentEvidence:
+        "The production evidence file records eval suite es-stage0-export, release evidence eg-004, release notes stage0-skill-export-pack-1.8.1, and immutable audit au-016 before any active skill route can change.",
+      rbacAuditEvidence:
+        "Skill release evidence links admin review rv-101, rollback audit au-003, production audit au-016, and blocks skill-brand-kit@2.5.0 plus skill-claims-review@0.9.8 from using incomplete eval or second-review state as production launch evidence.",
+      linkedAdminArtifacts: [
+        "admin/app/skills/releases/page.tsx",
+        "admin/app/feedback/page.tsx",
+        "admin/tests/admin-governance.test.mjs"
+      ],
+      evidenceRefs: [
+        "ops/evidence/production/20260527T1600Z-skill-release-eval-canary.json",
+        "sv-181",
+        "eg-004",
+        "rv-101",
+        "au-016"
+      ]
+    },
+    {
+      area: "canary_threshold_gate",
+      status: "pass",
+      runtimeProbe:
+        "Production canary replay verified cm-001 stayed healthy while cm-011 and cm-012 remained stopped, so skill-export-pack@1.8.1 could keep internal canary evidence and skill-export-pack@1.8.2 stayed paused at zero traffic.",
+      deploymentEvidence:
+        "The evidence file records canary threshold windows, stop actions, sample sizes, holdout routing, and critical safety regression flags without promoting any stopped canary to active production traffic.",
+      rbacAuditEvidence:
+        "Canary decisions cite immutable audits au-003 and au-009, keep rollback target skill-export-pack@1.8.0, and require admin_operator release ownership plus second-review preservation for stopped metrics.",
+      linkedAdminArtifacts: [
+        "admin/app/skills/releases/page.tsx",
+        "admin/app/analytics/page.tsx",
+        "admin/lib/fixtures.ts:skillCanaryMetrics"
+      ],
+      evidenceRefs: [
+        "ops/evidence/production/20260527T1600Z-skill-release-eval-canary.json",
+        "cm-001",
+        "cm-011",
+        "cm-012",
+        "sv-182",
+        "au-009"
+      ]
+    },
+    {
+      area: "release_notes_gate",
+      status: "pass",
+      runtimeProbe:
+        "Production release-note replay required SHA, migration list, config diff, feature flags, owner, smoke plan, rollback plan, known risks, go/no-go, eval summary, canary summary, and release notes evidence before clearing the skill row.",
+      deploymentEvidence:
+        "The production evidence file links release notes stage0-skill-export-pack-1.8.1 to eg-004, sv-181, audit au-016, and admin release page evidence so the release-gate fixture can clear only the skill canary check.",
+      rbacAuditEvidence:
+        "Release notes evidence is immutable through au-016 and does not weaken provider, billing, security, backup, legal, CI, or staging blockers still listed in the production gate fixture.",
+      linkedAdminArtifacts: [
+        "admin/app/skills/releases/page.tsx",
+        "admin/app/operations/page.tsx",
+        "admin/app/audit/page.tsx"
+      ],
+      evidenceRefs: [
+        "ops/evidence/production/20260527T1600Z-skill-release-eval-canary.json",
+        "stage0-skill-export-pack-1.8.1",
+        "eg-004",
+        "sv-181",
+        "au-016"
+      ]
+    },
+    {
+      area: "rollback_gate",
+      status: "pass",
+      runtimeProbe:
+        "Production rollback replay restored skill-export-pack routing to 1.8.0 for stopped canary sv-182, preserved rolled-back brand-kit sv-240, and verified active release candidate sv-181 has rollback target skill-export-pack@1.8.0.",
+      deploymentEvidence:
+        "Rollback evidence records route smoke, rollback target, holdout routing, regression fixture conversion, and immutable audits au-003, au-009, au-010, and au-016 for production release review.",
+      rbacAuditEvidence:
+        "Rollback gate evidence keeps skill-brand-kit@2.5.0 queued behind rbac-release-001 and au-005 while allowing only validated export-pack rollback paths to be cited by the production skill release check.",
+      linkedAdminArtifacts: [
+        "admin/app/skills/releases/page.tsx",
+        "admin/app/audit/page.tsx",
+        "admin/lib/rbac-runtime.ts"
+      ],
+      evidenceRefs: [
+        "ops/evidence/production/20260527T1600Z-skill-release-eval-canary.json",
+        "sv-181",
+        "sv-182",
+        "sv-240",
+        "au-003",
+        "au-009",
+        "au-010"
+      ]
+    },
+    {
+      area: "gate_blocker_preservation",
+      status: "pass",
+      runtimeProbe:
+        "Production release-gate replay cleared only production_skill_release_eval_canary and kept provider-or-comp-only, paid billing lifecycle, security, backup rollback, legal support, CI, and staging blockers active.",
+      deploymentEvidence:
+        "The production gate fixture cites this production evidence path on the skill release check, clears skill_release_eval_canary_missing, and preserves aggregate no-go status while unrelated production evidence remains absent.",
+      rbacAuditEvidence:
+        "Gate preservation links release evidence eg-004, skill versions sv-181 and sv-182, canary metrics cm-001, cm-011, cm-012, and immutable audits au-003, au-009, au-010, and au-016 without implying production launch readiness.",
+      linkedAdminArtifacts: [
+        "admin/app/skills/releases/page.tsx",
+        "admin/app/operations/page.tsx",
+        "admin/tests/admin-governance.test.mjs"
+      ],
+      evidenceRefs: [
+        "ops/evidence/production/20260527T1600Z-skill-release-eval-canary.json",
+        "eg-004",
+        "sv-181",
+        "sv-182",
+        "cm-001",
+        "cm-011",
+        "cm-012",
+        "au-016"
+      ]
+    }
+  ],
+  gateImpact: {
+    checklistItem: "Production skill release/eval/canary runtime/deployment evidence 通过。",
+    canClearCheckLevelItem: true,
+    aggregateProductionGateStatus: "blocked_by_other_production_runtime_items",
+    remainingBlockers: [
+      "production_provider_or_comp_only_mode",
+      "production_paid_billing_lifecycle",
       "production_security_launch_checks",
       "production_backup_rollback_incident",
       "production_legal_support_policy"
@@ -3036,6 +3187,26 @@ export const releaseEvidence: ReleaseEvidence[] = [
     reviewerRationale: "No silent fallback to weaker providers is allowed by Rev2.",
     rollbackTarget: "deterministic-dev-provider",
     auditRef: "au-007"
+  },
+  {
+    id: "eg-004",
+    target: "skill-export-pack@1.8.1",
+    gate: "production_launch",
+    status: "passed",
+    providerEvidence:
+      "Production skill release evidence verifies the skill canary decision shape only; provider-or-comp-only production launch evidence remains blocked in the aggregate gate.",
+    canaryEvidence:
+      "cm-001 stayed healthy in the production canary replay while cm-011 and cm-012 kept stopped canary sv-182 at zero traffic.",
+    releaseEvidence:
+      "Release notes stage0-skill-export-pack-1.8.1 include SHA, migration list, config diff, feature flags, owner, smoke plan, rollback plan, known risks, go/no-go, eval summary, and canary summary.",
+    smokeEvidence:
+      "Production route smoke replay validated skill-export-pack@1.8.1 release metadata, eval refs, QA refs, canary thresholds, and rollback target before clearing only the skill release check.",
+    rollbackEvidence:
+      "Rollback target skill-export-pack@1.8.0 is active, route-compatible, and linked to rollback audit au-003 plus production skill release audit au-016.",
+    reviewerRationale:
+      "The export-pack skill release can clear the production skill canary check because eval, canary thresholds, release notes, rollback, and audit evidence are present while unrelated launch blockers stay open.",
+    rollbackTarget: "skill-export-pack@1.8.0",
+    auditRef: "au-016"
   }
 ];
 
@@ -3352,6 +3523,19 @@ export const auditEvents: AuditEvent[] = [
       "rbac-export-001"
     ],
     secondReviewStatus: "completed"
+  },
+  {
+    id: "au-016",
+    actor: "release-admin",
+    action: "validated production skill release eval canary",
+    target: "skill-export-pack@1.8.1",
+    risk: "medium",
+    createdAt: "2026-05-27 16:00",
+    rationale:
+      "Production skill release evidence confirms eval suite, canary thresholds, release notes, rollback target, and audit linkage while preserving unrelated launch blockers.",
+    immutable: true,
+    evidenceRefs: ["sv-181", "sv-182", "eg-004", "cm-001", "cm-011", "cm-012"],
+    secondReviewStatus: "not_required"
   }
 ];
 

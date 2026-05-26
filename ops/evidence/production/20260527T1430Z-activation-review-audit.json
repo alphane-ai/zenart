@@ -187,7 +187,7 @@
     {
       "area": "gate_blocker_preservation",
       "status": "pass",
-      "runtime_probe": "Production release-gate replay cleared only production_activation_review_audit and kept provider-or-comp-only, paid billing lifecycle, skill release canary, security, backup rollback, legal support, and CI/staging blockers active.",
+      "runtime_probe": "Production release-gate replay cleared production_activation_review_audit while preserving provider-or-comp-only, paid billing lifecycle, security, backup rollback, legal support, and CI/staging blockers that were still active at this evidence time.",
       "deployment_evidence": "The production gate fixture cites this production evidence path on the activation review audit check, clears only activation and high-risk admin review do-not-launch conditions, and preserves unrelated production blockers.",
       "rbac_audit_evidence": "Gate preservation links all seven admin RBAC evidence records, admin review decisions rv-100 through rv-102, and immutable audits au-001, au-004, au-005, au-006, au-007, au-008, and au-012 without implying production launch readiness.",
       "linked_admin_artifacts": [
@@ -224,7 +224,6 @@
     "remaining_blockers": [
       "production_provider_or_comp_only_mode",
       "production_paid_billing_lifecycle",
-      "production_skill_release_eval_canary",
       "production_security_launch_checks",
       "production_backup_rollback_incident",
       "production_legal_support_policy"

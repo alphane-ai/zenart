@@ -671,6 +671,44 @@ export type ProductionActivationReviewAuditEvidence = {
   };
 };
 
+export type ProductionSkillReleaseEvalCanaryCoverage = {
+  area:
+    | "eval_suite_gate"
+    | "canary_threshold_gate"
+    | "release_notes_gate"
+    | "rollback_gate"
+    | "gate_blocker_preservation";
+  status: "pass" | "blocked";
+  runtimeProbe: string;
+  deploymentEvidence: string;
+  rbacAuditEvidence: string;
+  linkedAdminArtifacts: string[];
+  evidenceRefs: string[];
+};
+
+export type ProductionSkillReleaseEvalCanaryEvidence = {
+  id: string;
+  evidencePath: string;
+  environment: "production";
+  status: "pass_with_blockers_preserved" | "blocked";
+  validatedAt: string;
+  validatedByRole: AdminRole;
+  releaseGateCheckId: "production_skill_release_eval_canary";
+  doNotLaunchConditionId: "skill_release_eval_canary_missing";
+  runtimeRequestIds: string[];
+  skillVersionIds: string[];
+  canaryMetricIds: string[];
+  releaseEvidenceIds: string[];
+  auditRefs: string[];
+  coverage: ProductionSkillReleaseEvalCanaryCoverage[];
+  gateImpact: {
+    checklistItem: string;
+    canClearCheckLevelItem: boolean;
+    aggregateProductionGateStatus: "blocked_by_other_production_runtime_items";
+    remainingBlockers: string[];
+  };
+};
+
 export type SupportTicket = {
   id: string;
   status: "open" | "waiting_user" | "resolved" | "escalated";

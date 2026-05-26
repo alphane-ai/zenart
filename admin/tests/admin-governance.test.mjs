@@ -12,7 +12,7 @@ const parseFixtures = () => {
   const moduleSource = source
     .replace(/^import type[\s\S]*?from "@\/lib\/types";\n\n/, "")
     .replaceAll(/export const (\w+)[^=]*=/g, "const $1 =");
-  return Function(`${moduleSource}\nreturn { skillVersions, skillReleaseStateDefinitions, skillCanaryMetrics, releaseEvidence, releaseBlockers, supportTickets, supportEscalationRunbooks, supportUsers, riskyExports, abuseEvents, abuseControlHooks, stagingAuthRbacTenantAuditEvidence, stagingSupportRetryAbuseEvidence, productionAbuseThrottleHoldEvidence, productionActivationReviewAuditEvidence, auditEvents, exportJobs, traces, quotaAccounts, feedbackItems, regressionFixtures, analyticsReports, queueHealth, failedTaskControls, crawlerFindings, crawlerSourceApprovals, crawlerGovernanceWorkflows, crawlerStagingRuntimeEvidence, adminRbacEvidence, operationalDashboards, operationalDashboardRuntimeEvidence, alertRoutes, alertRouteRuntimeEvidence, backendMetricsRuntimeEvidence };`)();
+  return Function(`${moduleSource}\nreturn { skillVersions, skillReleaseStateDefinitions, skillCanaryMetrics, releaseEvidence, releaseBlockers, supportTickets, supportEscalationRunbooks, supportUsers, riskyExports, abuseEvents, abuseControlHooks, stagingAuthRbacTenantAuditEvidence, stagingSupportRetryAbuseEvidence, productionAbuseThrottleHoldEvidence, productionActivationReviewAuditEvidence, productionSkillReleaseEvalCanaryEvidence, auditEvents, exportJobs, traces, quotaAccounts, feedbackItems, regressionFixtures, analyticsReports, queueHealth, failedTaskControls, crawlerFindings, crawlerSourceApprovals, crawlerGovernanceWorkflows, crawlerStagingRuntimeEvidence, adminRbacEvidence, operationalDashboards, operationalDashboardRuntimeEvidence, alertRoutes, alertRouteRuntimeEvidence, backendMetricsRuntimeEvidence };`)();
 };
 
 const crawlerGovernanceCases = JSON.parse(
@@ -35,6 +35,7 @@ const {
   stagingSupportRetryAbuseEvidence,
   productionAbuseThrottleHoldEvidence,
   productionActivationReviewAuditEvidence,
+  productionSkillReleaseEvalCanaryEvidence,
   auditEvents,
   exportJobs,
   feedbackItems,
@@ -156,6 +157,10 @@ const productionAbuseThrottleHoldPath = new URL(
 );
 const productionActivationReviewAuditPath = new URL(
   "../../ops/evidence/production/20260527T1430Z-activation-review-audit.json",
+  import.meta.url
+);
+const productionSkillReleaseEvalCanaryPath = new URL(
+  "../../ops/evidence/production/20260527T1600Z-skill-release-eval-canary.json",
   import.meta.url
 );
 
@@ -1307,6 +1312,148 @@ test("production activation review audit evidence covers every high-risk admin o
   assert.ok(
     gateFixture.do_not_launch_checks.some((condition) => condition.is_present === true),
     "aggregate production gate must remain blocked by unrelated launch conditions"
+  );
+});
+
+test("production skill release eval canary evidence clears only the production skill check", () => {
+  assert.ok(existsSync(productionSkillReleaseEvalCanaryPath), "production skill release/eval/canary evidence file is missing");
+  assert.ok(existsSync(productionGatePath), "production launch gate evidence fixture is missing");
+
+  const evidenceFile = JSON.parse(readFileSync(productionSkillReleaseEvalCanaryPath, "utf8"));
+  const gateFixture = JSON.parse(readFileSync(productionGatePath, "utf8"));
+  const skillVersionIds = new Set(skillVersions.map((version) => version.id));
+
+  assert.equal(
+    productionSkillReleaseEvalCanaryEvidence.id,
+    evidenceFile.evidence_id,
+    "admin fixture must match production skill evidence id"
+  );
+  assert.equal(productionSkillReleaseEvalCanaryEvidence.environment, "production", "evidence must be production scoped");
+  assert.equal(evidenceFile.environment, "production", "evidence file must be production scoped");
+  assert.equal(
+    productionSkillReleaseEvalCanaryEvidence.status,
+    "pass_with_blockers_preserved",
+    "production skill evidence must preserve unrelated blockers"
+  );
+  assert.equal(
+    productionSkillReleaseEvalCanaryEvidence.releaseGateCheckId,
+    "production_skill_release_eval_canary",
+    "evidence must bind the production skill release/eval/canary check"
+  );
+  assert.equal(
+    productionSkillReleaseEvalCanaryEvidence.doNotLaunchConditionId,
+    "skill_release_eval_canary_missing",
+    "evidence must bind the production skill do-not-launch condition"
+  );
+  assert.equal(
+    productionSkillReleaseEvalCanaryEvidence.gateImpact.canClearCheckLevelItem,
+    true,
+    "validated evidence should clear only the check-level production skill checklist item"
+  );
+  assert.equal(
+    productionSkillReleaseEvalCanaryEvidence.gateImpact.aggregateProductionGateStatus,
+    "blocked_by_other_production_runtime_items",
+    "skill evidence must not close the aggregate production gate"
+  );
+
+  for (const requestId of productionSkillReleaseEvalCanaryEvidence.runtimeRequestIds) {
+    assert.match(
+      requestId,
+      /^production-skill-release-eval-canary-\d{8}T\d{4}Z-/,
+      `${requestId} must be a production skill release runtime probe`
+    );
+  }
+
+  for (const versionId of productionSkillReleaseEvalCanaryEvidence.skillVersionIds) {
+    assert.ok(skillVersionIds.has(versionId), `${versionId} must link a skill version`);
+  }
+
+  for (const metricId of productionSkillReleaseEvalCanaryEvidence.canaryMetricIds) {
+    assert.ok(canaryMetricIds.has(metricId), `${metricId} must link a canary metric`);
+  }
+
+  for (const evidenceId of productionSkillReleaseEvalCanaryEvidence.releaseEvidenceIds) {
+    assert.ok(releaseEvidenceIds.has(evidenceId), `${evidenceId} must link release evidence`);
+  }
+
+  for (const auditRef of productionSkillReleaseEvalCanaryEvidence.auditRefs) {
+    assert.ok(auditIds.has(auditRef), `${auditRef} must link immutable audit evidence`);
+  }
+
+  const requiredAreas = new Set([
+    "eval_suite_gate",
+    "canary_threshold_gate",
+    "release_notes_gate",
+    "rollback_gate",
+    "gate_blocker_preservation"
+  ]);
+
+  for (const area of evidenceFile.coverage.map((item) => item.area)) {
+    assert.ok(requiredAreas.has(area), `${area} is not an expected production skill evidence area`);
+  }
+
+  for (const coverage of productionSkillReleaseEvalCanaryEvidence.coverage) {
+    requiredAreas.delete(coverage.area);
+    assert.equal(coverage.status, "pass", `${coverage.area} must pass`);
+    assert.ok(coverage.runtimeProbe.toLowerCase().includes("production"), `${coverage.area} must describe production runtime`);
+    assert.match(
+      coverage.runtimeProbe,
+      /eval|canary|release-note|rollback|release-gate|skill/i,
+      `${coverage.area} must cover skill release/eval/canary enforcement`
+    );
+    assert.ok(coverage.deploymentEvidence.length > 120, `${coverage.area} needs deployment evidence`);
+    assert.ok(coverage.rbacAuditEvidence.length > 120, `${coverage.area} needs RBAC and audit evidence`);
+    assert.ok(coverage.linkedAdminArtifacts.some((ref) => ref.startsWith("admin/")), `${coverage.area} needs admin artifacts`);
+    assert.ok(
+      coverage.evidenceRefs.includes("ops/evidence/production/20260527T1600Z-skill-release-eval-canary.json"),
+      `${coverage.area} must cite the production evidence path`
+    );
+    assert.ok(
+      coverage.evidenceRefs.some(
+        (ref) => skillVersionIds.has(ref) || canaryMetricIds.has(ref) || releaseEvidenceIds.has(ref) || auditIds.has(ref)
+      ),
+      `${coverage.area} needs validator-resolvable skill, canary, release, or audit refs`
+    );
+  }
+
+  assert.deepEqual([...requiredAreas], [], "production skill evidence is missing coverage areas");
+  assert.deepEqual(
+    evidenceFile.runtime_request_ids,
+    productionSkillReleaseEvalCanaryEvidence.runtimeRequestIds,
+    "evidence file and admin fixture runtime probe ids must match"
+  );
+
+  const skillCheck = gateFixture.checks.find((check) => check.check_id === "production_skill_release_eval_canary");
+  assert.ok(skillCheck, "production gate needs skill release/eval/canary check");
+  assert.equal(skillCheck.status, "pass", "validated production skill evidence should clear only its check");
+  assert.ok(
+    skillCheck.evidence_ref.includes(productionSkillReleaseEvalCanaryEvidence.evidencePath),
+    "production skill check must cite the production runtime evidence path"
+  );
+
+  const skillDoNotLaunch = gateFixture.do_not_launch_checks.find(
+    (condition) => condition.condition_id === productionSkillReleaseEvalCanaryEvidence.doNotLaunchConditionId
+  );
+  assert.ok(skillDoNotLaunch, "production do-not-launch fixture needs skill condition");
+  assert.equal(
+    skillDoNotLaunch.is_present,
+    false,
+    "validated production skill runtime evidence should clear the matching do-not-launch condition"
+  );
+  assert.ok(
+    skillDoNotLaunch.evidence_ref.includes(productionSkillReleaseEvalCanaryEvidence.evidencePath),
+    "cleared production skill do-not-launch condition must cite the production runtime evidence path"
+  );
+
+  for (const blocker of productionSkillReleaseEvalCanaryEvidence.gateImpact.remainingBlockers) {
+    const check = gateFixture.checks.find((entry) => entry.check_id === blocker);
+    assert.ok(check, `${blocker} must remain represented in the production gate fixture`);
+    assert.equal(check.status, "blocked", `${blocker} must stay blocked after skill release/eval/canary clears`);
+  }
+
+  assert.ok(
+    gateFixture.do_not_launch_checks.some((condition) => condition.is_present === true),
+    "aggregate production gate must remain blocked by other do-not-launch conditions"
   );
 });
 

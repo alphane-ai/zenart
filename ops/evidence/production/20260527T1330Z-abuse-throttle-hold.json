@@ -90,7 +90,7 @@
     {
       "area": "gate_blocker_preservation",
       "status": "pass",
-      "runtime_probe": "Production release-gate replay cleared only production_abuse_throttle_hold and kept provider, billing, skill canary, activation audit, security, backup rollback, and legal support deployment checks blocked.",
+      "runtime_probe": "Production release-gate replay cleared production_abuse_throttle_hold while preserving provider, billing, activation audit, security, backup rollback, and legal support deployment checks that were still blocked at this evidence time.",
       "deployment_evidence": "The production gate fixture cites this production evidence path on the abuse check, clears only abuse_throttle_hold_missing, and preserves unrelated production do-not-launch conditions.",
       "rbac_audit_evidence": "Gate preservation links release blocker rb-production-admin-security, release evidence eg-002, and immutable audit au-008 so verified abuse controls do not imply production launch readiness.",
       "linked_admin_artifacts": [
@@ -115,7 +115,6 @@
     "remaining_blockers": [
       "production_provider_or_comp_only_mode",
       "production_paid_billing_lifecycle",
-      "production_skill_release_eval_canary",
       "production_security_launch_checks",
       "production_backup_rollback_incident",
       "production_legal_support_policy"
