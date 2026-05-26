@@ -119,6 +119,7 @@ write_report() {
 import json
 import sys
 from pathlib import Path
+from urllib.parse import urlparse
 
 path = Path(sys.argv[1])
 required = set(json.loads(sys.argv[2]))
@@ -135,6 +136,81 @@ evidence_refs = {
     "rollback": sys.argv[12].strip(),
     "security_scan": sys.argv[13].strip(),
 }
+root = Path(".")
+
+
+def is_url(value):
+    parsed = urlparse(value)
+    return parsed.scheme in {"http", "https"} and bool(parsed.netloc)
+
+
+def resolve_local_path(value):
+    if not value or is_url(value):
+        return None
+    candidate = Path(value)
+    return candidate if candidate.is_absolute() else root / candidate
+
+
+def read_json_or_text(local_path):
+    if local_path is None or not local_path.exists() or not local_path.is_file():
+        return None, ""
+    text = local_path.read_text(encoding="utf-8", errors="replace")
+    try:
+        return json.loads(text), text
+    except json.JSONDecodeError:
+        return None, text
+
+
+def collect_sha_values(value):
+    values = []
+    if isinstance(value, dict):
+        for key, nested in value.items():
+            if key in {"release_sha", "git_sha", "commit_sha", "sha"} and isinstance(nested, str):
+                values.append(nested)
+            values.extend(collect_sha_values(nested))
+    elif isinstance(value, list):
+        for item in value:
+            values.extend(collect_sha_values(item))
+    return values
+
+
+def validate_local_ref(name, value, *, require_sha=False):
+    local_path = resolve_local_path(value)
+    result = {
+        "ref": value,
+        "kind": "missing" if not value else ("url_unverified" if is_url(value) else "local_file"),
+        "exists": False,
+        "sha_match": False,
+        "verified": False,
+    }
+    if not value:
+        result["reason"] = "missing_ref"
+        return result
+    if local_path is None:
+        result["reason"] = "remote_url_cannot_be_verified_by_local_smoke"
+        return result
+    result["path"] = str(local_path)
+    if not local_path.exists() or not local_path.is_file():
+        result["reason"] = "local_file_not_found"
+        return result
+    parsed, text = read_json_or_text(local_path)
+    result["exists"] = True
+    if not release_sha or not require_sha:
+        result["sha_match"] = True
+        result["verified"] = True
+        return result
+    sha_values = collect_sha_values(parsed) if parsed is not None else []
+    if sha_values:
+        result["sha_values"] = sha_values
+        result["sha_match"] = release_sha in sha_values
+    else:
+        result["sha_match"] = release_sha in text
+    result["verified"] = result["sha_match"]
+    if not result["verified"]:
+        result["reason"] = f"{name}_does_not_reference_release_sha"
+    return result
+
+
 rows = []
 if path.exists():
     rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
@@ -183,12 +259,23 @@ release_evidence_required = {
     "rollback_evidence": bool(evidence_refs["rollback"]),
     "security_scan_evidence": bool(evidence_refs["security_scan"]),
 }
-release_evidence_complete = all(release_evidence_required.values())
+local_evidence_verification = {
+    "release_notes_path": validate_local_ref("release_notes_path", release_notes_path, require_sha=True),
+    "migration_evidence": validate_local_ref("migration_evidence", evidence_refs["migration"]),
+    "config_diff_evidence": validate_local_ref("config_diff_evidence", evidence_refs["config_diff"]),
+    "observability_evidence": validate_local_ref("observability_evidence", evidence_refs["observability"], require_sha=True),
+    "backup_restore_evidence": validate_local_ref("backup_restore_evidence", evidence_refs["backup_restore"]),
+    "rollback_evidence": validate_local_ref("rollback_evidence", evidence_refs["rollback"], require_sha=True),
+    "security_scan_evidence": validate_local_ref("security_scan_evidence", evidence_refs["security_scan"], require_sha=True),
+}
+release_evidence_verified = all(item["verified"] for item in local_evidence_verification.values())
+release_evidence_complete = all(release_evidence_required.values()) and release_evidence_verified
 smoke_passed = status == "passed" and all(row.get("ok") is not False for row in rows) and not (required - set(categories))
 go_no_go = {
     "decision": "go" if smoke_passed and release_evidence_complete and not blocked_conditions else "no-go",
     "smoke_passed": smoke_passed,
     "release_evidence_complete": release_evidence_complete,
+    "release_evidence_verified": release_evidence_verified,
     "blocked_conditions": blocked_conditions,
 }
 print(json.dumps({
@@ -204,6 +291,7 @@ print(json.dumps({
         "image_refs": image_refs,
         "evidence_refs": evidence_refs,
         "required_slots": release_evidence_required,
+        "local_evidence_verification": local_evidence_verification,
         "complete": release_evidence_complete,
     },
     "release_gate_fixtures": gate_statuses,

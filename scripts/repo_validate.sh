@@ -237,6 +237,7 @@ if missing:
     raise SystemExit(f"staging smoke summary missing release gate keys: {missing}")
 release_evidence = summary["release_evidence"]
 required_slots = release_evidence.get("required_slots", {})
+local_evidence_verification = release_evidence.get("local_evidence_verification", {})
 for slot in (
     "release_sha",
     "release_notes_path",
@@ -250,11 +251,26 @@ for slot in (
 ):
     if slot not in required_slots:
         raise SystemExit(f"staging smoke release evidence missing slot {slot}")
+for slot in (
+    "release_notes_path",
+    "migration_evidence",
+    "config_diff_evidence",
+    "observability_evidence",
+    "backup_restore_evidence",
+    "rollback_evidence",
+    "security_scan_evidence",
+):
+    if slot not in local_evidence_verification:
+        raise SystemExit(f"staging smoke local evidence verification missing slot {slot}")
+    if local_evidence_verification[slot].get("verified") is not False:
+        raise SystemExit(f"staging smoke dry-run must not verify missing evidence slot {slot}")
 if release_evidence.get("complete") is not False:
     raise SystemExit("staging smoke dry-run must keep release evidence incomplete")
 go_no_go = summary["go_no_go"]
 if go_no_go.get("decision") != "no-go":
     raise SystemExit("staging smoke dry-run must remain no-go")
+if go_no_go.get("release_evidence_verified") is not False:
+    raise SystemExit("staging smoke dry-run must keep release evidence unverified")
 for gate in ("private_beta_staging", "production_launch"):
     if gate not in summary["release_gate_fixtures"]:
         raise SystemExit(f"staging smoke missing gate fixture summary for {gate}")

@@ -61,7 +61,16 @@
       "rollback_evidence",
       "security_scan_evidence"
     ],
-    "gate_policy": "report decision remains no-go when smoke fails, required release evidence is absent, private beta fixtures are blocked, or production do-not-launch fixtures are present"
+    "local_evidence_verification": {
+      "release_notes_path": "must exist locally and reference RELEASE_SHA",
+      "migration_evidence": "must exist locally",
+      "config_diff_evidence": "must exist locally",
+      "observability_evidence": "must exist locally and reference RELEASE_SHA",
+      "backup_restore_evidence": "must exist locally",
+      "rollback_evidence": "must exist locally and reference RELEASE_SHA",
+      "security_scan_evidence": "must exist locally and reference RELEASE_SHA"
+    },
+    "gate_policy": "report decision remains no-go when smoke fails, required release evidence is absent or locally unverifiable, release-SHA-bound evidence does not reference the deploy SHA, private beta fixtures are blocked, or production do-not-launch fixtures are present"
   },
   "checklist_policy": {
     "ci_playwright_smoke_remains_open": true,
