@@ -40,6 +40,8 @@ type SecurityConfig struct {
 	AllowedUploadTypes    []string
 	UploadURLTTL          time.Duration
 	ContentSecurityPolicy string
+	CSRFHeaderName        string
+	CSRFHeaderValue       string
 }
 
 type PostgresConfig struct {
@@ -70,7 +72,18 @@ type ObjectStorageConfig struct {
 }
 
 type AuthConfig struct {
-	AccessMode string
+	AccessMode             string
+	SessionCookieName      string
+	SessionSecret          string
+	SessionTTL             time.Duration
+	AdminSessionCookieName string
+	AdminSessionSecret     string
+	AdminSessionTTL        time.Duration
+	SessionCookieSecure    bool
+	SessionCookieSameSite  string
+	SessionCookieDomain    string
+	LocalSeedUserEmail     string
+	LocalSeedAdminEmail    string
 }
 
 type BillingConfig struct {
@@ -106,6 +119,8 @@ func Load() (Config, error) {
 			AllowedUploadTypes:    listEnv("ALLOWED_UPLOAD_CONTENT_TYPES", []string{"image/png", "image/jpeg", "image/webp", "image/gif", "application/pdf"}),
 			UploadURLTTL:          durationEnv("UPLOAD_URL_TTL", 10*time.Minute),
 			ContentSecurityPolicy: env("CONTENT_SECURITY_POLICY", "default-src 'none'; frame-ancestors 'none'; base-uri 'none'"),
+			CSRFHeaderName:        env("CSRF_HEADER_NAME", "X-ZenArt-CSRF"),
+			CSRFHeaderValue:       env("CSRF_HEADER_VALUE", "same-site-origin-check"),
 		},
 		Postgres: PostgresConfig{
 			DSN:          env("DATABASE_URL", "postgres://zenart:zenart@localhost:5432/zenart?sslmode=disable"),
@@ -132,7 +147,18 @@ func Load() (Config, error) {
 			CheckTimeout:   durationEnv("OBJECT_STORAGE_CHECK_TIMEOUT", 2*time.Second),
 		},
 		Auth: AuthConfig{
-			AccessMode: env("STAGE0_ACCESS_MODE", "local"),
+			AccessMode:             env("STAGE0_ACCESS_MODE", "local"),
+			SessionCookieName:      env("SESSION_COOKIE_NAME", "__Host-zenart_session"),
+			SessionSecret:          env("SESSION_SECRET", "stage0-local-session-secret-minimum-32-bytes"),
+			SessionTTL:             durationEnv("SESSION_TTL", 24*time.Hour),
+			AdminSessionCookieName: env("ADMIN_SESSION_COOKIE_NAME", "__Host-zenart_admin_session"),
+			AdminSessionSecret:     env("ADMIN_SESSION_SECRET", "stage0-local-admin-session-secret-minimum-32-bytes"),
+			AdminSessionTTL:        durationEnv("ADMIN_SESSION_TTL", 8*time.Hour),
+			SessionCookieSecure:    boolEnv("SESSION_COOKIE_SECURE", true),
+			SessionCookieSameSite:  env("SESSION_COOKIE_SAME_SITE", "lax"),
+			SessionCookieDomain:    env("SESSION_COOKIE_DOMAIN", ""),
+			LocalSeedUserEmail:     env("LOCAL_SEED_USER_EMAIL", "local.user@example.com"),
+			LocalSeedAdminEmail:    env("LOCAL_SEED_ADMIN_EMAIL", "local.admin@example.com"),
 		},
 		Billing: BillingConfig{
 			CheckoutProvider: env("CHECKOUT_PROVIDER", "mock"),
@@ -186,10 +212,50 @@ func (c Config) Validate() error {
 	if c.Security.UploadURLTTL <= 0 {
 		errs = append(errs, "UPLOAD_URL_TTL must be > 0")
 	}
+	if strings.TrimSpace(c.Security.CSRFHeaderName) == "" {
+		errs = append(errs, "CSRF_HEADER_NAME must not be empty")
+	}
+	if strings.TrimSpace(c.Security.CSRFHeaderValue) == "" {
+		errs = append(errs, "CSRF_HEADER_VALUE must not be empty")
+	}
 	for _, origin := range c.Security.AllowedOrigins {
 		parsed, err := url.ParseRequestURI(origin)
 		if err != nil || parsed.Scheme == "" || parsed.Host == "" {
 			errs = append(errs, fmt.Sprintf("CORS_ALLOWED_ORIGINS entry must be an absolute origin: %q", origin))
+		}
+	}
+	if strings.TrimSpace(c.Auth.AccessMode) == "" {
+		errs = append(errs, "STAGE0_ACCESS_MODE must not be empty")
+	}
+	if strings.TrimSpace(c.Auth.SessionCookieName) == "" {
+		errs = append(errs, "SESSION_COOKIE_NAME must not be empty")
+	}
+	if strings.TrimSpace(c.Auth.AdminSessionCookieName) == "" {
+		errs = append(errs, "ADMIN_SESSION_COOKIE_NAME must not be empty")
+	}
+	if c.Auth.SessionTTL <= 0 {
+		errs = append(errs, "SESSION_TTL must be > 0")
+	}
+	if c.Auth.AdminSessionTTL <= 0 {
+		errs = append(errs, "ADMIN_SESSION_TTL must be > 0")
+	}
+	if len(c.Auth.SessionSecret) < 32 {
+		errs = append(errs, "SESSION_SECRET must be at least 32 bytes")
+	}
+	if len(c.Auth.AdminSessionSecret) < 32 {
+		errs = append(errs, "ADMIN_SESSION_SECRET must be at least 32 bytes")
+	}
+	switch strings.ToLower(strings.TrimSpace(c.Auth.SessionCookieSameSite)) {
+	case "lax", "strict":
+	default:
+		errs = append(errs, `SESSION_COOKIE_SAME_SITE must be "lax" or "strict"`)
+	}
+	if strings.HasPrefix(c.Auth.SessionCookieName, "__Host-") || strings.HasPrefix(c.Auth.AdminSessionCookieName, "__Host-") {
+		if !c.Auth.SessionCookieSecure {
+			errs = append(errs, "__Host- session cookies require SESSION_COOKIE_SECURE=true")
+		}
+		if strings.TrimSpace(c.Auth.SessionCookieDomain) != "" {
+			errs = append(errs, "__Host- session cookies must not set SESSION_COOKIE_DOMAIN")
 		}
 	}
 	switch c.ObjectStorage.Provider {

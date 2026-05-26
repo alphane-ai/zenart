@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -122,6 +123,7 @@ func TestUploadCreateRejectsUnsupportedContentType(t *testing.T) {
 	req = req.WithContext(stage0.ContextWithService(req.Context(), stage0.NewService(stage0.NewRepository(noExecDB{}), nil)))
 	req.Header.Set("X-Zenart-User-ID", "user_1")
 	req.Header.Set("X-Zenart-Tenant-ID", "tenant_1")
+	setSameSiteCSRFHeaders(req)
 	rec := httptest.NewRecorder()
 
 	New(cfg, nil).Handler().ServeHTTP(rec, req)
@@ -193,6 +195,7 @@ func TestAdminExportRegenerateRequiresReviewer(t *testing.T) {
 	req.Header.Set("X-Zenart-User-ID", "admin_viewer_1")
 	req.Header.Set("X-Zenart-Tenant-ID", "tenant_1")
 	req.Header.Set("X-Zenart-Roles", "admin_viewer")
+	setSameSiteCSRFHeaders(req)
 	rec := httptest.NewRecorder()
 
 	New(cfg, nil).Handler().ServeHTTP(rec, req)
@@ -207,6 +210,127 @@ func TestAdminExportRegenerateRequiresReviewer(t *testing.T) {
 	details := body["details"].(map[string]any)
 	if details["required_permission"] != "export_override:admin" {
 		t.Fatalf("required_permission = %v, want export_override:admin", details["required_permission"])
+	}
+}
+
+func TestLocalSessionSetsSecureHttpOnlySameSiteCookie(t *testing.T) {
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/local/session", bytes.NewBufferString(`{"tenant_id":"tenant_1"}`))
+	setSameSiteCSRFHeaders(req)
+	rec := httptest.NewRecorder()
+
+	New(cfg, nil).Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status = %d, want %d: %s", rec.Code, http.StatusCreated, rec.Body.String())
+	}
+	cookie := findCookie(rec.Result().Cookies(), cfg.Auth.SessionCookieName)
+	if cookie == nil {
+		t.Fatalf("session cookie %q was not set", cfg.Auth.SessionCookieName)
+	}
+	if !cookie.HttpOnly {
+		t.Fatal("session cookie must be HttpOnly")
+	}
+	if !cookie.Secure {
+		t.Fatal("session cookie must be Secure")
+	}
+	if cookie.SameSite != http.SameSiteLaxMode {
+		t.Fatalf("SameSite = %v, want lax", cookie.SameSite)
+	}
+	if cookie.Path != "/" {
+		t.Fatalf("Path = %q, want /", cookie.Path)
+	}
+	if cookie.Domain != "" {
+		t.Fatalf("Domain = %q, want empty for __Host- cookie", cookie.Domain)
+	}
+}
+
+func TestSessionCookieAuthenticatesRequest(t *testing.T) {
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+
+	login := httptest.NewRequest(http.MethodPost, "/api/v1/auth/local/session", bytes.NewBufferString(`{"tenant_id":"tenant_cookie"}`))
+	setSameSiteCSRFHeaders(login)
+	loginRec := httptest.NewRecorder()
+	New(cfg, nil).Handler().ServeHTTP(loginRec, login)
+	cookie := findCookie(loginRec.Result().Cookies(), cfg.Auth.SessionCookieName)
+	if cookie == nil {
+		t.Fatal("session cookie was not set")
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/tasks/task_123", nil)
+	req.AddCookie(cookie)
+	rec := httptest.NewRecorder()
+
+	New(cfg, nil).Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNotImplemented {
+		t.Fatalf("status = %d, want authenticated stub response: %s", rec.Code, rec.Body.String())
+	}
+	var body map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("response JSON error = %v", err)
+	}
+	details := body["details"].(map[string]any)
+	if details["tenant_id"] != "tenant_cookie" {
+		t.Fatalf("tenant_id = %v, want tenant_cookie", details["tenant_id"])
+	}
+}
+
+func TestStateChangingAPIRequiresSameSiteCSRFHeader(t *testing.T) {
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/uploads", bytes.NewBufferString(`{"filename":"asset.png","content_type":"image/png","byte_size":100}`))
+	req = req.WithContext(stage0.ContextWithService(req.Context(), stage0.NewService(stage0.NewRepository(noExecDB{}), nil)))
+	req.Header.Set("X-Zenart-User-ID", "user_1")
+	req.Header.Set("X-Zenart-Tenant-ID", "tenant_1")
+	req.Header.Set("Origin", "http://localhost:3000")
+	rec := httptest.NewRecorder()
+
+	New(cfg, nil).Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusForbidden)
+	}
+	var body map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("response JSON error = %v", err)
+	}
+	if body["code"] != "csrf_required" {
+		t.Fatalf("code = %v, want csrf_required", body["code"])
+	}
+}
+
+func TestStateChangingAPIRejectsCrossSiteOrigin(t *testing.T) {
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/uploads", bytes.NewBufferString(`{"filename":"asset.png","content_type":"image/png","byte_size":100}`))
+	req = req.WithContext(stage0.ContextWithService(req.Context(), stage0.NewService(stage0.NewRepository(noExecDB{}), nil)))
+	req.Header.Set("X-Zenart-User-ID", "user_1")
+	req.Header.Set("X-Zenart-Tenant-ID", "tenant_1")
+	req.Header.Set("Origin", "https://evil.example")
+	req.Header.Set("X-ZenArt-CSRF", "same-site-origin-check")
+	rec := httptest.NewRecorder()
+
+	New(cfg, nil).Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusForbidden)
+	}
+	if !strings.Contains(rec.Body.String(), "csrf_origin_denied") {
+		t.Fatalf("body = %s, want csrf_origin_denied", rec.Body.String())
 	}
 }
 
@@ -357,6 +481,20 @@ func (noExecDB) Exec(context.Context, string, ...any) (pgconn.CommandTag, error)
 
 func (noExecDB) Query(context.Context, string, ...any) (store.Rows, error) {
 	panic("Query must not be called for invalid upload validation")
+}
+
+func setSameSiteCSRFHeaders(req *http.Request) {
+	req.Header.Set("Origin", "http://localhost:3000")
+	req.Header.Set("X-ZenArt-CSRF", "same-site-origin-check")
+}
+
+func findCookie(cookies []*http.Cookie, name string) *http.Cookie {
+	for _, cookie := range cookies {
+		if cookie.Name == name {
+			return cookie
+		}
+	}
+	return nil
 }
 
 func (noExecDB) QueryRow(context.Context, string, ...any) store.Row {

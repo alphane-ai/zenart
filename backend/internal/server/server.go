@@ -45,7 +45,7 @@ func New(cfg config.Config, logger *slog.Logger) *Server {
 }
 
 func (s *Server) Handler() http.Handler {
-	return withRequestID(withRecover(s.logger, withSecurityHeaders(s.cfg.Security, s.mux)))
+	return withRequestID(withRecover(s.logger, withSecurityHeaders(s.cfg.Security, withRuntimeSecurity(s.cfg, s.mux))))
 }
 
 func (s *Server) HTTPServer() *http.Server {
@@ -63,6 +63,8 @@ func NewHTTPServer(cfg config.Config, handler http.Handler) *http.Server {
 func (s *Server) routes() {
 	s.mux.HandleFunc("GET /healthz", s.healthz)
 	s.mux.HandleFunc("GET /readyz", s.readyz)
+	s.mux.HandleFunc("POST /api/v1/auth/local/session", s.createLocalSession)
+	s.mux.HandleFunc("POST /api/admin/v1/auth/local/session", s.createLocalAdminSession)
 	s.mux.Handle("GET /api/v1/tasks/{id}", requirePrincipal(http.HandlerFunc(s.taskStatus)))
 	s.mux.Handle("POST /api/v1/uploads", requirePrincipal(http.HandlerFunc(s.createUpload)))
 	s.mux.Handle("POST /api/v1/packages/{id}/exports", requirePrincipal(http.HandlerFunc(s.createExport)))
@@ -76,6 +78,121 @@ func (s *Server) routes() {
 	s.mux.Handle("GET /api/admin/v1/safety/rules", requirePermission(auth.PermissionSafetyRead, http.HandlerFunc(s.listSafetyRules)))
 	s.mux.Handle("POST /api/admin/v1/safety/decisions", requirePermission(auth.PermissionSafetyRuleAdmin, http.HandlerFunc(s.enforceSafety)))
 	s.mux.Handle("GET /api/admin/v1/audit", requirePermission(auth.PermissionAuditRead, http.HandlerFunc(s.auditSearch)))
+}
+
+func (s *Server) createLocalSession(w http.ResponseWriter, r *http.Request) {
+	s.createLocalSessionFor(w, r, localSessionOptions{
+		CookieName:   s.cfg.Auth.SessionCookieName,
+		Secret:       s.cfg.Auth.SessionSecret,
+		TTL:          s.cfg.Auth.SessionTTL,
+		DefaultEmail: s.cfg.Auth.LocalSeedUserEmail,
+		DefaultRoles: []auth.Role{
+			auth.RoleUserOwner,
+		},
+	})
+}
+
+func (s *Server) createLocalAdminSession(w http.ResponseWriter, r *http.Request) {
+	s.createLocalSessionFor(w, r, localSessionOptions{
+		CookieName:   s.cfg.Auth.AdminSessionCookieName,
+		Secret:       s.cfg.Auth.AdminSessionSecret,
+		TTL:          s.cfg.Auth.AdminSessionTTL,
+		DefaultEmail: s.cfg.Auth.LocalSeedAdminEmail,
+		DefaultRoles: []auth.Role{
+			auth.RoleAdminSuperadmin,
+		},
+	})
+}
+
+type localSessionOptions struct {
+	CookieName   string
+	Secret       string
+	TTL          time.Duration
+	DefaultEmail string
+	DefaultRoles []auth.Role
+}
+
+func (s *Server) createLocalSessionFor(w http.ResponseWriter, r *http.Request, opts localSessionOptions) {
+	if s.cfg.Auth.AccessMode != string(auth.AccessModeLocal) {
+		writeError(w, r, http.StatusForbidden, "local_auth_disabled", "local session creation is disabled outside local access mode", nil)
+		return
+	}
+	var input struct {
+		Email    string   `json:"email"`
+		TenantID string   `json:"tenant_id"`
+		Roles    []string `json:"roles"`
+	}
+	if err := readJSON(r, &input); err != nil {
+		writeError(w, r, http.StatusBadRequest, "invalid_json", "request body must be valid JSON", nil)
+		return
+	}
+	email := strings.TrimSpace(input.Email)
+	if email == "" {
+		email = opts.DefaultEmail
+	}
+	tenantID := strings.TrimSpace(input.TenantID)
+	if tenantID == "" {
+		tenantID = "tenant_local"
+	}
+	roles := parseSessionRoles(input.Roles, opts.DefaultRoles)
+	session, err := (auth.SessionService{Mode: auth.AccessModeLocal}).CreateLocalSession(email, tenantID, roles, opts.TTL)
+	if err != nil {
+		writeError(w, r, http.StatusBadRequest, "session_validation_error", err.Error(), nil)
+		return
+	}
+	cookieValue, err := signSessionCookie(sessionCookiePayload{
+		UserID:    session.UserID,
+		TenantID:  session.TenantID,
+		Roles:     session.Roles,
+		ExpiresAt: session.ExpiresAt.Unix(),
+	}, opts.Secret)
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "session_cookie_error", "session cookie could not be signed", nil)
+		return
+	}
+	http.SetCookie(w, &http.Cookie{
+		Name:     opts.CookieName,
+		Value:    cookieValue,
+		Path:     "/",
+		Domain:   strings.TrimSpace(s.cfg.Auth.SessionCookieDomain),
+		Expires:  session.ExpiresAt,
+		MaxAge:   int(time.Until(session.ExpiresAt).Seconds()),
+		HttpOnly: true,
+		Secure:   s.cfg.Auth.SessionCookieSecure,
+		SameSite: sessionSameSite(s.cfg.Auth.SessionCookieSameSite),
+	})
+	writeJSON(w, http.StatusCreated, map[string]any{
+		"id":         session.ID,
+		"user_id":    session.UserID,
+		"tenant_id":  session.TenantID,
+		"roles":      session.Roles,
+		"expires_at": session.ExpiresAt.Format(time.RFC3339),
+		"cookie": map[string]any{
+			"name":      opts.CookieName,
+			"http_only": true,
+			"secure":    s.cfg.Auth.SessionCookieSecure,
+			"same_site": strings.ToLower(strings.TrimSpace(s.cfg.Auth.SessionCookieSameSite)),
+			"path":      "/",
+		},
+		"csrf": map[string]any{
+			"strategy":     "same-site-origin-check",
+			"header_name":  s.cfg.Security.CSRFHeaderName,
+			"header_value": s.cfg.Security.CSRFHeaderValue,
+		},
+	})
+}
+
+func parseSessionRoles(values []string, fallback []auth.Role) []auth.Role {
+	roles := make([]auth.Role, 0, len(values))
+	for _, value := range values {
+		if role, ok := auth.ParseRole(value); ok {
+			roles = append(roles, role)
+		}
+	}
+	if len(roles) == 0 {
+		return fallback
+	}
+	return roles
 }
 
 func (s *Server) healthz(w http.ResponseWriter, r *http.Request) {
