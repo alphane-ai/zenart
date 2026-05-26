@@ -11,10 +11,51 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
+BLUEPRINT = ROOT / "Docs/stage0_blueprint_rev2.md"
 OUTPUT_PATH = ROOT / "ops/release/stage0_rev2_current_no_go_release_notes.md"
 PRIVATE_BETA_GATE = ROOT / "fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json"
 PRODUCTION_GATE = ROOT / "fixtures/stage0/rev2/release_gate_evidence.production_launch.json"
 RUNTIME_SUMMARY = ROOT / "ops/evidence/stage0_runtime_drill_summary.json"
+RUNTIME_CHECKLIST_GROUPS = {
+    "Crawler governance runtime": [
+        "crawler fetch/import 强制 source approval runtime gate。",
+        "crawler runtime 强制 robots evidence。",
+        "crawler runtime 强制 SSRF protections。",
+        "crawler runtime 强制 source/global rate limits。",
+        "crawler runtime 强制 raw content retention limit。",
+        "crawler runtime 强制 exact-text import warning。",
+        "crawler runtime 强制 provenance links。",
+        "crawler runtime 强制 source blocklist。",
+    ],
+    "CI and staging runtime": [
+        "添加 PR/main CI 到 `.github/workflows`。（token-blocked：当前 token 缺 workflow scope；draft/evidence 已落在 `ops/ci/` 和 `fixtures/ops/`。）",
+        "CI 在已安装 PR/main workflow 中运行 Playwright smoke。",
+        "CI 在已安装 PR/main workflow 中 build Docker images。",
+        "执行 staging deploy。",
+        "执行 staging smoke tests。",
+    ],
+    "Observability runtime": [
+        "staging request id propagation runtime evidence 通过。",
+        "staging structured JSON logs runtime evidence 通过。",
+        "staging OpenTelemetry traces runtime evidence 通过。",
+        "staging backend/worker/crawler metrics runtime evidence 通过。",
+        "导入并验证 staging dashboards runtime evidence。",
+        "配置并验证 staging alert routes/runtime evidence。",
+    ],
+    "Release gate runtime": [
+        "Local Alpha Gate 全部通过。",
+        "CI Gate 全部通过。",
+        "Private Beta/Staging Gate 全部通过。",
+        "Production Launch Gate 全部通过。",
+        "Do-Not-Launch Conditions 全部为 false。",
+        "Local Alpha workflow API/Playwright end-to-end smoke evidence 通过并写入 release gate fixture。",
+        "CI installed workflow runtime evidence 通过：PR/main run、Playwright smoke、Docker image build 均有 validator-resolvable evidence。",
+        "Private Beta/Staging external-user runtime evidence 通过：auth/RBAC/tenant、storage、quota/rate limit、support/abuse、safety/QA/crawler、observability/backup/load、legal visibility 均有 staging evidence。",
+        "Production Launch runtime/deployment evidence 通过：provider-or-comp-only、paid lifecycle、skill canary、activation audit、abuse hold、security、backup/rollback/post-deploy smoke、legal/support policy 均有 production evidence。",
+        "Staging post-deploy smoke tests 通过。",
+        "Production post-deploy smoke tests 通过。",
+    ],
+}
 
 
 def load_json(path: Path) -> dict:
@@ -43,6 +84,24 @@ def present_do_not_launch(gate: dict) -> list[str]:
 
 def comma_or_missing(values: list[str]) -> str:
     return ", ".join(values) if values else "none recorded"
+
+
+def unchecked_blueprint_items() -> set[str]:
+    unchecked: set[str] = set()
+    for line in BLUEPRINT.read_text(encoding="utf-8").splitlines():
+        if line.startswith("- [ ] "):
+            unchecked.add(line.removeprefix("- [ ] ").strip())
+    return unchecked
+
+
+def runtime_checklist_lines() -> list[str]:
+    unchecked = unchecked_blueprint_items()
+    rows: list[str] = []
+    for group, items in RUNTIME_CHECKLIST_GROUPS.items():
+        open_items = [item.rstrip("。.") for item in items if item in unchecked]
+        if open_items:
+            rows.append(f"- {group}: {'; '.join(open_items)}.")
+    return rows or ["- No tracked runtime checklist rows are open; verify gate fixtures before changing release status."]
 
 
 def local_status(summary: dict, section: str, default: str = "missing") -> str:
@@ -173,6 +232,10 @@ def render(release_sha: str, release_tag: str, owner: str, reviewer: str, date: 
         f"- Production do-not-launch conditions present: {comma_or_missing(production_dnl)}.",
         "- Operational risks: staging observability, restore, rollback, load, and post-deploy smoke evidence are absent.",
         "- User/support risks: external-user legal/support pages and support readiness remain blocked by Rev2 gate evidence.",
+        "",
+        "## Open Rev2 Runtime Checklist",
+        "",
+        *runtime_checklist_lines(),
         "",
         "## Go/No-Go",
         "",

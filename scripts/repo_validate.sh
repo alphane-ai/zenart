@@ -159,6 +159,10 @@ required_fragments = [
     "fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json",
     "fixtures/stage0/rev2/release_gate_evidence.production_launch.json",
     "staging logs, metrics, traces, dashboard import, and alert-route evidence required",
+    "## Open Rev2 Runtime Checklist",
+    "Crawler governance runtime: crawler fetch/import 强制 source approval runtime gate",
+    "Observability runtime: staging request id propagation runtime evidence 通过",
+    "Private Beta/Staging external-user runtime evidence 通过",
 ]
 missing = [fragment for fragment in required_fragments if fragment not in notes]
 if missing:
