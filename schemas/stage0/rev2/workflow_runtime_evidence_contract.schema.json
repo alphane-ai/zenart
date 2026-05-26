@@ -1,0 +1,372 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zenart.local/schemas/stage0/rev2/workflow_runtime_evidence_contract.schema.json",
+  "title": "ZenArt Stage 0 Rev2 Workflow Runtime Evidence Contract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "contract_id",
+    "blueprint_source",
+    "created_by_lane",
+    "created_at",
+    "blueprint_sections",
+    "runner",
+    "validator",
+    "mode",
+    "status",
+    "api_smoke_evidence_ref",
+    "workflow_runtime_contracts",
+    "summary",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "stage0.rev2"
+    },
+    "contract_id": {
+      "const": "workflow_runtime_evidence_stage0_rev2_verticals"
+    },
+    "blueprint_source": {
+      "const": "Docs/stage0_blueprint_rev2.md"
+    },
+    "created_by_lane": {
+      "const": "lane2"
+    },
+    "created_at": {
+      "type": "string",
+      "minLength": 1
+    },
+    "blueprint_sections": {
+      "type": "array",
+      "minItems": 3,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^((6|15|24|25)\\.)"
+      }
+    },
+    "runner": {
+      "const": "scripts/run_workflow_runtime_contract.py"
+    },
+    "validator": {
+      "const": "scripts/validate_workflow_runtime_evidence_contract.py"
+    },
+    "mode": {
+      "const": "dry_run_contract"
+    },
+    "status": {
+      "const": "planned"
+    },
+    "api_smoke_evidence_ref": {
+      "const": "fixtures/stage0/rev2/eval/workflow_api_smoke_evidence.json"
+    },
+    "workflow_runtime_contracts": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": {
+        "$ref": "#/$defs/workflow_runtime_contract"
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "workflow_count",
+        "evidence_file_count",
+        "api_smoke_contracts",
+        "playwright_happy_path_contracts",
+        "export_zip_contracts",
+        "runtime_evidence_required_for_closure",
+        "local_alpha_e2e_workflow_smoke_remains_blocked"
+      ],
+      "properties": {
+        "workflow_count": {
+          "const": 4
+        },
+        "evidence_file_count": {
+          "const": 12
+        },
+        "api_smoke_contracts": {
+          "const": 4
+        },
+        "playwright_happy_path_contracts": {
+          "const": 4
+        },
+        "export_zip_contracts": {
+          "const": 4
+        },
+        "runtime_evidence_required_for_closure": {
+          "const": true
+        },
+        "local_alpha_e2e_workflow_smoke_remains_blocked": {
+          "const": true
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "blueprint_sections",
+        "created_by_lane",
+        "source_fixtures"
+      ],
+      "properties": {
+        "blueprint_sections": {
+          "type": "array",
+          "minItems": 3,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^((6|15|24|25)\\.)"
+          }
+        },
+        "created_by_lane": {
+          "const": "lane2"
+        },
+        "source_fixtures": {
+          "type": "array",
+          "minItems": 5,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "workflow_runtime_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "workflow_id",
+        "display_name",
+        "status",
+        "checklist_items",
+        "expected_evidence_files",
+        "evidence_contracts",
+        "release_gate_check"
+      ],
+      "properties": {
+        "workflow_id": {
+          "enum": [
+            "ecommerce_growth_pack",
+            "business_visual_doc_pack",
+            "local_merchant_campaign_pack",
+            "character_ip_concept_pack"
+          ]
+        },
+        "display_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "const": "planned"
+        },
+        "checklist_items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "api_smoke",
+            "playwright_happy_path",
+            "release_gate_runtime"
+          ],
+          "properties": {
+            "api_smoke": {
+              "type": "string",
+              "minLength": 1
+            },
+            "playwright_happy_path": {
+              "type": "string",
+              "minLength": 1
+            },
+            "release_gate_runtime": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "expected_evidence_files": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^ops/evidence/local_alpha/.+\\.(api_smoke|playwright_happy_path|export_zip)\\.json$"
+          }
+        },
+        "evidence_contracts": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "$ref": "#/$defs/evidence_contract"
+          }
+        },
+        "release_gate_check": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "gate",
+            "check_id",
+            "status_until_runtime_files_pass",
+            "required_evidence_files"
+          ],
+          "properties": {
+            "gate": {
+              "const": "local_alpha"
+            },
+            "check_id": {
+              "const": "local_alpha_e2e_workflow_smoke"
+            },
+            "status_until_runtime_files_pass": {
+              "const": "blocked"
+            },
+            "required_evidence_files": {
+              "type": "array",
+              "minItems": 3,
+              "maxItems": 3,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "pattern": "^ops/evidence/local_alpha/.+\\.(api_smoke|playwright_happy_path|export_zip)\\.json$"
+              }
+            }
+          }
+        }
+      }
+    },
+    "evidence_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evidence_kind",
+        "expected_file",
+        "runtime_status",
+        "checklist_item",
+        "source_contract",
+        "required_files",
+        "must_prove_running_local_stack",
+        "must_remain_open_until_runtime_passes"
+      ],
+      "properties": {
+        "evidence_kind": {
+          "enum": [
+            "api_smoke",
+            "playwright_happy_path",
+            "export_zip"
+          ]
+        },
+        "expected_file": {
+          "type": "string",
+          "pattern": "^ops/evidence/local_alpha/.+\\.(api_smoke|playwright_happy_path|export_zip)\\.json$"
+        },
+        "runtime_status": {
+          "const": "not_executed"
+        },
+        "checklist_item": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_contract": {
+          "type": "string",
+          "pattern": "^fixtures/stage0/rev2/workflows/.+\\.json#/"
+        },
+        "required_assertions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "operation_ids": {
+          "type": "array",
+          "minItems": 8,
+          "maxItems": 8,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required_files": {
+          "type": "array",
+          "minItems": 5,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "start_route": {
+          "type": "string",
+          "pattern": "^/"
+        },
+        "completion_route": {
+          "type": "string",
+          "pattern": "^/"
+        },
+        "required_actions": {
+          "type": "array",
+          "minItems": 9,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required_selectors": {
+          "type": "array",
+          "minItems": 8,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "artifact_assertions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "format": {
+          "const": "zip"
+        },
+        "required_asset_files": {
+          "type": "array",
+          "minItems": 4,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^assets/.+"
+          }
+        },
+        "required_manifest_files": {
+          "type": "array",
+          "minItems": 4,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "manifest.json",
+              "metadata.json",
+              "qa_report.json",
+              "trace_provenance.json"
+            ]
+          }
+        },
+        "must_prove_running_local_stack": {
+          "const": true
+        },
+        "must_remain_open_until_runtime_passes": {
+          "const": true
+        }
+      }
+    }
+  }
+}

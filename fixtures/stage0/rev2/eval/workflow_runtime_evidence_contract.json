@@ -1,0 +1,725 @@
+{
+  "schema_version": "stage0.rev2",
+  "contract_id": "workflow_runtime_evidence_stage0_rev2_verticals",
+  "blueprint_source": "Docs/stage0_blueprint_rev2.md",
+  "created_by_lane": "lane2",
+  "created_at": "2026-05-26T00:00:00Z",
+  "blueprint_sections": [
+    "6.1",
+    "15.3",
+    "24.1",
+    "25.12",
+    "25.17"
+  ],
+  "runner": "scripts/run_workflow_runtime_contract.py",
+  "validator": "scripts/validate_workflow_runtime_evidence_contract.py",
+  "mode": "dry_run_contract",
+  "status": "planned",
+  "api_smoke_evidence_ref": "fixtures/stage0/rev2/eval/workflow_api_smoke_evidence.json",
+  "workflow_runtime_contracts": [
+    {
+      "workflow_id": "ecommerce_growth_pack",
+      "display_name": "Ecommerce Growth Pack",
+      "status": "planned",
+      "checklist_items": {
+        "api_smoke": "\u7535\u5546\u589e\u957f\u5305 API smoke test \u901a\u8fc7\u3002",
+        "playwright_happy_path": "\u7535\u5546\u589e\u957f\u5305 Playwright happy path \u901a\u8fc7\u3002",
+        "release_gate_runtime": "Local Alpha \u7535\u5546\u589e\u957f\u5305 runtime smoke evidence \u5199\u5165 release gate fixture\uff1a`ops/evidence/local_alpha/ecommerce_growth_pack.api_smoke.json`\u3001`ops/evidence/local_alpha/ecommerce_growth_pack.playwright_happy_path.json`\u3001`ops/evidence/local_alpha/ecommerce_growth_pack.export_zip.json` \u5747\u8bc1\u660e running local stack\u3002"
+      },
+      "expected_evidence_files": [
+        "ops/evidence/local_alpha/ecommerce_growth_pack.api_smoke.json",
+        "ops/evidence/local_alpha/ecommerce_growth_pack.playwright_happy_path.json",
+        "ops/evidence/local_alpha/ecommerce_growth_pack.export_zip.json"
+      ],
+      "evidence_contracts": [
+        {
+          "evidence_kind": "api_smoke",
+          "expected_file": "ops/evidence/local_alpha/ecommerce_growth_pack.api_smoke.json",
+          "runtime_status": "not_executed",
+          "checklist_item": "\u7535\u5546\u589e\u957f\u5305 API smoke test \u901a\u8fc7\u3002",
+          "source_contract": "fixtures/stage0/rev2/workflows/ecommerce_growth_pack.json#/api_smoke_contract",
+          "required_assertions": [
+            "brief with product_name, product_image, target_channel produces four candidates",
+            "candidate assets cover all four strategy taxonomy entries",
+            "selected direction can be packaged with all required outputs",
+            "export blocks when required manifest, QA report, metadata, or trace provenance is missing"
+          ],
+          "operation_ids": [
+            "createChatSession",
+            "createChatMessage",
+            "createCandidateSet",
+            "listCandidateAssets",
+            "selectDirection",
+            "createPackage",
+            "createExport",
+            "getExport"
+          ],
+          "required_files": [
+            "manifest.json",
+            "assets/hero_product_ad.png",
+            "assets/square_social_ad.png",
+            "assets/story_variant.png",
+            "assets/marketplace_banner.png",
+            "metadata.json",
+            "qa_report.json",
+            "trace_provenance.json"
+          ],
+          "must_prove_running_local_stack": true,
+          "must_remain_open_until_runtime_passes": true
+        },
+        {
+          "evidence_kind": "playwright_happy_path",
+          "expected_file": "ops/evidence/local_alpha/ecommerce_growth_pack.playwright_happy_path.json",
+          "runtime_status": "not_executed",
+          "checklist_item": "\u7535\u5546\u589e\u957f\u5305 Playwright happy path \u901a\u8fc7\u3002",
+          "source_contract": "fixtures/stage0/rev2/workflows/ecommerce_growth_pack.json#/playwright_happy_path_contract",
+          "start_route": "/projects/new?workflow=ecommerce_growth_pack",
+          "completion_route": "/projects/{project_id}/exports/{export_id}",
+          "required_actions": [
+            "create_project",
+            "fill_brief",
+            "upload_reference",
+            "generate_candidates",
+            "review_four_candidates",
+            "select_candidate",
+            "iterate_selection",
+            "add_to_package",
+            "preview_export",
+            "download_export"
+          ],
+          "required_selectors": [
+            "[data-testid=\"project-create\"]",
+            "[data-testid=\"workflow-ecommerce_growth_pack\"]",
+            "[data-testid=\"brief-product_name\"]",
+            "[data-testid=\"brief-target_channel\"]",
+            "[data-testid=\"brief-offer\"]",
+            "[data-testid=\"reference-upload-product_image\"]",
+            "[data-testid=\"generate-candidates\"]",
+            "[data-testid=\"candidate-grid\"]",
+            "[data-testid=\"candidate-card-conversion_offer\"]",
+            "[data-testid=\"candidate-select\"]",
+            "[data-testid=\"iterate-selected-direction\"]",
+            "[data-testid=\"package-add-selected\"]",
+            "[data-testid=\"export-preview\"]",
+            "[data-testid=\"export-download\"]"
+          ],
+          "operation_ids": [
+            "createChatSession",
+            "createChatMessage",
+            "createCandidateSet",
+            "listCandidateAssets",
+            "selectDirection",
+            "createPackage",
+            "createExport",
+            "getExport"
+          ],
+          "artifact_assertions": [
+            "export includes assets/hero_product_ad.png",
+            "export includes assets/square_social_ad.png",
+            "export includes assets/story_variant.png",
+            "export includes assets/marketplace_banner.png",
+            "export includes manifest.json, metadata.json, qa_report.json, trace_provenance.json"
+          ],
+          "required_files": [
+            "manifest.json",
+            "assets/hero_product_ad.png",
+            "assets/square_social_ad.png",
+            "assets/story_variant.png",
+            "assets/marketplace_banner.png",
+            "metadata.json",
+            "qa_report.json",
+            "trace_provenance.json"
+          ],
+          "must_prove_running_local_stack": true,
+          "must_remain_open_until_runtime_passes": true
+        },
+        {
+          "evidence_kind": "export_zip",
+          "expected_file": "ops/evidence/local_alpha/ecommerce_growth_pack.export_zip.json",
+          "runtime_status": "not_executed",
+          "checklist_item": "Local Alpha \u7535\u5546\u589e\u957f\u5305 runtime smoke evidence \u5199\u5165 release gate fixture\uff1a`ops/evidence/local_alpha/ecommerce_growth_pack.api_smoke.json`\u3001`ops/evidence/local_alpha/ecommerce_growth_pack.playwright_happy_path.json`\u3001`ops/evidence/local_alpha/ecommerce_growth_pack.export_zip.json` \u5747\u8bc1\u660e running local stack\u3002",
+          "source_contract": "fixtures/stage0/rev2/workflows/ecommerce_growth_pack.json#/export_targets/0",
+          "format": "zip",
+          "required_files": [
+            "manifest.json",
+            "assets/hero_product_ad.png",
+            "assets/square_social_ad.png",
+            "assets/story_variant.png",
+            "assets/marketplace_banner.png",
+            "metadata.json",
+            "qa_report.json",
+            "trace_provenance.json"
+          ],
+          "required_asset_files": [
+            "assets/hero_product_ad.png",
+            "assets/square_social_ad.png",
+            "assets/story_variant.png",
+            "assets/marketplace_banner.png"
+          ],
+          "required_manifest_files": [
+            "manifest.json",
+            "metadata.json",
+            "qa_report.json",
+            "trace_provenance.json"
+          ],
+          "required_assertions": [
+            "downloaded ZIP is produced by running local stack",
+            "ZIP contains manifest.json",
+            "ZIP contains metadata.json",
+            "ZIP contains qa_report.json",
+            "ZIP contains trace_provenance.json",
+            "ZIP contains every required workflow asset",
+            "manifest links QA report and trace provenance"
+          ],
+          "must_prove_running_local_stack": true,
+          "must_remain_open_until_runtime_passes": true
+        }
+      ],
+      "release_gate_check": {
+        "gate": "local_alpha",
+        "check_id": "local_alpha_e2e_workflow_smoke",
+        "status_until_runtime_files_pass": "blocked",
+        "required_evidence_files": [
+          "ops/evidence/local_alpha/ecommerce_growth_pack.api_smoke.json",
+          "ops/evidence/local_alpha/ecommerce_growth_pack.playwright_happy_path.json",
+          "ops/evidence/local_alpha/ecommerce_growth_pack.export_zip.json"
+        ]
+      }
+    },
+    {
+      "workflow_id": "business_visual_doc_pack",
+      "display_name": "Business Visual Document Pack",
+      "status": "planned",
+      "checklist_items": {
+        "api_smoke": "\u5546\u4e1a\u89c6\u89c9\u6587\u6863\u5305 API smoke test \u901a\u8fc7\u3002",
+        "playwright_happy_path": "\u5546\u4e1a\u89c6\u89c9\u6587\u6863\u5305 Playwright happy path \u901a\u8fc7\u3002",
+        "release_gate_runtime": "Local Alpha \u5546\u4e1a\u89c6\u89c9\u6587\u6863\u5305 runtime smoke evidence \u5199\u5165 release gate fixture\uff1a`ops/evidence/local_alpha/business_visual_doc_pack.api_smoke.json`\u3001`ops/evidence/local_alpha/business_visual_doc_pack.playwright_happy_path.json`\u3001`ops/evidence/local_alpha/business_visual_doc_pack.export_zip.json` \u5747\u8bc1\u660e running local stack\u3002"
+      },
+      "expected_evidence_files": [
+        "ops/evidence/local_alpha/business_visual_doc_pack.api_smoke.json",
+        "ops/evidence/local_alpha/business_visual_doc_pack.playwright_happy_path.json",
+        "ops/evidence/local_alpha/business_visual_doc_pack.export_zip.json"
+      ],
+      "evidence_contracts": [
+        {
+          "evidence_kind": "api_smoke",
+          "expected_file": "ops/evidence/local_alpha/business_visual_doc_pack.api_smoke.json",
+          "runtime_status": "not_executed",
+          "checklist_item": "\u5546\u4e1a\u89c6\u89c9\u6587\u6863\u5305 API smoke test \u901a\u8fc7\u3002",
+          "source_contract": "fixtures/stage0/rev2/workflows/business_visual_doc_pack.json#/api_smoke_contract",
+          "required_assertions": [
+            "brief with source_notes, audience, and format produces four document candidates",
+            "text-heavy pages expose readability QA evidence",
+            "unsupported financial claims trigger safety block or warning as configured",
+            "export includes manifest, metadata, QA report, and trace provenance"
+          ],
+          "operation_ids": [
+            "createChatSession",
+            "createChatMessage",
+            "createCandidateSet",
+            "listCandidateAssets",
+            "selectDirection",
+            "createPackage",
+            "createExport",
+            "getExport"
+          ],
+          "required_files": [
+            "manifest.json",
+            "assets/cover.png",
+            "assets/summary_page.png",
+            "assets/data_page.png",
+            "assets/recommendation_page.png",
+            "metadata.json",
+            "qa_report.json",
+            "trace_provenance.json"
+          ],
+          "must_prove_running_local_stack": true,
+          "must_remain_open_until_runtime_passes": true
+        },
+        {
+          "evidence_kind": "playwright_happy_path",
+          "expected_file": "ops/evidence/local_alpha/business_visual_doc_pack.playwright_happy_path.json",
+          "runtime_status": "not_executed",
+          "checklist_item": "\u5546\u4e1a\u89c6\u89c9\u6587\u6863\u5305 Playwright happy path \u901a\u8fc7\u3002",
+          "source_contract": "fixtures/stage0/rev2/workflows/business_visual_doc_pack.json#/playwright_happy_path_contract",
+          "start_route": "/projects/new?workflow=business_visual_doc_pack",
+          "completion_route": "/projects/{project_id}/exports/{export_id}",
+          "required_actions": [
+            "create_project",
+            "fill_brief",
+            "upload_reference",
+            "generate_candidates",
+            "review_four_candidates",
+            "select_candidate",
+            "iterate_selection",
+            "add_to_package",
+            "preview_export",
+            "download_export"
+          ],
+          "required_selectors": [
+            "[data-testid=\"project-create\"]",
+            "[data-testid=\"workflow-business_visual_doc_pack\"]",
+            "[data-testid=\"brief-document_goal\"]",
+            "[data-testid=\"brief-audience\"]",
+            "[data-testid=\"brief-format\"]",
+            "[data-testid=\"reference-upload-source_notes\"]",
+            "[data-testid=\"generate-candidates\"]",
+            "[data-testid=\"candidate-grid\"]",
+            "[data-testid=\"candidate-card-executive_brief\"]",
+            "[data-testid=\"candidate-select\"]",
+            "[data-testid=\"iterate-selected-direction\"]",
+            "[data-testid=\"package-add-selected\"]",
+            "[data-testid=\"export-preview\"]",
+            "[data-testid=\"export-download\"]"
+          ],
+          "operation_ids": [
+            "createChatSession",
+            "createChatMessage",
+            "createCandidateSet",
+            "listCandidateAssets",
+            "selectDirection",
+            "createPackage",
+            "createExport",
+            "getExport"
+          ],
+          "artifact_assertions": [
+            "export includes assets/cover.png",
+            "export includes assets/summary_page.png",
+            "export includes assets/data_page.png",
+            "export includes assets/recommendation_page.png",
+            "export includes manifest.json, metadata.json, qa_report.json, trace_provenance.json"
+          ],
+          "required_files": [
+            "manifest.json",
+            "assets/cover.png",
+            "assets/summary_page.png",
+            "assets/data_page.png",
+            "assets/recommendation_page.png",
+            "metadata.json",
+            "qa_report.json",
+            "trace_provenance.json"
+          ],
+          "must_prove_running_local_stack": true,
+          "must_remain_open_until_runtime_passes": true
+        },
+        {
+          "evidence_kind": "export_zip",
+          "expected_file": "ops/evidence/local_alpha/business_visual_doc_pack.export_zip.json",
+          "runtime_status": "not_executed",
+          "checklist_item": "Local Alpha \u5546\u4e1a\u89c6\u89c9\u6587\u6863\u5305 runtime smoke evidence \u5199\u5165 release gate fixture\uff1a`ops/evidence/local_alpha/business_visual_doc_pack.api_smoke.json`\u3001`ops/evidence/local_alpha/business_visual_doc_pack.playwright_happy_path.json`\u3001`ops/evidence/local_alpha/business_visual_doc_pack.export_zip.json` \u5747\u8bc1\u660e running local stack\u3002",
+          "source_contract": "fixtures/stage0/rev2/workflows/business_visual_doc_pack.json#/export_targets/0",
+          "format": "zip",
+          "required_files": [
+            "manifest.json",
+            "assets/cover.png",
+            "assets/summary_page.png",
+            "assets/data_page.png",
+            "assets/recommendation_page.png",
+            "metadata.json",
+            "qa_report.json",
+            "trace_provenance.json"
+          ],
+          "required_asset_files": [
+            "assets/cover.png",
+            "assets/summary_page.png",
+            "assets/data_page.png",
+            "assets/recommendation_page.png"
+          ],
+          "required_manifest_files": [
+            "manifest.json",
+            "metadata.json",
+            "qa_report.json",
+            "trace_provenance.json"
+          ],
+          "required_assertions": [
+            "downloaded ZIP is produced by running local stack",
+            "ZIP contains manifest.json",
+            "ZIP contains metadata.json",
+            "ZIP contains qa_report.json",
+            "ZIP contains trace_provenance.json",
+            "ZIP contains every required workflow asset",
+            "manifest links QA report and trace provenance"
+          ],
+          "must_prove_running_local_stack": true,
+          "must_remain_open_until_runtime_passes": true
+        }
+      ],
+      "release_gate_check": {
+        "gate": "local_alpha",
+        "check_id": "local_alpha_e2e_workflow_smoke",
+        "status_until_runtime_files_pass": "blocked",
+        "required_evidence_files": [
+          "ops/evidence/local_alpha/business_visual_doc_pack.api_smoke.json",
+          "ops/evidence/local_alpha/business_visual_doc_pack.playwright_happy_path.json",
+          "ops/evidence/local_alpha/business_visual_doc_pack.export_zip.json"
+        ]
+      }
+    },
+    {
+      "workflow_id": "local_merchant_campaign_pack",
+      "display_name": "Local Merchant Campaign Pack",
+      "status": "planned",
+      "checklist_items": {
+        "api_smoke": "\u672c\u5730\u5546\u5bb6\u6d3b\u52a8\u5305 API smoke test \u901a\u8fc7\u3002",
+        "playwright_happy_path": "\u672c\u5730\u5546\u5bb6\u6d3b\u52a8\u5305 Playwright happy path \u901a\u8fc7\u3002",
+        "release_gate_runtime": "Local Alpha \u672c\u5730\u5546\u5bb6\u6d3b\u52a8\u5305 runtime smoke evidence \u5199\u5165 release gate fixture\uff1a`ops/evidence/local_alpha/local_merchant_campaign_pack.api_smoke.json`\u3001`ops/evidence/local_alpha/local_merchant_campaign_pack.playwright_happy_path.json`\u3001`ops/evidence/local_alpha/local_merchant_campaign_pack.export_zip.json` \u5747\u8bc1\u660e running local stack\u3002"
+      },
+      "expected_evidence_files": [
+        "ops/evidence/local_alpha/local_merchant_campaign_pack.api_smoke.json",
+        "ops/evidence/local_alpha/local_merchant_campaign_pack.playwright_happy_path.json",
+        "ops/evidence/local_alpha/local_merchant_campaign_pack.export_zip.json"
+      ],
+      "evidence_contracts": [
+        {
+          "evidence_kind": "api_smoke",
+          "expected_file": "ops/evidence/local_alpha/local_merchant_campaign_pack.api_smoke.json",
+          "runtime_status": "not_executed",
+          "checklist_item": "\u672c\u5730\u5546\u5bb6\u6d3b\u52a8\u5305 API smoke test \u901a\u8fc7\u3002",
+          "source_contract": "fixtures/stage0/rev2/workflows/local_merchant_campaign_pack.json#/api_smoke_contract",
+          "required_assertions": [
+            "brief preserves merchant name, event date, address, promotion, and QR placeholder",
+            "candidate assets cover four local merchant strategy options",
+            "structured text QA compares price, date, phone, address, and QR fields",
+            "export blocks when required package evidence is incomplete"
+          ],
+          "operation_ids": [
+            "createChatSession",
+            "createChatMessage",
+            "createCandidateSet",
+            "listCandidateAssets",
+            "selectDirection",
+            "createPackage",
+            "createExport",
+            "getExport"
+          ],
+          "required_files": [
+            "manifest.json",
+            "assets/storefront_poster.png",
+            "assets/flyer.png",
+            "assets/social_square.png",
+            "assets/story_panel.png",
+            "metadata.json",
+            "qa_report.json",
+            "trace_provenance.json"
+          ],
+          "must_prove_running_local_stack": true,
+          "must_remain_open_until_runtime_passes": true
+        },
+        {
+          "evidence_kind": "playwright_happy_path",
+          "expected_file": "ops/evidence/local_alpha/local_merchant_campaign_pack.playwright_happy_path.json",
+          "runtime_status": "not_executed",
+          "checklist_item": "\u672c\u5730\u5546\u5bb6\u6d3b\u52a8\u5305 Playwright happy path \u901a\u8fc7\u3002",
+          "source_contract": "fixtures/stage0/rev2/workflows/local_merchant_campaign_pack.json#/playwright_happy_path_contract",
+          "start_route": "/projects/new?workflow=local_merchant_campaign_pack",
+          "completion_route": "/projects/{project_id}/exports/{export_id}",
+          "required_actions": [
+            "create_project",
+            "fill_brief",
+            "confirm_structured_details",
+            "generate_candidates",
+            "review_four_candidates",
+            "select_candidate",
+            "iterate_selection",
+            "add_to_package",
+            "preview_export",
+            "download_export"
+          ],
+          "required_selectors": [
+            "[data-testid=\"project-create\"]",
+            "[data-testid=\"workflow-local_merchant_campaign_pack\"]",
+            "[data-testid=\"brief-merchant_name\"]",
+            "[data-testid=\"brief-event_date\"]",
+            "[data-testid=\"brief-address\"]",
+            "[data-testid=\"brief-promotion\"]",
+            "[data-testid=\"structured-detail-confirm\"]",
+            "[data-testid=\"generate-candidates\"]",
+            "[data-testid=\"candidate-grid\"]",
+            "[data-testid=\"candidate-card-grand_opening\"]",
+            "[data-testid=\"candidate-select\"]",
+            "[data-testid=\"iterate-selected-direction\"]",
+            "[data-testid=\"package-add-selected\"]",
+            "[data-testid=\"export-preview\"]",
+            "[data-testid=\"export-download\"]"
+          ],
+          "operation_ids": [
+            "createChatSession",
+            "createChatMessage",
+            "createCandidateSet",
+            "listCandidateAssets",
+            "selectDirection",
+            "createPackage",
+            "createExport",
+            "getExport"
+          ],
+          "artifact_assertions": [
+            "export includes assets/storefront_poster.png",
+            "export includes assets/flyer.png",
+            "export includes assets/social_square.png",
+            "export includes assets/story_panel.png",
+            "export includes manifest.json, metadata.json, qa_report.json, trace_provenance.json"
+          ],
+          "required_files": [
+            "manifest.json",
+            "assets/storefront_poster.png",
+            "assets/flyer.png",
+            "assets/social_square.png",
+            "assets/story_panel.png",
+            "metadata.json",
+            "qa_report.json",
+            "trace_provenance.json"
+          ],
+          "must_prove_running_local_stack": true,
+          "must_remain_open_until_runtime_passes": true
+        },
+        {
+          "evidence_kind": "export_zip",
+          "expected_file": "ops/evidence/local_alpha/local_merchant_campaign_pack.export_zip.json",
+          "runtime_status": "not_executed",
+          "checklist_item": "Local Alpha \u672c\u5730\u5546\u5bb6\u6d3b\u52a8\u5305 runtime smoke evidence \u5199\u5165 release gate fixture\uff1a`ops/evidence/local_alpha/local_merchant_campaign_pack.api_smoke.json`\u3001`ops/evidence/local_alpha/local_merchant_campaign_pack.playwright_happy_path.json`\u3001`ops/evidence/local_alpha/local_merchant_campaign_pack.export_zip.json` \u5747\u8bc1\u660e running local stack\u3002",
+          "source_contract": "fixtures/stage0/rev2/workflows/local_merchant_campaign_pack.json#/export_targets/0",
+          "format": "zip",
+          "required_files": [
+            "manifest.json",
+            "assets/storefront_poster.png",
+            "assets/flyer.png",
+            "assets/social_square.png",
+            "assets/story_panel.png",
+            "metadata.json",
+            "qa_report.json",
+            "trace_provenance.json"
+          ],
+          "required_asset_files": [
+            "assets/storefront_poster.png",
+            "assets/flyer.png",
+            "assets/social_square.png",
+            "assets/story_panel.png"
+          ],
+          "required_manifest_files": [
+            "manifest.json",
+            "metadata.json",
+            "qa_report.json",
+            "trace_provenance.json"
+          ],
+          "required_assertions": [
+            "downloaded ZIP is produced by running local stack",
+            "ZIP contains manifest.json",
+            "ZIP contains metadata.json",
+            "ZIP contains qa_report.json",
+            "ZIP contains trace_provenance.json",
+            "ZIP contains every required workflow asset",
+            "manifest links QA report and trace provenance"
+          ],
+          "must_prove_running_local_stack": true,
+          "must_remain_open_until_runtime_passes": true
+        }
+      ],
+      "release_gate_check": {
+        "gate": "local_alpha",
+        "check_id": "local_alpha_e2e_workflow_smoke",
+        "status_until_runtime_files_pass": "blocked",
+        "required_evidence_files": [
+          "ops/evidence/local_alpha/local_merchant_campaign_pack.api_smoke.json",
+          "ops/evidence/local_alpha/local_merchant_campaign_pack.playwright_happy_path.json",
+          "ops/evidence/local_alpha/local_merchant_campaign_pack.export_zip.json"
+        ]
+      }
+    },
+    {
+      "workflow_id": "character_ip_concept_pack",
+      "display_name": "Character IP Concept Pack",
+      "status": "planned",
+      "checklist_items": {
+        "api_smoke": "\u89d2\u8272/IP \u6982\u5ff5\u5305 API smoke test \u901a\u8fc7\u3002",
+        "playwright_happy_path": "\u89d2\u8272/IP \u6982\u5ff5\u5305 Playwright happy path \u901a\u8fc7\u3002",
+        "release_gate_runtime": "Local Alpha \u89d2\u8272/IP \u6982\u5ff5\u5305 runtime smoke evidence \u5199\u5165 release gate fixture\uff1a`ops/evidence/local_alpha/character_ip_concept_pack.api_smoke.json`\u3001`ops/evidence/local_alpha/character_ip_concept_pack.playwright_happy_path.json`\u3001`ops/evidence/local_alpha/character_ip_concept_pack.export_zip.json` \u5747\u8bc1\u660e running local stack\u3002"
+      },
+      "expected_evidence_files": [
+        "ops/evidence/local_alpha/character_ip_concept_pack.api_smoke.json",
+        "ops/evidence/local_alpha/character_ip_concept_pack.playwright_happy_path.json",
+        "ops/evidence/local_alpha/character_ip_concept_pack.export_zip.json"
+      ],
+      "evidence_contracts": [
+        {
+          "evidence_kind": "api_smoke",
+          "expected_file": "ops/evidence/local_alpha/character_ip_concept_pack.api_smoke.json",
+          "runtime_status": "not_executed",
+          "checklist_item": "\u89d2\u8272/IP \u6982\u5ff5\u5305 API smoke test \u901a\u8fc7\u3002",
+          "source_contract": "fixtures/stage0/rev2/workflows/character_ip_concept_pack.json#/api_smoke_contract",
+          "required_assertions": [
+            "brief requires original character constraints and target audience",
+            "candidate assets cover four IP concept strategy options",
+            "safety policy blocks minor sexualization and third-party character resemblance risks",
+            "export includes concept sheets, metadata, QA report, safety disclaimer when applicable, and trace provenance"
+          ],
+          "operation_ids": [
+            "createChatSession",
+            "createChatMessage",
+            "createCandidateSet",
+            "listCandidateAssets",
+            "selectDirection",
+            "createPackage",
+            "createExport",
+            "getExport"
+          ],
+          "required_files": [
+            "manifest.json",
+            "assets/concept_sheet.png",
+            "assets/pose_grid.png",
+            "assets/expression_sheet.png",
+            "assets/style_tile.png",
+            "metadata.json",
+            "qa_report.json",
+            "trace_provenance.json"
+          ],
+          "must_prove_running_local_stack": true,
+          "must_remain_open_until_runtime_passes": true
+        },
+        {
+          "evidence_kind": "playwright_happy_path",
+          "expected_file": "ops/evidence/local_alpha/character_ip_concept_pack.playwright_happy_path.json",
+          "runtime_status": "not_executed",
+          "checklist_item": "\u89d2\u8272/IP \u6982\u5ff5\u5305 Playwright happy path \u901a\u8fc7\u3002",
+          "source_contract": "fixtures/stage0/rev2/workflows/character_ip_concept_pack.json#/playwright_happy_path_contract",
+          "start_route": "/projects/new?workflow=character_ip_concept_pack",
+          "completion_route": "/projects/{project_id}/exports/{export_id}",
+          "required_actions": [
+            "create_project",
+            "fill_brief",
+            "confirm_original_ip_constraints",
+            "generate_candidates",
+            "review_four_candidates",
+            "select_candidate",
+            "iterate_selection",
+            "add_to_package",
+            "preview_export",
+            "download_export"
+          ],
+          "required_selectors": [
+            "[data-testid=\"project-create\"]",
+            "[data-testid=\"workflow-character_ip_concept_pack\"]",
+            "[data-testid=\"brief-character_brief\"]",
+            "[data-testid=\"brief-target_audience\"]",
+            "[data-testid=\"brief-style_constraints\"]",
+            "[data-testid=\"reference-upload-reference_images\"]",
+            "[data-testid=\"original-ip-confirm\"]",
+            "[data-testid=\"generate-candidates\"]",
+            "[data-testid=\"candidate-grid\"]",
+            "[data-testid=\"candidate-card-mascot_ready\"]",
+            "[data-testid=\"candidate-select\"]",
+            "[data-testid=\"iterate-selected-direction\"]",
+            "[data-testid=\"package-add-selected\"]",
+            "[data-testid=\"export-preview\"]",
+            "[data-testid=\"export-download\"]"
+          ],
+          "operation_ids": [
+            "createChatSession",
+            "createChatMessage",
+            "createCandidateSet",
+            "listCandidateAssets",
+            "selectDirection",
+            "createPackage",
+            "createExport",
+            "getExport"
+          ],
+          "artifact_assertions": [
+            "export includes assets/concept_sheet.png",
+            "export includes assets/pose_grid.png",
+            "export includes assets/expression_sheet.png",
+            "export includes assets/style_tile.png",
+            "export includes manifest.json, metadata.json, qa_report.json, trace_provenance.json"
+          ],
+          "required_files": [
+            "manifest.json",
+            "assets/concept_sheet.png",
+            "assets/pose_grid.png",
+            "assets/expression_sheet.png",
+            "assets/style_tile.png",
+            "metadata.json",
+            "qa_report.json",
+            "trace_provenance.json"
+          ],
+          "must_prove_running_local_stack": true,
+          "must_remain_open_until_runtime_passes": true
+        },
+        {
+          "evidence_kind": "export_zip",
+          "expected_file": "ops/evidence/local_alpha/character_ip_concept_pack.export_zip.json",
+          "runtime_status": "not_executed",
+          "checklist_item": "Local Alpha \u89d2\u8272/IP \u6982\u5ff5\u5305 runtime smoke evidence \u5199\u5165 release gate fixture\uff1a`ops/evidence/local_alpha/character_ip_concept_pack.api_smoke.json`\u3001`ops/evidence/local_alpha/character_ip_concept_pack.playwright_happy_path.json`\u3001`ops/evidence/local_alpha/character_ip_concept_pack.export_zip.json` \u5747\u8bc1\u660e running local stack\u3002",
+          "source_contract": "fixtures/stage0/rev2/workflows/character_ip_concept_pack.json#/export_targets/0",
+          "format": "zip",
+          "required_files": [
+            "manifest.json",
+            "assets/concept_sheet.png",
+            "assets/pose_grid.png",
+            "assets/expression_sheet.png",
+            "assets/style_tile.png",
+            "metadata.json",
+            "qa_report.json",
+            "trace_provenance.json"
+          ],
+          "required_asset_files": [
+            "assets/concept_sheet.png",
+            "assets/pose_grid.png",
+            "assets/expression_sheet.png",
+            "assets/style_tile.png"
+          ],
+          "required_manifest_files": [
+            "manifest.json",
+            "metadata.json",
+            "qa_report.json",
+            "trace_provenance.json"
+          ],
+          "required_assertions": [
+            "downloaded ZIP is produced by running local stack",
+            "ZIP contains manifest.json",
+            "ZIP contains metadata.json",
+            "ZIP contains qa_report.json",
+            "ZIP contains trace_provenance.json",
+            "ZIP contains every required workflow asset",
+            "manifest links QA report and trace provenance"
+          ],
+          "must_prove_running_local_stack": true,
+          "must_remain_open_until_runtime_passes": true
+        }
+      ],
+      "release_gate_check": {
+        "gate": "local_alpha",
+        "check_id": "local_alpha_e2e_workflow_smoke",
+        "status_until_runtime_files_pass": "blocked",
+        "required_evidence_files": [
+          "ops/evidence/local_alpha/character_ip_concept_pack.api_smoke.json",
+          "ops/evidence/local_alpha/character_ip_concept_pack.playwright_happy_path.json",
+          "ops/evidence/local_alpha/character_ip_concept_pack.export_zip.json"
+        ]
+      }
+    }
+  ],
+  "summary": {
+    "workflow_count": 4,
+    "evidence_file_count": 12,
+    "api_smoke_contracts": 4,
+    "playwright_happy_path_contracts": 4,
+    "export_zip_contracts": 4,
+    "runtime_evidence_required_for_closure": true,
+    "local_alpha_e2e_workflow_smoke_remains_blocked": true
+  },
+  "provenance": {
+    "blueprint_sections": [
+      "6.1",
+      "15.3",
+      "24.1",
+      "25.12",
+      "25.17"
+    ],
+    "created_by_lane": "lane2",
+    "source_fixtures": [
+      "fixtures/stage0/rev2/workflows/ecommerce_growth_pack.json",
+      "fixtures/stage0/rev2/workflows/business_visual_doc_pack.json",
+      "fixtures/stage0/rev2/workflows/local_merchant_campaign_pack.json",
+      "fixtures/stage0/rev2/workflows/character_ip_concept_pack.json",
+      "fixtures/stage0/rev2/eval/workflow_api_smoke_evidence.json"
+    ]
+  }
+}

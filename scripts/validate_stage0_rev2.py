@@ -1070,6 +1070,11 @@ SCHEMA_FIXTURE_TARGETS = [
     ("analytics_taxonomy.schema.json", FIXTURE_DIR / "analytics" / "event_taxonomy.json", "object"),
     ("eval_storage_contract.schema.json", FIXTURE_DIR / "eval" / "eval_storage_contract.json", "object"),
     ("workflow_api_smoke_evidence.schema.json", FIXTURE_DIR / "eval" / "workflow_api_smoke_evidence.json", "object"),
+    (
+        "workflow_runtime_evidence_contract.schema.json",
+        FIXTURE_DIR / "eval" / "workflow_runtime_evidence_contract.json",
+        "object",
+    ),
     ("eval_suite.schema.json", FIXTURE_DIR / "eval" / "starter_eval_suite.json", "object"),
     ("eval_result.schema.json", FIXTURE_DIR / "eval" / "starter_eval_results.json", "array_items"),
     ("trace_completeness.schema.json", FIXTURE_DIR / "eval" / "trace_completeness.json", "object"),
@@ -2551,6 +2556,7 @@ def validate_json_files() -> None:
         SCHEMA_DIR / "eval_result.schema.json",
         SCHEMA_DIR / "eval_storage_contract.schema.json",
         SCHEMA_DIR / "workflow_api_smoke_evidence.schema.json",
+        SCHEMA_DIR / "workflow_runtime_evidence_contract.schema.json",
         SCHEMA_DIR / "activation_gate_contract.schema.json",
         SCHEMA_DIR / "qa_result.schema.json",
         SCHEMA_DIR / "safety_rule.schema.json",
@@ -2568,6 +2574,7 @@ def validate_json_files() -> None:
         FIXTURE_DIR / "eval" / "starter_eval_results.json",
         FIXTURE_DIR / "eval" / "eval_storage_contract.json",
         FIXTURE_DIR / "eval" / "workflow_api_smoke_evidence.json",
+        FIXTURE_DIR / "eval" / "workflow_runtime_evidence_contract.json",
         FIXTURE_DIR / "eval" / "activation_gate_contract.json",
         FIXTURE_DIR / "eval" / "trace_completeness.json",
         FIXTURE_DIR / "eval" / "safety_enforcement_contract.json",
@@ -2822,6 +2829,19 @@ def validate_workflow_acceptance_split_contracts() -> None:
         api_smoke_evidence.returncode == 0,
         "workflow API smoke evidence validation failed: "
         + (api_smoke_evidence.stderr or api_smoke_evidence.stdout).strip(),
+    )
+
+    workflow_runtime_contract = subprocess.run(
+        [sys.executable, str(ROOT / "scripts" / "validate_workflow_runtime_evidence_contract.py")],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    require(
+        workflow_runtime_contract.returncode == 0,
+        "workflow runtime evidence contract validation failed: "
+        + (workflow_runtime_contract.stderr or workflow_runtime_contract.stdout).strip(),
     )
 
 
