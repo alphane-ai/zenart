@@ -6,6 +6,7 @@ import {
   getAlertRouteRuntimeEvidence,
   getIncidentLogs,
   getMaintenanceBanners,
+  getOperationalDashboardRuntimeEvidence,
   getOperationalDashboards,
   getReleaseBlockers
 } from "@/lib/admin-api";
@@ -15,6 +16,7 @@ import type {
   IncidentLog,
   MaintenanceBanner,
   OperationalDashboard,
+  OperationalDashboardRuntimeEvidence,
   ReleaseBlocker
 } from "@/lib/types";
 
@@ -27,10 +29,11 @@ function incidentTone(status: IncidentLog["status"]) {
 }
 
 export default async function OperationsPage() {
-  const [incidents, banners, dashboards, alerts, alertRuntimeEvidence] = await Promise.all([
+  const [incidents, banners, dashboards, dashboardRuntimeEvidence, alerts, alertRuntimeEvidence] = await Promise.all([
     getIncidentLogs(),
     getMaintenanceBanners(),
     getOperationalDashboards(),
+    getOperationalDashboardRuntimeEvidence(),
     getAlertRoutes(),
     getAlertRouteRuntimeEvidence()
   ]);
@@ -64,6 +67,31 @@ export default async function OperationsPage() {
             { key: "runtime-status", header: "Runtime Status", render: (row) => <StatusBadge value={row.runtimeEvidenceStatus} label={row.runtimeEvidenceStatus} /> },
             { key: "validated", header: "Validated At", render: (row) => row.runtimeValidatedAt },
             { key: "evidence", header: "Evidence", render: (row) => row.evidenceRefs.join(", ") }
+          ]}
+        />
+      </section>
+
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>Dashboard Runtime Evidence</h3>
+            <p>Each staging dashboard import must prove signal binding, SLO evaluation, blocker linkage, and release-gate handling.</p>
+          </div>
+        </div>
+        <DataTable<OperationalDashboardRuntimeEvidence>
+          rows={dashboardRuntimeEvidence}
+          columns={[
+            { key: "id", header: "Evidence", render: (row) => <span className="mono">{row.id}</span> },
+            { key: "dashboard", header: "Dashboard", render: (row) => row.dashboardId },
+            { key: "status", header: "Validation", render: (row) => <StatusBadge value={row.validationStatus} label={row.validationStatus} /> },
+            { key: "role", header: "Validated By", render: (row) => row.validatedByRole },
+            { key: "import", header: "Import Probe", render: (row) => row.importProbe },
+            { key: "signals", header: "Signal Probe", render: (row) => row.signalProbe },
+            { key: "slo", header: "SLO Probe", render: (row) => row.sloProbe },
+            { key: "blocker", header: "Blocker Probe", render: (row) => row.blockerProbe },
+            { key: "release", header: "Release Gate Use", render: (row) => row.releaseGateUse },
+            { key: "validated", header: "Validated At", render: (row) => row.validatedAt },
+            { key: "audit", header: "Audit Ref", render: (row) => <span className="mono">{row.auditRef}</span> }
           ]}
         />
       </section>

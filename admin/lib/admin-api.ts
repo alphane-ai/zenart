@@ -15,6 +15,7 @@ import {
   feedbackItems,
   incidentLogs,
   maintenanceBanners,
+  operationalDashboardRuntimeEvidence,
   metaPrompts,
   operationalDashboards,
   promptFragments,
@@ -171,6 +172,10 @@ export async function getMaintenanceBanners() {
 
 export async function getOperationalDashboards() {
   return operationalDashboards;
+}
+
+export async function getOperationalDashboardRuntimeEvidence() {
+  return operationalDashboardRuntimeEvidence;
 }
 
 export async function getAlertRoutes() {

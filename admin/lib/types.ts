@@ -312,6 +312,22 @@ export type OperationalDashboard = {
   evidenceRefs: string[];
 };
 
+export type OperationalDashboardRuntimeEvidence = {
+  id: string;
+  dashboardId: string;
+  environment: "staging";
+  validationStatus: "verified" | "blocked";
+  validatedAt: string;
+  validatedByRole: AdminRole;
+  importProbe: string;
+  signalProbe: string;
+  sloProbe: string;
+  blockerProbe: string;
+  releaseGateUse: string;
+  auditRef: string;
+  evidenceRefs: string[];
+};
+
 export type AlertRoute = {
   id: string;
   dashboardId: string;

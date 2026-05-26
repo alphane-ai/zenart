@@ -15,6 +15,7 @@ import type {
   IncidentLog,
   MaintenanceBanner,
   OperationalDashboard,
+  OperationalDashboardRuntimeEvidence,
   ProviderHealth,
   AlertRoute,
   AlertRouteRuntimeEvidence,
@@ -1257,6 +1258,69 @@ export const operationalDashboards: OperationalDashboard[] = [
     runtimeEvidenceRef: "staging-dashboard-admin-security-20260526T1030Z",
     runtimeValidatedAt: "2026-05-26 10:31",
     evidenceRefs: ["ab-304", "au-008", "tr-1004", "staging-dashboard-admin-security-20260526T1030Z"]
+  }
+];
+
+export const operationalDashboardRuntimeEvidence: OperationalDashboardRuntimeEvidence[] = [
+  {
+    id: "odre-provider-latency-20260526T1000Z",
+    dashboardId: "od-provider-latency",
+    environment: "staging",
+    validationStatus: "blocked",
+    validatedAt: "2026-05-26 10:05",
+    validatedByRole: "admin_operator",
+    importProbe: "Imported staging-dashboard-provider-20260526T1000Z with provider latency, provider error, and provider usage reconciliation panels bound to the provider route.",
+    signalProbe: "Signal probe joined provider_request_latency_ms, provider_error_total, and provider_usage_reconciled_total into the dashboard window without missing series.",
+    sloProbe: "SLO probe remained blocked because p95 9400 ms and 4.7% error rate exceeded the private beta provider thresholds.",
+    blockerProbe: "Release blocker rb-private-beta-provider-slo stayed open and linked provider routing audit au-007 plus provider health evidence ph-1.",
+    releaseGateUse: "Private beta and production provider launch remain blocked until a healthy dashboard window and usage reconciliation evidence are attached.",
+    auditRef: "au-007",
+    evidenceRefs: ["od-provider-latency", "rb-private-beta-provider-slo", "ph-1", "eg-003", "au-007", "staging-dashboard-provider-20260526T1000Z"]
+  },
+  {
+    id: "odre-export-failure-20260526T1000Z",
+    dashboardId: "od-export-failure",
+    environment: "staging",
+    validationStatus: "verified",
+    validatedAt: "2026-05-26 10:06",
+    validatedByRole: "admin_reviewer",
+    importProbe: "Imported staging-dashboard-export-20260526T1000Z with export failure, dead-letter queue, QA packaging failure, and support-ticket panels.",
+    signalProbe: "Signal probe joined export_failed_total, queue_dead_letter_total, and qa_report_packaging_failed_total with support ticket sup-2204.",
+    sloProbe: "SLO probe verified the dashboard query and intentionally preserved the blocked status while three dead-letter exports remain unresolved.",
+    blockerProbe: "Export dashboard evidence is linked to incident inc-20260526-queue, audit au-004, queue q-export, and support ticket sup-2204 before closure.",
+    releaseGateUse: "Export release success cannot be marked healthy until regenerate, quota refund, support update, and manifest validation evidence are attached.",
+    auditRef: "au-004",
+    evidenceRefs: ["od-export-failure", "q-export", "inc-20260526-queue", "sup-2204", "au-004", "staging-dashboard-export-20260526T1000Z"]
+  },
+  {
+    id: "odre-crawler-policy-20260526T1000Z",
+    dashboardId: "od-crawler-policy",
+    environment: "staging",
+    validationStatus: "verified",
+    validatedAt: "2026-05-26 10:07",
+    validatedByRole: "admin_reviewer",
+    importProbe: "Imported staging-dashboard-crawler-20260526T1000Z with crawler blocklist, robots denial, derivative review, and source-retention panels.",
+    signalProbe: "Signal probe joined crawler_source_blocked_total, robots_denied_total, and crawler_derivative_review_open_total with governance workflow cg-501.",
+    sloProbe: "SLO probe verified zero active crawler policy violations while preserving watch status for the pending derivative-use review.",
+    blockerProbe: "Production blocker rb-production-crawler-derivative stayed mitigating until takedown or derivative review closes with provenance and audit evidence.",
+    releaseGateUse: "Crawler-derived prompt or skill activation remains blocked whenever takedown, derivative-use, provenance, or retention evidence is unresolved.",
+    auditRef: "au-012",
+    evidenceRefs: ["od-crawler-policy", "rb-production-crawler-derivative", "q-crawler", "inc-20260525-crawler", "cg-501", "au-012", "staging-dashboard-crawler-20260526T1000Z"]
+  },
+  {
+    id: "odre-admin-security-20260526T1030Z",
+    dashboardId: "od-admin-security",
+    environment: "staging",
+    validationStatus: "blocked",
+    validatedAt: "2026-05-26 10:31",
+    validatedByRole: "admin_superadmin",
+    importProbe: "Imported staging-dashboard-admin-security-20260526T1030Z with safety block, trace redaction violation, and admin override denial panels.",
+    signalProbe: "Signal probe joined safety_block_total, trace_redaction_violation_total, and admin_override_denied_total with abuse event ab-304.",
+    sloProbe: "SLO probe stayed blocked because the critical hidden prompt extraction investigation is still open.",
+    blockerProbe: "Production blocker rb-production-admin-security stayed open and linked abuse event ab-304, trace tr-1004, and immutable audit au-008.",
+    releaseGateUse: "Production launch remains blocked until the security-admin investigation closes with audit, support, trace-redaction, and release evidence refs.",
+    auditRef: "au-008",
+    evidenceRefs: ["od-admin-security", "rb-production-admin-security", "ab-304", "au-008", "tr-1004", "staging-dashboard-admin-security-20260526T1030Z"]
   }
 ];
 

@@ -11,7 +11,7 @@ const parseFixtures = () => {
   const moduleSource = source
     .replace(/^import type[\s\S]*?from "@\/lib\/types";\n\n/, "")
     .replaceAll(/export const (\w+)[^=]*=/g, "const $1 =");
-  return Function(`${moduleSource}\nreturn { skillVersions, skillReleaseStateDefinitions, skillCanaryMetrics, releaseEvidence, releaseBlockers, supportTickets, supportEscalationRunbooks, supportUsers, riskyExports, abuseEvents, abuseControlHooks, auditEvents, exportJobs, traces, quotaAccounts, feedbackItems, regressionFixtures, analyticsReports, queueHealth, failedTaskControls, crawlerFindings, crawlerSourceApprovals, crawlerGovernanceWorkflows, adminRbacEvidence, operationalDashboards, alertRoutes, alertRouteRuntimeEvidence };`)();
+  return Function(`${moduleSource}\nreturn { skillVersions, skillReleaseStateDefinitions, skillCanaryMetrics, releaseEvidence, releaseBlockers, supportTickets, supportEscalationRunbooks, supportUsers, riskyExports, abuseEvents, abuseControlHooks, auditEvents, exportJobs, traces, quotaAccounts, feedbackItems, regressionFixtures, analyticsReports, queueHealth, failedTaskControls, crawlerFindings, crawlerSourceApprovals, crawlerGovernanceWorkflows, adminRbacEvidence, operationalDashboards, operationalDashboardRuntimeEvidence, alertRoutes, alertRouteRuntimeEvidence };`)();
 };
 
 const crawlerGovernanceCases = JSON.parse(
@@ -44,6 +44,7 @@ const {
   crawlerGovernanceWorkflows,
   adminRbacEvidence,
   operationalDashboards,
+  operationalDashboardRuntimeEvidence,
   alertRoutes,
   alertRouteRuntimeEvidence
 } = parseFixtures();
@@ -717,6 +718,65 @@ test("operations dashboards and alert routes bind SLOs to release-gate evidence"
       assert.equal(alert.escalationRole, "admin_superadmin", `${alert.id} sev1 alerts need superadmin escalation`);
     }
   }
+});
+
+test("dashboard runtime evidence verifies staging imports and preserves release blockers", () => {
+  assert.equal(
+    operationalDashboardRuntimeEvidence.length,
+    operationalDashboards.length,
+    "every operational dashboard needs one staging runtime evidence record"
+  );
+
+  const evidenceByDashboard = new Map();
+  const releaseBlockerIds = new Set(releaseBlockers.map((blocker) => blocker.id));
+
+  for (const evidence of operationalDashboardRuntimeEvidence) {
+    assert.ok(operationalDashboardIds.has(evidence.dashboardId), `${evidence.id} links unknown dashboard`);
+    assert.equal(evidence.environment, "staging", `${evidence.id} must be staging runtime evidence`);
+    assert.match(evidence.validationStatus, /verified|blocked/, `${evidence.id} needs explicit runtime status`);
+    assert.notEqual(evidence.validatedAt, "pending", `${evidence.id} needs validation timestamp`);
+    assert.ok(roleOrder.has(evidence.validatedByRole), `${evidence.id} has unknown validator role`);
+    assert.ok(auditIds.has(evidence.auditRef), `${evidence.id} links unknown audit ${evidence.auditRef}`);
+    assert.ok(evidence.importProbe.length > 90, `${evidence.id} needs dashboard import proof`);
+    assert.ok(evidence.signalProbe.length > 90, `${evidence.id} needs signal binding proof`);
+    assert.ok(evidence.sloProbe.length > 80, `${evidence.id} needs SLO evaluation proof`);
+    assert.ok(evidence.blockerProbe.length > 90, `${evidence.id} needs blocker linkage proof`);
+    assert.ok(evidence.releaseGateUse.length > 90, `${evidence.id} needs release-gate use proof`);
+    assert.ok(evidence.evidenceRefs.includes(evidence.dashboardId), `${evidence.id} evidence must include dashboard`);
+    assert.ok(evidence.evidenceRefs.includes(evidence.auditRef), `${evidence.id} evidence must include audit`);
+    assert.ok(
+      evidence.evidenceRefs.some((ref) => /^staging-dashboard-[a-z-]+-\d{8}T\d{4}Z$/.test(ref)),
+      `${evidence.id} needs staging dashboard runtime ref`
+    );
+
+    if (evidence.validationStatus === "blocked") {
+      assert.ok(
+        evidence.evidenceRefs.some((ref) => releaseBlockerIds.has(ref)),
+        `${evidence.id} blocked dashboard evidence needs a release blocker ref`
+      );
+      assert.match(evidence.sloProbe, /blocked|exceeded|open/i, `${evidence.id} blocked evidence needs blocking SLO proof`);
+    }
+
+    assert.equal(evidenceByDashboard.has(evidence.dashboardId), false, `${evidence.dashboardId} has duplicate evidence`);
+    evidenceByDashboard.set(evidence.dashboardId, evidence);
+  }
+
+  for (const dashboard of operationalDashboards) {
+    const evidence = evidenceByDashboard.get(dashboard.id);
+    assert.ok(evidence, `${dashboard.id} missing runtime evidence`);
+    assert.equal(evidence.validatedAt, dashboard.runtimeValidatedAt, `${dashboard.id} validation timestamp mismatch`);
+    assert.equal(evidence.validationStatus, dashboard.runtimeEvidenceStatus, `${dashboard.id} runtime status mismatch`);
+    assert.ok(evidence.evidenceRefs.includes(dashboard.runtimeEvidenceRef), `${dashboard.id} evidence missing runtime ref`);
+
+    if (dashboard.ownerRole === "admin_superadmin") {
+      assert.equal(evidence.validatedByRole, "admin_superadmin", `${dashboard.id} superadmin dashboard needs superadmin validation`);
+    }
+  }
+
+  assert.ok(
+    operationalDashboardRuntimeEvidence.some((evidence) => evidence.validationStatus === "blocked"),
+    "dashboard runtime evidence must preserve blocked staging dashboards"
+  );
 });
 
 test("alert route runtime evidence verifies staging delivery without closing dashboard blockers", () => {
