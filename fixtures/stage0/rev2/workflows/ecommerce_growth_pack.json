@@ -140,6 +140,141 @@
       "createExport",
       "getExport"
     ],
+    "request_sequence": [
+      {
+        "step": 1,
+        "operation_id": "createChatSession",
+        "method": "post",
+        "path_template": "/projects/{project_id}/chat/sessions",
+        "requires_idempotency_key": true,
+        "request_schema": "ChatSessionCreate",
+        "success_status": "201",
+        "response_schema": "ChatSession",
+        "path_params": [
+          "project_id"
+        ],
+        "body_assertions": [
+          "title includes Ecommerce Growth Pack"
+        ]
+      },
+      {
+        "step": 2,
+        "operation_id": "createChatMessage",
+        "method": "post",
+        "path_template": "/chat/sessions/{chat_session_id}/messages",
+        "requires_idempotency_key": true,
+        "request_schema": "ChatMessageCreate",
+        "success_status": "202",
+        "response_schema": "TaskStatus",
+        "path_params": [
+          "chat_session_id"
+        ],
+        "body_assertions": [
+          "body contains product_name",
+          "body contains target_channel",
+          "references includes product_image upload"
+        ]
+      },
+      {
+        "step": 3,
+        "operation_id": "createCandidateSet",
+        "method": "post",
+        "path_template": "/projects/{project_id}/candidate-sets",
+        "requires_idempotency_key": true,
+        "request_schema": "CandidateSetCreate",
+        "success_status": "202",
+        "response_schema": "TaskStatus",
+        "path_params": [
+          "project_id"
+        ],
+        "body_assertions": [
+          "workflow_id equals ecommerce_growth_pack",
+          "brief contains product_name, product_image, target_channel"
+        ]
+      },
+      {
+        "step": 4,
+        "operation_id": "listCandidateAssets",
+        "method": "get",
+        "path_template": "/candidate-sets/{candidate_set_id}/assets",
+        "requires_idempotency_key": false,
+        "request_schema": "none",
+        "success_status": "200",
+        "response_schema": "CandidateAssetPage",
+        "path_params": [
+          "candidate_set_id"
+        ],
+        "body_assertions": [
+          "response contains four candidate assets",
+          "assets cover conversion_offer, social_proof, feature_comparison, retention_bundle"
+        ]
+      },
+      {
+        "step": 5,
+        "operation_id": "selectDirection",
+        "method": "put",
+        "path_template": "/projects/{project_id}/selected-direction",
+        "requires_idempotency_key": true,
+        "request_schema": "SelectedDirectionCreate",
+        "success_status": "200",
+        "response_schema": "SelectedDirection",
+        "path_params": [
+          "project_id"
+        ],
+        "body_assertions": [
+          "candidate_asset_id references selected ecommerce candidate"
+        ]
+      },
+      {
+        "step": 6,
+        "operation_id": "createPackage",
+        "method": "post",
+        "path_template": "/projects/{project_id}/packages",
+        "requires_idempotency_key": true,
+        "request_schema": "PackageCreate",
+        "success_status": "201",
+        "response_schema": "Package",
+        "path_params": [
+          "project_id"
+        ],
+        "body_assertions": [
+          "items include hero_product_ad.png, square_social_ad.png, story_variant.png, marketplace_banner.png"
+        ]
+      },
+      {
+        "step": 7,
+        "operation_id": "createExport",
+        "method": "post",
+        "path_template": "/packages/{package_id}/exports",
+        "requires_idempotency_key": true,
+        "request_schema": "ExportCreate",
+        "success_status": "202",
+        "response_schema": "TaskStatus",
+        "path_params": [
+          "package_id"
+        ],
+        "body_assertions": [
+          "format equals zip"
+        ]
+      },
+      {
+        "step": 8,
+        "operation_id": "getExport",
+        "method": "get",
+        "path_template": "/exports/{export_id}",
+        "requires_idempotency_key": false,
+        "request_schema": "none",
+        "success_status": "200",
+        "response_schema": "Export",
+        "path_params": [
+          "export_id"
+        ],
+        "body_assertions": [
+          "manifest, metadata, qa_report, trace_provenance, and required asset files are present",
+          "download_url is short-lived when export is ready"
+        ]
+      }
+    ],
     "expected_runtime_assertions": [
       "brief with product_name, product_image, target_channel produces four candidates",
       "candidate assets cover all four strategy taxonomy entries",

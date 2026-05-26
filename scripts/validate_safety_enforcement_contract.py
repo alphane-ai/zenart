@@ -170,7 +170,8 @@ def validate_openapi_and_storage_contract(contract: dict[str, Any]) -> None:
 
     for token in [
         "func (r Repository) EnforceSafety",
-        "findBlockingRule",
+        "func (r Repository) RequireSafetyAllowed",
+        "func (r Repository) findActiveSafetyRule",
         "INSERT INTO safety_decisions",
         "EnforcementPoint",
         "Decision",
@@ -180,13 +181,27 @@ def validate_openapi_and_storage_contract(contract: dict[str, Any]) -> None:
     for token in [
         "func (r Repository) CreateExport",
         "func (r Repository) RegenerateExport",
+        "func (r Repository) RecordExportArtifact",
         "hasBlockingExportQA",
         "ErrSafetyBlocked",
     ]:
         require(token in service, f"export safety/QA block implementation missing {token}")
+    for point in SAFETY_POINTS:
+        require(f'SafetyPoint{_go_const_suffix(point)}' in service, f"backend safety point const missing {point}")
+    for token in [
+        "EnforceBriefSafety",
+        "EnforceProviderRequestSafety",
+        "EnforceProviderResponseSafety",
+        "EnforceQASafety",
+        "EnforceExportSafety",
+    ]:
+        require(token in service, f"backend safety enforcement helper missing {token}")
     for token in [
         "TestEnforceSafetyRecordsBlockDecisionForActiveRule",
+        "TestSafetyEnforcementHelpersCoverRev2RuntimePoints",
         "TestCreateExportBlocksWhenQAHasBlockingResult",
+        "TestCreateExportBlocksWhenExportSafetyRuleBlocks",
+        "TestRecordExportArtifactBlocksWhenExportSafetyRuleBlocks",
     ]:
         require(token in tests, f"backend safety contract test missing {token}")
 
@@ -259,10 +274,18 @@ def validate_release_policy(contract: dict[str, Any]) -> None:
     unchecked = unchecked_items(blueprint)
     item = "在 brief/provider request/provider response/QA/export 运行 safety policy。"
 
-    require(contract["release_gate_policy"]["contract_evidence_only"] is True, "safety contract must declare evidence-only status")
-    require(contract["release_gate_policy"]["blueprint_runtime_item_remains_open"] is True, "safety runtime checklist must remain open")
-    require(item in unchecked, "safety runtime checklist item must remain unchecked")
-    require(item not in checked, "safety contract evidence must not mark runtime enforcement complete")
+    policy = contract["release_gate_policy"]
+    require(policy["contract_evidence_only"] is False, "safety contract must no longer be evidence-only after runtime enforcement")
+    require(policy["blueprint_runtime_item_remains_open"] is False, "safety runtime checklist policy must allow closure")
+    require(policy["runtime_enforcement_validated"] is True, "safety contract must declare runtime enforcement validation")
+    require(item in checked, "safety runtime checklist item must be checked after backend runtime enforcement")
+    require(item not in unchecked, "safety runtime checklist item must not remain open after backend runtime enforcement")
+
+
+def _go_const_suffix(point: str) -> str:
+    if point == "qa":
+        return "QA"
+    return "".join(part.title() for part in point.split("_"))
 
 
 def main() -> int:

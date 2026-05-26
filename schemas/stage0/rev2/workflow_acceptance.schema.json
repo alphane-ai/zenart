@@ -285,6 +285,7 @@
         "execution_status",
         "blueprint_checklist_remains_open",
         "operation_ids",
+        "request_sequence",
         "expected_runtime_assertions"
       ],
       "properties": {
@@ -302,6 +303,79 @@
           "items": {
             "type": "string",
             "minLength": 1
+          }
+        },
+        "request_sequence": {
+          "type": "array",
+          "minItems": 5,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "step",
+              "operation_id",
+              "method",
+              "path_template",
+              "requires_idempotency_key",
+              "request_schema",
+              "success_status",
+              "response_schema",
+              "path_params",
+              "body_assertions"
+            ],
+            "properties": {
+              "step": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "operation_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "method": {
+                "enum": [
+                  "get",
+                  "post",
+                  "put",
+                  "patch",
+                  "delete"
+                ]
+              },
+              "path_template": {
+                "type": "string",
+                "minLength": 1
+              },
+              "requires_idempotency_key": {
+                "type": "boolean"
+              },
+              "request_schema": {
+                "type": "string",
+                "minLength": 1
+              },
+              "success_status": {
+                "type": "string",
+                "pattern": "^[0-9]{3}$"
+              },
+              "response_schema": {
+                "type": "string",
+                "minLength": 1
+              },
+              "path_params": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "body_assertions": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
           }
         },
         "expected_runtime_assertions": {

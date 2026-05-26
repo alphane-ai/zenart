@@ -138,6 +138,142 @@
       "createExport",
       "getExport"
     ],
+    "request_sequence": [
+      {
+        "step": 1,
+        "operation_id": "createChatSession",
+        "method": "post",
+        "path_template": "/projects/{project_id}/chat/sessions",
+        "requires_idempotency_key": true,
+        "request_schema": "ChatSessionCreate",
+        "success_status": "201",
+        "response_schema": "ChatSession",
+        "path_params": [
+          "project_id"
+        ],
+        "body_assertions": [
+          "title includes Local Merchant Campaign Pack"
+        ]
+      },
+      {
+        "step": 2,
+        "operation_id": "createChatMessage",
+        "method": "post",
+        "path_template": "/chat/sessions/{chat_session_id}/messages",
+        "requires_idempotency_key": true,
+        "request_schema": "ChatMessageCreate",
+        "success_status": "202",
+        "response_schema": "TaskStatus",
+        "path_params": [
+          "chat_session_id"
+        ],
+        "body_assertions": [
+          "body contains merchant_name",
+          "body contains event_date",
+          "body contains address",
+          "body contains promotion when provided"
+        ]
+      },
+      {
+        "step": 3,
+        "operation_id": "createCandidateSet",
+        "method": "post",
+        "path_template": "/projects/{project_id}/candidate-sets",
+        "requires_idempotency_key": true,
+        "request_schema": "CandidateSetCreate",
+        "success_status": "202",
+        "response_schema": "TaskStatus",
+        "path_params": [
+          "project_id"
+        ],
+        "body_assertions": [
+          "workflow_id equals local_merchant_campaign_pack",
+          "brief contains merchant_name, event_date, address, promotion"
+        ]
+      },
+      {
+        "step": 4,
+        "operation_id": "listCandidateAssets",
+        "method": "get",
+        "path_template": "/candidate-sets/{candidate_set_id}/assets",
+        "requires_idempotency_key": false,
+        "request_schema": "none",
+        "success_status": "200",
+        "response_schema": "CandidateAssetPage",
+        "path_params": [
+          "candidate_set_id"
+        ],
+        "body_assertions": [
+          "response contains four candidate assets",
+          "assets cover grand_opening, limited_time_offer, community_event, loyalty_push"
+        ]
+      },
+      {
+        "step": 5,
+        "operation_id": "selectDirection",
+        "method": "put",
+        "path_template": "/projects/{project_id}/selected-direction",
+        "requires_idempotency_key": true,
+        "request_schema": "SelectedDirectionCreate",
+        "success_status": "200",
+        "response_schema": "SelectedDirection",
+        "path_params": [
+          "project_id"
+        ],
+        "body_assertions": [
+          "candidate_asset_id references selected merchant campaign candidate"
+        ]
+      },
+      {
+        "step": 6,
+        "operation_id": "createPackage",
+        "method": "post",
+        "path_template": "/projects/{project_id}/packages",
+        "requires_idempotency_key": true,
+        "request_schema": "PackageCreate",
+        "success_status": "201",
+        "response_schema": "Package",
+        "path_params": [
+          "project_id"
+        ],
+        "body_assertions": [
+          "items include storefront_poster.png, flyer.png, social_square.png, story_panel.png"
+        ]
+      },
+      {
+        "step": 7,
+        "operation_id": "createExport",
+        "method": "post",
+        "path_template": "/packages/{package_id}/exports",
+        "requires_idempotency_key": true,
+        "request_schema": "ExportCreate",
+        "success_status": "202",
+        "response_schema": "TaskStatus",
+        "path_params": [
+          "package_id"
+        ],
+        "body_assertions": [
+          "format equals zip"
+        ]
+      },
+      {
+        "step": 8,
+        "operation_id": "getExport",
+        "method": "get",
+        "path_template": "/exports/{export_id}",
+        "requires_idempotency_key": false,
+        "request_schema": "none",
+        "success_status": "200",
+        "response_schema": "Export",
+        "path_params": [
+          "export_id"
+        ],
+        "body_assertions": [
+          "manifest, metadata, qa_report, trace_provenance, and required campaign assets are present",
+          "qa_report contains structured text evidence for date, address, phone, and QR placeholders"
+        ]
+      }
+    ],
     "expected_runtime_assertions": [
       "brief preserves merchant name, event date, address, promotion, and QR placeholder",
       "candidate assets cover four local merchant strategy options",

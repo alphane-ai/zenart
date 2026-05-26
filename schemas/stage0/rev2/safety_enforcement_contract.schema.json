@@ -294,14 +294,18 @@
       "additionalProperties": false,
       "required": [
         "contract_evidence_only",
-        "blueprint_runtime_item_remains_open"
+        "blueprint_runtime_item_remains_open",
+        "runtime_enforcement_validated"
       ],
       "properties": {
         "contract_evidence_only": {
-          "const": true
+          "type": "boolean"
         },
         "blueprint_runtime_item_remains_open": {
-          "const": true
+          "type": "boolean"
+        },
+        "runtime_enforcement_validated": {
+          "type": "boolean"
         }
       }
     },

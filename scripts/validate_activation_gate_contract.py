@@ -13,6 +13,7 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 BLUEPRINT = ROOT / "Docs" / "stage0_blueprint_rev2.md"
 CONTRACT = ROOT / "fixtures" / "stage0" / "rev2" / "eval" / "activation_gate_contract.json"
+SAFETY_CONTRACT = ROOT / "fixtures" / "stage0" / "rev2" / "eval" / "safety_enforcement_contract.json"
 EVAL_RESULTS = ROOT / "fixtures" / "stage0" / "rev2" / "eval" / "starter_eval_results.json"
 CRAWLER = ROOT / "fixtures" / "stage0" / "rev2" / "crawler" / "crawler_governance_cases.json"
 FEEDBACK = ROOT / "fixtures" / "stage0" / "rev2" / "feedback" / "feedback_events.json"
@@ -195,10 +196,14 @@ def validate_blueprint_policy() -> None:
     for item in completed:
         require(item in checked, f"blueprint checklist must mark {item} complete after contract validation")
         require(item not in unchecked, f"blueprint checklist must not leave {item} unchecked")
-    require(
-        "在 brief/provider request/provider response/QA/export 运行 safety policy。" in unchecked,
-        "safety runtime policy must remain unchecked until runtime enforcement is validated",
-    )
+    safety_item = "在 brief/provider request/provider response/QA/export 运行 safety policy。"
+    safety_contract = load_json(SAFETY_CONTRACT)
+    safety_runtime_validated = safety_contract["release_gate_policy"]["runtime_enforcement_validated"]
+    if safety_runtime_validated:
+        require(safety_item in checked, "safety runtime policy must be checked after runtime enforcement is validated")
+        require(safety_item not in unchecked, "safety runtime policy must not remain unchecked after runtime enforcement is validated")
+    else:
+        require(safety_item in unchecked, "safety runtime policy must remain unchecked until runtime enforcement is validated")
 
 
 def main() -> int:

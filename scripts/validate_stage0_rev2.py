@@ -337,12 +337,9 @@ CHECKED_ITEMS = {
 }
 
 FORBIDDEN_CHECKED_ITEMS = {
-    "在 brief/provider request/provider response/QA/export 运行 safety policy。",
     "实现 crawler source approval。",
     "crawler fetch/import 强制 source approval runtime gate。",
     "实现 provenance links。",
-    "实现 temporary hold/throttle hooks。",
-    "实现 admin abuse queue。",
     "support ticket 后端持久化并强制关联 user/project/task/trace/asset/export/quota。",
     "CI 运行 Playwright smoke。",
     "CI build Docker images。",
