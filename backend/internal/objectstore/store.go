@@ -45,6 +45,7 @@ type Store interface {
 	Put(ctx context.Context, object Object, body io.Reader) (Object, error)
 	Get(ctx context.Context, tenantID, key string) (Reader, error)
 	SignGetURL(ctx context.Context, tenantID, key string, ttl time.Duration) (string, error)
+	Delete(ctx context.Context, tenantID, key string) error
 	CleanupExpired(ctx context.Context, now time.Time) (int, error)
 }
 
@@ -128,6 +129,15 @@ func (s LocalStore) Put(ctx context.Context, object Object, body io.Reader) (Obj
 		_ = os.Remove(tmp)
 		return Object{}, err
 	}
+	if object.RetentionUntil != nil {
+		if err := os.WriteFile(path+".expires", []byte(object.RetentionUntil.UTC().Format(time.RFC3339)), 0o640); err != nil {
+			_ = os.Remove(path)
+			return Object{}, err
+		}
+	} else if err := os.Remove(path + ".expires"); err != nil && !errors.Is(err, os.ErrNotExist) {
+		_ = os.Remove(path)
+		return Object{}, err
+	}
 	object.ByteSize = size
 	object.Checksum = "sha256:" + hex.EncodeToString(hash.Sum(nil))
 	return object, nil
@@ -186,6 +196,24 @@ func (s LocalStore) SignGetURL(ctx context.Context, tenantID, key string, ttl ti
 	values.Set("expires", fmt.Sprintf("%d", expires))
 	values.Set("sig", sig)
 	return "/api/v1/objects/download?" + values.Encode(), nil
+}
+
+func (s LocalStore) Delete(ctx context.Context, tenantID, key string) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	key, err := tenantKey(tenantID, key)
+	if err != nil {
+		return err
+	}
+	path := s.pathForKey(key)
+	if err := os.Remove(path); err != nil && !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	if err := os.Remove(path + ".expires"); err != nil && !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	return nil
 }
 
 func (s LocalStore) CleanupExpired(ctx context.Context, now time.Time) (int, error) {

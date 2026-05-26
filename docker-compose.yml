@@ -153,6 +153,7 @@ services:
       <<: *backend-env
       SERVICE_NAME: zenart-worker
       METRICS_PORT: ${WORKER_METRICS_PORT:-9091}
+      WORKER_CLEANUP_INTERVAL: ${WORKER_CLEANUP_INTERVAL:-1h}
     depends_on:
       postgres:
         condition: service_healthy

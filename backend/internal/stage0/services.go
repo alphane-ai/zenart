@@ -858,6 +858,15 @@ WITH expired AS (
 	WHERE e.status IN ('ready', 'failed', 'pending')
 	  AND o.retention_until IS NOT NULL
 	  AND o.retention_until <= $1
+),
+expired_objects AS (
+	UPDATE object_metadata o
+	SET retention_state = 'expired',
+	    updated_at = $1
+	WHERE o.retention_state = 'active'
+	  AND o.retention_until IS NOT NULL
+	  AND o.retention_until <= $1
+	RETURNING o.id
 )
 UPDATE exports e
 SET status = 'expired',
@@ -896,6 +905,70 @@ WHERE o.retention_state = 'active'
 		result.DeletedObjects = deleted
 	}
 	return result, nil
+}
+
+type CleanupObject struct {
+	ID       string
+	TenantID string
+	Key      string
+}
+
+func (r Repository) ListCleanupObjects(ctx context.Context, now time.Time, limit int) ([]CleanupObject, error) {
+	if now.IsZero() {
+		now = time.Now().UTC()
+	}
+	if limit <= 0 {
+		limit = 100
+	}
+	rows, err := r.db.Query(ctx, `
+SELECT id, tenant_id, object_key
+FROM object_metadata
+WHERE retention_state IN ('expired', 'orphaned')
+  AND (
+    retention_until IS NULL
+    OR retention_until <= $1
+  )
+ORDER BY created_at ASC
+LIMIT $2`,
+		now,
+		limit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	objects := make([]CleanupObject, 0, limit)
+	for rows.Next() {
+		var object CleanupObject
+		if err := rows.Scan(&object.ID, &object.TenantID, &object.Key); err != nil {
+			return nil, err
+		}
+		objects = append(objects, object)
+	}
+	return objects, rows.Err()
+}
+
+func (r Repository) MarkCleanupObjectsDeleted(ctx context.Context, ids []string, now time.Time) (int, error) {
+	if len(ids) == 0 {
+		return 0, nil
+	}
+	if now.IsZero() {
+		now = time.Now().UTC()
+	}
+	tag, err := r.db.Exec(ctx, `
+UPDATE object_metadata
+SET retention_state = 'deleted',
+    metadata = metadata || jsonb_build_object('deleted_at', $2::timestamptz),
+    updated_at = $2
+WHERE id = ANY($1)
+  AND retention_state IN ('expired', 'orphaned')`,
+		ids,
+		now,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return int(tag.RowsAffected()), nil
 }
 
 func (r Repository) RegenerateExport(ctx context.Context, tenantID, exportID string) (Export, error) {
@@ -2179,4 +2252,31 @@ func (s Service) GetExport(ctx context.Context, tenantID, exportID string) (Expo
 		}
 	}
 	return export, nil
+}
+
+func (s Service) CleanupExpiredExportsAndOrphanedObjects(ctx context.Context, now time.Time, limit int) (CleanupResult, error) {
+	result, err := s.repo.CleanupExpiredExportsAndOrphanedObjects(ctx, now, nil)
+	if err != nil {
+		return CleanupResult{}, err
+	}
+	if s.objects == nil {
+		return result, nil
+	}
+	objects, err := s.repo.ListCleanupObjects(ctx, now, limit)
+	if err != nil {
+		return CleanupResult{}, err
+	}
+	deletedIDs := make([]string, 0, len(objects))
+	for _, object := range objects {
+		if err := s.objects.Delete(ctx, object.TenantID, object.Key); err != nil {
+			return CleanupResult{}, err
+		}
+		deletedIDs = append(deletedIDs, object.ID)
+	}
+	deleted, err := s.repo.MarkCleanupObjectsDeleted(ctx, deletedIDs, now)
+	if err != nil {
+		return CleanupResult{}, err
+	}
+	result.DeletedObjects = deleted
+	return result, nil
 }

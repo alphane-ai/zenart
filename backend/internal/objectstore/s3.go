@@ -201,6 +201,39 @@ func (s S3Store) SignGetURL(ctx context.Context, tenantID, key string, ttl time.
 	return u.String(), nil
 }
 
+func (s S3Store) Delete(ctx context.Context, tenantID, key string) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	key, err := tenantKey(tenantID, key)
+	if err != nil {
+		return err
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, s.objectURL(s.endpoint, key).String(), nil)
+	if err != nil {
+		return err
+	}
+	emptyHash := hashHex(nil)
+	req.Header.Set("X-Amz-Content-Sha256", emptyHash)
+	s.sign(req, emptyHash, s.clock())
+
+	resp, err := s.client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusNotFound {
+		return nil
+	}
+	if resp.StatusCode == http.StatusForbidden {
+		return ErrTenantDenied
+	}
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		return fmt.Errorf("s3 delete object status %d", resp.StatusCode)
+	}
+	return nil
+}
+
 func (s S3Store) CleanupExpired(ctx context.Context, now time.Time) (int, error) {
 	if err := ctx.Err(); err != nil {
 		return 0, err

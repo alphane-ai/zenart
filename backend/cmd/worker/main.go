@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"os"
 	"time"
 
@@ -10,7 +11,9 @@ import (
 	"github.com/alphane-ai/zenart/backend/internal/app"
 	"github.com/alphane-ai/zenart/backend/internal/config"
 	"github.com/alphane-ai/zenart/backend/internal/health"
+	"github.com/alphane-ai/zenart/backend/internal/objectstore"
 	"github.com/alphane-ai/zenart/backend/internal/readiness"
+	"github.com/alphane-ai/zenart/backend/internal/stage0"
 	"github.com/alphane-ai/zenart/backend/internal/store"
 	"github.com/alphane-ai/zenart/backend/internal/worker"
 )
@@ -62,6 +65,15 @@ func main() {
 	go func() {
 		errCh <- runner.Run(ctx)
 	}()
+	if cfg.Worker.CleanupInterval > 0 {
+		objects, err := objectstore.NewStore(cfg.ObjectStorage, nil)
+		if err != nil {
+			logger.Error("worker object store open failed", "error", err)
+			os.Exit(1)
+		}
+		cleanupService := stage0.NewService(stage0.NewRepository(store.NewPoolAdapter(pool)), objects)
+		go runCleanupLoop(ctx, cleanupService, logger, cfg.Worker.CleanupInterval)
+	}
 
 	select {
 	case <-ctx.Done():
@@ -87,4 +99,46 @@ func main() {
 	if !errors.Is(ctx.Err(), context.Canceled) {
 		logger.Error("worker stopped", "error", ctx.Err())
 	}
+}
+
+type cleanupService interface {
+	CleanupExpiredExportsAndOrphanedObjects(context.Context, time.Time, int) (stage0.CleanupResult, error)
+}
+
+func runCleanupLoop(ctx context.Context, service cleanupService, logger interface {
+	Info(string, ...any)
+	Error(string, ...any)
+}, interval time.Duration) {
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+	runCleanupOnce(ctx, service, logger)
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			runCleanupOnce(ctx, service, logger)
+		}
+	}
+}
+
+type slogCleanupLogger interface {
+	Info(string, ...any)
+	Error(string, ...any)
+}
+
+var _ slogCleanupLogger = (*slog.Logger)(nil)
+
+func runCleanupOnce(ctx context.Context, service cleanupService, logger interface {
+	Info(string, ...any)
+	Error(string, ...any)
+}) {
+	cleanupCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+	result, err := service.CleanupExpiredExportsAndOrphanedObjects(cleanupCtx, time.Now().UTC(), 100)
+	if err != nil {
+		logger.Error("export object cleanup failed", "error", err)
+		return
+	}
+	logger.Info("export object cleanup completed", "expired_exports", result.ExpiredExports, "orphaned_objects", result.OrphanedObjects, "deleted_objects", result.DeletedObjects)
 }

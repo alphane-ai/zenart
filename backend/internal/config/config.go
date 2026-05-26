@@ -123,6 +123,7 @@ type WorkerConfig struct {
 	PollInterval      time.Duration
 	ClaimTimeout      time.Duration
 	DrainGraceTimeout time.Duration
+	CleanupInterval   time.Duration
 }
 
 func Load() (Config, error) {
@@ -213,6 +214,7 @@ func Load() (Config, error) {
 			PollInterval:      durationEnv("WORKER_POLL_INTERVAL", 2*time.Second),
 			ClaimTimeout:      durationEnv("WORKER_CLAIM_TIMEOUT", 15*time.Minute),
 			DrainGraceTimeout: durationEnv("WORKER_DRAIN_GRACE_TIMEOUT", 10*time.Second),
+			CleanupInterval:   durationEnv("WORKER_CLEANUP_INTERVAL", time.Hour),
 		},
 	}
 
@@ -380,6 +382,9 @@ func (c Config) Validate() error {
 	}
 	if c.Worker.DrainGraceTimeout <= 0 {
 		errs = append(errs, "WORKER_DRAIN_GRACE_TIMEOUT must be > 0")
+	}
+	if c.Worker.CleanupInterval < 0 {
+		errs = append(errs, "WORKER_CLEANUP_INTERVAL must be >= 0")
 	}
 
 	if len(errs) > 0 {

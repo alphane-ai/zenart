@@ -8,6 +8,7 @@ ALTER TABLE object_metadata ADD COLUMN IF NOT EXISTS asset_type text NOT NULL DE
 ALTER TABLE object_metadata ADD COLUMN IF NOT EXISTS provider text NOT NULL DEFAULT 'configured';
 ALTER TABLE object_metadata ADD COLUMN IF NOT EXISTS retention_state text NOT NULL DEFAULT 'active';
 ALTER TABLE object_metadata ADD COLUMN IF NOT EXISTS derived_from_object_id text REFERENCES object_metadata(id);
+ALTER TABLE object_metadata ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now();
 
 ALTER TABLE exports ADD COLUMN IF NOT EXISTS project_id text REFERENCES projects(id);
 ALTER TABLE exports ADD COLUMN IF NOT EXISTS manifest jsonb NOT NULL DEFAULT '{}'::jsonb;

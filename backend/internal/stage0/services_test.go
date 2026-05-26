@@ -701,8 +701,101 @@ func TestCleanupExpiredExportsAndOrphanedObjects(t *testing.T) {
 	if !strings.Contains(db.execs[0].sql, "retention_until") || !strings.Contains(db.execs[0].sql, "status = 'expired'") {
 		t.Fatalf("expired export cleanup SQL missing retention/status: %s", db.execs[0].sql)
 	}
+	if !strings.Contains(db.execs[0].sql, "expired_objects") || !strings.Contains(db.execs[0].sql, "retention_state = 'expired'") || !strings.Contains(db.execs[0].sql, "o.retention_until <= $1") {
+		t.Fatalf("expired export cleanup SQL should mark expired object metadata: %s", db.execs[0].sql)
+	}
 	if !strings.Contains(db.execs[1].sql, "retention_state = 'orphaned'") {
 		t.Fatalf("orphan cleanup SQL missing orphaned retention state: %s", db.execs[1].sql)
+	}
+}
+
+func TestListCleanupObjectsSelectsExpiredAndOrphanedObjects(t *testing.T) {
+	now := time.Date(2026, 5, 26, 12, 0, 0, 0, time.UTC)
+	db := &fakeDB{queryRows: []rowSet{{
+		rows: [][]any{{
+			"object_1",
+			"tenant_1",
+			"tenants/tenant_1/exports/export_1.zip",
+		}},
+	}}}
+	repo := NewRepository(db)
+
+	objects, err := repo.ListCleanupObjects(context.Background(), now, 25)
+	if err != nil {
+		t.Fatalf("ListCleanupObjects() error = %v", err)
+	}
+	if len(objects) != 1 {
+		t.Fatalf("cleanup object count = %d, want 1", len(objects))
+	}
+	if objects[0].TenantID != "tenant_1" || objects[0].Key != "tenants/tenant_1/exports/export_1.zip" {
+		t.Fatalf("cleanup object = %#v", objects[0])
+	}
+	if !strings.Contains(db.queryRowsUsed[0].sql, "retention_state IN ('expired', 'orphaned')") || !strings.Contains(db.queryRowsUsed[0].sql, "LIMIT $2") {
+		t.Fatalf("cleanup selection SQL missing retention/limit guard: %s", db.queryRowsUsed[0].sql)
+	}
+	if db.queryRowsUsed[0].args[1] != 25 {
+		t.Fatalf("cleanup limit arg = %#v, want 25", db.queryRowsUsed[0].args[1])
+	}
+}
+
+func TestMarkCleanupObjectsDeleted(t *testing.T) {
+	now := time.Date(2026, 5, 26, 12, 0, 0, 0, time.UTC)
+	db := &fakeDB{execTags: []pgconn.CommandTag{pgconn.NewCommandTag("UPDATE 2")}}
+	repo := NewRepository(db)
+
+	deleted, err := repo.MarkCleanupObjectsDeleted(context.Background(), []string{"object_1", "object_2"}, now)
+	if err != nil {
+		t.Fatalf("MarkCleanupObjectsDeleted() error = %v", err)
+	}
+	if deleted != 2 {
+		t.Fatalf("deleted = %d, want 2", deleted)
+	}
+	if !strings.Contains(db.execs[0].sql, "retention_state = 'deleted'") || !strings.Contains(db.execs[0].sql, "deleted_at") {
+		t.Fatalf("mark deleted SQL missing retention/deleted metadata: %s", db.execs[0].sql)
+	}
+}
+
+func TestServiceCleanupDeletesMarkedObjectsAndMarksRowsDeleted(t *testing.T) {
+	now := time.Date(2026, 5, 26, 12, 0, 0, 0, time.UTC)
+	db := &fakeDB{
+		execTags: []pgconn.CommandTag{
+			pgconn.NewCommandTag("UPDATE 1"),
+			pgconn.NewCommandTag("UPDATE 1"),
+			pgconn.NewCommandTag("UPDATE 2"),
+		},
+		queryRows: []rowSet{{
+			rows: [][]any{
+				{"object_1", "tenant_1", "tenants/tenant_1/exports/export_1.zip"},
+				{"object_2", "tenant_1", "tenants/tenant_1/thumbnails/export_1.zip.svg"},
+			},
+		}},
+	}
+	objects, err := objectstore.NewLocalStore(t.TempDir(), "zenart-test", "secret")
+	if err != nil {
+		t.Fatalf("NewLocalStore() error = %v", err)
+	}
+	for _, key := range []string{"exports/export_1.zip", "thumbnails/export_1.zip.svg"} {
+		if _, err := objects.Put(context.Background(), objectstore.Object{
+			TenantID: "tenant_1",
+			Key:      key,
+		}, strings.NewReader("data")); err != nil {
+			t.Fatalf("Put(%s) error = %v", key, err)
+		}
+	}
+	service := NewService(NewRepository(db), objects)
+
+	result, err := service.CleanupExpiredExportsAndOrphanedObjects(context.Background(), now, 50)
+	if err != nil {
+		t.Fatalf("CleanupExpiredExportsAndOrphanedObjects() error = %v", err)
+	}
+	if result.ExpiredExports != 1 || result.OrphanedObjects != 1 || result.DeletedObjects != 2 {
+		t.Fatalf("cleanup result = %#v, want 1/1/2", result)
+	}
+	if len(db.execs) != 3 {
+		t.Fatalf("exec count = %d, want repository mark, orphan mark, deleted mark", len(db.execs))
+	}
+	if !strings.Contains(db.execs[2].sql, "retention_state = 'deleted'") {
+		t.Fatalf("third exec should mark object metadata deleted: %s", db.execs[2].sql)
 	}
 }
 
