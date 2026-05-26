@@ -37,6 +37,7 @@ test("admin fixtures cover required operational surfaces", () => {
     "export const feedbackItems",
     "export const providerHealth",
     "export const queueHealth",
+    "export const failedTaskControls",
     "export const incidentLogs",
     "export const maintenanceBanners",
     "export const exportJobs",
@@ -192,6 +193,16 @@ test("admin routes surface governance evidence", () => {
   assert.match(operationsPage, /Incident Log/);
   assert.match(operationsPage, /Maintenance Banner/);
   assert.match(operationsPage, /Rollback Plan/);
+
+  const queuesPage = readFileSync(
+    new URL("../app/queues/page.tsx", import.meta.url),
+    "utf8"
+  );
+  assert.match(queuesPage, /Retry Policy/);
+  assert.match(queuesPage, /Cancel Policy/);
+  assert.match(queuesPage, /Failed Task Retry and Cancel Controls/);
+  assert.match(queuesPage, /Operator Runbook/);
+  assert.match(queuesPage, /Allowed Role/);
 });
 
 test("support console surfaces ticket linkage and audit evidence", () => {

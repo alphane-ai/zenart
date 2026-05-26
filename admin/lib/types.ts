@@ -216,6 +216,11 @@ export type QueueHealth = {
   deadLetters: number;
   oldestAgeMinutes: number;
   action: string;
+  retryPolicy: string;
+  cancelPolicy: string;
+  ownerRole: "support_operator" | "admin_operator" | "admin_reviewer" | "admin_superadmin";
+  linkedIncident: string;
+  auditRef: string;
 };
 
 export type ExportJob = {
@@ -226,6 +231,29 @@ export type ExportJob = {
   qaSeverity: "info" | "warning" | "blocking";
   regenerateEligible: boolean;
   failureReason: string;
+};
+
+export type FailedTaskControl = {
+  id: string;
+  queueId: string;
+  userId: string;
+  projectId: string;
+  traceId: string;
+  supportTicketId: string;
+  status: "failed" | "retrying" | "cancelled" | "blocked";
+  retryCount: number;
+  maxRetries: number;
+  timeoutSeconds: number;
+  errorCode: string;
+  userMessage: string;
+  appVersion: string;
+  workerVersion: string;
+  schemaVersion: string;
+  requestedAction: "retry" | "cancel" | "hold";
+  actionEligibility: "eligible" | "requires_review" | "blocked";
+  allowedRole: "support_operator" | "admin_operator" | "admin_reviewer" | "admin_superadmin";
+  operatorRunbook: string;
+  auditRef: string;
 };
 
 export type SupportTicket = {

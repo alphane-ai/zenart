@@ -6,6 +6,7 @@ import type {
   AuditEvent,
   CrawlerFinding,
   ExportJob,
+  FailedTaskControl,
   FeedbackItem,
   IncidentLog,
   MaintenanceBanner,
@@ -861,7 +862,12 @@ export const queueHealth: QueueHealth[] = [
     running: 4,
     deadLetters: 1,
     oldestAgeMinutes: 22,
-    action: "Inspect stalled missing-info clarification."
+    action: "Inspect stalled missing-info clarification.",
+    retryPolicy: "Retry only after support confirms the missing brief fields are present.",
+    cancelPolicy: "Cancel stale clarification tasks after timeout and preserve user-visible message.",
+    ownerRole: "support_operator",
+    linkedIncident: "none",
+    auditRef: "au-011"
   },
   {
     id: "q-export",
@@ -870,7 +876,12 @@ export const queueHealth: QueueHealth[] = [
     running: 2,
     deadLetters: 3,
     oldestAgeMinutes: 84,
-    action: "Regenerate eligible failed packages."
+    action: "Regenerate eligible failed packages.",
+    retryPolicy: "Retry failed packaging only when manifest, QA report, and quota refund evidence are attached.",
+    cancelPolicy: "Cancel blocked exports when safety action is not override eligible.",
+    ownerRole: "admin_reviewer",
+    linkedIncident: "inc-20260526-queue",
+    auditRef: "au-004"
   },
   {
     id: "q-crawler",
@@ -879,7 +890,81 @@ export const queueHealth: QueueHealth[] = [
     running: 1,
     deadLetters: 5,
     oldestAgeMinutes: 240,
-    action: "Review source blocklist and retry approved hosts."
+    action: "Review source blocklist and retry approved hosts.",
+    retryPolicy: "Retry crawler import only after robots, ownership, and source allowlist evidence pass.",
+    cancelPolicy: "Cancel or delete findings when takedown or derivative review blocks use.",
+    ownerRole: "admin_operator",
+    linkedIncident: "inc-20260525-crawler",
+    auditRef: "au-002"
+  }
+];
+
+export const failedTaskControls: FailedTaskControl[] = [
+  {
+    id: "task-brief-441",
+    queueId: "q-brief",
+    userId: "usr-301",
+    projectId: "proj-774",
+    traceId: "tr-1004",
+    supportTicketId: "sup-2201",
+    status: "blocked",
+    retryCount: 3,
+    maxRetries: 3,
+    timeoutSeconds: 900,
+    errorCode: "SAFETY_EXPORT_BLOCK",
+    userMessage: "Export remains blocked because final QA found a forbidden claim.",
+    appVersion: "admin-0.0.0",
+    workerVersion: "worker-2026.05.26",
+    schemaVersion: "task.v1",
+    requestedAction: "hold",
+    actionEligibility: "blocked",
+    allowedRole: "admin_reviewer",
+    operatorRunbook: "Do not retry. Keep the task blocked, preserve the QA report, and apply audited quota credit only after support review.",
+    auditRef: "au-001"
+  },
+  {
+    id: "task-export-489",
+    queueId: "q-export",
+    userId: "usr-318",
+    projectId: "proj-790",
+    traceId: "tr-1019",
+    supportTicketId: "sup-2204",
+    status: "failed",
+    retryCount: 1,
+    maxRetries: 3,
+    timeoutSeconds: 600,
+    errorCode: "EXPORT_MANIFEST_QA_REPORT_MISSING",
+    userMessage: "The export package is being regenerated with the missing QA report.",
+    appVersion: "admin-0.0.0",
+    workerVersion: "worker-2026.05.26",
+    schemaVersion: "task.v1",
+    requestedAction: "retry",
+    actionEligibility: "eligible",
+    allowedRole: "support_operator",
+    operatorRunbook: "Attach ticket sup-2204, verify QA warning evidence, retry once, and write the resulting audit ref before closure.",
+    auditRef: "au-011"
+  },
+  {
+    id: "task-crawler-019",
+    queueId: "q-crawler",
+    userId: "usr-455",
+    projectId: "proj-812",
+    traceId: "none",
+    supportTicketId: "sup-2212",
+    status: "cancelled",
+    retryCount: 0,
+    maxRetries: 1,
+    timeoutSeconds: 1200,
+    errorCode: "CRAWLER_SOURCE_OWNERSHIP_MISSING",
+    userMessage: "Crawler import is cancelled until source ownership and robots evidence are reviewed.",
+    appVersion: "admin-0.0.0",
+    workerVersion: "crawler-2026.05.26",
+    schemaVersion: "task.v1",
+    requestedAction: "cancel",
+    actionEligibility: "requires_review",
+    allowedRole: "admin_operator",
+    operatorRunbook: "Keep the source import cancelled, request ownership proof, and reopen only after crawler review evidence is attached.",
+    auditRef: "au-002"
   }
 ];
 
@@ -1295,6 +1380,18 @@ export const auditEvents: AuditEvent[] = [
     immutable: true,
     evidenceRefs: ["sv-240", "cm-014", "fb-203"],
     secondReviewStatus: "completed"
+  },
+  {
+    id: "au-011",
+    actor: "support-admin",
+    action: "authorized failed task retry",
+    target: "task-export-489",
+    risk: "medium",
+    createdAt: "2026-05-26 10:22",
+    rationale: "Manifest packaging failure is retry eligible after support ticket and QA warning evidence are attached.",
+    immutable: true,
+    evidenceRefs: ["task-export-489", "sup-2204", "q-export"],
+    secondReviewStatus: "not_required"
   }
 ];
 

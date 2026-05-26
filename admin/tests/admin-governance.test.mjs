@@ -8,7 +8,7 @@ const parseFixtures = () => {
   const moduleSource = source
     .replace(/^import type[\s\S]*?from "@\/lib\/types";\n\n/, "")
     .replaceAll(/export const (\w+)[^=]*=/g, "const $1 =");
-  return Function(`${moduleSource}\nreturn { skillVersions, skillReleaseStateDefinitions, skillCanaryMetrics, releaseEvidence, supportTickets, supportEscalationRunbooks, supportUsers, riskyExports, abuseEvents, auditEvents, exportJobs, traces, quotaAccounts, feedbackItems, analyticsReports };`)();
+  return Function(`${moduleSource}\nreturn { skillVersions, skillReleaseStateDefinitions, skillCanaryMetrics, releaseEvidence, supportTickets, supportEscalationRunbooks, supportUsers, riskyExports, abuseEvents, auditEvents, exportJobs, traces, quotaAccounts, feedbackItems, analyticsReports, queueHealth, failedTaskControls };`)();
 };
 
 const {
@@ -26,7 +26,9 @@ const {
   feedbackItems,
   analyticsReports,
   traces,
-  quotaAccounts
+  quotaAccounts,
+  queueHealth,
+  failedTaskControls
 } = parseFixtures();
 
 const auditIds = new Set(auditEvents.map((event) => event.id));
@@ -36,6 +38,8 @@ const supportUserIds = new Set(supportUsers.map((user) => user.id));
 const traceIds = new Set(traces.map((trace) => trace.id));
 const exportIds = new Set(exportJobs.map((job) => job.id));
 const quotaUserIds = new Set(quotaAccounts.map((account) => account.userId));
+const queueIds = new Set(queueHealth.map((queue) => queue.id));
+const incidentIds = new Set(["none", "inc-20260526-queue", "inc-20260525-crawler"]);
 
 test("skill release governance defines states, traffic allocation, canary thresholds, and rollback audit", () => {
   const states = new Set(skillReleaseStateDefinitions.map((definition) => definition.state));
@@ -200,6 +204,51 @@ test("analytics reports cover product funnel and operational go/no-go metrics", 
     analyticsReports.some((report) => report.status === "blocked"),
     "analytics reports need at least one blocked gate signal"
   );
+});
+
+test("queue and failed task controls gate retry and cancel with audit evidence", () => {
+  assert.ok(queueHealth.length > 0, "queue dashboard needs queue fixtures");
+  assert.ok(failedTaskControls.length > 0, "failed task retry/cancel needs fixtures");
+
+  for (const queue of queueHealth) {
+    assert.ok(queue.retryPolicy.length > 40, `${queue.id} needs retry policy`);
+    assert.ok(queue.cancelPolicy.length > 40, `${queue.id} needs cancel policy`);
+    assert.match(queue.ownerRole, /support_operator|admin_operator|admin_reviewer|admin_superadmin/, `${queue.id} needs owner role`);
+    assert.ok(incidentIds.has(queue.linkedIncident), `${queue.id} links unknown incident ${queue.linkedIncident}`);
+    assert.ok(auditIds.has(queue.auditRef), `${queue.id} links unknown audit ${queue.auditRef}`);
+  }
+
+  const actions = new Set(failedTaskControls.map((task) => task.requestedAction));
+  assert.ok(actions.has("retry"), "failed task controls need retry action");
+  assert.ok(actions.has("cancel"), "failed task controls need cancel action");
+  assert.ok(actions.has("hold"), "failed task controls need hold action");
+
+  for (const task of failedTaskControls) {
+    assert.ok(queueIds.has(task.queueId), `${task.id} links unknown queue ${task.queueId}`);
+    assert.ok(supportTicketIds.has(task.supportTicketId), `${task.id} links unknown support ticket`);
+    assert.ok(task.traceId === "none" || traceIds.has(task.traceId), `${task.id} links unknown trace`);
+    assert.ok(auditIds.has(task.auditRef), `${task.id} links unknown audit ${task.auditRef}`);
+    assert.ok(task.retryCount <= task.maxRetries, `${task.id} retry count exceeds max retries`);
+    assert.ok(task.timeoutSeconds > 0, `${task.id} needs timeout`);
+    assert.ok(task.errorCode.length > 5, `${task.id} needs machine-readable error code`);
+    assert.ok(task.userMessage.length > 30, `${task.id} needs user-visible message`);
+    assert.ok(task.appVersion.length > 0, `${task.id} needs app version`);
+    assert.ok(task.workerVersion.length > 0, `${task.id} needs worker version`);
+    assert.ok(task.schemaVersion.length > 0, `${task.id} needs schema version`);
+    assert.ok(task.operatorRunbook.length > 60, `${task.id} needs operator runbook`);
+
+    if (task.requestedAction === "retry") {
+      assert.equal(task.actionEligibility, "eligible", `${task.id} retry must be eligible`);
+    }
+
+    if (task.requestedAction === "cancel") {
+      assert.notEqual(task.actionEligibility, "blocked", `${task.id} cancel must remain actionable`);
+    }
+
+    if (task.requestedAction === "hold") {
+      assert.equal(task.allowedRole, "admin_reviewer", `${task.id} hold needs reviewer role`);
+    }
+  }
 });
 
 test("high-risk audit and release operations are immutable and rollback-linked", () => {

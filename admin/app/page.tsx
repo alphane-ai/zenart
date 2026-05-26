@@ -7,6 +7,7 @@ import {
   getAdminReviewDecisions,
   getAuditEvents,
   getExportJobs,
+  getFailedTaskControls,
   getFeedbackItems,
   getProviderHealth,
   getQueueHealth,
@@ -24,7 +25,8 @@ export default async function AdminHomePage() {
     abuse,
     audit,
     skillVersions,
-    reviews
+    reviews,
+    failedTasks
   ] = await Promise.all([
     getProviderHealth(),
     getQueueHealth(),
@@ -34,7 +36,8 @@ export default async function AdminHomePage() {
     getAbuseEvents(),
     getAuditEvents(),
     getSkillVersions(),
-    getAdminReviewDecisions()
+    getAdminReviewDecisions(),
+    getFailedTaskControls()
   ]);
 
   const unhealthyProviders = providers.filter((provider) => provider.status !== "healthy");
@@ -71,6 +74,11 @@ export default async function AdminHomePage() {
             label: "Dead letters",
             value: deadLetters,
             detail: "queue items needing operator action"
+          },
+          {
+            label: "Failed task controls",
+            value: failedTasks.length,
+            detail: "retry, cancel, and hold decisions with audit evidence"
           },
           {
             label: "Risky export blocks",

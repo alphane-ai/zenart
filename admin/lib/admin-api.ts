@@ -5,6 +5,7 @@ import {
   auditEvents,
   crawlerFindings,
   exportJobs,
+  failedTaskControls,
   feedbackItems,
   incidentLogs,
   maintenanceBanners,
@@ -83,6 +84,10 @@ export async function getQueueHealth() {
 
 export async function getExportJobs() {
   return exportJobs;
+}
+
+export async function getFailedTaskControls() {
+  return failedTaskControls;
 }
 
 export async function getExportJob(id: string) {

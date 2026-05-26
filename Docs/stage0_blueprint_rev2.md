@@ -1838,9 +1838,9 @@ main 合并前必须通过：
 - [x] 实现 support ticket model。
 - [ ] support ticket 关联 user/project/task/trace/asset/export/quota。
 - [ ] 实现 admin user lookup。
-- [ ] 实现 failed task retry/cancel。
+- [x] 实现 failed task retry/cancel。
 - [x] 实现 export regenerate。
-- [ ] 实现 queue/dead-letter dashboard。
+- [x] 实现 queue/dead-letter dashboard。
 - [x] 实现 incident log model。
 - [x] 实现 maintenance banner。
 
