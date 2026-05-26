@@ -149,10 +149,15 @@ export type CrawlerGovernanceWorkflow = {
   findingId: string;
   requestType: "source_takedown" | "derivative_review" | "raw_retention_delete";
   status: "intake" | "evidence_review" | "approved" | "blocked" | "deleted";
+  requestedAt: string;
+  dueAt: string;
   requester: string;
   sourceContact: string;
   derivativeUseStatus: "allowed" | "restricted" | "unknown" | "blocked";
   rawRetentionAction: "retain_with_limit" | "delete_raw" | "delete_raw_and_derivatives";
+  deletionEvidenceRef: string;
+  requesterNoticeRef: string;
+  activationGateDecision: "allowed" | "blocked";
   linkedReview: string;
   fixtureCaseId: string;
   operatorNextAction: string;
@@ -160,6 +165,8 @@ export type CrawlerGovernanceWorkflow = {
   requiredEvidenceRefs: string[];
   blockedActivation: boolean;
   reviewerRole: "admin_operator" | "admin_reviewer" | "admin_superadmin";
+  secondReviewRequired: boolean;
+  secondReviewStatus: "not_required" | "required" | "completed";
   reviewRationale: string;
   auditRef: string;
 };

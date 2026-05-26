@@ -1186,6 +1186,8 @@ test("crawler takedown and derivative review workflow blocks unsafe activation",
 
     assert.ok(crawlerFindingIds.has(workflow.findingId), `${workflow.id} links unknown crawler finding`);
     assert.ok(fixtureCase, `${workflow.id} links unknown crawler governance fixture ${workflow.fixtureCaseId}`);
+    assert.notEqual(workflow.requestedAt, "pending", `${workflow.id} needs request timestamp`);
+    assert.notEqual(workflow.dueAt, "pending", `${workflow.id} needs operator due timestamp`);
     assert.ok(workflow.sourceContact.length > 30, `${workflow.id} needs takedown contact process`);
     assert.ok(workflow.sourceContact !== "pending", `${workflow.id} needs concrete source contact process`);
     assert.match(workflow.linkedReview, /^rv-crawler-\d+$/, `${workflow.id} needs linked crawler review id`);
@@ -1193,9 +1195,29 @@ test("crawler takedown and derivative review workflow blocks unsafe activation",
     assert.ok(workflow.closureCriteria.length > 100, `${workflow.id} needs closure criteria`);
     assert.ok(workflow.closureCriteria.includes(workflow.auditRef), `${workflow.id} closure criteria must cite audit ref`);
     assert.ok(workflow.requiredEvidenceRefs.length >= 3, `${workflow.id} needs evidence refs`);
+    assert.notEqual(workflow.deletionEvidenceRef, "pending", `${workflow.id} needs deletion or retention evidence ref`);
+    assert.notEqual(workflow.requesterNoticeRef, "pending", `${workflow.id} needs requester notice evidence ref`);
+    assert.ok(
+      workflow.requiredEvidenceRefs.includes(workflow.deletionEvidenceRef) || workflow.deletionEvidenceRef.startsWith("not_required"),
+      `${workflow.id} deletion evidence must be either required or explicitly not required`
+    );
+    assert.ok(
+      workflow.requiredEvidenceRefs.includes(workflow.requesterNoticeRef),
+      `${workflow.id} requester notice evidence must be required for closure`
+    );
     assert.ok(workflow.reviewRationale.length > 60, `${workflow.id} needs reviewer rationale`);
     assert.ok(auditIds.has(workflow.auditRef), `${workflow.id} links unknown audit ${workflow.auditRef}`);
     assert.match(workflow.reviewerRole, /admin_operator|admin_reviewer|admin_superadmin/, `${workflow.id} needs admin reviewer role`);
+    assert.equal(
+      workflow.activationGateDecision === "blocked",
+      workflow.blockedActivation,
+      `${workflow.id} activation gate decision must match blocked activation flag`
+    );
+    assert.match(workflow.secondReviewStatus, /not_required|required|completed/, `${workflow.id} needs second-review state`);
+    if (workflow.secondReviewRequired) {
+      assert.notEqual(workflow.secondReviewStatus, "not_required", `${workflow.id} required second review needs an active status`);
+      assert.match(workflow.reviewRationale, /blocked|delete|review/i, `${workflow.id} second-review workflow needs high-risk rationale`);
+    }
     assert.equal(
       fixtureCase.import_governance.takedown_workflow_required,
       true,
@@ -1218,11 +1240,16 @@ test("crawler takedown and derivative review workflow blocks unsafe activation",
       assert.equal(workflow.derivativeUseStatus, "blocked", `${workflow.id} takedown must block derivative use`);
       assert.match(workflow.operatorNextAction, /delete raw and derivative material/i, `${workflow.id} takedown next action must require deletion`);
       assert.match(workflow.closureCriteria, /requester is notified/i, `${workflow.id} takedown closure must include requester notice`);
+      assert.match(workflow.deletionEvidenceRef, /delete/i, `${workflow.id} takedown needs deletion evidence`);
+      assert.match(workflow.requesterNoticeRef, /notice/i, `${workflow.id} takedown needs requester notice evidence`);
+      assert.equal(workflow.secondReviewRequired, true, `${workflow.id} takedown needs second review`);
+      assert.equal(workflow.activationGateDecision, "blocked", `${workflow.id} takedown activation gate must be blocked`);
     }
 
     if (workflow.requestType === "derivative_review" && workflow.derivativeUseStatus === "allowed") {
       assert.equal(workflow.blockedActivation, false, `${workflow.id} allowed derivative review should permit activation`);
       assert.equal(workflow.rawRetentionAction, "retain_with_limit", `${workflow.id} allowed derivative review still needs retention limit`);
+      assert.equal(workflow.activationGateDecision, "allowed", `${workflow.id} allowed derivative review must permit activation gate`);
       assert.equal(fixtureCase.source.derivative_use_status, "allowed", `${workflow.id} allowed derivative review needs allowed source fixture`);
       assert.ok(
         fixtureCase.import_governance.raw_content_retention_days > 0,
@@ -1234,6 +1261,7 @@ test("crawler takedown and derivative review workflow blocks unsafe activation",
     if (workflow.derivativeUseStatus === "unknown" || workflow.derivativeUseStatus === "restricted") {
       assert.equal(workflow.blockedActivation, true, `${workflow.id} unresolved derivative status must block activation`);
       assert.match(workflow.operatorNextAction, /prevent crawler-derived prompt activation/i, `${workflow.id} unresolved derivative review must prevent activation`);
+      assert.equal(workflow.activationGateDecision, "blocked", `${workflow.id} unresolved derivative review must block activation gate`);
     }
   }
 });
