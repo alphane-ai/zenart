@@ -293,9 +293,8 @@ RELEASE_GATE_PASS_BLOCKED_BY_OPEN_ITEMS = {
         "crawler runtime 强制 exact-text import warning。",
         "crawler runtime 强制 provenance links。",
         "crawler runtime 强制 source blocklist。",
-        "实现 temporary hold/throttle hooks。",
-        "实现 admin abuse queue。",
-        "support ticket 后端持久化并强制关联 user/project/task/trace/asset/export/quota。",
+        "temporary hold/throttle hooks runtime enforcement 通过。",
+        "admin abuse queue runtime enforcement 通过。",
         "执行 staging deploy。",
         "执行 staging smoke tests。",
         "实现 request id propagation。",
@@ -310,6 +309,87 @@ RELEASE_GATE_PASS_BLOCKED_BY_OPEN_ITEMS = {
         "CI Gate 全部通过。",
         "Private Beta/Staging Gate 全部通过。",
         "Production post-deploy smoke tests 通过。",
+    },
+}
+
+RELEASE_GATE_OPEN_ITEM_GUARD_CHECKS = {
+    "local_alpha": {
+        "电商增长包 API smoke test 通过。": {"local_alpha_e2e_workflow_smoke"},
+        "电商增长包 Playwright happy path 通过。": {"local_alpha_e2e_workflow_smoke"},
+        "商业视觉文档包 API smoke test 通过。": {"local_alpha_e2e_workflow_smoke"},
+        "商业视觉文档包 Playwright happy path 通过。": {"local_alpha_e2e_workflow_smoke"},
+        "本地商家活动包 API smoke test 通过。": {"local_alpha_e2e_workflow_smoke"},
+        "本地商家活动包 Playwright happy path 通过。": {"local_alpha_e2e_workflow_smoke"},
+        "角色/IP 概念包 API smoke test 通过。": {"local_alpha_e2e_workflow_smoke"},
+        "角色/IP 概念包 Playwright happy path 通过。": {"local_alpha_e2e_workflow_smoke"},
+    },
+    "ci": {
+        "添加 PR/main CI 到 `.github/workflows`。（token-blocked：当前 token 缺 workflow scope；draft/evidence 已落在 `ops/ci/` 和 `fixtures/ops/`。）": {
+            "ci_installed_workflow",
+            "ci_gate_runtime_execution",
+        },
+        "CI 在已安装 PR/main workflow 中运行 Playwright smoke。": {
+            "ci_gate_runtime_execution",
+            "ci_playwright_smoke",
+        },
+        "CI 在已安装 PR/main workflow 中 build Docker images。": {
+            "ci_gate_runtime_execution",
+            "ci_docker_image_build",
+        },
+    },
+    "private_beta_staging": {
+        "在 brief/provider request/provider response/QA/export 运行 safety policy。": {
+            "staging_eval_qa_safety_runtime",
+        },
+        "crawler fetch/import 强制 source approval runtime gate。": {
+            "staging_crawler_approval_provenance",
+        },
+        "crawler runtime 强制 robots evidence。": {"staging_crawler_approval_provenance"},
+        "crawler runtime 强制 SSRF protections。": {"staging_crawler_approval_provenance"},
+        "crawler runtime 强制 source/global rate limits。": {
+            "staging_crawler_approval_provenance",
+        },
+        "crawler runtime 强制 raw content retention limit。": {
+            "staging_crawler_approval_provenance",
+        },
+        "crawler runtime 强制 exact-text import warning。": {
+            "staging_crawler_approval_provenance",
+        },
+        "crawler runtime 强制 provenance links。": {"staging_crawler_approval_provenance"},
+        "crawler runtime 强制 source blocklist。": {"staging_crawler_approval_provenance"},
+        "temporary hold/throttle hooks runtime enforcement 通过。": {
+            "staging_support_retry_abuse_ops",
+        },
+        "admin abuse queue runtime enforcement 通过。": {
+            "staging_support_retry_abuse_ops",
+        },
+        "执行 staging deploy。": {"staging_observability_backup_load"},
+        "执行 staging smoke tests。": {"staging_observability_backup_load"},
+        "实现 request id propagation。": {"staging_observability_backup_load"},
+        "实现 structured JSON logs。": {"staging_observability_backup_load"},
+        "实现 OpenTelemetry traces。": {"staging_observability_backup_load"},
+        "实现 backend/worker/crawler metrics。": {"staging_observability_backup_load"},
+        "导入并验证 staging dashboards runtime evidence。": {
+            "staging_observability_backup_load",
+        },
+        "配置并验证 staging alert routes/runtime evidence。": {
+            "staging_observability_backup_load",
+        },
+        "Staging post-deploy smoke tests 通过。": {"staging_observability_backup_load"},
+    },
+    "production_launch": {
+        "CI Gate 全部通过。": {
+            "production_backup_rollback_incident",
+            "production_security_launch_checks",
+        },
+        "Private Beta/Staging Gate 全部通过。": {
+            "production_backup_rollback_incident",
+            "production_legal_support_policy",
+            "production_security_launch_checks",
+        },
+        "Production post-deploy smoke tests 通过。": {
+            "production_backup_rollback_incident",
+        },
     },
 }
 
@@ -964,6 +1044,18 @@ def validate_gate_cannot_pass_with_open_items(
             f"{gate} gate evidence allows checklist completion while blocking checklist items remain open: "
             + json.dumps(sorted(relevant_open_items), ensure_ascii=False),
         )
+
+    checks = checks_by_id(data)
+    guarded_items = RELEASE_GATE_OPEN_ITEM_GUARD_CHECKS.get(gate, {})
+    for item, guarded_check_ids in guarded_items.items():
+        if item not in unchecked_lines:
+            continue
+        for check_id in guarded_check_ids:
+            require(check_id in checks, f"{gate} open-item guard references unknown check {check_id}")
+            require(
+                checks[check_id]["status"] != "pass",
+                f"{gate}.{check_id} cannot pass while checklist item remains open: {item}",
+            )
 
 
 def checked_items(text: str) -> set[str]:
