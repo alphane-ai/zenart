@@ -148,6 +148,15 @@ SUMMARY_PROJECTION_FIELDS = {
     "safety_enforcement_points_covered",
 }
 
+LATEST_ONLY_GROUP_FIELDS = {
+    "tenant_id",
+    "eval_suite_id",
+    "subject_type",
+    "subject_id",
+    "subject_version",
+    "runner_sha256",
+}
+
 FIXTURE_RESULT_PROJECTION_FIELDS = {
     "fixture_id",
     "category",
@@ -4094,6 +4103,117 @@ def validate_eval_storage_contract() -> None:
         result.returncode == 0,
         "eval storage contract validation failed: " + (result.stderr or result.stdout).strip(),
     )
+    validate_eval_storage_read_fixture_contract()
+
+
+def eval_read_fixture_page(rows: list[dict[str, Any]], query: dict[str, Any]) -> list[dict[str, Any]]:
+    require("tenant_id" in query, "eval read fixture queries must include tenant_id")
+    filtered = []
+    for row in rows:
+        if row["tenant_id"] != query["tenant_id"]:
+            continue
+        if "eval_suite_id" in query and row["eval_suite_id"] != query["eval_suite_id"]:
+            continue
+        if "subject_type" in query and row["subject_type"] != query["subject_type"]:
+            continue
+        if "subject_id" in query and row["subject_id"] != query["subject_id"]:
+            continue
+        if "status" in query and row["status"] != query["status"]:
+            continue
+        if "completed_after" in query and row["completed_at"] <= query["completed_after"]:
+            continue
+        filtered.append(row)
+
+    filtered.sort(key=lambda row: (row["completed_at"], row["created_at"]), reverse=True)
+    if query.get("latest_only") is True:
+        latest_rows: list[dict[str, Any]] = []
+        seen_groups: set[tuple[str, ...]] = set()
+        for row in filtered:
+            group = tuple(row[field] for field in [
+                "tenant_id",
+                "eval_suite_id",
+                "subject_type",
+                "subject_id",
+                "subject_version",
+                "runner_sha256",
+            ])
+            if group in seen_groups:
+                continue
+            seen_groups.add(group)
+            latest_rows.append(row)
+        filtered = latest_rows
+    return filtered
+
+
+def validate_eval_storage_read_fixture_contract() -> None:
+    contract = load_json(FIXTURE_DIR / "eval" / "eval_storage_contract.json")
+    fixture = contract["read_fixture_contract"]
+    rows = fixture["fixture_rows"]
+    row_ids = [row["id"] for row in rows]
+    require(len(row_ids) == len(set(row_ids)), "eval read fixture rows must have unique ids")
+    require(fixture["tenant_filter_required"] is True, "eval read fixture must require tenant scope")
+    require(fixture["ordering"] == ["completed_at_desc", "created_at_desc"], "eval read fixture ordering mismatch")
+    require(set(fixture["latest_only_groups_by"]) == LATEST_ONLY_GROUP_FIELDS, "eval read latest-only grouping mismatch")
+
+    tenants = {row["tenant_id"] for row in rows}
+    require(len(tenants) >= 2, "eval read fixture must include cross-tenant rows")
+    require(
+        any(
+            left["tenant_id"] != right["tenant_id"]
+            and left["eval_suite_id"] == right["eval_suite_id"]
+            and left["subject_type"] == right["subject_type"]
+            and left["subject_id"] == right["subject_id"]
+            for left in rows
+            for right in rows
+        ),
+        "eval read fixture must exercise same subject across tenants",
+    )
+    require(
+        any(
+            left["id"] != right["id"]
+            and left["tenant_id"] == right["tenant_id"]
+            and left["eval_suite_id"] == right["eval_suite_id"]
+            and left["subject_type"] == right["subject_type"]
+            and left["subject_id"] == right["subject_id"]
+            and left["subject_version"] == right["subject_version"]
+            and left["runner_sha256"] == right["runner_sha256"]
+            and left["completed_at"] == right["completed_at"]
+            and left["created_at"] != right["created_at"]
+            for left in rows
+            for right in rows
+        ),
+        "eval read fixture must exercise created_at tie-break within latest-only group",
+    )
+
+    required_case_ids = {
+        "tenant_subject_filter_orders_by_completed_then_created",
+        "status_and_completed_after_are_applied_after_tenant_scope",
+        "latest_only_uses_runner_hash_scope_and_created_at_tiebreak",
+        "tenant_isolation_keeps_newer_other_tenant_out_of_acme_reads",
+    }
+    cases = {case["case_id"]: case for case in fixture["cases"]}
+    require(set(cases) == required_case_ids, "eval read fixture cases mismatch")
+    for case in fixture["cases"]:
+        actual_ids = [row["id"] for row in eval_read_fixture_page(rows, case["query"])]
+        require(actual_ids == case["expected_result_ids"], f"{case['case_id']} expected read results mismatch")
+
+    tenant_case = cases["tenant_isolation_keeps_newer_other_tenant_out_of_acme_reads"]
+    require(
+        all(
+            next(row for row in rows if row["id"] == result_id)["tenant_id"] == tenant_case["query"]["tenant_id"]
+            for result_id in tenant_case["expected_result_ids"]
+        ),
+        "tenant isolation read case returned a row outside query tenant",
+    )
+
+    openapi = OPENAPI.read_text(encoding="utf-8")
+    eval_path = re.search(r"^  /eval/results:\n(?P<body>.*?)(?=^  /|\Z)", openapi, flags=re.MULTILINE | re.DOTALL)
+    require(eval_path is not None, "OpenAPI /eval/results missing")
+    require("TenantIdFilter" in eval_path.group("body"), "OpenAPI /eval/results must require tenant_id filter")
+    tenant_filter = re.search(r"^    TenantIdFilter:\n(?P<body>.*?)(?=^    [A-Za-z0-9]+:|\Z)", openapi, flags=re.MULTILINE | re.DOTALL)
+    require(tenant_filter is not None, "OpenAPI TenantIdFilter missing")
+    require("name: tenant_id" in tenant_filter.group("body"), "TenantIdFilter must filter tenant_id")
+    require("required: true" in tenant_filter.group("body"), "TenantIdFilter must be required")
 
 
 def validate_activation_gate_contract() -> None:

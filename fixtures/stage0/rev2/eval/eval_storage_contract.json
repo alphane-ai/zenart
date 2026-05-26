@@ -110,6 +110,152 @@
     "subject_latest_resolution": "tenant_suite_subject_version_runner_hash",
     "page_schema": "EvalResultPage"
   },
+  "read_fixture_contract": {
+    "tenant_filter_required": true,
+    "ordering": [
+      "completed_at_desc",
+      "created_at_desc"
+    ],
+    "latest_only_groups_by": [
+      "tenant_id",
+      "eval_suite_id",
+      "subject_type",
+      "subject_id",
+      "subject_version",
+      "runner_sha256"
+    ],
+    "fixture_rows": [
+      {
+        "id": "eval_result_read_acme_old",
+        "tenant_id": "tenant_stage0_acme",
+        "eval_suite_id": "eval_stage0_rev2_starter",
+        "subject_type": "vertical_workflow_pack",
+        "subject_id": "stage0_rev2_starter_workflows",
+        "subject_version": "rev2.fixture-contract.1",
+        "runner_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "status": "blocked",
+        "completed_at": "2026-05-26T00:00:00Z",
+        "created_at": "2026-05-26T00:00:00Z"
+      },
+      {
+        "id": "eval_result_read_acme_same_completed_older_created",
+        "tenant_id": "tenant_stage0_acme",
+        "eval_suite_id": "eval_stage0_rev2_starter",
+        "subject_type": "vertical_workflow_pack",
+        "subject_id": "stage0_rev2_starter_workflows",
+        "subject_version": "rev2.fixture-contract.1",
+        "runner_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "status": "blocked",
+        "completed_at": "2026-05-27T00:00:00Z",
+        "created_at": "2026-05-27T00:01:00Z"
+      },
+      {
+        "id": "eval_result_read_acme_same_completed_newer_created",
+        "tenant_id": "tenant_stage0_acme",
+        "eval_suite_id": "eval_stage0_rev2_starter",
+        "subject_type": "vertical_workflow_pack",
+        "subject_id": "stage0_rev2_starter_workflows",
+        "subject_version": "rev2.fixture-contract.1",
+        "runner_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "status": "pass",
+        "completed_at": "2026-05-27T00:00:00Z",
+        "created_at": "2026-05-27T00:02:00Z"
+      },
+      {
+        "id": "eval_result_read_acme_other_runner",
+        "tenant_id": "tenant_stage0_acme",
+        "eval_suite_id": "eval_stage0_rev2_starter",
+        "subject_type": "vertical_workflow_pack",
+        "subject_id": "stage0_rev2_starter_workflows",
+        "subject_version": "rev2.fixture-contract.1",
+        "runner_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "status": "fail",
+        "completed_at": "2026-05-27T01:00:00Z",
+        "created_at": "2026-05-27T01:00:30Z"
+      },
+      {
+        "id": "eval_result_read_beta_same_subject_newer",
+        "tenant_id": "tenant_stage0_beta",
+        "eval_suite_id": "eval_stage0_rev2_starter",
+        "subject_type": "vertical_workflow_pack",
+        "subject_id": "stage0_rev2_starter_workflows",
+        "subject_version": "rev2.fixture-contract.1",
+        "runner_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "status": "pass",
+        "completed_at": "2026-05-28T00:00:00Z",
+        "created_at": "2026-05-28T00:00:00Z"
+      },
+      {
+        "id": "eval_result_read_acme_other_subject",
+        "tenant_id": "tenant_stage0_acme",
+        "eval_suite_id": "eval_stage0_rev2_starter",
+        "subject_type": "prompt_fragment",
+        "subject_id": "prompt_fragment_launch_claims",
+        "subject_version": "rev2.prompt-contract.1",
+        "runner_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "status": "pass",
+        "completed_at": "2026-05-28T00:00:00Z",
+        "created_at": "2026-05-28T00:00:30Z"
+      }
+    ],
+    "cases": [
+      {
+        "case_id": "tenant_subject_filter_orders_by_completed_then_created",
+        "query": {
+          "tenant_id": "tenant_stage0_acme",
+          "eval_suite_id": "eval_stage0_rev2_starter",
+          "subject_type": "vertical_workflow_pack",
+          "subject_id": "stage0_rev2_starter_workflows",
+          "latest_only": false
+        },
+        "expected_result_ids": [
+          "eval_result_read_acme_other_runner",
+          "eval_result_read_acme_same_completed_newer_created",
+          "eval_result_read_acme_same_completed_older_created",
+          "eval_result_read_acme_old"
+        ]
+      },
+      {
+        "case_id": "status_and_completed_after_are_applied_after_tenant_scope",
+        "query": {
+          "tenant_id": "tenant_stage0_acme",
+          "status": "pass",
+          "completed_after": "2026-05-27T00:00:00Z",
+          "latest_only": false
+        },
+        "expected_result_ids": [
+          "eval_result_read_acme_other_subject"
+        ]
+      },
+      {
+        "case_id": "latest_only_uses_runner_hash_scope_and_created_at_tiebreak",
+        "query": {
+          "tenant_id": "tenant_stage0_acme",
+          "eval_suite_id": "eval_stage0_rev2_starter",
+          "subject_type": "vertical_workflow_pack",
+          "subject_id": "stage0_rev2_starter_workflows",
+          "latest_only": true
+        },
+        "expected_result_ids": [
+          "eval_result_read_acme_other_runner",
+          "eval_result_read_acme_same_completed_newer_created"
+        ]
+      },
+      {
+        "case_id": "tenant_isolation_keeps_newer_other_tenant_out_of_acme_reads",
+        "query": {
+          "tenant_id": "tenant_stage0_beta",
+          "eval_suite_id": "eval_stage0_rev2_starter",
+          "subject_type": "vertical_workflow_pack",
+          "subject_id": "stage0_rev2_starter_workflows",
+          "latest_only": true
+        },
+        "expected_result_ids": [
+          "eval_result_read_beta_same_subject_newer"
+        ]
+      }
+    ]
+  },
   "replay_contract": {
     "check_command": "python3 scripts/run_stage0_eval.py --check",
     "check_mode_compares_exact_json": true,

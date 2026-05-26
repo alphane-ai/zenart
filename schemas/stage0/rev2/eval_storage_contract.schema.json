@@ -12,6 +12,7 @@
     "table_contract",
     "write_contract",
     "read_contract",
+    "read_fixture_contract",
     "replay_contract",
     "retention_contract",
     "release_gate_contract",
@@ -282,6 +283,64 @@
         }
       }
     },
+    "read_fixture_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tenant_filter_required",
+        "ordering",
+        "latest_only_groups_by",
+        "fixture_rows",
+        "cases"
+      ],
+      "properties": {
+        "tenant_filter_required": {
+          "const": true
+        },
+        "ordering": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "enum": [
+              "completed_at_desc",
+              "created_at_desc"
+            ]
+          }
+        },
+        "latest_only_groups_by": {
+          "type": "array",
+          "minItems": 6,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "tenant_id",
+              "eval_suite_id",
+              "subject_type",
+              "subject_id",
+              "subject_version",
+              "runner_sha256"
+            ]
+          }
+        },
+        "fixture_rows": {
+          "type": "array",
+          "minItems": 4,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/read_fixture_row"
+          }
+        },
+        "cases": {
+          "type": "array",
+          "minItems": 4,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/read_fixture_case"
+          }
+        }
+      }
+    },
     "replay_contract": {
       "type": "object",
       "additionalProperties": false,
@@ -484,6 +543,143 @@
           "qa_export_gate",
           "failure_reasons"
         ]
+      }
+    },
+    "read_fixture_row": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "tenant_id",
+        "eval_suite_id",
+        "subject_type",
+        "subject_id",
+        "subject_version",
+        "runner_sha256",
+        "status",
+        "completed_at",
+        "created_at"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^eval_result_[a-z0-9_]+$"
+        },
+        "tenant_id": {
+          "type": "string",
+          "pattern": "^tenant_[a-z0-9_]+$"
+        },
+        "eval_suite_id": {
+          "type": "string",
+          "pattern": "^eval_[a-z0-9_]+$"
+        },
+        "subject_type": {
+          "enum": [
+            "skill_version",
+            "prompt_fragment",
+            "prompt_mutation",
+            "meta_prompt",
+            "image_spec",
+            "vertical_workflow_pack"
+          ]
+        },
+        "subject_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "subject_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "runner_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "status": {
+          "enum": [
+            "pass",
+            "fail",
+            "blocked"
+          ]
+        },
+        "completed_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "read_fixture_case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "query",
+        "expected_result_ids"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9_]+$"
+        },
+        "query": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "tenant_id",
+            "latest_only"
+          ],
+          "properties": {
+            "tenant_id": {
+              "type": "string",
+              "pattern": "^tenant_[a-z0-9_]+$"
+            },
+            "eval_suite_id": {
+              "type": "string",
+              "pattern": "^eval_[a-z0-9_]+$"
+            },
+            "subject_type": {
+              "enum": [
+                "skill_version",
+                "prompt_fragment",
+                "prompt_mutation",
+                "meta_prompt",
+                "image_spec",
+                "vertical_workflow_pack"
+              ]
+            },
+            "subject_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "status": {
+              "enum": [
+                "pass",
+                "fail",
+                "blocked"
+              ]
+            },
+            "completed_after": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "latest_only": {
+              "type": "boolean"
+            }
+          }
+        },
+        "expected_result_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^eval_result_[a-z0-9_]+$"
+          }
+        }
       }
     }
   }

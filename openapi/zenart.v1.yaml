@@ -1011,6 +1011,7 @@ paths:
       parameters:
         - $ref: "#/components/parameters/PageToken"
         - $ref: "#/components/parameters/PageSize"
+        - $ref: "#/components/parameters/TenantIdFilter"
         - $ref: "#/components/parameters/StatusFilter"
         - $ref: "#/components/parameters/EvalSuiteIdFilter"
         - $ref: "#/components/parameters/EvalSubjectTypeFilter"
@@ -1127,6 +1128,13 @@ components:
       schema:
         type: string
       description: Filter by resource status.
+    TenantIdFilter:
+      name: tenant_id
+      in: query
+      required: true
+      schema:
+        type: string
+      description: Required admin tenant scope for stored eval result reads.
     EvalSuiteIdFilter:
       name: eval_suite_id
       in: query
