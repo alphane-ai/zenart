@@ -33,6 +33,11 @@ type EntitlementDecision struct {
 	Reason  string
 }
 
+type ControlDecision struct {
+	Allowed bool
+	Reason  string
+}
+
 type EntitlementService interface {
 	Check(ctx context.Context, req EntitlementRequest) (EntitlementDecision, error)
 }
@@ -47,6 +52,25 @@ func (LocalEntitlements) Check(_ context.Context, req EntitlementRequest) (Entit
 		return EntitlementDecision{}, errors.New("cost must be non-negative")
 	}
 	return EntitlementDecision{Allowed: true, Reason: "local_mode"}, nil
+}
+
+type SpendControl struct {
+	DailyCapUnits int64
+	SpentToday    int64
+	KillSwitch    bool
+}
+
+func (c SpendControl) Check(costUnits int64) ControlDecision {
+	if c.KillSwitch {
+		return ControlDecision{Allowed: false, Reason: "kill_switch_enabled"}
+	}
+	if costUnits < 0 {
+		return ControlDecision{Allowed: false, Reason: "cost_must_be_non_negative"}
+	}
+	if c.DailyCapUnits > 0 && c.SpentToday+costUnits > c.DailyCapUnits {
+		return ControlDecision{Allowed: false, Reason: "daily_spend_cap_exceeded"}
+	}
+	return ControlDecision{Allowed: true, Reason: "ok"}
 }
 
 func EntitlementMiddleware(service EntitlementService, action string, cost int64, principal func(*http.Request) (tenantID, userID string, ok bool), deny func(http.ResponseWriter, *http.Request, EntitlementDecision)) func(http.Handler) http.Handler {
@@ -284,6 +308,21 @@ func (r QuotaRepository) AdminDebit(ctx context.Context, tenantID, bucketID, ide
 		return errors.New("units must be positive")
 	}
 	return r.adjustLimit(ctx, tenantID, bucketID, idempotencyKey, -units, "admin_debit")
+}
+
+func (r QuotaRepository) ResetWeekly(ctx context.Context, now time.Time) error {
+	_, err := r.db.Exec(ctx, `
+UPDATE quota_buckets
+SET used_units = 0,
+    reserved_units = 0,
+    resets_at = $1,
+    updated_at = now()
+WHERE period = 'weekly'
+  AND resets_at <= $2`,
+		now.UTC().Add(7*24*time.Hour),
+		now.UTC(),
+	)
+	return err
 }
 
 func (r QuotaRepository) adjustLimit(ctx context.Context, tenantID, bucketID, idempotencyKey string, delta int64, kind string) error {

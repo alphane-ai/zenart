@@ -1,11 +1,74 @@
 package auth
 
-import "context"
+import (
+	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"errors"
+	"strings"
+	"time"
+)
+
+type AccessMode string
+
+const (
+	AccessModeLocal AccessMode = "local"
+)
 
 type Principal struct {
 	UserID   string
 	TenantID string
 	Roles    []Role
+}
+
+type Session struct {
+	ID        string
+	UserID    string
+	TenantID  string
+	Roles     []Role
+	ExpiresAt time.Time
+}
+
+type SessionService struct {
+	Mode AccessMode
+	Now  func() time.Time
+}
+
+func (s SessionService) CreateLocalSession(email, tenantID string, roles []Role, ttl time.Duration) (Session, error) {
+	if s.Mode == "" {
+		s.Mode = AccessModeLocal
+	}
+	if s.Mode != AccessModeLocal {
+		return Session{}, errors.New("only local access mode is implemented for stage 0")
+	}
+	email = strings.TrimSpace(strings.ToLower(email))
+	tenantID = strings.TrimSpace(tenantID)
+	if email == "" || tenantID == "" {
+		return Session{}, errors.New("email and tenant_id are required")
+	}
+	if ttl <= 0 {
+		return Session{}, errors.New("ttl must be positive")
+	}
+	if len(roles) == 0 {
+		roles = []Role{RoleUser}
+	}
+	now := time.Now().UTC()
+	if s.Now != nil {
+		now = s.Now().UTC()
+	}
+	seed := email + ":" + tenantID + ":" + now.Format(time.RFC3339Nano)
+	hash := sha256.Sum256([]byte(seed))
+	return Session{
+		ID:        "sess_" + hex.EncodeToString(hash[:12]),
+		UserID:    "local_" + strings.ReplaceAll(email, "@", "_"),
+		TenantID:  tenantID,
+		Roles:     roles,
+		ExpiresAt: now.Add(ttl),
+	}, nil
+}
+
+func (s Session) Principal() Principal {
+	return Principal{UserID: s.UserID, TenantID: s.TenantID, Roles: s.Roles}
 }
 
 type Role string

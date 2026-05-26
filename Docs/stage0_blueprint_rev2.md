@@ -1689,8 +1689,8 @@ main 合并前必须通过：
 ### 25.7 Auth, RBAC, Tenant Isolation, Audit
 
 - [x] 决定 Stage 0 access mode。
-- [ ] 实现 Web user auth。
-- [ ] 实现 Admin auth。
+- [x] 实现 Web user auth。
+- [x] 实现 Admin auth。
 - [x] 定义角色和权限矩阵。
 - [ ] 对项目、工作区、聊天、画布、资产、package、export、quota、feedback、support ticket、trace 强制 tenant isolation。
 - [ ] 对 skill release、crawler import、prompt approval、provider routing、quota override、safety rule、export override 强制 admin RBAC。
@@ -1705,14 +1705,14 @@ main 合并前必须通过：
 - [x] 实现 paid provider abstraction。
 - [x] 实现 billing page。
 - [x] 实现 entitlement middleware。
-- [ ] 实现 weekly quota reset。
+- [x] 实现 weekly quota reset。
 - [x] 实现 quota reservation。
 - [x] 实现 quota commit/refund。
 - [x] 实现 quota retry/idempotency。
 - [x] 实现 admin quota credit/debit。
 - [ ] 实现 provider usage reconciliation。
-- [ ] 实现 daily spend cap。
-- [ ] 实现 emergency kill switch。
+- [x] 实现 daily spend cap。
+- [x] 实现 emergency kill switch。
 - [ ] 添加 quota transaction/concurrency tests。
 
 ### 25.9 Object Storage and Export
@@ -1751,15 +1751,15 @@ main 合并前必须通过：
 - [x] 实现 export builder contract。
 - [x] 实现 feedback extractor contract。
 - [x] 实现 prompt mutation proposer contract。
-- [ ] 定义 provider request/response schema。
-- [ ] 定义 provider capability matrix。
-- [ ] 实现 dev provider。
-- [ ] 实现 provider status。
-- [ ] 实现 provider fallback rules。
-- [ ] 实现 provider trace/provenance fields。
-- [ ] 添加 agent contract tests。
+- [x] 定义 provider request/response schema。
+- [x] 定义 provider capability matrix。
+- [x] 实现 dev provider。
+- [x] 实现 provider status。
+- [x] 实现 provider fallback rules。
+- [x] 实现 provider trace/provenance fields。
+- [x] 添加 agent contract tests。
 - [ ] 添加 trace completeness tests。
-- [ ] 添加 provider contract tests。
+- [x] 添加 provider contract tests。
 
 ### 25.11 Eval, QA, Safety
 

@@ -67,6 +67,18 @@ func TestEntitlementMiddlewareDeniesDecision(t *testing.T) {
 	}
 }
 
+func TestSpendControl(t *testing.T) {
+	if decision := (SpendControl{KillSwitch: true}).Check(1); decision.Allowed || decision.Reason != "kill_switch_enabled" {
+		t.Fatalf("kill switch decision = %+v", decision)
+	}
+	if decision := (SpendControl{DailyCapUnits: 10, SpentToday: 9}).Check(2); decision.Allowed || decision.Reason != "daily_spend_cap_exceeded" {
+		t.Fatalf("daily cap decision = %+v", decision)
+	}
+	if decision := (SpendControl{DailyCapUnits: 10, SpentToday: 9}).Check(1); !decision.Allowed {
+		t.Fatalf("allowed decision = %+v", decision)
+	}
+}
+
 func TestQuotaReserveRejectsNonPositiveUnits(t *testing.T) {
 	repo := NewQuotaRepository(&fakeDB{})
 	err := repo.Reserve(context.Background(), QuotaReservation{Units: 0})
@@ -166,6 +178,17 @@ func TestAdminCreditDebitAdjustQuota(t *testing.T) {
 	}
 	if db.execs != 6 {
 		t.Fatalf("execs = %d, want 6", db.execs)
+	}
+}
+
+func TestResetWeeklyQuota(t *testing.T) {
+	db := &fakeDB{rowsAffected: []int64{2}}
+	repo := NewQuotaRepository(db)
+	if err := repo.ResetWeekly(context.Background(), time.Date(2026, 5, 26, 0, 0, 0, 0, time.UTC)); err != nil {
+		t.Fatalf("ResetWeekly() error = %v", err)
+	}
+	if db.execs != 1 {
+		t.Fatalf("execs = %d, want 1", db.execs)
 	}
 }
 
