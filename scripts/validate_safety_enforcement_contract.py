@@ -196,14 +196,37 @@ def validate_openapi_and_storage_contract(contract: dict[str, Any]) -> None:
         "EnforceExportSafety",
     ]:
         require(token in service, f"backend safety enforcement helper missing {token}")
-    for token in [
+    baseline_tokens = [
         "TestEnforceSafetyRecordsBlockDecisionForActiveRule",
         "TestSafetyEnforcementHelpersCoverRev2RuntimePoints",
         "TestCreateExportBlocksWhenQAHasBlockingResult",
         "TestCreateExportBlocksWhenExportSafetyRuleBlocks",
         "TestRecordExportArtifactBlocksWhenExportSafetyRuleBlocks",
-    ]:
+    ]
+    for token in baseline_tokens:
         require(token in tests, f"backend safety contract test missing {token}")
+
+    policy = contract["release_gate_policy"]
+    runtime_tokens = [
+        "ErrSafetyReviewHold",
+        'case "require_user_confirmation", "require_admin_review"',
+        "TestEnforceSafetyRecordsWarnConfirmationAndAdminReviewDecisions",
+        "TestRequireSafetyAllowedHoldsForConfirmationAndAdminReview",
+    ]
+    if policy["runtime_enforcement_validated"]:
+        require(
+            "findBlockingRule" not in service,
+            "validated safety runtime must evaluate every active action, not block-only rules",
+        )
+        for token in runtime_tokens[:2]:
+            require(token in service, f"validated safety runtime missing {token}")
+        for token in runtime_tokens[2:]:
+            require(token in tests, f"validated safety runtime test missing {token}")
+    else:
+        require(
+            "findBlockingRule" in service,
+            "evidence-only safety contract must keep runtime checklist open while backend is block-only",
+        )
 
 
 def validate_cross_contracts(contract: dict[str, Any]) -> None:
