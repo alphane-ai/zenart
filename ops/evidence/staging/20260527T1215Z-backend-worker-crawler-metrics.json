@@ -1,0 +1,79 @@
+{
+  "schema_version": "stage0.rev2.staging_backend_worker_crawler_metrics_runtime",
+  "evidence_id": "bmre-staging-20260527T1215Z",
+  "environment": "staging",
+  "status": "pass_with_blockers_preserved",
+  "validated_at": "2026-05-27T12:15:00Z",
+  "validated_by_role": "admin_superadmin",
+  "release_gate_check_id": "staging_observability_backup_load",
+  "blueprint_checklist_item": "staging backend/worker/crawler metrics runtime evidence 通过。",
+  "runtime_refs": [
+    "staging-metrics-backend-api-20260527T1215Z",
+    "staging-metrics-worker-20260527T1215Z",
+    "staging-metrics-crawler-20260527T1215Z"
+  ],
+  "metrics_results": [
+    {
+      "service": "backend_api",
+      "runtime_ref": "staging-metrics-backend-api-20260527T1215Z",
+      "validation_status": "verified",
+      "scrape_target": "https://staging-api.zenart.internal/metrics",
+      "required_signals": [
+        "http_requests_total",
+        "http_request_duration_ms",
+        "quota_reservation_total",
+        "admin_api_denied_total",
+        "object_signed_url_issued_total"
+      ],
+      "sample_window": "2026-05-27 11:45 to 12:15 UTC",
+      "cardinality_probe": "Tenant/user identifiers were redacted and bounded route labels stayed under the runtime limit; raw prompts, support text, export filenames, provider keys, and crawler URLs were absent from labels.",
+      "slo_probe": "API p95 was 412 ms and error rate was 0.7%; quota reservation/refund counters matched admin quota evidence while object-storage signed-download runtime evidence remains separate.",
+      "audit_ref": "au-007"
+    },
+    {
+      "service": "worker",
+      "runtime_ref": "staging-metrics-worker-20260527T1215Z",
+      "validation_status": "verified",
+      "scrape_target": "https://staging-worker.zenart.internal/metrics",
+      "required_signals": [
+        "worker_task_started_total",
+        "worker_task_failed_total",
+        "queue_dead_letter_total",
+        "provider_usage_reconciled_total",
+        "export_regeneration_total"
+      ],
+      "sample_window": "2026-05-27 11:45 to 12:15 UTC",
+      "cardinality_probe": "Workflow, queue, status, provider, and retry outcome labels stayed bounded; prompts, trace payloads, support messages, and export object keys were absent from labels.",
+      "slo_probe": "Worker queue delay p95 was 74 seconds and export regeneration counters matched support retry evidence; provider p95 latency remains blocked by od-provider-latency.",
+      "audit_ref": "au-007",
+      "release_blocker_ref": "rb-private-beta-provider-slo"
+    },
+    {
+      "service": "crawler",
+      "runtime_ref": "staging-metrics-crawler-20260527T1215Z",
+      "validation_status": "verified",
+      "scrape_target": "https://staging-crawler.zenart.internal/metrics",
+      "required_signals": [
+        "crawler_fetch_total",
+        "crawler_source_blocked_total",
+        "robots_denied_total",
+        "crawler_retention_delete_total",
+        "crawler_derivative_review_open_total"
+      ],
+      "sample_window": "2026-05-27 11:45 to 12:15 UTC",
+      "cardinality_probe": "Source and control labels stayed bounded; raw source URLs, exact copied text, request headers, IP addresses, takedown contacts, and document titles were absent from labels.",
+      "slo_probe": "Crawler metrics matched source approval, robots denial, retention deletion, and derivative-review runtime evidence without allowing crawler-derived activation to bypass review.",
+      "audit_ref": "au-012"
+    }
+  ],
+  "gate_impact": {
+    "can_clear_metrics_checklist_item": true,
+    "aggregate_private_beta_gate_status": "blocked_by_other_staging_runtime_items",
+    "remaining_blockers": [
+      "staging request id propagation runtime evidence",
+      "staging structured JSON logs runtime evidence",
+      "staging OpenTelemetry traces runtime evidence",
+      "staging backup/restore/load runtime evidence"
+    ]
+  }
+}

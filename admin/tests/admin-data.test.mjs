@@ -58,6 +58,7 @@ test("admin fixtures cover required operational surfaces", () => {
     "export const operationalDashboardRuntimeEvidence",
     "export const alertRoutes",
     "export const alertRouteRuntimeEvidence",
+    "export const backendMetricsRuntimeEvidence",
     "export const releaseBlockers",
     "export const auditEvents",
     "export const analyticsReports",
@@ -211,6 +212,40 @@ test("admin abuse fixtures expose hold throttle telemetry and release evidence",
     "closureAllowed: false"
   ]) {
     assert.match(abuseRuntime, new RegExp(token));
+  }
+});
+
+test("admin operations page exposes backend worker crawler metrics runtime evidence", () => {
+  const operationsPage = readFileSync(
+    new URL("../app/operations/page.tsx", import.meta.url),
+    "utf8"
+  );
+
+  for (const token of [
+    "Backend Worker Crawler Metrics",
+    "Scrape Target",
+    "Required Signals",
+    "Cardinality Probe",
+    "SLO Probe",
+    "Release Gate Check",
+    "Can Clear Row",
+    "Remaining Blockers",
+    "getBackendMetricsRuntimeEvidence"
+  ]) {
+    assert.match(operationsPage, new RegExp(token));
+  }
+
+  for (const token of [
+    "backendMetricsRuntimeEvidence",
+    "staging-metrics-backend-api-20260527T1215Z",
+    "staging-metrics-worker-20260527T1215Z",
+    "staging-metrics-crawler-20260527T1215Z",
+    "quota_reservation_total",
+    "queue_dead_letter_total",
+    "crawler_derivative_review_open_total",
+    "pass_with_blockers_preserved"
+  ]) {
+    assert.match(fixtures, new RegExp(token));
   }
 });
 

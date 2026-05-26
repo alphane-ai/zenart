@@ -4,6 +4,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 import {
   getAlertRoutes,
   getAlertRouteRuntimeEvidence,
+  getBackendMetricsRuntimeEvidence,
   getIncidentLogs,
   getMaintenanceBanners,
   getOperationalDashboardRuntimeEvidence,
@@ -13,6 +14,8 @@ import {
 import type {
   AlertRoute,
   AlertRouteRuntimeEvidence,
+  BackendMetricsRuntimeEvidence,
+  BackendMetricsRuntimeProbe,
   IncidentLog,
   MaintenanceBanner,
   OperationalDashboard,
@@ -29,13 +32,14 @@ function incidentTone(status: IncidentLog["status"]) {
 }
 
 export default async function OperationsPage() {
-  const [incidents, banners, dashboards, dashboardRuntimeEvidence, alerts, alertRuntimeEvidence] = await Promise.all([
+  const [incidents, banners, dashboards, dashboardRuntimeEvidence, alerts, alertRuntimeEvidence, metricsRuntimeEvidence] = await Promise.all([
     getIncidentLogs(),
     getMaintenanceBanners(),
     getOperationalDashboards(),
     getOperationalDashboardRuntimeEvidence(),
     getAlertRoutes(),
-    getAlertRouteRuntimeEvidence()
+    getAlertRouteRuntimeEvidence(),
+    getBackendMetricsRuntimeEvidence()
   ]);
   const releaseBlockers = await getReleaseBlockers();
 
@@ -145,6 +149,44 @@ export default async function OperationsPage() {
             { key: "release", header: "Release Gate Use", render: (row) => row.releaseGateUse },
             { key: "validated", header: "Validated At", render: (row) => row.validatedAt },
             { key: "audit", header: "Audit Ref", render: (row) => <span className="mono">{row.auditRef}</span> }
+          ]}
+        />
+      </section>
+
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>Backend Worker Crawler Metrics</h3>
+            <p>Staging metrics evidence must prove scrape targets, required signals, label redaction, SLO probes, and release-gate handling.</p>
+          </div>
+        </div>
+        <DataTable<BackendMetricsRuntimeEvidence>
+          rows={[metricsRuntimeEvidence]}
+          columns={[
+            { key: "id", header: "Evidence", render: (row) => <span className="mono">{row.id}</span> },
+            { key: "status", header: "Status", render: (row) => <StatusBadge value={row.status} label={row.status} /> },
+            { key: "role", header: "Validated By", render: (row) => row.validatedByRole },
+            { key: "check", header: "Release Gate Check", render: (row) => row.releaseGateCheckId },
+            { key: "item", header: "Checklist Item", render: (row) => row.blueprintChecklistItem },
+            { key: "clear", header: "Can Clear Row", render: (row) => (row.canClearChecklistItem ? "yes" : "no") },
+            { key: "aggregate", header: "Aggregate Gate", render: (row) => row.aggregatePrivateBetaGateStatus },
+            { key: "path", header: "Evidence Path", render: (row) => row.evidencePath },
+            { key: "remaining", header: "Remaining Blockers", render: (row) => row.remainingBlockers.join(", ") }
+          ]}
+        />
+        <DataTable<BackendMetricsRuntimeProbe>
+          rows={metricsRuntimeEvidence.probes}
+          columns={[
+            { key: "service", header: "Service", render: (row) => row.service },
+            { key: "status", header: "Validation", render: (row) => <StatusBadge value={row.validationStatus} label={row.validationStatus} /> },
+            { key: "target", header: "Scrape Target", render: (row) => row.scrapeTarget },
+            { key: "signals", header: "Required Signals", render: (row) => row.requiredSignals.join(", ") },
+            { key: "window", header: "Sample Window", render: (row) => row.sampleWindow },
+            { key: "cardinality", header: "Cardinality Probe", render: (row) => row.cardinalityProbe },
+            { key: "slo", header: "SLO Probe", render: (row) => row.sloProbe },
+            { key: "release", header: "Release Gate Use", render: (row) => row.releaseGateUse },
+            { key: "audit", header: "Audit Ref", render: (row) => <span className="mono">{row.auditRef}</span> },
+            { key: "evidence", header: "Evidence Refs", render: (row) => row.evidenceRefs.join(", ") }
           ]}
         />
       </section>

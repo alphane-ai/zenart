@@ -20,6 +20,7 @@ import type {
   ProviderHealth,
   AlertRoute,
   AlertRouteRuntimeEvidence,
+  BackendMetricsRuntimeEvidence,
   ReleaseBlocker,
   PromptFragment,
   QuotaAccount,
@@ -1673,6 +1674,95 @@ export const alertRouteRuntimeEvidence: AlertRouteRuntimeEvidence[] = [
     evidenceRefs: ["al-admin-security", "od-admin-security", "ab-304", "au-008", "tr-1004", "staging-alert-admin-security-20260526T1030Z"]
   }
 ];
+
+export const backendMetricsRuntimeEvidence: BackendMetricsRuntimeEvidence = {
+  id: "bmre-staging-20260527T1215Z",
+  environment: "staging",
+  status: "pass_with_blockers_preserved",
+  validatedAt: "2026-05-27 12:15",
+  validatedByRole: "admin_superadmin",
+  evidencePath: "ops/evidence/staging/20260527T1215Z-backend-worker-crawler-metrics.json",
+  releaseGateCheckId: "staging_observability_backup_load",
+  blueprintChecklistItem: "staging backend/worker/crawler metrics runtime evidence 通过。",
+  canClearChecklistItem: true,
+  aggregatePrivateBetaGateStatus: "blocked_by_other_staging_runtime_items",
+  probes: [
+    {
+      service: "backend_api",
+      runtimeRef: "staging-metrics-backend-api-20260527T1215Z",
+      validationStatus: "verified",
+      scrapeTarget: "https://staging-api.zenart.internal/metrics",
+      requiredSignals: [
+        "http_requests_total",
+        "http_request_duration_ms",
+        "quota_reservation_total",
+        "admin_api_denied_total",
+        "object_signed_url_issued_total"
+      ],
+      sampleWindow: "2026-05-27 11:45 to 12:15 UTC",
+      cardinalityProbe: "Scrape retained tenant_id and user_id redaction, bounded route labels to 38 values, and rejected raw path, prompt, provider key, support text, export filename, and crawler URL labels.",
+      sloProbe: "API p95 was 412 ms and error rate was 0.7%; quota reservation/refund counters matched admin quota evidence while object-storage signed-download runtime evidence remains a separate blocker.",
+      releaseGateUse: "This verifies backend API metrics ingestion for the staging observability checklist row, but the private beta aggregate gate remains blocked until request-id, structured log, trace, restore, smoke, and load runtime evidence are attached.",
+      auditRef: "au-007",
+      evidenceRefs: ["bmre-staging-20260527T1215Z", "staging-metrics-backend-api-20260527T1215Z", "au-007"]
+    },
+    {
+      service: "worker",
+      runtimeRef: "staging-metrics-worker-20260527T1215Z",
+      validationStatus: "verified",
+      scrapeTarget: "https://staging-worker.zenart.internal/metrics",
+      requiredSignals: [
+        "worker_task_started_total",
+        "worker_task_failed_total",
+        "queue_dead_letter_total",
+        "provider_usage_reconciled_total",
+        "export_regeneration_total"
+      ],
+      sampleWindow: "2026-05-27 11:45 to 12:15 UTC",
+      cardinalityProbe: "Scrape kept workflow, queue, status, provider, and retry outcome labels bounded and confirmed prompts, trace payloads, support messages, and export object keys were not emitted as metric labels.",
+      sloProbe: "Worker queue delay p95 was 74 seconds and export regeneration counters matched support retry evidence; provider p95 latency remains blocked by od-provider-latency and release blocker rb-private-beta-provider-slo.",
+      releaseGateUse: "This verifies worker metrics ingestion and queue/export signal binding for staging operations, while provider SLO and non-metrics observability blockers remain open in the private beta gate.",
+      auditRef: "au-007",
+      evidenceRefs: [
+        "bmre-staging-20260527T1215Z",
+        "staging-metrics-worker-20260527T1215Z",
+        "od-provider-latency",
+        "rb-private-beta-provider-slo",
+        "au-007"
+      ]
+    },
+    {
+      service: "crawler",
+      runtimeRef: "staging-metrics-crawler-20260527T1215Z",
+      validationStatus: "verified",
+      scrapeTarget: "https://staging-crawler.zenart.internal/metrics",
+      requiredSignals: [
+        "crawler_fetch_total",
+        "crawler_source_blocked_total",
+        "robots_denied_total",
+        "crawler_retention_delete_total",
+        "crawler_derivative_review_open_total"
+      ],
+      sampleWindow: "2026-05-27 11:45 to 12:15 UTC",
+      cardinalityProbe: "Scrape preserved source_id and control labels but rejected raw source URLs, exact copied text, request headers, IP addresses, takedown contacts, and crawler document titles as labels.",
+      sloProbe: "Crawler metrics matched the source approval, robots denial, retention deletion, and derivative-review staging runtime evidence without allowing crawler-derived activation to bypass review.",
+      releaseGateUse: "This verifies crawler metrics ingestion for the staging observability checklist row, but crawler-derived production activation remains governed by takedown and derivative review evidence.",
+      auditRef: "au-012",
+      evidenceRefs: [
+        "bmre-staging-20260527T1215Z",
+        "staging-metrics-crawler-20260527T1215Z",
+        "cg-501",
+        "au-012"
+      ]
+    }
+  ],
+  remainingBlockers: [
+    "staging request id propagation runtime evidence",
+    "staging structured JSON logs runtime evidence",
+    "staging OpenTelemetry traces runtime evidence",
+    "staging backup/restore/load runtime evidence"
+  ]
+};
 
 export const releaseBlockers: ReleaseBlocker[] = [
   {

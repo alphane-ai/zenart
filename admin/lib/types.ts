@@ -409,6 +409,35 @@ export type AlertRouteRuntimeEvidence = {
   evidenceRefs: string[];
 };
 
+export type BackendMetricsRuntimeProbe = {
+  service: "backend_api" | "worker" | "crawler";
+  runtimeRef: string;
+  validationStatus: "verified" | "blocked";
+  scrapeTarget: string;
+  requiredSignals: string[];
+  sampleWindow: string;
+  cardinalityProbe: string;
+  sloProbe: string;
+  releaseGateUse: string;
+  auditRef: string;
+  evidenceRefs: string[];
+};
+
+export type BackendMetricsRuntimeEvidence = {
+  id: string;
+  environment: "staging";
+  status: "pass_with_blockers_preserved";
+  validatedAt: string;
+  validatedByRole: AdminRole;
+  evidencePath: string;
+  releaseGateCheckId: "staging_observability_backup_load";
+  blueprintChecklistItem: "staging backend/worker/crawler metrics runtime evidence 通过。";
+  canClearChecklistItem: boolean;
+  aggregatePrivateBetaGateStatus: "blocked_by_other_staging_runtime_items";
+  probes: BackendMetricsRuntimeProbe[];
+  remainingBlockers: string[];
+};
+
 export type ReleaseBlocker = {
   id: string;
   gate: "private_beta" | "production_launch";

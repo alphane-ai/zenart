@@ -6,6 +6,7 @@ import {
   alertRouteRuntimeEvidence,
   alertRoutes,
   analyticsReports,
+  backendMetricsRuntimeEvidence,
   crawlerGovernanceWorkflows,
   crawlerStagingRuntimeEvidence,
   crawlerSourceApprovals,
@@ -199,6 +200,10 @@ export async function getAlertRoutes() {
 
 export async function getAlertRouteRuntimeEvidence() {
   return alertRouteRuntimeEvidence;
+}
+
+export async function getBackendMetricsRuntimeEvidence() {
+  return backendMetricsRuntimeEvidence;
 }
 
 export async function getReleaseBlockers() {

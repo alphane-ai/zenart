@@ -41,7 +41,7 @@
     {
       "check_id": "staging_observability_backup_load",
       "status": "blocked",
-      "evidence_ref": "Dashboard and alert route staging runtime evidence passed in ops/evidence/staging/20260526T1000Z-dashboard-runtime.json and ops/evidence/staging/20260526T1000Z-alert-runtime.json, but request-id, structured log, trace, metrics, restore, smoke, and load staging runtime evidence remains absent"
+      "evidence_ref": "Dashboard, alert route, and backend/worker/crawler metrics staging runtime evidence passed in ops/evidence/staging/20260526T1000Z-dashboard-runtime.json, ops/evidence/staging/20260526T1000Z-alert-runtime.json, and ops/evidence/staging/20260527T1215Z-backend-worker-crawler-metrics.json, but request-id, structured log, trace, restore, smoke, and load staging runtime evidence remains absent"
     },
     {
       "check_id": "staging_legal_external_user_pages",
@@ -96,7 +96,7 @@
       "condition_id": "staging_observability_restore_load_missing",
       "blueprint_condition": "Staging 缺 provider、queue、export、quota、safety、crawler、object storage、billing、admin failure 的 logs/metrics/traces/dashboards/alerts/runbooks。",
       "is_present": true,
-      "evidence_ref": "ops/evidence/staging/ dashboard and alert route staging runtime evidence passed, but logs, metrics, traces, restore drill, smoke, and load evidence remain open"
+      "evidence_ref": "ops/evidence/staging/ dashboard, alert route, and backend/worker/crawler metrics staging runtime evidence passed, but request-id propagation, structured logs, traces, restore drill, smoke, and load evidence remain open"
     },
     {
       "condition_id": "external_user_legal_pages_missing",

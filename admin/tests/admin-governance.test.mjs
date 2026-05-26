@@ -12,7 +12,7 @@ const parseFixtures = () => {
   const moduleSource = source
     .replace(/^import type[\s\S]*?from "@\/lib\/types";\n\n/, "")
     .replaceAll(/export const (\w+)[^=]*=/g, "const $1 =");
-  return Function(`${moduleSource}\nreturn { skillVersions, skillReleaseStateDefinitions, skillCanaryMetrics, releaseEvidence, releaseBlockers, supportTickets, supportEscalationRunbooks, supportUsers, riskyExports, abuseEvents, abuseControlHooks, stagingSupportRetryAbuseEvidence, auditEvents, exportJobs, traces, quotaAccounts, feedbackItems, regressionFixtures, analyticsReports, queueHealth, failedTaskControls, crawlerFindings, crawlerSourceApprovals, crawlerGovernanceWorkflows, crawlerStagingRuntimeEvidence, adminRbacEvidence, operationalDashboards, operationalDashboardRuntimeEvidence, alertRoutes, alertRouteRuntimeEvidence };`)();
+  return Function(`${moduleSource}\nreturn { skillVersions, skillReleaseStateDefinitions, skillCanaryMetrics, releaseEvidence, releaseBlockers, supportTickets, supportEscalationRunbooks, supportUsers, riskyExports, abuseEvents, abuseControlHooks, stagingSupportRetryAbuseEvidence, auditEvents, exportJobs, traces, quotaAccounts, feedbackItems, regressionFixtures, analyticsReports, queueHealth, failedTaskControls, crawlerFindings, crawlerSourceApprovals, crawlerGovernanceWorkflows, crawlerStagingRuntimeEvidence, adminRbacEvidence, operationalDashboards, operationalDashboardRuntimeEvidence, alertRoutes, alertRouteRuntimeEvidence, backendMetricsRuntimeEvidence };`)();
 };
 
 const crawlerGovernanceCases = JSON.parse(
@@ -49,7 +49,8 @@ const {
   operationalDashboards,
   operationalDashboardRuntimeEvidence,
   alertRoutes,
-  alertRouteRuntimeEvidence
+  alertRouteRuntimeEvidence,
+  backendMetricsRuntimeEvidence
 } = parseFixtures();
 
 const parseAbuseRuntime = () => {
@@ -115,6 +116,10 @@ const stagingDashboardRuntimePath = new URL(
 );
 const stagingAlertRuntimePath = new URL(
   "../../ops/evidence/staging/20260526T1000Z-alert-runtime.json",
+  import.meta.url
+);
+const stagingMetricsRuntimePath = new URL(
+  "../../ops/evidence/staging/20260527T1215Z-backend-worker-crawler-metrics.json",
   import.meta.url
 );
 const crawlerStagingRuntimePath = new URL(
@@ -1147,6 +1152,116 @@ test("alert route runtime evidence verifies staging delivery without closing das
   );
 });
 
+test("backend worker crawler metrics runtime evidence validates staging scrapes without closing aggregate gate", () => {
+  assert.ok(existsSync(stagingMetricsRuntimePath), "staging metrics runtime evidence file is missing");
+  const evidenceFile = JSON.parse(readFileSync(stagingMetricsRuntimePath, "utf8"));
+
+  assert.equal(evidenceFile.environment, "staging", "metrics evidence file must be staging scoped");
+  assert.equal(
+    evidenceFile.status,
+    "pass_with_blockers_preserved",
+    "metrics evidence must pass while preserving non-metrics blockers"
+  );
+  assert.equal(
+    evidenceFile.blueprint_checklist_item,
+    "staging backend/worker/crawler metrics runtime evidence 通过。",
+    "metrics evidence must bind the exact checklist item"
+  );
+  assert.equal(
+    evidenceFile.gate_impact.can_clear_metrics_checklist_item,
+    true,
+    "metrics evidence should clear only the metrics checklist row"
+  );
+  assert.equal(
+    evidenceFile.gate_impact.aggregate_private_beta_gate_status,
+    "blocked_by_other_staging_runtime_items",
+    "metrics evidence must not close the aggregate private beta gate"
+  );
+
+  assert.equal(backendMetricsRuntimeEvidence.environment, "staging", "admin metrics evidence must be staging scoped");
+  assert.equal(
+    backendMetricsRuntimeEvidence.evidencePath,
+    "ops/evidence/staging/20260527T1215Z-backend-worker-crawler-metrics.json",
+    "admin fixture must point at the metrics evidence file"
+  );
+  assert.equal(
+    backendMetricsRuntimeEvidence.releaseGateCheckId,
+    "staging_observability_backup_load",
+    "metrics evidence must remain inside the observability backup/load gate"
+  );
+  assert.equal(backendMetricsRuntimeEvidence.canClearChecklistItem, true, "metrics checklist row should be clearable");
+  assert.ok(
+    backendMetricsRuntimeEvidence.remainingBlockers.includes("staging request id propagation runtime evidence"),
+    "metrics evidence must preserve request-id blocker"
+  );
+  assert.ok(
+    backendMetricsRuntimeEvidence.remainingBlockers.includes("staging structured JSON logs runtime evidence"),
+    "metrics evidence must preserve structured log blocker"
+  );
+  assert.ok(
+    backendMetricsRuntimeEvidence.remainingBlockers.includes("staging OpenTelemetry traces runtime evidence"),
+    "metrics evidence must preserve trace blocker"
+  );
+  assert.ok(
+    backendMetricsRuntimeEvidence.remainingBlockers.includes("staging backup/restore/load runtime evidence"),
+    "metrics evidence must preserve restore/load blocker"
+  );
+
+  const requiredServices = new Set(["backend_api", "worker", "crawler"]);
+  const runtimeFileRefs = new Set(evidenceFile.runtime_refs);
+  const runtimeFileResults = new Map(evidenceFile.metrics_results.map((result) => [result.service, result]));
+  const allRequiredSignals = new Set();
+
+  for (const probe of backendMetricsRuntimeEvidence.probes) {
+    requiredServices.delete(probe.service);
+    const fileResult = runtimeFileResults.get(probe.service);
+    assert.ok(fileResult, `${probe.service} missing metrics evidence file result`);
+    assert.equal(fileResult.runtime_ref, probe.runtimeRef, `${probe.service} runtime ref mismatch`);
+    assert.equal(fileResult.validation_status, probe.validationStatus, `${probe.service} status mismatch`);
+    assert.equal(fileResult.scrape_target, probe.scrapeTarget, `${probe.service} scrape target mismatch`);
+    assert.equal(fileResult.audit_ref, probe.auditRef, `${probe.service} audit mismatch`);
+    assert.equal(probe.validationStatus, "verified", `${probe.service} metrics probe must be verified`);
+    assert.match(probe.runtimeRef, /^staging-metrics-[a-z-]+-\d{8}T\d{4}Z$/, `${probe.service} needs staging metrics runtime ref`);
+    assert.ok(runtimeFileRefs.has(probe.runtimeRef), `${probe.service} runtime ref must appear in evidence file`);
+    assert.ok(probe.scrapeTarget.includes("/metrics"), `${probe.service} needs a metrics scrape target`);
+    assert.ok(probe.requiredSignals.length >= 5, `${probe.service} needs required metric signals`);
+    assert.ok(probe.cardinalityProbe.length > 120, `${probe.service} needs cardinality and redaction proof`);
+    assert.ok(probe.sloProbe.length > 100, `${probe.service} needs SLO probe proof`);
+    assert.ok(probe.releaseGateUse.length > 100, `${probe.service} needs release-gate use proof`);
+    assert.ok(auditIds.has(probe.auditRef), `${probe.service} links unknown audit ${probe.auditRef}`);
+    assert.ok(probe.evidenceRefs.includes(backendMetricsRuntimeEvidence.id), `${probe.service} evidence must include parent evidence`);
+    assert.ok(probe.evidenceRefs.includes(probe.runtimeRef), `${probe.service} evidence must include runtime ref`);
+    assert.ok(probe.evidenceRefs.includes(probe.auditRef), `${probe.service} evidence must include audit`);
+    assert.match(
+      `${probe.cardinalityProbe} ${fileResult.cardinality_probe}`,
+      /redact|absent|rejected|bounded/i,
+      `${probe.service} needs label redaction/cardinality proof`
+    );
+
+    for (const signal of probe.requiredSignals) {
+      allRequiredSignals.add(signal);
+    }
+  }
+
+  assert.deepEqual([...requiredServices], [], "metrics evidence must cover backend API, worker, and crawler");
+  for (const signal of [
+    "http_request_duration_ms",
+    "quota_reservation_total",
+    "worker_task_failed_total",
+    "provider_usage_reconciled_total",
+    "crawler_source_blocked_total",
+    "crawler_derivative_review_open_total"
+  ]) {
+    assert.ok(allRequiredSignals.has(signal), `missing required metrics signal ${signal}`);
+  }
+
+  assert.equal(
+    evidenceFile.metrics_results.length,
+    backendMetricsRuntimeEvidence.probes.length,
+    "metrics evidence file and admin fixture must cover the same probe count"
+  );
+});
+
 test("release blocker matrix prevents partial operations evidence from closing beta and production gates", () => {
   assert.ok(releaseBlockers.length > 0, "release blocker matrix needs fixtures");
 
@@ -1209,12 +1324,13 @@ test("operations runtime evidence closes only the validated dashboard and alert 
   );
   assert.match(
     blueprint,
-    /- \[ \] staging backend\/worker\/crawler metrics runtime evidence 通过。/,
-    "metrics runtime evidence must remain open"
+    /- \[x\] staging backend\/worker\/crawler metrics runtime evidence 通过。/,
+    "metrics runtime evidence checklist row should close after validator-backed staging evidence"
   );
 
   const dashboardRuntimeRefs = new Set(operationalDashboards.map((dashboard) => dashboard.runtimeEvidenceRef));
   const alertRuntimeRefs = new Set(alertRoutes.map((alert) => alert.runtimeEvidenceRef));
+  const metricsRuntimeRefs = new Set(backendMetricsRuntimeEvidence.probes.map((probe) => probe.runtimeRef));
 
   for (const ref of [
     "staging-dashboard-provider-20260526T1000Z",
@@ -1234,6 +1350,14 @@ test("operations runtime evidence closes only the validated dashboard and alert 
     assert.ok(alertRuntimeRefs.has(ref), `missing alert route runtime evidence ref ${ref}`);
   }
 
+  for (const ref of [
+    "staging-metrics-backend-api-20260527T1215Z",
+    "staging-metrics-worker-20260527T1215Z",
+    "staging-metrics-crawler-20260527T1215Z"
+  ]) {
+    assert.ok(metricsRuntimeRefs.has(ref), `missing backend/worker/crawler metrics runtime evidence ref ${ref}`);
+  }
+
   assert.ok(
     operationalDashboards.every((dashboard) => dashboard.runtimeEnvironment === "staging"),
     "all operational dashboard evidence must be staged runtime evidence"
@@ -1249,6 +1373,10 @@ test("operations runtime evidence closes only the validated dashboard and alert 
   assert.ok(
     alertRouteRuntimeEvidence.every((evidence) => evidence.validationStatus === "verified"),
     "alert route checklist cannot close until every runtime evidence record is verified"
+  );
+  assert.ok(
+    backendMetricsRuntimeEvidence.probes.every((probe) => probe.validationStatus === "verified"),
+    "metrics checklist cannot close until backend, worker, and crawler probes are verified"
   );
 });
 
