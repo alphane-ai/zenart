@@ -1,0 +1,244 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zenart.local/schemas/stage0/rev2/safety_enforcement_contract.schema.json",
+  "title": "ZenArt Stage 0 Rev2 Safety Enforcement Contract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "contract_id",
+    "blueprint_source",
+    "required_enforcement_points",
+    "decision_storage_contract",
+    "runtime_contracts",
+    "fixture_links",
+    "release_gate_policy",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "stage0.rev2"
+    },
+    "contract_id": {
+      "type": "string",
+      "pattern": "^safety_enforcement_contract_[a-z0-9_]+$"
+    },
+    "blueprint_source": {
+      "const": "Docs/stage0_blueprint_rev2.md"
+    },
+    "required_enforcement_points": {
+      "type": "array",
+      "minItems": 5,
+      "maxItems": 5,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "brief",
+          "provider_request",
+          "provider_response",
+          "qa",
+          "export"
+        ]
+      }
+    },
+    "decision_storage_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "table",
+        "required_columns",
+        "tenant_scoped",
+        "audit_rationale_required"
+      ],
+      "properties": {
+        "table": {
+          "const": "safety_decisions"
+        },
+        "required_columns": {
+          "type": "array",
+          "minItems": 8,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "id",
+              "tenant_id",
+              "rule_id",
+              "subject_type",
+              "subject_id",
+              "enforcement_point",
+              "decision",
+              "rationale",
+              "created_at"
+            ]
+          }
+        },
+        "tenant_scoped": {
+          "const": true
+        },
+        "audit_rationale_required": {
+          "const": true
+        }
+      }
+    },
+    "runtime_contracts": {
+      "type": "array",
+      "minItems": 5,
+      "maxItems": 5,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "enforcement_point",
+          "subject_types",
+          "required_decision_actions",
+          "trace_status_required",
+          "blocks_export_when_blocking",
+          "openapi_operation",
+          "backend_evidence"
+        ],
+        "properties": {
+          "enforcement_point": {
+            "enum": [
+              "brief",
+              "provider_request",
+              "provider_response",
+              "qa",
+              "export"
+            ]
+          },
+          "subject_types": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "enum": [
+                "brief",
+                "provider_request",
+                "provider_response",
+                "qa_result",
+                "asset",
+                "package",
+                "export"
+              ]
+            }
+          },
+          "required_decision_actions": {
+            "type": "array",
+            "minItems": 2,
+            "uniqueItems": true,
+            "items": {
+              "enum": [
+                "allow",
+                "warn",
+                "require_user_confirmation",
+                "require_admin_review",
+                "block"
+              ]
+            }
+          },
+          "trace_status_required": {
+            "const": true
+          },
+          "blocks_export_when_blocking": {
+            "type": "boolean"
+          },
+          "openapi_operation": {
+            "enum": [
+              "createSafetyDecision"
+            ]
+          },
+          "backend_evidence": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "fixture_links": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "fixture_id",
+          "expected_safety_action",
+          "required_enforcement_points",
+          "must_block_final_export"
+        ],
+        "properties": {
+          "fixture_id": {
+            "type": "string",
+            "pattern": "^fx_[a-z0-9_]+$"
+          },
+          "expected_safety_action": {
+            "enum": [
+              "block",
+              "require_admin_review",
+              "warn"
+            ]
+          },
+          "required_enforcement_points": {
+            "type": "array",
+            "minItems": 5,
+            "maxItems": 5,
+            "uniqueItems": true,
+            "items": {
+              "enum": [
+                "brief",
+                "provider_request",
+                "provider_response",
+                "qa",
+                "export"
+              ]
+            }
+          },
+          "must_block_final_export": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "release_gate_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_evidence_only",
+        "blueprint_runtime_item_remains_open"
+      ],
+      "properties": {
+        "contract_evidence_only": {
+          "const": true
+        },
+        "blueprint_runtime_item_remains_open": {
+          "const": true
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "blueprint_sections",
+        "created_by_lane"
+      ],
+      "properties": {
+        "blueprint_sections": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "^((15|23|24|25)\\.)"
+          }
+        },
+        "created_by_lane": {
+          "const": "lane2"
+        }
+      }
+    }
+  }
+}

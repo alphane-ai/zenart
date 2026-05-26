@@ -145,6 +145,7 @@ SCHEMA_FIXTURE_TARGETS = [
     ("eval_suite.schema.json", FIXTURE_DIR / "eval" / "starter_eval_suite.json", "object"),
     ("eval_result.schema.json", FIXTURE_DIR / "eval" / "starter_eval_results.json", "array_items"),
     ("trace_completeness.schema.json", FIXTURE_DIR / "eval" / "trace_completeness.json", "object"),
+    ("safety_enforcement_contract.schema.json", FIXTURE_DIR / "eval" / "safety_enforcement_contract.json", "object"),
     ("qa_result.schema.json", FIXTURE_DIR / "eval" / "qa_results.json", "array_items"),
     ("safety_rule.schema.json", FIXTURE_DIR / "eval" / "safety_rules.json", "array_items"),
     ("workflow_acceptance.schema.json", FIXTURE_DIR / "workflows", "directory_objects"),
@@ -620,10 +621,12 @@ def validate_json_files() -> None:
         SCHEMA_DIR / "abuse_event.schema.json",
         SCHEMA_DIR / "analytics_taxonomy.schema.json",
         SCHEMA_DIR / "trace_completeness.schema.json",
+        SCHEMA_DIR / "safety_enforcement_contract.schema.json",
         SCHEMA_DIR / "release_gate_evidence.schema.json",
         FIXTURE_DIR / "eval" / "starter_eval_suite.json",
         FIXTURE_DIR / "eval" / "starter_eval_results.json",
         FIXTURE_DIR / "eval" / "trace_completeness.json",
+        FIXTURE_DIR / "eval" / "safety_enforcement_contract.json",
         FIXTURE_DIR / "eval" / "qa_results.json",
         FIXTURE_DIR / "eval" / "safety_rules.json",
         FIXTURE_DIR / "crawler" / "crawler_governance_cases.json",
@@ -1529,6 +1532,20 @@ def validate_trace_completeness_contract() -> None:
     )
 
 
+def validate_safety_enforcement_contract() -> None:
+    result = subprocess.run(
+        [sys.executable, str(ROOT / "scripts" / "validate_safety_enforcement_contract.py")],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    require(
+        result.returncode == 0,
+        "safety enforcement contract validation failed: " + (result.stderr or result.stdout).strip(),
+    )
+
+
 def validate_task_schema_compatibility_contract() -> None:
     task_go = ROOT / "backend" / "internal" / "task" / "task.go"
     task_test_go = ROOT / "backend" / "internal" / "task" / "task_test.go"
@@ -2012,6 +2029,7 @@ def main() -> int:
         validate_openapi_contract,
         validate_openapi_rev2_domain_contracts,
         validate_trace_completeness_contract,
+        validate_safety_enforcement_contract,
         validate_task_schema_compatibility_contract,
         validate_blueprint_evidence_backfill_contracts,
         validate_generated_openapi_clients,

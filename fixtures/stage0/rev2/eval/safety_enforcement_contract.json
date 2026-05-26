@@ -1,0 +1,184 @@
+{
+  "schema_version": "stage0.rev2",
+  "contract_id": "safety_enforcement_contract_stage0_rev2_pipeline",
+  "blueprint_source": "Docs/stage0_blueprint_rev2.md",
+  "required_enforcement_points": [
+    "brief",
+    "provider_request",
+    "provider_response",
+    "qa",
+    "export"
+  ],
+  "decision_storage_contract": {
+    "table": "safety_decisions",
+    "required_columns": [
+      "id",
+      "tenant_id",
+      "rule_id",
+      "subject_type",
+      "subject_id",
+      "enforcement_point",
+      "decision",
+      "rationale",
+      "created_at"
+    ],
+    "tenant_scoped": true,
+    "audit_rationale_required": true
+  },
+  "runtime_contracts": [
+    {
+      "enforcement_point": "brief",
+      "subject_types": [
+        "brief"
+      ],
+      "required_decision_actions": [
+        "allow",
+        "warn",
+        "require_user_confirmation",
+        "require_admin_review",
+        "block"
+      ],
+      "trace_status_required": true,
+      "blocks_export_when_blocking": true,
+      "openapi_operation": "createSafetyDecision",
+      "backend_evidence": [
+        "backend/internal/stage0/services.go:EnforceSafety",
+        "backend/migrations/0002_stage0_rev2_domains.sql:safety_decisions"
+      ]
+    },
+    {
+      "enforcement_point": "provider_request",
+      "subject_types": [
+        "provider_request"
+      ],
+      "required_decision_actions": [
+        "allow",
+        "warn",
+        "require_user_confirmation",
+        "require_admin_review",
+        "block"
+      ],
+      "trace_status_required": true,
+      "blocks_export_when_blocking": true,
+      "openapi_operation": "createSafetyDecision",
+      "backend_evidence": [
+        "backend/internal/stage0/services.go:EnforceSafety",
+        "openapi/zenart.v1.yaml:SafetyDecisionCreate"
+      ]
+    },
+    {
+      "enforcement_point": "provider_response",
+      "subject_types": [
+        "provider_response",
+        "asset"
+      ],
+      "required_decision_actions": [
+        "allow",
+        "warn",
+        "require_user_confirmation",
+        "require_admin_review",
+        "block"
+      ],
+      "trace_status_required": true,
+      "blocks_export_when_blocking": true,
+      "openapi_operation": "createSafetyDecision",
+      "backend_evidence": [
+        "backend/internal/stage0/services.go:EnforceSafety",
+        "fixtures/stage0/rev2/eval/starter_eval_results.json:trace_contract.has_safety_status"
+      ]
+    },
+    {
+      "enforcement_point": "qa",
+      "subject_types": [
+        "qa_result",
+        "asset"
+      ],
+      "required_decision_actions": [
+        "allow",
+        "warn",
+        "require_user_confirmation",
+        "require_admin_review",
+        "block"
+      ],
+      "trace_status_required": true,
+      "blocks_export_when_blocking": true,
+      "openapi_operation": "createSafetyDecision",
+      "backend_evidence": [
+        "backend/internal/stage0/services.go:hasBlockingExportQA",
+        "fixtures/stage0/rev2/eval/qa_results.json:export_gate.blocks_final_export"
+      ]
+    },
+    {
+      "enforcement_point": "export",
+      "subject_types": [
+        "package",
+        "export"
+      ],
+      "required_decision_actions": [
+        "allow",
+        "warn",
+        "require_user_confirmation",
+        "require_admin_review",
+        "block"
+      ],
+      "trace_status_required": true,
+      "blocks_export_when_blocking": true,
+      "openapi_operation": "createSafetyDecision",
+      "backend_evidence": [
+        "backend/internal/stage0/services.go:CreateExport",
+        "backend/internal/stage0/services.go:RegenerateExport",
+        "backend/internal/stage0/services_test.go:TestCreateExportBlocksWhenQAHasBlockingResult"
+      ]
+    }
+  ],
+  "fixture_links": [
+    {
+      "fixture_id": "fx_unsafe_financial_claim",
+      "expected_safety_action": "block",
+      "required_enforcement_points": [
+        "brief",
+        "provider_request",
+        "provider_response",
+        "qa",
+        "export"
+      ],
+      "must_block_final_export": true
+    },
+    {
+      "fixture_id": "fx_red_team_minor_adult_content",
+      "expected_safety_action": "block",
+      "required_enforcement_points": [
+        "brief",
+        "provider_request",
+        "provider_response",
+        "qa",
+        "export"
+      ],
+      "must_block_final_export": true
+    },
+    {
+      "fixture_id": "fx_character_ip_concept_golden",
+      "expected_safety_action": "require_admin_review",
+      "required_enforcement_points": [
+        "brief",
+        "provider_request",
+        "provider_response",
+        "qa",
+        "export"
+      ],
+      "must_block_final_export": false
+    }
+  ],
+  "release_gate_policy": {
+    "contract_evidence_only": true,
+    "blueprint_runtime_item_remains_open": true
+  },
+  "provenance": {
+    "blueprint_sections": [
+      "15.3",
+      "24.1",
+      "25.11"
+    ],
+    "created_by_lane": "lane2"
+  }
+}
