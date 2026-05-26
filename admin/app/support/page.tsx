@@ -2,7 +2,7 @@ import { DataTable } from "@/components/DataTable";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { getSupportEscalationRunbooks, getSupportTickets, getSupportUsers } from "@/lib/admin-api";
-import type { SupportEscalationRunbook, SupportTicket, SupportUser } from "@/lib/types";
+import type { SupportEscalationRunbook, SupportLookupAction, SupportTicket, SupportUser } from "@/lib/types";
 
 export default async function SupportPage() {
   const [users, tickets, runbooks] = await Promise.all([
@@ -40,6 +40,8 @@ export default async function SupportPage() {
                 <option value="read-only">Read-only</option>
                 <option value="quota">Quota mutation</option>
                 <option value="retry">Retry failed task</option>
+                <option value="regenerate">Export regeneration</option>
+                <option value="hold">Temporary hold</option>
               </select>
             </div>
           </div>
@@ -50,12 +52,58 @@ export default async function SupportPage() {
             { key: "user", header: "User", render: (row) => <span className="mono">{row.id}</span> },
             { key: "email", header: "Email", render: (row) => row.email },
             { key: "plan", header: "Plan", render: (row) => row.plan },
+            { key: "tenant", header: "Tenant", render: (row) => <span className="mono">{row.tenantId}</span> },
+            { key: "status", header: "Account Status", render: (row) => <StatusBadge value={row.accountStatus} label={row.accountStatus} /> },
             { key: "projects", header: "Projects", render: (row) => row.projects },
+            { key: "project-ids", header: "Project IDs", render: (row) => row.projectIds.join(", ") },
             { key: "tasks", header: "Recent Tasks", render: (row) => row.recentTasks },
+            { key: "task-ids", header: "Task IDs", render: (row) => row.taskIds.join(", ") },
             { key: "traces", header: "Traces", render: (row) => row.traces.join(", ") },
+            { key: "exports", header: "Exports", render: (row) => row.exportIds.length ? row.exportIds.join(", ") : "None" },
+            { key: "tickets", header: "Tickets", render: (row) => row.ticketIds.join(", ") },
+            { key: "quota", header: "Quota Account", render: (row) => <span className="mono">{row.quotaAccountRef}</span> },
+            { key: "keys", header: "Lookup Keys", render: (row) => row.lookupKeys.join(", ") },
             { key: "risk", header: "Risk Flags", render: (row) => row.riskFlags.length ? row.riskFlags.map((flag) => <StatusBadge key={flag} value="warning" label={flag} />) : "None" }
           ]}
         />
+      </section>
+
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>Lookup Action Evidence</h3>
+            <p>Every lookup result must state redaction, role boundary, linked evidence, and whether mutation is allowed, review-gated, or blocked.</p>
+          </div>
+        </div>
+        <div className="lookup-action-grid">
+          {users.map((user) => (
+            <article className="record-card" key={user.id}>
+              <header>
+                <div>
+                  <h4>{user.email}</h4>
+                  <p className="mono">{user.id} · {user.tenantId}</p>
+                </div>
+                <StatusBadge value={user.accountStatus} label={user.accountStatus} />
+              </header>
+              <p>{user.privacyRedaction}</p>
+              <div className="evidence-line">
+                <strong>Audit refs</strong>
+                <span className="mono">{user.auditRefs.join(", ")}</span>
+              </div>
+              <DataTable<SupportLookupAction>
+                rows={user.lookupActions}
+                columns={[
+                  { key: "scope", header: "Scope", render: (row) => row.scope },
+                  { key: "role", header: "Required Role", render: (row) => row.requiredRole },
+                  { key: "decision", header: "Decision", render: (row) => <StatusBadge value={row.decision} label={row.decision} /> },
+                  { key: "evidence", header: "Evidence Refs", render: (row) => row.evidenceRefs.join(", ") },
+                  { key: "audit", header: "Audit Ref", render: (row) => <span className="mono">{row.auditRef}</span> },
+                  { key: "rationale", header: "Rationale", render: (row) => row.rationale }
+                ]}
+              />
+            </article>
+          ))}
+        </div>
       </section>
 
       <section className="panel">

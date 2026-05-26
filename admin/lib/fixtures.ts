@@ -1378,28 +1378,144 @@ export const supportUsers: SupportUser[] = [
     id: "usr-301",
     email: "founder@example.test",
     plan: "Team trial",
+    tenantId: "tenant-alpha",
+    accountStatus: "held",
     projects: 4,
+    projectIds: ["proj-774", "proj-brand-112", "proj-export-204", "proj-archive-019"],
     recentTasks: 12,
+    taskIds: ["task-brief-441"],
     traces: ["tr-1004"],
-    riskFlags: ["safety-block-review"]
+    exportIds: ["ex-887"],
+    ticketIds: ["sup-2201"],
+    quotaAccountRef: "usr-301",
+    lookupKeys: ["usr-301", "founder@example.test", "tenant-alpha", "sup-2201", "ex-887", "tr-1004"],
+    riskFlags: ["safety-block-review", "quota-drain-watch"],
+    privacyRedaction: "Show email, IDs, plan, and evidence refs only; redact prompt text and uploaded assets unless admin_reviewer opens trace evidence.",
+    auditRefs: ["au-001", "au-002", "au-004"],
+    lookupActions: [
+      {
+        scope: "read_profile",
+        requiredRole: "support_operator",
+        decision: "allowed",
+        evidenceRefs: ["sup-2201", "tr-1004", "ex-887", "au-004"],
+        auditRef: "au-004",
+        rationale: "Support can inspect linked ticket, trace, export, and quota state while prompt and asset contents stay redacted."
+      },
+      {
+        scope: "retry_failed_task",
+        requiredRole: "admin_reviewer",
+        decision: "blocked",
+        evidenceRefs: ["task-brief-441", "sup-2201", "rx-41", "au-001"],
+        auditRef: "au-001",
+        rationale: "Safety-blocked export task cannot be retried while forbidden-claim QA evidence remains blocking."
+      },
+      {
+        scope: "quota_credit",
+        requiredRole: "support_operator",
+        decision: "allowed",
+        evidenceRefs: ["sup-2201", "qt-904", "ex-887", "au-004"],
+        auditRef: "au-004",
+        rationale: "Audited quota credit is allowed because the blocked export consumed reserved credits."
+      },
+      {
+        scope: "temporary_hold",
+        requiredRole: "admin_reviewer",
+        decision: "requires_review",
+        evidenceRefs: ["ab-300", "sup-2201", "au-002"],
+        auditRef: "au-002",
+        rationale: "Temporary hold remains review-gated until abuse and support evidence confirm release conditions."
+      }
+    ]
   },
   {
     id: "usr-318",
     email: "ops@example.test",
     plan: "Pro",
+    tenantId: "tenant-ops",
+    accountStatus: "active",
     projects: 9,
+    projectIds: ["proj-790", "proj-sales-221", "proj-packaging-044"],
     recentTasks: 31,
+    taskIds: ["task-export-489"],
     traces: ["tr-1019"],
-    riskFlags: []
+    exportIds: ["ex-901"],
+    ticketIds: ["sup-2204"],
+    quotaAccountRef: "usr-318",
+    lookupKeys: ["usr-318", "ops@example.test", "tenant-ops", "sup-2204", "ex-901", "tr-1019"],
+    riskFlags: [],
+    privacyRedaction: "Support can view package metadata and QA warning summary; uploaded source files require trace-level reviewer access.",
+    auditRefs: ["au-011"],
+    lookupActions: [
+      {
+        scope: "read_profile",
+        requiredRole: "support_operator",
+        decision: "allowed",
+        evidenceRefs: ["sup-2204", "tr-1019", "ex-901"],
+        auditRef: "au-011",
+        rationale: "Open ticket has linked trace and export metadata for support-safe inspection."
+      },
+      {
+        scope: "retry_failed_task",
+        requiredRole: "support_operator",
+        decision: "allowed",
+        evidenceRefs: ["task-export-489", "sup-2204", "q-export", "au-011"],
+        auditRef: "au-011",
+        rationale: "Manifest packaging failure is retry eligible after ticket and QA warning evidence are attached."
+      },
+      {
+        scope: "export_regenerate",
+        requiredRole: "support_operator",
+        decision: "requires_review",
+        evidenceRefs: ["sup-2204", "tr-1019", "ex-901", "au-011"],
+        auditRef: "au-011",
+        rationale: "Regeneration is review-gated until a fresh immutable audit ref replaces the pending ticket audit state."
+      }
+    ]
   },
   {
     id: "usr-455",
     email: "crawler-owner@example.test",
     plan: "Team trial",
+    tenantId: "tenant-crawler",
+    accountStatus: "rate_limited",
     projects: 2,
+    projectIds: ["proj-812", "proj-source-011"],
     recentTasks: 7,
+    taskIds: ["task-crawler-019"],
     traces: [],
-    riskFlags: ["crawler-rate-limit"]
+    exportIds: [],
+    ticketIds: ["sup-2212"],
+    quotaAccountRef: "none",
+    lookupKeys: ["usr-455", "crawler-owner@example.test", "tenant-crawler", "sup-2212", "task-crawler-019"],
+    riskFlags: ["crawler-rate-limit"],
+    privacyRedaction: "Show source IDs and crawler status only; raw crawler documents remain hidden until source ownership evidence is approved.",
+    auditRefs: ["au-002"],
+    lookupActions: [
+      {
+        scope: "read_profile",
+        requiredRole: "support_operator",
+        decision: "allowed",
+        evidenceRefs: ["sup-2212", "task-crawler-019", "au-002"],
+        auditRef: "au-002",
+        rationale: "Support can inspect the waiting-user crawler ticket without seeing raw crawler documents."
+      },
+      {
+        scope: "retry_failed_task",
+        requiredRole: "admin_operator",
+        decision: "blocked",
+        evidenceRefs: ["task-crawler-019", "sup-2212", "au-002"],
+        auditRef: "au-002",
+        rationale: "Crawler import retry is blocked until source ownership and robots evidence are attached."
+      },
+      {
+        scope: "temporary_hold",
+        requiredRole: "admin_operator",
+        decision: "requires_review",
+        evidenceRefs: ["ab-309", "sup-2212", "au-002", "cf-118"],
+        auditRef: "au-002",
+        rationale: "Crawler rate-limit release requires crawler governance review and source-owner evidence."
+      }
+    ]
   }
 ];
 

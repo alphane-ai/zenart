@@ -361,14 +361,39 @@ export type SupportEscalationRunbook = {
   closureBlockers: string[];
 };
 
+export type SupportLookupAction = {
+  scope:
+    | "read_profile"
+    | "quota_credit"
+    | "retry_failed_task"
+    | "export_regenerate"
+    | "temporary_hold";
+  requiredRole: AdminRole;
+  decision: "allowed" | "requires_review" | "blocked";
+  evidenceRefs: string[];
+  auditRef: string;
+  rationale: string;
+};
+
 export type SupportUser = {
   id: string;
   email: string;
   plan: string;
+  tenantId: string;
+  accountStatus: "active" | "held" | "rate_limited";
   projects: number;
+  projectIds: string[];
   recentTasks: number;
+  taskIds: string[];
   traces: string[];
+  exportIds: string[];
+  ticketIds: string[];
+  quotaAccountRef: string;
+  lookupKeys: string[];
   riskFlags: string[];
+  privacyRedaction: string;
+  auditRefs: string[];
+  lookupActions: SupportLookupAction[];
 };
 
 export type QuotaAccount = {

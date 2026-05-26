@@ -46,6 +46,7 @@ const traceIds = new Set(traces.map((trace) => trace.id));
 const exportIds = new Set(exportJobs.map((job) => job.id));
 const quotaUserIds = new Set(quotaAccounts.map((account) => account.userId));
 const queueIds = new Set(queueHealth.map((queue) => queue.id));
+const taskIds = new Set(failedTaskControls.map((task) => task.id));
 const crawlerFindingIds = new Set(crawlerFindings.map((finding) => finding.id));
 const crawlerFindingById = new Map(crawlerFindings.map((finding) => [finding.id, finding]));
 const incidentIds = new Set(["none", "inc-20260526-queue", "inc-20260525-crawler"]);
@@ -204,6 +205,107 @@ test("support tickets link user, trace, export, quota, and audit evidence", () =
       assert.ok(auditIds.has(ticket.auditRef), `${ticket.id} links unknown audit event ${ticket.auditRef}`);
     }
   }
+});
+
+test("admin user lookup resolves user evidence without bypassing RBAC or redaction", () => {
+  assert.ok(supportUsers.length >= 3, "admin user lookup needs representative support users");
+
+  for (const user of supportUsers) {
+    assert.ok(user.tenantId.length > 4, `${user.id} needs tenant isolation evidence`);
+    assert.ok(user.lookupKeys.includes(user.id), `${user.id} lookup keys must include user id`);
+    assert.ok(user.lookupKeys.includes(user.email), `${user.id} lookup keys must include email`);
+    assert.ok(user.lookupKeys.includes(user.tenantId), `${user.id} lookup keys must include tenant id`);
+    assert.ok(user.privacyRedaction.length > 60, `${user.id} needs privacy redaction policy`);
+    assert.ok(user.auditRefs.length > 0, `${user.id} needs lookup audit refs`);
+    assert.ok(user.lookupActions.length > 0, `${user.id} needs action governance`);
+
+    for (const auditRef of user.auditRefs) {
+      assert.ok(auditIds.has(auditRef), `${user.id} links unknown audit ref ${auditRef}`);
+    }
+
+    for (const ticketId of user.ticketIds) {
+      const ticket = supportTicketById.get(ticketId);
+      assert.ok(ticket, `${user.id} links unknown ticket ${ticketId}`);
+      assert.equal(ticket.userId, user.id, `${ticketId} must belong to lookup user ${user.id}`);
+      assert.ok(user.lookupKeys.includes(ticketId), `${user.id} lookup keys must include ticket ${ticketId}`);
+    }
+
+    for (const taskId of user.taskIds) {
+      assert.ok(taskIds.has(taskId), `${user.id} links unknown task ${taskId}`);
+      assert.ok(user.lookupKeys.includes(taskId) || supportTickets.some((ticket) => ticket.taskId === taskId && user.lookupKeys.includes(ticket.id)), `${user.id} must expose task ${taskId} directly or through ticket lookup`);
+    }
+
+    for (const traceId of user.traces) {
+      assert.ok(traceIds.has(traceId), `${user.id} links unknown trace ${traceId}`);
+      assert.ok(user.lookupKeys.includes(traceId), `${user.id} lookup keys must include trace ${traceId}`);
+    }
+
+    for (const exportId of user.exportIds) {
+      assert.ok(exportIds.has(exportId), `${user.id} links unknown export ${exportId}`);
+      assert.ok(user.lookupKeys.includes(exportId), `${user.id} lookup keys must include export ${exportId}`);
+    }
+
+    if (user.quotaAccountRef !== "none") {
+      assert.ok(quotaUserIds.has(user.quotaAccountRef), `${user.id} links unknown quota account ${user.quotaAccountRef}`);
+    }
+
+    for (const action of user.lookupActions) {
+      assert.ok(action.rationale.length > 50, `${user.id} ${action.scope} needs action rationale`);
+      assert.ok(auditIds.has(action.auditRef), `${user.id} ${action.scope} links unknown audit ${action.auditRef}`);
+      assert.ok(action.evidenceRefs.length >= 3, `${user.id} ${action.scope} needs at least three evidence refs`);
+
+      for (const ref of action.evidenceRefs) {
+        assert.ok(
+          ref === user.id ||
+            ref === user.quotaAccountRef ||
+            supportTicketIds.has(ref) ||
+            traceIds.has(ref) ||
+            exportIds.has(ref) ||
+            taskIds.has(ref) ||
+            queueIds.has(ref) ||
+            auditIds.has(ref) ||
+            abuseEventById.has(ref) ||
+            ref.startsWith("qt-") ||
+            ref.startsWith("rx-") ||
+            crawlerFindingIds.has(ref),
+          `${user.id} ${action.scope} links unknown evidence ref ${ref}`
+        );
+      }
+
+      if (action.scope !== "read_profile") {
+        assert.match(
+          action.requiredRole,
+          /support_operator|admin_operator|admin_reviewer|admin_superadmin/,
+          `${user.id} ${action.scope} needs explicit mutation role boundary`
+        );
+        assert.ok(
+          action.evidenceRefs.some((ref) => supportTicketIds.has(ref)) && action.evidenceRefs.includes(action.auditRef),
+          `${user.id} ${action.scope} needs support ticket and audit evidence`
+        );
+      }
+
+      if (action.decision === "allowed") {
+        assert.match(action.requiredRole, /support_operator|admin_operator|admin_reviewer|admin_superadmin/, `${user.id} allowed action needs role boundary`);
+      }
+
+      if (action.decision === "blocked") {
+        assert.match(action.rationale, /blocked|cannot|until/i, `${user.id} blocked action needs blocking rationale`);
+      }
+    }
+  }
+
+  assert.ok(
+    supportUsers.some((user) => user.lookupActions.some((action) => action.scope === "quota_credit" && action.decision === "allowed")),
+    "lookup needs audited quota credit eligibility"
+  );
+  assert.ok(
+    supportUsers.some((user) => user.lookupActions.some((action) => action.scope === "retry_failed_task" && action.decision === "blocked")),
+    "lookup needs blocked retry evidence"
+  );
+  assert.ok(
+    supportUsers.some((user) => user.lookupActions.some((action) => action.scope === "temporary_hold" && action.decision === "requires_review")),
+    "lookup needs temporary hold review evidence"
+  );
 });
 
 test("support escalation runbooks gate customer updates and closure safety", () => {
