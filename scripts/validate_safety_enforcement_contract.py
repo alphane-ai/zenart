@@ -39,6 +39,14 @@ SAFETY_ACTIONS = {
     "block",
 }
 
+ACTION_EXPORT_GATES = {
+    "allow": "allow_when_export_contract_complete",
+    "warn": "allow_with_warning",
+    "require_user_confirmation": "hold_until_user_confirmation",
+    "require_admin_review": "hold_until_admin_review",
+    "block": "block_final_export",
+}
+
 
 class SafetyContractError(Exception):
     pass
@@ -187,6 +195,9 @@ def validate_cross_contracts(contract: dict[str, Any]) -> None:
     rules = load_json(SAFETY_RULES)
     traces = load_json(TRACE_COMPLETENESS)
     results = load_json(EVAL_RESULTS)
+    suite = load_json(EVAL_SUITE)
+    fixture_by_id = {fixture["fixture_id"]: fixture for fixture in suite["fixtures"]}
+    rule_by_id = {rule["rule_id"]: rule for rule in rules}
 
     require(set(contract["required_enforcement_points"]) == SAFETY_POINTS, "contract required enforcement points mismatch")
     runtime_points = {item["enforcement_point"] for item in contract["runtime_contracts"]}
@@ -203,6 +214,31 @@ def validate_cross_contracts(contract: dict[str, Any]) -> None:
             require(rule["action"] == "block", f"{rule['rule_id']} critical rules must block")
             require(rule["admin_override_eligible"] is False, f"{rule['rule_id']} critical rules must not allow admin override")
         require(rule["audit_required"] is True, f"{rule['rule_id']} safety decisions must require audit")
+
+    matrix_points = {item["enforcement_point"] for item in contract["decision_matrix"]}
+    require(matrix_points == SAFETY_POINTS, f"decision matrix missing points: {sorted(SAFETY_POINTS - matrix_points)}")
+    for item in contract["decision_matrix"]:
+        actions = item["actions"]
+        decisions = {action["decision"] for action in actions}
+        require(decisions == SAFETY_ACTIONS, f"{item['enforcement_point']} decision matrix must cover every action")
+        for action in actions:
+            decision = action["decision"]
+            fixture_id = action["source_fixture_id"]
+            rule_id = action["source_rule_id"]
+            require(fixture_id in fixture_by_id, f"{item['enforcement_point']} {decision} references unknown fixture {fixture_id}")
+            require(action["export_gate"] == ACTION_EXPORT_GATES[decision], f"{item['enforcement_point']} {decision} export gate mismatch")
+            require(action["requires_trace_safety_status"] is True, f"{item['enforcement_point']} {decision} must require trace safety status")
+            require(action["requires_persisted_decision"] is True, f"{item['enforcement_point']} {decision} must require persisted decision")
+            if decision == "allow":
+                require(rule_id == "default_no_match", f"{item['enforcement_point']} allow decision must use default_no_match")
+                require(action["requires_audit"] is False, f"{item['enforcement_point']} allow decision must not require audit")
+            else:
+                require(rule_id in rule_by_id, f"{item['enforcement_point']} {decision} references unknown safety rule {rule_id}")
+                rule = rule_by_id[rule_id]
+                require(rule["action"] == decision, f"{rule_id} action must match decision matrix {decision}")
+                require(fixture_id in rule["eval_fixture_links"], f"{rule_id} must link fixture {fixture_id}")
+                require(action["requires_audit"] is True, f"{item['enforcement_point']} {decision} must require audit")
+                require(item["enforcement_point"] in rule["enforcement_points"], f"{rule_id} missing matrix enforcement point {item['enforcement_point']}")
 
     require(set(traces["required_pipeline_steps"]) == SAFETY_POINTS, "trace contract pipeline steps must match safety enforcement points")
     for trace in traces["traces"]:

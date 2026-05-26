@@ -80,5 +80,59 @@
       ],
       "created_by_lane": "lane6"
     }
+  },
+  {
+    "schema_version": "stage0.rev2",
+    "rule_id": "safety_business_claims_review",
+    "version": 1,
+    "domain": "ecommerce_claims",
+    "severity": "medium",
+    "enforcement_points": [
+      "brief",
+      "provider_request",
+      "provider_response",
+      "qa",
+      "export"
+    ],
+    "action": "warn",
+    "user_message": "Business performance claims need source review before publishing.",
+    "admin_override_eligible": true,
+    "audit_required": true,
+    "eval_fixture_links": [
+      "fx_business_visual_doc_golden"
+    ],
+    "provenance": {
+      "blueprint_sections": [
+        "15.3"
+      ],
+      "created_by_lane": "lane6"
+    }
+  },
+  {
+    "schema_version": "stage0.rev2",
+    "rule_id": "safety_sensitive_business_claim_confirmation",
+    "version": 1,
+    "domain": "ecommerce_claims",
+    "severity": "medium",
+    "enforcement_points": [
+      "brief",
+      "provider_request",
+      "provider_response",
+      "qa",
+      "export"
+    ],
+    "action": "require_user_confirmation",
+    "user_message": "Confirm that sensitive benchmark claims are sourced before generation continues.",
+    "admin_override_eligible": true,
+    "audit_required": true,
+    "eval_fixture_links": [
+      "fx_confirmation_sensitive_claim"
+    ],
+    "provenance": {
+      "blueprint_sections": [
+        "15.3"
+      ],
+      "created_by_lane": "lane6"
+    }
   }
 ]

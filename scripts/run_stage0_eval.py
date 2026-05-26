@@ -150,10 +150,8 @@ def export_contract_for(fixture: dict[str, Any], qa_items: list[dict[str, Any]])
 
 def observed_safety_action(fixture: dict[str, Any], qa_items: list[dict[str, Any]]) -> str:
     expected = fixture["expected_evidence"]["expected_safety_action"]
-    if expected == "block":
-        return "block"
-    if expected == "warn":
-        return "warn"
+    if expected in {"block", "require_user_confirmation", "require_admin_review", "warn"}:
+        return expected
     if any(item["check_category"] == "forbidden_claims" for item in qa_items):
         return "block"
     return "allow"
@@ -182,6 +180,10 @@ def failure_reasons_for(fixture: dict[str, Any], qa_items: list[dict[str, Any]])
         return ["clarification_required_before_generation"]
     if fixture["expected_evidence"]["expected_safety_action"] == "block":
         return ["safety_policy_block"]
+    if fixture["expected_evidence"]["expected_safety_action"] == "require_user_confirmation":
+        return ["user_confirmation_required_before_generation"]
+    if fixture["expected_evidence"]["expected_safety_action"] == "require_admin_review":
+        return ["admin_review_required_before_export"]
     reasons = {
         "negative": "generic_four_card_rendering_not_distinct",
         "brand_product_preservation": "product_logo_preservation_block",

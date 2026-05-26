@@ -131,6 +131,283 @@
       ]
     }
   ],
+  "decision_matrix": [
+    {
+      "enforcement_point": "brief",
+      "actions": [
+        {
+          "decision": "allow",
+          "source_fixture_id": "fx_ecommerce_growth_golden",
+          "source_rule_id": "default_no_match",
+          "export_gate": "allow_when_export_contract_complete",
+          "requires_trace_safety_status": true,
+          "requires_persisted_decision": true,
+          "requires_audit": false,
+          "user_visible_outcome": "Continue generation when no active safety rule matches the brief."
+        },
+        {
+          "decision": "warn",
+          "source_fixture_id": "fx_business_visual_doc_golden",
+          "source_rule_id": "safety_business_claims_review",
+          "export_gate": "allow_with_warning",
+          "requires_trace_safety_status": true,
+          "requires_persisted_decision": true,
+          "requires_audit": true,
+          "user_visible_outcome": "Continue with a visible claim-review warning."
+        },
+        {
+          "decision": "require_user_confirmation",
+          "source_fixture_id": "fx_confirmation_sensitive_claim",
+          "source_rule_id": "safety_sensitive_business_claim_confirmation",
+          "export_gate": "hold_until_user_confirmation",
+          "requires_trace_safety_status": true,
+          "requires_persisted_decision": true,
+          "requires_audit": true,
+          "user_visible_outcome": "Pause until the user confirms the content is sourced and appropriate."
+        },
+        {
+          "decision": "require_admin_review",
+          "source_fixture_id": "fx_brand_product_preservation",
+          "source_rule_id": "safety_ip_brand_similarity",
+          "export_gate": "hold_until_admin_review",
+          "requires_trace_safety_status": true,
+          "requires_persisted_decision": true,
+          "requires_audit": true,
+          "user_visible_outcome": "Hold export until an eligible admin review decision is recorded."
+        },
+        {
+          "decision": "block",
+          "source_fixture_id": "fx_unsafe_financial_claim",
+          "source_rule_id": "safety_financial_guaranteed_returns",
+          "export_gate": "block_final_export",
+          "requires_trace_safety_status": true,
+          "requires_persisted_decision": true,
+          "requires_audit": true,
+          "user_visible_outcome": "Block generation and final export."
+        }
+      ]
+    },
+    {
+      "enforcement_point": "provider_request",
+      "actions": [
+        {
+          "decision": "allow",
+          "source_fixture_id": "fx_local_merchant_campaign_golden",
+          "source_rule_id": "default_no_match",
+          "export_gate": "allow_when_export_contract_complete",
+          "requires_trace_safety_status": true,
+          "requires_persisted_decision": true,
+          "requires_audit": false,
+          "user_visible_outcome": "Send the provider request after recording an allow decision."
+        },
+        {
+          "decision": "warn",
+          "source_fixture_id": "fx_business_visual_doc_golden",
+          "source_rule_id": "safety_business_claims_review",
+          "export_gate": "allow_with_warning",
+          "requires_trace_safety_status": true,
+          "requires_persisted_decision": true,
+          "requires_audit": true,
+          "user_visible_outcome": "Send the request with a trace-visible warning."
+        },
+        {
+          "decision": "require_user_confirmation",
+          "source_fixture_id": "fx_confirmation_sensitive_claim",
+          "source_rule_id": "safety_sensitive_business_claim_confirmation",
+          "export_gate": "hold_until_user_confirmation",
+          "requires_trace_safety_status": true,
+          "requires_persisted_decision": true,
+          "requires_audit": true,
+          "user_visible_outcome": "Do not call the provider until user confirmation is recorded."
+        },
+        {
+          "decision": "require_admin_review",
+          "source_fixture_id": "fx_brand_product_preservation",
+          "source_rule_id": "safety_ip_brand_similarity",
+          "export_gate": "hold_until_admin_review",
+          "requires_trace_safety_status": true,
+          "requires_persisted_decision": true,
+          "requires_audit": true,
+          "user_visible_outcome": "Do not call the provider until admin review resolves the risky similarity."
+        },
+        {
+          "decision": "block",
+          "source_fixture_id": "fx_red_team_minor_adult_content",
+          "source_rule_id": "safety_minor_adult_content",
+          "export_gate": "block_final_export",
+          "requires_trace_safety_status": true,
+          "requires_persisted_decision": true,
+          "requires_audit": true,
+          "user_visible_outcome": "Block the provider request and final export."
+        }
+      ]
+    },
+    {
+      "enforcement_point": "provider_response",
+      "actions": [
+        {
+          "decision": "allow",
+          "source_fixture_id": "fx_text_heavy_structured_details",
+          "source_rule_id": "default_no_match",
+          "export_gate": "allow_when_export_contract_complete",
+          "requires_trace_safety_status": true,
+          "requires_persisted_decision": true,
+          "requires_audit": false,
+          "user_visible_outcome": "Accept the provider response when no safety rule matches."
+        },
+        {
+          "decision": "warn",
+          "source_fixture_id": "fx_business_visual_doc_golden",
+          "source_rule_id": "safety_business_claims_review",
+          "export_gate": "allow_with_warning",
+          "requires_trace_safety_status": true,
+          "requires_persisted_decision": true,
+          "requires_audit": true,
+          "user_visible_outcome": "Accept the response with a warning attached to the asset trace."
+        },
+        {
+          "decision": "require_user_confirmation",
+          "source_fixture_id": "fx_confirmation_sensitive_claim",
+          "source_rule_id": "safety_sensitive_business_claim_confirmation",
+          "export_gate": "hold_until_user_confirmation",
+          "requires_trace_safety_status": true,
+          "requires_persisted_decision": true,
+          "requires_audit": true,
+          "user_visible_outcome": "Hold the response until user confirmation is recorded."
+        },
+        {
+          "decision": "require_admin_review",
+          "source_fixture_id": "fx_brand_product_preservation",
+          "source_rule_id": "safety_ip_brand_similarity",
+          "export_gate": "hold_until_admin_review",
+          "requires_trace_safety_status": true,
+          "requires_persisted_decision": true,
+          "requires_audit": true,
+          "user_visible_outcome": "Hold the response for admin review before packaging."
+        },
+        {
+          "decision": "block",
+          "source_fixture_id": "fx_unsafe_financial_claim",
+          "source_rule_id": "safety_financial_guaranteed_returns",
+          "export_gate": "block_final_export",
+          "requires_trace_safety_status": true,
+          "requires_persisted_decision": true,
+          "requires_audit": true,
+          "user_visible_outcome": "Reject the provider response and block export."
+        }
+      ]
+    },
+    {
+      "enforcement_point": "qa",
+      "actions": [
+        {
+          "decision": "allow",
+          "source_fixture_id": "fx_ecommerce_growth_golden",
+          "source_rule_id": "default_no_match",
+          "export_gate": "allow_when_export_contract_complete",
+          "requires_trace_safety_status": true,
+          "requires_persisted_decision": true,
+          "requires_audit": false,
+          "user_visible_outcome": "Allow QA to pass when safety and QA contracts are complete."
+        },
+        {
+          "decision": "warn",
+          "source_fixture_id": "fx_business_visual_doc_golden",
+          "source_rule_id": "safety_business_claims_review",
+          "export_gate": "allow_with_warning",
+          "requires_trace_safety_status": true,
+          "requires_persisted_decision": true,
+          "requires_audit": true,
+          "user_visible_outcome": "Allow QA completion with a warning included in the QA report."
+        },
+        {
+          "decision": "require_user_confirmation",
+          "source_fixture_id": "fx_confirmation_sensitive_claim",
+          "source_rule_id": "safety_sensitive_business_claim_confirmation",
+          "export_gate": "hold_until_user_confirmation",
+          "requires_trace_safety_status": true,
+          "requires_persisted_decision": true,
+          "requires_audit": true,
+          "user_visible_outcome": "Hold QA completion until the confirmation is attached to the trace."
+        },
+        {
+          "decision": "require_admin_review",
+          "source_fixture_id": "fx_brand_product_preservation",
+          "source_rule_id": "safety_ip_brand_similarity",
+          "export_gate": "hold_until_admin_review",
+          "requires_trace_safety_status": true,
+          "requires_persisted_decision": true,
+          "requires_audit": true,
+          "user_visible_outcome": "Hold QA completion until admin review resolves the brand/IP risk."
+        },
+        {
+          "decision": "block",
+          "source_fixture_id": "fx_unsafe_financial_claim",
+          "source_rule_id": "safety_financial_guaranteed_returns",
+          "export_gate": "block_final_export",
+          "requires_trace_safety_status": true,
+          "requires_persisted_decision": true,
+          "requires_audit": true,
+          "user_visible_outcome": "Block final export from QA when the claim is prohibited."
+        }
+      ]
+    },
+    {
+      "enforcement_point": "export",
+      "actions": [
+        {
+          "decision": "allow",
+          "source_fixture_id": "fx_text_heavy_structured_details",
+          "source_rule_id": "default_no_match",
+          "export_gate": "allow_when_export_contract_complete",
+          "requires_trace_safety_status": true,
+          "requires_persisted_decision": true,
+          "requires_audit": false,
+          "user_visible_outcome": "Allow final export when manifest, QA report, metadata, and trace provenance are present."
+        },
+        {
+          "decision": "warn",
+          "source_fixture_id": "fx_business_visual_doc_golden",
+          "source_rule_id": "safety_business_claims_review",
+          "export_gate": "allow_with_warning",
+          "requires_trace_safety_status": true,
+          "requires_persisted_decision": true,
+          "requires_audit": true,
+          "user_visible_outcome": "Allow export while preserving the safety warning in the package metadata."
+        },
+        {
+          "decision": "require_user_confirmation",
+          "source_fixture_id": "fx_confirmation_sensitive_claim",
+          "source_rule_id": "safety_sensitive_business_claim_confirmation",
+          "export_gate": "hold_until_user_confirmation",
+          "requires_trace_safety_status": true,
+          "requires_persisted_decision": true,
+          "requires_audit": true,
+          "user_visible_outcome": "Hold final export until user confirmation is audited."
+        },
+        {
+          "decision": "require_admin_review",
+          "source_fixture_id": "fx_brand_product_preservation",
+          "source_rule_id": "safety_ip_brand_similarity",
+          "export_gate": "hold_until_admin_review",
+          "requires_trace_safety_status": true,
+          "requires_persisted_decision": true,
+          "requires_audit": true,
+          "user_visible_outcome": "Hold final export until admin review is audited."
+        },
+        {
+          "decision": "block",
+          "source_fixture_id": "fx_red_team_minor_adult_content",
+          "source_rule_id": "safety_minor_adult_content",
+          "export_gate": "block_final_export",
+          "requires_trace_safety_status": true,
+          "requires_persisted_decision": true,
+          "requires_audit": true,
+          "user_visible_outcome": "Block final export with no override path."
+        }
+      ]
+    }
+  ],
   "fixture_links": [
     {
       "fixture_id": "fx_unsafe_financial_claim",
@@ -159,6 +436,18 @@
     {
       "fixture_id": "fx_character_ip_concept_golden",
       "expected_safety_action": "require_admin_review",
+      "required_enforcement_points": [
+        "brief",
+        "provider_request",
+        "provider_response",
+        "qa",
+        "export"
+      ],
+      "must_block_final_export": false
+    },
+    {
+      "fixture_id": "fx_confirmation_sensitive_claim",
+      "expected_safety_action": "require_user_confirmation",
       "required_enforcement_points": [
         "brief",
         "provider_request",

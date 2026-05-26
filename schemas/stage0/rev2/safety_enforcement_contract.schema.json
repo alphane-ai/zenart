@@ -11,6 +11,7 @@
     "required_enforcement_points",
     "decision_storage_contract",
     "runtime_contracts",
+    "decision_matrix",
     "fixture_links",
     "release_gate_policy",
     "provenance"
@@ -158,6 +159,90 @@
         }
       }
     },
+    "decision_matrix": {
+      "type": "array",
+      "minItems": 5,
+      "maxItems": 5,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "enforcement_point",
+          "actions"
+        ],
+        "properties": {
+          "enforcement_point": {
+            "enum": [
+              "brief",
+              "provider_request",
+              "provider_response",
+              "qa",
+              "export"
+            ]
+          },
+          "actions": {
+            "type": "array",
+            "minItems": 5,
+            "maxItems": 5,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "decision",
+                "source_fixture_id",
+                "source_rule_id",
+                "export_gate",
+                "requires_trace_safety_status",
+                "requires_persisted_decision",
+                "requires_audit",
+                "user_visible_outcome"
+              ],
+              "properties": {
+                "decision": {
+                  "enum": [
+                    "allow",
+                    "warn",
+                    "require_user_confirmation",
+                    "require_admin_review",
+                    "block"
+                  ]
+                },
+                "source_fixture_id": {
+                  "type": "string",
+                  "pattern": "^fx_[a-z0-9_]+$"
+                },
+                "source_rule_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "export_gate": {
+                  "enum": [
+                    "allow_when_export_contract_complete",
+                    "allow_with_warning",
+                    "hold_until_user_confirmation",
+                    "hold_until_admin_review",
+                    "block_final_export"
+                  ]
+                },
+                "requires_trace_safety_status": {
+                  "const": true
+                },
+                "requires_persisted_decision": {
+                  "const": true
+                },
+                "requires_audit": {
+                  "type": "boolean"
+                },
+                "user_visible_outcome": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "fixture_links": {
       "type": "array",
       "minItems": 2,
@@ -178,6 +263,7 @@
           "expected_safety_action": {
             "enum": [
               "block",
+              "require_user_confirmation",
               "require_admin_review",
               "warn"
             ]
