@@ -162,8 +162,13 @@ required_fragments = [
     "- Decision: `no-go`",
     "fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json",
     "fixtures/stage0/rev2/release_gate_evidence.production_launch.json",
-    "staging logs, metrics, traces, dashboard import, and alert-route evidence required",
-    "Staging load evidence: `missing`; required JSON must reference the release SHA, set `environment=staging`, set `kind=load`, and record status `passed` before private beta/production decisions.",
+    "Staging smoke: `missing`; staging JSON must reference the release SHA, set `environment=staging`, set `kind=post_deploy_smoke`, record status `passed`, verify backend health/readiness, web, admin, auth boundary, worker task, export/package, signed download, crawler admin, quota/rate-limit, request-id observability categories, and include seeded user, tenant, task, package, and export smoke IDs.",
+    "Config diff: `missing`; staging JSON must reference the release SHA, set `environment=staging`, set `kind=config_diff`, and record status `passed`, `reviewed`, or `no_diff` before private beta/production decisions.",
+    "Observability smoke: local status `passed` from `ops/evidence/observability/local/20260526T192311Z-observability-smoke-7780.json`; staging JSON must reference the release SHA, set `environment=staging`, set `kind=observability`, record status `passed`, and include passed/validated evidence refs for request-id propagation, structured JSON logs, OpenTelemetry traces, backend/worker/crawler metrics, dashboard import, and alert routes.",
+    "Backup/restore drill: local status `passed` from `ops/evidence/backup-restore/local/20260526T153126Z/report.json`; staging JSON must reference the release SHA, set `environment=staging`, set `kind=backup_restore`, record status `passed`, and include passed/validated evidence refs for Postgres restore and exported package/object restore before private beta/production decisions.",
+    "Load evidence: `missing`; staging JSON must reference the release SHA, set `environment=staging`, set `kind=load`, record status `passed`, and include passed/validated evidence refs for `chat_task`, `worker_generation`, `zip_export`, `signed_download`, `crawler_throttle`, `quota_contention`, and `workspace_rendering` before private beta/production decisions.",
+    "Rollback drill: `missing`; staging JSON must reference the release SHA, set `environment=staging`, set `kind=rollback`, record status `passed` or `validated`, and include passed/validated evidence refs for image rollback, feature flag rollback, migration compatibility, worker drain, and post-rollback smoke.",
+    "Security scan: local status `passed` from `ops/evidence/security/local/20260526T142040Z-security-scan-smoke-65314.json`; staging JSON must reference the release SHA, set `environment=staging`, set `kind=security_scan`, record status `passed`, and include passed/validated evidence refs for dependency, image/container, and committed-secret scans before private beta/production decisions.",
     "## Open Rev2 Runtime Checklist",
     "Observability runtime: staging request id propagation runtime evidence 通过",
     "Private Beta/Staging external-user runtime evidence 通过",
@@ -171,6 +176,18 @@ required_fragments = [
 missing = [fragment for fragment in required_fragments if fragment not in notes]
 if missing:
     raise SystemExit(f"release no-go notes missing required fragments: {missing}")
+if notes.count("- Load evidence:") != 1:
+    raise SystemExit("release no-go notes must contain exactly one Load evidence line")
+if notes.count("- Load smoke:") != 1:
+    raise SystemExit("release no-go notes must contain exactly one local Load smoke summary line")
+
+template = Path("ops/release/release_notes_template.md").read_text(encoding="utf-8")
+if template.count("- Load evidence:") != 1:
+    raise SystemExit("release notes template must contain exactly one Load evidence slot")
+if template.count("- Load smoke run:") != 1:
+    raise SystemExit("release notes template must contain exactly one Load smoke run slot")
+if "seeded user, tenant, task, package, and export smoke IDs" not in template:
+    raise SystemExit("release notes template must require seeded runtime smoke IDs")
 PY
 
 log "backend Go validation"
