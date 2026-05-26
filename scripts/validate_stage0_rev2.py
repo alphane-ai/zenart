@@ -204,6 +204,58 @@ RELEASE_GATE_REQUIRED_ACTIVE_CONDITIONS = {
     },
 }
 
+RELEASE_GATE_BACKFILL_CHECKED_ITEMS = {
+    "Backfill Local Alpha release gate fixture evidence: workflow/eval/crawler/schema/service/runtime-stack checks pass in `fixtures/stage0/rev2/release_gate_evidence.local_alpha.json`。",
+    "Backfill CI draft/no-go evidence: ops CI draft coverage passes while installed `.github/workflows` runtime remains blocked in `fixtures/stage0/rev2/release_gate_evidence.ci.json`。",
+    "Backfill Private Beta/Staging no-go evidence: contract/fixture evidence is separated from external-user staging runtime blockers in `fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json`。",
+    "Backfill Production Launch no-go evidence: provider/billing/skill/activation/abuse/security/backup/legal blockers remain active in `fixtures/stage0/rev2/release_gate_evidence.production_launch.json`。",
+}
+
+RELEASE_GATE_RUNTIME_OPEN_ITEMS = {
+    "Local Alpha workflow API/Playwright end-to-end smoke evidence 通过并写入 release gate fixture。",
+    "CI installed workflow runtime evidence 通过：PR/main run、Playwright smoke、Docker image build 均有 validator-resolvable evidence。",
+    "Private Beta/Staging external-user runtime evidence 通过：auth/RBAC/tenant、storage、quota/rate limit、support/abuse、safety/QA/crawler、observability/backup/load、legal visibility 均有 staging evidence。",
+    "Production Launch runtime/deployment evidence 通过：provider-or-comp-only、paid lifecycle、skill canary、activation audit、abuse hold、security、backup/rollback/post-deploy smoke、legal/support policy 均有 production evidence。",
+}
+
+RUNTIME_GATE_CHECK_IDS = {
+    "local_alpha": {"local_alpha_e2e_workflow_smoke"},
+    "ci": {
+        "ci_installed_workflow",
+        "ci_gate_runtime_execution",
+        "ci_playwright_smoke",
+        "ci_docker_image_build",
+    },
+    "private_beta_staging": RELEASE_GATE_REQUIRED_CHECKS["private_beta_staging"],
+    "production_launch": RELEASE_GATE_REQUIRED_CHECKS["production_launch"],
+}
+
+DEFINITION_ONLY_EVIDENCE_RE = re.compile(
+    r"("
+    r"Docs/stage0_blueprint_rev2\.md|"
+    r"README\.md|"
+    r"schemas/stage0/rev2|"
+    r"fixtures/stage0/rev2/(?:workflows|eval|crawler|feedback|abuse|analytics)|"
+    r"fixtures/ops/stage0_rev2_ci_draft_evidence\.json|"
+    r"ops/ci/|"
+    r"ops/release/release_notes_template\.md"
+    r")"
+)
+
+RUNTIME_EVIDENCE_RE = re.compile(
+    r"("
+    r"\.github/workflows/|"
+    r"ops/evidence/|"
+    r"ops/release/stage0_rev2_current_no_go_release_notes\.md|"
+    r"scripts/(?:playwright_smoke|docker_build_smoke|staging_smoke|backup_restore_drill|load_smoke|observability_smoke|security_scan_smoke)\.sh|"
+    r"backend/|"
+    r"web/|"
+    r"admin/|"
+    r"docker-compose\.yml|"
+    r"\.env\.example"
+    r")"
+)
+
 DO_NOT_LAUNCH_CONDITION_COVERAGE = {
     "local_alpha": {
         "generic_workflow_only": "Vertical workflows 只通过 generic rendering tests，没有 domain fixtures、four-option taxonomy、required outputs、QA/safety checks、manifest validation。",
@@ -495,6 +547,10 @@ CHECKED_ITEMS = {
     "添加 trace completeness tests。",
     "定义 release gate evidence schema/fixtures 和 no-go release notes renderer。",
     "定义 post-deploy smoke evidence contract。",
+    "Backfill Local Alpha release gate fixture evidence: workflow/eval/crawler/schema/service/runtime-stack checks pass in `fixtures/stage0/rev2/release_gate_evidence.local_alpha.json`。",
+    "Backfill CI draft/no-go evidence: ops CI draft coverage passes while installed `.github/workflows` runtime remains blocked in `fixtures/stage0/rev2/release_gate_evidence.ci.json`。",
+    "Backfill Private Beta/Staging no-go evidence: contract/fixture evidence is separated from external-user staging runtime blockers in `fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json`。",
+    "Backfill Production Launch no-go evidence: provider/billing/skill/activation/abuse/security/backup/legal blockers remain active in `fixtures/stage0/rev2/release_gate_evidence.production_launch.json`。",
 }
 
 FORBIDDEN_CHECKED_ITEMS = {
@@ -517,6 +573,10 @@ REQUIRED_OPEN_ITEMS = {
     "Private Beta/Staging Gate 全部通过。",
     "Production Launch Gate 全部通过。",
     "Do-Not-Launch Conditions 全部为 false。",
+    "Local Alpha workflow API/Playwright end-to-end smoke evidence 通过并写入 release gate fixture。",
+    "CI installed workflow runtime evidence 通过：PR/main run、Playwright smoke、Docker image build 均有 validator-resolvable evidence。",
+    "Private Beta/Staging external-user runtime evidence 通过：auth/RBAC/tenant、storage、quota/rate limit、support/abuse、safety/QA/crawler、observability/backup/load、legal visibility 均有 staging evidence。",
+    "Production Launch runtime/deployment evidence 通过：provider-or-comp-only、paid lifecycle、skill canary、activation audit、abuse hold、security、backup/rollback/post-deploy smoke、legal/support policy 均有 production evidence。",
     "crawler fetch/import 强制 source approval runtime gate。",
     "电商增长包 API smoke test 通过。",
     "电商增长包 Playwright happy path 通过。",
@@ -1100,6 +1160,59 @@ def validate_gate_cannot_pass_with_open_items(
             require(
                 checks[check_id]["status"] != "pass",
                 f"{gate}.{check_id} cannot pass while checklist item remains open: {item}",
+            )
+
+
+def validate_runtime_gate_evidence_refs(
+    gate: str,
+    data: dict[str, Any],
+    unchecked_lines: set[str],
+) -> None:
+    checks = checks_by_id(data)
+    runtime_check_ids = RUNTIME_GATE_CHECK_IDS.get(gate, set())
+    if not runtime_check_ids:
+        return
+
+    for check_id in runtime_check_ids:
+        require(check_id in checks, f"{gate} runtime gate guard references unknown check {check_id}")
+        check = checks[check_id]
+        evidence_ref = check["evidence_ref"]
+        if check["status"] == "pass":
+            require(
+                RUNTIME_EVIDENCE_RE.search(evidence_ref) is not None,
+                f"{gate}.{check_id} pass evidence must cite runtime/deployment evidence, not only fixture prose",
+            )
+            require(
+                DEFINITION_ONLY_EVIDENCE_RE.fullmatch(evidence_ref.strip()) is None,
+                f"{gate}.{check_id} pass evidence cannot be a definition-only artifact",
+            )
+
+    runtime_items_open = RELEASE_GATE_RUNTIME_OPEN_ITEMS & unchecked_lines
+    if gate == "local_alpha":
+        relevant_runtime_open = {
+            "Local Alpha workflow API/Playwright end-to-end smoke evidence 通过并写入 release gate fixture。"
+        } & runtime_items_open
+    elif gate == "ci":
+        relevant_runtime_open = {
+            "CI installed workflow runtime evidence 通过：PR/main run、Playwright smoke、Docker image build 均有 validator-resolvable evidence。"
+        } & runtime_items_open
+    elif gate == "private_beta_staging":
+        relevant_runtime_open = {
+            "Private Beta/Staging external-user runtime evidence 通过：auth/RBAC/tenant、storage、quota/rate limit、support/abuse、safety/QA/crawler、observability/backup/load、legal visibility 均有 staging evidence。"
+        } & runtime_items_open
+    elif gate == "production_launch":
+        relevant_runtime_open = {
+            "Production Launch runtime/deployment evidence 通过：provider-or-comp-only、paid lifecycle、skill canary、activation audit、abuse hold、security、backup/rollback/post-deploy smoke、legal/support policy 均有 production evidence。"
+        } & runtime_items_open
+    else:
+        relevant_runtime_open = set()
+
+    if relevant_runtime_open:
+        for check_id in runtime_check_ids:
+            require(
+                checks[check_id]["status"] != "pass",
+                f"{gate}.{check_id} cannot pass while runtime evidence checklist item remains open: "
+                + json.dumps(sorted(relevant_runtime_open), ensure_ascii=False),
             )
 
 
@@ -1889,6 +2002,7 @@ def validate_release_gate_evidence() -> None:
         validate_release_gate_basics(gate_evidence)
         validate_do_not_launch_condition_coverage(gate_evidence)
         validate_gate_cannot_pass_with_open_items(gate, gate_evidence, blueprint_unchecked)
+        validate_runtime_gate_evidence_refs(gate, gate_evidence, blueprint_unchecked)
 
     local_alpha = load_json(FIXTURE_DIR / "release_gate_evidence.local_alpha.json")
     require(local_alpha["gate"] == "local_alpha", "release gate fixture must target local alpha")
@@ -2118,6 +2232,7 @@ def validate_blueprint_checklist() -> None:
         validate_release_gate_basics(evidence[gate])
         validate_do_not_launch_condition_coverage(evidence[gate])
         validate_gate_cannot_pass_with_open_items(gate, evidence[gate], unchecked_lines)
+        validate_runtime_gate_evidence_refs(gate, evidence[gate], unchecked_lines)
         blockers = gate_blockers(evidence[gate])
         require(
             blockers["blocked_or_failing_checks"] or blockers["active_do_not_launch_conditions"],
@@ -2700,7 +2815,7 @@ def validate_launch_readiness_split_contracts() -> None:
         "定义 alerts。",
         "定义 release gate evidence schema/fixtures 和 no-go release notes renderer。",
         "定义 post-deploy smoke evidence contract。",
-    ]:
+    ] + sorted(RELEASE_GATE_BACKFILL_CHECKED_ITEMS):
         require(item in checked_lines, f"blueprint must close definition-only evidence subitem: {item}")
 
     for item in [
@@ -2714,7 +2829,7 @@ def validate_launch_readiness_split_contracts() -> None:
         "实现 backend/worker/crawler metrics。",
         "Staging post-deploy smoke tests 通过。",
         "Production post-deploy smoke tests 通过。",
-    ]:
+    ] + sorted(RELEASE_GATE_RUNTIME_OPEN_ITEMS):
         require(item in unchecked_lines, f"blueprint must keep runtime launch-readiness subitem open: {item}")
 
     for ambiguous in [
@@ -2724,11 +2839,21 @@ def validate_launch_readiness_split_contracts() -> None:
         "实现 dashboards。",
         "实现 alerts。",
         "Post-deploy smoke tests 通过。",
+        "Backfill release gate evidence。",
+        "Runtime release gate evidence 通过。",
     ]:
         require(
             ambiguous not in checked_lines and ambiguous not in unchecked_lines,
             f"ambiguous launch-readiness checklist item must stay split: {ambiguous}",
         )
+
+    for token in [
+        "Fixture or contract evidence can never close CI, Private Beta/Staging, Production Launch, or Do-Not-Launch checklist items by itself",
+        "Runtime gate checks that pass must cite environment-specific evidence paths",
+        "Local Alpha remains open until four workflow API/Playwright smokes",
+        "Do-Not-Launch Conditions 全部为 false。` remains open while any release-gate evidence fixture has `is_present: true`",
+    ]:
+        require(token in text, f"blueprint release gate closure policy missing token: {token}")
 
     required_ci_tokens = [
         "playwright-smoke",

@@ -1973,6 +1973,14 @@ main 合并前必须通过：
 - [x] 定义 release gate evidence schema/fixtures 和 no-go release notes renderer。
 - [x] 定义 post-deploy smoke evidence contract。
 - [x] Release notes 包含 SHA、migration list、config diff、feature flags、owner、smoke plan、rollback plan、known risks、go/no-go。
+- [x] Backfill Local Alpha release gate fixture evidence: workflow/eval/crawler/schema/service/runtime-stack checks pass in `fixtures/stage0/rev2/release_gate_evidence.local_alpha.json`。
+- [ ] Local Alpha workflow API/Playwright end-to-end smoke evidence 通过并写入 release gate fixture。
+- [x] Backfill CI draft/no-go evidence: ops CI draft coverage passes while installed `.github/workflows` runtime remains blocked in `fixtures/stage0/rev2/release_gate_evidence.ci.json`。
+- [ ] CI installed workflow runtime evidence 通过：PR/main run、Playwright smoke、Docker image build 均有 validator-resolvable evidence。
+- [x] Backfill Private Beta/Staging no-go evidence: contract/fixture evidence is separated from external-user staging runtime blockers in `fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json`。
+- [ ] Private Beta/Staging external-user runtime evidence 通过：auth/RBAC/tenant、storage、quota/rate limit、support/abuse、safety/QA/crawler、observability/backup/load、legal visibility 均有 staging evidence。
+- [x] Backfill Production Launch no-go evidence: provider/billing/skill/activation/abuse/security/backup/legal blockers remain active in `fixtures/stage0/rev2/release_gate_evidence.production_launch.json`。
+- [ ] Production Launch runtime/deployment evidence 通过：provider-or-comp-only、paid lifecycle、skill canary、activation audit、abuse hold、security、backup/rollback/post-deploy smoke、legal/support policy 均有 production evidence。
 - [ ] Staging post-deploy smoke tests 通过。
 - [ ] Production post-deploy smoke tests 通过。
 
@@ -1990,6 +1998,8 @@ Release gate closure policy:
 - Passed gate checks and cleared Do-Not-Launch conditions must cite validator-resolvable repository artifacts such as `fixtures/`, `schemas/`, `openapi/`, `scripts/`, `backend/`, `web/`, `admin/`, `ops/`, `.env.example`, or `docker-compose.yml`; prose-only evidence is not sufficient.
 - A blocked Do-Not-Launch condition must state the missing runtime or deployment evidence; prose-only readiness claims are not sufficient.
 - Definition-only artifacts can close checklist subitems only when the corresponding runtime subitem remains open.
+- Fixture or contract evidence can never close CI, Private Beta/Staging, Production Launch, or Do-Not-Launch checklist items by itself; those gates require runtime or deployment evidence in their matching release gate fixture.
+- Runtime gate checks that pass must cite environment-specific evidence paths, not only schema, fixture, draft, README, blueprint, or contract artifacts.
 - Local Alpha remains open until four workflow API/Playwright smokes prove brief -> 4 candidates -> select -> iterate -> package -> export ZIP against the running local stack.
 - CI remains open until an installed `.github/workflows` PR/main workflow runs and records Playwright smoke plus Docker image build evidence.
 - Private Beta/Staging remains open until external-user staging runtime evidence exists for auth/RBAC/tenant isolation, object storage signed downloads, quota/rate limits, support/abuse, safety/QA/crawler enforcement, observability/backup/load, and legal page visibility.
