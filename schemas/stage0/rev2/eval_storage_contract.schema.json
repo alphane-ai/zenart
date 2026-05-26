@@ -1,0 +1,379 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zenart.local/schemas/stage0/rev2/eval_storage_contract.schema.json",
+  "title": "ZenArt Stage 0 Rev2 Eval Storage Contract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "contract_id",
+    "blueprint_source",
+    "stored_result_fixture",
+    "table_contract",
+    "write_contract",
+    "read_contract",
+    "replay_contract",
+    "retention_contract",
+    "release_gate_contract",
+    "openapi_contract",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "stage0.rev2"
+    },
+    "contract_id": {
+      "type": "string",
+      "pattern": "^eval_storage_contract_[a-z0-9_]+$"
+    },
+    "blueprint_source": {
+      "const": "Docs/stage0_blueprint_rev2.md"
+    },
+    "stored_result_fixture": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "result_id",
+        "suite_id",
+        "status",
+        "candidate_status_after_eval",
+        "runner_sha256_required"
+      ],
+      "properties": {
+        "path": {
+          "const": "fixtures/stage0/rev2/eval/starter_eval_results.json"
+        },
+        "result_id": {
+          "type": "string",
+          "pattern": "^eval_result_[a-z0-9_]+$"
+        },
+        "suite_id": {
+          "type": "string",
+          "pattern": "^eval_[a-z0-9_]+$"
+        },
+        "status": {
+          "enum": [
+            "pass",
+            "fail",
+            "blocked"
+          ]
+        },
+        "candidate_status_after_eval": {
+          "enum": [
+            "draft",
+            "eligible_for_canary",
+            "eligible_for_active",
+            "blocked"
+          ]
+        },
+        "runner_sha256_required": {
+          "const": true
+        }
+      }
+    },
+    "table_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "table",
+        "required_columns",
+        "required_indexes",
+        "tenant_scoped",
+        "subject_scoped",
+        "summary_json_contains_fixture_results",
+        "latest_result_resolvable"
+      ],
+      "properties": {
+        "table": {
+          "const": "eval_results"
+        },
+        "required_columns": {
+          "type": "array",
+          "minItems": 12,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "id",
+              "tenant_id",
+              "eval_suite_id",
+              "subject_type",
+              "subject_id",
+              "subject_version",
+              "status",
+              "summary",
+              "runner",
+              "runner_sha256",
+              "completed_at",
+              "created_at"
+            ]
+          }
+        },
+        "required_indexes": {
+          "type": "array",
+          "minItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "idx_eval_results_tenant_suite_subject_created_at",
+              "idx_eval_results_subject_status_completed_at"
+            ]
+          }
+        },
+        "tenant_scoped": {
+          "const": true
+        },
+        "subject_scoped": {
+          "const": true
+        },
+        "summary_json_contains_fixture_results": {
+          "const": true
+        },
+        "latest_result_resolvable": {
+          "const": true
+        }
+      }
+    },
+    "write_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "runner",
+        "write_command",
+        "writes_stored_fixture",
+        "persists_runner_sha256",
+        "persists_completed_at",
+        "persists_subject_version",
+        "idempotency_key_fields",
+        "transaction_boundary"
+      ],
+      "properties": {
+        "runner": {
+          "const": "scripts/run_stage0_eval.py"
+        },
+        "write_command": {
+          "const": "python3 scripts/run_stage0_eval.py --write"
+        },
+        "writes_stored_fixture": {
+          "const": true
+        },
+        "persists_runner_sha256": {
+          "const": true
+        },
+        "persists_completed_at": {
+          "const": true
+        },
+        "persists_subject_version": {
+          "const": true
+        },
+        "idempotency_key_fields": {
+          "type": "array",
+          "minItems": 5,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "tenant_id",
+              "eval_suite_id",
+              "subject_type",
+              "subject_id",
+              "subject_version",
+              "runner_sha256"
+            ]
+          }
+        },
+        "transaction_boundary": {
+          "enum": [
+            "single_eval_result_insert",
+            "single_eval_result_upsert"
+          ]
+        }
+      }
+    },
+    "read_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "list_operation_id",
+        "required_query_filters",
+        "admin_rbac_required",
+        "tenant_filter_required",
+        "latest_result_order",
+        "page_schema"
+      ],
+      "properties": {
+        "list_operation_id": {
+          "const": "listEvalResults"
+        },
+        "required_query_filters": {
+          "type": "array",
+          "minItems": 6,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "tenant_id",
+              "eval_suite_id",
+              "subject_type",
+              "subject_id",
+              "status",
+              "completed_after"
+            ]
+          }
+        },
+        "admin_rbac_required": {
+          "const": true
+        },
+        "tenant_filter_required": {
+          "const": true
+        },
+        "latest_result_order": {
+          "const": "completed_at_desc"
+        },
+        "page_schema": {
+          "const": "EvalResultPage"
+        }
+      }
+    },
+    "replay_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "check_command",
+        "check_mode_compares_exact_json",
+        "runner_sha256_matches_runner_file",
+        "source_fixtures"
+      ],
+      "properties": {
+        "check_command": {
+          "const": "python3 scripts/run_stage0_eval.py --check"
+        },
+        "check_mode_compares_exact_json": {
+          "const": true
+        },
+        "runner_sha256_matches_runner_file": {
+          "const": true
+        },
+        "source_fixtures": {
+          "type": "array",
+          "minItems": 4,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "retention_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "retain_pass_fail_blocked_results",
+        "retain_summary_json",
+        "retain_runner_hash",
+        "deletion_requires_admin_audit"
+      ],
+      "properties": {
+        "retain_pass_fail_blocked_results": {
+          "const": true
+        },
+        "retain_summary_json": {
+          "const": true
+        },
+        "retain_runner_hash": {
+          "const": true
+        },
+        "deletion_requires_admin_audit": {
+          "const": true
+        }
+      }
+    },
+    "release_gate_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "activation_contract_fixture",
+        "requires_eval_pass_for_skill_canary",
+        "requires_eval_pass_for_skill_active",
+        "requires_eval_pass_for_prompt_fragment_active",
+        "blocked_result_denies_activation"
+      ],
+      "properties": {
+        "activation_contract_fixture": {
+          "const": "fixtures/stage0/rev2/eval/activation_gate_contract.json"
+        },
+        "requires_eval_pass_for_skill_canary": {
+          "const": true
+        },
+        "requires_eval_pass_for_skill_active": {
+          "const": true
+        },
+        "requires_eval_pass_for_prompt_fragment_active": {
+          "const": true
+        },
+        "blocked_result_denies_activation": {
+          "const": true
+        }
+      }
+    },
+    "openapi_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "operation_id",
+        "response_schema",
+        "rbac",
+        "required_parameters"
+      ],
+      "properties": {
+        "path": {
+          "const": "/eval/results"
+        },
+        "operation_id": {
+          "const": "listEvalResults"
+        },
+        "response_schema": {
+          "const": "EvalResultPage"
+        },
+        "rbac": {
+          "const": "admin"
+        },
+        "required_parameters": {
+          "type": "array",
+          "minItems": 5,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "StatusFilter",
+              "EvalSuiteIdFilter",
+              "EvalSubjectTypeFilter",
+              "SubjectIdFilter",
+              "CompletedAfterFilter"
+            ]
+          }
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "blueprint_sections",
+        "created_by_lane"
+      ],
+      "properties": {
+        "blueprint_sections": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "^((14|15|25)\\.|24$)"
+          }
+        },
+        "created_by_lane": {
+          "const": "lane2"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,115 @@
+{
+  "schema_version": "stage0.rev2",
+  "contract_id": "eval_storage_contract_stage0_rev2_results",
+  "blueprint_source": "Docs/stage0_blueprint_rev2.md",
+  "stored_result_fixture": {
+    "path": "fixtures/stage0/rev2/eval/starter_eval_results.json",
+    "result_id": "eval_result_stage0_rev2_starter_contract",
+    "suite_id": "eval_stage0_rev2_starter",
+    "status": "blocked",
+    "candidate_status_after_eval": "blocked",
+    "runner_sha256_required": true
+  },
+  "table_contract": {
+    "table": "eval_results",
+    "required_columns": [
+      "id",
+      "tenant_id",
+      "eval_suite_id",
+      "subject_type",
+      "subject_id",
+      "subject_version",
+      "status",
+      "summary",
+      "runner",
+      "runner_sha256",
+      "completed_at",
+      "created_at"
+    ],
+    "required_indexes": [
+      "idx_eval_results_tenant_suite_subject_created_at",
+      "idx_eval_results_subject_status_completed_at"
+    ],
+    "tenant_scoped": true,
+    "subject_scoped": true,
+    "summary_json_contains_fixture_results": true,
+    "latest_result_resolvable": true
+  },
+  "write_contract": {
+    "runner": "scripts/run_stage0_eval.py",
+    "write_command": "python3 scripts/run_stage0_eval.py --write",
+    "writes_stored_fixture": true,
+    "persists_runner_sha256": true,
+    "persists_completed_at": true,
+    "persists_subject_version": true,
+    "idempotency_key_fields": [
+      "tenant_id",
+      "eval_suite_id",
+      "subject_type",
+      "subject_id",
+      "subject_version",
+      "runner_sha256"
+    ],
+    "transaction_boundary": "single_eval_result_insert"
+  },
+  "read_contract": {
+    "list_operation_id": "listEvalResults",
+    "required_query_filters": [
+      "tenant_id",
+      "eval_suite_id",
+      "subject_type",
+      "subject_id",
+      "status",
+      "completed_after"
+    ],
+    "admin_rbac_required": true,
+    "tenant_filter_required": true,
+    "latest_result_order": "completed_at_desc",
+    "page_schema": "EvalResultPage"
+  },
+  "replay_contract": {
+    "check_command": "python3 scripts/run_stage0_eval.py --check",
+    "check_mode_compares_exact_json": true,
+    "runner_sha256_matches_runner_file": true,
+    "source_fixtures": [
+      "fixtures/stage0/rev2/eval/starter_eval_suite.json",
+      "fixtures/stage0/rev2/eval/qa_results.json",
+      "fixtures/stage0/rev2/eval/safety_rules.json",
+      "fixtures/stage0/rev2/workflows"
+    ]
+  },
+  "retention_contract": {
+    "retain_pass_fail_blocked_results": true,
+    "retain_summary_json": true,
+    "retain_runner_hash": true,
+    "deletion_requires_admin_audit": true
+  },
+  "release_gate_contract": {
+    "activation_contract_fixture": "fixtures/stage0/rev2/eval/activation_gate_contract.json",
+    "requires_eval_pass_for_skill_canary": true,
+    "requires_eval_pass_for_skill_active": true,
+    "requires_eval_pass_for_prompt_fragment_active": true,
+    "blocked_result_denies_activation": true
+  },
+  "openapi_contract": {
+    "path": "/eval/results",
+    "operation_id": "listEvalResults",
+    "response_schema": "EvalResultPage",
+    "rbac": "admin",
+    "required_parameters": [
+      "StatusFilter",
+      "EvalSuiteIdFilter",
+      "EvalSubjectTypeFilter",
+      "SubjectIdFilter",
+      "CompletedAfterFilter"
+    ]
+  },
+  "provenance": {
+    "blueprint_sections": [
+      "14.1",
+      "14.2",
+      "25.11"
+    ],
+    "created_by_lane": "lane2"
+  }
+}

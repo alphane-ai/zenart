@@ -462,6 +462,7 @@ RELEASE_GATE_OPEN_ITEM_GUARD_CHECKS = {
 SCHEMA_FIXTURE_TARGETS = [
     ("activation_gate_contract.schema.json", FIXTURE_DIR / "eval" / "activation_gate_contract.json", "object"),
     ("analytics_taxonomy.schema.json", FIXTURE_DIR / "analytics" / "event_taxonomy.json", "object"),
+    ("eval_storage_contract.schema.json", FIXTURE_DIR / "eval" / "eval_storage_contract.json", "object"),
     ("eval_suite.schema.json", FIXTURE_DIR / "eval" / "starter_eval_suite.json", "object"),
     ("eval_result.schema.json", FIXTURE_DIR / "eval" / "starter_eval_results.json", "array_items"),
     ("trace_completeness.schema.json", FIXTURE_DIR / "eval" / "trace_completeness.json", "object"),
@@ -1334,6 +1335,7 @@ def validate_json_files() -> None:
     required = [
         SCHEMA_DIR / "eval_suite.schema.json",
         SCHEMA_DIR / "eval_result.schema.json",
+        SCHEMA_DIR / "eval_storage_contract.schema.json",
         SCHEMA_DIR / "activation_gate_contract.schema.json",
         SCHEMA_DIR / "qa_result.schema.json",
         SCHEMA_DIR / "safety_rule.schema.json",
@@ -1347,6 +1349,7 @@ def validate_json_files() -> None:
         SCHEMA_DIR / "release_gate_evidence.schema.json",
         FIXTURE_DIR / "eval" / "starter_eval_suite.json",
         FIXTURE_DIR / "eval" / "starter_eval_results.json",
+        FIXTURE_DIR / "eval" / "eval_storage_contract.json",
         FIXTURE_DIR / "eval" / "activation_gate_contract.json",
         FIXTURE_DIR / "eval" / "trace_completeness.json",
         FIXTURE_DIR / "eval" / "safety_enforcement_contract.json",
@@ -2480,6 +2483,20 @@ def validate_eval_result_contract() -> None:
     )
 
 
+def validate_eval_storage_contract() -> None:
+    result = subprocess.run(
+        [sys.executable, str(ROOT / "scripts" / "validate_eval_storage_contract.py")],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    require(
+        result.returncode == 0,
+        "eval storage contract validation failed: " + (result.stderr or result.stdout).strip(),
+    )
+
+
 def validate_activation_gate_contract() -> None:
     result = subprocess.run(
         [sys.executable, str(ROOT / "scripts" / "validate_activation_gate_contract.py")],
@@ -3351,6 +3368,7 @@ def main() -> int:
         validate_openapi_contract,
         validate_openapi_rev2_domain_contracts,
         validate_eval_result_contract,
+        validate_eval_storage_contract,
         validate_activation_gate_contract,
         validate_trace_completeness_contract,
         validate_safety_enforcement_contract,

@@ -16,6 +16,7 @@ FIXTURE_DIR = ROOT / "fixtures" / "stage0" / "rev2"
 RESULTS = FIXTURE_DIR / "eval" / "starter_eval_results.json"
 SUITE = FIXTURE_DIR / "eval" / "starter_eval_suite.json"
 QA_RESULTS = FIXTURE_DIR / "eval" / "qa_results.json"
+STORAGE_CONTRACT = FIXTURE_DIR / "eval" / "eval_storage_contract.json"
 OPENAPI = ROOT / "openapi" / "zenart.v1.yaml"
 MIGRATION = ROOT / "backend" / "migrations" / "0002_stage0_rev2_domains.sql"
 RUNNER = ROOT / "scripts" / "run_stage0_eval.py"
@@ -290,12 +291,20 @@ def validate_fixture_result_links() -> None:
 def validate_storage_contract() -> None:
     migration = MIGRATION.read_text(encoding="utf-8")
     results = load_json(RESULTS)
+    storage_contract = load_json(STORAGE_CONTRACT)
     storage = results[0]["storage_contract"]
+    table_contract = storage_contract["table_contract"]
+    write_contract = storage_contract["write_contract"]
+    read_contract = storage_contract["read_contract"]
+    replay_contract = storage_contract["replay_contract"]
 
     require("CREATE TABLE IF NOT EXISTS eval_results" in migration, "eval_results table missing")
     require(set(storage["required_columns"]) == STORAGE_COLUMNS, "eval result storage columns mismatch")
+    require(set(table_contract["required_columns"]) == STORAGE_COLUMNS, "eval storage contract columns mismatch")
     require(set(storage["required_indexes"]) == STORAGE_INDEXES, "eval result storage indexes mismatch")
+    require(set(table_contract["required_indexes"]) == STORAGE_INDEXES, "eval storage contract indexes mismatch")
     require(set(storage["required_query_filters"]) == QUERY_FILTERS, "eval result query filters mismatch")
+    require(set(read_contract["required_query_filters"]) == QUERY_FILTERS, "eval storage read filters mismatch")
     for column in STORAGE_COLUMNS:
         require(column in migration, f"eval_results storage missing {column}")
     require("tenant_id text NOT NULL REFERENCES tenants(id)" in migration, "eval_results must be tenant scoped")
@@ -308,6 +317,19 @@ def validate_storage_contract() -> None:
     require(storage["tenant_scoped"] is True, "eval storage contract must be tenant scoped")
     require(storage["subject_scoped"] is True, "eval storage contract must be subject scoped")
     require(storage["latest_result_resolvable"] is True, "eval storage must support latest-result resolution")
+    require(table_contract["summary_json_contains_fixture_results"] is True, "eval storage contract must retain fixture results")
+    require(table_contract["tenant_scoped"] is True, "eval storage table contract must be tenant scoped")
+    require(table_contract["subject_scoped"] is True, "eval storage table contract must be subject scoped")
+    require(table_contract["latest_result_resolvable"] is True, "eval storage table contract must resolve latest results")
+    require(write_contract["write_command"] == "python3 scripts/run_stage0_eval.py --write", "eval storage write command mismatch")
+    require(write_contract["persists_runner_sha256"] is True, "eval storage write contract must persist runner hash")
+    require(write_contract["persists_completed_at"] is True, "eval storage write contract must persist completion time")
+    require(write_contract["persists_subject_version"] is True, "eval storage write contract must persist subject version")
+    require(read_contract["list_operation_id"] == "listEvalResults", "eval storage read contract must use listEvalResults")
+    require(read_contract["admin_rbac_required"] is True, "eval storage read contract must require admin RBAC")
+    require(read_contract["tenant_filter_required"] is True, "eval storage read contract must require tenant filter")
+    require(replay_contract["check_command"] == "python3 scripts/run_stage0_eval.py --check", "eval replay command mismatch")
+    require(replay_contract["check_mode_compares_exact_json"] is True, "eval replay contract must compare exact JSON")
 
 
 def main() -> int:
