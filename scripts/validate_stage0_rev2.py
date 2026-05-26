@@ -1627,6 +1627,16 @@ def rel(path: Path) -> str:
     return str(path.relative_to(ROOT))
 
 
+def load_json_if_path(path: str) -> Any | None:
+    candidate = repo_path(normalize_evidence_path(path))
+    if not candidate.is_file() or candidate.suffix != ".json":
+        return None
+    try:
+        return json.loads(candidate.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return None
+
+
 def require_evidence_ref_cites_files(
     evidence_ref: str,
     paths: list[Path],
@@ -1670,6 +1680,34 @@ def require_runtime_file_evidence(evidence_ref: str, gate: str, check_id: str) -
         + json.dumps(allowed_prefixes, ensure_ascii=False)
         + "; directory-only evidence is insufficient",
     )
+    for runtime_path in existing_runtime_files:
+        evidence = load_json_if_path(runtime_path)
+        if evidence is None:
+            continue
+        require(
+            evidence.get("environment") in {
+                "local",
+                "local_alpha",
+                "ci",
+                "staging",
+                "production",
+            },
+            f"{gate}.{check_id} pass evidence file {runtime_path} must declare its environment",
+        )
+        evidence_check_id = evidence.get("release_gate_check_id")
+        if evidence_check_id is not None:
+            require(
+                evidence_check_id == check_id,
+                f"{gate}.{check_id} pass evidence file {runtime_path} targets release_gate_check_id={evidence_check_id!r}",
+            )
+        gate_impact = evidence.get("gate_impact")
+        if isinstance(gate_impact, dict):
+            preserved_check_id = gate_impact.get("preserved_release_gate_check_id")
+            if preserved_check_id is not None:
+                require(
+                    preserved_check_id == check_id,
+                    f"{gate}.{check_id} pass evidence file {runtime_path} preserves mismatched check {preserved_check_id!r}",
+                )
 
 
 def missing_repo_paths(paths: list[str]) -> list[str]:
@@ -2258,15 +2296,27 @@ def validate_release_gate_order_dependencies(evidence: dict[str, dict[str, Any]]
     production_checks = checks_by_id(production)
     production_conditions = do_not_launch_by_id(production)
     dependency_condition = production_conditions["ci_staging_gates_not_passed"]
+    dependency_check = production_checks["production_backup_rollback_incident"]
     require(
         dependency_condition["is_present"] is (not upstream_ready),
         "production ci_staging_gates_not_passed condition must reflect computed CI and Private Beta/Staging readiness",
     )
+    if dependency_check["status"] == "pass":
+        require(
+            upstream_ready,
+            "production backup/rollback/post-deploy check cannot pass unless CI and Private Beta/Staging gates are computed ready",
+        )
+        require(
+            "fixtures/stage0/rev2/release_gate_evidence.ci.json" in dependency_check["evidence_ref"]
+            and "fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json"
+            in dependency_check["evidence_ref"],
+            "production backup/rollback/post-deploy pass evidence must cite both upstream gate fixtures",
+        )
     if upstream_ready:
         return
 
     require(
-        production_checks["production_backup_rollback_incident"]["status"] != "pass",
+        dependency_check["status"] != "pass",
         "production backup/rollback/post-deploy check cannot pass while CI or Private Beta/Staging gates remain blocked",
     )
     require(
@@ -3835,6 +3885,74 @@ def validate_production_skill_release_eval_canary_evidence() -> None:
         require(evidence[key], f"skill release evidence must include {key}")
 
 
+def validate_production_activation_review_audit_evidence() -> None:
+    evidence = load_json(PRODUCTION_ACTIVATION_REVIEW_AUDIT_EVIDENCE)
+    require(evidence["schema_version"] == "stage0.rev2", "production activation evidence schema mismatch")
+    require(evidence["environment"] == "production", "activation review evidence must be production-scoped")
+    require(
+        evidence["status"] == "pass_with_blockers_preserved",
+        "activation review production evidence must preserve unrelated launch blockers",
+    )
+    require(
+        evidence["release_gate_check_id"] == "production_activation_review_audit",
+        "activation review evidence must target the production release-gate check",
+    )
+    require(
+        set(evidence["do_not_launch_condition_ids"])
+        == {"activation_eval_review_audit_runtime_missing", "admin_high_risk_review_runtime_missing"},
+        "activation review evidence must target both activation and high-risk admin Do-Not-Launch conditions",
+    )
+    gate_impact = evidence["gate_impact"]
+    require(
+        gate_impact["checklist_item"] == "Production activation review/audit runtime/deployment evidence 通过。",
+        "activation review evidence must name the checklist item it can close",
+    )
+    require(
+        gate_impact["can_clear_check_level_item"] is True,
+        "activation review evidence must explicitly allow check-level closure",
+    )
+    require(
+        gate_impact["aggregate_production_gate_status"] == "blocked_by_other_production_runtime_items",
+        "activation review evidence must keep aggregate production gate blocked",
+    )
+    for blocker in [
+        "production_provider_or_comp_only_mode",
+        "production_paid_billing_lifecycle",
+        "production_security_launch_checks",
+        "production_backup_rollback_incident",
+        "production_legal_support_policy",
+    ]:
+        require(blocker in gate_impact["remaining_blockers"], f"activation review evidence must preserve blocker: {blocker}")
+
+    required_areas = {
+        "skill_release_gate",
+        "crawler_activation_gate",
+        "prompt_activation_gate",
+        "provider_routing_gate",
+        "quota_override_gate",
+        "safety_policy_gate",
+        "export_override_gate",
+        "gate_blocker_preservation",
+    }
+    coverage = evidence["coverage"]
+    require(
+        {item["area"] for item in coverage} == required_areas,
+        "activation review evidence must cover all governed activation surfaces and blocker preservation",
+    )
+    for item in coverage:
+        require(item["status"] == "pass", f"{item['area']} production activation coverage must pass")
+        combined = json.dumps(item, ensure_ascii=False).lower()
+        for token in [
+            "production",
+            "rbac",
+            "audit",
+            "ops/evidence/production/20260527t1430z-activation-review-audit.json",
+        ]:
+            require(token in combined, f"{item['area']} production activation coverage missing {token}")
+    for key in ["runtime_request_ids", "admin_rbac_evidence_ids", "admin_review_decision_ids", "audit_refs"]:
+        require(evidence[key], f"activation review evidence must include {key}")
+
+
 def validate_analytics_taxonomy() -> None:
     taxonomy = load_json(FIXTURE_DIR / "analytics" / "event_taxonomy.json")
     require(
@@ -5026,6 +5144,8 @@ def validate_launch_readiness_split_contracts() -> None:
         "a fixture-level `go` decision is invalid while any check is blocked/failing or any Do-Not-Launch condition is active",
         "If a gate checklist item remains open, its release gate fixture must still contain at least one computed blocker",
         "Passed runtime gate checks must cite exact validator-owned evidence files when the checklist subitem is closed by a named `ops/evidence` artifact",
+        "Passed runtime evidence files must declare the expected environment",
+        "stale or cross-gate evidence cannot close a runtime check",
         "Checked runtime subitems that partially satisfy a larger release gate must have validator-owned file-level checks",
         "Passed gate checks and cleared Do-Not-Launch conditions may not mix real and missing concrete artifact paths",
         "Private Beta/Staging check-level runtime subitems must remain open until each matching release gate check has staging evidence",
@@ -5034,6 +5154,7 @@ def validate_launch_readiness_split_contracts() -> None:
         "one generic local smoke artifact or directory-level reference cannot close the aggregate Local Alpha runtime check",
         "Local Alpha remains open until four workflow API/Playwright smokes",
         "Production Launch cannot clear `ci_staging_gates_not_passed` or pass backup/rollback/post-deploy evidence until both",
+        "Production backup/rollback/post-deploy pass evidence must cite both upstream gate fixtures",
         "Do-Not-Launch Conditions 全部为 false。` remains open while any release-gate evidence fixture has `is_present: true`",
         "Do-Not-Launch Conditions 全部为 false。` may close only when all four release gate fixtures have no active Do-Not-Launch conditions",
         "Do-Not-Launch Conditions 全部为 false。` also requires all four release gate `gate_decision.status` values to be `go`",
@@ -5539,6 +5660,7 @@ def main() -> int:
         validate_staging_backend_worker_crawler_metrics_evidence,
         validate_production_skill_release_eval_canary_evidence,
         validate_production_abuse_throttle_hold_evidence,
+        validate_production_activation_review_audit_evidence,
         validate_analytics_taxonomy,
         validate_local_alpha_presence,
         validate_release_gate_evidence,
