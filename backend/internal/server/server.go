@@ -104,6 +104,7 @@ func (s *Server) createLocalSession(w http.ResponseWriter, r *http.Request) {
 		DefaultRoles: []auth.Role{
 			auth.RoleUserOwner,
 		},
+		Admin: false,
 	})
 }
 
@@ -116,6 +117,7 @@ func (s *Server) createLocalAdminSession(w http.ResponseWriter, r *http.Request)
 		DefaultRoles: []auth.Role{
 			auth.RoleAdminSuperadmin,
 		},
+		Admin: true,
 	})
 }
 
@@ -125,6 +127,7 @@ type localSessionOptions struct {
 	TTL          time.Duration
 	DefaultEmail string
 	DefaultRoles []auth.Role
+	Admin        bool
 }
 
 func (s *Server) createLocalSessionFor(w http.ResponseWriter, r *http.Request, opts localSessionOptions) {
@@ -150,6 +153,12 @@ func (s *Server) createLocalSessionFor(w http.ResponseWriter, r *http.Request, o
 		tenantID = "tenant_local"
 	}
 	roles := parseSessionRoles(input.Roles, opts.DefaultRoles)
+	if !rolesAllowedForSession(opts.Admin, roles) {
+		writeError(w, r, http.StatusForbidden, "invalid_session_roles", "requested roles are not allowed for this session type", map[string]any{
+			"admin_session": opts.Admin,
+		})
+		return
+	}
 	session, err := (auth.SessionService{Mode: auth.AccessModeLocal}).CreateLocalSession(email, tenantID, roles, opts.TTL)
 	if err != nil {
 		writeError(w, r, http.StatusBadRequest, "session_validation_error", err.Error(), nil)
@@ -195,6 +204,24 @@ func (s *Server) createLocalSessionFor(w http.ResponseWriter, r *http.Request, o
 			"header_value": s.cfg.Security.CSRFHeaderValue,
 		},
 	})
+}
+
+func rolesAllowedForSession(admin bool, roles []auth.Role) bool {
+	if len(roles) == 0 {
+		return false
+	}
+	for _, role := range roles {
+		if admin {
+			if !auth.IsAdminRole(role) {
+				return false
+			}
+			continue
+		}
+		if auth.IsAdminRole(role) {
+			return false
+		}
+	}
+	return true
 }
 
 func parseSessionRoles(values []string, fallback []auth.Role) []auth.Role {

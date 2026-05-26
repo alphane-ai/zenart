@@ -180,7 +180,7 @@ func principalFromSessionCookieConfig(r *http.Request, cfg config.AuthConfig, no
 	if err != nil || cookie == nil {
 		return auth.Principal{}, false
 	}
-	payload, ok := verifySessionCookie(cookie.Value, secret, now)
+	payload, ok := verifySessionCookie(cookie.Value, secret, now, adminRoute)
 	if !ok {
 		return auth.Principal{}, false
 	}
@@ -363,7 +363,7 @@ func signSessionCookie(payload sessionCookiePayload, secret string) (string, err
 	return encoded + "." + sig, nil
 }
 
-func verifySessionCookie(value, secret string, now time.Time) (sessionCookiePayload, bool) {
+func verifySessionCookie(value, secret string, now time.Time, adminRoute bool) (sessionCookiePayload, bool) {
 	encoded, sig, ok := strings.Cut(value, ".")
 	if !ok || !hmac.Equal([]byte(sig), []byte(signSessionValue(encoded, secret))) {
 		return sessionCookiePayload{}, false
@@ -381,6 +381,9 @@ func verifySessionCookie(value, secret string, now time.Time) (sessionCookiePayl
 	}
 	if len(payload.Roles) == 0 {
 		payload.Roles = []auth.Role{auth.RoleUser}
+	}
+	if !rolesAllowedForSession(adminRoute, payload.Roles) {
+		return sessionCookiePayload{}, false
 	}
 	return payload, true
 }

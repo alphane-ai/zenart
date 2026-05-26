@@ -217,6 +217,15 @@ func hasRole(roles []Role, want Role) bool {
 	return false
 }
 
+func IsAdminRole(role Role) bool {
+	switch role {
+	case RoleSupportOperator, RoleAdminViewer, RoleAdminOperator, RoleAdminReviewer, RoleAdminSuperadmin, RoleAdmin:
+		return true
+	default:
+		return false
+	}
+}
+
 func hasAllowedRole(roles []Role, allowed []Role) bool {
 	for _, want := range allowed {
 		if hasRole(roles, want) {
@@ -227,12 +236,10 @@ func hasAllowedRole(roles []Role, allowed []Role) bool {
 }
 
 func hasAnyAdminRole(roles []Role) bool {
-	return hasAllowedRole(roles, []Role{
-		RoleSupportOperator,
-		RoleAdminViewer,
-		RoleAdminOperator,
-		RoleAdminReviewer,
-		RoleAdminSuperadmin,
-		RoleAdmin,
-	})
+	for _, role := range roles {
+		if IsAdminRole(role) {
+			return true
+		}
+	}
+	return false
 }

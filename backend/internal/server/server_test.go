@@ -986,6 +986,60 @@ func TestLocalAdminSessionSetsSecureHttpOnlySameSiteCookie(t *testing.T) {
 	}
 }
 
+func TestLocalUserSessionRejectsAdminRoles(t *testing.T) {
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/local/session", bytes.NewBufferString(`{"tenant_id":"tenant_1","roles":["admin_superadmin"]}`))
+	setSameSiteCSRFHeaders(req)
+	rec := httptest.NewRecorder()
+
+	New(cfg, nil).Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("status = %d, want forbidden: %s", rec.Code, rec.Body.String())
+	}
+	if findCookie(rec.Result().Cookies(), cfg.Auth.SessionCookieName) != nil {
+		t.Fatal("user session cookie must not be set for admin roles")
+	}
+	var body map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("response JSON error = %v", err)
+	}
+	if body["code"] != "invalid_session_roles" {
+		t.Fatalf("code = %v, want invalid_session_roles", body["code"])
+	}
+}
+
+func TestLocalAdminSessionRejectsUserRoles(t *testing.T) {
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/api/admin/v1/auth/local/session", bytes.NewBufferString(`{"tenant_id":"tenant_admin","roles":["user_owner"]}`))
+	setSameSiteCSRFHeaders(req)
+	rec := httptest.NewRecorder()
+
+	New(cfg, nil).Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("status = %d, want forbidden: %s", rec.Code, rec.Body.String())
+	}
+	if findCookie(rec.Result().Cookies(), cfg.Auth.AdminSessionCookieName) != nil {
+		t.Fatal("admin session cookie must not be set for user roles")
+	}
+	var body map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("response JSON error = %v", err)
+	}
+	if body["code"] != "invalid_session_roles" {
+		t.Fatalf("code = %v, want invalid_session_roles", body["code"])
+	}
+}
+
 func TestSessionCookieAuthenticatesRequest(t *testing.T) {
 	cfg, err := config.Load()
 	if err != nil {
@@ -1079,6 +1133,60 @@ func TestUserRouteRejectsAdminCookieOnly(t *testing.T) {
 
 	if rec.Code != http.StatusUnauthorized {
 		t.Fatalf("status = %d, want user route to reject admin cookie: %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestUserRouteRejectsUserCookieWithAdminRoles(t *testing.T) {
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	expiresAt := time.Now().UTC().Add(time.Hour)
+	cookieValue, err := signSessionCookie(sessionCookiePayload{
+		UserID:    "user_cookie",
+		TenantID:  "tenant_cookie",
+		Roles:     []auth.Role{auth.RoleAdminSuperadmin},
+		ExpiresAt: expiresAt.Unix(),
+	}, cfg.Auth.SessionSecret)
+	if err != nil {
+		t.Fatalf("signSessionCookie() error = %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/tasks/task_123", nil)
+	req.AddCookie(&http.Cookie{Name: cfg.Auth.SessionCookieName, Value: cookieValue})
+	rec := httptest.NewRecorder()
+
+	New(cfg, nil).Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("status = %d, want unauthorized for admin role in user cookie: %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestAdminRouteRejectsAdminCookieWithUserRoles(t *testing.T) {
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	expiresAt := time.Now().UTC().Add(time.Hour)
+	cookieValue, err := signSessionCookie(sessionCookiePayload{
+		UserID:    "admin_cookie",
+		TenantID:  "tenant_cookie",
+		Roles:     []auth.Role{auth.RoleUserOwner},
+		ExpiresAt: expiresAt.Unix(),
+	}, cfg.Auth.AdminSessionSecret)
+	if err != nil {
+		t.Fatalf("signSessionCookie() error = %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/admin/v1/audit", nil)
+	req.AddCookie(&http.Cookie{Name: cfg.Auth.AdminSessionCookieName, Value: cookieValue})
+	rec := httptest.NewRecorder()
+
+	New(cfg, nil).Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("status = %d, want unauthorized for user role in admin cookie: %s", rec.Code, rec.Body.String())
 	}
 }
 
