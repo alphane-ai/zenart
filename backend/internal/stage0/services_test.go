@@ -70,6 +70,27 @@ func TestCreateSupportTicketPersistsTenantUserAndLinks(t *testing.T) {
 	}
 }
 
+func TestCreateSupportTicketRequiresRev2EvidenceLinks(t *testing.T) {
+	db := &fakeDB{}
+	repo := NewRepository(db)
+
+	_, err := repo.CreateSupportTicket(context.Background(), "tenant_1", "user_1", SupportTicketCreate{
+		ProjectID:      "project_1",
+		TaskID:         "task_1",
+		TraceID:        "trace_1",
+		AssetID:        "asset_1",
+		Category:       "export_failure",
+		Body:           "The export failed.",
+		LinkedExportID: "export_1",
+	})
+	if !errors.Is(err, ErrValidation) {
+		t.Fatalf("CreateSupportTicket() error = %v, want ErrValidation", err)
+	}
+	if len(db.execs) != 0 {
+		t.Fatalf("invalid support ticket should not write rows: %#v", db.execs)
+	}
+}
+
 func TestListSupportTicketsReturnsEvidenceLinks(t *testing.T) {
 	now := time.Now().UTC()
 	db := &fakeDB{queryRows: []rowSet{{

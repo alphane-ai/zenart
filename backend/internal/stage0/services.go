@@ -895,10 +895,24 @@ WHERE tenant_id = $1 AND id = $2`,
 }
 
 func (r Repository) CreateSupportTicket(ctx context.Context, tenantID, userID string, input SupportTicketCreate) (SupportTicket, error) {
+	tenantID = strings.TrimSpace(tenantID)
+	userID = strings.TrimSpace(userID)
 	category := strings.TrimSpace(input.Category)
 	body := security.RedactString(strings.TrimSpace(input.Body))
+	projectID := strings.TrimSpace(input.ProjectID)
+	taskID := strings.TrimSpace(input.TaskID)
+	traceID := strings.TrimSpace(input.TraceID)
+	assetID := strings.TrimSpace(input.AssetID)
+	exportID := strings.TrimSpace(input.LinkedExportID)
+	quotaBucketID := strings.TrimSpace(input.QuotaBucketID)
+	if tenantID == "" || userID == "" {
+		return SupportTicket{}, errors.Join(ErrValidation, errors.New("tenant_id and user_id are required"))
+	}
 	if category == "" || body == "" {
 		return SupportTicket{}, errors.Join(ErrValidation, errors.New("category and body are required"))
+	}
+	if projectID == "" || taskID == "" || traceID == "" || assetID == "" || exportID == "" || quotaBucketID == "" {
+		return SupportTicket{}, errors.Join(ErrValidation, errors.New("project_id, task_id, trace_id, asset_id, linked_export_id, and quota_bucket_id are required"))
 	}
 	now := time.Now().UTC()
 	ticket := SupportTicket{
@@ -915,30 +929,12 @@ func (r Repository) CreateSupportTicket(ctx context.Context, tenantID, userID st
 	if ticket.Metadata == nil {
 		ticket.Metadata = map[string]any{}
 	}
-	if strings.TrimSpace(input.ProjectID) != "" {
-		projectID := strings.TrimSpace(input.ProjectID)
-		ticket.ProjectID = &projectID
-	}
-	if strings.TrimSpace(input.TaskID) != "" {
-		taskID := strings.TrimSpace(input.TaskID)
-		ticket.TaskID = &taskID
-	}
-	if strings.TrimSpace(input.TraceID) != "" {
-		traceID := strings.TrimSpace(input.TraceID)
-		ticket.TraceID = &traceID
-	}
-	if strings.TrimSpace(input.AssetID) != "" {
-		assetID := strings.TrimSpace(input.AssetID)
-		ticket.AssetID = &assetID
-	}
-	if strings.TrimSpace(input.LinkedExportID) != "" {
-		exportID := strings.TrimSpace(input.LinkedExportID)
-		ticket.LinkedExportID = &exportID
-	}
-	if strings.TrimSpace(input.QuotaBucketID) != "" {
-		quotaBucketID := strings.TrimSpace(input.QuotaBucketID)
-		ticket.QuotaBucketID = &quotaBucketID
-	}
+	ticket.ProjectID = &projectID
+	ticket.TaskID = &taskID
+	ticket.TraceID = &traceID
+	ticket.AssetID = &assetID
+	ticket.LinkedExportID = &exportID
+	ticket.QuotaBucketID = &quotaBucketID
 	_, err := r.db.Exec(ctx, `
 INSERT INTO support_tickets(id, tenant_id, user_id, project_id, task_id, trace_id, asset_id, category, status, body, linked_export_id, quota_bucket_id, metadata, created_at, updated_at)
 VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $14)`,

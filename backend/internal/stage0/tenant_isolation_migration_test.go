@@ -109,6 +109,30 @@ func TestSupportTicketEvidenceMigrationAddsRev2Links(t *testing.T) {
 	}
 }
 
+func TestSupportTicketRequiredEvidenceMigrationGuardsNewWrites(t *testing.T) {
+	data, err := os.ReadFile("../../migrations/0007_support_ticket_required_evidence.sql")
+	if err != nil {
+		t.Fatalf("read support ticket required evidence migration: %v", err)
+	}
+	sql := string(data)
+	for _, needle := range []string{
+		"chk_support_tickets_required_evidence",
+		"tenant_id <> ''",
+		"user_id <> ''",
+		"project_id IS NOT NULL",
+		"task_id IS NOT NULL",
+		"trace_id IS NOT NULL",
+		"asset_id IS NOT NULL",
+		"linked_export_id IS NOT NULL",
+		"quota_bucket_id IS NOT NULL",
+		"NOT VALID",
+	} {
+		if !strings.Contains(sql, needle) {
+			t.Fatalf("support ticket required evidence migration missing %q", needle)
+		}
+	}
+}
+
 func TestDomainMigrationSeedsRuntimeSafetyPolicy(t *testing.T) {
 	data, err := os.ReadFile("../../migrations/0002_stage0_rev2_domains.sql")
 	if err != nil {
