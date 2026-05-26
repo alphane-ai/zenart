@@ -1,0 +1,83 @@
+package stage0
+
+import (
+	"os"
+	"strings"
+	"testing"
+)
+
+func TestTenantIsolationMigrationCoversRev2BackendSurfaces(t *testing.T) {
+	data, err := os.ReadFile("../../migrations/0005_tenant_isolation_constraints.sql")
+	if err != nil {
+		t.Fatalf("read tenant isolation migration: %v", err)
+	}
+	sql := string(data)
+
+	required := map[string][]string{
+		"projects": {
+			"SELECT add_tenant_fk_if_missing('fk_projects_tenant_owner', 'projects', 'tenant_id, owner_id', 'users', 'tenant_id, id');",
+		},
+		"workspaces": {
+			"SELECT add_tenant_fk_if_missing('fk_workspaces_tenant_project', 'workspaces', 'tenant_id, project_id', 'projects', 'tenant_id, id');",
+		},
+		"chat": {
+			"fk_chat_sessions_tenant_project",
+			"fk_chat_sessions_tenant_user",
+			"fk_chat_messages_tenant_session",
+		},
+		"canvas": {
+			"fk_canvas_versions_tenant_workspace",
+			"fk_canvas_frames_tenant_workspace",
+			"fk_canvas_nodes_tenant_workspace",
+			"fk_canvas_edges_tenant_from_node",
+			"fk_canvas_edges_tenant_to_node",
+		},
+		"assets": {
+			"fk_uploads_tenant_project",
+			"fk_object_metadata_tenant_upload",
+			"fk_object_metadata_tenant_project",
+			"fk_assets_tenant_object",
+			"fk_assets_tenant_candidate_asset",
+		},
+		"packages": {
+			"fk_packages_tenant_project",
+			"fk_package_items_tenant_package",
+			"fk_package_items_tenant_asset",
+		},
+		"exports": {
+			"fk_exports_tenant_package",
+			"fk_exports_tenant_task",
+			"fk_exports_tenant_object",
+			"fk_exports_tenant_project",
+		},
+		"quota": {
+			"fk_quota_transactions_tenant_bucket",
+		},
+		"feedback": {
+			"fk_feedback_events_tenant_user",
+			"fk_feedback_events_tenant_project",
+			"fk_feedback_labels_tenant_event",
+		},
+		"support": {
+			"fk_support_tickets_tenant_user",
+			"fk_support_tickets_tenant_project",
+			"fk_support_tickets_tenant_export",
+		},
+		"traces": {
+			"fk_agent_traces_tenant_task",
+			"fk_candidate_assets_tenant_trace",
+			"fk_provider_usage_logs_tenant_task",
+		},
+	}
+
+	for surface, needles := range required {
+		for _, needle := range needles {
+			if !strings.Contains(sql, needle) {
+				t.Fatalf("tenant isolation migration missing %s coverage token %q", surface, needle)
+			}
+		}
+	}
+	if !strings.Contains(sql, "NOT VALID") {
+		t.Fatal("tenant isolation constraints should be deploy-safe NOT VALID constraints")
+	}
+}

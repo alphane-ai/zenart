@@ -1692,7 +1692,7 @@ main 合并前必须通过：
 - [x] 实现 Web user auth。
 - [x] 实现 Admin auth。
 - [x] 定义角色和权限矩阵。
-- [ ] 对项目、工作区、聊天、画布、资产、package、export、quota、feedback、support ticket、trace 强制 tenant isolation。
+- [x] 对项目、工作区、聊天、画布、资产、package、export、quota、feedback、support ticket、trace 强制 tenant isolation。
 - [x] 对 skill release、crawler import、prompt approval、provider routing、quota override、safety rule、export override 强制 admin RBAC。
 - [x] 实现 immutable audit log。
 - [x] 添加 cross-tenant denial tests。
