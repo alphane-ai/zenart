@@ -513,6 +513,13 @@ RUNTIME_PASS_REQUIREMENTS = {
     },
 }
 
+RUNTIME_PASS_FILE_PREFIXES = {
+    "local_alpha": ("ops/evidence/local_alpha/", "ops/evidence/local/"),
+    "ci": (".github/workflows/", "ops/evidence/ci/"),
+    "private_beta_staging": ("ops/evidence/staging/",),
+    "production_launch": ("ops/evidence/production/",),
+}
+
 RUNTIME_PASS_EVIDENCE_FILES = {
     ("private_beta_staging", "staging_auth_rbac_tenant_audit"): [
         STAGING_AUTH_RBAC_TENANT_AUDIT_EVIDENCE,
@@ -1638,6 +1645,28 @@ def require_local_alpha_workflow_runtime_files(evidence_ref: str, context: str) 
     require_evidence_ref_cites_files(evidence_ref, required_files, context)
 
 
+def require_runtime_file_evidence(evidence_ref: str, gate: str, check_id: str) -> None:
+    allowed_prefixes = RUNTIME_PASS_FILE_PREFIXES.get(gate, ())
+    require(allowed_prefixes, f"{gate}.{check_id} has no runtime file evidence prefix contract")
+    concrete_paths = concrete_evidence_paths(evidence_ref)
+    runtime_paths = [
+        path
+        for path in concrete_paths
+        if any(path.startswith(prefix) for prefix in allowed_prefixes)
+    ]
+    existing_runtime_files = [
+        path
+        for path in runtime_paths
+        if repo_path(path).is_file()
+    ]
+    require(
+        existing_runtime_files,
+        f"{gate}.{check_id} pass evidence must cite at least one exact existing runtime evidence file under "
+        + json.dumps(allowed_prefixes, ensure_ascii=False)
+        + "; directory-only evidence is insufficient",
+    )
+
+
 def missing_repo_paths(paths: list[str]) -> list[str]:
     return [path for path in paths if not repo_path(path).exists()]
 
@@ -2070,6 +2099,7 @@ def validate_runtime_gate_evidence_refs(
                 f"{gate}.{check_id} pass evidence must cite gate-specific runtime/deployment evidence paths: "
                 + json.dumps(requirement["path_patterns"]),
             )
+            require_runtime_file_evidence(evidence_ref, gate, check_id)
             evidence_files = RUNTIME_PASS_EVIDENCE_FILES.get((gate, check_id))
             if evidence_files is not None:
                 require_evidence_ref_cites_files(
