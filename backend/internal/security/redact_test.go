@@ -128,6 +128,50 @@ func TestRedactMapCoversExportAndCrawlerMetadataURLs(t *testing.T) {
 	}
 }
 
+func TestRedactValueCoversHeadersAndStringSlices(t *testing.T) {
+	header := http.Header{
+		"Authorization": []string{"Bearer abcdefghijklmnop"},
+		"X-Trace":       []string{"https://storage.local/file.zip?X-Amz-Signature=abcdef"},
+	}
+	redacted, ok := RedactValue(header).(map[string][]string)
+	if !ok {
+		t.Fatalf("RedactValue(header) type = %T, want map[string][]string", RedactValue(header))
+	}
+	if redacted["Authorization"][0] != Redacted {
+		t.Fatalf("Authorization = %#v, want redacted", redacted["Authorization"])
+	}
+	if strings.Contains(redacted["X-Trace"][0], "abcdef") {
+		t.Fatalf("X-Trace = %#v, leaked signed URL signature", redacted["X-Trace"])
+	}
+
+	value := map[string]any{
+		"headers": header,
+		"events":  []string{"ok", "token=npm_abcdefghijklmnopqrstuvwxyz123456"},
+	}
+	body, err := json.Marshal(RedactValue(value))
+	if err != nil {
+		t.Fatalf("marshal redacted value: %v", err)
+	}
+	for _, leaked := range []string{"abcdefghijklmnop", "abcdef", "npm_abcdefghijklmnopqrstuvwxyz123456"} {
+		if strings.Contains(string(body), leaked) {
+			t.Fatalf("redacted body = %s, leaked %s", string(body), leaked)
+		}
+	}
+}
+
+func TestClassifyValueCoversHeadersAndStringSlices(t *testing.T) {
+	findings := ClassifyValue(map[string]any{
+		"headers": http.Header{
+			"Authorization": []string{"Bearer abcdefghijklmnop"},
+		},
+		"events": []string{"token=npm_abcdefghijklmnopqrstuvwxyz123456"},
+	})
+
+	assertFinding(t, findings, SecretKindAuthorization, "headers.Authorization")
+	assertFinding(t, findings, SecretKindAuthorization, "headers.Authorization[0]")
+	assertFinding(t, findings, SecretKindToken, "events[0]")
+}
+
 func TestPlaceholderMalwareScannerReportsUnavailableAndForcedSuspicious(t *testing.T) {
 	now := time.Date(2026, 5, 26, 1, 2, 3, 0, time.UTC)
 	scanner := PlaceholderMalwareScanner{Now: func() time.Time { return now }}

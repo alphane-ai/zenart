@@ -273,10 +273,20 @@ func RedactValue(value any) any {
 		return RedactMap(typed)
 	case map[string]string:
 		return RedactStringMap(typed)
+	case http.Header:
+		return RedactStringSliceMap(map[string][]string(typed))
+	case map[string][]string:
+		return RedactStringSliceMap(typed)
 	case []any:
 		out := make([]any, len(typed))
 		for i, item := range typed {
 			out[i] = RedactValue(item)
+		}
+		return out
+	case []string:
+		out := make([]string, len(typed))
+		for i, item := range typed {
+			out[i] = RedactString(item)
 		}
 		return out
 	case string:
@@ -309,6 +319,28 @@ func RedactStringMap(input map[string]string) map[string]string {
 			continue
 		}
 		out[key] = RedactString(val)
+	}
+	return out
+}
+
+func RedactStringSliceMap(input map[string][]string) map[string][]string {
+	if input == nil {
+		return nil
+	}
+	out := make(map[string][]string, len(input))
+	for key, values := range input {
+		redactedValues := make([]string, len(values))
+		if IsSensitiveKey(key) {
+			for i := range values {
+				redactedValues[i] = Redacted
+			}
+			out[key] = redactedValues
+			continue
+		}
+		for i, value := range values {
+			redactedValues[i] = RedactString(value)
+		}
+		out[key] = redactedValues
 	}
 	return out
 }
@@ -466,15 +498,49 @@ func classifyValueAt(value any, location string) []SecretFinding {
 				findings = append(findings, finding)
 			}
 		}
+	case http.Header:
+		findings = append(findings, classifyStringSliceMapAt(map[string][]string(typed), location)...)
+	case map[string][]string:
+		findings = append(findings, classifyStringSliceMapAt(typed, location)...)
 	case []any:
 		for i, item := range typed {
 			childLocation := fmt.Sprintf("%s[%d]", location, i)
 			findings = append(findings, classifyValueAt(item, childLocation)...)
 		}
+	case []string:
+		for i, item := range typed {
+			childLocation := fmt.Sprintf("%s[%d]", location, i)
+			for _, finding := range ClassifyString(item) {
+				finding.Location = childLocation
+				findings = append(findings, finding)
+			}
+		}
 	case string:
 		for _, finding := range ClassifyString(typed) {
 			finding.Location = location
 			findings = append(findings, finding)
+		}
+	}
+	return findings
+}
+
+func classifyStringSliceMapAt(input map[string][]string, location string) []SecretFinding {
+	var findings []SecretFinding
+	for key, values := range input {
+		childLocation := key
+		if location != "" {
+			childLocation = location + "." + key
+		}
+		for _, finding := range ClassifyKey(key) {
+			finding.Location = childLocation
+			findings = append(findings, finding)
+		}
+		for i, value := range values {
+			valueLocation := fmt.Sprintf("%s[%d]", childLocation, i)
+			for _, finding := range ClassifyString(value) {
+				finding.Location = valueLocation
+				findings = append(findings, finding)
+			}
 		}
 	}
 	return findings

@@ -20,6 +20,7 @@ import (
 	"github.com/alphane-ai/zenart/backend/internal/config"
 	"github.com/alphane-ai/zenart/backend/internal/health"
 	"github.com/alphane-ai/zenart/backend/internal/readiness"
+	"github.com/alphane-ai/zenart/backend/internal/security"
 	"github.com/alphane-ai/zenart/backend/internal/stage0"
 	"github.com/alphane-ai/zenart/backend/internal/task"
 )
@@ -577,7 +578,11 @@ func withRecover(logger *slog.Logger, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if recovered := recover(); recovered != nil {
-				logger.Error("request panic", "recover", recovered, "path", r.URL.Path, "request_id", requestIDFrom(r.Context()))
+				logger.Error("request panic",
+					"recover", security.RedactString(fmt.Sprint(recovered)),
+					"path", security.RedactString(r.URL.Path),
+					"request_id", requestIDFrom(r.Context()),
+				)
 				writeJSON(w, http.StatusInternalServerError, map[string]any{
 					"code":         "internal_error",
 					"message":      "internal server error",

@@ -115,6 +115,54 @@ func TestAccessLogIncludesCookiePrincipal(t *testing.T) {
 	}
 }
 
+func TestAccessLogRedactsSecretBearingFields(t *testing.T) {
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+
+	var logs bytes.Buffer
+	logger := slog.New(slog.NewJSONHandler(&logs, nil))
+	req := httptest.NewRequest(http.MethodGet, "/healthz?token=npm_abcdefghijklmnopqrstuvwxyz123456", nil)
+	req.Header.Set("User-Agent", "client Authorization: Bearer abcdefghijklmnop")
+	rec := httptest.NewRecorder()
+
+	New(cfg, logger).Handler().ServeHTTP(rec, req)
+
+	line := logs.String()
+	for _, leaked := range []string{"npm_abcdefghijklmnopqrstuvwxyz123456", "abcdefghijklmnop"} {
+		if strings.Contains(line, leaked) {
+			t.Fatalf("access log = %s, leaked %s", line, leaked)
+		}
+	}
+	if !strings.Contains(line, security.Redacted) {
+		t.Fatalf("access log = %s, want redaction marker", line)
+	}
+}
+
+func TestRecoverLogRedactsPanicPayload(t *testing.T) {
+	var logs bytes.Buffer
+	logger := slog.New(slog.NewJSONHandler(&logs, nil))
+	handler := withRequestID(withRecover(logger, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		panic("provider key sk-proj-abcdefghijklmnopqrstuvwxyz123456")
+	})))
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/tasks/task_123", nil)
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusInternalServerError {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusInternalServerError)
+	}
+	line := logs.String()
+	if strings.Contains(line, "sk-proj-abcdefghijklmnopqrstuvwxyz123456") {
+		t.Fatalf("panic log = %s, leaked provider key", line)
+	}
+	if !strings.Contains(line, security.Redacted) {
+		t.Fatalf("panic log = %s, want redaction marker", line)
+	}
+}
+
 func TestMetricsHandlerExposesHTTPCounters(t *testing.T) {
 	cfg, err := config.Load()
 	if err != nil {

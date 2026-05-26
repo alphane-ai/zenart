@@ -72,7 +72,7 @@ func withAccessLog(logger *slog.Logger, metrics *Metrics, next http.Handler) htt
 		logger.Info("http request",
 			"request_id", requestIDFrom(r.Context()),
 			"method", r.Method,
-			"path", r.URL.Path,
+			"path", security.RedactString(r.URL.Path),
 			"route", route,
 			"status", status,
 			"latency_ms", duration.Milliseconds(),
@@ -80,7 +80,7 @@ func withAccessLog(logger *slog.Logger, metrics *Metrics, next http.Handler) htt
 			"user_id", principal.UserID,
 			"tenant_id", principal.TenantID,
 			"remote_addr", r.RemoteAddr,
-			"user_agent", r.UserAgent(),
+			"user_agent", security.RedactString(r.UserAgent()),
 		)
 		metrics.ObserveHTTP(route, r.Method, status, duration)
 	})
