@@ -114,6 +114,23 @@ export type CrawlerFinding = {
   riskLabels: string[];
 };
 
+export type CrawlerGovernanceWorkflow = {
+  id: string;
+  findingId: string;
+  requestType: "source_takedown" | "derivative_review" | "raw_retention_delete";
+  status: "intake" | "evidence_review" | "approved" | "blocked" | "deleted";
+  requester: string;
+  sourceContact: string;
+  derivativeUseStatus: "allowed" | "restricted" | "unknown" | "blocked";
+  rawRetentionAction: "retain_with_limit" | "delete_raw" | "delete_raw_and_derivatives";
+  linkedReview: string;
+  requiredEvidenceRefs: string[];
+  blockedActivation: boolean;
+  reviewerRole: "admin_operator" | "admin_reviewer" | "admin_superadmin";
+  reviewRationale: string;
+  auditRef: string;
+};
+
 export type PromptFragment = {
   id: string;
   name: string;

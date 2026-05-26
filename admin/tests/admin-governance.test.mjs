@@ -8,7 +8,7 @@ const parseFixtures = () => {
   const moduleSource = source
     .replace(/^import type[\s\S]*?from "@\/lib\/types";\n\n/, "")
     .replaceAll(/export const (\w+)[^=]*=/g, "const $1 =");
-  return Function(`${moduleSource}\nreturn { skillVersions, skillReleaseStateDefinitions, skillCanaryMetrics, releaseEvidence, supportTickets, supportEscalationRunbooks, supportUsers, riskyExports, abuseEvents, auditEvents, exportJobs, traces, quotaAccounts, feedbackItems, analyticsReports, queueHealth, failedTaskControls };`)();
+  return Function(`${moduleSource}\nreturn { skillVersions, skillReleaseStateDefinitions, skillCanaryMetrics, releaseEvidence, supportTickets, supportEscalationRunbooks, supportUsers, riskyExports, abuseEvents, auditEvents, exportJobs, traces, quotaAccounts, feedbackItems, analyticsReports, queueHealth, failedTaskControls, crawlerFindings, crawlerGovernanceWorkflows };`)();
 };
 
 const {
@@ -28,7 +28,9 @@ const {
   traces,
   quotaAccounts,
   queueHealth,
-  failedTaskControls
+  failedTaskControls,
+  crawlerFindings,
+  crawlerGovernanceWorkflows
 } = parseFixtures();
 
 const auditIds = new Set(auditEvents.map((event) => event.id));
@@ -39,6 +41,7 @@ const traceIds = new Set(traces.map((trace) => trace.id));
 const exportIds = new Set(exportJobs.map((job) => job.id));
 const quotaUserIds = new Set(quotaAccounts.map((account) => account.userId));
 const queueIds = new Set(queueHealth.map((queue) => queue.id));
+const crawlerFindingIds = new Set(crawlerFindings.map((finding) => finding.id));
 const incidentIds = new Set(["none", "inc-20260526-queue", "inc-20260525-crawler"]);
 
 test("skill release governance defines states, traffic allocation, canary thresholds, and rollback audit", () => {
@@ -287,6 +290,39 @@ test("blocking safety exports cannot be overridden without audit-safe eligibilit
 
     if (riskyExport.overrideEligible) {
       assert.notEqual(riskyExport.action, "block", `${riskyExport.id} override must not bypass blocking action`);
+    }
+  }
+});
+
+test("crawler takedown and derivative review workflow blocks unsafe activation", () => {
+  assert.ok(crawlerGovernanceWorkflows.length > 0, "crawler governance needs takedown and derivative workflow fixtures");
+
+  const requestTypes = new Set(crawlerGovernanceWorkflows.map((workflow) => workflow.requestType));
+  assert.ok(requestTypes.has("source_takedown"), "crawler governance needs source takedown workflow");
+  assert.ok(requestTypes.has("derivative_review"), "crawler governance needs derivative review workflow");
+  assert.ok(requestTypes.has("raw_retention_delete"), "crawler governance needs raw retention delete workflow");
+
+  for (const workflow of crawlerGovernanceWorkflows) {
+    assert.ok(crawlerFindingIds.has(workflow.findingId), `${workflow.id} links unknown crawler finding`);
+    assert.ok(workflow.sourceContact.length > 30, `${workflow.id} needs takedown contact process`);
+    assert.ok(workflow.requiredEvidenceRefs.length >= 3, `${workflow.id} needs evidence refs`);
+    assert.ok(workflow.reviewRationale.length > 60, `${workflow.id} needs reviewer rationale`);
+    assert.ok(auditIds.has(workflow.auditRef), `${workflow.id} links unknown audit ${workflow.auditRef}`);
+    assert.match(workflow.reviewerRole, /admin_operator|admin_reviewer|admin_superadmin/, `${workflow.id} needs admin reviewer role`);
+
+    if (workflow.requestType === "source_takedown") {
+      assert.equal(workflow.blockedActivation, true, `${workflow.id} takedown must block activation`);
+      assert.equal(workflow.rawRetentionAction, "delete_raw_and_derivatives", `${workflow.id} takedown must delete raw and derivative material`);
+      assert.equal(workflow.derivativeUseStatus, "blocked", `${workflow.id} takedown must block derivative use`);
+    }
+
+    if (workflow.requestType === "derivative_review" && workflow.derivativeUseStatus === "allowed") {
+      assert.equal(workflow.blockedActivation, false, `${workflow.id} allowed derivative review should permit activation`);
+      assert.equal(workflow.rawRetentionAction, "retain_with_limit", `${workflow.id} allowed derivative review still needs retention limit`);
+    }
+
+    if (workflow.derivativeUseStatus === "unknown" || workflow.derivativeUseStatus === "restricted") {
+      assert.equal(workflow.blockedActivation, true, `${workflow.id} unresolved derivative status must block activation`);
     }
   }
 });

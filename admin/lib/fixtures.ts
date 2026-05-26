@@ -4,6 +4,7 @@ import type {
   AnalyticsReport,
   AgentTrace,
   AuditEvent,
+  CrawlerGovernanceWorkflow,
   CrawlerFinding,
   ExportJob,
   FailedTaskControl,
@@ -546,6 +547,60 @@ export const crawlerFindings: CrawlerFinding[] = [
     status: "approved",
     provenance: "crawler-source cs-19",
     riskLabels: ["derivative-ok", "source-linked"]
+  }
+];
+
+export const crawlerGovernanceWorkflows: CrawlerGovernanceWorkflow[] = [
+  {
+    id: "cg-501",
+    findingId: "cf-118",
+    requestType: "source_takedown",
+    status: "evidence_review",
+    requester: "rights-owner@example.invalid",
+    sourceContact: "IP complaint flow ticket ip-7001 with crawler-takedown tag",
+    derivativeUseStatus: "blocked",
+    rawRetentionAction: "delete_raw_and_derivatives",
+    linkedReview: "rv-crawler-118",
+    requiredEvidenceRefs: ["cf-118", "crawler-source cs-21", "ip-7001", "au-012"],
+    blockedActivation: true,
+    reviewerRole: "admin_reviewer",
+    reviewRationale:
+      "Exact-text finding must stay blocked while the rights-owner claim is reviewed and all raw and derivative material is queued for deletion.",
+    auditRef: "au-012"
+  },
+  {
+    id: "cg-522",
+    findingId: "cf-122",
+    requestType: "derivative_review",
+    status: "approved",
+    requester: "legal_fixture_reviewer",
+    sourceContact: "Approved internal fixture source with documented derivative-use allowance",
+    derivativeUseStatus: "allowed",
+    rawRetentionAction: "retain_with_limit",
+    linkedReview: "rv-crawler-122",
+    requiredEvidenceRefs: ["cf-122", "crawler-governance/crawler_approved_local_test_source", "au-013"],
+    blockedActivation: false,
+    reviewerRole: "admin_reviewer",
+    reviewRationale:
+      "Derivative use is allowed by fixture legal metadata, provenance remains linked, and raw content retention is limited to the approved window.",
+    auditRef: "au-013"
+  },
+  {
+    id: "cg-533",
+    findingId: "cf-104",
+    requestType: "raw_retention_delete",
+    status: "intake",
+    requester: "crawler-ops",
+    sourceContact: "Pending source approval; contact process must be confirmed before import",
+    derivativeUseStatus: "unknown",
+    rawRetentionAction: "delete_raw",
+    linkedReview: "rv-crawler-104",
+    requiredEvidenceRefs: ["cf-104", "crawler-source cs-18", "au-014"],
+    blockedActivation: true,
+    reviewerRole: "admin_operator",
+    reviewRationale:
+      "Pending source lacks complete legal contact and derivative-use evidence, so activation remains blocked and raw content expires unless review approves it.",
+    auditRef: "au-014"
   }
 ];
 
@@ -1391,6 +1446,42 @@ export const auditEvents: AuditEvent[] = [
     rationale: "Manifest packaging failure is retry eligible after support ticket and QA warning evidence are attached.",
     immutable: true,
     evidenceRefs: ["task-export-489", "sup-2204", "q-export"],
+    secondReviewStatus: "not_required"
+  },
+  {
+    id: "au-012",
+    actor: "legal-admin",
+    action: "opened crawler takedown review",
+    target: "cf-118",
+    risk: "high",
+    createdAt: "2026-05-26 10:35",
+    rationale: "Rights-owner takedown claim requires blocking activation and deleting raw and derivative crawler material after evidence review.",
+    immutable: true,
+    evidenceRefs: ["cg-501", "cf-118", "ip-7001"],
+    secondReviewStatus: "required"
+  },
+  {
+    id: "au-013",
+    actor: "legal-admin",
+    action: "approved crawler derivative review",
+    target: "cf-122",
+    risk: "medium",
+    createdAt: "2026-05-26 10:41",
+    rationale: "Internal fixture permits derivative use with provenance links and bounded raw-content retention.",
+    immutable: true,
+    evidenceRefs: ["cg-522", "cf-122", "crawler-governance/crawler_approved_local_test_source"],
+    secondReviewStatus: "not_required"
+  },
+  {
+    id: "au-014",
+    actor: "crawler-ops",
+    action: "queued crawler raw retention delete",
+    target: "cf-104",
+    risk: "medium",
+    createdAt: "2026-05-26 10:46",
+    rationale: "Pending source approval cannot retain raw content beyond the limited review window.",
+    immutable: true,
+    evidenceRefs: ["cg-533", "cf-104", "crawler-source cs-18"],
     secondReviewStatus: "not_required"
   }
 ];

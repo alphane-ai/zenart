@@ -2,6 +2,7 @@ import {
   adminReviewDecisions,
   abuseEvents,
   analyticsReports,
+  crawlerGovernanceWorkflows,
   auditEvents,
   crawlerFindings,
   exportJobs,
@@ -48,6 +49,10 @@ export async function getAdminReviewDecisions() {
 
 export async function getCrawlerFindings() {
   return crawlerFindings;
+}
+
+export async function getCrawlerGovernanceWorkflows() {
+  return crawlerGovernanceWorkflows;
 }
 
 export async function getPromptFragments() {

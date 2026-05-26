@@ -31,6 +31,7 @@ test("admin fixtures cover required operational surfaces", () => {
     "export const skillVersions",
     "export const adminReviewDecisions",
     "export const crawlerFindings",
+    "export const crawlerGovernanceWorkflows",
     "export const promptFragments",
     "export const metaPrompts",
     "export const traces",
@@ -203,6 +204,17 @@ test("admin routes surface governance evidence", () => {
   assert.match(queuesPage, /Failed Task Retry and Cancel Controls/);
   assert.match(queuesPage, /Operator Runbook/);
   assert.match(queuesPage, /Allowed Role/);
+
+  const crawlerPage = readFileSync(
+    new URL("../app/crawler/page.tsx", import.meta.url),
+    "utf8"
+  );
+  assert.match(crawlerPage, /Takedown and Derivative Review Workflow/);
+  assert.match(crawlerPage, /Derivative Use/);
+  assert.match(crawlerPage, /Retention Action/);
+  assert.match(crawlerPage, /Activation/);
+  assert.match(crawlerPage, /Review Rationale/);
+  assert.match(crawlerPage, /Audit Ref/);
 });
 
 test("support console surfaces ticket linkage and audit evidence", () => {

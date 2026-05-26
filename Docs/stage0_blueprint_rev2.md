@@ -1809,7 +1809,7 @@ main 合并前必须通过：
 - [ ] 实现 exact-text import warning。
 - [ ] 实现 provenance links。
 - [ ] 实现 source blocklist。
-- [ ] 实现 takedown/derivative review workflow。
+- [x] 实现 takedown/derivative review workflow。
 - [x] 添加 disallowed source、robots denied、duplicate hash、pending-review import tests。
 
 ### 25.14 Skill, Review, Feedback, Abuse
