@@ -4,6 +4,7 @@ import { test } from "node:test";
 
 const source = readFileSync(new URL("../lib/fixtures.ts", import.meta.url), "utf8");
 const repoRoot = new URL("../../", import.meta.url);
+const blueprint = readFileSync(new URL("../../Docs/stage0_blueprint_rev2.md", import.meta.url), "utf8");
 
 const parseFixtures = () => {
   const moduleSource = source
@@ -610,6 +611,53 @@ test("operations dashboards and alert routes bind SLOs to release-gate evidence"
       assert.equal(alert.escalationRole, "admin_superadmin", `${alert.id} sev1 alerts need superadmin escalation`);
     }
   }
+});
+
+test("operations runtime evidence closes only the validated dashboard and alert checklist rows", () => {
+  assert.match(
+    blueprint,
+    /- \[x\] 导入并验证 staging dashboards runtime evidence。/,
+    "staging dashboard runtime evidence checklist row must be closed only with admin runtime evidence"
+  );
+  assert.match(
+    blueprint,
+    /- \[x\] 配置并验证 staging alert routes\/runtime evidence。/,
+    "staging alert route runtime evidence checklist row must be closed only with admin runtime evidence"
+  );
+
+  const dashboardRuntimeRefs = new Set(operationalDashboards.map((dashboard) => dashboard.runtimeEvidenceRef));
+  const alertRuntimeRefs = new Set(alertRoutes.map((alert) => alert.runtimeEvidenceRef));
+
+  for (const ref of [
+    "staging-dashboard-provider-20260526T1000Z",
+    "staging-dashboard-export-20260526T1000Z",
+    "staging-dashboard-crawler-20260526T1000Z",
+    "staging-dashboard-admin-security-20260526T1030Z"
+  ]) {
+    assert.ok(dashboardRuntimeRefs.has(ref), `missing dashboard runtime evidence ref ${ref}`);
+  }
+
+  for (const ref of [
+    "staging-alert-provider-20260526T1000Z",
+    "staging-alert-export-20260526T1000Z",
+    "staging-alert-crawler-20260526T1000Z",
+    "staging-alert-admin-security-20260526T1030Z"
+  ]) {
+    assert.ok(alertRuntimeRefs.has(ref), `missing alert route runtime evidence ref ${ref}`);
+  }
+
+  assert.ok(
+    operationalDashboards.every((dashboard) => dashboard.runtimeEnvironment === "staging"),
+    "all operational dashboard evidence must be staged runtime evidence"
+  );
+  assert.ok(
+    operationalDashboards.every((dashboard) => dashboard.runtimeEvidenceStatus !== "definition_only"),
+    "dashboard checklist cannot close on definition-only evidence"
+  );
+  assert.ok(
+    alertRoutes.every((alert) => alert.runtimeEnvironment === "staging" && alert.runtimeEvidenceStatus === "verified"),
+    "alert route checklist cannot close until every route has verified staging evidence"
+  );
 });
 
 test("high-risk audit and release operations are immutable and rollback-linked", () => {
