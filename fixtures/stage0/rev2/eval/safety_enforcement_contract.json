@@ -459,9 +459,9 @@
     }
   ],
   "release_gate_policy": {
-    "contract_evidence_only": false,
-    "blueprint_runtime_item_remains_open": false,
-    "runtime_enforcement_validated": true
+    "contract_evidence_only": true,
+    "blueprint_runtime_item_remains_open": true,
+    "runtime_enforcement_validated": false
   },
   "provenance": {
     "blueprint_sections": [

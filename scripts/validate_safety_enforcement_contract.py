@@ -275,11 +275,17 @@ def validate_release_policy(contract: dict[str, Any]) -> None:
     item = "在 brief/provider request/provider response/QA/export 运行 safety policy。"
 
     policy = contract["release_gate_policy"]
-    require(policy["contract_evidence_only"] is False, "safety contract must no longer be evidence-only after runtime enforcement")
-    require(policy["blueprint_runtime_item_remains_open"] is False, "safety runtime checklist policy must allow closure")
-    require(policy["runtime_enforcement_validated"] is True, "safety contract must declare runtime enforcement validation")
-    require(item in checked, "safety runtime checklist item must be checked after backend runtime enforcement")
-    require(item not in unchecked, "safety runtime checklist item must not remain open after backend runtime enforcement")
+    runtime_validated = policy["runtime_enforcement_validated"]
+    if runtime_validated:
+        require(policy["contract_evidence_only"] is False, "validated safety runtime must not be evidence-only")
+        require(policy["blueprint_runtime_item_remains_open"] is False, "validated safety runtime must allow checklist closure")
+        require(item in checked, "safety runtime checklist item must be checked after backend runtime enforcement")
+        require(item not in unchecked, "safety runtime checklist item must not remain open after backend runtime enforcement")
+    else:
+        require(policy["contract_evidence_only"] is True, "unvalidated safety runtime must remain evidence-only")
+        require(policy["blueprint_runtime_item_remains_open"] is True, "unvalidated safety runtime must keep checklist open")
+        require(item in unchecked, "safety runtime checklist item must remain open until runtime evidence passes")
+        require(item not in checked, "safety runtime checklist item must not be checked before runtime evidence passes")
 
 
 def _go_const_suffix(point: str) -> str:

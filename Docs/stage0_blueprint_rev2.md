@@ -1782,7 +1782,7 @@ main 合并前必须通过：
 - [x] 实现 forbidden claims QA。
 - [x] 实现 export completeness QA。
 - [x] 实现 safety rule schema。
-- [x] 在 brief/provider request/provider response/QA/export 运行 safety policy。
+- [ ] 在 brief/provider request/provider response/QA/export 运行 safety policy。
 - [x] 实现 red-team fixtures。
 
 ### 25.12 Workflow Acceptance
@@ -1845,8 +1845,8 @@ main 合并前必须通过：
 - [x] 实现 delayed feedback。
 - [x] bad samples 转 regression fixtures。
 - [x] 实现 abuse event model。
-- [x] 实现 temporary hold/throttle hooks。
-- [x] 实现 admin abuse queue。
+- [ ] 实现 temporary hold/throttle hooks。
+- [ ] 实现 admin abuse queue。
 
 ### 25.15 Support and Operations
 

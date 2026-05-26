@@ -1061,7 +1061,7 @@ func (r Repository) EnforceSafety(ctx context.Context, tenantID, subjectType, su
 	if tenantID == "" || subjectType == "" || subjectID == "" || point == "" {
 		return SafetyDecision{}, errors.Join(ErrValidation, errors.New("subject_type, subject_id, and enforcement_point are required"))
 	}
-	rule, ok, err := r.findActiveSafetyRule(ctx, tenantID, point)
+	rule, ok, err := r.findBlockingRule(ctx, tenantID, point)
 	if err != nil {
 		return SafetyDecision{}, err
 	}
@@ -1241,6 +1241,17 @@ ORDER BY
 		}
 	}
 	return SafetyRule{}, false, rows.Err()
+}
+
+func (r Repository) findBlockingRule(ctx context.Context, tenantID, point string) (SafetyRule, bool, error) {
+	rule, ok, err := r.findActiveSafetyRule(ctx, tenantID, point)
+	if err != nil || !ok {
+		return rule, ok, err
+	}
+	if rule.Action != "block" {
+		return SafetyRule{}, false, nil
+	}
+	return rule, true, nil
 }
 
 func normalizeSafetyPoint(point string) string {
