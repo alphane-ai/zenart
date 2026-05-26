@@ -292,6 +292,12 @@ test("admin fixtures cover operations gate evidence", () => {
     "provider_latency_error",
     "crawler_policy_violation",
     "releaseGateUse",
+    "runtimeEnvironment",
+    "runtimeEvidenceStatus",
+    "runtimeEvidenceRef",
+    "runtimeValidatedAt",
+    "staging-dashboard-crawler",
+    "staging-alert-crawler",
     "escalationRole",
     "audience",
     "approval",
@@ -366,6 +372,9 @@ test("admin routes surface governance evidence", () => {
   assert.match(operationsPage, /Alert Routes/);
   assert.match(operationsPage, /SLO Threshold/);
   assert.match(operationsPage, /Escalation Role/);
+  assert.match(operationsPage, /Runtime Evidence/);
+  assert.match(operationsPage, /Runtime Status/);
+  assert.match(operationsPage, /Validated At/);
   assert.match(operationsPage, /Rollback Plan/);
 
   const queuesPage = readFileSync(

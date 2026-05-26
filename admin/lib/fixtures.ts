@@ -1171,7 +1171,11 @@ export const operationalDashboards: OperationalDashboard[] = [
     linkedSystems: ["providers", "worker-generation", "release-gate"],
     sourceSignals: ["provider_request_latency_ms", "provider_error_total", "provider_usage_reconciled_total"],
     releaseGateUse: "Private beta and production provider launch stay blocked until the alert resolves and provider usage reconciliation has matching audit evidence.",
-    evidenceRefs: ["ph-1", "eg-003", "au-007"]
+    runtimeEnvironment: "staging",
+    runtimeEvidenceStatus: "blocked",
+    runtimeEvidenceRef: "staging-dashboard-provider-20260526T1000Z",
+    runtimeValidatedAt: "2026-05-26 10:05",
+    evidenceRefs: ["ph-1", "eg-003", "au-007", "staging-dashboard-provider-20260526T1000Z"]
   },
   {
     id: "od-export-failure",
@@ -1184,7 +1188,11 @@ export const operationalDashboards: OperationalDashboard[] = [
     linkedSystems: ["export-packaging", "queue-dead-letter", "support-console"],
     sourceSignals: ["export_failed_total", "queue_dead_letter_total", "qa_report_packaging_failed_total"],
     releaseGateUse: "Release gate requires manual regenerate, quota refund audit, and manifest validation evidence before export success can be marked healthy.",
-    evidenceRefs: ["q-export", "inc-20260526-queue", "au-004", "sup-2204"]
+    runtimeEnvironment: "staging",
+    runtimeEvidenceStatus: "verified",
+    runtimeEvidenceRef: "staging-dashboard-export-20260526T1000Z",
+    runtimeValidatedAt: "2026-05-26 10:06",
+    evidenceRefs: ["q-export", "inc-20260526-queue", "au-004", "sup-2204", "staging-dashboard-export-20260526T1000Z"]
   },
   {
     id: "od-crawler-policy",
@@ -1197,7 +1205,11 @@ export const operationalDashboards: OperationalDashboard[] = [
     linkedSystems: ["crawler-findings", "review-queue", "prompt-fragments"],
     sourceSignals: ["crawler_source_blocked_total", "robots_denied_total", "crawler_derivative_review_open_total"],
     releaseGateUse: "Crawler-derived prompt or skill activation remains blocked whenever takedown, derivative-use, or retention evidence is unresolved.",
-    evidenceRefs: ["q-crawler", "inc-20260525-crawler", "au-012", "cg-501"]
+    runtimeEnvironment: "staging",
+    runtimeEvidenceStatus: "verified",
+    runtimeEvidenceRef: "staging-dashboard-crawler-20260526T1000Z",
+    runtimeValidatedAt: "2026-05-26 10:07",
+    evidenceRefs: ["q-crawler", "inc-20260525-crawler", "au-012", "cg-501", "staging-dashboard-crawler-20260526T1000Z"]
   },
   {
     id: "od-admin-security",
@@ -1210,7 +1222,11 @@ export const operationalDashboards: OperationalDashboard[] = [
     linkedSystems: ["admin-abuse", "prompt-fragments", "trace-redaction"],
     sourceSignals: ["safety_block_total", "trace_redaction_violation_total", "admin_override_denied_total"],
     releaseGateUse: "Production launch is blocked until the security-admin investigation closes with audit, support, and release evidence refs.",
-    evidenceRefs: ["ab-304", "au-008", "tr-1004"]
+    runtimeEnvironment: "staging",
+    runtimeEvidenceStatus: "blocked",
+    runtimeEvidenceRef: "staging-dashboard-admin-security-20260526T1030Z",
+    runtimeValidatedAt: "2026-05-26 10:31",
+    evidenceRefs: ["ab-304", "au-008", "tr-1004", "staging-dashboard-admin-security-20260526T1030Z"]
   }
 ];
 
@@ -1224,9 +1240,13 @@ export const alertRoutes: AlertRoute[] = [
     routeTarget: "ops-admin pager plus provider-routing review queue",
     escalationRole: "admin_operator",
     runbook: "Reduce non-urgent routing, verify provider usage reconciliation, attach audit evidence, and keep production provider launch blocked until the dashboard returns healthy.",
+    runtimeEnvironment: "staging",
+    runtimeEvidenceStatus: "verified",
+    runtimeEvidenceRef: "staging-alert-provider-20260526T1000Z",
+    runtimeValidatedAt: "2026-05-26 10:05",
     incidentRef: "none",
     auditRef: "au-007",
-    evidenceRefs: ["od-provider-latency", "ph-1", "eg-003", "au-007"]
+    evidenceRefs: ["od-provider-latency", "ph-1", "eg-003", "au-007", "staging-alert-provider-20260526T1000Z"]
   },
   {
     id: "al-export-dead-letter",
@@ -1237,9 +1257,13 @@ export const alertRoutes: AlertRoute[] = [
     routeTarget: "support-admin incident channel and export regeneration queue",
     escalationRole: "admin_reviewer",
     runbook: "Hold automatic retries, regenerate only eligible exports, verify quota refunds, and update support tickets before resolving the incident.",
+    runtimeEnvironment: "staging",
+    runtimeEvidenceStatus: "verified",
+    runtimeEvidenceRef: "staging-alert-export-20260526T1000Z",
+    runtimeValidatedAt: "2026-05-26 10:06",
     incidentRef: "inc-20260526-queue",
     auditRef: "au-004",
-    evidenceRefs: ["od-export-failure", "q-export", "inc-20260526-queue", "sup-2204", "au-004"]
+    evidenceRefs: ["od-export-failure", "q-export", "inc-20260526-queue", "sup-2204", "au-004", "staging-alert-export-20260526T1000Z"]
   },
   {
     id: "al-crawler-policy",
@@ -1250,9 +1274,13 @@ export const alertRoutes: AlertRoute[] = [
     routeTarget: "trust-admin crawler review queue",
     escalationRole: "admin_reviewer",
     runbook: "Keep findings pending, block active prompt and skill import, complete takedown or derivative review, and retain raw content only inside the approved window.",
+    runtimeEnvironment: "staging",
+    runtimeEvidenceStatus: "verified",
+    runtimeEvidenceRef: "staging-alert-crawler-20260526T1000Z",
+    runtimeValidatedAt: "2026-05-26 10:08",
     incidentRef: "inc-20260525-crawler",
     auditRef: "au-012",
-    evidenceRefs: ["od-crawler-policy", "inc-20260525-crawler", "cf-118", "cg-501", "au-012"]
+    evidenceRefs: ["od-crawler-policy", "inc-20260525-crawler", "cf-118", "cg-501", "au-012", "staging-alert-crawler-20260526T1000Z"]
   },
   {
     id: "al-admin-security",
@@ -1263,9 +1291,13 @@ export const alertRoutes: AlertRoute[] = [
     routeTarget: "security-admin emergency queue",
     escalationRole: "admin_superadmin",
     runbook: "Place temporary hold, preserve trace and audit evidence, block prompt-fragment activation, and require security-admin closure before release gates advance.",
+    runtimeEnvironment: "staging",
+    runtimeEvidenceStatus: "verified",
+    runtimeEvidenceRef: "staging-alert-admin-security-20260526T1030Z",
+    runtimeValidatedAt: "2026-05-26 10:31",
     incidentRef: "none",
     auditRef: "au-008",
-    evidenceRefs: ["od-admin-security", "ab-304", "au-008", "tr-1004"]
+    evidenceRefs: ["od-admin-security", "ab-304", "au-008", "tr-1004", "staging-alert-admin-security-20260526T1030Z"]
   }
 ];
 

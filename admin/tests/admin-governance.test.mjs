@@ -60,6 +60,7 @@ const incidentIds = new Set(["none", "inc-20260526-queue", "inc-20260525-crawler
 const operationalDashboardIds = new Set(operationalDashboards.map((dashboard) => dashboard.id));
 const abuseEventById = new Map(abuseEvents.map((event) => [event.id, event]));
 const canaryMetricIds = new Set(skillCanaryMetrics.map((metric) => metric.id));
+const runtimeEvidencePattern = /^staging-(dashboard|alert)-[a-z-]+-\d{8}T\d{4}Z$/;
 
 const roleOrder = new Map([
   ["support_operator", 1],
@@ -555,6 +556,11 @@ test("operations dashboards and alert routes bind SLOs to release-gate evidence"
     assert.ok(dashboard.sourceSignals.length >= 2, `${dashboard.id} needs source signals`);
     assert.ok(dashboard.sloThreshold.length > 50, `${dashboard.id} needs concrete SLO threshold`);
     assert.ok(dashboard.releaseGateUse.length > 90, `${dashboard.id} needs release-gate usage`);
+    assert.equal(dashboard.runtimeEnvironment, "staging", `${dashboard.id} needs staging runtime evidence`);
+    assert.match(dashboard.runtimeEvidenceStatus, /verified|blocked/, `${dashboard.id} needs imported runtime evidence status`);
+    assert.match(dashboard.runtimeEvidenceRef, runtimeEvidencePattern, `${dashboard.id} needs staging dashboard evidence ref`);
+    assert.notEqual(dashboard.runtimeValidatedAt, "pending", `${dashboard.id} needs runtime validation timestamp`);
+    assert.ok(dashboard.evidenceRefs.includes(dashboard.runtimeEvidenceRef), `${dashboard.id} evidence must include runtime ref`);
     assert.ok(dashboard.evidenceRefs.length >= 3, `${dashboard.id} needs evidence refs`);
 
     for (const ref of dashboard.evidenceRefs) {
@@ -564,6 +570,7 @@ test("operations dashboards and alert routes bind SLOs to release-gate evidence"
           ref.startsWith("ph-") ||
           ref.startsWith("q-") ||
           ref.startsWith("cg-") ||
+          ref.startsWith("staging-dashboard-") ||
           incidentIds.has(ref) ||
           supportTicketIds.has(ref) ||
           abuseEventById.has(ref) ||
@@ -586,8 +593,13 @@ test("operations dashboards and alert routes bind SLOs to release-gate evidence"
     assert.ok(roleOrder.has(alert.escalationRole), `${alert.id} has unknown escalation role`);
     assert.ok(alert.threshold.length > 50, `${alert.id} needs concrete threshold`);
     assert.ok(alert.runbook.length > 90, `${alert.id} needs actionable runbook`);
+    assert.equal(alert.runtimeEnvironment, "staging", `${alert.id} needs staging runtime route evidence`);
+    assert.equal(alert.runtimeEvidenceStatus, "verified", `${alert.id} alert route runtime evidence must be verified`);
+    assert.match(alert.runtimeEvidenceRef, runtimeEvidencePattern, `${alert.id} needs staging alert evidence ref`);
+    assert.notEqual(alert.runtimeValidatedAt, "pending", `${alert.id} needs runtime validation timestamp`);
     assert.ok(alert.evidenceRefs.includes(alert.dashboardId), `${alert.id} evidence must include dashboard`);
     assert.ok(alert.evidenceRefs.includes(alert.auditRef), `${alert.id} evidence must include audit`);
+    assert.ok(alert.evidenceRefs.includes(alert.runtimeEvidenceRef), `${alert.id} evidence must include runtime ref`);
 
     if (alert.status === "firing") {
       assert.match(alert.incidentRef, /none|inc-/, `${alert.id} firing alerts need incident linkage state`);

@@ -49,6 +49,9 @@ export default async function OperationsPage() {
             { key: "slo", header: "SLO Threshold", render: (row) => row.sloThreshold },
             { key: "signals", header: "Source Signals", render: (row) => row.sourceSignals.join(", ") },
             { key: "release", header: "Release Gate Use", render: (row) => row.releaseGateUse },
+            { key: "runtime", header: "Runtime Evidence", render: (row) => `${row.runtimeEnvironment} / ${row.runtimeEvidenceRef}` },
+            { key: "runtime-status", header: "Runtime Status", render: (row) => <StatusBadge value={row.runtimeEvidenceStatus} label={row.runtimeEvidenceStatus} /> },
+            { key: "validated", header: "Validated At", render: (row) => row.runtimeValidatedAt },
             { key: "evidence", header: "Evidence", render: (row) => row.evidenceRefs.join(", ") }
           ]}
         />
@@ -72,6 +75,9 @@ export default async function OperationsPage() {
             { key: "target", header: "Route Target", render: (row) => row.routeTarget },
             { key: "role", header: "Escalation Role", render: (row) => row.escalationRole },
             { key: "runbook", header: "Runbook", render: (row) => row.runbook },
+            { key: "runtime", header: "Runtime Evidence", render: (row) => `${row.runtimeEnvironment} / ${row.runtimeEvidenceRef}` },
+            { key: "runtime-status", header: "Runtime Status", render: (row) => <StatusBadge value={row.runtimeEvidenceStatus} label={row.runtimeEvidenceStatus} /> },
+            { key: "validated", header: "Validated At", render: (row) => row.runtimeValidatedAt },
             { key: "audit", header: "Audit Ref", render: (row) => <span className="mono">{row.auditRef}</span> }
           ]}
         />

@@ -305,6 +305,10 @@ export type OperationalDashboard = {
   linkedSystems: string[];
   sourceSignals: string[];
   releaseGateUse: string;
+  runtimeEnvironment: "local" | "ci" | "staging" | "production";
+  runtimeEvidenceStatus: "definition_only" | "imported" | "verified" | "blocked";
+  runtimeEvidenceRef: string;
+  runtimeValidatedAt: string;
   evidenceRefs: string[];
 };
 
@@ -317,6 +321,10 @@ export type AlertRoute = {
   routeTarget: string;
   escalationRole: AdminRole;
   runbook: string;
+  runtimeEnvironment: "local" | "ci" | "staging" | "production";
+  runtimeEvidenceStatus: "definition_only" | "configured" | "verified" | "blocked";
+  runtimeEvidenceRef: string;
+  runtimeValidatedAt: string;
   incidentRef: string;
   auditRef: string;
   evidenceRefs: string[];
