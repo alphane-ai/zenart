@@ -121,7 +121,7 @@
       "condition_id": "ci_staging_gates_not_passed",
       "blueprint_condition": "Production deploy 缺 rollback plan、migration compatibility notes、post-deploy smoke test。",
       "is_present": true,
-      "evidence_ref": "fixtures/stage0/rev2/release_gate_evidence.ci.json and fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json are present and show CI and staging gates remain unchecked"
+      "evidence_ref": "upstream dependency fixture fixtures/stage0/rev2/release_gate_evidence.ci.json is present with gate_decision.status=no_go, and upstream dependency fixture fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json is present with gate_decision.status=no_go, so production backup/rollback/post-deploy launch clearance remains blocked until both upstream gates pass"
     }
   ],
   "gate_decision": {

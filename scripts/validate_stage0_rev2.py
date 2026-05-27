@@ -1770,6 +1770,24 @@ CONCRETE_EVIDENCE_PATH_RE = re.compile(
     r")"
 )
 
+FORBIDDEN_RELEASE_GATE_REFERENCE_RE = re.compile(
+    r"("
+    r"README\.md|"
+    r"Docs/stage0_blueprint\.md|"
+    r"Docs/stage0_draft\.md|"
+    r"debating-runs/|"
+    r"\b(?:GitHub\s+)?issues?#\d+\b|"
+    r"聊天记录|"
+    r"chat\s+record|"
+    r"conversation\s+log"
+    r")",
+    flags=re.IGNORECASE,
+)
+
+RELEASE_GATE_FIXTURE_PATH_RE = re.compile(
+    r"fixtures/stage0/rev2/release_gate_evidence\.[A-Za-z0-9._-]+\.json"
+)
+
 RELEASE_GATE_PASS_BLOCKED_BY_OPEN_ITEMS = {
     "local_alpha": {
         "电商增长包 API smoke test 通过。",
@@ -2630,6 +2648,44 @@ def require_concrete_evidence_ref(
         any(evidence_path_exists(path) for path in paths),
         f"{context} cites repo artifact paths but none exist: {sorted(paths)}",
     )
+
+
+def require_release_gate_evidence_ref_authoritative(
+    evidence_ref: str,
+    *,
+    gate: str,
+    context: str,
+    allow_upstream_gate_fixtures: bool = False,
+) -> None:
+    forbidden_match = FORBIDDEN_RELEASE_GATE_REFERENCE_RE.search(evidence_ref)
+    if forbidden_match is not None:
+        fail(
+            f"{context} cites non-authoritative launch gate source {forbidden_match.group(0)!r}; "
+            "release gate evidence must be Rev2-owned fixtures, validator-owned scripts, exact runtime evidence, "
+            "or exact deployment artifacts"
+        )
+
+    canonical_fixture = rel(RELEASE_GATE_EVIDENCE_FILES[gate])
+    fixture_refs = set(RELEASE_GATE_FIXTURE_PATH_RE.findall(evidence_ref))
+    allowed_fixture_refs = {canonical_fixture}
+    if allow_upstream_gate_fixtures and gate == "production_launch":
+        allowed_fixture_refs.update(
+            {
+                rel(RELEASE_GATE_EVIDENCE_FILES["ci"]),
+                rel(RELEASE_GATE_EVIDENCE_FILES["private_beta_staging"]),
+            }
+        )
+    unexpected_fixture_refs = fixture_refs - allowed_fixture_refs
+    require(
+        not unexpected_fixture_refs,
+        f"{context} cites another release-gate fixture instead of validator-owned runtime/dependency evidence: "
+        + json.dumps(sorted(unexpected_fixture_refs), ensure_ascii=False),
+    )
+    if allow_upstream_gate_fixtures and fixture_refs - {canonical_fixture}:
+        require(
+            any(token in evidence_ref.lower() for token in ["upstream", "dependency", "gate_decision.status", "gates pass"]),
+            f"{context} cites upstream release-gate fixtures without describing them as dependency status evidence",
+        )
 
 
 def rel(path: Path) -> str:
@@ -4166,6 +4222,12 @@ def validate_gate_decision(data: dict[str, Any]) -> None:
         isinstance(evidence_ref, str) and evidence_ref.strip(),
         f"{gate} gate_decision.evidence_ref must be non-empty",
     )
+    require_release_gate_evidence_ref_authoritative(
+        evidence_ref,
+        gate=gate,
+        context=f"{gate} gate_decision evidence",
+        allow_upstream_gate_fixtures=gate == "production_launch",
+    )
     require_concrete_evidence_ref(
         evidence_ref,
         f"{gate} gate_decision evidence",
@@ -4319,6 +4381,11 @@ def validate_release_gate_basics(data: dict[str, Any]) -> tuple[dict[str, dict[s
             check["evidence_ref"].strip(),
             f"{gate}.{check_id} must have a non-empty evidence_ref",
         )
+        require_release_gate_evidence_ref_authoritative(
+            check["evidence_ref"],
+            gate=gate,
+            context=f"{gate}.{check_id} evidence",
+        )
         if check["status"] in {"fail", "blocked"}:
             evidence_ref_lower = check["evidence_ref"].lower()
             require(
@@ -4353,6 +4420,13 @@ def validate_release_gate_basics(data: dict[str, Any]) -> tuple[dict[str, dict[s
         require(
             condition["evidence_ref"].strip(),
             f"{gate}.{condition_id} must have a non-empty evidence_ref",
+        )
+        require_release_gate_evidence_ref_authoritative(
+            condition["evidence_ref"],
+            gate=gate,
+            context=f"{gate}.{condition_id} condition evidence",
+            allow_upstream_gate_fixtures=gate == "production_launch"
+            and condition_id == "ci_staging_gates_not_passed",
         )
         if condition["is_present"]:
             require(
@@ -9766,6 +9840,11 @@ def validate_launch_readiness_split_contracts() -> None:
         "copied, renamed, or extra release-gate fixtures cannot contribute to gate closure",
         "Release gate fixture `gate_decision` is a closed object",
         "only `status`, `blocked_by_checks`, `active_do_not_launch_conditions`, and `evidence_ref` are allowed",
+        "Release gate fixture `checks[*].evidence_ref`, `do_not_launch_checks[*].evidence_ref`, and `gate_decision.evidence_ref` must not cite README",
+        "conversation logs、or debating-runs as launch-closure evidence",
+        "A release gate evidence ref may not cite another `fixtures/stage0/rev2/release_gate_evidence.*.json` file as direct runtime proof",
+        "Production `ci_staging_gates_not_passed`",
+        "must name their `gate_decision.status`, not treat their presence as clearance",
         "`schema_version` must remain `stage0.rev2`",
         "`gate` must match the filename's canonical gate",
         "`provenance.created_by_lane` must remain `lane6`",
