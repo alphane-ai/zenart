@@ -14,6 +14,7 @@
     "required_denial_reasons",
     "decisions",
     "release_gate_policy",
+    "replay_contract",
     "provenance"
   ],
   "properties": {
@@ -341,6 +342,59 @@
           "const": true
         },
         "override_decisions_are_admin_only": {
+          "const": true
+        }
+      }
+    },
+    "replay_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "runner",
+        "check_command",
+        "cases_replayed",
+        "requires_eval_result_link",
+        "requires_trace_export_link",
+        "requires_qa_source_link",
+        "requires_safety_source_link",
+        "denies_critical_safety_override",
+        "denies_incomplete_export_artifact_override",
+        "denies_missing_audit_override",
+        "approved_override_keeps_other_gate_reasons_closed"
+      ],
+      "properties": {
+        "runner": {
+          "const": "scripts/run_export_override_contract.py"
+        },
+        "check_command": {
+          "const": "python3 scripts/run_export_override_contract.py --check"
+        },
+        "cases_replayed": {
+          "type": "integer",
+          "minimum": 5
+        },
+        "requires_eval_result_link": {
+          "const": true
+        },
+        "requires_trace_export_link": {
+          "const": true
+        },
+        "requires_qa_source_link": {
+          "const": true
+        },
+        "requires_safety_source_link": {
+          "const": true
+        },
+        "denies_critical_safety_override": {
+          "const": true
+        },
+        "denies_incomplete_export_artifact_override": {
+          "const": true
+        },
+        "denies_missing_audit_override": {
+          "const": true
+        },
+        "approved_override_keeps_other_gate_reasons_closed": {
           "const": true
         }
       }

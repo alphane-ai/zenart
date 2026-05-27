@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 import re
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any
@@ -18,6 +19,7 @@ EVAL_RESULTS = FIXTURE_DIR / "starter_eval_results.json"
 TRACE_COMPLETENESS = FIXTURE_DIR / "trace_completeness.json"
 SAFETY_RULES = FIXTURE_DIR / "safety_rules.json"
 OPENAPI = ROOT / "openapi" / "zenart.v1.yaml"
+REPLAY_RUNNER = ROOT / "scripts" / "run_export_override_contract.py"
 
 SOURCE_TYPES = {"qa_result", "safety_decision", "export_contract"}
 OUTCOMES = {"approved", "denied"}
@@ -304,6 +306,36 @@ def validate_policy(contract: dict[str, Any]) -> None:
     require(policy["override_decisions_are_admin_only"] is True, "override admin-only policy missing")
 
 
+def validate_replay_contract(contract: dict[str, Any]) -> None:
+    replay = contract["replay_contract"]
+    require(replay["runner"] == "scripts/run_export_override_contract.py", "override replay runner mismatch")
+    require(
+        replay["check_command"] == "python3 scripts/run_export_override_contract.py --check",
+        "override replay check command mismatch",
+    )
+    require(replay["cases_replayed"] == len(contract["decisions"]), "override replay case count mismatch")
+    for field in [
+        "requires_eval_result_link",
+        "requires_trace_export_link",
+        "requires_qa_source_link",
+        "requires_safety_source_link",
+        "denies_critical_safety_override",
+        "denies_incomplete_export_artifact_override",
+        "denies_missing_audit_override",
+        "approved_override_keeps_other_gate_reasons_closed",
+    ]:
+        require(replay[field] is True, f"override replay contract must set {field}")
+
+    result = subprocess.run(
+        [sys.executable, str(REPLAY_RUNNER), "--check"],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    require(result.returncode == 0, "override replay runner failed: " + (result.stderr or result.stdout).strip())
+
+
 def main() -> int:
     try:
         contract = load_json(CONTRACT)
@@ -311,6 +343,7 @@ def main() -> int:
         validate_openapi(contract)
         validate_decision_links(contract)
         validate_policy(contract)
+        validate_replay_contract(contract)
     except ExportOverrideContractError as exc:
         print(f"export override contract validation failed: {exc}", file=sys.stderr)
         return 1

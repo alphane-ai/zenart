@@ -275,6 +275,19 @@
     "missing_manifest_or_trace_provenance_has_no_override_path": true,
     "override_decisions_are_admin_only": true
   },
+  "replay_contract": {
+    "runner": "scripts/run_export_override_contract.py",
+    "check_command": "python3 scripts/run_export_override_contract.py --check",
+    "cases_replayed": 5,
+    "requires_eval_result_link": true,
+    "requires_trace_export_link": true,
+    "requires_qa_source_link": true,
+    "requires_safety_source_link": true,
+    "denies_critical_safety_override": true,
+    "denies_incomplete_export_artifact_override": true,
+    "denies_missing_audit_override": true,
+    "approved_override_keeps_other_gate_reasons_closed": true
+  },
   "provenance": {
     "blueprint_sections": [
       "15.1",
