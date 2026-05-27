@@ -698,6 +698,156 @@ for item in coverage.values():
         if key not in item:
             raise SystemExit(f"{item.get('area')} dry-run coverage missing {key}: {item}")
 PY
+object_retention_pass_dir="$(mktemp -d)"
+object_retention_web_dir="$object_retention_pass_dir/web"
+mkdir -p "$object_retention_web_dir/api/admin/v1/object-storage/retention-policy" \
+  "$object_retention_web_dir/api/admin/v1/object-storage/cleanup/expired-exports" \
+  "$object_retention_web_dir/api/admin/v1/object-storage/cleanup/orphans"
+cat >"$object_retention_web_dir/api/admin/v1/object-storage/retention-policy/index.html" <<'EOF'
+{"retention_policy":{"tenant_id":"tenant-alpha","versioning":{"enabled":true},"retention_until":"2026-06-01T00:00:00Z"}}
+EOF
+cat >"$object_retention_web_dir/api/admin/v1/object-storage/cleanup/expired-exports/index.html" <<'EOF'
+{"expired_exports":{"deleted_objects":2,"preview_objects":1,"audit_refs":["au-007"],"dry_run":true}}
+EOF
+cat >"$object_retention_web_dir/api/admin/v1/object-storage/cleanup/orphans/index.html" <<'EOF'
+{"orphaned_objects":{"deleted_objects":1,"preview_objects":2,"audit_refs":["au-015"],"dry_run":true}}
+EOF
+cat >"$object_retention_pass_dir/server.py" <<'PY'
+import json
+from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
+from pathlib import Path
+import sys
+from urllib.parse import urlparse
+
+root = Path(sys.argv[1])
+
+class Handler(SimpleHTTPRequestHandler):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, directory=str(root), **kwargs)
+
+    def end_headers(self):
+        request_id = self.headers.get("X-Request-ID")
+        if request_id:
+            self.send_header("X-Request-ID", request_id)
+        super().end_headers()
+
+    def do_POST(self):
+        parsed = urlparse(self.path)
+        if parsed.path.endswith("/cleanup/expired-exports"):
+            self._json({
+                "expired_exports": {
+                    "deleted_objects": 2,
+                    "preview_objects": 1,
+                    "audit_refs": ["au-007"],
+                    "dry_run": True,
+                }
+            })
+            return
+        if parsed.path.endswith("/cleanup/orphans"):
+            self._json({
+                "orphaned_objects": {
+                    "deleted_objects": 1,
+                    "preview_objects": 2,
+                    "audit_refs": ["au-015"],
+                    "dry_run": True,
+                }
+            })
+            return
+        self.send_error(404)
+
+    def do_GET(self):
+        parsed = urlparse(self.path)
+        if parsed.path == "/api/admin/v1/audit":
+            self._json({
+                "audit_refs": [
+                    {"audit_id": "au-007", "kind": "object_retention_cleanup", "actor_id": "admin-ops", "tenant_id": "tenant-alpha"},
+                    {"audit_id": "au-015", "kind": "export.cleanup.preview", "actor_id": "admin-ops", "tenant_id": "tenant-alpha"},
+                ]
+            })
+            return
+        super().do_GET()
+
+    def _json(self, payload):
+        body = json.dumps(payload).encode("utf-8")
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+port = int(sys.argv[2])
+ThreadingHTTPServer(("127.0.0.1", port), Handler).serve_forever()
+PY
+object_retention_port="$(python3 - <<'PY'
+import socket
+
+with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+    sock.bind(("127.0.0.1", 0))
+    print(sock.getsockname()[1])
+PY
+)"
+python3 "$object_retention_pass_dir/server.py" "$object_retention_web_dir" "$object_retention_port" >"$object_retention_pass_dir/server.log" 2>&1 &
+object_retention_server_pid=$!
+for _ in $(seq 1 50); do
+  if curl --silent --show-error --max-time 1 "http://127.0.0.1:$object_retention_port/api/admin/v1/object-storage/retention-policy/" >/dev/null 2>&1; then
+    break
+  fi
+  sleep 0.1
+done
+if ! curl --silent --show-error --max-time 1 "http://127.0.0.1:$object_retention_port/api/admin/v1/object-storage/retention-policy/" >/dev/null 2>&1; then
+  kill "$object_retention_server_pid" 2>/dev/null || true
+  printf 'failed to start local object-retention fixture server\n' >&2
+  cat "$object_retention_pass_dir/server.log" >&2 || true
+  exit 1
+fi
+set +e
+RUN_ID="stage0-validate-object-retention-alias-pass" \
+  OUT_DIR="$object_retention_pass_dir/out" \
+  BASE_URL="http://127.0.0.1:$object_retention_port" \
+  RELEASE_SHA="d3b1107c33dc40b8936f28549e06553fbd7b104a" \
+  ADMIN_BEARER_TOKEN="stage0-local-fixture" \
+  SMOKE_ADMIN_USER_ID="admin-ops" \
+  SMOKE_ADMIN_TENANT_ID="tenant-alpha" \
+  scripts/staging_object_storage_retention_cleanup_smoke.sh >/dev/null
+object_retention_alias_status=$?
+set -e
+kill "$object_retention_server_pid" 2>/dev/null || true
+if [[ "$object_retention_alias_status" -ne 2 ]]; then
+  printf 'object-retention alias fixture must exit 2 because non-canonical validation paths cannot close the gate, got %s\n' "$object_retention_alias_status" >&2
+  exit 1
+fi
+python3 - "$object_retention_pass_dir/out/object-storage-retention-cleanup.json" "$object_retention_pass_dir/out/object-storage-retention-cleanup.ndjson" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+report = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+rows = [json.loads(line) for line in Path(sys.argv[2]).read_text(encoding="utf-8").splitlines() if line.strip()]
+if report.get("status") != "blocked":
+    raise SystemExit("non-canonical object-retention alias fixture must stay blocked")
+if report.get("blocked_checks") != ["canonical_pass_paths_required_for_gate_closure"]:
+    raise SystemExit(f"alias fixture should only be blocked by canonical path policy: {report.get('blocked_checks')}")
+split = report.get("split_evidence", {})
+if split.get("retention_cleanup_runtime_ready") is not True:
+    raise SystemExit("alias fixture must prove retention cleanup runtime readiness")
+if split.get("retention_cleanup_ready") is not False:
+    raise SystemExit("alias fixture must not mark retention cleanup gate ready on validation paths")
+if split.get("canonical_pass_paths") is not False:
+    raise SystemExit("alias fixture must not claim canonical pass paths")
+if split.get("release_sha_matches_signed_url") is not True:
+    raise SystemExit("alias fixture must bind to the signed URL release SHA")
+if report.get("gate_impact", {}).get("can_clear_release_gate_check") is not False:
+    raise SystemExit("alias fixture must not clear object-storage release gate from non-canonical paths")
+if {row.get("status") for row in rows} != {"passed"}:
+    raise SystemExit(f"alias fixture rows must all pass before canonical policy blocks: {rows}")
+for row in rows:
+    if row.get("missing_tokens"):
+        raise SystemExit(f"alias-aware matcher should not leave missing tokens: {row}")
+    if row.get("request_id_echoed") is not True:
+        raise SystemExit(f"alias fixture must verify request-id echo: {row}")
+    if not row.get("matched_tokens"):
+        raise SystemExit(f"alias fixture must record matched semantic tokens: {row}")
+PY
 set +e
 RUN_ID="stage0-validate-legal-support-visibility" DRY_RUN=1 OUT_DIR="$ops_validate_dir/legal-support" scripts/staging_legal_support_visibility_smoke.sh >/dev/null
 legal_support_status=$?
