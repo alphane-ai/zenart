@@ -248,6 +248,12 @@ for (const attribute of evidence.requiredAttributes) {
   }
 }
 
+for (const attribute of routePackageExportEvidence.requiredIdentityAttributes ?? []) {
+  if (!evidence.requiredAttributes.includes(attribute)) {
+    fail(`package/export static artifact does not require route identity attribute ${attribute}`);
+  }
+}
+
 for (const attribute of [
   evidence.payloadStatusMatrix.rowAttribute,
   evidence.payloadStatusMatrix.nameAttribute,
