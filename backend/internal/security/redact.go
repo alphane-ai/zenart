@@ -47,7 +47,7 @@ type SecretFinding struct {
 	Location string     `json:"location,omitempty"`
 }
 
-var sensitiveKeyPattern = regexp.MustCompile(`(?i)(secret|token|password|passwd|pwd|passphrase|api[_-]?key|x[_-]?api[_-]?key|access[_-]?key|private[_-]?key|private[_-]?token|deploy[_-]?key|credential|signature|session|cookie|authorization|proxy[_-]?authorization|client[_-]?secret|client[_-]?token|client[_-]?assertion|refresh[_-]?token|id[_-]?token|personal[_-]?access[_-]?token|license[_-]?key|pat|jwt|oauth|webhook[_-]?secret|signing[_-]?key|routing[_-]?key|integration[_-]?key|shared[_-]?access[_-]?signature|sas|stripe|openai|anthropic|deepseek|mistral|cohere|gemini|google[_-]?ai|openrouter|perplexity|xai|fireworks|fal|elevenlabs|provider[_-]?key|sentry|datadog|honeycomb|new[_-]?relic|splunk|grafana|otel|otlp|posthog|segment|amplitude|mixpanel|launchdarkly|langfuse|braintrust|helicone|openpipe|promptlayer|portkey|wandb|weights[_-]?biases|weave|arize[_-]?phoenix|pagerduty|opsgenie|zendesk|intercom|resend|postmark|mailchimp|clerk|auth0|okta|supabase|firebase|terraform|snyk|circleci|buildkite|database[_-]?url|dsn|connection[_-]?string|connectionstring|service[_-]?account|storage[_-]?key|account[_-]?key|subscription[_-]?key|tenant[_-]?secret|object[_-]?storage[_-]?signing[_-]?key|object[_-]?storage[_-]?access[_-]?key|object[_-]?storage[_-]?secret[_-]?key|aws[_-]?secret[_-]?access[_-]?key|aws[_-]?session[_-]?token|s3[_-]?secret[_-]?key|minio[_-]?root[_-]?password|minio[_-]?secret[_-]?key|r2[_-]?(access|secret)|wasabi[_-]?(access|secret)|scw[_-]?(access|secret)|scaleway[_-]?(access|secret)|vultr[_-]?(access|secret)|linode[_-]?(access|secret)|oci[_-]?(access|secret|private)|oracle[_-]?(access|secret|private)|encryption[_-]?customer[_-]?key|customer[_-]?encryption[_-]?key|sse[_-]?customer[_-]?key|docker[_-]?auth|dockerconfigjson|dockercfg|image[_-]?pull[_-]?secret|registry[_-]?(auth|token|password))`)
+var sensitiveKeyPattern = regexp.MustCompile(`(?i)(secret|token|password|passwd|pwd|passphrase|api[_-]?key|x[_-]?api[_-]?key|access[_-]?key|private[_-]?key|private[_-]?token|deploy[_-]?key|credential|signature|session|cookie|authorization|proxy[_-]?authorization|client[_-]?secret|client[_-]?token|client[_-]?assertion|refresh[_-]?token|id[_-]?token|personal[_-]?access[_-]?token|license[_-]?key|pat|jwt|oauth|webhook[_-]?secret|signing[_-]?key|routing[_-]?key|integration[_-]?key|shared[_-]?access[_-]?signature|sas|stripe|openai|anthropic|deepseek|mistral|cohere|gemini|google[_-]?ai|openrouter|perplexity|xai|fireworks|fal|elevenlabs|provider[_-]?key|sentry|datadog|honeycomb|new[_-]?relic|splunk|grafana|otel|otlp|posthog|segment|amplitude|mixpanel|launchdarkly|langfuse|braintrust|helicone|openpipe|promptlayer|portkey|wandb|weights[_-]?biases|weave|arize[_-]?phoenix|pagerduty|opsgenie|zendesk|intercom|resend|postmark|mailchimp|clerk|auth0|okta|supabase|firebase|redis[_-]?url|smtp[_-]?url|smtp[_-]?dsn|smtp[_-]?connection|elastic[_-]?cloud[_-]?auth|elasticsearch[_-]?url|opensearch[_-]?url|clickhouse[_-]?url|metabase[_-]?secret[_-]?key|metabase[_-]?api[_-]?key|metabase[_-]?session|terraform|snyk|circleci|buildkite|database[_-]?url|dsn|connection[_-]?string|connectionstring|service[_-]?account|storage[_-]?key|account[_-]?key|subscription[_-]?key|tenant[_-]?secret|object[_-]?storage[_-]?signing[_-]?key|object[_-]?storage[_-]?access[_-]?key|object[_-]?storage[_-]?secret[_-]?key|aws[_-]?secret[_-]?access[_-]?key|aws[_-]?session[_-]?token|s3[_-]?secret[_-]?key|minio[_-]?root[_-]?password|minio[_-]?secret[_-]?key|r2[_-]?(access|secret)|wasabi[_-]?(access|secret)|scw[_-]?(access|secret)|scaleway[_-]?(access|secret)|vultr[_-]?(access|secret)|linode[_-]?(access|secret)|oci[_-]?(access|secret|private)|oracle[_-]?(access|secret|private)|encryption[_-]?customer[_-]?key|customer[_-]?encryption[_-]?key|sse[_-]?customer[_-]?key|docker[_-]?auth|dockerconfigjson|dockercfg|image[_-]?pull[_-]?secret|registry[_-]?(auth|token|password))`)
 
 var secretValuePatterns = []struct {
 	kind    SecretKind
@@ -56,6 +56,7 @@ var secretValuePatterns = []struct {
 }{
 	{SecretKindAuthorization, "bearer_token", regexp.MustCompile(`(?i)\bBearer\s+[A-Za-z0-9._~+/\-=]{3,}`)},
 	{SecretKindAuthorization, "basic_authorization", regexp.MustCompile(`(?i)\bBasic\s+[A-Za-z0-9+/=]{12,}`)},
+	{SecretKindAuthorization, "api_key_authorization", regexp.MustCompile(`(?i)\bApiKey\s+[A-Za-z0-9._~+/\-=]{12,}`)},
 	{SecretKindPrivateKey, "pem_private_key", regexp.MustCompile(`(?s)-----BEGIN [A-Z ]*PRIVATE KEY-----.*?-----END [A-Z ]*PRIVATE KEY-----`)},
 	{SecretKindProviderKey, "openai_key", regexp.MustCompile(`\bsk-(?:proj-)?[A-Za-z0-9_-]{20,}\b`)},
 	{SecretKindProviderKey, "stripe_key", regexp.MustCompile(`\b(?:sk|rk)_(?:live|test)_[A-Za-z0-9]{16,}\b`)},
@@ -113,6 +114,8 @@ var secretValuePatterns = []struct {
 	{SecretKindCloudKey, "azure_devops_pat", regexp.MustCompile(`\bazdpat[A-Za-z0-9]{20,}\b`)},
 	{SecretKindToken, "grafana_service_account_token", regexp.MustCompile(`\bglsa_[A-Za-z0-9_]{20,}\b`)},
 	{SecretKindToken, "grafana_cloud_token", regexp.MustCompile(`\bglc_[A-Za-z0-9_=-]{20,}\b`)},
+	{SecretKindToken, "elasticsearch_encoded_api_key", regexp.MustCompile(`(?i)\b(?:elastic|elasticsearch|opensearch)[_-]?api[_-]?key\s*[=:]\s*("[A-Za-z0-9+/=]{20,}"|'[A-Za-z0-9+/=]{20,}'|[A-Za-z0-9+/=]{20,})`)},
+	{SecretKindToken, "metabase_session", regexp.MustCompile(`(?i)\b(?:metabase|mb)[_-]?session(?:[_-]?cookie)?\s*[=:]\s*("[A-Za-z0-9._=-]{12,}"|'[A-Za-z0-9._=-]{12,}'|[A-Za-z0-9._=-]{12,})`)},
 	{SecretKindToken, "new_relic_key", regexp.MustCompile(`\b(?:NRAK|NRII)-[A-Z0-9]{20,}\b`)},
 	{SecretKindToken, "terraform_cloud_token", regexp.MustCompile(`\b[A-Za-z0-9]{14}\.atlasv1\.[A-Za-z0-9_-]{40,}\b`)},
 	{SecretKindToken, "snyk_token", regexp.MustCompile(`\bsnyk_[A-Za-z0-9]{20,}\b`)},
@@ -136,7 +139,7 @@ var secretValuePatterns = []struct {
 	{SecretKindRegistryAuth, "kubernetes_pull_secret", regexp.MustCompile(`(?i)\b(?:image[_-]?pull[_-]?secret|dockerconfigjson|dockercfg)\s*[=:]\s*("[A-Za-z0-9+/=._-]{20,}"|'[A-Za-z0-9+/=._-]{20,}'|[A-Za-z0-9+/=._-]{20,})`)},
 }
 
-var assignmentPattern = regexp.MustCompile(`(?i)\b([A-Za-z0-9_.-]*(?:secret|token|password|passwd|pwd|passphrase|api[_-]?key|x[_-]?api[_-]?key|access[_-]?key|private[_-]?key|private[_-]?token|deploy[_-]?key|credential|signature|session|cookie|authorization|proxy[_-]?authorization|client[_-]?secret|client[_-]?token|client[_-]?assertion|refresh[_-]?token|personal[_-]?access[_-]?token|license[_-]?key|webhook[_-]?secret|signing[_-]?key|shared[_-]?access[_-]?signature|database[_-]?url|dsn|connection[_-]?string|connectionstring|service[_-]?account|storage[_-]?key|account[_-]?key|subscription[_-]?key|tenant[_-]?secret|object[_-]?storage[_-]?signing[_-]?key|object[_-]?storage[_-]?access[_-]?key|object[_-]?storage[_-]?secret[_-]?key|aws[_-]?secret[_-]?access[_-]?key|aws[_-]?session[_-]?token|s3[_-]?secret[_-]?key|minio[_-]?root[_-]?password|minio[_-]?secret[_-]?key|r2[_-]?access|r2[_-]?secret|wasabi[_-]?access|wasabi[_-]?secret|scw[_-]?access|scw[_-]?secret|scaleway[_-]?access|scaleway[_-]?secret|vultr[_-]?access|vultr[_-]?secret|linode[_-]?access|linode[_-]?secret|oci[_-]?access|oci[_-]?secret|oci[_-]?private|oracle[_-]?access|oracle[_-]?secret|oracle[_-]?private|encryption[_-]?customer[_-]?key|customer[_-]?encryption[_-]?key|sse[_-]?customer[_-]?key|dockerconfigjson|dockercfg|image[_-]?pull[_-]?secret)[A-Za-z0-9_.-]*)\s*([=:])\s*("[^"]*"|'[^']*'|[^\s,;&]+)`)
+var assignmentPattern = regexp.MustCompile(`(?i)\b([A-Za-z0-9_.-]*(?:secret|token|password|passwd|pwd|passphrase|api[_-]?key|x[_-]?api[_-]?key|access[_-]?key|private[_-]?key|private[_-]?token|deploy[_-]?key|credential|signature|session|cookie|authorization|proxy[_-]?authorization|client[_-]?secret|client[_-]?token|client[_-]?assertion|refresh[_-]?token|personal[_-]?access[_-]?token|license[_-]?key|webhook[_-]?secret|signing[_-]?key|shared[_-]?access[_-]?signature|database[_-]?url|redis[_-]?url|smtp[_-]?url|smtp[_-]?dsn|smtp[_-]?connection|elasticsearch[_-]?url|opensearch[_-]?url|elastic[_-]?cloud[_-]?auth|clickhouse[_-]?url|dsn|connection[_-]?string|connectionstring|service[_-]?account|storage[_-]?key|account[_-]?key|subscription[_-]?key|tenant[_-]?secret|object[_-]?storage[_-]?signing[_-]?key|object[_-]?storage[_-]?access[_-]?key|object[_-]?storage[_-]?secret[_-]?key|aws[_-]?secret[_-]?access[_-]?key|aws[_-]?session[_-]?token|s3[_-]?secret[_-]?key|minio[_-]?root[_-]?password|minio[_-]?secret[_-]?key|r2[_-]?access|r2[_-]?secret|wasabi[_-]?access|wasabi[_-]?secret|scw[_-]?access|scw[_-]?secret|scaleway[_-]?access|scaleway[_-]?secret|vultr[_-]?access|vultr[_-]?secret|linode[_-]?access|linode[_-]?secret|oci[_-]?access|oci[_-]?secret|oci[_-]?private|oracle[_-]?access|oracle[_-]?secret|oracle[_-]?private|encryption[_-]?customer[_-]?key|customer[_-]?encryption[_-]?key|sse[_-]?customer[_-]?key|dockerconfigjson|dockercfg|image[_-]?pull[_-]?secret)[A-Za-z0-9_.-]*)\s*([=:])\s*("[^"]*"|'[^']*'|[^\s,;&]+)`)
 var launchSecretAssignmentPattern = regexp.MustCompile(`(?i)\b([A-Za-z0-9_.-]*(?:honeycomb|new[_-]?relic|splunk|grafana|otel|otlp|terraform|snyk|circleci|buildkite|okta|langfuse|braintrust|helicone|openpipe|promptlayer|portkey|wandb|weights[_-]?biases|weave|arize[_-]?phoenix|x[_-]?honeycomb[_-]?team|x[_-]?sf[_-]?token)[A-Za-z0-9_.-]*)\s*([=:])\s*("[^"]*"|'[^']*'|[^\s,;&]+)`)
 var embeddedURLPattern = regexp.MustCompile(`[A-Za-z][A-Za-z0-9+.-]*://[^\s"'<>]+`)
 
@@ -356,6 +359,8 @@ func ClassifyKey(key string) []SecretFinding {
 		kind = SecretKindAuthorization
 	case strings.Contains(lower, "cookie"):
 		kind = SecretKindCookie
+	case strings.Contains(lower, "grafana") && strings.Contains(lower, "token"):
+		kind = SecretKindToken
 	case strings.Contains(lower, "service") && strings.Contains(lower, "account"):
 		kind = SecretKindServiceAcct
 	case strings.Contains(lower, "sentry") || strings.Contains(lower, "datadog") || strings.Contains(lower, "honeycomb") ||
@@ -368,6 +373,14 @@ func ClassifyKey(key string) []SecretFinding {
 		strings.Contains(lower, "promptlayer") || strings.Contains(lower, "portkey") ||
 		strings.Contains(lower, "wandb") || strings.Contains(lower, "weights_biases") ||
 		strings.Contains(lower, "weave") || strings.Contains(lower, "arize_phoenix"):
+		kind = SecretKindToken
+	case strings.Contains(lower, "redis_url") || strings.Contains(lower, "smtp_url") ||
+		strings.Contains(lower, "smtp_dsn") || strings.Contains(lower, "smtp_connection") ||
+		strings.Contains(lower, "elasticsearch_url") || strings.Contains(lower, "opensearch_url") ||
+		strings.Contains(lower, "clickhouse_url") || strings.Contains(lower, "elastic_cloud_auth"):
+		kind = SecretKindCredential
+	case strings.Contains(lower, "metabase") || strings.Contains(lower, "elastic") || strings.Contains(lower, "elasticsearch") ||
+		strings.Contains(lower, "opensearch") || strings.Contains(lower, "clickhouse"):
 		kind = SecretKindToken
 	case strings.Contains(lower, "pagerduty") || strings.Contains(lower, "opsgenie") || strings.Contains(lower, "zendesk") ||
 		strings.Contains(lower, "intercom"):

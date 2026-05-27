@@ -1670,6 +1670,14 @@ func TestClassifyKeyCoversLaunchSecretNames(t *testing.T) {
 		{key: "circleCIToken", kind: SecretKindToken},
 		{key: "buildkiteAgentToken", kind: SecretKindToken},
 		{key: "oktaClientSecret", kind: SecretKindCredential},
+		{key: "redisUrl", kind: SecretKindCredential},
+		{key: "smtpDsn", kind: SecretKindCredential},
+		{key: "elasticsearchUrl", kind: SecretKindCredential},
+		{key: "opensearchUrl", kind: SecretKindCredential},
+		{key: "elasticCloudAuth", kind: SecretKindCredential},
+		{key: "clickhouseUrl", kind: SecretKindCredential},
+		{key: "metabaseSecretKey", kind: SecretKindToken},
+		{key: "grafanaServiceAccountToken", kind: SecretKindToken},
 	}
 
 	for _, tt := range cases {
@@ -1679,6 +1687,74 @@ func TestClassifyKeyCoversLaunchSecretNames(t *testing.T) {
 		}
 		if findings[0].Kind != tt.kind {
 			t.Fatalf("ClassifyKey(%q) kind = %s, want %s", tt.key, findings[0].Kind, tt.kind)
+		}
+	}
+}
+
+func TestRedactStringCoversLaunchInfraDSNsAndTokens(t *testing.T) {
+	input := strings.Join([]string{
+		"redis_url=redis://default:redis-password@redis.internal:6379/0",
+		"smtp_dsn=smtp://mailer:smtp-password@smtp.internal:587",
+		"elasticsearch_url=https://elastic:elastic-password@search.internal:9200",
+		"opensearch_url=https://opensearch:opensearch-password@search.internal:9200",
+		"clickhouse_url=clickhouse://analytics:clickhouse-password@clickhouse.internal:9440/zenart",
+		"elastic_api_key=abcdefghijklmnopqrstuvwxyz1234567890ABCD==",
+		"metabase_session=abcdefghijklmnopqrstuvwxyz1234567890",
+		"Authorization: ApiKey abcdefghijklmnopqrstuvwxyz123456",
+	}, " ")
+	got := RedactString(input)
+
+	for _, leaked := range []string{
+		"redis-password",
+		"smtp-password",
+		"elastic-password",
+		"opensearch-password",
+		"clickhouse-password",
+		"abcdefghijklmnopqrstuvwxyz1234567890ABCD==",
+		"abcdefghijklmnopqrstuvwxyz1234567890",
+		"abcdefghijklmnopqrstuvwxyz123456",
+	} {
+		if strings.Contains(got, leaked) {
+			t.Fatalf("RedactString() = %q, leaked %s", got, leaked)
+		}
+	}
+	if strings.Count(got, Redacted) < 8 {
+		t.Fatalf("RedactString() = %q, want launch infra secrets redacted", got)
+	}
+
+	findings := ClassifyString(input)
+	assertFinding(t, findings, SecretKindCredential, "")
+	assertFinding(t, findings, SecretKindToken, "")
+	assertFinding(t, findings, SecretKindAuthorization, "")
+}
+
+func TestRedactMapCoversLaunchInfraStructuredMetadata(t *testing.T) {
+	redacted := RedactMap(map[string]any{
+		"redisUrl":                   "redis://default:redis-password@redis.internal:6379/0",
+		"smtpDsn":                    "smtp://mailer:smtp-password@smtp.internal:587",
+		"elasticCloudAuth":           "elastic:cloud-password",
+		"grafanaServiceAccountToken": "glsa_abcdefghijklmnopqrstuvwxyz123456",
+		"metabaseSessionCookie":      "abcdefghijklmnopqrstuvwxyz1234567890",
+		"public_endpoint":            "https://status.example.test",
+	})
+	body, err := json.Marshal(redacted)
+	if err != nil {
+		t.Fatalf("marshal redacted infra metadata: %v", err)
+	}
+	for _, leaked := range []string{
+		"redis-password",
+		"smtp-password",
+		"cloud-password",
+		"glsa_abcdefghijklmnopqrstuvwxyz123456",
+		"abcdefghijklmnopqrstuvwxyz1234567890",
+	} {
+		if strings.Contains(string(body), leaked) {
+			t.Fatalf("redacted infra metadata = %s, leaked %s", string(body), leaked)
+		}
+	}
+	for _, fragment := range []string{`"public_endpoint":"https://status.example.test"`, Redacted} {
+		if !strings.Contains(string(body), fragment) {
+			t.Fatalf("redacted infra metadata = %s, missing %s", string(body), fragment)
 		}
 	}
 }
