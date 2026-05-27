@@ -4,6 +4,7 @@ import { StatGrid } from "@/components/StatGrid";
 import { StatusBadge } from "@/components/StatusBadge";
 import {
   getAdminRbacEvidence,
+  getAdminRbacClosureMatrix,
   getAdminRbacEvidencePacks,
   getAdminRbacOverrideAttemptDecisions,
   getAdminRbacRuntimeDecisions,
@@ -17,6 +18,7 @@ import {
 } from "@/lib/admin-api";
 import type {
   AdminRbacEvidence,
+  AdminRbacClosureMatrixRow,
   AdminRbacEvidencePack,
   AdminRbacOverrideAttemptDecision,
   AdminRbacRuntimeDecision,
@@ -39,6 +41,7 @@ export default async function AuditPage() {
     rbacStaleReplay,
     rbacSurfaceSummaries,
     rbacEvidencePacks,
+    rbacClosureMatrix,
     productionActivationEvidence,
     productionSecurityEvidence,
     stagingAuthRbacTenantAuditEvidence
@@ -51,6 +54,7 @@ export default async function AuditPage() {
     getAdminRbacStaleReplayDecisions(),
     getAdminRbacSurfaceSummaries(),
     getAdminRbacEvidencePacks(),
+    getAdminRbacClosureMatrix(),
     getProductionActivationReviewAuditEvidence(),
     getProductionSecurityLaunchCheckEvidence(),
     getStagingAuthRbacTenantAuditEvidence()
@@ -154,6 +158,35 @@ export default async function AuditPage() {
             { key: "second-review", header: "Second Review Status", render: (row) => <StatusBadge value={row.secondReviewStatus} label={row.secondReviewStatus} /> },
             { key: "evidence", header: "Evidence Refs", render: (row) => row.evidenceRefs.join(", ") },
             { key: "rationale", header: "Rationale", render: (row) => row.rationale }
+          ]}
+        />
+      </section>
+
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>RBAC Override Closure Matrix</h3>
+            <p>Cross-surface closure evidence proves each governed override family has runtime role gates, second-review coverage, expiry handling, stale replay behavior, immutable audit, and release evidence before release use.</p>
+          </div>
+        </div>
+        <DataTable<AdminRbacClosureMatrixRow>
+          rows={rbacClosureMatrix}
+          columns={[
+            { key: "surface", header: "Surface", render: (row) => row.surface },
+            { key: "scope", header: "Override Scope", render: (row) => row.overrideScope },
+            { key: "evidence", header: "Evidence IDs", render: (row) => <span className="mono">{row.evidenceIds.join(", ")}</span> },
+            { key: "roles", header: "Required Roles", render: (row) => row.requiredRoles.join(", ") },
+            { key: "runtime", header: "Runtime Outcomes", render: (row) => row.runtimeOutcomes.join(", ") },
+            { key: "role-gate", header: "Role Gate", render: (row) => <StatusBadge value={row.roleGateCoverage === "covered" ? "approved" : "blocked"} label={row.roleGateCoverage} /> },
+            { key: "second-review", header: "Second Review", render: (row) => <StatusBadge value={row.secondReviewCoverage === "missing" ? "blocked" : "approved"} label={row.secondReviewCoverage} /> },
+            { key: "expiry", header: "Expiry", render: (row) => <StatusBadge value={row.expiryCoverage === "missing" ? "blocked" : "approved"} label={row.expiryCoverage} /> },
+            { key: "stale", header: "Stale Replay", render: (row) => <StatusBadge value={row.staleReplayCoverage === "missing" ? "blocked" : "approved"} label={row.staleReplayCoverage} /> },
+            { key: "audit", header: "Audit", render: (row) => <StatusBadge value={row.auditCoverage === "attached" ? "approved" : "blocked"} label={row.auditCoverage} /> },
+            { key: "release-evidence", header: "Release Evidence", render: (row) => <StatusBadge value={row.releaseEvidenceCoverage === "attached" ? "approved" : "blocked"} label={row.releaseEvidenceCoverage} /> },
+            { key: "disposition", header: "Closure Disposition", render: (row) => <StatusBadge value={row.closureDisposition} label={row.closureDisposition} /> },
+            { key: "gate", header: "Release Gate", render: (row) => row.releaseGateStatus },
+            { key: "blockers", header: "Blockers", render: (row) => (row.blockerCodes.length > 0 ? row.blockerCodes.join(", ") : "none") },
+            { key: "operator", header: "Operator Action", render: (row) => row.operatorAction }
           ]}
         />
       </section>

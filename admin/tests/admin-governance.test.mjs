@@ -111,10 +111,20 @@ const parseRbacRuntime = () => {
     .replaceAll(/: AdminRbacOverrideAttemptDecision\[\]/g, "")
     .replaceAll(/: AdminRbacRuntimeDecision\[\]/g, "")
     .replaceAll(/: AdminRbacSurfaceSummary\[\]/g, "")
+    .replaceAll(/: AdminRbacClosureMatrixRow\[\]/g, "")
     .replaceAll(/: AdminRbacEvidencePack\[\]/g, "")
+    .replaceAll(/: AdminRbacClosureMatrixRow\["closureDisposition"\]/g, "")
+    .replaceAll(/: AdminRbacClosureMatrixRow\["secondReviewCoverage"\]/g, "")
+    .replaceAll(/: AdminRbacClosureMatrixRow\["expiryCoverage"\]/g, "")
+    .replaceAll(/: AdminRbacClosureMatrixRow\["staleReplayCoverage"\]/g, "")
+    .replaceAll(/: AdminRbacClosureMatrixRow\["releaseGateStatus"\]/g, "")
+    .replaceAll(/: AdminRbacClosureMatrixRow\["roleGateCoverage"\]/g, "")
+    .replaceAll(/: AdminRbacClosureMatrixRow\["auditCoverage"\]/g, "")
+    .replaceAll(/: AdminRbacClosureMatrixRow\["releaseEvidenceCoverage"\]/g, "")
     .replaceAll(/: AdminRbacEvidencePack\["releaseGateDisposition"\]/g, "")
     .replaceAll(/: AdminRbacEvidencePack\["evidenceCompleteness"\]/g, "")
     .replaceAll(/: AdminRbacEvidencePack\["expiryEnforcementStatus"\]/g, "")
+    .replaceAll(/: AdminRbacEvidencePack/g, "")
     .replaceAll(/: AdminRbacOverrideAttemptDecision\["idempotencyStatus"\]/g, "")
     .replaceAll(/: AdminRbacOverrideAttemptDecision\["runtimeRequestOutcome"\]/g, "")
     .replaceAll(/: AdminRbacOverrideAttemptDecision\["releaseGateStatus"\]/g, "")
@@ -140,7 +150,7 @@ const parseRbacRuntime = () => {
     .replaceAll(/: string/g, "")
     .replaceAll(/: Date/g, "")
     .replaceAll(/: boolean/g, "");
-  return Function(`${runtimeSource}\nreturn { buildAdminRbacRuntimeDecisions, buildAdminRbacOverrideAttemptDecisions, buildAdminRbacStaleReplayDecisions, buildAdminRbacSurfaceSummaries, buildAdminRbacEvidencePacks };`)();
+  return Function(`${runtimeSource}\nreturn { buildAdminRbacRuntimeDecisions, buildAdminRbacOverrideAttemptDecisions, buildAdminRbacStaleReplayDecisions, buildAdminRbacSurfaceSummaries, buildAdminRbacEvidencePacks, buildAdminRbacClosureMatrix };`)();
 };
 
 const parseExportRuntime = () => {
@@ -4993,6 +5003,77 @@ test("admin RBAC evidence packs bind each override surface to runtime, audit, an
       .get("safety_rule")
       .operatorChecklist.some((item) => item.includes("required admin role")),
     "safety pack must expose role escalation for superadmin-only changes"
+  );
+});
+
+test("admin RBAC closure matrix proves every governed override surface before release use", () => {
+  const {
+    buildAdminRbacRuntimeDecisions,
+    buildAdminRbacStaleReplayDecisions,
+    buildAdminRbacEvidencePacks,
+    buildAdminRbacClosureMatrix
+  } = parseRbacRuntime();
+  const runtimeDecisions = buildAdminRbacRuntimeDecisions(adminRbacEvidence, new Date("2026-05-26T11:00:00Z"));
+  const staleReplayDecisions = buildAdminRbacStaleReplayDecisions(
+    adminRbacEvidence,
+    runtimeDecisions,
+    new Date("2026-05-26T19:00:00Z")
+  );
+  const evidencePacks = buildAdminRbacEvidencePacks(adminRbacEvidence, runtimeDecisions, staleReplayDecisions);
+  const closureMatrix = buildAdminRbacClosureMatrix(evidencePacks, runtimeDecisions);
+  const matrixBySurface = new Map(closureMatrix.map((row) => [row.surface, row]));
+
+  assert.equal(
+    closureMatrix.length,
+    overrideScopeBySurface.size,
+    "closure matrix needs one row per governed admin override surface"
+  );
+
+  for (const [surface, overrideScope] of overrideScopeBySurface.entries()) {
+    const row = matrixBySurface.get(surface);
+    const surfaceEvidence = adminRbacEvidence.filter((item) => item.surface === surface);
+
+    assert.ok(row, `${surface} needs a closure matrix row`);
+    assert.equal(row.overrideScope, overrideScope, `${surface} closure row must preserve override scope`);
+    assert.deepEqual(
+      row.evidenceIds.toSorted(),
+      surfaceEvidence.map((item) => item.id).toSorted(),
+      `${surface} closure row must cite exact RBAC evidence ids`
+    );
+    assert.equal(row.roleGateCoverage, "covered", `${surface} closure row must prove role gate coverage`);
+    assert.notEqual(row.secondReviewCoverage, "missing", `${surface} closure row must prove second review status`);
+    assert.notEqual(row.expiryCoverage, "missing", `${surface} closure row must prove expiry handling`);
+    assert.notEqual(row.staleReplayCoverage, "missing", `${surface} closure row must prove stale replay handling or mark it not required`);
+    assert.equal(row.auditCoverage, "attached", `${surface} closure row must attach immutable audit`);
+    assert.equal(row.releaseEvidenceCoverage, "attached", `${surface} closure row must attach release evidence`);
+    assert.ok(row.requiredRoles.length > 0, `${surface} closure row must expose required roles`);
+    assert.ok(row.runtimeOutcomes.length > 0, `${surface} closure row must expose runtime outcomes`);
+    assert.ok(row.operatorAction.length > 0, `${surface} closure row must expose operator action`);
+  }
+
+  assert.equal(
+    matrixBySurface.get("provider_routing").closureDisposition,
+    "preserved_by_mixed_runtime",
+    "provider routing closure must preserve mixed applied and expired runtime outcomes"
+  );
+  assert.equal(
+    matrixBySurface.get("skill_release").closureDisposition,
+    "preserved_by_second_review",
+    "skill release closure must preserve second-review hold"
+  );
+  assert.equal(
+    matrixBySurface.get("quota_override").closureDisposition,
+    "preserved_by_policy_or_role",
+    "quota closure must preserve policy or role block"
+  );
+  assert.equal(
+    matrixBySurface.get("export_override").releaseGateStatus,
+    "release_gate_preserved",
+    "export closure must preserve release gate for blocking QA"
+  );
+  assert.ok(
+    matrixBySurface.get("provider_routing").blockerCodes.includes("expired_override_window"),
+    "provider closure must expose expired override blocker"
   );
 });
 

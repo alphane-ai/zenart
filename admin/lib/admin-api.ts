@@ -59,6 +59,7 @@ import { buildCrawlerGovernanceRuntimeDecisions } from "@/lib/crawler-runtime";
 import { buildExportRegenerationRuntimeDecisions } from "@/lib/export-runtime";
 import { buildRegressionFixtureRuntimeSummaries } from "@/lib/regression-fixture-runtime";
 import {
+  buildAdminRbacClosureMatrix,
   buildAdminRbacEvidencePacks,
   buildAdminRbacOverrideAttemptDecisions,
   buildAdminRbacRuntimeDecisions,
@@ -135,6 +136,18 @@ export async function getAdminRbacEvidencePacks() {
     new Date("2026-05-26T19:00:00Z")
   );
   return buildAdminRbacEvidencePacks(adminRbacEvidence, runtimeDecisions, staleReplayDecisions);
+}
+
+export async function getAdminRbacClosureMatrix() {
+  const runtimeDecisions = buildAdminRbacRuntimeDecisions(adminRbacEvidence, new Date("2026-05-26T11:00:00Z"));
+  const staleReplayDecisions = buildAdminRbacStaleReplayDecisions(
+    adminRbacEvidence,
+    runtimeDecisions,
+    new Date("2026-05-26T19:00:00Z")
+  );
+  const evidencePacks = buildAdminRbacEvidencePacks(adminRbacEvidence, runtimeDecisions, staleReplayDecisions);
+
+  return buildAdminRbacClosureMatrix(evidencePacks, runtimeDecisions);
 }
 
 export async function getCrawlerFindings() {

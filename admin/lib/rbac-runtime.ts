@@ -1,5 +1,6 @@
 import type {
   AdminRbacEvidence,
+  AdminRbacClosureMatrixRow,
   AdminRbacEvidencePack,
   AdminRbacOverrideAttempt,
   AdminRbacOverrideAttemptDecision,
@@ -586,6 +587,138 @@ function expiryEnforcementStatus(
   }
 
   return "all_enforced";
+}
+
+function closureDisposition(
+  pack: AdminRbacEvidencePack
+): AdminRbacClosureMatrixRow["closureDisposition"] {
+  if (pack.releaseGateDisposition === "applied_with_expiry") {
+    return "ready_for_release_use";
+  }
+
+  if (pack.releaseGateDisposition === "held_for_second_review") {
+    return "preserved_by_second_review";
+  }
+
+  if (pack.releaseGateDisposition === "mixed_preserved") {
+    return "preserved_by_mixed_runtime";
+  }
+
+  return "preserved_by_policy_or_role";
+}
+
+function secondReviewCoverage(pack: AdminRbacEvidencePack): AdminRbacClosureMatrixRow["secondReviewCoverage"] {
+  if (pack.secondReviewStatuses.includes("required") || pack.secondReviewStatuses.includes("blocked")) {
+    return "covered";
+  }
+
+  if (pack.secondReviewStatuses.includes("completed")) {
+    return "covered";
+  }
+
+  if (pack.secondReviewStatuses.includes("not_required")) {
+    return "not_required";
+  }
+
+  return "missing";
+}
+
+function expiryCoverage(pack: AdminRbacEvidencePack): AdminRbacClosureMatrixRow["expiryCoverage"] {
+  if (pack.expiryEnforcementStatus === "all_enforced" || pack.expiryEnforcementStatus === "mixed_enforcement") {
+    return "enforced";
+  }
+
+  if (pack.expiryEnforcementStatus === "policy_block_only") {
+    return "policy_block";
+  }
+
+  return "missing";
+}
+
+function staleReplayCoverage(pack: AdminRbacEvidencePack): AdminRbacClosureMatrixRow["staleReplayCoverage"] {
+  const replayRequired =
+    pack.expiryStatuses.includes("expired_temporary_window") ||
+    pack.expiryEnforcementStatus === "policy_block_only" ||
+    pack.expiryEnforcementStatus === "mixed_enforcement";
+
+  if (!replayRequired) {
+    return "not_required";
+  }
+
+  return pack.staleReplayOutcomes.length > 0 ? "covered" : "missing";
+}
+
+function closureBlockerCodes(pack: AdminRbacEvidencePack, runtimeDecisions: AdminRbacRuntimeDecision[]) {
+  const blockers = new Set<string>();
+
+  for (const decision of runtimeDecisions) {
+    for (const blocker of decision.blockerCodes) {
+      blockers.add(blocker);
+    }
+  }
+
+  if (pack.evidenceCompleteness !== "complete") {
+    blockers.add(pack.evidenceCompleteness);
+  }
+
+  if (pack.expiryEnforcementStatus === "missing_enforcement") {
+    blockers.add("expiry_enforcement_missing");
+  }
+
+  if (staleReplayCoverage(pack) === "missing") {
+    blockers.add("stale_replay_missing");
+  }
+
+  return Array.from(blockers).sort();
+}
+
+export function buildAdminRbacClosureMatrix(
+  evidencePacks: AdminRbacEvidencePack[],
+  runtimeDecisions: AdminRbacRuntimeDecision[]
+): AdminRbacClosureMatrixRow[] {
+  const decisionsBySurface = new Map<AdminRbacRuntimeDecision["surface"], AdminRbacRuntimeDecision[]>();
+
+  for (const decision of runtimeDecisions) {
+    decisionsBySurface.set(decision.surface, [...(decisionsBySurface.get(decision.surface) ?? []), decision]);
+  }
+
+  return evidencePacks
+    .map((pack) => {
+      const surfaceRuntimeDecisions = decisionsBySurface.get(pack.surface) ?? [];
+      const disposition = closureDisposition(pack);
+      const blockerCodes = closureBlockerCodes(pack, surfaceRuntimeDecisions);
+      const releaseGateStatus: AdminRbacClosureMatrixRow["releaseGateStatus"] =
+        disposition === "ready_for_release_use" && blockerCodes.length === 0
+          ? "release_use_allowed"
+          : "release_gate_preserved";
+      const roleGateCoverage: AdminRbacClosureMatrixRow["roleGateCoverage"] =
+        pack.requiredRoles.length > 0 && pack.requestOutcomes.length > 0 ? "covered" : "missing";
+      const auditCoverage: AdminRbacClosureMatrixRow["auditCoverage"] =
+        pack.auditRefs.length > 0 && !pack.auditRefs.includes("none") ? "attached" : "missing";
+      const releaseEvidenceCoverage: AdminRbacClosureMatrixRow["releaseEvidenceCoverage"] =
+        pack.evidenceRefs.length > 0 && pack.evidenceCompleteness !== "missing_release_evidence"
+          ? "attached"
+          : "missing";
+
+      return {
+        surface: pack.surface,
+        overrideScope: pack.overrideScope,
+        evidenceIds: pack.evidenceIds,
+        requiredRoles: pack.requiredRoles,
+        runtimeOutcomes: pack.requestOutcomes,
+        roleGateCoverage,
+        secondReviewCoverage: secondReviewCoverage(pack),
+        expiryCoverage: expiryCoverage(pack),
+        staleReplayCoverage: staleReplayCoverage(pack),
+        auditCoverage,
+        releaseEvidenceCoverage,
+        closureDisposition: disposition,
+        releaseGateStatus,
+        blockerCodes,
+        operatorAction: pack.operatorChecklist.join(" ")
+      };
+    })
+    .sort((a, b) => a.surface.localeCompare(b.surface));
 }
 
 export function buildAdminRbacEvidencePacks(

@@ -1605,6 +1605,28 @@ export type AdminRbacEvidencePack = {
   operatorChecklist: string[];
 };
 
+export type AdminRbacClosureMatrixRow = {
+  surface: AdminReviewSurface;
+  overrideScope: AdminRbacEvidence["overrideScope"];
+  evidenceIds: string[];
+  requiredRoles: AdminRole[];
+  runtimeOutcomes: AdminRbacRuntimeDecision["requestOutcome"][];
+  roleGateCoverage: "covered" | "missing";
+  secondReviewCoverage: "covered" | "not_required" | "missing";
+  expiryCoverage: "enforced" | "policy_block" | "missing";
+  staleReplayCoverage: "covered" | "not_required" | "missing";
+  auditCoverage: "attached" | "missing";
+  releaseEvidenceCoverage: "attached" | "missing";
+  closureDisposition:
+    | "ready_for_release_use"
+    | "preserved_by_second_review"
+    | "preserved_by_policy_or_role"
+    | "preserved_by_mixed_runtime";
+  releaseGateStatus: "release_use_allowed" | "release_gate_preserved";
+  blockerCodes: string[];
+  operatorAction: string;
+};
+
 export type ReleaseEvidence = {
   id: string;
   target: string;
