@@ -3,6 +3,7 @@ import { ExportRecord } from "./contracts";
 import {
   buildManifest,
   buildBriefUploadConfirmationRuntimeEvidence,
+  buildDownloadableExportZipPayloadNames,
   buildEcommerceGrowthApiSmokeEvidence,
   buildPackageExportMetadataEvidence,
   buildReferenceUploadIntegrationSmoke,
@@ -218,6 +219,21 @@ describe("dev workspace contracts", () => {
       safetyReport: runSafetyPolicy({ ...state, selectedCandidateId: "cand-editorial", packageItems }, qaReport)
     };
 
+    expect(buildDownloadableExportZipPayloadNames(exportRecord)).toEqual([
+      "manifest.json",
+      "qa-report.json",
+      "safety-policy-report.json",
+      "provenance.json",
+      "ppt-ready-metadata.json",
+      "assets/README.txt",
+      "assets/hero_product_ad.png",
+      "assets/square_social_ad.png",
+      "assets/story_variant.png",
+      "assets/marketplace_banner.png",
+      "metadata.json",
+      "qa_report.json",
+      "trace_provenance.json"
+    ]);
     expect(buildExportZipPayloadSmokeEvidence(exportRecord)).toEqual({
       schema_version: "stage0.rev2.export-zip-payload-smoke",
       status: "pass",
@@ -287,7 +303,7 @@ describe("dev workspace contracts", () => {
       status: "fail",
       downloadArtifactStatus: "fail",
       missingRequiredOutputs: ["qa-report.json", "safety-policy-report.json", "provenance.json", "ppt-ready-metadata.json", "assets/"],
-      missingZipPayloadNames: ["qa-report.json", "safety-policy-report.json", "provenance.json", "ppt-ready-metadata.json", "assets/README.txt"],
+      missingZipPayloadNames: [],
       itemCount: 0,
       provenanceCount: 0,
       blockingQaCount: 1

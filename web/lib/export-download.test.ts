@@ -2,7 +2,11 @@ import JSZip from "jszip";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DevZenArtClient } from "./api-client";
 import { ExportRecord } from "./contracts";
-import { ecommerceGrowthWorkflowAcceptance, requiredExportPackageOutputs } from "./dev-state";
+import {
+  buildDownloadableExportZipPayloadNames,
+  ecommerceGrowthWorkflowAcceptance,
+  requiredExportPackageOutputs
+} from "./dev-state";
 import { buildExportPackageBlob, downloadExportPackage } from "./export-download";
 
 const makeClient = () => new DevZenArtClient();
@@ -130,9 +134,7 @@ describe("reference upload and export download integration", () => {
       safety: string;
     };
     const readme = await zip.file("assets/README.txt")!.async("string");
-    const expectedPayloadNames = record.manifest.required_outputs.map((outputName) =>
-      outputName === "assets/" ? "assets/README.txt" : outputName
-    );
+    const expectedPayloadNames = buildDownloadableExportZipPayloadNames(record);
 
     for (const payloadName of expectedPayloadNames) {
       expect(zip.file(payloadName), `ZIP payload ${payloadName} should exist`).toBeTruthy();

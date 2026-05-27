@@ -380,6 +380,7 @@
       "expectedMetadataPayloadPresent": "true",
       "expectedTraceProvenancePayloadPresent": "true",
       "expectedAssetsPayloadPresent": "true",
+      "sharedPayloadPlanner": "buildDownloadableExportZipPayloadNames",
       "requiredAttributes": [
         "data-export-zip-payload-smoke",
         "data-export-zip-payload-smoke-status",
@@ -513,7 +514,7 @@
     "ecommerce growth pack API smoke runs fixture brief -> product reference -> four taxonomy candidates -> iterate -> package -> ready ZIP export",
     "export manifest includes PPT-ready metadata and ZIP download emits ppt-ready-metadata.json",
     "export metadata UI proves metadata.json and trace_provenance.json are present with provider, prompt/spec, skill, and safety metadata",
-    "export ZIP payload smoke proves every manifest-required output maps to a downloadable ZIP entry",
+    "export ZIP payload smoke proves every manifest-required output maps to a downloadable ZIP entry through buildDownloadableExportZipPayloadNames",
     "ZIP download emits safety-policy-report.json beside manifest, QA report, provenance, PPT metadata, and assets",
     "download smoke verifies ZIP artifact contents, PDF placeholder blob, deterministic filenames, and browser download handoff",
     "legal policy routes expose Terms, Privacy Policy, Acceptable Use, IP complaint, and billing/refund policy content",

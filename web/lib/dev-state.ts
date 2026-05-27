@@ -47,6 +47,19 @@ export const requiredExportZipPayloadNames = requiredExportPackageOutputs.map((o
   outputName === "assets/" ? "assets/README.txt" : outputName
 );
 
+export const toExportZipPayloadName = (outputName: string) =>
+  outputName === "assets/" ? "assets/README.txt" : outputName;
+
+export const buildDownloadableExportZipPayloadNames = (record: ExportRecord) =>
+  Array.from(
+    new Set([
+      ...requiredExportZipPayloadNames,
+      ...record.manifest.required_outputs
+        .filter((outputName) => !outputName.endsWith("/"))
+        .map(toExportZipPayloadName)
+    ])
+  );
+
 export const ecommerceGrowthWorkflowAcceptance = {
   schema_version: "stage0.rev2.workflow-api-smoke",
   workflow_id: "ecommerce_growth_pack",
@@ -514,9 +527,7 @@ export const buildPackageExportMetadataEvidence = (record: ExportRecord): Packag
   const missingRequiredOutputs = requiredExportPackageOutputs.filter(
     (outputName) => !record.manifest.required_outputs.includes(outputName)
   );
-  const zipPayloadNames = record.manifest.required_outputs.map((outputName) =>
-    outputName === "assets/" ? "assets/README.txt" : outputName
-  );
+  const zipPayloadNames = buildDownloadableExportZipPayloadNames(record);
   const requiredZipPayloadNames = [...requiredExportZipPayloadNames];
   const missingZipPayloadNames = requiredZipPayloadNames.filter((payloadName) => !zipPayloadNames.includes(payloadName));
   const workflowZipPayloadCount = record.manifest.workflow_acceptance?.required_files.filter((payloadName) =>
@@ -538,6 +549,8 @@ export const buildPackageExportMetadataEvidence = (record: ExportRecord): Packag
   const handoffChecklistCount = record.manifest.ppt_ready_metadata.handoff_checklist.length;
   const downloadArtifactStatus =
     record.format === "zip" &&
+    record.status === "ready" &&
+    missingRequiredOutputs.length === 0 &&
     missingZipPayloadNames.length === 0 &&
     zipPayloadNames.includes("manifest.json") &&
     zipPayloadNames.includes("qa-report.json") &&
@@ -611,13 +624,9 @@ export const buildPackageExportMetadataEvidence = (record: ExportRecord): Packag
 
 export const buildExportZipPayloadSmokeEvidence = (record: ExportRecord): ExportZipPayloadSmokeEvidence => {
   const manifestPayloadNames = Array.from(
-    new Set(
-      record.manifest.required_outputs.map((outputName) =>
-        outputName === "assets/" ? "assets/README.txt" : outputName
-      )
-    )
+    new Set(record.manifest.required_outputs.map(toExportZipPayloadName))
   );
-  const expectedPayloadNames = manifestPayloadNames;
+  const expectedPayloadNames = buildDownloadableExportZipPayloadNames(record);
   const requiredBaselinePayloadNames = [...requiredExportZipPayloadNames];
   const missingPayloadNames = manifestPayloadNames.filter((payloadName) => !expectedPayloadNames.includes(payloadName));
   const missingBaselinePayloadNames = requiredBaselinePayloadNames.filter(

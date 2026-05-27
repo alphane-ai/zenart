@@ -453,9 +453,10 @@ if (
   exportZipPayloadEvidence.expectedMetadataPayloadPresent !== "true" ||
   exportZipPayloadEvidence.expectedTraceProvenancePayloadPresent !== "true" ||
   exportZipPayloadEvidence.expectedAssetsPayloadPresent !== "true" ||
+  exportZipPayloadEvidence.sharedPayloadPlanner !== "buildDownloadableExportZipPayloadNames" ||
   exportZipPayloadEvidence.scenario !== "manifest-required-output-to-downloadable-zip-payloads"
 ) {
-  fail("export ZIP payload smoke must assert complete manifest-required downloadable payload coverage");
+  fail("export ZIP payload smoke must assert complete manifest-required downloadable payload coverage through the shared payload planner");
 }
 for (const attribute of exportZipPayloadEvidence.requiredAttributes ?? []) {
   if (!componentSource.includes(attribute)) {
@@ -469,6 +470,7 @@ for (const payload of exportZipPayloadEvidence.requiredPayloads ?? []) {
 }
 for (const expectedSnippet of [
   "buildExportZipPayloadSmokeEvidence",
+  "buildDownloadableExportZipPayloadNames",
   "stage0.rev2.export-zip-payload-smoke",
   "manifest-required-output-to-downloadable-zip-payloads",
   "metadataPayloadPresent",
@@ -892,7 +894,7 @@ for (const expectedIntegration of [
 
 for (const expectedDownloadSnippet of [
   "buildExportPackageBlob",
-  "requiredExportZipPayloadNames",
+  "buildDownloadableExportZipPayloadNames",
   "manifest.json",
   "qa-report.json",
   "safety-policy-report.json",
@@ -913,6 +915,7 @@ for (const expectedDownloadSnippet of [
 const exportDownloadTestPath = path.join(root, "lib", "export-download.test.ts");
 const exportDownloadTestSource = await readFile(exportDownloadTestPath, "utf8");
 for (const expectedDownloadSmokeSnippet of [
+  "buildDownloadableExportZipPayloadNames",
   "dev-client-reference:ref-campaign-reference-webp",
   "dev-client-reference:ref-launch-brief-pdf",
   "dev-client-reference:ref-https-assets-example-com-reference-pack",
