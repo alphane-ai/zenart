@@ -39,7 +39,7 @@ func RunServer(ctx context.Context, cfg config.Config, logger *slog.Logger) erro
 	db := store.NewPoolAdapter(pool)
 	scanner := malwareScannerFromConfig(cfg, http.DefaultClient)
 	stage0Service := stage0.NewService(stage0.NewRepository(db), objects, scanner).WithDownloadURLTTL(cfg.ObjectStorage.DownloadURLTTL)
-	api := server.New(cfg, logger)
+	api := server.New(cfg, logger, server.WithMalwareScanner(scanner))
 	baseHandler := api.Handler()
 	auditStore := audit.NewPostgresRecorder(db)
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

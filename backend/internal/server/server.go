@@ -28,14 +28,23 @@ import (
 )
 
 type Server struct {
-	cfg     config.Config
-	checker readiness.Checker
-	logger  *slog.Logger
-	metrics *Metrics
-	mux     *http.ServeMux
+	cfg            config.Config
+	checker        readiness.Checker
+	logger         *slog.Logger
+	metrics        *Metrics
+	mux            *http.ServeMux
+	malwareScanner security.MalwareScanner
 }
 
-func New(cfg config.Config, logger *slog.Logger) *Server {
+type Option func(*Server)
+
+func WithMalwareScanner(scanner security.MalwareScanner) Option {
+	return func(s *Server) {
+		s.malwareScanner = scanner
+	}
+}
+
+func New(cfg config.Config, logger *slog.Logger, opts ...Option) *Server {
 	if logger == nil {
 		logger = slog.Default()
 	}
@@ -45,6 +54,11 @@ func New(cfg config.Config, logger *slog.Logger) *Server {
 		logger:  logger,
 		metrics: NewMetrics(),
 		mux:     http.NewServeMux(),
+	}
+	for _, opt := range opts {
+		if opt != nil {
+			opt(s)
+		}
 	}
 	s.routes()
 	return s
@@ -343,6 +357,7 @@ func (s *Server) createUpload(w http.ResponseWriter, r *http.Request) {
 		MaxBytes:            s.cfg.Security.MaxUploadBytes,
 		URLTTL:              s.cfg.Security.UploadURLTTL,
 		SignURL:             s.signUploadURL,
+		MalwareScanner:      s.malwareScanner,
 		MalwareFailClosed:   s.cfg.Security.MalwareScanFailClosed,
 	})
 	if err != nil {

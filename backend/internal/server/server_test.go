@@ -316,6 +316,97 @@ func TestUploadCreateReturnsConflictForSuspiciousMalwareScan(t *testing.T) {
 	}
 }
 
+func TestUploadCreateUsesConfiguredMalwareScanner(t *testing.T) {
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	cfg.Security.MalwareScanFailClosed = false
+	db := &fakeStage0DB{}
+	scanner := &serverCaptureScanner{
+		result: security.MalwareScanResult{
+			Status:    security.MalwareScanStatusClean,
+			Provider:  "configured-http-scanner",
+			Signature: "scanner-v1",
+			ScannedAt: time.Date(2026, 5, 27, 8, 0, 0, 0, time.UTC),
+		},
+	}
+	body := bytes.NewBufferString(`{"filename":"logo.png","content_type":"image/png","byte_size":100,"metadata":{"api_key":"secret","slot":"reference"}}`)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/uploads", body)
+	req = req.WithContext(stage0.ContextWithService(req.Context(), stage0.NewService(stage0.NewRepository(db), nil)))
+	req.Header.Set("X-Zenart-User-ID", "user_1")
+	req.Header.Set("X-Zenart-Tenant-ID", "tenant_1")
+	setSameSiteCSRFHeaders(req)
+	rec := httptest.NewRecorder()
+
+	New(cfg, nil, WithMalwareScanner(scanner)).Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status = %d, want created: %s", rec.Code, rec.Body.String())
+	}
+	if scanner.calls != 1 {
+		t.Fatalf("scanner calls = %d, want 1", scanner.calls)
+	}
+	if scanner.target.TenantID != "tenant_1" || scanner.target.ObjectKey == "" || scanner.target.ContentType != "image/png" || scanner.target.ByteSize != 100 {
+		t.Fatalf("scanner target = %#v, want tenant/object/content metadata", scanner.target)
+	}
+	if scanner.target.Metadata["api_key"] != security.Redacted {
+		t.Fatalf("scanner metadata = %#v, want redacted api_key", scanner.target.Metadata)
+	}
+	if len(db.execs) != 3 {
+		t.Fatalf("exec count = %d, want upload/object metadata/analytics rows", len(db.execs))
+	}
+	objectMetadataJSON, ok := db.execs[1].args[12].([]byte)
+	if !ok {
+		t.Fatalf("object metadata arg type = %T, want []byte", db.execs[1].args[12])
+	}
+	if !strings.Contains(string(objectMetadataJSON), "configured-http-scanner") || strings.Contains(string(objectMetadataJSON), "secret") {
+		t.Fatalf("object metadata JSON = %s, want configured scanner result without secret leak", string(objectMetadataJSON))
+	}
+}
+
+func TestUploadCreateConfiguredMalwareScannerFailClosedBlocks(t *testing.T) {
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	cfg.Security.MalwareScanFailClosed = true
+	db := &fakeStage0DB{}
+	scanner := &serverCaptureScanner{
+		result: security.MalwareScanResult{
+			Status:    security.MalwareScanStatusUnavailable,
+			Provider:  "configured-http-scanner",
+			Signature: "scanner-v1",
+		},
+	}
+	body := bytes.NewBufferString(`{"filename":"logo.png","content_type":"image/png","byte_size":100}`)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/uploads", body)
+	req = req.WithContext(stage0.ContextWithService(req.Context(), stage0.NewService(stage0.NewRepository(db), nil)))
+	req.Header.Set("X-Zenart-User-ID", "user_1")
+	req.Header.Set("X-Zenart-Tenant-ID", "tenant_1")
+	setSameSiteCSRFHeaders(req)
+	rec := httptest.NewRecorder()
+
+	New(cfg, nil, WithMalwareScanner(scanner)).Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusConflict {
+		t.Fatalf("status = %d, want malware conflict: %s", rec.Code, rec.Body.String())
+	}
+	if scanner.calls != 1 {
+		t.Fatalf("scanner calls = %d, want 1", scanner.calls)
+	}
+	if len(db.execs) != 0 {
+		t.Fatalf("fail-closed upload should not persist rows: %#v", db.execs)
+	}
+	var bodyJSON map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &bodyJSON); err != nil {
+		t.Fatalf("response JSON error = %v", err)
+	}
+	if bodyJSON["code"] != "malware_blocked" {
+		t.Fatalf("code = %v, want malware_blocked", bodyJSON["code"])
+	}
+}
+
 func TestSignedUploadEndpointStoresTenantScopedObject(t *testing.T) {
 	cfg, err := config.Load()
 	if err != nil {
@@ -1765,6 +1856,22 @@ func (f *fakeAuditRecorder) Record(_ context.Context, event audit.Event) error {
 	event.Metadata = security.RedactMap(event.Metadata)
 	f.events = append(f.events, event)
 	return nil
+}
+
+type serverCaptureScanner struct {
+	calls  int
+	target security.MalwareScanTarget
+	result security.MalwareScanResult
+	err    error
+}
+
+func (s *serverCaptureScanner) Scan(_ context.Context, target security.MalwareScanTarget) (security.MalwareScanResult, error) {
+	s.calls++
+	s.target = target
+	if s.err != nil {
+		return security.MalwareScanResult{}, s.err
+	}
+	return s.result, nil
 }
 
 type noExecDB struct{}
