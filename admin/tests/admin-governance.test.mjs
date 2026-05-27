@@ -8,6 +8,7 @@ const rbacRuntimeSource = readFileSync(new URL("../lib/rbac-runtime.ts", import.
 const exportRuntimeSource = readFileSync(new URL("../lib/export-runtime.ts", import.meta.url), "utf8");
 const failedTaskRuntimeSource = readFileSync(new URL("../lib/failed-task-runtime.ts", import.meta.url), "utf8");
 const crawlerRuntimeSource = readFileSync(new URL("../lib/crawler-runtime.ts", import.meta.url), "utf8");
+const objectStorageRuntimeSource = readFileSync(new URL("../lib/object-storage-runtime.ts", import.meta.url), "utf8");
 const repoRoot = new URL("../../", import.meta.url);
 const blueprint = readFileSync(new URL("../../Docs/stage0_blueprint_rev2.md", import.meta.url), "utf8");
 
@@ -166,6 +167,19 @@ const parseCrawlerRuntime = () => {
   return Function(`${runtimeSource}\nreturn { buildCrawlerGovernanceRuntimeDecisions };`)();
 };
 
+const parseObjectStorageRuntime = () => {
+  const runtimeSource = objectStorageRuntimeSource
+    .replace(/^import type[\s\S]*?from "@\/lib\/types";\n\n/, "")
+    .replaceAll(/type [\s\S]*?;\n\n/g, "")
+    .replaceAll(/const endpointByArea: Record<StagingObjectStorageRetentionCleanupCoverage\["area"\], string> =/g, "const endpointByArea =")
+    .replaceAll(/function isRequiredArea\(area: string \| undefined\): area is StagingObjectStorageRetentionCleanupCoverage\["area"\]/g, "function isRequiredArea(area)")
+    .replaceAll(/function reportIsPassing\(report: RetentionCleanupReport\)/g, "function reportIsPassing(report)")
+    .replaceAll(/function buildCoverageFromReport\(\n  base: StagingObjectStorageRetentionCleanupEvidence,\n  report: RetentionCleanupReport,\n  passable: boolean\n\): StagingObjectStorageRetentionCleanupCoverage\[\]/g, "function buildCoverageFromReport(base, report, passable)")
+    .replaceAll(/export function buildStagingObjectStorageRetentionCleanupEvidence\(\n  base: StagingObjectStorageRetentionCleanupEvidence,\n  report\?: RetentionCleanupReport \| null\n\): StagingObjectStorageRetentionCleanupEvidence/g, "function buildStagingObjectStorageRetentionCleanupEvidence(base, report)")
+    .replaceAll(/ as StagingObjectStorageRetentionCleanupCoverage\["area"\]/g, "");
+  return Function(`${runtimeSource}\nreturn { buildStagingObjectStorageRetentionCleanupEvidence };`)();
+};
+
 const auditIds = new Set(auditEvents.map((event) => event.id));
 const supportTicketIds = new Set(supportTickets.map((ticket) => ticket.id));
 const supportTicketById = new Map(supportTickets.map((ticket) => [ticket.id, ticket]));
@@ -275,6 +289,7 @@ const roleOrder = new Map([
 ]);
 const { buildFailedTaskRuntimeDecisions } = parseFailedTaskRuntime();
 const { buildCrawlerGovernanceRuntimeDecisions } = parseCrawlerRuntime();
+const { buildStagingObjectStorageRetentionCleanupEvidence } = parseObjectStorageRuntime();
 
 test("skill release governance defines states, traffic allocation, canary thresholds, and rollback audit", () => {
   const states = new Set(skillReleaseStateDefinitions.map((definition) => definition.state));
@@ -3253,6 +3268,132 @@ test("object storage retention cleanup gate stays blocked until exact staging pr
     blueprint,
     /Private Beta\/Staging object storage pass evidence must cite both signed URL and retention\/cleanup staging files/,
     "blueprint must preserve split object-storage evidence requirement"
+  );
+});
+
+test("object storage retention cleanup runtime evaluator flips only on exact passing staging report", () => {
+  const base = stagingObjectStorageRetentionCleanupEvidence;
+  const missing = buildStagingObjectStorageRetentionCleanupEvidence(base, null);
+  assert.equal(missing.status, "missing_runtime", "missing evidence must preserve the static blocker");
+  assert.equal(missing.canClearRetentionCleanupChecklistItem, false, "missing evidence cannot clear checklist row");
+  assert.deepEqual(missing.remainingReleaseGateBlockers, ["staging_object_storage_signed_downloads"]);
+
+  const blockedReport = {
+    environment: "staging",
+    status: "blocked",
+    release_gate_check_id: "staging_object_storage_signed_downloads",
+    do_not_launch_condition_id: "object_storage_signed_retention_runtime_missing",
+    split_evidence: {
+      signed_url_ready: true,
+      retention_cleanup_ready: false
+    },
+    blocked_checks: ["expired_export_cleanup:unexpected_http_status"],
+    coverage: [
+      {
+        area: "retention_policy",
+        status: "pass",
+        expected_tokens: ["retention policy", "versioning", "retention_until", "tenant"],
+        evidence_refs: ["ops/evidence/staging/object-storage-retention-cleanup.json"]
+      }
+    ],
+    gate_impact: {
+      can_clear_retention_cleanup_checklist_item: false,
+      can_clear_release_gate_check: false,
+      remaining_release_gate_blockers_after_pass: ["staging_object_storage_signed_downloads"]
+    }
+  };
+  const blocked = buildStagingObjectStorageRetentionCleanupEvidence(base, blockedReport);
+  assert.equal(blocked.status, "blocked", "non-passing report must stay blocked");
+  assert.equal(blocked.canClearReleaseGateCheck, false, "blocked report cannot clear release gate");
+  assert.ok(
+    blocked.missingRuntimeInputs.includes("expired_export_cleanup:unexpected_http_status"),
+    "blocked report should expose exact failed probe reason"
+  );
+
+  const passingReport = {
+    evidence_id: "object-storage-retention-cleanup",
+    environment: "staging",
+    status: "pass",
+    release_gate_check_id: "staging_object_storage_signed_downloads",
+    do_not_launch_condition_id: "object_storage_signed_retention_runtime_missing",
+    split_evidence: {
+      signed_url_ready: true,
+      retention_cleanup_ready: true
+    },
+    coverage: [
+      {
+        area: "retention_policy",
+        status: "pass",
+        runtime_probe: "Staging object storage retention policy probe verified tenant retention policy, versioning, retention_until, and audit context.",
+        expected_tokens: ["retention policy", "versioning", "retention_until", "tenant"],
+        evidence_refs: ["ops/evidence/staging/object-storage-retention-cleanup.json", "au-007"],
+        source_results: [
+          {
+            method: "GET",
+            url: "https://staging.example.test/api/admin/v1/object-storage/retention-policy"
+          }
+        ]
+      },
+      {
+        area: "expired_export_cleanup",
+        status: "pass",
+        runtime_probe: "Staging expired export cleanup probe verified deleted and retained object decisions with immutable audit refs.",
+        expected_tokens: ["expired export cleanup", "deleted", "retained", "audit"],
+        evidence_refs: ["ops/evidence/staging/object-storage-retention-cleanup.json", "ex-909", "au-007"],
+        source_results: [
+          {
+            method: "POST",
+            url: "https://staging.example.test/api/admin/v1/object-storage/cleanup/expired-exports"
+          }
+        ]
+      },
+      {
+        area: "orphan_cleanup",
+        status: "pass",
+        runtime_probe: "Staging orphan cleanup probe verified deleted and retained orphan decisions with immutable audit refs.",
+        expected_tokens: ["orphan cleanup", "deleted", "retained", "audit"],
+        evidence_refs: ["ops/evidence/staging/object-storage-retention-cleanup.json", "au-015"],
+        source_results: [
+          {
+            method: "POST",
+            url: "https://staging.example.test/api/admin/v1/object-storage/cleanup/orphans"
+          }
+        ]
+      },
+      {
+        area: "audit_refs",
+        status: "pass",
+        runtime_probe: "Staging object_storage_cleanup audit probe verified admin and tenant audit context.",
+        expected_tokens: ["audit", "object_storage_cleanup", "admin", "tenant"],
+        evidence_refs: ["ops/evidence/staging/object-storage-retention-cleanup.json", "au-007", "au-015"],
+        source_results: [
+          {
+            method: "GET",
+            url: "https://staging.example.test/api/admin/v1/audit?subject=object_storage_cleanup&limit=20"
+          }
+        ]
+      }
+    ],
+    gate_impact: {
+      can_clear_retention_cleanup_checklist_item: true,
+      can_clear_release_gate_check: true,
+      remaining_release_gate_blockers_after_pass: []
+    }
+  };
+  const passing = buildStagingObjectStorageRetentionCleanupEvidence(base, passingReport);
+  assert.equal(passing.id, "object-storage-retention-cleanup");
+  assert.equal(passing.status, "pass", "passing exact report should flip admin evidence to pass");
+  assert.equal(passing.canClearRetentionCleanupChecklistItem, true);
+  assert.equal(passing.canClearReleaseGateCheck, true);
+  assert.deepEqual(passing.remainingReleaseGateBlockers, []);
+  assert.deepEqual(passing.missingRuntimeInputs, []);
+  assert.equal(new Set(passing.coverage.map((coverage) => coverage.status)).size, 1);
+  assert.ok(passing.coverage.every((coverage) => coverage.status === "pass"));
+  assert.ok(
+    passing.coverage.every((coverage) =>
+      coverage.evidenceRefs.includes("ops/evidence/staging/object-storage-retention-cleanup.json")
+    ),
+    "passing coverage must cite exact retention cleanup artifact"
   );
 });
 

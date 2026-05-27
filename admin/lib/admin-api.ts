@@ -58,6 +58,20 @@ import {
   buildAdminRbacRuntimeDecisions,
   buildAdminRbacSurfaceSummaries
 } from "@/lib/rbac-runtime";
+import { buildStagingObjectStorageRetentionCleanupEvidence } from "@/lib/object-storage-runtime";
+import { readFile } from "node:fs/promises";
+
+async function readJsonIfPresent<T>(path: string): Promise<T | null> {
+  try {
+    return JSON.parse(await readFile(path, "utf8")) as T;
+  } catch (error) {
+    const code = typeof error === "object" && error !== null && "code" in error ? error.code : undefined;
+    if (code === "ENOENT") {
+      return null;
+    }
+    throw error;
+  }
+}
 
 export async function getSkills() {
   return skills;
@@ -292,7 +306,10 @@ export async function getStagingObservabilityBackupLoadPreflightEvidence() {
 }
 
 export async function getStagingObjectStorageRetentionCleanupEvidence() {
-  return stagingObjectStorageRetentionCleanupEvidence;
+  const report = await readJsonIfPresent<Record<string, unknown>>(
+    "ops/evidence/staging/object-storage-retention-cleanup.json"
+  );
+  return buildStagingObjectStorageRetentionCleanupEvidence(stagingObjectStorageRetentionCleanupEvidence, report);
 }
 
 export async function getReleaseBlockers() {

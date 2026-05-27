@@ -534,7 +534,7 @@ export type StagingObjectStorageRetentionCleanupCoverage = {
 export type StagingObjectStorageRetentionCleanupEvidence = {
   id: string;
   environment: "staging";
-  status: "missing_runtime" | "pass";
+  status: "missing_runtime" | "pass" | "blocked";
   releaseGateCheckId: "staging_object_storage_signed_downloads";
   doNotLaunchConditionId: "object_storage_signed_retention_runtime_missing";
   evidencePath: "ops/evidence/staging/object-storage-retention-cleanup.json";
