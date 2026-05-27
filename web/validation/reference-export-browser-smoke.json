@@ -32,8 +32,13 @@
       "data-package-export-metadata-ui='stage0.rev2.package-export-metadata-ui'",
       "data-package-export-item-types",
       "Package export payload status matrix",
+      "data-export-zip-payload-expected-payloads",
       "data-export-download-parity-status",
-      "download.suggestedFilename()"
+      "download.suggestedFilename()",
+      "JSZip.loadAsync",
+      "downloaded ZIP payload set should match package/export metadata",
+      "dev-client-reference:ref-campaign-reference-webp",
+      "trace_provenance.json"
     ]
   },
   "expectedContracts": {

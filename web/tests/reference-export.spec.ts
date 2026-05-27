@@ -1,4 +1,6 @@
 import { expect, test } from "@playwright/test";
+import { readFile } from "node:fs/promises";
+import JSZip from "jszip";
 
 test("reference upload browser smoke reaches ready export metadata and render budget evidence", async ({ page }) => {
   await page.addInitScript(() => {
@@ -116,4 +118,102 @@ test("reference upload browser smoke reaches ready export metadata and render bu
   await page.getByRole("button", { name: "Download" }).click();
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toBe("zenart-001.zip");
+  const downloadPath = await download.path();
+  expect(downloadPath).toBeTruthy();
+
+  const zip = await JSZip.loadAsync(await readFile(downloadPath!));
+  const zipPayloadSmoke = page.getByLabel("Export ZIP payload smoke");
+  const expectedPayloads = (await zipPayloadSmoke.getAttribute("data-export-zip-payload-expected-payloads"))?.split(",") ?? [];
+  expect(expectedPayloads).toHaveLength(14);
+  for (const payloadName of expectedPayloads) {
+    expect(zip.file(payloadName), `downloaded ZIP payload ${payloadName} should exist`).toBeTruthy();
+  }
+  const actualPayloads = Object.keys(zip.files).filter((payloadName) => !zip.files[payloadName].dir).sort();
+  expect(actualPayloads, "downloaded ZIP payload set should match package/export metadata").toEqual([...expectedPayloads].sort());
+
+  const manifest = JSON.parse(await zip.file("manifest.json")!.async("string")) as {
+    package_id: string;
+    project_id: string;
+    items: Array<{ type: string; provenance: string }>;
+    workflow_acceptance: {
+      workflow_id: string;
+      fixture_id: string;
+      strategy_taxonomy: string[];
+      required_files: string[];
+    };
+  };
+  const provenance = JSON.parse(await zip.file("provenance.json")!.async("string")) as {
+    export_id: string;
+    items: Array<{ provenance: string }>;
+  };
+  const pptReadyMetadata = JSON.parse(await zip.file("ppt-ready-metadata.json")!.async("string")) as {
+    aspect_ratio: string;
+    slides: Array<{ source_item_id: string }>;
+  };
+  const workflowMetadata = JSON.parse(await zip.file("metadata.json")!.async("string")) as {
+    workflow_id: string;
+    workflow_fixture_id: string;
+    provider: string;
+    model: string;
+    prompt_spec: string[];
+    skill: string;
+    safety: string;
+  };
+  const traceProvenance = JSON.parse(await zip.file("trace_provenance.json")!.async("string")) as {
+    workflow_id: string;
+    provider: string;
+    model: string;
+    prompt_spec: string[];
+    skill: string;
+    safety: string;
+  };
+
+  expect(manifest).toMatchObject({
+    package_id: "pkg-002",
+    project_id: "project-001",
+    workflow_acceptance: {
+      workflow_id: "ecommerce_growth_pack",
+      fixture_id: "fx_ecommerce_growth_golden",
+      strategy_taxonomy: ["social_proof"]
+    }
+  });
+  expect(manifest.items).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        type: "reference",
+        provenance: "dev-client-reference:ref-campaign-reference-webp"
+      }),
+      expect.objectContaining({
+        type: "candidate",
+        provenance: "dev-client:cand-studio"
+      })
+    ])
+  );
+  await expect(metadataEvidence).toHaveAttribute("data-package-export-workflow-taxonomy-count", String(manifest.workflow_acceptance.strategy_taxonomy.length));
+  await expect(metadataEvidence).toHaveAttribute("data-package-export-workflow-required-file-count", String(manifest.workflow_acceptance.required_files.length));
+  expect(provenance).toMatchObject({ export_id: "export-001" });
+  expect(provenance.items.map((item) => item.provenance)).toEqual(
+    expect.arrayContaining(["dev-client-reference:ref-campaign-reference-webp", "dev-client:cand-studio"])
+  );
+  await expect(metadataEvidence).toHaveAttribute("data-package-export-provenance-count", String(provenance.items.length));
+  expect(pptReadyMetadata.aspect_ratio).toBe("16:9");
+  await expect(metadataEvidence).toHaveAttribute("data-package-export-ppt-aspect-ratio", pptReadyMetadata.aspect_ratio);
+  await expect(metadataEvidence).toHaveAttribute("data-package-export-ppt-slide-count", String(pptReadyMetadata.slides.length));
+  expect(workflowMetadata).toMatchObject({
+    workflow_id: "ecommerce_growth_pack",
+    workflow_fixture_id: "fx_ecommerce_growth_golden",
+    provider: "dev-provider",
+    model: "deterministic-local-alpha",
+    prompt_spec: ["social_proof"],
+    skill: "ecommerce_growth_pack",
+    safety: "pass"
+  });
+  expect(traceProvenance).toMatchObject({
+    workflow_id: workflowMetadata.workflow_id,
+    provider: workflowMetadata.provider,
+    model: workflowMetadata.model,
+    prompt_spec: workflowMetadata.prompt_spec,
+    skill: workflowMetadata.skill,
+    safety: workflowMetadata.safety
+  });
 });
