@@ -170,6 +170,12 @@ def render(audience: str, operations: list[Operation], digest: str) -> str:
     if (typeof window === "undefined") {
       throw new Error("ZenArtApiClient absolute baseUrl requires a browser origin for same-site CSRF protection");
     }
+    if (parsed.username || parsed.password) {
+      throw new Error("ZenArtApiClient baseUrl must not include credentials for same-site CSRF protection");
+    }
+    if (parsed.search || parsed.hash) {
+      throw new Error("ZenArtApiClient baseUrl must not include query or fragment material for same-site CSRF protection");
+    }
     const currentOrigin = window.location.origin;
     if (parsed.origin !== currentOrigin) {
       throw new Error("ZenArtApiClient baseUrl must be same-origin for same-site CSRF protection");

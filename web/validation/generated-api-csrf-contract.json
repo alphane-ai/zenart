@@ -115,6 +115,72 @@
     "expectedCsrfFailureCount": "0",
     "assertion": "Account route pairs the backend session cookie expectations with the generated same-site CSRF request inventory so client UX evidence cannot pass while runtime cookie or CSRF validation fields drift."
   },
+  "absoluteBaseUrlGuard": {
+    "schemaVersion": "stage0.rev2.generated-api-same-origin-base-guard",
+    "source": "web/lib/generated/zenart-api.ts",
+    "unitTest": "web/lib/generated/zenart-api.test.ts",
+    "status": "pass",
+    "sameOriginAllowed": true,
+    "slashRelativeAllowed": true,
+    "protocolRelativeRejected": true,
+    "crossOriginRejected": true,
+    "serverSideAbsoluteRejected": true,
+    "credentialMaterialRejected": true,
+    "queryMaterialRejected": true,
+    "fragmentMaterialRejected": true,
+    "failureCount": 0,
+    "rejectedExamples": [
+      {
+        "scenario": "protocol-relative",
+        "example": "//api.example.invalid",
+        "outcome": "reject-before-fetch",
+        "reason": "protocol-relative base URL cannot prove same-site scope"
+      },
+      {
+        "scenario": "cross-origin",
+        "example": "https://api.example.invalid",
+        "outcome": "reject-before-fetch",
+        "reason": "absolute origin differs from current browser origin"
+      },
+      {
+        "scenario": "server-side-absolute",
+        "example": "https://app.example.invalid/api",
+        "outcome": "reject-before-fetch",
+        "reason": "server-side execution has no browser origin for same-site comparison"
+      },
+      {
+        "scenario": "credential-material",
+        "example": "https://user:pass@app.example.invalid",
+        "outcome": "reject-before-fetch",
+        "reason": "absolute base URL cannot carry credential material"
+      },
+      {
+        "scenario": "query-material",
+        "example": "https://app.example.invalid/api?token=secret",
+        "outcome": "reject-before-fetch",
+        "reason": "absolute base URL cannot carry query material"
+      },
+      {
+        "scenario": "fragment-material",
+        "example": "https://app.example.invalid/api#csrf",
+        "outcome": "reject-before-fetch",
+        "reason": "absolute base URL cannot carry fragment material"
+      }
+    ],
+    "allowedExamples": [
+      {
+        "scenario": "slash-relative",
+        "example": "/api",
+        "outcome": "allow-same-origin-relative"
+      },
+      {
+        "scenario": "browser-same-origin-absolute",
+        "example": "window.location.origin",
+        "outcome": "allow-same-origin-absolute"
+      }
+    ],
+    "assertion": "Generated client rejects cross-origin, protocol-relative, server-side absolute, credential-bearing, query-bearing, and fragment-bearing API bases before credentialed same-site CSRF requests can be made."
+  },
   "protectedMethods": ["POST", "PUT", "PATCH", "DELETE"],
   "status": "pass",
   "unsafeOperationCount": 15,
@@ -180,6 +246,8 @@
     "Generated web API client rejects cross-origin base URLs before credentialed requests.",
     "Generated web API client rejects absolute base URLs when no browser origin is available to prove same-site scope.",
     "Generated web API client allows absolute base URLs only when they match the browser origin.",
+    "Generated web API client rejects credential-bearing absolute base URLs before same-site credentialed requests.",
+    "Generated web API client rejects query or fragment-bearing absolute base URLs before same-site credentialed requests.",
     "Generated web API client rejects unsafe path params before credentialed requests.",
     "Account route exposes secure __Host cookie and same-site CSRF UX evidence.",
     "Account route proves every generated unsafe operation is represented by the authenticated same-site UX guard.",

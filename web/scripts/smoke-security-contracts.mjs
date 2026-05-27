@@ -6,6 +6,7 @@ const root = process.cwd();
 const generatedApiPath = path.join(root, "lib", "generated", "zenart-api.ts");
 const requestSecurityPath = path.join(root, "lib", "request-security.ts");
 const devStatePath = path.join(root, "lib", "dev-state.ts");
+const generatedApiTestPath = path.join(root, "lib", "generated", "zenart-api.test.ts");
 const workspaceAppPath = path.join(root, "components", "workspace-app.tsx");
 const workspaceSmokeTestPath = path.join(root, "components", "workspace-app.smoke.test.tsx");
 const sessionSecurityPlaywrightSpecPath = path.join(root, "tests", "session-security.spec.ts");
@@ -21,6 +22,7 @@ const [
   generatedApiSource,
   requestSecuritySource,
   devStateSource,
+  generatedApiTestSource,
   workspaceAppSource,
   workspaceSmokeTestSource,
   sessionSecurityPlaywrightSpecSource,
@@ -30,6 +32,7 @@ const [
   readFile(generatedApiPath, "utf8"),
   readFile(requestSecurityPath, "utf8"),
   readFile(devStatePath, "utf8"),
+  readFile(generatedApiTestPath, "utf8"),
   readFile(workspaceAppPath, "utf8"),
   readFile(workspaceSmokeTestPath, "utf8"),
   readFile(sessionSecurityPlaywrightSpecPath, "utf8"),
@@ -127,6 +130,10 @@ for (const requiredGeneratedClientSnippet of [
   "assertSameSiteBaseUrl(baseUrl)",
   "baseUrl.startsWith(\"//\")",
   "absolute baseUrl requires a browser origin",
+  "parsed.username || parsed.password",
+  "baseUrl must not include credentials",
+  "parsed.search || parsed.hash",
+  "baseUrl must not include query or fragment material",
   "const currentOrigin = window.location.origin",
   "parsed.origin !== currentOrigin",
   "isUnsafePathParam"
@@ -353,10 +360,80 @@ for (const requiredRuntimePairingAssertion of [
 
 for (const expectedAssertion of [
   "Generated web API client rejects absolute base URLs when no browser origin is available to prove same-site scope.",
-  "Generated web API client allows absolute base URLs only when they match the browser origin."
+  "Generated web API client allows absolute base URLs only when they match the browser origin.",
+  "Generated web API client rejects credential-bearing absolute base URLs before same-site credentialed requests.",
+  "Generated web API client rejects query or fragment-bearing absolute base URLs before same-site credentialed requests."
 ]) {
   if (!generatedApiCsrfContract.assertions?.includes(expectedAssertion)) {
     fail(`generated API CSRF artifact missing absolute-base same-site assertion ${expectedAssertion}`);
+  }
+}
+
+const absoluteBaseUrlGuard = generatedApiCsrfContract.absoluteBaseUrlGuard;
+const routeAbsoluteBaseUrlGuard = generatedClientEvidence.absoluteBaseUrlGuard;
+if (
+  absoluteBaseUrlGuard?.schemaVersion !== "stage0.rev2.generated-api-same-origin-base-guard" ||
+  absoluteBaseUrlGuard?.status !== "pass" ||
+  absoluteBaseUrlGuard?.sameOriginAllowed !== true ||
+  absoluteBaseUrlGuard?.slashRelativeAllowed !== true ||
+  absoluteBaseUrlGuard?.protocolRelativeRejected !== true ||
+  absoluteBaseUrlGuard?.crossOriginRejected !== true ||
+  absoluteBaseUrlGuard?.serverSideAbsoluteRejected !== true ||
+  absoluteBaseUrlGuard?.credentialMaterialRejected !== true ||
+  absoluteBaseUrlGuard?.queryMaterialRejected !== true ||
+  absoluteBaseUrlGuard?.fragmentMaterialRejected !== true ||
+  absoluteBaseUrlGuard?.failureCount !== 0 ||
+  absoluteBaseUrlGuard?.unitTest !== "web/lib/generated/zenart-api.test.ts" ||
+  !absoluteBaseUrlGuard?.assertion?.includes("credential-bearing, query-bearing, and fragment-bearing API bases")
+) {
+  fail("generated API CSRF artifact missing passing absolute base URL guard evidence");
+}
+
+if (
+  routeAbsoluteBaseUrlGuard?.schemaVersion !== absoluteBaseUrlGuard.schemaVersion ||
+  routeAbsoluteBaseUrlGuard?.expectedStatus !== absoluteBaseUrlGuard.status ||
+  routeAbsoluteBaseUrlGuard?.expectedSameOriginAllowed !== absoluteBaseUrlGuard.sameOriginAllowed ||
+  routeAbsoluteBaseUrlGuard?.expectedSlashRelativeAllowed !== absoluteBaseUrlGuard.slashRelativeAllowed ||
+  routeAbsoluteBaseUrlGuard?.expectedProtocolRelativeRejected !== absoluteBaseUrlGuard.protocolRelativeRejected ||
+  routeAbsoluteBaseUrlGuard?.expectedCrossOriginRejected !== absoluteBaseUrlGuard.crossOriginRejected ||
+  routeAbsoluteBaseUrlGuard?.expectedServerSideAbsoluteRejected !== absoluteBaseUrlGuard.serverSideAbsoluteRejected ||
+  routeAbsoluteBaseUrlGuard?.expectedCredentialMaterialRejected !== absoluteBaseUrlGuard.credentialMaterialRejected ||
+  routeAbsoluteBaseUrlGuard?.expectedQueryMaterialRejected !== absoluteBaseUrlGuard.queryMaterialRejected ||
+  routeAbsoluteBaseUrlGuard?.expectedFragmentMaterialRejected !== absoluteBaseUrlGuard.fragmentMaterialRejected ||
+  routeAbsoluteBaseUrlGuard?.expectedFailureCount !== absoluteBaseUrlGuard.failureCount ||
+  routeAbsoluteBaseUrlGuard?.unitTest !== absoluteBaseUrlGuard.unitTest
+) {
+  fail("user route smoke absolute base URL guard drifted from generated API CSRF artifact");
+}
+
+for (const requiredRejectedScenario of [
+  "protocol-relative",
+  "cross-origin",
+  "server-side-absolute",
+  "credential-material",
+  "query-material",
+  "fragment-material"
+]) {
+  if (
+    !absoluteBaseUrlGuard.rejectedExamples?.some(
+      (example) => example.scenario === requiredRejectedScenario && example.outcome === "reject-before-fetch"
+    )
+  ) {
+    fail(`generated API CSRF absolute base guard missing rejected scenario ${requiredRejectedScenario}`);
+  }
+}
+
+for (const requiredGeneratedClientTestSnippet of [
+  "rejects credentialed or decorated absolute API bases before same-site requests can be made",
+  "baseUrl must not include credentials for same-site CSRF protection",
+  "baseUrl must not include query or fragment material for same-site CSRF protection",
+  "records absolute base hardening in the generated CSRF evidence artifact",
+  "credentialMaterialRejected: true",
+  "queryMaterialRejected: true",
+  "fragmentMaterialRejected: true"
+]) {
+  if (!generatedApiTestSource.includes(requiredGeneratedClientTestSnippet)) {
+    fail(`generated API CSRF unit evidence missing absolute base guard snippet ${requiredGeneratedClientTestSnippet}`);
   }
 }
 

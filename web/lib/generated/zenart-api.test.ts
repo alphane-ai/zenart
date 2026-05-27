@@ -265,6 +265,49 @@ describe("generated web API client CSRF contract", () => {
     );
   });
 
+  it("rejects credentialed or decorated absolute API bases before same-site requests can be made", () => {
+    const currentUrl = new URL(window.location.origin);
+    const sameOriginWithCredentials = `${currentUrl.protocol}//user:pass@${currentUrl.host}`;
+
+    expect(() => new ZenArtApiClient(sameOriginWithCredentials)).toThrow(
+      "ZenArtApiClient baseUrl must not include credentials for same-site CSRF protection"
+    );
+    expect(() => new ZenArtApiClient(`${window.location.origin}/api?token=secret`)).toThrow(
+      "ZenArtApiClient baseUrl must not include query or fragment material for same-site CSRF protection"
+    );
+    expect(() => new ZenArtApiClient(`${window.location.origin}/api#csrf`)).toThrow(
+      "ZenArtApiClient baseUrl must not include query or fragment material for same-site CSRF protection"
+    );
+  });
+
+  it("records absolute base hardening in the generated CSRF evidence artifact", () => {
+    expect(generatedApiCsrfContract.absoluteBaseUrlGuard).toMatchObject({
+      schemaVersion: "stage0.rev2.generated-api-same-origin-base-guard",
+      status: "pass",
+      sameOriginAllowed: true,
+      protocolRelativeRejected: true,
+      crossOriginRejected: true,
+      serverSideAbsoluteRejected: true,
+      credentialMaterialRejected: true,
+      queryMaterialRejected: true,
+      fragmentMaterialRejected: true,
+      failureCount: 0
+    });
+    expect(generatedApiCsrfContract.assertions).toEqual(
+      expect.arrayContaining([
+        "Generated web API client rejects credential-bearing absolute base URLs before same-site credentialed requests.",
+        "Generated web API client rejects query or fragment-bearing absolute base URLs before same-site credentialed requests."
+      ])
+    );
+    expect(generatedApiCsrfContract.absoluteBaseUrlGuard.rejectedExamples).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ scenario: "credential-material", outcome: "reject-before-fetch" }),
+        expect.objectContaining({ scenario: "query-material", outcome: "reject-before-fetch" }),
+        expect.objectContaining({ scenario: "fragment-material", outcome: "reject-before-fetch" })
+      ])
+    );
+  });
+
   it("keeps slash-relative API bases same-origin without serializing an absolute origin", async () => {
     const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(JSON.stringify({ id: "session-001" }), {
