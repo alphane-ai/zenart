@@ -242,12 +242,26 @@ if (
   downloadParity.expectedDownloadHandoffStatus !== routeDownloadParityEvidence.expectedDownloadHandoffStatus ||
   downloadParity.expectedZipMissingCount !== routeDownloadParityEvidence.expectedMissingPayloadCount ||
   downloadParity.expectedPayloadsMatch !== routeDownloadParityEvidence.expectedPayloadsMatch ||
+  downloadParity.expectedPayloadListStatus !== routeDownloadParityEvidence.expectedPayloadListStatus ||
   downloadParity.expectedPayloadContractDigest !== routeDownloadParityEvidence.expectedPayloadContractDigest ||
   downloadParity.expectedPayloadDigestMatch !== routeDownloadParityEvidence.expectedPayloadDigestMatch ||
+  downloadParity.expectedIdentityStatus !== routeDownloadParityEvidence.expectedIdentityStatus ||
+  downloadParity.expectedProvider !== routeDownloadParityEvidence.expectedProvider ||
+  downloadParity.expectedModel !== routeDownloadParityEvidence.expectedModel ||
+  downloadParity.expectedPromptSpecTaxonomy !== routeDownloadParityEvidence.expectedPromptSpecTaxonomy ||
+  downloadParity.expectedSkill !== routeDownloadParityEvidence.expectedSkill ||
+  downloadParity.expectedSafetyStatus !== routeDownloadParityEvidence.expectedSafetyStatus ||
   downloadParity.expectedWorkflowMetadataPresent !== routeDownloadParityEvidence.expectedWorkflowMetadataPresent ||
   downloadParity.expectedTraceProvenancePresent !== routeDownloadParityEvidence.expectedTraceProvenancePresent
 ) {
   fail("download parity artifact drifted from user route smoke evidence");
+}
+
+if (
+  JSON.stringify(downloadParity.expectedMetadataPayloadNames) !== JSON.stringify(zipPayloadSmoke.expectedPayloadNames) ||
+  JSON.stringify(downloadParity.expectedZipPayloadNames) !== JSON.stringify(zipPayloadSmoke.expectedPayloadNames)
+) {
+  fail("download parity payload-name evidence must match the ZIP payload smoke contract exactly");
 }
 
 for (const attribute of evidence.requiredAttributes) {
@@ -334,7 +348,16 @@ for (const requiredSourceSnippet of [
   "export const buildExportZipPayloadSmokeEvidence",
   "export const buildExportDownloadParityEvidence",
   "metadataPayloadsMatchZipPayloads",
+  "payloadListStatus",
+  "metadataPayloadNames",
+  "zipExpectedPayloadNames",
   "metadataPayloadDigestMatchesZipPayloadDigest",
+  "identityStatus",
+  "provider: metadataEvidence.workflowMetadataProvider",
+  "model: metadataEvidence.workflowMetadataModel",
+  "promptSpecTaxonomy: metadataEvidence.workflowPromptSpecTaxonomy",
+  "skill: metadataEvidence.workflowSkill",
+  "safetyStatus: record.safetyReport.status",
   "workflowMetadataPayloadPresent",
   "workflowTraceProvenancePayloadPresent",
   "aiContentDisclaimerPayloadPresent",
@@ -363,8 +386,12 @@ for (const requiredContractSnippet of [
   "workflowTraceProvenancePayloadPresent",
   "aiContentDisclaimerPayloadPresent",
   "metadataPayloadsMatchZipPayloads",
+  "payloadListStatus",
+  "metadataPayloadNames",
+  "zipExpectedPayloadNames",
   "payloadContractDigest",
   "metadataPayloadDigestMatchesZipPayloadDigest",
+  "identityStatus",
   "crossPayloadIdentityStatuses"
 ]) {
   if (!contractsSource.includes(requiredContractSnippet)) {
@@ -407,7 +434,9 @@ for (const requiredTestSnippet of [
   "data-export-zip-payload-smoke-status",
   "data-export-zip-payload-contract-digest",
   "data-export-download-parity-status",
+  "data-export-download-parity-payload-list-status",
   "data-export-download-parity-payload-digest-match",
+  "data-export-download-parity-identity-status",
   "data-export-download-handoff-status"
 ]) {
   if (!workspaceSmokeTestSource.includes(requiredTestSnippet)) {
@@ -490,8 +519,17 @@ const expectedDataAttributeValues = new Map([
   ["data-export-download-parity-zip-missing-count", downloadParity.expectedZipMissingCount],
   ["data-export-download-parity-required-zip-status", downloadParity.expectedRequiredZipStatus],
   ["data-export-download-parity-payloads-match", downloadParity.expectedPayloadsMatch],
+  ["data-export-download-parity-payload-list-status", downloadParity.expectedPayloadListStatus],
+  ["data-export-download-parity-metadata-payloads", downloadParity.expectedMetadataPayloadNames.join(",")],
+  ["data-export-download-parity-zip-expected-payloads", downloadParity.expectedZipPayloadNames.join(",")],
   ["data-export-download-parity-payload-contract-digest", downloadParity.expectedPayloadContractDigest],
   ["data-export-download-parity-payload-digest-match", downloadParity.expectedPayloadDigestMatch],
+  ["data-export-download-parity-identity-status", downloadParity.expectedIdentityStatus],
+  ["data-export-download-parity-provider", downloadParity.expectedProvider],
+  ["data-export-download-parity-model", downloadParity.expectedModel],
+  ["data-export-download-parity-prompt-spec-taxonomy", downloadParity.expectedPromptSpecTaxonomy],
+  ["data-export-download-parity-skill", downloadParity.expectedSkill],
+  ["data-export-download-parity-safety-status", downloadParity.expectedSafetyStatus],
   ["data-export-download-parity-workflow-metadata-present", downloadParity.expectedWorkflowMetadataPresent],
   ["data-export-download-parity-trace-provenance-present", downloadParity.expectedTraceProvenancePresent],
   ["data-export-download-handoff", downloadHandoff.schemaVersion],
@@ -556,7 +594,14 @@ if (
   browserContracts.downloadParity?.schemaVersion !== downloadParity.schemaVersion ||
   browserContracts.downloadParity?.expectedStatus !== downloadParity.expectedStatus ||
   browserContracts.downloadParity?.expectedPayloadsMatch !== downloadParity.expectedPayloadsMatch ||
-  browserContracts.downloadParity?.expectedPayloadDigestMatch !== downloadParity.expectedPayloadDigestMatch
+  browserContracts.downloadParity?.expectedPayloadDigestMatch !== downloadParity.expectedPayloadDigestMatch ||
+  browserContracts.downloadParity?.expectedPayloadListStatus !== downloadParity.expectedPayloadListStatus ||
+  browserContracts.downloadParity?.expectedIdentityStatus !== downloadParity.expectedIdentityStatus ||
+  browserContracts.downloadParity?.expectedProvider !== downloadParity.expectedProvider ||
+  browserContracts.downloadParity?.expectedModel !== downloadParity.expectedModel ||
+  browserContracts.downloadParity?.expectedPromptSpecTaxonomy !== downloadParity.expectedPromptSpecTaxonomy ||
+  browserContracts.downloadParity?.expectedSkill !== downloadParity.expectedSkill ||
+  browserContracts.downloadParity?.expectedSafetyStatus !== downloadParity.expectedSafetyStatus
 ) {
   fail("reference export browser smoke artifact drifted from package/export metadata evidence");
 }

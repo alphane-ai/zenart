@@ -1120,6 +1120,15 @@ export const buildExportDownloadParityEvidence = (
   if (metadataEvidence.packageId !== zipPayloadSmoke.packageId || metadataEvidence.packageId !== record.manifest.package_id) {
     failures.push("package-id");
   }
+  if (metadataEvidence.projectId !== record.manifest.project_id) {
+    failures.push("project-id");
+  }
+  if (metadataEvidence.workflowId !== (record.manifest.workflow_acceptance?.workflow_id ?? "generic-stage0-export")) {
+    failures.push("workflow-id");
+  }
+  if (metadataEvidence.workflowFixtureId !== (record.manifest.workflow_acceptance?.fixture_id ?? "none")) {
+    failures.push("workflow-fixture-id");
+  }
   if (!record.fileName.trim()) {
     failures.push("file-name");
   }
@@ -1153,6 +1162,35 @@ export const buildExportDownloadParityEvidence = (
   if (!metadataPayloadDigestMatchesZipPayloadDigest) {
     failures.push("payload-digest");
   }
+  if (
+    metadataEvidence.crossPayloadIdentityStatus !== "pass" ||
+    metadataEvidence.missingCrossPayloadIdentityNames.length !== 0 ||
+    !metadataEvidence.crossPayloadIdentityStatuses.every((entry) =>
+      Object.entries(entry)
+        .filter(([key]) => key !== "payloadName")
+        .every(([, value]) => value === "pass" || value === "not-applicable")
+    )
+  ) {
+    failures.push("identity");
+  }
+  if (metadataEvidence.workflowMetadataProvider !== "dev-provider") {
+    failures.push("provider");
+  }
+  if (metadataEvidence.workflowMetadataModel !== "deterministic-local-alpha") {
+    failures.push("model");
+  }
+  if (
+    JSON.stringify(metadataEvidence.workflowPromptSpecTaxonomy) !==
+    JSON.stringify(record.manifest.workflow_acceptance?.strategy_taxonomy ?? [])
+  ) {
+    failures.push("prompt-spec");
+  }
+  if (metadataEvidence.workflowSkill !== (record.manifest.workflow_acceptance?.workflow_id ?? "generic-stage0-export")) {
+    failures.push("skill");
+  }
+  if (metadataEvidence.workflowSafety !== record.safetyReport.status) {
+    failures.push("safety");
+  }
   if (!metadataEvidence.workflowMetadataPayloadPresent || !zipPayloadSmoke.metadataPayloadPresent) {
     failures.push("workflow-metadata");
   }
@@ -1166,6 +1204,9 @@ export const buildExportDownloadParityEvidence = (
     scenario: "metadata-zip-smoke-download-handoff-parity",
     exportId: record.id,
     packageId: record.manifest.package_id,
+    projectId: record.manifest.project_id,
+    workflowId: metadataEvidence.workflowId,
+    workflowFixtureId: metadataEvidence.workflowFixtureId,
     fileName: record.fileName,
     format: record.format,
     metadataStatus: metadataEvidence.status,
@@ -1178,8 +1219,17 @@ export const buildExportDownloadParityEvidence = (
     zipMissingPayloadCount: zipPayloadSmoke.missingPayloadNames.length,
     requiredZipPayloadParityStatus: metadataEvidence.zipPayloadParityStatus,
     metadataPayloadsMatchZipPayloads,
+    payloadListStatus: metadataPayloadsMatchZipPayloads ? "pass" : "fail",
+    metadataPayloadNames: metadataEvidence.zipPayloadNames,
+    zipExpectedPayloadNames: zipPayloadSmoke.expectedPayloadNames,
     payloadContractDigest,
     metadataPayloadDigestMatchesZipPayloadDigest,
+    identityStatus: failures.includes("identity") ? "fail" : "pass",
+    provider: metadataEvidence.workflowMetadataProvider,
+    model: metadataEvidence.workflowMetadataModel,
+    promptSpecTaxonomy: metadataEvidence.workflowPromptSpecTaxonomy,
+    skill: metadataEvidence.workflowSkill,
+    safetyStatus: record.safetyReport.status,
     workflowMetadataPresent: metadataEvidence.workflowMetadataPayloadPresent && zipPayloadSmoke.metadataPayloadPresent,
     traceProvenancePresent: metadataEvidence.workflowTraceProvenancePayloadPresent && zipPayloadSmoke.traceProvenancePayloadPresent,
     failures

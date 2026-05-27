@@ -165,6 +165,13 @@
     "schemaVersion": "stage0.rev2.export-download-parity-smoke",
     "expectedStatus": "pass",
     "expectedPayloadsMatch": "true",
+    "expectedPayloadListStatus": "pass",
+    "expectedIdentityStatus": "pass",
+    "expectedProvider": "dev-provider",
+    "expectedModel": "deterministic-local-alpha",
+    "expectedPromptSpecTaxonomy": "social_proof",
+    "expectedSkill": "ecommerce_growth_pack",
+    "expectedSafetyStatus": "pass",
     "expectedFailures": ""
   },
   "browserEvidence": {

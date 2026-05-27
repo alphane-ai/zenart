@@ -1756,6 +1756,9 @@ function ExportView({
                     data-export-download-parity-scenario={downloadParityEvidence.scenario}
                     data-export-download-parity-export-id={downloadParityEvidence.exportId}
                     data-export-download-parity-package-id={downloadParityEvidence.packageId}
+                    data-export-download-parity-project-id={downloadParityEvidence.projectId}
+                    data-export-download-parity-workflow-id={downloadParityEvidence.workflowId}
+                    data-export-download-parity-workflow-fixture-id={downloadParityEvidence.workflowFixtureId}
                     data-export-download-parity-file-name={downloadParityEvidence.fileName}
                     data-export-download-parity-format={downloadParityEvidence.format}
                     data-export-download-parity-metadata-status={downloadParityEvidence.metadataStatus}
@@ -1768,8 +1771,17 @@ function ExportView({
                     data-export-download-parity-zip-missing-count={downloadParityEvidence.zipMissingPayloadCount}
                     data-export-download-parity-required-zip-status={downloadParityEvidence.requiredZipPayloadParityStatus}
                     data-export-download-parity-payloads-match={String(downloadParityEvidence.metadataPayloadsMatchZipPayloads)}
+                    data-export-download-parity-payload-list-status={downloadParityEvidence.payloadListStatus}
+                    data-export-download-parity-metadata-payloads={downloadParityEvidence.metadataPayloadNames.join(",")}
+                    data-export-download-parity-zip-expected-payloads={downloadParityEvidence.zipExpectedPayloadNames.join(",")}
                     data-export-download-parity-payload-contract-digest={downloadParityEvidence.payloadContractDigest}
                     data-export-download-parity-payload-digest-match={String(downloadParityEvidence.metadataPayloadDigestMatchesZipPayloadDigest)}
+                    data-export-download-parity-identity-status={downloadParityEvidence.identityStatus}
+                    data-export-download-parity-provider={downloadParityEvidence.provider}
+                    data-export-download-parity-model={downloadParityEvidence.model}
+                    data-export-download-parity-prompt-spec-taxonomy={downloadParityEvidence.promptSpecTaxonomy.join(",")}
+                    data-export-download-parity-skill={downloadParityEvidence.skill}
+                    data-export-download-parity-safety-status={downloadParityEvidence.safetyStatus}
                     data-export-download-parity-workflow-metadata-present={String(downloadParityEvidence.workflowMetadataPresent)}
                     data-export-download-parity-trace-provenance-present={String(downloadParityEvidence.traceProvenancePresent)}
                     data-export-download-parity-failures={downloadParityEvidence.failures.join(",")}
@@ -1782,6 +1794,7 @@ function ExportView({
                       <span>{downloadParityEvidence.metadataZipPayloadCount}/{downloadParityEvidence.zipExpectedPayloadCount} payload parity</span>
                       <span>{downloadParityEvidence.metadataMissingZipPayloadCount + downloadParityEvidence.zipMissingPayloadCount} missing payloads</span>
                       <span>{downloadParityEvidence.metadataPayloadDigestMatchesZipPayloadDigest ? "digest match" : "digest drift"}</span>
+                      <span>{downloadParityEvidence.identityStatus} identity</span>
                       <span>{downloadParityEvidence.downloadHandoffStatus} browser handoff</span>
                     </div>
                     <p>

@@ -668,6 +668,9 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(downloadParity).toHaveAttribute("data-export-download-parity-scenario", "metadata-zip-smoke-download-handoff-parity");
     expect(downloadParity).toHaveAttribute("data-export-download-parity-export-id", "export-001");
     expect(downloadParity).toHaveAttribute("data-export-download-parity-package-id", "pkg-002");
+    expect(downloadParity).toHaveAttribute("data-export-download-parity-project-id", "project-001");
+    expect(downloadParity).toHaveAttribute("data-export-download-parity-workflow-id", "ecommerce_growth_pack");
+    expect(downloadParity).toHaveAttribute("data-export-download-parity-workflow-fixture-id", "fx_ecommerce_growth_golden");
     expect(downloadParity).toHaveAttribute("data-export-download-parity-file-name", "zenart-001.zip");
     expect(downloadParity).toHaveAttribute("data-export-download-parity-format", "zip");
     expect(downloadParity).toHaveAttribute("data-export-download-parity-metadata-status", "pass");
@@ -680,11 +683,29 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(downloadParity).toHaveAttribute("data-export-download-parity-zip-missing-count", "0");
     expect(downloadParity).toHaveAttribute("data-export-download-parity-required-zip-status", "pass");
     expect(downloadParity).toHaveAttribute("data-export-download-parity-payloads-match", "true");
+    expect(downloadParity).toHaveAttribute("data-export-download-parity-payload-list-status", "pass");
+    expect(downloadParity).toHaveAttribute(
+      "data-export-download-parity-metadata-payloads",
+      "manifest.json,qa-report.json,safety-policy-report.json,provenance.json,ai-content-disclaimer.json,ppt-ready-metadata.json,assets/README.txt,assets/hero_product_ad.png,assets/square_social_ad.png,assets/story_variant.png,assets/marketplace_banner.png,metadata.json,qa_report.json,trace_provenance.json"
+    );
+    expect(downloadParity).toHaveAttribute(
+      "data-export-download-parity-zip-expected-payloads",
+      "manifest.json,qa-report.json,safety-policy-report.json,provenance.json,ai-content-disclaimer.json,ppt-ready-metadata.json,assets/README.txt,assets/hero_product_ad.png,assets/square_social_ad.png,assets/story_variant.png,assets/marketplace_banner.png,metadata.json,qa_report.json,trace_provenance.json"
+    );
     expect(downloadParity).toHaveAttribute(
       "data-export-download-parity-payload-contract-digest",
       "export-001::pkg-002::project-001::ecommerce_growth_pack::fx_ecommerce_growth_golden::ai-content-disclaimer.json|assets/README.txt|assets/hero_product_ad.png|assets/marketplace_banner.png|assets/square_social_ad.png|assets/story_variant.png|manifest.json|metadata.json|ppt-ready-metadata.json|provenance.json|qa-report.json|qa_report.json|safety-policy-report.json|trace_provenance.json"
     );
     expect(downloadParity).toHaveAttribute("data-export-download-parity-payload-digest-match", "true");
+    expect(downloadParity).toHaveAttribute("data-export-download-parity-identity-status", "pass");
+    expect(downloadParity).toHaveAttribute("data-export-download-parity-provider", "dev-provider");
+    expect(downloadParity).toHaveAttribute("data-export-download-parity-model", "deterministic-local-alpha");
+    expect(downloadParity).toHaveAttribute(
+      "data-export-download-parity-prompt-spec-taxonomy",
+      "social_proof"
+    );
+    expect(downloadParity).toHaveAttribute("data-export-download-parity-skill", "ecommerce_growth_pack");
+    expect(downloadParity).toHaveAttribute("data-export-download-parity-safety-status", "pass");
     expect(downloadParity).toHaveAttribute("data-export-download-parity-workflow-metadata-present", "true");
     expect(downloadParity).toHaveAttribute("data-export-download-parity-trace-provenance-present", "true");
     expect(downloadParity).toHaveAttribute("data-export-download-parity-failures", "");

@@ -139,6 +139,9 @@ test("export route exposes package metadata, ZIP payload, and download parity br
   const downloadParity = page.getByLabel("Export download parity smoke");
   await expect(downloadParity).toHaveAttribute("data-export-download-parity-smoke", "stage0.rev2.export-download-parity-smoke");
   await expect(downloadParity).toHaveAttribute("data-export-download-parity-status", "pass");
+  await expect(downloadParity).toHaveAttribute("data-export-download-parity-project-id", "project-001");
+  await expect(downloadParity).toHaveAttribute("data-export-download-parity-workflow-id", "ecommerce_growth_pack");
+  await expect(downloadParity).toHaveAttribute("data-export-download-parity-workflow-fixture-id", "fx_ecommerce_growth_golden");
   await expect(downloadParity).toHaveAttribute("data-export-download-parity-file-name", "zenart-001.zip");
   await expect(downloadParity).toHaveAttribute("data-export-download-parity-format", "zip");
   await expect(downloadParity).toHaveAttribute("data-export-download-parity-metadata-status", "pass");
@@ -150,8 +153,15 @@ test("export route exposes package metadata, ZIP payload, and download parity br
   await expect(downloadParity).toHaveAttribute("data-export-download-parity-zip-missing-count", "0");
   await expect(downloadParity).toHaveAttribute("data-export-download-parity-required-zip-status", "pass");
   await expect(downloadParity).toHaveAttribute("data-export-download-parity-payloads-match", "true");
+  await expect(downloadParity).toHaveAttribute("data-export-download-parity-payload-list-status", "pass");
   await expect(downloadParity).toHaveAttribute("data-export-download-parity-workflow-metadata-present", "true");
   await expect(downloadParity).toHaveAttribute("data-export-download-parity-trace-provenance-present", "true");
+  await expect(downloadParity).toHaveAttribute("data-export-download-parity-identity-status", "pass");
+  await expect(downloadParity).toHaveAttribute("data-export-download-parity-provider", "dev-provider");
+  await expect(downloadParity).toHaveAttribute("data-export-download-parity-model", "deterministic-local-alpha");
+  await expect(downloadParity).toHaveAttribute("data-export-download-parity-prompt-spec-taxonomy", "social_proof");
+  await expect(downloadParity).toHaveAttribute("data-export-download-parity-skill", "ecommerce_growth_pack");
+  await expect(downloadParity).toHaveAttribute("data-export-download-parity-safety-status", "pass");
   await expect(downloadParity).toHaveAttribute("data-export-download-parity-failures", "");
 
   const downloadHandoff = page.getByRole("button", { name: "Download" });
@@ -171,6 +181,8 @@ test("export route exposes package metadata, ZIP payload, and download parity br
 
   const zip = await JSZip.loadAsync(await readFile(downloadPath!));
   const expectedPayloads = (await zipPayloadSmoke.getAttribute("data-export-zip-payload-expected-payloads"))?.split(",") ?? [];
+  await expect(downloadParity).toHaveAttribute("data-export-download-parity-metadata-payloads", expectedPayloads.join(","));
+  await expect(downloadParity).toHaveAttribute("data-export-download-parity-zip-expected-payloads", expectedPayloads.join(","));
   const expectedPayloadContractDigest = [
     "export-001",
     "pkg-002",

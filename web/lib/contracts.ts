@@ -566,6 +566,9 @@ export interface ExportDownloadParityEvidence {
   scenario: "metadata-zip-smoke-download-handoff-parity";
   exportId: string;
   packageId: string;
+  projectId: string;
+  workflowId: string;
+  workflowFixtureId: string;
   fileName: string;
   format: ExportFormat;
   metadataStatus: PackageExportMetadataEvidence["status"];
@@ -578,13 +581,25 @@ export interface ExportDownloadParityEvidence {
   zipMissingPayloadCount: number;
   requiredZipPayloadParityStatus: PackageExportMetadataEvidence["zipPayloadParityStatus"];
   metadataPayloadsMatchZipPayloads: boolean;
+  payloadListStatus: "pass" | "fail";
+  metadataPayloadNames: string[];
+  zipExpectedPayloadNames: string[];
   payloadContractDigest: string;
   metadataPayloadDigestMatchesZipPayloadDigest: boolean;
+  identityStatus: "pass" | "fail";
+  provider: string;
+  model: string;
+  promptSpecTaxonomy: string[];
+  skill: string;
+  safetyStatus: SafetyPolicyReport["status"];
   workflowMetadataPresent: boolean;
   traceProvenancePresent: boolean;
   failures: Array<
     | "export-id"
     | "package-id"
+    | "project-id"
+    | "workflow-id"
+    | "workflow-fixture-id"
     | "file-name"
     | "format"
     | "metadata-status"
@@ -596,6 +611,12 @@ export interface ExportDownloadParityEvidence {
     | "required-parity"
     | "payload-list"
     | "payload-digest"
+    | "identity"
+    | "provider"
+    | "model"
+    | "prompt-spec"
+    | "skill"
+    | "safety"
     | "workflow-metadata"
     | "trace-provenance"
   >;
