@@ -3750,6 +3750,18 @@
         "export_record_created": false,
         "downloadable_artifact_created": false,
         "audit_event_required": true
+      },
+      "export_api_projection": {
+        "export_id": "export_trace_negative_missing_provider_response",
+        "trace_id": "trace_fx_ecommerce_growth_golden_aspect",
+        "status": "blocked",
+        "final_export_allowed": false,
+        "download_enabled": false,
+        "download_url": null,
+        "denial_reasons": [
+          "trace_missing_required_pipeline_step"
+        ],
+        "audit_event_required": true
       }
     },
     {
@@ -3762,6 +3774,18 @@
       "expected_persistence": {
         "export_record_created": false,
         "downloadable_artifact_created": false,
+        "audit_event_required": true
+      },
+      "export_api_projection": {
+        "export_id": "export_trace_negative_out_of_order_export",
+        "trace_id": "trace_fx_business_visual_doc_golden_readability",
+        "status": "blocked",
+        "final_export_allowed": false,
+        "download_enabled": false,
+        "download_url": null,
+        "denial_reasons": [
+          "trace_pipeline_order_violation"
+        ],
         "audit_event_required": true
       }
     },
@@ -3776,6 +3800,18 @@
         "export_record_created": false,
         "downloadable_artifact_created": false,
         "audit_event_required": true
+      },
+      "export_api_projection": {
+        "export_id": "export_trace_negative_missing_safety_decision_ref",
+        "trace_id": "trace_fx_local_merchant_campaign_golden_dimensions",
+        "status": "blocked",
+        "final_export_allowed": false,
+        "download_enabled": false,
+        "download_url": null,
+        "denial_reasons": [
+          "trace_missing_safety_decision_ref"
+        ],
+        "audit_event_required": true
       }
     },
     {
@@ -3788,6 +3824,18 @@
       "expected_persistence": {
         "export_record_created": false,
         "downloadable_artifact_created": false,
+        "audit_event_required": true
+      },
+      "export_api_projection": {
+        "export_id": "export_trace_negative_missing_qa_result_ref",
+        "trace_id": "trace_fx_character_ip_concept_golden_blank",
+        "status": "blocked",
+        "final_export_allowed": false,
+        "download_enabled": false,
+        "download_url": null,
+        "denial_reasons": [
+          "trace_missing_qa_result_ref"
+        ],
         "audit_event_required": true
       }
     },
@@ -3802,6 +3850,18 @@
         "export_record_created": false,
         "downloadable_artifact_created": false,
         "audit_event_required": true
+      },
+      "export_api_projection": {
+        "export_id": "export_trace_negative_missing_eval_result_export_ref",
+        "trace_id": "trace_fx_export_completeness_missing_manifest",
+        "status": "blocked",
+        "final_export_allowed": false,
+        "download_enabled": false,
+        "download_url": null,
+        "denial_reasons": [
+          "trace_missing_eval_result_ref"
+        ],
+        "audit_event_required": true
       }
     },
     {
@@ -3814,6 +3874,18 @@
       "expected_persistence": {
         "export_record_created": false,
         "downloadable_artifact_created": false,
+        "audit_event_required": true
+      },
+      "export_api_projection": {
+        "export_id": "export_trace_negative_cross_tenant_replay",
+        "trace_id": "trace_red_team_minor_adult_content",
+        "status": "blocked",
+        "final_export_allowed": false,
+        "download_enabled": false,
+        "download_url": null,
+        "denial_reasons": [
+          "trace_tenant_mismatch"
+        ],
         "audit_event_required": true
       }
     }

@@ -59,36 +59,42 @@ NEGATIVE_TRACE_CASES = {
         "step": "provider_response",
         "expected_error": "missing_required_pipeline_step",
         "export_gate_effect": "deny_final_export",
+        "denial_reason": "trace_missing_required_pipeline_step",
     },
     "trace_out_of_order_export_denies_export": {
         "mutation": "swap_step_order",
         "step": "export",
         "expected_error": "pipeline_order_violation",
         "export_gate_effect": "deny_final_export",
+        "denial_reason": "trace_pipeline_order_violation",
     },
     "trace_missing_safety_decision_ref_denies_export": {
         "mutation": "remove_safety_decision_ref",
         "step": "qa",
         "expected_error": "missing_safety_decision_ref",
         "export_gate_effect": "deny_final_export",
+        "denial_reason": "trace_missing_safety_decision_ref",
     },
     "trace_missing_qa_result_ref_denies_export": {
         "mutation": "remove_qa_result_ref",
         "step": "qa",
         "expected_error": "missing_qa_result_ref",
         "export_gate_effect": "deny_final_export",
+        "denial_reason": "trace_missing_qa_result_ref",
     },
     "trace_missing_eval_result_export_ref_denies_export": {
         "mutation": "remove_eval_result_ref",
         "step": "export",
         "expected_error": "missing_eval_result_ref",
         "export_gate_effect": "deny_final_export",
+        "denial_reason": "trace_missing_eval_result_ref",
     },
     "trace_cross_tenant_replay_denies_export": {
         "mutation": "cross_tenant_trace_replay",
         "step": "export",
         "expected_error": "tenant_trace_mismatch",
         "export_gate_effect": "deny_final_export",
+        "denial_reason": "trace_tenant_mismatch",
     },
 }
 
@@ -151,6 +157,23 @@ def validate_openapi_trace_schema() -> None:
         require_field_in_schema(body, "AgentTrace", field)
     for point in REQUIRED_STEPS:
         require(point in body, f"OpenAPI AgentTrace step_name enum missing {point}")
+    validate_openapi_export_schema(text)
+
+
+def validate_openapi_export_schema(openapi_text: str) -> None:
+    body = schema_block(openapi_text, "Export")
+    for field in [
+        "trace_id",
+        "final_export_allowed",
+        "download_enabled",
+        "denial_reasons",
+        "audit_event_required",
+        "download_url",
+    ]:
+        require_field_in_schema(body, "Export", field)
+    for reason in [case["denial_reason"] for case in NEGATIVE_TRACE_CASES.values()]:
+        require(reason in body, f"OpenAPI Export denial_reasons enum missing {reason}")
+    require("nullable: true" in body, "OpenAPI Export download_url must allow null for blocked exports")
 
 
 def validate_trace_fixture() -> None:
@@ -284,8 +307,31 @@ def validate_negative_trace_cases(contract: dict[str, Any], valid_trace_ids: set
             },
             f"{case_id} must fail closed without export artifacts and require audit",
         )
+        validate_negative_export_projection(case, expected)
 
     require(seen_cases == set(NEGATIVE_TRACE_CASES), "trace contract missing required negative cases")
+
+
+def validate_negative_export_projection(
+    case: dict[str, Any],
+    expected: dict[str, str],
+) -> None:
+    case_id = case["case_id"]
+    projection = case.get("export_api_projection")
+    require(isinstance(projection, dict), f"{case_id} must declare export_api_projection")
+    require(
+        projection == {
+            "export_id": "export_trace_negative_" + case_id.removeprefix("trace_").removesuffix("_denies_export"),
+            "trace_id": case["base_trace_id"],
+            "status": "blocked",
+            "final_export_allowed": False,
+            "download_enabled": False,
+            "download_url": None,
+            "denial_reasons": [expected["denial_reason"]],
+            "audit_event_required": True,
+        },
+        f"{case_id} export API projection must expose fail-closed trace denial state",
+    )
 
 
 def validate_step_events(trace: dict[str, Any], eval_result: dict[str, Any] | None = None) -> None:

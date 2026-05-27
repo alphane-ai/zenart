@@ -1920,6 +1920,11 @@ components:
         - manifest
         - qa_report
         - provenance
+        - trace_id
+        - final_export_allowed
+        - download_enabled
+        - denial_reasons
+        - audit_event_required
         - download_url
         - created_at
       properties:
@@ -1949,6 +1954,40 @@ components:
         provenance:
           type: object
           additionalProperties: true
+        trace_id:
+          type: string
+          nullable: true
+          description: Agent trace that proves export eligibility or records the fail-closed denial.
+        final_export_allowed:
+          type: boolean
+          description: True only when eval, QA, safety, trace, package, and artifact gates all allow download.
+        download_enabled:
+          type: boolean
+          description: Mirrors final export eligibility and must be false when download_url is null.
+        denial_reasons:
+          type: array
+          uniqueItems: true
+          items:
+            type: string
+            enum:
+              - blocking_qa
+              - qa_coverage_incomplete
+              - safety_policy_block
+              - safety_user_confirmation_required
+              - safety_admin_review_required
+              - incomplete_export_artifacts
+              - eval_not_passed
+              - package_readiness_denied
+              - trace_incomplete
+              - trace_missing_required_pipeline_step
+              - trace_pipeline_order_violation
+              - trace_missing_safety_decision_ref
+              - trace_missing_qa_result_ref
+              - trace_missing_eval_result_ref
+              - trace_tenant_mismatch
+        audit_event_required:
+          type: boolean
+          description: True for blocked export attempts that must be visible to support/admin audit.
         download_url:
           type: string
           format: uri

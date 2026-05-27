@@ -1770,6 +1770,7 @@ main 合并前必须通过：
 - [x] 添加 agent contract tests。
 - [x] 添加 trace completeness tests。
 - [x] Trace completeness fail-closed negative cases 通过：`fixtures/stage0/rev2/eval/trace_completeness.json` declares missing provider-response step、out-of-order export step、missing safety decision ref、missing QA result ref、missing eval result export ref、cross-tenant trace replay cases, and `scripts/validate_trace_completeness.py` validates each denies final export, prevents downloadable artifact persistence, and requires audit evidence。
+- [x] Trace completeness export API denial projection contract 通过：`fixtures/stage0/rev2/eval/trace_completeness.json` declares per-negative-case `export_api_projection` with trace ID、blocked status、`final_export_allowed=false`、`download_enabled=false`、null download URL、machine denial reason、audit requirement; `openapi/zenart.v1.yaml` exposes these fields on `Export`, and `scripts/validate_trace_completeness.py` validates the fixture/OpenAPI binding。
 - [x] Trace visibility/export retention projection contract 通过：`fixtures/stage0/rev2/eval/trace_visibility_export_retention.json` declares user-safe trace projection、admin RBAC trace/eval/QA/safety/export links、blocked-export retention for QA report/trace provenance/safety disclaimer, and `scripts/validate_trace_visibility_export_retention.py` validates the projections against trace completeness、eval results、QA results、trace export gate matrix、OpenAPI。
 - [x] 添加 provider contract tests。
 

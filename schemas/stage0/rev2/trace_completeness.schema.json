@@ -557,7 +557,8 @@
         "step",
         "expected_error",
         "export_gate_effect",
-        "expected_persistence"
+        "expected_persistence",
+        "export_api_projection"
       ],
       "properties": {
         "case_id": {
@@ -620,6 +621,60 @@
             },
             "downloadable_artifact_created": {
               "const": false
+            },
+            "audit_event_required": {
+              "const": true
+            }
+          }
+        },
+        "export_api_projection": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "export_id",
+            "trace_id",
+            "status",
+            "final_export_allowed",
+            "download_enabled",
+            "download_url",
+            "denial_reasons",
+            "audit_event_required"
+          ],
+          "properties": {
+            "export_id": {
+              "type": "string",
+              "pattern": "^export_trace_negative_[a-z0-9_]+$"
+            },
+            "trace_id": {
+              "type": "string",
+              "pattern": "^trace_[a-z0-9_]+$"
+            },
+            "status": {
+              "const": "blocked"
+            },
+            "final_export_allowed": {
+              "const": false
+            },
+            "download_enabled": {
+              "const": false
+            },
+            "download_url": {
+              "type": "null"
+            },
+            "denial_reasons": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "enum": [
+                  "trace_missing_required_pipeline_step",
+                  "trace_pipeline_order_violation",
+                  "trace_missing_safety_decision_ref",
+                  "trace_missing_qa_result_ref",
+                  "trace_missing_eval_result_ref",
+                  "trace_tenant_mismatch"
+                ]
+              }
             },
             "audit_event_required": {
               "const": true
