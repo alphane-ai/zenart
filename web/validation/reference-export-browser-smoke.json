@@ -1,0 +1,66 @@
+{
+  "schemaVersion": "stage0.rev2.reference-export-browser-smoke",
+  "blueprintSource": "Docs/stage0_blueprint_rev2.md",
+  "owner": "lane3",
+  "scope": "user-web-local-dev-client-browser",
+  "status": "pass",
+  "doesNotCloseChecklistGates": true,
+  "checklistPolicy": {
+    "referenceUploadChecklistAlreadyClosed": true,
+    "workspaceRenderingPerformanceChecklistAlreadyClosed": true,
+    "packageExportMetadataChecklistAlreadyClosed": true,
+    "localAlphaGateRemainsOpen": true,
+    "reason": "This artifact proves a user-web browser contract for the deterministic dev client only. It does not replace validator-owned runtime evidence required by release gates."
+  },
+  "browserEvidence": {
+    "config": "web/playwright.config.ts",
+    "test": "web/tests/reference-export.spec.ts",
+    "script": "npm run smoke:reference-export-playwright",
+    "scenario": "reference-upload-package-export-metadata-render-budget-browser",
+    "route": "/workspace",
+    "requiredAssertions": [
+      "reference upload browser smoke reaches ready export metadata and render budget evidence",
+      "data-reference-upload-integration-status",
+      "data-reference-latest-packaged",
+      "data-reference-latest-provenance-present",
+      "data-reference-latest-ppt-slide-present",
+      "data-rendering-smoke='stage0.rev2.workspace-rendering-performance'",
+      "data-render-failure-count",
+      "data-package-export-metadata-ui='stage0.rev2.package-export-metadata-ui'",
+      "data-package-export-item-types",
+      "Package export payload status matrix",
+      "data-export-download-parity-status",
+      "download.suggestedFilename()"
+    ]
+  },
+  "expectedContracts": {
+    "referenceUpload": {
+      "schemaVersion": "stage0.rev2.reference-upload-integration-smoke",
+      "expectedStatus": "pass",
+      "expectedOperations": ["createUpload", "createPackage", "createExport", "getExport"],
+      "expectedLatestPackaged": "true",
+      "expectedLatestProvenancePresent": "true",
+      "expectedLatestPptSlidePresent": "true"
+    },
+    "workspaceRendering": {
+      "schemaVersion": "stage0.rev2.workspace-rendering-performance",
+      "expectedStatus": "pass",
+      "expectedFailureCount": "0",
+      "requiredInteractionSteps": ["load", "brief-confirm", "candidate-select", "package-add", "export-ready"]
+    },
+    "packageExportMetadata": {
+      "schemaVersion": "stage0.rev2.package-export-metadata-ui",
+      "expectedStatus": "pass",
+      "expectedMissingOutputCount": "0",
+      "expectedZipPayloadParityStatus": "pass",
+      "expectedWorkflowMetadataPayloadPresent": "true",
+      "expectedTraceProvenancePayloadPresent": "true",
+      "expectedAiContentDisclaimerPayloadPresent": "true"
+    },
+    "downloadParity": {
+      "schemaVersion": "stage0.rev2.export-download-parity-smoke",
+      "expectedStatus": "pass",
+      "expectedPayloadsMatch": "true"
+    }
+  }
+}

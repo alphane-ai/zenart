@@ -7,11 +7,13 @@ const root = process.cwd();
 const artifactPath = path.join(root, "validation", "user-routes-smoke.json");
 const generatedApiCsrfContractPath = path.join(root, "validation", "generated-api-csrf-contract.json");
 const ecommerceGrowthWebSmokePath = path.join(root, "validation", "ecommerce-growth-web-smoke.json");
+const referenceExportBrowserSmokePath = path.join(root, "validation", "reference-export-browser-smoke.json");
 const appDir = path.join(root, "app");
 const componentPath = path.join(root, "components", "workspace-app.tsx");
 const workspaceSmokeTestPath = path.join(root, "components", "workspace-app.smoke.test.tsx");
 const playwrightConfigPath = path.join(root, "playwright.config.ts");
 const ecommercePlaywrightSpecPath = path.join(root, "tests", "ecommerce-growth.spec.ts");
+const referenceExportPlaywrightSpecPath = path.join(root, "tests", "reference-export.spec.ts");
 const sessionSecurityPlaywrightSpecPath = path.join(root, "tests", "session-security.spec.ts");
 const layoutPath = path.join(root, "app", "layout.tsx");
 const legalPoliciesPath = path.join(root, "lib", "legal-policies.ts");
@@ -30,6 +32,7 @@ const componentSource = await readFile(componentPath, "utf8");
 const workspaceSmokeTestSource = await readFile(workspaceSmokeTestPath, "utf8");
 const playwrightConfigSource = await readFile(playwrightConfigPath, "utf8");
 const ecommercePlaywrightSpecSource = await readFile(ecommercePlaywrightSpecPath, "utf8");
+const referenceExportPlaywrightSpecSource = await readFile(referenceExportPlaywrightSpecPath, "utf8");
 const sessionSecurityPlaywrightSpecSource = await readFile(sessionSecurityPlaywrightSpecPath, "utf8");
 const layoutSource = await readFile(layoutPath, "utf8");
 const legalPoliciesSource = await readFile(legalPoliciesPath, "utf8");
@@ -39,6 +42,7 @@ const generatedApiSource = await readFile(generatedApiPath, "utf8");
 const devStateSource = await readFile(devStatePath, "utf8");
 const generatedApiCsrfContract = JSON.parse(await readFile(generatedApiCsrfContractPath, "utf8"));
 const ecommerceGrowthWebSmoke = JSON.parse(await readFile(ecommerceGrowthWebSmokePath, "utf8"));
+const referenceExportBrowserSmoke = JSON.parse(await readFile(referenceExportBrowserSmokePath, "utf8"));
 const expectedViews = new Set(["workspace", "projects", "export", "billing", "account", "support"]);
 const seenViews = new Set();
 
@@ -54,6 +58,10 @@ if (ecommerceGrowthWebSmoke.blueprintSource !== "Docs/stage0_blueprint_rev2.md")
   fail("ecommerce growth web smoke must cite Docs/stage0_blueprint_rev2.md");
 }
 
+if (referenceExportBrowserSmoke.blueprintSource !== "Docs/stage0_blueprint_rev2.md") {
+  fail("reference export browser smoke must cite Docs/stage0_blueprint_rev2.md");
+}
+
 if (
   ecommerceGrowthWebSmoke.status !== "pass" ||
   ecommerceGrowthWebSmoke.scope !== "user-web-local-dev-client" ||
@@ -63,6 +71,17 @@ if (
   ecommerceGrowthWebSmoke.checklistPolicy?.localAlphaGateRemainsOpen !== true
 ) {
   fail("ecommerce growth web smoke must be passing web-local evidence while keeping runtime gates open");
+}
+
+if (
+  referenceExportBrowserSmoke.schemaVersion !== "stage0.rev2.reference-export-browser-smoke" ||
+  referenceExportBrowserSmoke.status !== "pass" ||
+  referenceExportBrowserSmoke.scope !== "user-web-local-dev-client-browser" ||
+  referenceExportBrowserSmoke.doesNotCloseChecklistGates !== true ||
+  referenceExportBrowserSmoke.browserEvidence?.script !== "npm run smoke:reference-export-playwright" ||
+  referenceExportBrowserSmoke.checklistPolicy?.localAlphaGateRemainsOpen !== true
+) {
+  fail("reference export browser smoke must be passing browser-local evidence while keeping runtime gates open");
 }
 
 const securityEvidence = artifact.securityEvidence ?? [];
@@ -181,6 +200,55 @@ for (const snippet of ecommerceGrowthWebSmoke.browserEvidence?.requiredAssertion
   }
 }
 
+for (const snippet of referenceExportBrowserSmoke.browserEvidence?.requiredAssertions ?? []) {
+  if (!referenceExportPlaywrightSpecSource.includes(snippet)) {
+    fail(`reference export browser smoke spec missing ${snippet}`);
+  }
+}
+
+const referenceExportContracts = referenceExportBrowserSmoke.expectedContracts ?? {};
+if (
+  referenceExportContracts.referenceUpload?.schemaVersion !== referenceUploadEvidence.schemaVersion ||
+  referenceExportContracts.referenceUpload?.expectedStatus !== referenceUploadEvidence.expectedStatus ||
+  JSON.stringify(referenceExportContracts.referenceUpload?.expectedOperations) !== JSON.stringify(referenceUploadEvidence.expectedOperations) ||
+  referenceExportContracts.referenceUpload?.expectedLatestPackaged !== referenceUploadEvidence.expectedLatestPackaged ||
+  referenceExportContracts.referenceUpload?.expectedLatestProvenancePresent !== referenceUploadEvidence.expectedLatestProvenancePresent ||
+  referenceExportContracts.referenceUpload?.expectedLatestPptSlidePresent !== referenceUploadEvidence.expectedLatestPptSlidePresent
+) {
+  fail("reference export browser smoke reference-upload contract drifted from user route evidence");
+}
+
+if (
+  referenceExportContracts.workspaceRendering?.schemaVersion !== renderingEvidence.schemaVersion ||
+  referenceExportContracts.workspaceRendering?.expectedStatus !== renderingEvidence.expectedStatus ||
+  referenceExportContracts.workspaceRendering?.expectedFailureCount !== renderingEvidence.expectedFailureCount
+) {
+  fail("reference export browser smoke rendering contract drifted from user route evidence");
+}
+
+for (const step of referenceExportContracts.workspaceRendering?.requiredInteractionSteps ?? []) {
+  if (!renderingEvidence.requiredInteractionSteps?.includes(step) || !referenceExportPlaywrightSpecSource.includes(step)) {
+    fail(`reference export browser smoke missing rendering step ${step}`);
+  }
+}
+
+if (
+  referenceExportContracts.packageExportMetadata?.schemaVersion !== packageExportEvidence.schemaVersion ||
+  referenceExportContracts.packageExportMetadata?.expectedStatus !== packageExportEvidence.expectedStatus ||
+  referenceExportContracts.packageExportMetadata?.expectedMissingOutputCount !== packageExportEvidence.expectedMissingOutputCount ||
+  referenceExportContracts.packageExportMetadata?.expectedZipPayloadParityStatus !== "pass"
+) {
+  fail("reference export browser smoke package/export metadata contract drifted from user route evidence");
+}
+
+if (
+  referenceExportContracts.downloadParity?.schemaVersion !== exportDownloadParityEvidence.schemaVersion ||
+  referenceExportContracts.downloadParity?.expectedStatus !== exportDownloadParityEvidence.expectedStatus ||
+  referenceExportContracts.downloadParity?.expectedPayloadsMatch !== exportDownloadParityEvidence.expectedPayloadsMatch
+) {
+  fail("reference export browser smoke download parity contract drifted from user route evidence");
+}
+
 for (const expectedPlaywrightConfigSnippet of [
   "defineConfig",
   "webServer",
@@ -188,7 +256,7 @@ for (const expectedPlaywrightConfigSnippet of [
   "channel: process.env.PLAYWRIGHT_BROWSER_CHANNEL ?? \"chrome\""
 ]) {
   if (!playwrightConfigSource.includes(expectedPlaywrightConfigSnippet)) {
-    fail(`ecommerce growth browser smoke config missing ${expectedPlaywrightConfigSnippet}`);
+    fail(`browser smoke config missing ${expectedPlaywrightConfigSnippet}`);
   }
 }
 

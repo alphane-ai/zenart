@@ -4,10 +4,12 @@ import process from "node:process";
 
 const root = process.cwd();
 const artifactPath = path.join(root, "validation", "package-export-metadata-smoke.json");
+const referenceExportBrowserSmokePath = path.join(root, "validation", "reference-export-browser-smoke.json");
 const userRoutesPath = path.join(root, "validation", "user-routes-smoke.json");
 const ecommerceSmokePath = path.join(root, "validation", "ecommerce-growth-web-smoke.json");
 const componentPath = path.join(root, "components", "workspace-app.tsx");
 const workspaceSmokeTestPath = path.join(root, "components", "workspace-app.smoke.test.tsx");
+const referenceExportPlaywrightSpecPath = path.join(root, "tests", "reference-export.spec.ts");
 const devStatePath = path.join(root, "lib", "dev-state.ts");
 const contractsPath = path.join(root, "lib", "contracts.ts");
 const downloadPath = path.join(root, "lib", "export-download.ts");
@@ -19,19 +21,23 @@ const fail = (message) => {
 
 const [
   artifact,
+  referenceExportBrowserSmoke,
   userRoutes,
   ecommerceSmoke,
   componentSource,
   workspaceSmokeTestSource,
+  referenceExportPlaywrightSpecSource,
   devStateSource,
   contractsSource,
   downloadSource
 ] = await Promise.all([
   readFile(artifactPath, "utf8").then(JSON.parse),
+  readFile(referenceExportBrowserSmokePath, "utf8").then(JSON.parse),
   readFile(userRoutesPath, "utf8").then(JSON.parse),
   readFile(ecommerceSmokePath, "utf8").then(JSON.parse),
   readFile(componentPath, "utf8"),
   readFile(workspaceSmokeTestPath, "utf8"),
+  readFile(referenceExportPlaywrightSpecPath, "utf8"),
   readFile(devStatePath, "utf8"),
   readFile(contractsPath, "utf8"),
   readFile(downloadPath, "utf8")
@@ -39,6 +45,16 @@ const [
 
 if (artifact.blueprintSource !== "Docs/stage0_blueprint_rev2.md") {
   fail("artifact must cite Docs/stage0_blueprint_rev2.md");
+}
+
+if (
+  referenceExportBrowserSmoke.blueprintSource !== "Docs/stage0_blueprint_rev2.md" ||
+  referenceExportBrowserSmoke.schemaVersion !== "stage0.rev2.reference-export-browser-smoke" ||
+  referenceExportBrowserSmoke.status !== "pass" ||
+  referenceExportBrowserSmoke.browserEvidence?.script !== "npm run smoke:reference-export-playwright" ||
+  referenceExportBrowserSmoke.doesNotCloseChecklistGates !== true
+) {
+  fail("reference export browser smoke artifact must be a passing non-gate browser contract");
 }
 
 if (
@@ -354,4 +370,23 @@ if (!componentSource.includes("function PayloadStatusList") || !componentSource.
 
 if (!componentSource.includes("downloadExportPackage(item)")) {
   fail("workspace export UI must wire download handoff to the export download planner");
+}
+
+const browserContracts = referenceExportBrowserSmoke.expectedContracts ?? {};
+if (
+  browserContracts.packageExportMetadata?.schemaVersion !== evidence.schemaVersion ||
+  browserContracts.packageExportMetadata?.expectedStatus !== evidence.expectedStatus ||
+  browserContracts.packageExportMetadata?.expectedMissingOutputCount !== evidence.expectedMissingOutputCount ||
+  browserContracts.packageExportMetadata?.expectedZipPayloadParityStatus !== evidence.expectedZipPayloadParityStatus ||
+  browserContracts.downloadParity?.schemaVersion !== downloadParity.schemaVersion ||
+  browserContracts.downloadParity?.expectedStatus !== downloadParity.expectedStatus ||
+  browserContracts.downloadParity?.expectedPayloadsMatch !== downloadParity.expectedPayloadsMatch
+) {
+  fail("reference export browser smoke artifact drifted from package/export metadata evidence");
+}
+
+for (const snippet of referenceExportBrowserSmoke.browserEvidence?.requiredAssertions ?? []) {
+  if (!referenceExportPlaywrightSpecSource.includes(snippet)) {
+    fail(`reference export browser smoke spec missing ${snippet}`);
+  }
 }

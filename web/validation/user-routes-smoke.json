@@ -619,6 +619,7 @@
     "safe-image-document-https-url-reject-unsupported",
     "brief-upload-confirmation-runtime-evidence",
     "reference-upload-zip-provenance-ppt-asset-grid",
+    "reference-export-browser-smoke",
     "ecommerce-growth-pack-api-smoke",
     "generated-api-unsafe-operation-csrf-inventory",
     "workspace-rendering-performance-budget",
@@ -687,6 +688,7 @@
     "npm run build",
     "npm run smoke:package-export-metadata",
     "npm run smoke:security-contracts",
+    "npm run smoke:reference-export-playwright",
     "npm run smoke:user-routes"
   ]
 }
