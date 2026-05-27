@@ -1826,6 +1826,124 @@ func TestRedactMapCoversLaunchInfraStructuredMetadata(t *testing.T) {
 	}
 }
 
+func TestRedactStringCoversLaunchDataWarehouseCredentials(t *testing.T) {
+	input := strings.Join([]string{
+		"snowflake_private_key=-----BEGIN_PRIVATE_KEY-----abcdef",
+		"snowflake_password=snowflake-password",
+		"bigquery_service_account={\"private_key\":\"bq-private-key\"}",
+		"GOOGLE_APPLICATION_CREDENTIALS=/run/secrets/gcp-prod.json",
+		"databricks_token=databricks-token-redaction-fixture",
+		"dbt_cloud_token=dbtc_abcdefghijklmnopqrstuvwxyz123456",
+		"airbyte_client_secret=airbyte-secret",
+		"fivetran_api_secret=fivetran-secret",
+		"motherduck_token=md_abcdefghijklmnopqrstuvwxyz123456",
+		"neon_database_url=postgres://app:neon-password@ep-test.neon.tech/zenart",
+		"planetscale_service_token=pscale_tkn_abcdefghijklmnopqrstuvwxyz",
+		"turso_auth_token=turso-secret",
+		"libsql_auth_token=libsql-secret",
+		"aiven_api_token=aiven-secret",
+		"cockroach_url=postgresql://root:roach-password@roach.internal:26257/defaultdb",
+		"mongodb_uri=mongodb+srv://app:mongo-password@cluster.example.test/zenart",
+		"mysql_dsn=mysql://app:mysql-password@mysql.internal:3306/zenart",
+	}, " ")
+
+	got := RedactString(input)
+	for _, leaked := range []string{
+		"-----BEGIN_PRIVATE_KEY-----abcdef",
+		"snowflake-password",
+		"bq-private-key",
+		"/run/secrets/gcp-prod.json",
+		"databricks-token-redaction-fixture",
+		"dbtc_abcdefghijklmnopqrstuvwxyz123456",
+		"airbyte-secret",
+		"fivetran-secret",
+		"md_abcdefghijklmnopqrstuvwxyz123456",
+		"neon-password",
+		"pscale_tkn_abcdefghijklmnopqrstuvwxyz",
+		"turso-secret",
+		"libsql-secret",
+		"aiven-secret",
+		"roach-password",
+		"mongo-password",
+		"mysql-password",
+	} {
+		if strings.Contains(got, leaked) {
+			t.Fatalf("RedactString() = %q, leaked %s", got, leaked)
+		}
+	}
+	if strings.Count(got, Redacted) < 17 {
+		t.Fatalf("RedactString() = %q, want launch data credentials redacted", got)
+	}
+
+	findings := ClassifyString(input)
+	assertFinding(t, findings, SecretKindCredential, "")
+	assertFinding(t, findings, SecretKindServiceAcct, "")
+}
+
+func TestRedactMapCoversLaunchDataWarehouseStructuredMetadata(t *testing.T) {
+	redacted := RedactMap(map[string]any{
+		"snowflakePrivateKey":          "snowflake-private-key",
+		"bigqueryServiceAccount":       map[string]any{"private_key": "bq-private-key", "client_email": "svc@example.test"},
+		"googleApplicationCredentials": "/run/secrets/gcp-prod.json",
+		"databricksToken":              "databricks-token-redaction-fixture",
+		"dbtCloudToken":                "dbtc_abcdefghijklmnopqrstuvwxyz123456",
+		"airbyteClientSecret":          "airbyte-secret",
+		"fivetranApiSecret":            "fivetran-secret",
+		"motherduckToken":              "md_abcdefghijklmnopqrstuvwxyz123456",
+		"neonDatabaseUrl":              "postgres://app:neon-password@ep-test.neon.tech/zenart",
+		"planetscaleServiceToken":      "pscale_tkn_abcdefghijklmnopqrstuvwxyz",
+		"tursoAuthToken":               "turso-secret",
+		"libsqlAuthToken":              "libsql-secret",
+		"aivenApiToken":                "aiven-secret",
+		"cockroachUrl":                 "postgresql://root:roach-password@roach.internal:26257/defaultdb",
+		"mongoUri":                     "mongodb+srv://app:mongo-password@cluster.example.test/zenart",
+		"mysqlDsn":                     "mysql://app:mysql-password@mysql.internal:3306/zenart",
+		"publicWarehouseRegion":        "us-east-1",
+	})
+	body, err := json.Marshal(redacted)
+	if err != nil {
+		t.Fatalf("marshal redacted launch data metadata: %v", err)
+	}
+	for _, leaked := range []string{
+		"snowflake-private-key",
+		"bq-private-key",
+		"/run/secrets/gcp-prod.json",
+		"databricks-token-redaction-fixture",
+		"dbtc_abcdefghijklmnopqrstuvwxyz123456",
+		"airbyte-secret",
+		"fivetran-secret",
+		"md_abcdefghijklmnopqrstuvwxyz123456",
+		"neon-password",
+		"pscale_tkn_abcdefghijklmnopqrstuvwxyz",
+		"turso-secret",
+		"libsql-secret",
+		"aiven-secret",
+		"roach-password",
+		"mongo-password",
+		"mysql-password",
+	} {
+		if strings.Contains(string(body), leaked) {
+			t.Fatalf("redacted launch data metadata = %s, leaked %s", string(body), leaked)
+		}
+	}
+	for _, fragment := range []string{`"publicWarehouseRegion":"us-east-1"`, Redacted} {
+		if !strings.Contains(string(body), fragment) {
+			t.Fatalf("redacted launch data metadata = %s, missing %s", string(body), fragment)
+		}
+	}
+
+	findings := ClassifyValue(map[string]any{
+		"snowflakePrivateKey":          "snowflake-private-key",
+		"bigqueryServiceAccount":       "service-account",
+		"googleApplicationCredentials": "/run/secrets/gcp-prod.json",
+		"databricksToken":              "databricks-token",
+	})
+	assertFinding(t, findings, SecretKindPrivateKey, "snowflakePrivateKey")
+	assertFinding(t, findings, SecretKindServiceAcct, "bigqueryServiceAccount")
+	assertFinding(t, findings, SecretKindServiceAcct, "googleApplicationCredentials")
+	assertFinding(t, findings, SecretKindCredential, "databricksToken")
+}
+
 func TestRedactValueCoversMixedCaseLaunchSecretKeys(t *testing.T) {
 	redacted := RedactValue(map[string]any{
 		"clientSecret":       "client-secret-value",
