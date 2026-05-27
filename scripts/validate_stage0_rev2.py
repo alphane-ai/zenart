@@ -70,6 +70,15 @@ STAGING_OBJECT_STORAGE_SIGNED_URL_EVIDENCE = (
 STAGING_QUOTA_RATE_LIMIT_SPEND_CAP_EVIDENCE = (
     ROOT / "ops" / "evidence" / "staging" / "20260527T2015Z-quota-rate-limit-spend-cap.json"
 )
+STAGING_OBJECT_STORAGE_RETENTION_EVIDENCE = (
+    ROOT / "ops" / "evidence" / "staging" / "object-storage-retention-cleanup.json"
+)
+STAGING_LEGAL_EXTERNAL_PAGES_EVIDENCE = (
+    ROOT / "ops" / "evidence" / "staging" / "legal-pages-external-user.json"
+)
+STAGING_SUPPORT_CONTACT_VISIBILITY_EVIDENCE = (
+    ROOT / "ops" / "evidence" / "staging" / "support-contact-external-user.json"
+)
 PRODUCTION_ABUSE_THROTTLE_HOLD_EVIDENCE = (
     ROOT / "ops" / "evidence" / "production" / "20260527T1330Z-abuse-throttle-hold.json"
 )
@@ -81,6 +90,30 @@ PRODUCTION_SKILL_RELEASE_EVAL_CANARY_EVIDENCE = (
 )
 PRODUCTION_SECURITY_LAUNCH_CHECKS_EVIDENCE = (
     ROOT / "ops" / "evidence" / "production" / "20260527T1700Z-security-launch-checks.json"
+)
+PRODUCTION_PROVIDER_MODE_EVIDENCE = (
+    ROOT / "ops" / "evidence" / "production" / "provider-mode.json"
+)
+PRODUCTION_CLAIMS_ALIGNMENT_EVIDENCE = (
+    ROOT / "ops" / "evidence" / "production" / "public-paid-real-generation-claims.json"
+)
+PRODUCTION_BILLING_LIFECYCLE_EVIDENCE = (
+    ROOT / "ops" / "evidence" / "production" / "billing-lifecycle.json"
+)
+PRODUCTION_BILLING_IDEMPOTENCY_EVIDENCE = (
+    ROOT / "ops" / "evidence" / "production" / "billing-refund-credit-webhook.json"
+)
+PRODUCTION_BACKUP_RESTORE_EVIDENCE = (
+    ROOT / "ops" / "evidence" / "production" / "backup-restore.json"
+)
+PRODUCTION_ROLLBACK_INCIDENT_SMOKE_EVIDENCE = (
+    ROOT / "ops" / "evidence" / "production" / "rollback-incident-post-deploy-smoke.json"
+)
+PRODUCTION_LEGAL_POLICY_EVIDENCE = (
+    ROOT / "ops" / "evidence" / "production" / "public-legal-policy.json"
+)
+PRODUCTION_SUPPORT_BILLING_POLICY_EVIDENCE = (
+    ROOT / "ops" / "evidence" / "production" / "public-support-billing-policy.json"
 )
 OBSERVABILITY_DASHBOARD = ROOT / "ops" / "observability" / "dashboards" / "stage0_rev2_overview.json"
 OBSERVABILITY_ALERTS = ROOT / "ops" / "observability" / "alerts" / "stage0_rev2_alerts.json"
@@ -669,6 +702,22 @@ RUNTIME_PASS_EVIDENCE_FILES = {
     ("private_beta_staging", "staging_observability_backup_load"): [
         STAGING_OBSERVABILITY_BACKUP_LOAD_PREFLIGHT_EVIDENCE,
     ],
+    ("private_beta_staging", "staging_object_storage_signed_downloads"): [
+        STAGING_OBJECT_STORAGE_SIGNED_URL_EVIDENCE,
+        STAGING_OBJECT_STORAGE_RETENTION_EVIDENCE,
+    ],
+    ("private_beta_staging", "staging_legal_external_user_pages"): [
+        STAGING_LEGAL_EXTERNAL_PAGES_EVIDENCE,
+        STAGING_SUPPORT_CONTACT_VISIBILITY_EVIDENCE,
+    ],
+    ("production_launch", "production_provider_or_comp_only_mode"): [
+        PRODUCTION_PROVIDER_MODE_EVIDENCE,
+        PRODUCTION_CLAIMS_ALIGNMENT_EVIDENCE,
+    ],
+    ("production_launch", "production_paid_billing_lifecycle"): [
+        PRODUCTION_BILLING_LIFECYCLE_EVIDENCE,
+        PRODUCTION_BILLING_IDEMPOTENCY_EVIDENCE,
+    ],
     ("production_launch", "production_activation_review_audit"): [
         PRODUCTION_ACTIVATION_REVIEW_AUDIT_EVIDENCE,
     ],
@@ -681,6 +730,77 @@ RUNTIME_PASS_EVIDENCE_FILES = {
     ("production_launch", "production_security_launch_checks"): [
         PRODUCTION_SECURITY_LAUNCH_CHECKS_EVIDENCE,
     ],
+    ("production_launch", "production_backup_rollback_incident"): [
+        PRODUCTION_BACKUP_RESTORE_EVIDENCE,
+        PRODUCTION_ROLLBACK_INCIDENT_SMOKE_EVIDENCE,
+    ],
+    ("production_launch", "production_legal_support_policy"): [
+        PRODUCTION_LEGAL_POLICY_EVIDENCE,
+        PRODUCTION_SUPPORT_BILLING_POLICY_EVIDENCE,
+    ],
+}
+
+RUNTIME_SPLIT_PASS_REQUIREMENTS = {
+    ("private_beta_staging", "staging_object_storage_signed_downloads"): {
+        "subitems": {
+            "signed_url": STAGING_OBJECT_STORAGE_SIGNED_URL_EVIDENCE,
+            "retention_cleanup": STAGING_OBJECT_STORAGE_RETENTION_EVIDENCE,
+        },
+        "tokens": {
+            "signed_url": ("signed", "download", "expiry", "direct-object denial", "cross-tenant"),
+            "retention_cleanup": ("retention", "expired export cleanup", "orphan cleanup", "audit"),
+        },
+    },
+    ("private_beta_staging", "staging_legal_external_user_pages"): {
+        "subitems": {
+            "legal_pages": STAGING_LEGAL_EXTERNAL_PAGES_EVIDENCE,
+            "support_contact": STAGING_SUPPORT_CONTACT_VISIBILITY_EVIDENCE,
+        },
+        "tokens": {
+            "legal_pages": ("terms", "privacy", "acceptable use", "ai/content", "ip complaint"),
+            "support_contact": ("support", "report-problem", "external user"),
+        },
+    },
+    ("production_launch", "production_provider_or_comp_only_mode"): {
+        "subitems": {
+            "provider_mode": PRODUCTION_PROVIDER_MODE_EVIDENCE,
+            "claims_alignment": PRODUCTION_CLAIMS_ALIGNMENT_EVIDENCE,
+        },
+        "tokens": {
+            "provider_mode": ("real provider", "monitoring", "cost", "staging verification", "comp-only"),
+            "claims_alignment": ("paid", "real-generation", "claims", "hidden", "comp-only"),
+        },
+    },
+    ("production_launch", "production_paid_billing_lifecycle"): {
+        "subitems": {
+            "checkout_subscription": PRODUCTION_BILLING_LIFECYCLE_EVIDENCE,
+            "refund_credit_webhook": PRODUCTION_BILLING_IDEMPOTENCY_EVIDENCE,
+        },
+        "tokens": {
+            "checkout_subscription": ("checkout", "subscription", "cancellation", "past_due"),
+            "refund_credit_webhook": ("refund", "credit", "quota reset", "webhook idempotency"),
+        },
+    },
+    ("production_launch", "production_backup_rollback_incident"): {
+        "subitems": {
+            "backup_restore": PRODUCTION_BACKUP_RESTORE_EVIDENCE,
+            "rollback_incident_smoke": PRODUCTION_ROLLBACK_INCIDENT_SMOKE_EVIDENCE,
+        },
+        "tokens": {
+            "backup_restore": ("backup", "postgres restore", "object restore", "rpo", "rto"),
+            "rollback_incident_smoke": ("rollback", "incident", "migration compatibility", "post-deploy smoke"),
+        },
+    },
+    ("production_launch", "production_legal_support_policy"): {
+        "subitems": {
+            "legal_policy": PRODUCTION_LEGAL_POLICY_EVIDENCE,
+            "support_billing_policy": PRODUCTION_SUPPORT_BILLING_POLICY_EVIDENCE,
+        },
+        "tokens": {
+            "legal_policy": ("terms", "privacy", "acceptable use", "ai/content", "ip complaint"),
+            "support_billing_policy": ("support", "billing", "cancellation", "refund"),
+        },
+    },
 }
 
 FORBIDDEN_RUNTIME_GATE_PATH_PREFIXES = {
@@ -2191,6 +2311,63 @@ def require_staging_observability_backup_load_pass_evidence(evidence_ref: str) -
     fail("no valid staging observability/backup/load pass evidence found")
 
 
+def require_split_runtime_pass_evidence(evidence_ref: str, gate: str, check_id: str) -> None:
+    requirement = RUNTIME_SPLIT_PASS_REQUIREMENTS.get((gate, check_id))
+    if requirement is None:
+        return
+
+    evidence_ref_lower = evidence_ref.lower()
+    for subitem_id, path in requirement["subitems"].items():
+        rel_path = rel(path)
+        require(
+            rel_path in evidence_ref,
+            f"{gate}.{check_id} pass evidence must cite exact split runtime evidence for {subitem_id}: {rel_path}",
+        )
+        evidence = load_json_if_path(rel_path)
+        require(
+            isinstance(evidence, dict),
+            f"{gate}.{check_id} split runtime evidence {rel_path} must exist and be valid JSON",
+        )
+        require(
+            evidence.get("environment") in RUNTIME_PASS_FILE_ENVIRONMENTS[gate],
+            f"{gate}.{check_id} split runtime evidence {rel_path} has wrong environment={evidence.get('environment')!r}",
+        )
+        evidence_check_id = evidence.get("release_gate_check_id")
+        if evidence_check_id is not None:
+            require(
+                evidence_check_id == check_id,
+                f"{gate}.{check_id} split runtime evidence {rel_path} targets release_gate_check_id={evidence_check_id!r}",
+            )
+        require(
+            evidence.get("status") in RUNTIME_PASS_EVIDENCE_STATUS_VALUES,
+            f"{gate}.{check_id} split runtime evidence {rel_path} must be passing; got status={evidence.get('status')!r}",
+        )
+        blockers = runtime_evidence_preserved_blockers(evidence)
+        if evidence.get("status") == "pass_with_blockers_preserved":
+            require(
+                subitem_id == "signed_url",
+                f"{gate}.{check_id} split runtime evidence {rel_path} preserves blockers for unsupported subitem {subitem_id}",
+            )
+            require(
+                rel(STAGING_OBJECT_STORAGE_RETENTION_EVIDENCE) in evidence_ref,
+                f"{gate}.{check_id} signed URL evidence may preserve retention blockers only when retention cleanup evidence is also cited",
+            )
+        else:
+            require(
+                not blockers,
+                f"{gate}.{check_id} split runtime evidence {rel_path} cannot preserve blockers when closing combined check: {blockers}",
+            )
+        missing_tokens = [
+            token
+            for token in requirement["tokens"][subitem_id]
+            if token not in evidence_ref_lower and token not in json.dumps(evidence, ensure_ascii=False).lower()
+        ]
+        require(
+            not missing_tokens,
+            f"{gate}.{check_id} split runtime evidence {rel_path} missing required coverage tokens for {subitem_id}: {missing_tokens}",
+        )
+
+
 def require_check_level_evidence_gate_impact(
     evidence: dict[str, Any],
     *,
@@ -2551,7 +2728,21 @@ def validate_release_gate_basics(data: dict[str, Any]) -> tuple[dict[str, dict[s
             require(
                 any(
                     token in condition["evidence_ref"].lower()
-                    for token in ["absent", "blocked", "blocker", "missing", "remain", "not ", "no ", "until", "未", "缺", "open"]
+                    for token in [
+                        "absent",
+                        "blocked",
+                        "blocker",
+                        "missing",
+                        "remain",
+                        "requires",
+                        "cannot close",
+                        "not ",
+                        "no ",
+                        "until",
+                        "未",
+                        "缺",
+                        "open",
+                    ]
                 ),
                 f"{gate}.{condition_id} is active but evidence_ref does not explain the launch blocker",
             )
@@ -2921,6 +3112,7 @@ def validate_runtime_gate_evidence_refs(
                     evidence_files,
                     f"{gate}.{check_id} pass evidence",
                 )
+                require_split_runtime_pass_evidence(evidence_ref, gate, check_id)
             if (gate, check_id) == ("private_beta_staging", "staging_observability_backup_load"):
                 require_staging_observability_backup_load_pass_evidence(evidence_ref)
             if (gate, check_id) == ("ci", "ci_installed_workflow"):
@@ -6809,6 +7001,13 @@ def validate_launch_readiness_split_contracts() -> None:
         "Production paid billing lifecycle cannot close from mock checkout",
         "Production backup/rollback/incident readiness cannot close from runbooks or release templates alone",
         "Production legal/support policy cannot close from web page artifacts alone",
+        "Combined split release checks must cite every concrete split evidence file",
+        "Private Beta/Staging object storage pass evidence must cite both signed URL and retention/cleanup staging files",
+        "Private Beta/Staging legal/support pass evidence must cite both legal-page and support-contact staging files",
+        "Production provider mode pass evidence must cite both launch-mode and public-claims production files",
+        "Production billing pass evidence must cite both checkout/subscription and refund/credit/webhook production files",
+        "Production backup/rollback pass evidence must cite both backup/restore and rollback/incident/post-deploy production files",
+        "Production legal/support pass evidence must cite both public legal policy and support/billing policy production files",
         "exact per-workflow API, Playwright, and export ZIP runtime evidence files under `ops/evidence/local_alpha/`",
         "one generic local smoke artifact or directory-level reference cannot close the aggregate Local Alpha runtime check",
         "Local backup/restore, load, observability, or smoke evidence under `ops/evidence/backup-restore/`, `ops/evidence/observability/`, or other non-staging/non-production paths cannot close Private Beta/Staging or Production launch gates",
