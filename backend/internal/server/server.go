@@ -827,7 +827,7 @@ func (s *Server) cleanupExportsWithMode(w http.ResponseWriter, r *http.Request, 
 	if input.DryRun {
 		result, err = service.PreviewExpiredExportsAndOrphanedObjectsForTenant(r.Context(), principal.TenantID, now, limit)
 	} else {
-		result, err = service.CleanupExpiredExportsAndOrphanedObjectsForTenant(r.Context(), principal.TenantID, now, limit)
+		result, err = service.CleanupExpiredExportsAndOrphanedObjectsForTenantMode(r.Context(), principal.TenantID, now, limit, stage0.CleanupMode(mode))
 	}
 	if err != nil {
 		_ = s.recordCleanupAudit(r.Context(), recorder, principal, action+".failed", now, cleanupAuditMetadata(rationale, limit, input.DryRun, mode, result, security.RedactString(err.Error())))

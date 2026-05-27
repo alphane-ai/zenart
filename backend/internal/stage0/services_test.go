@@ -1259,6 +1259,56 @@ func TestCleanupExpiredExportsAndOrphanedObjectsForTenantScopesLifecycle(t *test
 	}
 }
 
+func TestCleanupExpiredExportsModeOnlyMarksExpiredExports(t *testing.T) {
+	db := &fakeDB{
+		execTags: []pgconn.CommandTag{
+			pgconn.NewCommandTag("UPDATE 2"),
+			pgconn.NewCommandTag("SELECT 1"),
+		},
+	}
+	repo := NewRepository(db)
+	now := time.Date(2026, 5, 26, 12, 0, 0, 0, time.UTC)
+
+	result, err := repo.CleanupExpiredExportsAndOrphanedObjectsForTenantMode(context.Background(), "tenant_1", now, CleanupModeExpiredExports, nil)
+	if err != nil {
+		t.Fatalf("CleanupExpiredExportsAndOrphanedObjectsForTenantMode(expired) error = %v", err)
+	}
+	if result.ExpiredExports != 2 || result.OrphanedObjects != 0 || result.Status != "completed" {
+		t.Fatalf("expired-only cleanup result = %#v, want 2 expired and 0 orphaned", result)
+	}
+	if len(db.execs) != 2 {
+		t.Fatalf("exec count = %d, want expired mutation and lifecycle analytics only", len(db.execs))
+	}
+	if !strings.Contains(db.execs[0].sql, "UPDATE exports") || strings.Contains(db.execs[0].sql, "orphaned_sources") {
+		t.Fatalf("expired-only cleanup first exec = %s, want no orphan mutation", db.execs[0].sql)
+	}
+}
+
+func TestCleanupOrphanModeOnlyMarksOrphanedObjects(t *testing.T) {
+	db := &fakeDB{
+		execTags: []pgconn.CommandTag{
+			pgconn.NewCommandTag("UPDATE 3"),
+			pgconn.NewCommandTag("SELECT 1"),
+		},
+	}
+	repo := NewRepository(db)
+	now := time.Date(2026, 5, 26, 12, 0, 0, 0, time.UTC)
+
+	result, err := repo.CleanupExpiredExportsAndOrphanedObjectsForTenantMode(context.Background(), "tenant_1", now, CleanupModeOrphans, nil)
+	if err != nil {
+		t.Fatalf("CleanupExpiredExportsAndOrphanedObjectsForTenantMode(orphan) error = %v", err)
+	}
+	if result.ExpiredExports != 0 || result.OrphanedObjects != 3 || result.Status != "completed" {
+		t.Fatalf("orphan-only cleanup result = %#v, want 0 expired and 3 orphaned", result)
+	}
+	if len(db.execs) != 2 {
+		t.Fatalf("exec count = %d, want orphan mutation and lifecycle analytics only", len(db.execs))
+	}
+	if !strings.Contains(db.execs[0].sql, "orphaned_sources") || strings.Contains(db.execs[0].sql, "UPDATE exports") {
+		t.Fatalf("orphan-only cleanup first exec = %s, want no expired export mutation", db.execs[0].sql)
+	}
+}
+
 func TestListCleanupObjectsSelectsExpiredAndOrphanedObjects(t *testing.T) {
 	now := time.Date(2026, 5, 26, 12, 0, 0, 0, time.UTC)
 	db := &fakeDB{queryRows: []rowSet{{

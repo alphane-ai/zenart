@@ -1287,10 +1287,27 @@ func TestAdminObjectStorageCleanupProbeRoutesAllowOperatorSmokeMode(t *testing.T
 			if recorder.events[0].ActorID != "admin_operator_1" || recorder.events[0].Metadata["rationale"] != "stage0 retention cleanup smoke" {
 				t.Fatalf("request audit event = %#v", recorder.events[0])
 			}
+			if recorder.events[0].Metadata["mode"] != cleanupRouteModeForTest(tc.path) {
+				t.Fatalf("request audit mode = %#v, want %s", recorder.events[0].Metadata["mode"], cleanupRouteModeForTest(tc.path))
+			}
 			if recorder.events[1].Resource != "object_storage_cleanup" || recorder.events[1].Metadata["mode"] == "" {
 				t.Fatalf("cleanup audit event = %#v", recorder.events[1])
 			}
+			if recorder.events[1].Metadata["mode"] != cleanupRouteModeForTest(tc.path) {
+				t.Fatalf("cleanup audit mode = %#v, want %s", recorder.events[1].Metadata["mode"], cleanupRouteModeForTest(tc.path))
+			}
 		})
+	}
+}
+
+func cleanupRouteModeForTest(path string) string {
+	switch path {
+	case "/api/admin/v1/object-storage/cleanup/expired-exports":
+		return "expired_export_cleanup"
+	case "/api/admin/v1/object-storage/cleanup/orphans":
+		return "orphan_cleanup"
+	default:
+		return ""
 	}
 }
 

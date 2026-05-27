@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 
 	"github.com/alphane-ai/zenart/backend/internal/id"
 	"github.com/alphane-ai/zenart/backend/internal/objectstore"
@@ -215,6 +216,14 @@ type CleanupResult struct {
 	DryRun          bool   `json:"dry_run,omitempty"`
 	Status          string `json:"status"`
 }
+
+type CleanupMode string
+
+const (
+	CleanupModeCombined       CleanupMode = "combined"
+	CleanupModeExpiredExports CleanupMode = "expired_export_cleanup"
+	CleanupModeOrphans        CleanupMode = "orphan_cleanup"
+)
 
 type AnalyticsEvent struct {
 	ID          string         `json:"id"`
@@ -948,22 +957,32 @@ WHERE tenant_id = $1`
 }
 
 func (r Repository) CleanupExpiredExportsAndOrphanedObjects(ctx context.Context, now time.Time, objectCleanup func(context.Context, time.Time) (int, error)) (CleanupResult, error) {
-	return r.cleanupExpiredExportsAndOrphanedObjects(ctx, "", now, objectCleanup)
+	return r.cleanupExpiredExportsAndOrphanedObjects(ctx, "", now, CleanupModeCombined, objectCleanup)
 }
 
 func (r Repository) CleanupExpiredExportsAndOrphanedObjectsForTenant(ctx context.Context, tenantID string, now time.Time, objectCleanup func(context.Context, time.Time) (int, error)) (CleanupResult, error) {
+	return r.CleanupExpiredExportsAndOrphanedObjectsForTenantMode(ctx, tenantID, now, CleanupModeCombined, objectCleanup)
+}
+
+func (r Repository) CleanupExpiredExportsAndOrphanedObjectsForTenantMode(ctx context.Context, tenantID string, now time.Time, mode CleanupMode, objectCleanup func(context.Context, time.Time) (int, error)) (CleanupResult, error) {
 	normalizedTenantID, err := normalizeCleanupTenantID(tenantID)
 	if err != nil {
 		return CleanupResult{}, err
 	}
-	return r.cleanupExpiredExportsAndOrphanedObjects(ctx, normalizedTenantID, now, objectCleanup)
+	return r.cleanupExpiredExportsAndOrphanedObjects(ctx, normalizedTenantID, now, mode, objectCleanup)
 }
 
-func (r Repository) cleanupExpiredExportsAndOrphanedObjects(ctx context.Context, tenantID string, now time.Time, objectCleanup func(context.Context, time.Time) (int, error)) (CleanupResult, error) {
+func (r Repository) cleanupExpiredExportsAndOrphanedObjects(ctx context.Context, tenantID string, now time.Time, mode CleanupMode, objectCleanup func(context.Context, time.Time) (int, error)) (CleanupResult, error) {
 	if now.IsZero() {
 		now = time.Now().UTC()
 	}
-	expiredTag, err := r.db.Exec(ctx, `
+	runExpired, runOrphan, err := cleanupModeFlags(mode)
+	if err != nil {
+		return CleanupResult{}, err
+	}
+	var expiredTag pgconn.CommandTag
+	if runExpired {
+		expiredTag, err = r.db.Exec(ctx, `
 WITH expired AS (
 	SELECT e.id, e.tenant_id, e.object_metadata_id
 	FROM exports e
@@ -1000,13 +1019,16 @@ SET status = 'expired',
     updated_at = $1
 FROM expired
 WHERE e.tenant_id = expired.tenant_id AND e.id = expired.id`,
-		now,
-		tenantID,
-	)
-	if err != nil {
-		return CleanupResult{}, err
+			now,
+			tenantID,
+		)
+		if err != nil {
+			return CleanupResult{}, err
+		}
 	}
-	orphanedTag, err := r.db.Exec(ctx, `
+	var orphanedTag pgconn.CommandTag
+	if runOrphan {
+		orphanedTag, err = r.db.Exec(ctx, `
 WITH orphaned_sources AS (
 	SELECT o.id, o.tenant_id
 	FROM object_metadata o
@@ -1028,11 +1050,12 @@ WHERE o.retention_state = 'active'
     (o.id = source.id AND o.tenant_id = source.tenant_id)
     OR (o.derived_from_object_id = source.id AND o.tenant_id = source.tenant_id)
   )`,
-		now,
-		tenantID,
-	)
-	if err != nil {
-		return CleanupResult{}, err
+			now,
+			tenantID,
+		)
+		if err != nil {
+			return CleanupResult{}, err
+		}
 	}
 	result := CleanupResult{
 		ExpiredExports:  int(expiredTag.RowsAffected()),
@@ -1063,6 +1086,19 @@ func cleanupResultStatus(result CleanupResult, err error) string {
 		return "partial_failed"
 	}
 	return "completed"
+}
+
+func cleanupModeFlags(mode CleanupMode) (expiredExports bool, orphanedObjects bool, err error) {
+	switch mode {
+	case "", CleanupModeCombined:
+		return true, true, nil
+	case CleanupModeExpiredExports:
+		return true, false, nil
+	case CleanupModeOrphans:
+		return false, true, nil
+	default:
+		return false, false, errors.Join(ErrValidation, fmt.Errorf("unsupported cleanup mode %q", mode))
+	}
 }
 
 type CleanupObject struct {
@@ -3265,11 +3301,15 @@ func (s Service) CleanupExpiredExportsAndOrphanedObjects(ctx context.Context, no
 }
 
 func (s Service) CleanupExpiredExportsAndOrphanedObjectsForTenant(ctx context.Context, tenantID string, now time.Time, limit int) (CleanupResult, error) {
+	return s.CleanupExpiredExportsAndOrphanedObjectsForTenantMode(ctx, tenantID, now, limit, CleanupModeCombined)
+}
+
+func (s Service) CleanupExpiredExportsAndOrphanedObjectsForTenantMode(ctx context.Context, tenantID string, now time.Time, limit int, mode CleanupMode) (CleanupResult, error) {
 	normalizedTenantID, err := normalizeCleanupTenantID(tenantID)
 	if err != nil {
 		return CleanupResult{}, err
 	}
-	result, err := s.repo.CleanupExpiredExportsAndOrphanedObjectsForTenant(ctx, normalizedTenantID, now, nil)
+	result, err := s.repo.CleanupExpiredExportsAndOrphanedObjectsForTenantMode(ctx, normalizedTenantID, now, mode, nil)
 	return s.cleanupExpiredExportsAndOrphanedObjects(ctx, normalizedTenantID, now, limit, result, err)
 }
 
