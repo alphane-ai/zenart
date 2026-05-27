@@ -256,6 +256,17 @@
     ],
     "requires_release_gate_fixture_update_after_pass": false
   },
+  "input_readiness": {
+    "admin_tenant_id_ready": false,
+    "admin_user_id_ready": false,
+    "auth_ready": false,
+    "canonical_pass_path": false,
+    "csrf_ready": false,
+    "probe_urls_ready": false,
+    "release_sha_matches_signed_url": false,
+    "release_sha_provided": false,
+    "signed_url_evidence_ready": true
+  },
   "kind": "object_storage_retention_cleanup",
   "release_gate_check_id": "staging_object_storage_signed_downloads",
   "release_sha": "",

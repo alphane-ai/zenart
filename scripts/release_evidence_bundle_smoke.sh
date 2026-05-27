@@ -204,6 +204,7 @@ def load_probe(path: Path, exit_code: int) -> dict:
         "blocked_checks": data.get("blocked_checks", []),
         "required_checks": data.get("required_checks", []),
         "runtime_input_requirements": data.get("runtime_input_requirements", {}),
+        "input_readiness": data.get("input_readiness", {}),
         "split_evidence": data.get("split_evidence", {}),
         "gate_impact": data.get("gate_impact", {}),
     }

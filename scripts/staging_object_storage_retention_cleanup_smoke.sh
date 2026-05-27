@@ -543,6 +543,17 @@ runtime_input_requirements["pass_file_policy"] = (
     "canonical pass paths require passing evidence to be written to ops/evidence/staging/object-storage-retention-cleanup.json "
     "and ops/evidence/staging/object-storage-retention-cleanup.ndjson; non-canonical paths are validation-only."
 )
+input_readiness = {
+    "probe_urls_ready": probe_urls_ready,
+    "auth_ready": auth_ready,
+    "admin_user_id_ready": bool(admin_user_id),
+    "admin_tenant_id_ready": bool(admin_tenant_id),
+    "csrf_ready": csrf_ready,
+    "release_sha_provided": bool(release_sha),
+    "signed_url_evidence_ready": signed_url_ready,
+    "release_sha_matches_signed_url": release_sha_matches_signed_url,
+    "canonical_pass_path": report_path == canonical_report_path and results_path == canonical_results_path,
+}
 if not probe_urls_ready:
     runtime_input_requirements["blocked_input_reason"] = "missing STAGING_BASE_URL or explicit probe URL env vars"
 elif not auth_ready:
@@ -597,6 +608,7 @@ report = {
     },
     "required_checks": sorted(required),
     "runtime_input_requirements": runtime_input_requirements,
+    "input_readiness": input_readiness,
     "coverage": coverage,
     "blocked_checks": blocked_or_failed,
     "gate_impact": {
