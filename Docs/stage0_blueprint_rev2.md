@@ -1916,6 +1916,7 @@ main 合并前必须通过：
 - [x] 实现 secret redaction。
 - [x] 扩展 export/support/crawler/audit secret redaction 覆盖 S3-compatible、OSS/COS、CloudFront、B2 signed URL 查询字段。
 - [x] 扩展结构化签名 URL metadata redaction/classification，覆盖 S3/GCS/Azure/CloudFront 分拆字段并保留非签名 public response override 字段。
+- [x] 扩展 typed struct 签名 URL metadata redaction/classification，backend redactor now derives signed URL context from exported JSON field names so `expires`、`sig`、`X-Amz-Credential`、`X-Amz-Signature` are redacted/classified while public response metadata remains visible; `go test ./...` covers the regression.
 - [x] 扩展 launch storage secret redaction 覆盖 OSS V4、Tencent COS `q-*`、B2 authorization/access key、Azure SAS IP/policy/encryption/delegation 字段的字符串和结构化 metadata。
 - [x] 扩展 S3-compatible launch secret redaction/classification 覆盖 R2、Wasabi、Scaleway、Vultr、Linode、OCI/Oracle Object Storage credential aliases and Akamai/edge signed delivery token fields。
 - [x] 扩展 launch analytics/support/email/identity secret redaction/classification 覆盖 PostHog、Segment、Amplitude、Mixpanel、LaunchDarkly、PagerDuty、Opsgenie、Zendesk、Intercom、Resend、Postmark、Mailchimp、Clerk、Auth0、Supabase、Firebase metadata keys and token value patterns.

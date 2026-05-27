@@ -1529,6 +1529,60 @@ func TestClassifyValueCoversTypedStructsAndMaps(t *testing.T) {
 	assertFinding(t, findings, SecretKindAuthorization, "labels.1")
 }
 
+func TestRedactValueCoversTypedSignedURLPartStructs(t *testing.T) {
+	type signedURLParts struct {
+		Key             string `json:"key"`
+		Expires         string `json:"expires"`
+		Sig             string `json:"sig"`
+		XAmzCredential  string `json:"X-Amz-Credential"`
+		XAmzSignature   string `json:"X-Amz-Signature"`
+		ResponseContent string `json:"response-content-type"`
+		PublicFormat    string `json:"public_format"`
+	}
+	value := signedURLParts{
+		Key:             "tenants/tenant_1/exports/package.zip",
+		Expires:         "1770000900",
+		Sig:             "backend-mediated-signature",
+		XAmzCredential:  "AKIAIOSFODNN7EXAMPLE/20260527/us-east-1/s3/aws4_request",
+		XAmzSignature:   "s3-compatible-signature",
+		ResponseContent: "application/zip",
+		PublicFormat:    "zip",
+	}
+
+	body, err := json.Marshal(RedactValue(value))
+	if err != nil {
+		t.Fatalf("marshal redacted signed URL parts: %v", err)
+	}
+	for _, leaked := range []string{
+		"1770000900",
+		"backend-mediated-signature",
+		"AKIAIOSFODNN7EXAMPLE",
+		"s3-compatible-signature",
+	} {
+		if strings.Contains(string(body), leaked) {
+			t.Fatalf("redacted signed URL parts = %s, leaked %s", string(body), leaked)
+		}
+	}
+	for _, fragment := range []string{
+		`"key":"tenants/tenant_1/exports/package.zip"`,
+		`"expires":"[REDACTED]"`,
+		`"sig":"[REDACTED]"`,
+		`"X-Amz-Credential":"[REDACTED]"`,
+		`"X-Amz-Signature":"[REDACTED]"`,
+		`"response-content-type":"application/zip"`,
+		`"public_format":"zip"`,
+	} {
+		if !strings.Contains(string(body), fragment) {
+			t.Fatalf("redacted signed URL parts = %s, missing %s", string(body), fragment)
+		}
+	}
+
+	findings := ClassifyValue(value)
+	for _, location := range []string{"expires", "sig", "X-Amz-Credential", "X-Amz-Signature"} {
+		assertFinding(t, findings, SecretKindSignedURL, location)
+	}
+}
+
 func TestRedactValueStopsRecursiveStructCycles(t *testing.T) {
 	type node struct {
 		Name  string `json:"name"`

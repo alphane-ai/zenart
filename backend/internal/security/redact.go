@@ -1722,6 +1722,7 @@ func redactReflectValueAt(value reflect.Value, visited map[uintptr]struct{}, dep
 	case reflect.Struct:
 		out := make(map[string]any, value.NumField())
 		valueType := value.Type()
+		signedURLContext := hasReflectStructSignedURLContextKeys(value)
 		kubernetesSecretContext := hasReflectStructKubernetesSecretContext(value)
 		for i := 0; i < value.NumField(); i++ {
 			field := value.Field(i)
@@ -1737,7 +1738,7 @@ func redactReflectValueAt(value reflect.Value, visited map[uintptr]struct{}, dep
 				out[key] = redactSecretPayloadFromReflect(field)
 				continue
 			}
-			if IsSensitiveKey(key) {
+			if IsSensitiveKey(key) || shouldRedactStructuredSignedURLKey(key, signedURLContext) {
 				out[key] = Redacted
 				continue
 			}
@@ -1817,6 +1818,7 @@ func classifyReflectAt(value reflect.Value, location string, visited map[uintptr
 		}
 	case reflect.Struct:
 		valueType := value.Type()
+		signedURLContext := hasReflectStructSignedURLContextKeys(value)
 		kubernetesSecretContext := hasReflectStructKubernetesSecretContext(value)
 		for i := 0; i < value.NumField(); i++ {
 			fieldType := valueType.Field(i)
@@ -1835,7 +1837,7 @@ func classifyReflectAt(value reflect.Value, location string, visited map[uintptr
 				findings = append(findings, classifySecretPayloadReflectAt(value.Field(i), childLocation)...)
 				continue
 			}
-			for _, finding := range ClassifyKey(key) {
+			for _, finding := range classifyStructuredKey(key, signedURLContext) {
 				finding.Location = childLocation
 				findings = append(findings, finding)
 			}
@@ -2087,6 +2089,27 @@ func hasReflectSignedURLContextKeys(value reflect.Value) bool {
 	iter := value.MapRange()
 	for iter.Next() {
 		if isSignedURLContextKey(stringifyReflectKey(iter.Key())) {
+			return true
+		}
+	}
+	return false
+}
+
+func hasReflectStructSignedURLContextKeys(value reflect.Value) bool {
+	if value.Kind() != reflect.Struct {
+		return false
+	}
+	valueType := value.Type()
+	for i := 0; i < value.NumField(); i++ {
+		fieldType := valueType.Field(i)
+		if fieldType.PkgPath != "" {
+			continue
+		}
+		key, include := redactedStructFieldName(fieldType)
+		if !include {
+			continue
+		}
+		if isSignedURLContextKey(key) {
 			return true
 		}
 	}
