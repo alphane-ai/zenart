@@ -4237,7 +4237,8 @@ export const productionBackupRollbackIncidentEvidence: ProductionBackupRollbackI
       "Production backup/rollback/incident/post-deploy smoke runtime/deployment evidence 通过。",
       "Production backup/restore runtime evidence 通过。",
       "Production rollback/incident/post-deploy smoke runtime evidence 通过。",
-      "Production post-deploy smoke tests 通过。"
+      "Production backup/rollback/incident/post-deploy admin-visible probe evidence recorded but launch blocker preserved: `ops/evidence/production/20260527T1800Z-backup-rollback-incident-smoke.json` has `status=blocked_by_upstream_gates`, proves backup、rollback、incident、post-deploy smoke probes, and cannot close production backup/rollback launch readiness until upstream CI/Staging gates and exact split files pass。",
+      "Production post-deploy launch-clearing smoke evidence 通过：exact production split evidence exists at `ops/evidence/production/rollback-incident-post-deploy-smoke.json`, cites passing CI and Private Beta/Staging gate fixtures, and clears `production_deploy_rollback_smoke_missing` without preserved blockers。"
     ],
     canClearCheckLevelItems: false,
     aggregateProductionGateStatus: "blocked_by_upstream_and_other_production_runtime_items",

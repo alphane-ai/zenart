@@ -3141,6 +3141,22 @@ test("production backup rollback incident evidence stays blocked until upstream 
     productionBackupRollbackIncidentEvidence.gateImpact.remainingBlockers.includes("ci_staging_gates_not_passed"),
     "backup rollback evidence must preserve the upstream CI/staging blocker"
   );
+  assert.ok(
+    !productionBackupRollbackIncidentEvidence.gateImpact.checklistItems.includes("Production post-deploy smoke tests 通过。"),
+    "ambiguous production post-deploy smoke checklist label must not appear in admin gate impact metadata"
+  );
+  assert.ok(
+    productionBackupRollbackIncidentEvidence.gateImpact.checklistItems.some((item) =>
+      item.includes("admin-visible probe evidence recorded but launch blocker preserved")
+    ),
+    "admin gate impact must name the explicit non-closure probe checklist row"
+  );
+  assert.ok(
+    productionBackupRollbackIncidentEvidence.gateImpact.checklistItems.some((item) =>
+      item.includes("Production post-deploy launch-clearing smoke evidence")
+    ),
+    "admin gate impact must name the explicit launch-clearing split checklist row"
+  );
 
   for (const requestId of productionBackupRollbackIncidentEvidence.runtimeRequestIds) {
     assert.match(
