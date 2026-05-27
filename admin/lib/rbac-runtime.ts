@@ -796,9 +796,17 @@ function releaseEvidenceClosureStatus(
   attemptCoverage: AdminRbacReleaseEvidenceClosure["attemptCoverage"],
   staleReplayCoverage: AdminRbacReleaseEvidenceClosure["staleReplayCoverage"],
   releaseEvidenceStatus: AdminRbacReleaseEvidenceClosure["releaseEvidenceStatus"],
+  attemptEvidenceStatus: AdminRbacReleaseEvidenceClosure["attemptEvidenceStatus"],
+  releaseMutationAttemptStatus: AdminRbacReleaseEvidenceClosure["releaseMutationAttemptStatus"],
   staleReplayOutcomes: AdminRbacStaleReplayDecision["staleOutcome"][]
 ): AdminRbacReleaseEvidenceClosure["closureStatus"] {
-  if (attemptCoverage === "missing" || staleReplayCoverage === "missing" || releaseEvidenceStatus === "missing") {
+  if (
+    attemptCoverage === "missing" ||
+    staleReplayCoverage === "missing" ||
+    releaseEvidenceStatus === "missing" ||
+    attemptEvidenceStatus !== "valid" ||
+    releaseMutationAttemptStatus === "blocked"
+  ) {
     return "missing_evidence";
   }
 
@@ -857,11 +865,33 @@ export function buildAdminRbacReleaseEvidenceClosures(
         : "not_required";
       const releaseEvidenceStatus: AdminRbacReleaseEvidenceClosure["releaseEvidenceStatus"] =
         pack.evidenceCompleteness === "complete" && pack.evidenceRefs.length > 0 ? "attached" : "missing";
+      const attemptBlockerCodes = uniqueSorted(attempts.flatMap((attempt) => attempt.blockerCodes));
+      const attemptEvidenceStatus: AdminRbacReleaseEvidenceClosure["attemptEvidenceStatus"] =
+        attemptCoverage === "covered" &&
+        attempts.every(
+          (attempt) =>
+            attempt.idempotencyStatus === "stable" &&
+            attempt.requestOutcome !== "invalid_evidence" &&
+            attempt.stateDigestStatus !== "unexpected_mutation" &&
+            attempt.stateDigestStatus !== "mutation_missing"
+        )
+          ? "valid"
+          : attemptCoverage === "missing"
+            ? "missing"
+            : "invalid";
+      const releaseMutationAttemptStatus: AdminRbacReleaseEvidenceClosure["releaseMutationAttemptStatus"] =
+        pack.releaseGateDisposition === "applied_with_expiry"
+          ? attempts.some((attempt) => attempt.submitAllowed && attempt.requestOutcome === "mutation_applied")
+            ? "submittable"
+            : "blocked"
+          : "not_applicable";
       const closureStatus = releaseEvidenceClosureStatus(
         pack,
         attemptCoverage,
         staleReplayCoverage,
         releaseEvidenceStatus,
+        attemptEvidenceStatus,
+        releaseMutationAttemptStatus,
         staleReplays.map((staleReplay) => staleReplay.staleOutcome)
       );
       const releaseGateStatus: AdminRbacReleaseEvidenceClosure["releaseGateStatus"] =
@@ -887,6 +917,9 @@ export function buildAdminRbacReleaseEvidenceClosures(
         attemptCoverage,
         staleReplayCoverage,
         releaseEvidenceStatus,
+        attemptEvidenceStatus,
+        releaseMutationAttemptStatus,
+        attemptBlockerCodes,
         releaseGateDisposition: pack.releaseGateDisposition,
         closureStatus,
         releaseGateStatus,
@@ -969,6 +1002,9 @@ export function buildAdminRbacReleaseReadinessSummaries(
         attemptCoverage: closure.attemptCoverage,
         staleReplayCoverage: closure.staleReplayCoverage,
         releaseEvidenceStatus: closure.releaseEvidenceStatus,
+        attemptEvidenceStatus: closure.attemptEvidenceStatus,
+        releaseMutationAttemptStatus: closure.releaseMutationAttemptStatus,
+        attemptBlockerCodes: closure.attemptBlockerCodes,
         closureStatus: closure.closureStatus,
         releaseGateStatus: closure.releaseGateStatus,
         readinessRationale: releaseReadinessRationale(closure),

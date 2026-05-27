@@ -138,6 +138,8 @@ const parseRbacRuntime = () => {
     .replaceAll(/: AdminRbacReleaseEvidenceClosure\["attemptCoverage"\]/g, "")
     .replaceAll(/: AdminRbacReleaseEvidenceClosure\["staleReplayCoverage"\]/g, "")
     .replaceAll(/: AdminRbacReleaseEvidenceClosure\["releaseEvidenceStatus"\]/g, "")
+    .replaceAll(/: AdminRbacReleaseEvidenceClosure\["attemptEvidenceStatus"\]/g, "")
+    .replaceAll(/: AdminRbacReleaseEvidenceClosure\["releaseMutationAttemptStatus"\]/g, "")
     .replaceAll(/: AdminRbacReleaseEvidenceClosure\["closureStatus"\]/g, "")
     .replaceAll(/: AdminRbacReleaseEvidenceClosure\["releaseGateStatus"\]/g, "")
     .replaceAll(/: AdminRbacReleaseReadinessSummary\["mutationMode"\]/g, "")
@@ -5308,9 +5310,21 @@ test("admin RBAC release evidence closure binds attempts, stale replay, audit, a
     assert.equal(closure.attemptCoverage, "covered", `${surface} request attempt coverage must be complete`);
     assert.notEqual(closure.staleReplayCoverage, "missing", `${surface} stale replay coverage cannot be missing`);
     assert.equal(closure.releaseEvidenceStatus, "attached", `${surface} release evidence must be attached`);
+    assert.equal(closure.attemptEvidenceStatus, "valid", `${surface} attempt evidence must be valid`);
     assert.equal(readiness.attemptCoverage, closure.attemptCoverage, `${surface} readiness must preserve attempt coverage`);
     assert.equal(readiness.staleReplayCoverage, closure.staleReplayCoverage, `${surface} readiness must preserve stale replay coverage`);
     assert.equal(readiness.releaseEvidenceStatus, closure.releaseEvidenceStatus, `${surface} readiness must preserve release evidence status`);
+    assert.equal(readiness.attemptEvidenceStatus, closure.attemptEvidenceStatus, `${surface} readiness must preserve attempt evidence status`);
+    assert.equal(
+      readiness.releaseMutationAttemptStatus,
+      closure.releaseMutationAttemptStatus,
+      `${surface} readiness must preserve release mutation attempt status`
+    );
+    assert.deepEqual(
+      readiness.attemptBlockerCodes.toSorted(),
+      closure.attemptBlockerCodes.toSorted(),
+      `${surface} readiness must preserve attempt blockers`
+    );
     assert.equal(readiness.closureStatus, closure.closureStatus, `${surface} readiness must preserve closure status`);
     assert.equal(readiness.releaseGateStatus, closure.releaseGateStatus, `${surface} readiness must preserve gate status`);
     assert.deepEqual(
@@ -5328,6 +5342,7 @@ test("admin RBAC release evidence closure binds attempts, stale replay, audit, a
     assert.ok(readiness.operatorAction.length > 100, `${surface} readiness needs operator action`);
     assert.ok(closure.runtimeOutcomes.length > 0, `${surface} closure needs runtime outcomes`);
     assert.ok(closure.attemptOutcomes.length > 0, `${surface} closure needs request attempt outcomes`);
+    assert.ok(Array.isArray(closure.attemptBlockerCodes), `${surface} closure needs attempt blocker array`);
     assert.ok(closure.auditRefs.length > 0, `${surface} closure needs audit refs`);
     assert.ok(closure.releaseEvidenceRequired.length >= surfaceEvidence[0].releaseEvidenceRequired.length, `${surface} closure needs release evidence requirements`);
     assert.ok(closure.closureEvidenceRefs.length >= surfaceEvidence.length, `${surface} closure needs closure refs`);
@@ -5382,6 +5397,15 @@ test("admin RBAC release evidence closure binds attempts, stale replay, audit, a
     "provider readiness must expose mixed active and expired runtime mode"
   );
   assert.equal(
+    closureBySurface.get("provider_routing").releaseMutationAttemptStatus,
+    "not_applicable",
+    "mixed provider runtime cannot be treated as a direct release mutation attempt"
+  );
+  assert.ok(
+    closureBySurface.get("provider_routing").attemptBlockerCodes.includes("expired_override_window"),
+    "provider closure must carry expired attempt blocker evidence"
+  );
+  assert.equal(
     closureBySurface.get("skill_release").closureStatus,
     "preserved_by_stale_replay",
     "skill release closure must preserve stale second-review replay evidence"
@@ -5411,6 +5435,66 @@ test("admin RBAC release evidence closure binds attempts, stale replay, audit, a
     "gate_preserved",
     "export readiness cannot report release-ready while blocking QA is preserved"
   );
+  assert.equal(
+    closureBySurface.get("export_override").releaseMutationAttemptStatus,
+    "not_applicable",
+    "policy-blocked export override cannot expose a submittable mutation attempt"
+  );
+
+  const invalidAttemptClosures = buildAdminRbacReleaseEvidenceClosures(
+    evidencePacks,
+    buildAdminRbacOverrideAttemptDecisions(
+      [
+        ...adminRbacOverrideAttempts.filter((attempt) => attempt.id !== "rbac-attempt-provider-001"),
+        {
+          ...adminRbacOverrideAttempts.find((attempt) => attempt.id === "rbac-attempt-provider-001"),
+          idempotencyKey: "rbac:provider_routing:wrong-evidence:retry-weight:au-007"
+        }
+      ],
+      runtimeDecisions
+    ),
+    staleReplayDecisions
+  );
+  const invalidProviderClosure = invalidAttemptClosures.find((closure) => closure.surface === "provider_routing");
+  assert.equal(
+    invalidProviderClosure.attemptEvidenceStatus,
+    "invalid",
+    "unstable idempotency in an override attempt must invalidate release evidence closure"
+  );
+  assert.equal(
+    invalidProviderClosure.closureStatus,
+    "missing_evidence",
+    "invalid override attempt evidence must prevent release-ready closure"
+  );
+  assert.ok(
+    invalidProviderClosure.attemptBlockerCodes.includes("idempotency_key_unstable"),
+    "invalid override attempt closure must carry request-attempt blocker codes"
+  );
+
+  const missingMutationClosures = buildAdminRbacReleaseEvidenceClosures(
+    evidencePacks,
+    buildAdminRbacOverrideAttemptDecisions(
+      [
+        ...adminRbacOverrideAttempts.filter((attempt) => attempt.id !== "rbac-attempt-provider-001"),
+        {
+          ...adminRbacOverrideAttempts.find((attempt) => attempt.id === "rbac-attempt-provider-001"),
+          postMutationStateDigest: "sha256:provider-openai-image-render-dev-normal-retry-weight"
+        }
+      ],
+      runtimeDecisions
+    ),
+    staleReplayDecisions
+  );
+  const missingMutationProviderClosure = missingMutationClosures.find((closure) => closure.surface === "provider_routing");
+  assert.equal(
+    missingMutationProviderClosure.attemptEvidenceStatus,
+    "invalid",
+    "allowed override without mutation digest must invalidate closure evidence"
+  );
+  assert.ok(
+    missingMutationProviderClosure.attemptBlockerCodes.includes("allowed_mutation_missing"),
+    "missing allowed mutation must be visible on the release evidence closure"
+  );
 
   const reviewsPage = readFileSync(new URL("../app/reviews/page.tsx", import.meta.url), "utf8");
   const auditPage = readFileSync(new URL("../app/audit/page.tsx", import.meta.url), "utf8");
@@ -5427,6 +5511,9 @@ test("admin RBAC release evidence closure binds attempts, stale replay, audit, a
     "RBAC Release Evidence Closure",
     "RBAC Release Readiness Summary",
     "Attempt Coverage",
+    "Attempt Evidence",
+    "Mutation Attempt",
+    "Attempt Blockers",
     "Stale Replay Coverage",
     "Closure Status",
     "Ready State",

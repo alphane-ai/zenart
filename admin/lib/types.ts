@@ -1667,6 +1667,9 @@ export type AdminRbacReleaseEvidenceClosure = {
   attemptCoverage: "covered" | "missing";
   staleReplayCoverage: "covered" | "not_required" | "missing";
   releaseEvidenceStatus: "attached" | "missing";
+  attemptEvidenceStatus: "valid" | "invalid" | "missing";
+  releaseMutationAttemptStatus: "submittable" | "blocked" | "not_applicable";
+  attemptBlockerCodes: string[];
   releaseGateDisposition: AdminRbacEvidencePack["releaseGateDisposition"];
   closureStatus:
     | "release_ready_with_expiry"
@@ -1695,6 +1698,9 @@ export type AdminRbacReleaseReadinessSummary = {
   attemptCoverage: AdminRbacReleaseEvidenceClosure["attemptCoverage"];
   staleReplayCoverage: AdminRbacReleaseEvidenceClosure["staleReplayCoverage"];
   releaseEvidenceStatus: AdminRbacReleaseEvidenceClosure["releaseEvidenceStatus"];
+  attemptEvidenceStatus: AdminRbacReleaseEvidenceClosure["attemptEvidenceStatus"];
+  releaseMutationAttemptStatus: AdminRbacReleaseEvidenceClosure["releaseMutationAttemptStatus"];
+  attemptBlockerCodes: string[];
   closureStatus: AdminRbacReleaseEvidenceClosure["closureStatus"];
   releaseGateStatus: AdminRbacReleaseEvidenceClosure["releaseGateStatus"];
   readinessRationale: string;

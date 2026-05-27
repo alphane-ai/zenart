@@ -178,6 +178,8 @@ export default async function ReviewsPage() {
             { key: "surface", header: "Surface", render: (row) => row.surface },
             { key: "scope", header: "Override Scope", render: (row) => row.overrideScope },
             { key: "attempts", header: "Attempt Coverage", render: (row) => <StatusBadge value={row.attemptCoverage === "covered" ? "approved" : "blocked"} label={row.attemptCoverage} /> },
+            { key: "attempt-evidence", header: "Attempt Evidence", render: (row) => <StatusBadge value={row.attemptEvidenceStatus === "valid" ? "approved" : "blocked"} label={row.attemptEvidenceStatus} /> },
+            { key: "mutation-attempt", header: "Mutation Attempt", render: (row) => <StatusBadge value={row.releaseMutationAttemptStatus === "blocked" ? "blocked" : "approved"} label={row.releaseMutationAttemptStatus} /> },
             { key: "stale", header: "Stale Replay Coverage", render: (row) => <StatusBadge value={row.staleReplayCoverage === "missing" ? "blocked" : "approved"} label={row.staleReplayCoverage} /> },
             { key: "release", header: "Release Evidence", render: (row) => <StatusBadge value={row.releaseEvidenceStatus === "attached" ? "approved" : "blocked"} label={row.releaseEvidenceStatus} /> },
             { key: "closure", header: "Closure Status", render: (row) => <StatusBadge value={row.closureStatus} label={row.closureStatus} /> },
@@ -186,6 +188,7 @@ export default async function ReviewsPage() {
             { key: "attempt-ids", header: "Attempt IDs", render: (row) => <span className="mono">{row.attemptIds.join(", ")}</span> },
             { key: "stale-ids", header: "Stale Replay IDs", render: (row) => row.staleReplayEvidenceIds.join(", ") || "none" },
             { key: "attempt-outcomes", header: "Attempt Outcomes", render: (row) => row.attemptOutcomes.join(", ") },
+            { key: "attempt-blockers", header: "Attempt Blockers", render: (row) => (row.attemptBlockerCodes.length > 0 ? row.attemptBlockerCodes.join(", ") : "none") },
             { key: "closure-refs", header: "Closure Evidence Refs", render: (row) => row.closureEvidenceRefs.join(", ") },
             { key: "audit", header: "Audit Refs", render: (row) => <span className="mono">{row.auditRefs.join(", ")}</span> },
             { key: "operator", header: "Operator Action", render: (row) => row.operatorAction }
