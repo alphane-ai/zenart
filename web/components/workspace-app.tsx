@@ -37,12 +37,14 @@ import {
   buildPackageExportMetadataEvidence,
   buildExportDownloadParityEvidence,
   buildExportZipPayloadSmokeEvidence,
+  buildBusinessVisualDocApiSmokeEvidence,
   buildBriefUploadConfirmationRuntimeEvidence,
   buildEcommerceGrowthApiSmokeEvidence,
   buildReferenceUploadIntegrationSmoke,
   buildReferenceUploadValidationMatrixEvidence,
   buildSupportProblemContext,
-  buildWorkspaceRenderingPerformanceSmoke
+  buildWorkspaceRenderingPerformanceSmoke,
+  businessVisualDocCandidates
 } from "@/lib/dev-state";
 import { downloadExportPackage } from "@/lib/export-download";
 import { apiOperations } from "@/lib/generated/zenart-api";
@@ -220,7 +222,12 @@ export function WorkspaceApp({ initialView = "workspace" }: { initialView?: View
 
   const confirmBrief = (event: FormEvent) => {
     event.preventDefault();
-    void runTrackedAction("brief", () => zenArtClient.confirmBrief(briefInput));
+    void runTrackedAction("brief", async () => {
+      const confirmedState = await zenArtClient.confirmBrief(briefInput);
+      return briefInput.toLowerCase().includes("business visual document pack")
+        ? zenArtClient.activateBusinessVisualDocWorkflow()
+        : confirmedState;
+    });
   };
 
   const iterate = (event: FormEvent) => {
@@ -598,6 +605,14 @@ function WorkspaceView({
   const referenceValidationMatrix = buildReferenceUploadValidationMatrixEvidence();
   const briefUploadConfirmationEvidence = buildBriefUploadConfirmationRuntimeEvidence(state);
   const ecommerceApiSmoke = buildEcommerceGrowthApiSmokeEvidence(state);
+  const businessDocApiSmoke = buildBusinessVisualDocApiSmokeEvidence(state);
+  const activeWorkflowSmoke =
+    businessDocApiSmoke.status === "pass" || state.packageItems.some((item) => item.workflowId === businessDocApiSmoke.workflow_id)
+      ? businessDocApiSmoke
+      : ecommerceApiSmoke;
+  const activeCandidates = state.brief.prompt.toLowerCase().includes("business visual document pack")
+    ? businessVisualDocCandidates
+    : state.candidates;
   return (
     <div className="workspace-grid">
       <section className="panel chat-panel">
@@ -731,23 +746,24 @@ function WorkspaceView({
         </div>
         <div
           className="workflow-api-smoke"
-          aria-label="Ecommerce growth pack API smoke"
-          data-workflow-api-smoke={ecommerceApiSmoke.schema_version}
-          data-workflow-api-smoke-workflow={ecommerceApiSmoke.workflow_id}
-          data-workflow-api-smoke-fixture={ecommerceApiSmoke.fixture_id}
-          data-workflow-api-smoke-scenario={ecommerceApiSmoke.scenario}
-          data-workflow-api-smoke-status={ecommerceApiSmoke.status}
-          data-workflow-api-smoke-operation-count={ecommerceApiSmoke.apiOperationIds.length}
-          data-workflow-api-smoke-candidate-count={ecommerceApiSmoke.candidateCount}
-          data-workflow-api-smoke-taxonomy-count={ecommerceApiSmoke.taxonomyCount}
-          data-workflow-api-smoke-packaged-taxonomy-count={ecommerceApiSmoke.packagedTaxonomyCount}
-          data-workflow-api-smoke-ready-zip-export-count={ecommerceApiSmoke.readyZipExportCount}
-          data-workflow-api-smoke-required-output-count={ecommerceApiSmoke.requiredOutputCount}
-          data-workflow-api-smoke-missing-output-count={ecommerceApiSmoke.missingRequiredOutputs.length}
-          data-workflow-api-smoke-qa-taxonomy-status={ecommerceApiSmoke.qaTaxonomyStatus}
-          data-workflow-api-smoke-safety-status={ecommerceApiSmoke.safetyStatus}
-          data-workflow-api-smoke-operations={ecommerceApiSmoke.apiOperationIds.join(",")}
-          data-workflow-api-smoke-operation-contracts={ecommerceApiSmoke.apiOperationContracts
+          aria-label={`${activeWorkflowSmoke.workflow_id} API smoke`}
+          data-workflow-api-smoke={activeWorkflowSmoke.schema_version}
+          data-workflow-api-smoke-workflow={activeWorkflowSmoke.workflow_id}
+          data-workflow-api-smoke-fixture={activeWorkflowSmoke.fixture_id}
+          data-workflow-api-smoke-scenario={activeWorkflowSmoke.scenario}
+          data-workflow-api-smoke-status={activeWorkflowSmoke.status}
+          data-workflow-api-smoke-operation-count={activeWorkflowSmoke.apiOperationIds.length}
+          data-workflow-api-smoke-candidate-count={activeWorkflowSmoke.candidateCount}
+          data-workflow-api-smoke-taxonomy-count={activeWorkflowSmoke.taxonomyCount}
+          data-workflow-api-smoke-packaged-taxonomy-count={activeWorkflowSmoke.packagedTaxonomyCount}
+          data-workflow-api-smoke-ready-zip-export-count={activeWorkflowSmoke.readyZipExportCount}
+          data-workflow-api-smoke-required-output-count={activeWorkflowSmoke.requiredOutputCount}
+          data-workflow-api-smoke-missing-output-count={activeWorkflowSmoke.missingRequiredOutputs.length}
+          data-workflow-api-smoke-qa-taxonomy-id={activeWorkflowSmoke.qaTaxonomyId}
+          data-workflow-api-smoke-qa-taxonomy-status={activeWorkflowSmoke.qaTaxonomyStatus}
+          data-workflow-api-smoke-safety-status={activeWorkflowSmoke.safetyStatus}
+          data-workflow-api-smoke-operations={activeWorkflowSmoke.apiOperationIds.join(",")}
+          data-workflow-api-smoke-operation-contracts={activeWorkflowSmoke.apiOperationContracts
             .map((contract) =>
               [
                 contract.operationId,
@@ -759,14 +775,14 @@ function WorkspaceView({
               ].join(":")
             )
             .join("|")}
-          data-workflow-api-smoke-csrf-protected-operation-count={ecommerceApiSmoke.csrfProtectedOperationCount}
-          data-workflow-api-smoke-idempotency-required-operation-count={ecommerceApiSmoke.idempotencyRequiredOperationCount}
-          data-workflow-api-smoke-failures={ecommerceApiSmoke.failures.join(",")}
+          data-workflow-api-smoke-csrf-protected-operation-count={activeWorkflowSmoke.csrfProtectedOperationCount}
+          data-workflow-api-smoke-idempotency-required-operation-count={activeWorkflowSmoke.idempotencyRequiredOperationCount}
+          data-workflow-api-smoke-failures={activeWorkflowSmoke.failures.join(",")}
         >
-          <strong>Ecommerce growth API smoke</strong>
+          <strong>{activeWorkflowSmoke.workflow_id} API smoke</strong>
           <span>
-            {ecommerceApiSmoke.status} · {ecommerceApiSmoke.candidateCount} candidates · {ecommerceApiSmoke.packagedTaxonomyCount} packaged taxonomy routes ·{" "}
-            {ecommerceApiSmoke.missingRequiredOutputs.length} missing outputs.
+            {activeWorkflowSmoke.status} · {activeWorkflowSmoke.candidateCount} candidates · {activeWorkflowSmoke.packagedTaxonomyCount} packaged taxonomy routes ·{" "}
+            {activeWorkflowSmoke.missingRequiredOutputs.length} missing outputs.
           </span>
         </div>
         <div className="reference-list">
@@ -856,7 +872,7 @@ function WorkspaceView({
       <section className="panel candidates-panel" data-testid="candidate-grid">
         <PanelTitle icon={<Archive size={18} aria-hidden="true" />} title="Candidates" />
         <div className="candidate-grid">
-          {state.candidates.map((candidate) => (
+          {activeCandidates.map((candidate) => (
             <article
               key={candidate.id}
               className={state.selectedCandidateId === candidate.id ? "candidate-card selected" : "candidate-card"}
@@ -1058,6 +1074,11 @@ function ExportView({
       ? buildExportDownloadParityEvidence(latestExport, metadataEvidence, zipPayloadSmoke)
       : undefined;
   const ecommerceApiSmoke = buildEcommerceGrowthApiSmokeEvidence(state);
+  const businessDocApiSmoke = buildBusinessVisualDocApiSmokeEvidence(state);
+  const activeWorkflowSmoke =
+    businessDocApiSmoke.status === "pass" || state.packageItems.some((item) => item.workflowId === businessDocApiSmoke.workflow_id)
+      ? businessDocApiSmoke
+      : ecommerceApiSmoke;
   return (
     <section className="content-view export-view" data-testid="export-preview">
       <div className="section-title">
@@ -1291,17 +1312,18 @@ function ExportView({
                 ) : null}
                 <section
                   className="export-detail-panel workflow-api-smoke-evidence"
-                  aria-label="Ecommerce growth pack API smoke export evidence"
-                  data-workflow-api-smoke-export={ecommerceApiSmoke.schema_version}
-                  data-workflow-api-smoke-export-status={ecommerceApiSmoke.status}
-                  data-workflow-api-smoke-export-workflow={ecommerceApiSmoke.workflow_id}
-                  data-workflow-api-smoke-export-fixture={ecommerceApiSmoke.fixture_id}
-                  data-workflow-api-smoke-export-scenario={ecommerceApiSmoke.scenario}
-                  data-workflow-api-smoke-export-operation-count={ecommerceApiSmoke.apiOperationIds.length}
-                  data-workflow-api-smoke-export-missing-output-count={ecommerceApiSmoke.missingRequiredOutputs.length}
-                  data-workflow-api-smoke-export-qa-taxonomy-status={ecommerceApiSmoke.qaTaxonomyStatus}
-                  data-workflow-api-smoke-export-safety-status={ecommerceApiSmoke.safetyStatus}
-                  data-workflow-api-smoke-export-operation-contracts={ecommerceApiSmoke.apiOperationContracts
+                  aria-label={`${activeWorkflowSmoke.workflow_id} API smoke export evidence`}
+                  data-workflow-api-smoke-export={activeWorkflowSmoke.schema_version}
+                  data-workflow-api-smoke-export-status={activeWorkflowSmoke.status}
+                  data-workflow-api-smoke-export-workflow={activeWorkflowSmoke.workflow_id}
+                  data-workflow-api-smoke-export-fixture={activeWorkflowSmoke.fixture_id}
+                  data-workflow-api-smoke-export-scenario={activeWorkflowSmoke.scenario}
+                  data-workflow-api-smoke-export-operation-count={activeWorkflowSmoke.apiOperationIds.length}
+                  data-workflow-api-smoke-export-missing-output-count={activeWorkflowSmoke.missingRequiredOutputs.length}
+                  data-workflow-api-smoke-export-qa-taxonomy-id={activeWorkflowSmoke.qaTaxonomyId}
+                  data-workflow-api-smoke-export-qa-taxonomy-status={activeWorkflowSmoke.qaTaxonomyStatus}
+                  data-workflow-api-smoke-export-safety-status={activeWorkflowSmoke.safetyStatus}
+                  data-workflow-api-smoke-export-operation-contracts={activeWorkflowSmoke.apiOperationContracts
                     .map((contract) =>
                       [
                         contract.operationId,
@@ -1313,18 +1335,18 @@ function ExportView({
                       ].join(":")
                     )
                     .join("|")}
-                  data-workflow-api-smoke-export-csrf-protected-operation-count={ecommerceApiSmoke.csrfProtectedOperationCount}
-                  data-workflow-api-smoke-export-idempotency-required-operation-count={ecommerceApiSmoke.idempotencyRequiredOperationCount}
-                  data-workflow-api-smoke-export-failures={ecommerceApiSmoke.failures.join(",")}
+                  data-workflow-api-smoke-export-csrf-protected-operation-count={activeWorkflowSmoke.csrfProtectedOperationCount}
+                  data-workflow-api-smoke-export-idempotency-required-operation-count={activeWorkflowSmoke.idempotencyRequiredOperationCount}
+                  data-workflow-api-smoke-export-failures={activeWorkflowSmoke.failures.join(",")}
                 >
                   <h4>Workflow API Smoke</h4>
                   <div className="metadata-evidence-grid">
-                    <span className={ecommerceApiSmoke.status === "pass" ? "qa-pass" : "qa-block"}>
-                      {ecommerceApiSmoke.status}
+                    <span className={activeWorkflowSmoke.status === "pass" ? "qa-pass" : "qa-block"}>
+                      {activeWorkflowSmoke.status}
                     </span>
-                    <span>{ecommerceApiSmoke.workflow_id}</span>
-                    <span>{ecommerceApiSmoke.apiOperationIds.length} API operations</span>
-                    <span>{ecommerceApiSmoke.packagedTaxonomyCount}/4 packaged taxonomy routes</span>
+                    <span>{activeWorkflowSmoke.workflow_id}</span>
+                    <span>{activeWorkflowSmoke.apiOperationIds.length} API operations</span>
+                    <span>{activeWorkflowSmoke.packagedTaxonomyCount}/4 packaged taxonomy routes</span>
                   </div>
                   <p>
                     Brief, product reference, four candidates, selection, iteration, package, and ZIP export are represented in the local web client

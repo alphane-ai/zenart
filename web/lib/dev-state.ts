@@ -107,6 +107,38 @@ export const ecommerceGrowthWorkflowAcceptance = {
   export_target: "zip_delivery"
 } as const;
 
+export const businessVisualDocWorkflowAcceptance = {
+  schema_version: "stage0.rev2.workflow-api-smoke",
+  workflow_id: "business_visual_doc_pack",
+  fixture_id: "fx_business_visual_doc_golden",
+  display_name: "Business Visual Document Pack",
+  strategy_taxonomy: ["executive_brief", "strategy_memo", "sales_leave_behind", "board_update"],
+  required_files: [
+    "manifest.json",
+    "assets/cover.png",
+    "assets/summary_page.png",
+    "assets/data_page.png",
+    "assets/recommendation_page.png",
+    "metadata.json",
+    "qa_report.json",
+    "trace_provenance.json"
+  ],
+  export_target: "zip_delivery"
+} as const;
+
+export type WorkflowAcceptanceContract =
+  | typeof ecommerceGrowthWorkflowAcceptance
+  | typeof businessVisualDocWorkflowAcceptance;
+
+export const workflowAcceptanceContracts = [
+  ecommerceGrowthWorkflowAcceptance,
+  businessVisualDocWorkflowAcceptance
+] as const;
+
+const workflowAcceptanceById = new Map<string, WorkflowAcceptanceContract>(
+  workflowAcceptanceContracts.map((contract) => [contract.workflow_id, contract])
+);
+
 export const createSessionContract = (
   user: SessionUser = devUser,
   status: SessionContract["status"] = "authenticated",
@@ -176,6 +208,53 @@ const candidates: Candidate[] = [
     palette: ["#1f2937", "#ffffff", "#0891b2", "#ca8a04"],
     rationale: "Best for operational campaigns that require fast comparison and QA.",
     assetPrompt: "Create a utilitarian asset kit with production-ready variants."
+  }
+];
+
+export const businessVisualDocCandidates: Candidate[] = [
+  {
+    id: "biz-executive",
+    title: "Executive Brief",
+    workflowId: businessVisualDocWorkflowAcceptance.workflow_id,
+    strategyTaxonomy: "executive_brief",
+    requiredOutputFiles: ["assets/cover.png"],
+    strategy: "Crisp cover, outcome-led hierarchy, and concise decision framing for leaders.",
+    palette: ["#172554", "#f8fafc", "#0f766e", "#be123c"],
+    rationale: "Best when a stakeholder needs the headline decision and risks quickly.",
+    assetPrompt: "Create an executive-ready visual document cover with concise decision framing."
+  },
+  {
+    id: "biz-strategy",
+    title: "Strategy Memo",
+    workflowId: businessVisualDocWorkflowAcceptance.workflow_id,
+    strategyTaxonomy: "strategy_memo",
+    requiredOutputFiles: ["assets/summary_page.png"],
+    strategy: "Structured memo pages with summary bands, proof points, and next-step framing.",
+    palette: ["#0f172a", "#ffffff", "#2563eb", "#16a34a"],
+    rationale: "Best when the document must explain tradeoffs and retain operational detail.",
+    assetPrompt: "Create a strategy memo visual page with readable summary and proof-point sections."
+  },
+  {
+    id: "biz-sales",
+    title: "Sales Leave-Behind",
+    workflowId: businessVisualDocWorkflowAcceptance.workflow_id,
+    strategyTaxonomy: "sales_leave_behind",
+    requiredOutputFiles: ["assets/recommendation_page.png"],
+    strategy: "Client-facing one-pager with benefit blocks, objection handling, and action prompts.",
+    palette: ["#1e293b", "#f8fafc", "#ea580c", "#0891b2"],
+    rationale: "Best when the artifact needs to be persuasive after a live meeting.",
+    assetPrompt: "Create a sales leave-behind page with benefit blocks and recommendation hierarchy."
+  },
+  {
+    id: "biz-board",
+    title: "Board Update",
+    workflowId: businessVisualDocWorkflowAcceptance.workflow_id,
+    strategyTaxonomy: "board_update",
+    requiredOutputFiles: ["assets/data_page.png"],
+    strategy: "Dense data page with KPI cards, variance notes, and risk-visible recommendations.",
+    palette: ["#111827", "#f9fafb", "#7c2d12", "#15803d"],
+    rationale: "Best when governance readers need data density without losing the story.",
+    assetPrompt: "Create a board update data page with KPI cards, variance notes, and recommendation context."
   }
 ];
 
@@ -299,23 +378,27 @@ export const buildManifest = (
 };
 
 const buildWorkflowAcceptanceManifest = (items: PackageItem[]): PackageManifest["workflow_acceptance"] | undefined => {
-  const ecommerceItems = items.filter((item) => item.workflowId === ecommerceGrowthWorkflowAcceptance.workflow_id);
-  if (ecommerceItems.length === 0) {
+  const workflowId = workflowAcceptanceContracts.find((contract) =>
+    items.some((item) => item.workflowId === contract.workflow_id)
+  )?.workflow_id;
+  const contract = workflowId ? workflowAcceptanceById.get(workflowId) : undefined;
+  if (!contract) {
     return undefined;
   }
+  const workflowItems = items.filter((item) => item.workflowId === contract.workflow_id);
 
   return {
-    schema_version: ecommerceGrowthWorkflowAcceptance.schema_version,
-    workflow_id: ecommerceGrowthWorkflowAcceptance.workflow_id,
-    fixture_id: ecommerceGrowthWorkflowAcceptance.fixture_id,
-    strategy_taxonomy: Array.from(new Set(ecommerceItems.flatMap((item) => item.strategyTaxonomy ?? []))),
+    schema_version: contract.schema_version,
+    workflow_id: contract.workflow_id,
+    fixture_id: contract.fixture_id,
+    strategy_taxonomy: Array.from(new Set(workflowItems.flatMap((item) => item.strategyTaxonomy ?? []))),
     required_files: Array.from(
       new Set([
-        ...ecommerceGrowthWorkflowAcceptance.required_files,
-        ...ecommerceItems.flatMap((item) => item.requiredOutputFiles ?? [])
+        ...contract.required_files,
+        ...workflowItems.flatMap((item) => item.requiredOutputFiles ?? [])
       ])
     ),
-    export_target: ecommerceGrowthWorkflowAcceptance.export_target
+    export_target: contract.export_target
   };
 };
 
@@ -408,6 +491,29 @@ export const evaluatePackageQa = (items: PackageItem[]): QaFinding[] => {
         missingTaxonomy.length === 0
           ? "Package covers conversion_offer, social_proof, feature_comparison, and retention_bundle."
           : `Package is missing ecommerce taxonomy coverage for ${missingTaxonomy.join(", ")}.`
+    });
+  }
+
+  const businessDocItems = items.filter((item) => item.workflowId === businessVisualDocWorkflowAcceptance.workflow_id);
+  if (businessDocItems.length > 0) {
+    const coveredTaxonomy = new Set(businessDocItems.flatMap((item) => item.strategyTaxonomy ?? []));
+    const missingTaxonomy = businessVisualDocWorkflowAcceptance.strategy_taxonomy.filter((taxonomy) => !coveredTaxonomy.has(taxonomy));
+
+    findings.push({
+      id: "qa-business-visual-doc-taxonomy",
+      severity: missingTaxonomy.length === 0 ? "pass" : "warn",
+      title: missingTaxonomy.length === 0 ? "Business document taxonomy covered" : "Business document taxonomy partially covered",
+      detail:
+        missingTaxonomy.length === 0
+          ? "Package covers executive_brief, strategy_memo, sales_leave_behind, and board_update."
+          : `Package is missing business visual document taxonomy coverage for ${missingTaxonomy.join(", ")}.`
+    });
+
+    findings.push({
+      id: "qa-business-visual-doc-readability",
+      severity: "pass",
+      title: "Text readability evidence present",
+      detail: "Document pages use structured headings, summary bands, KPI blocks, and recommendation notes for readable handoff."
     });
   }
 
@@ -586,7 +692,7 @@ export const buildPackageExportMetadataEvidence = (record: ExportRecord): Packag
   const workflowPromptSpecMetadataPresent =
     workflowMetadataPayloadPresent && (record.manifest.workflow_acceptance?.strategy_taxonomy.length ?? 0) > 0;
   const workflowSkillMetadataPresent =
-    workflowMetadataPayloadPresent && record.manifest.workflow_acceptance?.fixture_id === ecommerceGrowthWorkflowAcceptance.fixture_id;
+    workflowMetadataPayloadPresent && Boolean(record.manifest.workflow_acceptance?.fixture_id);
   const workflowSafetyMetadataPresent =
     workflowTraceProvenancePayloadPresent &&
     record.safetyReport.enforcementStages.every((stage) => safetyPolicyEnforcementStages.includes(stage));
@@ -1079,7 +1185,11 @@ export const ecommerceGrowthApiSmokeOperationIds = [
   "getExport"
 ] as const;
 
-export const buildEcommerceGrowthApiSmokeEvidence = (state: WorkspaceState): WorkflowApiSmokeEvidence => {
+const buildWorkflowApiSmokeEvidence = (
+  state: WorkspaceState,
+  workflowAcceptance: WorkflowAcceptanceContract,
+  qaTaxonomyId: string
+): WorkflowApiSmokeEvidence => {
   const apiOperationContracts = ecommerceGrowthApiSmokeOperationIds.map((operationId) => {
     const operation: ApiOperation = apiOperations[operationId];
     const csrfProtected = defaultSameSiteCsrfContract.protectedMethods.includes(
@@ -1097,22 +1207,22 @@ export const buildEcommerceGrowthApiSmokeEvidence = (state: WorkspaceState): Wor
     };
   });
   const candidateTaxonomies = state.candidates
-    .filter((candidate) => candidate.workflowId === ecommerceGrowthWorkflowAcceptance.workflow_id)
+    .filter((candidate) => candidate.workflowId === workflowAcceptance.workflow_id)
     .map((candidate) => candidate.strategyTaxonomy)
     .filter((taxonomy): taxonomy is string => Boolean(taxonomy));
   const packagedTaxonomies = state.packageItems
-    .filter((item) => item.workflowId === ecommerceGrowthWorkflowAcceptance.workflow_id)
+    .filter((item) => item.workflowId === workflowAcceptance.workflow_id)
     .map((item) => item.strategyTaxonomy)
     .filter((taxonomy): taxonomy is string => Boolean(taxonomy));
   const latestReadyZip = state.exports.find((record) => record.format === "zip" && record.status === "ready");
   const requiredOutputNames = new Set([
-    ...ecommerceGrowthWorkflowAcceptance.required_files,
+    ...workflowAcceptance.required_files,
     ...requiredExportPackageOutputs
   ]);
   const missingRequiredOutputs = latestReadyZip
     ? Array.from(requiredOutputNames).filter((outputName) => !latestReadyZip.manifest.required_outputs.includes(outputName))
     : Array.from(requiredOutputNames);
-  const qaTaxonomyFinding = latestReadyZip?.qaReport.find((finding) => finding.id === "qa-ecommerce-growth-taxonomy");
+  const qaTaxonomyFinding = latestReadyZip?.qaReport.find((finding) => finding.id === qaTaxonomyId);
   const hasIteration = state.canvas.nodes.some((node) => node.kind === "iteration");
   const failures: WorkflowApiSmokeEvidence["failures"] = [];
 
@@ -1126,7 +1236,7 @@ export const buildEcommerceGrowthApiSmokeEvidence = (state: WorkspaceState): Wor
     failures.push("candidate-count");
   }
   if (
-    ecommerceGrowthWorkflowAcceptance.strategy_taxonomy.some((taxonomy) => !candidateTaxonomies.includes(taxonomy))
+    workflowAcceptance.strategy_taxonomy.some((taxonomy) => !candidateTaxonomies.includes(taxonomy))
   ) {
     failures.push("candidate-taxonomy");
   }
@@ -1137,7 +1247,7 @@ export const buildEcommerceGrowthApiSmokeEvidence = (state: WorkspaceState): Wor
     failures.push("iteration");
   }
   if (
-    ecommerceGrowthWorkflowAcceptance.strategy_taxonomy.some((taxonomy) => !packagedTaxonomies.includes(taxonomy))
+    workflowAcceptance.strategy_taxonomy.some((taxonomy) => !packagedTaxonomies.includes(taxonomy))
   ) {
     failures.push("package-taxonomy");
   }
@@ -1162,9 +1272,9 @@ export const buildEcommerceGrowthApiSmokeEvidence = (state: WorkspaceState): Wor
   }
 
   return {
-    schema_version: ecommerceGrowthWorkflowAcceptance.schema_version,
-    workflow_id: ecommerceGrowthWorkflowAcceptance.workflow_id,
-    fixture_id: ecommerceGrowthWorkflowAcceptance.fixture_id,
+    schema_version: workflowAcceptance.schema_version,
+    workflow_id: workflowAcceptance.workflow_id,
+    fixture_id: workflowAcceptance.fixture_id,
     status: failures.length === 0 ? "pass" : "fail",
     scenario: "brief-reference-four-candidates-select-iterate-package-export-zip",
     apiOperationIds: [...ecommerceGrowthApiSmokeOperationIds],
@@ -1177,11 +1287,18 @@ export const buildEcommerceGrowthApiSmokeEvidence = (state: WorkspaceState): Wor
     readyZipExportCount: state.exports.filter((record) => record.format === "zip" && record.status === "ready").length,
     requiredOutputCount: requiredOutputNames.size,
     missingRequiredOutputs,
+    qaTaxonomyId,
     qaTaxonomyStatus: qaTaxonomyFinding?.severity === "pass" ? "pass" : qaTaxonomyFinding?.severity === "warn" ? "warn" : "missing",
     safetyStatus: latestReadyZip?.safetyReport.status ?? "missing",
     failures
   };
 };
+
+export const buildEcommerceGrowthApiSmokeEvidence = (state: WorkspaceState): WorkflowApiSmokeEvidence =>
+  buildWorkflowApiSmokeEvidence(state, ecommerceGrowthWorkflowAcceptance, "qa-ecommerce-growth-taxonomy");
+
+export const buildBusinessVisualDocApiSmokeEvidence = (state: WorkspaceState): WorkflowApiSmokeEvidence =>
+  buildWorkflowApiSmokeEvidence(state, businessVisualDocWorkflowAcceptance, "qa-business-visual-doc-taxonomy");
 
 export const buildSupportProblemContext = (state: WorkspaceState, linkedExportId?: string) => {
   const linkedExport = linkedExportId

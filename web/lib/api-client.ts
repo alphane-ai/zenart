@@ -4,6 +4,7 @@ import {
   AccountSettings,
   BillingScenario,
   ExportFormat,
+  Candidate,
   PackageItem,
   PackageManifest,
   QaFinding,
@@ -22,7 +23,8 @@ import {
   createSupportTicket,
   evaluatePackageQa,
   formatExportFileName,
-  runSafetyPolicy
+  runSafetyPolicy,
+  businessVisualDocCandidates
 } from "./dev-state";
 
 export const workspaceStorageKey = "zenart.dev.workspace.v1";
@@ -225,6 +227,20 @@ export class DevZenArtClient implements ZenArtClient {
       1
     );
     return saveState(next);
+  }
+
+  async activateBusinessVisualDocWorkflow() {
+    const state = loadState();
+    const existingCandidateIds = new Set(state.candidates.map((candidate) => candidate.id));
+    const nextCandidates = [
+      ...state.candidates.filter((candidate) => !businessVisualDocCandidates.some((item) => item.id === candidate.id)),
+      ...businessVisualDocCandidates.filter((candidate) => !existingCandidateIds.has(candidate.id))
+    ] satisfies Candidate[];
+
+    return saveState({
+      ...state,
+      candidates: nextCandidates
+    });
   }
 
   async attachReference(asset: { name: string; kind: "image" | "document" | "url" }) {

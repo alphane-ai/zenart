@@ -211,8 +211,8 @@ export interface BriefUploadConfirmationRuntimeEvidence {
 
 export interface WorkflowApiSmokeEvidence {
   schema_version: "stage0.rev2.workflow-api-smoke";
-  workflow_id: "ecommerce_growth_pack";
-  fixture_id: "fx_ecommerce_growth_golden";
+  workflow_id: string;
+  fixture_id: string;
   status: "pass" | "fail";
   scenario: "brief-reference-four-candidates-select-iterate-package-export-zip";
   apiOperationIds: string[];
@@ -233,6 +233,7 @@ export interface WorkflowApiSmokeEvidence {
   readyZipExportCount: number;
   requiredOutputCount: number;
   missingRequiredOutputs: string[];
+  qaTaxonomyId: string;
   qaTaxonomyStatus: "pass" | "warn" | "missing";
   safetyStatus: "pass" | "block" | "missing";
   failures: Array<
@@ -597,6 +598,7 @@ export interface ZenArtClient {
   refreshSession(): Promise<WorkspaceState>;
   expireSession(): Promise<WorkspaceState>;
   confirmBrief(prompt: string): Promise<WorkspaceState>;
+  activateBusinessVisualDocWorkflow(): Promise<WorkspaceState>;
   attachReference(asset: Pick<ReferenceAsset, "name" | "kind">): Promise<WorkspaceState>;
   selectCandidate(candidateId: string): Promise<WorkspaceState>;
   iterateSelected(instruction: string): Promise<WorkspaceState>;

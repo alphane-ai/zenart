@@ -3,6 +3,7 @@ import { ExportRecord } from "./contracts";
 import {
   buildManifest,
   buildBriefUploadConfirmationRuntimeEvidence,
+  buildBusinessVisualDocApiSmokeEvidence,
   buildDownloadableExportZipPayloadNames,
   buildEcommerceGrowthApiSmokeEvidence,
   buildPackageExportMetadataEvidence,
@@ -16,6 +17,8 @@ import {
   createSessionContract,
   buildExportDownloadParityEvidence,
   buildExportZipPayloadSmokeEvidence,
+  businessVisualDocCandidates,
+  businessVisualDocWorkflowAcceptance,
   ecommerceGrowthWorkflowAcceptance,
   evaluatePackageQa,
   runSafetyPolicy
@@ -962,10 +965,102 @@ describe("dev workspace contracts", () => {
       readyZipExportCount: 1,
       requiredOutputCount: 14,
       missingRequiredOutputs: [],
+      qaTaxonomyId: "qa-ecommerce-growth-taxonomy",
       qaTaxonomyStatus: "pass",
       safetyStatus: "pass",
       failures: []
     });
+  });
+
+  it("summarizes business visual document API smoke evidence after the full local web workflow", () => {
+    const state = createInitialWorkspace();
+    const packageItems = businessVisualDocCandidates.map((candidate, index) => ({
+      id: `pkg-item-doc-${String(index + 1).padStart(3, "0")}`,
+      sourceId: candidate.id,
+      title: candidate.title,
+      type: "candidate" as const,
+      addedAt: "2026-05-26T10:00:00.000Z",
+      workflowId: candidate.workflowId,
+      strategyTaxonomy: candidate.strategyTaxonomy,
+      requiredOutputFiles: candidate.requiredOutputFiles
+    }));
+    const qaReport = evaluatePackageQa(packageItems);
+    const exportRecord: ExportRecord = {
+      id: "export-012",
+      format: "zip",
+      status: "ready",
+      createdAt: "2026-05-26T10:06:00.000Z",
+      fileName: "zenart-012.zip",
+      manifest: buildManifest(state.activeProjectId, packageItems),
+      qaReport,
+      safetyReport: runSafetyPolicy(
+        {
+          ...state,
+          selectedCandidateId: "biz-executive",
+          packageItems,
+          brief: {
+            ...state.brief,
+            prompt: "Business Visual Document Pack for board-ready operating memo.",
+            confirmed: true,
+            missingInfo: [],
+            references: [createReferenceAsset("q2-operating-notes.pdf", "document")]
+          }
+        },
+        qaReport
+      )
+    };
+
+    expect(
+      buildBusinessVisualDocApiSmokeEvidence({
+        ...state,
+        candidates: [...state.candidates, ...businessVisualDocCandidates],
+        brief: {
+          ...state.brief,
+          prompt: "Business Visual Document Pack for board-ready operating memo.",
+          confirmed: true,
+          missingInfo: [],
+          references: [createReferenceAsset("q2-operating-notes.pdf", "document")]
+        },
+        selectedCandidateId: "biz-executive",
+        canvas: {
+          ...state.canvas,
+          nodes: [
+            ...state.canvas.nodes,
+            {
+              id: "node-iteration-doc-002",
+              title: "Iteration",
+              kind: "iteration",
+              x: 650,
+              y: 260,
+              body: "Business document readability refined."
+            }
+          ]
+        },
+        packageItems,
+        exports: [exportRecord]
+      })
+    ).toMatchObject({
+      schema_version: "stage0.rev2.workflow-api-smoke",
+      workflow_id: businessVisualDocWorkflowAcceptance.workflow_id,
+      fixture_id: businessVisualDocWorkflowAcceptance.fixture_id,
+      status: "pass",
+      candidateCount: 4,
+      taxonomyCount: 4,
+      packagedTaxonomyCount: 4,
+      readyZipExportCount: 1,
+      requiredOutputCount: 14,
+      missingRequiredOutputs: [],
+      qaTaxonomyId: "qa-business-visual-doc-taxonomy",
+      qaTaxonomyStatus: "pass",
+      safetyStatus: "pass",
+      failures: []
+    });
+    expect(qaReport).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: "qa-business-visual-doc-taxonomy", severity: "pass" }),
+        expect.objectContaining({ id: "qa-business-visual-doc-readability", severity: "pass" })
+      ])
+    );
   });
 
   it("fails ecommerce growth API smoke evidence until the complete package/export path is present", () => {
