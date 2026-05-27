@@ -1156,12 +1156,17 @@ function WorkspaceView({
           data-reference-rejected-count={referenceIntegrationSmoke.rejectedCount}
           data-reference-latest-accepted-id={referenceIntegrationSmoke.latestAcceptedReferenceId}
           data-reference-latest-accepted-name={referenceIntegrationSmoke.latestAcceptedReferenceName}
+          data-reference-latest-accepted-kind={referenceIntegrationSmoke.latestAcceptedReferenceKind}
           data-reference-latest-upload-method={referenceIntegrationSmoke.latestAcceptedReferenceUploadMethod}
           data-reference-latest-upload-path={referenceIntegrationSmoke.latestAcceptedReferenceUploadPath}
           data-reference-latest-upload-csrf-header={referenceIntegrationSmoke.latestAcceptedReferenceCsrfHeaderName}
           data-reference-latest-upload-idempotency-required={String(referenceIntegrationSmoke.latestAcceptedReferenceIdempotencyRequired)}
           data-reference-latest-preview-scope={referenceIntegrationSmoke.latestAcceptedReferencePreviewScope}
           data-reference-upload-request-contract-count={referenceIntegrationSmoke.uploadRequestContractCount}
+          data-reference-latest-package-item-id={referenceIntegrationSmoke.latestAcceptedReferencePackageItemId}
+          data-reference-latest-export-title={referenceIntegrationSmoke.latestAcceptedReferenceExportTitle}
+          data-reference-latest-ppt-slide-source-item-id={referenceIntegrationSmoke.latestAcceptedReferencePptSlideSourceItemId}
+          data-reference-latest-identity-status={referenceIntegrationSmoke.latestAcceptedReferenceIdentityStatus}
           data-reference-latest-packaged={String(referenceIntegrationSmoke.latestAcceptedReferencePackaged)}
           data-reference-latest-provenance-present={String(referenceIntegrationSmoke.latestAcceptedReferenceProvenancePresent)}
           data-reference-latest-ppt-slide-present={String(referenceIntegrationSmoke.latestAcceptedReferencePptSlidePresent)}
@@ -2046,6 +2051,7 @@ function ExportView({
                           key={item.id}
                           data-reference-export-item={item.id}
                           data-reference-export-item-type={item.type}
+                          data-reference-export-item-title={item.title}
                           data-reference-export-item-provenance={item.provenance}
                           data-reference-export-item-ppt-slide-present={String(referenceExportPptSlideSourceIds.includes(item.id))}
                         >

@@ -90,6 +90,13 @@ if (
   referenceUpload.expectedUploadCsrfHeader !== routeReferenceUpload.expectedUploadCsrfHeader ||
   referenceUpload.expectedUploadIdempotencyRequired !== routeReferenceUpload.expectedUploadIdempotencyRequired ||
   referenceUpload.expectedPreviewScope !== routeReferenceUpload.expectedPreviewScope ||
+  referenceUpload.expectedLatestReferenceId !== routeReferenceUpload.expectedLatestAcceptedId ||
+  referenceUpload.expectedLatestReferenceName !== routeReferenceUpload.expectedLatestAcceptedName ||
+  referenceUpload.expectedLatestReferenceKind !== routeReferenceUpload.expectedLatestAcceptedKind ||
+  referenceUpload.expectedLatestPackageItemId !== routeReferenceUpload.expectedLatestPackageItemId ||
+  referenceUpload.expectedLatestExportTitle !== routeReferenceUpload.expectedLatestExportTitle ||
+  referenceUpload.expectedLatestPptSlideSourceItemId !== routeReferenceUpload.expectedLatestPptSlideSourceItemId ||
+  referenceUpload.expectedLatestIdentityStatus !== routeReferenceUpload.expectedLatestIdentityStatus ||
   referenceUpload.expectedLatestPackaged !== routeReferenceUpload.expectedLatestPackaged ||
   referenceUpload.expectedLatestProvenancePresent !== routeReferenceUpload.expectedLatestProvenancePresent ||
   referenceUpload.expectedLatestPptSlidePresent !== routeReferenceUpload.expectedLatestPptSlidePresent ||
@@ -111,6 +118,13 @@ if (
   browserReferenceUpload?.expectedUploadCsrfHeader !== referenceUpload.expectedUploadCsrfHeader ||
   browserReferenceUpload?.expectedUploadIdempotencyRequired !== referenceUpload.expectedUploadIdempotencyRequired ||
   browserReferenceUpload?.expectedPreviewScope !== referenceUpload.expectedPreviewScope ||
+  browserReferenceUpload?.expectedLatestReferenceId !== referenceUpload.expectedLatestReferenceId ||
+  browserReferenceUpload?.expectedLatestReferenceName !== referenceUpload.expectedLatestReferenceName ||
+  browserReferenceUpload?.expectedLatestReferenceKind !== referenceUpload.expectedLatestReferenceKind ||
+  browserReferenceUpload?.expectedLatestPackageItemId !== referenceUpload.expectedLatestPackageItemId ||
+  browserReferenceUpload?.expectedLatestExportTitle !== referenceUpload.expectedLatestExportTitle ||
+  browserReferenceUpload?.expectedLatestPptSlideSourceItemId !== referenceUpload.expectedLatestPptSlideSourceItemId ||
+  browserReferenceUpload?.expectedLatestIdentityStatus !== referenceUpload.expectedLatestIdentityStatus ||
   browserReferenceUpload?.expectedLatestPackaged !== referenceUpload.expectedLatestPackaged ||
   browserReferenceUpload?.expectedLatestProvenancePresent !== referenceUpload.expectedLatestProvenancePresent ||
   browserReferenceUpload?.expectedLatestPptSlidePresent !== referenceUpload.expectedLatestPptSlidePresent ||
@@ -175,6 +189,8 @@ if (
   referenceExportContract?.expectedProvenancePrefix !== "dev-client-reference:" ||
   referenceExportContract?.provenancesAttribute !== "data-reference-export-provenances" ||
   referenceExportContract?.expectedProvenance !== `dev-client-reference:${referenceUpload.expectedLatestReferenceId}` ||
+  referenceExportContract?.referenceTitleAttribute !== "data-reference-export-item-title" ||
+  referenceExportContract?.expectedReferenceTitle !== referenceUpload.expectedLatestReferenceName ||
   referenceExportContract?.pptSlideCountAttribute !== "data-reference-export-ppt-slide-count" ||
   referenceExportContract?.expectedPptSlideCount !== "1" ||
   referenceExportContract?.pptSlideSourceItemIdsAttribute !== "data-reference-export-ppt-slide-source-item-ids" ||
@@ -209,6 +225,7 @@ for (const expectedSnippet of [
   referenceExportContract.expectedStatus,
   referenceExportContract.expectedProvenancePrefix,
   referenceExportContract.expectedProvenance,
+  referenceExportContract.expectedReferenceTitle,
   referenceExportContract.expectedPptSlideSourceItemIds
 ]) {
   if (!workspaceSmokeTestSource.includes(expectedSnippet) || !browserSpecSource.includes(expectedSnippet)) {
@@ -304,6 +321,7 @@ for (const snippet of [
   "buildReferenceUploadIntegrationSmoke",
   "referenceUploadIntegrationOperationIds",
   "latestAcceptedReferencePackaged",
+  "latestAcceptedReferenceIdentityStatus",
   "latestAcceptedReferenceProvenancePresent",
   "latestAcceptedReferencePptSlidePresent",
   "rejectedReferencePackagedCount",
@@ -321,6 +339,10 @@ for (const snippet of [
   "export interface ReferenceUploadIntegrationSmoke",
   "schema_version: \"stage0.rev2.reference-upload-integration-smoke\"",
   "apiOperationIds: Array<\"createUpload\" | \"createPackage\" | \"createExport\" | \"getExport\">",
+  "latestAcceptedReferenceKind",
+  "latestAcceptedReferencePackageItemId",
+  "latestAcceptedReferenceExportTitle",
+  "latestAcceptedReferenceIdentityStatus",
   "latestAcceptedReferenceProvenancePresent",
   "latestAcceptedReferencePptSlidePresent",
   "rejectedReferenceExportedCount"
@@ -333,6 +355,11 @@ for (const snippet of [
 for (const snippet of [
   "data-reference-upload-integration-status",
   "data-reference-latest-upload-csrf-header",
+  "data-reference-latest-accepted-kind",
+  "data-reference-latest-package-item-id",
+  "data-reference-latest-export-title",
+  "data-reference-latest-ppt-slide-source-item-id",
+  "data-reference-latest-identity-status",
   "data-reference-latest-packaged",
   "data-reference-latest-provenance-present",
   "data-reference-latest-ppt-slide-present",

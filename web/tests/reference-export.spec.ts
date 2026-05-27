@@ -67,6 +67,8 @@ test("reference upload browser smoke reaches ready export metadata and render bu
     "createUpload,createPackage,createExport,getExport"
   );
   await expect(referenceSmoke).toHaveAttribute("data-reference-latest-accepted-id", "ref-campaign-reference-webp");
+  await expect(referenceSmoke).toHaveAttribute("data-reference-latest-accepted-name", "campaign-reference.webp");
+  await expect(referenceSmoke).toHaveAttribute("data-reference-latest-accepted-kind", "image");
   await expect(referenceSmoke).toHaveAttribute("data-reference-latest-upload-method", "POST");
   await expect(referenceSmoke).toHaveAttribute("data-reference-latest-upload-path", "/uploads");
   await expect(referenceSmoke).toHaveAttribute("data-reference-latest-upload-csrf-header", "X-ZenArt-CSRF");
@@ -94,6 +96,10 @@ test("reference upload browser smoke reaches ready export metadata and render bu
   await expect(referenceSmoke).toHaveAttribute("data-reference-latest-provenance-present", "true");
   await expect(referenceSmoke).toHaveAttribute("data-reference-latest-ppt-slide-present", "true");
   await expect(referenceSmoke).toHaveAttribute("data-reference-upload-request-contract-count", "2");
+  await expect(referenceSmoke).toHaveAttribute("data-reference-latest-package-item-id", "pkg-item-001");
+  await expect(referenceSmoke).toHaveAttribute("data-reference-latest-export-title", "campaign-reference.webp");
+  await expect(referenceSmoke).toHaveAttribute("data-reference-latest-ppt-slide-source-item-id", "pkg-item-001");
+  await expect(referenceSmoke).toHaveAttribute("data-reference-latest-identity-status", "pass");
   await expect(referenceSmoke).toHaveAttribute("data-reference-rejected-packaged-count", "0");
   await expect(referenceSmoke).toHaveAttribute("data-reference-rejected-exported-count", "0");
   await expect(referenceSmoke).toHaveAttribute("data-reference-upload-integration-failures", "");
@@ -136,10 +142,13 @@ test("reference upload browser smoke reaches ready export metadata and render bu
     "dev-client-reference:ref-campaign-reference-webp"
   );
   await expect(referenceContract).toHaveAttribute("data-reference-export-ppt-slide-count", "1");
+  await expect(referenceContract).toHaveAttribute("data-reference-export-ppt-slide-source-item-ids", "pkg-item-001");
   await expect(referenceContract).toHaveAttribute("data-reference-export-failures", "");
+  await expect(referenceContract).toContainText("campaign-reference.webp");
   await expect(referenceContract).toContainText("dev-client-reference:ref-campaign-reference-webp");
   const referenceExportItem = referenceContract.locator("[data-reference-export-item='pkg-item-001']");
   await expect(referenceExportItem).toHaveAttribute("data-reference-export-item-type", "reference");
+  await expect(referenceExportItem).toHaveAttribute("data-reference-export-item-title", "campaign-reference.webp");
   await expect(referenceExportItem).toHaveAttribute(
     "data-reference-export-item-provenance",
     "dev-client-reference:ref-campaign-reference-webp"
@@ -209,7 +218,7 @@ test("reference upload browser smoke reaches ready export metadata and render bu
   const manifest = JSON.parse(await zip.file("manifest.json")!.async("string")) as {
     package_id: string;
     project_id: string;
-    items: Array<{ type: string; provenance: string }>;
+    items: Array<{ id: string; title: string; type: string; provenance: string }>;
     workflow_acceptance: {
       workflow_id: string;
       fixture_id: string;
@@ -223,7 +232,7 @@ test("reference upload browser smoke reaches ready export metadata and render bu
   };
   const pptReadyMetadata = JSON.parse(await zip.file("ppt-ready-metadata.json")!.async("string")) as {
     aspect_ratio: string;
-    slides: Array<{ source_item_id: string }>;
+    slides: Array<{ source_item_id: string; title: string; layout: string }>;
   };
   const workflowMetadata = JSON.parse(await zip.file("metadata.json")!.async("string")) as {
     workflow_id: string;
@@ -255,6 +264,8 @@ test("reference upload browser smoke reaches ready export metadata and render bu
   expect(manifest.items).toEqual(
     expect.arrayContaining([
       expect.objectContaining({
+        id: "pkg-item-001",
+        title: "campaign-reference.webp",
         type: "reference",
         provenance: "dev-client-reference:ref-campaign-reference-webp"
       }),
@@ -264,6 +275,11 @@ test("reference upload browser smoke reaches ready export metadata and render bu
       })
     ])
   );
+  expect(pptReadyMetadata.slides.find((slide) => slide.source_item_id === "pkg-item-001")).toMatchObject({
+    source_item_id: "pkg-item-001",
+    title: "campaign-reference.webp",
+    layout: "asset-grid"
+  });
   await expect(metadataEvidence).toHaveAttribute("data-package-export-workflow-taxonomy-count", String(manifest.workflow_acceptance.strategy_taxonomy.length));
   await expect(metadataEvidence).toHaveAttribute("data-package-export-workflow-required-file-count", String(manifest.workflow_acceptance.required_files.length));
   expect(provenance).toMatchObject({ export_id: "export-001" });

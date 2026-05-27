@@ -188,11 +188,16 @@ export interface ReferenceUploadIntegrationSmoke {
   rejectedCount: number;
   latestAcceptedReferenceId: string;
   latestAcceptedReferenceName: string;
+  latestAcceptedReferenceKind: ReferenceAsset["kind"] | "missing";
   latestAcceptedReferenceUploadMethod: string;
   latestAcceptedReferenceUploadPath: string;
   latestAcceptedReferenceCsrfHeaderName: string;
   latestAcceptedReferenceIdempotencyRequired: boolean;
   latestAcceptedReferencePreviewScope: ReferenceAsset["upload"]["previewScope"] | "missing";
+  latestAcceptedReferencePackageItemId: string;
+  latestAcceptedReferenceExportTitle: string;
+  latestAcceptedReferencePptSlideSourceItemId: string;
+  latestAcceptedReferenceIdentityStatus: "pass" | "fail";
   latestAcceptedReferencePackaged: boolean;
   latestAcceptedReferenceProvenancePresent: boolean;
   latestAcceptedReferencePptSlidePresent: boolean;
@@ -211,6 +216,7 @@ export interface ReferenceUploadIntegrationSmoke {
     | "latest-reference-packaged"
     | "ready-export"
     | "manifest-provenance"
+    | "latest-reference-identity"
     | "latest-reference-provenance"
     | "ppt-asset-grid"
     | "latest-reference-ppt-slide"

@@ -1499,6 +1499,19 @@ export const buildReferenceUploadIntegrationSmoke = (state: WorkspaceState): Ref
     readyExportReferenceProvenance.length;
   const pptAssetGridSlideCount =
     latestReadyExport?.manifest.ppt_ready_metadata.slides.filter((slide) => slide.layout === "asset-grid").length ?? 0;
+  const latestAcceptedReferencePackageItem = latestAcceptedReference
+    ? state.packageItems.find((item) => item.type === "reference" && item.sourceId === latestAcceptedReference.id)
+    : undefined;
+  const latestAcceptedReferenceExportItem = latestAcceptedReference
+    ? latestReadyExport?.manifest.items.find(
+        (item) => item.provenance === `dev-client-reference:${latestAcceptedReference.id}`
+      )
+    : undefined;
+  const latestAcceptedReferencePptSlide = latestAcceptedReferencePackageItem
+    ? latestReadyExport?.manifest.ppt_ready_metadata.slides.find(
+        (slide) => slide.layout === "asset-grid" && slide.source_item_id === latestAcceptedReferencePackageItem.id
+      )
+    : undefined;
   const uploadRequestContractCount = acceptedReferences.filter(
     (reference) =>
       reference.upload.operationId === "createUpload" &&
@@ -1511,6 +1524,18 @@ export const buildReferenceUploadIntegrationSmoke = (state: WorkspaceState): Ref
       reference.upload.previewUrl === `/dev-preview/uploads/${reference.id}`
   ).length;
   const latestAcceptedReferencePackaged = latestAcceptedReference ? packagedReferenceIds.has(latestAcceptedReference.id) : false;
+  const latestAcceptedReferenceIdentityStatus =
+    latestAcceptedReference &&
+    latestAcceptedReferencePackageItem &&
+    latestAcceptedReferenceExportItem &&
+    latestAcceptedReferencePptSlide &&
+    latestAcceptedReferencePackageItem.title === latestAcceptedReference.name &&
+    latestAcceptedReferenceExportItem.id === latestAcceptedReferencePackageItem.id &&
+    latestAcceptedReferenceExportItem.title === latestAcceptedReference.name &&
+    latestAcceptedReferenceExportItem.type === "reference" &&
+    latestAcceptedReferencePptSlide.title === latestAcceptedReference.name
+      ? "pass"
+      : "fail";
   const latestAcceptedReferenceProvenancePresent = latestAcceptedReference
     ? latestReadyExport?.manifest.items.some((item) => item.provenance === `dev-client-reference:${latestAcceptedReference.id}`) ?? false
     : false;
@@ -1542,6 +1567,9 @@ export const buildReferenceUploadIntegrationSmoke = (state: WorkspaceState): Ref
   if (latestReadyExport && referenceProvenanceCount < packagedReferenceIds.size) {
     failures.push("manifest-provenance");
   }
+  if (latestReadyExport && latestAcceptedReferenceIdentityStatus !== "pass") {
+    failures.push("latest-reference-identity");
+  }
   if (latestReadyExport && !latestAcceptedReferenceProvenancePresent) {
     failures.push("latest-reference-provenance");
   }
@@ -1568,11 +1596,16 @@ export const buildReferenceUploadIntegrationSmoke = (state: WorkspaceState): Ref
     rejectedCount: state.brief.references.filter((reference) => reference.validation.state === "rejected").length,
     latestAcceptedReferenceId: latestAcceptedReference?.id ?? "missing",
     latestAcceptedReferenceName: latestAcceptedReference?.name ?? "missing",
+    latestAcceptedReferenceKind: latestAcceptedReference?.kind ?? "missing",
     latestAcceptedReferenceUploadMethod: latestAcceptedReference?.upload.method ?? "missing",
     latestAcceptedReferenceUploadPath: latestAcceptedReference?.upload.path ?? "missing",
     latestAcceptedReferenceCsrfHeaderName: latestAcceptedReference?.upload.csrfHeaderName ?? "missing",
     latestAcceptedReferenceIdempotencyRequired: latestAcceptedReference?.upload.idempotencyRequired ?? false,
     latestAcceptedReferencePreviewScope: latestAcceptedReference?.upload.previewScope ?? "missing",
+    latestAcceptedReferencePackageItemId: latestAcceptedReferencePackageItem?.id ?? "missing",
+    latestAcceptedReferenceExportTitle: latestAcceptedReferenceExportItem?.title ?? "missing",
+    latestAcceptedReferencePptSlideSourceItemId: latestAcceptedReferencePptSlide?.source_item_id ?? "missing",
+    latestAcceptedReferenceIdentityStatus,
     latestAcceptedReferencePackaged,
     latestAcceptedReferenceProvenancePresent,
     latestAcceptedReferencePptSlidePresent,

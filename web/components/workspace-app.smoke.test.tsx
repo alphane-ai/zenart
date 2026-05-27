@@ -551,12 +551,17 @@ describe("WorkspaceApp user route integration smoke", () => {
       expect(smoke).toHaveAttribute("data-reference-rejected-count", "2");
       expect(smoke).toHaveAttribute("data-reference-latest-accepted-id", "ref-campaign-reference-webp");
       expect(smoke).toHaveAttribute("data-reference-latest-accepted-name", "campaign-reference.webp");
+      expect(smoke).toHaveAttribute("data-reference-latest-accepted-kind", "image");
       expect(smoke).toHaveAttribute("data-reference-latest-upload-method", "POST");
       expect(smoke).toHaveAttribute("data-reference-latest-upload-path", "/uploads");
       expect(smoke).toHaveAttribute("data-reference-latest-upload-csrf-header", "X-ZenArt-CSRF");
       expect(smoke).toHaveAttribute("data-reference-latest-upload-idempotency-required", "true");
       expect(smoke).toHaveAttribute("data-reference-latest-preview-scope", "tenant-scoped-dev-preview");
       expect(smoke).toHaveAttribute("data-reference-upload-request-contract-count", "2");
+      expect(smoke).toHaveAttribute("data-reference-latest-package-item-id", "pkg-item-001");
+      expect(smoke).toHaveAttribute("data-reference-latest-export-title", "campaign-reference.webp");
+      expect(smoke).toHaveAttribute("data-reference-latest-ppt-slide-source-item-id", "pkg-item-001");
+      expect(smoke).toHaveAttribute("data-reference-latest-identity-status", "pass");
       expect(smoke).toHaveAttribute("data-reference-latest-packaged", "true");
       expect(smoke).toHaveAttribute("data-reference-latest-provenance-present", "true");
       expect(smoke).toHaveAttribute("data-reference-latest-ppt-slide-present", "true");
@@ -602,9 +607,11 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(referenceContract).toHaveAttribute("data-reference-export-ppt-slide-count", "1");
     expect(referenceContract).toHaveAttribute("data-reference-export-ppt-slide-source-item-ids", "pkg-item-001");
     expect(referenceContract).toHaveAttribute("data-reference-export-failures", "");
+    expect(within(referenceContract as HTMLElement).getByText("campaign-reference.webp")).toBeInTheDocument();
     expect(within(referenceContract as HTMLElement).getByText("dev-client-reference:ref-campaign-reference-webp")).toBeInTheDocument();
     const referenceExportItem = container.querySelector("[data-reference-export-item='pkg-item-001']");
     expect(referenceExportItem).toHaveAttribute("data-reference-export-item-type", "reference");
+    expect(referenceExportItem).toHaveAttribute("data-reference-export-item-title", "campaign-reference.webp");
     expect(referenceExportItem).toHaveAttribute("data-reference-export-item-provenance", "dev-client-reference:ref-campaign-reference-webp");
     expect(referenceExportItem).toHaveAttribute("data-reference-export-item-ppt-slide-present", "true");
 

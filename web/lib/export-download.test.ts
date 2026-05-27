@@ -197,6 +197,13 @@ describe("reference upload and export download integration", () => {
         provenance: "dev-client-reference:ref-https-assets-example-com-reference-pack"
       }
     ]);
+    const campaignReferenceItem = manifest.items.find((item) => item.provenance === "dev-client-reference:ref-campaign-reference-webp");
+    expect(campaignReferenceItem).toEqual({
+      id: "pkg-item-002",
+      title: "campaign-reference.webp",
+      type: "reference",
+      provenance: "dev-client-reference:ref-campaign-reference-webp"
+    });
     expect(qaReport).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -272,6 +279,10 @@ describe("reference upload and export download integration", () => {
           layout: "asset-grid"
         }
       ]
+    });
+    expect(pptReadyMetadata.slides.find((slide) => slide.source_item_id === campaignReferenceItem?.id)).toMatchObject({
+      title: "campaign-reference.webp",
+      layout: "asset-grid"
     });
     expect(provenance).toMatchObject({
       export_id: record.id,
