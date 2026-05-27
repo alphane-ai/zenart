@@ -50,6 +50,14 @@ ACTION_EXPORT_GATES = {
     "block": "block_final_export",
 }
 
+SAFETY_ACTION_PRIORITY = {
+    "allow": 0,
+    "warn": 1,
+    "require_user_confirmation": 2,
+    "require_admin_review": 3,
+    "block": 4,
+}
+
 SAFETY_ORDER = [
     "brief",
     "provider_request",
@@ -159,6 +167,93 @@ OVERRIDE_DOWNGRADE_CASES = {
         "allow",
         "allow_when_export_contract_complete",
         "ErrSafetyReviewHold",
+    ),
+}
+
+EFFECTIVE_DECISION_PRECEDENCE_CASES = {
+    "safety_effective_all_allow_allows_export": (
+        {
+            "brief": "allow",
+            "provider_request": "allow",
+            "provider_response": "allow",
+            "qa": "allow",
+            "export": "allow",
+        },
+        "allow",
+        "allow_when_export_contract_complete",
+        True,
+        False,
+        True,
+    ),
+    "safety_effective_brief_warn_survives_later_allow": (
+        {
+            "brief": "warn",
+            "provider_request": "allow",
+            "provider_response": "allow",
+            "qa": "allow",
+            "export": "allow",
+        },
+        "warn",
+        "allow_with_warning",
+        True,
+        True,
+        True,
+    ),
+    "safety_effective_provider_request_confirmation_survives_export_allow": (
+        {
+            "brief": "allow",
+            "provider_request": "require_user_confirmation",
+            "provider_response": "allow",
+            "qa": "allow",
+            "export": "allow",
+        },
+        "require_user_confirmation",
+        "hold_until_user_confirmation",
+        False,
+        True,
+        False,
+    ),
+    "safety_effective_provider_response_admin_review_beats_qa_warn": (
+        {
+            "brief": "allow",
+            "provider_request": "allow",
+            "provider_response": "require_admin_review",
+            "qa": "warn",
+            "export": "allow",
+        },
+        "require_admin_review",
+        "hold_until_admin_review",
+        False,
+        True,
+        False,
+    ),
+    "safety_effective_qa_block_beats_export_allow": (
+        {
+            "brief": "allow",
+            "provider_request": "allow",
+            "provider_response": "allow",
+            "qa": "block",
+            "export": "allow",
+        },
+        "block",
+        "block_final_export",
+        False,
+        True,
+        False,
+    ),
+    "safety_effective_export_block_wins_last": (
+        {
+            "brief": "warn",
+            "provider_request": "require_user_confirmation",
+            "provider_response": "allow",
+            "qa": "require_admin_review",
+            "export": "block",
+        },
+        "block",
+        "block_final_export",
+        False,
+        True,
+        False,
     ),
 }
 
@@ -594,6 +689,7 @@ def validate_pipeline_sequence_contract(contract: dict[str, Any]) -> None:
 
     validate_bypass_prevention_cases(pipeline, service, tests)
     validate_override_downgrade_cases(pipeline)
+    validate_effective_decision_precedence_cases(pipeline)
 
 
 def validate_runtime_replay_contract(contract: dict[str, Any]) -> None:
@@ -612,6 +708,10 @@ def validate_runtime_replay_contract(contract: dict[str, Any]) -> None:
         replay["override_downgrade_cases_replayed"] == len(OVERRIDE_DOWNGRADE_CASES),
         "override downgrade replay count mismatch",
     )
+    require(
+        replay["effective_decision_precedence_cases_replayed"] == len(EFFECTIVE_DECISION_PRECEDENCE_CASES),
+        "effective decision precedence replay count mismatch",
+    )
     require(replay["fixture_link_cases_replayed"] == len(contract["fixture_links"]), "fixture-link replay count mismatch")
     require(
         replay["fixture_link_point_decision_refs_replayed"] == len(contract["fixture_links"]) * len(SAFETY_POINTS),
@@ -628,6 +728,10 @@ def validate_runtime_replay_contract(contract: dict[str, Any]) -> None:
     require(
         replay["held_or_blocked_require_audit_for_all_actions"] is True,
         "runtime replay must validate audit requirements for held/blocking actions",
+    )
+    require(
+        replay["effective_decision_precedence_validated"] is True,
+        "runtime replay must validate effective safety decision precedence",
     )
     require(replay["blocked_or_held_creates_downstream_artifacts"] is False, "blocked/held replay must fail closed")
     require(replay["trace_status_required_for_all_transitions"] is True, "runtime replay must require trace status")
@@ -776,6 +880,55 @@ def validate_override_downgrade_cases(pipeline: dict[str, Any]) -> None:
             result["qa_export_gate"]["final_export_allowed"] is False,
             f"{case_id} source fixture must be export-denied",
         )
+
+
+def validate_effective_decision_precedence_cases(pipeline: dict[str, Any]) -> None:
+    cases = {
+        case["case_id"]: case
+        for case in pipeline["effective_decision_precedence_cases"]
+    }
+    require(set(cases) == set(EFFECTIVE_DECISION_PRECEDENCE_CASES), "effective safety decision precedence case ids mismatch")
+
+    for case_id, (
+        per_point_decisions,
+        expected_effective_decision,
+        expected_export_gate,
+        final_export_allowed,
+        requires_audit,
+        creates_downstream_artifacts,
+    ) in EFFECTIVE_DECISION_PRECEDENCE_CASES.items():
+        case = cases[case_id]
+        require(case["per_point_decisions"] == per_point_decisions, f"{case_id} per-point decisions mismatch")
+        require(set(case["per_point_decisions"]) == SAFETY_POINTS, f"{case_id} must cover every safety point")
+
+        effective_decision = max(
+            case["per_point_decisions"].values(),
+            key=lambda decision: SAFETY_ACTION_PRIORITY[decision],
+        )
+        require(
+            effective_decision == expected_effective_decision,
+            f"{case_id} expected effective decision does not match strongest per-point decision",
+        )
+        require(case["expected_effective_decision"] == expected_effective_decision, f"{case_id} effective decision mismatch")
+        require(case["expected_export_gate"] == expected_export_gate, f"{case_id} export gate mismatch")
+        require(
+            case["expected_export_gate"] == ACTION_EXPORT_GATES[expected_effective_decision],
+            f"{case_id} export gate must match effective decision",
+        )
+        require(case["final_export_allowed"] is final_export_allowed, f"{case_id} final export flag mismatch")
+        require(case["requires_audit"] is requires_audit, f"{case_id} audit requirement mismatch")
+        require(case["trace_status_required"] is True, f"{case_id} must require trace status")
+        require(case["persisted_decision_required"] is True, f"{case_id} must require persisted decisions")
+        require(
+            case["creates_downstream_artifacts"] is creates_downstream_artifacts,
+            f"{case_id} downstream artifact behavior mismatch",
+        )
+        if expected_effective_decision in {"require_user_confirmation", "require_admin_review", "block"}:
+            require(case["final_export_allowed"] is False, f"{case_id} held/blocking decision must deny final export")
+            require(
+                case["creates_downstream_artifacts"] is False,
+                f"{case_id} held/blocking decision must fail closed",
+            )
 
 
 def validate_bypass_prevention_cases(pipeline: dict[str, Any], service: str, tests: str) -> None:

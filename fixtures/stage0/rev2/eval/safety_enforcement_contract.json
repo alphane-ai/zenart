@@ -514,6 +514,110 @@
         "trace_status_required": true,
         "persisted_original_decision_required": true
       }
+    ],
+    "effective_decision_precedence_cases": [
+      {
+        "case_id": "safety_effective_all_allow_allows_export",
+        "per_point_decisions": {
+          "brief": "allow",
+          "provider_request": "allow",
+          "provider_response": "allow",
+          "qa": "allow",
+          "export": "allow"
+        },
+        "expected_effective_decision": "allow",
+        "expected_export_gate": "allow_when_export_contract_complete",
+        "final_export_allowed": true,
+        "requires_audit": false,
+        "trace_status_required": true,
+        "persisted_decision_required": true,
+        "creates_downstream_artifacts": true
+      },
+      {
+        "case_id": "safety_effective_brief_warn_survives_later_allow",
+        "per_point_decisions": {
+          "brief": "warn",
+          "provider_request": "allow",
+          "provider_response": "allow",
+          "qa": "allow",
+          "export": "allow"
+        },
+        "expected_effective_decision": "warn",
+        "expected_export_gate": "allow_with_warning",
+        "final_export_allowed": true,
+        "requires_audit": true,
+        "trace_status_required": true,
+        "persisted_decision_required": true,
+        "creates_downstream_artifacts": true
+      },
+      {
+        "case_id": "safety_effective_provider_request_confirmation_survives_export_allow",
+        "per_point_decisions": {
+          "brief": "allow",
+          "provider_request": "require_user_confirmation",
+          "provider_response": "allow",
+          "qa": "allow",
+          "export": "allow"
+        },
+        "expected_effective_decision": "require_user_confirmation",
+        "expected_export_gate": "hold_until_user_confirmation",
+        "final_export_allowed": false,
+        "requires_audit": true,
+        "trace_status_required": true,
+        "persisted_decision_required": true,
+        "creates_downstream_artifacts": false
+      },
+      {
+        "case_id": "safety_effective_provider_response_admin_review_beats_qa_warn",
+        "per_point_decisions": {
+          "brief": "allow",
+          "provider_request": "allow",
+          "provider_response": "require_admin_review",
+          "qa": "warn",
+          "export": "allow"
+        },
+        "expected_effective_decision": "require_admin_review",
+        "expected_export_gate": "hold_until_admin_review",
+        "final_export_allowed": false,
+        "requires_audit": true,
+        "trace_status_required": true,
+        "persisted_decision_required": true,
+        "creates_downstream_artifacts": false
+      },
+      {
+        "case_id": "safety_effective_qa_block_beats_export_allow",
+        "per_point_decisions": {
+          "brief": "allow",
+          "provider_request": "allow",
+          "provider_response": "allow",
+          "qa": "block",
+          "export": "allow"
+        },
+        "expected_effective_decision": "block",
+        "expected_export_gate": "block_final_export",
+        "final_export_allowed": false,
+        "requires_audit": true,
+        "trace_status_required": true,
+        "persisted_decision_required": true,
+        "creates_downstream_artifacts": false
+      },
+      {
+        "case_id": "safety_effective_export_block_wins_last",
+        "per_point_decisions": {
+          "brief": "warn",
+          "provider_request": "require_user_confirmation",
+          "provider_response": "allow",
+          "qa": "require_admin_review",
+          "export": "block"
+        },
+        "expected_effective_decision": "block",
+        "expected_export_gate": "block_final_export",
+        "final_export_allowed": false,
+        "requires_audit": true,
+        "trace_status_required": true,
+        "persisted_decision_required": true,
+        "creates_downstream_artifacts": false
+      }
     ]
   },
   "decision_matrix": [
@@ -802,6 +906,7 @@
     "fail_closed_cases_replayed": 4,
     "bypass_prevention_cases_replayed": 6,
     "override_downgrade_cases_replayed": 4,
+    "effective_decision_precedence_cases_replayed": 6,
     "fixture_link_cases_replayed": 4,
     "fixture_link_point_decision_refs_replayed": 20,
     "decision_redaction_cases_replayed": 5,
@@ -810,6 +915,7 @@
     "decision_rationale_sources_validated": true,
     "analytics_payload_minimized": true,
     "held_or_blocked_require_audit_for_all_actions": true,
+    "effective_decision_precedence_validated": true,
     "blocked_or_held_creates_downstream_artifacts": false,
     "trace_status_required_for_all_transitions": true,
     "persisted_decision_required_for_all_actions": true,

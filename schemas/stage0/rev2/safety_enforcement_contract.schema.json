@@ -336,7 +336,8 @@
         "transition_gates",
         "fail_closed_cases",
         "bypass_prevention_cases",
-        "override_downgrade_prevention_cases"
+        "override_downgrade_prevention_cases",
+        "effective_decision_precedence_cases"
       ],
       "properties": {
         "ordered_enforcement_points": {
@@ -632,6 +633,86 @@
               }
             }
           }
+        },
+        "effective_decision_precedence_cases": {
+          "type": "array",
+          "minItems": 5,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "case_id",
+              "per_point_decisions",
+              "expected_effective_decision",
+              "expected_export_gate",
+              "final_export_allowed",
+              "requires_audit",
+              "trace_status_required",
+              "persisted_decision_required",
+              "creates_downstream_artifacts"
+            ],
+            "properties": {
+              "case_id": {
+                "type": "string",
+                "pattern": "^safety_effective_[a-z0-9_]+$"
+              },
+              "per_point_decisions": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "brief",
+                  "provider_request",
+                  "provider_response",
+                  "qa",
+                  "export"
+                ],
+                "properties": {
+                  "brief": {
+                    "$ref": "#/$defs/safety_action"
+                  },
+                  "provider_request": {
+                    "$ref": "#/$defs/safety_action"
+                  },
+                  "provider_response": {
+                    "$ref": "#/$defs/safety_action"
+                  },
+                  "qa": {
+                    "$ref": "#/$defs/safety_action"
+                  },
+                  "export": {
+                    "$ref": "#/$defs/safety_action"
+                  }
+                }
+              },
+              "expected_effective_decision": {
+                "$ref": "#/$defs/safety_action"
+              },
+              "expected_export_gate": {
+                "enum": [
+                  "allow_when_export_contract_complete",
+                  "allow_with_warning",
+                  "hold_until_user_confirmation",
+                  "hold_until_admin_review",
+                  "block_final_export"
+                ]
+              },
+              "final_export_allowed": {
+                "type": "boolean"
+              },
+              "requires_audit": {
+                "type": "boolean"
+              },
+              "trace_status_required": {
+                "const": true
+              },
+              "persisted_decision_required": {
+                "const": true
+              },
+              "creates_downstream_artifacts": {
+                "type": "boolean"
+              }
+            }
+          }
         }
       }
     },
@@ -731,6 +812,7 @@
         "fail_closed_cases_replayed",
         "bypass_prevention_cases_replayed",
         "override_downgrade_cases_replayed",
+        "effective_decision_precedence_cases_replayed",
         "fixture_link_cases_replayed",
         "fixture_link_point_decision_refs_replayed",
         "decision_redaction_cases_replayed",
@@ -739,6 +821,7 @@
         "decision_rationale_sources_validated",
         "analytics_payload_minimized",
         "held_or_blocked_require_audit_for_all_actions",
+        "effective_decision_precedence_validated",
         "blocked_or_held_creates_downstream_artifacts",
         "trace_status_required_for_all_transitions",
         "persisted_decision_required_for_all_actions",
@@ -774,6 +857,10 @@
           "type": "integer",
           "minimum": 4
         },
+        "effective_decision_precedence_cases_replayed": {
+          "type": "integer",
+          "minimum": 5
+        },
         "fixture_link_cases_replayed": {
           "type": "integer",
           "minimum": 4
@@ -799,6 +886,9 @@
           "const": true
         },
         "held_or_blocked_require_audit_for_all_actions": {
+          "const": true
+        },
+        "effective_decision_precedence_validated": {
           "const": true
         },
         "blocked_or_held_creates_downstream_artifacts": {
@@ -954,6 +1044,17 @@
           "const": "lane2"
         }
       }
+    }
+  },
+  "$defs": {
+    "safety_action": {
+      "enum": [
+        "allow",
+        "warn",
+        "require_user_confirmation",
+        "require_admin_review",
+        "block"
+      ]
     }
   }
 }

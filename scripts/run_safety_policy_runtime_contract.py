@@ -317,6 +317,69 @@ def replay_override_downgrade_cases(
     return cases
 
 
+def replay_effective_decision_precedence_cases(contract: dict[str, Any]) -> list[dict[str, Any]]:
+    cases = []
+    seen_ids: set[str] = set()
+
+    for case in contract["pipeline_sequence_contract"]["effective_decision_precedence_cases"]:
+        case_id = case["case_id"]
+        seen_ids.add(case_id)
+        per_point = case["per_point_decisions"]
+        require(set(per_point) == SAFETY_POINTS, f"{case_id} must declare every safety point")
+        require(set(per_point.values()) <= set(ACTION_PRIORITY), f"{case_id} contains unknown safety decisions")
+
+        effective_decision = max(per_point.values(), key=lambda decision: ACTION_PRIORITY[decision])
+        export_gate = ACTION_EXPORT_GATES[effective_decision]
+        final_export_allowed = effective_decision in {"allow", "warn"}
+        creates_downstream_artifacts = final_export_allowed
+
+        require(case["expected_effective_decision"] == effective_decision, f"{case_id} effective decision mismatch")
+        require(case["expected_export_gate"] == export_gate, f"{case_id} export gate mismatch")
+        require(case["final_export_allowed"] is final_export_allowed, f"{case_id} final export mismatch")
+        require(case["requires_audit"] is (effective_decision != "allow"), f"{case_id} audit requirement mismatch")
+        require(case["trace_status_required"] is True, f"{case_id} must require trace status")
+        require(case["persisted_decision_required"] is True, f"{case_id} must require persisted decisions")
+        require(
+            case["creates_downstream_artifacts"] is creates_downstream_artifacts,
+            f"{case_id} downstream artifact behavior mismatch",
+        )
+        if not final_export_allowed:
+            require(
+                per_point["export"] == effective_decision
+                or ACTION_PRIORITY[per_point["export"]] < ACTION_PRIORITY[effective_decision],
+                f"{case_id} must deny export even when export-point decision is weaker than an earlier decision",
+            )
+
+        cases.append(
+            {
+                "case_id": case_id,
+                "per_point_decisions": per_point,
+                "expected_effective_decision": effective_decision,
+                "expected_export_gate": export_gate,
+                "final_export_allowed": final_export_allowed,
+                "requires_audit": effective_decision != "allow",
+                "trace_status_required": True,
+                "persisted_decision_required": True,
+                "creates_downstream_artifacts": creates_downstream_artifacts,
+                "result": "passed",
+            }
+        )
+
+    require(len(seen_ids) == len(cases), "effective decision precedence case IDs must be unique")
+    require(
+        {
+            "safety_effective_all_allow_allows_export",
+            "safety_effective_brief_warn_survives_later_allow",
+            "safety_effective_provider_request_confirmation_survives_export_allow",
+            "safety_effective_provider_response_admin_review_beats_qa_warn",
+            "safety_effective_qa_block_beats_export_allow",
+            "safety_effective_export_block_wins_last",
+        } <= seen_ids,
+        "effective decision precedence replay must cover allow, warn, held, and blocked aggregation",
+    )
+    return cases
+
+
 def replay_fixture_links(
     contract: dict[str, Any],
     eval_by_fixture: dict[str, dict[str, Any]],
@@ -462,6 +525,10 @@ def validate_declared_replay_contract(contract: dict[str, Any], summary: dict[st
     require(declared["fail_closed_cases_replayed"] == summary["fail_closed_cases"], "fail-closed replay count mismatch")
     require(declared["bypass_prevention_cases_replayed"] == summary["bypass_prevention_cases"], "bypass replay count mismatch")
     require(declared["override_downgrade_cases_replayed"] == summary["override_downgrade_cases"], "override downgrade replay count mismatch")
+    require(
+        declared["effective_decision_precedence_cases_replayed"] == summary["effective_decision_precedence_cases"],
+        "effective decision precedence replay count mismatch",
+    )
     require(declared["fixture_link_cases_replayed"] == summary["fixture_link_cases"], "fixture link replay count mismatch")
     require(
         declared["fixture_link_point_decision_refs_replayed"] == summary["fixture_link_point_decision_refs"],
@@ -485,6 +552,10 @@ def validate_declared_replay_contract(contract: dict[str, Any], summary: dict[st
         declared["held_or_blocked_require_audit_for_all_actions"] == summary["held_or_blocked_require_audit_for_all_actions"],
         "held/block audit replay mismatch",
     )
+    require(
+        declared["effective_decision_precedence_validated"] == summary["effective_decision_precedence_validated"],
+        "effective decision precedence replay mismatch",
+    )
     require(declared["blocked_or_held_creates_downstream_artifacts"] is False, "blocked/held replay must be fail-closed")
     require(declared["trace_status_required_for_all_transitions"] is True, "all transitions must require trace status")
     require(declared["persisted_decision_required_for_all_actions"] is True, "all actions must require persisted decisions")
@@ -500,6 +571,7 @@ def run() -> dict[str, Any]:
     fail_closed = replay_fail_closed_cases(contract)
     bypass = replay_bypass_cases(contract)
     override_downgrades = replay_override_downgrade_cases(contract, eval_by_fixture)
+    effective_precedence = replay_effective_decision_precedence_cases(contract)
     fixture_links = replay_fixture_links(contract, eval_by_fixture, trace_by_fixture)
     decision_redaction = replay_decision_redaction_cases(contract)
 
@@ -513,6 +585,7 @@ def run() -> dict[str, Any]:
         "fail_closed_cases": len(fail_closed),
         "bypass_prevention_cases": len(bypass),
         "override_downgrade_cases": len(override_downgrades),
+        "effective_decision_precedence_cases": len(effective_precedence),
         "fixture_link_cases": len(fixture_links),
         "fixture_link_point_decision_refs": sum(len(item["per_point_decision_refs"]) for item in fixture_links),
         "decision_redaction_cases": len(decision_redaction),
@@ -531,6 +604,12 @@ def run() -> dict[str, Any]:
             item["audit_required"]
             for item in decisions
             if item["runtime_outcome"] in {"held_for_user_confirmation", "held_for_admin_review", "blocked"}
+        ),
+        "effective_decision_precedence_validated": all(
+            item["expected_effective_decision"]
+            == max(item["per_point_decisions"].values(), key=lambda decision: ACTION_PRIORITY[decision])
+            and item["expected_export_gate"] == ACTION_EXPORT_GATES[item["expected_effective_decision"]]
+            for item in effective_precedence
         ),
         "blocked_or_held_creates_downstream_artifacts": any(item["creates_downstream_artifacts"] for item in blocked_or_held),
         "trace_status_required_for_all_transitions": all(item["trace_status_required"] for item in transitions + bypass),
@@ -552,6 +631,7 @@ def run() -> dict[str, Any]:
         "fail_closed_results": fail_closed,
         "bypass_prevention_results": bypass,
         "override_downgrade_results": override_downgrades,
+        "effective_decision_precedence_results": effective_precedence,
         "decision_redaction_results": decision_redaction,
         "fixture_link_results": fixture_links,
     }
@@ -578,6 +658,7 @@ def main() -> int:
             f"{summary['fail_closed_cases']} fail-closed cases, "
             f"{summary['bypass_prevention_cases']} bypass cases, "
             f"{summary['override_downgrade_cases']} override downgrade cases, "
+            f"{summary['effective_decision_precedence_cases']} effective-decision cases, "
             f"{summary['decision_redaction_cases']} redaction cases)"
         )
     return 0
