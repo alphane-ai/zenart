@@ -297,7 +297,7 @@ def validate_openapi_eval_result_schema() -> None:
         require(parameter in eval_path_body, f"OpenAPI /eval/results missing {parameter}")
 
     for field in [
-        "id",
+        "result_id",
         "suite_id",
         "subject",
         "status",
@@ -395,10 +395,11 @@ def validate_openapi_eval_result_schema() -> None:
         "fixtures/stage0/rev2/eval/safety_rules.json" in body,
         "OpenAPI EvalResult runner contract must enumerate safety digest path",
     )
-    require(
-        "fixtures/stage0/rev2/workflows/" in body,
-        "OpenAPI EvalResult runner contract must allow workflow digest paths",
-    )
+    for digest in expected_source_fixture_digests():
+        require(
+            digest["path"] in body,
+            f"OpenAPI EvalResult runner contract must enumerate source digest path {digest['path']}",
+        )
     for field in ["required_columns", "required_indexes", "required_query_filters", "latest_result_resolvable"]:
         require_field_in_schema(body, "EvalResult.storage_contract", field)
     for field in [

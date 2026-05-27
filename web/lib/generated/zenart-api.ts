@@ -2,7 +2,7 @@
 // OpenAPI source: openapi/zenart.v1.yaml
 import { buildCsrfRequestHeaders, defaultSameSiteCsrfContract } from "../request-security";
 
-export const OPENAPI_SHA256 = "aa4a8e10996552740aef95a5769bec3b338e61ef50aef1a69a8a74ddac5762db";
+export const OPENAPI_SHA256 = "2539cfffc5b9cf34da286ee99b82fe9a364c09ca3966b874dc70908bf7127e4c";
 export const API_AUDIENCE = "web" as const;
 
 export type FieldError = {

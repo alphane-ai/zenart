@@ -2934,9 +2934,10 @@ components:
           format: date-time
     EvalResult:
       type: object
-      required: [id, suite_id, subject, status, completed_at, created_at, summary, fixture_results, runner_contract, storage_contract]
+      description: Stored eval result projection from eval_results.summary, runner, and storage contract columns; admin reads expose replay provenance, source fixture digests, QA/export gates, and trace contracts without re-running the eval suite.
+      required: [result_id, suite_id, subject, status, completed_at, created_at, summary, fixture_results, runner_contract, storage_contract]
       properties:
-        id:
+        result_id:
           type: string
         suite_id:
           type: string
@@ -3030,6 +3031,7 @@ components:
                 enum: [brief, provider_request, provider_response, qa, export]
         fixture_results:
           type: array
+          description: Per-fixture stored gate projection. Each item exposes safety, QA coverage, trace completeness, export completeness, and QA export gate fields directly from the persisted eval result summary.
           items:
             type: object
             required:
@@ -3242,6 +3244,7 @@ components:
                   type: string
         storage_contract:
           type: object
+          description: Stored eval_results contract projected with the result so admin reads can verify immutability, idempotent replay, retention, and read_without_eval_rerun behavior.
           required:
             - table
             - required_columns
@@ -3415,6 +3418,7 @@ components:
               const: true
         runner_contract:
           type: object
+          description: Deterministic replay provenance projected with the result, including the runner hash and source_fixture_digests used to decide whether stored eval evidence is stale.
           required: [runner, runner_sha256, deterministic_replay_command, writes_stored_fixture, check_mode_compares_exact_json, source_fixture_digests]
           properties:
             runner:
@@ -3444,7 +3448,7 @@ components:
                   path:
                     type: string
                     pattern: "^(fixtures/stage0/rev2/eval/(starter_eval_suite|qa_results|safety_rules)\\.json|fixtures/stage0/rev2/workflows/[a-z0-9_]+\\.json)$"
-                    description: "Allowed examples include fixtures/stage0/rev2/eval/starter_eval_suite.json, fixtures/stage0/rev2/eval/qa_results.json, fixtures/stage0/rev2/eval/safety_rules.json, and fixtures/stage0/rev2/workflows/*.json."
+                    description: "Exact Stage 0 Rev2 replay sources: fixtures/stage0/rev2/eval/starter_eval_suite.json, fixtures/stage0/rev2/eval/qa_results.json, fixtures/stage0/rev2/eval/safety_rules.json, fixtures/stage0/rev2/workflows/business_visual_doc_pack.json, fixtures/stage0/rev2/workflows/character_ip_concept_pack.json, fixtures/stage0/rev2/workflows/ecommerce_growth_pack.json, and fixtures/stage0/rev2/workflows/local_merchant_campaign_pack.json."
                   sha256:
                     type: string
                     pattern: "^[a-f0-9]{64}$"

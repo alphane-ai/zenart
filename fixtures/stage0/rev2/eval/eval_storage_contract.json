@@ -621,6 +621,68 @@
       }
     ]
   },
+  "result_projection_contract": {
+    "response_schema": "EvalResult",
+    "list_response_schema": "EvalResultPage",
+    "projection_source": "eval_results.summary_runner_storage_contract",
+    "requires_runner_contract_projection": true,
+    "requires_source_fixture_digest_projection": true,
+    "requires_storage_contract_projection": true,
+    "requires_fixture_gate_projection": true,
+    "requires_trace_export_qa_projection": true,
+    "requires_read_without_eval_rerun": true,
+    "projected_top_level_fields": [
+      "result_id",
+      "suite_id",
+      "subject",
+      "status",
+      "completed_at",
+      "created_at",
+      "summary",
+      "fixture_results",
+      "runner_contract",
+      "storage_contract"
+    ],
+    "projected_runner_fields": [
+      "runner",
+      "runner_sha256",
+      "deterministic_replay_command",
+      "writes_stored_fixture",
+      "check_mode_compares_exact_json",
+      "source_fixture_digests"
+    ],
+    "projected_storage_fields": [
+      "required_columns",
+      "required_indexes",
+      "required_query_filters",
+      "summary_projection_fields",
+      "fixture_result_projection_fields",
+      "admin_read_projection_required",
+      "read_without_eval_rerun",
+      "latest_result_resolvable",
+      "immutable_rows",
+      "idempotent_replay_key",
+      "idempotent_replay_conflict_policy",
+      "retention_contract",
+      "no_public_delete_operation"
+    ],
+    "projected_fixture_fields": [
+      "fixture_id",
+      "category",
+      "workflow",
+      "status",
+      "expected_safety_action",
+      "observed_safety_action",
+      "safety_decision_contract",
+      "qa_check_ids",
+      "qa_coverage_contract",
+      "trace_contract",
+      "export_contract",
+      "qa_export_gate",
+      "failure_reasons"
+    ],
+    "verified_by": "scripts/validate_eval_storage_contract.py"
+  },
   "replay_contract": {
     "check_command": "python3 scripts/run_stage0_eval.py --check",
     "check_mode_compares_exact_json": true,

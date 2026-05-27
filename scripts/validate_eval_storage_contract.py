@@ -123,6 +123,44 @@ FIXTURE_RESULT_PROJECTION_FIELDS = {
     "failure_reasons",
 }
 
+TOP_LEVEL_RESULT_PROJECTION_FIELDS = {
+    "result_id",
+    "suite_id",
+    "subject",
+    "status",
+    "completed_at",
+    "created_at",
+    "summary",
+    "fixture_results",
+    "runner_contract",
+    "storage_contract",
+}
+
+RUNNER_PROJECTION_FIELDS = {
+    "runner",
+    "runner_sha256",
+    "deterministic_replay_command",
+    "writes_stored_fixture",
+    "check_mode_compares_exact_json",
+    "source_fixture_digests",
+}
+
+STORAGE_PROJECTION_FIELDS = {
+    "required_columns",
+    "required_indexes",
+    "required_query_filters",
+    "summary_projection_fields",
+    "fixture_result_projection_fields",
+    "admin_read_projection_required",
+    "read_without_eval_rerun",
+    "latest_result_resolvable",
+    "immutable_rows",
+    "idempotent_replay_key",
+    "idempotent_replay_conflict_policy",
+    "retention_contract",
+    "no_public_delete_operation",
+}
+
 
 class EvalStorageContractError(Exception):
     pass
@@ -138,6 +176,15 @@ def load_json(path: Path) -> Any:
 def require(condition: bool, message: str) -> None:
     if not condition:
         raise EvalStorageContractError(message)
+
+
+def require_field_in_openapi_schema(body: str, schema_name: str, field: str) -> None:
+    require(f"{field}:" in body, f"OpenAPI schema {schema_name} missing {field}")
+    require(
+        re.search(rf"required: \[[^\]]*\b{re.escape(field)}\b", body)
+        or re.search(rf"^\s+- {re.escape(field)}$", body, flags=re.MULTILINE),
+        f"OpenAPI schema {schema_name} must require {field}",
+    )
 
 
 def runner_sha256() -> str:
@@ -889,6 +936,83 @@ def validate_read_and_openapi_contract(contract: dict[str, Any]) -> None:
         require(token in result, f"OpenAPI EvalResult storage retention contract missing {token}")
 
 
+def validate_result_projection_contract(contract: dict[str, Any], result_fixture: dict[str, Any]) -> None:
+    projection = contract["result_projection_contract"]
+    openapi = OPENAPI.read_text(encoding="utf-8")
+    result_schema = schema_block(openapi, projection["response_schema"])
+    page_schema = schema_block(openapi, projection["list_response_schema"])
+
+    require(projection["response_schema"] == "EvalResult", "eval result projection response schema mismatch")
+    require(projection["list_response_schema"] == "EvalResultPage", "eval result projection page schema mismatch")
+    require(
+        projection["projection_source"] == "eval_results.summary_runner_storage_contract",
+        "eval result projection source must bind summary, runner, and storage contracts",
+    )
+    for flag in [
+        "requires_runner_contract_projection",
+        "requires_source_fixture_digest_projection",
+        "requires_storage_contract_projection",
+        "requires_fixture_gate_projection",
+        "requires_trace_export_qa_projection",
+        "requires_read_without_eval_rerun",
+    ]:
+        require(projection[flag] is True, f"result projection contract must set {flag}")
+    require(
+        projection["verified_by"] == "scripts/validate_eval_storage_contract.py",
+        "result projection validator mismatch",
+    )
+
+    require(
+        set(projection["projected_top_level_fields"]) == TOP_LEVEL_RESULT_PROJECTION_FIELDS,
+        "result projection top-level fields mismatch",
+    )
+    require(
+        set(projection["projected_runner_fields"]) == RUNNER_PROJECTION_FIELDS,
+        "result projection runner fields mismatch",
+    )
+    require(
+        set(projection["projected_storage_fields"]) == STORAGE_PROJECTION_FIELDS,
+        "result projection storage fields mismatch",
+    )
+    require(
+        set(projection["projected_fixture_fields"]) == FIXTURE_RESULT_PROJECTION_FIELDS,
+        "result projection fixture fields mismatch",
+    )
+
+    require(
+        "items:" in page_schema and '$ref: "#/components/schemas/EvalResult"' in page_schema,
+        "EvalResultPage must project EvalResult items",
+    )
+    for field in projection["projected_top_level_fields"]:
+        require_field_in_openapi_schema(result_schema, "EvalResult", field)
+        require(field in result_fixture, f"stored eval result fixture missing projected top-level field {field}")
+    for field in projection["projected_runner_fields"]:
+        require_field_in_openapi_schema(result_schema, "EvalResult.runner_contract", field)
+        require(field in result_fixture["runner_contract"], f"stored eval result fixture missing runner projection {field}")
+    for field in projection["projected_storage_fields"]:
+        require_field_in_openapi_schema(result_schema, "EvalResult.storage_contract", field)
+        require(field in result_fixture["storage_contract"], f"stored eval result fixture missing storage projection {field}")
+    for field in projection["projected_fixture_fields"]:
+        require_field_in_openapi_schema(result_schema, "EvalResult.fixture_results", field)
+        require(
+            all(field in item for item in result_fixture["fixture_results"]),
+            f"stored eval result fixture missing per-fixture projection {field}",
+        )
+    for digest in result_fixture["runner_contract"]["source_fixture_digests"]:
+        require(
+            digest["path"] in result_schema,
+            f"OpenAPI EvalResult runner projection missing digest path {digest['path']}",
+        )
+    require(
+        "read_without_eval_rerun" in result_schema and "source_fixture_digests" in result_schema,
+        "OpenAPI EvalResult projection must expose no-rerun replay provenance",
+    )
+    require(
+        "qa_export_gate" in result_schema and "trace_contract" in result_schema and "export_contract" in result_schema,
+        "OpenAPI EvalResult projection must expose QA, trace, and export gate evidence",
+    )
+
+
 def validate_retention_and_release_gate(contract: dict[str, Any]) -> None:
     retention = contract["retention_contract"]
     retention_fixture = contract["retention_fixture_contract"]
@@ -1016,6 +1140,7 @@ def main() -> int:
         validate_read_fixture_contract(contract)
         validate_write_and_replay_contract(contract)
         validate_read_and_openapi_contract(contract)
+        validate_result_projection_contract(contract, result)
         validate_retention_and_release_gate(contract)
     except EvalStorageContractError as exc:
         print(f"eval storage contract validation failed: {exc}", file=sys.stderr)
