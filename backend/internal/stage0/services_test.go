@@ -2263,6 +2263,14 @@ func TestListAnalyticsReportsUsesTenantScopedWeeklyAggregation(t *testing.T) {
 		"object_orphaned",
 		"object_deleted",
 		"export_object_cleanup_run",
+		"weekly_return",
+		"current_active_users",
+		"previous_active_users",
+		"returning_users",
+		"cost_per_successful_package",
+		"provider_usage_logs",
+		"provider_cost_cents",
+		"successful_packages",
 	} {
 		if !strings.Contains(query.sql, fragment) {
 			t.Fatalf("analytics reports query missing core workflow event/report %q: %s", fragment, query.sql)

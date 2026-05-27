@@ -2256,6 +2256,44 @@ WITH event_counts AS (
 	FROM analytics_events
 	WHERE tenant_id = $1
 	  AND created_at >= $2
+),
+weekly_return_counts AS (
+	WITH current_users AS (
+		SELECT DISTINCT user_id
+		FROM analytics_events
+		WHERE tenant_id = $1
+		  AND created_at >= $2
+		  AND NULLIF(user_id, '') IS NOT NULL
+	),
+	previous_users AS (
+		SELECT DISTINCT user_id
+		FROM analytics_events
+		WHERE tenant_id = $1
+		  AND created_at >= $2 - interval '7 days'
+		  AND created_at < $2
+		  AND NULLIF(user_id, '') IS NOT NULL
+	)
+	SELECT
+		(SELECT COUNT(*) FROM current_users) AS current_active_users,
+		(SELECT COUNT(*) FROM previous_users) AS previous_active_users,
+		(SELECT COUNT(*) FROM current_users JOIN previous_users USING (user_id)) AS returning_users
+),
+cost_counts AS (
+	SELECT
+		COALESCE(SUM(cost_cents), 0) AS provider_cost_cents,
+		COALESCE(SUM(usage_units), 0) AS provider_usage_units
+	FROM provider_usage_logs
+	WHERE tenant_id = $1
+	  AND created_at >= $2
+	  AND status IN ('recorded', 'succeeded', 'success')
+),
+successful_package_counts AS (
+	SELECT
+		COUNT(DISTINCT NULLIF(properties->>'package_id', '')) AS successful_packages
+	FROM analytics_events
+	WHERE tenant_id = $1
+	  AND created_at >= $2
+	  AND event_name = 'export_completed'
 )
 SELECT metric_name, source_events, required_dimensions, go_no_go_signal, window_name, metric_value, dimensions
 FROM (
@@ -2358,6 +2396,26 @@ FROM (
 	       object_deleted::numeric,
 	       jsonb_build_object('export_expired', export_expired, 'object_orphaned', object_orphaned, 'object_deleted', object_deleted, 'cleanup_runs', export_object_cleanup_run)
 	FROM event_counts
+	UNION ALL
+	SELECT 11,
+	       'weekly_return',
+	       ARRAY['analytics_events']::text[],
+	       ARRAY['tenant_id','user_id','created_at']::text[],
+	       true,
+	       'weekly',
+	       CASE WHEN previous_active_users = 0 THEN 0 ELSE returning_users::numeric / NULLIF(previous_active_users, 0) END,
+	       jsonb_build_object('current_active_users', current_active_users, 'previous_active_users', previous_active_users, 'returning_users', returning_users)
+	FROM weekly_return_counts
+	UNION ALL
+	SELECT 12,
+	       'cost_per_successful_package',
+	       ARRAY['provider_usage_logs','export_completed']::text[],
+	       ARRAY['tenant_id','cost_cents','usage_units','package_id']::text[],
+	       (CASE WHEN successful_packages = 0 THEN true ELSE provider_cost_cents::numeric / NULLIF(successful_packages, 0) <= 500 END),
+	       'weekly',
+	       CASE WHEN successful_packages = 0 THEN 0 ELSE provider_cost_cents::numeric / NULLIF(successful_packages, 0) END,
+	       jsonb_build_object('provider_cost_cents', provider_cost_cents, 'provider_usage_units', provider_usage_units, 'successful_packages', successful_packages)
+	FROM cost_counts CROSS JOIN successful_package_counts
 ) reports
 ORDER BY ord
 LIMIT $3`,
