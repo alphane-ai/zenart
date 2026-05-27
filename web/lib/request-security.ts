@@ -22,6 +22,18 @@ const meetsSameSiteRequirement = (
   requirement: SessionContract["csrf"]["sameSiteRequired"]
 ) => requirement === "lax-or-strict" && (sameSite === "lax" || sameSite === "strict");
 
+const sameSiteAcceptanceValues: SessionContract["cookie"]["sameSite"][] = ["lax", "strict", "none"];
+
+const buildSameSiteAcceptanceMatrix = (requirement: SessionContract["csrf"]["sameSiteRequired"]) =>
+  sameSiteAcceptanceValues.map((sameSite) => {
+    const accepted = meetsSameSiteRequirement(sameSite, requirement);
+    return {
+      sameSite,
+      status: accepted ? "pass" : "fail",
+      failureReason: accepted ? "" : "cookie-same-site"
+    } as const;
+  });
+
 export const buildCsrfRequestHeaders = (
   method: HttpMethod,
   headers: Record<string, string> = {},
@@ -66,6 +78,7 @@ export const buildSessionSecurityContractEvidence = (
   ].filter(Boolean);
   const cookiePass = cookieFailureReasons.length === 0;
   const csrfPass = csrfFailureReasons.length === 0;
+  const sameSiteAcceptanceMatrix = buildSameSiteAcceptanceMatrix(sessionContract.csrf.sameSiteRequired);
 
   return {
     schema_version: "stage0.rev2.session-csrf-client-evidence",
@@ -77,6 +90,13 @@ export const buildSessionSecurityContractEvidence = (
       sameSite: sessionContract.cookie.sameSite,
       path: sessionContract.cookie.path
     },
+    acceptedSameSiteValues: sameSiteAcceptanceMatrix
+      .filter((entry) => entry.status === "pass")
+      .map((entry) => entry.sameSite as "lax" | "strict"),
+    rejectedSameSiteValues: sameSiteAcceptanceMatrix
+      .filter((entry) => entry.status === "fail")
+      .map((entry) => entry.sameSite as "none"),
+    sameSiteAcceptanceMatrix,
     sameSiteRequirement: sessionContract.csrf.sameSiteRequired,
     csrfStrategy: sessionContract.csrf.strategy,
     csrfHeaderName: sessionContract.csrf.headerName,

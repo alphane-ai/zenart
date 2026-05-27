@@ -11,6 +11,9 @@
     "requiredAssertions": [
       "account route exposes secure-cookie, same-site CSRF, unsafe-action guard, and generated-client request browser evidence",
       "data-session-security-evidence",
+      "data-session-cookie-same-site-accepted-values",
+      "data-session-cookie-same-site-rejected-values",
+      "data-session-cookie-same-site-acceptance-matrix",
       "data-session-csrf-strategy",
       "data-session-csrf-credential-mode",
       "data-session-csrf-same-site-requirement",

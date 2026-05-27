@@ -133,10 +133,16 @@
         "secureAttribute": "data-session-cookie-secure",
         "sameSiteAttribute": "data-session-cookie-same-site",
         "pathAttribute": "data-session-cookie-path",
+        "sameSiteAcceptedValuesAttribute": "data-session-cookie-same-site-accepted-values",
+        "sameSiteRejectedValuesAttribute": "data-session-cookie-same-site-rejected-values",
+        "sameSiteAcceptanceMatrixAttribute": "data-session-cookie-same-site-acceptance-matrix",
         "expectedHttpOnly": "true",
         "expectedSecure": "true",
         "expectedSameSite": "lax",
-        "expectedPath": "/"
+        "expectedPath": "/",
+        "expectedSameSiteAcceptedValues": "lax,strict",
+        "expectedSameSiteRejectedValues": "none",
+        "expectedSameSiteAcceptanceMatrix": "lax:pass:none|strict:pass:none|none:fail:cookie-same-site"
       },
       "csrf": {
         "strategyAttribute": "data-session-csrf-strategy",
@@ -295,6 +301,9 @@
       "browserSmokeRequiredAssertions": [
         "account route exposes secure-cookie, same-site CSRF, unsafe-action guard, and generated-client request browser evidence",
         "data-session-security-evidence",
+        "data-session-cookie-same-site-accepted-values",
+        "data-session-cookie-same-site-rejected-values",
+        "data-session-cookie-same-site-acceptance-matrix",
         "data-session-csrf-strategy",
         "data-session-csrf-credential-mode",
         "data-session-csrf-same-site-requirement",

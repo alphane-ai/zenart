@@ -680,6 +680,9 @@ function SessionPanel({
     `SameSite=${state.sessionContract.cookie.sameSite}`,
     `Path=${state.sessionContract.cookie.path}`
   ].join(" · ");
+  const sameSiteAcceptanceContracts = evidence.sameSiteAcceptanceMatrix
+    .map((entry) => `${entry.sameSite}:${entry.status}:${entry.failureReason || "none"}`)
+    .join("|");
 
   return (
     <section
@@ -693,6 +696,9 @@ function SessionPanel({
       data-session-cookie-secure={String(evidence.cookieAttributes.secure)}
       data-session-cookie-same-site={evidence.cookieAttributes.sameSite}
       data-session-cookie-path={evidence.cookieAttributes.path}
+      data-session-cookie-same-site-accepted-values={evidence.acceptedSameSiteValues.join(",")}
+      data-session-cookie-same-site-rejected-values={evidence.rejectedSameSiteValues.join(",")}
+      data-session-cookie-same-site-acceptance-matrix={sameSiteAcceptanceContracts}
       data-session-csrf-strategy={evidence.csrfStrategy}
       data-session-csrf-header={evidence.csrfHeaderName}
       data-session-csrf-credential-mode={evidence.credentialMode}

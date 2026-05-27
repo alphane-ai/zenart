@@ -52,6 +52,12 @@ test("account route exposes secure-cookie, same-site CSRF, unsafe-action guard, 
   await expect(sessionContract).toHaveAttribute("data-session-cookie-secure", "true");
   await expect(sessionContract).toHaveAttribute("data-session-cookie-same-site", "lax");
   await expect(sessionContract).toHaveAttribute("data-session-cookie-path", "/");
+  await expect(sessionContract).toHaveAttribute("data-session-cookie-same-site-accepted-values", "lax,strict");
+  await expect(sessionContract).toHaveAttribute("data-session-cookie-same-site-rejected-values", "none");
+  await expect(sessionContract).toHaveAttribute(
+    "data-session-cookie-same-site-acceptance-matrix",
+    "lax:pass:none|strict:pass:none|none:fail:cookie-same-site"
+  );
   await expect(sessionContract).toHaveAttribute("data-session-csrf-strategy", "same-site-origin-check");
   await expect(sessionContract).toHaveAttribute("data-session-csrf-header", "X-ZenArt-CSRF");
   await expect(sessionContract).toHaveAttribute("data-session-csrf-credential-mode", "include");

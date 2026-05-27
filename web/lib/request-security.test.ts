@@ -46,6 +46,13 @@ describe("same-site CSRF request contract", () => {
         sameSite: "lax",
         path: "/"
       },
+      acceptedSameSiteValues: ["lax", "strict"],
+      rejectedSameSiteValues: ["none"],
+      sameSiteAcceptanceMatrix: [
+        { sameSite: "lax", status: "pass", failureReason: "" },
+        { sameSite: "strict", status: "pass", failureReason: "" },
+        { sameSite: "none", status: "fail", failureReason: "cookie-same-site" }
+      ],
       sameSiteRequirement: "lax-or-strict",
       csrfStrategy: "same-site-origin-check",
       csrfHeaderName: "X-ZenArt-CSRF",

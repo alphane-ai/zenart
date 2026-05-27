@@ -48,6 +48,13 @@ export interface SessionSecurityContractEvidence {
     sameSite: SessionContract["cookie"]["sameSite"];
     path: string;
   };
+  acceptedSameSiteValues: Array<"lax" | "strict">;
+  rejectedSameSiteValues: Array<"none">;
+  sameSiteAcceptanceMatrix: Array<{
+    sameSite: SessionContract["cookie"]["sameSite"];
+    status: "pass" | "fail";
+    failureReason: "" | "cookie-same-site";
+  }>;
   sameSiteRequirement: SessionContract["csrf"]["sameSiteRequired"];
   csrfStrategy: SessionContract["csrf"]["strategy"];
   csrfHeaderName: SessionContract["csrf"]["headerName"];

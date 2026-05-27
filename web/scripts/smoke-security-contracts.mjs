@@ -211,6 +211,9 @@ const requiredSessionAttributes = [
   sessionEvidence.cookie?.secureAttribute,
   sessionEvidence.cookie?.sameSiteAttribute,
   sessionEvidence.cookie?.pathAttribute,
+  sessionEvidence.cookie?.sameSiteAcceptedValuesAttribute,
+  sessionEvidence.cookie?.sameSiteRejectedValuesAttribute,
+  sessionEvidence.cookie?.sameSiteAcceptanceMatrixAttribute,
   sessionEvidence.csrf?.strategyAttribute,
   sessionEvidence.csrf?.headerAttribute,
   sessionEvidence.csrf?.credentialModeAttribute,
@@ -407,10 +410,25 @@ if (
   fail("unsafe-action guard coverage must prove every generated unsafe operation is represented");
 }
 
+if (
+  sessionEvidence.cookie?.expectedSameSiteAcceptedValues !== "lax,strict" ||
+  sessionEvidence.cookie?.expectedSameSiteRejectedValues !== "none" ||
+  sessionEvidence.cookie?.expectedSameSiteAcceptanceMatrix !== "lax:pass:none|strict:pass:none|none:fail:cookie-same-site" ||
+  !requestSecuritySource.includes("sameSiteAcceptanceMatrix") ||
+  !workspaceAppSource.includes("data-session-cookie-same-site-accepted-values") ||
+  !workspaceAppSource.includes("data-session-cookie-same-site-rejected-values") ||
+  !workspaceAppSource.includes("data-session-cookie-same-site-acceptance-matrix")
+) {
+  fail("session evidence must expose the lax/strict SameSite acceptance matrix and reject SameSite=None");
+}
+
 for (const requiredTestSnippet of [
   "renders secure-cookie and same-site CSRF session UX evidence as an interactive client contract",
   "blocks unsafe workspace actions when the same-site session is expired",
   "data-session-security-status",
+  "data-session-cookie-same-site-accepted-values",
+  "data-session-cookie-same-site-rejected-values",
+  "data-session-cookie-same-site-acceptance-matrix",
   "data-session-unsafe-action-status",
   "data-session-unsafe-action-guard-coverage-status",
   "data-session-unsafe-action-blocked-control-count",
@@ -437,6 +455,9 @@ for (const requiredBrowserSnippet of [
   "data-session-cookie-http-only",
   "data-session-cookie-secure",
   "data-session-cookie-same-site",
+  "data-session-cookie-same-site-accepted-values",
+  "data-session-cookie-same-site-rejected-values",
+  "data-session-cookie-same-site-acceptance-matrix",
   "data-session-backend-runtime-pairing",
   "data-session-backend-runtime-pairing-status",
   "data-session-backend-set-cookie-contract",
