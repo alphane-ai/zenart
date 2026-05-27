@@ -81,6 +81,56 @@ FAIL_CLOSED_CASES = {
     "safety_review_hold_denies_transition": ("held_review_decision", "ErrSafetyReviewHold", True),
 }
 
+BYPASS_PREVENTION_CASES = {
+    "safety_bypass_brief_completion_denied": (
+        "brief_completion",
+        "confirm_brief_without_policy_decision",
+        "brief",
+        "brief_confirmed",
+        "ErrValidation",
+    ),
+    "safety_bypass_provider_request_dispatch_denied": (
+        "provider_request_dispatch",
+        "call_provider_without_provider_request_policy_decision",
+        "provider_request",
+        "provider_call",
+        "ErrValidation",
+    ),
+    "safety_bypass_provider_response_acceptance_denied": (
+        "provider_response_acceptance",
+        "accept_asset_without_provider_response_policy_decision",
+        "provider_response",
+        "candidate_asset_acceptance",
+        "ErrSafetyBlocked",
+    ),
+    "safety_bypass_qa_completion_denied": (
+        "qa_completion",
+        "mark_qa_complete_without_qa_policy_decision",
+        "qa",
+        "package_export_allowed",
+        "ErrSafetyReviewHold",
+    ),
+    "safety_bypass_export_creation_denied": (
+        "export_creation",
+        "create_export_task_without_export_policy_decision",
+        "export",
+        "export_task_created",
+        "ErrSafetyBlocked",
+    ),
+    "safety_bypass_export_artifact_recording_denied": (
+        "export_artifact_recording",
+        "record_downloadable_artifact_without_export_policy_decision",
+        "export",
+        "downloadable_artifact_recorded",
+        "ErrSafetyBlocked",
+    ),
+}
+
+BACKEND_EVIDENCE_FILES = {
+    "backend/internal/stage0/services.go": STAGE0_SERVICE,
+    "backend/internal/stage0/services_test.go": STAGE0_TEST,
+}
+
 
 class SafetyContractError(Exception):
     pass
@@ -414,6 +464,79 @@ def validate_pipeline_sequence_contract(contract: dict[str, Any]) -> None:
         "want ErrValidation",
     ]:
         require(token in tests, f"safety fail-closed backend test evidence missing {token}")
+
+    validate_bypass_prevention_cases(pipeline, service, tests)
+
+
+def validate_bypass_prevention_cases(pipeline: dict[str, Any], service: str, tests: str) -> None:
+    transitions_by_stage = {
+        transition["stage"]: transition
+        for transition in pipeline["transition_gates"]
+    }
+    cases = {
+        case["case_id"]: case
+        for case in pipeline["bypass_prevention_cases"]
+    }
+    require(set(cases) == set(BYPASS_PREVENTION_CASES), "safety bypass-prevention case ids mismatch")
+
+    seen_transitions: set[str] = set()
+    seen_points: set[str] = set()
+    for case_id, (
+        stage,
+        attempted_bypass,
+        skipped_point,
+        downstream_transition,
+        expected_error,
+    ) in BYPASS_PREVENTION_CASES.items():
+        case = cases[case_id]
+        transition = transitions_by_stage[stage]
+        require(case["transition_stage"] == stage, f"{case_id} transition stage mismatch")
+        require(case["attempted_bypass"] == attempted_bypass, f"{case_id} bypass attempt mismatch")
+        require(case["skipped_enforcement_point"] == skipped_point, f"{case_id} skipped point mismatch")
+        require(
+            case["attempted_downstream_transition"] == downstream_transition,
+            f"{case_id} downstream transition mismatch",
+        )
+        require(
+            case["attempted_downstream_transition"] == transition["must_run_before"],
+            f"{case_id} downstream transition must match the transition gate",
+        )
+        require(case["expected_error"] == expected_error, f"{case_id} expected error mismatch")
+        require(case["creates_downstream_artifacts"] is False, f"{case_id} must not create downstream artifacts")
+        require(case["trace_status_required"] is True, f"{case_id} must require trace safety status")
+        require(
+            transition["downstream_artifacts_created_on_block"] is False,
+            f"{case_id} transition gate must fail closed",
+        )
+        require(
+            transition["trace_status_required"] is True,
+            f"{case_id} transition gate must require trace status",
+        )
+        seen_transitions.add(stage)
+        seen_points.add(skipped_point)
+        validate_backend_evidence(case_id, case["backend_evidence"], service, tests)
+
+    require(seen_transitions == set(transitions_by_stage), "bypass cases must cover every transition gate")
+    require(seen_points == SAFETY_POINTS, "bypass cases must cover every safety enforcement point")
+
+
+def validate_backend_evidence(case_id: str, evidence_refs: list[str], service: str, tests: str) -> None:
+    require(len(evidence_refs) >= 2, f"{case_id} must cite backend implementation and test evidence")
+    for ref in evidence_refs:
+        path, _, token = ref.partition(":")
+        require(path in BACKEND_EVIDENCE_FILES, f"{case_id} evidence path is outside backend safety contract scope: {path}")
+        require(token, f"{case_id} evidence ref must include a token after ':'")
+        content = service if path.endswith("services.go") else tests
+        require(token in content, f"{case_id} backend evidence token missing: {ref}")
+
+    require(
+        any(ref.startswith("backend/internal/stage0/services.go:") for ref in evidence_refs),
+        f"{case_id} must cite backend implementation evidence",
+    )
+    require(
+        any(ref.startswith("backend/internal/stage0/services_test.go:") for ref in evidence_refs),
+        f"{case_id} must cite backend test evidence",
+    )
 
 
 def validate_release_policy(contract: dict[str, Any]) -> None:

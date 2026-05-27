@@ -243,6 +243,92 @@
         "creates_downstream_artifacts": false,
         "decision_rows_required_before_error": true
       }
+    ],
+    "bypass_prevention_cases": [
+      {
+        "case_id": "safety_bypass_brief_completion_denied",
+        "transition_stage": "brief_completion",
+        "attempted_bypass": "confirm_brief_without_policy_decision",
+        "skipped_enforcement_point": "brief",
+        "attempted_downstream_transition": "brief_confirmed",
+        "expected_error": "ErrValidation",
+        "creates_downstream_artifacts": false,
+        "trace_status_required": true,
+        "backend_evidence": [
+          "backend/internal/stage0/services.go:tenant_id is required for runtime safety policy",
+          "backend/internal/stage0/services_test.go:TestRunRuntimeSafetyPolicyRequiresAtLeastOneSubject"
+        ]
+      },
+      {
+        "case_id": "safety_bypass_provider_request_dispatch_denied",
+        "transition_stage": "provider_request_dispatch",
+        "attempted_bypass": "call_provider_without_provider_request_policy_decision",
+        "skipped_enforcement_point": "provider_request",
+        "attempted_downstream_transition": "provider_call",
+        "expected_error": "ErrValidation",
+        "creates_downstream_artifacts": false,
+        "trace_status_required": true,
+        "backend_evidence": [
+          "backend/internal/stage0/services.go:IncludeProvider && input.TaskID != \"\"",
+          "backend/internal/stage0/services_test.go:TestRunRuntimeSafetyPolicyCoversAllRev2RuntimePoints"
+        ]
+      },
+      {
+        "case_id": "safety_bypass_provider_response_acceptance_denied",
+        "transition_stage": "provider_response_acceptance",
+        "attempted_bypass": "accept_asset_without_provider_response_policy_decision",
+        "skipped_enforcement_point": "provider_response",
+        "attempted_downstream_transition": "candidate_asset_acceptance",
+        "expected_error": "ErrSafetyBlocked",
+        "creates_downstream_artifacts": false,
+        "trace_status_required": true,
+        "backend_evidence": [
+          "backend/internal/stage0/services.go:EnforceProviderResponseSafety",
+          "backend/internal/stage0/services_test.go:TestSafetyEnforcementHelpersCoverRev2RuntimePoints"
+        ]
+      },
+      {
+        "case_id": "safety_bypass_qa_completion_denied",
+        "transition_stage": "qa_completion",
+        "attempted_bypass": "mark_qa_complete_without_qa_policy_decision",
+        "skipped_enforcement_point": "qa",
+        "attempted_downstream_transition": "package_export_allowed",
+        "expected_error": "ErrSafetyReviewHold",
+        "creates_downstream_artifacts": false,
+        "trace_status_required": true,
+        "backend_evidence": [
+          "backend/internal/stage0/services.go:EnforceQASafety",
+          "backend/internal/stage0/services_test.go:TestRequireSafetyAllowedHoldsForConfirmationAndAdminReview"
+        ]
+      },
+      {
+        "case_id": "safety_bypass_export_creation_denied",
+        "transition_stage": "export_creation",
+        "attempted_bypass": "create_export_task_without_export_policy_decision",
+        "skipped_enforcement_point": "export",
+        "attempted_downstream_transition": "export_task_created",
+        "expected_error": "ErrSafetyBlocked",
+        "creates_downstream_artifacts": false,
+        "trace_status_required": true,
+        "backend_evidence": [
+          "backend/internal/stage0/services.go:INSERT INTO agent_tasks",
+          "backend/internal/stage0/services_test.go:TestCreateExportBlocksWhenExportSafetyRuleBlocks"
+        ]
+      },
+      {
+        "case_id": "safety_bypass_export_artifact_recording_denied",
+        "transition_stage": "export_artifact_recording",
+        "attempted_bypass": "record_downloadable_artifact_without_export_policy_decision",
+        "skipped_enforcement_point": "export",
+        "attempted_downstream_transition": "downloadable_artifact_recorded",
+        "expected_error": "ErrSafetyBlocked",
+        "creates_downstream_artifacts": false,
+        "trace_status_required": true,
+        "backend_evidence": [
+          "backend/internal/stage0/services.go:UPDATE exports",
+          "backend/internal/stage0/services_test.go:TestRecordExportArtifactBlocksWhenExportSafetyRuleBlocks"
+        ]
+      }
     ]
   },
   "decision_matrix": [

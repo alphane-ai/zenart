@@ -166,7 +166,8 @@
       "required": [
         "ordered_enforcement_points",
         "transition_gates",
-        "fail_closed_cases"
+        "fail_closed_cases",
+        "bypass_prevention_cases"
       ],
       "properties": {
         "ordered_enforcement_points": {
@@ -290,6 +291,92 @@
               },
               "decision_rows_required_before_error": {
                 "type": "boolean"
+              }
+            }
+          }
+        },
+        "bypass_prevention_cases": {
+          "type": "array",
+          "minItems": 6,
+          "maxItems": 6,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "case_id",
+              "transition_stage",
+              "attempted_bypass",
+              "skipped_enforcement_point",
+              "attempted_downstream_transition",
+              "expected_error",
+              "creates_downstream_artifacts",
+              "trace_status_required",
+              "backend_evidence"
+            ],
+            "properties": {
+              "case_id": {
+                "type": "string",
+                "pattern": "^safety_bypass_[a-z0-9_]+_denied$"
+              },
+              "transition_stage": {
+                "enum": [
+                  "brief_completion",
+                  "provider_request_dispatch",
+                  "provider_response_acceptance",
+                  "qa_completion",
+                  "export_creation",
+                  "export_artifact_recording"
+                ]
+              },
+              "attempted_bypass": {
+                "enum": [
+                  "confirm_brief_without_policy_decision",
+                  "call_provider_without_provider_request_policy_decision",
+                  "accept_asset_without_provider_response_policy_decision",
+                  "mark_qa_complete_without_qa_policy_decision",
+                  "create_export_task_without_export_policy_decision",
+                  "record_downloadable_artifact_without_export_policy_decision"
+                ]
+              },
+              "skipped_enforcement_point": {
+                "enum": [
+                  "brief",
+                  "provider_request",
+                  "provider_response",
+                  "qa",
+                  "export"
+                ]
+              },
+              "attempted_downstream_transition": {
+                "enum": [
+                  "brief_confirmed",
+                  "provider_call",
+                  "candidate_asset_acceptance",
+                  "package_export_allowed",
+                  "export_task_created",
+                  "downloadable_artifact_recorded"
+                ]
+              },
+              "expected_error": {
+                "enum": [
+                  "ErrValidation",
+                  "ErrSafetyBlocked",
+                  "ErrSafetyReviewHold"
+                ]
+              },
+              "creates_downstream_artifacts": {
+                "const": false
+              },
+              "trace_status_required": {
+                "const": true
+              },
+              "backend_evidence": {
+                "type": "array",
+                "minItems": 2,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
               }
             }
           }
