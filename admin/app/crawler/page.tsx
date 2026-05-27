@@ -8,6 +8,7 @@ import {
   getAdminRbacOverrideAttemptDecisions,
   getAdminRbacRuntimeDecisions,
   getCrawlerFindings,
+  getCrawlerGovernanceAdminActionContracts,
   getCrawlerGovernanceClosureSummaries,
   getCrawlerGovernanceRuntimeDecisions,
   getCrawlerGovernanceWorkflows,
@@ -16,6 +17,7 @@ import {
 } from "@/lib/admin-api";
 import type {
   AdminRbacEvidence,
+  CrawlerGovernanceAdminActionContract,
   CrawlerFinding,
   CrawlerGovernanceClosureSummary,
   CrawlerGovernanceRuntimeDecision,
@@ -31,6 +33,7 @@ export default async function CrawlerReviewPage() {
     governanceWorkflows,
     governanceRuntime,
     governanceClosureSummaries,
+    governanceActionContracts,
     stagingRuntimeEvidence,
     rbacEvidence,
     rbacRuntime,
@@ -41,6 +44,7 @@ export default async function CrawlerReviewPage() {
     getCrawlerGovernanceWorkflows(),
     getCrawlerGovernanceRuntimeDecisions(),
     getCrawlerGovernanceClosureSummaries(),
+    getCrawlerGovernanceAdminActionContracts(),
     getCrawlerStagingRuntimeEvidence(),
     getAdminRbacEvidence(),
     getAdminRbacRuntimeDecisions(),
@@ -250,6 +254,37 @@ export default async function CrawlerReviewPage() {
             { key: "missing", header: "Missing Evidence Refs", render: (row) => (row.missingEvidenceRefs.length > 0 ? row.missingEvidenceRefs.join(", ") : "none") },
             { key: "blockers", header: "Blocker Codes", render: (row) => (row.blockerCodes.length > 0 ? row.blockerCodes.join(", ") : "none") },
             { key: "summary", header: "Operator Summary", render: (row) => row.operatorSummary },
+            { key: "audit", header: "Audit Ref", render: (row) => <span className="mono">{row.auditRef}</span> }
+          ]}
+        />
+      </section>
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>Crawler Admin Action Contracts</h3>
+            <p>Concrete mutation contracts bind each takedown, derivative review, and retention delete action to RBAC role, audit ordering, quarantine outcome, regression fixture, and release evidence disposition.</p>
+          </div>
+        </div>
+        <DataTable<CrawlerGovernanceAdminActionContract>
+          rows={governanceActionContracts}
+          columns={[
+            { key: "workflow", header: "Workflow", render: (row) => <span className="mono">{row.workflowId}</span> },
+            { key: "finding", header: "Finding", render: (row) => <span className="mono">{row.findingId}</span> },
+            { key: "scope", header: "Endpoint Scope", render: (row) => row.endpointScope },
+            { key: "mutation", header: "Requested Mutation", render: (row) => row.requestedMutation },
+            { key: "allowed", header: "Allowed", render: (row) => <StatusBadge value={row.allowedMutation ? "allowed" : "blocked"} label={row.allowedMutation ? "allowed" : "blocked"} /> },
+            { key: "http", header: "HTTP Outcome", render: (row) => row.httpOutcome },
+            { key: "order", header: "Mutation Order", render: (row) => row.mutationOrder },
+            { key: "quarantine", header: "Quarantine Outcome", render: (row) => <StatusBadge value={row.quarantineOutcome === "clear" ? "allowed" : "blocked"} label={row.quarantineOutcome} /> },
+            { key: "role", header: "Required Role", render: (row) => row.requiredOperatorRole },
+            { key: "second", header: "Second Review Gate", render: (row) => <StatusBadge value={row.secondReviewGate === "pass" || row.secondReviewGate === "not_required" ? "healthy" : "blocked"} label={row.secondReviewGate} /> },
+            { key: "evidence", header: "Evidence Gate", render: (row) => <StatusBadge value={row.evidenceGate === "pass" ? "healthy" : "blocked"} label={row.evidenceGate} /> },
+            { key: "deadline", header: "Deadline Gate", render: (row) => <StatusBadge value={row.deadlineGate === "pass" ? "healthy" : "blocked"} label={row.deadlineGate} /> },
+            { key: "activation", header: "Activation Gate", render: (row) => <StatusBadge value={row.activationGate === "pass" ? "allowed" : "blocked"} label={row.activationGate} /> },
+            { key: "fixtures", header: "Regression Fixtures", render: (row) => row.regressionFixtureRefs.join(", ") },
+            { key: "release", header: "Release Evidence", render: (row) => <StatusBadge value={row.releaseEvidenceDisposition === "can_cite_release_evidence" ? "approved" : "blocked"} label={row.releaseEvidenceDisposition} /> },
+            { key: "blockers", header: "Blockers", render: (row) => (row.blockerCodes.length > 0 ? row.blockerCodes.join(", ") : "none") },
+            { key: "message", header: "Support Message", render: (row) => row.supportVisibleMessage },
             { key: "audit", header: "Audit Ref", render: (row) => <span className="mono">{row.auditRef}</span> }
           ]}
         />

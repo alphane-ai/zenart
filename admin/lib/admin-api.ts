@@ -56,6 +56,7 @@ import {
 } from "@/lib/fixtures";
 import { buildAbuseQueueRuntime, buildAbuseRuntimeDecisions } from "@/lib/abuse-runtime";
 import {
+  buildCrawlerGovernanceAdminActionContracts,
   buildCrawlerGovernanceClosureSummaries,
   buildCrawlerGovernanceRuntimeDecisions
 } from "@/lib/crawler-runtime";
@@ -246,6 +247,12 @@ export async function getCrawlerGovernanceClosureSummaries() {
   return buildCrawlerGovernanceClosureSummaries(
     buildCrawlerGovernanceRuntimeDecisions(crawlerGovernanceWorkflows, new Date("2026-05-26T18:30:00Z"))
   );
+}
+
+export async function getCrawlerGovernanceAdminActionContracts() {
+  const decisions = buildCrawlerGovernanceRuntimeDecisions(crawlerGovernanceWorkflows, new Date("2026-05-26T18:30:00Z"));
+
+  return buildCrawlerGovernanceAdminActionContracts(crawlerGovernanceWorkflows, decisions);
 }
 
 export async function getCrawlerStagingRuntimeEvidence() {

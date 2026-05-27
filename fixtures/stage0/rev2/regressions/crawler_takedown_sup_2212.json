@@ -28,6 +28,9 @@
     "closure_decision": "blocked",
     "activation_decision": "block_activation",
     "required_evidence_status": "missing",
+    "admin_action_http_outcome": "423_governance_blocked",
+    "admin_action_mutation_order": "audit_then_keep_quarantine",
+    "admin_action_release_evidence_disposition": "preserve_blocker",
     "missing_required_evidence_refs": [
       "pending-raw-derivative-delete-cs-21",
       "pending-rights-owner-notice-ip-7001",

@@ -182,5 +182,87 @@
       ],
       "audit_ref": "au-014"
     }
+  ],
+  "admin_action_contracts": [
+    {
+      "workflow_id": "cg-501",
+      "finding_id": "cf-118",
+      "request_type": "source_takedown",
+      "endpoint_scope": "crawler_takedown_closure",
+      "requested_mutation": "close_takedown",
+      "allowed_mutation": false,
+      "http_outcome": "423_governance_blocked",
+      "mutation_order": "audit_then_keep_quarantine",
+      "quarantine_outcome": "keep_active",
+      "required_operator_role": "admin_reviewer",
+      "second_review_gate": "required",
+      "evidence_gate": "missing_required_evidence",
+      "deadline_gate": "expired_requires_escalation",
+      "activation_gate": "blocked",
+      "regression_fixture_refs": [
+        "fixtures/stage0/rev2/regressions/crawler_takedown_sup_2212.json",
+        "fixtures/stage0/rev2/regressions/failed_task_cancel_task_crawler_019.json"
+      ],
+      "release_evidence_disposition": "preserve_blocker",
+      "blocker_codes": [
+        "activation_blocked",
+        "deletion_evidence_pending",
+        "requester_notice_pending",
+        "second_review_open",
+        "required_evidence_missing",
+        "deadline_expired",
+        "deadline_escalation_pending"
+      ],
+      "audit_ref": "au-012"
+    },
+    {
+      "workflow_id": "cg-522",
+      "finding_id": "cf-122",
+      "request_type": "derivative_review",
+      "endpoint_scope": "crawler_derivative_activation",
+      "requested_mutation": "allow_derivative_activation",
+      "allowed_mutation": true,
+      "http_outcome": "200_activation_ready",
+      "mutation_order": "audit_then_derivative_activation",
+      "quarantine_outcome": "clear",
+      "required_operator_role": "admin_reviewer",
+      "second_review_gate": "not_required",
+      "evidence_gate": "pass",
+      "deadline_gate": "pass",
+      "activation_gate": "pass",
+      "regression_fixture_refs": [
+        "fixtures/stage0/rev2/regressions/crawler_derivative_review_cg_522.json"
+      ],
+      "release_evidence_disposition": "can_cite_release_evidence",
+      "blocker_codes": [],
+      "audit_ref": "au-013"
+    },
+    {
+      "workflow_id": "cg-533",
+      "finding_id": "cf-104",
+      "request_type": "raw_retention_delete",
+      "endpoint_scope": "crawler_raw_retention_delete",
+      "requested_mutation": "delete_raw_retention",
+      "allowed_mutation": false,
+      "http_outcome": "423_governance_blocked",
+      "mutation_order": "audit_then_keep_quarantine",
+      "quarantine_outcome": "keep_scheduled",
+      "required_operator_role": "admin_operator",
+      "second_review_gate": "not_required",
+      "evidence_gate": "missing_required_evidence",
+      "deadline_gate": "pass",
+      "activation_gate": "blocked",
+      "regression_fixture_refs": [
+        "fixtures/stage0/rev2/regressions/failed_task_cancel_task_crawler_019.json"
+      ],
+      "release_evidence_disposition": "preserve_blocker",
+      "blocker_codes": [
+        "activation_blocked",
+        "deletion_evidence_pending",
+        "requester_notice_pending",
+        "required_evidence_missing"
+      ],
+      "audit_ref": "au-014"
+    }
   ]
 }

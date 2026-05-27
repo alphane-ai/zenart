@@ -30,6 +30,9 @@
     "closure_decision": "ready_to_close",
     "activation_decision": "allow_activation",
     "required_evidence_status": "complete",
+    "admin_action_http_outcome": "200_activation_ready",
+    "admin_action_mutation_order": "audit_then_derivative_activation",
+    "admin_action_release_evidence_disposition": "can_cite_release_evidence",
     "deletion_evidence_status": "complete",
     "requester_notice_status": "complete"
   },

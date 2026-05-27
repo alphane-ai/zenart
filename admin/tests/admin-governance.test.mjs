@@ -276,8 +276,12 @@ const parseCrawlerRuntime = () => {
     .replace(/^import type[\s\S]*?from "@\/lib\/types";\n\n/, "")
     .replaceAll(/export function (\w+)/g, "function $1")
     .replaceAll(/function isConcreteRequiredEvidence\(ref: string\)/g, "function isConcreteRequiredEvidence(ref)")
+    .replaceAll(/function workflowEndpointScope\(workflow: CrawlerGovernanceWorkflow\): CrawlerGovernanceAdminActionContract\["endpointScope"\]/g, "function workflowEndpointScope(workflow)")
+    .replaceAll(/function workflowMutation\(workflow: CrawlerGovernanceWorkflow\): CrawlerGovernanceAdminActionContract\["requestedMutation"\]/g, "function workflowMutation(workflow)")
+    .replaceAll(/function workflowRegressionFixtureRefs\(workflow: CrawlerGovernanceWorkflow\)/g, "function workflowRegressionFixtureRefs(workflow)")
     .replaceAll(/: CrawlerGovernanceRuntimeDecision\[\]/g, "")
     .replaceAll(/: CrawlerGovernanceClosureSummary\[\]/g, "")
+    .replaceAll(/: CrawlerGovernanceAdminActionContract\[\]/g, "")
     .replaceAll(/: CrawlerGovernanceClosureSummary\["releaseClosureState"\]/g, "")
     .replaceAll(/: CrawlerGovernanceClosureSummary\["activationSafetyState"\]/g, "")
     .replaceAll(/: CrawlerGovernanceClosureSummary\["secondReviewGate"\]/g, "")
@@ -292,7 +296,7 @@ const parseCrawlerRuntime = () => {
     .replaceAll(/: string/g, "")
     .replaceAll(/: Date/g, "")
     .replaceAll(/ as const/g, "");
-  return Function(`${runtimeSource}\nreturn { buildCrawlerGovernanceRuntimeDecisions, buildCrawlerGovernanceClosureSummaries };`)();
+  return Function(`${runtimeSource}\nreturn { buildCrawlerGovernanceRuntimeDecisions, buildCrawlerGovernanceClosureSummaries, buildCrawlerGovernanceAdminActionContracts };`)();
 };
 
 const parseObjectStorageRuntime = () => {
@@ -449,7 +453,11 @@ const roleOrder = new Map([
 ]);
 const { buildFailedTaskRuntimeDecisions } = parseFailedTaskRuntime();
 const { buildRegressionFixtureRuntimeSummaries } = parseRegressionFixtureRuntime();
-const { buildCrawlerGovernanceRuntimeDecisions, buildCrawlerGovernanceClosureSummaries } = parseCrawlerRuntime();
+const {
+  buildCrawlerGovernanceRuntimeDecisions,
+  buildCrawlerGovernanceClosureSummaries,
+  buildCrawlerGovernanceAdminActionContracts
+} = parseCrawlerRuntime();
 const { buildStagingObjectStorageRetentionCleanupEvidence } = parseObjectStorageRuntime();
 
 test("skill release governance defines states, traffic allocation, canary thresholds, and rollback audit", () => {
@@ -7343,6 +7351,150 @@ test("crawler governance closure summaries preserve release blockers before acti
     } else {
       assert.ok(summary.blockerCodes.length > 0, `${summary.workflowId} preserved blocker summary needs blocker codes`);
       assert.equal(summary.activationSafetyState, "activation_blocked", `${summary.workflowId} preserved blocker summary keeps activation blocked`);
+    }
+  }
+});
+
+test("crawler admin action contracts bind mutations to governance runtime gates", () => {
+  const decisions = buildCrawlerGovernanceRuntimeDecisions(crawlerGovernanceWorkflows, new Date("2026-05-26T18:30:00Z"));
+  const contracts = buildCrawlerGovernanceAdminActionContracts(crawlerGovernanceWorkflows, decisions);
+  const contractsByWorkflow = new Map(contracts.map((contract) => [contract.workflowId, contract]));
+  const evidenceContractsByWorkflow = new Map(
+    crawlerGovernanceRuntimeEvidence.admin_action_contracts.map((contract) => [contract.workflow_id, contract])
+  );
+
+  assert.equal(contracts.length, crawlerGovernanceWorkflows.length, "each crawler workflow needs an admin action contract");
+  assert.equal(evidenceContractsByWorkflow.size, crawlerGovernanceWorkflows.length, "durable crawler evidence needs every admin action contract");
+
+  const takedownContract = contractsByWorkflow.get("cg-501");
+  const takedownEvidence = evidenceContractsByWorkflow.get("cg-501");
+  const takedownFixture = JSON.parse(readFileSync(new URL("fixtures/stage0/rev2/regressions/crawler_takedown_sup_2212.json", repoRoot), "utf8"));
+  assert.ok(takedownContract, "cg-501 needs takedown action contract");
+  assert.ok(takedownEvidence, "cg-501 needs durable takedown action evidence");
+  assert.equal(takedownContract.endpointScope, "crawler_takedown_closure");
+  assert.equal(takedownContract.requestedMutation, "close_takedown");
+  assert.equal(takedownContract.allowedMutation, false);
+  assert.equal(takedownContract.httpOutcome, "423_governance_blocked");
+  assert.equal(takedownContract.httpOutcome, takedownFixture.runtime_contract.admin_action_http_outcome);
+  assert.equal(takedownEvidence.http_outcome, takedownContract.httpOutcome);
+  assert.equal(takedownContract.mutationOrder, "audit_then_keep_quarantine");
+  assert.equal(takedownContract.mutationOrder, takedownFixture.runtime_contract.admin_action_mutation_order);
+  assert.equal(takedownEvidence.mutation_order, takedownContract.mutationOrder);
+  assert.equal(takedownContract.quarantineOutcome, "keep_active");
+  assert.equal(takedownEvidence.quarantine_outcome, takedownContract.quarantineOutcome);
+  assert.equal(takedownContract.secondReviewGate, "required");
+  assert.equal(takedownEvidence.second_review_gate, takedownContract.secondReviewGate);
+  assert.equal(takedownContract.evidenceGate, "missing_required_evidence");
+  assert.equal(takedownEvidence.evidence_gate, takedownContract.evidenceGate);
+  assert.equal(takedownContract.deadlineGate, "expired_requires_escalation");
+  assert.equal(takedownEvidence.deadline_gate, takedownContract.deadlineGate);
+  assert.equal(takedownContract.activationGate, "blocked");
+  assert.equal(takedownEvidence.activation_gate, takedownContract.activationGate);
+  assert.equal(takedownContract.releaseEvidenceDisposition, "preserve_blocker");
+  assert.equal(takedownContract.releaseEvidenceDisposition, takedownFixture.runtime_contract.admin_action_release_evidence_disposition);
+  assert.equal(takedownEvidence.release_evidence_disposition, takedownContract.releaseEvidenceDisposition);
+  assert.deepEqual(takedownEvidence.regression_fixture_refs, takedownContract.regressionFixtureRefs);
+  assert.ok(
+    takedownContract.regressionFixtureRefs.includes("fixtures/stage0/rev2/regressions/crawler_takedown_sup_2212.json"),
+    "takedown action contract must cite the crawler takedown regression fixture"
+  );
+  assert.ok(
+    takedownContract.regressionFixtureRefs.includes("fixtures/stage0/rev2/regressions/failed_task_cancel_task_crawler_019.json"),
+    "takedown action contract must cite the failed crawler cancellation regression fixture"
+  );
+  assert.deepEqual(takedownEvidence.blocker_codes, takedownContract.blockerCodes);
+  assert.ok(takedownContract.blockerCodes.includes("deadline_escalation_pending"));
+  assert.match(
+    takedownContract.supportVisibleMessage,
+    /remains blocked.*source material quarantined.*required evidence and review gates pass/i,
+    "blocked takedown action contract needs support-visible denial message"
+  );
+
+  const derivativeContract = contractsByWorkflow.get("cg-522");
+  const derivativeEvidence = evidenceContractsByWorkflow.get("cg-522");
+  const derivativeFixture = JSON.parse(readFileSync(new URL("fixtures/stage0/rev2/regressions/crawler_derivative_review_cg_522.json", repoRoot), "utf8"));
+  assert.ok(derivativeContract, "cg-522 needs derivative action contract");
+  assert.ok(derivativeEvidence, "cg-522 needs durable derivative action evidence");
+  assert.equal(derivativeContract.endpointScope, "crawler_derivative_activation");
+  assert.equal(derivativeContract.requestedMutation, "allow_derivative_activation");
+  assert.equal(derivativeContract.allowedMutation, true);
+  assert.equal(derivativeContract.httpOutcome, "200_activation_ready");
+  assert.equal(derivativeContract.httpOutcome, derivativeFixture.runtime_contract.admin_action_http_outcome);
+  assert.equal(derivativeEvidence.http_outcome, derivativeContract.httpOutcome);
+  assert.equal(derivativeContract.mutationOrder, "audit_then_derivative_activation");
+  assert.equal(derivativeContract.mutationOrder, derivativeFixture.runtime_contract.admin_action_mutation_order);
+  assert.equal(derivativeEvidence.mutation_order, derivativeContract.mutationOrder);
+  assert.equal(derivativeContract.quarantineOutcome, "clear");
+  assert.equal(derivativeEvidence.quarantine_outcome, derivativeContract.quarantineOutcome);
+  assert.equal(derivativeContract.secondReviewGate, "not_required");
+  assert.equal(derivativeEvidence.second_review_gate, derivativeContract.secondReviewGate);
+  assert.equal(derivativeContract.evidenceGate, "pass");
+  assert.equal(derivativeEvidence.evidence_gate, derivativeContract.evidenceGate);
+  assert.equal(derivativeContract.deadlineGate, "pass");
+  assert.equal(derivativeEvidence.deadline_gate, derivativeContract.deadlineGate);
+  assert.equal(derivativeContract.activationGate, "pass");
+  assert.equal(derivativeEvidence.activation_gate, derivativeContract.activationGate);
+  assert.equal(derivativeContract.releaseEvidenceDisposition, "can_cite_release_evidence");
+  assert.equal(derivativeContract.releaseEvidenceDisposition, derivativeFixture.runtime_contract.admin_action_release_evidence_disposition);
+  assert.equal(derivativeEvidence.release_evidence_disposition, derivativeContract.releaseEvidenceDisposition);
+  assert.deepEqual(derivativeEvidence.regression_fixture_refs, derivativeContract.regressionFixtureRefs);
+  assert.deepEqual(derivativeContract.regressionFixtureRefs, [
+    "fixtures/stage0/rev2/regressions/crawler_derivative_review_cg_522.json"
+  ]);
+  assert.deepEqual(derivativeEvidence.blocker_codes, []);
+  assert.match(
+    derivativeContract.supportVisibleMessage,
+    /ready for admin mutation.*preserve provenance, bounded retention, requester notice, and exact-text stripping/i,
+    "allowed derivative action contract needs support-visible activation guard"
+  );
+
+  const retentionContract = contractsByWorkflow.get("cg-533");
+  const retentionEvidence = evidenceContractsByWorkflow.get("cg-533");
+  assert.ok(retentionContract, "cg-533 needs raw retention action contract");
+  assert.ok(retentionEvidence, "cg-533 needs durable raw retention action evidence");
+  assert.equal(retentionContract.endpointScope, "crawler_raw_retention_delete");
+  assert.equal(retentionContract.requestedMutation, "delete_raw_retention");
+  assert.equal(retentionContract.allowedMutation, false);
+  assert.equal(retentionContract.httpOutcome, "423_governance_blocked");
+  assert.equal(retentionEvidence.http_outcome, retentionContract.httpOutcome);
+  assert.equal(retentionContract.quarantineOutcome, "keep_scheduled");
+  assert.equal(retentionEvidence.quarantine_outcome, retentionContract.quarantineOutcome);
+  assert.equal(retentionContract.evidenceGate, "missing_required_evidence");
+  assert.equal(retentionContract.deadlineGate, "pass");
+  assert.equal(retentionContract.releaseEvidenceDisposition, "preserve_blocker");
+  assert.deepEqual(retentionEvidence.blocker_codes, retentionContract.blockerCodes);
+
+  for (const contract of contracts) {
+    const workflow = crawlerGovernanceWorkflows.find((entry) => entry.id === contract.workflowId);
+    const decision = decisions.find((entry) => entry.workflowId === contract.workflowId);
+    const evidence = evidenceContractsByWorkflow.get(contract.workflowId);
+    assert.ok(workflow, `${contract.workflowId} action contract links unknown workflow`);
+    assert.ok(decision, `${contract.workflowId} action contract links unknown runtime decision`);
+    assert.ok(evidence, `${contract.workflowId} action contract missing durable evidence`);
+    assert.equal(contract.findingId, workflow.findingId, `${contract.workflowId} preserves finding linkage`);
+    assert.equal(contract.requestType, workflow.requestType, `${contract.workflowId} preserves request type`);
+    assert.equal(contract.requiredOperatorRole, workflow.reviewerRole, `${contract.workflowId} preserves reviewer role`);
+    assert.equal(contract.auditRef, workflow.auditRef, `${contract.workflowId} preserves audit ref`);
+    assert.equal(evidence.audit_ref, contract.auditRef, `${contract.workflowId} durable evidence preserves audit ref`);
+    assert.deepEqual(evidence.blocker_codes, contract.blockerCodes, `${contract.workflowId} durable evidence matches blockers`);
+    assert.ok(contract.supportVisibleMessage.length > 150, `${contract.workflowId} needs support-visible action message`);
+    assert.ok(contract.regressionFixtureRefs.length > 0, `${contract.workflowId} must cite regression fixtures`);
+    assert.ok(
+      contract.regressionFixtureRefs.every((ref) => existsSync(new URL(ref, repoRoot))),
+      `${contract.workflowId} regression fixture refs must exist`
+    );
+
+    if (contract.allowedMutation) {
+      assert.equal(decision.closureDecision, "ready_to_close", `${contract.workflowId} allowed mutation needs closure ready`);
+      assert.equal(decision.activationDecision, "allow_activation", `${contract.workflowId} allowed mutation needs activation allow`);
+      assert.equal(contract.httpOutcome.startsWith("200"), true, `${contract.workflowId} allowed mutation needs 200 outcome`);
+      assert.equal(contract.releaseEvidenceDisposition, "can_cite_release_evidence", `${contract.workflowId} allowed mutation may cite release evidence`);
+      assert.deepEqual(contract.blockerCodes, [], `${contract.workflowId} allowed mutation cannot preserve blockers`);
+    } else {
+      assert.equal(contract.httpOutcome, "423_governance_blocked", `${contract.workflowId} blocked mutation needs 423 outcome`);
+      assert.equal(contract.activationGate, "blocked", `${contract.workflowId} blocked mutation must keep activation blocked`);
+      assert.equal(contract.releaseEvidenceDisposition, "preserve_blocker", `${contract.workflowId} blocked mutation preserves release blocker`);
+      assert.ok(contract.blockerCodes.length > 0, `${contract.workflowId} blocked mutation needs blocker codes`);
     }
   }
 });

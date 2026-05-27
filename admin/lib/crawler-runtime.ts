@@ -1,4 +1,5 @@
 import type {
+  CrawlerGovernanceAdminActionContract,
   CrawlerGovernanceClosureSummary,
   CrawlerGovernanceRuntimeDecision,
   CrawlerGovernanceWorkflow
@@ -217,6 +218,121 @@ export function buildCrawlerGovernanceClosureSummaries(
       blockerCodes: decision.blockerCodes,
       operatorSummary,
       auditRef: decision.auditRef
+    };
+  });
+}
+
+function workflowEndpointScope(workflow: CrawlerGovernanceWorkflow): CrawlerGovernanceAdminActionContract["endpointScope"] {
+  if (workflow.requestType === "source_takedown") {
+    return "crawler_takedown_closure";
+  }
+
+  if (workflow.requestType === "derivative_review") {
+    return "crawler_derivative_activation";
+  }
+
+  return "crawler_raw_retention_delete";
+}
+
+function workflowMutation(workflow: CrawlerGovernanceWorkflow): CrawlerGovernanceAdminActionContract["requestedMutation"] {
+  if (workflow.requestType === "source_takedown") {
+    return "close_takedown";
+  }
+
+  if (workflow.requestType === "derivative_review") {
+    return "allow_derivative_activation";
+  }
+
+  return "delete_raw_retention";
+}
+
+function workflowRegressionFixtureRefs(workflow: CrawlerGovernanceWorkflow) {
+  if (workflow.id === "cg-501") {
+    return [
+      "fixtures/stage0/rev2/regressions/crawler_takedown_sup_2212.json",
+      "fixtures/stage0/rev2/regressions/failed_task_cancel_task_crawler_019.json"
+    ];
+  }
+
+  if (workflow.id === "cg-522") {
+    return ["fixtures/stage0/rev2/regressions/crawler_derivative_review_cg_522.json"];
+  }
+
+  return ["fixtures/stage0/rev2/regressions/failed_task_cancel_task_crawler_019.json"];
+}
+
+export function buildCrawlerGovernanceAdminActionContracts(
+  workflows: CrawlerGovernanceWorkflow[],
+  decisions: CrawlerGovernanceRuntimeDecision[]
+): CrawlerGovernanceAdminActionContract[] {
+  const decisionByWorkflow = new Map(decisions.map((decision) => [decision.workflowId, decision]));
+
+  return workflows.map((workflow) => {
+    const decision = decisionByWorkflow.get(workflow.id);
+    const allowedMutation =
+      decision !== undefined &&
+      decision.closureDecision === "ready_to_close" &&
+      decision.activationDecision === "allow_activation" &&
+      decision.requiredEvidenceStatus === "complete";
+    const secondReviewGate =
+      workflow.secondReviewStatus === "completed"
+        ? "pass"
+        : workflow.secondReviewStatus === "rejected"
+          ? "rejected"
+          : workflow.secondReviewStatus === "required"
+            ? "required"
+            : "not_required";
+    const evidenceGate =
+      decision?.requiredEvidenceStatus === "complete" ? "pass" : "missing_required_evidence";
+    const deadlineGate =
+      decision?.deadlineStatus === "expired" ? "expired_requires_escalation" : "pass";
+    const activationGate =
+      allowedMutation ? "pass" : "blocked";
+    const httpOutcome =
+      allowedMutation && workflow.requestType === "derivative_review"
+        ? "200_activation_ready"
+        : allowedMutation
+          ? "200_close_ready"
+          : "423_governance_blocked";
+    const mutationOrder =
+      allowedMutation && workflow.requestType === "derivative_review"
+        ? "audit_then_derivative_activation"
+        : allowedMutation
+          ? "audit_then_quarantine_release"
+          : "audit_then_keep_quarantine";
+    const quarantineOutcome =
+      allowedMutation
+        ? "clear"
+        : workflow.quarantineStatus === "scheduled"
+          ? "keep_scheduled"
+          : "keep_active";
+    const releaseEvidenceDisposition =
+      allowedMutation ? "can_cite_release_evidence" : "preserve_blocker";
+    const supportVisibleMessage =
+      allowedMutation
+        ? `Crawler governance workflow ${workflow.id} is ready for admin mutation after audit ${workflow.auditRef}; preserve provenance, bounded retention, requester notice, and exact-text stripping in any crawler-derived activation.`
+        : `Crawler governance workflow ${workflow.id} remains blocked; keep source material quarantined and do not mutate crawler-derived prompt, skill, meta prompt, or provider-route activation until required evidence and review gates pass.`;
+
+    return {
+      workflowId: workflow.id,
+      findingId: workflow.findingId,
+      requestType: workflow.requestType,
+      endpointScope: workflowEndpointScope(workflow),
+      requestedMutation: workflowMutation(workflow),
+      allowedMutation,
+      httpOutcome,
+      mutationOrder,
+      quarantineOutcome,
+      requiredOperatorRole: workflow.reviewerRole,
+      secondReviewGate,
+      evidenceGate,
+      deadlineGate,
+      activationGate,
+      supportVisibleMessage,
+      regressionFixtureRefs: workflowRegressionFixtureRefs(workflow),
+      releaseEvidenceDisposition,
+      blockerCodes: decision?.blockerCodes ?? ["runtime_decision_missing"],
+      auditRef: workflow.auditRef
     };
   });
 }

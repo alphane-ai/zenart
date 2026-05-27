@@ -216,6 +216,37 @@ export type CrawlerGovernanceClosureSummary = {
   auditRef: string;
 };
 
+export type CrawlerGovernanceAdminActionContract = {
+  workflowId: string;
+  findingId: string;
+  requestType: CrawlerGovernanceWorkflow["requestType"];
+  endpointScope:
+    | "crawler_takedown_closure"
+    | "crawler_derivative_activation"
+    | "crawler_raw_retention_delete";
+  requestedMutation:
+    | "close_takedown"
+    | "allow_derivative_activation"
+    | "delete_raw_retention";
+  allowedMutation: boolean;
+  httpOutcome: "200_close_ready" | "200_activation_ready" | "423_governance_blocked";
+  mutationOrder:
+    | "audit_then_quarantine_release"
+    | "audit_then_derivative_activation"
+    | "audit_then_keep_quarantine";
+  quarantineOutcome: "keep_active" | "keep_scheduled" | "clear";
+  requiredOperatorRole: CrawlerGovernanceWorkflow["reviewerRole"];
+  secondReviewGate: "pass" | "required" | "rejected" | "not_required";
+  evidenceGate: "pass" | "missing_required_evidence";
+  deadlineGate: "pass" | "expired_requires_escalation";
+  activationGate: "pass" | "blocked";
+  supportVisibleMessage: string;
+  regressionFixtureRefs: string[];
+  releaseEvidenceDisposition: "can_cite_release_evidence" | "preserve_blocker";
+  blockerCodes: string[];
+  auditRef: string;
+};
+
 export type CrawlerStagingRuntimeControlName =
   | "source_approval"
   | "robots"
