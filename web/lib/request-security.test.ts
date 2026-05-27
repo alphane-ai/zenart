@@ -199,6 +199,17 @@ describe("same-site CSRF request contract", () => {
       ],
       unsafeIdempotencyExemptOperationIds: ["deleteSession"],
       missingUnsafeOperationIds: [],
+      methodCoverage: {
+        schema_version: "stage0.rev2.generated-api-csrf-method-coverage",
+        status: "pass",
+        protectedMethods: ["POST", "PUT", "PATCH", "DELETE"],
+        safeMethods: ["GET", "HEAD", "OPTIONS"],
+        coveredUnsafeMethods: ["DELETE", "PATCH", "POST", "PUT"],
+        coveredSafeMethods: ["GET"],
+        unsafeMethodCoverage: ["POST:covered", "PUT:covered", "PATCH:covered", "DELETE:covered"],
+        safeMethodCoverage: ["GET:covered", "HEAD:not-generated", "OPTIONS:not-generated"],
+        failureReasons: []
+      },
       failureReasons: []
     });
     expect(evidence.unsafeRequestContracts.map((contract) => contract.operationId)).toEqual([
@@ -267,13 +278,23 @@ describe("same-site CSRF request contract", () => {
     const evidence = buildGeneratedApiCsrfRequestContractEvidence(operations);
 
     expect(evidence).toMatchObject({
-      status: "pass",
+      status: "fail",
       unsafeOperationIds: ["createUpload"],
       safeOperationIds: ["getSession", "headSession", "optionsSession"],
       unsafeOperationCount: 1,
       safeOperationCount: 3,
+      methodCoverage: {
+        status: "fail",
+        protectedMethods: ["POST", "PUT", "PATCH", "DELETE"],
+        safeMethods: ["GET", "HEAD", "OPTIONS"],
+        coveredUnsafeMethods: ["POST"],
+        coveredSafeMethods: ["GET", "HEAD", "OPTIONS"],
+        unsafeMethodCoverage: ["POST:covered", "PUT:missing", "PATCH:missing", "DELETE:missing"],
+        safeMethodCoverage: ["GET:covered", "HEAD:covered", "OPTIONS:covered"],
+        failureReasons: ["missing-unsafe-method-PUT", "missing-unsafe-method-PATCH", "missing-unsafe-method-DELETE"]
+      },
       missingUnsafeOperationIds: [],
-      failureReasons: []
+      failureReasons: ["csrf-method-coverage"]
     });
     expect(evidence.safeRequestContracts).toEqual([
       {

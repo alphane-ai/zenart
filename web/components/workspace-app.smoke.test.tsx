@@ -159,6 +159,11 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(csrfInventory).toHaveAttribute("data-generated-api-csrf-idempotency-exempt-operations", "deleteSession");
     expect(csrfInventory).toHaveAttribute("data-generated-api-csrf-missing-unsafe-operation-count", "0");
     expect(csrfInventory).toHaveAttribute("data-generated-api-csrf-failure-count", "0");
+    expect(csrfInventory).toHaveAttribute("data-generated-api-csrf-method-coverage", "stage0.rev2.generated-api-csrf-method-coverage");
+    expect(csrfInventory).toHaveAttribute("data-generated-api-csrf-method-coverage-status", "pass");
+    expect(csrfInventory).toHaveAttribute("data-generated-api-csrf-protected-method-coverage", "POST:covered|PUT:covered|PATCH:covered|DELETE:covered");
+    expect(csrfInventory).toHaveAttribute("data-generated-api-csrf-safe-method-coverage", "GET:covered|HEAD:not-generated|OPTIONS:not-generated");
+    expect(csrfInventory).toHaveAttribute("data-generated-api-csrf-method-coverage-failure-count", "0");
     expect(csrfInventory.getAttribute("data-generated-api-csrf-operation-contracts")).toContain(
       "createUpload:POST:include:X-ZenArt-CSRF:true"
     );

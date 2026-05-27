@@ -96,6 +96,17 @@ export interface GeneratedApiCsrfRequestContractEvidence {
   unsafeIdempotencyRequiredOperationIds: string[];
   unsafeIdempotencyExemptOperationIds: string[];
   missingUnsafeOperationIds: string[];
+  methodCoverage: {
+    schema_version: "stage0.rev2.generated-api-csrf-method-coverage";
+    status: "pass" | "fail";
+    protectedMethods: SessionContract["csrf"]["protectedMethods"];
+    safeMethods: Array<"GET" | "HEAD" | "OPTIONS">;
+    coveredUnsafeMethods: string[];
+    coveredSafeMethods: string[];
+    unsafeMethodCoverage: string[];
+    safeMethodCoverage: string[];
+    failureReasons: string[];
+  };
   unsafeRequestContracts: Array<{
     operationId: string;
     method: string;

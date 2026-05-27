@@ -301,6 +301,11 @@ const requiredSessionAttributes = [
   sessionEvidence.unsafeActionGuard?.missingCsrfOperationCountAttribute,
   sessionEvidence.unsafeActionGuard?.missingCsrfOperationsAttribute,
   sessionEvidence.unsafeActionGuard?.operationContractsAttribute,
+  generatedClientEvidence.methodCoverage?.contractAttribute,
+  generatedClientEvidence.methodCoverage?.statusAttribute,
+  generatedClientEvidence.methodCoverage?.protectedCoverageAttribute,
+  generatedClientEvidence.methodCoverage?.safeCoverageAttribute,
+  generatedClientEvidence.methodCoverage?.failureCountAttribute,
   generatedClientEvidence.safeOperationContractsAttribute,
   sessionEvidence.unsafeActionGuard?.controlAttributes?.guardAttribute,
   sessionEvidence.unsafeActionGuard?.controlAttributes?.labelAttribute,
@@ -529,6 +534,51 @@ if (
   fail("generated-client route evidence must expose per-operation safe request contracts");
 }
 
+if (
+  generatedApiCsrfContract.methodCoverage?.schemaVersion !== "stage0.rev2.generated-api-csrf-method-coverage" ||
+  generatedApiCsrfContract.methodCoverage?.status !== "pass" ||
+  JSON.stringify(generatedApiCsrfContract.methodCoverage?.protectedMethods) !== JSON.stringify(generatedApiCsrfContract.protectedMethods) ||
+  JSON.stringify(generatedApiCsrfContract.methodCoverage?.safeMethods) !== JSON.stringify(["GET", "HEAD", "OPTIONS"]) ||
+  JSON.stringify(generatedApiCsrfContract.methodCoverage?.unsafeMethodCoverage) !==
+    JSON.stringify(["POST:covered", "PUT:covered", "PATCH:covered", "DELETE:covered"]) ||
+  JSON.stringify(generatedApiCsrfContract.methodCoverage?.safeMethodCoverage) !==
+    JSON.stringify(["GET:covered", "HEAD:not-generated", "OPTIONS:not-generated"]) ||
+  generatedApiCsrfContract.methodCoverage?.failureCount !== 0 ||
+  !generatedApiCsrfContract.assertions?.includes(
+    "Generated web API client exposes method coverage proving POST, PUT, PATCH, and DELETE are CSRF-protected while generated safe methods stay credentialed and CSRF-free."
+  )
+) {
+  fail("generated API CSRF artifact must expose passing protected/safe method coverage");
+}
+
+if (
+  generatedClientEvidence.methodCoverage?.schemaVersion !== generatedApiCsrfContract.methodCoverage.schemaVersion ||
+  generatedClientEvidence.methodCoverage?.expectedStatus !== generatedApiCsrfContract.methodCoverage.status ||
+  generatedClientEvidence.methodCoverage?.expectedProtectedCoverage !==
+    generatedApiCsrfContract.methodCoverage.unsafeMethodCoverage.join("|") ||
+  generatedClientEvidence.methodCoverage?.expectedSafeCoverage !== generatedApiCsrfContract.methodCoverage.safeMethodCoverage.join("|") ||
+  generatedClientEvidence.methodCoverage?.expectedFailureCount !== generatedApiCsrfContract.methodCoverage.failureCount ||
+  generatedClientEvidence.methodCoverage?.contractAttribute !== "data-generated-api-csrf-method-coverage" ||
+  generatedClientEvidence.methodCoverage?.statusAttribute !== "data-generated-api-csrf-method-coverage-status" ||
+  generatedClientEvidence.methodCoverage?.protectedCoverageAttribute !== "data-generated-api-csrf-protected-method-coverage" ||
+  generatedClientEvidence.methodCoverage?.safeCoverageAttribute !== "data-generated-api-csrf-safe-method-coverage" ||
+  generatedClientEvidence.methodCoverage?.failureCountAttribute !== "data-generated-api-csrf-method-coverage-failure-count"
+) {
+  fail("user route smoke generated-client method coverage drifted from generated API CSRF artifact");
+}
+
+for (const requiredMethodCoverageSnippet of [
+  "csrfSafeMethods",
+  "unsafeMethodCoverage",
+  "safeMethodCoverage",
+  "csrf-method-coverage",
+  "stage0.rev2.generated-api-csrf-method-coverage"
+]) {
+  if (!requestSecuritySource.includes(requiredMethodCoverageSnippet)) {
+    fail(`request security contract missing method coverage snippet ${requiredMethodCoverageSnippet}`);
+  }
+}
+
 for (const expectedAssertion of [
   "Generated web API client strips caller-supplied CSRF header aliases before applying one canonical X-ZenArt-CSRF header.",
   "Generated web API client strips caller-supplied CSRF header aliases from safe requests."
@@ -613,6 +663,11 @@ for (const requiredControlSnippet of [
   "data-generated-api-csrf-browser-probe-safe-no-csrf-header-count",
   "data-generated-api-csrf-browser-probe-safe-operation-contracts",
   "data-generated-api-csrf-safe-operation-contracts",
+  "data-generated-api-csrf-method-coverage",
+  "data-generated-api-csrf-method-coverage-status",
+  "data-generated-api-csrf-protected-method-coverage",
+  "data-generated-api-csrf-safe-method-coverage",
+  "data-generated-api-csrf-method-coverage-failure-count",
   "data-csrf-ux-guard",
   "data-csrf-ux-guard-label",
   "data-csrf-ux-guard-status",
@@ -736,6 +791,11 @@ for (const requiredTestSnippet of [
   "data-csrf-ux-guard-blocked-reason",
   "data-generated-api-csrf-operation-contracts",
   "data-generated-api-csrf-safe-operation-contracts",
+  "data-generated-api-csrf-method-coverage",
+  "data-generated-api-csrf-method-coverage-status",
+  "data-generated-api-csrf-protected-method-coverage",
+  "data-generated-api-csrf-safe-method-coverage",
+  "data-generated-api-csrf-method-coverage-failure-count",
   "data-generated-api-csrf-browser-probe",
   "Session expired. Refresh or sign in to continue.",
   "Signed out. Sign in to continue.",
@@ -796,6 +856,11 @@ for (const requiredBrowserSnippet of [
   "data-generated-api-csrf-unsafe-operations",
   "data-generated-api-csrf-operation-contracts",
   "data-generated-api-csrf-safe-operation-contracts",
+  "data-generated-api-csrf-method-coverage",
+  "data-generated-api-csrf-method-coverage-status",
+  "data-generated-api-csrf-protected-method-coverage",
+  "data-generated-api-csrf-safe-method-coverage",
+  "data-generated-api-csrf-method-coverage-failure-count",
   "data-generated-api-csrf-browser-probe",
   "data-generated-api-csrf-browser-probe-status",
   "data-generated-api-csrf-browser-probe-unsafe-csrf-header",

@@ -400,6 +400,11 @@
         "data-csrf-ux-guard-current-session-state",
         "data-generated-api-csrf-operation-contracts",
         "data-generated-api-csrf-safe-operation-contracts",
+        "data-generated-api-csrf-method-coverage",
+        "data-generated-api-csrf-method-coverage-status",
+        "data-generated-api-csrf-protected-method-coverage",
+        "data-generated-api-csrf-safe-method-coverage",
+        "data-generated-api-csrf-method-coverage-failure-count",
         "data-generated-api-csrf-browser-probe",
         "data-generated-api-csrf-browser-probe-status",
         "data-generated-api-csrf-browser-probe-unsafe-csrf-header",
@@ -482,6 +487,11 @@
         "data-generated-api-csrf-failure-count",
         "data-generated-api-csrf-operation-contracts",
         "data-generated-api-csrf-safe-operation-contracts",
+        "data-generated-api-csrf-method-coverage",
+        "data-generated-api-csrf-method-coverage-status",
+        "data-generated-api-csrf-protected-method-coverage",
+        "data-generated-api-csrf-safe-method-coverage",
+        "data-generated-api-csrf-method-coverage-failure-count",
         "data-generated-api-csrf-browser-probe",
         "data-generated-api-csrf-browser-probe-status",
         "data-generated-api-csrf-browser-probe-unsafe-operation",
@@ -542,7 +552,22 @@
         "getExport:GET:include:not-required",
         "getQuota:GET:include:not-required",
         "getSubscription:GET:include:not-required"
-      ]
+      ],
+      "methodCoverage": {
+        "schemaVersion": "stage0.rev2.generated-api-csrf-method-coverage",
+        "source": "web/validation/generated-api-csrf-contract.json",
+        "expectedStatus": "pass",
+        "contractAttribute": "data-generated-api-csrf-method-coverage",
+        "statusAttribute": "data-generated-api-csrf-method-coverage-status",
+        "protectedCoverageAttribute": "data-generated-api-csrf-protected-method-coverage",
+        "safeCoverageAttribute": "data-generated-api-csrf-safe-method-coverage",
+        "failureCountAttribute": "data-generated-api-csrf-method-coverage-failure-count",
+        "expectedProtectedCoverage": "POST:covered|PUT:covered|PATCH:covered|DELETE:covered",
+        "expectedSafeCoverage": "GET:covered|HEAD:not-generated|OPTIONS:not-generated",
+        "expectedFailureCount": 0,
+        "unitTest": "web/lib/request-security.test.ts",
+        "assertion": "route evidence exposes generated-client protected/safe method coverage beside the per-operation CSRF inventory"
+      }
     },
     {
       "schemaVersion": "stage0.rev2.workspace-rendering-performance",

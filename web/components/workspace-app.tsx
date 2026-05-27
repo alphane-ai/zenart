@@ -919,6 +919,11 @@ function SessionPanel({
         data-generated-api-csrf-idempotency-exempt-operations={generatedRequestEvidence.unsafeIdempotencyExemptOperationIds.join(",")}
         data-generated-api-csrf-missing-unsafe-operation-count={generatedRequestEvidence.missingUnsafeOperationIds.length}
         data-generated-api-csrf-failure-count={generatedRequestEvidence.failureReasons.length}
+        data-generated-api-csrf-method-coverage={generatedRequestEvidence.methodCoverage.schema_version}
+        data-generated-api-csrf-method-coverage-status={generatedRequestEvidence.methodCoverage.status}
+        data-generated-api-csrf-protected-method-coverage={generatedRequestEvidence.methodCoverage.unsafeMethodCoverage.join("|")}
+        data-generated-api-csrf-safe-method-coverage={generatedRequestEvidence.methodCoverage.safeMethodCoverage.join("|")}
+        data-generated-api-csrf-method-coverage-failure-count={generatedRequestEvidence.methodCoverage.failureReasons.length}
         data-generated-api-csrf-operation-contracts={generatedRequestEvidence.unsafeRequestContracts
           .map((contract) => `${contract.operationId}:${contract.method}:${contract.credentials}:${contract.csrfHeaderName}:${contract.idempotencyHeaderRequired}`)
           .join("|")}

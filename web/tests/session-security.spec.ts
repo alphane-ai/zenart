@@ -202,6 +202,11 @@ test("account route exposes secure-cookie, same-site CSRF, unsafe-action guard, 
   await expect(generatedInventory).toHaveAttribute("data-generated-api-csrf-safe-operation-count", "17");
   await expect(generatedInventory).toHaveAttribute("data-generated-api-csrf-missing-unsafe-operation-count", "0");
   await expect(generatedInventory).toHaveAttribute("data-generated-api-csrf-failure-count", "0");
+  await expect(generatedInventory).toHaveAttribute("data-generated-api-csrf-method-coverage", "stage0.rev2.generated-api-csrf-method-coverage");
+  await expect(generatedInventory).toHaveAttribute("data-generated-api-csrf-method-coverage-status", "pass");
+  await expect(generatedInventory).toHaveAttribute("data-generated-api-csrf-protected-method-coverage", "POST:covered|PUT:covered|PATCH:covered|DELETE:covered");
+  await expect(generatedInventory).toHaveAttribute("data-generated-api-csrf-safe-method-coverage", "GET:covered|HEAD:not-generated|OPTIONS:not-generated");
+  await expect(generatedInventory).toHaveAttribute("data-generated-api-csrf-method-coverage-failure-count", "0");
 
   const unsafeOperations = await generatedInventory.getAttribute("data-generated-api-csrf-unsafe-operations");
   expect(unsafeOperations?.split(",")).toEqual(unsafeOperationIds);

@@ -49,6 +49,11 @@
       "data-csrf-ux-guard-current-session-state",
       "data-generated-api-csrf-operation-contracts",
       "data-generated-api-csrf-safe-operation-contracts",
+      "data-generated-api-csrf-method-coverage",
+      "data-generated-api-csrf-method-coverage-status",
+      "data-generated-api-csrf-protected-method-coverage",
+      "data-generated-api-csrf-safe-method-coverage",
+      "data-generated-api-csrf-method-coverage-failure-count",
       "data-generated-api-csrf-browser-probe",
       "data-generated-api-csrf-browser-probe-status",
       "data-generated-api-csrf-browser-probe-unsafe-csrf-header",
@@ -308,10 +313,25 @@
     "Generated web API client strips caller-supplied CSRF header aliases before applying one canonical X-ZenArt-CSRF header.",
     "Generated web API client strips caller-supplied CSRF header aliases from safe requests.",
     "Generated web API client exposes per-operation safe request contracts proving GET operations stay credentialed and CSRF-free.",
+    "Generated web API client exposes method coverage proving POST, PUT, PATCH, and DELETE are CSRF-protected while generated safe methods stay credentialed and CSRF-free.",
     "Generated web API client rejects unsafe path params before credentialed requests.",
     "Account route exposes secure __Host cookie and same-site CSRF UX evidence.",
     "Account route proves every generated unsafe operation is represented by the authenticated same-site UX guard.",
     "Account route exposes a session-state UX matrix proving authenticated actions are enabled, expired sessions allow only Refresh Session, and signed-out sessions block all guarded controls.",
     "Account route browser smoke invokes the generated client against local probe responses and proves every unsafe request sends include credentials and X-ZenArt-CSRF, every idempotent unsafe request sends Idempotency-Key, and every safe generated request stays credentialed without CSRF headers."
-  ]
+  ],
+  "methodCoverage": {
+    "schemaVersion": "stage0.rev2.generated-api-csrf-method-coverage",
+    "source": "web/lib/request-security.ts",
+    "unitTest": "web/lib/request-security.test.ts",
+    "status": "pass",
+    "protectedMethods": ["POST", "PUT", "PATCH", "DELETE"],
+    "safeMethods": ["GET", "HEAD", "OPTIONS"],
+    "coveredUnsafeMethods": ["DELETE", "PATCH", "POST", "PUT"],
+    "coveredSafeMethods": ["GET"],
+    "unsafeMethodCoverage": ["POST:covered", "PUT:covered", "PATCH:covered", "DELETE:covered"],
+    "safeMethodCoverage": ["GET:covered", "HEAD:not-generated", "OPTIONS:not-generated"],
+    "failureCount": 0,
+    "assertion": "Generated client method coverage fails if any protected method has no generated unsafe operation or if generated safe requests drift outside GET, HEAD, and OPTIONS."
+  }
 }

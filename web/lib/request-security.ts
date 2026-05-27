@@ -3,6 +3,7 @@ import { GeneratedApiCsrfRequestContractEvidence, SessionContract, SessionSecuri
 export type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "HEAD" | "OPTIONS";
 
 export const csrfProtectedMethods: Array<Exclude<HttpMethod, "GET" | "HEAD" | "OPTIONS">> = ["POST", "PUT", "PATCH", "DELETE"];
+export const csrfSafeMethods: Array<Extract<HttpMethod, "GET" | "HEAD" | "OPTIONS">> = ["GET", "HEAD", "OPTIONS"];
 
 export const defaultSameSiteCsrfContract: SessionContract["csrf"] = {
   strategy: "same-site-origin-check",
@@ -209,6 +210,18 @@ export const buildGeneratedApiCsrfRequestContractEvidence = (
     csrfHeaderValue: "not-required" as const,
     idempotencyHeaderRequired: false as const
   }));
+  const coveredUnsafeMethods = Array.from(new Set(unsafeEntries.map(([, operation]) => operation.method)));
+  const coveredSafeMethods = Array.from(new Set(safeEntries.map(([, operation]) => operation.method)));
+  const unsafeMethodCoverage = contract.protectedMethods.map((method) => `${method}:${coveredUnsafeMethods.includes(method) ? "covered" : "missing"}`);
+  const safeMethodCoverage = csrfSafeMethods.map((method) => `${method}:${coveredSafeMethods.includes(method) ? "covered" : "not-generated"}`);
+  const methodCoverageFailureReasons = [
+    ...contract.protectedMethods
+      .filter((method) => !coveredUnsafeMethods.includes(method))
+      .map((method) => `missing-unsafe-method-${method}`),
+    ...coveredSafeMethods
+      .filter((method) => !csrfSafeMethods.includes(method as (typeof csrfSafeMethods)[number]))
+      .map((method) => `unexpected-safe-method-${method}`)
+  ];
   const failureReasons = [
     contract.credentialMode === "include" ? "" : "csrf-credentials",
     contract.headerName === "X-ZenArt-CSRF" ? "" : "csrf-header",
@@ -216,7 +229,8 @@ export const buildGeneratedApiCsrfRequestContractEvidence = (
     contract.originPolicy === "same-site-only" ? "" : "csrf-origin-policy",
     contract.sameSiteRequired === "lax-or-strict" ? "" : "csrf-same-site-requirement",
     unsafeRequestContracts.length > 0 ? "" : "csrf-operation-inventory",
-    missingUnsafeOperationIds.length === 0 ? "" : "csrf-operation-coverage"
+    missingUnsafeOperationIds.length === 0 ? "" : "csrf-operation-coverage",
+    methodCoverageFailureReasons.length === 0 ? "" : "csrf-method-coverage"
   ].filter(Boolean);
 
   return {
@@ -235,6 +249,17 @@ export const buildGeneratedApiCsrfRequestContractEvidence = (
     unsafeIdempotencyRequiredOperationIds,
     unsafeIdempotencyExemptOperationIds,
     missingUnsafeOperationIds,
+    methodCoverage: {
+      schema_version: "stage0.rev2.generated-api-csrf-method-coverage",
+      status: methodCoverageFailureReasons.length === 0 ? "pass" : "fail",
+      protectedMethods: contract.protectedMethods,
+      safeMethods: csrfSafeMethods,
+      coveredUnsafeMethods,
+      coveredSafeMethods,
+      unsafeMethodCoverage,
+      safeMethodCoverage,
+      failureReasons: methodCoverageFailureReasons
+    },
     unsafeRequestContracts,
     safeRequestContracts,
     failureReasons

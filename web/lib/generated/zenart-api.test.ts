@@ -244,6 +244,15 @@ describe("generated web API client CSRF contract", () => {
       safeOperationCount: requestContractEvidence.safeOperationCount,
       missingUnsafeOperationCount: requestContractEvidence.missingUnsafeOperationIds.length,
       failureCount: requestContractEvidence.failureReasons.length,
+      methodCoverage: {
+        schemaVersion: "stage0.rev2.generated-api-csrf-method-coverage",
+        status: requestContractEvidence.methodCoverage.status,
+        protectedMethods: requestContractEvidence.methodCoverage.protectedMethods,
+        safeMethods: requestContractEvidence.methodCoverage.safeMethods,
+        unsafeMethodCoverage: requestContractEvidence.methodCoverage.unsafeMethodCoverage,
+        safeMethodCoverage: requestContractEvidence.methodCoverage.safeMethodCoverage,
+        failureCount: requestContractEvidence.methodCoverage.failureReasons.length
+      },
       unsafeRequestContracts: requestContractEvidence.unsafeRequestContracts,
       safeRequestContracts: requestContractEvidence.safeRequestContracts
     });
@@ -273,8 +282,21 @@ describe("generated web API client CSRF contract", () => {
         "data-generated-api-csrf-idempotency-required-operations",
         "data-generated-api-csrf-idempotency-exempt-operations",
         "data-generated-api-csrf-operation-contracts",
-        "data-generated-api-csrf-safe-operation-contracts"
+        "data-generated-api-csrf-safe-operation-contracts",
+        "data-generated-api-csrf-method-coverage",
+        "data-generated-api-csrf-method-coverage-status",
+        "data-generated-api-csrf-protected-method-coverage",
+        "data-generated-api-csrf-safe-method-coverage",
+        "data-generated-api-csrf-method-coverage-failure-count"
       ])
+    });
+    expect(routeSmokeEvidence.methodCoverage).toMatchObject({
+      schemaVersion: generatedApiCsrfContract.methodCoverage.schemaVersion,
+      expectedStatus: generatedApiCsrfContract.methodCoverage.status,
+      expectedProtectedCoverage: generatedApiCsrfContract.methodCoverage.unsafeMethodCoverage.join("|"),
+      expectedSafeCoverage: generatedApiCsrfContract.methodCoverage.safeMethodCoverage.join("|"),
+      expectedFailureCount: generatedApiCsrfContract.methodCoverage.failureCount,
+      unitTest: "web/lib/request-security.test.ts"
     });
     expect(routeSmokeEvidence.browserSmokeRequiredAssertions).toEqual(generatedApiCsrfContract.browserSmoke.requiredAssertions);
     expect(generatedApiCsrfContract.browserSmoke.expectedUnsafeRequestContracts).toEqual(
