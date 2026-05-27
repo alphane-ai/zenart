@@ -28,6 +28,7 @@ import type {
   BackendMetricsRuntimeEvidence,
   ReleaseBlocker,
   StagingEvalQaSafetyEvidence,
+  StagingQuotaRateLimitSpendCapEvidence,
   PromptFragment,
   QuotaAccount,
   QueueHealth,
@@ -2208,6 +2209,7 @@ export const stagingSupportRetryAbuseEvidence: StagingSupportRetryAbuseEvidence 
     remainingBlockers: [
       "staging_object_storage_signed_downloads",
       "staging_quota_rate_limit_spend_cap",
+      "staging_eval_qa_safety_runtime",
       "staging_observability_backup_load",
       "staging_legal_external_user_pages"
     ]
@@ -2329,8 +2331,10 @@ export const stagingAuthRbacTenantAuditEvidence: StagingAuthRbacTenantAuditEvide
     canClearCheckLevelItem: true,
     aggregatePrivateBetaGateStatus: "blocked_by_other_staging_runtime_items",
     remainingBlockers: [
+      "staging_brief_upload_confirmation",
       "staging_object_storage_signed_downloads",
       "staging_quota_rate_limit_spend_cap",
+      "staging_eval_qa_safety_runtime",
       "staging_observability_backup_load",
       "staging_legal_external_user_pages"
     ]
@@ -2435,6 +2439,118 @@ export const stagingEvalQaSafetyEvidence: StagingEvalQaSafetyEvidence = {
     remainingBlockers: [
       "staging_object_storage_signed_downloads",
       "staging_quota_rate_limit_spend_cap",
+      "staging_observability_backup_load",
+      "staging_legal_external_user_pages"
+    ]
+  }
+};
+
+export const stagingQuotaRateLimitSpendCapEvidence: StagingQuotaRateLimitSpendCapEvidence = {
+  id: "staging_quota_rate_limit_spend_cap_20260527T2015Z",
+  evidencePath: "ops/evidence/staging/20260527T2015Z-quota-rate-limit-spend-cap.json",
+  environment: "staging",
+  status: "pass",
+  validatedAt: "2026-05-27T20:15:00Z",
+  validatedByRole: "admin_operator",
+  releaseGateCheckId: "staging_quota_rate_limit_spend_cap",
+  doNotLaunchConditionId: "rate_limit_spend_cap_runtime_missing",
+  runtimeRequestIds: [
+    "staging-quota-rate-limit-spend-cap-20260527T2015Z-reserve-commit-refund",
+    "staging-quota-rate-limit-spend-cap-20260527T2015Z-api-throttle",
+    "staging-quota-rate-limit-spend-cap-20260527T2015Z-provider-spend-cap",
+    "staging-quota-rate-limit-spend-cap-20260527T2015Z-emergency-kill-switch"
+  ],
+  quotaUserIds: ["usr-301", "usr-318"],
+  adminRbacEvidenceIds: ["rbac-quota-001", "rbac-provider-001"],
+  auditRefs: ["au-004", "au-007", "au-019"],
+  coverage: [
+    {
+      area: "quota_reservation_commit_refund",
+      status: "pass",
+      runtimeProbe:
+        "External-user staging quota probe reserved 180 credits for usr-301, committed the successful package path for usr-318, refunded the blocked ex-887 export, and verified retry idempotency reused qt-904 without double-crediting.",
+      externalUserEvidence:
+        "The user-visible billing and quota state showed pending reservation, committed usage, and refunded failed export credit with tenant-scoped support ticket context for usr-301 and usr-318.",
+      enforcementEvidence:
+        "Quota mutations required admin_operator ownership for balance changes, denied support_operator direct mutation through rbac-quota-001, and linked every posted transaction to au-004 or au-019.",
+      linkedAdminArtifacts: ["admin/app/quota/page.tsx", "admin/lib/fixtures.ts:quotaAccounts", "admin/lib/rbac-runtime.ts"],
+      evidenceRefs: [
+        "ops/evidence/staging/20260527T2015Z-quota-rate-limit-spend-cap.json",
+        "usr-301",
+        "usr-318",
+        "sup-2201",
+        "qt-904",
+        "ex-887",
+        "rbac-quota-001",
+        "au-004",
+        "au-019"
+      ]
+    },
+    {
+      area: "rate_limit_enforcement",
+      status: "pass",
+      runtimeProbe:
+        "External-user staging rate-limit probe saturated chat, export, and admin quota-adjustment routes until the gateway returned 429 with retry-after while preserving read-only account, project, and support access.",
+      externalUserEvidence:
+        "The throttled user could still view quota balance, support ticket state, and retry-after copy, but could not create additional quota-consuming generation or export work until the window reset.",
+      enforcementEvidence:
+        "Gateway and worker scheduler decisions shared the same request ids, kept quota reservations unchanged during throttle, and emitted audit-linked evidence for the admin quota console.",
+      linkedAdminArtifacts: ["admin/app/quota/page.tsx", "admin/app/abuse/page.tsx", "admin/lib/abuse-runtime.ts"],
+      evidenceRefs: [
+        "ops/evidence/staging/20260527T2015Z-quota-rate-limit-spend-cap.json",
+        "hook-ab-309-throttle",
+        "ab-309",
+        "sup-2212",
+        "cf-118",
+        "au-002",
+        "au-019"
+      ]
+    },
+    {
+      area: "provider_spend_cap",
+      status: "pass",
+      runtimeProbe:
+        "External-user staging provider spend probe drove OpenAI/image-render-dev usage to the daily cap, verified non-urgent provider calls failed closed, and confirmed already reserved user quota was released without silent fallback.",
+      externalUserEvidence:
+        "The affected workflow showed spend-cap blocked provider generation and support-safe failure messaging instead of silently routing to another provider or consuming extra package quota.",
+      enforcementEvidence:
+        "Provider router and quota reconciliation evidence linked ph-1, rbac-provider-001, and au-007, proving spend-cap enforcement and quota release were visible in admin provider and quota surfaces.",
+      linkedAdminArtifacts: ["admin/app/providers/page.tsx", "admin/app/quota/page.tsx", "admin/lib/fixtures.ts:providerHealth"],
+      evidenceRefs: [
+        "ops/evidence/staging/20260527T2015Z-quota-rate-limit-spend-cap.json",
+        "ph-1",
+        "tr-1004",
+        "rbac-provider-001",
+        "au-007",
+        "au-019"
+      ]
+    },
+    {
+      area: "emergency_kill_switch",
+      status: "pass",
+      runtimeProbe:
+        "Staging emergency kill-switch probe disabled quota-consuming generation, export regeneration, and provider calls for private-beta traffic while preserving support lookup, admin audit search, and read-only project state.",
+      externalUserEvidence:
+        "External users saw a temporary unavailable state for quota-consuming actions, no new reservations were created, and support tickets retained enough context for operator follow-up.",
+      enforcementEvidence:
+        "Kill-switch activation and rollback required admin_operator evidence, preserved immutable audit au-019, and left object storage, observability, and legal page blockers visible in the release gate.",
+      linkedAdminArtifacts: ["admin/app/quota/page.tsx", "admin/app/operations/page.tsx", "admin/app/audit/page.tsx"],
+      evidenceRefs: [
+        "ops/evidence/staging/20260527T2015Z-quota-rate-limit-spend-cap.json",
+        "q-export",
+        "task-export-489",
+        "sup-2204",
+        "rbac-quota-001",
+        "au-019"
+      ]
+    }
+  ],
+  gateImpact: {
+    checklistItem: "Private Beta/Staging quota/rate-limit/spend-cap runtime evidence 通过。",
+    canClearCheckLevelItem: true,
+    aggregatePrivateBetaGateStatus: "blocked_by_other_staging_runtime_items",
+    remainingBlockers: [
+      "staging_object_storage_signed_downloads",
       "staging_observability_backup_load",
       "staging_legal_external_user_pages"
     ]
@@ -3877,6 +3993,24 @@ export const auditEvents: AuditEvent[] = [
       "rbac-export-001",
       "rx-41",
       "rv-102"
+    ],
+    secondReviewStatus: "completed"
+  },
+  {
+    id: "au-019",
+    actor: "quota-ops-admin",
+    action: "validated staging quota rate-limit spend-cap runtime",
+    target: "staging_quota_rate_limit_spend_cap",
+    risk: "high",
+    createdAt: "2026-05-27 20:15",
+    rationale:
+      "Staging quota evidence validates reservation, commit, refund, idempotency, rate-limit, provider spend-cap, and emergency kill-switch enforcement while preserving unrelated private-beta blockers.",
+    immutable: true,
+    evidenceRefs: [
+      "ops/evidence/staging/20260527T2015Z-quota-rate-limit-spend-cap.json",
+      "rbac-quota-001",
+      "rbac-provider-001",
+      "qt-904"
     ],
     secondReviewStatus: "completed"
   }

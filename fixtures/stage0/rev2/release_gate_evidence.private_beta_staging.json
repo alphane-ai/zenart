@@ -20,8 +20,8 @@
     },
     {
       "check_id": "staging_quota_rate_limit_spend_cap",
-      "status": "blocked",
-      "evidence_ref": "Quota reservation/commit/refund/idempotency, spend-cap, and concurrency-test evidence exists, but ops/evidence/staging/ staging quota, rate-limit, and provider spend-cap runtime evidence is absent"
+      "status": "pass",
+      "evidence_ref": "Staging quota, rate limit, and spend cap runtime evidence verifies reservation, commit, refund, retry idempotency, gateway throttling, provider spend cap fail-closed behavior, and emergency kill-switch enforcement in ops/evidence/staging/20260527T2015Z-quota-rate-limit-spend-cap.json"
     },
     {
       "check_id": "staging_support_retry_abuse_ops",
@@ -65,8 +65,8 @@
     {
       "condition_id": "rate_limit_spend_cap_runtime_missing",
       "blueprint_condition": "Rate limits、provider concurrency limits、spend cap 或 emergency kill switch 缺失。",
-      "is_present": true,
-      "evidence_ref": "backend quota and spend-cap local evidence exists, but ops/evidence/staging/ provider concurrency/rate-limit/spend-cap runtime evidence remains absent"
+      "is_present": false,
+      "evidence_ref": "Staging quota, rate limit, and spend cap runtime evidence clears reservation, commit, refund, retry idempotency, gateway throttling, provider spend cap fail-closed behavior, and emergency kill-switch coverage in ops/evidence/staging/20260527T2015Z-quota-rate-limit-spend-cap.json"
     },
     {
       "condition_id": "object_storage_signed_retention_runtime_missing",
@@ -115,17 +115,15 @@
     "status": "no_go",
     "blocked_by_checks": [
       "staging_object_storage_signed_downloads",
-      "staging_quota_rate_limit_spend_cap",
       "staging_observability_backup_load",
       "staging_legal_external_user_pages"
     ],
     "active_do_not_launch_conditions": [
-      "rate_limit_spend_cap_runtime_missing",
       "object_storage_signed_retention_runtime_missing",
       "staging_observability_restore_load_missing",
       "external_user_legal_pages_missing"
     ],
-    "evidence_ref": "fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json remains no-go while staging_object_storage_signed_downloads, staging_quota_rate_limit_spend_cap, staging_observability_backup_load, and staging_legal_external_user_pages are blocked and rate_limit_spend_cap_runtime_missing, object_storage_signed_retention_runtime_missing, staging_observability_restore_load_missing, and external_user_legal_pages_missing remain active after auth/RBAC/tenant/audit evidence passed in ops/evidence/staging/20260527T1515Z-auth-rbac-tenant-audit.json, brief/upload/confirmation evidence passed in ops/evidence/staging/20260526T2330Z-brief-upload-confirmation.json, eval/QA/safety evidence passed in ops/evidence/staging/20260527T1900Z-eval-qa-safety.json, and observability telemetry evidence passed in ops/evidence/staging/20260527T1815Z-observability-telemetry.json"
+    "evidence_ref": "fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json remains no-go while staging_object_storage_signed_downloads, staging_observability_backup_load, and staging_legal_external_user_pages are blocked and object_storage_signed_retention_runtime_missing, staging_observability_restore_load_missing, and external_user_legal_pages_missing remain active after auth/RBAC/tenant/audit evidence passed in ops/evidence/staging/20260527T1515Z-auth-rbac-tenant-audit.json, brief/upload/confirmation evidence passed in ops/evidence/staging/20260526T2330Z-brief-upload-confirmation.json, quota, rate limit, and spend cap evidence passed in ops/evidence/staging/20260527T2015Z-quota-rate-limit-spend-cap.json, eval/QA/safety evidence passed in ops/evidence/staging/20260527T1900Z-eval-qa-safety.json, and observability telemetry evidence passed in ops/evidence/staging/20260527T1815Z-observability-telemetry.json"
   },
   "provenance": {
     "blueprint_sections": [

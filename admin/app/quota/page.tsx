@@ -1,15 +1,22 @@
 import { DataTable } from "@/components/DataTable";
+import { KeyValue } from "@/components/KeyValue";
 import { PageHeader } from "@/components/PageHeader";
 import { RbacRuntimeDecisionTable } from "@/components/RbacRuntimeDecisionTable";
 import { StatusBadge } from "@/components/StatusBadge";
-import { getAdminRbacEvidence, getAdminRbacRuntimeDecisions, getQuotaAccounts } from "@/lib/admin-api";
-import type { AdminRbacEvidence, QuotaAccount } from "@/lib/types";
+import {
+  getAdminRbacEvidence,
+  getAdminRbacRuntimeDecisions,
+  getQuotaAccounts,
+  getStagingQuotaRateLimitSpendCapEvidence
+} from "@/lib/admin-api";
+import type { AdminRbacEvidence, QuotaAccount, StagingQuotaRateLimitSpendCapCoverage } from "@/lib/types";
 
 export default async function QuotaPage() {
-  const [accounts, rbacEvidence, rbacRuntime] = await Promise.all([
+  const [accounts, rbacEvidence, rbacRuntime, stagingEvidence] = await Promise.all([
     getQuotaAccounts(),
     getAdminRbacEvidence(),
-    getAdminRbacRuntimeDecisions()
+    getAdminRbacRuntimeDecisions(),
+    getStagingQuotaRateLimitSpendCapEvidence()
   ]);
   const quotaRbacEvidence = rbacEvidence.filter((item) => item.surface === "quota_override");
   const quotaRbacRuntime = rbacRuntime.filter((item) => item.surface === "quota_override");
@@ -95,6 +102,41 @@ export default async function QuotaPage() {
           </div>
         </div>
         <RbacRuntimeDecisionTable rows={quotaRbacRuntime} />
+      </section>
+
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>Staging Quota Rate Limit Spend Cap Evidence</h3>
+            <p>Private beta evidence for quota reservation, refund, throttling, provider spend cap, and emergency kill switch enforcement.</p>
+          </div>
+          <StatusBadge value={stagingEvidence.status} label={stagingEvidence.status} />
+        </div>
+        <div className="panel-body">
+          <KeyValue
+            items={[
+              ["Evidence Path", <span key="quota-evidence-path" className="mono">{stagingEvidence.evidencePath}</span>],
+              ["Release Gate Check", <span key="quota-release-gate-check" className="mono">{stagingEvidence.releaseGateCheckId}</span>],
+              ["Do Not Launch Condition", <span key="quota-dnl-condition" className="mono">{stagingEvidence.doNotLaunchConditionId}</span>],
+              ["Validated At", stagingEvidence.validatedAt],
+              ["Validated By", stagingEvidence.validatedByRole],
+              ["Can Clear Row", stagingEvidence.gateImpact.canClearCheckLevelItem ? "Yes" : "No"],
+              ["Remaining Blockers", stagingEvidence.gateImpact.remainingBlockers.join(", ")]
+            ]}
+          />
+        </div>
+        <DataTable<StagingQuotaRateLimitSpendCapCoverage>
+          rows={stagingEvidence.coverage}
+          columns={[
+            { key: "area", header: "Area", render: (row) => <span className="mono">{row.area}</span> },
+            { key: "status", header: "Status", render: (row) => <StatusBadge value={row.status} label={row.status} /> },
+            { key: "runtime", header: "Runtime Probe", render: (row) => row.runtimeProbe },
+            { key: "external", header: "External User Evidence", render: (row) => row.externalUserEvidence },
+            { key: "enforcement", header: "Enforcement Evidence", render: (row) => row.enforcementEvidence },
+            { key: "artifacts", header: "Admin Artifacts", render: (row) => row.linkedAdminArtifacts.join(", ") },
+            { key: "refs", header: "Evidence Refs", render: (row) => row.evidenceRefs.join(", ") }
+          ]}
+        />
       </section>
     </>
   );

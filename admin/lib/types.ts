@@ -667,6 +667,42 @@ export type StagingEvalQaSafetyEvidence = {
   };
 };
 
+export type StagingQuotaRateLimitSpendCapCoverage = {
+  area:
+    | "quota_reservation_commit_refund"
+    | "rate_limit_enforcement"
+    | "provider_spend_cap"
+    | "emergency_kill_switch";
+  status: "pass" | "blocked";
+  runtimeProbe: string;
+  externalUserEvidence: string;
+  enforcementEvidence: string;
+  linkedAdminArtifacts: string[];
+  evidenceRefs: string[];
+};
+
+export type StagingQuotaRateLimitSpendCapEvidence = {
+  id: string;
+  evidencePath: string;
+  environment: "staging";
+  status: "pass" | "blocked";
+  validatedAt: string;
+  validatedByRole: AdminRole;
+  releaseGateCheckId: "staging_quota_rate_limit_spend_cap";
+  doNotLaunchConditionId: "rate_limit_spend_cap_runtime_missing";
+  runtimeRequestIds: string[];
+  quotaUserIds: string[];
+  adminRbacEvidenceIds: string[];
+  auditRefs: string[];
+  coverage: StagingQuotaRateLimitSpendCapCoverage[];
+  gateImpact: {
+    checklistItem: string;
+    canClearCheckLevelItem: boolean;
+    aggregatePrivateBetaGateStatus: "blocked_by_other_staging_runtime_items";
+    remainingBlockers: string[];
+  };
+};
+
 export type ProductionAbuseThrottleHoldCoverage = {
   area:
     | "account_hold_enforcement"

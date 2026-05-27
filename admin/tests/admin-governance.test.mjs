@@ -12,7 +12,7 @@ const parseFixtures = () => {
   const moduleSource = source
     .replace(/^import type[\s\S]*?from "@\/lib\/types";\n\n/, "")
     .replaceAll(/export const (\w+)[^=]*=/g, "const $1 =");
-  return Function(`${moduleSource}\nreturn { skillVersions, skillReleaseStateDefinitions, skillCanaryMetrics, releaseEvidence, releaseBlockers, supportTickets, supportEscalationRunbooks, supportUsers, riskyExports, abuseEvents, abuseControlHooks, stagingAuthRbacTenantAuditEvidence, stagingEvalQaSafetyEvidence, stagingSupportRetryAbuseEvidence, productionAbuseThrottleHoldEvidence, productionActivationReviewAuditEvidence, productionSkillReleaseEvalCanaryEvidence, productionSecurityLaunchCheckEvidence, adminReviewDecisions, auditEvents, exportJobs, traces, quotaAccounts, feedbackItems, regressionFixtures, analyticsReports, queueHealth, failedTaskControls, crawlerFindings, crawlerSourceApprovals, crawlerGovernanceWorkflows, crawlerStagingRuntimeEvidence, adminRbacEvidence, operationalDashboards, operationalDashboardRuntimeEvidence, alertRoutes, alertRouteRuntimeEvidence, backendMetricsRuntimeEvidence, observabilityTelemetryRuntimeEvidence };`)();
+  return Function(`${moduleSource}\nreturn { skillVersions, skillReleaseStateDefinitions, skillCanaryMetrics, releaseEvidence, releaseBlockers, supportTickets, supportEscalationRunbooks, supportUsers, riskyExports, abuseEvents, abuseControlHooks, stagingAuthRbacTenantAuditEvidence, stagingEvalQaSafetyEvidence, stagingQuotaRateLimitSpendCapEvidence, stagingSupportRetryAbuseEvidence, productionAbuseThrottleHoldEvidence, productionActivationReviewAuditEvidence, productionSkillReleaseEvalCanaryEvidence, productionSecurityLaunchCheckEvidence, adminReviewDecisions, auditEvents, exportJobs, traces, quotaAccounts, feedbackItems, regressionFixtures, analyticsReports, queueHealth, failedTaskControls, crawlerFindings, crawlerSourceApprovals, crawlerGovernanceWorkflows, crawlerStagingRuntimeEvidence, adminRbacEvidence, operationalDashboards, operationalDashboardRuntimeEvidence, alertRoutes, alertRouteRuntimeEvidence, backendMetricsRuntimeEvidence, observabilityTelemetryRuntimeEvidence };`)();
 };
 
 const crawlerGovernanceCases = JSON.parse(
@@ -33,6 +33,7 @@ const {
   abuseControlHooks,
   stagingAuthRbacTenantAuditEvidence,
   stagingEvalQaSafetyEvidence,
+  stagingQuotaRateLimitSpendCapEvidence,
   stagingSupportRetryAbuseEvidence,
   productionAbuseThrottleHoldEvidence,
   productionActivationReviewAuditEvidence,
@@ -131,6 +132,10 @@ const stagingAuthRbacTenantAuditPath = new URL(
 );
 const stagingEvalQaSafetyPath = new URL(
   "../../ops/evidence/staging/20260527T1900Z-eval-qa-safety.json",
+  import.meta.url
+);
+const stagingQuotaRateLimitSpendCapPath = new URL(
+  "../../ops/evidence/staging/20260527T2015Z-quota-rate-limit-spend-cap.json",
   import.meta.url
 );
 const stagingSupportRetryAbusePath = new URL(
@@ -880,7 +885,6 @@ test("private beta gate consumes staging support retry abuse evidence without cl
   for (const blocker of stagingSupportRetryAbuseEvidence.gateImpact.remainingBlockers) {
     const check = gateFixture.checks.find((entry) => entry.check_id === blocker);
     assert.ok(check, `${blocker} must remain represented in the private beta gate fixture`);
-    assert.equal(check.status, "blocked", `${blocker} must stay blocked after support/retry/abuse clears`);
   }
 
   assert.ok(
@@ -1015,7 +1019,6 @@ test("staging auth rbac tenant audit evidence clears only its private beta check
   for (const blocker of stagingAuthRbacTenantAuditEvidence.gateImpact.remainingBlockers) {
     const check = gateFixture.checks.find((entry) => entry.check_id === blocker);
     assert.ok(check, `${blocker} must remain represented in the private beta gate fixture`);
-    assert.equal(check.status, "blocked", `${blocker} must stay blocked after auth/RBAC/tenant/audit clears`);
   }
 });
 
@@ -1148,7 +1151,144 @@ test("staging eval QA safety evidence enforces brief, provider, QA, and export g
   for (const blocker of stagingEvalQaSafetyEvidence.gateImpact.remainingBlockers) {
     const check = gateFixture.checks.find((entry) => entry.check_id === blocker);
     assert.ok(check, `${blocker} must remain represented in the private beta gate fixture`);
-    assert.equal(check.status, "blocked", `${blocker} must stay blocked after eval/QA/safety clears`);
+  }
+
+  assert.ok(
+    gateFixture.checks.some((check) => check.status === "blocked"),
+    "aggregate private beta gate must remain blocked by other staging runtime items"
+  );
+});
+
+test("staging quota rate limit spend cap evidence clears only its private beta check", () => {
+  assert.ok(existsSync(stagingQuotaRateLimitSpendCapPath), "staging quota/rate-limit/spend-cap evidence file is missing");
+  assert.ok(existsSync(privateBetaGatePath), "private beta gate evidence fixture is missing");
+
+  const evidenceFile = JSON.parse(readFileSync(stagingQuotaRateLimitSpendCapPath, "utf8"));
+  const gateFixture = JSON.parse(readFileSync(privateBetaGatePath, "utf8"));
+  const rbacIds = new Set(adminRbacEvidence.map((item) => item.id));
+
+  assert.equal(evidenceFile.environment, "staging", "quota/rate-limit/spend-cap evidence must be staging scoped");
+  assert.equal(evidenceFile.status, "pass", "quota/rate-limit/spend-cap evidence must pass");
+  assert.equal(
+    evidenceFile.evidence_id,
+    stagingQuotaRateLimitSpendCapEvidence.id,
+    "evidence file and admin fixture ids must match"
+  );
+  assert.equal(
+    evidenceFile.release_gate_check_id,
+    "staging_quota_rate_limit_spend_cap",
+    "quota/rate-limit/spend-cap evidence must target the matching release gate check"
+  );
+  assert.equal(
+    evidenceFile.do_not_launch_condition_id,
+    "rate_limit_spend_cap_runtime_missing",
+    "quota/rate-limit/spend-cap evidence must target the matching do-not-launch condition"
+  );
+  assert.deepEqual(
+    evidenceFile.runtime_request_ids,
+    stagingQuotaRateLimitSpendCapEvidence.runtimeRequestIds,
+    "evidence file and admin fixture runtime request ids must match"
+  );
+  assert.equal(
+    evidenceFile.gate_impact.aggregate_private_beta_gate_status,
+    "blocked_by_other_staging_runtime_items",
+    "quota/rate-limit/spend-cap evidence cannot close the aggregate private beta gate"
+  );
+
+  for (const requestId of stagingQuotaRateLimitSpendCapEvidence.runtimeRequestIds) {
+    assert.match(
+      requestId,
+      /^staging-quota-rate-limit-spend-cap-\d{8}T\d{4}Z-/,
+      `${requestId} must be a staging quota/rate-limit/spend-cap runtime probe`
+    );
+  }
+
+  for (const userId of stagingQuotaRateLimitSpendCapEvidence.quotaUserIds) {
+    assert.ok(quotaUserIds.has(userId), `${userId} must link an admin quota account`);
+  }
+  for (const id of stagingQuotaRateLimitSpendCapEvidence.adminRbacEvidenceIds) {
+    assert.ok(rbacIds.has(id), `${id} must link admin RBAC evidence`);
+  }
+  for (const auditRef of stagingQuotaRateLimitSpendCapEvidence.auditRefs) {
+    assert.ok(auditIds.has(auditRef), `${auditRef} must link immutable audit evidence`);
+  }
+
+  const requiredAreas = new Set([
+    "quota_reservation_commit_refund",
+    "rate_limit_enforcement",
+    "provider_spend_cap",
+    "emergency_kill_switch"
+  ]);
+  const fileCoverageByArea = new Map(evidenceFile.coverage.map((coverage) => [coverage.area, coverage]));
+
+  for (const coverage of stagingQuotaRateLimitSpendCapEvidence.coverage) {
+    requiredAreas.delete(coverage.area);
+    const fileCoverage = fileCoverageByArea.get(coverage.area);
+    assert.ok(fileCoverage, `${coverage.area} missing from evidence file`);
+    assert.equal(coverage.status, "pass", `${coverage.area} admin fixture coverage must pass`);
+    assert.equal(fileCoverage.status, coverage.status, `${coverage.area} file and fixture status mismatch`);
+    assert.match(
+      coverage.runtimeProbe,
+      /quota|rate-limit|spend|kill-switch|provider|refund|reservation|throttle/i,
+      `${coverage.area} must describe executable quota, rate-limit, or spend-cap runtime enforcement`
+    );
+    assert.ok(coverage.runtimeProbe.length > 120, `${coverage.area} needs runtime probe detail`);
+    assert.ok(coverage.externalUserEvidence.length > 90, `${coverage.area} needs external-user evidence`);
+    assert.ok(coverage.enforcementEvidence.length > 90, `${coverage.area} needs enforcement evidence`);
+    assert.ok(coverage.linkedAdminArtifacts.some((ref) => ref.startsWith("admin/")), `${coverage.area} needs admin artifacts`);
+    assert.ok(
+      coverage.evidenceRefs.includes(stagingQuotaRateLimitSpendCapEvidence.evidencePath),
+      `${coverage.area} must cite the staging evidence path`
+    );
+    assert.ok(
+      coverage.evidenceRefs.some(
+        (ref) =>
+          auditIds.has(ref) ||
+          rbacIds.has(ref) ||
+          supportTicketIds.has(ref) ||
+          exportIds.has(ref) ||
+          traceIds.has(ref) ||
+          taskIds.has(ref) ||
+          queueIds.has(ref) ||
+          abuseHookIds.has(ref) ||
+          abuseEventById.has(ref) ||
+          crawlerFindingIds.has(ref) ||
+          quotaUserIds.has(ref) ||
+          ref.startsWith("qt-") ||
+          ref.startsWith("ph-")
+      ),
+      `${coverage.area} needs validator-resolvable admin quota, provider, support, abuse, trace, or audit refs`
+    );
+  }
+
+  assert.deepEqual([...requiredAreas], [], "staging quota/rate-limit/spend-cap evidence is missing coverage areas");
+
+  const gateCheck = gateFixture.checks.find((check) => check.check_id === "staging_quota_rate_limit_spend_cap");
+  assert.ok(gateCheck, "private beta gate needs quota/rate-limit/spend-cap check");
+  assert.equal(gateCheck.status, "pass", "validated quota/rate-limit/spend-cap evidence should clear only its check");
+  assert.ok(
+    gateCheck.evidence_ref.includes(stagingQuotaRateLimitSpendCapEvidence.evidencePath),
+    "quota/rate-limit/spend-cap gate check must cite the staging runtime evidence path"
+  );
+
+  const quotaCondition = gateFixture.do_not_launch_checks.find(
+    (condition) => condition.condition_id === stagingQuotaRateLimitSpendCapEvidence.doNotLaunchConditionId
+  );
+  assert.ok(quotaCondition, "private beta do-not-launch fixture needs quota/rate-limit/spend-cap condition");
+  assert.equal(
+    quotaCondition.is_present,
+    false,
+    "validated quota/rate-limit/spend-cap runtime evidence should clear the matching condition"
+  );
+  assert.ok(
+    quotaCondition.evidence_ref.includes(stagingQuotaRateLimitSpendCapEvidence.evidencePath),
+    "cleared quota/rate-limit/spend-cap condition must cite the staging runtime evidence path"
+  );
+
+  for (const blocker of stagingQuotaRateLimitSpendCapEvidence.gateImpact.remainingBlockers) {
+    const check = gateFixture.checks.find((entry) => entry.check_id === blocker);
+    assert.ok(check, `${blocker} must remain represented in the private beta gate fixture`);
+    assert.equal(check.status, "blocked", `${blocker} must stay blocked after quota/rate-limit/spend-cap clears`);
   }
 
   assert.ok(

@@ -55,6 +55,7 @@ test("admin fixtures cover required operational surfaces", () => {
     "export const abuseControlHooks",
     "export const stagingAuthRbacTenantAuditEvidence",
     "export const stagingSupportRetryAbuseEvidence",
+    "export const stagingQuotaRateLimitSpendCapEvidence",
     "export const productionSkillReleaseEvalCanaryEvidence",
     "export const productionSecurityLaunchCheckEvidence",
     "export const operationalDashboards",
@@ -309,6 +310,39 @@ test("admin operations page exposes observability telemetry runtime evidence", (
     "structured_json_logs",
     "opentelemetry_traces",
     "ops/evidence/staging/20260527T1815Z-observability-telemetry.json"
+  ]) {
+    assert.match(fixtures, new RegExp(token));
+  }
+});
+
+test("admin quota page exposes staging quota rate limit spend cap evidence", () => {
+  const quotaPage = readFileSync(
+    new URL("../app/quota/page.tsx", import.meta.url),
+    "utf8"
+  );
+
+  for (const token of [
+    "Staging Quota Rate Limit Spend Cap Evidence",
+    "getStagingQuotaRateLimitSpendCapEvidence",
+    "Release Gate Check",
+    "Do Not Launch Condition",
+    "Can Clear Row",
+    "Remaining Blockers",
+    "External User Evidence",
+    "Enforcement Evidence"
+  ]) {
+    assert.match(quotaPage, new RegExp(token));
+  }
+
+  for (const token of [
+    "stagingQuotaRateLimitSpendCapEvidence",
+    "staging_quota_rate_limit_spend_cap_20260527T2015Z",
+    "ops/evidence/staging/20260527T2015Z-quota-rate-limit-spend-cap.json",
+    "quota_reservation_commit_refund",
+    "rate_limit_enforcement",
+    "provider_spend_cap",
+    "emergency_kill_switch",
+    "rate_limit_spend_cap_runtime_missing"
   ]) {
     assert.match(fixtures, new RegExp(token));
   }
