@@ -158,6 +158,8 @@ var launchObservabilityWebhookSecretKeyPattern = regexp.MustCompile(`(?i)(better
 var launchObservabilityWebhookSecretAssignmentPattern = regexp.MustCompile(`(?i)\b([A-Za-z0-9_.-]*(?:better[_-]?(?:stack|uptime)[_-]?(?:api[_-]?key|heartbeat[_-]?url|webhook[_-]?url|token)|logtail[_-]?(?:source[_-]?token|ingest[_-]?token|api[_-]?key)|cronitor[_-]?(?:api[_-]?key|ping[_-]?url|telemetry[_-]?key)|healthchecks[_-]?(?:ping[_-]?url|api[_-]?key|uuid|token)|uptime[_-]?robot[_-]?(?:api[_-]?key|token)|uptimerobot[_-]?(?:api[_-]?key|token)|honeybadger[_-]?(?:api[_-]?key|deploy[_-]?token|personal[_-]?auth[_-]?token)|rollbar[_-]?(?:access[_-]?token|post[_-]?server[_-]?item[_-]?token)|bugsnag[_-]?(?:api[_-]?key|build[_-]?api[_-]?key)|airbrake[_-]?(?:project[_-]?key|api[_-]?key)|scout[_-]?apm[_-]?(?:key|api[_-]?key)|lightstep[_-]?(?:access[_-]?token|satellite[_-]?key)|chronosphere[_-]?(?:api[_-]?token|api[_-]?key)|signoz[_-]?(?:ingestion[_-]?key|api[_-]?key)|axiom[_-]?(?:api[_-]?token|api[_-]?key|ingest[_-]?token)|logflare[_-]?(?:api[_-]?key|source[_-]?token)|sematext[_-]?(?:logs[_-]?token|app[_-]?token|api[_-]?key)|logz(?:io|[_-]?io)[_-]?(?:shipping[_-]?token|listener[_-]?token|api[_-]?token|api[_-]?key)|papertrail[_-]?(?:api[_-]?token|token))[A-Za-z0-9_.-]*)\s*([=:])\s*("[^"]*"|'[^']*'|[^\s,;&]+)`)
 var launchBillingSecretKeyPattern = regexp.MustCompile(`(?i)(paddle[_-]?(?:api[_-]?key|client[_-]?secret|auth[_-]?code|vendor[_-]?auth[_-]?code|webhook[_-]?secret)|lemon[_-]?squeezy[_-]?(?:api[_-]?key|signing[_-]?secret|webhook[_-]?secret)|lemonsqueezy[_-]?(?:api[_-]?key|signing[_-]?secret|webhook[_-]?secret)|chargebee[_-]?(?:api[_-]?key|site[_-]?api[_-]?key|webhook[_-]?secret)|recurly[_-]?(?:api[_-]?key|private[_-]?api[_-]?key|webhook[_-]?secret)|braintree[_-]?(?:private[_-]?key|access[_-]?token|merchant[_-]?account[_-]?id)|paypal[_-]?(?:client[_-]?secret|access[_-]?token|webhook[_-]?id)|adyen[_-]?(?:api[_-]?key|hmac[_-]?key|merchant[_-]?account)|taxjar[_-]?(?:api[_-]?key|token)|avalara[_-]?(?:account[_-]?id|license[_-]?key|password)|quickbooks[_-]?(?:client[_-]?secret|refresh[_-]?token|access[_-]?token)|xero[_-]?(?:client[_-]?secret|refresh[_-]?token|access[_-]?token))`)
 var launchBillingSecretAssignmentPattern = regexp.MustCompile(`(?i)\b([A-Za-z0-9_.-]*(?:paddle[_-]?(?:api[_-]?key|client[_-]?secret|auth[_-]?code|vendor[_-]?auth[_-]?code|webhook[_-]?secret)|lemon[_-]?squeezy[_-]?(?:api[_-]?key|signing[_-]?secret|webhook[_-]?secret)|lemonsqueezy[_-]?(?:api[_-]?key|signing[_-]?secret|webhook[_-]?secret)|chargebee[_-]?(?:api[_-]?key|site[_-]?api[_-]?key|webhook[_-]?secret)|recurly[_-]?(?:api[_-]?key|private[_-]?api[_-]?key|webhook[_-]?secret)|braintree[_-]?(?:private[_-]?key|access[_-]?token|merchant[_-]?account[_-]?id)|paypal[_-]?(?:client[_-]?secret|access[_-]?token|webhook[_-]?id)|adyen[_-]?(?:api[_-]?key|hmac[_-]?key|merchant[_-]?account)|taxjar[_-]?(?:api[_-]?key|token)|avalara[_-]?(?:account[_-]?id|license[_-]?key|password)|quickbooks[_-]?(?:client[_-]?secret|refresh[_-]?token|access[_-]?token)|xero[_-]?(?:client[_-]?secret|refresh[_-]?token|access[_-]?token))[A-Za-z0-9_.-]*)\s*([=:])\s*("[^"]*"|'[^']*'|[^\s,;&]+)`)
+var launchExportRenderSecretKeyPattern = regexp.MustCompile(`(?i)(cloudconvert[_-]?(?:api[_-]?key|api[_-]?secret|webhook[_-]?secret)|convertapi[_-]?(?:secret|api[_-]?key)|browserless[_-]?(?:api[_-]?key|token)|browserbase[_-]?(?:api[_-]?key|secret)|screenshotone[_-]?(?:access[_-]?key|api[_-]?key|secret[_-]?key)|urlbox[_-]?(?:api[_-]?key|api[_-]?secret|secret)|html(?:css)?toimage[_-]?(?:api[_-]?key|user[_-]?id|password)|hcti[_-]?(?:api[_-]?key|user[_-]?id)|docraptor[_-]?(?:api[_-]?key|token)|pdfshift[_-]?(?:api[_-]?key|token)|pdfco[_-]?(?:api[_-]?key|token)|aspose[_-]?(?:client[_-]?secret|access[_-]?token|api[_-]?key)|cloudinary[_-]?(?:api[_-]?secret|auth[_-]?token)|uploadcare[_-]?(?:secret[_-]?key|private[_-]?key)|imagekit[_-]?(?:private[_-]?key|api[_-]?key)|filestack[_-]?(?:api[_-]?key|security[_-]?secret|policy|signature)|shotstack[_-]?(?:api[_-]?key|owner[_-]?id)|bannerbear[_-]?(?:api[_-]?key|project[_-]?api[_-]?key)|renderform[_-]?(?:api[_-]?key|workspace[_-]?secret)|figma[_-]?(?:personal[_-]?access[_-]?token|oauth[_-]?token|file[_-]?token|client[_-]?secret))`)
+var launchExportRenderSecretAssignmentPattern = regexp.MustCompile(`(?i)\b([A-Za-z0-9_.-]*(?:cloudconvert[_-]?(?:api[_-]?key|api[_-]?secret|webhook[_-]?secret)|convertapi[_-]?(?:secret|api[_-]?key)|browserless[_-]?(?:api[_-]?key|token)|browserbase[_-]?(?:api[_-]?key|secret)|screenshotone[_-]?(?:access[_-]?key|api[_-]?key|secret[_-]?key)|urlbox[_-]?(?:api[_-]?key|api[_-]?secret|secret)|html(?:css)?toimage[_-]?(?:api[_-]?key|user[_-]?id|password)|hcti[_-]?(?:api[_-]?key|user[_-]?id)|docraptor[_-]?(?:api[_-]?key|token)|pdfshift[_-]?(?:api[_-]?key|token)|pdfco[_-]?(?:api[_-]?key|token)|aspose[_-]?(?:client[_-]?secret|access[_-]?token|api[_-]?key)|cloudinary[_-]?(?:api[_-]?secret|auth[_-]?token)|uploadcare[_-]?(?:secret[_-]?key|private[_-]?key)|imagekit[_-]?(?:private[_-]?key|api[_-]?key)|filestack[_-]?(?:api[_-]?key|security[_-]?secret|policy|signature)|shotstack[_-]?(?:api[_-]?key|owner[_-]?id)|bannerbear[_-]?(?:api[_-]?key|project[_-]?api[_-]?key)|renderform[_-]?(?:api[_-]?key|workspace[_-]?secret)|figma[_-]?(?:personal[_-]?access[_-]?token|oauth[_-]?token|file[_-]?token|client[_-]?secret))[A-Za-z0-9_.-]*)\s*([=:])\s*("[^"]*"|'[^']*'|[^\s,;&]+)`)
 var launchBackupIncidentSecretKeyPattern = regexp.MustCompile(`(?i)(restic[_-]?(?:password|repository|repo|key|aws[_-]?access|aws[_-]?secret)|kopia[_-]?(?:password|repo(?:sitory)?|server[_-]?password|tls[_-]?key)|borg[_-]?(?:passphrase|repo(?:sitory)?|key)|pgbackrest[_-]?(?:repo|password|cipher[_-]?pass|s3[_-]?(?:key|secret)|gcs[_-]?key)|wal[_-]?g[_-]?(?:s3[_-]?(?:prefix|access|secret)|gcs[_-]?(?:prefix|key)|azure[_-]?(?:account|key)|compression[_-]?passphrase)|walg[_-]?(?:s3[_-]?(?:prefix|access|secret)|gcs[_-]?(?:prefix|key)|azure[_-]?(?:account|key)|compression[_-]?passphrase)|litestream[_-]?(?:replica[_-]?(?:url|access|secret|key)|s3[_-]?(?:access|secret)|gcs[_-]?key)|backup[_-]?(?:repository|repo|password|passphrase|encryption[_-]?key|signing[_-]?key)|age[_-]?(?:identity|secret[_-]?key)|gpg[_-]?(?:private[_-]?key|passphrase)|pgp[_-]?(?:private[_-]?key|passphrase)|rootly[_-]?(?:api[_-]?key|token)|firehydrant[_-]?(?:api[_-]?key|token)|statuspage[_-]?(?:api[_-]?key|token)|victorops[_-]?(?:api[_-]?key|routing[_-]?key)|splunk[_-]?on[_-]?call[_-]?(?:api[_-]?key|routing[_-]?key)|squadcast[_-]?(?:api[_-]?key|token|webhook[_-]?secret))`)
 var launchBackupIncidentSecretAssignmentPattern = regexp.MustCompile(`(?i)\b([A-Za-z0-9_.-]*(?:restic[_-]?(?:password|repository|repo|key|aws[_-]?access|aws[_-]?secret)|kopia[_-]?(?:password|repo(?:sitory)?|server[_-]?password|tls[_-]?key)|borg[_-]?(?:passphrase|repo(?:sitory)?|key)|pgbackrest[_-]?(?:repo|password|cipher[_-]?pass|s3[_-]?(?:key|secret)|gcs[_-]?key)|wal[_-]?g[_-]?(?:s3[_-]?(?:prefix|access|secret)|gcs[_-]?(?:prefix|key)|azure[_-]?(?:account|key)|compression[_-]?passphrase)|walg[_-]?(?:s3[_-]?(?:prefix|access|secret)|gcs[_-]?(?:prefix|key)|azure[_-]?(?:account|key)|compression[_-]?passphrase)|litestream[_-]?(?:replica[_-]?(?:url|access|secret|key)|s3[_-]?(?:access|secret)|gcs[_-]?key)|backup[_-]?(?:repository|repo|password|passphrase|encryption[_-]?key|signing[_-]?key)|age[_-]?(?:identity|secret[_-]?key)|gpg[_-]?(?:private[_-]?key|passphrase)|pgp[_-]?(?:private[_-]?key|passphrase)|rootly[_-]?(?:api[_-]?key|token)|firehydrant[_-]?(?:api[_-]?key|token)|statuspage[_-]?(?:api[_-]?key|token)|victorops[_-]?(?:api[_-]?key|routing[_-]?key)|splunk[_-]?on[_-]?call[_-]?(?:api[_-]?key|routing[_-]?key)|squadcast[_-]?(?:api[_-]?key|token|webhook[_-]?secret))[A-Za-z0-9_.-]*)\s*([=:])\s*("[^"]*"|'[^']*'|[^\s,;&]+)`)
 var embeddedURLPattern = regexp.MustCompile(`[A-Za-z][A-Za-z0-9+.-]*://[^\s"'<>]+`)
@@ -393,6 +395,7 @@ func ClassifyKey(key string) []SecretFinding {
 			!launchPackageRegistrySecretKeyPattern.MatchString(key) && !launchPackageRegistrySecretKeyPattern.MatchString(normalized) &&
 			!launchObservabilityWebhookSecretKeyPattern.MatchString(key) && !launchObservabilityWebhookSecretKeyPattern.MatchString(normalized) &&
 			!launchBillingSecretKeyPattern.MatchString(key) && !launchBillingSecretKeyPattern.MatchString(normalized) &&
+			!launchExportRenderSecretKeyPattern.MatchString(key) && !launchExportRenderSecretKeyPattern.MatchString(normalized) &&
 			!launchBackupIncidentSecretKeyPattern.MatchString(key) && !launchBackupIncidentSecretKeyPattern.MatchString(normalized) &&
 			!launchSignedDeliverySecretKeyPattern.MatchString(key) && !launchSignedDeliverySecretKeyPattern.MatchString(normalized)) {
 		return nil
@@ -510,6 +513,21 @@ func ClassifyKey(key string) []SecretFinding {
 			kind = SecretKindCredential
 		case strings.Contains(lower, "merchant_account") || strings.Contains(lower, "account_id"):
 			kind = SecretKindCredential
+		default:
+			kind = SecretKindToken
+		}
+	case launchExportRenderSecretKeyPattern.MatchString(key) || launchExportRenderSecretKeyPattern.MatchString(normalized):
+		switch {
+		case strings.Contains(lower, "password"):
+			kind = SecretKindPassword
+		case strings.Contains(lower, "private") || strings.Contains(lower, "secret") || strings.Contains(lower, "signature"):
+			kind = SecretKindCredential
+		case strings.Contains(lower, "webhook"):
+			kind = SecretKindWebhookSecret
+		case strings.Contains(lower, "api_key") || strings.Contains(lower, "access_key"):
+			kind = SecretKindAPIKey
+		case strings.Contains(lower, "figma"):
+			kind = SecretKindProviderKey
 		default:
 			kind = SecretKindToken
 		}
@@ -665,6 +683,12 @@ func ClassifyString(value string) []SecretFinding {
 		}
 	}
 	for _, match := range launchBillingSecretAssignmentPattern.FindAllStringSubmatch(value, -1) {
+		for _, keyFinding := range ClassifyKey(match[1]) {
+			keyFinding.Signal = "assignment:" + keyFinding.Signal
+			findings = append(findings, keyFinding)
+		}
+	}
+	for _, match := range launchExportRenderSecretAssignmentPattern.FindAllStringSubmatch(value, -1) {
 		for _, keyFinding := range ClassifyKey(match[1]) {
 			keyFinding.Signal = "assignment:" + keyFinding.Signal
 			findings = append(findings, keyFinding)
@@ -1045,6 +1069,7 @@ func redactAssignments(value string) string {
 	value = redactAssignmentMatches(value, launchPackageRegistrySecretAssignmentPattern)
 	value = redactAssignmentMatches(value, launchObservabilityWebhookSecretAssignmentPattern)
 	value = redactAssignmentMatches(value, launchBillingSecretAssignmentPattern)
+	value = redactAssignmentMatches(value, launchExportRenderSecretAssignmentPattern)
 	value = redactAssignmentMatches(value, launchBackupIncidentSecretAssignmentPattern)
 	return redactAssignmentMatches(value, signedDeliveryAssignmentPattern)
 }

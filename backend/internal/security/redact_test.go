@@ -2341,6 +2341,127 @@ func TestRedactMapCoversLaunchInfraStructuredMetadata(t *testing.T) {
 	}
 }
 
+func TestRedactStringCoversLaunchExportRenderAndDesignSecrets(t *testing.T) {
+	input := strings.Join([]string{
+		"cloudconvert_api_key=cloudconvert-secret-value",
+		"convertapi_secret=convertapi-secret-value",
+		"browserless_token=browserless-secret-value",
+		"browserbase_api_key=browserbase-secret-value",
+		"screenshotone_access_key=screenshotone-secret-value",
+		"urlbox_api_secret=urlbox-secret-value",
+		"htmlcsstoimage_api_key=hcti-secret-value",
+		"docraptor_api_key=docraptor-secret-value",
+		"pdfshift_api_key=pdfshift-secret-value",
+		"pdfco_api_key=pdfco-secret-value",
+		"aspose_client_secret=aspose-secret-value",
+		"cloudinary_api_secret=cloudinary-secret-value",
+		"uploadcare_secret_key=uploadcare-secret-value",
+		"imagekit_private_key=imagekit-secret-value",
+		"filestack_security_secret=filestack-secret-value",
+		"shotstack_api_key=shotstack-secret-value",
+		"bannerbear_project_api_key=bannerbear-secret-value",
+		"renderform_workspace_secret=renderform-secret-value",
+		"figma_personal_access_token=figd_abcdefghijklmnopqrstuvwxyz123456",
+	}, " ")
+
+	got := RedactString(input)
+	for _, leaked := range []string{
+		"cloudconvert-secret-value",
+		"convertapi-secret-value",
+		"browserless-secret-value",
+		"browserbase-secret-value",
+		"screenshotone-secret-value",
+		"urlbox-secret-value",
+		"hcti-secret-value",
+		"docraptor-secret-value",
+		"pdfshift-secret-value",
+		"pdfco-secret-value",
+		"aspose-secret-value",
+		"cloudinary-secret-value",
+		"uploadcare-secret-value",
+		"imagekit-secret-value",
+		"filestack-secret-value",
+		"shotstack-secret-value",
+		"bannerbear-secret-value",
+		"renderform-secret-value",
+		"figd_abcdefghijklmnopqrstuvwxyz123456",
+	} {
+		if strings.Contains(got, leaked) {
+			t.Fatalf("RedactString() = %q, leaked %s", got, leaked)
+		}
+	}
+	if strings.Count(got, Redacted) < 19 {
+		t.Fatalf("RedactString() = %q, want export render and design secrets redacted", got)
+	}
+
+	findings := ClassifyString(input)
+	assertFinding(t, findings, SecretKindAPIKey, "")
+	assertFinding(t, findings, SecretKindCredential, "")
+	assertFinding(t, findings, SecretKindProviderKey, "")
+}
+
+func TestRedactMapCoversLaunchExportRenderAndDesignMetadata(t *testing.T) {
+	metadata := map[string]any{
+		"export": map[string]any{
+			"cloudconvertApiKey":        "cloudconvert-secret-value",
+			"convertapiSecret":          "convertapi-secret-value",
+			"docraptorApiKey":           "docraptor-secret-value",
+			"pdfshiftApiKey":            "pdfshift-secret-value",
+			"filestackSecuritySecret":   "filestack-secret-value",
+			"renderformWorkspaceSecret": "renderform-secret-value",
+			"publicTemplateId":          "template_launch_1",
+		},
+		"thumbnail": map[string]any{
+			"browserlessToken":       "browserless-secret-value",
+			"screenshotoneAccessKey": "screenshotone-secret-value",
+			"htmlcsstoimageApiKey":   "hcti-secret-value",
+			"cloudinaryApiSecret":    "cloudinary-secret-value",
+			"imagekitPrivateKey":     "imagekit-secret-value",
+			"publicDeliveryFolder":   "tenant-safe-thumbnails",
+		},
+		"design": map[string]any{
+			"figmaPersonalAccessToken": "figd_abcdefghijklmnopqrstuvwxyz123456",
+			"figmaClientSecret":        "figma-client-secret",
+			"publicFigmaFileKey":       "FigmaPublicFile123",
+		},
+	}
+
+	body, err := json.Marshal(RedactValue(metadata))
+	if err != nil {
+		t.Fatalf("marshal redacted export render metadata: %v", err)
+	}
+	for _, leaked := range []string{
+		"cloudconvert-secret-value",
+		"convertapi-secret-value",
+		"docraptor-secret-value",
+		"pdfshift-secret-value",
+		"filestack-secret-value",
+		"renderform-secret-value",
+		"browserless-secret-value",
+		"screenshotone-secret-value",
+		"hcti-secret-value",
+		"cloudinary-secret-value",
+		"imagekit-secret-value",
+		"figd_abcdefghijklmnopqrstuvwxyz123456",
+		"figma-client-secret",
+	} {
+		if strings.Contains(string(body), leaked) {
+			t.Fatalf("redacted export render metadata = %s, leaked %s", string(body), leaked)
+		}
+	}
+	for _, fragment := range []string{`"publicTemplateId":"template_launch_1"`, `"publicDeliveryFolder":"tenant-safe-thumbnails"`, `"publicFigmaFileKey":"FigmaPublicFile123"`, Redacted} {
+		if !strings.Contains(string(body), fragment) {
+			t.Fatalf("redacted export render metadata = %s, missing %s", string(body), fragment)
+		}
+	}
+
+	findings := ClassifyValue(metadata)
+	assertFinding(t, findings, SecretKindAPIKey, "export.cloudconvertApiKey")
+	assertFinding(t, findings, SecretKindCredential, "export.filestackSecuritySecret")
+	assertFinding(t, findings, SecretKindPrivateKey, "thumbnail.imagekitPrivateKey")
+	assertFinding(t, findings, SecretKindProviderKey, "design.figmaPersonalAccessToken")
+}
+
 func TestRedactStringCoversLaunchDataWarehouseCredentials(t *testing.T) {
 	input := strings.Join([]string{
 		"snowflake_private_key=-----BEGIN_PRIVATE_KEY-----abcdef",
