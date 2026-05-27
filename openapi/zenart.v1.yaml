@@ -2531,6 +2531,8 @@ components:
         - user_failure_mapping
         - export_references
         - artifact_links
+        - eval_result_ref
+        - qa_result_refs
         - payload
         - created_at
       properties:
@@ -2662,6 +2664,41 @@ components:
             trace_provenance_linked:
               type: boolean
             safety_disclaimer_linked:
+              type: boolean
+        eval_result_ref:
+          type: object
+          required: [result_id, table, fixture_id, status, qa_export_gate_final_export_allowed]
+          properties:
+            result_id:
+              type: string
+            table:
+              type: string
+              enum: [eval_results]
+            fixture_id:
+              type: string
+            status:
+              type: string
+              enum: [pass, blocked, fail]
+            qa_export_gate_final_export_allowed:
+              type: boolean
+        qa_result_refs:
+          type: object
+          required: [table, check_ids, blocking_check_ids, coverage_complete]
+          properties:
+            table:
+              type: string
+              enum: [qa_results]
+            check_ids:
+              type: array
+              uniqueItems: true
+              items:
+                type: string
+            blocking_check_ids:
+              type: array
+              uniqueItems: true
+              items:
+                type: string
+            coverage_complete:
               type: boolean
         payload:
           type: object

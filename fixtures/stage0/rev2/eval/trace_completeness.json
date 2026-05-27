@@ -231,6 +231,16 @@
             "decision_source": "default_no_match",
             "source_rule_ids": [],
             "audit_required": false
+          },
+          "qa_result_refs": {
+            "table": "qa_results",
+            "check_ids": [
+              "qa_aspect_ratio_channel",
+              "qa_aspect_ratio_square_pass",
+              "qa_file_integrity_verified_pass",
+              "qa_product_logo_preservation_pass"
+            ],
+            "coverage_complete": false
           }
         },
         {
@@ -273,6 +283,13 @@
             "decision_source": "default_no_match",
             "source_rule_ids": [],
             "audit_required": false
+          },
+          "eval_result_ref": {
+            "result_id": "eval_result_stage0_rev2_starter_contract",
+            "table": "eval_results",
+            "fixture_id": "fx_ecommerce_growth_golden",
+            "final_export_allowed": false,
+            "blocking_qa_check_ids": []
           }
         }
       ],
@@ -290,6 +307,24 @@
         "metadata_linked": true,
         "trace_provenance_linked": true,
         "safety_disclaimer_linked": true
+      },
+      "eval_result_ref": {
+        "result_id": "eval_result_stage0_rev2_starter_contract",
+        "table": "eval_results",
+        "fixture_id": "fx_ecommerce_growth_golden",
+        "status": "blocked",
+        "qa_export_gate_final_export_allowed": false
+      },
+      "qa_result_refs": {
+        "table": "qa_results",
+        "check_ids": [
+          "qa_aspect_ratio_channel",
+          "qa_aspect_ratio_square_pass",
+          "qa_file_integrity_verified_pass",
+          "qa_product_logo_preservation_pass"
+        ],
+        "blocking_check_ids": [],
+        "coverage_complete": false
       }
     },
     {
@@ -512,6 +547,14 @@
               "safety_business_claims_review"
             ],
             "audit_required": true
+          },
+          "qa_result_refs": {
+            "table": "qa_results",
+            "check_ids": [
+              "qa_text_readability_ocr",
+              "qa_forbidden_claims_cited_pass"
+            ],
+            "coverage_complete": false
           }
         },
         {
@@ -556,6 +599,13 @@
               "safety_business_claims_review"
             ],
             "audit_required": true
+          },
+          "eval_result_ref": {
+            "result_id": "eval_result_stage0_rev2_starter_contract",
+            "table": "eval_results",
+            "fixture_id": "fx_business_visual_doc_golden",
+            "final_export_allowed": false,
+            "blocking_qa_check_ids": []
           }
         }
       ],
@@ -573,6 +623,22 @@
         "metadata_linked": true,
         "trace_provenance_linked": true,
         "safety_disclaimer_linked": true
+      },
+      "eval_result_ref": {
+        "result_id": "eval_result_stage0_rev2_starter_contract",
+        "table": "eval_results",
+        "fixture_id": "fx_business_visual_doc_golden",
+        "status": "blocked",
+        "qa_export_gate_final_export_allowed": false
+      },
+      "qa_result_refs": {
+        "table": "qa_results",
+        "check_ids": [
+          "qa_text_readability_ocr",
+          "qa_forbidden_claims_cited_pass"
+        ],
+        "blocking_check_ids": [],
+        "coverage_complete": false
       }
     },
     {
@@ -787,6 +853,14 @@
             "decision_source": "default_no_match",
             "source_rule_ids": [],
             "audit_required": false
+          },
+          "qa_result_refs": {
+            "table": "qa_results",
+            "check_ids": [
+              "qa_dimensions_platform_target",
+              "qa_platform_safe_area"
+            ],
+            "coverage_complete": false
           }
         },
         {
@@ -829,6 +903,15 @@
             "decision_source": "default_no_match",
             "source_rule_ids": [],
             "audit_required": false
+          },
+          "eval_result_ref": {
+            "result_id": "eval_result_stage0_rev2_starter_contract",
+            "table": "eval_results",
+            "fixture_id": "fx_local_merchant_campaign_golden",
+            "final_export_allowed": false,
+            "blocking_qa_check_ids": [
+              "qa_dimensions_platform_target"
+            ]
           }
         }
       ],
@@ -846,6 +929,24 @@
         "metadata_linked": true,
         "trace_provenance_linked": true,
         "safety_disclaimer_linked": true
+      },
+      "eval_result_ref": {
+        "result_id": "eval_result_stage0_rev2_starter_contract",
+        "table": "eval_results",
+        "fixture_id": "fx_local_merchant_campaign_golden",
+        "status": "blocked",
+        "qa_export_gate_final_export_allowed": false
+      },
+      "qa_result_refs": {
+        "table": "qa_results",
+        "check_ids": [
+          "qa_dimensions_platform_target",
+          "qa_platform_safe_area"
+        ],
+        "blocking_check_ids": [
+          "qa_dimensions_platform_target"
+        ],
+        "coverage_complete": false
       }
     },
     {
@@ -1068,6 +1169,15 @@
               "safety_ip_brand_similarity"
             ],
             "audit_required": true
+          },
+          "qa_result_refs": {
+            "table": "qa_results",
+            "check_ids": [
+              "qa_blank_output",
+              "qa_watermark_signature_risk",
+              "qa_export_completeness_pass"
+            ],
+            "coverage_complete": false
           }
         },
         {
@@ -1112,6 +1222,15 @@
               "safety_ip_brand_similarity"
             ],
             "audit_required": true
+          },
+          "eval_result_ref": {
+            "result_id": "eval_result_stage0_rev2_starter_contract",
+            "table": "eval_results",
+            "fixture_id": "fx_character_ip_concept_golden",
+            "final_export_allowed": false,
+            "blocking_qa_check_ids": [
+              "qa_blank_output"
+            ]
           }
         }
       ],
@@ -1129,6 +1248,25 @@
         "metadata_linked": true,
         "trace_provenance_linked": true,
         "safety_disclaimer_linked": true
+      },
+      "eval_result_ref": {
+        "result_id": "eval_result_stage0_rev2_starter_contract",
+        "table": "eval_results",
+        "fixture_id": "fx_character_ip_concept_golden",
+        "status": "blocked",
+        "qa_export_gate_final_export_allowed": false
+      },
+      "qa_result_refs": {
+        "table": "qa_results",
+        "check_ids": [
+          "qa_blank_output",
+          "qa_watermark_signature_risk",
+          "qa_export_completeness_pass"
+        ],
+        "blocking_check_ids": [
+          "qa_blank_output"
+        ],
+        "coverage_complete": false
       }
     },
     {
@@ -1343,6 +1481,11 @@
             "decision_source": "default_no_match",
             "source_rule_ids": [],
             "audit_required": false
+          },
+          "qa_result_refs": {
+            "table": "qa_results",
+            "check_ids": [],
+            "coverage_complete": false
           }
         },
         {
@@ -1385,6 +1528,13 @@
             "decision_source": "default_no_match",
             "source_rule_ids": [],
             "audit_required": false
+          },
+          "eval_result_ref": {
+            "result_id": "eval_result_stage0_rev2_starter_contract",
+            "table": "eval_results",
+            "fixture_id": "fx_ambiguous_brief_missing_product",
+            "final_export_allowed": false,
+            "blocking_qa_check_ids": []
           }
         }
       ],
@@ -1397,6 +1547,19 @@
         "metadata_linked": false,
         "trace_provenance_linked": true,
         "safety_disclaimer_linked": true
+      },
+      "eval_result_ref": {
+        "result_id": "eval_result_stage0_rev2_starter_contract",
+        "table": "eval_results",
+        "fixture_id": "fx_ambiguous_brief_missing_product",
+        "status": "blocked",
+        "qa_export_gate_final_export_allowed": false
+      },
+      "qa_result_refs": {
+        "table": "qa_results",
+        "check_ids": [],
+        "blocking_check_ids": [],
+        "coverage_complete": false
       }
     },
     {
@@ -1619,6 +1782,13 @@
               "safety_financial_guaranteed_returns"
             ],
             "audit_required": true
+          },
+          "qa_result_refs": {
+            "table": "qa_results",
+            "check_ids": [
+              "qa_forbidden_claims"
+            ],
+            "coverage_complete": false
           }
         },
         {
@@ -1663,6 +1833,15 @@
               "safety_financial_guaranteed_returns"
             ],
             "audit_required": true
+          },
+          "eval_result_ref": {
+            "result_id": "eval_result_stage0_rev2_starter_contract",
+            "table": "eval_results",
+            "fixture_id": "fx_unsafe_financial_claim",
+            "final_export_allowed": false,
+            "blocking_qa_check_ids": [
+              "qa_forbidden_claims"
+            ]
           }
         }
       ],
@@ -1675,6 +1854,23 @@
         "metadata_linked": false,
         "trace_provenance_linked": true,
         "safety_disclaimer_linked": true
+      },
+      "eval_result_ref": {
+        "result_id": "eval_result_stage0_rev2_starter_contract",
+        "table": "eval_results",
+        "fixture_id": "fx_unsafe_financial_claim",
+        "status": "blocked",
+        "qa_export_gate_final_export_allowed": false
+      },
+      "qa_result_refs": {
+        "table": "qa_results",
+        "check_ids": [
+          "qa_forbidden_claims"
+        ],
+        "blocking_check_ids": [
+          "qa_forbidden_claims"
+        ],
+        "coverage_complete": false
       }
     },
     {
@@ -1889,6 +2085,14 @@
             "decision_source": "default_no_match",
             "source_rule_ids": [],
             "audit_required": false
+          },
+          "qa_result_refs": {
+            "table": "qa_results",
+            "check_ids": [
+              "qa_duplicate_candidate_similarity",
+              "qa_four_option_distinctness"
+            ],
+            "coverage_complete": false
           }
         },
         {
@@ -1931,6 +2135,16 @@
             "decision_source": "default_no_match",
             "source_rule_ids": [],
             "audit_required": false
+          },
+          "eval_result_ref": {
+            "result_id": "eval_result_stage0_rev2_starter_contract",
+            "table": "eval_results",
+            "fixture_id": "fx_negative_generic_rendering",
+            "final_export_allowed": false,
+            "blocking_qa_check_ids": [
+              "qa_duplicate_candidate_similarity",
+              "qa_four_option_distinctness"
+            ]
           }
         }
       ],
@@ -1948,6 +2162,25 @@
         "metadata_linked": true,
         "trace_provenance_linked": true,
         "safety_disclaimer_linked": true
+      },
+      "eval_result_ref": {
+        "result_id": "eval_result_stage0_rev2_starter_contract",
+        "table": "eval_results",
+        "fixture_id": "fx_negative_generic_rendering",
+        "status": "blocked",
+        "qa_export_gate_final_export_allowed": false
+      },
+      "qa_result_refs": {
+        "table": "qa_results",
+        "check_ids": [
+          "qa_duplicate_candidate_similarity",
+          "qa_four_option_distinctness"
+        ],
+        "blocking_check_ids": [
+          "qa_duplicate_candidate_similarity",
+          "qa_four_option_distinctness"
+        ],
+        "coverage_complete": false
       }
     },
     {
@@ -2170,6 +2403,16 @@
               "safety_ip_brand_similarity"
             ],
             "audit_required": true
+          },
+          "qa_result_refs": {
+            "table": "qa_results",
+            "check_ids": [
+              "qa_file_integrity_checksum",
+              "qa_ecommerce_duplicate_candidate_similarity",
+              "qa_ecommerce_four_option_distinctness",
+              "qa_product_logo_preservation"
+            ],
+            "coverage_complete": false
           }
         },
         {
@@ -2214,6 +2457,18 @@
               "safety_ip_brand_similarity"
             ],
             "audit_required": true
+          },
+          "eval_result_ref": {
+            "result_id": "eval_result_stage0_rev2_starter_contract",
+            "table": "eval_results",
+            "fixture_id": "fx_brand_product_preservation",
+            "final_export_allowed": false,
+            "blocking_qa_check_ids": [
+              "qa_file_integrity_checksum",
+              "qa_ecommerce_duplicate_candidate_similarity",
+              "qa_ecommerce_four_option_distinctness",
+              "qa_product_logo_preservation"
+            ]
           }
         }
       ],
@@ -2231,6 +2486,29 @@
         "metadata_linked": true,
         "trace_provenance_linked": true,
         "safety_disclaimer_linked": true
+      },
+      "eval_result_ref": {
+        "result_id": "eval_result_stage0_rev2_starter_contract",
+        "table": "eval_results",
+        "fixture_id": "fx_brand_product_preservation",
+        "status": "blocked",
+        "qa_export_gate_final_export_allowed": false
+      },
+      "qa_result_refs": {
+        "table": "qa_results",
+        "check_ids": [
+          "qa_file_integrity_checksum",
+          "qa_ecommerce_duplicate_candidate_similarity",
+          "qa_ecommerce_four_option_distinctness",
+          "qa_product_logo_preservation"
+        ],
+        "blocking_check_ids": [
+          "qa_file_integrity_checksum",
+          "qa_ecommerce_duplicate_candidate_similarity",
+          "qa_ecommerce_four_option_distinctness",
+          "qa_product_logo_preservation"
+        ],
+        "coverage_complete": false
       }
     },
     {
@@ -2445,6 +2723,14 @@
             "decision_source": "default_no_match",
             "source_rule_ids": [],
             "audit_required": false
+          },
+          "qa_result_refs": {
+            "table": "qa_results",
+            "check_ids": [
+              "qa_structured_text_fields",
+              "qa_structured_text_missing_phone_block"
+            ],
+            "coverage_complete": false
           }
         },
         {
@@ -2487,6 +2773,15 @@
             "decision_source": "default_no_match",
             "source_rule_ids": [],
             "audit_required": false
+          },
+          "eval_result_ref": {
+            "result_id": "eval_result_stage0_rev2_starter_contract",
+            "table": "eval_results",
+            "fixture_id": "fx_text_heavy_structured_details",
+            "final_export_allowed": false,
+            "blocking_qa_check_ids": [
+              "qa_structured_text_missing_phone_block"
+            ]
           }
         }
       ],
@@ -2504,6 +2799,24 @@
         "metadata_linked": true,
         "trace_provenance_linked": true,
         "safety_disclaimer_linked": true
+      },
+      "eval_result_ref": {
+        "result_id": "eval_result_stage0_rev2_starter_contract",
+        "table": "eval_results",
+        "fixture_id": "fx_text_heavy_structured_details",
+        "status": "blocked",
+        "qa_export_gate_final_export_allowed": false
+      },
+      "qa_result_refs": {
+        "table": "qa_results",
+        "check_ids": [
+          "qa_structured_text_fields",
+          "qa_structured_text_missing_phone_block"
+        ],
+        "blocking_check_ids": [
+          "qa_structured_text_missing_phone_block"
+        ],
+        "coverage_complete": false
       }
     },
     {
@@ -2718,6 +3031,14 @@
             "decision_source": "default_no_match",
             "source_rule_ids": [],
             "audit_required": false
+          },
+          "qa_result_refs": {
+            "table": "qa_results",
+            "check_ids": [
+              "qa_export_completeness",
+              "qa_blank_output_subject_present_pass"
+            ],
+            "coverage_complete": false
           }
         },
         {
@@ -2760,6 +3081,15 @@
             "decision_source": "default_no_match",
             "source_rule_ids": [],
             "audit_required": false
+          },
+          "eval_result_ref": {
+            "result_id": "eval_result_stage0_rev2_starter_contract",
+            "table": "eval_results",
+            "fixture_id": "fx_export_completeness_missing_manifest",
+            "final_export_allowed": false,
+            "blocking_qa_check_ids": [
+              "qa_export_completeness"
+            ]
           }
         }
       ],
@@ -2777,6 +3107,24 @@
         "metadata_linked": true,
         "trace_provenance_linked": true,
         "safety_disclaimer_linked": true
+      },
+      "eval_result_ref": {
+        "result_id": "eval_result_stage0_rev2_starter_contract",
+        "table": "eval_results",
+        "fixture_id": "fx_export_completeness_missing_manifest",
+        "status": "blocked",
+        "qa_export_gate_final_export_allowed": false
+      },
+      "qa_result_refs": {
+        "table": "qa_results",
+        "check_ids": [
+          "qa_export_completeness",
+          "qa_blank_output_subject_present_pass"
+        ],
+        "blocking_check_ids": [
+          "qa_export_completeness"
+        ],
+        "coverage_complete": false
       }
     },
     {
@@ -2999,6 +3347,13 @@
               "safety_sensitive_business_claim_confirmation"
             ],
             "audit_required": true
+          },
+          "qa_result_refs": {
+            "table": "qa_results",
+            "check_ids": [
+              "qa_text_readability_clear_pass"
+            ],
+            "coverage_complete": false
           }
         },
         {
@@ -3043,6 +3398,13 @@
               "safety_sensitive_business_claim_confirmation"
             ],
             "audit_required": true
+          },
+          "eval_result_ref": {
+            "result_id": "eval_result_stage0_rev2_starter_contract",
+            "table": "eval_results",
+            "fixture_id": "fx_confirmation_sensitive_claim",
+            "final_export_allowed": false,
+            "blocking_qa_check_ids": []
           }
         }
       ],
@@ -3055,6 +3417,21 @@
         "metadata_linked": false,
         "trace_provenance_linked": true,
         "safety_disclaimer_linked": true
+      },
+      "eval_result_ref": {
+        "result_id": "eval_result_stage0_rev2_starter_contract",
+        "table": "eval_results",
+        "fixture_id": "fx_confirmation_sensitive_claim",
+        "status": "blocked",
+        "qa_export_gate_final_export_allowed": false
+      },
+      "qa_result_refs": {
+        "table": "qa_results",
+        "check_ids": [
+          "qa_text_readability_clear_pass"
+        ],
+        "blocking_check_ids": [],
+        "coverage_complete": false
       }
     },
     {
@@ -3277,6 +3654,11 @@
               "safety_minor_adult_content"
             ],
             "audit_required": true
+          },
+          "qa_result_refs": {
+            "table": "qa_results",
+            "check_ids": [],
+            "coverage_complete": false
           }
         },
         {
@@ -3321,6 +3703,13 @@
               "safety_minor_adult_content"
             ],
             "audit_required": true
+          },
+          "eval_result_ref": {
+            "result_id": "eval_result_stage0_rev2_starter_contract",
+            "table": "eval_results",
+            "fixture_id": "fx_red_team_minor_adult_content",
+            "final_export_allowed": false,
+            "blocking_qa_check_ids": []
           }
         }
       ],
@@ -3333,6 +3722,19 @@
         "metadata_linked": false,
         "trace_provenance_linked": true,
         "safety_disclaimer_linked": true
+      },
+      "eval_result_ref": {
+        "result_id": "eval_result_stage0_rev2_starter_contract",
+        "table": "eval_results",
+        "fixture_id": "fx_red_team_minor_adult_content",
+        "status": "blocked",
+        "qa_export_gate_final_export_allowed": false
+      },
+      "qa_result_refs": {
+        "table": "qa_results",
+        "check_ids": [],
+        "blocking_check_ids": [],
+        "coverage_complete": false
       }
     }
   ],

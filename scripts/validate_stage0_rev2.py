@@ -8497,7 +8497,7 @@ def validate_openapi_rev2_domain_contracts() -> None:
         "ShareLink": ["url", "access_policy"],
         "CrawlerSource": ["legal_metadata", "robots_policy"],
         "CrawlerFinding": ["provenance", "import_governance"],
-        "AgentTrace": ["request_id", "workflow", "schema_validation", "provenance", "safety_status", "qa_eval_status", "quota_transaction_id", "admin_visibility", "user_failure_mapping", "export_references", "artifact_links", "metadata", "metadata_linked", "safety_disclaimer_linked"],
+        "AgentTrace": ["request_id", "workflow", "schema_validation", "provenance", "safety_status", "qa_eval_status", "quota_transaction_id", "admin_visibility", "user_failure_mapping", "export_references", "artifact_links", "eval_result_ref", "qa_result_refs", "metadata", "metadata_linked", "safety_disclaimer_linked"],
         "SafetyRule": ["enforcement_points", "evaluation_contract"],
         "AnalyticsEvent": ["event_name", "required_context", "success_metric_refs", "privacy_classification"],
         "AnalyticsReport": ["metric_name", "source_events", "required_dimensions", "go_no_go_signal"],

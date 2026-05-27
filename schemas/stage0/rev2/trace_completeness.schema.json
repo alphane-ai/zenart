@@ -76,7 +76,9 @@
           "admin_visibility",
           "user_failure_mapping",
           "export_references",
-          "artifact_links"
+          "artifact_links",
+          "eval_result_ref",
+          "qa_result_refs"
         ],
         "properties": {
           "trace_id": {
@@ -173,6 +175,12 @@
           },
           "artifact_links": {
             "$ref": "#/$defs/artifact_links"
+          },
+          "eval_result_ref": {
+            "$ref": "#/$defs/eval_result_ref"
+          },
+          "qa_result_refs": {
+            "$ref": "#/$defs/qa_result_refs"
           }
         }
       }
@@ -290,6 +298,138 @@
         },
         "user_failure_mapping": {
           "$ref": "#/$defs/trace_boolean_evidence"
+        },
+        "eval_result_ref": {
+          "$ref": "#/$defs/trace_step_eval_result_ref"
+        },
+        "qa_result_refs": {
+          "$ref": "#/$defs/trace_step_qa_result_refs"
+        }
+      }
+    },
+    "eval_result_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "result_id",
+        "table",
+        "fixture_id",
+        "status",
+        "qa_export_gate_final_export_allowed"
+      ],
+      "properties": {
+        "result_id": {
+          "const": "eval_result_stage0_rev2_starter_contract"
+        },
+        "table": {
+          "const": "eval_results"
+        },
+        "fixture_id": {
+          "type": "string",
+          "pattern": "^fx_[a-z0-9_]+$"
+        },
+        "status": {
+          "enum": [
+            "pass",
+            "blocked",
+            "fail"
+          ]
+        },
+        "qa_export_gate_final_export_allowed": {
+          "type": "boolean"
+        }
+      }
+    },
+    "qa_result_refs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "table",
+        "check_ids",
+        "blocking_check_ids",
+        "coverage_complete"
+      ],
+      "properties": {
+        "table": {
+          "const": "qa_results"
+        },
+        "check_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^qa_[a-z0-9_]+$"
+          }
+        },
+        "blocking_check_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^qa_[a-z0-9_]+$"
+          }
+        },
+        "coverage_complete": {
+          "type": "boolean"
+        }
+      }
+    },
+    "trace_step_eval_result_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "result_id",
+        "table",
+        "fixture_id",
+        "final_export_allowed",
+        "blocking_qa_check_ids"
+      ],
+      "properties": {
+        "result_id": {
+          "const": "eval_result_stage0_rev2_starter_contract"
+        },
+        "table": {
+          "const": "eval_results"
+        },
+        "fixture_id": {
+          "type": "string",
+          "pattern": "^fx_[a-z0-9_]+$"
+        },
+        "final_export_allowed": {
+          "type": "boolean"
+        },
+        "blocking_qa_check_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^qa_[a-z0-9_]+$"
+          }
+        }
+      }
+    },
+    "trace_step_qa_result_refs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "table",
+        "check_ids",
+        "coverage_complete"
+      ],
+      "properties": {
+        "table": {
+          "const": "qa_results"
+        },
+        "check_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^qa_[a-z0-9_]+$"
+          }
+        },
+        "coverage_complete": {
+          "type": "boolean"
         }
       }
     },

@@ -129,6 +129,7 @@ def validate_trace_fixture() -> None:
         item["trace_contract"]["trace_id"]: item
         for item in eval_results[0]["fixture_results"]
     }
+    eval_result_id = eval_results[0]["result_id"]
     eval_fixture_ids = {
         item["fixture_id"]
         for item in eval_results[0]["fixture_results"]
@@ -160,6 +161,12 @@ def validate_trace_fixture() -> None:
         )
         require(set(trace["covered_steps"]) == REQUIRED_STEPS, f"{trace_id} must cover every pipeline step")
         validate_step_events(trace, eval_by_trace[trace_id])
+        validate_eval_and_qa_refs(
+            trace,
+            eval_by_trace[trace_id],
+            qa_by_fixture.get(trace["fixture_id"], []),
+            eval_result_id,
+        )
 
         eval_trace = eval_by_trace[trace_id]["trace_contract"]
         for contract_field, eval_field in TRACE_CONTRACT_TO_FIXTURE_FIELD.items():
@@ -244,6 +251,67 @@ def validate_step_events(trace: dict[str, Any], eval_result: dict[str, Any] | No
             f"{trace_id} {step} event safety source must link to matching safety decision",
         )
         validate_safety_decision_ref(trace, event, eval_result)
+
+
+def validate_eval_and_qa_refs(
+    trace: dict[str, Any],
+    eval_result: dict[str, Any],
+    qa_items: list[dict[str, Any]],
+    eval_result_id: str,
+) -> None:
+    trace_id = trace["trace_id"]
+    qa_check_ids = [item["check_id"] for item in qa_items]
+    blocking_qa_check_ids = eval_result["qa_export_gate"]["blocking_qa_check_ids"]
+    coverage_complete = eval_result["qa_coverage_contract"]["coverage_complete"]
+    final_export_allowed = eval_result["qa_export_gate"]["final_export_allowed"]
+
+    require(
+        trace["eval_result_ref"] == {
+            "result_id": eval_result_id,
+            "table": "eval_results",
+            "fixture_id": eval_result["fixture_id"],
+            "status": eval_result["status"],
+            "qa_export_gate_final_export_allowed": final_export_allowed,
+        },
+        f"{trace_id} eval result ref must match stored eval result and export gate",
+    )
+    require(
+        trace["qa_result_refs"] == {
+            "table": "qa_results",
+            "check_ids": qa_check_ids,
+            "blocking_check_ids": blocking_qa_check_ids,
+            "coverage_complete": coverage_complete,
+        },
+        f"{trace_id} QA result refs must match stored QA results and coverage",
+    )
+
+    events = {event["step_name"]: event for event in trace["step_events"]}
+    require("qa_result_refs" in events["qa"], f"{trace_id} QA step must link QA result rows")
+    require(
+        events["qa"]["qa_result_refs"] == {
+            "table": "qa_results",
+            "check_ids": qa_check_ids,
+            "coverage_complete": coverage_complete,
+        },
+        f"{trace_id} QA step result refs must match fixture QA results",
+    )
+    require("eval_result_ref" in events["export"], f"{trace_id} export step must link stored eval result")
+    require(
+        events["export"]["eval_result_ref"] == {
+            "result_id": eval_result_id,
+            "table": "eval_results",
+            "fixture_id": eval_result["fixture_id"],
+            "final_export_allowed": final_export_allowed,
+            "blocking_qa_check_ids": blocking_qa_check_ids,
+        },
+        f"{trace_id} export step eval ref must match export gate state",
+    )
+
+    for step_name, event in events.items():
+        if step_name != "qa":
+            require("qa_result_refs" not in event, f"{trace_id} {step_name} step must not carry QA result refs")
+        if step_name != "export":
+            require("eval_result_ref" not in event, f"{trace_id} {step_name} step must not carry eval result ref")
 
 
 def validate_safety_decision_ref(
