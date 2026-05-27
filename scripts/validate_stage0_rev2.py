@@ -3394,6 +3394,17 @@ def validate_eval_results() -> None:
         == {"tenant_id", "eval_suite_id", "subject_type", "subject_id", "subject_version", "runner_sha256"},
         "eval result storage idempotent replay key mismatch",
     )
+    retention = result["storage_contract"]["retention_contract"]
+    for field in [
+        "retain_pass_fail_blocked_results",
+        "retain_summary_json",
+        "retain_runner_hash",
+        "deletion_requires_admin_audit",
+        "redaction_requires_admin_audit",
+        "no_public_delete_operation",
+    ]:
+        require(retention[field] is True, f"eval result storage retention contract must set {field}")
+    require(retention["minimum_retention_days"] >= 365, "eval result retention must be at least 365 days")
 
     fixture_ids = {fixture["fixture_id"] for fixture in suite["fixtures"]}
     result_by_fixture = {item["fixture_id"]: item for item in result["fixture_results"]}
@@ -5513,12 +5524,25 @@ def eval_read_fixture_page(rows: list[dict[str, Any]], query: dict[str, Any]) ->
 def validate_eval_storage_read_fixture_contract() -> None:
     contract = load_json(FIXTURE_DIR / "eval" / "eval_storage_contract.json")
     fixture = contract["read_fixture_contract"]
+    table = contract["table_contract"]
+    retention = contract["retention_contract"]
     rows = fixture["fixture_rows"]
     row_ids = [row["id"] for row in rows]
     require(len(row_ids) == len(set(row_ids)), "eval read fixture rows must have unique ids")
     require(fixture["tenant_filter_required"] is True, "eval read fixture must require tenant scope")
     require(fixture["ordering"] == ["completed_at_desc", "created_at_desc"], "eval read fixture ordering mismatch")
     require(set(fixture["latest_only_groups_by"]) == LATEST_ONLY_GROUP_FIELDS, "eval read latest-only grouping mismatch")
+    require(table["retention_contract_ref"] == "retention_contract", "eval storage table must link retention contract")
+    for field in [
+        "retain_pass_fail_blocked_results",
+        "retain_summary_json",
+        "retain_runner_hash",
+        "deletion_requires_admin_audit",
+        "redaction_requires_admin_audit",
+        "no_public_delete_operation",
+    ]:
+        require(retention[field] is True, f"eval retention contract must set {field}")
+    require(retention["minimum_retention_days"] >= 365, "eval retention must be at least 365 days")
 
     tenants = {row["tenant_id"] for row in rows}
     require(len(tenants) >= 2, "eval read fixture must include cross-tenant rows")

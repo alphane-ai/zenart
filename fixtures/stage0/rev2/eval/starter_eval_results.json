@@ -973,7 +973,7 @@
     ],
     "runner_contract": {
       "runner": "scripts/run_stage0_eval.py",
-      "runner_sha256": "15a2db969ac089a4f3413267d87384f22b5dca9743ee47ad3ab606322adbedde",
+      "runner_sha256": "4b1873fbcd1c956a52431c5e5ed5dc6160f567b3cdc13f82eb16be202a8ffb48",
       "deterministic_replay_command": "python3 scripts/run_stage0_eval.py --check",
       "writes_stored_fixture": true,
       "check_mode_compares_exact_json": true,
@@ -1086,6 +1086,15 @@
         "same_subject_other_tenant_inserts_new_row": true,
         "conflict_requires_admin_audit": true,
         "blocked_conflict_denies_activation": true
+      },
+      "retention_contract": {
+        "retain_pass_fail_blocked_results": true,
+        "retain_summary_json": true,
+        "retain_runner_hash": true,
+        "deletion_requires_admin_audit": true,
+        "redaction_requires_admin_audit": true,
+        "no_public_delete_operation": true,
+        "minimum_retention_days": 365
       },
       "no_public_delete_operation": true
     },

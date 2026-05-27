@@ -367,9 +367,19 @@ def validate_openapi_eval_result_schema() -> None:
         "read_without_eval_rerun",
         "immutable_rows",
         "idempotent_replay_key",
+        "retention_contract",
         "no_public_delete_operation",
     ]:
         require_field_in_schema(body, "EvalResult.storage_contract", field)
+    for field in [
+        "retain_pass_fail_blocked_results",
+        "retain_summary_json",
+        "retain_runner_hash",
+        "deletion_requires_admin_audit",
+        "redaction_requires_admin_audit",
+        "minimum_retention_days",
+    ]:
+        require_field_in_schema(body, "EvalResult.storage_contract.retention_contract", field)
     for token in STORAGE_COLUMNS | STORAGE_INDEXES | QUERY_FILTERS | SUMMARY_PROJECTION_FIELDS | FIXTURE_RESULT_PROJECTION_FIELDS:
         require(token in body or token in eval_path_body, f"OpenAPI EvalResult contract missing {token}")
     require("const: true" in body, "OpenAPI EvalResult must preserve required true contract fields")
@@ -581,6 +591,7 @@ def validate_storage_contract() -> None:
     write_contract = storage_contract["write_contract"]
     read_contract = storage_contract["read_contract"]
     replay_contract = storage_contract["replay_contract"]
+    retention_contract = storage_contract["retention_contract"]
 
     require(results[0]["completed_at"] == results[0]["created_at"], "deterministic fixture timestamps must match")
     require("CREATE TABLE IF NOT EXISTS eval_results" in migration, "eval_results table missing")
@@ -648,11 +659,16 @@ def validate_storage_contract() -> None:
         storage["idempotent_replay_conflict_policy"]["blocked_conflict_denies_activation"] is True,
         "eval storage conflict policy must deny activation for replay conflicts",
     )
+    require(
+        storage["retention_contract"] == retention_contract,
+        "eval result storage retention contract must match sidecar retention contract",
+    )
     require(table_contract["summary_json_contains_fixture_results"] is True, "eval storage contract must retain fixture results")
     require(table_contract["tenant_scoped"] is True, "eval storage table contract must be tenant scoped")
     require(table_contract["subject_scoped"] is True, "eval storage table contract must be subject scoped")
     require(table_contract["latest_result_resolvable"] is True, "eval storage table contract must resolve latest results")
     require(table_contract["immutable_rows"] is True, "eval storage table contract must preserve immutable rows")
+    require(table_contract["retention_contract_ref"] == "retention_contract", "eval storage table must link retention contract")
     require(table_contract["no_public_delete_operation"] is True, "eval storage table contract must not expose public delete")
     require(
         set(table_contract["idempotent_replay_key"]) == set(write_contract["idempotency_key_fields"]),
@@ -671,6 +687,16 @@ def validate_storage_contract() -> None:
         replay_contract["source_fixture_digests_required"] is True,
         "eval replay contract must require source fixture digests",
     )
+    for field in [
+        "retain_pass_fail_blocked_results",
+        "retain_summary_json",
+        "retain_runner_hash",
+        "deletion_requires_admin_audit",
+        "redaction_requires_admin_audit",
+        "no_public_delete_operation",
+    ]:
+        require(retention_contract[field] is True, f"eval retention contract must set {field}")
+    require(retention_contract["minimum_retention_days"] >= 365, "eval retention must be at least 365 days")
 
 
 def main() -> int:

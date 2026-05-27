@@ -3022,7 +3022,9 @@ components:
             - latest_result_resolvable
             - immutable_rows
             - idempotent_replay_key
+            - idempotent_replay_conflict_policy
             - no_public_delete_operation
+            - retention_contract
           properties:
             table:
               type: string
@@ -3139,6 +3141,39 @@ components:
                 blocked_conflict_denies_activation:
                   type: boolean
                   const: true
+            retention_contract:
+              type: object
+              description: Eval result retention policy keeps pass, fail, and blocked result history readable without reruns and requires admin audit for deletion or redaction.
+              required:
+                - retain_pass_fail_blocked_results
+                - retain_summary_json
+                - retain_runner_hash
+                - deletion_requires_admin_audit
+                - redaction_requires_admin_audit
+                - no_public_delete_operation
+                - minimum_retention_days
+              properties:
+                retain_pass_fail_blocked_results:
+                  type: boolean
+                  const: true
+                retain_summary_json:
+                  type: boolean
+                  const: true
+                retain_runner_hash:
+                  type: boolean
+                  const: true
+                deletion_requires_admin_audit:
+                  type: boolean
+                  const: true
+                redaction_requires_admin_audit:
+                  type: boolean
+                  const: true
+                no_public_delete_operation:
+                  type: boolean
+                  const: true
+                minimum_retention_days:
+                  type: integer
+                  minimum: 365
             no_public_delete_operation:
               type: boolean
               const: true

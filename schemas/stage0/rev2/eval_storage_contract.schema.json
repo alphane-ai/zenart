@@ -91,6 +91,7 @@
         "latest_result_resolvable",
         "immutable_rows",
         "idempotent_replay_key",
+        "retention_contract_ref",
         "no_public_delete_operation"
       ],
       "properties": {
@@ -170,6 +171,9 @@
               "runner_sha256"
             ]
           }
+        },
+        "retention_contract_ref": {
+          "const": "retention_contract"
         },
         "no_public_delete_operation": {
           "const": true

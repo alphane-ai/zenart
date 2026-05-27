@@ -73,6 +73,7 @@
       "subject_version",
       "runner_sha256"
     ],
+    "retention_contract_ref": "retention_contract",
     "no_public_delete_operation": true
   },
   "write_contract": {

@@ -296,6 +296,7 @@
         "immutable_rows",
         "idempotent_replay_key",
         "idempotent_replay_conflict_policy",
+        "retention_contract",
         "no_public_delete_operation"
       ],
       "properties": {
@@ -426,6 +427,9 @@
               "const": true
             }
           }
+        },
+        "retention_contract": {
+          "$ref": "#/$defs/retention_contract"
         },
         "no_public_delete_operation": {
           "type": "boolean",
@@ -574,6 +578,43 @@
           "qa_export_gate",
           "failure_reasons"
         ]
+      }
+    },
+    "retention_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "retain_pass_fail_blocked_results",
+        "retain_summary_json",
+        "retain_runner_hash",
+        "deletion_requires_admin_audit",
+        "redaction_requires_admin_audit",
+        "no_public_delete_operation",
+        "minimum_retention_days"
+      ],
+      "properties": {
+        "retain_pass_fail_blocked_results": {
+          "const": true
+        },
+        "retain_summary_json": {
+          "const": true
+        },
+        "retain_runner_hash": {
+          "const": true
+        },
+        "deletion_requires_admin_audit": {
+          "const": true
+        },
+        "redaction_requires_admin_audit": {
+          "const": true
+        },
+        "no_public_delete_operation": {
+          "const": true
+        },
+        "minimum_retention_days": {
+          "type": "integer",
+          "minimum": 365
+        }
       }
     },
     "qa_coverage_contract": {

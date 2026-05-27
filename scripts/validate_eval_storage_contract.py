@@ -249,6 +249,10 @@ def validate_table_contract(contract: dict[str, Any], result: dict[str, Any]) ->
     require(table["latest_result_resolvable"] is True, "eval storage must support latest-result resolution")
     require(table["immutable_rows"] is True, "eval storage rows must be immutable")
     require(set(table["idempotent_replay_key"]) == IDEMPOTENCY_FIELDS, "eval storage idempotent replay key mismatch")
+    require(
+        table["retention_contract_ref"] == "retention_contract",
+        "eval storage table contract must link to retention contract",
+    )
     require(table["no_public_delete_operation"] is True, "eval storage must not expose a public delete operation")
     require(result_storage["immutable_rows"] is True, "eval result storage fixture must declare immutable rows")
     require(set(result_storage["idempotent_replay_key"]) == IDEMPOTENCY_FIELDS, "eval result fixture idempotent replay key mismatch")
@@ -271,6 +275,10 @@ def validate_table_contract(contract: dict[str, Any], result: dict[str, Any]) ->
     require(
         result_storage["idempotent_replay_conflict_policy"]["blocked_conflict_denies_activation"] is True,
         "eval result storage fixture must deny activation for replay conflicts",
+    )
+    require(
+        result_storage["retention_contract"] == contract["retention_contract"],
+        "eval result storage fixture must embed the sidecar retention contract",
     )
     require(result_storage["no_public_delete_operation"] is True, "eval result storage fixture must block public delete")
 
@@ -555,6 +563,16 @@ def validate_read_and_openapi_contract(contract: dict[str, Any]) -> None:
     require("delete:" not in eval_path and "operationId: deleteEval" not in openapi, "eval results must not expose public delete")
     require("immutable" in result.lower(), "OpenAPI EvalResult storage contract must document immutability")
     require("read_without_eval_rerun" in result, "OpenAPI EvalResult storage contract must expose read_without_eval_rerun")
+    require("retention_contract" in result, "OpenAPI EvalResult storage contract must expose retention_contract")
+    for token in [
+        "retain_pass_fail_blocked_results",
+        "retain_summary_json",
+        "retain_runner_hash",
+        "deletion_requires_admin_audit",
+        "redaction_requires_admin_audit",
+        "minimum_retention_days",
+    ]:
+        require(token in result, f"OpenAPI EvalResult storage retention contract missing {token}")
 
 
 def validate_retention_and_release_gate(contract: dict[str, Any]) -> None:

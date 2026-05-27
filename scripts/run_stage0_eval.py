@@ -542,6 +542,15 @@ def run_eval() -> dict[str, Any]:
                 "conflict_requires_admin_audit": True,
                 "blocked_conflict_denies_activation": True,
             },
+            "retention_contract": {
+                "retain_pass_fail_blocked_results": True,
+                "retain_summary_json": True,
+                "retain_runner_hash": True,
+                "deletion_requires_admin_audit": True,
+                "redaction_requires_admin_audit": True,
+                "no_public_delete_operation": True,
+                "minimum_retention_days": 365,
+            },
             "no_public_delete_operation": True,
         },
         "provenance": {
