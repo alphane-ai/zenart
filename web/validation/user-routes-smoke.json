@@ -265,7 +265,7 @@
       "browserSmoke": "web/tests/session-security.spec.ts",
       "browserSmokeScript": "npm run smoke:session-security-playwright",
       "browserSmokeRequiredAssertions": [
-        "account route exposes secure-cookie, same-site CSRF, and unsafe-action guard browser evidence",
+        "account route exposes secure-cookie, same-site CSRF, unsafe-action guard, and generated-client request browser evidence",
         "data-session-security-evidence",
         "data-session-csrf-strategy",
         "data-session-csrf-credential-mode",
@@ -273,6 +273,10 @@
         "data-session-unsafe-action-operation-contracts",
         "data-csrf-ux-guard-contracts",
         "data-generated-api-csrf-operation-contracts",
+        "data-generated-api-csrf-browser-probe",
+        "data-generated-api-csrf-browser-probe-status",
+        "data-generated-api-csrf-browser-probe-unsafe-csrf-header",
+        "data-generated-api-csrf-browser-probe-safe-csrf-header",
         "Session expired. Refresh or sign in to continue.",
         "Save Settings",
         "Sign In"
@@ -303,7 +307,19 @@
         "data-generated-api-csrf-idempotency-exempt-operations",
         "data-generated-api-csrf-missing-unsafe-operation-count",
         "data-generated-api-csrf-failure-count",
-        "data-generated-api-csrf-operation-contracts"
+        "data-generated-api-csrf-operation-contracts",
+        "data-generated-api-csrf-browser-probe",
+        "data-generated-api-csrf-browser-probe-status",
+        "data-generated-api-csrf-browser-probe-unsafe-operation",
+        "data-generated-api-csrf-browser-probe-unsafe-method",
+        "data-generated-api-csrf-browser-probe-unsafe-credentials",
+        "data-generated-api-csrf-browser-probe-unsafe-csrf-header",
+        "data-generated-api-csrf-browser-probe-unsafe-idempotency-key",
+        "data-generated-api-csrf-browser-probe-safe-operation",
+        "data-generated-api-csrf-browser-probe-safe-method",
+        "data-generated-api-csrf-browser-probe-safe-credentials",
+        "data-generated-api-csrf-browser-probe-safe-csrf-header",
+        "data-generated-api-csrf-browser-probe-failure-reason"
       ]
     },
     {
@@ -751,6 +767,7 @@
     "generated web API client sends same-site credentials and X-ZenArt-CSRF header on state-changing operations",
     "generated web API unsafe-operation inventory proves every state-changing operation sends credentials and X-ZenArt-CSRF",
     "generated web API unsafe-operation inventory matches validation/generated-api-csrf-contract.json",
+    "account route browser probe invokes ZenArtApiClient and proves unsafe generated requests send include credentials, X-ZenArt-CSRF, and Idempotency-Key while safe generated requests stay credentialed without CSRF headers",
     "same-site UX guard coverage proves every generated unsafe operation is represented by an authenticated user action guard",
     "generated web API client rejects cross-origin base URLs and unsafe path params before credentialed same-site requests",
     "account settings persist through workspace reload",

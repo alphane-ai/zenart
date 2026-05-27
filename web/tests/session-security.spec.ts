@@ -18,12 +18,12 @@ const unsafeOperationIds = [
   "createSupportTicket"
 ] as const;
 
-test("account route exposes secure-cookie, same-site CSRF, and unsafe-action guard browser evidence", async ({ page }) => {
+test("account route exposes secure-cookie, same-site CSRF, unsafe-action guard, and generated-client request browser evidence", async ({ page }) => {
   await page.addInitScript(() => {
     window.localStorage.clear();
   });
 
-  await page.goto("/account");
+  await page.goto("/account?csrfProbe=1");
   await expect(page.getByRole("heading", { name: "Account Settings" })).toBeVisible();
 
   const sessionContract = page.getByLabel("Auth and session status");
@@ -93,6 +93,20 @@ test("account route exposes secure-cookie, same-site CSRF, and unsafe-action gua
     "data-generated-api-csrf-operation-contracts",
     /deleteSession:DELETE:include:X-ZenArt-CSRF:false/
   );
+
+  const browserProbe = page.getByLabel("Generated API CSRF browser request probe");
+  await expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe", "stage0.rev2.generated-api-csrf-browser-probe");
+  await expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-status", "pass");
+  await expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-unsafe-operation", "updateAccount");
+  await expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-unsafe-method", "PATCH");
+  await expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-unsafe-credentials", "include");
+  await expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-unsafe-csrf-header", "same-site-origin-check");
+  await expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-unsafe-idempotency-key", "csrf-probe-update-account");
+  await expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-safe-operation", "getSession");
+  await expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-safe-method", "GET");
+  await expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-safe-credentials", "include");
+  await expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-safe-csrf-header", "not-required");
+  await expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-failure-reason", "");
 
   const saveSettings = page.getByRole("button", { name: "Save Settings" });
   await expect(saveSettings).toHaveAttribute("data-csrf-ux-guard", "authenticated-same-site-session");

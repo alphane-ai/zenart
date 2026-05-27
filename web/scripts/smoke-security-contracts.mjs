@@ -285,6 +285,12 @@ for (const expectedControlContract of sessionEvidence.unsafeActionGuard?.require
 for (const requiredControlSnippet of [
   "unsafeActionGuardAttributes",
   "formatUnsafeActionControlContracts",
+  "runGeneratedClientCsrfBrowserProbe",
+  "new ZenArtApiClient(\"/api/probe\")",
+  "data-generated-api-csrf-browser-probe",
+  "data-generated-api-csrf-browser-probe-status",
+  "data-generated-api-csrf-browser-probe-unsafe-csrf-header",
+  "data-generated-api-csrf-browser-probe-safe-csrf-header",
   "data-csrf-ux-guard",
   "data-csrf-ux-guard-label",
   "data-csrf-ux-guard-status",
@@ -313,6 +319,7 @@ for (const requiredTestSnippet of [
   "data-session-unsafe-action-operation-contracts",
   "data-csrf-ux-guard-contracts",
   "data-generated-api-csrf-operation-contracts",
+  "data-generated-api-csrf-browser-probe",
   "Session expired. Refresh or sign in to continue.",
   "Save Settings"
 ]) {
@@ -322,7 +329,7 @@ for (const requiredTestSnippet of [
 }
 
 for (const requiredBrowserSnippet of [
-  "account route exposes secure-cookie, same-site CSRF, and unsafe-action guard browser evidence",
+  "account route exposes secure-cookie, same-site CSRF, unsafe-action guard, and generated-client request browser evidence",
   "data-session-security-evidence",
   "data-session-cookie-name",
   "data-session-cookie-http-only",
@@ -337,6 +344,10 @@ for (const requiredBrowserSnippet of [
   "data-csrf-ux-guard-status",
   "data-generated-api-csrf-unsafe-operations",
   "data-generated-api-csrf-operation-contracts",
+  "data-generated-api-csrf-browser-probe",
+  "data-generated-api-csrf-browser-probe-status",
+  "data-generated-api-csrf-browser-probe-unsafe-csrf-header",
+  "data-generated-api-csrf-browser-probe-safe-csrf-header",
   "Session expired. Refresh or sign in to continue.",
   "Refresh Session",
   "Save Settings",

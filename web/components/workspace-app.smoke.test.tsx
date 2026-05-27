@@ -124,6 +124,13 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(csrfInventory).toHaveTextContent("createExport");
     expect(csrfInventory).toHaveTextContent("createSupportTicket");
 
+    const browserProbe = screen.getByLabelText("Generated API CSRF browser request probe");
+    expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe", "stage0.rev2.generated-api-csrf-browser-probe");
+    expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-status", "idle");
+    expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-unsafe-operation", "updateAccount");
+    expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-safe-operation", "getSession");
+    expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-safe-csrf-header", "missing");
+
     const saveSettings = screen.getByRole("button", { name: "Save Settings" });
     expect(saveSettings).toHaveAttribute("data-csrf-ux-guard", "authenticated-same-site-session");
     expect(saveSettings).toHaveAttribute("data-csrf-ux-guard-label", "Save Settings");

@@ -9,7 +9,7 @@
     "script": "npm run smoke:session-security-playwright",
     "route": "/account",
     "requiredAssertions": [
-      "account route exposes secure-cookie, same-site CSRF, and unsafe-action guard browser evidence",
+      "account route exposes secure-cookie, same-site CSRF, unsafe-action guard, and generated-client request browser evidence",
       "data-session-security-evidence",
       "data-session-csrf-strategy",
       "data-session-csrf-credential-mode",
@@ -17,6 +17,10 @@
       "data-session-unsafe-action-operation-contracts",
       "data-csrf-ux-guard-contracts",
       "data-generated-api-csrf-operation-contracts",
+      "data-generated-api-csrf-browser-probe",
+      "data-generated-api-csrf-browser-probe-status",
+      "data-generated-api-csrf-browser-probe-unsafe-csrf-header",
+      "data-generated-api-csrf-browser-probe-safe-csrf-header",
       "Session expired. Refresh or sign in to continue.",
       "Save Settings",
       "Sign In"
@@ -92,6 +96,7 @@
     "Generated web API client rejects cross-origin base URLs before credentialed requests.",
     "Generated web API client rejects unsafe path params before credentialed requests.",
     "Account route exposes secure __Host cookie and same-site CSRF UX evidence.",
-    "Account route proves every generated unsafe operation is represented by the authenticated same-site UX guard."
+    "Account route proves every generated unsafe operation is represented by the authenticated same-site UX guard.",
+    "Account route browser smoke invokes the generated client against local probe responses and proves unsafe requests send include credentials, X-ZenArt-CSRF, and Idempotency-Key while safe requests stay credentialed without CSRF headers."
   ]
 }

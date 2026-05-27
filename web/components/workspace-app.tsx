@@ -52,7 +52,7 @@ import {
   localMerchantCampaignCandidates
 } from "@/lib/dev-state";
 import { downloadExportPackage } from "@/lib/export-download";
-import { apiOperations } from "@/lib/generated/zenart-api";
+import { apiOperations, ZenArtApiClient } from "@/lib/generated/zenart-api";
 import { legalPolicyList, supportContactEmail } from "@/lib/legal-policies";
 import { buildGeneratedApiCsrfRequestContractEvidence, buildSessionSecurityContractEvidence } from "@/lib/request-security";
 import { AnalyticsEventName, captureAnalyticsEvent, reportFrontendError } from "@/lib/telemetry";
@@ -162,6 +162,34 @@ const guardedOperationIds = Array.from(
 );
 const guardedOperationIdSet = new Set<keyof typeof apiOperations>(guardedOperationIds);
 
+type BrowserCsrfProbeResult = {
+  status: "idle" | "running" | "pass" | "fail";
+  unsafeOperation: string;
+  unsafeMethod: string;
+  unsafeCredentials: string;
+  unsafeCsrfHeader: string;
+  unsafeIdempotencyKey: string;
+  safeOperation: string;
+  safeMethod: string;
+  safeCredentials: string;
+  safeCsrfHeader: string;
+  failureReason: string;
+};
+
+const initialBrowserCsrfProbeResult: BrowserCsrfProbeResult = {
+  status: "idle",
+  unsafeOperation: "updateAccount",
+  unsafeMethod: "missing",
+  unsafeCredentials: "missing",
+  unsafeCsrfHeader: "missing",
+  unsafeIdempotencyKey: "missing",
+  safeOperation: "getSession",
+  safeMethod: "missing",
+  safeCredentials: "missing",
+  safeCsrfHeader: "missing",
+  failureReason: ""
+};
+
 const unsafeActionGuardAttributes = (label: UnsafeActionGuardLabel, sessionBlocked: boolean) => {
   const operationIds = sameSiteUnsafeActionGuardMap[label];
   const csrfProtectedOperationCount = operationIds.filter((operationId) => apiOperations[operationId].method !== "GET").length;
@@ -183,8 +211,70 @@ const requiresAuthenticatedSession = (label: string) => !sessionSafeActionLabels
 
 const isSessionBlocked = (state: WorkspaceState) => state.sessionContract.status !== "authenticated";
 
+const runGeneratedClientCsrfBrowserProbe = async (): Promise<BrowserCsrfProbeResult> => {
+  const client = new ZenArtApiClient("/api/probe");
+  const requests: Array<{ operation: string; method: string; credentials: string; csrfHeader: string; idempotencyKey: string }> = [];
+  const originalFetch = window.fetch.bind(window);
+
+  window.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+    if (url.startsWith("/api/probe/")) {
+      const headers = new Headers(init?.headers);
+      requests.push({
+        operation: url.includes("/account") ? "updateAccount" : "getSession",
+        method: init?.method ?? "GET",
+        credentials: String(init?.credentials ?? "missing"),
+        csrfHeader: headers.get("X-ZenArt-CSRF") ?? "not-required",
+        idempotencyKey: headers.get("Idempotency-Key") ?? "not-required"
+      });
+      return new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+    return originalFetch(input, init);
+  }) as typeof window.fetch;
+
+  try {
+    await client.request("updateAccount", {
+      idempotencyKey: "csrf-probe-update-account",
+      body: { display_name: "CSRF Probe" }
+    });
+    await client.request("getSession");
+  } finally {
+    window.fetch = originalFetch;
+  }
+
+  const unsafeRequest = requests.find((request) => request.operation === "updateAccount");
+  const safeRequest = requests.find((request) => request.operation === "getSession");
+  const failures = [
+    unsafeRequest?.method === "PATCH" ? "" : "unsafe-method",
+    unsafeRequest?.credentials === "include" ? "" : "unsafe-credentials",
+    unsafeRequest?.csrfHeader === "same-site-origin-check" ? "" : "unsafe-csrf-header",
+    unsafeRequest?.idempotencyKey === "csrf-probe-update-account" ? "" : "unsafe-idempotency-key",
+    safeRequest?.method === "GET" ? "" : "safe-method",
+    safeRequest?.credentials === "include" ? "" : "safe-credentials",
+    safeRequest?.csrfHeader === "not-required" ? "" : "safe-csrf-header"
+  ].filter(Boolean);
+
+  return {
+    status: failures.length === 0 ? "pass" : "fail",
+    unsafeOperation: "updateAccount",
+    unsafeMethod: unsafeRequest?.method ?? "missing",
+    unsafeCredentials: unsafeRequest?.credentials ?? "missing",
+    unsafeCsrfHeader: unsafeRequest?.csrfHeader ?? "missing",
+    unsafeIdempotencyKey: unsafeRequest?.idempotencyKey ?? "missing",
+    safeOperation: "getSession",
+    safeMethod: safeRequest?.method ?? "missing",
+    safeCredentials: safeRequest?.credentials ?? "missing",
+    safeCsrfHeader: safeRequest?.csrfHeader ?? "missing",
+    failureReason: failures.join(",")
+  };
+};
+
 export function WorkspaceApp({ initialView = "workspace" }: { initialView?: ViewKey }) {
   const [state, setState] = useState<WorkspaceState | null>(null);
+  const [browserCsrfProbeResult, setBrowserCsrfProbeResult] = useState<BrowserCsrfProbeResult>(initialBrowserCsrfProbeResult);
   const view = initialView;
   const [briefInput, setBriefInput] = useState("");
   const [iterationInput, setIterationInput] = useState("");
@@ -217,6 +307,38 @@ export function WorkspaceApp({ initialView = "workspace" }: { initialView?: View
       });
     }
   }, [state, view]);
+
+  useEffect(() => {
+    if (view !== "account" || typeof window === "undefined") {
+      return;
+    }
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("csrfProbe") !== "1") {
+      return;
+    }
+
+    let cancelled = false;
+    setBrowserCsrfProbeResult((current) => ({ ...current, status: "running", failureReason: "" }));
+    runGeneratedClientCsrfBrowserProbe()
+      .then((result) => {
+        if (!cancelled) {
+          setBrowserCsrfProbeResult(result);
+        }
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setBrowserCsrfProbeResult({
+            ...initialBrowserCsrfProbeResult,
+            status: "fail",
+            failureReason: error instanceof Error ? error.message : "unknown"
+          });
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [view]);
 
   const selectedCandidate = useMemo(
     () => state?.candidates.find((candidate) => candidate.id === state.selectedCandidateId),
@@ -387,7 +509,14 @@ export function WorkspaceApp({ initialView = "workspace" }: { initialView?: View
         {view === "projects" && <ProjectsView state={state} sessionBlocked={isSessionBlocked(state)} runAction={runTrackedAction} />}
         {view === "export" && <ExportView state={state} sessionBlocked={sessionBlocked} runAction={runTrackedAction} />}
         {view === "billing" && <BillingView state={state} busy={busy} sessionBlocked={sessionBlocked} runAction={runTrackedAction} />}
-        {view === "account" && <AccountView state={state} sessionBlocked={sessionBlocked} runAction={runTrackedAction} />}
+        {view === "account" && (
+          <AccountView
+            state={state}
+            sessionBlocked={sessionBlocked}
+            runAction={runTrackedAction}
+            browserCsrfProbeResult={browserCsrfProbeResult}
+          />
+        )}
         {view === "support" && (
           <SupportView
             state={state}
@@ -1839,11 +1968,13 @@ function BillingView({
 function AccountView({
   state,
   sessionBlocked,
-  runAction
+  runAction,
+  browserCsrfProbeResult
 }: {
   state: WorkspaceState;
   sessionBlocked: boolean;
   runAction: (label: string, action: () => Promise<WorkspaceState>) => Promise<void>;
+  browserCsrfProbeResult: BrowserCsrfProbeResult;
 }) {
   const [settings, setSettings] = useState<AccountSettings>(state.account);
 
@@ -1887,6 +2018,27 @@ function AccountView({
           Save Settings
         </button>
       </form>
+      <div
+        className="csrf-operation-inventory"
+        aria-label="Generated API CSRF browser request probe"
+        data-generated-api-csrf-browser-probe="stage0.rev2.generated-api-csrf-browser-probe"
+        data-generated-api-csrf-browser-probe-status={browserCsrfProbeResult.status}
+        data-generated-api-csrf-browser-probe-unsafe-operation={browserCsrfProbeResult.unsafeOperation}
+        data-generated-api-csrf-browser-probe-unsafe-method={browserCsrfProbeResult.unsafeMethod}
+        data-generated-api-csrf-browser-probe-unsafe-credentials={browserCsrfProbeResult.unsafeCredentials}
+        data-generated-api-csrf-browser-probe-unsafe-csrf-header={browserCsrfProbeResult.unsafeCsrfHeader}
+        data-generated-api-csrf-browser-probe-unsafe-idempotency-key={browserCsrfProbeResult.unsafeIdempotencyKey}
+        data-generated-api-csrf-browser-probe-safe-operation={browserCsrfProbeResult.safeOperation}
+        data-generated-api-csrf-browser-probe-safe-method={browserCsrfProbeResult.safeMethod}
+        data-generated-api-csrf-browser-probe-safe-credentials={browserCsrfProbeResult.safeCredentials}
+        data-generated-api-csrf-browser-probe-safe-csrf-header={browserCsrfProbeResult.safeCsrfHeader}
+        data-generated-api-csrf-browser-probe-failure-reason={browserCsrfProbeResult.failureReason}
+      >
+        <strong>Generated API browser request probe</strong>
+        <span>
+          {browserCsrfProbeResult.unsafeOperation} {browserCsrfProbeResult.unsafeMethod} · {browserCsrfProbeResult.safeOperation} {browserCsrfProbeResult.safeMethod}
+        </span>
+      </div>
     </section>
   );
 }
