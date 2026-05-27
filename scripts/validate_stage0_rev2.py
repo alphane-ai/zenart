@@ -990,6 +990,27 @@ RUNTIME_SPLIT_PASS_REQUIREMENTS = {
     },
 }
 
+COMBINED_SPLIT_CHECKLIST_ITEMS = {
+    ("private_beta_staging", "staging_object_storage_signed_downloads"): {
+        "Private Beta/Staging object storage signed download/retention runtime evidence 通过。",
+    },
+    ("private_beta_staging", "staging_legal_external_user_pages"): {
+        "Private Beta/Staging legal/support external-user visibility runtime evidence 通过。",
+    },
+    ("production_launch", "production_provider_or_comp_only_mode"): {
+        "Production provider-or-comp-only runtime/deployment evidence 通过。",
+    },
+    ("production_launch", "production_paid_billing_lifecycle"): {
+        "Production paid billing lifecycle runtime/deployment evidence 通过。",
+    },
+    ("production_launch", "production_backup_rollback_incident"): {
+        "Production backup/rollback/incident/post-deploy smoke runtime/deployment evidence 通过。",
+    },
+    ("production_launch", "production_legal_support_policy"): {
+        "Production legal/support policy deployment evidence 通过。",
+    },
+}
+
 SPLIT_CHECKLIST_ITEM_EVIDENCE = {
     "Private Beta/Staging object storage signed URL runtime evidence 通过：staging evidence proves tenant-scoped signed download, expiry, direct-object denial, and cross-tenant denial under `ops/evidence/staging/`。": {
         "gate": "private_beta_staging",
@@ -3379,6 +3400,59 @@ def validate_split_release_check_state(
 
         all_split_files_passable = all(state["passable"] for state in subitem_states.values())
         all_owned_rows_checked = all(state["checked_rows"] for state in subitem_states.values())
+        open_split_rows = {
+            subitem_id: state["unchecked_rows"]
+            for subitem_id, state in subitem_states.items()
+            if state["unchecked_rows"]
+        }
+        active_condition_ids = sorted(
+            condition_id
+            for condition_id in RELEASE_GATE_CHECK_BLOCKING_CONDITIONS[gate].get(check_id, set())
+            if do_not_launch_by_id(gate_evidence)[condition_id]["is_present"]
+        )
+        combined_items = COMBINED_SPLIT_CHECKLIST_ITEMS.get((gate, check_id), set())
+        for item in combined_items:
+            item_state_count = int(item in checked_lines) + int(item in unchecked_lines)
+            require(
+                item_state_count == 1,
+                f"{gate}.{check_id} combined split checklist row is missing from blueprint: {item}",
+            )
+            if item in checked_lines:
+                failing_subitems = {
+                    subitem_id: state
+                    for subitem_id, state in subitem_states.items()
+                    if not state["passable"]
+                }
+                require(
+                    not failing_subitems,
+                    f"{gate}.{check_id} combined split checklist row is checked before every exact "
+                    "split evidence file is passable: "
+                    + json.dumps(failing_subitems, ensure_ascii=False, sort_keys=True),
+                )
+                require(
+                    not open_split_rows,
+                    f"{gate}.{check_id} combined split checklist row is checked while exact split rows "
+                    "remain open: "
+                    + json.dumps(open_split_rows, ensure_ascii=False, sort_keys=True),
+                )
+                require(
+                    check["status"] == "pass",
+                    f"{gate}.{check_id} combined split checklist row is checked while release check "
+                    f"status is {check['status']!r}",
+                )
+                require(
+                    not active_condition_ids,
+                    f"{gate}.{check_id} combined split checklist row is checked while related "
+                    "Do-Not-Launch conditions remain active: "
+                    + json.dumps(active_condition_ids, ensure_ascii=False),
+                )
+            elif all_split_files_passable and all_owned_rows_checked and check["status"] == "pass":
+                require(
+                    active_condition_ids,
+                    f"{gate}.{check_id} combined split checklist row remains open even though every exact "
+                    "split evidence file is passable, exact split rows are checked, release check passes, "
+                    f"and no mapped Do-Not-Launch condition is active: {item}",
+                )
 
         if check["status"] == "pass":
             failing_subitems = {
@@ -3391,15 +3465,10 @@ def validate_split_release_check_state(
                 f"{gate}.{check_id} cannot pass before every exact split evidence file is passable: "
                 + json.dumps(failing_subitems, ensure_ascii=False, sort_keys=True),
             )
-            open_rows = {
-                subitem_id: state["unchecked_rows"]
-                for subitem_id, state in subitem_states.items()
-                if state["unchecked_rows"]
-            }
             require(
-                not open_rows,
+                not open_split_rows,
                 f"{gate}.{check_id} cannot pass while exact split checklist rows remain open: "
-                + json.dumps(open_rows, ensure_ascii=False, sort_keys=True),
+                + json.dumps(open_split_rows, ensure_ascii=False, sort_keys=True),
             )
         else:
             if all_split_files_passable and all_owned_rows_checked:
