@@ -927,6 +927,35 @@ NON_CLOSURE_RUNTIME_EVIDENCE_FILES = {
     "ops/evidence/production/20260527T1800Z-backup-rollback-incident-smoke.json",
 }
 
+NON_CLOSURE_RUNTIME_EVIDENCE_ALLOWED_CONTEXTS = {
+    "ops/evidence/staging/object-storage-retention-cleanup.blocked.json": {
+        ("private_beta_staging", "check", "staging_object_storage_signed_downloads", "blocked"),
+        (
+            "private_beta_staging",
+            "condition",
+            "object_storage_signed_retention_runtime_missing",
+            "active",
+        ),
+        ("private_beta_staging", "decision", "gate_decision", "no_go"),
+    },
+    "ops/evidence/production/20260527T1800Z-backup-rollback-incident-smoke.json": {
+        ("production_launch", "check", "production_backup_rollback_incident", "blocked"),
+        (
+            "production_launch",
+            "condition",
+            "backup_restore_rollback_smoke_missing",
+            "active",
+        ),
+        (
+            "production_launch",
+            "condition",
+            "production_deploy_rollback_smoke_missing",
+            "active",
+        ),
+        ("production_launch", "decision", "gate_decision", "no_go"),
+    },
+}
+
 RUNTIME_SPLIT_PASS_REQUIREMENTS = {
     ("private_beta_staging", "staging_object_storage_signed_downloads"): {
         "subitems": {
@@ -3111,6 +3140,27 @@ def require_runtime_evidence_back_reference(
     )
 
 
+def require_non_closure_runtime_evidence_context(
+    evidence_ref: str,
+    *,
+    gate: str,
+    ref_kind: str,
+    ref_id: str,
+    ref_state: str,
+) -> None:
+    context = (gate, ref_kind, ref_id, ref_state)
+    for path in sorted(concrete_evidence_paths(evidence_ref)):
+        allowed_contexts = NON_CLOSURE_RUNTIME_EVIDENCE_ALLOWED_CONTEXTS.get(path)
+        if allowed_contexts is None:
+            continue
+        require(
+            context in allowed_contexts,
+            f"{gate}.{ref_id} {ref_kind} {ref_state} evidence cites non-closure runtime probe {path}; "
+            "blocked/admin-visible probe artifacts may only preserve their explicit blocked gate/active "
+            "Do-Not-Launch contexts and cannot serve as cleared, passing, or aggregate go evidence",
+        )
+
+
 def require_staging_observability_backup_load_pass_evidence(evidence_ref: str) -> None:
     cited_json_paths = [
         path
@@ -4402,6 +4452,13 @@ def validate_release_gate_basics(data: dict[str, Any]) -> tuple[dict[str, dict[s
                 check["evidence_ref"],
                 f"{gate}.{check_id} pass evidence",
             )
+        require_non_closure_runtime_evidence_context(
+            check["evidence_ref"],
+            gate=gate,
+            ref_kind="check",
+            ref_id=check_id,
+            ref_state=check["status"],
+        )
 
     for condition_id, condition in conditions.items():
         require_field_allowed_keys(
@@ -4466,6 +4523,21 @@ def validate_release_gate_basics(data: dict[str, Any]) -> tuple[dict[str, dict[s
                 gate,
                 condition_id,
             )
+        require_non_closure_runtime_evidence_context(
+            condition["evidence_ref"],
+            gate=gate,
+            ref_kind="condition",
+            ref_id=condition_id,
+            ref_state="active" if condition["is_present"] else "cleared",
+        )
+
+    require_non_closure_runtime_evidence_context(
+        data["gate_decision"]["evidence_ref"],
+        gate=gate,
+        ref_kind="decision",
+        ref_id="gate_decision",
+        ref_state=data["gate_decision"]["status"],
+    )
 
     return checks, conditions
 
