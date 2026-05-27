@@ -40,7 +40,8 @@ export const serializeSetCookieContract = (cookie: SessionContract["cookie"]) =>
     cookie.httpOnly ? "HttpOnly" : "client-readable",
     cookie.secure ? "Secure" : "insecure",
     `SameSite=${cookie.sameSite}`,
-    `Path=${cookie.path}`
+    `Path=${cookie.path}`,
+    cookie.domain ? `Domain=${cookie.domain}` : "HostOnly"
   ].join(";");
 
 export const buildCsrfRequestHeaders = (
@@ -74,7 +75,8 @@ export const buildSessionSecurityContractEvidence = (
     sessionContract.cookie.httpOnly ? "" : "cookie-http-only",
     sessionContract.cookie.secure ? "" : "cookie-secure",
     meetsSameSiteRequirement(sessionContract.cookie.sameSite, sessionContract.csrf.sameSiteRequired) ? "" : "cookie-same-site",
-    sessionContract.cookie.path === "/" ? "" : "cookie-path"
+    sessionContract.cookie.path === "/" ? "" : "cookie-path",
+    sessionContract.cookie.domain ? "cookie-domain" : ""
   ].filter(Boolean);
   const csrfFailureReasons = [
     sessionContract.csrf.strategy === "same-site-origin-check" ? "" : "csrf-strategy",
@@ -97,7 +99,9 @@ export const buildSessionSecurityContractEvidence = (
       httpOnly: sessionContract.cookie.httpOnly,
       secure: sessionContract.cookie.secure,
       sameSite: sessionContract.cookie.sameSite,
-      path: sessionContract.cookie.path
+      path: sessionContract.cookie.path,
+      domain: sessionContract.cookie.domain ?? "",
+      hostOnly: !sessionContract.cookie.domain
     },
     setCookieContract: serializeSetCookieContract(sessionContract.cookie),
     acceptedSameSiteValues: sameSiteAcceptanceMatrix

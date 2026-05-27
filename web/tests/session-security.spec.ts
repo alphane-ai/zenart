@@ -92,7 +92,9 @@ test("account route exposes secure-cookie, same-site CSRF, unsafe-action guard, 
   await expect(sessionContract).toHaveAttribute("data-session-cookie-secure", "true");
   await expect(sessionContract).toHaveAttribute("data-session-cookie-same-site", "lax");
   await expect(sessionContract).toHaveAttribute("data-session-cookie-path", "/");
-  await expect(sessionContract).toHaveAttribute("data-session-cookie-set-cookie-contract", "__Host-zenart_session;HttpOnly;Secure;SameSite=lax;Path=/");
+  await expect(sessionContract).toHaveAttribute("data-session-cookie-domain", "");
+  await expect(sessionContract).toHaveAttribute("data-session-cookie-host-only", "true");
+  await expect(sessionContract).toHaveAttribute("data-session-cookie-set-cookie-contract", "__Host-zenart_session;HttpOnly;Secure;SameSite=lax;Path=/;HostOnly");
   await expect(sessionContract).toHaveAttribute("data-session-cookie-same-site-accepted-values", "lax,strict");
   await expect(sessionContract).toHaveAttribute("data-session-cookie-same-site-rejected-values", "none");
   await expect(sessionContract).toHaveAttribute(
@@ -111,7 +113,7 @@ test("account route exposes secure-cookie, same-site CSRF, unsafe-action guard, 
   await expect(sessionContract).toHaveAttribute("data-session-backend-runtime-pairing-status", "pass");
   await expect(sessionContract).toHaveAttribute(
     "data-session-backend-set-cookie-contract",
-    "__Host-zenart_session;HttpOnly;Secure;SameSite=lax;Path=/"
+    "__Host-zenart_session;HttpOnly;Secure;SameSite=lax;Path=/;HostOnly"
   );
   await expect(sessionContract).toHaveAttribute(
     "data-session-backend-csrf-validation-contract",

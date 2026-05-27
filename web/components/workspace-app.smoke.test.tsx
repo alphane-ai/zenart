@@ -79,7 +79,9 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(sessionContract).toHaveAttribute("data-session-cookie-secure", "true");
     expect(sessionContract).toHaveAttribute("data-session-cookie-same-site", "lax");
     expect(sessionContract).toHaveAttribute("data-session-cookie-path", "/");
-    expect(sessionContract).toHaveAttribute("data-session-cookie-set-cookie-contract", "__Host-zenart_session;HttpOnly;Secure;SameSite=lax;Path=/");
+    expect(sessionContract).toHaveAttribute("data-session-cookie-domain", "");
+    expect(sessionContract).toHaveAttribute("data-session-cookie-host-only", "true");
+    expect(sessionContract).toHaveAttribute("data-session-cookie-set-cookie-contract", "__Host-zenart_session;HttpOnly;Secure;SameSite=lax;Path=/;HostOnly");
     expect(sessionContract).toHaveAttribute("data-session-cookie-same-site-accepted-values", "lax,strict");
     expect(sessionContract).toHaveAttribute("data-session-cookie-same-site-rejected-values", "none");
     expect(sessionContract).toHaveAttribute(

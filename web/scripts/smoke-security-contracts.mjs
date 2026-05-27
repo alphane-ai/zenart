@@ -184,7 +184,9 @@ if (
   sessionEvidence.cookie?.expectedSecure !== "true" ||
   sessionEvidence.cookie?.expectedSameSite !== "lax" ||
   sessionEvidence.cookie?.expectedPath !== "/" ||
-  sessionEvidence.cookie?.expectedSetCookieContract !== "__Host-zenart_session;HttpOnly;Secure;SameSite=lax;Path=/" ||
+  sessionEvidence.cookie?.expectedDomain !== "" ||
+  sessionEvidence.cookie?.expectedHostOnly !== "true" ||
+  sessionEvidence.cookie?.expectedSetCookieContract !== "__Host-zenart_session;HttpOnly;Secure;SameSite=lax;Path=/;HostOnly" ||
   sessionEvidence.csrf?.expectedHeader !== "X-ZenArt-CSRF" ||
   sessionEvidence.csrf?.expectedStrategy !== "same-site-origin-check" ||
   sessionEvidence.csrf?.expectedCredentialMode !== "include" ||
@@ -216,6 +218,8 @@ const requiredSessionAttributes = [
   sessionEvidence.cookie?.secureAttribute,
   sessionEvidence.cookie?.sameSiteAttribute,
   sessionEvidence.cookie?.pathAttribute,
+  sessionEvidence.cookie?.domainAttribute,
+  sessionEvidence.cookie?.hostOnlyAttribute,
   sessionEvidence.cookie?.setCookieContractAttribute,
   sessionEvidence.cookie?.sameSiteAcceptedValuesAttribute,
   sessionEvidence.cookie?.sameSiteRejectedValuesAttribute,
@@ -317,7 +321,7 @@ if (
 
 if (
   sessionEvidence.backendRuntimePairing?.expectedStatus !== "pass" ||
-  sessionEvidence.backendRuntimePairing?.expectedSetCookieContract !== "__Host-zenart_session;HttpOnly;Secure;SameSite=lax;Path=/" ||
+  sessionEvidence.backendRuntimePairing?.expectedSetCookieContract !== "__Host-zenart_session;HttpOnly;Secure;SameSite=lax;Path=/;HostOnly" ||
   sessionEvidence.backendRuntimePairing?.expectedCsrfValidationContract !==
     "POST,PUT,PATCH,DELETE:X-ZenArt-CSRF:same-site-origin-check:same-site-only:include:lax-or-strict" ||
   sessionEvidence.backendRuntimePairing?.expectedUnsafeRequestContractCount !== String(generatedApiCsrfContract.unsafeOperationCount) ||
@@ -441,12 +445,14 @@ if (
   sessionEvidence.cookie?.expectedSameSiteAcceptanceMatrix !== "lax:pass:none|strict:pass:none|none:fail:cookie-same-site" ||
   !requestSecuritySource.includes("serializeSetCookieContract") ||
   !workspaceAppSource.includes("data-session-cookie-set-cookie-contract") ||
+  !workspaceAppSource.includes("data-session-cookie-domain") ||
+  !workspaceAppSource.includes("data-session-cookie-host-only") ||
   !requestSecuritySource.includes("sameSiteAcceptanceMatrix") ||
   !workspaceAppSource.includes("data-session-cookie-same-site-accepted-values") ||
   !workspaceAppSource.includes("data-session-cookie-same-site-rejected-values") ||
   !workspaceAppSource.includes("data-session-cookie-same-site-acceptance-matrix")
 ) {
-  fail("session evidence must expose the lax/strict SameSite acceptance matrix and reject SameSite=None");
+  fail("session evidence must expose the host-only secure-cookie invariant plus the lax/strict SameSite acceptance matrix and reject SameSite=None");
 }
 
 for (const requiredTestSnippet of [
@@ -454,6 +460,8 @@ for (const requiredTestSnippet of [
   "blocks unsafe workspace actions when the same-site session is expired",
   "data-session-security-status",
   "data-session-cookie-set-cookie-contract",
+  "data-session-cookie-domain",
+  "data-session-cookie-host-only",
   "data-session-cookie-same-site-accepted-values",
   "data-session-cookie-same-site-rejected-values",
   "data-session-cookie-same-site-acceptance-matrix",
@@ -483,6 +491,8 @@ for (const requiredBrowserSnippet of [
   "data-session-cookie-http-only",
   "data-session-cookie-secure",
   "data-session-cookie-same-site",
+  "data-session-cookie-domain",
+  "data-session-cookie-host-only",
   "data-session-cookie-set-cookie-contract",
   "data-session-cookie-same-site-accepted-values",
   "data-session-cookie-same-site-rejected-values",

@@ -26,6 +26,7 @@ export interface SessionContract {
     secure: boolean;
     sameSite: "strict" | "lax" | "none";
     path: string;
+    domain?: string;
   };
   csrf: {
     strategy: "same-site-origin-check";
@@ -47,6 +48,8 @@ export interface SessionSecurityContractEvidence {
     secure: boolean;
     sameSite: SessionContract["cookie"]["sameSite"];
     path: string;
+    domain: string;
+    hostOnly: boolean;
   };
   setCookieContract: string;
   acceptedSameSiteValues: Array<"lax" | "strict">;

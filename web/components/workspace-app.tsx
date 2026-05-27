@@ -725,6 +725,8 @@ function SessionPanel({
       data-session-cookie-secure={String(evidence.cookieAttributes.secure)}
       data-session-cookie-same-site={evidence.cookieAttributes.sameSite}
       data-session-cookie-path={evidence.cookieAttributes.path}
+      data-session-cookie-domain={evidence.cookieAttributes.domain}
+      data-session-cookie-host-only={String(evidence.cookieAttributes.hostOnly)}
       data-session-cookie-set-cookie-contract={evidence.setCookieContract}
       data-session-cookie-same-site-accepted-values={evidence.acceptedSameSiteValues.join(",")}
       data-session-cookie-same-site-rejected-values={evidence.rejectedSameSiteValues.join(",")}
@@ -769,7 +771,7 @@ function SessionPanel({
         <div>
           <strong>Session {state.sessionContract.status}</strong>
           <span>
-            Secure cookie {state.sessionContract.cookie.name} · {cookieAttributes} · CSRF {state.sessionContract.csrf.headerName}
+            Secure cookie {state.sessionContract.cookie.name} · {cookieAttributes} · HostOnly · CSRF {state.sessionContract.csrf.headerName}
           </span>
         </div>
       </div>
@@ -805,6 +807,10 @@ function SessionPanel({
         <div>
           <dt>Requirement</dt>
           <dd>{sameSiteRequirement}</dd>
+        </div>
+        <div>
+          <dt>Domain</dt>
+          <dd>{evidence.cookieAttributes.hostOnly ? "host-only" : evidence.cookieAttributes.domain}</dd>
         </div>
       </dl>
       <div

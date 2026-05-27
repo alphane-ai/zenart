@@ -51,9 +51,11 @@ describe("same-site CSRF request contract", () => {
         httpOnly: true,
         secure: true,
         sameSite: "lax",
-        path: "/"
+        path: "/",
+        domain: "",
+        hostOnly: true
       },
-      setCookieContract: "__Host-zenart_session;HttpOnly;Secure;SameSite=lax;Path=/",
+      setCookieContract: "__Host-zenart_session;HttpOnly;Secure;SameSite=lax;Path=/;HostOnly",
       acceptedSameSiteValues: ["lax", "strict"],
       rejectedSameSiteValues: ["none"],
       sameSiteAcceptanceMatrix: [
@@ -248,6 +250,24 @@ describe("same-site CSRF request contract", () => {
     });
   });
 
+  it("fails secure-cookie evidence when a __Host cookie carries a Domain attribute", () => {
+    const domainScopedSession = createSessionContract();
+    domainScopedSession.cookie = {
+      ...domainScopedSession.cookie,
+      domain: ".zenart.local"
+    };
+
+    expect(buildSessionSecurityContractEvidence(domainScopedSession, apiOperations)).toMatchObject({
+      status: "fail",
+      cookieAttributes: {
+        domain: ".zenart.local",
+        hostOnly: false
+      },
+      setCookieContract: "__Host-zenart_session;HttpOnly;Secure;SameSite=lax;Path=/;Domain=.zenart.local",
+      cookieFailureReasons: ["cookie-domain"]
+    });
+  });
+
   it("keeps the user route smoke artifact pinned to the session/CSRF client contract", () => {
     const artifactEvidence = userRouteSmoke.securityEvidence.find(
       (entry) => entry.schemaVersion === "stage0.rev2.session-csrf-client-evidence"
@@ -266,11 +286,15 @@ describe("same-site CSRF request contract", () => {
         sameSiteAttribute: "data-session-cookie-same-site",
         pathAttribute: "data-session-cookie-path",
         setCookieContractAttribute: "data-session-cookie-set-cookie-contract",
+        domainAttribute: "data-session-cookie-domain",
+        hostOnlyAttribute: "data-session-cookie-host-only",
         expectedHttpOnly: String(runtimeEvidence.cookieAttributes.httpOnly),
         expectedSecure: String(runtimeEvidence.cookieAttributes.secure),
         expectedSameSite: runtimeEvidence.cookieAttributes.sameSite,
         expectedPath: runtimeEvidence.cookieAttributes.path,
-        expectedSetCookieContract: runtimeEvidence.setCookieContract
+        expectedSetCookieContract: runtimeEvidence.setCookieContract,
+        expectedDomain: runtimeEvidence.cookieAttributes.domain,
+        expectedHostOnly: String(runtimeEvidence.cookieAttributes.hostOnly)
       },
       csrf: {
         strategyAttribute: "data-session-csrf-strategy",
@@ -304,7 +328,7 @@ describe("same-site CSRF request contract", () => {
         csrfFailureCountAttribute: "data-session-backend-csrf-failure-count",
         expectedContract: "secure-cookie-same-site-csrf-runtime",
         expectedStatus: "pass",
-        expectedSetCookieContract: "__Host-zenart_session;HttpOnly;Secure;SameSite=lax;Path=/",
+        expectedSetCookieContract: "__Host-zenart_session;HttpOnly;Secure;SameSite=lax;Path=/;HostOnly",
         expectedCsrfValidationContract: "POST,PUT,PATCH,DELETE:X-ZenArt-CSRF:same-site-origin-check:same-site-only:include:lax-or-strict",
         expectedUnsafeRequestContractCount: "15",
         expectedMissingUnsafeOperationCount: String(runtimeEvidence.missingCsrfOperationIds.length),
@@ -321,7 +345,8 @@ describe("same-site CSRF request contract", () => {
       httpOnly: false,
       secure: false,
       sameSite: "none",
-      path: "/app"
+      path: "/app",
+      domain: ".zenart.local"
     };
     insecureSession.csrf = {
       ...defaultSameSiteCsrfContract,
@@ -337,7 +362,8 @@ describe("same-site CSRF request contract", () => {
       "cookie-http-only",
       "cookie-secure",
       "cookie-same-site",
-      "cookie-path"
+      "cookie-path",
+      "cookie-domain"
     ]);
     expect(evidence.csrfFailureReasons).toEqual(["csrf-header", "csrf-operation-coverage"]);
     expect(evidence.missingCsrfOperationIds).toEqual([
