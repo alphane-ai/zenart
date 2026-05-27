@@ -1284,7 +1284,7 @@ export const feedbackItems: FeedbackItem[] = [
     weightingReason: "Suspected abuse signal is routed to abuse review and cannot train prompt or skill evolution.",
     availableForLearningAt: "blocked",
     blockedReason: "Suspected abuse and crawler ownership evidence unresolved.",
-    regressionFixtureRef: "none-abuse-filtered"
+    regressionFixtureRef: "fixtures/stage0/rev2/regressions/safety_policy_miss_fb_222.json"
   }
 ];
 
@@ -1308,6 +1308,26 @@ export const regressionFixtures: RegressionFixture[] = [
     linkedAuditRef: "au-010",
     reviewerRationale:
       "The admin bad-sample cluster caused a rollback, so this fixture is blocking until the brand/IP regression passes in the release eval suite."
+  },
+  {
+    id: "reg-safety-policy-miss-fb-222",
+    sourceFeedbackId: "fb-222",
+    sourceKind: "admin_bad_sample",
+    fixturePath: "fixtures/stage0/rev2/regressions/safety_policy_miss_fb_222.json",
+    workflowId: "wf-812",
+    skillVersionId: "sv-098",
+    failureMode: "safety_policy_miss",
+    severity: "critical",
+    status: "eval_blocking",
+    evalSuiteId: "es-stage0-safety",
+    requiredGate: "prompt_activation",
+    expectedAssertion:
+      "Prompt and safety policy activation must block prompt-extraction and unsafe medical-claim feedback samples until superadmin safety review, second-review evidence, and immutable audit refs are complete.",
+    owner: "security-admin",
+    linkedCanaryMetric: "cm-013",
+    linkedAuditRef: "au-006",
+    reviewerRationale:
+      "The discarded support-attached feedback exposed a safety policy miss, so it becomes an eval-blocking prompt activation fixture instead of learning input for prompt or skill evolution."
   },
   {
     id: "reg-mobile-readability-fb-211",

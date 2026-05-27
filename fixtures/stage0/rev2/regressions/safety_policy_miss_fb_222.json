@@ -1,0 +1,34 @@
+{
+  "id": "reg-safety-policy-miss-fb-222",
+  "source_feedback_id": "fb-222",
+  "source_kind": "admin_bad_sample",
+  "workflow_id": "wf-812",
+  "skill_version": "skill-claims-review@0.9.8",
+  "failure_mode": "safety_policy_miss",
+  "severity": "critical",
+  "gate": "prompt_activation",
+  "expected_assertions": [
+    "discarded_feedback_learning_weight == 0",
+    "prompt_activation_gate_decision == blocked",
+    "safety_policy_superadmin_review_required == true",
+    "second_review_completed_before_activation == true",
+    "provider_request_not_created == true",
+    "immutable_audit_ref == au-006"
+  ],
+  "bad_sample": {
+    "feedback_id": "fb-222",
+    "support_ticket_id": "sup-2212",
+    "abuse_event_id": "ab-304",
+    "trace_id": "tr-1004",
+    "prompt_fragment_id": "pf-044",
+    "safety_rule": "forbidden-claims:v3",
+    "signal": "Support-attached source ownership note contained prompt-extraction instructions and unsafe medical-claim content; it must remain discarded from learning and block prompt or safety policy activation until reviewer evidence is complete.",
+    "admin_label": "safety_policy_miss_prompt_activation_block"
+  },
+  "release_block": {
+    "canary_metric": "cm-013",
+    "audit_ref": "au-006",
+    "rbac_evidence": "rbac-safety-001",
+    "rollback_target": "skill-claims-review@0.9.7"
+  }
+}

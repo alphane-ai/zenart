@@ -720,6 +720,16 @@ test("admin bad samples convert into regression fixtures before release gates pa
     regressionFixtures.some((fixture) => fixture.sourceKind === "failed_task"),
     "failed task retry/cancel bad samples must be represented as regression fixtures"
   );
+  assert.ok(
+    regressionFixtures.some(
+      (fixture) =>
+        fixture.failureMode === "safety_policy_miss" &&
+        fixture.sourceKind === "admin_bad_sample" &&
+        fixture.requiredGate === "prompt_activation" &&
+        fixture.status === "eval_blocking"
+    ),
+    "safety policy misses must become prompt-activation-blocking regression fixtures"
+  );
 
   for (const fixture of regressionFixtures) {
     assert.ok(sourceIds.has(fixture.sourceFeedbackId), `${fixture.id} links unknown source ${fixture.sourceFeedbackId}`);
@@ -781,8 +791,50 @@ test("admin bad samples convert into regression fixtures before release gates pa
   assert.notEqual(takedownWorkflow.deletionEvidenceRef, "pending");
   assert.equal(blockedSourceApproval.activationGate, "blocked");
 
+  const safetyPolicyRegression = regressionFixtures.find(
+    (fixture) => fixture.failureMode === "safety_policy_miss"
+  );
+  assert.ok(safetyPolicyRegression, "safety policy miss bad samples need a prompt-activation regression fixture");
+  assert.equal(safetyPolicyRegression.status, "eval_blocking");
+  assert.equal(safetyPolicyRegression.requiredGate, "prompt_activation");
+  assert.equal(safetyPolicyRegression.sourceFeedbackId, "fb-222");
+  assert.equal(safetyPolicyRegression.linkedAuditRef, "au-006");
+
+  const safetyPolicyFixture = JSON.parse(
+    readFileSync(new URL(safetyPolicyRegression.fixturePath, repoRoot), "utf8")
+  );
+  const safetyFeedback = feedbackItems.find((item) => item.id === safetyPolicyRegression.sourceFeedbackId);
+  const safetyRbac = adminRbacEvidence.find((item) => item.id === safetyPolicyFixture.release_block.rbac_evidence);
+  assert.ok(safetyFeedback, "safety policy regression links unknown feedback");
+  assert.ok(safetyRbac, "safety policy regression links unknown RBAC evidence");
+  assert.equal(safetyPolicyFixture.failure_mode, "safety_policy_miss");
+  assert.equal(safetyPolicyFixture.gate, "prompt_activation");
+  assert.equal(safetyPolicyFixture.bad_sample.feedback_id, "fb-222");
+  assert.equal(safetyPolicyFixture.bad_sample.abuse_event_id, "ab-304");
+  assert.equal(safetyPolicyFixture.bad_sample.prompt_fragment_id, "pf-044");
+  assert.equal(safetyPolicyFixture.release_block.audit_ref, "au-006");
+  assert.equal(safetyPolicyFixture.release_block.rbac_evidence, "rbac-safety-001");
+  assert.equal(safetyFeedback.filterDecision, "discard");
+  assert.equal(safetyFeedback.weight, 0);
+  assert.equal(safetyFeedback.regressionFixtureRef, safetyPolicyRegression.fixturePath);
+  assert.equal(safetyRbac.surface, "safety_rule");
+  assert.equal(safetyRbac.requiredRole, "admin_superadmin");
+  assert.equal(safetyRbac.enforcementPoint, "safety_policy");
+  assert.ok(
+    safetyPolicyFixture.expected_assertions.includes("discarded_feedback_learning_weight == 0"),
+    "safety policy regression must assert discarded feedback cannot train"
+  );
+  assert.ok(
+    safetyPolicyFixture.expected_assertions.includes("prompt_activation_gate_decision == blocked"),
+    "safety policy regression must assert prompt activation stays blocked"
+  );
+  assert.ok(
+    safetyPolicyFixture.expected_assertions.includes("provider_request_not_created == true"),
+    "safety policy regression must assert provider task creation is blocked"
+  );
+
   for (const item of feedbackItems) {
-    if (item.filterDecision === "eligible" && item.regressionFixtureRef.startsWith("fixtures/")) {
+    if (item.regressionFixtureRef.startsWith("fixtures/")) {
       assert.ok(
         fixturePaths.has(item.regressionFixtureRef),
         `${item.id} points at missing regression fixture inventory entry`
