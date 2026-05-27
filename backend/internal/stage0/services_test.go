@@ -1088,8 +1088,8 @@ func TestCleanupExpiredExportsAndOrphanedObjects(t *testing.T) {
 	if result.ExpiredExports != 2 || result.OrphanedObjects != 3 || result.DeletedObjects != 4 {
 		t.Fatalf("cleanup result = %#v", result)
 	}
-	if len(db.execs) != 4 {
-		t.Fatalf("exec count = %d, want 4", len(db.execs))
+	if len(db.execs) != 5 {
+		t.Fatalf("exec count = %d, want lifecycle, lifecycle analytics, run analytics, and run audit refs", len(db.execs))
 	}
 	if !strings.Contains(db.execs[0].sql, "retention_until") || !strings.Contains(db.execs[0].sql, "status = 'expired'") {
 		t.Fatalf("expired export cleanup SQL missing retention/status: %s", db.execs[0].sql)
@@ -1115,6 +1115,12 @@ func TestCleanupExpiredExportsAndOrphanedObjects(t *testing.T) {
 	if db.execs[3].args[1] != result.ExpiredExports || db.execs[3].args[2] != result.OrphanedObjects || db.execs[3].args[3] != result.DeletedObjects {
 		t.Fatalf("cleanup run analytics args = %#v, want result counts", db.execs[3].args)
 	}
+	if !strings.Contains(db.execs[4].sql, "INSERT INTO audit_logs") || !strings.Contains(db.execs[4].sql, "'object_retention_cleanup_run'") || !strings.Contains(db.execs[4].sql, "'system:object-retention-cleanup'") {
+		t.Fatalf("cleanup run audit SQL missing immutable audit ref: %s", db.execs[4].sql)
+	}
+	if db.execs[4].args[1] != result.ExpiredExports || db.execs[4].args[2] != result.OrphanedObjects || db.execs[4].args[3] != result.DeletedObjects {
+		t.Fatalf("cleanup run audit args = %#v, want result counts", db.execs[4].args)
+	}
 }
 
 func TestCleanupExpiredExportsAndOrphanedObjectsForTenantScopesLifecycle(t *testing.T) {
@@ -1136,8 +1142,8 @@ func TestCleanupExpiredExportsAndOrphanedObjectsForTenantScopesLifecycle(t *test
 	if result.ExpiredExports != 1 || result.OrphanedObjects != 2 || result.DeletedObjects != 3 {
 		t.Fatalf("cleanup result = %#v, want 1/2/3", result)
 	}
-	if len(db.execs) != 4 {
-		t.Fatalf("exec count = %d, want scoped lifecycle and run analytics", len(db.execs))
+	if len(db.execs) != 5 {
+		t.Fatalf("exec count = %d, want scoped lifecycle, run analytics, and audit refs", len(db.execs))
 	}
 	for i, call := range db.execs {
 		if call.args[len(call.args)-1] != "tenant_1" {
@@ -1157,6 +1163,9 @@ func TestCleanupExpiredExportsAndOrphanedObjectsForTenantScopesLifecycle(t *test
 	}
 	if !strings.Contains(db.execs[3].sql, "($5 = '' OR tenant_id = $5)") {
 		t.Fatalf("cleanup run analytics missing tenant guard: %s", db.execs[3].sql)
+	}
+	if !strings.Contains(db.execs[4].sql, "($5 = '' OR tenant_id = $5)") || !strings.Contains(db.execs[4].sql, "INSERT INTO audit_logs") {
+		t.Fatalf("cleanup run audit refs missing tenant guard: %s", db.execs[4].sql)
 	}
 }
 
@@ -1419,8 +1428,8 @@ func TestServiceCleanupDeletesMarkedObjectsAndMarksRowsDeleted(t *testing.T) {
 	if result.ExpiredExports != 1 || result.OrphanedObjects != 1 || result.DeletedObjects != 2 {
 		t.Fatalf("cleanup result = %#v, want 1/1/2", result)
 	}
-	if len(db.execs) != 6 {
-		t.Fatalf("exec count = %d, want repository mark, orphan mark, cleanup analytics, deleted mark, deletion analytics, cleanup run analytics", len(db.execs))
+	if len(db.execs) != 7 {
+		t.Fatalf("exec count = %d, want repository mark, orphan mark, cleanup analytics, deleted mark, deletion analytics, cleanup run analytics, cleanup audit refs", len(db.execs))
 	}
 	if !strings.Contains(db.execs[2].sql, "'export_expired'") || !strings.Contains(db.execs[2].sql, "'object_orphaned'") {
 		t.Fatalf("third exec should emit cleanup lifecycle analytics: %s", db.execs[2].sql)
@@ -1436,6 +1445,9 @@ func TestServiceCleanupDeletesMarkedObjectsAndMarksRowsDeleted(t *testing.T) {
 	}
 	if db.execs[5].args[1] != result.ExpiredExports || db.execs[5].args[2] != result.OrphanedObjects || db.execs[5].args[3] != result.DeletedObjects {
 		t.Fatalf("cleanup run analytics args = %#v, want result counts", db.execs[5].args)
+	}
+	if !strings.Contains(db.execs[6].sql, "INSERT INTO audit_logs") || !strings.Contains(db.execs[6].sql, "'cleanup_ack_scope'") {
+		t.Fatalf("seventh exec should emit cleanup audit refs: %s", db.execs[6].sql)
 	}
 }
 
@@ -1503,8 +1515,8 @@ func TestServiceCleanupMarksMissingExpiredObjectsDeleted(t *testing.T) {
 	if result.DeletedObjects != 2 {
 		t.Fatalf("deleted objects = %d, want metadata rows marked deleted after missing storage objects", result.DeletedObjects)
 	}
-	if len(db.execs) != 6 {
-		t.Fatalf("exec count = %d, want repository mark, orphan mark, cleanup analytics, deleted mark, deletion analytics, cleanup run analytics", len(db.execs))
+	if len(db.execs) != 7 {
+		t.Fatalf("exec count = %d, want repository mark, orphan mark, cleanup analytics, deleted mark, deletion analytics, cleanup run analytics, cleanup audit refs", len(db.execs))
 	}
 	if !strings.Contains(db.execs[2].sql, "'export_expired'") || !strings.Contains(db.execs[2].sql, "'object_orphaned'") {
 		t.Fatalf("third exec should emit cleanup lifecycle analytics: %s", db.execs[2].sql)
@@ -1517,6 +1529,9 @@ func TestServiceCleanupMarksMissingExpiredObjectsDeleted(t *testing.T) {
 	}
 	if !strings.Contains(db.execs[5].sql, "'export_object_cleanup_run'") {
 		t.Fatalf("sixth exec should emit cleanup run analytics: %s", db.execs[5].sql)
+	}
+	if !strings.Contains(db.execs[6].sql, "INSERT INTO audit_logs") || !strings.Contains(db.execs[6].sql, "'object_retention_cleanup_run'") {
+		t.Fatalf("seventh exec should emit cleanup audit refs: %s", db.execs[6].sql)
 	}
 }
 
@@ -1554,8 +1569,8 @@ func TestServiceCleanupMarksSuccessfulDeletesBeforeReturningStorageError(t *test
 	if len(objects.deletedKeys) != 2 {
 		t.Fatalf("deleted key attempts = %#v, want both cleanup objects attempted", objects.deletedKeys)
 	}
-	if len(db.execs) != 6 {
-		t.Fatalf("exec count = %d, want lifecycle, partial deleted mark, deletion analytics, cleanup run analytics", len(db.execs))
+	if len(db.execs) != 7 {
+		t.Fatalf("exec count = %d, want lifecycle, partial deleted mark, deletion analytics, cleanup run analytics, cleanup audit refs", len(db.execs))
 	}
 	payload, ok := db.execs[3].args[0].([]byte)
 	if !ok {
@@ -1572,6 +1587,9 @@ func TestServiceCleanupMarksSuccessfulDeletesBeforeReturningStorageError(t *test
 	}
 	if db.execs[5].args[3] != result.DeletedObjects {
 		t.Fatalf("cleanup run deleted count arg = %#v, want %d", db.execs[5].args[3], result.DeletedObjects)
+	}
+	if !strings.Contains(db.execs[6].sql, "INSERT INTO audit_logs") {
+		t.Fatalf("cleanup run audit refs should still be emitted for partial success: %s", db.execs[6].sql)
 	}
 }
 

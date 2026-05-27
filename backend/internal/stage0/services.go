@@ -1017,6 +1017,9 @@ WHERE o.retention_state = 'active'
 		if err := r.recordCleanupRunAnalyticsForTenant(ctx, now, tenantID, result); err != nil {
 			return CleanupResult{}, err
 		}
+		if err := r.recordCleanupRunAuditRefsForTenant(ctx, now, tenantID, result); err != nil {
+			return CleanupResult{}, err
+		}
 	}
 	return result, nil
 }
@@ -1309,6 +1312,53 @@ SELECT
 		'worker_batch_expired_exports', $2,
 		'worker_batch_orphaned_objects', $3,
 		'worker_batch_deleted_objects', $4
+	),
+	$1
+FROM cleanup_counts
+WHERE export_expired > 0 OR object_orphaned > 0 OR object_deleted > 0
+ON CONFLICT (id) DO NOTHING`,
+		now,
+		result.ExpiredExports,
+		result.OrphanedObjects,
+		result.DeletedObjects,
+		tenantID,
+	)
+	return err
+}
+
+func (r Repository) recordCleanupRunAuditRefsForTenant(ctx context.Context, now time.Time, tenantID string, result CleanupResult) error {
+	if result.ExpiredExports == 0 && result.OrphanedObjects == 0 && result.DeletedObjects == 0 {
+		return nil
+	}
+	_, err := r.db.Exec(ctx, `
+WITH cleanup_counts AS (
+	SELECT
+		tenant_id,
+		COUNT(*) FILTER (WHERE event_name = 'export_expired') AS export_expired,
+		COUNT(*) FILTER (WHERE event_name = 'object_orphaned') AS object_orphaned,
+		COUNT(*) FILTER (WHERE event_name = 'object_deleted') AS object_deleted
+	FROM analytics_events
+	WHERE created_at = $1
+	  AND event_name IN ('export_expired', 'object_orphaned', 'object_deleted')
+	  AND ($5 = '' OR tenant_id = $5)
+	GROUP BY tenant_id
+)
+INSERT INTO audit_logs(id, tenant_id, actor_id, action, resource, metadata, created_at)
+SELECT
+	'audit_' || md5(tenant_id || ':' || $1::text || ':export_object_cleanup_run'),
+	tenant_id,
+	'system:object-retention-cleanup',
+	'export.cleanup',
+	'object_retention_cleanup',
+	jsonb_build_object(
+		'audit_ref_kind', 'object_retention_cleanup_run',
+		'expired_exports', export_expired,
+		'orphaned_objects', object_orphaned,
+		'deleted_objects', object_deleted,
+		'worker_batch_expired_exports', $2,
+		'worker_batch_orphaned_objects', $3,
+		'worker_batch_deleted_objects', $4,
+		'cleanup_ack_scope', 'tenant_id+object_key'
 	),
 	$1
 FROM cleanup_counts
@@ -2943,6 +2993,9 @@ func (s Service) cleanupExpiredExportsAndOrphanedObjects(ctx context.Context, te
 	}
 	result.DeletedObjects = deleted
 	if err := s.repo.recordCleanupRunAnalyticsForTenant(ctx, now, tenantID, result); err != nil {
+		return CleanupResult{}, err
+	}
+	if err := s.repo.recordCleanupRunAuditRefsForTenant(ctx, now, tenantID, result); err != nil {
 		return CleanupResult{}, err
 	}
 	if deleteErr != nil {
