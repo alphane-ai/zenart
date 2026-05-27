@@ -16,7 +16,7 @@ const parseFixtures = () => {
   const moduleSource = source
     .replace(/^import type[\s\S]*?from "@\/lib\/types";\n\n/, "")
     .replaceAll(/export const (\w+)[^=]*=/g, "const $1 =");
-  return Function(`${moduleSource}\nreturn { skillVersions, skillReleaseStateDefinitions, skillCanaryMetrics, releaseEvidence, releaseBlockers, supportTickets, supportEscalationRunbooks, supportUsers, riskyExports, abuseEvents, abuseControlHooks, stagingAuthRbacTenantAuditEvidence, stagingEvalQaSafetyEvidence, stagingQuotaRateLimitSpendCapEvidence, stagingSupportRetryAbuseEvidence, stagingLegalSupportVisibilityEvidence, productionAbuseThrottleHoldEvidence, productionActivationReviewAuditEvidence, productionSkillReleaseEvalCanaryEvidence, productionSecurityLaunchCheckEvidence, productionBackupRollbackIncidentEvidence, productionLegalSupportPolicyEvidence, productionProviderModeEvidence, productionPaidBillingLifecycleEvidence, adminReviewDecisions, auditEvents, exportJobs, traces, quotaAccounts, feedbackItems, regressionFixtures, analyticsReports, queueHealth, failedTaskControls, crawlerFindings, crawlerSourceApprovals, crawlerGovernanceWorkflows, crawlerStagingRuntimeEvidence, adminRbacEvidence, operationalDashboards, operationalDashboardRuntimeEvidence, alertRoutes, alertRouteRuntimeEvidence, backendMetricsRuntimeEvidence, observabilityTelemetryRuntimeEvidence, stagingObservabilityBackupLoadPreflightEvidence, stagingObjectStorageRetentionCleanupEvidence };`)();
+  return Function(`${moduleSource}\nreturn { skillVersions, skillReleaseStateDefinitions, skillCanaryMetrics, releaseEvidence, releaseBlockers, supportTickets, supportEscalationRunbooks, supportUsers, riskyExports, abuseEvents, abuseControlHooks, stagingAuthRbacTenantAuditEvidence, stagingEvalQaSafetyEvidence, stagingQuotaRateLimitSpendCapEvidence, stagingSupportRetryAbuseEvidence, stagingLegalSupportVisibilityEvidence, productionAbuseThrottleHoldEvidence, productionActivationReviewAuditEvidence, productionSkillReleaseEvalCanaryEvidence, productionSecurityLaunchCheckEvidence, productionBackupRollbackIncidentEvidence, productionLegalSupportPolicyEvidence, productionProviderModeEvidence, productionPaidBillingLifecycleEvidence, adminReviewDecisions, auditEvents, exportJobs, traces, quotaAccounts, feedbackItems, regressionFixtures, analyticsReports, queueHealth, failedTaskControls, crawlerFindings, crawlerSourceApprovals, crawlerGovernanceWorkflows, crawlerStagingRuntimeEvidence, adminRbacEvidence, adminRbacOverrideAttempts, operationalDashboards, operationalDashboardRuntimeEvidence, alertRoutes, alertRouteRuntimeEvidence, backendMetricsRuntimeEvidence, observabilityTelemetryRuntimeEvidence, stagingObservabilityBackupLoadPreflightEvidence, stagingObjectStorageRetentionCleanupEvidence };`)();
 };
 
 const crawlerGovernanceCases = JSON.parse(
@@ -63,6 +63,7 @@ const {
   crawlerGovernanceWorkflows,
   crawlerStagingRuntimeEvidence,
   adminRbacEvidence,
+  adminRbacOverrideAttempts,
   operationalDashboards,
   operationalDashboardRuntimeEvidence,
   alertRoutes,
@@ -100,13 +101,22 @@ const parseRbacRuntime = () => {
     .replaceAll(/function uniqueSorted<T extends string>\(values: T\[\]\)/g, "function uniqueSorted(values)")
     .replaceAll(/new Set<T>/g, "new Set")
     .replaceAll(/new Set<string>/g, "new Set")
+    .replaceAll(/function expectedIdempotencyPrefix\(attempt: AdminRbacOverrideAttempt\)/g, "function expectedIdempotencyPrefix(attempt)")
+    .replaceAll(/function stateDigestStatus\(\n  attempt: AdminRbacOverrideAttempt,\n  runtimeDecision: AdminRbacRuntimeDecision \| undefined\n\): AdminRbacOverrideAttemptDecision\["stateDigestStatus"\]/g, "function stateDigestStatus(attempt, runtimeDecision)")
+    .replaceAll(/function overrideAttemptOutcome\(\n  attempt: AdminRbacOverrideAttempt,\n  runtimeDecision: AdminRbacRuntimeDecision \| undefined,\n  idempotencyStable: boolean,\n  digestStatus: AdminRbacOverrideAttemptDecision\["stateDigestStatus"\]\n\): AdminRbacOverrideAttemptDecision\["requestOutcome"\]/g, "function overrideAttemptOutcome(attempt, runtimeDecision, idempotencyStable, digestStatus)")
+    .replaceAll(/function overrideAttemptBlockers\(\n  runtimeDecision: AdminRbacRuntimeDecision \| undefined,\n  idempotencyStable: boolean,\n  digestStatus: AdminRbacOverrideAttemptDecision\["stateDigestStatus"\],\n  expectedHttpStatusMatches: boolean\n\)/g, "function overrideAttemptBlockers(runtimeDecision, idempotencyStable, digestStatus, expectedHttpStatusMatches)")
     .replaceAll(/: AdminRbacEvidence\[\]/g, "")
+    .replaceAll(/: AdminRbacOverrideAttempt\[\]/g, "")
+    .replaceAll(/: AdminRbacOverrideAttemptDecision\[\]/g, "")
     .replaceAll(/: AdminRbacRuntimeDecision\[\]/g, "")
     .replaceAll(/: AdminRbacSurfaceSummary\[\]/g, "")
     .replaceAll(/: AdminRbacEvidencePack\[\]/g, "")
     .replaceAll(/: AdminRbacEvidencePack\["releaseGateDisposition"\]/g, "")
     .replaceAll(/: AdminRbacEvidencePack\["evidenceCompleteness"\]/g, "")
     .replaceAll(/: AdminRbacEvidencePack\["expiryEnforcementStatus"\]/g, "")
+    .replaceAll(/: AdminRbacOverrideAttemptDecision\["idempotencyStatus"\]/g, "")
+    .replaceAll(/: AdminRbacOverrideAttemptDecision\["runtimeRequestOutcome"\]/g, "")
+    .replaceAll(/: AdminRbacOverrideAttemptDecision\["releaseGateStatus"\]/g, "")
     .replaceAll(/: AdminRbacStaleReplayDecision\[\]/g, "")
     .replaceAll(/: AdminRbacStaleReplayDecision\["surface"\]/g, "")
     .replaceAll(/: AdminRbacStaleReplayDecision\["staleWindowStatus"\]/g, "")
@@ -118,6 +128,10 @@ const parseRbacRuntime = () => {
     .replaceAll(/new Map<AdminRbacEvidence\["surface"\], AdminRbacEvidence\[\]>/g, "new Map")
     .replaceAll(/new Map<AdminRbacRuntimeDecision\["surface"\], AdminRbacRuntimeDecision\[\]>/g, "new Map")
     .replaceAll(/new Map<AdminRbacStaleReplayDecision\["surface"\], AdminRbacStaleReplayDecision\[\]>/g, "new Map")
+    .replaceAll(/new Map<string, AdminRbacRuntimeDecision>/g, "new Map")
+    .replaceAll(/: AdminRbacOverrideAttemptDecision\["stateDigestStatus"\]/g, "")
+    .replaceAll(/: AdminRbacOverrideAttemptDecision\["requestOutcome"\]/g, "")
+    .replaceAll(/: AdminRbacOverrideAttempt/g, "")
     .replaceAll(/: AdminRbacEvidence/g, "")
     .replaceAll(/: AdminRbacRuntimeDecision/g, "")
     .replaceAll(/: AdminRole\[\]/g, "")
@@ -125,7 +139,7 @@ const parseRbacRuntime = () => {
     .replaceAll(/: string/g, "")
     .replaceAll(/: Date/g, "")
     .replaceAll(/: boolean/g, "");
-  return Function(`${runtimeSource}\nreturn { buildAdminRbacRuntimeDecisions, buildAdminRbacStaleReplayDecisions, buildAdminRbacSurfaceSummaries, buildAdminRbacEvidencePacks };`)();
+  return Function(`${runtimeSource}\nreturn { buildAdminRbacRuntimeDecisions, buildAdminRbacOverrideAttemptDecisions, buildAdminRbacStaleReplayDecisions, buildAdminRbacSurfaceSummaries, buildAdminRbacEvidencePacks };`)();
 };
 
 const parseExportRuntime = () => {
@@ -4394,6 +4408,221 @@ test("admin RBAC evidence packs bind each override surface to runtime, audit, an
       .operatorChecklist.some((item) => item.includes("required admin role")),
     "safety pack must expose role escalation for superadmin-only changes"
   );
+});
+
+test("admin RBAC override attempts preserve idempotency, state digests, and release gates", () => {
+  const { buildAdminRbacRuntimeDecisions, buildAdminRbacOverrideAttemptDecisions } = parseRbacRuntime();
+  const runtimeDecisions = buildAdminRbacRuntimeDecisions(adminRbacEvidence, new Date("2026-05-26T11:00:00Z"));
+  const attemptDecisions = buildAdminRbacOverrideAttemptDecisions(adminRbacOverrideAttempts, runtimeDecisions);
+  const evidenceById = new Map(adminRbacEvidence.map((item) => [item.id, item]));
+  const runtimeByEvidenceId = new Map(runtimeDecisions.map((decision) => [decision.evidenceId, decision]));
+  const attemptDecisionById = new Map(attemptDecisions.map((decision) => [decision.attemptId, decision]));
+  const expectedAttemptsBySurface = new Map();
+
+  assert.equal(
+    attemptDecisions.length,
+    adminRbacOverrideAttempts.length,
+    "each RBAC override attempt fixture needs a runtime decision"
+  );
+  assert.ok(
+    attemptDecisions.some((decision) => decision.requestOutcome === "mutation_applied" && decision.submitAllowed),
+    "override attempts need one allowed mutation path with expiry"
+  );
+  assert.ok(
+    attemptDecisions.some((decision) => decision.requestOutcome === "queued_without_mutation"),
+    "override attempts need queued second-review evidence"
+  );
+  assert.ok(
+    attemptDecisions.some((decision) => decision.requestOutcome === "blocked_without_mutation"),
+    "override attempts need blocked no-mutation evidence"
+  );
+  assert.ok(
+    attemptDecisions.some((decision) => decision.requestOutcome === "stale_replay_blocked"),
+    "override attempts need stale replay blocking evidence"
+  );
+
+  for (const surface of overrideScopeBySurface.keys()) {
+    expectedAttemptsBySurface.set(surface, 0);
+  }
+
+  for (const attempt of adminRbacOverrideAttempts) {
+    const evidence = evidenceById.get(attempt.evidenceId);
+    const runtimeDecision = runtimeByEvidenceId.get(attempt.evidenceId);
+    const decision = attemptDecisionById.get(attempt.id);
+
+    assert.ok(evidence, `${attempt.id} links unknown RBAC evidence ${attempt.evidenceId}`);
+    assert.ok(runtimeDecision, `${attempt.id} links RBAC evidence without runtime decision`);
+    assert.ok(decision, `${attempt.id} missing override-attempt decision`);
+    expectedAttemptsBySurface.set(attempt.surface, expectedAttemptsBySurface.get(attempt.surface) + 1);
+    assert.equal(attempt.surface, evidence.surface, `${attempt.id} surface must match RBAC evidence`);
+    assert.equal(attempt.overrideScope, evidence.overrideScope, `${attempt.id} override scope must match RBAC evidence`);
+    assert.equal(attempt.apiScope, evidence.apiScope, `${attempt.id} API scope must match RBAC evidence`);
+    assert.equal(attempt.auditRef, evidence.auditRef, `${attempt.id} audit ref must match RBAC evidence`);
+    assert.equal(attempt.csrfScope, "admin_session_cookie", `${attempt.id} must be bound to admin session cookie scope`);
+    assert.match(attempt.requestId, /^admin-rbac-override-\d{8}T\d{4}Z-/, `${attempt.id} needs stable runtime request id`);
+    assert.ok(
+      attempt.idempotencyKey.startsWith(`rbac:${attempt.surface}:${attempt.evidenceId}:`),
+      `${attempt.id} needs surface and evidence scoped idempotency key`
+    );
+    assert.match(attempt.requestBodyDigest, /^sha256:[a-z0-9-]+$/, `${attempt.id} needs request body digest`);
+    assert.match(attempt.preMutationStateDigest, /^sha256:[a-z0-9-]+$/, `${attempt.id} needs pre-mutation state digest`);
+    assert.match(attempt.postMutationStateDigest, /^sha256:[a-z0-9-]+$/, `${attempt.id} needs post-mutation state digest`);
+    assert.ok(attempt.gatePreservation.length > 100, `${attempt.id} needs gate preservation evidence`);
+    assert.ok(attempt.mutationReplayPolicy.length > 90, `${attempt.id} needs mutation replay policy`);
+    assert.ok(attempt.operatorMessage.length > 80, `${attempt.id} needs operator message`);
+    assert.ok(attempt.evidenceRefs.includes(attempt.evidenceId), `${attempt.id} must include RBAC evidence ref`);
+    assert.ok(attempt.evidenceRefs.includes(attempt.auditRef), `${attempt.id} must include audit ref in evidence refs`);
+
+    for (const ref of attempt.evidenceRefs) {
+      assert.ok(
+        ref === attempt.evidenceId ||
+          auditIds.has(ref) ||
+          supportTicketIds.has(ref) ||
+          traceIds.has(ref) ||
+          exportIds.has(ref) ||
+          riskyExportIds.has(ref) ||
+          adminReviewDecisionIds.has(ref) ||
+          crawlerFindingIds.has(ref) ||
+          ref.startsWith("cg-") ||
+          ref.startsWith("csa-") ||
+          ref.startsWith("sv-") ||
+          ref.startsWith("eg-") ||
+          ref.startsWith("ph-") ||
+          ref.startsWith("qt-") ||
+          ref.startsWith("pf-") ||
+          ref.startsWith("fb-"),
+        `${attempt.id} links unknown evidence ref ${ref}`
+      );
+    }
+
+    assert.equal(decision.evidenceId, attempt.evidenceId, `${attempt.id} decision evidence mismatch`);
+    assert.equal(decision.surface, attempt.surface, `${attempt.id} decision surface mismatch`);
+    assert.equal(decision.overrideScope, attempt.overrideScope, `${attempt.id} decision override scope mismatch`);
+    assert.equal(decision.requestId, attempt.requestId, `${attempt.id} decision request id mismatch`);
+    assert.equal(decision.idempotencyStatus, "stable", `${attempt.id} fixture idempotency must be stable`);
+    assert.equal(decision.expectedHttpStatus, attempt.expectedHttpStatus, `${attempt.id} expected HTTP status mismatch`);
+    assert.equal(decision.runtimeRequestOutcome, runtimeDecision.requestOutcome, `${attempt.id} runtime outcome mismatch`);
+    assert.equal(decision.releaseGateStatus, runtimeDecision.releaseGateStatus, `${attempt.id} release gate status mismatch`);
+    assert.equal(decision.auditRef, attempt.auditRef, `${attempt.id} decision audit ref mismatch`);
+    assert.deepEqual(decision.evidenceRefs, attempt.evidenceRefs, `${attempt.id} decision evidence refs mismatch`);
+    assert.ok(decision.rationale.includes(attempt.operatorMessage), `${attempt.id} decision rationale must include operator message`);
+
+    if (runtimeDecision.effectiveDecision === "allow_mutation") {
+      assert.equal(attempt.dryRunOnly, false, `${attempt.id} allowed mutation attempt cannot be dry-run only`);
+      assert.equal(decision.requestOutcome, "mutation_applied", `${attempt.id} allowed runtime must record mutation applied`);
+      assert.equal(decision.stateDigestStatus, "mutation_recorded", `${attempt.id} allowed runtime needs state digest change`);
+      assert.equal(decision.submitAllowed, true, `${attempt.id} allowed runtime should be submittable`);
+      assert.deepEqual(decision.blockerCodes, [], `${attempt.id} allowed runtime cannot expose blockers`);
+    } else {
+      assert.equal(attempt.dryRunOnly, true, `${attempt.id} denied or queued attempt must be dry-run only`);
+      assert.equal(decision.submitAllowed, false, `${attempt.id} denied or queued attempt cannot submit mutation`);
+      assert.equal(decision.stateDigestStatus, "mutation_preserved", `${attempt.id} denied or queued attempt must preserve state digest`);
+      assert.ok(
+        ["queued_without_mutation", "blocked_without_mutation", "stale_replay_blocked"].includes(decision.requestOutcome),
+        `${attempt.id} denied or queued attempt needs restrictive outcome`
+      );
+      assert.ok(decision.blockerCodes.length > 0, `${attempt.id} denied or queued attempt needs blocker codes`);
+      assert.equal(
+        attempt.preMutationStateDigest,
+        attempt.postMutationStateDigest,
+        `${attempt.id} denied or queued attempt cannot mutate state digest`
+      );
+    }
+
+    if (runtimeDecision.requestOutcome === "denied_expired_override") {
+      assert.equal(decision.requestOutcome, "stale_replay_blocked", `${attempt.id} expired override must block stale replay`);
+      assert.equal(attempt.expectedHttpStatus, 410, `${attempt.id} stale replay should return expired/closed status`);
+      assert.ok(decision.blockerCodes.includes("expired_override_window"), `${attempt.id} stale replay needs expired blocker`);
+      assert.match(decision.rationale, /fresh/, `${attempt.id} stale replay rationale must require fresh evidence`);
+    }
+
+    if (runtimeDecision.requestOutcome === "queued_second_review") {
+      assert.equal(decision.requestOutcome, "queued_without_mutation", `${attempt.id} second-review attempt must queue without mutation`);
+      assert.equal(attempt.expectedHttpStatus, 202, `${attempt.id} queued second review should return accepted status`);
+      assert.ok(decision.blockerCodes.includes("second_review_open"), `${attempt.id} queued second review needs blocker`);
+    }
+  }
+
+  for (const [surface, count] of expectedAttemptsBySurface.entries()) {
+    assert.ok(count > 0, `${surface} needs at least one request-level override attempt fixture`);
+  }
+
+  const unstableAttempt = buildAdminRbacOverrideAttemptDecisions(
+    [
+      {
+        ...adminRbacOverrideAttempts.find((attempt) => attempt.id === "rbac-attempt-provider-001"),
+        idempotencyKey: "rbac:provider_routing:wrong-evidence:retry-weight:au-007"
+      }
+    ],
+    runtimeDecisions
+  )[0];
+  assert.equal(unstableAttempt.idempotencyStatus, "unstable", "wrong evidence id in idempotency key must be unstable");
+  assert.equal(unstableAttempt.requestOutcome, "invalid_evidence", "unstable idempotency must invalidate override attempt evidence");
+  assert.equal(unstableAttempt.submitAllowed, false, "unstable idempotency cannot submit");
+  assert.ok(
+    unstableAttempt.blockerCodes.includes("idempotency_key_unstable"),
+    "unstable idempotency must expose blocker code"
+  );
+
+  const unexpectedMutationAttempt = buildAdminRbacOverrideAttemptDecisions(
+    [
+      {
+        ...adminRbacOverrideAttempts.find((attempt) => attempt.id === "rbac-attempt-export-001"),
+        postMutationStateDigest: "sha256:ex-887-released-despite-blocking-qa"
+      }
+    ],
+    runtimeDecisions
+  )[0];
+  assert.equal(
+    unexpectedMutationAttempt.stateDigestStatus,
+    "unexpected_mutation",
+    "denied export override with changed state digest must be detected"
+  );
+  assert.equal(
+    unexpectedMutationAttempt.requestOutcome,
+    "invalid_evidence",
+    "unexpected state mutation invalidates override attempt evidence"
+  );
+  assert.equal(unexpectedMutationAttempt.submitAllowed, false, "unexpected denied mutation cannot submit");
+  assert.ok(
+    unexpectedMutationAttempt.blockerCodes.includes("unexpected_state_mutation"),
+    "unexpected mutation must expose blocker code"
+  );
+
+  const missingMutationAttempt = buildAdminRbacOverrideAttemptDecisions(
+    [
+      {
+        ...adminRbacOverrideAttempts.find((attempt) => attempt.id === "rbac-attempt-provider-001"),
+        postMutationStateDigest: "sha256:provider-openai-image-render-dev-normal-retry-weight"
+      }
+    ],
+    runtimeDecisions
+  )[0];
+  assert.equal(
+    missingMutationAttempt.stateDigestStatus,
+    "mutation_missing",
+    "allowed provider override without changed state digest must be detected"
+  );
+  assert.equal(missingMutationAttempt.requestOutcome, "invalid_evidence", "missing allowed mutation invalidates evidence");
+  assert.equal(missingMutationAttempt.submitAllowed, false, "missing allowed mutation cannot submit");
+  assert.ok(
+    missingMutationAttempt.blockerCodes.includes("allowed_mutation_missing"),
+    "missing allowed mutation must expose blocker code"
+  );
+
+  const auditPage = readFileSync(new URL("../app/audit/page.tsx", import.meta.url), "utf8");
+  const adminApi = readFileSync(new URL("../lib/admin-api.ts", import.meta.url), "utf8");
+  for (const token of [
+    "RBAC Override Attempt Evidence",
+    "getAdminRbacOverrideAttemptDecisions",
+    "State Digest",
+    "Expected HTTP",
+    "Submit Allowed",
+    "buildAdminRbacOverrideAttemptDecisions",
+    "adminRbacOverrideAttempts"
+  ]) {
+    assert.match(auditPage + adminApi + rbacRuntimeSource + source, new RegExp(token));
+  }
 });
 
 test("blocking safety exports cannot be overridden without audit-safe eligibility", () => {

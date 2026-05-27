@@ -1431,6 +1431,51 @@ export type AdminRbacRuntimeDecision = {
   rationale: string;
 };
 
+export type AdminRbacOverrideAttempt = {
+  id: string;
+  evidenceId: string;
+  surface: AdminReviewSurface;
+  overrideScope: AdminRbacEvidence["overrideScope"];
+  requestId: string;
+  idempotencyKey: string;
+  apiScope: string;
+  requestBodyDigest: string;
+  preMutationStateDigest: string;
+  postMutationStateDigest: string;
+  csrfScope: "admin_session_cookie";
+  dryRunOnly: boolean;
+  expectedHttpStatus: 200 | 202 | 403 | 409 | 410 | 423;
+  gatePreservation: string;
+  mutationReplayPolicy: string;
+  auditRef: string;
+  evidenceRefs: string[];
+  operatorMessage: string;
+};
+
+export type AdminRbacOverrideAttemptDecision = {
+  attemptId: string;
+  evidenceId: string;
+  surface: AdminReviewSurface;
+  overrideScope: AdminRbacEvidence["overrideScope"];
+  requestId: string;
+  idempotencyStatus: "stable" | "unstable";
+  stateDigestStatus: "mutation_recorded" | "mutation_preserved" | "unexpected_mutation" | "mutation_missing";
+  requestOutcome:
+    | "mutation_applied"
+    | "queued_without_mutation"
+    | "blocked_without_mutation"
+    | "stale_replay_blocked"
+    | "invalid_evidence";
+  submitAllowed: boolean;
+  expectedHttpStatus: AdminRbacOverrideAttempt["expectedHttpStatus"];
+  runtimeRequestOutcome: AdminRbacRuntimeDecision["requestOutcome"] | "missing_runtime";
+  releaseGateStatus: AdminRbacRuntimeDecision["releaseGateStatus"] | "release_gate_preserved";
+  blockerCodes: string[];
+  auditRef: string;
+  evidenceRefs: string[];
+  rationale: string;
+};
+
 export type AdminRbacStaleReplayDecision = {
   evidenceId: string;
   surface: AdminReviewSurface;

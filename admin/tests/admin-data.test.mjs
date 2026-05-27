@@ -73,7 +73,8 @@ test("admin fixtures cover required operational surfaces", () => {
     "export const analyticsReports",
     "export const skillReleaseStateDefinitions",
     "export const skillCanaryMetrics",
-    "export const adminRbacEvidence"
+    "export const adminRbacEvidence",
+    "export const adminRbacOverrideAttempts"
   ]) {
     assert.match(fixtures, new RegExp(token.replaceAll(" ", "\\s+")));
   }

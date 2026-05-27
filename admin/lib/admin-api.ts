@@ -1,6 +1,7 @@
 import {
   adminReviewDecisions,
   adminRbacEvidence,
+  adminRbacOverrideAttempts,
   abuseControlHooks,
   abuseEvents,
   alertRouteRuntimeEvidence,
@@ -58,6 +59,7 @@ import { buildCrawlerGovernanceRuntimeDecisions } from "@/lib/crawler-runtime";
 import { buildExportRegenerationRuntimeDecisions } from "@/lib/export-runtime";
 import {
   buildAdminRbacEvidencePacks,
+  buildAdminRbacOverrideAttemptDecisions,
   buildAdminRbacRuntimeDecisions,
   buildAdminRbacStaleReplayDecisions,
   buildAdminRbacSurfaceSummaries
@@ -101,8 +103,17 @@ export async function getAdminRbacEvidence() {
   return adminRbacEvidence;
 }
 
+export async function getAdminRbacOverrideAttempts() {
+  return adminRbacOverrideAttempts;
+}
+
 export async function getAdminRbacRuntimeDecisions() {
   return buildAdminRbacRuntimeDecisions(adminRbacEvidence, new Date("2026-05-26T11:00:00Z"));
+}
+
+export async function getAdminRbacOverrideAttemptDecisions() {
+  const runtimeDecisions = buildAdminRbacRuntimeDecisions(adminRbacEvidence, new Date("2026-05-26T11:00:00Z"));
+  return buildAdminRbacOverrideAttemptDecisions(adminRbacOverrideAttempts, runtimeDecisions);
 }
 
 export async function getAdminRbacStaleReplayDecisions() {

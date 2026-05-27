@@ -1,6 +1,8 @@
 import type {
   AdminRbacEvidence,
   AdminRbacEvidencePack,
+  AdminRbacOverrideAttempt,
+  AdminRbacOverrideAttemptDecision,
   AdminRbacRuntimeDecision,
   AdminRbacStaleReplayDecision,
   AdminRbacSurfaceSummary,
@@ -290,6 +292,138 @@ export function buildAdminRbacStaleReplayDecisions(
 
 function uniqueSorted<T extends string>(values: T[]) {
   return Array.from(new Set<T>(values)).sort();
+}
+
+function expectedIdempotencyPrefix(attempt: AdminRbacOverrideAttempt) {
+  return `rbac:${attempt.surface}:${attempt.evidenceId}:`;
+}
+
+function stateDigestStatus(
+  attempt: AdminRbacOverrideAttempt,
+  runtimeDecision: AdminRbacRuntimeDecision | undefined
+): AdminRbacOverrideAttemptDecision["stateDigestStatus"] {
+  const stateChanged = attempt.preMutationStateDigest !== attempt.postMutationStateDigest;
+
+  if (runtimeDecision?.effectiveDecision === "allow_mutation") {
+    return stateChanged ? "mutation_recorded" : "mutation_missing";
+  }
+
+  return stateChanged ? "unexpected_mutation" : "mutation_preserved";
+}
+
+function overrideAttemptOutcome(
+  attempt: AdminRbacOverrideAttempt,
+  runtimeDecision: AdminRbacRuntimeDecision | undefined,
+  idempotencyStable: boolean,
+  digestStatus: AdminRbacOverrideAttemptDecision["stateDigestStatus"]
+): AdminRbacOverrideAttemptDecision["requestOutcome"] {
+  if (!runtimeDecision || !idempotencyStable || digestStatus === "unexpected_mutation" || digestStatus === "mutation_missing") {
+    return "invalid_evidence";
+  }
+
+  if (runtimeDecision.requestOutcome === "applied") {
+    return "mutation_applied";
+  }
+
+  if (runtimeDecision.requestOutcome === "queued_second_review") {
+    return "queued_without_mutation";
+  }
+
+  if (runtimeDecision.requestOutcome === "denied_expired_override") {
+    return "stale_replay_blocked";
+  }
+
+  return "blocked_without_mutation";
+}
+
+function overrideAttemptBlockers(
+  runtimeDecision: AdminRbacRuntimeDecision | undefined,
+  idempotencyStable: boolean,
+  digestStatus: AdminRbacOverrideAttemptDecision["stateDigestStatus"],
+  expectedHttpStatusMatches: boolean
+) {
+  const blockers = new Set(runtimeDecision?.blockerCodes ?? []);
+
+  if (!runtimeDecision) {
+    blockers.add("runtime_decision_missing");
+  }
+
+  if (!idempotencyStable) {
+    blockers.add("idempotency_key_unstable");
+  }
+
+  if (digestStatus === "unexpected_mutation") {
+    blockers.add("unexpected_state_mutation");
+  }
+
+  if (digestStatus === "mutation_missing") {
+    blockers.add("allowed_mutation_missing");
+  }
+
+  if (!expectedHttpStatusMatches) {
+    blockers.add("http_status_mismatch");
+  }
+
+  return Array.from(blockers).sort();
+}
+
+export function buildAdminRbacOverrideAttemptDecisions(
+  attempts: AdminRbacOverrideAttempt[],
+  runtimeDecisions: AdminRbacRuntimeDecision[]
+): AdminRbacOverrideAttemptDecision[] {
+  const runtimeByEvidenceId = new Map(runtimeDecisions.map((decision) => [decision.evidenceId, decision]));
+
+  return attempts
+    .map((attempt) => {
+      const runtimeDecision = runtimeByEvidenceId.get(attempt.evidenceId);
+      const idempotencyStable = attempt.idempotencyKey.startsWith(expectedIdempotencyPrefix(attempt));
+      const idempotencyStatus: AdminRbacOverrideAttemptDecision["idempotencyStatus"] = idempotencyStable
+        ? "stable"
+        : "unstable";
+      const digestStatus = stateDigestStatus(attempt, runtimeDecision);
+      const expectedHttpStatusMatches =
+        (runtimeDecision?.requestOutcome === "applied" && attempt.expectedHttpStatus === 200) ||
+        (runtimeDecision?.requestOutcome === "queued_second_review" && attempt.expectedHttpStatus === 202) ||
+        (runtimeDecision?.requestOutcome === "denied_insufficient_role" && attempt.expectedHttpStatus === 403) ||
+        (runtimeDecision?.requestOutcome === "denied_policy_block" && [403, 409, 423].includes(attempt.expectedHttpStatus)) ||
+        (runtimeDecision?.requestOutcome === "denied_expired_override" && attempt.expectedHttpStatus === 410);
+      const requestOutcome = overrideAttemptOutcome(attempt, runtimeDecision, idempotencyStable, digestStatus);
+      const blockerCodes = overrideAttemptBlockers(
+        runtimeDecision,
+        idempotencyStable,
+        digestStatus,
+        expectedHttpStatusMatches
+      );
+      const runtimeRequestOutcome: AdminRbacOverrideAttemptDecision["runtimeRequestOutcome"] =
+        runtimeDecision?.requestOutcome ?? "missing_runtime";
+      const releaseGateStatus: AdminRbacOverrideAttemptDecision["releaseGateStatus"] =
+        runtimeDecision?.releaseGateStatus ?? "release_gate_preserved";
+      const submitAllowed =
+        requestOutcome === "mutation_applied" &&
+        blockerCodes.length === 0 &&
+        runtimeDecision?.mutationAllowed === true &&
+        !attempt.dryRunOnly;
+
+      return {
+        attemptId: attempt.id,
+        evidenceId: attempt.evidenceId,
+        surface: attempt.surface,
+        overrideScope: attempt.overrideScope,
+        requestId: attempt.requestId,
+        idempotencyStatus,
+        stateDigestStatus: digestStatus,
+        requestOutcome,
+        submitAllowed,
+        expectedHttpStatus: attempt.expectedHttpStatus,
+        runtimeRequestOutcome,
+        releaseGateStatus,
+        blockerCodes,
+        auditRef: attempt.auditRef,
+        evidenceRefs: attempt.evidenceRefs,
+        rationale: `${attempt.gatePreservation} ${attempt.mutationReplayPolicy} ${attempt.operatorMessage}`
+      };
+    })
+    .sort((a, b) => a.surface.localeCompare(b.surface) || a.attemptId.localeCompare(b.attemptId));
 }
 
 export function buildAdminRbacSurfaceSummaries(
