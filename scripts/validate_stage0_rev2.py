@@ -521,6 +521,52 @@ RELEASE_GATE_BACKFILL_CHECKED_ITEMS = {
     "Backfill Production Launch no-go evidence: provider/billing/skill/activation/abuse/security/backup/legal blockers remain active in `fixtures/stage0/rev2/release_gate_evidence.production_launch.json`。",
 }
 
+README_LAUNCH_READINESS_CHECKLIST_ITEM = (
+    "README launch-readiness snapshot guard 通过：README states Local Alpha is go, keeps CI、Private Beta/Staging、"
+    "Production Launch、and Do-Not-Launch no-go with exact missing runtime artifact paths, and validator rejects "
+    "README prose that implies those gates are launch-ready before release fixtures compute `go`。"
+)
+
+README_GATE_SNAPSHOT_REQUIREMENTS = {
+    "Local Alpha Gate": {
+        "expected_status": "go",
+        "tokens": [
+            "fixtures/stage0/rev2/release_gate_evidence.local_alpha.json",
+            "ops/evidence/local_alpha/",
+        ],
+    },
+    "CI Gate": {
+        "expected_status": "no-go",
+        "tokens": [
+            ".github/workflows/stage0-rev2-ci.yml",
+            "ops/evidence/ci/stage0-rev2-pr-main-run.json",
+            "ops/evidence/ci/stage0-rev2-playwright-smoke.json",
+            "ops/evidence/ci/stage0-rev2-docker-image-build.json",
+        ],
+    },
+    "Private Beta/Staging Gate": {
+        "expected_status": "no-go",
+        "tokens": [
+            "ops/evidence/staging/object-storage-retention-cleanup.json",
+        ],
+    },
+    "Production Launch Gate": {
+        "expected_status": "no-go",
+        "tokens": [
+            "CI and Private Beta/Staging gate fixtures compute `go`",
+            "ops/evidence/production/backup-restore.json",
+            "ops/evidence/production/rollback-incident-post-deploy-smoke.json",
+        ],
+    },
+    "Do-Not-Launch Conditions": {
+        "expected_status": "open",
+        "tokens": [
+            "all four release gate fixtures compute `go`",
+            "Local Alpha, CI, Private Beta/Staging, and Production Launch gates",
+        ],
+    },
+}
+
 RELEASE_GATE_RUNTIME_OPEN_ITEMS = {
     "Local Alpha workflow API/Playwright end-to-end smoke evidence 通过并写入 release gate fixture。",
     "CI installed workflow runtime evidence 通过：PR/main run、Playwright smoke、Docker image build 均有 validator-resolvable evidence。",
@@ -2468,6 +2514,7 @@ CHECKED_ITEMS = {
     "定义 release gate evidence schema/fixtures 和 no-go release notes renderer。",
     "定义 post-deploy smoke evidence contract。",
     PRODUCTION_BACKUP_ROLLBACK_INCIDENT_ADMIN_CHECKLIST_ITEM,
+    README_LAUNCH_READINESS_CHECKLIST_ITEM,
     "Backfill Local Alpha release gate fixture evidence: workflow/eval/crawler/schema/service/runtime-stack checks pass in `fixtures/stage0/rev2/release_gate_evidence.local_alpha.json`。",
     "Backfill CI draft/no-go evidence: ops CI draft coverage passes while installed `.github/workflows` runtime remains blocked in `fixtures/stage0/rev2/release_gate_evidence.ci.json`。",
     "Backfill Private Beta/Staging no-go evidence: contract/fixture evidence is separated from external-user staging runtime blockers in `fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json`。",
@@ -9509,6 +9556,83 @@ def validate_readme_and_architecture_contract() -> None:
 
     missing = missing_repo_paths(["web", "admin", "backend", "scripts", "README.md"])
     require(not missing, f"Alphane-style pure web monorepo evidence missing paths: {missing}")
+    validate_readme_launch_readiness_snapshot(readme_text)
+
+
+def validate_readme_launch_readiness_snapshot(readme_text: str) -> None:
+    evidence = release_evidence_by_gate()
+    expected_gate_status = {
+        "Local Alpha Gate": evidence["local_alpha"]["gate_decision"]["status"],
+        "CI Gate": evidence["ci"]["gate_decision"]["status"],
+        "Private Beta/Staging Gate": evidence["private_beta_staging"]["gate_decision"]["status"],
+        "Production Launch Gate": evidence["production_launch"]["gate_decision"]["status"],
+    }
+    expected_gate_status["Do-Not-Launch Conditions"] = (
+        "closed"
+        if all(gate["gate_decision"]["status"] == "go" for gate in evidence.values())
+        else "open"
+    )
+    expected_gate_status["CI Gate"] = (
+        "go" if expected_gate_status["CI Gate"] == "go" else "no-go"
+    )
+    expected_gate_status["Private Beta/Staging Gate"] = (
+        "go" if expected_gate_status["Private Beta/Staging Gate"] == "go" else "no-go"
+    )
+    expected_gate_status["Production Launch Gate"] = (
+        "go" if expected_gate_status["Production Launch Gate"] == "go" else "no-go"
+    )
+
+    require(
+        "Current Stage 0 Rev2 launch-readiness snapshot:" in readme_text,
+        "README must include the validator-backed Stage 0 Rev2 launch-readiness snapshot",
+    )
+    require(
+        "Do not close launch gates from README prose" in readme_text
+        and "blocked probe" in readme_text
+        and "fixture-only evidence" in readme_text,
+        "README must state that prose, blocked probes, release-bundle validation, and fixture-only evidence cannot close launch gates",
+    )
+
+    for gate_label, requirement in README_GATE_SNAPSHOT_REQUIREMENTS.items():
+        line = next(
+            (
+                candidate
+                for candidate in readme_text.splitlines()
+                if candidate.startswith(f"- {gate_label}:")
+            ),
+            "",
+        )
+        require(line, f"README launch snapshot missing {gate_label} row")
+        expected_status = expected_gate_status.get(gate_label, requirement["expected_status"])
+        require(
+            expected_status in line,
+            f"README {gate_label} row must state current fixture-aligned status {expected_status}",
+        )
+        for token in requirement["tokens"]:
+            require(token in line, f"README {gate_label} row missing exact launch blocker token: {token}")
+
+    blocked_gate_rows = {
+        gate_label: line
+        for gate_label in [
+            "CI Gate",
+            "Private Beta/Staging Gate",
+            "Production Launch Gate",
+            "Do-Not-Launch Conditions",
+        ]
+        for line in readme_text.splitlines()
+        if line.startswith(f"- {gate_label}:")
+    }
+    for gate_label, line in blocked_gate_rows.items():
+        if expected_gate_status[gate_label] != "go" and expected_gate_status[gate_label] != "closed":
+            require(
+                "no-go" in line or "open" in line,
+                f"README {gate_label} row must not imply launch readiness while fixture remains blocked",
+            )
+            forbidden_ready_terms = ("launch-ready", "ready for production", "cleared for launch")
+            require(
+                not any(term in line.lower() for term in forbidden_ready_terms),
+                f"README {gate_label} row implies readiness despite no-go fixture state",
+            )
 
 
 def validate_blueprint_checklist() -> None:
