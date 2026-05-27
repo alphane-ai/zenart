@@ -189,6 +189,15 @@ describe("generated web API client CSRF contract", () => {
       ])
     });
     expect(routeSmokeEvidence.browserSmokeRequiredAssertions).toEqual(generatedApiCsrfContract.browserSmoke.requiredAssertions);
+    expect(generatedApiCsrfContract.browserSmoke.expectedUnsafeRequestContracts).toEqual(
+      generatedApiCsrfContract.unsafeRequestContracts.map((contract) => {
+        const idempotencyKey = contract.idempotencyHeaderRequired ? `csrf-probe-${contract.operationId}` : "not-required";
+        return `${contract.operationId}:${contract.method}:${contract.credentials}:${contract.csrfHeaderValue}:${idempotencyKey}`;
+      })
+    );
+    expect(routeSmokeEvidence.browserSmokeExpectedUnsafeRequestContracts).toEqual(
+      generatedApiCsrfContract.browserSmoke.expectedUnsafeRequestContracts
+    );
     expect(generatedApiCsrfContract.unsafeOperationCount).toBe(unsafeOperations.length);
     expect(generatedApiCsrfContract.safeOperationCount).toBe(safeOperations.length);
     expect(requestContractEvidence.unsafeOperationIds).toEqual(unsafeOperations);

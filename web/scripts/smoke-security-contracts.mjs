@@ -73,6 +73,11 @@ const operationMap = new Map(
   ])
 );
 
+const expectedBrowserUnsafeRequestContracts = generatedApiCsrfContract.unsafeRequestContracts.map((contract) => {
+  const idempotencyKey = contract.idempotencyHeaderRequired ? `csrf-probe-${contract.operationId}` : "not-required";
+  return `${contract.operationId}:${contract.method}:${contract.credentials}:${contract.csrfHeaderValue}:${idempotencyKey}`;
+});
+
 if (operationMap.size !== generatedApiCsrfContract.safeOperationCount + generatedApiCsrfContract.unsafeOperationCount) {
   fail("generated API operation inventory count drifted from CSRF artifact");
 }
@@ -259,6 +264,10 @@ if (
   generatedApiCsrfContract.browserSmoke?.script !== "npm run smoke:session-security-playwright" ||
   generatedClientEvidence.browserSmoke !== generatedApiCsrfContract.browserSmoke?.test ||
   generatedClientEvidence.browserSmokeScript !== generatedApiCsrfContract.browserSmoke?.script ||
+  JSON.stringify(generatedApiCsrfContract.browserSmoke?.expectedUnsafeRequestContracts) !==
+    JSON.stringify(expectedBrowserUnsafeRequestContracts) ||
+  JSON.stringify(generatedClientEvidence.browserSmokeExpectedUnsafeRequestContracts) !==
+    JSON.stringify(expectedBrowserUnsafeRequestContracts) ||
   JSON.stringify(generatedClientEvidence.browserSmokeRequiredAssertions) !==
     JSON.stringify(generatedApiCsrfContract.browserSmoke?.requiredAssertions)
 ) {
@@ -268,6 +277,12 @@ if (
 for (const requiredBrowserAssertion of generatedApiCsrfContract.browserSmoke?.requiredAssertions ?? []) {
   if (!sessionSecurityPlaywrightSpecSource.includes(requiredBrowserAssertion)) {
     fail(`generated API CSRF browser smoke missing required assertion ${requiredBrowserAssertion}`);
+  }
+}
+
+for (const expectedBrowserRequestContract of expectedBrowserUnsafeRequestContracts) {
+  if (!sessionSecurityPlaywrightSpecSource.includes(expectedBrowserRequestContract)) {
+    fail(`generated API CSRF browser smoke missing unsafe request contract ${expectedBrowserRequestContract}`);
   }
 }
 

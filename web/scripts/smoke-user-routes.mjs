@@ -410,6 +410,24 @@ if (
 ) {
   fail("structured generated API CSRF evidence does not match validation/generated-api-csrf-contract.json");
 }
+
+const expectedBrowserUnsafeRequestContracts = generatedApiCsrfContract.unsafeRequestContracts.map((requestContract) => {
+  const idempotencyKey = requestContract.idempotencyHeaderRequired ? `csrf-probe-${requestContract.operationId}` : "not-required";
+  return `${requestContract.operationId}:${requestContract.method}:${requestContract.credentials}:${requestContract.csrfHeaderValue}:${idempotencyKey}`;
+});
+if (
+  JSON.stringify(generatedApiCsrfContract.browserSmoke?.expectedUnsafeRequestContracts) !==
+    JSON.stringify(expectedBrowserUnsafeRequestContracts) ||
+  JSON.stringify(generatedCsrfEvidence.browserSmokeExpectedUnsafeRequestContracts) !==
+    JSON.stringify(expectedBrowserUnsafeRequestContracts)
+) {
+  fail("generated API CSRF browser unsafe request contracts do not match validation/generated-api-csrf-contract.json");
+}
+for (const expectedBrowserRequestContract of expectedBrowserUnsafeRequestContracts) {
+  if (!sessionSecurityPlaywrightSpecSource.includes(expectedBrowserRequestContract)) {
+    fail(`session security browser smoke missing generated request contract ${expectedBrowserRequestContract}`);
+  }
+}
 for (const attribute of generatedCsrfEvidence.requiredAttributes ?? []) {
   if (!componentSource.includes(attribute)) {
     fail(`generated API CSRF UI evidence missing ${attribute}`);

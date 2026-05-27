@@ -18,6 +18,24 @@ const unsafeOperationIds = [
   "createSupportTicket"
 ] as const;
 
+const expectedBrowserProbeRequestContracts = [
+  "deleteSession:DELETE:include:same-site-origin-check:not-required",
+  "updateAccount:PATCH:include:same-site-origin-check:csrf-probe-updateAccount",
+  "createProject:POST:include:same-site-origin-check:csrf-probe-createProject",
+  "updateProject:PATCH:include:same-site-origin-check:csrf-probe-updateProject",
+  "createChatSession:POST:include:same-site-origin-check:csrf-probe-createChatSession",
+  "createChatMessage:POST:include:same-site-origin-check:csrf-probe-createChatMessage",
+  "createCandidateSet:POST:include:same-site-origin-check:csrf-probe-createCandidateSet",
+  "selectDirection:PUT:include:same-site-origin-check:csrf-probe-selectDirection",
+  "createCanvasNode:POST:include:same-site-origin-check:csrf-probe-createCanvasNode",
+  "createCanvasVersion:POST:include:same-site-origin-check:csrf-probe-createCanvasVersion",
+  "createUpload:POST:include:same-site-origin-check:csrf-probe-createUpload",
+  "createPackage:POST:include:same-site-origin-check:csrf-probe-createPackage",
+  "createExport:POST:include:same-site-origin-check:csrf-probe-createExport",
+  "createShareLink:POST:include:same-site-origin-check:csrf-probe-createShareLink",
+  "createSupportTicket:POST:include:same-site-origin-check:csrf-probe-createSupportTicket"
+] as const;
+
 test("account route exposes secure-cookie, same-site CSRF, unsafe-action guard, and generated-client request browser evidence", async ({ page }) => {
   await page.addInitScript(() => {
     window.localStorage.clear();
@@ -122,6 +140,10 @@ test("account route exposes secure-cookie, same-site CSRF, unsafe-action guard, 
     "data-generated-api-csrf-browser-probe-unsafe-operation-contracts",
     /createSupportTicket:POST:include:same-site-origin-check:csrf-probe-createSupportTicket/
   );
+  const browserProbeRequestContracts = await browserProbe.getAttribute(
+    "data-generated-api-csrf-browser-probe-unsafe-operation-contracts"
+  );
+  expect(browserProbeRequestContracts?.split("|")).toEqual(expectedBrowserProbeRequestContracts);
   await expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-safe-operation", "getSession");
   await expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-safe-method", "GET");
   await expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-safe-credentials", "include");
