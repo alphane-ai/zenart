@@ -1319,6 +1319,141 @@ func TestRedactMapCoversExportAndCrawlerMetadataURLs(t *testing.T) {
 	}
 }
 
+func TestRedactStringCoversLaunchCrawlerResearchSecrets(t *testing.T) {
+	input := strings.Join([]string{
+		"firecrawl_api_key=firecrawl-secret-value",
+		"tavily_api_key=tavily-secret-value",
+		"exa_token=exa-secret-value",
+		"serpapi_api_key=serpapi-secret-value",
+		"serper_api_key=serper-secret-value",
+		"apify_token=apify-secret-value",
+		"bright_data_proxy_password=brightdata-secret-value",
+		"zyte_api_key=zyte-secret-value",
+		"scrapingbee_api_key=scrapingbee-secret-value",
+		"scraperapi_api_key=scraperapi-secret-value",
+		"crawlbase_token=crawlbase-secret-value",
+		"diffbot_api_key=diffbot-secret-value",
+		"jina_api_key=jina-secret-value",
+		"searchapi_api_key=searchapi-secret-value",
+		"crawler_webhook_secret=crawler-webhook-secret",
+		"web_research_token=webresearch-secret-value",
+	}, " ")
+
+	got := RedactString(input)
+	for _, leaked := range []string{
+		"firecrawl-secret-value",
+		"tavily-secret-value",
+		"exa-secret-value",
+		"serpapi-secret-value",
+		"serper-secret-value",
+		"apify-secret-value",
+		"brightdata-secret-value",
+		"zyte-secret-value",
+		"scrapingbee-secret-value",
+		"scraperapi-secret-value",
+		"crawlbase-secret-value",
+		"diffbot-secret-value",
+		"jina-secret-value",
+		"searchapi-secret-value",
+		"crawler-webhook-secret",
+		"webresearch-secret-value",
+	} {
+		if strings.Contains(got, leaked) {
+			t.Fatalf("RedactString() = %q, leaked %s", got, leaked)
+		}
+	}
+	if strings.Count(got, Redacted) < 16 {
+		t.Fatalf("RedactString() = %q, want crawler/research credentials redacted", got)
+	}
+
+	findings := ClassifyString(input)
+	assertFinding(t, findings, SecretKindAPIKey, "")
+	assertFinding(t, findings, SecretKindToken, "")
+	assertFinding(t, findings, SecretKindPassword, "")
+	assertFinding(t, findings, SecretKindWebhookSecret, "")
+}
+
+func TestRedactMapCoversLaunchCrawlerResearchMetadata(t *testing.T) {
+	metadata := map[string]any{
+		"crawler": map[string]any{
+			"firecrawlApiKey":             "firecrawl-secret-value",
+			"tavilyApiKey":                "tavily-secret-value",
+			"exaToken":                    "exa-secret-value",
+			"serpapiApiKey":               "serpapi-secret-value",
+			"apifyToken":                  "apify-secret-value",
+			"brightDataProxyPassword":     "brightdata-secret-value",
+			"crawlerProxyAuthorization":   "proxy-auth-secret",
+			"crawlerWebhookSecret":        "crawler-webhook-secret",
+			"publicSourceAllowlistDigest": "sha256:public-source-digest",
+		},
+		"research": map[string]any{
+			"zyteApiKey":          "zyte-secret-value",
+			"scrapingbeeApiKey":   "scrapingbee-secret-value",
+			"scraperapiApiKey":    "scraperapi-secret-value",
+			"crawlbaseToken":      "crawlbase-secret-value",
+			"diffbotApiKey":       "diffbot-secret-value",
+			"jinaApiKey":          "jina-secret-value",
+			"searchapiApiKey":     "searchapi-secret-value",
+			"publicSourceBaseURL": "https://docs.example.test",
+		},
+	}
+
+	body, err := json.Marshal(RedactValue(metadata))
+	if err != nil {
+		t.Fatalf("marshal redacted crawler metadata: %v", err)
+	}
+	for _, leaked := range []string{
+		"firecrawl-secret-value",
+		"tavily-secret-value",
+		"exa-secret-value",
+		"serpapi-secret-value",
+		"apify-secret-value",
+		"brightdata-secret-value",
+		"proxy-auth-secret",
+		"crawler-webhook-secret",
+		"zyte-secret-value",
+		"scrapingbee-secret-value",
+		"scraperapi-secret-value",
+		"crawlbase-secret-value",
+		"diffbot-secret-value",
+		"jina-secret-value",
+		"searchapi-secret-value",
+	} {
+		if strings.Contains(string(body), leaked) {
+			t.Fatalf("redacted crawler metadata = %s, leaked %s", string(body), leaked)
+		}
+	}
+	for _, fragment := range []string{`"publicSourceAllowlistDigest":"sha256:public-source-digest"`, `"publicSourceBaseURL":"https://docs.example.test"`, Redacted} {
+		if !strings.Contains(string(body), fragment) {
+			t.Fatalf("redacted crawler metadata = %s, missing %s", string(body), fragment)
+		}
+	}
+
+	findings := ClassifyValue(metadata)
+	for _, expected := range []struct {
+		kind     SecretKind
+		location string
+	}{
+		{SecretKindAPIKey, "crawler.firecrawlApiKey"},
+		{SecretKindAPIKey, "crawler.tavilyApiKey"},
+		{SecretKindToken, "crawler.exaToken"},
+		{SecretKindAPIKey, "crawler.serpapiApiKey"},
+		{SecretKindToken, "crawler.apifyToken"},
+		{SecretKindPassword, "crawler.brightDataProxyPassword"},
+		{SecretKindAuthorization, "crawler.crawlerProxyAuthorization"},
+		{SecretKindWebhookSecret, "crawler.crawlerWebhookSecret"},
+		{SecretKindAPIKey, "research.zyteApiKey"},
+		{SecretKindAPIKey, "research.scrapingbeeApiKey"},
+		{SecretKindAPIKey, "research.scraperapiApiKey"},
+		{SecretKindToken, "research.crawlbaseToken"},
+		{SecretKindAPIKey, "research.diffbotApiKey"},
+		{SecretKindAPIKey, "research.jinaApiKey"},
+		{SecretKindAPIKey, "research.searchapiApiKey"},
+	} {
+		assertFinding(t, findings, expected.kind, expected.location)
+	}
+}
+
 func TestRedactValueCoversHeadersAndStringSlices(t *testing.T) {
 	header := http.Header{
 		"Authorization": []string{"Bearer abcdefghijklmnop"},
@@ -2314,6 +2449,14 @@ func TestClassifyKeyCoversLaunchSecretNames(t *testing.T) {
 		{key: "clickhouseUrl", kind: SecretKindCredential},
 		{key: "metabaseSecretKey", kind: SecretKindToken},
 		{key: "grafanaServiceAccountToken", kind: SecretKindToken},
+		{key: "firecrawlApiKey", kind: SecretKindAPIKey},
+		{key: "tavilyApiKey", kind: SecretKindAPIKey},
+		{key: "exaToken", kind: SecretKindToken},
+		{key: "serpapiApiKey", kind: SecretKindAPIKey},
+		{key: "apifyToken", kind: SecretKindToken},
+		{key: "brightDataProxyPassword", kind: SecretKindPassword},
+		{key: "crawlerProxyAuthorization", kind: SecretKindAuthorization},
+		{key: "crawlerWebhookSecret", kind: SecretKindWebhookSecret},
 	}
 
 	for _, tt := range cases {
