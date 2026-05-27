@@ -251,6 +251,9 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(metadataEvidence).toHaveAttribute("data-package-export-ppt-safe-area", "72/96/72/96");
     expect(metadataEvidence).toHaveAttribute("data-package-export-ppt-theme-font", "Inter, Arial, sans-serif");
     expect(metadataEvidence).toHaveAttribute("data-package-export-ppt-handoff-checklist-count", "5");
+    expect(metadataEvidence).toHaveAttribute("data-package-export-required-zip-payload-count", "6");
+    expect(metadataEvidence).toHaveAttribute("data-package-export-zip-payload-parity-status", "pass");
+    expect(metadataEvidence).toHaveAttribute("data-package-export-zip-payload-parity-ratio", "6/6");
     expect(metadataEvidence).toHaveAttribute("data-package-export-workflow-id", "ecommerce_growth_pack");
     expect(metadataEvidence).toHaveAttribute("data-package-export-workflow-fixture-id", "fx_ecommerce_growth_golden");
     expect(metadataEvidence).toHaveAttribute("data-package-export-workflow-taxonomy-count", "1");
@@ -710,6 +713,9 @@ describe("WorkspaceApp user route integration smoke", () => {
         "data-package-export-ppt-theme-font",
         "data-package-export-ppt-handoff-checklist-count",
         "data-package-export-zip-payload-count",
+        "data-package-export-required-zip-payload-count",
+        "data-package-export-zip-payload-parity-status",
+        "data-package-export-zip-payload-parity-ratio",
         "data-package-export-workflow-id",
         "data-package-export-workflow-fixture-id",
         "data-package-export-workflow-taxonomy-count",

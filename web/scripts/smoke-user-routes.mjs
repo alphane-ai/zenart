@@ -932,6 +932,21 @@ for (const expectedDownloadSmokeSnippet of [
   }
 }
 
+for (const expectedPackageExportMetadataSnippet of [
+  "requiredZipPayloadCount",
+  "zipPayloadParityStatus",
+  "zipPayloadParityRatio",
+  "data-package-export-required-zip-payload-count",
+  "data-package-export-zip-payload-parity-status",
+  "data-package-export-zip-payload-parity-ratio",
+  "required ZIP parity",
+  "required payloads present"
+]) {
+  if (!componentSource.includes(expectedPackageExportMetadataSnippet) && !devStateSource.includes(expectedPackageExportMetadataSnippet)) {
+    fail(`package/export metadata UI evidence missing ${expectedPackageExportMetadataSnippet}`);
+  }
+}
+
 for (const expectedReferenceValidationSnippet of [
   "buildReferenceUploadValidationMatrixEvidence",
   "referenceUploadValidationSamples",

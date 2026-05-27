@@ -180,6 +180,9 @@ describe("dev workspace contracts", () => {
         "ppt-ready-metadata.json",
         "assets/README.txt"
       ],
+      requiredZipPayloadCount: 6,
+      zipPayloadParityStatus: "pass",
+      zipPayloadParityRatio: "6/6",
       missingZipPayloadNames: [],
       workflowId: "generic-stage0-export",
       workflowFixtureId: "none",

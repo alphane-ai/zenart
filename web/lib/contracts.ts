@@ -434,6 +434,9 @@ export interface PackageExportMetadataEvidence {
   zipPayloadCount: number;
   zipPayloadNames: string[];
   requiredZipPayloadNames: string[];
+  requiredZipPayloadCount: number;
+  zipPayloadParityStatus: "pass" | "fail";
+  zipPayloadParityRatio: string;
   missingZipPayloadNames: string[];
   workflowId: string;
   workflowFixtureId: string;

@@ -1063,6 +1063,9 @@ function ExportView({
                     data-package-export-zip-payload-count={metadataEvidence.zipPayloadCount}
                     data-package-export-zip-payloads={metadataEvidence.zipPayloadNames.join(",")}
                     data-package-export-required-zip-payloads={metadataEvidence.requiredZipPayloadNames.join(",")}
+                    data-package-export-required-zip-payload-count={metadataEvidence.requiredZipPayloadCount}
+                    data-package-export-zip-payload-parity-status={metadataEvidence.zipPayloadParityStatus}
+                    data-package-export-zip-payload-parity-ratio={metadataEvidence.zipPayloadParityRatio}
                     data-package-export-missing-zip-payload-count={metadataEvidence.missingZipPayloadNames.length}
                     data-package-export-workflow-id={metadataEvidence.workflowId}
                     data-package-export-workflow-fixture-id={metadataEvidence.workflowFixtureId}
@@ -1086,6 +1089,8 @@ function ExportView({
                       <span>{metadataEvidence.qaFindingCount} QA findings</span>
                       <span>{metadataEvidence.pptSlideCount} PPT slides</span>
                       <span>{metadataEvidence.downloadArtifactStatus} ZIP payload contract</span>
+                      <span>{metadataEvidence.zipPayloadParityStatus} required ZIP parity</span>
+                      <span>{metadataEvidence.zipPayloadParityRatio} required payloads present</span>
                       <span>{metadataEvidence.workflowZipPayloadCount}/{metadataEvidence.workflowRequiredFileCount} workflow payloads</span>
                     </div>
                     <p>
