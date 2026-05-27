@@ -48,6 +48,7 @@ import {
   traces
 } from "@/lib/fixtures";
 import { buildAbuseQueueRuntime, buildAbuseRuntimeDecisions } from "@/lib/abuse-runtime";
+import { buildCrawlerGovernanceRuntimeDecisions } from "@/lib/crawler-runtime";
 import { buildExportRegenerationRuntimeDecisions } from "@/lib/export-runtime";
 import { buildAdminRbacRuntimeDecisions } from "@/lib/rbac-runtime";
 
@@ -89,6 +90,10 @@ export async function getCrawlerSourceApprovals() {
 
 export async function getCrawlerGovernanceWorkflows() {
   return crawlerGovernanceWorkflows;
+}
+
+export async function getCrawlerGovernanceRuntimeDecisions() {
+  return buildCrawlerGovernanceRuntimeDecisions(crawlerGovernanceWorkflows);
 }
 
 export async function getCrawlerStagingRuntimeEvidence() {

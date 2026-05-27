@@ -171,6 +171,22 @@ export type CrawlerGovernanceWorkflow = {
   auditRef: string;
 };
 
+export type CrawlerGovernanceRuntimeDecision = {
+  workflowId: string;
+  findingId: string;
+  requestType: CrawlerGovernanceWorkflow["requestType"];
+  closureDecision: "ready_to_close" | "review_required" | "blocked";
+  activationDecision: "allow_activation" | "block_activation";
+  deletionEvidenceStatus: "complete" | "pending";
+  requesterNoticeStatus: "complete" | "pending";
+  secondReviewStatus: CrawlerGovernanceWorkflow["secondReviewStatus"];
+  auditStatus: "attached" | "missing";
+  blockerCodes: string[];
+  operatorAction: string;
+  auditRef: string;
+  requiredEvidenceRefs: string[];
+};
+
 export type CrawlerStagingRuntimeControlName =
   | "source_approval"
   | "robots"

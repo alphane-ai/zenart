@@ -6,6 +6,7 @@ import {
   getAdminRbacEvidence,
   getAdminRbacRuntimeDecisions,
   getCrawlerFindings,
+  getCrawlerGovernanceRuntimeDecisions,
   getCrawlerGovernanceWorkflows,
   getCrawlerSourceApprovals,
   getCrawlerStagingRuntimeEvidence
@@ -13,16 +14,26 @@ import {
 import type {
   AdminRbacEvidence,
   CrawlerFinding,
+  CrawlerGovernanceRuntimeDecision,
   CrawlerGovernanceWorkflow,
   CrawlerSourceApproval,
   CrawlerStagingRuntimeEvidence
 } from "@/lib/types";
 
 export default async function CrawlerReviewPage() {
-  const [findings, sourceApprovals, governanceWorkflows, stagingRuntimeEvidence, rbacEvidence, rbacRuntime] = await Promise.all([
+  const [
+    findings,
+    sourceApprovals,
+    governanceWorkflows,
+    governanceRuntime,
+    stagingRuntimeEvidence,
+    rbacEvidence,
+    rbacRuntime
+  ] = await Promise.all([
     getCrawlerFindings(),
     getCrawlerSourceApprovals(),
     getCrawlerGovernanceWorkflows(),
+    getCrawlerGovernanceRuntimeDecisions(),
     getCrawlerStagingRuntimeEvidence(),
     getAdminRbacEvidence(),
     getAdminRbacRuntimeDecisions()
@@ -152,6 +163,32 @@ export default async function CrawlerReviewPage() {
             { key: "closure", header: "Closure Criteria", render: (row) => row.closureCriteria },
             { key: "evidence", header: "Evidence Refs", render: (row) => row.requiredEvidenceRefs.join(", ") },
             { key: "rationale", header: "Review Rationale", render: (row) => row.reviewRationale },
+            { key: "audit", header: "Audit Ref", render: (row) => <span className="mono">{row.auditRef}</span> }
+          ]}
+        />
+      </section>
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>Crawler Governance Runtime Decisions</h3>
+            <p>Computed closure gates deny reactivation until takedown deletion evidence, requester notice, second review, and audit evidence are attached.</p>
+          </div>
+        </div>
+        <DataTable<CrawlerGovernanceRuntimeDecision>
+          rows={governanceRuntime}
+          columns={[
+            { key: "workflow", header: "Workflow", render: (row) => <span className="mono">{row.workflowId}</span> },
+            { key: "finding", header: "Finding", render: (row) => <span className="mono">{row.findingId}</span> },
+            { key: "request", header: "Request", render: (row) => row.requestType },
+            { key: "closure", header: "Closure Decision", render: (row) => <StatusBadge value={row.closureDecision} label={row.closureDecision} /> },
+            { key: "activation", header: "Activation Decision", render: (row) => <StatusBadge value={row.activationDecision === "allow_activation" ? "allowed" : "blocked"} label={row.activationDecision} /> },
+            { key: "delete", header: "Deletion Evidence", render: (row) => <StatusBadge value={row.deletionEvidenceStatus} label={row.deletionEvidenceStatus} /> },
+            { key: "notice", header: "Requester Notice", render: (row) => <StatusBadge value={row.requesterNoticeStatus} label={row.requesterNoticeStatus} /> },
+            { key: "second-review", header: "Second Review", render: (row) => <StatusBadge value={row.secondReviewStatus} label={row.secondReviewStatus} /> },
+            { key: "audit-status", header: "Audit Status", render: (row) => <StatusBadge value={row.auditStatus} label={row.auditStatus} /> },
+            { key: "blockers", header: "Blockers", render: (row) => (row.blockerCodes.length > 0 ? row.blockerCodes.join(", ") : "none") },
+            { key: "action", header: "Operator Action", render: (row) => row.operatorAction },
+            { key: "evidence", header: "Required Evidence", render: (row) => row.requiredEvidenceRefs.join(", ") },
             { key: "audit", header: "Audit Ref", render: (row) => <span className="mono">{row.auditRef}</span> }
           ]}
         />

@@ -7,6 +7,7 @@ const abuseRuntimeSource = readFileSync(new URL("../lib/abuse-runtime.ts", impor
 const rbacRuntimeSource = readFileSync(new URL("../lib/rbac-runtime.ts", import.meta.url), "utf8");
 const exportRuntimeSource = readFileSync(new URL("../lib/export-runtime.ts", import.meta.url), "utf8");
 const failedTaskRuntimeSource = readFileSync(new URL("../lib/failed-task-runtime.ts", import.meta.url), "utf8");
+const crawlerRuntimeSource = readFileSync(new URL("../lib/crawler-runtime.ts", import.meta.url), "utf8");
 const repoRoot = new URL("../../", import.meta.url);
 const blueprint = readFileSync(new URL("../../Docs/stage0_blueprint_rev2.md", import.meta.url), "utf8");
 
@@ -132,6 +133,19 @@ const parseFailedTaskRuntime = () => {
   return Function(`${runtimeSource}\nreturn { buildFailedTaskRuntimeDecisions };`)();
 };
 
+const parseCrawlerRuntime = () => {
+  const runtimeSource = crawlerRuntimeSource
+    .replace(/^import type[\s\S]*?from "@\/lib\/types";\n\n/, "")
+    .replaceAll(/export function (\w+)/g, "function $1")
+    .replaceAll(/: CrawlerGovernanceRuntimeDecision\[\]/g, "")
+    .replaceAll(/: CrawlerGovernanceWorkflow\[\]/g, "")
+    .replaceAll(/: CrawlerGovernanceWorkflow\["requestType"\]/g, "")
+    .replaceAll(/: string\[\]/g, "")
+    .replaceAll(/: string/g, "")
+    .replaceAll(/ as const/g, "");
+  return Function(`${runtimeSource}\nreturn { buildCrawlerGovernanceRuntimeDecisions };`)();
+};
+
 const auditIds = new Set(auditEvents.map((event) => event.id));
 const supportTicketIds = new Set(supportTickets.map((ticket) => ticket.id));
 const supportTicketById = new Map(supportTickets.map((ticket) => [ticket.id, ticket]));
@@ -236,6 +250,7 @@ const roleOrder = new Map([
   ["admin_superadmin", 4]
 ]);
 const { buildFailedTaskRuntimeDecisions } = parseFailedTaskRuntime();
+const { buildCrawlerGovernanceRuntimeDecisions } = parseCrawlerRuntime();
 
 test("skill release governance defines states, traffic allocation, canary thresholds, and rollback audit", () => {
   const states = new Set(skillReleaseStateDefinitions.map((definition) => definition.state));
@@ -3353,6 +3368,49 @@ test("crawler takedown and derivative review workflow blocks unsafe activation",
       assert.equal(workflow.blockedActivation, true, `${workflow.id} unresolved derivative status must block activation`);
       assert.match(workflow.operatorNextAction, /prevent crawler-derived prompt activation/i, `${workflow.id} unresolved derivative review must prevent activation`);
       assert.equal(workflow.activationGateDecision, "blocked", `${workflow.id} unresolved derivative review must block activation gate`);
+    }
+  }
+});
+
+test("crawler governance runtime decisions gate takedown closure and activation", () => {
+  const decisions = buildCrawlerGovernanceRuntimeDecisions(crawlerGovernanceWorkflows);
+  const decisionsByWorkflow = new Map(decisions.map((decision) => [decision.workflowId, decision]));
+
+  assert.equal(decisions.length, crawlerGovernanceWorkflows.length, "each crawler workflow needs one runtime decision");
+
+  const takedownDecision = decisionsByWorkflow.get("cg-501");
+  assert.equal(takedownDecision.closureDecision, "blocked", "open takedown with pending evidence must block closure");
+  assert.equal(takedownDecision.activationDecision, "block_activation", "open takedown must block activation");
+  assert.equal(takedownDecision.deletionEvidenceStatus, "pending", "open takedown must expose pending deletion evidence");
+  assert.equal(takedownDecision.requesterNoticeStatus, "pending", "open takedown must expose pending requester notice");
+  assert.ok(takedownDecision.blockerCodes.includes("deletion_evidence_pending"), "open takedown needs deletion blocker");
+  assert.ok(takedownDecision.blockerCodes.includes("requester_notice_pending"), "open takedown needs notice blocker");
+  assert.ok(takedownDecision.blockerCodes.includes("second_review_open"), "open takedown needs second-review blocker");
+
+  const derivativeDecision = decisionsByWorkflow.get("cg-522");
+  assert.equal(derivativeDecision.closureDecision, "ready_to_close", "approved derivative review should be closeable");
+  assert.equal(derivativeDecision.activationDecision, "allow_activation", "approved derivative review should allow activation");
+  assert.equal(derivativeDecision.blockerCodes.length, 0, "approved derivative review should not expose blockers");
+  assert.equal(derivativeDecision.auditStatus, "attached", "approved derivative review needs audit evidence");
+
+  const retentionDecision = decisionsByWorkflow.get("cg-533");
+  assert.equal(retentionDecision.closureDecision, "blocked", "pending raw retention delete must block closure");
+  assert.equal(retentionDecision.activationDecision, "block_activation", "pending raw retention delete must block activation");
+  assert.ok(retentionDecision.blockerCodes.includes("deletion_evidence_pending"), "pending retention delete needs deletion blocker");
+  assert.ok(retentionDecision.blockerCodes.includes("requester_notice_pending"), "pending retention delete needs notice blocker");
+
+  for (const workflow of crawlerGovernanceWorkflows) {
+    const decision = decisionsByWorkflow.get(workflow.id);
+    assert.ok(decision, `${workflow.id} is missing runtime decision`);
+    assert.equal(decision.findingId, workflow.findingId, `${workflow.id} must preserve finding linkage`);
+    assert.equal(decision.requestType, workflow.requestType, `${workflow.id} must preserve request type`);
+    assert.equal(decision.auditRef, workflow.auditRef, `${workflow.id} must preserve audit ref`);
+    assert.deepEqual(decision.requiredEvidenceRefs, workflow.requiredEvidenceRefs, `${workflow.id} must preserve required evidence refs`);
+    assert.ok(decision.operatorAction.length > 80, `${workflow.id} needs executable operator action`);
+
+    if (workflow.blockedActivation) {
+      assert.equal(decision.activationDecision, "block_activation", `${workflow.id} blocked workflow cannot activate`);
+      assert.ok(decision.blockerCodes.includes("activation_blocked"), `${workflow.id} needs activation blocker`);
     }
   }
 });

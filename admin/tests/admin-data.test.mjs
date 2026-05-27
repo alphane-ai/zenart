@@ -924,6 +924,13 @@ test("admin routes surface governance evidence", () => {
     "utf8"
   );
   assert.match(crawlerPage, /Takedown and Derivative Review Workflow/);
+  assert.match(crawlerPage, /getCrawlerGovernanceRuntimeDecisions/);
+  assert.match(crawlerPage, /Crawler Governance Runtime Decisions/);
+  assert.match(crawlerPage, /Closure Decision/);
+  assert.match(crawlerPage, /Activation Decision/);
+  assert.match(crawlerPage, /Deletion Evidence/);
+  assert.match(crawlerPage, /Requester Notice/);
+  assert.match(crawlerPage, /Blockers/);
   assert.match(crawlerPage, /Crawler Source Approval/);
   assert.match(crawlerPage, /Robots Evidence/);
   assert.match(crawlerPage, /Exact-text Policy/);
