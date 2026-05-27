@@ -569,6 +569,12 @@ CI_BROAD_RUNTIME_EXACT_FILE_GUARD_CHECKLIST_ITEM = (
     "directory prose cannot close PR/main、Playwright、or Docker launch blockers。"
 )
 
+RELEASE_GATE_BASENAME_EXACT_PATH_GUARD_CHECKLIST_ITEM = (
+    "Release gate evidence basename exact-path guard 通过：`scripts/validate_stage0_rev2.py` rejects "
+    "release gate evidence refs that mention validator-owned artifact basenames without the full canonical path, "
+    "so sibling artifacts or shorthand filenames cannot imply launch-gate closure。"
+)
+
 README_GATE_SNAPSHOT_REQUIREMENTS = {
     "Local Alpha Gate": {
         "expected_status": "go",
@@ -1928,7 +1934,9 @@ RELEASE_GATE_DECISION_ALLOWED_PATHS = {
         "ops/evidence/production/20260527T1800Z-backup-rollback-incident-smoke.json",
         "ops/evidence/production/backup-restore.json",
         "ops/evidence/production/billing-lifecycle.json",
+        "ops/evidence/production/billing-refund-credit-webhook.json",
         "ops/evidence/production/provider-mode.json",
+        "ops/evidence/production/public-paid-real-generation-claims.json",
         "ops/evidence/production/rollback-incident-post-deploy-smoke.json",
     },
 }
@@ -3305,6 +3313,34 @@ def require_release_gate_evidence_ref_allowed_paths(
         not unexpected_paths,
         f"{gate}.{ref_id} {ref_kind} evidence cites paths outside its validator-owned allowlist: "
         + json.dumps(unexpected_paths, ensure_ascii=False),
+    )
+    require_validator_owned_basenames_are_exact_paths(
+        evidence_ref,
+        allowed,
+        f"{gate}.{ref_id} {ref_kind} evidence",
+    )
+
+
+def require_validator_owned_basenames_are_exact_paths(
+    evidence_ref: str,
+    allowed_paths: set[str],
+    context: str,
+) -> None:
+    allowed_files = {
+        path
+        for path in allowed_paths
+        if "." in Path(path).name and not any(char in path for char in "{}*")
+    }
+    cited_paths = concrete_evidence_paths(evidence_ref)
+    shorthand_refs = sorted(
+        path
+        for path in allowed_files
+        if path not in cited_paths and re.search(rf"(?<![A-Za-z0-9_./-]){re.escape(Path(path).name)}(?![A-Za-z0-9_./-])", evidence_ref)
+    )
+    require(
+        not shorthand_refs,
+        f"{context} mentions validator-owned artifact basenames without their exact canonical paths: "
+        + json.dumps(shorthand_refs, ensure_ascii=False),
     )
 
 
@@ -11250,6 +11286,7 @@ def validate_launch_readiness_split_contracts() -> None:
         "定义 post-deploy smoke evidence contract。",
         RUNTIME_PASS_EXACT_FILE_GUARD_CHECKLIST_ITEM,
         CI_BROAD_RUNTIME_EXACT_FILE_GUARD_CHECKLIST_ITEM,
+        RELEASE_GATE_BASENAME_EXACT_PATH_GUARD_CHECKLIST_ITEM,
     ] + sorted(RELEASE_GATE_BACKFILL_CHECKED_ITEMS):
         require(item in checked_lines, f"blueprint must close definition-only evidence subitem: {item}")
 
@@ -11360,6 +11397,9 @@ def validate_launch_readiness_split_contracts() -> None:
         "CI runtime checklist rows and release-gate checks cannot remain open/blocked after exact installed-workflow/runtime evidence becomes passable",
         "CI broad runtime row exact-file guard 通过：`scripts/validate_stage0_rev2.py` rejects checked broad CI runtime rows unless matching exact evidence-file checklist rows are also checked",
         "so `ops/evidence/ci/` directory prose cannot close PR/main、Playwright、or Docker launch blockers",
+        RELEASE_GATE_BASENAME_EXACT_PATH_GUARD_CHECKLIST_ITEM,
+        "validator-owned artifact basenames without the full canonical path",
+        "sibling artifacts or shorthand filenames cannot imply launch-gate closure",
         "each exact `ops/evidence/ci/*.json` runtime file must declare `environment=ci`",
         "ops/evidence/ci/stage0-rev2-pr-main-run.json",
         "ops/evidence/ci/stage0-rev2-playwright-smoke.json",
@@ -11469,6 +11509,7 @@ def validate_launch_readiness_split_contracts() -> None:
         "Every release gate check, Do-Not-Launch condition, and gate decision has a validator-owned evidence path allowlist",
         "an evidence_ref that cites a concrete repo path outside that check/condition/decision allowlist is invalid",
         "The evidence path allowlist is closed-world per check/condition/decision",
+        "Release-gate evidence refs that mention a validator-owned artifact basename without its full canonical path are invalid",
         "adding a new runtime/deployment artifact for launch closure requires updating the validator-owned mapping and the corresponding concrete checklist row in the same change",
         "broad `ops/evidence/` path substitution cannot silently close Local Alpha、CI、Private Beta/Staging、Production、or global Do-Not-Launch readiness",
         "`schema_version` must remain `stage0.rev2`",
