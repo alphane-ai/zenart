@@ -365,6 +365,7 @@ const parseCrawlerRuntime = () => {
     .replace(/^import type[\s\S]*?from "@\/lib\/types";\n\n/, "")
     .replaceAll(/export function (\w+)/g, "function $1")
     .replaceAll(/function isConcreteRequiredEvidence\(ref: string\)/g, "function isConcreteRequiredEvidence(ref)")
+    .replaceAll(/function derivativeActivationBlockers\(workflow: CrawlerGovernanceWorkflow\)/g, "function derivativeActivationBlockers(workflow)")
     .replaceAll(/function workflowEndpointScope\(workflow: CrawlerGovernanceWorkflow\): CrawlerGovernanceAdminActionContract\["endpointScope"\]/g, "function workflowEndpointScope(workflow)")
     .replaceAll(/function workflowMutation\(workflow: CrawlerGovernanceWorkflow\): CrawlerGovernanceAdminActionContract\["requestedMutation"\]/g, "function workflowMutation(workflow)")
     .replaceAll(/function workflowRegressionFixtureRefs\(workflow: CrawlerGovernanceWorkflow\)/g, "function workflowRegressionFixtureRefs(workflow)")
@@ -8183,6 +8184,90 @@ test("crawler admin action contracts bind mutations to governance runtime gates"
     false,
     "crawler derivative activation cannot proceed when its regression fixture is absent from admin inventory"
   );
+
+  const derivativeWorkflow = crawlerGovernanceWorkflows.find((workflow) => workflow.id === "cg-522");
+  const derivativeEvidenceReplayCases = [
+    {
+      name: "missing provenance evidence",
+      mutation: {
+        requiredEvidenceRefs: derivativeWorkflow.requiredEvidenceRefs.filter(
+          (ref) => !ref.startsWith("crawler-governance/")
+        )
+      },
+      blocker: "derivative_provenance_missing"
+    },
+    {
+      name: "pending requester notice evidence",
+      mutation: {
+        requesterNoticeRef: "pending-derivative-reviewer-notice-cg-522",
+        requiredEvidenceRefs: derivativeWorkflow.requiredEvidenceRefs.filter(
+          (ref) => ref !== derivativeWorkflow.requesterNoticeRef
+        )
+      },
+      blocker: "derivative_requester_notice_missing"
+    },
+    {
+      name: "unbounded retention evidence",
+      mutation: {
+        deletionEvidenceRef: "not_required_retention_unbounded"
+      },
+      blocker: "derivative_retention_limit_missing"
+    },
+    {
+      name: "derivative use no longer allowed",
+      mutation: {
+        derivativeUseStatus: "restricted"
+      },
+      blocker: "derivative_use_not_allowed"
+    }
+  ];
+
+  for (const replayCase of derivativeEvidenceReplayCases) {
+    const replayWorkflow = {
+      ...derivativeWorkflow,
+      ...replayCase.mutation
+    };
+    const replayDecision = buildCrawlerGovernanceRuntimeDecisions([replayWorkflow], new Date("2026-05-26T18:30:00Z"))[0];
+    const replayContract = buildCrawlerGovernanceAdminActionContracts(
+      [replayWorkflow],
+      [replayDecision],
+      regressionFixturePaths
+    )[0];
+
+    assert.equal(
+      replayDecision.closureDecision,
+      "blocked",
+      `approved derivative replay with ${replayCase.name} must block closure`
+    );
+    assert.equal(
+      replayDecision.activationDecision,
+      "block_activation",
+      `approved derivative replay with ${replayCase.name} must block activation`
+    );
+    assert.ok(
+      replayDecision.blockerCodes.includes(replayCase.blocker),
+      `approved derivative replay with ${replayCase.name} must expose ${replayCase.blocker}`
+    );
+    assert.equal(
+      replayContract.allowedMutation,
+      false,
+      `approved derivative replay with ${replayCase.name} cannot submit admin mutation`
+    );
+    assert.equal(
+      replayContract.httpOutcome,
+      "423_governance_blocked",
+      `approved derivative replay with ${replayCase.name} needs governance-blocked HTTP outcome`
+    );
+    assert.equal(
+      replayContract.releaseEvidenceDisposition,
+      "preserve_blocker",
+      `approved derivative replay with ${replayCase.name} cannot cite release evidence`
+    );
+    assert.ok(
+      replayContract.blockerCodes.includes(replayCase.blocker),
+      `approved derivative replay action contract with ${replayCase.name} must preserve ${replayCase.blocker}`
+    );
+  }
 });
 
 test("staging crawler governance runtime evidence covers every fetch and import control", () => {

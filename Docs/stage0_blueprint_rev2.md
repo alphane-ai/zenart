@@ -1863,6 +1863,7 @@ main 合并前必须通过：
 - [x] backend/local crawler runtime 强制 source blocklist。
 - [x] 实现 takedown/derivative review workflow，admin evidence 已验证 quarantine status、SLA status、affected activation surfaces、closure evidence、second review、audit 和 activation guardrail。
 - [x] Crawler governance admin mutation action contracts expose idempotency key、admin-session CSRF scope、state digest、stale replay denial、request-attempt audit order、and regression fixture evidence refs, validated by `admin/tests/admin-governance.test.mjs`。
+- [x] Crawler derivative activation replay hardening 通过：approved derivative workflow 若缺 provenance、requester notice、bounded retention 或 derivative-use allowance，`admin/lib/crawler-runtime.ts` blocks closure/activation and `admin/tests/admin-governance.test.mjs` validates 423 admin mutation denial。
 - [x] 添加 disallowed source、robots denied、duplicate hash、pending-review import tests。
 - [x] staging crawler fetch/import governance runtime evidence 通过：source approval、robots、SSRF、rate limits、retention、exact-text warning、provenance links、source blocklist 均有 staging evidence。
 

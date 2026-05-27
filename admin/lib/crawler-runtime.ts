@@ -13,6 +13,37 @@ function isConcreteRequiredEvidence(ref: string) {
   return !isPendingEvidence(ref) && !ref.startsWith("not_required");
 }
 
+function derivativeActivationBlockers(workflow: CrawlerGovernanceWorkflow) {
+  if (workflow.requestType !== "derivative_review" || workflow.activationGateDecision !== "allowed") {
+    return [];
+  }
+
+  const blockers: string[] = [];
+  const hasProvenanceEvidence = workflow.requiredEvidenceRefs.some((ref) => ref.startsWith("crawler-governance/"));
+  const hasRequesterNotice = isConcreteRequiredEvidence(workflow.requesterNoticeRef) &&
+    workflow.requiredEvidenceRefs.includes(workflow.requesterNoticeRef);
+  const hasBoundedRetention = workflow.rawRetentionAction === "retain_with_limit" &&
+    workflow.deletionEvidenceRef.startsWith("not_required_retention_limited");
+
+  if (workflow.derivativeUseStatus !== "allowed") {
+    blockers.push("derivative_use_not_allowed");
+  }
+
+  if (!hasProvenanceEvidence) {
+    blockers.push("derivative_provenance_missing");
+  }
+
+  if (!hasRequesterNotice) {
+    blockers.push("derivative_requester_notice_missing");
+  }
+
+  if (!hasBoundedRetention) {
+    blockers.push("derivative_retention_limit_missing");
+  }
+
+  return blockers;
+}
+
 export function buildCrawlerGovernanceRuntimeDecisions(
   workflows: CrawlerGovernanceWorkflow[],
   now = new Date("2026-05-26T12:00:00Z")
@@ -95,12 +126,18 @@ export function buildCrawlerGovernanceRuntimeDecisions(
       blockerCodes.push("deadline_escalation_pending");
     }
 
+    blockerCodes.push(...derivativeActivationBlockers(workflow));
+
     const closureDecision =
       blockerCodes.includes("deletion_evidence_pending") ||
       blockerCodes.includes("requester_notice_pending") ||
       blockerCodes.includes("deadline_escalation_pending") ||
       blockerCodes.includes("audit_missing") ||
       blockerCodes.includes("required_evidence_missing") ||
+      blockerCodes.includes("derivative_use_not_allowed") ||
+      blockerCodes.includes("derivative_provenance_missing") ||
+      blockerCodes.includes("derivative_requester_notice_missing") ||
+      blockerCodes.includes("derivative_retention_limit_missing") ||
       blockerCodes.includes("second_review_rejected") ||
       blockerCodes.includes("deadline_expired")
         ? "blocked"
