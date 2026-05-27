@@ -358,21 +358,35 @@ passed_by_check = {
     for item in results
     if item["status"] == "passed"
 }
+cleanup_audit_refs_by_probe = {}
 cleanup_audit_refs = set()
 for cleanup_check in ("expired_export_cleanup", "orphan_cleanup"):
     cleanup_body = load_result_body(passed_by_check.get(cleanup_check, {}))
     refs = collect_audit_refs(cleanup_body)
+    cleanup_audit_refs_by_probe[cleanup_check] = sorted(refs)
     if cleanup_check in passed_by_check and not refs:
         blocked_or_failed.append(f"{cleanup_check}:missing_cleanup_audit_refs")
     cleanup_audit_refs.update(refs)
 audit_refs_body = load_result_body(passed_by_check.get("audit_refs", {}))
 audit_endpoint_refs = collect_audit_refs(audit_refs_body)
 missing_cleanup_audit_refs = sorted(cleanup_audit_refs - audit_endpoint_refs)
+audit_endpoint_covers_cleanup_refs = {
+    probe_id: [ref for ref in refs if ref in audit_endpoint_refs]
+    for probe_id, refs in cleanup_audit_refs_by_probe.items()
+}
+audit_endpoint_missing_cleanup_refs = {
+    probe_id: [ref for ref in refs if ref not in audit_endpoint_refs]
+    for probe_id, refs in cleanup_audit_refs_by_probe.items()
+}
 if cleanup_audit_refs and missing_cleanup_audit_refs:
     blocked_or_failed.append(
         "audit_refs:missing_cleanup_audit_refs:" + ",".join(missing_cleanup_audit_refs)
     )
-audit_linkage_verified = bool(cleanup_audit_refs) and not missing_cleanup_audit_refs
+audit_linkage_verified = (
+    bool(cleanup_audit_refs)
+    and not missing_cleanup_audit_refs
+    and all(cleanup_audit_refs_by_probe.get(probe_id) for probe_id in ("expired_export_cleanup", "orphan_cleanup"))
+)
 runtime_checks_passed = required <= passed and not blocked_or_failed
 canonical_report_path = Path("ops/evidence/staging/object-storage-retention-cleanup.json")
 canonical_results_path = Path("ops/evidence/staging/object-storage-retention-cleanup.ndjson")
@@ -537,7 +551,10 @@ report = {
         "canonical_pass_paths": canonical_pass_paths,
     },
     "audit_linkage": {
+        "cleanup_audit_refs_by_probe": cleanup_audit_refs_by_probe,
         "cleanup_audit_refs": sorted(cleanup_audit_refs),
+        "audit_endpoint_covers_cleanup_refs": audit_endpoint_covers_cleanup_refs,
+        "audit_endpoint_missing_cleanup_refs": audit_endpoint_missing_cleanup_refs,
         "audit_endpoint_refs": sorted(audit_endpoint_refs),
         "missing_cleanup_audit_refs": missing_cleanup_audit_refs,
         "verified": audit_linkage_verified,

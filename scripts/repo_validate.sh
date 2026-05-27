@@ -962,6 +962,21 @@ if split.get("release_sha_matches_signed_url") is not True:
 audit_linkage = report.get("audit_linkage", {})
 if audit_linkage.get("verified") is not True:
     raise SystemExit(f"alias fixture must verify cleanup audit refs through audit endpoint: {audit_linkage}")
+if audit_linkage.get("cleanup_audit_refs_by_probe") != {
+    "expired_export_cleanup": ["au-007"],
+    "orphan_cleanup": ["au-015"],
+}:
+    raise SystemExit(f"alias fixture must expose per-probe cleanup audit refs: {audit_linkage}")
+if audit_linkage.get("audit_endpoint_covers_cleanup_refs") != {
+    "expired_export_cleanup": ["au-007"],
+    "orphan_cleanup": ["au-015"],
+}:
+    raise SystemExit(f"alias fixture must expose per-probe audit endpoint coverage: {audit_linkage}")
+if audit_linkage.get("audit_endpoint_missing_cleanup_refs") != {
+    "expired_export_cleanup": [],
+    "orphan_cleanup": [],
+}:
+    raise SystemExit(f"alias fixture must expose empty per-probe missing audit refs: {audit_linkage}")
 if audit_linkage.get("cleanup_audit_refs") != ["au-007", "au-015"]:
     raise SystemExit(f"alias fixture cleanup audit refs mismatch: {audit_linkage}")
 if audit_linkage.get("missing_cleanup_audit_refs") != []:
@@ -1031,6 +1046,21 @@ if audit_linkage.get("verified") is not False:
     raise SystemExit(f"audit mismatch fixture must not verify audit linkage: {audit_linkage}")
 if audit_linkage.get("cleanup_audit_refs") != ["au-007", "au-015"]:
     raise SystemExit(f"audit mismatch fixture cleanup audit refs mismatch: {audit_linkage}")
+if audit_linkage.get("cleanup_audit_refs_by_probe") != {
+    "expired_export_cleanup": ["au-007"],
+    "orphan_cleanup": ["au-015"],
+}:
+    raise SystemExit(f"audit mismatch fixture must expose per-probe cleanup audit refs: {audit_linkage}")
+if audit_linkage.get("audit_endpoint_covers_cleanup_refs") != {
+    "expired_export_cleanup": ["au-007"],
+    "orphan_cleanup": [],
+}:
+    raise SystemExit(f"audit mismatch fixture must expose per-probe audit endpoint coverage: {audit_linkage}")
+if audit_linkage.get("audit_endpoint_missing_cleanup_refs") != {
+    "expired_export_cleanup": [],
+    "orphan_cleanup": ["au-015"],
+}:
+    raise SystemExit(f"audit mismatch fixture must expose per-probe missing audit refs: {audit_linkage}")
 if audit_linkage.get("audit_endpoint_refs") != ["au-007"]:
     raise SystemExit(f"audit mismatch fixture endpoint refs mismatch: {audit_linkage}")
 if audit_linkage.get("missing_cleanup_audit_refs") != ["au-015"]:
