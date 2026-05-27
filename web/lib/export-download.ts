@@ -5,8 +5,15 @@ import { ExportRecord } from "./contracts";
 import {
   buildAiContentDisclaimerPayload,
   buildDownloadableExportZipPayloadNames,
-  buildExportWorkflowMetadataPayload
+  buildExportWorkflowMetadataPayload,
+  isSafeExportZipPayloadName
 } from "./dev-state";
+
+const assertSafeExportZipPayloadName = (payloadName: string) => {
+  if (!isSafeExportZipPayloadName(payloadName)) {
+    throw new Error(`Unsafe export ZIP payload name: ${payloadName}`);
+  }
+};
 
 export const buildExportPackageBlob = async (record: ExportRecord) => {
   if (record.format === "pdf-placeholder") {
@@ -63,6 +70,7 @@ export const buildExportPackageBlob = async (record: ExportRecord) => {
     "Deterministic local alpha export placeholder. Replace with object-storage asset references in backend export builder."
   );
   for (const requiredPayload of buildDownloadableExportZipPayloadNames(record)) {
+    assertSafeExportZipPayloadName(requiredPayload);
     if (!zip.file(requiredPayload)) {
       zip.file(
         requiredPayload,
@@ -71,6 +79,9 @@ export const buildExportPackageBlob = async (record: ExportRecord) => {
     }
   }
   for (const outputName of record.manifest.required_outputs) {
+    if (outputName !== "assets/") {
+      assertSafeExportZipPayloadName(outputName);
+    }
     if (
       outputName === "assets/" ||
       zip.file(outputName) ||

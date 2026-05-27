@@ -11,6 +11,27 @@
     "productionPolicyGateRemainsOpen": true,
     "reason": "This artifact validates user-web package/export metadata UI and download-planner contracts only. Runtime release gates still require their validator-owned staging or production evidence."
   },
+  "pathSafetyEvidence": {
+    "status": "pass",
+    "safeSamplesAccepted": "true",
+    "unsafeSamplesRejected": "true",
+    "downloadPlannerFailsClosed": "true",
+    "sharedPredicate": "isSafeExportZipPayloadName",
+    "expectedFailureReason": "unsafe-payload-name",
+    "safeSamples": [
+      "manifest.json",
+      "assets/README.txt",
+      "assets/square_social_ad.png",
+      "trace_provenance.json"
+    ],
+    "unsafeSamples": [
+      "../evil.json",
+      "/absolute.json",
+      "nested/../evil.json",
+      "https://assets.example.com/evil.json",
+      "folder/"
+    ]
+  },
   "browserEvidence": {
     "config": "web/playwright.config.ts",
     "test": "web/tests/package-export-metadata.spec.ts",

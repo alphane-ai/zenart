@@ -545,6 +545,8 @@ export interface ExportZipPayloadSmokeEvidence {
   expectedPayloadNames: string[];
   payloadContractDigest: string;
   missingPayloadNames: string[];
+  unsafeManifestPayloadNames: string[];
+  unsafeExpectedPayloadNames: string[];
   workflowPayloadNames: string[];
   metadataPayloadPresent: boolean;
   traceProvenancePayloadPresent: boolean;
@@ -553,6 +555,7 @@ export interface ExportZipPayloadSmokeEvidence {
   failures: Array<
     | "baseline-payloads"
     | "manifest-required-payloads"
+    | "unsafe-payload-name"
     | "workflow-metadata"
     | "trace-provenance"
     | "ai-content-disclaimer"

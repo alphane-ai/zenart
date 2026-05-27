@@ -389,6 +389,8 @@ describe("dev workspace contracts", () => {
       payloadContractDigest:
         "export-zip-001::pkg-004::project-001::ecommerce_growth_pack::fx_ecommerce_growth_golden::ai-content-disclaimer.json|assets/README.txt|assets/hero_product_ad.png|assets/marketplace_banner.png|assets/square_social_ad.png|assets/story_variant.png|manifest.json|metadata.json|ppt-ready-metadata.json|provenance.json|qa-report.json|qa_report.json|safety-policy-report.json|trace_provenance.json",
       missingPayloadNames: [],
+      unsafeManifestPayloadNames: [],
+      unsafeExpectedPayloadNames: [],
       workflowPayloadNames: [
         "manifest.json",
         "assets/hero_product_ad.png",

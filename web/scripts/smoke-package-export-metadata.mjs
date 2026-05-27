@@ -11,6 +11,7 @@ const componentPath = path.join(root, "components", "workspace-app.tsx");
 const workspaceSmokeTestPath = path.join(root, "components", "workspace-app.smoke.test.tsx");
 const referenceExportPlaywrightSpecPath = path.join(root, "tests", "reference-export.spec.ts");
 const packageExportPlaywrightSpecPath = path.join(root, "tests", "package-export-metadata.spec.ts");
+const exportDownloadTestPath = path.join(root, "lib", "export-download.test.ts");
 const devStatePath = path.join(root, "lib", "dev-state.ts");
 const contractsPath = path.join(root, "lib", "contracts.ts");
 const downloadPath = path.join(root, "lib", "export-download.ts");
@@ -29,6 +30,7 @@ const [
   workspaceSmokeTestSource,
   referenceExportPlaywrightSpecSource,
   packageExportPlaywrightSpecSource,
+  exportDownloadTestSource,
   devStateSource,
   contractsSource,
   downloadSource
@@ -41,6 +43,7 @@ const [
   readFile(workspaceSmokeTestPath, "utf8"),
   readFile(referenceExportPlaywrightSpecPath, "utf8"),
   readFile(packageExportPlaywrightSpecPath, "utf8"),
+  readFile(exportDownloadTestPath, "utf8"),
   readFile(devStatePath, "utf8"),
   readFile(contractsPath, "utf8"),
   readFile(downloadPath, "utf8")
@@ -338,6 +341,7 @@ for (const payload of evidence.requiredBaselinePayloads) {
 for (const requiredSourceSnippet of [
   "export const requiredExportPackageOutputs",
   "export const requiredExportZipPayloadNames",
+  "export const isSafeExportZipPayloadName",
   "export const toExportZipPayloadName",
   "export const buildDownloadableExportZipPayloadNames",
   "export const buildExportZipPayloadContractDigest",
@@ -352,6 +356,8 @@ for (const requiredSourceSnippet of [
   "metadataPayloadNames",
   "zipExpectedPayloadNames",
   "metadataPayloadDigestMatchesZipPayloadDigest",
+  "unsafeManifestPayloadNames",
+  "unsafeExpectedPayloadNames",
   "identityStatus",
   "provider: metadataEvidence.workflowMetadataProvider",
   "model: metadataEvidence.workflowMetadataModel",
@@ -391,6 +397,8 @@ for (const requiredContractSnippet of [
   "zipExpectedPayloadNames",
   "payloadContractDigest",
   "metadataPayloadDigestMatchesZipPayloadDigest",
+  "unsafeManifestPayloadNames",
+  "unsafeExpectedPayloadNames",
   "identityStatus",
   "crossPayloadIdentityStatuses"
 ]) {
@@ -409,11 +417,49 @@ for (const requiredDownloadSnippet of [
   "provenance.json",
   "assets/README.txt",
   "buildDownloadableExportZipPayloadNames(record)",
+  "assertSafeExportZipPayloadName(requiredPayload)",
+  "assertSafeExportZipPayloadName(outputName)",
+  "Unsafe export ZIP payload name",
   "buildExportWorkflowMetadataPayload(record, requiredPayload)",
   "downloadExportPackage"
 ]) {
   if (!downloadSource.includes(requiredDownloadSnippet)) {
     fail(`download planner missing package/export payload contract ${requiredDownloadSnippet}`);
+  }
+}
+
+if (
+  artifact.pathSafetyEvidence?.status !== "pass" ||
+  artifact.pathSafetyEvidence?.unsafeSamplesRejected !== "true" ||
+  artifact.pathSafetyEvidence?.safeSamplesAccepted !== "true" ||
+  artifact.pathSafetyEvidence?.downloadPlannerFailsClosed !== "true" ||
+  artifact.pathSafetyEvidence?.expectedFailureReason !== "unsafe-payload-name"
+) {
+  fail("artifact must declare passing export ZIP path-safety evidence");
+}
+
+for (const unsafeSample of artifact.pathSafetyEvidence?.unsafeSamples ?? []) {
+  if (!exportDownloadTestSource.includes(unsafeSample)) {
+    fail(`path-safety unit smoke missing unsafe sample ${unsafeSample}`);
+  }
+}
+
+for (const requiredPathSafetySnippet of [
+  "rejects unsafe manifest ZIP payload paths before browser download generation",
+  "isSafeExportZipPayloadName",
+  "buildExportZipPayloadSmokeEvidence",
+  "Unsafe export ZIP payload name: ../evil.json",
+  "unsafeManifestPayloadNames",
+  "unsafeExpectedPayloadNames",
+  "unsafe-payload-name",
+  "../evil.json",
+  "/absolute.json",
+  "nested/../evil.json",
+  "https://assets.example.com/evil.json",
+  "folder/"
+]) {
+  if (!exportDownloadTestSource.includes(requiredPathSafetySnippet)) {
+    fail(`export download unit smoke missing export ZIP path-safety assertion ${requiredPathSafetySnippet}`);
   }
 }
 

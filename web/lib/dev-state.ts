@@ -49,16 +49,34 @@ export const requiredExportZipPayloadNames = requiredExportPackageOutputs.map((o
   outputName === "assets/" ? "assets/README.txt" : outputName
 );
 
-export const toExportZipPayloadName = (outputName: string) =>
-  outputName === "assets/" ? "assets/README.txt" : outputName;
+export const isSafeExportZipPayloadName = (payloadName: string) => {
+  const trimmed = payloadName.trim();
+
+  return (
+    trimmed.length > 0 &&
+    trimmed === payloadName &&
+    !trimmed.endsWith("/") &&
+    !trimmed.startsWith("/") &&
+    !trimmed.startsWith("\\") &&
+    !/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(trimmed) &&
+    !trimmed.includes("\\") &&
+    !trimmed.split("/").some((segment) => segment === "" || segment === "." || segment === "..")
+  );
+};
+
+export const toExportZipPayloadName = (outputName: string) => {
+  const payloadName = outputName === "assets/" ? "assets/README.txt" : outputName;
+
+  return isSafeExportZipPayloadName(payloadName) ? payloadName : "";
+};
 
 export const buildDownloadableExportZipPayloadNames = (record: ExportRecord) =>
   Array.from(
     new Set([
       ...requiredExportZipPayloadNames,
       ...record.manifest.required_outputs
-        .filter((outputName) => !outputName.endsWith("/"))
         .map(toExportZipPayloadName)
+        .filter(isSafeExportZipPayloadName)
     ])
   );
 
@@ -1041,6 +1059,15 @@ export const buildExportZipPayloadSmokeEvidence = (record: ExportRecord): Export
   const payloadContractDigest = buildExportZipPayloadContractDigest(record, expectedPayloadNames);
   const requiredBaselinePayloadNames = [...requiredExportZipPayloadNames];
   const missingPayloadNames = manifestPayloadNames.filter((payloadName) => !expectedPayloadNames.includes(payloadName));
+  const unsafeManifestPayloadNames = record.manifest.required_outputs
+    .filter((outputName) => outputName !== "assets/")
+    .map((outputName) => ({
+      outputName,
+      payloadName: toExportZipPayloadName(outputName)
+    }))
+    .filter((entry) => !entry.payloadName)
+    .map((entry) => entry.outputName);
+  const unsafeExpectedPayloadNames = expectedPayloadNames.filter((payloadName) => !isSafeExportZipPayloadName(payloadName));
   const missingBaselinePayloadNames = requiredBaselinePayloadNames.filter(
     (payloadName) => !expectedPayloadNames.includes(payloadName)
   );
@@ -1058,6 +1085,9 @@ export const buildExportZipPayloadSmokeEvidence = (record: ExportRecord): Export
   }
   if (missingPayloadNames.length > 0) {
     failures.push("manifest-required-payloads");
+  }
+  if (unsafeManifestPayloadNames.length > 0 || unsafeExpectedPayloadNames.length > 0) {
+    failures.push("unsafe-payload-name");
   }
   if (record.manifest.workflow_acceptance && !metadataPayloadPresent) {
     failures.push("workflow-metadata");
@@ -1084,6 +1114,8 @@ export const buildExportZipPayloadSmokeEvidence = (record: ExportRecord): Export
     expectedPayloadNames,
     payloadContractDigest,
     missingPayloadNames: [...missingBaselinePayloadNames, ...missingPayloadNames],
+    unsafeManifestPayloadNames,
+    unsafeExpectedPayloadNames,
     workflowPayloadNames,
     metadataPayloadPresent,
     traceProvenancePayloadPresent,

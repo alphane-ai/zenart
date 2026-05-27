@@ -4,8 +4,10 @@ import { DevZenArtClient } from "./api-client";
 import { ExportRecord } from "./contracts";
 import {
   buildDownloadableExportZipPayloadNames,
+  buildExportZipPayloadSmokeEvidence,
   buildExportWorkflowMetadataPayload,
   ecommerceGrowthWorkflowAcceptance,
+  isSafeExportZipPayloadName,
   requiredExportPackageOutputs
 } from "./dev-state";
 import { buildExportPackageBlob, downloadExportPackage } from "./export-download";
@@ -344,6 +346,39 @@ describe("reference upload and export download integration", () => {
     expect(createObjectUrl).toHaveBeenCalledWith(expect.any(Blob));
     expect(click).toHaveBeenCalledTimes(1);
     expect(revokeObjectUrl).toHaveBeenCalledWith("blob:zenart-export");
+  });
+
+  it("rejects unsafe manifest ZIP payload paths before browser download generation", async () => {
+    const client = makeClient();
+    await client.selectCandidate("cand-studio");
+    await client.addPackageItem("cand-studio");
+    const exported = await client.createExport("zip");
+    const record = structuredClone(exported.exports[0]) as ExportRecord;
+    record.manifest.required_outputs = [
+      ...record.manifest.required_outputs,
+      "../evil.json",
+      "/absolute.json",
+      "nested/../evil.json",
+      "https://assets.example.com/evil.json",
+      "folder/"
+    ];
+
+    const payloadNames = buildDownloadableExportZipPayloadNames(record);
+    const zipPayloadSmoke = buildExportZipPayloadSmokeEvidence(record);
+
+    expect(payloadNames.every(isSafeExportZipPayloadName)).toBe(true);
+    expect(payloadNames).not.toEqual(expect.arrayContaining(["../evil.json", "/absolute.json", "nested/../evil.json"]));
+    expect(zipPayloadSmoke.status).toBe("fail");
+    expect(zipPayloadSmoke.failures).toContain("unsafe-payload-name");
+    expect(zipPayloadSmoke.unsafeManifestPayloadNames).toEqual([
+      "../evil.json",
+      "/absolute.json",
+      "nested/../evil.json",
+      "https://assets.example.com/evil.json",
+      "folder/"
+    ]);
+    expect(zipPayloadSmoke.unsafeExpectedPayloadNames).toEqual([]);
+    await expect(buildExportPackageBlob(record)).rejects.toThrow("Unsafe export ZIP payload name: ../evil.json");
   });
 
   it("builds the PDF placeholder download contract with a PDF blob and deterministic filename", async () => {
