@@ -57,6 +57,9 @@ STAGING_OBSERVABILITY_BACKUP_LOAD_PREFLIGHT_EVIDENCE = (
     / "staging"
     / "20260527T004121Z-staging-observability-backup-load-77078.json"
 )
+STAGING_QUOTA_RATE_LIMIT_SPEND_CAP_EVIDENCE = (
+    ROOT / "ops" / "evidence" / "staging" / "20260527T2015Z-quota-rate-limit-spend-cap.json"
+)
 PRODUCTION_ABUSE_THROTTLE_HOLD_EVIDENCE = (
     ROOT / "ops" / "evidence" / "production" / "20260527T1330Z-abuse-throttle-hold.json"
 )
@@ -609,6 +612,9 @@ RUNTIME_PASS_EVIDENCE_FILES = {
     ("private_beta_staging", "staging_brief_upload_confirmation"): [
         STAGING_BRIEF_UPLOAD_CONFIRMATION_EVIDENCE,
     ],
+    ("private_beta_staging", "staging_quota_rate_limit_spend_cap"): [
+        STAGING_QUOTA_RATE_LIMIT_SPEND_CAP_EVIDENCE,
+    ],
     ("private_beta_staging", "staging_support_retry_abuse_ops"): [
         STAGING_SUPPORT_RETRY_ABUSE_EVIDENCE,
     ],
@@ -640,6 +646,7 @@ RUNTIME_PASS_EVIDENCE_FILES = {
 CHECK_LEVEL_EVIDENCE_TO_CHECKLIST_ITEM = {
     ("private_beta_staging", "staging_auth_rbac_tenant_audit"): "Private Beta/Staging auth/RBAC/tenant/audit runtime evidence 通过。",
     ("private_beta_staging", "staging_brief_upload_confirmation"): "Private Beta/Staging brief/upload/confirmation runtime evidence 通过。",
+    ("private_beta_staging", "staging_quota_rate_limit_spend_cap"): "Private Beta/Staging quota/rate-limit/spend-cap runtime evidence 通过。",
     ("private_beta_staging", "staging_support_retry_abuse_ops"): "Private Beta/Staging support/retry/abuse runtime evidence 通过。",
     ("private_beta_staging", "staging_eval_qa_safety_runtime"): "Private Beta/Staging eval/QA/safety enforcement runtime evidence 通过。",
     ("private_beta_staging", "staging_crawler_approval_provenance"): "Private Beta/Staging crawler approval/provenance runtime evidence 通过。",
@@ -656,6 +663,11 @@ CHECK_LEVEL_EVIDENCE_PRESERVED_BLOCKERS = {
         "staging_legal_external_user_pages",
     },
     ("private_beta_staging", "staging_brief_upload_confirmation"): {
+        "staging_object_storage_signed_downloads",
+        "staging_observability_backup_load",
+        "staging_legal_external_user_pages",
+    },
+    ("private_beta_staging", "staging_quota_rate_limit_spend_cap"): {
         "staging_object_storage_signed_downloads",
         "staging_observability_backup_load",
         "staging_legal_external_user_pages",
@@ -4067,6 +4079,66 @@ def validate_staging_brief_upload_confirmation_evidence() -> None:
         require(evidence[key], f"brief/upload evidence must include {key}")
 
 
+def validate_staging_quota_rate_limit_spend_cap_evidence() -> None:
+    evidence = load_json(STAGING_QUOTA_RATE_LIMIT_SPEND_CAP_EVIDENCE)
+    require(
+        evidence["schema_version"] == "stage0.rev2.staging.runtime_evidence",
+        "staging quota/rate-limit/spend-cap evidence schema mismatch",
+    )
+    require(evidence["environment"] == "staging", "quota/rate-limit/spend-cap evidence must be staging-scoped")
+    require(evidence["status"] == "pass", "quota/rate-limit/spend-cap evidence must pass before checklist closure")
+    require(
+        evidence["release_gate_check_id"] == "staging_quota_rate_limit_spend_cap",
+        "quota/rate-limit/spend-cap evidence must target the private beta release-gate check",
+    )
+    require(
+        evidence["do_not_launch_condition_id"] == "rate_limit_spend_cap_runtime_missing",
+        "quota/rate-limit/spend-cap evidence must target the matching Do-Not-Launch condition",
+    )
+    require_check_level_evidence_gate_impact(
+        evidence,
+        gate="private_beta_staging",
+        check_id="staging_quota_rate_limit_spend_cap",
+        evidence_name="quota/rate-limit/spend-cap evidence",
+    )
+    required_areas = {
+        "quota_reservation_commit_refund",
+        "rate_limit_enforcement",
+        "provider_spend_cap",
+        "emergency_kill_switch",
+    }
+    coverage = evidence["coverage"]
+    require(
+        {item["area"] for item in coverage} == required_areas,
+        "quota/rate-limit/spend-cap evidence must cover quota transactions, rate limits, provider spend cap, and emergency kill switch",
+    )
+    for item in coverage:
+        require(item["status"] == "pass", f"{item['area']} staging quota/rate-limit/spend-cap coverage must pass")
+        combined = json.dumps(item, ensure_ascii=False).lower()
+        for token in [
+            "admin/",
+            "ops/evidence/staging/20260527t2015z-quota-rate-limit-spend-cap.json",
+        ]:
+            require(token in combined, f"{item['area']} quota/rate-limit/spend-cap coverage missing {token}")
+        require(
+            "external-user" in combined or "external user" in combined,
+            f"{item['area']} quota/rate-limit/spend-cap coverage missing external-user scope",
+        )
+        require(
+            "audit" in combined or "au-" in combined,
+            f"{item['area']} quota/rate-limit/spend-cap coverage must cite audit evidence",
+        )
+        require(
+            any(
+                token in combined
+                for token in ["fail-closed", "failed closed", "429", "kill-switch", "refunded", "retry idempotency"]
+            ),
+            f"{item['area']} quota/rate-limit/spend-cap coverage must prove runtime enforcement",
+        )
+    for key in ["runtime_request_ids", "quota_user_ids", "admin_rbac_evidence_ids", "audit_refs"]:
+        require(evidence[key], f"quota/rate-limit/spend-cap evidence must include {key}")
+
+
 def validate_staging_eval_qa_safety_evidence() -> None:
     evidence = load_json(STAGING_EVAL_QA_SAFETY_EVIDENCE)
     require(
@@ -6671,6 +6743,7 @@ def main() -> int:
         validate_abuse_evidence_split_contracts,
         validate_staging_auth_rbac_tenant_audit_evidence,
         validate_staging_brief_upload_confirmation_evidence,
+        validate_staging_quota_rate_limit_spend_cap_evidence,
         validate_staging_support_retry_abuse_evidence,
         validate_staging_eval_qa_safety_evidence,
         validate_staging_dashboard_runtime_evidence,
