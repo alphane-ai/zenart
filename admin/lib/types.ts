@@ -1457,6 +1457,11 @@ export type AbuseRuntimeDecision = {
   enforcementPoint: AbuseControlHook["enforcementPoint"];
   evaluatedAt: string;
   runtimeStatus: "enforced" | "dry_run_denied" | "expired" | "released";
+  expiryLifecycle:
+    | "within_window"
+    | "expired_requires_release_evidence"
+    | "released_after_evidence"
+    | "dry_run_not_enforced";
   requestOutcome:
     | "deny_423_account_hold"
     | "throttle_429_rate_limited"

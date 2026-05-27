@@ -101,6 +101,7 @@ export default async function AbusePage() {
           columns={[
             { key: "hook", header: "Hook", render: (row) => <span className="mono">{row.hookId}</span> },
             { key: "status", header: "Runtime Status", render: (row) => <StatusBadge value={row.runtimeStatus === "enforced" ? "blocked" : "warning"} label={row.runtimeStatus} /> },
+            { key: "expiry", header: "Expiry Lifecycle", render: (row) => <StatusBadge value={row.expiryLifecycle} label={row.expiryLifecycle} /> },
             { key: "outcome", header: "Request Outcome", render: (row) => row.requestOutcome },
             { key: "quota-task", header: "Quota Task", render: (row) => (row.canCreateQuotaConsumingTask ? "allowed" : "blocked") },
             { key: "queue", header: "Queue Action", render: (row) => row.queueAction },

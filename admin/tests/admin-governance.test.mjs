@@ -87,6 +87,7 @@ const parseAbuseRuntime = () => {
     .replaceAll(/export function (\w+)/g, "function $1")
     .replaceAll(/: Record<AdminRole, number>/g, "")
     .replaceAll(/: AbuseRuntimeDecision\["queueAction"\]/g, "")
+    .replaceAll(/: AbuseRuntimeDecision\["expiryLifecycle"\]/g, "")
     .replaceAll(/: AbuseRuntimeDecision\[\]/g, "")
     .replaceAll(/: AbuseQueueRuntimeEntry\[\]/g, "")
     .replaceAll(/: AbuseEvent\[\]/g, "")
@@ -634,8 +635,18 @@ test("temporary hold and throttle runtime enforcement blocks quota-consuming wor
     assert.ok(auditIds.has(decision.auditRef), `${decision.hookId} runtime decision links unknown audit`);
     assert.ok(decision.evidenceRefs.length >= 3, `${decision.hookId} runtime decision needs evidence refs`);
     assert.ok(decision.rationale.length > 120, `${decision.hookId} runtime decision needs rationale and release condition`);
+    assert.match(
+      decision.expiryLifecycle,
+      /within_window|expired_requires_release_evidence|released_after_evidence|dry_run_not_enforced/,
+      `${decision.hookId} runtime decision needs expiry lifecycle evidence`
+    );
 
     if (decision.runtimeStatus === "enforced") {
+      assert.equal(
+        decision.expiryLifecycle,
+        "within_window",
+        `${decision.hookId} enforced abuse control must still be inside its temporary window`
+      );
       assert.equal(
         decision.canCreateQuotaConsumingTask,
         false,
@@ -647,6 +658,42 @@ test("temporary hold and throttle runtime enforcement blocks quota-consuming wor
         `${decision.hookId} enforced abuse control needs concrete request outcome`
       );
     }
+
+    if (decision.runtimeStatus === "dry_run_denied") {
+      assert.equal(
+        decision.expiryLifecycle,
+        "dry_run_not_enforced",
+        `${decision.hookId} denied dry-run control must not be treated as an expired release`
+      );
+    }
+  }
+
+  const expiredDecisions = buildAbuseRuntimeDecisions(
+    abuseEvents,
+    abuseControlHooks,
+    new Date("2026-05-26T15:00:00Z")
+  );
+  const expiredHold = expiredDecisions.find((decision) => decision.hookId === "hook-ab-300-hold");
+  const expiredThrottle = expiredDecisions.find((decision) => decision.hookId === "hook-ab-309-throttle");
+
+  for (const decision of [expiredHold, expiredThrottle]) {
+    assert.ok(decision, "expired hold/throttle replay needs runtime decision");
+    assert.equal(decision.runtimeStatus, "expired", `${decision.hookId} must leave enforced state after expiry`);
+    assert.equal(
+      decision.expiryLifecycle,
+      "expired_requires_release_evidence",
+      `${decision.hookId} expiry must require release evidence before closure`
+    );
+    assert.equal(
+      decision.canCreateQuotaConsumingTask,
+      false,
+      `${decision.hookId} expired abuse control cannot resume quota-consuming work without release evidence`
+    );
+    assert.equal(
+      decision.queueAction,
+      "release_after_evidence",
+      `${decision.hookId} expired abuse control must route through release evidence`
+    );
   }
 });
 

@@ -57,6 +57,14 @@ export function buildAbuseRuntimeDecisions(
     const allowedByRole = roleCanExecute(hook.attemptedRole, hook.requiredRole);
     const expired = parseFixtureTime(hook.expiresAt) <= nowMs;
     const released = hook.state === "released";
+    const expiryLifecycle: AbuseRuntimeDecision["expiryLifecycle"] =
+      !allowedByRole || hook.rbacDecision === "denied"
+        ? "dry_run_not_enforced"
+        : released
+          ? "released_after_evidence"
+          : expired
+            ? "expired_requires_release_evidence"
+            : "within_window";
     const base = {
       hookId: hook.id,
       abuseEventId: hook.abuseEventId,
@@ -64,6 +72,7 @@ export function buildAbuseRuntimeDecisions(
       action: hook.action,
       enforcementPoint: hook.enforcementPoint,
       evaluatedAt,
+      expiryLifecycle,
       userVisibleState: hook.userVisibleState,
       requiredRole: hook.requiredRole,
       attemptedRole: hook.attemptedRole,
