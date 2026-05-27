@@ -60,7 +60,7 @@ Release gate status: `no-go`.
 - Staging smoke: `missing`; staging JSON must reference the release SHA, set `environment=staging`, set `kind=post_deploy_smoke`, record status `passed`, verify backend health/readiness, web, admin, auth boundary, worker task, export/package, signed download, crawler admin, quota/rate-limit, request-id observability categories, and include seeded user, tenant, task, package, and export smoke IDs.
 - Load smoke: local 7/7 modes passed; first report ops/evidence/load/local/20260526T142030Z-chat_task-64820.json; staging evidence required before private beta/production decisions.
 - Config diff: `missing`; staging JSON must reference the release SHA, set `environment=staging`, set `kind=config_diff`, and record status `passed`, `reviewed`, or `no_diff` before private beta/production decisions.
-- Observability smoke: local status `passed` from `ops/evidence/observability/local/20260526T192311Z-observability-smoke-7780.json`; staging JSON must reference the release SHA, set `environment=staging`, set `kind=observability`, record status `passed`, and include passed/validated evidence refs for request-id propagation, structured JSON logs, OpenTelemetry traces, backend/worker/crawler metrics, dashboard import, and alert routes.
+- Observability smoke: local status `passed` from `ops/evidence/observability/local/20260526T192311Z-observability-smoke-7780.json`; staging status `passed` from `ops/evidence/staging/20260527T1830Z-observability-runtime.json` with 6/6 required signals validator-visible; private beta still requires staging backup/restore and load evidence before the combined observability/backup/load gate can close.
 - Backup/restore drill: local status `passed` from `ops/evidence/backup-restore/local/20260526T153126Z/report.json`; staging JSON must reference the release SHA, set `environment=staging`, set `kind=backup_restore`, record status `passed`, and include passed/validated evidence refs for Postgres restore and exported package/object restore before private beta/production decisions.
 - Load evidence: `missing`; staging JSON must reference the release SHA, set `environment=staging`, set `kind=load`, record status `passed`, and include passed/validated evidence refs for `chat_task`, `worker_generation`, `zip_export`, `signed_download`, `crawler_throttle`, `quota_contention`, and `workspace_rendering` before private beta/production decisions.
 - Rollback drill: `missing`; staging JSON must reference the release SHA, set `environment=staging`, set `kind=rollback`, record status `passed` or `validated`, and include passed/validated evidence refs for image rollback, feature flag rollback, migration compatibility, worker drain, and post-rollback smoke.
@@ -81,7 +81,7 @@ Release gate status: `no-go`.
 - Private beta do-not-launch conditions present: rate_limit_spend_cap_runtime_missing, object_storage_signed_retention_runtime_missing, staging_observability_restore_load_missing, external_user_legal_pages_missing.
 - Open production blockers: `fixtures/stage0/rev2/release_gate_evidence.production_launch.json`: production_provider_or_comp_only_mode, production_paid_billing_lifecycle, production_backup_rollback_incident, production_legal_support_policy.
 - Production do-not-launch conditions present: dev_mock_provider_public_claims_unresolved, real_provider_or_comp_only_mode_missing, paid_billing_or_comp_only_mode_missing, backup_restore_rollback_smoke_missing, production_deploy_rollback_smoke_missing, public_legal_support_policy_not_deployed, ci_staging_gates_not_passed.
-- Operational risks: staging observability, restore, rollback, load, and post-deploy smoke evidence are absent.
+- Operational risks: staging backup/restore, rollback, load, and post-deploy smoke evidence are absent; staging observability runtime evidence is attached but does not close the combined restore/load gate.
 - User/support risks: external-user legal/support pages and support readiness remain blocked by Rev2 gate evidence.
 
 ## Open Rev2 Runtime Checklist
@@ -93,5 +93,5 @@ Release gate status: `no-go`.
 
 - Decision: `no-go`
 - Approver: `pending`
-- Conditions: CI, staging smoke, observability runtime evidence, restore/rollback evidence, security scans, release owner, and gate fixture blockers must be cleared before any private beta or production decision.
+- Conditions: CI, staging smoke, restore/load/rollback evidence, security scans, release owner, and gate fixture blockers must be cleared before any private beta or production decision.
 - Follow-up deadline: `n/a`

@@ -129,7 +129,7 @@
       "id": "observability_runtime",
       "status": "open",
       "owner": "ops lane",
-      "evidence": "ops/evidence/stage0_observability_evidence.json defines signals and SLOs; runtime propagation/logs/traces/metrics/dashboards/alerts remain open"
+      "evidence": "ops/evidence/stage0_observability_evidence.json defines signals and SLOs; ops/evidence/staging/20260527T1830Z-observability-runtime.json validates staging observability while staging restore/load/post-deploy and production release observability evidence remain open"
     },
     {
       "id": "staging_deploy",

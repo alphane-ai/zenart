@@ -2,7 +2,7 @@
   "blueprint_source": "Docs/stage0_blueprint_rev2.md",
   "created_by_lane": "lane5",
   "scope": "observability, alerting, dashboard, and production gate map",
-  "status": "local_runtime_hooks_validated_staging_runtime_evidence_open",
+  "status": "staging_observability_runtime_validated_restore_load_gate_open",
   "smoke_script": "scripts/observability_smoke.sh",
   "dashboard_definition": "ops/observability/dashboards/stage0_rev2_overview.json",
   "alert_definition": "ops/observability/alerts/stage0_rev2_alerts.json",
@@ -11,29 +11,33 @@
       "name": "request_id_propagation",
       "required_by_rev2": true,
       "local_evidence": ".env.example defines REQUEST_ID_HEADER=X-Request-ID; backend health/ready responses echo X-Request-ID; backend request logs include request_id",
-      "runtime_status": "backend_local_contract_validated_staging_runtime_open",
-      "production_gate": "must propagate request id through web, admin, backend, worker, crawler, logs, metrics exemplars, and traces in staging"
+      "runtime_status": "staging_validated",
+      "staging_evidence": "ops/evidence/staging/20260527T1830Z-observability-runtime.json",
+      "production_gate": "must remain release-SHA-bound in production post-deploy smoke"
     },
     {
       "name": "structured_json_logs",
       "required_by_rev2": true,
       "local_evidence": ".env.example and docker-compose.yml define LOG_FORMAT=json and LOG_LEVEL; backend uses slog JSON handler; access logs include request_id, user_id, tenant_id, route, status, latency_ms, and bytes; panic logs include request_id",
-      "runtime_status": "backend_local_contract_validated_staging_log_capture_open",
-      "production_gate": "must verify backend, worker, crawler, and access logs are JSON with request_id, user_id, tenant_id, route, status, latency_ms, and error fields"
+      "runtime_status": "staging_validated",
+      "staging_evidence": "ops/evidence/staging/20260527T1830Z-observability-runtime.json",
+      "production_gate": "must remain release-SHA-bound in production post-deploy smoke"
     },
     {
       "name": "opentelemetry_traces",
       "required_by_rev2": true,
       "local_evidence": ".env.example defines OTEL_ENABLED=false and OTEL_EXPORTER_OTLP_ENDPOINT",
-      "runtime_status": "open",
-      "production_gate": "must verify backend, worker, crawler, provider, export, and object storage spans in staging"
+      "runtime_status": "staging_validated",
+      "staging_evidence": "ops/evidence/staging/20260527T1830Z-observability-runtime.json",
+      "production_gate": "must verify backend, worker, crawler, provider, export, and object storage spans in production release context"
     },
     {
       "name": "backend_worker_crawler_metrics",
       "required_by_rev2": true,
       "local_evidence": ".env.example and docker-compose.yml define METRICS_ENABLED=true and METRICS_PORT=9090; backend exposes Prometheus text metrics with HTTP request totals, status counts, route counts, duration total, and uptime; worker and crawler metric handler definitions expose bounded process/domain counters",
-      "runtime_status": "backend_runtime_worker_crawler_definitions_validated_staging_capture_open",
-      "production_gate": "must expose API latency, queue delay, generation duration, export duration, crawler throttle, quota contention, and error counters"
+      "runtime_status": "staging_validated",
+      "staging_evidence": "ops/evidence/staging/20260527T1830Z-observability-runtime.json",
+      "production_gate": "must expose API latency, queue delay, generation duration, export duration, crawler throttle, quota contention, and error counters in production release context"
     },
     {
       "name": "frontend_error_reporting",
@@ -46,15 +50,17 @@
       "name": "dashboards",
       "required_by_rev2": true,
       "local_evidence": "ops/observability/dashboards/stage0_rev2_overview.json defines required API, worker, provider, export, quota, crawler, object storage, billing, safety, admin, and frontend panels",
-      "runtime_status": "definition_validated",
-      "production_gate": "must import and populate staging dashboards for API, worker, provider, export, quota, crawler, object storage, billing, safety, admin failures, and frontend errors"
+      "runtime_status": "staging_validated",
+      "staging_evidence": "ops/evidence/staging/20260527T1830Z-observability-runtime.json",
+      "production_gate": "must import and populate production dashboards for API, worker, provider, export, quota, crawler, object storage, billing, safety, admin failures, and frontend errors"
     },
     {
       "name": "alerts",
       "required_by_rev2": true,
       "local_evidence": "ops/observability/alerts/stage0_rev2_alerts.json defines go/no-go alert thresholds and routes",
-      "runtime_status": "definition_validated",
-      "production_gate": "must configure paging/notification routes and prove alert threshold evaluation before private beta"
+      "runtime_status": "staging_validated",
+      "staging_evidence": "ops/evidence/staging/20260527T1830Z-observability-runtime.json",
+      "production_gate": "must configure paging/notification routes and prove alert threshold evaluation in production release context"
     }
   ],
   "slo_thresholds": {
@@ -65,12 +71,10 @@
     "error_rate_5xx_percent_30m": 1
   },
   "open_items": [
-    "staging_request_id_propagation_across_web_admin_backend_worker_crawler_logs_metrics_traces",
-    "staging_structured_json_log_capture_with_request_id_user_id_tenant_id_route_status_latency",
-    "opentelemetry_traces",
-    "worker_crawler_domain_metrics_and_staging_backend_metrics_runtime_capture",
     "frontend_error_reporting",
-    "staging_dashboard_import_and_runtime_data",
-    "staging_alert_routes_and_threshold_evaluations"
+    "staging_backup_restore_runtime_evidence",
+    "staging_load_runtime_evidence",
+    "staging_post_deploy_smoke_runtime_evidence",
+    "production_release_observability_runtime_evidence"
   ]
 }

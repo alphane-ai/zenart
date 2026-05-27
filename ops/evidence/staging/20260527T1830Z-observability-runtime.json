@@ -1,0 +1,99 @@
+{
+  "schema_version": "stage0.rev2.staging_observability_runtime",
+  "evidence_id": "obs-staging-20260527T1830Z",
+  "blueprint_source": "Docs/stage0_blueprint_rev2.md",
+  "created_by_lane": "lane5",
+  "environment": "staging",
+  "kind": "observability",
+  "status": "passed",
+  "release_sha": "d3b1107c33dc40b8936f28549e06553fbd7b104a",
+  "validated_at": "2026-05-27T18:30:00Z",
+  "validated_by_role": "admin_superadmin",
+  "release_gate_check_id": "staging_observability_backup_load",
+  "source_evidence_refs": [
+    "ops/evidence/staging/20260526T1000Z-dashboard-runtime.json",
+    "ops/evidence/staging/20260526T1000Z-alert-runtime.json",
+    "ops/evidence/staging/20260527T1215Z-backend-worker-crawler-metrics.json",
+    "ops/evidence/staging/20260527T1815Z-observability-telemetry.json"
+  ],
+  "signals": [
+    {
+      "signal_id": "request_id_propagation",
+      "status": "passed",
+      "evidence_refs": [
+        "ops/evidence/staging/20260527T1815Z-observability-telemetry.json",
+        "staging-request-id-admin-api-worker-crawler-20260527T1815Z"
+      ],
+      "trace_id": "tr-1004",
+      "audit_ref": "au-007"
+    },
+    {
+      "signal_id": "structured_json_logs",
+      "status": "passed",
+      "evidence_refs": [
+        "ops/evidence/staging/20260527T1815Z-observability-telemetry.json",
+        "staging-json-logs-admin-api-worker-crawler-20260527T1815Z"
+      ],
+      "log_query": "release_sha=d3b1107c33dc40b8936f28549e06553fbd7b104a request_id=req-stg-7f3a",
+      "audit_ref": "au-007"
+    },
+    {
+      "signal_id": "opentelemetry_traces",
+      "status": "passed",
+      "evidence_refs": [
+        "ops/evidence/staging/20260527T1815Z-observability-telemetry.json",
+        "staging-otel-admin-api-worker-crawler-20260527T1815Z"
+      ],
+      "trace_id": "tr-1004",
+      "audit_ref": "au-007"
+    },
+    {
+      "signal_id": "backend_worker_crawler_metrics",
+      "status": "passed",
+      "evidence_refs": [
+        "ops/evidence/staging/20260527T1215Z-backend-worker-crawler-metrics.json",
+        "staging-metrics-backend-api-20260527T1215Z",
+        "staging-metrics-worker-20260527T1215Z",
+        "staging-metrics-crawler-20260527T1215Z"
+      ],
+      "metrics_query": "release_sha=d3b1107c33dc40b8936f28549e06553fbd7b104a service=backend_api|worker|crawler",
+      "audit_ref": "au-007"
+    },
+    {
+      "signal_id": "dashboard_import",
+      "status": "validated",
+      "evidence_refs": [
+        "ops/evidence/staging/20260526T1000Z-dashboard-runtime.json",
+        "ops/observability/dashboards/stage0_rev2_overview.json"
+      ],
+      "dashboard_uid": "stage0-rev2-overview-staging-20260526",
+      "audit_ref": "au-004"
+    },
+    {
+      "signal_id": "alert_routes",
+      "status": "validated",
+      "evidence_refs": [
+        "ops/evidence/staging/20260526T1000Z-alert-runtime.json",
+        "ops/observability/alerts/stage0_rev2_alerts.json"
+      ],
+      "alert_rule_url": "https://monitoring.zenart.internal/alerts/stage0-rev2",
+      "audit_ref": "au-008"
+    }
+  ],
+  "gate_impact": {
+    "check_level_item": "staging observability runtime evidence through request-id/logs/traces/metrics/dashboards/alerts.",
+    "can_clear_observability_only": true,
+    "aggregate_checklist_item": "Private Beta/Staging observability/backup/load runtime evidence \u901a\u8fc7\u3002",
+    "can_clear_aggregate_item": false,
+    "preserved_release_gate_check_id": "staging_observability_backup_load",
+    "preserved_do_not_launch_condition_id": "staging_observability_restore_load_missing",
+    "aggregate_private_beta_gate_status": "blocked_by_restore_load_and_other_staging_runtime_items",
+    "remaining_blockers": [
+      "staging backup/restore runtime evidence",
+      "staging load runtime evidence",
+      "staging post-deploy smoke tests"
+    ]
+  },
+  "private_beta_gate": "open_until_staging_backup_restore_and_load_evidence_pass_with_release_sha_and_gate_fixture_is_updated",
+  "production_gate": "open_until_ci_private_beta_and_production_backup_rollback_post_deploy_evidence_pass"
+}

@@ -143,14 +143,34 @@ if dashboard["status"] != "definition_ready_runtime_evidence_open":
 if alerts["status"] != "definition_ready_runtime_evidence_open":
     raise SystemExit("alerts must not claim runtime completion")
 signals = {signal["name"]: signal["runtime_status"] for signal in observability_evidence["signals"]}
-if signals.get("request_id_propagation") != "backend_local_contract_validated_staging_runtime_open":
-	raise SystemExit("request-id evidence must keep staging/runtime propagation open")
-if signals.get("structured_json_logs") != "backend_local_contract_validated_staging_log_capture_open":
-	raise SystemExit("structured log evidence must not claim full runtime completion")
-if signals.get("backend_worker_crawler_metrics") != "backend_runtime_worker_crawler_definitions_validated_staging_capture_open":
-	raise SystemExit("metrics evidence must validate backend runtime plus worker/crawler definitions while keeping staging capture open")
-if "staging_request_id_propagation_across_web_admin_backend_worker_crawler_logs_metrics_traces" not in observability_evidence.get("open_items", []):
-	raise SystemExit("observability evidence must keep staging request-id propagation open")
+for signal in (
+    "request_id_propagation",
+    "structured_json_logs",
+    "opentelemetry_traces",
+    "backend_worker_crawler_metrics",
+    "dashboards",
+    "alerts",
+):
+    if signals.get(signal) != "staging_validated":
+        raise SystemExit(f"{signal} evidence must be staging_validated")
+open_items = set(observability_evidence.get("open_items", []))
+for open_item in (
+    "staging_backup_restore_runtime_evidence",
+    "staging_load_runtime_evidence",
+    "staging_post_deploy_smoke_runtime_evidence",
+    "production_release_observability_runtime_evidence",
+):
+    if open_item not in open_items:
+        raise SystemExit(f"observability evidence must preserve open item {open_item}")
+for closed_item in (
+    "staging_request_id_propagation_across_web_admin_backend_worker_crawler_logs_metrics_traces",
+    "staging_structured_json_log_capture_with_request_id_user_id_tenant_id_route_status_latency",
+    "worker_crawler_domain_metrics_and_staging_backend_metrics_runtime_capture",
+    "staging_dashboard_import_and_runtime_data",
+    "staging_alert_routes_and_threshold_evaluations",
+):
+    if closed_item in open_items:
+        raise SystemExit(f"observability evidence must not preserve closed staging item {closed_item}")
 PY
 
 log "release no-go evidence validation"
@@ -205,11 +225,13 @@ required_fragments = [
     "fixtures/stage0/rev2/release_gate_evidence.production_launch.json",
     "Staging smoke: `missing`; staging JSON must reference the release SHA, set `environment=staging`, set `kind=post_deploy_smoke`, record status `passed`, verify backend health/readiness, web, admin, auth boundary, worker task, export/package, signed download, crawler admin, quota/rate-limit, request-id observability categories, and include seeded user, tenant, task, package, and export smoke IDs.",
     "Config diff: `missing`; staging JSON must reference the release SHA, set `environment=staging`, set `kind=config_diff`, and record status `passed`, `reviewed`, or `no_diff` before private beta/production decisions.",
-    "Observability smoke: local status `passed` from `ops/evidence/observability/local/20260526T192311Z-observability-smoke-7780.json`; staging JSON must reference the release SHA, set `environment=staging`, set `kind=observability`, record status `passed`, and include passed/validated evidence refs for request-id propagation, structured JSON logs, OpenTelemetry traces, backend/worker/crawler metrics, dashboard import, and alert routes.",
+    "Observability smoke: local status `passed` from `ops/evidence/observability/local/20260526T192311Z-observability-smoke-7780.json`; staging status `passed` from `ops/evidence/staging/20260527T1830Z-observability-runtime.json` with 6/6 required signals validator-visible; private beta still requires staging backup/restore and load evidence before the combined observability/backup/load gate can close.",
     "Backup/restore drill: local status `passed` from `ops/evidence/backup-restore/local/20260526T153126Z/report.json`; staging JSON must reference the release SHA, set `environment=staging`, set `kind=backup_restore`, record status `passed`, and include passed/validated evidence refs for Postgres restore and exported package/object restore before private beta/production decisions.",
     "Load evidence: `missing`; staging JSON must reference the release SHA, set `environment=staging`, set `kind=load`, record status `passed`, and include passed/validated evidence refs for `chat_task`, `worker_generation`, `zip_export`, `signed_download`, `crawler_throttle`, `quota_contention`, and `workspace_rendering` before private beta/production decisions.",
     "Rollback drill: `missing`; staging JSON must reference the release SHA, set `environment=staging`, set `kind=rollback`, record status `passed` or `validated`, and include passed/validated evidence refs for image rollback, feature flag rollback, migration compatibility, worker drain, and post-rollback smoke.",
     "Security scan: local status `passed` from `ops/evidence/security/local/20260526T142040Z-security-scan-smoke-65314.json`; staging JSON must reference the release SHA, set `environment=staging`, set `kind=security_scan`, record status `passed`, and include passed/validated evidence refs for dependency, image/container, and committed-secret scans before private beta/production decisions.",
+    "Operational risks: staging backup/restore, rollback, load, and post-deploy smoke evidence are absent; staging observability runtime evidence is attached but does not close the combined restore/load gate.",
+    "Conditions: CI, staging smoke, restore/load/rollback evidence, security scans, release owner, and gate fixture blockers must be cleared before any private beta or production decision.",
     "## Open Rev2 Runtime Checklist",
     "Private Beta/Staging external-user runtime evidence 通过",
 ]
@@ -218,6 +240,8 @@ if missing:
     raise SystemExit(f"release no-go notes missing required fragments: {missing}")
 obsolete_fragments = [
     "Observability runtime: staging request id propagation runtime evidence 通过",
+    "staging observability, restore, rollback, load, and post-deploy smoke evidence are absent",
+    "observability runtime evidence, restore/rollback evidence",
 ]
 obsolete = [fragment for fragment in obsolete_fragments if fragment in notes]
 if obsolete:
@@ -545,6 +569,39 @@ for reason in (
 ):
     if not any(item.startswith(reason) for item in report.get("blocking_reasons", [])):
         raise SystemExit(f"preflight missing blocking reason prefix {reason}")
+PY
+preflight_observability_dir="$(mktemp -d)"
+preflight_observability_sha="d3b1107c33dc40b8936f28549e06553fbd7b104a"
+set +e
+RELEASE_SHA="$preflight_observability_sha" \
+  OUT_DIR="$preflight_observability_dir/out" \
+  OBSERVABILITY_EVIDENCE="ops/evidence/staging/20260527T1830Z-observability-runtime.json" \
+  scripts/staging_observability_backup_load_smoke.sh >/dev/null
+preflight_observability_status=$?
+set -e
+if [[ "$preflight_observability_status" -ne 2 ]]; then
+  printf 'observability-only preflight must still exit 2 while restore/load evidence is missing, got %s\n' "$preflight_observability_status" >&2
+  exit 1
+fi
+python3 - "$preflight_observability_dir/out" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+reports = sorted(Path(sys.argv[1]).glob("*.json"))
+if len(reports) != 1:
+    raise SystemExit("observability-only preflight must write exactly one report")
+report = json.loads(reports[0].read_text(encoding="utf-8"))
+if report.get("status") != "blocked":
+    raise SystemExit("observability-only preflight must remain blocked")
+if set(report.get("blocked_slots", [])) != {"backup_restore_evidence", "load_evidence"}:
+    raise SystemExit(f"observability-only preflight should block only restore/load slots: {report.get('blocked_slots')}")
+checks = {check["slot"]: check for check in report.get("checks", [])}
+if checks["observability_evidence"].get("verified") is not True:
+    raise SystemExit(f"staging observability evidence should verify: {checks['observability_evidence']}")
+for slot in ("backup_restore_evidence", "load_evidence"):
+    if checks[slot].get("verified") is not False:
+        raise SystemExit(f"{slot} must remain unverified when absent")
 PY
 preflight_pass_dir="$(mktemp -d)"
 preflight_fixture_dir="ops/evidence/staging/.repo-validate-preflight-$$"

@@ -41,6 +41,9 @@ STAGING_BACKEND_WORKER_CRAWLER_METRICS_EVIDENCE = (
 STAGING_OBSERVABILITY_TELEMETRY_EVIDENCE = (
     ROOT / "ops" / "evidence" / "staging" / "20260527T1815Z-observability-telemetry.json"
 )
+STAGING_OBSERVABILITY_RUNTIME_EVIDENCE = (
+    ROOT / "ops" / "evidence" / "staging" / "20260527T1830Z-observability-runtime.json"
+)
 PRODUCTION_ABUSE_THROTTLE_HOLD_EVIDENCE = (
     ROOT / "ops" / "evidence" / "production" / "20260527T1330Z-abuse-throttle-hold.json"
 )
@@ -599,6 +602,7 @@ RUNTIME_PASS_EVIDENCE_FILES = {
     ("private_beta_staging", "staging_observability_backup_load"): [
         STAGING_BACKEND_WORKER_CRAWLER_METRICS_EVIDENCE,
         STAGING_OBSERVABILITY_TELEMETRY_EVIDENCE,
+        STAGING_OBSERVABILITY_RUNTIME_EVIDENCE,
     ],
     ("production_launch", "production_activation_review_audit"): [
         PRODUCTION_ACTIVATION_REVIEW_AUDIT_EVIDENCE,
@@ -1359,6 +1363,7 @@ REQUIRED_OPEN_ITEMS |= (
 REQUIRED_OPEN_ITEMS |= set(LOCAL_ALPHA_RELEASE_GATE_WORKFLOW_RUNTIME_OPEN_CHECK_ITEMS)
 REQUIRED_OPEN_ITEMS -= {
     "staging backend/worker/crawler metrics runtime evidence 通过。",
+    "Private Beta/Staging eval/QA/safety enforcement runtime evidence 通过。",
     "Production skill release/eval/canary runtime/deployment evidence 通过。",
     "Production activation review/audit runtime/deployment evidence 通过。",
     "Production abuse throttle/hold runtime/deployment evidence 通过。",
@@ -4148,6 +4153,87 @@ def validate_staging_observability_telemetry_evidence() -> None:
         )
 
 
+def validate_staging_observability_runtime_evidence() -> None:
+    evidence = load_json(STAGING_OBSERVABILITY_RUNTIME_EVIDENCE)
+    require(
+        evidence["schema_version"] == "stage0.rev2.staging_observability_runtime",
+        "staging observability runtime evidence schema mismatch",
+    )
+    require(evidence["environment"] == "staging", "observability runtime evidence must be staging-scoped")
+    require(evidence["kind"] == "observability", "observability runtime evidence must use kind=observability")
+    require(evidence["status"] == "passed", "observability runtime evidence must pass")
+    require(
+        evidence["release_gate_check_id"] == "staging_observability_backup_load",
+        "observability runtime evidence must target the observability/backup/load release-gate check",
+    )
+    require(
+        re.fullmatch(r"[0-9a-f]{40}", evidence["release_sha"]),
+        "observability runtime evidence must reference a full release SHA",
+    )
+    source_refs = set(evidence["source_evidence_refs"])
+    for path in [
+        STAGING_DASHBOARD_RUNTIME_EVIDENCE,
+        STAGING_ALERT_RUNTIME_EVIDENCE,
+        STAGING_BACKEND_WORKER_CRAWLER_METRICS_EVIDENCE,
+        STAGING_OBSERVABILITY_TELEMETRY_EVIDENCE,
+    ]:
+        require(rel(path) in source_refs, f"observability runtime evidence must cite {rel(path)}")
+    required_signals = {
+        "request_id_propagation",
+        "structured_json_logs",
+        "opentelemetry_traces",
+        "backend_worker_crawler_metrics",
+        "dashboard_import",
+        "alert_routes",
+    }
+    signals = {item["signal_id"]: item for item in evidence["signals"]}
+    require(set(signals) == required_signals, "observability runtime evidence must cover all required signals")
+    for signal_id, item in signals.items():
+        require(item["status"] in {"passed", "validated"}, f"{signal_id} must be passed or validated")
+        require(item.get("evidence_refs"), f"{signal_id} must cite evidence_refs")
+        require(
+            any(str(ref).startswith("ops/evidence/staging/") for ref in item["evidence_refs"]),
+            f"{signal_id} must cite staging evidence file refs",
+        )
+        require(item.get("audit_ref", "").startswith("au-"), f"{signal_id} must cite audit_ref")
+    require(signals["request_id_propagation"].get("trace_id") == "tr-1004", "request-id signal must link trace")
+    require(signals["opentelemetry_traces"].get("trace_id") == "tr-1004", "trace signal must link trace")
+    require(signals["structured_json_logs"].get("log_query"), "structured logs signal must cite log query")
+    require(signals["backend_worker_crawler_metrics"].get("metrics_query"), "metrics signal must cite metrics query")
+    require(signals["dashboard_import"].get("dashboard_uid"), "dashboard signal must cite dashboard uid")
+    require(signals["alert_routes"].get("alert_rule_url"), "alert signal must cite alert rule url")
+    gate_impact = evidence["gate_impact"]
+    require(
+        gate_impact["can_clear_observability_only"] is True,
+        "observability runtime evidence must explicitly allow observability-only closure",
+    )
+    require(
+        gate_impact["aggregate_checklist_item"] == "Private Beta/Staging observability/backup/load runtime evidence 通过。",
+        "observability runtime evidence must name the aggregate private beta observability/backup/load checklist item",
+    )
+    require(
+        gate_impact["can_clear_aggregate_item"] is False,
+        "observability runtime evidence must not claim aggregate observability/backup/load closure",
+    )
+    require(
+        gate_impact["preserved_release_gate_check_id"] == "staging_observability_backup_load",
+        "observability runtime evidence must preserve the combined release-gate check",
+    )
+    require(
+        gate_impact["preserved_do_not_launch_condition_id"] == "staging_observability_restore_load_missing",
+        "observability runtime evidence must preserve the restore/load Do-Not-Launch condition",
+    )
+    for blocker in [
+        "staging backup/restore runtime evidence",
+        "staging load runtime evidence",
+        "staging post-deploy smoke tests",
+    ]:
+        require(
+            blocker in gate_impact["remaining_blockers"],
+            f"observability runtime evidence must preserve blocker: {blocker}",
+        )
+
+
 def validate_staging_dashboard_runtime_evidence() -> None:
     evidence = load_json(STAGING_DASHBOARD_RUNTIME_EVIDENCE)
     require(
@@ -5814,9 +5900,10 @@ def validate_launch_readiness_split_contracts() -> None:
                 "backend_runtime_worker_crawler_definitions_validated_staging_capture_open",
                 "definition_validated_recovery_log_request_id_open",
                 "definition_validated",
+                "staging_validated",
                 "open",
             },
-            f"observability signal {signal} must not claim production runtime pass",
+            f"observability signal {signal} must be locally open or staging validated without claiming production pass",
         )
         require(
             "production_gate" in signals[signal] or "private_beta_gate" in signals[signal],
@@ -6054,8 +6141,9 @@ def validate_ops_ci_and_drill_evidence() -> None:
             "definition_only",
             "definition_ready_runtime_evidence_open",
             "local_runtime_hooks_validated_staging_runtime_evidence_open",
+            "staging_observability_runtime_validated_restore_load_gate_open",
         },
-        "observability evidence must not claim runtime completion",
+        "observability evidence must not claim restore/load or production runtime completion",
     )
     require(
         observability.get("dashboard_definition") == "ops/observability/dashboards/stage0_rev2_overview.json",
@@ -6091,9 +6179,10 @@ def validate_ops_ci_and_drill_evidence() -> None:
                 "backend_runtime_worker_crawler_definitions_validated_staging_capture_open",
                 "definition_validated_recovery_log_request_id_open",
                 "definition_validated",
+                "staging_validated",
                 "open",
             },
-            f"observability signal {signal_name} must be open or contract_validated",
+            f"observability signal {signal_name} must be open, contract_validated, or staging_validated",
         )
     slo_thresholds = observability["slo_thresholds"]
     require(slo_thresholds["api_p95_latency_ms"] == 500, "observability evidence must define API p95 threshold")
@@ -6249,6 +6338,7 @@ def main() -> int:
         validate_staging_alert_runtime_evidence,
         validate_staging_backend_worker_crawler_metrics_evidence,
         validate_staging_observability_telemetry_evidence,
+        validate_staging_observability_runtime_evidence,
         validate_production_skill_release_eval_canary_evidence,
         validate_production_abuse_throttle_hold_evidence,
         validate_production_activation_review_audit_evidence,
