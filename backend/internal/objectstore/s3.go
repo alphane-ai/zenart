@@ -248,6 +248,9 @@ func (s S3Store) cleanupExpiredWithPrefix(ctx context.Context, prefix string, no
 			return deleted, err
 		}
 		for _, key := range keys {
+			if !strings.HasPrefix(key, prefix) {
+				continue
+			}
 			if !strings.HasSuffix(key, ".expires") {
 				continue
 			}
