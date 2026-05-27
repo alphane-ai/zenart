@@ -559,36 +559,43 @@ test("admin action pages show scoped RBAC evidence at decision points", () => {
     {
       path: "../app/skills/releases/page.tsx",
       heading: "Skill Release RBAC Evidence",
+      runtimeHeading: "Skill Release RBAC Runtime Decisions",
       surface: "skill_release"
     },
     {
       path: "../app/crawler/page.tsx",
       heading: "Crawler Import RBAC Evidence",
+      runtimeHeading: "Crawler Import RBAC Runtime Decisions",
       surface: "crawler_import"
     },
     {
       path: "../app/prompt-fragments/page.tsx",
       heading: "Prompt Approval RBAC Evidence",
+      runtimeHeading: "Prompt Approval RBAC Runtime Decisions",
       surface: "prompt_approval"
     },
     {
       path: "../app/providers/page.tsx",
       heading: "Provider Routing RBAC Evidence",
+      runtimeHeading: "Provider Routing RBAC Runtime Decisions",
       surface: "provider_routing"
     },
     {
       path: "../app/quota/page.tsx",
       heading: "Quota Override RBAC",
+      runtimeHeading: "Quota Override RBAC Runtime Decisions",
       surface: "quota_override"
     },
     {
       path: "../app/exports/page.tsx",
       heading: "Export Override RBAC Evidence",
+      runtimeHeading: "Export Override RBAC Runtime Decisions",
       surface: "export_override"
     },
     {
       path: "../app/safety/page.tsx",
       heading: "Safety and Export Override RBAC",
+      runtimeHeading: "Safety and Export Override RBAC Runtime Decisions",
       surface: "safety_rule"
     }
   ];
@@ -598,7 +605,10 @@ test("admin action pages show scoped RBAC evidence at decision points", () => {
 
     for (const token of [
       "getAdminRbacEvidence",
+      "getAdminRbacRuntimeDecisions",
+      "RbacRuntimeDecisionTable",
       page.heading,
+      page.runtimeHeading,
       page.surface,
       "Override Scope",
       "Required Role",
@@ -619,6 +629,29 @@ test("admin action pages show scoped RBAC evidence at decision points", () => {
     ]) {
       assert.match(source, new RegExp(token));
     }
+  }
+});
+
+test("shared RBAC runtime table exposes computed override outcomes", () => {
+  const source = readFileSync(new URL("../components/RbacRuntimeDecisionTable.tsx", import.meta.url), "utf8");
+
+  for (const token of [
+    "Runtime Evidence",
+    "Enforcement Point",
+    "Expiry Policy Status",
+    "Effective Decision",
+    "Request Outcome",
+    "Mutation Allowed",
+    "Queue Action",
+    "Release Gate Status",
+    "Audit Ref",
+    "Evidence Refs",
+    "Runtime Rationale",
+    "allow_mutation",
+    "queue_for_review",
+    "denied"
+  ]) {
+    assert.match(source, new RegExp(token));
   }
 });
 

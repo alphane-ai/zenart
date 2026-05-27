@@ -1,15 +1,18 @@
 import { DataTable } from "@/components/DataTable";
 import { PageHeader } from "@/components/PageHeader";
+import { RbacRuntimeDecisionTable } from "@/components/RbacRuntimeDecisionTable";
 import { StatusBadge } from "@/components/StatusBadge";
-import { getAdminRbacEvidence, getRiskyExports } from "@/lib/admin-api";
+import { getAdminRbacEvidence, getAdminRbacRuntimeDecisions, getRiskyExports } from "@/lib/admin-api";
 import type { AdminRbacEvidence, RiskyExport } from "@/lib/types";
 
 export default async function SafetyPage() {
-  const [exports, rbacEvidence] = await Promise.all([
+  const [exports, rbacEvidence, rbacRuntime] = await Promise.all([
     getRiskyExports(),
-    getAdminRbacEvidence()
+    getAdminRbacEvidence(),
+    getAdminRbacRuntimeDecisions()
   ]);
   const safetyRbacEvidence = rbacEvidence.filter((item) => item.surface === "safety_rule" || item.surface === "export_override");
+  const safetyRbacRuntime = rbacRuntime.filter((item) => item.surface === "safety_rule" || item.surface === "export_override");
 
   return (
     <>
@@ -79,6 +82,16 @@ export default async function SafetyPage() {
             { key: "evidence", header: "Evidence Refs", render: (row) => row.evidenceRefs.join(", ") }
           ]}
         />
+      </section>
+
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>Safety and Export Override RBAC Runtime Decisions</h3>
+            <p>Computed safety and export outcomes deny forbidden-claim relaxation and non-eligible blocking QA overrides at runtime.</p>
+          </div>
+        </div>
+        <RbacRuntimeDecisionTable rows={safetyRbacRuntime} />
       </section>
     </>
   );

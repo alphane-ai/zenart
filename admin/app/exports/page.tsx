@@ -1,16 +1,19 @@
 import Link from "next/link";
 import { DataTable } from "@/components/DataTable";
 import { PageHeader } from "@/components/PageHeader";
+import { RbacRuntimeDecisionTable } from "@/components/RbacRuntimeDecisionTable";
 import { StatusBadge } from "@/components/StatusBadge";
-import { getAdminRbacEvidence, getExportJobs } from "@/lib/admin-api";
+import { getAdminRbacEvidence, getAdminRbacRuntimeDecisions, getExportJobs } from "@/lib/admin-api";
 import type { AdminRbacEvidence, ExportJob } from "@/lib/types";
 
 export default async function ExportsPage() {
-  const [jobs, rbacEvidence] = await Promise.all([
+  const [jobs, rbacEvidence, rbacRuntime] = await Promise.all([
     getExportJobs(),
-    getAdminRbacEvidence()
+    getAdminRbacEvidence(),
+    getAdminRbacRuntimeDecisions()
   ]);
   const exportRbacEvidence = rbacEvidence.filter((item) => item.surface === "export_override");
+  const exportRbacRuntime = rbacRuntime.filter((item) => item.surface === "export_override");
 
   return (
     <>
@@ -73,6 +76,15 @@ export default async function ExportsPage() {
             { key: "rationale", header: "Rationale", render: (row) => row.rationale }
           ]}
         />
+      </section>
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>Export Override RBAC Runtime Decisions</h3>
+            <p>Computed export release outcomes prove blocked final exports stay unavailable when the QA result is not override eligible.</p>
+          </div>
+        </div>
+        <RbacRuntimeDecisionTable rows={exportRbacRuntime} />
       </section>
     </>
   );

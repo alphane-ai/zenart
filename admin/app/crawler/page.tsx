@@ -1,8 +1,10 @@
 import { DataTable } from "@/components/DataTable";
 import { PageHeader } from "@/components/PageHeader";
+import { RbacRuntimeDecisionTable } from "@/components/RbacRuntimeDecisionTable";
 import { StatusBadge } from "@/components/StatusBadge";
 import {
   getAdminRbacEvidence,
+  getAdminRbacRuntimeDecisions,
   getCrawlerFindings,
   getCrawlerGovernanceWorkflows,
   getCrawlerSourceApprovals,
@@ -17,14 +19,16 @@ import type {
 } from "@/lib/types";
 
 export default async function CrawlerReviewPage() {
-  const [findings, sourceApprovals, governanceWorkflows, stagingRuntimeEvidence, rbacEvidence] = await Promise.all([
+  const [findings, sourceApprovals, governanceWorkflows, stagingRuntimeEvidence, rbacEvidence, rbacRuntime] = await Promise.all([
     getCrawlerFindings(),
     getCrawlerSourceApprovals(),
     getCrawlerGovernanceWorkflows(),
     getCrawlerStagingRuntimeEvidence(),
-    getAdminRbacEvidence()
+    getAdminRbacEvidence(),
+    getAdminRbacRuntimeDecisions()
   ]);
   const crawlerRbacEvidence = rbacEvidence.filter((item) => item.surface === "crawler_import");
+  const crawlerRbacRuntime = rbacRuntime.filter((item) => item.surface === "crawler_import");
 
   return (
     <>
@@ -50,6 +54,15 @@ export default async function CrawlerReviewPage() {
             { key: "risk", header: "Risk Labels", render: (row) => row.riskLabels.join(", ") }
           ]}
         />
+      </section>
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>Crawler Import RBAC Runtime Decisions</h3>
+            <p>Computed crawler activation outcomes keep takedown, derivative-use, and retention changes blocked until runtime role and review checks pass.</p>
+          </div>
+        </div>
+        <RbacRuntimeDecisionTable rows={crawlerRbacRuntime} />
       </section>
       <section className="panel">
         <div className="panel-header">

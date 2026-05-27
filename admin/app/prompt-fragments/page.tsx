@@ -1,15 +1,18 @@
 import { DataTable } from "@/components/DataTable";
 import { PageHeader } from "@/components/PageHeader";
+import { RbacRuntimeDecisionTable } from "@/components/RbacRuntimeDecisionTable";
 import { StatusBadge } from "@/components/StatusBadge";
-import { getAdminRbacEvidence, getPromptFragments } from "@/lib/admin-api";
+import { getAdminRbacEvidence, getAdminRbacRuntimeDecisions, getPromptFragments } from "@/lib/admin-api";
 import type { AdminRbacEvidence, PromptFragment } from "@/lib/types";
 
 export default async function PromptFragmentsPage() {
-  const [fragments, rbacEvidence] = await Promise.all([
+  const [fragments, rbacEvidence, rbacRuntime] = await Promise.all([
     getPromptFragments(),
-    getAdminRbacEvidence()
+    getAdminRbacEvidence(),
+    getAdminRbacRuntimeDecisions()
   ]);
   const promptRbacEvidence = rbacEvidence.filter((item) => item.surface === "prompt_approval");
+  const promptRbacRuntime = rbacRuntime.filter((item) => item.surface === "prompt_approval");
 
   return (
     <>
@@ -65,6 +68,15 @@ export default async function PromptFragmentsPage() {
             { key: "rationale", header: "Rationale", render: (row) => row.rationale }
           ]}
         />
+      </section>
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>Prompt Approval RBAC Runtime Decisions</h3>
+            <p>Computed prompt activation outcomes prevent support-attached feedback from becoming active prompt material without reviewer runtime evidence.</p>
+          </div>
+        </div>
+        <RbacRuntimeDecisionTable rows={promptRbacRuntime} />
       </section>
     </>
   );

@@ -1,15 +1,18 @@
 import { DataTable } from "@/components/DataTable";
 import { PageHeader } from "@/components/PageHeader";
+import { RbacRuntimeDecisionTable } from "@/components/RbacRuntimeDecisionTable";
 import { StatusBadge } from "@/components/StatusBadge";
-import { getAdminRbacEvidence, getQuotaAccounts } from "@/lib/admin-api";
+import { getAdminRbacEvidence, getAdminRbacRuntimeDecisions, getQuotaAccounts } from "@/lib/admin-api";
 import type { AdminRbacEvidence, QuotaAccount } from "@/lib/types";
 
 export default async function QuotaPage() {
-  const [accounts, rbacEvidence] = await Promise.all([
+  const [accounts, rbacEvidence, rbacRuntime] = await Promise.all([
     getQuotaAccounts(),
-    getAdminRbacEvidence()
+    getAdminRbacEvidence(),
+    getAdminRbacRuntimeDecisions()
   ]);
   const quotaRbacEvidence = rbacEvidence.filter((item) => item.surface === "quota_override");
+  const quotaRbacRuntime = rbacRuntime.filter((item) => item.surface === "quota_override");
 
   return (
     <>
@@ -82,6 +85,16 @@ export default async function QuotaPage() {
             { key: "evidence", header: "Evidence Refs", render: (row) => row.evidenceRefs.join(", ") }
           ]}
         />
+      </section>
+
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>Quota Override RBAC Runtime Decisions</h3>
+            <p>Computed quota mutation outcomes prove support-only balance changes are denied before credits or debits can post.</p>
+          </div>
+        </div>
+        <RbacRuntimeDecisionTable rows={quotaRbacRuntime} />
       </section>
     </>
   );

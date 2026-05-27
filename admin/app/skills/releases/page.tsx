@@ -1,8 +1,10 @@
 import { DataTable } from "@/components/DataTable";
 import { PageHeader } from "@/components/PageHeader";
+import { RbacRuntimeDecisionTable } from "@/components/RbacRuntimeDecisionTable";
 import { StatusBadge } from "@/components/StatusBadge";
 import {
   getAdminRbacEvidence,
+  getAdminRbacRuntimeDecisions,
   getAdminReviewDecisions,
   getProductionSkillReleaseEvalCanaryEvidence,
   getReleaseEvidence,
@@ -17,14 +19,16 @@ import type {
 } from "@/lib/types";
 
 export default async function SkillReleasesPage() {
-  const [versions, reviews, evidence, rbacEvidence, productionSkillEvidence] = await Promise.all([
+  const [versions, reviews, evidence, rbacEvidence, rbacRuntime, productionSkillEvidence] = await Promise.all([
     getSkillVersions(),
     getAdminReviewDecisions(),
     getReleaseEvidence(),
     getAdminRbacEvidence(),
+    getAdminRbacRuntimeDecisions(),
     getProductionSkillReleaseEvalCanaryEvidence()
   ]);
   const releaseRbacEvidence = rbacEvidence.filter((item) => item.surface === "skill_release");
+  const releaseRbacRuntime = rbacRuntime.filter((item) => item.surface === "skill_release");
 
   return (
     <>
@@ -66,6 +70,16 @@ export default async function SkillReleasesPage() {
             { key: "rollback", header: "Rollback Plan", render: (row) => row.rollbackPlan }
           ]}
         />
+      </section>
+
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>Skill Release RBAC Runtime Decisions</h3>
+            <p>Computed release-gate outcomes show whether canary and rollback actions are applied, queued, denied, or expired at runtime.</p>
+          </div>
+        </div>
+        <RbacRuntimeDecisionTable rows={releaseRbacRuntime} />
       </section>
 
       <section className="panel">
