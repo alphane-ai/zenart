@@ -36,6 +36,24 @@ const expectedBrowserProbeRequestContracts = [
   "createSupportTicket:POST:include:same-site-origin-check:csrf-probe-createSupportTicket"
 ] as const;
 
+const expectedBrowserProbeUnsafePathContracts = [
+  "deleteSession:/session:/session",
+  "updateAccount:/account:/account",
+  "createProject:/projects:/projects",
+  "updateProject:/projects/{project_id}:/projects/project-001",
+  "createChatSession:/projects/{project_id}/chat/sessions:/projects/project-001/chat/sessions",
+  "createChatMessage:/chat/sessions/{chat_session_id}/messages:/chat/sessions/chat-001/messages",
+  "createCandidateSet:/projects/{project_id}/candidate-sets:/projects/project-001/candidate-sets",
+  "selectDirection:/projects/{project_id}/selected-direction:/projects/project-001/selected-direction",
+  "createCanvasNode:/workspaces/{workspace_id}/canvas/nodes:/workspaces/workspace-001/canvas/nodes",
+  "createCanvasVersion:/workspaces/{workspace_id}/canvas/versions:/workspaces/workspace-001/canvas/versions",
+  "createUpload:/uploads:/uploads",
+  "createPackage:/projects/{project_id}/packages:/projects/project-001/packages",
+  "createExport:/packages/{package_id}/exports:/packages/pkg-001/exports",
+  "createShareLink:/exports/{export_id}/share-links:/exports/export-001/share-links",
+  "createSupportTicket:/support/tickets:/support/tickets"
+] as const;
+
 const safeOperationIds = [
   "getSession",
   "getAccount",
@@ -74,6 +92,26 @@ const expectedBrowserProbeSafeRequestContracts = [
   "getExport:GET:include:not-required",
   "getQuota:GET:include:not-required",
   "getSubscription:GET:include:not-required"
+] as const;
+
+const expectedBrowserProbeSafePathContracts = [
+  "getSession:/session:/session",
+  "getAccount:/account:/account",
+  "listProjects:/projects:/projects",
+  "getProject:/projects/{project_id}:/projects/project-001",
+  "getWorkspace:/projects/{project_id}/workspace:/projects/project-001/workspace",
+  "listChatMessages:/chat/sessions/{chat_session_id}/messages:/chat/sessions/chat-001/messages",
+  "getTask:/tasks/{task_id}:/tasks/task-001",
+  "listCandidateSets:/projects/{project_id}/candidate-sets:/projects/project-001/candidate-sets",
+  "listCandidateAssets:/candidate-sets/{candidate_set_id}/assets:/candidate-sets/candidate-set-001/assets",
+  "listCanvasNodes:/workspaces/{workspace_id}/canvas/nodes:/workspaces/workspace-001/canvas/nodes",
+  "listCanvasFrames:/workspaces/{workspace_id}/canvas/frames:/workspaces/workspace-001/canvas/frames",
+  "listCanvasVersions:/workspaces/{workspace_id}/canvas/versions:/workspaces/workspace-001/canvas/versions",
+  "listAssets:/assets:/assets",
+  "listPackages:/projects/{project_id}/packages:/projects/project-001/packages",
+  "getExport:/exports/{export_id}:/exports/export-001",
+  "getQuota:/quota:/quota",
+  "getSubscription:/billing/subscription:/billing/subscription"
 ] as const;
 
 test("account route exposes secure-cookie, same-site CSRF, unsafe-action guard, and generated-client request browser evidence", async ({ page }) => {
@@ -248,8 +286,10 @@ test("account route exposes secure-cookie, same-site CSRF, unsafe-action guard, 
   const browserProbe = page.getByLabel("Generated API CSRF browser request probe");
   await expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe", "stage0.rev2.generated-api-csrf-browser-probe");
   await expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-status", "pass");
+  await expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-base-url", "/api/probe");
   await expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-unsafe-operation", "updateAccount");
   await expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-unsafe-method", "PATCH");
+  await expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-unsafe-path", "/account");
   await expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-unsafe-credentials", "include");
   await expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-unsafe-csrf-header", "same-site-origin-check");
   await expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-unsafe-idempotency-key", "csrf-probe-updateAccount");
@@ -270,12 +310,19 @@ test("account route exposes secure-cookie, same-site CSRF, unsafe-action guard, 
     "data-generated-api-csrf-browser-probe-unsafe-operation-contracts",
     /createSupportTicket:POST:include:same-site-origin-check:csrf-probe-createSupportTicket/
   );
+  await expect(browserProbe).toHaveAttribute(
+    "data-generated-api-csrf-browser-probe-unsafe-path-contracts",
+    /createExport:\/packages\/\{package_id\}\/exports:\/packages\/pkg-001\/exports/
+  );
   const browserProbeRequestContracts = await browserProbe.getAttribute(
     "data-generated-api-csrf-browser-probe-unsafe-operation-contracts"
   );
   expect(browserProbeRequestContracts?.split("|")).toEqual(expectedBrowserProbeRequestContracts);
+  const unsafeProbePathContracts = await browserProbe.getAttribute("data-generated-api-csrf-browser-probe-unsafe-path-contracts");
+  expect(unsafeProbePathContracts?.split("|")).toEqual(expectedBrowserProbeUnsafePathContracts);
   await expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-safe-operation", "getSession");
   await expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-safe-method", "GET");
+  await expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-safe-path", "/session");
   await expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-safe-credentials", "include");
   await expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-safe-csrf-header", "not-required");
   await expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-safe-operation-count", "17");
@@ -293,10 +340,16 @@ test("account route exposes secure-cookie, same-site CSRF, unsafe-action guard, 
     "data-generated-api-csrf-browser-probe-safe-operation-contracts",
     /getSubscription:GET:include:not-required/
   );
+  await expect(browserProbe).toHaveAttribute(
+    "data-generated-api-csrf-browser-probe-safe-path-contracts",
+    /getWorkspace:\/projects\/\{project_id\}\/workspace:\/projects\/project-001\/workspace/
+  );
   const safeProbeOperations = await browserProbe.getAttribute("data-generated-api-csrf-browser-probe-safe-covered-operations");
   expect(safeProbeOperations?.split(",")).toEqual(safeOperationIds);
   const safeProbeRequestContracts = await browserProbe.getAttribute("data-generated-api-csrf-browser-probe-safe-operation-contracts");
   expect(safeProbeRequestContracts?.split("|")).toEqual(expectedBrowserProbeSafeRequestContracts);
+  const safeProbePathContracts = await browserProbe.getAttribute("data-generated-api-csrf-browser-probe-safe-path-contracts");
+  expect(safeProbePathContracts?.split("|")).toEqual(expectedBrowserProbeSafePathContracts);
   await expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-failure-reason", "");
 
   const saveSettings = page.getByRole("button", { name: "Save Settings" });

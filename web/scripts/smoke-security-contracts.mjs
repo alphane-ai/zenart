@@ -104,6 +104,20 @@ const expectedBrowserUnsafeRequestContracts = generatedApiCsrfContract.unsafeReq
   const idempotencyKey = contract.idempotencyHeaderRequired ? `csrf-probe-${contract.operationId}` : "not-required";
   return `${contract.operationId}:${contract.method}:${contract.credentials}:${contract.csrfHeaderValue}:${idempotencyKey}`;
 });
+const probePathParams = {
+  project_id: "project-001",
+  chat_session_id: "chat-001",
+  workspace_id: "workspace-001",
+  task_id: "task-001",
+  candidate_set_id: "candidate-set-001",
+  package_id: "pkg-001",
+  export_id: "export-001"
+};
+const interpolateProbePath = (operationPath) =>
+  operationPath.replace(/\{([^}]+)\}/g, (_match, key) => probePathParams[key] ?? "missing");
+const expectedBrowserUnsafePathContracts = generatedApiCsrfContract.unsafeRequestContracts.map(
+  (contract) => `${contract.operationId}:${contract.path}:${interpolateProbePath(contract.path)}`
+);
 const generatedIdempotentUnsafeRequestCount = generatedApiCsrfContract.unsafeRequestContracts.filter(
   (contract) => contract.idempotencyHeaderRequired
 ).length;
@@ -122,6 +136,11 @@ const safeOperations = Array.from(operationMap.entries())
 const expectedBrowserSafeRequestContracts = safeOperations.map((operationId) => {
   const operation = operationMap.get(operationId);
   return `${operationId}:${operation?.method ?? "missing"}:include:not-required`;
+});
+const expectedBrowserSafePathContracts = safeOperations.map((operationId) => {
+  const operation = operationMap.get(operationId);
+  const operationPath = operation?.path ?? "missing";
+  return `${operationId}:${operationPath}:${interpolateProbePath(operationPath)}`;
 });
 const expectedSafeRequestContracts = safeOperations.map((operationId) => {
   const operation = operationMap.get(operationId);
@@ -355,7 +374,12 @@ if (
   JSON.stringify(sessionSecurityBrowserContract.browserProbe?.expectedUnsafeRequestContracts) !==
     JSON.stringify(generatedApiCsrfContract.browserSmoke?.expectedUnsafeRequestContracts) ||
   JSON.stringify(sessionSecurityBrowserContract.browserProbe?.expectedSafeRequestContracts) !==
-    JSON.stringify(generatedApiCsrfContract.browserSmoke?.expectedSafeRequestContracts)
+    JSON.stringify(generatedApiCsrfContract.browserSmoke?.expectedSafeRequestContracts) ||
+  sessionSecurityBrowserContract.browserProbe?.baseUrl !== "/api/probe" ||
+  JSON.stringify(sessionSecurityBrowserContract.browserProbe?.expectedUnsafePathContracts) !==
+    JSON.stringify(generatedApiCsrfContract.browserSmoke?.expectedUnsafePathContracts) ||
+  JSON.stringify(sessionSecurityBrowserContract.browserProbe?.expectedSafePathContracts) !==
+    JSON.stringify(generatedApiCsrfContract.browserSmoke?.expectedSafePathContracts)
 ) {
   fail("session security browser probe contract drifted from generated API CSRF browser smoke evidence");
 }
@@ -517,10 +541,18 @@ if (
     JSON.stringify(expectedBrowserUnsafeRequestContracts) ||
   JSON.stringify(generatedApiCsrfContract.browserSmoke?.expectedSafeRequestContracts) !==
     JSON.stringify(expectedBrowserSafeRequestContracts) ||
+  JSON.stringify(generatedApiCsrfContract.browserSmoke?.expectedUnsafePathContracts) !==
+    JSON.stringify(expectedBrowserUnsafePathContracts) ||
+  JSON.stringify(generatedApiCsrfContract.browserSmoke?.expectedSafePathContracts) !==
+    JSON.stringify(expectedBrowserSafePathContracts) ||
   JSON.stringify(generatedClientEvidence.browserSmokeExpectedUnsafeRequestContracts) !==
     JSON.stringify(expectedBrowserUnsafeRequestContracts) ||
   JSON.stringify(generatedClientEvidence.browserSmokeExpectedSafeRequestContracts) !==
     JSON.stringify(expectedBrowserSafeRequestContracts) ||
+  JSON.stringify(generatedClientEvidence.browserSmokeExpectedUnsafePathContracts) !==
+    JSON.stringify(expectedBrowserUnsafePathContracts) ||
+  JSON.stringify(generatedClientEvidence.browserSmokeExpectedSafePathContracts) !==
+    JSON.stringify(expectedBrowserSafePathContracts) ||
   JSON.stringify(generatedClientEvidence.browserSmokeRequiredAssertions) !==
     JSON.stringify(generatedApiCsrfContract.browserSmoke?.requiredAssertions)
 ) {
@@ -801,6 +833,12 @@ for (const expectedBrowserRequestContract of expectedBrowserUnsafeRequestContrac
   }
 }
 
+for (const expectedBrowserPathContract of [...expectedBrowserUnsafePathContracts, ...expectedBrowserSafePathContracts]) {
+  if (!sessionSecurityPlaywrightSpecSource.includes(expectedBrowserPathContract)) {
+    fail(`generated API CSRF browser smoke missing same-origin path contract ${expectedBrowserPathContract}`);
+  }
+}
+
 for (const expectedContract of sessionEvidence.unsafeActionGuard?.requiredOperationContracts ?? []) {
   if (!workspaceSmokeTestSource.includes(expectedContract) && !workspaceAppSource.includes(expectedContract.split("=>")[0])) {
     fail(`same-site UX smoke missing unsafe-action operation contract ${expectedContract}`);
@@ -822,20 +860,26 @@ for (const requiredControlSnippet of [
   "formatUnsafeActionControlContracts",
   "isCsrfProtectedMethod(operation.method)",
   "runGeneratedClientCsrfBrowserProbe",
-  "new ZenArtApiClient(\"/api/probe\")",
+  "const baseUrl = \"/api/probe\"",
+  "new ZenArtApiClient(baseUrl)",
   "data-generated-api-csrf-browser-probe",
   "data-generated-api-csrf-browser-probe-status",
+  "data-generated-api-csrf-browser-probe-base-url",
+  "data-generated-api-csrf-browser-probe-unsafe-path",
   "data-generated-api-csrf-browser-probe-unsafe-csrf-header",
   "data-generated-api-csrf-browser-probe-unsafe-operation-count",
   "data-generated-api-csrf-browser-probe-unsafe-covered-operations",
+  "data-generated-api-csrf-browser-probe-unsafe-path-contracts",
   "data-generated-api-csrf-browser-probe-unsafe-credentialed-request-count",
   "data-generated-api-csrf-browser-probe-unsafe-csrf-header-count",
   "data-generated-api-csrf-browser-probe-unsafe-idempotency-required-count",
   "data-generated-api-csrf-browser-probe-unsafe-idempotency-header-count",
   "data-generated-api-csrf-browser-probe-unsafe-operation-contracts",
+  "data-generated-api-csrf-browser-probe-safe-path",
   "data-generated-api-csrf-browser-probe-safe-csrf-header",
   "data-generated-api-csrf-browser-probe-safe-operation-count",
   "data-generated-api-csrf-browser-probe-safe-covered-operations",
+  "data-generated-api-csrf-browser-probe-safe-path-contracts",
   "data-generated-api-csrf-browser-probe-safe-credentialed-request-count",
   "data-generated-api-csrf-browser-probe-safe-no-csrf-header-count",
   "data-generated-api-csrf-browser-probe-safe-operation-contracts",

@@ -174,13 +174,16 @@ const guardedOperationIdSet = new Set<keyof typeof apiOperations>(guardedOperati
 
 type BrowserCsrfProbeResult = {
   status: "idle" | "running" | "pass" | "fail";
+  baseUrl: string;
   unsafeOperation: string;
   unsafeMethod: string;
+  unsafePath: string;
   unsafeCredentials: string;
   unsafeCsrfHeader: string;
   unsafeIdempotencyKey: string;
   unsafeOperationCount: number;
   unsafeCoveredOperations: string;
+  unsafePathContracts: string;
   unsafeCredentialedRequestCount: number;
   unsafeCsrfHeaderCount: number;
   unsafeIdempotencyRequiredCount: number;
@@ -188,10 +191,12 @@ type BrowserCsrfProbeResult = {
   unsafeOperationContracts: string;
   safeOperation: string;
   safeMethod: string;
+  safePath: string;
   safeCredentials: string;
   safeCsrfHeader: string;
   safeOperationCount: number;
   safeCoveredOperations: string;
+  safePathContracts: string;
   safeCredentialedRequestCount: number;
   safeNoCsrfHeaderCount: number;
   safeOperationContracts: string;
@@ -202,13 +207,16 @@ const generatedApiCsrfInventory = buildGeneratedApiCsrfRequestContractEvidence(a
 
 const initialBrowserCsrfProbeResult: BrowserCsrfProbeResult = {
   status: "idle",
+  baseUrl: "/api/probe",
   unsafeOperation: "updateAccount",
   unsafeMethod: "missing",
+  unsafePath: "missing",
   unsafeCredentials: "missing",
   unsafeCsrfHeader: "missing",
   unsafeIdempotencyKey: "missing",
   unsafeOperationCount: generatedApiCsrfInventory.unsafeOperationCount,
   unsafeCoveredOperations: generatedApiCsrfInventory.unsafeOperationIds.join(","),
+  unsafePathContracts: "",
   unsafeCredentialedRequestCount: 0,
   unsafeCsrfHeaderCount: 0,
   unsafeIdempotencyRequiredCount: generatedApiCsrfInventory.unsafeIdempotencyRequiredOperationIds.length,
@@ -216,10 +224,12 @@ const initialBrowserCsrfProbeResult: BrowserCsrfProbeResult = {
   unsafeOperationContracts: "",
   safeOperation: "getSession",
   safeMethod: "missing",
+  safePath: "missing",
   safeCredentials: "missing",
   safeCsrfHeader: "missing",
   safeOperationCount: generatedApiCsrfInventory.safeOperationCount,
   safeCoveredOperations: generatedApiCsrfInventory.safeOperationIds.join(","),
+  safePathContracts: "",
   safeCredentialedRequestCount: 0,
   safeNoCsrfHeaderCount: 0,
   safeOperationContracts: "",
@@ -346,7 +356,8 @@ const requiresAuthenticatedSession = (label: string, state: WorkspaceState) =>
 const isSessionBlocked = (state: WorkspaceState) => state.sessionContract.status !== "authenticated";
 
 const runGeneratedClientCsrfBrowserProbe = async (): Promise<BrowserCsrfProbeResult> => {
-  const client = new ZenArtApiClient("/api/probe");
+  const baseUrl = "/api/probe";
+  const client = new ZenArtApiClient(baseUrl);
   const requests: Array<{ path: string; method: string; credentials: string; csrfHeader: string; idempotencyKey: string }> = [];
   const originalFetch = window.fetch.bind(window);
   const unsafeContracts = generatedApiCsrfInventory.unsafeRequestContracts;
@@ -360,6 +371,8 @@ const runGeneratedClientCsrfBrowserProbe = async (): Promise<BrowserCsrfProbeRes
     package_id: "pkg-001",
     export_id: "export-001"
   };
+  const expectedProbePath = (path: string) =>
+    path.replace(/\{([^}]+)\}/g, (_match, key: string) => pathParams[key as keyof typeof pathParams] ?? "missing");
 
   window.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
@@ -413,33 +426,50 @@ const runGeneratedClientCsrfBrowserProbe = async (): Promise<BrowserCsrfProbeRes
       return `${contract.operationId}:${request?.method ?? "missing"}:${request?.credentials ?? "missing"}:${request?.csrfHeader ?? "missing"}:${request?.idempotencyKey ?? "missing"}`;
     })
     .join("|");
+  const unsafePathContracts = unsafeContracts
+    .map((contract, index) => {
+      const request = unsafeRequests[index];
+      return `${contract.operationId}:${contract.path}:${request?.path ?? "missing"}`;
+    })
+    .join("|");
   const safeOperationContracts = safeOperationIds
     .map((operationId, index) => {
       const request = safeRequests[index];
       return `${operationId}:${request?.method ?? "missing"}:${request?.credentials ?? "missing"}:${request?.csrfHeader ?? "missing"}`;
     })
     .join("|");
+  const safePathContracts = safeOperationIds
+    .map((operationId, index) => {
+      const request = safeRequests[index];
+      return `${operationId}:${apiOperations[operationId].path}:${request?.path ?? "missing"}`;
+    })
+    .join("|");
   const failures = [
     unsafeRequests.length === unsafeContracts.length ? "" : "unsafe-operation-count",
     unsafeContracts.every((contract, index) => unsafeRequests[index]?.method === contract.method) ? "" : "unsafe-method",
+    unsafeContracts.every((contract, index) => unsafeRequests[index]?.path === expectedProbePath(contract.path)) ? "" : "unsafe-path",
     unsafeCredentialedRequestCount === unsafeContracts.length ? "" : "unsafe-credentials",
     unsafeCsrfHeaderCount === unsafeContracts.length ? "" : "unsafe-csrf-header",
     unsafeIdempotencyHeaderCount === generatedApiCsrfInventory.unsafeIdempotencyRequiredOperationIds.length ? "" : "unsafe-idempotency-key",
     safeRequests.length === safeOperationIds.length ? "" : "safe-operation-count",
     safeOperationIds.every((operationId, index) => safeRequests[index]?.method === apiOperations[operationId].method) ? "" : "safe-method",
+    safeOperationIds.every((operationId, index) => safeRequests[index]?.path === expectedProbePath(apiOperations[operationId].path)) ? "" : "safe-path",
     safeCredentialedRequestCount === safeOperationIds.length ? "" : "safe-credentials",
     safeNoCsrfHeaderCount === safeOperationIds.length ? "" : "safe-csrf-header"
   ].filter(Boolean);
 
   return {
     status: failures.length === 0 ? "pass" : "fail",
+    baseUrl,
     unsafeOperation: "updateAccount",
     unsafeMethod: unsafeRequest?.method ?? "missing",
+    unsafePath: unsafeRequest?.path ?? "missing",
     unsafeCredentials: unsafeRequest?.credentials ?? "missing",
     unsafeCsrfHeader: unsafeRequest?.csrfHeader ?? "missing",
     unsafeIdempotencyKey: unsafeRequest?.idempotencyKey ?? "missing",
     unsafeOperationCount: unsafeContracts.length,
     unsafeCoveredOperations: unsafeContracts.map((contract) => contract.operationId).join(","),
+    unsafePathContracts,
     unsafeCredentialedRequestCount,
     unsafeCsrfHeaderCount,
     unsafeIdempotencyRequiredCount: generatedApiCsrfInventory.unsafeIdempotencyRequiredOperationIds.length,
@@ -447,10 +477,12 @@ const runGeneratedClientCsrfBrowserProbe = async (): Promise<BrowserCsrfProbeRes
     unsafeOperationContracts,
     safeOperation: "getSession",
     safeMethod: safeRequest?.method ?? "missing",
+    safePath: safeRequest?.path ?? "missing",
     safeCredentials: safeRequest?.credentials ?? "missing",
     safeCsrfHeader: safeRequest?.csrfHeader ?? "missing",
     safeOperationCount: safeOperationIds.length,
     safeCoveredOperations: safeOperationIds.join(","),
+    safePathContracts,
     safeCredentialedRequestCount,
     safeNoCsrfHeaderCount,
     safeOperationContracts,
@@ -2477,13 +2509,16 @@ function AccountView({
         aria-label="Generated API CSRF browser request probe"
         data-generated-api-csrf-browser-probe="stage0.rev2.generated-api-csrf-browser-probe"
         data-generated-api-csrf-browser-probe-status={browserCsrfProbeResult.status}
+        data-generated-api-csrf-browser-probe-base-url={browserCsrfProbeResult.baseUrl}
         data-generated-api-csrf-browser-probe-unsafe-operation={browserCsrfProbeResult.unsafeOperation}
         data-generated-api-csrf-browser-probe-unsafe-method={browserCsrfProbeResult.unsafeMethod}
+        data-generated-api-csrf-browser-probe-unsafe-path={browserCsrfProbeResult.unsafePath}
         data-generated-api-csrf-browser-probe-unsafe-credentials={browserCsrfProbeResult.unsafeCredentials}
         data-generated-api-csrf-browser-probe-unsafe-csrf-header={browserCsrfProbeResult.unsafeCsrfHeader}
         data-generated-api-csrf-browser-probe-unsafe-idempotency-key={browserCsrfProbeResult.unsafeIdempotencyKey}
         data-generated-api-csrf-browser-probe-unsafe-operation-count={browserCsrfProbeResult.unsafeOperationCount}
         data-generated-api-csrf-browser-probe-unsafe-covered-operations={browserCsrfProbeResult.unsafeCoveredOperations}
+        data-generated-api-csrf-browser-probe-unsafe-path-contracts={browserCsrfProbeResult.unsafePathContracts}
         data-generated-api-csrf-browser-probe-unsafe-credentialed-request-count={browserCsrfProbeResult.unsafeCredentialedRequestCount}
         data-generated-api-csrf-browser-probe-unsafe-csrf-header-count={browserCsrfProbeResult.unsafeCsrfHeaderCount}
         data-generated-api-csrf-browser-probe-unsafe-idempotency-required-count={browserCsrfProbeResult.unsafeIdempotencyRequiredCount}
@@ -2491,10 +2526,12 @@ function AccountView({
         data-generated-api-csrf-browser-probe-unsafe-operation-contracts={browserCsrfProbeResult.unsafeOperationContracts}
         data-generated-api-csrf-browser-probe-safe-operation={browserCsrfProbeResult.safeOperation}
         data-generated-api-csrf-browser-probe-safe-method={browserCsrfProbeResult.safeMethod}
+        data-generated-api-csrf-browser-probe-safe-path={browserCsrfProbeResult.safePath}
         data-generated-api-csrf-browser-probe-safe-credentials={browserCsrfProbeResult.safeCredentials}
         data-generated-api-csrf-browser-probe-safe-csrf-header={browserCsrfProbeResult.safeCsrfHeader}
         data-generated-api-csrf-browser-probe-safe-operation-count={browserCsrfProbeResult.safeOperationCount}
         data-generated-api-csrf-browser-probe-safe-covered-operations={browserCsrfProbeResult.safeCoveredOperations}
+        data-generated-api-csrf-browser-probe-safe-path-contracts={browserCsrfProbeResult.safePathContracts}
         data-generated-api-csrf-browser-probe-safe-credentialed-request-count={browserCsrfProbeResult.safeCredentialedRequestCount}
         data-generated-api-csrf-browser-probe-safe-no-csrf-header-count={browserCsrfProbeResult.safeNoCsrfHeaderCount}
         data-generated-api-csrf-browser-probe-safe-operation-contracts={browserCsrfProbeResult.safeOperationContracts}

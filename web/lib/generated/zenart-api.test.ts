@@ -316,6 +316,22 @@ describe("generated web API client CSRF contract", () => {
     expect(routeSmokeEvidence.browserSmokeExpectedSafeRequestContracts).toEqual(
       generatedApiCsrfContract.browserSmoke.expectedSafeRequestContracts
     );
+    expect(generatedApiCsrfContract.browserSmoke.expectedUnsafePathContracts).toEqual(
+      generatedApiCsrfContract.unsafeRequestContracts.map(
+        (contract) => `${contract.operationId}:${contract.path}:${interpolateProbePath(contract.path)}`
+      )
+    );
+    expect(routeSmokeEvidence.browserSmokeExpectedUnsafePathContracts).toEqual(
+      generatedApiCsrfContract.browserSmoke.expectedUnsafePathContracts
+    );
+    expect(generatedApiCsrfContract.browserSmoke.expectedSafePathContracts).toEqual(
+      generatedApiCsrfContract.safeRequestContracts.map(
+        (contract) => `${contract.operationId}:${contract.path}:${interpolateProbePath(contract.path)}`
+      )
+    );
+    expect(routeSmokeEvidence.browserSmokeExpectedSafePathContracts).toEqual(
+      generatedApiCsrfContract.browserSmoke.expectedSafePathContracts
+    );
     expect(generatedApiCsrfContract.unsafeOperationCount).toBe(unsafeOperations.length);
     expect(generatedApiCsrfContract.safeOperationCount).toBe(safeOperations.length);
     expect(requestContractEvidence.unsafeOperationIds).toEqual(unsafeOperations);
@@ -502,6 +518,19 @@ describe("generated web API client CSRF contract", () => {
 
 const buildPathParams = (pathTemplate: string) =>
   Object.fromEntries(Array.from(pathTemplate.matchAll(/\{([^}]+)\}/g)).map(([, key]) => [key, `${key}-001`]));
+
+const probePathParams: Record<string, string> = {
+  project_id: "project-001",
+  chat_session_id: "chat-001",
+  workspace_id: "workspace-001",
+  task_id: "task-001",
+  candidate_set_id: "candidate-set-001",
+  package_id: "pkg-001",
+  export_id: "export-001"
+};
+
+const interpolateProbePath = (pathTemplate: string) =>
+  pathTemplate.replace(/\{([^}]+)\}/g, (_match, key: string) => probePathParams[key] ?? "missing");
 
 const generatedApiCsrfContractFromRouteSmoke = () => {
   const routeSmoke = generatedApiCsrfContract as unknown as {
