@@ -3642,6 +3642,44 @@ def require_ci_blocked_runtime_evidence(evidence_ref: str, check_id: str) -> Non
             )
 
 
+def ci_runtime_evidence_is_passable(check_id: str) -> bool:
+    required_paths = CI_RUNTIME_REQUIRED_EVIDENCE_PATHS[check_id]
+    if not all(path.exists() for path in required_paths):
+        return False
+    if not CI_WORKFLOW.exists():
+        return False
+
+    installed_workflow = CI_WORKFLOW.read_text(encoding="utf-8").lower()
+    required_workflow_tokens = {
+        "ci_installed_workflow": ("stage0-rev2", "playwright", "docker", "validate_stage0_rev2.py"),
+        "ci_gate_runtime_execution": ("stage0-rev2",),
+        "ci_playwright_smoke": ("playwright",),
+        "ci_docker_image_build": ("docker",),
+    }[check_id]
+    if not all(token in installed_workflow for token in required_workflow_tokens):
+        return False
+
+    pass_requirement = RUNTIME_PASS_REQUIREMENTS[("ci", check_id)]
+    for path in required_paths:
+        if path == CI_WORKFLOW:
+            continue
+        evidence = load_json_if_path(rel(path))
+        if not isinstance(evidence, dict):
+            return False
+        if evidence.get("environment") not in RUNTIME_PASS_FILE_ENVIRONMENTS["ci"]:
+            return False
+        if evidence.get("release_gate_check_id") != check_id:
+            return False
+        if evidence.get("status") not in RUNTIME_PASS_EVIDENCE_STATUS_VALUES:
+            return False
+        if runtime_evidence_preserved_blockers(evidence):
+            return False
+        combined = json.dumps(evidence, ensure_ascii=False).lower()
+        if not all(token in combined for token in pass_requirement["tokens"]):
+            return False
+    return True
+
+
 def gate_decision_required_blocker_paths(
     gate: str,
     blocked_check_ids: list[str],
@@ -8072,47 +8110,48 @@ def validate_release_gate_evidence() -> None:
         ci_checks["ci_draft_artifact_coverage"]["status"] == "pass",
         "CI draft artifact coverage must pass when ops CI draft evidence validates",
     )
-    if CI_WORKFLOW.exists():
+    ci_runtime_checklist_item_by_check = {
+        check_id: item
+        for item, check_ids in CI_RUNTIME_OPEN_CHECK_ITEMS.items()
+        for check_id in check_ids
+    }
+    for check_id in [
+        "ci_installed_workflow",
+        "ci_gate_runtime_execution",
+        "ci_playwright_smoke",
+        "ci_docker_image_build",
+    ]:
+        expected_status = "pass" if ci_runtime_evidence_is_passable(check_id) else "blocked"
         require(
-            ci_checks["ci_installed_workflow"]["status"] == "pass",
-            "CI installed workflow check must pass when .github workflow exists",
+            ci_checks[check_id]["status"] == expected_status,
+            f"CI release evidence {check_id} must be {expected_status} based on exact installed workflow/runtime evidence",
         )
-        require(
-            CI_WORKFLOW_REL in ci_checks["ci_installed_workflow"]["evidence_ref"],
-            f"CI installed workflow pass evidence must cite exact installed workflow path {CI_WORKFLOW_REL}",
-        )
-    else:
-        require(
-            ci_checks["ci_installed_workflow"]["status"] == "blocked",
-            "CI installed workflow check must stay blocked while .github workflow is absent",
-        )
-    require(
-        ci_checks["ci_gate_runtime_execution"]["status"] == "blocked",
-        "CI gate runtime execution must stay blocked until installed PR/main workflow evidence exists",
-    )
-    require(
-        ci_checks["ci_playwright_smoke"]["status"] == "blocked",
-        "CI Playwright smoke must stay blocked until installed PR/main runtime evidence exists",
-    )
-    require(
-        ci_checks["ci_docker_image_build"]["status"] == "blocked",
-        "CI Docker image build must stay blocked until installed PR/main runtime evidence exists",
-    )
+        checklist_item = ci_runtime_checklist_item_by_check[check_id]
+        if expected_status == "pass":
+            require(
+                checklist_item in blueprint_checked,
+                f"CI checklist item must close when exact runtime evidence is passable: {checklist_item}",
+            )
+        else:
+            require(
+                checklist_item in blueprint_unchecked,
+                f"CI checklist item must remain open until exact runtime evidence is passable: {checklist_item}",
+            )
     ci_do_not_launch = {condition_id: item["is_present"] for condition_id, item in ci_conditions.items()}
     require(
         ci_do_not_launch.get("ci_workflow_not_installed") is (not CI_WORKFLOW.exists()),
         "CI release evidence ci_workflow_not_installed must reflect installed workflow presence",
     )
     require(
-        ci_do_not_launch.get("ci_gate_not_executed_on_main") is True,
+        ci_do_not_launch.get("ci_gate_not_executed_on_main") is (not ci_runtime_evidence_is_passable("ci_gate_runtime_execution")),
         "CI release evidence must keep CI gate blocked until PR/main runtime execution exists",
     )
     require(
-        ci_do_not_launch.get("ci_playwright_smoke_missing") is True,
+        ci_do_not_launch.get("ci_playwright_smoke_missing") is (not ci_runtime_evidence_is_passable("ci_playwright_smoke")),
         "CI release evidence must keep Playwright smoke blocker active until runtime evidence exists",
     )
     require(
-        ci_do_not_launch.get("ci_docker_image_build_missing") is True,
+        ci_do_not_launch.get("ci_docker_image_build_missing") is (not ci_runtime_evidence_is_passable("ci_docker_image_build")),
         "CI release evidence must keep Docker image build blocker active until runtime evidence exists",
     )
 
@@ -9351,6 +9390,8 @@ def validate_launch_readiness_split_contracts() -> None:
         "If a Do-Not-Launch condition is active, every matching concrete evidence row for that blocker must stay unchecked",
         "active Do-Not-Launch condition has no visible open checklist row in Section 25",
         "Active CI Do-Not-Launch condition evidence refs must name the exact installed-workflow/runtime file they are waiting on",
+        "CI runtime checklist rows and release-gate checks cannot remain open/blocked after exact installed-workflow/runtime evidence becomes passable",
+        "each exact `ops/evidence/ci/*.json` runtime file must declare `environment=ci`",
         "ops/evidence/ci/stage0-rev2-pr-main-run.json",
         "ops/evidence/ci/stage0-rev2-playwright-smoke.json",
         "ops/evidence/ci/stage0-rev2-docker-image-build.json",
