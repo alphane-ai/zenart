@@ -149,6 +149,38 @@ describe("dev workspace contracts", () => {
       manifestRequiredOutputCount: 6,
       requiredOutputCount: 6,
       missingRequiredOutputs: [],
+      manifestOutputStatuses: [
+        {
+          name: "manifest.json",
+          zipPayloadName: "manifest.json",
+          present: true
+        },
+        {
+          name: "qa-report.json",
+          zipPayloadName: "qa-report.json",
+          present: true
+        },
+        {
+          name: "safety-policy-report.json",
+          zipPayloadName: "safety-policy-report.json",
+          present: true
+        },
+        {
+          name: "provenance.json",
+          zipPayloadName: "provenance.json",
+          present: true
+        },
+        {
+          name: "ppt-ready-metadata.json",
+          zipPayloadName: "ppt-ready-metadata.json",
+          present: true
+        },
+        {
+          name: "assets/",
+          zipPayloadName: "assets/README.txt",
+          present: true
+        }
+      ],
       itemCount: 2,
       itemTypes: ["candidate", "reference"],
       provenanceCount: 2,
@@ -181,6 +213,32 @@ describe("dev workspace contracts", () => {
         "assets/README.txt"
       ],
       requiredZipPayloadCount: 6,
+      requiredZipPayloadStatuses: [
+        {
+          name: "manifest.json",
+          present: true
+        },
+        {
+          name: "qa-report.json",
+          present: true
+        },
+        {
+          name: "safety-policy-report.json",
+          present: true
+        },
+        {
+          name: "provenance.json",
+          present: true
+        },
+        {
+          name: "ppt-ready-metadata.json",
+          present: true
+        },
+        {
+          name: "assets/README.txt",
+          present: true
+        }
+      ],
       zipPayloadParityStatus: "pass",
       zipPayloadParityRatio: "6/6",
       missingZipPayloadNames: [],
@@ -189,6 +247,7 @@ describe("dev workspace contracts", () => {
       workflowStrategyTaxonomyCount: 0,
       workflowRequiredFileCount: 0,
       workflowZipPayloadCount: 0,
+      workflowPayloadStatuses: [],
       workflowMetadataPayloadPresent: false,
       workflowTraceProvenancePayloadPresent: false,
       workflowProviderMetadataPresent: false,

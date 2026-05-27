@@ -1107,6 +1107,33 @@ function ExportView({
                         ? ` Missing ${[...metadataEvidence.missingRequiredOutputs, ...metadataEvidence.missingZipPayloadNames].join(", ")}.`
                         : " All required metadata outputs are present."}
                     </p>
+                    <div className="payload-status-groups" aria-label="Package export payload status matrix">
+                      <PayloadStatusList
+                        title="Manifest outputs"
+                        items={metadataEvidence.manifestOutputStatuses.map((item) => ({
+                          name: item.name,
+                          detail: item.zipPayloadName,
+                          present: item.present
+                        }))}
+                        dataKind="manifest-output"
+                      />
+                      <PayloadStatusList
+                        title="Required ZIP payloads"
+                        items={metadataEvidence.requiredZipPayloadStatuses.map((item) => ({
+                          name: item.name,
+                          present: item.present
+                        }))}
+                        dataKind="required-zip-payload"
+                      />
+                      <PayloadStatusList
+                        title="Workflow payloads"
+                        items={metadataEvidence.workflowPayloadStatuses.map((item) => ({
+                          name: item.name,
+                          present: item.present
+                        }))}
+                        dataKind="workflow-payload"
+                      />
+                    </div>
                   </section>
                 ) : null}
                 {zipPayloadSmoke ? (
@@ -1359,6 +1386,45 @@ function ShareLinkState({
         <Link2 size={15} aria-hidden="true" />
         Request Share
       </button>
+    </div>
+  );
+}
+
+function PayloadStatusList({
+  title,
+  items,
+  dataKind
+}: {
+  title: string;
+  items: Array<{
+    name: string;
+    detail?: string;
+    present: boolean;
+  }>;
+  dataKind: "manifest-output" | "required-zip-payload" | "workflow-payload";
+}) {
+  return (
+    <div className="payload-status-list" data-payload-status-kind={dataKind}>
+      <strong>{title}</strong>
+      {items.length > 0 ? (
+        <ul>
+          {items.map((item) => (
+            <li
+              key={`${dataKind}-${item.name}`}
+              data-package-export-payload-row={dataKind}
+              data-package-export-payload-name={item.name}
+              data-package-export-payload-present={String(item.present)}
+              data-package-export-payload-zip-name={item.detail ?? item.name}
+            >
+              <span className={item.present ? "qa-pass" : "qa-block"}>{item.present ? "present" : "missing"}</span>
+              <span>{item.name}</span>
+              {item.detail && item.detail !== item.name ? <small>{item.detail}</small> : null}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p>No workflow-specific payloads declared.</p>
+      )}
     </div>
   );
 }

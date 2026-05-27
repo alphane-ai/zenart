@@ -610,6 +610,13 @@ for (const requiredSnippet of [
   "data-package-export-workflow-prompt-spec-metadata-present",
   "data-package-export-workflow-skill-metadata-present",
   "data-package-export-workflow-safety-metadata-present",
+  "payload-status-groups",
+  "Package export payload status matrix",
+  "data-payload-status-kind",
+  "data-package-export-payload-row",
+  "data-package-export-payload-name",
+  "data-package-export-payload-present",
+  "data-package-export-payload-zip-name",
   "reference-upload-export-contract",
   "brief-upload-confirmation-evidence",
   "Brief upload confirmation runtime evidence",
@@ -950,14 +957,33 @@ for (const expectedPackageExportMetadataSnippet of [
   "requiredZipPayloadCount",
   "zipPayloadParityStatus",
   "zipPayloadParityRatio",
+  "manifestOutputStatuses",
+  "requiredZipPayloadStatuses",
+  "workflowPayloadStatuses",
   "data-package-export-required-zip-payload-count",
   "data-package-export-zip-payload-parity-status",
   "data-package-export-zip-payload-parity-ratio",
+  "data-package-export-payload-row",
+  "data-package-export-payload-name",
+  "data-package-export-payload-present",
+  "data-package-export-payload-zip-name",
   "required ZIP parity",
   "required payloads present"
 ]) {
   if (!componentSource.includes(expectedPackageExportMetadataSnippet) && !devStateSource.includes(expectedPackageExportMetadataSnippet)) {
     fail(`package/export metadata UI evidence missing ${expectedPackageExportMetadataSnippet}`);
+  }
+}
+
+for (const requiredPayloadRowAttribute of packageExportEvidence.requiredPayloadRowAttributes ?? []) {
+  if (!componentSource.includes(requiredPayloadRowAttribute)) {
+    fail(`package/export metadata payload row evidence missing ${requiredPayloadRowAttribute}`);
+  }
+}
+
+for (const requiredPayloadKind of packageExportEvidence.payloadStatusMatrix?.requiredKinds ?? []) {
+  if (!componentSource.includes(requiredPayloadKind)) {
+    fail(`package/export metadata payload status matrix missing ${requiredPayloadKind}`);
   }
 }
 

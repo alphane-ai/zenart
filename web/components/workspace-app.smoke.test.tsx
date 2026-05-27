@@ -278,6 +278,28 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(metadataEvidence?.getAttribute("data-package-export-required-zip-payloads")).toContain("manifest.json");
     expect(metadataEvidence?.getAttribute("data-package-export-required-zip-payloads")).toContain("assets/README.txt");
 
+    const payloadStatusMatrix = screen.getByLabelText("Package export payload status matrix");
+    expect(payloadStatusMatrix).toBeInTheDocument();
+    const payloadRows = within(payloadStatusMatrix).getAllByRole("listitem");
+    const rowKey = (kind: string, name: string) =>
+      payloadRows.find(
+        (row) =>
+          row.getAttribute("data-package-export-payload-row") === kind &&
+          row.getAttribute("data-package-export-payload-name") === name
+      );
+
+    expect(rowKey("manifest-output", "manifest.json")).toHaveAttribute("data-package-export-payload-present", "true");
+    expect(rowKey("manifest-output", "assets/")).toHaveAttribute("data-package-export-payload-zip-name", "assets/README.txt");
+    expect(rowKey("required-zip-payload", "safety-policy-report.json")).toHaveAttribute(
+      "data-package-export-payload-present",
+      "true"
+    );
+    expect(rowKey("workflow-payload", "metadata.json")).toHaveAttribute("data-package-export-payload-present", "true");
+    expect(rowKey("workflow-payload", "trace_provenance.json")).toHaveAttribute("data-package-export-payload-present", "true");
+    for (const row of payloadRows) {
+      expect(row).toHaveAttribute("data-package-export-payload-present", "true");
+    }
+
     const zipPayloadSmoke = container.querySelector(
       "[data-export-zip-payload-smoke='stage0.rev2.export-zip-payload-smoke']"
     );
@@ -733,6 +755,13 @@ describe("WorkspaceApp user route integration smoke", () => {
         "data-package-export-workflow-prompt-spec-taxonomy",
         "data-package-export-workflow-skill",
         "data-package-export-workflow-safety"
+      ]),
+      requiredPayloadRowAttributes: expect.arrayContaining([
+        "data-payload-status-kind",
+        "data-package-export-payload-row",
+        "data-package-export-payload-name",
+        "data-package-export-payload-present",
+        "data-package-export-payload-zip-name"
       ]),
       requiredPayloads: expect.arrayContaining([
         "manifest.json",

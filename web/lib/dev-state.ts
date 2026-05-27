@@ -544,6 +544,23 @@ export const buildPackageExportMetadataEvidence = (record: ExportRecord): Packag
   const workflowMetadataPayload = buildExportWorkflowMetadataPayload(record, "metadata.json");
   const requiredZipPayloadNames = [...requiredExportZipPayloadNames];
   const missingZipPayloadNames = requiredZipPayloadNames.filter((payloadName) => !zipPayloadNames.includes(payloadName));
+  const manifestOutputStatuses = record.manifest.required_outputs.map((outputName) => {
+    const zipPayloadName = toExportZipPayloadName(outputName);
+
+    return {
+      name: outputName,
+      zipPayloadName,
+      present: zipPayloadNames.includes(zipPayloadName)
+    };
+  });
+  const requiredZipPayloadStatuses = requiredZipPayloadNames.map((payloadName) => ({
+    name: payloadName,
+    present: zipPayloadNames.includes(payloadName)
+  }));
+  const workflowPayloadStatuses = record.manifest.workflow_acceptance?.required_files.map((payloadName) => ({
+    name: payloadName,
+    present: zipPayloadNames.includes(payloadName)
+  })) ?? [];
   const workflowZipPayloadCount = record.manifest.workflow_acceptance?.required_files.filter((payloadName) =>
     zipPayloadNames.includes(payloadName)
   ).length ?? 0;
@@ -599,6 +616,7 @@ export const buildPackageExportMetadataEvidence = (record: ExportRecord): Packag
     manifestRequiredOutputCount: record.manifest.required_outputs.length,
     requiredOutputCount: record.manifest.required_outputs.length,
     missingRequiredOutputs,
+    manifestOutputStatuses,
     itemCount: record.manifest.items.length,
     itemTypes: Array.from(new Set(record.manifest.items.map((item) => item.type))),
     provenanceCount,
@@ -622,6 +640,7 @@ export const buildPackageExportMetadataEvidence = (record: ExportRecord): Packag
     zipPayloadNames,
     requiredZipPayloadNames,
     requiredZipPayloadCount: requiredZipPayloadNames.length,
+    requiredZipPayloadStatuses,
     zipPayloadParityStatus: missingZipPayloadNames.length === 0 ? "pass" : "fail",
     zipPayloadParityRatio: `${requiredZipPayloadNames.length - missingZipPayloadNames.length}/${requiredZipPayloadNames.length}`,
     missingZipPayloadNames,
@@ -630,6 +649,7 @@ export const buildPackageExportMetadataEvidence = (record: ExportRecord): Packag
     workflowStrategyTaxonomyCount: record.manifest.workflow_acceptance?.strategy_taxonomy.length ?? 0,
     workflowRequiredFileCount: record.manifest.workflow_acceptance?.required_files.length ?? 0,
     workflowZipPayloadCount,
+    workflowPayloadStatuses,
     workflowMetadataPayloadPresent,
     workflowTraceProvenancePayloadPresent,
     workflowProviderMetadataPresent,

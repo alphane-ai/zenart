@@ -417,6 +417,11 @@ export interface PackageExportMetadataEvidence {
   manifestRequiredOutputCount: number;
   requiredOutputCount: number;
   missingRequiredOutputs: string[];
+  manifestOutputStatuses: Array<{
+    name: string;
+    zipPayloadName: string;
+    present: boolean;
+  }>;
   itemCount: number;
   itemTypes: PackageItem["type"][];
   provenanceCount: number;
@@ -435,6 +440,10 @@ export interface PackageExportMetadataEvidence {
   zipPayloadNames: string[];
   requiredZipPayloadNames: string[];
   requiredZipPayloadCount: number;
+  requiredZipPayloadStatuses: Array<{
+    name: string;
+    present: boolean;
+  }>;
   zipPayloadParityStatus: "pass" | "fail";
   zipPayloadParityRatio: string;
   missingZipPayloadNames: string[];
@@ -443,6 +452,10 @@ export interface PackageExportMetadataEvidence {
   workflowStrategyTaxonomyCount: number;
   workflowRequiredFileCount: number;
   workflowZipPayloadCount: number;
+  workflowPayloadStatuses: Array<{
+    name: string;
+    present: boolean;
+  }>;
   workflowMetadataPayloadPresent: boolean;
   workflowTraceProvenancePayloadPresent: boolean;
   workflowProviderMetadataPresent: boolean;
