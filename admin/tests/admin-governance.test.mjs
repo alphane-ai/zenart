@@ -184,6 +184,7 @@ const parseCrawlerRuntime = () => {
   const runtimeSource = crawlerRuntimeSource
     .replace(/^import type[\s\S]*?from "@\/lib\/types";\n\n/, "")
     .replaceAll(/export function (\w+)/g, "function $1")
+    .replaceAll(/function isConcreteRequiredEvidence\(ref: string\)/g, "function isConcreteRequiredEvidence(ref)")
     .replaceAll(/: CrawlerGovernanceRuntimeDecision\[\]/g, "")
     .replaceAll(/: CrawlerGovernanceWorkflow\[\]/g, "")
     .replaceAll(/: CrawlerGovernanceWorkflow\["requestType"\]/g, "")
@@ -823,6 +824,10 @@ test("admin bad samples convert into regression fixtures before release gates pa
   assert.ok(
     crawlerTakedownFixture.expected_assertions.includes("requester_notice_evidence_present == true"),
     "crawler takedown regression must require requester notice evidence"
+  );
+  assert.ok(
+    crawlerTakedownFixture.expected_assertions.includes("pending_placeholder_refs_do_not_satisfy_required_evidence == true"),
+    "crawler takedown regression must reject pending placeholder refs as required evidence"
   );
   assert.ok(
     crawlerTakedownFixture.expected_assertions.includes("second_review_completed_before_activation == true"),
@@ -4884,6 +4889,17 @@ test("crawler governance runtime decisions gate takedown closure and activation"
   const takedownDecision = decisionsByWorkflow.get("cg-501");
   assert.equal(takedownDecision.closureDecision, "blocked", "open takedown with pending evidence must block closure");
   assert.equal(takedownDecision.activationDecision, "block_activation", "open takedown must block activation");
+  const takedownFixture = JSON.parse(readFileSync(new URL("fixtures/stage0/rev2/regressions/crawler_takedown_sup_2212.json", repoRoot), "utf8"));
+  assert.equal(takedownFixture.runtime_contract.closure_decision, takedownDecision.closureDecision);
+  assert.equal(takedownFixture.runtime_contract.activation_decision, takedownDecision.activationDecision);
+  assert.equal(takedownFixture.runtime_contract.required_evidence_status, takedownDecision.requiredEvidenceStatus);
+  assert.deepEqual(
+    takedownFixture.runtime_contract.missing_required_evidence_refs,
+    takedownDecision.missingRequiredEvidenceRefs
+  );
+  for (const blockerCode of takedownFixture.runtime_contract.blocker_codes) {
+    assert.ok(takedownDecision.blockerCodes.includes(blockerCode), `open takedown must include fixture blocker ${blockerCode}`);
+  }
   assert.equal(takedownDecision.deletionEvidenceStatus, "pending", "open takedown must expose pending deletion evidence");
   assert.equal(takedownDecision.requesterNoticeStatus, "pending", "open takedown must expose pending requester notice");
   assert.ok(
@@ -4911,6 +4927,20 @@ test("crawler governance runtime decisions gate takedown closure and activation"
   );
   assert.ok(takedownDecision.blockerCodes.includes("deletion_evidence_pending"), "open takedown needs deletion blocker");
   assert.ok(takedownDecision.blockerCodes.includes("requester_notice_pending"), "open takedown needs notice blocker");
+  assert.equal(
+    takedownDecision.requiredEvidenceStatus,
+    "missing",
+    "open takedown cannot treat pending placeholder refs as complete required evidence"
+  );
+  assert.deepEqual(
+    takedownDecision.missingRequiredEvidenceRefs,
+    ["pending-raw-derivative-delete-cs-21", "pending-rights-owner-notice-ip-7001"],
+    "open takedown must expose unresolved deletion and requester-notice placeholders as missing evidence"
+  );
+  assert.ok(
+    takedownDecision.blockerCodes.includes("required_evidence_missing"),
+    "open takedown pending placeholder refs need a required evidence blocker"
+  );
   assert.ok(takedownDecision.blockerCodes.includes("second_review_open"), "open takedown needs second-review blocker");
   assert.equal(takedownDecision.deadlineStatus, "expired", "open takedown past due must expose expired deadline status");
   assert.ok(takedownDecision.blockerCodes.includes("deadline_expired"), "open takedown past due needs deadline blocker");
@@ -4957,6 +4987,12 @@ test("crawler governance runtime decisions gate takedown closure and activation"
   assert.equal(retentionDecision.activationDecision, "block_activation", "pending raw retention delete must block activation");
   assert.ok(retentionDecision.blockerCodes.includes("deletion_evidence_pending"), "pending retention delete needs deletion blocker");
   assert.ok(retentionDecision.blockerCodes.includes("requester_notice_pending"), "pending retention delete needs notice blocker");
+  assert.equal(retentionDecision.requiredEvidenceStatus, "missing", "pending retention delete cannot close from placeholder refs");
+  assert.deepEqual(
+    retentionDecision.missingRequiredEvidenceRefs,
+    ["pending-raw-delete-cs-18", "pending-crawler-ops-notice-cg-533"],
+    "pending retention delete must name unresolved deletion and notice placeholder refs"
+  );
   assert.equal(retentionDecision.deadlineStatus, "within_window", "pending retention delete should expose active deadline window");
 
   const rejectedSecondReviewDecision = buildCrawlerGovernanceRuntimeDecisions([
@@ -5047,8 +5083,13 @@ test("crawler governance runtime decisions gate takedown closure and activation"
   );
   assert.deepEqual(
     missingRequiredEvidenceDecision.missingRequiredEvidenceRefs,
-    ["raw-derivative-delete-cs-21-complete", "rights-owner-notice-ip-7001-complete"],
-    "runtime must name the missing deletion and requester-notice refs"
+    [
+      "pending-raw-derivative-delete-cs-21",
+      "pending-rights-owner-notice-ip-7001",
+      "raw-derivative-delete-cs-21-complete",
+      "rights-owner-notice-ip-7001-complete"
+    ],
+    "runtime must name stale pending placeholders and the newly attached refs missing from required evidence"
   );
   assert.ok(
     missingRequiredEvidenceDecision.blockerCodes.includes("required_evidence_missing"),
@@ -5062,8 +5103,19 @@ test("crawler governance runtime decisions gate takedown closure and activation"
     assert.equal(decision.requestType, workflow.requestType, `${workflow.id} must preserve request type`);
     assert.equal(decision.auditRef, workflow.auditRef, `${workflow.id} must preserve audit ref`);
     assert.deepEqual(decision.requiredEvidenceRefs, workflow.requiredEvidenceRefs, `${workflow.id} must preserve required evidence refs`);
-    assert.equal(decision.requiredEvidenceStatus, "complete", `${workflow.id} fixture evidence refs should be complete`);
-    assert.deepEqual(decision.missingRequiredEvidenceRefs, [], `${workflow.id} fixture should not miss required evidence refs`);
+    if (
+      workflow.requiredEvidenceRefs.some((ref) => ref === "pending" || ref.startsWith("pending-") || ref.trim().length === 0)
+    ) {
+      assert.equal(decision.requiredEvidenceStatus, "missing", `${workflow.id} pending placeholder refs must keep required evidence incomplete`);
+      assert.ok(
+        decision.missingRequiredEvidenceRefs.every((ref) => ref === "pending" || ref.startsWith("pending-")),
+        `${workflow.id} missing required evidence must name pending placeholder refs`
+      );
+      assert.ok(decision.blockerCodes.includes("required_evidence_missing"), `${workflow.id} needs required-evidence blocker`);
+    } else {
+      assert.equal(decision.requiredEvidenceStatus, "complete", `${workflow.id} fixture evidence refs should be complete`);
+      assert.deepEqual(decision.missingRequiredEvidenceRefs, [], `${workflow.id} fixture should not miss required evidence refs`);
+    }
     assert.ok(decision.operatorAction.length > 80, `${workflow.id} needs executable operator action`);
     assert.ok(decision.closureEvidenceChecklist.length >= 7, `${workflow.id} needs full closure checklist evidence`);
     assert.ok(decision.closureEvidenceChecklist.some((item) => item.startsWith("audit:")), `${workflow.id} checklist must include audit status`);

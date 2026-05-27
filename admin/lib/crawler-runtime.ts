@@ -4,6 +4,10 @@ function isPendingEvidence(ref: string) {
   return ref === "pending" || ref.startsWith("pending-") || ref.trim().length === 0;
 }
 
+function isConcreteRequiredEvidence(ref: string) {
+  return !isPendingEvidence(ref) && !ref.startsWith("not_required");
+}
+
 export function buildCrawlerGovernanceRuntimeDecisions(
   workflows: CrawlerGovernanceWorkflow[],
   now = new Date("2026-05-26T12:00:00Z")
@@ -18,10 +22,15 @@ export function buildCrawlerGovernanceRuntimeDecisions(
       workflow.auditRef,
       workflow.deletionEvidenceRef,
       workflow.requesterNoticeRef
-    ].filter((ref) => !isPendingEvidence(ref) && !ref.startsWith("not_required")));
-    const missingRequiredEvidenceRefs = [...expectedEvidenceRefs].filter(
+    ].filter(isConcreteRequiredEvidence));
+    const missingConcreteEvidenceRefs = [...expectedEvidenceRefs].filter(
       (ref) => !workflow.requiredEvidenceRefs.includes(ref)
     );
+    const unresolvedRequiredEvidenceRefs = workflow.requiredEvidenceRefs.filter(isPendingEvidence);
+    const missingRequiredEvidenceRefs = [
+      ...unresolvedRequiredEvidenceRefs,
+      ...missingConcreteEvidenceRefs.filter((ref) => !unresolvedRequiredEvidenceRefs.includes(ref))
+    ];
     const requiredEvidenceStatus = missingRequiredEvidenceRefs.length === 0 ? "complete" : "missing";
     const dueAt = Date.parse(`${workflow.dueAt.replace(" ", "T")}Z`);
     const deadlineStatus =

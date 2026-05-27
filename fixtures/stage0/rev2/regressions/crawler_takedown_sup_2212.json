@@ -11,6 +11,7 @@
     "activation_gate_decision == blocked",
     "raw_and_derivative_delete_evidence_present == true",
     "requester_notice_evidence_present == true",
+    "pending_placeholder_refs_do_not_satisfy_required_evidence == true",
     "second_review_completed_before_activation == true",
     "immutable_audit_ref == au-012"
   ],
@@ -21,6 +22,22 @@
     "source_approval_id": "csa-021",
     "signal": "Crawler import pause and rights-owner takedown must not allow crawler-derived prompt activation until deletion, notice, and second-review evidence are complete.",
     "admin_label": "crawler_takedown_activation_block"
+  },
+  "runtime_contract": {
+    "closure_decision": "blocked",
+    "activation_decision": "block_activation",
+    "required_evidence_status": "missing",
+    "missing_required_evidence_refs": [
+      "pending-raw-derivative-delete-cs-21",
+      "pending-rights-owner-notice-ip-7001"
+    ],
+    "blocker_codes": [
+      "deletion_evidence_pending",
+      "requester_notice_pending",
+      "required_evidence_missing",
+      "second_review_open",
+      "deadline_expired"
+    ]
   },
   "release_block": {
     "canary_metric": "cm-014",
