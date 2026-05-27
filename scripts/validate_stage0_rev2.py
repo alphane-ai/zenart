@@ -1769,6 +1769,67 @@ RELEASE_GATE_OPEN_ITEM_GUARD_CHECKS = {
     },
 }
 
+ACTIVE_CONDITION_CHECKLIST_BLOCKER_ITEMS = {
+    ("ci", "ci_workflow_not_installed"): {
+        "添加 PR/main CI 到 `.github/workflows`。（token-blocked：当前 token 缺 workflow scope；draft/evidence 已落在 `ops/ci/` 和 `fixtures/ops/`。）",
+        "CI installed workflow file evidence 通过：`.github/workflows/stage0-rev2-ci.yml` 存在且被 release gate fixture 引用。",
+    },
+    ("ci", "ci_gate_not_executed_on_main"): {
+        "CI installed workflow runtime evidence 通过：PR/main run、Playwright smoke、Docker image build 均有 validator-resolvable evidence。",
+        "CI PR/main workflow run evidence 通过：已安装 workflow 的 PR/main run 结果写入 `ops/evidence/ci/`。",
+    },
+    ("ci", "ci_playwright_smoke_missing"): {
+        "CI 在已安装 PR/main workflow 中运行 Playwright smoke。",
+        "CI Playwright smoke runtime evidence 通过：已安装 PR/main workflow 运行 Playwright smoke 并写入 `ops/evidence/ci/`。",
+    },
+    ("ci", "ci_docker_image_build_missing"): {
+        "CI 在已安装 PR/main workflow 中 build Docker images。",
+        "CI Docker image build runtime evidence 通过：已安装 PR/main workflow build Docker images 并写入 `ops/evidence/ci/`。",
+    },
+    ("private_beta_staging", "object_storage_signed_retention_runtime_missing"): {
+        "Private Beta/Staging external-user runtime evidence 通过：auth/RBAC/tenant、storage、quota/rate limit、support/abuse、safety/QA/crawler、observability/backup/load、legal visibility 均有 staging evidence。",
+        "Private Beta/Staging object storage signed download/retention runtime evidence 通过。",
+        "Private Beta/Staging object retention/cleanup runtime evidence 通过：staging evidence proves retention policy, expired export cleanup, orphan cleanup, and audit refs under `ops/evidence/staging/`。",
+    },
+    ("production_launch", "dev_mock_provider_public_claims_unresolved"): {
+        "Production Launch runtime/deployment evidence 通过：provider-or-comp-only、paid lifecycle、skill canary、activation audit、abuse hold、security、backup/rollback/post-deploy smoke、legal/support policy 均有 production evidence。",
+        "Production provider-or-comp-only runtime/deployment evidence 通过。",
+        "Production provider mode deployment evidence 通过：production evidence proves either real provider contract/monitoring/cost/staging verification or explicit invite/comp-only mode under `ops/evidence/production/`。",
+        "Production public paid/real-generation claims evidence 通过：production evidence proves paid and real-generation claims are enabled only with real provider evidence, or hidden for invite/comp-only mode under `ops/evidence/production/`。",
+    },
+    ("production_launch", "real_provider_or_comp_only_mode_missing"): {
+        "Production Launch runtime/deployment evidence 通过：provider-or-comp-only、paid lifecycle、skill canary、activation audit、abuse hold、security、backup/rollback/post-deploy smoke、legal/support policy 均有 production evidence。",
+        "Production provider-or-comp-only runtime/deployment evidence 通过。",
+        "Production provider mode deployment evidence 通过：production evidence proves either real provider contract/monitoring/cost/staging verification or explicit invite/comp-only mode under `ops/evidence/production/`。",
+        "Production public paid/real-generation claims evidence 通过：production evidence proves paid and real-generation claims are enabled only with real provider evidence, or hidden for invite/comp-only mode under `ops/evidence/production/`。",
+    },
+    ("production_launch", "paid_billing_or_comp_only_mode_missing"): {
+        "Production Launch runtime/deployment evidence 通过：provider-or-comp-only、paid lifecycle、skill canary、activation audit、abuse hold、security、backup/rollback/post-deploy smoke、legal/support policy 均有 production evidence。",
+        "Production paid billing lifecycle runtime/deployment evidence 通过。",
+        "Production checkout/subscription/cancellation/past_due runtime evidence 通过 under `ops/evidence/production/`。",
+        "Production refund/credit/quota reset/webhook idempotency runtime evidence 通过 under `ops/evidence/production/`。",
+    },
+    ("production_launch", "backup_restore_rollback_smoke_missing"): {
+        "Production Launch runtime/deployment evidence 通过：provider-or-comp-only、paid lifecycle、skill canary、activation audit、abuse hold、security、backup/rollback/post-deploy smoke、legal/support policy 均有 production evidence。",
+        "Production backup/rollback/incident/post-deploy smoke runtime/deployment evidence 通过。",
+        "Production backup/restore runtime evidence 通过：production evidence proves backup schedule, Postgres restore, object restore, RPO/RTO, and audit refs under `ops/evidence/production/`。",
+    },
+    ("production_launch", "production_deploy_rollback_smoke_missing"): {
+        "Production Launch runtime/deployment evidence 通过：provider-or-comp-only、paid lifecycle、skill canary、activation audit、abuse hold、security、backup/rollback/post-deploy smoke、legal/support policy 均有 production evidence。",
+        "Production backup/rollback/incident/post-deploy smoke runtime/deployment evidence 通过。",
+        "Production rollback/incident/post-deploy smoke runtime evidence 通过：production evidence proves rollback drill, incident/alert path, migration compatibility, and post-deploy smoke under `ops/evidence/production/`。",
+        PRODUCTION_POST_DEPLOY_LAUNCH_CLEARING_CHECKLIST_ITEM,
+    },
+    ("production_launch", "ci_staging_gates_not_passed"): {
+        "CI Gate 全部通过。",
+        "Private Beta/Staging Gate 全部通过。",
+        "Production Launch Gate 全部通过。",
+        "Production Launch runtime/deployment evidence 通过：provider-or-comp-only、paid lifecycle、skill canary、activation audit、abuse hold、security、backup/rollback/post-deploy smoke、legal/support policy 均有 production evidence。",
+        "Production backup/rollback/incident/post-deploy smoke runtime/deployment evidence 通过。",
+        PRODUCTION_POST_DEPLOY_LAUNCH_CLEARING_CHECKLIST_ITEM,
+    },
+}
+
 SCHEMA_FIXTURE_TARGETS = [
     ("activation_gate_contract.schema.json", FIXTURE_DIR / "eval" / "activation_gate_contract.json", "object"),
     ("analytics_taxonomy.schema.json", FIXTURE_DIR / "analytics" / "event_taxonomy.json", "object"),
@@ -4228,6 +4289,59 @@ def validate_no_go_condition_visibility(data: dict[str, Any]) -> None:
         require(
             condition_id in RELEASE_GATE_REQUIRED_ACTIVE_CONDITIONS[gate],
             f"{gate}.{condition_id} is active but is not an allowed launch-blocking condition",
+        )
+
+
+def validate_active_condition_checklist_visibility(
+    evidence: dict[str, dict[str, Any]],
+    checked_lines: set[str],
+    unchecked_lines: set[str],
+) -> None:
+    for gate in {"ci", "private_beta_staging", "production_launch"}:
+        active_condition_ids = {
+            condition["condition_id"]
+            for condition in evidence[gate]["do_not_launch_checks"]
+            if condition["is_present"]
+        }
+        mapped_condition_ids = {
+            condition_id
+            for mapped_gate, condition_id in ACTIVE_CONDITION_CHECKLIST_BLOCKER_ITEMS
+            if mapped_gate == gate
+        }
+        unmapped_active_conditions = active_condition_ids - mapped_condition_ids
+        require(
+            not unmapped_active_conditions,
+            f"{gate} active Do-Not-Launch conditions must have validator-owned checklist blocker rows: "
+            + json.dumps(sorted(unmapped_active_conditions), ensure_ascii=False),
+        )
+
+    for (gate, condition_id), blocker_items in ACTIVE_CONDITION_CHECKLIST_BLOCKER_ITEMS.items():
+        conditions = do_not_launch_by_id(evidence[gate])
+        require(
+            condition_id in conditions,
+            f"{gate}.{condition_id} active-condition checklist guard references unknown condition",
+        )
+        missing_items = [
+            item
+            for item in sorted(blocker_items)
+            if item not in checked_lines and item not in unchecked_lines
+        ]
+        require(
+            not missing_items,
+            f"{gate}.{condition_id} active-condition checklist guard references missing blueprint rows: "
+            + json.dumps(missing_items, ensure_ascii=False),
+        )
+        if not conditions[condition_id]["is_present"]:
+            continue
+        hidden_by_checked_items = sorted(blocker_items & checked_lines)
+        require(
+            not hidden_by_checked_items,
+            f"{gate}.{condition_id} is active but matching launch-readiness checklist rows are checked: "
+            + json.dumps(hidden_by_checked_items, ensure_ascii=False),
+        )
+        require(
+            blocker_items & unchecked_lines,
+            f"{gate}.{condition_id} is active but no matching launch-readiness checklist row remains open",
         )
 
 
@@ -7683,6 +7797,11 @@ def validate_blueprint_checklist() -> None:
         checked_lines,
         unchecked_lines,
     )
+    validate_active_condition_checklist_visibility(
+        evidence,
+        checked_lines,
+        unchecked_lines,
+    )
     validate_split_checklist_item_evidence(
         checked_lines,
         unchecked_lines,
@@ -8715,6 +8834,12 @@ def validate_launch_readiness_split_contracts() -> None:
         "If a gate checklist item remains open, its release gate fixture must still contain at least one computed blocker",
         "CI, Private Beta/Staging, and Production gate fixtures may not be `no_go` with zero active Do-Not-Launch conditions",
         "Local Alpha may remain `no_go` with zero active Do-Not-Launch conditions only for local workflow runtime smoke",
+        "Active CI、Private Beta/Staging、Production Do-Not-Launch conditions must also map to validator-owned launch-readiness checklist rows that remain open",
+        "an active blocker cannot be hidden behind a checked or deleted checklist row",
+        "Every active CI、Private Beta/Staging、Production Do-Not-Launch condition must have a validator-owned checklist blocker mapping",
+        "unmapped active conditions are invalid even if their fixture evidence_ref names a missing artifact",
+        "If a Do-Not-Launch condition is active, every matching concrete evidence row for that blocker must stay unchecked",
+        "active Do-Not-Launch condition has no visible open checklist row in Section 25",
         "Passed runtime gate checks must cite exact validator-owned evidence files when the checklist subitem is closed by a named `ops/evidence` artifact",
         "Passed runtime evidence files must declare the expected environment",
         "must themselves have a passing status",
