@@ -95,6 +95,14 @@ STAGING_OBJECT_STORAGE_RETENTION_EVIDENCE = (
 STAGING_OBJECT_STORAGE_RETENTION_BLOCKED_EVIDENCE = (
     ROOT / "ops" / "evidence" / "staging" / "object-storage-retention-cleanup.blocked.json"
 )
+STAGING_OBJECT_STORAGE_RETENTION_RELEASE_BUNDLE_EVIDENCE = (
+    ROOT
+    / "ops"
+    / "evidence"
+    / "release"
+    / "staging"
+    / "stage0-rev2-current-release-evidence-bundle.object-storage-retention-cleanup.json"
+)
 STAGING_LEGAL_EXTERNAL_PAGES_EVIDENCE = (
     ROOT / "ops" / "evidence" / "staging" / "legal-pages-external-user.json"
 )
@@ -133,6 +141,9 @@ PRODUCTION_ROLLBACK_INCIDENT_SMOKE_EVIDENCE = (
 )
 PRODUCTION_BACKUP_ROLLBACK_INCIDENT_ADMIN_EVIDENCE = (
     ROOT / "ops" / "evidence" / "production" / "20260527T1800Z-backup-rollback-incident-smoke.json"
+)
+PRODUCTION_BACKUP_ROLLBACK_SPLIT_PREFLIGHT_EVIDENCE = (
+    ROOT / "ops" / "evidence" / "production" / "backup-rollback-split.blocked.json"
 )
 PRODUCTION_LEGAL_POLICY_EVIDENCE = (
     ROOT / "ops" / "evidence" / "production" / "public-legal-policy.json"
@@ -924,7 +935,9 @@ PARTIAL_RUNTIME_PASS_EVIDENCE_ALLOWLIST = {
 
 NON_CLOSURE_RUNTIME_EVIDENCE_FILES = {
     "ops/evidence/staging/object-storage-retention-cleanup.blocked.json",
+    "ops/evidence/release/staging/stage0-rev2-current-release-evidence-bundle.object-storage-retention-cleanup.json",
     "ops/evidence/production/20260527T1800Z-backup-rollback-incident-smoke.json",
+    "ops/evidence/production/backup-rollback-split.blocked.json",
 }
 
 NON_CLOSURE_RUNTIME_EVIDENCE_ALLOWED_CONTEXTS = {
@@ -938,6 +951,7 @@ NON_CLOSURE_RUNTIME_EVIDENCE_ALLOWED_CONTEXTS = {
         ),
         ("private_beta_staging", "decision", "gate_decision", "no_go"),
     },
+    "ops/evidence/release/staging/stage0-rev2-current-release-evidence-bundle.object-storage-retention-cleanup.json": set(),
     "ops/evidence/production/20260527T1800Z-backup-rollback-incident-smoke.json": {
         ("production_launch", "check", "production_backup_rollback_incident", "blocked"),
         (
@@ -954,6 +968,7 @@ NON_CLOSURE_RUNTIME_EVIDENCE_ALLOWED_CONTEXTS = {
         ),
         ("production_launch", "decision", "gate_decision", "no_go"),
     },
+    "ops/evidence/production/backup-rollback-split.blocked.json": set(),
 }
 
 RUNTIME_SPLIT_PASS_REQUIREMENTS = {
@@ -7441,6 +7456,75 @@ def validate_staging_object_storage_retention_cleanup_evidence() -> None:
                     "request_id_echoed" in result and "response_request_id_values" in result,
                     "blocked retention cleanup source results must expose response request-id echo fields",
                 )
+        if STAGING_OBJECT_STORAGE_RETENTION_RELEASE_BUNDLE_EVIDENCE.exists():
+            release_bundle_evidence = load_json(STAGING_OBJECT_STORAGE_RETENTION_RELEASE_BUNDLE_EVIDENCE)
+            require(
+                release_bundle_evidence["schema_version"] == "stage0.rev2.staging.object_storage_retention_cleanup",
+                "release-bundle retention cleanup evidence schema mismatch",
+            )
+            require(
+                release_bundle_evidence["environment"] == "staging",
+                "release-bundle retention cleanup evidence must be staging-scoped",
+            )
+            require(
+                release_bundle_evidence["kind"] == "object_storage_retention_cleanup",
+                "release-bundle retention cleanup evidence must declare kind=object_storage_retention_cleanup",
+            )
+            require(
+                release_bundle_evidence["status"] == "blocked",
+                "non-canonical release-bundle retention cleanup evidence must stay blocked",
+            )
+            require(
+                release_bundle_evidence["release_gate_check_id"] == "staging_object_storage_signed_downloads",
+                "release-bundle retention cleanup evidence must target the object-storage release-gate check",
+            )
+            require(
+                release_bundle_evidence["do_not_launch_condition_id"]
+                == "object_storage_signed_retention_runtime_missing",
+                "release-bundle retention cleanup evidence must preserve the object-storage Do-Not-Launch condition",
+            )
+            require(
+                release_bundle_evidence["results_path"].startswith("ops/evidence/release/staging/"),
+                "release-bundle retention cleanup evidence must remain non-canonical release evidence",
+            )
+            release_bundle_requirements = release_bundle_evidence["runtime_input_requirements"]
+            require(
+                release_bundle_requirements["canonical_pass_report"] == rel(STAGING_OBJECT_STORAGE_RETENTION_EVIDENCE),
+                "release-bundle retention cleanup evidence must name the canonical staging pass report",
+            )
+            require(
+                release_bundle_requirements["canonical_pass_results"]
+                == "ops/evidence/staging/object-storage-retention-cleanup.ndjson",
+                "release-bundle retention cleanup evidence must name the canonical staging pass NDJSON",
+            )
+            require(
+                "non-canonical paths are validation-only"
+                in release_bundle_requirements["pass_file_policy"],
+                "release-bundle retention cleanup evidence must declare non-canonical paths validation-only",
+            )
+            require(
+                release_bundle_evidence["split_evidence"]["canonical_pass_paths"] is False,
+                "release-bundle retention cleanup evidence must not claim canonical pass paths",
+            )
+            require(
+                release_bundle_evidence["split_evidence"]["retention_cleanup_runtime_ready"] is False,
+                "release-bundle retention cleanup evidence must not claim runtime readiness",
+            )
+            require(
+                release_bundle_evidence["gate_impact"]["can_clear_release_gate_check"] is False
+                and release_bundle_evidence["gate_impact"]["can_clear_retention_cleanup_checklist_item"] is False,
+                "release-bundle retention cleanup evidence must not clear object-storage release or checklist rows",
+            )
+            require(
+                release_bundle_evidence["gate_impact"]["preserved_release_gate_check_id"]
+                == "staging_object_storage_signed_downloads",
+                "release-bundle retention cleanup evidence must preserve the object-storage release-gate check",
+            )
+            require(
+                release_bundle_evidence["gate_impact"]["preserved_do_not_launch_condition_id"]
+                == "object_storage_signed_retention_runtime_missing",
+                "release-bundle retention cleanup evidence must preserve the object-storage Do-Not-Launch condition",
+            )
         return
 
     evidence = load_json(STAGING_OBJECT_STORAGE_RETENTION_EVIDENCE)
@@ -8586,6 +8670,86 @@ def validate_production_backup_rollback_incident_admin_evidence() -> None:
             "ops/evidence/production/20260527t1800z-backup-rollback-incident-smoke.json",
         ]:
             require(token in combined, f"{item['area']} production backup/rollback admin evidence missing {token}")
+
+
+def validate_production_backup_rollback_split_preflight_evidence() -> None:
+    evidence = load_json(PRODUCTION_BACKUP_ROLLBACK_SPLIT_PREFLIGHT_EVIDENCE)
+    require(
+        evidence["schema_version"] == "stage0.rev2.production.backup_rollback_split_preflight",
+        "production backup/rollback split preflight schema mismatch",
+    )
+    require(evidence["environment"] == "production", "production backup/rollback split preflight must be production-scoped")
+    require(
+        evidence["kind"] == "production_backup_rollback_split_preflight",
+        "production backup/rollback split preflight kind mismatch",
+    )
+    require(
+        evidence["status"] == "blocked_by_upstream_gates",
+        "production backup/rollback split preflight must preserve blocked_by_upstream_gates",
+    )
+    require(
+        evidence["release_gate_check_id"] == "production_backup_rollback_incident",
+        "production backup/rollback split preflight must target production_backup_rollback_incident",
+    )
+    require(
+        set(evidence["do_not_launch_condition_ids"])
+        == {
+            "backup_restore_rollback_smoke_missing",
+            "production_deploy_rollback_smoke_missing",
+            "ci_staging_gates_not_passed",
+        },
+        "production backup/rollback split preflight must preserve backup, deploy-smoke, and upstream blockers",
+    )
+    require(
+        PRODUCTION_BACKUP_ROLLBACK_INCIDENT_ADMIN_EVIDENCE.exists()
+        and evidence["admin_visible_probe"]["path"] == rel(PRODUCTION_BACKUP_ROLLBACK_INCIDENT_ADMIN_EVIDENCE)
+        and evidence["admin_visible_probe"]["required_status"] == "blocked_by_upstream_gates",
+        "production backup/rollback split preflight must point at the explicit admin-visible blocked probe",
+    )
+    gate_impact = evidence["gate_impact"]
+    require(
+        gate_impact["can_clear_release_gate_check"] is False
+        and gate_impact["can_clear_check_level_items"] is False,
+        "production backup/rollback split preflight must not clear production launch readiness",
+    )
+    require(
+        gate_impact["aggregate_production_gate_status"] == "blocked_by_upstream_or_missing_exact_split_evidence",
+        "production backup/rollback split preflight must keep aggregate production blocked",
+    )
+    require(
+        gate_impact["preserved_release_gate_check_id"] == "production_backup_rollback_incident",
+        "production backup/rollback split preflight must preserve production_backup_rollback_incident",
+    )
+    require(
+        set(gate_impact["preserved_do_not_launch_condition_ids"])
+        == set(evidence["do_not_launch_condition_ids"]),
+        "production backup/rollback split preflight must preserve matching Do-Not-Launch blockers",
+    )
+    require(
+        evidence["split_evidence"]["all_exact_split_files_ready"] is False,
+        "production backup/rollback split preflight must not claim all exact split files are ready",
+    )
+    required_split_paths = {
+        "backup_restore": rel(PRODUCTION_BACKUP_RESTORE_EVIDENCE),
+        "rollback_incident_post_deploy_smoke": rel(PRODUCTION_ROLLBACK_INCIDENT_SMOKE_EVIDENCE),
+    }
+    for split_id, path in required_split_paths.items():
+        split = evidence["split_evidence"][split_id]
+        require(split["path"] == path, f"production split preflight {split_id} path mismatch")
+        require(split["exists"] is False, f"production split preflight {split_id} must not claim missing exact file exists")
+        require(split["passed"] is False, f"production split preflight {split_id} must not claim pass")
+        require(split["status"] == "missing", f"production split preflight {split_id} must stay missing")
+        require(
+            repo_path(path).exists() is False,
+            f"production split preflight says {path} is missing but the file exists",
+        )
+    upstream = evidence["upstream_gates"]
+    require(upstream["ci_and_private_beta_ready"] is False, "production split preflight must keep upstream gates blocked")
+    require(
+        upstream["ci"]["gate_decision_status"] == "no_go"
+        and upstream["private_beta_staging"]["gate_decision_status"] == "no_go",
+        "production split preflight must require CI and Private Beta/Staging fixture decisions to be no_go",
+    )
 
 
 def validate_analytics_taxonomy() -> None:
@@ -10937,6 +11101,7 @@ def main() -> int:
         validate_production_security_launch_checks_evidence,
         validate_production_legal_support_policy_evidence,
         validate_production_backup_rollback_incident_admin_evidence,
+        validate_production_backup_rollback_split_preflight_evidence,
         validate_analytics_taxonomy,
         validate_local_alpha_presence,
         validate_release_gate_evidence,
