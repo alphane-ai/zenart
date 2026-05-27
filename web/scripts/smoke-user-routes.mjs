@@ -82,6 +82,7 @@ const referenceUploadEvidence = requireSecurityEvidence("stage0.rev2.reference-u
 const briefUploadConfirmationEvidence = requireSecurityEvidence("stage0.rev2.brief-upload-confirmation-runtime-evidence");
 const packageExportEvidence = requireSecurityEvidence("stage0.rev2.package-export-metadata-ui");
 const exportZipPayloadEvidence = requireSecurityEvidence("stage0.rev2.export-zip-payload-smoke");
+const exportDownloadParityEvidence = requireSecurityEvidence("stage0.rev2.export-download-parity-smoke");
 const workflowApiSmokeEvidence = requireSecurityEvidence("stage0.rev2.workflow-api-smoke");
 
 if (
@@ -513,6 +514,28 @@ for (const expectedSnippet of [
   }
 }
 
+if (
+  exportDownloadParityEvidence.expectedStatus !== "pass" ||
+  exportDownloadParityEvidence.expectedMetadataStatus !== "pass" ||
+  exportDownloadParityEvidence.expectedZipPayloadStatus !== "pass" ||
+  exportDownloadParityEvidence.expectedDownloadHandoffStatus !== "pass" ||
+  exportDownloadParityEvidence.expectedMissingPayloadCount !== "0" ||
+  exportDownloadParityEvidence.expectedPayloadsMatch !== "true" ||
+  exportDownloadParityEvidence.scenario !== "metadata-zip-smoke-download-handoff-parity"
+) {
+  fail("export download parity smoke must assert metadata, ZIP payload, and browser handoff parity");
+}
+for (const attribute of exportDownloadParityEvidence.requiredAttributes ?? []) {
+  if (!componentSource.includes(attribute)) {
+    fail(`export download parity smoke missing attribute ${attribute}`);
+  }
+}
+for (const sourceContract of exportDownloadParityEvidence.requiredSourceContracts ?? []) {
+  if (!componentSource.includes(sourceContract) && !devStateSource.includes(sourceContract)) {
+    fail(`export download parity smoke missing source contract ${sourceContract}`);
+  }
+}
+
 for (const route of artifact.routes) {
   if (!expectedViews.has(route.initialView)) {
     fail(`${route.path} has unsupported initialView ${route.initialView}`);
@@ -933,6 +956,7 @@ for (const expectedIntegration of [
   "zip-download-manifest-qa-provenance-assets",
   "zip-download-safety-policy-report",
   "export-zip-payload-smoke",
+  "export-download-parity-smoke",
   "package-export-metadata-ui-evidence",
   "ppt-ready-metadata-export-contract",
   "pdf-placeholder-download-contract",

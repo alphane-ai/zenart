@@ -323,6 +323,28 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(zipPayloadSmoke?.getAttribute("data-export-zip-payload-expected-payloads")).toContain("trace_provenance.json");
     expect(zipPayloadSmoke?.getAttribute("data-export-zip-payload-workflow-payloads")).toContain("assets/square_social_ad.png");
 
+    const downloadParity = screen.getByLabelText("Export download parity smoke");
+    expect(downloadParity).toHaveAttribute("data-export-download-parity-smoke", "stage0.rev2.export-download-parity-smoke");
+    expect(downloadParity).toHaveAttribute("data-export-download-parity-status", "pass");
+    expect(downloadParity).toHaveAttribute("data-export-download-parity-scenario", "metadata-zip-smoke-download-handoff-parity");
+    expect(downloadParity).toHaveAttribute("data-export-download-parity-export-id", "export-001");
+    expect(downloadParity).toHaveAttribute("data-export-download-parity-package-id", "pkg-002");
+    expect(downloadParity).toHaveAttribute("data-export-download-parity-file-name", "zenart-001.zip");
+    expect(downloadParity).toHaveAttribute("data-export-download-parity-format", "zip");
+    expect(downloadParity).toHaveAttribute("data-export-download-parity-metadata-status", "pass");
+    expect(downloadParity).toHaveAttribute("data-export-download-parity-zip-payload-status", "pass");
+    expect(downloadParity).toHaveAttribute("data-export-download-parity-handoff-status", "pass");
+    expect(downloadParity).toHaveAttribute("data-export-download-parity-manifest-output-count", "13");
+    expect(downloadParity).toHaveAttribute("data-export-download-parity-metadata-payload-count", "13");
+    expect(downloadParity).toHaveAttribute("data-export-download-parity-zip-expected-count", "13");
+    expect(downloadParity).toHaveAttribute("data-export-download-parity-metadata-missing-count", "0");
+    expect(downloadParity).toHaveAttribute("data-export-download-parity-zip-missing-count", "0");
+    expect(downloadParity).toHaveAttribute("data-export-download-parity-required-zip-status", "pass");
+    expect(downloadParity).toHaveAttribute("data-export-download-parity-payloads-match", "true");
+    expect(downloadParity).toHaveAttribute("data-export-download-parity-workflow-metadata-present", "true");
+    expect(downloadParity).toHaveAttribute("data-export-download-parity-trace-provenance-present", "true");
+    expect(downloadParity).toHaveAttribute("data-export-download-parity-failures", "");
+
     const downloadHandoff = screen.getByRole("button", { name: "Download" });
     expect(downloadHandoff).toHaveAttribute(
       "data-export-download-handoff",
@@ -788,6 +810,33 @@ describe("WorkspaceApp user route integration smoke", () => {
         "provenance.json",
         "ppt-ready-metadata.json",
         "assets/README.txt"
+      ])
+    });
+    expect(evidenceBySchema.get("stage0.rev2.export-download-parity-smoke")).toMatchObject({
+      route: "/export",
+      source: "web/components/workspace-app.tsx",
+      statusAttribute: "data-export-download-parity-status",
+      expectedStatus: "pass",
+      scenario: "metadata-zip-smoke-download-handoff-parity",
+      expectedMetadataStatus: "pass",
+      expectedZipPayloadStatus: "pass",
+      expectedDownloadHandoffStatus: "pass",
+      expectedMissingPayloadCount: "0",
+      expectedPayloadsMatch: "true",
+      requiredAttributes: expect.arrayContaining([
+        "data-export-download-parity-smoke",
+        "data-export-download-parity-export-id",
+        "data-export-download-parity-package-id",
+        "data-export-download-parity-file-name",
+        "data-export-download-parity-format",
+        "data-export-download-parity-metadata-status",
+        "data-export-download-parity-zip-payload-status",
+        "data-export-download-parity-handoff-status",
+        "data-export-download-parity-manifest-output-count",
+        "data-export-download-parity-metadata-payload-count",
+        "data-export-download-parity-zip-expected-count",
+        "data-export-download-parity-payloads-match",
+        "data-export-download-parity-failures"
       ])
     });
     expect(evidenceBySchema.get("stage0.rev2.export-zip-payload-smoke")).toMatchObject({

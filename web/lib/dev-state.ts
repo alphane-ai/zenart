@@ -1,6 +1,7 @@
 import {
   Candidate,
   BriefUploadConfirmationRuntimeEvidence,
+  ExportDownloadParityEvidence,
   ExportZipPayloadSmokeEvidence,
   ExportFormat,
   ExportRecord,
@@ -714,6 +715,90 @@ export const buildExportZipPayloadSmokeEvidence = (record: ExportRecord): Export
     metadataPayloadPresent,
     traceProvenancePayloadPresent,
     assetsPayloadPresent,
+    failures
+  };
+};
+
+export const buildExportDownloadParityEvidence = (
+  record: ExportRecord,
+  metadataEvidence = buildPackageExportMetadataEvidence(record),
+  zipPayloadSmoke = buildExportZipPayloadSmokeEvidence(record)
+): ExportDownloadParityEvidence => {
+  const downloadHandoffStatus =
+    record.status === "ready" &&
+    metadataEvidence.status === "pass" &&
+    metadataEvidence.downloadArtifactStatus === "pass" &&
+    zipPayloadSmoke.status === "pass"
+      ? "pass"
+      : "fail";
+  const metadataPayloadsMatchZipPayloads =
+    metadataEvidence.zipPayloadNames.length === zipPayloadSmoke.expectedPayloadNames.length &&
+    metadataEvidence.zipPayloadNames.every((payloadName) => zipPayloadSmoke.expectedPayloadNames.includes(payloadName));
+  const failures: ExportDownloadParityEvidence["failures"] = [];
+
+  if (metadataEvidence.exportId !== zipPayloadSmoke.exportId || metadataEvidence.exportId !== record.id) {
+    failures.push("export-id");
+  }
+  if (metadataEvidence.packageId !== zipPayloadSmoke.packageId || metadataEvidence.packageId !== record.manifest.package_id) {
+    failures.push("package-id");
+  }
+  if (!record.fileName.trim()) {
+    failures.push("file-name");
+  }
+  if (metadataEvidence.downloadArtifactFormat !== record.format) {
+    failures.push("format");
+  }
+  if (metadataEvidence.status !== "pass") {
+    failures.push("metadata-status");
+  }
+  if (zipPayloadSmoke.status !== "pass") {
+    failures.push("zip-payload-status");
+  }
+  if (downloadHandoffStatus !== "pass") {
+    failures.push("download-handoff-status");
+  }
+  if (metadataEvidence.manifestRequiredOutputCount !== zipPayloadSmoke.manifestRequiredOutputCount) {
+    failures.push("manifest-output-count");
+  }
+  if (metadataEvidence.zipPayloadCount !== zipPayloadSmoke.expectedPayloadCount) {
+    failures.push("payload-count");
+  }
+  if (metadataEvidence.missingZipPayloadNames.length !== 0 || zipPayloadSmoke.missingPayloadNames.length !== 0) {
+    failures.push("missing-payloads");
+  }
+  if (metadataEvidence.zipPayloadParityStatus !== "pass") {
+    failures.push("required-parity");
+  }
+  if (!metadataPayloadsMatchZipPayloads) {
+    failures.push("payload-list");
+  }
+  if (!metadataEvidence.workflowMetadataPayloadPresent || !zipPayloadSmoke.metadataPayloadPresent) {
+    failures.push("workflow-metadata");
+  }
+  if (!metadataEvidence.workflowTraceProvenancePayloadPresent || !zipPayloadSmoke.traceProvenancePayloadPresent) {
+    failures.push("trace-provenance");
+  }
+
+  return {
+    schema_version: "stage0.rev2.export-download-parity-smoke",
+    status: failures.length === 0 ? "pass" : "fail",
+    scenario: "metadata-zip-smoke-download-handoff-parity",
+    exportId: record.id,
+    packageId: record.manifest.package_id,
+    fileName: record.fileName,
+    format: record.format,
+    metadataStatus: metadataEvidence.status,
+    zipPayloadStatus: zipPayloadSmoke.status,
+    downloadHandoffStatus,
+    manifestRequiredOutputCount: record.manifest.required_outputs.length,
+    metadataZipPayloadCount: metadataEvidence.zipPayloadCount,
+    zipExpectedPayloadCount: zipPayloadSmoke.expectedPayloadCount,
+    metadataMissingZipPayloadCount: metadataEvidence.missingZipPayloadNames.length,
+    zipMissingPayloadCount: zipPayloadSmoke.missingPayloadNames.length,
+    requiredZipPayloadParityStatus: metadataEvidence.zipPayloadParityStatus,
+    metadataPayloadsMatchZipPayloads,
+    workflowMetadataPresent: metadataEvidence.workflowMetadataPayloadPresent && zipPayloadSmoke.metadataPayloadPresent,
+    traceProvenancePresent: metadataEvidence.workflowTraceProvenancePayloadPresent && zipPayloadSmoke.traceProvenancePayloadPresent,
     failures
   };
 };

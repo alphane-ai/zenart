@@ -494,6 +494,44 @@ export interface ExportZipPayloadSmokeEvidence {
   >;
 }
 
+export interface ExportDownloadParityEvidence {
+  schema_version: "stage0.rev2.export-download-parity-smoke";
+  status: "pass" | "fail";
+  scenario: "metadata-zip-smoke-download-handoff-parity";
+  exportId: string;
+  packageId: string;
+  fileName: string;
+  format: ExportFormat;
+  metadataStatus: PackageExportMetadataEvidence["status"];
+  zipPayloadStatus: ExportZipPayloadSmokeEvidence["status"];
+  downloadHandoffStatus: "pass" | "fail";
+  manifestRequiredOutputCount: number;
+  metadataZipPayloadCount: number;
+  zipExpectedPayloadCount: number;
+  metadataMissingZipPayloadCount: number;
+  zipMissingPayloadCount: number;
+  requiredZipPayloadParityStatus: PackageExportMetadataEvidence["zipPayloadParityStatus"];
+  metadataPayloadsMatchZipPayloads: boolean;
+  workflowMetadataPresent: boolean;
+  traceProvenancePresent: boolean;
+  failures: Array<
+    | "export-id"
+    | "package-id"
+    | "file-name"
+    | "format"
+    | "metadata-status"
+    | "zip-payload-status"
+    | "download-handoff-status"
+    | "manifest-output-count"
+    | "payload-count"
+    | "missing-payloads"
+    | "required-parity"
+    | "payload-list"
+    | "workflow-metadata"
+    | "trace-provenance"
+  >;
+}
+
 export interface ShareLink {
   id: string;
   exportId: string;

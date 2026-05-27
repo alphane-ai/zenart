@@ -35,6 +35,7 @@ import { AccountSettings, BillingScenario, Candidate, ExportFormat, QaSeverity, 
 import { zenArtClient } from "@/lib/api-client";
 import {
   buildPackageExportMetadataEvidence,
+  buildExportDownloadParityEvidence,
   buildExportZipPayloadSmokeEvidence,
   buildBriefUploadConfirmationRuntimeEvidence,
   buildEcommerceGrowthApiSmokeEvidence,
@@ -1008,6 +1009,10 @@ function ExportView({
   const latestShareLink = latestExport ? state.shareLinks.find((item) => item.exportId === latestExport.id) : undefined;
   const metadataEvidence = latestExport ? buildPackageExportMetadataEvidence(latestExport) : undefined;
   const zipPayloadSmoke = latestExport ? buildExportZipPayloadSmokeEvidence(latestExport) : undefined;
+  const downloadParityEvidence =
+    latestExport && metadataEvidence && zipPayloadSmoke
+      ? buildExportDownloadParityEvidence(latestExport, metadataEvidence, zipPayloadSmoke)
+      : undefined;
   const ecommerceApiSmoke = buildEcommerceGrowthApiSmokeEvidence(state);
   return (
     <section className="content-view export-view" data-testid="export-preview">
@@ -1194,6 +1199,46 @@ function ExportView({
                     <p>
                       Download ZIP must contain {zipPayloadSmoke.requiredBaselinePayloadNames.join(", ")} plus workflow metadata and trace
                       provenance payloads declared by the manifest.
+                    </p>
+                  </section>
+                ) : null}
+                {downloadParityEvidence ? (
+                  <section
+                    className="export-detail-panel export-download-parity-smoke"
+                    aria-label="Export download parity smoke"
+                    data-export-download-parity-smoke={downloadParityEvidence.schema_version}
+                    data-export-download-parity-status={downloadParityEvidence.status}
+                    data-export-download-parity-scenario={downloadParityEvidence.scenario}
+                    data-export-download-parity-export-id={downloadParityEvidence.exportId}
+                    data-export-download-parity-package-id={downloadParityEvidence.packageId}
+                    data-export-download-parity-file-name={downloadParityEvidence.fileName}
+                    data-export-download-parity-format={downloadParityEvidence.format}
+                    data-export-download-parity-metadata-status={downloadParityEvidence.metadataStatus}
+                    data-export-download-parity-zip-payload-status={downloadParityEvidence.zipPayloadStatus}
+                    data-export-download-parity-handoff-status={downloadParityEvidence.downloadHandoffStatus}
+                    data-export-download-parity-manifest-output-count={downloadParityEvidence.manifestRequiredOutputCount}
+                    data-export-download-parity-metadata-payload-count={downloadParityEvidence.metadataZipPayloadCount}
+                    data-export-download-parity-zip-expected-count={downloadParityEvidence.zipExpectedPayloadCount}
+                    data-export-download-parity-metadata-missing-count={downloadParityEvidence.metadataMissingZipPayloadCount}
+                    data-export-download-parity-zip-missing-count={downloadParityEvidence.zipMissingPayloadCount}
+                    data-export-download-parity-required-zip-status={downloadParityEvidence.requiredZipPayloadParityStatus}
+                    data-export-download-parity-payloads-match={String(downloadParityEvidence.metadataPayloadsMatchZipPayloads)}
+                    data-export-download-parity-workflow-metadata-present={String(downloadParityEvidence.workflowMetadataPresent)}
+                    data-export-download-parity-trace-provenance-present={String(downloadParityEvidence.traceProvenancePresent)}
+                    data-export-download-parity-failures={downloadParityEvidence.failures.join(",")}
+                  >
+                    <h4>Download Parity Smoke</h4>
+                    <div className="metadata-evidence-grid">
+                      <span className={downloadParityEvidence.status === "pass" ? "qa-pass" : "qa-block"}>
+                        {downloadParityEvidence.status}
+                      </span>
+                      <span>{downloadParityEvidence.metadataZipPayloadCount}/{downloadParityEvidence.zipExpectedPayloadCount} payload parity</span>
+                      <span>{downloadParityEvidence.metadataMissingZipPayloadCount + downloadParityEvidence.zipMissingPayloadCount} missing payloads</span>
+                      <span>{downloadParityEvidence.downloadHandoffStatus} browser handoff</span>
+                    </div>
+                    <p>
+                      Export metadata, ZIP payload smoke, and download handoff agree on artifact identity, payload count, required ZIP parity,
+                      workflow metadata, and trace provenance.
                     </p>
                   </section>
                 ) : null}

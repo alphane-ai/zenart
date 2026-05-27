@@ -14,6 +14,7 @@ import {
   createInitialWorkspace,
   createReferenceAsset,
   createSessionContract,
+  buildExportDownloadParityEvidence,
   buildExportZipPayloadSmokeEvidence,
   ecommerceGrowthWorkflowAcceptance,
   evaluatePackageQa,
@@ -347,6 +348,54 @@ describe("dev workspace contracts", () => {
       metadataPayloadPresent: true,
       traceProvenancePayloadPresent: true,
       assetsPayloadPresent: true,
+      failures: []
+    });
+  });
+
+  it("builds download parity evidence across metadata, ZIP smoke, and handoff contracts", () => {
+    const state = createInitialWorkspace();
+    const packageItems = state.candidates.map((candidate, index) => ({
+      id: `pkg-item-${String(index + 1).padStart(3, "0")}`,
+      sourceId: candidate.id,
+      title: candidate.title,
+      type: "candidate" as const,
+      addedAt: "2026-05-26T10:00:00.000Z",
+      workflowId: candidate.workflowId,
+      strategyTaxonomy: candidate.strategyTaxonomy,
+      requiredOutputFiles: candidate.requiredOutputFiles
+    }));
+    const qaReport = evaluatePackageQa(packageItems);
+    const exportRecord: ExportRecord = {
+      id: "export-parity-001",
+      format: "zip",
+      status: "ready",
+      createdAt: "2026-05-26T10:07:00.000Z",
+      fileName: "zenart-parity-001.zip",
+      manifest: buildManifest(state.activeProjectId, packageItems),
+      qaReport,
+      safetyReport: runSafetyPolicy({ ...state, selectedCandidateId: "cand-editorial", packageItems }, qaReport)
+    };
+
+    expect(buildExportDownloadParityEvidence(exportRecord)).toEqual({
+      schema_version: "stage0.rev2.export-download-parity-smoke",
+      status: "pass",
+      scenario: "metadata-zip-smoke-download-handoff-parity",
+      exportId: "export-parity-001",
+      packageId: "pkg-004",
+      fileName: "zenart-parity-001.zip",
+      format: "zip",
+      metadataStatus: "pass",
+      zipPayloadStatus: "pass",
+      downloadHandoffStatus: "pass",
+      manifestRequiredOutputCount: 13,
+      metadataZipPayloadCount: 13,
+      zipExpectedPayloadCount: 13,
+      metadataMissingZipPayloadCount: 0,
+      zipMissingPayloadCount: 0,
+      requiredZipPayloadParityStatus: "pass",
+      metadataPayloadsMatchZipPayloads: true,
+      workflowMetadataPresent: true,
+      traceProvenancePresent: true,
       failures: []
     });
   });
