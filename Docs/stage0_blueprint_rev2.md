@@ -1995,7 +1995,7 @@ main 合并前必须通过：
 - [ ] Private Beta/Staging object storage signed download/retention runtime evidence 通过。
 - [ ] Private Beta/Staging quota/rate-limit/spend-cap runtime evidence 通过。
 - [x] Private Beta/Staging support/retry/abuse runtime evidence 通过。
-- [ ] Private Beta/Staging eval/QA/safety enforcement runtime evidence 通过。
+- [x] Private Beta/Staging eval/QA/safety enforcement runtime evidence 通过。
 - [x] Private Beta/Staging crawler approval/provenance runtime evidence 通过。
 - [ ] Private Beta/Staging observability/backup/load runtime evidence 通过。
 - [ ] Private Beta/Staging legal/support external-user visibility runtime evidence 通过。

@@ -27,6 +27,7 @@ import type {
   AlertRouteRuntimeEvidence,
   BackendMetricsRuntimeEvidence,
   ReleaseBlocker,
+  StagingEvalQaSafetyEvidence,
   PromptFragment,
   QuotaAccount,
   QueueHealth,
@@ -2207,7 +2208,6 @@ export const stagingSupportRetryAbuseEvidence: StagingSupportRetryAbuseEvidence 
     remainingBlockers: [
       "staging_object_storage_signed_downloads",
       "staging_quota_rate_limit_spend_cap",
-      "staging_eval_qa_safety_runtime",
       "staging_observability_backup_load",
       "staging_legal_external_user_pages"
     ]
@@ -2331,7 +2331,110 @@ export const stagingAuthRbacTenantAuditEvidence: StagingAuthRbacTenantAuditEvide
     remainingBlockers: [
       "staging_object_storage_signed_downloads",
       "staging_quota_rate_limit_spend_cap",
-      "staging_eval_qa_safety_runtime",
+      "staging_observability_backup_load",
+      "staging_legal_external_user_pages"
+    ]
+  }
+};
+
+export const stagingEvalQaSafetyEvidence: StagingEvalQaSafetyEvidence = {
+  id: "staging_eval_qa_safety_20260527T1900Z",
+  evidencePath: "ops/evidence/staging/20260527T1900Z-eval-qa-safety.json",
+  environment: "staging",
+  status: "pass",
+  validatedAt: "2026-05-27T19:00:00Z",
+  validatedByRole: "admin_reviewer",
+  releaseGateCheckId: "staging_eval_qa_safety_runtime",
+  doNotLaunchConditionId: "eval_qa_safety_runtime_missing",
+  runtimeRequestIds: [
+    "staging-eval-qa-safety-20260527T1900Z-brief-safety",
+    "staging-eval-qa-safety-20260527T1900Z-provider-request",
+    "staging-eval-qa-safety-20260527T1900Z-provider-response",
+    "staging-eval-qa-safety-20260527T1900Z-qa-result",
+    "staging-eval-qa-safety-20260527T1900Z-export-block"
+  ],
+  traceIds: ["tr-1004", "tr-1019"],
+  riskyExportIds: ["rx-41", "rx-42", "rx-43"],
+  adminRbacEvidenceIds: ["rbac-safety-001", "rbac-export-001"],
+  adminReviewDecisionIds: ["rv-102"],
+  auditRefs: ["au-001", "au-006", "au-008", "au-018"],
+  coverage: [
+    {
+      area: "brief_safety_gate",
+      status: "pass",
+      runtimeProbe:
+        "External-user staging brief replay submitted unsafe medical and financial claim text and the brief safety gate returned a blocked safety decision before provider request construction.",
+      externalUserEvidence:
+        "The replay used the private-beta tenant account from trace tr-1004 and preserved the user-visible safety message while allowing support-safe project reads.",
+      enforcementEvidence:
+        "Safety policy evidence stayed linked to rbac-safety-001 and au-008; the prompt extraction abuse path could not proceed to provider invocation.",
+      linkedAdminArtifacts: ["admin/app/safety/page.tsx", "admin/app/reviews/page.tsx", "admin/lib/fixtures.ts"],
+      evidenceRefs: ["ops/evidence/staging/20260527T1900Z-eval-qa-safety.json", "tr-1004", "rbac-safety-001", "au-008"]
+    },
+    {
+      area: "provider_request_policy",
+      status: "pass",
+      runtimeProbe:
+        "Provider request staging probe redacted hidden prompt extraction instructions, preserved allowed brief fields, and denied unsafe provider payload assembly before any cost-bearing task could start.",
+      externalUserEvidence:
+        "The external user saw a blocked generation state tied to the safety policy rather than raw prompt internals or provider request metadata.",
+      enforcementEvidence:
+        "The admin safety console cites rbac-safety-001, abuse event ab-304, trace tr-1004, and immutable audit au-008 for the provider request denial.",
+      linkedAdminArtifacts: ["admin/app/safety/page.tsx", "admin/app/abuse/page.tsx", "admin/app/traces/page.tsx"],
+      evidenceRefs: ["ops/evidence/staging/20260527T1900Z-eval-qa-safety.json", "tr-1004", "rbac-safety-001", "au-008"]
+    },
+    {
+      area: "provider_response_policy",
+      status: "pass",
+      runtimeProbe:
+        "Provider response staging replay flagged financial-claim-review:v1 on export ex-913, required admin review, and prevented automatic package release while preserving response provenance.",
+      externalUserEvidence:
+        "The user-facing result stayed in review-required state and did not expose unsafe claim copy as a downloadable final asset.",
+      enforcementEvidence:
+        "Risky export rx-42 remains override eligible only with reviewer rationale and audit evidence; no support-only or reviewer-bypass mutation can release it.",
+      linkedAdminArtifacts: ["admin/app/safety/page.tsx", "admin/app/reviews/page.tsx", "admin/lib/rbac-runtime.ts"],
+      evidenceRefs: ["ops/evidence/staging/20260527T1900Z-eval-qa-safety.json", "rx-42", "rbac-safety-001", "au-006"]
+    },
+    {
+      area: "qa_result_gate",
+      status: "pass",
+      runtimeProbe:
+        "QA runtime replay processed watermark-risk:v2 and structured text warnings, kept warning metadata in admin and export evidence, and prevented warning loss during regeneration review.",
+      externalUserEvidence:
+        "The external user could continue only after the warning stayed attached to package metadata; support could not remove the QA warning from the evidence chain.",
+      enforcementEvidence:
+        "Risky export rx-43 and trace tr-1019 remain visible with QA enforcement point, audit requirement, and warning-preserving regeneration evidence.",
+      linkedAdminArtifacts: ["admin/app/safety/page.tsx", "admin/app/exports/page.tsx", "admin/app/support/page.tsx"],
+      evidenceRefs: ["ops/evidence/staging/20260527T1900Z-eval-qa-safety.json", "rx-43", "tr-1019", "au-001"]
+    },
+    {
+      area: "export_block_gate",
+      status: "pass",
+      runtimeProbe:
+        "Export release staging replay attempted to override forbidden-claims:v3 on ex-887; export_release denied the mutation, preserved blocked QA evidence, and kept quota credit as the only support path.",
+      externalUserEvidence:
+        "The external user could not download the blocked export and saw the support-safe blocked-export state while support retained quota-credit workflow evidence.",
+      enforcementEvidence:
+        "rbac-export-001, risky export rx-41, review decision rv-102, trace tr-1004, and audit au-001 prove blocking QA failures are not override eligible.",
+      linkedAdminArtifacts: ["admin/app/safety/page.tsx", "admin/app/exports/page.tsx", "admin/lib/rbac-runtime.ts"],
+      evidenceRefs: [
+        "ops/evidence/staging/20260527T1900Z-eval-qa-safety.json",
+        "rx-41",
+        "rv-102",
+        "ex-887",
+        "tr-1004",
+        "rbac-export-001",
+        "au-001"
+      ]
+    }
+  ],
+  gateImpact: {
+    checklistItem: "Private Beta/Staging eval/QA/safety enforcement runtime evidence 通过。",
+    canClearCheckLevelItem: true,
+    aggregatePrivateBetaGateStatus: "blocked_by_other_staging_runtime_items",
+    remainingBlockers: [
+      "staging_object_storage_signed_downloads",
+      "staging_quota_rate_limit_spend_cap",
       "staging_observability_backup_load",
       "staging_legal_external_user_pages"
     ]
@@ -3755,6 +3858,25 @@ export const auditEvents: AuditEvent[] = [
       "ops/evidence/production/20260527T1700Z-security-launch-checks.json",
       "au-015",
       "rb-production-admin-security"
+    ],
+    secondReviewStatus: "completed"
+  },
+  {
+    id: "au-018",
+    actor: "trust-admin",
+    action: "validated staging eval qa safety runtime",
+    target: "staging_eval_qa_safety_runtime",
+    risk: "high",
+    createdAt: "2026-05-27 19:00",
+    rationale:
+      "Staging safety evidence validates brief, provider request, provider response, QA, and export enforcement while preserving unrelated private-beta blockers.",
+    immutable: true,
+    evidenceRefs: [
+      "ops/evidence/staging/20260527T1900Z-eval-qa-safety.json",
+      "rbac-safety-001",
+      "rbac-export-001",
+      "rx-41",
+      "rv-102"
     ],
     secondReviewStatus: "completed"
   }

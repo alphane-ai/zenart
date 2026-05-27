@@ -2,14 +2,15 @@ import { DataTable } from "@/components/DataTable";
 import { PageHeader } from "@/components/PageHeader";
 import { RbacRuntimeDecisionTable } from "@/components/RbacRuntimeDecisionTable";
 import { StatusBadge } from "@/components/StatusBadge";
-import { getAdminRbacEvidence, getAdminRbacRuntimeDecisions, getRiskyExports } from "@/lib/admin-api";
-import type { AdminRbacEvidence, RiskyExport } from "@/lib/types";
+import { getAdminRbacEvidence, getAdminRbacRuntimeDecisions, getRiskyExports, getStagingEvalQaSafetyEvidence } from "@/lib/admin-api";
+import type { AdminRbacEvidence, RiskyExport, StagingEvalQaSafetyCoverage } from "@/lib/types";
 
 export default async function SafetyPage() {
-  const [exports, rbacEvidence, rbacRuntime] = await Promise.all([
+  const [exports, rbacEvidence, rbacRuntime, stagingEvidence] = await Promise.all([
     getRiskyExports(),
     getAdminRbacEvidence(),
-    getAdminRbacRuntimeDecisions()
+    getAdminRbacRuntimeDecisions(),
+    getStagingEvalQaSafetyEvidence()
   ]);
   const safetyRbacEvidence = rbacEvidence.filter((item) => item.surface === "safety_rule" || item.surface === "export_override");
   const safetyRbacRuntime = rbacRuntime.filter((item) => item.surface === "safety_rule" || item.surface === "export_override");
@@ -48,6 +49,27 @@ export default async function SafetyPage() {
               )
             },
             { key: "rationale", header: "Review Rationale", render: (row) => row.reviewRationale }
+          ]}
+        />
+      </section>
+
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>Staging Eval QA Safety Runtime Evidence</h3>
+            <p>Check-level private beta evidence for brief, provider request, provider response, QA, and export safety enforcement.</p>
+          </div>
+          <StatusBadge value={stagingEvidence.status === "pass" ? "approved" : "blocked"} label={stagingEvidence.status} />
+        </div>
+        <DataTable<StagingEvalQaSafetyCoverage>
+          rows={stagingEvidence.coverage}
+          columns={[
+            { key: "area", header: "Area", render: (row) => row.area },
+            { key: "status", header: "Status", render: (row) => <StatusBadge value={row.status === "pass" ? "approved" : "blocked"} label={row.status} /> },
+            { key: "probe", header: "Runtime Probe", render: (row) => row.runtimeProbe },
+            { key: "external", header: "External User Evidence", render: (row) => row.externalUserEvidence },
+            { key: "enforcement", header: "Enforcement Evidence", render: (row) => row.enforcementEvidence },
+            { key: "refs", header: "Evidence Refs", render: (row) => row.evidenceRefs.join(", ") }
           ]}
         />
       </section>

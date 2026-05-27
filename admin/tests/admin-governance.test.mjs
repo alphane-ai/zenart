@@ -12,7 +12,7 @@ const parseFixtures = () => {
   const moduleSource = source
     .replace(/^import type[\s\S]*?from "@\/lib\/types";\n\n/, "")
     .replaceAll(/export const (\w+)[^=]*=/g, "const $1 =");
-  return Function(`${moduleSource}\nreturn { skillVersions, skillReleaseStateDefinitions, skillCanaryMetrics, releaseEvidence, releaseBlockers, supportTickets, supportEscalationRunbooks, supportUsers, riskyExports, abuseEvents, abuseControlHooks, stagingAuthRbacTenantAuditEvidence, stagingSupportRetryAbuseEvidence, productionAbuseThrottleHoldEvidence, productionActivationReviewAuditEvidence, productionSkillReleaseEvalCanaryEvidence, productionSecurityLaunchCheckEvidence, auditEvents, exportJobs, traces, quotaAccounts, feedbackItems, regressionFixtures, analyticsReports, queueHealth, failedTaskControls, crawlerFindings, crawlerSourceApprovals, crawlerGovernanceWorkflows, crawlerStagingRuntimeEvidence, adminRbacEvidence, operationalDashboards, operationalDashboardRuntimeEvidence, alertRoutes, alertRouteRuntimeEvidence, backendMetricsRuntimeEvidence, observabilityTelemetryRuntimeEvidence };`)();
+  return Function(`${moduleSource}\nreturn { skillVersions, skillReleaseStateDefinitions, skillCanaryMetrics, releaseEvidence, releaseBlockers, supportTickets, supportEscalationRunbooks, supportUsers, riskyExports, abuseEvents, abuseControlHooks, stagingAuthRbacTenantAuditEvidence, stagingEvalQaSafetyEvidence, stagingSupportRetryAbuseEvidence, productionAbuseThrottleHoldEvidence, productionActivationReviewAuditEvidence, productionSkillReleaseEvalCanaryEvidence, productionSecurityLaunchCheckEvidence, adminReviewDecisions, auditEvents, exportJobs, traces, quotaAccounts, feedbackItems, regressionFixtures, analyticsReports, queueHealth, failedTaskControls, crawlerFindings, crawlerSourceApprovals, crawlerGovernanceWorkflows, crawlerStagingRuntimeEvidence, adminRbacEvidence, operationalDashboards, operationalDashboardRuntimeEvidence, alertRoutes, alertRouteRuntimeEvidence, backendMetricsRuntimeEvidence, observabilityTelemetryRuntimeEvidence };`)();
 };
 
 const crawlerGovernanceCases = JSON.parse(
@@ -32,11 +32,13 @@ const {
   abuseEvents,
   abuseControlHooks,
   stagingAuthRbacTenantAuditEvidence,
+  stagingEvalQaSafetyEvidence,
   stagingSupportRetryAbuseEvidence,
   productionAbuseThrottleHoldEvidence,
   productionActivationReviewAuditEvidence,
   productionSkillReleaseEvalCanaryEvidence,
   productionSecurityLaunchCheckEvidence,
+  adminReviewDecisions,
   auditEvents,
   exportJobs,
   feedbackItems,
@@ -98,6 +100,8 @@ const supportTicketById = new Map(supportTickets.map((ticket) => [ticket.id, tic
 const supportUserIds = new Set(supportUsers.map((user) => user.id));
 const traceIds = new Set(traces.map((trace) => trace.id));
 const exportIds = new Set(exportJobs.map((job) => job.id));
+const riskyExportIds = new Set(riskyExports.map((entry) => entry.id));
+const adminReviewDecisionIds = new Set(adminReviewDecisions.map((entry) => entry.id));
 const quotaUserIds = new Set(quotaAccounts.map((account) => account.userId));
 const queueIds = new Set(queueHealth.map((queue) => queue.id));
 const taskIds = new Set(failedTaskControls.map((task) => task.id));
@@ -123,6 +127,10 @@ const overrideScopeBySurface = new Map([
 ]);
 const stagingAuthRbacTenantAuditPath = new URL(
   "../../ops/evidence/staging/20260527T1515Z-auth-rbac-tenant-audit.json",
+  import.meta.url
+);
+const stagingEvalQaSafetyPath = new URL(
+  "../../ops/evidence/staging/20260527T1900Z-eval-qa-safety.json",
   import.meta.url
 );
 const stagingSupportRetryAbusePath = new URL(
@@ -1009,6 +1017,144 @@ test("staging auth rbac tenant audit evidence clears only its private beta check
     assert.ok(check, `${blocker} must remain represented in the private beta gate fixture`);
     assert.equal(check.status, "blocked", `${blocker} must stay blocked after auth/RBAC/tenant/audit clears`);
   }
+});
+
+test("staging eval QA safety evidence enforces brief, provider, QA, and export gates", () => {
+  assert.ok(existsSync(stagingEvalQaSafetyPath), "staging eval/QA/safety evidence file is missing");
+  assert.ok(existsSync(privateBetaGatePath), "private beta gate evidence fixture is missing");
+
+  const evidenceFile = JSON.parse(readFileSync(stagingEvalQaSafetyPath, "utf8"));
+  const gateFixture = JSON.parse(readFileSync(privateBetaGatePath, "utf8"));
+  const rbacIds = new Set(adminRbacEvidence.map((item) => item.id));
+
+  assert.equal(evidenceFile.environment, "staging", "eval/QA/safety evidence must be staging scoped");
+  assert.equal(evidenceFile.status, "pass", "eval/QA/safety evidence must pass");
+  assert.equal(
+    evidenceFile.evidence_id,
+    stagingEvalQaSafetyEvidence.id,
+    "evidence file and admin fixture ids must match"
+  );
+  assert.equal(
+    evidenceFile.release_gate_check_id,
+    "staging_eval_qa_safety_runtime",
+    "eval/QA/safety evidence must target the matching release gate check"
+  );
+  assert.equal(
+    evidenceFile.do_not_launch_condition_id,
+    "eval_qa_safety_runtime_missing",
+    "eval/QA/safety evidence must target the safety enforcement do-not-launch condition"
+  );
+  assert.deepEqual(
+    evidenceFile.runtime_request_ids,
+    stagingEvalQaSafetyEvidence.runtimeRequestIds,
+    "evidence file and admin fixture runtime request ids must match"
+  );
+  assert.equal(
+    evidenceFile.gate_impact.aggregate_private_beta_gate_status,
+    "blocked_by_other_staging_runtime_items",
+    "eval/QA/safety evidence cannot close the aggregate private beta gate"
+  );
+
+  for (const requestId of stagingEvalQaSafetyEvidence.runtimeRequestIds) {
+    assert.match(
+      requestId,
+      /^staging-eval-qa-safety-\d{8}T\d{4}Z-/,
+      `${requestId} must be a staging eval/QA/safety runtime probe`
+    );
+  }
+
+  const requiredAreas = new Set([
+    "brief_safety_gate",
+    "provider_request_policy",
+    "provider_response_policy",
+    "qa_result_gate",
+    "export_block_gate"
+  ]);
+  const fileCoverageByArea = new Map(evidenceFile.coverage.map((coverage) => [coverage.area, coverage]));
+
+  for (const traceId of stagingEvalQaSafetyEvidence.traceIds) {
+    assert.ok(traceIds.has(traceId), `${traceId} must link an admin trace`);
+  }
+  for (const exportId of stagingEvalQaSafetyEvidence.riskyExportIds) {
+    assert.ok(riskyExportIds.has(exportId), `${exportId} must link a risky export fixture`);
+  }
+  for (const id of stagingEvalQaSafetyEvidence.adminRbacEvidenceIds) {
+    assert.ok(rbacIds.has(id), `${id} must link admin RBAC evidence`);
+  }
+  for (const id of stagingEvalQaSafetyEvidence.adminReviewDecisionIds) {
+    assert.ok(adminReviewDecisionIds.has(id), `${id} must link admin review evidence`);
+  }
+  for (const auditRef of stagingEvalQaSafetyEvidence.auditRefs) {
+    assert.ok(auditIds.has(auditRef), `${auditRef} must link immutable audit evidence`);
+  }
+
+  for (const coverage of stagingEvalQaSafetyEvidence.coverage) {
+    requiredAreas.delete(coverage.area);
+    const fileCoverage = fileCoverageByArea.get(coverage.area);
+    assert.ok(fileCoverage, `${coverage.area} missing from evidence file`);
+    assert.equal(coverage.status, "pass", `${coverage.area} admin fixture coverage must pass`);
+    assert.equal(fileCoverage.status, coverage.status, `${coverage.area} file and fixture status mismatch`);
+    assert.match(
+      coverage.runtimeProbe,
+      /brief|provider|response|QA|export|safety|policy|release/i,
+      `${coverage.area} must describe executable runtime enforcement`
+    );
+    assert.ok(coverage.runtimeProbe.length > 120, `${coverage.area} needs runtime probe detail`);
+    assert.ok(coverage.externalUserEvidence.length > 90, `${coverage.area} needs external-user evidence`);
+    assert.ok(coverage.enforcementEvidence.length > 90, `${coverage.area} needs safety enforcement evidence`);
+    assert.ok(coverage.linkedAdminArtifacts.some((ref) => ref.startsWith("admin/")), `${coverage.area} needs admin artifacts`);
+    assert.ok(
+      coverage.evidenceRefs.includes(stagingEvalQaSafetyEvidence.evidencePath),
+      `${coverage.area} must cite the staging evidence path`
+    );
+    assert.ok(
+      coverage.evidenceRefs.some(
+        (ref) =>
+          auditIds.has(ref) ||
+          rbacIds.has(ref) ||
+          riskyExportIds.has(ref) ||
+          adminReviewDecisionIds.has(ref) ||
+          traceIds.has(ref) ||
+          exportIds.has(ref)
+      ),
+      `${coverage.area} needs validator-resolvable safety, review, trace, export, or audit refs`
+    );
+  }
+
+  assert.deepEqual([...requiredAreas], [], "staging eval/QA/safety evidence is missing coverage areas");
+
+  const gateCheck = gateFixture.checks.find((check) => check.check_id === "staging_eval_qa_safety_runtime");
+  assert.ok(gateCheck, "private beta gate needs eval/QA/safety check");
+  assert.equal(gateCheck.status, "pass", "validated eval/QA/safety evidence should clear only its check");
+  assert.ok(
+    gateCheck.evidence_ref.includes(stagingEvalQaSafetyEvidence.evidencePath),
+    "eval/QA/safety gate check must cite the staging runtime evidence path"
+  );
+
+  const safetyCondition = gateFixture.do_not_launch_checks.find(
+    (condition) => condition.condition_id === stagingEvalQaSafetyEvidence.doNotLaunchConditionId
+  );
+  assert.ok(safetyCondition, "private beta do-not-launch fixture needs eval/QA/safety condition");
+  assert.equal(
+    safetyCondition.is_present,
+    false,
+    "validated eval/QA/safety runtime evidence should clear the matching do-not-launch condition"
+  );
+  assert.ok(
+    safetyCondition.evidence_ref.includes(stagingEvalQaSafetyEvidence.evidencePath),
+    "cleared eval/QA/safety condition must cite the staging runtime evidence path"
+  );
+
+  for (const blocker of stagingEvalQaSafetyEvidence.gateImpact.remainingBlockers) {
+    const check = gateFixture.checks.find((entry) => entry.check_id === blocker);
+    assert.ok(check, `${blocker} must remain represented in the private beta gate fixture`);
+    assert.equal(check.status, "blocked", `${blocker} must stay blocked after eval/QA/safety clears`);
+  }
+
+  assert.ok(
+    gateFixture.checks.some((check) => check.status === "blocked"),
+    "aggregate private beta gate must remain blocked by other staging runtime items"
+  );
 });
 
 test("production abuse throttle hold evidence clears only the production abuse check", () => {

@@ -30,8 +30,8 @@
     },
     {
       "check_id": "staging_eval_qa_safety_runtime",
-      "status": "blocked",
-      "evidence_ref": "Eval, QA fixture, red-team, and safety contract evidence exists, but ops/evidence/staging/ staging eval, QA, and safety runtime evidence that policy executes at brief/provider request/provider response/QA/export is absent"
+      "status": "pass",
+      "evidence_ref": "Staging eval/QA/safety runtime evidence verifies external-user safety policy execution at brief, provider request, provider response, QA, and export release gates in ops/evidence/staging/20260527T1900Z-eval-qa-safety.json"
     },
     {
       "check_id": "staging_crawler_approval_provenance",
@@ -83,8 +83,8 @@
     {
       "condition_id": "eval_qa_safety_runtime_missing",
       "blueprint_condition": "Safety 只是 disclaimer，没有在 brief/provider request/provider response/QA/export 强制执行。",
-      "is_present": true,
-      "evidence_ref": "fixtures/stage0/rev2/eval/ safety and QA contracts exist, but ops/evidence/staging/ required staging runtime safety enforcement evidence remains absent"
+      "is_present": false,
+      "evidence_ref": "Staging eval/QA/safety runtime evidence clears this missing-runtime condition with brief, provider request, provider response, QA, and export release enforcement probes in ops/evidence/staging/20260527T1900Z-eval-qa-safety.json"
     },
     {
       "condition_id": "crawler_governance_runtime_missing",
@@ -116,18 +116,16 @@
     "blocked_by_checks": [
       "staging_object_storage_signed_downloads",
       "staging_quota_rate_limit_spend_cap",
-      "staging_eval_qa_safety_runtime",
       "staging_observability_backup_load",
       "staging_legal_external_user_pages"
     ],
     "active_do_not_launch_conditions": [
       "rate_limit_spend_cap_runtime_missing",
       "object_storage_signed_retention_runtime_missing",
-      "eval_qa_safety_runtime_missing",
       "staging_observability_restore_load_missing",
       "external_user_legal_pages_missing"
     ],
-    "evidence_ref": "fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json remains no-go while staging_object_storage_signed_downloads, staging_quota_rate_limit_spend_cap, staging_eval_qa_safety_runtime, staging_observability_backup_load, and staging_legal_external_user_pages are blocked and rate_limit_spend_cap_runtime_missing, object_storage_signed_retention_runtime_missing, eval_qa_safety_runtime_missing, staging_observability_restore_load_missing, and external_user_legal_pages_missing remain active after auth/RBAC/tenant/audit evidence passed in ops/evidence/staging/20260527T1515Z-auth-rbac-tenant-audit.json, brief/upload/confirmation evidence passed in ops/evidence/staging/20260526T2330Z-brief-upload-confirmation.json, and observability telemetry evidence passed in ops/evidence/staging/20260527T1815Z-observability-telemetry.json"
+    "evidence_ref": "fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json remains no-go while staging_object_storage_signed_downloads, staging_quota_rate_limit_spend_cap, staging_observability_backup_load, and staging_legal_external_user_pages are blocked and rate_limit_spend_cap_runtime_missing, object_storage_signed_retention_runtime_missing, staging_observability_restore_load_missing, and external_user_legal_pages_missing remain active after auth/RBAC/tenant/audit evidence passed in ops/evidence/staging/20260527T1515Z-auth-rbac-tenant-audit.json, brief/upload/confirmation evidence passed in ops/evidence/staging/20260526T2330Z-brief-upload-confirmation.json, eval/QA/safety evidence passed in ops/evidence/staging/20260527T1900Z-eval-qa-safety.json, and observability telemetry evidence passed in ops/evidence/staging/20260527T1815Z-observability-telemetry.json"
   },
   "provenance": {
     "blueprint_sections": [

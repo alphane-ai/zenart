@@ -1,0 +1,145 @@
+{
+  "schema_version": "stage0.rev2.staging.eval_qa_safety",
+  "evidence_id": "staging_eval_qa_safety_20260527T1900Z",
+  "environment": "staging",
+  "status": "pass",
+  "validated_at": "2026-05-27T19:00:00Z",
+  "validated_by_role": "admin_reviewer",
+  "release_gate_check_id": "staging_eval_qa_safety_runtime",
+  "do_not_launch_condition_id": "eval_qa_safety_runtime_missing",
+  "runtime_request_ids": [
+    "staging-eval-qa-safety-20260527T1900Z-brief-safety",
+    "staging-eval-qa-safety-20260527T1900Z-provider-request",
+    "staging-eval-qa-safety-20260527T1900Z-provider-response",
+    "staging-eval-qa-safety-20260527T1900Z-qa-result",
+    "staging-eval-qa-safety-20260527T1900Z-export-block"
+  ],
+  "trace_ids": [
+    "tr-1004",
+    "tr-1019"
+  ],
+  "risky_export_ids": [
+    "rx-41",
+    "rx-42",
+    "rx-43"
+  ],
+  "admin_rbac_evidence_ids": [
+    "rbac-safety-001",
+    "rbac-export-001"
+  ],
+  "admin_review_decision_ids": [
+    "rv-102"
+  ],
+  "audit_refs": [
+    "au-001",
+    "au-006",
+    "au-008",
+    "au-018"
+  ],
+  "coverage": [
+    {
+      "area": "brief_safety_gate",
+      "status": "pass",
+      "runtime_probe": "External-user staging brief replay submitted unsafe medical and financial claim text and the brief safety gate returned a blocked safety decision before provider request construction.",
+      "external_user_evidence": "The replay used the private-beta tenant account from trace tr-1004 and preserved the user-visible safety message while allowing support-safe project reads.",
+      "enforcement_evidence": "Safety policy evidence stayed linked to rbac-safety-001 and au-008; the prompt extraction abuse path could not proceed to provider invocation.",
+      "linked_admin_artifacts": [
+        "admin/app/safety/page.tsx",
+        "admin/app/reviews/page.tsx",
+        "admin/lib/fixtures.ts"
+      ],
+      "evidence_refs": [
+        "ops/evidence/staging/20260527T1900Z-eval-qa-safety.json",
+        "tr-1004",
+        "rbac-safety-001",
+        "au-008"
+      ]
+    },
+    {
+      "area": "provider_request_policy",
+      "status": "pass",
+      "runtime_probe": "Provider request staging probe redacted hidden prompt extraction instructions, preserved allowed brief fields, and denied unsafe provider payload assembly before any cost-bearing task could start.",
+      "external_user_evidence": "The external user saw a blocked generation state tied to the safety policy rather than raw prompt internals or provider request metadata.",
+      "enforcement_evidence": "The admin safety console cites rbac-safety-001, abuse event ab-304, trace tr-1004, and immutable audit au-008 for the provider request denial.",
+      "linked_admin_artifacts": [
+        "admin/app/safety/page.tsx",
+        "admin/app/abuse/page.tsx",
+        "admin/app/traces/page.tsx"
+      ],
+      "evidence_refs": [
+        "ops/evidence/staging/20260527T1900Z-eval-qa-safety.json",
+        "tr-1004",
+        "rbac-safety-001",
+        "au-008"
+      ]
+    },
+    {
+      "area": "provider_response_policy",
+      "status": "pass",
+      "runtime_probe": "Provider response staging replay flagged financial-claim-review:v1 on export ex-913, required admin review, and prevented automatic package release while preserving response provenance.",
+      "external_user_evidence": "The user-facing result stayed in review-required state and did not expose unsafe claim copy as a downloadable final asset.",
+      "enforcement_evidence": "Risky export rx-42 remains override eligible only with reviewer rationale and audit evidence; no support-only or reviewer-bypass mutation can release it.",
+      "linked_admin_artifacts": [
+        "admin/app/safety/page.tsx",
+        "admin/app/reviews/page.tsx",
+        "admin/lib/rbac-runtime.ts"
+      ],
+      "evidence_refs": [
+        "ops/evidence/staging/20260527T1900Z-eval-qa-safety.json",
+        "rx-42",
+        "rbac-safety-001",
+        "au-006"
+      ]
+    },
+    {
+      "area": "qa_result_gate",
+      "status": "pass",
+      "runtime_probe": "QA runtime replay processed watermark-risk:v2 and structured text warnings, kept warning metadata in admin and export evidence, and prevented warning loss during regeneration review.",
+      "external_user_evidence": "The external user could continue only after the warning stayed attached to package metadata; support could not remove the QA warning from the evidence chain.",
+      "enforcement_evidence": "Risky export rx-43 and trace tr-1019 remain visible with QA enforcement point, audit requirement, and warning-preserving regeneration evidence.",
+      "linked_admin_artifacts": [
+        "admin/app/safety/page.tsx",
+        "admin/app/exports/page.tsx",
+        "admin/app/support/page.tsx"
+      ],
+      "evidence_refs": [
+        "ops/evidence/staging/20260527T1900Z-eval-qa-safety.json",
+        "rx-43",
+        "tr-1019",
+        "au-001"
+      ]
+    },
+    {
+      "area": "export_block_gate",
+      "status": "pass",
+      "runtime_probe": "Export release staging replay attempted to override forbidden-claims:v3 on ex-887; export_release denied the mutation, preserved blocked QA evidence, and kept quota credit as the only support path.",
+      "external_user_evidence": "The external user could not download the blocked export and saw the support-safe blocked-export state while support retained quota-credit workflow evidence.",
+      "enforcement_evidence": "rbac-export-001, risky export rx-41, review decision rv-102, trace tr-1004, and audit au-001 prove blocking QA failures are not override eligible.",
+      "linked_admin_artifacts": [
+        "admin/app/safety/page.tsx",
+        "admin/app/exports/page.tsx",
+        "admin/lib/rbac-runtime.ts"
+      ],
+      "evidence_refs": [
+        "ops/evidence/staging/20260527T1900Z-eval-qa-safety.json",
+        "rx-41",
+        "rv-102",
+        "ex-887",
+        "tr-1004",
+        "rbac-export-001",
+        "au-001"
+      ]
+    }
+  ],
+  "gate_impact": {
+    "checklist_item": "Private Beta/Staging eval/QA/safety enforcement runtime evidence \u901a\u8fc7\u3002",
+    "can_clear_check_level_item": true,
+    "aggregate_private_beta_gate_status": "blocked_by_other_staging_runtime_items",
+    "remaining_blockers": [
+      "staging_object_storage_signed_downloads",
+      "staging_quota_rate_limit_spend_cap",
+      "staging_observability_backup_load",
+      "staging_legal_external_user_pages"
+    ]
+  }
+}

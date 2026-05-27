@@ -628,6 +628,45 @@ export type StagingAuthRbacTenantAuditEvidence = {
   };
 };
 
+export type StagingEvalQaSafetyCoverage = {
+  area:
+    | "brief_safety_gate"
+    | "provider_request_policy"
+    | "provider_response_policy"
+    | "qa_result_gate"
+    | "export_block_gate";
+  status: "pass" | "blocked";
+  runtimeProbe: string;
+  externalUserEvidence: string;
+  enforcementEvidence: string;
+  linkedAdminArtifacts: string[];
+  evidenceRefs: string[];
+};
+
+export type StagingEvalQaSafetyEvidence = {
+  id: string;
+  evidencePath: string;
+  environment: "staging";
+  status: "pass" | "blocked";
+  validatedAt: string;
+  validatedByRole: AdminRole;
+  releaseGateCheckId: "staging_eval_qa_safety_runtime";
+  doNotLaunchConditionId: "eval_qa_safety_runtime_missing";
+  runtimeRequestIds: string[];
+  traceIds: string[];
+  riskyExportIds: string[];
+  adminRbacEvidenceIds: string[];
+  adminReviewDecisionIds: string[];
+  auditRefs: string[];
+  coverage: StagingEvalQaSafetyCoverage[];
+  gateImpact: {
+    checklistItem: string;
+    canClearCheckLevelItem: boolean;
+    aggregatePrivateBetaGateStatus: "blocked_by_other_staging_runtime_items";
+    remainingBlockers: string[];
+  };
+};
+
 export type ProductionAbuseThrottleHoldCoverage = {
   area:
     | "account_hold_enforcement"

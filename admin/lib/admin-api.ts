@@ -25,6 +25,7 @@ import {
   productionAbuseThrottleHoldEvidence,
   productionSecurityLaunchCheckEvidence,
   productionSkillReleaseEvalCanaryEvidence,
+  stagingEvalQaSafetyEvidence,
   promptFragments,
   providerHealth,
   quotaAccounts,
@@ -141,6 +142,10 @@ export async function getStagingSupportRetryAbuseEvidence() {
 
 export async function getStagingAuthRbacTenantAuditEvidence() {
   return stagingAuthRbacTenantAuditEvidence;
+}
+
+export async function getStagingEvalQaSafetyEvidence() {
+  return stagingEvalQaSafetyEvidence;
 }
 
 export async function getProductionAbuseThrottleHoldEvidence() {
