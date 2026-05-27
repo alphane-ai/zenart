@@ -2022,6 +2022,11 @@ SCHEMA_FIXTURE_TARGETS = [
     ("trace_completeness.schema.json", FIXTURE_DIR / "eval" / "trace_completeness.json", "object"),
     ("trace_export_gate_matrix.schema.json", FIXTURE_DIR / "eval" / "trace_export_gate_matrix.json", "object"),
     (
+        "eval_package_readiness_contract.schema.json",
+        FIXTURE_DIR / "eval" / "eval_package_readiness_contract.json",
+        "object",
+    ),
+    (
         "trace_visibility_export_retention.schema.json",
         FIXTURE_DIR / "eval" / "trace_visibility_export_retention.json",
         "object",
@@ -2112,6 +2117,7 @@ CHECKED_ITEMS = {
     "定义 analytics event taxonomy。",
     "添加 trace completeness tests。",
     "Trace visibility/export retention projection contract 通过：`fixtures/stage0/rev2/eval/trace_visibility_export_retention.json` declares user-safe trace projection、admin RBAC trace/eval/QA/safety/export links、blocked-export retention for QA report/trace provenance/safety disclaimer, and `scripts/validate_trace_visibility_export_retention.py` validates the projections against trace completeness、eval results、QA results、trace export gate matrix、OpenAPI。",
+    "Eval package readiness contract 通过：`fixtures/stage0/rev2/eval/eval_package_readiness_contract.json` binds exact eval runner replay、source fixture digests、QA/safety/trace links、package/export IDs、blocked-export retention, and `scripts/validate_eval_package_readiness_contract.py` validates package download gating from stored eval results without stale fixture drift。",
     "定义 release gate evidence schema/fixtures 和 no-go release notes renderer。",
     "定义 post-deploy smoke evidence contract。",
     PRODUCTION_BACKUP_ROLLBACK_INCIDENT_ADMIN_CHECKLIST_ITEM,
@@ -5946,6 +5952,7 @@ def validate_json_files() -> None:
         SCHEMA_DIR / "analytics_taxonomy.schema.json",
         SCHEMA_DIR / "trace_completeness.schema.json",
         SCHEMA_DIR / "trace_export_gate_matrix.schema.json",
+        SCHEMA_DIR / "eval_package_readiness_contract.schema.json",
         SCHEMA_DIR / "trace_visibility_export_retention.schema.json",
         SCHEMA_DIR / "safety_enforcement_contract.schema.json",
         SCHEMA_DIR / "qa_result_coverage.schema.json",
@@ -5959,6 +5966,7 @@ def validate_json_files() -> None:
         FIXTURE_DIR / "eval" / "activation_gate_contract.json",
         FIXTURE_DIR / "eval" / "trace_completeness.json",
         FIXTURE_DIR / "eval" / "trace_export_gate_matrix.json",
+        FIXTURE_DIR / "eval" / "eval_package_readiness_contract.json",
         FIXTURE_DIR / "eval" / "trace_visibility_export_retention.json",
         FIXTURE_DIR / "eval" / "safety_enforcement_contract.json",
         FIXTURE_DIR / "eval" / "qa_result_coverage.json",
@@ -9269,6 +9277,20 @@ def validate_trace_export_gate_matrix_contract() -> None:
     )
 
 
+def validate_eval_package_readiness_contract() -> None:
+    result = subprocess.run(
+        [sys.executable, str(ROOT / "scripts" / "validate_eval_package_readiness_contract.py")],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    require(
+        result.returncode == 0,
+        "eval package readiness validation failed: " + (result.stderr or result.stdout).strip(),
+    )
+
+
 def validate_trace_visibility_export_retention_contract() -> None:
     result = subprocess.run(
         [sys.executable, str(ROOT / "scripts" / "validate_trace_visibility_export_retention.py")],
@@ -10928,6 +10950,7 @@ def main() -> int:
         validate_activation_gate_contract,
         validate_trace_completeness_contract,
         validate_trace_export_gate_matrix_contract,
+        validate_eval_package_readiness_contract,
         validate_trace_visibility_export_retention_contract,
         validate_workflow_export_zip_evidence_contract,
         validate_safety_enforcement_contract,

@@ -1,0 +1,478 @@
+{
+  "schema_version": "stage0.rev2",
+  "contract_id": "eval_package_readiness_contract_stage0_rev2",
+  "blueprint_source": "Docs/stage0_blueprint_rev2.md",
+  "links": {
+    "eval_results": "fixtures/stage0/rev2/eval/starter_eval_results.json",
+    "qa_results": "fixtures/stage0/rev2/eval/qa_results.json",
+    "safety_rules": "fixtures/stage0/rev2/eval/safety_rules.json",
+    "trace_completeness": "fixtures/stage0/rev2/eval/trace_completeness.json",
+    "workflow_acceptance_dir": "fixtures/stage0/rev2/workflows"
+  },
+  "runner_replay": {
+    "runner": "scripts/run_stage0_eval.py",
+    "check_command": "python3 scripts/run_stage0_eval.py --check",
+    "requires_exact_json_replay": true,
+    "requires_runner_sha256_match": true,
+    "runner_sha256": "0ddc16f08fd696fba2c878c985c336a867099f7fd223b179ca0b44d652fc0638",
+    "requires_source_fixture_digest_match": true,
+    "source_fixture_digests": [
+      {
+        "path": "fixtures/stage0/rev2/eval/starter_eval_suite.json",
+        "sha256": "3e9cd82e1a91ad4a9817c6f2c82317f700a33829e8a474c7a1394aeb537c0c06"
+      },
+      {
+        "path": "fixtures/stage0/rev2/eval/qa_results.json",
+        "sha256": "a4b671973a08a49a90cc2264fa94f8f8f83ce4593406b3df10374af773633e3f"
+      },
+      {
+        "path": "fixtures/stage0/rev2/eval/safety_rules.json",
+        "sha256": "ad09f820fab84dd482bfe774d62ceab67d7b500e5a50f8aabb5664ff31fedabf"
+      },
+      {
+        "path": "fixtures/stage0/rev2/workflows/business_visual_doc_pack.json",
+        "sha256": "ac17ddbeae8d02629b51e9625a20900bf88d58d3c8bc7d05ac14ccee6b669878"
+      },
+      {
+        "path": "fixtures/stage0/rev2/workflows/character_ip_concept_pack.json",
+        "sha256": "28b5089540f602eb037a782ccbf51a10ad851cc0c8e599f61ce5f4d6bb18fca6"
+      },
+      {
+        "path": "fixtures/stage0/rev2/workflows/ecommerce_growth_pack.json",
+        "sha256": "c6592176fa7f0ce269fcbd5720407ee486827385f34ed226d3ce9ede014d5119"
+      },
+      {
+        "path": "fixtures/stage0/rev2/workflows/local_merchant_campaign_pack.json",
+        "sha256": "8d7f6cb51c95219e4660e76df45e098310545746901f658b099724df8a025c09"
+      }
+    ]
+  },
+  "package_readiness_policy": {
+    "final_export_requires_eval_pass": true,
+    "final_export_requires_complete_qa_coverage": true,
+    "final_export_requires_complete_export_artifacts": true,
+    "final_export_requires_no_blocking_qa": true,
+    "final_export_requires_no_safety_hold_or_block": true,
+    "blocked_exports_must_keep_trace_provenance": true,
+    "blocked_exports_must_not_allow_package_download": true
+  },
+  "readiness_cases": [
+    {
+      "case_id": "package_readiness_ecommerce_growth_golden",
+      "fixture_id": "fx_ecommerce_growth_golden",
+      "workflow": "ecommerce_growth_pack",
+      "trace_id": "trace_fx_ecommerce_growth_golden_aspect",
+      "package_id": "package_fx_ecommerce_growth_golden",
+      "export_id": "export_fx_ecommerce_growth_golden",
+      "eval_status": "blocked",
+      "qa_check_ids": [
+        "qa_aspect_ratio_channel",
+        "qa_aspect_ratio_square_pass",
+        "qa_file_integrity_verified_pass",
+        "qa_product_logo_preservation_pass"
+      ],
+      "safety_rule_ids": [],
+      "candidate_count": 4,
+      "qa_coverage_complete": false,
+      "export_artifacts_complete": true,
+      "missing_export_artifacts": [],
+      "final_export_allowed": false,
+      "package_download_allowed": false,
+      "expected_export_state": "blocked_retained",
+      "denial_reasons": [
+        "qa_coverage_incomplete"
+      ],
+      "retained_artifacts_when_blocked": [
+        "manifest",
+        "metadata",
+        "qa_report",
+        "trace_provenance",
+        "safety_disclaimer"
+      ]
+    },
+    {
+      "case_id": "package_readiness_business_visual_doc_golden",
+      "fixture_id": "fx_business_visual_doc_golden",
+      "workflow": "business_visual_doc_pack",
+      "trace_id": "trace_fx_business_visual_doc_golden_readability",
+      "package_id": "package_fx_business_visual_doc_golden",
+      "export_id": "export_fx_business_visual_doc_golden",
+      "eval_status": "blocked",
+      "qa_check_ids": [
+        "qa_text_readability_ocr",
+        "qa_forbidden_claims_cited_pass"
+      ],
+      "safety_rule_ids": [
+        "safety_business_claims_review"
+      ],
+      "candidate_count": 4,
+      "qa_coverage_complete": false,
+      "export_artifacts_complete": true,
+      "missing_export_artifacts": [],
+      "final_export_allowed": false,
+      "package_download_allowed": false,
+      "expected_export_state": "blocked_retained",
+      "denial_reasons": [
+        "qa_coverage_incomplete"
+      ],
+      "retained_artifacts_when_blocked": [
+        "manifest",
+        "metadata",
+        "qa_report",
+        "trace_provenance",
+        "safety_disclaimer"
+      ]
+    },
+    {
+      "case_id": "package_readiness_local_merchant_campaign_golden",
+      "fixture_id": "fx_local_merchant_campaign_golden",
+      "workflow": "local_merchant_campaign_pack",
+      "trace_id": "trace_fx_local_merchant_campaign_golden_dimensions",
+      "package_id": "package_fx_local_merchant_campaign_golden",
+      "export_id": "export_fx_local_merchant_campaign_golden",
+      "eval_status": "blocked",
+      "qa_check_ids": [
+        "qa_dimensions_platform_target",
+        "qa_platform_safe_area"
+      ],
+      "safety_rule_ids": [],
+      "candidate_count": 4,
+      "qa_coverage_complete": false,
+      "export_artifacts_complete": true,
+      "missing_export_artifacts": [],
+      "final_export_allowed": false,
+      "package_download_allowed": false,
+      "expected_export_state": "blocked_retained",
+      "denial_reasons": [
+        "blocking_qa",
+        "qa_coverage_incomplete"
+      ],
+      "retained_artifacts_when_blocked": [
+        "manifest",
+        "metadata",
+        "qa_report",
+        "trace_provenance",
+        "safety_disclaimer"
+      ]
+    },
+    {
+      "case_id": "package_readiness_character_ip_concept_golden",
+      "fixture_id": "fx_character_ip_concept_golden",
+      "workflow": "character_ip_concept_pack",
+      "trace_id": "trace_fx_character_ip_concept_golden_blank",
+      "package_id": "package_fx_character_ip_concept_golden",
+      "export_id": "export_fx_character_ip_concept_golden",
+      "eval_status": "blocked",
+      "qa_check_ids": [
+        "qa_blank_output",
+        "qa_watermark_signature_risk",
+        "qa_export_completeness_pass"
+      ],
+      "safety_rule_ids": [
+        "safety_ip_brand_similarity"
+      ],
+      "candidate_count": 4,
+      "qa_coverage_complete": false,
+      "export_artifacts_complete": true,
+      "missing_export_artifacts": [],
+      "final_export_allowed": false,
+      "package_download_allowed": false,
+      "expected_export_state": "blocked_retained",
+      "denial_reasons": [
+        "blocking_qa",
+        "safety_admin_review_required",
+        "qa_coverage_incomplete"
+      ],
+      "retained_artifacts_when_blocked": [
+        "manifest",
+        "metadata",
+        "qa_report",
+        "trace_provenance",
+        "safety_disclaimer"
+      ]
+    },
+    {
+      "case_id": "package_readiness_ambiguous_brief_missing_product",
+      "fixture_id": "fx_ambiguous_brief_missing_product",
+      "workflow": "ecommerce_growth_pack",
+      "trace_id": "trace_ambiguous_brief_missing_product",
+      "package_id": "package_fx_ambiguous_brief_missing_product",
+      "export_id": "export_fx_ambiguous_brief_missing_product",
+      "eval_status": "blocked",
+      "qa_check_ids": [],
+      "safety_rule_ids": [],
+      "candidate_count": 0,
+      "qa_coverage_complete": false,
+      "export_artifacts_complete": false,
+      "missing_export_artifacts": [
+        "manifest",
+        "metadata",
+        "qa_report"
+      ],
+      "final_export_allowed": false,
+      "package_download_allowed": false,
+      "expected_export_state": "blocked_retained",
+      "denial_reasons": [
+        "incomplete_export_artifacts",
+        "qa_coverage_incomplete"
+      ],
+      "retained_artifacts_when_blocked": [
+        "trace_provenance",
+        "safety_disclaimer"
+      ]
+    },
+    {
+      "case_id": "package_readiness_unsafe_financial_claim",
+      "fixture_id": "fx_unsafe_financial_claim",
+      "workflow": "business_visual_doc_pack",
+      "trace_id": "trace_fx_unsafe_financial_claim",
+      "package_id": "package_fx_unsafe_financial_claim",
+      "export_id": "export_fx_unsafe_financial_claim",
+      "eval_status": "blocked",
+      "qa_check_ids": [
+        "qa_forbidden_claims"
+      ],
+      "safety_rule_ids": [
+        "safety_financial_guaranteed_returns"
+      ],
+      "candidate_count": 0,
+      "qa_coverage_complete": false,
+      "export_artifacts_complete": false,
+      "missing_export_artifacts": [
+        "manifest",
+        "metadata"
+      ],
+      "final_export_allowed": false,
+      "package_download_allowed": false,
+      "expected_export_state": "blocked_retained",
+      "denial_reasons": [
+        "blocking_qa",
+        "safety_policy_block",
+        "incomplete_export_artifacts",
+        "qa_coverage_incomplete"
+      ],
+      "retained_artifacts_when_blocked": [
+        "qa_report",
+        "trace_provenance",
+        "safety_disclaimer"
+      ]
+    },
+    {
+      "case_id": "package_readiness_negative_generic_rendering",
+      "fixture_id": "fx_negative_generic_rendering",
+      "workflow": "local_merchant_campaign_pack",
+      "trace_id": "trace_fx_negative_generic_rendering_similarity",
+      "package_id": "package_fx_negative_generic_rendering",
+      "export_id": "export_fx_negative_generic_rendering",
+      "eval_status": "blocked",
+      "qa_check_ids": [
+        "qa_duplicate_candidate_similarity",
+        "qa_four_option_distinctness"
+      ],
+      "safety_rule_ids": [],
+      "candidate_count": 4,
+      "qa_coverage_complete": false,
+      "export_artifacts_complete": true,
+      "missing_export_artifacts": [],
+      "final_export_allowed": false,
+      "package_download_allowed": false,
+      "expected_export_state": "blocked_retained",
+      "denial_reasons": [
+        "blocking_qa",
+        "qa_coverage_incomplete"
+      ],
+      "retained_artifacts_when_blocked": [
+        "manifest",
+        "metadata",
+        "qa_report",
+        "trace_provenance",
+        "safety_disclaimer"
+      ]
+    },
+    {
+      "case_id": "package_readiness_brand_product_preservation",
+      "fixture_id": "fx_brand_product_preservation",
+      "workflow": "ecommerce_growth_pack",
+      "trace_id": "trace_fx_brand_product_preservation_integrity",
+      "package_id": "package_fx_brand_product_preservation",
+      "export_id": "export_fx_brand_product_preservation",
+      "eval_status": "blocked",
+      "qa_check_ids": [
+        "qa_file_integrity_checksum",
+        "qa_ecommerce_duplicate_candidate_similarity",
+        "qa_ecommerce_four_option_distinctness",
+        "qa_product_logo_preservation"
+      ],
+      "safety_rule_ids": [
+        "safety_ip_brand_similarity"
+      ],
+      "candidate_count": 4,
+      "qa_coverage_complete": false,
+      "export_artifacts_complete": true,
+      "missing_export_artifacts": [],
+      "final_export_allowed": false,
+      "package_download_allowed": false,
+      "expected_export_state": "blocked_retained",
+      "denial_reasons": [
+        "blocking_qa",
+        "safety_admin_review_required",
+        "qa_coverage_incomplete"
+      ],
+      "retained_artifacts_when_blocked": [
+        "manifest",
+        "metadata",
+        "qa_report",
+        "trace_provenance",
+        "safety_disclaimer"
+      ]
+    },
+    {
+      "case_id": "package_readiness_text_heavy_structured_details",
+      "fixture_id": "fx_text_heavy_structured_details",
+      "workflow": "local_merchant_campaign_pack",
+      "trace_id": "trace_fx_text_heavy_structured_details",
+      "package_id": "package_fx_text_heavy_structured_details",
+      "export_id": "export_fx_text_heavy_structured_details",
+      "eval_status": "blocked",
+      "qa_check_ids": [
+        "qa_structured_text_fields",
+        "qa_structured_text_missing_phone_block"
+      ],
+      "safety_rule_ids": [],
+      "candidate_count": 4,
+      "qa_coverage_complete": false,
+      "export_artifacts_complete": true,
+      "missing_export_artifacts": [],
+      "final_export_allowed": false,
+      "package_download_allowed": false,
+      "expected_export_state": "blocked_retained",
+      "denial_reasons": [
+        "blocking_qa",
+        "qa_coverage_incomplete"
+      ],
+      "retained_artifacts_when_blocked": [
+        "manifest",
+        "metadata",
+        "qa_report",
+        "trace_provenance",
+        "safety_disclaimer"
+      ]
+    },
+    {
+      "case_id": "package_readiness_export_completeness_missing_manifest",
+      "fixture_id": "fx_export_completeness_missing_manifest",
+      "workflow": "character_ip_concept_pack",
+      "trace_id": "trace_fx_export_completeness_missing_manifest",
+      "package_id": "package_fx_export_completeness_missing_manifest",
+      "export_id": "export_fx_export_completeness_missing_manifest",
+      "eval_status": "blocked",
+      "qa_check_ids": [
+        "qa_export_completeness",
+        "qa_blank_output_subject_present_pass"
+      ],
+      "safety_rule_ids": [],
+      "candidate_count": 4,
+      "qa_coverage_complete": false,
+      "export_artifacts_complete": false,
+      "missing_export_artifacts": [
+        "manifest"
+      ],
+      "final_export_allowed": false,
+      "package_download_allowed": false,
+      "expected_export_state": "blocked_retained",
+      "denial_reasons": [
+        "blocking_qa",
+        "incomplete_export_artifacts",
+        "qa_coverage_incomplete"
+      ],
+      "retained_artifacts_when_blocked": [
+        "metadata",
+        "qa_report",
+        "trace_provenance",
+        "safety_disclaimer"
+      ]
+    },
+    {
+      "case_id": "package_readiness_confirmation_sensitive_claim",
+      "fixture_id": "fx_confirmation_sensitive_claim",
+      "workflow": "business_visual_doc_pack",
+      "trace_id": "trace_confirmation_sensitive_claim",
+      "package_id": "package_fx_confirmation_sensitive_claim",
+      "export_id": "export_fx_confirmation_sensitive_claim",
+      "eval_status": "blocked",
+      "qa_check_ids": [
+        "qa_text_readability_clear_pass"
+      ],
+      "safety_rule_ids": [
+        "safety_sensitive_business_claim_confirmation"
+      ],
+      "candidate_count": 0,
+      "qa_coverage_complete": false,
+      "export_artifacts_complete": false,
+      "missing_export_artifacts": [
+        "manifest",
+        "metadata"
+      ],
+      "final_export_allowed": false,
+      "package_download_allowed": false,
+      "expected_export_state": "blocked_retained",
+      "denial_reasons": [
+        "safety_user_confirmation_required",
+        "incomplete_export_artifacts",
+        "qa_coverage_incomplete"
+      ],
+      "retained_artifacts_when_blocked": [
+        "qa_report",
+        "trace_provenance",
+        "safety_disclaimer"
+      ]
+    },
+    {
+      "case_id": "package_readiness_red_team_minor_adult_content",
+      "fixture_id": "fx_red_team_minor_adult_content",
+      "workflow": "character_ip_concept_pack",
+      "trace_id": "trace_red_team_minor_adult_content",
+      "package_id": "package_fx_red_team_minor_adult_content",
+      "export_id": "export_fx_red_team_minor_adult_content",
+      "eval_status": "blocked",
+      "qa_check_ids": [],
+      "safety_rule_ids": [
+        "safety_minor_adult_content"
+      ],
+      "candidate_count": 0,
+      "qa_coverage_complete": false,
+      "export_artifacts_complete": false,
+      "missing_export_artifacts": [
+        "manifest",
+        "metadata"
+      ],
+      "final_export_allowed": false,
+      "package_download_allowed": false,
+      "expected_export_state": "blocked_retained",
+      "denial_reasons": [
+        "safety_policy_block",
+        "incomplete_export_artifacts",
+        "qa_coverage_incomplete"
+      ],
+      "retained_artifacts_when_blocked": [
+        "qa_report",
+        "trace_provenance",
+        "safety_disclaimer"
+      ]
+    }
+  ],
+  "provenance": {
+    "blueprint_sections": [
+      "6",
+      "12",
+      "14.1",
+      "15.1",
+      "15.2",
+      "15.3",
+      "24",
+      "25.11",
+      "25.12"
+    ],
+    "created_by_lane": "lane2"
+  }
+}

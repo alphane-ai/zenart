@@ -1,0 +1,319 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zenart.local/schemas/stage0/rev2/eval_package_readiness_contract.schema.json",
+  "title": "ZenArt Stage 0 Rev2 Eval Package Readiness Contract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "contract_id",
+    "blueprint_source",
+    "links",
+    "runner_replay",
+    "package_readiness_policy",
+    "readiness_cases",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "stage0.rev2"
+    },
+    "contract_id": {
+      "const": "eval_package_readiness_contract_stage0_rev2"
+    },
+    "blueprint_source": {
+      "const": "Docs/stage0_blueprint_rev2.md"
+    },
+    "links": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "eval_results",
+        "qa_results",
+        "safety_rules",
+        "trace_completeness",
+        "workflow_acceptance_dir"
+      ],
+      "properties": {
+        "eval_results": {
+          "const": "fixtures/stage0/rev2/eval/starter_eval_results.json"
+        },
+        "qa_results": {
+          "const": "fixtures/stage0/rev2/eval/qa_results.json"
+        },
+        "safety_rules": {
+          "const": "fixtures/stage0/rev2/eval/safety_rules.json"
+        },
+        "trace_completeness": {
+          "const": "fixtures/stage0/rev2/eval/trace_completeness.json"
+        },
+        "workflow_acceptance_dir": {
+          "const": "fixtures/stage0/rev2/workflows"
+        }
+      }
+    },
+    "runner_replay": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "runner",
+        "check_command",
+        "requires_exact_json_replay",
+        "requires_runner_sha256_match",
+        "runner_sha256",
+        "requires_source_fixture_digest_match",
+        "source_fixture_digests"
+      ],
+      "properties": {
+        "runner": {
+          "const": "scripts/run_stage0_eval.py"
+        },
+        "check_command": {
+          "const": "python3 scripts/run_stage0_eval.py --check"
+        },
+        "requires_exact_json_replay": {
+          "const": true
+        },
+        "requires_runner_sha256_match": {
+          "const": true
+        },
+        "runner_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "requires_source_fixture_digest_match": {
+          "const": true
+        },
+        "source_fixture_digests": {
+          "type": "array",
+          "minItems": 7,
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "path",
+              "sha256"
+            ],
+            "properties": {
+              "path": {
+                "type": "string",
+                "pattern": "^fixtures/stage0/rev2/(eval/(starter_eval_suite|qa_results|safety_rules)|workflows/[a-z_]+)\\.json$"
+              },
+              "sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              }
+            }
+          }
+        }
+      }
+    },
+    "package_readiness_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "final_export_requires_eval_pass",
+        "final_export_requires_complete_qa_coverage",
+        "final_export_requires_complete_export_artifacts",
+        "final_export_requires_no_blocking_qa",
+        "final_export_requires_no_safety_hold_or_block",
+        "blocked_exports_must_keep_trace_provenance",
+        "blocked_exports_must_not_allow_package_download"
+      ],
+      "properties": {
+        "final_export_requires_eval_pass": {
+          "const": true
+        },
+        "final_export_requires_complete_qa_coverage": {
+          "const": true
+        },
+        "final_export_requires_complete_export_artifacts": {
+          "const": true
+        },
+        "final_export_requires_no_blocking_qa": {
+          "const": true
+        },
+        "final_export_requires_no_safety_hold_or_block": {
+          "const": true
+        },
+        "blocked_exports_must_keep_trace_provenance": {
+          "const": true
+        },
+        "blocked_exports_must_not_allow_package_download": {
+          "const": true
+        }
+      }
+    },
+    "readiness_cases": {
+      "type": "array",
+      "minItems": 12,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "fixture_id",
+          "workflow",
+          "trace_id",
+          "package_id",
+          "export_id",
+          "eval_status",
+          "qa_check_ids",
+          "safety_rule_ids",
+          "candidate_count",
+          "qa_coverage_complete",
+          "export_artifacts_complete",
+          "missing_export_artifacts",
+          "final_export_allowed",
+          "package_download_allowed",
+          "expected_export_state",
+          "denial_reasons",
+          "retained_artifacts_when_blocked"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "pattern": "^package_readiness_[a-z0-9_]+$"
+          },
+          "fixture_id": {
+            "type": "string",
+            "pattern": "^fx_[a-z0-9_]+$"
+          },
+          "workflow": {
+            "$ref": "#/$defs/workflow"
+          },
+          "trace_id": {
+            "type": "string",
+            "pattern": "^trace_[a-z0-9_]+$"
+          },
+          "package_id": {
+            "type": "string",
+            "pattern": "^package_fx_[a-z0-9_]+$"
+          },
+          "export_id": {
+            "type": "string",
+            "pattern": "^export_fx_[a-z0-9_]+$"
+          },
+          "eval_status": {
+            "enum": [
+              "pass",
+              "fail",
+              "blocked"
+            ]
+          },
+          "qa_check_ids": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^qa_[a-z0-9_]+$"
+            }
+          },
+          "safety_rule_ids": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^safety_[a-z0-9_]+$"
+            }
+          },
+          "candidate_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "qa_coverage_complete": {
+            "type": "boolean"
+          },
+          "export_artifacts_complete": {
+            "type": "boolean"
+          },
+          "missing_export_artifacts": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "$ref": "#/$defs/export_artifact"
+            }
+          },
+          "final_export_allowed": {
+            "type": "boolean"
+          },
+          "package_download_allowed": {
+            "type": "boolean"
+          },
+          "expected_export_state": {
+            "enum": [
+              "download_allowed",
+              "blocked_retained"
+            ]
+          },
+          "denial_reasons": {
+            "$ref": "#/$defs/denial_reasons"
+          },
+          "retained_artifacts_when_blocked": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "$ref": "#/$defs/export_artifact"
+            }
+          }
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "blueprint_sections",
+        "created_by_lane"
+      ],
+      "properties": {
+        "blueprint_sections": {
+          "type": "array",
+          "minItems": 5,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^(6|12|14\\.1|15\\.[123]|24|25\\.11|25\\.12)$"
+          }
+        },
+        "created_by_lane": {
+          "const": "lane2"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "workflow": {
+      "enum": [
+        "ecommerce_growth_pack",
+        "business_visual_doc_pack",
+        "local_merchant_campaign_pack",
+        "character_ip_concept_pack"
+      ]
+    },
+    "export_artifact": {
+      "enum": [
+        "manifest",
+        "metadata",
+        "qa_report",
+        "trace_provenance",
+        "safety_disclaimer"
+      ]
+    },
+    "denial_reasons": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "blocking_qa",
+          "safety_policy_block",
+          "safety_user_confirmation_required",
+          "safety_admin_review_required",
+          "incomplete_export_artifacts",
+          "qa_coverage_incomplete"
+        ]
+      }
+    }
+  }
+}
