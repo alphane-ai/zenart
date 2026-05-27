@@ -629,6 +629,13 @@ RUNTIME_PASS_FILE_PREFIXES = {
     "production_launch": ("ops/evidence/production/",),
 }
 
+RUNTIME_PASS_FILE_ENVIRONMENTS = {
+    "local_alpha": {"local", "local_alpha"},
+    "ci": {"ci"},
+    "private_beta_staging": {"staging"},
+    "production_launch": {"production"},
+}
+
 RUNTIME_PASS_EVIDENCE_FILES = {
     ("private_beta_staging", "staging_auth_rbac_tenant_audit"): [
         STAGING_AUTH_RBAC_TENANT_AUDIT_EVIDENCE,
@@ -1084,6 +1091,14 @@ RELEASE_GATE_AGGREGATE_ITEMS = {
 RELEASE_GATE_AGGREGATE_GUARD_CHECKS = {
     gate: set().union(*requirements.values())
     for gate, requirements in RELEASE_GATE_AGGREGATE_REQUIREMENTS.items()
+}
+
+RELEASE_GATE_AGGREGATE_GUARD_ITEMS = {
+    "local_alpha": set(LOCAL_ALPHA_WORKFLOW_RUNTIME_ITEMS)
+    | set(LOCAL_ALPHA_RELEASE_GATE_WORKFLOW_RUNTIME_OPEN_CHECK_ITEMS),
+    "ci": set(CI_RUNTIME_OPEN_CHECK_ITEMS),
+    "private_beta_staging": set(PRIVATE_BETA_STAGING_RUNTIME_OPEN_CHECK_ITEMS),
+    "production_launch": set(PRODUCTION_RUNTIME_OPEN_CHECK_ITEMS),
 }
 
 RELEASE_GATE_CHECK_BLOCKING_CONDITIONS = {
@@ -1935,6 +1950,8 @@ def require_local_alpha_workflow_runtime_files(evidence_ref: str, context: str) 
 def require_runtime_file_evidence(evidence_ref: str, gate: str, check_id: str) -> None:
     allowed_prefixes = RUNTIME_PASS_FILE_PREFIXES.get(gate, ())
     require(allowed_prefixes, f"{gate}.{check_id} has no runtime file evidence prefix contract")
+    allowed_environments = RUNTIME_PASS_FILE_ENVIRONMENTS.get(gate, set())
+    require(allowed_environments, f"{gate}.{check_id} has no runtime environment contract")
     concrete_paths = concrete_evidence_paths(evidence_ref)
     forbidden_prefixes = FORBIDDEN_RUNTIME_GATE_PATH_PREFIXES.get(gate, ())
     forbidden_paths = [
@@ -1967,15 +1984,11 @@ def require_runtime_file_evidence(evidence_ref: str, gate: str, check_id: str) -
         evidence = load_json_if_path(runtime_path)
         if evidence is None:
             continue
+        actual_environment = evidence.get("environment")
         require(
-            evidence.get("environment") in {
-                "local",
-                "local_alpha",
-                "ci",
-                "staging",
-                "production",
-            },
-            f"{gate}.{check_id} pass evidence file {runtime_path} must declare its environment",
+            actual_environment in allowed_environments,
+            f"{gate}.{check_id} pass evidence file {runtime_path} must declare one of "
+            f"{sorted(allowed_environments)}; got environment={actual_environment!r}",
         )
         evidence_check_id = evidence.get("release_gate_check_id")
         if evidence_check_id is not None:
@@ -3062,12 +3075,22 @@ def validate_release_gate_checklist_decision_alignment(
         require(gate in evidence, f"missing release gate evidence for {gate}")
         decision_status = evidence[gate]["gate_decision"]["status"]
         aggregate_item = RELEASE_GATE_AGGREGATE_ITEMS[gate]
-        aggregate_subitems = RELEASE_GATE_AGGREGATE_GUARD_CHECKS[gate]
+        aggregate_subitems = RELEASE_GATE_AGGREGATE_GUARD_ITEMS[gate]
         aggregate_missing_subitems = sorted(aggregate_subitems - checked_lines)
+        aggregate_state_count = int(aggregate_item in checked_lines) + int(aggregate_item in unchecked_lines)
+        require(
+            aggregate_state_count == 1,
+            f"{gate} aggregate runtime checklist item is missing: {aggregate_item}",
+        )
         if item in checked_lines:
             require(
                 decision_status == "go",
                 f"blueprint marks {item!r} complete but {gate} gate_decision.status is {decision_status!r}",
+            )
+            require(
+                gate_allows_checklist_completion(evidence[gate]),
+                f"blueprint marks {item!r} complete but {gate} release gate evidence still has blockers: "
+                + json.dumps(gate_blockers(evidence[gate]), ensure_ascii=False, sort_keys=True),
             )
             require(
                 aggregate_item in checked_lines,
