@@ -1773,6 +1773,7 @@ CONCRETE_EVIDENCE_PATH_RE = re.compile(
 FORBIDDEN_RELEASE_GATE_REFERENCE_RE = re.compile(
     r"("
     r"README\.md|"
+    r"Docs/stage0_blueprint_rev2\.md|"
     r"Docs/stage0_blueprint\.md|"
     r"Docs/stage0_draft\.md|"
     r"debating-runs/|"
@@ -9967,6 +9968,7 @@ def validate_launch_readiness_split_contracts() -> None:
         "Release gate fixture `gate_decision` is a closed object",
         "only `status`, `blocked_by_checks`, `active_do_not_launch_conditions`, and `evidence_ref` are allowed",
         "Release gate fixture `checks[*].evidence_ref`, `do_not_launch_checks[*].evidence_ref`, and `gate_decision.evidence_ref` must not cite README",
+        "`Docs/stage0_blueprint_rev2.md` itself as pass/clearance evidence",
         "conversation logs、or debating-runs as launch-closure evidence",
         "A release gate evidence ref may not cite another `fixtures/stage0/rev2/release_gate_evidence.*.json` file as direct runtime proof",
         "Production `ci_staging_gates_not_passed`",
