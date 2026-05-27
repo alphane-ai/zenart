@@ -115,6 +115,7 @@
     "au-022"
   ],
   "gate_impact": {
+    "can_clear_aggregate_production_gate": false,
     "can_clear_refund_credit_webhook_subitem": true,
     "can_clear_aggregate_production_gate": false,
     "checklist_items": [

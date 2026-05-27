@@ -40,6 +40,7 @@
             "retention_until",
             "tenant"
           ],
+          "headers_path": null,
           "http_status": null,
           "matched_tokens": [],
           "method": "GET",
@@ -51,8 +52,10 @@
           ],
           "reason": "missing_staging_base_url_or_explicit_probe_urls",
           "request_id": "stage0-object-retention-cleanup-retention_policy",
+          "request_id_echoed": false,
           "request_id_header": "X-Request-ID",
           "response_bytes": 0,
+          "response_request_id_values": [],
           "status": "blocked",
           "url": ""
         }
@@ -89,6 +92,7 @@
             "retained",
             "audit"
           ],
+          "headers_path": null,
           "http_status": null,
           "matched_tokens": [],
           "method": "POST",
@@ -100,8 +104,10 @@
           ],
           "reason": "missing_staging_base_url_or_explicit_probe_urls",
           "request_id": "stage0-object-retention-cleanup-expired_export_cleanup",
+          "request_id_echoed": false,
           "request_id_header": "X-Request-ID",
           "response_bytes": 0,
+          "response_request_id_values": [],
           "status": "blocked",
           "url": ""
         }
@@ -138,6 +144,7 @@
             "retained",
             "audit"
           ],
+          "headers_path": null,
           "http_status": null,
           "matched_tokens": [],
           "method": "POST",
@@ -149,8 +156,10 @@
           ],
           "reason": "missing_staging_base_url_or_explicit_probe_urls",
           "request_id": "stage0-object-retention-cleanup-orphan_cleanup",
+          "request_id_echoed": false,
           "request_id_header": "X-Request-ID",
           "response_bytes": 0,
+          "response_request_id_values": [],
           "status": "blocked",
           "url": ""
         }
@@ -187,6 +196,7 @@
             "admin",
             "tenant"
           ],
+          "headers_path": null,
           "http_status": null,
           "matched_tokens": [],
           "method": "GET",
@@ -198,8 +208,10 @@
           ],
           "reason": "missing_staging_base_url_or_explicit_probe_urls",
           "request_id": "stage0-object-retention-cleanup-audit_refs",
+          "request_id_echoed": false,
           "request_id_header": "X-Request-ID",
           "response_bytes": 0,
+          "response_request_id_values": [],
           "status": "blocked",
           "url": ""
         }
@@ -261,6 +273,7 @@
       }
     },
     "required_release_sha": "d3b1107c33dc40b8936f28549e06553fbd7b104a",
+    "required_request_id_echo": "each probe must send X-Request-ID and receive the same value in response headers",
     "required_smoke_admin_tenant_id": "SMOKE_ADMIN_TENANT_ID bound to the staging tenant whose objects and audit refs are probed",
     "required_smoke_admin_user_id": "SMOKE_ADMIN_USER_ID bound to the admin operator executing the cleanup probes"
   },

@@ -58,7 +58,8 @@ append_result() {
   local reason="$7"
   local body_path="$8"
   local request_id="$9"
-  python3 - "$RESULTS_PATH" "$check_id" "$method" "$url" "$expected_tokens" "$status" "$http_status" "$reason" "$body_path" "$request_id" "$REQUEST_ID_HEADER" <<'PY'
+  local headers_path="${10:-}"
+  python3 - "$RESULTS_PATH" "$check_id" "$method" "$url" "$expected_tokens" "$status" "$http_status" "$reason" "$body_path" "$request_id" "$REQUEST_ID_HEADER" "$headers_path" <<'PY'
 import json
 import sys
 from pathlib import Path
@@ -75,6 +76,7 @@ from pathlib import Path
     body_path,
     request_id,
     request_id_header,
+    headers_path,
 ) = sys.argv[1:]
 tokens = [token.strip() for token in expected_tokens.split(",") if token.strip()]
 body = ""
@@ -84,6 +86,23 @@ if body_path:
         body = path.read_text(encoding="utf-8", errors="replace")
 matched_tokens = [token for token in tokens if token.lower() in body.lower()]
 missing_tokens = [token for token in tokens if token.lower() not in body.lower()]
+response_request_id_values = []
+if headers_path:
+    path = Path(headers_path)
+    if path.exists() and path.is_file():
+        header_name = request_id_header.lower()
+        for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+            if ":" not in line:
+                continue
+            name, value = line.split(":", 1)
+            if name.strip().lower() == header_name:
+                response_request_id_values.append(value.strip())
+request_id_echoed = bool(request_id) and request_id in response_request_id_values
+final_status = status
+final_reason = reason
+if status == "passed" and not request_id_echoed:
+    final_status = "failed"
+    final_reason = "missing_response_request_id_header"
 with open(result_path, "a", encoding="utf-8") as fh:
     fh.write(json.dumps({
         "check_id": check_id,
@@ -91,14 +110,17 @@ with open(result_path, "a", encoding="utf-8") as fh:
         "url": url,
         "request_id_header": request_id_header,
         "request_id": request_id,
+        "response_request_id_values": response_request_id_values,
+        "request_id_echoed": request_id_echoed,
         "expected_tokens": tokens,
         "matched_tokens": matched_tokens,
         "missing_tokens": missing_tokens,
         "response_bytes": len(body.encode("utf-8")),
-        "status": status,
+        "status": final_status,
         "http_status": int(http_status) if http_status.isdigit() else None,
-        "reason": reason,
+        "reason": final_reason,
         "body_path": body_path or None,
+        "headers_path": headers_path or None,
     }, sort_keys=True) + "\n")
 PY
 }
@@ -109,6 +131,7 @@ run_probe() {
   local url="$3"
   local expected_tokens="$4"
   local body_file="$OUT_DIR/$RUN_ID.$check_id.body"
+  local headers_file="$OUT_DIR/$RUN_ID.$check_id.headers"
   local request_id="$REQUEST_ID_VALUE-$check_id"
   local curl_args=(
     --silent
@@ -117,6 +140,7 @@ run_probe() {
     --max-time "$TIMEOUT_SECONDS"
     --request "$method"
     --header "$REQUEST_ID_HEADER: $request_id"
+    --dump-header "$headers_file"
     --output "$body_file"
     --write-out "%{http_code}"
   )
@@ -133,7 +157,7 @@ run_probe() {
   local http_status
   http_status="$(curl "${curl_args[@]}" "$url" || true)"
   if [[ "$http_status" != "200" && "$http_status" != "202" ]]; then
-    append_result "$check_id" "$method" "$url" "$expected_tokens" "failed" "$http_status" "unexpected_http_status" "$body_file" "$request_id"
+    append_result "$check_id" "$method" "$url" "$expected_tokens" "failed" "$http_status" "unexpected_http_status" "$body_file" "$request_id" "$headers_file"
     return
   fi
 
@@ -146,37 +170,37 @@ run_probe() {
     fi
   done
   if [[ "${#missing[@]}" -gt 0 ]]; then
-    append_result "$check_id" "$method" "$url" "$expected_tokens" "failed" "$http_status" "missing_tokens:${missing[*]}" "$body_file" "$request_id"
+    append_result "$check_id" "$method" "$url" "$expected_tokens" "failed" "$http_status" "missing_tokens:${missing[*]}" "$body_file" "$request_id" "$headers_file"
   else
-    append_result "$check_id" "$method" "$url" "$expected_tokens" "passed" "$http_status" "ok" "$body_file" "$request_id"
+    append_result "$check_id" "$method" "$url" "$expected_tokens" "passed" "$http_status" "ok" "$body_file" "$request_id" "$headers_file"
   fi
 }
 
 if [[ "$DRY_RUN" == "1" ]]; then
   for check in "${CHECKS[@]}"; do
     IFS='|' read -r check_id method url expected_tokens <<<"$check"
-    append_result "$check_id" "$method" "$url" "$expected_tokens" "planned" "" "dry_run_no_staging_runtime_probe" "" "$REQUEST_ID_VALUE-$check_id"
+    append_result "$check_id" "$method" "$url" "$expected_tokens" "planned" "" "dry_run_no_staging_runtime_probe" "" "$REQUEST_ID_VALUE-$check_id" ""
   done
 elif [[ -z "$BASE_URL" && -z "$RETENTION_POLICY_URL$EXPIRED_EXPORT_CLEANUP_URL$ORPHAN_CLEANUP_URL$AUDIT_REFS_URL" ]]; then
   for check in "${CHECKS[@]}"; do
     IFS='|' read -r check_id method url expected_tokens <<<"$check"
-    append_result "$check_id" "$method" "$url" "$expected_tokens" "blocked" "" "missing_staging_base_url_or_explicit_probe_urls" "" "$REQUEST_ID_VALUE-$check_id"
+    append_result "$check_id" "$method" "$url" "$expected_tokens" "blocked" "" "missing_staging_base_url_or_explicit_probe_urls" "" "$REQUEST_ID_VALUE-$check_id" ""
   done
 elif [[ "$AUTH_READY" != "1" ]]; then
   for check in "${CHECKS[@]}"; do
     IFS='|' read -r check_id method url expected_tokens <<<"$check"
-    append_result "$check_id" "$method" "$url" "$expected_tokens" "blocked" "" "missing_admin_auth" "" "$REQUEST_ID_VALUE-$check_id"
+    append_result "$check_id" "$method" "$url" "$expected_tokens" "blocked" "" "missing_admin_auth" "" "$REQUEST_ID_VALUE-$check_id" ""
   done
 elif [[ -z "$SMOKE_ADMIN_USER_ID" || -z "$SMOKE_ADMIN_TENANT_ID" ]]; then
   for check in "${CHECKS[@]}"; do
     IFS='|' read -r check_id method url expected_tokens <<<"$check"
-    append_result "$check_id" "$method" "$url" "$expected_tokens" "blocked" "" "missing_smoke_admin_user_or_tenant_id" "" "$REQUEST_ID_VALUE-$check_id"
+    append_result "$check_id" "$method" "$url" "$expected_tokens" "blocked" "" "missing_smoke_admin_user_or_tenant_id" "" "$REQUEST_ID_VALUE-$check_id" ""
   done
 else
   for check in "${CHECKS[@]}"; do
     IFS='|' read -r check_id method url expected_tokens <<<"$check"
     if [[ -z "$url" ]]; then
-      append_result "$check_id" "$method" "$url" "$expected_tokens" "blocked" "" "missing_probe_url" "" "$REQUEST_ID_VALUE-$check_id"
+      append_result "$check_id" "$method" "$url" "$expected_tokens" "blocked" "" "missing_probe_url" "" "$REQUEST_ID_VALUE-$check_id" ""
     else
       run_probe "$check_id" "$method" "$url" "$expected_tokens"
     fi
@@ -184,7 +208,7 @@ else
 fi
 
 actual_report_path="$(
-python3 - "$REPORT_PATH" "$RESULTS_PATH" "$RUN_ID" "$RELEASE_SHA" "$BASE_URL" "$SMOKE_ADMIN_USER_ID" "$SMOKE_ADMIN_TENANT_ID" "$SIGNED_URL_EVIDENCE" "$AUTH_READY" <<'PY'
+python3 - "$REPORT_PATH" "$RESULTS_PATH" "$RUN_ID" "$RELEASE_SHA" "$BASE_URL" "$SMOKE_ADMIN_USER_ID" "$SMOKE_ADMIN_TENANT_ID" "$SIGNED_URL_EVIDENCE" "$AUTH_READY" "$REQUEST_ID_HEADER" <<'PY'
 import json
 import sys
 from pathlib import Path
@@ -198,6 +222,7 @@ admin_user_id = sys.argv[6].strip()
 admin_tenant_id = sys.argv[7].strip()
 signed_url_evidence = sys.argv[8].strip()
 auth_ready = sys.argv[9] == "1"
+request_id_header = sys.argv[10].strip()
 
 results = [
     json.loads(line)
@@ -234,11 +259,17 @@ request_id_blockers = [
     for item in results
     if item["status"] == "passed" and not item.get("request_id")
 ]
+request_id_echo_blockers = [
+    f"{item['check_id']}:missing_response_request_id_header"
+    for item in results
+    if item["status"] == "passed" and item.get("request_id_echoed") is not True
+]
 shape_blockers = [f"missing_required_result:{item}" for item in missing_required_results]
 shape_blockers.extend(f"unexpected_result:{item}" for item in unexpected_results)
 blocked_or_failed.extend(token_blockers)
 blocked_or_failed.extend(empty_response_blockers)
 blocked_or_failed.extend(request_id_blockers)
+blocked_or_failed.extend(request_id_echo_blockers)
 blocked_or_failed.extend(shape_blockers)
 runtime_checks_passed = required <= passed and not blocked_or_failed
 canonical_report_path = Path("ops/evidence/staging/object-storage-retention-cleanup.json")
@@ -351,14 +382,15 @@ probe_routes = {
     },
 }
 runtime_input_requirements = {
-    "required_release_sha": signed_url_release_sha or "must match signed URL split evidence release_sha",
-    "required_auth": "ADMIN_BEARER_TOKEN or ADMIN_SESSION_COOKIE with admin_operator access",
-    "required_base_url": "STAGING_BASE_URL or explicit probe URL env vars",
-    "required_smoke_admin_user_id": "SMOKE_ADMIN_USER_ID bound to the admin operator executing the cleanup probes",
-    "required_smoke_admin_tenant_id": "SMOKE_ADMIN_TENANT_ID bound to the staging tenant whose objects and audit refs are probed",
-    "required_probe_routes": probe_routes,
-    "canonical_pass_report": str(canonical_report_path),
-    "canonical_pass_results": str(canonical_results_path),
+        "required_release_sha": signed_url_release_sha or "must match signed URL split evidence release_sha",
+        "required_auth": "ADMIN_BEARER_TOKEN or ADMIN_SESSION_COOKIE with admin_operator access",
+        "required_base_url": "STAGING_BASE_URL or explicit probe URL env vars",
+        "required_smoke_admin_user_id": "SMOKE_ADMIN_USER_ID bound to the admin operator executing the cleanup probes",
+        "required_smoke_admin_tenant_id": "SMOKE_ADMIN_TENANT_ID bound to the staging tenant whose objects and audit refs are probed",
+        "required_request_id_echo": f"each probe must send {request_id_header} and receive the same value in response headers",
+        "required_probe_routes": probe_routes,
+        "canonical_pass_report": str(canonical_report_path),
+        "canonical_pass_results": str(canonical_results_path),
 }
 runtime_input_requirements["pass_file_policy"] = (
     "canonical pass paths require passing evidence to be written to ops/evidence/staging/object-storage-retention-cleanup.json "

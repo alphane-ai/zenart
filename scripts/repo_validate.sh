@@ -229,6 +229,8 @@ if "SMOKE_ADMIN_USER_ID" not in runtime_requirements.get("required_smoke_admin_u
     raise SystemExit("release bundle dry-run must surface admin user requirement for object-retention probe")
 if "SMOKE_ADMIN_TENANT_ID" not in runtime_requirements.get("required_smoke_admin_tenant_id", ""):
     raise SystemExit("release bundle dry-run must surface admin tenant requirement for object-retention probe")
+if "X-Request-ID" not in runtime_requirements.get("required_request_id_echo", ""):
+    raise SystemExit("release bundle dry-run must surface request-id echo requirement for object-retention probe")
 if runtime_requirements.get("canonical_pass_report") != "ops/evidence/staging/object-storage-retention-cleanup.json":
     raise SystemExit("release bundle dry-run must surface canonical object-retention pass report path")
 split_evidence = object_retention_probe.get("split_evidence", {})
@@ -306,6 +308,8 @@ if "SMOKE_ADMIN_USER_ID" not in runtime_requirements.get("required_smoke_admin_u
     raise SystemExit("blocked object-storage retention cleanup evidence must name the smoke admin user ID requirement")
 if "SMOKE_ADMIN_TENANT_ID" not in runtime_requirements.get("required_smoke_admin_tenant_id", ""):
     raise SystemExit("blocked object-storage retention cleanup evidence must name the smoke admin tenant ID requirement")
+if "X-Request-ID" not in runtime_requirements.get("required_request_id_echo", ""):
+    raise SystemExit("blocked object-storage retention cleanup evidence must name the request-id echo requirement")
 if runtime_requirements.get("canonical_pass_report") != "ops/evidence/staging/object-storage-retention-cleanup.json":
     raise SystemExit("blocked object-storage retention cleanup evidence must name the canonical pass report path")
 if "canonical pass paths" not in runtime_requirements.get("pass_file_policy", ""):
@@ -329,6 +333,9 @@ for item in blocked_retention.get("coverage", []):
     for key in ("release_sha_bound", "admin_identity_bound", "request_ids", "response_bytes"):
         if key not in item:
             raise SystemExit(f"blocked object-storage retention cleanup coverage missing {key}: {item}")
+    for result in item.get("source_results", []):
+        if "request_id_echoed" not in result or "response_request_id_values" not in result:
+            raise SystemExit(f"blocked object-storage retention cleanup result missing request-id echo fields: {result}")
 obsolete_fragments = [
     "Observability runtime: staging request id propagation runtime evidence 通过",
     "staging observability, restore, rollback, load, and post-deploy smoke evidence are absent",
@@ -650,6 +657,8 @@ if "SMOKE_ADMIN_USER_ID" not in runtime_requirements.get("required_smoke_admin_u
     raise SystemExit("object-storage retention cleanup dry-run must name smoke admin user input requirement")
 if "SMOKE_ADMIN_TENANT_ID" not in runtime_requirements.get("required_smoke_admin_tenant_id", ""):
     raise SystemExit("object-storage retention cleanup dry-run must name smoke admin tenant input requirement")
+if "X-Request-ID" not in runtime_requirements.get("required_request_id_echo", ""):
+    raise SystemExit("object-storage retention cleanup dry-run must name request-id echo input requirement")
 if runtime_requirements.get("canonical_pass_results") != "ops/evidence/staging/object-storage-retention-cleanup.ndjson":
     raise SystemExit("object-storage retention cleanup dry-run must name the canonical pass results path")
 if "canonical pass paths" not in runtime_requirements.get("pass_file_policy", ""):
@@ -745,6 +754,8 @@ if "SMOKE_ADMIN_USER_ID" not in runtime_requirements.get("required_smoke_admin_u
     raise SystemExit("release evidence bundle dry-run must surface admin user requirement for object-retention probe")
 if "SMOKE_ADMIN_TENANT_ID" not in runtime_requirements.get("required_smoke_admin_tenant_id", ""):
     raise SystemExit("release evidence bundle dry-run must surface admin tenant requirement for object-retention probe")
+if "X-Request-ID" not in runtime_requirements.get("required_request_id_echo", ""):
+    raise SystemExit("release evidence bundle dry-run must surface request-id echo requirement for object-retention probe")
 if runtime_requirements.get("canonical_pass_report") != "ops/evidence/staging/object-storage-retention-cleanup.json":
     raise SystemExit("release evidence bundle dry-run must surface canonical object-retention pass report path")
 split_evidence = object_retention_probe.get("split_evidence", {})
@@ -1616,6 +1627,8 @@ if "SMOKE_ADMIN_USER_ID" not in runtime_requirements.get("required_smoke_admin_u
     raise SystemExit("complete-evidence release bundle must surface admin user requirement for object-retention probe")
 if "SMOKE_ADMIN_TENANT_ID" not in runtime_requirements.get("required_smoke_admin_tenant_id", ""):
     raise SystemExit("complete-evidence release bundle must surface admin tenant requirement for object-retention probe")
+if "X-Request-ID" not in runtime_requirements.get("required_request_id_echo", ""):
+    raise SystemExit("complete-evidence release bundle must surface request-id echo requirement for object-retention probe")
 if runtime_requirements.get("canonical_pass_report") != "ops/evidence/staging/object-storage-retention-cleanup.json":
     raise SystemExit("complete-evidence release bundle must surface canonical object-retention pass report path")
 split_evidence = object_retention_probe.get("split_evidence", {})
@@ -1899,6 +1912,9 @@ for item in areas.values():
     for key in ("release_sha_bound", "admin_identity_bound", "request_ids", "response_bytes"):
         if key not in item:
             raise SystemExit(f"{item['area']} retention cleanup coverage missing {key}")
+    for result in item.get("source_results", []):
+        if "request_id_echoed" not in result or "response_request_id_values" not in result:
+            raise SystemExit(f"{item['area']} retention cleanup source result missing request-id echo fields")
     combined = json.dumps(item).lower()
     for token in ("ops/evidence/staging", "retention", "audit"):
         if token not in combined:

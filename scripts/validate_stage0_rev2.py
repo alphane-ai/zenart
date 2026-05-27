@@ -6615,6 +6615,7 @@ def validate_staging_object_storage_retention_cleanup_evidence() -> None:
             "required_auth": "ADMIN_BEARER_TOKEN or ADMIN_SESSION_COOKIE",
             "required_smoke_admin_user_id": "SMOKE_ADMIN_USER_ID",
             "required_smoke_admin_tenant_id": "SMOKE_ADMIN_TENANT_ID",
+            "required_request_id_echo": "X-Request-ID",
             "required_release_sha": load_json(STAGING_OBJECT_STORAGE_SIGNED_URL_EVIDENCE)["release_sha"],
         }.items():
             require(
@@ -6651,6 +6652,11 @@ def validate_staging_object_storage_retention_cleanup_evidence() -> None:
                 and "response_bytes" in item,
                 "blocked retention cleanup coverage must expose release/admin/request/response evidence fields",
             )
+            for result in item["source_results"]:
+                require(
+                    "request_id_echoed" in result and "response_request_id_values" in result,
+                    "blocked retention cleanup source results must expose response request-id echo fields",
+                )
         return
 
     evidence = load_json(STAGING_OBJECT_STORAGE_RETENTION_EVIDENCE)
@@ -6741,6 +6747,14 @@ def validate_staging_object_storage_retention_cleanup_evidence() -> None:
             require(not result["missing_tokens"], f"{area} retention cleanup source probe has missing tokens")
             require(result["matched_tokens"], f"{area} retention cleanup source probe must record matched tokens")
             require(result["request_id"], f"{area} retention cleanup source probe must record request_id")
+            require(
+                result["request_id_echoed"] is True,
+                f"{area} retention cleanup source probe must verify response request-id echo",
+            )
+            require(
+                result["request_id"] in result["response_request_id_values"],
+                f"{area} retention cleanup source probe must include echoed request_id in response headers",
+            )
             require(result["response_bytes"] > 0, f"{area} retention cleanup source probe must record response bytes")
         combined = json.dumps(item, ensure_ascii=False).lower()
         for token in ["staging", "release-sha-bound", "admin", "audit"]:
