@@ -548,6 +548,12 @@ README_LAUNCH_READINESS_CHECKLIST_ITEM = (
     "README prose that implies those gates are launch-ready before release fixtures compute `go`。"
 )
 
+RUNTIME_PASS_EXACT_FILE_GUARD_CHECKLIST_ITEM = (
+    "Runtime pass evidence exact-file guard 通过：`scripts/validate_stage0_rev2.py` rejects passed "
+    "Local Alpha、CI、Private Beta/Staging、Production runtime gate checks that cite runtime evidence directories "
+    "instead of exact validator-owned files, so directory existence cannot close launch readiness。"
+)
+
 README_GATE_SNAPSHOT_REQUIREMENTS = {
     "Local Alpha Gate": {
         "expected_status": "go",
@@ -3663,6 +3669,16 @@ def require_runtime_file_evidence(evidence_ref: str, gate: str, check_id: str) -
         for path in concrete_paths
         if any(path.startswith(prefix) for prefix in allowed_prefixes)
     ]
+    directory_runtime_paths = [
+        path
+        for path in runtime_paths
+        if repo_path(path).exists() and not repo_path(path).is_file()
+    ]
+    require(
+        not directory_runtime_paths,
+        f"{gate}.{check_id} pass evidence cites runtime evidence directories instead of exact files: "
+        + json.dumps(sorted(directory_runtime_paths), ensure_ascii=False),
+    )
     existing_runtime_files = [
         path
         for path in runtime_paths
@@ -11022,6 +11038,7 @@ def validate_launch_readiness_split_contracts() -> None:
         "定义 alerts。",
         "定义 release gate evidence schema/fixtures 和 no-go release notes renderer。",
         "定义 post-deploy smoke evidence contract。",
+        RUNTIME_PASS_EXACT_FILE_GUARD_CHECKLIST_ITEM,
     ] + sorted(RELEASE_GATE_BACKFILL_CHECKED_ITEMS):
         require(item in checked_lines, f"blueprint must close definition-only evidence subitem: {item}")
 
@@ -11181,6 +11198,8 @@ def validate_launch_readiness_split_contracts() -> None:
         "Production rollback/incident/post-deploy exact evidence file 通过：`ops/evidence/production/rollback-incident-post-deploy-smoke.json`",
         "exact per-workflow API, Playwright, and export ZIP runtime evidence files under `ops/evidence/local_alpha/`",
         "one generic local smoke artifact or directory-level reference cannot close the aggregate Local Alpha runtime check",
+        "Passed runtime gate checks must not cite runtime evidence directories as supporting pass evidence",
+        "directory existence cannot prove environment、status、release_gate_check_id、gate_impact、or preserved-blocker semantics",
         "Local backup/restore, load, observability, or smoke evidence under `ops/evidence/backup-restore/`, `ops/evidence/observability/`, or other non-staging/non-production paths cannot close Private Beta/Staging or Production launch gates",
         "staging gates require `environment=staging` evidence under `ops/evidence/staging/`, and production gates require `environment=production` evidence under `ops/evidence/production/`",
         "A top-level gate checklist item may close only after its aggregate runtime checklist item is closed",
