@@ -748,6 +748,8 @@ export type FailedTaskRuntimeDecision = {
     | "blocked_not_regression_fixture";
   retryBudgetStatus: "available" | "exhausted" | "not_retry";
   rbacStatus: "allowed" | "denied" | "second_review_required";
+  roleAuthorizationStatus: "sufficient" | "insufficient";
+  roleAuthorizationEvidence: string;
   quotaSettlement: FailedTaskControl["quotaEffect"];
   idempotencyKey: string;
   idempotencyStatus: "stable" | "unstable";

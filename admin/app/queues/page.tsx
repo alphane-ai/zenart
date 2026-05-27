@@ -72,6 +72,8 @@ export default async function QueuesPage() {
             { key: "release-gate", header: "Release Gate", render: (row) => <StatusBadge value={row.releaseGateDisposition} label={row.releaseGateDisposition} /> },
             { key: "retry-budget", header: "Retry Budget", render: (row) => <StatusBadge value={row.retryBudgetStatus} /> },
             { key: "rbac", header: "RBAC", render: (row) => <StatusBadge value={row.rbacStatus} /> },
+            { key: "role-authorization", header: "Role Authorization", render: (row) => <StatusBadge value={row.roleAuthorizationStatus} /> },
+            { key: "role-authorization-evidence", header: "Role Authorization Evidence", render: (row) => <span className="mono">{row.roleAuthorizationEvidence}</span> },
             { key: "quota", header: "Quota Settlement", render: (row) => row.quotaSettlement },
             { key: "idempotency-key", header: "Idempotency Key", render: (row) => <span className="mono">{row.idempotencyKey}</span> },
             { key: "idempotency", header: "Idempotency", render: (row) => <StatusBadge value={row.idempotencyStatus} /> },

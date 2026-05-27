@@ -189,6 +189,7 @@ const parseFailedTaskRuntime = () => {
     .replaceAll(/: FailedTaskRuntimeDecision\["idempotencyStatus"\]/g, "")
     .replaceAll(/: FailedTaskRuntimeDecision\["stateDigestStatus"\]/g, "")
     .replaceAll(/: FailedTaskRuntimeDecision\["submitDecision"\]/g, "")
+    .replaceAll(/const roleRank: Record<FailedTaskControl\["requestedByRole"\], number> =/g, "const roleRank =")
     .replaceAll(/: string/g, "");
   return Function(`${runtimeSource}\nreturn { buildFailedTaskRuntimeDecisions };`)();
 };
@@ -1421,6 +1422,16 @@ test("failed task runtime submit gates preserve retry, cancel, hold, RBAC, and a
     assert.ok(decision, `${task.id} is missing runtime decision`);
     assert.equal(decision.queueId, task.queueId, `${task.id} must preserve queue linkage`);
     assert.equal(decision.rbacStatus, task.rbacDecision, `${task.id} must preserve RBAC outcome`);
+    assert.equal(
+      decision.roleAuthorizationStatus,
+      roleOrder.get(task.requestedByRole) >= roleOrder.get(task.allowedRole) ? "sufficient" : "insufficient",
+      `${task.id} must compute requested-role authorization`
+    );
+    assert.equal(
+      decision.roleAuthorizationEvidence,
+      `requested:${task.requestedByRole}; required:${task.allowedRole}`,
+      `${task.id} must expose requested and required role evidence`
+    );
     assert.equal(decision.quotaSettlement, task.quotaEffect, `${task.id} must preserve quota settlement`);
     assert.equal(decision.auditRef, task.auditRef, `${task.id} must preserve audit ref`);
     assert.equal(decision.idempotencyKey, task.idempotencyKey, `${task.id} must preserve idempotency key`);
@@ -1612,6 +1623,34 @@ test("failed task runtime submit gates preserve retry, cancel, hold, RBAC, and a
   assert.ok(
     missingRbacEvidenceRetry.blockerCodes.includes("rbac_evidence_missing"),
     "missing RBAC evidence must expose a blocker code"
+  );
+
+  const insufficientRoleAllowedRetry = buildFailedTaskRuntimeDecisions([
+    {
+      ...failedTaskControls.find((task) => task.id === "task-export-489"),
+      allowedRole: "admin_reviewer",
+      requestedByRole: "support_operator",
+      rbacDecision: "allowed"
+    }
+  ])[0];
+  assert.equal(
+    insufficientRoleAllowedRetry.roleAuthorizationStatus,
+    "insufficient",
+    "runtime must detect an allowed RBAC decision from an insufficient role"
+  );
+  assert.equal(
+    insufficientRoleAllowedRetry.submitDecision,
+    "blocked",
+    "insufficient requested role must block failed-task retry submission even if fixture RBAC says allowed"
+  );
+  assert.ok(
+    insufficientRoleAllowedRetry.blockerCodes.includes("role_authorization_insufficient"),
+    "insufficient requested role must expose a blocker code"
+  );
+  assert.match(
+    insufficientRoleAllowedRetry.roleAuthorizationEvidence,
+    /requested:support_operator; required:admin_reviewer/,
+    "insufficient requested role evidence must include requested and required roles"
   );
 });
 

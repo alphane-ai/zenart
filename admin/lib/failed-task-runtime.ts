@@ -4,6 +4,12 @@ const requiredClosureEvidenceCount = 4;
 const supportedAppVersion = "admin-0.0.0";
 const supportedSchemaVersion = "task.v1";
 const supportedWorkerVersions = new Set(["worker-2026.05.26", "crawler-2026.05.26"]);
+const roleRank: Record<FailedTaskControl["requestedByRole"], number> = {
+  support_operator: 1,
+  admin_operator: 2,
+  admin_reviewer: 3,
+  admin_superadmin: 4
+};
 
 function idempotencyStatus(task: FailedTaskControl): FailedTaskRuntimeDecision["idempotencyStatus"] {
   const [action, taskId, supportTicketId, reason] = task.idempotencyKey.split(":");
@@ -88,6 +94,9 @@ export function buildFailedTaskRuntimeDecisions(tasks: FailedTaskControl[]): Fai
         : "stale";
     const compatibilityEvidence =
       `app:${task.appVersion}; worker:${task.workerVersion}; schema:${task.schemaVersion}`;
+    const roleAuthorizationStatus =
+      roleRank[task.requestedByRole] >= roleRank[task.allowedRole] ? "sufficient" : "insufficient";
+    const roleAuthorizationEvidence = `requested:${task.requestedByRole}; required:${task.allowedRole}`;
 
     if (task.actionEligibility === "blocked") {
       blockerCodes.push("action_blocked");
@@ -99,6 +108,10 @@ export function buildFailedTaskRuntimeDecisions(tasks: FailedTaskControl[]): Fai
 
     if (task.rbacDecision === "denied") {
       blockerCodes.push("rbac_denied");
+    }
+
+    if (task.rbacDecision === "allowed" && roleAuthorizationStatus === "insufficient") {
+      blockerCodes.push("role_authorization_insufficient");
     }
 
     if (closureEvidenceStatus === "incomplete") {
@@ -129,6 +142,7 @@ export function buildFailedTaskRuntimeDecisions(tasks: FailedTaskControl[]): Fai
       "action_blocked",
       "retry_budget_exhausted",
       "rbac_denied",
+      "role_authorization_insufficient",
       "closure_evidence_incomplete",
       "rbac_evidence_missing",
       "user_message_missing",
@@ -202,6 +216,8 @@ export function buildFailedTaskRuntimeDecisions(tasks: FailedTaskControl[]): Fai
       releaseGateDisposition: computedReleaseGateDisposition,
       retryBudgetStatus,
       rbacStatus: task.rbacDecision,
+      roleAuthorizationStatus,
+      roleAuthorizationEvidence,
       quotaSettlement: task.quotaEffect,
       idempotencyKey: task.idempotencyKey,
       idempotencyStatus: computedIdempotencyStatus,

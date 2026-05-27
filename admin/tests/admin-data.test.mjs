@@ -139,6 +139,8 @@ test("admin queue fixtures expose retry idempotency, RBAC, and quota effects", (
     "Retry Backoff",
     "Requested By",
     "RBAC Decision",
+    "Role Authorization",
+    "Role Authorization Evidence",
     "Idempotency Key",
     "Quota Effect",
     "State Transition",
