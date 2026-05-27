@@ -225,6 +225,84 @@ func TestLocalStoreCleanupExpiredForTenantOnlyDeletesTenantMarkers(t *testing.T)
 	_ = reader.Body.Close()
 }
 
+func TestLocalStoreCleanupExpiredSkipsUnscopedExpiryMarkers(t *testing.T) {
+	root := t.TempDir()
+	store, err := NewLocalStore(root, "zenart-test", "secret")
+	if err != nil {
+		t.Fatalf("NewLocalStore() error = %v", err)
+	}
+	expired := time.Date(2026, 5, 26, 12, 0, 0, 0, time.UTC)
+	if _, err := store.Put(context.Background(), Object{
+		TenantID:       "tenant_1",
+		Key:            "exports/expired.zip",
+		RetentionUntil: &expired,
+	}, strings.NewReader("zip bytes")); err != nil {
+		t.Fatalf("Put(scoped expired) error = %v", err)
+	}
+
+	unscopedPath := filepath.Join(root, "zenart-test", "exports", "unscoped.zip")
+	if err := os.MkdirAll(filepath.Dir(unscopedPath), 0o750); err != nil {
+		t.Fatalf("MkdirAll(unscoped) error = %v", err)
+	}
+	if err := os.WriteFile(unscopedPath, []byte("must stay"), 0o640); err != nil {
+		t.Fatalf("WriteFile(unscoped object) error = %v", err)
+	}
+	if err := os.WriteFile(unscopedPath+".expires", []byte(expired.Format(time.RFC3339)), 0o640); err != nil {
+		t.Fatalf("WriteFile(unscoped marker) error = %v", err)
+	}
+
+	deleted, err := store.CleanupExpired(context.Background(), expired.Add(time.Minute))
+	if err != nil {
+		t.Fatalf("CleanupExpired() error = %v", err)
+	}
+	if deleted != 1 {
+		t.Fatalf("deleted = %d, want only tenant-scoped expired object", deleted)
+	}
+	if _, err := os.Stat(unscopedPath); err != nil {
+		t.Fatalf("unscoped object stat error = %v, want retained", err)
+	}
+	if _, err := os.Stat(unscopedPath + ".expires"); err != nil {
+		t.Fatalf("unscoped marker stat error = %v, want retained", err)
+	}
+	if _, err := store.Get(context.Background(), "tenant_1", "exports/expired.zip"); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("scoped expired object lookup error = %v, want ErrNotFound", err)
+	}
+}
+
+func TestLocalStoreCleanupExpiredSkipsCrossTenantMarkerForTenantCleanup(t *testing.T) {
+	root := t.TempDir()
+	store, err := NewLocalStore(root, "zenart-test", "secret")
+	if err != nil {
+		t.Fatalf("NewLocalStore() error = %v", err)
+	}
+	expired := time.Date(2026, 5, 26, 12, 0, 0, 0, time.UTC)
+	for _, tenantID := range []string{"tenant_1", "tenant_2"} {
+		if _, err := store.Put(context.Background(), Object{
+			TenantID:       tenantID,
+			Key:            "exports/package.zip",
+			RetentionUntil: &expired,
+		}, strings.NewReader("zip bytes")); err != nil {
+			t.Fatalf("Put(%s) error = %v", tenantID, err)
+		}
+	}
+
+	deleted, err := store.CleanupExpiredForTenant(context.Background(), "tenant_1", expired.Add(time.Minute))
+	if err != nil {
+		t.Fatalf("CleanupExpiredForTenant() error = %v", err)
+	}
+	if deleted != 1 {
+		t.Fatalf("deleted = %d, want tenant_1 only", deleted)
+	}
+	if _, err := store.Get(context.Background(), "tenant_1", "exports/package.zip"); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("tenant_1 object lookup error = %v, want ErrNotFound", err)
+	}
+	reader, err := store.Get(context.Background(), "tenant_2", "exports/package.zip")
+	if err != nil {
+		t.Fatalf("tenant_2 object lookup error = %v", err)
+	}
+	_ = reader.Body.Close()
+}
+
 func TestNewStoreSelectsS3CompatibleProvider(t *testing.T) {
 	store, err := NewStore(config.ObjectStorageConfig{
 		Provider:       "s3-compatible",

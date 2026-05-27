@@ -236,6 +236,7 @@ func (s LocalStore) CleanupExpiredForTenant(ctx context.Context, tenantID string
 
 func (s LocalStore) cleanupExpiredWithRoot(ctx context.Context, root string, now time.Time) (int, error) {
 	deleted := 0
+	bucketRoot := filepath.Clean(filepath.Join(s.root, s.bucket))
 	err := filepath.WalkDir(root, func(path string, entry os.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -258,6 +259,17 @@ func (s LocalStore) cleanupExpiredWithRoot(ctx context.Context, root string, now
 			return nil
 		}
 		objectPath := strings.TrimSuffix(path, ".expires")
+		objectKey, err := localObjectKeyForCleanup(bucketRoot, objectPath)
+		if err != nil {
+			return nil
+		}
+		tenantID, err := tenantIDFromScopedKey(objectKey)
+		if err != nil {
+			return nil
+		}
+		if scopedKey, err := tenantKey(tenantID, objectKey); err != nil || scopedKey != objectKey {
+			return nil
+		}
 		if err := os.Remove(objectPath); err != nil && !errors.Is(err, os.ErrNotExist) {
 			return err
 		}
@@ -271,6 +283,14 @@ func (s LocalStore) cleanupExpiredWithRoot(ctx context.Context, root string, now
 		return 0, nil
 	}
 	return deleted, err
+}
+
+func localObjectKeyForCleanup(bucketRoot, objectPath string) (string, error) {
+	rel, err := filepath.Rel(bucketRoot, filepath.Clean(objectPath))
+	if err != nil || rel == "." || rel == ".." || strings.HasPrefix(rel, ".."+string(os.PathSeparator)) || filepath.IsAbs(rel) {
+		return "", errors.New("object key is outside bucket root")
+	}
+	return filepath.ToSlash(rel), nil
 }
 
 func (s LocalStore) pathForKey(key string) string {
