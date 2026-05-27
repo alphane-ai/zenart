@@ -1428,6 +1428,333 @@ ACTIVE_CONDITION_SPLIT_EVIDENCE_PATHS = {
     },
 }
 
+RELEASE_GATE_EVIDENCE_REF_ALLOWED_PATHS = {
+    ("local_alpha", "check", "workflow_fixture_coverage"): {
+        "fixtures/stage0/rev2/workflows",
+    },
+    ("local_alpha", "check", "eval_fixture_coverage"): {
+        "fixtures/stage0/rev2/eval/starter_eval_suite.json",
+    },
+    ("local_alpha", "check", "crawler_governance_fixture_coverage"): {
+        "fixtures/stage0/rev2/crawler/crawler_governance_cases.json",
+    },
+    ("local_alpha", "check", "schema_fixture_validation"): {
+        "fixtures",
+        "schemas/stage0/rev2",
+        "scripts/validate_stage0_rev2.py",
+    },
+    ("local_alpha", "check", "local_alpha_service_presence"): {
+        "admin/package.json",
+        "backend/cmd/{server,worker,crawler,migrate}/main.go",
+        "backend/go.mod",
+        "web/package.json",
+    },
+    ("local_alpha", "check", "local_alpha_runtime_stack"): {
+        ".env.example",
+        "docker-compose.yml",
+    },
+    ("local_alpha", "check", "local_alpha_e2e_workflow_smoke"): {
+        "ops/evidence/local_alpha/business_visual_doc_pack.api_smoke.json",
+        "ops/evidence/local_alpha/business_visual_doc_pack.export_zip.json",
+        "ops/evidence/local_alpha/business_visual_doc_pack.playwright_happy_path.json",
+        "ops/evidence/local_alpha/character_ip_concept_pack.api_smoke.json",
+        "ops/evidence/local_alpha/character_ip_concept_pack.export_zip.json",
+        "ops/evidence/local_alpha/character_ip_concept_pack.playwright_happy_path.json",
+        "ops/evidence/local_alpha/ecommerce_growth_pack.api_smoke.json",
+        "ops/evidence/local_alpha/ecommerce_growth_pack.export_zip.json",
+        "ops/evidence/local_alpha/ecommerce_growth_pack.playwright_happy_path.json",
+        "ops/evidence/local_alpha/local_merchant_campaign_pack.api_smoke.json",
+        "ops/evidence/local_alpha/local_merchant_campaign_pack.export_zip.json",
+        "ops/evidence/local_alpha/local_merchant_campaign_pack.playwright_happy_path.json",
+        "web",
+    },
+    ("ci", "check", "ci_draft_artifact_coverage"): {
+        "fixtures/ops/stage0_rev2_ci_draft_evidence.json",
+        "ops/ci/stage0-rev2-ci.yml",
+    },
+    ("ci", "check", "ci_installed_workflow"): {
+        ".github/workflows/stage0-rev2-ci.yml",
+    },
+    ("ci", "check", "ci_gate_runtime_execution"): {
+        ".github/workflows/stage0-rev2-ci.yml",
+        "ops/evidence/ci/stage0-rev2-pr-main-run.json",
+    },
+    ("ci", "check", "ci_playwright_smoke"): {
+        ".github/workflows/stage0-rev2-ci.yml",
+        "ops/ci/playwright-smoke.spec.ts",
+        "ops/evidence/ci/stage0-rev2-playwright-smoke.json",
+        "scripts/playwright_smoke.sh",
+    },
+    ("ci", "check", "ci_docker_image_build"): {
+        ".github/workflows/stage0-rev2-ci.yml",
+        "ops/ci/stage0-rev2-ci.yml",
+        "ops/evidence/ci/stage0-rev2-docker-image-build.json",
+        "scripts/docker_build_smoke.sh",
+    },
+    ("private_beta_staging", "check", "staging_auth_rbac_tenant_audit"): {
+        "admin",
+        "ops/evidence/staging/20260527T1515Z-auth-rbac-tenant-audit.json",
+    },
+    ("private_beta_staging", "check", "staging_brief_upload_confirmation"): {
+        "ops/evidence/staging/20260526T2330Z-brief-upload-confirmation.json",
+    },
+    ("private_beta_staging", "check", "staging_object_storage_signed_downloads"): {
+        "ops/evidence/staging/20260527T2115Z-backup-restore.json",
+        "ops/evidence/staging/20260527T2120Z-load.json",
+        "ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json",
+        "ops/evidence/staging/20260527T2130Z-object-storage-signed-url.json",
+        "ops/evidence/staging/object-storage-retention-cleanup.json",
+    },
+    ("private_beta_staging", "check", "staging_quota_rate_limit_spend_cap"): {
+        "ops/evidence/staging/20260527T2015Z-quota-rate-limit-spend-cap.json",
+    },
+    ("private_beta_staging", "check", "staging_support_retry_abuse_ops"): {
+        "ops/evidence/staging/20260527T1000Z-support-retry-abuse.json",
+    },
+    ("private_beta_staging", "check", "staging_eval_qa_safety_runtime"): {
+        "ops/evidence/staging/20260527T1900Z-eval-qa-safety.json",
+    },
+    ("private_beta_staging", "check", "staging_crawler_approval_provenance"): {
+        "ops/evidence/staging/20260527T1100Z-crawler-governance-runtime.json",
+    },
+    ("private_beta_staging", "check", "staging_observability_backup_load"): {
+        "backend",
+        "ops/evidence/staging/20260527T013207Z-staging-observability-backup-load-36222.json",
+        "ops/evidence/staging/20260527T1215Z-backend-worker-crawler-metrics.json",
+        "ops/evidence/staging/20260527T1815Z-observability-telemetry.json",
+        "ops/evidence/staging/20260527T1830Z-observability-runtime.json",
+        "ops/evidence/staging/20260527T2115Z-backup-restore.json",
+        "ops/evidence/staging/20260527T2120Z-load.json",
+        "ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json",
+    },
+    ("private_beta_staging", "check", "staging_legal_external_user_pages"): {
+        "ops/evidence/staging/legal-pages-external-user.json",
+        "ops/evidence/staging/support-contact-external-user.json",
+    },
+    ("production_launch", "check", "production_provider_or_comp_only_mode"): {
+        "ops/evidence/production/provider-mode.json",
+        "ops/evidence/production/public-paid-real-generation-claims.json",
+    },
+    ("production_launch", "check", "production_paid_billing_lifecycle"): {
+        "admin",
+        "ops/evidence/production/billing-lifecycle.json",
+        "ops/evidence/production/billing-refund-credit-webhook.json",
+        "web",
+    },
+    ("production_launch", "check", "production_skill_release_eval_canary"): {
+        "ops/evidence/production/20260527T1600Z-skill-release-eval-canary.json",
+    },
+    ("production_launch", "check", "production_activation_review_audit"): {
+        "admin",
+        "ops/evidence/production/20260527T1430Z-activation-review-audit.json",
+    },
+    ("production_launch", "check", "production_abuse_throttle_hold"): {
+        "ops/evidence/production/20260527T1330Z-abuse-throttle-hold.json",
+    },
+    ("production_launch", "check", "production_security_launch_checks"): {
+        "admin",
+        "ops/evidence/production/20260527T1700Z-security-launch-checks.json",
+    },
+    ("production_launch", "check", "production_backup_rollback_incident"): {
+        "ops/evidence/production/20260527T1800Z-backup-rollback-incident-smoke.json",
+        "ops/evidence/production/backup-restore.json",
+        "ops/evidence/production/rollback-incident-post-deploy-smoke.json",
+    },
+    ("production_launch", "check", "production_legal_support_policy"): {
+        "ops/evidence/production/public-legal-policy.json",
+        "ops/evidence/production/public-support-billing-policy.json",
+    },
+    ("ci", "condition", "ci_workflow_not_installed"): {
+        ".github/workflows/stage0-rev2-ci.yml",
+        "ops/ci/INSTALLATION.md",
+    },
+    ("local_alpha", "condition", "generic_workflow_only"): {
+        "fixtures/stage0/rev2/workflows",
+    },
+    ("local_alpha", "condition", "candidate_asset_provenance_missing"): {
+        "fixtures/stage0/rev2/eval/trace_completeness.json",
+        "openapi/zenart.v1.yaml",
+    },
+    ("local_alpha", "condition", "external_agent_contract_trace_gap"): {
+        "fixtures/stage0/rev2/eval/trace_completeness.json",
+        "scripts/validate_trace_completeness.py",
+    },
+    ("local_alpha", "condition", "missing_export_provenance_fixture"): {
+        "fixtures/stage0/rev2/eval",
+        "fixtures/stage0/rev2/workflows",
+    },
+    ("local_alpha", "condition", "crawler_unapproved_source_fixture_gap"): {
+        "fixtures",
+        "fixtures/stage0/rev2/crawler/crawler_governance_cases.json",
+    },
+    ("local_alpha", "condition", "schema_fixture_drift"): {
+        "scripts/validate_stage0_rev2.py",
+    },
+    ("local_alpha", "condition", "safety_red_team_fixture_failure"): {
+        "fixtures/stage0/rev2/eval/starter_eval_results.json",
+        "fixtures/stage0/rev2/eval/starter_eval_suite.json",
+    },
+    ("local_alpha", "condition", "blocking_qa_export_without_audited_override"): {
+        "fixtures/stage0/rev2/eval/qa_results.json",
+    },
+    ("local_alpha", "condition", "feedback_governance_fixture_gap"): {
+        "fixtures/stage0/rev2/feedback/feedback_events.json",
+        "fixtures/stage0/rev2/regressions",
+    },
+    ("local_alpha", "condition", "quota_transaction_tests_missing"): {
+        "backend/internal/billing/billing_test.go",
+        "backend/internal/billing/quota_postgres_test.go",
+    },
+    ("local_alpha", "condition", "missing_web_admin_backend_presence"): {
+        "admin",
+        "backend",
+        "scripts/validate_stage0_rev2.py",
+        "web",
+    },
+    ("local_alpha", "condition", "local_alpha_runtime_not_validated"): {
+        ".env.example",
+        "docker-compose.yml",
+    },
+    ("ci", "condition", "ci_gate_not_executed_on_main"): {
+        ".github/workflows/stage0-rev2-ci.yml",
+        "fixtures/ops/stage0_rev2_ci_draft_evidence.json",
+        "ops/evidence/ci/stage0-rev2-pr-main-run.json",
+    },
+    ("ci", "condition", "ci_playwright_smoke_missing"): {
+        ".github/workflows/stage0-rev2-ci.yml",
+        "ops/ci/playwright-smoke.spec.ts",
+        "ops/evidence/ci/stage0-rev2-playwright-smoke.json",
+        "scripts/playwright_smoke.sh",
+    },
+    ("ci", "condition", "ci_docker_image_build_missing"): {
+        ".github/workflows/stage0-rev2-ci.yml",
+        "ops/ci/stage0-rev2-ci.yml",
+        "ops/evidence/ci/stage0-rev2-docker-image-build.json",
+        "scripts/docker_build_smoke.sh",
+    },
+    ("private_beta_staging", "condition", "tenant_isolation_not_enforced"): {
+        "admin",
+        "ops/evidence/staging/20260527T1515Z-auth-rbac-tenant-audit.json",
+    },
+    ("private_beta_staging", "condition", "staging_brief_upload_confirmation_runtime_missing"): {
+        "ops/evidence/staging/20260526T2330Z-brief-upload-confirmation.json",
+    },
+    ("private_beta_staging", "condition", "rate_limit_spend_cap_runtime_missing"): {
+        "ops/evidence/staging/20260527T2015Z-quota-rate-limit-spend-cap.json",
+    },
+    ("private_beta_staging", "condition", "object_storage_signed_retention_runtime_missing"): {
+        "ops/evidence/staging/20260527T2130Z-object-storage-signed-url.json",
+        "ops/evidence/staging/object-storage-retention-cleanup.json",
+    },
+    ("private_beta_staging", "condition", "support_abuse_runtime_missing"): {
+        "ops/evidence/staging/20260527T1000Z-support-retry-abuse.json",
+    },
+    ("private_beta_staging", "condition", "eval_qa_safety_runtime_missing"): {
+        "ops/evidence/staging/20260527T1900Z-eval-qa-safety.json",
+    },
+    ("private_beta_staging", "condition", "crawler_governance_runtime_missing"): {
+        "ops/evidence/staging/20260527T1100Z-crawler-governance-runtime.json",
+    },
+    ("private_beta_staging", "condition", "crawler_material_retention_takedown_runtime_missing"): {
+        "ops/evidence/staging/20260527T1100Z-crawler-governance-runtime.json",
+    },
+    ("private_beta_staging", "condition", "staging_observability_restore_load_missing"): {
+        "ops/evidence/staging/20260527T013207Z-staging-observability-backup-load-36222.json",
+    },
+    ("private_beta_staging", "condition", "external_user_legal_pages_missing"): {
+        "ops/evidence/staging/legal-pages-external-user.json",
+        "ops/evidence/staging/support-contact-external-user.json",
+    },
+    ("production_launch", "condition", "dev_mock_provider_public_claims_unresolved"): {
+        "ops/evidence/production/provider-mode.json",
+        "ops/evidence/production/public-paid-real-generation-claims.json",
+    },
+    ("production_launch", "condition", "real_provider_or_comp_only_mode_missing"): {
+        "ops/evidence/production/provider-mode.json",
+        "ops/evidence/production/public-paid-real-generation-claims.json",
+    },
+    ("production_launch", "condition", "paid_billing_or_comp_only_mode_missing"): {
+        "ops/evidence/production/billing-lifecycle.json",
+        "ops/evidence/production/billing-refund-credit-webhook.json",
+        "web",
+    },
+    ("production_launch", "condition", "skill_release_eval_canary_missing"): {
+        "ops/evidence/production/20260527T1600Z-skill-release-eval-canary.json",
+    },
+    ("production_launch", "condition", "activation_eval_review_audit_runtime_missing"): {
+        "ops/evidence/production/20260527T1430Z-activation-review-audit.json",
+    },
+    ("production_launch", "condition", "admin_high_risk_review_runtime_missing"): {
+        "admin",
+        "ops/evidence/production/20260527T1430Z-activation-review-audit.json",
+    },
+    ("production_launch", "condition", "abuse_throttle_hold_missing"): {
+        "admin",
+        "ops/evidence/production/20260527T1330Z-abuse-throttle-hold.json",
+    },
+    ("production_launch", "condition", "security_privacy_legal_incomplete"): {
+        "admin",
+        "ops/evidence/production/20260527T1700Z-security-launch-checks.json",
+    },
+    ("production_launch", "condition", "secret_exposure_runtime_not_verified"): {
+        "admin",
+        "ops/evidence/production/20260527T1700Z-security-launch-checks.json",
+    },
+    ("production_launch", "condition", "backup_restore_rollback_smoke_missing"): {
+        "ops/evidence/production/20260527T1800Z-backup-rollback-incident-smoke.json",
+        "ops/evidence/production/backup-restore.json",
+    },
+    ("production_launch", "condition", "production_deploy_rollback_smoke_missing"): {
+        "ops/evidence/production/20260527T1800Z-backup-rollback-incident-smoke.json",
+        "ops/evidence/production/rollback-incident-post-deploy-smoke.json",
+    },
+    ("production_launch", "condition", "public_legal_support_policy_not_deployed"): {
+        "ops/evidence/production/public-legal-policy.json",
+        "ops/evidence/production/public-support-billing-policy.json",
+    },
+    ("production_launch", "condition", "ci_staging_gates_not_passed"): {
+        "fixtures/stage0/rev2/release_gate_evidence.ci.json",
+        "fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json",
+    },
+}
+
+RELEASE_GATE_DECISION_ALLOWED_PATHS = {
+    "local_alpha": {
+        "fixtures/stage0/rev2/release_gate_evidence.local_alpha.json",
+        "ops/evidence/local_alpha",
+    },
+    "ci": {
+        ".github/workflows/stage0-rev2-ci.yml",
+        "fixtures/stage0/rev2/release_gate_evidence.ci.json",
+        "ops/evidence/ci/stage0-rev2-pr-main-run.json",
+        "ops/evidence/ci/stage0-rev2-playwright-smoke.json",
+        "ops/evidence/ci/stage0-rev2-docker-image-build.json",
+    },
+    "private_beta_staging": {
+        "fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json",
+        "ops/evidence/staging/20260527T013207Z-staging-observability-backup-load-36222.json",
+        "ops/evidence/staging/20260527T1830Z-observability-runtime.json",
+        "ops/evidence/staging/20260527T2115Z-backup-restore.json",
+        "ops/evidence/staging/20260527T2120Z-load.json",
+        "ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json",
+        "ops/evidence/staging/20260527T2130Z-object-storage-signed-url.json",
+        "ops/evidence/staging/legal-pages-external-user.json",
+        "ops/evidence/staging/object-storage-retention-cleanup.json",
+        "ops/evidence/staging/support-contact-external-user.json",
+    },
+    "production_launch": {
+        "admin",
+        "fixtures/stage0/rev2/release_gate_evidence.ci.json",
+        "fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json",
+        "fixtures/stage0/rev2/release_gate_evidence.production_launch.json",
+        "ops/evidence/production/20260527T1800Z-backup-rollback-incident-smoke.json",
+        "ops/evidence/production/backup-restore.json",
+        "ops/evidence/production/billing-lifecycle.json",
+        "ops/evidence/production/provider-mode.json",
+        "ops/evidence/production/rollback-incident-post-deploy-smoke.json",
+    },
+}
+
 PRIVATE_BETA_STAGING_RUNTIME_OPEN_CHECK_ITEMS = {
     "Private Beta/Staging auth/RBAC/tenant/audit runtime evidence 通过。": {
         "staging_auth_rbac_tenant_audit",
@@ -2750,6 +3077,30 @@ def require_release_gate_evidence_ref_authoritative(
             any(token in evidence_ref.lower() for token in ["upstream", "dependency", "gate_decision.status", "gates pass"]),
             f"{context} cites upstream release-gate fixtures without describing them as dependency status evidence",
         )
+
+
+def require_release_gate_evidence_ref_allowed_paths(
+    evidence_ref: str,
+    *,
+    gate: str,
+    ref_kind: str,
+    ref_id: str,
+) -> None:
+    if ref_kind == "decision":
+        allowed = RELEASE_GATE_DECISION_ALLOWED_PATHS[gate]
+    else:
+        allowed = RELEASE_GATE_EVIDENCE_REF_ALLOWED_PATHS.get((gate, ref_kind, ref_id))
+    require(
+        allowed is not None,
+        f"{gate}.{ref_id} {ref_kind} has no validator-owned evidence path allowlist",
+    )
+    cited_paths = concrete_evidence_paths(evidence_ref)
+    unexpected_paths = sorted(path for path in cited_paths if path not in allowed)
+    require(
+        not unexpected_paths,
+        f"{gate}.{ref_id} {ref_kind} evidence cites paths outside its validator-owned allowlist: "
+        + json.dumps(unexpected_paths, ensure_ascii=False),
+    )
 
 
 def rel(path: Path) -> str:
@@ -4473,6 +4824,12 @@ def validate_release_gate_basics(data: dict[str, Any]) -> tuple[dict[str, dict[s
             gate=gate,
             context=f"{gate}.{check_id} evidence",
         )
+        require_release_gate_evidence_ref_allowed_paths(
+            check["evidence_ref"],
+            gate=gate,
+            ref_kind="check",
+            ref_id=check_id,
+        )
         if check["status"] in {"fail", "blocked"}:
             evidence_ref_lower = check["evidence_ref"].lower()
             require(
@@ -4521,6 +4878,12 @@ def validate_release_gate_basics(data: dict[str, Any]) -> tuple[dict[str, dict[s
             context=f"{gate}.{condition_id} condition evidence",
             allow_upstream_gate_fixtures=gate == "production_launch"
             and condition_id == "ci_staging_gates_not_passed",
+        )
+        require_release_gate_evidence_ref_allowed_paths(
+            condition["evidence_ref"],
+            gate=gate,
+            ref_kind="condition",
+            ref_id=condition_id,
         )
         if condition["is_present"]:
             require(
@@ -4573,6 +4936,12 @@ def validate_release_gate_basics(data: dict[str, Any]) -> tuple[dict[str, dict[s
         ref_kind="decision",
         ref_id="gate_decision",
         ref_state=data["gate_decision"]["status"],
+    )
+    require_release_gate_evidence_ref_allowed_paths(
+        data["gate_decision"]["evidence_ref"],
+        gate=gate,
+        ref_kind="decision",
+        ref_id="gate_decision",
     )
 
     return checks, conditions
@@ -10434,6 +10803,11 @@ def validate_launch_readiness_split_contracts() -> None:
         "A release gate evidence ref may not cite another `fixtures/stage0/rev2/release_gate_evidence.*.json` file as direct runtime proof",
         "Production `ci_staging_gates_not_passed`",
         "must name their `gate_decision.status`, not treat their presence as clearance",
+        "Every release gate check, Do-Not-Launch condition, and gate decision has a validator-owned evidence path allowlist",
+        "an evidence_ref that cites a concrete repo path outside that check/condition/decision allowlist is invalid",
+        "The evidence path allowlist is closed-world per check/condition/decision",
+        "adding a new runtime/deployment artifact for launch closure requires updating the validator-owned mapping and the corresponding concrete checklist row in the same change",
+        "broad `ops/evidence/` path substitution cannot silently close Local Alpha、CI、Private Beta/Staging、Production、or global Do-Not-Launch readiness",
         "`schema_version` must remain `stage0.rev2`",
         "`gate` must match the filename's canonical gate",
         "`provenance.created_by_lane` must remain `lane6`",
