@@ -2019,8 +2019,11 @@ main 合并前必须通过：
 - [ ] CI installed workflow runtime evidence 通过：PR/main run、Playwright smoke、Docker image build 均有 validator-resolvable evidence。
 - [ ] CI installed workflow file evidence 通过：`.github/workflows/stage0-rev2-ci.yml` 存在且被 release gate fixture 引用。
 - [ ] CI PR/main workflow run evidence 通过：已安装 workflow 的 PR/main run 结果写入 `ops/evidence/ci/`。
+- [ ] CI PR/main workflow run exact evidence file 通过：`ops/evidence/ci/stage0-rev2-pr-main-run.json` exists, declares `environment=ci`, `release_gate_check_id=ci_gate_runtime_execution`, passing status, PR/main semantics, and no preserved blockers。
 - [ ] CI Playwright smoke runtime evidence 通过：已安装 PR/main workflow 运行 Playwright smoke 并写入 `ops/evidence/ci/`。
+- [ ] CI Playwright smoke exact evidence file 通过：`ops/evidence/ci/stage0-rev2-playwright-smoke.json` exists, declares `environment=ci`, `release_gate_check_id=ci_playwright_smoke`, passing status, Playwright semantics, and no preserved blockers。
 - [ ] CI Docker image build runtime evidence 通过：已安装 PR/main workflow build Docker images 并写入 `ops/evidence/ci/`。
+- [ ] CI Docker image build exact evidence file 通过：`ops/evidence/ci/stage0-rev2-docker-image-build.json` exists, declares `environment=ci`, `release_gate_check_id=ci_docker_image_build`, passing status, Docker image build semantics, and no preserved blockers。
 - [x] Backfill Private Beta/Staging no-go evidence: contract/fixture evidence is separated from external-user staging runtime blockers in `fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json`。
 - [ ] Private Beta/Staging external-user runtime evidence 通过：auth/RBAC/tenant、storage、quota/rate limit、support/abuse、safety/QA/crawler、observability/backup/load、legal visibility 均有 staging evidence。
 - [x] Private Beta/Staging auth/RBAC/tenant/audit runtime evidence 通过。
@@ -2028,6 +2031,7 @@ main 合并前必须通过：
 - [ ] Private Beta/Staging object storage signed download/retention runtime evidence 通过。
 - [x] Private Beta/Staging object storage signed URL runtime evidence 通过：staging evidence proves tenant-scoped signed download, expiry, direct-object denial, and cross-tenant denial under `ops/evidence/staging/`。
 - [ ] Private Beta/Staging object retention/cleanup runtime evidence 通过：staging evidence proves retention policy, expired export cleanup, orphan cleanup, and audit refs under `ops/evidence/staging/`。
+- [ ] Private Beta/Staging object retention/cleanup exact evidence file 通过：`ops/evidence/staging/object-storage-retention-cleanup.json` exists, declares `environment=staging`, `release_gate_check_id=staging_object_storage_signed_downloads`, passing status, retention policy, expired export cleanup, orphan cleanup, audit refs, and no preserved blockers。
 - [x] Private Beta/Staging object retention/cleanup blocked probe evidence recorded but launch blocker preserved: `ops/evidence/staging/object-storage-retention-cleanup.blocked.json` has `status=blocked`, documents missing staging base URL/admin auth/runtime input requirements, preserves `object_storage_signed_retention_runtime_missing`, and cannot close object retention/cleanup, aggregate Private Beta/Staging, Production, or Do-Not-Launch readiness。
 - [x] Private Beta/Staging quota/rate-limit/spend-cap runtime evidence 通过。
 - [x] Private Beta/Staging support/retry/abuse runtime evidence 通过。
@@ -2055,7 +2059,9 @@ main 合并前必须通过：
 - [x] Production security launch-check runtime/deployment evidence 通过。
 - [ ] Production backup/rollback/incident/post-deploy smoke runtime/deployment evidence 通过。
 - [ ] Production backup/restore runtime evidence 通过：production evidence proves backup schedule, Postgres restore, object restore, RPO/RTO, and audit refs under `ops/evidence/production/`。
+- [ ] Production backup/restore exact evidence file 通过：`ops/evidence/production/backup-restore.json` exists, declares `environment=production`, `release_gate_check_id=production_backup_rollback_incident`, passing status, backup schedule, Postgres restore, object restore, RPO/RTO, audit refs, and no preserved blockers。
 - [ ] Production rollback/incident/post-deploy smoke runtime evidence 通过：production evidence proves rollback drill, incident/alert path, migration compatibility, and post-deploy smoke under `ops/evidence/production/`。
+- [ ] Production rollback/incident/post-deploy exact evidence file 通过：`ops/evidence/production/rollback-incident-post-deploy-smoke.json` exists, declares `environment=production`, `release_gate_check_id=production_backup_rollback_incident`, passing status, rollback drill, incident/alert path, migration compatibility, post-deploy smoke, passing CI/Private Beta/Staging gate dependencies, and no preserved blockers。
 - [x] Production backup/rollback/incident/post-deploy admin-visible probe evidence recorded but launch blocker preserved: `ops/evidence/production/20260527T1800Z-backup-rollback-incident-smoke.json` has `status=blocked_by_upstream_gates`, proves backup、rollback、incident、post-deploy smoke probes, and cannot close production backup/rollback launch readiness until upstream CI/Staging gates and exact split files pass。
 - [x] Production legal/support policy deployment evidence 通过。
 - [x] Production public legal policy deployment evidence 通过：production evidence proves Terms、Privacy、Acceptable Use、AI/content disclaimer、IP complaint flow visibility under `ops/evidence/production/`。

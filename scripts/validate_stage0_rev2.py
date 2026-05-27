@@ -27,6 +27,9 @@ CI_WORKFLOW_REL = ".github/workflows/stage0-rev2-ci.yml"
 CI_DRAFT_REL = "ops/ci/stage0-rev2-ci.yml"
 CI_INSTALLATION = ROOT / "ops" / "ci" / "INSTALLATION.md"
 CI_DRAFT_EVIDENCE = OPS_FIXTURE_DIR / "stage0_rev2_ci_draft_evidence.json"
+CI_PR_MAIN_RUN_EVIDENCE = ROOT / "ops" / "evidence" / "ci" / "stage0-rev2-pr-main-run.json"
+CI_PLAYWRIGHT_SMOKE_EVIDENCE = ROOT / "ops" / "evidence" / "ci" / "stage0-rev2-playwright-smoke.json"
+CI_DOCKER_IMAGE_BUILD_EVIDENCE = ROOT / "ops" / "evidence" / "ci" / "stage0-rev2-docker-image-build.json"
 ENVIRONMENT_EVIDENCE = ROOT / "ops" / "evidence" / "stage0_environment_evidence.json"
 DRILL_PLAN_EVIDENCE = ROOT / "ops" / "evidence" / "stage0_drill_plan.json"
 OBSERVABILITY_EVIDENCE = ROOT / "ops" / "evidence" / "stage0_observability_evidence.json"
@@ -581,10 +584,19 @@ CI_RUNTIME_OPEN_CHECK_ITEMS = {
     "CI PR/main workflow run evidence 通过：已安装 workflow 的 PR/main run 结果写入 `ops/evidence/ci/`。": {
         "ci_gate_runtime_execution",
     },
+    "CI PR/main workflow run exact evidence file 通过：`ops/evidence/ci/stage0-rev2-pr-main-run.json` exists, declares `environment=ci`, `release_gate_check_id=ci_gate_runtime_execution`, passing status, PR/main semantics, and no preserved blockers。": {
+        "ci_gate_runtime_execution",
+    },
     "CI Playwright smoke runtime evidence 通过：已安装 PR/main workflow 运行 Playwright smoke 并写入 `ops/evidence/ci/`。": {
         "ci_playwright_smoke",
     },
+    "CI Playwright smoke exact evidence file 通过：`ops/evidence/ci/stage0-rev2-playwright-smoke.json` exists, declares `environment=ci`, `release_gate_check_id=ci_playwright_smoke`, passing status, Playwright semantics, and no preserved blockers。": {
+        "ci_playwright_smoke",
+    },
     "CI Docker image build runtime evidence 通过：已安装 PR/main workflow build Docker images 并写入 `ops/evidence/ci/`。": {
+        "ci_docker_image_build",
+    },
+    "CI Docker image build exact evidence file 通过：`ops/evidence/ci/stage0-rev2-docker-image-build.json` exists, declares `environment=ci`, `release_gate_check_id=ci_docker_image_build`, passing status, Docker image build semantics, and no preserved blockers。": {
         "ci_docker_image_build",
     },
 }
@@ -593,15 +605,15 @@ CI_RUNTIME_REQUIRED_EVIDENCE_PATHS = {
     "ci_installed_workflow": [CI_WORKFLOW],
     "ci_gate_runtime_execution": [
         CI_WORKFLOW,
-        ROOT / "ops" / "evidence" / "ci" / "stage0-rev2-pr-main-run.json",
+        CI_PR_MAIN_RUN_EVIDENCE,
     ],
     "ci_playwright_smoke": [
         CI_WORKFLOW,
-        ROOT / "ops" / "evidence" / "ci" / "stage0-rev2-playwright-smoke.json",
+        CI_PLAYWRIGHT_SMOKE_EVIDENCE,
     ],
     "ci_docker_image_build": [
         CI_WORKFLOW,
-        ROOT / "ops" / "evidence" / "ci" / "stage0-rev2-docker-image-build.json",
+        CI_DOCKER_IMAGE_BUILD_EVIDENCE,
     ],
 }
 
@@ -1067,6 +1079,9 @@ RUNTIME_SPLIT_PASS_REQUIREMENTS = {
             "backup_restore": ("backup", "postgres restore", "object restore", "rpo", "rto"),
             "rollback_incident_smoke": ("rollback", "incident", "migration compatibility", "post-deploy smoke"),
         },
+        "pass_only_tokens": {
+            "rollback_incident_smoke": ("gate_decision.status=go",),
+        },
     },
     ("production_launch", "production_legal_support_policy"): {
         "subitems": {
@@ -1111,6 +1126,14 @@ SPLIT_CHECKLIST_ITEM_EVIDENCE = {
         "tokens": ("signed", "download", "expiry", "direct object", "cross tenant"),
     },
     "Private Beta/Staging object retention/cleanup runtime evidence 通过：staging evidence proves retention policy, expired export cleanup, orphan cleanup, and audit refs under `ops/evidence/staging/`。": {
+        "gate": "private_beta_staging",
+        "check_id": "staging_object_storage_signed_downloads",
+        "path": STAGING_OBJECT_STORAGE_RETENTION_EVIDENCE,
+        "allowed_statuses": {"pass", "passed"},
+        "allow_preserved_blockers": False,
+        "tokens": ("retention", "expired export cleanup", "orphan cleanup", "audit"),
+    },
+    "Private Beta/Staging object retention/cleanup exact evidence file 通过：`ops/evidence/staging/object-storage-retention-cleanup.json` exists, declares `environment=staging`, `release_gate_check_id=staging_object_storage_signed_downloads`, passing status, retention policy, expired export cleanup, orphan cleanup, audit refs, and no preserved blockers。": {
         "gate": "private_beta_staging",
         "check_id": "staging_object_storage_signed_downloads",
         "path": STAGING_OBJECT_STORAGE_RETENTION_EVIDENCE,
@@ -1182,7 +1205,23 @@ SPLIT_CHECKLIST_ITEM_EVIDENCE = {
         "allow_preserved_blockers": False,
         "tokens": ("backup", "postgres restore", "object restore", "rpo", "rto"),
     },
+    "Production backup/restore exact evidence file 通过：`ops/evidence/production/backup-restore.json` exists, declares `environment=production`, `release_gate_check_id=production_backup_rollback_incident`, passing status, backup schedule, Postgres restore, object restore, RPO/RTO, audit refs, and no preserved blockers。": {
+        "gate": "production_launch",
+        "check_id": "production_backup_rollback_incident",
+        "path": PRODUCTION_BACKUP_RESTORE_EVIDENCE,
+        "allowed_statuses": {"pass", "passed"},
+        "allow_preserved_blockers": False,
+        "tokens": ("backup", "postgres restore", "object restore", "rpo", "rto"),
+    },
     "Production rollback/incident/post-deploy smoke runtime evidence 通过：production evidence proves rollback drill, incident/alert path, migration compatibility, and post-deploy smoke under `ops/evidence/production/`。": {
+        "gate": "production_launch",
+        "check_id": "production_backup_rollback_incident",
+        "path": PRODUCTION_ROLLBACK_INCIDENT_SMOKE_EVIDENCE,
+        "allowed_statuses": {"pass", "passed"},
+        "allow_preserved_blockers": False,
+        "tokens": ("rollback", "incident", "migration compatibility", "post-deploy smoke"),
+    },
+    "Production rollback/incident/post-deploy exact evidence file 通过：`ops/evidence/production/rollback-incident-post-deploy-smoke.json` exists, declares `environment=production`, `release_gate_check_id=production_backup_rollback_incident`, passing status, rollback drill, incident/alert path, migration compatibility, post-deploy smoke, passing CI/Private Beta/Staging gate dependencies, and no preserved blockers。": {
         "gate": "production_launch",
         "check_id": "production_backup_rollback_incident",
         "path": PRODUCTION_ROLLBACK_INCIDENT_SMOKE_EVIDENCE,
@@ -1400,20 +1439,20 @@ ACTIVE_CONDITION_SPLIT_EVIDENCE_PATHS = {
     },
     ("ci", "ci_gate_not_executed_on_main"): {
         CI_WORKFLOW: ("workflow",),
-        ROOT / "ops" / "evidence" / "ci" / "stage0-rev2-pr-main-run.json": (
+        CI_PR_MAIN_RUN_EVIDENCE: (
             "pr/main",
             "run",
         ),
     },
     ("ci", "ci_playwright_smoke_missing"): {
         CI_WORKFLOW: ("workflow",),
-        ROOT / "ops" / "evidence" / "ci" / "stage0-rev2-playwright-smoke.json": (
+        CI_PLAYWRIGHT_SMOKE_EVIDENCE: (
             "playwright",
         ),
     },
     ("ci", "ci_docker_image_build_missing"): {
         CI_WORKFLOW: ("workflow",),
-        ROOT / "ops" / "evidence" / "ci" / "stage0-rev2-docker-image-build.json": (
+        CI_DOCKER_IMAGE_BUILD_EVIDENCE: (
             "docker",
         ),
     },
@@ -1828,6 +1867,9 @@ PRIVATE_BETA_STAGING_RUNTIME_OPEN_CHECK_ITEMS = {
     "Private Beta/Staging object retention/cleanup runtime evidence 通过：staging evidence proves retention policy, expired export cleanup, orphan cleanup, and audit refs under `ops/evidence/staging/`。": {
         "staging_object_storage_signed_downloads",
     },
+    "Private Beta/Staging object retention/cleanup exact evidence file 通过：`ops/evidence/staging/object-storage-retention-cleanup.json` exists, declares `environment=staging`, `release_gate_check_id=staging_object_storage_signed_downloads`, passing status, retention policy, expired export cleanup, orphan cleanup, audit refs, and no preserved blockers。": {
+        "staging_object_storage_signed_downloads",
+    },
     "Private Beta/Staging quota/rate-limit/spend-cap runtime evidence 通过。": {
         "staging_quota_rate_limit_spend_cap",
     },
@@ -1903,7 +1945,13 @@ PRODUCTION_RUNTIME_OPEN_CHECK_ITEMS = {
     "Production backup/restore runtime evidence 通过：production evidence proves backup schedule, Postgres restore, object restore, RPO/RTO, and audit refs under `ops/evidence/production/`。": {
         "production_backup_rollback_incident",
     },
+    "Production backup/restore exact evidence file 通过：`ops/evidence/production/backup-restore.json` exists, declares `environment=production`, `release_gate_check_id=production_backup_rollback_incident`, passing status, backup schedule, Postgres restore, object restore, RPO/RTO, audit refs, and no preserved blockers。": {
+        "production_backup_rollback_incident",
+    },
     "Production rollback/incident/post-deploy smoke runtime evidence 通过：production evidence proves rollback drill, incident/alert path, migration compatibility, and post-deploy smoke under `ops/evidence/production/`。": {
+        "production_backup_rollback_incident",
+    },
+    "Production rollback/incident/post-deploy exact evidence file 通过：`ops/evidence/production/rollback-incident-post-deploy-smoke.json` exists, declares `environment=production`, `release_gate_check_id=production_backup_rollback_incident`, passing status, rollback drill, incident/alert path, migration compatibility, post-deploy smoke, passing CI/Private Beta/Staging gate dependencies, and no preserved blockers。": {
         "production_backup_rollback_incident",
     },
     PRODUCTION_POST_DEPLOY_LAUNCH_CLEARING_CHECKLIST_ITEM: {
@@ -2361,6 +2409,7 @@ ACTIVE_CONDITION_CHECKLIST_BLOCKER_ITEMS = {
         "Private Beta/Staging external-user runtime evidence 通过：auth/RBAC/tenant、storage、quota/rate limit、support/abuse、safety/QA/crawler、observability/backup/load、legal visibility 均有 staging evidence。",
         "Private Beta/Staging object storage signed download/retention runtime evidence 通过。",
         "Private Beta/Staging object retention/cleanup runtime evidence 通过：staging evidence proves retention policy, expired export cleanup, orphan cleanup, and audit refs under `ops/evidence/staging/`。",
+        "Private Beta/Staging object retention/cleanup exact evidence file 通过：`ops/evidence/staging/object-storage-retention-cleanup.json` exists, declares `environment=staging`, `release_gate_check_id=staging_object_storage_signed_downloads`, passing status, retention policy, expired export cleanup, orphan cleanup, audit refs, and no preserved blockers。",
     },
     ("production_launch", "dev_mock_provider_public_claims_unresolved"): {
         "Production Launch runtime/deployment evidence 通过：provider-or-comp-only、paid lifecycle、skill canary、activation audit、abuse hold、security、backup/rollback/post-deploy smoke、legal/support policy 均有 production evidence。",
@@ -2384,11 +2433,13 @@ ACTIVE_CONDITION_CHECKLIST_BLOCKER_ITEMS = {
         "Production Launch runtime/deployment evidence 通过：provider-or-comp-only、paid lifecycle、skill canary、activation audit、abuse hold、security、backup/rollback/post-deploy smoke、legal/support policy 均有 production evidence。",
         "Production backup/rollback/incident/post-deploy smoke runtime/deployment evidence 通过。",
         "Production backup/restore runtime evidence 通过：production evidence proves backup schedule, Postgres restore, object restore, RPO/RTO, and audit refs under `ops/evidence/production/`。",
+        "Production backup/restore exact evidence file 通过：`ops/evidence/production/backup-restore.json` exists, declares `environment=production`, `release_gate_check_id=production_backup_rollback_incident`, passing status, backup schedule, Postgres restore, object restore, RPO/RTO, audit refs, and no preserved blockers。",
     },
     ("production_launch", "production_deploy_rollback_smoke_missing"): {
         "Production Launch runtime/deployment evidence 通过：provider-or-comp-only、paid lifecycle、skill canary、activation audit、abuse hold、security、backup/rollback/post-deploy smoke、legal/support policy 均有 production evidence。",
         "Production backup/rollback/incident/post-deploy smoke runtime/deployment evidence 通过。",
         "Production rollback/incident/post-deploy smoke runtime evidence 通过：production evidence proves rollback drill, incident/alert path, migration compatibility, and post-deploy smoke under `ops/evidence/production/`。",
+        "Production rollback/incident/post-deploy exact evidence file 通过：`ops/evidence/production/rollback-incident-post-deploy-smoke.json` exists, declares `environment=production`, `release_gate_check_id=production_backup_rollback_incident`, passing status, rollback drill, incident/alert path, migration compatibility, post-deploy smoke, passing CI/Private Beta/Staging gate dependencies, and no preserved blockers。",
         PRODUCTION_POST_DEPLOY_LAUNCH_CLEARING_CHECKLIST_ITEM,
     },
     ("production_launch", "ci_staging_gates_not_passed"): {
@@ -3829,7 +3880,10 @@ def require_split_runtime_pass_evidence(evidence_ref: str, gate: str, check_id: 
                 )
         missing_tokens = [
             token
-            for token in requirement["tokens"][subitem_id]
+            for token in (
+                requirement["tokens"][subitem_id]
+                + requirement.get("pass_only_tokens", {}).get(subitem_id, ())
+            )
             if token not in evidence_ref_lower and token not in json.dumps(evidence, ensure_ascii=False).lower()
         ]
         require(
@@ -4729,6 +4783,11 @@ def validate_gate_decision(data: dict[str, Any]) -> None:
         f"{gate} gate_decision evidence",
         require_all_paths_exist=expected_status == "go",
     )
+    if expected_status == "go":
+        require_evidence_ref_has_no_runtime_closure_blockers(
+            evidence_ref,
+            context=f"{gate} gate_decision go evidence",
+        )
     require(
         rel(RELEASE_GATE_EVIDENCE_FILES[gate]) in evidence_ref,
         f"{gate} gate_decision evidence must cite its release gate fixture",
@@ -10892,6 +10951,12 @@ def validate_launch_readiness_split_contracts() -> None:
         "Production legal/support policy deployment evidence may close only the legal/support policy check",
         "Production public support/billing policy visibility evidence may mention billing",
         "it cannot substitute for `ops/evidence/production/billing-lifecycle.json` or `ops/evidence/production/billing-refund-credit-webhook.json` runtime proof",
+        "CI PR/main workflow run exact evidence file 通过：`ops/evidence/ci/stage0-rev2-pr-main-run.json`",
+        "CI Playwright smoke exact evidence file 通过：`ops/evidence/ci/stage0-rev2-playwright-smoke.json`",
+        "CI Docker image build exact evidence file 通过：`ops/evidence/ci/stage0-rev2-docker-image-build.json`",
+        "Private Beta/Staging object retention/cleanup exact evidence file 通过：`ops/evidence/staging/object-storage-retention-cleanup.json`",
+        "Production backup/restore exact evidence file 通过：`ops/evidence/production/backup-restore.json`",
+        "Production rollback/incident/post-deploy exact evidence file 通过：`ops/evidence/production/rollback-incident-post-deploy-smoke.json`",
         "exact per-workflow API, Playwright, and export ZIP runtime evidence files under `ops/evidence/local_alpha/`",
         "one generic local smoke artifact or directory-level reference cannot close the aggregate Local Alpha runtime check",
         "Local backup/restore, load, observability, or smoke evidence under `ops/evidence/backup-restore/`, `ops/evidence/observability/`, or other non-staging/non-production paths cannot close Private Beta/Staging or Production launch gates",
