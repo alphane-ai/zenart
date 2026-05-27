@@ -198,6 +198,9 @@ if (
   evidence.expectedPptHandoffChecklistCount !== routePackageExportEvidence.expectedPptHandoffChecklistCount ||
   evidence.expectedCrossPayloadIdentityStatus !== routePackageExportEvidence.expectedCrossPayloadIdentityStatus ||
   evidence.expectedIdentityContractDigest !== routePackageExportEvidence.expectedIdentityContractDigest ||
+  evidence.expectedZipPayloadPathSafetyStatus !== routePackageExportEvidence.expectedZipPayloadPathSafetyStatus ||
+  evidence.expectedUnsafeManifestPayloadCount !== routePackageExportEvidence.expectedUnsafeManifestPayloadCount ||
+  evidence.expectedUnsafeExpectedPayloadCount !== routePackageExportEvidence.expectedUnsafeExpectedPayloadCount ||
   evidence.expectedCrossPayloadIdentityCount !== routePackageExportEvidence.expectedCrossPayloadIdentityCount ||
   evidence.expectedMissingCrossPayloadIdentityCount !== routePackageExportEvidence.expectedMissingCrossPayloadIdentityCount ||
   evidence.payloadAttribute !== routePackageExportEvidence.payloadAttribute ||
@@ -236,6 +239,9 @@ if (
   zipPayloadSmoke.expectedAiContentDisclaimerPayloadPresent !== routeZipPayloadEvidence.expectedAiContentDisclaimerPayloadPresent ||
   zipPayloadSmoke.expectedAssetsPayloadPresent !== routeZipPayloadEvidence.expectedAssetsPayloadPresent ||
   zipPayloadSmoke.expectedPayloadContractDigest !== routeZipPayloadEvidence.expectedPayloadContractDigest ||
+  zipPayloadSmoke.expectedPathSafetyStatus !== routeZipPayloadEvidence.expectedPathSafetyStatus ||
+  zipPayloadSmoke.expectedUnsafeManifestPayloadCount !== routeZipPayloadEvidence.expectedUnsafeManifestPayloadCount ||
+  zipPayloadSmoke.expectedUnsafeExpectedPayloadCount !== routeZipPayloadEvidence.expectedUnsafeExpectedPayloadCount ||
   zipPayloadSmoke.sharedPayloadPlanner !== routeZipPayloadEvidence.sharedPayloadPlanner
 ) {
   fail("ZIP payload smoke artifact drifted from user route smoke evidence");
@@ -263,6 +269,7 @@ if (
   downloadParity.expectedPayloadListStatus !== routeDownloadParityEvidence.expectedPayloadListStatus ||
   downloadParity.expectedPayloadContractDigest !== routeDownloadParityEvidence.expectedPayloadContractDigest ||
   downloadParity.expectedPayloadDigestMatch !== routeDownloadParityEvidence.expectedPayloadDigestMatch ||
+  downloadParity.expectedPayloadPathSafetyStatus !== routeDownloadParityEvidence.expectedPayloadPathSafetyStatus ||
   downloadParity.expectedIdentityStatus !== routeDownloadParityEvidence.expectedIdentityStatus ||
   downloadParity.expectedIdentityContractDigest !== routeDownloadParityEvidence.expectedIdentityContractDigest ||
   downloadParity.expectedIdentityDigestMatch !== routeDownloadParityEvidence.expectedIdentityDigestMatch ||
@@ -401,6 +408,9 @@ for (const requiredSourceSnippet of [
   "metadataPayloadNames",
   "zipExpectedPayloadNames",
   "metadataPayloadDigestMatchesZipPayloadDigest",
+  "zipPayloadPathSafetyStatus",
+  "pathSafetyStatus",
+  "payloadPathSafetyStatus",
   "identityContractDigest",
   "metadataIdentityDigestMatchesRecord",
   "unsafeManifestPayloadNames",
@@ -456,10 +466,12 @@ for (const requiredContractSnippet of [
   "zipExpectedPayloadNames",
   "payloadContractDigest",
   "metadataPayloadDigestMatchesZipPayloadDigest",
+  "payloadPathSafetyStatus",
   "identityContractDigest",
   "metadataIdentityDigestMatchesRecord",
   "unsafeManifestPayloadNames",
   "unsafeExpectedPayloadNames",
+  "pathSafetyStatus",
   "identityStatus",
   "crossPayloadIdentityStatuses",
   "itemProvenanceParityStatus",
@@ -542,6 +554,9 @@ for (const requiredTestSnippet of [
   "data-package-export-ai-content-disclaimer-payload-present",
   "data-package-export-zip-payload-contract-digest",
   "data-package-export-identity-contract-digest",
+  "data-package-export-zip-payload-path-safety-status",
+  "data-package-export-unsafe-manifest-payload-count",
+  "data-package-export-unsafe-expected-payload-count",
   "data-package-export-payload-row",
   "data-package-export-identity-row",
   "data-package-export-item-provenance-parity-status",
@@ -552,9 +567,13 @@ for (const requiredTestSnippet of [
   "data-package-export-item-ppt-slide-status",
   "data-export-zip-payload-smoke-status",
   "data-export-zip-payload-contract-digest",
+  "data-export-zip-payload-path-safety-status",
+  "data-export-zip-payload-unsafe-manifest-count",
+  "data-export-zip-payload-unsafe-expected-count",
   "data-export-download-parity-status",
   "data-export-download-parity-payload-list-status",
   "data-export-download-parity-payload-digest-match",
+  "data-export-download-parity-payload-path-safety-status",
   "data-export-download-parity-identity-status",
   "data-export-download-parity-identity-contract-digest",
   "data-export-download-parity-identity-digest-match",
@@ -598,6 +617,9 @@ const expectedDataAttributeValues = new Map([
   ["data-package-export-zip-payload-contract-digest", evidence.expectedZipPayloadContractDigest],
   ["data-package-export-zip-payload-parity-status", evidence.expectedZipPayloadParityStatus],
   ["data-package-export-zip-payload-parity-ratio", evidence.expectedZipPayloadParityRatio],
+  ["data-package-export-zip-payload-path-safety-status", evidence.expectedZipPayloadPathSafetyStatus],
+  ["data-package-export-unsafe-manifest-payload-count", evidence.expectedUnsafeManifestPayloadCount],
+  ["data-package-export-unsafe-expected-payload-count", evidence.expectedUnsafeExpectedPayloadCount],
   ["data-package-export-cross-payload-identity-status", evidence.expectedCrossPayloadIdentityStatus],
   ["data-package-export-identity-contract-digest", evidence.expectedIdentityContractDigest],
   ["data-package-export-cross-payload-identity-count", evidence.expectedCrossPayloadIdentityCount],
@@ -629,6 +651,9 @@ const expectedDataAttributeValues = new Map([
   ["data-export-zip-payload-missing-count", zipPayloadSmoke.expectedMissingPayloadCount],
   ["data-export-zip-payload-expected-payloads", zipPayloadSmoke.expectedPayloadNames.join(",")],
   ["data-export-zip-payload-contract-digest", zipPayloadSmoke.expectedPayloadContractDigest],
+  ["data-export-zip-payload-path-safety-status", zipPayloadSmoke.expectedPathSafetyStatus],
+  ["data-export-zip-payload-unsafe-manifest-count", zipPayloadSmoke.expectedUnsafeManifestPayloadCount],
+  ["data-export-zip-payload-unsafe-expected-count", zipPayloadSmoke.expectedUnsafeExpectedPayloadCount],
   ["data-export-zip-payload-metadata-present", zipPayloadSmoke.expectedMetadataPayloadPresent],
   ["data-export-zip-payload-trace-provenance-present", zipPayloadSmoke.expectedTraceProvenancePayloadPresent],
   ["data-export-zip-payload-ai-content-disclaimer-present", zipPayloadSmoke.expectedAiContentDisclaimerPayloadPresent],
@@ -652,6 +677,7 @@ const expectedDataAttributeValues = new Map([
   ["data-export-download-parity-zip-expected-payloads", downloadParity.expectedZipPayloadNames.join(",")],
   ["data-export-download-parity-payload-contract-digest", downloadParity.expectedPayloadContractDigest],
   ["data-export-download-parity-payload-digest-match", downloadParity.expectedPayloadDigestMatch],
+  ["data-export-download-parity-payload-path-safety-status", downloadParity.expectedPayloadPathSafetyStatus],
   ["data-export-download-parity-identity-status", downloadParity.expectedIdentityStatus],
   ["data-export-download-parity-identity-contract-digest", downloadParity.expectedIdentityContractDigest],
   ["data-export-download-parity-identity-digest-match", downloadParity.expectedIdentityDigestMatch],

@@ -563,6 +563,9 @@ export interface PackageExportMetadataEvidence {
   zipPayloadParityStatus: "pass" | "fail";
   zipPayloadParityRatio: string;
   missingZipPayloadNames: string[];
+  zipPayloadPathSafetyStatus: "pass" | "fail";
+  unsafeManifestPayloadNames: string[];
+  unsafeExpectedPayloadNames: string[];
   crossPayloadIdentityStatus: "pass" | "fail";
   identityContractDigest: string;
   crossPayloadIdentityNames: string[];
@@ -615,6 +618,7 @@ export interface ExportZipPayloadSmokeEvidence {
   expectedPayloadNames: string[];
   payloadContractDigest: string;
   missingPayloadNames: string[];
+  pathSafetyStatus: "pass" | "fail";
   unsafeManifestPayloadNames: string[];
   unsafeExpectedPayloadNames: string[];
   workflowPayloadNames: string[];
@@ -659,6 +663,7 @@ export interface ExportDownloadParityEvidence {
   zipExpectedPayloadNames: string[];
   payloadContractDigest: string;
   metadataPayloadDigestMatchesZipPayloadDigest: boolean;
+  payloadPathSafetyStatus: "pass" | "fail";
   identityContractDigest: string;
   metadataIdentityDigestMatchesRecord: boolean;
   identityStatus: "pass" | "fail";
@@ -689,6 +694,7 @@ export interface ExportDownloadParityEvidence {
     | "required-parity"
     | "payload-list"
     | "payload-digest"
+    | "path-safety"
     | "identity-digest"
     | "identity"
     | "item-provenance"

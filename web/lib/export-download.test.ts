@@ -4,6 +4,8 @@ import { DevZenArtClient } from "./api-client";
 import { ExportRecord } from "./contracts";
 import {
   buildDownloadableExportZipPayloadNames,
+  buildExportDownloadParityEvidence,
+  buildPackageExportMetadataEvidence,
   buildExportZipPayloadSmokeEvidence,
   buildExportWorkflowMetadataPayload,
   ecommerceGrowthWorkflowAcceptance,
@@ -375,11 +377,24 @@ describe("reference upload and export download integration", () => {
     ];
 
     const payloadNames = buildDownloadableExportZipPayloadNames(record);
+    const metadataEvidence = buildPackageExportMetadataEvidence(record);
     const zipPayloadSmoke = buildExportZipPayloadSmokeEvidence(record);
+    const downloadParity = buildExportDownloadParityEvidence(record, metadataEvidence, zipPayloadSmoke);
 
     expect(payloadNames.every(isSafeExportZipPayloadName)).toBe(true);
     expect(payloadNames).not.toEqual(expect.arrayContaining(["../evil.json", "/absolute.json", "nested/../evil.json"]));
+    expect(metadataEvidence.status).toBe("fail");
+    expect(metadataEvidence.zipPayloadPathSafetyStatus).toBe("fail");
+    expect(metadataEvidence.unsafeManifestPayloadNames).toEqual([
+      "../evil.json",
+      "/absolute.json",
+      "nested/../evil.json",
+      "https://assets.example.com/evil.json",
+      "folder/"
+    ]);
+    expect(metadataEvidence.unsafeExpectedPayloadNames).toEqual([]);
     expect(zipPayloadSmoke.status).toBe("fail");
+    expect(zipPayloadSmoke.pathSafetyStatus).toBe("fail");
     expect(zipPayloadSmoke.failures).toContain("unsafe-payload-name");
     expect(zipPayloadSmoke.unsafeManifestPayloadNames).toEqual([
       "../evil.json",
@@ -389,6 +404,9 @@ describe("reference upload and export download integration", () => {
       "folder/"
     ]);
     expect(zipPayloadSmoke.unsafeExpectedPayloadNames).toEqual([]);
+    expect(downloadParity.status).toBe("fail");
+    expect(downloadParity.payloadPathSafetyStatus).toBe("fail");
+    expect(downloadParity.failures).toContain("path-safety");
     await expect(buildExportPackageBlob(record)).rejects.toThrow("Unsafe export ZIP payload name: ../evil.json");
   });
 

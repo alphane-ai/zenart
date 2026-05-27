@@ -285,6 +285,9 @@ describe("dev workspace contracts", () => {
       zipPayloadParityStatus: "pass",
       zipPayloadParityRatio: "7/7",
       missingZipPayloadNames: [],
+      zipPayloadPathSafetyStatus: "pass",
+      unsafeManifestPayloadNames: [],
+      unsafeExpectedPayloadNames: [],
       crossPayloadIdentityStatus: "pass",
       identityContractDigest:
         "export-001::pkg-002::project-001::generic-stage0-export::none::dev-provider::deterministic-local-alpha::::generic-stage0-export::pass",
@@ -422,6 +425,7 @@ describe("dev workspace contracts", () => {
       payloadContractDigest:
         "export-zip-001::pkg-004::project-001::ecommerce_growth_pack::fx_ecommerce_growth_golden::ai-content-disclaimer.json|assets/README.txt|assets/hero_product_ad.png|assets/marketplace_banner.png|assets/square_social_ad.png|assets/story_variant.png|manifest.json|metadata.json|ppt-ready-metadata.json|provenance.json|qa-report.json|qa_report.json|safety-policy-report.json|trace_provenance.json",
       missingPayloadNames: [],
+      pathSafetyStatus: "pass",
       unsafeManifestPayloadNames: [],
       unsafeExpectedPayloadNames: [],
       workflowPayloadNames: [
@@ -523,6 +527,7 @@ describe("dev workspace contracts", () => {
       payloadContractDigest:
         "export-parity-001::pkg-004::project-001::ecommerce_growth_pack::fx_ecommerce_growth_golden::ai-content-disclaimer.json|assets/README.txt|assets/hero_product_ad.png|assets/marketplace_banner.png|assets/square_social_ad.png|assets/story_variant.png|manifest.json|metadata.json|ppt-ready-metadata.json|provenance.json|qa-report.json|qa_report.json|safety-policy-report.json|trace_provenance.json",
       metadataPayloadDigestMatchesZipPayloadDigest: true,
+      payloadPathSafetyStatus: "pass",
       identityContractDigest:
         "export-parity-001::pkg-004::project-001::ecommerce_growth_pack::fx_ecommerce_growth_golden::dev-provider::deterministic-local-alpha::conversion_offer|social_proof|feature_comparison|retention_bundle::ecommerce_growth_pack::pass",
       metadataIdentityDigestMatchesRecord: true,

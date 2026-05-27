@@ -1827,6 +1827,11 @@ function ExportView({
                     data-package-export-zip-payload-parity-status={metadataEvidence.zipPayloadParityStatus}
                     data-package-export-zip-payload-parity-ratio={metadataEvidence.zipPayloadParityRatio}
                     data-package-export-missing-zip-payload-count={metadataEvidence.missingZipPayloadNames.length}
+                    data-package-export-zip-payload-path-safety-status={metadataEvidence.zipPayloadPathSafetyStatus}
+                    data-package-export-unsafe-manifest-payload-count={metadataEvidence.unsafeManifestPayloadNames.length}
+                    data-package-export-unsafe-manifest-payloads={metadataEvidence.unsafeManifestPayloadNames.join(",")}
+                    data-package-export-unsafe-expected-payload-count={metadataEvidence.unsafeExpectedPayloadNames.length}
+                    data-package-export-unsafe-expected-payloads={metadataEvidence.unsafeExpectedPayloadNames.join(",")}
                     data-package-export-cross-payload-identity-status={metadataEvidence.crossPayloadIdentityStatus}
                     data-package-export-identity-contract-digest={metadataEvidence.identityContractDigest}
                     data-package-export-cross-payload-identity-count={metadataEvidence.crossPayloadIdentityNames.length}
@@ -1864,6 +1869,7 @@ function ExportView({
                       <span>{metadataEvidence.downloadArtifactStatus} ZIP payload contract</span>
                       <span>{metadataEvidence.zipPayloadParityStatus} required ZIP parity</span>
                       <span>{metadataEvidence.zipPayloadParityRatio} required payloads present</span>
+                      <span>{metadataEvidence.zipPayloadPathSafetyStatus} path safety</span>
                       <span>{metadataEvidence.crossPayloadIdentityStatus} cross-payload identity</span>
                       <span>{metadataEvidence.workflowZipPayloadCount}/{metadataEvidence.workflowRequiredFileCount} workflow payloads</span>
                       <span>{metadataEvidence.workflowMetadataProvider} provider metadata</span>
@@ -1927,6 +1933,11 @@ function ExportView({
                     data-export-zip-payload-contract-digest={zipPayloadSmoke.payloadContractDigest}
                     data-export-zip-payload-missing-count={zipPayloadSmoke.missingPayloadNames.length}
                     data-export-zip-payload-missing-payloads={zipPayloadSmoke.missingPayloadNames.join(",")}
+                    data-export-zip-payload-path-safety-status={zipPayloadSmoke.pathSafetyStatus}
+                    data-export-zip-payload-unsafe-manifest-count={zipPayloadSmoke.unsafeManifestPayloadNames.length}
+                    data-export-zip-payload-unsafe-manifest-payloads={zipPayloadSmoke.unsafeManifestPayloadNames.join(",")}
+                    data-export-zip-payload-unsafe-expected-count={zipPayloadSmoke.unsafeExpectedPayloadNames.length}
+                    data-export-zip-payload-unsafe-expected-payloads={zipPayloadSmoke.unsafeExpectedPayloadNames.join(",")}
                     data-export-zip-payload-workflow-payloads={zipPayloadSmoke.workflowPayloadNames.join(",")}
                     data-export-zip-payload-metadata-present={String(zipPayloadSmoke.metadataPayloadPresent)}
                     data-export-zip-payload-trace-provenance-present={String(zipPayloadSmoke.traceProvenancePayloadPresent)}
@@ -1942,6 +1953,7 @@ function ExportView({
                       <span>{zipPayloadSmoke.expectedPayloadCount} expected payloads</span>
                       <span>{zipPayloadSmoke.workflowPayloadNames.length} workflow payloads</span>
                       <span>{zipPayloadSmoke.missingPayloadNames.length} missing payloads</span>
+                      <span>{zipPayloadSmoke.pathSafetyStatus} path safety</span>
                     </div>
                     <p>
                       Download ZIP must contain {zipPayloadSmoke.requiredBaselinePayloadNames.join(", ")} plus workflow metadata and trace
@@ -1978,6 +1990,7 @@ function ExportView({
                     data-export-download-parity-zip-expected-payloads={downloadParityEvidence.zipExpectedPayloadNames.join(",")}
                     data-export-download-parity-payload-contract-digest={downloadParityEvidence.payloadContractDigest}
                     data-export-download-parity-payload-digest-match={String(downloadParityEvidence.metadataPayloadDigestMatchesZipPayloadDigest)}
+                    data-export-download-parity-payload-path-safety-status={downloadParityEvidence.payloadPathSafetyStatus}
                     data-export-download-parity-identity-contract-digest={downloadParityEvidence.identityContractDigest}
                     data-export-download-parity-identity-digest-match={String(downloadParityEvidence.metadataIdentityDigestMatchesRecord)}
                     data-export-download-parity-identity-status={downloadParityEvidence.identityStatus}
@@ -2001,6 +2014,7 @@ function ExportView({
                       <span>{downloadParityEvidence.metadataZipPayloadCount}/{downloadParityEvidence.zipExpectedPayloadCount} payload parity</span>
                       <span>{downloadParityEvidence.metadataMissingZipPayloadCount + downloadParityEvidence.zipMissingPayloadCount} missing payloads</span>
                       <span>{downloadParityEvidence.metadataPayloadDigestMatchesZipPayloadDigest ? "digest match" : "digest drift"}</span>
+                      <span>{downloadParityEvidence.payloadPathSafetyStatus} path safety</span>
                       <span>{downloadParityEvidence.identityStatus} identity</span>
                       <span>{downloadParityEvidence.itemProvenanceParityStatus} item provenance</span>
                       <span>{downloadParityEvidence.downloadHandoffStatus} browser handoff</span>

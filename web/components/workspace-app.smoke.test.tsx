@@ -708,6 +708,11 @@ describe("WorkspaceApp user route integration smoke", () => {
     );
     expect(metadataEvidence).toHaveAttribute("data-package-export-zip-payload-parity-status", "pass");
     expect(metadataEvidence).toHaveAttribute("data-package-export-zip-payload-parity-ratio", "7/7");
+    expect(metadataEvidence).toHaveAttribute("data-package-export-zip-payload-path-safety-status", "pass");
+    expect(metadataEvidence).toHaveAttribute("data-package-export-unsafe-manifest-payload-count", "0");
+    expect(metadataEvidence).toHaveAttribute("data-package-export-unsafe-manifest-payloads", "");
+    expect(metadataEvidence).toHaveAttribute("data-package-export-unsafe-expected-payload-count", "0");
+    expect(metadataEvidence).toHaveAttribute("data-package-export-unsafe-expected-payloads", "");
     expect(metadataEvidence).toHaveAttribute("data-package-export-cross-payload-identity-status", "pass");
     expect(metadataEvidence).toHaveAttribute("data-package-export-identity-contract-digest", expectedIdentityDigest);
     expect(metadataEvidence).toHaveAttribute("data-package-export-cross-payload-identity-count", "5");
@@ -833,6 +838,11 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(zipPayloadSmoke).toHaveAttribute("data-export-zip-payload-trace-provenance-present", "true");
     expect(zipPayloadSmoke).toHaveAttribute("data-export-zip-payload-ai-content-disclaimer-present", "true");
     expect(zipPayloadSmoke).toHaveAttribute("data-export-zip-payload-assets-present", "true");
+    expect(zipPayloadSmoke).toHaveAttribute("data-export-zip-payload-path-safety-status", "pass");
+    expect(zipPayloadSmoke).toHaveAttribute("data-export-zip-payload-unsafe-manifest-count", "0");
+    expect(zipPayloadSmoke).toHaveAttribute("data-export-zip-payload-unsafe-manifest-payloads", "");
+    expect(zipPayloadSmoke).toHaveAttribute("data-export-zip-payload-unsafe-expected-count", "0");
+    expect(zipPayloadSmoke).toHaveAttribute("data-export-zip-payload-unsafe-expected-payloads", "");
     expect(zipPayloadSmoke).toHaveAttribute("data-export-zip-payload-failures", "");
     expect(zipPayloadSmoke).toHaveAttribute(
       "data-export-zip-payload-expected-payloads",
@@ -884,6 +894,7 @@ describe("WorkspaceApp user route integration smoke", () => {
       "export-001::pkg-002::project-001::ecommerce_growth_pack::fx_ecommerce_growth_golden::ai-content-disclaimer.json|assets/README.txt|assets/hero_product_ad.png|assets/marketplace_banner.png|assets/square_social_ad.png|assets/story_variant.png|manifest.json|metadata.json|ppt-ready-metadata.json|provenance.json|qa-report.json|qa_report.json|safety-policy-report.json|trace_provenance.json"
     );
     expect(downloadParity).toHaveAttribute("data-export-download-parity-payload-digest-match", "true");
+    expect(downloadParity).toHaveAttribute("data-export-download-parity-payload-path-safety-status", "pass");
     expect(downloadParity).toHaveAttribute("data-export-download-parity-identity-contract-digest", expectedIdentityDigest);
     expect(downloadParity).toHaveAttribute("data-export-download-parity-identity-digest-match", "true");
     expect(downloadParity).toHaveAttribute("data-export-download-parity-identity-status", "pass");

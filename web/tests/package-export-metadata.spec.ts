@@ -60,6 +60,11 @@ test("export route exposes package metadata, ZIP payload, and download parity br
   await expect(metadataEvidence).toHaveAttribute("data-package-export-required-zip-payload-count", "7");
   await expect(metadataEvidence).toHaveAttribute("data-package-export-zip-payload-parity-status", "pass");
   await expect(metadataEvidence).toHaveAttribute("data-package-export-zip-payload-parity-ratio", "7/7");
+  await expect(metadataEvidence).toHaveAttribute("data-package-export-zip-payload-path-safety-status", "pass");
+  await expect(metadataEvidence).toHaveAttribute("data-package-export-unsafe-manifest-payload-count", "0");
+  await expect(metadataEvidence).toHaveAttribute("data-package-export-unsafe-manifest-payloads", "");
+  await expect(metadataEvidence).toHaveAttribute("data-package-export-unsafe-expected-payload-count", "0");
+  await expect(metadataEvidence).toHaveAttribute("data-package-export-unsafe-expected-payloads", "");
   await expect(metadataEvidence).toHaveAttribute("data-package-export-zip-payload-contract-digest", /export-001::pkg-002::project-001::ecommerce_growth_pack/);
   await expect(metadataEvidence).toHaveAttribute("data-package-export-cross-payload-identity-status", "pass");
   const expectedIdentityContractDigest = [
@@ -186,6 +191,11 @@ test("export route exposes package metadata, ZIP payload, and download parity br
   await expect(zipPayloadSmoke).toHaveAttribute("data-export-zip-payload-trace-provenance-present", "true");
   await expect(zipPayloadSmoke).toHaveAttribute("data-export-zip-payload-ai-content-disclaimer-present", "true");
   await expect(zipPayloadSmoke).toHaveAttribute("data-export-zip-payload-assets-present", "true");
+  await expect(zipPayloadSmoke).toHaveAttribute("data-export-zip-payload-path-safety-status", "pass");
+  await expect(zipPayloadSmoke).toHaveAttribute("data-export-zip-payload-unsafe-manifest-count", "0");
+  await expect(zipPayloadSmoke).toHaveAttribute("data-export-zip-payload-unsafe-manifest-payloads", "");
+  await expect(zipPayloadSmoke).toHaveAttribute("data-export-zip-payload-unsafe-expected-count", "0");
+  await expect(zipPayloadSmoke).toHaveAttribute("data-export-zip-payload-unsafe-expected-payloads", "");
   await expect(zipPayloadSmoke).toHaveAttribute("data-export-zip-payload-failures", "");
 
   const downloadParity = page.getByLabel("Export download parity smoke");
@@ -248,6 +258,7 @@ test("export route exposes package metadata, ZIP payload, and download parity br
   await expect(metadataEvidence).toHaveAttribute("data-package-export-zip-payload-contract-digest", expectedPayloadContractDigest);
   await expect(downloadParity).toHaveAttribute("data-export-download-parity-payload-contract-digest", expectedPayloadContractDigest);
   await expect(downloadParity).toHaveAttribute("data-export-download-parity-payload-digest-match", "true");
+  await expect(downloadParity).toHaveAttribute("data-export-download-parity-payload-path-safety-status", "pass");
   await expect(downloadParity).toHaveAttribute("data-export-download-parity-identity-contract-digest", expectedIdentityContractDigest);
   await expect(downloadParity).toHaveAttribute("data-export-download-parity-identity-digest-match", "true");
   await expect(downloadHandoff).toHaveAttribute("data-export-download-payload-contract-digest", expectedPayloadContractDigest);

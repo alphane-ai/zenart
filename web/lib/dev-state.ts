@@ -999,6 +999,11 @@ export const buildPackageExportMetadataEvidence = (record: ExportRecord): Packag
   ];
   const requiredZipPayloadNames = [...requiredExportZipPayloadNames];
   const missingZipPayloadNames = requiredZipPayloadNames.filter((payloadName) => !zipPayloadNames.includes(payloadName));
+  const unsafeManifestPayloadNames = record.manifest.required_outputs
+    .filter((outputName) => outputName !== "assets/" && !toExportZipPayloadName(outputName));
+  const unsafeExpectedPayloadNames = zipPayloadNames.filter((payloadName) => !isSafeExportZipPayloadName(payloadName));
+  const zipPayloadPathSafetyStatus =
+    unsafeManifestPayloadNames.length === 0 && unsafeExpectedPayloadNames.length === 0 ? "pass" : "fail";
   const missingCrossPayloadIdentityNames = crossPayloadIdentityNames.filter((payloadName) => !zipPayloadNames.includes(payloadName));
   const crossPayloadIdentityStatuses = crossPayloadIdentityNames.map((payloadName) => {
     const payloadPresent = zipPayloadNames.includes(payloadName);
@@ -1089,6 +1094,7 @@ export const buildPackageExportMetadataEvidence = (record: ExportRecord): Packag
   const status =
     record.status === "ready" &&
     downloadArtifactStatus === "pass" &&
+    zipPayloadPathSafetyStatus === "pass" &&
     missingRequiredOutputs.length === 0 &&
     record.manifest.items.length === provenanceCount &&
     record.qaReport.length > 0 &&
@@ -1150,6 +1156,9 @@ export const buildPackageExportMetadataEvidence = (record: ExportRecord): Packag
     zipPayloadParityStatus: missingZipPayloadNames.length === 0 ? "pass" : "fail",
     zipPayloadParityRatio: `${requiredZipPayloadNames.length - missingZipPayloadNames.length}/${requiredZipPayloadNames.length}`,
     missingZipPayloadNames,
+    zipPayloadPathSafetyStatus,
+    unsafeManifestPayloadNames,
+    unsafeExpectedPayloadNames,
     crossPayloadIdentityStatus: missingCrossPayloadIdentityNames.length === 0 ? "pass" : "fail",
     identityContractDigest,
     crossPayloadIdentityNames,
@@ -1194,6 +1203,8 @@ export const buildExportZipPayloadSmokeEvidence = (record: ExportRecord): Export
     .filter((entry) => !entry.payloadName)
     .map((entry) => entry.outputName);
   const unsafeExpectedPayloadNames = expectedPayloadNames.filter((payloadName) => !isSafeExportZipPayloadName(payloadName));
+  const pathSafetyStatus =
+    unsafeManifestPayloadNames.length === 0 && unsafeExpectedPayloadNames.length === 0 ? "pass" : "fail";
   const missingBaselinePayloadNames = requiredBaselinePayloadNames.filter(
     (payloadName) => !expectedPayloadNames.includes(payloadName)
   );
@@ -1212,7 +1223,7 @@ export const buildExportZipPayloadSmokeEvidence = (record: ExportRecord): Export
   if (missingPayloadNames.length > 0) {
     failures.push("manifest-required-payloads");
   }
-  if (unsafeManifestPayloadNames.length > 0 || unsafeExpectedPayloadNames.length > 0) {
+  if (pathSafetyStatus !== "pass") {
     failures.push("unsafe-payload-name");
   }
   if (record.manifest.workflow_acceptance && !metadataPayloadPresent) {
@@ -1240,6 +1251,7 @@ export const buildExportZipPayloadSmokeEvidence = (record: ExportRecord): Export
     expectedPayloadNames,
     payloadContractDigest,
     missingPayloadNames: [...missingBaselinePayloadNames, ...missingPayloadNames],
+    pathSafetyStatus,
     unsafeManifestPayloadNames,
     unsafeExpectedPayloadNames,
     workflowPayloadNames,
@@ -1331,6 +1343,16 @@ export const buildExportDownloadParityEvidence = (
   if (!metadataPayloadDigestMatchesZipPayloadDigest) {
     failures.push("payload-digest");
   }
+  if (
+    metadataEvidence.zipPayloadPathSafetyStatus !== "pass" ||
+    metadataEvidence.unsafeManifestPayloadNames.length !== 0 ||
+    metadataEvidence.unsafeExpectedPayloadNames.length !== 0 ||
+    zipPayloadSmoke.pathSafetyStatus !== "pass" ||
+    zipPayloadSmoke.unsafeManifestPayloadNames.length !== 0 ||
+    zipPayloadSmoke.unsafeExpectedPayloadNames.length !== 0
+  ) {
+    failures.push("path-safety");
+  }
   if (!metadataIdentityDigestMatchesRecord) {
     failures.push("identity-digest");
   }
@@ -1403,6 +1425,7 @@ export const buildExportDownloadParityEvidence = (
     zipExpectedPayloadNames: zipPayloadSmoke.expectedPayloadNames,
     payloadContractDigest,
     metadataPayloadDigestMatchesZipPayloadDigest,
+    payloadPathSafetyStatus: failures.includes("path-safety") ? "fail" : "pass",
     identityContractDigest,
     metadataIdentityDigestMatchesRecord,
     identityStatus: failures.includes("identity") ? "fail" : "pass",
