@@ -17,6 +17,8 @@
     "stale_task_schema_blocks_retry == true",
     "exhausted_retry_budget_blocks_submit == true",
     "support_ticket_linkage_required == true",
+    "cross_tenant_support_ticket_blocks_retry == true",
+    "trace_mismatched_support_ticket_blocks_retry == true",
     "reserved_credit_released_exactly_once == true",
     "manifest_and_qa_report_evidence_present == true",
     "original_failed_export_immutable == true",
@@ -127,6 +129,39 @@
         "api_outcome": "disabled_409_conflict",
         "audit_write_policy": "write_blocked_attempt_audit",
         "blocker_codes": ["support_ticket_missing"]
+      }
+    },
+    {
+      "id": "retry_cross_tenant_support_ticket",
+      "mutation": {
+        "support_ticket_id": "sup-2201",
+        "idempotency_key": "retry:task-export-489:sup-2201:manifest-missing"
+      },
+      "expected_runtime_contract": {
+        "support_ticket_linkage_status": "mismatched_ticket",
+        "tenant_scope_status": "mismatched_tenant_scope",
+        "trace_linkage_status": "mismatched_trace",
+        "submit_decision": "blocked",
+        "api_outcome": "disabled_409_conflict",
+        "audit_write_policy": "write_blocked_attempt_audit",
+        "blocker_codes": [
+          "support_ticket_task_mismatch",
+          "support_ticket_user_project_mismatch",
+          "support_ticket_trace_mismatch"
+        ]
+      }
+    },
+    {
+      "id": "retry_trace_mismatched_same_task_ticket",
+      "mutation": {
+        "trace_id": "tr-1004"
+      },
+      "expected_runtime_contract": {
+        "trace_linkage_status": "mismatched_trace",
+        "submit_decision": "blocked",
+        "api_outcome": "disabled_409_conflict",
+        "audit_write_policy": "write_blocked_attempt_audit",
+        "blocker_codes": ["support_ticket_trace_mismatch"]
       }
     }
   ],

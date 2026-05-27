@@ -13,6 +13,7 @@
     "stale_state_digest_blocks_cancel == true",
     "stale_crawler_worker_version_blocks_cancel == true",
     "support_ticket_linkage_required == true",
+    "cross_tenant_support_ticket_blocks_cancel == true",
     "second_review_required_before_cancel_closure == true",
     "second_review_approved_before_cancel_submit == true",
     "second_review_distinct_reviewer_required == true",
@@ -78,6 +79,24 @@
         "api_outcome": "disabled_409_conflict",
         "audit_write_policy": "write_blocked_attempt_audit",
         "blocker_codes": ["version_compatibility_stale", "worker_version_stale"]
+      }
+    },
+    {
+      "id": "cancel_approved_cross_tenant_support_ticket",
+      "mutation": {
+        "support_ticket_id": "sup-2209",
+        "idempotency_key": "cancel:task-crawler-122:sup-2209:derivative-reviewed"
+      },
+      "expected_runtime_contract": {
+        "support_ticket_linkage_status": "mismatched_ticket",
+        "tenant_scope_status": "mismatched_tenant_scope",
+        "submit_decision": "blocked",
+        "api_outcome": "disabled_409_conflict",
+        "audit_write_policy": "write_blocked_attempt_audit",
+        "blocker_codes": [
+          "support_ticket_task_mismatch",
+          "support_ticket_user_project_mismatch"
+        ]
       }
     },
     {

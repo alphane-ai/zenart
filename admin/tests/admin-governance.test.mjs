@@ -18,6 +18,7 @@ const failedTaskFixtureMutationMap = {
   retry_count: "retryCount",
   max_retries: "maxRetries",
   support_ticket_id: "supportTicketId",
+  trace_id: "traceId",
   idempotency_key: "idempotencyKey",
   closure_evidence_refs: "closureEvidenceRefs",
   second_review_status: "secondReviewStatus",
@@ -33,6 +34,8 @@ const failedTaskRuntimeContractMap = {
   retry_budget_status: "retryBudgetStatus",
   closure_evidence_status: "closureEvidenceStatus",
   support_ticket_linkage_status: "supportTicketLinkageStatus",
+  tenant_scope_status: "tenantScopeStatus",
+  trace_linkage_status: "traceLinkageStatus",
   second_review_distinctness_status: "secondReviewDistinctnessStatus",
   second_review_evidence_status: "secondReviewEvidenceStatus",
   app_compatibility_status: "appCompatibilityStatus",
@@ -1627,6 +1630,14 @@ test("failed task retry and cancel samples are durable regression fixtures", () 
     "retry regression must assert support-ticket linkage"
   );
   assert.ok(
+    retryFixture.expected_assertions.includes("cross_tenant_support_ticket_blocks_retry == true"),
+    "retry regression must assert cross-tenant support-ticket blocking"
+  );
+  assert.ok(
+    retryFixture.expected_assertions.includes("trace_mismatched_support_ticket_blocks_retry == true"),
+    "retry regression must assert trace-mismatched support-ticket blocking"
+  );
+  assert.ok(
     retryFixture.expected_assertions.includes("reserved_credit_released_exactly_once == true"),
     "retry regression must assert one-time quota settlement"
   );
@@ -1651,6 +1662,14 @@ test("failed task retry and cancel samples are durable regression fixtures", () 
     "cancel regression must assert support-ticket linkage"
   );
   assert.ok(
+    cancelFixture.expected_assertions.includes("cross_tenant_support_ticket_blocks_cancel == true"),
+    "cancel regression must assert cross-tenant support-ticket blocking"
+  );
+  assert.ok(
+    cancelFixture.expected_assertions.includes("trace_mismatched_support_ticket_blocks_cancel == true"),
+    "cancel regression must assert trace-mismatched support-ticket blocking"
+  );
+  assert.ok(
     cancelFixture.expected_assertions.includes("second_review_required_before_cancel_closure == true"),
     "cancel regression must assert second review"
   );
@@ -1669,6 +1688,10 @@ test("failed task retry and cancel samples are durable regression fixtures", () 
   assert.ok(
     approvedCancelFixture.expected_assertions.includes("crawler_derivative_provenance_attached == true"),
     "approved cancel regression must assert derivative provenance"
+  );
+  assert.ok(
+    approvedCancelFixture.expected_assertions.includes("cross_tenant_support_ticket_blocks_cancel == true"),
+    "approved cancel regression must assert cross-tenant support-ticket blocking"
   );
   assert.ok(
     approvedCancelFixture.expected_assertions.includes("exact_text_import_blocked == true"),

@@ -1896,6 +1896,7 @@ main 合并前必须通过：
 - [x] support ticket 后端持久化并强制关联 user/project/task/trace/asset/export/quota。
 - [x] 实现 admin user lookup。
 - [x] 实现 failed task retry/cancel。
+- [x] failed task retry/cancel regression fixtures block cross-tenant support-ticket replay and trace-mismatched retry/cancel replay, validated by `admin/tests/admin-governance.test.mjs` and `npm test` in `admin/`。
 - [x] 实现 export regenerate。
 - [x] 实现 queue/dead-letter dashboard。
 - [x] 实现 incident log model。
