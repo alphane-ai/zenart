@@ -195,7 +195,7 @@ out_dir = Path(sys.argv[1])
 reports = [
     path
     for path in sorted(out_dir.glob("*-release-evidence-bundle-*.json"))
-    if not path.name.endswith(".staging-smoke.json")
+    if json.loads(path.read_text(encoding="utf-8")).get("kind") == "release_evidence_bundle"
 ]
 if len(reports) != 1:
     raise SystemExit(f"expected one release bundle report, found {len(reports)}")
@@ -423,13 +423,16 @@ expectations = {
     root / "preflight" / "stage0-validate-preflight-run-id.json": "stage0-validate-preflight-run-id",
     root / "release-bundle" / "stage0-validate-release-bundle-run-id.json": "stage0-validate-release-bundle-run-id",
     root / "release-bundle" / "stage0-validate-release-bundle-run-id.staging-smoke.json": "stage0-validate-release-bundle-run-id.staging-smoke",
+    root / "release-bundle" / "stage0-validate-release-bundle-run-id.object-storage-retention-cleanup.json": "stage0-validate-release-bundle-run-id.object-storage-retention-cleanup",
+    root / "release-bundle" / "stage0-validate-release-bundle-run-id.legal-support-visibility.json": "stage0-validate-release-bundle-run-id.legal-support-visibility",
 }
 for path, expected_run_id in expectations.items():
     if not path.exists():
         raise SystemExit(f"deterministic RUN_ID report missing: {path}")
     report = json.loads(path.read_text(encoding="utf-8"))
-    if report.get("run_id") != expected_run_id:
-        raise SystemExit(f"{path} run_id mismatch: {report.get('run_id')} != {expected_run_id}")
+    actual_run_id = report.get("run_id") or report.get("evidence_id")
+    if actual_run_id != expected_run_id:
+        raise SystemExit(f"{path} run_id/evidence_id mismatch: {actual_run_id} != {expected_run_id}")
     if path.stem != expected_run_id:
         raise SystemExit(f"{path} filename stem must match run_id {expected_run_id}")
 release_bundle = json.loads((root / "release-bundle" / "stage0-validate-release-bundle-run-id.json").read_text(encoding="utf-8"))
@@ -437,6 +440,14 @@ if release_bundle.get("source_staging_smoke_report") != str(root / "release-bund
     raise SystemExit("release bundle must promote deterministic staging smoke report path")
 if release_bundle.get("source_staging_smoke_results") != str(root / "release-bundle" / "stage0-validate-release-bundle-run-id.staging-smoke.ndjson"):
     raise SystemExit("release bundle must promote deterministic staging smoke results path")
+if release_bundle.get("source_object_retention_cleanup_report") != str(root / "release-bundle" / "stage0-validate-release-bundle-run-id.object-storage-retention-cleanup.json"):
+    raise SystemExit("release bundle must promote deterministic object-retention report path")
+if release_bundle.get("source_object_retention_cleanup_results") != str(root / "release-bundle" / "stage0-validate-release-bundle-run-id.object-storage-retention-cleanup.ndjson"):
+    raise SystemExit("release bundle must promote deterministic object-retention results path")
+if release_bundle.get("source_legal_support_visibility_report") != str(root / "release-bundle" / "stage0-validate-release-bundle-run-id.legal-support-visibility.json"):
+    raise SystemExit("release bundle must promote deterministic legal/support report path")
+if release_bundle.get("source_legal_support_visibility_results") != str(root / "release-bundle" / "stage0-validate-release-bundle-run-id.legal-support-visibility.ndjson"):
+    raise SystemExit("release bundle must promote deterministic legal/support results path")
 PY
 
 log "backup/restore drill script syntax"
@@ -505,7 +516,7 @@ out_dir = Path(sys.argv[1])
 reports = [
     path
     for path in sorted(out_dir.glob("*.json"))
-    if not path.name.endswith(".staging-smoke.json")
+    if json.loads(path.read_text(encoding="utf-8")).get("kind") == "release_evidence_bundle"
 ]
 if len(reports) != 1:
     raise SystemExit("release evidence bundle dry-run must write exactly one report")
@@ -520,6 +531,10 @@ if report.get("release_evidence_complete") is not False:
     raise SystemExit("release evidence bundle dry-run must keep release evidence incomplete")
 if report.get("post_deploy_smoke_verified") is not False:
     raise SystemExit("release evidence bundle dry-run must keep post-deploy smoke unverified")
+if report.get("object_retention_cleanup_verified") is not False:
+    raise SystemExit("release evidence bundle dry-run must keep object-retention cleanup unverified")
+if report.get("legal_support_visibility_verified") is not False:
+    raise SystemExit("release evidence bundle dry-run must keep legal/support visibility unverified")
 if report.get("gate_fixtures_clear") is not False:
     raise SystemExit("release evidence bundle dry-run must keep gate fixtures blocked")
 for slot in (
@@ -553,6 +568,8 @@ blocking = report.get("blocking_reasons", [])
 for reason in (
     "staging_smoke_not_passed",
     "post_deploy_smoke_contract_unverified",
+    "object_storage_retention_cleanup_not_passed",
+    "legal_support_external_user_visibility_not_passed",
     "missing_release_evidence:release_sha",
     "missing_release_evidence:observability_evidence",
 ):
@@ -1323,7 +1340,7 @@ out_dir = Path(sys.argv[1])
 reports = [
     path
     for path in sorted(out_dir.glob("*.json"))
-    if not path.name.endswith(".staging-smoke.json")
+    if json.loads(path.read_text(encoding="utf-8")).get("kind") == "release_evidence_bundle"
 ]
 expected_sha = sys.argv[2]
 if len(reports) != 1:
@@ -1341,6 +1358,10 @@ if report.get("release_evidence_complete") is not True:
     raise SystemExit("complete-evidence release bundle must forward and verify all release evidence slots")
 if report.get("post_deploy_smoke_verified") is not False:
     raise SystemExit("complete-evidence release bundle must not verify runtime post-deploy smoke from dry-run evidence")
+if report.get("object_retention_cleanup_verified") is not False:
+    raise SystemExit("complete-evidence release bundle must not verify object-retention cleanup from dry-run evidence")
+if report.get("legal_support_visibility_verified") is not False:
+    raise SystemExit("complete-evidence release bundle must not verify legal/support visibility from dry-run evidence")
 if report.get("gate_fixtures_clear") is not False:
     raise SystemExit("complete-evidence release bundle must keep gate fixtures blocked")
 if report.get("missing_slots"):
@@ -1352,7 +1373,12 @@ if any(reason.startswith("missing_release_evidence:") for reason in blocking):
     raise SystemExit(f"complete-evidence release bundle must not report missing release evidence: {blocking}")
 if any(reason.startswith("unverified_release_evidence:") for reason in blocking):
     raise SystemExit(f"complete-evidence release bundle must not report unverified release evidence: {blocking}")
-for reason in ("staging_smoke_not_passed", "post_deploy_smoke_contract_unverified"):
+for reason in (
+    "staging_smoke_not_passed",
+    "post_deploy_smoke_contract_unverified",
+    "object_storage_retention_cleanup_not_passed",
+    "legal_support_external_user_visibility_not_passed",
+):
     if reason not in blocking:
         raise SystemExit(f"complete-evidence release bundle missing runtime blocker {reason}: {blocking}")
 if not any(reason.startswith("gate_fixture_blocked:private_beta_staging:") for reason in blocking):
@@ -1365,6 +1391,14 @@ if not Path(report["source_staging_smoke_report"]).exists():
     raise SystemExit("complete-evidence release bundle must preserve source staging smoke report")
 if not Path(report["source_staging_smoke_results"]).exists():
     raise SystemExit("complete-evidence release bundle must preserve source staging smoke results")
+if not Path(report["source_object_retention_cleanup_report"]).exists():
+    raise SystemExit("complete-evidence release bundle must preserve object-retention report")
+if not Path(report["source_object_retention_cleanup_results"]).exists():
+    raise SystemExit("complete-evidence release bundle must preserve object-retention results")
+if not Path(report["source_legal_support_visibility_report"]).exists():
+    raise SystemExit("complete-evidence release bundle must preserve legal/support visibility report")
+if not Path(report["source_legal_support_visibility_results"]).exists():
+    raise SystemExit("complete-evidence release bundle must preserve legal/support visibility results")
 PY
 nested_only_dir="$(mktemp -d)"
 cat >"$nested_only_dir/observability.json" <<EOF
