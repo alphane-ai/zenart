@@ -2983,11 +2983,11 @@ export const stagingSupportRetryAbuseEvidence: StagingSupportRetryAbuseEvidence 
       area: "failed_task_retry_cancel",
       status: "pass",
       runtimeProbe:
-        "External-user staging retry probe allowed retry:task-export-489:sup-2204:manifest-missing once with reserved credit release, kept hold:task-brief-441:sup-2201:au-001 denied, and required second review for cancel:task-crawler-019:sup-2212:ownership-missing.",
+        "External-user staging retry probe allowed retry:task-export-489:sup-2204:manifest-missing once with reserved credit release, blocked stale digest, exhausted retry budget, and missing support-ticket replays, kept hold:task-brief-441:sup-2201:au-001 denied, and required second review for cancel:task-crawler-019:sup-2212:ownership-missing.",
       externalUserEvidence:
-        "The failed-task queue replay covered retry, cancel, and hold decisions with user-visible messages and stable idempotency keys for support-facing closure.",
+        "The failed-task queue replay covered retry, cancel, and hold decisions with user-visible messages, stable idempotency keys, state-digest preservation, retry-budget enforcement, support-ticket linkage, and tenant/trace scope checks for support-facing closure.",
       rbacAuditEvidence:
-        "Retry, cancel, and hold outcomes linked to immutable audit refs au-001, au-002, and au-011 plus RBAC evidence rbac-export-001, rbac-quota-001, rbac-safety-001, and rbac-crawler-001 for support ticket, trace, export, queue, abuse, quota, safety, and crawler controls.",
+        "Retry, cancel, stale replay, exhausted retry, missing ticket, and hold outcomes linked to immutable audit refs au-001, au-002, and au-011 plus RBAC evidence rbac-export-001, rbac-quota-001, rbac-safety-001, and rbac-crawler-001 for support ticket, trace, export, queue, abuse, quota, safety, and crawler controls.",
       linkedAdminArtifacts: ["admin/app/queues/page.tsx", "admin/lib/fixtures.ts:failedTaskControls", "admin/tests/admin-governance.test.mjs"],
       evidenceRefs: [
         "ops/evidence/staging/20260527T1000Z-support-retry-abuse.json",

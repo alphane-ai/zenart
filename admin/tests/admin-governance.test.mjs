@@ -1381,6 +1381,18 @@ test("failed task retry and cancel samples are durable regression fixtures", () 
     "retry regression must assert idempotency reuse"
   );
   assert.ok(
+    retryFixture.expected_assertions.includes("stale_state_digest_blocks_retry == true"),
+    "retry regression must assert stale state digest blocking"
+  );
+  assert.ok(
+    retryFixture.expected_assertions.includes("exhausted_retry_budget_blocks_submit == true"),
+    "retry regression must assert exhausted retry budget blocking"
+  );
+  assert.ok(
+    retryFixture.expected_assertions.includes("support_ticket_linkage_required == true"),
+    "retry regression must assert support-ticket linkage"
+  );
+  assert.ok(
     retryFixture.expected_assertions.includes("reserved_credit_released_exactly_once == true"),
     "retry regression must assert one-time quota settlement"
   );
@@ -1391,6 +1403,18 @@ test("failed task retry and cancel samples are durable regression fixtures", () 
   assert.ok(
     cancelFixture.expected_assertions.includes("action_scoped_idempotency_key == true"),
     "cancel regression must assert action-scoped idempotency"
+  );
+  assert.ok(
+    cancelFixture.expected_assertions.includes("stale_state_digest_blocks_cancel == true"),
+    "cancel regression must assert stale state digest blocking"
+  );
+  assert.ok(
+    cancelFixture.expected_assertions.includes("incomplete_closure_evidence_blocks_cancel == true"),
+    "cancel regression must assert incomplete closure evidence blocking"
+  );
+  assert.ok(
+    cancelFixture.expected_assertions.includes("support_ticket_linkage_required == true"),
+    "cancel regression must assert support-ticket linkage"
   );
   assert.ok(
     cancelFixture.expected_assertions.includes("second_review_required_before_cancel_closure == true"),
@@ -1670,6 +1694,27 @@ test("failed task runtime submit gates preserve retry, cancel, hold, RBAC, and a
     "stale replay must expose a state digest blocker code"
   );
 
+  const staleReplayCancel = buildFailedTaskRuntimeDecisions(
+    [
+      {
+        ...failedTaskControls.find((task) => task.id === "task-crawler-019"),
+        observedStateDigest: "sha256:failed-task-task-crawler-019-active-replay-v1"
+      }
+    ],
+    supportTickets
+  )[0];
+  assert.equal(staleReplayCancel.stateDigestStatus, "stale_replay", "changed cancel digest must be detected");
+  assert.equal(staleReplayCancel.submitDecision, "blocked", "stale cancel replay must block submission");
+  assert.equal(
+    staleReplayCancel.stateTransition,
+    "cancelled_state_preserved_pending_review",
+    "stale cancel replay must preserve cancelled state pending review"
+  );
+  assert.ok(
+    staleReplayCancel.blockerCodes.includes("state_digest_stale_replay"),
+    "stale cancel replay must expose a state digest blocker code"
+  );
+
   const incompleteClosureCancel = buildFailedTaskRuntimeDecisions(
     [
       {
@@ -1781,6 +1826,28 @@ test("failed task runtime submit gates preserve retry, cancel, hold, RBAC, and a
   assert.ok(
     missingSupportTicketRetry.blockerCodes.includes("support_ticket_missing"),
     "missing support ticket must expose a blocker code"
+  );
+
+  const missingSupportTicketCancel = buildFailedTaskRuntimeDecisions(
+    [
+      {
+        ...failedTaskControls.find((task) => task.id === "task-crawler-019"),
+        supportTicketId: "sup-missing",
+        idempotencyKey: "cancel:task-crawler-019:sup-missing:ownership-missing"
+      }
+    ],
+    supportTickets
+  )[0];
+  assert.equal(missingSupportTicketCancel.supportTicketLinkageStatus, "missing_ticket", "missing cancel support ticket must be detected");
+  assert.equal(missingSupportTicketCancel.submitDecision, "blocked", "cancel cannot submit without support ticket evidence");
+  assert.equal(
+    missingSupportTicketCancel.auditWritePolicy,
+    "write_blocked_attempt_audit",
+    "missing cancel support ticket must write blocked-attempt audit evidence"
+  );
+  assert.ok(
+    missingSupportTicketCancel.blockerCodes.includes("support_ticket_missing"),
+    "missing cancel support ticket must expose a blocker code"
   );
 
   const mismatchedTicketRetry = buildFailedTaskRuntimeDecisions(

@@ -10,6 +10,9 @@
   "expected_assertions": [
     "submit_decision == review_required",
     "action_scoped_idempotency_key == true",
+    "stale_state_digest_blocks_cancel == true",
+    "incomplete_closure_evidence_blocks_cancel == true",
+    "support_ticket_linkage_required == true",
     "second_review_required_before_cancel_closure == true",
     "crawler_import_state == cancelled",
     "crawler_derived_activation_blocked == true",
