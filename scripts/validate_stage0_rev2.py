@@ -1783,6 +1783,8 @@ REQUIRED_OPEN_ITEMS |= set(LOCAL_ALPHA_RELEASE_GATE_WORKFLOW_RUNTIME_OPEN_CHECK_
 REQUIRED_OPEN_ITEMS -= {
     "电商增长包 API smoke test 通过。",
     "电商增长包 Playwright happy path 通过。",
+    "商业视觉文档包 API smoke test 通过。",
+    "商业视觉文档包 Playwright happy path 通过。",
     "Local Alpha 电商增长包 runtime smoke evidence 写入 release gate fixture：`ops/evidence/local_alpha/ecommerce_growth_pack.api_smoke.json`、`ops/evidence/local_alpha/ecommerce_growth_pack.playwright_happy_path.json`、`ops/evidence/local_alpha/ecommerce_growth_pack.export_zip.json` 均证明 running local stack。",
     "执行 staging deploy。",
     "执行 staging smoke tests。",
