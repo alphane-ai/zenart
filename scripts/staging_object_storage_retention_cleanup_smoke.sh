@@ -15,6 +15,9 @@ RELEASE_SHA="${RELEASE_SHA:-${GITHUB_SHA:-}}"
 SIGNED_URL_EVIDENCE="${SIGNED_URL_EVIDENCE:-ops/evidence/staging/20260527T2130Z-object-storage-signed-url.json}"
 REQUEST_ID_HEADER="${REQUEST_ID_HEADER:-X-Request-ID}"
 REQUEST_ID_VALUE="${REQUEST_ID_VALUE:-stage0-object-retention-cleanup}"
+CSRF_HEADER_NAME="${CSRF_HEADER_NAME:-X-ZenArt-CSRF}"
+CSRF_HEADER_VALUE="${CSRF_HEADER_VALUE:-same-site-origin-check}"
+CSRF_ORIGIN="${CSRF_ORIGIN:-${STAGING_ADMIN_URL:-${ADMIN_URL:-${STAGING_WEB_URL:-${WEB_URL:-}}}}}"
 
 RETENTION_POLICY_URL="${RETENTION_POLICY_URL:-}"
 EXPIRED_EXPORT_CLEANUP_URL="${EXPIRED_EXPORT_CLEANUP_URL:-}"
@@ -39,6 +42,10 @@ fi
 AUTH_READY="0"
 if [[ -n "$ADMIN_BEARER_TOKEN" || -n "$ADMIN_SESSION_COOKIE" ]]; then
   AUTH_READY="1"
+fi
+CSRF_READY="0"
+if [[ -n "$CSRF_HEADER_NAME" && -n "$CSRF_HEADER_VALUE" && -n "$CSRF_ORIGIN" ]]; then
+  CSRF_READY="1"
 fi
 
 CHECKS=(
@@ -206,7 +213,12 @@ run_probe() {
     curl_args+=(--header "Cookie: $ADMIN_SESSION_COOKIE")
   fi
   if [[ "$method" == "POST" ]]; then
-    curl_args+=(--header "Content-Type: application/json" --data "{\"rationale\":\"stage0 retention cleanup smoke ${check_id}\",\"limit\":25,\"dry_run\":true}")
+    curl_args+=(
+      --header "Content-Type: application/json"
+      --header "$CSRF_HEADER_NAME: $CSRF_HEADER_VALUE"
+      --header "Origin: $CSRF_ORIGIN"
+      --data "{\"rationale\":\"stage0 retention cleanup smoke ${check_id}\",\"limit\":25,\"dry_run\":true}"
+    )
   fi
 
   local http_status
@@ -239,6 +251,15 @@ elif [[ -z "$SMOKE_ADMIN_USER_ID" || -z "$SMOKE_ADMIN_TENANT_ID" ]]; then
     IFS='|' read -r check_id method url expected_tokens <<<"$check"
     append_result "$check_id" "$method" "$url" "$expected_tokens" "blocked" "" "missing_smoke_admin_user_or_tenant_id" "" "$REQUEST_ID_VALUE-$check_id" ""
   done
+elif [[ "$CSRF_READY" != "1" ]]; then
+  for check in "${CHECKS[@]}"; do
+    IFS='|' read -r check_id method url expected_tokens <<<"$check"
+    if [[ "$method" == "POST" ]]; then
+      append_result "$check_id" "$method" "$url" "$expected_tokens" "blocked" "" "missing_csrf_origin_or_header" "" "$REQUEST_ID_VALUE-$check_id" ""
+    else
+      append_result "$check_id" "$method" "$url" "$expected_tokens" "planned" "" "waiting_for_post_probe_csrf_inputs" "" "$REQUEST_ID_VALUE-$check_id" ""
+    fi
+  done
 else
   for check in "${CHECKS[@]}"; do
     IFS='|' read -r check_id method url expected_tokens <<<"$check"
@@ -251,7 +272,7 @@ else
 fi
 
 actual_report_path="$(
-python3 - "$REPORT_PATH" "$RESULTS_PATH" "$RUN_ID" "$RELEASE_SHA" "$BASE_URL" "$SMOKE_ADMIN_USER_ID" "$SMOKE_ADMIN_TENANT_ID" "$SIGNED_URL_EVIDENCE" "$AUTH_READY" "$REQUEST_ID_HEADER" <<'PY'
+python3 - "$REPORT_PATH" "$RESULTS_PATH" "$RUN_ID" "$RELEASE_SHA" "$BASE_URL" "$SMOKE_ADMIN_USER_ID" "$SMOKE_ADMIN_TENANT_ID" "$SIGNED_URL_EVIDENCE" "$AUTH_READY" "$REQUEST_ID_HEADER" "$CSRF_READY" "$CSRF_HEADER_NAME" "$CSRF_ORIGIN" <<'PY'
 import json
 import sys
 from pathlib import Path
@@ -266,6 +287,9 @@ admin_tenant_id = sys.argv[7].strip()
 signed_url_evidence = sys.argv[8].strip()
 auth_ready = sys.argv[9] == "1"
 request_id_header = sys.argv[10].strip()
+csrf_ready = sys.argv[11] == "1"
+csrf_header_name = sys.argv[12].strip()
+csrf_origin = sys.argv[13].strip()
 
 results = [
     json.loads(line)
@@ -422,10 +446,13 @@ if runtime_checks_passed and not admin_user_id:
     release_binding_blockers.append("smoke_admin_user_id_missing")
 if runtime_checks_passed and not admin_tenant_id:
     release_binding_blockers.append("smoke_admin_tenant_id_missing")
+if runtime_checks_passed and not csrf_ready:
+    release_binding_blockers.append("csrf_origin_or_header_missing")
 
 blocked_or_failed = blocked_or_failed + release_binding_blockers
 all_passed = runtime_checks_passed and signed_url_ready and release_sha_matches_signed_url
 all_passed = all_passed and auth_ready and bool(admin_user_id) and bool(admin_tenant_id)
+all_passed = all_passed and csrf_ready
 can_clear_release_gate_check = all_passed
 pass_file_policy_ok = report_path == canonical_report_path and results_path == canonical_results_path
 if all_passed and not pass_file_policy_ok:
@@ -505,6 +532,8 @@ runtime_input_requirements = {
         "required_base_url": "STAGING_BASE_URL or explicit probe URL env vars",
         "required_smoke_admin_user_id": "SMOKE_ADMIN_USER_ID bound to the admin operator executing the cleanup probes",
         "required_smoke_admin_tenant_id": "SMOKE_ADMIN_TENANT_ID bound to the staging tenant whose objects and audit refs are probed",
+        "required_csrf_origin": "CSRF_ORIGIN, STAGING_ADMIN_URL, ADMIN_URL, STAGING_WEB_URL, or WEB_URL matching an allowed staging origin for POST cleanup probes",
+        "required_csrf_header": f"{csrf_header_name or 'CSRF_HEADER_NAME'} header with CSRF_HEADER_VALUE for state-changing object cleanup POST probes",
         "required_request_id_echo": f"each probe must send {request_id_header} and receive the same value in response headers",
         "required_probe_routes": probe_routes,
         "canonical_pass_report": str(canonical_report_path),
@@ -520,6 +549,8 @@ elif not auth_ready:
     runtime_input_requirements["blocked_input_reason"] = "missing admin auth; set ADMIN_BEARER_TOKEN or ADMIN_SESSION_COOKIE"
 elif not admin_user_id or not admin_tenant_id:
     runtime_input_requirements["blocked_input_reason"] = "missing smoke admin identity; set SMOKE_ADMIN_USER_ID and SMOKE_ADMIN_TENANT_ID"
+elif not csrf_ready:
+    runtime_input_requirements["blocked_input_reason"] = "missing CSRF origin/header; set CSRF_ORIGIN or STAGING_ADMIN_URL plus CSRF_HEADER_NAME/CSRF_HEADER_VALUE for POST cleanup probes"
 elif runtime_checks_passed and not release_sha_matches_signed_url:
     runtime_input_requirements["blocked_input_reason"] = "RELEASE_SHA must match signed URL split evidence release_sha"
 else:
@@ -537,6 +568,11 @@ report = {
     "validated_by_role": "admin_operator",
     "admin_user_id": admin_user_id,
     "admin_tenant_id": admin_tenant_id,
+    "csrf": {
+        "origin": csrf_origin,
+        "header_name": csrf_header_name,
+        "ready": csrf_ready,
+    },
     "release_gate_check_id": "staging_object_storage_signed_downloads",
     "do_not_launch_condition_id": "object_storage_signed_retention_runtime_missing",
     "results_path": str(results_path),

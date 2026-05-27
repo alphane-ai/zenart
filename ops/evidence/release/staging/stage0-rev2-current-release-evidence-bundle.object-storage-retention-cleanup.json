@@ -237,6 +237,11 @@
       "status": "blocked"
     }
   ],
+  "csrf": {
+    "header_name": "X-ZenArt-CSRF",
+    "origin": "",
+    "ready": false
+  },
   "do_not_launch_condition_id": "object_storage_signed_retention_runtime_missing",
   "environment": "staging",
   "evidence_id": "stage0-rev2-current-release-evidence-bundle.object-storage-retention-cleanup",
@@ -268,6 +273,8 @@
     "pass_file_policy": "canonical pass paths require passing evidence to be written to ops/evidence/staging/object-storage-retention-cleanup.json and ops/evidence/staging/object-storage-retention-cleanup.ndjson; non-canonical paths are validation-only.",
     "required_auth": "ADMIN_BEARER_TOKEN or ADMIN_SESSION_COOKIE with admin_operator access",
     "required_base_url": "STAGING_BASE_URL or explicit probe URL env vars",
+    "required_csrf_header": "X-ZenArt-CSRF header with CSRF_HEADER_VALUE for state-changing object cleanup POST probes",
+    "required_csrf_origin": "CSRF_ORIGIN, STAGING_ADMIN_URL, ADMIN_URL, STAGING_WEB_URL, or WEB_URL matching an allowed staging origin for POST cleanup probes",
     "required_probe_routes": {
       "audit_refs": {
         "default_path": "/api/admin/v1/audit?subject=object_storage_cleanup&limit=20",

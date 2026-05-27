@@ -7972,6 +7972,8 @@ def validate_staging_object_storage_retention_cleanup_evidence() -> None:
             "required_auth": "ADMIN_BEARER_TOKEN or ADMIN_SESSION_COOKIE",
             "required_smoke_admin_user_id": "SMOKE_ADMIN_USER_ID",
             "required_smoke_admin_tenant_id": "SMOKE_ADMIN_TENANT_ID",
+            "required_csrf_origin": "CSRF_ORIGIN",
+            "required_csrf_header": "CSRF_HEADER_VALUE",
             "required_request_id_echo": "X-Request-ID",
             "required_release_sha": load_json(STAGING_OBJECT_STORAGE_SIGNED_URL_EVIDENCE)["release_sha"],
         }.items():
@@ -7979,6 +7981,14 @@ def validate_staging_object_storage_retention_cleanup_evidence() -> None:
                 token in runtime_requirements[key],
                 f"blocked retention cleanup evidence must name runtime input {token}",
             )
+        require(
+            blocked_evidence["csrf"]["ready"] is False,
+            "blocked retention cleanup evidence must not claim CSRF readiness without staging inputs",
+        )
+        require(
+            blocked_evidence["csrf"]["header_name"] == "X-ZenArt-CSRF",
+            "blocked retention cleanup evidence must name the CSRF header used by backend middleware",
+        )
         require(
             blocked_evidence["split_evidence"]["signed_url_ready"] is True,
             "blocked retention cleanup evidence must preserve the passing signed URL split",
@@ -8049,6 +8059,18 @@ def validate_staging_object_storage_retention_cleanup_evidence() -> None:
             require(
                 release_bundle_requirements["canonical_pass_report"] == rel(STAGING_OBJECT_STORAGE_RETENTION_EVIDENCE),
                 "release-bundle retention cleanup evidence must name the canonical staging pass report",
+            )
+            for key, token in {
+                "required_csrf_origin": "CSRF_ORIGIN",
+                "required_csrf_header": "CSRF_HEADER_VALUE",
+            }.items():
+                require(
+                    token in release_bundle_requirements[key],
+                    f"release-bundle retention cleanup evidence must name runtime input {token}",
+                )
+            require(
+                release_bundle_evidence["csrf"]["ready"] is False,
+                "release-bundle retention cleanup evidence must not claim CSRF readiness without staging inputs",
             )
             require(
                 release_bundle_requirements["canonical_pass_results"]
@@ -11675,12 +11697,14 @@ def validate_ops_ci_and_drill_evidence() -> None:
         and "audit refs" in object_storage_retention.get("runtime_status", "")
         and "staging admin auth" in object_storage_retention.get("runtime_status", "")
         and "SMOKE_ADMIN_USER_ID" in object_storage_retention.get("runtime_status", "")
+        and "CSRF_ORIGIN" in object_storage_retention.get("runtime_status", "")
+        and "CSRF_HEADER_VALUE" in object_storage_retention.get("runtime_status", "")
         and "per-probe request IDs" in object_storage_retention.get("runtime_status", "")
         and "expected-token matches" in object_storage_retention.get("runtime_status", "")
         and "canonical pass paths" in object_storage_retention.get("runtime_status", "")
         and "dry-run, missing staging URL, missing admin auth, or missing smoke admin IDs remain blocked"
         not in object_storage_retention.get("runtime_status", "")
-        and "dry-run, missing staging URL, missing admin auth, missing smoke admin IDs, release SHA mismatch, or non-canonical pass reports remain blocked"
+        and "dry-run, missing staging URL, missing admin auth, missing smoke admin IDs, missing CSRF origin/header, release SHA mismatch, or non-canonical pass reports remain blocked"
         in object_storage_retention.get("runtime_status", ""),
         "release ops evidence must record object-storage retention cleanup runtime requirements",
     )
