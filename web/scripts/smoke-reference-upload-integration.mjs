@@ -201,7 +201,11 @@ if (
   artifact.packageExportMetadata.expectedTraceProvenancePayloadPresent !==
     packageExportArtifact.workflowMetadata.expectedWorkflowTraceProvenancePayloadPresent ||
   artifact.packageExportMetadata.expectedAiContentDisclaimerPayloadPresent !==
-    packageExportArtifact.workflowMetadata.expectedAiContentDisclaimerPayloadPresent
+    packageExportArtifact.workflowMetadata.expectedAiContentDisclaimerPayloadPresent ||
+  artifact.packageExportMetadata.expectedCrossPayloadIdentityPayloadCount !==
+    packageExportArtifact.evidence.crossPayloadIdentityMatrix.expectedPayloadCount ||
+  artifact.packageExportMetadata.expectedCrossPayloadIdentityPresentStatus !==
+    packageExportArtifact.evidence.crossPayloadIdentityMatrix.expectedPresentStatus
 ) {
   fail("package/export metadata contract drifted from package export smoke artifact");
 }

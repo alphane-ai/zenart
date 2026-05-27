@@ -1057,6 +1057,10 @@ textarea {
   overflow-wrap: anywhere;
 }
 
+.payload-identity-status-list li {
+  grid-template-columns: minmax(68px, auto) minmax(0, 1fr);
+}
+
 .share-state {
   border: 1px solid rgba(37, 99, 235, 0.24);
   border-radius: 8px;

@@ -556,6 +556,27 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(metadataEvidence).toHaveAttribute("data-package-export-missing-cross-payload-identity-count", "0");
     expect(metadataEvidence?.getAttribute("data-package-export-cross-payload-identities")).toContain("metadata.json");
     expect(metadataEvidence?.getAttribute("data-package-export-cross-payload-identities")).toContain("trace_provenance.json");
+    const identityMatrix = screen.getByLabelText("Package export cross-payload identity matrix");
+    expect(identityMatrix).toBeInTheDocument();
+    const identityRows = within(identityMatrix).getAllByRole("listitem");
+    const identityRow = (payloadName: string) =>
+      identityRows.find((row) => row.getAttribute("data-package-export-identity-payload") === payloadName);
+    expect(identityRows).toHaveLength(5);
+    for (const payloadName of ["manifest.json", "provenance.json", "ai-content-disclaimer.json", "metadata.json", "trace_provenance.json"]) {
+      const row = identityRow(payloadName);
+      expect(row).toHaveAttribute("data-package-export-identity-row", "cross-payload-identity");
+      expect(row).toHaveAttribute("data-package-export-identity-package-id", "pass");
+      expect(row).toHaveAttribute("data-package-export-identity-project-id", "pass");
+    }
+    expect(identityRow("manifest.json")).toHaveAttribute("data-package-export-identity-export-id", "not-applicable");
+    expect(identityRow("manifest.json")).toHaveAttribute("data-package-export-identity-workflow-id", "not-applicable");
+    expect(identityRow("provenance.json")).toHaveAttribute("data-package-export-identity-export-id", "pass");
+    expect(identityRow("provenance.json")).toHaveAttribute("data-package-export-identity-provider", "pass");
+    expect(identityRow("provenance.json")).toHaveAttribute("data-package-export-identity-model", "pass");
+    expect(identityRow("provenance.json")).toHaveAttribute("data-package-export-identity-prompt-spec", "pass");
+    expect(identityRow("metadata.json")).toHaveAttribute("data-package-export-identity-workflow-id", "pass");
+    expect(identityRow("metadata.json")).toHaveAttribute("data-package-export-identity-skill", "pass");
+    expect(identityRow("trace_provenance.json")).toHaveAttribute("data-package-export-identity-safety", "pass");
     expect(metadataEvidence).toHaveAttribute("data-package-export-workflow-id", "ecommerce_growth_pack");
     expect(metadataEvidence).toHaveAttribute("data-package-export-workflow-fixture-id", "fx_ecommerce_growth_golden");
     expect(metadataEvidence).toHaveAttribute("data-package-export-workflow-taxonomy-count", "1");
@@ -1181,7 +1202,18 @@ describe("WorkspaceApp user route integration smoke", () => {
         "data-package-export-payload-row",
         "data-package-export-payload-name",
         "data-package-export-payload-present",
-        "data-package-export-payload-zip-name"
+        "data-package-export-payload-zip-name",
+        "data-package-export-identity-row",
+        "data-package-export-identity-payload",
+        "data-package-export-identity-export-id",
+        "data-package-export-identity-package-id",
+        "data-package-export-identity-project-id",
+        "data-package-export-identity-workflow-id",
+        "data-package-export-identity-provider",
+        "data-package-export-identity-model",
+        "data-package-export-identity-prompt-spec",
+        "data-package-export-identity-skill",
+        "data-package-export-identity-safety"
       ]),
       requiredPayloads: expect.arrayContaining([
         "manifest.json",

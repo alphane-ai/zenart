@@ -157,7 +157,9 @@
     "expectedZipPayloadParityStatus": "pass",
     "expectedWorkflowMetadataPayloadPresent": "true",
     "expectedTraceProvenancePayloadPresent": "true",
-    "expectedAiContentDisclaimerPayloadPresent": "true"
+    "expectedAiContentDisclaimerPayloadPresent": "true",
+    "expectedCrossPayloadIdentityPayloadCount": "5",
+    "expectedCrossPayloadIdentityPresentStatus": "pass"
   },
   "downloadParity": {
     "schemaVersion": "stage0.rev2.export-download-parity-smoke",
@@ -185,6 +187,9 @@
       "data-render-package-item-count",
       "data-render-export-history-count",
       "data-package-export-metadata-ui='stage0.rev2.package-export-metadata-ui'",
+      "Package export cross-payload identity matrix",
+      "data-package-export-identity-payload",
+      "data-package-export-identity-package-id",
       "data-export-download-parity-status",
       "download.suggestedFilename()"
     ]

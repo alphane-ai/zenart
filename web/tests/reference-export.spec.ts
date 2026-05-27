@@ -142,6 +142,26 @@ test("reference upload browser smoke reaches ready export metadata and render bu
     payloadMatrix.locator("[data-package-export-payload-row='workflow-payload'][data-package-export-payload-name='trace_provenance.json']")
   ).toHaveAttribute("data-package-export-payload-present", "true");
 
+  const identityMatrix = page.getByLabel("Package export cross-payload identity matrix");
+  await expect(identityMatrix.locator("[data-package-export-identity-row='cross-payload-identity']")).toHaveCount(5);
+  for (const payloadName of ["manifest.json", "provenance.json", "ai-content-disclaimer.json", "metadata.json", "trace_provenance.json"]) {
+    const row = identityMatrix.locator(`[data-package-export-identity-payload='${payloadName}']`);
+    await expect(row).toHaveAttribute("data-package-export-identity-package-id", "pass");
+    await expect(row).toHaveAttribute("data-package-export-identity-project-id", "pass");
+  }
+  await expect(identityMatrix.locator("[data-package-export-identity-payload='manifest.json']")).toHaveAttribute(
+    "data-package-export-identity-export-id",
+    "not-applicable"
+  );
+  await expect(identityMatrix.locator("[data-package-export-identity-payload='metadata.json']")).toHaveAttribute(
+    "data-package-export-identity-provider",
+    "pass"
+  );
+  await expect(identityMatrix.locator("[data-package-export-identity-payload='trace_provenance.json']")).toHaveAttribute(
+    "data-package-export-identity-safety",
+    "pass"
+  );
+
   const downloadParity = page.getByLabel("Export download parity smoke");
   await expect(downloadParity).toHaveAttribute("data-export-download-parity-status", "pass");
   await expect(downloadParity).toHaveAttribute("data-export-download-parity-payloads-match", "true");

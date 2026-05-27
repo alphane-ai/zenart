@@ -875,6 +875,8 @@ export const buildPackageExportMetadataEvidence = (record: ExportRecord): Packag
   const zipPayloadNames = buildDownloadableExportZipPayloadNames(record);
   const zipPayloadContractDigest = buildExportZipPayloadContractDigest(record, zipPayloadNames);
   const workflowMetadataPayload = buildExportWorkflowMetadataPayload(record, "metadata.json");
+  const workflowId = record.manifest.workflow_acceptance?.workflow_id ?? "generic-stage0-export";
+  const workflowFixtureId = record.manifest.workflow_acceptance?.fixture_id ?? "none";
   const crossPayloadIdentityNames = [
     "manifest.json",
     "provenance.json",
@@ -884,6 +886,24 @@ export const buildPackageExportMetadataEvidence = (record: ExportRecord): Packag
   const requiredZipPayloadNames = [...requiredExportZipPayloadNames];
   const missingZipPayloadNames = requiredZipPayloadNames.filter((payloadName) => !zipPayloadNames.includes(payloadName));
   const missingCrossPayloadIdentityNames = crossPayloadIdentityNames.filter((payloadName) => !zipPayloadNames.includes(payloadName));
+  const crossPayloadIdentityStatuses = crossPayloadIdentityNames.map((payloadName) => {
+    const payloadPresent = zipPayloadNames.includes(payloadName);
+    const hasRuntimeIdentity = payloadName !== "manifest.json";
+    const status = payloadPresent ? "pass" : "missing";
+
+    return {
+      payloadName,
+      exportId: hasRuntimeIdentity ? status : "not-applicable",
+      packageId: status,
+      projectId: status,
+      workflowId: hasRuntimeIdentity ? status : "not-applicable",
+      provider: hasRuntimeIdentity ? status : "not-applicable",
+      model: hasRuntimeIdentity ? status : "not-applicable",
+      promptSpec: hasRuntimeIdentity ? status : "not-applicable",
+      skill: hasRuntimeIdentity ? status : "not-applicable",
+      safety: hasRuntimeIdentity ? status : "not-applicable"
+    } as const;
+  });
   const manifestOutputStatuses = record.manifest.required_outputs.map((outputName) => {
     const zipPayloadName = toExportZipPayloadName(outputName);
 
@@ -990,8 +1010,9 @@ export const buildPackageExportMetadataEvidence = (record: ExportRecord): Packag
     crossPayloadIdentityStatus: missingCrossPayloadIdentityNames.length === 0 ? "pass" : "fail",
     crossPayloadIdentityNames,
     missingCrossPayloadIdentityNames,
-    workflowId: record.manifest.workflow_acceptance?.workflow_id ?? "generic-stage0-export",
-    workflowFixtureId: record.manifest.workflow_acceptance?.fixture_id ?? "none",
+    crossPayloadIdentityStatuses,
+    workflowId,
+    workflowFixtureId,
     workflowStrategyTaxonomyCount: record.manifest.workflow_acceptance?.strategy_taxonomy.length ?? 0,
     workflowRequiredFileCount: record.manifest.workflow_acceptance?.required_files.length ?? 0,
     workflowZipPayloadCount,

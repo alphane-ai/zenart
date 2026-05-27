@@ -273,6 +273,37 @@ for (const attribute of [
   }
 }
 
+if (
+  evidence.crossPayloadIdentityMatrix.groupSelector !== "[aria-label=\"Package export cross-payload identity matrix\"]" ||
+  !componentSource.includes("Package export cross-payload identity matrix")
+) {
+  fail("package/export cross-payload identity matrix missing aria-label selector contract");
+}
+
+for (const attribute of [
+  evidence.crossPayloadIdentityMatrix.rowAttribute,
+  evidence.crossPayloadIdentityMatrix.payloadAttribute,
+  evidence.crossPayloadIdentityMatrix.exportIdAttribute,
+  evidence.crossPayloadIdentityMatrix.packageIdAttribute,
+  evidence.crossPayloadIdentityMatrix.projectIdAttribute,
+  evidence.crossPayloadIdentityMatrix.workflowIdAttribute,
+  evidence.crossPayloadIdentityMatrix.providerAttribute,
+  evidence.crossPayloadIdentityMatrix.modelAttribute,
+  evidence.crossPayloadIdentityMatrix.promptSpecAttribute,
+  evidence.crossPayloadIdentityMatrix.skillAttribute,
+  evidence.crossPayloadIdentityMatrix.safetyAttribute
+]) {
+  if (!componentSource.includes(attribute) && !workspaceSmokeTestSource.includes(attribute) && !packageExportPlaywrightSpecSource.includes(attribute)) {
+    fail(`package/export cross-payload identity matrix missing ${attribute}`);
+  }
+}
+
+for (const payload of evidence.crossPayloadIdentityMatrix.expectedPayloads ?? []) {
+  if (!workspaceSmokeTestSource.includes(payload) || !packageExportPlaywrightSpecSource.includes(payload)) {
+    fail(`package/export cross-payload identity matrix missing browser assertion for ${payload}`);
+  }
+}
+
 for (const payload of evidence.requiredPayloads) {
   if (
     !devStateSource.includes(payload) &&
@@ -310,7 +341,11 @@ for (const requiredSourceSnippet of [
   "workflowProviderMetadataPresent",
   "workflowPromptSpecMetadataPresent",
   "workflowSkillMetadataPresent",
-  "workflowSafetyMetadataPresent"
+  "workflowSafetyMetadataPresent",
+  "crossPayloadIdentityStatuses",
+  "exportId: hasRuntimeIdentity ? status : \"not-applicable\"",
+  "packageId: status",
+  "projectId: status"
 ]) {
   if (!devStateSource.includes(requiredSourceSnippet)) {
     fail(`package/export metadata builder missing source contract ${requiredSourceSnippet}`);
@@ -329,7 +364,8 @@ for (const requiredContractSnippet of [
   "aiContentDisclaimerPayloadPresent",
   "metadataPayloadsMatchZipPayloads",
   "payloadContractDigest",
-  "metadataPayloadDigestMatchesZipPayloadDigest"
+  "metadataPayloadDigestMatchesZipPayloadDigest",
+  "crossPayloadIdentityStatuses"
 ]) {
   if (!contractsSource.includes(requiredContractSnippet)) {
     fail(`package/export metadata TypeScript contract missing ${requiredContractSnippet}`);
@@ -367,6 +403,7 @@ for (const requiredTestSnippet of [
   "data-package-export-ai-content-disclaimer-payload-present",
   "data-package-export-zip-payload-contract-digest",
   "data-package-export-payload-row",
+  "data-package-export-identity-row",
   "data-export-zip-payload-smoke-status",
   "data-export-zip-payload-contract-digest",
   "data-export-download-parity-status",
@@ -481,12 +518,24 @@ for (const payload of evidence.crossPayloadIdentityPayloads ?? []) {
   }
 }
 
+if (!workspaceSmokeTestSource.includes("Package export cross-payload identity matrix")) {
+  fail("workspace smoke test must inspect the package export cross-payload identity matrix");
+}
+
+if (!packageExportPlaywrightSpecSource.includes("Package export cross-payload identity matrix")) {
+  fail("browser smoke test must inspect the package export cross-payload identity matrix");
+}
+
 if (!workspaceSmokeTestSource.includes("Package export payload status matrix")) {
   fail("workspace smoke test must inspect the package export payload status matrix");
 }
 
 if (!componentSource.includes("function PayloadStatusList") || !componentSource.includes("payload-status-list")) {
   fail("workspace export UI must render payload status rows");
+}
+
+if (!componentSource.includes("function PayloadIdentityStatusList") || !componentSource.includes("payload-identity-status-list")) {
+  fail("workspace export UI must render cross-payload identity rows");
 }
 
 if (!componentSource.includes("downloadExportPackage(item)")) {
@@ -500,6 +549,10 @@ if (
   browserContracts.packageExportMetadata?.expectedMissingOutputCount !== evidence.expectedMissingOutputCount ||
   browserContracts.packageExportMetadata?.expectedZipPayloadParityStatus !== evidence.expectedZipPayloadParityStatus ||
   browserContracts.packageExportMetadata?.expectedZipPayloadContractDigest !== evidence.expectedZipPayloadContractDigest ||
+  browserContracts.packageExportMetadata?.expectedCrossPayloadIdentityPayloadCount !==
+    evidence.crossPayloadIdentityMatrix.expectedPayloadCount ||
+  browserContracts.packageExportMetadata?.expectedCrossPayloadIdentityPresentStatus !==
+    evidence.crossPayloadIdentityMatrix.expectedPresentStatus ||
   browserContracts.downloadParity?.schemaVersion !== downloadParity.schemaVersion ||
   browserContracts.downloadParity?.expectedStatus !== downloadParity.expectedStatus ||
   browserContracts.downloadParity?.expectedPayloadsMatch !== downloadParity.expectedPayloadsMatch ||

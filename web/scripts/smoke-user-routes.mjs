@@ -243,7 +243,11 @@ if (
   referenceExportContracts.packageExportMetadata?.schemaVersion !== packageExportEvidence.schemaVersion ||
   referenceExportContracts.packageExportMetadata?.expectedStatus !== packageExportEvidence.expectedStatus ||
   referenceExportContracts.packageExportMetadata?.expectedMissingOutputCount !== packageExportEvidence.expectedMissingOutputCount ||
-  referenceExportContracts.packageExportMetadata?.expectedZipPayloadParityStatus !== "pass"
+  referenceExportContracts.packageExportMetadata?.expectedZipPayloadParityStatus !== "pass" ||
+  referenceExportContracts.packageExportMetadata?.expectedCrossPayloadIdentityPayloadCount !==
+    packageExportEvidence.crossPayloadIdentityMatrix?.expectedPayloadCount ||
+  referenceExportContracts.packageExportMetadata?.expectedCrossPayloadIdentityPresentStatus !==
+    packageExportEvidence.crossPayloadIdentityMatrix?.expectedPresentStatus
 ) {
   fail("reference export browser smoke package/export metadata contract drifted from user route evidence");
 }
@@ -1273,6 +1277,10 @@ for (const expectedPackageExportMetadataSnippet of [
   "data-package-export-payload-name",
   "data-package-export-payload-present",
   "data-package-export-payload-zip-name",
+  "data-package-export-identity-row",
+  "data-package-export-identity-payload",
+  "data-package-export-identity-package-id",
+  "Package export cross-payload identity matrix",
   "required ZIP parity",
   "required payloads present"
 ]) {
@@ -1290,6 +1298,30 @@ for (const requiredPayloadRowAttribute of packageExportEvidence.requiredPayloadR
 for (const requiredPayloadKind of packageExportEvidence.payloadStatusMatrix?.requiredKinds ?? []) {
   if (!componentSource.includes(requiredPayloadKind)) {
     fail(`package/export metadata payload status matrix missing ${requiredPayloadKind}`);
+  }
+}
+
+for (const requiredIdentityAttribute of [
+  packageExportEvidence.crossPayloadIdentityMatrix?.rowAttribute,
+  packageExportEvidence.crossPayloadIdentityMatrix?.payloadAttribute,
+  packageExportEvidence.crossPayloadIdentityMatrix?.exportIdAttribute,
+  packageExportEvidence.crossPayloadIdentityMatrix?.packageIdAttribute,
+  packageExportEvidence.crossPayloadIdentityMatrix?.projectIdAttribute,
+  packageExportEvidence.crossPayloadIdentityMatrix?.workflowIdAttribute,
+  packageExportEvidence.crossPayloadIdentityMatrix?.providerAttribute,
+  packageExportEvidence.crossPayloadIdentityMatrix?.modelAttribute,
+  packageExportEvidence.crossPayloadIdentityMatrix?.promptSpecAttribute,
+  packageExportEvidence.crossPayloadIdentityMatrix?.skillAttribute,
+  packageExportEvidence.crossPayloadIdentityMatrix?.safetyAttribute
+]) {
+  if (!requiredIdentityAttribute || !componentSource.includes(requiredIdentityAttribute)) {
+    fail(`package/export metadata cross-payload identity evidence missing ${requiredIdentityAttribute}`);
+  }
+}
+
+for (const identityPayload of packageExportEvidence.crossPayloadIdentityMatrix?.expectedPayloads ?? []) {
+  if (!workspaceSmokeTestSource.includes(identityPayload) || !referenceExportPlaywrightSpecSource.includes(identityPayload)) {
+    fail(`package/export metadata cross-payload identity smoke missing ${identityPayload}`);
   }
 }
 

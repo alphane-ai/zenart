@@ -263,6 +263,34 @@ describe("dev workspace contracts", () => {
       crossPayloadIdentityStatus: "pass",
       crossPayloadIdentityNames: ["manifest.json", "provenance.json", "ai-content-disclaimer.json"],
       missingCrossPayloadIdentityNames: [],
+      crossPayloadIdentityStatuses: [
+        expect.objectContaining({
+          payloadName: "manifest.json",
+          exportId: "not-applicable",
+          packageId: "pass",
+          projectId: "pass"
+        }),
+        expect.objectContaining({
+          payloadName: "provenance.json",
+          exportId: "pass",
+          workflowId: "pass",
+          provider: "pass",
+          model: "pass",
+          promptSpec: "pass",
+          skill: "pass",
+          safety: "pass"
+        }),
+        expect.objectContaining({
+          payloadName: "ai-content-disclaimer.json",
+          exportId: "pass",
+          workflowId: "pass",
+          provider: "pass",
+          model: "pass",
+          promptSpec: "pass",
+          skill: "pass",
+          safety: "pass"
+        })
+      ],
       workflowId: "generic-stage0-export",
       workflowFixtureId: "none",
       workflowStrategyTaxonomyCount: 0,

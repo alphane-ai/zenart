@@ -153,7 +153,18 @@
       "data-package-export-workflow-metadata-model",
       "data-package-export-workflow-prompt-spec-taxonomy",
       "data-package-export-workflow-skill",
-      "data-package-export-workflow-safety"
+      "data-package-export-workflow-safety",
+      "data-package-export-identity-row",
+      "data-package-export-identity-payload",
+      "data-package-export-identity-export-id",
+      "data-package-export-identity-package-id",
+      "data-package-export-identity-project-id",
+      "data-package-export-identity-workflow-id",
+      "data-package-export-identity-provider",
+      "data-package-export-identity-model",
+      "data-package-export-identity-prompt-spec",
+      "data-package-export-identity-skill",
+      "data-package-export-identity-safety"
     ],
     "crossPayloadIdentityPayloads": [
       "manifest.json",
@@ -195,6 +206,30 @@
       "presentAttribute": "data-package-export-payload-present",
       "zipNameAttribute": "data-package-export-payload-zip-name",
       "expectedPresent": "true"
+    },
+    "crossPayloadIdentityMatrix": {
+      "groupSelector": "[aria-label=\"Package export cross-payload identity matrix\"]",
+      "rowAttribute": "data-package-export-identity-row",
+      "payloadAttribute": "data-package-export-identity-payload",
+      "exportIdAttribute": "data-package-export-identity-export-id",
+      "packageIdAttribute": "data-package-export-identity-package-id",
+      "projectIdAttribute": "data-package-export-identity-project-id",
+      "workflowIdAttribute": "data-package-export-identity-workflow-id",
+      "providerAttribute": "data-package-export-identity-provider",
+      "modelAttribute": "data-package-export-identity-model",
+      "promptSpecAttribute": "data-package-export-identity-prompt-spec",
+      "skillAttribute": "data-package-export-identity-skill",
+      "safetyAttribute": "data-package-export-identity-safety",
+      "expectedPayloads": [
+        "manifest.json",
+        "provenance.json",
+        "ai-content-disclaimer.json",
+        "metadata.json",
+        "trace_provenance.json"
+      ],
+      "expectedPayloadCount": "5",
+      "expectedPresentStatus": "pass",
+      "expectedManifestRuntimeStatus": "not-applicable"
     }
   },
   "workflowMetadata": {

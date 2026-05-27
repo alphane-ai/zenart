@@ -63,6 +63,31 @@ test("export route exposes package metadata, ZIP payload, and download parity br
   await expect(metadataEvidence).toHaveAttribute("data-package-export-cross-payload-identities", /provenance\.json/);
   await expect(metadataEvidence).toHaveAttribute("data-package-export-cross-payload-identities", /metadata\.json/);
   await expect(metadataEvidence).toHaveAttribute("data-package-export-cross-payload-identities", /trace_provenance\.json/);
+  const identityMatrix = page.getByLabel("Package export cross-payload identity matrix");
+  await expect(identityMatrix.locator("[data-package-export-identity-row='cross-payload-identity']")).toHaveCount(5);
+  for (const payloadName of ["manifest.json", "provenance.json", "ai-content-disclaimer.json", "metadata.json", "trace_provenance.json"]) {
+    const row = identityMatrix.locator(`[data-package-export-identity-payload='${payloadName}']`);
+    await expect(row).toHaveAttribute("data-package-export-identity-package-id", "pass");
+    await expect(row).toHaveAttribute("data-package-export-identity-project-id", "pass");
+  }
+  await expect(identityMatrix.locator("[data-package-export-identity-payload='manifest.json']")).toHaveAttribute(
+    "data-package-export-identity-export-id",
+    "not-applicable"
+  );
+  await expect(identityMatrix.locator("[data-package-export-identity-payload='manifest.json']")).toHaveAttribute(
+    "data-package-export-identity-provider",
+    "not-applicable"
+  );
+  for (const payloadName of ["provenance.json", "ai-content-disclaimer.json", "metadata.json", "trace_provenance.json"]) {
+    const row = identityMatrix.locator(`[data-package-export-identity-payload='${payloadName}']`);
+    await expect(row).toHaveAttribute("data-package-export-identity-export-id", "pass");
+    await expect(row).toHaveAttribute("data-package-export-identity-workflow-id", "pass");
+    await expect(row).toHaveAttribute("data-package-export-identity-provider", "pass");
+    await expect(row).toHaveAttribute("data-package-export-identity-model", "pass");
+    await expect(row).toHaveAttribute("data-package-export-identity-prompt-spec", "pass");
+    await expect(row).toHaveAttribute("data-package-export-identity-skill", "pass");
+    await expect(row).toHaveAttribute("data-package-export-identity-safety", "pass");
+  }
   await expect(metadataEvidence).toHaveAttribute("data-package-export-workflow-id", "ecommerce_growth_pack");
   await expect(metadataEvidence).toHaveAttribute("data-package-export-workflow-fixture-id", "fx_ecommerce_growth_golden");
   await expect(metadataEvidence).toHaveAttribute("data-package-export-workflow-metadata-payload-present", "true");

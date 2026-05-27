@@ -497,6 +497,18 @@ export interface PackageExportMetadataEvidence {
   crossPayloadIdentityStatus: "pass" | "fail";
   crossPayloadIdentityNames: string[];
   missingCrossPayloadIdentityNames: string[];
+  crossPayloadIdentityStatuses: Array<{
+    payloadName: string;
+    exportId: "pass" | "not-applicable" | "missing";
+    packageId: "pass" | "not-applicable" | "missing";
+    projectId: "pass" | "not-applicable" | "missing";
+    workflowId: "pass" | "not-applicable" | "missing";
+    provider: "pass" | "not-applicable" | "missing";
+    model: "pass" | "not-applicable" | "missing";
+    promptSpec: "pass" | "not-applicable" | "missing";
+    skill: "pass" | "not-applicable" | "missing";
+    safety: "pass" | "not-applicable" | "missing";
+  }>;
   workflowId: string;
   workflowFixtureId: string;
   workflowStrategyTaxonomyCount: number;

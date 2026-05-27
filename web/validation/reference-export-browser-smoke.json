@@ -39,6 +39,11 @@
       "data-package-export-metadata-ui='stage0.rev2.package-export-metadata-ui'",
       "data-package-export-item-types",
       "Package export payload status matrix",
+      "Package export cross-payload identity matrix",
+      "data-package-export-identity-payload",
+      "data-package-export-identity-package-id",
+      "data-package-export-identity-project-id",
+      "data-package-export-identity-provider",
       "data-export-zip-payload-expected-payloads",
       "data-export-download-parity-status",
       "download.suggestedFilename()",
@@ -89,7 +94,9 @@
       "expectedZipPayloadContractDigest": "export-001::pkg-002::project-001::ecommerce_growth_pack::fx_ecommerce_growth_golden::ai-content-disclaimer.json|assets/README.txt|assets/hero_product_ad.png|assets/marketplace_banner.png|assets/square_social_ad.png|assets/story_variant.png|manifest.json|metadata.json|ppt-ready-metadata.json|provenance.json|qa-report.json|qa_report.json|safety-policy-report.json|trace_provenance.json",
       "expectedWorkflowMetadataPayloadPresent": "true",
       "expectedTraceProvenancePayloadPresent": "true",
-      "expectedAiContentDisclaimerPayloadPresent": "true"
+      "expectedAiContentDisclaimerPayloadPresent": "true",
+      "expectedCrossPayloadIdentityPayloadCount": "5",
+      "expectedCrossPayloadIdentityPresentStatus": "pass"
     },
     "downloadParity": {
       "schemaVersion": "stage0.rev2.export-download-parity-smoke",

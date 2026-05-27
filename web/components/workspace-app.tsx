@@ -1704,6 +1704,9 @@ function ExportView({
                         dataKind="workflow-payload"
                       />
                     </div>
+                    <div className="payload-status-groups" aria-label="Package export cross-payload identity matrix">
+                      <PayloadIdentityStatusList items={metadataEvidence.crossPayloadIdentityStatuses} />
+                    </div>
                   </section>
                 ) : null}
                 {zipPayloadSmoke ? (
@@ -1970,6 +1973,56 @@ function ExportView({
         </article>
       </div>
     </section>
+  );
+}
+
+function PayloadIdentityStatusList({
+  items
+}: {
+  items: Array<{
+    payloadName: string;
+    exportId: "pass" | "not-applicable" | "missing";
+    packageId: "pass" | "not-applicable" | "missing";
+    projectId: "pass" | "not-applicable" | "missing";
+    workflowId: "pass" | "not-applicable" | "missing";
+    provider: "pass" | "not-applicable" | "missing";
+    model: "pass" | "not-applicable" | "missing";
+    promptSpec: "pass" | "not-applicable" | "missing";
+    skill: "pass" | "not-applicable" | "missing";
+    safety: "pass" | "not-applicable" | "missing";
+  }>;
+}) {
+  return (
+    <div className="payload-status-list payload-identity-status-list" data-payload-status-kind="cross-payload-identity">
+      <strong>Cross-payload identity</strong>
+      <ul>
+        {items.map((item) => (
+          <li
+            key={`cross-payload-identity-${item.payloadName}`}
+            data-package-export-identity-row="cross-payload-identity"
+            data-package-export-identity-payload={item.payloadName}
+            data-package-export-identity-export-id={item.exportId}
+            data-package-export-identity-package-id={item.packageId}
+            data-package-export-identity-project-id={item.projectId}
+            data-package-export-identity-workflow-id={item.workflowId}
+            data-package-export-identity-provider={item.provider}
+            data-package-export-identity-model={item.model}
+            data-package-export-identity-prompt-spec={item.promptSpec}
+            data-package-export-identity-skill={item.skill}
+            data-package-export-identity-safety={item.safety}
+          >
+            <span className={item.packageId === "pass" && item.projectId === "pass" ? "qa-pass" : "qa-block"}>
+              {item.packageId === "pass" && item.projectId === "pass" ? "matched" : "missing"}
+            </span>
+            <span>{item.payloadName}</span>
+            <small>
+              export {item.exportId}, package {item.packageId}, project {item.projectId}, workflow {item.workflowId}, provider{" "}
+              {item.provider}, model {item.model}, prompt {item.promptSpec}, skill {item.skill}, safety {item.safety}
+            </small>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 
