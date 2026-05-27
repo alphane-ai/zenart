@@ -218,6 +218,18 @@ test("export route exposes package metadata, ZIP payload, and download parity br
       "trace_provenance.json"
     ])
   );
+  await expect(metadataEvidence).toHaveAttribute("data-package-export-package-id", manifest.package_id);
+  await expect(metadataEvidence).toHaveAttribute("data-package-export-project-id", manifest.project_id);
+  await expect(metadataEvidence).toHaveAttribute("data-package-export-workflow-id", manifest.workflow_acceptance.workflow_id);
+  await expect(metadataEvidence).toHaveAttribute("data-package-export-workflow-fixture-id", manifest.workflow_acceptance.fixture_id);
+  await expect(metadataEvidence).toHaveAttribute(
+    "data-package-export-workflow-taxonomy-count",
+    String(manifest.workflow_acceptance.strategy_taxonomy.length)
+  );
+  await expect(metadataEvidence).toHaveAttribute(
+    "data-package-export-workflow-required-file-count",
+    String(manifest.workflow_acceptance.required_files.length)
+  );
   expect(manifest.items).toEqual(
     expect.arrayContaining([
       expect.objectContaining({
@@ -231,10 +243,19 @@ test("export route exposes package metadata, ZIP payload, and download parity br
     ])
   );
   expect(qaReport.every((finding) => finding.severity !== "block")).toBe(true);
+  await expect(metadataEvidence).toHaveAttribute(
+    "data-package-export-blocking-qa-count",
+    String(qaReport.filter((finding) => finding.severity === "block").length)
+  );
   expect(safetyReport).toMatchObject({
     status: "pass",
     enforcementStages: ["brief", "provider_request", "provider_response", "qa", "export"]
   });
+  await expect(metadataEvidence).toHaveAttribute("data-package-export-safety-status", safetyReport.status);
+  await expect(metadataEvidence).toHaveAttribute(
+    "data-package-export-safety-stage-count",
+    String(safetyReport.enforcementStages.length)
+  );
   expect(provenance).toMatchObject({
     export_id: "export-001",
     generated_by: "zenart-web-dev-client"
@@ -242,15 +263,22 @@ test("export route exposes package metadata, ZIP payload, and download parity br
   expect(provenance.items.map((item) => item.provenance)).toEqual(
     expect.arrayContaining(["dev-client-reference:ref-campaign-reference-webp", "dev-client:cand-studio"])
   );
+  await expect(metadataEvidence).toHaveAttribute("data-package-export-provenance-count", String(provenance.items.length));
   expect(aiContentDisclaimer).toMatchObject({
     schema_version: "stage0.rev2.ai-content-disclaimer",
     generation_mode: "deterministic-local-alpha",
     safety_status: "pass"
   });
+  await expect(metadataEvidence).toHaveAttribute(
+    "data-package-export-ai-content-disclaimer-payload-present",
+    String(aiContentDisclaimer.schema_version === "stage0.rev2.ai-content-disclaimer")
+  );
   expect(pptReadyMetadata).toMatchObject({
     schema_version: "stage0.rev2.ppt-ready-metadata",
     aspect_ratio: "16:9"
   });
+  await expect(metadataEvidence).toHaveAttribute("data-package-export-ppt-aspect-ratio", pptReadyMetadata.aspect_ratio);
+  await expect(metadataEvidence).toHaveAttribute("data-package-export-ppt-slide-count", String(pptReadyMetadata.slides.length));
   expect(pptReadyMetadata.slides.map((slide) => slide.source_item_id)).toEqual(
     expect.arrayContaining(["pkg-item-001", "pkg-item-002"])
   );
@@ -263,6 +291,14 @@ test("export route exposes package metadata, ZIP payload, and download parity br
     skill: "ecommerce_growth_pack",
     safety: "pass"
   });
+  await expect(metadataEvidence).toHaveAttribute("data-package-export-workflow-metadata-provider", workflowMetadata.provider);
+  await expect(metadataEvidence).toHaveAttribute("data-package-export-workflow-metadata-model", workflowMetadata.model);
+  await expect(metadataEvidence).toHaveAttribute("data-package-export-workflow-skill", workflowMetadata.skill);
+  await expect(metadataEvidence).toHaveAttribute("data-package-export-workflow-safety", workflowMetadata.safety);
+  await expect(metadataEvidence).toHaveAttribute(
+    "data-package-export-workflow-prompt-spec-taxonomy",
+    workflowMetadata.prompt_spec.join(",")
+  );
   expect(traceProvenance).toMatchObject({
     workflow_id: "ecommerce_growth_pack",
     provider: "dev-provider",
@@ -271,5 +307,9 @@ test("export route exposes package metadata, ZIP payload, and download parity br
     skill: "ecommerce_growth_pack",
     safety: "pass"
   });
+  await expect(metadataEvidence).toHaveAttribute(
+    "data-package-export-workflow-trace-provenance-payload-present",
+    String(traceProvenance.workflow_id === workflowMetadata.workflow_id)
+  );
   expect(assetsReadme).toContain("Deterministic local alpha export placeholder");
 });

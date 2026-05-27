@@ -94,6 +94,8 @@ for (const expectedBrowserSnippet of [
   "data-package-export-metadata-status",
   "data-package-export-zip-payload-parity-status",
   "data-package-export-workflow-metadata-payload-present",
+  "data-package-export-workflow-taxonomy-count",
+  "data-package-export-workflow-required-file-count",
   "data-export-zip-payload-smoke",
   "data-export-download-parity-payloads-match",
   "data-export-download-handoff",
@@ -101,6 +103,22 @@ for (const expectedBrowserSnippet of [
 ]) {
   if (!packageExportPlaywrightSpecSource.includes(expectedBrowserSnippet)) {
     fail(`package/export metadata browser smoke missing ${expectedBrowserSnippet}`);
+  }
+}
+
+for (const expectedZipToUiParitySnippet of [
+  "manifest.workflow_acceptance.strategy_taxonomy.length",
+  "manifest.workflow_acceptance.required_files.length",
+  "String(qaReport.filter((finding) => finding.severity === \"block\").length)",
+  "String(safetyReport.enforcementStages.length)",
+  "String(provenance.items.length)",
+  "String(aiContentDisclaimer.schema_version === \"stage0.rev2.ai-content-disclaimer\")",
+  "String(pptReadyMetadata.slides.length)",
+  "workflowMetadata.prompt_spec.join(\",\")",
+  "String(traceProvenance.workflow_id === workflowMetadata.workflow_id)"
+]) {
+  if (!packageExportPlaywrightSpecSource.includes(expectedZipToUiParitySnippet)) {
+    fail(`package/export metadata browser smoke missing ZIP-to-UI parity assertion ${expectedZipToUiParitySnippet}`);
   }
 }
 

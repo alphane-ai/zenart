@@ -23,6 +23,8 @@
       "data-package-export-metadata-status",
       "data-package-export-zip-payload-parity-status",
       "data-package-export-workflow-metadata-payload-present",
+      "data-package-export-workflow-taxonomy-count",
+      "data-package-export-workflow-required-file-count",
       "Package export payload status matrix",
       "data-export-zip-payload-smoke",
       "data-export-download-parity-status",
@@ -40,7 +42,11 @@
       "ppt-ready-metadata.json",
       "metadata.json",
       "trace_provenance.json",
-      "assets/README.txt"
+      "assets/README.txt",
+      "manifest.workflow_acceptance.strategy_taxonomy.length",
+      "safetyReport.enforcementStages.length",
+      "workflowMetadata.prompt_spec.join(\",\")",
+      "traceProvenance.workflow_id === workflowMetadata.workflow_id"
     ]
   },
   "evidence": {
