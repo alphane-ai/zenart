@@ -16,7 +16,8 @@
     },
     "staging_smoke": {
       "script": "scripts/staging_smoke.sh",
-      "runtime_status": "requires real staging URLs plus release SHA, release notes, image refs, migration/config/observability/backup/load/rollback/security evidence, and seeded smoke records",
+      "default_output_dir": "ops/evidence/staging",
+      "runtime_status": "requires real staging URLs plus release SHA, release notes, image refs, migration/config/observability/backup/load/rollback/security evidence, and seeded smoke records; generated reports are gate-scoped with release_gate_check_id=staging_observability_backup_load and preserve no-go status until runtime smoke passes",
       "private_beta_gate": "open until staging smoke passes with production-like dependencies"
     },
     "observability_smoke": {
@@ -89,6 +90,7 @@
         "observability"
       ],
       "entry_requirements": "the generated staging smoke report must reference RELEASE_SHA, use the post_deploy profile, pass all checks, pass request-id checks, and include seeded runtime IDs for user, tenant, task, package, and export records",
+      "output_contract": "reports are written under ops/evidence/staging by default, set release_gate_check_id=staging_observability_backup_load, expose evidence_path_policy=ops/evidence/staging/, and preserve staging_observability_restore_load_missing until the full observability/backup/load preflight passes",
       "gate_policy": "release evidence files alone are insufficient; post-deploy smoke remains unverified until scripts/staging_smoke.sh passes against staging with seeded release smoke records"
     },
     "local_evidence_verification": {

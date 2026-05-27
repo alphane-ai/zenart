@@ -9,7 +9,7 @@ DRY_RUN="${DRY_RUN:-0}"
 STAGING_SMOKE_PROFILE="${STAGING_SMOKE_PROFILE:-post_deploy}"
 REQUEST_ID_HEADER="${REQUEST_ID_HEADER:-X-Request-ID}"
 REQUEST_ID_VALUE="${REQUEST_ID_VALUE:-stage0-staging-smoke}"
-OUT_DIR="${OUT_DIR:-ops/evidence/staging-smoke}"
+OUT_DIR="${OUT_DIR:-ops/evidence/staging}"
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 RUN_ID="${STAMP}-staging-smoke-$$"
 REPORT_PATH="$OUT_DIR/${RUN_ID}.json"
@@ -105,6 +105,10 @@ with path.open("a", encoding="utf-8") as fh:
         "expected_statuses": [int(value) for value in sys.argv[6].split(",") if value],
         "auth_profile": sys.argv[7],
         "verify": sys.argv[8],
+        "status": "planned",
+        "evidence_refs": [
+            str(path),
+        ],
         "planned": True,
     }, sort_keys=True) + "\n")
 PY
@@ -114,7 +118,12 @@ PY
 write_report() {
   local status="$1"
   mkdir -p "$OUT_DIR"
-  local summary required_json
+  local summary required_json can_clear_post_deploy_smoke_item
+  if [[ "$status" == "passed" ]]; then
+    can_clear_post_deploy_smoke_item=true
+  else
+    can_clear_post_deploy_smoke_item=false
+  fi
   required_json="$(printf '%s\n' "${REQUIRED_CATEGORIES[@]}" | json_array)"
   summary="$(python3 - "$RESULTS_PATH" "$required_json" "$status" "$RELEASE_SHA" "$RELEASE_TAG" "$RELEASE_NOTES_PATH" "$IMAGE_REFS" "$MIGRATION_EVIDENCE" "$CONFIG_DIFF_EVIDENCE" "$OBSERVABILITY_EVIDENCE" "$BACKUP_RESTORE_EVIDENCE" "$LOAD_EVIDENCE" "$ROLLBACK_EVIDENCE" "$SECURITY_SCAN_EVIDENCE" "$STAGING_SMOKE_PROFILE" "$REPORT_PATH" "$SMOKE_USER_ID" "$SMOKE_TENANT_ID" "$SMOKE_ADMIN_USER_ID" "$SMOKE_ADMIN_TENANT_ID" "$SMOKE_TASK_ID" "$SMOKE_PACKAGE_ID" "$SMOKE_EXPORT_ID" <<'PY'
 import json
@@ -810,6 +819,9 @@ PY
   "status": "$status",
   "environment": "staging",
   "kind": "post_deploy_smoke",
+  "evidence_path_policy": "ops/evidence/staging/",
+  "release_gate_check_id": "staging_observability_backup_load",
+  "blueprint_checklist_item": "Staging post-deploy smoke tests 通过。",
   "profile": "$STAGING_SMOKE_PROFILE",
   "release_sha": "$RELEASE_SHA",
   "release_tag": "$RELEASE_TAG",
@@ -822,6 +834,13 @@ PY
   "results_path": "$RESULTS_PATH",
   "required_categories": $required_json,
   "summary": $summary,
+  "gate_impact": {
+    "aggregate_checklist_item": "Private Beta/Staging observability/backup/load runtime evidence 通过。",
+    "post_deploy_checklist_item": "Staging post-deploy smoke tests 通过。",
+    "can_clear_post_deploy_smoke_item": $can_clear_post_deploy_smoke_item,
+    "preserved_release_gate_check_id": "staging_observability_backup_load",
+    "preserved_do_not_launch_condition_id": "staging_observability_restore_load_missing"
+  },
   "private_beta_gate": "open_until_this_smoke_passes_against_production_like_postgres_redis_object_storage_observability_backups_and_seeded_release_smoke_records",
   "production_gate": "open_until_post_deploy_smoke_passes_for_approved_release_sha_with_attached_release_notes"
 }
@@ -904,6 +923,9 @@ with path.open("a", encoding="utf-8") as fh:
         "duration_ms": int(sys.argv[9]),
         "ok": sys.argv[10] == "true",
         "request_id_ok": sys.argv[11] == "true",
+        "evidence_refs": [
+            str(path),
+        ],
     }, sort_keys=True) + "\n")
 PY
 
