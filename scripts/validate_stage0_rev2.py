@@ -3102,13 +3102,15 @@ def gate_impact_checklist_values(gate_impact: dict[str, Any]) -> set[str]:
         "checklist_item",
         "check_level_item",
         "aggregate_checklist_item",
+        "post_deploy_checklist_item",
     ]:
         value = gate_impact.get(key)
         if isinstance(value, str) and value.strip():
             values.add(value)
-    checklist_items = gate_impact.get("checklist_items")
-    if isinstance(checklist_items, list):
-        values.update(item for item in checklist_items if isinstance(item, str) and item.strip())
+    for key in ["checklist_items", "check_level_items"]:
+        checklist_items = gate_impact.get(key)
+        if isinstance(checklist_items, list):
+            values.update(item for item in checklist_items if isinstance(item, str) and item.strip())
     for key, checklist_item in GATE_IMPACT_KEY_CHECKLIST_ITEMS.items():
         if gate_impact.get(key) is True:
             values.add(checklist_item)
@@ -4883,6 +4885,10 @@ def runtime_evidence_gate_from_path(path: Path, evidence: dict[str, Any]) -> str
 
 def gate_impact_top_level_closure_claims(gate_impact: dict[str, Any]) -> set[str]:
     claims = gate_impact_checklist_values(gate_impact)
+    if gate_impact.get("can_clear_aggregate_item") is True:
+        aggregate_item = gate_impact.get("aggregate_checklist_item")
+        if isinstance(aggregate_item, str) and aggregate_item.strip():
+            claims.add(aggregate_item)
     if gate_impact.get("can_clear_aggregate_production_gate") is True:
         claims.add(PRODUCTION_AGGREGATE_RUNTIME_ITEM)
     if gate_impact.get("can_clear_aggregate_private_beta_gate") is True:
@@ -4911,10 +4917,67 @@ def gate_impact_top_level_closure_claims(gate_impact: dict[str, Any]) -> set[str
     return claims
 
 
+def gate_impact_true_clearance_claims(gate_impact: dict[str, Any]) -> set[str]:
+    claims: set[str] = set()
+    for key, checklist_item in GATE_IMPACT_KEY_CHECKLIST_ITEMS.items():
+        if gate_impact.get(key) is True:
+            claims.add(checklist_item)
+    for key in [
+        "can_clear_aggregate_item",
+        "can_clear_check_level_item",
+        "can_clear_check_level_items",
+        "can_clear_checklist_items",
+        "can_clear_release_gate_check",
+        "can_clear_post_deploy_smoke_item",
+    ]:
+        if gate_impact.get(key) is not True:
+            continue
+        for item_key in [
+            "aggregate_checklist_item",
+            "checklist_item",
+            "check_level_item",
+            "post_deploy_checklist_item",
+        ]:
+            item = gate_impact.get(item_key)
+            if isinstance(item, str) and item.strip():
+                claims.add(item)
+        for item_list_key in ["checklist_items", "check_level_items"]:
+            items = gate_impact.get(item_list_key)
+            if isinstance(items, list):
+                claims.update(item for item in items if isinstance(item, str) and item.strip())
+    return claims
+
+
+def validator_owned_launch_checklist_items() -> dict[str, str]:
+    item_to_gate: dict[str, str] = {}
+    for item, gate in GATE_CHECKLIST_ITEMS.items():
+        item_to_gate[item] = gate
+    for gate, item in RELEASE_GATE_AGGREGATE_ITEMS.items():
+        item_to_gate[item] = gate
+    for gate, items in RELEASE_GATE_AGGREGATE_GUARD_ITEMS.items():
+        for item in items:
+            item_to_gate[item] = gate
+    for (gate, _check_id), items in RUNTIME_EVIDENCE_CHECKLIST_ITEMS.items():
+        for item in items:
+            item_to_gate[item] = gate
+    for item, requirement in SPLIT_CHECKLIST_ITEM_EVIDENCE.items():
+        item_to_gate[item] = requirement["gate"]
+    for (gate, _check_id), items in COMBINED_SPLIT_CHECKLIST_ITEMS.items():
+        for item in items:
+            item_to_gate[item] = gate
+    for (gate, _condition_id), items in ACTIVE_CONDITION_CHECKLIST_BLOCKER_ITEMS.items():
+        for item in items:
+            item_to_gate[item] = gate
+    return item_to_gate
+
+
 def validate_runtime_gate_impact_closure_claims(
     evidence_by_gate: dict[str, dict[str, Any]],
     checked_lines: set[str],
 ) -> None:
+    unchecked_lines = unchecked_items(BLUEPRINT.read_text(encoding="utf-8"))
+    blueprint_checklist_items = checked_lines | unchecked_lines
+    validator_items = validator_owned_launch_checklist_items()
     top_level_items = set(GATE_CHECKLIST_ITEMS) | set(RELEASE_GATE_AGGREGATE_ITEMS.values()) | {
         GLOBAL_DO_NOT_LAUNCH_CHECKLIST_ITEM,
     }
@@ -4925,11 +4988,81 @@ def validate_runtime_gate_impact_closure_claims(
         gate_impact = evidence.get("gate_impact")
         if not isinstance(gate_impact, dict):
             continue
+        gate = runtime_evidence_gate_from_path(path, evidence)
+        rel_path = rel(path)
+        checklist_claims = gate_impact_checklist_values(gate_impact)
+        unknown_launch_claims = sorted(
+            item
+            for item in checklist_claims
+            if (
+                (
+                    "gate" in item.lower()
+                    or "do-not-launch" in item.lower()
+                    or "launch" in item.lower()
+                    or "deployment evidence" in item.lower()
+                    or "通过" in item
+                )
+                and item not in validator_items
+                and item != GLOBAL_DO_NOT_LAUNCH_CHECKLIST_ITEM
+                and item not in blueprint_checklist_items
+            )
+        )
+        require(
+            not unknown_launch_claims,
+            f"{rel_path} gate_impact names launch-readiness checklist items that are not validator-owned rows: "
+            + json.dumps(unknown_launch_claims, ensure_ascii=False),
+        )
+        if gate is not None:
+            cross_gate_claims = {
+                item
+                for item in checklist_claims
+                if item in validator_items and validator_items[item] != gate
+            }
+            require(
+                not cross_gate_claims,
+                f"{rel_path} gate_impact names another gate's validator-owned checklist row(s): "
+                + json.dumps(sorted(cross_gate_claims), ensure_ascii=False),
+            )
+        elif checklist_claims:
+            require(
+                checklist_claims <= {GLOBAL_DO_NOT_LAUNCH_CHECKLIST_ITEM},
+                f"{rel_path} gate_impact names launch checklist rows but has no resolvable gate: "
+                + json.dumps(sorted(checklist_claims), ensure_ascii=False),
+            )
+
+        true_clearance_claims = gate_impact_true_clearance_claims(gate_impact)
+        if true_clearance_claims:
+            if GLOBAL_DO_NOT_LAUNCH_CHECKLIST_ITEM in true_clearance_claims:
+                require(
+                    GLOBAL_DO_NOT_LAUNCH_CHECKLIST_ITEM in checked_lines,
+                    f"{rel_path} gate_impact cannot mark global Do-Not-Launch clear while the blueprint row is open",
+                )
+            if gate is None:
+                require(
+                    true_clearance_claims <= {GLOBAL_DO_NOT_LAUNCH_CHECKLIST_ITEM},
+                    f"{rel_path} gate_impact has checklist clearance claims but no resolvable gate: "
+                    + json.dumps(sorted(true_clearance_claims), ensure_ascii=False),
+                )
+            else:
+                cross_gate_clearance = {
+                    item
+                    for item in true_clearance_claims
+                    if item in validator_items and validator_items[item] != gate
+                }
+                require(
+                    not cross_gate_clearance,
+                    f"{rel_path} gate_impact cannot mark another gate's checklist row clear: "
+                    + json.dumps(sorted(cross_gate_clearance), ensure_ascii=False),
+                )
+                open_clearance_claims = sorted(true_clearance_claims & unchecked_lines)
+                require(
+                    not open_clearance_claims,
+                    f"{rel_path} gate_impact cannot mark open launch-readiness checklist row(s) clear: "
+                    + json.dumps(open_clearance_claims, ensure_ascii=False),
+                )
         closure_claims = gate_impact_top_level_closure_claims(gate_impact) & top_level_items
         if not closure_claims:
             continue
-        gate = runtime_evidence_gate_from_path(path, evidence)
-        rel_path = rel(path)
         if GLOBAL_DO_NOT_LAUNCH_CHECKLIST_ITEM in closure_claims:
             require(
                 GLOBAL_DO_NOT_LAUNCH_CHECKLIST_ITEM in checked_lines,
@@ -10044,6 +10177,12 @@ def validate_launch_readiness_split_contracts() -> None:
         "if those are all true, the gate checklist item must be updated in the same change",
         "Runtime evidence `gate_impact` metadata cannot claim closure for a top-level Local Alpha、CI、Private Beta/Staging、Production、or global Do-Not-Launch checklist item",
         "A runtime evidence file's `gate_impact` cannot claim another gate's top-level checklist row",
+        "Runtime evidence `gate_impact` checklist metadata is validator-owned for launch-readiness rows",
+        "`checklist_item`、`check_level_item`、`aggregate_checklist_item`、`post_deploy_checklist_item`、`checklist_items`、and `check_level_items`",
+        "`gate_impact` true clearance flags such as `can_clear_*` may clear only rows owned by the evidence's own gate",
+        "only when the exact blueprint row is already checked",
+        "`gate_impact` partial evidence may mention checked check-level rows or definition-only rows",
+        "it cannot use `can_clear_*` flags to close an aggregate gate, sibling gate, or global Do-Not-Launch row",
         "a single `ops/evidence/**/*.json` file cannot override an open aggregate row, active Do-Not-Launch condition, or fixture-level `no_go` decision",
         "Local Alpha closes only when four workflow API/Playwright smokes",
         "Production Launch cannot clear `ci_staging_gates_not_passed` or pass backup/rollback/post-deploy evidence until both",
