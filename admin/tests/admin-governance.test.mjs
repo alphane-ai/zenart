@@ -23,6 +23,12 @@ const parseFixtures = () => {
 const crawlerGovernanceCases = JSON.parse(
   readFileSync(new URL("../../fixtures/stage0/rev2/crawler/crawler_governance_cases.json", import.meta.url), "utf8")
 );
+const crawlerGovernanceRuntimeEvidence = JSON.parse(
+  readFileSync(
+    new URL("../../fixtures/stage0/rev2/crawler/crawler_governance_runtime_evidence.json", import.meta.url),
+    "utf8"
+  )
+);
 
 const {
   skillVersions,
@@ -6290,12 +6296,40 @@ test("crawler takedown and derivative review workflow blocks unsafe activation",
 test("crawler governance runtime decisions gate takedown closure and activation", () => {
   const decisions = buildCrawlerGovernanceRuntimeDecisions(crawlerGovernanceWorkflows, new Date("2026-05-26T18:30:00Z"));
   const decisionsByWorkflow = new Map(decisions.map((decision) => [decision.workflowId, decision]));
+  const runtimeEvidenceByWorkflow = new Map(
+    crawlerGovernanceRuntimeEvidence.runtime_decisions.map((decision) => [decision.workflow_id, decision])
+  );
 
   assert.equal(decisions.length, crawlerGovernanceWorkflows.length, "each crawler workflow needs one runtime decision");
+  assert.equal(crawlerGovernanceRuntimeEvidence.evidence_scope, "admin_fixture_runtime");
+  assert.equal(crawlerGovernanceRuntimeEvidence.runtime_source, "admin/lib/crawler-runtime.ts");
+  assert.equal(crawlerGovernanceRuntimeEvidence.admin_surface, "admin/app/crawler/page.tsx");
+  assert.equal(crawlerGovernanceRuntimeEvidence.launch_gate_impact.can_clear_admin_fixture_item, true);
+  assert.equal(crawlerGovernanceRuntimeEvidence.launch_gate_impact.can_clear_private_beta_aggregate, false);
+  assert.equal(crawlerGovernanceRuntimeEvidence.launch_gate_impact.can_clear_production_launch, false);
+  assert.ok(
+    crawlerGovernanceRuntimeEvidence.launch_gate_impact.preserved_blockers.includes("object_storage_signed_retention_runtime_missing"),
+    "admin crawler runtime evidence must preserve unrelated staging retention blockers"
+  );
 
   const takedownDecision = decisionsByWorkflow.get("cg-501");
+  const takedownRuntimeEvidence = runtimeEvidenceByWorkflow.get("cg-501");
+  assert.ok(takedownRuntimeEvidence, "cg-501 must have durable crawler runtime evidence");
   assert.equal(takedownDecision.closureDecision, "blocked", "open takedown with pending evidence must block closure");
+  assert.equal(takedownRuntimeEvidence.closure_decision, takedownDecision.closureDecision);
   assert.equal(takedownDecision.activationDecision, "block_activation", "open takedown must block activation");
+  assert.equal(takedownRuntimeEvidence.activation_decision, takedownDecision.activationDecision);
+  assert.equal(takedownRuntimeEvidence.deletion_evidence_status, takedownDecision.deletionEvidenceStatus);
+  assert.equal(takedownRuntimeEvidence.requester_notice_status, takedownDecision.requesterNoticeStatus);
+  assert.equal(takedownRuntimeEvidence.escalation_evidence_status, takedownDecision.escalationEvidenceStatus);
+  assert.equal(takedownRuntimeEvidence.second_review_status, takedownDecision.secondReviewStatus);
+  assert.equal(takedownRuntimeEvidence.audit_status, takedownDecision.auditStatus);
+  assert.equal(takedownRuntimeEvidence.required_evidence_status, takedownDecision.requiredEvidenceStatus);
+  assert.deepEqual(takedownRuntimeEvidence.missing_required_evidence_refs, takedownDecision.missingRequiredEvidenceRefs);
+  assert.equal(takedownRuntimeEvidence.deadline_status, takedownDecision.deadlineStatus);
+  assert.deepEqual(takedownRuntimeEvidence.blocker_codes, takedownDecision.blockerCodes);
+  assert.deepEqual(takedownRuntimeEvidence.required_evidence_refs, takedownDecision.requiredEvidenceRefs);
+  assert.equal(takedownRuntimeEvidence.audit_ref, takedownDecision.auditRef);
   const takedownFixture = JSON.parse(readFileSync(new URL("fixtures/stage0/rev2/regressions/crawler_takedown_sup_2212.json", repoRoot), "utf8"));
   assert.equal(takedownFixture.runtime_contract.closure_decision, takedownDecision.closureDecision);
   assert.equal(takedownFixture.runtime_contract.activation_decision, takedownDecision.activationDecision);
@@ -6359,9 +6393,20 @@ test("crawler governance runtime decisions gate takedown closure and activation"
   );
 
   const derivativeDecision = decisionsByWorkflow.get("cg-522");
+  const derivativeRuntimeEvidence = runtimeEvidenceByWorkflow.get("cg-522");
+  assert.ok(derivativeRuntimeEvidence, "cg-522 must have durable crawler runtime evidence");
   const derivativeFixture = JSON.parse(readFileSync(new URL("fixtures/stage0/rev2/regressions/crawler_derivative_review_cg_522.json", repoRoot), "utf8"));
   assert.equal(derivativeDecision.closureDecision, "ready_to_close", "approved derivative review should be closeable");
+  assert.equal(derivativeRuntimeEvidence.closure_decision, derivativeDecision.closureDecision);
   assert.equal(derivativeDecision.activationDecision, "allow_activation", "approved derivative review should allow activation");
+  assert.equal(derivativeRuntimeEvidence.activation_decision, derivativeDecision.activationDecision);
+  assert.equal(derivativeRuntimeEvidence.deletion_evidence_status, derivativeDecision.deletionEvidenceStatus);
+  assert.equal(derivativeRuntimeEvidence.requester_notice_status, derivativeDecision.requesterNoticeStatus);
+  assert.equal(derivativeRuntimeEvidence.escalation_evidence_status, derivativeDecision.escalationEvidenceStatus);
+  assert.equal(derivativeRuntimeEvidence.required_evidence_status, derivativeDecision.requiredEvidenceStatus);
+  assert.deepEqual(derivativeRuntimeEvidence.missing_required_evidence_refs, derivativeDecision.missingRequiredEvidenceRefs);
+  assert.deepEqual(derivativeRuntimeEvidence.blocker_codes, derivativeDecision.blockerCodes);
+  assert.deepEqual(derivativeRuntimeEvidence.required_evidence_refs, derivativeDecision.requiredEvidenceRefs);
   assert.equal(derivativeFixture.runtime_contract.closure_decision, derivativeDecision.closureDecision);
   assert.equal(derivativeFixture.runtime_contract.activation_decision, derivativeDecision.activationDecision);
   assert.equal(derivativeFixture.runtime_contract.required_evidence_status, derivativeDecision.requiredEvidenceStatus);
@@ -6397,8 +6442,19 @@ test("crawler governance runtime decisions gate takedown closure and activation"
   );
 
   const retentionDecision = decisionsByWorkflow.get("cg-533");
+  const retentionRuntimeEvidence = runtimeEvidenceByWorkflow.get("cg-533");
+  assert.ok(retentionRuntimeEvidence, "cg-533 must have durable crawler runtime evidence");
   assert.equal(retentionDecision.closureDecision, "blocked", "pending raw retention delete must block closure");
+  assert.equal(retentionRuntimeEvidence.closure_decision, retentionDecision.closureDecision);
   assert.equal(retentionDecision.activationDecision, "block_activation", "pending raw retention delete must block activation");
+  assert.equal(retentionRuntimeEvidence.activation_decision, retentionDecision.activationDecision);
+  assert.equal(retentionRuntimeEvidence.deletion_evidence_status, retentionDecision.deletionEvidenceStatus);
+  assert.equal(retentionRuntimeEvidence.requester_notice_status, retentionDecision.requesterNoticeStatus);
+  assert.equal(retentionRuntimeEvidence.escalation_evidence_status, retentionDecision.escalationEvidenceStatus);
+  assert.equal(retentionRuntimeEvidence.required_evidence_status, retentionDecision.requiredEvidenceStatus);
+  assert.deepEqual(retentionRuntimeEvidence.missing_required_evidence_refs, retentionDecision.missingRequiredEvidenceRefs);
+  assert.deepEqual(retentionRuntimeEvidence.blocker_codes, retentionDecision.blockerCodes);
+  assert.deepEqual(retentionRuntimeEvidence.required_evidence_refs, retentionDecision.requiredEvidenceRefs);
   assert.ok(retentionDecision.blockerCodes.includes("deletion_evidence_pending"), "pending retention delete needs deletion blocker");
   assert.ok(retentionDecision.blockerCodes.includes("requester_notice_pending"), "pending retention delete needs notice blocker");
   assert.equal(retentionDecision.requiredEvidenceStatus, "missing", "pending retention delete cannot close from placeholder refs");
@@ -6564,22 +6620,36 @@ test("crawler governance closure summaries preserve release blockers before acti
   const decisions = buildCrawlerGovernanceRuntimeDecisions(crawlerGovernanceWorkflows, new Date("2026-05-26T18:30:00Z"));
   const summaries = buildCrawlerGovernanceClosureSummaries(decisions);
   const summaryByWorkflow = new Map(summaries.map((summary) => [summary.workflowId, summary]));
+  const closureEvidenceByWorkflow = new Map(
+    crawlerGovernanceRuntimeEvidence.closure_summaries.map((summary) => [summary.workflow_id, summary])
+  );
 
   assert.equal(summaries.length, crawlerGovernanceWorkflows.length, "each crawler workflow needs one closure summary");
 
   const takedownSummary = summaryByWorkflow.get("cg-501");
+  const takedownClosureEvidence = closureEvidenceByWorkflow.get("cg-501");
+  assert.ok(takedownClosureEvidence, "cg-501 must have durable closure summary evidence");
   assert.equal(takedownSummary.releaseClosureState, "blocked");
+  assert.equal(takedownClosureEvidence.release_closure_state, takedownSummary.releaseClosureState);
   assert.equal(takedownSummary.activationSafetyState, "activation_blocked");
+  assert.equal(takedownClosureEvidence.activation_safety_state, takedownSummary.activationSafetyState);
   assert.equal(takedownSummary.evidenceCompleteness, "missing");
+  assert.equal(takedownClosureEvidence.evidence_completeness, takedownSummary.evidenceCompleteness);
   assert.equal(takedownSummary.takedownDeleteStatus, "pending");
+  assert.equal(takedownClosureEvidence.takedown_delete_status, takedownSummary.takedownDeleteStatus);
   assert.equal(takedownSummary.deadlineEscalationStatus, "pending");
+  assert.equal(takedownClosureEvidence.deadline_escalation_status, takedownSummary.deadlineEscalationStatus);
   assert.equal(takedownSummary.secondReviewGate, "required");
+  assert.equal(takedownClosureEvidence.second_review_gate, takedownSummary.secondReviewGate);
   assert.equal(takedownSummary.releaseGateDisposition, "preserve_blocker");
+  assert.equal(takedownClosureEvidence.release_gate_disposition, takedownSummary.releaseGateDisposition);
   assert.deepEqual(takedownSummary.missingEvidenceRefs, [
     "pending-raw-derivative-delete-cs-21",
     "pending-rights-owner-notice-ip-7001",
     "pending-deadline-escalation-cg-501"
   ]);
+  assert.deepEqual(takedownClosureEvidence.missing_evidence_refs, takedownSummary.missingEvidenceRefs);
+  assert.deepEqual(takedownClosureEvidence.blocker_codes, takedownSummary.blockerCodes);
   assert.ok(takedownSummary.blockerCodes.includes("activation_blocked"));
   assert.ok(takedownSummary.blockerCodes.includes("required_evidence_missing"));
   assert.match(
@@ -6588,26 +6658,46 @@ test("crawler governance closure summaries preserve release blockers before acti
   );
 
   const derivativeSummary = summaryByWorkflow.get("cg-522");
+  const derivativeClosureEvidence = closureEvidenceByWorkflow.get("cg-522");
+  assert.ok(derivativeClosureEvidence, "cg-522 must have durable closure summary evidence");
   assert.equal(derivativeSummary.releaseClosureState, "closure_ready");
+  assert.equal(derivativeClosureEvidence.release_closure_state, derivativeSummary.releaseClosureState);
   assert.equal(derivativeSummary.activationSafetyState, "activation_safe");
+  assert.equal(derivativeClosureEvidence.activation_safety_state, derivativeSummary.activationSafetyState);
   assert.equal(derivativeSummary.evidenceCompleteness, "complete");
+  assert.equal(derivativeClosureEvidence.evidence_completeness, derivativeSummary.evidenceCompleteness);
   assert.equal(derivativeSummary.takedownDeleteStatus, "not_applicable");
+  assert.equal(derivativeClosureEvidence.takedown_delete_status, derivativeSummary.takedownDeleteStatus);
   assert.equal(derivativeSummary.deadlineEscalationStatus, "not_required");
+  assert.equal(derivativeClosureEvidence.deadline_escalation_status, derivativeSummary.deadlineEscalationStatus);
   assert.equal(derivativeSummary.secondReviewGate, "not_required");
+  assert.equal(derivativeClosureEvidence.second_review_gate, derivativeSummary.secondReviewGate);
   assert.equal(derivativeSummary.releaseGateDisposition, "can_cite_release_evidence");
+  assert.equal(derivativeClosureEvidence.release_gate_disposition, derivativeSummary.releaseGateDisposition);
   assert.deepEqual(derivativeSummary.missingEvidenceRefs, []);
+  assert.deepEqual(derivativeClosureEvidence.missing_evidence_refs, derivativeSummary.missingEvidenceRefs);
   assert.deepEqual(derivativeSummary.blockerCodes, []);
+  assert.deepEqual(derivativeClosureEvidence.blocker_codes, derivativeSummary.blockerCodes);
   assert.match(
     derivativeSummary.operatorSummary,
     /Release evidence may cite cg-522 only with audit au-013.*retention policy.*activation guardrail preserved/i
   );
 
   const retentionSummary = summaryByWorkflow.get("cg-533");
+  const retentionClosureEvidence = closureEvidenceByWorkflow.get("cg-533");
+  assert.ok(retentionClosureEvidence, "cg-533 must have durable closure summary evidence");
   assert.equal(retentionSummary.releaseClosureState, "blocked");
+  assert.equal(retentionClosureEvidence.release_closure_state, retentionSummary.releaseClosureState);
   assert.equal(retentionSummary.activationSafetyState, "activation_blocked");
+  assert.equal(retentionClosureEvidence.activation_safety_state, retentionSummary.activationSafetyState);
   assert.equal(retentionSummary.takedownDeleteStatus, "pending");
+  assert.equal(retentionClosureEvidence.takedown_delete_status, retentionSummary.takedownDeleteStatus);
   assert.equal(retentionSummary.deadlineEscalationStatus, "not_required");
+  assert.equal(retentionClosureEvidence.deadline_escalation_status, retentionSummary.deadlineEscalationStatus);
   assert.equal(retentionSummary.releaseGateDisposition, "preserve_blocker");
+  assert.equal(retentionClosureEvidence.release_gate_disposition, retentionSummary.releaseGateDisposition);
+  assert.deepEqual(retentionClosureEvidence.missing_evidence_refs, retentionSummary.missingEvidenceRefs);
+  assert.deepEqual(retentionClosureEvidence.blocker_codes, retentionSummary.blockerCodes);
 
   for (const summary of summaries) {
     const workflow = crawlerGovernanceWorkflows.find((entry) => entry.id === summary.workflowId);

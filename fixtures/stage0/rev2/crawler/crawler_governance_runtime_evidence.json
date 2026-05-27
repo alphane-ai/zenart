@@ -1,0 +1,186 @@
+{
+  "schema_version": "stage0.rev2",
+  "evidence_id": "crawler-governance-runtime-admin-20260527",
+  "evidence_scope": "admin_fixture_runtime",
+  "blueprint_checklist_item": "实现 takedown/derivative review workflow，admin evidence 已验证 quarantine status、SLA status、affected activation surfaces、closure evidence、second review、audit 和 activation guardrail。",
+  "runtime_source": "admin/lib/crawler-runtime.ts",
+  "admin_surface": "admin/app/crawler/page.tsx",
+  "evaluated_at": "2026-05-26T18:30:00.000Z",
+  "launch_gate_impact": {
+    "can_clear_admin_fixture_item": true,
+    "can_clear_private_beta_aggregate": false,
+    "can_clear_production_launch": false,
+    "preserved_blockers": [
+      "object_storage_signed_retention_runtime_missing",
+      "production_backup_rollback_incident_missing",
+      "ci_installed_workflow_runtime_missing"
+    ]
+  },
+  "regression_fixture_refs": [
+    "fixtures/stage0/rev2/regressions/crawler_takedown_sup_2212.json",
+    "fixtures/stage0/rev2/regressions/crawler_derivative_review_cg_522.json",
+    "fixtures/stage0/rev2/regressions/failed_task_cancel_task_crawler_019.json"
+  ],
+  "runtime_decisions": [
+    {
+      "workflow_id": "cg-501",
+      "finding_id": "cf-118",
+      "request_type": "source_takedown",
+      "closure_decision": "blocked",
+      "activation_decision": "block_activation",
+      "deletion_evidence_status": "pending",
+      "requester_notice_status": "pending",
+      "escalation_evidence_status": "pending",
+      "second_review_status": "required",
+      "audit_status": "attached",
+      "required_evidence_status": "missing",
+      "missing_required_evidence_refs": [
+        "pending-raw-derivative-delete-cs-21",
+        "pending-rights-owner-notice-ip-7001",
+        "pending-deadline-escalation-cg-501"
+      ],
+      "deadline_status": "expired",
+      "blocker_codes": [
+        "activation_blocked",
+        "deletion_evidence_pending",
+        "requester_notice_pending",
+        "second_review_open",
+        "required_evidence_missing",
+        "deadline_expired",
+        "deadline_escalation_pending"
+      ],
+      "required_evidence_refs": [
+        "cf-118",
+        "crawler-source cs-21",
+        "ip-7001",
+        "pending-raw-derivative-delete-cs-21",
+        "pending-rights-owner-notice-ip-7001",
+        "pending-deadline-escalation-cg-501",
+        "au-012"
+      ],
+      "audit_ref": "au-012"
+    },
+    {
+      "workflow_id": "cg-522",
+      "finding_id": "cf-122",
+      "request_type": "derivative_review",
+      "closure_decision": "ready_to_close",
+      "activation_decision": "allow_activation",
+      "deletion_evidence_status": "complete",
+      "requester_notice_status": "complete",
+      "escalation_evidence_status": "not_required",
+      "second_review_status": "not_required",
+      "audit_status": "attached",
+      "required_evidence_status": "complete",
+      "missing_required_evidence_refs": [],
+      "deadline_status": "not_evaluated",
+      "blocker_codes": [],
+      "required_evidence_refs": [
+        "cf-122",
+        "crawler-governance/crawler_approved_local_test_source",
+        "notice-legal-fixture-reviewer-cg-522",
+        "au-013"
+      ],
+      "audit_ref": "au-013"
+    },
+    {
+      "workflow_id": "cg-533",
+      "finding_id": "cf-104",
+      "request_type": "raw_retention_delete",
+      "closure_decision": "blocked",
+      "activation_decision": "block_activation",
+      "deletion_evidence_status": "pending",
+      "requester_notice_status": "pending",
+      "escalation_evidence_status": "not_required",
+      "second_review_status": "not_required",
+      "audit_status": "attached",
+      "required_evidence_status": "missing",
+      "missing_required_evidence_refs": [
+        "pending-raw-delete-cs-18",
+        "pending-crawler-ops-notice-cg-533"
+      ],
+      "deadline_status": "within_window",
+      "blocker_codes": [
+        "activation_blocked",
+        "deletion_evidence_pending",
+        "requester_notice_pending",
+        "required_evidence_missing"
+      ],
+      "required_evidence_refs": [
+        "cf-104",
+        "crawler-source cs-18",
+        "pending-raw-delete-cs-18",
+        "pending-crawler-ops-notice-cg-533",
+        "au-014"
+      ],
+      "audit_ref": "au-014"
+    }
+  ],
+  "closure_summaries": [
+    {
+      "workflow_id": "cg-501",
+      "finding_id": "cf-118",
+      "request_type": "source_takedown",
+      "release_closure_state": "blocked",
+      "activation_safety_state": "activation_blocked",
+      "evidence_completeness": "missing",
+      "takedown_delete_status": "pending",
+      "deadline_escalation_status": "pending",
+      "second_review_gate": "required",
+      "release_gate_disposition": "preserve_blocker",
+      "missing_evidence_refs": [
+        "pending-raw-derivative-delete-cs-21",
+        "pending-rights-owner-notice-ip-7001",
+        "pending-deadline-escalation-cg-501"
+      ],
+      "blocker_codes": [
+        "activation_blocked",
+        "deletion_evidence_pending",
+        "requester_notice_pending",
+        "second_review_open",
+        "required_evidence_missing",
+        "deadline_expired",
+        "deadline_escalation_pending"
+      ],
+      "audit_ref": "au-012"
+    },
+    {
+      "workflow_id": "cg-522",
+      "finding_id": "cf-122",
+      "request_type": "derivative_review",
+      "release_closure_state": "closure_ready",
+      "activation_safety_state": "activation_safe",
+      "evidence_completeness": "complete",
+      "takedown_delete_status": "not_applicable",
+      "deadline_escalation_status": "not_required",
+      "second_review_gate": "not_required",
+      "release_gate_disposition": "can_cite_release_evidence",
+      "missing_evidence_refs": [],
+      "blocker_codes": [],
+      "audit_ref": "au-013"
+    },
+    {
+      "workflow_id": "cg-533",
+      "finding_id": "cf-104",
+      "request_type": "raw_retention_delete",
+      "release_closure_state": "blocked",
+      "activation_safety_state": "activation_blocked",
+      "evidence_completeness": "missing",
+      "takedown_delete_status": "pending",
+      "deadline_escalation_status": "not_required",
+      "second_review_gate": "not_required",
+      "release_gate_disposition": "preserve_blocker",
+      "missing_evidence_refs": [
+        "pending-raw-delete-cs-18",
+        "pending-crawler-ops-notice-cg-533"
+      ],
+      "blocker_codes": [
+        "activation_blocked",
+        "deletion_evidence_pending",
+        "requester_notice_pending",
+        "required_evidence_missing"
+      ],
+      "audit_ref": "au-014"
+    }
+  ]
+}
