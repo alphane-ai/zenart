@@ -508,7 +508,10 @@ RELEASE_GATE_REQUIRED_ACTIVE_CONDITIONS = {
         "staging_brief_upload_confirmation_runtime_missing",
         "object_storage_signed_retention_runtime_missing",
         "rate_limit_spend_cap_runtime_missing",
+        "support_abuse_runtime_missing",
         "eval_qa_safety_runtime_missing",
+        "crawler_governance_runtime_missing",
+        "crawler_material_retention_takedown_runtime_missing",
         "staging_observability_restore_load_missing",
         "external_user_legal_pages_missing",
     },
@@ -586,6 +589,12 @@ GATE_IMPACT_CLOSED_SCHEMA_GUARD_CHECKLIST_ITEM = (
     "Runtime gate_impact closed-schema guard 通过：`scripts/validate_stage0_rev2.py` rejects unknown "
     "`gate_impact` keys in runtime evidence, so new launch-clearance metadata cannot bypass validator-owned "
     "checklist rows, gate ownership, or preserved-blocker policy。"
+)
+
+PRIVATE_BETA_CLEARED_CONDITION_STATE_GUARD_CHECKLIST_ITEM = (
+    "Private Beta/Staging cleared-condition state guard 通过：`scripts/validate_stage0_rev2.py` computes "
+    "support/retry/abuse and crawler approval/provenance Do-Not-Launch condition states from exact staging "
+    "runtime evidence, so cleared fixture rows cannot drift outside the validator-owned launch-condition map。"
 )
 
 README_GATE_SNAPSHOT_REQUIREMENTS = {
@@ -2720,6 +2729,7 @@ CHECKED_ITEMS = {
     PRODUCTION_BACKUP_ROLLBACK_SPLIT_PREFLIGHT_CHECKLIST_ITEM,
     README_LAUNCH_READINESS_CHECKLIST_ITEM,
     GATE_IMPACT_CLOSED_SCHEMA_GUARD_CHECKLIST_ITEM,
+    PRIVATE_BETA_CLEARED_CONDITION_STATE_GUARD_CHECKLIST_ITEM,
     "Backfill Local Alpha release gate fixture evidence: workflow/eval/crawler/schema/service/runtime-stack checks pass in `fixtures/stage0/rev2/release_gate_evidence.local_alpha.json`。",
     "Backfill CI draft/no-go evidence: ops CI draft coverage passes while installed `.github/workflows` runtime remains blocked in `fixtures/stage0/rev2/release_gate_evidence.ci.json`。",
     "Backfill Private Beta/Staging no-go evidence: contract/fixture evidence is separated from external-user staging runtime blockers in `fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json`。",
@@ -10073,6 +10083,7 @@ def validate_release_gate_evidence() -> None:
         "tenant_isolation_not_enforced",
         "staging_brief_upload_confirmation_runtime_missing",
         "rate_limit_spend_cap_runtime_missing",
+        "support_abuse_runtime_missing",
         "eval_qa_safety_runtime_missing",
         "crawler_governance_runtime_missing",
         "crawler_material_retention_takedown_runtime_missing",
@@ -11397,6 +11408,7 @@ def validate_launch_readiness_split_contracts() -> None:
         RELEASE_GATE_BASENAME_EXACT_PATH_GUARD_CHECKLIST_ITEM,
         RELEASE_GATE_CHECK_CONDITION_EXISTING_PATH_GUARD_CHECKLIST_ITEM,
         GATE_IMPACT_CLOSED_SCHEMA_GUARD_CHECKLIST_ITEM,
+        PRIVATE_BETA_CLEARED_CONDITION_STATE_GUARD_CHECKLIST_ITEM,
     ] + sorted(RELEASE_GATE_BACKFILL_CHECKED_ITEMS):
         require(item in checked_lines, f"blueprint must close definition-only evidence subitem: {item}")
 
@@ -11575,6 +11587,7 @@ def validate_launch_readiness_split_contracts() -> None:
         "Runtime evidence `gate_impact` checklist metadata is validator-owned for launch-readiness rows",
         "`checklist_item`、`check_level_item`、`aggregate_checklist_item`、`post_deploy_checklist_item`、`checklist_items`、and `check_level_items`",
         GATE_IMPACT_CLOSED_SCHEMA_GUARD_CHECKLIST_ITEM,
+        PRIVATE_BETA_CLEARED_CONDITION_STATE_GUARD_CHECKLIST_ITEM,
         "rejects unknown `gate_impact` keys in runtime evidence",
         "`gate_impact` true clearance flags such as `can_clear_*` may clear only rows owned by the evidence's own gate",
         "only when the exact blueprint row is already checked",
