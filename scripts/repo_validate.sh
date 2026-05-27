@@ -497,6 +497,66 @@ if [[ "$object_retention_status" -ne 2 ]]; then
   printf 'staging object-storage retention cleanup dry-run must exit 2 without runtime evidence, got %s\n' "$object_retention_status" >&2
   exit 1
 fi
+python3 - "$ops_validate_dir/object-storage-retention" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+report_path = Path(sys.argv[1]) / "object-storage-retention-cleanup.json"
+results_path = Path(sys.argv[1]) / "object-storage-retention-cleanup.ndjson"
+if not report_path.exists():
+    raise SystemExit("object-storage retention cleanup dry-run must write canonical report")
+if not results_path.exists():
+    raise SystemExit("object-storage retention cleanup dry-run must write canonical NDJSON results")
+report = json.loads(report_path.read_text(encoding="utf-8"))
+if report.get("schema_version") != "stage0.rev2.staging.object_storage_retention_cleanup":
+    raise SystemExit(f"object-storage retention cleanup report has wrong schema: {report}")
+if report.get("environment") != "staging":
+    raise SystemExit("object-storage retention cleanup report must be staging-scoped")
+if report.get("kind") != "object_storage_retention_cleanup":
+    raise SystemExit("object-storage retention cleanup report must declare the retention cleanup kind")
+if report.get("status") != "blocked":
+    raise SystemExit("object-storage retention cleanup dry-run must remain blocked without staging runtime probes")
+if report.get("release_gate_check_id") != "staging_object_storage_signed_downloads":
+    raise SystemExit("object-storage retention cleanup report must target the object-storage release-gate check")
+if report.get("do_not_launch_condition_id") != "object_storage_signed_retention_runtime_missing":
+    raise SystemExit("object-storage retention cleanup report must preserve the object-storage Do-Not-Launch condition")
+expected_checks = {
+    "retention_policy",
+    "expired_export_cleanup",
+    "orphan_cleanup",
+    "audit_refs",
+}
+if set(report.get("required_checks", [])) != expected_checks:
+    raise SystemExit(f"object-storage retention cleanup required checks mismatch: {report.get('required_checks')}")
+coverage = {item.get("area"): item for item in report.get("coverage", [])}
+if set(coverage) != expected_checks:
+    raise SystemExit(f"object-storage retention cleanup coverage mismatch: {set(coverage)}")
+for area, item in coverage.items():
+    if item.get("status") != "blocked":
+        raise SystemExit(f"{area} dry-run coverage must stay blocked")
+    if item.get("evidence_path_policy") != "ops/evidence/staging/":
+        raise SystemExit(f"{area} coverage must declare staging evidence path policy")
+    source_results = item.get("source_results", [])
+    if len(source_results) != 1 or source_results[0].get("status") != "blocked":
+        raise SystemExit(f"{area} dry-run source probe must be blocked: {source_results}")
+    if source_results[0].get("reason") != "missing_staging_base_url_or_explicit_probe_urls":
+        raise SystemExit(f"{area} dry-run source probe must name missing staging URL: {source_results}")
+split = report.get("split_evidence", {})
+if split.get("signed_url_evidence") != "ops/evidence/staging/20260527T2130Z-object-storage-signed-url.json":
+    raise SystemExit("object-storage retention cleanup must cite exact signed URL split evidence")
+if split.get("signed_url_ready") is not True:
+    raise SystemExit("object-storage retention cleanup dry-run must still verify the signed URL split evidence")
+if split.get("retention_cleanup_ready") is not False:
+    raise SystemExit("object-storage retention cleanup dry-run must not claim retention cleanup readiness")
+gate_impact = report.get("gate_impact", {})
+if gate_impact.get("can_clear_retention_cleanup_checklist_item") is not False:
+    raise SystemExit("object-storage retention cleanup dry-run must not clear the retention checklist item")
+if gate_impact.get("can_clear_release_gate_check") is not False:
+    raise SystemExit("object-storage retention cleanup dry-run must not clear the object-storage release gate")
+if gate_impact.get("remaining_release_gate_blockers_after_pass") != ["staging_object_storage_signed_downloads"]:
+    raise SystemExit("object-storage retention cleanup dry-run must preserve the object-storage blocker")
+PY
 set +e
 RUN_ID="stage0-validate-legal-support-visibility" DRY_RUN=1 OUT_DIR="$ops_validate_dir/legal-support" scripts/staging_legal_support_visibility_smoke.sh >/dev/null
 legal_support_status=$?

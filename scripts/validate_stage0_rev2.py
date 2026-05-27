@@ -5955,6 +5955,165 @@ def validate_staging_object_storage_signed_url_evidence() -> None:
         require(evidence[key], f"object-storage signed URL evidence must include {key}")
 
 
+def validate_staging_object_storage_retention_cleanup_evidence() -> None:
+    checklist_item = (
+        "Private Beta/Staging object retention/cleanup runtime evidence 通过：staging evidence proves "
+        "retention policy, expired export cleanup, orphan cleanup, and audit refs under `ops/evidence/staging/`。"
+    )
+    private_beta = load_json(FIXTURE_DIR / "release_gate_evidence.private_beta_staging.json")
+    object_storage_check = checks_by_id(private_beta)["staging_object_storage_signed_downloads"]
+    retention_condition = next(
+        check
+        for check in private_beta["do_not_launch_checks"]
+        if check["condition_id"] == "object_storage_signed_retention_runtime_missing"
+    )
+
+    if not STAGING_OBJECT_STORAGE_RETENTION_EVIDENCE.exists():
+        text = BLUEPRINT.read_text(encoding="utf-8")
+        require(
+            checklist_item in unchecked_items(text),
+            "retention cleanup checklist item must stay open until exact staging evidence exists",
+        )
+        require(
+            object_storage_check["status"] == "blocked",
+            "object-storage release gate must stay blocked while retention cleanup evidence is absent",
+        )
+        require(
+            retention_condition["is_present"] is True,
+            "object-storage Do-Not-Launch condition must stay active while retention cleanup evidence is absent",
+        )
+        for token in [
+            rel(STAGING_OBJECT_STORAGE_RETENTION_EVIDENCE),
+            "retention policy",
+            "expired export cleanup",
+            "orphan cleanup",
+            "audit refs",
+        ]:
+            require(
+                token in object_storage_check["evidence_ref"] or token in retention_condition["evidence_ref"],
+                f"object-storage blocked evidence must name missing retention cleanup requirement: {token}",
+            )
+        return
+
+    evidence = load_json(STAGING_OBJECT_STORAGE_RETENTION_EVIDENCE)
+    require(
+        evidence["schema_version"] == "stage0.rev2.staging.object_storage_retention_cleanup",
+        "staging object-storage retention cleanup evidence schema mismatch",
+    )
+    require(evidence["environment"] == "staging", "object-storage retention cleanup evidence must be staging-scoped")
+    require(
+        evidence["kind"] == "object_storage_retention_cleanup",
+        "object-storage retention cleanup evidence must declare kind=object_storage_retention_cleanup",
+    )
+    require(
+        evidence["status"] in {"pass", "passed"},
+        "object-storage retention cleanup evidence must pass before checklist closure",
+    )
+    require(
+        evidence["release_gate_check_id"] == "staging_object_storage_signed_downloads",
+        "object-storage retention cleanup evidence must target the private beta object-storage release-gate check",
+    )
+    require(
+        evidence["do_not_launch_condition_id"] == "object_storage_signed_retention_runtime_missing",
+        "object-storage retention cleanup evidence must map to the matching Do-Not-Launch condition",
+    )
+    require(evidence["release_sha"], "object-storage retention cleanup evidence must be release-SHA-bound")
+    require(
+        evidence["release_sha"] == load_json(STAGING_OBJECT_STORAGE_SIGNED_URL_EVIDENCE)["release_sha"],
+        "object-storage retention cleanup evidence must be release-SHA-bound to signed URL staging evidence",
+    )
+    require(
+        evidence["validated_by_role"] == "admin_operator",
+        "object-storage retention cleanup evidence must be validated by an admin operator",
+    )
+    require(
+        evidence["results_path"] == "ops/evidence/staging/object-storage-retention-cleanup.ndjson",
+        "object-storage retention cleanup evidence must cite the canonical staging NDJSON results path",
+    )
+    require(
+        evidence.get("blocked_checks") == [],
+        "passing object-storage retention cleanup evidence must not preserve blocked checks",
+    )
+    required_checks = {
+        "retention_policy",
+        "expired_export_cleanup",
+        "orphan_cleanup",
+        "audit_refs",
+    }
+    require(
+        set(evidence["required_checks"]) == required_checks,
+        "object-storage retention cleanup evidence must require retention, expired cleanup, orphan cleanup, and audit refs",
+    )
+    split = evidence["split_evidence"]
+    require(
+        split["signed_url_evidence"] == rel(STAGING_OBJECT_STORAGE_SIGNED_URL_EVIDENCE),
+        "retention cleanup evidence must cite the exact signed URL split evidence",
+    )
+    require(split["signed_url_ready"] is True, "retention cleanup evidence must verify signed URL split readiness")
+    require(
+        split["retention_cleanup_ready"] is True,
+        "retention cleanup evidence must mark retention cleanup ready",
+    )
+    coverage = evidence["coverage"]
+    require(
+        {item["area"] for item in coverage} == required_checks,
+        "object-storage retention cleanup evidence must cover all required areas",
+    )
+    for item in coverage:
+        area = item["area"]
+        require(item["status"] == "pass", f"{area} retention cleanup coverage must pass")
+        require(
+            item["evidence_path_policy"] == "ops/evidence/staging/",
+            f"{area} retention cleanup coverage must be staging evidence scoped",
+        )
+        require(item["source_results"], f"{area} retention cleanup coverage must include source probe results")
+        require(
+            all(result["status"] == "passed" for result in item["source_results"]),
+            f"{area} retention cleanup source probes must pass",
+        )
+        combined = json.dumps(item, ensure_ascii=False).lower()
+        for token in ["staging", "release-sha-bound", "admin", "audit"]:
+            require(token in combined, f"{area} retention cleanup coverage missing {token}")
+        if area == "retention_policy":
+            for token in ["retention policy", "versioning", "retention_until", "tenant"]:
+                require(token in combined, f"{area} coverage missing {token}")
+        if area == "expired_export_cleanup":
+            for token in ["expired export cleanup", "deleted", "retained", "audit"]:
+                require(token in combined, f"{area} coverage missing {token}")
+        if area == "orphan_cleanup":
+            for token in ["orphan cleanup", "deleted", "retained", "audit"]:
+                require(token in combined, f"{area} coverage missing {token}")
+        if area == "audit_refs":
+            for token in ["object_storage_cleanup", "admin", "tenant"]:
+                require(token in combined, f"{area} coverage missing {token}")
+    gate_impact = evidence["gate_impact"]
+    require(
+        gate_impact["check_level_item"] == checklist_item,
+        "object-storage retention cleanup evidence must name the exact subitem it can clear",
+    )
+    require(
+        gate_impact["can_clear_retention_cleanup_checklist_item"] is True,
+        "object-storage retention cleanup evidence must explicitly clear its checklist subitem",
+    )
+    require(
+        gate_impact["can_clear_release_gate_check"] is True,
+        "retention cleanup evidence plus signed URL evidence must be able to clear the object-storage release gate",
+    )
+    require(
+        gate_impact["requires_release_gate_fixture_update_after_pass"] is True,
+        "retention cleanup evidence must require release-gate fixture update after pass",
+    )
+    require(
+        gate_impact["remaining_release_gate_blockers_after_pass"] == [],
+        "passing retention cleanup evidence must not preserve object-storage blockers",
+    )
+    require(
+        gate_impact["preserved_release_gate_check_id"] is None
+        and gate_impact["preserved_do_not_launch_condition_id"] is None,
+        "passing retention cleanup evidence must not preserve launch blockers",
+    )
+
+
 def validate_staging_eval_qa_safety_evidence() -> None:
     evidence = load_json(STAGING_EVAL_QA_SAFETY_EVIDENCE)
     require(
@@ -8993,6 +9152,7 @@ def main() -> int:
         validate_staging_auth_rbac_tenant_audit_evidence,
         validate_staging_brief_upload_confirmation_evidence,
         validate_staging_object_storage_signed_url_evidence,
+        validate_staging_object_storage_retention_cleanup_evidence,
         validate_staging_quota_rate_limit_spend_cap_evidence,
         validate_staging_support_retry_abuse_evidence,
         validate_staging_eval_qa_safety_evidence,
