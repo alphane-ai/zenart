@@ -10,6 +10,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"reflect"
 	"regexp"
 	"strings"
 	"time"
@@ -423,6 +424,9 @@ func RedactValue(value any) any {
 	case fmt.Stringer:
 		return RedactString(typed.String())
 	default:
+		if redacted, ok := redactReflectValue(value); ok {
+			return redacted
+		}
 		return value
 	}
 }
@@ -844,8 +848,311 @@ func classifyValueAt(value any, location string) []SecretFinding {
 			finding.Location = joinFindingLocation(location, finding.Location)
 			findings = append(findings, finding)
 		}
+	default:
+		findings = append(findings, classifyReflectValueAt(value, location)...)
 	}
 	return findings
+}
+
+func redactReflectValue(value any) (any, bool) {
+	redacted, ok := redactReflectValueAt(reflect.ValueOf(value), map[uintptr]struct{}{}, 0)
+	return redacted, ok
+}
+
+func redactReflectValueAt(value reflect.Value, visited map[uintptr]struct{}, depth int) (any, bool) {
+	if depth > 16 || !value.IsValid() {
+		return nil, false
+	}
+	for value.Kind() == reflect.Interface || value.Kind() == reflect.Pointer {
+		if value.IsNil() {
+			return nil, true
+		}
+		if value.Kind() == reflect.Pointer {
+			ptr := value.Pointer()
+			if _, seen := visited[ptr]; seen {
+				return Redacted, true
+			}
+			visited[ptr] = struct{}{}
+		}
+		value = value.Elem()
+	}
+	if redacted, ok := redactKnownInterfaceValue(value); ok {
+		return redacted, true
+	}
+
+	switch value.Kind() {
+	case reflect.Map:
+		if value.IsNil() {
+			return nil, true
+		}
+		out := make(map[string]any, value.Len())
+		iter := value.MapRange()
+		for iter.Next() {
+			key := stringifyReflectKey(iter.Key())
+			if IsSensitiveKey(key) {
+				out[key] = Redacted
+				continue
+			}
+			if redacted, ok := redactReflectValueAt(iter.Value(), visited, depth+1); ok {
+				out[key] = redacted
+				continue
+			}
+			out[key] = RedactValue(iter.Value().Interface())
+		}
+		return out, true
+	case reflect.Struct:
+		out := make(map[string]any, value.NumField())
+		valueType := value.Type()
+		for i := 0; i < value.NumField(); i++ {
+			field := value.Field(i)
+			fieldType := valueType.Field(i)
+			if fieldType.PkgPath != "" {
+				continue
+			}
+			key, include := redactedStructFieldName(fieldType)
+			if !include {
+				continue
+			}
+			if IsSensitiveKey(key) {
+				out[key] = Redacted
+				continue
+			}
+			if redacted, ok := redactReflectValueAt(field, visited, depth+1); ok {
+				out[key] = redacted
+				continue
+			}
+			out[key] = RedactValue(field.Interface())
+		}
+		return out, true
+	case reflect.Slice, reflect.Array:
+		if value.Kind() == reflect.Slice && value.IsNil() {
+			return nil, true
+		}
+		out := make([]any, value.Len())
+		for i := 0; i < value.Len(); i++ {
+			if redacted, ok := redactReflectValueAt(value.Index(i), visited, depth+1); ok {
+				out[i] = redacted
+				continue
+			}
+			out[i] = RedactValue(value.Index(i).Interface())
+		}
+		return out, true
+	case reflect.String:
+		return RedactString(value.String()), true
+	default:
+		return nil, false
+	}
+}
+
+func classifyReflectValueAt(value any, location string) []SecretFinding {
+	return classifyReflectAt(reflect.ValueOf(value), location, map[uintptr]struct{}{}, 0)
+}
+
+func classifyReflectAt(value reflect.Value, location string, visited map[uintptr]struct{}, depth int) []SecretFinding {
+	if depth > 16 || !value.IsValid() {
+		return nil
+	}
+	for value.Kind() == reflect.Interface || value.Kind() == reflect.Pointer {
+		if value.IsNil() {
+			return nil
+		}
+		if value.Kind() == reflect.Pointer {
+			ptr := value.Pointer()
+			if _, seen := visited[ptr]; seen {
+				return nil
+			}
+			visited[ptr] = struct{}{}
+		}
+		value = value.Elem()
+	}
+	if findings, ok := classifyKnownInterfaceValueAt(value, location); ok {
+		return findings
+	}
+
+	var findings []SecretFinding
+	switch value.Kind() {
+	case reflect.Map:
+		iter := value.MapRange()
+		for iter.Next() {
+			key := stringifyReflectKey(iter.Key())
+			childLocation := key
+			if location != "" {
+				childLocation = location + "." + key
+			}
+			for _, finding := range ClassifyKey(key) {
+				finding.Location = childLocation
+				findings = append(findings, finding)
+			}
+			findings = append(findings, classifyReflectAt(iter.Value(), childLocation, visited, depth+1)...)
+		}
+	case reflect.Struct:
+		valueType := value.Type()
+		for i := 0; i < value.NumField(); i++ {
+			fieldType := valueType.Field(i)
+			if fieldType.PkgPath != "" {
+				continue
+			}
+			key, include := redactedStructFieldName(fieldType)
+			if !include {
+				continue
+			}
+			childLocation := key
+			if location != "" {
+				childLocation = location + "." + key
+			}
+			for _, finding := range ClassifyKey(key) {
+				finding.Location = childLocation
+				findings = append(findings, finding)
+			}
+			findings = append(findings, classifyReflectAt(value.Field(i), childLocation, visited, depth+1)...)
+		}
+	case reflect.Slice, reflect.Array:
+		for i := 0; i < value.Len(); i++ {
+			childLocation := fmt.Sprintf("%s[%d]", location, i)
+			findings = append(findings, classifyReflectAt(value.Index(i), childLocation, visited, depth+1)...)
+		}
+	case reflect.String:
+		for _, finding := range ClassifyString(value.String()) {
+			finding.Location = joinFindingLocation(location, finding.Location)
+			findings = append(findings, finding)
+		}
+	}
+	return findings
+}
+
+func redactKnownInterfaceValue(value reflect.Value) (any, bool) {
+	if !value.CanInterface() {
+		return nil, false
+	}
+	switch typed := value.Interface().(type) {
+	case map[string]any:
+		return RedactMap(typed), true
+	case map[string]string:
+		return RedactStringMap(typed), true
+	case http.Header:
+		return RedactStringSliceMap(map[string][]string(typed)), true
+	case url.Values:
+		return RedactStringSliceMap(map[string][]string(typed)), true
+	case map[string][]string:
+		return RedactStringSliceMap(typed), true
+	case map[string][]any:
+		out := make(map[string][]any, len(typed))
+		for key, values := range typed {
+			redactedValues := make([]any, len(values))
+			if IsSensitiveKey(key) {
+				for i := range values {
+					redactedValues[i] = Redacted
+				}
+				out[key] = redactedValues
+				continue
+			}
+			for i, item := range values {
+				redactedValues[i] = RedactValue(item)
+			}
+			out[key] = redactedValues
+		}
+		return out, true
+	case json.RawMessage:
+		return json.RawMessage(RedactString(string(typed))), true
+	case []byte:
+		return []byte(RedactString(string(typed))), true
+	case []any:
+		out := make([]any, len(typed))
+		for i, item := range typed {
+			out[i] = RedactValue(item)
+		}
+		return out, true
+	case []string:
+		out := make([]string, len(typed))
+		for i, item := range typed {
+			out[i] = RedactString(item)
+		}
+		return out, true
+	case []map[string]any:
+		out := make([]map[string]any, len(typed))
+		for i, item := range typed {
+			out[i] = RedactMap(item)
+		}
+		return out, true
+	case []map[string]string:
+		out := make([]map[string]string, len(typed))
+		for i, item := range typed {
+			out[i] = RedactStringMap(item)
+		}
+		return out, true
+	case []map[string][]string:
+		out := make([]map[string][]string, len(typed))
+		for i, item := range typed {
+			out[i] = RedactStringSliceMap(item)
+		}
+		return out, true
+	case string:
+		return RedactString(typed), true
+	case error:
+		return RedactString(typed.Error()), true
+	case url.URL:
+		return RedactString(typed.String()), true
+	case slog.Attr:
+		return redactSlogAttr(typed), true
+	case slog.Value:
+		return redactSlogValue("", typed), true
+	case slog.LogValuer:
+		return RedactValue(typed.LogValue()), true
+	case []slog.Attr:
+		out := make([]slog.Attr, len(typed))
+		for i, attr := range typed {
+			out[i] = redactSlogAttr(attr)
+		}
+		return out, true
+	case fmt.Stringer:
+		return RedactString(typed.String()), true
+	default:
+		return nil, false
+	}
+}
+
+func classifyKnownInterfaceValueAt(value reflect.Value, location string) ([]SecretFinding, bool) {
+	if !value.CanInterface() {
+		return nil, false
+	}
+	switch typed := value.Interface().(type) {
+	case map[string]any, map[string]string, http.Header, url.Values, map[string][]string, map[string][]any,
+		[]any, []string, []map[string]any, []map[string]string, []map[string][]string,
+		json.RawMessage, []byte, string, error, url.URL, slog.Attr, slog.Value, slog.LogValuer, []slog.Attr, fmt.Stringer:
+		return classifyValueAt(typed, location), true
+	default:
+		return nil, false
+	}
+}
+
+func stringifyReflectKey(value reflect.Value) string {
+	if !value.IsValid() {
+		return ""
+	}
+	if value.Kind() == reflect.Interface && !value.IsNil() {
+		value = value.Elem()
+	}
+	if value.Kind() == reflect.String {
+		return value.String()
+	}
+	if value.CanInterface() {
+		return fmt.Sprint(value.Interface())
+	}
+	return fmt.Sprint(value)
+}
+
+func redactedStructFieldName(field reflect.StructField) (string, bool) {
+	if tag := field.Tag.Get("json"); tag != "" {
+		name := strings.Split(tag, ",")[0]
+		switch name {
+		case "-":
+			return "", false
+		case "":
+		default:
+			return name, true
+		}
+	}
+	return field.Name, true
 }
 
 func classifySlogAttrAt(attr slog.Attr, location string) []SecretFinding {

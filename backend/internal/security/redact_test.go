@@ -347,6 +347,96 @@ func TestRedactValueCoversRawMessagesBytesURLsAndStringers(t *testing.T) {
 	}
 }
 
+func TestRedactValueCoversTypedStructsAndMaps(t *testing.T) {
+	type exportMetadata struct {
+		DownloadURL string             `json:"download_url"`
+		ProviderKey string             `json:"provider_key"`
+		Headers     http.Header        `json:"headers"`
+		Tags        map[int]string     `json:"tags"`
+		Nested      []typedSecretEvent `json:"nested"`
+		Ignored     string             `json:"-"`
+	}
+	value := exportMetadata{
+		DownloadURL: "https://storage.local/export.zip?X-Amz-Signature=abcdef",
+		ProviderKey: "sk-ant-abcdefghijklmnopqrstuvwxyz123456",
+		Headers:     http.Header{"Authorization": []string{"Bearer abcdefghijklmnop"}},
+		Tags:        map[int]string{7: "token=npm_abcdefghijklmnopqrstuvwxyz123456"},
+		Nested: []typedSecretEvent{{
+			CrawlerSourceURL: "https://user:pass@example.test/source?token=secret-token",
+			Public:           "ok",
+		}},
+		Ignored: "sk-proj-abcdefghijklmnopqrstuvwxyz123456",
+	}
+
+	redacted := RedactValue(value)
+	body, err := json.Marshal(redacted)
+	if err != nil {
+		t.Fatalf("marshal redacted typed value: %v", err)
+	}
+	for _, leaked := range []string{
+		"abcdef",
+		"sk-ant-abcdefghijklmnopqrstuvwxyz123456",
+		"abcdefghijklmnop",
+		"npm_abcdefghijklmnopqrstuvwxyz123456",
+		"user:pass",
+		"secret-token",
+		"sk-proj-abcdefghijklmnopqrstuvwxyz123456",
+	} {
+		if strings.Contains(string(body), leaked) {
+			t.Fatalf("redacted typed value = %s, leaked %s", string(body), leaked)
+		}
+	}
+	for _, fragment := range []string{`"download_url"`, `"provider_key":"[REDACTED]"`, `"7"`, `"public":"ok"`} {
+		if !strings.Contains(string(body), fragment) {
+			t.Fatalf("redacted typed value = %s, missing %s", string(body), fragment)
+		}
+	}
+	if strings.Contains(string(body), "Ignored") {
+		t.Fatalf("redacted typed value = %s, json ignored field should be omitted", string(body))
+	}
+}
+
+func TestClassifyValueCoversTypedStructsAndMaps(t *testing.T) {
+	value := typedSecretEnvelope{
+		Event: typedSecretEvent{
+			CrawlerSourceURL: "https://user:pass@example.test/source?token=secret-token",
+			Public:           "ok",
+		},
+		Labels: map[int]string{
+			1: "Authorization: Bearer abcdefghijklmnop",
+		},
+	}
+
+	findings := ClassifyValue(value)
+	assertFinding(t, findings, SecretKindDSN, "event.crawler_source_url")
+	assertFinding(t, findings, SecretKindSignedURL, "event.crawler_source_url")
+	assertFinding(t, findings, SecretKindAuthorization, "labels.1")
+}
+
+func TestRedactValueStopsRecursiveStructCycles(t *testing.T) {
+	type node struct {
+		Name  string `json:"name"`
+		Token string `json:"token"`
+		Next  *node  `json:"next"`
+	}
+	first := &node{Name: "first", Token: "npm_abcdefghijklmnopqrstuvwxyz123456"}
+	second := &node{Name: "second", Token: "sk-ant-abcdefghijklmnopqrstuvwxyz123456", Next: first}
+	first.Next = second
+
+	body, err := json.Marshal(RedactValue(first))
+	if err != nil {
+		t.Fatalf("marshal cyclic redacted value: %v", err)
+	}
+	for _, leaked := range []string{"npm_abcdefghijklmnopqrstuvwxyz123456", "sk-ant-abcdefghijklmnopqrstuvwxyz123456"} {
+		if strings.Contains(string(body), leaked) {
+			t.Fatalf("redacted cycle = %s, leaked %s", string(body), leaked)
+		}
+	}
+	if !strings.Contains(string(body), Redacted) {
+		t.Fatalf("redacted cycle = %s, want redaction marker", string(body))
+	}
+}
+
 func TestClassifyValueCoversRawMessagesBytesURLsErrorsAndStringers(t *testing.T) {
 	parsed, err := url.Parse("https://user:pass@example.test/export.zip?X-Amz-Signature=abcdef")
 	if err != nil {
@@ -821,4 +911,14 @@ func (secretLogValuer) LogValue() slog.Value {
 			"public", "ok",
 		),
 	)
+}
+
+type typedSecretEnvelope struct {
+	Event  typedSecretEvent `json:"event"`
+	Labels map[int]string   `json:"labels"`
+}
+
+type typedSecretEvent struct {
+	CrawlerSourceURL string `json:"crawler_source_url"`
+	Public           string `json:"public"`
 }
