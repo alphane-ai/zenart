@@ -625,6 +625,13 @@ RELEASE_GATE_DECISION_STATUS_TOKEN_GUARD_CHECKLIST_ITEM = (
     "existence cannot be misread as Local Alpha、CI、Private Beta/Staging、Production、or Do-Not-Launch clearance。"
 )
 
+RELEASE_GATE_FIXTURE_DEPENDENCY_STATUS_TOKEN_GUARD_CHECKLIST_ITEM = (
+    "Release gate fixture dependency status-token guard 通过：`scripts/validate_stage0_rev2.py` rejects "
+    "release-gate evidence refs that cite CI、Private Beta/Staging、Production gate fixture paths without the "
+    "exact cited fixture `gate_decision.status=go|no_go` token, so upstream dependency fixture presence cannot "
+    "preserve or clear launch gates by itself。"
+)
+
 README_GATE_SNAPSHOT_REQUIREMENTS = {
     "Local Alpha Gate": {
         "expected_status": "go",
@@ -2777,6 +2784,7 @@ CHECKED_ITEMS = {
     GATE_IMPACT_CHECK_ID_MATCH_GUARD_CHECKLIST_ITEM,
     PRIVATE_BETA_CLEARED_CONDITION_STATE_GUARD_CHECKLIST_ITEM,
     RELEASE_GATE_DECISION_STATUS_TOKEN_GUARD_CHECKLIST_ITEM,
+    RELEASE_GATE_FIXTURE_DEPENDENCY_STATUS_TOKEN_GUARD_CHECKLIST_ITEM,
     BROAD_RUNTIME_EVIDENCE_DIRECTORY_GUARD_CHECKLIST_ITEM,
     "Backfill Local Alpha release gate fixture evidence: workflow/eval/crawler/schema/service/runtime-stack checks pass in `fixtures/stage0/rev2/release_gate_evidence.local_alpha.json`。",
     "Backfill CI draft/no-go evidence: ops CI draft coverage passes while installed `.github/workflows` runtime remains blocked in `fixtures/stage0/rev2/release_gate_evidence.ci.json`。",
@@ -3423,6 +3431,33 @@ def require_release_gate_evidence_ref_allowed_paths(
         allowed,
         f"{gate}.{ref_id} {ref_kind} evidence",
     )
+    require_cited_release_gate_fixture_status_tokens(
+        evidence_ref,
+        gate=gate,
+        ref_kind=ref_kind,
+        ref_id=ref_id,
+    )
+
+
+def require_cited_release_gate_fixture_status_tokens(
+    evidence_ref: str,
+    *,
+    gate: str,
+    ref_kind: str,
+    ref_id: str,
+) -> None:
+    for path in sorted(concrete_evidence_paths(evidence_ref)):
+        candidate = repo_path(path)
+        fixture_gate = release_gate_for_evidence_path(candidate)
+        if fixture_gate is None:
+            continue
+        fixture = load_json(candidate)
+        status_token = f"{path} gate_decision.status={gate_decision_status(fixture)}"
+        require(
+            status_token in evidence_ref,
+            f"{gate}.{ref_id} {ref_kind} evidence cites release-gate fixture {path} without exact "
+            f"fixture status token {status_token!r}",
+        )
 
 
 def require_validator_owned_basenames_are_exact_paths(
@@ -11550,6 +11585,7 @@ def validate_launch_readiness_split_contracts() -> None:
         GATE_IMPACT_CHECK_ID_MATCH_GUARD_CHECKLIST_ITEM,
         PRIVATE_BETA_CLEARED_CONDITION_STATE_GUARD_CHECKLIST_ITEM,
         RELEASE_GATE_DECISION_STATUS_TOKEN_GUARD_CHECKLIST_ITEM,
+        RELEASE_GATE_FIXTURE_DEPENDENCY_STATUS_TOKEN_GUARD_CHECKLIST_ITEM,
     ] + sorted(RELEASE_GATE_BACKFILL_CHECKED_ITEMS):
         require(item in checked_lines, f"blueprint must close definition-only evidence subitem: {item}")
 
@@ -11731,6 +11767,7 @@ def validate_launch_readiness_split_contracts() -> None:
         GATE_IMPACT_CHECK_ID_MATCH_GUARD_CHECKLIST_ITEM,
         PRIVATE_BETA_CLEARED_CONDITION_STATE_GUARD_CHECKLIST_ITEM,
         RELEASE_GATE_DECISION_STATUS_TOKEN_GUARD_CHECKLIST_ITEM,
+        RELEASE_GATE_FIXTURE_DEPENDENCY_STATUS_TOKEN_GUARD_CHECKLIST_ITEM,
         "rejects unknown `gate_impact` keys in runtime evidence",
         "nested `gate_impact.release_gate_check_id` must equal the artifact top-level `release_gate_check_id`",
         "copied gate metadata cannot close the wrong Local Alpha、CI、Private Beta/Staging、Production, or Do-Not-Launch row",
@@ -11781,6 +11818,8 @@ def validate_launch_readiness_split_contracts() -> None:
         "must name their `gate_decision.status`, not treat their presence as clearance",
         "Every release gate fixture `gate_decision.evidence_ref` must include the exact self status token `gate_decision.status=go` or `gate_decision.status=no_go`",
         "so fixture presence cannot be misread as aggregate gate or Do-Not-Launch clearance",
+        "release-gate evidence refs that cite CI、Private Beta/Staging、Production gate fixture paths without the exact cited fixture `gate_decision.status=go|no_go` token",
+        "upstream dependency fixture presence cannot preserve or clear launch gates by itself",
         "Every release gate check, Do-Not-Launch condition, and gate decision has a validator-owned evidence path allowlist",
         "an evidence_ref that cites a concrete repo path outside that check/condition/decision allowlist is invalid",
         "The evidence path allowlist is closed-world per check/condition/decision",
