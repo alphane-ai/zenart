@@ -408,6 +408,7 @@ def load_canonical_object_retention_probe(path: Path) -> dict:
     }
     split_evidence = data.get("split_evidence", {})
     gate_impact = data.get("gate_impact", {})
+    audit_linkage = data.get("audit_linkage", {})
     missing_requirements = []
     if data.get("environment") != "staging":
         missing_requirements.append("environment_staging")
@@ -429,6 +430,12 @@ def load_canonical_object_retention_probe(path: Path) -> dict:
         missing_requirements.append("can_clear_release_gate_check")
     if gate_impact.get("preserved_release_gate_check_id") is not None:
         missing_requirements.append("no_preserved_release_gate_check")
+    if audit_linkage.get("verified") is not True:
+        missing_requirements.append("audit_linkage_verified")
+    if not audit_linkage.get("cleanup_audit_refs"):
+        missing_requirements.append("cleanup_audit_refs")
+    if audit_linkage.get("missing_cleanup_audit_refs") not in ([], None):
+        missing_requirements.append("no_missing_cleanup_audit_refs")
     if expected_areas - coverage_areas:
         missing_requirements.append("coverage:" + ",".join(sorted(expected_areas - coverage_areas)))
     return {
