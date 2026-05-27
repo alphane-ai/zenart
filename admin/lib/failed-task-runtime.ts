@@ -33,6 +33,10 @@ function stateDigestStatus(task: FailedTaskControl): FailedTaskRuntimeDecision["
   return task.preActionStateDigest === task.observedStateDigest ? "stable" : "stale_replay";
 }
 
+function queueAttemptStatus(task: FailedTaskControl): FailedTaskRuntimeDecision["queueAttemptStatus"] {
+  return task.queueAttemptDigest === task.observedQueueAttemptDigest ? "stable" : "stale_replay";
+}
+
 function supportTicketLinkageStatus(
   task: FailedTaskControl,
   ticket: SupportTicket | undefined
@@ -231,6 +235,9 @@ export function buildFailedTaskRuntimeDecisions(
     const computedIdempotencyStatus = idempotencyStatus(task);
     const computedStateDigestStatus = stateDigestStatus(task);
     const stateDigestEvidence = `pre:${task.preActionStateDigest}; observed:${task.observedStateDigest}`;
+    const computedQueueAttemptStatus = queueAttemptStatus(task);
+    const queueAttemptEvidence =
+      `attempt:${task.queueAttemptId}; expected:${task.queueAttemptDigest}; observed:${task.observedQueueAttemptDigest}`;
     const appCompatibilityStatus = task.appVersion === supportedAppVersion ? "compatible" : "stale";
     const workerCompatibilityStatus = supportedWorkerVersions.has(task.workerVersion) ? "compatible" : "stale";
     const schemaCompatibilityStatus = task.schemaVersion === supportedSchemaVersion ? "compatible" : "stale";
@@ -330,6 +337,10 @@ export function buildFailedTaskRuntimeDecisions(
       blockerCodes.push("state_digest_stale_replay");
     }
 
+    if (computedQueueAttemptStatus === "stale_replay") {
+      blockerCodes.push("queue_attempt_stale_replay");
+    }
+
     if (compatibilityStatus === "stale") {
       blockerCodes.push("version_compatibility_stale");
     }
@@ -397,6 +408,7 @@ export function buildFailedTaskRuntimeDecisions(
       "user_message_missing",
       "idempotency_key_unstable",
       "state_digest_stale_replay",
+      "queue_attempt_stale_replay",
       "version_compatibility_stale",
       "app_version_stale",
       "worker_version_stale",
@@ -503,6 +515,8 @@ export function buildFailedTaskRuntimeDecisions(
       idempotencyStatus: computedIdempotencyStatus,
       stateDigestStatus: computedStateDigestStatus,
       stateDigestEvidence,
+      queueAttemptStatus: computedQueueAttemptStatus,
+      queueAttemptEvidence,
       appCompatibilityStatus,
       workerCompatibilityStatus,
       schemaCompatibilityStatus,
@@ -547,6 +561,7 @@ export function buildFailedTaskSubmissionContracts(
       "Idempotency-Key",
       "If-Match",
       "X-Support-Ticket",
+      "X-Queue-Attempt",
       "X-Admin-Audit-Ref",
       "X-Abuse-Control-Refs"
     ];
@@ -598,6 +613,8 @@ export function buildFailedTaskSubmissionContracts(
       idempotencyHeaderStatus: decision.idempotencyStatus,
       preconditionHeader: decision.stateDigestEvidence,
       preconditionDigestStatus: decision.stateDigestStatus,
+      queueAttemptHeader: decision.queueAttemptEvidence,
+      queueAttemptStatus: decision.queueAttemptStatus,
       supportTicketId: decision.supportTicketId,
       abuseControlHeader: `X-Abuse-Control-Refs: ${(task?.abuseControlHookRefs ?? []).join(",") || "none"}; ${decision.abuseControlStatus}; ${decision.abuseControlEvidence}`,
       abuseControlStatus: decision.abuseControlStatus,

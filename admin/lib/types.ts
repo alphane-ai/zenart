@@ -761,6 +761,9 @@ export type ExportRegenerationRuntimeDecision = {
 export type FailedTaskControl = {
   id: string;
   queueId: string;
+  queueAttemptId: string;
+  queueAttemptDigest: string;
+  observedQueueAttemptDigest: string;
   userId: string;
   projectId: string;
   traceId: string;
@@ -843,6 +846,8 @@ export type FailedTaskRuntimeDecision = {
   idempotencyStatus: "stable" | "unstable";
   stateDigestStatus: "stable" | "stale_replay";
   stateDigestEvidence: string;
+  queueAttemptStatus: "stable" | "stale_replay";
+  queueAttemptEvidence: string;
   appCompatibilityStatus: "compatible" | "stale";
   workerCompatibilityStatus: "compatible" | "stale";
   schemaCompatibilityStatus: "compatible" | "stale";
@@ -899,6 +904,8 @@ export type FailedTaskSubmissionContract = {
   idempotencyHeaderStatus: "stable" | "unstable";
   preconditionHeader: string;
   preconditionDigestStatus: FailedTaskRuntimeDecision["stateDigestStatus"];
+  queueAttemptHeader: string;
+  queueAttemptStatus: FailedTaskRuntimeDecision["queueAttemptStatus"];
   supportTicketId: string;
   abuseControlHeader: string;
   abuseControlStatus: FailedTaskRuntimeDecision["abuseControlStatus"];

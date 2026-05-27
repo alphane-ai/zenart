@@ -11,6 +11,7 @@
     "submit_decision == review_required",
     "action_scoped_idempotency_key == true",
     "stale_state_digest_blocks_cancel == true",
+    "stale_queue_attempt_blocks_cancel == true",
     "incomplete_closure_evidence_blocks_cancel == true",
     "support_ticket_linkage_required == true",
     "cross_tenant_support_ticket_blocks_cancel == true",
@@ -64,6 +65,19 @@
         "api_outcome": "disabled_409_conflict",
         "audit_write_policy": "write_blocked_attempt_audit",
         "blocker_codes": ["state_digest_stale_replay"]
+      }
+    },
+    {
+      "id": "cancel_pending_review_stale_queue_attempt",
+      "mutation": {
+        "observed_queue_attempt_digest": "sha256:queue-attempt-task-crawler-019-cancel-v1"
+      },
+      "expected_runtime_contract": {
+        "queue_attempt_status": "stale_replay",
+        "submit_decision": "blocked",
+        "api_outcome": "disabled_409_conflict",
+        "audit_write_policy": "write_blocked_attempt_audit",
+        "blocker_codes": ["queue_attempt_stale_replay"]
       }
     },
     {

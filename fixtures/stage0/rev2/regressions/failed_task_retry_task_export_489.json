@@ -12,6 +12,7 @@
     "action_scoped_idempotency_key == true",
     "idempotency_key_reused == true",
     "stale_state_digest_blocks_retry == true",
+    "stale_queue_attempt_blocks_retry == true",
     "stale_admin_app_version_blocks_retry == true",
     "stale_worker_version_blocks_retry == true",
     "stale_task_schema_blocks_retry == true",
@@ -59,6 +60,19 @@
         "api_outcome": "disabled_409_conflict",
         "audit_write_policy": "write_blocked_attempt_audit",
         "blocker_codes": ["state_digest_stale_replay"]
+      }
+    },
+    {
+      "id": "retry_stale_queue_attempt",
+      "mutation": {
+        "observed_queue_attempt_digest": "sha256:queue-attempt-task-export-489-retry-v2"
+      },
+      "expected_runtime_contract": {
+        "queue_attempt_status": "stale_replay",
+        "submit_decision": "blocked",
+        "api_outcome": "disabled_409_conflict",
+        "audit_write_policy": "write_blocked_attempt_audit",
+        "blocker_codes": ["queue_attempt_stale_replay"]
       }
     },
     {

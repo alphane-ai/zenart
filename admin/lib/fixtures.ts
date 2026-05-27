@@ -2868,6 +2868,9 @@ export const failedTaskControls: FailedTaskControl[] = [
   {
     id: "task-brief-441",
     queueId: "q-brief",
+    queueAttemptId: "qa-task-brief-441-hold-v3",
+    queueAttemptDigest: "sha256:queue-attempt-task-brief-441-hold-v3",
+    observedQueueAttemptDigest: "sha256:queue-attempt-task-brief-441-hold-v3",
     userId: "usr-301",
     projectId: "proj-774",
     traceId: "tr-1004",
@@ -2906,6 +2909,9 @@ export const failedTaskControls: FailedTaskControl[] = [
   {
     id: "task-export-489",
     queueId: "q-export",
+    queueAttemptId: "qa-task-export-489-retry-v1",
+    queueAttemptDigest: "sha256:queue-attempt-task-export-489-retry-v1",
+    observedQueueAttemptDigest: "sha256:queue-attempt-task-export-489-retry-v1",
     userId: "usr-318",
     projectId: "proj-790",
     traceId: "tr-1019",
@@ -2944,6 +2950,9 @@ export const failedTaskControls: FailedTaskControl[] = [
   {
     id: "task-crawler-019",
     queueId: "q-crawler",
+    queueAttemptId: "qa-task-crawler-019-cancel-v0",
+    queueAttemptDigest: "sha256:queue-attempt-task-crawler-019-cancel-v0",
+    observedQueueAttemptDigest: "sha256:queue-attempt-task-crawler-019-cancel-v0",
     userId: "usr-455",
     projectId: "proj-812",
     traceId: "none",
@@ -2982,6 +2991,9 @@ export const failedTaskControls: FailedTaskControl[] = [
   {
     id: "task-crawler-122",
     queueId: "q-crawler",
+    queueAttemptId: "qa-task-crawler-122-cancel-v1",
+    queueAttemptDigest: "sha256:queue-attempt-task-crawler-122-cancel-v1",
+    observedQueueAttemptDigest: "sha256:queue-attempt-task-crawler-122-cancel-v1",
     userId: "usr-455",
     projectId: "proj-812",
     traceId: "none",

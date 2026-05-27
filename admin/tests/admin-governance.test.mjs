@@ -15,6 +15,7 @@ const blueprint = readFileSync(new URL("../../Docs/stage0_blueprint_rev2.md", im
 
 const failedTaskFixtureMutationMap = {
   observed_state_digest: "observedStateDigest",
+  observed_queue_attempt_digest: "observedQueueAttemptDigest",
   retry_count: "retryCount",
   max_retries: "maxRetries",
   support_ticket_id: "supportTicketId",
@@ -31,6 +32,7 @@ const failedTaskFixtureMutationMap = {
 
 const failedTaskRuntimeContractMap = {
   state_digest_status: "stateDigestStatus",
+  queue_attempt_status: "queueAttemptStatus",
   retry_budget_status: "retryBudgetStatus",
   closure_evidence_status: "closureEvidenceStatus",
   support_ticket_linkage_status: "supportTicketLinkageStatus",
@@ -298,6 +300,7 @@ const parseFailedTaskRuntime = () => {
     .replaceAll(/export function (\w+)/g, "function $1")
     .replaceAll(/function idempotencyStatus\(task: FailedTaskControl\): FailedTaskRuntimeDecision\["idempotencyStatus"\]/g, "function idempotencyStatus(task)")
     .replaceAll(/function stateDigestStatus\(task: FailedTaskControl\): FailedTaskRuntimeDecision\["stateDigestStatus"\]/g, "function stateDigestStatus(task)")
+    .replaceAll(/function queueAttemptStatus\(task: FailedTaskControl\): FailedTaskRuntimeDecision\["queueAttemptStatus"\]/g, "function queueAttemptStatus(task)")
     .replaceAll(/function supportTicketLinkageStatus\(\n  task: FailedTaskControl,\n  ticket: SupportTicket \| undefined\n\): FailedTaskRuntimeDecision\["supportTicketLinkageStatus"\]/g, "function supportTicketLinkageStatus(task, ticket)")
     .replaceAll(/function tenantScopeStatus\(\n  task: FailedTaskControl,\n  ticket: SupportTicket \| undefined\n\): FailedTaskRuntimeDecision\["tenantScopeStatus"\]/g, "function tenantScopeStatus(task, ticket)")
     .replaceAll(/function traceLinkageStatus\(\n  task: FailedTaskControl,\n  ticket: SupportTicket \| undefined\n\): FailedTaskRuntimeDecision\["traceLinkageStatus"\]/g, "function traceLinkageStatus(task, ticket)")
@@ -321,6 +324,7 @@ const parseFailedTaskRuntime = () => {
     .replaceAll(/: FailedTaskRuntimeDecision\["userMessageStatus"\]/g, "")
     .replaceAll(/: FailedTaskRuntimeDecision\["idempotencyStatus"\]/g, "")
     .replaceAll(/: FailedTaskRuntimeDecision\["stateDigestStatus"\]/g, "")
+    .replaceAll(/: FailedTaskRuntimeDecision\["queueAttemptStatus"\]/g, "")
     .replaceAll(/: FailedTaskRuntimeDecision\["appCompatibilityStatus"\]/g, "")
     .replaceAll(/: FailedTaskRuntimeDecision\["workerCompatibilityStatus"\]/g, "")
     .replaceAll(/: FailedTaskRuntimeDecision\["schemaCompatibilityStatus"\]/g, "")
@@ -1399,6 +1403,18 @@ test("queue and failed task controls gate retry and cancel with audit evidence",
 
   for (const task of failedTaskControls) {
     assert.ok(queueIds.has(task.queueId), `${task.id} links unknown queue ${task.queueId}`);
+    assert.match(task.queueAttemptId, /^qa-task-[a-z0-9-]+-[a-z0-9-]+-v\d+$/, `${task.id} needs queue attempt id`);
+    assert.match(task.queueAttemptDigest, /^sha256:queue-attempt-[a-z0-9-]+$/, `${task.id} needs queue attempt digest`);
+    assert.match(
+      task.observedQueueAttemptDigest,
+      /^sha256:queue-attempt-[a-z0-9-]+$/,
+      `${task.id} needs observed queue attempt digest`
+    );
+    assert.equal(
+      task.queueAttemptDigest,
+      task.observedQueueAttemptDigest,
+      `${task.id} fixture must not start as stale queue-attempt replay evidence`
+    );
     assert.ok(supportTicketIds.has(task.supportTicketId), `${task.id} links unknown support ticket`);
     assert.ok(task.traceId === "none" || traceIds.has(task.traceId), `${task.id} links unknown trace`);
     assert.ok(auditIds.has(task.auditRef), `${task.id} links unknown audit ${task.auditRef}`);
@@ -1873,6 +1889,12 @@ test("failed task runtime submit gates preserve retry, cancel, hold, RBAC, and a
       `pre:${task.preActionStateDigest}; observed:${task.observedStateDigest}`,
       `${task.id} must expose pre-action and observed state digest evidence`
     );
+    assert.equal(decision.queueAttemptStatus, "stable", `${task.id} must preserve stable queue attempt`);
+    assert.equal(
+      decision.queueAttemptEvidence,
+      `attempt:${task.queueAttemptId}; expected:${task.queueAttemptDigest}; observed:${task.observedQueueAttemptDigest}`,
+      `${task.id} must expose queue attempt replay evidence`
+    );
     assert.equal(decision.rbacEvidenceStatus, "complete", `${task.id} must expose complete RBAC evidence`);
     assert.deepEqual(decision.rbacEvidenceRefs, task.rbacEvidenceRefs, `${task.id} must preserve RBAC evidence refs`);
     assert.equal(decision.compatibilityStatus, "compatible", `${task.id} must expose compatible app worker schema evidence`);
@@ -2053,6 +2075,24 @@ test("failed task runtime submit gates preserve retry, cancel, hold, RBAC, and a
   )[0];
   assert.equal(staleSchemaRetry.compatibilityStatus, "stale", "stale task schema must be detected");
   assert.equal(staleSchemaRetry.appCompatibilityStatus, "compatible", "stale task schema must not mark app stale");
+
+  const staleQueueAttemptRetry = buildFailedTaskRuntimeDecisions(
+    [
+      {
+        ...failedTaskControls.find((task) => task.id === "task-export-489"),
+        observedQueueAttemptDigest: "sha256:queue-attempt-task-export-489-retry-v2"
+      }
+    ],
+    supportTickets,
+    undefined,
+    abuseControlHooks
+  )[0];
+  assert.equal(staleQueueAttemptRetry.queueAttemptStatus, "stale_replay", "stale queue attempt must be detected");
+  assert.equal(staleQueueAttemptRetry.submitDecision, "blocked", "stale queue attempt must block submission");
+  assert.ok(
+    staleQueueAttemptRetry.blockerCodes.includes("queue_attempt_stale_replay"),
+    "stale queue attempt must expose a blocker code"
+  );
   assert.equal(staleSchemaRetry.workerCompatibilityStatus, "compatible", "stale task schema must not mark worker stale");
   assert.equal(staleSchemaRetry.schemaCompatibilityStatus, "stale", "stale task schema must expose schema-specific gate");
   assert.match(
@@ -2517,13 +2557,23 @@ test("failed task submission contracts bind admin API replay protection and rele
     assert.equal(contract.csrfScope, "admin_session_cookie", `${task.id} must stay admin-session scoped`);
     assert.deepEqual(
       contract.requiredHeaders,
-      ["X-Admin-CSRF", "Idempotency-Key", "If-Match", "X-Support-Ticket", "X-Admin-Audit-Ref", "X-Abuse-Control-Refs"],
-      `${task.id} must require CSRF, idempotency, digest, support, audit, and abuse-control headers`
+      [
+        "X-Admin-CSRF",
+        "Idempotency-Key",
+        "If-Match",
+        "X-Support-Ticket",
+        "X-Queue-Attempt",
+        "X-Admin-Audit-Ref",
+        "X-Abuse-Control-Refs"
+      ],
+      `${task.id} must require CSRF, idempotency, digest, support, queue-attempt, audit, and abuse-control headers`
     );
     assert.equal(contract.idempotencyKey, task.idempotencyKey, `${task.id} must preserve fixture idempotency key`);
     assert.equal(contract.idempotencyHeaderStatus, decision.idempotencyStatus, `${task.id} idempotency header status mismatch`);
     assert.equal(contract.preconditionDigestStatus, decision.stateDigestStatus, `${task.id} precondition digest status mismatch`);
     assert.equal(contract.preconditionHeader, decision.stateDigestEvidence, `${task.id} precondition header must expose digest evidence`);
+    assert.equal(contract.queueAttemptStatus, decision.queueAttemptStatus, `${task.id} queue-attempt status mismatch`);
+    assert.equal(contract.queueAttemptHeader, decision.queueAttemptEvidence, `${task.id} queue-attempt header must expose attempt evidence`);
     assert.equal(contract.supportTicketId, task.supportTicketId, `${task.id} must bind support ticket id`);
     assert.equal(contract.abuseControlStatus, decision.abuseControlStatus, `${task.id} abuse-control status mismatch`);
     assert.match(
@@ -2640,6 +2690,43 @@ test("failed task submission contracts bind admin API replay protection and rele
     "stale replay contract must expose state digest blocker"
   );
 
+  const staleQueueAttemptDecision = buildFailedTaskRuntimeDecisions(
+    [
+      {
+        ...failedTaskControls.find((task) => task.id === "task-export-489"),
+        observedQueueAttemptDigest: "sha256:queue-attempt-task-export-489-retry-v2"
+      }
+    ],
+    supportTickets,
+    undefined,
+    abuseControlHooks
+  );
+  const staleQueueAttemptContract = buildFailedTaskSubmissionContracts(
+    [
+      {
+        ...failedTaskControls.find((task) => task.id === "task-export-489"),
+        observedQueueAttemptDigest: "sha256:queue-attempt-task-export-489-retry-v2"
+      }
+    ],
+    staleQueueAttemptDecision
+  )[0];
+
+  assert.equal(staleQueueAttemptContract.submitEnabled, false, "stale queue attempt contract must disable submit");
+  assert.equal(
+    staleQueueAttemptContract.queueAttemptStatus,
+    "stale_replay",
+    "stale queue attempt contract must expose attempt mismatch"
+  );
+  assert.equal(
+    staleQueueAttemptContract.replayProtection,
+    "blocked_replay_or_unstable_key",
+    "stale queue attempt contract must preserve replay protection blocker"
+  );
+  assert.ok(
+    staleQueueAttemptContract.blockerCodes.includes("queue_attempt_stale_replay"),
+    "stale queue attempt contract must expose queue attempt blocker"
+  );
+
   const queuesPage = readFileSync(new URL("../app/queues/page.tsx", import.meta.url), "utf8");
   const adminApi = readFileSync(new URL("../lib/admin-api.ts", import.meta.url), "utf8");
   const types = readFileSync(new URL("../lib/types.ts", import.meta.url), "utf8");
@@ -2652,6 +2739,8 @@ test("failed task submission contracts bind admin API replay protection and rele
     "CSRF Scope",
     "Required Headers",
     "Precondition Digest",
+    "Queue Attempt Header",
+    "queueAttemptHeader",
     "Mutation Order",
     "Replay Protection",
     "Release Gate Use",
