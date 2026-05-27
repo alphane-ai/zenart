@@ -42,6 +42,49 @@
     "audit_write_policy": "write_submit_audit_before_queue_mutation",
     "regression_gate_effect": "canary_fixture_ready"
   },
+  "blocked_replay_samples": [
+    {
+      "id": "retry_stale_state_digest",
+      "mutation": {
+        "observed_state_digest": "sha256:failed-task-task-export-489-retrying-v2"
+      },
+      "expected_runtime_contract": {
+        "state_digest_status": "stale_replay",
+        "submit_decision": "blocked",
+        "api_outcome": "disabled_409_conflict",
+        "audit_write_policy": "write_blocked_attempt_audit",
+        "blocker_codes": ["state_digest_stale_replay"]
+      }
+    },
+    {
+      "id": "retry_budget_exhausted",
+      "mutation": {
+        "retry_count": 3,
+        "max_retries": 3
+      },
+      "expected_runtime_contract": {
+        "retry_budget_status": "exhausted",
+        "submit_decision": "blocked",
+        "api_outcome": "disabled_409_conflict",
+        "audit_write_policy": "write_blocked_attempt_audit",
+        "blocker_codes": ["retry_budget_exhausted"]
+      }
+    },
+    {
+      "id": "retry_missing_support_ticket",
+      "mutation": {
+        "support_ticket_id": "sup-missing",
+        "idempotency_key": "retry:task-export-489:sup-missing:manifest-missing"
+      },
+      "expected_runtime_contract": {
+        "support_ticket_linkage_status": "missing_ticket",
+        "submit_decision": "blocked",
+        "api_outcome": "disabled_409_conflict",
+        "audit_write_policy": "write_blocked_attempt_audit",
+        "blocker_codes": ["support_ticket_missing"]
+      }
+    }
+  ],
   "release_block": {
     "canary_metric": "cm-012",
     "audit_ref": "au-011",

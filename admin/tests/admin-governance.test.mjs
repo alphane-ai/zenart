@@ -13,6 +13,72 @@ const objectStorageRuntimeSource = readFileSync(new URL("../lib/object-storage-r
 const repoRoot = new URL("../../", import.meta.url);
 const blueprint = readFileSync(new URL("../../Docs/stage0_blueprint_rev2.md", import.meta.url), "utf8");
 
+const failedTaskFixtureMutationMap = {
+  observed_state_digest: "observedStateDigest",
+  retry_count: "retryCount",
+  max_retries: "maxRetries",
+  support_ticket_id: "supportTicketId",
+  idempotency_key: "idempotencyKey",
+  second_reviewer_admin_id: "secondReviewerAdminId",
+  second_review_evidence_refs: "secondReviewEvidenceRefs"
+};
+
+const failedTaskRuntimeContractMap = {
+  state_digest_status: "stateDigestStatus",
+  retry_budget_status: "retryBudgetStatus",
+  support_ticket_linkage_status: "supportTicketLinkageStatus",
+  second_review_distinctness_status: "secondReviewDistinctnessStatus",
+  second_review_evidence_status: "secondReviewEvidenceStatus",
+  submit_decision: "submitDecision",
+  api_outcome: "apiOutcome",
+  audit_write_policy: "auditWritePolicy"
+};
+
+function applyFailedTaskFixtureMutation(task, mutation) {
+  return Object.fromEntries(
+    Object.entries(mutation).map(([key, value]) => [failedTaskFixtureMutationMap[key] ?? key, value])
+  );
+}
+
+function assertFailedTaskBlockedReplaySamples(task, fixture, supportTickets) {
+  assert.ok(
+    Array.isArray(fixture.blocked_replay_samples) && fixture.blocked_replay_samples.length > 0,
+    `${fixture.id} needs blocked replay regression samples`
+  );
+
+  for (const sample of fixture.blocked_replay_samples) {
+    const mutatedTask = {
+      ...task,
+      ...applyFailedTaskFixtureMutation(task, sample.mutation)
+    };
+    const decision = buildFailedTaskRuntimeDecisions([mutatedTask], supportTickets)[0];
+    const expected = sample.expected_runtime_contract;
+
+    for (const [fixtureKey, runtimeKey] of Object.entries(failedTaskRuntimeContractMap)) {
+      if (fixtureKey in expected) {
+        assert.equal(
+          decision[runtimeKey],
+          expected[fixtureKey],
+          `${fixture.id} ${sample.id} must enforce ${runtimeKey}`
+        );
+      }
+    }
+
+    for (const blockerCode of expected.blocker_codes ?? []) {
+      assert.ok(
+        decision.blockerCodes.includes(blockerCode),
+        `${fixture.id} ${sample.id} must expose blocker ${blockerCode}`
+      );
+    }
+
+    assert.equal(
+      decision.submitDecision,
+      "blocked",
+      `${fixture.id} ${sample.id} must not submit a replay or incomplete admin action`
+    );
+  }
+}
+
 const parseFixtures = () => {
   const moduleSource = source
     .replace(/^import type[\s\S]*?from "@\/lib\/types";\n\n/, "")
@@ -1511,6 +1577,8 @@ test("failed task retry and cancel samples are durable regression fixtures", () 
   assert.equal(retryDecision.regressionGateEffect, retryFixture.runtime_contract.regression_gate_effect);
   assert.equal(cancelDecision.regressionGateEffect, cancelFixture.runtime_contract.regression_gate_effect);
   assert.equal(approvedCancelDecision.regressionGateEffect, approvedCancelFixture.runtime_contract.regression_gate_effect);
+  assertFailedTaskBlockedReplaySamples(retryTask, retryFixture, supportTickets);
+  assertFailedTaskBlockedReplaySamples(approvedCancelTask, approvedCancelFixture, supportTickets);
 
   assert.ok(
     retryFixture.expected_assertions.includes("action_scoped_idempotency_key == true"),

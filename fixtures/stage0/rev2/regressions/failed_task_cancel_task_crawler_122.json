@@ -51,6 +51,47 @@
     "second_review_evidence_status": "complete",
     "regression_gate_effect": "canary_fixture_ready"
   },
+  "blocked_replay_samples": [
+    {
+      "id": "cancel_stale_state_digest",
+      "mutation": {
+        "observed_state_digest": "sha256:failed-task-task-crawler-122-active-replay-v2"
+      },
+      "expected_runtime_contract": {
+        "state_digest_status": "stale_replay",
+        "submit_decision": "blocked",
+        "api_outcome": "disabled_409_conflict",
+        "audit_write_policy": "write_blocked_attempt_audit",
+        "blocker_codes": ["state_digest_stale_replay"]
+      }
+    },
+    {
+      "id": "cancel_same_second_reviewer",
+      "mutation": {
+        "second_reviewer_admin_id": "adm-reviewer-317"
+      },
+      "expected_runtime_contract": {
+        "second_review_distinctness_status": "same_reviewer",
+        "submit_decision": "blocked",
+        "api_outcome": "disabled_409_conflict",
+        "audit_write_policy": "write_blocked_attempt_audit",
+        "blocker_codes": ["second_review_distinct_reviewer_missing"]
+      }
+    },
+    {
+      "id": "cancel_incomplete_second_review_evidence",
+      "mutation": {
+        "second_review_evidence_refs": ["rbac-crawler-001"]
+      },
+      "expected_runtime_contract": {
+        "second_review_evidence_status": "incomplete",
+        "submit_decision": "blocked",
+        "api_outcome": "disabled_409_conflict",
+        "audit_write_policy": "write_blocked_attempt_audit",
+        "blocker_codes": ["second_review_evidence_incomplete"]
+      }
+    }
+  ],
   "release_block": {
     "canary_metric": "cm-014",
     "audit_ref": "au-013",
