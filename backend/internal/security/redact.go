@@ -35,6 +35,7 @@ const (
 	SecretKindCloudKey      SecretKind = "cloud_key"
 	SecretKindSignedURL     SecretKind = "signed_url_secret"
 	SecretKindServiceAcct   SecretKind = "service_account"
+	SecretKindRegistryAuth  SecretKind = "registry_auth"
 )
 
 type SecretFinding struct {
@@ -43,7 +44,7 @@ type SecretFinding struct {
 	Location string     `json:"location,omitempty"`
 }
 
-var sensitiveKeyPattern = regexp.MustCompile(`(?i)(secret|token|password|passwd|pwd|passphrase|api[_-]?key|x[_-]?api[_-]?key|access[_-]?key|private[_-]?key|private[_-]?token|deploy[_-]?key|credential|signature|session|cookie|authorization|proxy[_-]?authorization|client[_-]?secret|client[_-]?token|refresh[_-]?token|id[_-]?token|personal[_-]?access[_-]?token|pat|jwt|oauth|webhook[_-]?secret|signing[_-]?key|shared[_-]?access[_-]?signature|sas|stripe|openai|anthropic|provider[_-]?key|database[_-]?url|dsn|connection[_-]?string|connectionstring|service[_-]?account|storage[_-]?key)`)
+var sensitiveKeyPattern = regexp.MustCompile(`(?i)(secret|token|password|passwd|pwd|passphrase|api[_-]?key|x[_-]?api[_-]?key|access[_-]?key|private[_-]?key|private[_-]?token|deploy[_-]?key|credential|signature|session|cookie|authorization|proxy[_-]?authorization|client[_-]?secret|client[_-]?token|refresh[_-]?token|id[_-]?token|personal[_-]?access[_-]?token|pat|jwt|oauth|webhook[_-]?secret|signing[_-]?key|shared[_-]?access[_-]?signature|sas|stripe|openai|anthropic|provider[_-]?key|database[_-]?url|dsn|connection[_-]?string|connectionstring|service[_-]?account|storage[_-]?key|docker[_-]?auth|dockerconfigjson|registry[_-]?(auth|token|password))`)
 
 var secretValuePatterns = []struct {
 	kind    SecretKind
@@ -92,6 +93,13 @@ var secretValuePatterns = []struct {
 	{SecretKindCloudKey, "google_oauth_token", regexp.MustCompile(`\bya29\.[0-9A-Za-z_-]{20,}\b`)},
 	{SecretKindCloudKey, "firebase_server_key", regexp.MustCompile(`\bAAAA[A-Za-z0-9_-]{7,}:APA91b[A-Za-z0-9_-]{20,}\b`)},
 	{SecretKindToken, "fly_token", regexp.MustCompile(`\bFlyV1\s+[A-Za-z0-9+/_=:-]{20,}\b`)},
+	{SecretKindRegistryAuth, "docker_auth_token", regexp.MustCompile(`(?i)\b(?:docker|registry|container)[_-]?(?:auth|token|password)\s*[=:]\s*("[A-Za-z0-9+/=._-]{20,}"|'[A-Za-z0-9+/=._-]{20,}'|[A-Za-z0-9+/=._-]{20,})`)},
+	{SecretKindRegistryAuth, "dockerconfigjson_auth", regexp.MustCompile(`(?i)"auth"\s*:\s*"[A-Za-z0-9+/=]{20,}"`)},
+	{SecretKindPrivateKey, "private_key_block_literal", regexp.MustCompile(`(?s)-----BEGIN [A-Z ]*PRIVATE KEY-----.*?-----END [A-Z ]*PRIVATE KEY-----`)},
+	{SecretKindPrivateKey, "github_app_private_key", regexp.MustCompile(`(?i)\bgithub[_-]?app[_-]?private[_-]?key\s*[=:]\s*("[A-Za-z0-9+/=\\n-]{20,}"|'[A-Za-z0-9+/=\\n-]{20,}'|[A-Za-z0-9+/=\\n-]{20,})`)},
+	{SecretKindToken, "render_api_key", regexp.MustCompile(`\brnd_[A-Za-z0-9]{20,}\b`)},
+	{SecretKindToken, "doppler_token", regexp.MustCompile(`\bdp\.pt\.[A-Za-z0-9._-]{20,}\b`)},
+	{SecretKindToken, "vault_token", regexp.MustCompile(`\bhvs\.[A-Za-z0-9_-]{20,}\b`)},
 }
 
 var assignmentPattern = regexp.MustCompile(`(?i)\b([A-Za-z0-9_.-]*(?:secret|token|password|passwd|pwd|passphrase|api[_-]?key|x[_-]?api[_-]?key|access[_-]?key|private[_-]?key|private[_-]?token|deploy[_-]?key|credential|signature|session|cookie|authorization|proxy[_-]?authorization|client[_-]?secret|client[_-]?token|refresh[_-]?token|personal[_-]?access[_-]?token|webhook[_-]?secret|signing[_-]?key|shared[_-]?access[_-]?signature|database[_-]?url|dsn|connection[_-]?string|connectionstring|service[_-]?account|storage[_-]?key)[A-Za-z0-9_.-]*)\s*([=:])\s*("[^"]*"|'[^']*'|[^\s,;&]+)`)
@@ -267,6 +275,8 @@ func ClassifyKey(key string) []SecretFinding {
 	lower := strings.ToLower(key)
 	kind := SecretKindSensitiveKey
 	switch {
+	case strings.Contains(lower, "docker") || strings.Contains(lower, "registry"):
+		kind = SecretKindRegistryAuth
 	case strings.Contains(lower, "password") || strings.Contains(lower, "passwd") || strings.Contains(lower, "pwd"):
 		kind = SecretKindPassword
 	case strings.Contains(lower, "private") && (strings.Contains(lower, "key") || strings.Contains(lower, "token")):

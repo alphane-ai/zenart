@@ -485,6 +485,45 @@ func TestRedactStringCoversLaunchDeployCloudAndSignedDeliverySecrets(t *testing.
 	}
 }
 
+func TestRedactStringCoversLaunchRegistryAndSecretManagerTokens(t *testing.T) {
+	renderToken := "rnd_abcdefghijklmnopqrstuvwxyz123456"
+	dopplerToken := "dp.pt.abcdefghijklmnopqrstuvwxyz123456"
+	vaultToken := "hvs.abcdefghijklmnopqrstuvwxyz123456"
+	input := strings.Join([]string{
+		"docker_auth=dXNlcjpwYXNzd29yZC1zdXBlci1zZWNyZXQ=",
+		`{"auths":{"registry.example.com":{"auth":"dXNlcjpwYXNzd29yZC1zdXBlci1zZWNyZXQ="}}}`,
+		"github_app_private_key=LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tYWJjZGVmZ2hpams=",
+		"render=" + renderToken,
+		"doppler=" + dopplerToken,
+		"vault=" + vaultToken,
+	}, " ")
+
+	got := RedactString(input)
+	for _, leaked := range []string{
+		"dXNlcjpwYXNzd29yZC1zdXBlci1zZWNyZXQ=",
+		"LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tYWJjZGVmZ2hpams=",
+		renderToken,
+		dopplerToken,
+		vaultToken,
+	} {
+		if strings.Contains(got, leaked) {
+			t.Fatalf("RedactString() = %q, leaked %s", got, leaked)
+		}
+	}
+
+	findings := ClassifyString(input)
+	for _, signal := range []string{
+		"docker_auth_token",
+		"dockerconfigjson_auth",
+		"github_app_private_key",
+		"render_api_key",
+		"doppler_token",
+		"vault_token",
+	} {
+		assertSignal(t, findings, signal)
+	}
+}
+
 func TestClassifyKeyCoversLaunchSecretNames(t *testing.T) {
 	cases := []struct {
 		key  string
@@ -497,6 +536,8 @@ func TestClassifyKeyCoversLaunchSecretNames(t *testing.T) {
 		{key: "service_account_json", kind: SecretKindServiceAcct},
 		{key: "CONNECTION_STRING", kind: SecretKindCredential},
 		{key: "personal_access_token", kind: SecretKindToken},
+		{key: "dockerconfigjson", kind: SecretKindRegistryAuth},
+		{key: "registry_password", kind: SecretKindRegistryAuth},
 	}
 
 	for _, tt := range cases {
