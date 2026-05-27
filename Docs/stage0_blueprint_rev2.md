@@ -1993,22 +1993,36 @@ main 合并前必须通过：
 - [x] Private Beta/Staging auth/RBAC/tenant/audit runtime evidence 通过。
 - [x] Private Beta/Staging brief/upload/confirmation runtime evidence 通过。
 - [ ] Private Beta/Staging object storage signed download/retention runtime evidence 通过。
+- [ ] Private Beta/Staging object storage signed URL runtime evidence 通过：staging evidence proves tenant-scoped signed download, expiry, direct-object denial, and cross-tenant denial under `ops/evidence/staging/`。
+- [ ] Private Beta/Staging object retention/cleanup runtime evidence 通过：staging evidence proves retention policy, expired export cleanup, orphan cleanup, and audit refs under `ops/evidence/staging/`。
 - [x] Private Beta/Staging quota/rate-limit/spend-cap runtime evidence 通过。
 - [x] Private Beta/Staging support/retry/abuse runtime evidence 通过。
 - [x] Private Beta/Staging eval/QA/safety enforcement runtime evidence 通过。
 - [x] Private Beta/Staging crawler approval/provenance runtime evidence 通过。
 - [ ] Private Beta/Staging observability/backup/load runtime evidence 通过。
+- [ ] Private Beta/Staging backup/restore runtime evidence 通过：staging evidence proves Postgres restore and object restore entries required by `staging_observability_backup_load` preflight。
+- [ ] Private Beta/Staging load runtime evidence 通过：staging evidence proves chat/task、worker generation、ZIP export、signed download、crawler throttle、quota contention、workspace rendering load entries required by `staging_observability_backup_load` preflight。
 - [ ] Private Beta/Staging legal/support external-user visibility runtime evidence 通过。
+- [ ] Private Beta/Staging legal pages external-user visibility evidence 通过：staging evidence proves Terms、Privacy、Acceptable Use、AI/content disclaimer、IP complaint flow are externally visible under `ops/evidence/staging/`。
+- [ ] Private Beta/Staging support contact external-user visibility evidence 通过：staging evidence proves visible support contact/report-problem path for external users under `ops/evidence/staging/`。
 - [x] Backfill Production Launch no-go evidence: provider/billing/skill/activation/abuse/security/backup/legal blockers remain active in `fixtures/stage0/rev2/release_gate_evidence.production_launch.json`。
 - [ ] Production Launch runtime/deployment evidence 通过：provider-or-comp-only、paid lifecycle、skill canary、activation audit、abuse hold、security、backup/rollback/post-deploy smoke、legal/support policy 均有 production evidence。
 - [ ] Production provider-or-comp-only runtime/deployment evidence 通过。
+- [ ] Production provider mode deployment evidence 通过：production evidence proves either real provider contract/monitoring/cost/staging verification or explicit invite/comp-only mode under `ops/evidence/production/`。
+- [ ] Production public paid/real-generation claims evidence 通过：production evidence proves paid and real-generation claims are enabled only with real provider evidence, or hidden for invite/comp-only mode under `ops/evidence/production/`。
 - [ ] Production paid billing lifecycle runtime/deployment evidence 通过。
+- [ ] Production checkout/subscription/cancellation/past_due runtime evidence 通过 under `ops/evidence/production/`。
+- [ ] Production refund/credit/quota reset/webhook idempotency runtime evidence 通过 under `ops/evidence/production/`。
 - [x] Production skill release/eval/canary runtime/deployment evidence 通过。
 - [x] Production activation review/audit runtime/deployment evidence 通过。
 - [x] Production abuse throttle/hold runtime/deployment evidence 通过。
 - [x] Production security launch-check runtime/deployment evidence 通过。
 - [ ] Production backup/rollback/incident/post-deploy smoke runtime/deployment evidence 通过。
+- [ ] Production backup/restore runtime evidence 通过：production evidence proves backup schedule, Postgres restore, object restore, RPO/RTO, and audit refs under `ops/evidence/production/`。
+- [ ] Production rollback/incident/post-deploy smoke runtime evidence 通过：production evidence proves rollback drill, incident/alert path, migration compatibility, and post-deploy smoke under `ops/evidence/production/`。
 - [ ] Production legal/support policy deployment evidence 通过。
+- [ ] Production public legal policy deployment evidence 通过：production evidence proves Terms、Privacy、Acceptable Use、AI/content disclaimer、IP complaint flow visibility under `ops/evidence/production/`。
+- [ ] Production public support/billing policy deployment evidence 通过：production evidence proves support contact and paid billing/cancellation/refund policy visibility under `ops/evidence/production/`。
 - [ ] Staging post-deploy smoke tests 通过。
 - [ ] Production post-deploy smoke tests 通过。
 
@@ -2050,8 +2064,14 @@ Release gate closure policy:
 - Release gate fixture files are closed-world: only `release_gate_evidence.local_alpha.json`, `release_gate_evidence.ci.json`, `release_gate_evidence.private_beta_staging.json`, and `release_gate_evidence.production_launch.json` are valid.
 - Local Alpha workflow smoke pass evidence must name all four workflows and cite exact per-workflow API, Playwright, and export ZIP runtime evidence files under `ops/evidence/local_alpha/`; one generic local smoke artifact or directory-level reference cannot close the aggregate Local Alpha runtime check.
 - Private Beta/Staging check-level runtime subitems must remain open until each matching release gate check has staging evidence: auth/RBAC/tenant/audit; brief/upload/confirmation; object storage signed downloads/retention; quota/rate-limit/spend-cap; support/retry/abuse; eval/QA/safety; crawler approval/provenance; observability/backup/load; legal/support external-user visibility.
+- Private Beta/Staging object storage signed download/retention cannot close from local object storage tests, S3 config, or backend integration tests alone; it requires separate staging signed URL and staging retention/cleanup evidence files, and both must be cited by `staging_object_storage_signed_downloads`.
 - Private Beta/Staging `staging_observability_backup_load` may pass only when its release gate evidence cites an exact passed `ops/evidence/staging/*.json` preflight report with `kind=staging_observability_backup_load_preflight`, `status=passed`, `release_gate_check_id=staging_observability_backup_load`, verified observability entries, verified Postgres/object restore entries, verified load entries, verified post-deploy smoke entries, and no preserved `staging_observability_restore_load_missing` blocker.
+- Private Beta/Staging legal/support visibility cannot close from web source files or policy text alone; it requires external-user staging visibility evidence for both legal pages and support contact/report-problem flow.
 - Production check-level runtime subitems must remain open until each matching release gate check has production evidence: provider-or-comp-only; paid billing lifecycle; skill release/eval/canary; activation review/audit; abuse throttle/hold; security launch checks; backup/rollback/incident/post-deploy smoke; legal/support policy deployment.
+- Production provider-or-comp-only cannot close from provider abstractions, billing UI, or policy prose; it requires production evidence for the chosen launch mode and a separate production evidence check that public paid/real-generation claims match that mode.
+- Production paid billing lifecycle cannot close from mock checkout or subscription-state implementation alone; it requires production runtime evidence for checkout/subscription/cancellation/past_due plus refund/credit/quota reset/webhook idempotency.
+- Production backup/rollback/incident readiness cannot close from runbooks or release templates alone; it requires production backup/restore evidence and production rollback/incident/post-deploy smoke evidence, and still remains blocked until CI and Private Beta/Staging gates pass.
+- Production legal/support policy cannot close from web page artifacts alone; it requires production deployment evidence for public legal pages, support contact, and billing/cancellation/refund policy visibility.
 - Runtime pass evidence must be gate-specific: Local Alpha workflow smoke evidence under `ops/evidence/local_alpha/` or `ops/evidence/local/`, CI installed workflow/run evidence under `.github/workflows/` plus `ops/evidence/ci/`, staging evidence under `ops/evidence/staging/`, and production launch evidence under `ops/evidence/production/`. Source files, schemas, fixtures, README, or draft ops documents alone cannot close these runtime checks.
 - Aggregate runtime checklist items may close only after all concrete runtime subitems in that gate are closed and the matching release gate fixture has no blocked/failing checks or active Do-Not-Launch conditions. This applies to Local Alpha workflow smoke, Private Beta/Staging external-user runtime evidence, and Production Launch runtime/deployment evidence.
 - Production Launch cannot clear `ci_staging_gates_not_passed` or pass backup/rollback/post-deploy evidence until both `fixtures/stage0/rev2/release_gate_evidence.ci.json` and `fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json` allow checklist completion.

@@ -833,6 +833,12 @@ PRIVATE_BETA_STAGING_RUNTIME_OPEN_CHECK_ITEMS = {
     "Private Beta/Staging object storage signed download/retention runtime evidence 通过。": {
         "staging_object_storage_signed_downloads",
     },
+    "Private Beta/Staging object storage signed URL runtime evidence 通过：staging evidence proves tenant-scoped signed download, expiry, direct-object denial, and cross-tenant denial under `ops/evidence/staging/`。": {
+        "staging_object_storage_signed_downloads",
+    },
+    "Private Beta/Staging object retention/cleanup runtime evidence 通过：staging evidence proves retention policy, expired export cleanup, orphan cleanup, and audit refs under `ops/evidence/staging/`。": {
+        "staging_object_storage_signed_downloads",
+    },
     "Private Beta/Staging quota/rate-limit/spend-cap runtime evidence 通过。": {
         "staging_quota_rate_limit_spend_cap",
     },
@@ -848,7 +854,19 @@ PRIVATE_BETA_STAGING_RUNTIME_OPEN_CHECK_ITEMS = {
     "Private Beta/Staging observability/backup/load runtime evidence 通过。": {
         "staging_observability_backup_load",
     },
+    "Private Beta/Staging backup/restore runtime evidence 通过：staging evidence proves Postgres restore and object restore entries required by `staging_observability_backup_load` preflight。": {
+        "staging_observability_backup_load",
+    },
+    "Private Beta/Staging load runtime evidence 通过：staging evidence proves chat/task、worker generation、ZIP export、signed download、crawler throttle、quota contention、workspace rendering load entries required by `staging_observability_backup_load` preflight。": {
+        "staging_observability_backup_load",
+    },
     "Private Beta/Staging legal/support external-user visibility runtime evidence 通过。": {
+        "staging_legal_external_user_pages",
+    },
+    "Private Beta/Staging legal pages external-user visibility evidence 通过：staging evidence proves Terms、Privacy、Acceptable Use、AI/content disclaimer、IP complaint flow are externally visible under `ops/evidence/staging/`。": {
+        "staging_legal_external_user_pages",
+    },
+    "Private Beta/Staging support contact external-user visibility evidence 通过：staging evidence proves visible support contact/report-problem path for external users under `ops/evidence/staging/`。": {
         "staging_legal_external_user_pages",
     },
 }
@@ -857,7 +875,19 @@ PRODUCTION_RUNTIME_OPEN_CHECK_ITEMS = {
     "Production provider-or-comp-only runtime/deployment evidence 通过。": {
         "production_provider_or_comp_only_mode",
     },
+    "Production provider mode deployment evidence 通过：production evidence proves either real provider contract/monitoring/cost/staging verification or explicit invite/comp-only mode under `ops/evidence/production/`。": {
+        "production_provider_or_comp_only_mode",
+    },
+    "Production public paid/real-generation claims evidence 通过：production evidence proves paid and real-generation claims are enabled only with real provider evidence, or hidden for invite/comp-only mode under `ops/evidence/production/`。": {
+        "production_provider_or_comp_only_mode",
+    },
     "Production paid billing lifecycle runtime/deployment evidence 通过。": {
+        "production_paid_billing_lifecycle",
+    },
+    "Production checkout/subscription/cancellation/past_due runtime evidence 通过 under `ops/evidence/production/`。": {
+        "production_paid_billing_lifecycle",
+    },
+    "Production refund/credit/quota reset/webhook idempotency runtime evidence 通过 under `ops/evidence/production/`。": {
         "production_paid_billing_lifecycle",
     },
     "Production skill release/eval/canary runtime/deployment evidence 通过。": {
@@ -875,7 +905,19 @@ PRODUCTION_RUNTIME_OPEN_CHECK_ITEMS = {
     "Production backup/rollback/incident/post-deploy smoke runtime/deployment evidence 通过。": {
         "production_backup_rollback_incident",
     },
+    "Production backup/restore runtime evidence 通过：production evidence proves backup schedule, Postgres restore, object restore, RPO/RTO, and audit refs under `ops/evidence/production/`。": {
+        "production_backup_rollback_incident",
+    },
+    "Production rollback/incident/post-deploy smoke runtime evidence 通过：production evidence proves rollback drill, incident/alert path, migration compatibility, and post-deploy smoke under `ops/evidence/production/`。": {
+        "production_backup_rollback_incident",
+    },
     "Production legal/support policy deployment evidence 通过。": {
+        "production_legal_support_policy",
+    },
+    "Production public legal policy deployment evidence 通过：production evidence proves Terms、Privacy、Acceptable Use、AI/content disclaimer、IP complaint flow visibility under `ops/evidence/production/`。": {
+        "production_legal_support_policy",
+    },
+    "Production public support/billing policy deployment evidence 通过：production evidence proves support contact and paid billing/cancellation/refund policy visibility under `ops/evidence/production/`。": {
         "production_legal_support_policy",
     },
 }
@@ -6237,7 +6279,13 @@ def validate_launch_readiness_split_contracts() -> None:
         "Private Beta/Staging checked partial subitems must be backed by named validator constants",
         "Passed gate checks and cleared Do-Not-Launch conditions may not mix real and missing concrete artifact paths",
         "Private Beta/Staging check-level runtime subitems must remain open until each matching release gate check has staging evidence",
+        "Private Beta/Staging object storage signed download/retention cannot close from local object storage tests",
+        "Private Beta/Staging legal/support visibility cannot close from web source files or policy text alone",
         "Production check-level runtime subitems must remain open until each matching release gate check has production evidence",
+        "Production provider-or-comp-only cannot close from provider abstractions",
+        "Production paid billing lifecycle cannot close from mock checkout",
+        "Production backup/rollback/incident readiness cannot close from runbooks or release templates alone",
+        "Production legal/support policy cannot close from web page artifacts alone",
         "exact per-workflow API, Playwright, and export ZIP runtime evidence files under `ops/evidence/local_alpha/`",
         "one generic local smoke artifact or directory-level reference cannot close the aggregate Local Alpha runtime check",
         "Local Alpha remains open until four workflow API/Playwright smokes",
