@@ -2615,6 +2615,76 @@ def validate_pass_evidence_does_not_cite_blocked_runtime_artifacts(data: dict[st
             )
 
 
+def runtime_evidence_preserved_blockers(evidence: dict[str, Any]) -> list[str]:
+    blockers: list[str] = []
+    status = evidence.get("status")
+    if status == "pass_with_blockers_preserved":
+        blockers.append("status=pass_with_blockers_preserved")
+    for field in ["blocked_slots", "missing_blockers", "closure_blockers"]:
+        value = evidence.get(field)
+        if value:
+            blockers.append(f"{field}={value!r}")
+    gate_impact = evidence.get("gate_impact")
+    if isinstance(gate_impact, dict):
+        remaining_blockers = gate_impact.get("remaining_blockers")
+        if remaining_blockers:
+            blockers.append(f"gate_impact.remaining_blockers={remaining_blockers!r}")
+        blocked_slots = gate_impact.get("blocked_slots")
+        if blocked_slots:
+            blockers.append(f"gate_impact.blocked_slots={blocked_slots!r}")
+        closure_blockers = gate_impact.get("closure_blockers")
+        if closure_blockers:
+            blockers.append(f"gate_impact.closure_blockers={closure_blockers!r}")
+        if gate_impact.get("can_clear_aggregate_item") is False:
+            blockers.append("gate_impact.can_clear_aggregate_item=false")
+        if gate_impact.get("preserved_release_gate_check_id"):
+            blockers.append(
+                f"gate_impact.preserved_release_gate_check_id={gate_impact['preserved_release_gate_check_id']!r}"
+            )
+        if gate_impact.get("preserved_do_not_launch_condition_id"):
+            blockers.append(
+                "gate_impact.preserved_do_not_launch_condition_id="
+                f"{gate_impact['preserved_do_not_launch_condition_id']!r}"
+            )
+    return blockers
+
+
+def validate_closed_gate_items_do_not_cite_preserved_blocker_evidence(
+    gate: str,
+    data: dict[str, Any],
+    checked_lines: set[str],
+) -> None:
+    closure_items = {
+        item
+        for item, item_gate in GATE_CHECKLIST_ITEMS.items()
+        if item_gate == gate and item in checked_lines
+    }
+    aggregate_item = RELEASE_GATE_AGGREGATE_ITEMS[gate]
+    if aggregate_item in checked_lines:
+        closure_items.add(aggregate_item)
+    if GLOBAL_DO_NOT_LAUNCH_CHECKLIST_ITEM in checked_lines:
+        closure_items.add(GLOBAL_DO_NOT_LAUNCH_CHECKLIST_ITEM)
+    if gate_decision_status(data) == "go":
+        closure_items.add(f"{gate} gate_decision.status=go")
+    if not closure_items:
+        return
+
+    for check_id, check in checks_by_id(data).items():
+        if check["status"] != "pass":
+            continue
+        for path in sorted(concrete_evidence_paths(check["evidence_ref"])):
+            evidence = load_json_if_path(path)
+            if not isinstance(evidence, dict):
+                continue
+            preserved_blockers = runtime_evidence_preserved_blockers(evidence)
+            require(
+                not preserved_blockers,
+                f"{gate}.{check_id} cannot support closed gate/global checklist items "
+                f"{sorted(closure_items)} with blocker-preserving runtime artifact {path}: "
+                + json.dumps(preserved_blockers, ensure_ascii=False),
+            )
+
+
 def validate_check_condition_consistency(data: dict[str, Any]) -> None:
     gate = data["gate"]
     checks = checks_by_id(data)
@@ -5402,6 +5472,11 @@ def validate_release_gate_evidence() -> None:
             blueprint_checked,
             blueprint_unchecked,
         )
+        validate_closed_gate_items_do_not_cite_preserved_blocker_evidence(
+            gate,
+            gate_evidence,
+            blueprint_checked,
+        )
     validate_release_gate_order_dependencies(evidence)
 
     local_alpha = load_json(FIXTURE_DIR / "release_gate_evidence.local_alpha.json")
@@ -6592,6 +6667,9 @@ def validate_launch_readiness_split_contracts() -> None:
         "stale or cross-gate evidence cannot close a runtime check",
         "Checked runtime subitems that partially satisfy a larger release gate must have validator-owned file-level checks",
         "Private Beta/Staging checked partial subitems must be backed by named validator constants",
+        "A top-level gate checklist item, aggregate runtime checklist item, global Do-Not-Launch item, or fixture-level `go` decision cannot cite runtime evidence that preserves blockers",
+        "status=pass_with_blockers_preserved",
+        "can_clear_aggregate_item=false",
         "Passed gate checks and cleared Do-Not-Launch conditions may not mix real and missing concrete artifact paths",
         "Private Beta/Staging check-level runtime subitems must remain open until each matching release gate check has staging evidence",
         "Private Beta/Staging object storage signed download/retention cannot close from local object storage tests",
