@@ -279,6 +279,10 @@ const stagingObservabilityBackupLoadPreflightPath = new URL(
   "../../ops/evidence/staging/20260527T013207Z-staging-observability-backup-load-36222.json",
   import.meta.url
 );
+const stagingObjectStorageRetentionCleanupBlockedPath = new URL(
+  "../../ops/evidence/staging/object-storage-retention-cleanup.blocked.json",
+  import.meta.url
+);
 const crawlerStagingRuntimePath = new URL(
   "../../ops/evidence/staging/20260527T1100Z-crawler-governance-runtime.json",
   import.meta.url
@@ -3792,6 +3796,110 @@ test("object storage retention cleanup gate stays blocked until exact staging pr
     blueprint,
     /Private Beta\/Staging object storage pass evidence must cite both signed URL and retention\/cleanup staging files/,
     "blueprint must preserve split object-storage evidence requirement"
+  );
+});
+
+test("object storage retention cleanup blocked staging probe is surfaced without closing release gates", () => {
+  assert.ok(
+    existsSync(stagingObjectStorageRetentionCleanupBlockedPath),
+    "blocked retention cleanup probe evidence file is missing"
+  );
+  const blockedFile = JSON.parse(readFileSync(stagingObjectStorageRetentionCleanupBlockedPath, "utf8"));
+
+  assert.equal(blockedFile.environment, "staging", "blocked retention evidence must be staging scoped");
+  assert.equal(blockedFile.status, "blocked", "blocked retention evidence must not be pass-shaped");
+  assert.equal(
+    blockedFile.evidence_id,
+    "object-storage-retention-cleanup",
+    "blocked evidence must use the canonical retention cleanup evidence id"
+  );
+  assert.equal(
+    blockedFile.release_gate_check_id,
+    "staging_object_storage_signed_downloads",
+    "blocked evidence must bind to the object-storage release gate check"
+  );
+  assert.equal(
+    blockedFile.do_not_launch_condition_id,
+    "object_storage_signed_retention_runtime_missing",
+    "blocked evidence must preserve the object-storage Do-Not-Launch condition"
+  );
+  assert.equal(
+    blockedFile.runtime_input_requirements.canonical_pass_report,
+    "ops/evidence/staging/object-storage-retention-cleanup.json",
+    "blocked evidence must name the exact future pass artifact"
+  );
+  assert.equal(
+    blockedFile.runtime_input_requirements.canonical_pass_results,
+    "ops/evidence/staging/object-storage-retention-cleanup.ndjson",
+    "blocked evidence must name the exact future pass NDJSON artifact"
+  );
+  assert.equal(
+    blockedFile.gate_impact.can_clear_retention_cleanup_checklist_item,
+    false,
+    "blocked probe cannot clear the retention cleanup checklist item"
+  );
+  assert.equal(
+    blockedFile.gate_impact.can_clear_release_gate_check,
+    false,
+    "blocked probe cannot clear the combined object-storage release gate"
+  );
+  assert.equal(
+    blockedFile.gate_impact.preserved_do_not_launch_condition_id,
+    "object_storage_signed_retention_runtime_missing",
+    "blocked probe must preserve the exact do-not-launch condition"
+  );
+
+  const fromBlockedProbe = buildStagingObjectStorageRetentionCleanupEvidence(
+    stagingObjectStorageRetentionCleanupEvidence,
+    blockedFile
+  );
+  assert.equal(fromBlockedProbe.status, "blocked", "admin evidence should expose the blocked probe status");
+  assert.equal(
+    fromBlockedProbe.canClearRetentionCleanupChecklistItem,
+    false,
+    "admin evidence cannot clear checklist from blocked probe"
+  );
+  assert.equal(
+    fromBlockedProbe.canClearReleaseGateCheck,
+    false,
+    "admin evidence cannot clear release gate from blocked probe"
+  );
+  assert.ok(
+    fromBlockedProbe.missingRuntimeInputs.every((input) =>
+      /missing_staging_base_url_or_explicit_probe_urls/.test(input)
+    ),
+    "admin evidence should expose exact missing staging URL probe reasons"
+  );
+  assert.deepEqual(
+    fromBlockedProbe.coverage.map((coverage) => coverage.status),
+    ["blocked", "blocked", "blocked", "blocked"],
+    "blocked probe must keep every retention cleanup coverage area blocked"
+  );
+  assert.ok(
+    fromBlockedProbe.coverage.every((coverage) =>
+      coverage.evidenceRefs.includes("ops/evidence/staging/object-storage-retention-cleanup.blocked.json")
+    ),
+    "blocked probe coverage should cite the concrete blocked evidence file"
+  );
+  assert.ok(
+    fromBlockedProbe.coverage.every((coverage) => coverage.requestIdEchoStatus === "missing"),
+    "blocked probe coverage should surface missing request-id echoes"
+  );
+  assert.ok(
+    fromBlockedProbe.coverage.every((coverage) => coverage.responseBytes === 0),
+    "blocked probe coverage cannot report response bytes"
+  );
+
+  const adminApiSource = readFileSync(new URL("../lib/admin-api.ts", import.meta.url), "utf8");
+  assert.match(
+    adminApiSource,
+    /object-storage-retention-cleanup\.blocked\.json/,
+    "admin API should load blocked probe evidence when canonical pass evidence is absent"
+  );
+  assert.match(
+    adminApiSource,
+    /passingReport \?\? blockedReport/,
+    "admin API should prefer canonical pass evidence over blocked probe evidence"
   );
 });
 

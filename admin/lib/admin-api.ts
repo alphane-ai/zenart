@@ -343,9 +343,14 @@ export async function getStagingObservabilityBackupLoadPreflightEvidence() {
 }
 
 export async function getStagingObjectStorageRetentionCleanupEvidence() {
-  const report = await readJsonIfPresent<Record<string, unknown>>(
+  const passingReport = await readJsonIfPresent<Record<string, unknown>>(
     "ops/evidence/staging/object-storage-retention-cleanup.json"
   );
+  const blockedReport = await readJsonIfPresent<Record<string, unknown>>(
+    "ops/evidence/staging/object-storage-retention-cleanup.blocked.json"
+  );
+  const report = passingReport ?? blockedReport;
+
   return buildStagingObjectStorageRetentionCleanupEvidence(stagingObjectStorageRetentionCleanupEvidence, report);
 }
 
