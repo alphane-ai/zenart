@@ -147,6 +147,7 @@ if "summary" in report:
         for verifier in local_verification.values():
             if isinstance(verifier, dict) and Path(str(verifier.get("path", ""))).name == source_report_path.name:
                 verifier["path"] = str(target_report_path)
+report["created_at"] = target_report_path.stem
 target_report_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 PY
 

@@ -3,7 +3,7 @@
   "base_url": "",
   "blueprint_checklist_item": "Staging post-deploy smoke tests \u901a\u8fc7\u3002",
   "blueprint_source": "Docs/stage0_blueprint_rev2.md",
-  "created_at": "20260527T065852Z",
+  "created_at": "stage0-rev2-current-release-evidence-bundle.staging-smoke",
   "created_by_lane": "lane5",
   "environment": "staging",
   "evidence_path_policy": "ops/evidence/staging/",

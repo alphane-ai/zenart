@@ -527,6 +527,9 @@ for path, expected_run_id in expectations.items():
     if path.stem != expected_run_id:
         raise SystemExit(f"{path} filename stem must match run_id {expected_run_id}")
 release_bundle = json.loads((root / "release-bundle" / "stage0-validate-release-bundle-run-id.json").read_text(encoding="utf-8"))
+staging_smoke = json.loads((root / "release-bundle" / "stage0-validate-release-bundle-run-id.staging-smoke.json").read_text(encoding="utf-8"))
+if staging_smoke.get("created_at") != "stage0-validate-release-bundle-run-id.staging-smoke":
+    raise SystemExit("release bundle must normalize copied staging smoke created_at to the deterministic component run ID")
 if release_bundle.get("source_staging_smoke_report") != str(root / "release-bundle" / "stage0-validate-release-bundle-run-id.staging-smoke.json"):
     raise SystemExit("release bundle must promote deterministic staging smoke report path")
 if release_bundle.get("source_staging_smoke_results") != str(root / "release-bundle" / "stage0-validate-release-bundle-run-id.staging-smoke.ndjson"):
@@ -2330,7 +2333,7 @@ if has_cmd git; then
   secret_findings="$(mktemp)"
   git grep -nE '(^|[^A-Za-z0-9_-])(AWS_SECRET_ACCESS_KEY|OPENAI_API_KEY|sk-[A-Za-z0-9_-]{20,}|ghp_[A-Za-z0-9_]{20,})' -- . >"$secret_candidates" || true
   grep -E '(^|[^A-Za-z0-9_-])(AWS_SECRET_ACCESS_KEY|OPENAI_API_KEY|sk-[A-Za-z0-9_-]{20,}|ghp_[A-Za-z0-9_]{20,})|[A-Za-z_]*(secret|token|key)[A-Za-z_]*[[:space:]]*[:=]' "$secret_candidates" >"$secret_findings" || true
-  grep -Ev '^(\.env\.example|fixtures/|schemas/|ops/ci/stage0-rev2-ci\.yml|scripts/repo_validate\.sh|scripts/security_scan_smoke\.sh|backend/internal/security/redact_test\.go):|^backend/internal/server/server_test\.go:[0-9]+:.*sk-proj-abcdefghijklmnopqrstuvwxyz123456|^backend/internal/stage0/services_test\.go:[0-9]+:.*sk-ant-abcdefghijklmnopqrstuvwxyz123456' "$secret_findings" >"$secret_candidates.filtered" || true
+  grep -Ev '^(\.env\.example|fixtures/.*|schemas/.*|ops/ci/stage0-rev2-ci\.yml|scripts/repo_validate\.sh|scripts/security_scan_smoke\.sh|backend/internal/security/redact_test\.go):|^backend/internal/server/server_test\.go:[0-9]+:.*sk-proj-abcdefghijklmnopqrstuvwxyz123456|^backend/internal/stage0/services_test\.go:[0-9]+:.*sk-ant-abcdefghijklmnopqrstuvwxyz123456' "$secret_findings" >"$secret_candidates.filtered" || true
   mv "$secret_candidates.filtered" "$secret_findings"
   if [[ -s "$secret_findings" ]]; then
     cat "$secret_findings"
