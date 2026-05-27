@@ -755,6 +755,23 @@ RUNTIME_PASS_EVIDENCE_FILES = {
     ],
 }
 
+PARTIAL_RUNTIME_PASS_EVIDENCE_ALLOWLIST = {
+    "ops/evidence/staging/20260527T1215Z-backend-worker-crawler-metrics.json",
+    "ops/evidence/staging/20260527T1815Z-observability-telemetry.json",
+    "ops/evidence/staging/20260527T1830Z-observability-runtime.json",
+    "ops/evidence/staging/20260527T1000Z-support-retry-abuse.json",
+    "ops/evidence/staging/20260526T2330Z-brief-upload-confirmation.json",
+    "ops/evidence/staging/20260527T1100Z-crawler-governance-runtime.json",
+    "ops/evidence/staging/20260527T1515Z-auth-rbac-tenant-audit.json",
+    "ops/evidence/staging/20260527T1900Z-eval-qa-safety.json",
+    "ops/evidence/staging/20260527T2015Z-quota-rate-limit-spend-cap.json",
+    "ops/evidence/staging/20260527T2130Z-object-storage-signed-url.json",
+    "ops/evidence/production/20260527T1330Z-abuse-throttle-hold.json",
+    "ops/evidence/production/20260527T1430Z-activation-review-audit.json",
+    "ops/evidence/production/20260527T1600Z-skill-release-eval-canary.json",
+    "ops/evidence/production/20260527T1700Z-security-launch-checks.json",
+}
+
 RUNTIME_SPLIT_PASS_REQUIREMENTS = {
     ("private_beta_staging", "staging_object_storage_signed_downloads"): {
         "subitems": {
@@ -3056,6 +3073,22 @@ def validate_gate_decision(data: dict[str, Any]) -> None:
         decision_active_conditions,
         f"{gate} gate_decision.active_do_not_launch_conditions",
     )
+    unknown_decision_checks = set(decision_blocked_checks) - {
+        check["check_id"] for check in data["checks"]
+    }
+    unknown_decision_conditions = set(decision_active_conditions) - {
+        condition["condition_id"] for condition in data["do_not_launch_checks"]
+    }
+    require(
+        not unknown_decision_checks,
+        f"{gate} gate_decision.blocked_by_checks contains IDs outside checks.check_id: "
+        + json.dumps(sorted(unknown_decision_checks), ensure_ascii=False),
+    )
+    require(
+        not unknown_decision_conditions,
+        f"{gate} gate_decision.active_do_not_launch_conditions contains IDs outside do_not_launch_checks.condition_id: "
+        + json.dumps(sorted(unknown_decision_conditions), ensure_ascii=False),
+    )
     require(
         decision.get("status") == expected_status,
         f"{gate} gate_decision.status must be {expected_status!r} based on computed blockers",
@@ -3289,13 +3322,15 @@ def validate_pass_evidence_does_not_cite_blocked_runtime_artifacts(data: dict[st
             continue
         for path in sorted(concrete_evidence_paths(check["evidence_ref"])):
             evidence = load_json_if_path(path)
-            if not isinstance(evidence, dict) or "release_gate_check_id" not in evidence:
+            if not isinstance(evidence, dict):
                 continue
             status = evidence.get("status")
-            require(
-                status in RUNTIME_PASS_EVIDENCE_STATUS_VALUES,
-                f"{gate}.{check_id} pass evidence cites non-passing runtime artifact {path} with status={status!r}",
-            )
+            is_runtime_evidence = path.startswith("ops/evidence/") or "release_gate_check_id" in evidence
+            if is_runtime_evidence:
+                require(
+                    status in RUNTIME_PASS_EVIDENCE_STATUS_VALUES,
+                    f"{gate}.{check_id} pass evidence cites non-passing runtime artifact {path} with status={status!r}",
+                )
             blocked_slots = evidence.get("blocked_slots")
             require(
                 not blocked_slots,
@@ -3306,6 +3341,13 @@ def validate_pass_evidence_does_not_cite_blocked_runtime_artifacts(data: dict[st
                 not missing_blockers,
                 f"{gate}.{check_id} pass evidence cites runtime artifact {path} with missing_blockers={missing_blockers!r}",
             )
+            preserved_blockers = runtime_evidence_preserved_blockers(evidence)
+            if path not in PARTIAL_RUNTIME_PASS_EVIDENCE_ALLOWLIST:
+                require(
+                    not preserved_blockers,
+                    f"{gate}.{check_id} pass evidence cites blocker-preserving runtime artifact {path}: "
+                    + json.dumps(preserved_blockers, ensure_ascii=False),
+                )
 
 
 def runtime_evidence_preserved_blockers(evidence: dict[str, Any]) -> list[str]:
