@@ -1076,6 +1076,16 @@ RELEASE_GATE_AGGREGATE_REQUIREMENTS = {
     },
 }
 
+RELEASE_GATE_AGGREGATE_ITEMS = {
+    gate: next(iter(requirements))
+    for gate, requirements in RELEASE_GATE_AGGREGATE_REQUIREMENTS.items()
+}
+
+RELEASE_GATE_AGGREGATE_GUARD_CHECKS = {
+    gate: set().union(*requirements.values())
+    for gate, requirements in RELEASE_GATE_AGGREGATE_REQUIREMENTS.items()
+}
+
 RELEASE_GATE_CHECK_BLOCKING_CONDITIONS = {
     "local_alpha": {
         "workflow_fixture_coverage": {"generic_workflow_only"},
@@ -2275,6 +2285,14 @@ def gate_allows_checklist_completion(data: dict[str, Any]) -> bool:
     )
 
 
+def gate_decision_status(data: dict[str, Any]) -> str:
+    decision = data.get("gate_decision")
+    require(isinstance(decision, dict), f"{data['gate']} release evidence missing gate_decision")
+    status = decision.get("status")
+    require(isinstance(status, str), f"{data['gate']} gate_decision.status must be a string")
+    return status
+
+
 def gate_blockers(data: dict[str, Any]) -> dict[str, list[str]]:
     return {
         "blocked_or_failing_checks": [
@@ -2906,6 +2924,8 @@ def validate_aggregate_runtime_checklist_items(
             f"{gate} aggregate runtime checklist item is missing: {aggregate_item}",
         )
         missing_subitems = required_subitems - checked_lines
+        decision_status = gate_decision_status(data)
+        gate_ready = gate_allows_checklist_completion(data)
         if aggregate_item in checked_lines:
             require(
                 not missing_subitems,
@@ -2913,13 +2933,17 @@ def validate_aggregate_runtime_checklist_items(
                 + json.dumps(sorted(missing_subitems), ensure_ascii=False),
             )
             require(
-                gate_allows_checklist_completion(data),
+                gate_ready,
                 f"{gate} aggregate runtime item is closed but release gate evidence still has blockers: "
                 + json.dumps(gate_blockers(data), ensure_ascii=False, sort_keys=True),
             )
+            require(
+                decision_status == "go",
+                f"{gate} aggregate runtime item is closed but gate_decision.status is {decision_status!r}",
+            )
         else:
             require(
-                missing_subitems or not gate_allows_checklist_completion(data),
+                missing_subitems or not gate_ready,
                 f"{gate} aggregate runtime item remains open after concrete subitems and gate evidence allow closure",
             )
 
@@ -3037,15 +3061,33 @@ def validate_release_gate_checklist_decision_alignment(
         )
         require(gate in evidence, f"missing release gate evidence for {gate}")
         decision_status = evidence[gate]["gate_decision"]["status"]
+        aggregate_item = RELEASE_GATE_AGGREGATE_ITEMS[gate]
+        aggregate_subitems = RELEASE_GATE_AGGREGATE_GUARD_CHECKS[gate]
+        aggregate_missing_subitems = sorted(aggregate_subitems - checked_lines)
         if item in checked_lines:
             require(
                 decision_status == "go",
                 f"blueprint marks {item!r} complete but {gate} gate_decision.status is {decision_status!r}",
             )
+            require(
+                aggregate_item in checked_lines,
+                f"blueprint marks {item!r} complete before aggregate runtime checklist item is closed: {aggregate_item}",
+            )
+            require(
+                not aggregate_missing_subitems,
+                f"blueprint marks {item!r} complete before concrete aggregate runtime subitems are closed: "
+                + json.dumps(aggregate_missing_subitems, ensure_ascii=False),
+            )
         else:
             require(
                 decision_status == "no_go",
                 f"{gate} gate_decision.status cannot be {decision_status!r} while blueprint gate item remains open: {item}",
+            )
+            require(
+                aggregate_item in unchecked_lines
+                or aggregate_missing_subitems
+                or not gate_allows_checklist_completion(evidence[gate]),
+                f"{gate} gate item remains open even though aggregate runtime checklist and gate evidence allow closure",
             )
 
     global_state_count = int(GLOBAL_DO_NOT_LAUNCH_CHECKLIST_ITEM in checked_lines) + int(
@@ -6492,6 +6534,8 @@ def validate_launch_readiness_split_contracts() -> None:
         "one generic local smoke artifact or directory-level reference cannot close the aggregate Local Alpha runtime check",
         "Local backup/restore, load, observability, or smoke evidence under `ops/evidence/backup-restore/`, `ops/evidence/observability/`, or other non-staging/non-production paths cannot close Private Beta/Staging or Production launch gates",
         "staging gates require `environment=staging` evidence under `ops/evidence/staging/`, and production gates require `environment=production` evidence under `ops/evidence/production/`",
+        "A top-level gate checklist item may close only after its aggregate runtime checklist item is closed",
+        "if those are all true, the gate checklist item must be updated in the same change",
         "Local Alpha remains open until four workflow API/Playwright smokes",
         "Production Launch cannot clear `ci_staging_gates_not_passed` or pass backup/rollback/post-deploy evidence until both",
         "Production backup/rollback/post-deploy pass evidence must cite both upstream gate fixtures",
