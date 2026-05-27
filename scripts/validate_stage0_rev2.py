@@ -395,6 +395,13 @@ RELEASE_GATE_EVIDENCE_FILES = {
     "production_launch": FIXTURE_DIR / "release_gate_evidence.production_launch.json",
 }
 
+RELEASE_GATE_EVIDENCE_IDS = {
+    "local_alpha": "gate_local_alpha_fixture_baseline",
+    "ci": "gate_ci_draft_blocked",
+    "private_beta_staging": "gate_private_beta_staging_blocked",
+    "production_launch": "gate_production_launch_blocked",
+}
+
 RELEASE_GATE_BACKFILL_CHECKED_ITEMS = {
     "Backfill Local Alpha release gate fixture evidence: workflow/eval/crawler/schema/service/runtime-stack checks pass in `fixtures/stage0/rev2/release_gate_evidence.local_alpha.json`。",
     "Backfill CI draft/no-go evidence: ops CI draft coverage passes while installed `.github/workflows` runtime remains blocked in `fixtures/stage0/rev2/release_gate_evidence.ci.json`。",
@@ -2292,6 +2299,14 @@ def release_evidence_by_gate() -> dict[str, dict[str, Any]]:
             data["gate"] == expected_gate,
             f"{path.relative_to(ROOT)} gate must be {expected_gate!r}",
         )
+        require(
+            data.get("evidence_id") == RELEASE_GATE_EVIDENCE_IDS[expected_gate],
+            f"{path.relative_to(ROOT)} evidence_id must be {RELEASE_GATE_EVIDENCE_IDS[expected_gate]!r}",
+        )
+        require(
+            expected_gate not in evidence,
+            f"duplicate release gate evidence for {expected_gate}: {path.relative_to(ROOT)}",
+        )
         evidence[data["gate"]] = data
     return evidence
 
@@ -2463,6 +2478,14 @@ def do_not_launch_by_id(data: dict[str, Any]) -> dict[str, dict[str, Any]]:
 def validate_release_gate_basics(data: dict[str, Any]) -> tuple[dict[str, dict[str, Any]], dict[str, dict[str, Any]]]:
     gate = data["gate"]
     require(gate in RELEASE_GATE_REQUIRED_CHECKS, f"unexpected release gate evidence target: {gate}")
+    require(
+        data.get("schema_version") == "stage0.rev2",
+        f"{gate} release evidence schema_version must be stage0.rev2",
+    )
+    require(
+        data.get("evidence_id") == RELEASE_GATE_EVIDENCE_IDS[gate],
+        f"{gate} release evidence_id must be {RELEASE_GATE_EVIDENCE_IDS[gate]!r}",
+    )
     require(
         data["provenance"]["created_by_lane"] == "lane6",
         f"{gate} release evidence must be lane6-owned",
@@ -6697,6 +6720,16 @@ def validate_launch_readiness_split_contracts() -> None:
         "Do-Not-Launch Conditions 全部为 false。` also requires all four release gate `gate_decision.status` values to be `go`",
         "a global close with any fixture-level `no_go` decision is invalid",
         "Release gate fixture IDs are closed-world",
+        "Release gate fixture files are closed-world",
+        "Release gate fixture identities are closed-world",
+        "gate_local_alpha_fixture_baseline",
+        "gate_ci_draft_blocked",
+        "gate_private_beta_staging_blocked",
+        "gate_production_launch_blocked",
+        "copied, renamed, or extra release-gate fixtures cannot contribute to gate closure",
+        "`schema_version` must remain `stage0.rev2`",
+        "`gate` must match the filename's canonical gate",
+        "`provenance.created_by_lane` must remain `lane6`",
     ]:
         require(token in text, f"blueprint release gate closure policy missing token: {token}")
 
