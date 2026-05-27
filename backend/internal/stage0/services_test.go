@@ -891,7 +891,7 @@ func TestServiceRecordExportArtifactGeneratesAndStoresThumbnail(t *testing.T) {
 	}
 }
 
-func TestServiceGetExportSignsPersistedObjectKey(t *testing.T) {
+func TestServiceGetExportSignsPersistedObjectKeyThroughBackendSigner(t *testing.T) {
 	now := time.Date(2026, 5, 26, 12, 0, 0, 0, time.UTC)
 	db := &fakeDB{
 		queryRows: []rowSet{{
@@ -914,24 +914,29 @@ func TestServiceGetExportSignsPersistedObjectKey(t *testing.T) {
 			}},
 		}},
 	}
-	objects, err := objectstore.NewLocalStore(t.TempDir(), "exports-test", "secret")
-	if err != nil {
-		t.Fatalf("NewLocalStore() error = %v", err)
-	}
-	service := NewService(NewRepository(db), objects)
+	objects := &recordingObjectStore{signedURL: "https://storage.example.test/direct-s3-url"}
+	var signerKey string
+	service := NewService(NewRepository(db), objects).
+		WithDownloadURLSigner(func(_ context.Context, _ string, key string, _ time.Duration) (string, error) {
+			signerKey = key
+			return "/api/v1/objects/download?key=tenants%2Ftenant_1%2Fexports%2Fcustom-export-object.zip&expires=1&sig=server", nil
+		})
 
 	export, err := service.GetExport(context.Background(), "tenant_1", "export_1")
 	if err != nil {
 		t.Fatalf("GetExport() error = %v", err)
-	}
-	if export.DownloadURL == "" {
-		t.Fatal("DownloadURL should be signed for ready object metadata")
 	}
 	if !strings.Contains(export.DownloadURL, "custom-export-object.zip") {
 		t.Fatalf("DownloadURL = %q, want persisted object key", export.DownloadURL)
 	}
 	if strings.Contains(export.DownloadURL, "exports%2Fexport_1.zip") {
 		t.Fatalf("DownloadURL = %q, should not use reconstructed export id path", export.DownloadURL)
+	}
+	if signerKey != "tenants/tenant_1/exports/custom-export-object.zip" {
+		t.Fatalf("signer key = %q, want persisted object key", signerKey)
+	}
+	if objects.signKey != "" {
+		t.Fatalf("object store SignGetURL should not be used for export downloads: %q", objects.signKey)
 	}
 }
 
@@ -976,7 +981,7 @@ func TestServiceGetExportDoesNotSignExpiredObject(t *testing.T) {
 	}
 }
 
-func TestServiceGetExportSignsWithConfiguredTTL(t *testing.T) {
+func TestServiceGetExportRequiresBackendMediatedDownloadSigner(t *testing.T) {
 	now := time.Date(2026, 5, 26, 12, 0, 0, 0, time.UTC)
 	db := &fakeDB{
 		queryRows: []rowSet{{
@@ -1006,14 +1011,11 @@ func TestServiceGetExportSignsWithConfiguredTTL(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetExport() error = %v", err)
 	}
-	if export.DownloadURL != objects.signedURL {
-		t.Fatalf("DownloadURL = %q, want signed URL", export.DownloadURL)
+	if export.DownloadURL != "" {
+		t.Fatalf("DownloadURL = %q, want empty without backend signer", export.DownloadURL)
 	}
-	if objects.signTTL != 2*time.Minute {
-		t.Fatalf("SignGetURL ttl = %s, want configured 2m", objects.signTTL)
-	}
-	if objects.signTenantID != "tenant_1" || objects.signKey != "tenants/tenant_1/exports/export_1.zip" {
-		t.Fatalf("SignGetURL tenant/key = %q/%q", objects.signTenantID, objects.signKey)
+	if objects.signKey != "" || objects.signTenantID != "" || objects.signTTL != 0 {
+		t.Fatalf("object store SignGetURL should not be used without backend signer: tenant/key/ttl = %q/%q/%s", objects.signTenantID, objects.signKey, objects.signTTL)
 	}
 }
 

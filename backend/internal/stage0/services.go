@@ -3304,16 +3304,12 @@ func (s Service) GetExport(ctx context.Context, tenantID, exportID string) (Expo
 		return Export{}, err
 	}
 	now := time.Now().UTC()
-	if s.objects != nil && export.ObjectID != nil && export.Object != nil && objectDownloadable(*export.Object, now) {
+	if s.objects != nil && s.downloadSigner != nil && export.ObjectID != nil && export.Object != nil && objectDownloadable(*export.Object, now) {
 		objectKey := "exports/" + export.ID + "." + export.Format
 		if strings.TrimSpace(export.Object.ObjectKey) != "" {
 			objectKey = export.Object.ObjectKey
 		}
-		signer := s.objects.SignGetURL
-		if s.downloadSigner != nil {
-			signer = s.downloadSigner
-		}
-		if signed, err := signer(ctx, tenantID, objectKey, downloadTTLForObject(*export.Object, now, s.downloadURLTTL)); err == nil {
+		if signed, err := s.downloadSigner(ctx, tenantID, objectKey, downloadTTLForObject(*export.Object, now, s.downloadURLTTL)); err == nil {
 			export.DownloadURL = signed
 		}
 	}
