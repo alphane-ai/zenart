@@ -2294,6 +2294,15 @@ successful_package_counts AS (
 	WHERE tenant_id = $1
 	  AND created_at >= $2
 	  AND event_name = 'export_completed'
+),
+package_asset_counts AS (
+	SELECT
+		COUNT(DISTINCT p.id) AS package_count,
+		COUNT(pi.id) AS package_assets
+	FROM packages p
+	LEFT JOIN package_items pi ON pi.tenant_id = p.tenant_id AND pi.package_id = p.id
+	WHERE p.tenant_id = $1
+	  AND p.created_at >= $2
 )
 SELECT metric_name, source_events, required_dimensions, go_no_go_signal, window_name, metric_value, dimensions
 FROM (
@@ -2388,6 +2397,16 @@ FROM (
 	FROM event_counts
 	UNION ALL
 	SELECT 10,
+	       'average_assets_per_package',
+	       ARRAY['packages','package_items']::text[],
+	       ARRAY['tenant_id','package_id','item_type']::text[],
+	       true,
+	       'weekly',
+	       CASE WHEN package_count = 0 THEN 0 ELSE package_assets::numeric / NULLIF(package_count, 0) END,
+	       jsonb_build_object('packages', package_count, 'package_assets', package_assets)
+	FROM package_asset_counts
+	UNION ALL
+	SELECT 11,
 	       'export_object_cleanup',
 	       ARRAY['export_expired','object_orphaned','object_deleted','export_object_cleanup_run']::text[],
 	       ARRAY['tenant_id','project_id','asset_type','retention_state']::text[],
@@ -2397,7 +2416,7 @@ FROM (
 	       jsonb_build_object('export_expired', export_expired, 'object_orphaned', object_orphaned, 'object_deleted', object_deleted, 'cleanup_runs', export_object_cleanup_run)
 	FROM event_counts
 	UNION ALL
-	SELECT 11,
+	SELECT 12,
 	       'weekly_return',
 	       ARRAY['analytics_events']::text[],
 	       ARRAY['tenant_id','user_id','created_at']::text[],
@@ -2407,7 +2426,7 @@ FROM (
 	       jsonb_build_object('current_active_users', current_active_users, 'previous_active_users', previous_active_users, 'returning_users', returning_users)
 	FROM weekly_return_counts
 	UNION ALL
-	SELECT 12,
+	SELECT 13,
 	       'cost_per_successful_package',
 	       ARRAY['provider_usage_logs','export_completed']::text[],
 	       ARRAY['tenant_id','cost_cents','usage_units','package_id']::text[],
