@@ -552,8 +552,9 @@ RELEASE_GATE_BACKFILL_CHECKED_ITEMS = {
 
 README_LAUNCH_READINESS_CHECKLIST_ITEM = (
     "README launch-readiness snapshot guard 通过：README states Local Alpha is go, keeps CI、Private Beta/Staging、"
-    "Production Launch、and Do-Not-Launch no-go with exact missing runtime artifact paths, and validator rejects "
-    "README prose that implies those gates are launch-ready before release fixtures compute `go`。"
+    "Production Launch、and Do-Not-Launch no-go with exact blocked check IDs, active Do-Not-Launch condition IDs, "
+    "missing/present runtime artifact paths, and validator rejects README prose that implies those gates are "
+    "launch-ready before release fixtures compute `go`。"
 )
 
 RUNTIME_PASS_EXACT_FILE_GUARD_CHECKLIST_ITEM = (
@@ -588,13 +589,21 @@ README_GATE_SNAPSHOT_REQUIREMENTS = {
     "Private Beta/Staging Gate": {
         "expected_status": "no-go",
         "tokens": [
+            "staging_object_storage_signed_downloads",
+            "object_storage_signed_retention_runtime_missing",
+            "ops/evidence/staging/20260527T2130Z-object-storage-signed-url.json",
             "ops/evidence/staging/object-storage-retention-cleanup.json",
         ],
     },
     "Production Launch Gate": {
         "expected_status": "no-go",
         "tokens": [
-            "CI and Private Beta/Staging gate fixtures compute `go`",
+            "production_backup_rollback_incident",
+            "backup_restore_rollback_smoke_missing",
+            "production_deploy_rollback_smoke_missing",
+            "ci_staging_gates_not_passed",
+            "fixtures/stage0/rev2/release_gate_evidence.ci.json gate_decision.status=no_go",
+            "fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json gate_decision.status=no_go",
             "ops/evidence/production/backup-restore.json",
             "ops/evidence/production/rollback-incident-post-deploy-smoke.json",
         ],
@@ -604,6 +613,12 @@ README_GATE_SNAPSHOT_REQUIREMENTS = {
         "tokens": [
             "all four release gate fixtures compute `go`",
             "Local Alpha, CI, Private Beta/Staging, and Production Launch gates",
+            "fixtures/stage0/rev2/release_gate_evidence.ci.json gate_decision.status=no_go",
+            "fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json gate_decision.status=no_go",
+            "fixtures/stage0/rev2/release_gate_evidence.production_launch.json gate_decision.status=no_go",
+            "ci_workflow_not_installed",
+            "object_storage_signed_retention_runtime_missing",
+            "ci_staging_gates_not_passed",
         ],
     },
 }
