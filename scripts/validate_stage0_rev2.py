@@ -47,6 +47,12 @@ STAGING_OBSERVABILITY_TELEMETRY_EVIDENCE = (
 STAGING_OBSERVABILITY_RUNTIME_EVIDENCE = (
     ROOT / "ops" / "evidence" / "staging" / "20260527T1830Z-observability-runtime.json"
 )
+STAGING_OBSERVABILITY_RUNTIME_CHECKLIST_ITEM = (
+    "Private Beta/Staging observability runtime evidence 通过：staging evidence proves "
+    "request-id、structured logs、OpenTelemetry traces、backend/worker/crawler metrics、dashboard import、"
+    "alert routes in `ops/evidence/staging/20260527T1830Z-observability-runtime.json` while "
+    "backup/restore、load、post-deploy smoke remain open。"
+)
 STAGING_EVAL_QA_SAFETY_EVIDENCE = (
     ROOT / "ops" / "evidence" / "staging" / "20260527T1900Z-eval-qa-safety.json"
 )
@@ -656,6 +662,10 @@ CHECK_LEVEL_EVIDENCE_TO_CHECKLIST_ITEM = {
     ("production_launch", "production_security_launch_checks"): "Production security launch-check runtime/deployment evidence 通过。",
 }
 
+PARTIAL_RUNTIME_ITEMS_THAT_DO_NOT_PASS_RELEASE_CHECKS = {
+    STAGING_OBSERVABILITY_RUNTIME_CHECKLIST_ITEM,
+}
+
 CHECK_LEVEL_EVIDENCE_PRESERVED_BLOCKERS = {
     ("private_beta_staging", "staging_auth_rbac_tenant_audit"): {
         "staging_object_storage_signed_downloads",
@@ -852,6 +862,9 @@ PRIVATE_BETA_STAGING_RUNTIME_OPEN_CHECK_ITEMS = {
         "staging_crawler_approval_provenance",
     },
     "Private Beta/Staging observability/backup/load runtime evidence 通过。": {
+        "staging_observability_backup_load",
+    },
+    STAGING_OBSERVABILITY_RUNTIME_CHECKLIST_ITEM: {
         "staging_observability_backup_load",
     },
     "Private Beta/Staging backup/restore runtime evidence 通过：staging evidence proves Postgres restore and object restore entries required by `staging_observability_backup_load` preflight。": {
@@ -1425,6 +1438,7 @@ REQUIRED_OPEN_ITEMS |= (
         "Private Beta/Staging quota/rate-limit/spend-cap runtime evidence 通过。",
         "Private Beta/Staging support/retry/abuse runtime evidence 通过。",
         "staging backend/worker/crawler metrics runtime evidence 通过。",
+        STAGING_OBSERVABILITY_RUNTIME_CHECKLIST_ITEM,
         "Production skill release/eval/canary runtime/deployment evidence 通过。",
         "Production activation review/audit runtime/deployment evidence 通过。",
         "Production abuse throttle/hold runtime/deployment evidence 通过。",
@@ -1434,6 +1448,7 @@ REQUIRED_OPEN_ITEMS |= (
 REQUIRED_OPEN_ITEMS |= set(LOCAL_ALPHA_RELEASE_GATE_WORKFLOW_RUNTIME_OPEN_CHECK_ITEMS)
 REQUIRED_OPEN_ITEMS -= {
     "staging backend/worker/crawler metrics runtime evidence 通过。",
+    STAGING_OBSERVABILITY_RUNTIME_CHECKLIST_ITEM,
     "Private Beta/Staging eval/QA/safety enforcement runtime evidence 通过。",
     "Private Beta/Staging quota/rate-limit/spend-cap runtime evidence 通过。",
     "Production skill release/eval/canary runtime/deployment evidence 通过。",
@@ -4470,6 +4485,16 @@ def validate_staging_observability_telemetry_evidence() -> None:
 
 def validate_staging_observability_runtime_evidence() -> None:
     evidence = load_json(STAGING_OBSERVABILITY_RUNTIME_EVIDENCE)
+    blueprint_text = BLUEPRINT.read_text(encoding="utf-8")
+    blueprint_checked = checked_items(blueprint_text)
+    private_beta = load_json(RELEASE_GATE_EVIDENCE_FILES["private_beta_staging"])
+    private_beta_checks = checks_by_id(private_beta)
+    private_beta_conditions = do_not_launch_by_id(private_beta)
+
+    require(
+        STAGING_OBSERVABILITY_RUNTIME_CHECKLIST_ITEM in blueprint_checked,
+        "blueprint must close only the observability-only staging runtime subitem when exact evidence exists",
+    )
     require(
         evidence["schema_version"] == "stage0.rev2.staging_observability_runtime",
         "staging observability runtime evidence schema mismatch",
@@ -4519,6 +4544,10 @@ def validate_staging_observability_runtime_evidence() -> None:
     require(signals["alert_routes"].get("alert_rule_url"), "alert signal must cite alert rule url")
     gate_impact = evidence["gate_impact"]
     require(
+        gate_impact["check_level_item"] == "staging observability runtime evidence through request-id/logs/traces/metrics/dashboards/alerts.",
+        "observability runtime evidence must name only the observability subitem it can close",
+    )
+    require(
         gate_impact["can_clear_observability_only"] is True,
         "observability runtime evidence must explicitly allow observability-only closure",
     )
@@ -4537,6 +4566,14 @@ def validate_staging_observability_runtime_evidence() -> None:
     require(
         gate_impact["preserved_do_not_launch_condition_id"] == "staging_observability_restore_load_missing",
         "observability runtime evidence must preserve the restore/load Do-Not-Launch condition",
+    )
+    require(
+        private_beta_checks["staging_observability_backup_load"]["status"] == "blocked",
+        "observability-only evidence must not pass the combined staging observability/backup/load release-gate check",
+    )
+    require(
+        private_beta_conditions["staging_observability_restore_load_missing"]["is_present"] is True,
+        "observability-only evidence must preserve the staging restore/load Do-Not-Launch condition",
     )
     for blocker in [
         "staging backup/restore runtime evidence",
@@ -5231,7 +5268,7 @@ def validate_release_gate_evidence() -> None:
     closed_private_beta_runtime_checks = {
         check_id
         for item, check_ids in PRIVATE_BETA_STAGING_RUNTIME_OPEN_CHECK_ITEMS.items()
-        if item in blueprint_checked
+        if item in blueprint_checked and item not in PARTIAL_RUNTIME_ITEMS_THAT_DO_NOT_PASS_RELEASE_CHECKS
         for check_id in check_ids
     }
     for check_id in RELEASE_GATE_REQUIRED_CHECKS["private_beta_staging"]:
@@ -6228,6 +6265,7 @@ def validate_launch_readiness_split_contracts() -> None:
             "staging structured JSON logs runtime evidence 通过。",
             "staging OpenTelemetry traces runtime evidence 通过。",
             "staging backend/worker/crawler metrics runtime evidence 通过。",
+            STAGING_OBSERVABILITY_RUNTIME_CHECKLIST_ITEM,
             "Production skill release/eval/canary runtime/deployment evidence 通过。",
             "Production activation review/audit runtime/deployment evidence 通过。",
             "Production abuse throttle/hold runtime/deployment evidence 通过。",
@@ -6282,6 +6320,7 @@ def validate_launch_readiness_split_contracts() -> None:
         "Private Beta/Staging object storage signed download/retention cannot close from local object storage tests",
         "Private Beta/Staging legal/support visibility cannot close from web source files or policy text alone",
         "Production check-level runtime subitems must remain open until each matching release gate check has production evidence",
+        "Private Beta/Staging observability runtime evidence may close only its observability-only subitem",
         "Production provider-or-comp-only cannot close from provider abstractions",
         "Production paid billing lifecycle cannot close from mock checkout",
         "Production backup/rollback/incident readiness cannot close from runbooks or release templates alone",
