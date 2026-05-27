@@ -547,6 +547,12 @@ if split.get("signed_url_evidence") != "ops/evidence/staging/20260527T2130Z-obje
     raise SystemExit("object-storage retention cleanup must cite exact signed URL split evidence")
 if split.get("signed_url_ready") is not True:
     raise SystemExit("object-storage retention cleanup dry-run must still verify the signed URL split evidence")
+if split.get("signed_url_release_sha") != "d3b1107c33dc40b8936f28549e06553fbd7b104a":
+    raise SystemExit("object-storage retention cleanup dry-run must read the signed URL release SHA")
+if split.get("release_sha_matches_signed_url") is not False:
+    raise SystemExit("object-storage retention cleanup dry-run without RELEASE_SHA must not match signed URL release binding")
+if split.get("retention_cleanup_runtime_ready") is not False:
+    raise SystemExit("object-storage retention cleanup dry-run must not claim retention cleanup runtime readiness")
 if split.get("retention_cleanup_ready") is not False:
     raise SystemExit("object-storage retention cleanup dry-run must not claim retention cleanup readiness")
 gate_impact = report.get("gate_impact", {})
@@ -1701,6 +1707,12 @@ if gate.get("can_clear_release_gate_check") is not False:
 split = report.get("split_evidence", {})
 if split.get("signed_url_ready") is not True:
     raise SystemExit("object-storage retention cleanup dry-run must recognize existing signed URL split evidence")
+if split.get("signed_url_release_sha") != "d3b1107c33dc40b8936f28549e06553fbd7b104a":
+    raise SystemExit("object-storage retention cleanup dry-run must carry signed URL release SHA")
+if split.get("release_sha_matches_signed_url") is not False:
+    raise SystemExit("object-storage retention cleanup dry-run without release SHA must preserve release binding blocker")
+if split.get("retention_cleanup_runtime_ready") is not False:
+    raise SystemExit("object-storage retention cleanup dry-run must keep retention cleanup runtime unready")
 if split.get("retention_cleanup_ready") is not False:
     raise SystemExit("object-storage retention cleanup dry-run must keep retention cleanup unready")
 if gate.get("remaining_release_gate_blockers_after_pass") != ["staging_object_storage_signed_downloads"]:

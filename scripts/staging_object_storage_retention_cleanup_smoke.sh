@@ -172,24 +172,17 @@ blocked_or_failed = [
     for item in results
     if item["status"] != "passed"
 ]
-all_passed = required <= passed and not blocked_or_failed
+runtime_checks_passed = required <= passed and not blocked_or_failed
 canonical_report_path = Path("ops/evidence/staging/object-storage-retention-cleanup.json")
 canonical_results_path = Path("ops/evidence/staging/object-storage-retention-cleanup.ndjson")
-if not all_passed and report_path == canonical_report_path:
-    blocked_report_path = report_path.with_name("object-storage-retention-cleanup.blocked.json")
-    blocked_results_path = results_path.with_name("object-storage-retention-cleanup.blocked.ndjson")
-    if results_path.exists():
-        blocked_results_path.write_text(results_path.read_text(encoding="utf-8"), encoding="utf-8")
-        if results_path == canonical_results_path:
-            results_path.unlink()
-    report_path = blocked_report_path
-    results_path = blocked_results_path
 signed_url_path = Path(signed_url_evidence) if signed_url_evidence else None
 signed_url_ready = False
 signed_url_reason = "missing_signed_url_evidence_path"
+signed_url_release_sha = ""
 if signed_url_path is not None and signed_url_path.exists() and signed_url_path.is_file():
     try:
         signed_url = json.loads(signed_url_path.read_text(encoding="utf-8"))
+        signed_url_release_sha = str(signed_url.get("release_sha", "")).strip()
         signed_url_ready = (
             signed_url.get("environment") == "staging"
             and signed_url.get("kind") == "object_storage_signed_url"
@@ -202,7 +195,26 @@ if signed_url_path is not None and signed_url_path.exists() and signed_url_path.
 elif signed_url_path is not None:
     signed_url_reason = "signed_url_evidence_missing"
 
-can_clear_release_gate_check = all_passed and signed_url_ready
+release_sha_matches_signed_url = bool(release_sha) and signed_url_release_sha == release_sha
+release_binding_blockers = []
+if runtime_checks_passed and not release_sha:
+    release_binding_blockers.append("release_sha_missing")
+elif runtime_checks_passed and not release_sha_matches_signed_url:
+    release_binding_blockers.append("release_sha_mismatch_with_signed_url_evidence")
+
+blocked_or_failed = blocked_or_failed + release_binding_blockers
+all_passed = runtime_checks_passed and signed_url_ready and release_sha_matches_signed_url
+can_clear_release_gate_check = all_passed
+
+if not all_passed and report_path == canonical_report_path:
+    blocked_report_path = report_path.with_name("object-storage-retention-cleanup.blocked.json")
+    blocked_results_path = results_path.with_name("object-storage-retention-cleanup.blocked.ndjson")
+    if results_path.exists():
+        blocked_results_path.write_text(results_path.read_text(encoding="utf-8"), encoding="utf-8")
+        if results_path == canonical_results_path:
+            results_path.unlink()
+    report_path = blocked_report_path
+    results_path = blocked_results_path
 
 coverage = []
 for area, tokens in {
@@ -246,6 +258,9 @@ report = {
         "signed_url_evidence": signed_url_evidence,
         "signed_url_ready": signed_url_ready,
         "signed_url_reason": signed_url_reason,
+        "signed_url_release_sha": signed_url_release_sha,
+        "release_sha_matches_signed_url": release_sha_matches_signed_url,
+        "retention_cleanup_runtime_ready": runtime_checks_passed,
         "retention_cleanup_ready": all_passed,
     },
     "required_checks": sorted(required),
