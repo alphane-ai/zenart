@@ -1043,7 +1043,6 @@ paths:
         - $ref: "#/components/parameters/SubjectVersionFilter"
         - $ref: "#/components/parameters/CompletedAfterFilter"
         - $ref: "#/components/parameters/EvalLatestOnlyFilter"
-        - $ref: "#/components/parameters/Search"
       responses:
         "200":
           description: Stored eval result page for skill, prompt, spec, and workflow release gates.

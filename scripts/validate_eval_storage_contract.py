@@ -811,9 +811,16 @@ def validate_read_and_openapi_contract(contract: dict[str, Any]) -> None:
     require("items:" in page and '$ref: "#/components/schemas/EvalResult"' in page, "EvalResultPage must contain EvalResult items")
 
     require(set(read["required_query_filters"]) == QUERY_FILTERS, "read contract query filters mismatch")
+    require(read["forbidden_query_filters"] == ["search"], "eval result read must explicitly forbid search")
+    require(read["free_text_search_allowed"] is False, "eval result read must not allow free-text search")
     require(set(api["required_parameters"]) == OPENAPI_PARAMETERS, "OpenAPI contract parameters mismatch")
     for parameter in OPENAPI_PARAMETERS:
         require(parameter in eval_path, f"OpenAPI /eval/results missing {parameter}")
+    require(
+        "#/components/parameters/Search" not in eval_path,
+        "OpenAPI /eval/results must not expose free-text Search",
+    )
+    require("search" not in eval_path.lower(), "OpenAPI /eval/results must not expose a search query")
     for token in STORAGE_COLUMNS | STORAGE_INDEXES | QUERY_FILTERS | IDEMPOTENCY_FIELDS | SUMMARY_PROJECTION_FIELDS | FIXTURE_RESULT_PROJECTION_FIELDS:
         require(token in result or token in eval_path, f"OpenAPI EvalResult storage contract missing {token}")
     require("EvalLatestOnlyFilter" in eval_path, "OpenAPI /eval/results must expose latest-only filter")

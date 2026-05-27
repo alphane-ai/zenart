@@ -332,6 +332,8 @@
         "cursor_token_format",
         "page_size_bounds",
         "required_query_filters",
+        "forbidden_query_filters",
+        "free_text_search_allowed",
         "admin_rbac_required",
         "tenant_filter_required",
         "latest_result_order",
@@ -400,6 +402,18 @@
               "latest_only"
             ]
           }
+        },
+        "forbidden_query_filters": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "const": "search"
+          }
+        },
+        "free_text_search_allowed": {
+          "const": false
         },
         "admin_rbac_required": {
           "const": true

@@ -290,6 +290,10 @@
       "completed_after",
       "latest_only"
     ],
+    "forbidden_query_filters": [
+      "search"
+    ],
+    "free_text_search_allowed": false,
     "admin_rbac_required": true,
     "tenant_filter_required": true,
     "latest_result_order": "completed_at_desc",
