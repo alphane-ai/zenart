@@ -169,7 +169,7 @@ failed_exports AS (
 export_failure_analytics AS (
 	INSERT INTO analytics_events(id, tenant_id, user_id, project_id, workflow_id, event_name, subject_type, subject_id, properties, created_at)
 	SELECT
-		'analytics_' || md5(failed_exports.tenant_id || ':' || failed_exports.id || ':export_failed:' || $3::text),
+		'analytics_' || md5(failed_exports.tenant_id || ':' || failed_exports.id || ':export_failed'),
 		failed_exports.tenant_id,
 		NULL,
 		failed_exports.project_id,
@@ -187,7 +187,8 @@ export_failure_analytics AS (
 		),
 		$3
 	FROM failed_exports
-	ON CONFLICT (id) DO NOTHING
+	ON CONFLICT (id) DO UPDATE
+	SET properties = analytics_events.properties || EXCLUDED.properties
 )
 SELECT count(*) FROM drained_tasks`,
 		workerVersion,

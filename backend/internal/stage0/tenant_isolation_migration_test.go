@@ -155,11 +155,17 @@ func TestDomainMigrationSeedsRuntimeSafetyPolicy(t *testing.T) {
 }
 
 func TestWorkflowAnalyticsTriggerMigrationCapturesCoreFunnelEvents(t *testing.T) {
-	data, err := os.ReadFile("../../migrations/0009_server_side_workflow_analytics_triggers.sql")
+	workflowData, err := os.ReadFile("../../migrations/0009_server_side_workflow_analytics_triggers.sql")
 	if err != nil {
 		t.Fatalf("read workflow analytics trigger migration: %v", err)
 	}
-	sql := string(data)
+	exportData, err := os.ReadFile("../../migrations/0010_export_status_analytics_triggers.sql")
+	if err != nil {
+		t.Fatalf("read export status analytics trigger migration: %v", err)
+	}
+	workflowSQL := string(workflowData)
+	exportSQL := string(exportData)
+	sql := workflowSQL + "\n" + exportSQL
 	for _, needle := range []string{
 		"projects_stage0_analytics_insert",
 		"candidate_sets_stage0_analytics_insert",
@@ -167,21 +173,51 @@ func TestWorkflowAnalyticsTriggerMigrationCapturesCoreFunnelEvents(t *testing.T)
 		"candidate_assets_stage0_analytics_insert",
 		"selected_directions_stage0_analytics_insert",
 		"package_items_stage0_analytics_insert",
+		"exports_stage0_status_analytics_update",
 		"'workflow_started'",
 		"'candidate_set_created'",
 		"'four_candidates_ready'",
 		"'direction_selected'",
 		"'package_item_added'",
+		"'export_failed'",
+		"stage0_export_status_analytics_event_name",
 		"candidate_count < 4",
 		"is_iteration",
+		"transition_source",
+		"has_error",
+		"has_manifest",
+		"has_delivery_metadata",
 		"backfilled",
 		"NOT EXISTS",
 		"HAVING COUNT(ca.id) >= 4",
 		"subject_type = 'candidate_set'",
+		"subject_type = 'export'",
 		"jsonb_build_object",
 	} {
 		if !strings.Contains(sql, needle) {
 			t.Fatalf("workflow analytics trigger migration missing %q", needle)
+		}
+	}
+	for _, needle := range []string{
+		"NEW.error IS NOT NULL",
+		"NEW.manifest IS NOT NULL",
+		"NEW.delivery_metadata IS NOT NULL",
+		"AFTER UPDATE OF status ON exports",
+		"COALESCE(OLD.status, '') IS DISTINCT FROM COALESCE(NEW.status, '')",
+		"WHERE NOT EXISTS",
+	} {
+		if !strings.Contains(exportSQL, needle) {
+			t.Fatalf("export status analytics migration missing %q", needle)
+		}
+	}
+	for _, forbidden := range []string{
+		"WHEN 'pending' THEN 'export_started'",
+		"WHEN 'ready' THEN 'export_completed'",
+		"exports_stage0_status_analytics_insert",
+		"FOR EACH ROW EXECUTE FUNCTION stage0_export_status_analytics();\n\nDROP TRIGGER IF EXISTS exports_stage0_status_analytics_update",
+	} {
+		if strings.Contains(exportSQL, forbidden) {
+			t.Fatalf("export status analytics migration should avoid duplicate app-level metric token %q", forbidden)
 		}
 	}
 	for _, forbidden := range []string{
@@ -189,6 +225,12 @@ func TestWorkflowAnalyticsTriggerMigrationCapturesCoreFunnelEvents(t *testing.T)
 		"chat_messages",
 		"body",
 		"rationale",
+		"NEW.error->",
+		"NEW.error #>",
+		"NEW.manifest->",
+		"NEW.delivery_metadata->",
+		"download_url",
+		"signed_url",
 	} {
 		if strings.Contains(sql, forbidden) {
 			t.Fatalf("workflow analytics trigger migration should not persist free-text payload token %q", forbidden)

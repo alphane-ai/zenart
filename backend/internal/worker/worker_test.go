@@ -115,6 +115,9 @@ func TestDrainOwnedFailsOnlyOwnedRunningTasks(t *testing.T) {
 	if !strings.Contains(db.query, "UPDATE exports e") || !strings.Contains(db.query, "'export_failed'") {
 		t.Fatalf("drain query must fail linked exports and emit analytics: %s", db.query)
 	}
+	if !strings.Contains(db.query, "md5(failed_exports.tenant_id || ':' || failed_exports.id || ':export_failed')") || !strings.Contains(db.query, "ON CONFLICT (id) DO UPDATE") {
+		t.Fatalf("drain query must enrich storage-triggered export failure analytics without duplicate events: %s", db.query)
+	}
 	if !strings.Contains(db.query, "drained_tasks.type = 'package_export_builder'") {
 		t.Fatalf("drain query must only fail package export tasks: %s", db.query)
 	}
