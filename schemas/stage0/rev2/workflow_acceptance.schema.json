@@ -17,6 +17,7 @@
     "required_safety_checks",
     "export_targets",
     "negative_fixture_links",
+    "contract_evidence",
     "api_smoke_contract",
     "playwright_happy_path_contract",
     "pass_thresholds",
@@ -275,6 +276,153 @@
               "fail"
             ]
           }
+        }
+      }
+    },
+    "contract_evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "eval_result_id",
+        "eval_suite_id",
+        "golden_fixture_id",
+        "golden_eval_status",
+        "trace_id",
+        "trace_contract_ref",
+        "required_trace_fields",
+        "required_pipeline_steps",
+        "export_contract",
+        "qa_export_gate",
+        "source_fixtures",
+        "validator"
+      ],
+      "properties": {
+        "eval_result_id": {
+          "type": "string",
+          "pattern": "^eval_result_[a-z0-9_]+$"
+        },
+        "eval_suite_id": {
+          "type": "string",
+          "pattern": "^eval_[a-z0-9_]+$"
+        },
+        "golden_fixture_id": {
+          "type": "string",
+          "pattern": "^fx_[a-z0-9_]+$"
+        },
+        "golden_eval_status": {
+          "enum": [
+            "pass",
+            "blocked",
+            "fail"
+          ]
+        },
+        "trace_id": {
+          "type": "string",
+          "pattern": "^trace_[a-z0-9_]+$"
+        },
+        "trace_contract_ref": {
+          "const": "fixtures/stage0/rev2/eval/trace_completeness.json"
+        },
+        "required_trace_fields": {
+          "type": "array",
+          "minItems": 7,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "schema_validation",
+              "provenance",
+              "safety_status",
+              "qa_eval_status",
+              "quota_transaction_id",
+              "admin_visibility",
+              "user_failure_mapping"
+            ]
+          }
+        },
+        "required_pipeline_steps": {
+          "type": "array",
+          "minItems": 5,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "brief",
+              "provider_request",
+              "provider_response",
+              "qa",
+              "export"
+            ]
+          }
+        },
+        "export_contract": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "manifest",
+            "qa_report",
+            "metadata",
+            "trace_provenance",
+            "safety_disclaimer_when_applicable",
+            "blocks_when_incomplete"
+          ],
+          "properties": {
+            "manifest": {
+              "const": true
+            },
+            "qa_report": {
+              "const": true
+            },
+            "metadata": {
+              "const": true
+            },
+            "trace_provenance": {
+              "const": true
+            },
+            "safety_disclaimer_when_applicable": {
+              "const": true
+            },
+            "blocks_when_incomplete": {
+              "const": true
+            }
+          }
+        },
+        "qa_export_gate": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "final_export_allowed",
+            "export_artifacts_complete",
+            "admin_override_required_for_export",
+            "override_requires_audit"
+          ],
+          "properties": {
+            "final_export_allowed": {
+              "const": false
+            },
+            "export_artifacts_complete": {
+              "const": true
+            },
+            "admin_override_required_for_export": {
+              "const": true
+            },
+            "override_requires_audit": {
+              "const": true
+            }
+          }
+        },
+        "source_fixtures": {
+          "type": "array",
+          "minItems": 3,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "fixtures/stage0/rev2/eval/starter_eval_results.json",
+              "fixtures/stage0/rev2/eval/starter_eval_suite.json",
+              "fixtures/stage0/rev2/eval/trace_completeness.json"
+            ]
+          }
+        },
+        "validator": {
+          "const": "scripts/validate_workflow_acceptance_contract.py"
         }
       }
     },

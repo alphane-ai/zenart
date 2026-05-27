@@ -18,6 +18,7 @@ EVAL_SUITE = FIXTURE_DIR / "eval" / "starter_eval_suite.json"
 EVAL_RESULTS = FIXTURE_DIR / "eval" / "starter_eval_results.json"
 QA_RESULTS = FIXTURE_DIR / "eval" / "qa_results.json"
 SAFETY_RULES = FIXTURE_DIR / "eval" / "safety_rules.json"
+TRACE_COMPLETENESS = FIXTURE_DIR / "eval" / "trace_completeness.json"
 OPENAPI = ROOT / "openapi" / "zenart.v1.yaml"
 
 WORKFLOWS = {
@@ -33,6 +34,26 @@ SAFETY_POINTS = {
     "provider_response",
     "qa",
     "export",
+}
+
+TRACE_FIELDS = {
+    "schema_validation",
+    "provenance",
+    "safety_status",
+    "qa_eval_status",
+    "quota_transaction_id",
+    "admin_visibility",
+    "user_failure_mapping",
+}
+
+TRACE_RESULT_KEYS = {
+    "has_schema_validation": "schema_validation",
+    "has_provenance": "provenance",
+    "has_safety_status": "safety_status",
+    "has_qa_eval_status": "qa_eval_status",
+    "has_quota_transaction": "quota_transaction_id",
+    "has_admin_visibility": "admin_visibility",
+    "has_user_failure_mapping": "user_failure_mapping",
 }
 
 REQUIRED_EXPORT_FILES = {
@@ -414,12 +435,22 @@ def validate_fixture_links(workflows: dict[str, dict[str, Any]]) -> None:
     results = load_json(EVAL_RESULTS)
     qa_results = load_json(QA_RESULTS)
     safety_rules = load_json(SAFETY_RULES)
+    trace_completeness = load_json(TRACE_COMPLETENESS)
 
     require(suite["blueprint_source"] == "Docs/stage0_blueprint_rev2.md", "eval suite must cite Rev2 blueprint")
     require(isinstance(results, list) and len(results) == 1, "starter eval results must contain one result")
+    result = results[0]
+    require(
+        trace_completeness["blueprint_source"] == "Docs/stage0_blueprint_rev2.md",
+        "trace completeness contract must cite Rev2 blueprint",
+    )
 
     suite_by_id = {fixture["fixture_id"]: fixture for fixture in suite["fixtures"]}
-    result_by_id = {item["fixture_id"]: item for item in results[0]["fixture_results"]}
+    result_by_id = {item["fixture_id"]: item for item in result["fixture_results"]}
+    trace_by_fixture = {
+        item["fixture_id"]: item
+        for item in trace_completeness["traces"]
+    }
     qa_by_workflow: dict[str, set[str]] = {}
     for item in qa_results:
         qa_by_workflow.setdefault(item["workflow"], set()).add(item["check_category"])
@@ -433,8 +464,10 @@ def validate_fixture_links(workflows: dict[str, dict[str, Any]]) -> None:
     for workflow_id, workflow in workflows.items():
         golden = workflow["golden_fixture"]
         golden_id = golden["fixture_id"]
+        contract = workflow["contract_evidence"]
         require(golden_id in suite_by_id, f"{workflow_id} golden fixture missing from eval suite")
         require(golden_id in result_by_id, f"{workflow_id} golden fixture missing from eval results")
+        require(golden_id in trace_by_fixture, f"{workflow_id} golden fixture missing from trace completeness contract")
         require(suite_by_id[golden_id]["workflow"] == workflow_id, f"{workflow_id} golden fixture workflow mismatch")
         require(suite_by_id[golden_id]["category"] == "golden", f"{workflow_id} golden fixture must be category golden")
         require(result_by_id[golden_id]["candidate_count"] == 4, f"{workflow_id} golden eval must cover four candidates")
@@ -442,6 +475,77 @@ def validate_fixture_links(workflows: dict[str, dict[str, Any]]) -> None:
         require(
             result_by_id[golden_id]["export_contract"]["trace_provenance"] is True,
             f"{workflow_id} golden eval must include trace provenance",
+        )
+        require(contract["eval_result_id"] == result["result_id"], f"{workflow_id} contract evidence result_id mismatch")
+        require(contract["eval_suite_id"] == suite["suite_id"], f"{workflow_id} contract evidence suite_id mismatch")
+        require(contract["golden_fixture_id"] == golden_id, f"{workflow_id} contract evidence golden fixture mismatch")
+        require(
+            contract["golden_eval_status"] == result_by_id[golden_id]["status"],
+            f"{workflow_id} contract evidence status mismatch",
+        )
+        require(
+            set(contract["required_trace_fields"]) == TRACE_FIELDS,
+            f"{workflow_id} contract evidence trace fields mismatch",
+        )
+        require(
+            set(contract["required_trace_fields"]) == set(trace_completeness["required_trace_fields"]),
+            f"{workflow_id} contract evidence does not match trace completeness required fields",
+        )
+        require(
+            set(contract["required_pipeline_steps"]) == SAFETY_POINTS,
+            f"{workflow_id} contract evidence pipeline steps mismatch",
+        )
+        require(
+            set(contract["required_pipeline_steps"]) == set(trace_completeness["required_pipeline_steps"]),
+            f"{workflow_id} contract evidence does not match trace completeness pipeline steps",
+        )
+        require(
+            contract["trace_id"] == result_by_id[golden_id]["trace_contract"]["trace_id"],
+            f"{workflow_id} contract evidence trace_id mismatch with eval result",
+        )
+        trace = trace_by_fixture[golden_id]
+        require(trace["workflow"] == workflow_id, f"{workflow_id} trace completeness workflow mismatch")
+        require(trace["trace_id"] == contract["trace_id"], f"{workflow_id} trace completeness trace_id mismatch")
+        require(set(trace["covered_steps"]) == SAFETY_POINTS, f"{workflow_id} trace completeness must cover all pipeline steps")
+        require(
+            [step["step_name"] for step in trace["step_events"]] == list(contract["required_pipeline_steps"]),
+            f"{workflow_id} trace step event order mismatch",
+        )
+        for result_key, contract_field in TRACE_RESULT_KEYS.items():
+            require(
+                result_by_id[golden_id]["trace_contract"][result_key] is True,
+                f"{workflow_id} eval result trace contract {result_key} must be true",
+            )
+            if contract_field == "quota_transaction_id":
+                require(trace["quota_transaction_id"], f"{workflow_id} trace completeness missing quota_transaction_id")
+            else:
+                require(
+                    trace[contract_field]["present"] is True,
+                    f"{workflow_id} trace completeness missing {contract_field}",
+                )
+        require(
+            contract["export_contract"] == result_by_id[golden_id]["export_contract"],
+            f"{workflow_id} contract evidence export contract mismatch",
+        )
+        for key in ["manifest", "qa_report", "trace_provenance", "safety_disclaimer_when_applicable"]:
+            require(trace["export_references"][key] is True, f"{workflow_id} trace export reference {key} must be true")
+        for key, value in contract["qa_export_gate"].items():
+            require(
+                result_by_id[golden_id]["qa_export_gate"][key] == value,
+                f"{workflow_id} contract evidence qa export gate {key} mismatch",
+            )
+        require(
+            set(contract["source_fixtures"])
+            == {
+                "fixtures/stage0/rev2/eval/starter_eval_results.json",
+                "fixtures/stage0/rev2/eval/starter_eval_suite.json",
+                "fixtures/stage0/rev2/eval/trace_completeness.json",
+            },
+            f"{workflow_id} contract evidence source fixtures mismatch",
+        )
+        require(
+            contract["validator"] == "scripts/validate_workflow_acceptance_contract.py",
+            f"{workflow_id} contract evidence validator mismatch",
         )
 
         qa_missing = set(workflow["required_qa_checks"]) - qa_by_workflow.get(workflow_id, set())

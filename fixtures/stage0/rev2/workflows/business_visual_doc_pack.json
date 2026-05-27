@@ -133,6 +133,50 @@
       "expected_status": "blocked"
     }
   ],
+  "contract_evidence": {
+    "eval_result_id": "eval_result_stage0_rev2_starter_contract",
+    "eval_suite_id": "eval_stage0_rev2_starter",
+    "golden_fixture_id": "fx_business_visual_doc_golden",
+    "golden_eval_status": "blocked",
+    "trace_id": "trace_fx_business_visual_doc_golden_readability",
+    "trace_contract_ref": "fixtures/stage0/rev2/eval/trace_completeness.json",
+    "required_trace_fields": [
+      "schema_validation",
+      "provenance",
+      "safety_status",
+      "qa_eval_status",
+      "quota_transaction_id",
+      "admin_visibility",
+      "user_failure_mapping"
+    ],
+    "required_pipeline_steps": [
+      "brief",
+      "provider_request",
+      "provider_response",
+      "qa",
+      "export"
+    ],
+    "export_contract": {
+      "manifest": true,
+      "qa_report": true,
+      "metadata": true,
+      "trace_provenance": true,
+      "safety_disclaimer_when_applicable": true,
+      "blocks_when_incomplete": true
+    },
+    "qa_export_gate": {
+      "final_export_allowed": false,
+      "export_artifacts_complete": true,
+      "admin_override_required_for_export": true,
+      "override_requires_audit": true
+    },
+    "source_fixtures": [
+      "fixtures/stage0/rev2/eval/starter_eval_results.json",
+      "fixtures/stage0/rev2/eval/starter_eval_suite.json",
+      "fixtures/stage0/rev2/eval/trace_completeness.json"
+    ],
+    "validator": "scripts/validate_workflow_acceptance_contract.py"
+  },
   "api_smoke_contract": {
     "execution_status": "not_executed",
     "blueprint_checklist_remains_open": true,
