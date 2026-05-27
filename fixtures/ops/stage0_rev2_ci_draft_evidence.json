@@ -87,18 +87,21 @@
       "paths": [
         "scripts/docker_build_smoke.sh",
         "scripts/staging_smoke.sh",
+        "scripts/staging_legal_support_visibility_smoke.sh",
         "ops/release/staging_deploy.md",
         "ops/release/release_notes_template.md"
       ],
       "validation_commands": [
         "DRY_RUN=1 scripts/docker_build_smoke.sh",
         "DRY_RUN=1 scripts/staging_smoke.sh",
+        "DRY_RUN=1 scripts/staging_legal_support_visibility_smoke.sh || test \"$?\" = 2",
         "bash scripts/repo_validate.sh"
       ],
       "required_draft_tokens": [
         "docker build --tag ghcr.io/alphane-ai/zenart-${{ matrix.image.name }}:${{ github.sha }}",
         "bash -n scripts/docker_build_smoke.sh",
-        "bash -n scripts/staging_smoke.sh"
+        "bash -n scripts/staging_smoke.sh",
+        "bash -n scripts/staging_legal_support_visibility_smoke.sh"
       ]
     },
     {

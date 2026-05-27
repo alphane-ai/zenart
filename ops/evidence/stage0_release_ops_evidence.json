@@ -40,6 +40,12 @@
       "runtime_status": "validates staging object-storage tenant-scoped signed download, expiry, direct-object denial, and cross-tenant denial from release-SHA-bound staging smoke, backup/restore, and load evidence while preserving retention cleanup blockers",
       "private_beta_gate": "signed URL subitem can close; staging_object_storage_signed_downloads remains blocked until retention policy, expired export cleanup, orphan cleanup, and audit refs pass under ops/evidence/staging/"
     },
+    "staging_legal_support_visibility_smoke": {
+      "script": "scripts/staging_legal_support_visibility_smoke.sh",
+      "evidence_path_policy": "ops/evidence/staging/",
+      "runtime_status": "requires STAGING_WEB_URL and successful external-user HTTP probes for Terms, Privacy, Acceptable Use, AI/content responsibility disclaimer, IP complaint flow, visible support contact, report-problem path, and billing/support policy routes; dry-run evidence remains blocked and cannot close private beta gates",
+      "private_beta_gate": "open until ops/evidence/staging legal/support visibility evidence passes for deployed staging web routes; after pass, object-storage retention cleanup remains the separate private beta blocker"
+    },
     "security_scan_smoke": {
       "script": "scripts/security_scan_smoke.sh",
       "runtime_status": "local dependency/image/secret scan wrapper; release blocking thresholds remain open",
@@ -206,6 +212,7 @@
     "DRY_RUN=1 scripts/observability_smoke.sh",
     "scripts/staging_observability_backup_load_smoke.sh || test \"$?\" = 2",
     "RUN_ID=stage0-validate-object-storage-signed-url scripts/staging_object_storage_signed_url_smoke.sh",
+    "DRY_RUN=1 scripts/staging_legal_support_visibility_smoke.sh || test \"$?\" = 2",
     "DRY_RUN=1 scripts/security_scan_smoke.sh",
     "scripts/render_no_go_release_notes.py --check",
     "bash scripts/repo_validate.sh"

@@ -66,6 +66,7 @@ test -x scripts/staging_smoke.sh
 test -x scripts/observability_smoke.sh
 test -x scripts/staging_observability_backup_load_smoke.sh
 test -x scripts/staging_object_storage_signed_url_smoke.sh
+test -x scripts/staging_legal_support_visibility_smoke.sh
 test -x scripts/security_scan_smoke.sh
 test -x scripts/release_evidence_bundle_smoke.sh
 test -x scripts/render_no_go_release_notes.py
@@ -434,6 +435,7 @@ bash -n scripts/staging_smoke.sh
 bash -n scripts/observability_smoke.sh
 bash -n scripts/staging_observability_backup_load_smoke.sh
 bash -n scripts/staging_object_storage_signed_url_smoke.sh
+bash -n scripts/staging_legal_support_visibility_smoke.sh
 bash -n scripts/security_scan_smoke.sh
 bash -n scripts/release_evidence_bundle_smoke.sh
 ops_validate_dir="$(mktemp -d)"
@@ -450,6 +452,14 @@ if [[ "$staging_obl_status" -ne 2 ]]; then
   exit 1
 fi
 RUN_ID="stage0-validate-object-storage-signed-url" OUT_DIR="$ops_validate_dir/object-storage" scripts/staging_object_storage_signed_url_smoke.sh >/dev/null
+set +e
+RUN_ID="stage0-validate-legal-support-visibility" DRY_RUN=1 OUT_DIR="$ops_validate_dir/legal-support" scripts/staging_legal_support_visibility_smoke.sh >/dev/null
+legal_support_status=$?
+set -e
+if [[ "$legal_support_status" -ne 2 ]]; then
+  printf 'staging legal/support visibility dry-run must exit 2 without external-user runtime evidence, got %s\n' "$legal_support_status" >&2
+  exit 1
+fi
 DRY_RUN=1 OUT_DIR="$ops_validate_dir/security" scripts/security_scan_smoke.sh >/dev/null
 set +e
 DRY_RUN=1 OUT_DIR="$ops_validate_dir/release-bundle" scripts/release_evidence_bundle_smoke.sh >/dev/null
@@ -1497,6 +1507,148 @@ if gate.get("remaining_release_gate_blockers") != [
     "staging_legal_external_user_pages",
 ]:
     raise SystemExit("object-storage signed URL smoke must preserve object-storage and legal blockers")
+PY
+python3 - "$ops_validate_dir/legal-support" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+reports = sorted(Path(sys.argv[1]).glob("*.json"))
+if len(reports) != 1:
+    raise SystemExit("legal/support visibility dry-run must write exactly one report")
+report = json.loads(reports[0].read_text(encoding="utf-8"))
+if report.get("kind") != "legal_support_visibility":
+    raise SystemExit(f"legal/support visibility report has wrong kind: {report}")
+if report.get("environment") != "staging":
+    raise SystemExit("legal/support visibility report must be staging-scoped")
+if report.get("status") != "blocked":
+    raise SystemExit("legal/support visibility dry-run must remain blocked")
+if report.get("release_gate_check_id") != "staging_legal_external_user_pages":
+    raise SystemExit("legal/support visibility report must target the private beta legal/support release-gate check")
+if report.get("do_not_launch_condition_id") != "external_user_legal_pages_missing":
+    raise SystemExit("legal/support visibility report must target the legal/support Do-Not-Launch condition")
+areas = {item["area"]: item for item in report.get("coverage", [])}
+if set(areas) != {"legal_pages_visibility", "support_contact_visibility"}:
+    raise SystemExit(f"legal/support visibility coverage mismatch: {sorted(areas)}")
+required_routes = {
+    "/legal/terms",
+    "/legal/privacy",
+    "/legal/acceptable-use",
+    "/legal/ip-complaints",
+    "/support",
+    "/legal/billing-policy",
+}
+if set(report.get("required_routes", [])) != required_routes:
+    raise SystemExit(f"legal/support visibility required routes mismatch: {report.get('required_routes')}")
+if not report.get("blocked_checks"):
+    raise SystemExit("legal/support visibility dry-run must record blocked checks")
+gate = report.get("gate_impact", {})
+if gate.get("can_clear_release_gate_check") is not False:
+    raise SystemExit("legal/support visibility dry-run must not clear the release gate check")
+if gate.get("can_clear_aggregate_item") is not False:
+    raise SystemExit("legal/support visibility must not clear aggregate private beta readiness by itself")
+if gate.get("preserved_release_gate_check_id") != "staging_object_storage_signed_downloads":
+    raise SystemExit("legal/support visibility must preserve object-storage retention cleanup as a separate blocker")
+if gate.get("preserved_do_not_launch_condition_id") != "object_storage_signed_retention_runtime_missing":
+    raise SystemExit("legal/support visibility must preserve object-storage retention Do-Not-Launch condition")
+for item in areas.values():
+    combined = json.dumps(item).lower()
+    for token in ("external-user", "ops/evidence/staging", "source files alone do not satisfy"):
+        if token not in combined:
+            raise SystemExit(f"{item['area']} legal/support coverage missing {token}")
+PY
+legal_support_pass_dir="$(mktemp -d)"
+legal_support_web_dir="$legal_support_pass_dir/web"
+mkdir -p "$legal_support_web_dir/legal/terms" \
+  "$legal_support_web_dir/legal/privacy" \
+  "$legal_support_web_dir/legal/acceptable-use" \
+  "$legal_support_web_dir/legal/ip-complaints" \
+  "$legal_support_web_dir/legal/billing-policy" \
+  "$legal_support_web_dir/support"
+cat >"$legal_support_web_dir/legal/terms/index.html" <<'EOF'
+Terms of Service
+Support
+Local Alpha Generation
+EOF
+cat >"$legal_support_web_dir/legal/privacy/index.html" <<'EOF'
+Privacy Policy
+Support Context
+Telemetry
+EOF
+cat >"$legal_support_web_dir/legal/acceptable-use/index.html" <<'EOF'
+Acceptable Use Policy
+Prohibited Inputs
+Enforcement
+EOF
+cat >"$legal_support_web_dir/legal/ip-complaints/index.html" <<'EOF'
+IP Complaint Flow
+legal@zenart.local
+support@zenart.local
+EOF
+cat >"$legal_support_web_dir/support/index.html" <<'EOF'
+AI Content Responsibility
+Acceptable Use Policy
+Local alpha previews
+support@zenart.local
+Report Problem
+Submit Ticket
+EOF
+cat >"$legal_support_web_dir/legal/billing-policy/index.html" <<'EOF'
+Billing, Cancellation, and Refund Policy
+support@zenart.local
+Cancellation
+EOF
+legal_support_port="$(python3 - <<'PY'
+import socket
+
+with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+    sock.bind(("127.0.0.1", 0))
+    print(sock.getsockname()[1])
+PY
+)"
+python3 -m http.server "$legal_support_port" --bind 127.0.0.1 --directory "$legal_support_web_dir" >"$legal_support_pass_dir/server.log" 2>&1 &
+legal_support_server_pid=$!
+for _ in $(seq 1 50); do
+  if curl --silent --show-error --max-time 1 "http://127.0.0.1:$legal_support_port/legal/terms/" >/dev/null 2>&1; then
+    break
+  fi
+  sleep 0.1
+done
+if ! curl --silent --show-error --max-time 1 "http://127.0.0.1:$legal_support_port/legal/terms/" >/dev/null 2>&1; then
+  kill "$legal_support_server_pid" 2>/dev/null || true
+  printf 'failed to start local legal/support visibility fixture server\n' >&2
+  cat "$legal_support_pass_dir/server.log" >&2 || true
+  exit 1
+fi
+RUN_ID="stage0-validate-legal-support-pass" \
+  OUT_DIR="$legal_support_pass_dir/out" \
+  WEB_URL="http://127.0.0.1:$legal_support_port" \
+  RELEASE_SHA="legal-support-visibility-sha" \
+  scripts/staging_legal_support_visibility_smoke.sh >/dev/null
+kill "$legal_support_server_pid" 2>/dev/null || true
+python3 - "$legal_support_pass_dir/out" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+reports = sorted(Path(sys.argv[1]).glob("*.json"))
+if len(reports) != 1:
+    raise SystemExit("legal/support visibility pass fixture must write exactly one report")
+report = json.loads(reports[0].read_text(encoding="utf-8"))
+if report.get("status") != "pass":
+    raise SystemExit(f"legal/support visibility pass fixture should pass: {report}")
+if report.get("release_gate_check_id") != "staging_legal_external_user_pages":
+    raise SystemExit("legal/support visibility pass fixture must target legal/support release check")
+if report.get("blocked_checks") != []:
+    raise SystemExit(f"legal/support visibility pass fixture must not preserve legal blockers: {report.get('blocked_checks')}")
+gate = report.get("gate_impact", {})
+if gate.get("can_clear_release_gate_check") is not True:
+    raise SystemExit("legal/support visibility pass fixture must allow the check-level gate to clear")
+if gate.get("remaining_release_gate_blockers_after_pass") != ["staging_object_storage_signed_downloads"]:
+    raise SystemExit("legal/support visibility pass fixture must keep object-storage retention cleanup as the remaining blocker")
+areas = {item["area"]: item for item in report.get("coverage", [])}
+if any(item.get("status") != "pass" for item in areas.values()):
+    raise SystemExit(f"legal/support visibility pass fixture coverage must pass: {areas}")
 PY
 python3 - "$ops_validate_dir/observability" <<'PY'
 import json

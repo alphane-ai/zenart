@@ -67,6 +67,7 @@ STAGING_OBSERVABILITY_BACKUP_LOAD_PREFLIGHT_EVIDENCE = (
 STAGING_OBJECT_STORAGE_SIGNED_URL_EVIDENCE = (
     ROOT / "ops" / "evidence" / "staging" / "20260527T2130Z-object-storage-signed-url.json"
 )
+STAGING_LEGAL_SUPPORT_VISIBILITY_SCRIPT = ROOT / "scripts" / "staging_legal_support_visibility_smoke.sh"
 STAGING_QUOTA_RATE_LIMIT_SPEND_CAP_EVIDENCE = (
     ROOT / "ops" / "evidence" / "staging" / "20260527T2015Z-quota-rate-limit-spend-cap.json"
 )
@@ -7329,6 +7330,7 @@ def validate_ops_ci_and_drill_evidence() -> None:
         ROOT / "scripts" / "observability_smoke.sh",
         ROOT / "scripts" / "staging_observability_backup_load_smoke.sh",
         ROOT / "scripts" / "staging_object_storage_signed_url_smoke.sh",
+        STAGING_LEGAL_SUPPORT_VISIBILITY_SCRIPT,
         ROOT / "scripts" / "security_scan_smoke.sh",
     ]:
         require(path.exists(), f"missing ops evidence file: {path.relative_to(ROOT)}")
@@ -7356,6 +7358,8 @@ def validate_ops_ci_and_drill_evidence() -> None:
         "bash -n scripts/staging_smoke.sh",
         "bash -n scripts/observability_smoke.sh",
         "bash -n scripts/staging_object_storage_signed_url_smoke.sh",
+        "bash -n scripts/staging_legal_support_visibility_smoke.sh",
+        "DRY_RUN=1 scripts/staging_legal_support_visibility_smoke.sh",
         "bash -n scripts/security_scan_smoke.sh",
         "ops/evidence/stage0_environment_evidence.json",
     }
@@ -7659,6 +7663,7 @@ def validate_ops_ci_and_drill_evidence() -> None:
         "observability_smoke": "scripts/observability_smoke.sh",
         "staging_observability_backup_load_smoke": "scripts/staging_observability_backup_load_smoke.sh",
         "staging_object_storage_signed_url_smoke": "scripts/staging_object_storage_signed_url_smoke.sh",
+        "staging_legal_support_visibility_smoke": "scripts/staging_legal_support_visibility_smoke.sh",
         "security_scan_smoke": "scripts/security_scan_smoke.sh",
     }.items():
         require(key in scripts, f"release ops evidence missing {key}")
@@ -7688,6 +7693,18 @@ def validate_ops_ci_and_drill_evidence() -> None:
         "tenant-scoped signed download" in object_storage_signed.get("runtime_status", "")
         and "retention cleanup blockers" in object_storage_signed.get("runtime_status", ""),
         "release ops evidence must preserve object-storage signed URL and retention cleanup split",
+    )
+    legal_support_visibility = scripts["staging_legal_support_visibility_smoke"]
+    require(
+        "Terms" in legal_support_visibility.get("runtime_status", "")
+        and "support contact" in legal_support_visibility.get("runtime_status", "")
+        and "dry-run evidence remains blocked" in legal_support_visibility.get("runtime_status", ""),
+        "release ops evidence must record legal/support staging visibility runtime requirements",
+    )
+    require(
+        "open until ops/evidence/staging legal/support visibility evidence passes"
+        in legal_support_visibility.get("private_beta_gate", ""),
+        "release ops evidence must keep legal/support visibility gate open until staging evidence passes",
     )
     policy = release_ops["checklist_policy"]
     for key in [
