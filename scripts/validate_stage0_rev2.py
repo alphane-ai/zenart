@@ -554,6 +554,12 @@ RUNTIME_PASS_EXACT_FILE_GUARD_CHECKLIST_ITEM = (
     "instead of exact validator-owned files, so directory existence cannot close launch readiness。"
 )
 
+CI_BROAD_RUNTIME_EXACT_FILE_GUARD_CHECKLIST_ITEM = (
+    "CI broad runtime row exact-file guard 通过：`scripts/validate_stage0_rev2.py` rejects checked broad CI "
+    "runtime rows unless matching exact evidence-file checklist rows are also checked, so `ops/evidence/ci/` "
+    "directory prose cannot close PR/main、Playwright、or Docker launch blockers。"
+)
+
 README_GATE_SNAPSHOT_REQUIREMENTS = {
     "Local Alpha Gate": {
         "expected_status": "go",
@@ -623,6 +629,15 @@ CI_RUNTIME_OPEN_CHECK_ITEMS = {
     "CI Docker image build exact evidence file 通过：`ops/evidence/ci/stage0-rev2-docker-image-build.json` exists, declares `environment=ci`, `release_gate_check_id=ci_docker_image_build`, passing status, Docker image build semantics, and no preserved blockers。": {
         "ci_docker_image_build",
     },
+}
+
+CI_BROAD_RUNTIME_TO_EXACT_CHECKLIST_ITEMS = {
+    "CI PR/main workflow run evidence 通过：已安装 workflow 的 PR/main run 结果写入 `ops/evidence/ci/`。":
+        "CI PR/main workflow run exact evidence file 通过：`ops/evidence/ci/stage0-rev2-pr-main-run.json` exists, declares `environment=ci`, `release_gate_check_id=ci_gate_runtime_execution`, passing status, PR/main semantics, and no preserved blockers。",
+    "CI Playwright smoke runtime evidence 通过：已安装 PR/main workflow 运行 Playwright smoke 并写入 `ops/evidence/ci/`。":
+        "CI Playwright smoke exact evidence file 通过：`ops/evidence/ci/stage0-rev2-playwright-smoke.json` exists, declares `environment=ci`, `release_gate_check_id=ci_playwright_smoke`, passing status, Playwright semantics, and no preserved blockers。",
+    "CI Docker image build runtime evidence 通过：已安装 PR/main workflow build Docker images 并写入 `ops/evidence/ci/`。":
+        "CI Docker image build exact evidence file 通过：`ops/evidence/ci/stage0-rev2-docker-image-build.json` exists, declares `environment=ci`, `release_gate_check_id=ci_docker_image_build`, passing status, Docker image build semantics, and no preserved blockers。",
 }
 
 CI_RUNTIME_REQUIRED_EVIDENCE_PATHS = {
@@ -4661,6 +4676,23 @@ def validate_split_checklist_item_evidence(
             not missing_tokens,
             f"checked split runtime evidence {rel_path} missing required semantics for {item}: {missing_tokens}",
         )
+
+
+def validate_ci_broad_runtime_rows_require_exact_file_rows(
+    checked_lines: set[str],
+    unchecked_lines: set[str],
+) -> None:
+    for broad_item, exact_item in CI_BROAD_RUNTIME_TO_EXACT_CHECKLIST_ITEMS.items():
+        broad_state_count = int(broad_item in checked_lines) + int(broad_item in unchecked_lines)
+        exact_state_count = int(exact_item in checked_lines) + int(exact_item in unchecked_lines)
+        require(broad_state_count == 1, f"CI broad runtime checklist row is missing: {broad_item}")
+        require(exact_state_count == 1, f"CI exact runtime evidence checklist row is missing: {exact_item}")
+        if broad_item in checked_lines:
+            require(
+                exact_item in checked_lines,
+                "CI broad runtime checklist row cannot close before its exact evidence-file row closes: "
+                f"{broad_item} requires {exact_item}",
+            )
 
 
 def require_check_level_evidence_gate_impact(
@@ -9609,6 +9641,10 @@ def validate_release_gate_evidence() -> None:
         blueprint_checked,
         blueprint_unchecked,
     )
+    validate_ci_broad_runtime_rows_require_exact_file_rows(
+        blueprint_checked,
+        blueprint_unchecked,
+    )
     validate_split_release_check_state(
         evidence,
         blueprint_checked,
@@ -10022,6 +10058,10 @@ def validate_blueprint_checklist() -> None:
         unchecked_lines,
     )
     validate_split_checklist_item_evidence(
+        checked_lines,
+        unchecked_lines,
+    )
+    validate_ci_broad_runtime_rows_require_exact_file_rows(
         checked_lines,
         unchecked_lines,
     )
@@ -11078,6 +11118,7 @@ def validate_launch_readiness_split_contracts() -> None:
         "定义 release gate evidence schema/fixtures 和 no-go release notes renderer。",
         "定义 post-deploy smoke evidence contract。",
         RUNTIME_PASS_EXACT_FILE_GUARD_CHECKLIST_ITEM,
+        CI_BROAD_RUNTIME_EXACT_FILE_GUARD_CHECKLIST_ITEM,
     ] + sorted(RELEASE_GATE_BACKFILL_CHECKED_ITEMS):
         require(item in checked_lines, f"blueprint must close definition-only evidence subitem: {item}")
 
@@ -11186,6 +11227,8 @@ def validate_launch_readiness_split_contracts() -> None:
         "active Do-Not-Launch condition has no visible open checklist row in Section 25",
         "Active CI Do-Not-Launch condition evidence refs must name the exact installed-workflow/runtime file they are waiting on",
         "CI runtime checklist rows and release-gate checks cannot remain open/blocked after exact installed-workflow/runtime evidence becomes passable",
+        "CI broad runtime row exact-file guard 通过：`scripts/validate_stage0_rev2.py` rejects checked broad CI runtime rows unless matching exact evidence-file checklist rows are also checked",
+        "so `ops/evidence/ci/` directory prose cannot close PR/main、Playwright、or Docker launch blockers",
         "each exact `ops/evidence/ci/*.json` runtime file must declare `environment=ci`",
         "ops/evidence/ci/stage0-rev2-pr-main-run.json",
         "ops/evidence/ci/stage0-rev2-playwright-smoke.json",
