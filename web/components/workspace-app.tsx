@@ -443,8 +443,11 @@ function SessionPanel({
       data-session-cookie-secure={String(evidence.cookieAttributes.secure)}
       data-session-cookie-same-site={evidence.cookieAttributes.sameSite}
       data-session-cookie-path={evidence.cookieAttributes.path}
+      data-session-csrf-strategy={evidence.csrfStrategy}
       data-session-csrf-header={evidence.csrfHeaderName}
+      data-session-csrf-credential-mode={evidence.credentialMode}
       data-session-csrf-origin-policy={evidence.originPolicy}
+      data-session-csrf-same-site-requirement={evidence.sameSiteRequirement}
       data-session-csrf-missing-operation-count={evidence.missingCsrfOperationIds.length}
       data-session-cookie-failure-count={evidence.cookieFailureReasons.length}
       data-session-cookie-failure-reasons={evidence.cookieFailureReasons.join(",")}

@@ -174,6 +174,8 @@ if (
   sessionEvidence.cookie?.expectedSameSite !== "lax" ||
   sessionEvidence.cookie?.expectedPath !== "/" ||
   sessionEvidence.csrf?.expectedHeader !== "X-ZenArt-CSRF" ||
+  sessionEvidence.csrf?.expectedStrategy !== "same-site-origin-check" ||
+  sessionEvidence.csrf?.expectedCredentialMode !== "include" ||
   sessionEvidence.csrf?.expectedSameSiteRequirement !== "lax-or-strict" ||
   sessionEvidence.csrf?.expectedOriginPolicy !== "same-site-only" ||
   sessionEvidence.csrf?.expectedMissingOperationCount !== "0" ||
@@ -202,8 +204,11 @@ const requiredSessionAttributes = [
   sessionEvidence.cookie?.secureAttribute,
   sessionEvidence.cookie?.sameSiteAttribute,
   sessionEvidence.cookie?.pathAttribute,
+  sessionEvidence.csrf?.strategyAttribute,
   sessionEvidence.csrf?.headerAttribute,
+  sessionEvidence.csrf?.credentialModeAttribute,
   sessionEvidence.csrf?.originPolicyAttribute,
+  sessionEvidence.csrf?.sameSiteRequirementAttribute,
   sessionEvidence.csrf?.missingOperationCountAttribute,
   sessionEvidence.csrf?.cookieFailureCountAttribute,
   sessionEvidence.csrf?.cookieFailureReasonsAttribute,
@@ -234,6 +239,22 @@ for (const attribute of requiredSessionAttributes) {
 for (const expectedGuardLabel of sessionEvidence.unsafeActionGuard?.expectedGuardLabels ?? []) {
   if (!workspaceAppSource.includes(expectedGuardLabel)) {
     fail(`workspace UI source missing unsafe-action guard label ${expectedGuardLabel}`);
+  }
+}
+
+if (
+  generatedApiCsrfContract.browserSmoke?.script !== "npm run smoke:session-security-playwright" ||
+  generatedClientEvidence.browserSmoke !== generatedApiCsrfContract.browserSmoke?.test ||
+  generatedClientEvidence.browserSmokeScript !== generatedApiCsrfContract.browserSmoke?.script ||
+  JSON.stringify(generatedClientEvidence.browserSmokeRequiredAssertions) !==
+    JSON.stringify(generatedApiCsrfContract.browserSmoke?.requiredAssertions)
+) {
+  fail("generated API CSRF artifact must pin the account-route browser smoke evidence");
+}
+
+for (const requiredBrowserAssertion of generatedApiCsrfContract.browserSmoke?.requiredAssertions ?? []) {
+  if (!sessionSecurityPlaywrightSpecSource.includes(requiredBrowserAssertion)) {
+    fail(`generated API CSRF browser smoke missing required assertion ${requiredBrowserAssertion}`);
   }
 }
 

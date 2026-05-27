@@ -76,8 +76,11 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(sessionContract).toHaveAttribute("data-session-cookie-secure", "true");
     expect(sessionContract).toHaveAttribute("data-session-cookie-same-site", "lax");
     expect(sessionContract).toHaveAttribute("data-session-cookie-path", "/");
+    expect(sessionContract).toHaveAttribute("data-session-csrf-strategy", "same-site-origin-check");
     expect(sessionContract).toHaveAttribute("data-session-csrf-header", "X-ZenArt-CSRF");
+    expect(sessionContract).toHaveAttribute("data-session-csrf-credential-mode", "include");
     expect(sessionContract).toHaveAttribute("data-session-csrf-origin-policy", "same-site-only");
+    expect(sessionContract).toHaveAttribute("data-session-csrf-same-site-requirement", "lax-or-strict");
     expect(sessionContract).toHaveAttribute("data-session-csrf-missing-operation-count", "0");
     expect(sessionContract).toHaveAttribute("data-session-cookie-failure-count", "0");
     expect(sessionContract).toHaveAttribute("data-session-cookie-failure-reasons", "");

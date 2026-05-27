@@ -4,6 +4,23 @@
   "owner": "lane3",
   "generatedClient": "web/lib/generated/zenart-api.ts",
   "requestSecurityContract": "web/lib/request-security.ts",
+  "browserSmoke": {
+    "test": "web/tests/session-security.spec.ts",
+    "script": "npm run smoke:session-security-playwright",
+    "route": "/account",
+    "requiredAssertions": [
+      "account route exposes secure-cookie, same-site CSRF, and unsafe-action guard browser evidence",
+      "data-session-security-evidence",
+      "data-session-csrf-strategy",
+      "data-session-csrf-credential-mode",
+      "data-session-csrf-same-site-requirement",
+      "data-session-unsafe-action-operation-contracts",
+      "data-generated-api-csrf-operation-contracts",
+      "Session expired. Refresh or sign in to continue.",
+      "Save Settings",
+      "Sign In"
+    ]
+  },
   "credentialMode": "include",
   "csrfHeaderName": "X-ZenArt-CSRF",
   "csrfHeaderValue": "same-site-origin-check",

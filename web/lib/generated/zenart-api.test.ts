@@ -165,6 +165,8 @@ describe("generated web API client CSRF contract", () => {
       source: "web/validation/generated-api-csrf-contract.json",
       generatedClient: "web/lib/generated/zenart-api.ts",
       requestSecurityContract: "web/lib/request-security.ts",
+      browserSmoke: "web/tests/session-security.spec.ts",
+      browserSmokeScript: "npm run smoke:session-security-playwright",
       expectedStatus: "pass",
       credentialMode: generatedApiCsrfContract.credentialMode,
       csrfHeaderName: generatedApiCsrfContract.csrfHeaderName,
@@ -186,6 +188,7 @@ describe("generated web API client CSRF contract", () => {
         "data-generated-api-csrf-operation-contracts"
       ])
     });
+    expect(routeSmokeEvidence.browserSmokeRequiredAssertions).toEqual(generatedApiCsrfContract.browserSmoke.requiredAssertions);
     expect(generatedApiCsrfContract.unsafeOperationCount).toBe(unsafeOperations.length);
     expect(generatedApiCsrfContract.safeOperationCount).toBe(safeOperations.length);
     expect(requestContractEvidence.unsafeOperationIds).toEqual(unsafeOperations);
@@ -264,7 +267,9 @@ const generatedApiCsrfContractFromRouteSmoke = () => {
   };
   expect(routeSmoke.schemaVersion).toBe("stage0.rev2.generated-api-csrf-contract");
 
-  return userRouteSmoke.securityEvidence.find(
+  const evidence = userRouteSmoke.securityEvidence.find(
     (entry) => entry.schemaVersion === "stage0.rev2.generated-api-csrf-contract"
   );
+  expect(evidence).toBeDefined();
+  return evidence!;
 };

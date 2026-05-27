@@ -34,8 +34,11 @@ test("account route exposes secure-cookie, same-site CSRF, and unsafe-action gua
   await expect(sessionContract).toHaveAttribute("data-session-cookie-secure", "true");
   await expect(sessionContract).toHaveAttribute("data-session-cookie-same-site", "lax");
   await expect(sessionContract).toHaveAttribute("data-session-cookie-path", "/");
+  await expect(sessionContract).toHaveAttribute("data-session-csrf-strategy", "same-site-origin-check");
   await expect(sessionContract).toHaveAttribute("data-session-csrf-header", "X-ZenArt-CSRF");
+  await expect(sessionContract).toHaveAttribute("data-session-csrf-credential-mode", "include");
   await expect(sessionContract).toHaveAttribute("data-session-csrf-origin-policy", "same-site-only");
+  await expect(sessionContract).toHaveAttribute("data-session-csrf-same-site-requirement", "lax-or-strict");
   await expect(sessionContract).toHaveAttribute("data-session-csrf-missing-operation-count", "0");
   await expect(sessionContract).toHaveAttribute("data-session-cookie-failure-count", "0");
   await expect(sessionContract).toHaveAttribute("data-session-csrf-failure-count", "0");
