@@ -1,0 +1,155 @@
+{
+  "admin_visible_probe": {
+    "path": "ops/evidence/production/20260527T1800Z-backup-rollback-incident-smoke.json",
+    "ready": true,
+    "required_status": "blocked_by_upstream_gates"
+  },
+  "blocked_checks": [
+    "release_sha_missing_or_not_full_sha",
+    "ci_gate_not_go",
+    "private_beta_staging_gate_not_go",
+    "production_backup_restore_split_not_passed",
+    "production_rollback_incident_post_deploy_split_not_passed"
+  ],
+  "blueprint_source": "Docs/stage0_blueprint_rev2.md",
+  "created_by_lane": "lane5",
+  "do_not_launch_condition_ids": [
+    "backup_restore_rollback_smoke_missing",
+    "production_deploy_rollback_smoke_missing",
+    "ci_staging_gates_not_passed"
+  ],
+  "environment": "production",
+  "evidence_id": "production-backup-rollback-split",
+  "gate_impact": {
+    "aggregate_production_gate_status": "blocked_by_upstream_or_missing_exact_split_evidence",
+    "can_clear_check_level_items": false,
+    "can_clear_release_gate_check": false,
+    "check_level_items": [
+      "Production backup/restore runtime evidence \u901a\u8fc7\uff1aproduction evidence proves backup schedule, Postgres restore, object restore, RPO/RTO, and audit refs under `ops/evidence/production/`\u3002",
+      "Production rollback/incident/post-deploy smoke runtime evidence \u901a\u8fc7\uff1aproduction evidence proves rollback drill, incident/alert path, migration compatibility, and post-deploy smoke under `ops/evidence/production/`\u3002"
+    ],
+    "preserved_do_not_launch_condition_ids": [
+      "backup_restore_rollback_smoke_missing",
+      "production_deploy_rollback_smoke_missing",
+      "ci_staging_gates_not_passed"
+    ],
+    "preserved_release_gate_check_id": "production_backup_rollback_incident"
+  },
+  "kind": "production_backup_rollback_split_preflight",
+  "release_gate_check_id": "production_backup_rollback_incident",
+  "release_sha": "",
+  "runtime_input_requirements": {
+    "required_release_sha": "full production release SHA matching both exact split evidence files",
+    "required_split_evidence": {
+      "backup_restore": {
+        "must_prove": [
+          "backup schedule",
+          "Postgres restore",
+          "object restore",
+          "RPO/RTO",
+          "audit refs"
+        ],
+        "path": "ops/evidence/production/backup-restore.json"
+      },
+      "rollback_incident_post_deploy_smoke": {
+        "must_prove": [
+          "app rollback",
+          "feature flag rollback",
+          "worker drain",
+          "migration compatibility",
+          "incident/alert path",
+          "post-deploy smoke"
+        ],
+        "path": "ops/evidence/production/rollback-incident-post-deploy-smoke.json"
+      }
+    },
+    "required_upstream_gates": [
+      "fixtures/stage0/rev2/release_gate_evidence.ci.json gate_decision.status=go",
+      "fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json gate_decision.status=go"
+    ]
+  },
+  "schema_version": "stage0.rev2.production.backup_rollback_split_preflight",
+  "split_evidence": {
+    "all_exact_split_files_ready": false,
+    "backup_restore": {
+      "environment": null,
+      "exists": false,
+      "missing_requirements": [
+        "missing_file"
+      ],
+      "passed": false,
+      "path": "ops/evidence/production/backup-restore.json",
+      "release_gate_check_id": null,
+      "release_sha": null,
+      "split_id": "backup_restore",
+      "status": "missing"
+    },
+    "rollback_incident_post_deploy_smoke": {
+      "environment": null,
+      "exists": false,
+      "missing_requirements": [
+        "missing_file"
+      ],
+      "passed": false,
+      "path": "ops/evidence/production/rollback-incident-post-deploy-smoke.json",
+      "release_gate_check_id": null,
+      "release_sha": null,
+      "split_id": "rollback_incident_post_deploy_smoke",
+      "status": "missing"
+    }
+  },
+  "status": "blocked_by_upstream_gates",
+  "upstream_gates": {
+    "ci": {
+      "active_do_not_launch_conditions": [
+        "ci_workflow_not_installed",
+        "ci_gate_not_executed_on_main",
+        "ci_playwright_smoke_missing",
+        "ci_docker_image_build_missing"
+      ],
+      "blocked_by_checks": [
+        "ci_installed_workflow",
+        "ci_gate_runtime_execution",
+        "ci_playwright_smoke",
+        "ci_docker_image_build"
+      ],
+      "exists": true,
+      "gate_decision_status": "no_go",
+      "path": "fixtures/stage0/rev2/release_gate_evidence.ci.json",
+      "ready": false,
+      "reason": ""
+    },
+    "ci_and_private_beta_ready": false,
+    "private_beta_staging": {
+      "active_do_not_launch_conditions": [
+        "object_storage_signed_retention_runtime_missing"
+      ],
+      "blocked_by_checks": [
+        "staging_object_storage_signed_downloads"
+      ],
+      "exists": true,
+      "gate_decision_status": "no_go",
+      "path": "fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json",
+      "ready": false,
+      "reason": ""
+    },
+    "production_fixture_allows_split_closure": true,
+    "production_launch": {
+      "active_do_not_launch_conditions": [
+        "backup_restore_rollback_smoke_missing",
+        "production_deploy_rollback_smoke_missing",
+        "ci_staging_gates_not_passed"
+      ],
+      "blocked_by_checks": [
+        "production_backup_rollback_incident"
+      ],
+      "exists": true,
+      "gate_decision_status": "no_go",
+      "path": "fixtures/stage0/rev2/release_gate_evidence.production_launch.json",
+      "ready": false,
+      "reason": ""
+    },
+    "production_other_active_conditions": [],
+    "production_other_blockers": []
+  }
+}

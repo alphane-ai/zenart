@@ -27,6 +27,7 @@ STAGING_POST_DEPLOY_SMOKE = ROOT / "ops/evidence/staging/20260527T2125Z-post-dep
 STAGING_LEGAL_EXTERNAL_PAGES = ROOT / "ops/evidence/staging/legal-pages-external-user.json"
 STAGING_SUPPORT_CONTACT_VISIBILITY = ROOT / "ops/evidence/staging/support-contact-external-user.json"
 STAGING_OBJECT_RETENTION_BLOCKED = ROOT / "ops/evidence/staging/object-storage-retention-cleanup.blocked.json"
+PRODUCTION_BACKUP_ROLLBACK_SPLIT_PREFLIGHT = ROOT / "ops/evidence/production/backup-rollback-split.blocked.json"
 CURRENT_RELEASE_EVIDENCE_BUNDLE = (
     ROOT / "ops/evidence/release/staging/stage0-rev2-current-release-evidence-bundle.json"
 )
@@ -307,6 +308,33 @@ def release_evidence_bundle_summary() -> str:
     )
 
 
+def production_backup_rollback_split_summary() -> str:
+    if not PRODUCTION_BACKUP_ROLLBACK_SPLIT_PREFLIGHT.exists():
+        return (
+            "`missing`; run `scripts/production_backup_rollback_split_smoke.sh` to write "
+            "`ops/evidence/production/backup-rollback-split.blocked.json` and verify the exact production split "
+            "requirements without clearing launch blockers"
+        )
+    evidence = load_json(PRODUCTION_BACKUP_ROLLBACK_SPLIT_PREFLIGHT)
+    blocked = evidence.get("blocked_checks", [])
+    blocked_count = len(blocked) if isinstance(blocked, list) else 0
+    split = evidence.get("split_evidence", {})
+    backup = split.get("backup_restore", {}) if isinstance(split.get("backup_restore"), dict) else {}
+    rollback = (
+        split.get("rollback_incident_post_deploy_smoke", {})
+        if isinstance(split.get("rollback_incident_post_deploy_smoke"), dict)
+        else {}
+    )
+    path = PRODUCTION_BACKUP_ROLLBACK_SPLIT_PREFLIGHT.relative_to(ROOT)
+    return (
+        f"`{evidence.get('status', 'missing')}` from `{path}` with {blocked_count} blockers; "
+        f"exact backup split `{backup.get('path', 'ops/evidence/production/backup-restore.json')}` "
+        f"is `{backup.get('status', 'missing')}`, exact rollback/incident/post-deploy split "
+        f"`{rollback.get('path', 'ops/evidence/production/rollback-incident-post-deploy-smoke.json')}` "
+        f"is `{rollback.get('status', 'missing')}`, and CI/private beta gates remain no-go"
+    )
+
+
 def ci_artifact_summary() -> str:
     parts = []
     for path, label in CI_CLOSURE_ARTIFACTS:
@@ -421,6 +449,7 @@ def render(release_sha: str, release_tag: str, owner: str, reviewer: str, date: 
         f"- Legal/support external-user visibility: {staging_legal_support_visibility_summary()}.",
         f"- Release evidence bundle: {release_evidence_bundle_summary()}.",
         "- Rollback drill: `missing`; staging JSON must reference the release SHA, set `environment=staging`, set `kind=rollback`, record status `passed` or `validated`, and include passed/validated evidence refs for image rollback, feature flag rollback, migration compatibility, worker drain, and post-rollback smoke.",
+        f"- Production backup/rollback split preflight: {production_backup_rollback_split_summary()}.",
         f"- Security scan: local status `{local_status(runtime, 'security_scan_smoke')}` from `{security_report}`; staging JSON must reference the release SHA, set `environment=staging`, set `kind=security_scan`, record status `passed`, and include passed/validated evidence refs for dependency, image/container, and committed-secret scans before private beta/production decisions.",
         "",
         "## Rollback Plan",
@@ -442,6 +471,7 @@ def render(release_sha: str, release_tag: str, owner: str, reviewer: str, date: 
         f"- Production do-not-launch conditions present: {comma_or_missing(production_dnl)}.",
         "- Operational risks: staging rollback evidence remains absent; staging backup/restore, load, post-deploy smoke, and legal/support visibility evidence are attached, but object-retention, CI, and production gates remain open.",
         "- Object-storage risks: signed URL staging evidence is attached, but retention/cleanup runtime evidence still blocks the object-storage release gate.",
+        "- Production backup/rollback risks: admin-visible production probe evidence is attached, but exact production split files remain absent and CI/private beta gates remain no-go.",
         "- User/support risks: external-user legal/support pages and report-problem visibility are validated for staging; production legal/support policy remains separately gated.",
         "",
         "## Open Rev2 Runtime Checklist",

@@ -69,6 +69,7 @@ Release gate status: `no-go`.
 - Legal/support external-user visibility: staging split status `pass,pass` from `ops/evidence/staging/legal-pages-external-user.json` and `ops/evidence/staging/support-contact-external-user.json`; external-user legal/support visibility is validator-visible.
 - Release evidence bundle: `blocked` / `no-go` from `ops/evidence/release/staging/stage0-rev2-current-release-evidence-bundle.json` with 28 blocking reasons; legal/support source `canonical_staging_split_evidence`; object-retention cleanup remains unverified and canonical pass evidence is still required.
 - Rollback drill: `missing`; staging JSON must reference the release SHA, set `environment=staging`, set `kind=rollback`, record status `passed` or `validated`, and include passed/validated evidence refs for image rollback, feature flag rollback, migration compatibility, worker drain, and post-rollback smoke.
+- Production backup/rollback split preflight: `blocked_by_upstream_gates` from `ops/evidence/production/backup-rollback-split.blocked.json` with 5 blockers; exact backup split `ops/evidence/production/backup-restore.json` is `missing`, exact rollback/incident/post-deploy split `ops/evidence/production/rollback-incident-post-deploy-smoke.json` is `missing`, and CI/private beta gates remain no-go.
 - Security scan: local status `passed` from `ops/evidence/security/local/20260526T142040Z-security-scan-smoke-65314.json`; staging JSON must reference the release SHA, set `environment=staging`, set `kind=security_scan`, record status `passed`, and include passed/validated evidence refs for dependency, image/container, and committed-secret scans before private beta/production decisions.
 
 ## Rollback Plan
@@ -90,6 +91,7 @@ Release gate status: `no-go`.
 - Production do-not-launch conditions present: backup_restore_rollback_smoke_missing, production_deploy_rollback_smoke_missing, ci_staging_gates_not_passed.
 - Operational risks: staging rollback evidence remains absent; staging backup/restore, load, post-deploy smoke, and legal/support visibility evidence are attached, but object-retention, CI, and production gates remain open.
 - Object-storage risks: signed URL staging evidence is attached, but retention/cleanup runtime evidence still blocks the object-storage release gate.
+- Production backup/rollback risks: admin-visible production probe evidence is attached, but exact production split files remain absent and CI/private beta gates remain no-go.
 - User/support risks: external-user legal/support pages and report-problem visibility are validated for staging; production legal/support policy remains separately gated.
 
 ## Open Rev2 Runtime Checklist

@@ -68,6 +68,7 @@ test -x scripts/staging_observability_backup_load_smoke.sh
 test -x scripts/staging_object_storage_signed_url_smoke.sh
 test -x scripts/staging_object_storage_retention_cleanup_smoke.sh
 test -x scripts/staging_legal_support_visibility_smoke.sh
+test -x scripts/production_backup_rollback_split_smoke.sh
 test -x scripts/security_scan_smoke.sh
 test -x scripts/release_evidence_bundle_smoke.sh
 test -x scripts/render_no_go_release_notes.py
@@ -412,6 +413,61 @@ for token in (
         raise SystemExit(f"release notes template missing split evidence guardrail: {token}")
 if "seeded user, tenant, task, package, and export smoke IDs" not in template:
     raise SystemExit("release notes template must require seeded runtime smoke IDs")
+PY
+
+production_backup_tmp="$(mktemp -d)"
+if REPORT_PATH="$production_backup_tmp/backup-rollback-split.blocked.json" RUN_ID=repo-validate-production-backup-rollback-split scripts/production_backup_rollback_split_smoke.sh >/tmp/stage0-production-backup-rollback-split.out 2>/tmp/stage0-production-backup-rollback-split.err; then
+  printf 'production backup/rollback split smoke unexpectedly cleared launch blockers\n' >&2
+  cat /tmp/stage0-production-backup-rollback-split.out >&2
+  cat /tmp/stage0-production-backup-rollback-split.err >&2
+  exit 1
+fi
+python3 - "$production_backup_tmp/backup-rollback-split.blocked.json" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+report = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+if report["schema_version"] != "stage0.rev2.production.backup_rollback_split_preflight":
+    raise SystemExit("production backup/rollback split smoke schema mismatch")
+if report["environment"] != "production" or report["kind"] != "production_backup_rollback_split_preflight":
+    raise SystemExit("production backup/rollback split smoke must be production-scoped")
+if report["status"] != "blocked_by_upstream_gates":
+    raise SystemExit("production backup/rollback split smoke must stay blocked without exact split evidence")
+if report["release_gate_check_id"] != "production_backup_rollback_incident":
+    raise SystemExit("production backup/rollback split smoke must target production_backup_rollback_incident")
+if set(report["do_not_launch_condition_ids"]) != {
+    "backup_restore_rollback_smoke_missing",
+    "production_deploy_rollback_smoke_missing",
+    "ci_staging_gates_not_passed",
+}:
+    raise SystemExit("production backup/rollback split smoke must preserve backup, deploy-smoke, and upstream gate blockers")
+if report["gate_impact"]["can_clear_release_gate_check"] is not False:
+    raise SystemExit("production backup/rollback split smoke must not clear the release gate while blocked")
+if report["gate_impact"]["preserved_release_gate_check_id"] != "production_backup_rollback_incident":
+    raise SystemExit("production backup/rollback split smoke must preserve the production backup release gate")
+if report["upstream_gates"]["ci"]["gate_decision_status"] != "no_go":
+    raise SystemExit("production split smoke must surface CI no-go state")
+if report["upstream_gates"]["private_beta_staging"]["gate_decision_status"] != "no_go":
+    raise SystemExit("production split smoke must surface private beta/staging no-go state")
+if report["admin_visible_probe"]["ready"] is not True:
+    raise SystemExit("production split smoke must detect the admin-visible blocked probe evidence")
+split = report["split_evidence"]
+if split["all_exact_split_files_ready"] is not False:
+    raise SystemExit("production split smoke must keep exact split readiness false")
+if split["backup_restore"]["path"] != "ops/evidence/production/backup-restore.json":
+    raise SystemExit("production backup split path mismatch")
+if split["rollback_incident_post_deploy_smoke"]["path"] != "ops/evidence/production/rollback-incident-post-deploy-smoke.json":
+    raise SystemExit("production rollback split path mismatch")
+if "production_backup_restore_split_not_passed" not in report["blocked_checks"]:
+    raise SystemExit("production split smoke must block on missing backup/restore split")
+if "production_rollback_incident_post_deploy_split_not_passed" not in report["blocked_checks"]:
+    raise SystemExit("production split smoke must block on missing rollback/incident/post-deploy split")
+requirements = report["runtime_input_requirements"]["required_split_evidence"]
+if "Postgres restore" not in requirements["backup_restore"]["must_prove"]:
+    raise SystemExit("production backup split requirements must include Postgres restore")
+if "post-deploy smoke" not in requirements["rollback_incident_post_deploy_smoke"]["must_prove"]:
+    raise SystemExit("production rollback split requirements must include post-deploy smoke")
 PY
 
 log "backend Go validation"
