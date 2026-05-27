@@ -109,7 +109,7 @@ export async function getCrawlerGovernanceWorkflows() {
 }
 
 export async function getCrawlerGovernanceRuntimeDecisions() {
-  return buildCrawlerGovernanceRuntimeDecisions(crawlerGovernanceWorkflows);
+  return buildCrawlerGovernanceRuntimeDecisions(crawlerGovernanceWorkflows, new Date("2026-05-26T18:30:00Z"));
 }
 
 export async function getCrawlerStagingRuntimeEvidence() {

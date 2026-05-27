@@ -190,6 +190,7 @@ export default async function CrawlerReviewPage() {
             { key: "notice", header: "Requester Notice", render: (row) => <StatusBadge value={row.requesterNoticeStatus} label={row.requesterNoticeStatus} /> },
             { key: "second-review", header: "Second Review", render: (row) => <StatusBadge value={row.secondReviewStatus} label={row.secondReviewStatus} /> },
             { key: "audit-status", header: "Audit Status", render: (row) => <StatusBadge value={row.auditStatus} label={row.auditStatus} /> },
+            { key: "deadline", header: "Deadline", render: (row) => <StatusBadge value={row.deadlineStatus} label={row.deadlineStatus} /> },
             { key: "blockers", header: "Blockers", render: (row) => (row.blockerCodes.length > 0 ? row.blockerCodes.join(", ") : "none") },
             { key: "action", header: "Operator Action", render: (row) => row.operatorAction },
             { key: "evidence", header: "Required Evidence", render: (row) => row.requiredEvidenceRefs.join(", ") },

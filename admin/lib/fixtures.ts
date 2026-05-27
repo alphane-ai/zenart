@@ -604,8 +604,8 @@ export const adminRbacEvidence: AdminRbacEvidence[] = [
     postDecisionControl: "Leave cf-118 blocked, keep active prompt and skill import disabled, and require au-012 plus reviewer closure before retention changes.",
     rationale: "Crawler takedown and derivative material deletion must be reviewed by an admin reviewer before activation or retention changes.",
     auditRef: "au-012",
-    evidenceRefs: ["cg-501", "cf-118", "ip-7001"],
-    releaseEvidenceRequired: ["takedown closure", "derivative-use review", "raw retention action", "source contact notice", "immutable audit"]
+    evidenceRefs: ["cg-501", "cf-118", "ip-7001", "pending-raw-derivative-delete-cs-21", "pending-rights-owner-notice-ip-7001"],
+    releaseEvidenceRequired: ["takedown closure", "derivative-use review", "raw retention action", "source contact notice", "immutable audit", "fresh second-review before expired deadline"]
   },
   {
     id: "rbac-prompt-001",

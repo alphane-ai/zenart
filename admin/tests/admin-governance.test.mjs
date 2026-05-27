@@ -158,6 +158,7 @@ const parseCrawlerRuntime = () => {
     .replaceAll(/: CrawlerGovernanceWorkflow\["requestType"\]/g, "")
     .replaceAll(/: string\[\]/g, "")
     .replaceAll(/: string/g, "")
+    .replaceAll(/: Date/g, "")
     .replaceAll(/ as const/g, "");
   return Function(`${runtimeSource}\nreturn { buildCrawlerGovernanceRuntimeDecisions };`)();
 };
@@ -3983,7 +3984,7 @@ test("crawler takedown and derivative review workflow blocks unsafe activation",
 });
 
 test("crawler governance runtime decisions gate takedown closure and activation", () => {
-  const decisions = buildCrawlerGovernanceRuntimeDecisions(crawlerGovernanceWorkflows);
+  const decisions = buildCrawlerGovernanceRuntimeDecisions(crawlerGovernanceWorkflows, new Date("2026-05-26T18:30:00Z"));
   const decisionsByWorkflow = new Map(decisions.map((decision) => [decision.workflowId, decision]));
 
   assert.equal(decisions.length, crawlerGovernanceWorkflows.length, "each crawler workflow needs one runtime decision");
@@ -3996,18 +3997,22 @@ test("crawler governance runtime decisions gate takedown closure and activation"
   assert.ok(takedownDecision.blockerCodes.includes("deletion_evidence_pending"), "open takedown needs deletion blocker");
   assert.ok(takedownDecision.blockerCodes.includes("requester_notice_pending"), "open takedown needs notice blocker");
   assert.ok(takedownDecision.blockerCodes.includes("second_review_open"), "open takedown needs second-review blocker");
+  assert.equal(takedownDecision.deadlineStatus, "expired", "open takedown past due must expose expired deadline status");
+  assert.ok(takedownDecision.blockerCodes.includes("deadline_expired"), "open takedown past due needs deadline blocker");
 
   const derivativeDecision = decisionsByWorkflow.get("cg-522");
   assert.equal(derivativeDecision.closureDecision, "ready_to_close", "approved derivative review should be closeable");
   assert.equal(derivativeDecision.activationDecision, "allow_activation", "approved derivative review should allow activation");
   assert.equal(derivativeDecision.blockerCodes.length, 0, "approved derivative review should not expose blockers");
   assert.equal(derivativeDecision.auditStatus, "attached", "approved derivative review needs audit evidence");
+  assert.equal(derivativeDecision.deadlineStatus, "not_evaluated", "approved derivative review should not create deadline blockers");
 
   const retentionDecision = decisionsByWorkflow.get("cg-533");
   assert.equal(retentionDecision.closureDecision, "blocked", "pending raw retention delete must block closure");
   assert.equal(retentionDecision.activationDecision, "block_activation", "pending raw retention delete must block activation");
   assert.ok(retentionDecision.blockerCodes.includes("deletion_evidence_pending"), "pending retention delete needs deletion blocker");
   assert.ok(retentionDecision.blockerCodes.includes("requester_notice_pending"), "pending retention delete needs notice blocker");
+  assert.equal(retentionDecision.deadlineStatus, "within_window", "pending retention delete should expose active deadline window");
 
   const rejectedSecondReviewDecision = buildCrawlerGovernanceRuntimeDecisions([
     {
@@ -4032,6 +4037,37 @@ test("crawler governance runtime decisions gate takedown closure and activation"
   assert.ok(
     rejectedSecondReviewDecision.blockerCodes.includes("second_review_rejected"),
     "rejected second review needs an explicit blocker code"
+  );
+
+  const staleReadyAttemptDecision = buildCrawlerGovernanceRuntimeDecisions(
+    [
+      {
+        ...crawlerGovernanceWorkflows.find((workflow) => workflow.id === "cg-501"),
+        deletionEvidenceRef: "raw-derivative-delete-cs-21-complete",
+        requesterNoticeRef: "rights-owner-notice-ip-7001-complete",
+        blockedActivation: false,
+        activationGateDecision: "allowed",
+        secondReviewStatus: "required"
+      }
+    ],
+    new Date("2026-05-26T18:30:00Z")
+  )[0];
+  assert.equal(
+    staleReadyAttemptDecision.closureDecision,
+    "blocked",
+    "expired takedown cannot close from deletion and notice evidence while second review remains open"
+  );
+  assert.equal(staleReadyAttemptDecision.activationDecision, "block_activation", "expired takedown cannot reactivate crawler material");
+  assert.equal(staleReadyAttemptDecision.deletionEvidenceStatus, "complete", "stale attempt should still record attached deletion evidence");
+  assert.equal(staleReadyAttemptDecision.requesterNoticeStatus, "complete", "stale attempt should still record attached requester notice");
+  assert.equal(staleReadyAttemptDecision.deadlineStatus, "expired", "stale attempt needs expired deadline status");
+  assert.ok(staleReadyAttemptDecision.blockerCodes.includes("second_review_open"), "stale attempt needs second-review blocker");
+  assert.ok(staleReadyAttemptDecision.blockerCodes.includes("deadline_expired"), "stale attempt needs deadline blocker");
+  assert.ok(
+    adminRbacEvidence
+      .find((item) => item.id === "rbac-crawler-001")
+      .releaseEvidenceRequired.includes("fresh second-review before expired deadline"),
+    "crawler RBAC evidence must require a fresh second review after an expired takedown deadline"
   );
 
   for (const workflow of crawlerGovernanceWorkflows) {

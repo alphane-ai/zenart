@@ -181,6 +181,7 @@ export type CrawlerGovernanceRuntimeDecision = {
   requesterNoticeStatus: "complete" | "pending";
   secondReviewStatus: CrawlerGovernanceWorkflow["secondReviewStatus"];
   auditStatus: "attached" | "missing";
+  deadlineStatus: "within_window" | "expired" | "not_evaluated";
   blockerCodes: string[];
   operatorAction: string;
   auditRef: string;

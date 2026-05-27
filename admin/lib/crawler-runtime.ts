@@ -5,13 +5,21 @@ function isPendingEvidence(ref: string) {
 }
 
 export function buildCrawlerGovernanceRuntimeDecisions(
-  workflows: CrawlerGovernanceWorkflow[]
+  workflows: CrawlerGovernanceWorkflow[],
+  now = new Date("2026-05-26T12:00:00Z")
 ): CrawlerGovernanceRuntimeDecision[] {
   return workflows.map((workflow) => {
     const blockerCodes: string[] = [];
     const deletionEvidenceStatus = isPendingEvidence(workflow.deletionEvidenceRef) ? "pending" : "complete";
     const requesterNoticeStatus = isPendingEvidence(workflow.requesterNoticeRef) ? "pending" : "complete";
     const auditStatus = workflow.auditRef === "pending" || workflow.auditRef.trim().length === 0 ? "missing" : "attached";
+    const dueAt = Date.parse(`${workflow.dueAt.replace(" ", "T")}Z`);
+    const deadlineStatus =
+      Number.isNaN(dueAt) || workflow.status === "approved" || workflow.status === "deleted"
+        ? "not_evaluated"
+        : dueAt < now.getTime()
+          ? "expired"
+          : "within_window";
     const secondReviewOpen =
       workflow.secondReviewRequired &&
       workflow.secondReviewStatus === "required";
@@ -43,11 +51,16 @@ export function buildCrawlerGovernanceRuntimeDecisions(
       blockerCodes.push("audit_missing");
     }
 
+    if (deadlineStatus === "expired" && (secondReviewOpen || deletionEvidenceStatus === "pending" || requesterNoticeStatus === "pending")) {
+      blockerCodes.push("deadline_expired");
+    }
+
     const closureDecision =
       blockerCodes.includes("deletion_evidence_pending") ||
       blockerCodes.includes("requester_notice_pending") ||
       blockerCodes.includes("audit_missing") ||
-      blockerCodes.includes("second_review_rejected")
+      blockerCodes.includes("second_review_rejected") ||
+      blockerCodes.includes("deadline_expired")
         ? "blocked"
         : secondReviewOpen
           ? "review_required"
@@ -73,6 +86,7 @@ export function buildCrawlerGovernanceRuntimeDecisions(
       requesterNoticeStatus,
       secondReviewStatus: workflow.secondReviewStatus,
       auditStatus,
+      deadlineStatus,
       blockerCodes,
       operatorAction,
       auditRef: workflow.auditRef,
