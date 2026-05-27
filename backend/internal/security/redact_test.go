@@ -257,6 +257,119 @@ func TestRedactMapCoversLaunchAnalyticsSupportAndIdentityMetadataKeys(t *testing
 	assertSignal(t, findings, "firebase_server_key")
 }
 
+func TestRedactStringCoversLaunchOpsAndCITokens(t *testing.T) {
+	grafanaToken := "glc_" + strings.Repeat("A", 28)
+	newRelicKey := "NRAK-" + strings.Repeat("B", 24)
+	terraformToken := "abcdefghijklmn.atlasv1." + strings.Repeat("C", 44)
+	snykToken := "snyk_" + strings.Repeat("D", 24)
+	input := strings.Join([]string{
+		"grafana=" + grafanaToken,
+		"newrelic=" + newRelicKey,
+		"terraform=" + terraformToken,
+		"snyk=" + snykToken,
+		"honeycomb_api_key=hcops-secret-value",
+		"splunk_hec_token=splunk-secret-value",
+		"OTEL_EXPORTER_OTLP_HEADERS=x-honeycomb-team=team-secret",
+		"circleci_token=circle-secret-value",
+		"buildkite_agent_token=buildkite-secret-value",
+		"okta_client_secret=okta-secret-value",
+	}, " ")
+
+	got := RedactString(input)
+	for _, leaked := range []string{
+		grafanaToken,
+		newRelicKey,
+		terraformToken,
+		snykToken,
+		"hcops-secret-value",
+		"splunk-secret-value",
+		"team-secret",
+		"circle-secret-value",
+		"buildkite-secret-value",
+		"okta-secret-value",
+	} {
+		if strings.Contains(got, leaked) {
+			t.Fatalf("RedactString() = %q, leaked %s", got, leaked)
+		}
+	}
+	if !strings.Contains(got, Redacted) {
+		t.Fatalf("RedactString() = %q, want redaction marker", got)
+	}
+
+	findings := ClassifyString(input)
+	for _, signal := range []string{
+		"grafana_cloud_token",
+		"new_relic_key",
+		"terraform_cloud_token",
+		"snyk_token",
+		"assignment:key_name",
+	} {
+		assertSignal(t, findings, signal)
+	}
+}
+
+func TestRedactMapCoversLaunchOpsAndCISecretKeys(t *testing.T) {
+	metadata := map[string]any{
+		"observability": map[string]any{
+			"newRelicLicenseKey": "newrelic-license-secret",
+			"splunkHECToken":     "splunk-hec-secret",
+			"honeycombTeam":      "honeycomb-team-secret",
+			"otelHeaders":        "x-honeycomb-team=team-secret",
+			"public_endpoint":    "https://otel.example.test/v1/traces",
+		},
+		"ci": map[string]string{
+			"terraformCloudToken": "abcdefghijklmn.atlasv1." + strings.Repeat("C", 44),
+			"snykToken":           "snyk_" + strings.Repeat("D", 24),
+			"circleCIToken":       "circle-secret-value",
+			"buildkiteAgentToken": "buildkite-secret-value",
+		},
+		"identity": map[string]string{
+			"oktaClientSecret": "okta-secret-value",
+		},
+		"public": "visible",
+	}
+
+	body, err := json.Marshal(RedactValue(metadata))
+	if err != nil {
+		t.Fatalf("marshal redacted metadata: %v", err)
+	}
+	for _, leaked := range []string{
+		"newrelic-license-secret",
+		"splunk-hec-secret",
+		"honeycomb-team-secret",
+		"team-secret",
+		"abcdefghijklmn.atlasv1.",
+		"snyk_",
+		"circle-secret-value",
+		"buildkite-secret-value",
+		"okta-secret-value",
+	} {
+		if strings.Contains(string(body), leaked) {
+			t.Fatalf("redacted metadata = %s, leaked %s", string(body), leaked)
+		}
+	}
+	for _, fragment := range []string{`"public":"visible"`, `"public_endpoint":"https://otel.example.test/v1/traces"`, Redacted} {
+		if !strings.Contains(string(body), fragment) {
+			t.Fatalf("redacted metadata = %s, missing %s", string(body), fragment)
+		}
+	}
+
+	findings := ClassifyValue(metadata)
+	for _, location := range []string{
+		"observability.newRelicLicenseKey",
+		"observability.splunkHECToken",
+		"observability.honeycombTeam",
+		"observability.otelHeaders",
+		"ci.terraformCloudToken",
+		"ci.snykToken",
+		"ci.circleCIToken",
+		"ci.buildkiteAgentToken",
+		"identity.oktaClientSecret",
+	} {
+		assertAnyFindingAt(t, findings, location)
+	}
+}
+
 func TestRedactStringCoversLaunchAuthorizationSchemesAndInfraTokens(t *testing.T) {
 	pulumiToken := "pul-" + strings.Repeat("a", 40)
 	databricksToken := "dapi" + strings.Repeat("b", 32)
@@ -1123,6 +1236,15 @@ func TestClassifyKeyCoversLaunchSecretNames(t *testing.T) {
 		{key: "dockercfg", kind: SecretKindRegistryAuth},
 		{key: "xAmzServerSideEncryptionCustomerKey", kind: SecretKindEncryptionKey},
 		{key: "sseCustomerKey", kind: SecretKindEncryptionKey},
+		{key: "newRelicLicenseKey", kind: SecretKindToken},
+		{key: "splunkHECToken", kind: SecretKindToken},
+		{key: "honeycombTeam", kind: SecretKindToken},
+		{key: "otelHeaders", kind: SecretKindToken},
+		{key: "terraformCloudToken", kind: SecretKindToken},
+		{key: "snykToken", kind: SecretKindToken},
+		{key: "circleCIToken", kind: SecretKindToken},
+		{key: "buildkiteAgentToken", kind: SecretKindToken},
+		{key: "oktaClientSecret", kind: SecretKindCredential},
 	}
 
 	for _, tt := range cases {
