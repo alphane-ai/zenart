@@ -1205,6 +1205,7 @@ func TestServiceCleanupDeletesMarkedObjectsAndMarksRowsDeleted(t *testing.T) {
 			pgconn.NewCommandTag("UPDATE 1"),
 			pgconn.NewCommandTag("SELECT 1"),
 			pgconn.NewCommandTag("UPDATE 2"),
+			pgconn.NewCommandTag("SELECT 1"),
 		},
 		queryRows: []rowSet{{
 			rows: [][]any{
@@ -1234,8 +1235,8 @@ func TestServiceCleanupDeletesMarkedObjectsAndMarksRowsDeleted(t *testing.T) {
 	if result.ExpiredExports != 1 || result.OrphanedObjects != 1 || result.DeletedObjects != 2 {
 		t.Fatalf("cleanup result = %#v, want 1/1/2", result)
 	}
-	if len(db.execs) != 5 {
-		t.Fatalf("exec count = %d, want repository mark, orphan mark, cleanup analytics, deleted mark, deletion analytics", len(db.execs))
+	if len(db.execs) != 6 {
+		t.Fatalf("exec count = %d, want repository mark, orphan mark, cleanup analytics, deleted mark, deletion analytics, cleanup run analytics", len(db.execs))
 	}
 	if !strings.Contains(db.execs[2].sql, "'export_expired'") || !strings.Contains(db.execs[2].sql, "'object_orphaned'") {
 		t.Fatalf("third exec should emit cleanup lifecycle analytics: %s", db.execs[2].sql)
@@ -1245,6 +1246,12 @@ func TestServiceCleanupDeletesMarkedObjectsAndMarksRowsDeleted(t *testing.T) {
 	}
 	if !strings.Contains(db.execs[4].sql, "'object_deleted'") {
 		t.Fatalf("fifth exec should emit object deletion analytics: %s", db.execs[4].sql)
+	}
+	if !strings.Contains(db.execs[5].sql, "'export_object_cleanup_run'") || !strings.Contains(db.execs[5].sql, "ON CONFLICT (id) DO NOTHING") {
+		t.Fatalf("sixth exec should emit idempotent cleanup run analytics: %s", db.execs[5].sql)
+	}
+	if db.execs[5].args[1] != result.ExpiredExports || db.execs[5].args[2] != result.OrphanedObjects || db.execs[5].args[3] != result.DeletedObjects {
+		t.Fatalf("cleanup run analytics args = %#v, want result counts", db.execs[5].args)
 	}
 }
 
@@ -1256,6 +1263,7 @@ func TestServiceCleanupMarksMissingExpiredObjectsDeleted(t *testing.T) {
 			pgconn.NewCommandTag("UPDATE 1"),
 			pgconn.NewCommandTag("SELECT 1"),
 			pgconn.NewCommandTag("UPDATE 2"),
+			pgconn.NewCommandTag("SELECT 1"),
 		},
 		queryRows: []rowSet{{
 			rows: [][]any{
@@ -1277,8 +1285,8 @@ func TestServiceCleanupMarksMissingExpiredObjectsDeleted(t *testing.T) {
 	if result.DeletedObjects != 2 {
 		t.Fatalf("deleted objects = %d, want metadata rows marked deleted after missing storage objects", result.DeletedObjects)
 	}
-	if len(db.execs) != 5 {
-		t.Fatalf("exec count = %d, want repository mark, orphan mark, cleanup analytics, deleted mark, deletion analytics", len(db.execs))
+	if len(db.execs) != 6 {
+		t.Fatalf("exec count = %d, want repository mark, orphan mark, cleanup analytics, deleted mark, deletion analytics, cleanup run analytics", len(db.execs))
 	}
 	if !strings.Contains(db.execs[2].sql, "'export_expired'") || !strings.Contains(db.execs[2].sql, "'object_orphaned'") {
 		t.Fatalf("third exec should emit cleanup lifecycle analytics: %s", db.execs[2].sql)
@@ -1288,6 +1296,9 @@ func TestServiceCleanupMarksMissingExpiredObjectsDeleted(t *testing.T) {
 	}
 	if !strings.Contains(db.execs[4].sql, "'object_deleted'") {
 		t.Fatalf("fifth exec should emit object deletion analytics: %s", db.execs[4].sql)
+	}
+	if !strings.Contains(db.execs[5].sql, "'export_object_cleanup_run'") {
+		t.Fatalf("sixth exec should emit cleanup run analytics: %s", db.execs[5].sql)
 	}
 }
 
@@ -1559,6 +1570,7 @@ func TestListAnalyticsReportsUsesTenantScopedWeeklyAggregation(t *testing.T) {
 		"export_expired",
 		"object_orphaned",
 		"object_deleted",
+		"export_object_cleanup_run",
 	} {
 		if !strings.Contains(query.sql, fragment) {
 			t.Fatalf("analytics reports query missing core workflow event/report %q: %s", fragment, query.sql)

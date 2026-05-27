@@ -1197,6 +1197,50 @@ ON CONFLICT (id) DO NOTHING`,
 	return err
 }
 
+func (r Repository) recordCleanupRunAnalytics(ctx context.Context, now time.Time, result CleanupResult) error {
+	if result.ExpiredExports == 0 && result.OrphanedObjects == 0 && result.DeletedObjects == 0 {
+		return nil
+	}
+	_, err := r.db.Exec(ctx, `
+WITH cleanup_counts AS (
+	SELECT
+		tenant_id,
+		COUNT(*) FILTER (WHERE event_name = 'export_expired') AS export_expired,
+		COUNT(*) FILTER (WHERE event_name = 'object_orphaned') AS object_orphaned,
+		COUNT(*) FILTER (WHERE event_name = 'object_deleted') AS object_deleted
+	FROM analytics_events
+	WHERE created_at = $1
+	  AND event_name IN ('export_expired', 'object_orphaned', 'object_deleted')
+	GROUP BY tenant_id
+)
+INSERT INTO analytics_events(id, tenant_id, workflow_id, event_name, subject_type, subject_id, properties, created_at)
+SELECT
+	'analytics_' || md5(tenant_id || ':' || $1::text || ':export_object_cleanup_run'),
+	tenant_id,
+	'',
+	'export_object_cleanup_run',
+	'object_retention_cleanup',
+	'cleanup_' || md5(tenant_id || ':' || $1::text),
+	jsonb_build_object(
+		'expired_exports', export_expired,
+		'orphaned_objects', object_orphaned,
+		'deleted_objects', object_deleted,
+		'worker_batch_expired_exports', $2,
+		'worker_batch_orphaned_objects', $3,
+		'worker_batch_deleted_objects', $4
+	),
+	$1
+FROM cleanup_counts
+WHERE export_expired > 0 OR object_orphaned > 0 OR object_deleted > 0
+ON CONFLICT (id) DO NOTHING`,
+		now,
+		result.ExpiredExports,
+		result.OrphanedObjects,
+		result.DeletedObjects,
+	)
+	return err
+}
+
 func (r Repository) RegenerateExport(ctx context.Context, tenantID, exportID string) (Export, error) {
 	export, err := r.GetExport(ctx, tenantID, exportID)
 	if err != nil {
@@ -1865,7 +1909,8 @@ WITH event_counts AS (
 		COUNT(*) FILTER (WHERE event_name = 'export_regenerated') AS export_regenerated,
 		COUNT(*) FILTER (WHERE event_name = 'export_expired') AS export_expired,
 		COUNT(*) FILTER (WHERE event_name = 'object_orphaned') AS object_orphaned,
-		COUNT(*) FILTER (WHERE event_name = 'object_deleted') AS object_deleted
+		COUNT(*) FILTER (WHERE event_name = 'object_deleted') AS object_deleted,
+		COUNT(*) FILTER (WHERE event_name = 'export_object_cleanup_run') AS export_object_cleanup_run
 	FROM analytics_events
 	WHERE tenant_id = $1
 	  AND created_at >= $2
@@ -1964,12 +2009,12 @@ FROM (
 	UNION ALL
 	SELECT 10,
 	       'export_object_cleanup',
-	       ARRAY['export_expired','object_orphaned','object_deleted']::text[],
+	       ARRAY['export_expired','object_orphaned','object_deleted','export_object_cleanup_run']::text[],
 	       ARRAY['tenant_id','project_id','asset_type','retention_state']::text[],
 	       (object_deleted >= object_orphaned),
 	       'weekly',
 	       object_deleted::numeric,
-	       jsonb_build_object('export_expired', export_expired, 'object_orphaned', object_orphaned, 'object_deleted', object_deleted)
+	       jsonb_build_object('export_expired', export_expired, 'object_orphaned', object_orphaned, 'object_deleted', object_deleted, 'cleanup_runs', export_object_cleanup_run)
 	FROM event_counts
 ) reports
 ORDER BY ord
@@ -2799,5 +2844,8 @@ func (s Service) CleanupExpiredExportsAndOrphanedObjects(ctx context.Context, no
 		return CleanupResult{}, err
 	}
 	result.DeletedObjects = deleted
+	if err := s.repo.recordCleanupRunAnalytics(ctx, now, result); err != nil {
+		return CleanupResult{}, err
+	}
 	return result, nil
 }
