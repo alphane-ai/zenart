@@ -221,6 +221,41 @@ describe("generated web API client CSRF contract", () => {
     );
   });
 
+  it("rejects absolute API bases when a browser origin is unavailable", () => {
+    const originalWindow = globalThis.window;
+
+    try {
+      vi.stubGlobal("window", undefined);
+
+      expect(() => new ZenArtApiClient("https://app.example.invalid/api")).toThrow(
+        "ZenArtApiClient absolute baseUrl requires a browser origin for same-site CSRF protection"
+      );
+      expect(() => new ZenArtApiClient("/api")).not.toThrow();
+    } finally {
+      vi.stubGlobal("window", originalWindow);
+    }
+  });
+
+  it("allows browser absolute API bases only when they match the current origin", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ id: "session-001" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" }
+      })
+    );
+    const client = new ZenArtApiClient(window.location.origin);
+
+    await client.request("getSession");
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      `${window.location.origin}/session`,
+      expect.objectContaining({
+        method: "GET",
+        credentials: defaultSameSiteCsrfContract.credentialMode
+      })
+    );
+  });
+
   it("keeps slash-relative API bases same-origin without serializing an absolute origin", async () => {
     const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(JSON.stringify({ id: "session-001" }), {

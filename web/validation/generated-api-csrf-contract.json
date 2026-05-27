@@ -118,6 +118,8 @@
     "Generated web API client uses same-site credentials on every request.",
     "Generated web API client adds X-ZenArt-CSRF only for POST, PUT, PATCH, and DELETE operations.",
     "Generated web API client rejects cross-origin base URLs before credentialed requests.",
+    "Generated web API client rejects absolute base URLs when no browser origin is available to prove same-site scope.",
+    "Generated web API client allows absolute base URLs only when they match the browser origin.",
     "Generated web API client rejects unsafe path params before credentialed requests.",
     "Account route exposes secure __Host cookie and same-site CSRF UX evidence.",
     "Account route proves every generated unsafe operation is represented by the authenticated same-site UX guard.",

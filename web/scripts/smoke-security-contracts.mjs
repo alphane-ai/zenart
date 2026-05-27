@@ -122,6 +122,8 @@ for (const requiredGeneratedClientSnippet of [
   "Idempotency-Key",
   "assertSameSiteBaseUrl(baseUrl)",
   "baseUrl.startsWith(\"//\")",
+  "absolute baseUrl requires a browser origin",
+  "const currentOrigin = window.location.origin",
   "parsed.origin !== currentOrigin",
   "isUnsafePathParam"
 ]) {
@@ -272,6 +274,15 @@ if (
     JSON.stringify(generatedApiCsrfContract.browserSmoke?.requiredAssertions)
 ) {
   fail("generated API CSRF artifact must pin the account-route browser smoke evidence");
+}
+
+for (const expectedAssertion of [
+  "Generated web API client rejects absolute base URLs when no browser origin is available to prove same-site scope.",
+  "Generated web API client allows absolute base URLs only when they match the browser origin."
+]) {
+  if (!generatedApiCsrfContract.assertions?.includes(expectedAssertion)) {
+    fail(`generated API CSRF artifact missing absolute-base same-site assertion ${expectedAssertion}`);
+  }
 }
 
 for (const requiredBrowserAssertion of generatedApiCsrfContract.browserSmoke?.requiredAssertions ?? []) {

@@ -1070,6 +1070,8 @@ for (const expectedApiSnippet of [
   "\"X-ZenArt-CSRF\"",
   "assertSameSiteBaseUrl",
   "same-origin for same-site CSRF protection",
+  "absolute baseUrl requires a browser origin",
+  "const currentOrigin = window.location.origin",
   "isUnsafePathParam"
 ]) {
   if (!generatedApiSource.includes(expectedApiSnippet) && !requestSecuritySource.includes(expectedApiSnippet)) {
