@@ -7769,7 +7769,8 @@ def validate_abuse_evidence_split_contracts() -> None:
     require(
         "ops/evidence/production/20260527T1330Z-abuse-throttle-hold.json" in production_text
         and "production account-level hold/throttle rollout evidence" in production_text
-        and "unrelated provider, billing, security, backup, and legal launch blockers remain active" in production_text,
+        and "unrelated backup/restore, rollback/post-deploy, and upstream CI/Staging dependency launch blockers remain active"
+        in production_text,
         "production gate must cite abuse throttle/hold production evidence without closing aggregate launch",
     )
 
@@ -8267,6 +8268,21 @@ def validate_staging_object_storage_retention_cleanup_evidence() -> None:
             blocked_evidence["split_evidence"]["canonical_pass_paths"] is False,
             "blocked retention cleanup evidence must not claim canonical pass paths",
         )
+        blocked_audit_linkage = blocked_evidence.get("audit_linkage", {})
+        for key in [
+            "audit_endpoint_semantic_cleanup_refs",
+            "audit_endpoint_semantic_cleanup_refs_by_probe",
+            "audit_endpoint_semantic_missing_cleanup_refs",
+            "semantic_verified",
+        ]:
+            require(
+                key in blocked_audit_linkage,
+                f"blocked retention cleanup evidence must expose semantic audit linkage field {key}",
+            )
+        require(
+            blocked_audit_linkage["semantic_verified"] is False,
+            "blocked retention cleanup evidence must not claim semantic audit linkage",
+        )
         require(
             blocked_evidence["gate_impact"]["can_clear_release_gate_check"] is False,
             "blocked retention cleanup evidence must not clear the object-storage release gate",
@@ -8454,6 +8470,33 @@ def validate_staging_object_storage_retention_cleanup_evidence() -> None:
     require(
         evidence["split_evidence"]["canonical_pass_paths"] is True,
         "passing object-storage retention cleanup evidence must use canonical pass paths",
+    )
+    audit_linkage = evidence.get("audit_linkage", {})
+    require(
+        audit_linkage.get("verified") is True,
+        "passing object-storage retention cleanup evidence must verify cleanup audit linkage",
+    )
+    require(
+        audit_linkage.get("semantic_verified") is True,
+        "passing object-storage retention cleanup evidence must verify cleanup/admin/tenant audit semantics",
+    )
+    require(
+        audit_linkage.get("cleanup_audit_refs"),
+        "passing object-storage retention cleanup evidence must record cleanup audit refs",
+    )
+    require(
+        audit_linkage.get("audit_endpoint_semantic_cleanup_refs")
+        and set(audit_linkage["cleanup_audit_refs"]) <= set(audit_linkage["audit_endpoint_semantic_cleanup_refs"]),
+        "passing object-storage retention cleanup evidence must cover every cleanup audit ref with semantic audit entries",
+    )
+    require(
+        audit_linkage.get("audit_endpoint_semantic_missing_cleanup_refs") == [],
+        "passing object-storage retention cleanup evidence must have no semantically missing cleanup audit refs",
+    )
+    semantic_by_probe = audit_linkage.get("audit_endpoint_semantic_cleanup_refs_by_probe", {})
+    require(
+        all(semantic_by_probe.get(probe_id) for probe_id in ("expired_export_cleanup", "orphan_cleanup")),
+        "passing object-storage retention cleanup evidence must semantically link both cleanup probes to audit entries",
     )
     require(
         evidence.get("blocked_checks") == [],

@@ -385,6 +385,46 @@ def collect_audit_refs(value):
     return refs
 
 
+def collect_audit_entries(value):
+    entries = []
+    if isinstance(value, dict):
+        if collect_audit_refs(value):
+            entries.append(value)
+        for nested in value.values():
+            entries.extend(collect_audit_entries(nested))
+    elif isinstance(value, list):
+        for item in value:
+            entries.extend(collect_audit_entries(item))
+    return entries
+
+
+def audit_entry_has_cleanup_semantics(entry):
+    blob = json.dumps(entry, sort_keys=True).lower()
+    has_cleanup_subject = any(
+        token in blob
+        for token in (
+            "object_storage_cleanup",
+            "object_retention_cleanup",
+            "expired_export_cleanup",
+            "orphan_cleanup",
+            "export.cleanup",
+            "export.cleanup.preview",
+        )
+    )
+    has_admin_actor = any(
+        token in blob
+        for token in (
+            "admin",
+            "actor_id",
+            "admin_user_id",
+            "requested_by",
+            "performed_by",
+        )
+    )
+    has_tenant_scope = "tenant" in blob or "tenant_id" in blob
+    return has_cleanup_subject and has_admin_actor and has_tenant_scope
+
+
 passed_by_check = {
     item["check_id"]: item
     for item in results
@@ -401,6 +441,7 @@ for cleanup_check in ("expired_export_cleanup", "orphan_cleanup"):
     cleanup_audit_refs.update(refs)
 audit_refs_body = load_result_body(passed_by_check.get("audit_refs", {}))
 audit_endpoint_refs = collect_audit_refs(audit_refs_body)
+audit_endpoint_entries = collect_audit_entries(audit_refs_body)
 missing_cleanup_audit_refs = sorted(cleanup_audit_refs - audit_endpoint_refs)
 audit_endpoint_covers_cleanup_refs = {
     probe_id: [ref for ref in refs if ref in audit_endpoint_refs]
@@ -414,9 +455,32 @@ if cleanup_audit_refs and missing_cleanup_audit_refs:
     blocked_or_failed.append(
         "audit_refs:missing_cleanup_audit_refs:" + ",".join(missing_cleanup_audit_refs)
     )
+semantic_audit_refs = set()
+semantic_audit_refs_by_probe = {}
+for probe_id, refs in cleanup_audit_refs_by_probe.items():
+    semantic_audit_refs_by_probe[probe_id] = []
+    for entry in audit_endpoint_entries:
+        entry_refs = collect_audit_refs(entry)
+        if not entry_refs or not audit_entry_has_cleanup_semantics(entry):
+            continue
+        for ref in refs:
+            if ref in entry_refs:
+                semantic_audit_refs.add(ref)
+                semantic_audit_refs_by_probe[probe_id].append(ref)
+semantic_audit_refs_by_probe = {
+    probe_id: sorted(set(refs))
+    for probe_id, refs in semantic_audit_refs_by_probe.items()
+}
+semantic_missing_cleanup_audit_refs = sorted(cleanup_audit_refs - semantic_audit_refs)
+if cleanup_audit_refs and semantic_missing_cleanup_audit_refs:
+    blocked_or_failed.append(
+        "audit_refs:missing_cleanup_audit_ref_semantics:"
+        + ",".join(semantic_missing_cleanup_audit_refs)
+    )
 audit_linkage_verified = (
     bool(cleanup_audit_refs)
     and not missing_cleanup_audit_refs
+    and not semantic_missing_cleanup_audit_refs
     and all(cleanup_audit_refs_by_probe.get(probe_id) for probe_id in ("expired_export_cleanup", "orphan_cleanup"))
 )
 runtime_checks_passed = required <= passed and not blocked_or_failed
@@ -610,9 +674,13 @@ report = {
         "cleanup_audit_refs": sorted(cleanup_audit_refs),
         "audit_endpoint_covers_cleanup_refs": audit_endpoint_covers_cleanup_refs,
         "audit_endpoint_missing_cleanup_refs": audit_endpoint_missing_cleanup_refs,
+        "audit_endpoint_semantic_cleanup_refs": sorted(semantic_audit_refs),
+        "audit_endpoint_semantic_cleanup_refs_by_probe": semantic_audit_refs_by_probe,
+        "audit_endpoint_semantic_missing_cleanup_refs": semantic_missing_cleanup_audit_refs,
         "audit_endpoint_refs": sorted(audit_endpoint_refs),
         "missing_cleanup_audit_refs": missing_cleanup_audit_refs,
         "verified": audit_linkage_verified,
+        "semantic_verified": bool(cleanup_audit_refs) and not semantic_missing_cleanup_audit_refs,
     },
     "required_checks": sorted(required),
     "runtime_input_requirements": runtime_input_requirements,
