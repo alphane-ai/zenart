@@ -950,11 +950,11 @@ func (r Repository) CleanupExpiredExportsAndOrphanedObjects(ctx context.Context,
 }
 
 func (r Repository) CleanupExpiredExportsAndOrphanedObjectsForTenant(ctx context.Context, tenantID string, now time.Time, objectCleanup func(context.Context, time.Time) (int, error)) (CleanupResult, error) {
-	tenantID = strings.TrimSpace(tenantID)
-	if tenantID == "" {
-		return CleanupResult{}, errors.Join(ErrValidation, errors.New("tenant_id is required"))
+	normalizedTenantID, err := normalizeCleanupTenantID(tenantID)
+	if err != nil {
+		return CleanupResult{}, err
 	}
-	return r.cleanupExpiredExportsAndOrphanedObjects(ctx, tenantID, now, objectCleanup)
+	return r.cleanupExpiredExportsAndOrphanedObjects(ctx, normalizedTenantID, now, objectCleanup)
 }
 
 func (r Repository) cleanupExpiredExportsAndOrphanedObjects(ctx context.Context, tenantID string, now time.Time, objectCleanup func(context.Context, time.Time) (int, error)) (CleanupResult, error) {
@@ -1104,16 +1104,31 @@ func cleanupKeyHasUnsafeSegment(key string) bool {
 	return false
 }
 
+func normalizeCleanupTenantID(tenantID string) (string, error) {
+	tenantID = strings.TrimSpace(tenantID)
+	if tenantID == "" {
+		return "", errors.Join(ErrValidation, errors.New("tenant_id is required"))
+	}
+	if tenantID != strings.Trim(tenantID, "/") ||
+		strings.ContainsAny(tenantID, `/\`) ||
+		tenantID == "." ||
+		tenantID == ".." ||
+		!cleanupTenantIDPattern.MatchString(tenantID) {
+		return "", errors.Join(ErrValidation, errors.New("tenant_id is invalid"))
+	}
+	return tenantID, nil
+}
+
 func (r Repository) ListCleanupObjects(ctx context.Context, now time.Time, limit int) ([]CleanupObject, error) {
 	return r.listCleanupObjects(ctx, "", now, limit)
 }
 
 func (r Repository) ListCleanupObjectsForTenant(ctx context.Context, tenantID string, now time.Time, limit int) ([]CleanupObject, error) {
-	tenantID = strings.TrimSpace(tenantID)
-	if tenantID == "" {
-		return nil, errors.Join(ErrValidation, errors.New("tenant_id is required"))
+	normalizedTenantID, err := normalizeCleanupTenantID(tenantID)
+	if err != nil {
+		return nil, err
 	}
-	return r.listCleanupObjects(ctx, tenantID, now, limit)
+	return r.listCleanupObjects(ctx, normalizedTenantID, now, limit)
 }
 
 func (r Repository) listCleanupObjects(ctx context.Context, tenantID string, now time.Time, limit int) ([]CleanupObject, error) {
@@ -3033,8 +3048,12 @@ func (s Service) CleanupExpiredExportsAndOrphanedObjects(ctx context.Context, no
 }
 
 func (s Service) CleanupExpiredExportsAndOrphanedObjectsForTenant(ctx context.Context, tenantID string, now time.Time, limit int) (CleanupResult, error) {
-	result, err := s.repo.CleanupExpiredExportsAndOrphanedObjectsForTenant(ctx, tenantID, now, nil)
-	return s.cleanupExpiredExportsAndOrphanedObjects(ctx, strings.TrimSpace(tenantID), now, limit, result, err)
+	normalizedTenantID, err := normalizeCleanupTenantID(tenantID)
+	if err != nil {
+		return CleanupResult{}, err
+	}
+	result, err := s.repo.CleanupExpiredExportsAndOrphanedObjectsForTenant(ctx, normalizedTenantID, now, nil)
+	return s.cleanupExpiredExportsAndOrphanedObjects(ctx, normalizedTenantID, now, limit, result, err)
 }
 
 func (s Service) cleanupExpiredExportsAndOrphanedObjects(ctx context.Context, tenantID string, now time.Time, limit int, result CleanupResult, err error) (CleanupResult, error) {
