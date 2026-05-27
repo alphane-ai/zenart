@@ -1017,6 +1017,56 @@ func TestServiceGetExportSignsWithConfiguredTTL(t *testing.T) {
 	}
 }
 
+func TestServiceGetExportUsesConfiguredDownloadSigner(t *testing.T) {
+	now := time.Date(2026, 5, 26, 12, 0, 0, 0, time.UTC)
+	db := &fakeDB{
+		queryRows: []rowSet{{
+			rows: [][]any{{
+				"export_1",
+				"tenant_1",
+				"package_1",
+				"project_1",
+				nil,
+				"zip",
+				"ready",
+				"passed",
+				"object_1",
+				[]byte(`{"package_id":"package_1"}`),
+				[]byte(`{"download":{"status":"ready"}}`),
+				nil,
+				now,
+				now,
+				[]byte(`{"id":"object_1","tenant_id":"tenant_1","project_id":"project_1","owner_id":"user_1","asset_type":"export","bucket":"exports-test","object_key":"tenants/tenant_1/exports/export_1.zip","content_type":"application/zip","byte_size":12,"checksum":"sha256:abc","provider":"s3-compatible","retention_state":"active","metadata":{},"created_at":"2026-05-26T00:00:00Z"}`),
+			}},
+		}},
+	}
+	objects := &recordingObjectStore{signedURL: "https://storage.example.test/direct-s3-url"}
+	var signerTenantID, signerKey string
+	var signerTTL time.Duration
+	service := NewService(NewRepository(db), objects).
+		WithDownloadURLTTL(2 * time.Minute).
+		WithDownloadURLSigner(func(_ context.Context, tenantID, key string, ttl time.Duration) (string, error) {
+			signerTenantID = tenantID
+			signerKey = key
+			signerTTL = ttl
+			return "/api/v1/objects/download?key=tenants%2Ftenant_1%2Fexports%2Fexport_1.zip&expires=1&sig=server", nil
+		})
+
+	export, err := service.GetExport(context.Background(), "tenant_1", "export_1")
+	if err != nil {
+		t.Fatalf("GetExport() error = %v", err)
+	}
+	if export.DownloadURL != "/api/v1/objects/download?key=tenants%2Ftenant_1%2Fexports%2Fexport_1.zip&expires=1&sig=server" {
+		t.Fatalf("DownloadURL = %q, want server-mediated signed URL", export.DownloadURL)
+	}
+	if signerTenantID != "tenant_1" || signerKey != "tenants/tenant_1/exports/export_1.zip" || signerTTL != 2*time.Minute {
+		t.Fatalf("signer input tenant/key/ttl = %q/%q/%s", signerTenantID, signerKey, signerTTL)
+	}
+	if objects.signKey != "" {
+		t.Fatalf("object store SignGetURL should not be used when server signer is configured: %q", objects.signKey)
+	}
+}
+
 func TestRequireDownloadableObjectEnforcesRetentionStateAndExpiry(t *testing.T) {
 	now := time.Date(2026, 5, 26, 12, 0, 0, 0, time.UTC)
 	retentionUntil := now.Add(time.Hour)

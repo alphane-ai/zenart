@@ -590,6 +590,38 @@ func (s *Server) signDownloadObjectKey(objectKey string, expires int64) string {
 	return hex.EncodeToString(mac.Sum(nil))
 }
 
+func (s *Server) SignDownloadURL(_ context.Context, tenantID, objectKey string, ttl time.Duration) (string, error) {
+	if ttl <= 0 {
+		return "", errors.New("signed URL ttl must be positive")
+	}
+	key, err := tenantScopedDownloadObjectKey(tenantID, objectKey)
+	if err != nil {
+		return "", err
+	}
+	if _, err := tenantIDFromScopedObjectKey(key); err != nil {
+		return "", err
+	}
+	expires := time.Now().UTC().Add(ttl).Unix()
+	values := url.Values{}
+	values.Set("key", key)
+	values.Set("expires", strconv.FormatInt(expires, 10))
+	values.Set("sig", s.signDownloadObjectKey(key, expires))
+	return "/api/v1/objects/download?" + values.Encode(), nil
+}
+
+func tenantScopedDownloadObjectKey(tenantID, objectKey string) (string, error) {
+	tenantID = strings.Trim(strings.TrimSpace(tenantID), "/")
+	key := strings.Trim(strings.TrimSpace(objectKey), "/")
+	prefix := "tenants/" + tenantID + "/"
+	if strings.HasPrefix(key, "tenants/") && !strings.HasPrefix(key, prefix) {
+		return "", errors.New("object key tenant scope does not match tenant_id")
+	}
+	if strings.HasPrefix(key, prefix) {
+		return key, nil
+	}
+	return prefix + key, nil
+}
+
 func tenantIDFromScopedObjectKey(key string) (string, error) {
 	key = strings.Trim(strings.TrimSpace(key), "/")
 	parts := strings.SplitN(key, "/", 3)

@@ -789,6 +789,67 @@ func TestSignedDownloadEndpointRejectsUnsafeObjectKeyBeforeStorage(t *testing.T)
 	}
 }
 
+func TestServerSignDownloadURLBuildsBackendMediatedTenantScopedURL(t *testing.T) {
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	cfg.ObjectStorage.SigningKey = "signed-download-test-secret"
+	srv := New(cfg, nil)
+
+	signed, err := srv.SignDownloadURL(context.Background(), "tenant_1", "exports/export_1.zip", time.Minute)
+	if err != nil {
+		t.Fatalf("SignDownloadURL() error = %v", err)
+	}
+	parsed, err := url.Parse(signed)
+	if err != nil {
+		t.Fatalf("signed URL parse error = %v", err)
+	}
+	if parsed.Scheme != "" || parsed.Host != "" || parsed.Path != "/api/v1/objects/download" {
+		t.Fatalf("signed URL = %q, want backend-mediated relative download path", signed)
+	}
+	query := parsed.Query()
+	if query.Get("key") != "tenants/tenant_1/exports/export_1.zip" {
+		t.Fatalf("signed key = %q, want tenant-scoped key", query.Get("key"))
+	}
+	if query.Get("expires") == "" || query.Get("sig") == "" {
+		t.Fatalf("signed URL missing expires or sig: %q", signed)
+	}
+	expires, err := strconv.ParseInt(query.Get("expires"), 10, 64)
+	if err != nil {
+		t.Fatalf("expires parse error = %v", err)
+	}
+	if got := srv.signDownloadObjectKey(query.Get("key"), expires); got != query.Get("sig") {
+		t.Fatalf("signature mismatch: got %q want %q", query.Get("sig"), got)
+	}
+}
+
+func TestServerSignDownloadURLRejectsUnsafeObjectKey(t *testing.T) {
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	cfg.ObjectStorage.SigningKey = "signed-download-test-secret"
+	srv := New(cfg, nil)
+
+	if _, err := srv.SignDownloadURL(context.Background(), "tenant_1", "exports/../export_1.zip", time.Minute); err == nil {
+		t.Fatal("SignDownloadURL() error = nil, want unsafe object key error")
+	}
+}
+
+func TestServerSignDownloadURLRejectsCrossTenantScopedObjectKey(t *testing.T) {
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	cfg.ObjectStorage.SigningKey = "signed-download-test-secret"
+	srv := New(cfg, nil)
+
+	if _, err := srv.SignDownloadURL(context.Background(), "tenant_1", "tenants/tenant_2/exports/export_1.zip", time.Minute); err == nil {
+		t.Fatal("SignDownloadURL() error = nil, want cross-tenant scoped key error")
+	}
+}
+
 func TestAdminAuditDeniesNonAdmin(t *testing.T) {
 	cfg, err := config.Load()
 	if err != nil {

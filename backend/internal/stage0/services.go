@@ -3056,6 +3056,7 @@ type Service struct {
 	objects        objectstore.Store
 	scanner        security.MalwareScanner
 	downloadURLTTL time.Duration
+	downloadSigner func(context.Context, string, string, time.Duration) (string, error)
 }
 
 func NewService(repo Repository, objects objectstore.Store, scanners ...security.MalwareScanner) Service {
@@ -3074,6 +3075,13 @@ func NewService(repo Repository, objects objectstore.Store, scanners ...security
 func (s Service) WithDownloadURLTTL(ttl time.Duration) Service {
 	if ttl > 0 {
 		s.downloadURLTTL = ttl
+	}
+	return s
+}
+
+func (s Service) WithDownloadURLSigner(signer func(context.Context, string, string, time.Duration) (string, error)) Service {
+	if signer != nil {
+		s.downloadSigner = signer
 	}
 	return s
 }
@@ -3200,7 +3208,11 @@ func (s Service) GetExport(ctx context.Context, tenantID, exportID string) (Expo
 		if strings.TrimSpace(export.Object.ObjectKey) != "" {
 			objectKey = export.Object.ObjectKey
 		}
-		if signed, err := s.objects.SignGetURL(ctx, tenantID, objectKey, downloadTTLForObject(*export.Object, now, s.downloadURLTTL)); err == nil {
+		signer := s.objects.SignGetURL
+		if s.downloadSigner != nil {
+			signer = s.downloadSigner
+		}
+		if signed, err := signer(ctx, tenantID, objectKey, downloadTTLForObject(*export.Object, now, s.downloadURLTTL)); err == nil {
 			export.DownloadURL = signed
 		}
 	}
