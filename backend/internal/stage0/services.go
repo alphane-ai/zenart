@@ -846,17 +846,24 @@ WHERE e.tenant_id = $1 AND e.id = $2`,
 }
 
 func (r Repository) RequireDownloadableObject(ctx context.Context, tenantID, objectKey string, now time.Time) error {
+	_, err := r.DownloadableObjectMetadata(ctx, tenantID, objectKey, now)
+	return err
+}
+
+func (r Repository) DownloadableObjectMetadata(ctx context.Context, tenantID, objectKey string, now time.Time) (ObjectMetadata, error) {
 	tenantID = strings.TrimSpace(tenantID)
 	if tenantID == "" || objectKey == "" {
-		return errors.Join(ErrValidation, errors.New("tenant_id and object_key are required"))
+		return ObjectMetadata{}, errors.Join(ErrValidation, errors.New("tenant_id and object_key are required"))
 	}
 	objectKey = tenantScopedObjectKey(tenantID, objectKey)
 	if now.IsZero() {
 		now = time.Now().UTC()
 	}
-	var id string
+	var object ObjectMetadata
+	var metadataJSON []byte
 	err := r.db.QueryRow(ctx, `
-SELECT id
+SELECT id, tenant_id, project_id, owner_id, asset_type, bucket, object_key, content_type, byte_size,
+       checksum, provider, retention_state, retention_until, derived_from_object_id, metadata, created_at
 FROM object_metadata
 WHERE tenant_id = $1
   AND object_key = $2
@@ -869,11 +876,33 @@ WHERE tenant_id = $1
 		tenantID,
 		objectKey,
 		now,
-	).Scan(&id)
+	).Scan(
+		&object.ID,
+		&object.TenantID,
+		&object.ProjectID,
+		&object.OwnerID,
+		&object.AssetType,
+		&object.Bucket,
+		&object.ObjectKey,
+		&object.ContentType,
+		&object.ByteSize,
+		&object.Checksum,
+		&object.Provider,
+		&object.Retention,
+		&object.RetentionUntil,
+		&object.DerivedFrom,
+		&metadataJSON,
+		&object.CreatedAt,
+	)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return ErrNotFound
+		return ObjectMetadata{}, ErrNotFound
 	}
-	return err
+	if err != nil {
+		return ObjectMetadata{}, err
+	}
+	_ = json.Unmarshal(metadataJSON, &object.Metadata)
+	object.Metadata = security.RedactMap(object.Metadata)
+	return object, nil
 }
 
 func (r Repository) ListExports(ctx context.Context, tenantID, status string, limit int) (Page[Export], error) {
@@ -2860,13 +2889,23 @@ func (s Service) PutObject(ctx context.Context, object objectstore.Object, body 
 }
 
 func (s Service) GetObject(ctx context.Context, tenantID, key string) (objectstore.Reader, error) {
+	reader, _, err := s.GetDownloadableObject(ctx, tenantID, key)
+	return reader, err
+}
+
+func (s Service) GetDownloadableObject(ctx context.Context, tenantID, key string) (objectstore.Reader, ObjectMetadata, error) {
 	if s.objects == nil {
-		return objectstore.Reader{}, ErrMissingRepository
+		return objectstore.Reader{}, ObjectMetadata{}, ErrMissingRepository
 	}
-	if err := s.repo.RequireDownloadableObject(ctx, tenantID, key, time.Now().UTC()); err != nil {
-		return objectstore.Reader{}, err
+	metadata, err := s.repo.DownloadableObjectMetadata(ctx, tenantID, key, time.Now().UTC())
+	if err != nil {
+		return objectstore.Reader{}, ObjectMetadata{}, err
 	}
-	return s.objects.Get(ctx, tenantID, key)
+	reader, err := s.objects.Get(ctx, tenantID, key)
+	if err != nil {
+		return objectstore.Reader{}, ObjectMetadata{}, err
+	}
+	return reader, metadata, nil
 }
 
 func (s Service) CreateUpload(ctx context.Context, opts UploadOptions) (Upload, error) {

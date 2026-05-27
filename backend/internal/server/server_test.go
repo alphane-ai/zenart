@@ -558,14 +558,20 @@ func TestSignedDownloadEndpointServesTenantScopedLocalObject(t *testing.T) {
 	if event.Metadata["object_key"] != stored.Key || event.Metadata["signed_access"] != true {
 		t.Fatalf("audit metadata = %#v, want signed object key/access", event.Metadata)
 	}
+	if event.Metadata["object_metadata_id"] != "object_1" || event.Metadata["project_id"] != "project_1" || event.Metadata["owner_id"] != "user_1" || event.Metadata["asset_type"] != "export" {
+		t.Fatalf("audit metadata = %#v, want object metadata/project/owner context", event.Metadata)
+	}
 	if strings.Contains(mustJSON(t, event.Metadata), downloadURL) {
 		t.Fatalf("audit metadata leaked signed URL: %#v", event.Metadata)
 	}
 	if len(db.execs) != 1 || !strings.Contains(db.execs[0].sql, "INSERT INTO analytics_events") {
 		t.Fatalf("analytics event not recorded: %#v", db.execs)
 	}
-	if db.execs[0].args[5] != "object_downloaded" || db.execs[0].args[6] != "object_metadata" || db.execs[0].args[7] != stored.Key {
-		t.Fatalf("analytics args = %#v, want object_downloaded for object key", db.execs[0].args)
+	if db.execs[0].args[2] != "user_1" || db.execs[0].args[3] != "project_1" {
+		t.Fatalf("analytics args = %#v, want object owner/project context", db.execs[0].args)
+	}
+	if db.execs[0].args[5] != "object_downloaded" || db.execs[0].args[6] != "object_metadata" || db.execs[0].args[7] != "object_1" {
+		t.Fatalf("analytics args = %#v, want object_downloaded for object metadata id", db.execs[0].args)
 	}
 	if strings.Contains(mustJSON(t, db.execs[0].args), downloadURL) {
 		t.Fatalf("analytics event leaked signed URL: %#v", db.execs[0].args)
@@ -2085,7 +2091,24 @@ func (downloadGuardDB) Query(context.Context, string, ...any) (store.Rows, error
 func (d *downloadGuardDB) QueryRow(_ context.Context, sql string, args ...any) store.Row {
 	d.query = stage0QueryCall{sql: sql, args: args}
 	if d.found {
-		return downloadGuardRow{row: []any{"object_1"}}
+		return downloadGuardRow{row: []any{
+			"object_1",
+			"tenant_1",
+			"project_1",
+			"user_1",
+			"export",
+			"signed-download-test",
+			"tenants/tenant_1/exports/export_1.zip",
+			"application/zip",
+			int64(9),
+			"sha256:test",
+			"local",
+			"active",
+			nil,
+			nil,
+			[]byte(`{"download_url":"https://storage.local/export.zip?X-Amz-Signature=abcdef","public":"ok"}`),
+			time.Date(2026, 5, 27, 0, 0, 0, 0, time.UTC),
+		}}
 	}
 	return downloadGuardRow{err: pgx.ErrNoRows}
 }
@@ -2216,6 +2239,8 @@ func assignScan(dest any, value any) {
 			return
 		}
 		*ptr = value.([]byte)
+	case *int64:
+		*ptr = value.(int64)
 	case *[]string:
 		*ptr = value.([]string)
 	case *bool:
@@ -2224,6 +2249,19 @@ func assignScan(dest any, value any) {
 		*ptr = value.(float64)
 	case *time.Time:
 		*ptr = value.(time.Time)
+	case **time.Time:
+		if value == nil {
+			*ptr = nil
+			return
+		}
+		switch v := value.(type) {
+		case time.Time:
+			*ptr = &v
+		case *time.Time:
+			*ptr = v
+		default:
+			panic("unsupported nullable time scan value")
+		}
 	default:
 		panic("unsupported scan destination")
 	}

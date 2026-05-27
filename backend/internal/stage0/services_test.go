@@ -1019,15 +1019,52 @@ func TestServiceGetExportSignsWithConfiguredTTL(t *testing.T) {
 
 func TestRequireDownloadableObjectEnforcesRetentionStateAndExpiry(t *testing.T) {
 	now := time.Date(2026, 5, 26, 12, 0, 0, 0, time.UTC)
-	db := &fakeDB{queryRows: []rowSet{{rows: [][]any{{"object_1"}}}}}
+	retentionUntil := now.Add(time.Hour)
+	downloadableRow := []any{
+		"object_1",
+		"tenant_1",
+		"project_1",
+		"user_1",
+		"export",
+		"exports-test",
+		"tenants/tenant_1/exports/export_1.zip",
+		"application/zip",
+		int64(12),
+		"sha256:abc",
+		"local",
+		"active",
+		retentionUntil,
+		nil,
+		[]byte(`{"download_url":"https://storage.local/export.zip?X-Amz-Signature=abcdef","public":"ok"}`),
+		now.Add(-time.Minute),
+	}
+	db := &fakeDB{queryRows: []rowSet{
+		{rows: [][]any{downloadableRow}},
+		{rows: [][]any{downloadableRow}},
+	}}
 	repo := NewRepository(db)
 
 	if err := repo.RequireDownloadableObject(context.Background(), "tenant_1", "exports/export_1.zip", now); err != nil {
 		t.Fatalf("RequireDownloadableObject() error = %v", err)
 	}
+	metadata, err := repo.DownloadableObjectMetadata(context.Background(), "tenant_1", "exports/export_1.zip", now)
+	if err != nil {
+		t.Fatalf("DownloadableObjectMetadata() error = %v", err)
+	}
+	if metadata.ID != "object_1" || metadata.ProjectID == nil || *metadata.ProjectID != "project_1" || metadata.OwnerID == nil || *metadata.OwnerID != "user_1" {
+		t.Fatalf("DownloadableObjectMetadata() = %#v, want object/project/owner context", metadata)
+	}
+	metadataBody, err := json.Marshal(metadata.Metadata)
+	if err != nil {
+		t.Fatalf("marshal metadata: %v", err)
+	}
+	if metadata.Metadata["public"] != "ok" || strings.Contains(string(metadataBody), "abcdef") {
+		t.Fatalf("download metadata = %#v, want redacted signed URL secret and public field", metadata.Metadata)
+	}
 	query := db.queryRowsUsed[0]
 	for _, fragment := range []string{
 		"FROM object_metadata",
+		"SELECT id, tenant_id, project_id, owner_id, asset_type",
 		"tenant_id = $1",
 		"object_key = $2",
 		"asset_type IN ('export', 'thumbnail')",
@@ -2691,6 +2728,8 @@ func assign(dest any, value any) {
 		*ptr = value.([]byte)
 	case *int:
 		*ptr = value.(int)
+	case *int64:
+		*ptr = value.(int64)
 	case *float64:
 		*ptr = value.(float64)
 	case *bool:
@@ -2699,6 +2738,19 @@ func assign(dest any, value any) {
 		*ptr = value.([]string)
 	case *time.Time:
 		*ptr = value.(time.Time)
+	case **time.Time:
+		if value == nil {
+			*ptr = nil
+			return
+		}
+		switch v := value.(type) {
+		case time.Time:
+			*ptr = &v
+		case *time.Time:
+			*ptr = v
+		default:
+			panic("unsupported nullable time scan value")
+		}
 	default:
 		panic("unsupported scan destination")
 	}

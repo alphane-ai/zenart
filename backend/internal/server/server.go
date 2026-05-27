@@ -469,7 +469,7 @@ func (s *Server) getSignedDownloadObject(w http.ResponseWriter, r *http.Request)
 		writeError(w, r, http.StatusNotImplemented, "download_audit_not_connected", "signed download audit logging is not connected yet", nil)
 		return
 	}
-	reader, err := service.GetObject(r.Context(), tenantID, key)
+	reader, objectMetadata, err := service.GetDownloadableObject(r.Context(), tenantID, key)
 	if err != nil {
 		writeDownloadObjectError(w, r, err)
 		return
@@ -482,15 +482,19 @@ func (s *Server) getSignedDownloadObject(w http.ResponseWriter, r *http.Request)
 		Action:   "object.download",
 		Resource: "objects/" + key,
 		Metadata: map[string]any{
-			"object_key":    key,
-			"bucket":        reader.Object.Bucket,
-			"content_type":  reader.Object.ContentType,
-			"byte_size":     reader.Object.ByteSize,
-			"expires_at":    time.Unix(expires, 0).UTC().Format(time.RFC3339),
-			"request_id":    requestIDFrom(r.Context()),
-			"remote_addr":   r.RemoteAddr,
-			"user_agent":    r.UserAgent(),
-			"signed_access": true,
+			"object_metadata_id": objectMetadata.ID,
+			"object_key":         key,
+			"asset_type":         objectMetadata.AssetType,
+			"project_id":         stringValue(objectMetadata.ProjectID),
+			"owner_id":           stringValue(objectMetadata.OwnerID),
+			"bucket":             reader.Object.Bucket,
+			"content_type":       firstNonEmpty(reader.Object.ContentType, objectMetadata.ContentType),
+			"byte_size":          firstPositive(reader.Object.ByteSize, objectMetadata.ByteSize),
+			"expires_at":         time.Unix(expires, 0).UTC().Format(time.RFC3339),
+			"request_id":         requestIDFrom(r.Context()),
+			"remote_addr":        r.RemoteAddr,
+			"user_agent":         r.UserAgent(),
+			"signed_access":      true,
 		},
 		CreatedAt: time.Now().UTC(),
 	}); err != nil {
@@ -499,14 +503,17 @@ func (s *Server) getSignedDownloadObject(w http.ResponseWriter, r *http.Request)
 	}
 	if err := service.Repository().RecordAnalyticsEvent(r.Context(), stage0.AnalyticsEvent{
 		TenantID:    tenantID,
+		UserID:      stringValue(objectMetadata.OwnerID),
+		ProjectID:   stringValue(objectMetadata.ProjectID),
 		EventName:   "object_downloaded",
 		SubjectType: "object_metadata",
-		SubjectID:   key,
+		SubjectID:   objectMetadata.ID,
 		Properties: map[string]any{
 			"object_key":    key,
+			"asset_type":    objectMetadata.AssetType,
 			"bucket":        reader.Object.Bucket,
-			"content_type":  reader.Object.ContentType,
-			"byte_size":     reader.Object.ByteSize,
+			"content_type":  firstNonEmpty(reader.Object.ContentType, objectMetadata.ContentType),
+			"byte_size":     firstPositive(reader.Object.ByteSize, objectMetadata.ByteSize),
 			"expires_at":    time.Unix(expires, 0).UTC().Format(time.RFC3339),
 			"request_id":    requestIDFrom(r.Context()),
 			"signed_access": true,
@@ -1042,6 +1049,32 @@ func writeDownloadObjectError(w http.ResponseWriter, r *http.Request, err error)
 
 func urlQueryEscape(value string) string {
 	return url.QueryEscape(value)
+}
+
+func stringValue(value *string) string {
+	if value == nil {
+		return ""
+	}
+	return strings.TrimSpace(*value)
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, value := range values {
+		value = strings.TrimSpace(value)
+		if value != "" {
+			return value
+		}
+	}
+	return ""
+}
+
+func firstPositive(values ...int64) int64 {
+	for _, value := range values {
+		if value > 0 {
+			return value
+		}
+	}
+	return 0
 }
 
 func writeJSON(w http.ResponseWriter, status int, payload any) {
