@@ -149,8 +149,6 @@ def validate_trace_fixture() -> None:
         seen.add(trace_id)
         seen_fixtures.add(trace["fixture_id"])
         workflows.add(trace["workflow"])
-        require(set(trace["covered_steps"]) == REQUIRED_STEPS, f"{trace_id} must cover every pipeline step")
-        validate_step_events(trace)
         require(trace_id in eval_by_trace, f"{trace_id} is missing from eval fixture trace contracts")
         require(
             trace["fixture_id"] == eval_by_trace[trace_id]["fixture_id"],
@@ -160,6 +158,8 @@ def validate_trace_fixture() -> None:
             trace["workflow"] == eval_by_trace[trace_id]["workflow"],
             f"{trace_id} workflow must match eval fixture result",
         )
+        require(set(trace["covered_steps"]) == REQUIRED_STEPS, f"{trace_id} must cover every pipeline step")
+        validate_step_events(trace, eval_by_trace[trace_id])
 
         eval_trace = eval_by_trace[trace_id]["trace_contract"]
         for contract_field, eval_field in TRACE_CONTRACT_TO_FIXTURE_FIELD.items():
@@ -201,7 +201,7 @@ def validate_trace_fixture() -> None:
     )
 
 
-def validate_step_events(trace: dict[str, Any]) -> None:
+def validate_step_events(trace: dict[str, Any], eval_result: dict[str, Any] | None = None) -> None:
     trace_id = trace["trace_id"]
     events = trace["step_events"]
     require(len(events) == len(REQUIRED_STEP_ORDER), f"{trace_id} must emit one trace event per pipeline step")
@@ -237,6 +237,38 @@ def validate_step_events(trace: dict[str, Any]) -> None:
             event["safety_status"]["source"] == f"safety_decisions.enforcement_point.{step}",
             f"{trace_id} {step} event safety source must link to matching safety decision",
         )
+        validate_safety_decision_ref(trace, event, eval_result)
+
+
+def validate_safety_decision_ref(
+    trace: dict[str, Any],
+    event: dict[str, Any],
+    eval_result: dict[str, Any] | None,
+) -> None:
+    trace_id = trace["trace_id"]
+    step = event["step_name"]
+    require("safety_decision_ref" in event, f"{trace_id} {step} event missing safety_decision_ref")
+    ref = event["safety_decision_ref"]
+    require(ref["table"] == "safety_decisions", f"{trace_id} {step} decision ref must persist to safety_decisions")
+    require(ref["enforcement_point"] == step, f"{trace_id} {step} decision ref enforcement point mismatch")
+    require(
+        ref["decision_id"] == f"safety_decision_{trace['fixture_id']}_{step}",
+        f"{trace_id} {step} decision ref must be fixture and step scoped",
+    )
+    if eval_result is None:
+        return
+
+    decision_contract = eval_result["safety_decision_contract"]
+    require(ref["decision"] == decision_contract["decision"], f"{trace_id} {step} decision ref action mismatch")
+    require(
+        ref["decision_source"] == decision_contract["decision_source"],
+        f"{trace_id} {step} decision source mismatch",
+    )
+    require(
+        ref["source_rule_ids"] == decision_contract["source_rule_ids"],
+        f"{trace_id} {step} decision source rules mismatch",
+    )
+    require(ref["audit_required"] is decision_contract["audit_required"], f"{trace_id} {step} audit flag mismatch")
 
 
 def validate_artifact_links(trace: dict[str, Any], eval_result: dict[str, Any]) -> None:

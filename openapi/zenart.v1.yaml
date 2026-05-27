@@ -2518,6 +2518,7 @@ components:
         - schema_validation
         - provenance
         - safety_status
+        - safety_decision_ref
         - qa_eval_status
         - quota_transaction_id
         - admin_visibility
@@ -2565,6 +2566,31 @@ components:
               const: true
             source:
               type: string
+        safety_decision_ref:
+          type: object
+          required: [decision_id, table, enforcement_point, decision, decision_source, source_rule_ids, audit_required]
+          properties:
+            decision_id:
+              type: string
+            table:
+              type: string
+              enum: [safety_decisions]
+            enforcement_point:
+              type: string
+              enum: [brief, provider_request, provider_response, qa, export]
+            decision:
+              type: string
+              enum: [allow, warn, require_user_confirmation, require_admin_review, block]
+            decision_source:
+              type: string
+              enum: [default_no_match, linked_safety_rule]
+            source_rule_ids:
+              type: array
+              uniqueItems: true
+              items:
+                type: string
+            audit_required:
+              type: boolean
         qa_eval_status:
           type: object
           required: [present, source]

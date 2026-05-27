@@ -6621,7 +6621,16 @@ def validate_openapi_rev2_domain_contracts() -> None:
     trace_body = trace.group("body") if trace else ""
     for point in SAFETY_POINTS:
         require(point in trace_body, f"AgentTrace step_name enum missing {point}")
-    for token in ["const: true", "trace_provenance:", "safety_disclaimer_when_applicable:", "artifact_links:", "manifest_linked:", "qa_report_linked:"]:
+    for token in [
+        "const: true",
+        "trace_provenance:",
+        "safety_disclaimer_when_applicable:",
+        "artifact_links:",
+        "manifest_linked:",
+        "qa_report_linked:",
+        "safety_decision_ref:",
+        "safety_decisions",
+    ]:
         require(token in trace_body, f"AgentTrace completeness schema missing {token}")
 
 

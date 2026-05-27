@@ -226,6 +226,7 @@
         "schema_validation",
         "provenance",
         "safety_status",
+        "safety_decision_ref",
         "qa_eval_status",
         "quota_transaction_id",
         "admin_visibility",
@@ -270,6 +271,9 @@
         "safety_status": {
           "$ref": "#/$defs/trace_boolean_evidence"
         },
+        "safety_decision_ref": {
+          "$ref": "#/$defs/safety_decision_ref"
+        },
         "qa_eval_status": {
           "$ref": "#/$defs/trace_boolean_evidence"
         },
@@ -282,6 +286,63 @@
         },
         "user_failure_mapping": {
           "$ref": "#/$defs/trace_boolean_evidence"
+        }
+      }
+    },
+    "safety_decision_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "decision_id",
+        "table",
+        "enforcement_point",
+        "decision",
+        "decision_source",
+        "source_rule_ids",
+        "audit_required"
+      ],
+      "properties": {
+        "decision_id": {
+          "type": "string",
+          "pattern": "^safety_decision_fx_[a-z0-9_]+_(brief|provider_request|provider_response|qa|export)$"
+        },
+        "table": {
+          "const": "safety_decisions"
+        },
+        "enforcement_point": {
+          "enum": [
+            "brief",
+            "provider_request",
+            "provider_response",
+            "qa",
+            "export"
+          ]
+        },
+        "decision": {
+          "enum": [
+            "allow",
+            "warn",
+            "require_user_confirmation",
+            "require_admin_review",
+            "block"
+          ]
+        },
+        "decision_source": {
+          "enum": [
+            "default_no_match",
+            "linked_safety_rule"
+          ]
+        },
+        "source_rule_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^safety_[a-z0-9_]+$"
+          }
+        },
+        "audit_required": {
+          "type": "boolean"
         }
       }
     },
