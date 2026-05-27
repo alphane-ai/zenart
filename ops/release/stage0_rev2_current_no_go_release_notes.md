@@ -53,9 +53,10 @@ Release gate status: `no-go`.
 
 ## Evidence
 
-- CI run: `missing`; required for CI/private beta/production decisions.
-- Docker image build: `missing`; required for CI/private beta/production decisions.
-- Playwright smoke: `missing`; required before CI gate can close.
+- CI gate: CI gate `no_go` from `fixtures/stage0/rev2/release_gate_evidence.ci.json`; blocked checks: ci_installed_workflow, ci_gate_runtime_execution, ci_playwright_smoke, ci_docker_image_build; active do-not-launch conditions: ci_workflow_not_installed, ci_gate_not_executed_on_main, ci_playwright_smoke_missing, ci_docker_image_build_missing; exact closure artifacts: installed PR/main workflow `.github/workflows/stage0-rev2-ci.yml` absent; PR/main workflow run evidence `ops/evidence/ci/stage0-rev2-pr-main-run.json` absent; CI Playwright smoke evidence `ops/evidence/ci/stage0-rev2-playwright-smoke.json` absent; CI Docker image build evidence `ops/evidence/ci/stage0-rev2-docker-image-build.json` absent.
+- CI run: `missing`; exact pass evidence is required at `ops/evidence/ci/stage0-rev2-pr-main-run.json` after an installed `.github/workflows/stage0-rev2-ci.yml` PR/main run; required for CI/private beta/production decisions.
+- Docker image build: `missing`; exact pass evidence is required at `ops/evidence/ci/stage0-rev2-docker-image-build.json` after an installed workflow build; required for CI/private beta/production decisions.
+- Playwright smoke: `missing`; exact pass evidence is required at `ops/evidence/ci/stage0-rev2-playwright-smoke.json` after an installed workflow run; required before CI gate can close.
 - Migration run: `missing`; staging JSON must reference the release SHA, set `environment=staging`, set `kind=migration`, and record status `passed` or `compatible` before private beta/production decisions.
 - Staging smoke: staging status `passed` from `ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json` with 10/10 smoke categories passed; staging post-deploy smoke is validator-visible through combined preflight `passed` from `ops/evidence/staging/20260527T013207Z-staging-observability-backup-load-36222.json` for release `d3b1107c33dc40b8936f28549e06553fbd7b104a` with 4/4 slots verified, but the private beta gate remains `no-go` while object retention/cleanup remains blocked.
 - Load smoke: local 7/7 modes passed; first report ops/evidence/load/local/20260526T142030Z-chat_task-64820.json; staging load evidence is attached in the release evidence line below.
@@ -81,6 +82,8 @@ Release gate status: `no-go`.
 
 ## Known Risks
 
+- Open CI blockers: `fixtures/stage0/rev2/release_gate_evidence.ci.json`: ci_installed_workflow, ci_gate_runtime_execution, ci_playwright_smoke, ci_docker_image_build.
+- CI do-not-launch conditions present: ci_workflow_not_installed, ci_gate_not_executed_on_main, ci_playwright_smoke_missing, ci_docker_image_build_missing.
 - Open private beta blockers: `fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json`: staging_object_storage_signed_downloads.
 - Private beta do-not-launch conditions present: object_storage_signed_retention_runtime_missing.
 - Open production blockers: `fixtures/stage0/rev2/release_gate_evidence.production_launch.json`: production_backup_rollback_incident.

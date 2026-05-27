@@ -53,9 +53,10 @@ Release gate status: `no-go` until every required evidence slot below is filled 
 
 ## Evidence
 
-- CI run: `<run url>`; required for CI/private beta/production decisions.
-- Docker image build: `<image refs>`; required for CI/private beta/production decisions.
-- Playwright smoke: `<report path/url>`; required before CI gate can close.
+- CI gate: `<fixtures/stage0/rev2/release_gate_evidence.ci.json status, blocked checks, active do-not-launch conditions, and exact installed workflow/runtime artifact presence>`.
+- CI run: `<ops/evidence/ci/stage0-rev2-pr-main-run.json or run url>`; required for CI/private beta/production decisions. Exact pass evidence must follow an installed `.github/workflows/stage0-rev2-ci.yml` PR/main run.
+- Docker image build: `<ops/evidence/ci/stage0-rev2-docker-image-build.json or image refs>`; required for CI/private beta/production decisions. Exact pass evidence must follow an installed workflow build.
+- Playwright smoke: `<ops/evidence/ci/stage0-rev2-playwright-smoke.json or report path/url>`; required before CI gate can close. Exact pass evidence must follow an installed workflow run.
 - Migration run: `<local JSON path/url>`; local JSON must reference the release SHA, set `environment=staging`, set `kind=migration`, and record status `passed` or `compatible` before staging/private beta decisions.
 - Staging smoke: `<local JSON path/url>`; required before private beta/production decisions. Local JSON must reference the release SHA, set `environment=staging`, set `kind=post_deploy_smoke`, record status `passed`, prove backend health/readiness, web, admin, auth boundary, worker task, export/package, signed download, crawler admin, quota/rate-limit, and request-id observability categories, and include seeded user, tenant, task, package, and export smoke IDs.
 - Load smoke run: `<report path/url>`; required before private beta/production decisions.

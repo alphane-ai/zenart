@@ -15,6 +15,7 @@ BLUEPRINT = ROOT / "Docs/stage0_blueprint_rev2.md"
 OUTPUT_PATH = ROOT / "ops/release/stage0_rev2_current_no_go_release_notes.md"
 PRIVATE_BETA_GATE = ROOT / "fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json"
 PRODUCTION_GATE = ROOT / "fixtures/stage0/rev2/release_gate_evidence.production_launch.json"
+CI_GATE = ROOT / "fixtures/stage0/rev2/release_gate_evidence.ci.json"
 RUNTIME_SUMMARY = ROOT / "ops/evidence/stage0_runtime_drill_summary.json"
 STAGING_OBSERVABILITY_RUNTIME = ROOT / "ops/evidence/staging/20260527T1830Z-observability-runtime.json"
 STAGING_OBSERVABILITY_BACKUP_LOAD_PREFLIGHT = (
@@ -29,6 +30,12 @@ STAGING_OBJECT_RETENTION_BLOCKED = ROOT / "ops/evidence/staging/object-storage-r
 CURRENT_RELEASE_EVIDENCE_BUNDLE = (
     ROOT / "ops/evidence/release/staging/stage0-rev2-current-release-evidence-bundle.json"
 )
+CI_CLOSURE_ARTIFACTS = [
+    (ROOT / ".github/workflows/stage0-rev2-ci.yml", "installed PR/main workflow"),
+    (ROOT / "ops/evidence/ci/stage0-rev2-pr-main-run.json", "PR/main workflow run evidence"),
+    (ROOT / "ops/evidence/ci/stage0-rev2-playwright-smoke.json", "CI Playwright smoke evidence"),
+    (ROOT / "ops/evidence/ci/stage0-rev2-docker-image-build.json", "CI Docker image build evidence"),
+]
 RUNTIME_CHECKLIST_GROUPS = {
     "Crawler governance runtime": [
         "crawler fetch/import 强制 source approval runtime gate。",
@@ -300,11 +307,33 @@ def release_evidence_bundle_summary() -> str:
     )
 
 
+def ci_artifact_summary() -> str:
+    parts = []
+    for path, label in CI_CLOSURE_ARTIFACTS:
+        state = "present" if path.exists() else "absent"
+        parts.append(f"{label} `{path.relative_to(ROOT)}` {state}")
+    return "; ".join(parts)
+
+
+def ci_gate_summary(ci_gate: dict) -> str:
+    decision = ci_gate.get("gate_decision", {})
+    blockers = comma_or_missing(gate_blockers(ci_gate))
+    dnl = comma_or_missing(present_do_not_launch(ci_gate))
+    return (
+        f"CI gate `{decision.get('status', 'missing')}` from `{CI_GATE.relative_to(ROOT)}`; "
+        f"blocked checks: {blockers}; active do-not-launch conditions: {dnl}; "
+        f"exact closure artifacts: {ci_artifact_summary()}"
+    )
+
+
 def render(release_sha: str, release_tag: str, owner: str, reviewer: str, date: str) -> str:
+    ci_gate = load_json(CI_GATE)
     private_beta = load_json(PRIVATE_BETA_GATE)
     production = load_json(PRODUCTION_GATE)
     runtime = load_json(RUNTIME_SUMMARY)
 
+    ci_blockers = gate_blockers(ci_gate)
+    ci_dnl = present_do_not_launch(ci_gate)
     private_beta_blockers = gate_blockers(private_beta)
     private_beta_dnl = present_do_not_launch(private_beta)
     production_blockers = gate_blockers(production)
@@ -376,9 +405,10 @@ def render(release_sha: str, release_tag: str, owner: str, reviewer: str, date: 
         "",
         "## Evidence",
         "",
-        "- CI run: `missing`; required for CI/private beta/production decisions.",
-        "- Docker image build: `missing`; required for CI/private beta/production decisions.",
-        "- Playwright smoke: `missing`; required before CI gate can close.",
+        f"- CI gate: {ci_gate_summary(ci_gate)}.",
+        "- CI run: `missing`; exact pass evidence is required at `ops/evidence/ci/stage0-rev2-pr-main-run.json` after an installed `.github/workflows/stage0-rev2-ci.yml` PR/main run; required for CI/private beta/production decisions.",
+        "- Docker image build: `missing`; exact pass evidence is required at `ops/evidence/ci/stage0-rev2-docker-image-build.json` after an installed workflow build; required for CI/private beta/production decisions.",
+        "- Playwright smoke: `missing`; exact pass evidence is required at `ops/evidence/ci/stage0-rev2-playwright-smoke.json` after an installed workflow run; required before CI gate can close.",
         "- Migration run: `missing`; staging JSON must reference the release SHA, set `environment=staging`, set `kind=migration`, and record status `passed` or `compatible` before private beta/production decisions.",
         f"- Staging smoke: {staging_post_deploy_smoke_summary()}; staging post-deploy smoke is validator-visible through {staging_combined_preflight_summary()}, but the private beta gate remains `no-go` while object retention/cleanup remains blocked.",
         f"- Load smoke: {load_smoke_summary(runtime)}; staging load evidence is attached in the release evidence line below.",
@@ -404,6 +434,8 @@ def render(release_sha: str, release_tag: str, owner: str, reviewer: str, date: 
         "",
         "## Known Risks",
         "",
+        f"- Open CI blockers: `{CI_GATE.relative_to(ROOT)}`: {comma_or_missing(ci_blockers)}.",
+        f"- CI do-not-launch conditions present: {comma_or_missing(ci_dnl)}.",
         f"- Open private beta blockers: `{PRIVATE_BETA_GATE.relative_to(ROOT)}`: {comma_or_missing(private_beta_blockers)}.",
         f"- Private beta do-not-launch conditions present: {comma_or_missing(private_beta_dnl)}.",
         f"- Open production blockers: `{PRODUCTION_GATE.relative_to(ROOT)}`: {comma_or_missing(production_blockers)}.",
