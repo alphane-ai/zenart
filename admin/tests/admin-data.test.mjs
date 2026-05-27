@@ -679,6 +679,10 @@ test("admin review and audit pages expose RBAC runtime decisions", () => {
     "Evidence Completeness",
     "Highest Required Role",
     "Operator Checklist",
+    "API Scopes",
+    "Expiry Enforcement",
+    "Expiry Enforced IDs",
+    "Policy Block IDs",
     "Override Window",
     "Pre-Override State",
     "Expiry Action",
@@ -702,7 +706,11 @@ test("admin review and audit pages expose RBAC runtime decisions", () => {
     "blocked_by_policy_or_role",
     "overrideWindow",
     "staleOverrideProbe",
-    "operatorAction"
+    "operatorAction",
+    "apiScopes",
+    "expiryEnforcementStatus",
+    "expiryEnforcedEvidenceIds",
+    "policyBlockEvidenceIds"
   ]) {
     assert.match(adminApi + rbacRuntime, new RegExp(token));
   }
@@ -779,7 +787,11 @@ test("admin review and audit pages expose computed RBAC override evidence packs"
       "Evidence Completeness",
       "Highest Required Role",
       "Request Outcomes",
+      "API Scopes",
       "Expiry Statuses",
+      "Expiry Enforcement",
+      "Expiry Enforced IDs",
+      "Policy Block IDs",
       "Second Review Statuses",
       "Operator Checklist"
     ]) {
@@ -792,6 +804,14 @@ test("admin review and audit pages expose computed RBAC override evidence packs"
     "evidenceCompleteness",
     "releaseGateDisposition",
     "operatorChecklist",
+    "apiScopes",
+    "expiryEnforcementStatus",
+    "expiryEnforcedEvidenceIds",
+    "policyBlockEvidenceIds",
+    "all_enforced",
+    "policy_block_only",
+    "mixed_enforcement",
+    "missing_enforcement",
     "applied_with_expiry",
     "held_for_second_review",
     "blocked_by_policy_or_role",

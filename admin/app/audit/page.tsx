@@ -299,6 +299,7 @@ export default async function AuditPage() {
             { key: "surface", header: "Surface", render: (row) => row.surface },
             { key: "scope", header: "Override Scope", render: (row) => row.overrideScope },
             { key: "ids", header: "Evidence IDs", render: (row) => <span className="mono">{row.evidenceIds.join(", ")}</span> },
+            { key: "api", header: "API Scopes", render: (row) => <span className="mono">{row.apiScopes.join(", ")}</span> },
             { key: "roles", header: "Highest Required Role", render: (row) => row.highestRequiredRole },
             { key: "outcomes", header: "Request Outcomes", render: (row) => row.requestOutcomes.join(", ") },
             { key: "mutations", header: "Mutation Decisions", render: (row) => row.mutationDecisions.join(", ") },
@@ -313,6 +314,13 @@ export default async function AuditPage() {
               render: (row) => <StatusBadge value={row.evidenceCompleteness} label={row.evidenceCompleteness} />
             },
             { key: "expiry", header: "Expiry Statuses", render: (row) => row.expiryStatuses.join(", ") },
+            {
+              key: "expiry-enforcement",
+              header: "Expiry Enforcement",
+              render: (row) => <StatusBadge value={row.expiryEnforcementStatus} label={row.expiryEnforcementStatus} />
+            },
+            { key: "expiry-ids", header: "Expiry Enforced IDs", render: (row) => row.expiryEnforcedEvidenceIds.join(", ") || "none" },
+            { key: "policy-ids", header: "Policy Block IDs", render: (row) => row.policyBlockEvidenceIds.join(", ") || "none" },
             { key: "second-review", header: "Second Review Statuses", render: (row) => row.secondReviewStatuses.join(", ") },
             { key: "audit", header: "Audit Refs", render: (row) => <span className="mono">{row.auditRefs.join(", ")}</span> },
             { key: "checklist", header: "Operator Checklist", render: (row) => row.operatorChecklist.join(" ") }

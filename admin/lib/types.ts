@@ -1304,12 +1304,16 @@ export type AdminRbacEvidencePack = {
   overrideScope: AdminRbacEvidence["overrideScope"];
   evidenceIds: string[];
   targets: string[];
+  apiScopes: string[];
   requiredRoles: AdminRole[];
   attemptedRoles: AdminRole[];
   requestOutcomes: AdminRbacRuntimeDecision["requestOutcome"][];
   mutationDecisions: AdminRbacRuntimeDecision["effectiveDecision"][];
   releaseGateStatuses: AdminRbacRuntimeDecision["releaseGateStatus"][];
   expiryStatuses: AdminRbacRuntimeDecision["expiryPolicyStatus"][];
+  expiryEnforcementStatus: "all_enforced" | "policy_block_only" | "mixed_enforcement" | "missing_enforcement";
+  expiryEnforcedEvidenceIds: string[];
+  policyBlockEvidenceIds: string[];
   secondReviewStatuses: AdminRbacEvidence["secondReviewStatus"][];
   auditRefs: string[];
   evidenceRefs: string[];

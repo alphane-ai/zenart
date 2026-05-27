@@ -101,6 +101,7 @@ const parseRbacRuntime = () => {
     .replaceAll(/: AdminRbacEvidencePack\[\]/g, "")
     .replaceAll(/: AdminRbacEvidencePack\["releaseGateDisposition"\]/g, "")
     .replaceAll(/: AdminRbacEvidencePack\["evidenceCompleteness"\]/g, "")
+    .replaceAll(/: AdminRbacEvidencePack\["expiryEnforcementStatus"\]/g, "")
     .replaceAll(/: AdminRbacEvidence\["surface"\]/g, "")
     .replaceAll(/: AdminRbacRuntimeDecision\["surface"\]/g, "")
     .replaceAll(/new Map<AdminRbacEvidence\["surface"\], AdminRbacEvidence\[\]>/g, "new Map")
@@ -3740,11 +3741,39 @@ test("admin RBAC evidence packs bind each override surface to runtime, audit, an
     assert.ok(pack, `${surface} needs an RBAC evidence pack`);
     assert.equal(pack.overrideScope, overrideScope, `${surface} pack must preserve override scope`);
     assert.deepEqual(pack.evidenceIds.toSorted(), surfaceEvidence.map((item) => item.id).toSorted(), `${surface} pack evidence IDs must match fixtures`);
+    assert.deepEqual(
+      pack.apiScopes.toSorted(),
+      [...new Set(surfaceEvidence.map((item) => item.apiScope))].sort(),
+      `${surface} pack API scopes must match fixtures`
+    );
     assert.deepEqual(pack.auditRefs.toSorted(), [...new Set(surfaceEvidence.map((item) => item.auditRef))].sort(), `${surface} pack audit refs must match fixtures`);
     assert.equal(pack.evidenceCompleteness, "complete", `${surface} pack must be complete`);
     assert.ok(roleOrder.has(pack.highestRequiredRole), `${surface} pack highest required role must be known`);
     assert.ok(pack.operatorChecklist.length >= surfaceEvidence[0].releaseEvidenceRequired.length, `${surface} pack needs release checklist evidence`);
     assert.ok(pack.evidenceRefs.length >= surfaceEvidence.length, `${surface} pack needs evidence refs`);
+    assert.deepEqual(
+      pack.expiryEnforcedEvidenceIds.toSorted(),
+      surfaceEvidence.filter((item) => item.expiryEnforced).map((item) => item.id).toSorted(),
+      `${surface} pack expiry-enforced IDs must match fixtures`
+    );
+    assert.deepEqual(
+      pack.policyBlockEvidenceIds.toSorted(),
+      surfaceEvidence
+        .filter((item) => item.overrideDurationPolicy === "non_expiring_policy_block")
+        .map((item) => item.id)
+        .toSorted(),
+      `${surface} pack policy-block IDs must match fixtures`
+    );
+
+    const hasTemporaryWindow = surfaceEvidence.some((item) => item.overrideDurationPolicy !== "non_expiring_policy_block");
+    const hasPolicyBlock = surfaceEvidence.some((item) => item.overrideDurationPolicy === "non_expiring_policy_block");
+    if (hasTemporaryWindow && hasPolicyBlock) {
+      assert.equal(pack.expiryEnforcementStatus, "mixed_enforcement", `${surface} pack must show mixed expiry enforcement`);
+    } else if (hasTemporaryWindow) {
+      assert.equal(pack.expiryEnforcementStatus, "all_enforced", `${surface} pack must enforce every temporary window`);
+    } else {
+      assert.equal(pack.expiryEnforcementStatus, "policy_block_only", `${surface} pack must show policy-block-only expiry status`);
+    }
 
     for (const decision of surfaceDecisions) {
       assert.ok(pack.requestOutcomes.includes(decision.requestOutcome), `${surface} pack must include ${decision.requestOutcome}`);
@@ -3755,6 +3784,7 @@ test("admin RBAC evidence packs bind each override surface to runtime, audit, an
 
     for (const item of surfaceEvidence) {
       assert.ok(pack.targets.includes(item.target), `${surface} pack must include target ${item.target}`);
+      assert.ok(pack.apiScopes.includes(item.apiScope), `${surface} pack must include API scope ${item.apiScope}`);
       assert.ok(pack.requiredRoles.includes(item.requiredRole), `${surface} pack must include required role ${item.requiredRole}`);
       assert.ok(pack.attemptedRoles.includes(item.attemptedRole), `${surface} pack must include attempted role ${item.attemptedRole}`);
       assert.ok(pack.secondReviewStatuses.includes(item.secondReviewStatus), `${surface} pack must include second-review status ${item.secondReviewStatus}`);

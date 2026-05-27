@@ -378,6 +378,33 @@ function operatorChecklist(
   return Array.from(checklist);
 }
 
+function expiryEnforcementStatus(
+  surfaceEvidence: AdminRbacEvidence[]
+): AdminRbacEvidencePack["expiryEnforcementStatus"] {
+  const temporaryEvidence = surfaceEvidence.filter(
+    (item) => item.overrideDurationPolicy !== "non_expiring_policy_block"
+  );
+  const policyBlockEvidence = surfaceEvidence.filter(
+    (item) => item.overrideDurationPolicy === "non_expiring_policy_block"
+  );
+  const temporaryWindowsEnforced = temporaryEvidence.every((item) => item.expiryEnforced);
+  const policyBlocksUnenforced = policyBlockEvidence.every((item) => !item.expiryEnforced);
+
+  if (!temporaryWindowsEnforced || !policyBlocksUnenforced) {
+    return "missing_enforcement";
+  }
+
+  if (temporaryEvidence.length === 0) {
+    return "policy_block_only";
+  }
+
+  if (policyBlockEvidence.length > 0) {
+    return "mixed_enforcement";
+  }
+
+  return "all_enforced";
+}
+
 export function buildAdminRbacEvidencePacks(
   evidence: AdminRbacEvidence[],
   decisions: AdminRbacRuntimeDecision[]
@@ -402,12 +429,22 @@ export function buildAdminRbacEvidencePacks(
         overrideScope: surfaceEvidence[0].overrideScope,
         evidenceIds: uniqueSorted(surfaceEvidence.map((item) => item.id)),
         targets: uniqueSorted(surfaceEvidence.map((item) => item.target)),
+        apiScopes: uniqueSorted(surfaceEvidence.map((item) => item.apiScope)),
         requiredRoles: uniqueSorted(surfaceEvidence.map((item) => item.requiredRole)),
         attemptedRoles: uniqueSorted(surfaceEvidence.map((item) => item.attemptedRole)),
         requestOutcomes: uniqueSorted(surfaceDecisions.map((decision) => decision.requestOutcome)),
         mutationDecisions: uniqueSorted(surfaceDecisions.map((decision) => decision.effectiveDecision)),
         releaseGateStatuses: uniqueSorted(surfaceDecisions.map((decision) => decision.releaseGateStatus)),
         expiryStatuses: uniqueSorted(surfaceDecisions.map((decision) => decision.expiryPolicyStatus)),
+        expiryEnforcementStatus: expiryEnforcementStatus(surfaceEvidence),
+        expiryEnforcedEvidenceIds: uniqueSorted(
+          surfaceEvidence.filter((item) => item.expiryEnforced).map((item) => item.id)
+        ),
+        policyBlockEvidenceIds: uniqueSorted(
+          surfaceEvidence
+            .filter((item) => item.overrideDurationPolicy === "non_expiring_policy_block")
+            .map((item) => item.id)
+        ),
         secondReviewStatuses: uniqueSorted(surfaceEvidence.map((item) => item.secondReviewStatus)),
         auditRefs: uniqueSorted(surfaceEvidence.map((item) => item.auditRef)),
         evidenceRefs: uniqueSorted(surfaceEvidence.flatMap((item) => item.evidenceRefs)),
