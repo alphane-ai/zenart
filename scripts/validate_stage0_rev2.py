@@ -308,6 +308,7 @@ RELEASE_GATE_REQUIRED_CHECKS = {
 }
 
 RELEASE_GATE_REQUIRED_ACTIVE_CONDITIONS = {
+    "local_alpha": set(),
     "ci": {
         "ci_workflow_not_installed",
         "ci_gate_not_executed_on_main",
@@ -2075,6 +2076,42 @@ def validate_check_condition_consistency(data: dict[str, Any]) -> None:
         require(
             blocked_check_ids,
             f"{gate}.{condition_id} is active but is not mapped to a blocked/failing release gate check",
+        )
+
+
+def validate_no_go_condition_visibility(data: dict[str, Any]) -> None:
+    gate = data["gate"]
+    blockers = gate_blockers(data)
+    blocked_checks = blockers["blocked_or_failing_checks"]
+    active_conditions = blockers["active_do_not_launch_conditions"]
+    decision_status = data["gate_decision"]["status"]
+    if gate == "local_alpha":
+        if decision_status != "no_go" or active_conditions:
+            return
+        allowed_blockers = {"local_alpha_e2e_workflow_smoke"}
+        require(
+            set(blocked_checks).issubset(allowed_blockers),
+            "local_alpha may have no active Do-Not-Launch condition only for local workflow smoke evidence; "
+            f"unexpected blockers: {blocked_checks}",
+        )
+        evidence_ref = data["gate_decision"]["evidence_ref"].lower()
+        for token in ["workflow", "api", "playwright", "export"]:
+            require(
+                token in evidence_ref,
+                "local_alpha no-go without active Do-Not-Launch conditions must explain missing "
+                f"per-workflow runtime evidence: {token}",
+            )
+        return
+
+    if decision_status == "no_go":
+        require(
+            active_conditions,
+            f"{gate} gate_decision is no_go but has no active Do-Not-Launch condition",
+        )
+    for condition_id in active_conditions:
+        require(
+            condition_id in RELEASE_GATE_REQUIRED_ACTIVE_CONDITIONS[gate],
+            f"{gate}.{condition_id} is active but is not an allowed launch-blocking condition",
         )
 
 
@@ -4128,6 +4165,7 @@ def validate_release_gate_evidence() -> None:
         validate_do_not_launch_condition_coverage(gate_evidence)
         validate_active_condition_evidence_refs(gate_evidence)
         validate_check_condition_consistency(gate_evidence)
+        validate_no_go_condition_visibility(gate_evidence)
         validate_gate_cannot_pass_with_open_items(gate, gate_evidence, blueprint_unchecked)
         validate_runtime_gate_evidence_refs(gate, gate_evidence, blueprint_unchecked)
         validate_aggregate_runtime_checklist_items(
@@ -5254,6 +5292,8 @@ def validate_launch_readiness_split_contracts() -> None:
         "For a `no_go` fixture, `gate_decision.evidence_ref` must name every blocked/failing check ID",
         "and every active Do-Not-Launch condition ID from the same fixture",
         "If a gate checklist item remains open, its release gate fixture must still contain at least one computed blocker",
+        "CI, Private Beta/Staging, and Production gate fixtures may not be `no_go` with zero active Do-Not-Launch conditions",
+        "Local Alpha may remain `no_go` with zero active Do-Not-Launch conditions only for local workflow runtime smoke",
         "Passed runtime gate checks must cite exact validator-owned evidence files when the checklist subitem is closed by a named `ops/evidence` artifact",
         "Passed runtime evidence files must declare the expected environment",
         "stale or cross-gate evidence cannot close a runtime check",
