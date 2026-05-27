@@ -209,6 +209,22 @@ def staging_object_storage_signed_url_summary() -> str:
     )
 
 
+def staging_object_storage_retention_cleanup_summary() -> str:
+    path = ROOT / "ops/evidence/staging/object-storage-retention-cleanup.json"
+    if not path.exists():
+        return (
+            "`missing`; run `scripts/staging_object_storage_retention_cleanup_smoke.sh` against staging and "
+            "write `ops/evidence/staging/object-storage-retention-cleanup.json` proving retention policy, "
+            "expired export cleanup, orphan cleanup, and audit refs before the object-storage gate can close"
+        )
+    evidence = load_json(path)
+    status = evidence.get("status", "missing")
+    coverage = evidence.get("coverage", [])
+    passed = sum(1 for item in coverage if item.get("status") == "pass")
+    total = len(coverage)
+    return f"staging status `{status}` from `{path.relative_to(ROOT)}` with {passed}/{total} retention/cleanup probes validator-visible"
+
+
 def render(release_sha: str, release_tag: str, owner: str, reviewer: str, date: str) -> str:
     private_beta = load_json(PRIVATE_BETA_GATE)
     production = load_json(PRODUCTION_GATE)
@@ -296,6 +312,7 @@ def render(release_sha: str, release_tag: str, owner: str, reviewer: str, date: 
         f"- Backup/restore drill: local status `{local_status(runtime, 'backup_restore')}` from `{backup_report}`; {staging_backup_restore_summary()}; production backup/restore evidence remains separate and required before production decisions.",
         f"- Load evidence: {staging_load_summary()}; production load evidence remains separate and required before production decisions.",
         f"- Object-storage signed URL: {staging_object_storage_signed_url_summary()}; object retention policy, expired export cleanup, orphan cleanup, and audit refs remain required before the object-storage gate can close.",
+        f"- Object-storage retention cleanup: {staging_object_storage_retention_cleanup_summary()}.",
         "- Rollback drill: `missing`; staging JSON must reference the release SHA, set `environment=staging`, set `kind=rollback`, record status `passed` or `validated`, and include passed/validated evidence refs for image rollback, feature flag rollback, migration compatibility, worker drain, and post-rollback smoke.",
         f"- Security scan: local status `{local_status(runtime, 'security_scan_smoke')}` from `{security_report}`; staging JSON must reference the release SHA, set `environment=staging`, set `kind=security_scan`, record status `passed`, and include passed/validated evidence refs for dependency, image/container, and committed-secret scans before private beta/production decisions.",
         "",

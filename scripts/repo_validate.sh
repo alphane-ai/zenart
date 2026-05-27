@@ -66,6 +66,7 @@ test -x scripts/staging_smoke.sh
 test -x scripts/observability_smoke.sh
 test -x scripts/staging_observability_backup_load_smoke.sh
 test -x scripts/staging_object_storage_signed_url_smoke.sh
+test -x scripts/staging_object_storage_retention_cleanup_smoke.sh
 test -x scripts/staging_legal_support_visibility_smoke.sh
 test -x scripts/security_scan_smoke.sh
 test -x scripts/release_evidence_bundle_smoke.sh
@@ -233,6 +234,7 @@ required_fragments = [
     "Rollback drill: `missing`; staging JSON must reference the release SHA, set `environment=staging`, set `kind=rollback`, record status `passed` or `validated`, and include passed/validated evidence refs for image rollback, feature flag rollback, migration compatibility, worker drain, and post-rollback smoke.",
     "Security scan: local status `passed` from `ops/evidence/security/local/20260526T142040Z-security-scan-smoke-65314.json`; staging JSON must reference the release SHA, set `environment=staging`, set `kind=security_scan`, record status `passed`, and include passed/validated evidence refs for dependency, image/container, and committed-secret scans before private beta/production decisions.",
     "Object-storage signed URL: staging status `pass_with_blockers_preserved` from `ops/evidence/staging/20260527T2130Z-object-storage-signed-url.json` with 4/4 signed URL probes validator-visible; retention/cleanup evidence still required; object retention policy, expired export cleanup, orphan cleanup, and audit refs remain required before the object-storage gate can close.",
+    "Object-storage retention cleanup: `missing`; run `scripts/staging_object_storage_retention_cleanup_smoke.sh` against staging and write `ops/evidence/staging/object-storage-retention-cleanup.json` proving retention policy, expired export cleanup, orphan cleanup, and audit refs before the object-storage gate can close.",
     "Operational risks: staging rollback evidence remains absent; staging backup/restore, load, and post-deploy smoke evidence are attached through the combined preflight but do not close object-retention, legal/support, CI, or production gates.",
     "Object-storage risks: signed URL staging evidence is attached, but retention/cleanup runtime evidence still blocks the object-storage release gate.",
     "Conditions: CI, staging smoke, restore/load/rollback evidence, security scans, release owner, and gate fixture blockers must be cleared before any private beta or production decision.",
@@ -435,6 +437,7 @@ bash -n scripts/staging_smoke.sh
 bash -n scripts/observability_smoke.sh
 bash -n scripts/staging_observability_backup_load_smoke.sh
 bash -n scripts/staging_object_storage_signed_url_smoke.sh
+bash -n scripts/staging_object_storage_retention_cleanup_smoke.sh
 bash -n scripts/staging_legal_support_visibility_smoke.sh
 bash -n scripts/security_scan_smoke.sh
 bash -n scripts/release_evidence_bundle_smoke.sh
@@ -452,6 +455,14 @@ if [[ "$staging_obl_status" -ne 2 ]]; then
   exit 1
 fi
 RUN_ID="stage0-validate-object-storage-signed-url" OUT_DIR="$ops_validate_dir/object-storage" scripts/staging_object_storage_signed_url_smoke.sh >/dev/null
+set +e
+RUN_ID="stage0-validate-object-storage-retention-cleanup" DRY_RUN=1 OUT_DIR="$ops_validate_dir/object-storage-retention" scripts/staging_object_storage_retention_cleanup_smoke.sh >/dev/null
+object_retention_status=$?
+set -e
+if [[ "$object_retention_status" -ne 2 ]]; then
+  printf 'staging object-storage retention cleanup dry-run must exit 2 without runtime evidence, got %s\n' "$object_retention_status" >&2
+  exit 1
+fi
 set +e
 RUN_ID="stage0-validate-legal-support-visibility" DRY_RUN=1 OUT_DIR="$ops_validate_dir/legal-support" scripts/staging_legal_support_visibility_smoke.sh >/dev/null
 legal_support_status=$?
@@ -1507,6 +1518,51 @@ if gate.get("remaining_release_gate_blockers") != [
     "staging_legal_external_user_pages",
 ]:
     raise SystemExit("object-storage signed URL smoke must preserve object-storage and legal blockers")
+PY
+python3 - "$ops_validate_dir/object-storage-retention" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+reports = sorted(Path(sys.argv[1]).glob("*.json"))
+if len(reports) != 1:
+    raise SystemExit("object-storage retention cleanup dry-run must write exactly one report")
+report = json.loads(reports[0].read_text(encoding="utf-8"))
+if report.get("kind") != "object_storage_retention_cleanup":
+    raise SystemExit(f"object-storage retention cleanup report has wrong kind: {report}")
+if report.get("environment") != "staging":
+    raise SystemExit("object-storage retention cleanup report must be staging-scoped")
+if report.get("status") != "blocked":
+    raise SystemExit("object-storage retention cleanup dry-run must remain blocked")
+if report.get("release_gate_check_id") != "staging_object_storage_signed_downloads":
+    raise SystemExit("object-storage retention cleanup report must target the object-storage release check")
+if report.get("do_not_launch_condition_id") != "object_storage_signed_retention_runtime_missing":
+    raise SystemExit("object-storage retention cleanup report must target the object-storage Do-Not-Launch condition")
+areas = {item["area"]: item for item in report.get("coverage", [])}
+expected = {
+    "retention_policy",
+    "expired_export_cleanup",
+    "orphan_cleanup",
+    "audit_refs",
+}
+if set(areas) != expected:
+    raise SystemExit(f"object-storage retention cleanup coverage mismatch: {sorted(areas)}")
+if not report.get("blocked_checks"):
+    raise SystemExit("object-storage retention cleanup dry-run must record blocked checks")
+gate = report.get("gate_impact", {})
+if gate.get("can_clear_retention_cleanup_checklist_item") is not False:
+    raise SystemExit("object-storage retention cleanup dry-run must not clear the checklist item")
+if gate.get("can_clear_release_gate_check") is not False:
+    raise SystemExit("object-storage retention cleanup dry-run must not clear the release gate check")
+if gate.get("preserved_release_gate_check_id") != "staging_object_storage_signed_downloads":
+    raise SystemExit("object-storage retention cleanup dry-run must preserve the object-storage gate")
+if gate.get("preserved_do_not_launch_condition_id") != "object_storage_signed_retention_runtime_missing":
+    raise SystemExit("object-storage retention cleanup dry-run must preserve the matching Do-Not-Launch condition")
+for item in areas.values():
+    combined = json.dumps(item).lower()
+    for token in ("ops/evidence/staging", "retention", "audit"):
+        if token not in combined:
+            raise SystemExit(f"{item['area']} retention cleanup coverage missing {token}")
 PY
 python3 - "$ops_validate_dir/legal-support" <<'PY'
 import json
