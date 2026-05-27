@@ -582,13 +582,37 @@ func malwareScanResponse(result security.MalwareScanResult) map[string]any {
 }
 
 func signedObjectParams(r *http.Request) (string, int64, string, bool) {
-	key := strings.Trim(strings.TrimSpace(r.URL.Query().Get("key")), "/")
-	sig := strings.TrimSpace(r.URL.Query().Get("sig"))
-	expires, err := strconv.ParseInt(r.URL.Query().Get("expires"), 10, 64)
+	query, err := url.ParseQuery(r.URL.RawQuery)
+	if err != nil {
+		return "", 0, "", false
+	}
+	key, ok := singleSignedQueryValue(query, "key")
+	if !ok {
+		return "", 0, "", false
+	}
+	key = strings.Trim(strings.TrimSpace(key), "/")
+	expiresValue, ok := singleSignedQueryValue(query, "expires")
+	if !ok {
+		return "", 0, "", false
+	}
+	sig, ok := singleSignedQueryValue(query, "sig")
+	if !ok {
+		return "", 0, "", false
+	}
+	sig = strings.TrimSpace(sig)
+	expires, err := strconv.ParseInt(expiresValue, 10, 64)
 	if key == "" || sig == "" || err != nil {
 		return "", 0, "", false
 	}
 	return key, expires, sig, true
+}
+
+func singleSignedQueryValue(query url.Values, name string) (string, bool) {
+	values, ok := query[name]
+	if !ok || len(values) != 1 {
+		return "", false
+	}
+	return values[0], true
 }
 
 func (s *Server) signUploadObjectKey(tenantID, objectKey string, expires int64) string {

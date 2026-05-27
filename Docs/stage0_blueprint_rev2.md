@@ -1727,6 +1727,7 @@ main 合并前必须通过：
 - [x] 实现 signed URL。
 - [x] S3-compatible export download URLs route through backend-mediated signed download so tenant-scoped metadata checks、retention enforcement、immutable audit、and server-side analytics capture cannot be bypassed by direct object-store presigned URLs。
 - [x] Stage0 export retrieval fails closed without the backend-mediated download signer and never falls back to provider-native object-store presigned URLs; service tests cover persisted object-key signing through the backend signer and no direct object-store signer invocation.
+- [x] Backend-mediated signed upload/download URLs reject duplicate `key`、`expires`、or `sig` query parameters before tenant-scoped storage, audit, or analytics side effects, with server tests covering fail-closed upload and download paths.
 - [x] 实现 cross-tenant object denial。
 - [x] 实现 package manifest schema。
 - [x] 实现 deterministic file naming。

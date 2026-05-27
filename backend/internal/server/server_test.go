@@ -624,6 +624,48 @@ func TestSignedUploadEndpointRejectsCrossTenantSignature(t *testing.T) {
 	}
 }
 
+func TestSignedUploadEndpointRejectsDuplicateSignedParams(t *testing.T) {
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	cfg.ObjectStorage.LocalRoot = t.TempDir()
+	cfg.ObjectStorage.Bucket = "signed-upload-test"
+	cfg.ObjectStorage.SigningKey = "signed-upload-test-secret"
+	objects, err := objectstore.NewStore(cfg.ObjectStorage, nil)
+	if err != nil {
+		t.Fatalf("NewStore() error = %v", err)
+	}
+	srv := New(cfg, nil)
+	uploadURL, _ := srv.signUploadURL("tenant_1", "uploads/upload_1/logo.png", time.Minute)
+
+	for _, duplicate := range []string{"key", "expires", "sig"} {
+		req := httptest.NewRequest(http.MethodPut, uploadURL+"&"+duplicate+"=tampered", strings.NewReader("png-bytes"))
+		req = req.WithContext(stage0.ContextWithService(req.Context(), stage0.NewService(stage0.NewRepository(noExecDB{}), objects)))
+		req.Header.Set("X-Zenart-User-ID", "user_1")
+		req.Header.Set("X-Zenart-Tenant-ID", "tenant_1")
+		req.Header.Set("Content-Type", "image/png")
+		setSameSiteCSRFHeaders(req)
+		rec := httptest.NewRecorder()
+
+		srv.Handler().ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusBadRequest {
+			t.Fatalf("duplicate %s status = %d, want %d: %s", duplicate, rec.Code, http.StatusBadRequest, rec.Body.String())
+		}
+		var body map[string]any
+		if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+			t.Fatalf("duplicate %s response JSON error = %v", duplicate, err)
+		}
+		if body["code"] != "invalid_signed_object_url" {
+			t.Fatalf("duplicate %s code = %v, want invalid_signed_object_url", duplicate, body["code"])
+		}
+		if _, err := objects.Get(context.Background(), "tenant_1", "uploads/upload_1/logo.png"); !errors.Is(err, objectstore.ErrNotFound) {
+			t.Fatalf("duplicate %s stored object Get() error = %v, want not found", duplicate, err)
+		}
+	}
+}
+
 func TestSignedDownloadEndpointServesTenantScopedLocalObject(t *testing.T) {
 	cfg, err := config.Load()
 	if err != nil {
@@ -752,6 +794,57 @@ func TestSignedDownloadEndpointRequiresAuditRecorder(t *testing.T) {
 	}
 	if body["code"] != "download_audit_not_connected" {
 		t.Fatalf("code = %v, want download_audit_not_connected", body["code"])
+	}
+}
+
+func TestSignedDownloadEndpointRejectsDuplicateSignedParamsBeforeAuditOrStorage(t *testing.T) {
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	cfg.ObjectStorage.LocalRoot = t.TempDir()
+	cfg.ObjectStorage.Bucket = "signed-download-test"
+	cfg.ObjectStorage.SigningKey = "signed-download-test-secret"
+	objects, err := objectstore.NewStore(cfg.ObjectStorage, nil)
+	if err != nil {
+		t.Fatalf("NewStore() error = %v", err)
+	}
+	stored, err := objects.Put(context.Background(), objectstore.Object{
+		TenantID:    "tenant_1",
+		Key:         "exports/export_1.zip",
+		ContentType: "application/zip",
+	}, strings.NewReader("zip-bytes"))
+	if err != nil {
+		t.Fatalf("Put() error = %v", err)
+	}
+	downloadURL, err := objects.SignGetURL(context.Background(), "tenant_1", stored.Key, time.Minute)
+	if err != nil {
+		t.Fatalf("SignGetURL() error = %v", err)
+	}
+
+	for _, duplicate := range []string{"key", "expires", "sig"} {
+		db := &downloadGuardDB{found: true}
+		auditRecorder := &fakeAuditRecorder{}
+		req := httptest.NewRequest(http.MethodGet, downloadURL+"&"+duplicate+"=tampered", nil)
+		req = req.WithContext(stage0.ContextWithService(req.Context(), stage0.NewService(stage0.NewRepository(db), objects)))
+		req = req.WithContext(audit.ContextWithRecorder(req.Context(), auditRecorder))
+		rec := httptest.NewRecorder()
+
+		New(cfg, nil).Handler().ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusBadRequest {
+			t.Fatalf("duplicate %s status = %d, want %d: %s", duplicate, rec.Code, http.StatusBadRequest, rec.Body.String())
+		}
+		var body map[string]any
+		if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+			t.Fatalf("duplicate %s response JSON error = %v", duplicate, err)
+		}
+		if body["code"] != "invalid_signed_object_url" {
+			t.Fatalf("duplicate %s code = %v, want invalid_signed_object_url", duplicate, body["code"])
+		}
+		if db.query.sql != "" || len(auditRecorder.events) != 0 {
+			t.Fatalf("duplicate %s reached storage/audit: query=%s events=%d", duplicate, db.query.sql, len(auditRecorder.events))
+		}
 	}
 }
 
