@@ -448,6 +448,15 @@ if release_bundle.get("source_legal_support_visibility_report") != str(root / "r
     raise SystemExit("release bundle must promote deterministic legal/support report path")
 if release_bundle.get("source_legal_support_visibility_results") != str(root / "release-bundle" / "stage0-validate-release-bundle-run-id.legal-support-visibility.ndjson"):
     raise SystemExit("release bundle must promote deterministic legal/support results path")
+if release_bundle.get("source_legal_pages_external_user_report") != str(root / "release-bundle" / "stage0-validate-release-bundle-run-id.legal-pages-external-user.json"):
+    raise SystemExit("release bundle must preserve deterministic legal-pages split report path")
+if release_bundle.get("source_support_contact_external_user_report") != str(root / "release-bundle" / "stage0-validate-release-bundle-run-id.support-contact-external-user.json"):
+    raise SystemExit("release bundle must preserve deterministic support-contact split report path")
+split_inputs = release_bundle.get("split_probe_decision_inputs", {})
+if split_inputs.get("legal_pages_external_user_verified") is not False:
+    raise SystemExit("deterministic release bundle must keep missing legal-pages split evidence unverified")
+if split_inputs.get("support_contact_external_user_verified") is not False:
+    raise SystemExit("deterministic release bundle must keep missing support-contact split evidence unverified")
 PY
 
 log "backup/restore drill script syntax"
@@ -535,6 +544,8 @@ if report.get("object_retention_cleanup_verified") is not False:
     raise SystemExit("release evidence bundle dry-run must keep object-retention cleanup unverified")
 if report.get("legal_support_visibility_verified") is not False:
     raise SystemExit("release evidence bundle dry-run must keep legal/support visibility unverified")
+if report.get("legal_support_split_reports_verified") is not False:
+    raise SystemExit("release evidence bundle dry-run must keep legal/support split reports unverified")
 if report.get("gate_fixtures_clear") is not False:
     raise SystemExit("release evidence bundle dry-run must keep gate fixtures blocked")
 for slot in (
@@ -585,6 +596,20 @@ if not Path(report["source_staging_smoke_report"]).exists():
     raise SystemExit("release evidence bundle must preserve source staging smoke report")
 if not Path(report["source_staging_smoke_results"]).exists():
     raise SystemExit("release evidence bundle must preserve source staging smoke results")
+split_inputs = report.get("split_probe_decision_inputs", {})
+if split_inputs.get("legal_pages_external_user_verified") is not False:
+    raise SystemExit("release evidence bundle dry-run must keep legal-pages split evidence unverified")
+if split_inputs.get("support_contact_external_user_verified") is not False:
+    raise SystemExit("release evidence bundle dry-run must keep support-contact split evidence unverified")
+for field in (
+    "legal_pages_external_user_probe",
+    "support_contact_external_user_probe",
+):
+    probe = report.get(field, {})
+    if probe.get("exists") is not False:
+        raise SystemExit(f"{field} dry-run probe must be absent")
+    if probe.get("status") != "missing":
+        raise SystemExit(f"{field} dry-run status must be missing")
 PY
 python3 - "$ops_validate_dir/observability" <<'PY'
 import json
@@ -1362,6 +1387,8 @@ if report.get("object_retention_cleanup_verified") is not False:
     raise SystemExit("complete-evidence release bundle must not verify object-retention cleanup from dry-run evidence")
 if report.get("legal_support_visibility_verified") is not False:
     raise SystemExit("complete-evidence release bundle must not verify legal/support visibility from dry-run evidence")
+if report.get("legal_support_split_reports_verified") is not False:
+    raise SystemExit("complete-evidence release bundle must not verify legal/support split reports from dry-run evidence")
 if report.get("gate_fixtures_clear") is not False:
     raise SystemExit("complete-evidence release bundle must keep gate fixtures blocked")
 if report.get("missing_slots"):
@@ -1399,6 +1426,15 @@ if not Path(report["source_legal_support_visibility_report"]).exists():
     raise SystemExit("complete-evidence release bundle must preserve legal/support visibility report")
 if not Path(report["source_legal_support_visibility_results"]).exists():
     raise SystemExit("complete-evidence release bundle must preserve legal/support visibility results")
+if report.get("source_legal_pages_external_user_report") is None:
+    raise SystemExit("complete-evidence release bundle must cite legal-pages split report path")
+if report.get("source_support_contact_external_user_report") is None:
+    raise SystemExit("complete-evidence release bundle must cite support-contact split report path")
+split_inputs = report.get("split_probe_decision_inputs", {})
+if split_inputs.get("legal_pages_external_user_verified") is not False:
+    raise SystemExit("complete-evidence release bundle must keep legal-pages split evidence unverified")
+if split_inputs.get("support_contact_external_user_verified") is not False:
+    raise SystemExit("complete-evidence release bundle must keep support-contact split evidence unverified")
 PY
 nested_only_dir="$(mktemp -d)"
 cat >"$nested_only_dir/observability.json" <<EOF

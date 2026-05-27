@@ -165,8 +165,53 @@ def load_probe(path: Path, exit_code: int) -> dict:
     }
 
 
+def load_split_probe(path: Path, *, expected_kind: str, expected_check_id: str) -> dict:
+    if not path.exists():
+        return {
+            "path": str(path),
+            "exists": False,
+            "status": "missing",
+            "passed": False,
+            "kind": None,
+            "environment": None,
+            "release_gate_check_id": None,
+        }
+    data = json.loads(path.read_text(encoding="utf-8"))
+    probe_status = data.get("status", "unknown")
+    environment = data.get("environment")
+    kind = data.get("kind")
+    release_gate_check_id = data.get("release_gate_check_id")
+    return {
+        "path": str(path),
+        "exists": True,
+        "kind": kind,
+        "environment": environment,
+        "release_gate_check_id": release_gate_check_id,
+        "status": probe_status,
+        "passed": (
+            probe_status in {"pass", "passed"}
+            and environment == "staging"
+            and kind == expected_kind
+            and release_gate_check_id == expected_check_id
+        ),
+        "gate_impact": data.get("gate_impact", {}),
+    }
+
+
 object_retention_probe = load_probe(object_retention_report_path, object_retention_exit_code)
 legal_support_probe = load_probe(legal_support_report_path, legal_support_exit_code)
+legal_pages_probe = load_split_probe(
+    legal_pages_report_path,
+    expected_kind="legal_pages_external_user_visibility",
+    expected_check_id="staging_legal_external_user_pages",
+)
+support_contact_probe = load_split_probe(
+    support_contact_report_path,
+    expected_kind="support_contact_external_user_visibility",
+    expected_check_id="staging_legal_external_user_pages",
+)
+legal_support_split_reports_passed = legal_pages_probe["passed"] and support_contact_probe["passed"]
+legal_support_verified = legal_support_probe["passed"] and legal_support_split_reports_passed
 
 slots = []
 for slot, required in sorted(release_evidence.get("required_slots", {}).items()):
@@ -186,13 +231,15 @@ decision = go_no_go.get("decision", "no-go")
 split_probe_blocking_reasons = []
 if not object_retention_probe["passed"]:
     split_probe_blocking_reasons.append("object_storage_retention_cleanup_not_passed")
-if not legal_support_probe["passed"]:
+if not legal_support_verified:
     split_probe_blocking_reasons.append("legal_support_external_user_visibility_not_passed")
+if legal_support_probe["passed"] and not legal_support_split_reports_passed:
+    split_probe_blocking_reasons.append("legal_support_split_evidence_not_passed")
 status = (
     "passed"
     if staging_exit_code == 0
     and object_retention_probe["passed"]
-    and legal_support_probe["passed"]
+    and legal_support_verified
     and decision == "go"
     else "blocked"
 )
@@ -225,15 +272,20 @@ report_path.write_text(
             "release_evidence_complete": go_no_go.get("release_evidence_complete") is True,
             "post_deploy_smoke_verified": go_no_go.get("post_deploy_smoke_verified") is True,
             "object_retention_cleanup_verified": object_retention_probe["passed"],
-            "legal_support_visibility_verified": legal_support_probe["passed"],
+            "legal_support_visibility_verified": legal_support_verified,
+            "legal_support_split_reports_verified": legal_support_split_reports_passed,
             "gate_fixtures_clear": go_no_go.get("gate_fixtures_clear") is True,
             "decision_inputs": decision_inputs,
             "split_probe_decision_inputs": {
                 "object_retention_cleanup_verified": object_retention_probe["passed"],
-                "legal_support_visibility_verified": legal_support_probe["passed"],
+                "legal_support_visibility_verified": legal_support_verified,
+                "legal_pages_external_user_verified": legal_pages_probe["passed"],
+                "support_contact_external_user_verified": support_contact_probe["passed"],
             },
             "object_retention_cleanup_probe": object_retention_probe,
             "legal_support_visibility_probe": legal_support_probe,
+            "legal_pages_external_user_probe": legal_pages_probe,
+            "support_contact_external_user_probe": support_contact_probe,
             "missing_slots": missing_slots,
             "unverified_slots": unverified_slots,
             "slots": slots,
