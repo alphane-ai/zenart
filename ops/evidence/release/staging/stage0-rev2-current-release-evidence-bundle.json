@@ -74,6 +74,37 @@
     "status": "pass"
   },
   "canonical_support_contact_external_user_report": "ops/evidence/staging/support-contact-external-user.json",
+  "ci_closure_artifacts": [
+    {
+      "artifact_id": "ci_installed_workflow",
+      "exists": false,
+      "label": "installed PR/main workflow",
+      "path": ".github/workflows/stage0-rev2-ci.yml",
+      "required_before_ci_gate_closure": true
+    },
+    {
+      "artifact_id": "ci_pr_main_run",
+      "exists": false,
+      "label": "PR/main workflow run evidence",
+      "path": "ops/evidence/ci/stage0-rev2-pr-main-run.json",
+      "required_before_ci_gate_closure": true
+    },
+    {
+      "artifact_id": "ci_playwright_smoke",
+      "exists": false,
+      "label": "CI Playwright smoke evidence",
+      "path": "ops/evidence/ci/stage0-rev2-playwright-smoke.json",
+      "required_before_ci_gate_closure": true
+    },
+    {
+      "artifact_id": "ci_docker_image_build",
+      "exists": false,
+      "label": "CI Docker image build evidence",
+      "path": "ops/evidence/ci/stage0-rev2-docker-image-build.json",
+      "required_before_ci_gate_closure": true
+    }
+  ],
+  "ci_closure_artifacts_ready": false,
   "created_at": "stage0-rev2-current-release-evidence-bundle",
   "created_by_lane": "lane5",
   "decision": "no-go",
@@ -256,6 +287,49 @@
   "object_retention_cleanup_verified": false,
   "post_deploy_smoke_verified": false,
   "private_beta_gate": "open_until_release_evidence_bundle_status_passed_and_private_beta_fixture_clear",
+  "production_backup_rollback_split_preflight": {
+    "backup_restore_split": {
+      "exists": false,
+      "missing_requirements": [
+        "missing_file"
+      ],
+      "passed": false,
+      "path": "ops/evidence/production/backup-restore.json",
+      "status": "missing"
+    },
+    "blocked_checks": [
+      "release_sha_missing_or_not_full_sha",
+      "ci_gate_not_go",
+      "private_beta_staging_gate_not_go",
+      "production_backup_restore_split_not_passed",
+      "production_rollback_incident_post_deploy_split_not_passed"
+    ],
+    "do_not_launch_condition_ids": [
+      "backup_restore_rollback_smoke_missing",
+      "production_deploy_rollback_smoke_missing",
+      "ci_staging_gates_not_passed"
+    ],
+    "environment": "production",
+    "exact_split_files_ready": false,
+    "exists": true,
+    "kind": "production_backup_rollback_split_preflight",
+    "passed": false,
+    "path": "ops/evidence/production/backup-rollback-split.blocked.json",
+    "release_gate_check_id": "production_backup_rollback_incident",
+    "rollback_incident_post_deploy_split": {
+      "exists": false,
+      "missing_requirements": [
+        "missing_file"
+      ],
+      "passed": false,
+      "path": "ops/evidence/production/rollback-incident-post-deploy-smoke.json",
+      "status": "missing"
+    },
+    "schema_version": "stage0.rev2.production.backup_rollback_split_preflight",
+    "status": "blocked_by_upstream_gates",
+    "upstream_ci_gate_status": "no_go",
+    "upstream_private_beta_staging_gate_status": "no_go"
+  },
   "production_gate": "open_until_ci_private_beta_and_production_release_evidence_bundles_pass",
   "release_evidence_complete": false,
   "release_sha": "",

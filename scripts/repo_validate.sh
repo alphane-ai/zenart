@@ -244,6 +244,46 @@ if report.get("blocking_reason_count") != len(report.get("blocking_reasons", [])
 decision_inputs = report.get("decision_inputs", {})
 if decision_inputs.get("gate_fixtures_clear") is not False:
     raise SystemExit("release bundle dry-run must preserve blocked gate fixture context")
+ci_artifacts = {
+    item.get("artifact_id"): item
+    for item in report.get("ci_closure_artifacts", [])
+    if isinstance(item, dict)
+}
+expected_ci_artifacts = {
+    "ci_installed_workflow": ".github/workflows/stage0-rev2-ci.yml",
+    "ci_pr_main_run": "ops/evidence/ci/stage0-rev2-pr-main-run.json",
+    "ci_playwright_smoke": "ops/evidence/ci/stage0-rev2-playwright-smoke.json",
+    "ci_docker_image_build": "ops/evidence/ci/stage0-rev2-docker-image-build.json",
+}
+if set(ci_artifacts) != set(expected_ci_artifacts):
+    raise SystemExit(f"release bundle must surface exact CI closure artifacts: {ci_artifacts}")
+for artifact_id, expected_path in expected_ci_artifacts.items():
+    artifact = ci_artifacts[artifact_id]
+    if artifact.get("path") != expected_path:
+        raise SystemExit(f"release bundle CI artifact path mismatch for {artifact_id}: {artifact}")
+    if artifact.get("required_before_ci_gate_closure") is not True:
+        raise SystemExit(f"release bundle must mark {artifact_id} required before CI gate closure")
+if report.get("ci_closure_artifacts_ready") is not False:
+    raise SystemExit("release bundle dry-run must keep CI closure artifact readiness false")
+production_split = report.get("production_backup_rollback_split_preflight", {})
+if production_split.get("path") != "ops/evidence/production/backup-rollback-split.blocked.json":
+    raise SystemExit("release bundle must surface production backup/rollback split preflight path")
+if production_split.get("release_gate_check_id") != "production_backup_rollback_incident":
+    raise SystemExit("release bundle production split preflight must target production_backup_rollback_incident")
+if production_split.get("status") != "blocked_by_upstream_gates":
+    raise SystemExit("release bundle production split preflight must preserve blocked_by_upstream_gates")
+if production_split.get("exact_split_files_ready") is not False:
+    raise SystemExit("release bundle production split preflight must keep exact split readiness false")
+if production_split.get("upstream_ci_gate_status") != "no_go":
+    raise SystemExit("release bundle production split preflight must surface CI no-go state")
+if production_split.get("upstream_private_beta_staging_gate_status") != "no_go":
+    raise SystemExit("release bundle production split preflight must surface private beta/staging no-go state")
+backup_split = production_split.get("backup_restore_split", {})
+rollback_split = production_split.get("rollback_incident_post_deploy_split", {})
+if backup_split.get("path") != "ops/evidence/production/backup-restore.json":
+    raise SystemExit("release bundle production backup split path mismatch")
+if rollback_split.get("path") != "ops/evidence/production/rollback-incident-post-deploy-smoke.json":
+    raise SystemExit("release bundle production rollback split path mismatch")
 PY
 route_bundle_tmp="$(mktemp -d)"
 if OUT_DIR="$route_bundle_tmp" \
@@ -728,6 +768,26 @@ if release_bundle.get("legal_support_visibility_verified") is not True:
     raise SystemExit("deterministic release bundle must verify legal/support from canonical staging split evidence")
 if release_bundle.get("legal_support_split_reports_verified") is not True:
     raise SystemExit("deterministic release bundle must verify legal/support split reports from canonical staging evidence")
+ci_artifacts = {
+    item.get("artifact_id"): item
+    for item in release_bundle.get("ci_closure_artifacts", [])
+    if isinstance(item, dict)
+}
+if release_bundle.get("ci_closure_artifacts_ready") is not False:
+    raise SystemExit("deterministic release bundle must keep CI closure artifacts unready")
+if ci_artifacts.get("ci_installed_workflow", {}).get("path") != ".github/workflows/stage0-rev2-ci.yml":
+    raise SystemExit("deterministic release bundle must cite exact installed workflow path")
+if ci_artifacts.get("ci_pr_main_run", {}).get("path") != "ops/evidence/ci/stage0-rev2-pr-main-run.json":
+    raise SystemExit("deterministic release bundle must cite exact CI PR/main run evidence path")
+production_split = release_bundle.get("production_backup_rollback_split_preflight", {})
+if production_split.get("status") != "blocked_by_upstream_gates":
+    raise SystemExit("deterministic release bundle must preserve production split blocked state")
+if production_split.get("exact_split_files_ready") is not False:
+    raise SystemExit("deterministic release bundle must keep production exact split readiness false")
+if production_split.get("backup_restore_split", {}).get("path") != "ops/evidence/production/backup-restore.json":
+    raise SystemExit("deterministic release bundle must cite exact production backup split path")
+if production_split.get("rollback_incident_post_deploy_split", {}).get("path") != "ops/evidence/production/rollback-incident-post-deploy-smoke.json":
+    raise SystemExit("deterministic release bundle must cite exact production rollback split path")
 PY
 
 log "backup/restore drill script syntax"
@@ -1323,7 +1383,7 @@ blocking = report.get("blocking_reasons", [])
 for reason in (
     "staging_smoke_not_passed",
     "post_deploy_smoke_contract_unverified",
-    "object_storage_retention_cleanup_not_passed",
+    "canonical_object_storage_retention_cleanup_not_passed",
     "missing_release_evidence:release_sha",
     "missing_release_evidence:observability_evidence",
 ):
@@ -2193,7 +2253,7 @@ if any(reason.startswith("unverified_release_evidence:") for reason in blocking)
 for reason in (
     "staging_smoke_not_passed",
     "post_deploy_smoke_contract_unverified",
-    "object_storage_retention_cleanup_not_passed",
+    "canonical_object_storage_retention_cleanup_not_passed",
 ):
     if reason not in blocking:
         raise SystemExit(f"complete-evidence release bundle missing runtime blocker {reason}: {blocking}")

@@ -21,6 +21,11 @@ SUPPORT_CONTACT_REPORT_PATH="$OUT_DIR/${RUN_ID}.support-contact-external-user.js
 CANONICAL_LEGAL_PAGES_REPORT_PATH="${CANONICAL_LEGAL_PAGES_REPORT_PATH:-ops/evidence/staging/legal-pages-external-user.json}"
 CANONICAL_SUPPORT_CONTACT_REPORT_PATH="${CANONICAL_SUPPORT_CONTACT_REPORT_PATH:-ops/evidence/staging/support-contact-external-user.json}"
 CANONICAL_OBJECT_RETENTION_REPORT_PATH="${CANONICAL_OBJECT_RETENTION_REPORT_PATH:-ops/evidence/staging/object-storage-retention-cleanup.json}"
+CI_INSTALLED_WORKFLOW_PATH="${CI_INSTALLED_WORKFLOW_PATH:-.github/workflows/stage0-rev2-ci.yml}"
+CI_PR_MAIN_RUN_EVIDENCE="${CI_PR_MAIN_RUN_EVIDENCE:-ops/evidence/ci/stage0-rev2-pr-main-run.json}"
+CI_PLAYWRIGHT_SMOKE_EVIDENCE="${CI_PLAYWRIGHT_SMOKE_EVIDENCE:-ops/evidence/ci/stage0-rev2-playwright-smoke.json}"
+CI_DOCKER_IMAGE_BUILD_EVIDENCE="${CI_DOCKER_IMAGE_BUILD_EVIDENCE:-ops/evidence/ci/stage0-rev2-docker-image-build.json}"
+PRODUCTION_BACKUP_ROLLBACK_SPLIT_PREFLIGHT="${PRODUCTION_BACKUP_ROLLBACK_SPLIT_PREFLIGHT:-ops/evidence/production/backup-rollback-split.blocked.json}"
 
 mkdir -p "$OUT_DIR"
 cleanup() {
@@ -157,7 +162,7 @@ report["created_at"] = target_report_path.stem
 target_report_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 PY
 
-python3 - "$REPORT_PATH" "$STAGING_REPORT_PATH" "$status" "$OBJECT_RETENTION_REPORT_PATH" "$object_retention_status" "$LEGAL_SUPPORT_REPORT_PATH" "$legal_support_status" "$LEGAL_PAGES_REPORT_PATH" "$SUPPORT_CONTACT_REPORT_PATH" "$CANONICAL_LEGAL_PAGES_REPORT_PATH" "$CANONICAL_SUPPORT_CONTACT_REPORT_PATH" "$CANONICAL_OBJECT_RETENTION_REPORT_PATH" <<'PY'
+python3 - "$REPORT_PATH" "$STAGING_REPORT_PATH" "$status" "$OBJECT_RETENTION_REPORT_PATH" "$object_retention_status" "$LEGAL_SUPPORT_REPORT_PATH" "$legal_support_status" "$LEGAL_PAGES_REPORT_PATH" "$SUPPORT_CONTACT_REPORT_PATH" "$CANONICAL_LEGAL_PAGES_REPORT_PATH" "$CANONICAL_SUPPORT_CONTACT_REPORT_PATH" "$CANONICAL_OBJECT_RETENTION_REPORT_PATH" "$CI_INSTALLED_WORKFLOW_PATH" "$CI_PR_MAIN_RUN_EVIDENCE" "$CI_PLAYWRIGHT_SMOKE_EVIDENCE" "$CI_DOCKER_IMAGE_BUILD_EVIDENCE" "$PRODUCTION_BACKUP_ROLLBACK_SPLIT_PREFLIGHT" <<'PY'
 import json
 import sys
 from pathlib import Path
@@ -174,11 +179,102 @@ support_contact_report_path = Path(sys.argv[9])
 canonical_legal_pages_report_path = Path(sys.argv[10])
 canonical_support_contact_report_path = Path(sys.argv[11])
 canonical_object_retention_report_path = Path(sys.argv[12])
+ci_installed_workflow_path = Path(sys.argv[13])
+ci_pr_main_run_evidence = Path(sys.argv[14])
+ci_playwright_smoke_evidence = Path(sys.argv[15])
+ci_docker_image_build_evidence = Path(sys.argv[16])
+production_backup_rollback_split_preflight_path = Path(sys.argv[17])
 staging = json.loads(staging_report_path.read_text(encoding="utf-8"))
 summary = staging.get("summary", {})
 release_evidence = summary.get("release_evidence", {})
 go_no_go = summary.get("go_no_go", {})
 verification = release_evidence.get("local_evidence_verification", {})
+
+
+def path_exists(path: Path) -> bool:
+    return path.exists()
+
+
+def ci_closure_artifacts() -> list[dict]:
+    artifacts = [
+        ("ci_installed_workflow", ci_installed_workflow_path, "installed PR/main workflow"),
+        ("ci_pr_main_run", ci_pr_main_run_evidence, "PR/main workflow run evidence"),
+        ("ci_playwright_smoke", ci_playwright_smoke_evidence, "CI Playwright smoke evidence"),
+        ("ci_docker_image_build", ci_docker_image_build_evidence, "CI Docker image build evidence"),
+    ]
+    return [
+        {
+            "artifact_id": artifact_id,
+            "label": label,
+            "path": str(path),
+            "exists": path_exists(path),
+            "required_before_ci_gate_closure": True,
+        }
+        for artifact_id, path, label in artifacts
+    ]
+
+
+def production_split_preflight_summary(path: Path) -> dict:
+    if not path.exists():
+        return {
+            "path": str(path),
+            "exists": False,
+            "status": "missing",
+            "release_gate_check_id": "production_backup_rollback_incident",
+            "passed": False,
+            "blocked_checks": ["production_backup_rollback_split_preflight_missing"],
+            "exact_split_files_ready": False,
+            "upstream_ci_gate_status": "unknown",
+            "upstream_private_beta_staging_gate_status": "unknown",
+        }
+    data = json.loads(path.read_text(encoding="utf-8"))
+    split = data.get("split_evidence", {})
+    upstream = data.get("upstream_gates", {})
+    backup = split.get("backup_restore", {}) if isinstance(split, dict) else {}
+    rollback = (
+        split.get("rollback_incident_post_deploy_smoke", {})
+        if isinstance(split, dict)
+        else {}
+    )
+    ci = upstream.get("ci", {}) if isinstance(upstream, dict) else {}
+    private_beta = upstream.get("private_beta_staging", {}) if isinstance(upstream, dict) else {}
+    return {
+        "path": str(path),
+        "exists": True,
+        "schema_version": data.get("schema_version"),
+        "environment": data.get("environment"),
+        "kind": data.get("kind"),
+        "status": data.get("status", "unknown"),
+        "release_gate_check_id": data.get("release_gate_check_id"),
+        "passed": data.get("status") in {"pass", "passed"},
+        "blocked_checks": data.get("blocked_checks", []),
+        "do_not_launch_condition_ids": data.get("do_not_launch_condition_ids", []),
+        "exact_split_files_ready": split.get("all_exact_split_files_ready") is True
+        if isinstance(split, dict)
+        else False,
+        "backup_restore_split": {
+            "path": backup.get("path", "ops/evidence/production/backup-restore.json"),
+            "exists": backup.get("exists") is True,
+            "status": backup.get("status", "missing"),
+            "passed": backup.get("passed") is True,
+            "missing_requirements": backup.get("missing_requirements", []),
+        },
+        "rollback_incident_post_deploy_split": {
+            "path": rollback.get(
+                "path",
+                "ops/evidence/production/rollback-incident-post-deploy-smoke.json",
+            ),
+            "exists": rollback.get("exists") is True,
+            "status": rollback.get("status", "missing"),
+            "passed": rollback.get("passed") is True,
+            "missing_requirements": rollback.get("missing_requirements", []),
+        },
+        "upstream_ci_gate_status": ci.get("gate_decision_status", "missing"),
+        "upstream_private_beta_staging_gate_status": private_beta.get(
+            "gate_decision_status",
+            "missing",
+        ),
+    }
 
 
 def load_probe(path: Path, exit_code: int) -> dict:
@@ -407,6 +503,10 @@ def runtime_blocked_reason(probe: dict) -> str:
 
 object_retention_blocked_reason = runtime_blocked_reason(object_retention_probe)
 object_retention_verified = canonical_object_retention_probe["passed"]
+ci_artifacts = ci_closure_artifacts()
+production_split_preflight = production_split_preflight_summary(
+    production_backup_rollback_split_preflight_path
+)
 
 slots = []
 for slot, required in sorted(release_evidence.get("required_slots", {}).items()):
@@ -489,6 +589,9 @@ report_path.write_text(
                 "canonical_support_contact_external_user_verified": canonical_support_contact_probe["passed"],
                 "legal_support_evidence_source": legal_support_evidence_source,
             },
+            "ci_closure_artifacts": ci_artifacts,
+            "ci_closure_artifacts_ready": all(item["exists"] for item in ci_artifacts),
+            "production_backup_rollback_split_preflight": production_split_preflight,
             "object_retention_cleanup_probe": object_retention_probe,
             "canonical_object_retention_cleanup_probe": canonical_object_retention_probe,
             "legal_support_visibility_probe": legal_support_probe,
