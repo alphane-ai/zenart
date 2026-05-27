@@ -2710,6 +2710,137 @@ func TestRedactMapCoversPackageRegistryAndSCMStructuredMetadata(t *testing.T) {
 	assertFinding(t, findings, SecretKindPrivateKey, "giteaDeployKey")
 }
 
+func TestRedactStringCoversDeployPlatformAndSecretManagerSecrets(t *testing.T) {
+	input := strings.Join([]string{
+		"VERCEL_TOKEN=vercel-deploy-token-value",
+		"VERCEL_AUTOMATION_BYPASS_SECRET=vercel-bypass-secret",
+		"NETLIFY_AUTH_TOKEN=netlify-auth-token-value",
+		"NETLIFY_BUILD_HOOK_URL=https://api.netlify.com/build_hooks/netlify-secret-hook",
+		"RENDER_DEPLOY_HOOK_URL=https://api.render.com/deploy/srv-secret?key=render-hook-secret",
+		"RAILWAY_TOKEN=railway-token-value",
+		"FLY_ACCESS_TOKEN=FlyV1 fly-secret-token-value",
+		"CLOUDFLARE_TUNNEL_TOKEN=cloudflare-tunnel-token-value",
+		"TURNSTILE_SECRET_KEY=turnstile-secret-value",
+		"RECAPTCHA_SECRET=recaptcha-secret-value",
+		"HCAPTCHA_SECRET=hcaptcha-secret-value",
+		"DOPPLER_TOKEN=dp.pt.dopplersecretfixture1234567890",
+		"INFISICAL_CLIENT_SECRET=infisical-client-secret",
+		"OP_SERVICE_ACCOUNT_TOKEN=opsvc-account-token",
+		"VAULT_APPROLE_SECRET_ID=vault-approle-secret",
+		"SOPS_AGE_KEY=AGE-SECRET-KEY-ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+	}, " ")
+
+	got := RedactString(input)
+	for _, leaked := range []string{
+		"vercel-deploy-token-value",
+		"vercel-bypass-secret",
+		"netlify-auth-token-value",
+		"netlify-secret-hook",
+		"render-hook-secret",
+		"railway-token-value",
+		"fly-secret-token-value",
+		"cloudflare-tunnel-token-value",
+		"turnstile-secret-value",
+		"recaptcha-secret-value",
+		"hcaptcha-secret-value",
+		"dp.pt.dopplersecretfixture1234567890",
+		"infisical-client-secret",
+		"opsvc-account-token",
+		"vault-approle-secret",
+		"AGE-SECRET-KEY-ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+	} {
+		if strings.Contains(got, leaked) {
+			t.Fatalf("RedactString() = %q, leaked %s", got, leaked)
+		}
+	}
+	if strings.Count(got, Redacted) < 16 {
+		t.Fatalf("RedactString() = %q, want deploy platform and secret manager secrets redacted", got)
+	}
+
+	findings := ClassifyString(input)
+	for _, kind := range []SecretKind{
+		SecretKindToken,
+		SecretKindCredential,
+		SecretKindWebhookSecret,
+		SecretKindEncryptionKey,
+	} {
+		assertFinding(t, findings, kind, "")
+	}
+	assertSignal(t, findings, "assignment:key_name")
+}
+
+func TestRedactMapCoversDeployPlatformAndSecretManagerMetadata(t *testing.T) {
+	redacted := RedactMap(map[string]any{
+		"deploy": map[string]any{
+			"vercelToken":                   "vercel-token-value",
+			"vercelProjectProtectionBypass": "vercel-bypass-value",
+			"netlifyBuildHook":              "netlify-hook-value",
+			"renderApiKey":                  "render-api-key-value",
+			"railwayProjectToken":           "railway-project-token",
+			"flyDeployToken":                "fly-deploy-token",
+			"cloudflarePagesDeployHook":     "cloudflare-pages-hook",
+			"cloudflareTunnelToken":         "cloudflare-tunnel-token",
+			"turnstileSecret":               "turnstile-secret",
+			"recaptchaSecretKey":            "recaptcha-secret-key",
+			"hcaptchaSecret":                "hcaptcha-secret",
+			"publicRuntime":                 "nodejs20",
+		},
+		"secret_managers": map[string]string{
+			"dopplerServiceToken":            "doppler-service-token",
+			"infisicalUniversalAuthSecret":   "infisical-universal-secret",
+			"onepasswordServiceAccountToken": "op-service-account-token",
+			"vaultToken":                     "vault-token-value",
+			"vaultTransitKey":                "vault-transit-key",
+			"sopsAgeKey":                     "AGE-SECRET-KEY-ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+		},
+	})
+	body, err := json.Marshal(redacted)
+	if err != nil {
+		t.Fatalf("marshal redacted deploy platform metadata: %v", err)
+	}
+	for _, leaked := range []string{
+		"vercel-token-value",
+		"vercel-bypass-value",
+		"netlify-hook-value",
+		"render-api-key-value",
+		"railway-project-token",
+		"fly-deploy-token",
+		"cloudflare-pages-hook",
+		"cloudflare-tunnel-token",
+		"turnstile-secret",
+		"recaptcha-secret-key",
+		"hcaptcha-secret",
+		"doppler-service-token",
+		"infisical-universal-secret",
+		"op-service-account-token",
+		"vault-token-value",
+		"vault-transit-key",
+		"AGE-SECRET-KEY-ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+	} {
+		if strings.Contains(string(body), leaked) {
+			t.Fatalf("redacted deploy platform metadata = %s, leaked %s", string(body), leaked)
+		}
+	}
+	for _, fragment := range []string{`"publicRuntime":"nodejs20"`, Redacted} {
+		if !strings.Contains(string(body), fragment) {
+			t.Fatalf("redacted deploy platform metadata = %s, missing %s", string(body), fragment)
+		}
+	}
+
+	findings := ClassifyValue(map[string]any{
+		"vercelToken":               "vercel-token-value",
+		"netlifyBuildHook":          "netlify-hook-value",
+		"renderApiKey":              "render-api-key-value",
+		"vaultTransitKey":           "vault-transit-key",
+		"cloudflareTurnstileSecret": "turnstile-secret",
+	})
+	assertFinding(t, findings, SecretKindToken, "vercelToken")
+	assertFinding(t, findings, SecretKindWebhookSecret, "netlifyBuildHook")
+	assertFinding(t, findings, SecretKindAPIKey, "renderApiKey")
+	assertFinding(t, findings, SecretKindEncryptionKey, "vaultTransitKey")
+	assertFinding(t, findings, SecretKindCredential, "cloudflareTurnstileSecret")
+}
+
 func TestRedactValueCoversMixedCaseLaunchSecretKeys(t *testing.T) {
 	redacted := RedactValue(map[string]any{
 		"clientSecret":       "client-secret-value",
