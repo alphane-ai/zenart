@@ -437,7 +437,8 @@ func TestSignedUploadEndpointStoresTenantScopedObject(t *testing.T) {
 	uploadURL, _ := srv.signUploadURL("tenant_1", "uploads/upload_1/logo.png", time.Minute)
 
 	req := httptest.NewRequest(http.MethodPut, uploadURL, strings.NewReader("png-bytes"))
-	req = req.WithContext(stage0.ContextWithService(req.Context(), stage0.NewService(stage0.NewRepository(noExecDB{}), objects)))
+	db := &fakeStage0DB{execTags: []pgconn.CommandTag{pgconn.NewCommandTag("UPDATE 1")}}
+	req = req.WithContext(stage0.ContextWithService(req.Context(), stage0.NewService(stage0.NewRepository(db), objects)))
 	req.Header.Set("X-Zenart-User-ID", "user_1")
 	req.Header.Set("X-Zenart-Tenant-ID", "tenant_1")
 	req.Header.Set("Content-Type", "image/png")
@@ -463,6 +464,9 @@ func TestSignedUploadEndpointStoresTenantScopedObject(t *testing.T) {
 	}
 	if body["object_key"] != "tenants/tenant_1/uploads/upload_1/logo.png" {
 		t.Fatalf("object_key = %v, want tenant-scoped key", body["object_key"])
+	}
+	if len(db.execs) != 1 || !strings.Contains(db.execs[0].sql, "UPDATE object_metadata") {
+		t.Fatalf("scan evidence update = %#v, want object metadata update", db.execs)
 	}
 }
 
@@ -495,7 +499,8 @@ func TestSignedUploadEndpointScansStoredObjectAndRedactsResult(t *testing.T) {
 	uploadURL, _ := srv.signUploadURL("tenant_1", "uploads/upload_1/logo.png", time.Minute)
 
 	req := httptest.NewRequest(http.MethodPut, uploadURL, strings.NewReader("png-bytes"))
-	req = req.WithContext(stage0.ContextWithService(req.Context(), stage0.NewService(stage0.NewRepository(noExecDB{}), objects, scanner)))
+	db := &fakeStage0DB{execTags: []pgconn.CommandTag{pgconn.NewCommandTag("UPDATE 1")}}
+	req = req.WithContext(stage0.ContextWithService(req.Context(), stage0.NewService(stage0.NewRepository(db), objects, scanner)))
 	req.Header.Set("X-Zenart-User-ID", "user_1")
 	req.Header.Set("X-Zenart-Tenant-ID", "tenant_1")
 	req.Header.Set("Content-Type", "image/png")
@@ -529,6 +534,18 @@ func TestSignedUploadEndpointScansStoredObjectAndRedactsResult(t *testing.T) {
 	scan, ok := response["malware_scan"].(map[string]any)
 	if !ok || scan["status"] != string(security.MalwareScanStatusClean) {
 		t.Fatalf("response body = %s, want clean malware_scan metadata", body)
+	}
+	if len(db.execs) != 1 || !strings.Contains(db.execs[0].sql, "UPDATE object_metadata") {
+		t.Fatalf("scan evidence update = %#v, want object metadata update", db.execs)
+	}
+	metadataPatch, ok := db.execs[0].args[6].([]byte)
+	if !ok {
+		t.Fatalf("metadata patch arg type = %T, want []byte", db.execs[0].args[6])
+	}
+	for _, leaked := range []string{hfToken, anthropicToken, bearerToken, signedURLToken} {
+		if strings.Contains(string(metadataPatch), leaked) {
+			t.Fatalf("metadata patch leaked scanner secret %q: %s", leaked, string(metadataPatch))
+		}
 	}
 }
 

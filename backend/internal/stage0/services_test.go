@@ -694,6 +694,126 @@ func TestPutUploadedObjectBlocksAndDeletesSuspiciousStoredObject(t *testing.T) {
 	}
 }
 
+func TestPutUploadedObjectPersistsStoredScanEvidence(t *testing.T) {
+	objects := &recordingObjectStore{}
+	scanner := &captureScanner{result: security.MalwareScanResult{
+		Status:    security.MalwareScanStatusClean,
+		Provider:  "scanner hf_abcdefghijklmnopqrstuvwxyz123456",
+		Signature: "scanner-v1",
+		Rationale: "clean via Bearer abcdefghijklmnop",
+		Metadata: map[string]string{
+			"note": "https://storage.local/file.zip?X-Amz-Signature=abcdef",
+		},
+	}}
+	db := &fakeDB{execTags: []pgconn.CommandTag{pgconn.NewCommandTag("UPDATE 1")}}
+	service := NewService(NewRepository(db), objects, scanner)
+
+	stored, result, err := service.PutUploadedObject(context.Background(), objectstore.Object{
+		TenantID:    "tenant_1",
+		Key:         "uploads/upload_1/logo.png",
+		ContentType: "image/png",
+	}, strings.NewReader("png-bytes"), false)
+	if err != nil {
+		t.Fatalf("PutUploadedObject() error = %v", err)
+	}
+	if result.Status != security.MalwareScanStatusClean {
+		t.Fatalf("scan status = %q, want clean", result.Status)
+	}
+	if stored.Key != "uploads/upload_1/logo.png" {
+		t.Fatalf("stored key = %q, want upload key from object store", stored.Key)
+	}
+	if len(db.execs) != 1 {
+		t.Fatalf("exec count = %d, want object metadata scan update", len(db.execs))
+	}
+	call := db.execs[0]
+	for _, fragment := range []string{"UPDATE object_metadata", "upload_id IS NOT NULL", "tenant_id = $1", "object_key = $2", "object_key = $3"} {
+		if !strings.Contains(call.sql, fragment) {
+			t.Fatalf("scan evidence update SQL = %s, missing %s", call.sql, fragment)
+		}
+	}
+	if call.args[0] != "tenant_1" || call.args[1] != "tenants/tenant_1/uploads/upload_1/logo.png" || call.args[2] != "tenants/tenant_1/uploads/upload_1/logo.png" {
+		t.Fatalf("scan evidence update args = %#v, want tenant-scoped object key guards", call.args[:3])
+	}
+	if call.args[3] != "sha256:stored" || call.args[4] != int64(len("png-bytes")) || call.args[5] != "image/png" {
+		t.Fatalf("scan evidence update object args = %#v, want stored checksum/size/content type", call.args[3:6])
+	}
+	body, ok := call.args[6].([]byte)
+	if !ok {
+		t.Fatalf("metadata patch arg type = %T, want []byte", call.args[6])
+	}
+	for _, leaked := range []string{"hf_abcdefghijklmnopqrstuvwxyz123456", "abcdefghijklmnop", "abcdef"} {
+		if strings.Contains(string(body), leaked) {
+			t.Fatalf("metadata patch = %s, leaked %s", string(body), leaked)
+		}
+	}
+	for _, fragment := range []string{`"stored_object"`, `"malware_scan"`, `"checksum":"sha256:stored"`, security.Redacted} {
+		if !strings.Contains(string(body), fragment) {
+			t.Fatalf("metadata patch = %s, missing %s", string(body), fragment)
+		}
+	}
+}
+
+func TestPutUploadedObjectDeletesStoredObjectWhenScanEvidenceUpdateFails(t *testing.T) {
+	objects := &recordingObjectStore{}
+	scanner := &captureScanner{result: security.MalwareScanResult{
+		Status:    security.MalwareScanStatusClean,
+		Provider:  "stage0-test",
+		Signature: "scanner-v1",
+	}}
+	db := &fakeDB{execTags: []pgconn.CommandTag{pgconn.NewCommandTag("UPDATE 0")}}
+	service := NewService(NewRepository(db), objects, scanner)
+
+	_, _, err := service.PutUploadedObject(context.Background(), objectstore.Object{
+		TenantID:    "tenant_1",
+		Key:         "uploads/upload_1/logo.png",
+		ContentType: "image/png",
+	}, strings.NewReader("png-bytes"), false)
+	if !errors.Is(err, ErrNotFound) {
+		t.Fatalf("PutUploadedObject() error = %v, want ErrNotFound", err)
+	}
+	if len(objects.deletedObjects) != 1 {
+		t.Fatalf("deleted objects = %#v, want stored object cleanup after metadata failure", objects.deletedObjects)
+	}
+}
+
+func TestRecordUploadedObjectScanRejectsCrossTenantStoredObject(t *testing.T) {
+	db := &fakeDB{}
+	repo := NewRepository(db)
+
+	err := repo.RecordUploadedObjectScan(context.Background(), "tenant_1", "uploads/upload_1/logo.png", objectstore.Object{
+		TenantID:    "tenant_2",
+		Key:         "uploads/upload_1/logo.png",
+		ContentType: "image/png",
+		ByteSize:    9,
+		Checksum:    "sha256:stored",
+	}, security.MalwareScanResult{Status: security.MalwareScanStatusClean})
+	if !errors.Is(err, ErrTenantDenied) {
+		t.Fatalf("RecordUploadedObjectScan() error = %v, want ErrTenantDenied", err)
+	}
+	if len(db.execs) != 0 {
+		t.Fatalf("cross-tenant scan update should not write rows: %#v", db.execs)
+	}
+}
+
+func TestRecordUploadedObjectScanRejectsCrossTenantStoredObjectKey(t *testing.T) {
+	db := &fakeDB{}
+	repo := NewRepository(db)
+
+	err := repo.RecordUploadedObjectScan(context.Background(), "tenant_1", "uploads/upload_1/logo.png", objectstore.Object{
+		TenantID:    "tenant_1",
+		Key:         "tenants/tenant_2/uploads/upload_1/logo.png",
+		ContentType: "image/png",
+		ByteSize:    9,
+		Checksum:    "sha256:stored",
+	}, security.MalwareScanResult{Status: security.MalwareScanStatusClean})
+	if !errors.Is(err, ErrTenantDenied) {
+		t.Fatalf("RecordUploadedObjectScan() error = %v, want ErrTenantDenied", err)
+	}
+	if len(db.execs) != 0 {
+		t.Fatalf("cross-tenant scan update should not write rows: %#v", db.execs)
+	}
+}
+
 func TestPutUploadedObjectFailClosedDeletesUnavailableStoredObject(t *testing.T) {
 	objects := &recordingObjectStore{}
 	scanner := &captureScanner{result: security.MalwareScanResult{

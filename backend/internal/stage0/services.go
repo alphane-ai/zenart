@@ -44,6 +44,7 @@ var (
 	ErrMalwareBlocked    = errors.New("upload blocked by malware scan")
 	ErrCrawlerBlocked    = errors.New("crawler runtime policy blocked")
 	ErrMissingRepository = errors.New("stage0 repository missing")
+	ErrTenantDenied      = errors.New("stage0 tenant denied")
 )
 
 var cleanupTenantIDPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]*$`)
@@ -612,6 +613,82 @@ VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, '', $11, $12, $13, $14)`,
 		return Upload{}, err
 	}
 	return upload, nil
+}
+
+func (r Repository) RecordUploadedObjectScan(ctx context.Context, tenantID, objectKey string, stored objectstore.Object, result security.MalwareScanResult) error {
+	var err error
+	tenantID, err = normalizeCleanupTenantID(tenantID)
+	if err != nil {
+		return err
+	}
+	rawObjectKey := strings.Trim(strings.TrimSpace(objectKey), "/")
+	if strings.HasPrefix(rawObjectKey, "tenants/") && !strings.HasPrefix(rawObjectKey, "tenants/"+tenantID+"/") {
+		return errors.Join(ErrTenantDenied, errors.New("object key is not available for this tenant"))
+	}
+	rawStoredKey := strings.Trim(strings.TrimSpace(stored.Key), "/")
+	if strings.HasPrefix(rawStoredKey, "tenants/") && !strings.HasPrefix(rawStoredKey, "tenants/"+tenantID+"/") {
+		return errors.Join(ErrTenantDenied, errors.New("stored object key is not available for this tenant"))
+	}
+	objectKey = tenantScopedObjectKey(tenantID, objectKey)
+	storedKey := tenantScopedObjectKey(tenantID, stored.Key)
+	if tenantID == "" || objectKey == "" || storedKey == "" {
+		return errors.Join(ErrValidation, errors.New("tenant_id and object_key are required"))
+	}
+	if stored.TenantID != "" && strings.TrimSpace(stored.TenantID) != tenantID {
+		return errors.Join(ErrTenantDenied, errors.New("stored object tenant does not match upload tenant"))
+	}
+	if objectKey != storedKey {
+		return errors.Join(ErrTenantDenied, errors.New("stored object key does not match signed upload key"))
+	}
+	if cleanupKeyHasUnsafeSegment(objectKey) || strings.Contains(objectKey, "\\") {
+		return errors.Join(ErrValidation, errors.New("object key is invalid"))
+	}
+	expectedPrefix := "tenants/" + tenantID + "/"
+	if !strings.HasPrefix(objectKey, expectedPrefix) {
+		return errors.Join(ErrValidation, errors.New("object key must match tenant scope"))
+	}
+	if stored.ByteSize <= 0 {
+		return errors.Join(ErrValidation, errors.New("stored object byte_size must be positive"))
+	}
+	now := time.Now().UTC()
+	scanMetadata := malwareScanMetadataValue(result)
+	metadataPatch := security.RedactMap(map[string]any{
+		"stored_object": map[string]any{
+			"malware_scan": scanMetadata,
+			"checksum":     stored.Checksum,
+			"byte_size":    stored.ByteSize,
+			"content_type": stored.ContentType,
+			"verified_at":  now.Format(time.RFC3339),
+		},
+	})
+	tag, err := r.db.Exec(ctx, `
+UPDATE object_metadata
+SET checksum = $4,
+    byte_size = $5,
+    content_type = COALESCE(NULLIF($6, ''), content_type),
+    metadata = metadata || $7::jsonb,
+    updated_at = $8
+WHERE tenant_id = $1
+  AND object_key = $2
+  AND upload_id IS NOT NULL
+  AND retention_state = 'active'
+  AND object_key = $3`,
+		tenantID,
+		objectKey,
+		storedKey,
+		stored.Checksum,
+		stored.ByteSize,
+		strings.ToLower(strings.TrimSpace(stored.ContentType)),
+		jsonObject(metadataPatch),
+		now,
+	)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
 }
 
 func (r Repository) RecordExportArtifact(ctx context.Context, artifact ExportArtifact) (Export, error) {
@@ -3239,6 +3316,7 @@ func (s Service) PutObject(ctx context.Context, object objectstore.Object, body 
 }
 
 func (s Service) PutUploadedObject(ctx context.Context, object objectstore.Object, body io.Reader, failClosed bool) (objectstore.Object, security.MalwareScanResult, error) {
+	uploadKey := object.Key
 	stored, err := s.PutObject(ctx, object, body)
 	if err != nil {
 		return objectstore.Object{}, security.MalwareScanResult{}, err
@@ -3263,6 +3341,10 @@ func (s Service) PutUploadedObject(ctx context.Context, object objectstore.Objec
 	if result.Status == security.MalwareScanStatusSuspicious || (failClosed && result.Status != security.MalwareScanStatusClean) {
 		_ = s.objects.Delete(ctx, stored.TenantID, stored.Key)
 		return objectstore.Object{}, result, ErrMalwareBlocked
+	}
+	if err := s.repo.RecordUploadedObjectScan(ctx, object.TenantID, uploadKey, stored, result); err != nil {
+		_ = s.objects.Delete(ctx, stored.TenantID, stored.Key)
+		return objectstore.Object{}, result, err
 	}
 	return stored, result, nil
 }

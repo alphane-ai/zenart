@@ -1217,6 +1217,8 @@ func pageSize(r *http.Request) int {
 
 func writeStage0Error(w http.ResponseWriter, r *http.Request, err error) {
 	switch {
+	case errors.Is(err, stage0.ErrTenantDenied):
+		writeError(w, r, http.StatusForbidden, "tenant_denied", "requested record is not available for this tenant", nil)
 	case errors.Is(err, stage0.ErrValidation):
 		writeError(w, r, http.StatusBadRequest, "validation_error", err.Error(), nil)
 	case errors.Is(err, stage0.ErrNotFound):
