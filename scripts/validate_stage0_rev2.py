@@ -1278,6 +1278,28 @@ ACTIVE_CONDITION_EVIDENCE_REQUIREMENTS = {
 }
 
 ACTIVE_CONDITION_SPLIT_EVIDENCE_PATHS = {
+    ("ci", "ci_workflow_not_installed"): {
+        CI_WORKFLOW: ("workflow",),
+    },
+    ("ci", "ci_gate_not_executed_on_main"): {
+        CI_WORKFLOW: ("workflow",),
+        ROOT / "ops" / "evidence" / "ci" / "stage0-rev2-pr-main-run.json": (
+            "pr/main",
+            "run",
+        ),
+    },
+    ("ci", "ci_playwright_smoke_missing"): {
+        CI_WORKFLOW: ("workflow",),
+        ROOT / "ops" / "evidence" / "ci" / "stage0-rev2-playwright-smoke.json": (
+            "playwright",
+        ),
+    },
+    ("ci", "ci_docker_image_build_missing"): {
+        CI_WORKFLOW: ("workflow",),
+        ROOT / "ops" / "evidence" / "ci" / "stage0-rev2-docker-image-build.json": (
+            "docker",
+        ),
+    },
     ("private_beta_staging", "object_storage_signed_retention_runtime_missing"): {
         STAGING_OBJECT_STORAGE_SIGNED_URL_EVIDENCE: (
             "signed",
@@ -9093,6 +9115,11 @@ def validate_launch_readiness_split_contracts() -> None:
         "unmapped active conditions are invalid even if their fixture evidence_ref names a missing artifact",
         "If a Do-Not-Launch condition is active, every matching concrete evidence row for that blocker must stay unchecked",
         "active Do-Not-Launch condition has no visible open checklist row in Section 25",
+        "Active CI Do-Not-Launch condition evidence refs must name the exact installed-workflow/runtime file they are waiting on",
+        "ops/evidence/ci/stage0-rev2-pr-main-run.json",
+        "ops/evidence/ci/stage0-rev2-playwright-smoke.json",
+        "ops/evidence/ci/stage0-rev2-docker-image-build.json",
+        "a broad draft CI artifact or `ops/evidence/ci/` directory cannot preserve active CI launch blockers",
         "Passed runtime gate checks must cite exact validator-owned evidence files when the checklist subitem is closed by a named `ops/evidence` artifact",
         "Passed runtime evidence files must declare the expected environment",
         "must themselves have a passing status",
