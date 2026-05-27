@@ -545,6 +545,10 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(zipPayloadSmoke).toHaveAttribute("data-export-zip-payload-ai-content-disclaimer-present", "true");
     expect(zipPayloadSmoke).toHaveAttribute("data-export-zip-payload-assets-present", "true");
     expect(zipPayloadSmoke).toHaveAttribute("data-export-zip-payload-failures", "");
+    expect(zipPayloadSmoke).toHaveAttribute(
+      "data-export-zip-payload-expected-payloads",
+      "manifest.json,qa-report.json,safety-policy-report.json,provenance.json,ai-content-disclaimer.json,ppt-ready-metadata.json,assets/README.txt,assets/hero_product_ad.png,assets/square_social_ad.png,assets/story_variant.png,assets/marketplace_banner.png,metadata.json,qa_report.json,trace_provenance.json"
+    );
     expect(zipPayloadSmoke?.getAttribute("data-export-zip-payload-baseline-payloads")).toContain("manifest.json");
     expect(zipPayloadSmoke?.getAttribute("data-export-zip-payload-baseline-payloads")).toContain("ai-content-disclaimer.json");
     expect(zipPayloadSmoke?.getAttribute("data-export-zip-payload-baseline-payloads")).toContain("assets/README.txt");

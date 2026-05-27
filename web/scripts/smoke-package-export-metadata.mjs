@@ -90,6 +90,7 @@ for (const assertion of artifact.browserEvidence?.requiredAssertions ?? []) {
 for (const expectedBrowserSnippet of [
   "JSZip.loadAsync",
   "downloaded ZIP payload",
+  "downloaded ZIP must not contain extra top-level contract payloads",
   "data-package-export-metadata-status",
   "data-package-export-zip-payload-parity-status",
   "data-package-export-workflow-metadata-payload-present",
@@ -190,6 +191,14 @@ if (
   zipPayloadSmoke.sharedPayloadPlanner !== routeZipPayloadEvidence.sharedPayloadPlanner
 ) {
   fail("ZIP payload smoke artifact drifted from user route smoke evidence");
+}
+
+if (
+  !Array.isArray(zipPayloadSmoke.expectedPayloadNames) ||
+  zipPayloadSmoke.expectedPayloadNames.length !== Number(zipPayloadSmoke.expectedPayloadCount) ||
+  JSON.stringify(zipPayloadSmoke.expectedPayloadNames) !== JSON.stringify(evidence.requiredPayloads)
+) {
+  fail("ZIP payload smoke expected payload names must pin the exact package/export metadata payload contract");
 }
 
 if (
@@ -374,6 +383,7 @@ const expectedDataAttributeValues = new Map([
   ["data-export-zip-payload-manifest-required-output-count", zipPayloadSmoke.expectedManifestRequiredOutputCount],
   ["data-export-zip-payload-expected-count", zipPayloadSmoke.expectedPayloadCount],
   ["data-export-zip-payload-missing-count", zipPayloadSmoke.expectedMissingPayloadCount],
+  ["data-export-zip-payload-expected-payloads", zipPayloadSmoke.expectedPayloadNames.join(",")],
   ["data-export-zip-payload-metadata-present", zipPayloadSmoke.expectedMetadataPayloadPresent],
   ["data-export-zip-payload-trace-provenance-present", zipPayloadSmoke.expectedTraceProvenancePayloadPresent],
   ["data-export-zip-payload-ai-content-disclaimer-present", zipPayloadSmoke.expectedAiContentDisclaimerPayloadPresent],

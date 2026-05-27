@@ -142,6 +142,8 @@ test("export route exposes package metadata, ZIP payload, and download parity br
   for (const payloadName of expectedPayloads) {
     expect(zip.file(payloadName), `downloaded ZIP payload ${payloadName} should exist`).toBeTruthy();
   }
+  const actualPayloads = Object.keys(zip.files).filter((payloadName) => !zip.files[payloadName].dir).sort();
+  expect(actualPayloads, "downloaded ZIP must not contain extra top-level contract payloads").toEqual([...expectedPayloads].sort());
 
   const manifest = JSON.parse(await zip.file("manifest.json")!.async("string")) as {
     package_id: string;
