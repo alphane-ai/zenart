@@ -1944,6 +1944,136 @@ func TestRedactMapCoversLaunchDataWarehouseStructuredMetadata(t *testing.T) {
 	assertFinding(t, findings, SecretKindCredential, "databricksToken")
 }
 
+func TestRedactStringCoversPackageRegistryAndSCMSecrets(t *testing.T) {
+	input := strings.Join([]string{
+		"NODE_AUTH_TOKEN=npm_abcdefghijklmnopqrstuvwxyz123456",
+		"PYPI_TOKEN=pypi-abcdefghijklmnopqrstuvwxyz123456",
+		"TWINE_PASSWORD=twine-password-value",
+		"RUBYGEMS_API_KEY=rubygems-secret-value",
+		"CARGO_REGISTRY_TOKEN=cargo-secret-value",
+		"COMPOSER_AUTH={\"github-oauth\":{\"github.com\":\"composer-github-token\"}}",
+		"NUGET_API_KEY=nuget-secret-value",
+		"MAVEN_SERVER_PASSWORD=maven-secret-value",
+		"JFROG_ACCESS_TOKEN=jfrog-secret-value",
+		"CLOUDSMITH_API_KEY=cloudsmith-secret-value",
+		"GITLAB_DEPLOY_TOKEN=gldt-abcdefghijklmnopqrstuvwxyz123456",
+		"BITBUCKET_APP_PASSWORD=bitbucket-secret-value",
+		"SOURCEGRAPH_TOKEN=sourcegraph-secret-value",
+		"GERRIT_HTTP_PASSWORD=gerrit-secret-value",
+	}, " ")
+
+	got := RedactString(input)
+	for _, leaked := range []string{
+		"npm_abcdefghijklmnopqrstuvwxyz123456",
+		"pypi-abcdefghijklmnopqrstuvwxyz123456",
+		"twine-password-value",
+		"rubygems-secret-value",
+		"cargo-secret-value",
+		"composer-github-token",
+		"nuget-secret-value",
+		"maven-secret-value",
+		"jfrog-secret-value",
+		"cloudsmith-secret-value",
+		"gldt-abcdefghijklmnopqrstuvwxyz123456",
+		"bitbucket-secret-value",
+		"sourcegraph-secret-value",
+		"gerrit-secret-value",
+	} {
+		if strings.Contains(got, leaked) {
+			t.Fatalf("RedactString() = %q, leaked %s", got, leaked)
+		}
+	}
+	if strings.Count(got, Redacted) < 14 {
+		t.Fatalf("RedactString() = %q, want package registry and SCM secrets redacted", got)
+	}
+
+	findings := ClassifyString(input)
+	for _, signal := range []string{
+		"npm_token",
+		"pypi_token",
+		"gitlab_deploy_token",
+		"assignment:key_name",
+	} {
+		assertSignal(t, findings, signal)
+	}
+}
+
+func TestRedactMapCoversPackageRegistryAndSCMStructuredMetadata(t *testing.T) {
+	redacted := RedactMap(map[string]any{
+		"package_managers": map[string]any{
+			"nodeAuthToken":       "npm_abcdefghijklmnopqrstuvwxyz123456",
+			"pypiApiToken":        "pypi-abcdefghijklmnopqrstuvwxyz123456",
+			"rubygemsApiKey":      "rubygems-secret-value",
+			"cargoRegistryToken":  "cargo-secret-value",
+			"composerGithubOAuth": "composer-github-token",
+			"nugetApiKey":         "nuget-secret-value",
+			"mavenPassword":       "maven-secret-value",
+			"gradleToken":         "gradle-secret-value",
+			"jfrogAccessToken":    "jfrog-secret-value",
+			"artifactoryApiKey":   "artifactory-secret-value",
+			"cloudsmithApiKey":    "cloudsmith-secret-value",
+			"publicRegistry":      "https://registry.npmjs.org",
+		},
+		"scm": map[string]string{
+			"gitlabDeployToken":  "gldt-abcdefghijklmnopqrstuvwxyz123456",
+			"giteaDeployKey":     "gitea-deploy-key-value",
+			"bitbucketToken":     "bitbucket-secret-value",
+			"sourcegraphToken":   "sourcegraph-secret-value",
+			"gerritHttpPassword": "gerrit-secret-value",
+		},
+	})
+	body, err := json.Marshal(redacted)
+	if err != nil {
+		t.Fatalf("marshal redacted package registry metadata: %v", err)
+	}
+	for _, leaked := range []string{
+		"npm_abcdefghijklmnopqrstuvwxyz123456",
+		"pypi-abcdefghijklmnopqrstuvwxyz123456",
+		"rubygems-secret-value",
+		"cargo-secret-value",
+		"composer-github-token",
+		"nuget-secret-value",
+		"maven-secret-value",
+		"gradle-secret-value",
+		"jfrog-secret-value",
+		"artifactory-secret-value",
+		"cloudsmith-secret-value",
+		"gldt-abcdefghijklmnopqrstuvwxyz123456",
+		"gitea-deploy-key-value",
+		"bitbucket-secret-value",
+		"sourcegraph-secret-value",
+		"gerrit-secret-value",
+	} {
+		if strings.Contains(string(body), leaked) {
+			t.Fatalf("redacted package registry metadata = %s, leaked %s", string(body), leaked)
+		}
+	}
+	for _, fragment := range []string{`"publicRegistry":"https://registry.npmjs.org"`, Redacted} {
+		if !strings.Contains(string(body), fragment) {
+			t.Fatalf("redacted package registry metadata = %s, missing %s", string(body), fragment)
+		}
+	}
+
+	findings := ClassifyValue(map[string]any{
+		"nodeAuthToken":       "npm_abcdefghijklmnopqrstuvwxyz123456",
+		"pypiApiToken":        "pypi-abcdefghijklmnopqrstuvwxyz123456",
+		"rubygemsApiKey":      "rubygems-secret-value",
+		"cargoRegistryToken":  "cargo-secret-value",
+		"composerGithubOAuth": "composer-github-token",
+		"mavenPassword":       "maven-secret-value",
+		"gitlabDeployToken":   "gldt-abcdefghijklmnopqrstuvwxyz123456",
+		"giteaDeployKey":      "gitea-deploy-key-value",
+	})
+	assertFinding(t, findings, SecretKindToken, "nodeAuthToken")
+	assertFinding(t, findings, SecretKindToken, "pypiApiToken")
+	assertFinding(t, findings, SecretKindAPIKey, "rubygemsApiKey")
+	assertFinding(t, findings, SecretKindRegistryAuth, "cargoRegistryToken")
+	assertFinding(t, findings, SecretKindCredential, "composerGithubOAuth")
+	assertFinding(t, findings, SecretKindPassword, "mavenPassword")
+	assertFinding(t, findings, SecretKindToken, "gitlabDeployToken")
+	assertFinding(t, findings, SecretKindPrivateKey, "giteaDeployKey")
+}
+
 func TestRedactValueCoversMixedCaseLaunchSecretKeys(t *testing.T) {
 	redacted := RedactValue(map[string]any{
 		"clientSecret":       "client-secret-value",
