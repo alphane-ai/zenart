@@ -54,6 +54,13 @@ STAGING_OBSERVABILITY_RUNTIME_CHECKLIST_ITEM = (
     "observability-only artifact preserved backup/restore、load、post-deploy smoke blockers until the "
     "later combined preflight closed them。"
 )
+STAGING_OBJECT_STORAGE_RETENTION_BLOCKED_CHECKLIST_ITEM = (
+    "Private Beta/Staging object retention/cleanup blocked probe evidence recorded but launch blocker preserved: "
+    "`ops/evidence/staging/object-storage-retention-cleanup.blocked.json` has `status=blocked`, documents "
+    "missing staging base URL/admin auth/runtime input requirements, preserves "
+    "`object_storage_signed_retention_runtime_missing`, and cannot close object retention/cleanup, aggregate "
+    "Private Beta/Staging, Production, or Do-Not-Launch readiness。"
+)
 PRODUCTION_BACKUP_ROLLBACK_INCIDENT_ADMIN_CHECKLIST_ITEM = (
     "Production backup/rollback/incident/post-deploy admin-visible probe evidence recorded but launch blocker preserved: "
     "`ops/evidence/production/20260527T1800Z-backup-rollback-incident-smoke.json` has "
@@ -909,6 +916,11 @@ PARTIAL_RUNTIME_PASS_EVIDENCE_ALLOWLIST = {
     "ops/evidence/production/billing-refund-credit-webhook.json",
     "ops/evidence/production/public-legal-policy.json",
     "ops/evidence/production/public-support-billing-policy.json",
+}
+
+NON_CLOSURE_RUNTIME_EVIDENCE_FILES = {
+    "ops/evidence/staging/object-storage-retention-cleanup.blocked.json",
+    "ops/evidence/production/20260527T1800Z-backup-rollback-incident-smoke.json",
 }
 
 RUNTIME_SPLIT_PASS_REQUIREMENTS = {
@@ -4288,6 +4300,10 @@ def validate_pass_evidence_does_not_cite_blocked_runtime_artifacts(data: dict[st
                     status in RUNTIME_PASS_EVIDENCE_STATUS_VALUES,
                     f"{gate}.{check_id} pass evidence cites non-passing runtime artifact {path} with status={status!r}",
                 )
+            require(
+                path not in NON_CLOSURE_RUNTIME_EVIDENCE_FILES,
+                f"{gate}.{check_id} pass evidence cites non-closure runtime probe {path}",
+            )
             blocked_slots = evidence.get("blocked_slots")
             require(
                 not blocked_slots,
@@ -6540,10 +6556,34 @@ def validate_staging_object_storage_retention_cleanup_evidence() -> None:
             STAGING_OBJECT_STORAGE_RETENTION_BLOCKED_EVIDENCE.exists(),
             "blocked retention cleanup evidence must be recorded while the canonical pass artifact is absent",
         )
+        require(
+            STAGING_OBJECT_STORAGE_RETENTION_BLOCKED_CHECKLIST_ITEM in checked_items(text),
+            "blocked retention cleanup probe row must close only as explicit non-closure evidence",
+        )
+        require(
+            STAGING_OBJECT_STORAGE_RETENTION_BLOCKED_CHECKLIST_ITEM not in unchecked_items(text),
+            "blocked retention cleanup probe row cannot remain open after blocked evidence is recorded",
+        )
         blocked_evidence = load_json(STAGING_OBJECT_STORAGE_RETENTION_BLOCKED_EVIDENCE)
+        require(
+            blocked_evidence["schema_version"] == "stage0.rev2.staging.object_storage_retention_cleanup",
+            "blocked retention cleanup evidence schema mismatch",
+        )
+        require(
+            blocked_evidence["environment"] == "staging",
+            "blocked retention cleanup evidence must be staging-scoped",
+        )
+        require(
+            blocked_evidence["kind"] == "object_storage_retention_cleanup",
+            "blocked retention cleanup evidence must declare kind=object_storage_retention_cleanup",
+        )
         require(
             blocked_evidence["status"] == "blocked",
             "blocked retention cleanup evidence must preserve blocked status",
+        )
+        require(
+            blocked_evidence["results_path"] == "ops/evidence/staging/object-storage-retention-cleanup.blocked.ndjson",
+            "blocked retention cleanup evidence must cite the blocked NDJSON result path",
         )
         require(
             blocked_evidence["release_gate_check_id"] == "staging_object_storage_signed_downloads",
@@ -6553,7 +6593,23 @@ def validate_staging_object_storage_retention_cleanup_evidence() -> None:
             blocked_evidence["do_not_launch_condition_id"] == "object_storage_signed_retention_runtime_missing",
             "blocked retention cleanup evidence must map to the object-storage Do-Not-Launch condition",
         )
+        require(
+            blocked_evidence["gate_impact"]["check_level_item"] == checklist_item,
+            "blocked retention cleanup evidence must name the exact checklist item it cannot close yet",
+        )
+        require(
+            blocked_evidence["gate_impact"]["can_clear_retention_cleanup_checklist_item"] is False,
+            "blocked retention cleanup evidence must not clear the retention cleanup checklist item",
+        )
         runtime_requirements = blocked_evidence["runtime_input_requirements"]
+        require(
+            runtime_requirements["canonical_pass_report"] == rel(STAGING_OBJECT_STORAGE_RETENTION_EVIDENCE),
+            "blocked retention cleanup evidence must name the canonical pass report it is waiting on",
+        )
+        require(
+            runtime_requirements["canonical_pass_results"] == "ops/evidence/staging/object-storage-retention-cleanup.ndjson",
+            "blocked retention cleanup evidence must name the canonical pass NDJSON it is waiting on",
+        )
         for key, token in {
             "required_base_url": "STAGING_BASE_URL",
             "required_auth": "ADMIN_BEARER_TOKEN or ADMIN_SESSION_COOKIE",
@@ -6572,6 +6628,16 @@ def validate_staging_object_storage_retention_cleanup_evidence() -> None:
         require(
             blocked_evidence["gate_impact"]["can_clear_release_gate_check"] is False,
             "blocked retention cleanup evidence must not clear the object-storage release gate",
+        )
+        require(
+            blocked_evidence["gate_impact"]["preserved_release_gate_check_id"]
+            == "staging_object_storage_signed_downloads",
+            "blocked retention cleanup evidence must preserve the object-storage release gate check",
+        )
+        require(
+            blocked_evidence["gate_impact"]["preserved_do_not_launch_condition_id"]
+            == "object_storage_signed_retention_runtime_missing",
+            "blocked retention cleanup evidence must preserve the object-storage Do-Not-Launch condition",
         )
         return
 
@@ -9076,6 +9142,7 @@ def validate_launch_readiness_split_contracts() -> None:
             "Private Beta/Staging legal pages external-user visibility evidence 通过：staging evidence proves Terms、Privacy、Acceptable Use、AI/content disclaimer、IP complaint flow are externally visible under `ops/evidence/staging/`。",
             "Private Beta/Staging support contact external-user visibility evidence 通过：staging evidence proves visible support contact/report-problem path for external users under `ops/evidence/staging/`。",
             "Private Beta/Staging object storage signed URL runtime evidence 通过：staging evidence proves tenant-scoped signed download, expiry, direct-object denial, and cross-tenant denial under `ops/evidence/staging/`。",
+            STAGING_OBJECT_STORAGE_RETENTION_BLOCKED_CHECKLIST_ITEM,
             "staging request id propagation runtime evidence 通过。",
             "staging structured JSON logs runtime evidence 通过。",
             "staging OpenTelemetry traces runtime evidence 通过。",
@@ -9166,6 +9233,8 @@ def validate_launch_readiness_split_contracts() -> None:
         "Passed runtime evidence files must declare the expected environment",
         "must themselves have a passing status",
         "blocked preflight reports, files with `blocked_slots`, or files with `missing_blockers` cannot be cited as pass evidence",
+        "Blocked runtime evidence artifacts may be checked only as explicit non-closure probe rows",
+        "must not appear in any passed release-gate check evidence",
         "stale or cross-gate evidence cannot close a runtime check",
         "Checked runtime subitems that partially satisfy a larger release gate must have validator-owned file-level checks",
         "Private Beta/Staging checked partial subitems must be backed by named validator constants",
@@ -9175,6 +9244,7 @@ def validate_launch_readiness_split_contracts() -> None:
         "Passed gate checks and cleared Do-Not-Launch conditions may not mix real and missing concrete artifact paths",
         "Private Beta/Staging check-level runtime subitems must remain open until each matching release gate check has staging evidence",
         "Private Beta/Staging object storage signed download/retention cannot close from local object storage tests",
+        "Private Beta/Staging object retention/cleanup blocked probe evidence at `ops/evidence/staging/object-storage-retention-cleanup.blocked.json` may close only the explicit blocked-probe row",
         "Private Beta/Staging legal/support visibility cannot close from web source files or policy text alone",
         "Production check-level runtime subitems must remain open until each matching release gate check has production evidence",
         "Private Beta/Staging observability runtime evidence may close only its observability-only subitem",
