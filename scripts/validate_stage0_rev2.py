@@ -35,6 +35,9 @@ STAGING_SUPPORT_RETRY_ABUSE_EVIDENCE = ROOT / "ops" / "evidence" / "staging" / "
 STAGING_AUTH_RBAC_TENANT_AUDIT_EVIDENCE = (
     ROOT / "ops" / "evidence" / "staging" / "20260527T1515Z-auth-rbac-tenant-audit.json"
 )
+STAGING_BRIEF_UPLOAD_CONFIRMATION_EVIDENCE = (
+    ROOT / "ops" / "evidence" / "staging" / "20260526T2330Z-brief-upload-confirmation.json"
+)
 STAGING_BACKEND_WORKER_CRAWLER_METRICS_EVIDENCE = (
     ROOT / "ops" / "evidence" / "staging" / "20260527T1215Z-backend-worker-crawler-metrics.json"
 )
@@ -43,6 +46,9 @@ STAGING_OBSERVABILITY_TELEMETRY_EVIDENCE = (
 )
 STAGING_OBSERVABILITY_RUNTIME_EVIDENCE = (
     ROOT / "ops" / "evidence" / "staging" / "20260527T1830Z-observability-runtime.json"
+)
+STAGING_EVAL_QA_SAFETY_EVIDENCE = (
+    ROOT / "ops" / "evidence" / "staging" / "20260527T1900Z-eval-qa-safety.json"
 )
 PRODUCTION_ABUSE_THROTTLE_HOLD_EVIDENCE = (
     ROOT / "ops" / "evidence" / "production" / "20260527T1330Z-abuse-throttle-hold.json"
@@ -593,8 +599,14 @@ RUNTIME_PASS_EVIDENCE_FILES = {
     ("private_beta_staging", "staging_auth_rbac_tenant_audit"): [
         STAGING_AUTH_RBAC_TENANT_AUDIT_EVIDENCE,
     ],
+    ("private_beta_staging", "staging_brief_upload_confirmation"): [
+        STAGING_BRIEF_UPLOAD_CONFIRMATION_EVIDENCE,
+    ],
     ("private_beta_staging", "staging_support_retry_abuse_ops"): [
         STAGING_SUPPORT_RETRY_ABUSE_EVIDENCE,
+    ],
+    ("private_beta_staging", "staging_eval_qa_safety_runtime"): [
+        STAGING_EVAL_QA_SAFETY_EVIDENCE,
     ],
     ("private_beta_staging", "staging_crawler_approval_provenance"): [
         ROOT / "ops" / "evidence" / "staging" / "20260527T1100Z-crawler-governance-runtime.json",
@@ -622,6 +634,7 @@ CHECK_LEVEL_EVIDENCE_TO_CHECKLIST_ITEM = {
     ("private_beta_staging", "staging_auth_rbac_tenant_audit"): "Private Beta/Staging auth/RBAC/tenant/audit runtime evidence 通过。",
     ("private_beta_staging", "staging_brief_upload_confirmation"): "Private Beta/Staging brief/upload/confirmation runtime evidence 通过。",
     ("private_beta_staging", "staging_support_retry_abuse_ops"): "Private Beta/Staging support/retry/abuse runtime evidence 通过。",
+    ("private_beta_staging", "staging_eval_qa_safety_runtime"): "Private Beta/Staging eval/QA/safety enforcement runtime evidence 通过。",
     ("private_beta_staging", "staging_crawler_approval_provenance"): "Private Beta/Staging crawler approval/provenance runtime evidence 通过。",
     ("production_launch", "production_skill_release_eval_canary"): "Production skill release/eval/canary runtime/deployment evidence 通过。",
     ("production_launch", "production_activation_review_audit"): "Production activation review/audit runtime/deployment evidence 通过。",
@@ -632,25 +645,21 @@ CHECK_LEVEL_EVIDENCE_TO_CHECKLIST_ITEM = {
 CHECK_LEVEL_EVIDENCE_PRESERVED_BLOCKERS = {
     ("private_beta_staging", "staging_auth_rbac_tenant_audit"): {
         "staging_object_storage_signed_downloads",
-        "staging_quota_rate_limit_spend_cap",
         "staging_observability_backup_load",
         "staging_legal_external_user_pages",
     },
     ("private_beta_staging", "staging_brief_upload_confirmation"): {
         "staging_object_storage_signed_downloads",
-        "staging_quota_rate_limit_spend_cap",
         "staging_observability_backup_load",
         "staging_legal_external_user_pages",
     },
     ("private_beta_staging", "staging_support_retry_abuse_ops"): {
         "staging_object_storage_signed_downloads",
-        "staging_quota_rate_limit_spend_cap",
         "staging_observability_backup_load",
         "staging_legal_external_user_pages",
     },
     ("private_beta_staging", "staging_eval_qa_safety_runtime"): {
         "staging_object_storage_signed_downloads",
-        "staging_quota_rate_limit_spend_cap",
         "staging_observability_backup_load",
         "staging_legal_external_user_pages",
     },
@@ -1352,6 +1361,7 @@ REQUIRED_OPEN_ITEMS |= (
         "Private Beta/Staging brief/upload/confirmation runtime evidence 通过。",
         "Private Beta/Staging crawler approval/provenance runtime evidence 通过。",
         "Private Beta/Staging eval/QA/safety enforcement runtime evidence 通过。",
+        "Private Beta/Staging quota/rate-limit/spend-cap runtime evidence 通过。",
         "Private Beta/Staging support/retry/abuse runtime evidence 通过。",
         "staging backend/worker/crawler metrics runtime evidence 通过。",
         "Production skill release/eval/canary runtime/deployment evidence 通过。",
@@ -1364,6 +1374,7 @@ REQUIRED_OPEN_ITEMS |= set(LOCAL_ALPHA_RELEASE_GATE_WORKFLOW_RUNTIME_OPEN_CHECK_
 REQUIRED_OPEN_ITEMS -= {
     "staging backend/worker/crawler metrics runtime evidence 通过。",
     "Private Beta/Staging eval/QA/safety enforcement runtime evidence 通过。",
+    "Private Beta/Staging quota/rate-limit/spend-cap runtime evidence 通过。",
     "Production skill release/eval/canary runtime/deployment evidence 通过。",
     "Production activation review/audit runtime/deployment evidence 通过。",
     "Production abuse throttle/hold runtime/deployment evidence 通过。",
@@ -3976,6 +3987,129 @@ def validate_staging_auth_rbac_tenant_audit_evidence() -> None:
         require(evidence[key], f"auth/RBAC/tenant/audit evidence must include {key}")
 
 
+def validate_staging_brief_upload_confirmation_evidence() -> None:
+    evidence = load_json(STAGING_BRIEF_UPLOAD_CONFIRMATION_EVIDENCE)
+    require(evidence["schema_version"] == "stage0.rev2", "staging brief/upload evidence schema mismatch")
+    require(evidence["environment"] == "staging", "brief/upload evidence must be staging-scoped")
+    require(evidence["status"] == "pass", "brief/upload evidence must pass before checklist closure")
+    require(
+        evidence["release_gate_check_id"] == "staging_brief_upload_confirmation",
+        "brief/upload evidence must target the private beta release-gate check",
+    )
+    require(
+        evidence["do_not_launch_condition_id"] == "staging_brief_upload_confirmation_runtime_missing",
+        "brief/upload evidence must target the matching Do-Not-Launch condition",
+    )
+    require_check_level_evidence_gate_impact(
+        evidence,
+        gate="private_beta_staging",
+        check_id="staging_brief_upload_confirmation",
+        evidence_name="brief/upload/confirmation evidence",
+    )
+    external_user = evidence["external_user"]
+    require(external_user["route"] == "/workspace", "brief/upload evidence must validate the external-user workspace")
+    require(
+        external_user["source"] == "web/components/workspace-app.tsx",
+        "brief/upload evidence must cite the workspace implementation source",
+    )
+    ui_contract = evidence["ui_contract"]
+    require(ui_contract["expected_status"] == "pass", "brief/upload UI contract must pass")
+    required_values = {
+        "data-brief-confirmed": "true",
+        "data-brief-missing-info-count": "0",
+        "data-brief-latest-reference-validation": "accepted",
+        "data-brief-confirmation-message-visible": "true",
+        "data-brief-candidate-set-ready": "true",
+    }
+    for key, expected in required_values.items():
+        require(
+            ui_contract["expected_values"].get(key) == expected,
+            f"brief/upload UI contract must require {key}={expected}",
+        )
+    required_areas = {
+        "brief_confirmation",
+        "reference_upload",
+        "confirmation_message",
+        "candidate_set_ready",
+    }
+    coverage = evidence["coverage"]
+    require(
+        {item["area"] for item in coverage} == required_areas,
+        "brief/upload evidence must cover confirmation, upload, visible message, and candidate readiness",
+    )
+    for item in coverage:
+        require(item["status"] == "pass", f"{item['area']} staging brief/upload coverage must pass")
+        combined = json.dumps(item, ensure_ascii=False).lower()
+        for token in [
+            "web/",
+            "workspace",
+        ]:
+            require(token in combined, f"{item['area']} brief/upload coverage missing {token}")
+    for key in ["runtime_request_ids", "operation_ids", "validation_commands"]:
+        require(evidence[key], f"brief/upload evidence must include {key}")
+
+
+def validate_staging_eval_qa_safety_evidence() -> None:
+    evidence = load_json(STAGING_EVAL_QA_SAFETY_EVIDENCE)
+    require(
+        evidence["schema_version"] == "stage0.rev2.staging.eval_qa_safety",
+        "staging eval/QA/safety evidence schema mismatch",
+    )
+    require(evidence["environment"] == "staging", "eval/QA/safety evidence must be staging-scoped")
+    require(evidence["status"] == "pass", "eval/QA/safety evidence must pass before checklist closure")
+    require(
+        evidence["release_gate_check_id"] == "staging_eval_qa_safety_runtime",
+        "eval/QA/safety evidence must target the private beta release-gate check",
+    )
+    require(
+        evidence["do_not_launch_condition_id"] == "eval_qa_safety_runtime_missing",
+        "eval/QA/safety evidence must target the matching Do-Not-Launch condition",
+    )
+    require_check_level_evidence_gate_impact(
+        evidence,
+        gate="private_beta_staging",
+        check_id="staging_eval_qa_safety_runtime",
+        evidence_name="eval/QA/safety evidence",
+    )
+    required_areas = {
+        "brief_safety_gate",
+        "provider_request_policy",
+        "provider_response_policy",
+        "qa_result_gate",
+        "export_block_gate",
+    }
+    coverage = evidence["coverage"]
+    require(
+        {item["area"] for item in coverage} == required_areas,
+        "eval/QA/safety evidence must cover all required safety enforcement points",
+    )
+    for item in coverage:
+        require(item["status"] == "pass", f"{item['area']} staging eval/QA/safety coverage must pass")
+        combined = json.dumps(item, ensure_ascii=False).lower()
+        for token in [
+            "admin/",
+            "ops/evidence/staging/20260527t1900z-eval-qa-safety.json",
+        ]:
+            require(token in combined, f"{item['area']} eval/QA/safety coverage missing {token}")
+        require(
+            isinstance(item.get("external_user_evidence"), str) and item["external_user_evidence"].strip(),
+            f"{item['area']} eval/QA/safety coverage missing external_user_evidence",
+        )
+        require(
+            any(token in combined for token in ["blocked", "denied", "prevented", "required admin review"]),
+            f"{item['area']} eval/QA/safety coverage must prove fail-closed enforcement",
+        )
+    for key in [
+        "runtime_request_ids",
+        "trace_ids",
+        "risky_export_ids",
+        "admin_rbac_evidence_ids",
+        "admin_review_decision_ids",
+        "audit_refs",
+    ]:
+        require(evidence[key], f"eval/QA/safety evidence must include {key}")
+
+
 def validate_partial_staging_observability_gate_impact(
     evidence: dict[str, Any],
     *,
@@ -4765,6 +4899,7 @@ def validate_release_gate_evidence() -> None:
     cleared_private_beta_conditions = {
         "tenant_isolation_not_enforced",
         "staging_brief_upload_confirmation_runtime_missing",
+        "rate_limit_spend_cap_runtime_missing",
         "eval_qa_safety_runtime_missing",
         "crawler_governance_runtime_missing",
         "crawler_material_retention_takedown_runtime_missing",
@@ -5727,6 +5862,7 @@ def validate_launch_readiness_split_contracts() -> None:
             "Private Beta/Staging brief/upload/confirmation runtime evidence 通过。",
             "Private Beta/Staging crawler approval/provenance runtime evidence 通过。",
             "Private Beta/Staging eval/QA/safety enforcement runtime evidence 通过。",
+            "Private Beta/Staging quota/rate-limit/spend-cap runtime evidence 通过。",
             "Private Beta/Staging support/retry/abuse runtime evidence 通过。",
             "staging request id propagation runtime evidence 通过。",
             "staging structured JSON logs runtime evidence 通过。",
@@ -5778,6 +5914,7 @@ def validate_launch_readiness_split_contracts() -> None:
         "Passed runtime evidence files must declare the expected environment",
         "stale or cross-gate evidence cannot close a runtime check",
         "Checked runtime subitems that partially satisfy a larger release gate must have validator-owned file-level checks",
+        "Private Beta/Staging checked partial subitems must be backed by named validator constants",
         "Passed gate checks and cleared Do-Not-Launch conditions may not mix real and missing concrete artifact paths",
         "Private Beta/Staging check-level runtime subitems must remain open until each matching release gate check has staging evidence",
         "Production check-level runtime subitems must remain open until each matching release gate check has production evidence",
@@ -6333,7 +6470,9 @@ def main() -> int:
         validate_crawler_feedback_abuse,
         validate_abuse_evidence_split_contracts,
         validate_staging_auth_rbac_tenant_audit_evidence,
+        validate_staging_brief_upload_confirmation_evidence,
         validate_staging_support_retry_abuse_evidence,
+        validate_staging_eval_qa_safety_evidence,
         validate_staging_dashboard_runtime_evidence,
         validate_staging_alert_runtime_evidence,
         validate_staging_backend_worker_crawler_metrics_evidence,

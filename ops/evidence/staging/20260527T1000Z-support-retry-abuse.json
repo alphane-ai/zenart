@@ -129,8 +129,6 @@
     "aggregate_private_beta_gate_status": "blocked_by_other_staging_runtime_items",
     "remaining_blockers": [
       "staging_object_storage_signed_downloads",
-      "staging_quota_rate_limit_spend_cap",
-      "staging_eval_qa_safety_runtime",
       "staging_observability_backup_load",
       "staging_legal_external_user_pages"
     ]
