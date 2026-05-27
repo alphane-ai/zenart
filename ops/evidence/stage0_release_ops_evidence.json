@@ -28,7 +28,7 @@
     "staging_observability_backup_load_smoke": {
       "script": "scripts/staging_observability_backup_load_smoke.sh",
       "evidence_path_policy": "ops/evidence/staging/",
-      "latest_preflight_evidence": "ops/evidence/staging/20260527T010604Z-staging-observability-backup-load-46430.json",
+      "latest_preflight_evidence": "ops/evidence/staging/20260527T013046Z-staging-observability-backup-load-32321.json",
       "runtime_status": "validates the private beta staging_observability_backup_load evidence bundle shape for observability, backup/restore, load, and post-deploy smoke artifacts; latest preflight verifies staging observability and remains blocked on missing backup/restore, load, and post-deploy smoke evidence",
       "private_beta_gate": "open until real staging evidence for request-id/logs/traces/metrics/dashboard/alerts, Postgres/object restore, all required load modes, and post-deploy smoke is attached and release gate fixture blockers are cleared"
     },

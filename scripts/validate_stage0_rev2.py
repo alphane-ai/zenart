@@ -61,7 +61,7 @@ STAGING_OBSERVABILITY_BACKUP_LOAD_PREFLIGHT_EVIDENCE = (
     / "ops"
     / "evidence"
     / "staging"
-    / "20260527T010604Z-staging-observability-backup-load-46430.json"
+    / "20260527T013046Z-staging-observability-backup-load-32321.json"
 )
 STAGING_QUOTA_RATE_LIMIT_SPEND_CAP_EVIDENCE = (
     ROOT / "ops" / "evidence" / "staging" / "20260527T2015Z-quota-rate-limit-spend-cap.json"
@@ -4846,6 +4846,10 @@ def validate_staging_observability_backup_load_preflight_evidence() -> None:
         evidence["missing_blockers"] == ["staging_observability_restore_load_missing"],
         "preflight evidence must preserve the staging observability restore/load blocker",
     )
+    require(
+        evidence.get("closure_blockers") == ["private_beta_gate_fixture_not_updated"],
+        "preflight evidence must preserve the private beta fixture update blocker",
+    )
     require(evidence["overall_verified"] is False, "blocked preflight evidence must set overall_verified=false")
     for prefix in [
         "unverified_backup_restore_evidence:not_local_file:missing",
@@ -4950,6 +4954,10 @@ def validate_staging_observability_backup_load_preflight_evidence() -> None:
             "post_deploy_smoke_evidence",
         },
         "preflight gate impact must block only backup/restore, load, and post-deploy smoke",
+    )
+    require(
+        gate_impact.get("closure_blockers") == ["private_beta_gate_fixture_not_updated"],
+        "preflight gate impact must preserve the private beta fixture update blocker",
     )
 
 
