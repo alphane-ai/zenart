@@ -236,10 +236,14 @@ required_fragments = [
     "Object-storage signed URL: staging status `pass_with_blockers_preserved` from `ops/evidence/staging/20260527T2130Z-object-storage-signed-url.json` with 4/4 signed URL probes validator-visible; retention/cleanup evidence still required; object retention policy, expired export cleanup, orphan cleanup, and audit refs remain required before the object-storage gate can close.",
     "Object-storage retention cleanup: `blocked` from `ops/evidence/staging/object-storage-retention-cleanup.blocked.json` with 4/4 probes blocked by missing STAGING_BASE_URL or explicit retention/audit probe URLs; canonical pass evidence is still missing at `ops/evidence/staging/object-storage-retention-cleanup.json`, so the object-storage gate remains open.",
     "Legal/support external-user visibility: staging split status `pass,pass` from `ops/evidence/staging/legal-pages-external-user.json` and `ops/evidence/staging/support-contact-external-user.json`; external-user legal/support visibility is validator-visible.",
+    "Object storage changes: staging signed URL evidence is attached; staging retention/cleanup pass evidence remains required before the object-storage gate can close.",
     "Operational risks: staging rollback evidence remains absent; staging backup/restore, load, post-deploy smoke, and legal/support visibility evidence are attached, but object-retention, CI, and production gates remain open.",
     "Object-storage risks: signed URL staging evidence is attached, but retention/cleanup runtime evidence still blocks the object-storage release gate.",
-    "Conditions: CI, staging smoke, restore/load/rollback evidence, security scans, release owner, and gate fixture blockers must be cleared before any private beta or production decision.",
+    "Conditions: CI installed workflow evidence, object retention cleanup evidence, staging migration/config/rollback/security evidence, production deployment evidence, release owner, and gate fixture blockers must be cleared before any private beta or production decision.",
     "## Open Rev2 Runtime Checklist",
+    "CI and staging runtime open target rows:",
+    "Release gate runtime open target rows:",
+    "These are blueprint checklist labels that remain unchecked, not satisfied release evidence.",
     "Private Beta/Staging external-user runtime evidence 通过",
 ]
 missing = [fragment for fragment in required_fragments if fragment not in notes]

@@ -32,7 +32,7 @@ Release gate status: `no-go`.
 - Environment variables added: `n/a`
 - Environment variables changed: `n/a`
 - Secret source changes: `n/a`
-- Object storage changes: local restore drill evidence only; staging bucket policy/signing/versioning evidence remains required.
+- Object storage changes: staging signed URL evidence is attached; staging retention/cleanup pass evidence remains required before the object-storage gate can close.
 - Provider/model routing changes: `n/a`
 
 ## Feature Flags
@@ -90,12 +90,12 @@ Release gate status: `no-go`.
 
 ## Open Rev2 Runtime Checklist
 
-- CI and staging runtime: 添加 PR/main CI 到 `.github/workflows`。（token-blocked：当前 token 缺 workflow scope；draft/evidence 已落在 `ops/ci/` 和 `fixtures/ops/`。）; CI 在已安装 PR/main workflow 中运行 Playwright smoke; CI 在已安装 PR/main workflow 中 build Docker images.
-- Release gate runtime: Local Alpha Gate 全部通过; CI Gate 全部通过; Private Beta/Staging Gate 全部通过; Production Launch Gate 全部通过; Do-Not-Launch Conditions 全部为 false; Local Alpha workflow API/Playwright end-to-end smoke evidence 通过并写入 release gate fixture; CI installed workflow runtime evidence 通过：PR/main run、Playwright smoke、Docker image build 均有 validator-resolvable evidence; Private Beta/Staging external-user runtime evidence 通过：auth/RBAC/tenant、storage、quota/rate limit、support/abuse、safety/QA/crawler、observability/backup/load、legal visibility 均有 staging evidence; Private Beta/Staging object storage signed download/retention runtime evidence 通过; Private Beta/Staging object retention/cleanup runtime evidence 通过：staging evidence proves retention policy, expired export cleanup, orphan cleanup, and audit refs under `ops/evidence/staging/`; Production Launch runtime/deployment evidence 通过：provider-or-comp-only、paid lifecycle、skill canary、activation audit、abuse hold、security、backup/rollback/post-deploy smoke、legal/support policy 均有 production evidence.
+- CI and staging runtime open target rows: 添加 PR/main CI 到 `.github/workflows`。（token-blocked：当前 token 缺 workflow scope；draft/evidence 已落在 `ops/ci/` 和 `fixtures/ops/`。）; CI 在已安装 PR/main workflow 中运行 Playwright smoke; CI 在已安装 PR/main workflow 中 build Docker images. These are blueprint checklist labels that remain unchecked, not satisfied release evidence.
+- Release gate runtime open target rows: Local Alpha Gate 全部通过; CI Gate 全部通过; Private Beta/Staging Gate 全部通过; Production Launch Gate 全部通过; Do-Not-Launch Conditions 全部为 false; Local Alpha workflow API/Playwright end-to-end smoke evidence 通过并写入 release gate fixture; CI installed workflow runtime evidence 通过：PR/main run、Playwright smoke、Docker image build 均有 validator-resolvable evidence; Private Beta/Staging external-user runtime evidence 通过：auth/RBAC/tenant、storage、quota/rate limit、support/abuse、safety/QA/crawler、observability/backup/load、legal visibility 均有 staging evidence; Private Beta/Staging object storage signed download/retention runtime evidence 通过; Private Beta/Staging object retention/cleanup runtime evidence 通过：staging evidence proves retention policy, expired export cleanup, orphan cleanup, and audit refs under `ops/evidence/staging/`; Production Launch runtime/deployment evidence 通过：provider-or-comp-only、paid lifecycle、skill canary、activation audit、abuse hold、security、backup/rollback/post-deploy smoke、legal/support policy 均有 production evidence. These are blueprint checklist labels that remain unchecked, not satisfied release evidence.
 
 ## Go/No-Go
 
 - Decision: `no-go`
 - Approver: `pending`
-- Conditions: CI, staging smoke, restore/load/rollback evidence, security scans, release owner, and gate fixture blockers must be cleared before any private beta or production decision.
+- Conditions: CI installed workflow evidence, object retention cleanup evidence, staging migration/config/rollback/security evidence, production deployment evidence, release owner, and gate fixture blockers must be cleared before any private beta or production decision.
 - Follow-up deadline: `n/a`

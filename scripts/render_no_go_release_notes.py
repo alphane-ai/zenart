@@ -112,7 +112,10 @@ def runtime_checklist_lines() -> list[str]:
     for group, items in RUNTIME_CHECKLIST_GROUPS.items():
         open_items = [item.rstrip("。.") for item in items if item in unchecked]
         if open_items:
-            rows.append(f"- {group}: {'; '.join(open_items)}.")
+            rows.append(
+                f"- {group} open target rows: {'; '.join(open_items)}. "
+                "These are blueprint checklist labels that remain unchecked, not satisfied release evidence."
+            )
     return rows or ["- No tracked runtime checklist rows are open; verify gate fixtures before changing release status."]
 
 
@@ -328,7 +331,7 @@ def render(release_sha: str, release_tag: str, owner: str, reviewer: str, date: 
         "- Environment variables added: `n/a`",
         "- Environment variables changed: `n/a`",
         "- Secret source changes: `n/a`",
-        "- Object storage changes: local restore drill evidence only; staging bucket policy/signing/versioning evidence remains required.",
+        "- Object storage changes: staging signed URL evidence is attached; staging retention/cleanup pass evidence remains required before the object-storage gate can close.",
         "- Provider/model routing changes: `n/a`",
         "",
         "## Feature Flags",
@@ -392,7 +395,7 @@ def render(release_sha: str, release_tag: str, owner: str, reviewer: str, date: 
         "",
         "- Decision: `no-go`",
         "- Approver: `pending`",
-        "- Conditions: CI, staging smoke, restore/load/rollback evidence, security scans, release owner, and gate fixture blockers must be cleared before any private beta or production decision.",
+        "- Conditions: CI installed workflow evidence, object retention cleanup evidence, staging migration/config/rollback/security evidence, production deployment evidence, release owner, and gate fixture blockers must be cleared before any private beta or production decision.",
         "- Follow-up deadline: `n/a`",
         "",
     ]
