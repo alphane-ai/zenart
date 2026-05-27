@@ -16,6 +16,7 @@
     "read_fixture_contract",
     "replay_contract",
     "retention_contract",
+    "retention_fixture_contract",
     "release_gate_contract",
     "openapi_contract",
     "provenance"
@@ -567,6 +568,36 @@
         }
       }
     },
+    "retention_fixture_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "retention_runner",
+        "check_command",
+        "evaluation_time",
+        "cases"
+      ],
+      "properties": {
+        "retention_runner": {
+          "const": "scripts/run_eval_storage_retention_contract.py"
+        },
+        "check_command": {
+          "const": "python3 scripts/run_eval_storage_retention_contract.py --check"
+        },
+        "evaluation_time": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "cases": {
+          "type": "array",
+          "minItems": 4,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/retention_fixture_case"
+          }
+        }
+      }
+    },
     "release_gate_contract": {
       "type": "object",
       "additionalProperties": false,
@@ -990,6 +1021,157 @@
               ]
             }
           }
+        }
+      }
+    },
+    "retention_fixture_case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "actor",
+        "operation",
+        "audit_ref",
+        "rows",
+        "expected_outcome"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9_]+$"
+        },
+        "actor": {
+          "enum": [
+            "admin_operator",
+            "public_api",
+            "system_retention_job"
+          ]
+        },
+        "operation": {
+          "enum": [
+            "read_results",
+            "delete_result",
+            "redact_summary"
+          ]
+        },
+        "audit_ref": {
+          "type": "string"
+        },
+        "rows": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/retention_fixture_row"
+          }
+        },
+        "expected_outcome": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "action",
+            "retained_result_ids",
+            "denied_result_ids",
+            "audit_required",
+            "row_retained",
+            "summary_json_retained",
+            "runner_sha256_retained",
+            "status_retained",
+            "reason"
+          ],
+          "properties": {
+            "action": {
+              "enum": [
+                "return_retained_rows",
+                "deny_no_public_delete_operation",
+                "reject_missing_admin_audit",
+                "allow_audited_redaction"
+              ]
+            },
+            "retained_result_ids": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "pattern": "^eval_result_[a-z0-9_]+$"
+              }
+            },
+            "denied_result_ids": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "pattern": "^eval_result_[a-z0-9_]+$"
+              }
+            },
+            "audit_required": {
+              "type": "boolean"
+            },
+            "row_retained": {
+              "type": "boolean"
+            },
+            "summary_json_retained": {
+              "type": "boolean"
+            },
+            "runner_sha256_retained": {
+              "type": "boolean"
+            },
+            "status_retained": {
+              "type": "boolean"
+            },
+            "reason": {
+              "enum": [
+                "minimum_retention_window_keeps_eval_history",
+                "public_delete_endpoint_absent",
+                "admin_audit_required_before_deletion",
+                "audited_redaction_preserves_gate_evidence"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "retention_fixture_row": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "tenant_id",
+        "status",
+        "completed_at",
+        "created_at",
+        "summary_json_present",
+        "runner_sha256_present"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^eval_result_[a-z0-9_]+$"
+        },
+        "tenant_id": {
+          "type": "string",
+          "pattern": "^tenant_[a-z0-9_]+$"
+        },
+        "status": {
+          "enum": [
+            "pass",
+            "fail",
+            "blocked"
+          ]
+        },
+        "completed_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "summary_json_present": {
+          "const": true
+        },
+        "runner_sha256_present": {
+          "const": true
         }
       }
     }

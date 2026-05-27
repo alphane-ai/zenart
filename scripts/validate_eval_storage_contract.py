@@ -23,6 +23,7 @@ MIGRATION = ROOT / "backend" / "migrations" / "0002_stage0_rev2_domains.sql"
 RUNNER = ROOT / "scripts" / "run_stage0_eval.py"
 READ_RUNNER = ROOT / "scripts" / "run_eval_storage_read_contract.py"
 WRITE_RUNNER = ROOT / "scripts" / "run_eval_storage_write_contract.py"
+RETENTION_RUNNER = ROOT / "scripts" / "run_eval_storage_retention_contract.py"
 
 STORAGE_COLUMNS = {
     "id",
@@ -833,6 +834,7 @@ def validate_read_and_openapi_contract(contract: dict[str, Any]) -> None:
 
 def validate_retention_and_release_gate(contract: dict[str, Any]) -> None:
     retention = contract["retention_contract"]
+    retention_fixture = contract["retention_fixture_contract"]
     release = contract["release_gate_contract"]
     activation = load_json(ACTIVATION)
 
@@ -846,6 +848,73 @@ def validate_retention_and_release_gate(contract: dict[str, Any]) -> None:
     ]:
         require(retention[field] is True, f"retention contract must set {field}")
     require(retention["minimum_retention_days"] >= 365, "eval result retention must be at least 365 days")
+    require(
+        retention_fixture["retention_runner"] == "scripts/run_eval_storage_retention_contract.py",
+        "retention fixture runner mismatch",
+    )
+    require(
+        retention_fixture["check_command"] == "python3 scripts/run_eval_storage_retention_contract.py --check",
+        "retention fixture check command mismatch",
+    )
+    require(RETENTION_RUNNER.exists(), "eval storage retention runner missing")
+    runner_text = RETENTION_RUNNER.read_text(encoding="utf-8")
+    for token in [
+        "resolve_retention_case",
+        "minimum_retention_window_keeps_eval_history",
+        "public_delete_endpoint_absent",
+        "admin_audit_required_before_deletion",
+        "audited_redaction_preserves_gate_evidence",
+    ]:
+        require(token in runner_text, f"eval storage retention runner missing {token}")
+    retention_cases = {case["case_id"]: case for case in retention_fixture["cases"]}
+    require(
+        set(retention_cases)
+        == {
+            "minimum_window_retains_pass_fail_blocked_results",
+            "public_delete_is_denied_even_after_minimum_window",
+            "retention_job_delete_requires_admin_audit",
+            "audited_redaction_keeps_activation_gate_projection",
+        },
+        "eval storage retention fixture cases mismatch",
+    )
+    statuses = {
+        row["status"]
+        for case in retention_fixture["cases"]
+        for row in case["rows"]
+    }
+    require(statuses == {"pass", "fail", "blocked"}, "retention fixture must cover pass/fail/blocked results")
+    for case in retention_fixture["cases"]:
+        outcome = case["expected_outcome"]
+        require(outcome["row_retained"] is True, f"{case['case_id']} must retain the eval result row")
+        require(outcome["summary_json_retained"] is True, f"{case['case_id']} must retain summary JSON")
+        require(outcome["runner_sha256_retained"] is True, f"{case['case_id']} must retain runner sha256")
+        require(outcome["status_retained"] is True, f"{case['case_id']} must retain pass/fail/blocked status")
+    require(
+        retention_cases["public_delete_is_denied_even_after_minimum_window"]["expected_outcome"]["action"]
+        == "deny_no_public_delete_operation",
+        "retention fixture must deny public delete operations",
+    )
+    require(
+        retention_cases["retention_job_delete_requires_admin_audit"]["expected_outcome"]["action"]
+        == "reject_missing_admin_audit",
+        "retention fixture must reject deletion without admin audit",
+    )
+    require(
+        retention_cases["audited_redaction_keeps_activation_gate_projection"]["expected_outcome"]["action"]
+        == "allow_audited_redaction",
+        "retention fixture must allow only audited redaction",
+    )
+    check = subprocess.run(
+        [sys.executable, str(RETENTION_RUNNER), "--check"],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    require(
+        check.returncode == 0,
+        "eval storage retention runner failed: " + (check.stderr or check.stdout).strip(),
+    )
 
     require(
         release["activation_contract_fixture"] == "fixtures/stage0/rev2/eval/activation_gate_contract.json",

@@ -570,6 +570,157 @@
     "no_public_delete_operation": true,
     "minimum_retention_days": 365
   },
+  "retention_fixture_contract": {
+    "retention_runner": "scripts/run_eval_storage_retention_contract.py",
+    "check_command": "python3 scripts/run_eval_storage_retention_contract.py --check",
+    "evaluation_time": "2027-05-27T00:00:00Z",
+    "cases": [
+      {
+        "case_id": "minimum_window_retains_pass_fail_blocked_results",
+        "actor": "admin_operator",
+        "operation": "read_results",
+        "audit_ref": "audit_eval_retention_read_001",
+        "rows": [
+          {
+            "id": "eval_result_retention_pass",
+            "tenant_id": "tenant_stage0_acme",
+            "status": "pass",
+            "completed_at": "2026-06-01T00:00:00Z",
+            "created_at": "2026-06-01T00:00:01Z",
+            "summary_json_present": true,
+            "runner_sha256_present": true
+          },
+          {
+            "id": "eval_result_retention_fail",
+            "tenant_id": "tenant_stage0_acme",
+            "status": "fail",
+            "completed_at": "2026-06-02T00:00:00Z",
+            "created_at": "2026-06-02T00:00:01Z",
+            "summary_json_present": true,
+            "runner_sha256_present": true
+          },
+          {
+            "id": "eval_result_retention_blocked",
+            "tenant_id": "tenant_stage0_acme",
+            "status": "blocked",
+            "completed_at": "2026-06-03T00:00:00Z",
+            "created_at": "2026-06-03T00:00:01Z",
+            "summary_json_present": true,
+            "runner_sha256_present": true
+          }
+        ],
+        "expected_outcome": {
+          "action": "return_retained_rows",
+          "retained_result_ids": [
+            "eval_result_retention_pass",
+            "eval_result_retention_fail",
+            "eval_result_retention_blocked"
+          ],
+          "denied_result_ids": [],
+          "audit_required": false,
+          "row_retained": true,
+          "summary_json_retained": true,
+          "runner_sha256_retained": true,
+          "status_retained": true,
+          "reason": "minimum_retention_window_keeps_eval_history"
+        }
+      },
+      {
+        "case_id": "public_delete_is_denied_even_after_minimum_window",
+        "actor": "public_api",
+        "operation": "delete_result",
+        "audit_ref": "",
+        "rows": [
+          {
+            "id": "eval_result_retention_public_delete",
+            "tenant_id": "tenant_stage0_acme",
+            "status": "pass",
+            "completed_at": "2026-05-26T00:00:00Z",
+            "created_at": "2026-05-26T00:00:01Z",
+            "summary_json_present": true,
+            "runner_sha256_present": true
+          }
+        ],
+        "expected_outcome": {
+          "action": "deny_no_public_delete_operation",
+          "retained_result_ids": [
+            "eval_result_retention_public_delete"
+          ],
+          "denied_result_ids": [
+            "eval_result_retention_public_delete"
+          ],
+          "audit_required": true,
+          "row_retained": true,
+          "summary_json_retained": true,
+          "runner_sha256_retained": true,
+          "status_retained": true,
+          "reason": "public_delete_endpoint_absent"
+        }
+      },
+      {
+        "case_id": "retention_job_delete_requires_admin_audit",
+        "actor": "system_retention_job",
+        "operation": "delete_result",
+        "audit_ref": "",
+        "rows": [
+          {
+            "id": "eval_result_retention_job_delete",
+            "tenant_id": "tenant_stage0_acme",
+            "status": "blocked",
+            "completed_at": "2026-05-26T00:00:00Z",
+            "created_at": "2026-05-26T00:00:01Z",
+            "summary_json_present": true,
+            "runner_sha256_present": true
+          }
+        ],
+        "expected_outcome": {
+          "action": "reject_missing_admin_audit",
+          "retained_result_ids": [
+            "eval_result_retention_job_delete"
+          ],
+          "denied_result_ids": [
+            "eval_result_retention_job_delete"
+          ],
+          "audit_required": true,
+          "row_retained": true,
+          "summary_json_retained": true,
+          "runner_sha256_retained": true,
+          "status_retained": true,
+          "reason": "admin_audit_required_before_deletion"
+        }
+      },
+      {
+        "case_id": "audited_redaction_keeps_activation_gate_projection",
+        "actor": "admin_operator",
+        "operation": "redact_summary",
+        "audit_ref": "audit_eval_redaction_004",
+        "rows": [
+          {
+            "id": "eval_result_retention_redacted",
+            "tenant_id": "tenant_stage0_acme",
+            "status": "fail",
+            "completed_at": "2026-05-26T00:00:00Z",
+            "created_at": "2026-05-26T00:00:01Z",
+            "summary_json_present": true,
+            "runner_sha256_present": true
+          }
+        ],
+        "expected_outcome": {
+          "action": "allow_audited_redaction",
+          "retained_result_ids": [
+            "eval_result_retention_redacted"
+          ],
+          "denied_result_ids": [],
+          "audit_required": true,
+          "row_retained": true,
+          "summary_json_retained": true,
+          "runner_sha256_retained": true,
+          "status_retained": true,
+          "reason": "audited_redaction_preserves_gate_evidence"
+        }
+      }
+    ]
+  },
   "release_gate_contract": {
     "activation_contract_fixture": "fixtures/stage0/rev2/eval/activation_gate_contract.json",
     "requires_eval_pass_for_skill_canary": true,

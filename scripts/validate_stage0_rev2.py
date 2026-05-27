@@ -1811,6 +1811,7 @@ CHECKED_ITEMS = {
     "定义 eval suite schema。",
     "实现 eval runner。",
     "存储 eval results。",
+    "Eval result retention/redaction/no-public-delete contract 通过：`fixtures/stage0/rev2/eval/eval_storage_contract.json` declares pass/fail/blocked retention, summary/runner hash preservation, no public delete, admin-audited deletion/redaction semantics, and `scripts/run_eval_storage_retention_contract.py --check` validates retention outcomes without rerunning eval。",
     "skill canary 前要求 eval pass。",
     "prompt fragment active 前要求 eval pass。",
     "创建四条 workflow golden fixtures。",
