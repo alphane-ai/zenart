@@ -8,7 +8,7 @@
     "25"
   ],
   "created_by_lane": "lane3",
-  "created_at": "2026-05-27T02:01:03.998Z",
+  "created_at": "2026-05-27T02:17:42.036Z",
   "environment": "local_alpha",
   "workflow_id": "ecommerce_growth_pack",
   "fixture_id": "fx_ecommerce_growth_golden",
@@ -16,7 +16,7 @@
   "release_gate_fixture_ref": "fixtures/stage0/rev2/release_gate_evidence.local_alpha.json",
   "proves_running_local_stack": true,
   "local_stack": {
-    "web_base_url": "http://127.0.0.1:3003",
+    "web_base_url": "http://127.0.0.1:3000",
     "web_server_contract": "web/playwright.config.ts webServer starts npm run dev -- --hostname 127.0.0.1",
     "user_route": "/workspace",
     "export_route": "/export",
@@ -28,7 +28,7 @@
   "command": "npm run smoke:local-alpha-ecommerce-evidence",
   "file_name": "zenart-001.zip",
   "byte_size": 11905,
-  "sha256": "7e68ae7463919ecb63b5a7fccdae143e4636eee67afdf899180d71690c7d06fe",
+  "sha256": "6bbfc4efdaa9f3d12975d4cca3d4f61573ac68a3e0ca3e008026bc3f9e6eb97b",
   "payloads": [
     "ai-content-disclaimer.json",
     "assets/README.txt",

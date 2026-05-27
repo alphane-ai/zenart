@@ -1792,8 +1792,8 @@ main 合并前必须通过：
 
 - [x] 定义 vertical acceptance schema。
 - [x] 实现电商增长包 acceptance fixture。
-- [ ] 电商增长包 API smoke test 通过。
-- [ ] 电商增长包 Playwright happy path 通过。
+- [x] 电商增长包 API smoke test 通过。
+- [x] 电商增长包 Playwright happy path 通过。
 - [x] 实现商业视觉文档包 acceptance fixture。
 - [ ] 商业视觉文档包 API smoke test 通过。
 - [ ] 商业视觉文档包 Playwright happy path 通过。
@@ -1979,7 +1979,7 @@ main 合并前必须通过：
 - [x] Release notes 包含 SHA、migration list、config diff、feature flags、owner、smoke plan、rollback plan、known risks、go/no-go。
 - [x] Backfill Local Alpha release gate fixture evidence: workflow/eval/crawler/schema/service/runtime-stack checks pass in `fixtures/stage0/rev2/release_gate_evidence.local_alpha.json`。
 - [ ] Local Alpha workflow API/Playwright end-to-end smoke evidence 通过并写入 release gate fixture。
-- [ ] Local Alpha 电商增长包 runtime smoke evidence 写入 release gate fixture：`ops/evidence/local_alpha/ecommerce_growth_pack.api_smoke.json`、`ops/evidence/local_alpha/ecommerce_growth_pack.playwright_happy_path.json`、`ops/evidence/local_alpha/ecommerce_growth_pack.export_zip.json` 均证明 running local stack。
+- [x] Local Alpha 电商增长包 runtime smoke evidence 写入 release gate fixture：`ops/evidence/local_alpha/ecommerce_growth_pack.api_smoke.json`、`ops/evidence/local_alpha/ecommerce_growth_pack.playwright_happy_path.json`、`ops/evidence/local_alpha/ecommerce_growth_pack.export_zip.json` 均证明 running local stack。
 - [ ] Local Alpha 商业视觉文档包 runtime smoke evidence 写入 release gate fixture：`ops/evidence/local_alpha/business_visual_doc_pack.api_smoke.json`、`ops/evidence/local_alpha/business_visual_doc_pack.playwright_happy_path.json`、`ops/evidence/local_alpha/business_visual_doc_pack.export_zip.json` 均证明 running local stack。
 - [ ] Local Alpha 本地商家活动包 runtime smoke evidence 写入 release gate fixture：`ops/evidence/local_alpha/local_merchant_campaign_pack.api_smoke.json`、`ops/evidence/local_alpha/local_merchant_campaign_pack.playwright_happy_path.json`、`ops/evidence/local_alpha/local_merchant_campaign_pack.export_zip.json` 均证明 running local stack。
 - [ ] Local Alpha 角色/IP 概念包 runtime smoke evidence 写入 release gate fixture：`ops/evidence/local_alpha/character_ip_concept_pack.api_smoke.json`、`ops/evidence/local_alpha/character_ip_concept_pack.playwright_happy_path.json`、`ops/evidence/local_alpha/character_ip_concept_pack.export_zip.json` 均证明 running local stack。
