@@ -1,6 +1,7 @@
 import type {
   CrawlerGovernanceAdminActionContract,
   CrawlerGovernanceClosureSummary,
+  CrawlerDerivativeReplayHardeningSummary,
   CrawlerGovernanceRuntimeDecision,
   CrawlerGovernanceWorkflow
 } from "@/lib/types";
@@ -435,4 +436,100 @@ export function buildCrawlerGovernanceAdminActionContracts(
       auditRef: workflow.auditRef
     };
   });
+}
+
+export function buildCrawlerDerivativeReplayHardeningSummaries(
+  workflows: CrawlerGovernanceWorkflow[],
+  regressionFixturePaths?: string[]
+): CrawlerDerivativeReplayHardeningSummary[] {
+  const replayCases: Array<{
+    replayMutation: CrawlerDerivativeReplayHardeningSummary["replayMutation"];
+    expectedBlocker: string;
+    mutate: (workflow: CrawlerGovernanceWorkflow) => CrawlerGovernanceWorkflow;
+  }> = [
+    {
+      replayMutation: "drop_provenance_evidence",
+      expectedBlocker: "derivative_provenance_missing",
+      mutate: (workflow) => ({
+        ...workflow,
+        requiredEvidenceRefs: workflow.requiredEvidenceRefs.filter((ref) => !ref.startsWith("crawler-governance/"))
+      })
+    },
+    {
+      replayMutation: "pending_requester_notice",
+      expectedBlocker: "derivative_requester_notice_missing",
+      mutate: (workflow) => ({
+        ...workflow,
+        requesterNoticeRef: `pending-requester-notice-${workflow.id}`,
+        requiredEvidenceRefs: workflow.requiredEvidenceRefs.filter((ref) => ref !== workflow.requesterNoticeRef)
+      })
+    },
+    {
+      replayMutation: "unbounded_retention",
+      expectedBlocker: "derivative_retention_limit_missing",
+      mutate: (workflow) => ({
+        ...workflow,
+        deletionEvidenceRef: "not_required_retention_unbounded"
+      })
+    },
+    {
+      replayMutation: "restricted_derivative_use",
+      expectedBlocker: "derivative_use_not_allowed",
+      mutate: (workflow) => ({
+        ...workflow,
+        derivativeUseStatus: "restricted"
+      })
+    }
+  ];
+  const derivativeWorkflows = workflows.filter(
+    (workflow) => workflow.requestType === "derivative_review" && workflow.activationGateDecision === "allowed"
+  );
+
+  return derivativeWorkflows.flatMap((workflow) =>
+    replayCases.map((replayCase) => {
+      const replayWorkflow = replayCase.mutate(workflow);
+      const replayDecision = buildCrawlerGovernanceRuntimeDecisions(
+        [replayWorkflow],
+        new Date("2026-05-26T18:30:00Z")
+      )[0];
+      const replayContract = buildCrawlerGovernanceAdminActionContracts(
+        [replayWorkflow],
+        [replayDecision],
+        regressionFixturePaths
+      )[0];
+      const removedEvidenceRefs = workflow.requiredEvidenceRefs.filter(
+        (ref) => !replayWorkflow.requiredEvidenceRefs.includes(ref)
+      );
+      const replayOutcome =
+        replayDecision.blockerCodes.includes(replayCase.expectedBlocker) &&
+        !replayContract.allowedMutation &&
+        replayContract.httpOutcome === "423_governance_blocked" &&
+        replayContract.releaseEvidenceDisposition === "preserve_blocker"
+          ? "blocked_as_expected"
+          : "unsafe_release";
+
+      return {
+        caseId: `${workflow.id}:${replayCase.replayMutation}`,
+        workflowId: workflow.id,
+        findingId: workflow.findingId,
+        replayMutation: replayCase.replayMutation,
+        expectedBlocker: replayCase.expectedBlocker,
+        removedEvidenceRefs,
+        mutatedEvidenceRefs: replayWorkflow.requiredEvidenceRefs,
+        closureDecision: replayDecision.closureDecision,
+        activationDecision: replayDecision.activationDecision,
+        adminActionAllowed: replayContract.allowedMutation,
+        httpOutcome: replayContract.httpOutcome,
+        releaseEvidenceDisposition: replayContract.releaseEvidenceDisposition,
+        regressionFixtureGate: replayContract.regressionFixtureGate,
+        replayOutcome,
+        operatorEvidence:
+          replayOutcome === "blocked_as_expected"
+            ? `Replay ${replayCase.replayMutation} for ${workflow.id} preserved ${replayCase.expectedBlocker}; admin mutation stays blocked and release evidence cannot cite the derivative workflow.`
+            : `Replay ${replayCase.replayMutation} for ${workflow.id} did not preserve ${replayCase.expectedBlocker}; keep this workflow out of release evidence until the runtime gate is fixed.`,
+        auditRef: workflow.auditRef,
+        regressionFixtureRefs: replayContract.regressionFixtureRefs
+      };
+    })
+  );
 }

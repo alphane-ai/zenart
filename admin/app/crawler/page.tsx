@@ -10,6 +10,7 @@ import {
   getCrawlerFindings,
   getCrawlerGovernanceAdminActionContracts,
   getCrawlerGovernanceClosureSummaries,
+  getCrawlerDerivativeReplayHardeningSummaries,
   getCrawlerGovernanceRuntimeDecisions,
   getCrawlerGovernanceWorkflows,
   getCrawlerSourceApprovals,
@@ -18,6 +19,7 @@ import {
 import type {
   AdminRbacEvidence,
   CrawlerGovernanceAdminActionContract,
+  CrawlerDerivativeReplayHardeningSummary,
   CrawlerFinding,
   CrawlerGovernanceClosureSummary,
   CrawlerGovernanceRuntimeDecision,
@@ -34,6 +36,7 @@ export default async function CrawlerReviewPage() {
     governanceRuntime,
     governanceClosureSummaries,
     governanceActionContracts,
+    derivativeReplayHardening,
     stagingRuntimeEvidence,
     rbacEvidence,
     rbacRuntime,
@@ -45,6 +48,7 @@ export default async function CrawlerReviewPage() {
     getCrawlerGovernanceRuntimeDecisions(),
     getCrawlerGovernanceClosureSummaries(),
     getCrawlerGovernanceAdminActionContracts(),
+    getCrawlerDerivativeReplayHardeningSummaries(),
     getCrawlerStagingRuntimeEvidence(),
     getAdminRbacEvidence(),
     getAdminRbacRuntimeDecisions(),
@@ -294,6 +298,36 @@ export default async function CrawlerReviewPage() {
             { key: "release", header: "Release Evidence", render: (row) => <StatusBadge value={row.releaseEvidenceDisposition === "can_cite_release_evidence" ? "approved" : "blocked"} label={row.releaseEvidenceDisposition} /> },
             { key: "blockers", header: "Blockers", render: (row) => (row.blockerCodes.length > 0 ? row.blockerCodes.join(", ") : "none") },
             { key: "message", header: "Support Message", render: (row) => row.supportVisibleMessage },
+            { key: "audit", header: "Audit Ref", render: (row) => <span className="mono">{row.auditRef}</span> }
+          ]}
+        />
+      </section>
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>Derivative Replay Hardening</h3>
+            <p>Approved derivative workflows are replayed with missing provenance, requester notice, retention, and derivative-use evidence to prove admin mutation and release evidence stay blocked.</p>
+          </div>
+        </div>
+        <DataTable<CrawlerDerivativeReplayHardeningSummary>
+          rows={derivativeReplayHardening}
+          columns={[
+            { key: "case", header: "Case", render: (row) => <span className="mono">{row.caseId}</span> },
+            { key: "workflow", header: "Workflow", render: (row) => <span className="mono">{row.workflowId}</span> },
+            { key: "finding", header: "Finding", render: (row) => <span className="mono">{row.findingId}</span> },
+            { key: "mutation", header: "Replay Mutation", render: (row) => row.replayMutation },
+            { key: "blocker", header: "Expected Blocker", render: (row) => row.expectedBlocker },
+            { key: "closure", header: "Closure Decision", render: (row) => <StatusBadge value={row.closureDecision} label={row.closureDecision} /> },
+            { key: "activation", header: "Activation Decision", render: (row) => <StatusBadge value={row.activationDecision === "allow_activation" ? "allowed" : "blocked"} label={row.activationDecision} /> },
+            { key: "admin", header: "Admin Mutation", render: (row) => <StatusBadge value={row.adminActionAllowed ? "allowed" : "blocked"} label={row.adminActionAllowed ? "allowed" : "blocked"} /> },
+            { key: "http", header: "HTTP Outcome", render: (row) => row.httpOutcome },
+            { key: "release", header: "Release Evidence", render: (row) => <StatusBadge value={row.releaseEvidenceDisposition === "can_cite_release_evidence" ? "approved" : "blocked"} label={row.releaseEvidenceDisposition} /> },
+            { key: "fixture", header: "Fixture Gate", render: (row) => <StatusBadge value={row.regressionFixtureGate === "pass" ? "healthy" : "blocked"} label={row.regressionFixtureGate} /> },
+            { key: "outcome", header: "Replay Outcome", render: (row) => <StatusBadge value={row.replayOutcome === "blocked_as_expected" ? "healthy" : "blocked"} label={row.replayOutcome} /> },
+            { key: "removed", header: "Removed Evidence", render: (row) => (row.removedEvidenceRefs.length > 0 ? row.removedEvidenceRefs.join(", ") : "none") },
+            { key: "mutated", header: "Mutated Evidence", render: (row) => row.mutatedEvidenceRefs.join(", ") },
+            { key: "fixtures", header: "Regression Fixtures", render: (row) => row.regressionFixtureRefs.join(", ") },
+            { key: "operator", header: "Operator Evidence", render: (row) => row.operatorEvidence },
             { key: "audit", header: "Audit Ref", render: (row) => <span className="mono">{row.auditRef}</span> }
           ]}
         />

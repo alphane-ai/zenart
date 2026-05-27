@@ -256,6 +256,30 @@ export type CrawlerGovernanceAdminActionContract = {
   auditRef: string;
 };
 
+export type CrawlerDerivativeReplayHardeningSummary = {
+  caseId: string;
+  workflowId: string;
+  findingId: string;
+  replayMutation:
+    | "drop_provenance_evidence"
+    | "pending_requester_notice"
+    | "unbounded_retention"
+    | "restricted_derivative_use";
+  expectedBlocker: string;
+  removedEvidenceRefs: string[];
+  mutatedEvidenceRefs: string[];
+  closureDecision: CrawlerGovernanceRuntimeDecision["closureDecision"];
+  activationDecision: CrawlerGovernanceRuntimeDecision["activationDecision"];
+  adminActionAllowed: boolean;
+  httpOutcome: CrawlerGovernanceAdminActionContract["httpOutcome"];
+  releaseEvidenceDisposition: CrawlerGovernanceAdminActionContract["releaseEvidenceDisposition"];
+  regressionFixtureGate: CrawlerGovernanceAdminActionContract["regressionFixtureGate"];
+  replayOutcome: "blocked_as_expected" | "unsafe_release";
+  operatorEvidence: string;
+  auditRef: string;
+  regressionFixtureRefs: string[];
+};
+
 export type CrawlerStagingRuntimeControlName =
   | "source_approval"
   | "robots"

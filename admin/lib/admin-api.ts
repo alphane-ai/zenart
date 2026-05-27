@@ -59,6 +59,7 @@ import { buildAbuseQueueRuntime, buildAbuseRuntimeDecisions } from "@/lib/abuse-
 import {
   buildCrawlerGovernanceAdminActionContracts,
   buildCrawlerGovernanceClosureSummaries,
+  buildCrawlerDerivativeReplayHardeningSummaries,
   buildCrawlerGovernanceRuntimeDecisions
 } from "@/lib/crawler-runtime";
 import { buildExportRegenerationRuntimeDecisions } from "@/lib/export-runtime";
@@ -256,6 +257,13 @@ export async function getCrawlerGovernanceAdminActionContracts() {
   return buildCrawlerGovernanceAdminActionContracts(
     crawlerGovernanceWorkflows,
     decisions,
+    regressionFixtures.map((fixture) => fixture.fixturePath)
+  );
+}
+
+export async function getCrawlerDerivativeReplayHardeningSummaries() {
+  return buildCrawlerDerivativeReplayHardeningSummaries(
+    crawlerGovernanceWorkflows,
     regressionFixtures.map((fixture) => fixture.fixturePath)
   );
 }

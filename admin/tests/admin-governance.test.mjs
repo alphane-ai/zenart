@@ -377,9 +377,11 @@ const parseCrawlerRuntime = () => {
     .replaceAll(/function workflowRequestAttemptRef\(workflow: CrawlerGovernanceWorkflow\)/g, "function workflowRequestAttemptRef(workflow)")
     .replaceAll(/function workflowIdempotencyKey\(workflow: CrawlerGovernanceWorkflow\)/g, "function workflowIdempotencyKey(workflow)")
     .replaceAll(/function workflowStateDigest\(workflow: CrawlerGovernanceWorkflow\)/g, "function workflowStateDigest(workflow)")
+    .replaceAll(/replayCases: Array<\{[\s\S]*?\n  \}> =/g, "replayCases =")
     .replaceAll(/: CrawlerGovernanceRuntimeDecision\[\]/g, "")
     .replaceAll(/: CrawlerGovernanceClosureSummary\[\]/g, "")
     .replaceAll(/: CrawlerGovernanceAdminActionContract\[\]/g, "")
+    .replaceAll(/: CrawlerDerivativeReplayHardeningSummary\[\]/g, "")
     .replaceAll(/: CrawlerGovernanceClosureSummary\["releaseClosureState"\]/g, "")
     .replaceAll(/: CrawlerGovernanceClosureSummary\["activationSafetyState"\]/g, "")
     .replaceAll(/: CrawlerGovernanceClosureSummary\["secondReviewGate"\]/g, "")
@@ -392,6 +394,7 @@ const parseCrawlerRuntime = () => {
     .replaceAll(/: Set<string> \| undefined/g, "")
     .replaceAll(/: CrawlerGovernanceAdminActionContract\["regressionFixtureInventoryStatus"\]/g, "")
     .replaceAll(/: CrawlerGovernanceAdminActionContract\["regressionFixtureGate"\]/g, "")
+    .replaceAll(/: CrawlerDerivativeReplayHardeningSummary\["replayMutation"\]/g, "")
     .replaceAll(/new Set<string>/g, "new Set")
     .replaceAll(/: string\[\]/g, "")
     .replaceAll(/regressionFixturePaths\?: string\[\]/g, "regressionFixturePaths")
@@ -400,7 +403,7 @@ const parseCrawlerRuntime = () => {
     .replaceAll(/: string/g, "")
     .replaceAll(/: Date/g, "")
     .replaceAll(/ as const/g, "");
-  return Function(`${runtimeSource}\nreturn { buildCrawlerGovernanceRuntimeDecisions, buildCrawlerGovernanceClosureSummaries, buildCrawlerGovernanceAdminActionContracts };`)();
+  return Function(`${runtimeSource}\nreturn { buildCrawlerGovernanceRuntimeDecisions, buildCrawlerGovernanceClosureSummaries, buildCrawlerGovernanceAdminActionContracts, buildCrawlerDerivativeReplayHardeningSummaries };`)();
 };
 
 const parseObjectStorageRuntime = () => {
@@ -566,7 +569,8 @@ const { buildRegressionFixtureRuntimeSummaries } = parseRegressionFixtureRuntime
 const {
   buildCrawlerGovernanceRuntimeDecisions,
   buildCrawlerGovernanceClosureSummaries,
-  buildCrawlerGovernanceAdminActionContracts
+  buildCrawlerGovernanceAdminActionContracts,
+  buildCrawlerDerivativeReplayHardeningSummaries
 } = parseCrawlerRuntime();
 const { buildStagingObjectStorageRetentionCleanupEvidence } = parseObjectStorageRuntime();
 
@@ -8479,6 +8483,82 @@ test("crawler admin action contracts bind mutations to governance runtime gates"
       `approved derivative replay action contract with ${replayCase.name} must preserve ${replayCase.blocker}`
     );
   }
+});
+
+test("crawler derivative replay hardening is visible and blocks unsafe release evidence", () => {
+  const crawlerPage = readFileSync(new URL("../app/crawler/page.tsx", import.meta.url), "utf8");
+  const adminApi = readFileSync(new URL("../lib/admin-api.ts", import.meta.url), "utf8");
+  const types = readFileSync(new URL("../lib/types.ts", import.meta.url), "utf8");
+  const regressionFixturePaths = regressionFixtures.map((fixture) => fixture.fixturePath);
+  const summaries = buildCrawlerDerivativeReplayHardeningSummaries(crawlerGovernanceWorkflows, regressionFixturePaths);
+  const summariesByMutation = new Map(summaries.map((summary) => [summary.replayMutation, summary]));
+
+  for (const token of [
+    "Derivative Replay Hardening",
+    "getCrawlerDerivativeReplayHardeningSummaries",
+    "Replay Mutation",
+    "Expected Blocker",
+    "Admin Mutation",
+    "Release Evidence",
+    "Replay Outcome",
+    "Regression Fixtures",
+    "Operator Evidence"
+  ]) {
+    assert.match(crawlerPage + adminApi + types, new RegExp(token));
+  }
+
+  assert.equal(summaries.length, 4, "approved derivative workflow needs four replay-hardening cases");
+
+  for (const [mutation, expectedBlocker] of [
+    ["drop_provenance_evidence", "derivative_provenance_missing"],
+    ["pending_requester_notice", "derivative_requester_notice_missing"],
+    ["unbounded_retention", "derivative_retention_limit_missing"],
+    ["restricted_derivative_use", "derivative_use_not_allowed"]
+  ]) {
+    const summary = summariesByMutation.get(mutation);
+    assert.ok(summary, `${mutation} replay summary is missing`);
+    assert.equal(summary.workflowId, "cg-522");
+    assert.equal(summary.findingId, "cf-122");
+    assert.equal(summary.expectedBlocker, expectedBlocker);
+    assert.equal(summary.closureDecision, "blocked");
+    assert.equal(summary.activationDecision, "block_activation");
+    assert.equal(summary.adminActionAllowed, false);
+    assert.equal(summary.httpOutcome, "423_governance_blocked");
+    assert.equal(summary.releaseEvidenceDisposition, "preserve_blocker");
+    assert.equal(summary.regressionFixtureGate, "pass");
+    assert.equal(summary.replayOutcome, "blocked_as_expected");
+    assert.equal(summary.auditRef, "au-013");
+    assert.deepEqual(summary.regressionFixtureRefs, [
+      "fixtures/stage0/rev2/regressions/crawler_derivative_review_cg_522.json"
+    ]);
+    assert.match(
+      summary.operatorEvidence,
+      new RegExp(`${mutation}.*${expectedBlocker}.*release evidence cannot cite`, "i"),
+      `${mutation} needs operator-readable blocked replay evidence`
+    );
+  }
+
+  assert.deepEqual(summariesByMutation.get("drop_provenance_evidence").removedEvidenceRefs, [
+    "crawler-governance/crawler_approved_local_test_source"
+  ]);
+  assert.deepEqual(summariesByMutation.get("pending_requester_notice").removedEvidenceRefs, [
+    "notice-legal-fixture-reviewer-cg-522"
+  ]);
+  assert.deepEqual(summariesByMutation.get("unbounded_retention").removedEvidenceRefs, []);
+  assert.deepEqual(summariesByMutation.get("restricted_derivative_use").removedEvidenceRefs, []);
+
+  const missingInventorySummaries = buildCrawlerDerivativeReplayHardeningSummaries(
+    crawlerGovernanceWorkflows,
+    regressionFixturePaths.filter((path) => path !== "fixtures/stage0/rev2/regressions/crawler_derivative_review_cg_522.json")
+  );
+  assert.ok(
+    missingInventorySummaries.every((summary) => summary.regressionFixtureGate === "missing_inventory"),
+    "derivative replay summaries must preserve missing bad-sample fixture inventory"
+  );
+  assert.ok(
+    missingInventorySummaries.every((summary) => summary.replayOutcome === "blocked_as_expected"),
+    "missing fixture inventory must not turn blocked derivative replays into release evidence"
+  );
 });
 
 test("staging crawler governance runtime evidence covers every fetch and import control", () => {
