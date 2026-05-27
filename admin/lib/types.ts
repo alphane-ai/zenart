@@ -1649,6 +1649,32 @@ export type AdminRbacClosureMatrixRow = {
   operatorAction: string;
 };
 
+export type AdminRbacReleaseEvidenceClosure = {
+  surface: AdminReviewSurface;
+  overrideScope: AdminRbacEvidence["overrideScope"];
+  evidenceIds: string[];
+  attemptIds: string[];
+  staleReplayEvidenceIds: string[];
+  closureEvidenceRefs: string[];
+  releaseEvidenceRequired: string[];
+  runtimeOutcomes: AdminRbacRuntimeDecision["requestOutcome"][];
+  attemptOutcomes: AdminRbacOverrideAttemptDecision["requestOutcome"][];
+  staleReplayOutcomes: AdminRbacStaleReplayDecision["staleOutcome"][];
+  auditRefs: string[];
+  attemptCoverage: "covered" | "missing";
+  staleReplayCoverage: "covered" | "not_required" | "missing";
+  releaseEvidenceStatus: "attached" | "missing";
+  releaseGateDisposition: AdminRbacEvidencePack["releaseGateDisposition"];
+  closureStatus:
+    | "release_ready_with_expiry"
+    | "preserved_for_review"
+    | "preserved_by_policy"
+    | "preserved_by_stale_replay"
+    | "missing_evidence";
+  releaseGateStatus: "release_use_allowed" | "release_gate_preserved";
+  operatorAction: string;
+};
+
 export type ReleaseEvidence = {
   id: string;
   target: string;

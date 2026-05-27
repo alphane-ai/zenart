@@ -4,6 +4,7 @@ import type {
   AdminRbacEvidencePack,
   AdminRbacOverrideAttempt,
   AdminRbacOverrideAttemptDecision,
+  AdminRbacReleaseEvidenceClosure,
   AdminRbacRuntimeDecision,
   AdminRbacStaleReplayDecision,
   AdminRbacSurfaceSummary,
@@ -784,6 +785,114 @@ export function buildAdminRbacEvidencePacks(
         releaseGateDisposition: releaseGateDisposition(surfaceDecisions),
         evidenceCompleteness: evidenceCompleteness(surfaceEvidence, surfaceDecisions),
         operatorChecklist: operatorChecklist(surfaceEvidence, surfaceDecisions)
+      };
+    })
+    .sort((a, b) => a.surface.localeCompare(b.surface));
+}
+
+function releaseEvidenceClosureStatus(
+  pack: AdminRbacEvidencePack,
+  attemptCoverage: AdminRbacReleaseEvidenceClosure["attemptCoverage"],
+  staleReplayCoverage: AdminRbacReleaseEvidenceClosure["staleReplayCoverage"],
+  releaseEvidenceStatus: AdminRbacReleaseEvidenceClosure["releaseEvidenceStatus"],
+  staleReplayOutcomes: AdminRbacStaleReplayDecision["staleOutcome"][]
+): AdminRbacReleaseEvidenceClosure["closureStatus"] {
+  if (attemptCoverage === "missing" || staleReplayCoverage === "missing" || releaseEvidenceStatus === "missing") {
+    return "missing_evidence";
+  }
+
+  if (
+    pack.requestOutcomes.includes("denied_expired_override") ||
+    staleReplayOutcomes.includes("blocked_stale_replay")
+  ) {
+    return "preserved_by_stale_replay";
+  }
+
+  if (pack.releaseGateDisposition === "applied_with_expiry") {
+    return "release_ready_with_expiry";
+  }
+
+  if (pack.releaseGateDisposition === "held_for_second_review") {
+    return "preserved_for_review";
+  }
+
+  return "preserved_by_policy";
+}
+
+export function buildAdminRbacReleaseEvidenceClosures(
+  evidencePacks: AdminRbacEvidencePack[],
+  attemptDecisions: AdminRbacOverrideAttemptDecision[],
+  staleReplayDecisions: AdminRbacStaleReplayDecision[]
+): AdminRbacReleaseEvidenceClosure[] {
+  const attemptsBySurface = new Map<AdminRbacOverrideAttemptDecision["surface"], AdminRbacOverrideAttemptDecision[]>();
+  const staleReplaysBySurface = new Map<AdminRbacStaleReplayDecision["surface"], AdminRbacStaleReplayDecision[]>();
+
+  for (const attempt of attemptDecisions) {
+    attemptsBySurface.set(attempt.surface, [...(attemptsBySurface.get(attempt.surface) ?? []), attempt]);
+  }
+
+  for (const staleReplay of staleReplayDecisions) {
+    staleReplaysBySurface.set(staleReplay.surface, [
+      ...(staleReplaysBySurface.get(staleReplay.surface) ?? []),
+      staleReplay
+    ]);
+  }
+
+  return evidencePacks
+    .map((pack) => {
+      const attempts = attemptsBySurface.get(pack.surface) ?? [];
+      const staleReplays = staleReplaysBySurface.get(pack.surface) ?? [];
+      const attemptCoverage: AdminRbacReleaseEvidenceClosure["attemptCoverage"] =
+        pack.evidenceIds.every((id) => attempts.some((attempt) => attempt.evidenceId === id)) ? "covered" : "missing";
+      const staleReplayRequired =
+        staleReplays.length > 0 ||
+        pack.expiryStatuses.includes("expired_temporary_window") ||
+        pack.expiryEnforcementStatus === "policy_block_only" ||
+        pack.expiryEnforcementStatus === "mixed_enforcement";
+      const staleReplayCoverage: AdminRbacReleaseEvidenceClosure["staleReplayCoverage"] = staleReplayRequired
+        ? pack.evidenceIds.some((id) => staleReplays.some((staleReplay) => staleReplay.evidenceId === id))
+          ? "covered"
+          : "missing"
+        : "not_required";
+      const releaseEvidenceStatus: AdminRbacReleaseEvidenceClosure["releaseEvidenceStatus"] =
+        pack.evidenceCompleteness === "complete" && pack.evidenceRefs.length > 0 ? "attached" : "missing";
+      const closureStatus = releaseEvidenceClosureStatus(
+        pack,
+        attemptCoverage,
+        staleReplayCoverage,
+        releaseEvidenceStatus,
+        staleReplays.map((staleReplay) => staleReplay.staleOutcome)
+      );
+      const releaseGateStatus: AdminRbacReleaseEvidenceClosure["releaseGateStatus"] =
+        closureStatus === "release_ready_with_expiry" ? "release_use_allowed" : "release_gate_preserved";
+      const closureEvidenceRefs = uniqueSorted([
+        ...pack.evidenceRefs,
+        ...attempts.flatMap((attempt) => attempt.evidenceRefs),
+        ...staleReplays.flatMap((staleReplay) => staleReplay.evidenceRefs)
+      ]);
+
+      return {
+        surface: pack.surface,
+        overrideScope: pack.overrideScope,
+        evidenceIds: pack.evidenceIds,
+        attemptIds: uniqueSorted(attempts.map((attempt) => attempt.attemptId)),
+        staleReplayEvidenceIds: uniqueSorted(staleReplays.map((staleReplay) => staleReplay.evidenceId)),
+        closureEvidenceRefs,
+        releaseEvidenceRequired: uniqueSorted(pack.operatorChecklist.filter((item) => item.startsWith("Verify "))),
+        runtimeOutcomes: pack.requestOutcomes,
+        attemptOutcomes: uniqueSorted(attempts.map((attempt) => attempt.requestOutcome)),
+        staleReplayOutcomes: uniqueSorted(staleReplays.map((staleReplay) => staleReplay.staleOutcome)),
+        auditRefs: pack.auditRefs,
+        attemptCoverage,
+        staleReplayCoverage,
+        releaseEvidenceStatus,
+        releaseGateDisposition: pack.releaseGateDisposition,
+        closureStatus,
+        releaseGateStatus,
+        operatorAction:
+          closureStatus === "release_ready_with_expiry"
+            ? "Allow only the audited temporary mutation and keep expiry restoration visible in release evidence."
+            : "Preserve the release gate until request attempts, stale replay probes, audit refs, and required evidence stay attached."
       };
     })
     .sort((a, b) => a.surface.localeCompare(b.surface));

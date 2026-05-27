@@ -7,6 +7,7 @@ import {
   getAdminRbacClosureMatrix,
   getAdminRbacEvidencePacks,
   getAdminRbacOverrideAttemptDecisions,
+  getAdminRbacReleaseEvidenceClosures,
   getAdminRbacRuntimeDecisions,
   getAdminRbacStaleReplayDecisions,
   getAdminRbacSurfaceSummaries,
@@ -21,6 +22,7 @@ import type {
   AdminRbacClosureMatrixRow,
   AdminRbacEvidencePack,
   AdminRbacOverrideAttemptDecision,
+  AdminRbacReleaseEvidenceClosure,
   AdminRbacRuntimeDecision,
   AdminRbacStaleReplayDecision,
   AdminRbacSurfaceSummary,
@@ -42,6 +44,7 @@ export default async function AuditPage() {
     rbacSurfaceSummaries,
     rbacEvidencePacks,
     rbacClosureMatrix,
+    rbacReleaseEvidenceClosures,
     productionActivationEvidence,
     productionSecurityEvidence,
     stagingAuthRbacTenantAuditEvidence
@@ -55,6 +58,7 @@ export default async function AuditPage() {
     getAdminRbacSurfaceSummaries(),
     getAdminRbacEvidencePacks(),
     getAdminRbacClosureMatrix(),
+    getAdminRbacReleaseEvidenceClosures(),
     getProductionActivationReviewAuditEvidence(),
     getProductionSecurityLaunchCheckEvidence(),
     getStagingAuthRbacTenantAuditEvidence()
@@ -186,6 +190,38 @@ export default async function AuditPage() {
             { key: "disposition", header: "Closure Disposition", render: (row) => <StatusBadge value={row.closureDisposition} label={row.closureDisposition} /> },
             { key: "gate", header: "Release Gate", render: (row) => row.releaseGateStatus },
             { key: "blockers", header: "Blockers", render: (row) => (row.blockerCodes.length > 0 ? row.blockerCodes.join(", ") : "none") },
+            { key: "operator", header: "Operator Action", render: (row) => row.operatorAction }
+          ]}
+        />
+      </section>
+
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>RBAC Release Evidence Closure</h3>
+            <p>Release, crawler, prompt, provider, quota, safety, and export overrides are closed only when request attempts, stale replay evidence, audit refs, and release evidence are attached.</p>
+          </div>
+        </div>
+        <DataTable<AdminRbacReleaseEvidenceClosure>
+          rows={rbacReleaseEvidenceClosures}
+          columns={[
+            { key: "surface", header: "Surface", render: (row) => row.surface },
+            { key: "scope", header: "Override Scope", render: (row) => row.overrideScope },
+            { key: "evidence", header: "Evidence IDs", render: (row) => <span className="mono">{row.evidenceIds.join(", ")}</span> },
+            { key: "attempts", header: "Attempt IDs", render: (row) => <span className="mono">{row.attemptIds.join(", ")}</span> },
+            { key: "stale", header: "Stale Replay IDs", render: (row) => row.staleReplayEvidenceIds.join(", ") || "none" },
+            { key: "runtime", header: "Runtime Outcomes", render: (row) => row.runtimeOutcomes.join(", ") },
+            { key: "attempt-outcomes", header: "Attempt Outcomes", render: (row) => row.attemptOutcomes.join(", ") },
+            { key: "stale-outcomes", header: "Stale Outcomes", render: (row) => row.staleReplayOutcomes.join(", ") || "none" },
+            { key: "attempt-coverage", header: "Attempt Coverage", render: (row) => <StatusBadge value={row.attemptCoverage === "covered" ? "approved" : "blocked"} label={row.attemptCoverage} /> },
+            { key: "stale-coverage", header: "Stale Replay Coverage", render: (row) => <StatusBadge value={row.staleReplayCoverage === "missing" ? "blocked" : "approved"} label={row.staleReplayCoverage} /> },
+            { key: "release-evidence", header: "Release Evidence", render: (row) => <StatusBadge value={row.releaseEvidenceStatus === "attached" ? "approved" : "blocked"} label={row.releaseEvidenceStatus} /> },
+            { key: "disposition", header: "Disposition", render: (row) => row.releaseGateDisposition },
+            { key: "closure", header: "Closure Status", render: (row) => <StatusBadge value={row.closureStatus} label={row.closureStatus} /> },
+            { key: "gate", header: "Release Gate", render: (row) => row.releaseGateStatus },
+            { key: "audit", header: "Audit Refs", render: (row) => <span className="mono">{row.auditRefs.join(", ")}</span> },
+            { key: "required", header: "Release Evidence Required", render: (row) => row.releaseEvidenceRequired.join(" ") },
+            { key: "closure-refs", header: "Closure Evidence Refs", render: (row) => row.closureEvidenceRefs.join(", ") },
             { key: "operator", header: "Operator Action", render: (row) => row.operatorAction }
           ]}
         />

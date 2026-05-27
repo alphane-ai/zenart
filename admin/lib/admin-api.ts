@@ -62,6 +62,7 @@ import {
   buildAdminRbacClosureMatrix,
   buildAdminRbacEvidencePacks,
   buildAdminRbacOverrideAttemptDecisions,
+  buildAdminRbacReleaseEvidenceClosures,
   buildAdminRbacRuntimeDecisions,
   buildAdminRbacStaleReplayDecisions,
   buildAdminRbacSurfaceSummaries
@@ -148,6 +149,19 @@ export async function getAdminRbacClosureMatrix() {
   const evidencePacks = buildAdminRbacEvidencePacks(adminRbacEvidence, runtimeDecisions, staleReplayDecisions);
 
   return buildAdminRbacClosureMatrix(evidencePacks, runtimeDecisions);
+}
+
+export async function getAdminRbacReleaseEvidenceClosures() {
+  const runtimeDecisions = buildAdminRbacRuntimeDecisions(adminRbacEvidence, new Date("2026-05-26T11:00:00Z"));
+  const attemptDecisions = buildAdminRbacOverrideAttemptDecisions(adminRbacOverrideAttempts, runtimeDecisions);
+  const staleReplayDecisions = buildAdminRbacStaleReplayDecisions(
+    adminRbacEvidence,
+    runtimeDecisions,
+    new Date("2026-05-26T19:00:00Z")
+  );
+  const evidencePacks = buildAdminRbacEvidencePacks(adminRbacEvidence, runtimeDecisions, staleReplayDecisions);
+
+  return buildAdminRbacReleaseEvidenceClosures(evidencePacks, attemptDecisions, staleReplayDecisions);
 }
 
 export async function getCrawlerFindings() {

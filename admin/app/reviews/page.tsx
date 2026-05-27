@@ -4,6 +4,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 import {
   getAdminRbacEvidence,
   getAdminRbacEvidencePacks,
+  getAdminRbacReleaseEvidenceClosures,
   getAdminRbacRuntimeDecisions,
   getAdminRbacSurfaceSummaries,
   getAdminReviewDecisions
@@ -11,18 +12,20 @@ import {
 import type {
   AdminRbacEvidence,
   AdminRbacEvidencePack,
+  AdminRbacReleaseEvidenceClosure,
   AdminRbacRuntimeDecision,
   AdminRbacSurfaceSummary,
   AdminReviewDecision
 } from "@/lib/types";
 
 export default async function ReviewsPage() {
-  const [reviews, rbacEvidence, rbacRuntime, rbacSurfaceSummaries, rbacEvidencePacks] = await Promise.all([
+  const [reviews, rbacEvidence, rbacRuntime, rbacSurfaceSummaries, rbacEvidencePacks, rbacReleaseEvidenceClosures] = await Promise.all([
     getAdminReviewDecisions(),
     getAdminRbacEvidence(),
     getAdminRbacRuntimeDecisions(),
     getAdminRbacSurfaceSummaries(),
-    getAdminRbacEvidencePacks()
+    getAdminRbacEvidencePacks(),
+    getAdminRbacReleaseEvidenceClosures()
   ]);
 
   return (
@@ -158,6 +161,34 @@ export default async function ReviewsPage() {
             { key: "audit", header: "Audit Refs", render: (row) => <span className="mono">{row.auditRefs.join(", ")}</span> },
             { key: "evidence", header: "Evidence Refs", render: (row) => row.evidenceRefs.join(", ") },
             { key: "checklist", header: "Operator Checklist", render: (row) => row.operatorChecklist.join(" ") }
+          ]}
+        />
+      </section>
+
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>RBAC Release Evidence Closure</h3>
+            <p>Review readiness requires request-level override attempts, stale replay handling, closure evidence refs, audit refs, and release evidence before a governed admin override can affect release state.</p>
+          </div>
+        </div>
+        <DataTable<AdminRbacReleaseEvidenceClosure>
+          rows={rbacReleaseEvidenceClosures}
+          columns={[
+            { key: "surface", header: "Surface", render: (row) => row.surface },
+            { key: "scope", header: "Override Scope", render: (row) => row.overrideScope },
+            { key: "attempts", header: "Attempt Coverage", render: (row) => <StatusBadge value={row.attemptCoverage === "covered" ? "approved" : "blocked"} label={row.attemptCoverage} /> },
+            { key: "stale", header: "Stale Replay Coverage", render: (row) => <StatusBadge value={row.staleReplayCoverage === "missing" ? "blocked" : "approved"} label={row.staleReplayCoverage} /> },
+            { key: "release", header: "Release Evidence", render: (row) => <StatusBadge value={row.releaseEvidenceStatus === "attached" ? "approved" : "blocked"} label={row.releaseEvidenceStatus} /> },
+            { key: "closure", header: "Closure Status", render: (row) => <StatusBadge value={row.closureStatus} label={row.closureStatus} /> },
+            { key: "gate", header: "Release Gate", render: (row) => row.releaseGateStatus },
+            { key: "ids", header: "Evidence IDs", render: (row) => <span className="mono">{row.evidenceIds.join(", ")}</span> },
+            { key: "attempt-ids", header: "Attempt IDs", render: (row) => <span className="mono">{row.attemptIds.join(", ")}</span> },
+            { key: "stale-ids", header: "Stale Replay IDs", render: (row) => row.staleReplayEvidenceIds.join(", ") || "none" },
+            { key: "attempt-outcomes", header: "Attempt Outcomes", render: (row) => row.attemptOutcomes.join(", ") },
+            { key: "closure-refs", header: "Closure Evidence Refs", render: (row) => row.closureEvidenceRefs.join(", ") },
+            { key: "audit", header: "Audit Refs", render: (row) => <span className="mono">{row.auditRefs.join(", ")}</span> },
+            { key: "operator", header: "Operator Action", render: (row) => row.operatorAction }
           ]}
         />
       </section>

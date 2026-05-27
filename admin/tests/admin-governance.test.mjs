@@ -109,6 +109,7 @@ const parseRbacRuntime = () => {
     .replaceAll(/: AdminRbacEvidence\[\]/g, "")
     .replaceAll(/: AdminRbacOverrideAttempt\[\]/g, "")
     .replaceAll(/: AdminRbacOverrideAttemptDecision\[\]/g, "")
+    .replaceAll(/: AdminRbacReleaseEvidenceClosure\[\]/g, "")
     .replaceAll(/: AdminRbacRuntimeDecision\[\]/g, "")
     .replaceAll(/: AdminRbacSurfaceSummary\[\]/g, "")
     .replaceAll(/: AdminRbacClosureMatrixRow\[\]/g, "")
@@ -121,6 +122,10 @@ const parseRbacRuntime = () => {
     .replaceAll(/: AdminRbacClosureMatrixRow\["roleGateCoverage"\]/g, "")
     .replaceAll(/: AdminRbacClosureMatrixRow\["auditCoverage"\]/g, "")
     .replaceAll(/: AdminRbacClosureMatrixRow\["releaseEvidenceCoverage"\]/g, "")
+    .replaceAll(/const releaseGateStatus =/g, "const releaseGateStatus =")
+    .replaceAll(/const roleGateCoverage =/g, "const roleGateCoverage =")
+    .replaceAll(/const auditCoverage =/g, "const auditCoverage =")
+    .replaceAll(/const releaseEvidenceCoverage =/g, "const releaseEvidenceCoverage =")
     .replaceAll(/: AdminRbacEvidencePack\["releaseGateDisposition"\]/g, "")
     .replaceAll(/: AdminRbacEvidencePack\["evidenceCompleteness"\]/g, "")
     .replaceAll(/: AdminRbacEvidencePack\["expiryEnforcementStatus"\]/g, "")
@@ -129,6 +134,11 @@ const parseRbacRuntime = () => {
     .replaceAll(/: AdminRbacOverrideAttemptDecision\["runtimeRequestOutcome"\]/g, "")
     .replaceAll(/: AdminRbacOverrideAttemptDecision\["releaseGateStatus"\]/g, "")
     .replaceAll(/: AdminRbacStaleReplayDecision\[\]/g, "")
+    .replaceAll(/: AdminRbacReleaseEvidenceClosure\["attemptCoverage"\]/g, "")
+    .replaceAll(/: AdminRbacReleaseEvidenceClosure\["staleReplayCoverage"\]/g, "")
+    .replaceAll(/: AdminRbacReleaseEvidenceClosure\["releaseEvidenceStatus"\]/g, "")
+    .replaceAll(/: AdminRbacReleaseEvidenceClosure\["closureStatus"\]/g, "")
+    .replaceAll(/: AdminRbacReleaseEvidenceClosure\["releaseGateStatus"\]/g, "")
     .replaceAll(/: AdminRbacStaleReplayDecision\["surface"\]/g, "")
     .replaceAll(/: AdminRbacStaleReplayDecision\["staleWindowStatus"\]/g, "")
     .replaceAll(/: AdminRbacStaleReplayDecision\["releaseGateStatus"\]/g, "")
@@ -139,18 +149,20 @@ const parseRbacRuntime = () => {
     .replaceAll(/new Map<AdminRbacEvidence\["surface"\], AdminRbacEvidence\[\]>/g, "new Map")
     .replaceAll(/new Map<AdminRbacRuntimeDecision\["surface"\], AdminRbacRuntimeDecision\[\]>/g, "new Map")
     .replaceAll(/new Map<AdminRbacStaleReplayDecision\["surface"\], AdminRbacStaleReplayDecision\[\]>/g, "new Map")
+    .replaceAll(/new Map<AdminRbacOverrideAttemptDecision\["surface"\], AdminRbacOverrideAttemptDecision\[\]>/g, "new Map")
     .replaceAll(/new Map<string, AdminRbacRuntimeDecision>/g, "new Map")
     .replaceAll(/: AdminRbacOverrideAttemptDecision\["stateDigestStatus"\]/g, "")
     .replaceAll(/: AdminRbacOverrideAttemptDecision\["requestOutcome"\]/g, "")
     .replaceAll(/: AdminRbacOverrideAttempt/g, "")
     .replaceAll(/: AdminRbacEvidence/g, "")
     .replaceAll(/: AdminRbacRuntimeDecision/g, "")
+    .replaceAll(/: AdminRbacEvidencePack/g, "")
     .replaceAll(/: AdminRole\[\]/g, "")
     .replaceAll(/: string\[\]/g, "")
     .replaceAll(/: string/g, "")
     .replaceAll(/: Date/g, "")
     .replaceAll(/: boolean/g, "");
-  return Function(`${runtimeSource}\nreturn { buildAdminRbacRuntimeDecisions, buildAdminRbacOverrideAttemptDecisions, buildAdminRbacStaleReplayDecisions, buildAdminRbacSurfaceSummaries, buildAdminRbacEvidencePacks, buildAdminRbacClosureMatrix };`)();
+  return Function(`${runtimeSource}\nreturn { buildAdminRbacRuntimeDecisions, buildAdminRbacOverrideAttemptDecisions, buildAdminRbacStaleReplayDecisions, buildAdminRbacSurfaceSummaries, buildAdminRbacEvidencePacks, buildAdminRbacClosureMatrix, buildAdminRbacReleaseEvidenceClosures };`)();
 };
 
 const parseExportRuntime = () => {
@@ -5211,6 +5223,153 @@ test("admin RBAC closure matrix proves every governed override surface before re
     matrixBySurface.get("provider_routing").blockerCodes.includes("expired_override_window"),
     "provider closure must expose expired override blocker"
   );
+});
+
+test("admin RBAC release evidence closure binds attempts, stale replay, audit, and release evidence", () => {
+  const {
+    buildAdminRbacRuntimeDecisions,
+    buildAdminRbacOverrideAttemptDecisions,
+    buildAdminRbacStaleReplayDecisions,
+    buildAdminRbacEvidencePacks,
+    buildAdminRbacReleaseEvidenceClosures
+  } = parseRbacRuntime();
+  const runtimeDecisions = buildAdminRbacRuntimeDecisions(adminRbacEvidence, new Date("2026-05-26T11:00:00Z"));
+  const attemptDecisions = buildAdminRbacOverrideAttemptDecisions(adminRbacOverrideAttempts, runtimeDecisions);
+  const staleReplayDecisions = buildAdminRbacStaleReplayDecisions(
+    adminRbacEvidence,
+    runtimeDecisions,
+    new Date("2026-05-26T19:00:00Z")
+  );
+  const evidencePacks = buildAdminRbacEvidencePacks(adminRbacEvidence, runtimeDecisions, staleReplayDecisions);
+  const closures = buildAdminRbacReleaseEvidenceClosures(
+    evidencePacks,
+    attemptDecisions,
+    staleReplayDecisions
+  );
+  const closureBySurface = new Map(closures.map((closure) => [closure.surface, closure]));
+  const attemptsBySurface = new Map();
+  const staleReplaysBySurface = new Map();
+
+  for (const attempt of attemptDecisions) {
+    attemptsBySurface.set(attempt.surface, [...(attemptsBySurface.get(attempt.surface) ?? []), attempt]);
+  }
+
+  for (const staleReplay of staleReplayDecisions) {
+    staleReplaysBySurface.set(staleReplay.surface, [
+      ...(staleReplaysBySurface.get(staleReplay.surface) ?? []),
+      staleReplay
+    ]);
+  }
+
+  assert.equal(
+    closures.length,
+    overrideScopeBySurface.size,
+    "release evidence closure needs one row per governed override surface"
+  );
+
+  for (const [surface, overrideScope] of overrideScopeBySurface.entries()) {
+    const closure = closureBySurface.get(surface);
+    const surfaceEvidence = adminRbacEvidence.filter((item) => item.surface === surface);
+    const surfaceAttempts = attemptsBySurface.get(surface) ?? [];
+    const surfaceStaleReplays = staleReplaysBySurface.get(surface) ?? [];
+
+    assert.ok(closure, `${surface} needs release evidence closure`);
+    assert.equal(closure.overrideScope, overrideScope, `${surface} closure scope mismatch`);
+    assert.deepEqual(
+      closure.evidenceIds.toSorted(),
+      surfaceEvidence.map((item) => item.id).toSorted(),
+      `${surface} closure must cite exact RBAC evidence ids`
+    );
+    assert.deepEqual(
+      closure.attemptIds.toSorted(),
+      surfaceAttempts.map((attempt) => attempt.attemptId).toSorted(),
+      `${surface} closure must cite request-level attempt ids`
+    );
+    assert.equal(closure.attemptCoverage, "covered", `${surface} request attempt coverage must be complete`);
+    assert.notEqual(closure.staleReplayCoverage, "missing", `${surface} stale replay coverage cannot be missing`);
+    assert.equal(closure.releaseEvidenceStatus, "attached", `${surface} release evidence must be attached`);
+    assert.ok(closure.runtimeOutcomes.length > 0, `${surface} closure needs runtime outcomes`);
+    assert.ok(closure.attemptOutcomes.length > 0, `${surface} closure needs request attempt outcomes`);
+    assert.ok(closure.auditRefs.length > 0, `${surface} closure needs audit refs`);
+    assert.ok(closure.releaseEvidenceRequired.length >= surfaceEvidence[0].releaseEvidenceRequired.length, `${surface} closure needs release evidence requirements`);
+    assert.ok(closure.closureEvidenceRefs.length >= surfaceEvidence.length, `${surface} closure needs closure refs`);
+    assert.ok(closure.operatorAction.length > 100, `${surface} closure needs operator action`);
+
+    for (const evidence of surfaceEvidence) {
+      assert.ok(
+        closure.closureEvidenceRefs.includes(evidence.auditRef),
+        `${surface} closure must include audit ref ${evidence.auditRef}`
+      );
+      for (const ref of evidence.evidenceRefs) {
+        assert.ok(closure.closureEvidenceRefs.includes(ref), `${surface} closure must include evidence ref ${ref}`);
+      }
+    }
+
+    for (const attempt of surfaceAttempts) {
+      assert.ok(
+        closure.closureEvidenceRefs.includes(attempt.auditRef),
+        `${surface} closure must include attempt audit ref ${attempt.auditRef}`
+      );
+      assert.notEqual(
+        attempt.releaseGateStatus,
+        undefined,
+        `${surface} closure attempt must expose release gate status`
+      );
+    }
+
+    if (surfaceStaleReplays.length > 0) {
+      assert.equal(closure.staleReplayCoverage, "covered", `${surface} stale replay rows must mark coverage`);
+      assert.deepEqual(
+        closure.staleReplayEvidenceIds.toSorted(),
+        surfaceStaleReplays.map((replay) => replay.evidenceId).toSorted(),
+        `${surface} stale replay ids must match runtime replays`
+      );
+      assert.ok(closure.staleReplayOutcomes.length > 0, `${surface} stale replay outcomes must be visible`);
+    }
+  }
+
+  assert.equal(
+    closureBySurface.get("provider_routing").closureStatus,
+    "preserved_by_stale_replay",
+    "provider closure must preserve expired override replay evidence"
+  );
+  assert.equal(
+    closureBySurface.get("skill_release").closureStatus,
+    "preserved_by_stale_replay",
+    "skill release closure must preserve stale second-review replay evidence"
+  );
+  assert.equal(
+    closureBySurface.get("quota_override").closureStatus,
+    "preserved_by_policy",
+    "quota closure must preserve policy-block evidence"
+  );
+  assert.equal(
+    closureBySurface.get("export_override").releaseGateStatus,
+    "release_gate_preserved",
+    "export closure cannot allow release use while blocking QA is preserved"
+  );
+
+  const reviewsPage = readFileSync(new URL("../app/reviews/page.tsx", import.meta.url), "utf8");
+  const auditPage = readFileSync(new URL("../app/audit/page.tsx", import.meta.url), "utf8");
+  const adminApi = readFileSync(new URL("../lib/admin-api.ts", import.meta.url), "utf8");
+  const types = readFileSync(new URL("../lib/types.ts", import.meta.url), "utf8");
+
+  for (const token of [
+    "AdminRbacReleaseEvidenceClosure",
+    "getAdminRbacReleaseEvidenceClosures",
+    "buildAdminRbacReleaseEvidenceClosures",
+    "RBAC Release Evidence Closure",
+    "Attempt Coverage",
+    "Stale Replay Coverage",
+    "Closure Status",
+    "Closure Evidence Refs",
+    "release_ready_with_expiry",
+    "preserved_by_stale_replay",
+    "preserved_by_policy",
+    "missing_evidence"
+  ]) {
+    assert.match(reviewsPage + auditPage + adminApi + rbacRuntimeSource + types, new RegExp(token));
+  }
 });
 
 test("admin RBAC override attempts preserve idempotency, state digests, and release gates", () => {
