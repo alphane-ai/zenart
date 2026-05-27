@@ -257,12 +257,22 @@
         "method": "GET"
       },
       "expired_export_cleanup": {
-        "default_path": "/api/admin/v1/object-storage/cleanup/expired-exports",
+        "body": {
+          "dry_run": true,
+          "limit": 25,
+          "rationale": "stage0 retention cleanup smoke expired_export_cleanup"
+        },
+        "default_path": "/api/admin/v1/exports/cleanup",
         "env_var": "EXPIRED_EXPORT_CLEANUP_URL",
         "method": "POST"
       },
       "orphan_cleanup": {
-        "default_path": "/api/admin/v1/object-storage/cleanup/orphans",
+        "body": {
+          "dry_run": true,
+          "limit": 25,
+          "rationale": "stage0 retention cleanup smoke orphan_cleanup"
+        },
+        "default_path": "/api/admin/v1/exports/cleanup",
         "env_var": "ORPHAN_CLEANUP_URL",
         "method": "POST"
       },

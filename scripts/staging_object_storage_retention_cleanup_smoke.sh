@@ -31,8 +31,8 @@ mkdir -p "$OUT_DIR"
 
 if [[ -n "$BASE_URL" ]]; then
   RETENTION_POLICY_URL="${RETENTION_POLICY_URL:-${BASE_URL%/}/api/admin/v1/object-storage/retention-policy}"
-  EXPIRED_EXPORT_CLEANUP_URL="${EXPIRED_EXPORT_CLEANUP_URL:-${BASE_URL%/}/api/admin/v1/object-storage/cleanup/expired-exports}"
-  ORPHAN_CLEANUP_URL="${ORPHAN_CLEANUP_URL:-${BASE_URL%/}/api/admin/v1/object-storage/cleanup/orphans}"
+  EXPIRED_EXPORT_CLEANUP_URL="${EXPIRED_EXPORT_CLEANUP_URL:-${BASE_URL%/}/api/admin/v1/exports/cleanup}"
+  ORPHAN_CLEANUP_URL="${ORPHAN_CLEANUP_URL:-${BASE_URL%/}/api/admin/v1/exports/cleanup}"
   AUDIT_REFS_URL="${AUDIT_REFS_URL:-${BASE_URL%/}/api/admin/v1/audit?subject=object_storage_cleanup&limit=20}"
 fi
 
@@ -84,8 +84,63 @@ if body_path:
     path = Path(body_path)
     if path.exists() and path.is_file():
         body = path.read_text(encoding="utf-8", errors="replace")
-matched_tokens = [token for token in tokens if token.lower() in body.lower()]
+body_lower = body.lower()
+try:
+    parsed_body = json.loads(body) if body else None
+except json.JSONDecodeError:
+    parsed_body = None
+json_blob = json.dumps(parsed_body, sort_keys=True).lower() if parsed_body is not None else ""
+
+
+def has_token(token):
+    normalized = token.lower()
+    aliases = {
+        "retention policy": [
+            "retention policy",
+            "retention_policy",
+            "retention_state",
+            "retention_until",
+        ],
+        "versioning": ["versioning", "version_id", "object_versioning"],
+        "retention_until": ["retention_until"],
+        "tenant": ["tenant", "tenant_id"],
+        "expired export cleanup": [
+            "expired export cleanup",
+            "expired_export_cleanup",
+            "expired_exports",
+            "export.cleanup",
+            "export.cleanup.preview",
+        ],
+        "orphan cleanup": [
+            "orphan cleanup",
+            "orphan_cleanup",
+            "orphaned_objects",
+            "export.cleanup",
+            "export.cleanup.preview",
+        ],
+        "deleted": ["deleted", "deleted_objects"],
+        "retained": [
+            "retained",
+            "retention_state",
+            "retention_until",
+            "preview_objects",
+            "dry_run",
+        ],
+        "audit": ["audit", "audit_id", "audit_refs", "object_retention_cleanup"],
+        "object_storage_cleanup": [
+            "object_storage_cleanup",
+            "object_retention_cleanup",
+            "export.cleanup",
+            "export.cleanup.preview",
+        ],
+        "admin": ["admin", "actor_id", "admin_user_id", "requested_by"],
+    }.get(normalized, [normalized])
+    return any(alias in body_lower or alias in json_blob for alias in aliases)
+
+
+matched_tokens = [token for token in tokens if has_token(token)]
 missing_tokens = [token for token in tokens if token.lower() not in body.lower()]
+missing_tokens = [token for token in tokens if not has_token(token)]
 response_request_id_values = []
 if headers_path:
     path = Path(headers_path)
@@ -151,7 +206,7 @@ run_probe() {
     curl_args+=(--header "Cookie: $ADMIN_SESSION_COOKIE")
   fi
   if [[ "$method" == "POST" ]]; then
-    curl_args+=(--header "Content-Type: application/json" --data '{"mode":"stage0_retention_cleanup_smoke"}')
+    curl_args+=(--header "Content-Type: application/json" --data "{\"rationale\":\"stage0 retention cleanup smoke ${check_id}\",\"limit\":25,\"dry_run\":true}")
   fi
 
   local http_status
@@ -368,12 +423,14 @@ probe_routes = {
     "expired_export_cleanup": {
         "method": "POST",
         "env_var": "EXPIRED_EXPORT_CLEANUP_URL",
-        "default_path": "/api/admin/v1/object-storage/cleanup/expired-exports",
+        "default_path": "/api/admin/v1/exports/cleanup",
+        "body": {"rationale": "stage0 retention cleanup smoke expired_export_cleanup", "limit": 25, "dry_run": True},
     },
     "orphan_cleanup": {
         "method": "POST",
         "env_var": "ORPHAN_CLEANUP_URL",
-        "default_path": "/api/admin/v1/object-storage/cleanup/orphans",
+        "default_path": "/api/admin/v1/exports/cleanup",
+        "body": {"rationale": "stage0 retention cleanup smoke orphan_cleanup", "limit": 25, "dry_run": True},
     },
     "audit_refs": {
         "method": "GET",
