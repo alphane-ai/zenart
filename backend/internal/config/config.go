@@ -276,7 +276,7 @@ func (c Config) Validate() error {
 	case "http":
 		if strings.TrimSpace(c.Security.MalwareScanEndpoint) == "" {
 			errs = append(errs, "MALWARE_SCAN_ENDPOINT must not be empty when MALWARE_SCAN_PROVIDER=http")
-		} else if parsed, endpointErr := validateExternalServiceEndpoint(c.Security.MalwareScanEndpoint, "MALWARE_SCAN_ENDPOINT"); endpointErr != "" {
+		} else if parsed, endpointErr := validateSecretlessHTTPServiceEndpoint(c.Security.MalwareScanEndpoint, "MALWARE_SCAN_ENDPOINT"); endpointErr != "" {
 			errs = append(errs, endpointErr)
 		} else if !isLocalEnvironment(c.App.Environment) && parsed.Scheme != "https" {
 			errs = append(errs, "MALWARE_SCAN_ENDPOINT must use https outside local")
@@ -462,6 +462,26 @@ func validateObjectStorageEndpoint(raw, name string) (*url.URL, string) {
 	parsed, errMessage := validateExternalServiceEndpoint(raw, name)
 	if errMessage != "" {
 		return nil, errMessage
+	}
+	if parsed.RawQuery != "" {
+		return nil, fmt.Sprintf("%s must not include query parameters", name)
+	}
+	if parsed.Fragment != "" {
+		return nil, fmt.Sprintf("%s must not include a fragment", name)
+	}
+	return parsed, ""
+}
+
+func validateSecretlessHTTPServiceEndpoint(raw, name string) (*url.URL, string) {
+	if strings.Contains(strings.TrimSpace(raw), "#") {
+		return nil, fmt.Sprintf("%s must not include a fragment", name)
+	}
+	parsed, errMessage := validateExternalServiceEndpoint(raw, name)
+	if errMessage != "" {
+		return nil, errMessage
+	}
+	if parsed.Scheme != "http" && parsed.Scheme != "https" {
+		return nil, fmt.Sprintf("%s must use http or https", name)
 	}
 	if parsed.RawQuery != "" {
 		return nil, fmt.Sprintf("%s must not include query parameters", name)

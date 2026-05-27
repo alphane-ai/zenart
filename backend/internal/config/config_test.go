@@ -346,6 +346,38 @@ func TestValidateRejectsMalwareScannerEndpointCredentials(t *testing.T) {
 	}
 }
 
+func TestValidateRejectsMalwareScannerEndpointQueryAndFragment(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		endpoint string
+		wantText string
+	}{
+		{
+			name:     "query",
+			endpoint: "https://scanner.example.test/scan?token=secret",
+			wantText: "MALWARE_SCAN_ENDPOINT must not include query parameters",
+		},
+		{
+			name:     "fragment",
+			endpoint: "https://scanner.example.test/scan#bearer-token",
+			wantText: "MALWARE_SCAN_ENDPOINT must not include a fragment",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			cfg, err := Load()
+			if err != nil {
+				t.Fatalf("Load() error = %v", err)
+			}
+			cfg.Security.MalwareScanProvider = "http"
+			cfg.Security.MalwareScanEndpoint = tc.endpoint
+			err = cfg.Validate()
+			if err == nil || !strings.Contains(err.Error(), tc.wantText) {
+				t.Fatalf("Validate() error = %v, want %q", err, tc.wantText)
+			}
+		})
+	}
+}
+
 func TestValidateRejectsObjectStorageEndpointQueryAndFragment(t *testing.T) {
 	for _, tc := range []struct {
 		name     string

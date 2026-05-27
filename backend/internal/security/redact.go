@@ -201,6 +201,9 @@ func (s HTTPMalwareScanner) Scan(ctx context.Context, target MalwareScanTarget) 
 	if endpoint == "" {
 		return MalwareScanResult{}, errors.New("malware scan endpoint is required")
 	}
+	if err := validateMalwareScanEndpoint(endpoint); err != nil {
+		return MalwareScanResult{}, err
+	}
 	if strings.TrimSpace(target.TenantID) == "" || strings.TrimSpace(target.ObjectKey) == "" {
 		return MalwareScanResult{}, errors.New("malware scan tenant_id and object_key are required")
 	}
@@ -223,13 +226,13 @@ func (s HTTPMalwareScanner) Scan(ctx context.Context, target MalwareScanTarget) 
 	if strings.TrimSpace(s.APIKey) != "" {
 		req.Header.Set("Authorization", "Bearer "+strings.TrimSpace(s.APIKey))
 	}
-	client := s.Client
-	if client == nil {
-		client = http.DefaultClient
-	}
+	client := malwareScanHTTPClient(s.Client)
 	resp, err := client.Do(req)
 	if err != nil {
-		return MalwareScanResult{}, err
+		if resp != nil && resp.Body != nil {
+			_ = resp.Body.Close()
+		}
+		return MalwareScanResult{}, errors.New(RedactString(err.Error()))
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
@@ -262,6 +265,40 @@ func (s HTTPMalwareScanner) Scan(ctx context.Context, target MalwareScanTarget) 
 	}
 	result.Metadata = RedactStringMap(result.Metadata)
 	return result, nil
+}
+
+func validateMalwareScanEndpoint(endpoint string) error {
+	parsed, err := url.ParseRequestURI(endpoint)
+	if err != nil {
+		return fmt.Errorf("malware scan endpoint must be a URL: %v", err)
+	}
+	if parsed.Scheme != "http" && parsed.Scheme != "https" {
+		return errors.New("malware scan endpoint must use http or https")
+	}
+	if parsed.Host == "" {
+		return errors.New("malware scan endpoint must include host")
+	}
+	if parsed.User != nil {
+		return errors.New("malware scan endpoint must not include credentials")
+	}
+	if parsed.RawQuery != "" {
+		return errors.New("malware scan endpoint must not include query parameters")
+	}
+	if parsed.Fragment != "" || strings.Contains(endpoint, "#") {
+		return errors.New("malware scan endpoint must not include a fragment")
+	}
+	return nil
+}
+
+func malwareScanHTTPClient(base *http.Client) *http.Client {
+	if base == nil {
+		base = http.DefaultClient
+	}
+	client := *base
+	client.CheckRedirect = func(_ *http.Request, _ []*http.Request) error {
+		return errors.New("malware scan endpoint redirect denied")
+	}
+	return &client
 }
 
 func NormalizeMalwareScanStatus(status MalwareScanStatus) (MalwareScanStatus, bool) {

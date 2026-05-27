@@ -2749,6 +2749,74 @@ func TestHTTPMalwareScannerRejectsUnsupportedStatus(t *testing.T) {
 	}
 }
 
+func TestHTTPMalwareScannerRejectsSecretBearingEndpoints(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		endpoint string
+		wantText string
+	}{
+		{
+			name:     "credentials",
+			endpoint: "https://scanner:secret@scanner.example.test/scan",
+			wantText: "must not include credentials",
+		},
+		{
+			name:     "query",
+			endpoint: "https://scanner.example.test/scan?api_key=secret",
+			wantText: "must not include query parameters",
+		},
+		{
+			name:     "fragment",
+			endpoint: "https://scanner.example.test/scan#bearer-token",
+			wantText: "must not include a fragment",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := (HTTPMalwareScanner{
+				Endpoint: tc.endpoint,
+				Timeout:  time.Second,
+			}).Scan(context.Background(), MalwareScanTarget{
+				TenantID:  "tenant_1",
+				ObjectKey: "uploads/file.png",
+			})
+			if err == nil || !strings.Contains(err.Error(), tc.wantText) {
+				t.Fatalf("Scan() error = %v, want %q", err, tc.wantText)
+			}
+		})
+	}
+}
+
+func TestHTTPMalwareScannerDeniesRedirectsWithoutForwardingAuth(t *testing.T) {
+	redirected := false
+	sink := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		redirected = true
+		if r.Header.Get("Authorization") != "" {
+			t.Fatalf("redirect target received Authorization = %q", r.Header.Get("Authorization"))
+		}
+		_ = json.NewEncoder(w).Encode(MalwareScanResult{Status: MalwareScanStatusClean})
+	}))
+	defer sink.Close()
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, sink.URL+"/scan", http.StatusTemporaryRedirect)
+	}))
+	defer server.Close()
+
+	_, err := (HTTPMalwareScanner{
+		Endpoint: server.URL + "/scan",
+		APIKey:   "scan-secret",
+		Timeout:  time.Second,
+	}).Scan(context.Background(), MalwareScanTarget{
+		TenantID:  "tenant_1",
+		ObjectKey: "uploads/file.png",
+	})
+	if err == nil || !strings.Contains(err.Error(), "redirect denied") {
+		t.Fatalf("Scan() error = %v, want redirect denied", err)
+	}
+	if redirected {
+		t.Fatal("redirect target was reached")
+	}
+}
+
 func TestHTTPMalwareScannerRedactsNon2xxResponseBody(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadGateway)
