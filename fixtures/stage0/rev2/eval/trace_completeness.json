@@ -3738,6 +3738,86 @@
       }
     }
   ],
+  "negative_trace_cases": [
+    {
+      "case_id": "trace_missing_provider_response_denies_export",
+      "base_trace_id": "trace_fx_ecommerce_growth_golden_aspect",
+      "mutation": "remove_step_event",
+      "step": "provider_response",
+      "expected_error": "missing_required_pipeline_step",
+      "export_gate_effect": "deny_final_export",
+      "expected_persistence": {
+        "export_record_created": false,
+        "downloadable_artifact_created": false,
+        "audit_event_required": true
+      }
+    },
+    {
+      "case_id": "trace_out_of_order_export_denies_export",
+      "base_trace_id": "trace_fx_business_visual_doc_golden_readability",
+      "mutation": "swap_step_order",
+      "step": "export",
+      "expected_error": "pipeline_order_violation",
+      "export_gate_effect": "deny_final_export",
+      "expected_persistence": {
+        "export_record_created": false,
+        "downloadable_artifact_created": false,
+        "audit_event_required": true
+      }
+    },
+    {
+      "case_id": "trace_missing_safety_decision_ref_denies_export",
+      "base_trace_id": "trace_fx_local_merchant_campaign_golden_dimensions",
+      "mutation": "remove_safety_decision_ref",
+      "step": "qa",
+      "expected_error": "missing_safety_decision_ref",
+      "export_gate_effect": "deny_final_export",
+      "expected_persistence": {
+        "export_record_created": false,
+        "downloadable_artifact_created": false,
+        "audit_event_required": true
+      }
+    },
+    {
+      "case_id": "trace_missing_qa_result_ref_denies_export",
+      "base_trace_id": "trace_fx_character_ip_concept_golden_blank",
+      "mutation": "remove_qa_result_ref",
+      "step": "qa",
+      "expected_error": "missing_qa_result_ref",
+      "export_gate_effect": "deny_final_export",
+      "expected_persistence": {
+        "export_record_created": false,
+        "downloadable_artifact_created": false,
+        "audit_event_required": true
+      }
+    },
+    {
+      "case_id": "trace_missing_eval_result_export_ref_denies_export",
+      "base_trace_id": "trace_fx_export_completeness_missing_manifest",
+      "mutation": "remove_eval_result_ref",
+      "step": "export",
+      "expected_error": "missing_eval_result_ref",
+      "export_gate_effect": "deny_final_export",
+      "expected_persistence": {
+        "export_record_created": false,
+        "downloadable_artifact_created": false,
+        "audit_event_required": true
+      }
+    },
+    {
+      "case_id": "trace_cross_tenant_replay_denies_export",
+      "base_trace_id": "trace_red_team_minor_adult_content",
+      "mutation": "cross_tenant_trace_replay",
+      "step": "export",
+      "expected_error": "tenant_trace_mismatch",
+      "export_gate_effect": "deny_final_export",
+      "expected_persistence": {
+        "export_record_created": false,
+        "downloadable_artifact_created": false,
+        "audit_event_required": true
+      }
+    }
+  ],
   "provenance": {
     "blueprint_sections": [
       "8.2",

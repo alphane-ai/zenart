@@ -11,6 +11,7 @@
     "required_trace_fields",
     "required_pipeline_steps",
     "traces",
+    "negative_trace_cases",
     "provenance"
   ],
   "properties": {
@@ -183,6 +184,15 @@
             "$ref": "#/$defs/qa_result_refs"
           }
         }
+      }
+    },
+    "negative_trace_cases": {
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 6,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/negative_trace_case"
       }
     },
     "provenance": {
@@ -534,6 +544,87 @@
         },
         "safety_disclaimer_linked": {
           "type": "boolean"
+        }
+      }
+    },
+    "negative_trace_case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "base_trace_id",
+        "mutation",
+        "step",
+        "expected_error",
+        "export_gate_effect",
+        "expected_persistence"
+      ],
+      "properties": {
+        "case_id": {
+          "enum": [
+            "trace_missing_provider_response_denies_export",
+            "trace_out_of_order_export_denies_export",
+            "trace_missing_safety_decision_ref_denies_export",
+            "trace_missing_qa_result_ref_denies_export",
+            "trace_missing_eval_result_export_ref_denies_export",
+            "trace_cross_tenant_replay_denies_export"
+          ]
+        },
+        "base_trace_id": {
+          "type": "string",
+          "pattern": "^trace_[a-z0-9_]+$"
+        },
+        "mutation": {
+          "enum": [
+            "remove_step_event",
+            "swap_step_order",
+            "remove_safety_decision_ref",
+            "remove_qa_result_ref",
+            "remove_eval_result_ref",
+            "cross_tenant_trace_replay"
+          ]
+        },
+        "step": {
+          "enum": [
+            "brief",
+            "provider_request",
+            "provider_response",
+            "qa",
+            "export"
+          ]
+        },
+        "expected_error": {
+          "enum": [
+            "missing_required_pipeline_step",
+            "pipeline_order_violation",
+            "missing_safety_decision_ref",
+            "missing_qa_result_ref",
+            "missing_eval_result_ref",
+            "tenant_trace_mismatch"
+          ]
+        },
+        "export_gate_effect": {
+          "const": "deny_final_export"
+        },
+        "expected_persistence": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "export_record_created",
+            "downloadable_artifact_created",
+            "audit_event_required"
+          ],
+          "properties": {
+            "export_record_created": {
+              "const": false
+            },
+            "downloadable_artifact_created": {
+              "const": false
+            },
+            "audit_event_required": {
+              "const": true
+            }
+          }
         }
       }
     }

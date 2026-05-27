@@ -53,6 +53,45 @@ TRACE_CONTRACT_TO_FIXTURE_FIELD = {
     "user_failure_mapping": "has_user_failure_mapping",
 }
 
+NEGATIVE_TRACE_CASES = {
+    "trace_missing_provider_response_denies_export": {
+        "mutation": "remove_step_event",
+        "step": "provider_response",
+        "expected_error": "missing_required_pipeline_step",
+        "export_gate_effect": "deny_final_export",
+    },
+    "trace_out_of_order_export_denies_export": {
+        "mutation": "swap_step_order",
+        "step": "export",
+        "expected_error": "pipeline_order_violation",
+        "export_gate_effect": "deny_final_export",
+    },
+    "trace_missing_safety_decision_ref_denies_export": {
+        "mutation": "remove_safety_decision_ref",
+        "step": "qa",
+        "expected_error": "missing_safety_decision_ref",
+        "export_gate_effect": "deny_final_export",
+    },
+    "trace_missing_qa_result_ref_denies_export": {
+        "mutation": "remove_qa_result_ref",
+        "step": "qa",
+        "expected_error": "missing_qa_result_ref",
+        "export_gate_effect": "deny_final_export",
+    },
+    "trace_missing_eval_result_export_ref_denies_export": {
+        "mutation": "remove_eval_result_ref",
+        "step": "export",
+        "expected_error": "missing_eval_result_ref",
+        "export_gate_effect": "deny_final_export",
+    },
+    "trace_cross_tenant_replay_denies_export": {
+        "mutation": "cross_tenant_trace_replay",
+        "step": "export",
+        "expected_error": "tenant_trace_mismatch",
+        "export_gate_effect": "deny_final_export",
+    },
+}
+
 
 class TraceContractError(Exception):
     pass
@@ -197,6 +236,8 @@ def validate_trace_fixture() -> None:
             )
         validate_artifact_links(trace, eval_by_trace[trace_id])
 
+    validate_negative_trace_cases(contract, seen)
+
     require(
         workflows
         == {
@@ -212,6 +253,39 @@ def validate_trace_fixture() -> None:
         seen_fixtures == eval_fixture_ids,
         "trace completeness fixture must cover every eval fixture exactly",
     )
+
+
+def validate_negative_trace_cases(contract: dict[str, Any], valid_trace_ids: set[str]) -> None:
+    cases = contract.get("negative_trace_cases")
+    require(isinstance(cases, list), "trace contract must declare negative_trace_cases")
+    require(len(cases) == len(NEGATIVE_TRACE_CASES), "trace contract negative case count mismatch")
+
+    seen_cases = set()
+    for case in cases:
+        case_id = case["case_id"]
+        require(case_id in NEGATIVE_TRACE_CASES, f"unexpected trace negative case {case_id}")
+        require(case_id not in seen_cases, f"duplicate trace negative case {case_id}")
+        seen_cases.add(case_id)
+
+        expected = NEGATIVE_TRACE_CASES[case_id]
+        require(case["mutation"] == expected["mutation"], f"{case_id} mutation mismatch")
+        require(case["step"] == expected["step"], f"{case_id} step mismatch")
+        require(case["expected_error"] == expected["expected_error"], f"{case_id} expected error mismatch")
+        require(
+            case["export_gate_effect"] == expected["export_gate_effect"],
+            f"{case_id} export gate effect mismatch",
+        )
+        require(case["base_trace_id"] in valid_trace_ids, f"{case_id} references unknown base trace")
+        require(
+            case["expected_persistence"] == {
+                "export_record_created": False,
+                "downloadable_artifact_created": False,
+                "audit_event_required": True,
+            },
+            f"{case_id} must fail closed without export artifacts and require audit",
+        )
+
+    require(seen_cases == set(NEGATIVE_TRACE_CASES), "trace contract missing required negative cases")
 
 
 def validate_step_events(trace: dict[str, Any], eval_result: dict[str, Any] | None = None) -> None:

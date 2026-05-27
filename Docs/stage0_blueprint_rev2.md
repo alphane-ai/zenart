@@ -1767,6 +1767,7 @@ main 合并前必须通过：
 - [x] 实现 provider trace/provenance fields。
 - [x] 添加 agent contract tests。
 - [x] 添加 trace completeness tests。
+- [x] Trace completeness fail-closed negative cases 通过：`fixtures/stage0/rev2/eval/trace_completeness.json` declares missing provider-response step、out-of-order export step、missing safety decision ref、missing QA result ref、missing eval result export ref、cross-tenant trace replay cases, and `scripts/validate_trace_completeness.py` validates each denies final export, prevents downloadable artifact persistence, and requires audit evidence。
 - [x] Trace visibility/export retention projection contract 通过：`fixtures/stage0/rev2/eval/trace_visibility_export_retention.json` declares user-safe trace projection、admin RBAC trace/eval/QA/safety/export links、blocked-export retention for QA report/trace provenance/safety disclaimer, and `scripts/validate_trace_visibility_export_retention.py` validates the projections against trace completeness、eval results、QA results、trace export gate matrix、OpenAPI。
 - [x] 添加 provider contract tests。
 
