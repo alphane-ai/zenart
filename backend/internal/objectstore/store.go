@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -25,6 +26,7 @@ var (
 )
 
 var tenantIDPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]*$`)
+var bucketNamePattern = regexp.MustCompile(`^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$`)
 
 type Object struct {
 	ID             string         `json:"id"`
@@ -72,17 +74,17 @@ type LocalStore struct {
 
 func NewLocalStore(root, bucket, signingSecret string) (LocalStore, error) {
 	root = strings.TrimSpace(root)
-	bucket = strings.TrimSpace(bucket)
 	if root == "" {
 		return LocalStore{}, errors.New("local object store root is required")
 	}
-	if bucket == "" {
-		return LocalStore{}, errors.New("object store bucket is required")
+	normalizedBucket, err := normalizeBucketName(bucket)
+	if err != nil {
+		return LocalStore{}, err
 	}
 	if signingSecret == "" {
 		signingSecret = "stage0-local-object-signing"
 	}
-	return LocalStore{root: root, bucket: bucket, signingKey: []byte(signingSecret)}, nil
+	return LocalStore{root: root, bucket: normalizedBucket, signingKey: []byte(signingSecret)}, nil
 }
 
 func (s LocalStore) Put(ctx context.Context, object Object, body io.Reader) (Object, error) {
@@ -307,6 +309,23 @@ func normalizeTenantID(tenantID string) (string, error) {
 		return "", errors.New("tenant_id is invalid")
 	}
 	return tenantID, nil
+}
+
+func normalizeBucketName(bucket string) (string, error) {
+	bucket = strings.TrimSpace(bucket)
+	if bucket == "" {
+		return "", errors.New("object store bucket is required")
+	}
+	if !bucketNamePattern.MatchString(bucket) ||
+		strings.Contains(bucket, "..") ||
+		strings.Contains(bucket, ".-") ||
+		strings.Contains(bucket, "-.") {
+		return "", errors.New("object store bucket is invalid")
+	}
+	if ip := net.ParseIP(bucket); ip != nil && ip.To4() != nil {
+		return "", errors.New("object store bucket is invalid")
+	}
+	return bucket, nil
 }
 
 func tenantIDFromScopedKey(key string) (string, error) {

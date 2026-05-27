@@ -47,8 +47,9 @@ func NewS3Store(cfg config.ObjectStorageConfig, client *http.Client) (S3Store, e
 			return S3Store{}, err
 		}
 	}
-	if strings.TrimSpace(cfg.Bucket) == "" {
-		return S3Store{}, errors.New("object store bucket is required")
+	bucket, err := normalizeBucketName(cfg.Bucket)
+	if err != nil {
+		return S3Store{}, err
 	}
 	if strings.TrimSpace(cfg.Region) == "" {
 		return S3Store{}, errors.New("object store region is required")
@@ -60,7 +61,7 @@ func NewS3Store(cfg config.ObjectStorageConfig, client *http.Client) (S3Store, e
 		client:         client,
 		endpoint:       endpoint,
 		publicEndpoint: publicEndpoint,
-		bucket:         strings.TrimSpace(cfg.Bucket),
+		bucket:         bucket,
 		region:         strings.TrimSpace(cfg.Region),
 		accessKey:      strings.TrimSpace(cfg.AccessKey),
 		secretKey:      strings.TrimSpace(cfg.SecretKey),

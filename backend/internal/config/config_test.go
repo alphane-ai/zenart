@@ -153,6 +153,29 @@ func TestValidateRejectsInvalidDownloadURLTTL(t *testing.T) {
 	}
 }
 
+func TestValidateRejectsUnsafeObjectStorageBucketNames(t *testing.T) {
+	for _, bucket := range []string{
+		"../escape",
+		"zenart_test",
+		"ZenArt-Test",
+		"zenart..test",
+		"zenart.-test",
+		"192.168.0.1",
+		"ab",
+	} {
+		t.Run(bucket, func(t *testing.T) {
+			cfg, err := Load()
+			if err != nil {
+				t.Fatalf("Load() error = %v", err)
+			}
+			cfg.ObjectStorage.Bucket = bucket
+			if err := cfg.Validate(); err == nil {
+				t.Fatal("Validate() error = nil, want unsafe bucket rejected")
+			}
+		})
+	}
+}
+
 func TestValidateRejectsUnknownObjectStorageProvider(t *testing.T) {
 	cfg, err := Load()
 	if err != nil {

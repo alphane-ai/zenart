@@ -68,6 +68,30 @@ func TestLocalStoreRejectsUnsafeTenantIDBeforeFilesystemWrite(t *testing.T) {
 	}
 }
 
+func TestNewLocalStoreRejectsUnsafeBucketBeforeFilesystemUse(t *testing.T) {
+	root := t.TempDir()
+	for _, bucket := range []string{
+		"../escape",
+		"zenart_test",
+		"ZenArt-Test",
+		"zenart..test",
+		"zenart.-test",
+		"192.168.0.1",
+		"ab",
+	} {
+		t.Run(bucket, func(t *testing.T) {
+			if _, err := NewLocalStore(root, bucket, "secret"); err == nil || !strings.Contains(err.Error(), "object store bucket is invalid") {
+				t.Fatalf("NewLocalStore() error = %v, want invalid bucket", err)
+			}
+		})
+	}
+	if entries, err := os.ReadDir(root); err != nil {
+		t.Fatalf("ReadDir(root) error = %v", err)
+	} else if len(entries) != 0 {
+		t.Fatalf("unsafe bucket constructor created entries: %#v", entries)
+	}
+}
+
 func TestLocalStoreRejectsUnsafeObjectKeyBeforeFilesystemWrite(t *testing.T) {
 	root := t.TempDir()
 	store, err := NewLocalStore(root, "zenart-test", "secret")
@@ -212,6 +236,43 @@ func TestNewS3StoreRejectsCredentialBearingEndpoints(t *testing.T) {
 	}, nil)
 	if err == nil || !strings.Contains(err.Error(), "must not include credentials") {
 		t.Fatalf("NewS3Store() public endpoint error = %v, want endpoint credentials rejected", err)
+	}
+}
+
+func TestNewS3StoreRejectsUnsafeBucketBeforeRequest(t *testing.T) {
+	requests := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests++
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	for _, bucket := range []string{
+		"../escape",
+		"zenart_test",
+		"ZenArt-Test",
+		"zenart..test",
+		"zenart-.test",
+		"192.168.0.1",
+		"ab",
+	} {
+		t.Run(bucket, func(t *testing.T) {
+			_, err := NewS3Store(config.ObjectStorageConfig{
+				Provider:       "s3-compatible",
+				Endpoint:       server.URL,
+				Region:         "us-east-1",
+				Bucket:         bucket,
+				AccessKey:      "access",
+				SecretKey:      "secret",
+				ForcePathStyle: false,
+			}, server.Client())
+			if err == nil || !strings.Contains(err.Error(), "object store bucket is invalid") {
+				t.Fatalf("NewS3Store() error = %v, want invalid bucket", err)
+			}
+		})
+	}
+	if requests != 0 {
+		t.Fatalf("unsafe bucket constructor should not send request, got %d", requests)
 	}
 }
 

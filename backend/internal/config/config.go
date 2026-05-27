@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/url"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -127,6 +128,8 @@ type WorkerConfig struct {
 	DrainGraceTimeout time.Duration
 	CleanupInterval   time.Duration
 }
+
+var objectStorageBucketPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$`)
 
 func Load() (Config, error) {
 	cfg := Config{
@@ -346,6 +349,8 @@ func (c Config) Validate() error {
 	}
 	if strings.TrimSpace(c.ObjectStorage.Bucket) == "" {
 		errs = append(errs, "OBJECT_STORAGE_BUCKET must not be empty")
+	} else if !validObjectStorageBucket(c.ObjectStorage.Bucket) {
+		errs = append(errs, "OBJECT_STORAGE_BUCKET must be a DNS-compatible bucket name")
 	}
 	if c.ObjectStorage.Provider == "local" && strings.TrimSpace(c.ObjectStorage.LocalRoot) == "" {
 		errs = append(errs, "OBJECT_STORAGE_LOCAL_ROOT must not be empty for local object storage")
@@ -427,6 +432,20 @@ func validateObjectStorageEndpoint(raw, name string) (*url.URL, string) {
 		return nil, fmt.Sprintf("%s must not include credentials", name)
 	}
 	return parsed, ""
+}
+
+func validObjectStorageBucket(bucket string) bool {
+	bucket = strings.TrimSpace(bucket)
+	if !objectStorageBucketPattern.MatchString(bucket) {
+		return false
+	}
+	if strings.Contains(bucket, "..") || strings.Contains(bucket, ".-") || strings.Contains(bucket, "-.") {
+		return false
+	}
+	if ip := net.ParseIP(bucket); ip != nil && ip.To4() != nil {
+		return false
+	}
+	return true
 }
 
 func isLocalEnvironment(environment string) bool {
