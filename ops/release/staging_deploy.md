@@ -19,15 +19,15 @@ This is an operations draft only. Private beta and production gates remain open 
 2. Drain or pause worker intake before migrations when a schema compatibility note requires it.
 3. Run forward-only migrations against staging.
 4. Deploy the SHA-tagged backend, worker, crawler, web, and admin images.
-5. Produce validator-resolvable staging JSON evidence for migration, config diff, observability, backup/restore, rollback, and security. Each evidence file must reference the release SHA, set `environment=staging`, set the required `kind`, and record an accepted pass/review status.
+5. Produce validator-resolvable staging JSON evidence for migration, config diff, observability, backup/restore, load, rollback, and security. Each evidence file must reference the release SHA, set `environment=staging`, set the required `kind`, and record an accepted pass/review status.
    - Observability evidence must include request-id propagation, structured JSON logs, OpenTelemetry traces, backend/worker/crawler metrics, dashboard import, and alert routes. Each entry must carry a trace, query, dashboard, alert, report, or evidence reference.
    - Backup/restore evidence must include both Postgres restore and exported package/object restore drill entries with report references.
    - Load evidence must include `chat_task`, `worker_generation`, `zip_export`, `signed_download`, `crawler_throttle`, `quota_contention`, and `workspace_rendering` entries with report references.
    - Rollback evidence must include image rollback, feature flag rollback, migration compatibility, worker drain, and post-rollback smoke entries with report references.
    - Security evidence must include dependency, image/container, and committed-secret scan entries with report references.
-6. Run `scripts/staging_observability_backup_load_smoke.sh` with `RELEASE_SHA`, `OBSERVABILITY_EVIDENCE`, `BACKUP_RESTORE_EVIDENCE`, and `LOAD_EVIDENCE`. A blocked report means the private beta `staging_observability_backup_load` check must stay open.
+6. Run representative load smoke modes from `scripts/load_smoke.sh` against staging URLs and write the aggregate staging load evidence.
 7. Run `scripts/staging_smoke.sh` with `STAGING_BASE_URL`, `STAGING_WEB_URL`, `STAGING_ADMIN_URL`, `RELEASE_SHA`, release notes, image refs, seeded smoke IDs, and every evidence path from the previous step. The generated report must set `environment=staging`, set `kind=post_deploy_smoke`, record status `passed`, and verify backend health/readiness, web, admin, auth boundary, worker task, export/package, signed download, crawler admin, quota/rate-limit, and request-id observability categories.
-8. Run representative load smoke modes from `scripts/load_smoke.sh` against staging URLs.
+8. Run `scripts/staging_observability_backup_load_smoke.sh` with `RELEASE_SHA`, `OBSERVABILITY_EVIDENCE`, `BACKUP_RESTORE_EVIDENCE`, `LOAD_EVIDENCE`, and `POST_DEPLOY_SMOKE_EVIDENCE`. A blocked report means the private beta `staging_observability_backup_load` check must stay open.
 9. Confirm logs, metrics, traces, dashboards, alerts, and backup jobs are producing staging evidence.
 10. Attach smoke/load/restore evidence to the release notes before any private beta decision.
 

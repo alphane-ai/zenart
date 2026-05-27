@@ -225,7 +225,7 @@ required_fragments = [
     "fixtures/stage0/rev2/release_gate_evidence.production_launch.json",
     "Staging smoke: `missing`; staging JSON must reference the release SHA, set `environment=staging`, set `kind=post_deploy_smoke`, record status `passed`, verify backend health/readiness, web, admin, auth boundary, worker task, export/package, signed download, crawler admin, quota/rate-limit, request-id observability categories, and include seeded user, tenant, task, package, and export smoke IDs.",
     "Config diff: `missing`; staging JSON must reference the release SHA, set `environment=staging`, set `kind=config_diff`, and record status `passed`, `reviewed`, or `no_diff` before private beta/production decisions.",
-    "Observability smoke: local status `passed` from `ops/evidence/observability/local/20260526T192311Z-observability-smoke-7780.json`; staging status `passed` from `ops/evidence/staging/20260527T1830Z-observability-runtime.json` with 6/6 required signals validator-visible; private beta still requires staging backup/restore and load evidence before the combined observability/backup/load gate can close.",
+    "Observability smoke: local status `passed` from `ops/evidence/observability/local/20260526T192311Z-observability-smoke-7780.json`; staging status `passed` from `ops/evidence/staging/20260527T1830Z-observability-runtime.json` with 6/6 required signals validator-visible; private beta still requires staging backup/restore, load, and post-deploy smoke evidence before the combined observability/backup/load gate can close.",
     "Backup/restore drill: local status `passed` from `ops/evidence/backup-restore/local/20260526T153126Z/report.json`; staging JSON must reference the release SHA, set `environment=staging`, set `kind=backup_restore`, record status `passed`, and include passed/validated evidence refs for Postgres restore and exported package/object restore before private beta/production decisions.",
     "Load evidence: `missing`; staging JSON must reference the release SHA, set `environment=staging`, set `kind=load`, record status `passed`, and include passed/validated evidence refs for `chat_task`, `worker_generation`, `zip_export`, `signed_download`, `crawler_throttle`, `quota_contention`, and `workspace_rendering` before private beta/production decisions.",
     "Rollback drill: `missing`; staging JSON must reference the release SHA, set `environment=staging`, set `kind=rollback`, record status `passed` or `validated`, and include passed/validated evidence refs for image rollback, feature flag rollback, migration compatibility, worker drain, and post-rollback smoke.",
@@ -545,6 +545,7 @@ expected_slots = {
     "observability_evidence",
     "backup_restore_evidence",
     "load_evidence",
+    "post_deploy_smoke_evidence",
 }
 if set(report.get("blocked_slots", [])) != expected_slots:
     raise SystemExit(f"preflight missing-evidence blocked slots mismatch: {report.get('blocked_slots')}")
@@ -566,6 +567,7 @@ for reason in (
     "unverified_observability_evidence:",
     "unverified_backup_restore_evidence:",
     "unverified_load_evidence:",
+    "unverified_post_deploy_smoke_evidence:",
 ):
     if not any(item.startswith(reason) for item in report.get("blocking_reasons", [])):
         raise SystemExit(f"preflight missing blocking reason prefix {reason}")
@@ -594,12 +596,12 @@ if len(reports) != 1:
 report = json.loads(reports[0].read_text(encoding="utf-8"))
 if report.get("status") != "blocked":
     raise SystemExit("observability-only preflight must remain blocked")
-if set(report.get("blocked_slots", [])) != {"backup_restore_evidence", "load_evidence"}:
-    raise SystemExit(f"observability-only preflight should block only restore/load slots: {report.get('blocked_slots')}")
+if set(report.get("blocked_slots", [])) != {"backup_restore_evidence", "load_evidence", "post_deploy_smoke_evidence"}:
+    raise SystemExit(f"observability-only preflight should block restore/load/post-deploy slots: {report.get('blocked_slots')}")
 checks = {check["slot"]: check for check in report.get("checks", [])}
 if checks["observability_evidence"].get("verified") is not True:
     raise SystemExit(f"staging observability evidence should verify: {checks['observability_evidence']}")
-for slot in ("backup_restore_evidence", "load_evidence"):
+for slot in ("backup_restore_evidence", "load_evidence", "post_deploy_smoke_evidence"):
     if checks[slot].get("verified") is not False:
         raise SystemExit(f"{slot} must remain unverified when absent")
 PY
@@ -653,11 +655,63 @@ cat >"$preflight_fixture_dir/load.json" <<EOF
   ]
 }
 EOF
+cat >"$preflight_fixture_dir/post_deploy_smoke.ndjson" <<EOF
+{"name":"backend_health","category":"backend_health","ok":true,"status_code":200,"request_id_ok":true}
+{"name":"web_home","category":"web","ok":true,"status_code":200}
+{"name":"admin_home","category":"admin","ok":true,"status_code":200}
+{"name":"user_task_auth_boundary","category":"auth_boundary","ok":true,"status_code":401}
+{"name":"task_status","category":"worker_task","ok":true,"status_code":200,"request_id_ok":true}
+{"name":"export_create","category":"export_package","ok":true,"status_code":202,"request_id_ok":true}
+{"name":"export_status","category":"signed_download","ok":true,"status_code":200,"request_id_ok":true}
+{"name":"crawler_sources","category":"crawler_admin","ok":true,"status_code":200,"request_id_ok":true}
+{"name":"quota_rate_limit","category":"quota_rate_limit","ok":true,"status_code":200,"request_id_ok":true}
+{"name":"observability_request_id","category":"observability","ok":true,"status_code":200,"request_id_ok":true}
+EOF
+cat >"$preflight_fixture_dir/post_deploy_smoke.json" <<EOF
+{
+  "release_sha": "$preflight_sha",
+  "environment": "staging",
+  "kind": "post_deploy_smoke",
+  "status": "passed",
+  "required_categories": [
+    "backend_health",
+    "web",
+    "admin",
+    "auth_boundary",
+    "worker_task",
+    "export_package",
+    "signed_download",
+    "crawler_admin",
+    "quota_rate_limit",
+    "observability"
+  ],
+  "results_path": "$preflight_fixture_dir/post_deploy_smoke.ndjson",
+  "summary": {
+    "post_deploy_smoke_evidence": {
+      "verified": true,
+      "report_path": "$preflight_fixture_dir/post_deploy_smoke.json",
+      "present_categories": [
+        "backend_health",
+        "web",
+        "admin",
+        "auth_boundary",
+        "worker_task",
+        "export_package",
+        "signed_download",
+        "crawler_admin",
+        "quota_rate_limit",
+        "observability"
+      ]
+    }
+  }
+}
+EOF
 RELEASE_SHA="$preflight_sha" \
   OUT_DIR="$preflight_pass_dir/out" \
   OBSERVABILITY_EVIDENCE="$preflight_fixture_dir/observability.json" \
   BACKUP_RESTORE_EVIDENCE="$preflight_fixture_dir/backup.json" \
   LOAD_EVIDENCE="$preflight_fixture_dir/load.json" \
+  POST_DEPLOY_SMOKE_EVIDENCE="$preflight_fixture_dir/post_deploy_smoke.json" \
   scripts/staging_observability_backup_load_smoke.sh >/dev/null
 rm -rf "$preflight_fixture_dir"
 python3 - "$preflight_pass_dir/out" "$preflight_sha" <<'PY'

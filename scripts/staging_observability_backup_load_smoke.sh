@@ -14,6 +14,7 @@ EVIDENCE_ENVIRONMENT="${EVIDENCE_ENVIRONMENT:-staging}"
 OBSERVABILITY_EVIDENCE="${OBSERVABILITY_EVIDENCE:-}"
 BACKUP_RESTORE_EVIDENCE="${BACKUP_RESTORE_EVIDENCE:-}"
 LOAD_EVIDENCE="${LOAD_EVIDENCE:-}"
+POST_DEPLOY_SMOKE_EVIDENCE="${POST_DEPLOY_SMOKE_EVIDENCE:-}"
 
 mkdir -p "$OUT_DIR"
 
@@ -24,7 +25,8 @@ python3 - \
   "$EVIDENCE_ENVIRONMENT" \
   "$OBSERVABILITY_EVIDENCE" \
   "$BACKUP_RESTORE_EVIDENCE" \
-  "$LOAD_EVIDENCE" <<'PY'
+  "$LOAD_EVIDENCE" \
+  "$POST_DEPLOY_SMOKE_EVIDENCE" <<'PY'
 import json
 import sys
 from pathlib import Path
@@ -38,6 +40,7 @@ inputs = {
     "observability_evidence": sys.argv[5].strip(),
     "backup_restore_evidence": sys.argv[6].strip(),
     "load_evidence": sys.argv[7].strip(),
+    "post_deploy_smoke_evidence": sys.argv[8].strip(),
 }
 root = Path(".").resolve()
 staging_evidence_root = root / "ops" / "evidence" / "staging"
@@ -104,6 +107,36 @@ def collect_sha_values(value):
     return values
 
 
+def add_post_deploy_smoke_entries(parsed, entries):
+    if not isinstance(parsed, dict) or normalize(parsed.get("kind", "")) != "post_deploy_smoke":
+        return
+    summary = parsed.get("summary") if isinstance(parsed.get("summary"), dict) else {}
+    contract = summary.get("post_deploy_smoke_evidence") if isinstance(summary.get("post_deploy_smoke_evidence"), dict) else {}
+    present_categories = {
+        normalize(item)
+        for item in contract.get("present_categories", [])
+        if isinstance(item, str)
+    }
+    evidence_refs = [
+        ref
+        for ref in (
+            parsed.get("results_path"),
+            contract.get("report_path"),
+        )
+        if isinstance(ref, str) and ref.strip()
+    ]
+    verified = contract.get("verified") is True
+    for category in parsed.get("required_categories", []):
+        if not isinstance(category, str):
+            continue
+        category_id = normalize(category)
+        entries[category_id] = {
+            "check_id": category_id,
+            "status": "passed" if verified and category_id in present_categories else "open",
+            "evidence_refs": evidence_refs,
+        }
+
+
 def collect_entries(parsed):
     entries = {}
     if not isinstance(parsed, dict):
@@ -128,6 +161,7 @@ def collect_entries(parsed):
                 )
                 if name:
                     entries[normalize(name)] = entry
+    add_post_deploy_smoke_entries(parsed, entries)
     return entries
 
 
@@ -148,6 +182,8 @@ EVIDENCE_REF_KEYS = {
     "artifact_path",
     "artifact_paths",
     "load_report",
+    "results_path",
+    "smoke_results",
 }
 
 
@@ -281,6 +317,23 @@ checks = [
             "crawler_throttle": {"crawler_throttle", "crawler_throttle_load"},
             "quota_contention": {"quota_contention", "quota_contention_load"},
             "workspace_rendering": {"workspace_rendering", "workspace_rendering_load"},
+        },
+    ),
+    validate_evidence(
+        "post_deploy_smoke_evidence",
+        inputs["post_deploy_smoke_evidence"],
+        expected_kind="post_deploy_smoke",
+        required_entries={
+            "backend_health": {"backend_health"},
+            "web": {"web"},
+            "admin": {"admin"},
+            "auth_boundary": {"auth_boundary"},
+            "worker_task": {"worker_task"},
+            "export_package": {"export_package"},
+            "signed_download": {"signed_download"},
+            "crawler_admin": {"crawler_admin"},
+            "quota_rate_limit": {"quota_rate_limit"},
+            "observability": {"observability"},
         },
     ),
 ]

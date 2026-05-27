@@ -55,7 +55,7 @@ STAGING_OBSERVABILITY_BACKUP_LOAD_PREFLIGHT_EVIDENCE = (
     / "ops"
     / "evidence"
     / "staging"
-    / "20260527T004121Z-staging-observability-backup-load-77078.json"
+    / "20260527T005809Z-staging-observability-backup-load-20904.json"
 )
 STAGING_QUOTA_RATE_LIMIT_SPEND_CAP_EVIDENCE = (
     ROOT / "ops" / "evidence" / "staging" / "20260527T2015Z-quota-rate-limit-spend-cap.json"
@@ -1908,7 +1908,7 @@ def require_staging_observability_backup_load_pass_evidence(evidence_ref: str) -
     require(
         passed_reports,
         "private_beta_staging.staging_observability_backup_load pass evidence cites only blocked or non-passing "
-        "staging observability/backup/load preflight reports",
+        "staging observability/backup/load/post-deploy preflight reports",
     )
 
     required_slots = {
@@ -1929,6 +1929,18 @@ def require_staging_observability_backup_load_pass_evidence(evidence_ref: str) -
             "worker_generation",
             "workspace_rendering",
             "zip_export",
+        },
+        "post_deploy_smoke_evidence": {
+            "admin",
+            "auth_boundary",
+            "backend_health",
+            "crawler_admin",
+            "export_package",
+            "observability",
+            "quota_rate_limit",
+            "signed_download",
+            "web",
+            "worker_task",
         },
     }
     for path, evidence in passed_reports:
@@ -4510,7 +4522,7 @@ def validate_staging_observability_backup_load_preflight_evidence() -> None:
         evidence["kind"] == "staging_observability_backup_load_preflight",
         "preflight evidence must use the observability/backup/load preflight kind",
     )
-    require(evidence["status"] == "blocked", "preflight evidence must remain blocked without restore/load evidence")
+    require(evidence["status"] == "blocked", "preflight evidence must remain blocked without restore/load/post-deploy evidence")
     require(
         evidence["release_sha"] == load_json(STAGING_OBSERVABILITY_RUNTIME_EVIDENCE)["release_sha"],
         "preflight evidence must use the validated staging observability release SHA",
@@ -4540,8 +4552,16 @@ def validate_staging_observability_backup_load_preflight_evidence() -> None:
         "preflight evidence must not fabricate load input",
     )
     require(
-        set(evidence["blocked_slots"]) == {"backup_restore_evidence", "load_evidence"},
-        "preflight evidence must block only backup/restore and load after observability verifies",
+        evidence["inputs"]["post_deploy_smoke_evidence"] == "",
+        "preflight evidence must not fabricate post-deploy smoke input",
+    )
+    require(
+        set(evidence["blocked_slots"]) == {
+            "backup_restore_evidence",
+            "load_evidence",
+            "post_deploy_smoke_evidence",
+        },
+        "preflight evidence must block only backup/restore, load, and post-deploy smoke after observability verifies",
     )
     require(
         "observability_evidence" not in evidence["blocked_slots"],
@@ -4550,6 +4570,7 @@ def validate_staging_observability_backup_load_preflight_evidence() -> None:
     for prefix in [
         "unverified_backup_restore_evidence:not_local_file:missing",
         "unverified_load_evidence:not_local_file:missing",
+        "unverified_post_deploy_smoke_evidence:not_local_file:missing",
     ]:
         require(prefix in evidence["blocking_reasons"], f"preflight evidence missing blocker {prefix}")
     require(
@@ -4558,8 +4579,13 @@ def validate_staging_observability_backup_load_preflight_evidence() -> None:
     )
     checks = {check["slot"]: check for check in evidence["checks"]}
     require(
-        set(checks) == {"observability_evidence", "backup_restore_evidence", "load_evidence"},
-        "preflight evidence must contain all three evidence-slot checks",
+        set(checks) == {
+            "observability_evidence",
+            "backup_restore_evidence",
+            "load_evidence",
+            "post_deploy_smoke_evidence",
+        },
+        "preflight evidence must contain all four evidence-slot checks",
     )
     observability = checks["observability_evidence"]
     require(observability["verified"] is True, "preflight evidence must verify staging observability")
@@ -4606,7 +4632,7 @@ def validate_staging_observability_backup_load_preflight_evidence() -> None:
             any(str(ref).startswith("ops/evidence/staging/") for ref in refs),
             f"preflight observability entry {entry_id} must cite staging evidence",
         )
-    for slot in ["backup_restore_evidence", "load_evidence"]:
+    for slot in ["backup_restore_evidence", "load_evidence", "post_deploy_smoke_evidence"]:
         check = checks[slot]
         require(check["verified"] is False, f"preflight {slot} must remain unverified")
         require(check["ref"] == "", f"preflight {slot} must have no input ref")
@@ -4638,8 +4664,12 @@ def validate_staging_observability_backup_load_preflight_evidence() -> None:
         "preflight evidence must preserve the restore/load Do-Not-Launch condition",
     )
     require(
-        set(gate_impact["blocked_slots"]) == {"backup_restore_evidence", "load_evidence"},
-        "preflight gate impact must block only backup/restore and load",
+        set(gate_impact["blocked_slots"]) == {
+            "backup_restore_evidence",
+            "load_evidence",
+            "post_deploy_smoke_evidence",
+        },
+        "preflight gate impact must block only backup/restore, load, and post-deploy smoke",
     )
 
 
@@ -6544,6 +6574,22 @@ def validate_ops_ci_and_drill_evidence() -> None:
         "staging observability/backup/load preflight missing load entries",
     )
     require(
+        {
+            "backend_health",
+            "web",
+            "admin",
+            "auth_boundary",
+            "worker_task",
+            "export_package",
+            "signed_download",
+            "crawler_admin",
+            "quota_rate_limit",
+            "observability",
+        }
+        <= set(staging_obl.get("required_post_deploy_smoke_entries", [])),
+        "staging observability/backup/load preflight missing post-deploy smoke entries",
+    )
+    require(
         "open until the preflight passes with real staging evidence" in staging_obl.get("private_beta_gate", ""),
         "staging observability/backup/load preflight must keep private beta gate open",
     )
@@ -6554,7 +6600,7 @@ def validate_ops_ci_and_drill_evidence() -> None:
     )
     require(
         "observability input verifies" in staging_obl.get("runtime_status", "")
-        and "backup/restore and load inputs are absent" in staging_obl.get("runtime_status", ""),
+        and "backup/restore, load, and post-deploy smoke inputs are absent" in staging_obl.get("runtime_status", ""),
         "drill plan must record the latest partial preflight state without closing the gate",
     )
     require(
@@ -6737,7 +6783,7 @@ def validate_ops_ci_and_drill_evidence() -> None:
     )
     require(
         "latest preflight verifies staging observability" in staging_obl.get("runtime_status", "")
-        and "blocked on missing backup/restore and load evidence" in staging_obl.get("runtime_status", ""),
+        and "blocked on missing backup/restore, load, and post-deploy smoke evidence" in staging_obl.get("runtime_status", ""),
         "release ops evidence must preserve the partial preflight blocker split",
     )
     policy = release_ops["checklist_policy"]

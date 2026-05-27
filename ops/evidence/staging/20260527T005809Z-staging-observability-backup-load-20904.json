@@ -1,0 +1,232 @@
+{
+  "blocked_slots": [
+    "backup_restore_evidence",
+    "load_evidence",
+    "post_deploy_smoke_evidence"
+  ],
+  "blocking_reasons": [
+    "unverified_backup_restore_evidence:not_local_file:missing",
+    "unverified_load_evidence:not_local_file:missing",
+    "unverified_post_deploy_smoke_evidence:not_local_file:missing"
+  ],
+  "blueprint_checklist_item": "Private Beta/Staging observability/backup/load runtime evidence \u901a\u8fc7\u3002",
+  "blueprint_source": "Docs/stage0_blueprint_rev2.md",
+  "checks": [
+    {
+      "entries_missing_evidence_refs": [],
+      "entry_evidence_refs": {
+        "alert_routes": [
+          "ops/evidence/staging/20260526T1000Z-alert-runtime.json",
+          "ops/observability/alerts/stage0_rev2_alerts.json",
+          "https://monitoring.zenart.internal/alerts/stage0-rev2"
+        ],
+        "backend_worker_crawler_metrics": [
+          "ops/evidence/staging/20260527T1215Z-backend-worker-crawler-metrics.json",
+          "staging-metrics-backend-api-20260527T1215Z",
+          "staging-metrics-worker-20260527T1215Z",
+          "staging-metrics-crawler-20260527T1215Z",
+          "release_sha=d3b1107c33dc40b8936f28549e06553fbd7b104a service=backend_api|worker|crawler"
+        ],
+        "dashboard_import": [
+          "ops/evidence/staging/20260526T1000Z-dashboard-runtime.json",
+          "ops/observability/dashboards/stage0_rev2_overview.json",
+          "stage0-rev2-overview-staging-20260526"
+        ],
+        "opentelemetry_traces": [
+          "ops/evidence/staging/20260527T1815Z-observability-telemetry.json",
+          "staging-otel-admin-api-worker-crawler-20260527T1815Z",
+          "tr-1004"
+        ],
+        "request_id_propagation": [
+          "ops/evidence/staging/20260527T1815Z-observability-telemetry.json",
+          "staging-request-id-admin-api-worker-crawler-20260527T1815Z",
+          "tr-1004"
+        ],
+        "structured_json_logs": [
+          "ops/evidence/staging/20260527T1815Z-observability-telemetry.json",
+          "staging-json-logs-admin-api-worker-crawler-20260527T1815Z",
+          "release_sha=d3b1107c33dc40b8936f28549e06553fbd7b104a request_id=req-stg-7f3a"
+        ]
+      },
+      "expected_environment": "staging",
+      "expected_kind": "observability",
+      "missing_entries": [],
+      "not_passed_entries": [],
+      "ref": "ops/evidence/staging/20260527T1830Z-observability-runtime.json",
+      "required_entries": [
+        "alert_routes",
+        "backend_worker_crawler_metrics",
+        "dashboard_import",
+        "opentelemetry_traces",
+        "request_id_propagation",
+        "structured_json_logs"
+      ],
+      "required_evidence_path_prefix": "ops/evidence/staging/",
+      "semantic_checks": {
+        "environment_staging": true,
+        "kind_match": true,
+        "local_json_file": true,
+        "release_sha_match": true,
+        "release_sha_present": true,
+        "required_entries_have_evidence_refs": true,
+        "required_entries_passed": true,
+        "required_entries_present": true,
+        "staging_evidence_path": true,
+        "status_passed": true
+      },
+      "slot": "observability_evidence",
+      "verified": true
+    },
+    {
+      "entries_missing_evidence_refs": [],
+      "entry_evidence_refs": {},
+      "expected_environment": "staging",
+      "expected_kind": "backup_restore",
+      "missing_entries": [
+        "object_restore",
+        "postgres_restore"
+      ],
+      "not_passed_entries": [],
+      "reason": "not_local_file:missing",
+      "ref": "",
+      "required_entries": [
+        "object_restore",
+        "postgres_restore"
+      ],
+      "required_evidence_path_prefix": "ops/evidence/staging/",
+      "semantic_checks": {
+        "environment_staging": false,
+        "kind_match": false,
+        "local_json_file": false,
+        "release_sha_match": false,
+        "release_sha_present": true,
+        "required_entries_have_evidence_refs": false,
+        "required_entries_passed": false,
+        "required_entries_present": false,
+        "staging_evidence_path": false,
+        "status_passed": false
+      },
+      "slot": "backup_restore_evidence",
+      "verified": false
+    },
+    {
+      "entries_missing_evidence_refs": [],
+      "entry_evidence_refs": {},
+      "expected_environment": "staging",
+      "expected_kind": "load",
+      "missing_entries": [
+        "chat_task",
+        "crawler_throttle",
+        "quota_contention",
+        "signed_download",
+        "worker_generation",
+        "workspace_rendering",
+        "zip_export"
+      ],
+      "not_passed_entries": [],
+      "reason": "not_local_file:missing",
+      "ref": "",
+      "required_entries": [
+        "chat_task",
+        "crawler_throttle",
+        "quota_contention",
+        "signed_download",
+        "worker_generation",
+        "workspace_rendering",
+        "zip_export"
+      ],
+      "required_evidence_path_prefix": "ops/evidence/staging/",
+      "semantic_checks": {
+        "environment_staging": false,
+        "kind_match": false,
+        "local_json_file": false,
+        "release_sha_match": false,
+        "release_sha_present": true,
+        "required_entries_have_evidence_refs": false,
+        "required_entries_passed": false,
+        "required_entries_present": false,
+        "staging_evidence_path": false,
+        "status_passed": false
+      },
+      "slot": "load_evidence",
+      "verified": false
+    },
+    {
+      "entries_missing_evidence_refs": [],
+      "entry_evidence_refs": {},
+      "expected_environment": "staging",
+      "expected_kind": "post_deploy_smoke",
+      "missing_entries": [
+        "admin",
+        "auth_boundary",
+        "backend_health",
+        "crawler_admin",
+        "export_package",
+        "observability",
+        "quota_rate_limit",
+        "signed_download",
+        "web",
+        "worker_task"
+      ],
+      "not_passed_entries": [],
+      "reason": "not_local_file:missing",
+      "ref": "",
+      "required_entries": [
+        "admin",
+        "auth_boundary",
+        "backend_health",
+        "crawler_admin",
+        "export_package",
+        "observability",
+        "quota_rate_limit",
+        "signed_download",
+        "web",
+        "worker_task"
+      ],
+      "required_evidence_path_prefix": "ops/evidence/staging/",
+      "semantic_checks": {
+        "environment_staging": false,
+        "kind_match": false,
+        "local_json_file": false,
+        "release_sha_match": false,
+        "release_sha_present": true,
+        "required_entries_have_evidence_refs": false,
+        "required_entries_passed": false,
+        "required_entries_present": false,
+        "staging_evidence_path": false,
+        "status_passed": false
+      },
+      "slot": "post_deploy_smoke_evidence",
+      "verified": false
+    }
+  ],
+  "created_at": "20260527T005809Z",
+  "created_by_lane": "lane5",
+  "environment": "staging",
+  "evidence_path_policy": "ops/evidence/staging/",
+  "gate_impact": {
+    "aggregate_checklist_item": "Private Beta/Staging observability/backup/load runtime evidence \u901a\u8fc7\u3002",
+    "blocked_slots": [
+      "backup_restore_evidence",
+      "load_evidence",
+      "post_deploy_smoke_evidence"
+    ],
+    "can_clear_aggregate_item": false,
+    "preserved_do_not_launch_condition_id": "staging_observability_restore_load_missing",
+    "preserved_release_gate_check_id": "staging_observability_backup_load"
+  },
+  "inputs": {
+    "backup_restore_evidence": "",
+    "load_evidence": "",
+    "observability_evidence": "ops/evidence/staging/20260527T1830Z-observability-runtime.json",
+    "post_deploy_smoke_evidence": ""
+  },
+  "kind": "staging_observability_backup_load_preflight",
+  "private_beta_check_id": "staging_observability_backup_load",
+  "private_beta_gate": "open_until_this_preflight_passes_with_real_staging_evidence_and_release_gate_fixture_is_updated",
+  "production_gate": "open_until_ci_private_beta_and_production_backup_rollback_post_deploy_evidence_pass",
+  "release_gate_check_id": "staging_observability_backup_load",
+  "release_sha": "d3b1107c33dc40b8936f28549e06553fbd7b104a",
+  "run_id": "20260527T005809Z-staging-observability-backup-load-20904",
+  "status": "blocked"
+}

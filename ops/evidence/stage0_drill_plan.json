@@ -68,7 +68,8 @@
     "required_evidence_slots": [
       "OBSERVABILITY_EVIDENCE",
       "BACKUP_RESTORE_EVIDENCE",
-      "LOAD_EVIDENCE"
+      "LOAD_EVIDENCE",
+      "POST_DEPLOY_SMOKE_EVIDENCE"
     ],
     "required_observability_entries": [
       "request_id_propagation",
@@ -91,9 +92,21 @@
       "quota_contention",
       "workspace_rendering"
     ],
+    "required_post_deploy_smoke_entries": [
+      "backend_health",
+      "web",
+      "admin",
+      "auth_boundary",
+      "worker_task",
+      "export_package",
+      "signed_download",
+      "crawler_admin",
+      "quota_rate_limit",
+      "observability"
+    ],
     "script_contract_status": "validated_missing_evidence_blocks_by_default",
-    "latest_preflight_evidence": "ops/evidence/staging/20260527T004121Z-staging-observability-backup-load-77078.json",
-    "runtime_status": "observability input verifies against ops/evidence/staging/20260527T1830Z-observability-runtime.json, but backup/restore and load inputs are absent; preflight exits 2 and keeps the combined private beta gate open",
+    "latest_preflight_evidence": "ops/evidence/staging/20260527T005809Z-staging-observability-backup-load-20904.json",
+    "runtime_status": "observability input verifies against ops/evidence/staging/20260527T1830Z-observability-runtime.json, but backup/restore, load, and post-deploy smoke inputs are absent; preflight exits 2 and keeps the combined private beta gate open",
     "private_beta_gate": "open until the preflight passes with real staging evidence and the private beta release gate fixture is updated by validator-owned evidence"
   },
   "security_scans": {

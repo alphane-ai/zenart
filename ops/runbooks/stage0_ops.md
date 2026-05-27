@@ -154,13 +154,14 @@ Each run writes a JSON summary and NDJSON request records under `ops/evidence/lo
 
 ## Staging Observability Backup Load Preflight
 
-The private beta `staging_observability_backup_load` check stays open until staging evidence exists for observability, restore, and load in one release-SHA-bound bundle. Use this preflight after the individual staging artifacts have been produced and before running the full post-deploy smoke bundle:
+The private beta `staging_observability_backup_load` check stays open until staging evidence exists for observability, restore, load, and post-deploy smoke in one release-SHA-bound bundle. Use this preflight after the individual staging artifacts have been produced and after the full post-deploy smoke bundle has written its staging report:
 
 ```bash
 RELEASE_SHA=<deploy-sha> \
 OBSERVABILITY_EVIDENCE=ops/evidence/staging/<observability>.json \
 BACKUP_RESTORE_EVIDENCE=ops/evidence/staging/<backup-restore>.json \
 LOAD_EVIDENCE=ops/evidence/staging/<load>.json \
+POST_DEPLOY_SMOKE_EVIDENCE=ops/evidence/staging/<post-deploy-smoke>.json \
 scripts/staging_observability_backup_load_smoke.sh
 ```
 
