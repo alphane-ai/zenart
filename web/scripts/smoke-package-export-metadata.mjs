@@ -10,6 +10,7 @@ const ecommerceSmokePath = path.join(root, "validation", "ecommerce-growth-web-s
 const componentPath = path.join(root, "components", "workspace-app.tsx");
 const workspaceSmokeTestPath = path.join(root, "components", "workspace-app.smoke.test.tsx");
 const referenceExportPlaywrightSpecPath = path.join(root, "tests", "reference-export.spec.ts");
+const packageExportPlaywrightSpecPath = path.join(root, "tests", "package-export-metadata.spec.ts");
 const devStatePath = path.join(root, "lib", "dev-state.ts");
 const contractsPath = path.join(root, "lib", "contracts.ts");
 const downloadPath = path.join(root, "lib", "export-download.ts");
@@ -27,6 +28,7 @@ const [
   componentSource,
   workspaceSmokeTestSource,
   referenceExportPlaywrightSpecSource,
+  packageExportPlaywrightSpecSource,
   devStateSource,
   contractsSource,
   downloadSource
@@ -38,6 +40,7 @@ const [
   readFile(componentPath, "utf8"),
   readFile(workspaceSmokeTestPath, "utf8"),
   readFile(referenceExportPlaywrightSpecPath, "utf8"),
+  readFile(packageExportPlaywrightSpecPath, "utf8"),
   readFile(devStatePath, "utf8"),
   readFile(contractsPath, "utf8"),
   readFile(downloadPath, "utf8")
@@ -66,6 +69,36 @@ if (
   artifact.checklistPolicy?.productionPolicyGateRemainsOpen !== true
 ) {
   fail("artifact must be a passing user-web static smoke that keeps runtime gates open");
+}
+
+if (
+  artifact.browserEvidence?.config !== "web/playwright.config.ts" ||
+  artifact.browserEvidence?.test !== "web/tests/package-export-metadata.spec.ts" ||
+  artifact.browserEvidence?.script !== "npm run smoke:package-export-metadata-playwright" ||
+  artifact.browserEvidence?.scenario !== "package-export-metadata-download-parity-browser" ||
+  artifact.browserEvidence?.route !== "/export"
+) {
+  fail("artifact must pin the package/export metadata browser smoke");
+}
+
+for (const assertion of artifact.browserEvidence?.requiredAssertions ?? []) {
+  if (!packageExportPlaywrightSpecSource.includes(assertion)) {
+    fail(`package/export metadata browser smoke missing assertion ${assertion}`);
+  }
+}
+
+for (const expectedBrowserSnippet of [
+  "data-package-export-metadata-status",
+  "data-package-export-zip-payload-parity-status",
+  "data-package-export-workflow-metadata-payload-present",
+  "data-export-zip-payload-smoke",
+  "data-export-download-parity-payloads-match",
+  "data-export-download-handoff",
+  "download.suggestedFilename()"
+]) {
+  if (!packageExportPlaywrightSpecSource.includes(expectedBrowserSnippet)) {
+    fail(`package/export metadata browser smoke missing ${expectedBrowserSnippet}`);
+  }
 }
 
 const securityEvidenceBySchema = new Map(

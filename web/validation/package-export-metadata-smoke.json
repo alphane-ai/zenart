@@ -11,6 +11,26 @@
     "productionPolicyGateRemainsOpen": true,
     "reason": "This artifact validates user-web package/export metadata UI and download-planner contracts only. Runtime release gates still require their validator-owned staging or production evidence."
   },
+  "browserEvidence": {
+    "config": "web/playwright.config.ts",
+    "test": "web/tests/package-export-metadata.spec.ts",
+    "script": "npm run smoke:package-export-metadata-playwright",
+    "scenario": "package-export-metadata-download-parity-browser",
+    "route": "/export",
+    "requiredAssertions": [
+      "export route exposes package metadata, ZIP payload, and download parity browser evidence",
+      "data-package-export-metadata-ui='stage0.rev2.package-export-metadata-ui'",
+      "data-package-export-metadata-status",
+      "data-package-export-zip-payload-parity-status",
+      "data-package-export-workflow-metadata-payload-present",
+      "Package export payload status matrix",
+      "data-export-zip-payload-smoke",
+      "data-export-download-parity-status",
+      "data-export-download-parity-payloads-match",
+      "data-export-download-handoff",
+      "download.suggestedFilename()"
+    ]
+  },
   "evidence": {
     "route": "/export",
     "source": "web/components/workspace-app.tsx",
