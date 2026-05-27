@@ -1,0 +1,182 @@
+{
+  "admin_tenant_id": "",
+  "admin_user_id": "",
+  "base_url": "",
+  "blocked_checks": [
+    "retention_policy:missing_staging_base_url_or_explicit_probe_urls",
+    "expired_export_cleanup:missing_staging_base_url_or_explicit_probe_urls",
+    "orphan_cleanup:missing_staging_base_url_or_explicit_probe_urls",
+    "audit_refs:missing_staging_base_url_or_explicit_probe_urls"
+  ],
+  "blueprint_source": "Docs/stage0_blueprint_rev2.md",
+  "coverage": [
+    {
+      "area": "retention_policy",
+      "evidence_path_policy": "ops/evidence/staging/",
+      "evidence_refs": [
+        "ops/evidence/staging/object-storage-retention-cleanup.blocked.ndjson",
+        "ops/evidence/staging/object-storage-retention-cleanup.blocked.json"
+      ],
+      "expected_tokens": [
+        "retention policy",
+        "versioning",
+        "retention_until",
+        "tenant"
+      ],
+      "runtime_probe": "Staging object storage retention cleanup probe verifies retention policy with release-SHA-bound admin runtime evidence and audit context.",
+      "source_results": [
+        {
+          "body_path": null,
+          "check_id": "retention_policy",
+          "expected_tokens": [
+            "retention policy",
+            "versioning",
+            "retention_until",
+            "tenant"
+          ],
+          "http_status": null,
+          "method": "GET",
+          "reason": "missing_staging_base_url_or_explicit_probe_urls",
+          "status": "blocked",
+          "url": ""
+        }
+      ],
+      "status": "blocked"
+    },
+    {
+      "area": "expired_export_cleanup",
+      "evidence_path_policy": "ops/evidence/staging/",
+      "evidence_refs": [
+        "ops/evidence/staging/object-storage-retention-cleanup.blocked.ndjson",
+        "ops/evidence/staging/object-storage-retention-cleanup.blocked.json"
+      ],
+      "expected_tokens": [
+        "expired export cleanup",
+        "deleted",
+        "retained",
+        "audit"
+      ],
+      "runtime_probe": "Staging object storage retention cleanup probe verifies expired export cleanup with release-SHA-bound admin runtime evidence and audit context.",
+      "source_results": [
+        {
+          "body_path": null,
+          "check_id": "expired_export_cleanup",
+          "expected_tokens": [
+            "expired export cleanup",
+            "deleted",
+            "retained",
+            "audit"
+          ],
+          "http_status": null,
+          "method": "POST",
+          "reason": "missing_staging_base_url_or_explicit_probe_urls",
+          "status": "blocked",
+          "url": ""
+        }
+      ],
+      "status": "blocked"
+    },
+    {
+      "area": "orphan_cleanup",
+      "evidence_path_policy": "ops/evidence/staging/",
+      "evidence_refs": [
+        "ops/evidence/staging/object-storage-retention-cleanup.blocked.ndjson",
+        "ops/evidence/staging/object-storage-retention-cleanup.blocked.json"
+      ],
+      "expected_tokens": [
+        "orphan cleanup",
+        "deleted",
+        "retained",
+        "audit"
+      ],
+      "runtime_probe": "Staging object storage retention cleanup probe verifies orphan cleanup with release-SHA-bound admin runtime evidence and audit context.",
+      "source_results": [
+        {
+          "body_path": null,
+          "check_id": "orphan_cleanup",
+          "expected_tokens": [
+            "orphan cleanup",
+            "deleted",
+            "retained",
+            "audit"
+          ],
+          "http_status": null,
+          "method": "POST",
+          "reason": "missing_staging_base_url_or_explicit_probe_urls",
+          "status": "blocked",
+          "url": ""
+        }
+      ],
+      "status": "blocked"
+    },
+    {
+      "area": "audit_refs",
+      "evidence_path_policy": "ops/evidence/staging/",
+      "evidence_refs": [
+        "ops/evidence/staging/object-storage-retention-cleanup.blocked.ndjson",
+        "ops/evidence/staging/object-storage-retention-cleanup.blocked.json"
+      ],
+      "expected_tokens": [
+        "audit",
+        "object_storage_cleanup",
+        "admin",
+        "tenant"
+      ],
+      "runtime_probe": "Staging object storage retention cleanup probe verifies audit refs with release-SHA-bound admin runtime evidence and audit context.",
+      "source_results": [
+        {
+          "body_path": null,
+          "check_id": "audit_refs",
+          "expected_tokens": [
+            "audit",
+            "object_storage_cleanup",
+            "admin",
+            "tenant"
+          ],
+          "http_status": null,
+          "method": "GET",
+          "reason": "missing_staging_base_url_or_explicit_probe_urls",
+          "status": "blocked",
+          "url": ""
+        }
+      ],
+      "status": "blocked"
+    }
+  ],
+  "do_not_launch_condition_id": "object_storage_signed_retention_runtime_missing",
+  "environment": "staging",
+  "evidence_id": "object-storage-retention-cleanup",
+  "gate_impact": {
+    "can_clear_release_gate_check": false,
+    "can_clear_retention_cleanup_checklist_item": false,
+    "check_level_item": "Private Beta/Staging object retention/cleanup runtime evidence \u901a\u8fc7\uff1astaging evidence proves retention policy, expired export cleanup, orphan cleanup, and audit refs under `ops/evidence/staging/`\u3002",
+    "preserved_do_not_launch_condition_id": "object_storage_signed_retention_runtime_missing",
+    "preserved_release_gate_check_id": "staging_object_storage_signed_downloads",
+    "remaining_release_gate_blockers_after_pass": [
+      "staging_object_storage_signed_downloads"
+    ],
+    "requires_release_gate_fixture_update_after_pass": false
+  },
+  "kind": "object_storage_retention_cleanup",
+  "release_gate_check_id": "staging_object_storage_signed_downloads",
+  "release_sha": "",
+  "required_checks": [
+    "audit_refs",
+    "expired_export_cleanup",
+    "orphan_cleanup",
+    "retention_policy"
+  ],
+  "results_path": "ops/evidence/staging/object-storage-retention-cleanup.blocked.ndjson",
+  "schema_version": "stage0.rev2.staging.object_storage_retention_cleanup",
+  "split_evidence": {
+    "release_sha_matches_signed_url": false,
+    "retention_cleanup_ready": false,
+    "retention_cleanup_runtime_ready": false,
+    "signed_url_evidence": "ops/evidence/staging/20260527T2130Z-object-storage-signed-url.json",
+    "signed_url_ready": true,
+    "signed_url_reason": "signed_url_runtime_evidence_ready",
+    "signed_url_release_sha": "d3b1107c33dc40b8936f28549e06553fbd7b104a"
+  },
+  "status": "blocked",
+  "validated_by_role": "admin_operator"
+}

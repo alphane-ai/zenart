@@ -25,6 +25,7 @@ STAGING_LOAD = ROOT / "ops/evidence/staging/20260527T2120Z-load.json"
 STAGING_POST_DEPLOY_SMOKE = ROOT / "ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json"
 STAGING_LEGAL_EXTERNAL_PAGES = ROOT / "ops/evidence/staging/legal-pages-external-user.json"
 STAGING_SUPPORT_CONTACT_VISIBILITY = ROOT / "ops/evidence/staging/support-contact-external-user.json"
+STAGING_OBJECT_RETENTION_BLOCKED = ROOT / "ops/evidence/staging/object-storage-retention-cleanup.blocked.json"
 RUNTIME_CHECKLIST_GROUPS = {
     "Crawler governance runtime": [
         "crawler fetch/import 强制 source approval runtime gate。",
@@ -216,6 +217,21 @@ def staging_object_storage_signed_url_summary() -> str:
 def staging_object_storage_retention_cleanup_summary() -> str:
     path = ROOT / "ops/evidence/staging/object-storage-retention-cleanup.json"
     if not path.exists():
+        if STAGING_OBJECT_RETENTION_BLOCKED.exists():
+            evidence = load_json(STAGING_OBJECT_RETENTION_BLOCKED)
+            blocked_checks = evidence.get("blocked_checks", [])
+            blocked_count = len(blocked_checks) if isinstance(blocked_checks, list) else 0
+            reason = "missing staging base URL or explicit probe URLs"
+            if blocked_checks and all(
+                isinstance(item, str) and "missing_staging_base_url_or_explicit_probe_urls" in item
+                for item in blocked_checks
+            ):
+                reason = "missing STAGING_BASE_URL or explicit retention/audit probe URLs"
+            return (
+                f"`blocked` from `{STAGING_OBJECT_RETENTION_BLOCKED.relative_to(ROOT)}` with "
+                f"{blocked_count}/4 probes blocked by {reason}; canonical pass evidence is still missing at "
+                "`ops/evidence/staging/object-storage-retention-cleanup.json`, so the object-storage gate remains open"
+            )
         return (
             "`missing`; run `scripts/staging_object_storage_retention_cleanup_smoke.sh` against staging and "
             "write `ops/evidence/staging/object-storage-retention-cleanup.json` proving retention policy, "

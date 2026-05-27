@@ -44,7 +44,8 @@
       "script": "scripts/staging_object_storage_retention_cleanup_smoke.sh",
       "evidence_path_policy": "ops/evidence/staging/",
       "expected_retention_cleanup_evidence": "ops/evidence/staging/object-storage-retention-cleanup.json",
-      "runtime_status": "requires real staging admin probes for retention policy, expired export cleanup, orphan cleanup, and audit refs; dry-run or missing staging URL evidence remains blocked and cannot close the object-storage gate",
+      "latest_blocked_evidence": "ops/evidence/staging/object-storage-retention-cleanup.blocked.json",
+      "runtime_status": "requires real staging admin probes for retention policy, expired export cleanup, orphan cleanup, and audit refs; latest execution wrote blocked evidence because STAGING_BASE_URL or explicit retention/audit probe URLs were missing; dry-run or missing staging URL evidence remains blocked and cannot close the object-storage gate",
       "private_beta_gate": "open until ops/evidence/staging/object-storage-retention-cleanup.json passes with release_gate_check_id=staging_object_storage_signed_downloads and can_clear_release_gate_check=true"
     },
     "staging_legal_support_visibility_smoke": {

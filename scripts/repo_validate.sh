@@ -234,7 +234,7 @@ required_fragments = [
     "Rollback drill: `missing`; staging JSON must reference the release SHA, set `environment=staging`, set `kind=rollback`, record status `passed` or `validated`, and include passed/validated evidence refs for image rollback, feature flag rollback, migration compatibility, worker drain, and post-rollback smoke.",
     "Security scan: local status `passed` from `ops/evidence/security/local/20260526T142040Z-security-scan-smoke-65314.json`; staging JSON must reference the release SHA, set `environment=staging`, set `kind=security_scan`, record status `passed`, and include passed/validated evidence refs for dependency, image/container, and committed-secret scans before private beta/production decisions.",
     "Object-storage signed URL: staging status `pass_with_blockers_preserved` from `ops/evidence/staging/20260527T2130Z-object-storage-signed-url.json` with 4/4 signed URL probes validator-visible; retention/cleanup evidence still required; object retention policy, expired export cleanup, orphan cleanup, and audit refs remain required before the object-storage gate can close.",
-    "Object-storage retention cleanup: `missing`; run `scripts/staging_object_storage_retention_cleanup_smoke.sh` against staging and write `ops/evidence/staging/object-storage-retention-cleanup.json` proving retention policy, expired export cleanup, orphan cleanup, and audit refs before the object-storage gate can close.",
+    "Object-storage retention cleanup: `blocked` from `ops/evidence/staging/object-storage-retention-cleanup.blocked.json` with 4/4 probes blocked by missing STAGING_BASE_URL or explicit retention/audit probe URLs; canonical pass evidence is still missing at `ops/evidence/staging/object-storage-retention-cleanup.json`, so the object-storage gate remains open.",
     "Legal/support external-user visibility: staging split status `pass,pass` from `ops/evidence/staging/legal-pages-external-user.json` and `ops/evidence/staging/support-contact-external-user.json`; external-user legal/support visibility is validator-visible.",
     "Operational risks: staging rollback evidence remains absent; staging backup/restore, load, post-deploy smoke, and legal/support visibility evidence are attached, but object-retention, CI, and production gates remain open.",
     "Object-storage risks: signed URL staging evidence is attached, but retention/cleanup runtime evidence still blocks the object-storage release gate.",
@@ -245,6 +245,28 @@ required_fragments = [
 missing = [fragment for fragment in required_fragments if fragment not in notes]
 if missing:
     raise SystemExit(f"release no-go notes missing required fragments: {missing}")
+blocked_retention_path = Path("ops/evidence/staging/object-storage-retention-cleanup.blocked.json")
+canonical_retention_path = Path("ops/evidence/staging/object-storage-retention-cleanup.json")
+if not blocked_retention_path.exists():
+    raise SystemExit("blocked object-storage retention cleanup evidence must exist after the staging probe attempt")
+if canonical_retention_path.exists():
+    raise SystemExit("canonical object-storage retention cleanup pass evidence must not exist while the gate is blocked")
+blocked_retention = json.loads(blocked_retention_path.read_text(encoding="utf-8"))
+if blocked_retention.get("status") != "blocked":
+    raise SystemExit("blocked object-storage retention cleanup evidence must keep status=blocked")
+if blocked_retention.get("release_gate_check_id") != "staging_object_storage_signed_downloads":
+    raise SystemExit("blocked object-storage retention cleanup evidence must target staging_object_storage_signed_downloads")
+if blocked_retention.get("gate_impact", {}).get("can_clear_release_gate_check") is not False:
+    raise SystemExit("blocked object-storage retention cleanup evidence must not clear the object-storage gate")
+if set(blocked_retention.get("required_checks", [])) != {
+    "retention_policy",
+    "expired_export_cleanup",
+    "orphan_cleanup",
+    "audit_refs",
+}:
+    raise SystemExit("blocked object-storage retention cleanup evidence must retain all required probes")
+if any("missing_staging_base_url_or_explicit_probe_urls" not in item for item in blocked_retention.get("blocked_checks", [])):
+    raise SystemExit("blocked object-storage retention cleanup evidence must explain the missing staging probe URLs")
 obsolete_fragments = [
     "Observability runtime: staging request id propagation runtime evidence 通过",
     "staging observability, restore, rollback, load, and post-deploy smoke evidence are absent",
