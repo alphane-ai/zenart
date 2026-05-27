@@ -677,6 +677,51 @@ test("admin bad samples convert into regression fixtures before release gates pa
     }
   }
 
+  const crawlerTakedownRegression = regressionFixtures.find((fixture) => fixture.failureMode === "crawler_takedown_activation");
+  assert.ok(crawlerTakedownRegression, "crawler takedown bad samples need an activation-blocking regression fixture");
+  assert.equal(crawlerTakedownRegression.status, "eval_blocking");
+  assert.equal(crawlerTakedownRegression.sourceFeedbackId, "sup-2212");
+  assert.equal(crawlerTakedownRegression.linkedAuditRef, "au-012");
+
+  const crawlerTakedownFixture = JSON.parse(
+    readFileSync(new URL(crawlerTakedownRegression.fixturePath, repoRoot), "utf8")
+  );
+  assert.equal(crawlerTakedownFixture.failure_mode, "crawler_takedown_activation");
+  assert.equal(crawlerTakedownFixture.bad_sample.governance_workflow_id, "cg-501");
+  assert.equal(crawlerTakedownFixture.bad_sample.finding_id, "cf-118");
+  assert.equal(crawlerTakedownFixture.bad_sample.source_approval_id, "csa-021");
+  assert.ok(
+    crawlerTakedownFixture.expected_assertions.includes("activation_gate_decision == blocked"),
+    "crawler takedown regression must assert activation remains blocked"
+  );
+  assert.ok(
+    crawlerTakedownFixture.expected_assertions.includes("raw_and_derivative_delete_evidence_present == true"),
+    "crawler takedown regression must require deletion evidence"
+  );
+  assert.ok(
+    crawlerTakedownFixture.expected_assertions.includes("requester_notice_evidence_present == true"),
+    "crawler takedown regression must require requester notice evidence"
+  );
+  assert.ok(
+    crawlerTakedownFixture.expected_assertions.includes("second_review_completed_before_activation == true"),
+    "crawler takedown regression must require second review before activation"
+  );
+  assert.equal(crawlerTakedownFixture.release_block.audit_ref, "au-012");
+
+  const takedownWorkflow = crawlerGovernanceWorkflows.find((workflow) => workflow.id === crawlerTakedownFixture.bad_sample.governance_workflow_id);
+  const blockedSourceApproval = crawlerSourceApprovals.find((approval) => approval.id === crawlerTakedownFixture.bad_sample.source_approval_id);
+  assert.ok(takedownWorkflow, "crawler takedown regression links unknown governance workflow");
+  assert.ok(blockedSourceApproval, "crawler takedown regression links unknown source approval");
+  assert.equal(takedownWorkflow.findingId, crawlerTakedownFixture.bad_sample.finding_id);
+  assert.equal(blockedSourceApproval.linkedFindingId, crawlerTakedownFixture.bad_sample.finding_id);
+  assert.equal(takedownWorkflow.requestType, "source_takedown");
+  assert.equal(takedownWorkflow.activationGateDecision, "blocked");
+  assert.equal(takedownWorkflow.rawRetentionAction, "delete_raw_and_derivatives");
+  assert.equal(takedownWorkflow.secondReviewRequired, true);
+  assert.notEqual(takedownWorkflow.requesterNoticeRef, "pending");
+  assert.notEqual(takedownWorkflow.deletionEvidenceRef, "pending");
+  assert.equal(blockedSourceApproval.activationGate, "blocked");
+
   for (const item of feedbackItems) {
     if (item.filterDecision === "eligible" && item.regressionFixtureRef.startsWith("fixtures/")) {
       assert.ok(

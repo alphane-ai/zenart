@@ -284,6 +284,7 @@ export type RegressionFixture = {
     | "brand_similarity"
     | "structured_text_readability"
     | "export_manifest_completeness"
+    | "crawler_takedown_activation"
     | "safety_policy_miss";
   severity: RiskLevel;
   status: RegressionFixtureStatus;

@@ -1313,6 +1313,26 @@ export const regressionFixtures: RegressionFixture[] = [
     linkedAuditRef: "au-011",
     reviewerRationale:
       "A support-linked export failure became a regression fixture so future release gates cannot pass on visual output alone."
+  },
+  {
+    id: "reg-crawler-takedown-sup-2212",
+    sourceFeedbackId: "sup-2212",
+    sourceKind: "support_ticket",
+    fixturePath: "fixtures/stage0/rev2/regressions/crawler_takedown_sup_2212.json",
+    workflowId: "wf-812",
+    skillVersionId: "sv-240",
+    failureMode: "crawler_takedown_activation",
+    severity: "high",
+    status: "eval_blocking",
+    evalSuiteId: "es-stage0-brand",
+    requiredGate: "skill_canary",
+    expectedAssertion:
+      "Crawler-derived prompt or skill activation must remain blocked while takedown deletion evidence, requester notice, second-review completion, and immutable audit evidence are incomplete.",
+    owner: "legal-admin",
+    linkedCanaryMetric: "cm-014",
+    linkedAuditRef: "au-012",
+    reviewerRationale:
+      "The crawler support and takedown sample is eval-blocking because incomplete deletion or notice evidence could otherwise let rights-owner-disputed crawler material influence an active prompt or skill route."
   }
 ];
 
