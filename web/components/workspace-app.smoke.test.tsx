@@ -39,6 +39,23 @@ describe("WorkspaceApp user route integration smoke", () => {
       "Refresh Session",
       "Expire Session"
     ]);
+    expect(sessionContract).toHaveAttribute("data-session-unsafe-action-operation-count", "16");
+    expect(sessionContract).toHaveAttribute("data-session-unsafe-action-csrf-protected-operation-count", "13");
+    expect(sessionContract.getAttribute("data-session-unsafe-action-operation-contracts")).toContain(
+      "Confirm Brief=>createChatSession:POST:X-ZenArt-CSRF:true+createChatMessage:POST:X-ZenArt-CSRF:true+createCandidateSet:POST:X-ZenArt-CSRF:true"
+    );
+    expect(sessionContract.getAttribute("data-session-unsafe-action-operation-contracts")).toContain(
+      "Attach=>createUpload:POST:X-ZenArt-CSRF:true"
+    );
+    expect(sessionContract.getAttribute("data-session-unsafe-action-operation-contracts")).toContain(
+      "Save Settings=>updateAccount:PATCH:X-ZenArt-CSRF:true"
+    );
+    expect(sessionContract.getAttribute("data-session-unsafe-action-operation-contracts")).toContain(
+      "Refresh Session=>getSession:GET:not-required:false"
+    );
+    expect(sessionContract.getAttribute("data-session-unsafe-action-operation-contracts")).toContain(
+      "Expire Session=>deleteSession:DELETE:X-ZenArt-CSRF:false"
+    );
     expect(sessionContract).toHaveAttribute("data-session-cookie-name", "__Host-zenart_session");
     expect(sessionContract).toHaveAttribute("data-session-cookie-http-only", "true");
     expect(sessionContract).toHaveAttribute("data-session-cookie-secure", "true");
@@ -680,12 +697,17 @@ describe("WorkspaceApp user route integration smoke", () => {
         statusAttribute: "data-session-unsafe-action-status",
         safeLabelsAttribute: "data-session-unsafe-action-safe-labels",
         protectedMethodsAttribute: "data-session-unsafe-action-protected-methods",
+        operationCountAttribute: "data-session-unsafe-action-operation-count",
+        csrfProtectedOperationCountAttribute: "data-session-unsafe-action-csrf-protected-operation-count",
+        operationContractsAttribute: "data-session-unsafe-action-operation-contracts",
         expectedGuard: "authenticated-same-site-session",
         expectedEnabledStatus: "enabled",
         expectedBlockedStatus: "blocked",
         expectedSafeLabels: "load,login",
         expectedProtectedMethods: "POST,PUT,PATCH,DELETE",
         expectedGuardCount: "16",
+        expectedOperationCount: "16",
+        expectedCsrfProtectedOperationCount: "13",
         expectedGuardLabels: expect.arrayContaining([
           "Confirm Brief",
           "Attach",
@@ -703,6 +725,16 @@ describe("WorkspaceApp user route integration smoke", () => {
           "Submit Ticket",
           "Refresh Session",
           "Expire Session"
+        ]),
+        requiredOperationContracts: expect.arrayContaining([
+          "Confirm Brief=>createChatSession:POST:X-ZenArt-CSRF:true+createChatMessage:POST:X-ZenArt-CSRF:true+createCandidateSet:POST:X-ZenArt-CSRF:true",
+          "Attach=>createUpload:POST:X-ZenArt-CSRF:true",
+          "Package Reference=>createPackage:POST:X-ZenArt-CSRF:true",
+          "Select Candidate=>selectDirection:PUT:X-ZenArt-CSRF:true",
+          "Save Settings=>updateAccount:PATCH:X-ZenArt-CSRF:true",
+          "Submit Ticket=>createSupportTicket:POST:X-ZenArt-CSRF:true",
+          "Refresh Session=>getSession:GET:not-required:false",
+          "Expire Session=>deleteSession:DELETE:X-ZenArt-CSRF:false"
         ])
       }
     });

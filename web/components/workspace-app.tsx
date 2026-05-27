@@ -52,6 +52,24 @@ import { AnalyticsEventName, captureAnalyticsEvent, reportFrontendError } from "
 
 export type ViewKey = "workspace" | "projects" | "export" | "billing" | "account" | "support";
 
+type UnsafeActionGuardLabel =
+  | "Confirm Brief"
+  | "Attach"
+  | "Package Reference"
+  | "Select Candidate"
+  | "Iterate"
+  | "Restore Version"
+  | "Add Selection"
+  | "Export ZIP"
+  | "Export PDF"
+  | "Request Share"
+  | "Mock Checkout"
+  | "Billing Scenario"
+  | "Save Settings"
+  | "Submit Ticket"
+  | "Refresh Session"
+  | "Expire Session";
+
 const routeByView: Record<ViewKey, string> = {
   workspace: "/workspace",
   projects: "/project",
@@ -86,24 +104,41 @@ const severityClass: Record<QaSeverity, string> = {
 
 const sessionSecurityEvidenceSchema = "stage0.rev2.session-csrf-client-evidence";
 const sessionSafeActionLabels = new Set(["load", "login"]);
-const sameSiteUnsafeActionGuardLabels = [
-  "Confirm Brief",
-  "Attach",
-  "Package Reference",
-  "Select Candidate",
-  "Iterate",
-  "Restore Version",
-  "Add Selection",
-  "Export ZIP",
-  "Export PDF",
-  "Request Share",
-  "Mock Checkout",
-  "Billing Scenario",
-  "Save Settings",
-  "Submit Ticket",
-  "Refresh Session",
-  "Expire Session"
-] as const;
+const sameSiteUnsafeActionGuardMap = {
+  "Confirm Brief": ["createChatSession", "createChatMessage", "createCandidateSet"],
+  Attach: ["createUpload"],
+  "Package Reference": ["createPackage"],
+  "Select Candidate": ["selectDirection"],
+  Iterate: ["createCanvasNode", "createCanvasVersion"],
+  "Restore Version": ["createCanvasVersion"],
+  "Add Selection": ["createPackage"],
+  "Export ZIP": ["createExport"],
+  "Export PDF": ["createExport"],
+  "Request Share": ["createShareLink"],
+  "Mock Checkout": ["getSubscription"],
+  "Billing Scenario": ["getQuota", "getSubscription"],
+  "Save Settings": ["updateAccount"],
+  "Submit Ticket": ["createSupportTicket"],
+  "Refresh Session": ["getSession"],
+  "Expire Session": ["deleteSession"]
+} as const satisfies Record<UnsafeActionGuardLabel, ReadonlyArray<keyof typeof apiOperations>>;
+const sameSiteUnsafeActionGuardLabels = Object.keys(sameSiteUnsafeActionGuardMap) as UnsafeActionGuardLabel[];
+
+const formatUnsafeActionGuardContracts = () =>
+  sameSiteUnsafeActionGuardLabels
+    .map((label) => {
+      const operationContracts = sameSiteUnsafeActionGuardMap[label].map((operationId) => {
+        const operation = apiOperations[operationId];
+        const csrfHeader = operation.method === "GET" ? "not-required" : "X-ZenArt-CSRF";
+        return `${operationId}:${operation.method}:${csrfHeader}:${operation.idempotencyRequired}`;
+      });
+      return `${label}=>${operationContracts.join("+")}`;
+    })
+    .join("|");
+
+const guardedOperationIds = Array.from(
+  new Set(sameSiteUnsafeActionGuardLabels.flatMap((label) => sameSiteUnsafeActionGuardMap[label]))
+);
 
 const requiresAuthenticatedSession = (label: string) => !sessionSafeActionLabels.has(label);
 
@@ -359,6 +394,12 @@ function SessionPanel({
   const generatedRequestEvidence = buildGeneratedApiCsrfRequestContractEvidence(apiOperations, state.sessionContract.csrf);
   const csrfProtectedMethods = evidence.protectedMethods.join(", ");
   const sameSiteRequirement = state.sessionContract.csrf.sameSiteRequired;
+  const unsafeActionGuardContracts = formatUnsafeActionGuardContracts();
+  const unsafeActionCsrfProtectedOperationCount = guardedOperationIds.filter((operationId) =>
+    state.sessionContract.csrf.protectedMethods.includes(
+      apiOperations[operationId].method as (typeof state.sessionContract.csrf.protectedMethods)[number]
+    )
+  ).length;
   const cookieAttributes = [
     state.sessionContract.cookie.httpOnly ? "HttpOnly" : "client-readable",
     state.sessionContract.cookie.secure ? "Secure" : "insecure",
@@ -391,6 +432,9 @@ function SessionPanel({
       data-session-unsafe-action-protected-methods={state.sessionContract.csrf.protectedMethods.join(",")}
       data-session-unsafe-action-guard-count={sameSiteUnsafeActionGuardLabels.length}
       data-session-unsafe-action-guard-labels={sameSiteUnsafeActionGuardLabels.join("|")}
+      data-session-unsafe-action-operation-count={guardedOperationIds.length}
+      data-session-unsafe-action-csrf-protected-operation-count={unsafeActionCsrfProtectedOperationCount}
+      data-session-unsafe-action-operation-contracts={unsafeActionGuardContracts}
     >
       <div className="session-contract-main">
         <ShieldCheck size={18} aria-hidden="true" />

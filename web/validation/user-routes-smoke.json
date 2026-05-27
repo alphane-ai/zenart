@@ -160,12 +160,17 @@
         "protectedMethodsAttribute": "data-session-unsafe-action-protected-methods",
         "guardCountAttribute": "data-session-unsafe-action-guard-count",
         "guardLabelsAttribute": "data-session-unsafe-action-guard-labels",
+        "operationCountAttribute": "data-session-unsafe-action-operation-count",
+        "csrfProtectedOperationCountAttribute": "data-session-unsafe-action-csrf-protected-operation-count",
+        "operationContractsAttribute": "data-session-unsafe-action-operation-contracts",
         "expectedGuard": "authenticated-same-site-session",
         "expectedEnabledStatus": "enabled",
         "expectedBlockedStatus": "blocked",
         "expectedSafeLabels": "load,login",
         "expectedProtectedMethods": "POST,PUT,PATCH,DELETE",
         "expectedGuardCount": "16",
+        "expectedOperationCount": "16",
+        "expectedCsrfProtectedOperationCount": "13",
         "expectedGuardLabels": [
           "Confirm Brief",
           "Attach",
@@ -183,6 +188,24 @@
           "Submit Ticket",
           "Refresh Session",
           "Expire Session"
+        ],
+        "requiredOperationContracts": [
+          "Confirm Brief=>createChatSession:POST:X-ZenArt-CSRF:true+createChatMessage:POST:X-ZenArt-CSRF:true+createCandidateSet:POST:X-ZenArt-CSRF:true",
+          "Attach=>createUpload:POST:X-ZenArt-CSRF:true",
+          "Package Reference=>createPackage:POST:X-ZenArt-CSRF:true",
+          "Select Candidate=>selectDirection:PUT:X-ZenArt-CSRF:true",
+          "Iterate=>createCanvasNode:POST:X-ZenArt-CSRF:true+createCanvasVersion:POST:X-ZenArt-CSRF:true",
+          "Restore Version=>createCanvasVersion:POST:X-ZenArt-CSRF:true",
+          "Add Selection=>createPackage:POST:X-ZenArt-CSRF:true",
+          "Export ZIP=>createExport:POST:X-ZenArt-CSRF:true",
+          "Export PDF=>createExport:POST:X-ZenArt-CSRF:true",
+          "Request Share=>createShareLink:POST:X-ZenArt-CSRF:true",
+          "Mock Checkout=>getSubscription:GET:not-required:false",
+          "Billing Scenario=>getQuota:GET:not-required:false+getSubscription:GET:not-required:false",
+          "Save Settings=>updateAccount:PATCH:X-ZenArt-CSRF:true",
+          "Submit Ticket=>createSupportTicket:POST:X-ZenArt-CSRF:true",
+          "Refresh Session=>getSession:GET:not-required:false",
+          "Expire Session=>deleteSession:DELETE:X-ZenArt-CSRF:false"
         ]
       }
     },
