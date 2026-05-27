@@ -11,7 +11,7 @@ REQUEST_ID_HEADER="${REQUEST_ID_HEADER:-X-Request-ID}"
 REQUEST_ID_VALUE="${REQUEST_ID_VALUE:-stage0-staging-smoke}"
 OUT_DIR="${OUT_DIR:-ops/evidence/staging}"
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
-RUN_ID="${STAMP}-staging-smoke-$$"
+RUN_ID="${RUN_ID:-${STAMP}-staging-smoke-$$}"
 REPORT_PATH="$OUT_DIR/${RUN_ID}.json"
 RESULTS_PATH="$OUT_DIR/${RUN_ID}.ndjson"
 

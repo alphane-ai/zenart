@@ -372,6 +372,52 @@ for status in ("401", "403", "404", "501"):
     if expected_value not in expected:
         raise SystemExit(f"crawler throttle load smoke missing expected status {expected_value}")
 PY
+run_id_validate_dir="$(mktemp -d)"
+RUN_ID="stage0-validate-load-run-id" DRY_RUN=1 OUT_DIR="$run_id_validate_dir/load" scripts/load_smoke.sh >/dev/null
+RUN_ID="stage0-validate-staging-run-id" DRY_RUN=1 OUT_DIR="$run_id_validate_dir/staging" scripts/staging_smoke.sh >/dev/null
+set +e
+RUN_ID="stage0-validate-preflight-run-id" OUT_DIR="$run_id_validate_dir/preflight" scripts/staging_observability_backup_load_smoke.sh >/dev/null
+run_id_preflight_status=$?
+set -e
+if [[ "$run_id_preflight_status" -ne 2 ]]; then
+  printf 'run-id preflight dry-run must exit 2 while evidence is missing, got %s\n' "$run_id_preflight_status" >&2
+  exit 1
+fi
+set +e
+RUN_ID="stage0-validate-release-bundle-run-id" DRY_RUN=1 OUT_DIR="$run_id_validate_dir/release-bundle" scripts/release_evidence_bundle_smoke.sh >/dev/null
+run_id_bundle_status=$?
+set -e
+if [[ "$run_id_bundle_status" -ne 2 ]]; then
+  printf 'run-id release bundle dry-run must exit 2 while release gates are no-go, got %s\n' "$run_id_bundle_status" >&2
+  exit 1
+fi
+python3 - "$run_id_validate_dir" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+root = Path(sys.argv[1])
+expectations = {
+    root / "load" / "stage0-validate-load-run-id.json": "stage0-validate-load-run-id",
+    root / "staging" / "stage0-validate-staging-run-id.json": "stage0-validate-staging-run-id",
+    root / "preflight" / "stage0-validate-preflight-run-id.json": "stage0-validate-preflight-run-id",
+    root / "release-bundle" / "stage0-validate-release-bundle-run-id.json": "stage0-validate-release-bundle-run-id",
+    root / "release-bundle" / "stage0-validate-release-bundle-run-id.staging-smoke.json": "stage0-validate-release-bundle-run-id.staging-smoke",
+}
+for path, expected_run_id in expectations.items():
+    if not path.exists():
+        raise SystemExit(f"deterministic RUN_ID report missing: {path}")
+    report = json.loads(path.read_text(encoding="utf-8"))
+    if report.get("run_id") != expected_run_id:
+        raise SystemExit(f"{path} run_id mismatch: {report.get('run_id')} != {expected_run_id}")
+    if path.stem != expected_run_id:
+        raise SystemExit(f"{path} filename stem must match run_id {expected_run_id}")
+release_bundle = json.loads((root / "release-bundle" / "stage0-validate-release-bundle-run-id.json").read_text(encoding="utf-8"))
+if release_bundle.get("source_staging_smoke_report") != str(root / "release-bundle" / "stage0-validate-release-bundle-run-id.staging-smoke.json"):
+    raise SystemExit("release bundle must promote deterministic staging smoke report path")
+if release_bundle.get("source_staging_smoke_results") != str(root / "release-bundle" / "stage0-validate-release-bundle-run-id.staging-smoke.ndjson"):
+    raise SystemExit("release bundle must promote deterministic staging smoke results path")
+PY
 
 log "backup/restore drill script syntax"
 bash -n scripts/backup_restore_drill.sh

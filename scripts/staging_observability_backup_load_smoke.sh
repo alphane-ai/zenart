@@ -6,7 +6,7 @@ cd "$ROOT"
 
 OUT_DIR="${OUT_DIR:-ops/evidence/staging}"
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
-RUN_ID="${STAMP}-staging-observability-backup-load-$$"
+RUN_ID="${RUN_ID:-${STAMP}-staging-observability-backup-load-$$}"
 REPORT_PATH="$OUT_DIR/${RUN_ID}.json"
 
 RELEASE_SHA="${RELEASE_SHA:-${GITHUB_SHA:-}}"

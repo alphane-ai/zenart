@@ -8,7 +8,7 @@ OUT_DIR="${OUT_DIR:-ops/evidence/release/staging}"
 DRY_RUN="${DRY_RUN:-1}"
 STAGING_OUT_DIR="$(mktemp -d)"
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
-RUN_ID="${STAMP}-release-evidence-bundle-$$"
+RUN_ID="${RUN_ID:-${STAMP}-release-evidence-bundle-$$}"
 REPORT_PATH="$OUT_DIR/${RUN_ID}.json"
 STAGING_REPORT_PATH="$OUT_DIR/${RUN_ID}.staging-smoke.json"
 STAGING_RESULTS_PATH="$OUT_DIR/${RUN_ID}.staging-smoke.ndjson"
@@ -48,6 +48,7 @@ DRY_RUN="$DRY_RUN" \
   SMOKE_TASK_ID="${SMOKE_TASK_ID:-}" \
   SMOKE_PACKAGE_ID="${SMOKE_PACKAGE_ID:-}" \
   SMOKE_EXPORT_ID="${SMOKE_EXPORT_ID:-}" \
+  RUN_ID="${RUN_ID}.staging-smoke" \
   scripts/staging_smoke.sh >/dev/null
 status=$?
 set -e

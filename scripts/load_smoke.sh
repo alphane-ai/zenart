@@ -13,7 +13,7 @@ OUT_DIR="${OUT_DIR:-ops/evidence/load/local}"
 RELEASE_SHA="${RELEASE_SHA:-${GITHUB_SHA:-}}"
 EVIDENCE_ENVIRONMENT="${EVIDENCE_ENVIRONMENT:-${ENVIRONMENT:-local}}"
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
-RUN_ID="${STAMP}-${LOAD_MODE}-$$"
+RUN_ID="${RUN_ID:-${STAMP}-${LOAD_MODE}-$$}"
 RESULTS_PATH="$OUT_DIR/${RUN_ID}.ndjson"
 REPORT_PATH="$OUT_DIR/${RUN_ID}.json"
 
