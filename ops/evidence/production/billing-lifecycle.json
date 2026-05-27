@@ -83,6 +83,7 @@
   ],
   "gate_impact": {
     "can_clear_checkout_subscription_subitem": true,
+    "can_clear_aggregate_production_gate": false,
     "checklist_items": [
       "Production checkout/subscription/cancellation/past_due runtime evidence 通过 under `ops/evidence/production/`。"
     ],

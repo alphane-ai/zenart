@@ -1,0 +1,41 @@
+{
+  "id": "reg-crawler-derivative-cg-522",
+  "source_feedback_id": "sup-2212",
+  "source_kind": "support_ticket",
+  "workflow_id": "wf-812",
+  "skill_version": "skill-brand-kit@2.4.0",
+  "failure_mode": "crawler_derivative_review",
+  "severity": "high",
+  "gate": "skill_canary",
+  "expected_assertions": [
+    "derivative_review_request_type == derivative_review",
+    "source_approval_status == approved",
+    "activation_gate_decision == allowed_only_with_provenance",
+    "bounded_raw_retention_days <= 14",
+    "requester_notice_evidence_present == true",
+    "source_provenance_evidence_present == true",
+    "exact_text_import_blocked == true",
+    "immutable_audit_ref == au-013"
+  ],
+  "bad_sample": {
+    "support_ticket_id": "sup-2212",
+    "finding_id": "cf-122",
+    "governance_workflow_id": "cg-522",
+    "source_approval_id": "csa-019",
+    "source_fixture_case_id": "crawler_approved_local_test_source",
+    "signal": "Approved crawler derivative review must not activate crawler-derived prompt, fragment, or skill material unless provenance, retention limit, requester notice, exact-text stripping, and audit evidence remain attached.",
+    "admin_label": "crawler_derivative_review_activation_guard"
+  },
+  "runtime_contract": {
+    "closure_decision": "ready_to_close",
+    "activation_decision": "allow_activation",
+    "required_evidence_status": "complete",
+    "deletion_evidence_status": "complete",
+    "requester_notice_status": "complete"
+  },
+  "release_block": {
+    "canary_metric": "cm-014",
+    "audit_ref": "au-013",
+    "rollback_target": "skill-brand-kit@2.4.1"
+  }
+}

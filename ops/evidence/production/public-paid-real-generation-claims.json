@@ -96,6 +96,7 @@
   ],
   "gate_impact": {
     "can_clear_public_paid_real_generation_claims_subitem": true,
+    "can_clear_aggregate_production_gate": false,
     "checklist_items": [
       "Production public paid/real-generation claims evidence 通过：production evidence proves paid and real-generation claims are enabled only with real provider evidence, or hidden for invite/comp-only mode under `ops/evidence/production/`。"
     ],

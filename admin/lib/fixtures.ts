@@ -1596,6 +1596,26 @@ export const regressionFixtures: RegressionFixture[] = [
     linkedAuditRef: "au-012",
     reviewerRationale:
       "The crawler support and takedown sample is eval-blocking because incomplete deletion or notice evidence could otherwise let rights-owner-disputed crawler material influence an active prompt or skill route."
+  },
+  {
+    id: "reg-crawler-derivative-cg-522",
+    sourceFeedbackId: "sup-2212",
+    sourceKind: "support_ticket",
+    fixturePath: "fixtures/stage0/rev2/regressions/crawler_derivative_review_cg_522.json",
+    workflowId: "wf-812",
+    skillVersionId: "sv-240",
+    failureMode: "crawler_derivative_review",
+    severity: "high",
+    status: "eval_blocking",
+    evalSuiteId: "es-stage0-crawler",
+    requiredGate: "skill_canary",
+    expectedAssertion:
+      "Crawler derivative review must preserve source approval, provenance, requester notice, bounded raw retention, and immutable audit evidence before any crawler-derived prompt, fragment, or skill canary activation can proceed.",
+    owner: "legal-admin",
+    linkedCanaryMetric: "cm-014",
+    linkedAuditRef: "au-013",
+    reviewerRationale:
+      "The derivative review sample is eval-blocking because an approved crawler source can still regress into unsafe activation if provenance, retention bounds, requester notice, or derivative-use policy evidence is dropped from the admin workflow."
   }
 ];
 

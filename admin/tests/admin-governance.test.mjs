@@ -844,6 +844,51 @@ test("admin bad samples convert into regression fixtures before release gates pa
   assert.notEqual(takedownWorkflow.deletionEvidenceRef, "pending");
   assert.equal(blockedSourceApproval.activationGate, "blocked");
 
+  const crawlerDerivativeRegression = regressionFixtures.find((fixture) => fixture.failureMode === "crawler_derivative_review");
+  assert.ok(crawlerDerivativeRegression, "crawler derivative review bad samples need an activation-guard regression fixture");
+  assert.equal(crawlerDerivativeRegression.status, "eval_blocking");
+  assert.equal(crawlerDerivativeRegression.sourceFeedbackId, "sup-2212");
+  assert.equal(crawlerDerivativeRegression.linkedAuditRef, "au-013");
+
+  const crawlerDerivativeFixture = JSON.parse(
+    readFileSync(new URL(crawlerDerivativeRegression.fixturePath, repoRoot), "utf8")
+  );
+  assert.equal(crawlerDerivativeFixture.failure_mode, "crawler_derivative_review");
+  assert.equal(crawlerDerivativeFixture.bad_sample.governance_workflow_id, "cg-522");
+  assert.equal(crawlerDerivativeFixture.bad_sample.finding_id, "cf-122");
+  assert.equal(crawlerDerivativeFixture.bad_sample.source_approval_id, "csa-019");
+  assert.ok(
+    crawlerDerivativeFixture.expected_assertions.includes("activation_gate_decision == allowed_only_with_provenance"),
+    "crawler derivative regression must assert activation is allowed only with provenance"
+  );
+  assert.ok(
+    crawlerDerivativeFixture.expected_assertions.includes("bounded_raw_retention_days <= 14"),
+    "crawler derivative regression must assert bounded raw retention"
+  );
+  assert.ok(
+    crawlerDerivativeFixture.expected_assertions.includes("requester_notice_evidence_present == true"),
+    "crawler derivative regression must require requester notice evidence"
+  );
+  assert.ok(
+    crawlerDerivativeFixture.expected_assertions.includes("exact_text_import_blocked == true"),
+    "crawler derivative regression must assert exact text import stays blocked"
+  );
+  assert.equal(crawlerDerivativeFixture.release_block.audit_ref, "au-013");
+
+  const derivativeWorkflow = crawlerGovernanceWorkflows.find((workflow) => workflow.id === crawlerDerivativeFixture.bad_sample.governance_workflow_id);
+  const approvedSourceApproval = crawlerSourceApprovals.find((approval) => approval.id === crawlerDerivativeFixture.bad_sample.source_approval_id);
+  assert.ok(derivativeWorkflow, "crawler derivative regression links unknown governance workflow");
+  assert.ok(approvedSourceApproval, "crawler derivative regression links unknown source approval");
+  assert.equal(derivativeWorkflow.findingId, crawlerDerivativeFixture.bad_sample.finding_id);
+  assert.equal(approvedSourceApproval.linkedFindingId, crawlerDerivativeFixture.bad_sample.finding_id);
+  assert.equal(derivativeWorkflow.requestType, "derivative_review");
+  assert.equal(derivativeWorkflow.derivativeUseStatus, "allowed");
+  assert.equal(derivativeWorkflow.activationGateDecision, "allowed");
+  assert.equal(derivativeWorkflow.rawRetentionAction, "retain_with_limit");
+  assert.equal(approvedSourceApproval.status, "approved");
+  assert.equal(approvedSourceApproval.activationGate, "allowed");
+  assert.match(approvedSourceApproval.exactTextPolicy, /stripped|violation routes/i);
+
   const safetyPolicyRegression = regressionFixtures.find(
     (fixture) => fixture.failureMode === "safety_policy_miss"
   );
@@ -4871,13 +4916,27 @@ test("crawler governance runtime decisions gate takedown closure and activation"
   assert.ok(takedownDecision.blockerCodes.includes("deadline_expired"), "open takedown past due needs deadline blocker");
 
   const derivativeDecision = decisionsByWorkflow.get("cg-522");
+  const derivativeFixture = JSON.parse(readFileSync(new URL("fixtures/stage0/rev2/regressions/crawler_derivative_review_cg_522.json", repoRoot), "utf8"));
   assert.equal(derivativeDecision.closureDecision, "ready_to_close", "approved derivative review should be closeable");
   assert.equal(derivativeDecision.activationDecision, "allow_activation", "approved derivative review should allow activation");
+  assert.equal(derivativeFixture.runtime_contract.closure_decision, derivativeDecision.closureDecision);
+  assert.equal(derivativeFixture.runtime_contract.activation_decision, derivativeDecision.activationDecision);
+  assert.equal(derivativeFixture.runtime_contract.required_evidence_status, derivativeDecision.requiredEvidenceStatus);
+  assert.equal(derivativeFixture.runtime_contract.deletion_evidence_status, derivativeDecision.deletionEvidenceStatus);
+  assert.equal(derivativeFixture.runtime_contract.requester_notice_status, derivativeDecision.requesterNoticeStatus);
   assert.equal(derivativeDecision.blockerCodes.length, 0, "approved derivative review should not expose blockers");
   assert.equal(derivativeDecision.auditStatus, "attached", "approved derivative review needs audit evidence");
   assert.equal(derivativeDecision.requiredEvidenceStatus, "complete", "approved derivative review needs complete required evidence");
   assert.deepEqual(derivativeDecision.missingRequiredEvidenceRefs, [], "approved derivative review should not miss required evidence refs");
   assert.equal(derivativeDecision.deadlineStatus, "not_evaluated", "approved derivative review should not create deadline blockers");
+  assert.ok(
+    derivativeDecision.requiredEvidenceRefs.includes("crawler-governance/crawler_approved_local_test_source"),
+    "approved derivative review must keep source provenance evidence attached"
+  );
+  assert.ok(
+    derivativeDecision.requiredEvidenceRefs.includes("notice-legal-fixture-reviewer-cg-522"),
+    "approved derivative review must keep requester notice evidence attached"
+  );
   assert.ok(
     derivativeDecision.closureEvidenceChecklist.includes("deletion:complete"),
     "approved derivative review must expose complete deletion or retention evidence"

@@ -86,6 +86,7 @@
   ],
   "gate_impact": {
     "can_clear_provider_mode_subitem": true,
+    "can_clear_aggregate_production_gate": false,
     "checklist_items": [
       "Production provider mode deployment evidence 通过：production evidence proves either real provider contract/monitoring/cost/staging verification or explicit invite/comp-only mode under `ops/evidence/production/`。"
     ],

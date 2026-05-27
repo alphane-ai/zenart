@@ -308,6 +308,7 @@ export type RegressionFixture = {
     | "structured_text_readability"
     | "export_manifest_completeness"
     | "crawler_takedown_activation"
+    | "crawler_derivative_review"
     | "failed_task_retry_cancel"
     | "safety_policy_miss";
   severity: RiskLevel;
