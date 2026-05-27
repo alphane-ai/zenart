@@ -1209,6 +1209,7 @@ SCHEMA_FIXTURE_TARGETS = [
     ("eval_suite.schema.json", FIXTURE_DIR / "eval" / "starter_eval_suite.json", "object"),
     ("eval_result.schema.json", FIXTURE_DIR / "eval" / "starter_eval_results.json", "array_items"),
     ("trace_completeness.schema.json", FIXTURE_DIR / "eval" / "trace_completeness.json", "object"),
+    ("trace_export_gate_matrix.schema.json", FIXTURE_DIR / "eval" / "trace_export_gate_matrix.json", "object"),
     ("safety_enforcement_contract.schema.json", FIXTURE_DIR / "eval" / "safety_enforcement_contract.json", "object"),
     ("qa_result.schema.json", FIXTURE_DIR / "eval" / "qa_results.json", "array_items"),
     ("qa_result_coverage.schema.json", FIXTURE_DIR / "eval" / "qa_result_coverage.json", "object"),
@@ -3002,6 +3003,7 @@ def validate_json_files() -> None:
         SCHEMA_DIR / "abuse_event.schema.json",
         SCHEMA_DIR / "analytics_taxonomy.schema.json",
         SCHEMA_DIR / "trace_completeness.schema.json",
+        SCHEMA_DIR / "trace_export_gate_matrix.schema.json",
         SCHEMA_DIR / "safety_enforcement_contract.schema.json",
         SCHEMA_DIR / "qa_result_coverage.schema.json",
         SCHEMA_DIR / "qa_enforcement_matrix.schema.json",
@@ -3013,6 +3015,7 @@ def validate_json_files() -> None:
         FIXTURE_DIR / "eval" / "workflow_runtime_evidence_contract.json",
         FIXTURE_DIR / "eval" / "activation_gate_contract.json",
         FIXTURE_DIR / "eval" / "trace_completeness.json",
+        FIXTURE_DIR / "eval" / "trace_export_gate_matrix.json",
         FIXTURE_DIR / "eval" / "safety_enforcement_contract.json",
         FIXTURE_DIR / "eval" / "qa_result_coverage.json",
         FIXTURE_DIR / "eval" / "qa_enforcement_matrix.json",
@@ -5020,6 +5023,20 @@ def validate_trace_completeness_contract() -> None:
     )
 
 
+def validate_trace_export_gate_matrix_contract() -> None:
+    result = subprocess.run(
+        [sys.executable, str(ROOT / "scripts" / "validate_trace_export_gate_matrix.py")],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    require(
+        result.returncode == 0,
+        "trace export gate matrix validation failed: " + (result.stderr or result.stdout).strip(),
+    )
+
+
 def validate_eval_result_contract() -> None:
     result = subprocess.run(
         [sys.executable, str(ROOT / "scripts" / "validate_eval_result_contract.py")],
@@ -6217,6 +6234,7 @@ def main() -> int:
         validate_eval_storage_contract,
         validate_activation_gate_contract,
         validate_trace_completeness_contract,
+        validate_trace_export_gate_matrix_contract,
         validate_safety_enforcement_contract,
         validate_qa_result_coverage_contract,
         validate_qa_enforcement_matrix_contract,
