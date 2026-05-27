@@ -2000,7 +2000,7 @@ main 合并前必须通过：
 - [x] Private Beta/Staging eval/QA/safety enforcement runtime evidence 通过。
 - [x] Private Beta/Staging crawler approval/provenance runtime evidence 通过。
 - [x] Private Beta/Staging observability/backup/load runtime evidence 通过。
-- [x] Private Beta/Staging observability runtime evidence 通过：staging evidence proves request-id、structured logs、OpenTelemetry traces、backend/worker/crawler metrics、dashboard import、alert routes in `ops/evidence/staging/20260527T1830Z-observability-runtime.json` while backup/restore、load、post-deploy smoke remain open。
+- [x] Private Beta/Staging observability runtime evidence 通过：staging evidence proves request-id、structured logs、OpenTelemetry traces、backend/worker/crawler metrics、dashboard import、alert routes in `ops/evidence/staging/20260527T1830Z-observability-runtime.json`; this observability-only artifact preserved backup/restore、load、post-deploy smoke blockers until the later combined preflight closed them。
 - [x] Private Beta/Staging backup/restore runtime evidence 通过：staging evidence proves Postgres restore and object restore entries required by `staging_observability_backup_load` preflight。
 - [x] Private Beta/Staging load runtime evidence 通过：staging evidence proves chat/task、worker generation、ZIP export、signed download、crawler throttle、quota contention、workspace rendering load entries required by `staging_observability_backup_load` preflight。
 - [ ] Private Beta/Staging legal/support external-user visibility runtime evidence 通过。
@@ -2031,7 +2031,7 @@ Release gate evidence map:
 
 - Local Alpha Gate: `fixtures/stage0/rev2/release_gate_evidence.local_alpha.json` records fixture/runtime-stack pass evidence and keeps end-to-end workflow smoke blocked.
 - CI Gate: `fixtures/stage0/rev2/release_gate_evidence.ci.json` records ops CI draft coverage and keeps installed workflow/runtime execution, Playwright smoke, and Docker image build blocked.
-- Private Beta/Staging Gate: `fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json` records fixture/definition evidence where present, clears auth/RBAC/tenant/audit, brief/upload/confirmation, quota/rate-limit/spend-cap, support/retry/abuse, eval/QA/safety enforcement, and crawler runtime checks with staging evidence, and keeps external-user runtime evidence blocked for production-like object storage, observability/restore/load, and legal pages.
+- Private Beta/Staging Gate: `fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json` records fixture/definition evidence where present, clears auth/RBAC/tenant/audit, brief/upload/confirmation, quota/rate-limit/spend-cap, support/retry/abuse, eval/QA/safety enforcement, crawler runtime checks, and observability/backup/load/post-deploy-smoke with staging evidence, and keeps Private Beta/Staging aggregate no-go only for production-like object storage and legal/support external-user visibility.
 - Production Launch Gate: `fixtures/stage0/rev2/release_gate_evidence.production_launch.json` records fixture/definition evidence where present, clears skill release/eval/canary, abuse throttle/hold, activation review/audit, and security launch checks with production evidence, and keeps launch evidence blocked for provider/comp-only mode, paid billing lifecycle, backup/rollback/incident readiness, and legal/support policy.
 
 Release gate closure policy:

@@ -50,8 +50,9 @@ STAGING_OBSERVABILITY_RUNTIME_EVIDENCE = (
 STAGING_OBSERVABILITY_RUNTIME_CHECKLIST_ITEM = (
     "Private Beta/Staging observability runtime evidence 通过：staging evidence proves "
     "request-id、structured logs、OpenTelemetry traces、backend/worker/crawler metrics、dashboard import、"
-    "alert routes in `ops/evidence/staging/20260527T1830Z-observability-runtime.json` while "
-    "backup/restore、load、post-deploy smoke remain open。"
+    "alert routes in `ops/evidence/staging/20260527T1830Z-observability-runtime.json`; this "
+    "observability-only artifact preserved backup/restore、load、post-deploy smoke blockers until the "
+    "later combined preflight closed them。"
 )
 STAGING_EVAL_QA_SAFETY_EVIDENCE = (
     ROOT / "ops" / "evidence" / "staging" / "20260527T1900Z-eval-qa-safety.json"
@@ -6676,6 +6677,9 @@ def validate_launch_readiness_split_contracts() -> None:
         "Private Beta/Staging legal/support visibility cannot close from web source files or policy text alone",
         "Production check-level runtime subitems must remain open until each matching release gate check has production evidence",
         "Private Beta/Staging observability runtime evidence may close only its observability-only subitem",
+        "observability-only artifact preserved backup/restore、load、post-deploy smoke blockers until the later combined preflight closed them",
+        "clears auth/RBAC/tenant/audit, brief/upload/confirmation, quota/rate-limit/spend-cap, support/retry/abuse, eval/QA/safety enforcement, crawler runtime checks, and observability/backup/load/post-deploy-smoke with staging evidence",
+        "keeps Private Beta/Staging aggregate no-go only for production-like object storage and legal/support external-user visibility",
         "Production provider-or-comp-only cannot close from provider abstractions",
         "Production paid billing lifecycle cannot close from mock checkout",
         "Production backup/rollback/incident readiness cannot close from runbooks or release templates alone",
