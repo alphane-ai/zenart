@@ -172,6 +172,17 @@
         "missingCsrfOperationCountAttribute": "data-session-unsafe-action-missing-csrf-operation-count",
         "missingCsrfOperationsAttribute": "data-session-unsafe-action-missing-csrf-operations",
         "operationContractsAttribute": "data-session-unsafe-action-operation-contracts",
+        "controlAttributes": {
+          "guardAttribute": "data-csrf-ux-guard",
+          "labelAttribute": "data-csrf-ux-guard-label",
+          "statusAttribute": "data-csrf-ux-guard-status",
+          "operationCountAttribute": "data-csrf-ux-guard-operation-count",
+          "operationsAttribute": "data-csrf-ux-guard-operations",
+          "contractsAttribute": "data-csrf-ux-guard-contracts",
+          "csrfProtectedOperationCountAttribute": "data-csrf-ux-guard-csrf-protected-operation-count",
+          "idempotencyRequiredOperationCountAttribute": "data-csrf-ux-guard-idempotency-required-operation-count",
+          "expectedGuard": "authenticated-same-site-session"
+        },
         "expectedGuard": "authenticated-same-site-session",
         "expectedEnabledStatus": "enabled",
         "expectedBlockedStatus": "blocked",
@@ -222,6 +233,26 @@
           "Submit Ticket=>createSupportTicket:POST:X-ZenArt-CSRF:true",
           "Refresh Session=>getSession:GET:not-required:false",
           "Expire Session=>deleteSession:DELETE:X-ZenArt-CSRF:false"
+        ],
+        "requiredControlContracts": [
+          "Confirm Brief=>createChatSession:POST:/projects/{project_id}/chat/sessions:include:X-ZenArt-CSRF:true|createChatMessage:POST:/chat/sessions/{chat_session_id}/messages:include:X-ZenArt-CSRF:true|createCandidateSet:POST:/projects/{project_id}/candidate-sets:include:X-ZenArt-CSRF:true",
+          "Attach=>createUpload:POST:/uploads:include:X-ZenArt-CSRF:true",
+          "Create Project=>createProject:POST:/projects:include:X-ZenArt-CSRF:true",
+          "Rename Project=>updateProject:PATCH:/projects/{project_id}:include:X-ZenArt-CSRF:true",
+          "Package Reference=>createPackage:POST:/projects/{project_id}/packages:include:X-ZenArt-CSRF:true",
+          "Select Candidate=>selectDirection:PUT:/projects/{project_id}/selected-direction:include:X-ZenArt-CSRF:true",
+          "Iterate=>createCanvasNode:POST:/workspaces/{workspace_id}/canvas/nodes:include:X-ZenArt-CSRF:true|createCanvasVersion:POST:/workspaces/{workspace_id}/canvas/versions:include:X-ZenArt-CSRF:true",
+          "Restore Version=>createCanvasVersion:POST:/workspaces/{workspace_id}/canvas/versions:include:X-ZenArt-CSRF:true",
+          "Add Selection=>createPackage:POST:/projects/{project_id}/packages:include:X-ZenArt-CSRF:true",
+          "Export ZIP=>createExport:POST:/packages/{package_id}/exports:include:X-ZenArt-CSRF:true",
+          "Export PDF=>createExport:POST:/packages/{package_id}/exports:include:X-ZenArt-CSRF:true",
+          "Request Share=>createShareLink:POST:/exports/{export_id}/share-links:include:X-ZenArt-CSRF:true",
+          "Mock Checkout=>getSubscription:GET:/billing/subscription:include:not-required:false",
+          "Billing Scenario=>getQuota:GET:/quota:include:not-required:false|getSubscription:GET:/billing/subscription:include:not-required:false",
+          "Save Settings=>updateAccount:PATCH:/account:include:X-ZenArt-CSRF:true",
+          "Submit Ticket=>createSupportTicket:POST:/support/tickets:include:X-ZenArt-CSRF:true",
+          "Refresh Session=>getSession:GET:/session:include:not-required:false",
+          "Expire Session=>deleteSession:DELETE:/session:include:X-ZenArt-CSRF:false"
         ]
       }
     },
@@ -240,6 +271,7 @@
         "data-session-csrf-credential-mode",
         "data-session-csrf-same-site-requirement",
         "data-session-unsafe-action-operation-contracts",
+        "data-csrf-ux-guard-contracts",
         "data-generated-api-csrf-operation-contracts",
         "Session expired. Refresh or sign in to continue.",
         "Save Settings",

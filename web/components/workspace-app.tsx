@@ -111,6 +111,7 @@ const severityClass: Record<QaSeverity, string> = {
 
 const sessionSecurityEvidenceSchema = "stage0.rev2.session-csrf-client-evidence";
 const sessionSafeActionLabels = new Set(["load", "login"]);
+const defaultCredentialMode = "include";
 const sameSiteUnsafeActionGuardMap = {
   "Confirm Brief": ["createChatSession", "createChatMessage", "createCandidateSet"],
   Attach: ["createUpload"],
@@ -145,10 +146,36 @@ const formatUnsafeActionGuardContracts = () =>
     })
     .join("|");
 
+const formatUnsafeActionControlContracts = (label: UnsafeActionGuardLabel) =>
+  sameSiteUnsafeActionGuardMap[label]
+    .map((operationId) => {
+      const operation = apiOperations[operationId];
+      const csrfHeader = operation.method === "GET" ? "not-required" : "X-ZenArt-CSRF";
+      return `${operationId}:${operation.method}:${operation.path}:${defaultCredentialMode}:${csrfHeader}:${operation.idempotencyRequired}`;
+    })
+    .join("|");
+
 const guardedOperationIds = Array.from(
   new Set(sameSiteUnsafeActionGuardLabels.flatMap((label) => sameSiteUnsafeActionGuardMap[label]))
 );
 const guardedOperationIdSet = new Set<keyof typeof apiOperations>(guardedOperationIds);
+
+const unsafeActionGuardAttributes = (label: UnsafeActionGuardLabel, sessionBlocked: boolean) => {
+  const operationIds = sameSiteUnsafeActionGuardMap[label];
+  const csrfProtectedOperationCount = operationIds.filter((operationId) => apiOperations[operationId].method !== "GET").length;
+  const idempotencyRequiredOperationCount = operationIds.filter((operationId) => apiOperations[operationId].idempotencyRequired).length;
+
+  return {
+    "data-csrf-ux-guard": "authenticated-same-site-session",
+    "data-csrf-ux-guard-label": label,
+    "data-csrf-ux-guard-status": sessionBlocked ? "blocked" : "enabled",
+    "data-csrf-ux-guard-operation-count": operationIds.length,
+    "data-csrf-ux-guard-operations": operationIds.join(","),
+    "data-csrf-ux-guard-contracts": formatUnsafeActionControlContracts(label),
+    "data-csrf-ux-guard-csrf-protected-operation-count": csrfProtectedOperationCount,
+    "data-csrf-ux-guard-idempotency-required-operation-count": idempotencyRequiredOperationCount
+  };
+};
 
 const requiresAuthenticatedSession = (label: string) => !sessionSafeActionLabels.has(label);
 
@@ -548,11 +575,21 @@ function SessionPanel({
           <LogIn size={15} aria-hidden="true" />
           Sign In
         </button>
-        <button className="secondary-button compact" disabled={sessionBlocked} onClick={() => void runAction("session-refresh", () => zenArtClient.refreshSession())}>
+        <button
+          className="secondary-button compact"
+          disabled={sessionBlocked}
+          onClick={() => void runAction("session-refresh", () => zenArtClient.refreshSession())}
+          {...unsafeActionGuardAttributes("Refresh Session", sessionBlocked)}
+        >
           <RefreshCcw size={15} aria-hidden="true" />
           Refresh Session
         </button>
-        <button className="secondary-button compact" disabled={sessionBlocked} onClick={() => void runAction("session-expire", () => zenArtClient.expireSession())}>
+        <button
+          className="secondary-button compact"
+          disabled={sessionBlocked}
+          onClick={() => void runAction("session-expire", () => zenArtClient.expireSession())}
+          {...unsafeActionGuardAttributes("Expire Session", sessionBlocked)}
+        >
           <RotateCcw size={15} aria-hidden="true" />
           Expire
         </button>
@@ -664,7 +701,11 @@ function WorkspaceView({
           )}
           <label className="sr-only" htmlFor="brief-input">Brief</label>
           <textarea id="brief-input" value={briefInput} onChange={(event) => setBriefInput(event.target.value)} rows={5} aria-describedby={state.brief.missingInfo.length > 0 ? "brief-missing-info" : undefined} />
-          <button className="primary-button" disabled={sessionBlocked || busy === "brief" || !briefInput.trim()}>
+          <button
+            className="primary-button"
+            disabled={sessionBlocked || busy === "brief" || !briefInput.trim()}
+            {...unsafeActionGuardAttributes("Confirm Brief", sessionBlocked)}
+          >
             <Check size={18} aria-hidden="true" />
             Confirm Brief
           </button>
@@ -689,6 +730,7 @@ function WorkspaceView({
                 })
               )
             }
+            {...unsafeActionGuardAttributes("Attach", sessionBlocked)}
           >
             <Upload size={17} aria-hidden="true" />
             Attach
@@ -846,6 +888,7 @@ function WorkspaceView({
                   disabled={sessionBlocked || packagedReferenceIds.has(reference.id)}
                   onClick={() => void runAction("package", () => zenArtClient.addPackageItem(reference.id))}
                   aria-label={`Add reference ${reference.name} to package`}
+                  {...unsafeActionGuardAttributes("Package Reference", sessionBlocked)}
                 >
                   {packagedReferenceIds.has(reference.id) ? "Packaged" : "Package"}
                 </button>
@@ -919,6 +962,7 @@ function WorkspaceView({
               disabled={sessionBlocked}
               onClick={() => void runAction("restore", () => zenArtClient.restoreCanvasVersion(version.id))}
               aria-pressed={version.id === state.canvas.activeVersionId}
+              {...unsafeActionGuardAttributes("Restore Version", sessionBlocked)}
             >
               <History size={14} aria-hidden="true" />
               {version.label}
@@ -954,6 +998,7 @@ function WorkspaceView({
                 onClick={() => void runAction("select", () => zenArtClient.selectCandidate(candidate.id))}
                 aria-pressed={state.selectedCandidateId === candidate.id}
                 aria-label={`Select ${candidate.title}`}
+                {...unsafeActionGuardAttributes("Select Candidate", sessionBlocked)}
               >
                 <ChevronRight size={17} aria-hidden="true" />
                 Select
@@ -969,7 +1014,11 @@ function WorkspaceView({
             onChange={(event) => setIterationInput(event.target.value)}
             placeholder={selectedCandidate ? `Iterate ${selectedCandidate.title}` : "Select a candidate to iterate"}
           />
-          <button className="primary-button" disabled={sessionBlocked || !selectedCandidate || !iterationInput.trim()}>
+          <button
+            className="primary-button"
+            disabled={sessionBlocked || !selectedCandidate || !iterationInput.trim()}
+            {...unsafeActionGuardAttributes("Iterate", sessionBlocked)}
+          >
             <Send size={18} aria-hidden="true" />
             Iterate
           </button>
@@ -1004,6 +1053,7 @@ function PackagePanel({
               void runAction("package", () => zenArtClient.addPackageItem(candidateId));
             }
           }}
+          {...unsafeActionGuardAttributes("Add Selection", sessionBlocked)}
         >
           <PackagePlus size={17} aria-hidden="true" />
           Add Selection
@@ -1013,6 +1063,7 @@ function PackagePanel({
           data-testid="export-download"
           disabled={sessionBlocked}
           onClick={() => void runAction("export", () => zenArtClient.createExport("zip"))}
+          {...unsafeActionGuardAttributes("Export ZIP", sessionBlocked)}
         >
           <Download size={17} aria-hidden="true" />
           Export ZIP
@@ -1021,6 +1072,7 @@ function PackagePanel({
           className="secondary-button"
           disabled={sessionBlocked}
           onClick={() => void runAction("export", () => zenArtClient.createExport("pdf-placeholder"))}
+          {...unsafeActionGuardAttributes("Export PDF", sessionBlocked)}
         >
           <FileArchive size={17} aria-hidden="true" />
           PDF
@@ -1132,7 +1184,11 @@ function ProjectsView({
             value={newProjectName}
             onChange={(event) => setNewProjectName(event.target.value)}
           />
-          <button className="secondary-button compact" disabled={sessionBlocked || !newProjectName.trim()}>
+          <button
+            className="secondary-button compact"
+            disabled={sessionBlocked || !newProjectName.trim()}
+            {...unsafeActionGuardAttributes("Create Project", sessionBlocked)}
+          >
             <PackagePlus size={14} aria-hidden="true" />
             Create Project
           </button>
@@ -1144,7 +1200,11 @@ function ProjectsView({
             value={renameProjectName}
             onChange={(event) => setRenameProjectName(event.target.value)}
           />
-          <button className="secondary-button compact" disabled={sessionBlocked || !activeProject || !renameProjectName.trim()}>
+          <button
+            className="secondary-button compact"
+            disabled={sessionBlocked || !activeProject || !renameProjectName.trim()}
+            {...unsafeActionGuardAttributes("Rename Project", sessionBlocked)}
+          >
             <PenLine size={14} aria-hidden="true" />
             Rename Project
           </button>
@@ -1636,6 +1696,7 @@ function ShareLinkState({
         className="secondary-button compact"
         disabled={sessionBlocked || Boolean(shareLink)}
         onClick={() => void runAction("share", () => zenArtClient.createShareLink(exportId))}
+        {...unsafeActionGuardAttributes("Request Share", sessionBlocked)}
       >
         <Link2 size={15} aria-hidden="true" />
         Request Share
@@ -1726,6 +1787,7 @@ function BillingView({
             className="primary-button"
             disabled={sessionBlocked || busy === "checkout"}
             onClick={() => void runAction("checkout", () => zenArtClient.createMockCheckout())}
+            {...unsafeActionGuardAttributes("Mock Checkout", sessionBlocked)}
           >
             <CircleDollarSign size={18} aria-hidden="true" />
             Mock Checkout
@@ -1749,6 +1811,7 @@ function BillingView({
                 className="secondary-button compact"
                 disabled={sessionBlocked || busy === "billing-scenario"}
                 onClick={() => void runAction("billing-scenario", () => zenArtClient.setBillingScenario(scenario.key))}
+                {...unsafeActionGuardAttributes("Billing Scenario", sessionBlocked)}
               >
                 {scenario.label}
               </button>
@@ -1806,7 +1869,7 @@ function AccountView({
           />
           Email notifications
         </label>
-        <button className="primary-button" disabled={sessionBlocked}>
+        <button className="primary-button" disabled={sessionBlocked} {...unsafeActionGuardAttributes("Save Settings", sessionBlocked)}>
           <Settings size={18} aria-hidden="true" />
           Save Settings
         </button>
@@ -1912,7 +1975,11 @@ function SupportView({
         </label>
         <label className="sr-only" htmlFor="support-body">Problem description</label>
         <textarea id="support-body" value={body} onChange={(event) => setBody(event.target.value)} rows={6} placeholder="Describe what went wrong." />
-        <button className="primary-button" disabled={sessionBlocked || busy === "support" || !body.trim()}>
+        <button
+          className="primary-button"
+          disabled={sessionBlocked || busy === "support" || !body.trim()}
+          {...unsafeActionGuardAttributes("Submit Ticket", sessionBlocked)}
+        >
           <Flag size={18} aria-hidden="true" />
           Submit Ticket
         </button>

@@ -227,6 +227,14 @@ const requiredSessionAttributes = [
   sessionEvidence.unsafeActionGuard?.missingCsrfOperationCountAttribute,
   sessionEvidence.unsafeActionGuard?.missingCsrfOperationsAttribute,
   sessionEvidence.unsafeActionGuard?.operationContractsAttribute,
+  sessionEvidence.unsafeActionGuard?.controlAttributes?.guardAttribute,
+  sessionEvidence.unsafeActionGuard?.controlAttributes?.labelAttribute,
+  sessionEvidence.unsafeActionGuard?.controlAttributes?.statusAttribute,
+  sessionEvidence.unsafeActionGuard?.controlAttributes?.operationCountAttribute,
+  sessionEvidence.unsafeActionGuard?.controlAttributes?.operationsAttribute,
+  sessionEvidence.unsafeActionGuard?.controlAttributes?.contractsAttribute,
+  sessionEvidence.unsafeActionGuard?.controlAttributes?.csrfProtectedOperationCountAttribute,
+  sessionEvidence.unsafeActionGuard?.controlAttributes?.idempotencyRequiredOperationCountAttribute,
   ...generatedClientEvidence.requiredAttributes
 ];
 
@@ -264,6 +272,29 @@ for (const expectedContract of sessionEvidence.unsafeActionGuard?.requiredOperat
   }
 }
 
+for (const expectedControlContract of sessionEvidence.unsafeActionGuard?.requiredControlContracts ?? []) {
+  const [label, contract] = expectedControlContract.split("=>");
+  if (!workspaceAppSource.includes(label)) {
+    fail(`workspace UI missing unsafe-action control label ${label}`);
+  }
+  if (!workspaceSmokeTestSource.includes(contract) && !sessionSecurityPlaywrightSpecSource.includes(contract)) {
+    fail(`same-site UX smoke missing control-level operation contract ${expectedControlContract}`);
+  }
+}
+
+for (const requiredControlSnippet of [
+  "unsafeActionGuardAttributes",
+  "formatUnsafeActionControlContracts",
+  "data-csrf-ux-guard",
+  "data-csrf-ux-guard-label",
+  "data-csrf-ux-guard-status",
+  "data-csrf-ux-guard-contracts"
+]) {
+  if (!workspaceAppSource.includes(requiredControlSnippet)) {
+    fail(`workspace UI missing control-level CSRF guard snippet ${requiredControlSnippet}`);
+  }
+}
+
 if (
   sessionEvidence.unsafeActionGuard?.expectedGuardCoverageStatus !== "pass" ||
   sessionEvidence.unsafeActionGuard?.expectedMissingCsrfOperationCount !== "0" ||
@@ -280,6 +311,7 @@ for (const requiredTestSnippet of [
   "data-session-unsafe-action-guard-coverage-status",
   "data-session-unsafe-action-missing-csrf-operation-count",
   "data-session-unsafe-action-operation-contracts",
+  "data-csrf-ux-guard-contracts",
   "data-generated-api-csrf-operation-contracts",
   "Session expired. Refresh or sign in to continue.",
   "Save Settings"
@@ -301,6 +333,8 @@ for (const requiredBrowserSnippet of [
   "data-session-unsafe-action-operation-contracts",
   "data-session-unsafe-action-guard-coverage-status",
   "data-session-unsafe-action-missing-csrf-operation-count",
+  "data-csrf-ux-guard-contracts",
+  "data-csrf-ux-guard-status",
   "data-generated-api-csrf-unsafe-operations",
   "data-generated-api-csrf-operation-contracts",
   "Session expired. Refresh or sign in to continue.",

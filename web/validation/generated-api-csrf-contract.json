@@ -15,6 +15,7 @@
       "data-session-csrf-credential-mode",
       "data-session-csrf-same-site-requirement",
       "data-session-unsafe-action-operation-contracts",
+      "data-csrf-ux-guard-contracts",
       "data-generated-api-csrf-operation-contracts",
       "Session expired. Refresh or sign in to continue.",
       "Save Settings",

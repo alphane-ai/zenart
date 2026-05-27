@@ -94,11 +94,34 @@ test("account route exposes secure-cookie, same-site CSRF, and unsafe-action gua
     /deleteSession:DELETE:include:X-ZenArt-CSRF:false/
   );
 
+  const saveSettings = page.getByRole("button", { name: "Save Settings" });
+  await expect(saveSettings).toHaveAttribute("data-csrf-ux-guard", "authenticated-same-site-session");
+  await expect(saveSettings).toHaveAttribute("data-csrf-ux-guard-label", "Save Settings");
+  await expect(saveSettings).toHaveAttribute("data-csrf-ux-guard-status", "enabled");
+  await expect(saveSettings).toHaveAttribute("data-csrf-ux-guard-operations", "updateAccount");
+  await expect(saveSettings).toHaveAttribute(
+    "data-csrf-ux-guard-contracts",
+    "updateAccount:PATCH:/account:include:X-ZenArt-CSRF:true"
+  );
+  await expect(saveSettings).toHaveAttribute("data-csrf-ux-guard-csrf-protected-operation-count", "1");
+  await expect(saveSettings).toHaveAttribute("data-csrf-ux-guard-idempotency-required-operation-count", "1");
+
+  const refreshSession = page.getByRole("button", { name: "Refresh Session" });
+  await expect(refreshSession).toHaveAttribute("data-csrf-ux-guard-label", "Refresh Session");
+  await expect(refreshSession).toHaveAttribute("data-csrf-ux-guard-contracts", "getSession:GET:/session:include:not-required:false");
+  await expect(refreshSession).toHaveAttribute("data-csrf-ux-guard-csrf-protected-operation-count", "0");
+
+  const expireSession = page.getByRole("button", { name: "Expire" });
+  await expect(expireSession).toHaveAttribute("data-csrf-ux-guard-label", "Expire Session");
+  await expect(expireSession).toHaveAttribute("data-csrf-ux-guard-contracts", "deleteSession:DELETE:/session:include:X-ZenArt-CSRF:false");
+
   await page.getByRole("button", { name: "Expire" }).click();
   await expect(page.getByText("Session expired. Refresh or sign in to continue.")).toBeVisible();
   await expect(sessionContract).toHaveAttribute("data-session-unsafe-action-status", "blocked");
   await expect(page.getByRole("button", { name: "Refresh Session" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Refresh Session" })).toHaveAttribute("data-csrf-ux-guard-status", "blocked");
   await expect(page.getByRole("button", { name: "Save Settings" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Save Settings" })).toHaveAttribute("data-csrf-ux-guard-status", "blocked");
 
   await page.getByRole("textbox", { name: "Email" }).fill("dev@zenart.local");
   await page.getByRole("button", { name: "Sign In" }).click();
@@ -106,4 +129,5 @@ test("account route exposes secure-cookie, same-site CSRF, and unsafe-action gua
   await expect(sessionContract).toHaveAttribute("data-session-unsafe-action-status", "enabled");
   await expect(page.getByText("Session expired. Refresh or sign in to continue.")).not.toBeVisible();
   await expect(page.getByRole("button", { name: "Save Settings" })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "Save Settings" })).toHaveAttribute("data-csrf-ux-guard-status", "enabled");
 });

@@ -124,12 +124,44 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(csrfInventory).toHaveTextContent("createExport");
     expect(csrfInventory).toHaveTextContent("createSupportTicket");
 
+    const saveSettings = screen.getByRole("button", { name: "Save Settings" });
+    expect(saveSettings).toHaveAttribute("data-csrf-ux-guard", "authenticated-same-site-session");
+    expect(saveSettings).toHaveAttribute("data-csrf-ux-guard-label", "Save Settings");
+    expect(saveSettings).toHaveAttribute("data-csrf-ux-guard-status", "enabled");
+    expect(saveSettings).toHaveAttribute("data-csrf-ux-guard-operation-count", "1");
+    expect(saveSettings).toHaveAttribute("data-csrf-ux-guard-operations", "updateAccount");
+    expect(saveSettings).toHaveAttribute(
+      "data-csrf-ux-guard-contracts",
+      "updateAccount:PATCH:/account:include:X-ZenArt-CSRF:true"
+    );
+    expect(saveSettings).toHaveAttribute("data-csrf-ux-guard-csrf-protected-operation-count", "1");
+    expect(saveSettings).toHaveAttribute("data-csrf-ux-guard-idempotency-required-operation-count", "1");
+
+    const refreshSession = screen.getByRole("button", { name: "Refresh Session" });
+    expect(refreshSession).toHaveAttribute("data-csrf-ux-guard-label", "Refresh Session");
+    expect(refreshSession).toHaveAttribute("data-csrf-ux-guard-operations", "getSession");
+    expect(refreshSession).toHaveAttribute(
+      "data-csrf-ux-guard-contracts",
+      "getSession:GET:/session:include:not-required:false"
+    );
+    expect(refreshSession).toHaveAttribute("data-csrf-ux-guard-csrf-protected-operation-count", "0");
+
+    const expireSession = screen.getByRole("button", { name: "Expire" });
+    expect(expireSession).toHaveAttribute("data-csrf-ux-guard-label", "Expire Session");
+    expect(expireSession).toHaveAttribute("data-csrf-ux-guard-operations", "deleteSession");
+    expect(expireSession).toHaveAttribute(
+      "data-csrf-ux-guard-contracts",
+      "deleteSession:DELETE:/session:include:X-ZenArt-CSRF:false"
+    );
+
     fireEvent.click(screen.getByRole("button", { name: "Expire" }));
     await screen.findByText("Session expired. Refresh or sign in to continue.");
     expect(container.querySelector(".session-pill")).toHaveTextContent("expired");
     expect(screen.getByLabelText("Auth and session status")).toHaveAttribute("data-session-unsafe-action-status", "blocked");
     expect(screen.getByRole("button", { name: "Refresh Session" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Refresh Session" })).toHaveAttribute("data-csrf-ux-guard-status", "blocked");
     expect(screen.getByRole("button", { name: "Save Settings" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Save Settings" })).toHaveAttribute("data-csrf-ux-guard-status", "blocked");
 
     fireEvent.change(screen.getByLabelText("Email"), { target: { value: "dev@zenart.local" } });
     fireEvent.click(screen.getByRole("button", { name: "Sign In" }));
@@ -139,6 +171,7 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(screen.queryByText("Session expired. Refresh or sign in to continue.")).not.toBeInTheDocument();
     expect(container.querySelector(".session-pill")).toHaveTextContent("authenticated");
     expect(screen.getByRole("button", { name: "Save Settings" })).not.toBeDisabled();
+    expect(screen.getByRole("button", { name: "Save Settings" })).toHaveAttribute("data-csrf-ux-guard-status", "enabled");
   });
 
   it("guards project create and rename actions with the same-site session contract", async () => {
@@ -152,6 +185,14 @@ describe("WorkspaceApp user route integration smoke", () => {
     );
     expect(sessionContract.getAttribute("data-session-unsafe-action-operation-contracts")).toContain(
       "Rename Project=>updateProject:PATCH:X-ZenArt-CSRF:true"
+    );
+    expect(screen.getByRole("button", { name: "Create Project" })).toHaveAttribute(
+      "data-csrf-ux-guard-contracts",
+      "createProject:POST:/projects:include:X-ZenArt-CSRF:true"
+    );
+    expect(screen.getByRole("button", { name: "Rename Project" })).toHaveAttribute(
+      "data-csrf-ux-guard-contracts",
+      "updateProject:PATCH:/projects/{project_id}:include:X-ZenArt-CSRF:true"
     );
 
     fireEvent.change(screen.getByLabelText("New project"), { target: { value: "Retail launch assets" } });
@@ -167,7 +208,32 @@ describe("WorkspaceApp user route integration smoke", () => {
     fireEvent.click(screen.getByRole("button", { name: "Expire" }));
     await screen.findByText("Session expired. Refresh or sign in to continue.");
     expect(screen.getByRole("button", { name: "Create Project" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Create Project" })).toHaveAttribute("data-csrf-ux-guard-status", "blocked");
     expect(screen.getByRole("button", { name: "Rename Project" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Rename Project" })).toHaveAttribute("data-csrf-ux-guard-status", "blocked");
+  });
+
+  it("exposes billing and support controls as same-site CSRF UX guard contracts", async () => {
+    const { rerender } = render(<WorkspaceApp initialView="billing" />);
+
+    await screen.findByRole("heading", { name: "Billing and Quota" });
+
+    expect(screen.getByRole("button", { name: "Mock Checkout" })).toHaveAttribute(
+      "data-csrf-ux-guard-contracts",
+      "getSubscription:GET:/billing/subscription:include:not-required:false"
+    );
+    expect(screen.getByRole("button", { name: "Trial" })).toHaveAttribute(
+      "data-csrf-ux-guard-contracts",
+      "getQuota:GET:/quota:include:not-required:false|getSubscription:GET:/billing/subscription:include:not-required:false"
+    );
+
+    rerender(<WorkspaceApp initialView="support" />);
+    await screen.findByRole("heading", { name: "Report Problem" });
+
+    expect(screen.getByRole("button", { name: "Submit Ticket" })).toHaveAttribute(
+      "data-csrf-ux-guard-contracts",
+      "createSupportTicket:POST:/support/tickets:include:X-ZenArt-CSRF:true"
+    );
   });
 
   it("blocks unsafe workspace actions when the same-site session is expired", async () => {
@@ -187,6 +253,39 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(screen.getByRole("button", { name: "Select Studio System" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Add Selection" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Export ZIP" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Confirm Brief" })).toHaveAttribute("data-csrf-ux-guard-status", "blocked");
+    expect(screen.getByRole("button", { name: "Confirm Brief" })).toHaveAttribute(
+      "data-csrf-ux-guard-contracts",
+      "createChatSession:POST:/projects/{project_id}/chat/sessions:include:X-ZenArt-CSRF:true|createChatMessage:POST:/chat/sessions/{chat_session_id}/messages:include:X-ZenArt-CSRF:true|createCandidateSet:POST:/projects/{project_id}/candidate-sets:include:X-ZenArt-CSRF:true"
+    );
+    expect(screen.getByRole("button", { name: "Attach" })).toHaveAttribute(
+      "data-csrf-ux-guard-contracts",
+      "createUpload:POST:/uploads:include:X-ZenArt-CSRF:true"
+    );
+    expect(screen.getByRole("button", { name: "Select Studio System" })).toHaveAttribute(
+      "data-csrf-ux-guard-contracts",
+      "selectDirection:PUT:/projects/{project_id}/selected-direction:include:X-ZenArt-CSRF:true"
+    );
+    expect(screen.getByRole("button", { name: "Add Selection" })).toHaveAttribute(
+      "data-csrf-ux-guard-contracts",
+      "createPackage:POST:/projects/{project_id}/packages:include:X-ZenArt-CSRF:true"
+    );
+    expect(screen.getByRole("button", { name: "Export ZIP" })).toHaveAttribute(
+      "data-csrf-ux-guard-contracts",
+      "createExport:POST:/packages/{package_id}/exports:include:X-ZenArt-CSRF:true"
+    );
+    expect(screen.getByRole("button", { name: "Iterate" })).toHaveAttribute(
+      "data-csrf-ux-guard-contracts",
+      "createCanvasNode:POST:/workspaces/{workspace_id}/canvas/nodes:include:X-ZenArt-CSRF:true|createCanvasVersion:POST:/workspaces/{workspace_id}/canvas/versions:include:X-ZenArt-CSRF:true"
+    );
+    expect(screen.getByRole("button", { name: "Initial brief" })).toHaveAttribute(
+      "data-csrf-ux-guard-contracts",
+      "createCanvasVersion:POST:/workspaces/{workspace_id}/canvas/versions:include:X-ZenArt-CSRF:true"
+    );
+    expect(screen.getByRole("button", { name: "PDF" })).toHaveAttribute(
+      "data-csrf-ux-guard-contracts",
+      "createExport:POST:/packages/{package_id}/exports:include:X-ZenArt-CSRF:true"
+    );
 
     const beforePackageCount = container.querySelectorAll(".history-list article").length;
     fireEvent.click(screen.getByRole("button", { name: "Confirm Brief" }));
@@ -238,6 +337,10 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(referenceSmoke).toHaveAttribute("data-reference-packaged-count", "0");
 
     fireEvent.click(await screen.findByRole("button", { name: "Add reference campaign-reference.webp to package" }));
+    expect(await screen.findByRole("button", { name: "Add reference campaign-reference.webp to package" })).toHaveAttribute(
+      "data-csrf-ux-guard-contracts",
+      "createPackage:POST:/projects/{project_id}/packages:include:X-ZenArt-CSRF:true"
+    );
     await waitFor(() => {
       expect(container.querySelector("[data-reference-export-smoke='reference-upload-to-ready-zip-export']")).toHaveAttribute(
         "data-reference-packaged-count",
@@ -462,6 +565,13 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(safetyPolicy).toHaveAttribute("data-safety-policy-status", "pass");
     expect(safetyPolicy).toHaveAttribute("data-safety-policy-stage-count", "5");
     expect(safetyPolicy).toHaveAttribute("data-safety-policy-finding-count", "0");
+
+    for (const shareButton of screen.getAllByRole("button", { name: "Request Share" })) {
+      expect(shareButton).toHaveAttribute(
+        "data-csrf-ux-guard-contracts",
+        "createShareLink:POST:/exports/{export_id}/share-links:include:X-ZenArt-CSRF:true"
+      );
+    }
   });
 
   it("exposes user-web brief, upload, and confirmation runtime evidence before export", async () => {
@@ -556,6 +666,10 @@ describe("WorkspaceApp user route integration smoke", () => {
     fireEvent.change(screen.getByLabelText("Iteration instruction"), {
       target: { value: "Refine the ecommerce story for clearer offer hierarchy and handoff notes." }
     });
+    expect(screen.getByRole("button", { name: "Iterate" })).toHaveAttribute(
+      "data-csrf-ux-guard-contracts",
+      "createCanvasNode:POST:/workspaces/{workspace_id}/canvas/nodes:include:X-ZenArt-CSRF:true|createCanvasVersion:POST:/workspaces/{workspace_id}/canvas/versions:include:X-ZenArt-CSRF:true"
+    );
     fireEvent.click(screen.getByRole("button", { name: "Iterate" }));
     await screen.findByText("Iteration");
 
@@ -671,6 +785,10 @@ describe("WorkspaceApp user route integration smoke", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Initial brief" }));
+    expect(screen.getByRole("button", { name: "Initial brief" })).toHaveAttribute(
+      "data-csrf-ux-guard-contracts",
+      "createCanvasVersion:POST:/workspaces/{workspace_id}/canvas/versions:include:X-ZenArt-CSRF:true"
+    );
     await waitFor(() => {
       expect(screen.getByRole("button", { name: "Initial brief" })).toHaveAttribute("aria-pressed", "true");
     });
