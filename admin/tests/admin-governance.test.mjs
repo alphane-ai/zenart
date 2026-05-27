@@ -1480,6 +1480,16 @@ test("production activation review audit evidence covers every high-risk admin o
     ["activation_eval_review_audit_runtime_missing", "admin_high_risk_review_runtime_missing"],
     "activation evidence must clear only the activation and high-risk admin review blockers"
   );
+  assert.deepEqual(
+    productionActivationReviewAuditEvidence.adminRbacEvidenceIds.toSorted(),
+    adminRbacEvidence.map((item) => item.id).toSorted(),
+    "production activation evidence must consume every admin RBAC override record"
+  );
+  assert.deepEqual(
+    evidenceFile.admin_rbac_evidence_ids.toSorted(),
+    productionActivationReviewAuditEvidence.adminRbacEvidenceIds.toSorted(),
+    "production evidence file must match admin RBAC fixture coverage"
+  );
 
   for (const requestId of productionActivationReviewAuditEvidence.runtimeRequestIds) {
     assert.match(
@@ -1556,6 +1566,15 @@ test("production activation review audit evidence covers every high-risk admin o
         decision.releaseGateStatus === "release_gate_preserved"
     ),
     "admin reviewer cannot queue superadmin-only safety overrides through second-review routing"
+  );
+  assert.ok(
+    runtimeDecisions.some(
+      (decision) =>
+        decision.evidenceId === "rbac-provider-002" &&
+        decision.requestOutcome === "denied_expired_override" &&
+        decision.releaseGateStatus === "release_gate_preserved"
+    ),
+    "expired provider routing override evidence must be denied and preserve the release gate"
   );
   assert.ok(
     runtimeDecisions.some(

@@ -2684,6 +2684,7 @@ export const productionActivationReviewAuditEvidence: ProductionActivationReview
     "production-activation-review-audit-20260527T1430Z-crawler-activation",
     "production-activation-review-audit-20260527T1430Z-prompt-activation",
     "production-activation-review-audit-20260527T1430Z-provider-routing",
+    "production-activation-review-audit-20260527T1430Z-provider-routing-expired",
     "production-activation-review-audit-20260527T1430Z-quota-override",
     "production-activation-review-audit-20260527T1430Z-safety-policy",
     "production-activation-review-audit-20260527T1430Z-export-override",
@@ -2694,6 +2695,7 @@ export const productionActivationReviewAuditEvidence: ProductionActivationReview
     "rbac-crawler-001",
     "rbac-prompt-001",
     "rbac-provider-001",
+    "rbac-provider-002",
     "rbac-quota-001",
     "rbac-safety-001",
     "rbac-export-001"
@@ -2773,11 +2775,11 @@ export const productionActivationReviewAuditEvidence: ProductionActivationReview
       area: "provider_routing_gate",
       status: "pass",
       runtimeProbe:
-        "Production provider router replay allowed only rbac-provider-001 non-urgent retry-weight reduction with expiry, kept no silent fallback enabled, and preserved the degraded provider launch blocker.",
+        "Production provider router replay allowed only rbac-provider-001 non-urgent retry-weight reduction with active expiry, denied expired rbac-provider-002 as denied_expired_override, kept no silent fallback enabled, and preserved the degraded provider launch blocker.",
       deploymentEvidence:
-        "The production evidence file records the provider routing runtime request, admin review rv-101, provider health ph-1, release blocker eg-003, and immutable audit au-007 with an explicit temporary override expiration.",
+        "The production evidence file records active and expired provider routing runtime requests, admin review rv-101, provider health ph-1, release blocker eg-003, and immutable audit au-007 with explicit temporary override expirations.",
       rbacAuditEvidence:
-        "rbac-provider-001 has sufficient admin_operator role and applied mutation with expiry, while releaseGateImpact keeps provider production launch blocked until health and alert evidence pass.",
+        "rbac-provider-001 has sufficient admin_operator role and applied mutation with expiry, while rbac-provider-002 proves stale temporary provider overrides are denied after expiry; releaseGateImpact keeps provider production launch blocked until health and alert evidence pass.",
       linkedAdminArtifacts: [
         "admin/app/providers/page.tsx",
         "admin/app/audit/page.tsx",
@@ -2786,6 +2788,7 @@ export const productionActivationReviewAuditEvidence: ProductionActivationReview
       evidenceRefs: [
         "ops/evidence/production/20260527T1430Z-activation-review-audit.json",
         "rbac-provider-001",
+        "rbac-provider-002",
         "rv-101",
         "ph-1",
         "eg-003",
