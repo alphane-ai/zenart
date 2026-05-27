@@ -575,6 +575,12 @@ func parseS3Endpoint(raw string, useSSL bool) (*url.URL, error) {
 	if parsed.User != nil {
 		return nil, errors.New("object store endpoint must not include credentials")
 	}
+	if parsed.RawQuery != "" {
+		return nil, errors.New("object store endpoint must not include query parameters")
+	}
+	if parsed.Fragment != "" {
+		return nil, errors.New("object store endpoint must not include a fragment")
+	}
 	return parsed, nil
 }
 

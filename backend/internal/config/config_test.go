@@ -1,6 +1,9 @@
 package config
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestLoadDefaults(t *testing.T) {
 	t.Setenv("DATABASE_URL", "")
@@ -340,6 +343,55 @@ func TestValidateRejectsMalwareScannerEndpointCredentials(t *testing.T) {
 	cfg.Security.MalwareScanEndpoint = "https://scan_user:scan_secret@scanner.example.test/scan"
 	if err := cfg.Validate(); err == nil {
 		t.Fatal("Validate() error = nil, want credential-bearing malware scanner endpoint error")
+	}
+}
+
+func TestValidateRejectsObjectStorageEndpointQueryAndFragment(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		update   func(*Config)
+		wantText string
+	}{
+		{
+			name: "endpoint query",
+			update: func(cfg *Config) {
+				cfg.ObjectStorage.Endpoint = "https://s3.example.test?X-Amz-Signature=abcdef"
+			},
+			wantText: "OBJECT_STORAGE_ENDPOINT must not include query parameters",
+		},
+		{
+			name: "endpoint fragment",
+			update: func(cfg *Config) {
+				cfg.ObjectStorage.Endpoint = "https://s3.example.test/#access-token"
+			},
+			wantText: "OBJECT_STORAGE_ENDPOINT must not include a fragment",
+		},
+		{
+			name: "public endpoint query",
+			update: func(cfg *Config) {
+				cfg.ObjectStorage.PublicEndpoint = "https://downloads.example.test?token=secret"
+			},
+			wantText: "OBJECT_STORAGE_PUBLIC_ENDPOINT must not include query parameters",
+		},
+		{
+			name: "public endpoint fragment",
+			update: func(cfg *Config) {
+				cfg.ObjectStorage.PublicEndpoint = "https://downloads.example.test/#signature"
+			},
+			wantText: "OBJECT_STORAGE_PUBLIC_ENDPOINT must not include a fragment",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			cfg, err := Load()
+			if err != nil {
+				t.Fatalf("Load() error = %v", err)
+			}
+			tc.update(&cfg)
+			err = cfg.Validate()
+			if err == nil || !strings.Contains(err.Error(), tc.wantText) {
+				t.Fatalf("Validate() error = %v, want %q", err, tc.wantText)
+			}
+		})
 	}
 }
 

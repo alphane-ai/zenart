@@ -351,6 +351,59 @@ func TestNewS3StoreRejectsCredentialBearingEndpoints(t *testing.T) {
 	}
 }
 
+func TestNewS3StoreRejectsEndpointQueryAndFragment(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		cfg      config.ObjectStorageConfig
+		wantText string
+	}{
+		{
+			name: "endpoint query",
+			cfg: config.ObjectStorageConfig{
+				Endpoint: "https://s3.example.test?X-Amz-Signature=abcdef",
+			},
+			wantText: "must not include query parameters",
+		},
+		{
+			name: "endpoint fragment",
+			cfg: config.ObjectStorageConfig{
+				Endpoint: "https://s3.example.test/#access-token",
+			},
+			wantText: "must not include a fragment",
+		},
+		{
+			name: "public endpoint query",
+			cfg: config.ObjectStorageConfig{
+				Endpoint:       "https://s3.example.test",
+				PublicEndpoint: "https://downloads.example.test?token=secret",
+			},
+			wantText: "must not include query parameters",
+		},
+		{
+			name: "public endpoint fragment",
+			cfg: config.ObjectStorageConfig{
+				Endpoint:       "https://s3.example.test",
+				PublicEndpoint: "https://downloads.example.test/#signature",
+			},
+			wantText: "must not include a fragment",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			cfg := tc.cfg
+			cfg.Provider = "s3-compatible"
+			cfg.Region = "us-east-1"
+			cfg.Bucket = "zenart-test"
+			cfg.AccessKey = "access"
+			cfg.SecretKey = "secret"
+			cfg.ForcePathStyle = true
+			_, err := NewS3Store(cfg, nil)
+			if err == nil || !strings.Contains(err.Error(), tc.wantText) {
+				t.Fatalf("NewS3Store() error = %v, want %q", err, tc.wantText)
+			}
+		})
+	}
+}
+
 func TestNewS3StoreRejectsUnsafeBucketBeforeRequest(t *testing.T) {
 	requests := 0
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

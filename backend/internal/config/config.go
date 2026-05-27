@@ -456,7 +456,20 @@ func (c Config) Validate() error {
 }
 
 func validateObjectStorageEndpoint(raw, name string) (*url.URL, string) {
-	return validateExternalServiceEndpoint(raw, name)
+	if strings.Contains(strings.TrimSpace(raw), "#") {
+		return nil, fmt.Sprintf("%s must not include a fragment", name)
+	}
+	parsed, errMessage := validateExternalServiceEndpoint(raw, name)
+	if errMessage != "" {
+		return nil, errMessage
+	}
+	if parsed.RawQuery != "" {
+		return nil, fmt.Sprintf("%s must not include query parameters", name)
+	}
+	if parsed.Fragment != "" {
+		return nil, fmt.Sprintf("%s must not include a fragment", name)
+	}
+	return parsed, ""
 }
 
 func validateExternalServiceEndpoint(raw, name string) (*url.URL, string) {
