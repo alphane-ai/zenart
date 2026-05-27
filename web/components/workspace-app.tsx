@@ -920,27 +920,52 @@ function PackagePanel({
       <div className="history-list">
         <h3>Export history</h3>
         {state.exports.length === 0 ? <p className="empty">Export creates manifest, QA report, and deterministic file name.</p> : null}
-        {state.exports.map((item) => (
-          <article key={item.id} className={item.status === "blocked" ? "blocked-export" : ""}>
-            <strong>{item.fileName}</strong>
-            <span>{item.status} · {dateLabel(item.createdAt)}</span>
-            <span>Manifest {item.manifest.package_id} · {item.manifest.items.length} provenance entries</span>
-            <div className="qa-list">
-              {item.qaReport.map((finding) => (
-                <span key={finding.id} className={severityClass[finding.severity]}>
-                  {finding.severity}: {finding.title}
-                </span>
-              ))}
-            </div>
-            {item.status === "ready" ? (
-              <button className="secondary-button compact" onClick={() => void downloadExportPackage(item)}>
-                <Download size={15} aria-hidden="true" />
-                Download
-              </button>
-            ) : null}
-            <ShareLinkState state={state} exportId={item.id} sessionBlocked={sessionBlocked} runAction={runAction} compact />
-          </article>
-        ))}
+        {state.exports.map((item) => {
+          const metadataEvidence = buildPackageExportMetadataEvidence(item);
+          const zipPayloadSmoke = buildExportZipPayloadSmokeEvidence(item);
+          const downloadReady =
+            item.status === "ready" &&
+            metadataEvidence.downloadArtifactStatus === "pass" &&
+            zipPayloadSmoke.status === "pass";
+
+          return (
+            <article key={item.id} className={item.status === "blocked" ? "blocked-export" : ""}>
+              <strong>{item.fileName}</strong>
+              <span>{item.status} · {dateLabel(item.createdAt)}</span>
+              <span>Manifest {item.manifest.package_id} · {item.manifest.items.length} provenance entries</span>
+              <div className="qa-list">
+                {item.qaReport.map((finding) => (
+                  <span key={finding.id} className={severityClass[finding.severity]}>
+                    {finding.severity}: {finding.title}
+                  </span>
+                ))}
+              </div>
+              {item.status === "ready" ? (
+                <button
+                  className="secondary-button compact"
+                  onClick={() => void downloadExportPackage(item)}
+                  data-export-download-handoff="stage0.rev2.package-export-download-handoff"
+                  data-export-download-handoff-status={downloadReady ? "pass" : "fail"}
+                  data-export-download-id={item.id}
+                  data-export-download-file-name={item.fileName}
+                  data-export-download-format={item.format}
+                  data-export-download-package-id={item.manifest.package_id}
+                  data-export-download-manifest-output-count={item.manifest.required_outputs.length}
+                  data-export-download-zip-payload-status={zipPayloadSmoke.status}
+                  data-export-download-zip-payload-count={zipPayloadSmoke.expectedPayloadCount}
+                  data-export-download-missing-payload-count={zipPayloadSmoke.missingPayloadNames.length}
+                  data-export-download-metadata-status={metadataEvidence.status}
+                  data-export-download-artifact-status={metadataEvidence.downloadArtifactStatus}
+                  data-export-download-required-payload-parity={metadataEvidence.zipPayloadParityStatus}
+                >
+                  <Download size={15} aria-hidden="true" />
+                  Download
+                </button>
+              ) : null}
+              <ShareLinkState state={state} exportId={item.id} sessionBlocked={sessionBlocked} runAction={runAction} compact />
+            </article>
+          );
+        })}
       </div>
     </section>
   );

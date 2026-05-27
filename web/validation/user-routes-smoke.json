@@ -441,7 +441,26 @@
         "assets/README.txt",
         "metadata.json",
         "trace_provenance.json"
-      ]
+      ],
+      "downloadHandoffEvidence": {
+        "schemaVersion": "stage0.rev2.package-export-download-handoff",
+        "buttonAttribute": "data-export-download-handoff",
+        "statusAttribute": "data-export-download-handoff-status",
+        "expectedStatus": "pass",
+        "requiredAttributes": [
+          "data-export-download-id",
+          "data-export-download-file-name",
+          "data-export-download-format",
+          "data-export-download-package-id",
+          "data-export-download-manifest-output-count",
+          "data-export-download-zip-payload-status",
+          "data-export-download-zip-payload-count",
+          "data-export-download-missing-payload-count",
+          "data-export-download-metadata-status",
+          "data-export-download-artifact-status",
+          "data-export-download-required-payload-parity"
+        ]
+      }
     },
     {
       "schemaVersion": "stage0.rev2.workflow-api-smoke",

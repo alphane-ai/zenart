@@ -482,6 +482,23 @@ for (const payload of exportZipPayloadEvidence.requiredPayloads ?? []) {
     fail(`export ZIP payload smoke missing required payload ${payload}`);
   }
 }
+if (
+  exportZipPayloadEvidence.downloadHandoffEvidence?.schemaVersion !== "stage0.rev2.package-export-download-handoff" ||
+  exportZipPayloadEvidence.downloadHandoffEvidence?.buttonAttribute !== "data-export-download-handoff" ||
+  exportZipPayloadEvidence.downloadHandoffEvidence?.statusAttribute !== "data-export-download-handoff-status" ||
+  exportZipPayloadEvidence.downloadHandoffEvidence?.expectedStatus !== "pass"
+) {
+  fail("export ZIP payload smoke must define browser download handoff evidence");
+}
+for (const attribute of [
+  exportZipPayloadEvidence.downloadHandoffEvidence?.buttonAttribute,
+  exportZipPayloadEvidence.downloadHandoffEvidence?.statusAttribute,
+  ...(exportZipPayloadEvidence.downloadHandoffEvidence?.requiredAttributes ?? [])
+]) {
+  if (!attribute || !componentSource.includes(attribute)) {
+    fail(`export ZIP payload smoke missing download handoff attribute ${attribute}`);
+  }
+}
 for (const expectedSnippet of [
   "buildExportZipPayloadSmokeEvidence",
   "buildDownloadableExportZipPayloadNames",
@@ -571,6 +588,19 @@ for (const requiredSnippet of [
   "data-export-zip-payload-trace-provenance-present",
   "data-export-zip-payload-assets-present",
   "data-export-zip-payload-failures",
+  "data-export-download-handoff",
+  "data-export-download-handoff-status",
+  "data-export-download-id",
+  "data-export-download-file-name",
+  "data-export-download-format",
+  "data-export-download-package-id",
+  "data-export-download-manifest-output-count",
+  "data-export-download-zip-payload-status",
+  "data-export-download-zip-payload-count",
+  "data-export-download-missing-payload-count",
+  "data-export-download-metadata-status",
+  "data-export-download-artifact-status",
+  "data-export-download-required-payload-parity",
   "data-package-export-metadata-ui",
   "data-package-export-metadata-status",
   "data-package-export-id",

@@ -323,6 +323,24 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(zipPayloadSmoke?.getAttribute("data-export-zip-payload-expected-payloads")).toContain("trace_provenance.json");
     expect(zipPayloadSmoke?.getAttribute("data-export-zip-payload-workflow-payloads")).toContain("assets/square_social_ad.png");
 
+    const downloadHandoff = screen.getByRole("button", { name: "Download" });
+    expect(downloadHandoff).toHaveAttribute(
+      "data-export-download-handoff",
+      "stage0.rev2.package-export-download-handoff"
+    );
+    expect(downloadHandoff).toHaveAttribute("data-export-download-handoff-status", "pass");
+    expect(downloadHandoff).toHaveAttribute("data-export-download-id", "export-001");
+    expect(downloadHandoff).toHaveAttribute("data-export-download-file-name", "zenart-001.zip");
+    expect(downloadHandoff).toHaveAttribute("data-export-download-format", "zip");
+    expect(downloadHandoff).toHaveAttribute("data-export-download-package-id", "pkg-002");
+    expect(downloadHandoff).toHaveAttribute("data-export-download-manifest-output-count", "13");
+    expect(downloadHandoff).toHaveAttribute("data-export-download-zip-payload-status", "pass");
+    expect(downloadHandoff).toHaveAttribute("data-export-download-missing-payload-count", "0");
+    expect(downloadHandoff).toHaveAttribute("data-export-download-metadata-status", "pass");
+    expect(downloadHandoff).toHaveAttribute("data-export-download-artifact-status", "pass");
+    expect(downloadHandoff).toHaveAttribute("data-export-download-required-payload-parity", "pass");
+    expect(Number(downloadHandoff.getAttribute("data-export-download-zip-payload-count"))).toBeGreaterThanOrEqual(13);
+
     const safetyPolicy = container.querySelector("[data-safety-policy-export='stage0.rev2.safety-policy-export']");
     expect(safetyPolicy).toHaveAttribute("data-safety-policy-status", "pass");
     expect(safetyPolicy).toHaveAttribute("data-safety-policy-stage-count", "5");
@@ -771,6 +789,29 @@ describe("WorkspaceApp user route integration smoke", () => {
         "ppt-ready-metadata.json",
         "assets/README.txt"
       ])
+    });
+    expect(evidenceBySchema.get("stage0.rev2.export-zip-payload-smoke")).toMatchObject({
+      route: "/export",
+      source: "web/components/workspace-app.tsx",
+      downloadHandoffEvidence: expect.objectContaining({
+        schemaVersion: "stage0.rev2.package-export-download-handoff",
+        buttonAttribute: "data-export-download-handoff",
+        statusAttribute: "data-export-download-handoff-status",
+        expectedStatus: "pass",
+        requiredAttributes: expect.arrayContaining([
+          "data-export-download-id",
+          "data-export-download-file-name",
+          "data-export-download-format",
+          "data-export-download-package-id",
+          "data-export-download-manifest-output-count",
+          "data-export-download-zip-payload-status",
+          "data-export-download-zip-payload-count",
+          "data-export-download-missing-payload-count",
+          "data-export-download-metadata-status",
+          "data-export-download-artifact-status",
+          "data-export-download-required-payload-parity"
+        ])
+      })
     });
     expect(evidenceBySchema.get("stage0.rev2.workflow-api-smoke")).toMatchObject({
       route: "/workspace",
