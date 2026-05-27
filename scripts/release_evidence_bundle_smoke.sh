@@ -20,6 +20,7 @@ LEGAL_PAGES_REPORT_PATH="$OUT_DIR/${RUN_ID}.legal-pages-external-user.json"
 SUPPORT_CONTACT_REPORT_PATH="$OUT_DIR/${RUN_ID}.support-contact-external-user.json"
 CANONICAL_LEGAL_PAGES_REPORT_PATH="${CANONICAL_LEGAL_PAGES_REPORT_PATH:-ops/evidence/staging/legal-pages-external-user.json}"
 CANONICAL_SUPPORT_CONTACT_REPORT_PATH="${CANONICAL_SUPPORT_CONTACT_REPORT_PATH:-ops/evidence/staging/support-contact-external-user.json}"
+CANONICAL_OBJECT_RETENTION_REPORT_PATH="${CANONICAL_OBJECT_RETENTION_REPORT_PATH:-ops/evidence/staging/object-storage-retention-cleanup.json}"
 
 mkdir -p "$OUT_DIR"
 cleanup() {
@@ -156,7 +157,7 @@ report["created_at"] = target_report_path.stem
 target_report_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 PY
 
-python3 - "$REPORT_PATH" "$STAGING_REPORT_PATH" "$status" "$OBJECT_RETENTION_REPORT_PATH" "$object_retention_status" "$LEGAL_SUPPORT_REPORT_PATH" "$legal_support_status" "$LEGAL_PAGES_REPORT_PATH" "$SUPPORT_CONTACT_REPORT_PATH" "$CANONICAL_LEGAL_PAGES_REPORT_PATH" "$CANONICAL_SUPPORT_CONTACT_REPORT_PATH" <<'PY'
+python3 - "$REPORT_PATH" "$STAGING_REPORT_PATH" "$status" "$OBJECT_RETENTION_REPORT_PATH" "$object_retention_status" "$LEGAL_SUPPORT_REPORT_PATH" "$legal_support_status" "$LEGAL_PAGES_REPORT_PATH" "$SUPPORT_CONTACT_REPORT_PATH" "$CANONICAL_LEGAL_PAGES_REPORT_PATH" "$CANONICAL_SUPPORT_CONTACT_REPORT_PATH" "$CANONICAL_OBJECT_RETENTION_REPORT_PATH" <<'PY'
 import json
 import sys
 from pathlib import Path
@@ -172,6 +173,7 @@ legal_pages_report_path = Path(sys.argv[8])
 support_contact_report_path = Path(sys.argv[9])
 canonical_legal_pages_report_path = Path(sys.argv[10])
 canonical_support_contact_report_path = Path(sys.argv[11])
+canonical_object_retention_report_path = Path(sys.argv[12])
 staging = json.loads(staging_report_path.read_text(encoding="utf-8"))
 summary = staging.get("summary", {})
 release_evidence = summary.get("release_evidence", {})
@@ -283,7 +285,79 @@ def load_canonical_split_probe(
     }
 
 
+def load_canonical_object_retention_probe(path: Path) -> dict:
+    expected_areas = {
+        "retention_policy",
+        "expired_export_cleanup",
+        "orphan_cleanup",
+        "audit_refs",
+    }
+    if not path.exists():
+        return {
+            "path": str(path),
+            "exists": False,
+            "status": "missing",
+            "passed": False,
+            "environment": None,
+            "release_gate_check_id": None,
+            "missing_requirements": ["missing_file"],
+            "canonical": True,
+        }
+    data = json.loads(path.read_text(encoding="utf-8"))
+    coverage = data.get("coverage", [])
+    coverage_areas = {
+        item.get("area")
+        for item in coverage
+        if isinstance(item, dict) and item.get("status") == "pass"
+    }
+    split_evidence = data.get("split_evidence", {})
+    gate_impact = data.get("gate_impact", {})
+    missing_requirements = []
+    if data.get("environment") != "staging":
+        missing_requirements.append("environment_staging")
+    if data.get("kind") != "object_storage_retention_cleanup":
+        missing_requirements.append("kind_object_storage_retention_cleanup")
+    if data.get("release_gate_check_id") != "staging_object_storage_signed_downloads":
+        missing_requirements.append("release_gate_check_id")
+    if data.get("status") not in {"pass", "passed"}:
+        missing_requirements.append("passing_status")
+    if data.get("blocked_checks") not in ([], None):
+        missing_requirements.append("no_blocked_checks")
+    if split_evidence.get("canonical_pass_paths") is not True:
+        missing_requirements.append("canonical_pass_paths")
+    if split_evidence.get("retention_cleanup_ready") is not True:
+        missing_requirements.append("retention_cleanup_ready")
+    if split_evidence.get("signed_url_ready") is not True:
+        missing_requirements.append("signed_url_ready")
+    if gate_impact.get("can_clear_release_gate_check") is not True:
+        missing_requirements.append("can_clear_release_gate_check")
+    if gate_impact.get("preserved_release_gate_check_id") is not None:
+        missing_requirements.append("no_preserved_release_gate_check")
+    if expected_areas - coverage_areas:
+        missing_requirements.append("coverage:" + ",".join(sorted(expected_areas - coverage_areas)))
+    return {
+        "path": str(path),
+        "exists": True,
+        "canonical": True,
+        "environment": data.get("environment"),
+        "kind": data.get("kind"),
+        "release_gate_check_id": data.get("release_gate_check_id"),
+        "status": data.get("status", "unknown"),
+        "release_sha": data.get("release_sha", ""),
+        "results_path": data.get("results_path"),
+        "passed": not missing_requirements,
+        "missing_requirements": missing_requirements,
+        "split_evidence": split_evidence,
+        "gate_impact": gate_impact,
+        "coverage_areas": sorted(coverage_areas),
+        "audit_linkage": data.get("audit_linkage", {}),
+    }
+
+
 object_retention_probe = load_probe(object_retention_report_path, object_retention_exit_code)
+canonical_object_retention_probe = load_canonical_object_retention_probe(
+    canonical_object_retention_report_path
+)
 legal_support_probe = load_probe(legal_support_report_path, legal_support_exit_code)
 legal_pages_probe = load_split_probe(
     legal_pages_report_path,
@@ -332,6 +406,7 @@ def runtime_blocked_reason(probe: dict) -> str:
 
 
 object_retention_blocked_reason = runtime_blocked_reason(object_retention_probe)
+object_retention_verified = canonical_object_retention_probe["passed"]
 
 slots = []
 for slot, required in sorted(release_evidence.get("required_slots", {}).items()):
@@ -349,8 +424,8 @@ missing_slots = [slot["slot"] for slot in slots if not slot["provided"]]
 unverified_slots = [slot["slot"] for slot in slots if not slot["verified"]]
 decision = go_no_go.get("decision", "no-go")
 split_probe_blocking_reasons = []
-if not object_retention_probe["passed"]:
-    split_probe_blocking_reasons.append("object_storage_retention_cleanup_not_passed")
+if not object_retention_verified:
+    split_probe_blocking_reasons.append("canonical_object_storage_retention_cleanup_not_passed")
 if not legal_support_verified:
     split_probe_blocking_reasons.append("legal_support_external_user_visibility_not_passed")
 if legal_support_probe["passed"] and not legal_support_split_reports_passed:
@@ -358,7 +433,7 @@ if legal_support_probe["passed"] and not legal_support_split_reports_passed:
 status = (
     "passed"
     if staging_exit_code == 0
-    and object_retention_probe["passed"]
+    and object_retention_verified
     and legal_support_verified
     and decision == "go"
     else "blocked"
@@ -385,6 +460,7 @@ report_path.write_text(
                 "results_path",
                 str(object_retention_report_path.with_suffix(".ndjson")),
             ),
+            "canonical_object_retention_cleanup_report": str(canonical_object_retention_report_path),
             "source_legal_support_visibility_report": str(legal_support_report_path),
             "source_legal_support_visibility_results": str(legal_support_report_path.with_suffix(".ndjson")),
             "source_legal_pages_external_user_report": str(legal_pages_report_path),
@@ -397,13 +473,15 @@ report_path.write_text(
             "legal_support_visibility_exit_code": legal_support_exit_code,
             "release_evidence_complete": go_no_go.get("release_evidence_complete") is True,
             "post_deploy_smoke_verified": go_no_go.get("post_deploy_smoke_verified") is True,
-            "object_retention_cleanup_verified": object_retention_probe["passed"],
+            "object_retention_cleanup_verified": object_retention_verified,
             "legal_support_visibility_verified": legal_support_verified,
             "legal_support_split_reports_verified": legal_support_split_reports_passed,
             "gate_fixtures_clear": go_no_go.get("gate_fixtures_clear") is True,
             "decision_inputs": decision_inputs,
             "split_probe_decision_inputs": {
-                "object_retention_cleanup_verified": object_retention_probe["passed"],
+                "object_retention_cleanup_verified": object_retention_verified,
+                "canonical_object_retention_cleanup_verified": canonical_object_retention_probe["passed"],
+                "generated_object_retention_probe_passed": object_retention_probe["passed"],
                 "legal_support_visibility_verified": legal_support_verified,
                 "legal_pages_external_user_verified": legal_pages_probe["passed"],
                 "support_contact_external_user_verified": support_contact_probe["passed"],
@@ -412,6 +490,7 @@ report_path.write_text(
                 "legal_support_evidence_source": legal_support_evidence_source,
             },
             "object_retention_cleanup_probe": object_retention_probe,
+            "canonical_object_retention_cleanup_probe": canonical_object_retention_probe,
             "legal_support_visibility_probe": legal_support_probe,
             "legal_pages_external_user_probe": legal_pages_probe,
             "support_contact_external_user_probe": support_contact_probe,

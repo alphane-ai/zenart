@@ -8252,6 +8252,45 @@ def validate_staging_object_storage_retention_cleanup_evidence() -> None:
                 release_bundle_evidence["split_evidence"]["retention_cleanup_runtime_ready"] is False,
                 "release-bundle retention cleanup evidence must not claim runtime readiness",
             )
+            release_bundle = ROOT / "ops" / "evidence" / "release" / "staging" / "stage0-rev2-current-release-evidence-bundle.json"
+            require(
+                release_bundle.exists(),
+                "current release evidence bundle must exist while retention cleanup remains blocked",
+            )
+            release_bundle_report = load_json(release_bundle)
+            canonical_probe = release_bundle_report.get("canonical_object_retention_cleanup_probe", {})
+            require(
+                release_bundle_report.get("canonical_object_retention_cleanup_report")
+                == rel(STAGING_OBJECT_STORAGE_RETENTION_EVIDENCE),
+                "release bundle must name canonical object-retention cleanup evidence as the gate-clearing input",
+            )
+            require(
+                canonical_probe.get("path") == rel(STAGING_OBJECT_STORAGE_RETENTION_EVIDENCE),
+                "release bundle canonical object-retention probe must point at the exact staging pass path",
+            )
+            require(
+                canonical_probe.get("canonical") is True,
+                "release bundle canonical object-retention probe must be marked canonical",
+            )
+            require(
+                canonical_probe.get("passed") is False
+                and canonical_probe.get("status") in {"missing", "blocked"},
+                "release bundle must keep canonical object-retention cleanup unpassed until exact staging evidence exists",
+            )
+            require(
+                release_bundle_report.get("object_retention_cleanup_verified") is False,
+                "release bundle must not verify object-retention cleanup from non-canonical release-bundle probes",
+            )
+            split_inputs = release_bundle_report.get("split_probe_decision_inputs", {})
+            require(
+                split_inputs.get("canonical_object_retention_cleanup_verified") is False,
+                "release bundle decision inputs must expose the canonical object-retention cleanup state",
+            )
+            require(
+                "canonical_object_storage_retention_cleanup_not_passed"
+                in release_bundle_report.get("blocking_reasons", []),
+                "release bundle must block on canonical staging object-retention cleanup evidence",
+            )
             require(
                 release_bundle_evidence["gate_impact"]["can_clear_release_gate_check"] is False
                 and release_bundle_evidence["gate_impact"]["can_clear_retention_cleanup_checklist_item"] is False,

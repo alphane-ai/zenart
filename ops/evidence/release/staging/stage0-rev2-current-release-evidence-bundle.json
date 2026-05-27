@@ -28,7 +28,7 @@
     "gate_fixture_blocked:production_launch:backup_restore_rollback_smoke_missing",
     "gate_fixture_blocked:production_launch:production_deploy_rollback_smoke_missing",
     "gate_fixture_blocked:production_launch:ci_staging_gates_not_passed",
-    "object_storage_retention_cleanup_not_passed"
+    "canonical_object_storage_retention_cleanup_not_passed"
   ],
   "blueprint_source": "Docs/stage0_blueprint_rev2.md",
   "canonical_legal_pages_external_user_probe": {
@@ -46,6 +46,19 @@
     "status": "pass"
   },
   "canonical_legal_pages_external_user_report": "ops/evidence/staging/legal-pages-external-user.json",
+  "canonical_object_retention_cleanup_probe": {
+    "canonical": true,
+    "environment": null,
+    "exists": false,
+    "missing_requirements": [
+      "missing_file"
+    ],
+    "passed": false,
+    "path": "ops/evidence/staging/object-storage-retention-cleanup.json",
+    "release_gate_check_id": null,
+    "status": "missing"
+  },
+  "canonical_object_retention_cleanup_report": "ops/evidence/staging/object-storage-retention-cleanup.json",
   "canonical_support_contact_external_user_probe": {
     "canonical": true,
     "environment": "staging",
@@ -113,6 +126,7 @@
         "staging_object_storage_signed_downloads"
       ]
     },
+    "input_readiness": {},
     "kind": "legal_support_visibility",
     "passed": false,
     "path": "ops/evidence/release/staging/stage0-rev2-current-release-evidence-bundle.legal-support-visibility.json",
@@ -158,6 +172,17 @@
         "staging_object_storage_signed_downloads"
       ],
       "requires_release_gate_fixture_update_after_pass": false
+    },
+    "input_readiness": {
+      "admin_tenant_id_ready": false,
+      "admin_user_id_ready": false,
+      "auth_ready": false,
+      "canonical_pass_path": false,
+      "csrf_ready": false,
+      "probe_urls_ready": false,
+      "release_sha_matches_signed_url": false,
+      "release_sha_provided": false,
+      "signed_url_evidence_ready": true
     },
     "kind": "object_storage_retention_cleanup",
     "passed": false,
@@ -307,7 +332,9 @@
   "source_support_contact_external_user_report": "ops/evidence/release/staging/stage0-rev2-current-release-evidence-bundle.support-contact-external-user.json",
   "split_probe_decision_inputs": {
     "canonical_legal_pages_external_user_verified": true,
+    "canonical_object_retention_cleanup_verified": false,
     "canonical_support_contact_external_user_verified": true,
+    "generated_object_retention_probe_passed": false,
     "legal_pages_external_user_verified": false,
     "legal_support_evidence_source": "canonical_staging_split_evidence",
     "legal_support_visibility_verified": true,
