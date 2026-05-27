@@ -348,6 +348,7 @@ GATE_CHECKLIST_ITEMS = {
 GLOBAL_DO_NOT_LAUNCH_CHECKLIST_ITEM = "Do-Not-Launch Conditions 全部为 false。"
 
 CHECK_STATUS_VALUES = {"pass", "fail", "blocked", "not_applicable"}
+REQUIRED_RELEASE_GATE_CHECK_STATUS_VALUES = {"pass", "fail", "blocked"}
 RUNTIME_PASS_EVIDENCE_STATUS_VALUES = {"pass", "passed", "pass_with_blockers_preserved"}
 
 BLOCKED_RUNTIME_EVIDENCE_TERMS = {
@@ -3384,6 +3385,11 @@ def validate_release_gate_basics(data: dict[str, Any]) -> tuple[dict[str, dict[s
         require(
             check["status"] in CHECK_STATUS_VALUES,
             f"{gate}.{check_id} has unsupported status {check['status']!r}",
+        )
+        require(
+            check["status"] in REQUIRED_RELEASE_GATE_CHECK_STATUS_VALUES,
+            f"{gate}.{check_id} is a required release gate check and cannot use "
+            "`not_applicable`; missing evidence must be blocked or fail",
         )
         require(
             check["evidence_ref"].strip(),
@@ -7946,6 +7952,8 @@ def validate_launch_readiness_split_contracts() -> None:
         "Runtime gate checks that pass must cite environment-specific evidence paths",
         "Each release gate fixture must include a `gate_decision` object",
         "must contain unique non-empty IDs",
+        "Required release gate checks cannot use `not_applicable`",
+        "without pass evidence must remain `blocked` or `fail`",
         "must preserve fixture order from the current blocked/failing checks",
         "`gate_decision.status` must also align with the authoritative checklist",
         "each open gate checklist item requires the matching fixture decision to stay `no_go`",
