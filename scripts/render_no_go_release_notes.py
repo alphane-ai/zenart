@@ -23,6 +23,8 @@ STAGING_OBSERVABILITY_BACKUP_LOAD_PREFLIGHT = (
 STAGING_BACKUP_RESTORE = ROOT / "ops/evidence/staging/20260527T2115Z-backup-restore.json"
 STAGING_LOAD = ROOT / "ops/evidence/staging/20260527T2120Z-load.json"
 STAGING_POST_DEPLOY_SMOKE = ROOT / "ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json"
+STAGING_LEGAL_EXTERNAL_PAGES = ROOT / "ops/evidence/staging/legal-pages-external-user.json"
+STAGING_SUPPORT_CONTACT_VISIBILITY = ROOT / "ops/evidence/staging/support-contact-external-user.json"
 RUNTIME_CHECKLIST_GROUPS = {
     "Crawler governance runtime": [
         "crawler fetch/import 强制 source approval runtime gate。",
@@ -225,6 +227,34 @@ def staging_object_storage_retention_cleanup_summary() -> str:
     return f"staging status `{status}` from `{path.relative_to(ROOT)}` with {passed}/{total} retention/cleanup probes validator-visible"
 
 
+def staging_legal_support_visibility_summary() -> str:
+    missing_paths = [
+        str(path.relative_to(ROOT))
+        for path in (STAGING_LEGAL_EXTERNAL_PAGES, STAGING_SUPPORT_CONTACT_VISIBILITY)
+        if not path.exists()
+    ]
+    if missing_paths:
+        return (
+            "`missing`; run `scripts/staging_legal_support_visibility_smoke.sh` against staging and write "
+            "`ops/evidence/staging/legal-pages-external-user.json` plus "
+            "`ops/evidence/staging/support-contact-external-user.json` proving Terms, Privacy, Acceptable Use, "
+            "AI/content disclaimer, IP complaint flow, visible support contact, report-problem path, and billing/support "
+            "policy visibility before the legal/support gate can close"
+        )
+
+    legal = load_json(STAGING_LEGAL_EXTERNAL_PAGES)
+    support = load_json(STAGING_SUPPORT_CONTACT_VISIBILITY)
+    statuses = [legal.get("status", "missing"), support.get("status", "missing")]
+    refs = [
+        str(STAGING_LEGAL_EXTERNAL_PAGES.relative_to(ROOT)),
+        str(STAGING_SUPPORT_CONTACT_VISIBILITY.relative_to(ROOT)),
+    ]
+    return (
+        f"staging split status `{','.join(statuses)}` from `{refs[0]}` and `{refs[1]}`; "
+        "external-user legal/support visibility is validator-visible"
+    )
+
+
 def render(release_sha: str, release_tag: str, owner: str, reviewer: str, date: str) -> str:
     private_beta = load_json(PRIVATE_BETA_GATE)
     production = load_json(PRODUCTION_GATE)
@@ -313,6 +343,7 @@ def render(release_sha: str, release_tag: str, owner: str, reviewer: str, date: 
         f"- Load evidence: {staging_load_summary()}; production load evidence remains separate and required before production decisions.",
         f"- Object-storage signed URL: {staging_object_storage_signed_url_summary()}; object retention policy, expired export cleanup, orphan cleanup, and audit refs remain required before the object-storage gate can close.",
         f"- Object-storage retention cleanup: {staging_object_storage_retention_cleanup_summary()}.",
+        f"- Legal/support external-user visibility: {staging_legal_support_visibility_summary()}.",
         "- Rollback drill: `missing`; staging JSON must reference the release SHA, set `environment=staging`, set `kind=rollback`, record status `passed` or `validated`, and include passed/validated evidence refs for image rollback, feature flag rollback, migration compatibility, worker drain, and post-rollback smoke.",
         f"- Security scan: local status `{local_status(runtime, 'security_scan_smoke')}` from `{security_report}`; staging JSON must reference the release SHA, set `environment=staging`, set `kind=security_scan`, record status `passed`, and include passed/validated evidence refs for dependency, image/container, and committed-secret scans before private beta/production decisions.",
         "",

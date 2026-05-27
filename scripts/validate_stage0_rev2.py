@@ -7784,6 +7784,27 @@ def validate_launch_readiness_split_contracts() -> None:
         "release notes verification must require the Rev2 release sections",
     )
     require(
+        "release_gate_check_id=staging_object_storage_signed_downloads"
+        in local_verification["object_storage_signed_url_evidence"]
+        and "cross-tenant denial" in local_verification["object_storage_signed_url_evidence"],
+        "object-storage signed URL release verification must require split staging signed URL evidence",
+    )
+    require(
+        "release_gate_check_id=staging_object_storage_signed_downloads"
+        in local_verification["object_storage_retention_cleanup_evidence"]
+        and "expired export cleanup" in local_verification["object_storage_retention_cleanup_evidence"]
+        and "orphan cleanup" in local_verification["object_storage_retention_cleanup_evidence"],
+        "object-storage retention release verification must require split staging cleanup evidence",
+    )
+    require(
+        "release_gate_check_id=staging_legal_external_user_pages"
+        in local_verification["legal_support_external_user_visibility_evidence"]
+        and "legal-pages-external-user.json" in local_verification["legal_support_external_user_visibility_evidence"]
+        and "support-contact-external-user.json" in local_verification["legal_support_external_user_visibility_evidence"]
+        and "instead of source-file presence" in local_verification["legal_support_external_user_visibility_evidence"],
+        "legal/support release verification must require split deployed external-user visibility evidence",
+    )
+    require(
         "backend, web, and admin" in local_verification["image_refs"]
         and "RELEASE_SHA" in local_verification["image_refs"],
         "image ref verification must require SHA-tagged backend/web/admin images",

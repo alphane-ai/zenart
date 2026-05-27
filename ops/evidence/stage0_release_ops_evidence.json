@@ -109,6 +109,9 @@
     },
     "local_evidence_verification": {
       "release_notes_path": "must exist locally, reference RELEASE_SHA, and contain Identity, Scope, Migration List, Config Diff, Feature Flags, Smoke Plan, Evidence, Rollback Plan, Known Risks, and Go/No-Go sections",
+      "object_storage_signed_url_evidence": "must be staging JSON under ops/evidence/staging, target release_gate_check_id=staging_object_storage_signed_downloads, and prove tenant-scoped signed download, expiry denial, direct-object denial, and cross-tenant denial",
+      "object_storage_retention_cleanup_evidence": "must be staging JSON under ops/evidence/staging/object-storage-retention-cleanup.json, target release_gate_check_id=staging_object_storage_signed_downloads, and prove retention policy, expired export cleanup, orphan cleanup, and audit refs before object-storage gate closure",
+      "legal_support_external_user_visibility_evidence": "must be split staging JSON under ops/evidence/staging/legal-pages-external-user.json and ops/evidence/staging/support-contact-external-user.json, target release_gate_check_id=staging_legal_external_user_pages, and prove deployed external-user route visibility instead of source-file presence",
       "image_refs": "must include backend, web, and admin image refs tagged with RELEASE_SHA or its 12-character short SHA",
       "migration_evidence": "must be local JSON, reference RELEASE_SHA, set environment=staging, set kind=migration, and use status passed or compatible",
       "config_diff_evidence": "must be local JSON, reference RELEASE_SHA, set environment=staging, set kind=config_diff, and use status passed, reviewed, or no_diff",

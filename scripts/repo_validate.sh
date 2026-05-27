@@ -235,6 +235,7 @@ required_fragments = [
     "Security scan: local status `passed` from `ops/evidence/security/local/20260526T142040Z-security-scan-smoke-65314.json`; staging JSON must reference the release SHA, set `environment=staging`, set `kind=security_scan`, record status `passed`, and include passed/validated evidence refs for dependency, image/container, and committed-secret scans before private beta/production decisions.",
     "Object-storage signed URL: staging status `pass_with_blockers_preserved` from `ops/evidence/staging/20260527T2130Z-object-storage-signed-url.json` with 4/4 signed URL probes validator-visible; retention/cleanup evidence still required; object retention policy, expired export cleanup, orphan cleanup, and audit refs remain required before the object-storage gate can close.",
     "Object-storage retention cleanup: `missing`; run `scripts/staging_object_storage_retention_cleanup_smoke.sh` against staging and write `ops/evidence/staging/object-storage-retention-cleanup.json` proving retention policy, expired export cleanup, orphan cleanup, and audit refs before the object-storage gate can close.",
+    "Legal/support external-user visibility: `missing`; run `scripts/staging_legal_support_visibility_smoke.sh` against staging and write `ops/evidence/staging/legal-pages-external-user.json` plus `ops/evidence/staging/support-contact-external-user.json` proving Terms, Privacy, Acceptable Use, AI/content disclaimer, IP complaint flow, visible support contact, report-problem path, and billing/support policy visibility before the legal/support gate can close.",
     "Operational risks: staging rollback evidence remains absent; staging backup/restore, load, and post-deploy smoke evidence are attached through the combined preflight but do not close object-retention, legal/support, CI, or production gates.",
     "Object-storage risks: signed URL staging evidence is attached, but retention/cleanup runtime evidence still blocks the object-storage release gate.",
     "Conditions: CI, staging smoke, restore/load/rollback evidence, security scans, release owner, and gate fixture blockers must be cleared before any private beta or production decision.",
@@ -305,6 +306,19 @@ if template.count("- Load evidence:") != 1:
     raise SystemExit("release notes template must contain exactly one Load evidence slot")
 if template.count("- Load smoke run:") != 1:
     raise SystemExit("release notes template must contain exactly one Load smoke run slot")
+if template.count("- Object-storage signed URL evidence:") != 1:
+    raise SystemExit("release notes template must contain exactly one object-storage signed URL evidence slot")
+if template.count("- Object-storage retention cleanup evidence:") != 1:
+    raise SystemExit("release notes template must contain exactly one object-storage retention cleanup evidence slot")
+if template.count("- Legal/support external-user visibility evidence:") != 1:
+    raise SystemExit("release notes template must contain exactly one legal/support external-user visibility evidence slot")
+for token in (
+    "release_gate_check_id=staging_object_storage_signed_downloads",
+    "release_gate_check_id=staging_legal_external_user_pages",
+    "deployed staging routes rather than source files",
+):
+    if token not in template:
+        raise SystemExit(f"release notes template missing split evidence guardrail: {token}")
 if "seeded user, tenant, task, package, and export smoke IDs" not in template:
     raise SystemExit("release notes template must require seeded runtime smoke IDs")
 PY
