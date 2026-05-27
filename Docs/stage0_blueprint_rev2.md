@@ -1734,6 +1734,7 @@ main 合并前必须通过：
 - [x] 实现 export retry/regenerate。
 - [x] 实现 cleanup expired exports/orphaned objects。
 - [x] admin 触发 object retention cleanup 在执行前记录 rationale/request audit，成功、dry-run preview、partial failure 均记录 redacted immutable audit。
+- [x] S3-compatible retention cleanup skips corrupt/unscoped expiry markers without deleting their objects and continues valid tenant-scoped expired object deletion.
 - [x] 添加 upload/download/export integration tests。
 
 ### 25.10 Agent and Provider Contracts

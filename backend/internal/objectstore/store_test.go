@@ -613,6 +613,78 @@ func TestS3StoreCleanupExpiredListsMarkersAndDeletesExpiredObjects(t *testing.T)
 	}
 }
 
+func TestS3StoreCleanupExpiredSkipsInvalidExpiryMarkers(t *testing.T) {
+	getBodies := map[string]string{
+		"/zenart-test/tenants/tenant_1/exports/expired.zip.expires": time.Date(2026, 5, 26, 12, 0, 0, 0, time.UTC).Format(time.RFC3339),
+		"/zenart-test/tenants/tenant_1/exports/corrupt.zip.expires": "not-rfc3339",
+	}
+	var deleted []string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			if r.URL.Query().Get("list-type") == "2" {
+				w.Header().Set("Content-Type", "application/xml")
+				_, _ = w.Write([]byte(`<?xml version="1.0" encoding="UTF-8"?>
+<ListBucketResult>
+  <IsTruncated>false</IsTruncated>
+  <Contents><Key>tenants/tenant_1/exports/corrupt.zip.expires</Key></Contents>
+  <Contents><Key>tenants/tenant_1/exports/expired.zip.expires</Key></Contents>
+  <Contents><Key>exports/unscoped.zip.expires</Key></Contents>
+</ListBucketResult>`))
+				return
+			}
+			body, ok := getBodies[r.URL.Path]
+			if !ok {
+				w.WriteHeader(http.StatusNotFound)
+				return
+			}
+			_, _ = w.Write([]byte(body))
+		case http.MethodDelete:
+			deleted = append(deleted, r.URL.Path)
+			if strings.Contains(r.URL.Path, "corrupt") || strings.Contains(r.URL.Path, "unscoped") {
+				t.Fatalf("cleanup deleted invalid marker object %s", r.URL.Path)
+			}
+			w.WriteHeader(http.StatusNoContent)
+		default:
+			t.Fatalf("unexpected method %s", r.Method)
+		}
+	}))
+	defer server.Close()
+
+	store, err := NewS3Store(config.ObjectStorageConfig{
+		Provider:       "s3-compatible",
+		Endpoint:       server.URL,
+		Region:         "us-east-1",
+		Bucket:         "zenart-test",
+		AccessKey:      "access",
+		SecretKey:      "secret",
+		ForcePathStyle: true,
+	}, server.Client())
+	if err != nil {
+		t.Fatalf("NewS3Store() error = %v", err)
+	}
+
+	deletedCount, err := store.CleanupExpired(context.Background(), time.Date(2026, 5, 27, 12, 0, 0, 0, time.UTC))
+	if err != nil {
+		t.Fatalf("CleanupExpired() error = %v", err)
+	}
+	if deletedCount != 1 {
+		t.Fatalf("CleanupExpired() deleted = %d, want only valid expired object", deletedCount)
+	}
+	wantDeleted := []string{
+		"/zenart-test/tenants/tenant_1/exports/expired.zip",
+		"/zenart-test/tenants/tenant_1/exports/expired.zip.expires",
+	}
+	if len(deleted) != len(wantDeleted) {
+		t.Fatalf("deleted paths = %#v, want %#v", deleted, wantDeleted)
+	}
+	for i := range wantDeleted {
+		if deleted[i] != wantDeleted[i] {
+			t.Fatalf("deleted paths = %#v, want %#v", deleted, wantDeleted)
+		}
+	}
+}
+
 func TestS3StoreCleanupExpiredForTenantListsTenantPrefixOnly(t *testing.T) {
 	expired := time.Date(2026, 5, 26, 12, 0, 0, 0, time.UTC)
 	var listPrefix string

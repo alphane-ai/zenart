@@ -32,6 +32,8 @@ type S3Store struct {
 	now            func() time.Time
 }
 
+var errInvalidExpiryMarker = errors.New("invalid expiry marker")
+
 func NewS3Store(cfg config.ObjectStorageConfig, client *http.Client) (S3Store, error) {
 	if client == nil {
 		client = http.DefaultClient
@@ -256,7 +258,7 @@ func (s S3Store) cleanupExpiredWithPrefix(ctx context.Context, prefix string, no
 			}
 			expiry, err := s.readExpiryMarker(ctx, key)
 			if err != nil {
-				if errors.Is(err, ErrNotFound) {
+				if errors.Is(err, ErrNotFound) || errors.Is(err, errInvalidExpiryMarker) {
 					continue
 				}
 				return deleted, err
@@ -351,7 +353,7 @@ func (s S3Store) deleteRaw(ctx context.Context, key string) error {
 func (s S3Store) readExpiryMarker(ctx context.Context, key string) (time.Time, error) {
 	tenantID, err := tenantIDFromScopedKey(key)
 	if err != nil {
-		return time.Time{}, err
+		return time.Time{}, fmt.Errorf("%w: %v", errInvalidExpiryMarker, err)
 	}
 	reader, err := s.Get(ctx, tenantID, key)
 	if err != nil {
@@ -364,7 +366,7 @@ func (s S3Store) readExpiryMarker(ctx context.Context, key string) (time.Time, e
 	}
 	expiry, err := time.Parse(time.RFC3339, strings.TrimSpace(string(data)))
 	if err != nil {
-		return time.Time{}, err
+		return time.Time{}, fmt.Errorf("%w: %v", errInvalidExpiryMarker, err)
 	}
 	return expiry, nil
 }
