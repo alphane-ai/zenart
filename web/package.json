@@ -12,6 +12,7 @@
     "smoke:reference-export-playwright": "playwright test tests/reference-export.spec.ts",
     "smoke:local-alpha-ecommerce-evidence": "playwright test tests/local-alpha-ecommerce-evidence.spec.ts",
     "smoke:session-security-playwright": "playwright test tests/session-security.spec.ts",
+    "smoke:reference-upload-integration": "node scripts/smoke-reference-upload-integration.mjs",
     "smoke:package-export-metadata": "node scripts/smoke-package-export-metadata.mjs",
     "smoke:security-contracts": "node scripts/smoke-security-contracts.mjs",
     "smoke:user-routes": "node scripts/smoke-user-routes.mjs"
