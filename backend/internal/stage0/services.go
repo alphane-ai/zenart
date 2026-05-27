@@ -2874,10 +2874,12 @@ func (s Service) CleanupExpiredExportsAndOrphanedObjects(ctx context.Context, no
 		return CleanupResult{}, err
 	}
 	deletedObjects := make([]CleanupObject, 0, len(objects))
+	var deleteErr error
 	for _, object := range objects {
 		if err := s.objects.Delete(ctx, object.TenantID, object.Key); err != nil {
 			if !errors.Is(err, objectstore.ErrNotFound) {
-				return CleanupResult{}, err
+				deleteErr = errors.Join(deleteErr, err)
+				continue
 			}
 		}
 		deletedObjects = append(deletedObjects, object)
@@ -2889,6 +2891,9 @@ func (s Service) CleanupExpiredExportsAndOrphanedObjects(ctx context.Context, no
 	result.DeletedObjects = deleted
 	if err := s.repo.recordCleanupRunAnalytics(ctx, now, result); err != nil {
 		return CleanupResult{}, err
+	}
+	if deleteErr != nil {
+		return result, deleteErr
 	}
 	return result, nil
 }

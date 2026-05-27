@@ -1448,6 +1448,61 @@ func TestServiceCleanupMarksMissingExpiredObjectsDeleted(t *testing.T) {
 	}
 }
 
+func TestServiceCleanupMarksSuccessfulDeletesBeforeReturningStorageError(t *testing.T) {
+	now := time.Date(2026, 5, 26, 12, 0, 0, 0, time.UTC)
+	db := &fakeDB{
+		execTags: []pgconn.CommandTag{
+			pgconn.NewCommandTag("UPDATE 0"),
+			pgconn.NewCommandTag("UPDATE 0"),
+			pgconn.NewCommandTag("SELECT 1"),
+			pgconn.NewCommandTag("UPDATE 1"),
+			pgconn.NewCommandTag("SELECT 1"),
+		},
+		queryRows: []rowSet{{
+			rows: [][]any{
+				{"object_1", "tenant_1", "tenants/tenant_1/exports/export_1.zip"},
+				{"object_2", "tenant_1", "tenants/tenant_1/thumbnails/export_1.zip.svg"},
+			},
+		}},
+	}
+	objects := &recordingObjectStore{
+		deleteErrors: map[string]error{
+			"tenants/tenant_1/thumbnails/export_1.zip.svg": errors.New("s3 delete throttled"),
+		},
+	}
+	service := NewService(NewRepository(db), objects)
+
+	result, err := service.CleanupExpiredExportsAndOrphanedObjects(context.Background(), now, 50)
+	if err == nil || !strings.Contains(err.Error(), "s3 delete throttled") {
+		t.Fatalf("CleanupExpiredExportsAndOrphanedObjects() error = %v, want storage delete error", err)
+	}
+	if result.DeletedObjects != 1 {
+		t.Fatalf("deleted objects = %d, want one successfully deleted row marked before error return", result.DeletedObjects)
+	}
+	if len(objects.deletedKeys) != 2 {
+		t.Fatalf("deleted key attempts = %#v, want both cleanup objects attempted", objects.deletedKeys)
+	}
+	if len(db.execs) != 6 {
+		t.Fatalf("exec count = %d, want lifecycle, partial deleted mark, deletion analytics, cleanup run analytics", len(db.execs))
+	}
+	payload, ok := db.execs[3].args[0].([]byte)
+	if !ok {
+		t.Fatalf("partial cleanup payload type = %T, want []byte", db.execs[3].args[0])
+	}
+	if !strings.Contains(string(payload), `"object_key":"tenants/tenant_1/exports/export_1.zip"`) {
+		t.Fatalf("partial cleanup payload = %s, missing successful delete", string(payload))
+	}
+	if strings.Contains(string(payload), "thumbnails/export_1.zip.svg") {
+		t.Fatalf("partial cleanup payload = %s, should not mark failed delete", string(payload))
+	}
+	if !strings.Contains(db.execs[5].sql, "'export_object_cleanup_run'") {
+		t.Fatalf("cleanup run analytics should still be emitted for partial success: %s", db.execs[5].sql)
+	}
+	if db.execs[5].args[3] != result.DeletedObjects {
+		t.Fatalf("cleanup run deleted count arg = %#v, want %d", db.execs[5].args[3], result.DeletedObjects)
+	}
+}
+
 func TestEnforceSafetyRecordsBlockDecisionForActiveRule(t *testing.T) {
 	now := time.Now().UTC()
 	db := &fakeDB{queryRows: []rowSet{{
@@ -2433,6 +2488,8 @@ type recordingObjectStore struct {
 	signTenantID string
 	signKey      string
 	signTTL      time.Duration
+	deleteErrors map[string]error
+	deletedKeys  []string
 }
 
 func (s *recordingObjectStore) Put(_ context.Context, object objectstore.Object, _ io.Reader) (objectstore.Object, error) {
@@ -2450,7 +2507,13 @@ func (s *recordingObjectStore) SignGetURL(_ context.Context, tenantID, key strin
 	return s.signedURL, nil
 }
 
-func (s *recordingObjectStore) Delete(_ context.Context, _ string, _ string) error {
+func (s *recordingObjectStore) Delete(_ context.Context, _ string, key string) error {
+	s.deletedKeys = append(s.deletedKeys, key)
+	if s.deleteErrors != nil {
+		if err := s.deleteErrors[key]; err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
