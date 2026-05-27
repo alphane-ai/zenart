@@ -31,8 +31,8 @@ mkdir -p "$OUT_DIR"
 
 if [[ -n "$BASE_URL" ]]; then
   RETENTION_POLICY_URL="${RETENTION_POLICY_URL:-${BASE_URL%/}/api/admin/v1/object-storage/retention-policy}"
-  EXPIRED_EXPORT_CLEANUP_URL="${EXPIRED_EXPORT_CLEANUP_URL:-${BASE_URL%/}/api/admin/v1/exports/cleanup}"
-  ORPHAN_CLEANUP_URL="${ORPHAN_CLEANUP_URL:-${BASE_URL%/}/api/admin/v1/exports/cleanup}"
+  EXPIRED_EXPORT_CLEANUP_URL="${EXPIRED_EXPORT_CLEANUP_URL:-${BASE_URL%/}/api/admin/v1/object-storage/cleanup/expired-exports}"
+  ORPHAN_CLEANUP_URL="${ORPHAN_CLEANUP_URL:-${BASE_URL%/}/api/admin/v1/object-storage/cleanup/orphans}"
   AUDIT_REFS_URL="${AUDIT_REFS_URL:-${BASE_URL%/}/api/admin/v1/audit?subject=object_storage_cleanup&limit=20}"
 fi
 
@@ -423,13 +423,13 @@ probe_routes = {
     "expired_export_cleanup": {
         "method": "POST",
         "env_var": "EXPIRED_EXPORT_CLEANUP_URL",
-        "default_path": "/api/admin/v1/exports/cleanup",
+        "default_path": "/api/admin/v1/object-storage/cleanup/expired-exports",
         "body": {"rationale": "stage0 retention cleanup smoke expired_export_cleanup", "limit": 25, "dry_run": True},
     },
     "orphan_cleanup": {
         "method": "POST",
         "env_var": "ORPHAN_CLEANUP_URL",
-        "default_path": "/api/admin/v1/exports/cleanup",
+        "default_path": "/api/admin/v1/object-storage/cleanup/orphans",
         "body": {"rationale": "stage0 retention cleanup smoke orphan_cleanup", "limit": 25, "dry_run": True},
     },
     "audit_refs": {
