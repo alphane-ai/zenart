@@ -17,6 +17,10 @@ function idempotencyStatus(task: FailedTaskControl): FailedTaskRuntimeDecision["
     : "unstable";
 }
 
+function stateDigestStatus(task: FailedTaskControl): FailedTaskRuntimeDecision["stateDigestStatus"] {
+  return task.preActionStateDigest === task.observedStateDigest ? "stable" : "stale_replay";
+}
+
 function stateTransition(
   task: FailedTaskControl,
   submitDecision: FailedTaskRuntimeDecision["submitDecision"]
@@ -74,6 +78,8 @@ export function buildFailedTaskRuntimeDecisions(tasks: FailedTaskControl[]): Fai
     const rbacEvidenceStatus = task.rbacEvidenceRefs.length > 0 ? "complete" : "missing";
     const userMessageStatus = task.userMessage.trim().length > 0 ? "ready" : "missing";
     const computedIdempotencyStatus = idempotencyStatus(task);
+    const computedStateDigestStatus = stateDigestStatus(task);
+    const stateDigestEvidence = `pre:${task.preActionStateDigest}; observed:${task.observedStateDigest}`;
     const compatibilityStatus =
       task.appVersion === supportedAppVersion &&
       task.schemaVersion === supportedSchemaVersion &&
@@ -111,6 +117,10 @@ export function buildFailedTaskRuntimeDecisions(tasks: FailedTaskControl[]): Fai
       blockerCodes.push("idempotency_key_unstable");
     }
 
+    if (computedStateDigestStatus === "stale_replay") {
+      blockerCodes.push("state_digest_stale_replay");
+    }
+
     if (compatibilityStatus === "stale") {
       blockerCodes.push("version_compatibility_stale");
     }
@@ -123,6 +133,7 @@ export function buildFailedTaskRuntimeDecisions(tasks: FailedTaskControl[]): Fai
       "rbac_evidence_missing",
       "user_message_missing",
       "idempotency_key_unstable",
+      "state_digest_stale_replay",
       "version_compatibility_stale"
     ]);
     const submitDecision =
@@ -162,6 +173,8 @@ export function buildFailedTaskRuntimeDecisions(tasks: FailedTaskControl[]): Fai
       quotaSettlement: task.quotaEffect,
       idempotencyKey: task.idempotencyKey,
       idempotencyStatus: computedIdempotencyStatus,
+      stateDigestStatus: computedStateDigestStatus,
+      stateDigestEvidence,
       compatibilityStatus,
       compatibilityEvidence,
       closureEvidenceStatus,

@@ -166,6 +166,7 @@ const parseFailedTaskRuntime = () => {
     .replace(/^import type[\s\S]*?from "@\/lib\/types";\n\n/, "")
     .replaceAll(/export function (\w+)/g, "function $1")
     .replaceAll(/function idempotencyStatus\(task: FailedTaskControl\): FailedTaskRuntimeDecision\["idempotencyStatus"\]/g, "function idempotencyStatus(task)")
+    .replaceAll(/function stateDigestStatus\(task: FailedTaskControl\): FailedTaskRuntimeDecision\["stateDigestStatus"\]/g, "function stateDigestStatus(task)")
     .replaceAll(/function stateTransition\(\n  task: FailedTaskControl,\n  submitDecision: FailedTaskRuntimeDecision\["submitDecision"\]\n\): FailedTaskRuntimeDecision\["stateTransition"\]/g, "function stateTransition(task, submitDecision)")
     .replaceAll(/function closureOutcome\(\n  task: FailedTaskControl,\n  submitDecision: FailedTaskRuntimeDecision\["submitDecision"\]\n\): FailedTaskRuntimeDecision\["closureOutcome"\]/g, "function closureOutcome(task, submitDecision)")
     .replaceAll(/function releaseGateDisposition\(\n  task: FailedTaskControl,\n  submitDecision: FailedTaskRuntimeDecision\["submitDecision"\]\n\): FailedTaskRuntimeDecision\["releaseGateDisposition"\]/g, "function releaseGateDisposition(task, submitDecision)")
@@ -176,6 +177,7 @@ const parseFailedTaskRuntime = () => {
     .replaceAll(/: FailedTaskRuntimeDecision\["closureEvidenceStatus"\]/g, "")
     .replaceAll(/: FailedTaskRuntimeDecision\["userMessageStatus"\]/g, "")
     .replaceAll(/: FailedTaskRuntimeDecision\["idempotencyStatus"\]/g, "")
+    .replaceAll(/: FailedTaskRuntimeDecision\["stateDigestStatus"\]/g, "")
     .replaceAll(/: FailedTaskRuntimeDecision\["submitDecision"\]/g, "")
     .replaceAll(/: string/g, "");
   return Function(`${runtimeSource}\nreturn { buildFailedTaskRuntimeDecisions };`)();
@@ -1149,6 +1151,9 @@ test("queue and failed task controls gate retry and cancel with audit evidence",
     assert.ok(task.appVersion.length > 0, `${task.id} needs app version`);
     assert.ok(task.workerVersion.length > 0, `${task.id} needs worker version`);
     assert.ok(task.schemaVersion.length > 0, `${task.id} needs schema version`);
+    assert.match(task.preActionStateDigest, /^sha256:[a-z0-9-]+$/, `${task.id} needs pre-action state digest`);
+    assert.match(task.observedStateDigest, /^sha256:[a-z0-9-]+$/, `${task.id} needs observed state digest`);
+    assert.equal(task.preActionStateDigest, task.observedStateDigest, `${task.id} fixture must not start as stale replay evidence`);
     assert.ok(roleOrder.has(task.requestedByRole), `${task.id} needs requesting role`);
     assert.ok(task.idempotencyKey.startsWith(`${task.requestedAction}:${task.id}:`), `${task.id} needs stable action/task idempotency key`);
     assert.ok(task.regressionFixtureRef.length > 10, `${task.id} needs explicit regression fixture state`);
@@ -1350,6 +1355,12 @@ test("failed task runtime submit gates preserve retry, cancel, hold, RBAC, and a
     assert.equal(decision.auditRef, task.auditRef, `${task.id} must preserve audit ref`);
     assert.equal(decision.idempotencyKey, task.idempotencyKey, `${task.id} must preserve idempotency key`);
     assert.equal(decision.idempotencyStatus, "stable", `${task.id} must preserve stable idempotency`);
+    assert.equal(decision.stateDigestStatus, "stable", `${task.id} must preserve stable state digest`);
+    assert.equal(
+      decision.stateDigestEvidence,
+      `pre:${task.preActionStateDigest}; observed:${task.observedStateDigest}`,
+      `${task.id} must expose pre-action and observed state digest evidence`
+    );
     assert.equal(decision.rbacEvidenceStatus, "complete", `${task.id} must expose complete RBAC evidence`);
     assert.deepEqual(decision.rbacEvidenceRefs, task.rbacEvidenceRefs, `${task.id} must preserve RBAC evidence refs`);
     assert.equal(decision.compatibilityStatus, "compatible", `${task.id} must expose compatible app worker schema evidence`);
@@ -1435,6 +1446,24 @@ test("failed task runtime submit gates preserve retry, cancel, hold, RBAC, and a
   assert.ok(
     staleSchemaRetry.blockerCodes.includes("version_compatibility_stale"),
     "stale task schema must expose a compatibility blocker code"
+  );
+
+  const staleReplayRetry = buildFailedTaskRuntimeDecisions([
+    {
+      ...failedTaskControls.find((task) => task.id === "task-export-489"),
+      observedStateDigest: "sha256:failed-task-task-export-489-retrying-v2"
+    }
+  ])[0];
+  assert.equal(staleReplayRetry.stateDigestStatus, "stale_replay", "changed observed state digest must be detected");
+  assert.match(
+    staleReplayRetry.stateDigestEvidence,
+    /observed:sha256:failed-task-task-export-489-retrying-v2/,
+    "stale replay evidence must include the observed state digest"
+  );
+  assert.equal(staleReplayRetry.submitDecision, "blocked", "stale replay must block retry submission");
+  assert.ok(
+    staleReplayRetry.blockerCodes.includes("state_digest_stale_replay"),
+    "stale replay must expose a state digest blocker code"
   );
 
   const incompleteClosureCancel = buildFailedTaskRuntimeDecisions([

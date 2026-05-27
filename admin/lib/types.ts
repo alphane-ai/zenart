@@ -709,6 +709,8 @@ export type FailedTaskControl = {
   appVersion: string;
   workerVersion: string;
   schemaVersion: string;
+  preActionStateDigest: string;
+  observedStateDigest: string;
   requestedAction: "retry" | "cancel" | "hold";
   actionEligibility: "eligible" | "requires_review" | "blocked";
   allowedRole: "support_operator" | "admin_operator" | "admin_reviewer" | "admin_superadmin";
@@ -749,6 +751,8 @@ export type FailedTaskRuntimeDecision = {
   quotaSettlement: FailedTaskControl["quotaEffect"];
   idempotencyKey: string;
   idempotencyStatus: "stable" | "unstable";
+  stateDigestStatus: "stable" | "stale_replay";
+  stateDigestEvidence: string;
   compatibilityStatus: "compatible" | "stale";
   compatibilityEvidence: string;
   closureEvidenceStatus: "complete" | "incomplete";
