@@ -548,6 +548,56 @@ func TestRedactStringCoversS3CompatibleHeaderAndEnvSecrets(t *testing.T) {
 	}
 }
 
+func TestRedactStringCoversS3CompatibleProviderAliasesAndEdgeTokens(t *testing.T) {
+	input := strings.Join([]string{
+		"R2_ACCESS_KEY_ID=r2-access-key-value",
+		"R2_SECRET_ACCESS_KEY=r2-secret-key-value",
+		"WASABI_ACCESS_KEY=wasabi-access-key-value",
+		"WASABI_SECRET_KEY=wasabi-secret-key-value",
+		"SCW_ACCESS_KEY=scw-access-key-value",
+		"SCW_SECRET_KEY=scw-secret-key-value",
+		"VULTR_OBJECT_STORAGE_ACCESS_KEY=vultr-access-key-value",
+		"VULTR_OBJECT_STORAGE_SECRET_KEY=vultr-secret-key-value",
+		"LINODE_OBJECT_STORAGE_ACCESS_KEY=linode-access-key-value",
+		"LINODE_OBJECT_STORAGE_SECRET_KEY=linode-secret-key-value",
+		"OCI_ACCESS_KEY=oci-access-key-value",
+		"OCI_PRIVATE_KEY=oci-private-key-value",
+		"https://edge.example.test/export.zip?__token__=edge-token&hdnts=akamai-hdnts&hdntl=akamai-hdntl&Edge-Auth=edge-auth&Akamai-Signature=akamai-signature&response-content-type=application%2Fzip",
+	}, " ")
+
+	got := RedactString(input)
+	for _, leaked := range []string{
+		"r2-access-key-value",
+		"r2-secret-key-value",
+		"wasabi-access-key-value",
+		"wasabi-secret-key-value",
+		"scw-access-key-value",
+		"scw-secret-key-value",
+		"vultr-access-key-value",
+		"vultr-secret-key-value",
+		"linode-access-key-value",
+		"linode-secret-key-value",
+		"oci-access-key-value",
+		"oci-private-key-value",
+		"edge-token",
+		"akamai-hdnts",
+		"akamai-hdntl",
+		"edge-auth",
+		"akamai-signature",
+	} {
+		if strings.Contains(got, leaked) {
+			t.Fatalf("RedactString() = %q, leaked %s", got, leaked)
+		}
+	}
+	if !strings.Contains(got, "response-content-type=application%2Fzip") || !strings.Contains(got, Redacted) {
+		t.Fatalf("RedactString() = %q, want public response override preserved and secrets redacted", got)
+	}
+
+	findings := ClassifyString(input)
+	assertSignal(t, findings, "url_query_secret")
+	assertSignal(t, findings, "assignment:key_name")
+}
+
 func TestRedactMapCoversS3CompatibleObjectStorageConfigMetadata(t *testing.T) {
 	metadata := map[string]any{
 		"object_storage": map[string]any{
@@ -595,6 +645,82 @@ func TestRedactMapCoversS3CompatibleObjectStorageConfigMetadata(t *testing.T) {
 		"object_storage.minioRootPassword",
 	} {
 		assertAnyFindingAt(t, findings, location)
+	}
+}
+
+func TestRedactMapCoversS3CompatibleProviderAliasMetadata(t *testing.T) {
+	metadata := map[string]any{
+		"storage_aliases": map[string]any{
+			"r2AccessKeyID":                 "r2-access-key-value",
+			"r2SecretAccessKey":             "r2-secret-key-value",
+			"wasabiAccessKey":               "wasabi-access-key-value",
+			"wasabiSecretKey":               "wasabi-secret-key-value",
+			"scwAccessKey":                  "scw-access-key-value",
+			"scwSecretKey":                  "scw-secret-key-value",
+			"scalewayAccessKey":             "scaleway-access-key-value",
+			"scalewaySecretKey":             "scaleway-secret-key-value",
+			"vultrObjectStorageAccessKey":   "vultr-access-key-value",
+			"vultrObjectStorageSecretKey":   "vultr-secret-key-value",
+			"linodeObjectStorageAccessKey":  "linode-access-key-value",
+			"linodeObjectStorageSecretKey":  "linode-secret-key-value",
+			"ociAccessKey":                  "oci-access-key-value",
+			"ociPrivateKey":                 "oci-private-key-value",
+			"oracleObjectStoragePrivateKey": "oracle-private-key-value",
+			"publicEndpoint":                "https://downloads.example.test",
+		},
+	}
+
+	body, err := json.Marshal(RedactValue(metadata))
+	if err != nil {
+		t.Fatalf("marshal redacted provider alias metadata: %v", err)
+	}
+	for _, leaked := range []string{
+		"r2-access-key-value",
+		"r2-secret-key-value",
+		"wasabi-access-key-value",
+		"wasabi-secret-key-value",
+		"scw-access-key-value",
+		"scw-secret-key-value",
+		"scaleway-access-key-value",
+		"scaleway-secret-key-value",
+		"vultr-access-key-value",
+		"vultr-secret-key-value",
+		"linode-access-key-value",
+		"linode-secret-key-value",
+		"oci-access-key-value",
+		"oci-private-key-value",
+		"oracle-private-key-value",
+	} {
+		if strings.Contains(string(body), leaked) {
+			t.Fatalf("redacted metadata = %s, leaked %s", string(body), leaked)
+		}
+	}
+	if !strings.Contains(string(body), `"publicEndpoint":"https://downloads.example.test"`) || !strings.Contains(string(body), Redacted) {
+		t.Fatalf("redacted metadata = %s, want public endpoint and redaction marker", string(body))
+	}
+
+	findings := ClassifyValue(metadata)
+	for _, expected := range []struct {
+		kind     SecretKind
+		location string
+	}{
+		{SecretKindAccessKey, "storage_aliases.r2AccessKeyID"},
+		{SecretKindCloudKey, "storage_aliases.r2SecretAccessKey"},
+		{SecretKindAccessKey, "storage_aliases.wasabiAccessKey"},
+		{SecretKindCloudKey, "storage_aliases.wasabiSecretKey"},
+		{SecretKindAccessKey, "storage_aliases.scwAccessKey"},
+		{SecretKindCloudKey, "storage_aliases.scwSecretKey"},
+		{SecretKindAccessKey, "storage_aliases.scalewayAccessKey"},
+		{SecretKindCloudKey, "storage_aliases.scalewaySecretKey"},
+		{SecretKindAccessKey, "storage_aliases.vultrObjectStorageAccessKey"},
+		{SecretKindCloudKey, "storage_aliases.vultrObjectStorageSecretKey"},
+		{SecretKindAccessKey, "storage_aliases.linodeObjectStorageAccessKey"},
+		{SecretKindCloudKey, "storage_aliases.linodeObjectStorageSecretKey"},
+		{SecretKindAccessKey, "storage_aliases.ociAccessKey"},
+		{SecretKindPrivateKey, "storage_aliases.ociPrivateKey"},
+		{SecretKindPrivateKey, "storage_aliases.oracleObjectStoragePrivateKey"},
+	} {
+		assertFinding(t, findings, expected.kind, expected.location)
 	}
 }
 

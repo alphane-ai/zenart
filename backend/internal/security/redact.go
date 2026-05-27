@@ -46,7 +46,7 @@ type SecretFinding struct {
 	Location string     `json:"location,omitempty"`
 }
 
-var sensitiveKeyPattern = regexp.MustCompile(`(?i)(secret|token|password|passwd|pwd|passphrase|api[_-]?key|x[_-]?api[_-]?key|access[_-]?key|private[_-]?key|private[_-]?token|deploy[_-]?key|credential|signature|session|cookie|authorization|proxy[_-]?authorization|client[_-]?secret|client[_-]?token|client[_-]?assertion|refresh[_-]?token|id[_-]?token|personal[_-]?access[_-]?token|license[_-]?key|pat|jwt|oauth|webhook[_-]?secret|signing[_-]?key|routing[_-]?key|integration[_-]?key|shared[_-]?access[_-]?signature|sas|stripe|openai|anthropic|deepseek|mistral|cohere|gemini|google[_-]?ai|openrouter|perplexity|xai|fireworks|fal|elevenlabs|provider[_-]?key|sentry|datadog|honeycomb|new[_-]?relic|splunk|grafana|otel|otlp|posthog|segment|amplitude|mixpanel|launchdarkly|pagerduty|opsgenie|zendesk|intercom|resend|postmark|mailchimp|clerk|auth0|okta|supabase|firebase|terraform|snyk|circleci|buildkite|database[_-]?url|dsn|connection[_-]?string|connectionstring|service[_-]?account|storage[_-]?key|account[_-]?key|subscription[_-]?key|tenant[_-]?secret|object[_-]?storage[_-]?signing[_-]?key|object[_-]?storage[_-]?access[_-]?key|object[_-]?storage[_-]?secret[_-]?key|aws[_-]?secret[_-]?access[_-]?key|aws[_-]?session[_-]?token|s3[_-]?secret[_-]?key|minio[_-]?root[_-]?password|minio[_-]?secret[_-]?key|encryption[_-]?customer[_-]?key|customer[_-]?encryption[_-]?key|sse[_-]?customer[_-]?key|docker[_-]?auth|dockerconfigjson|dockercfg|image[_-]?pull[_-]?secret|registry[_-]?(auth|token|password))`)
+var sensitiveKeyPattern = regexp.MustCompile(`(?i)(secret|token|password|passwd|pwd|passphrase|api[_-]?key|x[_-]?api[_-]?key|access[_-]?key|private[_-]?key|private[_-]?token|deploy[_-]?key|credential|signature|session|cookie|authorization|proxy[_-]?authorization|client[_-]?secret|client[_-]?token|client[_-]?assertion|refresh[_-]?token|id[_-]?token|personal[_-]?access[_-]?token|license[_-]?key|pat|jwt|oauth|webhook[_-]?secret|signing[_-]?key|routing[_-]?key|integration[_-]?key|shared[_-]?access[_-]?signature|sas|stripe|openai|anthropic|deepseek|mistral|cohere|gemini|google[_-]?ai|openrouter|perplexity|xai|fireworks|fal|elevenlabs|provider[_-]?key|sentry|datadog|honeycomb|new[_-]?relic|splunk|grafana|otel|otlp|posthog|segment|amplitude|mixpanel|launchdarkly|pagerduty|opsgenie|zendesk|intercom|resend|postmark|mailchimp|clerk|auth0|okta|supabase|firebase|terraform|snyk|circleci|buildkite|database[_-]?url|dsn|connection[_-]?string|connectionstring|service[_-]?account|storage[_-]?key|account[_-]?key|subscription[_-]?key|tenant[_-]?secret|object[_-]?storage[_-]?signing[_-]?key|object[_-]?storage[_-]?access[_-]?key|object[_-]?storage[_-]?secret[_-]?key|aws[_-]?secret[_-]?access[_-]?key|aws[_-]?session[_-]?token|s3[_-]?secret[_-]?key|minio[_-]?root[_-]?password|minio[_-]?secret[_-]?key|r2[_-]?(access|secret)|wasabi[_-]?(access|secret)|scw[_-]?(access|secret)|scaleway[_-]?(access|secret)|vultr[_-]?(access|secret)|linode[_-]?(access|secret)|oci[_-]?(access|secret|private)|oracle[_-]?(access|secret|private)|encryption[_-]?customer[_-]?key|customer[_-]?encryption[_-]?key|sse[_-]?customer[_-]?key|docker[_-]?auth|dockerconfigjson|dockercfg|image[_-]?pull[_-]?secret|registry[_-]?(auth|token|password))`)
 
 var secretValuePatterns = []struct {
 	kind    SecretKind
@@ -129,7 +129,7 @@ var secretValuePatterns = []struct {
 	{SecretKindRegistryAuth, "kubernetes_pull_secret", regexp.MustCompile(`(?i)\b(?:image[_-]?pull[_-]?secret|dockerconfigjson|dockercfg)\s*[=:]\s*("[A-Za-z0-9+/=._-]{20,}"|'[A-Za-z0-9+/=._-]{20,}'|[A-Za-z0-9+/=._-]{20,})`)},
 }
 
-var assignmentPattern = regexp.MustCompile(`(?i)\b([A-Za-z0-9_.-]*(?:secret|token|password|passwd|pwd|passphrase|api[_-]?key|x[_-]?api[_-]?key|access[_-]?key|private[_-]?key|private[_-]?token|deploy[_-]?key|credential|signature|session|cookie|authorization|proxy[_-]?authorization|client[_-]?secret|client[_-]?token|client[_-]?assertion|refresh[_-]?token|personal[_-]?access[_-]?token|license[_-]?key|webhook[_-]?secret|signing[_-]?key|shared[_-]?access[_-]?signature|database[_-]?url|dsn|connection[_-]?string|connectionstring|service[_-]?account|storage[_-]?key|account[_-]?key|subscription[_-]?key|tenant[_-]?secret|object[_-]?storage[_-]?signing[_-]?key|object[_-]?storage[_-]?access[_-]?key|object[_-]?storage[_-]?secret[_-]?key|aws[_-]?secret[_-]?access[_-]?key|aws[_-]?session[_-]?token|s3[_-]?secret[_-]?key|minio[_-]?root[_-]?password|minio[_-]?secret[_-]?key|encryption[_-]?customer[_-]?key|customer[_-]?encryption[_-]?key|sse[_-]?customer[_-]?key|dockerconfigjson|dockercfg|image[_-]?pull[_-]?secret)[A-Za-z0-9_.-]*)\s*([=:])\s*("[^"]*"|'[^']*'|[^\s,;&]+)`)
+var assignmentPattern = regexp.MustCompile(`(?i)\b([A-Za-z0-9_.-]*(?:secret|token|password|passwd|pwd|passphrase|api[_-]?key|x[_-]?api[_-]?key|access[_-]?key|private[_-]?key|private[_-]?token|deploy[_-]?key|credential|signature|session|cookie|authorization|proxy[_-]?authorization|client[_-]?secret|client[_-]?token|client[_-]?assertion|refresh[_-]?token|personal[_-]?access[_-]?token|license[_-]?key|webhook[_-]?secret|signing[_-]?key|shared[_-]?access[_-]?signature|database[_-]?url|dsn|connection[_-]?string|connectionstring|service[_-]?account|storage[_-]?key|account[_-]?key|subscription[_-]?key|tenant[_-]?secret|object[_-]?storage[_-]?signing[_-]?key|object[_-]?storage[_-]?access[_-]?key|object[_-]?storage[_-]?secret[_-]?key|aws[_-]?secret[_-]?access[_-]?key|aws[_-]?session[_-]?token|s3[_-]?secret[_-]?key|minio[_-]?root[_-]?password|minio[_-]?secret[_-]?key|r2[_-]?access|r2[_-]?secret|wasabi[_-]?access|wasabi[_-]?secret|scw[_-]?access|scw[_-]?secret|scaleway[_-]?access|scaleway[_-]?secret|vultr[_-]?access|vultr[_-]?secret|linode[_-]?access|linode[_-]?secret|oci[_-]?access|oci[_-]?secret|oci[_-]?private|oracle[_-]?access|oracle[_-]?secret|oracle[_-]?private|encryption[_-]?customer[_-]?key|customer[_-]?encryption[_-]?key|sse[_-]?customer[_-]?key|dockerconfigjson|dockercfg|image[_-]?pull[_-]?secret)[A-Za-z0-9_.-]*)\s*([=:])\s*("[^"]*"|'[^']*'|[^\s,;&]+)`)
 var launchSecretAssignmentPattern = regexp.MustCompile(`(?i)\b([A-Za-z0-9_.-]*(?:honeycomb|new[_-]?relic|splunk|grafana|otel|otlp|terraform|snyk|circleci|buildkite|okta|x[_-]?honeycomb[_-]?team|x[_-]?sf[_-]?token)[A-Za-z0-9_.-]*)\s*([=:])\s*("[^"]*"|'[^']*'|[^\s,;&]+)`)
 var embeddedURLPattern = regexp.MustCompile(`[A-Za-z][A-Za-z0-9+.-]*://[^\s"'<>]+`)
 
@@ -318,6 +318,25 @@ func ClassifyKey(key string) []SecretFinding {
 		kind = SecretKindPrivateKey
 	case strings.Contains(lower, "api") && strings.Contains(lower, "key"):
 		kind = SecretKindAPIKey
+	case (strings.Contains(lower, "r2") || strings.Contains(lower, "wasabi") || strings.Contains(lower, "scw") ||
+		strings.Contains(lower, "scaleway") || strings.Contains(lower, "vultr") || strings.Contains(lower, "linode") ||
+		strings.Contains(lower, "oci") || strings.Contains(lower, "oracle")) &&
+		(strings.Contains(lower, "secret") || strings.Contains(lower, "private")):
+		kind = SecretKindCloudKey
+	case strings.Contains(lower, "r2") && strings.Contains(lower, "access"):
+		kind = SecretKindAccessKey
+	case strings.Contains(lower, "wasabi") && strings.Contains(lower, "access"):
+		kind = SecretKindAccessKey
+	case strings.Contains(lower, "scw") && strings.Contains(lower, "access"):
+		kind = SecretKindAccessKey
+	case strings.Contains(lower, "scaleway") && strings.Contains(lower, "access"):
+		kind = SecretKindAccessKey
+	case strings.Contains(lower, "vultr") && strings.Contains(lower, "access"):
+		kind = SecretKindAccessKey
+	case strings.Contains(lower, "linode") && strings.Contains(lower, "access"):
+		kind = SecretKindAccessKey
+	case (strings.Contains(lower, "oci") || strings.Contains(lower, "oracle")) && strings.Contains(lower, "access"):
+		kind = SecretKindAccessKey
 	case strings.Contains(lower, "access") && strings.Contains(lower, "key"):
 		kind = SecretKindAccessKey
 	case strings.Contains(lower, "account") && strings.Contains(lower, "key"):
@@ -846,8 +865,9 @@ func isSignedURLQueryKey(key string) bool {
 		"q-key-time", "q-header-list", "q-url-param-list", "q-signature",
 		"x-bz-info-authorization", "x-bz-security-token", "authorization", "accesskeyid",
 		"awsaccesskeyid", "signature", "sig", "token", "access-token", "download-token", "oauth-token",
+		"__token__", "hdnts", "hdntl", "edge-auth", "akamai-signature",
 		"expires", "policy", "key-pair-id", "cloudfront-signature", "cloudfront-policy", "cloudfront-key-pair-id",
-		"se", "sp", "sip", "spr", "sr", "sv", "si", "ses", "sdd", "saoid", "suoid", "scid",
+		"st", "se", "sp", "sip", "spr", "sr", "sv", "si", "ses", "sdd", "saoid", "suoid", "scid",
 		"skoid", "sktid", "skt", "ske", "sks", "skv":
 		return true
 	default:
@@ -883,7 +903,8 @@ func isSignedURLContextKey(key string) bool {
 		return true
 	}
 	switch normalized {
-	case "awsaccesskeyid", "googleaccessid", "ossaccesskeyid", "signature", "sig", "security-token", "accesskeyid":
+	case "awsaccesskeyid", "googleaccessid", "ossaccesskeyid", "signature", "sig", "security-token", "accesskeyid",
+		"__token__", "hdnts", "hdntl", "edge-auth", "akamai-signature":
 		return true
 	default:
 		return false
@@ -907,7 +928,8 @@ func isStructuredSignedURLSecretKey(key string) bool {
 		"x-cos-signature", "x-cos-security-token", "q-sign-algorithm", "q-ak", "q-sign-time",
 		"q-key-time", "q-header-list", "q-url-param-list", "q-signature",
 		"x-bz-info-authorization", "x-bz-security-token", "authorization", "accesskeyid",
-		"awsaccesskeyid", "cloudfront-signature", "cloudfront-policy", "cloudfront-key-pair-id":
+		"awsaccesskeyid", "cloudfront-signature", "cloudfront-policy", "cloudfront-key-pair-id",
+		"__token__", "hdnts", "hdntl", "edge-auth", "akamai-signature":
 		return true
 	default:
 		return isAzureSASKey(normalized)
@@ -916,7 +938,7 @@ func isStructuredSignedURLSecretKey(key string) bool {
 
 func isAzureSASKey(normalized string) bool {
 	switch normalized {
-	case "se", "sp", "sip", "spr", "sr", "sv", "si", "ses", "sdd", "saoid", "suoid", "scid",
+	case "st", "se", "sp", "sip", "spr", "sr", "sv", "si", "ses", "sdd", "saoid", "suoid", "scid",
 		"skoid", "sktid", "skt", "ske", "sks", "skv":
 		return true
 	default:
