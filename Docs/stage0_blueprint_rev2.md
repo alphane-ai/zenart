@@ -1733,6 +1733,7 @@ main 合并前必须通过：
 - [x] 实现 Figma-ready layout spec。
 - [x] 实现 export retry/regenerate。
 - [x] 实现 cleanup expired exports/orphaned objects。
+- [x] admin 触发 object retention cleanup 在执行前记录 rationale/request audit，成功、dry-run preview、partial failure 均记录 redacted immutable audit。
 - [x] 添加 upload/download/export integration tests。
 
 ### 25.10 Agent and Provider Contracts

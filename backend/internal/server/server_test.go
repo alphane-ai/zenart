@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
+	"io"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
@@ -1153,10 +1155,17 @@ func TestAdminExportCleanupRunsServiceAndRecordsAudit(t *testing.T) {
 			t.Fatalf("exec[%d] args = %#v, want admin cleanup scoped to tenant_1", i, call.args)
 		}
 	}
-	if len(recorder.events) != 1 {
-		t.Fatalf("audit events = %d, want 1", len(recorder.events))
+	if len(recorder.events) != 2 {
+		t.Fatalf("audit events = %d, want request and result audits", len(recorder.events))
 	}
-	event := recorder.events[0]
+	requestEvent := recorder.events[0]
+	if requestEvent.Action != "export.cleanup.requested" || requestEvent.Resource != "object_retention_cleanup" {
+		t.Fatalf("request audit event = %#v, want cleanup request action", requestEvent)
+	}
+	if requestEvent.Metadata["rationale"] != "staging retention cleanup token="+security.Redacted || requestEvent.Metadata["limit"] != 500 || requestEvent.Metadata["dry_run"] != false {
+		t.Fatalf("request audit metadata = %#v, want redacted rationale and capped limit", requestEvent.Metadata)
+	}
+	event := recorder.events[1]
 	if event.TenantID != "tenant_1" || event.ActorID != "admin_super_1" || event.Action != "export.cleanup" || event.Resource != "object_retention_cleanup" {
 		t.Fatalf("audit event = %#v", event)
 	}
@@ -1223,10 +1232,17 @@ func TestAdminExportCleanupDryRunPreviewsAndAuditsWithoutMutation(t *testing.T) 
 	if db.queries[1].args[2] != "tenant_1" || !strings.Contains(db.queries[1].sql, "cleanup_candidates") {
 		t.Fatalf("dry-run cleanup preview query = %#v / %s, want tenant-scoped preview", db.queries[1].args, db.queries[1].sql)
 	}
-	if len(recorder.events) != 1 {
-		t.Fatalf("audit events = %d, want 1", len(recorder.events))
+	if len(recorder.events) != 2 {
+		t.Fatalf("audit events = %d, want request and preview audits", len(recorder.events))
 	}
-	event := recorder.events[0]
+	requestEvent := recorder.events[0]
+	if requestEvent.Action != "export.cleanup.preview.requested" || requestEvent.Resource != "object_retention_cleanup" {
+		t.Fatalf("request audit event = %#v, want cleanup preview request action", requestEvent)
+	}
+	if requestEvent.Metadata["dry_run"] != true || requestEvent.Metadata["limit"] != 25 || requestEvent.Metadata["rationale"] != "staging retention dry run" {
+		t.Fatalf("request audit metadata = %#v, want dry-run request metadata", requestEvent.Metadata)
+	}
+	event := recorder.events[1]
 	if event.Action != "export.cleanup.preview" || event.Resource != "object_retention_cleanup" {
 		t.Fatalf("audit event = %#v, want cleanup preview action", event)
 	}
@@ -1268,6 +1284,97 @@ func TestAdminExportCleanupFailsClosedWithoutAuditRecorder(t *testing.T) {
 	}
 	if len(db.execs) != 0 {
 		t.Fatalf("cleanup ran without audit recorder: %#v", db.execs)
+	}
+}
+
+func TestAdminExportCleanupFailsClosedWhenRequestAuditCannotRecord(t *testing.T) {
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	cfg.Auth.AdminDevIdentityHeaders = true
+	db := &fakeStage0DB{execTags: []pgconn.CommandTag{
+		pgconn.NewCommandTag("UPDATE 2"),
+		pgconn.NewCommandTag("UPDATE 1"),
+	}}
+	recorder := &fakeAuditRecorder{err: errors.New("audit unavailable")}
+
+	req := httptest.NewRequest(http.MethodPost, "/api/admin/v1/exports/cleanup", bytes.NewBufferString(`{"rationale":"staging retention cleanup","limit":25}`))
+	req = req.WithContext(audit.ContextWithRecorder(stage0.ContextWithService(req.Context(), stage0.NewService(stage0.NewRepository(db), nil)), recorder))
+	req.Header.Set("X-Zenart-User-ID", "admin_super_1")
+	req.Header.Set("X-Zenart-Tenant-ID", "tenant_1")
+	req.Header.Set("X-Zenart-Roles", "admin_superadmin")
+	setSameSiteCSRFHeaders(req)
+	rec := httptest.NewRecorder()
+
+	New(cfg, nil).Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusInternalServerError {
+		t.Fatalf("status = %d, want %d: %s", rec.Code, http.StatusInternalServerError, rec.Body.String())
+	}
+	var body map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("response JSON error = %v", err)
+	}
+	if body["code"] != "audit_record_error" {
+		t.Fatalf("code = %v, want audit_record_error", body["code"])
+	}
+	if len(db.execs) != 0 {
+		t.Fatalf("cleanup ran after request audit failure: %#v", db.execs)
+	}
+}
+
+func TestAdminExportCleanupAuditsFailureResult(t *testing.T) {
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	cfg.Auth.AdminDevIdentityHeaders = true
+	db := &fakeStage0DB{
+		execTags: []pgconn.CommandTag{
+			pgconn.NewCommandTag("UPDATE 1"),
+			pgconn.NewCommandTag("UPDATE 1"),
+			pgconn.NewCommandTag("SELECT 1"),
+		},
+		queryRows: []stage0RowSet{{
+			rows: [][]any{{
+				"object_1",
+				"tenant_1",
+				"tenants/tenant_1/exports/missing.zip",
+			}},
+		}},
+	}
+	recorder := &fakeAuditRecorder{}
+	objects := &serverObjectStore{deleteErr: objectstore.ErrTenantDenied}
+
+	req := httptest.NewRequest(http.MethodPost, "/api/admin/v1/exports/cleanup", bytes.NewBufferString(`{"rationale":"staging cleanup token=npm_abcdefghijklmnopqrstuvwxyz123456","limit":25}`))
+	req = req.WithContext(audit.ContextWithRecorder(stage0.ContextWithService(req.Context(), stage0.NewService(stage0.NewRepository(db), objects)), recorder))
+	req.Header.Set("X-Zenart-User-ID", "admin_super_1")
+	req.Header.Set("X-Zenart-Tenant-ID", "tenant_1")
+	req.Header.Set("X-Zenart-Roles", "admin_superadmin")
+	setSameSiteCSRFHeaders(req)
+	rec := httptest.NewRecorder()
+
+	New(cfg, nil).Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusInternalServerError {
+		t.Fatalf("status = %d, want %d: %s", rec.Code, http.StatusInternalServerError, rec.Body.String())
+	}
+	if len(recorder.events) != 2 {
+		t.Fatalf("audit events = %d, want request and failed result audits", len(recorder.events))
+	}
+	if recorder.events[0].Action != "export.cleanup.requested" {
+		t.Fatalf("request audit action = %q", recorder.events[0].Action)
+	}
+	failed := recorder.events[1]
+	if failed.Action != "export.cleanup.failed" || failed.Metadata["failed_objects"] != 1 || failed.Metadata["cleanup_status"] != "partial_failed" {
+		t.Fatalf("failed audit event = %#v, want partial failure metadata", failed)
+	}
+	if failed.Metadata["rationale"] != "staging cleanup token="+security.Redacted {
+		t.Fatalf("failed audit rationale = %#v, want redacted token", failed.Metadata["rationale"])
+	}
+	if errorMessage, _ := failed.Metadata["error"].(string); errorMessage == "" || strings.Contains(errorMessage, "npm_abcdefghijklmnopqrstuvwxyz123456") {
+		t.Fatalf("failed audit error = %#v, want redacted non-empty error", failed.Metadata["error"])
 	}
 }
 
@@ -2198,6 +2305,34 @@ func (f *fakeAuditRecorder) Record(_ context.Context, event audit.Event) error {
 	event.Metadata = security.RedactMap(event.Metadata)
 	f.events = append(f.events, event)
 	return nil
+}
+
+type serverObjectStore struct {
+	deleteErr error
+}
+
+func (s *serverObjectStore) Put(_ context.Context, object objectstore.Object, _ io.Reader) (objectstore.Object, error) {
+	return object, nil
+}
+
+func (s *serverObjectStore) Get(_ context.Context, _ string, _ string) (objectstore.Reader, error) {
+	return objectstore.Reader{}, objectstore.ErrNotFound
+}
+
+func (s *serverObjectStore) SignGetURL(_ context.Context, _ string, _ string, _ time.Duration) (string, error) {
+	return "", nil
+}
+
+func (s *serverObjectStore) Delete(_ context.Context, _ string, _ string) error {
+	return s.deleteErr
+}
+
+func (s *serverObjectStore) CleanupExpired(_ context.Context, _ time.Time) (int, error) {
+	return 0, nil
+}
+
+func (s *serverObjectStore) CleanupExpiredForTenant(_ context.Context, _ string, _ time.Time) (int, error) {
+	return 0, nil
 }
 
 type serverCaptureScanner struct {

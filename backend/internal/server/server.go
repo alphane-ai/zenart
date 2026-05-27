@@ -742,6 +742,18 @@ func (s *Server) cleanupExports(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	now := time.Now().UTC()
+	action := "export.cleanup"
+	if input.DryRun {
+		action = "export.cleanup.preview"
+	}
+	if err := s.recordCleanupAudit(r.Context(), recorder, principal, action+".requested", now, map[string]any{
+		"rationale": rationale,
+		"limit":     limit,
+		"dry_run":   input.DryRun,
+	}); err != nil {
+		writeError(w, r, http.StatusInternalServerError, "audit_record_error", "object retention cleanup audit request record could not be written", nil)
+		return
+	}
 	var result stage0.CleanupResult
 	var err error
 	if input.DryRun {
@@ -750,36 +762,45 @@ func (s *Server) cleanupExports(w http.ResponseWriter, r *http.Request) {
 		result, err = service.CleanupExpiredExportsAndOrphanedObjectsForTenant(r.Context(), principal.TenantID, now, limit)
 	}
 	if err != nil {
+		_ = s.recordCleanupAudit(r.Context(), recorder, principal, action+".failed", now, cleanupAuditMetadata(rationale, limit, input.DryRun, result, security.RedactString(err.Error())))
 		writeStage0Error(w, r, err)
 		return
 	}
-	action := "export.cleanup"
-	if input.DryRun {
-		action = "export.cleanup.preview"
-	}
-	if err := recorder.Record(r.Context(), audit.Event{
-		ID:       newAuditID(principal.TenantID, principal.UserID, action, now.Format(time.RFC3339Nano)),
-		TenantID: principal.TenantID,
-		ActorID:  principal.UserID,
-		Action:   action,
-		Resource: "object_retention_cleanup",
-		Metadata: map[string]any{
-			"rationale":        rationale,
-			"limit":            limit,
-			"dry_run":          input.DryRun,
-			"preview_objects":  result.PreviewObjects,
-			"expired_exports":  result.ExpiredExports,
-			"orphaned_objects": result.OrphanedObjects,
-			"deleted_objects":  result.DeletedObjects,
-			"failed_objects":   result.FailedObjects,
-			"cleanup_status":   result.Status,
-		},
-		CreatedAt: now,
-	}); err != nil {
+	if err := s.recordCleanupAudit(r.Context(), recorder, principal, action, now, cleanupAuditMetadata(rationale, limit, input.DryRun, result, "")); err != nil {
 		writeError(w, r, http.StatusInternalServerError, "audit_record_error", "object retention cleanup audit record could not be written", nil)
 		return
 	}
 	writeJSON(w, http.StatusAccepted, result)
+}
+
+func (s *Server) recordCleanupAudit(ctx context.Context, recorder audit.Recorder, principal auth.Principal, action string, now time.Time, metadata map[string]any) error {
+	return recorder.Record(ctx, audit.Event{
+		ID:        newAuditID(principal.TenantID, principal.UserID, action, now.Format(time.RFC3339Nano)),
+		TenantID:  principal.TenantID,
+		ActorID:   principal.UserID,
+		Action:    action,
+		Resource:  "object_retention_cleanup",
+		Metadata:  metadata,
+		CreatedAt: now,
+	})
+}
+
+func cleanupAuditMetadata(rationale string, limit int, dryRun bool, result stage0.CleanupResult, errorMessage string) map[string]any {
+	metadata := map[string]any{
+		"rationale":        rationale,
+		"limit":            limit,
+		"dry_run":          dryRun,
+		"preview_objects":  result.PreviewObjects,
+		"expired_exports":  result.ExpiredExports,
+		"orphaned_objects": result.OrphanedObjects,
+		"deleted_objects":  result.DeletedObjects,
+		"failed_objects":   result.FailedObjects,
+		"cleanup_status":   result.Status,
+	}
+	if errorMessage != "" {
+		metadata["error"] = errorMessage
+	}
+	return metadata
 }
 
 func (s *Server) regenerateExport(w http.ResponseWriter, r *http.Request) {
