@@ -528,6 +528,7 @@ for path, expected_run_id in expectations.items():
         raise SystemExit(f"{path} filename stem must match run_id {expected_run_id}")
 release_bundle = json.loads((root / "release-bundle" / "stage0-validate-release-bundle-run-id.json").read_text(encoding="utf-8"))
 staging_smoke = json.loads((root / "release-bundle" / "stage0-validate-release-bundle-run-id.staging-smoke.json").read_text(encoding="utf-8"))
+object_retention = json.loads((root / "release-bundle" / "stage0-validate-release-bundle-run-id.object-storage-retention-cleanup.json").read_text(encoding="utf-8"))
 if staging_smoke.get("created_at") != "stage0-validate-release-bundle-run-id.staging-smoke":
     raise SystemExit("release bundle must normalize copied staging smoke created_at to the deterministic component run ID")
 if release_bundle.get("source_staging_smoke_report") != str(root / "release-bundle" / "stage0-validate-release-bundle-run-id.staging-smoke.json"):
@@ -536,8 +537,10 @@ if release_bundle.get("source_staging_smoke_results") != str(root / "release-bun
     raise SystemExit("release bundle must promote deterministic staging smoke results path")
 if release_bundle.get("source_object_retention_cleanup_report") != str(root / "release-bundle" / "stage0-validate-release-bundle-run-id.object-storage-retention-cleanup.json"):
     raise SystemExit("release bundle must promote deterministic object-retention report path")
-if release_bundle.get("source_object_retention_cleanup_results") != str(root / "release-bundle" / "stage0-validate-release-bundle-run-id.object-storage-retention-cleanup.ndjson"):
-    raise SystemExit("release bundle must promote deterministic object-retention results path")
+if release_bundle.get("source_object_retention_cleanup_results") != object_retention.get("results_path"):
+    raise SystemExit("release bundle must promote object-retention report-declared results path")
+if not Path(release_bundle["source_object_retention_cleanup_results"]).exists():
+    raise SystemExit("release bundle object-retention report-declared results path must exist")
 if release_bundle.get("source_legal_support_visibility_report") != str(root / "release-bundle" / "stage0-validate-release-bundle-run-id.legal-support-visibility.json"):
     raise SystemExit("release bundle must promote deterministic legal/support report path")
 if release_bundle.get("source_legal_support_visibility_results") != str(root / "release-bundle" / "stage0-validate-release-bundle-run-id.legal-support-visibility.ndjson"):
@@ -899,6 +902,10 @@ if report.get("object_retention_cleanup_verified") is not False:
 object_retention_probe = report.get("object_retention_cleanup_probe", {})
 if object_retention_probe.get("status") != "blocked":
     raise SystemExit("release evidence bundle dry-run must surface blocked object-retention cleanup status")
+if report.get("source_object_retention_cleanup_results") != object_retention_probe.get("results_path"):
+    raise SystemExit("release evidence bundle dry-run must cite object-retention report-declared results path")
+if not Path(report["source_object_retention_cleanup_results"]).exists():
+    raise SystemExit("release evidence bundle dry-run object-retention results path must exist")
 if set(object_retention_probe.get("required_checks", [])) != {
     "retention_policy",
     "expired_export_cleanup",
@@ -1853,6 +1860,8 @@ if not Path(report["source_object_retention_cleanup_report"]).exists():
     raise SystemExit("complete-evidence release bundle must preserve object-retention report")
 if not Path(report["source_object_retention_cleanup_results"]).exists():
     raise SystemExit("complete-evidence release bundle must preserve object-retention results")
+if report.get("source_object_retention_cleanup_results") != object_retention_probe.get("results_path"):
+    raise SystemExit("complete-evidence release bundle must cite object-retention report-declared results path")
 if not Path(report["source_legal_support_visibility_report"]).exists():
     raise SystemExit("complete-evidence release bundle must preserve legal/support visibility report")
 if not Path(report["source_legal_support_visibility_results"]).exists():
