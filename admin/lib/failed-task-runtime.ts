@@ -1,4 +1,9 @@
-import type { FailedTaskControl, FailedTaskRuntimeDecision, SupportTicket } from "@/lib/types";
+import type {
+  FailedTaskControl,
+  FailedTaskRuntimeDecision,
+  FailedTaskSubmissionContract,
+  SupportTicket
+} from "@/lib/types";
 
 const requiredClosureEvidenceCount = 4;
 const supportedAppVersion = "admin-0.0.0";
@@ -278,6 +283,7 @@ export function buildFailedTaskRuntimeDecisions(
     return {
       taskId: task.id,
       queueId: task.queueId,
+      supportTicketId: task.supportTicketId,
       requestedAction: task.requestedAction,
       submitDecision,
       stateTransition: computedStateTransition,
@@ -313,6 +319,80 @@ export function buildFailedTaskRuntimeDecisions(
       submitDisabledReason,
       operatorAction,
       auditRef: task.auditRef
+    };
+  });
+}
+
+export function buildFailedTaskSubmissionContracts(
+  tasks: FailedTaskControl[],
+  decisions: FailedTaskRuntimeDecision[]
+): FailedTaskSubmissionContract[] {
+  const taskById = new Map<string, FailedTaskControl>(tasks.map((task) => [task.id, task]));
+
+  return decisions.map((decision) => {
+    const task = taskById.get(decision.taskId);
+    const submitEnabled = decision.submitDecision === "submit_ready";
+    const reviewHold = decision.submitDecision === "review_required";
+    const requestPath = `/api/admin/tasks/${decision.taskId}/${decision.requestedAction}`;
+    const requiredHeaders = [
+      "X-Admin-CSRF",
+      "Idempotency-Key",
+      "If-Match",
+      "X-Support-Ticket",
+      "X-Admin-Audit-Ref"
+    ];
+    const mutationOrder = submitEnabled
+      ? "audit_then_queue_mutation"
+      : reviewHold
+        ? "audit_then_review_hold"
+        : "blocked_attempt_audit_only";
+    const releaseGateUse =
+      decision.regressionGateEffect === "canary_fixture_ready"
+        ? "release_evidence_candidate"
+        : decision.regressionGateEffect === "canary_fixture_blocks_until_review"
+          ? "preserve_eval_gate"
+          : "not_release_evidence";
+    const replayProtection =
+      submitEnabled &&
+      decision.idempotencyStatus === "stable" &&
+      decision.stateDigestStatus === "stable" &&
+      decision.blockerCodes.length === 0
+        ? "stable_idempotent_precondition"
+        : "blocked_replay_or_unstable_key";
+    const evidenceRefs = [
+      decision.taskId,
+      decision.supportTicketId,
+      decision.queueId,
+      decision.auditRef,
+      ...decision.rbacEvidenceRefs,
+      ...(task?.closureEvidenceRefs ?? [])
+    ];
+
+    return {
+      taskId: decision.taskId,
+      queueId: decision.queueId,
+      requestedAction: decision.requestedAction,
+      requestMethod: "POST",
+      requestPath,
+      submitEnabled,
+      submitDecision: decision.submitDecision,
+      apiOutcome: decision.apiOutcome,
+      csrfScope: "admin_session_cookie",
+      requiredHeaders,
+      idempotencyKey: decision.idempotencyKey,
+      idempotencyHeaderStatus: decision.idempotencyStatus,
+      preconditionHeader: decision.stateDigestEvidence,
+      preconditionDigestStatus: decision.stateDigestStatus,
+      supportTicketId: decision.supportTicketId,
+      responseContract: `${decision.apiOutcome}; ${decision.stateTransition}; ${decision.closureOutcome}`,
+      mutationOrder,
+      quotaLedgerEffect: decision.quotaLedgerEffect,
+      releaseGateUse,
+      replayProtection,
+      evidenceRefs: [...new Set(evidenceRefs)],
+      blockerCodes: decision.blockerCodes,
+      operatorAction: decision.operatorAction,
+      auditRef: decision.auditRef
     };
   });
 }

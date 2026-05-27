@@ -60,6 +60,10 @@ import {
   buildCrawlerGovernanceRuntimeDecisions
 } from "@/lib/crawler-runtime";
 import { buildExportRegenerationRuntimeDecisions } from "@/lib/export-runtime";
+import {
+  buildFailedTaskRuntimeDecisions,
+  buildFailedTaskSubmissionContracts
+} from "@/lib/failed-task-runtime";
 import { buildRegressionFixtureRuntimeSummaries } from "@/lib/regression-fixture-runtime";
 import {
   buildAdminRbacClosureMatrix,
@@ -302,6 +306,17 @@ export async function getExportJobs() {
 
 export async function getFailedTaskControls() {
   return failedTaskControls;
+}
+
+export async function getFailedTaskRuntimeDecisions() {
+  return buildFailedTaskRuntimeDecisions(failedTaskControls, supportTickets);
+}
+
+export async function getFailedTaskSubmissionContracts() {
+  return buildFailedTaskSubmissionContracts(
+    failedTaskControls,
+    buildFailedTaskRuntimeDecisions(failedTaskControls, supportTickets)
+  );
 }
 
 export async function getStagingSupportRetryAbuseEvidence() {

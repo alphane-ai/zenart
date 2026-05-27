@@ -1,9 +1,18 @@
 import { DataTable } from "@/components/DataTable";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
-import { getFailedTaskControls, getQueueHealth, getSupportTickets } from "@/lib/admin-api";
-import { buildFailedTaskRuntimeDecisions } from "@/lib/failed-task-runtime";
-import type { FailedTaskControl, FailedTaskRuntimeDecision, QueueHealth } from "@/lib/types";
+import {
+  getFailedTaskControls,
+  getFailedTaskRuntimeDecisions,
+  getFailedTaskSubmissionContracts,
+  getQueueHealth
+} from "@/lib/admin-api";
+import type {
+  FailedTaskControl,
+  FailedTaskRuntimeDecision,
+  FailedTaskSubmissionContract,
+  QueueHealth
+} from "@/lib/types";
 
 function actionTone(task: FailedTaskControl) {
   if (task.actionEligibility === "blocked") {
@@ -14,12 +23,12 @@ function actionTone(task: FailedTaskControl) {
 }
 
 export default async function QueuesPage() {
-  const [queues, failedTasks, supportTickets] = await Promise.all([
+  const [queues, failedTasks, failedTaskRuntime, failedTaskSubmissionContracts] = await Promise.all([
     getQueueHealth(),
     getFailedTaskControls(),
-    getSupportTickets()
+    getFailedTaskRuntimeDecisions(),
+    getFailedTaskSubmissionContracts()
   ]);
-  const failedTaskRuntime = buildFailedTaskRuntimeDecisions(failedTasks, supportTickets);
 
   return (
     <>
@@ -49,6 +58,39 @@ export default async function QueuesPage() {
             { key: "backoff", header: "Retry Backoff", render: (row) => row.retryBackoffPolicy },
             { key: "role", header: "Owner Role", render: (row) => row.ownerRole },
             { key: "incident", header: "Incident", render: (row) => <span className="mono">{row.linkedIncident}</span> },
+            { key: "audit", header: "Audit Ref", render: (row) => <span className="mono">{row.auditRef}</span> }
+          ]}
+        />
+      </section>
+
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>Failed Task Submission Contract</h3>
+            <p>Admin retry, cancel, and hold requests must bind CSRF, idempotency, precondition digest, support ticket, audit ordering, quota settlement, and release-gate disposition before mutation.</p>
+          </div>
+        </div>
+        <DataTable<FailedTaskSubmissionContract>
+          rows={failedTaskSubmissionContracts}
+          columns={[
+            { key: "task", header: "Task", render: (row) => <span className="mono">{row.taskId}</span> },
+            { key: "path", header: "Request Path", render: (row) => <span className="mono">{row.requestPath}</span> },
+            { key: "enabled", header: "Submit Enabled", render: (row) => <StatusBadge value={row.submitEnabled ? "approved" : "blocked"} label={String(row.submitEnabled)} /> },
+            { key: "decision", header: "Submit Decision", render: (row) => <StatusBadge value={row.submitDecision} /> },
+            { key: "api", header: "API Outcome", render: (row) => <StatusBadge value={row.apiOutcome} label={row.apiOutcome} /> },
+            { key: "csrf", header: "CSRF Scope", render: (row) => row.csrfScope },
+            { key: "headers", header: "Required Headers", render: (row) => row.requiredHeaders.join(", ") },
+            { key: "idempotency", header: "Idempotency", render: (row) => <StatusBadge value={row.idempotencyHeaderStatus} /> },
+            { key: "precondition", header: "Precondition Digest", render: (row) => <StatusBadge value={row.preconditionDigestStatus} label={row.preconditionDigestStatus} /> },
+            { key: "ticket", header: "Support Ticket", render: (row) => <span className="mono">{row.supportTicketId}</span> },
+            { key: "response", header: "Response Contract", render: (row) => row.responseContract },
+            { key: "mutation", header: "Mutation Order", render: (row) => <StatusBadge value={row.mutationOrder} label={row.mutationOrder} /> },
+            { key: "quota", header: "Quota Ledger", render: (row) => <StatusBadge value={row.quotaLedgerEffect} label={row.quotaLedgerEffect} /> },
+            { key: "release", header: "Release Gate Use", render: (row) => <StatusBadge value={row.releaseGateUse} label={row.releaseGateUse} /> },
+            { key: "replay", header: "Replay Protection", render: (row) => <StatusBadge value={row.replayProtection} label={row.replayProtection} /> },
+            { key: "evidence", header: "Evidence Refs", render: (row) => row.evidenceRefs.join(", ") },
+            { key: "blockers", header: "Blockers", render: (row) => (row.blockerCodes.length > 0 ? row.blockerCodes.join(", ") : "none") },
+            { key: "operator", header: "Operator Action", render: (row) => row.operatorAction },
             { key: "audit", header: "Audit Ref", render: (row) => <span className="mono">{row.auditRef}</span> }
           ]}
         />

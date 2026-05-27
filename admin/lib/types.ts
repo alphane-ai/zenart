@@ -753,6 +753,7 @@ export type FailedTaskControl = {
 export type FailedTaskRuntimeDecision = {
   taskId: string;
   queueId: string;
+  supportTicketId: string;
   requestedAction: FailedTaskControl["requestedAction"];
   submitDecision: "submit_ready" | "review_required" | "blocked";
   stateTransition:
@@ -814,6 +815,33 @@ export type FailedTaskRuntimeDecision = {
   userMessageStatus: "ready" | "missing";
   blockerCodes: string[];
   submitDisabledReason: string;
+  operatorAction: string;
+  auditRef: string;
+};
+
+export type FailedTaskSubmissionContract = {
+  taskId: string;
+  queueId: string;
+  requestedAction: FailedTaskControl["requestedAction"];
+  requestMethod: "POST";
+  requestPath: string;
+  submitEnabled: boolean;
+  submitDecision: FailedTaskRuntimeDecision["submitDecision"];
+  apiOutcome: FailedTaskRuntimeDecision["apiOutcome"];
+  csrfScope: "admin_session_cookie";
+  requiredHeaders: string[];
+  idempotencyKey: string;
+  idempotencyHeaderStatus: "stable" | "unstable";
+  preconditionHeader: string;
+  preconditionDigestStatus: FailedTaskRuntimeDecision["stateDigestStatus"];
+  supportTicketId: string;
+  responseContract: string;
+  mutationOrder: "audit_then_queue_mutation" | "audit_then_review_hold" | "blocked_attempt_audit_only";
+  quotaLedgerEffect: FailedTaskRuntimeDecision["quotaLedgerEffect"];
+  releaseGateUse: "release_evidence_candidate" | "preserve_eval_gate" | "not_release_evidence";
+  replayProtection: "stable_idempotent_precondition" | "blocked_replay_or_unstable_key";
+  evidenceRefs: string[];
+  blockerCodes: string[];
   operatorAction: string;
   auditRef: string;
 };
