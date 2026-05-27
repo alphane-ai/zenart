@@ -582,6 +582,11 @@ test("admin action pages show scoped RBAC evidence at decision points", () => {
       surface: "quota_override"
     },
     {
+      path: "../app/exports/page.tsx",
+      heading: "Export Override RBAC Evidence",
+      surface: "export_override"
+    },
+    {
       path: "../app/safety/page.tsx",
       heading: "Safety and Export Override RBAC",
       surface: "safety_rule"
