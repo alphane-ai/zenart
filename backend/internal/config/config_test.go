@@ -357,6 +357,7 @@ func TestValidateRequiresHTTPSForHTTPMalwareScannerOutsideLocal(t *testing.T) {
 	cfg.ObjectStorage.SecretKey = "stage0-staging-secret"
 	cfg.ObjectStorage.SigningKey = "stage0-staging-object-signing-key-32"
 	cfg.Security.MalwareScanProvider = "http"
+	cfg.Security.MalwareScanFailClosed = true
 	cfg.Security.MalwareScanEndpoint = "http://scanner.example.test/scan"
 	if err := cfg.Validate(); err == nil {
 		t.Fatal("Validate() error = nil, want non-HTTPS malware scanner endpoint error")
@@ -365,6 +366,32 @@ func TestValidateRequiresHTTPSForHTTPMalwareScannerOutsideLocal(t *testing.T) {
 	cfg.Security.MalwareScanEndpoint = "https://scanner.example.test/scan"
 	if err := cfg.Validate(); err != nil {
 		t.Fatalf("Validate() error = %v, want HTTPS malware scanner endpoint accepted", err)
+	}
+}
+
+func TestValidateRequiresHTTPMalwareScannerFailClosedOutsideLocal(t *testing.T) {
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+
+	cfg.App.Environment = "staging"
+	cfg.ObjectStorage.Provider = "s3-compatible"
+	cfg.ObjectStorage.Endpoint = "https://s3.example.test"
+	cfg.ObjectStorage.PublicEndpoint = "https://downloads.example.test"
+	cfg.ObjectStorage.AccessKey = "stage0-staging-access"
+	cfg.ObjectStorage.SecretKey = "stage0-staging-secret"
+	cfg.ObjectStorage.SigningKey = "stage0-staging-object-signing-key-32"
+	cfg.Security.MalwareScanProvider = "http"
+	cfg.Security.MalwareScanEndpoint = "https://scanner.example.test/scan"
+	cfg.Security.MalwareScanFailClosed = false
+	if err := cfg.Validate(); err == nil {
+		t.Fatal("Validate() error = nil, want fail-closed malware scanner error")
+	}
+
+	cfg.Security.MalwareScanFailClosed = true
+	if err := cfg.Validate(); err != nil {
+		t.Fatalf("Validate() error = %v, want fail-closed HTTP malware scanner accepted", err)
 	}
 }
 

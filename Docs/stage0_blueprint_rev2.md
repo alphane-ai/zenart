@@ -1899,6 +1899,7 @@ main 合并前必须通过：
 - [x] 扩展 S3-compatible launch secret redaction/classification 覆盖 R2、Wasabi、Scaleway、Vultr、Linode、OCI/Oracle Object Storage credential aliases and Akamai/edge signed delivery token fields。
 - [x] 扩展 launch analytics/support/email/identity secret redaction/classification 覆盖 PostHog、Segment、Amplitude、Mixpanel、LaunchDarkly、PagerDuty、Opsgenie、Zendesk、Intercom、Resend、Postmark、Mailchimp、Clerk、Auth0、Supabase、Firebase metadata keys and token value patterns.
 - [x] 硬化 malware scan 外部边界：scanner request/response metadata redaction、status normalization、unsupported status fail-closed tests。
+- [x] 硬化 staging/production malware scan 启动配置：`MALWARE_SCAN_PROVIDER=http` 在非 local 环境必须启用 `MALWARE_SCAN_FAIL_CLOSED=true`，避免外部 scanner outage/error fail-open。
 - [x] 添加 dependency/image/secret scans。
 - [x] 添加 Privacy notice。
 - [x] 添加 Terms of Service。
