@@ -8,7 +8,7 @@
     "25"
   ],
   "created_by_lane": "lane3",
-  "created_at": "2026-05-27T05:18:24.852Z",
+  "created_at": "2026-05-27T06:18:34.873Z",
   "environment": "local_alpha",
   "workflow_id": "business_visual_doc_pack",
   "fixture_id": "fx_business_visual_doc_golden",
@@ -28,7 +28,7 @@
   "command": "npm run smoke:local-alpha-ecommerce-evidence",
   "file_name": "zenart-001.zip",
   "byte_size": 12110,
-  "sha256": "c425016bca59a91dd662a8e24f43e94a5b66fb9cdea01e7114917d3b10d47bff",
+  "sha256": "ee976706b89686c39a5ed59144e6eaafd4fb0e4fed40bcf6455e4bad2a66c783",
   "payloads": [
     "ai-content-disclaimer.json",
     "assets/README.txt",

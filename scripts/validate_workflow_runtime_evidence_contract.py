@@ -72,6 +72,7 @@ LOCAL_ALPHA_RUNTIME_CLOSED_WORKFLOWS = {
     "ecommerce_growth_pack",
     "business_visual_doc_pack",
     "local_merchant_campaign_pack",
+    "character_ip_concept_pack",
 }
 LOCAL_ALPHA_RUNTIME_CLOSED_ITEM_KEYS = {
     "ecommerce_growth_pack": {
@@ -85,6 +86,11 @@ LOCAL_ALPHA_RUNTIME_CLOSED_ITEM_KEYS = {
         "release_gate_runtime",
     },
     "local_merchant_campaign_pack": {
+        "api_smoke",
+        "playwright_happy_path",
+        "release_gate_runtime",
+    },
+    "character_ip_concept_pack": {
         "api_smoke",
         "playwright_happy_path",
         "release_gate_runtime",
@@ -197,8 +203,8 @@ def validate_top_level(contract: dict[str, Any]) -> None:
     require(summary["export_zip_contracts"] == 4, "runtime contract must cover four export ZIP checks")
     require(summary["runtime_evidence_required_for_closure"] is True, "runtime closure must require evidence")
     require(
-        summary["local_alpha_e2e_workflow_smoke_remains_blocked"] is True,
-        "dry-run contract must keep Local Alpha workflow smoke blocked",
+        summary["local_alpha_e2e_workflow_smoke_remains_blocked"] is False,
+        "runtime contract must not keep Local Alpha workflow smoke blocked after all runtime files pass",
     )
 
 
@@ -212,14 +218,9 @@ def validate_blueprint_and_release_gate(contract: dict[str, Any]) -> None:
         for item in gate["checks"]
     }["local_alpha_e2e_workflow_smoke"]
 
-    require(LOCAL_ALPHA_AGGREGATE_ITEM in unchecked, "Local Alpha aggregate workflow runtime item must remain open")
-    require(LOCAL_ALPHA_AGGREGATE_ITEM not in checked, "dry-run contract must not close Local Alpha aggregate runtime item")
-    require(local_alpha_check["status"] == "blocked", "Local Alpha workflow smoke gate must remain blocked")
-    require(
-        "character_ip_concept_pack" in local_alpha_check["evidence_ref"]
-        and "remains absent" in local_alpha_check["evidence_ref"],
-        "Local Alpha gate must still name the exact remaining workflow runtime evidence blocker",
-    )
+    require(LOCAL_ALPHA_AGGREGATE_ITEM in checked, "Local Alpha aggregate workflow runtime item must be checked")
+    require(LOCAL_ALPHA_AGGREGATE_ITEM not in unchecked, "Local Alpha aggregate runtime item cannot remain open")
+    require(local_alpha_check["status"] == "pass", "Local Alpha workflow smoke gate must pass")
 
     evidence_ref = local_alpha_check["evidence_ref"]
     for workflow in contract["workflow_runtime_contracts"]:

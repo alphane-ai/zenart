@@ -38,6 +38,7 @@ import {
   buildPackageExportMetadataEvidence,
   buildExportDownloadParityEvidence,
   buildExportZipPayloadSmokeEvidence,
+  buildCharacterIpConceptApiSmokeEvidence,
   buildBusinessVisualDocApiSmokeEvidence,
   buildBriefUploadConfirmationRuntimeEvidence,
   buildEcommerceGrowthApiSmokeEvidence,
@@ -47,6 +48,7 @@ import {
   buildSupportProblemContext,
   buildWorkspaceRenderingPerformanceSmoke,
   businessVisualDocCandidates,
+  characterIpConceptCandidates,
   localMerchantCampaignCandidates
 } from "@/lib/dev-state";
 import { downloadExportPackage } from "@/lib/export-download";
@@ -265,6 +267,9 @@ export function WorkspaceApp({ initialView = "workspace" }: { initialView?: View
       }
       if (normalizedBrief.includes("local merchant campaign pack")) {
         return zenArtClient.activateLocalMerchantCampaignWorkflow();
+      }
+      if (normalizedBrief.includes("character ip concept pack")) {
+        return zenArtClient.activateCharacterIpConceptWorkflow();
       }
       return confirmedState;
     });
@@ -668,8 +673,11 @@ function WorkspaceView({
   const ecommerceApiSmoke = buildEcommerceGrowthApiSmokeEvidence(state);
   const businessDocApiSmoke = buildBusinessVisualDocApiSmokeEvidence(state);
   const localMerchantApiSmoke = buildLocalMerchantCampaignApiSmokeEvidence(state);
+  const characterIpApiSmoke = buildCharacterIpConceptApiSmokeEvidence(state);
   const activeWorkflowSmoke =
-    localMerchantApiSmoke.status === "pass" || state.packageItems.some((item) => item.workflowId === localMerchantApiSmoke.workflow_id)
+    characterIpApiSmoke.status === "pass" || state.packageItems.some((item) => item.workflowId === characterIpApiSmoke.workflow_id)
+      ? characterIpApiSmoke
+      : localMerchantApiSmoke.status === "pass" || state.packageItems.some((item) => item.workflowId === localMerchantApiSmoke.workflow_id)
       ? localMerchantApiSmoke
       : businessDocApiSmoke.status === "pass" || state.packageItems.some((item) => item.workflowId === businessDocApiSmoke.workflow_id)
       ? businessDocApiSmoke
@@ -677,6 +685,8 @@ function WorkspaceView({
   const normalizedBrief = state.brief.prompt.toLowerCase();
   const activeCandidates = normalizedBrief.includes("local merchant campaign pack")
     ? localMerchantCampaignCandidates
+    : normalizedBrief.includes("character ip concept pack")
+    ? characterIpConceptCandidates
     : normalizedBrief.includes("business visual document pack")
     ? businessVisualDocCandidates
     : state.candidates;
@@ -1248,8 +1258,11 @@ function ExportView({
   const ecommerceApiSmoke = buildEcommerceGrowthApiSmokeEvidence(state);
   const businessDocApiSmoke = buildBusinessVisualDocApiSmokeEvidence(state);
   const localMerchantApiSmoke = buildLocalMerchantCampaignApiSmokeEvidence(state);
+  const characterIpApiSmoke = buildCharacterIpConceptApiSmokeEvidence(state);
   const activeWorkflowSmoke =
-    localMerchantApiSmoke.status === "pass" || state.packageItems.some((item) => item.workflowId === localMerchantApiSmoke.workflow_id)
+    characterIpApiSmoke.status === "pass" || state.packageItems.some((item) => item.workflowId === characterIpApiSmoke.workflow_id)
+      ? characterIpApiSmoke
+      : localMerchantApiSmoke.status === "pass" || state.packageItems.some((item) => item.workflowId === localMerchantApiSmoke.workflow_id)
       ? localMerchantApiSmoke
       : businessDocApiSmoke.status === "pass" || state.packageItems.some((item) => item.workflowId === businessDocApiSmoke.workflow_id)
       ? businessDocApiSmoke

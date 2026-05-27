@@ -101,7 +101,7 @@
           "const": true
         },
         "local_alpha_e2e_workflow_smoke_remains_blocked": {
-          "const": true
+          "type": "boolean"
         }
       }
     },
@@ -164,7 +164,7 @@
                 "const": true
               },
               "local_alpha_e2e_workflow_smoke_remains_blocked": {
-                "const": true
+                "type": "boolean"
               }
             }
           }

@@ -10,8 +10,8 @@
   "created_by_lane": "lane3",
   "created_at": "2026-05-27T06:18:34.873Z",
   "environment": "local_alpha",
-  "workflow_id": "business_visual_doc_pack",
-  "fixture_id": "fx_business_visual_doc_golden",
+  "workflow_id": "character_ip_concept_pack",
+  "fixture_id": "fx_character_ip_concept_golden",
   "release_gate_check_id": "local_alpha_e2e_workflow_smoke",
   "release_gate_fixture_ref": "fixtures/stage0/rev2/release_gate_evidence.local_alpha.json",
   "proves_running_local_stack": true,
@@ -33,11 +33,11 @@
   ],
   "interaction_steps": [
     "brief_confirmed",
-    "source_notes_uploaded",
-    "four_document_candidates_visible",
+    "original_character_reference_uploaded",
+    "four_character_ip_candidates_visible",
     "candidate_selected",
     "iteration_created",
-    "all_document_taxonomy_candidates_packaged",
+    "all_character_ip_taxonomy_candidates_packaged",
     "zip_export_created",
     "download_handoff_completed"
   ],
@@ -51,18 +51,18 @@
       "package-add",
       "export-ready"
     ],
-    "renderElementCount": "33",
+    "renderElementCount": "35",
     "maxRenderElements": "96",
-    "estimatedInteractionMs": "36",
+    "estimatedInteractionMs": "38",
     "maxInteractionMs": "100",
     "failureCount": "0"
   },
   "export_metadata_ui": {
     "status": "pass",
     "exportId": "export-001",
-    "packageId": "pkg-004",
-    "manifestItemCount": "4",
-    "manifestRequiredOutputCount": "14",
+    "packageId": "pkg-006",
+    "manifestItemCount": "6",
+    "manifestRequiredOutputCount": "16",
     "missingOutputCount": "0",
     "zipPayloadParityStatus": "pass",
     "workflowMetadataProvider": "dev-provider",
@@ -72,5 +72,5 @@
     "aiContentDisclaimerPayloadPresent": "true"
   },
   "downloaded_file_name": "zenart-001.zip",
-  "elapsed_ms": 2263
+  "elapsed_ms": 2459
 }

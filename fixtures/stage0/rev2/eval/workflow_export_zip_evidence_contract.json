@@ -211,8 +211,8 @@
       "fixture_id": "fx_character_ip_concept_golden",
       "checklist_item_id": "character_ip_concept_pack_export_zip",
       "expected_evidence_file": "ops/evidence/local_alpha/character_ip_concept_pack.export_zip.json",
-      "expected_runtime_status": "missing_runtime_evidence",
-      "blueprint_checklist_state": "open",
+      "expected_runtime_status": "present_passed",
+      "blueprint_checklist_state": "checked",
       "required_export_target_id": "zip_delivery",
       "required_zip_payloads": [
         "ai-content-disclaimer.json",
@@ -273,12 +273,10 @@
   ],
   "summary": {
     "workflow_count": 4,
-    "closed_export_evidence_count": 3,
-    "open_export_evidence_count": 1,
+    "closed_export_evidence_count": 4,
+    "open_export_evidence_count": 0,
     "runtime_file_required_for_checklist_closure": true,
-    "open_workflows_remain_blocked": [
-      "character_ip_concept_pack"
-    ]
+    "open_workflows_remain_blocked": []
   },
   "provenance": {
     "blueprint_sections": [

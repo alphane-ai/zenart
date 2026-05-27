@@ -1809,15 +1809,15 @@ main 合并前必须通过：
 - [x] 本地商家活动包 Playwright happy path 通过。
 - [x] 本地商家活动包 export ZIP evidence 通过：`ops/evidence/local_alpha/local_merchant_campaign_pack.export_zip.json` proves manifest、QA report、safety report、provenance、metadata、AI disclaimer、trace payloads and four-option taxonomy。
 - [x] 实现角色/IP 概念包 acceptance fixture。
-- [ ] 角色/IP 概念包 API smoke test 通过。
-- [ ] 角色/IP 概念包 Playwright happy path 通过。
-- [ ] 角色/IP 概念包 export ZIP evidence 通过：`ops/evidence/local_alpha/character_ip_concept_pack.export_zip.json` proves manifest、QA report、safety report、provenance、metadata、AI disclaimer、trace payloads and four-option taxonomy。
+- [x] 角色/IP 概念包 API smoke test 通过。
+- [x] 角色/IP 概念包 Playwright happy path 通过。
+- [x] 角色/IP 概念包 export ZIP evidence 通过：`ops/evidence/local_alpha/character_ip_concept_pack.export_zip.json` proves manifest、QA report、safety report、provenance、metadata、AI disclaimer、trace payloads and four-option taxonomy。
 - [x] 每条 workflow 定义 required inputs。
 - [x] 每条 workflow 定义 clarification questions。
 - [x] 每条 workflow 定义 4-option taxonomy。
 - [x] 每条 workflow 定义 required package outputs。
 - [x] 每条 workflow 定义 QA/safety/export pass thresholds。
-- [x] 每条 workflow export ZIP evidence contract 通过：`fixtures/stage0/rev2/eval/workflow_export_zip_evidence_contract.json` maps required ZIP payloads、manifest、QA report、safety report、provenance、metadata、AI disclaimer、trace payloads、four-option taxonomy to exact local-alpha evidence files, and `scripts/validate_workflow_export_zip_evidence_contract.py` keeps the missing character/IP runtime evidence row open。
+- [x] 每条 workflow export ZIP evidence contract 通过：`fixtures/stage0/rev2/eval/workflow_export_zip_evidence_contract.json` maps required ZIP payloads、manifest、QA report、safety report、provenance、metadata、AI disclaimer、trace payloads、four-option taxonomy to exact passing local-alpha evidence files。
 
 ### 25.13 Crawler Governance
 
@@ -1983,7 +1983,7 @@ main 合并前必须通过：
 
 ### 25.20 Release Gate Execution
 
-- [ ] Local Alpha Gate 全部通过。
+- [x] Local Alpha Gate 全部通过。
 - [ ] CI Gate 全部通过。
 - [ ] Private Beta/Staging Gate 全部通过。
 - [ ] Production Launch Gate 全部通过。
@@ -1992,11 +1992,11 @@ main 合并前必须通过：
 - [x] 定义 post-deploy smoke evidence contract。
 - [x] Release notes 包含 SHA、migration list、config diff、feature flags、owner、smoke plan、rollback plan、known risks、go/no-go。
 - [x] Backfill Local Alpha release gate fixture evidence: workflow/eval/crawler/schema/service/runtime-stack checks pass in `fixtures/stage0/rev2/release_gate_evidence.local_alpha.json`。
-- [ ] Local Alpha workflow API/Playwright end-to-end smoke evidence 通过并写入 release gate fixture。
+- [x] Local Alpha workflow API/Playwright end-to-end smoke evidence 通过并写入 release gate fixture。
 - [x] Local Alpha 电商增长包 runtime smoke evidence 写入 release gate fixture：`ops/evidence/local_alpha/ecommerce_growth_pack.api_smoke.json`、`ops/evidence/local_alpha/ecommerce_growth_pack.playwright_happy_path.json`、`ops/evidence/local_alpha/ecommerce_growth_pack.export_zip.json` 均证明 running local stack。
 - [x] Local Alpha 商业视觉文档包 runtime smoke evidence 写入 release gate fixture：`ops/evidence/local_alpha/business_visual_doc_pack.api_smoke.json`、`ops/evidence/local_alpha/business_visual_doc_pack.playwright_happy_path.json`、`ops/evidence/local_alpha/business_visual_doc_pack.export_zip.json` 均证明 running local stack。
 - [x] Local Alpha 本地商家活动包 runtime smoke evidence 写入 release gate fixture：`ops/evidence/local_alpha/local_merchant_campaign_pack.api_smoke.json`、`ops/evidence/local_alpha/local_merchant_campaign_pack.playwright_happy_path.json`、`ops/evidence/local_alpha/local_merchant_campaign_pack.export_zip.json` 均证明 running local stack。
-- [ ] Local Alpha 角色/IP 概念包 runtime smoke evidence 写入 release gate fixture：`ops/evidence/local_alpha/character_ip_concept_pack.api_smoke.json`、`ops/evidence/local_alpha/character_ip_concept_pack.playwright_happy_path.json`、`ops/evidence/local_alpha/character_ip_concept_pack.export_zip.json` 均证明 running local stack。
+- [x] Local Alpha 角色/IP 概念包 runtime smoke evidence 写入 release gate fixture：`ops/evidence/local_alpha/character_ip_concept_pack.api_smoke.json`、`ops/evidence/local_alpha/character_ip_concept_pack.playwright_happy_path.json`、`ops/evidence/local_alpha/character_ip_concept_pack.export_zip.json` 均证明 running local stack。
 - [x] Backfill CI draft/no-go evidence: ops CI draft coverage passes while installed `.github/workflows` runtime remains blocked in `fixtures/stage0/rev2/release_gate_evidence.ci.json`。
 - [ ] CI installed workflow runtime evidence 通过：PR/main run、Playwright smoke、Docker image build 均有 validator-resolvable evidence。
 - [ ] CI installed workflow file evidence 通过：`.github/workflows/stage0-rev2-ci.yml` 存在且被 release gate fixture 引用。
@@ -2045,7 +2045,7 @@ main 合并前必须通过：
 
 Release gate evidence map:
 
-- Local Alpha Gate: `fixtures/stage0/rev2/release_gate_evidence.local_alpha.json` records fixture/runtime-stack pass evidence and keeps end-to-end workflow smoke blocked.
+- Local Alpha Gate: `fixtures/stage0/rev2/release_gate_evidence.local_alpha.json` records fixture/runtime-stack pass evidence and all four workflow API/Playwright/export ZIP runtime smoke artifacts.
 - CI Gate: `fixtures/stage0/rev2/release_gate_evidence.ci.json` records ops CI draft coverage and keeps installed workflow/runtime execution, Playwright smoke, and Docker image build blocked.
 - Private Beta/Staging Gate: `fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json` records fixture/definition evidence where present, clears auth/RBAC/tenant/audit, brief/upload/confirmation, quota/rate-limit/spend-cap, support/retry/abuse, eval/QA/safety enforcement, crawler runtime checks, observability/backup/load/post-deploy-smoke, and legal/support external-user visibility with staging evidence, and keeps Private Beta/Staging aggregate no-go only for production-like object storage retention/cleanup.
 - Production Launch Gate: `fixtures/stage0/rev2/release_gate_evidence.production_launch.json` records fixture/definition evidence where present, clears provider/comp-only mode, paid billing lifecycle, skill release/eval/canary, abuse throttle/hold, activation review/audit, security launch checks, and legal/support policy with production evidence, records admin-visible backup/rollback/incident/post-deploy smoke probes, and keeps launch evidence blocked for backup/rollback/incident readiness until upstream gates pass.
@@ -2100,7 +2100,7 @@ Release gate closure policy:
 - Release gate fixture `schema_version` must remain `stage0.rev2`, `gate` must match the filename's canonical gate, `provenance.created_by_lane` must remain `lane6`, and `provenance.blueprint_sections` must be a non-empty list; a fixture with the right checklist prose but wrong identity/provenance is invalid.
 - Local Alpha workflow smoke pass evidence must name all four workflows and cite exact per-workflow API, Playwright, and export ZIP runtime evidence files under `ops/evidence/local_alpha/`; one generic local smoke artifact or directory-level reference cannot close the aggregate Local Alpha runtime check.
 - Local Alpha per-workflow runtime evidence must validate three distinct exact files for each workflow: API smoke evidence with required operation IDs and four-candidate/package/export assertions, Playwright evidence with brief/upload/four-candidate/select/iterate/package/export/download steps, and export ZIP evidence with manifest、QA、safety、provenance、AI disclaimer、metadata、trace payloads and four-option taxonomy; a file with only `status=pass` is insufficient.
-- Blocked Local Alpha workflow smoke evidence must also name the exact missing per-workflow files for every still-open workflow row. Current remaining blocked workflow files are `ops/evidence/local_alpha/character_ip_concept_pack.api_smoke.json`、`ops/evidence/local_alpha/character_ip_concept_pack.playwright_happy_path.json`、and `ops/evidence/local_alpha/character_ip_concept_pack.export_zip.json`; broad `ops/evidence/local_alpha/` blocker prose cannot preserve the aggregate Local Alpha blocker.
+- Blocked Local Alpha workflow smoke evidence must also name the exact missing per-workflow files for every still-open workflow row; broad `ops/evidence/local_alpha/` blocker prose cannot preserve an aggregate Local Alpha blocker.
 - Blocked CI runtime evidence must name the exact installed-workflow/runtime files required for closure: `.github/workflows/stage0-rev2-ci.yml`、`ops/evidence/ci/stage0-rev2-pr-main-run.json`、`ops/evidence/ci/stage0-rev2-playwright-smoke.json`、and `ops/evidence/ci/stage0-rev2-docker-image-build.json`; broad `.github/workflows/` or `ops/evidence/ci/` blocker prose cannot preserve CI Gate.
 - Active CI Do-Not-Launch condition evidence refs must name the exact installed-workflow/runtime file they are waiting on and state whether each exact file is present or absent: `.github/workflows/stage0-rev2-ci.yml` for workflow installation, `ops/evidence/ci/stage0-rev2-pr-main-run.json` for PR/main execution, `ops/evidence/ci/stage0-rev2-playwright-smoke.json` for Playwright smoke, and `ops/evidence/ci/stage0-rev2-docker-image-build.json` for Docker image build; a broad draft CI artifact or `ops/evidence/ci/` directory cannot preserve active CI launch blockers.
 - Private Beta/Staging check-level runtime subitems must remain open until each matching release gate check has staging evidence: auth/RBAC/tenant/audit; brief/upload/confirmation; object storage signed downloads/retention; quota/rate-limit/spend-cap; support/retry/abuse; eval/QA/safety; crawler approval/provenance; observability/backup/load; legal/support external-user visibility.
@@ -2148,7 +2148,7 @@ Release gate closure policy:
 - Partial check-level runtime evidence `remaining_blockers` must exactly match the current blocked/failing check IDs in the matching release gate fixture after excluding the check it closes; naming an already-passed sibling check is invalid stale evidence.
 - Private Beta/Staging partial runtime evidence for auth/RBAC/tenant/audit, brief/upload/confirmation, quota/rate-limit/spend-cap, support/retry/abuse, eval/QA/safety, and crawler approval/provenance may close only its matching check-level subitem; it cannot imply object storage, observability/backup/load, legal/support visibility, or aggregate Private Beta/Staging readiness.
 - Production partial runtime evidence for skill/canary, activation review/audit, abuse throttle/hold, security launch checks, and legal/support policy deployment may close only its matching check-level subitem; it cannot imply provider-or-comp-only mode, paid billing lifecycle, backup/rollback/post-deploy smoke, CI/Staging dependency clearance, or aggregate Production Launch readiness.
-- Local Alpha remains open until four workflow API/Playwright smokes prove brief -> 4 candidates -> select -> iterate -> package -> export ZIP against the running local stack.
+- Local Alpha closes only when four workflow API/Playwright smokes prove brief -> 4 candidates -> select -> iterate -> package -> export ZIP against the running local stack.
 - CI remains open until an installed `.github/workflows` PR/main workflow runs and records Playwright smoke plus Docker image build evidence.
 - Private Beta/Staging remains open until external-user staging runtime evidence exists for object storage signed download/retention cleanup and the remaining aggregate workflow evidence.
 - Production Launch remains open until CI and Private Beta/Staging gates pass and production-specific provider/comp-only, paid billing, skill/canary, activation review, abuse throttle/hold, security, backup/rollback, post-deploy smoke, and legal/support deployment evidence exists; the current legal/support policy evidence is already closed but does not clear the remaining production blockers.

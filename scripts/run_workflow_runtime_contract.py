@@ -214,6 +214,7 @@ def build_contract() -> dict[str, Any]:
     require(api_evidence["status"] == "planned", "API smoke evidence must remain dry-run planned")
     workflows = [load_json(WORKFLOW_DIR / f"{workflow_id}.json") for workflow_id in WORKFLOW_ORDER]
     contracts = [workflow_contract(workflow["workflow_id"], workflow) for workflow in workflows]
+    all_runtime_closed = all(contract["runtime_closure_contract"]["workflow_runtime_closed"] for contract in contracts)
     return {
         "schema_version": "stage0.rev2",
         "contract_id": "workflow_runtime_evidence_stage0_rev2_verticals",
@@ -234,7 +235,7 @@ def build_contract() -> dict[str, Any]:
             "playwright_happy_path_contracts": len(contracts),
             "export_zip_contracts": len(contracts),
             "runtime_evidence_required_for_closure": True,
-            "local_alpha_e2e_workflow_smoke_remains_blocked": True,
+            "local_alpha_e2e_workflow_smoke_remains_blocked": not all_runtime_closed,
         },
         "provenance": {
             "blueprint_sections": ["6.1", "15.3", "24.1", "25.12", "25.17"],

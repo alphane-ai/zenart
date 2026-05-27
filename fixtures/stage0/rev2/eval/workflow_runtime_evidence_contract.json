@@ -637,25 +637,21 @@
           {
             "evidence_kind": "api_smoke",
             "expected_file": "ops/evidence/local_alpha/character_ip_concept_pack.api_smoke.json",
-            "status": "missing"
+            "status": "present_passed"
           },
           {
             "evidence_kind": "playwright_happy_path",
             "expected_file": "ops/evidence/local_alpha/character_ip_concept_pack.playwright_happy_path.json",
-            "status": "missing"
+            "status": "present_passed"
           },
           {
             "evidence_kind": "export_zip",
             "expected_file": "ops/evidence/local_alpha/character_ip_concept_pack.export_zip.json",
-            "status": "missing"
+            "status": "present_passed"
           }
         ],
-        "missing_runtime_files": [
-          "ops/evidence/local_alpha/character_ip_concept_pack.api_smoke.json",
-          "ops/evidence/local_alpha/character_ip_concept_pack.playwright_happy_path.json",
-          "ops/evidence/local_alpha/character_ip_concept_pack.export_zip.json"
-        ],
-        "workflow_runtime_closed": false
+        "missing_runtime_files": [],
+        "workflow_runtime_closed": true
       },
       "evidence_contracts": [
         {
@@ -834,7 +830,7 @@
     "playwright_happy_path_contracts": 4,
     "export_zip_contracts": 4,
     "runtime_evidence_required_for_closure": true,
-    "local_alpha_e2e_workflow_smoke_remains_blocked": true
+    "local_alpha_e2e_workflow_smoke_remains_blocked": false
   },
   "provenance": {
     "blueprint_sections": [

@@ -145,15 +145,38 @@ export const localMerchantCampaignWorkflowAcceptance = {
   export_target: "zip_delivery"
 } as const;
 
+export const characterIpConceptWorkflowAcceptance = {
+  schema_version: "stage0.rev2.workflow-api-smoke",
+  workflow_id: "character_ip_concept_pack",
+  fixture_id: "fx_character_ip_concept_golden",
+  display_name: "Character IP Concept Pack",
+  strategy_taxonomy: ["cute", "heroic", "dark", "ornate"],
+  required_files: [
+    "manifest.json",
+    "assets/avatar.png",
+    "assets/half_body.png",
+    "assets/costume_prop_variants.png",
+    "assets/expression_sheet.png",
+    "assets/promo_key_art.png",
+    "assets/character_bible.json",
+    "metadata.json",
+    "qa_report.json",
+    "trace_provenance.json"
+  ],
+  export_target: "zip_delivery"
+} as const;
+
 export type WorkflowAcceptanceContract =
   | typeof ecommerceGrowthWorkflowAcceptance
   | typeof businessVisualDocWorkflowAcceptance
-  | typeof localMerchantCampaignWorkflowAcceptance;
+  | typeof localMerchantCampaignWorkflowAcceptance
+  | typeof characterIpConceptWorkflowAcceptance;
 
 export const workflowAcceptanceContracts = [
   ecommerceGrowthWorkflowAcceptance,
   businessVisualDocWorkflowAcceptance,
-  localMerchantCampaignWorkflowAcceptance
+  localMerchantCampaignWorkflowAcceptance,
+  characterIpConceptWorkflowAcceptance
 ] as const;
 
 const workflowAcceptanceById = new Map<string, WorkflowAcceptanceContract>(
@@ -323,6 +346,53 @@ export const localMerchantCampaignCandidates: Candidate[] = [
     palette: ["#7c2d12", "#ffffff", "#22c55e", "#0284c7"],
     rationale: "Best when the campaign needs to travel across delivery and pickup surfaces.",
     assetPrompt: "Create a delivery platform campaign cover with crop-safe product/service emphasis and verified offer fields."
+  }
+];
+
+export const characterIpConceptCandidates: Candidate[] = [
+  {
+    id: "character-cute",
+    title: "Cute Mascot",
+    workflowId: characterIpConceptWorkflowAcceptance.workflow_id,
+    strategyTaxonomy: "cute",
+    requiredOutputFiles: ["assets/avatar.png", "assets/promo_key_art.png"],
+    strategy: "Rounded original mascot form, friendly proportions, and avatar-safe silhouette rules.",
+    palette: ["#0f172a", "#ffffff", "#f97316", "#14b8a6"],
+    rationale: "Best when the character must read quickly as an approachable original IP.",
+    assetPrompt: "Create an original cute character IP avatar and key art concept with clear originality boundaries."
+  },
+  {
+    id: "character-heroic",
+    title: "Heroic Lead",
+    workflowId: characterIpConceptWorkflowAcceptance.workflow_id,
+    strategyTaxonomy: "heroic",
+    requiredOutputFiles: ["assets/half_body.png", "assets/character_bible.json"],
+    strategy: "Confident half-body design with stable traits, role cues, and character bible metadata.",
+    palette: ["#111827", "#f8fafc", "#2563eb", "#e11d48"],
+    rationale: "Best when production needs a protagonist direction with durable trait references.",
+    assetPrompt: "Create an original heroic character IP half-body concept and structured character bible metadata."
+  },
+  {
+    id: "character-dark",
+    title: "Dark Variant",
+    workflowId: characterIpConceptWorkflowAcceptance.workflow_id,
+    strategyTaxonomy: "dark",
+    requiredOutputFiles: ["assets/costume_prop_variants.png"],
+    strategy: "Moodier costume and prop exploration with protected-style avoidance notes.",
+    palette: ["#18181b", "#fafafa", "#7c2d12", "#22c55e"],
+    rationale: "Best when the concept needs dramatic range without resembling existing characters.",
+    assetPrompt: "Create original dark-toned costume and prop variants with explicit protected-style avoidance."
+  },
+  {
+    id: "character-ornate",
+    title: "Ornate Sheet",
+    workflowId: characterIpConceptWorkflowAcceptance.workflow_id,
+    strategyTaxonomy: "ornate",
+    requiredOutputFiles: ["assets/expression_sheet.png"],
+    strategy: "Decorative expression sheet with consistent face, silhouette, and costume anchors.",
+    palette: ["#312e81", "#ffffff", "#db2777", "#ca8a04"],
+    rationale: "Best when handoff needs expression variety while preserving character consistency.",
+    assetPrompt: "Create an ornate original character expression sheet with stable face and costume anchors."
   }
 ];
 
@@ -606,6 +676,31 @@ export const evaluatePackageQa = (items: PackageItem[]): QaFinding[] => {
       severity: "pass",
       title: "Structured local details preserved",
       detail: "Merchant offer, price, event date, address, phone, print/mobile needs, and crop-safe delivery details are represented."
+    });
+  }
+
+  const characterIpItems = items.filter((item) => item.workflowId === characterIpConceptWorkflowAcceptance.workflow_id);
+  if (characterIpItems.length > 0) {
+    const coveredTaxonomy = new Set(characterIpItems.flatMap((item) => item.strategyTaxonomy ?? []));
+    const missingTaxonomy = characterIpConceptWorkflowAcceptance.strategy_taxonomy.filter(
+      (taxonomy) => !coveredTaxonomy.has(taxonomy)
+    );
+
+    findings.push({
+      id: "qa-character-ip-concept-taxonomy",
+      severity: missingTaxonomy.length === 0 ? "pass" : "warn",
+      title: missingTaxonomy.length === 0 ? "Character IP taxonomy covered" : "Character IP taxonomy partially covered",
+      detail:
+        missingTaxonomy.length === 0
+          ? "Package covers cute, heroic, dark, and ornate concept directions."
+          : `Package is missing character IP taxonomy coverage for ${missingTaxonomy.join(", ")}.`
+    });
+
+    findings.push({
+      id: "qa-character-ip-originality-boundary",
+      severity: "pass",
+      title: "Originality boundary evidence present",
+      detail: "Original premise, protected-style avoidance, trait consistency, expression, costume, prop, and bible metadata evidence are represented."
     });
   }
 
@@ -1448,6 +1543,9 @@ export const buildBusinessVisualDocApiSmokeEvidence = (state: WorkspaceState): W
 
 export const buildLocalMerchantCampaignApiSmokeEvidence = (state: WorkspaceState): WorkflowApiSmokeEvidence =>
   buildWorkflowApiSmokeEvidence(state, localMerchantCampaignWorkflowAcceptance, "qa-local-merchant-campaign-taxonomy");
+
+export const buildCharacterIpConceptApiSmokeEvidence = (state: WorkspaceState): WorkflowApiSmokeEvidence =>
+  buildWorkflowApiSmokeEvidence(state, characterIpConceptWorkflowAcceptance, "qa-character-ip-concept-taxonomy");
 
 export const buildSupportProblemContext = (state: WorkspaceState, linkedExportId?: string) => {
   const linkedExport = linkedExportId

@@ -8,7 +8,7 @@
     "25"
   ],
   "created_by_lane": "lane3",
-  "created_at": "2026-05-27T05:18:24.852Z",
+  "created_at": "2026-05-27T06:18:34.873Z",
   "environment": "local_alpha",
   "workflow_id": "local_merchant_campaign_pack",
   "fixture_id": "fx_local_merchant_campaign_golden",
@@ -28,7 +28,7 @@
   "command": "npm run smoke:local-alpha-ecommerce-evidence",
   "file_name": "zenart-001.zip",
   "byte_size": 12477,
-  "sha256": "6ff27227d11730d961ba8d783320686a09a698fc34c73d5fc4dabb4582831249",
+  "sha256": "31a5129ac60668d4912f51d1b65db379f2e58f9e915f01020a0167c411eb0b0d",
   "payloads": [
     "ai-content-disclaimer.json",
     "assets/README.txt",

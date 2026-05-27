@@ -142,6 +142,10 @@ WORKFLOW_RUNTIME_CLOSED_ITEMS = {
         "api",
         "playwright",
     },
+    "character_ip_concept_pack": {
+        "api",
+        "playwright",
+    },
 }
 
 WORKFLOW_RUNTIME_EVIDENCE_KIND = {

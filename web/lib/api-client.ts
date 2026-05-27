@@ -25,6 +25,7 @@ import {
   formatExportFileName,
   runSafetyPolicy,
   businessVisualDocCandidates,
+  characterIpConceptCandidates,
   localMerchantCampaignCandidates
 } from "./dev-state";
 
@@ -259,6 +260,20 @@ export class DevZenArtClient implements ZenArtClient {
     });
   }
 
+  async activateCharacterIpConceptWorkflow() {
+    const state = loadState();
+    const existingCandidateIds = new Set(state.candidates.map((candidate) => candidate.id));
+    const nextCandidates = [
+      ...state.candidates.filter((candidate) => !characterIpConceptCandidates.some((item) => item.id === candidate.id)),
+      ...characterIpConceptCandidates.filter((candidate) => !existingCandidateIds.has(candidate.id))
+    ] satisfies Candidate[];
+
+    return saveState({
+      ...state,
+      candidates: nextCandidates
+    });
+  }
+
   async createProject(name: string) {
     const state = migrateState(loadState());
     const projectName = name.trim() || `Project ${state.projects.length + 1}`;
@@ -435,20 +450,35 @@ export class DevZenArtClient implements ZenArtClient {
       return clone(state);
     }
 
-    const item: PackageItem = {
-      id: `pkg-item-${String(state.packageItems.length + 1).padStart(3, "0")}`,
-      sourceId,
-      title: candidate?.title ?? node?.title ?? reference?.name ?? "Canvas item",
-      type: candidate ? "candidate" : reference ? "reference" : "canvas-frame",
-      addedAt: new Date().toISOString(),
-      workflowId: candidate?.workflowId,
-      strategyTaxonomy: candidate?.strategyTaxonomy,
-      requiredOutputFiles: candidate?.requiredOutputFiles
-    };
+    const addedAt = new Date().toISOString();
+    const outputFiles = candidate?.requiredOutputFiles ?? [];
+    const items: PackageItem[] = candidate && outputFiles.length > 1
+      ? outputFiles.map((outputFile, index) => ({
+          id: `pkg-item-${String(state.packageItems.length + index + 1).padStart(3, "0")}`,
+          sourceId: `${sourceId}:${outputFile}`,
+          title: `${candidate.title} · ${outputFile.split("/").at(-1) ?? outputFile}`,
+          type: "candidate",
+          addedAt,
+          workflowId: candidate.workflowId,
+          strategyTaxonomy: candidate.strategyTaxonomy,
+          requiredOutputFiles: [outputFile]
+        }))
+      : [
+          {
+            id: `pkg-item-${String(state.packageItems.length + 1).padStart(3, "0")}`,
+            sourceId,
+            title: candidate?.title ?? node?.title ?? reference?.name ?? "Canvas item",
+            type: candidate ? "candidate" : reference ? "reference" : "canvas-frame",
+            addedAt,
+            workflowId: candidate?.workflowId,
+            strategyTaxonomy: candidate?.strategyTaxonomy,
+            requiredOutputFiles: candidate?.requiredOutputFiles
+          }
+        ];
 
     return saveState({
       ...state,
-      packageItems: [...state.packageItems, item]
+      packageItems: [...state.packageItems, ...items]
     });
   }
 

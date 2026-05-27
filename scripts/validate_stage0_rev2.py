@@ -1508,6 +1508,7 @@ LOCAL_ALPHA_RELEASE_GATE_WORKFLOW_RUNTIME_CLOSED_ITEMS = {
     "Local Alpha 电商增长包 runtime smoke evidence 写入 release gate fixture：`ops/evidence/local_alpha/ecommerce_growth_pack.api_smoke.json`、`ops/evidence/local_alpha/ecommerce_growth_pack.playwright_happy_path.json`、`ops/evidence/local_alpha/ecommerce_growth_pack.export_zip.json` 均证明 running local stack。": "ecommerce_growth_pack",
     "Local Alpha 商业视觉文档包 runtime smoke evidence 写入 release gate fixture：`ops/evidence/local_alpha/business_visual_doc_pack.api_smoke.json`、`ops/evidence/local_alpha/business_visual_doc_pack.playwright_happy_path.json`、`ops/evidence/local_alpha/business_visual_doc_pack.export_zip.json` 均证明 running local stack。": "business_visual_doc_pack",
     "Local Alpha 本地商家活动包 runtime smoke evidence 写入 release gate fixture：`ops/evidence/local_alpha/local_merchant_campaign_pack.api_smoke.json`、`ops/evidence/local_alpha/local_merchant_campaign_pack.playwright_happy_path.json`、`ops/evidence/local_alpha/local_merchant_campaign_pack.export_zip.json` 均证明 running local stack。": "local_merchant_campaign_pack",
+    "Local Alpha 角色/IP 概念包 runtime smoke evidence 写入 release gate fixture：`ops/evidence/local_alpha/character_ip_concept_pack.api_smoke.json`、`ops/evidence/local_alpha/character_ip_concept_pack.playwright_happy_path.json`、`ops/evidence/local_alpha/character_ip_concept_pack.export_zip.json` 均证明 running local stack。": "character_ip_concept_pack",
 }
 
 LOCAL_ALPHA_WORKFLOW_RUNTIME_EVIDENCE_FILES = {
@@ -1992,7 +1993,7 @@ CHECKED_ITEMS = {
     "每条 workflow 定义 4-option taxonomy。",
     "每条 workflow 定义 required package outputs。",
     "每条 workflow 定义 QA/safety/export pass thresholds。",
-    "每条 workflow export ZIP evidence contract 通过：`fixtures/stage0/rev2/eval/workflow_export_zip_evidence_contract.json` maps required ZIP payloads、manifest、QA report、safety report、provenance、metadata、AI disclaimer、trace payloads、four-option taxonomy to exact local-alpha evidence files, and `scripts/validate_workflow_export_zip_evidence_contract.py` keeps the missing character/IP runtime evidence row open。",
+    "每条 workflow export ZIP evidence contract 通过：`fixtures/stage0/rev2/eval/workflow_export_zip_evidence_contract.json` maps required ZIP payloads、manifest、QA report、safety report、provenance、metadata、AI disclaimer、trace payloads、four-option taxonomy to exact passing local-alpha evidence files。",
     "实现 admin crawler source approval evidence。",
     "实现 source legal metadata。",
     "添加 disallowed source、robots denied、duplicate hash、pending-review import tests。",
@@ -2109,10 +2110,14 @@ REQUIRED_OPEN_ITEMS |= (
 )
 REQUIRED_OPEN_ITEMS |= set(LOCAL_ALPHA_RELEASE_GATE_WORKFLOW_RUNTIME_OPEN_CHECK_ITEMS)
 REQUIRED_OPEN_ITEMS -= {
+    "Local Alpha workflow API/Playwright end-to-end smoke evidence 通过并写入 release gate fixture。",
     "电商增长包 API smoke test 通过。",
     "电商增长包 Playwright happy path 通过。",
     "商业视觉文档包 API smoke test 通过。",
     "商业视觉文档包 Playwright happy path 通过。",
+    "角色/IP 概念包 API smoke test 通过。",
+    "角色/IP 概念包 Playwright happy path 通过。",
+    "角色/IP 概念包 export ZIP evidence 通过：`ops/evidence/local_alpha/character_ip_concept_pack.export_zip.json` proves manifest、QA report、safety report、provenance、metadata、AI disclaimer、trace payloads and four-option taxonomy。",
     "Local Alpha 电商增长包 runtime smoke evidence 写入 release gate fixture：`ops/evidence/local_alpha/ecommerce_growth_pack.api_smoke.json`、`ops/evidence/local_alpha/ecommerce_growth_pack.playwright_happy_path.json`、`ops/evidence/local_alpha/ecommerce_growth_pack.export_zip.json` 均证明 running local stack。",
     "执行 staging deploy。",
     "执行 staging smoke tests。",
@@ -2478,6 +2483,11 @@ WORKFLOW_RUNTIME_CLOSED_ITEMS = {
         "playwright_item",
         "export_item",
     },
+    "character_ip_concept_pack": {
+        "api_item",
+        "playwright_item",
+        "export_item",
+    },
 }
 
 LOCAL_ALPHA_E2E_WORKFLOW_EVIDENCE_REQUIREMENTS = {
@@ -2773,14 +2783,25 @@ def validate_local_alpha_workflow_runtime_evidence_file(
         steps = set(evidence.get("interaction_steps", []))
         required_step_groups = {
             "brief": {"brief_confirmed"},
-            "reference": {"reference_uploaded", "source_notes_uploaded", "storefront_reference_uploaded"},
-            "four_candidates": {"four_candidates_visible", "four_document_candidates_visible", "four_local_merchant_candidates_visible"},
+            "reference": {
+                "reference_uploaded",
+                "source_notes_uploaded",
+                "storefront_reference_uploaded",
+                "original_character_reference_uploaded",
+            },
+            "four_candidates": {
+                "four_candidates_visible",
+                "four_document_candidates_visible",
+                "four_local_merchant_candidates_visible",
+                "four_character_ip_candidates_visible",
+            },
             "candidate_selected": {"candidate_selected"},
             "iteration": {"iteration_created"},
             "taxonomy_packaged": {
                 "all_taxonomy_candidates_packaged",
                 "all_document_taxonomy_candidates_packaged",
                 "all_local_merchant_taxonomy_candidates_packaged",
+                "all_character_ip_taxonomy_candidates_packaged",
             },
             "zip_export": {"zip_export_created"},
             "download": {"download_handoff_completed"},
@@ -2828,7 +2849,20 @@ def validate_local_alpha_workflow_runtime_evidence_file(
         require(evidence.get("byte_size", 0) > 0, f"{context} {path} must record a non-empty ZIP")
         manifest = evidence.get("manifest")
         require(isinstance(manifest, dict), f"{context} {path} must include parsed manifest evidence")
-        require(manifest.get("item_count") == 4, f"{context} {path} manifest must prove four packaged items")
+        expected_item_count = 4
+        export_contract_path = FIXTURE_DIR / "eval" / "workflow_export_zip_evidence_contract.json"
+        if export_contract_path.exists():
+            export_contract = load_json(export_contract_path)
+            export_items = {
+                item.get("workflow_id"): item
+                for item in export_contract.get("workflow_export_contracts", [])
+                if isinstance(item, dict)
+            }
+            expected_item_count = len(export_items.get(workflow_id, {}).get("required_asset_payloads", [])) or expected_item_count
+        require(
+            manifest.get("item_count") == expected_item_count,
+            f"{context} {path} manifest must prove {expected_item_count} packaged items",
+        )
         require(manifest.get("required_output_count", 0) > 0, f"{context} {path} manifest must prove required outputs")
         workflow_acceptance = manifest.get("workflow_acceptance")
         require(isinstance(workflow_acceptance, dict), f"{context} {path} must include workflow acceptance metadata")
@@ -7802,9 +7836,13 @@ def validate_release_gate_evidence() -> None:
             runtime_status in {"fail", "blocked"},
             "local alpha runtime stack cannot pass before docker compose and env evidence validate",
         )
+    local_alpha_workflow_evidence_complete = all(
+        all(path.is_file() for path in evidence_files.values())
+        for evidence_files in LOCAL_ALPHA_WORKFLOW_RUNTIME_EVIDENCE_FILES.values()
+    )
     require(
-        checks["local_alpha_e2e_workflow_smoke"]["status"] == "blocked",
-        "local alpha end-to-end workflow smoke must remain blocked until runtime smoke evidence exists",
+        checks["local_alpha_e2e_workflow_smoke"]["status"] == ("pass" if local_alpha_workflow_evidence_complete else "blocked"),
+        "local alpha end-to-end workflow smoke status must match runtime smoke evidence completeness",
     )
 
     do_not_launch = {condition_id: item["is_present"] for condition_id, item in local_alpha_conditions.items()}
@@ -9023,7 +9061,9 @@ def validate_launch_readiness_split_contracts() -> None:
         "CI 在已安装 PR/main workflow 中运行 Playwright smoke。",
         "CI 在已安装 PR/main workflow 中 build Docker images。",
         PRODUCTION_POST_DEPLOY_LAUNCH_CLEARING_CHECKLIST_ITEM,
-    ] + sorted(CI_RUNTIME_OPEN_CHECK_ITEMS) + sorted(RELEASE_GATE_RUNTIME_OPEN_ITEMS) + sorted(
+    ] + sorted(CI_RUNTIME_OPEN_CHECK_ITEMS) + sorted(
+        RELEASE_GATE_RUNTIME_OPEN_ITEMS - {LOCAL_ALPHA_AGGREGATE_RUNTIME_ITEM}
+    ) + sorted(
         set(RELEASE_GATE_CHECK_LEVEL_RUNTIME_OPEN_ITEMS)
         - {
             "Private Beta/Staging auth/RBAC/tenant/audit runtime evidence 通过。",
@@ -9161,7 +9201,7 @@ def validate_launch_readiness_split_contracts() -> None:
         "staging gates require `environment=staging` evidence under `ops/evidence/staging/`, and production gates require `environment=production` evidence under `ops/evidence/production/`",
         "A top-level gate checklist item may close only after its aggregate runtime checklist item is closed",
         "if those are all true, the gate checklist item must be updated in the same change",
-        "Local Alpha remains open until four workflow API/Playwright smokes",
+        "Local Alpha closes only when four workflow API/Playwright smokes",
         "Production Launch cannot clear `ci_staging_gates_not_passed` or pass backup/rollback/post-deploy evidence until both",
         "Production backup/rollback/post-deploy pass evidence must cite both upstream gate fixtures",
         "must not appear inside release-gate fixtures or runtime evidence `gate_impact.checklist_items`",
