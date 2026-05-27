@@ -825,7 +825,7 @@ func (s *Server) cleanupExportsWithMode(w http.ResponseWriter, r *http.Request, 
 	var result stage0.CleanupResult
 	var err error
 	if input.DryRun {
-		result, err = service.PreviewExpiredExportsAndOrphanedObjectsForTenant(r.Context(), principal.TenantID, now, limit)
+		result, err = service.PreviewExpiredExportsAndOrphanedObjectsForTenantMode(r.Context(), principal.TenantID, now, limit, stage0.CleanupMode(mode))
 	} else {
 		result, err = service.CleanupExpiredExportsAndOrphanedObjectsForTenantMode(r.Context(), principal.TenantID, now, limit, stage0.CleanupMode(mode))
 	}

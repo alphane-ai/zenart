@@ -1737,6 +1737,7 @@ main 合并前必须通过：
 - [x] admin 触发 object retention cleanup 在执行前记录 rationale/request audit，成功、dry-run preview、partial failure 均记录 redacted immutable audit。
 - [x] S3-compatible retention cleanup skips corrupt/unscoped expiry markers without deleting their objects and continues valid tenant-scoped expired object deletion.
 - [x] Local retention cleanup requires tenant-scoped object keys before deleting expired marker targets, skips unscoped markers without deleting their objects, and preserves tenant-scoped cleanup continuation.
+- [x] Admin object retention cleanup split endpoints are mode-scoped end to end: expired-export cleanup only lists/deletes expired rows and marker expiries, orphan cleanup only lists/deletes orphan rows and does not sweep expired object-store markers; dry-run previews use the same mode filters.
 - [x] 添加 upload/download/export integration tests。
 
 ### 25.10 Agent and Provider Contracts

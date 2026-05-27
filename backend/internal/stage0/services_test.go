@@ -1374,6 +1374,39 @@ func TestListCleanupObjectsForTenantAppliesTenantScope(t *testing.T) {
 	}
 }
 
+func TestListCleanupObjectsForTenantModeRestrictsRetentionState(t *testing.T) {
+	now := time.Date(2026, 5, 26, 12, 0, 0, 0, time.UTC)
+	db := &fakeDB{queryRows: []rowSet{{
+		rows: [][]any{{
+			"object_1",
+			"tenant_1",
+			"tenants/tenant_1/exports/export_1.zip",
+		}},
+	}}}
+	repo := NewRepository(db)
+
+	objects, err := repo.ListCleanupObjectsForTenantMode(context.Background(), "tenant_1", now, 25, CleanupModeExpiredExports)
+	if err != nil {
+		t.Fatalf("ListCleanupObjectsForTenantMode() error = %v", err)
+	}
+	if len(objects) != 1 {
+		t.Fatalf("cleanup object count = %d, want 1", len(objects))
+	}
+	query := db.queryRowsUsed[0]
+	for _, fragment := range []string{
+		"$4 = 'expired_export_cleanup' AND retention_state = 'expired'",
+		"$4 = 'orphan_cleanup' AND retention_state = 'orphaned'",
+		"($3 = '' OR tenant_id = $3)",
+	} {
+		if !strings.Contains(query.sql, fragment) {
+			t.Fatalf("mode cleanup selection SQL missing %s: %s", fragment, query.sql)
+		}
+	}
+	if query.args[0] != now || query.args[1] != 25 || query.args[2] != "tenant_1" || query.args[3] != string(CleanupModeExpiredExports) {
+		t.Fatalf("mode cleanup args = %#v, want now/25/tenant_1/expired_export_cleanup", query.args)
+	}
+}
+
 func TestPreviewCleanupObjectsForTenantSelectsExpiredAndOrphanedWithoutMutation(t *testing.T) {
 	now := time.Date(2026, 5, 26, 12, 0, 0, 0, time.UTC)
 	db := &fakeDB{queryRows: []rowSet{{
@@ -1417,6 +1450,38 @@ func TestPreviewCleanupObjectsForTenantSelectsExpiredAndOrphanedWithoutMutation(
 	}
 }
 
+func TestPreviewCleanupObjectsForTenantModeRestrictsCandidates(t *testing.T) {
+	now := time.Date(2026, 5, 26, 12, 0, 0, 0, time.UTC)
+	db := &fakeDB{queryRows: []rowSet{{
+		rows: [][]any{{
+			"object_1",
+			"tenant_1",
+			"tenants/tenant_1/exports/orphan.zip",
+		}},
+	}}}
+	repo := NewRepository(db)
+
+	objects, err := repo.PreviewCleanupObjectsForTenantMode(context.Background(), "tenant_1", now, 25, CleanupModeOrphans)
+	if err != nil {
+		t.Fatalf("PreviewCleanupObjectsForTenantMode() error = %v", err)
+	}
+	if len(objects) != 1 {
+		t.Fatalf("preview object count = %d, want 1", len(objects))
+	}
+	query := db.queryRowsUsed[0]
+	for _, fragment := range []string{
+		"$4 IN ('combined', 'expired_export_cleanup')",
+		"$4 IN ('combined', 'orphan_cleanup')",
+	} {
+		if !strings.Contains(query.sql, fragment) {
+			t.Fatalf("mode preview SQL missing %s: %s", fragment, query.sql)
+		}
+	}
+	if query.args[0] != now || query.args[1] != 25 || query.args[2] != "tenant_1" || query.args[3] != string(CleanupModeOrphans) {
+		t.Fatalf("mode preview args = %#v, want now/25/tenant_1/orphan_cleanup", query.args)
+	}
+}
+
 func TestPreviewCleanupCountsForTenantCountsExpiredExportsAndOrphanedObjectsWithoutMutation(t *testing.T) {
 	now := time.Date(2026, 5, 26, 12, 0, 0, 0, time.UTC)
 	db := &fakeDB{queryRows: []rowSet{{
@@ -1449,6 +1514,34 @@ func TestPreviewCleanupCountsForTenantCountsExpiredExportsAndOrphanedObjectsWith
 	}
 	if query.args[0] != now || query.args[1] != "tenant_1" {
 		t.Fatalf("preview counts args = %#v, want now/tenant_1", query.args)
+	}
+}
+
+func TestPreviewCleanupCountsForTenantModeRestrictsCounts(t *testing.T) {
+	now := time.Date(2026, 5, 26, 12, 0, 0, 0, time.UTC)
+	db := &fakeDB{queryRows: []rowSet{{
+		rows: [][]any{{3, 0}},
+	}}}
+	repo := NewRepository(db)
+
+	expiredExports, orphanedObjects, err := repo.PreviewCleanupCountsForTenantMode(context.Background(), "tenant_1", now, CleanupModeExpiredExports)
+	if err != nil {
+		t.Fatalf("PreviewCleanupCountsForTenantMode() error = %v", err)
+	}
+	if expiredExports != 3 || orphanedObjects != 0 {
+		t.Fatalf("preview counts = %d/%d, want 3 expired exports and 0 orphaned objects", expiredExports, orphanedObjects)
+	}
+	query := db.queryRowsUsed[0]
+	for _, fragment := range []string{
+		"$3 IN ('combined', 'expired_export_cleanup')",
+		"$3 IN ('combined', 'orphan_cleanup')",
+	} {
+		if !strings.Contains(query.sql, fragment) {
+			t.Fatalf("mode preview counts SQL missing %s: %s", fragment, query.sql)
+		}
+	}
+	if query.args[0] != now || query.args[1] != "tenant_1" || query.args[2] != string(CleanupModeExpiredExports) {
+		t.Fatalf("mode preview counts args = %#v, want now/tenant_1/expired_export_cleanup", query.args)
 	}
 }
 
@@ -1791,6 +1884,103 @@ func TestTenantScopedServiceCleanupDeletesTenantExpiredMarkers(t *testing.T) {
 	}
 }
 
+func TestTenantScopedServiceCleanupModeOnlyDeletesMatchingRepositoryRows(t *testing.T) {
+	now := time.Date(2026, 5, 26, 12, 0, 0, 0, time.UTC)
+	db := &fakeDB{
+		execTags: []pgconn.CommandTag{
+			pgconn.NewCommandTag("UPDATE 1"),
+			pgconn.NewCommandTag("SELECT 1"),
+			pgconn.NewCommandTag("UPDATE 1"),
+			pgconn.NewCommandTag("SELECT 1"),
+			pgconn.NewCommandTag("SELECT 1"),
+			pgconn.NewCommandTag("SELECT 1"),
+		},
+		queryRows: []rowSet{{
+			rows: [][]any{{
+				"object_expired",
+				"tenant_1",
+				"tenants/tenant_1/exports/expired.zip",
+			}},
+		}},
+	}
+	objects := &recordingObjectStore{}
+	service := NewService(NewRepository(db), objects)
+
+	result, err := service.CleanupExpiredExportsAndOrphanedObjectsForTenantMode(context.Background(), "tenant_1", now, 25, CleanupModeExpiredExports)
+	if err != nil {
+		t.Fatalf("CleanupExpiredExportsAndOrphanedObjectsForTenantMode() error = %v", err)
+	}
+	if result.ExpiredExports != 1 || result.OrphanedObjects != 0 || result.DeletedObjects != 1 || result.Status != "completed" {
+		t.Fatalf("expired-only cleanup result = %#v, want one expired delete and no orphan delete", result)
+	}
+	if len(objects.deletedObjects) != 1 || objects.deletedObjects[0].key != "tenants/tenant_1/exports/expired.zip" {
+		t.Fatalf("deleted objects = %#v, want only expired candidate", objects.deletedObjects)
+	}
+	if objects.cleanupExpiredCalled || !objects.cleanupExpiredForTenantCalled || objects.cleanupExpiredTenantID != "tenant_1" {
+		t.Fatalf("marker cleanup scope global=%v tenant=%v/%q", objects.cleanupExpiredCalled, objects.cleanupExpiredForTenantCalled, objects.cleanupExpiredTenantID)
+	}
+	if len(db.execs) != 6 {
+		t.Fatalf("exec count = %d, want expired mutation, lifecycle analytics, delete ack, delete analytics, run analytics, audit refs", len(db.execs))
+	}
+	if strings.Contains(db.execs[0].sql, "orphaned_sources") {
+		t.Fatalf("expired-only mutation must not mark orphaned objects: %s", db.execs[0].sql)
+	}
+	if len(db.queryRowsUsed) != 1 {
+		t.Fatalf("cleanup query count = %d, want one mode-scoped object list", len(db.queryRowsUsed))
+	}
+	query := db.queryRowsUsed[0]
+	if query.args[3] != string(CleanupModeExpiredExports) {
+		t.Fatalf("cleanup object list mode arg = %#v, want expired_export_cleanup", query.args[3])
+	}
+	if !strings.Contains(query.sql, "$4 = 'expired_export_cleanup' AND retention_state = 'expired'") {
+		t.Fatalf("cleanup object list must be mode-scoped: %s", query.sql)
+	}
+}
+
+func TestTenantScopedOrphanCleanupModeDoesNotSweepExpiredMarkers(t *testing.T) {
+	now := time.Date(2026, 5, 26, 12, 0, 0, 0, time.UTC)
+	db := &fakeDB{
+		execTags: []pgconn.CommandTag{
+			pgconn.NewCommandTag("UPDATE 1"),
+			pgconn.NewCommandTag("SELECT 1"),
+			pgconn.NewCommandTag("UPDATE 1"),
+			pgconn.NewCommandTag("SELECT 1"),
+			pgconn.NewCommandTag("SELECT 1"),
+			pgconn.NewCommandTag("SELECT 1"),
+		},
+		queryRows: []rowSet{{
+			rows: [][]any{{
+				"object_orphan",
+				"tenant_1",
+				"tenants/tenant_1/exports/orphan.zip",
+			}},
+		}},
+	}
+	objects := &recordingObjectStore{cleanupExpiredForTenantCount: 5}
+	service := NewService(NewRepository(db), objects)
+
+	result, err := service.CleanupExpiredExportsAndOrphanedObjectsForTenantMode(context.Background(), "tenant_1", now, 25, CleanupModeOrphans)
+	if err != nil {
+		t.Fatalf("CleanupExpiredExportsAndOrphanedObjectsForTenantMode(orphan) error = %v", err)
+	}
+	if result.ExpiredExports != 0 || result.OrphanedObjects != 1 || result.DeletedObjects != 1 || result.Status != "completed" {
+		t.Fatalf("orphan-only cleanup result = %#v, want one orphan delete and no expired marker sweep", result)
+	}
+	if len(objects.deletedObjects) != 1 || objects.deletedObjects[0].key != "tenants/tenant_1/exports/orphan.zip" {
+		t.Fatalf("deleted objects = %#v, want only orphan candidate", objects.deletedObjects)
+	}
+	if objects.cleanupExpiredCalled || objects.cleanupExpiredForTenantCalled {
+		t.Fatalf("orphan-only cleanup must not sweep expired object-store markers: %#v", objects)
+	}
+	query := db.queryRowsUsed[0]
+	if query.args[3] != string(CleanupModeOrphans) {
+		t.Fatalf("cleanup object list mode arg = %#v, want orphan_cleanup", query.args[3])
+	}
+	if !strings.Contains(query.sql, "$4 = 'orphan_cleanup' AND retention_state = 'orphaned'") {
+		t.Fatalf("cleanup object list must be orphan-scoped: %s", query.sql)
+	}
+}
+
 func TestServicePreviewCleanupDoesNotDeleteStorageOrMutateRows(t *testing.T) {
 	now := time.Date(2026, 5, 26, 12, 0, 0, 0, time.UTC)
 	db := &fakeDB{queryRows: []rowSet{
@@ -1815,6 +2005,39 @@ func TestServicePreviewCleanupDoesNotDeleteStorageOrMutateRows(t *testing.T) {
 	}
 	if len(objects.deletedKeys) != 0 || objects.cleanupExpiredCalled || objects.cleanupExpiredForTenantCalled {
 		t.Fatalf("preview should not touch object storage deletes/marker cleanup: %#v", objects)
+	}
+}
+
+func TestServicePreviewCleanupModeOnlyCountsAndListsSelectedClass(t *testing.T) {
+	now := time.Date(2026, 5, 26, 12, 0, 0, 0, time.UTC)
+	db := &fakeDB{queryRows: []rowSet{
+		{rows: [][]any{{0, 2}}},
+		{rows: [][]any{
+			{"object_1", "tenant_1", "tenants/tenant_1/exports/orphan_1.zip"},
+			{"object_2", "tenant_1", "tenants/tenant_1/thumbnails/orphan_1.zip.svg"},
+		}},
+	}}
+	objects := &recordingObjectStore{}
+	service := NewService(NewRepository(db), objects)
+
+	result, err := service.PreviewExpiredExportsAndOrphanedObjectsForTenantMode(context.Background(), "tenant_1", now, 50, CleanupModeOrphans)
+	if err != nil {
+		t.Fatalf("PreviewExpiredExportsAndOrphanedObjectsForTenantMode() error = %v", err)
+	}
+	if !result.DryRun || result.Status != "preview" || result.ExpiredExports != 0 || result.OrphanedObjects != 2 || result.PreviewObjects != 2 || result.DeletedObjects != 0 {
+		t.Fatalf("orphan preview result = %#v, want orphan-only dry-run preview", result)
+	}
+	if len(db.execs) != 0 {
+		t.Fatalf("preview should not mutate repository rows: %#v", db.execs)
+	}
+	if len(objects.deletedKeys) != 0 || objects.cleanupExpiredCalled || objects.cleanupExpiredForTenantCalled {
+		t.Fatalf("preview should not touch object storage: %#v", objects)
+	}
+	if len(db.queryRowsUsed) != 2 {
+		t.Fatalf("preview query count = %d, want counts and candidate list", len(db.queryRowsUsed))
+	}
+	if db.queryRowsUsed[0].args[2] != string(CleanupModeOrphans) || db.queryRowsUsed[1].args[3] != string(CleanupModeOrphans) {
+		t.Fatalf("preview mode args = %#v / %#v, want orphan_cleanup", db.queryRowsUsed[0].args, db.queryRowsUsed[1].args)
 	}
 }
 

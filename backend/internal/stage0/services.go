@@ -1158,27 +1158,43 @@ func normalizeCleanupTenantID(tenantID string) (string, error) {
 }
 
 func (r Repository) ListCleanupObjects(ctx context.Context, now time.Time, limit int) ([]CleanupObject, error) {
-	return r.listCleanupObjects(ctx, "", now, limit)
+	return r.listCleanupObjects(ctx, "", now, limit, CleanupModeCombined)
 }
 
 func (r Repository) ListCleanupObjectsForTenant(ctx context.Context, tenantID string, now time.Time, limit int) ([]CleanupObject, error) {
+	return r.ListCleanupObjectsForTenantMode(ctx, tenantID, now, limit, CleanupModeCombined)
+}
+
+func (r Repository) ListCleanupObjectsForTenantMode(ctx context.Context, tenantID string, now time.Time, limit int, mode CleanupMode) ([]CleanupObject, error) {
 	normalizedTenantID, err := normalizeCleanupTenantID(tenantID)
 	if err != nil {
 		return nil, err
 	}
-	return r.listCleanupObjects(ctx, normalizedTenantID, now, limit)
+	return r.listCleanupObjects(ctx, normalizedTenantID, now, limit, mode)
 }
 
 func (r Repository) PreviewCleanupObjectsForTenant(ctx context.Context, tenantID string, now time.Time, limit int) ([]CleanupObject, error) {
+	return r.PreviewCleanupObjectsForTenantMode(ctx, tenantID, now, limit, CleanupModeCombined)
+}
+
+func (r Repository) PreviewCleanupObjectsForTenantMode(ctx context.Context, tenantID string, now time.Time, limit int, mode CleanupMode) ([]CleanupObject, error) {
 	normalizedTenantID, err := normalizeCleanupTenantID(tenantID)
 	if err != nil {
 		return nil, err
 	}
-	return r.previewCleanupObjects(ctx, normalizedTenantID, now, limit)
+	return r.previewCleanupObjects(ctx, normalizedTenantID, now, limit, mode)
 }
 
 func (r Repository) PreviewCleanupCountsForTenant(ctx context.Context, tenantID string, now time.Time) (expiredExports, orphanedObjects int, err error) {
+	return r.PreviewCleanupCountsForTenantMode(ctx, tenantID, now, CleanupModeCombined)
+}
+
+func (r Repository) PreviewCleanupCountsForTenantMode(ctx context.Context, tenantID string, now time.Time, mode CleanupMode) (expiredExports, orphanedObjects int, err error) {
 	normalizedTenantID, err := normalizeCleanupTenantID(tenantID)
+	if err != nil {
+		return 0, 0, err
+	}
+	modeValue, err := cleanupModeQueryValue(mode)
 	if err != nil {
 		return 0, 0, err
 	}
@@ -1192,6 +1208,7 @@ WITH expired_exports AS (
 	JOIN object_metadata o ON o.tenant_id = e.tenant_id AND o.id = e.object_metadata_id
 	WHERE e.status IN ('ready', 'failed', 'pending')
 	  AND e.tenant_id = $2
+	  AND $3 IN ('combined', 'expired_export_cleanup')
 	  AND o.retention_until IS NOT NULL
 	  AND o.retention_until <= $1
 ),
@@ -1201,6 +1218,7 @@ orphaned_sources AS (
 	WHERE o.retention_state = 'active'
 	  AND o.asset_type = 'export'
 	  AND o.tenant_id = $2
+	  AND $3 IN ('combined', 'orphan_cleanup')
 	  AND NOT EXISTS (
 	    SELECT 1
 	    FROM exports e
@@ -1219,21 +1237,30 @@ orphaned_objects AS (
 SELECT (SELECT COUNT(*) FROM expired_exports), (SELECT COUNT(*) FROM orphaned_objects)`,
 		now,
 		normalizedTenantID,
+		modeValue,
 	).Scan(&expiredExports, &orphanedObjects)
 	return expiredExports, orphanedObjects, err
 }
 
-func (r Repository) listCleanupObjects(ctx context.Context, tenantID string, now time.Time, limit int) ([]CleanupObject, error) {
+func (r Repository) listCleanupObjects(ctx context.Context, tenantID string, now time.Time, limit int, mode CleanupMode) ([]CleanupObject, error) {
 	if now.IsZero() {
 		now = time.Now().UTC()
 	}
 	if limit <= 0 {
 		limit = 100
 	}
+	modeValue, err := cleanupModeQueryValue(mode)
+	if err != nil {
+		return nil, err
+	}
 	rows, err := r.db.Query(ctx, `
 SELECT id, tenant_id, object_key
 FROM object_metadata
-WHERE retention_state IN ('expired', 'orphaned')
+WHERE (
+    ($4 = 'combined' AND retention_state IN ('expired', 'orphaned'))
+    OR ($4 = 'expired_export_cleanup' AND retention_state = 'expired')
+    OR ($4 = 'orphan_cleanup' AND retention_state = 'orphaned')
+  )
   AND ($3 = '' OR tenant_id = $3)
   AND (
     retention_until IS NULL
@@ -1244,6 +1271,7 @@ LIMIT $2`,
 		now,
 		limit,
 		tenantID,
+		modeValue,
 	)
 	if err != nil {
 		return nil, err
@@ -1264,12 +1292,16 @@ LIMIT $2`,
 	return objects, rows.Err()
 }
 
-func (r Repository) previewCleanupObjects(ctx context.Context, tenantID string, now time.Time, limit int) ([]CleanupObject, error) {
+func (r Repository) previewCleanupObjects(ctx context.Context, tenantID string, now time.Time, limit int, mode CleanupMode) ([]CleanupObject, error) {
 	if now.IsZero() {
 		now = time.Now().UTC()
 	}
 	if limit <= 0 {
 		limit = 100
+	}
+	modeValue, err := cleanupModeQueryValue(mode)
+	if err != nil {
+		return nil, err
 	}
 	rows, err := r.db.Query(ctx, `
 WITH expired_sources AS (
@@ -1277,6 +1309,7 @@ WITH expired_sources AS (
 	FROM object_metadata
 	WHERE retention_until IS NOT NULL
 	  AND tenant_id = $3
+	  AND $4 IN ('combined', 'expired_export_cleanup')
 	  AND retention_until <= $1
 	  AND retention_state IN ('active', 'expired')
 ),
@@ -1286,6 +1319,7 @@ orphaned_sources AS (
 	WHERE o.retention_state = 'active'
 	  AND o.asset_type = 'export'
 	  AND o.tenant_id = $3
+	  AND $4 IN ('combined', 'orphan_cleanup')
 	  AND NOT EXISTS (
 	    SELECT 1
 	    FROM exports e
@@ -1316,6 +1350,7 @@ LIMIT $2`,
 		now,
 		limit,
 		tenantID,
+		modeValue,
 	)
 	if err != nil {
 		return nil, err
@@ -1334,6 +1369,17 @@ LIMIT $2`,
 		objects = append(objects, normalized)
 	}
 	return objects, rows.Err()
+}
+
+func cleanupModeQueryValue(mode CleanupMode) (string, error) {
+	switch mode {
+	case "", CleanupModeCombined:
+		return string(CleanupModeCombined), nil
+	case CleanupModeExpiredExports, CleanupModeOrphans:
+		return string(mode), nil
+	default:
+		return "", errors.Join(ErrValidation, fmt.Errorf("unsupported cleanup mode %q", mode))
+	}
 }
 
 func (r Repository) MarkCleanupObjectsDeleted(ctx context.Context, objects []CleanupObject, now time.Time) (int, error) {
@@ -3297,7 +3343,7 @@ func downloadTTLForObject(object ObjectMetadata, now time.Time, configuredTTL ti
 
 func (s Service) CleanupExpiredExportsAndOrphanedObjects(ctx context.Context, now time.Time, limit int) (CleanupResult, error) {
 	result, err := s.repo.CleanupExpiredExportsAndOrphanedObjects(ctx, now, nil)
-	return s.cleanupExpiredExportsAndOrphanedObjects(ctx, "", now, limit, result, err)
+	return s.cleanupExpiredExportsAndOrphanedObjects(ctx, "", now, limit, CleanupModeCombined, result, err)
 }
 
 func (s Service) CleanupExpiredExportsAndOrphanedObjectsForTenant(ctx context.Context, tenantID string, now time.Time, limit int) (CleanupResult, error) {
@@ -3310,19 +3356,23 @@ func (s Service) CleanupExpiredExportsAndOrphanedObjectsForTenantMode(ctx contex
 		return CleanupResult{}, err
 	}
 	result, err := s.repo.CleanupExpiredExportsAndOrphanedObjectsForTenantMode(ctx, normalizedTenantID, now, mode, nil)
-	return s.cleanupExpiredExportsAndOrphanedObjects(ctx, normalizedTenantID, now, limit, result, err)
+	return s.cleanupExpiredExportsAndOrphanedObjects(ctx, normalizedTenantID, now, limit, mode, result, err)
 }
 
 func (s Service) PreviewExpiredExportsAndOrphanedObjectsForTenant(ctx context.Context, tenantID string, now time.Time, limit int) (CleanupResult, error) {
+	return s.PreviewExpiredExportsAndOrphanedObjectsForTenantMode(ctx, tenantID, now, limit, CleanupModeCombined)
+}
+
+func (s Service) PreviewExpiredExportsAndOrphanedObjectsForTenantMode(ctx context.Context, tenantID string, now time.Time, limit int, mode CleanupMode) (CleanupResult, error) {
 	normalizedTenantID, err := normalizeCleanupTenantID(tenantID)
 	if err != nil {
 		return CleanupResult{}, err
 	}
-	expiredExports, orphanedObjects, err := s.repo.PreviewCleanupCountsForTenant(ctx, normalizedTenantID, now)
+	expiredExports, orphanedObjects, err := s.repo.PreviewCleanupCountsForTenantMode(ctx, normalizedTenantID, now, mode)
 	if err != nil {
 		return CleanupResult{}, err
 	}
-	objects, err := s.repo.PreviewCleanupObjectsForTenant(ctx, normalizedTenantID, now, limit)
+	objects, err := s.repo.PreviewCleanupObjectsForTenantMode(ctx, normalizedTenantID, now, limit, mode)
 	if err != nil {
 		return CleanupResult{}, err
 	}
@@ -3335,7 +3385,7 @@ func (s Service) PreviewExpiredExportsAndOrphanedObjectsForTenant(ctx context.Co
 	}, nil
 }
 
-func (s Service) cleanupExpiredExportsAndOrphanedObjects(ctx context.Context, tenantID string, now time.Time, limit int, result CleanupResult, err error) (CleanupResult, error) {
+func (s Service) cleanupExpiredExportsAndOrphanedObjects(ctx context.Context, tenantID string, now time.Time, limit int, mode CleanupMode, result CleanupResult, err error) (CleanupResult, error) {
 	if err != nil {
 		return CleanupResult{}, err
 	}
@@ -3344,9 +3394,9 @@ func (s Service) cleanupExpiredExportsAndOrphanedObjects(ctx context.Context, te
 	}
 	var objects []CleanupObject
 	if tenantID == "" {
-		objects, err = s.repo.ListCleanupObjects(ctx, now, limit)
+		objects, err = s.repo.listCleanupObjects(ctx, "", now, limit, CleanupModeCombined)
 	} else {
-		objects, err = s.repo.ListCleanupObjectsForTenant(ctx, tenantID, now, limit)
+		objects, err = s.repo.ListCleanupObjectsForTenantMode(ctx, tenantID, now, limit, mode)
 	}
 	if err != nil {
 		return CleanupResult{}, err
@@ -3382,10 +3432,16 @@ func (s Service) cleanupExpiredExportsAndOrphanedObjects(ctx context.Context, te
 	}
 	var markerDeleted int
 	var markerErr error
-	if tenantID == "" {
-		markerDeleted, markerErr = s.objects.CleanupExpired(ctx, now)
-	} else {
-		markerDeleted, markerErr = s.objects.CleanupExpiredForTenant(ctx, tenantID, now)
+	runExpiredMarkers, _, modeErr := cleanupModeFlags(mode)
+	if modeErr != nil {
+		return CleanupResult{}, modeErr
+	}
+	if runExpiredMarkers {
+		if tenantID == "" {
+			markerDeleted, markerErr = s.objects.CleanupExpired(ctx, now)
+		} else {
+			markerDeleted, markerErr = s.objects.CleanupExpiredForTenant(ctx, tenantID, now)
+		}
 	}
 	result.DeletedObjects += markerDeleted
 	if markerErr != nil {
