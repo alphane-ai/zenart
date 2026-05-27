@@ -72,6 +72,7 @@ LATEST_ONLY_GROUP_FIELDS = {
 }
 
 OPENAPI_PARAMETERS = {
+    "TenantIdFilter",
     "StatusFilter",
     "EvalSuiteIdFilter",
     "EvalSubjectTypeFilter",

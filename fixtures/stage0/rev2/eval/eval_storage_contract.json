@@ -490,6 +490,7 @@
     "response_schema": "EvalResultPage",
     "rbac": "admin",
     "required_parameters": [
+      "TenantIdFilter",
       "StatusFilter",
       "EvalSuiteIdFilter",
       "EvalSubjectTypeFilter",
