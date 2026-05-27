@@ -50,8 +50,8 @@
     },
     "required_gate_fields": {
       "type": "array",
-      "minItems": 7,
-      "maxItems": 7,
+      "minItems": 8,
+      "maxItems": 8,
       "uniqueItems": true,
       "items": {
         "enum": [
@@ -60,6 +60,7 @@
           "blocking_qa_categories",
           "safety_blocks_export",
           "export_artifacts_complete",
+          "denial_reasons",
           "admin_override_required_for_export",
           "override_requires_audit"
         ]
@@ -116,6 +117,7 @@
           "safety_rule_ids",
           "safety_blocks_export",
           "export_artifacts_complete",
+          "denial_reasons",
           "missing_export_artifacts",
           "qa_coverage_complete",
           "final_export_allowed",
@@ -189,6 +191,9 @@
           "export_artifacts_complete": {
             "type": "boolean"
           },
+          "denial_reasons": {
+            "$ref": "#/$defs/gate_reasons"
+          },
           "missing_export_artifacts": {
             "type": "array",
             "uniqueItems": true,
@@ -214,16 +219,7 @@
             "type": "boolean"
           },
           "gate_reasons": {
-            "type": "array",
-            "uniqueItems": true,
-            "items": {
-              "enum": [
-                "blocking_qa",
-                "safety_policy_block",
-                "incomplete_export_artifacts",
-                "qa_coverage_incomplete"
-              ]
-            }
+            "$ref": "#/$defs/gate_reasons"
           }
         }
       }
@@ -251,6 +247,20 @@
     }
   },
   "$defs": {
+    "gate_reasons": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "blocking_qa",
+          "safety_policy_block",
+          "safety_user_confirmation_required",
+          "safety_admin_review_required",
+          "incomplete_export_artifacts",
+          "qa_coverage_incomplete"
+        ]
+      }
+    },
     "qa_category": {
       "enum": [
         "file_integrity",

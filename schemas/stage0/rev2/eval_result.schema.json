@@ -813,6 +813,7 @@
         "blocking_qa_categories",
         "safety_blocks_export",
         "export_artifacts_complete",
+        "denial_reasons",
         "admin_override_required_for_export",
         "override_requires_audit"
       ],
@@ -853,6 +854,20 @@
         },
         "export_artifacts_complete": {
           "type": "boolean"
+        },
+        "denial_reasons": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "blocking_qa",
+              "safety_policy_block",
+              "safety_user_confirmation_required",
+              "safety_admin_review_required",
+              "incomplete_export_artifacts",
+              "qa_coverage_incomplete"
+            ]
+          }
         },
         "admin_override_required_for_export": {
           "type": "boolean"

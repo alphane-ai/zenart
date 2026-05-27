@@ -23,6 +23,7 @@ REQUIRED_GATE_FIELDS = {
     "blocking_qa_categories",
     "safety_blocks_export",
     "export_artifacts_complete",
+    "denial_reasons",
     "admin_override_required_for_export",
     "override_requires_audit",
 }
@@ -37,6 +38,8 @@ EXPORT_ARTIFACT_FIELDS = [
 REQUIRED_GATE_REASONS = {
     "blocking_qa",
     "safety_policy_block",
+    "safety_user_confirmation_required",
+    "safety_admin_review_required",
     "incomplete_export_artifacts",
     "qa_coverage_incomplete",
 }
@@ -73,6 +76,10 @@ def expected_gate_reasons(eval_fixture: dict[str, Any]) -> list[str]:
         reasons.append("blocking_qa")
     if gate["safety_blocks_export"]:
         reasons.append("safety_policy_block")
+    if eval_fixture["observed_safety_action"] == "require_user_confirmation":
+        reasons.append("safety_user_confirmation_required")
+    if eval_fixture["observed_safety_action"] == "require_admin_review":
+        reasons.append("safety_admin_review_required")
     if not gate["export_artifacts_complete"]:
         reasons.append("incomplete_export_artifacts")
     if not eval_fixture["qa_coverage_contract"]["coverage_complete"]:
@@ -206,6 +213,7 @@ def validate_contract() -> None:
 
         expected_reasons = expected_gate_reasons(eval_fixture)
         require(case["gate_reasons"] == expected_reasons, f"{fixture_id} gate reasons mismatch")
+        require(gate["denial_reasons"] == expected_reasons, f"{fixture_id} eval gate denial reasons mismatch")
         require(set(case["gate_reasons"]) <= REQUIRED_GATE_REASONS, f"{fixture_id} unsupported gate reasons")
 
         if gate["blocking_qa_check_ids"]:
@@ -228,8 +236,11 @@ def validate_contract() -> None:
             require(gate["override_requires_audit"] is True, f"{fixture_id} admin override must require audit")
         if gate["final_export_allowed"]:
             require(not case["gate_reasons"], f"{fixture_id} allowed export cannot have gate reasons")
+            require(not gate["denial_reasons"], f"{fixture_id} allowed export cannot have denial reasons")
             require(gate["export_artifacts_complete"] is True, f"{fixture_id} allowed export requires complete artifacts")
             require(eval_fixture["qa_coverage_contract"]["coverage_complete"] is True, f"{fixture_id} allowed export requires complete QA coverage")
+        else:
+            require(gate["denial_reasons"], f"{fixture_id} denied export must name denial reasons")
 
     require(saw_blocking_qa, "gate matrix must include a blocking QA case")
     require(saw_safety_block, "gate matrix must include a safety-blocked case")

@@ -103,6 +103,7 @@ QA_EXPORT_GATE_KEYS = {
     "blocking_qa_categories",
     "safety_blocks_export",
     "export_artifacts_complete",
+    "denial_reasons",
     "admin_override_required_for_export",
     "override_requires_audit",
 }
@@ -183,6 +184,15 @@ SAFETY_EXPORT_GATE_EFFECT = {
     "require_user_confirmation": "hold_until_user_confirmation",
     "require_admin_review": "hold_until_admin_review",
     "block": "block_final_export",
+}
+
+EXPORT_DENIAL_REASONS = {
+    "blocking_qa",
+    "safety_policy_block",
+    "safety_user_confirmation_required",
+    "safety_admin_review_required",
+    "incomplete_export_artifacts",
+    "qa_coverage_incomplete",
 }
 
 
@@ -604,6 +614,19 @@ def validate_fixture_result_links() -> None:
             and not safety_blocks_export
             and not safety_holds_export
         )
+        expected_denial_reasons = []
+        if expected_blocking_ids:
+            expected_denial_reasons.append("blocking_qa")
+        if safety_blocks_export:
+            expected_denial_reasons.append("safety_policy_block")
+        if item["observed_safety_action"] == "require_user_confirmation":
+            expected_denial_reasons.append("safety_user_confirmation_required")
+        if item["observed_safety_action"] == "require_admin_review":
+            expected_denial_reasons.append("safety_admin_review_required")
+        if not export_artifacts_complete:
+            expected_denial_reasons.append("incomplete_export_artifacts")
+        if not coverage["coverage_complete"]:
+            expected_denial_reasons.append("qa_coverage_incomplete")
         require(
             qa_gate["blocking_qa_check_ids"] == expected_blocking_ids,
             f"{item['fixture_id']} QA export gate blocking checks mismatch",
@@ -625,6 +648,14 @@ def validate_fixture_result_links() -> None:
             f"{item['fixture_id']} QA export gate final export decision mismatch",
         )
         require(
+            qa_gate["denial_reasons"] == ([] if expected_export_allowed else expected_denial_reasons),
+            f"{item['fixture_id']} QA export gate denial reasons mismatch",
+        )
+        require(
+            set(qa_gate["denial_reasons"]) <= EXPORT_DENIAL_REASONS,
+            f"{item['fixture_id']} QA export gate has unsupported denial reasons",
+        )
+        require(
             qa_gate["admin_override_required_for_export"] is (not expected_export_allowed),
             f"{item['fixture_id']} QA export gate override requirement mismatch",
         )
@@ -635,8 +666,10 @@ def validate_fixture_result_links() -> None:
                 f"{item['fixture_id']} pass result must have complete expected QA coverage",
             )
             require(qa_gate["final_export_allowed"] is True, f"{item['fixture_id']} pass result must allow final export")
+            require(qa_gate["denial_reasons"] == [], f"{item['fixture_id']} pass result cannot have denial reasons")
         else:
             require(qa_gate["final_export_allowed"] is False, f"{item['fixture_id']} blocked result must deny final export")
+            require(qa_gate["denial_reasons"], f"{item['fixture_id']} blocked result must name denial reasons")
 
 
 def validate_safety_decision_contract(item: dict[str, Any], linked_rules: list[dict[str, Any]]) -> None:

@@ -14,6 +14,7 @@
     "blocking_qa_categories",
     "safety_blocks_export",
     "export_artifacts_complete",
+    "denial_reasons",
     "admin_override_required_for_export",
     "override_requires_audit"
   ],
@@ -51,6 +52,9 @@
       "override_requires_audit": true,
       "gate_reasons": [
         "qa_coverage_incomplete"
+      ],
+      "denial_reasons": [
+        "qa_coverage_incomplete"
       ]
     },
     {
@@ -77,6 +81,9 @@
       "admin_override_required_for_export": true,
       "override_requires_audit": true,
       "gate_reasons": [
+        "qa_coverage_incomplete"
+      ],
+      "denial_reasons": [
         "qa_coverage_incomplete"
       ]
     },
@@ -106,6 +113,10 @@
       "admin_override_required_for_export": true,
       "override_requires_audit": true,
       "gate_reasons": [
+        "blocking_qa",
+        "qa_coverage_incomplete"
+      ],
+      "denial_reasons": [
         "blocking_qa",
         "qa_coverage_incomplete"
       ]
@@ -140,6 +151,12 @@
       "override_requires_audit": true,
       "gate_reasons": [
         "blocking_qa",
+        "safety_admin_review_required",
+        "qa_coverage_incomplete"
+      ],
+      "denial_reasons": [
+        "blocking_qa",
+        "safety_admin_review_required",
         "qa_coverage_incomplete"
       ]
     },
@@ -166,6 +183,10 @@
       "admin_override_required_for_export": true,
       "override_requires_audit": true,
       "gate_reasons": [
+        "incomplete_export_artifacts",
+        "qa_coverage_incomplete"
+      ],
+      "denial_reasons": [
         "incomplete_export_artifacts",
         "qa_coverage_incomplete"
       ]
@@ -204,6 +225,12 @@
         "safety_policy_block",
         "incomplete_export_artifacts",
         "qa_coverage_incomplete"
+      ],
+      "denial_reasons": [
+        "blocking_qa",
+        "safety_policy_block",
+        "incomplete_export_artifacts",
+        "qa_coverage_incomplete"
       ]
     },
     {
@@ -234,6 +261,10 @@
       "admin_override_required_for_export": true,
       "override_requires_audit": true,
       "gate_reasons": [
+        "blocking_qa",
+        "qa_coverage_incomplete"
+      ],
+      "denial_reasons": [
         "blocking_qa",
         "qa_coverage_incomplete"
       ]
@@ -275,6 +306,12 @@
       "override_requires_audit": true,
       "gate_reasons": [
         "blocking_qa",
+        "safety_admin_review_required",
+        "qa_coverage_incomplete"
+      ],
+      "denial_reasons": [
+        "blocking_qa",
+        "safety_admin_review_required",
         "qa_coverage_incomplete"
       ]
     },
@@ -304,6 +341,10 @@
       "admin_override_required_for_export": true,
       "override_requires_audit": true,
       "gate_reasons": [
+        "blocking_qa",
+        "qa_coverage_incomplete"
+      ],
+      "denial_reasons": [
         "blocking_qa",
         "qa_coverage_incomplete"
       ]
@@ -339,6 +380,11 @@
         "blocking_qa",
         "incomplete_export_artifacts",
         "qa_coverage_incomplete"
+      ],
+      "denial_reasons": [
+        "blocking_qa",
+        "incomplete_export_artifacts",
+        "qa_coverage_incomplete"
       ]
     },
     {
@@ -367,6 +413,12 @@
       "admin_override_required_for_export": true,
       "override_requires_audit": true,
       "gate_reasons": [
+        "safety_user_confirmation_required",
+        "incomplete_export_artifacts",
+        "qa_coverage_incomplete"
+      ],
+      "denial_reasons": [
+        "safety_user_confirmation_required",
         "incomplete_export_artifacts",
         "qa_coverage_incomplete"
       ]
@@ -395,6 +447,11 @@
       "admin_override_required_for_export": true,
       "override_requires_audit": true,
       "gate_reasons": [
+        "safety_policy_block",
+        "incomplete_export_artifacts",
+        "qa_coverage_incomplete"
+      ],
+      "denial_reasons": [
         "safety_policy_block",
         "incomplete_export_artifacts",
         "qa_coverage_incomplete"

@@ -278,12 +278,27 @@ def qa_export_gate_for(
         and not safety_blocks_export
         and not safety_holds_export
     )
+    denial_reasons = []
+    if blocking_checks:
+        denial_reasons.append("blocking_qa")
+    if safety_blocks_export:
+        denial_reasons.append("safety_policy_block")
+    if safety_decision_contract["decision"] == "require_user_confirmation":
+        denial_reasons.append("safety_user_confirmation_required")
+    if safety_decision_contract["decision"] == "require_admin_review":
+        denial_reasons.append("safety_admin_review_required")
+    if not export_artifacts_complete:
+        denial_reasons.append("incomplete_export_artifacts")
+    if not qa_coverage_contract["coverage_complete"]:
+        denial_reasons.append("qa_coverage_incomplete")
+
     return {
         "final_export_allowed": export_allowed,
         "blocking_qa_check_ids": blocking_checks,
         "blocking_qa_categories": blocking_categories,
         "safety_blocks_export": safety_blocks_export,
         "export_artifacts_complete": export_artifacts_complete,
+        "denial_reasons": [] if export_allowed else denial_reasons,
         "admin_override_required_for_export": not export_allowed,
         "override_requires_audit": requires_audit or not export_allowed,
     }

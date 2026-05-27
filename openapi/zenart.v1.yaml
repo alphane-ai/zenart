@@ -3083,7 +3083,7 @@ components:
                     const: true
               qa_export_gate:
                 type: object
-                required: [final_export_allowed, blocking_qa_check_ids, blocking_qa_categories, safety_blocks_export, export_artifacts_complete, admin_override_required_for_export, override_requires_audit]
+                required: [final_export_allowed, blocking_qa_check_ids, blocking_qa_categories, safety_blocks_export, export_artifacts_complete, denial_reasons, admin_override_required_for_export, override_requires_audit]
                 properties:
                   final_export_allowed:
                     type: boolean
@@ -3114,6 +3114,18 @@ components:
                     type: boolean
                   export_artifacts_complete:
                     type: boolean
+                  denial_reasons:
+                    type: array
+                    uniqueItems: true
+                    items:
+                      type: string
+                      enum:
+                        - blocking_qa
+                        - safety_policy_block
+                        - safety_user_confirmation_required
+                        - safety_admin_review_required
+                        - incomplete_export_artifacts
+                        - qa_coverage_incomplete
                   admin_override_required_for_export:
                     type: boolean
                   override_requires_audit:

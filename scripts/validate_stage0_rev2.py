@@ -6174,6 +6174,19 @@ def validate_eval_results() -> None:
             and not safety_blocks_export
             and not safety_holds_export
         )
+        expected_denial_reasons = []
+        if blocking_check_ids:
+            expected_denial_reasons.append("blocking_qa")
+        if safety_blocks_export:
+            expected_denial_reasons.append("safety_policy_block")
+        if item["observed_safety_action"] == "require_user_confirmation":
+            expected_denial_reasons.append("safety_user_confirmation_required")
+        if item["observed_safety_action"] == "require_admin_review":
+            expected_denial_reasons.append("safety_admin_review_required")
+        if not export_artifacts_complete:
+            expected_denial_reasons.append("incomplete_export_artifacts")
+        if not coverage["coverage_complete"]:
+            expected_denial_reasons.append("qa_coverage_incomplete")
         require(
             qa_gate["blocking_qa_check_ids"] == blocking_check_ids,
             f"{item['fixture_id']} QA export gate blocking checks mismatch",
@@ -6194,6 +6207,10 @@ def validate_eval_results() -> None:
             qa_gate["final_export_allowed"] is expected_export_allowed,
             f"{item['fixture_id']} QA export gate final export decision mismatch",
         )
+        require(
+            qa_gate["denial_reasons"] == ([] if expected_export_allowed else expected_denial_reasons),
+            f"{item['fixture_id']} QA export gate denial reasons mismatch",
+        )
         require(qa_gate["override_requires_audit"] is True, f"{item['fixture_id']} QA export override must require audit")
         if item["status"] == "pass":
             require(
@@ -6201,8 +6218,10 @@ def validate_eval_results() -> None:
                 f"{item['fixture_id']} passed eval must have complete expected QA coverage",
             )
             require(qa_gate["final_export_allowed"] is True, f"{item['fixture_id']} passed eval must allow final export")
+            require(qa_gate["denial_reasons"] == [], f"{item['fixture_id']} passed eval cannot have denial reasons")
         else:
             require(qa_gate["final_export_allowed"] is False, f"{item['fixture_id']} blocked eval must deny final export")
+            require(qa_gate["denial_reasons"], f"{item['fixture_id']} blocked eval must name denial reasons")
         for check_id in item["qa_check_ids"]:
             require(check_id in qa_by_id, f"{item['fixture_id']} references unknown QA check {check_id}")
             require(
