@@ -361,10 +361,12 @@ func TestS3StorePutWritesAndRemovesExpiryMarkers(t *testing.T) {
 	var puts []string
 	var deletes []string
 	var markerBody string
+	headersByPath := map[string]http.Header{}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodPut:
 			puts = append(puts, r.URL.Path)
+			headersByPath[r.URL.Path] = r.Header.Clone()
 			if strings.HasSuffix(r.URL.Path, ".expires") {
 				body, _ := io.ReadAll(r.Body)
 				markerBody = string(body)
@@ -413,6 +415,23 @@ func TestS3StorePutWritesAndRemovesExpiryMarkers(t *testing.T) {
 	}
 	if markerBody != retentionUntil.Format(time.RFC3339) {
 		t.Fatalf("marker body = %q, want %q", markerBody, retentionUntil.Format(time.RFC3339))
+	}
+	objectHeaders := headersByPath["/zenart-test/tenants/tenant_1/exports/package.zip"]
+	if objectHeaders.Get("X-Amz-Meta-Zenart-Retention-State") != "active" {
+		t.Fatalf("object retention state header = %q, want active", objectHeaders.Get("X-Amz-Meta-Zenart-Retention-State"))
+	}
+	if objectHeaders.Get("X-Amz-Meta-Zenart-Retention-Until") != retentionUntil.Format(time.RFC3339) {
+		t.Fatalf("object retention until header = %q, want %q", objectHeaders.Get("X-Amz-Meta-Zenart-Retention-Until"), retentionUntil.Format(time.RFC3339))
+	}
+	if auth := objectHeaders.Get("Authorization"); !strings.Contains(auth, "x-amz-meta-zenart-retention-state") || !strings.Contains(auth, "x-amz-meta-zenart-retention-until") {
+		t.Fatalf("object Authorization = %q, want signed retention metadata headers", auth)
+	}
+	markerHeaders := headersByPath["/zenart-test/tenants/tenant_1/exports/package.zip.expires"]
+	if markerHeaders.Get("X-Amz-Meta-Zenart-Retention-Marker") != "true" {
+		t.Fatalf("marker retention header = %q, want true", markerHeaders.Get("X-Amz-Meta-Zenart-Retention-Marker"))
+	}
+	if auth := markerHeaders.Get("Authorization"); !strings.Contains(auth, "x-amz-meta-zenart-retention-marker") {
+		t.Fatalf("marker Authorization = %q, want signed marker metadata header", auth)
 	}
 
 	if _, err := store.Put(context.Background(), Object{

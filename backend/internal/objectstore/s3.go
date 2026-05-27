@@ -94,12 +94,19 @@ func (s S3Store) Put(ctx context.Context, object Object, body io.Reader) (Object
 	object.ByteSize = int64(len(payload))
 	object.Checksum = "sha256:" + hex.EncodeToString(sum[:])
 
-	if err := s.putRaw(ctx, key, object.ContentType, payload); err != nil {
+	retentionMetadata := map[string]string{"zenart-retention-state": "active"}
+	if object.RetentionUntil != nil {
+		retentionMetadata["zenart-retention-until"] = object.RetentionUntil.UTC().Format(time.RFC3339)
+	}
+	if err := s.putRaw(ctx, key, object.ContentType, payload, retentionMetadata); err != nil {
 		return Object{}, err
 	}
 	if object.RetentionUntil != nil {
 		marker := []byte(object.RetentionUntil.UTC().Format(time.RFC3339))
-		if err := s.putRaw(ctx, key+".expires", "text/plain; charset=utf-8", marker); err != nil {
+		if err := s.putRaw(ctx, key+".expires", "text/plain; charset=utf-8", marker, map[string]string{
+			"zenart-retention-marker": "true",
+			"zenart-retention-until":  object.RetentionUntil.UTC().Format(time.RFC3339),
+		}); err != nil {
 			_ = s.deleteRaw(context.Background(), key)
 			return Object{}, err
 		}
@@ -257,7 +264,7 @@ func (s S3Store) CleanupExpired(ctx context.Context, now time.Time) (int, error)
 	}
 }
 
-func (s S3Store) putRaw(ctx context.Context, key, contentType string, payload []byte) error {
+func (s S3Store) putRaw(ctx context.Context, key, contentType string, payload []byte, metadata ...map[string]string) error {
 	sum := sha256.Sum256(payload)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, s.objectURL(s.endpoint, key).String(), bytes.NewReader(payload))
 	if err != nil {
@@ -265,6 +272,15 @@ func (s S3Store) putRaw(ctx context.Context, key, contentType string, payload []
 	}
 	req.Header.Set("Content-Type", contentType)
 	req.Header.Set("X-Amz-Content-Sha256", hex.EncodeToString(sum[:]))
+	for _, values := range metadata {
+		for metaKey, metaValue := range values {
+			header := s3UserMetadataHeader(metaKey)
+			if header == "" {
+				continue
+			}
+			req.Header.Set(header, strings.TrimSpace(metaValue))
+		}
+	}
 	s.sign(req, hex.EncodeToString(sum[:]), s.clock())
 
 	resp, err := s.client.Do(req)
@@ -425,14 +441,13 @@ func (s S3Store) sign(req *http.Request, payloadHash string, now time.Time) {
 	if req.Header.Get("X-Amz-Content-Sha256") == "" {
 		req.Header.Set("X-Amz-Content-Sha256", payloadHash)
 	}
-	signedHeaders := []string{"host", "x-amz-content-sha256", "x-amz-date"}
+	signedHeaders := signedHeaderNames(req.Header)
+	canonicalHeaders := canonicalHeaderBlock(req, signedHeaders)
 	canonicalRequest := strings.Join([]string{
 		req.Method,
 		canonicalURI(req.URL.EscapedPath()),
 		canonicalQuery(req.URL.Query()),
-		"host:" + req.URL.Host + "\n" +
-			"x-amz-content-sha256:" + req.Header.Get("X-Amz-Content-Sha256") + "\n" +
-			"x-amz-date:" + req.Header.Get("X-Amz-Date") + "\n",
+		canonicalHeaders,
 		strings.Join(signedHeaders, ";"),
 		payloadHash,
 	}, "\n")
@@ -444,6 +459,62 @@ func (s S3Store) sign(req *http.Request, payloadHash string, now time.Time) {
 	}, "\n")
 	signature := hex.EncodeToString(hmacSHA256(s.signingKey(now), stringToSign))
 	req.Header.Set("Authorization", "AWS4-HMAC-SHA256 Credential="+s.accessKey+"/"+s.credentialScope(now)+", SignedHeaders="+strings.Join(signedHeaders, ";")+", Signature="+signature)
+}
+
+func s3UserMetadataHeader(key string) string {
+	key = strings.ToLower(strings.TrimSpace(key))
+	key = strings.TrimPrefix(key, "x-amz-meta-")
+	if key == "" {
+		return ""
+	}
+	for _, r := range key {
+		if (r < 'a' || r > 'z') && (r < '0' || r > '9') && r != '-' {
+			return ""
+		}
+	}
+	return "X-Amz-Meta-" + key
+}
+
+func signedHeaderNames(headers http.Header) []string {
+	seen := map[string]struct{}{"host": {}}
+	for key := range headers {
+		normalized := strings.ToLower(strings.TrimSpace(key))
+		if strings.HasPrefix(normalized, "x-amz-") {
+			seen[normalized] = struct{}{}
+		}
+	}
+	names := make([]string, 0, len(seen))
+	for name := range seen {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	return names
+}
+
+func canonicalHeaderBlock(req *http.Request, signedHeaders []string) string {
+	var b strings.Builder
+	for _, name := range signedHeaders {
+		value := req.URL.Host
+		if name != "host" {
+			value = canonicalHeaderValue(req.Header.Values(name))
+		}
+		b.WriteString(name)
+		b.WriteByte(':')
+		b.WriteString(value)
+		b.WriteByte('\n')
+	}
+	return b.String()
+}
+
+func canonicalHeaderValue(values []string) string {
+	if len(values) == 0 {
+		return ""
+	}
+	normalized := make([]string, 0, len(values))
+	for _, value := range values {
+		normalized = append(normalized, strings.Join(strings.Fields(value), " "))
+	}
+	return strings.Join(normalized, ",")
 }
 
 func (s S3Store) credentialScope(now time.Time) string {
