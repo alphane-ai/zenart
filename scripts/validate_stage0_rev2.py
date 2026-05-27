@@ -968,6 +968,26 @@ GATE_IMPACT_KEY_CHECKLIST_ITEMS = {
     "can_clear_support_billing_policy_subitem": "Production public support/billing policy deployment evidence 通过：production evidence proves support contact and paid billing/cancellation/refund policy visibility under `ops/evidence/production/`。",
 }
 
+GATE_IMPACT_ALLOWED_CLEARANCE_FLAGS = set(GATE_IMPACT_KEY_CHECKLIST_ITEMS) | {
+    "can_clear_aggregate_item",
+    "can_clear_aggregate_private_beta_gate",
+    "can_clear_aggregate_production_gate",
+    "can_clear_alert_checklist_item",
+    "can_clear_backup_restore_slot",
+    "can_clear_check_level_item",
+    "can_clear_check_level_items",
+    "can_clear_checklist_items",
+    "can_clear_dashboard_checklist_item",
+    "can_clear_global_do_not_launch",
+    "can_clear_load_slot",
+    "can_clear_metrics_checklist_item",
+    "can_clear_observability_only",
+    "can_clear_post_deploy_smoke_item",
+    "can_clear_post_deploy_smoke_slot",
+    "can_clear_release_gate_check",
+    "can_clear_retention_cleanup_checklist_item",
+}
+
 PARTIAL_RUNTIME_PASS_EVIDENCE_ALLOWLIST = {
     "ops/evidence/staging/20260527T1215Z-backend-worker-crawler-metrics.json",
     "ops/evidence/staging/20260527T1815Z-observability-telemetry.json",
@@ -5513,6 +5533,40 @@ def validate_runtime_gate_impact_closure_claims(
             continue
         gate = runtime_evidence_gate_from_path(path, evidence)
         rel_path = rel(path)
+        unknown_clearance_flags = sorted(
+            key
+            for key in gate_impact
+            if key.startswith("can_clear_") and key not in GATE_IMPACT_ALLOWED_CLEARANCE_FLAGS
+        )
+        require(
+            not unknown_clearance_flags,
+            f"{rel_path} gate_impact uses unowned clearance flag(s); launch-readiness clearance flags "
+            "must be validator-owned and mapped to exact checklist rows: "
+            + json.dumps(unknown_clearance_flags, ensure_ascii=False),
+        )
+        ambiguous_launch_text_values = sorted(
+            value
+            for value in walk_values(gate_impact)
+            if isinstance(value, str)
+            and (
+                "launch-ready" in value.lower()
+                or "ready for production" in value.lower()
+                or "cleared for launch" in value.lower()
+                or "Do-Not-Launch Conditions 全部为 false。" in value
+                or "Production Launch Gate 全部通过。" in value
+                or "Private Beta/Staging Gate 全部通过。" in value
+                or "CI Gate 全部通过。" in value
+                or "Local Alpha Gate 全部通过。" in value
+            )
+            and value not in validator_items
+            and value != GLOBAL_DO_NOT_LAUNCH_CHECKLIST_ITEM
+        )
+        require(
+            not ambiguous_launch_text_values,
+            f"{rel_path} gate_impact contains ambiguous top-level launch-closure prose instead of "
+            "a validator-owned checklist row: "
+            + json.dumps(ambiguous_launch_text_values, ensure_ascii=False),
+        )
         checklist_claims = gate_impact_checklist_values(gate_impact)
         unknown_launch_claims = sorted(
             item
