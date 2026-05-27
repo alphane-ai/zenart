@@ -10,6 +10,7 @@ import (
 )
 
 type searcherKey struct{}
+type recorderKey struct{}
 
 type Event struct {
 	ID        string         `json:"id"`
@@ -55,6 +56,15 @@ func ContextWithSearcher(ctx context.Context, searcher Searcher) context.Context
 func SearcherFromContext(ctx context.Context) (Searcher, bool) {
 	searcher, ok := ctx.Value(searcherKey{}).(Searcher)
 	return searcher, ok
+}
+
+func ContextWithRecorder(ctx context.Context, recorder Recorder) context.Context {
+	return context.WithValue(ctx, recorderKey{}, recorder)
+}
+
+func RecorderFromContext(ctx context.Context) (Recorder, bool) {
+	recorder, ok := ctx.Value(recorderKey{}).(Recorder)
+	return recorder, ok
 }
 
 type PostgresRecorder struct {

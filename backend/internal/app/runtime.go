@@ -46,6 +46,7 @@ func RunServer(ctx context.Context, cfg config.Config, logger *slog.Logger) erro
 		reqCtx := task.ContextWithRepository(r.Context(), task.NewRepository(db))
 		reqCtx = stage0.ContextWithService(reqCtx, stage0Service)
 		reqCtx = audit.ContextWithSearcher(reqCtx, auditStore)
+		reqCtx = audit.ContextWithRecorder(reqCtx, auditStore)
 		baseHandler.ServeHTTP(w, r.WithContext(reqCtx))
 	})
 	srv := server.NewHTTPServer(cfg, handler)

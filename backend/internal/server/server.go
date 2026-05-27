@@ -622,10 +622,62 @@ func (s *Server) regenerateExport(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, http.StatusNotImplemented, "export_service_not_connected", "export storage is not connected yet", nil)
 		return
 	}
-	export, err := repo.RegenerateExport(r.Context(), principal.TenantID, r.PathValue("id"))
+	var input struct {
+		Rationale             string `json:"rationale"`
+		SecondReviewerID      string `json:"second_reviewer_id"`
+		SecondReviewRationale string `json:"second_review_rationale"`
+	}
+	if err := readOptionalJSON(r, &input); err != nil {
+		writeError(w, r, http.StatusBadRequest, "invalid_json", "request body must be valid JSON", nil)
+		return
+	}
+	rationale := security.RedactString(strings.TrimSpace(input.Rationale))
+	if rationale == "" || rationale == security.Redacted {
+		writeError(w, r, http.StatusBadRequest, "rationale_required", "admin export regeneration requires a non-secret rationale", map[string]any{
+			"field": "rationale",
+		})
+		return
+	}
+	secondReviewerID := strings.TrimSpace(input.SecondReviewerID)
+	secondReviewRationale := security.RedactString(strings.TrimSpace(input.SecondReviewRationale))
+	if secondReviewerID == "" || secondReviewerID == principal.UserID {
+		writeError(w, r, http.StatusBadRequest, "second_review_required", "admin export regeneration requires a distinct second reviewer", map[string]any{
+			"field": "second_reviewer_id",
+		})
+		return
+	}
+	if secondReviewRationale == "" || secondReviewRationale == security.Redacted {
+		writeError(w, r, http.StatusBadRequest, "second_review_required", "admin export regeneration requires a non-secret second-review rationale", map[string]any{
+			"field": "second_review_rationale",
+		})
+		return
+	}
+	exportID := r.PathValue("id")
+	export, err := repo.RegenerateExport(r.Context(), principal.TenantID, exportID)
 	if err != nil {
 		writeStage0Error(w, r, err)
 		return
+	}
+	if recorder, ok := audit.RecorderFromContext(r.Context()); ok {
+		if err := recorder.Record(r.Context(), audit.Event{
+			ID:       newAuditID(principal.TenantID, principal.UserID, "export.regenerate", exportID),
+			TenantID: principal.TenantID,
+			ActorID:  principal.UserID,
+			Action:   "export.regenerate",
+			Resource: "exports/" + exportID,
+			Metadata: map[string]any{
+				"rationale":               rationale,
+				"second_reviewer_id":      secondReviewerID,
+				"second_review_rationale": secondReviewRationale,
+				"export_id":               exportID,
+				"package_id":              export.PackageID,
+				"format":                  export.Format,
+			},
+			CreatedAt: time.Now().UTC(),
+		}); err != nil {
+			writeError(w, r, http.StatusInternalServerError, "audit_record_error", "admin override audit record could not be written", nil)
+			return
+		}
 	}
 	writeJSON(w, http.StatusAccepted, export)
 }
@@ -773,6 +825,13 @@ func readJSON(r *http.Request, target any) error {
 	return decoder.Decode(target)
 }
 
+func readOptionalJSON(r *http.Request, target any) error {
+	if r.Body == nil || r.ContentLength == 0 {
+		return nil
+	}
+	return readJSON(r, target)
+}
+
 func pageSize(r *http.Request) int {
 	size, err := strconv.Atoi(r.URL.Query().Get("page_size"))
 	if err != nil || size <= 0 {
@@ -874,4 +933,10 @@ type requestIDKey struct{}
 func requestIDFrom(ctx context.Context) string {
 	value, _ := ctx.Value(requestIDKey{}).(string)
 	return value
+}
+
+func newAuditID(parts ...string) string {
+	seed := strings.Join(parts, ":") + ":" + time.Now().UTC().Format(time.RFC3339Nano)
+	sum := sha256.Sum256([]byte(seed))
+	return "audit_" + hex.EncodeToString(sum[:12])
 }

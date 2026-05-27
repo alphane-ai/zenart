@@ -678,7 +678,7 @@ func TestAdminExportRegenerateRequiresReviewer(t *testing.T) {
 	}
 	cfg.Auth.AdminDevIdentityHeaders = true
 
-	req := httptest.NewRequest(http.MethodPost, "/api/admin/v1/exports/export_1/regenerate", nil)
+	req := httptest.NewRequest(http.MethodPost, "/api/admin/v1/exports/export_1/regenerate", bytes.NewBufferString(`{"rationale":"retry after failed export","second_reviewer_id":"admin_reviewer_2","second_review_rationale":"approved retry"}`))
 	req.Header.Set("X-Zenart-User-ID", "admin_viewer_1")
 	req.Header.Set("X-Zenart-Tenant-ID", "tenant_1")
 	req.Header.Set("X-Zenart-Roles", "admin_viewer")
@@ -697,6 +697,126 @@ func TestAdminExportRegenerateRequiresReviewer(t *testing.T) {
 	details := body["details"].(map[string]any)
 	if details["required_permission"] != "export_override:admin" {
 		t.Fatalf("required_permission = %v, want export_override:admin", details["required_permission"])
+	}
+}
+
+func TestAdminExportRegenerateRequiresRationale(t *testing.T) {
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	cfg.Auth.AdminDevIdentityHeaders = true
+
+	req := httptest.NewRequest(http.MethodPost, "/api/admin/v1/exports/export_1/regenerate", nil)
+	req = req.WithContext(stage0.ContextWithService(req.Context(), stage0.NewService(stage0.NewRepository(noExecDB{}), nil)))
+	req.Header.Set("X-Zenart-User-ID", "admin_reviewer_1")
+	req.Header.Set("X-Zenart-Tenant-ID", "tenant_1")
+	req.Header.Set("X-Zenart-Roles", "admin_reviewer")
+	setSameSiteCSRFHeaders(req)
+	rec := httptest.NewRecorder()
+
+	New(cfg, nil).Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want %d: %s", rec.Code, http.StatusBadRequest, rec.Body.String())
+	}
+	var body map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("response JSON error = %v", err)
+	}
+	if body["code"] != "rationale_required" {
+		t.Fatalf("code = %v, want rationale_required", body["code"])
+	}
+}
+
+func TestAdminExportRegenerateRequiresSecondReview(t *testing.T) {
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	cfg.Auth.AdminDevIdentityHeaders = true
+
+	req := httptest.NewRequest(http.MethodPost, "/api/admin/v1/exports/export_1/regenerate", bytes.NewBufferString(`{"rationale":"retry after failed export","second_reviewer_id":"admin_reviewer_1","second_review_rationale":"approved retry"}`))
+	req = req.WithContext(stage0.ContextWithService(req.Context(), stage0.NewService(stage0.NewRepository(noExecDB{}), nil)))
+	req.Header.Set("X-Zenart-User-ID", "admin_reviewer_1")
+	req.Header.Set("X-Zenart-Tenant-ID", "tenant_1")
+	req.Header.Set("X-Zenart-Roles", "admin_reviewer")
+	setSameSiteCSRFHeaders(req)
+	rec := httptest.NewRecorder()
+
+	New(cfg, nil).Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want %d: %s", rec.Code, http.StatusBadRequest, rec.Body.String())
+	}
+	var body map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("response JSON error = %v", err)
+	}
+	if body["code"] != "second_review_required" {
+		t.Fatalf("code = %v, want second_review_required", body["code"])
+	}
+}
+
+func TestAdminExportRegenerateRecordsAuditWithRationaleAndSecondReview(t *testing.T) {
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	cfg.Auth.AdminDevIdentityHeaders = true
+	now := time.Date(2026, 5, 27, 8, 0, 0, 0, time.UTC)
+	db := &fakeStage0DB{queryRows: []stage0RowSet{{
+		rows: [][]any{{
+			"export_1",
+			"tenant_1",
+			"package_1",
+			"project_1",
+			nil,
+			"zip",
+			"failed",
+			"failed",
+			nil,
+			[]byte(`{"workflow_id":"workflow_1"}`),
+			[]byte(`{}`),
+			[]byte(`{"message":"failed"}`),
+			now,
+			now,
+			[]byte(`{}`),
+		}},
+	}, {}, {}, {}}}
+	recorder := &fakeAuditRecorder{}
+
+	req := httptest.NewRequest(http.MethodPost, "/api/admin/v1/exports/export_1/regenerate", bytes.NewBufferString(`{"rationale":"retry after QA fix with token=npm_abcdefghijklmnopqrstuvwxyz123456","second_reviewer_id":"admin_reviewer_2","second_review_rationale":"approved retry after Bearer abcdefghijklmnop"}`))
+	req = req.WithContext(audit.ContextWithRecorder(stage0.ContextWithService(req.Context(), stage0.NewService(stage0.NewRepository(db), nil)), recorder))
+	req.Header.Set("X-Zenart-User-ID", "admin_reviewer_1")
+	req.Header.Set("X-Zenart-Tenant-ID", "tenant_1")
+	req.Header.Set("X-Zenart-Roles", "admin_reviewer")
+	setSameSiteCSRFHeaders(req)
+	rec := httptest.NewRecorder()
+
+	New(cfg, nil).Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusAccepted {
+		t.Fatalf("status = %d, want %d: %s", rec.Code, http.StatusAccepted, rec.Body.String())
+	}
+	if len(recorder.events) != 1 {
+		t.Fatalf("audit events = %d, want 1", len(recorder.events))
+	}
+	event := recorder.events[0]
+	if event.TenantID != "tenant_1" || event.ActorID != "admin_reviewer_1" || event.Action != "export.regenerate" || event.Resource != "exports/export_1" {
+		t.Fatalf("audit event = %#v", event)
+	}
+	if event.Metadata["rationale"] != "retry after QA fix with token="+security.Redacted {
+		t.Fatalf("audit rationale = %#v, want redacted token", event.Metadata["rationale"])
+	}
+	if event.Metadata["second_reviewer_id"] != "admin_reviewer_2" {
+		t.Fatalf("second reviewer = %#v, want admin_reviewer_2", event.Metadata["second_reviewer_id"])
+	}
+	if event.Metadata["second_review_rationale"] != "approved retry after Bearer "+security.Redacted {
+		t.Fatalf("second review rationale = %#v, want redacted bearer", event.Metadata["second_review_rationale"])
+	}
+	if event.Metadata["package_id"] != "package_1" || event.Metadata["format"] != "zip" {
+		t.Fatalf("audit metadata = %#v, want package and format", event.Metadata)
 	}
 }
 
@@ -1535,6 +1655,20 @@ func (f *fakeAuditSearcher) Search(_ context.Context, filters audit.SearchFilter
 	return f.page, nil
 }
 
+type fakeAuditRecorder struct {
+	events []audit.Event
+	err    error
+}
+
+func (f *fakeAuditRecorder) Record(_ context.Context, event audit.Event) error {
+	if f.err != nil {
+		return f.err
+	}
+	event.Metadata = security.RedactMap(event.Metadata)
+	f.events = append(f.events, event)
+	return nil
+}
+
 type noExecDB struct{}
 
 func (noExecDB) Exec(context.Context, string, ...any) (pgconn.CommandTag, error) {
@@ -1602,6 +1736,7 @@ func (r downloadGuardRow) Scan(dest ...any) error {
 type fakeStage0DB struct {
 	queryRows []stage0RowSet
 	queries   []stage0QueryCall
+	execs     []stage0QueryCall
 }
 
 type stage0RowSet struct {
@@ -1613,7 +1748,8 @@ type stage0QueryCall struct {
 	args []any
 }
 
-func (f *fakeStage0DB) Exec(context.Context, string, ...any) (pgconn.CommandTag, error) {
+func (f *fakeStage0DB) Exec(_ context.Context, sql string, args ...any) (pgconn.CommandTag, error) {
+	f.execs = append(f.execs, stage0QueryCall{sql: sql, args: args})
 	return pgconn.CommandTag{}, nil
 }
 
@@ -1627,8 +1763,14 @@ func (f *fakeStage0DB) Query(_ context.Context, sql string, args ...any) (store.
 	return &stage0Rows{rows: rows.rows}, nil
 }
 
-func (f *fakeStage0DB) QueryRow(context.Context, string, ...any) store.Row {
-	panic("QueryRow must not be called for analytics list tests")
+func (f *fakeStage0DB) QueryRow(_ context.Context, sql string, args ...any) store.Row {
+	f.queries = append(f.queries, stage0QueryCall{sql: sql, args: args})
+	if len(f.queryRows) > 0 && len(f.queryRows[0].rows) > 0 {
+		row := f.queryRows[0].rows[0]
+		f.queryRows = f.queryRows[1:]
+		return stage0Row{row: row}
+	}
+	return stage0Row{err: pgx.ErrNoRows}
 }
 
 type stage0Rows struct {
@@ -1658,6 +1800,21 @@ func (r *stage0Rows) Scan(dest ...any) error {
 	return nil
 }
 
+type stage0Row struct {
+	err error
+	row []any
+}
+
+func (r stage0Row) Scan(dest ...any) error {
+	if r.err != nil {
+		return r.err
+	}
+	for i := range dest {
+		assignScan(dest[i], r.row[i])
+	}
+	return nil
+}
+
 func assignScan(dest any, value any) {
 	switch ptr := dest.(type) {
 	case *string:
@@ -1676,6 +1833,10 @@ func assignScan(dest any, value any) {
 			panic("unsupported nullable string scan value")
 		}
 	case *[]byte:
+		if value == nil {
+			*ptr = nil
+			return
+		}
 		*ptr = value.([]byte)
 	case *[]string:
 		*ptr = value.([]string)
