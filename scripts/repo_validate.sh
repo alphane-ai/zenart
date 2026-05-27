@@ -65,6 +65,7 @@ test -x scripts/docker_build_smoke.sh
 test -x scripts/staging_smoke.sh
 test -x scripts/observability_smoke.sh
 test -x scripts/staging_observability_backup_load_smoke.sh
+test -x scripts/staging_object_storage_signed_url_smoke.sh
 test -x scripts/security_scan_smoke.sh
 test -x scripts/release_evidence_bundle_smoke.sh
 test -x scripts/render_no_go_release_notes.py
@@ -230,7 +231,9 @@ required_fragments = [
     "Load evidence: `missing`; staging JSON must reference the release SHA, set `environment=staging`, set `kind=load`, record status `passed`, and include passed/validated evidence refs for `chat_task`, `worker_generation`, `zip_export`, `signed_download`, `crawler_throttle`, `quota_contention`, and `workspace_rendering` before private beta/production decisions.",
     "Rollback drill: `missing`; staging JSON must reference the release SHA, set `environment=staging`, set `kind=rollback`, record status `passed` or `validated`, and include passed/validated evidence refs for image rollback, feature flag rollback, migration compatibility, worker drain, and post-rollback smoke.",
     "Security scan: local status `passed` from `ops/evidence/security/local/20260526T142040Z-security-scan-smoke-65314.json`; staging JSON must reference the release SHA, set `environment=staging`, set `kind=security_scan`, record status `passed`, and include passed/validated evidence refs for dependency, image/container, and committed-secret scans before private beta/production decisions.",
+    "Object-storage signed URL: staging status `pass_with_blockers_preserved` from `ops/evidence/staging/20260527T2130Z-object-storage-signed-url.json` with 4/4 signed URL probes validator-visible; retention/cleanup evidence still required; object retention policy, expired export cleanup, orphan cleanup, and audit refs remain required before the object-storage gate can close.",
     "Operational risks: staging backup/restore, rollback, load, and post-deploy smoke evidence are absent; staging observability runtime evidence is attached but does not close the combined restore/load gate.",
+    "Object-storage risks: signed URL staging evidence is attached, but retention/cleanup runtime evidence still blocks the object-storage release gate.",
     "Conditions: CI, staging smoke, restore/load/rollback evidence, security scans, release owner, and gate fixture blockers must be cleared before any private beta or production decision.",
     "## Open Rev2 Runtime Checklist",
     "Private Beta/Staging external-user runtime evidence 通过",
@@ -430,6 +433,7 @@ bash -n scripts/docker_build_smoke.sh
 bash -n scripts/staging_smoke.sh
 bash -n scripts/observability_smoke.sh
 bash -n scripts/staging_observability_backup_load_smoke.sh
+bash -n scripts/staging_object_storage_signed_url_smoke.sh
 bash -n scripts/security_scan_smoke.sh
 bash -n scripts/release_evidence_bundle_smoke.sh
 ops_validate_dir="$(mktemp -d)"
@@ -445,6 +449,7 @@ if [[ "$staging_obl_status" -ne 2 ]]; then
   printf 'staging observability/backup/load preflight must exit 2 with missing evidence, got %s\n' "$staging_obl_status" >&2
   exit 1
 fi
+RUN_ID="stage0-validate-object-storage-signed-url" OUT_DIR="$ops_validate_dir/object-storage" scripts/staging_object_storage_signed_url_smoke.sh >/dev/null
 DRY_RUN=1 OUT_DIR="$ops_validate_dir/security" scripts/security_scan_smoke.sh >/dev/null
 set +e
 DRY_RUN=1 OUT_DIR="$ops_validate_dir/release-bundle" scripts/release_evidence_bundle_smoke.sh >/dev/null
@@ -610,10 +615,10 @@ if report.get("missing_blockers") != ["staging_observability_restore_load_missin
 if report.get("overall_verified") is not False:
     raise SystemExit("missing-evidence preflight must set overall_verified=false")
 release_gate_fixture = report.get("release_gate_fixture", {})
-if release_gate_fixture.get("verified_for_aggregate_closure") is not False:
-    raise SystemExit("missing-evidence preflight must keep aggregate closure blocked by current gate fixture")
-if "private_beta_gate_fixture_not_updated" not in report.get("closure_blockers", []):
-    raise SystemExit("missing-evidence preflight must name the private beta gate fixture closure blocker")
+if release_gate_fixture.get("verified_for_aggregate_closure") is not True:
+    raise SystemExit("missing-evidence preflight must recognize the current gate fixture has already cleared this check")
+if report.get("closure_blockers") != []:
+    raise SystemExit("missing-evidence preflight must be blocked by missing input slots, not by stale gate fixture blockers")
 checks = {check["slot"]: check for check in report.get("checks", [])}
 if set(checks) != expected_slots:
     raise SystemExit(f"preflight checks missing required slots: {checks}")
@@ -686,10 +691,10 @@ if report.get("missing_blockers") != ["staging_observability_restore_load_missin
 if report.get("overall_verified") is not False:
     raise SystemExit("observability-only preflight must set overall_verified=false")
 release_gate_fixture = report.get("release_gate_fixture", {})
-if release_gate_fixture.get("verified_for_aggregate_closure") is not False:
-    raise SystemExit("observability-only preflight must keep aggregate closure blocked by current gate fixture")
-if "private_beta_gate_fixture_not_updated" not in report.get("closure_blockers", []):
-    raise SystemExit("observability-only preflight must name the private beta gate fixture closure blocker")
+if release_gate_fixture.get("verified_for_aggregate_closure") is not True:
+    raise SystemExit("observability-only preflight must recognize the current gate fixture has already cleared this check")
+if report.get("closure_blockers") != []:
+    raise SystemExit("observability-only preflight must be blocked by missing restore/load/post-deploy slots, not by stale gate fixture blockers")
 checks = {check["slot"]: check for check in report.get("checks", [])}
 if checks["observability_evidence"].get("verified") is not True:
     raise SystemExit(f"staging observability evidence should verify: {checks['observability_evidence']}")
@@ -1441,6 +1446,57 @@ if "unverified_release_evidence:rollback_evidence" not in summary["go_no_go"]["b
     raise SystemExit("incomplete rollback evidence must block go/no-go")
 if "unverified_release_evidence:security_scan_evidence" not in summary["go_no_go"]["blocking_reasons"]:
     raise SystemExit("incomplete security scan evidence must block go/no-go")
+PY
+python3 - "$ops_validate_dir/object-storage" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+reports = sorted(Path(sys.argv[1]).glob("*.json"))
+if len(reports) != 1:
+    raise SystemExit("object-storage signed URL smoke must write exactly one report")
+report = json.loads(reports[0].read_text(encoding="utf-8"))
+if report.get("kind") != "object_storage_signed_url":
+    raise SystemExit(f"object-storage signed URL report has wrong kind: {report}")
+if report.get("status") != "pass_with_blockers_preserved":
+    raise SystemExit("object-storage signed URL report must pass while preserving blockers")
+if report.get("release_gate_check_id") != "staging_object_storage_signed_downloads":
+    raise SystemExit("object-storage signed URL report must target the object-storage release check")
+if report.get("do_not_launch_condition_id") != "object_storage_signed_retention_runtime_missing":
+    raise SystemExit("object-storage signed URL report must preserve the object-storage Do-Not-Launch condition")
+areas = {item["area"]: item for item in report.get("coverage", [])}
+expected = {
+    "tenant_scoped_signed_download",
+    "expiry_denial",
+    "direct_object_denial",
+    "cross_tenant_denial",
+}
+if set(areas) != expected:
+    raise SystemExit(f"object-storage signed URL coverage mismatch: {sorted(areas)}")
+for area, item in areas.items():
+    if item.get("status") != "pass":
+        raise SystemExit(f"{area} object-storage coverage must pass")
+    refs = set(item.get("evidence_refs", []))
+    for ref in (
+        "ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json",
+        "ops/evidence/staging/20260527T2115Z-backup-restore.json",
+        "ops/evidence/staging/20260527T2120Z-load.json",
+    ):
+        if ref not in refs:
+            raise SystemExit(f"{area} object-storage coverage missing source ref {ref}")
+retention = report.get("retention_cleanup_gate", {})
+if retention.get("status") != "blocked":
+    raise SystemExit("object-storage signed URL smoke must keep retention cleanup blocked")
+gate = report.get("gate_impact", {})
+if gate.get("can_clear_signed_url_checklist_item") is not True:
+    raise SystemExit("object-storage signed URL smoke must clear only the signed URL subitem")
+if gate.get("can_clear_release_gate_check") is not False:
+    raise SystemExit("object-storage signed URL smoke must not clear the release gate check")
+if gate.get("remaining_release_gate_blockers") != [
+    "staging_object_storage_signed_downloads",
+    "staging_legal_external_user_pages",
+]:
+    raise SystemExit("object-storage signed URL smoke must preserve object-storage and legal blockers")
 PY
 python3 - "$ops_validate_dir/observability" <<'PY'
 import json

@@ -142,6 +142,21 @@ def staging_observability_summary() -> str:
     return f"staging status `{status}` from `{path}` with {passed}/{total} required signals validator-visible"
 
 
+def staging_object_storage_signed_url_summary() -> str:
+    path = ROOT / "ops/evidence/staging/20260527T2130Z-object-storage-signed-url.json"
+    if not path.exists():
+        return "missing"
+    evidence = load_json(path)
+    status = evidence.get("status", "missing")
+    coverage = evidence.get("coverage", [])
+    passed = sum(1 for item in coverage if item.get("status") == "pass")
+    total = len(coverage)
+    return (
+        f"staging status `{status}` from `{path.relative_to(ROOT)}` with {passed}/{total} signed URL probes "
+        "validator-visible; retention/cleanup evidence still required"
+    )
+
+
 def render(release_sha: str, release_tag: str, owner: str, reviewer: str, date: str) -> str:
     private_beta = load_json(PRIVATE_BETA_GATE)
     production = load_json(PRODUCTION_GATE)
@@ -228,6 +243,7 @@ def render(release_sha: str, release_tag: str, owner: str, reviewer: str, date: 
         f"- Observability smoke: local status `{local_status(runtime, 'observability_smoke')}` from `{observability_report}`; {staging_observability_summary()}; private beta still requires staging backup/restore, load, and post-deploy smoke evidence before the combined observability/backup/load gate can close.",
         f"- Backup/restore drill: local status `{local_status(runtime, 'backup_restore')}` from `{backup_report}`; staging JSON must reference the release SHA, set `environment=staging`, set `kind=backup_restore`, record status `passed`, and include passed/validated evidence refs for Postgres restore and exported package/object restore before private beta/production decisions.",
         "- Load evidence: `missing`; staging JSON must reference the release SHA, set `environment=staging`, set `kind=load`, record status `passed`, and include passed/validated evidence refs for `chat_task`, `worker_generation`, `zip_export`, `signed_download`, `crawler_throttle`, `quota_contention`, and `workspace_rendering` before private beta/production decisions.",
+        f"- Object-storage signed URL: {staging_object_storage_signed_url_summary()}; object retention policy, expired export cleanup, orphan cleanup, and audit refs remain required before the object-storage gate can close.",
         "- Rollback drill: `missing`; staging JSON must reference the release SHA, set `environment=staging`, set `kind=rollback`, record status `passed` or `validated`, and include passed/validated evidence refs for image rollback, feature flag rollback, migration compatibility, worker drain, and post-rollback smoke.",
         f"- Security scan: local status `{local_status(runtime, 'security_scan_smoke')}` from `{security_report}`; staging JSON must reference the release SHA, set `environment=staging`, set `kind=security_scan`, record status `passed`, and include passed/validated evidence refs for dependency, image/container, and committed-secret scans before private beta/production decisions.",
         "",
@@ -247,6 +263,7 @@ def render(release_sha: str, release_tag: str, owner: str, reviewer: str, date: 
         f"- Open production blockers: `{PRODUCTION_GATE.relative_to(ROOT)}`: {comma_or_missing(production_blockers)}.",
         f"- Production do-not-launch conditions present: {comma_or_missing(production_dnl)}.",
         "- Operational risks: staging backup/restore, rollback, load, and post-deploy smoke evidence are absent; staging observability runtime evidence is attached but does not close the combined restore/load gate.",
+        "- Object-storage risks: signed URL staging evidence is attached, but retention/cleanup runtime evidence still blocks the object-storage release gate.",
         "- User/support risks: external-user legal/support pages and support readiness remain blocked by Rev2 gate evidence.",
         "",
         "## Open Rev2 Runtime Checklist",

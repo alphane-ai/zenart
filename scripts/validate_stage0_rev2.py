@@ -64,6 +64,9 @@ STAGING_OBSERVABILITY_BACKUP_LOAD_PREFLIGHT_EVIDENCE = (
     / "staging"
     / "20260527T013207Z-staging-observability-backup-load-36222.json"
 )
+STAGING_OBJECT_STORAGE_SIGNED_URL_EVIDENCE = (
+    ROOT / "ops" / "evidence" / "staging" / "20260527T2130Z-object-storage-signed-url.json"
+)
 STAGING_QUOTA_RATE_LIMIT_SPEND_CAP_EVIDENCE = (
     ROOT / "ops" / "evidence" / "staging" / "20260527T2015Z-quota-rate-limit-spend-cap.json"
 )
@@ -887,7 +890,7 @@ PRIVATE_BETA_STAGING_RUNTIME_OPEN_CHECK_ITEMS = {
         "staging_object_storage_signed_downloads",
     },
     "Private Beta/Staging object storage signed URL runtime evidence 通过：staging evidence proves tenant-scoped signed download, expiry, direct-object denial, and cross-tenant denial under `ops/evidence/staging/`。": {
-        "staging_object_storage_signed_downloads",
+        "staging_object_storage_signed_url_subitem",
     },
     "Private Beta/Staging object retention/cleanup runtime evidence 通过：staging evidence proves retention policy, expired export cleanup, orphan cleanup, and audit refs under `ops/evidence/staging/`。": {
         "staging_object_storage_signed_downloads",
@@ -1496,6 +1499,7 @@ CLOSED_CHECK_LEVEL_RUNTIME_ITEMS = {
     "Private Beta/Staging eval/QA/safety enforcement runtime evidence 通过。",
     "Private Beta/Staging quota/rate-limit/spend-cap runtime evidence 通过。",
     "Private Beta/Staging support/retry/abuse runtime evidence 通过。",
+    "Private Beta/Staging object storage signed URL runtime evidence 通过：staging evidence proves tenant-scoped signed download, expiry, direct-object denial, and cross-tenant denial under `ops/evidence/staging/`。",
     "Private Beta/Staging observability/backup/load runtime evidence 通过。",
     "Private Beta/Staging backup/restore runtime evidence 通过：staging evidence proves Postgres restore and object restore entries required by `staging_observability_backup_load` preflight。",
     "Private Beta/Staging load runtime evidence 通过：staging evidence proves chat/task、worker generation、ZIP export、signed download、crawler throttle、quota contention、workspace rendering load entries required by `staging_observability_backup_load` preflight。",
@@ -1519,6 +1523,7 @@ REQUIRED_OPEN_ITEMS -= {
     STAGING_OBSERVABILITY_RUNTIME_CHECKLIST_ITEM,
     "Private Beta/Staging eval/QA/safety enforcement runtime evidence 通过。",
     "Private Beta/Staging quota/rate-limit/spend-cap runtime evidence 通过。",
+    "Private Beta/Staging object storage signed URL runtime evidence 通过：staging evidence proves tenant-scoped signed download, expiry, direct-object denial, and cross-tenant denial under `ops/evidence/staging/`。",
     "Private Beta/Staging observability/backup/load runtime evidence 通过。",
     "Private Beta/Staging backup/restore runtime evidence 通过：staging evidence proves Postgres restore and object restore entries required by `staging_observability_backup_load` preflight。",
     "Private Beta/Staging load runtime evidence 通过：staging evidence proves chat/task、worker generation、ZIP export、signed download、crawler throttle、quota contention、workspace rendering load entries required by `staging_observability_backup_load` preflight。",
@@ -4548,6 +4553,103 @@ def validate_staging_quota_rate_limit_spend_cap_evidence() -> None:
         require(evidence[key], f"quota/rate-limit/spend-cap evidence must include {key}")
 
 
+def validate_staging_object_storage_signed_url_evidence() -> None:
+    evidence = load_json(STAGING_OBJECT_STORAGE_SIGNED_URL_EVIDENCE)
+    require(
+        evidence["schema_version"] == "stage0.rev2.staging.object_storage_signed_url",
+        "staging object-storage signed URL evidence schema mismatch",
+    )
+    require(evidence["environment"] == "staging", "object-storage signed URL evidence must be staging-scoped")
+    require(
+        evidence["status"] == "pass_with_blockers_preserved",
+        "object-storage signed URL evidence must preserve retention cleanup and legal/support blockers",
+    )
+    require(
+        evidence["kind"] == "object_storage_signed_url",
+        "object-storage signed URL evidence must declare kind=object_storage_signed_url",
+    )
+    require(
+        evidence["release_gate_check_id"] == "staging_object_storage_signed_downloads",
+        "object-storage signed URL evidence must target the private beta object-storage release-gate check",
+    )
+    require(
+        evidence["do_not_launch_condition_id"] == "object_storage_signed_retention_runtime_missing",
+        "object-storage signed URL evidence must preserve the matching object-storage Do-Not-Launch condition",
+    )
+    require(
+        evidence["release_sha"] == load_json(STAGING_OBSERVABILITY_RUNTIME_EVIDENCE)["release_sha"],
+        "object-storage signed URL evidence must be release-SHA-bound to staging runtime evidence",
+    )
+    require(
+        evidence["source_evidence"] == {
+            "backup_restore_evidence": "ops/evidence/staging/20260527T2115Z-backup-restore.json",
+            "load_evidence": "ops/evidence/staging/20260527T2120Z-load.json",
+            "post_deploy_smoke_evidence": "ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json",
+        },
+        "object-storage signed URL evidence must cite exact staging source evidence files",
+    )
+    required_areas = {
+        "tenant_scoped_signed_download",
+        "expiry_denial",
+        "direct_object_denial",
+        "cross_tenant_denial",
+    }
+    coverage = evidence["coverage"]
+    require(
+        {item["area"] for item in coverage} == required_areas,
+        "object-storage signed URL evidence must cover tenant scope, expiry, direct-object denial, and cross-tenant denial",
+    )
+    for item in coverage:
+        require(item["status"] == "pass", f"{item['area']} signed URL coverage must pass")
+        combined = json.dumps(item, ensure_ascii=False).lower()
+        for token in ["staging", "signed", "ops/evidence/staging/20260527t2125z-post-deploy-smoke.json"]:
+            require(token in combined, f"{item['area']} signed URL coverage missing {token}")
+        if item["area"] == "tenant_scoped_signed_download":
+            require("tenant scoped signed download" in combined, "tenant-scoped signed download proof missing")
+        if item["area"] == "expiry_denial":
+            require("expiry denial" in combined, "expiry denial proof missing")
+        if item["area"] == "direct_object_denial":
+            require("direct object denial" in combined, "direct object denial proof missing")
+        if item["area"] == "cross_tenant_denial":
+            require("cross tenant denial" in combined, "cross-tenant denial proof missing")
+    retention_cleanup_gate = evidence["retention_cleanup_gate"]
+    require(retention_cleanup_gate["status"] == "blocked", "retention cleanup must remain blocked")
+    require(
+        "expired export cleanup" in retention_cleanup_gate["reason"]
+        and "orphan cleanup" in retention_cleanup_gate["reason"],
+        "retention cleanup blocker must require expired export and orphan cleanup evidence",
+    )
+    gate_impact = evidence["gate_impact"]
+    require(
+        gate_impact["check_level_item"]
+        == "Private Beta/Staging object storage signed URL runtime evidence 通过：staging evidence proves tenant-scoped signed download, expiry, direct-object denial, and cross-tenant denial under `ops/evidence/staging/`。",
+        "object-storage signed URL evidence must name the exact subitem it can clear",
+    )
+    require(
+        gate_impact["can_clear_signed_url_checklist_item"] is True,
+        "object-storage signed URL evidence must explicitly clear only the signed URL subitem",
+    )
+    require(
+        gate_impact["can_clear_release_gate_check"] is False,
+        "object-storage signed URL evidence must not clear the full object-storage release gate",
+    )
+    require(
+        gate_impact["remaining_object_storage_blockers"] == [
+            "staging object retention/cleanup runtime evidence",
+        ],
+        "object-storage signed URL evidence must keep retention cleanup as the remaining object-storage blocker",
+    )
+    require(
+        gate_impact["remaining_release_gate_blockers"] == [
+            "staging_object_storage_signed_downloads",
+            "staging_legal_external_user_pages",
+        ],
+        "object-storage signed URL evidence must preserve object-storage and legal/support release blockers",
+    )
+    for key in ["runtime_request_ids", "object_ids", "tenant_ids", "audit_refs"]:
+        require(evidence[key], f"object-storage signed URL evidence must include {key}")
+
+
 def validate_staging_eval_qa_safety_evidence() -> None:
     evidence = load_json(STAGING_EVAL_QA_SAFETY_EVIDENCE)
     require(
@@ -5614,6 +5716,7 @@ def validate_release_gate_evidence() -> None:
         for item, check_ids in PRIVATE_BETA_STAGING_RUNTIME_OPEN_CHECK_ITEMS.items()
         if item in blueprint_checked and item not in PARTIAL_RUNTIME_ITEMS_THAT_DO_NOT_PASS_RELEASE_CHECKS
         for check_id in check_ids
+        if check_id in RELEASE_GATE_REQUIRED_CHECKS["private_beta_staging"]
     }
     for check_id in RELEASE_GATE_REQUIRED_CHECKS["private_beta_staging"]:
         expected_status = "pass" if check_id in closed_private_beta_runtime_checks else "blocked"
@@ -6630,6 +6733,7 @@ def validate_launch_readiness_split_contracts() -> None:
             "Private Beta/Staging eval/QA/safety enforcement runtime evidence 通过。",
             "Private Beta/Staging quota/rate-limit/spend-cap runtime evidence 通过。",
             "Private Beta/Staging support/retry/abuse runtime evidence 通过。",
+            "Private Beta/Staging object storage signed URL runtime evidence 通过：staging evidence proves tenant-scoped signed download, expiry, direct-object denial, and cross-tenant denial under `ops/evidence/staging/`。",
             "staging request id propagation runtime evidence 通过。",
             "staging structured JSON logs runtime evidence 通过。",
             "staging OpenTelemetry traces runtime evidence 通过。",
@@ -6931,6 +7035,7 @@ def validate_ops_ci_and_drill_evidence() -> None:
         ROOT / "scripts" / "staging_smoke.sh",
         ROOT / "scripts" / "observability_smoke.sh",
         ROOT / "scripts" / "staging_observability_backup_load_smoke.sh",
+        ROOT / "scripts" / "staging_object_storage_signed_url_smoke.sh",
         ROOT / "scripts" / "security_scan_smoke.sh",
     ]:
         require(path.exists(), f"missing ops evidence file: {path.relative_to(ROOT)}")
@@ -6957,6 +7062,7 @@ def validate_ops_ci_and_drill_evidence() -> None:
         "bash -n scripts/docker_build_smoke.sh",
         "bash -n scripts/staging_smoke.sh",
         "bash -n scripts/observability_smoke.sh",
+        "bash -n scripts/staging_object_storage_signed_url_smoke.sh",
         "bash -n scripts/security_scan_smoke.sh",
         "ops/evidence/stage0_environment_evidence.json",
     }
@@ -7259,6 +7365,7 @@ def validate_ops_ci_and_drill_evidence() -> None:
         "staging_smoke": "scripts/staging_smoke.sh",
         "observability_smoke": "scripts/observability_smoke.sh",
         "staging_observability_backup_load_smoke": "scripts/staging_observability_backup_load_smoke.sh",
+        "staging_object_storage_signed_url_smoke": "scripts/staging_object_storage_signed_url_smoke.sh",
         "security_scan_smoke": "scripts/security_scan_smoke.sh",
     }.items():
         require(key in scripts, f"release ops evidence missing {key}")
@@ -7278,6 +7385,16 @@ def validate_ops_ci_and_drill_evidence() -> None:
         )
         or "passes the private beta staging_observability_backup_load evidence bundle" in runtime_status,
         "release ops evidence must record the latest staging observability/backup/load preflight state",
+    )
+    object_storage_signed = scripts["staging_object_storage_signed_url_smoke"]
+    require(
+        object_storage_signed.get("latest_signed_url_evidence") == rel(STAGING_OBJECT_STORAGE_SIGNED_URL_EVIDENCE),
+        "release ops evidence must cite the latest staging object-storage signed URL evidence",
+    )
+    require(
+        "tenant-scoped signed download" in object_storage_signed.get("runtime_status", "")
+        and "retention cleanup blockers" in object_storage_signed.get("runtime_status", ""),
+        "release ops evidence must preserve object-storage signed URL and retention cleanup split",
     )
     policy = release_ops["checklist_policy"]
     for key in [
@@ -7321,6 +7438,7 @@ def main() -> int:
         validate_abuse_evidence_split_contracts,
         validate_staging_auth_rbac_tenant_audit_evidence,
         validate_staging_brief_upload_confirmation_evidence,
+        validate_staging_object_storage_signed_url_evidence,
         validate_staging_quota_rate_limit_spend_cap_evidence,
         validate_staging_support_retry_abuse_evidence,
         validate_staging_eval_qa_safety_evidence,

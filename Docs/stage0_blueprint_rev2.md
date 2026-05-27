@@ -1993,7 +1993,7 @@ main 合并前必须通过：
 - [x] Private Beta/Staging auth/RBAC/tenant/audit runtime evidence 通过。
 - [x] Private Beta/Staging brief/upload/confirmation runtime evidence 通过。
 - [ ] Private Beta/Staging object storage signed download/retention runtime evidence 通过。
-- [ ] Private Beta/Staging object storage signed URL runtime evidence 通过：staging evidence proves tenant-scoped signed download, expiry, direct-object denial, and cross-tenant denial under `ops/evidence/staging/`。
+- [x] Private Beta/Staging object storage signed URL runtime evidence 通过：staging evidence proves tenant-scoped signed download, expiry, direct-object denial, and cross-tenant denial under `ops/evidence/staging/`。
 - [ ] Private Beta/Staging object retention/cleanup runtime evidence 通过：staging evidence proves retention policy, expired export cleanup, orphan cleanup, and audit refs under `ops/evidence/staging/`。
 - [x] Private Beta/Staging quota/rate-limit/spend-cap runtime evidence 通过。
 - [x] Private Beta/Staging support/retry/abuse runtime evidence 通过。

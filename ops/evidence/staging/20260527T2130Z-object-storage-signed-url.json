@@ -1,0 +1,112 @@
+{
+  "audit_refs": [
+    "au-007",
+    "au-015"
+  ],
+  "blueprint_source": "Docs/stage0_blueprint_rev2.md",
+  "coverage": [
+    {
+      "area": "tenant_scoped_signed_download",
+      "evidence_refs": [
+        "ops/evidence/staging/20260527T2115Z-backup-restore.json",
+        "ops/evidence/staging/20260527T2120Z-load.json",
+        "ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json"
+      ],
+      "runtime_probe": "Staging object-storage signed URL evidence verifies tenant scoped signed download from release-SHA-bound staging smoke artifacts.",
+      "source_entries": [
+        "post_deploy_signed_download",
+        "backup_object_restore",
+        "load_signed_download"
+      ],
+      "status": "pass"
+    },
+    {
+      "area": "expiry_denial",
+      "evidence_refs": [
+        "ops/evidence/staging/20260527T2115Z-backup-restore.json",
+        "ops/evidence/staging/20260527T2120Z-load.json",
+        "ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json"
+      ],
+      "runtime_probe": "Staging object-storage signed URL evidence verifies expiry denial from release-SHA-bound staging smoke artifacts.",
+      "source_entries": [
+        "post_deploy_signed_download",
+        "load_signed_download"
+      ],
+      "status": "pass"
+    },
+    {
+      "area": "direct_object_denial",
+      "evidence_refs": [
+        "ops/evidence/staging/20260527T2115Z-backup-restore.json",
+        "ops/evidence/staging/20260527T2120Z-load.json",
+        "ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json"
+      ],
+      "runtime_probe": "Staging object-storage signed URL evidence verifies direct object denial from release-SHA-bound staging smoke artifacts.",
+      "source_entries": [
+        "post_deploy_signed_download",
+        "backup_object_restore",
+        "load_signed_download"
+      ],
+      "status": "pass"
+    },
+    {
+      "area": "cross_tenant_denial",
+      "evidence_refs": [
+        "ops/evidence/staging/20260527T2115Z-backup-restore.json",
+        "ops/evidence/staging/20260527T2120Z-load.json",
+        "ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json"
+      ],
+      "runtime_probe": "Staging object-storage signed URL evidence verifies cross tenant denial from release-SHA-bound staging smoke artifacts.",
+      "source_entries": [
+        "post_deploy_signed_download"
+      ],
+      "status": "pass"
+    }
+  ],
+  "do_not_launch_condition_id": "object_storage_signed_retention_runtime_missing",
+  "environment": "staging",
+  "evidence_id": "20260527T2130Z-object-storage-signed-url",
+  "gate_impact": {
+    "aggregate_private_beta_gate_status": "blocked_by_object_retention_cleanup_and_legal_support_visibility",
+    "can_clear_release_gate_check": false,
+    "can_clear_signed_url_checklist_item": true,
+    "check_level_item": "Private Beta/Staging object storage signed URL runtime evidence \u901a\u8fc7\uff1astaging evidence proves tenant-scoped signed download, expiry, direct-object denial, and cross-tenant denial under `ops/evidence/staging/`\u3002",
+    "remaining_object_storage_blockers": [
+      "staging object retention/cleanup runtime evidence"
+    ],
+    "remaining_release_gate_blockers": [
+      "staging_object_storage_signed_downloads",
+      "staging_legal_external_user_pages"
+    ]
+  },
+  "kind": "object_storage_signed_url",
+  "object_ids": [
+    "ex-909"
+  ],
+  "release_gate_check_id": "staging_object_storage_signed_downloads",
+  "release_sha": "d3b1107c33dc40b8936f28549e06553fbd7b104a",
+  "retention_cleanup_gate": {
+    "reason": "staging retention policy, expired export cleanup, orphan cleanup, and audit refs still require separate object-retention cleanup runtime evidence before the object-storage release gate can pass",
+    "required_checklist_item": "Private Beta/Staging object retention/cleanup runtime evidence \u901a\u8fc7\uff1astaging evidence proves retention policy, expired export cleanup, orphan cleanup, and audit refs under `ops/evidence/staging/`\u3002",
+    "status": "blocked"
+  },
+  "runtime_request_ids": [
+    "staging-object-storage-signed-url-20260527T2130Z-signed-download",
+    "staging-object-storage-signed-url-20260527T2130Z-expiry",
+    "staging-object-storage-signed-url-20260527T2130Z-direct-object-denial",
+    "staging-object-storage-signed-url-20260527T2130Z-cross-tenant-denial"
+  ],
+  "schema_version": "stage0.rev2.staging.object_storage_signed_url",
+  "source_evidence": {
+    "backup_restore_evidence": "ops/evidence/staging/20260527T2115Z-backup-restore.json",
+    "load_evidence": "ops/evidence/staging/20260527T2120Z-load.json",
+    "post_deploy_smoke_evidence": "ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json"
+  },
+  "status": "pass_with_blockers_preserved",
+  "tenant_ids": [
+    "tenant-alpha",
+    "tenant-beta"
+  ],
+  "validated_at": "2026-05-27T21:30:00Z",
+  "validated_by_role": "admin_operator"
+}

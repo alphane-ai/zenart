@@ -16,7 +16,7 @@
     {
       "check_id": "staging_object_storage_signed_downloads",
       "status": "blocked",
-      "evidence_ref": "Local object storage, S3-compatible config, object metadata, signed URL, cleanup, and integration-test evidence exists, but ops/evidence/staging/ production-like staging object storage signed-download and retention runtime evidence is absent"
+      "evidence_ref": "Staging object storage signed URL runtime evidence passed in ops/evidence/staging/20260527T2130Z-object-storage-signed-url.json, proving tenant-scoped signed download, expiry, direct-object denial, and cross-tenant denial from ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json, ops/evidence/staging/20260527T2115Z-backup-restore.json, and ops/evidence/staging/20260527T2120Z-load.json; the full object-storage gate remains blocked until ops/evidence/staging/ retention policy, expired export cleanup, orphan cleanup, and audit refs are present"
     },
     {
       "check_id": "staging_quota_rate_limit_spend_cap",
@@ -72,7 +72,7 @@
       "condition_id": "object_storage_signed_retention_runtime_missing",
       "blueprint_condition": "Object storage 缺 tenant-scoped signed access、retention policy、cleanup 或 cross-tenant denial tests。",
       "is_present": true,
-      "evidence_ref": "backend and docker-compose.yml local object storage tests exist, but ops/evidence/staging/ production-like signed access/retention runtime evidence remains absent"
+      "evidence_ref": "ops/evidence/staging/20260527T2130Z-object-storage-signed-url.json clears staging signed access and cross-tenant denial runtime evidence, but ops/evidence/staging/ object retention policy, expired export cleanup, orphan cleanup, and audit refs remain missing"
     },
     {
       "condition_id": "support_abuse_runtime_missing",
@@ -121,7 +121,7 @@
       "object_storage_signed_retention_runtime_missing",
       "external_user_legal_pages_missing"
     ],
-    "evidence_ref": "fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json remains no-go while staging_object_storage_signed_downloads and staging_legal_external_user_pages are blocked and object_storage_signed_retention_runtime_missing and external_user_legal_pages_missing remain active after staging_observability_backup_load passed in ops/evidence/staging/20260527T013207Z-staging-observability-backup-load-36222.json with logs, metrics, traces, alerts, dashboard, restore, load, and post-deploy smoke evidence from ops/evidence/staging/20260527T1830Z-observability-runtime.json, ops/evidence/staging/20260527T2115Z-backup-restore.json, ops/evidence/staging/20260527T2120Z-load.json, and ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json"
+    "evidence_ref": "fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json remains no-go while staging_object_storage_signed_downloads and staging_legal_external_user_pages are blocked and object_storage_signed_retention_runtime_missing and external_user_legal_pages_missing remain active; object-storage signed URL evidence passed in ops/evidence/staging/20260527T2130Z-object-storage-signed-url.json but retention cleanup remains missing, and staging_observability_backup_load passed in ops/evidence/staging/20260527T013207Z-staging-observability-backup-load-36222.json with logs, metrics, traces, alerts, dashboard, restore, load, and post-deploy smoke evidence from ops/evidence/staging/20260527T1830Z-observability-runtime.json, ops/evidence/staging/20260527T2115Z-backup-restore.json, ops/evidence/staging/20260527T2120Z-load.json, and ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json"
   },
   "provenance": {
     "blueprint_sections": [
