@@ -7,6 +7,7 @@ const abuseRuntimeSource = readFileSync(new URL("../lib/abuse-runtime.ts", impor
 const rbacRuntimeSource = readFileSync(new URL("../lib/rbac-runtime.ts", import.meta.url), "utf8");
 const exportRuntimeSource = readFileSync(new URL("../lib/export-runtime.ts", import.meta.url), "utf8");
 const failedTaskRuntimeSource = readFileSync(new URL("../lib/failed-task-runtime.ts", import.meta.url), "utf8");
+const regressionFixtureRuntimeSource = readFileSync(new URL("../lib/regression-fixture-runtime.ts", import.meta.url), "utf8");
 const crawlerRuntimeSource = readFileSync(new URL("../lib/crawler-runtime.ts", import.meta.url), "utf8");
 const objectStorageRuntimeSource = readFileSync(new URL("../lib/object-storage-runtime.ts", import.meta.url), "utf8");
 const repoRoot = new URL("../../", import.meta.url);
@@ -180,6 +181,19 @@ const parseFailedTaskRuntime = () => {
   return Function(`${runtimeSource}\nreturn { buildFailedTaskRuntimeDecisions };`)();
 };
 
+const parseRegressionFixtureRuntime = () => {
+  const runtimeSource = regressionFixtureRuntimeSource
+    .replace(/^import type[\s\S]*?from "@\/lib\/types";\n\n/, "")
+    .replace(/type RegressionFixtureRuntimeInput = [\s\S]*?;\n\n/, "")
+    .replaceAll(/export function (\w+)/g, "function $1")
+    .replaceAll(/function highRiskGateStatus\(fixture: RegressionFixture\): RegressionFixtureRuntimeSummary\["highRiskGateStatus"\]/g, "function highRiskGateStatus(fixture)")
+    .replaceAll(/function releaseGateDisposition\(\n  fixture: RegressionFixture,\n  blockerCodes: string\[\]\n\): RegressionFixtureRuntimeSummary\["releaseGateDisposition"\]/g, "function releaseGateDisposition(fixture, blockerCodes)")
+    .replaceAll(/}: RegressionFixtureRuntimeInput\)/g, "})")
+    .replaceAll(/: string\[\]/g, "")
+    .replaceAll(/: RegressionFixtureRuntimeSummary\[\]/g, "");
+  return Function(`${runtimeSource}\nreturn { buildRegressionFixtureRuntimeSummaries };`)();
+};
+
 const parseCrawlerRuntime = () => {
   const runtimeSource = crawlerRuntimeSource
     .replace(/^import type[\s\S]*?from "@\/lib\/types";\n\n/, "")
@@ -348,6 +362,7 @@ const roleOrder = new Map([
   ["admin_superadmin", 4]
 ]);
 const { buildFailedTaskRuntimeDecisions } = parseFailedTaskRuntime();
+const { buildRegressionFixtureRuntimeSummaries } = parseRegressionFixtureRuntime();
 const { buildCrawlerGovernanceRuntimeDecisions } = parseCrawlerRuntime();
 const { buildStagingObjectStorageRetentionCleanupEvidence } = parseObjectStorageRuntime();
 
@@ -950,6 +965,129 @@ test("admin bad samples convert into regression fixtures before release gates pa
       );
     }
   }
+});
+
+test("admin regression fixture runtime summaries gate bad-sample release use", () => {
+  const summaries = buildRegressionFixtureRuntimeSummaries({
+    fixtures: regressionFixtures,
+    feedbackItems,
+    supportTickets,
+    exportJobs,
+    failedTaskControls,
+    skillCanaryMetrics,
+    auditEvents
+  });
+  assert.equal(summaries.length, regressionFixtures.length, "each regression fixture needs one runtime summary");
+
+  const summaryByFixture = new Map(summaries.map((summary) => [summary.fixtureId, summary]));
+  const brandSummary = summaryByFixture.get("reg-brand-similarity-fb-203");
+  const exportRetrySummary = summaryByFixture.get("reg-failed-task-retry-task-export-489");
+  const exportManifestSummary = summaryByFixture.get("reg-export-manifest-sup-2204");
+  const crawlerCancelSummary = summaryByFixture.get("reg-failed-task-cancel-task-crawler-019");
+  const safetySummary = summaryByFixture.get("reg-safety-policy-miss-fb-222");
+  assert.ok(brandSummary, "brand bad-sample summary is missing");
+  assert.ok(exportRetrySummary, "failed task retry summary is missing");
+  assert.ok(exportManifestSummary, "support export manifest summary is missing");
+  assert.ok(crawlerCancelSummary, "crawler cancel summary is missing");
+  assert.ok(safetySummary, "safety policy bad-sample summary is missing");
+
+  for (const summary of summaries) {
+    assert.equal(summary.sourceLinkStatus, "linked", `${summary.fixtureId} needs linked source evidence`);
+    assert.equal(summary.fixturePathStatus, "declared", `${summary.fixtureId} needs a declared regression fixture path`);
+    assert.equal(summary.canaryMetricStatus, "linked", `${summary.fixtureId} needs linked canary metric evidence`);
+    assert.equal(summary.auditStatus, "attached", `${summary.fixtureId} needs attached immutable audit evidence`);
+    assert.ok(summary.operatorAction.length > 80, `${summary.fixtureId} needs concrete operator action`);
+    assert.notEqual(summary.releaseGateDisposition, "candidate_only", `${summary.fixtureId} cannot be candidate-only after conversion`);
+
+    if (summary.severity === "high" || summary.severity === "critical") {
+      assert.equal(
+        summary.highRiskGateStatus,
+        "blocks_pre_production",
+        `${summary.fixtureId} high-risk fixture must block before production launch`
+      );
+    }
+  }
+
+  assert.equal(brandSummary.releaseGateDisposition, "release_blocking");
+  assert.equal(brandSummary.status, "eval_blocking");
+  assert.equal(safetySummary.releaseGateDisposition, "release_blocking");
+  assert.equal(safetySummary.requiredGate, "prompt_activation");
+  assert.equal(crawlerCancelSummary.releaseGateDisposition, "release_blocking");
+  assert.equal(crawlerCancelSummary.status, "eval_blocking");
+  assert.equal(exportRetrySummary.releaseGateDisposition, "gate_ready");
+  assert.equal(exportManifestSummary.releaseGateDisposition, "gate_ready");
+
+  const missingAudit = buildRegressionFixtureRuntimeSummaries({
+    fixtures: [
+      {
+        ...regressionFixtures.find((fixture) => fixture.id === "reg-failed-task-retry-task-export-489"),
+        linkedAuditRef: "au-missing"
+      }
+    ],
+    feedbackItems,
+    supportTickets,
+    exportJobs,
+    failedTaskControls,
+    skillCanaryMetrics,
+    auditEvents
+  })[0];
+  assert.equal(missingAudit.auditStatus, "missing_audit");
+  assert.equal(missingAudit.releaseGateDisposition, "release_blocking");
+  assert.ok(missingAudit.blockerCodes.includes("missing_audit_ref"));
+
+  const missingSource = buildRegressionFixtureRuntimeSummaries({
+    fixtures: [
+      {
+        ...regressionFixtures.find((fixture) => fixture.id === "reg-export-manifest-sup-2204"),
+        sourceFeedbackId: "sup-missing"
+      }
+    ],
+    feedbackItems,
+    supportTickets,
+    exportJobs,
+    failedTaskControls,
+    skillCanaryMetrics,
+    auditEvents
+  })[0];
+  assert.equal(missingSource.sourceLinkStatus, "missing_source");
+  assert.equal(missingSource.releaseGateDisposition, "release_blocking");
+  assert.ok(missingSource.blockerCodes.includes("missing_source_link"));
+
+  const lateHighRiskGate = buildRegressionFixtureRuntimeSummaries({
+    fixtures: [
+      {
+        ...regressionFixtures.find((fixture) => fixture.id === "reg-brand-similarity-fb-203"),
+        requiredGate: "production_launch"
+      }
+    ],
+    feedbackItems,
+    supportTickets,
+    exportJobs,
+    failedTaskControls,
+    skillCanaryMetrics,
+    auditEvents
+  })[0];
+  assert.equal(lateHighRiskGate.highRiskGateStatus, "late_gate");
+  assert.equal(lateHighRiskGate.releaseGateDisposition, "release_blocking");
+  assert.ok(lateHighRiskGate.blockerCodes.includes("high_risk_fixture_blocks_too_late"));
+
+  const invalidFixturePath = buildRegressionFixtureRuntimeSummaries({
+    fixtures: [
+      {
+        ...regressionFixtures.find((fixture) => fixture.id === "reg-mobile-readability-fb-211"),
+        fixturePath: "Docs/not-a-regression.json"
+      }
+    ],
+    feedbackItems,
+    supportTickets,
+    exportJobs,
+    failedTaskControls,
+    skillCanaryMetrics,
+    auditEvents
+  })[0];
+  assert.equal(invalidFixturePath.fixturePathStatus, "invalid_path");
+  assert.equal(invalidFixturePath.releaseGateDisposition, "release_blocking");
+  assert.ok(invalidFixturePath.blockerCodes.includes("invalid_fixture_path"));
 });
 
 test("analytics reports cover product funnel and operational go/no-go metrics", () => {

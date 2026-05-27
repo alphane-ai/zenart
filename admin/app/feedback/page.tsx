@@ -1,14 +1,20 @@
 import { DataTable } from "@/components/DataTable";
 import { PageHeader } from "@/components/PageHeader";
+import { StatGrid } from "@/components/StatGrid";
 import { StatusBadge } from "@/components/StatusBadge";
-import { getFeedbackItems, getRegressionFixtures } from "@/lib/admin-api";
-import type { FeedbackItem, RegressionFixture } from "@/lib/types";
+import { getFeedbackItems, getRegressionFixtures, getRegressionFixtureRuntimeSummaries } from "@/lib/admin-api";
+import type { FeedbackItem, RegressionFixture, RegressionFixtureRuntimeSummary } from "@/lib/types";
 
 export default async function FeedbackPage() {
-  const [feedback, regressionFixtures] = await Promise.all([
+  const [feedback, regressionFixtures, regressionRuntime] = await Promise.all([
     getFeedbackItems(),
-    getRegressionFixtures()
+    getRegressionFixtures(),
+    getRegressionFixtureRuntimeSummaries()
   ]);
+  const releaseBlockingCount = regressionRuntime.filter((item) => item.releaseGateDisposition === "release_blocking").length;
+  const gateReadyCount = regressionRuntime.filter((item) => item.releaseGateDisposition === "gate_ready").length;
+  const candidateOnlyCount = regressionRuntime.filter((item) => item.releaseGateDisposition === "candidate_only").length;
+  const missingEvidenceCount = regressionRuntime.filter((item) => item.blockerCodes.length > 0).length;
 
   return (
     <>
@@ -37,6 +43,62 @@ export default async function FeedbackPage() {
             { key: "fixture", header: "Regression Fixture", render: (row) => row.regressionFixtureRef },
             { key: "signal", header: "Signal", render: (row) => row.signal },
             { key: "reason", header: "Weighting Reason", render: (row) => row.weightingReason }
+          ]}
+        />
+      </section>
+
+      <StatGrid
+        stats={[
+          {
+            label: "Release Blocking",
+            value: releaseBlockingCount,
+            detail: "Eval-blocking or evidence-incomplete regression fixtures."
+          },
+          {
+            label: "Gate Ready",
+            value: gateReadyCount,
+            detail: "Converted fixtures with linked source, audit, and canary metric evidence."
+          },
+          {
+            label: "Candidate Only",
+            value: candidateOnlyCount,
+            detail: "Samples that cannot influence release decisions yet."
+          },
+          {
+            label: "Evidence Gaps",
+            value: missingEvidenceCount,
+            detail: "Fixtures with missing source, metric, audit, or path evidence."
+          }
+        ]}
+      />
+
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>Regression Fixture Runtime Gates</h3>
+            <p>Runtime summaries keep admin bad samples out of release decisions until source links, fixture declarations, canary metrics, and immutable audit refs are complete.</p>
+          </div>
+        </div>
+        <DataTable<RegressionFixtureRuntimeSummary>
+          rows={regressionRuntime}
+          columns={[
+            { key: "fixture", header: "Fixture", render: (row) => <span className="mono">{row.fixtureId}</span> },
+            { key: "source", header: "Source Link", render: (row) => <StatusBadge value={row.sourceLinkStatus} label={`${row.sourceKind} · ${row.sourceFeedbackId}`} /> },
+            { key: "failure", header: "Failure Mode", render: (row) => row.failureMode },
+            { key: "status", header: "Fixture Status", render: (row) => <StatusBadge value={row.status} label={row.status} /> },
+            { key: "severity", header: "Severity", render: (row) => <StatusBadge value={row.severity} /> },
+            { key: "gate", header: "Required Gate", render: (row) => row.requiredGate },
+            { key: "disposition", header: "Release Gate Disposition", render: (row) => <StatusBadge value={row.releaseGateDisposition} label={row.releaseGateDisposition} /> },
+            { key: "path", header: "Fixture Path", render: (row) => <StatusBadge value={row.fixturePathStatus} label={row.fixturePathStatus} /> },
+            { key: "metric", header: "Canary Metric", render: (row) => <StatusBadge value={row.canaryMetricStatus} label={row.canaryMetricStatus} /> },
+            { key: "audit", header: "Audit", render: (row) => <StatusBadge value={row.auditStatus} label={row.auditStatus} /> },
+            { key: "risk", header: "High Risk Gate", render: (row) => <StatusBadge value={row.highRiskGateStatus} label={row.highRiskGateStatus} /> },
+            {
+              key: "blockers",
+              header: "Blockers",
+              render: (row) => (row.blockerCodes.length > 0 ? row.blockerCodes.join(", ") : "none")
+            },
+            { key: "operator", header: "Operator Action", render: (row) => row.operatorAction }
           ]}
         />
       </section>

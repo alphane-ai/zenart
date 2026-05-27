@@ -57,6 +57,7 @@ import {
 import { buildAbuseQueueRuntime, buildAbuseRuntimeDecisions } from "@/lib/abuse-runtime";
 import { buildCrawlerGovernanceRuntimeDecisions } from "@/lib/crawler-runtime";
 import { buildExportRegenerationRuntimeDecisions } from "@/lib/export-runtime";
+import { buildRegressionFixtureRuntimeSummaries } from "@/lib/regression-fixture-runtime";
 import {
   buildAdminRbacEvidencePacks,
   buildAdminRbacOverrideAttemptDecisions,
@@ -178,6 +179,18 @@ export async function getFeedbackItems() {
 
 export async function getRegressionFixtures() {
   return regressionFixtures;
+}
+
+export async function getRegressionFixtureRuntimeSummaries() {
+  return buildRegressionFixtureRuntimeSummaries({
+    fixtures: regressionFixtures,
+    feedbackItems,
+    supportTickets,
+    exportJobs,
+    failedTaskControls,
+    skillCanaryMetrics,
+    auditEvents
+  });
 }
 
 export async function getProviderHealth() {

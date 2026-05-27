@@ -322,6 +322,28 @@ export type RegressionFixture = {
   reviewerRationale: string;
 };
 
+export type RegressionFixtureRuntimeSummary = {
+  fixtureId: string;
+  sourceFeedbackId: string;
+  sourceKind: RegressionFixture["sourceKind"];
+  failureMode: RegressionFixture["failureMode"];
+  severity: RiskLevel;
+  status: RegressionFixtureStatus;
+  requiredGate: RegressionFixture["requiredGate"];
+  sourceLinkStatus: "linked" | "missing_source";
+  fixturePathStatus: "declared" | "invalid_path";
+  canaryMetricStatus: "linked" | "missing_metric";
+  auditStatus: "attached" | "missing_audit";
+  highRiskGateStatus: "blocks_pre_production" | "late_gate" | "not_high_risk";
+  releaseGateDisposition:
+    | "release_blocking"
+    | "gate_ready"
+    | "candidate_only"
+    | "resolved";
+  blockerCodes: string[];
+  operatorAction: string;
+};
+
 export type AnalyticsReport = {
   id: string;
   name:

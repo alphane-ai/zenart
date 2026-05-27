@@ -470,7 +470,12 @@ test("admin feedback page surfaces bad samples converted to regression fixtures"
 
   for (const token of [
     "Bad Samples to Regression Fixtures",
+    "Regression Fixture Runtime Gates",
     "RegressionFixture",
+    "RegressionFixtureRuntimeSummary",
+    "getRegressionFixtureRuntimeSummaries",
+    "Release Gate Disposition",
+    "High Risk Gate",
     "Expected Assertion",
     "Reviewer Rationale",
     "Canary Metric",
