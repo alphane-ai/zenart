@@ -2,7 +2,7 @@
 
 import JSZip from "jszip";
 import { ExportRecord } from "./contracts";
-import { buildDownloadableExportZipPayloadNames } from "./dev-state";
+import { buildDownloadableExportZipPayloadNames, buildExportWorkflowMetadataPayload } from "./dev-state";
 
 export const buildExportPackageBlob = async (record: ExportRecord) => {
   if (record.format === "pdf-placeholder") {
@@ -53,22 +53,7 @@ export const buildExportPackageBlob = async (record: ExportRecord) => {
     if (!zip.file(requiredPayload)) {
       zip.file(
         requiredPayload,
-        JSON.stringify(
-          {
-            export_id: record.id,
-            output_name: requiredPayload,
-            generated_by: "zenart-web-dev-client",
-            workflow_id: record.manifest.workflow_acceptance?.workflow_id ?? "generic-stage0-export",
-            workflow_fixture_id: record.manifest.workflow_acceptance?.fixture_id ?? "none",
-            provider: "dev-provider",
-            model: "deterministic-local-alpha",
-            prompt_spec: record.manifest.workflow_acceptance?.strategy_taxonomy ?? [],
-            skill: record.manifest.workflow_acceptance?.workflow_id ?? "generic-stage0-export",
-            safety: record.safetyReport.status
-          },
-          null,
-          2
-        )
+        JSON.stringify(buildExportWorkflowMetadataPayload(record, requiredPayload), null, 2)
       );
     }
   }
@@ -83,22 +68,7 @@ export const buildExportPackageBlob = async (record: ExportRecord) => {
 
     zip.file(
       outputName,
-      JSON.stringify(
-        {
-          export_id: record.id,
-          output_name: outputName,
-          generated_by: "zenart-web-dev-client",
-          workflow_id: record.manifest.workflow_acceptance?.workflow_id ?? "generic-stage0-export",
-          workflow_fixture_id: record.manifest.workflow_acceptance?.fixture_id ?? "none",
-          provider: "dev-provider",
-          model: "deterministic-local-alpha",
-          prompt_spec: record.manifest.workflow_acceptance?.strategy_taxonomy ?? [],
-          skill: record.manifest.workflow_acceptance?.workflow_id ?? "generic-stage0-export",
-          safety: record.safetyReport.status
-        },
-        null,
-        2
-      )
+      JSON.stringify(buildExportWorkflowMetadataPayload(record, outputName), null, 2)
     );
   }
 

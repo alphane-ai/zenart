@@ -1078,6 +1078,12 @@ function ExportView({
                     data-package-export-workflow-prompt-spec-metadata-present={String(metadataEvidence.workflowPromptSpecMetadataPresent)}
                     data-package-export-workflow-skill-metadata-present={String(metadataEvidence.workflowSkillMetadataPresent)}
                     data-package-export-workflow-safety-metadata-present={String(metadataEvidence.workflowSafetyMetadataPresent)}
+                    data-package-export-workflow-metadata-generated-by={metadataEvidence.workflowMetadataGeneratedBy}
+                    data-package-export-workflow-metadata-provider={metadataEvidence.workflowMetadataProvider}
+                    data-package-export-workflow-metadata-model={metadataEvidence.workflowMetadataModel}
+                    data-package-export-workflow-prompt-spec-taxonomy={metadataEvidence.workflowPromptSpecTaxonomy.join(",")}
+                    data-package-export-workflow-skill={metadataEvidence.workflowSkill}
+                    data-package-export-workflow-safety={metadataEvidence.workflowSafety}
                   >
                     <h4>Metadata Evidence</h4>
                     <div className="metadata-evidence-grid">
@@ -1092,6 +1098,8 @@ function ExportView({
                       <span>{metadataEvidence.zipPayloadParityStatus} required ZIP parity</span>
                       <span>{metadataEvidence.zipPayloadParityRatio} required payloads present</span>
                       <span>{metadataEvidence.workflowZipPayloadCount}/{metadataEvidence.workflowRequiredFileCount} workflow payloads</span>
+                      <span>{metadataEvidence.workflowMetadataProvider} provider metadata</span>
+                      <span>{metadataEvidence.workflowMetadataModel} model metadata</span>
                     </div>
                     <p>
                       ZIP payload contract: {metadataEvidence.zipPayloadNames.join(", ")}.

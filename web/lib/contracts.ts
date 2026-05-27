@@ -449,6 +449,12 @@ export interface PackageExportMetadataEvidence {
   workflowPromptSpecMetadataPresent: boolean;
   workflowSkillMetadataPresent: boolean;
   workflowSafetyMetadataPresent: boolean;
+  workflowMetadataGeneratedBy: string;
+  workflowMetadataProvider: string;
+  workflowMetadataModel: string;
+  workflowPromptSpecTaxonomy: string[];
+  workflowSkill: string;
+  workflowSafety: string;
 }
 
 export interface ExportZipPayloadSmokeEvidence {

@@ -431,6 +431,15 @@ if (packageExportEvidence.expectedMissingZipPayloadCount !== "0") {
 if (packageExportEvidence.minimumZipPayloadCount !== "6") {
   fail("package/export metadata evidence must assert at least the six required ZIP payloads");
 }
+if (
+  packageExportEvidence.expectedWorkflowMetadata?.generatedBy !== "zenart-web-dev-client" ||
+  packageExportEvidence.expectedWorkflowMetadata?.provider !== "dev-provider" ||
+  packageExportEvidence.expectedWorkflowMetadata?.model !== "deterministic-local-alpha" ||
+  packageExportEvidence.expectedWorkflowMetadata?.skill !== "ecommerce_growth_pack" ||
+  packageExportEvidence.expectedWorkflowMetadata?.safety !== "pass"
+) {
+  fail("package/export metadata evidence must assert provider, model, skill, prompt/spec, and safety metadata values");
+}
 if (!componentSource.includes(packageExportEvidence.payloadAttribute)) {
   fail(`package/export metadata evidence missing payload attribute ${packageExportEvidence.payloadAttribute}`);
 }
@@ -445,6 +454,11 @@ for (const attribute of packageExportEvidence.requiredIdentityAttributes ?? []) 
 for (const payload of packageExportEvidence.requiredPayloads ?? []) {
   if (!JSON.stringify(artifact).includes(payload)) {
     fail(`package/export metadata evidence missing required payload ${payload}`);
+  }
+}
+for (const taxonomy of packageExportEvidence.expectedWorkflowMetadata?.promptSpecTaxonomy ?? []) {
+  if (!devStateSource.includes(taxonomy) && !JSON.stringify(artifact).includes(taxonomy)) {
+    fail(`package/export metadata evidence missing prompt/spec taxonomy ${taxonomy}`);
   }
 }
 

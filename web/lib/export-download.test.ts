@@ -4,6 +4,7 @@ import { DevZenArtClient } from "./api-client";
 import { ExportRecord } from "./contracts";
 import {
   buildDownloadableExportZipPayloadNames,
+  buildExportWorkflowMetadataPayload,
   ecommerceGrowthWorkflowAcceptance,
   requiredExportPackageOutputs
 } from "./dev-state";
@@ -241,6 +242,7 @@ describe("reference upload and export download integration", () => {
       workflow_id: ecommerceGrowthWorkflowAcceptance.workflow_id
     });
     expect(workflowMetadata).toMatchObject({
+      ...buildExportWorkflowMetadataPayload(record, "metadata.json"),
       output_name: "metadata.json",
       workflow_id: ecommerceGrowthWorkflowAcceptance.workflow_id,
       workflow_fixture_id: ecommerceGrowthWorkflowAcceptance.fixture_id,
@@ -251,6 +253,7 @@ describe("reference upload and export download integration", () => {
       safety: "pass"
     });
     expect(traceProvenance).toMatchObject({
+      ...buildExportWorkflowMetadataPayload(record, "trace_provenance.json"),
       output_name: "trace_provenance.json",
       workflow_id: ecommerceGrowthWorkflowAcceptance.workflow_id,
       provider: "dev-provider",

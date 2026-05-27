@@ -264,6 +264,12 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(metadataEvidence).toHaveAttribute("data-package-export-workflow-prompt-spec-metadata-present", "true");
     expect(metadataEvidence).toHaveAttribute("data-package-export-workflow-skill-metadata-present", "true");
     expect(metadataEvidence).toHaveAttribute("data-package-export-workflow-safety-metadata-present", "true");
+    expect(metadataEvidence).toHaveAttribute("data-package-export-workflow-metadata-generated-by", "zenart-web-dev-client");
+    expect(metadataEvidence).toHaveAttribute("data-package-export-workflow-metadata-provider", "dev-provider");
+    expect(metadataEvidence).toHaveAttribute("data-package-export-workflow-metadata-model", "deterministic-local-alpha");
+    expect(metadataEvidence).toHaveAttribute("data-package-export-workflow-prompt-spec-taxonomy", "social_proof");
+    expect(metadataEvidence).toHaveAttribute("data-package-export-workflow-skill", "ecommerce_growth_pack");
+    expect(metadataEvidence).toHaveAttribute("data-package-export-workflow-safety", "pass");
     expect(Number(metadataEvidence?.getAttribute("data-package-export-zip-payload-count"))).toBeGreaterThanOrEqual(6);
     expect(metadataEvidence?.getAttribute("data-package-export-zip-payloads")).toContain("safety-policy-report.json");
     expect(metadataEvidence?.getAttribute("data-package-export-zip-payloads")).toContain("ppt-ready-metadata.json");
@@ -720,7 +726,13 @@ describe("WorkspaceApp user route integration smoke", () => {
         "data-package-export-workflow-fixture-id",
         "data-package-export-workflow-taxonomy-count",
         "data-package-export-workflow-required-file-count",
-        "data-package-export-workflow-zip-payload-count"
+        "data-package-export-workflow-zip-payload-count",
+        "data-package-export-workflow-metadata-generated-by",
+        "data-package-export-workflow-metadata-provider",
+        "data-package-export-workflow-metadata-model",
+        "data-package-export-workflow-prompt-spec-taxonomy",
+        "data-package-export-workflow-skill",
+        "data-package-export-workflow-safety"
       ]),
       requiredPayloads: expect.arrayContaining([
         "manifest.json",

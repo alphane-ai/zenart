@@ -194,7 +194,13 @@ describe("dev workspace contracts", () => {
       workflowProviderMetadataPresent: false,
       workflowPromptSpecMetadataPresent: false,
       workflowSkillMetadataPresent: false,
-      workflowSafetyMetadataPresent: false
+      workflowSafetyMetadataPresent: false,
+      workflowMetadataGeneratedBy: "zenart-web-dev-client",
+      workflowMetadataProvider: "dev-provider",
+      workflowMetadataModel: "deterministic-local-alpha",
+      workflowPromptSpecTaxonomy: [],
+      workflowSkill: "generic-stage0-export",
+      workflowSafety: "pass"
     });
   });
 

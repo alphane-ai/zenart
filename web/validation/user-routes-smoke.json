@@ -358,7 +358,13 @@
         "data-package-export-workflow-provider-metadata-present",
         "data-package-export-workflow-prompt-spec-metadata-present",
         "data-package-export-workflow-skill-metadata-present",
-        "data-package-export-workflow-safety-metadata-present"
+        "data-package-export-workflow-safety-metadata-present",
+        "data-package-export-workflow-metadata-generated-by",
+        "data-package-export-workflow-metadata-provider",
+        "data-package-export-workflow-metadata-model",
+        "data-package-export-workflow-prompt-spec-taxonomy",
+        "data-package-export-workflow-skill",
+        "data-package-export-workflow-safety"
       ],
       "requiredPayloads": [
         "manifest.json",
@@ -369,7 +375,15 @@
         "assets/README.txt",
         "metadata.json",
         "trace_provenance.json"
-      ]
+      ],
+      "expectedWorkflowMetadata": {
+        "generatedBy": "zenart-web-dev-client",
+        "provider": "dev-provider",
+        "model": "deterministic-local-alpha",
+        "promptSpecTaxonomy": ["social_proof"],
+        "skill": "ecommerce_growth_pack",
+        "safety": "pass"
+      }
     },
     {
       "schemaVersion": "stage0.rev2.export-zip-payload-smoke",

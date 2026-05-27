@@ -60,6 +60,19 @@ export const buildDownloadableExportZipPayloadNames = (record: ExportRecord) =>
     ])
   );
 
+export const buildExportWorkflowMetadataPayload = (record: ExportRecord, outputName: string) => ({
+  export_id: record.id,
+  output_name: outputName,
+  generated_by: "zenart-web-dev-client",
+  workflow_id: record.manifest.workflow_acceptance?.workflow_id ?? "generic-stage0-export",
+  workflow_fixture_id: record.manifest.workflow_acceptance?.fixture_id ?? "none",
+  provider: "dev-provider",
+  model: "deterministic-local-alpha",
+  prompt_spec: record.manifest.workflow_acceptance?.strategy_taxonomy ?? [],
+  skill: record.manifest.workflow_acceptance?.workflow_id ?? "generic-stage0-export",
+  safety: record.safetyReport.status
+});
+
 export const ecommerceGrowthWorkflowAcceptance = {
   schema_version: "stage0.rev2.workflow-api-smoke",
   workflow_id: "ecommerce_growth_pack",
@@ -528,6 +541,7 @@ export const buildPackageExportMetadataEvidence = (record: ExportRecord): Packag
     (outputName) => !record.manifest.required_outputs.includes(outputName)
   );
   const zipPayloadNames = buildDownloadableExportZipPayloadNames(record);
+  const workflowMetadataPayload = buildExportWorkflowMetadataPayload(record, "metadata.json");
   const requiredZipPayloadNames = [...requiredExportZipPayloadNames];
   const missingZipPayloadNames = requiredZipPayloadNames.filter((payloadName) => !zipPayloadNames.includes(payloadName));
   const workflowZipPayloadCount = record.manifest.workflow_acceptance?.required_files.filter((payloadName) =>
@@ -621,7 +635,13 @@ export const buildPackageExportMetadataEvidence = (record: ExportRecord): Packag
     workflowProviderMetadataPresent,
     workflowPromptSpecMetadataPresent,
     workflowSkillMetadataPresent,
-    workflowSafetyMetadataPresent
+    workflowSafetyMetadataPresent,
+    workflowMetadataGeneratedBy: workflowMetadataPayload.generated_by,
+    workflowMetadataProvider: workflowMetadataPayload.provider,
+    workflowMetadataModel: workflowMetadataPayload.model,
+    workflowPromptSpecTaxonomy: workflowMetadataPayload.prompt_spec,
+    workflowSkill: workflowMetadataPayload.skill,
+    workflowSafety: workflowMetadataPayload.safety
   };
 };
 
