@@ -74,7 +74,7 @@
       "status": "pass",
       "runtime_probe": "Staging emergency kill-switch probe disabled quota-consuming generation, export regeneration, and provider calls for private-beta traffic while preserving support lookup, admin audit search, and read-only project state.",
       "external_user_evidence": "External users saw a temporary unavailable state for quota-consuming actions, no new reservations were created, and support tickets retained enough context for operator follow-up.",
-      "enforcement_evidence": "Kill-switch activation and rollback required admin_operator evidence, preserved immutable audit au-019, and left object storage, observability, and legal page blockers visible in the release gate.",
+      "enforcement_evidence": "Kill-switch activation and rollback required admin_operator evidence, preserved immutable audit au-019, and left object storage and legal page blockers visible in the release gate.",
       "linked_admin_artifacts": ["admin/app/quota/page.tsx", "admin/app/operations/page.tsx", "admin/app/audit/page.tsx"],
       "evidence_refs": [
         "ops/evidence/staging/20260527T2015Z-quota-rate-limit-spend-cap.json",
@@ -92,7 +92,6 @@
     "aggregate_private_beta_gate_status": "blocked_by_other_staging_runtime_items",
     "remaining_blockers": [
       "staging_object_storage_signed_downloads",
-      "staging_observability_backup_load",
       "staging_legal_external_user_pages"
     ]
   }

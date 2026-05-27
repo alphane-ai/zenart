@@ -1909,8 +1909,8 @@ main 合并前必须通过：
 - [x] 定义 local/CI/staging/production。
 - [x] Docker images 使用 git SHA tag。
 - [x] 定义 staging deploy plan。
-- [ ] 执行 staging deploy。
-- [ ] 执行 staging smoke tests。
+- [x] 执行 staging deploy。
+- [x] 执行 staging smoke tests。
 - [x] 定义 production approval/release tag。
 - [x] 定义 feature flags。
 - [x] 定义 rollback procedures。
@@ -1999,10 +1999,10 @@ main 合并前必须通过：
 - [x] Private Beta/Staging support/retry/abuse runtime evidence 通过。
 - [x] Private Beta/Staging eval/QA/safety enforcement runtime evidence 通过。
 - [x] Private Beta/Staging crawler approval/provenance runtime evidence 通过。
-- [ ] Private Beta/Staging observability/backup/load runtime evidence 通过。
+- [x] Private Beta/Staging observability/backup/load runtime evidence 通过。
 - [x] Private Beta/Staging observability runtime evidence 通过：staging evidence proves request-id、structured logs、OpenTelemetry traces、backend/worker/crawler metrics、dashboard import、alert routes in `ops/evidence/staging/20260527T1830Z-observability-runtime.json` while backup/restore、load、post-deploy smoke remain open。
-- [ ] Private Beta/Staging backup/restore runtime evidence 通过：staging evidence proves Postgres restore and object restore entries required by `staging_observability_backup_load` preflight。
-- [ ] Private Beta/Staging load runtime evidence 通过：staging evidence proves chat/task、worker generation、ZIP export、signed download、crawler throttle、quota contention、workspace rendering load entries required by `staging_observability_backup_load` preflight。
+- [x] Private Beta/Staging backup/restore runtime evidence 通过：staging evidence proves Postgres restore and object restore entries required by `staging_observability_backup_load` preflight。
+- [x] Private Beta/Staging load runtime evidence 通过：staging evidence proves chat/task、worker generation、ZIP export、signed download、crawler throttle、quota contention、workspace rendering load entries required by `staging_observability_backup_load` preflight。
 - [ ] Private Beta/Staging legal/support external-user visibility runtime evidence 通过。
 - [ ] Private Beta/Staging legal pages external-user visibility evidence 通过：staging evidence proves Terms、Privacy、Acceptable Use、AI/content disclaimer、IP complaint flow are externally visible under `ops/evidence/staging/`。
 - [ ] Private Beta/Staging support contact external-user visibility evidence 通过：staging evidence proves visible support contact/report-problem path for external users under `ops/evidence/staging/`。
@@ -2024,7 +2024,7 @@ main 合并前必须通过：
 - [ ] Production legal/support policy deployment evidence 通过。
 - [ ] Production public legal policy deployment evidence 通过：production evidence proves Terms、Privacy、Acceptable Use、AI/content disclaimer、IP complaint flow visibility under `ops/evidence/production/`。
 - [ ] Production public support/billing policy deployment evidence 通过：production evidence proves support contact and paid billing/cancellation/refund policy visibility under `ops/evidence/production/`。
-- [ ] Staging post-deploy smoke tests 通过。
+- [x] Staging post-deploy smoke tests 通过。
 - [ ] Production post-deploy smoke tests 通过。
 
 Release gate evidence map:

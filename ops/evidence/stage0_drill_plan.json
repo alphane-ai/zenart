@@ -104,10 +104,11 @@
       "quota_rate_limit",
       "observability"
     ],
-    "script_contract_status": "validated_missing_evidence_blocks_by_default",
-    "latest_preflight_evidence": "ops/evidence/staging/20260527T013046Z-staging-observability-backup-load-32321.json",
-    "runtime_status": "observability input verifies against ops/evidence/staging/20260527T1830Z-observability-runtime.json, but backup/restore, load, and post-deploy smoke inputs are absent; preflight exits 2 and keeps the combined private beta gate open",
-    "private_beta_gate": "open until the preflight passes with real staging evidence and the private beta release gate fixture is updated by validator-owned evidence"
+
+    "script_contract_status": "validated_with_complete_staging_evidence",
+    "latest_preflight_evidence": "ops/evidence/staging/20260527T013207Z-staging-observability-backup-load-36222.json",
+    "runtime_status": "preflight passed with staging observability, Postgres/object restore, load, post-deploy smoke, and release-gate fixture closure evidence for release d3b1107c33dc40b8936f28549e06553fbd7b104a",
+    "private_beta_gate": "staging_observability_backup_load check can close; private beta remains open until object storage signed download/retention and legal/support visibility evidence pass"
   },
   "security_scans": {
     "script": "scripts/security_scan_smoke.sh",

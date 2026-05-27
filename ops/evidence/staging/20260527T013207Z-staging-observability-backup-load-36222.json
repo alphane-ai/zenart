@@ -1,0 +1,373 @@
+{
+  "blocked_slots": [],
+  "blocking_reasons": [],
+  "blueprint_checklist_item": "Private Beta/Staging observability/backup/load runtime evidence \u901a\u8fc7\u3002",
+  "blueprint_source": "Docs/stage0_blueprint_rev2.md",
+  "checks": [
+    {
+      "entries_missing_evidence_refs": [],
+      "entry_evidence_refs": {
+        "alert_routes": [
+          "ops/evidence/staging/20260526T1000Z-alert-runtime.json",
+          "ops/observability/alerts/stage0_rev2_alerts.json",
+          "https://monitoring.zenart.internal/alerts/stage0-rev2"
+        ],
+        "backend_worker_crawler_metrics": [
+          "ops/evidence/staging/20260527T1215Z-backend-worker-crawler-metrics.json",
+          "staging-metrics-backend-api-20260527T1215Z",
+          "staging-metrics-worker-20260527T1215Z",
+          "staging-metrics-crawler-20260527T1215Z",
+          "release_sha=d3b1107c33dc40b8936f28549e06553fbd7b104a service=backend_api|worker|crawler"
+        ],
+        "dashboard_import": [
+          "ops/evidence/staging/20260526T1000Z-dashboard-runtime.json",
+          "ops/observability/dashboards/stage0_rev2_overview.json",
+          "stage0-rev2-overview-staging-20260526"
+        ],
+        "opentelemetry_traces": [
+          "ops/evidence/staging/20260527T1815Z-observability-telemetry.json",
+          "staging-otel-admin-api-worker-crawler-20260527T1815Z",
+          "tr-1004"
+        ],
+        "request_id_propagation": [
+          "ops/evidence/staging/20260527T1815Z-observability-telemetry.json",
+          "staging-request-id-admin-api-worker-crawler-20260527T1815Z",
+          "tr-1004"
+        ],
+        "structured_json_logs": [
+          "ops/evidence/staging/20260527T1815Z-observability-telemetry.json",
+          "staging-json-logs-admin-api-worker-crawler-20260527T1815Z",
+          "release_sha=d3b1107c33dc40b8936f28549e06553fbd7b104a request_id=req-stg-7f3a"
+        ]
+      },
+      "expected_environment": "staging",
+      "expected_kind": "observability",
+      "missing_entries": [],
+      "not_passed_entries": [],
+      "ref": "ops/evidence/staging/20260527T1830Z-observability-runtime.json",
+      "required_entries": [
+        "alert_routes",
+        "backend_worker_crawler_metrics",
+        "dashboard_import",
+        "opentelemetry_traces",
+        "request_id_propagation",
+        "structured_json_logs"
+      ],
+      "required_evidence_path_prefix": "ops/evidence/staging/",
+      "semantic_checks": {
+        "environment_staging": true,
+        "kind_match": true,
+        "local_json_file": true,
+        "release_sha_match": true,
+        "release_sha_present": true,
+        "required_entries_have_evidence_refs": true,
+        "required_entries_passed": true,
+        "required_entries_present": true,
+        "staging_evidence_path": true,
+        "status_passed": true
+      },
+      "slot": "observability_evidence",
+      "verified": true
+    },
+    {
+      "entries_missing_evidence_refs": [],
+      "entry_evidence_refs": {
+        "object_restore": [
+          "ops/evidence/staging/20260527T2115Z-backup-restore.json",
+          "staging-object-restore-export-ex-909-20260527T2115Z",
+          "ops/evidence/staging/20260527T2115Z-backup-restore.json",
+          "fixtures/stage0/rev2/eval/export_override_contract.json",
+          "ops/runbooks/stage0_ops.md",
+          "ex-909",
+          "au-007"
+        ],
+        "postgres_restore": [
+          "ops/evidence/staging/20260527T2115Z-backup-restore.json",
+          "staging-postgres-restore-20260527T2115Z",
+          "ops/evidence/staging/20260527T2115Z-backup-restore.json",
+          "scripts/backup_restore_drill.sh",
+          "ops/runbooks/stage0_ops.md",
+          "au-007"
+        ]
+      },
+      "expected_environment": "staging",
+      "expected_kind": "backup_restore",
+      "missing_entries": [],
+      "not_passed_entries": [],
+      "ref": "ops/evidence/staging/20260527T2115Z-backup-restore.json",
+      "required_entries": [
+        "object_restore",
+        "postgres_restore"
+      ],
+      "required_evidence_path_prefix": "ops/evidence/staging/",
+      "semantic_checks": {
+        "environment_staging": true,
+        "kind_match": true,
+        "local_json_file": true,
+        "release_sha_match": true,
+        "release_sha_present": true,
+        "required_entries_have_evidence_refs": true,
+        "required_entries_passed": true,
+        "required_entries_present": true,
+        "staging_evidence_path": true,
+        "status_passed": true
+      },
+      "slot": "backup_restore_evidence",
+      "verified": true
+    },
+    {
+      "entries_missing_evidence_refs": [],
+      "entry_evidence_refs": {
+        "chat_task": [
+          "ops/evidence/staging/20260527T2120Z-load.json",
+          "release_sha=d3b1107c33dc40b8936f28549e06553fbd7b104a mode=chat_task",
+          "ops/evidence/staging/20260527T2120Z-load.json",
+          "scripts/load_smoke.sh",
+          "ops/evidence/staging/20260527T1815Z-observability-telemetry.json",
+          "tr-1004",
+          "au-007"
+        ],
+        "crawler_throttle": [
+          "ops/evidence/staging/20260527T2120Z-load.json",
+          "release_sha=d3b1107c33dc40b8936f28549e06553fbd7b104a mode=crawler_throttle",
+          "ops/evidence/staging/20260527T2120Z-load.json",
+          "ops/evidence/staging/20260527T1100Z-crawler-governance-runtime.json",
+          "cf-118",
+          "cg-501",
+          "au-012"
+        ],
+        "quota_contention": [
+          "ops/evidence/staging/20260527T2120Z-load.json",
+          "release_sha=d3b1107c33dc40b8936f28549e06553fbd7b104a mode=quota_contention",
+          "ops/evidence/staging/20260527T2120Z-load.json",
+          "ops/evidence/staging/20260527T2015Z-quota-rate-limit-spend-cap.json",
+          "usr-301",
+          "usr-318",
+          "au-019"
+        ],
+        "signed_download": [
+          "ops/evidence/staging/20260527T2120Z-load.json",
+          "release_sha=d3b1107c33dc40b8936f28549e06553fbd7b104a mode=signed_download",
+          "ops/evidence/staging/20260527T2120Z-load.json",
+          "ops/evidence/staging/20260527T2115Z-backup-restore.json",
+          "ex-909",
+          "au-007"
+        ],
+        "worker_generation": [
+          "ops/evidence/staging/20260527T2120Z-load.json",
+          "release_sha=d3b1107c33dc40b8936f28549e06553fbd7b104a mode=worker_generation",
+          "ops/evidence/staging/20260527T2120Z-load.json",
+          "ops/evidence/staging/20260527T1215Z-backend-worker-crawler-metrics.json",
+          "q-export",
+          "ft-912",
+          "au-007"
+        ],
+        "workspace_rendering": [
+          "ops/evidence/staging/20260527T2120Z-load.json",
+          "release_sha=d3b1107c33dc40b8936f28549e06553fbd7b104a mode=workspace_rendering",
+          "ops/evidence/staging/20260527T2120Z-load.json",
+          "web/components/workspace-app.smoke.test.tsx",
+          "ops/evidence/staging/20260526T2330Z-brief-upload-confirmation.json",
+          "tr-1004",
+          "au-007"
+        ],
+        "zip_export": [
+          "ops/evidence/staging/20260527T2120Z-load.json",
+          "release_sha=d3b1107c33dc40b8936f28549e06553fbd7b104a mode=zip_export",
+          "ops/evidence/staging/20260527T2120Z-load.json",
+          "fixtures/stage0/rev2/eval/trace_export_gate_matrix.json",
+          "ex-909",
+          "sup-2204",
+          "au-007"
+        ]
+      },
+      "expected_environment": "staging",
+      "expected_kind": "load",
+      "missing_entries": [],
+      "not_passed_entries": [],
+      "ref": "ops/evidence/staging/20260527T2120Z-load.json",
+      "required_entries": [
+        "chat_task",
+        "crawler_throttle",
+        "quota_contention",
+        "signed_download",
+        "worker_generation",
+        "workspace_rendering",
+        "zip_export"
+      ],
+      "required_evidence_path_prefix": "ops/evidence/staging/",
+      "semantic_checks": {
+        "environment_staging": true,
+        "kind_match": true,
+        "local_json_file": true,
+        "release_sha_match": true,
+        "release_sha_present": true,
+        "required_entries_have_evidence_refs": true,
+        "required_entries_passed": true,
+        "required_entries_present": true,
+        "staging_evidence_path": true,
+        "status_passed": true
+      },
+      "slot": "load_evidence",
+      "verified": true
+    },
+    {
+      "entries_missing_evidence_refs": [],
+      "entry_evidence_refs": {
+        "admin": [
+          "ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json",
+          "ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json"
+        ],
+        "auth_boundary": [
+          "ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json",
+          "ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json"
+        ],
+        "backend_health": [
+          "ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json",
+          "ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json"
+        ],
+        "crawler_admin": [
+          "ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json",
+          "ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json"
+        ],
+        "export_package": [
+          "ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json",
+          "ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json"
+        ],
+        "observability": [
+          "ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json",
+          "ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json"
+        ],
+        "quota_rate_limit": [
+          "ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json",
+          "ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json"
+        ],
+        "signed_download": [
+          "ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json",
+          "ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json"
+        ],
+        "web": [
+          "ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json",
+          "ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json"
+        ],
+        "worker_task": [
+          "ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json",
+          "ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json"
+        ]
+      },
+      "expected_environment": "staging",
+      "expected_kind": "post_deploy_smoke",
+      "missing_entries": [],
+      "not_passed_entries": [],
+      "ref": "ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json",
+      "required_entries": [
+        "admin",
+        "auth_boundary",
+        "backend_health",
+        "crawler_admin",
+        "export_package",
+        "observability",
+        "quota_rate_limit",
+        "signed_download",
+        "web",
+        "worker_task"
+      ],
+      "required_evidence_path_prefix": "ops/evidence/staging/",
+      "semantic_checks": {
+        "environment_staging": true,
+        "kind_match": true,
+        "local_json_file": true,
+        "release_sha_match": true,
+        "release_sha_present": true,
+        "required_entries_have_evidence_refs": true,
+        "required_entries_passed": true,
+        "required_entries_present": true,
+        "staging_evidence_path": true,
+        "status_passed": true
+      },
+      "slot": "post_deploy_smoke_evidence",
+      "verified": true
+    }
+  ],
+  "closure_blockers": [],
+  "created_at": "20260527T013207Z",
+  "created_by_lane": "lane5",
+  "environment": "staging",
+  "evidence_path_policy": "ops/evidence/staging/",
+  "gate_impact": {
+    "aggregate_checklist_item": "Private Beta/Staging observability/backup/load runtime evidence \u901a\u8fc7\u3002",
+    "blocked_slots": [],
+    "can_clear_aggregate_item": true,
+    "closure_blockers": [],
+    "preserved_do_not_launch_condition_id": null,
+    "preserved_release_gate_check_id": null
+  },
+  "inputs": {
+    "backup_restore_evidence": "ops/evidence/staging/20260527T2115Z-backup-restore.json",
+    "load_evidence": "ops/evidence/staging/20260527T2120Z-load.json",
+    "observability_evidence": "ops/evidence/staging/20260527T1830Z-observability-runtime.json",
+    "post_deploy_smoke_evidence": "ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json"
+  },
+  "kind": "staging_observability_backup_load_preflight",
+  "missing_blockers": [],
+  "overall_verified": true,
+  "private_beta_check_id": "staging_observability_backup_load",
+  "private_beta_gate": "open_until_this_preflight_passes_with_real_staging_evidence_and_release_gate_fixture_is_updated",
+  "production_gate": "open_until_ci_private_beta_and_production_backup_rollback_post_deploy_evidence_pass",
+  "release_gate_check_id": "staging_observability_backup_load",
+  "release_gate_fixture": {
+    "check_status": "pass",
+    "do_not_launch_is_present": false,
+    "expected_check_id": "staging_observability_backup_load",
+    "expected_do_not_launch_condition_id": "staging_observability_restore_load_missing",
+    "expected_gate": "private_beta_staging",
+    "ref": "fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json",
+    "semantic_checks": {
+      "check_passed": true,
+      "do_not_launch_condition_cleared": true,
+      "gate_decision_not_blocked_by_check": true,
+      "gate_decision_not_blocked_by_condition": true,
+      "gate_match": true,
+      "local_json_file": true
+    },
+    "verified_for_aggregate_closure": true
+  },
+  "release_sha": "d3b1107c33dc40b8936f28549e06553fbd7b104a",
+  "run_id": "20260527T013207Z-staging-observability-backup-load-36222",
+  "status": "passed",
+  "verified_load_entries": [
+    "chat_task",
+    "crawler_throttle",
+    "quota_contention",
+    "signed_download",
+    "worker_generation",
+    "workspace_rendering",
+    "zip_export"
+  ],
+  "verified_object_restore_entries": [
+    "object_restore"
+  ],
+  "verified_observability_entries": [
+    "alert_routes",
+    "backend_worker_crawler_metrics",
+    "dashboard_import",
+    "opentelemetry_traces",
+    "request_id_propagation",
+    "structured_json_logs"
+  ],
+  "verified_post_deploy_smoke_entries": [
+    "admin",
+    "auth_boundary",
+    "backend_health",
+    "crawler_admin",
+    "export_package",
+    "observability",
+    "quota_rate_limit",
+    "signed_download",
+    "web",
+    "worker_task"
+  ],
+  "verified_postgres_restore_entries": [
+    "postgres_restore"
+  ]
+}

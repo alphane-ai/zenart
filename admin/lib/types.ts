@@ -471,7 +471,7 @@ export type ObservabilityTelemetryRuntimeEvidence = {
 };
 
 export type StagingObservabilityBackupLoadPreflightSlot = {
-  slot: "observability_evidence" | "backup_restore_evidence" | "load_evidence";
+  slot: "observability_evidence" | "backup_restore_evidence" | "load_evidence" | "post_deploy_smoke_evidence";
   evidencePath: string;
   status: "verified" | "blocked";
   requiredEntries: string[];
@@ -485,14 +485,14 @@ export type StagingObservabilityBackupLoadPreflightSlot = {
 export type StagingObservabilityBackupLoadPreflightEvidence = {
   id: string;
   environment: "staging";
-  status: "blocked";
+  status: "blocked" | "passed";
   releaseSha: string;
   releaseGateCheckId: "staging_observability_backup_load";
   evidencePath: string;
   latestPreflightReport: string;
   canClearAggregateItem: boolean;
-  preservedDoNotLaunchConditionId: "staging_observability_restore_load_missing";
-  preservedReleaseGateCheckId: "staging_observability_backup_load";
+  preservedDoNotLaunchConditionId: "staging_observability_restore_load_missing" | "none";
+  preservedReleaseGateCheckId: "staging_observability_backup_load" | "none";
   slots: StagingObservabilityBackupLoadPreflightSlot[];
   operatorAction: string;
   releaseGateUse: string;

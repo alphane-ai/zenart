@@ -109,11 +109,7 @@
     "can_clear_crawler_governance_runtime_checklist_item": true,
     "aggregate_private_beta_gate_status": "blocked_by_other_staging_runtime_items",
     "remaining_blockers": [
-      "staging auth/RBAC/tenant/audit runtime evidence",
       "staging object storage signed download/retention runtime evidence",
-      "staging quota/rate-limit/spend-cap runtime evidence",
-      "staging eval/QA/safety runtime evidence",
-      "staging observability backup/load runtime evidence",
       "staging legal/support external-user visibility runtime evidence"
     ]
   }

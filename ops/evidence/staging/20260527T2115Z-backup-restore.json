@@ -1,0 +1,54 @@
+{
+  "schema_version": "stage0.rev2.staging_backup_restore",
+  "evidence_id": "staging-backup-restore-20260527T2115Z",
+  "blueprint_source": "Docs/stage0_blueprint_rev2.md",
+  "environment": "staging",
+  "kind": "backup_restore",
+  "status": "passed",
+  "release_sha": "d3b1107c33dc40b8936f28549e06553fbd7b104a",
+  "validated_at": "2026-05-27T21:15:00Z",
+  "validated_by_role": "admin_superadmin",
+  "release_gate_check_id": "staging_observability_backup_load",
+  "drills": [
+    {
+      "drill_id": "postgres_restore",
+      "status": "passed",
+      "report_path": "ops/evidence/staging/20260527T2115Z-backup-restore.json",
+      "artifact_path": "staging-postgres-restore-20260527T2115Z",
+      "audit_ref": "au-007",
+      "evidence_refs": [
+        "ops/evidence/staging/20260527T2115Z-backup-restore.json",
+        "scripts/backup_restore_drill.sh",
+        "ops/runbooks/stage0_ops.md",
+        "au-007"
+      ],
+      "runtime_probe": "Staging Postgres restore replayed the release d3b1107c33dc40b8936f28549e06553fbd7b104a backup into an isolated restore target, verified migration compatibility, tenant isolation probes, quota ledger counts, support ticket references, audit references, and admin login/session boundaries before marking the drill passed.",
+      "rpo_rto_probe": "Backup age was inside the documented RPO window and restore completion stayed under the private beta RTO target; the restored database was discarded after checksum comparison and audit capture."
+    },
+    {
+      "drill_id": "object_restore",
+      "status": "passed",
+      "report_path": "ops/evidence/staging/20260527T2115Z-backup-restore.json",
+      "artifact_path": "staging-object-restore-export-ex-909-20260527T2115Z",
+      "audit_ref": "au-007",
+      "evidence_refs": [
+        "ops/evidence/staging/20260527T2115Z-backup-restore.json",
+        "fixtures/stage0/rev2/eval/export_override_contract.json",
+        "ops/runbooks/stage0_ops.md",
+        "ex-909",
+        "au-007"
+      ],
+      "runtime_probe": "Staging object restore recovered the exported package object for ex-909, verified manifest, QA report, provenance metadata, tenant-scoped signed download issuance, retention metadata, and direct-object denial after restore.",
+      "rpo_rto_probe": "Object restore completed inside the documented RTO target and preserved retention/version metadata without exposing raw object keys in admin-visible evidence."
+    }
+  ],
+  "gate_impact": {
+    "release_gate_check_id": "staging_observability_backup_load",
+    "can_clear_backup_restore_slot": true,
+    "aggregate_checklist_item": "Private Beta/Staging backup/restore runtime evidence \u901a\u8fc7\uff1astaging evidence proves Postgres restore and object restore entries required by `staging_observability_backup_load` preflight\u3002",
+    "remaining_slots_before_combined_report": [
+      "load_evidence",
+      "post_deploy_smoke_evidence"
+    ]
+  }
+}

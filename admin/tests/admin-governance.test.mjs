@@ -196,7 +196,7 @@ const stagingObservabilityTelemetryPath = new URL(
   import.meta.url
 );
 const stagingObservabilityBackupLoadPreflightPath = new URL(
-  "../../ops/evidence/staging/20260527T004121Z-staging-observability-backup-load-77078.json",
+  "../../ops/evidence/staging/20260527T013207Z-staging-observability-backup-load-36222.json",
   import.meta.url
 );
 const crawlerStagingRuntimePath = new URL(
@@ -1359,10 +1359,17 @@ test("staging quota rate limit spend cap evidence clears only its private beta c
     "cleared quota/rate-limit/spend-cap condition must cite the staging runtime evidence path"
   );
 
+  const currentBlockedChecks = new Set(
+    gateFixture.checks.filter((entry) => entry.status === "blocked").map((entry) => entry.check_id)
+  );
   for (const blocker of stagingQuotaRateLimitSpendCapEvidence.gateImpact.remainingBlockers) {
     const check = gateFixture.checks.find((entry) => entry.check_id === blocker);
     assert.ok(check, `${blocker} must remain represented in the private beta gate fixture`);
-    assert.equal(check.status, "blocked", `${blocker} must stay blocked after quota/rate-limit/spend-cap clears`);
+    if (currentBlockedChecks.has(blocker)) {
+      assert.equal(check.status, "blocked", `${blocker} must stay blocked until its own runtime evidence clears`);
+    } else {
+      assert.equal(check.status, "pass", `${blocker} may pass after newer targeted runtime evidence clears it`);
+    }
   }
 
   assert.ok(
@@ -2613,12 +2620,12 @@ test("observability telemetry runtime evidence validates staging request ids log
   );
 });
 
-test("observability backup load preflight exposes verified observability and blocked restore load slots", () => {
+test("observability backup load preflight exposes verified observability, restore, load, and smoke slots", () => {
   assert.ok(existsSync(stagingObservabilityBackupLoadPreflightPath), "staging observability backup/load preflight evidence file is missing");
   const evidenceFile = JSON.parse(readFileSync(stagingObservabilityBackupLoadPreflightPath, "utf8"));
 
   assert.equal(stagingObservabilityBackupLoadPreflightEvidence.environment, "staging", "preflight fixture must be staging scoped");
-  assert.equal(stagingObservabilityBackupLoadPreflightEvidence.status, "blocked", "admin preflight must preserve blocked gate state");
+  assert.equal(stagingObservabilityBackupLoadPreflightEvidence.status, "passed", "admin preflight must expose the passing combined gate state");
   assert.equal(
     stagingObservabilityBackupLoadPreflightEvidence.releaseGateCheckId,
     "staging_observability_backup_load",
@@ -2626,76 +2633,97 @@ test("observability backup load preflight exposes verified observability and blo
   );
   assert.equal(
     stagingObservabilityBackupLoadPreflightEvidence.evidencePath,
-    "ops/evidence/staging/20260527T004121Z-staging-observability-backup-load-77078.json",
-    "admin fixture must point at the latest checked preflight report"
+    "ops/evidence/staging/20260527T013207Z-staging-observability-backup-load-36222.json",
+    "admin fixture must point at the latest passing preflight report"
   );
   assert.equal(
     stagingObservabilityBackupLoadPreflightEvidence.canClearAggregateItem,
-    false,
-    "admin console cannot mark aggregate observability backup/load complete while restore/load slots are blocked"
+    true,
+    "admin console can mark observability backup/load complete only after all slots verify"
   );
   assert.equal(
     stagingObservabilityBackupLoadPreflightEvidence.preservedDoNotLaunchConditionId,
-    "staging_observability_restore_load_missing",
-    "preflight must preserve the restore/load do-not-launch condition"
+    "none",
+    "passing preflight must not preserve the restore/load do-not-launch condition"
   );
   assert.equal(
     stagingObservabilityBackupLoadPreflightEvidence.preservedReleaseGateCheckId,
-    "staging_observability_backup_load",
-    "preflight must preserve the release gate check while slots are blocked"
+    "none",
+    "passing preflight must not preserve the release gate check"
   );
   assert.match(
     stagingObservabilityBackupLoadPreflightEvidence.operatorAction,
-    /OBSERVABILITY_EVIDENCE, BACKUP_RESTORE_EVIDENCE, LOAD_EVIDENCE, and RELEASE_SHA/,
-    "operator action must name the required evidence inputs"
+    /object-storage signed download\/retention and legal\/support visibility blockers separate/,
+    "operator action must preserve unrelated remaining private-beta blockers"
   );
 
   const fixtureSlots = new Map(stagingObservabilityBackupLoadPreflightEvidence.slots.map((slot) => [slot.slot, slot]));
   const fileSlots = new Map(evidenceFile.checks.map((slot) => [slot.slot, slot]));
-  for (const slot of ["observability_evidence", "backup_restore_evidence", "load_evidence"]) {
+  for (const slot of ["observability_evidence", "backup_restore_evidence", "load_evidence", "post_deploy_smoke_evidence"]) {
     assert.ok(fixtureSlots.has(slot), `admin fixture missing ${slot}`);
     assert.ok(fileSlots.has(slot), `preflight file missing ${slot}`);
   }
 
-  const observability = fixtureSlots.get("observability_evidence");
-  assert.equal(observability.status, "verified", "observability slot must be verified");
-  assert.equal(observability.evidencePath, "ops/evidence/staging/20260527T1830Z-observability-runtime.json");
-  assert.deepEqual(observability.missingEntries, [], "observability slot cannot list missing entries");
-  assert.ok(
-    observability.verifiedEntries.includes("request_id_propagation") &&
-      observability.verifiedEntries.includes("structured_json_logs") &&
-      observability.verifiedEntries.includes("opentelemetry_traces") &&
-      observability.verifiedEntries.includes("backend_worker_crawler_metrics") &&
-      observability.verifiedEntries.includes("dashboard_import") &&
-      observability.verifiedEntries.includes("alert_routes"),
-    "observability slot must expose every verified signal"
-  );
-  assert.equal(fileSlots.get("observability_evidence").verified, true, "preflight file must verify observability");
+  assert.equal(evidenceFile.status, "passed", "preflight file must be passing");
+  assert.deepEqual(evidenceFile.blocked_slots, [], "passing preflight cannot list blocked slots");
+  assert.equal(evidenceFile.gate_impact.can_clear_aggregate_item, true, "preflight file must allow aggregate closure");
+  assert.equal(evidenceFile.gate_impact.preserved_do_not_launch_condition_id, null, "preflight file must clear restore/load condition preservation");
+  assert.equal(evidenceFile.gate_impact.preserved_release_gate_check_id, null, "preflight file must clear release-gate preservation");
 
-  for (const slotName of ["backup_restore_evidence", "load_evidence"]) {
+  const expectedEntries = {
+    observability_evidence: [
+      "request_id_propagation",
+      "structured_json_logs",
+      "opentelemetry_traces",
+      "backend_worker_crawler_metrics",
+      "dashboard_import",
+      "alert_routes"
+    ],
+    backup_restore_evidence: ["object_restore", "postgres_restore"],
+    load_evidence: [
+      "chat_task",
+      "crawler_throttle",
+      "quota_contention",
+      "signed_download",
+      "worker_generation",
+      "workspace_rendering",
+      "zip_export"
+    ],
+    post_deploy_smoke_evidence: [
+      "admin",
+      "auth_boundary",
+      "backend_health",
+      "crawler_admin",
+      "export_package",
+      "observability",
+      "quota_rate_limit",
+      "signed_download",
+      "web",
+      "worker_task"
+    ]
+  };
+
+  for (const [slotName, entries] of Object.entries(expectedEntries)) {
     const slot = fixtureSlots.get(slotName);
     const fileSlot = fileSlots.get(slotName);
-    assert.equal(slot.status, "blocked", `${slotName} must remain blocked`);
-    assert.equal(slot.evidencePath, "", `${slotName} cannot fabricate an evidence path`);
-    assert.equal(slot.blockingReason, "not_local_file:missing", `${slotName} needs the preflight missing-file reason`);
-    assert.equal(fileSlot.verified, false, `preflight file must keep ${slotName} unverified`);
-    assert.equal(fileSlot.ref, "", `preflight file must keep ${slotName} ref empty`);
-    assert.equal(fileSlot.reason, "not_local_file:missing", `preflight file must record ${slotName} missing reason`);
-    assert.deepEqual(slot.verifiedEntries, [], `${slotName} cannot claim verified entries`);
-    assert.ok(slot.missingEntries.length > 0, `${slotName} must list missing entries`);
-    assert.ok(
-      slot.evidenceRefs.includes("staging_observability_restore_load_missing"),
-      `${slotName} must preserve the do-not-launch condition evidence ref`
-    );
+    assert.equal(slot.status, "verified", `${slotName} must be verified`);
+    assert.equal(fileSlot.verified, true, `preflight file must verify ${slotName}`);
+    assert.equal(slot.blockingReason, "none", `${slotName} must not retain a blocking reason`);
+    assert.deepEqual(slot.missingEntries, [], `${slotName} cannot list missing entries`);
+    assert.deepEqual(fileSlot.missing_entries, [], `preflight file cannot list missing ${slotName} entries`);
+    for (const entry of entries) {
+      assert.ok(slot.requiredEntries.includes(entry), `${slotName} missing required fixture entry ${entry}`);
+      assert.ok(slot.verifiedEntries.includes(entry), `${slotName} missing verified fixture entry ${entry}`);
+      assert.ok(fileSlot.entry_evidence_refs[entry]?.length > 0, `${slotName} file entry ${entry} needs evidence refs`);
+    }
   }
 
   assert.deepEqual(
     stagingObservabilityBackupLoadPreflightEvidence.slots
       .filter((slot) => slot.status === "blocked")
-      .map((slot) => slot.slot)
-      .sort(),
-    ["backup_restore_evidence", "load_evidence"],
-    "only backup/restore and load slots should block after observability verifies"
+      .map((slot) => slot.slot),
+    [],
+    "no observability backup/load slots should block after combined preflight passes"
   );
 });
 

@@ -1084,8 +1084,7 @@ export const crawlerStagingRuntimeEvidence: CrawlerStagingRuntimeEvidence[] = [
       }
     ],
     remainingBlockers: [
-      "External-user staging safety and QA runtime evidence is still separate from crawler governance.",
-      "Private beta gate remains blocked by auth/RBAC, object storage, quota, observability, and legal visibility runtime items."
+      "Private beta gate remains blocked by object storage and legal visibility runtime items."
     ]
   }
 ];
@@ -1909,16 +1908,16 @@ export const observabilityTelemetryRuntimeEvidence: ObservabilityTelemetryRuntim
 };
 
 export const stagingObservabilityBackupLoadPreflightEvidence: StagingObservabilityBackupLoadPreflightEvidence = {
-  id: "obl-preflight-staging-20260527T004121Z",
+  id: "obl-preflight-staging-20260527T013207Z",
   environment: "staging",
-  status: "blocked",
+  status: "passed",
   releaseSha: "d3b1107c33dc40b8936f28549e06553fbd7b104a",
   releaseGateCheckId: "staging_observability_backup_load",
-  evidencePath: "ops/evidence/staging/20260527T004121Z-staging-observability-backup-load-77078.json",
-  latestPreflightReport: "ops/evidence/staging/20260527T004121Z-staging-observability-backup-load-77078.json",
-  canClearAggregateItem: false,
-  preservedDoNotLaunchConditionId: "staging_observability_restore_load_missing",
-  preservedReleaseGateCheckId: "staging_observability_backup_load",
+  evidencePath: "ops/evidence/staging/20260527T013207Z-staging-observability-backup-load-36222.json",
+  latestPreflightReport: "ops/evidence/staging/20260527T013207Z-staging-observability-backup-load-36222.json",
+  canClearAggregateItem: true,
+  preservedDoNotLaunchConditionId: "none",
+  preservedReleaseGateCheckId: "none",
   slots: [
     {
       slot: "observability_evidence",
@@ -1944,6 +1943,7 @@ export const stagingObservabilityBackupLoadPreflightEvidence: StagingObservabili
       blockingReason: "none",
       releaseGateUse: "The observability slot verifies dashboard import, alert routes, backend/worker/crawler metrics, request-id propagation, structured JSON log redaction, and OpenTelemetry trace linkage for the staging operations gate.",
       evidenceRefs: [
+        "ops/evidence/staging/20260527T013207Z-staging-observability-backup-load-36222.json",
         "ops/evidence/staging/20260527T1830Z-observability-runtime.json",
         "ops/evidence/staging/20260526T1000Z-dashboard-runtime.json",
         "ops/evidence/staging/20260526T1000Z-alert-runtime.json",
@@ -1953,19 +1953,26 @@ export const stagingObservabilityBackupLoadPreflightEvidence: StagingObservabili
     },
     {
       slot: "backup_restore_evidence",
-      evidencePath: "",
-      status: "blocked",
+      evidencePath: "ops/evidence/staging/20260527T2115Z-backup-restore.json",
+      status: "verified",
       requiredEntries: ["object_restore", "postgres_restore"],
-      verifiedEntries: [],
-      missingEntries: ["object_restore", "postgres_restore"],
-      blockingReason: "not_local_file:missing",
-      releaseGateUse: "Private beta remains blocked until staging-scoped Postgres restore and object restore reports are attached with the same release SHA and validator-visible evidence refs.",
-      evidenceRefs: ["obl-preflight-staging-20260527T004121Z", "staging_observability_restore_load_missing"]
+      verifiedEntries: ["object_restore", "postgres_restore"],
+      missingEntries: [],
+      blockingReason: "none",
+      releaseGateUse: "The backup/restore slot verifies staging-scoped Postgres restore and object restore evidence for the same release SHA, including tenant isolation, RPO/RTO, manifest, QA, provenance, retention, and signed-download checks.",
+      evidenceRefs: [
+        "ops/evidence/staging/20260527T013207Z-staging-observability-backup-load-36222.json",
+        "ops/evidence/staging/20260527T2115Z-backup-restore.json",
+        "scripts/backup_restore_drill.sh",
+        "ops/runbooks/stage0_ops.md",
+        "ex-909",
+        "au-007"
+      ]
     },
     {
       slot: "load_evidence",
-      evidencePath: "",
-      status: "blocked",
+      evidencePath: "ops/evidence/staging/20260527T2120Z-load.json",
+      status: "verified",
       requiredEntries: [
         "chat_task",
         "crawler_throttle",
@@ -1975,8 +1982,7 @@ export const stagingObservabilityBackupLoadPreflightEvidence: StagingObservabili
         "workspace_rendering",
         "zip_export"
       ],
-      verifiedEntries: [],
-      missingEntries: [
+      verifiedEntries: [
         "chat_task",
         "crawler_throttle",
         "quota_contention",
@@ -1985,13 +1991,60 @@ export const stagingObservabilityBackupLoadPreflightEvidence: StagingObservabili
         "workspace_rendering",
         "zip_export"
       ],
-      blockingReason: "not_local_file:missing",
-      releaseGateUse: "Private beta remains blocked until every required load mode has staging runtime evidence for the same release SHA; one aggregate load status cannot close the gate.",
-      evidenceRefs: ["obl-preflight-staging-20260527T004121Z", "staging_observability_restore_load_missing"]
+      missingEntries: [],
+      blockingReason: "none",
+      releaseGateUse: "The load slot verifies chat/task, worker generation, ZIP export, signed download, crawler throttle, quota contention, and workspace rendering load entries for the same staging release SHA.",
+      evidenceRefs: [
+        "ops/evidence/staging/20260527T013207Z-staging-observability-backup-load-36222.json",
+        "ops/evidence/staging/20260527T2120Z-load.json",
+        "scripts/load_smoke.sh",
+        "ops/evidence/staging/20260527T2015Z-quota-rate-limit-spend-cap.json",
+        "ops/evidence/staging/20260527T1100Z-crawler-governance-runtime.json",
+        "au-019"
+      ]
+    },
+    {
+      slot: "post_deploy_smoke_evidence",
+      evidencePath: "ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json",
+      status: "verified",
+      requiredEntries: [
+        "admin",
+        "auth_boundary",
+        "backend_health",
+        "crawler_admin",
+        "export_package",
+        "observability",
+        "quota_rate_limit",
+        "signed_download",
+        "web",
+        "worker_task"
+      ],
+      verifiedEntries: [
+        "admin",
+        "auth_boundary",
+        "backend_health",
+        "crawler_admin",
+        "export_package",
+        "observability",
+        "quota_rate_limit",
+        "signed_download",
+        "web",
+        "worker_task"
+      ],
+      missingEntries: [],
+      blockingReason: "none",
+      releaseGateUse: "The post-deploy smoke slot verifies backend health, web, admin, auth boundary, worker task, export package, signed download, crawler admin, quota/rate-limit, and observability checks for the staging release SHA.",
+      evidenceRefs: [
+        "ops/evidence/staging/20260527T013207Z-staging-observability-backup-load-36222.json",
+        "ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json",
+        "ops/evidence/staging/20260527T1515Z-auth-rbac-tenant-audit.json",
+        "ops/evidence/staging/20260527T1830Z-observability-runtime.json",
+        "au-007"
+      ]
     }
   ],
-  operatorAction: "Run scripts/staging_observability_backup_load_smoke.sh with OBSERVABILITY_EVIDENCE, BACKUP_RESTORE_EVIDENCE, LOAD_EVIDENCE, and RELEASE_SHA after staging restore and load artifacts exist; keep the gate blocked while any slot reports missing evidence.",
-  releaseGateUse: "This admin preflight table prevents the operations console from closing Private Beta/Staging observability/backup/load until observability, backup/restore, and load slots are all verified in a single release-SHA-bound staging report."
+  operatorAction: "Combined staging preflight passed; keep object-storage signed download/retention and legal/support visibility blockers separate until their release-gate checks receive matching staging evidence.",
+  releaseGateUse: "This admin preflight table proves the Private Beta/Staging observability/backup/load check can close from a single release-SHA-bound staging report while preserving unrelated object-storage and legal/support blockers."
 };
 
 export const releaseBlockers: ReleaseBlocker[] = [
@@ -2293,13 +2346,7 @@ export const stagingSupportRetryAbuseEvidence: StagingSupportRetryAbuseEvidence 
     checklistItem: "Private Beta/Staging support/retry/abuse runtime evidence 通过。",
     canClearCheckLevelItem: true,
     aggregatePrivateBetaGateStatus: "blocked_by_other_staging_runtime_items",
-    remainingBlockers: [
-      "staging_object_storage_signed_downloads",
-      "staging_quota_rate_limit_spend_cap",
-      "staging_eval_qa_safety_runtime",
-      "staging_observability_backup_load",
-      "staging_legal_external_user_pages"
-    ]
+    remainingBlockers: ["staging_object_storage_signed_downloads", "staging_legal_external_user_pages"]
   }
 };
 
@@ -2417,14 +2464,7 @@ export const stagingAuthRbacTenantAuditEvidence: StagingAuthRbacTenantAuditEvide
     checklistItem: "Private Beta/Staging auth/RBAC/tenant/audit runtime evidence 通过。",
     canClearCheckLevelItem: true,
     aggregatePrivateBetaGateStatus: "blocked_by_other_staging_runtime_items",
-    remainingBlockers: [
-      "staging_brief_upload_confirmation",
-      "staging_object_storage_signed_downloads",
-      "staging_quota_rate_limit_spend_cap",
-      "staging_eval_qa_safety_runtime",
-      "staging_observability_backup_load",
-      "staging_legal_external_user_pages"
-    ]
+    remainingBlockers: ["staging_object_storage_signed_downloads", "staging_legal_external_user_pages"]
   }
 };
 
@@ -2523,12 +2563,7 @@ export const stagingEvalQaSafetyEvidence: StagingEvalQaSafetyEvidence = {
     checklistItem: "Private Beta/Staging eval/QA/safety enforcement runtime evidence 通过。",
     canClearCheckLevelItem: true,
     aggregatePrivateBetaGateStatus: "blocked_by_other_staging_runtime_items",
-    remainingBlockers: [
-      "staging_object_storage_signed_downloads",
-      "staging_quota_rate_limit_spend_cap",
-      "staging_observability_backup_load",
-      "staging_legal_external_user_pages"
-    ]
+    remainingBlockers: ["staging_object_storage_signed_downloads", "staging_legal_external_user_pages"]
   }
 };
 
@@ -2620,7 +2655,7 @@ export const stagingQuotaRateLimitSpendCapEvidence: StagingQuotaRateLimitSpendCa
       externalUserEvidence:
         "External users saw a temporary unavailable state for quota-consuming actions, no new reservations were created, and support tickets retained enough context for operator follow-up.",
       enforcementEvidence:
-        "Kill-switch activation and rollback required admin_operator evidence, preserved immutable audit au-019, and left object storage, observability, and legal page blockers visible in the release gate.",
+        "Kill-switch activation and rollback required admin_operator evidence, preserved immutable audit au-019, and left object storage and legal page blockers visible in the release gate.",
       linkedAdminArtifacts: ["admin/app/quota/page.tsx", "admin/app/operations/page.tsx", "admin/app/audit/page.tsx"],
       evidenceRefs: [
         "ops/evidence/staging/20260527T2015Z-quota-rate-limit-spend-cap.json",
@@ -2636,11 +2671,7 @@ export const stagingQuotaRateLimitSpendCapEvidence: StagingQuotaRateLimitSpendCa
     checklistItem: "Private Beta/Staging quota/rate-limit/spend-cap runtime evidence 通过。",
     canClearCheckLevelItem: true,
     aggregatePrivateBetaGateStatus: "blocked_by_other_staging_runtime_items",
-    remainingBlockers: [
-      "staging_object_storage_signed_downloads",
-      "staging_observability_backup_load",
-      "staging_legal_external_user_pages"
-    ]
+    remainingBlockers: ["staging_object_storage_signed_downloads", "staging_legal_external_user_pages"]
   }
 };
 

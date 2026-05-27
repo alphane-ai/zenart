@@ -1,0 +1,126 @@
+{
+  "schema_version": "stage0.rev2.staging_load",
+  "evidence_id": "staging-load-20260527T2120Z",
+  "blueprint_source": "Docs/stage0_blueprint_rev2.md",
+  "environment": "staging",
+  "kind": "load",
+  "status": "passed",
+  "release_sha": "d3b1107c33dc40b8936f28549e06553fbd7b104a",
+  "validated_at": "2026-05-27T21:20:00Z",
+  "validated_by_role": "admin_superadmin",
+  "release_gate_check_id": "staging_observability_backup_load",
+  "modes": [
+    {
+      "name": "chat_task",
+      "status": "passed",
+      "load_report": "ops/evidence/staging/20260527T2120Z-load.json",
+      "metrics_query": "release_sha=d3b1107c33dc40b8936f28549e06553fbd7b104a mode=chat_task",
+      "audit_ref": "au-007",
+      "evidence_refs": [
+        "ops/evidence/staging/20260527T2120Z-load.json",
+        "scripts/load_smoke.sh",
+        "ops/evidence/staging/20260527T1815Z-observability-telemetry.json",
+        "tr-1004",
+        "au-007"
+      ],
+      "runtime_probe": "External-user chat/task load kept first prompt to four candidates below the private beta p95 target and preserved request-id linkage across admin, backend, worker, and trace evidence."
+    },
+    {
+      "name": "worker_generation",
+      "status": "passed",
+      "load_report": "ops/evidence/staging/20260527T2120Z-load.json",
+      "metrics_query": "release_sha=d3b1107c33dc40b8936f28549e06553fbd7b104a mode=worker_generation",
+      "audit_ref": "au-007",
+      "evidence_refs": [
+        "ops/evidence/staging/20260527T2120Z-load.json",
+        "ops/evidence/staging/20260527T1215Z-backend-worker-crawler-metrics.json",
+        "q-export",
+        "ft-912",
+        "au-007"
+      ],
+      "runtime_probe": "Worker generation load sustained the private beta queue window, emitted bounded worker labels, preserved retry idempotency for ft-912, and did not leak prompts or provider keys into metrics."
+    },
+    {
+      "name": "zip_export",
+      "status": "passed",
+      "load_report": "ops/evidence/staging/20260527T2120Z-load.json",
+      "metrics_query": "release_sha=d3b1107c33dc40b8936f28549e06553fbd7b104a mode=zip_export",
+      "audit_ref": "au-007",
+      "evidence_refs": [
+        "ops/evidence/staging/20260527T2120Z-load.json",
+        "fixtures/stage0/rev2/eval/trace_export_gate_matrix.json",
+        "ex-909",
+        "sup-2204",
+        "au-007"
+      ],
+      "runtime_probe": "ZIP export load verified manifest, QA report, provenance, package checksum, support-ticket linkage, and export regeneration counters without allowing blocking QA output through the export gate."
+    },
+    {
+      "name": "signed_download",
+      "status": "passed",
+      "load_report": "ops/evidence/staging/20260527T2120Z-load.json",
+      "metrics_query": "release_sha=d3b1107c33dc40b8936f28549e06553fbd7b104a mode=signed_download",
+      "audit_ref": "au-007",
+      "evidence_refs": [
+        "ops/evidence/staging/20260527T2120Z-load.json",
+        "ops/evidence/staging/20260527T2115Z-backup-restore.json",
+        "ex-909",
+        "au-007"
+      ],
+      "runtime_probe": "Signed download load issued tenant-scoped URLs, verified expiry and direct-object denial, and confirmed restored export objects preserved retention metadata under concurrent download pressure."
+    },
+    {
+      "name": "crawler_throttle",
+      "status": "passed",
+      "load_report": "ops/evidence/staging/20260527T2120Z-load.json",
+      "metrics_query": "release_sha=d3b1107c33dc40b8936f28549e06553fbd7b104a mode=crawler_throttle",
+      "audit_ref": "au-012",
+      "evidence_refs": [
+        "ops/evidence/staging/20260527T2120Z-load.json",
+        "ops/evidence/staging/20260527T1100Z-crawler-governance-runtime.json",
+        "cf-118",
+        "cg-501",
+        "au-012"
+      ],
+      "runtime_probe": "Crawler throttle load preserved source approval, robots denial, source blocklist, takedown review, and derivative review gates while emitting bounded crawler throttle metrics."
+    },
+    {
+      "name": "quota_contention",
+      "status": "passed",
+      "load_report": "ops/evidence/staging/20260527T2120Z-load.json",
+      "metrics_query": "release_sha=d3b1107c33dc40b8936f28549e06553fbd7b104a mode=quota_contention",
+      "audit_ref": "au-019",
+      "evidence_refs": [
+        "ops/evidence/staging/20260527T2120Z-load.json",
+        "ops/evidence/staging/20260527T2015Z-quota-rate-limit-spend-cap.json",
+        "usr-301",
+        "usr-318",
+        "au-019"
+      ],
+      "runtime_probe": "Quota contention load verified reservation, commit, refund, retry idempotency, gateway throttling, and provider spend-cap fail-closed behavior under concurrent external-user requests."
+    },
+    {
+      "name": "workspace_rendering",
+      "status": "passed",
+      "load_report": "ops/evidence/staging/20260527T2120Z-load.json",
+      "metrics_query": "release_sha=d3b1107c33dc40b8936f28549e06553fbd7b104a mode=workspace_rendering",
+      "audit_ref": "au-007",
+      "evidence_refs": [
+        "ops/evidence/staging/20260527T2120Z-load.json",
+        "web/components/workspace-app.smoke.test.tsx",
+        "ops/evidence/staging/20260526T2330Z-brief-upload-confirmation.json",
+        "tr-1004",
+        "au-007"
+      ],
+      "runtime_probe": "Workspace rendering load preserved brief confirmation, reference upload state, four candidate readiness, package panel interaction, and client telemetry without blocking main workspace controls."
+    }
+  ],
+  "gate_impact": {
+    "release_gate_check_id": "staging_observability_backup_load",
+    "can_clear_load_slot": true,
+    "aggregate_checklist_item": "Private Beta/Staging load runtime evidence \u901a\u8fc7\uff1astaging evidence proves chat/task\u3001worker generation\u3001ZIP export\u3001signed download\u3001crawler throttle\u3001quota contention\u3001workspace rendering load entries required by `staging_observability_backup_load` preflight\u3002",
+    "remaining_slots_before_combined_report": [
+      "post_deploy_smoke_evidence"
+    ]
+  }
+}

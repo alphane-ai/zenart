@@ -40,8 +40,8 @@
     },
     {
       "check_id": "staging_observability_backup_load",
-      "status": "blocked",
-      "evidence_ref": "Dashboard, alert route, backend/worker/crawler metrics, request-id propagation, structured JSON logs, and OpenTelemetry traces staging runtime evidence passed in ops/evidence/staging/20260526T1000Z-dashboard-runtime.json, ops/evidence/staging/20260526T1000Z-alert-runtime.json, ops/evidence/staging/20260527T1215Z-backend-worker-crawler-metrics.json, and ops/evidence/staging/20260527T1815Z-observability-telemetry.json, but ops/evidence/staging/ restore, smoke, and load staging runtime evidence remains absent"
+      "status": "pass",
+      "evidence_ref": "Staging observability, backup, restore, load, and post-deploy smoke runtime evidence passed for release d3b1107c33dc40b8936f28549e06553fbd7b104a in ops/evidence/staging/20260527T013207Z-staging-observability-backup-load-36222.json; the combined preflight verifies request-id propagation, structured logs, backend, worker, and crawler metrics, OpenTelemetry traces, alerts and alert routes, dashboard import, Postgres restore, object restore, chat/task load, worker generation load, ZIP export load, signed download load, crawler throttle load, quota contention load, workspace rendering load, and post-deploy smoke; source inputs are ops/evidence/staging/20260527T1215Z-backend-worker-crawler-metrics.json, ops/evidence/staging/20260527T1815Z-observability-telemetry.json, ops/evidence/staging/20260527T1830Z-observability-runtime.json, ops/evidence/staging/20260527T2115Z-backup-restore.json, ops/evidence/staging/20260527T2120Z-load.json, and ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json while preserving unrelated object storage and legal/support blockers"
     },
     {
       "check_id": "staging_legal_external_user_pages",
@@ -101,8 +101,8 @@
     {
       "condition_id": "staging_observability_restore_load_missing",
       "blueprint_condition": "Staging 缺 provider、queue、export、quota、safety、crawler、object storage、billing、admin failure 的 logs/metrics/traces/dashboards/alerts/runbooks。",
-      "is_present": true,
-      "evidence_ref": "ops/evidence/staging/ dashboard, alert route, backend/worker/crawler metrics, request-id propagation, structured logs, and traces runtime evidence passed, but restore drill, staging smoke, and load evidence remain open"
+      "is_present": false,
+      "evidence_ref": "Staging observability/backup/load missing-runtime condition is cleared by ops/evidence/staging/20260527T013207Z-staging-observability-backup-load-36222.json, which verifies staging observability evidence, Postgres restore, object restore, chat/task load, worker generation load, ZIP export load, signed download load, crawler throttle load, quota contention load, workspace rendering load, and post-deploy smoke evidence for release d3b1107c33dc40b8936f28549e06553fbd7b104a"
     },
     {
       "condition_id": "external_user_legal_pages_missing",
@@ -115,15 +115,13 @@
     "status": "no_go",
     "blocked_by_checks": [
       "staging_object_storage_signed_downloads",
-      "staging_observability_backup_load",
       "staging_legal_external_user_pages"
     ],
     "active_do_not_launch_conditions": [
       "object_storage_signed_retention_runtime_missing",
-      "staging_observability_restore_load_missing",
       "external_user_legal_pages_missing"
     ],
-    "evidence_ref": "fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json remains no-go while staging_object_storage_signed_downloads, staging_observability_backup_load, and staging_legal_external_user_pages are blocked and object_storage_signed_retention_runtime_missing, staging_observability_restore_load_missing, and external_user_legal_pages_missing remain active after auth/RBAC/tenant/audit evidence passed in ops/evidence/staging/20260527T1515Z-auth-rbac-tenant-audit.json, brief/upload/confirmation evidence passed in ops/evidence/staging/20260526T2330Z-brief-upload-confirmation.json, quota, rate limit, and spend cap evidence passed in ops/evidence/staging/20260527T2015Z-quota-rate-limit-spend-cap.json, eval/QA/safety evidence passed in ops/evidence/staging/20260527T1900Z-eval-qa-safety.json, and observability telemetry evidence passed in ops/evidence/staging/20260527T1815Z-observability-telemetry.json"
+    "evidence_ref": "fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json remains no-go while staging_object_storage_signed_downloads and staging_legal_external_user_pages are blocked and object_storage_signed_retention_runtime_missing and external_user_legal_pages_missing remain active after staging_observability_backup_load passed in ops/evidence/staging/20260527T013207Z-staging-observability-backup-load-36222.json with logs, metrics, traces, alerts, dashboard, restore, load, and post-deploy smoke evidence from ops/evidence/staging/20260527T1830Z-observability-runtime.json, ops/evidence/staging/20260527T2115Z-backup-restore.json, ops/evidence/staging/20260527T2120Z-load.json, and ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json"
   },
   "provenance": {
     "blueprint_sections": [

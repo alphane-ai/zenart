@@ -1,0 +1,157 @@
+{
+  "schema_version": "stage0.rev2.staging_post_deploy_smoke",
+  "evidence_id": "staging-post-deploy-smoke-20260527T2125Z",
+  "blueprint_source": "Docs/stage0_blueprint_rev2.md",
+  "environment": "staging",
+  "kind": "post_deploy_smoke",
+  "status": "passed",
+  "release_sha": "d3b1107c33dc40b8936f28549e06553fbd7b104a",
+  "validated_at": "2026-05-27T21:25:00Z",
+  "validated_by_role": "admin_superadmin",
+  "release_gate_check_id": "staging_observability_backup_load",
+  "results_path": "ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json",
+  "required_categories": [
+    "backend_health",
+    "web",
+    "admin",
+    "auth_boundary",
+    "worker_task",
+    "export_package",
+    "signed_download",
+    "crawler_admin",
+    "quota_rate_limit",
+    "observability"
+  ],
+  "summary": {
+    "post_deploy_smoke_evidence": {
+      "verified": true,
+      "report_path": "ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json",
+      "present_categories": [
+        "backend_health",
+        "web",
+        "admin",
+        "auth_boundary",
+        "worker_task",
+        "export_package",
+        "signed_download",
+        "crawler_admin",
+        "quota_rate_limit",
+        "observability"
+      ]
+    }
+  },
+  "steps": [
+    {
+      "name": "backend_health",
+      "status": "passed",
+      "report_path": "ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json",
+      "evidence_refs": [
+        "ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json",
+        "ops/evidence/staging/20260527T1215Z-backend-worker-crawler-metrics.json"
+      ],
+      "runtime_probe": "Backend health and readiness returned the staging release SHA and exposed bounded metrics without raw user, prompt, support, crawler URL, or provider-key labels."
+    },
+    {
+      "name": "web",
+      "status": "passed",
+      "report_path": "ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json",
+      "evidence_refs": [
+        "ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json",
+        "ops/evidence/staging/20260526T2330Z-brief-upload-confirmation.json"
+      ],
+      "runtime_probe": "External-user web smoke opened the workspace, confirmed brief/upload state, and reached the four-candidate ready state for the release SHA."
+    },
+    {
+      "name": "admin",
+      "status": "passed",
+      "report_path": "ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json",
+      "evidence_refs": [
+        "ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json",
+        "ops/evidence/staging/20260527T1515Z-auth-rbac-tenant-audit.json"
+      ],
+      "runtime_probe": "Admin smoke opened operations, queues, abuse, crawler, quota, and audit views with independent admin session evidence and no dev identity header fallback."
+    },
+    {
+      "name": "auth_boundary",
+      "status": "passed",
+      "report_path": "ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json",
+      "evidence_refs": [
+        "ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json",
+        "ops/evidence/staging/20260527T1515Z-auth-rbac-tenant-audit.json"
+      ],
+      "runtime_probe": "Auth boundary smoke denied external-user access to /api/admin/*, denied cross-tenant object and trace access, and allowed only the independent admin session cookie."
+    },
+    {
+      "name": "worker_task",
+      "status": "passed",
+      "report_path": "ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json",
+      "evidence_refs": [
+        "ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json",
+        "ops/evidence/staging/20260527T1000Z-support-retry-abuse.json",
+        "ft-912"
+      ],
+      "runtime_probe": "Worker task smoke replayed failed-task retry/cancel governance, preserved idempotency, and linked queue q-export to audit au-007."
+    },
+    {
+      "name": "export_package",
+      "status": "passed",
+      "report_path": "ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json",
+      "evidence_refs": [
+        "ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json",
+        "fixtures/stage0/rev2/eval/trace_export_gate_matrix.json",
+        "ex-909"
+      ],
+      "runtime_probe": "Export package smoke verified manifest, QA report, provenance, archive checksum, and support-ticket linkage after regeneration."
+    },
+    {
+      "name": "signed_download",
+      "status": "passed",
+      "report_path": "ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json",
+      "evidence_refs": [
+        "ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json",
+        "ops/evidence/staging/20260527T2115Z-backup-restore.json",
+        "ex-909"
+      ],
+      "runtime_probe": "Signed download smoke issued tenant-scoped URLs, verified expiry, direct-object denial, and cross-tenant denial for the restored export package."
+    },
+    {
+      "name": "crawler_admin",
+      "status": "passed",
+      "report_path": "ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json",
+      "evidence_refs": [
+        "ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json",
+        "ops/evidence/staging/20260527T1100Z-crawler-governance-runtime.json",
+        "cg-501"
+      ],
+      "runtime_probe": "Crawler admin smoke verified source approval, robots, SSRF, retention deletion, exact-text warning, takedown, and derivative review evidence stayed visible."
+    },
+    {
+      "name": "quota_rate_limit",
+      "status": "passed",
+      "report_path": "ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json",
+      "evidence_refs": [
+        "ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json",
+        "ops/evidence/staging/20260527T2015Z-quota-rate-limit-spend-cap.json",
+        "au-019"
+      ],
+      "runtime_probe": "Quota/rate-limit smoke verified reservation, commit, refund, retry idempotency, gateway throttling, provider spend-cap fail-closed behavior, and emergency kill-switch controls."
+    },
+    {
+      "name": "observability",
+      "status": "passed",
+      "report_path": "ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json",
+      "evidence_refs": [
+        "ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json",
+        "ops/evidence/staging/20260527T1830Z-observability-runtime.json",
+        "ops/evidence/staging/20260527T1815Z-observability-telemetry.json"
+      ],
+      "runtime_probe": "Observability smoke verified request-id propagation, structured JSON logs, OpenTelemetry traces, backend/worker/crawler metrics, imported dashboards, and alert routes for the release SHA."
+    }
+  ],
+  "gate_impact": {
+    "release_gate_check_id": "staging_observability_backup_load",
+    "can_clear_post_deploy_smoke_slot": true,
+    "aggregate_checklist_item": "Staging post-deploy smoke tests \u901a\u8fc7\u3002",
+    "remaining_slots_before_combined_report": []
+  }
+}

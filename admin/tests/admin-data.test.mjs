@@ -348,12 +348,16 @@ test("admin operations page exposes observability backup load preflight evidence
 
   for (const token of [
     "stagingObservabilityBackupLoadPreflightEvidence",
-    "obl-preflight-staging-20260527T004121Z",
-    "ops/evidence/staging/20260527T004121Z-staging-observability-backup-load-77078.json",
+    "obl-preflight-staging-20260527T013207Z",
+    "ops/evidence/staging/20260527T013207Z-staging-observability-backup-load-36222.json",
+    "ops/evidence/staging/20260527T2115Z-backup-restore.json",
+    "ops/evidence/staging/20260527T2120Z-load.json",
+    "ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json",
     "backup_restore_evidence",
     "load_evidence",
-    "staging_observability_restore_load_missing",
-    "not_local_file:missing"
+    "post_deploy_smoke_evidence",
+    "canClearAggregateItem: true",
+    "preservedDoNotLaunchConditionId: \"none\""
   ]) {
     assert.match(fixtures, new RegExp(token));
   }
