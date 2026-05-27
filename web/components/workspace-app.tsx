@@ -186,6 +186,11 @@ type BrowserCsrfProbeResult = {
   safeMethod: string;
   safeCredentials: string;
   safeCsrfHeader: string;
+  safeOperationCount: number;
+  safeCoveredOperations: string;
+  safeCredentialedRequestCount: number;
+  safeNoCsrfHeaderCount: number;
+  safeOperationContracts: string;
   failureReason: string;
 };
 
@@ -209,6 +214,11 @@ const initialBrowserCsrfProbeResult: BrowserCsrfProbeResult = {
   safeMethod: "missing",
   safeCredentials: "missing",
   safeCsrfHeader: "missing",
+  safeOperationCount: generatedApiCsrfInventory.safeOperationCount,
+  safeCoveredOperations: generatedApiCsrfInventory.safeOperationIds.join(","),
+  safeCredentialedRequestCount: 0,
+  safeNoCsrfHeaderCount: 0,
+  safeOperationContracts: "",
   failureReason: ""
 };
 
@@ -256,10 +266,13 @@ const runGeneratedClientCsrfBrowserProbe = async (): Promise<BrowserCsrfProbeRes
   const requests: Array<{ path: string; method: string; credentials: string; csrfHeader: string; idempotencyKey: string }> = [];
   const originalFetch = window.fetch.bind(window);
   const unsafeContracts = generatedApiCsrfInventory.unsafeRequestContracts;
+  const safeOperationIds = generatedApiCsrfInventory.safeOperationIds as OperationId[];
   const pathParams = {
     project_id: "project-001",
     chat_session_id: "chat-001",
     workspace_id: "workspace-001",
+    task_id: "task-001",
+    candidate_set_id: "candidate-set-001",
     package_id: "pkg-001",
     export_id: "export-001"
   };
@@ -291,24 +304,35 @@ const runGeneratedClientCsrfBrowserProbe = async (): Promise<BrowserCsrfProbeRes
         body: contract.idempotencyHeaderRequired ? { probe: contract.operationId } : undefined
       });
     }
-    await client.request("getSession");
+    for (const operationId of safeOperationIds) {
+      await client.request(operationId, { pathParams });
+    }
   } finally {
     window.fetch = originalFetch;
   }
 
   const unsafeRequests = requests.slice(0, unsafeContracts.length);
   const unsafeRequest = unsafeRequests.find((request) => request.path === "/account") ?? unsafeRequests[0];
-  const safeRequest = requests.at(-1);
+  const safeRequests = requests.slice(unsafeContracts.length);
+  const safeRequest = safeRequests[0];
   const unsafeCredentialedRequestCount = unsafeRequests.filter((request) => request.credentials === "include").length;
   const unsafeCsrfHeaderCount = unsafeRequests.filter((request) => request.csrfHeader === "same-site-origin-check").length;
   const unsafeIdempotencyHeaderCount = unsafeRequests.filter((request, index) => {
     const contract = unsafeContracts[index];
     return contract?.idempotencyHeaderRequired && request.idempotencyKey === `csrf-probe-${contract.operationId}`;
   }).length;
+  const safeCredentialedRequestCount = safeRequests.filter((request) => request.credentials === "include").length;
+  const safeNoCsrfHeaderCount = safeRequests.filter((request) => request.csrfHeader === "not-required").length;
   const unsafeOperationContracts = unsafeContracts
     .map((contract, index) => {
       const request = unsafeRequests[index];
       return `${contract.operationId}:${request?.method ?? "missing"}:${request?.credentials ?? "missing"}:${request?.csrfHeader ?? "missing"}:${request?.idempotencyKey ?? "missing"}`;
+    })
+    .join("|");
+  const safeOperationContracts = safeOperationIds
+    .map((operationId, index) => {
+      const request = safeRequests[index];
+      return `${operationId}:${request?.method ?? "missing"}:${request?.credentials ?? "missing"}:${request?.csrfHeader ?? "missing"}`;
     })
     .join("|");
   const failures = [
@@ -317,9 +341,10 @@ const runGeneratedClientCsrfBrowserProbe = async (): Promise<BrowserCsrfProbeRes
     unsafeCredentialedRequestCount === unsafeContracts.length ? "" : "unsafe-credentials",
     unsafeCsrfHeaderCount === unsafeContracts.length ? "" : "unsafe-csrf-header",
     unsafeIdempotencyHeaderCount === generatedApiCsrfInventory.unsafeIdempotencyRequiredOperationIds.length ? "" : "unsafe-idempotency-key",
-    safeRequest?.method === "GET" ? "" : "safe-method",
-    safeRequest?.credentials === "include" ? "" : "safe-credentials",
-    safeRequest?.csrfHeader === "not-required" ? "" : "safe-csrf-header"
+    safeRequests.length === safeOperationIds.length ? "" : "safe-operation-count",
+    safeOperationIds.every((operationId, index) => safeRequests[index]?.method === apiOperations[operationId].method) ? "" : "safe-method",
+    safeCredentialedRequestCount === safeOperationIds.length ? "" : "safe-credentials",
+    safeNoCsrfHeaderCount === safeOperationIds.length ? "" : "safe-csrf-header"
   ].filter(Boolean);
 
   return {
@@ -340,6 +365,11 @@ const runGeneratedClientCsrfBrowserProbe = async (): Promise<BrowserCsrfProbeRes
     safeMethod: safeRequest?.method ?? "missing",
     safeCredentials: safeRequest?.credentials ?? "missing",
     safeCsrfHeader: safeRequest?.csrfHeader ?? "missing",
+    safeOperationCount: safeOperationIds.length,
+    safeCoveredOperations: safeOperationIds.join(","),
+    safeCredentialedRequestCount,
+    safeNoCsrfHeaderCount,
+    safeOperationContracts,
     failureReason: failures.join(",")
   };
 };
@@ -2150,6 +2180,11 @@ function AccountView({
         data-generated-api-csrf-browser-probe-safe-method={browserCsrfProbeResult.safeMethod}
         data-generated-api-csrf-browser-probe-safe-credentials={browserCsrfProbeResult.safeCredentials}
         data-generated-api-csrf-browser-probe-safe-csrf-header={browserCsrfProbeResult.safeCsrfHeader}
+        data-generated-api-csrf-browser-probe-safe-operation-count={browserCsrfProbeResult.safeOperationCount}
+        data-generated-api-csrf-browser-probe-safe-covered-operations={browserCsrfProbeResult.safeCoveredOperations}
+        data-generated-api-csrf-browser-probe-safe-credentialed-request-count={browserCsrfProbeResult.safeCredentialedRequestCount}
+        data-generated-api-csrf-browser-probe-safe-no-csrf-header-count={browserCsrfProbeResult.safeNoCsrfHeaderCount}
+        data-generated-api-csrf-browser-probe-safe-operation-contracts={browserCsrfProbeResult.safeOperationContracts}
         data-generated-api-csrf-browser-probe-failure-reason={browserCsrfProbeResult.failureReason}
       >
         <strong>Generated API browser request probe</strong>

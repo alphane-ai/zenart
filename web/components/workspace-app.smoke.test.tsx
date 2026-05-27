@@ -149,6 +149,13 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-unsafe-idempotency-header-count", "0");
     expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-safe-operation", "getSession");
     expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-safe-csrf-header", "missing");
+    expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-safe-operation-count", "17");
+    expect(browserProbe).toHaveAttribute(
+      "data-generated-api-csrf-browser-probe-safe-covered-operations",
+      "getSession,getAccount,listProjects,getProject,getWorkspace,listChatMessages,getTask,listCandidateSets,listCandidateAssets,listCanvasNodes,listCanvasFrames,listCanvasVersions,listAssets,listPackages,getExport,getQuota,getSubscription"
+    );
+    expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-safe-credentialed-request-count", "0");
+    expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-safe-no-csrf-header-count", "0");
 
     const saveSettings = screen.getByRole("button", { name: "Save Settings" });
     expect(saveSettings).toHaveAttribute("data-csrf-ux-guard", "authenticated-same-site-session");

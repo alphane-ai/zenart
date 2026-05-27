@@ -332,6 +332,11 @@
         "data-generated-api-csrf-browser-probe-unsafe-idempotency-header-count",
         "data-generated-api-csrf-browser-probe-unsafe-operation-contracts",
         "data-generated-api-csrf-browser-probe-safe-csrf-header",
+        "data-generated-api-csrf-browser-probe-safe-operation-count",
+        "data-generated-api-csrf-browser-probe-safe-covered-operations",
+        "data-generated-api-csrf-browser-probe-safe-credentialed-request-count",
+        "data-generated-api-csrf-browser-probe-safe-no-csrf-header-count",
+        "data-generated-api-csrf-browser-probe-safe-operation-contracts",
         "Session expired. Refresh or sign in to continue.",
         "Save Settings",
         "Sign In"
@@ -381,6 +386,11 @@
         "data-generated-api-csrf-browser-probe-safe-method",
         "data-generated-api-csrf-browser-probe-safe-credentials",
         "data-generated-api-csrf-browser-probe-safe-csrf-header",
+        "data-generated-api-csrf-browser-probe-safe-operation-count",
+        "data-generated-api-csrf-browser-probe-safe-covered-operations",
+        "data-generated-api-csrf-browser-probe-safe-credentialed-request-count",
+        "data-generated-api-csrf-browser-probe-safe-no-csrf-header-count",
+        "data-generated-api-csrf-browser-probe-safe-operation-contracts",
         "data-generated-api-csrf-browser-probe-failure-reason"
       ],
       "browserSmokeExpectedUnsafeRequestContracts": [
@@ -399,6 +409,25 @@
         "createExport:POST:include:same-site-origin-check:csrf-probe-createExport",
         "createShareLink:POST:include:same-site-origin-check:csrf-probe-createShareLink",
         "createSupportTicket:POST:include:same-site-origin-check:csrf-probe-createSupportTicket"
+      ],
+      "browserSmokeExpectedSafeRequestContracts": [
+        "getSession:GET:include:not-required",
+        "getAccount:GET:include:not-required",
+        "listProjects:GET:include:not-required",
+        "getProject:GET:include:not-required",
+        "getWorkspace:GET:include:not-required",
+        "listChatMessages:GET:include:not-required",
+        "getTask:GET:include:not-required",
+        "listCandidateSets:GET:include:not-required",
+        "listCandidateAssets:GET:include:not-required",
+        "listCanvasNodes:GET:include:not-required",
+        "listCanvasFrames:GET:include:not-required",
+        "listCanvasVersions:GET:include:not-required",
+        "listAssets:GET:include:not-required",
+        "listPackages:GET:include:not-required",
+        "getExport:GET:include:not-required",
+        "getQuota:GET:include:not-required",
+        "getSubscription:GET:include:not-required"
       ]
     },
     {

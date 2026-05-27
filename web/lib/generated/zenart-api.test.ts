@@ -198,6 +198,15 @@ describe("generated web API client CSRF contract", () => {
     expect(routeSmokeEvidence.browserSmokeExpectedUnsafeRequestContracts).toEqual(
       generatedApiCsrfContract.browserSmoke.expectedUnsafeRequestContracts
     );
+    expect(generatedApiCsrfContract.browserSmoke.expectedSafeRequestContracts).toEqual(
+      safeOperations.map((operationId) => {
+        const operation = apiOperations[operationId as OperationId];
+        return `${operationId}:${operation.method}:${generatedApiCsrfContract.credentialMode}:not-required`;
+      })
+    );
+    expect(routeSmokeEvidence.browserSmokeExpectedSafeRequestContracts).toEqual(
+      generatedApiCsrfContract.browserSmoke.expectedSafeRequestContracts
+    );
     expect(generatedApiCsrfContract.unsafeOperationCount).toBe(unsafeOperations.length);
     expect(generatedApiCsrfContract.safeOperationCount).toBe(safeOperations.length);
     expect(requestContractEvidence.unsafeOperationIds).toEqual(unsafeOperations);
