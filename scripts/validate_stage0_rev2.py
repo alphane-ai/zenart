@@ -2793,6 +2793,44 @@ def require_split_runtime_pass_evidence(evidence_ref: str, gate: str, check_id: 
         )
 
 
+def split_checklist_requirement_for_path(
+    gate: str,
+    check_id: str,
+    path: Path,
+) -> tuple[str, dict[str, Any]] | tuple[None, None]:
+    for item, requirement in SPLIT_CHECKLIST_ITEM_EVIDENCE.items():
+        if (
+            requirement["gate"] == gate
+            and requirement["check_id"] == check_id
+            and requirement["path"] == path
+        ):
+            return item, requirement
+    return None, None
+
+
+def split_runtime_evidence_is_passable(path: Path, requirement: dict[str, Any]) -> bool:
+    if not path.is_file():
+        return False
+    evidence = load_json_if_path(rel(path))
+    if not isinstance(evidence, dict):
+        return False
+    if evidence.get("environment") not in RUNTIME_PASS_FILE_ENVIRONMENTS[requirement["gate"]]:
+        return False
+    evidence_check_id = evidence.get("release_gate_check_id")
+    if evidence_check_id is not None and evidence_check_id != requirement["check_id"]:
+        return False
+    if evidence.get("status") not in requirement["allowed_statuses"]:
+        return False
+    preserved_blockers = runtime_evidence_preserved_blockers(evidence)
+    if requirement["allow_preserved_blockers"]:
+        if not preserved_blockers:
+            return False
+    elif preserved_blockers:
+        return False
+    combined = json.dumps(evidence, ensure_ascii=False).lower()
+    return all(token in combined for token in requirement["tokens"])
+
+
 def require_split_runtime_blocked_evidence(evidence_ref: str, gate: str, check_id: str) -> None:
     requirement = RUNTIME_SPLIT_PASS_REQUIREMENTS.get((gate, check_id))
     if requirement is None:
@@ -2842,6 +2880,11 @@ def require_split_runtime_blocked_evidence(evidence_ref: str, gate: str, check_i
                 evidence is None or isinstance(evidence, dict),
                 f"{gate}.{check_id} blocked split evidence {rel_path} must be valid JSON when present",
             )
+            checklist_item, checklist_requirement = split_checklist_requirement_for_path(gate, check_id, path)
+            require(
+                checklist_requirement is not None,
+                f"{gate}.{check_id} blocked split evidence {rel_path} is not owned by an exact checklist row",
+            )
             require(
                 any(term in path_window for term in SPLIT_EVIDENCE_PRESENT_TERMS),
                 f"{gate}.{check_id} blocked split evidence {rel_path} exists but evidence_ref does not mark "
@@ -2866,6 +2909,34 @@ def require_split_runtime_blocked_evidence(evidence_ref: str, gate: str, check_i
                         f"{gate}.{check_id} blocked split evidence {rel_path} targets "
                         f"release_gate_check_id={evidence_check_id!r}",
                     )
+                require(
+                    evidence.get("status") in checklist_requirement["allowed_statuses"],
+                    f"{gate}.{check_id} blocked split evidence {rel_path} has status={evidence.get('status')!r}; "
+                    f"it cannot be cited as present for {checklist_item}",
+                )
+                preserved_blockers = runtime_evidence_preserved_blockers(evidence)
+                if checklist_requirement["allow_preserved_blockers"]:
+                    require(
+                        preserved_blockers,
+                        f"{gate}.{check_id} blocked split evidence {rel_path} must preserve the combined blocker",
+                    )
+                else:
+                    require(
+                        not preserved_blockers,
+                        f"{gate}.{check_id} blocked split evidence {rel_path} must not preserve blockers: "
+                        f"{preserved_blockers}",
+                    )
+                combined = json.dumps(evidence, ensure_ascii=False).lower()
+                missing_evidence_tokens = [
+                    token
+                    for token in checklist_requirement["tokens"]
+                    if token not in combined
+                ]
+                require(
+                    not missing_evidence_tokens,
+                    f"{gate}.{check_id} blocked split evidence {rel_path} lacks required checked-row semantics "
+                    f"for {checklist_item}: {missing_evidence_tokens}",
+                )
         else:
             require(
                 any(term in path_window for term in SPLIT_EVIDENCE_ABSENT_TERMS),
@@ -2887,6 +2958,11 @@ def validate_split_checklist_item_evidence(
         item_state_count = int(item in checked_lines) + int(item in unchecked_lines)
         require(item_state_count == 1, f"split runtime checklist item is missing: {item}")
         if item in unchecked_lines:
+            path = requirement["path"]
+            require(
+                not split_runtime_evidence_is_passable(path, requirement),
+                f"split runtime checklist item remains open even though exact evidence is passable at {rel(path)}: {item}",
+            )
             continue
 
         gate = requirement["gate"]
@@ -7757,6 +7833,8 @@ def validate_launch_readiness_split_contracts() -> None:
         "Production backup/rollback/post-deploy pass evidence must cite both upstream gate fixtures",
         "Blocked split runtime/deployment checks must name every exact split evidence file still required for closure",
         "must also state whether each exact split evidence file is already present/passed or still absent/missing",
+        "Blocked split runtime/deployment checks that mention an existing split evidence file must validate that file against its owning checked checklist row",
+        "Open split checklist rows cannot remain open after their exact validator-owned evidence file becomes passable",
         "a broad `ops/evidence/staging/` or `ops/evidence/production/` placeholder cannot preserve a launch blocker",
         "Existing half-split evidence can only close its own concrete subitem",
         "the combined check remains blocked until every required split file exists",
