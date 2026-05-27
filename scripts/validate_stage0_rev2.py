@@ -3588,6 +3588,11 @@ def release_evidence_by_gate() -> dict[str, dict[str, Any]]:
             f"duplicate release gate evidence for {expected_gate}: {path.relative_to(ROOT)}",
         )
         evidence[data["gate"]] = data
+    require(
+        set(evidence) == set(RELEASE_GATE_EVIDENCE_FILES),
+        "release gate evidence files must cover exactly the canonical gates: "
+        + json.dumps(sorted(RELEASE_GATE_EVIDENCE_FILES), ensure_ascii=False),
+    )
     return evidence
 
 
@@ -3631,6 +3636,16 @@ def require_unique_ordered_ids(ids: list[Any], context: str) -> None:
     )
 
 
+def require_field_allowed_keys(value: Any, allowed_keys: set[str], context: str) -> None:
+    require(isinstance(value, dict), f"{context} must be an object")
+    extra_keys = set(value) - allowed_keys
+    require(
+        not extra_keys,
+        f"{context} contains unsupported keys: "
+        + json.dumps(sorted(extra_keys), ensure_ascii=False),
+    )
+
+
 def current_blocked_release_gate_checks(gate: str) -> set[str]:
     data = load_json(RELEASE_GATE_EVIDENCE_FILES[gate])
     return {
@@ -3643,7 +3658,16 @@ def current_blocked_release_gate_checks(gate: str) -> set[str]:
 def validate_gate_decision(data: dict[str, Any]) -> None:
     gate = data["gate"]
     decision = data.get("gate_decision")
-    require(isinstance(decision, dict), f"{gate} release evidence missing gate_decision")
+    require_field_allowed_keys(
+        decision,
+        {
+            "status",
+            "blocked_by_checks",
+            "active_do_not_launch_conditions",
+            "evidence_ref",
+        },
+        f"{gate} gate_decision",
+    )
 
     blockers = gate_blockers(data)
     expected_blocked_checks = blockers["blocked_or_failing_checks"]
@@ -3719,6 +3743,11 @@ def validate_gate_decision(data: dict[str, Any]) -> None:
     require(
         rel(RELEASE_GATE_EVIDENCE_FILES[gate]) in evidence_ref,
         f"{gate} gate_decision evidence must cite its release gate fixture",
+    )
+    aggregate_item = RELEASE_GATE_AGGREGATE_ITEMS[gate]
+    require(
+        aggregate_item in evidence_ref,
+        f"{gate} gate_decision evidence must name the aggregate runtime checklist item: {aggregate_item}",
     )
     if expected_status == "no_go":
         require(
@@ -8580,6 +8609,8 @@ def validate_launch_readiness_split_contracts() -> None:
         "a fixture-level `go` decision is invalid while any check is blocked/failing or any Do-Not-Launch condition is active",
         "For a `no_go` fixture, `gate_decision.evidence_ref` must name every blocked/failing check ID",
         "and every active Do-Not-Launch condition ID from the same fixture",
+        "Every `gate_decision.evidence_ref` must name the aggregate runtime checklist row it governs",
+        "decision prose that only names low-level check IDs cannot silently drift away from the visible Local Alpha、CI、Private Beta/Staging、Production checklist state",
         "If a gate checklist item remains open, its release gate fixture must still contain at least one computed blocker",
         "CI, Private Beta/Staging, and Production gate fixtures may not be `no_go` with zero active Do-Not-Launch conditions",
         "Local Alpha may remain `no_go` with zero active Do-Not-Launch conditions only for local workflow runtime smoke",
@@ -8648,6 +8679,8 @@ def validate_launch_readiness_split_contracts() -> None:
         "gate_private_beta_staging_blocked",
         "gate_production_launch_blocked",
         "copied, renamed, or extra release-gate fixtures cannot contribute to gate closure",
+        "Release gate fixture `gate_decision` is a closed object",
+        "only `status`, `blocked_by_checks`, `active_do_not_launch_conditions`, and `evidence_ref` are allowed",
         "`schema_version` must remain `stage0.rev2`",
         "`gate` must match the filename's canonical gate",
         "`provenance.created_by_lane` must remain `lane6`",
