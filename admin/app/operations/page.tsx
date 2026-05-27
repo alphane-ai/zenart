@@ -122,6 +122,28 @@ export default async function OperationsPage() {
             <p>Production operations evidence validates backup restore, rollback drills, alert incident paths, and post-deploy smoke while preserving unrelated launch blockers.</p>
           </div>
         </div>
+        <div className="dependency-summary">
+          <article>
+            <span>Admin-visible probe</span>
+            <strong>{productionBackupRollbackSplitPreflightEvidence.adminVisibleProbeReady ? "reviewable" : "blocked"}</strong>
+            <small>{productionBackupRollbackSplitPreflightEvidence.adminVisibleProbePath}</small>
+          </article>
+          <article>
+            <span>Launch-clearing split files</span>
+            <strong>{productionBackupRollbackSplitPreflightEvidence.exactSplitEvidence.filter((split) => split.passed).length}/{productionBackupRollbackSplitPreflightEvidence.exactSplitEvidence.length}</strong>
+            <small>{productionBackupRollbackSplitPreflightEvidence.exactSplitEvidence.map((split) => split.path).join(", ")}</small>
+          </article>
+          <article>
+            <span>Upstream gates ready</span>
+            <strong>{productionBackupRollbackSplitPreflightEvidence.upstreamGates.filter((gate) => gate.ready).length}/{productionBackupRollbackSplitPreflightEvidence.upstreamGates.length}</strong>
+            <small>{productionBackupRollbackSplitPreflightEvidence.upstreamGates.map((gate) => `${gate.gate}:${gate.gateDecisionStatus}`).join(", ")}</small>
+          </article>
+          <article>
+            <span>Release gate effect</span>
+            <strong>{productionBackupRollbackSplitPreflightEvidence.canClearReleaseGateCheck ? "can clear" : "preserved"}</strong>
+            <small>{productionBackupRollbackSplitPreflightEvidence.blockedChecks.join(", ")}</small>
+          </article>
+        </div>
         <DataTable<ProductionBackupRollbackIncidentEvidence>
           rows={[productionBackupRollbackIncidentEvidence]}
           columns={[
