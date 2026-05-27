@@ -769,7 +769,8 @@ func redactAuthorization(value string) string {
 }
 
 func redactAuthorizationAssignments(value string) string {
-	return regexp.MustCompile(`(?i)\b(Authorization|Proxy-Authorization)\s*:\s*(ApiKey|Token|Digest|Negotiate|AWS4-HMAC-SHA256|SharedKey|SharedKeyLite)\s+[^\s,;&]+`).ReplaceAllString(value, "$1: $2 "+Redacted)
+	value = regexp.MustCompile(`(?i)\b(Authorization|Proxy-Authorization)\s*:\s*(ApiKey|Token|Digest|Negotiate|AWS4-HMAC-SHA256|SharedKey|SharedKeyLite)\s+[^\s,;&]+`).ReplaceAllString(value, "$1: $2 "+Redacted)
+	return regexp.MustCompile(`(?i)\b(Authorization|Proxy-Authorization)\s*=\s*(ApiKey|Token|Digest|Negotiate|AWS4-HMAC-SHA256|SharedKey|SharedKeyLite)\s+[^\s,;&]+`).ReplaceAllString(value, "$1=$2 "+Redacted)
 }
 
 func redactAssignments(value string) string {

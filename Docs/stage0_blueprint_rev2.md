@@ -1900,6 +1900,7 @@ main 合并前必须通过：
 - [x] 扩展 launch storage secret redaction 覆盖 OSS V4、Tencent COS `q-*`、B2 authorization/access key、Azure SAS IP/policy/encryption/delegation 字段的字符串和结构化 metadata。
 - [x] 扩展 S3-compatible launch secret redaction/classification 覆盖 R2、Wasabi、Scaleway、Vultr、Linode、OCI/Oracle Object Storage credential aliases and Akamai/edge signed delivery token fields。
 - [x] 扩展 launch analytics/support/email/identity secret redaction/classification 覆盖 PostHog、Segment、Amplitude、Mixpanel、LaunchDarkly、PagerDuty、Opsgenie、Zendesk、Intercom、Resend、Postmark、Mailchimp、Clerk、Auth0、Supabase、Firebase metadata keys and token value patterns.
+- [x] 扩展 launch authorization secret redaction 覆盖 `Authorization=Token ...`、`Proxy-Authorization=SharedKeyLite ...` assignment-form metadata，避免 logs/traces/errors/audit/support/export/crawler metadata 泄露 provider/storage authorization tails.
 - [x] 硬化 malware scan 外部边界：scanner request/response metadata redaction、status normalization、unsupported status fail-closed tests。
 - [x] 硬化 staging/production malware scan 启动配置：`MALWARE_SCAN_PROVIDER=http` 在非 local 环境必须启用 `MALWARE_SCAN_FAIL_CLOSED=true`，避免外部 scanner outage/error fail-open。
 - [x] 添加 dependency/image/secret scans。

@@ -376,6 +376,8 @@ func TestRedactStringCoversLaunchAuthorizationSchemesAndInfraTokens(t *testing.T
 	input := strings.Join([]string{
 		"Authorization: ApiKey provider-secret-value",
 		"Proxy-Authorization: SharedKey storage-account:signature-value",
+		"Authorization=Token provider-token-value",
+		"Proxy-Authorization=SharedKeyLite storage-lite-secret",
 		"client_assertion=eyJabcdefghijklmnopqrstuvwxyz.eyJabcdefghijklmnopqrstuvwxyz.abcdefghijklmnopqrst",
 		"azure=azdpat" + strings.Repeat("A", 24),
 		"pulumi=" + pulumiToken,
@@ -386,6 +388,8 @@ func TestRedactStringCoversLaunchAuthorizationSchemesAndInfraTokens(t *testing.T
 	for _, leaked := range []string{
 		"provider-secret-value",
 		"storage-account:signature-value",
+		"provider-token-value",
+		"storage-lite-secret",
 		"eyJabcdefghijklmnopqrstuvwxyz.eyJabcdefghijklmnopqrstuvwxyz.abcdefghijklmnopqrst",
 		"azdpat" + strings.Repeat("A", 24),
 		pulumiToken,
@@ -395,7 +399,13 @@ func TestRedactStringCoversLaunchAuthorizationSchemesAndInfraTokens(t *testing.T
 			t.Fatalf("RedactString() = %q, leaked %s", got, leaked)
 		}
 	}
-	for _, fragment := range []string{"Authorization: ApiKey " + Redacted, "Proxy-Authorization: SharedKey " + Redacted, Redacted} {
+	for _, fragment := range []string{
+		"Authorization: ApiKey " + Redacted,
+		"Proxy-Authorization: SharedKey " + Redacted,
+		"Authorization=Token " + Redacted,
+		"Proxy-Authorization=SharedKeyLite " + Redacted,
+		Redacted,
+	} {
 		if !strings.Contains(got, fragment) {
 			t.Fatalf("RedactString() = %q, missing %s", got, fragment)
 		}
