@@ -791,6 +791,78 @@ RUNTIME_PASS_EVIDENCE_FILES = {
     ],
 }
 
+RUNTIME_EVIDENCE_CHECKLIST_ITEMS = {
+    ("private_beta_staging", "staging_auth_rbac_tenant_audit"): {
+        "Private Beta/Staging auth/RBAC/tenant/audit runtime evidence 通过。",
+    },
+    ("private_beta_staging", "staging_brief_upload_confirmation"): {
+        "Private Beta/Staging brief/upload/confirmation runtime evidence 通过。",
+    },
+    ("private_beta_staging", "staging_quota_rate_limit_spend_cap"): {
+        "Private Beta/Staging quota/rate-limit/spend-cap runtime evidence 通过。",
+    },
+    ("private_beta_staging", "staging_support_retry_abuse_ops"): {
+        "Private Beta/Staging support/retry/abuse runtime evidence 通过。",
+    },
+    ("private_beta_staging", "staging_eval_qa_safety_runtime"): {
+        "Private Beta/Staging eval/QA/safety enforcement runtime evidence 通过。",
+    },
+    ("private_beta_staging", "staging_crawler_approval_provenance"): {
+        "staging crawler fetch/import governance runtime evidence 通过：source approval、robots、SSRF、rate limits、retention、exact-text warning、provenance links、source blocklist 均有 staging evidence。",
+    },
+    ("private_beta_staging", "staging_observability_backup_load"): {
+        "Private Beta/Staging observability/backup/load runtime evidence 通过。",
+        "Private Beta/Staging observability runtime evidence 通过：staging evidence proves request-id、structured logs、OpenTelemetry traces、backend/worker/crawler metrics、dashboard import、alert routes in `ops/evidence/staging/20260527T1830Z-observability-runtime.json`; this observability-only artifact preserved backup/restore、load、post-deploy smoke blockers until the later combined preflight closed them。",
+        "Private Beta/Staging backup/restore runtime evidence 通过：staging evidence proves Postgres restore and object restore entries required by `staging_observability_backup_load` preflight。",
+        "Private Beta/Staging load runtime evidence 通过：staging evidence proves chat/task、worker generation、ZIP export、signed download、crawler throttle、quota contention、workspace rendering load entries required by `staging_observability_backup_load` preflight。",
+        "Staging post-deploy smoke tests 通过。",
+    },
+    ("private_beta_staging", "staging_object_storage_signed_downloads"): {
+        "Private Beta/Staging object storage signed URL runtime evidence 通过：staging evidence proves tenant-scoped signed download, expiry, direct-object denial, and cross-tenant denial under `ops/evidence/staging/`。",
+        "Private Beta/Staging object retention/cleanup runtime evidence 通过：staging evidence proves retention policy, expired export cleanup, orphan cleanup, and audit refs under `ops/evidence/staging/`。",
+    },
+    ("private_beta_staging", "staging_legal_external_user_pages"): {
+        "Private Beta/Staging legal/support external-user visibility runtime evidence 通过。",
+        "Private Beta/Staging legal pages external-user visibility evidence 通过：staging evidence proves Terms、Privacy、Acceptable Use、AI/content disclaimer、IP complaint flow are externally visible under `ops/evidence/staging/`。",
+        "Private Beta/Staging support contact external-user visibility evidence 通过：staging evidence proves visible support contact/report-problem path for external users under `ops/evidence/staging/`。",
+    },
+    ("production_launch", "production_provider_or_comp_only_mode"): {
+        "Production provider mode deployment evidence 通过：production evidence proves either real provider contract/monitoring/cost/staging verification or explicit invite/comp-only mode under `ops/evidence/production/`。",
+        "Production public paid/real-generation claims evidence 通过：production evidence proves paid and real-generation claims are enabled only with real provider evidence, or hidden for invite/comp-only mode under `ops/evidence/production/`。",
+    },
+    ("production_launch", "production_paid_billing_lifecycle"): {
+        "Production checkout/subscription/cancellation/past_due runtime evidence 通过 under `ops/evidence/production/`。",
+        "Production refund/credit/quota reset/webhook idempotency runtime evidence 通过 under `ops/evidence/production/`。",
+    },
+    ("production_launch", "production_activation_review_audit"): {
+        "Production activation review/audit runtime/deployment evidence 通过。",
+    },
+    ("production_launch", "production_abuse_throttle_hold"): {
+        "Production abuse throttle/hold runtime/deployment evidence 通过。",
+    },
+    ("production_launch", "production_skill_release_eval_canary"): {
+        "Production skill release/eval/canary runtime/deployment evidence 通过。",
+    },
+    ("production_launch", "production_security_launch_checks"): {
+        "Production security launch-check runtime/deployment evidence 通过。",
+    },
+    ("production_launch", "production_backup_rollback_incident"): {
+        "Production backup/restore runtime evidence 通过：production evidence proves backup schedule, Postgres restore, object restore, RPO/RTO, and audit refs under `ops/evidence/production/`。",
+        "Production rollback/incident/post-deploy smoke runtime evidence 通过：production evidence proves rollback drill, incident/alert path, migration compatibility, and post-deploy smoke under `ops/evidence/production/`。",
+    },
+    ("production_launch", "production_legal_support_policy"): {
+        "Production public legal policy deployment evidence 通过：production evidence proves Terms、Privacy、Acceptable Use、AI/content disclaimer、IP complaint flow visibility under `ops/evidence/production/`。",
+        "Production public support/billing policy deployment evidence 通过：production evidence proves support contact and paid billing/cancellation/refund policy visibility under `ops/evidence/production/`。",
+    },
+}
+
+GATE_IMPACT_KEY_CHECKLIST_ITEMS = {
+    "can_clear_crawler_governance_runtime_checklist_item": "staging crawler fetch/import governance runtime evidence 通过：source approval、robots、SSRF、rate limits、retention、exact-text warning、provenance links、source blocklist 均有 staging evidence。",
+    "can_clear_legal_pages_subitem": "Private Beta/Staging legal pages external-user visibility evidence 通过：staging evidence proves Terms、Privacy、Acceptable Use、AI/content disclaimer、IP complaint flow are externally visible under `ops/evidence/staging/`。",
+    "can_clear_support_contact_subitem": "Private Beta/Staging support contact external-user visibility evidence 通过：staging evidence proves visible support contact/report-problem path for external users under `ops/evidence/staging/`。",
+    "can_clear_signed_url_checklist_item": "Private Beta/Staging object storage signed URL runtime evidence 通过：staging evidence proves tenant-scoped signed download, expiry, direct-object denial, and cross-tenant denial under `ops/evidence/staging/`。",
+}
+
 PARTIAL_RUNTIME_PASS_EVIDENCE_ALLOWLIST = {
     "ops/evidence/staging/20260527T1215Z-backend-worker-crawler-metrics.json",
     "ops/evidence/staging/20260527T1815Z-observability-telemetry.json",
@@ -2646,6 +2718,62 @@ def require_runtime_file_evidence(evidence_ref: str, gate: str, check_id: str) -
                     preserved_check_id == check_id,
                     f"{gate}.{check_id} pass evidence file {runtime_path} preserves mismatched check {preserved_check_id!r}",
                 )
+        require_runtime_evidence_back_reference(
+            evidence,
+            runtime_path=runtime_path,
+            gate=gate,
+            check_id=check_id,
+        )
+
+
+def gate_impact_checklist_values(gate_impact: dict[str, Any]) -> set[str]:
+    values: set[str] = set()
+    for key in [
+        "checklist_item",
+        "check_level_item",
+        "aggregate_checklist_item",
+    ]:
+        value = gate_impact.get(key)
+        if isinstance(value, str) and value.strip():
+            values.add(value)
+    checklist_items = gate_impact.get("checklist_items")
+    if isinstance(checklist_items, list):
+        values.update(item for item in checklist_items if isinstance(item, str) and item.strip())
+    for key, checklist_item in GATE_IMPACT_KEY_CHECKLIST_ITEMS.items():
+        if gate_impact.get(key) is True:
+            values.add(checklist_item)
+    return values
+
+
+def require_runtime_evidence_back_reference(
+    evidence: dict[str, Any],
+    *,
+    runtime_path: str,
+    gate: str,
+    check_id: str,
+) -> None:
+    if not runtime_path.startswith("ops/evidence/"):
+        return
+    expected_items = RUNTIME_EVIDENCE_CHECKLIST_ITEMS.get((gate, check_id), set())
+    if not expected_items:
+        return
+    evidence_check_id = evidence.get("release_gate_check_id")
+    require(
+        evidence_check_id == check_id,
+        f"{gate}.{check_id} runtime evidence file {runtime_path} must explicitly target "
+        f"release_gate_check_id={check_id!r}; got {evidence_check_id!r}",
+    )
+    gate_impact = evidence.get("gate_impact")
+    require(
+        isinstance(gate_impact, dict),
+        f"{gate}.{check_id} runtime evidence file {runtime_path} must include gate_impact",
+    )
+    checklist_values = gate_impact_checklist_values(gate_impact)
+    require(
+        checklist_values & expected_items,
+        f"{gate}.{check_id} runtime evidence file {runtime_path} must name one validator-owned checklist row; "
+        f"expected one of {sorted(expected_items)} but got {sorted(checklist_values)}",
+    )
 
 
 def require_staging_observability_backup_load_pass_evidence(evidence_ref: str) -> None:
