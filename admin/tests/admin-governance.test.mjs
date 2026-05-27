@@ -191,6 +191,7 @@ const parseRbacRuntime = () => {
     .replaceAll(/function stateDigestStatus\(\n  attempt: AdminRbacOverrideAttempt,\n  runtimeDecision: AdminRbacRuntimeDecision \| undefined\n\): AdminRbacOverrideAttemptDecision\["stateDigestStatus"\]/g, "function stateDigestStatus(attempt, runtimeDecision)")
     .replaceAll(/function overrideAttemptOutcome\(\n  attempt: AdminRbacOverrideAttempt,\n  runtimeDecision: AdminRbacRuntimeDecision \| undefined,\n  idempotencyStable: boolean,\n  digestStatus: AdminRbacOverrideAttemptDecision\["stateDigestStatus"\]\n\): AdminRbacOverrideAttemptDecision\["requestOutcome"\]/g, "function overrideAttemptOutcome(attempt, runtimeDecision, idempotencyStable, digestStatus)")
     .replaceAll(/function overrideAttemptBlockers\(\n  runtimeDecision: AdminRbacRuntimeDecision \| undefined,\n  idempotencyStable: boolean,\n  digestStatus: AdminRbacOverrideAttemptDecision\["stateDigestStatus"\],\n  expectedHttpStatusMatches: boolean\n\)/g, "function overrideAttemptBlockers(runtimeDecision, idempotencyStable, digestStatus, expectedHttpStatusMatches)")
+    .replaceAll(/function overrideAttemptBindingBlockers\(\n  attempt: AdminRbacOverrideAttempt,\n  runtimeDecision: AdminRbacRuntimeDecision \| undefined\n\)/g, "function overrideAttemptBindingBlockers(attempt, runtimeDecision)")
     .replaceAll(/: AdminRbacEvidence\[\]/g, "")
     .replaceAll(/: AdminRbacOverrideAttempt\[\]/g, "")
     .replaceAll(/: AdminRbacOverrideAttemptDecision\[\]/g, "")
@@ -7184,6 +7185,48 @@ test("admin RBAC release evidence matrix binds request attempts to release eligi
   assert.ok(missingAttemptRow.blockerCodes.includes("request_attempt_missing"));
   assert.ok(missingAttemptRow.blockerCodes.includes("attempt_decision_missing"));
   assert.equal(missingAttemptRow.releaseGateStatus, "release_gate_preserved");
+
+  const malformedProviderAttempt = {
+    ...adminRbacOverrideAttempts.find((attempt) => attempt.evidenceId === "rbac-provider-001"),
+    apiScope: "POST /api/admin/exports/ex-887/override-release",
+    auditRef: "au-001",
+    evidenceRefs: ["rv-101", "ph-1", "eg-003", "au-007"]
+  };
+  const malformedProviderAttempts = [
+    ...adminRbacOverrideAttempts.filter((attempt) => attempt.evidenceId !== "rbac-provider-001"),
+    malformedProviderAttempt
+  ];
+  const malformedProviderAttemptDecisions = buildAdminRbacOverrideAttemptDecisions(
+    malformedProviderAttempts,
+    runtimeDecisions
+  );
+  const malformedMatrix = buildAdminRbacReleaseEvidenceMatrix(
+    adminRbacEvidence,
+    malformedProviderAttempts,
+    malformedProviderAttemptDecisions,
+    runtimeDecisions,
+    closures,
+    bundles
+  );
+  const malformedProviderRow = malformedMatrix.find((row) => row.evidenceId === "rbac-provider-001");
+  assert.ok(malformedProviderRow, "malformed provider attempt needs matrix row");
+  assert.ok(
+    malformedProviderRow.blockerCodes.includes("request_attempt_api_scope_mismatch"),
+    "matrix must reject borrowed API scope evidence"
+  );
+  assert.ok(
+    malformedProviderRow.blockerCodes.includes("request_attempt_audit_mismatch"),
+    "matrix must reject borrowed audit evidence"
+  );
+  assert.ok(
+    malformedProviderRow.blockerCodes.includes("request_attempt_evidence_ref_missing"),
+    "matrix must require the RBAC evidence id in request attempt refs"
+  );
+  assert.equal(
+    malformedProviderRow.releaseGateStatus,
+    "release_gate_preserved",
+    "malformed request evidence must preserve release gate"
+  );
 
   const auditPage = readFileSync(new URL("../app/audit/page.tsx", import.meta.url), "utf8");
   const adminApi = readFileSync(new URL("../lib/admin-api.ts", import.meta.url), "utf8");

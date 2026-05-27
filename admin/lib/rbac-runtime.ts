@@ -372,6 +372,35 @@ function overrideAttemptBlockers(
   return Array.from(blockers).sort();
 }
 
+function overrideAttemptBindingBlockers(
+  attempt: AdminRbacOverrideAttempt,
+  runtimeDecision: AdminRbacRuntimeDecision | undefined
+) {
+  const blockers = new Set<string>();
+
+  if (!runtimeDecision) {
+    return Array.from(blockers);
+  }
+
+  if (attempt.surface !== runtimeDecision.surface) {
+    blockers.add("request_attempt_surface_mismatch");
+  }
+
+  if (attempt.overrideScope !== runtimeDecision.overrideScope) {
+    blockers.add("request_attempt_scope_mismatch");
+  }
+
+  if (attempt.auditRef !== runtimeDecision.auditRef) {
+    blockers.add("request_attempt_audit_mismatch");
+  }
+
+  if (!attempt.evidenceRefs.includes(runtimeDecision.evidenceId)) {
+    blockers.add("request_attempt_evidence_ref_missing");
+  }
+
+  return Array.from(blockers).sort();
+}
+
 export function buildAdminRbacOverrideAttemptDecisions(
   attempts: AdminRbacOverrideAttempt[],
   runtimeDecisions: AdminRbacRuntimeDecision[]
@@ -399,6 +428,9 @@ export function buildAdminRbacOverrideAttemptDecisions(
         digestStatus,
         expectedHttpStatusMatches
       );
+      for (const blocker of overrideAttemptBindingBlockers(attempt, runtimeDecision)) {
+        blockerCodes.push(blocker);
+      }
       const runtimeRequestOutcome: AdminRbacOverrideAttemptDecision["runtimeRequestOutcome"] =
         runtimeDecision?.requestOutcome ?? "missing_runtime";
       const releaseGateStatus: AdminRbacOverrideAttemptDecision["releaseGateStatus"] =
@@ -422,7 +454,7 @@ export function buildAdminRbacOverrideAttemptDecisions(
         expectedHttpStatus: attempt.expectedHttpStatus,
         runtimeRequestOutcome,
         releaseGateStatus,
-        blockerCodes,
+        blockerCodes: uniqueSorted(blockerCodes),
         auditRef: attempt.auditRef,
         evidenceRefs: attempt.evidenceRefs,
         rationale: `${attempt.gatePreservation} ${attempt.mutationReplayPolicy} ${attempt.operatorMessage}`
@@ -1162,10 +1194,35 @@ export function buildAdminRbacReleaseEvidenceMatrix(
       const runtimeDecision = runtimeByEvidenceId.get(item.id);
       const closure = closureBySurface.get(item.surface);
       const bundle = bundleBySurface.get(item.surface);
+      const attemptBindingBlockers = new Set<string>();
+
+      if (attempt) {
+        if (attempt.surface !== item.surface) {
+          attemptBindingBlockers.add("request_attempt_surface_mismatch");
+        }
+
+        if (attempt.overrideScope !== item.overrideScope) {
+          attemptBindingBlockers.add("request_attempt_scope_mismatch");
+        }
+
+        if (attempt.apiScope !== item.apiScope) {
+          attemptBindingBlockers.add("request_attempt_api_scope_mismatch");
+        }
+
+        if (attempt.auditRef !== item.auditRef) {
+          attemptBindingBlockers.add("request_attempt_audit_mismatch");
+        }
+
+        if (!attempt.evidenceRefs.includes(item.id)) {
+          attemptBindingBlockers.add("request_attempt_evidence_ref_missing");
+        }
+      }
+
       const blockerCodes = uniqueSorted([
         ...(runtimeDecision?.blockerCodes ?? []),
         ...(attemptDecision?.blockerCodes ?? []),
         ...(bundle?.blockerCodes ?? []),
+        ...attemptBindingBlockers,
         ...(!attempt ? ["request_attempt_missing"] : []),
         ...(!attemptDecision ? ["attempt_decision_missing"] : []),
         ...(!closure ? ["release_closure_missing"] : []),
