@@ -1810,6 +1810,42 @@ func TestTenantScopedServiceCleanupDeletesObjectsWithRowTenantScope(t *testing.T
 	}
 }
 
+func TestTenantScopedServiceCleanupRejectsRepositoryRowsForOtherTenantBeforeDelete(t *testing.T) {
+	now := time.Date(2026, 5, 26, 12, 0, 0, 0, time.UTC)
+	db := &fakeDB{
+		execTags: []pgconn.CommandTag{
+			pgconn.NewCommandTag("UPDATE 0"),
+			pgconn.NewCommandTag("UPDATE 0"),
+			pgconn.NewCommandTag("SELECT 1"),
+		},
+		queryRows: []rowSet{{
+			rows: [][]any{{
+				"object_2",
+				"tenant_2",
+				"tenants/tenant_2/exports/export_2.zip",
+			}},
+		}},
+	}
+	objects := &recordingObjectStore{}
+	service := NewService(NewRepository(db), objects)
+
+	_, err := service.CleanupExpiredExportsAndOrphanedObjectsForTenant(context.Background(), "tenant_1", now, 25)
+	if !errors.Is(err, ErrValidation) {
+		t.Fatalf("CleanupExpiredExportsAndOrphanedObjectsForTenant() error = %v, want ErrValidation", err)
+	}
+	if len(objects.deletedKeys) != 0 || objects.cleanupExpiredCalled || objects.cleanupExpiredForTenantCalled {
+		t.Fatalf("cross-tenant cleanup row must not touch object storage: %#v", objects)
+	}
+	if len(db.execs) != 3 {
+		t.Fatalf("exec count = %d, want lifecycle analytics before validation failure only", len(db.execs))
+	}
+	for _, call := range db.execs {
+		if strings.Contains(call.sql, "retention_state = 'deleted'") || strings.Contains(call.sql, "'object_deleted'") || strings.Contains(call.sql, "'export_object_cleanup_run'") {
+			t.Fatalf("cross-tenant row should not be marked or audited as deleted: %#v", db.execs)
+		}
+	}
+}
+
 func TestServiceCleanupRejectsCrossTenantRowsBeforeObjectDelete(t *testing.T) {
 	now := time.Date(2026, 5, 26, 12, 0, 0, 0, time.UTC)
 	db := &fakeDB{

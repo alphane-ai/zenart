@@ -3314,6 +3314,9 @@ func (s Service) cleanupExpiredExportsAndOrphanedObjects(ctx context.Context, te
 	deletedObjects := make([]CleanupObject, 0, len(objects))
 	var deleteErr error
 	for _, object := range objects {
+		if tenantID != "" && object.TenantID != tenantID {
+			return result, errors.Join(ErrValidation, fmt.Errorf("cleanup object tenant %q does not match requested tenant %q", object.TenantID, tenantID))
+		}
 		if err := s.objects.Delete(ctx, object.TenantID, object.Key); err != nil {
 			if !errors.Is(err, objectstore.ErrNotFound) {
 				deleteErr = errors.Join(deleteErr, err)
