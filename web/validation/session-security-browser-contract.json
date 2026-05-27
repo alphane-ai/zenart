@@ -1,0 +1,173 @@
+{
+  "schemaVersion": "stage0.rev2.session-security-browser-contract",
+  "blueprintSource": "Docs/stage0_blueprint_rev2.md",
+  "owner": "lane3",
+  "status": "pass",
+  "route": "/account",
+  "component": "web/components/workspace-app.tsx",
+  "generatedClient": "web/lib/generated/zenart-api.ts",
+  "requestSecurityContract": "web/lib/request-security.ts",
+  "userRouteSmoke": "web/validation/user-routes-smoke.json",
+  "generatedApiCsrfContract": "web/validation/generated-api-csrf-contract.json",
+  "unitSmokes": [
+    "web/lib/request-security.test.ts",
+    "web/lib/generated/zenart-api.test.ts",
+    "web/components/workspace-app.smoke.test.tsx"
+  ],
+  "browserSmoke": {
+    "test": "web/tests/session-security.spec.ts",
+    "script": "npm run smoke:session-security-playwright",
+    "route": "/account?csrfProbe=1",
+    "expectedStatus": "pass"
+  },
+  "cookieContract": {
+    "schemaVersion": "stage0.rev2.session-csrf-client-evidence",
+    "name": "__Host-zenart_session",
+    "setCookieContract": "__Host-zenart_session;HttpOnly;Secure;SameSite=lax;Path=/;HostOnly",
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "lax",
+    "path": "/",
+    "domain": "",
+    "hostOnly": true,
+    "hostPrefixStatus": "pass",
+    "sameSiteAcceptedValues": ["lax", "strict"],
+    "sameSiteRejectedValues": ["none"],
+    "sameSiteAcceptanceMatrix": "lax:pass:none|strict:pass:none|none:fail:cookie-same-site",
+    "failureCount": 0
+  },
+  "csrfContract": {
+    "strategy": "same-site-origin-check",
+    "headerName": "X-ZenArt-CSRF",
+    "headerValue": "same-site-origin-check",
+    "credentialMode": "include",
+    "originPolicy": "same-site-only",
+    "sameSiteRequirement": "lax-or-strict",
+    "protectedMethods": ["POST", "PUT", "PATCH", "DELETE"],
+    "missingUnsafeOperationCount": 0,
+    "failureCount": 0
+  },
+  "sessionStateMatrix": {
+    "schemaVersion": "stage0.rev2.csrf-same-site-session-state-ux-matrix",
+    "status": "pass",
+    "states": ["authenticated", "expired", "signed_out"],
+    "contract": "authenticated:enabled=19:blocked=0:recovery=none:alert=none|expired:enabled=1:blocked=18:recovery=Refresh Session:alert=Session expired. Refresh or sign in to continue.|signed_out:enabled=0:blocked=19:recovery=none:alert=Signed out. Sign in to continue.",
+    "authenticated": {
+      "enabledCount": 19,
+      "blockedCount": 0,
+      "recoveryLabels": "",
+      "alert": "none"
+    },
+    "expired": {
+      "enabledCount": 1,
+      "blockedCount": 18,
+      "recoveryLabels": "Refresh Session",
+      "alert": "Session expired. Refresh or sign in to continue."
+    },
+    "signedOut": {
+      "enabledCount": 0,
+      "blockedCount": 19,
+      "recoveryLabels": "",
+      "alert": "Signed out. Sign in to continue."
+    }
+  },
+  "unsafeActionGuard": {
+    "guard": "authenticated-same-site-session",
+    "status": "pass",
+    "guardCount": 19,
+    "operationCount": 18,
+    "csrfProtectedOperationCount": 15,
+    "missingCsrfOperationCount": 0,
+    "safeLabels": ["load", "login"],
+    "guardLabels": [
+      "Confirm Brief",
+      "Attach",
+      "Create Project",
+      "Rename Project",
+      "Package Reference",
+      "Select Candidate",
+      "Iterate",
+      "Restore Version",
+      "Add Selection",
+      "Export ZIP",
+      "Export PDF",
+      "Request Share",
+      "Mock Checkout",
+      "Billing Scenario",
+      "Save Settings",
+      "Submit Ticket",
+      "Refresh Session",
+      "Expire Session",
+      "Log Out"
+    ]
+  },
+  "browserProbe": {
+    "schemaVersion": "stage0.rev2.generated-api-csrf-browser-probe",
+    "status": "pass",
+    "unsafeOperationCount": 15,
+    "safeOperationCount": 17,
+    "unsafeCredentialedRequestCount": 15,
+    "unsafeCsrfHeaderCount": 15,
+    "unsafeIdempotencyRequiredCount": 14,
+    "unsafeIdempotencyHeaderCount": 14,
+    "safeCredentialedRequestCount": 17,
+    "safeNoCsrfHeaderCount": 17,
+    "expectedUnsafeRequestContracts": [
+      "deleteSession:DELETE:include:same-site-origin-check:not-required",
+      "updateAccount:PATCH:include:same-site-origin-check:csrf-probe-updateAccount",
+      "createProject:POST:include:same-site-origin-check:csrf-probe-createProject",
+      "updateProject:PATCH:include:same-site-origin-check:csrf-probe-updateProject",
+      "createChatSession:POST:include:same-site-origin-check:csrf-probe-createChatSession",
+      "createChatMessage:POST:include:same-site-origin-check:csrf-probe-createChatMessage",
+      "createCandidateSet:POST:include:same-site-origin-check:csrf-probe-createCandidateSet",
+      "selectDirection:PUT:include:same-site-origin-check:csrf-probe-selectDirection",
+      "createCanvasNode:POST:include:same-site-origin-check:csrf-probe-createCanvasNode",
+      "createCanvasVersion:POST:include:same-site-origin-check:csrf-probe-createCanvasVersion",
+      "createUpload:POST:include:same-site-origin-check:csrf-probe-createUpload",
+      "createPackage:POST:include:same-site-origin-check:csrf-probe-createPackage",
+      "createExport:POST:include:same-site-origin-check:csrf-probe-createExport",
+      "createShareLink:POST:include:same-site-origin-check:csrf-probe-createShareLink",
+      "createSupportTicket:POST:include:same-site-origin-check:csrf-probe-createSupportTicket"
+    ],
+    "expectedSafeRequestContracts": [
+      "getSession:GET:include:not-required",
+      "getAccount:GET:include:not-required",
+      "listProjects:GET:include:not-required",
+      "getProject:GET:include:not-required",
+      "getWorkspace:GET:include:not-required",
+      "listChatMessages:GET:include:not-required",
+      "getTask:GET:include:not-required",
+      "listCandidateSets:GET:include:not-required",
+      "listCandidateAssets:GET:include:not-required",
+      "listCanvasNodes:GET:include:not-required",
+      "listCanvasFrames:GET:include:not-required",
+      "listCanvasVersions:GET:include:not-required",
+      "listAssets:GET:include:not-required",
+      "listPackages:GET:include:not-required",
+      "getExport:GET:include:not-required",
+      "getQuota:GET:include:not-required",
+      "getSubscription:GET:include:not-required"
+    ]
+  },
+  "requiredUiAttributes": [
+    "data-session-security-evidence",
+    "data-session-security-status",
+    "data-session-cookie-set-cookie-contract",
+    "data-session-cookie-same-site-acceptance-matrix",
+    "data-session-backend-runtime-pairing-digest",
+    "data-session-unsafe-action-guard",
+    "data-session-unsafe-action-operation-contracts",
+    "data-session-ux-state-matrix-contract",
+    "data-csrf-ux-guard-contracts",
+    "data-csrf-ux-guard-session-matrix",
+    "data-generated-api-csrf-browser-probe",
+    "data-generated-api-csrf-browser-probe-unsafe-operation-contracts",
+    "data-generated-api-csrf-browser-probe-safe-operation-contracts"
+  ],
+  "assertions": [
+    "The account route exposes secure __Host cookie attributes, SameSite lax/strict acceptance, and SameSite=None rejection as machine-checkable data attributes.",
+    "The account route exposes a same-site CSRF UX matrix for authenticated, expired, and signed-out states.",
+    "The account route browser probe invokes every generated unsafe and safe user API operation, proving unsafe requests send include credentials plus X-ZenArt-CSRF while safe requests stay credentialed and CSRF-free.",
+    "The smoke validator cross-checks this browser contract against user route evidence, generated API CSRF evidence, Vitest assertions, and Playwright assertions."
+  ]
+}

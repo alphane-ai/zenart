@@ -13,6 +13,7 @@ const workspaceSmokeTestPath = path.join(root, "components", "workspace-app.smok
 const sessionSecurityPlaywrightSpecPath = path.join(root, "tests", "session-security.spec.ts");
 const userRouteSmokePath = path.join(root, "validation", "user-routes-smoke.json");
 const generatedApiCsrfContractPath = path.join(root, "validation", "generated-api-csrf-contract.json");
+const sessionSecurityBrowserContractPath = path.join(root, "validation", "session-security-browser-contract.json");
 
 const fail = (message) => {
   console.error(`security contract smoke failed: ${message}`);
@@ -29,7 +30,8 @@ const [
   workspaceSmokeTestSource,
   sessionSecurityPlaywrightSpecSource,
   userRouteSmoke,
-  generatedApiCsrfContract
+  generatedApiCsrfContract,
+  sessionSecurityBrowserContract
 ] = await Promise.all([
   readFile(generatedApiPath, "utf8"),
   readFile(requestSecurityPath, "utf8"),
@@ -40,7 +42,8 @@ const [
   readFile(workspaceSmokeTestPath, "utf8"),
   readFile(sessionSecurityPlaywrightSpecPath, "utf8"),
   readFile(userRouteSmokePath, "utf8").then(JSON.parse),
-  readFile(generatedApiCsrfContractPath, "utf8").then(JSON.parse)
+  readFile(generatedApiCsrfContractPath, "utf8").then(JSON.parse),
+  readFile(sessionSecurityBrowserContractPath, "utf8").then(JSON.parse)
 ]);
 
 if (userRouteSmoke.blueprintSource !== "Docs/stage0_blueprint_rev2.md") {
@@ -49,6 +52,24 @@ if (userRouteSmoke.blueprintSource !== "Docs/stage0_blueprint_rev2.md") {
 
 if (generatedApiCsrfContract.blueprintSource !== "Docs/stage0_blueprint_rev2.md") {
   fail("generated API CSRF artifact must cite the Rev2 blueprint");
+}
+
+if (
+  sessionSecurityBrowserContract.schemaVersion !== "stage0.rev2.session-security-browser-contract" ||
+  sessionSecurityBrowserContract.blueprintSource !== "Docs/stage0_blueprint_rev2.md" ||
+  sessionSecurityBrowserContract.status !== "pass" ||
+  sessionSecurityBrowserContract.route !== "/account" ||
+  sessionSecurityBrowserContract.component !== "web/components/workspace-app.tsx" ||
+  sessionSecurityBrowserContract.generatedClient !== "web/lib/generated/zenart-api.ts" ||
+  sessionSecurityBrowserContract.requestSecurityContract !== "web/lib/request-security.ts" ||
+  sessionSecurityBrowserContract.userRouteSmoke !== "web/validation/user-routes-smoke.json" ||
+  sessionSecurityBrowserContract.generatedApiCsrfContract !== "web/validation/generated-api-csrf-contract.json" ||
+  sessionSecurityBrowserContract.browserSmoke?.test !== "web/tests/session-security.spec.ts" ||
+  sessionSecurityBrowserContract.browserSmoke?.script !== "npm run smoke:session-security-playwright" ||
+  sessionSecurityBrowserContract.browserSmoke?.route !== "/account?csrfProbe=1" ||
+  sessionSecurityBrowserContract.browserSmoke?.expectedStatus !== "pass"
+) {
+  fail("session security browser contract must pin the account-route Rev2 browser smoke evidence");
 }
 
 if (
@@ -83,6 +104,9 @@ const expectedBrowserUnsafeRequestContracts = generatedApiCsrfContract.unsafeReq
   const idempotencyKey = contract.idempotencyHeaderRequired ? `csrf-probe-${contract.operationId}` : "not-required";
   return `${contract.operationId}:${contract.method}:${contract.credentials}:${contract.csrfHeaderValue}:${idempotencyKey}`;
 });
+const generatedIdempotentUnsafeRequestCount = generatedApiCsrfContract.unsafeRequestContracts.filter(
+  (contract) => contract.idempotencyHeaderRequired
+).length;
 
 if (operationMap.size !== generatedApiCsrfContract.safeOperationCount + generatedApiCsrfContract.unsafeOperationCount) {
   fail("generated API operation inventory count drifted from CSRF artifact");
@@ -208,6 +232,138 @@ const generatedClientEvidence = securityEvidenceBySchema.get("stage0.rev2.genera
 
 if (!sessionEvidence || !generatedClientEvidence) {
   fail("user route smoke artifact is missing session or generated-client CSRF evidence");
+}
+
+if (
+  sessionSecurityBrowserContract.cookieContract?.schemaVersion !== sessionEvidence.schemaVersion ||
+  sessionSecurityBrowserContract.cookieContract?.name !== sessionEvidence.cookie?.name ||
+  sessionSecurityBrowserContract.cookieContract?.setCookieContract !== sessionEvidence.cookie?.expectedSetCookieContract ||
+  sessionSecurityBrowserContract.cookieContract?.httpOnly !== true ||
+  sessionSecurityBrowserContract.cookieContract?.secure !== true ||
+  sessionSecurityBrowserContract.cookieContract?.sameSite !== sessionEvidence.cookie?.expectedSameSite ||
+  sessionSecurityBrowserContract.cookieContract?.path !== sessionEvidence.cookie?.expectedPath ||
+  sessionSecurityBrowserContract.cookieContract?.domain !== sessionEvidence.cookie?.expectedDomain ||
+  sessionSecurityBrowserContract.cookieContract?.hostOnly !== true ||
+  sessionSecurityBrowserContract.cookieContract?.hostPrefixStatus !== sessionEvidence.cookie?.expectedHostPrefixStatus ||
+  sessionSecurityBrowserContract.cookieContract?.sameSiteAcceptedValues?.join(",") !==
+    sessionEvidence.cookie?.expectedSameSiteAcceptedValues ||
+  sessionSecurityBrowserContract.cookieContract?.sameSiteRejectedValues?.join(",") !==
+    sessionEvidence.cookie?.expectedSameSiteRejectedValues ||
+  sessionSecurityBrowserContract.cookieContract?.sameSiteAcceptanceMatrix !==
+    sessionEvidence.cookie?.expectedSameSiteAcceptanceMatrix ||
+  sessionSecurityBrowserContract.cookieContract?.failureCount !== 0
+) {
+  fail("session security browser contract cookie evidence drifted from user route smoke evidence");
+}
+
+if (
+  sessionSecurityBrowserContract.csrfContract?.strategy !== sessionEvidence.csrf?.expectedStrategy ||
+  sessionSecurityBrowserContract.csrfContract?.headerName !== generatedApiCsrfContract.csrfHeaderName ||
+  sessionSecurityBrowserContract.csrfContract?.headerValue !== generatedApiCsrfContract.csrfHeaderValue ||
+  sessionSecurityBrowserContract.csrfContract?.credentialMode !== generatedApiCsrfContract.credentialMode ||
+  sessionSecurityBrowserContract.csrfContract?.originPolicy !== generatedApiCsrfContract.originPolicy ||
+  sessionSecurityBrowserContract.csrfContract?.sameSiteRequirement !== generatedApiCsrfContract.sameSiteRequirement ||
+  JSON.stringify(sessionSecurityBrowserContract.csrfContract?.protectedMethods) !== JSON.stringify(generatedApiCsrfContract.protectedMethods) ||
+  sessionSecurityBrowserContract.csrfContract?.missingUnsafeOperationCount !== generatedApiCsrfContract.missingUnsafeOperationCount ||
+  sessionSecurityBrowserContract.csrfContract?.failureCount !== generatedApiCsrfContract.failureCount
+) {
+  fail("session security browser contract CSRF evidence drifted from generated API CSRF evidence");
+}
+
+if (
+  sessionSecurityBrowserContract.sessionStateMatrix?.schemaVersion !==
+    sessionEvidence.unsafeActionGuard?.sessionStateMatrix?.schemaVersion ||
+  sessionSecurityBrowserContract.sessionStateMatrix?.status !==
+    sessionEvidence.unsafeActionGuard?.sessionStateMatrix?.expectedStatus ||
+  sessionSecurityBrowserContract.sessionStateMatrix?.states?.join(",") !==
+    sessionEvidence.unsafeActionGuard?.sessionStateMatrix?.expectedStates ||
+  sessionSecurityBrowserContract.sessionStateMatrix?.contract !==
+    sessionEvidence.unsafeActionGuard?.sessionStateMatrix?.expectedContract ||
+  String(sessionSecurityBrowserContract.sessionStateMatrix?.authenticated?.enabledCount) !==
+    sessionEvidence.unsafeActionGuard?.sessionStateMatrix?.expectedAuthenticatedEnabledCount ||
+  String(sessionSecurityBrowserContract.sessionStateMatrix?.authenticated?.blockedCount) !==
+    sessionEvidence.unsafeActionGuard?.sessionStateMatrix?.expectedAuthenticatedBlockedCount ||
+  String(sessionSecurityBrowserContract.sessionStateMatrix?.expired?.enabledCount) !==
+    sessionEvidence.unsafeActionGuard?.sessionStateMatrix?.expectedExpiredEnabledCount ||
+  String(sessionSecurityBrowserContract.sessionStateMatrix?.expired?.blockedCount) !==
+    sessionEvidence.unsafeActionGuard?.sessionStateMatrix?.expectedExpiredBlockedCount ||
+  sessionSecurityBrowserContract.sessionStateMatrix?.expired?.recoveryLabels !==
+    sessionEvidence.unsafeActionGuard?.sessionStateMatrix?.expectedExpiredRecoveryLabels ||
+  sessionSecurityBrowserContract.sessionStateMatrix?.expired?.alert !==
+    sessionEvidence.unsafeActionGuard?.sessionStateMatrix?.expectedExpiredAlert ||
+  String(sessionSecurityBrowserContract.sessionStateMatrix?.signedOut?.enabledCount) !==
+    sessionEvidence.unsafeActionGuard?.sessionStateMatrix?.expectedSignedOutEnabledCount ||
+  String(sessionSecurityBrowserContract.sessionStateMatrix?.signedOut?.blockedCount) !==
+    sessionEvidence.unsafeActionGuard?.sessionStateMatrix?.expectedSignedOutBlockedCount ||
+  sessionSecurityBrowserContract.sessionStateMatrix?.signedOut?.recoveryLabels !==
+    sessionEvidence.unsafeActionGuard?.sessionStateMatrix?.expectedSignedOutRecoveryLabels ||
+  sessionSecurityBrowserContract.sessionStateMatrix?.signedOut?.alert !==
+    sessionEvidence.unsafeActionGuard?.sessionStateMatrix?.expectedSignedOutAlert
+) {
+  fail("session security browser contract UX matrix drifted from user route smoke evidence");
+}
+
+if (
+  sessionSecurityBrowserContract.unsafeActionGuard?.guard !== sessionEvidence.unsafeActionGuard?.expectedGuard ||
+  sessionSecurityBrowserContract.unsafeActionGuard?.status !== sessionEvidence.unsafeActionGuard?.expectedGuardCoverageStatus ||
+  String(sessionSecurityBrowserContract.unsafeActionGuard?.guardCount) !== sessionEvidence.unsafeActionGuard?.expectedGuardCount ||
+  String(sessionSecurityBrowserContract.unsafeActionGuard?.operationCount) !==
+    sessionEvidence.unsafeActionGuard?.expectedOperationCount ||
+  String(sessionSecurityBrowserContract.unsafeActionGuard?.csrfProtectedOperationCount) !==
+    sessionEvidence.unsafeActionGuard?.expectedCsrfProtectedOperationCount ||
+  String(sessionSecurityBrowserContract.unsafeActionGuard?.missingCsrfOperationCount) !==
+    sessionEvidence.unsafeActionGuard?.expectedMissingCsrfOperationCount ||
+  sessionSecurityBrowserContract.unsafeActionGuard?.safeLabels?.join(",") !== sessionEvidence.unsafeActionGuard?.expectedSafeLabels ||
+  JSON.stringify(sessionSecurityBrowserContract.unsafeActionGuard?.guardLabels) !==
+    JSON.stringify(sessionEvidence.unsafeActionGuard?.expectedGuardLabels)
+) {
+  fail("session security browser contract unsafe-action guard drifted from user route smoke evidence");
+}
+
+if (
+  sessionSecurityBrowserContract.browserProbe?.schemaVersion !== "stage0.rev2.generated-api-csrf-browser-probe" ||
+  sessionSecurityBrowserContract.browserProbe?.status !== "pass" ||
+  sessionSecurityBrowserContract.browserProbe?.unsafeOperationCount !== generatedApiCsrfContract.unsafeOperationCount ||
+  sessionSecurityBrowserContract.browserProbe?.safeOperationCount !== generatedApiCsrfContract.safeOperationCount ||
+  sessionSecurityBrowserContract.browserProbe?.unsafeCredentialedRequestCount !== generatedApiCsrfContract.unsafeOperationCount ||
+  sessionSecurityBrowserContract.browserProbe?.unsafeCsrfHeaderCount !== generatedApiCsrfContract.unsafeOperationCount ||
+  sessionSecurityBrowserContract.browserProbe?.unsafeIdempotencyRequiredCount !== generatedIdempotentUnsafeRequestCount ||
+  sessionSecurityBrowserContract.browserProbe?.unsafeIdempotencyHeaderCount !== generatedIdempotentUnsafeRequestCount ||
+  sessionSecurityBrowserContract.browserProbe?.safeCredentialedRequestCount !== generatedApiCsrfContract.safeOperationCount ||
+  sessionSecurityBrowserContract.browserProbe?.safeNoCsrfHeaderCount !== generatedApiCsrfContract.safeOperationCount ||
+  JSON.stringify(sessionSecurityBrowserContract.browserProbe?.expectedUnsafeRequestContracts) !==
+    JSON.stringify(generatedApiCsrfContract.browserSmoke?.expectedUnsafeRequestContracts) ||
+  JSON.stringify(sessionSecurityBrowserContract.browserProbe?.expectedSafeRequestContracts) !==
+    JSON.stringify(generatedApiCsrfContract.browserSmoke?.expectedSafeRequestContracts)
+) {
+  fail("session security browser probe contract drifted from generated API CSRF browser smoke evidence");
+}
+
+for (const requiredPath of sessionSecurityBrowserContract.unitSmokes ?? []) {
+  if (
+    ![
+      "web/lib/request-security.test.ts",
+      "web/lib/generated/zenart-api.test.ts",
+      "web/components/workspace-app.smoke.test.tsx"
+    ].includes(requiredPath)
+  ) {
+    fail(`session security browser contract references unexpected unit smoke ${requiredPath}`);
+  }
+}
+
+for (const requiredAttribute of sessionSecurityBrowserContract.requiredUiAttributes ?? []) {
+  if (!workspaceAppSource.includes(requiredAttribute)) {
+    fail(`workspace UI missing session-security browser contract attribute ${requiredAttribute}`);
+  }
+  if (!sessionSecurityPlaywrightSpecSource.includes(requiredAttribute) && !workspaceSmokeTestSource.includes(requiredAttribute)) {
+    fail(`session-security smoke tests missing browser contract attribute ${requiredAttribute}`);
+  }
+}
+
+for (const assertion of sessionSecurityBrowserContract.assertions ?? []) {
+  if (!assertion.includes("account route") && !assertion.includes("smoke validator") && !assertion.includes("browser probe")) {
+    fail(`session security browser contract assertion is not tied to route/probe validation: ${assertion}`);
+  }
 }
 
 if (

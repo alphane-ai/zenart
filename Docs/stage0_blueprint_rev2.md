@@ -1912,6 +1912,7 @@ main 合并前必须通过：
 - [x] 配置 Web/generated client CSRF same-site request contract。
 - [x] Web CSRF/same-site session-state UX matrix 通过：`web/components/workspace-app.tsx` exposes authenticated/expired/signed_out guard evidence, `web/validation/user-routes-smoke.json` and `web/validation/generated-api-csrf-contract.json` pin the contract, and Vitest/Playwright/security smoke validate that expired sessions allow only Refresh Session while signed-out sessions block all guarded controls。
 - [x] Web generated-client CSRF method coverage evidence 通过：`web/validation/generated-api-csrf-contract.json` pins POST/PUT/PATCH/DELETE protected-method coverage and GET/HEAD/OPTIONS safe-method handling; `web/validation/user-routes-smoke.json` binds the `/account` UI attributes; Vitest、Playwright session-security smoke、and `npm run smoke:security-contracts` validate the contract。
+- [x] Web session-security browser contract evidence 通过：`web/validation/session-security-browser-contract.json` binds secure `__Host-` cookie/SameSite evidence、CSRF guard UX matrix、generated-client browser probe contracts、Vitest assertions、and `web/tests/session-security.spec.ts`; `npm run smoke:security-contracts` validates drift against route/generated-client artifacts。
 - [x] 后端/API runtime 验证 CSRF 或 same-site strategy。
 - [x] 配置 security headers。
 - [x] 实现 upload validation。
