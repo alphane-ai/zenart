@@ -591,6 +591,13 @@ GATE_IMPACT_CLOSED_SCHEMA_GUARD_CHECKLIST_ITEM = (
     "checklist rows, gate ownership, or preserved-blocker policy。"
 )
 
+GATE_IMPACT_CHECK_ID_MATCH_GUARD_CHECKLIST_ITEM = (
+    "Runtime gate_impact release-gate check-id match guard 通过：`scripts/validate_stage0_rev2.py` "
+    "rejects runtime evidence whose nested `gate_impact.release_gate_check_id` disagrees with the "
+    "artifact top-level `release_gate_check_id`, so copied gate metadata cannot close the wrong "
+    "Local Alpha、CI、Private Beta/Staging、Production, or Do-Not-Launch row。"
+)
+
 PRIVATE_BETA_CLEARED_CONDITION_STATE_GUARD_CHECKLIST_ITEM = (
     "Private Beta/Staging cleared-condition state guard 通过：`scripts/validate_stage0_rev2.py` computes "
     "support/retry/abuse and crawler approval/provenance Do-Not-Launch condition states from exact staging "
@@ -2729,6 +2736,7 @@ CHECKED_ITEMS = {
     PRODUCTION_BACKUP_ROLLBACK_SPLIT_PREFLIGHT_CHECKLIST_ITEM,
     README_LAUNCH_READINESS_CHECKLIST_ITEM,
     GATE_IMPACT_CLOSED_SCHEMA_GUARD_CHECKLIST_ITEM,
+    GATE_IMPACT_CHECK_ID_MATCH_GUARD_CHECKLIST_ITEM,
     PRIVATE_BETA_CLEARED_CONDITION_STATE_GUARD_CHECKLIST_ITEM,
     "Backfill Local Alpha release gate fixture evidence: workflow/eval/crawler/schema/service/runtime-stack checks pass in `fixtures/stage0/rev2/release_gate_evidence.local_alpha.json`。",
     "Backfill CI draft/no-go evidence: ops CI draft coverage passes while installed `.github/workflows` runtime remains blocked in `fixtures/stage0/rev2/release_gate_evidence.ci.json`。",
@@ -5867,6 +5875,18 @@ def validate_runtime_gate_impact_closure_claims(
             continue
         gate = runtime_evidence_gate_from_path(path, evidence)
         rel_path = rel(path)
+        top_level_check_id = evidence.get("release_gate_check_id")
+        gate_impact_check_id = gate_impact.get("release_gate_check_id")
+        if gate_impact_check_id is not None:
+            require(
+                isinstance(gate_impact_check_id, str) and gate_impact_check_id.strip(),
+                f"{rel_path} gate_impact.release_gate_check_id must be a non-empty string when present",
+            )
+            require(
+                top_level_check_id == gate_impact_check_id,
+                f"{rel_path} gate_impact.release_gate_check_id={gate_impact_check_id!r} disagrees with "
+                f"top-level release_gate_check_id={top_level_check_id!r}",
+            )
         unknown_gate_impact_keys = sorted(set(gate_impact) - GATE_IMPACT_ALLOWED_KEYS)
         require(
             not unknown_gate_impact_keys,
@@ -11587,8 +11607,11 @@ def validate_launch_readiness_split_contracts() -> None:
         "Runtime evidence `gate_impact` checklist metadata is validator-owned for launch-readiness rows",
         "`checklist_item`、`check_level_item`、`aggregate_checklist_item`、`post_deploy_checklist_item`、`checklist_items`、and `check_level_items`",
         GATE_IMPACT_CLOSED_SCHEMA_GUARD_CHECKLIST_ITEM,
+        GATE_IMPACT_CHECK_ID_MATCH_GUARD_CHECKLIST_ITEM,
         PRIVATE_BETA_CLEARED_CONDITION_STATE_GUARD_CHECKLIST_ITEM,
         "rejects unknown `gate_impact` keys in runtime evidence",
+        "nested `gate_impact.release_gate_check_id` must equal the artifact top-level `release_gate_check_id`",
+        "copied gate metadata cannot close the wrong Local Alpha、CI、Private Beta/Staging、Production, or Do-Not-Launch row",
         "`gate_impact` true clearance flags such as `can_clear_*` may clear only rows owned by the evidence's own gate",
         "only when the exact blueprint row is already checked",
         "`gate_impact` partial evidence may mention checked check-level rows or definition-only rows",
