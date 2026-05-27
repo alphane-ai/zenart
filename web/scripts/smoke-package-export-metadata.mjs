@@ -316,6 +316,9 @@ if (
 ) {
   fail("package/export cross-payload identity matrix missing aria-label selector contract");
 }
+if (evidence.crossPayloadIdentityMatrix.expectedManifestRuntimeStatus !== "pass") {
+  fail("package/export cross-payload identity matrix must require full manifest runtime identity");
+}
 
 for (const attribute of [
   evidence.crossPayloadIdentityMatrix.rowAttribute,
@@ -422,7 +425,13 @@ for (const requiredSourceSnippet of [
   "referenceProvenanceCount",
   "candidateProvenanceCount",
   "itemProvenanceStatuses",
-  "exportId: hasRuntimeIdentity ? status : \"not-applicable\"",
+  "exportId: status",
+  "workflowId: status",
+  "provider: status",
+  "model: status",
+  "promptSpec: status",
+  "skill: status",
+  "safety: status",
   "packageId: status",
   "projectId: status"
 ]) {
@@ -677,6 +686,18 @@ if (!workspaceSmokeTestSource.includes("Number(metadataEvidence?.getAttribute(\"
 for (const payload of evidence.crossPayloadIdentityPayloads ?? []) {
   if (!packageExportPlaywrightSpecSource.includes(payload) || !workspaceSmokeTestSource.includes(payload)) {
     fail(`package/export identity evidence missing cross-payload assertion for ${payload}`);
+  }
+}
+for (const manifestRuntimeAssertion of [
+  "identityRow(\"manifest.json\")).toHaveAttribute(\"data-package-export-identity-export-id\", \"pass\")",
+  "identityRow(\"manifest.json\")).toHaveAttribute(\"data-package-export-identity-workflow-id\", \"pass\")",
+  "identityRow(\"manifest.json\")).toHaveAttribute(\"data-package-export-identity-provider\", \"pass\")",
+  "for (const payloadName of [\"manifest.json\", \"provenance.json\", \"ai-content-disclaimer.json\", \"metadata.json\", \"trace_provenance.json\"])",
+  "toHaveAttribute(\"data-package-export-identity-export-id\", \"pass\")",
+  "toHaveAttribute(\"data-package-export-identity-provider\", \"pass\")"
+]) {
+  if (!workspaceSmokeTestSource.includes(manifestRuntimeAssertion) && !packageExportPlaywrightSpecSource.includes(manifestRuntimeAssertion)) {
+    fail(`package/export identity evidence missing manifest runtime assertion ${manifestRuntimeAssertion}`);
   }
 }
 

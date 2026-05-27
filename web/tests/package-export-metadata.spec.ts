@@ -88,15 +88,7 @@ test("export route exposes package metadata, ZIP payload, and download parity br
     await expect(row).toHaveAttribute("data-package-export-identity-package-id", "pass");
     await expect(row).toHaveAttribute("data-package-export-identity-project-id", "pass");
   }
-  await expect(identityMatrix.locator("[data-package-export-identity-payload='manifest.json']")).toHaveAttribute(
-    "data-package-export-identity-export-id",
-    "not-applicable"
-  );
-  await expect(identityMatrix.locator("[data-package-export-identity-payload='manifest.json']")).toHaveAttribute(
-    "data-package-export-identity-provider",
-    "not-applicable"
-  );
-  for (const payloadName of ["provenance.json", "ai-content-disclaimer.json", "metadata.json", "trace_provenance.json"]) {
+  for (const payloadName of ["manifest.json", "provenance.json", "ai-content-disclaimer.json", "metadata.json", "trace_provenance.json"]) {
     const row = identityMatrix.locator(`[data-package-export-identity-payload='${payloadName}']`);
     await expect(row).toHaveAttribute("data-package-export-identity-export-id", "pass");
     await expect(row).toHaveAttribute("data-package-export-identity-workflow-id", "pass");

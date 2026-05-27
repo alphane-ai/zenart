@@ -293,9 +293,15 @@ describe("dev workspace contracts", () => {
       crossPayloadIdentityStatuses: [
         expect.objectContaining({
           payloadName: "manifest.json",
-          exportId: "not-applicable",
+          exportId: "pass",
           packageId: "pass",
-          projectId: "pass"
+          projectId: "pass",
+          workflowId: "pass",
+          provider: "pass",
+          model: "pass",
+          promptSpec: "pass",
+          skill: "pass",
+          safety: "pass"
         }),
         expect.objectContaining({
           payloadName: "provenance.json",

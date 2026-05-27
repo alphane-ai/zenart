@@ -2151,15 +2151,15 @@ function PayloadIdentityStatusList({
 }: {
   items: Array<{
     payloadName: string;
-    exportId: "pass" | "not-applicable" | "missing";
-    packageId: "pass" | "not-applicable" | "missing";
-    projectId: "pass" | "not-applicable" | "missing";
-    workflowId: "pass" | "not-applicable" | "missing";
-    provider: "pass" | "not-applicable" | "missing";
-    model: "pass" | "not-applicable" | "missing";
-    promptSpec: "pass" | "not-applicable" | "missing";
-    skill: "pass" | "not-applicable" | "missing";
-    safety: "pass" | "not-applicable" | "missing";
+    exportId: "pass" | "missing";
+    packageId: "pass" | "missing";
+    projectId: "pass" | "missing";
+    workflowId: "pass" | "missing";
+    provider: "pass" | "missing";
+    model: "pass" | "missing";
+    promptSpec: "pass" | "missing";
+    skill: "pass" | "missing";
+    safety: "pass" | "missing";
   }>;
 }) {
   return (

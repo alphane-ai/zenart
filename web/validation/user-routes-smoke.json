@@ -943,7 +943,7 @@
         ],
         "expectedPayloadCount": "5",
         "expectedPresentStatus": "pass",
-        "expectedManifestRuntimeStatus": "not-applicable"
+        "expectedManifestRuntimeStatus": "pass"
       },
       "itemProvenanceParityMatrix": {
         "groupSelector": "[aria-label=\"Package export item provenance parity matrix\"]",

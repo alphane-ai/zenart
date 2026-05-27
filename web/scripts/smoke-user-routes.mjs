@@ -1341,6 +1341,20 @@ for (const identityPayload of packageExportEvidence.crossPayloadIdentityMatrix?.
     fail(`package/export metadata cross-payload identity smoke missing ${identityPayload}`);
   }
 }
+if (packageExportEvidence.crossPayloadIdentityMatrix?.expectedManifestRuntimeStatus !== "pass") {
+  fail("package/export metadata evidence must require full manifest runtime identity");
+}
+for (const manifestRuntimeAssertion of [
+  "identityRow(\"manifest.json\")).toHaveAttribute(\"data-package-export-identity-export-id\", \"pass\")",
+  "identityRow(\"manifest.json\")).toHaveAttribute(\"data-package-export-identity-workflow-id\", \"pass\")",
+  "data-package-export-identity-payload='manifest.json'",
+  "\"data-package-export-identity-export-id\",\n    \"pass\"",
+  "\"data-package-export-identity-provider\",\n    \"pass\""
+]) {
+  if (!workspaceSmokeTestSource.includes(manifestRuntimeAssertion) && !referenceExportPlaywrightSpecSource.includes(manifestRuntimeAssertion)) {
+    fail(`package/export metadata cross-payload identity smoke missing manifest runtime assertion ${manifestRuntimeAssertion}`);
+  }
+}
 
 for (const expectedReferenceValidationSnippet of [
   "buildReferenceUploadValidationMatrixEvidence",

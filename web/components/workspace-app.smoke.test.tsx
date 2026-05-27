@@ -695,8 +695,13 @@ describe("WorkspaceApp user route integration smoke", () => {
       expect(row).toHaveAttribute("data-package-export-identity-package-id", "pass");
       expect(row).toHaveAttribute("data-package-export-identity-project-id", "pass");
     }
-    expect(identityRow("manifest.json")).toHaveAttribute("data-package-export-identity-export-id", "not-applicable");
-    expect(identityRow("manifest.json")).toHaveAttribute("data-package-export-identity-workflow-id", "not-applicable");
+    expect(identityRow("manifest.json")).toHaveAttribute("data-package-export-identity-export-id", "pass");
+    expect(identityRow("manifest.json")).toHaveAttribute("data-package-export-identity-workflow-id", "pass");
+    expect(identityRow("manifest.json")).toHaveAttribute("data-package-export-identity-provider", "pass");
+    expect(identityRow("manifest.json")).toHaveAttribute("data-package-export-identity-model", "pass");
+    expect(identityRow("manifest.json")).toHaveAttribute("data-package-export-identity-prompt-spec", "pass");
+    expect(identityRow("manifest.json")).toHaveAttribute("data-package-export-identity-skill", "pass");
+    expect(identityRow("manifest.json")).toHaveAttribute("data-package-export-identity-safety", "pass");
     expect(identityRow("provenance.json")).toHaveAttribute("data-package-export-identity-export-id", "pass");
     expect(identityRow("provenance.json")).toHaveAttribute("data-package-export-identity-provider", "pass");
     expect(identityRow("provenance.json")).toHaveAttribute("data-package-export-identity-model", "pass");

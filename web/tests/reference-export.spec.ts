@@ -195,7 +195,11 @@ test("reference upload browser smoke reaches ready export metadata and render bu
   }
   await expect(identityMatrix.locator("[data-package-export-identity-payload='manifest.json']")).toHaveAttribute(
     "data-package-export-identity-export-id",
-    "not-applicable"
+    "pass"
+  );
+  await expect(identityMatrix.locator("[data-package-export-identity-payload='manifest.json']")).toHaveAttribute(
+    "data-package-export-identity-provider",
+    "pass"
   );
   await expect(identityMatrix.locator("[data-package-export-identity-payload='metadata.json']")).toHaveAttribute(
     "data-package-export-identity-provider",

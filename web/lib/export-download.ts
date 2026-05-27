@@ -5,6 +5,7 @@ import { ExportRecord } from "./contracts";
 import {
   buildAiContentDisclaimerPayload,
   buildDownloadableExportZipPayloadNames,
+  buildExportManifestPayload,
   buildExportWorkflowMetadataPayload,
   isSafeExportZipPayloadName
 } from "./dev-state";
@@ -37,7 +38,7 @@ export const buildExportPackageBlob = async (record: ExportRecord) => {
   }
 
   const zip = new JSZip();
-  zip.file("manifest.json", JSON.stringify(record.manifest, null, 2));
+  zip.file("manifest.json", JSON.stringify(buildExportManifestPayload(record), null, 2));
   zip.file("qa-report.json", JSON.stringify(record.qaReport, null, 2));
   zip.file("safety-policy-report.json", JSON.stringify(record.safetyReport, null, 2));
   zip.file("ai-content-disclaimer.json", JSON.stringify(buildAiContentDisclaimerPayload(record), null, 2));

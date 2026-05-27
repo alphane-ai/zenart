@@ -107,6 +107,19 @@ export const buildExportIdentityContractDigest = (record: ExportRecord) => {
   ].join("::");
 };
 
+export const buildExportManifestPayload = (record: ExportRecord) => ({
+  ...record.manifest,
+  export_id: record.id,
+  generated_by: "zenart-web-dev-client",
+  workflow_id: record.manifest.workflow_acceptance?.workflow_id ?? "generic-stage0-export",
+  workflow_fixture_id: record.manifest.workflow_acceptance?.fixture_id ?? "none",
+  provider: "dev-provider",
+  model: "deterministic-local-alpha",
+  prompt_spec: record.manifest.workflow_acceptance?.strategy_taxonomy ?? [],
+  skill: record.manifest.workflow_acceptance?.workflow_id ?? "generic-stage0-export",
+  safety: record.safetyReport.status
+});
+
 export const buildExportWorkflowMetadataPayload = (record: ExportRecord, outputName: string) => ({
   export_id: record.id,
   package_id: record.manifest.package_id,
@@ -957,20 +970,19 @@ export const buildPackageExportMetadataEvidence = (record: ExportRecord): Packag
   const missingCrossPayloadIdentityNames = crossPayloadIdentityNames.filter((payloadName) => !zipPayloadNames.includes(payloadName));
   const crossPayloadIdentityStatuses = crossPayloadIdentityNames.map((payloadName) => {
     const payloadPresent = zipPayloadNames.includes(payloadName);
-    const hasRuntimeIdentity = payloadName !== "manifest.json";
     const status = payloadPresent ? "pass" : "missing";
 
     return {
       payloadName,
-      exportId: hasRuntimeIdentity ? status : "not-applicable",
+      exportId: status,
       packageId: status,
       projectId: status,
-      workflowId: hasRuntimeIdentity ? status : "not-applicable",
-      provider: hasRuntimeIdentity ? status : "not-applicable",
-      model: hasRuntimeIdentity ? status : "not-applicable",
-      promptSpec: hasRuntimeIdentity ? status : "not-applicable",
-      skill: hasRuntimeIdentity ? status : "not-applicable",
-      safety: hasRuntimeIdentity ? status : "not-applicable"
+      workflowId: status,
+      provider: status,
+      model: status,
+      promptSpec: status,
+      skill: status,
+      safety: status
     } as const;
   });
   const manifestOutputStatuses = record.manifest.required_outputs.map((outputName) => {
@@ -1296,7 +1308,7 @@ export const buildExportDownloadParityEvidence = (
     !metadataEvidence.crossPayloadIdentityStatuses.every((entry) =>
       Object.entries(entry)
         .filter(([key]) => key !== "payloadName")
-        .every(([, value]) => value === "pass" || value === "not-applicable")
+        .every(([, value]) => value === "pass")
     )
   ) {
     failures.push("identity");
