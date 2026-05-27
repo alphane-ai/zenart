@@ -66,6 +66,22 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(sessionContract).toHaveAttribute("data-session-ux-state-current-blocked-count", "0");
     expect(sessionContract).toHaveAttribute("data-session-ux-state-current-recovery-labels", "");
     expect(sessionContract).toHaveAttribute("data-session-ux-state-current-alert", "none");
+    expect(sessionContract).toHaveAttribute(
+      "data-session-ux-transition-contract",
+      "stage0.rev2.csrf-same-site-session-transition-ux"
+    );
+    expect(sessionContract).toHaveAttribute("data-session-ux-transition-status", "pass");
+    expect(sessionContract).toHaveAttribute("data-session-ux-transition-count", "5");
+    expect(sessionContract.getAttribute("data-session-ux-transition-digest")).toContain(
+      "authenticated->expired:Expire Session:enabled=1:blocked=18:recovery=Refresh Session"
+    );
+    expect(sessionContract.getAttribute("data-session-ux-transition-digest")).toContain(
+      "authenticated->signed_out:Log Out:enabled=0:blocked=19:recovery=none"
+    );
+    expect(sessionContract).toHaveAttribute("data-session-ux-transition-expired-recovery-status", "pass");
+    expect(sessionContract).toHaveAttribute("data-session-ux-transition-signed-out-block-status", "pass");
+    expect(sessionContract).toHaveAttribute("data-session-ux-transition-required-recovery-action", "Refresh Session");
+    expect(sessionContract).toHaveAttribute("data-session-ux-transition-signed-out-blocked-count", "19");
     expect(sessionContract.getAttribute("data-session-unsafe-action-operation-contracts")).toContain(
       "Confirm Brief=>createChatSession:POST:X-ZenArt-CSRF:true+createChatMessage:POST:X-ZenArt-CSRF:true+createCandidateSet:POST:X-ZenArt-CSRF:true"
     );
@@ -278,6 +294,11 @@ describe("WorkspaceApp user route integration smoke", () => {
       "data-session-ux-state-current-alert",
       "Session expired. Refresh or sign in to continue."
     );
+    expect(screen.getByLabelText("Auth and session status")).toHaveAttribute("data-session-ux-transition-status", "pass");
+    expect(screen.getByLabelText("Auth and session status")).toHaveAttribute(
+      "data-session-ux-transition-required-recovery-action",
+      "Refresh Session"
+    );
     expect(screen.getByRole("button", { name: "Refresh Session" })).not.toBeDisabled();
     expect(screen.getByRole("button", { name: "Refresh Session" })).toHaveAttribute("data-csrf-ux-guard-status", "enabled");
     expect(screen.getByRole("button", { name: "Refresh Session" })).toHaveAttribute("data-csrf-ux-guard-blocked-reason", "");
@@ -333,6 +354,11 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(screen.getByLabelText("Auth and session status")).toHaveAttribute(
       "data-session-ux-state-current-alert",
       "Signed out. Sign in to continue."
+    );
+    expect(screen.getByLabelText("Auth and session status")).toHaveAttribute("data-session-ux-transition-status", "pass");
+    expect(screen.getByLabelText("Auth and session status")).toHaveAttribute(
+      "data-session-ux-transition-signed-out-blocked-count",
+      "19"
     );
     expect(screen.getByRole("button", { name: "Refresh Session" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Refresh Session" })).toHaveAttribute("data-csrf-ux-guard-current-session-state", "signed_out");

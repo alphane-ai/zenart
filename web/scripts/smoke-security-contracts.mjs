@@ -304,6 +304,27 @@ if (
 }
 
 if (
+  sessionSecurityBrowserContract.sessionTransitionContract?.schemaVersion !==
+    sessionEvidence.unsafeActionGuard?.sessionStateMatrix?.expectedTransitionContract ||
+  sessionSecurityBrowserContract.sessionTransitionContract?.status !==
+    sessionEvidence.unsafeActionGuard?.sessionStateMatrix?.expectedTransitionStatus ||
+  String(sessionSecurityBrowserContract.sessionTransitionContract?.transitionCount) !==
+    sessionEvidence.unsafeActionGuard?.sessionStateMatrix?.expectedTransitionCount ||
+  sessionSecurityBrowserContract.sessionTransitionContract?.digest !==
+    sessionEvidence.unsafeActionGuard?.sessionStateMatrix?.expectedTransitionDigest ||
+  sessionSecurityBrowserContract.sessionTransitionContract?.expiredRecoveryStatus !==
+    sessionEvidence.unsafeActionGuard?.sessionStateMatrix?.expectedTransitionExpiredRecoveryStatus ||
+  sessionSecurityBrowserContract.sessionTransitionContract?.signedOutBlockStatus !==
+    sessionEvidence.unsafeActionGuard?.sessionStateMatrix?.expectedTransitionSignedOutBlockStatus ||
+  sessionSecurityBrowserContract.sessionTransitionContract?.requiredRecoveryAction !==
+    sessionEvidence.unsafeActionGuard?.sessionStateMatrix?.expectedTransitionRequiredRecoveryAction ||
+  String(sessionSecurityBrowserContract.sessionTransitionContract?.signedOutBlockedCount) !==
+    sessionEvidence.unsafeActionGuard?.sessionStateMatrix?.expectedTransitionSignedOutBlockedCount
+) {
+  fail("session security browser contract transition evidence drifted from user route smoke evidence");
+}
+
+if (
   sessionSecurityBrowserContract.unsafeActionGuard?.guard !== sessionEvidence.unsafeActionGuard?.expectedGuard ||
   sessionSecurityBrowserContract.unsafeActionGuard?.status !== sessionEvidence.unsafeActionGuard?.expectedGuardCoverageStatus ||
   String(sessionSecurityBrowserContract.unsafeActionGuard?.guardCount) !== sessionEvidence.unsafeActionGuard?.expectedGuardCount ||
@@ -877,7 +898,16 @@ if (
   sessionStateMatrix?.expectedSignedOutEnabledCount !== "0" ||
   sessionStateMatrix?.expectedSignedOutBlockedCount !== "19" ||
   sessionStateMatrix?.expectedSignedOutRecoveryLabels !== "" ||
-  sessionStateMatrix?.expectedSignedOutAlert !== "Signed out. Sign in to continue."
+  sessionStateMatrix?.expectedSignedOutAlert !== "Signed out. Sign in to continue." ||
+  sessionStateMatrix?.expectedTransitionContract !== "stage0.rev2.csrf-same-site-session-transition-ux" ||
+  sessionStateMatrix?.expectedTransitionStatus !== "pass" ||
+  sessionStateMatrix?.expectedTransitionCount !== "5" ||
+  !sessionStateMatrix?.expectedTransitionDigest?.includes("authenticated->expired:Expire Session:enabled=1:blocked=18:recovery=Refresh Session") ||
+  !sessionStateMatrix?.expectedTransitionDigest?.includes("authenticated->signed_out:Log Out:enabled=0:blocked=19:recovery=none") ||
+  sessionStateMatrix?.expectedTransitionExpiredRecoveryStatus !== "pass" ||
+  sessionStateMatrix?.expectedTransitionSignedOutBlockStatus !== "pass" ||
+  sessionStateMatrix?.expectedTransitionRequiredRecoveryAction !== "Refresh Session" ||
+  sessionStateMatrix?.expectedTransitionSignedOutBlockedCount !== "19"
 ) {
   fail("session UX matrix evidence must cover authenticated, expired, and signed-out same-site guard states");
 }
@@ -940,6 +970,9 @@ for (const requiredTestSnippet of [
   "data-session-ux-state-matrix-contract",
   "data-session-ux-state-current",
   "data-session-ux-state-current-blocked-count",
+  "data-session-ux-transition-contract",
+  "data-session-ux-transition-status",
+  "data-session-ux-transition-digest",
   "data-csrf-ux-guard-contracts",
   "data-csrf-ux-guard-session-matrix",
   "data-csrf-ux-guard-session-matrix-status",
@@ -1002,6 +1035,9 @@ for (const requiredBrowserSnippet of [
   "data-session-ux-state-matrix-contract",
   "data-session-ux-state-current",
   "data-session-ux-state-current-blocked-count",
+  "data-session-ux-transition-contract",
+  "data-session-ux-transition-status",
+  "data-session-ux-transition-digest",
   "data-csrf-ux-guard-contracts",
   "data-csrf-ux-guard-status",
   "data-csrf-ux-guard-required-session-status",
@@ -1070,6 +1106,9 @@ if (
   !workspaceSmokeTestSource.includes("data-session-unsafe-action-blocked-control-count\", \"18\"") ||
   !workspaceSmokeTestSource.includes("data-session-unsafe-action-blocked-control-count\", \"19\"") ||
   !workspaceSmokeTestSource.includes("data-session-ux-state-matrix-contract") ||
+  !workspaceSmokeTestSource.includes("data-session-ux-transition-digest") ||
+  !workspaceSmokeTestSource.includes("authenticated->expired:Expire Session:enabled=1:blocked=18:recovery=Refresh Session") ||
+  !workspaceSmokeTestSource.includes("authenticated->signed_out:Log Out:enabled=0:blocked=19:recovery=none") ||
   !workspaceSmokeTestSource.includes("data-session-ux-state-current\", \"signed_out\"") ||
   !workspaceSmokeTestSource.includes("authenticated:enabled:none|expired:blocked:authenticated-session-required|signed_out:blocked:authenticated-session-required") ||
   !workspaceSmokeTestSource.includes("authenticated:enabled:none|expired:enabled:none|signed_out:blocked:authenticated-session-required") ||
@@ -1082,6 +1121,9 @@ if (
   !sessionSecurityPlaywrightSpecSource.includes("data-session-unsafe-action-blocked-control-count\", \"18\"") ||
   !sessionSecurityPlaywrightSpecSource.includes("data-session-unsafe-action-blocked-control-count\", \"19\"") ||
   !sessionSecurityPlaywrightSpecSource.includes("data-session-ux-state-matrix-contract") ||
+  !sessionSecurityPlaywrightSpecSource.includes("data-session-ux-transition-digest") ||
+  !sessionSecurityPlaywrightSpecSource.includes("authenticated->expired:Expire Session:enabled=1:blocked=18:recovery=Refresh Session") ||
+  !sessionSecurityPlaywrightSpecSource.includes("authenticated->signed_out:Log Out:enabled=0:blocked=19:recovery=none") ||
   !sessionSecurityPlaywrightSpecSource.includes("data-session-ux-state-current\", \"signed_out\"") ||
   !sessionSecurityPlaywrightSpecSource.includes("authenticated:enabled:none|expired:blocked:authenticated-session-required|signed_out:blocked:authenticated-session-required") ||
   !sessionSecurityPlaywrightSpecSource.includes("authenticated:enabled:none|expired:enabled:none|signed_out:blocked:authenticated-session-required") ||

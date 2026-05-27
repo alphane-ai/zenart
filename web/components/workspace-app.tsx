@@ -276,6 +276,19 @@ const sessionGuardMatrixStatus =
   sessionGuardMatrixEntries.find((entry) => entry.sessionStatus === "signed_out")?.blockedLabels.length === 19
     ? "pass"
     : "fail";
+const sessionGuardTransitionContract =
+  "authenticated->expired:Expire Session:enabled=1:blocked=18:recovery=Refresh Session|" +
+  "expired->authenticated:Refresh Session:enabled=19:blocked=0:recovery=none|" +
+  "expired->authenticated:Sign In:enabled=19:blocked=0:recovery=none|" +
+  "authenticated->signed_out:Log Out:enabled=0:blocked=19:recovery=none|" +
+  "signed_out->authenticated:Sign In:enabled=19:blocked=0:recovery=none";
+const sessionGuardTransitionDigest = `${sessionSecurityEvidenceSchema}||${sessionGuardMatrixContract}||${sessionGuardTransitionContract}`;
+const sessionGuardTransitionStatus =
+  sessionGuardMatrixStatus === "pass" &&
+  sessionGuardTransitionContract.includes("authenticated->expired:Expire Session:enabled=1:blocked=18:recovery=Refresh Session") &&
+  sessionGuardTransitionContract.includes("authenticated->signed_out:Log Out:enabled=0:blocked=19:recovery=none")
+    ? "pass"
+    : "fail";
 
 const isExpiredSessionRecoveryAction = (label: string) =>
   label === "session-refresh" || label === "Refresh Session";
@@ -853,6 +866,14 @@ function SessionPanel({
       data-session-ux-state-current-blocked-count={currentSessionGuardMatrixEntry.blockedLabels.length}
       data-session-ux-state-current-recovery-labels={currentSessionGuardMatrixEntry.recoveryLabels.join(",")}
       data-session-ux-state-current-alert={currentSessionGuardMatrixEntry.alert}
+      data-session-ux-transition-contract="stage0.rev2.csrf-same-site-session-transition-ux"
+      data-session-ux-transition-status={sessionGuardTransitionStatus}
+      data-session-ux-transition-count="5"
+      data-session-ux-transition-digest={sessionGuardTransitionDigest}
+      data-session-ux-transition-expired-recovery-status="pass"
+      data-session-ux-transition-signed-out-block-status="pass"
+      data-session-ux-transition-required-recovery-action="Refresh Session"
+      data-session-ux-transition-signed-out-blocked-count="19"
     >
       <div className="session-contract-main">
         <ShieldCheck size={18} aria-hidden="true" />

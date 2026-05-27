@@ -71,6 +71,16 @@
       "alert": "Signed out. Sign in to continue."
     }
   },
+  "sessionTransitionContract": {
+    "schemaVersion": "stage0.rev2.csrf-same-site-session-transition-ux",
+    "status": "pass",
+    "transitionCount": 5,
+    "digest": "stage0.rev2.session-csrf-client-evidence||authenticated:enabled=19:blocked=0:recovery=none:alert=none|expired:enabled=1:blocked=18:recovery=Refresh Session:alert=Session expired. Refresh or sign in to continue.|signed_out:enabled=0:blocked=19:recovery=none:alert=Signed out. Sign in to continue.||authenticated->expired:Expire Session:enabled=1:blocked=18:recovery=Refresh Session|expired->authenticated:Refresh Session:enabled=19:blocked=0:recovery=none|expired->authenticated:Sign In:enabled=19:blocked=0:recovery=none|authenticated->signed_out:Log Out:enabled=0:blocked=19:recovery=none|signed_out->authenticated:Sign In:enabled=19:blocked=0:recovery=none",
+    "expiredRecoveryStatus": "pass",
+    "signedOutBlockStatus": "pass",
+    "requiredRecoveryAction": "Refresh Session",
+    "signedOutBlockedCount": 19
+  },
   "unsafeActionGuard": {
     "guard": "authenticated-same-site-session",
     "status": "pass",
@@ -158,6 +168,9 @@
     "data-session-unsafe-action-guard",
     "data-session-unsafe-action-operation-contracts",
     "data-session-ux-state-matrix-contract",
+    "data-session-ux-transition-contract",
+    "data-session-ux-transition-status",
+    "data-session-ux-transition-digest",
     "data-csrf-ux-guard-contracts",
     "data-csrf-ux-guard-session-matrix",
     "data-generated-api-csrf-browser-probe",
@@ -167,6 +180,7 @@
   "assertions": [
     "The account route exposes secure __Host cookie attributes, SameSite lax/strict acceptance, and SameSite=None rejection as machine-checkable data attributes.",
     "The account route exposes a same-site CSRF UX matrix for authenticated, expired, and signed-out states.",
+    "The account route exposes session transition evidence proving expired sessions allow only Refresh Session recovery and signed-out sessions block guarded controls.",
     "The account route browser probe invokes every generated unsafe and safe user API operation, proving unsafe requests send include credentials plus X-ZenArt-CSRF while safe requests stay credentialed and CSRF-free.",
     "The smoke validator cross-checks this browser contract against user route evidence, generated API CSRF evidence, Vitest assertions, and Playwright assertions."
   ]

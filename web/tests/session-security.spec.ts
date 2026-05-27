@@ -168,6 +168,24 @@ test("account route exposes secure-cookie, same-site CSRF, unsafe-action guard, 
   await expect(sessionContract).toHaveAttribute("data-session-ux-state-current-blocked-count", "0");
   await expect(sessionContract).toHaveAttribute("data-session-ux-state-current-recovery-labels", "");
   await expect(sessionContract).toHaveAttribute("data-session-ux-state-current-alert", "none");
+  await expect(sessionContract).toHaveAttribute(
+    "data-session-ux-transition-contract",
+    "stage0.rev2.csrf-same-site-session-transition-ux"
+  );
+  await expect(sessionContract).toHaveAttribute("data-session-ux-transition-status", "pass");
+  await expect(sessionContract).toHaveAttribute("data-session-ux-transition-count", "5");
+  await expect(sessionContract).toHaveAttribute(
+    "data-session-ux-transition-digest",
+    /authenticated->expired:Expire Session:enabled=1:blocked=18:recovery=Refresh Session/
+  );
+  await expect(sessionContract).toHaveAttribute(
+    "data-session-ux-transition-digest",
+    /authenticated->signed_out:Log Out:enabled=0:blocked=19:recovery=none/
+  );
+  await expect(sessionContract).toHaveAttribute("data-session-ux-transition-expired-recovery-status", "pass");
+  await expect(sessionContract).toHaveAttribute("data-session-ux-transition-signed-out-block-status", "pass");
+  await expect(sessionContract).toHaveAttribute("data-session-ux-transition-required-recovery-action", "Refresh Session");
+  await expect(sessionContract).toHaveAttribute("data-session-ux-transition-signed-out-blocked-count", "19");
   const guardedUnsafeOperations = await sessionContract.getAttribute("data-session-unsafe-action-generated-unsafe-operations");
   expect(guardedUnsafeOperations?.split(",")).toEqual(unsafeOperationIds);
   await expect(sessionContract).toHaveAttribute(
@@ -334,6 +352,8 @@ test("account route exposes secure-cookie, same-site CSRF, unsafe-action guard, 
   await expect(sessionContract).toHaveAttribute("data-session-ux-state-current-blocked-count", "18");
   await expect(sessionContract).toHaveAttribute("data-session-ux-state-current-recovery-labels", "Refresh Session");
   await expect(sessionContract).toHaveAttribute("data-session-ux-state-current-alert", "Session expired. Refresh or sign in to continue.");
+  await expect(sessionContract).toHaveAttribute("data-session-ux-transition-status", "pass");
+  await expect(sessionContract).toHaveAttribute("data-session-ux-transition-required-recovery-action", "Refresh Session");
   await expect(page.getByRole("button", { name: "Refresh Session" })).toBeEnabled();
   await expect(page.getByRole("button", { name: "Refresh Session" })).toHaveAttribute("data-csrf-ux-guard-status", "enabled");
   await expect(page.getByRole("button", { name: "Refresh Session" })).toHaveAttribute("data-csrf-ux-guard-blocked-reason", "");
@@ -382,6 +402,8 @@ test("account route exposes secure-cookie, same-site CSRF, unsafe-action guard, 
   await expect(sessionContract).toHaveAttribute("data-session-ux-state-current-blocked-count", "19");
   await expect(sessionContract).toHaveAttribute("data-session-ux-state-current-recovery-labels", "");
   await expect(sessionContract).toHaveAttribute("data-session-ux-state-current-alert", "Signed out. Sign in to continue.");
+  await expect(sessionContract).toHaveAttribute("data-session-ux-transition-status", "pass");
+  await expect(sessionContract).toHaveAttribute("data-session-ux-transition-signed-out-blocked-count", "19");
   await expect(page.getByRole("button", { name: "Refresh Session" })).toBeDisabled();
   await expect(page.getByRole("button", { name: "Refresh Session" })).toHaveAttribute("data-csrf-ux-guard-current-session-state", "signed_out");
   await expect(page.getByRole("button", { name: "Save Settings" })).toBeDisabled();
