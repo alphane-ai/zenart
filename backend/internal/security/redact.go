@@ -168,7 +168,7 @@ func (s HTTPMalwareScanner) Scan(ctx context.Context, target MalwareScanTarget) 
 	defer resp.Body.Close()
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		limited, _ := io.ReadAll(io.LimitReader(resp.Body, 1024))
-		return MalwareScanResult{}, fmt.Errorf("malware scan endpoint returned %d: %s", resp.StatusCode, strings.TrimSpace(string(limited)))
+		return MalwareScanResult{}, fmt.Errorf("malware scan endpoint returned %d: %s", resp.StatusCode, RedactString(strings.TrimSpace(string(limited))))
 	}
 	var result MalwareScanResult
 	if err := json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&result); err != nil {

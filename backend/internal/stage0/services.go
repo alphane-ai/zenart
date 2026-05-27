@@ -494,6 +494,9 @@ func (r Repository) CreateUpload(ctx context.Context, opts UploadOptions) (Uploa
 		Metadata:    malwareScanMetadata(metadata),
 	})
 	if err != nil {
+		if opts.MalwareFailClosed {
+			return Upload{}, ErrMalwareBlocked
+		}
 		return Upload{}, err
 	}
 	metadata["malware_scan"] = malwareScanMetadataValue(scanResult)

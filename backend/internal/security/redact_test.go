@@ -526,6 +526,33 @@ func TestHTTPMalwareScannerRejectsUnsupportedStatus(t *testing.T) {
 	}
 }
 
+func TestHTTPMalwareScannerRedactsNon2xxResponseBody(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusBadGateway)
+		_, _ = w.Write([]byte(`scanner failed with Authorization: Bearer abcdefghijklmnop and sk-ant-abcdefghijklmnopqrstuvwxyz123456`))
+	}))
+	defer server.Close()
+
+	_, err := (HTTPMalwareScanner{
+		Endpoint: server.URL,
+		Timeout:  time.Second,
+	}).Scan(context.Background(), MalwareScanTarget{
+		TenantID:  "tenant_1",
+		ObjectKey: "uploads/file.png",
+	})
+	if err == nil {
+		t.Fatal("Scan() error = nil, want HTTP status error")
+	}
+	for _, leaked := range []string{"abcdefghijklmnop", "sk-ant-abcdefghijklmnopqrstuvwxyz123456"} {
+		if strings.Contains(err.Error(), leaked) {
+			t.Fatalf("Scan() error = %q, leaked %s", err.Error(), leaked)
+		}
+	}
+	if !strings.Contains(err.Error(), Redacted) {
+		t.Fatalf("Scan() error = %q, want redaction marker", err.Error())
+	}
+}
+
 func assertFinding(t *testing.T, findings []SecretFinding, kind SecretKind, location string) {
 	t.Helper()
 	for _, finding := range findings {
