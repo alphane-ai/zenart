@@ -1039,28 +1039,52 @@ LIMIT $2`,
 	return objects, rows.Err()
 }
 
-func (r Repository) MarkCleanupObjectsDeleted(ctx context.Context, ids []string, now time.Time) (int, error) {
-	if len(ids) == 0 {
+func (r Repository) MarkCleanupObjectsDeleted(ctx context.Context, objects []CleanupObject, now time.Time) (int, error) {
+	if len(objects) == 0 {
 		return 0, nil
 	}
 	if now.IsZero() {
 		now = time.Now().UTC()
 	}
+	payload := make([]map[string]string, 0, len(objects))
+	for _, object := range objects {
+		object.ID = strings.TrimSpace(object.ID)
+		object.TenantID = strings.TrimSpace(object.TenantID)
+		object.Key = strings.TrimSpace(object.Key)
+		if object.ID == "" || object.TenantID == "" || object.Key == "" {
+			return 0, errors.Join(ErrValidation, errors.New("cleanup object id, tenant_id, and object_key are required"))
+		}
+		payload = append(payload, map[string]string{
+			"id":         object.ID,
+			"tenant_id":  object.TenantID,
+			"object_key": object.Key,
+		})
+	}
 	tag, err := r.db.Exec(ctx, `
+WITH deleted_candidates AS (
+	SELECT id, tenant_id, object_key
+	FROM jsonb_to_recordset($1::jsonb) AS item(id text, tenant_id text, object_key text)
+)
 UPDATE object_metadata
 SET retention_state = 'deleted',
-    metadata = metadata || jsonb_build_object('deleted_at', $2::timestamptz),
+    metadata = metadata || jsonb_build_object(
+      'deleted_at', $2::timestamptz,
+      'cleanup_ack_scope', 'tenant_id+object_key'
+    ),
     updated_at = $2
-WHERE id = ANY($1)
+FROM deleted_candidates
+WHERE object_metadata.id = deleted_candidates.id
+  AND object_metadata.tenant_id = deleted_candidates.tenant_id
+  AND object_metadata.object_key = deleted_candidates.object_key
   AND retention_state IN ('expired', 'orphaned')`,
-		ids,
+		jsonValue(payload),
 		now,
 	)
 	if err != nil {
 		return 0, err
 	}
 	deleted := int(tag.RowsAffected())
-	if err := r.recordDeletedObjectAnalytics(ctx, ids, now); err != nil {
+	if err := r.recordDeletedObjectAnalytics(ctx, objects, now); err != nil {
 		return 0, err
 	}
 	return deleted, nil
@@ -1123,11 +1147,23 @@ SELECT 1`)
 	return err
 }
 
-func (r Repository) recordDeletedObjectAnalytics(ctx context.Context, ids []string, now time.Time) error {
-	if len(ids) == 0 {
+func (r Repository) recordDeletedObjectAnalytics(ctx context.Context, objects []CleanupObject, now time.Time) error {
+	if len(objects) == 0 {
 		return nil
 	}
+	payload := make([]map[string]string, 0, len(objects))
+	for _, object := range objects {
+		payload = append(payload, map[string]string{
+			"id":         strings.TrimSpace(object.ID),
+			"tenant_id":  strings.TrimSpace(object.TenantID),
+			"object_key": strings.TrimSpace(object.Key),
+		})
+	}
 	_, err := r.db.Exec(ctx, `
+WITH deleted_candidates AS (
+	SELECT id, tenant_id, object_key
+	FROM jsonb_to_recordset($1::jsonb) AS item(id text, tenant_id text, object_key text)
+)
 INSERT INTO analytics_events(id, tenant_id, user_id, project_id, workflow_id, event_name, subject_type, subject_id, properties, created_at)
 SELECT
 	'analytics_' || md5(o.tenant_id || ':' || o.id || ':object_deleted'),
@@ -1141,17 +1177,21 @@ SELECT
 	jsonb_build_object(
 		'asset_type', o.asset_type,
 		'bucket', o.bucket,
+		'object_key', o.object_key,
 		'retention_state', o.retention_state,
-		'derived_from_object_id', COALESCE(o.derived_from_object_id, '')
+		'derived_from_object_id', COALESCE(o.derived_from_object_id, ''),
+		'cleanup_ack_scope', 'tenant_id+object_key'
 	),
 	$2
 FROM object_metadata o
 LEFT JOIN projects pr ON pr.tenant_id = o.tenant_id AND pr.id = o.project_id
-WHERE o.id = ANY($1)
-  AND o.retention_state = 'deleted'
+JOIN deleted_candidates ON deleted_candidates.id = o.id
+  AND deleted_candidates.tenant_id = o.tenant_id
+  AND deleted_candidates.object_key = o.object_key
+WHERE o.retention_state = 'deleted'
   AND o.updated_at = $2
 ON CONFLICT (id) DO NOTHING`,
-		ids,
+		jsonValue(payload),
 		now,
 	)
 	return err
@@ -2337,6 +2377,14 @@ func jsonObject(value map[string]any) []byte {
 	return data
 }
 
+func jsonValue(value any) []byte {
+	data, _ := json.Marshal(value)
+	if len(data) == 0 {
+		return []byte("null")
+	}
+	return data
+}
+
 func cleanFilename(filename string) string {
 	filename = strings.TrimSpace(strings.ReplaceAll(filename, "\\", "/"))
 	parts := strings.Split(filename, "/")
@@ -2737,16 +2785,16 @@ func (s Service) CleanupExpiredExportsAndOrphanedObjects(ctx context.Context, no
 	if err != nil {
 		return CleanupResult{}, err
 	}
-	deletedIDs := make([]string, 0, len(objects))
+	deletedObjects := make([]CleanupObject, 0, len(objects))
 	for _, object := range objects {
 		if err := s.objects.Delete(ctx, object.TenantID, object.Key); err != nil {
 			if !errors.Is(err, objectstore.ErrNotFound) {
 				return CleanupResult{}, err
 			}
 		}
-		deletedIDs = append(deletedIDs, object.ID)
+		deletedObjects = append(deletedObjects, object)
 	}
-	deleted, err := s.repo.MarkCleanupObjectsDeleted(ctx, deletedIDs, now)
+	deleted, err := s.repo.MarkCleanupObjectsDeleted(ctx, deletedObjects, now)
 	if err != nil {
 		return CleanupResult{}, err
 	}

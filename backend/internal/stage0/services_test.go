@@ -1152,18 +1152,48 @@ func TestMarkCleanupObjectsDeleted(t *testing.T) {
 	db := &fakeDB{execTags: []pgconn.CommandTag{pgconn.NewCommandTag("UPDATE 2")}}
 	repo := NewRepository(db)
 
-	deleted, err := repo.MarkCleanupObjectsDeleted(context.Background(), []string{"object_1", "object_2"}, now)
+	deleted, err := repo.MarkCleanupObjectsDeleted(context.Background(), []CleanupObject{
+		{ID: "object_1", TenantID: "tenant_1", Key: "tenants/tenant_1/exports/export_1.zip"},
+		{ID: "object_2", TenantID: "tenant_1", Key: "tenants/tenant_1/thumbnails/export_1.zip.svg"},
+	}, now)
 	if err != nil {
 		t.Fatalf("MarkCleanupObjectsDeleted() error = %v", err)
 	}
 	if deleted != 2 {
 		t.Fatalf("deleted = %d, want 2", deleted)
 	}
-	if !strings.Contains(db.execs[0].sql, "retention_state = 'deleted'") || !strings.Contains(db.execs[0].sql, "deleted_at") {
-		t.Fatalf("mark deleted SQL missing retention/deleted metadata: %s", db.execs[0].sql)
+	for _, fragment := range []string{
+		"jsonb_to_recordset($1::jsonb)",
+		"object_metadata.tenant_id = deleted_candidates.tenant_id",
+		"object_metadata.object_key = deleted_candidates.object_key",
+		"retention_state = 'deleted'",
+		"deleted_at",
+		"cleanup_ack_scope",
+	} {
+		if !strings.Contains(db.execs[0].sql, fragment) {
+			t.Fatalf("mark deleted SQL missing %s: %s", fragment, db.execs[0].sql)
+		}
 	}
-	if !strings.Contains(db.execs[1].sql, "INSERT INTO analytics_events") || !strings.Contains(db.execs[1].sql, "'object_deleted'") || !strings.Contains(db.execs[1].sql, "ON CONFLICT (id) DO NOTHING") {
-		t.Fatalf("mark deleted SQL missing object deletion analytics: %s", db.execs[1].sql)
+	payload, ok := db.execs[0].args[0].([]byte)
+	if !ok {
+		t.Fatalf("cleanup payload arg type = %T, want []byte", db.execs[0].args[0])
+	}
+	for _, want := range []string{`"tenant_id":"tenant_1"`, `"object_key":"tenants/tenant_1/exports/export_1.zip"`} {
+		if !strings.Contains(string(payload), want) {
+			t.Fatalf("cleanup payload = %s, missing %s", string(payload), want)
+		}
+	}
+	for _, fragment := range []string{
+		"INSERT INTO analytics_events",
+		"'object_deleted'",
+		"deleted_candidates.tenant_id = o.tenant_id",
+		"deleted_candidates.object_key = o.object_key",
+		"'cleanup_ack_scope'",
+		"ON CONFLICT (id) DO NOTHING",
+	} {
+		if !strings.Contains(db.execs[1].sql, fragment) {
+			t.Fatalf("mark deleted SQL missing object deletion analytics fragment %s: %s", fragment, db.execs[1].sql)
+		}
 	}
 }
 
