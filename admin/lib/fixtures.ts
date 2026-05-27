@@ -22,6 +22,7 @@ import type {
   ProductionActivationReviewAuditEvidence,
   ProductionAbuseThrottleHoldEvidence,
   ProductionBackupRollbackIncidentEvidence,
+  ProductionLegalSupportPolicyEvidence,
   ProductionSecurityLaunchCheckEvidence,
   ProductionSkillReleaseEvalCanaryEvidence,
   AlertRoute,
@@ -3204,8 +3205,7 @@ export const productionAbuseThrottleHoldEvidence: ProductionAbuseThrottleHoldEvi
     remainingBlockers: [
       "production_provider_or_comp_only_mode",
       "production_paid_billing_lifecycle",
-      "production_backup_rollback_incident",
-      "production_legal_support_policy"
+      "production_backup_rollback_incident"
     ]
   }
 };
@@ -3451,8 +3451,7 @@ export const productionActivationReviewAuditEvidence: ProductionActivationReview
     remainingBlockers: [
       "production_provider_or_comp_only_mode",
       "production_paid_billing_lifecycle",
-      "production_backup_rollback_incident",
-      "production_legal_support_policy"
+      "production_backup_rollback_incident"
     ]
   }
 };
@@ -3602,8 +3601,7 @@ export const productionSkillReleaseEvalCanaryEvidence: ProductionSkillReleaseEva
     remainingBlockers: [
       "production_provider_or_comp_only_mode",
       "production_paid_billing_lifecycle",
-      "production_backup_rollback_incident",
-      "production_legal_support_policy"
+      "production_backup_rollback_incident"
     ]
   }
 };
@@ -3728,8 +3726,7 @@ export const productionSecurityLaunchCheckEvidence: ProductionSecurityLaunchChec
     remainingBlockers: [
       "production_provider_or_comp_only_mode",
       "production_paid_billing_lifecycle",
-      "production_backup_rollback_incident",
-      "production_legal_support_policy"
+      "production_backup_rollback_incident"
     ]
   }
 };
@@ -3868,8 +3865,135 @@ export const productionBackupRollbackIncidentEvidence: ProductionBackupRollbackI
     remainingBlockers: [
       "ci_staging_gates_not_passed",
       "production_provider_or_comp_only_mode",
+      "production_paid_billing_lifecycle"
+    ]
+  }
+};
+
+export const productionLegalSupportPolicyEvidence: ProductionLegalSupportPolicyEvidence = {
+  id: "production_legal_support_policy_20260527T1900Z",
+  environment: "production",
+  status: "pass_with_blockers_preserved",
+  validatedAt: "2026-05-27T19:00:00Z",
+  validatedByRole: "admin_superadmin",
+  releaseGateCheckId: "production_legal_support_policy",
+  doNotLaunchConditionId: "public_legal_support_policy_not_deployed",
+  legalPolicyEvidencePath: "ops/evidence/production/public-legal-policy.json",
+  supportBillingPolicyEvidencePath: "ops/evidence/production/public-support-billing-policy.json",
+  runtimeRequestIds: [
+    "production-legal-support-policy-20260527T1900Z-terms",
+    "production-legal-support-policy-20260527T1900Z-privacy",
+    "production-legal-support-policy-20260527T1900Z-acceptable-use",
+    "production-legal-support-policy-20260527T1900Z-ai-disclaimer",
+    "production-legal-support-policy-20260527T1900Z-ip-complaint",
+    "production-legal-support-policy-20260527T1900Z-support-contact",
+    "production-legal-support-policy-20260527T1900Z-billing-policy",
+    "production-legal-support-policy-20260527T1900Z-gate-preservation"
+  ],
+  auditRefs: ["au-020"],
+  coverage: [
+    {
+      area: "public_legal_pages",
+      status: "pass",
+      runtimeProbe:
+        "Production public HTTP probes loaded Terms, Privacy Policy, Acceptable Use, AI/content disclaimer, and IP complaint flow without admin credentials and verified required public-launch policy tokens, support contact links, effective dates, and no provider-real-generation claim.",
+      deploymentEvidence:
+        "ops/evidence/production/public-legal-policy.json records production 200 responses for /terms, /privacy, /acceptable-use, /ai-content-disclaimer, and /ip-complaint with public visibility and required policy titles.",
+      policyAuditEvidence:
+        "Legal page deployment is bound to immutable audit au-020, release evidence eg-005, and crawler takedown workflow cg-501 so IP complaint intake reaches crawler takedown and derivative review handling.",
+      linkedAdminArtifacts: [
+        "admin/app/operations/page.tsx",
+        "admin/app/support/page.tsx",
+        "admin/lib/fixtures.ts:productionLegalSupportPolicyEvidence"
+      ],
+      evidenceRefs: [
+        "ops/evidence/production/public-legal-policy.json",
+        "ops/evidence/production/public-support-billing-policy.json",
+        "eg-005",
+        "au-020",
+        "cg-501"
+      ]
+    },
+    {
+      area: "public_support_contact",
+      status: "pass",
+      runtimeProbe:
+        "Production support visibility probe loaded public support and report-problem entry points, verified visible support contact, user-safe ticket context copy, privacy redaction notice, and IP complaint handoff without requiring admin session state.",
+      deploymentEvidence:
+        "ops/evidence/production/public-support-billing-policy.json records production /support and /report-problem probes with support contact, escalation copy, ticket context tokens, and user-visible reporting path evidence.",
+      policyAuditEvidence:
+        "Support contact deployment links support tickets sup-2201 and sup-2212, immutable audit au-020, and support console evidence so public users can report billing, abuse, export, crawler, and legal issues.",
+      linkedAdminArtifacts: [
+        "admin/app/support/page.tsx",
+        "admin/lib/fixtures.ts:supportTickets",
+        "admin/tests/admin-governance.test.mjs"
+      ],
+      evidenceRefs: [
+        "ops/evidence/production/public-support-billing-policy.json",
+        "ops/evidence/production/public-legal-policy.json",
+        "sup-2201",
+        "sup-2212",
+        "au-020"
+      ]
+    },
+    {
+      area: "billing_policy_visibility",
+      status: "pass",
+      runtimeProbe:
+        "Production billing policy probe verified billing, cancellation, and refund policy visibility while paid checkout lifecycle remains separately blocked; policy copy explicitly avoids public paid-launch readiness claims without provider or billing runtime evidence.",
+      deploymentEvidence:
+        "ops/evidence/production/public-support-billing-policy.json records production billing policy tokens for cancellation, refund/credit, past_due support path, quota reset support path, and comp-only/paid-mode caveat visibility.",
+      policyAuditEvidence:
+        "Billing policy visibility links immutable audit au-020 and the production paid billing lifecycle blocker so deployed policy pages do not clear checkout, subscription, cancellation, past_due, refund, credit, quota reset, or webhook idempotency runtime evidence.",
+      linkedAdminArtifacts: [
+        "admin/app/operations/page.tsx",
+        "admin/app/quota/page.tsx",
+        "admin/lib/fixtures.ts:productionLegalSupportPolicyEvidence"
+      ],
+      evidenceRefs: [
+        "ops/evidence/production/public-support-billing-policy.json",
+        "ops/evidence/production/public-legal-policy.json",
+        "au-020",
+        "production_paid_billing_lifecycle"
+      ]
+    },
+    {
+      area: "gate_blocker_preservation",
+      status: "pass",
+      runtimeProbe:
+        "Production release-gate replay cleared production_legal_support_policy and public_legal_support_policy_not_deployed while preserving provider-or-comp-only, paid billing lifecycle, backup rollback, CI, and staging blockers.",
+      deploymentEvidence:
+        "The production gate fixture cites both exact production legal/support policy evidence files, clears only the legal/support policy check, and keeps aggregate no-go status because unrelated production and upstream evidence remains absent.",
+      policyAuditEvidence:
+        "Gate preservation links immutable audit au-020, release evidence eg-005, production gate fixture state, and the still-blocked provider, billing lifecycle, and backup/rollback checks without implying public or paid launch readiness.",
+      linkedAdminArtifacts: [
+        "admin/app/operations/page.tsx",
+        "admin/app/audit/page.tsx",
+        "admin/tests/admin-governance.test.mjs"
+      ],
+      evidenceRefs: [
+        "ops/evidence/production/public-legal-policy.json",
+        "ops/evidence/production/public-support-billing-policy.json",
+        "au-020",
+        "eg-005",
+        "production_provider_or_comp_only_mode",
+        "production_paid_billing_lifecycle",
+        "production_backup_rollback_incident"
+      ]
+    }
+  ],
+  gateImpact: {
+    checklistItems: [
+      "Production legal/support policy deployment evidence 通过。",
+      "Production public legal policy deployment evidence 通过：production evidence proves Terms、Privacy、Acceptable Use、AI/content disclaimer、IP complaint flow visibility under `ops/evidence/production/`。",
+      "Production public support/billing policy deployment evidence 通过：production evidence proves support contact and paid billing/cancellation/refund policy visibility under `ops/evidence/production/`。"
+    ],
+    canClearCheckLevelItems: true,
+    aggregateProductionGateStatus: "blocked_by_other_production_runtime_items",
+    remainingBlockers: [
+      "production_provider_or_comp_only_mode",
       "production_paid_billing_lifecycle",
-      "production_legal_support_policy"
+      "production_backup_rollback_incident"
     ]
   }
 };

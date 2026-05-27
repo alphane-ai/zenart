@@ -24,6 +24,7 @@ import {
   productionActivationReviewAuditEvidence,
   productionAbuseThrottleHoldEvidence,
   productionBackupRollbackIncidentEvidence,
+  productionLegalSupportPolicyEvidence,
   productionSecurityLaunchCheckEvidence,
   productionSkillReleaseEvalCanaryEvidence,
   stagingLegalSupportVisibilityEvidence,
@@ -213,6 +214,10 @@ export async function getProductionSecurityLaunchCheckEvidence() {
 
 export async function getProductionBackupRollbackIncidentEvidence() {
   return productionBackupRollbackIncidentEvidence;
+}
+
+export async function getProductionLegalSupportPolicyEvidence() {
+  return productionLegalSupportPolicyEvidence;
 }
 
 export async function getExportJob(id: string) {

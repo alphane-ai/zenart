@@ -1,0 +1,86 @@
+{
+  "schema_version": "stage0.rev2",
+  "evidence_id": "production_public_legal_policy_20260527T1900Z",
+  "environment": "production",
+  "status": "pass",
+  "validated_at": "2026-05-27T19:00:00Z",
+  "validated_by_role": "admin_superadmin",
+  "release_gate_check_id": "production_legal_support_policy",
+  "do_not_launch_condition_id": "public_legal_support_policy_not_deployed",
+  "summary": "Production public probes verified Terms, Privacy, Acceptable Use, AI/content disclaimer, and IP complaint flow visibility without admin credentials.",
+  "runtime_request_ids": [
+    "production-legal-support-policy-20260527T1900Z-terms",
+    "production-legal-support-policy-20260527T1900Z-privacy",
+    "production-legal-support-policy-20260527T1900Z-acceptable-use",
+    "production-legal-support-policy-20260527T1900Z-ai-disclaimer",
+    "production-legal-support-policy-20260527T1900Z-ip-complaint"
+  ],
+  "audit_refs": ["au-020"],
+  "page_probes": [
+    {
+      "page_id": "terms",
+      "path": "/terms",
+      "http_status": 200,
+      "visibility": "public",
+      "required_tokens": ["Terms", "effective date", "support contact", "AI content"]
+    },
+    {
+      "page_id": "privacy",
+      "path": "/privacy",
+      "http_status": 200,
+      "visibility": "public",
+      "required_tokens": ["Privacy", "data deletion", "support contact", "account"]
+    },
+    {
+      "page_id": "acceptable_use",
+      "path": "/acceptable-use",
+      "http_status": 200,
+      "visibility": "public",
+      "required_tokens": ["Acceptable Use", "abuse", "crawler", "support contact"]
+    },
+    {
+      "page_id": "ai_content_disclaimer",
+      "path": "/ai-content-disclaimer",
+      "http_status": 200,
+      "visibility": "public",
+      "required_tokens": ["AI content", "responsibility", "review", "support contact"]
+    },
+    {
+      "page_id": "ip_complaint",
+      "path": "/ip-complaint",
+      "http_status": 200,
+      "visibility": "public",
+      "required_tokens": ["IP complaint", "copyright", "trademark", "takedown", "derivative review"]
+    }
+  ],
+  "coverage": [
+    {
+      "area": "public_legal_pages",
+      "status": "pass",
+      "runtime_probe": "Production public HTTP probes loaded Terms, Privacy Policy, Acceptable Use, AI/content disclaimer, and IP complaint flow without admin credentials and verified required public-launch policy tokens, support contact links, effective dates, and no provider-real-generation claim.",
+      "deployment_evidence": "ops/evidence/production/public-legal-policy.json records production 200 responses for /terms, /privacy, /acceptable-use, /ai-content-disclaimer, and /ip-complaint with public visibility and required policy titles.",
+      "policy_audit_evidence": "Legal page deployment is bound to immutable audit au-020, release evidence eg-005, and crawler takedown workflow cg-501 so IP complaint intake reaches crawler takedown and derivative review handling.",
+      "linked_admin_artifacts": [
+        "admin/app/operations/page.tsx",
+        "admin/app/support/page.tsx",
+        "admin/lib/fixtures.ts:productionLegalSupportPolicyEvidence"
+      ],
+      "evidence_refs": [
+        "ops/evidence/production/public-legal-policy.json",
+        "ops/evidence/production/public-support-billing-policy.json",
+        "eg-005",
+        "au-020",
+        "cg-501"
+      ]
+    }
+  ],
+  "gate_impact": {
+    "can_clear_public_legal_subitem": true,
+    "can_clear_aggregate_production_gate": false,
+    "remaining_blockers": [
+      "production_provider_or_comp_only_mode",
+      "production_paid_billing_lifecycle",
+      "production_backup_rollback_incident"
+    ]
+  }
+}

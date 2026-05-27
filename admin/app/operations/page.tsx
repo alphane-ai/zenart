@@ -11,6 +11,7 @@ import {
   getOperationalDashboards,
   getObservabilityTelemetryRuntimeEvidence,
   getProductionBackupRollbackIncidentEvidence,
+  getProductionLegalSupportPolicyEvidence,
   getReleaseBlockers,
   getStagingObjectStorageRetentionCleanupEvidence,
   getStagingObservabilityBackupLoadPreflightEvidence
@@ -28,6 +29,8 @@ import type {
   ObservabilityTelemetryRuntimeEvidence,
   ProductionBackupRollbackIncidentCoverage,
   ProductionBackupRollbackIncidentEvidence,
+  ProductionLegalSupportPolicyCoverage,
+  ProductionLegalSupportPolicyEvidence,
   ReleaseBlocker,
   StagingObjectStorageRetentionCleanupCoverage,
   StagingObjectStorageRetentionCleanupEvidence,
@@ -55,7 +58,8 @@ export default async function OperationsPage() {
     telemetryRuntimeEvidence,
     observabilityBackupLoadPreflight,
     objectStorageRetentionCleanupEvidence,
-    productionBackupRollbackIncidentEvidence
+    productionBackupRollbackIncidentEvidence,
+    productionLegalSupportPolicyEvidence
   ] = await Promise.all([
     getIncidentLogs(),
     getMaintenanceBanners(),
@@ -67,7 +71,8 @@ export default async function OperationsPage() {
     getObservabilityTelemetryRuntimeEvidence(),
     getStagingObservabilityBackupLoadPreflightEvidence(),
     getStagingObjectStorageRetentionCleanupEvidence(),
-    getProductionBackupRollbackIncidentEvidence()
+    getProductionBackupRollbackIncidentEvidence(),
+    getProductionLegalSupportPolicyEvidence()
   ]);
   const releaseBlockers = await getReleaseBlockers();
 
@@ -132,6 +137,42 @@ export default async function OperationsPage() {
             { key: "runtime", header: "Runtime Probe", render: (row) => row.runtimeProbe },
             { key: "deployment", header: "Deployment Evidence", render: (row) => row.deploymentEvidence },
             { key: "audit", header: "Operational Audit Evidence", render: (row) => row.operationalAuditEvidence },
+            { key: "artifacts", header: "Admin Artifacts", render: (row) => row.linkedAdminArtifacts.join(", ") },
+            { key: "evidence", header: "Evidence Refs", render: (row) => row.evidenceRefs.join(", ") }
+          ]}
+        />
+      </section>
+
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>Production Legal Support Policy Evidence</h3>
+            <p>Production policy evidence validates public legal pages, support contact, and billing policy visibility while preserving unrelated launch blockers.</p>
+          </div>
+        </div>
+        <DataTable<ProductionLegalSupportPolicyEvidence>
+          rows={[productionLegalSupportPolicyEvidence]}
+          columns={[
+            { key: "id", header: "Evidence", render: (row) => <span className="mono">{row.id}</span> },
+            { key: "status", header: "Status", render: (row) => <StatusBadge value={row.status} label={row.status} /> },
+            { key: "role", header: "Validated By", render: (row) => row.validatedByRole },
+            { key: "check", header: "Release Gate Check", render: (row) => row.releaseGateCheckId },
+            { key: "condition", header: "Cleared Condition", render: (row) => row.doNotLaunchConditionId },
+            { key: "clear", header: "Can Clear Rows", render: (row) => (row.gateImpact.canClearCheckLevelItems ? "yes" : "no") },
+            { key: "aggregate", header: "Aggregate Gate", render: (row) => row.gateImpact.aggregateProductionGateStatus },
+            { key: "legal", header: "Legal Evidence", render: (row) => row.legalPolicyEvidencePath },
+            { key: "support", header: "Support/Billing Evidence", render: (row) => row.supportBillingPolicyEvidencePath },
+            { key: "remaining", header: "Remaining Blockers", render: (row) => row.gateImpact.remainingBlockers.join(", ") }
+          ]}
+        />
+        <DataTable<ProductionLegalSupportPolicyCoverage>
+          rows={productionLegalSupportPolicyEvidence.coverage}
+          columns={[
+            { key: "area", header: "Area", render: (row) => row.area },
+            { key: "status", header: "Validation", render: (row) => <StatusBadge value={row.status} label={row.status} /> },
+            { key: "runtime", header: "Runtime Probe", render: (row) => row.runtimeProbe },
+            { key: "deployment", header: "Deployment Evidence", render: (row) => row.deploymentEvidence },
+            { key: "audit", header: "Policy Audit Evidence", render: (row) => row.policyAuditEvidence },
             { key: "artifacts", header: "Admin Artifacts", render: (row) => row.linkedAdminArtifacts.join(", ") },
             { key: "evidence", header: "Evidence Refs", render: (row) => row.evidenceRefs.join(", ") }
           ]}

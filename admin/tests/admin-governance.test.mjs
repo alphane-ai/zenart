@@ -16,7 +16,7 @@ const parseFixtures = () => {
   const moduleSource = source
     .replace(/^import type[\s\S]*?from "@\/lib\/types";\n\n/, "")
     .replaceAll(/export const (\w+)[^=]*=/g, "const $1 =");
-  return Function(`${moduleSource}\nreturn { skillVersions, skillReleaseStateDefinitions, skillCanaryMetrics, releaseEvidence, releaseBlockers, supportTickets, supportEscalationRunbooks, supportUsers, riskyExports, abuseEvents, abuseControlHooks, stagingAuthRbacTenantAuditEvidence, stagingEvalQaSafetyEvidence, stagingQuotaRateLimitSpendCapEvidence, stagingSupportRetryAbuseEvidence, stagingLegalSupportVisibilityEvidence, productionAbuseThrottleHoldEvidence, productionActivationReviewAuditEvidence, productionSkillReleaseEvalCanaryEvidence, productionSecurityLaunchCheckEvidence, productionBackupRollbackIncidentEvidence, adminReviewDecisions, auditEvents, exportJobs, traces, quotaAccounts, feedbackItems, regressionFixtures, analyticsReports, queueHealth, failedTaskControls, crawlerFindings, crawlerSourceApprovals, crawlerGovernanceWorkflows, crawlerStagingRuntimeEvidence, adminRbacEvidence, operationalDashboards, operationalDashboardRuntimeEvidence, alertRoutes, alertRouteRuntimeEvidence, backendMetricsRuntimeEvidence, observabilityTelemetryRuntimeEvidence, stagingObservabilityBackupLoadPreflightEvidence, stagingObjectStorageRetentionCleanupEvidence };`)();
+  return Function(`${moduleSource}\nreturn { skillVersions, skillReleaseStateDefinitions, skillCanaryMetrics, releaseEvidence, releaseBlockers, supportTickets, supportEscalationRunbooks, supportUsers, riskyExports, abuseEvents, abuseControlHooks, stagingAuthRbacTenantAuditEvidence, stagingEvalQaSafetyEvidence, stagingQuotaRateLimitSpendCapEvidence, stagingSupportRetryAbuseEvidence, stagingLegalSupportVisibilityEvidence, productionAbuseThrottleHoldEvidence, productionActivationReviewAuditEvidence, productionSkillReleaseEvalCanaryEvidence, productionSecurityLaunchCheckEvidence, productionBackupRollbackIncidentEvidence, productionLegalSupportPolicyEvidence, adminReviewDecisions, auditEvents, exportJobs, traces, quotaAccounts, feedbackItems, regressionFixtures, analyticsReports, queueHealth, failedTaskControls, crawlerFindings, crawlerSourceApprovals, crawlerGovernanceWorkflows, crawlerStagingRuntimeEvidence, adminRbacEvidence, operationalDashboards, operationalDashboardRuntimeEvidence, alertRoutes, alertRouteRuntimeEvidence, backendMetricsRuntimeEvidence, observabilityTelemetryRuntimeEvidence, stagingObservabilityBackupLoadPreflightEvidence, stagingObjectStorageRetentionCleanupEvidence };`)();
 };
 
 const crawlerGovernanceCases = JSON.parse(
@@ -45,6 +45,7 @@ const {
   productionSkillReleaseEvalCanaryEvidence,
   productionSecurityLaunchCheckEvidence,
   productionBackupRollbackIncidentEvidence,
+  productionLegalSupportPolicyEvidence,
   adminReviewDecisions,
   auditEvents,
   exportJobs,
@@ -277,6 +278,14 @@ const productionSecurityLaunchCheckPath = new URL(
 );
 const productionBackupRollbackIncidentPath = new URL(
   "../../ops/evidence/production/20260527T1800Z-backup-rollback-incident-smoke.json",
+  import.meta.url
+);
+const productionPublicLegalPolicyPath = new URL(
+  "../../ops/evidence/production/public-legal-policy.json",
+  import.meta.url
+);
+const productionPublicSupportBillingPolicyPath = new URL(
+  "../../ops/evidence/production/public-support-billing-policy.json",
   import.meta.url
 );
 
@@ -4649,4 +4658,150 @@ test("staging crawler governance runtime evidence covers every fetch and import 
   assert.deepEqual([...requiredControls], [], "crawler staging runtime evidence is missing required controls");
   assert.ok(runtimeEvidenceFile.gate_impact.can_clear_crawler_governance_runtime_checklist_item);
   assert.equal(runtimeEvidenceFile.gate_impact.aggregate_private_beta_gate_status, "blocked_by_other_staging_runtime_items");
+});
+
+test("production legal support policy evidence clears only the legal/support production check", () => {
+  assert.ok(existsSync(productionPublicLegalPolicyPath), "production public legal policy evidence file is missing");
+  assert.ok(
+    existsSync(productionPublicSupportBillingPolicyPath),
+    "production public support/billing policy evidence file is missing"
+  );
+  assert.ok(existsSync(productionGatePath), "production launch gate evidence fixture is missing");
+
+  const legalFile = JSON.parse(readFileSync(productionPublicLegalPolicyPath, "utf8"));
+  const supportBillingFile = JSON.parse(readFileSync(productionPublicSupportBillingPolicyPath, "utf8"));
+  const gateFixture = JSON.parse(readFileSync(productionGatePath, "utf8"));
+
+  assert.equal(productionLegalSupportPolicyEvidence.environment, "production");
+  assert.equal(productionLegalSupportPolicyEvidence.status, "pass_with_blockers_preserved");
+  assert.equal(productionLegalSupportPolicyEvidence.releaseGateCheckId, "production_legal_support_policy");
+  assert.equal(productionLegalSupportPolicyEvidence.doNotLaunchConditionId, "public_legal_support_policy_not_deployed");
+  assert.equal(productionLegalSupportPolicyEvidence.legalPolicyEvidencePath, "ops/evidence/production/public-legal-policy.json");
+  assert.equal(
+    productionLegalSupportPolicyEvidence.supportBillingPolicyEvidencePath,
+    "ops/evidence/production/public-support-billing-policy.json"
+  );
+  assert.equal(
+    productionLegalSupportPolicyEvidence.gateImpact.aggregateProductionGateStatus,
+    "blocked_by_other_production_runtime_items",
+    "legal/support policy evidence cannot close the aggregate production gate"
+  );
+
+  for (const evidenceFile of [legalFile, supportBillingFile]) {
+    assert.equal(evidenceFile.environment, "production", "split policy evidence must be production scoped");
+    assert.equal(evidenceFile.status, "pass", "split policy evidence must pass");
+    assert.equal(evidenceFile.release_gate_check_id, "production_legal_support_policy");
+    assert.equal(evidenceFile.do_not_launch_condition_id, "public_legal_support_policy_not_deployed");
+    assert.equal(
+      evidenceFile.gate_impact.can_clear_aggregate_production_gate,
+      false,
+      "split policy evidence cannot clear aggregate production readiness"
+    );
+  }
+
+  assert.deepEqual(
+    [
+      ...legalFile.runtime_request_ids,
+      ...supportBillingFile.runtime_request_ids
+    ].toSorted(),
+    productionLegalSupportPolicyEvidence.runtimeRequestIds.toSorted(),
+    "split production evidence files must cover the admin fixture runtime probe ids"
+  );
+
+  for (const requestId of productionLegalSupportPolicyEvidence.runtimeRequestIds) {
+    assert.match(
+      requestId,
+      /^production-legal-support-policy-\d{8}T\d{4}Z-/,
+      `${requestId} must be a production legal/support policy runtime probe`
+    );
+  }
+
+  for (const auditRef of productionLegalSupportPolicyEvidence.auditRefs) {
+    assert.ok(auditIds.has(auditRef), `${auditRef} must link immutable audit evidence`);
+  }
+
+  const requiredAreas = new Set([
+    "public_legal_pages",
+    "public_support_contact",
+    "billing_policy_visibility",
+    "gate_blocker_preservation"
+  ]);
+  const legalFileAreas = new Set(legalFile.coverage.map((coverage) => coverage.area));
+  const supportBillingFileAreas = new Set(supportBillingFile.coverage.map((coverage) => coverage.area));
+
+  for (const coverage of productionLegalSupportPolicyEvidence.coverage) {
+    requiredAreas.delete(coverage.area);
+    assert.equal(coverage.status, "pass", `${coverage.area} must pass`);
+    assert.ok(coverage.runtimeProbe.toLowerCase().includes("production"), `${coverage.area} must describe production runtime`);
+    assert.match(
+      coverage.runtimeProbe,
+      /terms|privacy|acceptable|disclaimer|complaint|support|billing|refund|release-gate/i,
+      `${coverage.area} must cover legal/support policy visibility`
+    );
+    assert.ok(coverage.deploymentEvidence.length > 110, `${coverage.area} needs deployment evidence`);
+    assert.ok(coverage.policyAuditEvidence.length > 110, `${coverage.area} needs policy audit evidence`);
+    assert.ok(coverage.linkedAdminArtifacts.some((ref) => ref.startsWith("admin/")), `${coverage.area} needs admin artifacts`);
+    assert.ok(
+      coverage.evidenceRefs.includes(productionLegalSupportPolicyEvidence.legalPolicyEvidencePath) &&
+        coverage.evidenceRefs.includes(productionLegalSupportPolicyEvidence.supportBillingPolicyEvidencePath),
+      `${coverage.area} must cite both exact production policy evidence files`
+    );
+    assert.ok(
+      coverage.evidenceRefs.some(
+        (ref) =>
+          auditIds.has(ref) ||
+          releaseEvidenceIds.has(ref) ||
+          supportTicketIds.has(ref) ||
+          crawlerGovernanceWorkflows.some((workflow) => workflow.id === ref) ||
+          ref.startsWith("production_")
+      ),
+      `${coverage.area} needs validator-resolvable audit, release, support, crawler, or blocker refs`
+    );
+
+    if (coverage.area === "public_legal_pages") {
+      assert.ok(legalFileAreas.has(coverage.area), `${coverage.area} must be present in public legal evidence`);
+    } else {
+      assert.ok(supportBillingFileAreas.has(coverage.area), `${coverage.area} must be present in support/billing evidence`);
+    }
+  }
+  assert.deepEqual([...requiredAreas], [], "production legal/support evidence is missing coverage areas");
+
+  const legalCheck = gateFixture.checks.find((check) => check.check_id === "production_legal_support_policy");
+  assert.ok(legalCheck, "production gate needs legal/support policy check");
+  assert.equal(legalCheck.status, "pass", "validated production policy evidence should clear only its check");
+  assert.ok(legalCheck.evidence_ref.includes(productionLegalSupportPolicyEvidence.legalPolicyEvidencePath));
+  assert.ok(legalCheck.evidence_ref.includes(productionLegalSupportPolicyEvidence.supportBillingPolicyEvidencePath));
+
+  const legalCondition = gateFixture.do_not_launch_checks.find(
+    (condition) => condition.condition_id === productionLegalSupportPolicyEvidence.doNotLaunchConditionId
+  );
+  assert.ok(legalCondition, "production do-not-launch fixture needs legal/support condition");
+  assert.equal(
+    legalCondition.is_present,
+    false,
+    "validated production legal/support evidence should clear the matching do-not-launch condition"
+  );
+  assert.ok(legalCondition.evidence_ref.includes(productionLegalSupportPolicyEvidence.legalPolicyEvidencePath));
+  assert.ok(legalCondition.evidence_ref.includes(productionLegalSupportPolicyEvidence.supportBillingPolicyEvidencePath));
+
+  for (const blocker of productionLegalSupportPolicyEvidence.gateImpact.remainingBlockers) {
+    const check = gateFixture.checks.find((entry) => entry.check_id === blocker);
+    assert.ok(check, `${blocker} must remain represented in the production gate fixture`);
+    assert.equal(check.status, "blocked", `${blocker} must stay blocked after legal/support policy clears`);
+  }
+
+  assert.deepEqual(gateFixture.gate_decision.blocked_by_checks, [
+    "production_provider_or_comp_only_mode",
+    "production_paid_billing_lifecycle",
+    "production_backup_rollback_incident"
+  ]);
+  assert.equal(
+    gateFixture.gate_decision.active_do_not_launch_conditions.includes("public_legal_support_policy_not_deployed"),
+    false,
+    "production legal/support policy condition should be removed from active do-not-launch conditions"
+  );
+  assert.ok(
+    gateFixture.do_not_launch_checks.some((condition) => condition.is_present === true),
+    "aggregate production gate must remain blocked by unrelated launch conditions"
+  );
 });

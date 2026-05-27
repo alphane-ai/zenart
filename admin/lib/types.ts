@@ -1036,6 +1036,41 @@ export type ProductionBackupRollbackIncidentEvidence = {
   };
 };
 
+export type ProductionLegalSupportPolicyCoverage = {
+  area:
+    | "public_legal_pages"
+    | "public_support_contact"
+    | "billing_policy_visibility"
+    | "gate_blocker_preservation";
+  status: "pass" | "blocked";
+  runtimeProbe: string;
+  deploymentEvidence: string;
+  policyAuditEvidence: string;
+  linkedAdminArtifacts: string[];
+  evidenceRefs: string[];
+};
+
+export type ProductionLegalSupportPolicyEvidence = {
+  id: string;
+  environment: "production";
+  status: "pass_with_blockers_preserved" | "blocked";
+  validatedAt: string;
+  validatedByRole: AdminRole;
+  releaseGateCheckId: "production_legal_support_policy";
+  doNotLaunchConditionId: "public_legal_support_policy_not_deployed";
+  legalPolicyEvidencePath: "ops/evidence/production/public-legal-policy.json";
+  supportBillingPolicyEvidencePath: "ops/evidence/production/public-support-billing-policy.json";
+  runtimeRequestIds: string[];
+  auditRefs: string[];
+  coverage: ProductionLegalSupportPolicyCoverage[];
+  gateImpact: {
+    checklistItems: string[];
+    canClearCheckLevelItems: boolean;
+    aggregateProductionGateStatus: "blocked_by_other_production_runtime_items";
+    remainingBlockers: string[];
+  };
+};
+
 export type SupportTicket = {
   id: string;
   status: "open" | "waiting_user" | "resolved" | "escalated";

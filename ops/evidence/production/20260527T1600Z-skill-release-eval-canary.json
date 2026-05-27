@@ -148,8 +148,7 @@
     "remaining_blockers": [
       "production_provider_or_comp_only_mode",
       "production_paid_billing_lifecycle",
-      "production_backup_rollback_incident",
-      "production_legal_support_policy"
+      "production_backup_rollback_incident"
     ]
   }
 }

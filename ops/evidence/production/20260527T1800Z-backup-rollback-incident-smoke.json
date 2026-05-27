@@ -155,8 +155,7 @@
     "remaining_blockers": [
       "ci_staging_gates_not_passed",
       "production_provider_or_comp_only_mode",
-      "production_paid_billing_lifecycle",
-      "production_legal_support_policy"
+      "production_paid_billing_lifecycle"
     ]
   }
 }
