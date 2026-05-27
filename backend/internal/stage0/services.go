@@ -994,6 +994,9 @@ WHERE o.retention_state = 'active'
 			return CleanupResult{}, err
 		}
 		result.DeletedObjects = deleted
+		if err := r.recordCleanupRunAnalytics(ctx, now, result); err != nil {
+			return CleanupResult{}, err
+		}
 	}
 	return result, nil
 }
@@ -1002,6 +1005,22 @@ type CleanupObject struct {
 	ID       string
 	TenantID string
 	Key      string
+}
+
+func (o CleanupObject) normalized() (CleanupObject, error) {
+	object := CleanupObject{
+		ID:       strings.TrimSpace(o.ID),
+		TenantID: strings.TrimSpace(o.TenantID),
+		Key:      strings.TrimSpace(o.Key),
+	}
+	if object.ID == "" || object.TenantID == "" || object.Key == "" {
+		return CleanupObject{}, errors.Join(ErrValidation, errors.New("cleanup object id, tenant_id, and object_key are required"))
+	}
+	expectedPrefix := "tenants/" + strings.Trim(object.TenantID, "/") + "/"
+	if !strings.HasPrefix(object.Key, expectedPrefix) {
+		return CleanupObject{}, errors.Join(ErrValidation, errors.New("cleanup object key must match tenant scope"))
+	}
+	return object, nil
 }
 
 func (r Repository) ListCleanupObjects(ctx context.Context, now time.Time, limit int) ([]CleanupObject, error) {
@@ -1034,7 +1053,11 @@ LIMIT $2`,
 		if err := rows.Scan(&object.ID, &object.TenantID, &object.Key); err != nil {
 			return nil, err
 		}
-		objects = append(objects, object)
+		normalized, err := object.normalized()
+		if err != nil {
+			return nil, err
+		}
+		objects = append(objects, normalized)
 	}
 	return objects, rows.Err()
 }
@@ -1048,16 +1071,14 @@ func (r Repository) MarkCleanupObjectsDeleted(ctx context.Context, objects []Cle
 	}
 	payload := make([]map[string]string, 0, len(objects))
 	for _, object := range objects {
-		object.ID = strings.TrimSpace(object.ID)
-		object.TenantID = strings.TrimSpace(object.TenantID)
-		object.Key = strings.TrimSpace(object.Key)
-		if object.ID == "" || object.TenantID == "" || object.Key == "" {
-			return 0, errors.Join(ErrValidation, errors.New("cleanup object id, tenant_id, and object_key are required"))
+		normalized, err := object.normalized()
+		if err != nil {
+			return 0, err
 		}
 		payload = append(payload, map[string]string{
-			"id":         object.ID,
-			"tenant_id":  object.TenantID,
-			"object_key": object.Key,
+			"id":         normalized.ID,
+			"tenant_id":  normalized.TenantID,
+			"object_key": normalized.Key,
 		})
 	}
 	tag, err := r.db.Exec(ctx, `

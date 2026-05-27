@@ -1088,8 +1088,8 @@ func TestCleanupExpiredExportsAndOrphanedObjects(t *testing.T) {
 	if result.ExpiredExports != 2 || result.OrphanedObjects != 3 || result.DeletedObjects != 4 {
 		t.Fatalf("cleanup result = %#v", result)
 	}
-	if len(db.execs) != 3 {
-		t.Fatalf("exec count = %d, want 3", len(db.execs))
+	if len(db.execs) != 4 {
+		t.Fatalf("exec count = %d, want 4", len(db.execs))
 	}
 	if !strings.Contains(db.execs[0].sql, "retention_until") || !strings.Contains(db.execs[0].sql, "status = 'expired'") {
 		t.Fatalf("expired export cleanup SQL missing retention/status: %s", db.execs[0].sql)
@@ -1108,6 +1108,12 @@ func TestCleanupExpiredExportsAndOrphanedObjects(t *testing.T) {
 	}
 	if !strings.Contains(db.execs[2].sql, "INSERT INTO analytics_events") || !strings.Contains(db.execs[2].sql, "'export_expired'") || !strings.Contains(db.execs[2].sql, "'object_orphaned'") {
 		t.Fatalf("cleanup analytics SQL missing export/object lifecycle events: %s", db.execs[2].sql)
+	}
+	if !strings.Contains(db.execs[3].sql, "'export_object_cleanup_run'") || !strings.Contains(db.execs[3].sql, "worker_batch_deleted_objects") {
+		t.Fatalf("cleanup run analytics SQL missing aggregate cleanup event: %s", db.execs[3].sql)
+	}
+	if db.execs[3].args[1] != result.ExpiredExports || db.execs[3].args[2] != result.OrphanedObjects || db.execs[3].args[3] != result.DeletedObjects {
+		t.Fatalf("cleanup run analytics args = %#v, want result counts", db.execs[3].args)
 	}
 }
 
@@ -1144,6 +1150,23 @@ func TestListCleanupObjectsSelectsExpiredAndOrphanedObjects(t *testing.T) {
 	}
 	if db.queryRowsUsed[0].args[1] != 25 {
 		t.Fatalf("cleanup limit arg = %#v, want 25", db.queryRowsUsed[0].args[1])
+	}
+}
+
+func TestListCleanupObjectsRejectsCrossTenantScopedKeys(t *testing.T) {
+	now := time.Date(2026, 5, 26, 12, 0, 0, 0, time.UTC)
+	db := &fakeDB{queryRows: []rowSet{{
+		rows: [][]any{{
+			"object_1",
+			"tenant_1",
+			"tenants/tenant_2/exports/export_1.zip",
+		}},
+	}}}
+	repo := NewRepository(db)
+
+	_, err := repo.ListCleanupObjects(context.Background(), now, 25)
+	if !errors.Is(err, ErrValidation) {
+		t.Fatalf("ListCleanupObjects() error = %v, want ErrValidation", err)
 	}
 }
 
@@ -1194,6 +1217,22 @@ func TestMarkCleanupObjectsDeleted(t *testing.T) {
 		if !strings.Contains(db.execs[1].sql, fragment) {
 			t.Fatalf("mark deleted SQL missing object deletion analytics fragment %s: %s", fragment, db.execs[1].sql)
 		}
+	}
+}
+
+func TestMarkCleanupObjectsDeletedRejectsCrossTenantScopedKeys(t *testing.T) {
+	now := time.Date(2026, 5, 26, 12, 0, 0, 0, time.UTC)
+	db := &fakeDB{}
+	repo := NewRepository(db)
+
+	_, err := repo.MarkCleanupObjectsDeleted(context.Background(), []CleanupObject{
+		{ID: "object_1", TenantID: "tenant_1", Key: "tenants/tenant_2/exports/export_1.zip"},
+	}, now)
+	if !errors.Is(err, ErrValidation) {
+		t.Fatalf("MarkCleanupObjectsDeleted() error = %v, want ErrValidation", err)
+	}
+	if len(db.execs) != 0 {
+		t.Fatalf("invalid cleanup object should not write rows: %#v", db.execs)
 	}
 }
 
@@ -1252,6 +1291,40 @@ func TestServiceCleanupDeletesMarkedObjectsAndMarksRowsDeleted(t *testing.T) {
 	}
 	if db.execs[5].args[1] != result.ExpiredExports || db.execs[5].args[2] != result.OrphanedObjects || db.execs[5].args[3] != result.DeletedObjects {
 		t.Fatalf("cleanup run analytics args = %#v, want result counts", db.execs[5].args)
+	}
+}
+
+func TestServiceCleanupRejectsCrossTenantRowsBeforeObjectDelete(t *testing.T) {
+	now := time.Date(2026, 5, 26, 12, 0, 0, 0, time.UTC)
+	db := &fakeDB{
+		execTags: []pgconn.CommandTag{
+			pgconn.NewCommandTag("UPDATE 0"),
+			pgconn.NewCommandTag("UPDATE 0"),
+			pgconn.NewCommandTag("SELECT 1"),
+		},
+		queryRows: []rowSet{{
+			rows: [][]any{
+				{"object_1", "tenant_1", "tenants/tenant_2/exports/export_1.zip"},
+			},
+		}},
+	}
+	objects, err := objectstore.NewLocalStore(t.TempDir(), "zenart-test", "secret")
+	if err != nil {
+		t.Fatalf("NewLocalStore() error = %v", err)
+	}
+	service := NewService(NewRepository(db), objects)
+
+	_, err = service.CleanupExpiredExportsAndOrphanedObjects(context.Background(), now, 50)
+	if !errors.Is(err, ErrValidation) {
+		t.Fatalf("CleanupExpiredExportsAndOrphanedObjects() error = %v, want ErrValidation", err)
+	}
+	if len(db.execs) != 3 {
+		t.Fatalf("exec count = %d, want repository mark, orphan mark, cleanup analytics only", len(db.execs))
+	}
+	for _, call := range db.execs {
+		if strings.Contains(call.sql, "retention_state = 'deleted'") || strings.Contains(call.sql, "'object_deleted'") {
+			t.Fatalf("cross-tenant cleanup row should not be marked deleted: %#v", db.execs)
+		}
 	}
 }
 
