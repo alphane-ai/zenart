@@ -139,7 +139,7 @@ test("account route exposes secure-cookie, same-site CSRF, unsafe-action guard, 
   await expect(sessionContract).toHaveAttribute("data-session-unsafe-action-status", "enabled");
   await expect(sessionContract).toHaveAttribute("data-session-unsafe-action-safe-labels", "load,login");
   await expect(sessionContract).toHaveAttribute("data-session-unsafe-action-protected-methods", "POST,PUT,PATCH,DELETE");
-  await expect(sessionContract).toHaveAttribute("data-session-unsafe-action-guard-count", "18");
+  await expect(sessionContract).toHaveAttribute("data-session-unsafe-action-guard-count", "19");
   await expect(sessionContract).toHaveAttribute("data-session-unsafe-action-blocked-control-count", "0");
   await expect(sessionContract).toHaveAttribute("data-session-unsafe-action-blocked-control-labels", "");
   await expect(sessionContract).toHaveAttribute("data-session-unsafe-action-blocked-reason", "");
@@ -165,6 +165,10 @@ test("account route exposes secure-cookie, same-site CSRF, unsafe-action guard, 
   await expect(sessionContract).toHaveAttribute(
     "data-session-unsafe-action-operation-contracts",
     /Expire Session=>deleteSession:DELETE:X-ZenArt-CSRF:false/
+  );
+  await expect(sessionContract).toHaveAttribute(
+    "data-session-unsafe-action-operation-contracts",
+    /Log Out=>deleteSession:DELETE:X-ZenArt-CSRF:false/
   );
 
   const generatedInventory = page.getByLabel("Generated web API CSRF operation inventory");
@@ -275,13 +279,17 @@ test("account route exposes secure-cookie, same-site CSRF, unsafe-action guard, 
   await expect(expireSession).toHaveAttribute("data-csrf-ux-guard-label", "Expire Session");
   await expect(expireSession).toHaveAttribute("data-csrf-ux-guard-contracts", "deleteSession:DELETE:/session:include:X-ZenArt-CSRF:false");
 
+  const logOut = page.getByRole("button", { name: "Log Out" });
+  await expect(logOut).toHaveAttribute("data-csrf-ux-guard-label", "Log Out");
+  await expect(logOut).toHaveAttribute("data-csrf-ux-guard-contracts", "deleteSession:DELETE:/session:include:X-ZenArt-CSRF:false");
+
   await page.getByRole("button", { name: "Expire" }).click();
   await expect(page.getByText("Session expired. Refresh or sign in to continue.")).toBeVisible();
   await expect(sessionContract).toHaveAttribute("data-session-unsafe-action-status", "blocked");
-  await expect(sessionContract).toHaveAttribute("data-session-unsafe-action-blocked-control-count", "17");
+  await expect(sessionContract).toHaveAttribute("data-session-unsafe-action-blocked-control-count", "18");
   await expect(sessionContract).toHaveAttribute(
     "data-session-unsafe-action-blocked-control-labels",
-    "Confirm Brief|Attach|Create Project|Rename Project|Package Reference|Select Candidate|Iterate|Restore Version|Add Selection|Export ZIP|Export PDF|Request Share|Mock Checkout|Billing Scenario|Save Settings|Submit Ticket|Expire Session"
+    "Confirm Brief|Attach|Create Project|Rename Project|Package Reference|Select Candidate|Iterate|Restore Version|Add Selection|Export ZIP|Export PDF|Request Share|Mock Checkout|Billing Scenario|Save Settings|Submit Ticket|Expire Session|Log Out"
   );
   await expect(sessionContract).toHaveAttribute("data-session-unsafe-action-blocked-reason", "authenticated-session-required");
   await expect(page.getByRole("button", { name: "Refresh Session" })).toBeEnabled();
@@ -293,6 +301,8 @@ test("account route exposes secure-cookie, same-site CSRF, unsafe-action guard, 
     "data-csrf-ux-guard-blocked-reason",
     "authenticated-session-required"
   );
+  await expect(page.getByRole("button", { name: "Log Out" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Log Out" })).toHaveAttribute("data-csrf-ux-guard-status", "blocked");
 
   await page.getByRole("button", { name: "Refresh Session" }).click();
   await expect(sessionContract).toHaveAttribute("data-session-unsafe-action-status", "enabled");

@@ -51,7 +51,8 @@
       "data-generated-api-csrf-browser-probe-safe-operation-contracts",
       "Session expired. Refresh or sign in to continue.",
       "Save Settings",
-      "Sign In"
+      "Sign In",
+      "Log Out"
     ],
     "expectedUnsafeRequestContracts": [
       "deleteSession:DELETE:include:same-site-origin-check:not-required",

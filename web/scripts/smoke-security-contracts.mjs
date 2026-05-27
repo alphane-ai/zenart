@@ -674,7 +674,8 @@ for (const requiredTestSnippet of [
   "data-generated-api-csrf-safe-operation-contracts",
   "data-generated-api-csrf-browser-probe",
   "Session expired. Refresh or sign in to continue.",
-  "Save Settings"
+  "Save Settings",
+  "Log Out"
 ]) {
   if (!workspaceSmokeTestSource.includes(requiredTestSnippet)) {
     fail(`workspace smoke test missing security assertion ${requiredTestSnippet}`);
@@ -733,7 +734,8 @@ for (const requiredBrowserSnippet of [
   "Session expired. Refresh or sign in to continue.",
   "Refresh Session",
   "Save Settings",
-  "Sign In"
+  "Sign In",
+  "Log Out"
 ]) {
   if (!sessionSecurityPlaywrightSpecSource.includes(requiredBrowserSnippet)) {
     fail(`session security browser smoke missing assertion ${requiredBrowserSnippet}`);
@@ -741,7 +743,7 @@ for (const requiredBrowserSnippet of [
 }
 
 if (
-  sessionEvidence.unsafeActionGuard?.expectedExpiredBlockedControlCount !== "17" ||
+  sessionEvidence.unsafeActionGuard?.expectedExpiredBlockedControlCount !== "18" ||
   sessionEvidence.unsafeActionGuard?.expectedExpiredRecoveryLabels !== "Refresh Session" ||
   !workspaceAppSource.includes("expiredSessionRecoveryActionLabels") ||
   !workspaceAppSource.includes("isExpiredSessionRecoveryAction") ||
@@ -761,10 +763,12 @@ if (
   !sessionSecurityPlaywrightSpecSource.includes(expectedUiSafeRequestContracts.at(-1)) ||
   !sessionSecurityPlaywrightSpecSource.includes("getSubscription:GET:include:not-required") ||
   !sessionSecurityPlaywrightSpecSource.includes("csrf-probe-createSupportTicket") ||
-  !workspaceSmokeTestSource.includes("data-session-unsafe-action-blocked-control-count\", \"17\"") ||
+  !workspaceSmokeTestSource.includes("data-session-unsafe-action-blocked-control-count\", \"18\"") ||
   !workspaceSmokeTestSource.includes("expect(screen.getByRole(\"button\", { name: \"Refresh Session\" })).not.toBeDisabled()") ||
-  !sessionSecurityPlaywrightSpecSource.includes("data-session-unsafe-action-blocked-control-count\", \"17\"") ||
-  !sessionSecurityPlaywrightSpecSource.includes("await expect(page.getByRole(\"button\", { name: \"Refresh Session\" })).toBeEnabled()")
+  !workspaceSmokeTestSource.includes("expect(screen.getByRole(\"button\", { name: \"Log Out\" })).toBeDisabled()") ||
+  !sessionSecurityPlaywrightSpecSource.includes("data-session-unsafe-action-blocked-control-count\", \"18\"") ||
+  !sessionSecurityPlaywrightSpecSource.includes("await expect(page.getByRole(\"button\", { name: \"Refresh Session\" })).toBeEnabled()") ||
+  !sessionSecurityPlaywrightSpecSource.includes("await expect(page.getByRole(\"button\", { name: \"Log Out\" })).toBeDisabled()")
 ) {
   fail("same-site UX contract must allow Refresh Session as the expired-session recovery action while blocking other unsafe controls");
 }

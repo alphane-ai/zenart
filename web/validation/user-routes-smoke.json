@@ -225,12 +225,12 @@
         "expectedEnabledStatus": "enabled",
         "expectedBlockedStatus": "blocked",
         "expectedAuthenticatedBlockedControlCount": "0",
-        "expectedExpiredBlockedControlCount": "17",
+        "expectedExpiredBlockedControlCount": "18",
         "expectedExpiredRecoveryLabels": "Refresh Session",
         "expectedBlockedReason": "authenticated-session-required",
         "expectedSafeLabels": "load,login",
         "expectedProtectedMethods": "POST,PUT,PATCH,DELETE",
-        "expectedGuardCount": "18",
+        "expectedGuardCount": "19",
         "expectedOperationCount": "18",
         "expectedCsrfProtectedOperationCount": "15",
         "expectedGuardCoverageStatus": "pass",
@@ -254,7 +254,8 @@
           "Save Settings",
           "Submit Ticket",
           "Refresh Session",
-          "Expire Session"
+          "Expire Session",
+          "Log Out"
         ],
         "requiredOperationContracts": [
           "Confirm Brief=>createChatSession:POST:X-ZenArt-CSRF:true+createChatMessage:POST:X-ZenArt-CSRF:true+createCandidateSet:POST:X-ZenArt-CSRF:true",
@@ -274,7 +275,8 @@
           "Save Settings=>updateAccount:PATCH:X-ZenArt-CSRF:true",
           "Submit Ticket=>createSupportTicket:POST:X-ZenArt-CSRF:true",
           "Refresh Session=>getSession:GET:not-required:false",
-          "Expire Session=>deleteSession:DELETE:X-ZenArt-CSRF:false"
+          "Expire Session=>deleteSession:DELETE:X-ZenArt-CSRF:false",
+          "Log Out=>deleteSession:DELETE:X-ZenArt-CSRF:false"
         ],
         "requiredControlContracts": [
           "Confirm Brief=>createChatSession:POST:/projects/{project_id}/chat/sessions:include:X-ZenArt-CSRF:true|createChatMessage:POST:/chat/sessions/{chat_session_id}/messages:include:X-ZenArt-CSRF:true|createCandidateSet:POST:/projects/{project_id}/candidate-sets:include:X-ZenArt-CSRF:true",
@@ -294,7 +296,8 @@
           "Save Settings=>updateAccount:PATCH:/account:include:X-ZenArt-CSRF:true",
           "Submit Ticket=>createSupportTicket:POST:/support/tickets:include:X-ZenArt-CSRF:true",
           "Refresh Session=>getSession:GET:/session:include:not-required:false",
-          "Expire Session=>deleteSession:DELETE:/session:include:X-ZenArt-CSRF:false"
+          "Expire Session=>deleteSession:DELETE:/session:include:X-ZenArt-CSRF:false",
+          "Log Out=>deleteSession:DELETE:/session:include:X-ZenArt-CSRF:false"
         ]
       }
     },
@@ -349,7 +352,8 @@
         "data-generated-api-csrf-browser-probe-safe-operation-contracts",
         "Session expired. Refresh or sign in to continue.",
         "Save Settings",
-        "Sign In"
+        "Sign In",
+        "Log Out"
       ],
       "credentialMode": "include",
       "csrfHeaderName": "X-ZenArt-CSRF",

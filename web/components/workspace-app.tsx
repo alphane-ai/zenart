@@ -84,7 +84,8 @@ type UnsafeActionGuardLabel =
   | "Save Settings"
   | "Submit Ticket"
   | "Refresh Session"
-  | "Expire Session";
+  | "Expire Session"
+  | "Log Out";
 
 const routeByView: Record<ViewKey, string> = {
   workspace: "/workspace",
@@ -140,7 +141,8 @@ const sameSiteUnsafeActionGuardMap = {
   "Save Settings": ["updateAccount"],
   "Submit Ticket": ["createSupportTicket"],
   "Refresh Session": ["getSession"],
-  "Expire Session": ["deleteSession"]
+  "Expire Session": ["deleteSession"],
+  "Log Out": ["deleteSession"]
 } as const satisfies Record<UnsafeActionGuardLabel, ReadonlyArray<keyof typeof apiOperations>>;
 const sameSiteUnsafeActionGuardLabels = Object.keys(sameSiteUnsafeActionGuardMap) as UnsafeActionGuardLabel[];
 
@@ -873,7 +875,12 @@ function SessionPanel({
           <RotateCcw size={15} aria-hidden="true" />
           Expire
         </button>
-        <button className="secondary-button compact" disabled={state.sessionContract.status === "signed_out"} onClick={() => void runAction("logout", () => zenArtClient.logout())}>
+        <button
+          className="secondary-button compact"
+          disabled={sessionBlocked}
+          onClick={() => void runAction("logout", () => zenArtClient.logout())}
+          {...unsafeActionGuardAttributes("Log Out", state)}
+        >
           <LogOut size={15} aria-hidden="true" />
           Log Out
         </button>

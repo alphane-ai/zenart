@@ -20,7 +20,7 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(sessionContract).toHaveAttribute("data-session-unsafe-action-status", "enabled");
     expect(sessionContract).toHaveAttribute("data-session-unsafe-action-safe-labels", "load,login");
     expect(sessionContract).toHaveAttribute("data-session-unsafe-action-protected-methods", "POST,PUT,PATCH,DELETE");
-    expect(sessionContract).toHaveAttribute("data-session-unsafe-action-guard-count", "18");
+    expect(sessionContract).toHaveAttribute("data-session-unsafe-action-guard-count", "19");
     expect(sessionContract.getAttribute("data-session-unsafe-action-guard-labels")?.split("|")).toEqual([
       "Confirm Brief",
       "Attach",
@@ -39,7 +39,8 @@ describe("WorkspaceApp user route integration smoke", () => {
       "Save Settings",
       "Submit Ticket",
       "Refresh Session",
-      "Expire Session"
+      "Expire Session",
+      "Log Out"
     ]);
     expect(sessionContract).toHaveAttribute("data-session-unsafe-action-blocked-control-count", "0");
     expect(sessionContract).toHaveAttribute("data-session-unsafe-action-blocked-control-labels", "");
@@ -73,6 +74,9 @@ describe("WorkspaceApp user route integration smoke", () => {
     );
     expect(sessionContract.getAttribute("data-session-unsafe-action-operation-contracts")).toContain(
       "Expire Session=>deleteSession:DELETE:X-ZenArt-CSRF:false"
+    );
+    expect(sessionContract.getAttribute("data-session-unsafe-action-operation-contracts")).toContain(
+      "Log Out=>deleteSession:DELETE:X-ZenArt-CSRF:false"
     );
     expect(sessionContract).toHaveAttribute("data-session-cookie-name", "__Host-zenart_session");
     expect(sessionContract).toHaveAttribute("data-session-cookie-http-only", "true");
@@ -208,14 +212,22 @@ describe("WorkspaceApp user route integration smoke", () => {
       "deleteSession:DELETE:/session:include:X-ZenArt-CSRF:false"
     );
 
+    const logOut = screen.getByRole("button", { name: "Log Out" });
+    expect(logOut).toHaveAttribute("data-csrf-ux-guard-label", "Log Out");
+    expect(logOut).toHaveAttribute("data-csrf-ux-guard-operations", "deleteSession");
+    expect(logOut).toHaveAttribute(
+      "data-csrf-ux-guard-contracts",
+      "deleteSession:DELETE:/session:include:X-ZenArt-CSRF:false"
+    );
+
     fireEvent.click(screen.getByRole("button", { name: "Expire" }));
     await screen.findByText("Session expired. Refresh or sign in to continue.");
     expect(container.querySelector(".session-pill")).toHaveTextContent("expired");
     expect(screen.getByLabelText("Auth and session status")).toHaveAttribute("data-session-unsafe-action-status", "blocked");
-    expect(screen.getByLabelText("Auth and session status")).toHaveAttribute("data-session-unsafe-action-blocked-control-count", "17");
+    expect(screen.getByLabelText("Auth and session status")).toHaveAttribute("data-session-unsafe-action-blocked-control-count", "18");
     expect(screen.getByLabelText("Auth and session status")).toHaveAttribute(
       "data-session-unsafe-action-blocked-control-labels",
-      "Confirm Brief|Attach|Create Project|Rename Project|Package Reference|Select Candidate|Iterate|Restore Version|Add Selection|Export ZIP|Export PDF|Request Share|Mock Checkout|Billing Scenario|Save Settings|Submit Ticket|Expire Session"
+      "Confirm Brief|Attach|Create Project|Rename Project|Package Reference|Select Candidate|Iterate|Restore Version|Add Selection|Export ZIP|Export PDF|Request Share|Mock Checkout|Billing Scenario|Save Settings|Submit Ticket|Expire Session|Log Out"
     );
     expect(screen.getByLabelText("Auth and session status")).toHaveAttribute(
       "data-session-unsafe-action-blocked-reason",
@@ -230,6 +242,8 @@ describe("WorkspaceApp user route integration smoke", () => {
       "data-csrf-ux-guard-blocked-reason",
       "authenticated-session-required"
     );
+    expect(screen.getByRole("button", { name: "Log Out" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Log Out" })).toHaveAttribute("data-csrf-ux-guard-status", "blocked");
 
     fireEvent.click(screen.getByRole("button", { name: "Refresh Session" }));
     await waitFor(() => {
@@ -1089,10 +1103,10 @@ describe("WorkspaceApp user route integration smoke", () => {
         expectedEnabledStatus: "enabled",
         expectedBlockedStatus: "blocked",
         expectedSafeLabels: "load,login",
-        expectedExpiredBlockedControlCount: "17",
+        expectedExpiredBlockedControlCount: "18",
         expectedExpiredRecoveryLabels: "Refresh Session",
         expectedProtectedMethods: "POST,PUT,PATCH,DELETE",
-        expectedGuardCount: "18",
+        expectedGuardCount: "19",
         expectedOperationCount: "18",
         expectedCsrfProtectedOperationCount: "15",
         expectedGuardLabels: expect.arrayContaining([
@@ -1113,7 +1127,8 @@ describe("WorkspaceApp user route integration smoke", () => {
           "Save Settings",
           "Submit Ticket",
           "Refresh Session",
-          "Expire Session"
+          "Expire Session",
+          "Log Out"
         ]),
         requiredOperationContracts: expect.arrayContaining([
           "Confirm Brief=>createChatSession:POST:X-ZenArt-CSRF:true+createChatMessage:POST:X-ZenArt-CSRF:true+createCandidateSet:POST:X-ZenArt-CSRF:true",
@@ -1125,7 +1140,8 @@ describe("WorkspaceApp user route integration smoke", () => {
           "Save Settings=>updateAccount:PATCH:X-ZenArt-CSRF:true",
           "Submit Ticket=>createSupportTicket:POST:X-ZenArt-CSRF:true",
           "Refresh Session=>getSession:GET:not-required:false",
-          "Expire Session=>deleteSession:DELETE:X-ZenArt-CSRF:false"
+          "Expire Session=>deleteSession:DELETE:X-ZenArt-CSRF:false",
+          "Log Out=>deleteSession:DELETE:X-ZenArt-CSRF:false"
         ])
       }
     });

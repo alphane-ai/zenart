@@ -329,10 +329,10 @@ if (
   sessionEvidence.unsafeActionGuard?.expectedEnabledStatus !== "enabled" ||
   sessionEvidence.unsafeActionGuard?.expectedBlockedStatus !== "blocked" ||
   sessionEvidence.unsafeActionGuard?.expectedSafeLabels !== "load,login" ||
-  sessionEvidence.unsafeActionGuard?.expectedExpiredBlockedControlCount !== "17" ||
+  sessionEvidence.unsafeActionGuard?.expectedExpiredBlockedControlCount !== "18" ||
   sessionEvidence.unsafeActionGuard?.expectedExpiredRecoveryLabels !== "Refresh Session" ||
   sessionEvidence.unsafeActionGuard?.expectedProtectedMethods !== "POST,PUT,PATCH,DELETE" ||
-  sessionEvidence.unsafeActionGuard?.expectedGuardCount !== "18" ||
+  sessionEvidence.unsafeActionGuard?.expectedGuardCount !== "19" ||
   sessionEvidence.unsafeActionGuard?.expectedOperationCount !== "18" ||
   sessionEvidence.unsafeActionGuard?.expectedCsrfProtectedOperationCount !== String(generatedApiCsrfContract.unsafeOperationCount)
 ) {
