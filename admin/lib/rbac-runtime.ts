@@ -38,6 +38,14 @@ function expiryPolicyStatus(item: AdminRbacEvidence, expired: boolean) {
   return expired ? "expired_temporary_window" : "valid_temporary_window";
 }
 
+function overrideWindow(item: AdminRbacEvidence, expired: boolean) {
+  if (item.overrideDurationPolicy === "non_expiring_policy_block") {
+    return "policy_block";
+  }
+
+  return expired ? "expired" : "active";
+}
+
 export function buildAdminRbacRuntimeDecisions(
   evidence: AdminRbacEvidence[],
   now: Date
@@ -46,6 +54,8 @@ export function buildAdminRbacRuntimeDecisions(
     const sufficientRole = hasSufficientRole(item);
     const expired = isExpired(item.overrideExpiresAt, now);
     const policyStatus = expiryPolicyStatus(item, expired);
+    const windowStatus = overrideWindow(item, expired);
+    const evaluatedAt = now.toISOString();
     const secondReviewOpen =
       item.secondReviewRequired &&
       (item.secondReviewStatus === "required" || item.secondReviewStatus === "blocked");
@@ -58,14 +68,19 @@ export function buildAdminRbacRuntimeDecisions(
         target: item.target,
         enforcementPoint: item.enforcementPoint,
         expiryPolicyStatus: policyStatus,
+        overrideWindow: windowStatus,
         effectiveDecision: "deny_mutation",
         requestOutcome: "denied_expired_override",
         mutationAllowed: false,
         queueAction: "block_and_preserve_state",
         releaseGateStatus: "release_gate_preserved",
+        evaluatedAt,
+        preOverrideState: item.preOverrideState,
+        expiryAction: item.expiryAction,
+        staleOverrideProbe: item.staleOverrideProbe,
         auditRef: item.auditRef,
         evidenceRefs: item.evidenceRefs,
-        rationale: `${item.enforcementPoint} denied ${item.requestedAction} because the temporary override expired at ${item.overrideExpiresAt}; ${item.postDecisionControl}`
+        rationale: `${item.enforcementPoint} denied ${item.requestedAction} because the temporary override expired at ${item.overrideExpiresAt}; ${item.expiryAction} ${item.postDecisionControl}`
       };
     }
 
@@ -77,11 +92,16 @@ export function buildAdminRbacRuntimeDecisions(
         target: item.target,
         enforcementPoint: item.enforcementPoint,
         expiryPolicyStatus: policyStatus,
+        overrideWindow: windowStatus,
         effectiveDecision: "deny_mutation",
         requestOutcome: "denied_insufficient_role",
         mutationAllowed: false,
         queueAction: "block_and_preserve_state",
         releaseGateStatus: "release_gate_preserved",
+        evaluatedAt,
+        preOverrideState: item.preOverrideState,
+        expiryAction: item.expiryAction,
+        staleOverrideProbe: item.staleOverrideProbe,
         auditRef: item.auditRef,
         evidenceRefs: item.evidenceRefs,
         rationale: `${item.enforcementPoint} denied ${item.requestedAction} because ${item.attemptedRole} is below ${item.requiredRole}; ${item.postDecisionControl}`
@@ -96,11 +116,16 @@ export function buildAdminRbacRuntimeDecisions(
         target: item.target,
         enforcementPoint: item.enforcementPoint,
         expiryPolicyStatus: policyStatus,
+        overrideWindow: windowStatus,
         effectiveDecision: "queue_for_review",
         requestOutcome: "queued_second_review",
         mutationAllowed: false,
         queueAction: "hold_for_second_review",
         releaseGateStatus: "canary_or_release_blocked",
+        evaluatedAt,
+        preOverrideState: item.preOverrideState,
+        expiryAction: item.expiryAction,
+        staleOverrideProbe: item.staleOverrideProbe,
         auditRef: item.auditRef,
         evidenceRefs: item.evidenceRefs,
         rationale: `${item.enforcementPoint} queued ${item.requestedAction} for second review; ${item.releaseGateImpact} ${item.postDecisionControl}`
@@ -115,11 +140,16 @@ export function buildAdminRbacRuntimeDecisions(
         target: item.target,
         enforcementPoint: item.enforcementPoint,
         expiryPolicyStatus: policyStatus,
+        overrideWindow: windowStatus,
         effectiveDecision: "deny_mutation",
         requestOutcome: "denied_policy_block",
         mutationAllowed: false,
         queueAction: "block_and_preserve_state",
         releaseGateStatus: "release_gate_preserved",
+        evaluatedAt,
+        preOverrideState: item.preOverrideState,
+        expiryAction: item.expiryAction,
+        staleOverrideProbe: item.staleOverrideProbe,
         auditRef: item.auditRef,
         evidenceRefs: item.evidenceRefs,
         rationale: `${item.enforcementPoint} preserved the block for ${item.requestedAction}; ${item.rationale} ${item.postDecisionControl}`
@@ -133,14 +163,19 @@ export function buildAdminRbacRuntimeDecisions(
       target: item.target,
       enforcementPoint: item.enforcementPoint,
       expiryPolicyStatus: policyStatus,
+      overrideWindow: windowStatus,
       effectiveDecision: "allow_mutation",
       requestOutcome: "applied",
       mutationAllowed: true,
       queueAction: "apply_with_expiry",
       releaseGateStatus: "runtime_override_applied_with_expiry",
+      evaluatedAt,
+      preOverrideState: item.preOverrideState,
+      expiryAction: item.expiryAction,
+      staleOverrideProbe: item.staleOverrideProbe,
       auditRef: item.auditRef,
       evidenceRefs: item.evidenceRefs,
-      rationale: `${item.enforcementPoint} applied ${item.requestedAction} with expiry ${item.overrideExpiresAt}; ${item.runtimeCheck}`
+      rationale: `${item.enforcementPoint} applied ${item.requestedAction} with expiry ${item.overrideExpiresAt}; ${item.runtimeCheck} ${item.expiryAction}`
     };
   });
 }

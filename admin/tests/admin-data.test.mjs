@@ -637,6 +637,10 @@ test("admin review and audit pages expose RBAC runtime decisions", () => {
     "Request Outcome",
     "Queue Action",
     "Release Gate Status",
+    "Override Window",
+    "Pre-Override State",
+    "Expiry Action",
+    "Stale Override Probe",
     "Runtime Rationale"
   ]) {
     assert.match(reviewsPage, new RegExp(token));
@@ -651,6 +655,8 @@ test("admin review and audit pages expose RBAC runtime decisions", () => {
     "queued_second_review",
     "denied_expired_override",
     "apply_with_expiry",
+    "overrideWindow",
+    "staleOverrideProbe",
     "operatorAction"
   ]) {
     assert.match(adminApi + rbacRuntime, new RegExp(token));
@@ -675,7 +681,11 @@ test("admin fixtures cover RBAC evidence for governed override surfaces", () => 
     "secondReviewStatus",
     "apiScope",
     "mutationOutcome",
+    "overrideStartedAt",
     "overrideExpiresAt",
+    "preOverrideState",
+    "expiryAction",
+    "staleOverrideProbe",
     "runtimeCheck",
     "postDecisionControl",
     "releaseEvidenceRequired"
@@ -771,8 +781,12 @@ test("admin action pages show scoped RBAC evidence at decision points", () => {
       "API Scope",
       "Mutation Outcome",
       "Duration Policy",
+      "Override Start",
       "Override Expiration",
       "Expiry Enforced",
+      "Pre-Override State",
+      "Expiry Action",
+      "Stale Override Probe",
       "Runtime Check",
       "Post Decision Control",
       "Release Evidence Required",
@@ -792,11 +806,16 @@ test("shared RBAC runtime table exposes computed override outcomes", () => {
     "Runtime Evidence",
     "Enforcement Point",
     "Expiry Policy Status",
+    "Override Window",
     "Effective Decision",
     "Request Outcome",
     "Mutation Allowed",
     "Queue Action",
     "Release Gate Status",
+    "Pre-Override State",
+    "Expiry Action",
+    "Stale Override Probe",
+    "Evaluated At",
     "Audit Ref",
     "Evidence Refs",
     "Runtime Rationale",

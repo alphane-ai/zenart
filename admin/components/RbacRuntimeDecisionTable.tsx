@@ -19,6 +19,11 @@ export function RbacRuntimeDecisionTable({
           render: (row) => <StatusBadge value={row.expiryPolicyStatus} label={row.expiryPolicyStatus} />
         },
         {
+          key: "window",
+          header: "Override Window",
+          render: (row) => <StatusBadge value={row.overrideWindow} label={row.overrideWindow} />
+        },
+        {
           key: "decision",
           header: "Effective Decision",
           render: (row) => (
@@ -38,6 +43,10 @@ export function RbacRuntimeDecisionTable({
         { key: "mutation", header: "Mutation Allowed", render: (row) => (row.mutationAllowed ? "Yes" : "No") },
         { key: "queue", header: "Queue Action", render: (row) => row.queueAction },
         { key: "gate", header: "Release Gate Status", render: (row) => row.releaseGateStatus },
+        { key: "pre-state", header: "Pre-Override State", render: (row) => row.preOverrideState },
+        { key: "expiry-action", header: "Expiry Action", render: (row) => row.expiryAction },
+        { key: "stale-probe", header: "Stale Override Probe", render: (row) => row.staleOverrideProbe },
+        { key: "evaluated", header: "Evaluated At", render: (row) => <span className="mono">{row.evaluatedAt}</span> },
         { key: "audit", header: "Audit Ref", render: (row) => <span className="mono">{row.auditRef}</span> },
         { key: "evidence-refs", header: "Evidence Refs", render: (row) => row.evidenceRefs.join(", ") },
         { key: "rationale", header: "Runtime Rationale", render: (row) => row.rationale }
