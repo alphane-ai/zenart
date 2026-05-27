@@ -765,6 +765,160 @@ func TestRedactStringCoversSignedDeliveryCookieAndHeaderAssignments(t *testing.T
 	assertSignal(t, findings, "signed_delivery_assignment")
 }
 
+func TestRedactStringCoversExtendedSignedDeliveryProviders(t *testing.T) {
+	input := strings.Join([]string{
+		"Fastly-API-Key=fastly-api-secret",
+		"Fastly-Service-Token=fastly-service-secret",
+		"Fastly-Edge-Auth=fastly-edge-secret",
+		"Imgix-Secure-URL-Token=imgix-token-secret",
+		"ix-signature=imgix-signature-secret",
+		"BunnyCDN-API-Key=bunny-api-secret",
+		"Bunny-Storage-Password=bunny-storage-secret",
+		"Mux-Token-ID=mux-token-id-secret",
+		"Mux-Token-Secret=mux-token-secret",
+		"Mux-Signing-Key=mux-signing-secret",
+		"Vercel-Blob-Read-Write-Token=vercel-blob-secret",
+		"X-Vercel-Signature=vercel-signature-secret",
+		"response-content-disposition=attachment",
+	}, " ")
+
+	got := RedactString(input)
+	for _, leaked := range []string{
+		"fastly-api-secret",
+		"fastly-service-secret",
+		"fastly-edge-secret",
+		"imgix-token-secret",
+		"imgix-signature-secret",
+		"bunny-api-secret",
+		"bunny-storage-secret",
+		"mux-token-id-secret",
+		"mux-token-secret",
+		"mux-signing-secret",
+		"vercel-blob-secret",
+		"vercel-signature-secret",
+	} {
+		if strings.Contains(got, leaked) {
+			t.Fatalf("RedactString() = %q, leaked %s", got, leaked)
+		}
+	}
+	if !strings.Contains(got, "response-content-disposition=attachment") || !strings.Contains(got, Redacted) {
+		t.Fatalf("RedactString() = %q, want public response override preserved and delivery secrets redacted", got)
+	}
+
+	findings := ClassifyString(input)
+	assertSignal(t, findings, "signed_delivery_assignment")
+}
+
+func TestRedactStringCoversExtendedSignedDeliveryURLs(t *testing.T) {
+	input := strings.Join([]string{
+		"https://cdn.example.test/export.zip?Fastly-API-Key=fastly-api-secret&Fastly-Signature=fastly-signature-secret",
+		"https://assets.example.test/image.png?ix-signature=imgix-signature-secret&Imgix-Secure-URL-Token=imgix-token-secret",
+		"https://video.example.test/asset.m3u8?Mux-Token-ID=mux-token-id-secret&Mux-Token-Secret=mux-token-secret&Mux-Policy=mux-policy-secret",
+		"https://blob.example.test/export.zip?Vercel-Blob-Read-Write-Token=vercel-blob-secret&X-Vercel-Token=vercel-token-secret",
+	}, " ")
+
+	got := RedactString(input)
+	for _, leaked := range []string{
+		"fastly-api-secret",
+		"fastly-signature-secret",
+		"imgix-signature-secret",
+		"imgix-token-secret",
+		"mux-token-id-secret",
+		"mux-token-secret",
+		"mux-policy-secret",
+		"vercel-blob-secret",
+		"vercel-token-secret",
+	} {
+		if strings.Contains(got, leaked) {
+			t.Fatalf("RedactString() = %q, leaked %s", got, leaked)
+		}
+	}
+	for _, fragment := range []string{
+		"Fastly-API-Key=",
+		"ix-signature=",
+		"Mux-Token-ID=",
+		"Vercel-Blob-Read-Write-Token=",
+		Redacted,
+	} {
+		if !strings.Contains(got, fragment) {
+			t.Fatalf("RedactString() = %q, missing %s", got, fragment)
+		}
+	}
+
+	findings := ClassifyString(input)
+	assertSignal(t, findings, "url_query_secret")
+}
+
+func TestRedactMapCoversExtendedSignedDeliveryMetadata(t *testing.T) {
+	metadata := map[string]any{
+		"delivery": map[string]any{
+			"fastlyApiKey":             "fastly-api-secret",
+			"fastlyServiceToken":       "fastly-service-secret",
+			"imgixSecureURLToken":      "imgix-token-secret",
+			"bunnyStoragePassword":     "bunny-storage-secret",
+			"muxTokenSecret":           "mux-token-secret",
+			"muxSigningKey":            "mux-signing-secret",
+			"vercelBlobReadWriteToken": "vercel-blob-secret",
+			"publicEndpoint":           "https://downloads.example.test",
+		},
+		"signed_url_parts": map[string]string{
+			"Fastly-Signature": "fastly-signature-secret",
+			"ix-signature":     "imgix-signature-secret",
+			"X-Vercel-Token":   "vercel-token-secret",
+			"path":             "/exports/package.zip",
+		},
+	}
+
+	body, err := json.Marshal(RedactValue(metadata))
+	if err != nil {
+		t.Fatalf("marshal redacted delivery metadata: %v", err)
+	}
+	for _, leaked := range []string{
+		"fastly-api-secret",
+		"fastly-service-secret",
+		"imgix-token-secret",
+		"bunny-storage-secret",
+		"mux-token-secret",
+		"mux-signing-secret",
+		"vercel-blob-secret",
+		"fastly-signature-secret",
+		"imgix-signature-secret",
+		"vercel-token-secret",
+	} {
+		if strings.Contains(string(body), leaked) {
+			t.Fatalf("redacted metadata = %s, leaked %s", string(body), leaked)
+		}
+	}
+	for _, fragment := range []string{
+		`"publicEndpoint":"https://downloads.example.test"`,
+		`"path":"/exports/package.zip"`,
+		Redacted,
+	} {
+		if !strings.Contains(string(body), fragment) {
+			t.Fatalf("redacted metadata = %s, missing %s", string(body), fragment)
+		}
+	}
+
+	findings := ClassifyValue(metadata)
+	for _, expected := range []struct {
+		kind     SecretKind
+		location string
+	}{
+		{SecretKindAPIKey, "delivery.fastlyApiKey"},
+		{SecretKindSignedURL, "delivery.fastlyServiceToken"},
+		{SecretKindSignedURL, "delivery.imgixSecureURLToken"},
+		{SecretKindPassword, "delivery.bunnyStoragePassword"},
+		{SecretKindSignedURL, "delivery.muxTokenSecret"},
+		{SecretKindPrivateKey, "delivery.muxSigningKey"},
+		{SecretKindSignedURL, "delivery.vercelBlobReadWriteToken"},
+		{SecretKindSignedURL, "signed_url_parts.Fastly-Signature"},
+		{SecretKindSignedURL, "signed_url_parts.ix-signature"},
+		{SecretKindSignedURL, "signed_url_parts.X-Vercel-Token"},
+	} {
+		assertFinding(t, findings, expected.kind, expected.location)
+	}
+}
+
 func TestRedactMapCoversS3CompatibleObjectStorageConfigMetadata(t *testing.T) {
 	metadata := map[string]any{
 		"object_storage": map[string]any{

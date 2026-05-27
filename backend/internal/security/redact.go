@@ -143,7 +143,8 @@ var secretValuePatterns = []struct {
 
 var assignmentPattern = regexp.MustCompile(`(?i)\b([A-Za-z0-9_.-]*(?:secret|token|password|passwd|pwd|passphrase|api[_-]?key|x[_-]?api[_-]?key|access[_-]?key|private[_-]?key|private[_-]?token|deploy[_-]?key|credential|signature|session|cookie|authorization|proxy[_-]?authorization|client[_-]?secret|client[_-]?token|client[_-]?assertion|refresh[_-]?token|personal[_-]?access[_-]?token|license[_-]?key|webhook[_-]?secret|signing[_-]?key|shared[_-]?access[_-]?signature|database[_-]?url|redis[_-]?url|smtp[_-]?url|smtp[_-]?dsn|smtp[_-]?connection|elasticsearch[_-]?url|opensearch[_-]?url|elastic[_-]?cloud[_-]?auth|clickhouse[_-]?url|dsn|connection[_-]?string|connectionstring|service[_-]?account|storage[_-]?key|account[_-]?key|subscription[_-]?key|tenant[_-]?secret|object[_-]?storage[_-]?signing[_-]?key|object[_-]?storage[_-]?access[_-]?key|object[_-]?storage[_-]?secret[_-]?key|aws[_-]?secret[_-]?access[_-]?key|aws[_-]?session[_-]?token|s3[_-]?secret[_-]?key|minio[_-]?root[_-]?password|minio[_-]?secret[_-]?key|r2[_-]?access|r2[_-]?secret|wasabi[_-]?access|wasabi[_-]?secret|scw[_-]?access|scw[_-]?secret|scaleway[_-]?access|scaleway[_-]?secret|vultr[_-]?access|vultr[_-]?secret|linode[_-]?access|linode[_-]?secret|oci[_-]?access|oci[_-]?secret|oci[_-]?private|oracle[_-]?access|oracle[_-]?secret|oracle[_-]?private|encryption[_-]?customer[_-]?key|customer[_-]?encryption[_-]?key|sse[_-]?customer[_-]?key|dockerconfigjson|dockercfg|image[_-]?pull[_-]?secret)[A-Za-z0-9_.-]*)\s*([=:])\s*("[^"]*"|'[^']*'|[^\s,;&]+)`)
 var launchSecretAssignmentPattern = regexp.MustCompile(`(?i)\b([A-Za-z0-9_.-]*(?:honeycomb|new[_-]?relic|splunk|grafana|otel|otlp|terraform|snyk|circleci|buildkite|okta|langfuse|braintrust|helicone|openpipe|promptlayer|portkey|wandb|weights[_-]?biases|weave|arize[_-]?phoenix|x[_-]?honeycomb[_-]?team|x[_-]?sf[_-]?token)[A-Za-z0-9_.-]*)\s*([=:])\s*("[^"]*"|'[^']*'|[^\s,;&]+)`)
-var signedDeliveryAssignmentPattern = regexp.MustCompile(`(?i)\b([A-Za-z0-9_.-]*(?:cloudfront[_-]?(?:signature|policy|expires|key[_-]?pair[_-]?id)|key[_-]?pair[_-]?id|edge[_-]?auth|akamai[_-]?signature|hdnts|hdntl|__token__|cloud[_-]?cdn[_-]?(?:signature|policy|expires|key[_-]?name|url[_-]?prefix)|url[_-]?prefix|key[_-]?name|signed[_-]?(?:cookie|policy|signature)|cdn[_-]?(?:policy|signature|token)|cf[_-]?authorization|cloudflare[_-]?access[_-]?jwt[_-]?assertion)[A-Za-z0-9_.-]*)\s*([=:])\s*("[^"]*"|'[^']*'|[^\s,;&]+)`)
+var signedDeliveryAssignmentPattern = regexp.MustCompile(`(?i)\b([A-Za-z0-9_.-]*(?:cloudfront[_-]?(?:signature|policy|expires|key[_-]?pair[_-]?id)|key[_-]?pair[_-]?id|edge[_-]?auth|akamai[_-]?signature|hdnts|hdntl|__token__|cloud[_-]?cdn[_-]?(?:signature|policy|expires|key[_-]?name|url[_-]?prefix)|url[_-]?prefix|key[_-]?name|signed[_-]?(?:cookie|policy|signature)|cdn[_-]?(?:policy|signature|token)|cf[_-]?authorization|cloudflare[_-]?access[_-]?jwt[_-]?assertion|fastly[_-]?(?:api[_-]?key|service[_-]?token|edge[_-]?auth|signature)|imgix[_-]?(?:secure[_-]?url[_-]?token|signature|sign)|bunny(?:cdn|[_-]?cdn|[_-]?storage)?[_-]?(?:api[_-]?key|token|password|signature)|mux[_-]?(?:token[_-]?id|token[_-]?secret|signing[_-]?key|signature|policy)|vercel[_-]?(?:blob[_-]?)?(?:read[_-]?write[_-]?token|token|signature))[A-Za-z0-9_.-]*)\s*([=:])\s*("[^"]*"|'[^']*'|[^\s,;&]+)`)
+var launchSignedDeliverySecretKeyPattern = regexp.MustCompile(`(?i)(fastly[_-]?(?:api[_-]?key|service[_-]?token|edge[_-]?auth|signature)|imgix[_-]?(?:secure[_-]?url[_-]?token|signature|sign)|bunny(?:cdn|[_-]?cdn|[_-]?storage)?[_-]?(?:api[_-]?key|token|password|signature)|mux[_-]?(?:token[_-]?id|token[_-]?secret|signing[_-]?key|signature|policy)|vercel[_-]?(?:blob[_-]?)?(?:read[_-]?write[_-]?token|token|signature))`)
 var launchDataSecretKeyPattern = regexp.MustCompile(`(?i)(snowflake[_-]?(?:password|private[_-]?key|token|url|uri|dsn|connection|credential|credentials)|bigquery[_-]?(?:service[_-]?account|credentials|private[_-]?key|client[_-]?email|token|key)|google[_-]?application[_-]?credentials|gcp[_-]?(?:service[_-]?account|credentials|private[_-]?key)|databricks[_-]?(?:token|pat|host|url|dsn|client[_-]?secret|client[_-]?id)|dbt[_-]?cloud[_-]?(?:token|api[_-]?key|account[_-]?id)|airbyte[_-]?(?:api[_-]?key|client[_-]?secret|client[_-]?id|refresh[_-]?token)|fivetran[_-]?(?:api[_-]?key|api[_-]?secret|token)|motherduck[_-]?(?:token|url|dsn)|duckdb[_-]?(?:token|url|dsn)|neon[_-]?(?:database[_-]?url|connection[_-]?string|api[_-]?key)|planetscale[_-]?(?:password|token|service[_-]?token|url|dsn)|pscale[_-]?(?:password|token)|turso[_-]?(?:auth[_-]?token|database[_-]?url|url|token)|libsql[_-]?(?:auth[_-]?token|url|token)|aiven[_-]?(?:api[_-]?token|service[_-]?uri|password|url|dsn)|cockroach[_-]?(?:url|dsn|password|connection)|mongodb?[_-]?(?:uri|url|password|connection)|postgres(?:ql)?[_-]?(?:url|dsn|password|connection)|mysql[_-]?(?:url|dsn|password|connection))`)
 var launchDataSecretAssignmentPattern = regexp.MustCompile(`(?i)\b([A-Za-z0-9_.-]*(?:snowflake[_-]?(?:password|private[_-]?key|token|url|uri|dsn|connection|credential|credentials)|bigquery[_-]?(?:service[_-]?account|credentials|private[_-]?key|client[_-]?email|token|key)|google[_-]?application[_-]?credentials|gcp[_-]?(?:service[_-]?account|credentials|private[_-]?key)|databricks[_-]?(?:token|pat|host|url|dsn|client[_-]?secret|client[_-]?id)|dbt[_-]?cloud[_-]?(?:token|api[_-]?key|account[_-]?id)|airbyte[_-]?(?:api[_-]?key|client[_-]?secret|client[_-]?id|refresh[_-]?token)|fivetran[_-]?(?:api[_-]?key|api[_-]?secret|token)|motherduck[_-]?(?:token|url|dsn)|duckdb[_-]?(?:token|url|dsn)|neon[_-]?(?:database[_-]?url|connection[_-]?string|api[_-]?key)|planetscale[_-]?(?:password|token|service[_-]?token|url|dsn)|pscale[_-]?(?:password|token)|turso[_-]?(?:auth[_-]?token|database[_-]?url|url|token)|libsql[_-]?(?:auth[_-]?token|url|token)|aiven[_-]?(?:api[_-]?token|service[_-]?uri|password|url|dsn)|cockroach[_-]?(?:url|dsn|password|connection)|mongodb?[_-]?(?:uri|url|password|connection)|postgres(?:ql)?[_-]?(?:url|dsn|password|connection)|mysql[_-]?(?:url|dsn|password|connection))[A-Za-z0-9_.-]*)\s*([=:])\s*("[^"]*"|'[^']*'|[^\s,;&]+)`)
 var launchPackageRegistrySecretKeyPattern = regexp.MustCompile(`(?i)(node[_-]?auth[_-]?token|npm(?:rc)?[_-]?(?:auth[_-]?token|token|password)|yarn[_-]?npm[_-]?(?:auth[_-]?token|token)|pnpm[_-]?(?:auth[_-]?token|token)|pypi[_-]?(?:token|password|api[_-]?token)|twine[_-]?(?:password|token)|rubygems?[_-]?(?:api[_-]?key|token)|gem[_-]?(?:host[_-]?api[_-]?key|credentials)|cargo[_-]?(?:registry[_-]?token|token)|crates[_-]?io[_-]?token|composer[_-]?(?:auth|github[_-]?oauth|gitlab[_-]?token|http[_-]?basic)|packagist[_-]?(?:token|api[_-]?key)|nuget[_-]?(?:api[_-]?key|token)|maven[_-]?(?:password|token|server[_-]?password)|gradle[_-]?(?:password|token)|jfrog[_-]?(?:access[_-]?token|api[_-]?key|password)|artifactory[_-]?(?:access[_-]?token|api[_-]?key|password)|cloudsmith[_-]?(?:api[_-]?key|token|entitlement[_-]?token)|gitlab[_-]?deploy[_-]?token|gitea[_-]?(?:token|deploy[_-]?key)|bitbucket[_-]?(?:app[_-]?password|token)|sourcegraph[_-]?token|gerrit[_-]?(?:http[_-]?password|token))`)
@@ -315,15 +316,30 @@ func (s PlaceholderMalwareScanner) Scan(ctx context.Context, target MalwareScanT
 func ClassifyKey(key string) []SecretFinding {
 	key = strings.TrimSpace(key)
 	normalized := normalizeSecretKey(key)
+	if normalized == "path" {
+		return nil
+	}
 	if key == "" ||
 		(!sensitiveKeyPattern.MatchString(key) && !sensitiveKeyPattern.MatchString(normalized) &&
 			!launchDataSecretKeyPattern.MatchString(key) && !launchDataSecretKeyPattern.MatchString(normalized) &&
-			!launchPackageRegistrySecretKeyPattern.MatchString(key) && !launchPackageRegistrySecretKeyPattern.MatchString(normalized)) {
+			!launchPackageRegistrySecretKeyPattern.MatchString(key) && !launchPackageRegistrySecretKeyPattern.MatchString(normalized) &&
+			!launchSignedDeliverySecretKeyPattern.MatchString(key) && !launchSignedDeliverySecretKeyPattern.MatchString(normalized)) {
 		return nil
 	}
 	lower := strings.ToLower(key) + "_" + normalized
 	kind := SecretKindSensitiveKey
 	switch {
+	case launchSignedDeliverySecretKeyPattern.MatchString(key) || launchSignedDeliverySecretKeyPattern.MatchString(normalized):
+		switch {
+		case strings.Contains(lower, "password"):
+			kind = SecretKindPassword
+		case strings.Contains(lower, "api_key"):
+			kind = SecretKindAPIKey
+		case strings.Contains(lower, "signing_key"):
+			kind = SecretKindPrivateKey
+		default:
+			kind = SecretKindSignedURL
+		}
 	case strings.Contains(lower, "docker") || strings.Contains(lower, "registry"):
 		kind = SecretKindRegistryAuth
 	case strings.Contains(lower, "dockercfg") || strings.Contains(lower, "pull_secret"):
@@ -973,6 +989,14 @@ func isSignedURLQueryKey(key string) bool {
 		"cloud-cdn-url-prefix", "url-prefix", "urlprefix", "key-name", "keyname", "signed-cookie", "signed-policy",
 		"signed-signature", "cdn-policy", "cdn-signature", "cdn-token", "cf-authorization",
 		"cloudflare-access-jwt-assertion",
+		"fastly-api-key", "fastly-service-token", "fastly-edge-auth", "fastly-signature",
+		"imgix-secure-url-token", "imgix-signature", "imgix-sign", "ix-signature", "ix-sign",
+		"bunny-api-key", "bunny-token", "bunny-password", "bunny-signature",
+		"bunnycdn-api-key", "bunnycdn-token", "bunnycdn-signature",
+		"bunny-cdn-api-key", "bunny-cdn-token", "bunny-cdn-signature",
+		"bunny-storage-password", "bunny-storage-token",
+		"mux-token-id", "mux-token-secret", "mux-signing-key", "mux-signature", "mux-policy",
+		"vercel-blob-read-write-token", "vercel-token", "vercel-signature", "x-vercel-signature", "x-vercel-token",
 		"expires", "policy", "key-pair-id", "cloudfront-signature", "cloudfront-policy", "cloudfront-key-pair-id",
 		"st", "se", "sp", "sip", "spr", "sr", "sv", "si", "ses", "sdd", "saoid", "suoid", "scid",
 		"skoid", "sktid", "skt", "ske", "sks", "skv":
@@ -1003,6 +1027,7 @@ func isSignedURLContextKey(key string) bool {
 		strings.HasPrefix(normalized, "x-cos-") ||
 		strings.HasPrefix(normalized, "q-") ||
 		strings.HasPrefix(normalized, "x-bz-") ||
+		strings.HasPrefix(normalized, "x-vercel-") ||
 		strings.HasPrefix(normalized, "cloudfront-") {
 		return true
 	}
@@ -1015,7 +1040,15 @@ func isSignedURLContextKey(key string) bool {
 		"cloud-cdn-signature", "cloud-cdn-policy", "cloud-cdn-expires", "cloud-cdn-key-name",
 		"cloud-cdn-url-prefix", "url-prefix", "urlprefix", "key-name", "keyname", "signed-cookie", "signed-policy",
 		"signed-signature", "cdn-policy", "cdn-signature", "cdn-token", "cf-authorization",
-		"cloudflare-access-jwt-assertion":
+		"cloudflare-access-jwt-assertion",
+		"fastly-api-key", "fastly-service-token", "fastly-edge-auth", "fastly-signature",
+		"imgix-secure-url-token", "imgix-signature", "imgix-sign", "ix-signature", "ix-sign",
+		"bunny-api-key", "bunny-token", "bunny-password", "bunny-signature",
+		"bunnycdn-api-key", "bunnycdn-token", "bunnycdn-signature",
+		"bunny-cdn-api-key", "bunny-cdn-token", "bunny-cdn-signature",
+		"bunny-storage-password", "bunny-storage-token",
+		"mux-token-id", "mux-token-secret", "mux-signing-key", "mux-signature", "mux-policy",
+		"vercel-blob-read-write-token", "vercel-token", "vercel-signature", "x-vercel-signature", "x-vercel-token":
 		return true
 	default:
 		return false
@@ -1044,7 +1077,15 @@ func isStructuredSignedURLSecretKey(key string) bool {
 		"cloud-cdn-signature", "cloud-cdn-policy", "cloud-cdn-expires", "cloud-cdn-key-name",
 		"cloud-cdn-url-prefix", "url-prefix", "urlprefix", "key-name", "keyname", "signed-cookie", "signed-policy",
 		"signed-signature", "cdn-policy", "cdn-signature", "cdn-token", "cf-authorization",
-		"cloudflare-access-jwt-assertion":
+		"cloudflare-access-jwt-assertion",
+		"fastly-api-key", "fastly-service-token", "fastly-edge-auth", "fastly-signature",
+		"imgix-secure-url-token", "imgix-signature", "imgix-sign", "ix-signature", "ix-sign",
+		"bunny-api-key", "bunny-token", "bunny-password", "bunny-signature",
+		"bunnycdn-api-key", "bunnycdn-token", "bunnycdn-signature",
+		"bunny-cdn-api-key", "bunny-cdn-token", "bunny-cdn-signature",
+		"bunny-storage-password", "bunny-storage-token",
+		"mux-token-id", "mux-token-secret", "mux-signing-key", "mux-signature", "mux-policy",
+		"vercel-blob-read-write-token", "vercel-token", "vercel-signature", "x-vercel-signature", "x-vercel-token":
 		return true
 	default:
 		return isAzureSASKey(normalized)
