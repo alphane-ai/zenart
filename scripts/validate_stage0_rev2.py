@@ -2560,6 +2560,11 @@ SCHEMA_FIXTURE_TARGETS = [
         FIXTURE_DIR / "eval" / "workflow_export_zip_evidence_contract.json",
         "object",
     ),
+    (
+        "workflow_safety_coverage_contract.schema.json",
+        FIXTURE_DIR / "eval" / "workflow_safety_coverage_contract.json",
+        "object",
+    ),
     ("eval_suite.schema.json", FIXTURE_DIR / "eval" / "starter_eval_suite.json", "object"),
     ("eval_result.schema.json", FIXTURE_DIR / "eval" / "starter_eval_results.json", "array_items"),
     ("trace_completeness.schema.json", FIXTURE_DIR / "eval" / "trace_completeness.json", "object"),
@@ -2633,6 +2638,7 @@ CHECKED_ITEMS = {
     "每条 workflow 定义 required package outputs。",
     "每条 workflow 定义 QA/safety/export pass thresholds。",
     "每条 workflow export ZIP evidence contract 通过：`fixtures/stage0/rev2/eval/workflow_export_zip_evidence_contract.json` maps required ZIP payloads、manifest、QA report、safety report、provenance、metadata、AI disclaimer、trace payloads、four-option taxonomy to exact passing local-alpha evidence files。",
+    "每条 workflow safety coverage contract 通过：`fixtures/stage0/rev2/eval/workflow_safety_coverage_contract.json` maps required safety domains to safety rules、eval fixtures、all five enforcement points、trace safety decisions、and export gates, enforced by `scripts/validate_workflow_safety_coverage_contract.py`。",
     "实现 admin crawler source approval evidence。",
     "实现 source legal metadata。",
     "添加 disallowed source、robots denied、duplicate hash、pending-review import tests。",
@@ -6739,6 +6745,7 @@ def validate_json_files() -> None:
         SCHEMA_DIR / "eval_runner_manifest_contract.schema.json",
         SCHEMA_DIR / "workflow_api_smoke_evidence.schema.json",
         SCHEMA_DIR / "workflow_runtime_evidence_contract.schema.json",
+        SCHEMA_DIR / "workflow_safety_coverage_contract.schema.json",
         SCHEMA_DIR / "activation_gate_contract.schema.json",
         SCHEMA_DIR / "qa_result.schema.json",
         SCHEMA_DIR / "safety_rule.schema.json",
@@ -6762,6 +6769,7 @@ def validate_json_files() -> None:
         FIXTURE_DIR / "eval" / "eval_runner_manifest_contract.json",
         FIXTURE_DIR / "eval" / "workflow_api_smoke_evidence.json",
         FIXTURE_DIR / "eval" / "workflow_runtime_evidence_contract.json",
+        FIXTURE_DIR / "eval" / "workflow_safety_coverage_contract.json",
         FIXTURE_DIR / "eval" / "activation_gate_contract.json",
         FIXTURE_DIR / "eval" / "trace_completeness.json",
         FIXTURE_DIR / "eval" / "trace_export_gate_matrix.json",
@@ -10477,6 +10485,21 @@ def validate_workflow_export_zip_evidence_contract() -> None:
     )
 
 
+def validate_workflow_safety_coverage_contract() -> None:
+    result = subprocess.run(
+        [sys.executable, str(ROOT / "scripts" / "validate_workflow_safety_coverage_contract.py")],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    require(
+        result.returncode == 0,
+        "workflow safety coverage contract validation failed: "
+        + (result.stderr or result.stdout).strip(),
+    )
+
+
 def validate_eval_result_contract() -> None:
     result = subprocess.run(
         [sys.executable, str(ROOT / "scripts" / "validate_eval_result_contract.py")],
@@ -12160,6 +12183,7 @@ def main() -> int:
         validate_eval_package_readiness_contract,
         validate_trace_visibility_export_retention_contract,
         validate_workflow_export_zip_evidence_contract,
+        validate_workflow_safety_coverage_contract,
         validate_safety_enforcement_contract,
         validate_qa_result_coverage_contract,
         validate_qa_enforcement_matrix_contract,

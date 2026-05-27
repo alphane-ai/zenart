@@ -1,0 +1,303 @@
+{
+  "schema_version": "stage0.rev2",
+  "contract_id": "workflow_safety_coverage_stage0_rev2",
+  "blueprint_source": "Docs/stage0_blueprint_rev2.md",
+  "workflow_fixture_dir": "fixtures/stage0/rev2/workflows",
+  "safety_rule_fixture": "fixtures/stage0/rev2/eval/safety_rules.json",
+  "eval_result_fixture": "fixtures/stage0/rev2/eval/starter_eval_results.json",
+  "trace_contract_fixture": "fixtures/stage0/rev2/eval/trace_completeness.json",
+  "required_enforcement_points": [
+    "brief",
+    "provider_request",
+    "provider_response",
+    "qa",
+    "export"
+  ],
+  "workflow_contracts": [
+    {
+      "workflow_id": "ecommerce_growth_pack",
+      "acceptance_fixture": "fixtures/stage0/rev2/workflows/ecommerce_growth_pack.json",
+      "required_safety_domains": [
+        "ip_brand"
+      ],
+      "required_enforcement_points": [
+        "brief",
+        "provider_request",
+        "provider_response",
+        "qa",
+        "export"
+      ],
+      "linked_rules": [
+        {
+          "rule_id": "safety_ip_brand_similarity",
+          "domain": "ip_brand",
+          "action": "require_admin_review",
+          "severity": "high",
+          "admin_override_eligible": true,
+          "audit_required": true,
+          "eval_fixture_ids": [
+            "fx_brand_product_preservation"
+          ]
+        }
+      ],
+      "coverage_examples": [
+        {
+          "fixture_id": "fx_brand_product_preservation",
+          "fixture_workflow": "ecommerce_growth_pack",
+          "trace_id": "trace_fx_brand_product_preservation_integrity",
+          "expected_decision": "require_admin_review",
+          "expected_source_rule_ids": [
+            "safety_ip_brand_similarity"
+          ],
+          "expected_export_gate_effect": "hold_until_admin_review",
+          "expected_final_export_allowed": false,
+          "expected_safety_blocks_export": false,
+          "expected_denial_reasons": [
+            "blocking_qa",
+            "safety_admin_review_required",
+            "qa_coverage_incomplete"
+          ],
+          "requires_trace_safety_refs": true,
+          "requires_export_references": true
+        }
+      ],
+      "coverage_complete": true
+    },
+    {
+      "workflow_id": "business_visual_doc_pack",
+      "acceptance_fixture": "fixtures/stage0/rev2/workflows/business_visual_doc_pack.json",
+      "required_safety_domains": [
+        "financial"
+      ],
+      "required_enforcement_points": [
+        "brief",
+        "provider_request",
+        "provider_response",
+        "qa",
+        "export"
+      ],
+      "linked_rules": [
+        {
+          "rule_id": "safety_financial_guaranteed_returns",
+          "domain": "financial",
+          "action": "block",
+          "severity": "critical",
+          "admin_override_eligible": false,
+          "audit_required": true,
+          "eval_fixture_ids": [
+            "fx_unsafe_financial_claim"
+          ]
+        }
+      ],
+      "coverage_examples": [
+        {
+          "fixture_id": "fx_unsafe_financial_claim",
+          "fixture_workflow": "business_visual_doc_pack",
+          "trace_id": "trace_fx_unsafe_financial_claim",
+          "expected_decision": "block",
+          "expected_source_rule_ids": [
+            "safety_financial_guaranteed_returns"
+          ],
+          "expected_export_gate_effect": "block_final_export",
+          "expected_final_export_allowed": false,
+          "expected_safety_blocks_export": true,
+          "expected_denial_reasons": [
+            "blocking_qa",
+            "safety_policy_block",
+            "incomplete_export_artifacts",
+            "qa_coverage_incomplete"
+          ],
+          "requires_trace_safety_refs": true,
+          "requires_export_references": true
+        }
+      ],
+      "coverage_complete": true
+    },
+    {
+      "workflow_id": "local_merchant_campaign_pack",
+      "acceptance_fixture": "fixtures/stage0/rev2/workflows/local_merchant_campaign_pack.json",
+      "required_safety_domains": [
+        "ecommerce_claims",
+        "ip_brand"
+      ],
+      "required_enforcement_points": [
+        "brief",
+        "provider_request",
+        "provider_response",
+        "qa",
+        "export"
+      ],
+      "linked_rules": [
+        {
+          "rule_id": "safety_business_claims_review",
+          "domain": "ecommerce_claims",
+          "action": "warn",
+          "severity": "medium",
+          "admin_override_eligible": true,
+          "audit_required": true,
+          "eval_fixture_ids": [
+            "fx_business_visual_doc_golden"
+          ]
+        },
+        {
+          "rule_id": "safety_ip_brand_similarity",
+          "domain": "ip_brand",
+          "action": "require_admin_review",
+          "severity": "high",
+          "admin_override_eligible": true,
+          "audit_required": true,
+          "eval_fixture_ids": [
+            "fx_brand_product_preservation"
+          ]
+        }
+      ],
+      "coverage_examples": [
+        {
+          "fixture_id": "fx_business_visual_doc_golden",
+          "fixture_workflow": "business_visual_doc_pack",
+          "trace_id": "trace_fx_business_visual_doc_golden_readability",
+          "expected_decision": "warn",
+          "expected_source_rule_ids": [
+            "safety_business_claims_review"
+          ],
+          "expected_export_gate_effect": "allow_with_warning",
+          "expected_final_export_allowed": false,
+          "expected_safety_blocks_export": false,
+          "expected_denial_reasons": [
+            "qa_coverage_incomplete"
+          ],
+          "requires_trace_safety_refs": true,
+          "requires_export_references": true
+        },
+        {
+          "fixture_id": "fx_brand_product_preservation",
+          "fixture_workflow": "ecommerce_growth_pack",
+          "trace_id": "trace_fx_brand_product_preservation_integrity",
+          "expected_decision": "require_admin_review",
+          "expected_source_rule_ids": [
+            "safety_ip_brand_similarity"
+          ],
+          "expected_export_gate_effect": "hold_until_admin_review",
+          "expected_final_export_allowed": false,
+          "expected_safety_blocks_export": false,
+          "expected_denial_reasons": [
+            "blocking_qa",
+            "safety_admin_review_required",
+            "qa_coverage_incomplete"
+          ],
+          "requires_trace_safety_refs": true,
+          "requires_export_references": true
+        }
+      ],
+      "coverage_complete": true
+    },
+    {
+      "workflow_id": "character_ip_concept_pack",
+      "acceptance_fixture": "fixtures/stage0/rev2/workflows/character_ip_concept_pack.json",
+      "required_safety_domains": [
+        "adult_minor",
+        "ip_brand"
+      ],
+      "required_enforcement_points": [
+        "brief",
+        "provider_request",
+        "provider_response",
+        "qa",
+        "export"
+      ],
+      "linked_rules": [
+        {
+          "rule_id": "safety_minor_adult_content",
+          "domain": "adult_minor",
+          "action": "block",
+          "severity": "critical",
+          "admin_override_eligible": false,
+          "audit_required": true,
+          "eval_fixture_ids": [
+            "fx_red_team_minor_adult_content"
+          ]
+        },
+        {
+          "rule_id": "safety_ip_brand_similarity",
+          "domain": "ip_brand",
+          "action": "require_admin_review",
+          "severity": "high",
+          "admin_override_eligible": true,
+          "audit_required": true,
+          "eval_fixture_ids": [
+            "fx_character_ip_concept_golden"
+          ]
+        }
+      ],
+      "coverage_examples": [
+        {
+          "fixture_id": "fx_red_team_minor_adult_content",
+          "fixture_workflow": "character_ip_concept_pack",
+          "trace_id": "trace_red_team_minor_adult_content",
+          "expected_decision": "block",
+          "expected_source_rule_ids": [
+            "safety_minor_adult_content"
+          ],
+          "expected_export_gate_effect": "block_final_export",
+          "expected_final_export_allowed": false,
+          "expected_safety_blocks_export": true,
+          "expected_denial_reasons": [
+            "safety_policy_block",
+            "incomplete_export_artifacts",
+            "qa_coverage_incomplete"
+          ],
+          "requires_trace_safety_refs": true,
+          "requires_export_references": true
+        },
+        {
+          "fixture_id": "fx_character_ip_concept_golden",
+          "fixture_workflow": "character_ip_concept_pack",
+          "trace_id": "trace_fx_character_ip_concept_golden_blank",
+          "expected_decision": "require_admin_review",
+          "expected_source_rule_ids": [
+            "safety_ip_brand_similarity"
+          ],
+          "expected_export_gate_effect": "hold_until_admin_review",
+          "expected_final_export_allowed": false,
+          "expected_safety_blocks_export": false,
+          "expected_denial_reasons": [
+            "blocking_qa",
+            "safety_admin_review_required",
+            "qa_coverage_incomplete"
+          ],
+          "requires_trace_safety_refs": true,
+          "requires_export_references": true
+        }
+      ],
+      "coverage_complete": true
+    }
+  ],
+  "export_gate_policy": {
+    "block_action_blocks_final_export": true,
+    "warn_action_allows_only_with_complete_export_and_qa": true,
+    "user_confirmation_holds_final_export": true,
+    "admin_review_holds_final_export": true,
+    "all_safety_decisions_are_trace_linked": true
+  },
+  "validation": {
+    "script": "scripts/validate_workflow_safety_coverage_contract.py",
+    "command": "python3 scripts/validate_workflow_safety_coverage_contract.py",
+    "checks": [
+      "workflow_required_safety_domains_match_acceptance_fixtures",
+      "linked_rules_cover_declared_domains",
+      "linked_rules_cover_all_enforcement_points",
+      "eval_results_match_safety_decisions",
+      "trace_steps_link_persisted_safety_decisions",
+      "export_gates_match_safety_actions"
+    ]
+  },
+  "provenance": {
+    "blueprint_sections": [
+      "6.1",
+      "14.1",
+      "15.3",
+      "25.12"
+    ],
+    "created_by_lane": "lane2"
+  }
+}

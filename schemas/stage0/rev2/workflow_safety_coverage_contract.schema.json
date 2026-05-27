@@ -1,0 +1,357 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zenart.local/schemas/stage0/rev2/workflow_safety_coverage_contract.schema.json",
+  "title": "ZenArt Stage 0 Rev2 Workflow Safety Coverage Contract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "contract_id",
+    "blueprint_source",
+    "workflow_fixture_dir",
+    "safety_rule_fixture",
+    "eval_result_fixture",
+    "trace_contract_fixture",
+    "required_enforcement_points",
+    "workflow_contracts",
+    "export_gate_policy",
+    "validation",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "stage0.rev2"
+    },
+    "contract_id": {
+      "const": "workflow_safety_coverage_stage0_rev2"
+    },
+    "blueprint_source": {
+      "const": "Docs/stage0_blueprint_rev2.md"
+    },
+    "workflow_fixture_dir": {
+      "const": "fixtures/stage0/rev2/workflows"
+    },
+    "safety_rule_fixture": {
+      "const": "fixtures/stage0/rev2/eval/safety_rules.json"
+    },
+    "eval_result_fixture": {
+      "const": "fixtures/stage0/rev2/eval/starter_eval_results.json"
+    },
+    "trace_contract_fixture": {
+      "const": "fixtures/stage0/rev2/eval/trace_completeness.json"
+    },
+    "required_enforcement_points": {
+      "type": "array",
+      "minItems": 5,
+      "maxItems": 5,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/enforcement_point"
+      }
+    },
+    "workflow_contracts": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "workflow_id",
+          "acceptance_fixture",
+          "required_safety_domains",
+          "required_enforcement_points",
+          "linked_rules",
+          "coverage_examples",
+          "coverage_complete"
+        ],
+        "properties": {
+          "workflow_id": {
+            "$ref": "#/$defs/workflow_id"
+          },
+          "acceptance_fixture": {
+            "type": "string",
+            "pattern": "^fixtures/stage0/rev2/workflows/[a-z0-9_]+\\.json$"
+          },
+          "required_safety_domains": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "$ref": "#/$defs/safety_domain"
+            }
+          },
+          "required_enforcement_points": {
+            "type": "array",
+            "minItems": 5,
+            "maxItems": 5,
+            "uniqueItems": true,
+            "items": {
+              "$ref": "#/$defs/enforcement_point"
+            }
+          },
+          "linked_rules": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "rule_id",
+                "domain",
+                "action",
+                "severity",
+                "admin_override_eligible",
+                "audit_required",
+                "eval_fixture_ids"
+              ],
+              "properties": {
+                "rule_id": {
+                  "type": "string",
+                  "pattern": "^safety_[a-z0-9_]+$"
+                },
+                "domain": {
+                  "$ref": "#/$defs/safety_domain"
+                },
+                "action": {
+                  "$ref": "#/$defs/safety_action"
+                },
+                "severity": {
+                  "enum": [
+                    "low",
+                    "medium",
+                    "high",
+                    "critical"
+                  ]
+                },
+                "admin_override_eligible": {
+                  "type": "boolean"
+                },
+                "audit_required": {
+                  "const": true
+                },
+                "eval_fixture_ids": {
+                  "type": "array",
+                  "minItems": 1,
+                  "uniqueItems": true,
+                  "items": {
+                    "type": "string",
+                    "pattern": "^fx_[a-z0-9_]+$"
+                  }
+                }
+              }
+            }
+          },
+          "coverage_examples": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "fixture_id",
+                "fixture_workflow",
+                "trace_id",
+                "expected_decision",
+                "expected_source_rule_ids",
+                "expected_export_gate_effect",
+                "expected_final_export_allowed",
+                "expected_safety_blocks_export",
+                "expected_denial_reasons",
+                "requires_trace_safety_refs",
+                "requires_export_references"
+              ],
+              "properties": {
+                "fixture_id": {
+                  "type": "string",
+                  "pattern": "^fx_[a-z0-9_]+$"
+                },
+                "fixture_workflow": {
+                  "$ref": "#/$defs/workflow_id"
+                },
+                "trace_id": {
+                  "type": "string",
+                  "pattern": "^trace_[a-z0-9_]+$"
+                },
+                "expected_decision": {
+                  "$ref": "#/$defs/safety_action"
+                },
+                "expected_source_rule_ids": {
+                  "type": "array",
+                  "uniqueItems": true,
+                  "items": {
+                    "type": "string",
+                    "pattern": "^safety_[a-z0-9_]+$"
+                  }
+                },
+                "expected_export_gate_effect": {
+                  "$ref": "#/$defs/export_gate_effect"
+                },
+                "expected_final_export_allowed": {
+                  "const": false
+                },
+                "expected_safety_blocks_export": {
+                  "type": "boolean"
+                },
+                "expected_denial_reasons": {
+                  "type": "array",
+                  "minItems": 1,
+                  "uniqueItems": true,
+                  "items": {
+                    "$ref": "#/$defs/denial_reason"
+                  }
+                },
+                "requires_trace_safety_refs": {
+                  "const": true
+                },
+                "requires_export_references": {
+                  "const": true
+                }
+              }
+            }
+          },
+          "coverage_complete": {
+            "const": true
+          }
+        }
+      }
+    },
+    "export_gate_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "block_action_blocks_final_export",
+        "warn_action_allows_only_with_complete_export_and_qa",
+        "user_confirmation_holds_final_export",
+        "admin_review_holds_final_export",
+        "all_safety_decisions_are_trace_linked"
+      ],
+      "properties": {
+        "block_action_blocks_final_export": {
+          "const": true
+        },
+        "warn_action_allows_only_with_complete_export_and_qa": {
+          "const": true
+        },
+        "user_confirmation_holds_final_export": {
+          "const": true
+        },
+        "admin_review_holds_final_export": {
+          "const": true
+        },
+        "all_safety_decisions_are_trace_linked": {
+          "const": true
+        }
+      }
+    },
+    "validation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "script",
+        "command",
+        "checks"
+      ],
+      "properties": {
+        "script": {
+          "const": "scripts/validate_workflow_safety_coverage_contract.py"
+        },
+        "command": {
+          "const": "python3 scripts/validate_workflow_safety_coverage_contract.py"
+        },
+        "checks": {
+          "type": "array",
+          "minItems": 5,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "workflow_required_safety_domains_match_acceptance_fixtures",
+              "linked_rules_cover_declared_domains",
+              "linked_rules_cover_all_enforcement_points",
+              "eval_results_match_safety_decisions",
+              "trace_steps_link_persisted_safety_decisions",
+              "export_gates_match_safety_actions"
+            ]
+          }
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "blueprint_sections",
+        "created_by_lane"
+      ],
+      "properties": {
+        "blueprint_sections": {
+          "type": "array",
+          "minItems": 3,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "created_by_lane": {
+          "const": "lane2"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "workflow_id": {
+      "enum": [
+        "ecommerce_growth_pack",
+        "business_visual_doc_pack",
+        "local_merchant_campaign_pack",
+        "character_ip_concept_pack"
+      ]
+    },
+    "safety_domain": {
+      "enum": [
+        "financial",
+        "adult_minor",
+        "ip_brand",
+        "ecommerce_claims"
+      ]
+    },
+    "enforcement_point": {
+      "enum": [
+        "brief",
+        "provider_request",
+        "provider_response",
+        "qa",
+        "export"
+      ]
+    },
+    "safety_action": {
+      "enum": [
+        "allow",
+        "warn",
+        "require_user_confirmation",
+        "require_admin_review",
+        "block"
+      ]
+    },
+    "export_gate_effect": {
+      "enum": [
+        "allow_when_export_contract_complete",
+        "allow_with_warning",
+        "hold_until_user_confirmation",
+        "hold_until_admin_review",
+        "block_final_export"
+      ]
+    },
+    "denial_reason": {
+      "enum": [
+        "blocking_qa",
+        "safety_policy_block",
+        "safety_admin_review_required",
+        "safety_user_confirmation_required",
+        "incomplete_export_artifacts",
+        "qa_coverage_incomplete"
+      ]
+    }
+  }
+}
