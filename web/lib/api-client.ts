@@ -177,7 +177,7 @@ export class DevZenArtClient implements ZenArtClient {
 
   async refreshSession() {
     const state = migrateState(loadState());
-    if (state.sessionContract.status !== "authenticated") {
+    if (state.sessionContract.status === "signed_out") {
       return clone(state);
     }
 

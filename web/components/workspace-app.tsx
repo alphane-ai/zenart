@@ -113,6 +113,7 @@ const severityClass: Record<QaSeverity, string> = {
 
 const sessionSecurityEvidenceSchema = "stage0.rev2.session-csrf-client-evidence";
 const sessionSafeActionLabels = new Set(["load", "login"]);
+const expiredSessionRecoveryActionLabels = new Set<UnsafeActionGuardLabel>(["Refresh Session"]);
 const defaultCredentialMode = "include";
 const sameSiteUnsafeActionGuardMap = {
   "Confirm Brief": ["createChatSession", "createChatMessage", "createCandidateSet"],
@@ -190,17 +191,31 @@ const initialBrowserCsrfProbeResult: BrowserCsrfProbeResult = {
   failureReason: ""
 };
 
-const unsafeActionGuardAttributes = (label: UnsafeActionGuardLabel, sessionBlocked: boolean) => {
+const getUnsafeActionGuardStatus = (label: UnsafeActionGuardLabel, state: WorkspaceState) => {
+  if (state.sessionContract.status === "authenticated") {
+    return { status: "enabled", blockedReason: "" };
+  }
+  if (state.sessionContract.status === "expired" && expiredSessionRecoveryActionLabels.has(label)) {
+    return { status: "enabled", blockedReason: "" };
+  }
+  return { status: "blocked", blockedReason: "authenticated-session-required" };
+};
+
+const isExpiredSessionRecoveryAction = (label: string) =>
+  label === "session-refresh" || label === "Refresh Session";
+
+const unsafeActionGuardAttributes = (label: UnsafeActionGuardLabel, state: WorkspaceState) => {
   const operationIds = sameSiteUnsafeActionGuardMap[label];
   const csrfProtectedOperationCount = operationIds.filter((operationId) => apiOperations[operationId].method !== "GET").length;
   const idempotencyRequiredOperationCount = operationIds.filter((operationId) => apiOperations[operationId].idempotencyRequired).length;
+  const guardStatus = getUnsafeActionGuardStatus(label, state);
 
   return {
     "data-csrf-ux-guard": "authenticated-same-site-session",
     "data-csrf-ux-guard-label": label,
-    "data-csrf-ux-guard-status": sessionBlocked ? "blocked" : "enabled",
+    "data-csrf-ux-guard-status": guardStatus.status,
     "data-csrf-ux-guard-required-session-status": "authenticated",
-    "data-csrf-ux-guard-blocked-reason": sessionBlocked ? "authenticated-session-required" : "",
+    "data-csrf-ux-guard-blocked-reason": guardStatus.blockedReason,
     "data-csrf-ux-guard-operation-count": operationIds.length,
     "data-csrf-ux-guard-operations": operationIds.join(","),
     "data-csrf-ux-guard-contracts": formatUnsafeActionControlContracts(label),
@@ -209,7 +224,9 @@ const unsafeActionGuardAttributes = (label: UnsafeActionGuardLabel, sessionBlock
   };
 };
 
-const requiresAuthenticatedSession = (label: string) => !sessionSafeActionLabels.has(label);
+const requiresAuthenticatedSession = (label: string, state: WorkspaceState) =>
+  !sessionSafeActionLabels.has(label) &&
+  !(state.sessionContract.status === "expired" && isExpiredSessionRecoveryAction(label));
 
 const isSessionBlocked = (state: WorkspaceState) => state.sessionContract.status !== "authenticated";
 
@@ -350,7 +367,7 @@ export function WorkspaceApp({ initialView = "workspace" }: { initialView?: View
 
   const quotaPercent = state ? Math.min(100, Math.round((state.billing.quotaUsed / state.billing.quotaLimit) * 100)) : 0;
   const runAction = async (label: string, action: () => Promise<WorkspaceState>) => {
-    if (state && requiresAuthenticatedSession(label) && isSessionBlocked(state)) {
+    if (state && requiresAuthenticatedSession(label, state) && isSessionBlocked(state)) {
       reportFrontendError(
         new Error(`Blocked ${label}: authenticated same-site session required`),
         "action-error",
@@ -582,7 +599,9 @@ function SessionPanel({
     (operationId) => !guardedOperationIdSet.has(operationId as keyof typeof apiOperations)
   );
   const unsafeActionGuardCoverageStatus = missingGuardedUnsafeOperationIds.length === 0 ? "pass" : "fail";
-  const blockedUnsafeActionGuardLabels = sessionBlocked ? sameSiteUnsafeActionGuardLabels : [];
+  const blockedUnsafeActionGuardLabels = sameSiteUnsafeActionGuardLabels.filter(
+    (label) => getUnsafeActionGuardStatus(label, state).status === "blocked"
+  );
   const unsafeActionCsrfProtectedOperationCount = guardedOperationIds.filter((operationId) =>
     state.sessionContract.csrf.protectedMethods.includes(
       apiOperations[operationId].method as (typeof state.sessionContract.csrf.protectedMethods)[number]
@@ -717,9 +736,9 @@ function SessionPanel({
         </button>
         <button
           className="secondary-button compact"
-          disabled={sessionBlocked}
+          disabled={state.sessionContract.status === "signed_out"}
           onClick={() => void runAction("session-refresh", () => zenArtClient.refreshSession())}
-          {...unsafeActionGuardAttributes("Refresh Session", sessionBlocked)}
+          {...unsafeActionGuardAttributes("Refresh Session", state)}
         >
           <RefreshCcw size={15} aria-hidden="true" />
           Refresh Session
@@ -728,7 +747,7 @@ function SessionPanel({
           className="secondary-button compact"
           disabled={sessionBlocked}
           onClick={() => void runAction("session-expire", () => zenArtClient.expireSession())}
-          {...unsafeActionGuardAttributes("Expire Session", sessionBlocked)}
+          {...unsafeActionGuardAttributes("Expire Session", state)}
         >
           <RotateCcw size={15} aria-hidden="true" />
           Expire
@@ -849,7 +868,7 @@ function WorkspaceView({
           <button
             className="primary-button"
             disabled={sessionBlocked || busy === "brief" || !briefInput.trim()}
-            {...unsafeActionGuardAttributes("Confirm Brief", sessionBlocked)}
+            {...unsafeActionGuardAttributes("Confirm Brief", state)}
           >
             <Check size={18} aria-hidden="true" />
             Confirm Brief
@@ -875,7 +894,7 @@ function WorkspaceView({
                 })
               )
             }
-            {...unsafeActionGuardAttributes("Attach", sessionBlocked)}
+            {...unsafeActionGuardAttributes("Attach", state)}
           >
             <Upload size={17} aria-hidden="true" />
             Attach
@@ -1033,7 +1052,7 @@ function WorkspaceView({
                   disabled={sessionBlocked || packagedReferenceIds.has(reference.id)}
                   onClick={() => void runAction("package", () => zenArtClient.addPackageItem(reference.id))}
                   aria-label={`Add reference ${reference.name} to package`}
-                  {...unsafeActionGuardAttributes("Package Reference", sessionBlocked)}
+                  {...unsafeActionGuardAttributes("Package Reference", state)}
                 >
                   {packagedReferenceIds.has(reference.id) ? "Packaged" : "Package"}
                 </button>
@@ -1107,7 +1126,7 @@ function WorkspaceView({
               disabled={sessionBlocked}
               onClick={() => void runAction("restore", () => zenArtClient.restoreCanvasVersion(version.id))}
               aria-pressed={version.id === state.canvas.activeVersionId}
-              {...unsafeActionGuardAttributes("Restore Version", sessionBlocked)}
+              {...unsafeActionGuardAttributes("Restore Version", state)}
             >
               <History size={14} aria-hidden="true" />
               {version.label}
@@ -1143,7 +1162,7 @@ function WorkspaceView({
                 onClick={() => void runAction("select", () => zenArtClient.selectCandidate(candidate.id))}
                 aria-pressed={state.selectedCandidateId === candidate.id}
                 aria-label={`Select ${candidate.title}`}
-                {...unsafeActionGuardAttributes("Select Candidate", sessionBlocked)}
+                {...unsafeActionGuardAttributes("Select Candidate", state)}
               >
                 <ChevronRight size={17} aria-hidden="true" />
                 Select
@@ -1162,7 +1181,7 @@ function WorkspaceView({
           <button
             className="primary-button"
             disabled={sessionBlocked || !selectedCandidate || !iterationInput.trim()}
-            {...unsafeActionGuardAttributes("Iterate", sessionBlocked)}
+            {...unsafeActionGuardAttributes("Iterate", state)}
           >
             <Send size={18} aria-hidden="true" />
             Iterate
@@ -1198,7 +1217,7 @@ function PackagePanel({
               void runAction("package", () => zenArtClient.addPackageItem(candidateId));
             }
           }}
-          {...unsafeActionGuardAttributes("Add Selection", sessionBlocked)}
+          {...unsafeActionGuardAttributes("Add Selection", state)}
         >
           <PackagePlus size={17} aria-hidden="true" />
           Add Selection
@@ -1208,7 +1227,7 @@ function PackagePanel({
           data-testid="export-download"
           disabled={sessionBlocked}
           onClick={() => void runAction("export", () => zenArtClient.createExport("zip"))}
-          {...unsafeActionGuardAttributes("Export ZIP", sessionBlocked)}
+          {...unsafeActionGuardAttributes("Export ZIP", state)}
         >
           <Download size={17} aria-hidden="true" />
           Export ZIP
@@ -1217,7 +1236,7 @@ function PackagePanel({
           className="secondary-button"
           disabled={sessionBlocked}
           onClick={() => void runAction("export", () => zenArtClient.createExport("pdf-placeholder"))}
-          {...unsafeActionGuardAttributes("Export PDF", sessionBlocked)}
+          {...unsafeActionGuardAttributes("Export PDF", state)}
         >
           <FileArchive size={17} aria-hidden="true" />
           PDF
@@ -1332,7 +1351,7 @@ function ProjectsView({
           <button
             className="secondary-button compact"
             disabled={sessionBlocked || !newProjectName.trim()}
-            {...unsafeActionGuardAttributes("Create Project", sessionBlocked)}
+            {...unsafeActionGuardAttributes("Create Project", state)}
           >
             <PackagePlus size={14} aria-hidden="true" />
             Create Project
@@ -1348,7 +1367,7 @@ function ProjectsView({
           <button
             className="secondary-button compact"
             disabled={sessionBlocked || !activeProject || !renameProjectName.trim()}
-            {...unsafeActionGuardAttributes("Rename Project", sessionBlocked)}
+            {...unsafeActionGuardAttributes("Rename Project", state)}
           >
             <PenLine size={14} aria-hidden="true" />
             Rename Project
@@ -1844,7 +1863,7 @@ function ShareLinkState({
         className="secondary-button compact"
         disabled={sessionBlocked || Boolean(shareLink)}
         onClick={() => void runAction("share", () => zenArtClient.createShareLink(exportId))}
-        {...unsafeActionGuardAttributes("Request Share", sessionBlocked)}
+        {...unsafeActionGuardAttributes("Request Share", state)}
       >
         <Link2 size={15} aria-hidden="true" />
         Request Share
@@ -1935,7 +1954,7 @@ function BillingView({
             className="primary-button"
             disabled={sessionBlocked || busy === "checkout"}
             onClick={() => void runAction("checkout", () => zenArtClient.createMockCheckout())}
-            {...unsafeActionGuardAttributes("Mock Checkout", sessionBlocked)}
+            {...unsafeActionGuardAttributes("Mock Checkout", state)}
           >
             <CircleDollarSign size={18} aria-hidden="true" />
             Mock Checkout
@@ -1959,7 +1978,7 @@ function BillingView({
                 className="secondary-button compact"
                 disabled={sessionBlocked || busy === "billing-scenario"}
                 onClick={() => void runAction("billing-scenario", () => zenArtClient.setBillingScenario(scenario.key))}
-                {...unsafeActionGuardAttributes("Billing Scenario", sessionBlocked)}
+                {...unsafeActionGuardAttributes("Billing Scenario", state)}
               >
                 {scenario.label}
               </button>
@@ -2019,7 +2038,7 @@ function AccountView({
           />
           Email notifications
         </label>
-        <button className="primary-button" disabled={sessionBlocked} {...unsafeActionGuardAttributes("Save Settings", sessionBlocked)}>
+        <button className="primary-button" disabled={sessionBlocked} {...unsafeActionGuardAttributes("Save Settings", state)}>
           <Settings size={18} aria-hidden="true" />
           Save Settings
         </button>
@@ -2149,7 +2168,7 @@ function SupportView({
         <button
           className="primary-button"
           disabled={sessionBlocked || busy === "support" || !body.trim()}
-          {...unsafeActionGuardAttributes("Submit Ticket", sessionBlocked)}
+          {...unsafeActionGuardAttributes("Submit Ticket", state)}
         >
           <Flag size={18} aria-hidden="true" />
           Submit Ticket

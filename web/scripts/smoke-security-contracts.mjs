@@ -374,6 +374,19 @@ for (const requiredBrowserSnippet of [
   }
 }
 
+if (
+  sessionEvidence.unsafeActionGuard?.expectedExpiredBlockedControlCount !== "17" ||
+  sessionEvidence.unsafeActionGuard?.expectedExpiredRecoveryLabels !== "Refresh Session" ||
+  !workspaceAppSource.includes("expiredSessionRecoveryActionLabels") ||
+  !workspaceAppSource.includes("isExpiredSessionRecoveryAction") ||
+  !workspaceSmokeTestSource.includes("data-session-unsafe-action-blocked-control-count\", \"17\"") ||
+  !workspaceSmokeTestSource.includes("expect(screen.getByRole(\"button\", { name: \"Refresh Session\" })).not.toBeDisabled()") ||
+  !sessionSecurityPlaywrightSpecSource.includes("data-session-unsafe-action-blocked-control-count\", \"17\"") ||
+  !sessionSecurityPlaywrightSpecSource.includes("await expect(page.getByRole(\"button\", { name: \"Refresh Session\" })).toBeEnabled()")
+) {
+  fail("same-site UX contract must allow Refresh Session as the expired-session recovery action while blocking other unsafe controls");
+}
+
 console.log(
   `security contract smoke passed: ${unsafeOperations.length} unsafe operations require ${generatedApiCsrfContract.csrfHeaderName}; ${safeOperations.length} safe operations stay credentialed without CSRF headers; /account exposes secure-cookie same-site UX and browser evidence.`
 );

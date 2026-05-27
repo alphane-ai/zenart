@@ -170,27 +170,36 @@ describe("WorkspaceApp user route integration smoke", () => {
     await screen.findByText("Session expired. Refresh or sign in to continue.");
     expect(container.querySelector(".session-pill")).toHaveTextContent("expired");
     expect(screen.getByLabelText("Auth and session status")).toHaveAttribute("data-session-unsafe-action-status", "blocked");
-    expect(screen.getByLabelText("Auth and session status")).toHaveAttribute("data-session-unsafe-action-blocked-control-count", "18");
+    expect(screen.getByLabelText("Auth and session status")).toHaveAttribute("data-session-unsafe-action-blocked-control-count", "17");
     expect(screen.getByLabelText("Auth and session status")).toHaveAttribute(
       "data-session-unsafe-action-blocked-control-labels",
-      "Confirm Brief|Attach|Create Project|Rename Project|Package Reference|Select Candidate|Iterate|Restore Version|Add Selection|Export ZIP|Export PDF|Request Share|Mock Checkout|Billing Scenario|Save Settings|Submit Ticket|Refresh Session|Expire Session"
+      "Confirm Brief|Attach|Create Project|Rename Project|Package Reference|Select Candidate|Iterate|Restore Version|Add Selection|Export ZIP|Export PDF|Request Share|Mock Checkout|Billing Scenario|Save Settings|Submit Ticket|Expire Session"
     );
     expect(screen.getByLabelText("Auth and session status")).toHaveAttribute(
       "data-session-unsafe-action-blocked-reason",
       "authenticated-session-required"
     );
-    expect(screen.getByRole("button", { name: "Refresh Session" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Refresh Session" })).toHaveAttribute("data-csrf-ux-guard-status", "blocked");
-    expect(screen.getByRole("button", { name: "Refresh Session" })).toHaveAttribute(
-      "data-csrf-ux-guard-blocked-reason",
-      "authenticated-session-required"
-    );
+    expect(screen.getByRole("button", { name: "Refresh Session" })).not.toBeDisabled();
+    expect(screen.getByRole("button", { name: "Refresh Session" })).toHaveAttribute("data-csrf-ux-guard-status", "enabled");
+    expect(screen.getByRole("button", { name: "Refresh Session" })).toHaveAttribute("data-csrf-ux-guard-blocked-reason", "");
     expect(screen.getByRole("button", { name: "Save Settings" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Save Settings" })).toHaveAttribute("data-csrf-ux-guard-status", "blocked");
     expect(screen.getByRole("button", { name: "Save Settings" })).toHaveAttribute(
       "data-csrf-ux-guard-blocked-reason",
       "authenticated-session-required"
     );
+
+    fireEvent.click(screen.getByRole("button", { name: "Refresh Session" }));
+    await waitFor(() => {
+      expect(container.querySelector(".session-pill")).toHaveTextContent("authenticated");
+    });
+    expect(screen.queryByText("Session expired. Refresh or sign in to continue.")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Auth and session status")).toHaveAttribute("data-session-unsafe-action-status", "enabled");
+    expect(screen.getByLabelText("Auth and session status")).toHaveAttribute("data-session-unsafe-action-blocked-control-count", "0");
+    expect(screen.getByRole("button", { name: "Save Settings" })).not.toBeDisabled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Expire" }));
+    await screen.findByText("Session expired. Refresh or sign in to continue.");
 
     fireEvent.change(screen.getByLabelText("Email"), { target: { value: "dev@zenart.local" } });
     fireEvent.click(screen.getByRole("button", { name: "Sign In" }));
@@ -932,6 +941,8 @@ describe("WorkspaceApp user route integration smoke", () => {
         expectedEnabledStatus: "enabled",
         expectedBlockedStatus: "blocked",
         expectedSafeLabels: "load,login",
+        expectedExpiredBlockedControlCount: "17",
+        expectedExpiredRecoveryLabels: "Refresh Session",
         expectedProtectedMethods: "POST,PUT,PATCH,DELETE",
         expectedGuardCount: "18",
         expectedOperationCount: "18",

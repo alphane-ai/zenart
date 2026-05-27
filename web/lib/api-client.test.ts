@@ -64,7 +64,10 @@ describe("dev web client user lifecycle coverage", () => {
       new Date(loggedIn.sessionContract.issuedAt).getTime()
     );
     expect(expired.sessionContract.status).toBe("expired");
-    expect(refreshWhileExpired.sessionContract.status).toBe("expired");
+    expect(refreshWhileExpired.sessionContract.status).toBe("authenticated");
+    expect(new Date(refreshWhileExpired.sessionContract.issuedAt).getTime()).toBeGreaterThanOrEqual(
+      new Date(expired.sessionContract.issuedAt).getTime()
+    );
     expect(signedOut.sessionContract.status).toBe("signed_out");
     expect(reloaded.sessionContract.status).toBe("signed_out");
   });

@@ -325,6 +325,8 @@ if (
   sessionEvidence.unsafeActionGuard?.expectedEnabledStatus !== "enabled" ||
   sessionEvidence.unsafeActionGuard?.expectedBlockedStatus !== "blocked" ||
   sessionEvidence.unsafeActionGuard?.expectedSafeLabels !== "load,login" ||
+  sessionEvidence.unsafeActionGuard?.expectedExpiredBlockedControlCount !== "17" ||
+  sessionEvidence.unsafeActionGuard?.expectedExpiredRecoveryLabels !== "Refresh Session" ||
   sessionEvidence.unsafeActionGuard?.expectedProtectedMethods !== "POST,PUT,PATCH,DELETE" ||
   sessionEvidence.unsafeActionGuard?.expectedGuardCount !== "18" ||
   sessionEvidence.unsafeActionGuard?.expectedOperationCount !== "18" ||
@@ -342,6 +344,8 @@ for (const expectedGuardLabel of sessionEvidence.unsafeActionGuard?.expectedGuar
 for (const requiredGuardSnippet of [
   "requiresAuthenticatedSession",
   "sessionSafeActionLabels",
+  "expiredSessionRecoveryActionLabels",
+  "isExpiredSessionRecoveryAction",
   "sameSiteUnsafeActionGuardLabels",
   "data-session-unsafe-action-guard",
   "data-session-unsafe-action-status",
