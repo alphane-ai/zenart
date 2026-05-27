@@ -1639,6 +1639,47 @@ func TestServiceCleanupMarksSuccessfulDeletesBeforeReturningStorageError(t *test
 	}
 }
 
+func TestServiceCleanupTreatsMissingMetadataAckAsPartialFailure(t *testing.T) {
+	now := time.Date(2026, 5, 26, 12, 0, 0, 0, time.UTC)
+	db := &fakeDB{
+		execTags: []pgconn.CommandTag{
+			pgconn.NewCommandTag("UPDATE 0"),
+			pgconn.NewCommandTag("UPDATE 0"),
+			pgconn.NewCommandTag("SELECT 1"),
+			pgconn.NewCommandTag("UPDATE 1"),
+			pgconn.NewCommandTag("SELECT 1"),
+		},
+		queryRows: []rowSet{{
+			rows: [][]any{
+				{"object_1", "tenant_1", "tenants/tenant_1/exports/export_1.zip"},
+				{"object_2", "tenant_1", "tenants/tenant_1/thumbnails/export_1.zip.svg"},
+			},
+		}},
+	}
+	objects := &recordingObjectStore{}
+	service := NewService(NewRepository(db), objects)
+
+	result, err := service.CleanupExpiredExportsAndOrphanedObjects(context.Background(), now, 50)
+	if err == nil || !strings.Contains(err.Error(), "metadata acknowledgement missing") {
+		t.Fatalf("CleanupExpiredExportsAndOrphanedObjects() error = %v, want missing metadata ack error", err)
+	}
+	if result.DeletedObjects != 1 || result.FailedObjects != 1 || result.Status != "partial_failed" {
+		t.Fatalf("cleanup result = %#v, want one deleted ack and one partial failure", result)
+	}
+	if len(objects.deletedKeys) != 2 {
+		t.Fatalf("deleted key attempts = %#v, want both cleanup objects attempted", objects.deletedKeys)
+	}
+	if len(db.execs) != 7 {
+		t.Fatalf("exec count = %d, want lifecycle, partial deleted mark, deletion analytics, cleanup run analytics, cleanup audit refs", len(db.execs))
+	}
+	if !strings.Contains(db.execs[5].sql, "'export_object_cleanup_run'") || db.execs[5].args[3] != result.DeletedObjects || db.execs[5].args[4] != result.FailedObjects || db.execs[5].args[5] != "partial_failed" {
+		t.Fatalf("cleanup run analytics args/sql = %#v / %s, want partial ack failure", db.execs[5].args, db.execs[5].sql)
+	}
+	if !strings.Contains(db.execs[6].sql, "INSERT INTO audit_logs") || db.execs[6].args[3] != result.DeletedObjects || db.execs[6].args[4] != result.FailedObjects || db.execs[6].args[5] != "partial_failed" {
+		t.Fatalf("cleanup run audit args/sql = %#v / %s, want partial ack failure", db.execs[6].args, db.execs[6].sql)
+	}
+}
+
 func TestEnforceSafetyRecordsBlockDecisionForActiveRule(t *testing.T) {
 	now := time.Now().UTC()
 	db := &fakeDB{queryRows: []rowSet{{

@@ -3070,6 +3070,11 @@ func (s Service) cleanupExpiredExportsAndOrphanedObjects(ctx context.Context, te
 		return CleanupResult{}, err
 	}
 	result.DeletedObjects = deleted
+	if deleted < len(deletedObjects) {
+		missingAcks := len(deletedObjects) - deleted
+		result.FailedObjects += missingAcks
+		deleteErr = errors.Join(deleteErr, fmt.Errorf("cleanup metadata acknowledgement missing for %d object(s)", missingAcks))
+	}
 	result.Status = cleanupResultStatus(result, deleteErr)
 	if err := s.repo.recordCleanupRunAnalyticsForTenant(ctx, now, tenantID, result); err != nil {
 		return CleanupResult{}, err
