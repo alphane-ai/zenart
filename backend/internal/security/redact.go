@@ -46,7 +46,7 @@ type SecretFinding struct {
 	Location string     `json:"location,omitempty"`
 }
 
-var sensitiveKeyPattern = regexp.MustCompile(`(?i)(secret|token|password|passwd|pwd|passphrase|api[_-]?key|x[_-]?api[_-]?key|access[_-]?key|private[_-]?key|private[_-]?token|deploy[_-]?key|credential|signature|session|cookie|authorization|proxy[_-]?authorization|client[_-]?secret|client[_-]?token|client[_-]?assertion|refresh[_-]?token|id[_-]?token|personal[_-]?access[_-]?token|pat|jwt|oauth|webhook[_-]?secret|signing[_-]?key|shared[_-]?access[_-]?signature|sas|stripe|openai|anthropic|deepseek|mistral|cohere|gemini|google[_-]?ai|openrouter|perplexity|xai|fireworks|fal|elevenlabs|provider[_-]?key|database[_-]?url|dsn|connection[_-]?string|connectionstring|service[_-]?account|storage[_-]?key|account[_-]?key|subscription[_-]?key|tenant[_-]?secret|encryption[_-]?customer[_-]?key|customer[_-]?encryption[_-]?key|sse[_-]?customer[_-]?key|docker[_-]?auth|dockerconfigjson|dockercfg|image[_-]?pull[_-]?secret|registry[_-]?(auth|token|password))`)
+var sensitiveKeyPattern = regexp.MustCompile(`(?i)(secret|token|password|passwd|pwd|passphrase|api[_-]?key|x[_-]?api[_-]?key|access[_-]?key|private[_-]?key|private[_-]?token|deploy[_-]?key|credential|signature|session|cookie|authorization|proxy[_-]?authorization|client[_-]?secret|client[_-]?token|client[_-]?assertion|refresh[_-]?token|id[_-]?token|personal[_-]?access[_-]?token|pat|jwt|oauth|webhook[_-]?secret|signing[_-]?key|routing[_-]?key|integration[_-]?key|shared[_-]?access[_-]?signature|sas|stripe|openai|anthropic|deepseek|mistral|cohere|gemini|google[_-]?ai|openrouter|perplexity|xai|fireworks|fal|elevenlabs|provider[_-]?key|sentry|datadog|honeycomb|posthog|segment|amplitude|mixpanel|launchdarkly|pagerduty|opsgenie|zendesk|intercom|resend|postmark|mailchimp|clerk|auth0|supabase|firebase|database[_-]?url|dsn|connection[_-]?string|connectionstring|service[_-]?account|storage[_-]?key|account[_-]?key|subscription[_-]?key|tenant[_-]?secret|encryption[_-]?customer[_-]?key|customer[_-]?encryption[_-]?key|sse[_-]?customer[_-]?key|docker[_-]?auth|dockerconfigjson|dockercfg|image[_-]?pull[_-]?secret|registry[_-]?(auth|token|password))`)
 
 var secretValuePatterns = []struct {
 	kind    SecretKind
@@ -91,6 +91,8 @@ var secretValuePatterns = []struct {
 	{SecretKindToken, "cloudflare_token", regexp.MustCompile(`\b(?:CFPAT|cfpat)_[A-Za-z0-9_-]{20,}\b`)},
 	{SecretKindToken, "datadog_key", regexp.MustCompile(`\b(?:dd|datadog)_[A-Za-z0-9]{20,}\b`)},
 	{SecretKindToken, "sentry_auth_token", regexp.MustCompile(`\bsntrys_[A-Za-z0-9_-]{20,}\b`)},
+	{SecretKindToken, "posthog_key", regexp.MustCompile(`\bphx_[A-Za-z0-9_-]{20,}\b`)},
+	{SecretKindProviderKey, "resend_key", regexp.MustCompile(`\bre_[A-Za-z0-9_-]{20,}\b`)},
 	{SecretKindToken, "sendgrid_key", regexp.MustCompile(`\bSG\.[A-Za-z0-9_-]{16,}\.[A-Za-z0-9_-]{16,}\b`)},
 	{SecretKindToken, "mailgun_key", regexp.MustCompile(`\bkey-[A-Za-z0-9]{20,}\b`)},
 	{SecretKindWebhookSecret, "stripe_webhook_secret", regexp.MustCompile(`\bwhsec_[A-Za-z0-9]{20,}\b`)},
@@ -321,6 +323,18 @@ func ClassifyKey(key string) []SecretFinding {
 		kind = SecretKindCookie
 	case strings.Contains(lower, "service") && strings.Contains(lower, "account"):
 		kind = SecretKindServiceAcct
+	case strings.Contains(lower, "sentry") || strings.Contains(lower, "datadog") || strings.Contains(lower, "honeycomb") ||
+		strings.Contains(lower, "posthog") || strings.Contains(lower, "segment") || strings.Contains(lower, "amplitude") ||
+		strings.Contains(lower, "mixpanel") || strings.Contains(lower, "launchdarkly"):
+		kind = SecretKindToken
+	case strings.Contains(lower, "pagerduty") || strings.Contains(lower, "opsgenie") || strings.Contains(lower, "zendesk") ||
+		strings.Contains(lower, "intercom"):
+		kind = SecretKindCredential
+	case strings.Contains(lower, "resend") || strings.Contains(lower, "postmark") || strings.Contains(lower, "mailchimp"):
+		kind = SecretKindProviderKey
+	case strings.Contains(lower, "clerk") || strings.Contains(lower, "auth0") || strings.Contains(lower, "supabase") ||
+		strings.Contains(lower, "firebase"):
+		kind = SecretKindCredential
 	case strings.Contains(lower, "client") && (strings.Contains(lower, "secret") || strings.Contains(lower, "token")):
 		kind = SecretKindCredential
 	case strings.Contains(lower, "client") && strings.Contains(lower, "assertion"):

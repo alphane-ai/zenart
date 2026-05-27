@@ -111,6 +111,7 @@ func TestRedactStringCoversAIStorageAndObservabilityTokens(t *testing.T) {
 		"cloudflare=CFPAT_abcdefghijklmnopqrstuvwxyz123456",
 		"datadog=dd_abcdefghijklmnopqrstuvwxyz123456",
 		"sentry=sntrys_abcdefghijklmnopqrstuvwxyz123456",
+		"posthog=phx_abcdefghijklmnopqrstuvwxyz123456",
 		"grafana=glsa_abcdefghijklmnopqrstuvwxyz123456",
 	}, " ")
 	got := RedactString(input)
@@ -134,6 +135,7 @@ func TestRedactStringCoversAIStorageAndObservabilityTokens(t *testing.T) {
 		"CFPAT_abcdefghijklmnopqrstuvwxyz123456",
 		"dd_abcdefghijklmnopqrstuvwxyz123456",
 		"sntrys_abcdefghijklmnopqrstuvwxyz123456",
+		"phx_abcdefghijklmnopqrstuvwxyz123456",
 		"glsa_abcdefghijklmnopqrstuvwxyz123456",
 	} {
 		if strings.Contains(got, leaked) {
@@ -161,10 +163,98 @@ func TestRedactStringCoversAIStorageAndObservabilityTokens(t *testing.T) {
 		"cloudflare_token",
 		"datadog_key",
 		"sentry_auth_token",
+		"posthog_key",
 		"grafana_service_account_token",
 	} {
 		assertSignal(t, findings, signal)
 	}
+}
+
+func TestRedactMapCoversLaunchAnalyticsSupportAndIdentityMetadataKeys(t *testing.T) {
+	metadata := map[string]any{
+		"analytics": map[string]any{
+			"posthog_project_api_key": "phc_abcdefghijklmnopqrstuvwxyz123456",
+			"segment_write_key":       "segment-write-key-value",
+			"amplitude_api_key":       "amplitude-secret-value",
+			"mixpanel_token":          "mixpanel-secret-value",
+			"launchdarkly_sdk_key":    "launchdarkly-sdk-secret",
+		},
+		"support": map[string]string{
+			"pagerduty_routing_key": "pagerduty-routing-secret",
+			"opsgenie_api_key":      "opsgenie-secret-value",
+			"zendesk_api_token":     "zendesk-secret-value",
+			"intercom_access_token": "intercom-secret-value",
+		},
+		"email": map[string]string{
+			"resend_api_key":    "re_abcdefghijklmnopqrstuvwxyz123456",
+			"postmark_api_key":  "postmark-secret-value",
+			"mailchimp_api_key": "mailchimp-secret-value",
+		},
+		"identity": map[string]string{
+			"clerk_secret_key":          "clerk-secret-value",
+			"auth0_client_secret":       "auth0-secret-value",
+			"firebase_server_key":       "AAAAabc1234:APA91babcdefghijklmnopqrstuvwxyz123456",
+			"supabase_service_role_key": "supabase-secret-value",
+		},
+		"public": "ok",
+	}
+
+	redacted := RedactMap(metadata)
+	body, err := json.Marshal(redacted)
+	if err != nil {
+		t.Fatalf("marshal redacted metadata: %v", err)
+	}
+	for _, leaked := range []string{
+		"phc_abcdefghijklmnopqrstuvwxyz123456",
+		"segment-write-key-value",
+		"amplitude-secret-value",
+		"mixpanel-secret-value",
+		"launchdarkly-sdk-secret",
+		"pagerduty-routing-secret",
+		"opsgenie-secret-value",
+		"zendesk-secret-value",
+		"intercom-secret-value",
+		"re_abcdefghijklmnopqrstuvwxyz123456",
+		"postmark-secret-value",
+		"mailchimp-secret-value",
+		"clerk-secret-value",
+		"auth0-secret-value",
+		"AAAAabc1234:APA91babcdefghijklmnopqrstuvwxyz123456",
+		"supabase-secret-value",
+	} {
+		if strings.Contains(string(body), leaked) {
+			t.Fatalf("redacted metadata = %s, leaked %s", string(body), leaked)
+		}
+	}
+	for _, fragment := range []string{`"public":"ok"`, Redacted} {
+		if !strings.Contains(string(body), fragment) {
+			t.Fatalf("redacted metadata = %s, missing %s", string(body), fragment)
+		}
+	}
+
+	findings := ClassifyValue(metadata)
+	for _, location := range []string{
+		"analytics.posthog_project_api_key",
+		"analytics.segment_write_key",
+		"analytics.amplitude_api_key",
+		"analytics.mixpanel_token",
+		"analytics.launchdarkly_sdk_key",
+		"support.pagerduty_routing_key",
+		"support.opsgenie_api_key",
+		"support.zendesk_api_token",
+		"support.intercom_access_token",
+		"email.resend_api_key",
+		"email.postmark_api_key",
+		"email.mailchimp_api_key",
+		"identity.clerk_secret_key",
+		"identity.auth0_client_secret",
+		"identity.firebase_server_key",
+		"identity.supabase_service_role_key",
+	} {
+		assertAnyFindingAt(t, findings, location)
+	}
+	assertSignal(t, findings, "resend_key")
+	assertSignal(t, findings, "firebase_server_key")
 }
 
 func TestRedactStringCoversLaunchAuthorizationSchemesAndInfraTokens(t *testing.T) {
@@ -1369,6 +1459,16 @@ func assertSignal(t *testing.T, findings []SecretFinding, signal string) {
 		}
 	}
 	t.Fatalf("missing finding signal=%s in %#v", signal, findings)
+}
+
+func assertAnyFindingAt(t *testing.T, findings []SecretFinding, location string) {
+	t.Helper()
+	for _, finding := range findings {
+		if finding.Location == location {
+			return
+		}
+	}
+	t.Fatalf("missing finding location=%s in %#v", location, findings)
 }
 
 type stringerValue string
