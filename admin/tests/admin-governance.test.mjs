@@ -20,7 +20,10 @@ const failedTaskFixtureMutationMap = {
   support_ticket_id: "supportTicketId",
   idempotency_key: "idempotencyKey",
   second_reviewer_admin_id: "secondReviewerAdminId",
-  second_review_evidence_refs: "secondReviewEvidenceRefs"
+  second_review_evidence_refs: "secondReviewEvidenceRefs",
+  app_version: "appVersion",
+  worker_version: "workerVersion",
+  schema_version: "schemaVersion"
 };
 
 const failedTaskRuntimeContractMap = {
@@ -29,6 +32,10 @@ const failedTaskRuntimeContractMap = {
   support_ticket_linkage_status: "supportTicketLinkageStatus",
   second_review_distinctness_status: "secondReviewDistinctnessStatus",
   second_review_evidence_status: "secondReviewEvidenceStatus",
+  app_compatibility_status: "appCompatibilityStatus",
+  worker_compatibility_status: "workerCompatibilityStatus",
+  schema_compatibility_status: "schemaCompatibilityStatus",
+  compatibility_status: "compatibilityStatus",
   submit_decision: "submitDecision",
   api_outcome: "apiOutcome",
   audit_write_policy: "auditWritePolicy"
@@ -304,6 +311,9 @@ const parseFailedTaskRuntime = () => {
     .replaceAll(/: FailedTaskRuntimeDecision\["userMessageStatus"\]/g, "")
     .replaceAll(/: FailedTaskRuntimeDecision\["idempotencyStatus"\]/g, "")
     .replaceAll(/: FailedTaskRuntimeDecision\["stateDigestStatus"\]/g, "")
+    .replaceAll(/: FailedTaskRuntimeDecision\["appCompatibilityStatus"\]/g, "")
+    .replaceAll(/: FailedTaskRuntimeDecision\["workerCompatibilityStatus"\]/g, "")
+    .replaceAll(/: FailedTaskRuntimeDecision\["schemaCompatibilityStatus"\]/g, "")
     .replaceAll(/: FailedTaskRuntimeDecision\["submitDecision"\]/g, "")
     .replaceAll(/: FailedTaskRuntimeDecision\["supportTicketLinkageStatus"\]/g, "")
     .replaceAll(/: FailedTaskRuntimeDecision\["tenantScopeStatus"\]/g, "")
@@ -1823,6 +1833,9 @@ test("failed task runtime submit gates preserve retry, cancel, hold, RBAC, and a
     assert.equal(decision.rbacEvidenceStatus, "complete", `${task.id} must expose complete RBAC evidence`);
     assert.deepEqual(decision.rbacEvidenceRefs, task.rbacEvidenceRefs, `${task.id} must preserve RBAC evidence refs`);
     assert.equal(decision.compatibilityStatus, "compatible", `${task.id} must expose compatible app worker schema evidence`);
+    assert.equal(decision.appCompatibilityStatus, "compatible", `${task.id} must expose compatible admin app version evidence`);
+    assert.equal(decision.workerCompatibilityStatus, "compatible", `${task.id} must expose compatible worker version evidence`);
+    assert.equal(decision.schemaCompatibilityStatus, "compatible", `${task.id} must expose compatible task schema evidence`);
     assert.equal(
       decision.compatibilityEvidence,
       `app:${task.appVersion}; worker:${task.workerVersion}; schema:${task.schemaVersion}`,
@@ -1989,6 +2002,9 @@ test("failed task runtime submit gates preserve retry, cancel, hold, RBAC, and a
     supportTickets
   )[0];
   assert.equal(staleSchemaRetry.compatibilityStatus, "stale", "stale task schema must be detected");
+  assert.equal(staleSchemaRetry.appCompatibilityStatus, "compatible", "stale task schema must not mark app stale");
+  assert.equal(staleSchemaRetry.workerCompatibilityStatus, "compatible", "stale task schema must not mark worker stale");
+  assert.equal(staleSchemaRetry.schemaCompatibilityStatus, "stale", "stale task schema must expose schema-specific gate");
   assert.match(
     staleSchemaRetry.compatibilityEvidence,
     /schema:task\.v0/,
@@ -1998,6 +2014,58 @@ test("failed task runtime submit gates preserve retry, cancel, hold, RBAC, and a
   assert.ok(
     staleSchemaRetry.blockerCodes.includes("version_compatibility_stale"),
     "stale task schema must expose a compatibility blocker code"
+  );
+  assert.ok(
+    staleSchemaRetry.blockerCodes.includes("schema_version_stale"),
+    "stale task schema must expose a schema-specific blocker code"
+  );
+
+  const staleWorkerRetry = buildFailedTaskRuntimeDecisions(
+    [
+      {
+        ...failedTaskControls.find((task) => task.id === "task-export-489"),
+        workerVersion: "worker-2026.05.25"
+      }
+    ],
+    supportTickets
+  )[0];
+  assert.equal(staleWorkerRetry.compatibilityStatus, "stale", "stale worker version must be detected");
+  assert.equal(staleWorkerRetry.appCompatibilityStatus, "compatible", "stale worker must not mark app stale");
+  assert.equal(staleWorkerRetry.workerCompatibilityStatus, "stale", "stale worker must expose worker-specific gate");
+  assert.equal(staleWorkerRetry.schemaCompatibilityStatus, "compatible", "stale worker must not mark schema stale");
+  assert.match(
+    staleWorkerRetry.compatibilityEvidence,
+    /worker:worker-2026\.05\.25/,
+    "stale worker evidence must include the observed worker version"
+  );
+  assert.equal(staleWorkerRetry.submitDecision, "blocked", "stale worker version must block retry submission");
+  assert.ok(
+    staleWorkerRetry.blockerCodes.includes("worker_version_stale"),
+    "stale worker version must expose a worker-specific blocker code"
+  );
+
+  const staleAdminAppRetry = buildFailedTaskRuntimeDecisions(
+    [
+      {
+        ...failedTaskControls.find((task) => task.id === "task-export-489"),
+        appVersion: "admin-0.0.0-previous"
+      }
+    ],
+    supportTickets
+  )[0];
+  assert.equal(staleAdminAppRetry.compatibilityStatus, "stale", "stale admin app version must be detected");
+  assert.equal(staleAdminAppRetry.appCompatibilityStatus, "stale", "stale admin app must expose app-specific gate");
+  assert.equal(staleAdminAppRetry.workerCompatibilityStatus, "compatible", "stale admin app must not mark worker stale");
+  assert.equal(staleAdminAppRetry.schemaCompatibilityStatus, "compatible", "stale admin app must not mark schema stale");
+  assert.match(
+    staleAdminAppRetry.compatibilityEvidence,
+    /app:admin-0\.0\.0-previous/,
+    "stale admin app evidence must include the observed app version"
+  );
+  assert.equal(staleAdminAppRetry.submitDecision, "blocked", "stale admin app version must block retry submission");
+  assert.ok(
+    staleAdminAppRetry.blockerCodes.includes("app_version_stale"),
+    "stale admin app version must expose an app-specific blocker code"
   );
 
   const staleReplayRetry = buildFailedTaskRuntimeDecisions(

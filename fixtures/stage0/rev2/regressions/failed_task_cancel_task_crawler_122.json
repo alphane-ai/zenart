@@ -11,6 +11,7 @@
     "submit_decision == submit_ready",
     "action_scoped_idempotency_key == true",
     "stale_state_digest_blocks_cancel == true",
+    "stale_crawler_worker_version_blocks_cancel == true",
     "support_ticket_linkage_required == true",
     "second_review_required_before_cancel_closure == true",
     "second_review_approved_before_cancel_submit == true",
@@ -63,6 +64,20 @@
         "api_outcome": "disabled_409_conflict",
         "audit_write_policy": "write_blocked_attempt_audit",
         "blocker_codes": ["state_digest_stale_replay"]
+      }
+    },
+    {
+      "id": "cancel_stale_worker_version",
+      "mutation": {
+        "worker_version": "crawler-2026.05.25"
+      },
+      "expected_runtime_contract": {
+        "worker_compatibility_status": "stale",
+        "compatibility_status": "stale",
+        "submit_decision": "blocked",
+        "api_outcome": "disabled_409_conflict",
+        "audit_write_policy": "write_blocked_attempt_audit",
+        "blocker_codes": ["version_compatibility_stale", "worker_version_stale"]
       }
     },
     {

@@ -12,6 +12,9 @@
     "action_scoped_idempotency_key == true",
     "idempotency_key_reused == true",
     "stale_state_digest_blocks_retry == true",
+    "stale_admin_app_version_blocks_retry == true",
+    "stale_worker_version_blocks_retry == true",
+    "stale_task_schema_blocks_retry == true",
     "exhausted_retry_budget_blocks_submit == true",
     "support_ticket_linkage_required == true",
     "reserved_credit_released_exactly_once == true",
@@ -54,6 +57,48 @@
         "api_outcome": "disabled_409_conflict",
         "audit_write_policy": "write_blocked_attempt_audit",
         "blocker_codes": ["state_digest_stale_replay"]
+      }
+    },
+    {
+      "id": "retry_stale_admin_app_version",
+      "mutation": {
+        "app_version": "admin-0.0.0-previous"
+      },
+      "expected_runtime_contract": {
+        "app_compatibility_status": "stale",
+        "compatibility_status": "stale",
+        "submit_decision": "blocked",
+        "api_outcome": "disabled_409_conflict",
+        "audit_write_policy": "write_blocked_attempt_audit",
+        "blocker_codes": ["version_compatibility_stale", "app_version_stale"]
+      }
+    },
+    {
+      "id": "retry_stale_worker_version",
+      "mutation": {
+        "worker_version": "worker-2026.05.25"
+      },
+      "expected_runtime_contract": {
+        "worker_compatibility_status": "stale",
+        "compatibility_status": "stale",
+        "submit_decision": "blocked",
+        "api_outcome": "disabled_409_conflict",
+        "audit_write_policy": "write_blocked_attempt_audit",
+        "blocker_codes": ["version_compatibility_stale", "worker_version_stale"]
+      }
+    },
+    {
+      "id": "retry_stale_task_schema",
+      "mutation": {
+        "schema_version": "task.v0"
+      },
+      "expected_runtime_contract": {
+        "schema_compatibility_status": "stale",
+        "compatibility_status": "stale",
+        "submit_decision": "blocked",
+        "api_outcome": "disabled_409_conflict",
+        "audit_write_policy": "write_blocked_attempt_audit",
+        "blocker_codes": ["version_compatibility_stale", "schema_version_stale"]
       }
     },
     {

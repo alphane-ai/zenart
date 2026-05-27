@@ -827,6 +827,9 @@ export type FailedTaskRuntimeDecision = {
   idempotencyStatus: "stable" | "unstable";
   stateDigestStatus: "stable" | "stale_replay";
   stateDigestEvidence: string;
+  appCompatibilityStatus: "compatible" | "stale";
+  workerCompatibilityStatus: "compatible" | "stale";
+  schemaCompatibilityStatus: "compatible" | "stale";
   compatibilityStatus: "compatible" | "stale";
   compatibilityEvidence: string;
   supportTicketLinkageStatus: "linked" | "missing_ticket" | "mismatched_ticket";

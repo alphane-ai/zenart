@@ -149,6 +149,9 @@ test("admin queue fixtures expose retry idempotency, RBAC, and quota effects", (
     "State Transition",
     "Closure Outcome",
     "Release Gate",
+    "App Version Gate",
+    "Worker Version Gate",
+    "Schema Version Gate",
     "Regression Fixture",
     "Closure Evidence"
   ]) {

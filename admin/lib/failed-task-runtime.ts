@@ -170,10 +170,13 @@ export function buildFailedTaskRuntimeDecisions(
     const computedIdempotencyStatus = idempotencyStatus(task);
     const computedStateDigestStatus = stateDigestStatus(task);
     const stateDigestEvidence = `pre:${task.preActionStateDigest}; observed:${task.observedStateDigest}`;
+    const appCompatibilityStatus = task.appVersion === supportedAppVersion ? "compatible" : "stale";
+    const workerCompatibilityStatus = supportedWorkerVersions.has(task.workerVersion) ? "compatible" : "stale";
+    const schemaCompatibilityStatus = task.schemaVersion === supportedSchemaVersion ? "compatible" : "stale";
     const compatibilityStatus =
-      task.appVersion === supportedAppVersion &&
-      task.schemaVersion === supportedSchemaVersion &&
-      supportedWorkerVersions.has(task.workerVersion)
+      appCompatibilityStatus === "compatible" &&
+      workerCompatibilityStatus === "compatible" &&
+      schemaCompatibilityStatus === "compatible"
         ? "compatible"
         : "stale";
     const compatibilityEvidence =
@@ -269,6 +272,18 @@ export function buildFailedTaskRuntimeDecisions(
       blockerCodes.push("version_compatibility_stale");
     }
 
+    if (appCompatibilityStatus === "stale") {
+      blockerCodes.push("app_version_stale");
+    }
+
+    if (workerCompatibilityStatus === "stale") {
+      blockerCodes.push("worker_version_stale");
+    }
+
+    if (schemaCompatibilityStatus === "stale") {
+      blockerCodes.push("schema_version_stale");
+    }
+
     if (computedSupportTicketLinkageStatus === "missing_ticket") {
       blockerCodes.push("support_ticket_missing");
     }
@@ -300,6 +315,9 @@ export function buildFailedTaskRuntimeDecisions(
       "idempotency_key_unstable",
       "state_digest_stale_replay",
       "version_compatibility_stale",
+      "app_version_stale",
+      "worker_version_stale",
+      "schema_version_stale",
       "support_ticket_missing",
       "support_ticket_task_mismatch",
       "support_ticket_user_project_mismatch",
@@ -396,6 +414,9 @@ export function buildFailedTaskRuntimeDecisions(
       idempotencyStatus: computedIdempotencyStatus,
       stateDigestStatus: computedStateDigestStatus,
       stateDigestEvidence,
+      appCompatibilityStatus,
+      workerCompatibilityStatus,
+      schemaCompatibilityStatus,
       compatibilityStatus,
       compatibilityEvidence,
       supportTicketLinkageStatus: computedSupportTicketLinkageStatus,
