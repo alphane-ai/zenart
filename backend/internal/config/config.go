@@ -276,8 +276,10 @@ func (c Config) Validate() error {
 	case "http":
 		if strings.TrimSpace(c.Security.MalwareScanEndpoint) == "" {
 			errs = append(errs, "MALWARE_SCAN_ENDPOINT must not be empty when MALWARE_SCAN_PROVIDER=http")
-		} else if parsed, err := url.ParseRequestURI(c.Security.MalwareScanEndpoint); err != nil || parsed.Scheme == "" || parsed.Host == "" {
-			errs = append(errs, fmt.Sprintf("MALWARE_SCAN_ENDPOINT must be an absolute URL: %q", c.Security.MalwareScanEndpoint))
+		} else if parsed, endpointErr := validateExternalServiceEndpoint(c.Security.MalwareScanEndpoint, "MALWARE_SCAN_ENDPOINT"); endpointErr != "" {
+			errs = append(errs, endpointErr)
+		} else if !isLocalEnvironment(c.App.Environment) && parsed.Scheme != "https" {
+			errs = append(errs, "MALWARE_SCAN_ENDPOINT must use https outside local")
 		}
 	default:
 		errs = append(errs, `MALWARE_SCAN_PROVIDER must be "stage0-placeholder" or "http"`)
@@ -431,6 +433,10 @@ func (c Config) Validate() error {
 }
 
 func validateObjectStorageEndpoint(raw, name string) (*url.URL, string) {
+	return validateExternalServiceEndpoint(raw, name)
+}
+
+func validateExternalServiceEndpoint(raw, name string) (*url.URL, string) {
 	parsed, err := url.ParseRequestURI(raw)
 	if err != nil {
 		return nil, fmt.Sprintf("%s must be a URL: %v", name, err)

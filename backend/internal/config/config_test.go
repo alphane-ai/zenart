@@ -245,6 +245,38 @@ func TestValidateRejectsInvalidSecurityConfig(t *testing.T) {
 	}
 }
 
+func TestValidateRejectsMalwareScannerEndpointCredentials(t *testing.T) {
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+
+	cfg.Security.MalwareScanProvider = "http"
+	cfg.Security.MalwareScanEndpoint = "https://scan_user:scan_secret@scanner.example.test/scan"
+	if err := cfg.Validate(); err == nil {
+		t.Fatal("Validate() error = nil, want credential-bearing malware scanner endpoint error")
+	}
+}
+
+func TestValidateRequiresHTTPSForHTTPMalwareScannerOutsideLocal(t *testing.T) {
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+
+	cfg.App.Environment = "staging"
+	cfg.Security.MalwareScanProvider = "http"
+	cfg.Security.MalwareScanEndpoint = "http://scanner.example.test/scan"
+	if err := cfg.Validate(); err == nil {
+		t.Fatal("Validate() error = nil, want non-HTTPS malware scanner endpoint error")
+	}
+
+	cfg.Security.MalwareScanEndpoint = "https://scanner.example.test/scan"
+	if err := cfg.Validate(); err != nil {
+		t.Fatalf("Validate() error = %v, want HTTPS malware scanner endpoint accepted", err)
+	}
+}
+
 func TestValidateRestrictsDevIdentityHeadersToLocalAccessMode(t *testing.T) {
 	cfg, err := Load()
 	if err != nil {
