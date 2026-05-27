@@ -438,6 +438,38 @@ export type BackendMetricsRuntimeEvidence = {
   remainingBlockers: string[];
 };
 
+export type ObservabilityTelemetryRuntimeControl = {
+  area: "request_id_propagation" | "structured_json_logs" | "opentelemetry_traces";
+  runtimeRef: string;
+  validationStatus: "verified" | "blocked";
+  services: Array<"admin_console" | "backend_api" | "worker" | "crawler">;
+  propagationProbe: string;
+  redactionProbe: string;
+  traceLinkageProbe: string;
+  releaseGateUse: string;
+  auditRef: string;
+  evidenceRefs: string[];
+};
+
+export type ObservabilityTelemetryRuntimeEvidence = {
+  id: string;
+  environment: "staging";
+  status: "pass_with_blockers_preserved";
+  validatedAt: string;
+  validatedByRole: AdminRole;
+  evidencePath: string;
+  releaseGateCheckId: "staging_observability_backup_load";
+  closedChecklistItems: Array<
+    | "staging request id propagation runtime evidence 通过。"
+    | "staging structured JSON logs runtime evidence 通过。"
+    | "staging OpenTelemetry traces runtime evidence 通过。"
+  >;
+  canClearChecklistItems: boolean;
+  aggregatePrivateBetaGateStatus: "blocked_by_other_staging_runtime_items";
+  controls: ObservabilityTelemetryRuntimeControl[];
+  remainingBlockers: string[];
+};
+
 export type ReleaseBlocker = {
   id: string;
   gate: "private_beta" | "production_launch";

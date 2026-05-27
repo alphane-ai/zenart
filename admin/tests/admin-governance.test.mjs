@@ -12,7 +12,7 @@ const parseFixtures = () => {
   const moduleSource = source
     .replace(/^import type[\s\S]*?from "@\/lib\/types";\n\n/, "")
     .replaceAll(/export const (\w+)[^=]*=/g, "const $1 =");
-  return Function(`${moduleSource}\nreturn { skillVersions, skillReleaseStateDefinitions, skillCanaryMetrics, releaseEvidence, releaseBlockers, supportTickets, supportEscalationRunbooks, supportUsers, riskyExports, abuseEvents, abuseControlHooks, stagingAuthRbacTenantAuditEvidence, stagingSupportRetryAbuseEvidence, productionAbuseThrottleHoldEvidence, productionActivationReviewAuditEvidence, productionSkillReleaseEvalCanaryEvidence, productionSecurityLaunchCheckEvidence, auditEvents, exportJobs, traces, quotaAccounts, feedbackItems, regressionFixtures, analyticsReports, queueHealth, failedTaskControls, crawlerFindings, crawlerSourceApprovals, crawlerGovernanceWorkflows, crawlerStagingRuntimeEvidence, adminRbacEvidence, operationalDashboards, operationalDashboardRuntimeEvidence, alertRoutes, alertRouteRuntimeEvidence, backendMetricsRuntimeEvidence };`)();
+  return Function(`${moduleSource}\nreturn { skillVersions, skillReleaseStateDefinitions, skillCanaryMetrics, releaseEvidence, releaseBlockers, supportTickets, supportEscalationRunbooks, supportUsers, riskyExports, abuseEvents, abuseControlHooks, stagingAuthRbacTenantAuditEvidence, stagingSupportRetryAbuseEvidence, productionAbuseThrottleHoldEvidence, productionActivationReviewAuditEvidence, productionSkillReleaseEvalCanaryEvidence, productionSecurityLaunchCheckEvidence, auditEvents, exportJobs, traces, quotaAccounts, feedbackItems, regressionFixtures, analyticsReports, queueHealth, failedTaskControls, crawlerFindings, crawlerSourceApprovals, crawlerGovernanceWorkflows, crawlerStagingRuntimeEvidence, adminRbacEvidence, operationalDashboards, operationalDashboardRuntimeEvidence, alertRoutes, alertRouteRuntimeEvidence, backendMetricsRuntimeEvidence, observabilityTelemetryRuntimeEvidence };`)();
 };
 
 const crawlerGovernanceCases = JSON.parse(
@@ -55,7 +55,8 @@ const {
   operationalDashboardRuntimeEvidence,
   alertRoutes,
   alertRouteRuntimeEvidence,
-  backendMetricsRuntimeEvidence
+  backendMetricsRuntimeEvidence,
+  observabilityTelemetryRuntimeEvidence
 } = parseFixtures();
 
 const parseAbuseRuntime = () => {
@@ -138,6 +139,10 @@ const stagingAlertRuntimePath = new URL(
 );
 const stagingMetricsRuntimePath = new URL(
   "../../ops/evidence/staging/20260527T1215Z-backend-worker-crawler-metrics.json",
+  import.meta.url
+);
+const stagingObservabilityTelemetryPath = new URL(
+  "../../ops/evidence/staging/20260527T1815Z-observability-telemetry.json",
   import.meta.url
 );
 const crawlerStagingRuntimePath = new URL(
@@ -1996,20 +2001,20 @@ test("backend worker crawler metrics runtime evidence validates staging scrapes 
   );
   assert.equal(backendMetricsRuntimeEvidence.canClearChecklistItem, true, "metrics checklist row should be clearable");
   assert.ok(
-    backendMetricsRuntimeEvidence.remainingBlockers.includes("staging request id propagation runtime evidence"),
-    "metrics evidence must preserve request-id blocker"
-  );
-  assert.ok(
-    backendMetricsRuntimeEvidence.remainingBlockers.includes("staging structured JSON logs runtime evidence"),
-    "metrics evidence must preserve structured log blocker"
-  );
-  assert.ok(
-    backendMetricsRuntimeEvidence.remainingBlockers.includes("staging OpenTelemetry traces runtime evidence"),
-    "metrics evidence must preserve trace blocker"
-  );
-  assert.ok(
     backendMetricsRuntimeEvidence.remainingBlockers.includes("staging backup/restore/load runtime evidence"),
     "metrics evidence must preserve restore/load blocker"
+  );
+  assert.ok(
+    !backendMetricsRuntimeEvidence.remainingBlockers.includes("staging request id propagation runtime evidence"),
+    "metrics evidence should no longer preserve request-id blocker after telemetry evidence closes it"
+  );
+  assert.ok(
+    !backendMetricsRuntimeEvidence.remainingBlockers.includes("staging structured JSON logs runtime evidence"),
+    "metrics evidence should no longer preserve structured-log blocker after telemetry evidence closes it"
+  );
+  assert.ok(
+    !backendMetricsRuntimeEvidence.remainingBlockers.includes("staging OpenTelemetry traces runtime evidence"),
+    "metrics evidence should no longer preserve trace blocker after telemetry evidence closes it"
   );
 
   const requiredServices = new Set(["backend_api", "worker", "crawler"]);
@@ -2064,6 +2069,119 @@ test("backend worker crawler metrics runtime evidence validates staging scrapes 
     evidenceFile.metrics_results.length,
     backendMetricsRuntimeEvidence.probes.length,
     "metrics evidence file and admin fixture must cover the same probe count"
+  );
+});
+
+test("observability telemetry runtime evidence validates staging request ids logs and traces without closing aggregate gate", () => {
+  assert.ok(existsSync(stagingObservabilityTelemetryPath), "staging observability telemetry evidence file is missing");
+  const evidenceFile = JSON.parse(readFileSync(stagingObservabilityTelemetryPath, "utf8"));
+
+  assert.equal(evidenceFile.environment, "staging", "telemetry evidence file must be staging scoped");
+  assert.equal(
+    evidenceFile.status,
+    "pass_with_blockers_preserved",
+    "telemetry evidence must pass while preserving restore/load/smoke blockers"
+  );
+  assert.equal(
+    evidenceFile.release_gate_check_id,
+    "staging_observability_backup_load",
+    "telemetry evidence must stay inside the observability backup/load gate"
+  );
+  assert.equal(
+    evidenceFile.gate_impact.can_clear_checklist_items,
+    true,
+    "telemetry evidence should clear only the telemetry checklist rows"
+  );
+  assert.equal(
+    evidenceFile.gate_impact.can_clear_aggregate_item,
+    false,
+    "telemetry evidence cannot clear the aggregate observability/backup/load item"
+  );
+  assert.equal(
+    evidenceFile.gate_impact.aggregate_private_beta_gate_status,
+    "blocked_by_other_staging_runtime_items",
+    "telemetry evidence must preserve the private beta aggregate blocker"
+  );
+
+  assert.equal(observabilityTelemetryRuntimeEvidence.environment, "staging", "admin telemetry evidence must be staging scoped");
+  assert.equal(
+    observabilityTelemetryRuntimeEvidence.evidencePath,
+    "ops/evidence/staging/20260527T1815Z-observability-telemetry.json",
+    "admin fixture must point at the telemetry evidence file"
+  );
+  assert.equal(
+    observabilityTelemetryRuntimeEvidence.canClearChecklistItems,
+    true,
+    "telemetry checklist rows should be clearable"
+  );
+  assert.ok(
+    observabilityTelemetryRuntimeEvidence.remainingBlockers.includes("staging backup/restore/load runtime evidence"),
+    "telemetry evidence must preserve backup/restore/load blocker"
+  );
+  assert.ok(
+    observabilityTelemetryRuntimeEvidence.remainingBlockers.includes("staging post-deploy smoke tests"),
+    "telemetry evidence must preserve staging smoke blocker"
+  );
+  assert.ok(
+    observabilityTelemetryRuntimeEvidence.remainingBlockers.includes("staging load evidence"),
+    "telemetry evidence must preserve load blocker"
+  );
+
+  const requiredAreas = new Set(["request_id_propagation", "structured_json_logs", "opentelemetry_traces"]);
+  const requiredServices = ["admin_console", "backend_api", "worker", "crawler"];
+  const runtimeFileRefs = new Set(evidenceFile.runtime_refs);
+  const runtimeFileResults = new Map(evidenceFile.telemetry_results.map((result) => [result.area, result]));
+
+  for (const item of [
+    "staging request id propagation runtime evidence 通过。",
+    "staging structured JSON logs runtime evidence 通过。",
+    "staging OpenTelemetry traces runtime evidence 通过。"
+  ]) {
+    assert.ok(observabilityTelemetryRuntimeEvidence.closedChecklistItems.includes(item), `missing closed checklist item ${item}`);
+    assert.ok(evidenceFile.closed_checklist_items.includes(item), `evidence file missing closed checklist item ${item}`);
+  }
+
+  for (const control of observabilityTelemetryRuntimeEvidence.controls) {
+    requiredAreas.delete(control.area);
+    const fileResult = runtimeFileResults.get(control.area);
+    assert.ok(fileResult, `${control.area} missing telemetry evidence file result`);
+    assert.equal(fileResult.runtime_ref, control.runtimeRef, `${control.area} runtime ref mismatch`);
+    assert.equal(fileResult.validation_status, control.validationStatus, `${control.area} status mismatch`);
+    assert.deepEqual(fileResult.services, control.services, `${control.area} services mismatch`);
+    assert.equal(fileResult.audit_ref, control.auditRef, `${control.area} audit mismatch`);
+    assert.equal(control.validationStatus, "verified", `${control.area} telemetry probe must be verified`);
+    assert.ok(runtimeFileRefs.has(control.runtimeRef), `${control.area} runtime ref must appear in evidence file`);
+    assert.ok(auditIds.has(control.auditRef), `${control.area} links unknown audit ${control.auditRef}`);
+    assert.ok(control.services.length === requiredServices.length, `${control.area} must cover every runtime service`);
+
+    for (const service of requiredServices) {
+      assert.ok(control.services.includes(service), `${control.area} missing service ${service}`);
+    }
+
+    assert.ok(control.propagationProbe.length > 150, `${control.area} needs propagation proof`);
+    assert.ok(control.redactionProbe.length > 140, `${control.area} needs redaction proof`);
+    assert.ok(control.traceLinkageProbe.length > 120, `${control.area} needs trace linkage proof`);
+    assert.ok(control.releaseGateUse.length > 120, `${control.area} needs release-gate use proof`);
+    assert.ok(control.evidenceRefs.includes(observabilityTelemetryRuntimeEvidence.id), `${control.area} evidence must include parent evidence`);
+    assert.ok(control.evidenceRefs.includes(control.runtimeRef), `${control.area} evidence must include runtime ref`);
+    assert.ok(control.evidenceRefs.includes(control.auditRef), `${control.area} evidence must include audit`);
+    assert.match(
+      `${control.redactionProbe} ${fileResult.redaction_probe}`,
+      /omitted|rejected|absent|redact/i,
+      `${control.area} needs redaction proof in fixture and evidence file`
+    );
+    assert.match(
+      `${control.traceLinkageProbe} ${fileResult.trace_linkage_probe}`,
+      /tr-1004|audit|request/i,
+      `${control.area} needs trace or audit linkage proof`
+    );
+  }
+
+  assert.deepEqual([...requiredAreas], [], "telemetry evidence must cover request id, structured logs, and traces");
+  assert.equal(
+    evidenceFile.telemetry_results.length,
+    observabilityTelemetryRuntimeEvidence.controls.length,
+    "telemetry evidence file and admin fixture must cover the same control count"
   );
 });
 
@@ -2183,6 +2301,17 @@ test("operations runtime evidence closes only the validated dashboard and alert 
     backendMetricsRuntimeEvidence.probes.every((probe) => probe.validationStatus === "verified"),
     "metrics checklist cannot close until backend, worker, and crawler probes are verified"
   );
+  assert.ok(
+    observabilityTelemetryRuntimeEvidence.controls.every((control) => control.validationStatus === "verified"),
+    "telemetry checklist cannot close until request-id, structured-log, and trace probes are verified"
+  );
+  for (const item of [
+    "staging request id propagation runtime evidence 通过。",
+    "staging structured JSON logs runtime evidence 通过。",
+    "staging OpenTelemetry traces runtime evidence 通过。"
+  ]) {
+    assert.ok(observabilityTelemetryRuntimeEvidence.closedChecklistItems.includes(item), `telemetry evidence missing ${item}`);
+  }
 });
 
 test("high-risk audit and release operations are immutable and rollback-linked", () => {

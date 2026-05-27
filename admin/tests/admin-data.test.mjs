@@ -62,6 +62,7 @@ test("admin fixtures cover required operational surfaces", () => {
     "export const alertRoutes",
     "export const alertRouteRuntimeEvidence",
     "export const backendMetricsRuntimeEvidence",
+    "export const observabilityTelemetryRuntimeEvidence",
     "export const releaseBlockers",
     "export const auditEvents",
     "export const analyticsReports",
@@ -276,6 +277,38 @@ test("admin operations page exposes backend worker crawler metrics runtime evide
     "queue_dead_letter_total",
     "crawler_derivative_review_open_total",
     "pass_with_blockers_preserved"
+  ]) {
+    assert.match(fixtures, new RegExp(token));
+  }
+});
+
+test("admin operations page exposes observability telemetry runtime evidence", () => {
+  const operationsPage = readFileSync(
+    new URL("../app/operations/page.tsx", import.meta.url),
+    "utf8"
+  );
+
+  for (const token of [
+    "Observability Telemetry Runtime",
+    "getObservabilityTelemetryRuntimeEvidence",
+    "Closed Checklist Rows",
+    "Propagation Probe",
+    "Redaction Probe",
+    "Trace Linkage",
+    "Can Clear Rows"
+  ]) {
+    assert.match(operationsPage, new RegExp(token));
+  }
+
+  for (const token of [
+    "observabilityTelemetryRuntimeEvidence",
+    "staging-request-id-admin-api-worker-crawler-20260527T1815Z",
+    "staging-json-logs-admin-api-worker-crawler-20260527T1815Z",
+    "staging-otel-admin-api-worker-crawler-20260527T1815Z",
+    "request_id_propagation",
+    "structured_json_logs",
+    "opentelemetry_traces",
+    "ops/evidence/staging/20260527T1815Z-observability-telemetry.json"
   ]) {
     assert.match(fixtures, new RegExp(token));
   }
@@ -636,6 +669,7 @@ test("admin fixtures cover operations gate evidence", () => {
     "staging-alert-crawler",
     "ops/evidence/staging/20260526T1000Z-dashboard-runtime.json",
     "ops/evidence/staging/20260526T1000Z-alert-runtime.json",
+    "ops/evidence/staging/20260527T1815Z-observability-telemetry.json",
     "importProbe",
     "signalProbe",
     "sloProbe",
@@ -672,6 +706,7 @@ test("admin fixtures cover operations gate evidence", () => {
     "SLO Probe",
     "Blocker Probe",
     "getReleaseBlockers",
+    "getObservabilityTelemetryRuntimeEvidence",
     "Blocking Signal",
     "Required Evidence",
     "Unblock Criteria"

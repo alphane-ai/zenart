@@ -18,6 +18,7 @@ import {
   incidentLogs,
   maintenanceBanners,
   operationalDashboardRuntimeEvidence,
+  observabilityTelemetryRuntimeEvidence,
   metaPrompts,
   operationalDashboards,
   productionActivationReviewAuditEvidence,
@@ -229,6 +230,10 @@ export async function getAlertRouteRuntimeEvidence() {
 
 export async function getBackendMetricsRuntimeEvidence() {
   return backendMetricsRuntimeEvidence;
+}
+
+export async function getObservabilityTelemetryRuntimeEvidence() {
+  return observabilityTelemetryRuntimeEvidence;
 }
 
 export async function getReleaseBlockers() {

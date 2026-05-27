@@ -38,6 +38,9 @@ STAGING_AUTH_RBAC_TENANT_AUDIT_EVIDENCE = (
 STAGING_BACKEND_WORKER_CRAWLER_METRICS_EVIDENCE = (
     ROOT / "ops" / "evidence" / "staging" / "20260527T1215Z-backend-worker-crawler-metrics.json"
 )
+STAGING_OBSERVABILITY_TELEMETRY_EVIDENCE = (
+    ROOT / "ops" / "evidence" / "staging" / "20260527T1815Z-observability-telemetry.json"
+)
 PRODUCTION_ABUSE_THROTTLE_HOLD_EVIDENCE = (
     ROOT / "ops" / "evidence" / "production" / "20260527T1330Z-abuse-throttle-hold.json"
 )
@@ -533,6 +536,10 @@ RUNTIME_PASS_EVIDENCE_FILES = {
     ],
     ("private_beta_staging", "staging_crawler_approval_provenance"): [
         ROOT / "ops" / "evidence" / "staging" / "20260527T1100Z-crawler-governance-runtime.json",
+    ],
+    ("private_beta_staging", "staging_observability_backup_load"): [
+        STAGING_BACKEND_WORKER_CRAWLER_METRICS_EVIDENCE,
+        STAGING_OBSERVABILITY_TELEMETRY_EVIDENCE,
     ],
     ("production_launch", "production_activation_review_audit"): [
         PRODUCTION_ACTIVATION_REVIEW_AUDIT_EVIDENCE,
@@ -1208,9 +1215,6 @@ REQUIRED_OPEN_ITEMS = {
     "CI 在已安装 PR/main workflow 中 build Docker images。",
     "执行 staging deploy。",
     "执行 staging smoke tests。",
-    "staging request id propagation runtime evidence 通过。",
-    "staging structured JSON logs runtime evidence 通过。",
-    "staging OpenTelemetry traces runtime evidence 通过。",
     "Staging post-deploy smoke tests 通过。",
     "Production post-deploy smoke tests 通过。",
 }
@@ -3709,15 +3713,101 @@ def validate_staging_backend_worker_crawler_metrics_evidence() -> None:
         gate_impact["can_clear_metrics_checklist_item"] is True,
         "backend/worker/crawler metrics evidence must explicitly allow check-level closure",
     )
-    for blocker in [
+    require(
+        "staging backup/restore/load runtime evidence" in gate_impact["remaining_blockers"],
+        "backend/worker/crawler metrics evidence must preserve backup/restore/load blocker",
+    )
+    for closed_blocker in [
         "staging request id propagation runtime evidence",
         "staging structured JSON logs runtime evidence",
         "staging OpenTelemetry traces runtime evidence",
+    ]:
+        require(
+            closed_blocker not in gate_impact["remaining_blockers"],
+            f"backend/worker/crawler metrics evidence must not preserve closed telemetry blocker: {closed_blocker}",
+        )
+
+
+def validate_staging_observability_telemetry_evidence() -> None:
+    evidence = load_json(STAGING_OBSERVABILITY_TELEMETRY_EVIDENCE)
+    require(
+        evidence["schema_version"] == "stage0.rev2.staging_observability_telemetry_runtime",
+        "staging observability telemetry evidence schema mismatch",
+    )
+    require(evidence["environment"] == "staging", "observability telemetry evidence must be staging-scoped")
+    require(
+        evidence["status"] == "pass_with_blockers_preserved",
+        "observability telemetry evidence must pass while preserving aggregate blockers",
+    )
+    require(
+        evidence["release_gate_check_id"] == "staging_observability_backup_load",
+        "observability telemetry evidence must target the observability/backup/load release-gate check",
+    )
+    required_items = {
+        "staging request id propagation runtime evidence 通过。",
+        "staging structured JSON logs runtime evidence 通过。",
+        "staging OpenTelemetry traces runtime evidence 通过。",
+    }
+    require(
+        set(evidence["closed_checklist_items"]) == required_items,
+        "observability telemetry evidence must name the exact telemetry checklist rows it can close",
+    )
+    telemetry_results = {item["area"]: item for item in evidence["telemetry_results"]}
+    require(
+        set(telemetry_results) == {"request_id_propagation", "structured_json_logs", "opentelemetry_traces"},
+        "observability telemetry evidence must cover request id, structured logs, and traces",
+    )
+    for area, item in telemetry_results.items():
+        require(item["validation_status"] == "verified", f"{area} telemetry runtime evidence must be verified")
+        require(item["runtime_ref"].startswith("staging-"), f"{area} telemetry runtime_ref must be staging-scoped")
+        require(
+            set(item["services"]) == {"admin_console", "backend_api", "worker", "crawler"},
+            f"{area} telemetry evidence must cover admin, backend, worker, and crawler",
+        )
+        require(item["propagation_probe"], f"{area} telemetry evidence must include propagation probe")
+        require(item["redaction_probe"], f"{area} telemetry evidence must include redaction probe")
+        require(item["trace_linkage_probe"], f"{area} telemetry evidence must include trace linkage probe")
+        require(item["audit_ref"].startswith("au-"), f"{area} telemetry evidence must cite audit_ref")
+        combined = json.dumps(item, ensure_ascii=False).lower()
+        for token in ["tr-1004", "au-007"]:
+            require(token in combined, f"{area} telemetry evidence must link {token}")
+        require(
+            any(token in combined for token in ["omitted", "rejected", "absent", "redact"]),
+            f"{area} telemetry evidence must prove sensitive-field redaction",
+        )
+    gate_impact = evidence["gate_impact"]
+    require(
+        gate_impact["can_clear_checklist_items"] is True,
+        "observability telemetry evidence must explicitly allow telemetry checklist closure",
+    )
+    require(
+        gate_impact["aggregate_checklist_item"] == "Private Beta/Staging observability/backup/load runtime evidence 通过。",
+        "observability telemetry evidence must name the aggregate private beta observability/backup/load checklist item",
+    )
+    require(
+        gate_impact["can_clear_aggregate_item"] is False,
+        "observability telemetry evidence must not claim aggregate private beta observability/backup/load closure",
+    )
+    require(
+        gate_impact["preserved_release_gate_check_id"] == "staging_observability_backup_load",
+        "observability telemetry evidence must preserve the staging observability/backup/load release-gate check",
+    )
+    require(
+        gate_impact["preserved_do_not_launch_condition_id"] == "staging_observability_restore_load_missing",
+        "observability telemetry evidence must preserve the staging observability/restore/load Do-Not-Launch condition",
+    )
+    require(
+        gate_impact["aggregate_private_beta_gate_status"] == "blocked_by_other_staging_runtime_items",
+        "observability telemetry evidence must keep aggregate private beta gate blocked",
+    )
+    for blocker in [
         "staging backup/restore/load runtime evidence",
+        "staging post-deploy smoke tests",
+        "staging load evidence",
     ]:
         require(
             blocker in gate_impact["remaining_blockers"],
-            f"backend/worker/crawler metrics evidence must preserve blocker: {blocker}",
+            f"observability telemetry evidence must preserve blocker: {blocker}",
         )
 
 
@@ -5239,9 +5329,6 @@ def validate_launch_readiness_split_contracts() -> None:
         "CI 在已安装 PR/main workflow 中 build Docker images。",
         "执行 staging deploy。",
         "执行 staging smoke tests。",
-        "staging request id propagation runtime evidence 通过。",
-        "staging structured JSON logs runtime evidence 通过。",
-        "staging OpenTelemetry traces runtime evidence 通过。",
         "Staging post-deploy smoke tests 通过。",
         "Production post-deploy smoke tests 通过。",
     ] + sorted(CI_RUNTIME_OPEN_CHECK_ITEMS) + sorted(RELEASE_GATE_RUNTIME_OPEN_ITEMS) + sorted(
@@ -5251,6 +5338,9 @@ def validate_launch_readiness_split_contracts() -> None:
             "Private Beta/Staging brief/upload/confirmation runtime evidence 通过。",
             "Private Beta/Staging crawler approval/provenance runtime evidence 通过。",
             "Private Beta/Staging support/retry/abuse runtime evidence 通过。",
+            "staging request id propagation runtime evidence 通过。",
+            "staging structured JSON logs runtime evidence 通过。",
+            "staging OpenTelemetry traces runtime evidence 通过。",
             "staging backend/worker/crawler metrics runtime evidence 通过。",
             "Production skill release/eval/canary runtime/deployment evidence 通过。",
             "Production activation review/audit runtime/deployment evidence 通过。",
@@ -5853,6 +5943,7 @@ def main() -> int:
         validate_staging_dashboard_runtime_evidence,
         validate_staging_alert_runtime_evidence,
         validate_staging_backend_worker_crawler_metrics_evidence,
+        validate_staging_observability_telemetry_evidence,
         validate_production_skill_release_eval_canary_evidence,
         validate_production_abuse_throttle_hold_evidence,
         validate_production_activation_review_audit_evidence,

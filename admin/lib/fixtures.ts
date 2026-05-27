@@ -17,6 +17,7 @@ import type {
   MaintenanceBanner,
   OperationalDashboard,
   OperationalDashboardRuntimeEvidence,
+  ObservabilityTelemetryRuntimeEvidence,
   ProviderHealth,
   ProductionActivationReviewAuditEvidence,
   ProductionAbuseThrottleHoldEvidence,
@@ -1816,10 +1817,91 @@ export const backendMetricsRuntimeEvidence: BackendMetricsRuntimeEvidence = {
     }
   ],
   remainingBlockers: [
-    "staging request id propagation runtime evidence",
-    "staging structured JSON logs runtime evidence",
-    "staging OpenTelemetry traces runtime evidence",
     "staging backup/restore/load runtime evidence"
+  ]
+};
+
+export const observabilityTelemetryRuntimeEvidence: ObservabilityTelemetryRuntimeEvidence = {
+  id: "otre-staging-20260527T1815Z",
+  environment: "staging",
+  status: "pass_with_blockers_preserved",
+  validatedAt: "2026-05-27 18:15",
+  validatedByRole: "admin_superadmin",
+  evidencePath: "ops/evidence/staging/20260527T1815Z-observability-telemetry.json",
+  releaseGateCheckId: "staging_observability_backup_load",
+  closedChecklistItems: [
+    "staging request id propagation runtime evidence 通过。",
+    "staging structured JSON logs runtime evidence 通过。",
+    "staging OpenTelemetry traces runtime evidence 通过。"
+  ],
+  canClearChecklistItems: true,
+  aggregatePrivateBetaGateStatus: "blocked_by_other_staging_runtime_items",
+  controls: [
+    {
+      area: "request_id_propagation",
+      runtimeRef: "staging-request-id-admin-api-worker-crawler-20260527T1815Z",
+      validationStatus: "verified",
+      services: ["admin_console", "backend_api", "worker", "crawler"],
+      propagationProbe: "Synthetic external-user request req-stg-7f3a entered the admin console support evidence view, crossed the backend API, queued worker retry control ft-912, and triggered crawler governance lookup cg-501 with the same x-request-id in every sampled record.",
+      redactionProbe: "Request-id samples preserved tenant-scoped correlation and omitted prompt text, provider keys, support free text, signed object keys, crawler URLs, cookies, and authorization headers from admin-visible evidence.",
+      traceLinkageProbe: "Request-id req-stg-7f3a linked trace tr-1004, support ticket sup-2204, audit au-007, queue q-export, and crawler workflow cg-501 without creating duplicate correlation ids.",
+      releaseGateUse: "This closes only the staging request-id propagation checklist row; private beta observability remains blocked until restore drill, staging smoke, and load evidence are attached.",
+      auditRef: "au-007",
+      evidenceRefs: [
+        "otre-staging-20260527T1815Z",
+        "staging-request-id-admin-api-worker-crawler-20260527T1815Z",
+        "tr-1004",
+        "sup-2204",
+        "q-export",
+        "cg-501",
+        "au-007"
+      ]
+    },
+    {
+      area: "structured_json_logs",
+      runtimeRef: "staging-json-logs-admin-api-worker-crawler-20260527T1815Z",
+      validationStatus: "verified",
+      services: ["admin_console", "backend_api", "worker", "crawler"],
+      propagationProbe: "Runtime log probe sampled admin action, API request, worker retry, export regeneration, and crawler review records with consistent schema fields for timestamp, level, service, request_id, tenant_hash, audit_ref, and release_gate_check_id.",
+      redactionProbe: "Structured log sampler rejected raw prompts, user emails, support message bodies, provider keys, signed URL secrets, exact copied crawler text, request headers, and trace payloads while preserving hashed tenant and audit references.",
+      traceLinkageProbe: "JSON log records joined to trace tr-1004, audit au-007, failed task ft-912, export ex-909, and crawler workflow cg-501 through request_id and audit_ref fields.",
+      releaseGateUse: "This closes only the staging structured JSON logs checklist row; private beta observability remains blocked until restore drill, staging smoke, and load evidence are attached.",
+      auditRef: "au-007",
+      evidenceRefs: [
+        "otre-staging-20260527T1815Z",
+        "staging-json-logs-admin-api-worker-crawler-20260527T1815Z",
+        "tr-1004",
+        "ft-912",
+        "ex-909",
+        "cg-501",
+        "au-007"
+      ]
+    },
+    {
+      area: "opentelemetry_traces",
+      runtimeRef: "staging-otel-admin-api-worker-crawler-20260527T1815Z",
+      validationStatus: "verified",
+      services: ["admin_console", "backend_api", "worker", "crawler"],
+      propagationProbe: "OpenTelemetry probe captured one distributed trace from admin retry review through backend API, worker retry scheduling, provider handoff placeholder, export packaging, and crawler provenance lookup with parent-child spans intact.",
+      redactionProbe: "Span attributes allowed workflow_id, queue_id, provider family, retry outcome, and governance workflow id but rejected prompt bodies, provider credentials, support free text, signed object keys, exact crawler text, and user identifiers.",
+      traceLinkageProbe: "Trace runtime linked request id req-stg-7f3a to trace tr-1004, audit au-007, support ticket sup-2204, export ex-909, and crawler governance workflow cg-501.",
+      releaseGateUse: "This closes only the staging OpenTelemetry traces checklist row; private beta observability remains blocked until restore drill, staging smoke, and load evidence are attached.",
+      auditRef: "au-007",
+      evidenceRefs: [
+        "otre-staging-20260527T1815Z",
+        "staging-otel-admin-api-worker-crawler-20260527T1815Z",
+        "tr-1004",
+        "sup-2204",
+        "ex-909",
+        "cg-501",
+        "au-007"
+      ]
+    }
+  ],
+  remainingBlockers: [
+    "staging backup/restore/load runtime evidence",
+    "staging post-deploy smoke tests",
+    "staging load evidence"
   ]
 };
 

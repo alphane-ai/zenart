@@ -9,6 +9,7 @@ import {
   getMaintenanceBanners,
   getOperationalDashboardRuntimeEvidence,
   getOperationalDashboards,
+  getObservabilityTelemetryRuntimeEvidence,
   getReleaseBlockers
 } from "@/lib/admin-api";
 import type {
@@ -20,6 +21,8 @@ import type {
   MaintenanceBanner,
   OperationalDashboard,
   OperationalDashboardRuntimeEvidence,
+  ObservabilityTelemetryRuntimeControl,
+  ObservabilityTelemetryRuntimeEvidence,
   ReleaseBlocker
 } from "@/lib/types";
 
@@ -32,14 +35,24 @@ function incidentTone(status: IncidentLog["status"]) {
 }
 
 export default async function OperationsPage() {
-  const [incidents, banners, dashboards, dashboardRuntimeEvidence, alerts, alertRuntimeEvidence, metricsRuntimeEvidence] = await Promise.all([
+  const [
+    incidents,
+    banners,
+    dashboards,
+    dashboardRuntimeEvidence,
+    alerts,
+    alertRuntimeEvidence,
+    metricsRuntimeEvidence,
+    telemetryRuntimeEvidence
+  ] = await Promise.all([
     getIncidentLogs(),
     getMaintenanceBanners(),
     getOperationalDashboards(),
     getOperationalDashboardRuntimeEvidence(),
     getAlertRoutes(),
     getAlertRouteRuntimeEvidence(),
-    getBackendMetricsRuntimeEvidence()
+    getBackendMetricsRuntimeEvidence(),
+    getObservabilityTelemetryRuntimeEvidence()
   ]);
   const releaseBlockers = await getReleaseBlockers();
 
@@ -71,6 +84,44 @@ export default async function OperationsPage() {
             { key: "runtime-status", header: "Runtime Status", render: (row) => <StatusBadge value={row.runtimeEvidenceStatus} label={row.runtimeEvidenceStatus} /> },
             { key: "validated", header: "Validated At", render: (row) => row.runtimeValidatedAt },
             { key: "evidence", header: "Evidence", render: (row) => row.evidenceRefs.join(", ") }
+          ]}
+        />
+      </section>
+
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>Observability Telemetry Runtime</h3>
+            <p>Staging telemetry evidence must prove request-id propagation, structured JSON log redaction, trace linkage, and gate handling.</p>
+          </div>
+        </div>
+        <DataTable<ObservabilityTelemetryRuntimeEvidence>
+          rows={[telemetryRuntimeEvidence]}
+          columns={[
+            { key: "id", header: "Evidence", render: (row) => <span className="mono">{row.id}</span> },
+            { key: "status", header: "Status", render: (row) => <StatusBadge value={row.status} label={row.status} /> },
+            { key: "role", header: "Validated By", render: (row) => row.validatedByRole },
+            { key: "check", header: "Release Gate Check", render: (row) => row.releaseGateCheckId },
+            { key: "clear", header: "Can Clear Rows", render: (row) => (row.canClearChecklistItems ? "yes" : "no") },
+            { key: "items", header: "Closed Checklist Rows", render: (row) => row.closedChecklistItems.join(", ") },
+            { key: "aggregate", header: "Aggregate Gate", render: (row) => row.aggregatePrivateBetaGateStatus },
+            { key: "path", header: "Evidence Path", render: (row) => row.evidencePath },
+            { key: "remaining", header: "Remaining Blockers", render: (row) => row.remainingBlockers.join(", ") }
+          ]}
+        />
+        <DataTable<ObservabilityTelemetryRuntimeControl>
+          rows={telemetryRuntimeEvidence.controls}
+          columns={[
+            { key: "area", header: "Area", render: (row) => row.area },
+            { key: "status", header: "Validation", render: (row) => <StatusBadge value={row.validationStatus} label={row.validationStatus} /> },
+            { key: "runtime", header: "Runtime Ref", render: (row) => row.runtimeRef },
+            { key: "services", header: "Services", render: (row) => row.services.join(", ") },
+            { key: "propagation", header: "Propagation Probe", render: (row) => row.propagationProbe },
+            { key: "redaction", header: "Redaction Probe", render: (row) => row.redactionProbe },
+            { key: "trace", header: "Trace Linkage", render: (row) => row.traceLinkageProbe },
+            { key: "release", header: "Release Gate Use", render: (row) => row.releaseGateUse },
+            { key: "audit", header: "Audit Ref", render: (row) => <span className="mono">{row.auditRef}</span> },
+            { key: "evidence", header: "Evidence Refs", render: (row) => row.evidenceRefs.join(", ") }
           ]}
         />
       </section>

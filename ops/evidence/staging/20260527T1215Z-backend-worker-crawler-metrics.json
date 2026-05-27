@@ -76,9 +76,6 @@
     "preserved_do_not_launch_condition_id": "staging_observability_restore_load_missing",
     "aggregate_private_beta_gate_status": "blocked_by_other_staging_runtime_items",
     "remaining_blockers": [
-      "staging request id propagation runtime evidence",
-      "staging structured JSON logs runtime evidence",
-      "staging OpenTelemetry traces runtime evidence",
       "staging backup/restore/load runtime evidence"
     ]
   }

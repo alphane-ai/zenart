@@ -41,7 +41,7 @@
     {
       "check_id": "staging_observability_backup_load",
       "status": "blocked",
-      "evidence_ref": "Dashboard, alert route, and backend/worker/crawler metrics staging runtime evidence passed in ops/evidence/staging/20260526T1000Z-dashboard-runtime.json, ops/evidence/staging/20260526T1000Z-alert-runtime.json, and ops/evidence/staging/20260527T1215Z-backend-worker-crawler-metrics.json, but request-id, structured log, trace, restore, smoke, and load staging runtime evidence remains absent"
+      "evidence_ref": "Dashboard, alert route, backend/worker/crawler metrics, request-id propagation, structured JSON logs, and OpenTelemetry traces staging runtime evidence passed in ops/evidence/staging/20260526T1000Z-dashboard-runtime.json, ops/evidence/staging/20260526T1000Z-alert-runtime.json, ops/evidence/staging/20260527T1215Z-backend-worker-crawler-metrics.json, and ops/evidence/staging/20260527T1815Z-observability-telemetry.json, but restore, smoke, and load staging runtime evidence remains absent"
     },
     {
       "check_id": "staging_legal_external_user_pages",
@@ -102,7 +102,7 @@
       "condition_id": "staging_observability_restore_load_missing",
       "blueprint_condition": "Staging 缺 provider、queue、export、quota、safety、crawler、object storage、billing、admin failure 的 logs/metrics/traces/dashboards/alerts/runbooks。",
       "is_present": true,
-      "evidence_ref": "ops/evidence/staging/ dashboard, alert route, and backend/worker/crawler metrics staging runtime evidence passed, but request-id propagation, structured logs, traces, restore drill, smoke, and load evidence remain open"
+      "evidence_ref": "ops/evidence/staging/ dashboard, alert route, backend/worker/crawler metrics, request-id propagation, structured logs, and traces runtime evidence passed, but restore drill, staging smoke, and load evidence remain open"
     },
     {
       "condition_id": "external_user_legal_pages_missing",
@@ -127,7 +127,7 @@
       "staging_observability_restore_load_missing",
       "external_user_legal_pages_missing"
     ],
-    "evidence_ref": "fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json remains no-go while staging_object_storage_signed_downloads, staging_quota_rate_limit_spend_cap, staging_eval_qa_safety_runtime, staging_observability_backup_load, and staging_legal_external_user_pages are blocked and rate_limit_spend_cap_runtime_missing, object_storage_signed_retention_runtime_missing, eval_qa_safety_runtime_missing, staging_observability_restore_load_missing, and external_user_legal_pages_missing remain active after auth/RBAC/tenant/audit evidence passed in ops/evidence/staging/20260527T1515Z-auth-rbac-tenant-audit.json and brief/upload/confirmation evidence passed in ops/evidence/staging/20260526T2330Z-brief-upload-confirmation.json"
+    "evidence_ref": "fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json remains no-go while staging_object_storage_signed_downloads, staging_quota_rate_limit_spend_cap, staging_eval_qa_safety_runtime, staging_observability_backup_load, and staging_legal_external_user_pages are blocked and rate_limit_spend_cap_runtime_missing, object_storage_signed_retention_runtime_missing, eval_qa_safety_runtime_missing, staging_observability_restore_load_missing, and external_user_legal_pages_missing remain active after auth/RBAC/tenant/audit evidence passed in ops/evidence/staging/20260527T1515Z-auth-rbac-tenant-audit.json, brief/upload/confirmation evidence passed in ops/evidence/staging/20260526T2330Z-brief-upload-confirmation.json, and observability telemetry evidence passed in ops/evidence/staging/20260527T1815Z-observability-telemetry.json"
   },
   "provenance": {
     "blueprint_sections": [
