@@ -6428,8 +6428,12 @@ def validate_production_backup_rollback_incident_admin_evidence() -> None:
 
     gate_impact = evidence["gate_impact"]
     require(
-        "Production post-deploy smoke tests 通过。" in gate_impact["checklist_items"],
-        "production backup/rollback admin evidence must expose the legacy ambiguous source row it is splitting",
+        gate_impact["checklist_items"] == [PRODUCTION_BACKUP_ROLLBACK_INCIDENT_ADMIN_CHECKLIST_ITEM],
+        "production backup/rollback admin evidence must name only the explicit admin-visible probe checklist row",
+    )
+    require(
+        "Production post-deploy smoke tests 通过。" not in json.dumps(gate_impact, ensure_ascii=False),
+        "production backup/rollback admin evidence must not reuse the ambiguous post-deploy smoke checklist label",
     )
     require(
         gate_impact["can_clear_check_level_items"] is False,
@@ -7831,6 +7835,7 @@ def validate_launch_readiness_split_contracts() -> None:
         "Local Alpha remains open until four workflow API/Playwright smokes",
         "Production Launch cannot clear `ci_staging_gates_not_passed` or pass backup/rollback/post-deploy evidence until both",
         "Production backup/rollback/post-deploy pass evidence must cite both upstream gate fixtures",
+        "must not appear inside release-gate fixtures or runtime evidence `gate_impact.checklist_items`",
         "Blocked split runtime/deployment checks must name every exact split evidence file still required for closure",
         "must also state whether each exact split evidence file is already present/passed or still absent/missing",
         "Blocked split runtime/deployment checks that mention an existing split evidence file must validate that file against its owning checked checklist row",
