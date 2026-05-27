@@ -1796,15 +1796,19 @@ main 合并前必须通过：
 - [x] 实现电商增长包 acceptance fixture。
 - [x] 电商增长包 API smoke test 通过。
 - [x] 电商增长包 Playwright happy path 通过。
+- [x] 电商增长包 export ZIP evidence 通过：`ops/evidence/local_alpha/ecommerce_growth_pack.export_zip.json` proves manifest、QA report、safety report、provenance、metadata、AI disclaimer、trace payloads and four-option taxonomy。
 - [x] 实现商业视觉文档包 acceptance fixture。
 - [x] 商业视觉文档包 API smoke test 通过。
 - [x] 商业视觉文档包 Playwright happy path 通过。
+- [x] 商业视觉文档包 export ZIP evidence 通过：`ops/evidence/local_alpha/business_visual_doc_pack.export_zip.json` proves manifest、QA report、safety report、provenance、metadata、AI disclaimer、trace payloads and four-option taxonomy。
 - [x] 实现本地商家活动包 acceptance fixture。
 - [ ] 本地商家活动包 API smoke test 通过。
 - [ ] 本地商家活动包 Playwright happy path 通过。
+- [ ] 本地商家活动包 export ZIP evidence 通过：`ops/evidence/local_alpha/local_merchant_campaign_pack.export_zip.json` proves manifest、QA report、safety report、provenance、metadata、AI disclaimer、trace payloads and four-option taxonomy。
 - [x] 实现角色/IP 概念包 acceptance fixture。
 - [ ] 角色/IP 概念包 API smoke test 通过。
 - [ ] 角色/IP 概念包 Playwright happy path 通过。
+- [ ] 角色/IP 概念包 export ZIP evidence 通过：`ops/evidence/local_alpha/character_ip_concept_pack.export_zip.json` proves manifest、QA report、safety report、provenance、metadata、AI disclaimer、trace payloads and four-option taxonomy。
 - [x] 每条 workflow 定义 required inputs。
 - [x] 每条 workflow 定义 clarification questions。
 - [x] 每条 workflow 定义 4-option taxonomy。

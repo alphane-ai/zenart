@@ -1303,12 +1303,16 @@ PRODUCTION_AGGREGATE_RUNTIME_ITEM = (
 LOCAL_ALPHA_WORKFLOW_RUNTIME_ITEMS = {
     "电商增长包 API smoke test 通过。",
     "电商增长包 Playwright happy path 通过。",
+    "电商增长包 export ZIP evidence 通过：`ops/evidence/local_alpha/ecommerce_growth_pack.export_zip.json` proves manifest、QA report、safety report、provenance、metadata、AI disclaimer、trace payloads and four-option taxonomy。",
     "商业视觉文档包 API smoke test 通过。",
     "商业视觉文档包 Playwright happy path 通过。",
+    "商业视觉文档包 export ZIP evidence 通过：`ops/evidence/local_alpha/business_visual_doc_pack.export_zip.json` proves manifest、QA report、safety report、provenance、metadata、AI disclaimer、trace payloads and four-option taxonomy。",
     "本地商家活动包 API smoke test 通过。",
     "本地商家活动包 Playwright happy path 通过。",
+    "本地商家活动包 export ZIP evidence 通过：`ops/evidence/local_alpha/local_merchant_campaign_pack.export_zip.json` proves manifest、QA report、safety report、provenance、metadata、AI disclaimer、trace payloads and four-option taxonomy。",
     "角色/IP 概念包 API smoke test 通过。",
     "角色/IP 概念包 Playwright happy path 通过。",
+    "角色/IP 概念包 export ZIP evidence 通过：`ops/evidence/local_alpha/character_ip_concept_pack.export_zip.json` proves manifest、QA report、safety report、provenance、metadata、AI disclaimer、trace payloads and four-option taxonomy。",
 }
 
 LOCAL_ALPHA_RELEASE_GATE_WORKFLOW_RUNTIME_OPEN_CHECK_ITEMS = {
@@ -1550,12 +1554,16 @@ RELEASE_GATE_PASS_BLOCKED_BY_OPEN_ITEMS = {
     "local_alpha": {
         "电商增长包 API smoke test 通过。",
         "电商增长包 Playwright happy path 通过。",
+        "电商增长包 export ZIP evidence 通过：`ops/evidence/local_alpha/ecommerce_growth_pack.export_zip.json` proves manifest、QA report、safety report、provenance、metadata、AI disclaimer、trace payloads and four-option taxonomy。",
         "商业视觉文档包 API smoke test 通过。",
         "商业视觉文档包 Playwright happy path 通过。",
+        "商业视觉文档包 export ZIP evidence 通过：`ops/evidence/local_alpha/business_visual_doc_pack.export_zip.json` proves manifest、QA report、safety report、provenance、metadata、AI disclaimer、trace payloads and four-option taxonomy。",
         "本地商家活动包 API smoke test 通过。",
         "本地商家活动包 Playwright happy path 通过。",
+        "本地商家活动包 export ZIP evidence 通过：`ops/evidence/local_alpha/local_merchant_campaign_pack.export_zip.json` proves manifest、QA report、safety report、provenance、metadata、AI disclaimer、trace payloads and four-option taxonomy。",
         "角色/IP 概念包 API smoke test 通过。",
         "角色/IP 概念包 Playwright happy path 通过。",
+        "角色/IP 概念包 export ZIP evidence 通过：`ops/evidence/local_alpha/character_ip_concept_pack.export_zip.json` proves manifest、QA report、safety report、provenance、metadata、AI disclaimer、trace payloads and four-option taxonomy。",
     },
     "ci": {
         "添加 PR/main CI 到 `.github/workflows`。（token-blocked：当前 token 缺 workflow scope；draft/evidence 已落在 `ops/ci/` 和 `fixtures/ops/`。）",
@@ -1584,12 +1592,24 @@ RELEASE_GATE_OPEN_ITEM_GUARD_CHECKS = {
     "local_alpha": {
         "电商增长包 API smoke test 通过。": {"local_alpha_e2e_workflow_smoke"},
         "电商增长包 Playwright happy path 通过。": {"local_alpha_e2e_workflow_smoke"},
+        "电商增长包 export ZIP evidence 通过：`ops/evidence/local_alpha/ecommerce_growth_pack.export_zip.json` proves manifest、QA report、safety report、provenance、metadata、AI disclaimer、trace payloads and four-option taxonomy。": {
+            "local_alpha_e2e_workflow_smoke"
+        },
         "商业视觉文档包 API smoke test 通过。": {"local_alpha_e2e_workflow_smoke"},
         "商业视觉文档包 Playwright happy path 通过。": {"local_alpha_e2e_workflow_smoke"},
+        "商业视觉文档包 export ZIP evidence 通过：`ops/evidence/local_alpha/business_visual_doc_pack.export_zip.json` proves manifest、QA report、safety report、provenance、metadata、AI disclaimer、trace payloads and four-option taxonomy。": {
+            "local_alpha_e2e_workflow_smoke"
+        },
         "本地商家活动包 API smoke test 通过。": {"local_alpha_e2e_workflow_smoke"},
         "本地商家活动包 Playwright happy path 通过。": {"local_alpha_e2e_workflow_smoke"},
+        "本地商家活动包 export ZIP evidence 通过：`ops/evidence/local_alpha/local_merchant_campaign_pack.export_zip.json` proves manifest、QA report、safety report、provenance、metadata、AI disclaimer、trace payloads and four-option taxonomy。": {
+            "local_alpha_e2e_workflow_smoke"
+        },
         "角色/IP 概念包 API smoke test 通过。": {"local_alpha_e2e_workflow_smoke"},
         "角色/IP 概念包 Playwright happy path 通过。": {"local_alpha_e2e_workflow_smoke"},
+        "角色/IP 概念包 export ZIP evidence 通过：`ops/evidence/local_alpha/character_ip_concept_pack.export_zip.json` proves manifest、QA report、safety report、provenance、metadata、AI disclaimer、trace payloads and four-option taxonomy。": {
+            "local_alpha_e2e_workflow_smoke"
+        },
     },
     "ci": {
         "添加 PR/main CI 到 `.github/workflows`。（token-blocked：当前 token 缺 workflow scope；draft/evidence 已落在 `ops/ci/` 和 `fixtures/ops/`。）": {
@@ -1781,12 +1801,16 @@ REQUIRED_OPEN_ITEMS = {
     "Production Launch runtime/deployment evidence 通过：provider-or-comp-only、paid lifecycle、skill canary、activation audit、abuse hold、security、backup/rollback/post-deploy smoke、legal/support policy 均有 production evidence。",
     "电商增长包 API smoke test 通过。",
     "电商增长包 Playwright happy path 通过。",
+    "电商增长包 export ZIP evidence 通过：`ops/evidence/local_alpha/ecommerce_growth_pack.export_zip.json` proves manifest、QA report、safety report、provenance、metadata、AI disclaimer、trace payloads and four-option taxonomy。",
     "商业视觉文档包 API smoke test 通过。",
     "商业视觉文档包 Playwright happy path 通过。",
+    "商业视觉文档包 export ZIP evidence 通过：`ops/evidence/local_alpha/business_visual_doc_pack.export_zip.json` proves manifest、QA report、safety report、provenance、metadata、AI disclaimer、trace payloads and four-option taxonomy。",
     "本地商家活动包 API smoke test 通过。",
     "本地商家活动包 Playwright happy path 通过。",
+    "本地商家活动包 export ZIP evidence 通过：`ops/evidence/local_alpha/local_merchant_campaign_pack.export_zip.json` proves manifest、QA report、safety report、provenance、metadata、AI disclaimer、trace payloads and four-option taxonomy。",
     "角色/IP 概念包 API smoke test 通过。",
     "角色/IP 概念包 Playwright happy path 通过。",
+    "角色/IP 概念包 export ZIP evidence 通过：`ops/evidence/local_alpha/character_ip_concept_pack.export_zip.json` proves manifest、QA report、safety report、provenance、metadata、AI disclaimer、trace payloads and four-option taxonomy。",
     "Local Alpha 电商增长包 runtime smoke evidence 写入 release gate fixture：`ops/evidence/local_alpha/ecommerce_growth_pack.api_smoke.json`、`ops/evidence/local_alpha/ecommerce_growth_pack.playwright_happy_path.json`、`ops/evidence/local_alpha/ecommerce_growth_pack.export_zip.json` 均证明 running local stack。",
     "Local Alpha 商业视觉文档包 runtime smoke evidence 写入 release gate fixture：`ops/evidence/local_alpha/business_visual_doc_pack.api_smoke.json`、`ops/evidence/local_alpha/business_visual_doc_pack.playwright_happy_path.json`、`ops/evidence/local_alpha/business_visual_doc_pack.export_zip.json` 均证明 running local stack。",
     "Local Alpha 本地商家活动包 runtime smoke evidence 写入 release gate fixture：`ops/evidence/local_alpha/local_merchant_campaign_pack.api_smoke.json`、`ops/evidence/local_alpha/local_merchant_campaign_pack.playwright_happy_path.json`、`ops/evidence/local_alpha/local_merchant_campaign_pack.export_zip.json` 均证明 running local stack。",
@@ -1853,8 +1877,10 @@ REQUIRED_OPEN_ITEMS -= {
     PRODUCTION_BACKUP_ROLLBACK_INCIDENT_ADMIN_CHECKLIST_ITEM,
     "电商增长包 API smoke test 通过。",
     "电商增长包 Playwright happy path 通过。",
+    "电商增长包 export ZIP evidence 通过：`ops/evidence/local_alpha/ecommerce_growth_pack.export_zip.json` proves manifest、QA report、safety report、provenance、metadata、AI disclaimer、trace payloads and four-option taxonomy。",
     "商业视觉文档包 API smoke test 通过。",
     "商业视觉文档包 Playwright happy path 通过。",
+    "商业视觉文档包 export ZIP evidence 通过：`ops/evidence/local_alpha/business_visual_doc_pack.export_zip.json` proves manifest、QA report、safety report、provenance、metadata、AI disclaimer、trace payloads and four-option taxonomy。",
     *LOCAL_ALPHA_RELEASE_GATE_WORKFLOW_RUNTIME_CLOSED_ITEMS.keys(),
 }
 
@@ -2109,24 +2135,28 @@ WORKFLOW_ACCEPTANCE_SPLITS = {
         "fixture_item": "实现电商增长包 acceptance fixture。",
         "api_item": "电商增长包 API smoke test 通过。",
         "playwright_item": "电商增长包 Playwright happy path 通过。",
+        "export_item": "电商增长包 export ZIP evidence 通过：`ops/evidence/local_alpha/ecommerce_growth_pack.export_zip.json` proves manifest、QA report、safety report、provenance、metadata、AI disclaimer、trace payloads and four-option taxonomy。",
         "ambiguous_item": "实现电商增长包 fixture/API test/Playwright test。",
     },
     "business_visual_doc_pack": {
         "fixture_item": "实现商业视觉文档包 acceptance fixture。",
         "api_item": "商业视觉文档包 API smoke test 通过。",
         "playwright_item": "商业视觉文档包 Playwright happy path 通过。",
+        "export_item": "商业视觉文档包 export ZIP evidence 通过：`ops/evidence/local_alpha/business_visual_doc_pack.export_zip.json` proves manifest、QA report、safety report、provenance、metadata、AI disclaimer、trace payloads and four-option taxonomy。",
         "ambiguous_item": "实现商业视觉文档包 fixture/API test/Playwright test。",
     },
     "local_merchant_campaign_pack": {
         "fixture_item": "实现本地商家活动包 acceptance fixture。",
         "api_item": "本地商家活动包 API smoke test 通过。",
         "playwright_item": "本地商家活动包 Playwright happy path 通过。",
+        "export_item": "本地商家活动包 export ZIP evidence 通过：`ops/evidence/local_alpha/local_merchant_campaign_pack.export_zip.json` proves manifest、QA report、safety report、provenance、metadata、AI disclaimer、trace payloads and four-option taxonomy。",
         "ambiguous_item": "实现本地商家活动包 fixture/API test/Playwright test。",
     },
     "character_ip_concept_pack": {
         "fixture_item": "实现角色/IP 概念包 acceptance fixture。",
         "api_item": "角色/IP 概念包 API smoke test 通过。",
         "playwright_item": "角色/IP 概念包 Playwright happy path 通过。",
+        "export_item": "角色/IP 概念包 export ZIP evidence 通过：`ops/evidence/local_alpha/character_ip_concept_pack.export_zip.json` proves manifest、QA report、safety report、provenance、metadata、AI disclaimer、trace payloads and four-option taxonomy。",
         "ambiguous_item": "实现角色/IP 概念包 fixture/API test/Playwright test。",
     },
 }
@@ -2144,16 +2174,34 @@ WORKFLOW_RUNTIME_EVIDENCE_REQUIREMENTS = {
         "required_status": "executed",
         "required_evidence_terms": ("playwright", "happy path"),
     },
+    "export_item": {
+        "contract_key": None,
+        "status_label": "export ZIP",
+        "required_status": "executed",
+        "required_evidence_terms": (
+            "export zip",
+            "manifest",
+            "qa report",
+            "safety",
+            "provenance",
+            "metadata",
+            "ai disclaimer",
+            "trace",
+            "taxonomy",
+        ),
+    },
 }
 
 WORKFLOW_RUNTIME_CLOSED_ITEMS = {
     "ecommerce_growth_pack": {
         "api_item",
         "playwright_item",
+        "export_item",
     },
     "business_visual_doc_pack": {
         "api_item",
         "playwright_item",
+        "export_item",
     },
 }
 
@@ -2342,12 +2390,17 @@ def require_local_alpha_single_workflow_runtime_files(
     evidence_ref: str,
     workflow_id: str,
     context: str,
+    evidence_kinds: set[str] | None = None,
 ) -> None:
     require(
         workflow_id in LOCAL_ALPHA_WORKFLOW_RUNTIME_EVIDENCE_FILES,
         f"{context} references unknown Local Alpha workflow {workflow_id}",
     )
-    required_files = list(LOCAL_ALPHA_WORKFLOW_RUNTIME_EVIDENCE_FILES[workflow_id].values())
+    workflow_files = LOCAL_ALPHA_WORKFLOW_RUNTIME_EVIDENCE_FILES[workflow_id]
+    selected_kinds = evidence_kinds if evidence_kinds is not None else set(workflow_files)
+    unknown_kinds = selected_kinds - set(workflow_files)
+    require(not unknown_kinds, f"{context} references unknown Local Alpha evidence kinds: {sorted(unknown_kinds)}")
+    required_files = [workflow_files[kind] for kind in sorted(selected_kinds)]
     require_evidence_ref_cites_files(evidence_ref, required_files, context)
     for runtime_path in required_files:
         evidence = load_json_if_path(rel(runtime_path))
@@ -2372,11 +2425,7 @@ def require_local_alpha_single_workflow_runtime_files(
             evidence.get("proves_running_local_stack") is True,
             f"{context} evidence file {rel(runtime_path)} must prove the running local stack",
         )
-        evidence_kind = next(
-            kind
-            for kind, expected_path in LOCAL_ALPHA_WORKFLOW_RUNTIME_EVIDENCE_FILES[workflow_id].items()
-            if expected_path == runtime_path
-        )
+        evidence_kind = next(kind for kind, expected_path in workflow_files.items() if expected_path == runtime_path)
         validate_local_alpha_workflow_runtime_evidence_file(
             evidence,
             workflow_id=workflow_id,
@@ -4540,12 +4589,21 @@ def validate_workflow_acceptance_split_contracts() -> None:
         )
         for item_key, requirement in WORKFLOW_RUNTIME_EVIDENCE_REQUIREMENTS.items():
             checklist_item = split[item_key]
-            contract = data[requirement["contract_key"]]
+            contract_key = requirement["contract_key"]
+            contract = data[contract_key] if contract_key is not None else None
             if checklist_item in unchecked_lines:
-                require(
-                    contract["execution_status"] == "not_executed",
-                    f"{workflow_id} {requirement['status_label']} contract must not claim runtime execution while checklist item is open",
-                )
+                if contract is not None:
+                    require(
+                        contract["execution_status"] == "not_executed",
+                        f"{workflow_id} {requirement['status_label']} contract must not claim runtime execution while checklist item is open",
+                    )
+                else:
+                    evidence_kind = item_key.removesuffix("_item")
+                    evidence_path = LOCAL_ALPHA_WORKFLOW_RUNTIME_EVIDENCE_FILES[workflow_id][evidence_kind]
+                    require(
+                        not evidence_path.exists(),
+                        f"{workflow_id} {requirement['status_label']} checklist item is open but exact evidence exists: {rel(evidence_path)}",
+                    )
                 continue
 
             require(
@@ -4559,12 +4617,17 @@ def validate_workflow_acceptance_split_contracts() -> None:
                     local_alpha_smoke["evidence_ref"],
                     workflow_id,
                     f"{workflow_id} {requirement['status_label']} runtime closure",
+                    {expected_kind},
                 )
                 require(
                     rel(expected_path) in local_alpha_smoke["evidence_ref"],
                     f"{workflow_id} {requirement['status_label']} closure must cite exact runtime evidence file",
                 )
             else:
+                require(
+                    contract is not None,
+                    f"{workflow_id} {requirement['status_label']} closure requires exact evidence file validation",
+                )
                 require(
                     contract["execution_status"] == requirement["required_status"],
                     f"{workflow_id} {requirement['status_label']} checklist item is closed but fixture contract is not executed",
