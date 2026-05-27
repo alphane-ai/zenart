@@ -1171,6 +1171,42 @@ func TestAdminExportCleanupRunsServiceAndRecordsAudit(t *testing.T) {
 	}
 }
 
+func TestAdminExportCleanupFailsClosedWithoutAuditRecorder(t *testing.T) {
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	cfg.Auth.AdminDevIdentityHeaders = true
+	db := &fakeStage0DB{execTags: []pgconn.CommandTag{
+		pgconn.NewCommandTag("UPDATE 2"),
+		pgconn.NewCommandTag("UPDATE 1"),
+	}}
+
+	req := httptest.NewRequest(http.MethodPost, "/api/admin/v1/exports/cleanup", bytes.NewBufferString(`{"rationale":"staging retention cleanup","limit":25}`))
+	req = req.WithContext(stage0.ContextWithService(req.Context(), stage0.NewService(stage0.NewRepository(db), nil)))
+	req.Header.Set("X-Zenart-User-ID", "admin_super_1")
+	req.Header.Set("X-Zenart-Tenant-ID", "tenant_1")
+	req.Header.Set("X-Zenart-Roles", "admin_superadmin")
+	setSameSiteCSRFHeaders(req)
+	rec := httptest.NewRecorder()
+
+	New(cfg, nil).Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNotImplemented {
+		t.Fatalf("status = %d, want %d: %s", rec.Code, http.StatusNotImplemented, rec.Body.String())
+	}
+	var body map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("response JSON error = %v", err)
+	}
+	if body["code"] != "cleanup_audit_not_connected" {
+		t.Fatalf("code = %v, want cleanup_audit_not_connected", body["code"])
+	}
+	if len(db.execs) != 0 {
+		t.Fatalf("cleanup ran without audit recorder: %#v", db.execs)
+	}
+}
+
 func TestAdminCrawlerStartRunRequiresOperator(t *testing.T) {
 	cfg, err := config.Load()
 	if err != nil {

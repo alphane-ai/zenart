@@ -735,33 +735,36 @@ func (s *Server) cleanupExports(w http.ResponseWriter, r *http.Request) {
 	if limit > 500 {
 		limit = 500
 	}
+	recorder, ok := audit.RecorderFromContext(r.Context())
+	if !ok {
+		writeError(w, r, http.StatusNotImplemented, "cleanup_audit_not_connected", "object retention cleanup audit logging is not connected yet", nil)
+		return
+	}
 	now := time.Now().UTC()
 	result, err := service.CleanupExpiredExportsAndOrphanedObjectsForTenant(r.Context(), principal.TenantID, now, limit)
 	if err != nil {
 		writeStage0Error(w, r, err)
 		return
 	}
-	if recorder, ok := audit.RecorderFromContext(r.Context()); ok {
-		if err := recorder.Record(r.Context(), audit.Event{
-			ID:       newAuditID(principal.TenantID, principal.UserID, "export.cleanup", now.Format(time.RFC3339Nano)),
-			TenantID: principal.TenantID,
-			ActorID:  principal.UserID,
-			Action:   "export.cleanup",
-			Resource: "object_retention_cleanup",
-			Metadata: map[string]any{
-				"rationale":        rationale,
-				"limit":            limit,
-				"expired_exports":  result.ExpiredExports,
-				"orphaned_objects": result.OrphanedObjects,
-				"deleted_objects":  result.DeletedObjects,
-				"failed_objects":   result.FailedObjects,
-				"cleanup_status":   result.Status,
-			},
-			CreatedAt: now,
-		}); err != nil {
-			writeError(w, r, http.StatusInternalServerError, "audit_record_error", "object retention cleanup audit record could not be written", nil)
-			return
-		}
+	if err := recorder.Record(r.Context(), audit.Event{
+		ID:       newAuditID(principal.TenantID, principal.UserID, "export.cleanup", now.Format(time.RFC3339Nano)),
+		TenantID: principal.TenantID,
+		ActorID:  principal.UserID,
+		Action:   "export.cleanup",
+		Resource: "object_retention_cleanup",
+		Metadata: map[string]any{
+			"rationale":        rationale,
+			"limit":            limit,
+			"expired_exports":  result.ExpiredExports,
+			"orphaned_objects": result.OrphanedObjects,
+			"deleted_objects":  result.DeletedObjects,
+			"failed_objects":   result.FailedObjects,
+			"cleanup_status":   result.Status,
+		},
+		CreatedAt: now,
+	}); err != nil {
+		writeError(w, r, http.StatusInternalServerError, "audit_record_error", "object retention cleanup audit record could not be written", nil)
+		return
 	}
 	writeJSON(w, http.StatusAccepted, result)
 }
