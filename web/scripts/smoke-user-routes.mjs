@@ -667,6 +667,8 @@ if (packageExportEvidence.minimumZipPayloadCount !== "7") {
 }
 if (
   packageExportEvidence.expectedCrossPayloadIdentityStatus !== "pass" ||
+  packageExportEvidence.expectedIdentityContractDigest !==
+    "export-001::pkg-002::project-001::ecommerce_growth_pack::fx_ecommerce_growth_golden::dev-provider::deterministic-local-alpha::social_proof::ecommerce_growth_pack::pass" ||
   packageExportEvidence.expectedCrossPayloadIdentityCount !== "5" ||
   packageExportEvidence.expectedMissingCrossPayloadIdentityCount !== "0"
 ) {
@@ -763,6 +765,8 @@ if (
   exportDownloadParityEvidence.expectedDownloadHandoffStatus !== "pass" ||
   exportDownloadParityEvidence.expectedMissingPayloadCount !== "0" ||
   exportDownloadParityEvidence.expectedPayloadsMatch !== "true" ||
+  exportDownloadParityEvidence.expectedIdentityContractDigest !== packageExportEvidence.expectedIdentityContractDigest ||
+  exportDownloadParityEvidence.expectedIdentityDigestMatch !== "true" ||
   exportDownloadParityEvidence.scenario !== "metadata-zip-smoke-download-handoff-parity"
 ) {
   fail("export download parity smoke must assert metadata, ZIP payload, and browser handoff parity");
@@ -1285,6 +1289,7 @@ for (const expectedPackageExportMetadataSnippet of [
   "data-package-export-required-zip-payload-count",
   "data-package-export-zip-payload-parity-status",
   "data-package-export-zip-payload-parity-ratio",
+  "data-package-export-identity-contract-digest",
   "data-package-export-payload-row",
   "data-package-export-payload-name",
   "data-package-export-payload-present",

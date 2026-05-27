@@ -551,6 +551,7 @@ export interface PackageExportMetadataEvidence {
   zipPayloadParityRatio: string;
   missingZipPayloadNames: string[];
   crossPayloadIdentityStatus: "pass" | "fail";
+  identityContractDigest: string;
   crossPayloadIdentityNames: string[];
   missingCrossPayloadIdentityNames: string[];
   crossPayloadIdentityStatuses: Array<{
@@ -645,6 +646,8 @@ export interface ExportDownloadParityEvidence {
   zipExpectedPayloadNames: string[];
   payloadContractDigest: string;
   metadataPayloadDigestMatchesZipPayloadDigest: boolean;
+  identityContractDigest: string;
+  metadataIdentityDigestMatchesRecord: boolean;
   identityStatus: "pass" | "fail";
   itemProvenanceParityStatus: PackageExportMetadataEvidence["itemProvenanceParityStatus"];
   itemProvenanceParityCount: number;
@@ -673,6 +676,7 @@ export interface ExportDownloadParityEvidence {
     | "required-parity"
     | "payload-list"
     | "payload-digest"
+    | "identity-digest"
     | "identity"
     | "item-provenance"
     | "provider"

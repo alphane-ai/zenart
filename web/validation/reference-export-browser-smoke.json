@@ -50,6 +50,7 @@
       "data-package-export-identity-package-id",
       "data-package-export-identity-project-id",
       "data-package-export-identity-provider",
+      "data-package-export-identity-contract-digest",
       "data-reference-upload-export-contract",
       "data-reference-export-contract-status",
       "data-reference-export-provenances",
@@ -58,6 +59,8 @@
       "data-reference-export-item-ppt-slide-present",
       "data-export-zip-payload-expected-payloads",
       "data-export-download-parity-status",
+      "data-export-download-parity-identity-contract-digest",
+      "data-export-download-parity-identity-digest-match",
       "download.suggestedFilename()",
       "JSZip.loadAsync",
       "downloaded ZIP payload set should match package/export metadata",
@@ -80,7 +83,12 @@
     "referenceUpload": {
       "schemaVersion": "stage0.rev2.reference-upload-integration-smoke",
       "expectedStatus": "pass",
-      "expectedOperations": ["createUpload", "createPackage", "createExport", "getExport"],
+      "expectedOperations": [
+        "createUpload",
+        "createPackage",
+        "createExport",
+        "getExport"
+      ],
       "expectedUploadMethod": "POST",
       "expectedUploadPath": "/uploads",
       "expectedUploadCsrfHeader": "X-ZenArt-CSRF",
@@ -103,7 +111,13 @@
       "schemaVersion": "stage0.rev2.workspace-rendering-performance",
       "expectedStatus": "pass",
       "expectedFailureCount": "0",
-      "requiredInteractionSteps": ["load", "brief-confirm", "candidate-select", "package-add", "export-ready"]
+      "requiredInteractionSteps": [
+        "load",
+        "brief-confirm",
+        "candidate-select",
+        "package-add",
+        "export-ready"
+      ]
     },
     "packageExportMetadata": {
       "schemaVersion": "stage0.rev2.package-export-metadata-ui",
@@ -115,7 +129,8 @@
       "expectedTraceProvenancePayloadPresent": "true",
       "expectedAiContentDisclaimerPayloadPresent": "true",
       "expectedCrossPayloadIdentityPayloadCount": "5",
-      "expectedCrossPayloadIdentityPresentStatus": "pass"
+      "expectedCrossPayloadIdentityPresentStatus": "pass",
+      "expectedIdentityContractDigest": "export-001::pkg-002::project-001::ecommerce_growth_pack::fx_ecommerce_growth_golden::dev-provider::deterministic-local-alpha::social_proof::ecommerce_growth_pack::pass"
     },
     "downloadParity": {
       "schemaVersion": "stage0.rev2.export-download-parity-smoke",
@@ -128,7 +143,9 @@
       "expectedModel": "deterministic-local-alpha",
       "expectedPromptSpecTaxonomy": "social_proof",
       "expectedSkill": "ecommerce_growth_pack",
-      "expectedSafetyStatus": "pass"
+      "expectedSafetyStatus": "pass",
+      "expectedIdentityContractDigest": "export-001::pkg-002::project-001::ecommerce_growth_pack::fx_ecommerce_growth_golden::dev-provider::deterministic-local-alpha::social_proof::ecommerce_growth_pack::pass",
+      "expectedIdentityDigestMatch": "true"
     }
   }
 }

@@ -197,6 +197,7 @@ if (
   evidence.expectedPptThemeFont !== routePackageExportEvidence.expectedPptThemeFont ||
   evidence.expectedPptHandoffChecklistCount !== routePackageExportEvidence.expectedPptHandoffChecklistCount ||
   evidence.expectedCrossPayloadIdentityStatus !== routePackageExportEvidence.expectedCrossPayloadIdentityStatus ||
+  evidence.expectedIdentityContractDigest !== routePackageExportEvidence.expectedIdentityContractDigest ||
   evidence.expectedCrossPayloadIdentityCount !== routePackageExportEvidence.expectedCrossPayloadIdentityCount ||
   evidence.expectedMissingCrossPayloadIdentityCount !== routePackageExportEvidence.expectedMissingCrossPayloadIdentityCount ||
   evidence.payloadAttribute !== routePackageExportEvidence.payloadAttribute ||
@@ -263,6 +264,8 @@ if (
   downloadParity.expectedPayloadContractDigest !== routeDownloadParityEvidence.expectedPayloadContractDigest ||
   downloadParity.expectedPayloadDigestMatch !== routeDownloadParityEvidence.expectedPayloadDigestMatch ||
   downloadParity.expectedIdentityStatus !== routeDownloadParityEvidence.expectedIdentityStatus ||
+  downloadParity.expectedIdentityContractDigest !== routeDownloadParityEvidence.expectedIdentityContractDigest ||
+  downloadParity.expectedIdentityDigestMatch !== routeDownloadParityEvidence.expectedIdentityDigestMatch ||
   downloadParity.expectedItemProvenanceParityStatus !== routeDownloadParityEvidence.expectedItemProvenanceParityStatus ||
   downloadParity.expectedItemProvenanceParityCount !== routeDownloadParityEvidence.expectedItemProvenanceParityCount ||
   downloadParity.expectedMissingItemProvenanceParityCount !== routeDownloadParityEvidence.expectedMissingItemProvenanceParityCount ||
@@ -383,6 +386,7 @@ for (const requiredSourceSnippet of [
   "export const toExportZipPayloadName",
   "export const buildDownloadableExportZipPayloadNames",
   "export const buildExportZipPayloadContractDigest",
+  "export const buildExportIdentityContractDigest",
   "export const buildExportWorkflowMetadataPayload",
   "export const buildAiContentDisclaimerPayload",
   "export const ecommerceGrowthWorkflowAcceptance",
@@ -394,6 +398,8 @@ for (const requiredSourceSnippet of [
   "metadataPayloadNames",
   "zipExpectedPayloadNames",
   "metadataPayloadDigestMatchesZipPayloadDigest",
+  "identityContractDigest",
+  "metadataIdentityDigestMatchesRecord",
   "unsafeManifestPayloadNames",
   "unsafeExpectedPayloadNames",
   "identityStatus",
@@ -441,6 +447,8 @@ for (const requiredContractSnippet of [
   "zipExpectedPayloadNames",
   "payloadContractDigest",
   "metadataPayloadDigestMatchesZipPayloadDigest",
+  "identityContractDigest",
+  "metadataIdentityDigestMatchesRecord",
   "unsafeManifestPayloadNames",
   "unsafeExpectedPayloadNames",
   "identityStatus",
@@ -524,6 +532,7 @@ for (const requiredTestSnippet of [
   "data-package-export-workflow-metadata-payload-present",
   "data-package-export-ai-content-disclaimer-payload-present",
   "data-package-export-zip-payload-contract-digest",
+  "data-package-export-identity-contract-digest",
   "data-package-export-payload-row",
   "data-package-export-identity-row",
   "data-package-export-item-provenance-parity-status",
@@ -538,6 +547,8 @@ for (const requiredTestSnippet of [
   "data-export-download-parity-payload-list-status",
   "data-export-download-parity-payload-digest-match",
   "data-export-download-parity-identity-status",
+  "data-export-download-parity-identity-contract-digest",
+  "data-export-download-parity-identity-digest-match",
   "data-export-download-parity-item-provenance-status",
   "data-export-download-handoff-status"
 ]) {
@@ -579,6 +590,7 @@ const expectedDataAttributeValues = new Map([
   ["data-package-export-zip-payload-parity-status", evidence.expectedZipPayloadParityStatus],
   ["data-package-export-zip-payload-parity-ratio", evidence.expectedZipPayloadParityRatio],
   ["data-package-export-cross-payload-identity-status", evidence.expectedCrossPayloadIdentityStatus],
+  ["data-package-export-identity-contract-digest", evidence.expectedIdentityContractDigest],
   ["data-package-export-cross-payload-identity-count", evidence.expectedCrossPayloadIdentityCount],
   ["data-package-export-missing-cross-payload-identity-count", evidence.expectedMissingCrossPayloadIdentityCount],
   ["data-package-export-workflow-id", workflowMetadata.workflowId],
@@ -632,6 +644,8 @@ const expectedDataAttributeValues = new Map([
   ["data-export-download-parity-payload-contract-digest", downloadParity.expectedPayloadContractDigest],
   ["data-export-download-parity-payload-digest-match", downloadParity.expectedPayloadDigestMatch],
   ["data-export-download-parity-identity-status", downloadParity.expectedIdentityStatus],
+  ["data-export-download-parity-identity-contract-digest", downloadParity.expectedIdentityContractDigest],
+  ["data-export-download-parity-identity-digest-match", downloadParity.expectedIdentityDigestMatch],
   ["data-export-download-parity-item-provenance-status", downloadParity.expectedItemProvenanceParityStatus],
   ["data-export-download-parity-item-provenance-count", downloadParity.expectedItemProvenanceParityCount],
   ["data-export-download-parity-missing-item-provenance-count", downloadParity.expectedMissingItemProvenanceParityCount],
@@ -709,6 +723,7 @@ if (
   browserContracts.packageExportMetadata?.expectedMissingOutputCount !== evidence.expectedMissingOutputCount ||
   browserContracts.packageExportMetadata?.expectedZipPayloadParityStatus !== evidence.expectedZipPayloadParityStatus ||
   browserContracts.packageExportMetadata?.expectedZipPayloadContractDigest !== evidence.expectedZipPayloadContractDigest ||
+  browserContracts.packageExportMetadata?.expectedIdentityContractDigest !== evidence.expectedIdentityContractDigest ||
   browserContracts.packageExportMetadata?.expectedCrossPayloadIdentityPayloadCount !==
     evidence.crossPayloadIdentityMatrix.expectedPayloadCount ||
   browserContracts.packageExportMetadata?.expectedCrossPayloadIdentityPresentStatus !==
@@ -717,6 +732,8 @@ if (
   browserContracts.downloadParity?.expectedStatus !== downloadParity.expectedStatus ||
   browserContracts.downloadParity?.expectedPayloadsMatch !== downloadParity.expectedPayloadsMatch ||
   browserContracts.downloadParity?.expectedPayloadDigestMatch !== downloadParity.expectedPayloadDigestMatch ||
+  browserContracts.downloadParity?.expectedIdentityContractDigest !== downloadParity.expectedIdentityContractDigest ||
+  browserContracts.downloadParity?.expectedIdentityDigestMatch !== downloadParity.expectedIdentityDigestMatch ||
   browserContracts.downloadParity?.expectedPayloadListStatus !== downloadParity.expectedPayloadListStatus ||
   browserContracts.downloadParity?.expectedIdentityStatus !== downloadParity.expectedIdentityStatus ||
   browserContracts.downloadParity?.expectedProvider !== downloadParity.expectedProvider ||

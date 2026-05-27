@@ -1767,6 +1767,7 @@ function ExportView({
                     data-package-export-zip-payload-parity-ratio={metadataEvidence.zipPayloadParityRatio}
                     data-package-export-missing-zip-payload-count={metadataEvidence.missingZipPayloadNames.length}
                     data-package-export-cross-payload-identity-status={metadataEvidence.crossPayloadIdentityStatus}
+                    data-package-export-identity-contract-digest={metadataEvidence.identityContractDigest}
                     data-package-export-cross-payload-identity-count={metadataEvidence.crossPayloadIdentityNames.length}
                     data-package-export-cross-payload-identities={metadataEvidence.crossPayloadIdentityNames.join(",")}
                     data-package-export-missing-cross-payload-identity-count={metadataEvidence.missingCrossPayloadIdentityNames.length}
@@ -1916,6 +1917,8 @@ function ExportView({
                     data-export-download-parity-zip-expected-payloads={downloadParityEvidence.zipExpectedPayloadNames.join(",")}
                     data-export-download-parity-payload-contract-digest={downloadParityEvidence.payloadContractDigest}
                     data-export-download-parity-payload-digest-match={String(downloadParityEvidence.metadataPayloadDigestMatchesZipPayloadDigest)}
+                    data-export-download-parity-identity-contract-digest={downloadParityEvidence.identityContractDigest}
+                    data-export-download-parity-identity-digest-match={String(downloadParityEvidence.metadataIdentityDigestMatchesRecord)}
                     data-export-download-parity-identity-status={downloadParityEvidence.identityStatus}
                     data-export-download-parity-item-provenance-status={downloadParityEvidence.itemProvenanceParityStatus}
                     data-export-download-parity-item-provenance-count={downloadParityEvidence.itemProvenanceParityCount}

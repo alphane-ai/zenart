@@ -62,6 +62,19 @@ test("export route exposes package metadata, ZIP payload, and download parity br
   await expect(metadataEvidence).toHaveAttribute("data-package-export-zip-payload-parity-ratio", "7/7");
   await expect(metadataEvidence).toHaveAttribute("data-package-export-zip-payload-contract-digest", /export-001::pkg-002::project-001::ecommerce_growth_pack/);
   await expect(metadataEvidence).toHaveAttribute("data-package-export-cross-payload-identity-status", "pass");
+  const expectedIdentityContractDigest = [
+    "export-001",
+    "pkg-002",
+    "project-001",
+    "ecommerce_growth_pack",
+    "fx_ecommerce_growth_golden",
+    "dev-provider",
+    "deterministic-local-alpha",
+    "social_proof",
+    "ecommerce_growth_pack",
+    "pass"
+  ].join("::");
+  await expect(metadataEvidence).toHaveAttribute("data-package-export-identity-contract-digest", expectedIdentityContractDigest);
   await expect(metadataEvidence).toHaveAttribute("data-package-export-cross-payload-identity-count", "5");
   await expect(metadataEvidence).toHaveAttribute("data-package-export-missing-cross-payload-identity-count", "0");
   await expect(metadataEvidence).toHaveAttribute("data-package-export-cross-payload-identities", /manifest\.json/);
@@ -243,6 +256,8 @@ test("export route exposes package metadata, ZIP payload, and download parity br
   await expect(metadataEvidence).toHaveAttribute("data-package-export-zip-payload-contract-digest", expectedPayloadContractDigest);
   await expect(downloadParity).toHaveAttribute("data-export-download-parity-payload-contract-digest", expectedPayloadContractDigest);
   await expect(downloadParity).toHaveAttribute("data-export-download-parity-payload-digest-match", "true");
+  await expect(downloadParity).toHaveAttribute("data-export-download-parity-identity-contract-digest", expectedIdentityContractDigest);
+  await expect(downloadParity).toHaveAttribute("data-export-download-parity-identity-digest-match", "true");
   await expect(downloadHandoff).toHaveAttribute("data-export-download-payload-contract-digest", expectedPayloadContractDigest);
   await expect(downloadParity).toHaveAttribute("data-export-download-parity-item-provenance-status", "pass");
   await expect(downloadParity).toHaveAttribute("data-export-download-parity-item-provenance-count", "2");

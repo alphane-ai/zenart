@@ -90,6 +90,23 @@ export const buildExportZipPayloadContractDigest = (record: ExportRecord, payloa
     [...payloadNames].sort().join("|")
   ].join("::");
 
+export const buildExportIdentityContractDigest = (record: ExportRecord) => {
+  const workflowMetadataPayload = buildExportWorkflowMetadataPayload(record, "metadata.json");
+
+  return [
+    record.id,
+    record.manifest.package_id,
+    record.manifest.project_id,
+    workflowMetadataPayload.workflow_id,
+    workflowMetadataPayload.workflow_fixture_id,
+    workflowMetadataPayload.provider,
+    workflowMetadataPayload.model,
+    workflowMetadataPayload.prompt_spec.join("|"),
+    workflowMetadataPayload.skill,
+    workflowMetadataPayload.safety
+  ].join("::");
+};
+
 export const buildExportWorkflowMetadataPayload = (record: ExportRecord, outputName: string) => ({
   export_id: record.id,
   package_id: record.manifest.package_id,
@@ -925,6 +942,7 @@ export const buildPackageExportMetadataEvidence = (record: ExportRecord): Packag
   );
   const zipPayloadNames = buildDownloadableExportZipPayloadNames(record);
   const zipPayloadContractDigest = buildExportZipPayloadContractDigest(record, zipPayloadNames);
+  const identityContractDigest = buildExportIdentityContractDigest(record);
   const workflowMetadataPayload = buildExportWorkflowMetadataPayload(record, "metadata.json");
   const workflowId = record.manifest.workflow_acceptance?.workflow_id ?? "generic-stage0-export";
   const workflowFixtureId = record.manifest.workflow_acceptance?.fixture_id ?? "none";
@@ -1089,6 +1107,7 @@ export const buildPackageExportMetadataEvidence = (record: ExportRecord): Packag
     zipPayloadParityRatio: `${requiredZipPayloadNames.length - missingZipPayloadNames.length}/${requiredZipPayloadNames.length}`,
     missingZipPayloadNames,
     crossPayloadIdentityStatus: missingCrossPayloadIdentityNames.length === 0 ? "pass" : "fail",
+    identityContractDigest,
     crossPayloadIdentityNames,
     missingCrossPayloadIdentityNames,
     crossPayloadIdentityStatuses,
@@ -1207,6 +1226,17 @@ export const buildExportDownloadParityEvidence = (
   const metadataPayloadDigestMatchesZipPayloadDigest =
     metadataEvidence.zipPayloadContractDigest === zipPayloadSmoke.payloadContractDigest &&
     metadataEvidence.zipPayloadContractDigest === payloadContractDigest;
+  const identityContractDigest = buildExportIdentityContractDigest(record);
+  const metadataIdentityDigestMatchesRecord =
+    metadataEvidence.identityContractDigest === identityContractDigest &&
+    metadataEvidence.workflowId === (record.manifest.workflow_acceptance?.workflow_id ?? "generic-stage0-export") &&
+    metadataEvidence.workflowFixtureId === (record.manifest.workflow_acceptance?.fixture_id ?? "none") &&
+    metadataEvidence.workflowMetadataProvider === "dev-provider" &&
+    metadataEvidence.workflowMetadataModel === "deterministic-local-alpha" &&
+    JSON.stringify(metadataEvidence.workflowPromptSpecTaxonomy) ===
+      JSON.stringify(record.manifest.workflow_acceptance?.strategy_taxonomy ?? []) &&
+    metadataEvidence.workflowSkill === (record.manifest.workflow_acceptance?.workflow_id ?? "generic-stage0-export") &&
+    metadataEvidence.workflowSafety === record.safetyReport.status;
   const failures: ExportDownloadParityEvidence["failures"] = [];
 
   if (metadataEvidence.exportId !== zipPayloadSmoke.exportId || metadataEvidence.exportId !== record.id) {
@@ -1256,6 +1286,9 @@ export const buildExportDownloadParityEvidence = (
   }
   if (!metadataPayloadDigestMatchesZipPayloadDigest) {
     failures.push("payload-digest");
+  }
+  if (!metadataIdentityDigestMatchesRecord) {
+    failures.push("identity-digest");
   }
   if (
     metadataEvidence.crossPayloadIdentityStatus !== "pass" ||
@@ -1326,6 +1359,8 @@ export const buildExportDownloadParityEvidence = (
     zipExpectedPayloadNames: zipPayloadSmoke.expectedPayloadNames,
     payloadContractDigest,
     metadataPayloadDigestMatchesZipPayloadDigest,
+    identityContractDigest,
+    metadataIdentityDigestMatchesRecord,
     identityStatus: failures.includes("identity") ? "fail" : "pass",
     itemProvenanceParityStatus: metadataEvidence.itemProvenanceParityStatus,
     itemProvenanceParityCount: metadataEvidence.itemProvenanceParityCount,

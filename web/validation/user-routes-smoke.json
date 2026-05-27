@@ -24,7 +24,11 @@
       "path": "/project",
       "component": "WorkspaceApp",
       "initialView": "projects",
-      "expects": ["project-dashboard", "recent-projects", "workflow-examples"]
+      "expects": [
+        "project-dashboard",
+        "recent-projects",
+        "workflow-examples"
+      ]
     },
     {
       "path": "/export",
@@ -48,13 +52,27 @@
       "path": "/billing",
       "component": "WorkspaceApp",
       "initialView": "billing",
-      "expects": ["quota-meter", "subscription-status", "mock-checkout", "past-due-edge", "inactive-edge", "quota-exhausted-edge"]
+      "expects": [
+        "quota-meter",
+        "subscription-status",
+        "mock-checkout",
+        "past-due-edge",
+        "inactive-edge",
+        "quota-exhausted-edge"
+      ]
     },
     {
       "path": "/account",
       "component": "WorkspaceApp",
       "initialView": "account",
-      "expects": ["auth-session-flow", "secure-cookie-same-site-contract", "csrf-same-site-ux-contract", "account-settings", "default-export-format", "email-notifications"]
+      "expects": [
+        "auth-session-flow",
+        "secure-cookie-same-site-contract",
+        "csrf-same-site-ux-contract",
+        "account-settings",
+        "default-export-format",
+        "email-notifications"
+      ]
     },
     {
       "path": "/support",
@@ -81,27 +99,44 @@
     {
       "path": "/legal/terms",
       "component": "LegalPolicyPage",
-      "expects": ["terms-of-service", "visible-support-contact"]
+      "expects": [
+        "terms-of-service",
+        "visible-support-contact"
+      ]
     },
     {
       "path": "/legal/privacy",
       "component": "LegalPolicyPage",
-      "expects": ["privacy-policy-route", "privacy-notice", "client-side-ui-funnel-capture", "frontend-error-reporting"]
+      "expects": [
+        "privacy-policy-route",
+        "privacy-notice",
+        "client-side-ui-funnel-capture",
+        "frontend-error-reporting"
+      ]
     },
     {
       "path": "/legal/acceptable-use",
       "component": "LegalPolicyPage",
-      "expects": ["acceptable-use-policy", "protected-rights-warning"]
+      "expects": [
+        "acceptable-use-policy",
+        "protected-rights-warning"
+      ]
     },
     {
       "path": "/legal/ip-complaints",
       "component": "LegalPolicyPage",
-      "expects": ["ip-complaint-flow", "legal-contact"]
+      "expects": [
+        "ip-complaint-flow",
+        "legal-contact"
+      ]
     },
     {
       "path": "/legal/billing-policy",
       "component": "LegalPolicyPage",
-      "expects": ["billing-cancellation-refund-policy", "mock-checkout-limits"]
+      "expects": [
+        "billing-cancellation-refund-policy",
+        "mock-checkout-limits"
+      ]
     }
   ],
   "accessibilityChecks": [
@@ -608,7 +643,15 @@
         "maxRenderElements": "96",
         "maxInteractionMs": "100"
       },
-      "requiredInteractionSteps": ["load", "brief-confirm", "candidate-select", "iteration", "package-add", "export-ready", "version-restore"],
+      "requiredInteractionSteps": [
+        "load",
+        "brief-confirm",
+        "candidate-select",
+        "iteration",
+        "package-add",
+        "export-ready",
+        "version-restore"
+      ],
       "expectedFailureCount": "0"
     },
     {
@@ -618,7 +661,11 @@
       "statusAttribute": "data-reference-upload-validation-status",
       "expectedStatus": "pass",
       "scenario": "safe-image-document-https-url-reject-unsupported",
-      "expectedAcceptedKinds": ["image", "document", "url"],
+      "expectedAcceptedKinds": [
+        "image",
+        "document",
+        "url"
+      ],
       "expectedAcceptedAttachedCount": "3",
       "expectedRejectedCount": "2",
       "expectedRejectedQueuedCount": "2",
@@ -648,7 +695,10 @@
         "launch-brief.pdf",
         "https://assets.example.com/reference-pack"
       ],
-      "requiredRejectedSamples": ["unsafe-reference.exe", "http://assets.example.com/reference-pack"]
+      "requiredRejectedSamples": [
+        "unsafe-reference.exe",
+        "http://assets.example.com/reference-pack"
+      ]
     },
     {
       "schemaVersion": "stage0.rev2.reference-upload-integration-smoke",
@@ -658,7 +708,12 @@
       "expectedStatus": "pass",
       "scenario": "reference-upload-to-ready-zip-export",
       "expectedOperationCount": "4",
-      "expectedOperations": ["createUpload", "createPackage", "createExport", "getExport"],
+      "expectedOperations": [
+        "createUpload",
+        "createPackage",
+        "createExport",
+        "getExport"
+      ],
       "expectedUploadMethod": "POST",
       "expectedUploadPath": "/uploads",
       "expectedUploadCsrfHeader": "X-ZenArt-CSRF",
@@ -782,7 +837,11 @@
         "nameAttribute": "data-package-export-payload-name",
         "presentAttribute": "data-package-export-payload-present",
         "zipNameAttribute": "data-package-export-payload-zip-name",
-        "requiredKinds": ["manifest-output", "required-zip-payload", "workflow-payload"],
+        "requiredKinds": [
+          "manifest-output",
+          "required-zip-payload",
+          "workflow-payload"
+        ],
         "expectedPresent": "true"
       },
       "requiredIdentityAttributes": [
@@ -814,6 +873,7 @@
         "data-package-export-zip-payload-parity-status",
         "data-package-export-zip-payload-parity-ratio",
         "data-package-export-cross-payload-identity-status",
+        "data-package-export-identity-contract-digest",
         "data-package-export-cross-payload-identity-count",
         "data-package-export-cross-payload-identities",
         "data-package-export-missing-cross-payload-identity-count",
@@ -915,10 +975,13 @@
         "generatedBy": "zenart-web-dev-client",
         "provider": "dev-provider",
         "model": "deterministic-local-alpha",
-        "promptSpecTaxonomy": ["social_proof"],
+        "promptSpecTaxonomy": [
+          "social_proof"
+        ],
         "skill": "ecommerce_growth_pack",
         "safety": "pass"
-      }
+      },
+      "expectedIdentityContractDigest": "export-001::pkg-002::project-001::ecommerce_growth_pack::fx_ecommerce_growth_golden::dev-provider::deterministic-local-alpha::social_proof::ecommerce_growth_pack::pass"
     },
     {
       "schemaVersion": "stage0.rev2.export-zip-payload-smoke",
@@ -1038,6 +1101,8 @@
         "data-export-download-parity-zip-expected-payloads",
         "data-export-download-parity-payload-contract-digest",
         "data-export-download-parity-payload-digest-match",
+        "data-export-download-parity-identity-contract-digest",
+        "data-export-download-parity-identity-digest-match",
         "data-export-download-parity-identity-status",
         "data-export-download-parity-item-provenance-status",
         "data-export-download-parity-item-provenance-count",
@@ -1057,13 +1122,17 @@
         "metadataPayloadsMatchZipPayloads",
         "payloadListStatus",
         "metadataPayloadDigestMatchesZipPayloadDigest",
+        "identityContractDigest",
+        "metadataIdentityDigestMatchesRecord",
         "identityStatus",
         "itemProvenanceParityStatus",
         "itemProvenanceParityCount",
         "missingItemProvenanceParityCount",
         "workflowMetadataPresent",
         "traceProvenancePresent"
-      ]
+      ],
+      "expectedIdentityContractDigest": "export-001::pkg-002::project-001::ecommerce_growth_pack::fx_ecommerce_growth_golden::dev-provider::deterministic-local-alpha::social_proof::ecommerce_growth_pack::pass",
+      "expectedIdentityDigestMatch": "true"
     },
     {
       "schemaVersion": "stage0.rev2.workflow-api-smoke",
@@ -1111,7 +1180,11 @@
       ]
     }
   ],
-  "analyticsCoverage": ["analytics-event-taxonomy", "client-side-ui-funnel-capture", "frontend-error-reporting"],
+  "analyticsCoverage": [
+    "analytics-event-taxonomy",
+    "client-side-ui-funnel-capture",
+    "frontend-error-reporting"
+  ],
   "integrationCoverage": [
     "reference-upload-to-ready-zip-export",
     "safe-image-document-https-url-reject-unsupported",

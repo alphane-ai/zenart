@@ -163,6 +163,19 @@ test("reference upload browser smoke reaches ready export metadata and render bu
   await expect(metadataEvidence).toHaveAttribute("data-package-export-workflow-metadata-payload-present", "true");
   await expect(metadataEvidence).toHaveAttribute("data-package-export-workflow-trace-provenance-payload-present", "true");
   await expect(metadataEvidence).toHaveAttribute("data-package-export-ai-content-disclaimer-payload-present", "true");
+  const expectedIdentityContractDigest = [
+    "export-001",
+    "pkg-002",
+    "project-001",
+    "ecommerce_growth_pack",
+    "fx_ecommerce_growth_golden",
+    "dev-provider",
+    "deterministic-local-alpha",
+    "social_proof",
+    "ecommerce_growth_pack",
+    "pass"
+  ].join("::");
+  await expect(metadataEvidence).toHaveAttribute("data-package-export-identity-contract-digest", expectedIdentityContractDigest);
 
   const payloadMatrix = page.getByLabel("Package export payload status matrix");
   await expect(payloadMatrix.locator("[data-package-export-payload-row='manifest-output']")).toHaveCount(14);
@@ -196,6 +209,8 @@ test("reference upload browser smoke reaches ready export metadata and render bu
   const downloadParity = page.getByLabel("Export download parity smoke");
   await expect(downloadParity).toHaveAttribute("data-export-download-parity-status", "pass");
   await expect(downloadParity).toHaveAttribute("data-export-download-parity-payloads-match", "true");
+  await expect(downloadParity).toHaveAttribute("data-export-download-parity-identity-contract-digest", expectedIdentityContractDigest);
+  await expect(downloadParity).toHaveAttribute("data-export-download-parity-identity-digest-match", "true");
   await expect(downloadParity).toHaveAttribute("data-export-download-parity-failures", "");
 
   const downloadPromise = page.waitForEvent("download");

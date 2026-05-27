@@ -48,12 +48,15 @@
       "data-package-export-workflow-taxonomy-count",
       "data-package-export-workflow-required-file-count",
       "data-package-export-cross-payload-identity-status",
+      "data-package-export-identity-contract-digest",
       "Package export payload status matrix",
       "data-export-zip-payload-smoke",
       "data-export-download-parity-status",
       "data-export-download-parity-payloads-match",
       "data-export-download-parity-payload-contract-digest",
       "data-export-download-parity-payload-digest-match",
+      "data-export-download-parity-identity-contract-digest",
+      "data-export-download-parity-identity-digest-match",
       "data-export-download-handoff",
       "data-export-download-payload-contract-digest",
       "download.suggestedFilename()",
@@ -99,7 +102,10 @@
     "expectedManifestRequiredOutputCount": "14",
     "expectedDownloadArtifactStatus": "pass",
     "expectedDownloadArtifactFormat": "zip",
-    "expectedItemTypes": ["reference", "candidate"],
+    "expectedItemTypes": [
+      "reference",
+      "candidate"
+    ],
     "expectedMissingOutputCount": "0",
     "expectedMissingZipPayloadCount": "0",
     "expectedProvenanceCount": "2",
@@ -167,6 +173,7 @@
       "data-package-export-zip-payload-parity-ratio",
       "data-package-export-missing-zip-payload-count",
       "data-package-export-cross-payload-identity-status",
+      "data-package-export-identity-contract-digest",
       "data-package-export-cross-payload-identity-count",
       "data-package-export-cross-payload-identities",
       "data-package-export-missing-cross-payload-identity-count",
@@ -241,7 +248,11 @@
     ],
     "payloadStatusMatrix": {
       "groupSelector": "[aria-label=\"Package export payload status matrix\"]",
-      "requiredKinds": ["manifest-output", "required-zip-payload", "workflow-payload"],
+      "requiredKinds": [
+        "manifest-output",
+        "required-zip-payload",
+        "workflow-payload"
+      ],
       "rowAttribute": "data-package-export-payload-row",
       "nameAttribute": "data-package-export-payload-name",
       "presentAttribute": "data-package-export-payload-present",
@@ -286,7 +297,8 @@
       "expectedPresentStatus": "pass",
       "expectedReferencePrefix": "dev-client-reference:",
       "expectedCandidatePrefix": "dev-client:"
-    }
+    },
+    "expectedIdentityContractDigest": "export-001::pkg-002::project-001::ecommerce_growth_pack::fx_ecommerce_growth_golden::dev-provider::deterministic-local-alpha::social_proof::ecommerce_growth_pack::pass"
   },
   "workflowMetadata": {
     "workflowId": "ecommerce_growth_pack",
@@ -303,7 +315,9 @@
     "generatedBy": "zenart-web-dev-client",
     "provider": "dev-provider",
     "model": "deterministic-local-alpha",
-    "promptSpecTaxonomy": ["social_proof"],
+    "promptSpecTaxonomy": [
+      "social_proof"
+    ],
     "skill": "ecommerce_growth_pack",
     "safety": "pass"
   },
@@ -401,7 +415,9 @@
     "expectedSkill": "ecommerce_growth_pack",
     "expectedSafetyStatus": "pass",
     "expectedWorkflowMetadataPresent": "true",
-    "expectedTraceProvenancePresent": "true"
+    "expectedTraceProvenancePresent": "true",
+    "expectedIdentityContractDigest": "export-001::pkg-002::project-001::ecommerce_growth_pack::fx_ecommerce_growth_golden::dev-provider::deterministic-local-alpha::social_proof::ecommerce_growth_pack::pass",
+    "expectedIdentityDigestMatch": "true"
   },
   "downloadHandoff": {
     "schemaVersion": "stage0.rev2.package-export-download-handoff",

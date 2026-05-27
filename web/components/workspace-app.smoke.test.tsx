@@ -641,6 +641,8 @@ describe("WorkspaceApp user route integration smoke", () => {
     const metadataEvidence = container.querySelector(
       "[data-package-export-metadata-ui='stage0.rev2.package-export-metadata-ui']"
     );
+    const expectedIdentityDigest =
+      "export-001::pkg-002::project-001::ecommerce_growth_pack::fx_ecommerce_growth_golden::dev-provider::deterministic-local-alpha::social_proof::ecommerce_growth_pack::pass";
     expect(metadataEvidence).toHaveAttribute("data-package-export-metadata-status", "pass");
     expect(metadataEvidence).toHaveAttribute("data-package-export-id", "export-001");
     expect(metadataEvidence).toHaveAttribute("data-package-export-package-id", "pkg-002");
@@ -676,6 +678,7 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(metadataEvidence).toHaveAttribute("data-package-export-zip-payload-parity-status", "pass");
     expect(metadataEvidence).toHaveAttribute("data-package-export-zip-payload-parity-ratio", "7/7");
     expect(metadataEvidence).toHaveAttribute("data-package-export-cross-payload-identity-status", "pass");
+    expect(metadataEvidence).toHaveAttribute("data-package-export-identity-contract-digest", expectedIdentityDigest);
     expect(metadataEvidence).toHaveAttribute("data-package-export-cross-payload-identity-count", "5");
     expect(metadataEvidence).toHaveAttribute("data-package-export-missing-cross-payload-identity-count", "0");
     expect(metadataEvidence?.getAttribute("data-package-export-cross-payload-identities")).toContain("metadata.json");
@@ -845,6 +848,8 @@ describe("WorkspaceApp user route integration smoke", () => {
       "export-001::pkg-002::project-001::ecommerce_growth_pack::fx_ecommerce_growth_golden::ai-content-disclaimer.json|assets/README.txt|assets/hero_product_ad.png|assets/marketplace_banner.png|assets/square_social_ad.png|assets/story_variant.png|manifest.json|metadata.json|ppt-ready-metadata.json|provenance.json|qa-report.json|qa_report.json|safety-policy-report.json|trace_provenance.json"
     );
     expect(downloadParity).toHaveAttribute("data-export-download-parity-payload-digest-match", "true");
+    expect(downloadParity).toHaveAttribute("data-export-download-parity-identity-contract-digest", expectedIdentityDigest);
+    expect(downloadParity).toHaveAttribute("data-export-download-parity-identity-digest-match", "true");
     expect(downloadParity).toHaveAttribute("data-export-download-parity-identity-status", "pass");
     expect(downloadParity).toHaveAttribute("data-export-download-parity-item-provenance-status", "pass");
     expect(downloadParity).toHaveAttribute("data-export-download-parity-item-provenance-count", "2");
@@ -1353,6 +1358,7 @@ describe("WorkspaceApp user route integration smoke", () => {
         "data-package-export-zip-payload-parity-status",
         "data-package-export-zip-payload-parity-ratio",
         "data-package-export-cross-payload-identity-status",
+        "data-package-export-identity-contract-digest",
         "data-package-export-cross-payload-identity-count",
         "data-package-export-cross-payload-identities",
         "data-package-export-missing-cross-payload-identity-count",
@@ -1429,6 +1435,8 @@ describe("WorkspaceApp user route integration smoke", () => {
         "data-export-download-parity-payloads-match",
         "data-export-download-parity-payload-contract-digest",
         "data-export-download-parity-payload-digest-match",
+        "data-export-download-parity-identity-contract-digest",
+        "data-export-download-parity-identity-digest-match",
         "data-export-download-parity-failures"
       ])
     });
