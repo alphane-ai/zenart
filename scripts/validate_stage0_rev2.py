@@ -1782,6 +1782,142 @@ def require_runtime_file_evidence(evidence_ref: str, gate: str, check_id: str) -
                 )
 
 
+def require_staging_observability_backup_load_pass_evidence(evidence_ref: str) -> None:
+    cited_json_paths = [
+        path
+        for path in sorted(concrete_evidence_paths(evidence_ref))
+        if path.startswith("ops/evidence/staging/") and path.endswith(".json")
+    ]
+    matching_reports: list[tuple[str, dict[str, Any]]] = []
+    for path in cited_json_paths:
+        evidence = load_json_if_path(path)
+        if not isinstance(evidence, dict):
+            continue
+        if evidence.get("kind") == "staging_observability_backup_load_preflight":
+            matching_reports.append((path, evidence))
+
+    require(
+        matching_reports,
+        "private_beta_staging.staging_observability_backup_load pass evidence must cite an exact "
+        "ops/evidence/staging/*.json preflight report with kind=staging_observability_backup_load_preflight",
+    )
+
+    passed_reports = [
+        (path, evidence)
+        for path, evidence in matching_reports
+        if evidence.get("status") == "passed"
+    ]
+    require(
+        passed_reports,
+        "private_beta_staging.staging_observability_backup_load pass evidence cites only blocked or non-passing "
+        "staging observability/backup/load preflight reports",
+    )
+
+    required_slots = {
+        "observability_evidence": {
+            "alert_routes",
+            "backend_worker_crawler_metrics",
+            "dashboard_import",
+            "opentelemetry_traces",
+            "request_id_propagation",
+            "structured_json_logs",
+        },
+        "backup_restore_evidence": {"object_restore", "postgres_restore"},
+        "load_evidence": {
+            "chat_task",
+            "crawler_throttle",
+            "quota_contention",
+            "signed_download",
+            "worker_generation",
+            "workspace_rendering",
+            "zip_export",
+        },
+    }
+    for path, evidence in passed_reports:
+        require(
+            evidence.get("environment") == "staging",
+            f"{path} must be staging-scoped",
+        )
+        require(
+            evidence.get("release_gate_check_id") == "staging_observability_backup_load",
+            f"{path} must target release_gate_check_id=staging_observability_backup_load",
+        )
+        require(
+            evidence.get("evidence_path_policy") == "ops/evidence/staging/",
+            f"{path} must keep staging evidence under ops/evidence/staging/",
+        )
+        require(
+            not evidence.get("blocked_slots"),
+            f"{path} must not contain blocked_slots when status=passed",
+        )
+        gate_impact = evidence.get("gate_impact")
+        require(isinstance(gate_impact, dict), f"{path} must include gate_impact")
+        require(
+            gate_impact.get("can_clear_aggregate_item") is True,
+            f"{path} must explicitly allow aggregate observability/backup/load checklist closure",
+        )
+        require(
+            gate_impact.get("preserved_release_gate_check_id") is None,
+            f"{path} must not preserve staging_observability_backup_load after passing",
+        )
+        require(
+            gate_impact.get("preserved_do_not_launch_condition_id") is None,
+            f"{path} must not preserve staging_observability_restore_load_missing after passing",
+        )
+
+        checks = evidence.get("checks")
+        require(isinstance(checks, list), f"{path} must include preflight checks")
+        checks_by_slot = {
+            check.get("slot"): check
+            for check in checks
+            if isinstance(check, dict)
+        }
+        require(
+            set(required_slots) <= set(checks_by_slot),
+            f"{path} missing required preflight slots: {sorted(set(required_slots) - set(checks_by_slot))}",
+        )
+        for slot, required_entries in required_slots.items():
+            check = checks_by_slot[slot]
+            require(check.get("verified") is True, f"{path} {slot} must be verified")
+            require(
+                check.get("expected_environment") == "staging",
+                f"{path} {slot} must expect staging environment",
+            )
+            require(
+                not check.get("missing_entries"),
+                f"{path} {slot} must not have missing entries",
+            )
+            require(
+                not check.get("entries_missing_evidence_refs"),
+                f"{path} {slot} entries must cite evidence refs",
+            )
+            actual_entries = set(check.get("required_entries", []))
+            require(
+                required_entries <= actual_entries,
+                f"{path} {slot} missing required entries: {sorted(required_entries - actual_entries)}",
+            )
+            semantic_checks = check.get("semantic_checks")
+            require(isinstance(semantic_checks, dict), f"{path} {slot} must include semantic checks")
+            for semantic_key in [
+                "environment_staging",
+                "kind_match",
+                "local_json_file",
+                "release_sha_match",
+                "release_sha_present",
+                "required_entries_have_evidence_refs",
+                "required_entries_passed",
+                "required_entries_present",
+                "status_passed",
+            ]:
+                require(
+                    semantic_checks.get(semantic_key) is True,
+                    f"{path} {slot} semantic check {semantic_key} must be true",
+                )
+        return
+
+    fail("no valid staging observability/backup/load pass evidence found")
+
+
 def require_check_level_evidence_gate_impact(
     evidence: dict[str, Any],
     *,
@@ -2318,6 +2454,8 @@ def validate_runtime_gate_evidence_refs(
                     evidence_files,
                     f"{gate}.{check_id} pass evidence",
                 )
+            if (gate, check_id) == ("private_beta_staging", "staging_observability_backup_load"):
+                require_staging_observability_backup_load_pass_evidence(evidence_ref)
             if (gate, check_id) == ("ci", "ci_installed_workflow"):
                 require(
                     CI_WORKFLOW_REL in evidence_ref,
