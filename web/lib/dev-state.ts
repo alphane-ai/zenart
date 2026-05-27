@@ -854,6 +854,21 @@ const workspaceRenderingStepWeights = {
   "version-restore": 7
 } as const satisfies Record<WorkspaceRenderingPerformanceSmoke["interactionSteps"][number], number>;
 
+const findDuplicateValues = (values: string[]) => {
+  const seen = new Set<string>();
+  const duplicates = new Set<string>();
+
+  for (const value of values) {
+    if (seen.has(value)) {
+      duplicates.add(value);
+    } else {
+      seen.add(value);
+    }
+  }
+
+  return Array.from(duplicates).sort();
+};
+
 export const buildWorkspaceRenderingPerformanceSmoke = (
   state: WorkspaceState,
   budgets = workspaceRenderingPerformanceBudget
@@ -885,6 +900,16 @@ export const buildWorkspaceRenderingPerformanceSmoke = (
     state.packageItems.length +
     state.brief.references.length +
     state.exports.length;
+  const renderIdentities = [
+    ...state.canvas.nodes.map((node) => `node:${node.id}`),
+    ...state.canvas.edges.map((edge) => `edge:${edge.from}->${edge.to}`),
+    ...state.canvas.versions.map((version) => `version:${version.id}`),
+    ...state.candidates.map((candidate) => `candidate:${candidate.id}`),
+    ...state.packageItems.map((item) => `package:${item.id}`),
+    ...state.brief.references.map((reference) => `reference:${reference.id}`),
+    ...state.exports.map((record) => `export:${record.id}`)
+  ];
+  const duplicateRenderIdentities = findDuplicateValues(renderIdentities);
   const estimatedInteractionMs = Math.min(
     999,
     Math.ceil(renderElementCount * 0.75 + state.canvas.nodes.length * 1.2 + state.canvas.edges.length * 0.8)
@@ -905,6 +930,9 @@ export const buildWorkspaceRenderingPerformanceSmoke = (
   }
   if (estimatedInteractionMs > budgets.maxInteractionMs) {
     failures.push("interaction");
+  }
+  if (duplicateRenderIdentities.length > 0 || renderIdentities.length !== renderElementCount) {
+    failures.push("duplicate-render-identities");
   }
   const interactionStepBudgets = interactionSteps.map((step, index) => {
     const stepRenderElementCount = Math.min(
@@ -943,6 +971,10 @@ export const buildWorkspaceRenderingPerformanceSmoke = (
     exportHistoryCount: state.exports.length,
     renderElementCount,
     estimatedInteractionMs,
+    renderIdentityCount: renderIdentities.length,
+    duplicateRenderIdentityCount: duplicateRenderIdentities.length,
+    duplicateRenderIdentities,
+    renderIdentityDigest: renderIdentities.join("|"),
     interactionStepBudgets,
     failures,
     budgets

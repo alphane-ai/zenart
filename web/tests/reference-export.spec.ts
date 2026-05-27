@@ -110,6 +110,11 @@ test("reference upload browser smoke reaches ready export metadata and render bu
   await expect(renderingSmoke).toHaveAttribute("data-render-reference-count", "4");
   await expect(renderingSmoke).toHaveAttribute("data-render-package-item-count", "2");
   await expect(renderingSmoke).toHaveAttribute("data-render-export-history-count", "1");
+  await expect(renderingSmoke).toHaveAttribute("data-render-identity-count", await renderingSmoke.getAttribute("data-render-element-count") ?? "");
+  await expect(renderingSmoke).toHaveAttribute("data-render-duplicate-identity-count", "0");
+  await expect(renderingSmoke).toHaveAttribute("data-render-identity-digest", /reference:ref-campaign-reference-webp/);
+  await expect(renderingSmoke).toHaveAttribute("data-render-identity-digest", /package:pkg-item-002/);
+  await expect(renderingSmoke).toHaveAttribute("data-render-identity-digest", /export:export-001/);
   await expect(renderingSmoke).toHaveAttribute("data-render-interaction-steps", /brief-confirm/);
   await expect(renderingSmoke).toHaveAttribute("data-render-interaction-steps", /candidate-select/);
   await expect(renderingSmoke).toHaveAttribute("data-render-interaction-steps", /package-add/);

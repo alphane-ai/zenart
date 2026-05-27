@@ -1312,6 +1312,10 @@ function WorkspaceView({
           data-rendering-reference-count={renderingSmoke.referenceCount}
           data-rendering-package-item-count={renderingSmoke.packageItemCount}
           data-rendering-export-history-count={renderingSmoke.exportHistoryCount}
+          data-rendering-identity-count={renderingSmoke.renderIdentityCount}
+          data-rendering-duplicate-identity-count={renderingSmoke.duplicateRenderIdentityCount}
+          data-rendering-duplicate-identities={renderingSmoke.duplicateRenderIdentities.join(",")}
+          data-rendering-identity-digest={renderingSmoke.renderIdentityDigest}
           data-rendering-step-budget-statuses={renderingSmoke.interactionStepBudgets
             .map((entry) => `${entry.step}:${entry.status}:${entry.renderElementCount}:${entry.estimatedInteractionMs}:${entry.failureCount}`)
             .join("|")}
@@ -1340,6 +1344,10 @@ function WorkspaceView({
           data-render-export-history-count={renderingSmoke.exportHistoryCount}
           data-render-element-count={renderingSmoke.renderElementCount}
           data-render-estimated-interaction-ms={renderingSmoke.estimatedInteractionMs}
+          data-render-identity-count={renderingSmoke.renderIdentityCount}
+          data-render-duplicate-identity-count={renderingSmoke.duplicateRenderIdentityCount}
+          data-render-duplicate-identities={renderingSmoke.duplicateRenderIdentities.join(",")}
+          data-render-identity-digest={renderingSmoke.renderIdentityDigest}
           data-render-interaction-steps={renderingSmoke.interactionSteps.join(",")}
           data-render-interaction-step-budget-statuses={renderingSmoke.interactionStepBudgets
             .map((entry) => `${entry.step}:${entry.status}:${entry.renderElementCount}:${entry.estimatedInteractionMs}:${entry.failureCount}`)

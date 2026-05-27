@@ -179,7 +179,10 @@
       "data-render-interaction-steps",
       "data-render-reference-count",
       "data-render-package-item-count",
-      "data-render-export-history-count"
+      "data-render-export-history-count",
+      "data-render-identity-count",
+      "data-render-duplicate-identity-count",
+      "data-render-identity-digest"
     ]
   },
   "packageExportMetadata": {

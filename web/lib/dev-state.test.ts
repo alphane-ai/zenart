@@ -695,6 +695,11 @@ describe("dev workspace contracts", () => {
       referenceCount: 1,
       exportHistoryCount: 0,
       renderElementCount: 14,
+      renderIdentityCount: 14,
+      duplicateRenderIdentityCount: 0,
+      duplicateRenderIdentities: [],
+      renderIdentityDigest:
+        "node:node-brief|node:node-cand-studio|node:node-iteration-003|edge:node-brief->node-cand-studio|edge:node-cand-studio->node-iteration-003|version:version-001|version:version-002|version:version-003|candidate:cand-editorial|candidate:cand-studio|candidate:cand-gallery|candidate:cand-utility|package:pkg-item-001|reference:ref-001",
       interactionStepBudgets: [
         { step: "load", status: "pass", renderElementCount: 4, estimatedInteractionMs: 4, failureCount: 0 },
         { step: "candidate-select", status: "pass", renderElementCount: 7, estimatedInteractionMs: 9, failureCount: 0 },
@@ -760,7 +765,10 @@ describe("dev workspace contracts", () => {
       packageItemCount: 12,
       referenceCount: 1,
       exportHistoryCount: 0,
-      renderElementCount: 100
+      renderElementCount: 100,
+      renderIdentityCount: 100,
+      duplicateRenderIdentityCount: 0,
+      duplicateRenderIdentities: []
     });
     expect(smoke.failures).toEqual(["nodes", "edges", "versions", "render-elements", "interaction"]);
     expect(smoke.interactionStepBudgets).toContainEqual({
@@ -771,6 +779,34 @@ describe("dev workspace contracts", () => {
       failureCount: 1
     });
     expect(smoke.interactionStepBudgets.filter((entry) => entry.status === "fail")).toHaveLength(1);
+  });
+
+  it("fails workspace rendering smoke when rendered element identities are duplicated", () => {
+    const state = createInitialWorkspace();
+    const smoke = buildWorkspaceRenderingPerformanceSmoke({
+      ...state,
+      canvas: {
+        ...state.canvas,
+        versions: [
+          ...state.canvas.versions,
+          {
+            id: "version-001",
+            label: "Duplicate version",
+            createdAt: "2026-05-26T10:00:00.000Z",
+            nodeCount: 1
+          }
+        ]
+      }
+    });
+
+    expect(smoke).toMatchObject({
+      status: "fail",
+      renderElementCount: 8,
+      renderIdentityCount: 8,
+      duplicateRenderIdentityCount: 1,
+      duplicateRenderIdentities: ["version:version-001"]
+    });
+    expect(smoke.failures).toContain("duplicate-render-identities");
   });
 
   it("summarizes reference upload integration through package history, provenance, and PPT asset-grid slides", () => {

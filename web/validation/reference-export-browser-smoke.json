@@ -111,6 +111,7 @@
       "schemaVersion": "stage0.rev2.workspace-rendering-performance",
       "expectedStatus": "pass",
       "expectedFailureCount": "0",
+      "expectedDuplicateIdentityCount": "0",
       "requiredInteractionSteps": [
         "load",
         "brief-confirm",

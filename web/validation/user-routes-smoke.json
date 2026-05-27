@@ -619,7 +619,11 @@
         "data-render-interaction-step-budget-failure-count",
         "data-render-reference-count",
         "data-render-package-item-count",
-        "data-render-export-history-count"
+        "data-render-export-history-count",
+        "data-render-identity-count",
+        "data-render-duplicate-identity-count",
+        "data-render-duplicate-identities",
+        "data-render-identity-digest"
       ],
       "summaryAttributes": [
         "data-rendering-smoke-summary",
@@ -634,7 +638,11 @@
         "data-rendering-budget-version-count",
         "data-rendering-reference-count",
         "data-rendering-package-item-count",
-        "data-rendering-export-history-count"
+        "data-rendering-export-history-count",
+        "data-rendering-identity-count",
+        "data-rendering-duplicate-identity-count",
+        "data-rendering-duplicate-identities",
+        "data-rendering-identity-digest"
       ],
       "expectedBudgets": {
         "maxNodes": "24",
@@ -652,7 +660,9 @@
         "export-ready",
         "version-restore"
       ],
-      "expectedFailureCount": "0"
+      "expectedFailureCount": "0",
+      "expectedDuplicateIdentityCount": "0",
+      "expectedIdentityCountMatchesRenderElementCount": "true"
     },
     {
       "schemaVersion": "stage0.rev2.reference-upload-validation-matrix",
@@ -1234,6 +1244,7 @@
     "account settings persist through workspace reload",
     "candidate selection, workspace autosave, canvas versions, and package history survive reload",
     "workspace rendering performance smoke keeps canvas render elements within the local alpha budget",
+    "workspace rendering performance smoke proves stable rendered element identity parity and fails duplicate canvas/version/package/export identities",
     "workspace rendering performance smoke remains passing after brief confirmation, candidate selection, iteration, package add, export, and version restore",
     "reference upload validation accepts safe images/documents/HTTPS URLs and rejects unsupported inputs",
     "reference upload validation matrix exposes UI evidence for safe image, PDF, HTTPS URL acceptance and unsupported file/non-HTTPS URL rejection",

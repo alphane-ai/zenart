@@ -612,6 +612,11 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(renderingSmoke).toHaveAttribute("data-render-reference-count", "4");
     expect(renderingSmoke).toHaveAttribute("data-render-package-item-count", "2");
     expect(renderingSmoke).toHaveAttribute("data-render-export-history-count", "1");
+    expect(renderingSmoke).toHaveAttribute("data-render-identity-count", renderingSmoke?.getAttribute("data-render-element-count") ?? "");
+    expect(renderingSmoke).toHaveAttribute("data-render-duplicate-identity-count", "0");
+    expect(renderingSmoke?.getAttribute("data-render-identity-digest")).toContain("reference:ref-campaign-reference-webp");
+    expect(renderingSmoke?.getAttribute("data-render-identity-digest")).toContain("package:pkg-item-002");
+    expect(renderingSmoke?.getAttribute("data-render-identity-digest")).toContain("export:export-001");
     expect(Number(renderingSmoke?.getAttribute("data-render-element-count"))).toBeLessThanOrEqual(
       Number(renderingSmoke?.getAttribute("data-render-max-elements"))
     );
@@ -1055,6 +1060,8 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(renderingSmoke?.getAttribute("data-render-interaction-steps")).toContain("iteration");
     expect(renderingSmoke?.getAttribute("data-render-interaction-steps")).toContain("package-add");
     expect(renderingSmoke?.getAttribute("data-render-interaction-steps")).toContain("export-ready");
+    expect(renderingSmoke).toHaveAttribute("data-render-identity-count", renderingSmoke?.getAttribute("data-render-element-count") ?? "");
+    expect(renderingSmoke).toHaveAttribute("data-render-duplicate-identity-count", "0");
   });
 
   it("keeps workspace rendering inside the smoke budget across the interactive canvas flow", async () => {
@@ -1076,6 +1083,10 @@ describe("WorkspaceApp user route integration smoke", () => {
         Number(canvas?.getAttribute("data-render-max-interaction-ms"))
       );
       expect(canvas).toHaveAttribute("data-render-interaction-step-budget-failure-count", "0");
+      expect(canvas).toHaveAttribute("data-render-identity-count", canvas?.getAttribute("data-render-element-count") ?? "");
+      expect(canvas).toHaveAttribute("data-render-duplicate-identity-count", "0");
+      expect(summary).toHaveAttribute("data-rendering-identity-count", canvas?.getAttribute("data-render-element-count") ?? "");
+      expect(summary).toHaveAttribute("data-rendering-duplicate-identity-count", "0");
       expect(summary).toHaveAttribute("data-rendering-step-budget-failure-count", "0");
       for (const step of expectedSteps) {
         expect(canvas?.getAttribute("data-render-interaction-steps")).toContain(step);
@@ -1115,10 +1126,11 @@ describe("WorkspaceApp user route integration smoke", () => {
     fireEvent.click(screen.getByRole("button", { name: "Export ZIP" }));
     await screen.findByText("zenart-001.zip");
     assertRenderingBudget(["export-ready"]);
-    expect(container.querySelector("[data-rendering-smoke='stage0.rev2.workspace-rendering-performance']")).toHaveAttribute(
-      "data-render-export-history-count",
-      "1"
-    );
+    const exportedRenderingSmoke = container.querySelector("[data-rendering-smoke='stage0.rev2.workspace-rendering-performance']");
+    expect(exportedRenderingSmoke).toHaveAttribute("data-render-export-history-count", "1");
+    expect(exportedRenderingSmoke?.getAttribute("data-render-identity-digest")).toContain("reference:ref-001");
+    expect(exportedRenderingSmoke?.getAttribute("data-render-identity-digest")).toContain("package:pkg-item-001");
+    expect(exportedRenderingSmoke?.getAttribute("data-render-identity-digest")).toContain("export:export-001");
 
     fireEvent.click(screen.getByRole("button", { name: "Initial brief" }));
     expect(screen.getByRole("button", { name: "Initial brief" })).toHaveAttribute(

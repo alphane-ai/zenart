@@ -84,6 +84,8 @@ if (
   evidence.expectedFailureCount !== routeRenderingEvidence.expectedFailureCount ||
   JSON.stringify(evidence.expectedBudgets) !== JSON.stringify(routeRenderingEvidence.expectedBudgets) ||
   JSON.stringify(evidence.expectedFinalInteractionSteps) !== JSON.stringify(routeRenderingEvidence.requiredInteractionSteps) ||
+  evidence.expectedFinalCounts.duplicateRenderIdentityCount !== routeRenderingEvidence.expectedDuplicateIdentityCount ||
+  routeRenderingEvidence.expectedIdentityCountMatchesRenderElementCount !== "true" ||
   JSON.stringify(evidence.budgetAttributes) !== JSON.stringify(routeRenderingEvidence.budgetAttributes) ||
   JSON.stringify(evidence.summaryAttributes) !== JSON.stringify(routeRenderingEvidence.summaryAttributes)
 ) {
@@ -93,7 +95,9 @@ if (
 if (
   referenceUploadArtifact.workspaceRendering?.schemaVersion !== evidence.schemaVersion ||
   referenceUploadArtifact.workspaceRendering?.expectedStatus !== evidence.expectedStatus ||
-  referenceUploadArtifact.workspaceRendering?.expectedFailureCount !== evidence.expectedFailureCount
+  referenceUploadArtifact.workspaceRendering?.expectedFailureCount !== evidence.expectedFailureCount ||
+  !referenceUploadArtifact.workspaceRendering?.requiredAttributes?.includes("data-render-identity-count") ||
+  !referenceUploadArtifact.workspaceRendering?.requiredAttributes?.includes("data-render-duplicate-identity-count")
 ) {
   fail("reference upload integration artifact must continue to pin rendering performance evidence");
 }
@@ -101,7 +105,9 @@ if (
 if (
   referenceExportBrowserSmoke.expectedContracts?.workspaceRendering?.schemaVersion !== evidence.schemaVersion ||
   referenceExportBrowserSmoke.expectedContracts?.workspaceRendering?.expectedStatus !== evidence.expectedStatus ||
-  referenceExportBrowserSmoke.expectedContracts?.workspaceRendering?.expectedFailureCount !== evidence.expectedFailureCount
+  referenceExportBrowserSmoke.expectedContracts?.workspaceRendering?.expectedFailureCount !== evidence.expectedFailureCount ||
+  referenceExportBrowserSmoke.expectedContracts?.workspaceRendering?.expectedDuplicateIdentityCount !==
+    evidence.expectedFinalCounts.duplicateRenderIdentityCount
 ) {
   fail("reference export browser artifact must continue to pin rendering performance evidence");
 }
@@ -129,13 +135,23 @@ for (const [countName, expectedValue] of Object.entries(evidence.expectedFinalCo
     .replace(/^reference-count$/, "render-reference-count")
     .replace(/^export-history-count$/, "render-export-history-count")
     .replace(/^render-element-count$/, "render-element-count")
-    .replace(/^estimated-interaction-ms$/, "render-estimated-interaction-ms");
+    .replace(/^estimated-interaction-ms$/, "render-estimated-interaction-ms")
+    .replace(/^render-identity-count$/, "render-identity-count")
+    .replace(/^duplicate-render-identity-count$/, "render-duplicate-identity-count");
   if (!componentSource.includes(`data-${attributeName}`) && !workspaceSmokeTestSource.includes(`data-${attributeName}`)) {
     fail(`workspace rendering final count is missing UI/test attribute coverage for ${countName}`);
   }
   if (!/^\d+$/.test(expectedValue)) {
     fail(`workspace rendering final count must be numeric for ${countName}`);
   }
+}
+
+if (evidence.expectedFinalCounts.renderIdentityCount !== evidence.expectedFinalCounts.renderElementCount) {
+  fail("workspace rendering identity count must match render element count");
+}
+
+if (evidence.expectedFinalCounts.duplicateRenderIdentityCount !== "0") {
+  fail("workspace rendering contract must expect zero duplicate render identities");
 }
 
 for (const requiredStepBudgetSnippet of [
@@ -145,6 +161,11 @@ for (const requiredStepBudgetSnippet of [
   "data-render-interaction-step-budget-failure-count",
   "data-rendering-step-budget-statuses",
   "data-rendering-step-budget-failure-count",
+  "renderIdentities",
+  "duplicateRenderIdentities",
+  "data-render-identity-count",
+  "data-render-duplicate-identity-count",
+  "data-render-identity-digest",
   "brief-confirm:pass:",
   "candidate-select:pass:",
   "package-add:pass:",
@@ -189,11 +210,16 @@ for (const requiredSourceSnippet of [
   "export const buildWorkspaceRenderingPerformanceSmoke",
   "renderElementCount",
   "estimatedInteractionMs",
+  "renderIdentityCount",
+  "duplicateRenderIdentityCount",
+  "duplicateRenderIdentities",
+  "renderIdentityDigest",
   "failures.push(\"nodes\")",
   "failures.push(\"edges\")",
   "failures.push(\"versions\")",
   "failures.push(\"render-elements\")",
-  "failures.push(\"interaction\")"
+  "failures.push(\"interaction\")",
+  "failures.push(\"duplicate-render-identities\")"
 ]) {
   if (!devStateSource.includes(requiredSourceSnippet)) {
     fail(`workspace rendering builder missing ${requiredSourceSnippet}`);
@@ -207,6 +233,10 @@ for (const requiredContractSnippet of [
   "interactionStepBudgets: Array",
   "renderElementCount: number",
   "estimatedInteractionMs: number",
+  "renderIdentityCount: number",
+  "duplicateRenderIdentityCount: number",
+  "duplicateRenderIdentities: string[]",
+  "renderIdentityDigest: string",
   "maxRenderElements: number",
   "maxInteractionMs: number"
 ]) {
@@ -218,7 +248,11 @@ for (const requiredContractSnippet of [
 for (const requiredTestSnippet of [
   "keeps workspace rendering inside the smoke budget across the interactive canvas flow",
   "fails workspace rendering smoke when local alpha budgets are exceeded",
+  "fails workspace rendering smoke when rendered element identities are duplicated",
   "data-render-failure-count",
+  "data-render-identity-count",
+  "data-render-duplicate-identity-count",
+  "data-render-identity-digest",
   "data-render-interaction-step-budget-failure-count",
   "data-render-estimated-interaction-ms",
   "data-render-max-interaction-ms",

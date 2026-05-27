@@ -524,6 +524,12 @@ for (const step of renderingEvidence.requiredInteractionSteps ?? []) {
 if (renderingEvidence.expectedFailureCount !== "0") {
   fail("workspace rendering evidence must assert zero failures");
 }
+if (
+  renderingEvidence.expectedDuplicateIdentityCount !== "0" ||
+  renderingEvidence.expectedIdentityCountMatchesRenderElementCount !== "true"
+) {
+  fail("workspace rendering evidence must assert zero duplicate identities and identity/render count parity");
+}
 
 if (
   referenceValidationEvidence.expectedStatus !== "pass" ||
@@ -1397,6 +1403,10 @@ for (const expectedRenderingSnippet of [
   "data-render-export-history-count",
   "data-render-element-count",
   "data-render-estimated-interaction-ms",
+  "data-render-identity-count",
+  "data-render-duplicate-identity-count",
+  "data-render-duplicate-identities",
+  "data-render-identity-digest",
   "data-render-failure-count",
   "data-render-max-elements",
   "data-render-max-interaction-ms",
@@ -1411,10 +1421,17 @@ for (const expectedRenderingSnippet of [
   "data-rendering-reference-count",
   "data-rendering-package-item-count",
   "data-rendering-export-history-count",
+  "data-rendering-identity-count",
+  "data-rendering-duplicate-identity-count",
+  "data-rendering-duplicate-identities",
+  "data-rendering-identity-digest",
   "data-render-interaction-steps",
   "maxRenderElements",
   "maxInteractionMs",
   "estimatedInteractionMs",
+  "renderIdentityCount",
+  "duplicateRenderIdentityCount",
+  "renderIdentityDigest",
   "interactionSteps",
   "failures"
 ]) {
@@ -1436,7 +1453,8 @@ for (const expectedRenderingContract of [
   "candidate-select",
   "export-ready",
   "version-restore",
-  "failures.push(\"interaction\")"
+  "failures.push(\"interaction\")",
+  "failures.push(\"duplicate-render-identities\")"
 ]) {
   if (!devStateSource.includes(expectedRenderingContract)) {
     fail(`workspace rendering performance budget missing ${expectedRenderingContract}`);

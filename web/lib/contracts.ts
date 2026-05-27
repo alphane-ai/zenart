@@ -377,6 +377,10 @@ export interface WorkspaceRenderingPerformanceSmoke {
   exportHistoryCount: number;
   renderElementCount: number;
   estimatedInteractionMs: number;
+  renderIdentityCount: number;
+  duplicateRenderIdentityCount: number;
+  duplicateRenderIdentities: string[];
+  renderIdentityDigest: string;
   interactionStepBudgets: Array<{
     step: WorkspaceRenderingPerformanceSmoke["interactionSteps"][number];
     status: "pass" | "fail";
@@ -384,7 +388,7 @@ export interface WorkspaceRenderingPerformanceSmoke {
     estimatedInteractionMs: number;
     failureCount: number;
   }>;
-  failures: Array<"nodes" | "edges" | "versions" | "render-elements" | "interaction">;
+  failures: Array<"nodes" | "edges" | "versions" | "render-elements" | "interaction" | "duplicate-render-identities">;
   budgets: {
     maxNodes: number;
     maxEdges: number;

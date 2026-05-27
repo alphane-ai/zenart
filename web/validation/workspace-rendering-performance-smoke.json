@@ -44,7 +44,9 @@
       "referenceCount": "1",
       "exportHistoryCount": "1",
       "renderElementCount": "15",
-      "estimatedInteractionMs": "17"
+      "estimatedInteractionMs": "17",
+      "renderIdentityCount": "15",
+      "duplicateRenderIdentityCount": "0"
     },
     "budgetAttributes": [
       "data-render-max-elements",
@@ -55,7 +57,11 @@
       "data-render-interaction-step-budget-failure-count",
       "data-render-reference-count",
       "data-render-package-item-count",
-      "data-render-export-history-count"
+      "data-render-export-history-count",
+      "data-render-identity-count",
+      "data-render-duplicate-identity-count",
+      "data-render-duplicate-identities",
+      "data-render-identity-digest"
     ],
     "summaryAttributes": [
       "data-rendering-smoke-summary",
@@ -70,19 +76,29 @@
       "data-rendering-budget-version-count",
       "data-rendering-reference-count",
       "data-rendering-package-item-count",
-      "data-rendering-export-history-count"
+      "data-rendering-export-history-count",
+      "data-rendering-identity-count",
+      "data-rendering-duplicate-identity-count",
+      "data-rendering-duplicate-identities",
+      "data-rendering-identity-digest"
     ],
     "finalFlowAssertions": [
       "data-rendering-status",
       "data-render-failure-count",
       "data-render-candidate-count",
       "data-render-element-count",
+      "data-render-identity-count",
+      "data-render-duplicate-identity-count",
+      "data-render-identity-digest",
       "data-render-max-elements",
       "data-render-estimated-interaction-ms",
       "data-render-max-interaction-ms",
       "data-render-interaction-step-budget-statuses",
       "data-render-interaction-step-budget-failure-count",
       "data-render-export-history-count",
+      "reference:ref-001",
+      "package:pkg-item-001",
+      "export:export-001",
       "data-rendering-interaction-steps",
       "Confirm Brief",
       "Select Studio System",
@@ -104,6 +120,9 @@
       "data-render-reference-count",
       "data-render-package-item-count",
       "data-render-export-history-count",
+      "data-render-identity-count",
+      "data-render-duplicate-identity-count",
+      "data-render-identity-digest",
       "data-render-interaction-steps",
       "data-render-interaction-step-budget-statuses",
       "data-render-interaction-step-budget-failure-count",
@@ -120,7 +139,8 @@
       "component evidence attributes",
       "component interaction smoke assertions",
       "browser smoke assertions",
-      "budget overflow unit test coverage"
+      "budget overflow unit test coverage",
+      "stable render identity parity and duplicate identity regression coverage"
     ]
   }
 }
