@@ -238,6 +238,24 @@ def staging_object_storage_retention_cleanup_summary() -> str:
             evidence = load_json(STAGING_OBJECT_RETENTION_BLOCKED)
             blocked_checks = evidence.get("blocked_checks", [])
             blocked_count = len(blocked_checks) if isinstance(blocked_checks, list) else 0
+            audit_linkage = evidence.get("audit_linkage", {})
+            audit_verified = (
+                audit_linkage.get("verified")
+                if isinstance(audit_linkage, dict)
+                else False
+            )
+            cleanup_refs = (
+                audit_linkage.get("cleanup_audit_refs", [])
+                if isinstance(audit_linkage, dict)
+                else []
+            )
+            audit_refs = (
+                audit_linkage.get("audit_endpoint_refs", [])
+                if isinstance(audit_linkage, dict)
+                else []
+            )
+            cleanup_ref_count = len(cleanup_refs) if isinstance(cleanup_refs, list) else 0
+            audit_ref_count = len(audit_refs) if isinstance(audit_refs, list) else 0
             reason = "missing staging base URL or explicit probe URLs"
             if blocked_checks and all(
                 isinstance(item, str) and "missing_staging_base_url_or_explicit_probe_urls" in item
@@ -247,7 +265,9 @@ def staging_object_storage_retention_cleanup_summary() -> str:
             return (
                 f"`blocked` from `{STAGING_OBJECT_RETENTION_BLOCKED.relative_to(ROOT)}` with "
                 f"{blocked_count}/4 probes blocked by {reason}; canonical pass evidence is still missing at "
-                "`ops/evidence/staging/object-storage-retention-cleanup.json`, so the object-storage gate remains open"
+                "`ops/evidence/staging/object-storage-retention-cleanup.json`; audit linkage verified "
+                f"`{str(audit_verified).lower()}` with {cleanup_ref_count} cleanup refs and {audit_ref_count} "
+                "audit endpoint refs, so the object-storage gate remains open"
             )
         return (
             "`missing`; run `scripts/staging_object_storage_retention_cleanup_smoke.sh` against staging and "

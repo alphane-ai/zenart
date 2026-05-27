@@ -1,6 +1,24 @@
 {
   "admin_tenant_id": "",
   "admin_user_id": "",
+  "audit_linkage": {
+    "audit_endpoint_covers_cleanup_refs": {
+      "expired_export_cleanup": [],
+      "orphan_cleanup": []
+    },
+    "audit_endpoint_missing_cleanup_refs": {
+      "expired_export_cleanup": [],
+      "orphan_cleanup": []
+    },
+    "audit_endpoint_refs": [],
+    "cleanup_audit_refs": [],
+    "cleanup_audit_refs_by_probe": {
+      "expired_export_cleanup": [],
+      "orphan_cleanup": []
+    },
+    "missing_cleanup_audit_refs": [],
+    "verified": false
+  },
   "base_url": "",
   "blocked_checks": [
     "retention_policy:missing_staging_base_url_or_explicit_probe_urls",
