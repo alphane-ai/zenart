@@ -1160,6 +1160,9 @@ func TestAdminExportCleanupRunsServiceAndRecordsAudit(t *testing.T) {
 	if event.Metadata["limit"] != 500 || event.Metadata["expired_exports"] != 2 || event.Metadata["orphaned_objects"] != 1 || event.Metadata["deleted_objects"] != 0 {
 		t.Fatalf("audit metadata = %#v, want capped limit and cleanup counts", event.Metadata)
 	}
+	if event.Metadata["failed_objects"] != 0 || event.Metadata["cleanup_status"] != "completed" {
+		t.Fatalf("audit cleanup status metadata = %#v, want completed with no failed objects", event.Metadata)
+	}
 }
 
 func TestAdminCrawlerStartRunRequiresOperator(t *testing.T) {

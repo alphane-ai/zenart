@@ -747,6 +747,8 @@ func (s *Server) cleanupExports(w http.ResponseWriter, r *http.Request) {
 				"expired_exports":  result.ExpiredExports,
 				"orphaned_objects": result.OrphanedObjects,
 				"deleted_objects":  result.DeletedObjects,
+				"failed_objects":   result.FailedObjects,
+				"cleanup_status":   result.Status,
 			},
 			CreatedAt: now,
 		}); err != nil {

@@ -146,5 +146,5 @@ func runCleanupOnce(ctx context.Context, service cleanupService, logger interfac
 		logger.Error("export object cleanup failed", "error", err, "batch_limit", limit)
 		return
 	}
-	logger.Info("export object cleanup completed", "expired_exports", result.ExpiredExports, "orphaned_objects", result.OrphanedObjects, "deleted_objects", result.DeletedObjects, "batch_limit", limit)
+	logger.Info("export object cleanup completed", "expired_exports", result.ExpiredExports, "orphaned_objects", result.OrphanedObjects, "deleted_objects", result.DeletedObjects, "failed_objects", result.FailedObjects, "cleanup_status", result.Status, "batch_limit", limit)
 }

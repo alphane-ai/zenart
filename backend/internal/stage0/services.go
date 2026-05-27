@@ -207,9 +207,11 @@ type ThumbnailArtifact struct {
 }
 
 type CleanupResult struct {
-	ExpiredExports  int `json:"expired_exports"`
-	OrphanedObjects int `json:"orphaned_objects"`
-	DeletedObjects  int `json:"deleted_objects"`
+	ExpiredExports  int    `json:"expired_exports"`
+	OrphanedObjects int    `json:"orphaned_objects"`
+	DeletedObjects  int    `json:"deleted_objects"`
+	FailedObjects   int    `json:"failed_objects"`
+	Status          string `json:"status"`
 }
 
 type AnalyticsEvent struct {
@@ -1021,7 +1023,15 @@ WHERE o.retention_state = 'active'
 			return CleanupResult{}, err
 		}
 	}
+	result.Status = cleanupResultStatus(result, nil)
 	return result, nil
+}
+
+func cleanupResultStatus(result CleanupResult, err error) string {
+	if err != nil || result.FailedObjects > 0 {
+		return "partial_failed"
+	}
+	return "completed"
 }
 
 type CleanupObject struct {
@@ -1281,9 +1291,10 @@ func (r Repository) recordCleanupRunAnalytics(ctx context.Context, now time.Time
 }
 
 func (r Repository) recordCleanupRunAnalyticsForTenant(ctx context.Context, now time.Time, tenantID string, result CleanupResult) error {
-	if result.ExpiredExports == 0 && result.OrphanedObjects == 0 && result.DeletedObjects == 0 {
+	if result.ExpiredExports == 0 && result.OrphanedObjects == 0 && result.DeletedObjects == 0 && result.FailedObjects == 0 {
 		return nil
 	}
+	status := cleanupResultStatus(result, nil)
 	_, err := r.db.Exec(ctx, `
 WITH cleanup_counts AS (
 	SELECT
@@ -1294,8 +1305,17 @@ WITH cleanup_counts AS (
 	FROM analytics_events
 	WHERE created_at = $1
 	  AND event_name IN ('export_expired', 'object_orphaned', 'object_deleted')
-	  AND ($5 = '' OR tenant_id = $5)
+	  AND ($7 = '' OR tenant_id = $7)
 	GROUP BY tenant_id
+),
+cleanup_scope AS (
+	SELECT tenant_id, export_expired, object_orphaned, object_deleted
+	FROM cleanup_counts
+	UNION ALL
+	SELECT $7, 0, 0, 0
+	WHERE $5 > 0
+	  AND $7 <> ''
+	  AND NOT EXISTS (SELECT 1 FROM cleanup_counts WHERE tenant_id = $7)
 )
 INSERT INTO analytics_events(id, tenant_id, workflow_id, event_name, subject_type, subject_id, properties, created_at)
 SELECT
@@ -1306,30 +1326,35 @@ SELECT
 	'object_retention_cleanup',
 	'cleanup_' || md5(tenant_id || ':' || $1::text),
 	jsonb_build_object(
+		'cleanup_status', $6,
 		'expired_exports', export_expired,
 		'orphaned_objects', object_orphaned,
 		'deleted_objects', object_deleted,
+		'failed_objects', $5,
 		'worker_batch_expired_exports', $2,
 		'worker_batch_orphaned_objects', $3,
 		'worker_batch_deleted_objects', $4
 	),
 	$1
-FROM cleanup_counts
-WHERE export_expired > 0 OR object_orphaned > 0 OR object_deleted > 0
+FROM cleanup_scope
+WHERE export_expired > 0 OR object_orphaned > 0 OR object_deleted > 0 OR $5 > 0
 ON CONFLICT (id) DO NOTHING`,
 		now,
 		result.ExpiredExports,
 		result.OrphanedObjects,
 		result.DeletedObjects,
+		result.FailedObjects,
+		status,
 		tenantID,
 	)
 	return err
 }
 
 func (r Repository) recordCleanupRunAuditRefsForTenant(ctx context.Context, now time.Time, tenantID string, result CleanupResult) error {
-	if result.ExpiredExports == 0 && result.OrphanedObjects == 0 && result.DeletedObjects == 0 {
+	if result.ExpiredExports == 0 && result.OrphanedObjects == 0 && result.DeletedObjects == 0 && result.FailedObjects == 0 {
 		return nil
 	}
+	status := cleanupResultStatus(result, nil)
 	_, err := r.db.Exec(ctx, `
 WITH cleanup_counts AS (
 	SELECT
@@ -1340,8 +1365,17 @@ WITH cleanup_counts AS (
 	FROM analytics_events
 	WHERE created_at = $1
 	  AND event_name IN ('export_expired', 'object_orphaned', 'object_deleted')
-	  AND ($5 = '' OR tenant_id = $5)
+	  AND ($7 = '' OR tenant_id = $7)
 	GROUP BY tenant_id
+),
+cleanup_scope AS (
+	SELECT tenant_id, export_expired, object_orphaned, object_deleted
+	FROM cleanup_counts
+	UNION ALL
+	SELECT $7, 0, 0, 0
+	WHERE $5 > 0
+	  AND $7 <> ''
+	  AND NOT EXISTS (SELECT 1 FROM cleanup_counts WHERE tenant_id = $7)
 )
 INSERT INTO audit_logs(id, tenant_id, actor_id, action, resource, metadata, created_at)
 SELECT
@@ -1352,22 +1386,26 @@ SELECT
 	'object_retention_cleanup',
 	jsonb_build_object(
 		'audit_ref_kind', 'object_retention_cleanup_run',
+		'cleanup_status', $6,
 		'expired_exports', export_expired,
 		'orphaned_objects', object_orphaned,
 		'deleted_objects', object_deleted,
+		'failed_objects', $5,
 		'worker_batch_expired_exports', $2,
 		'worker_batch_orphaned_objects', $3,
 		'worker_batch_deleted_objects', $4,
 		'cleanup_ack_scope', 'tenant_id+object_key'
 	),
 	$1
-FROM cleanup_counts
-WHERE export_expired > 0 OR object_orphaned > 0 OR object_deleted > 0
+FROM cleanup_scope
+WHERE export_expired > 0 OR object_orphaned > 0 OR object_deleted > 0 OR $5 > 0
 ON CONFLICT (id) DO NOTHING`,
 		now,
 		result.ExpiredExports,
 		result.OrphanedObjects,
 		result.DeletedObjects,
+		result.FailedObjects,
+		status,
 		tenantID,
 	)
 	return err
@@ -2982,6 +3020,7 @@ func (s Service) cleanupExpiredExportsAndOrphanedObjects(ctx context.Context, te
 		if err := s.objects.Delete(ctx, object.TenantID, object.Key); err != nil {
 			if !errors.Is(err, objectstore.ErrNotFound) {
 				deleteErr = errors.Join(deleteErr, err)
+				result.FailedObjects++
 				continue
 			}
 		}
@@ -2992,6 +3031,7 @@ func (s Service) cleanupExpiredExportsAndOrphanedObjects(ctx context.Context, te
 		return CleanupResult{}, err
 	}
 	result.DeletedObjects = deleted
+	result.Status = cleanupResultStatus(result, deleteErr)
 	if err := s.repo.recordCleanupRunAnalyticsForTenant(ctx, now, tenantID, result); err != nil {
 		return CleanupResult{}, err
 	}
