@@ -585,6 +585,13 @@ RELEASE_GATE_CHECK_CONDITION_EXISTING_PATH_GUARD_CHECKLIST_ITEM = (
     "subitem closure while allowed definition directories remain definition-only。"
 )
 
+RELEASE_GATE_FIXTURE_IDENTITY_GUARD_CHECKLIST_ITEM = (
+    "Release gate fixture identity guard 通过：`scripts/validate_stage0_rev2.py` rejects extra or missing "
+    "`fixtures/stage0/rev2/release_gate_evidence.*.json` files and requires each canonical file to match its "
+    "validator-owned `gate` and `evidence_id`, so copied, renamed, or sibling fixtures cannot contribute to "
+    "Local Alpha、CI、Private Beta/Staging、Production、or Do-Not-Launch closure。"
+)
+
 GATE_IMPACT_CLOSED_SCHEMA_GUARD_CHECKLIST_ITEM = (
     "Runtime gate_impact closed-schema guard 通过：`scripts/validate_stage0_rev2.py` rejects unknown "
     "`gate_impact` keys in runtime evidence, so new launch-clearance metadata cannot bypass validator-owned "
@@ -11470,6 +11477,7 @@ def validate_launch_readiness_split_contracts() -> None:
         CI_BROAD_RUNTIME_EXACT_FILE_GUARD_CHECKLIST_ITEM,
         RELEASE_GATE_BASENAME_EXACT_PATH_GUARD_CHECKLIST_ITEM,
         RELEASE_GATE_CHECK_CONDITION_EXISTING_PATH_GUARD_CHECKLIST_ITEM,
+        RELEASE_GATE_FIXTURE_IDENTITY_GUARD_CHECKLIST_ITEM,
         GATE_IMPACT_CLOSED_SCHEMA_GUARD_CHECKLIST_ITEM,
         PRIVATE_BETA_CLEARED_CONDITION_STATE_GUARD_CHECKLIST_ITEM,
     ] + sorted(RELEASE_GATE_BACKFILL_CHECKED_ITEMS):
