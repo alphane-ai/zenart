@@ -3385,6 +3385,11 @@ def validate_global_do_not_launch_checklist_item(
         if conditions
     }
     open_gate_items = sorted(item for item in GATE_CHECKLIST_ITEMS if item in unchecked_lines)
+    non_go_decisions = {
+        gate: gate_decision_status(data)
+        for gate, data in evidence.items()
+        if gate_decision_status(data) != "go"
+    }
 
     if GLOBAL_DO_NOT_LAUNCH_CHECKLIST_ITEM in checked_lines:
         require(
@@ -3397,12 +3402,17 @@ def validate_global_do_not_launch_checklist_item(
             "blueprint marks Do-Not-Launch Conditions complete while release gate checklist items remain open: "
             + json.dumps(open_gate_items, ensure_ascii=False),
         )
+        require(
+            not non_go_decisions,
+            "blueprint marks Do-Not-Launch Conditions complete while release gate decisions remain no-go: "
+            + json.dumps(non_go_decisions, ensure_ascii=False, sort_keys=True),
+        )
         return
 
     require(
-        active_conditions or open_gate_items,
+        active_conditions or open_gate_items or non_go_decisions,
         "global Do-Not-Launch checklist item remains open even though release-gate fixtures have no active "
-        "Do-Not-Launch conditions and all release gate checklist items are closed",
+        "Do-Not-Launch conditions, all release gate checklist items are closed, and every gate_decision is go",
     )
 
 

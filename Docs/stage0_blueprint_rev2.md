@@ -2106,4 +2106,5 @@ Release gate closure policy:
 - `Do-Not-Launch Conditions 全部为 false。` remains open while any release-gate evidence fixture has `is_present: true`.
 - `Do-Not-Launch Conditions 全部为 false。` may close only when all four release gate fixtures have no active Do-Not-Launch conditions and Local Alpha, CI, Private Beta/Staging, and Production Launch gate checklist items are also closed in the blueprint.
 - `Do-Not-Launch Conditions 全部为 false。` also requires all four release gate `gate_decision.status` values to be `go`; a global close with any fixture-level `no_go` decision is invalid.
+- The validator must enforce the global Do-Not-Launch checklist item against active fixture conditions, open gate checklist items, and every release fixture `gate_decision.status`; absence of active Do-Not-Launch rows alone cannot close the global launch blocker.
 - Release gate fixture IDs are closed-world: unknown check IDs or unknown Do-Not-Launch condition IDs are invalid, even when their status is blocked.
