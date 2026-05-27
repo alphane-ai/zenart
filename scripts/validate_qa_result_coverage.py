@@ -40,6 +40,13 @@ REQUIRED_MANIFEST_FILES = {
     "qa_report.json",
     "trace_provenance.json",
 }
+REQUIRED_TRACE_STEPS = {
+    "brief",
+    "provider_request",
+    "provider_response",
+    "qa",
+    "export",
+}
 
 
 class QACoverageError(Exception):
@@ -219,6 +226,14 @@ def validate_contract() -> None:
         "category outcome examples must cover pass, warn, and block",
     )
 
+    validate_coverage_evidence_links(
+        contract,
+        qa_by_id,
+        eval_by_fixture,
+        trace_by_id,
+        workflows,
+    )
+
     policy = contract["export_gate_policy"]
     require(policy["blocking_severity_blocks_final_export"] is True, "blocking export policy must be explicit")
     require(policy["warning_severity_does_not_block_final_export"] is True, "warning export policy must be explicit")
@@ -301,6 +316,121 @@ def validate_vertical_acceptance_links(
         require(
             all(eval_by_fixture[fixture_id]["workflow"] == workflow_id for fixture_id in eval_fixture_ids),
             f"{workflow_id} linked eval fixtures must belong to the workflow",
+        )
+
+
+def validate_coverage_evidence_links(
+    contract: dict[str, Any],
+    qa_by_id: dict[str, dict[str, Any]],
+    eval_by_fixture: dict[str, dict[str, Any]],
+    trace_by_id: dict[str, dict[str, Any]],
+    workflows: dict[str, dict[str, Any]],
+) -> None:
+    links = contract["coverage_evidence_links"]
+    link_by_check = {item["check_id"]: item for item in links}
+    require(len(link_by_check) == len(links), "coverage evidence links must not duplicate check_id")
+    require(set(link_by_check) == set(qa_by_id), "coverage evidence links must cover every QA result check")
+
+    links_by_workflow: dict[str, list[dict[str, Any]]] = {}
+    linked_categories: dict[str, set[str]] = {}
+    linked_fixtures: dict[str, set[str]] = {}
+    for link in links:
+        check_id = link["check_id"]
+        qa_item = qa_by_id[check_id]
+        fixture_id = link["eval_fixture_id"]
+        trace_id = link["trace_id"]
+
+        require(link["qa_result_path"] == "fixtures/stage0/rev2/eval/qa_results.json", f"{check_id} QA path mismatch")
+        require(
+            link["eval_result_path"] == "fixtures/stage0/rev2/eval/starter_eval_results.json",
+            f"{check_id} eval result path mismatch",
+        )
+        require(
+            link["trace_contract_path"] == "fixtures/stage0/rev2/eval/trace_completeness.json",
+            f"{check_id} trace contract path mismatch",
+        )
+        require(fixture_id in eval_by_fixture, f"{check_id} links unknown eval fixture {fixture_id}")
+        require(trace_id in trace_by_id, f"{check_id} links unknown trace {trace_id}")
+
+        result = eval_by_fixture[fixture_id]
+        trace = trace_by_id[trace_id]
+        expected_acceptance_fixture = f"fixtures/stage0/rev2/workflows/{qa_item['workflow']}.json"
+        expected_trace_steps = set(trace["covered_steps"])
+
+        require(link["check_category"] == qa_item["check_category"], f"{check_id} category link mismatch")
+        require(link["workflow_id"] == qa_item["workflow"], f"{check_id} workflow link mismatch")
+        require(link["acceptance_fixture"] == expected_acceptance_fixture, f"{check_id} acceptance fixture link mismatch")
+        require((ROOT / link["acceptance_fixture"]).exists(), f"{check_id} linked acceptance fixture missing")
+        require(link["eval_fixture_id"] == qa_item["evidence"]["fixture_id"], f"{check_id} eval fixture link mismatch")
+        require(link["trace_id"] == qa_item["evidence"]["trace_id"], f"{check_id} trace link mismatch")
+        require(result["workflow"] == link["workflow_id"], f"{check_id} eval result workflow mismatch")
+        require(trace["workflow"] == link["workflow_id"], f"{check_id} trace workflow mismatch")
+        require(trace["fixture_id"] == fixture_id, f"{check_id} trace fixture mismatch")
+        require(result["trace_contract"]["trace_id"] == trace_id, f"{check_id} eval trace mismatch")
+        require(check_id in result["qa_check_ids"], f"{check_id} missing from eval result qa_check_ids")
+        require(qa_result_outcome(qa_item) == link["outcome"], f"{check_id} outcome link mismatch")
+        require(
+            result["observed_safety_action"] == link["safety_action"],
+            f"{check_id} safety action link mismatch",
+        )
+        require(
+            result["qa_export_gate"]["final_export_allowed"] is link["final_export_allowed"],
+            f"{check_id} final export link mismatch",
+        )
+        require(
+            qa_item["export_gate"]["blocks_final_export"] is link["blocks_final_export"],
+            f"{check_id} blocking export link mismatch",
+        )
+        require(
+            result["qa_export_gate"]["export_artifacts_complete"] is link["export_artifacts_complete"],
+            f"{check_id} export artifact completeness link mismatch",
+        )
+        require(link["vertical_acceptance_required"] is True, f"{check_id} must require vertical acceptance")
+        require(expected_trace_steps == REQUIRED_TRACE_STEPS, f"{check_id} linked trace does not cover required steps")
+        require(set(link["trace_steps"]) == REQUIRED_TRACE_STEPS, f"{check_id} trace steps link mismatch")
+        require(link["source_artifacts"] == qa_item["evidence"]["source_artifacts"], f"{check_id} source artifact link mismatch")
+        require(link["source_artifacts_present"] is True, f"{check_id} source artifacts must be present")
+        require(bool(link["source_artifacts"]), f"{check_id} source artifact link must not be empty")
+        require(link["coverage_complete"] is True, f"{check_id} coverage evidence link must be complete")
+        require(
+            link["check_category"] in workflows[link["workflow_id"]]["required_qa_checks"],
+            f"{check_id} linked category is not required by its workflow acceptance fixture",
+        )
+        if link["blocks_final_export"]:
+            require(
+                check_id in result["qa_export_gate"]["blocking_qa_check_ids"],
+                f"{check_id} blocking evidence link missing eval export gate check",
+            )
+            require(
+                link["check_category"] in result["qa_export_gate"]["blocking_qa_categories"],
+                f"{check_id} blocking evidence link missing eval export gate category",
+            )
+        else:
+            require(
+                check_id not in result["qa_export_gate"]["blocking_qa_check_ids"],
+                f"{check_id} nonblocking evidence link appears in eval blocking checks",
+            )
+
+        links_by_workflow.setdefault(link["workflow_id"], []).append(link)
+        linked_categories.setdefault(link["workflow_id"], set()).add(link["check_category"])
+        linked_fixtures.setdefault(link["workflow_id"], set()).add(fixture_id)
+
+    workflow_contracts = {item["workflow_id"]: item for item in contract["workflow_required_coverage"]}
+    vertical_links = {item["workflow_id"]: item for item in contract["vertical_acceptance_links"]}
+    require(set(links_by_workflow) == set(workflows), "coverage evidence links must cover every workflow")
+    for workflow_id, workflow in workflows.items():
+        required = set(workflow["required_qa_checks"])
+        require(
+            linked_categories.get(workflow_id, set()) == required,
+            f"{workflow_id} evidence links must cover required QA categories",
+        )
+        require(
+            linked_fixtures.get(workflow_id, set()) == set(workflow_contracts[workflow_id]["source_fixture_ids"]),
+            f"{workflow_id} evidence links must cover workflow source fixtures",
+        )
+        require(
+            {link["check_id"] for link in links_by_workflow[workflow_id]} == set(vertical_links[workflow_id]["qa_check_ids"]),
+            f"{workflow_id} evidence links must match vertical acceptance QA checks",
         )
 
 

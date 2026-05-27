@@ -788,6 +788,492 @@
       "expected_export_artifacts_complete": false
     }
   ],
+  "coverage_evidence_links": [
+    {
+      "check_id": "qa_file_integrity_checksum",
+      "check_category": "file_integrity",
+      "workflow_id": "ecommerce_growth_pack",
+      "acceptance_fixture": "fixtures/stage0/rev2/workflows/ecommerce_growth_pack.json",
+      "qa_result_path": "fixtures/stage0/rev2/eval/qa_results.json",
+      "eval_result_path": "fixtures/stage0/rev2/eval/starter_eval_results.json",
+      "trace_contract_path": "fixtures/stage0/rev2/eval/trace_completeness.json",
+      "eval_fixture_id": "fx_brand_product_preservation",
+      "trace_id": "trace_fx_brand_product_preservation_integrity",
+      "outcome": "block",
+      "safety_action": "require_admin_review",
+      "final_export_allowed": false,
+      "blocks_final_export": true,
+      "export_artifacts_complete": true,
+      "vertical_acceptance_required": true,
+      "trace_steps": [
+        "brief",
+        "provider_request",
+        "provider_response",
+        "qa",
+        "export"
+      ],
+      "source_artifacts": [
+        "fixtures/assets/aurora_bottle_packshot.png",
+        "object_metadata.checksum"
+      ],
+      "source_artifacts_present": true,
+      "coverage_complete": true
+    },
+    {
+      "check_id": "qa_dimensions_platform_target",
+      "check_category": "dimensions",
+      "workflow_id": "local_merchant_campaign_pack",
+      "acceptance_fixture": "fixtures/stage0/rev2/workflows/local_merchant_campaign_pack.json",
+      "qa_result_path": "fixtures/stage0/rev2/eval/qa_results.json",
+      "eval_result_path": "fixtures/stage0/rev2/eval/starter_eval_results.json",
+      "trace_contract_path": "fixtures/stage0/rev2/eval/trace_completeness.json",
+      "eval_fixture_id": "fx_local_merchant_campaign_golden",
+      "trace_id": "trace_fx_local_merchant_campaign_golden_dimensions",
+      "outcome": "block",
+      "safety_action": "allow",
+      "final_export_allowed": false,
+      "blocks_final_export": true,
+      "export_artifacts_complete": true,
+      "vertical_acceptance_required": true,
+      "trace_steps": [
+        "brief",
+        "provider_request",
+        "provider_response",
+        "qa",
+        "export"
+      ],
+      "source_artifacts": [
+        "manifest.json",
+        "candidate_asset.metadata"
+      ],
+      "source_artifacts_present": true,
+      "coverage_complete": true
+    },
+    {
+      "check_id": "qa_aspect_ratio_channel",
+      "check_category": "aspect_ratio",
+      "workflow_id": "ecommerce_growth_pack",
+      "acceptance_fixture": "fixtures/stage0/rev2/workflows/ecommerce_growth_pack.json",
+      "qa_result_path": "fixtures/stage0/rev2/eval/qa_results.json",
+      "eval_result_path": "fixtures/stage0/rev2/eval/starter_eval_results.json",
+      "trace_contract_path": "fixtures/stage0/rev2/eval/trace_completeness.json",
+      "eval_fixture_id": "fx_ecommerce_growth_golden",
+      "trace_id": "trace_fx_ecommerce_growth_golden_aspect",
+      "outcome": "warn",
+      "safety_action": "allow",
+      "final_export_allowed": false,
+      "blocks_final_export": false,
+      "export_artifacts_complete": true,
+      "vertical_acceptance_required": true,
+      "trace_steps": [
+        "brief",
+        "provider_request",
+        "provider_response",
+        "qa",
+        "export"
+      ],
+      "source_artifacts": [
+        "workflow_acceptance.ecommerce_growth_pack.json",
+        "manifest.json"
+      ],
+      "source_artifacts_present": true,
+      "coverage_complete": true
+    },
+    {
+      "check_id": "qa_aspect_ratio_square_pass",
+      "check_category": "aspect_ratio",
+      "workflow_id": "ecommerce_growth_pack",
+      "acceptance_fixture": "fixtures/stage0/rev2/workflows/ecommerce_growth_pack.json",
+      "qa_result_path": "fixtures/stage0/rev2/eval/qa_results.json",
+      "eval_result_path": "fixtures/stage0/rev2/eval/starter_eval_results.json",
+      "trace_contract_path": "fixtures/stage0/rev2/eval/trace_completeness.json",
+      "eval_fixture_id": "fx_ecommerce_growth_golden",
+      "trace_id": "trace_fx_ecommerce_growth_golden_aspect",
+      "outcome": "pass",
+      "safety_action": "allow",
+      "final_export_allowed": false,
+      "blocks_final_export": false,
+      "export_artifacts_complete": true,
+      "vertical_acceptance_required": true,
+      "trace_steps": [
+        "brief",
+        "provider_request",
+        "provider_response",
+        "qa",
+        "export"
+      ],
+      "source_artifacts": [
+        "workflow_acceptance.ecommerce_growth_pack.json",
+        "manifest.json"
+      ],
+      "source_artifacts_present": true,
+      "coverage_complete": true
+    },
+    {
+      "check_id": "qa_platform_safe_area",
+      "check_category": "safe_area",
+      "workflow_id": "local_merchant_campaign_pack",
+      "acceptance_fixture": "fixtures/stage0/rev2/workflows/local_merchant_campaign_pack.json",
+      "qa_result_path": "fixtures/stage0/rev2/eval/qa_results.json",
+      "eval_result_path": "fixtures/stage0/rev2/eval/starter_eval_results.json",
+      "trace_contract_path": "fixtures/stage0/rev2/eval/trace_completeness.json",
+      "eval_fixture_id": "fx_local_merchant_campaign_golden",
+      "trace_id": "trace_fx_local_merchant_campaign_golden_dimensions",
+      "outcome": "warn",
+      "safety_action": "allow",
+      "final_export_allowed": false,
+      "blocks_final_export": false,
+      "export_artifacts_complete": true,
+      "vertical_acceptance_required": true,
+      "trace_steps": [
+        "brief",
+        "provider_request",
+        "provider_response",
+        "qa",
+        "export"
+      ],
+      "source_artifacts": [
+        "candidate_asset.layout.json",
+        "workflow_acceptance.local_merchant_campaign_pack.json"
+      ],
+      "source_artifacts_present": true,
+      "coverage_complete": true
+    },
+    {
+      "check_id": "qa_blank_output",
+      "check_category": "blank_output",
+      "workflow_id": "character_ip_concept_pack",
+      "acceptance_fixture": "fixtures/stage0/rev2/workflows/character_ip_concept_pack.json",
+      "qa_result_path": "fixtures/stage0/rev2/eval/qa_results.json",
+      "eval_result_path": "fixtures/stage0/rev2/eval/starter_eval_results.json",
+      "trace_contract_path": "fixtures/stage0/rev2/eval/trace_completeness.json",
+      "eval_fixture_id": "fx_character_ip_concept_golden",
+      "trace_id": "trace_fx_character_ip_concept_golden_blank",
+      "outcome": "block",
+      "safety_action": "require_admin_review",
+      "final_export_allowed": false,
+      "blocks_final_export": true,
+      "export_artifacts_complete": true,
+      "vertical_acceptance_required": true,
+      "trace_steps": [
+        "brief",
+        "provider_request",
+        "provider_response",
+        "qa",
+        "export"
+      ],
+      "source_artifacts": [
+        "candidate_asset.preview.png",
+        "qa_report.json"
+      ],
+      "source_artifacts_present": true,
+      "coverage_complete": true
+    },
+    {
+      "check_id": "qa_duplicate_candidate_similarity",
+      "check_category": "duplicate_similarity",
+      "workflow_id": "local_merchant_campaign_pack",
+      "acceptance_fixture": "fixtures/stage0/rev2/workflows/local_merchant_campaign_pack.json",
+      "qa_result_path": "fixtures/stage0/rev2/eval/qa_results.json",
+      "eval_result_path": "fixtures/stage0/rev2/eval/starter_eval_results.json",
+      "trace_contract_path": "fixtures/stage0/rev2/eval/trace_completeness.json",
+      "eval_fixture_id": "fx_negative_generic_rendering",
+      "trace_id": "trace_fx_negative_generic_rendering_similarity",
+      "outcome": "block",
+      "safety_action": "allow",
+      "final_export_allowed": false,
+      "blocks_final_export": true,
+      "export_artifacts_complete": true,
+      "vertical_acceptance_required": true,
+      "trace_steps": [
+        "brief",
+        "provider_request",
+        "provider_response",
+        "qa",
+        "export"
+      ],
+      "source_artifacts": [
+        "local_merchant_candidate_set.json",
+        "qa_report.json"
+      ],
+      "source_artifacts_present": true,
+      "coverage_complete": true
+    },
+    {
+      "check_id": "qa_four_option_distinctness",
+      "check_category": "four_option_distinctness",
+      "workflow_id": "local_merchant_campaign_pack",
+      "acceptance_fixture": "fixtures/stage0/rev2/workflows/local_merchant_campaign_pack.json",
+      "qa_result_path": "fixtures/stage0/rev2/eval/qa_results.json",
+      "eval_result_path": "fixtures/stage0/rev2/eval/starter_eval_results.json",
+      "trace_contract_path": "fixtures/stage0/rev2/eval/trace_completeness.json",
+      "eval_fixture_id": "fx_negative_generic_rendering",
+      "trace_id": "trace_fx_negative_generic_rendering_similarity",
+      "outcome": "block",
+      "safety_action": "allow",
+      "final_export_allowed": false,
+      "blocks_final_export": true,
+      "export_artifacts_complete": true,
+      "vertical_acceptance_required": true,
+      "trace_steps": [
+        "brief",
+        "provider_request",
+        "provider_response",
+        "qa",
+        "export"
+      ],
+      "source_artifacts": [
+        "workflow_acceptance.local_merchant_campaign_pack.json",
+        "local_merchant_candidate_set.json"
+      ],
+      "source_artifacts_present": true,
+      "coverage_complete": true
+    },
+    {
+      "check_id": "qa_ecommerce_duplicate_candidate_similarity",
+      "check_category": "duplicate_similarity",
+      "workflow_id": "ecommerce_growth_pack",
+      "acceptance_fixture": "fixtures/stage0/rev2/workflows/ecommerce_growth_pack.json",
+      "qa_result_path": "fixtures/stage0/rev2/eval/qa_results.json",
+      "eval_result_path": "fixtures/stage0/rev2/eval/starter_eval_results.json",
+      "trace_contract_path": "fixtures/stage0/rev2/eval/trace_completeness.json",
+      "eval_fixture_id": "fx_brand_product_preservation",
+      "trace_id": "trace_fx_brand_product_preservation_integrity",
+      "outcome": "block",
+      "safety_action": "require_admin_review",
+      "final_export_allowed": false,
+      "blocks_final_export": true,
+      "export_artifacts_complete": true,
+      "vertical_acceptance_required": true,
+      "trace_steps": [
+        "brief",
+        "provider_request",
+        "provider_response",
+        "qa",
+        "export"
+      ],
+      "source_artifacts": [
+        "workflow_acceptance.ecommerce_growth_pack.json",
+        "aurora_candidate_set.json",
+        "qa_report.json"
+      ],
+      "source_artifacts_present": true,
+      "coverage_complete": true
+    },
+    {
+      "check_id": "qa_ecommerce_four_option_distinctness",
+      "check_category": "four_option_distinctness",
+      "workflow_id": "ecommerce_growth_pack",
+      "acceptance_fixture": "fixtures/stage0/rev2/workflows/ecommerce_growth_pack.json",
+      "qa_result_path": "fixtures/stage0/rev2/eval/qa_results.json",
+      "eval_result_path": "fixtures/stage0/rev2/eval/starter_eval_results.json",
+      "trace_contract_path": "fixtures/stage0/rev2/eval/trace_completeness.json",
+      "eval_fixture_id": "fx_brand_product_preservation",
+      "trace_id": "trace_fx_brand_product_preservation_integrity",
+      "outcome": "block",
+      "safety_action": "require_admin_review",
+      "final_export_allowed": false,
+      "blocks_final_export": true,
+      "export_artifacts_complete": true,
+      "vertical_acceptance_required": true,
+      "trace_steps": [
+        "brief",
+        "provider_request",
+        "provider_response",
+        "qa",
+        "export"
+      ],
+      "source_artifacts": [
+        "workflow_acceptance.ecommerce_growth_pack.json",
+        "aurora_candidate_set.json"
+      ],
+      "source_artifacts_present": true,
+      "coverage_complete": true
+    },
+    {
+      "check_id": "qa_text_readability_ocr",
+      "check_category": "text_readability",
+      "workflow_id": "business_visual_doc_pack",
+      "acceptance_fixture": "fixtures/stage0/rev2/workflows/business_visual_doc_pack.json",
+      "qa_result_path": "fixtures/stage0/rev2/eval/qa_results.json",
+      "eval_result_path": "fixtures/stage0/rev2/eval/starter_eval_results.json",
+      "trace_contract_path": "fixtures/stage0/rev2/eval/trace_completeness.json",
+      "eval_fixture_id": "fx_business_visual_doc_golden",
+      "trace_id": "trace_fx_business_visual_doc_golden_readability",
+      "outcome": "warn",
+      "safety_action": "warn",
+      "final_export_allowed": false,
+      "blocks_final_export": false,
+      "export_artifacts_complete": true,
+      "vertical_acceptance_required": true,
+      "trace_steps": [
+        "brief",
+        "provider_request",
+        "provider_response",
+        "qa",
+        "export"
+      ],
+      "source_artifacts": [
+        "candidate_asset.preview.png",
+        "qa_report.json"
+      ],
+      "source_artifacts_present": true,
+      "coverage_complete": true
+    },
+    {
+      "check_id": "qa_structured_text_fields",
+      "check_category": "structured_text",
+      "workflow_id": "local_merchant_campaign_pack",
+      "acceptance_fixture": "fixtures/stage0/rev2/workflows/local_merchant_campaign_pack.json",
+      "qa_result_path": "fixtures/stage0/rev2/eval/qa_results.json",
+      "eval_result_path": "fixtures/stage0/rev2/eval/starter_eval_results.json",
+      "trace_contract_path": "fixtures/stage0/rev2/eval/trace_completeness.json",
+      "eval_fixture_id": "fx_text_heavy_structured_details",
+      "trace_id": "trace_fx_text_heavy_structured_details",
+      "outcome": "warn",
+      "safety_action": "allow",
+      "final_export_allowed": false,
+      "blocks_final_export": false,
+      "export_artifacts_complete": true,
+      "vertical_acceptance_required": true,
+      "trace_steps": [
+        "brief",
+        "provider_request",
+        "provider_response",
+        "qa",
+        "export"
+      ],
+      "source_artifacts": [
+        "brief.inputs",
+        "candidate_asset.ocr.json"
+      ],
+      "source_artifacts_present": true,
+      "coverage_complete": true
+    },
+    {
+      "check_id": "qa_product_logo_preservation",
+      "check_category": "product_logo_preservation",
+      "workflow_id": "ecommerce_growth_pack",
+      "acceptance_fixture": "fixtures/stage0/rev2/workflows/ecommerce_growth_pack.json",
+      "qa_result_path": "fixtures/stage0/rev2/eval/qa_results.json",
+      "eval_result_path": "fixtures/stage0/rev2/eval/starter_eval_results.json",
+      "trace_contract_path": "fixtures/stage0/rev2/eval/trace_completeness.json",
+      "eval_fixture_id": "fx_brand_product_preservation",
+      "trace_id": "trace_fx_brand_product_preservation_integrity",
+      "outcome": "block",
+      "safety_action": "require_admin_review",
+      "final_export_allowed": false,
+      "blocks_final_export": true,
+      "export_artifacts_complete": true,
+      "vertical_acceptance_required": true,
+      "trace_steps": [
+        "brief",
+        "provider_request",
+        "provider_response",
+        "qa",
+        "export"
+      ],
+      "source_artifacts": [
+        "fixtures/assets/aurora_logo.svg",
+        "fixtures/assets/aurora_bottle_packshot.png",
+        "candidate_asset.preview.png"
+      ],
+      "source_artifacts_present": true,
+      "coverage_complete": true
+    },
+    {
+      "check_id": "qa_forbidden_claims",
+      "check_category": "forbidden_claims",
+      "workflow_id": "business_visual_doc_pack",
+      "acceptance_fixture": "fixtures/stage0/rev2/workflows/business_visual_doc_pack.json",
+      "qa_result_path": "fixtures/stage0/rev2/eval/qa_results.json",
+      "eval_result_path": "fixtures/stage0/rev2/eval/starter_eval_results.json",
+      "trace_contract_path": "fixtures/stage0/rev2/eval/trace_completeness.json",
+      "eval_fixture_id": "fx_unsafe_financial_claim",
+      "trace_id": "trace_fx_unsafe_financial_claim",
+      "outcome": "block",
+      "safety_action": "block",
+      "final_export_allowed": false,
+      "blocks_final_export": true,
+      "export_artifacts_complete": false,
+      "vertical_acceptance_required": true,
+      "trace_steps": [
+        "brief",
+        "provider_request",
+        "provider_response",
+        "qa",
+        "export"
+      ],
+      "source_artifacts": [
+        "candidate_asset.ocr.json",
+        "safety_decision.json"
+      ],
+      "source_artifacts_present": true,
+      "coverage_complete": true
+    },
+    {
+      "check_id": "qa_watermark_signature_risk",
+      "check_category": "watermark_signature_risk",
+      "workflow_id": "character_ip_concept_pack",
+      "acceptance_fixture": "fixtures/stage0/rev2/workflows/character_ip_concept_pack.json",
+      "qa_result_path": "fixtures/stage0/rev2/eval/qa_results.json",
+      "eval_result_path": "fixtures/stage0/rev2/eval/starter_eval_results.json",
+      "trace_contract_path": "fixtures/stage0/rev2/eval/trace_completeness.json",
+      "eval_fixture_id": "fx_character_ip_concept_golden",
+      "trace_id": "trace_fx_character_ip_concept_golden_blank",
+      "outcome": "warn",
+      "safety_action": "require_admin_review",
+      "final_export_allowed": false,
+      "blocks_final_export": false,
+      "export_artifacts_complete": true,
+      "vertical_acceptance_required": true,
+      "trace_steps": [
+        "brief",
+        "provider_request",
+        "provider_response",
+        "qa",
+        "export"
+      ],
+      "source_artifacts": [
+        "candidate_asset.preview.png",
+        "qa_report.json"
+      ],
+      "source_artifacts_present": true,
+      "coverage_complete": true
+    },
+    {
+      "check_id": "qa_export_completeness",
+      "check_category": "export_completeness",
+      "workflow_id": "character_ip_concept_pack",
+      "acceptance_fixture": "fixtures/stage0/rev2/workflows/character_ip_concept_pack.json",
+      "qa_result_path": "fixtures/stage0/rev2/eval/qa_results.json",
+      "eval_result_path": "fixtures/stage0/rev2/eval/starter_eval_results.json",
+      "trace_contract_path": "fixtures/stage0/rev2/eval/trace_completeness.json",
+      "eval_fixture_id": "fx_export_completeness_missing_manifest",
+      "trace_id": "trace_fx_export_completeness_missing_manifest",
+      "outcome": "block",
+      "safety_action": "allow",
+      "final_export_allowed": false,
+      "blocks_final_export": true,
+      "export_artifacts_complete": false,
+      "vertical_acceptance_required": true,
+      "trace_steps": [
+        "brief",
+        "provider_request",
+        "provider_response",
+        "qa",
+        "export"
+      ],
+      "source_artifacts": [
+        "export.zip",
+        "manifest.json",
+        "qa_report.json",
+        "trace_provenance.json"
+      ],
+      "source_artifacts_present": true,
+      "coverage_complete": true
+    }
+  ],
   "eval_result_link": {
     "path": "fixtures/stage0/rev2/eval/starter_eval_results.json",
     "requires_qa_categories_covered_match": true,

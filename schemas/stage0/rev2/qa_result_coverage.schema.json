@@ -16,6 +16,7 @@
     "vertical_acceptance_links",
     "outcome_examples",
     "category_outcome_examples",
+    "coverage_evidence_links",
     "eval_result_link",
     "export_gate_policy",
     "provenance"
@@ -443,6 +444,131 @@
         },
         "requires_trace_contract_match": {
           "const": true
+        }
+      }
+    },
+    "coverage_evidence_links": {
+      "type": "array",
+      "minItems": 13,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "check_id",
+          "check_category",
+          "workflow_id",
+          "acceptance_fixture",
+          "qa_result_path",
+          "eval_result_path",
+          "trace_contract_path",
+          "eval_fixture_id",
+          "trace_id",
+          "outcome",
+          "safety_action",
+          "final_export_allowed",
+          "blocks_final_export",
+          "export_artifacts_complete",
+          "vertical_acceptance_required",
+          "trace_steps",
+          "source_artifacts",
+          "source_artifacts_present",
+          "coverage_complete"
+        ],
+        "properties": {
+          "check_id": {
+            "type": "string",
+            "pattern": "^qa_[a-z0-9_]+$"
+          },
+          "check_category": {
+            "$ref": "#/$defs/qa_category"
+          },
+          "workflow_id": {
+            "enum": [
+              "ecommerce_growth_pack",
+              "business_visual_doc_pack",
+              "local_merchant_campaign_pack",
+              "character_ip_concept_pack"
+            ]
+          },
+          "acceptance_fixture": {
+            "type": "string",
+            "pattern": "^fixtures/stage0/rev2/workflows/.+\\.json$"
+          },
+          "qa_result_path": {
+            "const": "fixtures/stage0/rev2/eval/qa_results.json"
+          },
+          "eval_result_path": {
+            "const": "fixtures/stage0/rev2/eval/starter_eval_results.json"
+          },
+          "trace_contract_path": {
+            "const": "fixtures/stage0/rev2/eval/trace_completeness.json"
+          },
+          "eval_fixture_id": {
+            "type": "string",
+            "pattern": "^fx_[a-z0-9_]+$"
+          },
+          "trace_id": {
+            "type": "string",
+            "pattern": "^trace_[a-z0-9_]+$"
+          },
+          "outcome": {
+            "enum": [
+              "pass",
+              "warn",
+              "block"
+            ]
+          },
+          "safety_action": {
+            "enum": [
+              "allow",
+              "warn",
+              "require_user_confirmation",
+              "require_admin_review",
+              "block"
+            ]
+          },
+          "final_export_allowed": {
+            "type": "boolean"
+          },
+          "blocks_final_export": {
+            "type": "boolean"
+          },
+          "export_artifacts_complete": {
+            "type": "boolean"
+          },
+          "vertical_acceptance_required": {
+            "const": true
+          },
+          "trace_steps": {
+            "type": "array",
+            "minItems": 5,
+            "uniqueItems": true,
+            "items": {
+              "enum": [
+                "brief",
+                "provider_request",
+                "provider_response",
+                "qa",
+                "export"
+              ]
+            }
+          },
+          "source_artifacts": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "source_artifacts_present": {
+            "const": true
+          },
+          "coverage_complete": {
+            "const": true
+          }
         }
       }
     },
