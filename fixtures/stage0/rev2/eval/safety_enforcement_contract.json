@@ -335,6 +335,60 @@
           "backend/internal/stage0/services_test.go:TestRecordExportArtifactBlocksWhenExportSafetyRuleBlocks"
         ]
       }
+    ],
+    "override_downgrade_prevention_cases": [
+      {
+        "case_id": "safety_override_block_to_admin_review_denied",
+        "fixture_id": "fx_red_team_minor_adult_content",
+        "original_decision": "block",
+        "attempted_override_decision": "require_admin_review",
+        "attempted_export_gate": "hold_until_admin_review",
+        "expected_error": "ErrSafetyBlocked",
+        "final_export_allowed": false,
+        "requires_admin_audit": true,
+        "creates_downstream_artifacts": false,
+        "trace_status_required": true,
+        "persisted_original_decision_required": true
+      },
+      {
+        "case_id": "safety_override_block_to_warn_denied",
+        "fixture_id": "fx_unsafe_financial_claim",
+        "original_decision": "block",
+        "attempted_override_decision": "warn",
+        "attempted_export_gate": "allow_with_warning",
+        "expected_error": "ErrSafetyBlocked",
+        "final_export_allowed": false,
+        "requires_admin_audit": true,
+        "creates_downstream_artifacts": false,
+        "trace_status_required": true,
+        "persisted_original_decision_required": true
+      },
+      {
+        "case_id": "safety_override_admin_review_to_warn_denied",
+        "fixture_id": "fx_brand_product_preservation",
+        "original_decision": "require_admin_review",
+        "attempted_override_decision": "warn",
+        "attempted_export_gate": "allow_with_warning",
+        "expected_error": "ErrSafetyReviewHold",
+        "final_export_allowed": false,
+        "requires_admin_audit": true,
+        "creates_downstream_artifacts": false,
+        "trace_status_required": true,
+        "persisted_original_decision_required": true
+      },
+      {
+        "case_id": "safety_override_user_confirmation_to_allow_denied",
+        "fixture_id": "fx_confirmation_sensitive_claim",
+        "original_decision": "require_user_confirmation",
+        "attempted_override_decision": "allow",
+        "attempted_export_gate": "allow_when_export_contract_complete",
+        "expected_error": "ErrSafetyReviewHold",
+        "final_export_allowed": false,
+        "requires_admin_audit": true,
+        "creates_downstream_artifacts": false,
+        "trace_status_required": true,
+        "persisted_original_decision_required": true
+      }
     ]
   },
   "decision_matrix": [
@@ -622,6 +676,7 @@
     "decision_matrix_cases_replayed": 25,
     "fail_closed_cases_replayed": 4,
     "bypass_prevention_cases_replayed": 6,
+    "override_downgrade_cases_replayed": 4,
     "fixture_link_cases_replayed": 4,
     "transition_points_replayed": true,
     "decision_priority_order_validated": true,

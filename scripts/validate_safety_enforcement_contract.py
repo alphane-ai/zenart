@@ -130,6 +130,37 @@ BYPASS_PREVENTION_CASES = {
     ),
 }
 
+OVERRIDE_DOWNGRADE_CASES = {
+    "safety_override_block_to_admin_review_denied": (
+        "fx_red_team_minor_adult_content",
+        "block",
+        "require_admin_review",
+        "hold_until_admin_review",
+        "ErrSafetyBlocked",
+    ),
+    "safety_override_block_to_warn_denied": (
+        "fx_unsafe_financial_claim",
+        "block",
+        "warn",
+        "allow_with_warning",
+        "ErrSafetyBlocked",
+    ),
+    "safety_override_admin_review_to_warn_denied": (
+        "fx_brand_product_preservation",
+        "require_admin_review",
+        "warn",
+        "allow_with_warning",
+        "ErrSafetyReviewHold",
+    ),
+    "safety_override_user_confirmation_to_allow_denied": (
+        "fx_confirmation_sensitive_claim",
+        "require_user_confirmation",
+        "allow",
+        "allow_when_export_contract_complete",
+        "ErrSafetyReviewHold",
+    ),
+}
+
 BACKEND_EVIDENCE_FILES = {
     "backend/internal/stage0/services.go": STAGE0_SERVICE,
     "backend/internal/stage0/services_test.go": STAGE0_TEST,
@@ -476,6 +507,7 @@ def validate_pipeline_sequence_contract(contract: dict[str, Any]) -> None:
         require(token in tests, f"safety fail-closed backend test evidence missing {token}")
 
     validate_bypass_prevention_cases(pipeline, service, tests)
+    validate_override_downgrade_cases(pipeline)
 
 
 def validate_runtime_replay_contract(contract: dict[str, Any]) -> None:
@@ -490,6 +522,10 @@ def validate_runtime_replay_contract(contract: dict[str, Any]) -> None:
     require(replay["decision_matrix_cases_replayed"] == len(SAFETY_POINTS) * len(SAFETY_ACTIONS), "decision replay count mismatch")
     require(replay["fail_closed_cases_replayed"] == len(FAIL_CLOSED_CASES), "fail-closed replay count mismatch")
     require(replay["bypass_prevention_cases_replayed"] == len(BYPASS_PREVENTION_CASES), "bypass replay count mismatch")
+    require(
+        replay["override_downgrade_cases_replayed"] == len(OVERRIDE_DOWNGRADE_CASES),
+        "override downgrade replay count mismatch",
+    )
     require(replay["fixture_link_cases_replayed"] == len(contract["fixture_links"]), "fixture-link replay count mismatch")
     require(replay["transition_points_replayed"] is True, "runtime replay must validate transition enforcement points")
     require(replay["decision_priority_order_validated"] is True, "runtime replay must validate decision priority order")
@@ -512,6 +548,52 @@ def validate_runtime_replay_contract(contract: dict[str, Any]) -> None:
         result.returncode == 0,
         "safety policy runtime replay failed: " + (result.stderr or result.stdout).strip(),
     )
+
+
+def validate_override_downgrade_cases(pipeline: dict[str, Any]) -> None:
+    results = load_json(EVAL_RESULTS)
+    require(isinstance(results, list) and len(results) == 1, "starter eval results must contain one result")
+    result_by_fixture = {
+        item["fixture_id"]: item
+        for item in results[0]["fixture_results"]
+    }
+    cases = {
+        case["case_id"]: case
+        for case in pipeline["override_downgrade_prevention_cases"]
+    }
+    require(set(cases) == set(OVERRIDE_DOWNGRADE_CASES), "safety override downgrade case ids mismatch")
+
+    for case_id, (
+        fixture_id,
+        original_decision,
+        attempted_decision,
+        attempted_export_gate,
+        expected_error,
+    ) in OVERRIDE_DOWNGRADE_CASES.items():
+        case = cases[case_id]
+        require(case["fixture_id"] == fixture_id, f"{case_id} fixture mismatch")
+        require(fixture_id in result_by_fixture, f"{case_id} references unknown eval fixture")
+        result = result_by_fixture[fixture_id]
+        require(
+            result["safety_decision_contract"]["decision"] == original_decision,
+            f"{case_id} original eval safety decision mismatch",
+        )
+        require(case["original_decision"] == original_decision, f"{case_id} original decision mismatch")
+        require(case["attempted_override_decision"] == attempted_decision, f"{case_id} attempted decision mismatch")
+        require(case["attempted_export_gate"] == attempted_export_gate, f"{case_id} attempted export gate mismatch")
+        require(case["expected_error"] == expected_error, f"{case_id} expected error mismatch")
+        require(case["final_export_allowed"] is False, f"{case_id} must keep final export denied")
+        require(case["requires_admin_audit"] is True, f"{case_id} must require audit")
+        require(case["creates_downstream_artifacts"] is False, f"{case_id} must fail closed")
+        require(case["trace_status_required"] is True, f"{case_id} must require trace status")
+        require(
+            case["persisted_original_decision_required"] is True,
+            f"{case_id} must preserve the persisted original decision",
+        )
+        require(
+            result["qa_export_gate"]["final_export_allowed"] is False,
+            f"{case_id} source fixture must be export-denied",
+        )
 
 
 def validate_bypass_prevention_cases(pipeline: dict[str, Any], service: str, tests: str) -> None:

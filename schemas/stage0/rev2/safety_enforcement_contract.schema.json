@@ -168,7 +168,8 @@
         "ordered_enforcement_points",
         "transition_gates",
         "fail_closed_cases",
-        "bypass_prevention_cases"
+        "bypass_prevention_cases",
+        "override_downgrade_prevention_cases"
       ],
       "properties": {
         "ordered_enforcement_points": {
@@ -391,6 +392,79 @@
               }
             }
           }
+        },
+        "override_downgrade_prevention_cases": {
+          "type": "array",
+          "minItems": 4,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "case_id",
+              "fixture_id",
+              "original_decision",
+              "attempted_override_decision",
+              "attempted_export_gate",
+              "expected_error",
+              "final_export_allowed",
+              "requires_admin_audit",
+              "creates_downstream_artifacts",
+              "trace_status_required",
+              "persisted_original_decision_required"
+            ],
+            "properties": {
+              "case_id": {
+                "type": "string",
+                "pattern": "^safety_override_[a-z0-9_]+_denied$"
+              },
+              "fixture_id": {
+                "type": "string",
+                "pattern": "^fx_[a-z0-9_]+$"
+              },
+              "original_decision": {
+                "enum": [
+                  "require_user_confirmation",
+                  "require_admin_review",
+                  "block"
+                ]
+              },
+              "attempted_override_decision": {
+                "enum": [
+                  "allow",
+                  "warn",
+                  "require_admin_review"
+                ]
+              },
+              "attempted_export_gate": {
+                "enum": [
+                  "allow_when_export_contract_complete",
+                  "allow_with_warning",
+                  "hold_until_admin_review"
+                ]
+              },
+              "expected_error": {
+                "enum": [
+                  "ErrSafetyBlocked",
+                  "ErrSafetyReviewHold"
+                ]
+              },
+              "final_export_allowed": {
+                "const": false
+              },
+              "requires_admin_audit": {
+                "const": true
+              },
+              "creates_downstream_artifacts": {
+                "const": false
+              },
+              "trace_status_required": {
+                "const": true
+              },
+              "persisted_original_decision_required": {
+                "const": true
+              }
+            }
+          }
         }
       }
     },
@@ -489,6 +563,7 @@
         "decision_matrix_cases_replayed",
         "fail_closed_cases_replayed",
         "bypass_prevention_cases_replayed",
+        "override_downgrade_cases_replayed",
         "fixture_link_cases_replayed",
         "transition_points_replayed",
         "decision_priority_order_validated",
@@ -522,6 +597,10 @@
         "bypass_prevention_cases_replayed": {
           "type": "integer",
           "minimum": 6
+        },
+        "override_downgrade_cases_replayed": {
+          "type": "integer",
+          "minimum": 4
         },
         "fixture_link_cases_replayed": {
           "type": "integer",

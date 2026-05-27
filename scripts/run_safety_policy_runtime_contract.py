@@ -39,6 +39,14 @@ ACTION_ERRORS = {
     "block": "ErrSafetyBlocked",
 }
 
+ACTION_EXPORT_GATES = {
+    "allow": "allow_when_export_contract_complete",
+    "warn": "allow_with_warning",
+    "require_user_confirmation": "hold_until_user_confirmation",
+    "require_admin_review": "hold_until_admin_review",
+    "block": "block_final_export",
+}
+
 ACTION_PRIORITY = {
     "allow": 0,
     "warn": 1,
@@ -224,6 +232,71 @@ def replay_bypass_cases(contract: dict[str, Any]) -> list[dict[str, Any]]:
     return cases
 
 
+def replay_override_downgrade_cases(
+    contract: dict[str, Any],
+    eval_by_fixture: dict[str, dict[str, Any]],
+) -> list[dict[str, Any]]:
+    cases = []
+    seen_ids: set[str] = set()
+
+    for case in contract["pipeline_sequence_contract"]["override_downgrade_prevention_cases"]:
+        case_id = case["case_id"]
+        fixture_id = case["fixture_id"]
+        seen_ids.add(case_id)
+        require(fixture_id in eval_by_fixture, f"{case_id} references unknown eval fixture {fixture_id}")
+        result = eval_by_fixture[fixture_id]
+        original_decision = result["safety_decision_contract"]["decision"]
+        attempted_decision = case["attempted_override_decision"]
+
+        require(case["original_decision"] == original_decision, f"{case_id} original decision mismatch")
+        require(
+            ACTION_PRIORITY[attempted_decision] < ACTION_PRIORITY[original_decision],
+            f"{case_id} must attempt to downgrade to a weaker safety action",
+        )
+        require(
+            case["attempted_export_gate"] == ACTION_EXPORT_GATES[attempted_decision],
+            f"{case_id} attempted export gate must match attempted decision",
+        )
+        require(case["expected_error"] == ACTION_ERRORS[original_decision], f"{case_id} expected error mismatch")
+        require(case["final_export_allowed"] is False, f"{case_id} must keep final export blocked or held")
+        require(case["requires_admin_audit"] is True, f"{case_id} must require admin audit")
+        require(case["creates_downstream_artifacts"] is False, f"{case_id} must fail closed")
+        require(case["trace_status_required"] is True, f"{case_id} must require trace status")
+        require(
+            case["persisted_original_decision_required"] is True,
+            f"{case_id} must preserve the original persisted safety decision",
+        )
+        require(result["qa_export_gate"]["final_export_allowed"] is False, f"{case_id} source fixture must not allow export")
+
+        cases.append(
+            {
+                "case_id": case_id,
+                "fixture_id": fixture_id,
+                "original_decision": original_decision,
+                "attempted_override_decision": attempted_decision,
+                "attempted_export_gate": case["attempted_export_gate"],
+                "expected_error": case["expected_error"],
+                "final_export_allowed": False,
+                "creates_downstream_artifacts": False,
+                "trace_status_required": True,
+                "persisted_original_decision_required": True,
+                "result": "passed",
+            }
+        )
+
+    require(len(seen_ids) == len(cases), "override downgrade case IDs must be unique")
+    require(
+        {
+            "safety_override_block_to_admin_review_denied",
+            "safety_override_block_to_warn_denied",
+            "safety_override_admin_review_to_warn_denied",
+            "safety_override_user_confirmation_to_allow_denied",
+        } <= seen_ids,
+        "override downgrade replay must cover block and hold downgrade attempts",
+    )
+    return cases
+
+
 def replay_fixture_links(contract: dict[str, Any], eval_by_fixture: dict[str, dict[str, Any]]) -> list[dict[str, Any]]:
     links = []
     for link in contract["fixture_links"]:
@@ -258,6 +331,7 @@ def validate_declared_replay_contract(contract: dict[str, Any], summary: dict[st
     require(declared["decision_matrix_cases_replayed"] == summary["decision_matrix_cases"], "decision replay count mismatch")
     require(declared["fail_closed_cases_replayed"] == summary["fail_closed_cases"], "fail-closed replay count mismatch")
     require(declared["bypass_prevention_cases_replayed"] == summary["bypass_prevention_cases"], "bypass replay count mismatch")
+    require(declared["override_downgrade_cases_replayed"] == summary["override_downgrade_cases"], "override downgrade replay count mismatch")
     require(declared["fixture_link_cases_replayed"] == summary["fixture_link_cases"], "fixture link replay count mismatch")
     require(declared["transition_points_replayed"] == summary["transition_points_replayed"], "transition point replay mismatch")
     require(declared["decision_priority_order_validated"] == summary["decision_priority_order_validated"], "decision priority replay mismatch")
@@ -277,6 +351,7 @@ def run() -> dict[str, Any]:
     transitions = replay_transition_gates(contract)
     fail_closed = replay_fail_closed_cases(contract)
     bypass = replay_bypass_cases(contract)
+    override_downgrades = replay_override_downgrade_cases(contract, eval_by_fixture)
     fixture_links = replay_fixture_links(contract, eval_by_fixture)
 
     blocked_or_held = [
@@ -288,6 +363,7 @@ def run() -> dict[str, Any]:
         "decision_matrix_cases": len(decisions),
         "fail_closed_cases": len(fail_closed),
         "bypass_prevention_cases": len(bypass),
+        "override_downgrade_cases": len(override_downgrades),
         "fixture_link_cases": len(fixture_links),
         "transition_points_replayed": {item["enforcement_point"] for item in transitions} == SAFETY_POINTS,
         "decision_priority_order_validated": all(
@@ -314,6 +390,7 @@ def run() -> dict[str, Any]:
         "transition_gate_results": transitions,
         "fail_closed_results": fail_closed,
         "bypass_prevention_results": bypass,
+        "override_downgrade_results": override_downgrades,
         "fixture_link_results": fixture_links,
     }
 
@@ -337,7 +414,8 @@ def main() -> int:
             f"({summary['transition_gate_cases']} transitions, "
             f"{summary['decision_matrix_cases']} decisions, "
             f"{summary['fail_closed_cases']} fail-closed cases, "
-            f"{summary['bypass_prevention_cases']} bypass cases)"
+            f"{summary['bypass_prevention_cases']} bypass cases, "
+            f"{summary['override_downgrade_cases']} override downgrade cases)"
         )
     return 0
 
