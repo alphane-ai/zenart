@@ -411,6 +411,10 @@ SPLIT_EVIDENCE_ABSENT_TERMS = (
     "缺失",
 )
 
+SPLIT_EVIDENCE_STALE_ABSENT_TERMS = tuple(
+    term for term in SPLIT_EVIDENCE_ABSENT_TERMS if term != "not present"
+)
+
 RELEASE_GATE_REQUIRED_CHECKS = {
     "local_alpha": {
         "workflow_fixture_coverage",
@@ -3470,7 +3474,7 @@ def require_split_runtime_blocked_evidence(evidence_ref: str, gate: str, check_i
                 f"that split as present/pass; stale missing prose cannot preserve a blocker",
             )
             require(
-                not any(term in path_window for term in SPLIT_EVIDENCE_ABSENT_TERMS),
+                not any(term in path_window for term in SPLIT_EVIDENCE_STALE_ABSENT_TERMS),
                 f"{gate}.{check_id} blocked split evidence {rel_path} exists but evidence_ref still describes "
                 f"that exact file as missing/absent",
             )
@@ -3570,7 +3574,7 @@ def require_local_alpha_blocked_workflow_evidence(evidence_ref: str) -> None:
                     "does not describe that exact workflow artifact as present/pass",
                 )
                 require(
-                    not any(term in path_window for term in SPLIT_EVIDENCE_ABSENT_TERMS),
+                    not any(term in path_window for term in SPLIT_EVIDENCE_STALE_ABSENT_TERMS),
                     f"local_alpha.local_alpha_e2e_workflow_smoke blocked evidence {rel_path} exists but "
                     "stale prose still describes it as missing/absent",
                 )
@@ -3607,7 +3611,7 @@ def require_ci_blocked_runtime_evidence(evidence_ref: str, check_id: str) -> Non
                 f"ci.{check_id} blocked evidence {rel_path} exists but does not describe it as present/pass",
             )
             require(
-                not any(term in path_window for term in SPLIT_EVIDENCE_ABSENT_TERMS),
+                not any(term in path_window for term in SPLIT_EVIDENCE_STALE_ABSENT_TERMS),
                 f"ci.{check_id} blocked evidence {rel_path} exists but stale prose describes it as missing/absent",
             )
             if rel_path.endswith(".json"):
@@ -3744,7 +3748,7 @@ def require_gate_decision_exact_blocker_paths(
                 f"{gate} gate_decision evidence {rel_path} exists but is not described as present/pass",
             )
             require(
-                not any(term in path_context for term in SPLIT_EVIDENCE_ABSENT_TERMS),
+                not any(term in path_context for term in SPLIT_EVIDENCE_STALE_ABSENT_TERMS),
                 f"{gate} gate_decision evidence {rel_path} exists but stale prose describes it as absent/missing",
             )
             continue
@@ -4313,6 +4317,11 @@ def validate_release_gate_basics(data: dict[str, Any]) -> tuple[dict[str, dict[s
                 condition["evidence_ref"],
                 f"{gate}.{condition_id} cleared condition",
             )
+            validate_cleared_condition_split_path_state(
+                condition["evidence_ref"],
+                gate,
+                condition_id,
+            )
 
     return checks, conditions
 
@@ -4388,12 +4397,19 @@ def require_active_condition_split_path_state(evidence_ref: str, gate: str, cond
             f"{gate}.{condition_id} active blocker evidence for {rel_path} missing required terms: {missing_tokens}",
         )
         if path.exists():
+            validate_condition_split_artifact_semantics(
+                path,
+                gate=gate,
+                condition_id=condition_id,
+                expected_tokens=tokens,
+                condition_present=True,
+            )
             require(
                 any(term in path_window for term in SPLIT_EVIDENCE_PRESENT_TERMS),
                 f"{gate}.{condition_id} active blocker evidence {rel_path} exists but is not described as present/pass",
             )
             require(
-                not any(term in path_window for term in SPLIT_EVIDENCE_ABSENT_TERMS),
+                not any(term in path_window for term in SPLIT_EVIDENCE_STALE_ABSENT_TERMS),
                 f"{gate}.{condition_id} active blocker evidence {rel_path} exists but stale prose describes it as absent/missing",
             )
             continue
@@ -4404,6 +4420,127 @@ def require_active_condition_split_path_state(evidence_ref: str, gate: str, cond
         require(
             not any(term in path_window for term in SPLIT_EVIDENCE_PRESENT_TERMS),
             f"{gate}.{condition_id} active blocker evidence {rel_path} is missing but describes it as present/pass",
+        )
+
+
+def release_gate_for_evidence_path(path: Path) -> str | None:
+    for gate, evidence_path in RELEASE_GATE_EVIDENCE_FILES.items():
+        if evidence_path == path:
+            return gate
+    return None
+
+
+def expected_check_ids_for_condition_artifact(gate: str, path: Path) -> set[str]:
+    check_ids: set[str] = set()
+    for check_id, required_paths in CI_RUNTIME_REQUIRED_EVIDENCE_PATHS.items():
+        if gate == "ci" and path in required_paths:
+            check_ids.add(check_id)
+    for (runtime_gate, check_id), files in RUNTIME_PASS_EVIDENCE_FILES.items():
+        if runtime_gate == gate and path in files:
+            check_ids.add(check_id)
+    for (runtime_gate, check_id), requirement in RUNTIME_SPLIT_PASS_REQUIREMENTS.items():
+        if runtime_gate == gate and path in requirement["subitems"].values():
+            check_ids.add(check_id)
+    return check_ids
+
+
+def validate_condition_split_artifact_semantics(
+    path: Path,
+    *,
+    gate: str,
+    condition_id: str,
+    expected_tokens: tuple[str, ...],
+    condition_present: bool,
+) -> None:
+    rel_path = rel(path)
+    fixture_gate = release_gate_for_evidence_path(path)
+    if fixture_gate is not None:
+        fixture = load_json(path)
+        require(
+            fixture.get("gate") == fixture_gate,
+            f"{gate}.{condition_id} split artifact {rel_path} must target gate={fixture_gate!r}",
+        )
+        expected_status = "no_go" if condition_present else "go"
+        require(
+            gate_decision_status(fixture) == expected_status,
+            f"{gate}.{condition_id} split artifact {rel_path} must have gate_decision.status={expected_status!r}",
+        )
+        return
+
+    if path == CI_WORKFLOW:
+        workflow_text = path.read_text(encoding="utf-8").lower()
+        for token in ["stage0-rev2", "playwright", "docker", "validate_stage0_rev2.py"]:
+            require(
+                token in workflow_text,
+                f"{gate}.{condition_id} installed workflow artifact {rel_path} missing token {token!r}",
+            )
+        return
+
+    if path.suffix != ".json":
+        return
+
+    evidence = load_json_if_path(rel_path)
+    require(isinstance(evidence, dict), f"{gate}.{condition_id} split artifact {rel_path} must be valid JSON")
+    expected_environments = RUNTIME_PASS_FILE_ENVIRONMENTS.get(gate)
+    if expected_environments is not None:
+        require(
+            evidence.get("environment") in expected_environments,
+            f"{gate}.{condition_id} split artifact {rel_path} must declare environment in "
+            f"{sorted(expected_environments)}; got {evidence.get('environment')!r}",
+        )
+    expected_check_ids = expected_check_ids_for_condition_artifact(gate, path)
+    if expected_check_ids:
+        evidence_check_id = evidence.get("release_gate_check_id")
+        require(
+            evidence_check_id in expected_check_ids,
+            f"{gate}.{condition_id} split artifact {rel_path} targets release_gate_check_id={evidence_check_id!r}; "
+            f"expected one of {sorted(expected_check_ids)}",
+        )
+    require(
+        evidence.get("status") in RUNTIME_PASS_EVIDENCE_STATUS_VALUES,
+        f"{gate}.{condition_id} split artifact {rel_path} must have a passing runtime status; "
+        f"got {evidence.get('status')!r}",
+    )
+    combined = json.dumps(evidence, ensure_ascii=False).lower()
+    missing_tokens = [token for token in expected_tokens if token not in combined]
+    require(
+        not missing_tokens,
+        f"{gate}.{condition_id} split artifact {rel_path} missing required semantics: {missing_tokens}",
+    )
+
+
+def validate_cleared_condition_split_path_state(evidence_ref: str, gate: str, condition_id: str) -> None:
+    split_paths = ACTIVE_CONDITION_SPLIT_EVIDENCE_PATHS.get((gate, condition_id))
+    if not split_paths:
+        return
+
+    evidence_ref_lower = evidence_ref.lower()
+    for path, tokens in split_paths.items():
+        rel_path = rel(path)
+        require(
+            rel_path in evidence_ref,
+            f"{gate}.{condition_id} cleared condition evidence must cite exact split artifact {rel_path}",
+        )
+        require(
+            path.exists(),
+            f"{gate}.{condition_id} cleared condition evidence cites missing split artifact {rel_path}",
+        )
+        path_index = evidence_ref.find(rel_path)
+        require(path_index >= 0, f"{gate}.{condition_id} cleared condition evidence missing {rel_path}")
+        path_window = evidence_ref_lower[
+            max(0, path_index - 180) : min(len(evidence_ref_lower), path_index + len(rel_path) + 180)
+        ]
+        require(
+            not any(term in path_window for term in SPLIT_EVIDENCE_STALE_ABSENT_TERMS),
+            f"{gate}.{condition_id} cleared condition evidence {rel_path} is present but stale prose "
+            "describes it as absent/missing",
+        )
+        validate_condition_split_artifact_semantics(
+            path,
+            gate=gate,
+            condition_id=condition_id,
+            expected_tokens=tokens,
+            condition_present=False,
         )
 
 
@@ -9499,6 +9636,9 @@ def validate_launch_readiness_split_contracts() -> None:
         "Blocked split runtime/deployment checks must name every exact split evidence file still required for closure",
         "must also state whether each exact split evidence file is already present/passed or still absent/missing",
         "Blocked split runtime/deployment checks that mention an existing split evidence file must validate that file against its owning checked checklist row",
+        "Active split Do-Not-Launch condition evidence that cites an existing exact JSON artifact must validate that artifact's environment",
+        "Cleared split Do-Not-Launch condition evidence must cite every exact validator-owned split artifact",
+        "Cleared split Do-Not-Launch condition evidence for upstream dependency fixtures must require those fixture `gate_decision.status` values to be `go`",
         "Open split checklist rows cannot remain open after their exact validator-owned evidence file becomes passable",
         "a broad `ops/evidence/staging/` or `ops/evidence/production/` placeholder cannot preserve a launch blocker",
         "Existing half-split evidence can only close its own concrete subitem",
