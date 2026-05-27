@@ -57,7 +57,7 @@ Release gate status: `no-go`.
 - Docker image build: `missing`; required for CI/private beta/production decisions.
 - Playwright smoke: `missing`; required before CI gate can close.
 - Migration run: `missing`; staging JSON must reference the release SHA, set `environment=staging`, set `kind=migration`, and record status `passed` or `compatible` before private beta/production decisions.
-- Staging smoke: staging status `passed` from `ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json` with 10/10 smoke categories passed; staging post-deploy smoke is validator-visible through combined preflight `passed` from `ops/evidence/staging/20260527T013207Z-staging-observability-backup-load-36222.json` for release `d3b1107c33dc40b8936f28549e06553fbd7b104a` with 4/4 slots verified, but the private beta gate remains `no-go` while object retention/cleanup and legal/support visibility blockers remain.
+- Staging smoke: staging status `passed` from `ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json` with 10/10 smoke categories passed; staging post-deploy smoke is validator-visible through combined preflight `passed` from `ops/evidence/staging/20260527T013207Z-staging-observability-backup-load-36222.json` for release `d3b1107c33dc40b8936f28549e06553fbd7b104a` with 4/4 slots verified, but the private beta gate remains `no-go` while object retention/cleanup remains blocked.
 - Load smoke: local 7/7 modes passed; first report ops/evidence/load/local/20260526T142030Z-chat_task-64820.json; staging load evidence is attached in the release evidence line below.
 - Config diff: `missing`; staging JSON must reference the release SHA, set `environment=staging`, set `kind=config_diff`, and record status `passed`, `reviewed`, or `no_diff` before private beta/production decisions.
 - Observability smoke: local status `passed` from `ops/evidence/observability/local/20260526T192311Z-observability-smoke-7780.json`; staging status `passed` from `ops/evidence/staging/20260527T1830Z-observability-runtime.json` with 6/6 required signals validator-visible; combined preflight `passed` from `ops/evidence/staging/20260527T013207Z-staging-observability-backup-load-36222.json` for release `d3b1107c33dc40b8936f28549e06553fbd7b104a` with 4/4 slots verified.
@@ -65,7 +65,7 @@ Release gate status: `no-go`.
 - Load evidence: staging status `passed` from `ops/evidence/staging/20260527T2120Z-load.json` with 7/7 load modes passed; production load evidence remains separate and required before production decisions.
 - Object-storage signed URL: staging status `pass_with_blockers_preserved` from `ops/evidence/staging/20260527T2130Z-object-storage-signed-url.json` with 4/4 signed URL probes validator-visible; retention/cleanup evidence still required; object retention policy, expired export cleanup, orphan cleanup, and audit refs remain required before the object-storage gate can close.
 - Object-storage retention cleanup: `missing`; run `scripts/staging_object_storage_retention_cleanup_smoke.sh` against staging and write `ops/evidence/staging/object-storage-retention-cleanup.json` proving retention policy, expired export cleanup, orphan cleanup, and audit refs before the object-storage gate can close.
-- Legal/support external-user visibility: `missing`; run `scripts/staging_legal_support_visibility_smoke.sh` against staging and write `ops/evidence/staging/legal-pages-external-user.json` plus `ops/evidence/staging/support-contact-external-user.json` proving Terms, Privacy, Acceptable Use, AI/content disclaimer, IP complaint flow, visible support contact, report-problem path, and billing/support policy visibility before the legal/support gate can close.
+- Legal/support external-user visibility: staging split status `pass,pass` from `ops/evidence/staging/legal-pages-external-user.json` and `ops/evidence/staging/support-contact-external-user.json`; external-user legal/support visibility is validator-visible.
 - Rollback drill: `missing`; staging JSON must reference the release SHA, set `environment=staging`, set `kind=rollback`, record status `passed` or `validated`, and include passed/validated evidence refs for image rollback, feature flag rollback, migration compatibility, worker drain, and post-rollback smoke.
 - Security scan: local status `passed` from `ops/evidence/security/local/20260526T142040Z-security-scan-smoke-65314.json`; staging JSON must reference the release SHA, set `environment=staging`, set `kind=security_scan`, record status `passed`, and include passed/validated evidence refs for dependency, image/container, and committed-secret scans before private beta/production decisions.
 
@@ -80,13 +80,13 @@ Release gate status: `no-go`.
 
 ## Known Risks
 
-- Open private beta blockers: `fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json`: staging_object_storage_signed_downloads, staging_legal_external_user_pages.
-- Private beta do-not-launch conditions present: object_storage_signed_retention_runtime_missing, external_user_legal_pages_missing.
+- Open private beta blockers: `fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json`: staging_object_storage_signed_downloads.
+- Private beta do-not-launch conditions present: object_storage_signed_retention_runtime_missing.
 - Open production blockers: `fixtures/stage0/rev2/release_gate_evidence.production_launch.json`: production_provider_or_comp_only_mode, production_paid_billing_lifecycle, production_backup_rollback_incident, production_legal_support_policy.
 - Production do-not-launch conditions present: dev_mock_provider_public_claims_unresolved, real_provider_or_comp_only_mode_missing, paid_billing_or_comp_only_mode_missing, backup_restore_rollback_smoke_missing, production_deploy_rollback_smoke_missing, public_legal_support_policy_not_deployed, ci_staging_gates_not_passed.
-- Operational risks: staging rollback evidence remains absent; staging backup/restore, load, and post-deploy smoke evidence are attached through the combined preflight but do not close object-retention, legal/support, CI, or production gates.
+- Operational risks: staging rollback evidence remains absent; staging backup/restore, load, post-deploy smoke, and legal/support visibility evidence are attached, but object-retention, CI, and production gates remain open.
 - Object-storage risks: signed URL staging evidence is attached, but retention/cleanup runtime evidence still blocks the object-storage release gate.
-- User/support risks: external-user legal/support pages and support readiness remain blocked by Rev2 gate evidence.
+- User/support risks: external-user legal/support pages and report-problem visibility are validated for staging; production legal/support policy remains separately gated.
 
 ## Open Rev2 Runtime Checklist
 

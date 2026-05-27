@@ -45,8 +45,8 @@
     },
     {
       "check_id": "staging_legal_external_user_pages",
-      "status": "blocked",
-      "evidence_ref": "Privacy notice, Terms, Privacy Policy, Acceptable Use, AI/content disclaimer, IP complaint flow, billing policy, and visible support contact source artifacts are implemented, but external-user staging evidence for deployed page visibility is absent: ops/evidence/staging/legal-pages-external-user.json must prove Terms, Privacy, Acceptable Use, AI/content disclaimer, and IP complaint visibility, and ops/evidence/staging/support-contact-external-user.json must prove support/report-problem external user visibility"
+      "status": "pass",
+      "evidence_ref": "Staging external user legal/support visibility evidence verifies deployed Terms, Privacy, Acceptable Use, AI/content disclaimer, IP complaint flow, visible support contact, and report-problem path in ops/evidence/staging/legal-pages-external-user.json and ops/evidence/staging/support-contact-external-user.json while preserving object-storage retention cleanup as a separate blocker"
     }
   ],
   "do_not_launch_checks": [
@@ -107,21 +107,19 @@
     {
       "condition_id": "external_user_legal_pages_missing",
       "blueprint_condition": "Public launch 缺 Terms、Privacy、Acceptable Use、support contact、AI/content responsibility disclaimer 或 IP complaint flow。",
-      "is_present": true,
-      "evidence_ref": "web legal page artifacts exist, but exact external-user staging visibility evidence remains absent at ops/evidence/staging/legal-pages-external-user.json for legal pages and ops/evidence/staging/support-contact-external-user.json for support contact/report-problem"
+      "is_present": false,
+      "evidence_ref": "Staging external user legal/support visibility evidence clears legal page and support contact visibility with exact passing files at ops/evidence/staging/legal-pages-external-user.json and ops/evidence/staging/support-contact-external-user.json"
     }
   ],
   "gate_decision": {
     "status": "no_go",
     "blocked_by_checks": [
-      "staging_object_storage_signed_downloads",
-      "staging_legal_external_user_pages"
+      "staging_object_storage_signed_downloads"
     ],
     "active_do_not_launch_conditions": [
-      "object_storage_signed_retention_runtime_missing",
-      "external_user_legal_pages_missing"
+      "object_storage_signed_retention_runtime_missing"
     ],
-    "evidence_ref": "fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json remains no-go while staging_object_storage_signed_downloads and staging_legal_external_user_pages are blocked and object_storage_signed_retention_runtime_missing and external_user_legal_pages_missing remain active; object-storage signed URL evidence passed in ops/evidence/staging/20260527T2130Z-object-storage-signed-url.json but retention cleanup remains missing, and staging_observability_backup_load passed in ops/evidence/staging/20260527T013207Z-staging-observability-backup-load-36222.json with logs, metrics, traces, alerts, dashboard, restore, load, and post-deploy smoke evidence from ops/evidence/staging/20260527T1830Z-observability-runtime.json, ops/evidence/staging/20260527T2115Z-backup-restore.json, ops/evidence/staging/20260527T2120Z-load.json, and ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json"
+    "evidence_ref": "fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json remains no-go while staging_object_storage_signed_downloads is blocked and object_storage_signed_retention_runtime_missing remains active; legal/support external-user visibility passed in ops/evidence/staging/legal-pages-external-user.json and ops/evidence/staging/support-contact-external-user.json, object-storage signed URL evidence passed in ops/evidence/staging/20260527T2130Z-object-storage-signed-url.json but retention cleanup remains missing, and staging_observability_backup_load passed in ops/evidence/staging/20260527T013207Z-staging-observability-backup-load-36222.json with logs, metrics, traces, alerts, dashboard, restore, load, and post-deploy smoke evidence from ops/evidence/staging/20260527T1830Z-observability-runtime.json, ops/evidence/staging/20260527T2115Z-backup-restore.json, ops/evidence/staging/20260527T2120Z-load.json, and ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json"
   },
   "provenance": {
     "blueprint_sections": [

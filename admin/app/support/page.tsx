@@ -1,8 +1,15 @@
 import { DataTable } from "@/components/DataTable";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
-import { getStagingSupportRetryAbuseEvidence, getSupportEscalationRunbooks, getSupportTickets, getSupportUsers } from "@/lib/admin-api";
+import {
+  getStagingLegalSupportVisibilityEvidence,
+  getStagingSupportRetryAbuseEvidence,
+  getSupportEscalationRunbooks,
+  getSupportTickets,
+  getSupportUsers
+} from "@/lib/admin-api";
 import type {
+  StagingLegalSupportVisibilityCoverage,
   StagingSupportRetryAbuseCoverage,
   SupportEscalationRunbook,
   SupportLookupAction,
@@ -11,11 +18,12 @@ import type {
 } from "@/lib/types";
 
 export default async function SupportPage() {
-  const [users, tickets, runbooks, stagingEvidence] = await Promise.all([
+  const [users, tickets, runbooks, stagingEvidence, legalSupportEvidence] = await Promise.all([
     getSupportUsers(),
     getSupportTickets(),
     getSupportEscalationRunbooks(),
-    getStagingSupportRetryAbuseEvidence()
+    getStagingSupportRetryAbuseEvidence(),
+    getStagingLegalSupportVisibilityEvidence()
   ]);
 
   return (
@@ -54,6 +62,42 @@ export default async function SupportPage() {
             { key: "runtime", header: "Runtime Probe", render: (row) => row.runtimeProbe },
             { key: "external", header: "External User Evidence", render: (row) => row.externalUserEvidence },
             { key: "rbac", header: "RBAC Audit Evidence", render: (row) => row.rbacAuditEvidence },
+            { key: "artifacts", header: "Admin Artifacts", render: (row) => row.linkedAdminArtifacts.join(", ") },
+            { key: "evidence", header: "Evidence Refs", render: (row) => row.evidenceRefs.join(", ") }
+          ]}
+        />
+      </section>
+
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>Staging Legal Support Visibility Evidence</h3>
+            <p>Private beta external-user probes must prove deployed legal pages, support contact, and report-problem visibility before the legal/support check can close.</p>
+          </div>
+          <StatusBadge value={legalSupportEvidence.status === "pass" ? "approved" : "blocked"} label={legalSupportEvidence.status} />
+        </div>
+        <div className="panel-body">
+          <div className="evidence-line">
+            <strong>Legal pages</strong>
+            <span className="mono">{legalSupportEvidence.legalPageEvidencePath}</span>
+          </div>
+          <div className="evidence-line">
+            <strong>Support contact</strong>
+            <span className="mono">{legalSupportEvidence.supportContactEvidencePath}</span>
+          </div>
+          <div className="evidence-line">
+            <strong>Remaining blockers</strong>
+            <span>{legalSupportEvidence.gateImpact.remainingBlockers.join(", ")}</span>
+          </div>
+        </div>
+        <DataTable<StagingLegalSupportVisibilityCoverage>
+          rows={legalSupportEvidence.coverage}
+          columns={[
+            { key: "area", header: "Area", render: (row) => row.area },
+            { key: "status", header: "Status", render: (row) => <StatusBadge value={row.status === "pass" ? "approved" : "blocked"} label={row.status} /> },
+            { key: "runtime", header: "Runtime Probe", render: (row) => row.runtimeProbe },
+            { key: "external", header: "External User Evidence", render: (row) => row.externalUserEvidence },
+            { key: "policy", header: "Policy Evidence", render: (row) => row.policyEvidence },
             { key: "artifacts", header: "Admin Artifacts", render: (row) => row.linkedAdminArtifacts.join(", ") },
             { key: "evidence", header: "Evidence Refs", render: (row) => row.evidenceRefs.join(", ") }
           ]}

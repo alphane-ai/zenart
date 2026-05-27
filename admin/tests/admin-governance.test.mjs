@@ -15,7 +15,7 @@ const parseFixtures = () => {
   const moduleSource = source
     .replace(/^import type[\s\S]*?from "@\/lib\/types";\n\n/, "")
     .replaceAll(/export const (\w+)[^=]*=/g, "const $1 =");
-  return Function(`${moduleSource}\nreturn { skillVersions, skillReleaseStateDefinitions, skillCanaryMetrics, releaseEvidence, releaseBlockers, supportTickets, supportEscalationRunbooks, supportUsers, riskyExports, abuseEvents, abuseControlHooks, stagingAuthRbacTenantAuditEvidence, stagingEvalQaSafetyEvidence, stagingQuotaRateLimitSpendCapEvidence, stagingSupportRetryAbuseEvidence, productionAbuseThrottleHoldEvidence, productionActivationReviewAuditEvidence, productionSkillReleaseEvalCanaryEvidence, productionSecurityLaunchCheckEvidence, productionBackupRollbackIncidentEvidence, adminReviewDecisions, auditEvents, exportJobs, traces, quotaAccounts, feedbackItems, regressionFixtures, analyticsReports, queueHealth, failedTaskControls, crawlerFindings, crawlerSourceApprovals, crawlerGovernanceWorkflows, crawlerStagingRuntimeEvidence, adminRbacEvidence, operationalDashboards, operationalDashboardRuntimeEvidence, alertRoutes, alertRouteRuntimeEvidence, backendMetricsRuntimeEvidence, observabilityTelemetryRuntimeEvidence, stagingObservabilityBackupLoadPreflightEvidence, stagingObjectStorageRetentionCleanupEvidence };`)();
+  return Function(`${moduleSource}\nreturn { skillVersions, skillReleaseStateDefinitions, skillCanaryMetrics, releaseEvidence, releaseBlockers, supportTickets, supportEscalationRunbooks, supportUsers, riskyExports, abuseEvents, abuseControlHooks, stagingAuthRbacTenantAuditEvidence, stagingEvalQaSafetyEvidence, stagingQuotaRateLimitSpendCapEvidence, stagingSupportRetryAbuseEvidence, stagingLegalSupportVisibilityEvidence, productionAbuseThrottleHoldEvidence, productionActivationReviewAuditEvidence, productionSkillReleaseEvalCanaryEvidence, productionSecurityLaunchCheckEvidence, productionBackupRollbackIncidentEvidence, adminReviewDecisions, auditEvents, exportJobs, traces, quotaAccounts, feedbackItems, regressionFixtures, analyticsReports, queueHealth, failedTaskControls, crawlerFindings, crawlerSourceApprovals, crawlerGovernanceWorkflows, crawlerStagingRuntimeEvidence, adminRbacEvidence, operationalDashboards, operationalDashboardRuntimeEvidence, alertRoutes, alertRouteRuntimeEvidence, backendMetricsRuntimeEvidence, observabilityTelemetryRuntimeEvidence, stagingObservabilityBackupLoadPreflightEvidence, stagingObjectStorageRetentionCleanupEvidence };`)();
 };
 
 const crawlerGovernanceCases = JSON.parse(
@@ -38,6 +38,7 @@ const {
   stagingEvalQaSafetyEvidence,
   stagingQuotaRateLimitSpendCapEvidence,
   stagingSupportRetryAbuseEvidence,
+  stagingLegalSupportVisibilityEvidence,
   productionAbuseThrottleHoldEvidence,
   productionActivationReviewAuditEvidence,
   productionSkillReleaseEvalCanaryEvidence,
@@ -1073,6 +1074,70 @@ test("staging support retry abuse evidence validates external-user support, retr
     stagingSupportRetryAbuseEvidence.runtimeRequestIds,
     "evidence file and admin fixture runtime probe ids must match"
   );
+});
+
+test("staging legal support visibility evidence clears only its private beta check", () => {
+  const legalPath = new URL("../../ops/evidence/staging/legal-pages-external-user.json", import.meta.url);
+  const supportPath = new URL("../../ops/evidence/staging/support-contact-external-user.json", import.meta.url);
+  assert.ok(existsSync(legalPath), "legal pages external-user evidence file is missing");
+  assert.ok(existsSync(supportPath), "support contact external-user evidence file is missing");
+
+  const legalFile = JSON.parse(readFileSync(legalPath, "utf8"));
+  const supportFile = JSON.parse(readFileSync(supportPath, "utf8"));
+  const gateFixture = JSON.parse(readFileSync(privateBetaGatePath, "utf8"));
+
+  assert.equal(stagingLegalSupportVisibilityEvidence.environment, "staging");
+  assert.equal(stagingLegalSupportVisibilityEvidence.status, "pass");
+  assert.equal(stagingLegalSupportVisibilityEvidence.releaseGateCheckId, "staging_legal_external_user_pages");
+  assert.equal(stagingLegalSupportVisibilityEvidence.doNotLaunchConditionId, "external_user_legal_pages_missing");
+  assert.equal(stagingLegalSupportVisibilityEvidence.legalPageEvidencePath, "ops/evidence/staging/legal-pages-external-user.json");
+  assert.equal(stagingLegalSupportVisibilityEvidence.supportContactEvidencePath, "ops/evidence/staging/support-contact-external-user.json");
+  assert.deepEqual(stagingLegalSupportVisibilityEvidence.gateImpact.remainingBlockers, ["staging_object_storage_signed_downloads"]);
+
+  for (const evidenceFile of [legalFile, supportFile]) {
+    assert.equal(evidenceFile.environment, "staging", "split evidence must be staging scoped");
+    assert.equal(evidenceFile.status, "pass", "split evidence must pass");
+    assert.equal(evidenceFile.release_gate_check_id, "staging_legal_external_user_pages");
+    assert.equal(evidenceFile.do_not_launch_condition_id, "external_user_legal_pages_missing");
+    assert.equal(
+      Object.hasOwn(evidenceFile.gate_impact, "remaining_blockers"),
+      false,
+      "split legal/support evidence must not preserve blockers directly"
+    );
+  }
+
+  const requiredAreas = new Set(["legal_pages_visibility", "support_contact_visibility"]);
+  for (const coverage of stagingLegalSupportVisibilityEvidence.coverage) {
+    requiredAreas.delete(coverage.area);
+    assert.equal(coverage.status, "pass", `${coverage.area} must pass`);
+    assert.ok(coverage.runtimeProbe.length > 100, `${coverage.area} needs runtime probe detail`);
+    assert.ok(coverage.externalUserEvidence.length > 100, `${coverage.area} needs external-user evidence`);
+    assert.ok(coverage.policyEvidence.length > 100, `${coverage.area} needs policy evidence`);
+    assert.ok(coverage.linkedAdminArtifacts.some((ref) => ref.startsWith("admin/")), `${coverage.area} needs admin artifact refs`);
+    assert.ok(
+      coverage.evidenceRefs.includes("ops/evidence/staging/legal-pages-external-user.json") &&
+        coverage.evidenceRefs.includes("ops/evidence/staging/support-contact-external-user.json"),
+      `${coverage.area} must cite both exact staging legal/support evidence files`
+    );
+  }
+  assert.deepEqual([...requiredAreas], [], "legal/support visibility evidence is missing coverage areas");
+
+  const legalCheck = gateFixture.checks.find((check) => check.check_id === "staging_legal_external_user_pages");
+  assert.ok(legalCheck, "private beta gate needs legal/support check");
+  assert.equal(legalCheck.status, "pass");
+  assert.ok(legalCheck.evidence_ref.includes("ops/evidence/staging/legal-pages-external-user.json"));
+  assert.ok(legalCheck.evidence_ref.includes("ops/evidence/staging/support-contact-external-user.json"));
+
+  const legalCondition = gateFixture.do_not_launch_checks.find(
+    (condition) => condition.condition_id === "external_user_legal_pages_missing"
+  );
+  assert.ok(legalCondition, "private beta gate needs legal/support do-not-launch condition");
+  assert.equal(legalCondition.is_present, false);
+  assert.ok(legalCondition.evidence_ref.includes("ops/evidence/staging/legal-pages-external-user.json"));
+  assert.ok(legalCondition.evidence_ref.includes("ops/evidence/staging/support-contact-external-user.json"));
+
+  assert.deepEqual(gateFixture.gate_decision.blocked_by_checks, ["staging_object_storage_signed_downloads"]);
+  assert.deepEqual(gateFixture.gate_decision.active_do_not_launch_conditions, ["object_storage_signed_retention_runtime_missing"]);
 });
 
 test("private beta gate consumes staging support retry abuse evidence without closing aggregate gate", () => {
@@ -2985,8 +3050,8 @@ test("observability backup load preflight exposes verified observability, restor
   );
   assert.match(
     stagingObservabilityBackupLoadPreflightEvidence.operatorAction,
-    /object-storage signed download\/retention and legal\/support visibility blockers separate/,
-    "operator action must preserve unrelated remaining private-beta blockers"
+    /object-storage signed download\/retention blocked/,
+    "operator action must preserve the remaining object-storage private-beta blocker"
   );
 
   const fixtureSlots = new Map(stagingObservabilityBackupLoadPreflightEvidence.slots.map((slot) => [slot.slot, slot]));
@@ -3114,8 +3179,8 @@ test("object storage retention cleanup gate stays blocked until exact staging pr
     "object-storage blocker must remain preserved"
   );
   assert.ok(
-    stagingObjectStorageRetentionCleanupEvidence.remainingReleaseGateBlockers.includes("staging_legal_external_user_pages"),
-    "legal/support blocker must remain preserved separately"
+    !stagingObjectStorageRetentionCleanupEvidence.remainingReleaseGateBlockers.includes("staging_legal_external_user_pages"),
+    "legal/support blocker must not remain after exact staging visibility evidence passes"
   );
   assert.ok(
     stagingObjectStorageRetentionCleanupEvidence.missingRuntimeInputs.some((input) => input.includes("STAGING_BASE_URL")),
@@ -3213,7 +3278,7 @@ test("release blocker matrix prevents partial operations evidence from closing b
         blocker.requiredEvidence.includes("ops/evidence/staging/legal-pages-external-user.json") &&
         blocker.requiredEvidence.includes("ops/evidence/staging/support-contact-external-user.json")
     ),
-    "legal/support external-user visibility must stay open until exact staging evidence files pass"
+    "legal/support external-user visibility history must cite exact staging evidence files"
   );
 });
 
@@ -3299,18 +3364,18 @@ test("operations runtime evidence closes only the validated dashboard and alert 
   }
   assert.match(
     blueprint,
-    /- \[ \] Private Beta\/Staging legal\/support external-user visibility runtime evidence 通过。/,
-    "legal/support visibility aggregate row must stay open until external-user staging evidence passes"
+    /- \[x\] Private Beta\/Staging legal\/support external-user visibility runtime evidence 通过。/,
+    "legal/support visibility aggregate row should close after external-user staging evidence passes"
   );
   assert.match(
     blueprint,
-    /- \[ \] Private Beta\/Staging legal pages external-user visibility evidence 通过/,
-    "legal page visibility row must stay open until legal-pages-external-user evidence passes"
+    /- \[x\] Private Beta\/Staging legal pages external-user visibility evidence 通过/,
+    "legal page visibility row should close after legal-pages-external-user evidence passes"
   );
   assert.match(
     blueprint,
-    /- \[ \] Private Beta\/Staging support contact external-user visibility evidence 通过/,
-    "support contact visibility row must stay open until support-contact-external-user evidence passes"
+    /- \[x\] Private Beta\/Staging support contact external-user visibility evidence 通过/,
+    "support contact visibility row should close after support-contact-external-user evidence passes"
   );
 });
 

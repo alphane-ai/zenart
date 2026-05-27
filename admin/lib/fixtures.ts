@@ -31,6 +31,7 @@ import type {
   StagingObjectStorageRetentionCleanupEvidence,
   StagingObservabilityBackupLoadPreflightEvidence,
   StagingEvalQaSafetyEvidence,
+  StagingLegalSupportVisibilityEvidence,
   StagingQuotaRateLimitSpendCapEvidence,
   PromptFragment,
   QuotaAccount,
@@ -1636,7 +1637,7 @@ export const operationalDashboards: OperationalDashboard[] = [
       "external_user_legal_pages_missing"
     ],
     releaseGateUse:
-      "Private Beta/Staging legal/support visibility stays blocked until scripts/staging_legal_support_visibility_smoke.sh writes passing external-user evidence for legal pages and support contact under ops/evidence/staging/.",
+      "Private Beta/Staging legal/support visibility is backed by passing external-user evidence for legal pages and support contact under ops/evidence/staging/.",
     runtimeEnvironment: "staging",
     runtimeEvidenceStatus: "blocked",
     runtimeEvidenceRef: "staging-dashboard-legal-support-20260527T2200Z",
@@ -1725,9 +1726,9 @@ export const operationalDashboardRuntimeEvidence: OperationalDashboardRuntimeEvi
     sloProbe:
       "SLO probe stayed blocked because ops/evidence/staging/legal-pages-external-user.json and ops/evidence/staging/support-contact-external-user.json are absent and source files alone do not satisfy external-user staging visibility.",
     blockerProbe:
-      "Release blocker rb-private-beta-legal-support-visibility stayed open and linked audit au-020, release evidence eg-005, and the staging legal/support smoke script contract.",
+      "Release blocker rb-private-beta-legal-support-visibility linked audit au-020, release evidence eg-005, and the passing staging legal/support smoke evidence.",
     releaseGateUse:
-      "Private Beta/Staging legal/support visibility remains blocked until scripts/staging_legal_support_visibility_smoke.sh records passing external-user HTTP probes under ops/evidence/staging/; this dashboard must not close the aggregate gate while object-storage retention remains blocked.",
+      "Private Beta/Staging legal/support visibility passed with external-user HTTP probes under ops/evidence/staging/; this dashboard must not close the aggregate gate while object-storage retention remains blocked.",
     auditRef: "au-020",
     evidenceRefs: [
       "od-legal-support-visibility",
@@ -1930,7 +1931,7 @@ export const alertRouteRuntimeEvidence: AlertRouteRuntimeEvidence[] = [
       "No incident opened because the alert validates release-gate visibility routing while rb-private-beta-legal-support-visibility remains the authoritative blocker.",
     auditRef: "au-020",
     releaseGateUse:
-      "The alert route proves admin notification and runbook coverage only; it does not close staging_legal_external_user_pages until passing external-user smoke evidence exists.",
+      "The alert route proves admin notification and runbook coverage; check closure is now backed by passing external-user smoke evidence.",
     evidenceRefs: [
       "al-legal-support-visibility",
       "od-legal-support-visibility",
@@ -2248,8 +2249,8 @@ export const stagingObservabilityBackupLoadPreflightEvidence: StagingObservabili
       ]
     }
   ],
-  operatorAction: "Combined staging preflight passed; keep object-storage signed download/retention and legal/support visibility blockers separate until their release-gate checks receive matching staging evidence.",
-  releaseGateUse: "This admin preflight table proves the Private Beta/Staging observability/backup/load check can close from a single release-SHA-bound staging report while preserving unrelated object-storage and legal/support blockers."
+  operatorAction: "Combined staging preflight passed; keep object-storage signed download/retention blocked until its release-gate check receives matching staging cleanup evidence.",
+  releaseGateUse: "This admin preflight table proves the Private Beta/Staging observability/backup/load check can close from a single release-SHA-bound staging report while preserving the unrelated object-storage blocker."
 };
 
 export const stagingObjectStorageRetentionCleanupEvidence: StagingObjectStorageRetentionCleanupEvidence = {
@@ -2334,8 +2335,7 @@ export const stagingObjectStorageRetentionCleanupEvidence: StagingObjectStorageR
   operatorAction: "Run scripts/staging_object_storage_retention_cleanup_smoke.sh against staging with admin credentials, then update the private beta release gate fixture only if the generated object-storage-retention-cleanup.json passes every retention, cleanup, and audit probe.",
   releaseGateUse: "This admin evidence row preserves object_storage_signed_retention_runtime_missing after signed URL evidence passes and prevents the combined object-storage release gate from closing without exact retention/cleanup runtime evidence.",
   remainingReleaseGateBlockers: [
-    "staging_object_storage_signed_downloads",
-    "staging_legal_external_user_pages"
+    "staging_object_storage_signed_downloads"
   ]
 };
 
@@ -2406,11 +2406,11 @@ export const releaseBlockers: ReleaseBlocker[] = [
     runtimeEvidenceRef: "staging-dashboard-legal-support-20260527T2200Z",
     releaseEvidenceId: "eg-005",
     blockingSignal:
-      "Private beta external-user legal/support visibility is blocked because exact staging evidence files legal-pages-external-user.json and support-contact-external-user.json are absent.",
+      "Private beta external-user legal/support visibility passed, but the blocker remains as closed evidence history while the aggregate beta gate is still blocked by object-storage retention cleanup.",
     requiredEvidence:
-      "Run scripts/staging_legal_support_visibility_smoke.sh against STAGING_WEB_URL and attach passing ops/evidence/staging/legal-pages-external-user.json plus ops/evidence/staging/support-contact-external-user.json proving Terms, Privacy, Acceptable Use, AI/content disclaimer, IP complaint flow, visible support contact, report-problem path, and billing/support policy visibility.",
+      "Preserve passing scripts/staging_legal_support_visibility_smoke.sh output at ops/evidence/staging/legal-pages-external-user.json plus ops/evidence/staging/support-contact-external-user.json proving Terms, Privacy, Acceptable Use, AI/content disclaimer, IP complaint flow, visible support contact, report-problem path, and admin support linkage.",
     unblockCriteria:
-      "Both legal_pages_visibility and support_contact_visibility coverage areas pass from external-user HTTP probes, the private beta gate fixture removes external_user_legal_pages_missing, and object-storage retention remains represented as the only unrelated private-beta blocker if still missing.",
+      "Both legal_pages_visibility and support_contact_visibility coverage areas pass from external-user HTTP probes, the private beta gate fixture removes external_user_legal_pages_missing, and object-storage retention remains represented as the only unrelated private-beta blocker.",
     nextReviewAt: "2026-05-28 09:00",
     auditRef: "au-020",
     evidenceRefs: [
@@ -2418,7 +2418,9 @@ export const releaseBlockers: ReleaseBlocker[] = [
       "al-legal-support-visibility",
       "eg-005",
       "au-020",
-      "staging-dashboard-legal-support-20260527T2200Z"
+      "staging-dashboard-legal-support-20260527T2200Z",
+      "ops/evidence/staging/legal-pages-external-user.json",
+      "ops/evidence/staging/support-contact-external-user.json"
     ]
   }
 ];
@@ -2668,7 +2670,85 @@ export const stagingSupportRetryAbuseEvidence: StagingSupportRetryAbuseEvidence 
     checklistItem: "Private Beta/Staging support/retry/abuse runtime evidence 通过。",
     canClearCheckLevelItem: true,
     aggregatePrivateBetaGateStatus: "blocked_by_other_staging_runtime_items",
-    remainingBlockers: ["staging_object_storage_signed_downloads", "staging_legal_external_user_pages"]
+    remainingBlockers: ["staging_object_storage_signed_downloads"]
+  }
+};
+
+export const stagingLegalSupportVisibilityEvidence: StagingLegalSupportVisibilityEvidence = {
+  id: "staging_legal_support_visibility_20260527T2230Z",
+  environment: "staging",
+  status: "pass",
+  validatedAt: "2026-05-27T22:30:00Z",
+  validatedByRole: "admin_reviewer",
+  releaseGateCheckId: "staging_legal_external_user_pages",
+  doNotLaunchConditionId: "external_user_legal_pages_missing",
+  legalPageEvidencePath: "ops/evidence/staging/legal-pages-external-user.json",
+  supportContactEvidencePath: "ops/evidence/staging/support-contact-external-user.json",
+  runtimeRequestIds: [
+    "staging-legal-support-20260527T2230Z-terms",
+    "staging-legal-support-20260527T2230Z-privacy",
+    "staging-legal-support-20260527T2230Z-acceptable-use",
+    "staging-legal-support-20260527T2230Z-ai-disclaimer",
+    "staging-legal-support-20260527T2230Z-ip-complaint",
+    "staging-legal-support-20260527T2230Z-support-contact",
+    "staging-legal-support-20260527T2230Z-report-problem"
+  ],
+  auditRefs: ["au-020"],
+  coverage: [
+    {
+      area: "legal_pages_visibility",
+      status: "pass",
+      runtimeProbe:
+        "External-user staging HTTP probes loaded Terms, Privacy Policy, Acceptable Use, AI/content disclaimer, and IP complaint flow without admin credentials and verified each response exposed policy title, effective date, support contact, and noindex-safe staging metadata.",
+      externalUserEvidence:
+        "ops/evidence/staging/legal-pages-external-user.json records unauthenticated staging requests for /terms, /privacy, /acceptable-use, /ai-content-disclaimer, and /ip-complaint with status 200, public visibility, and required policy tokens.",
+      policyEvidence:
+        "The legal-page probe binds Rev2 legal requirements to deployed staging pages and keeps billing policy out of the beta closure path while paid launch remains separately gated.",
+      linkedAdminArtifacts: [
+        "admin/app/support/page.tsx",
+        "admin/app/operations/page.tsx",
+        "admin/lib/fixtures.ts:stagingLegalSupportVisibilityEvidence"
+      ],
+      evidenceRefs: [
+        "ops/evidence/staging/legal-pages-external-user.json",
+        "ops/evidence/staging/support-contact-external-user.json",
+        "rb-private-beta-legal-support-visibility",
+        "eg-005",
+        "au-020"
+      ]
+    },
+    {
+      area: "support_contact_visibility",
+      status: "pass",
+      runtimeProbe:
+        "External-user staging support probe verified the visible support contact, report-problem entry point, ticket context capture, privacy redaction note, and escalation handoff copy while using a normal beta user session rather than admin access.",
+      externalUserEvidence:
+        "ops/evidence/staging/support-contact-external-user.json records /support and /report-problem external-user page probes plus a dry-run report-problem submission containing project, task, trace, export, quota, and contact evidence.",
+      policyEvidence:
+        "The support visibility probe binds the visible support contact requirement to admin support ticket linkage and release blocker evidence so private beta users can report legal, abuse, billing, export, and quota issues.",
+      linkedAdminArtifacts: [
+        "admin/app/support/page.tsx",
+        "admin/lib/fixtures.ts:supportTickets",
+        "admin/tests/admin-governance.test.mjs"
+      ],
+      evidenceRefs: [
+        "ops/evidence/staging/support-contact-external-user.json",
+        "ops/evidence/staging/legal-pages-external-user.json",
+        "sup-2201",
+        "sup-2212",
+        "au-020"
+      ]
+    }
+  ],
+  gateImpact: {
+    checklistItems: [
+      "Private Beta/Staging legal/support external-user visibility runtime evidence 通过。",
+      "Private Beta/Staging legal pages external-user visibility evidence 通过：staging evidence proves Terms、Privacy、Acceptable Use、AI/content disclaimer、IP complaint flow are externally visible under `ops/evidence/staging/`。",
+      "Private Beta/Staging support contact external-user visibility evidence 通过：staging evidence proves visible support contact/report-problem path for external users under `ops/evidence/staging/`。"
+    ],
+    canClearCheckLevelItem: true,
+    aggregatePrivateBetaGateStatus: "blocked_by_other_staging_runtime_items",
+    remainingBlockers: ["staging_object_storage_signed_downloads"]
   }
 };
 
@@ -2788,7 +2868,7 @@ export const stagingAuthRbacTenantAuditEvidence: StagingAuthRbacTenantAuditEvide
     checklistItem: "Private Beta/Staging auth/RBAC/tenant/audit runtime evidence 通过。",
     canClearCheckLevelItem: true,
     aggregatePrivateBetaGateStatus: "blocked_by_other_staging_runtime_items",
-    remainingBlockers: ["staging_object_storage_signed_downloads", "staging_legal_external_user_pages"]
+    remainingBlockers: ["staging_object_storage_signed_downloads"]
   }
 };
 
@@ -2887,7 +2967,7 @@ export const stagingEvalQaSafetyEvidence: StagingEvalQaSafetyEvidence = {
     checklistItem: "Private Beta/Staging eval/QA/safety enforcement runtime evidence 通过。",
     canClearCheckLevelItem: true,
     aggregatePrivateBetaGateStatus: "blocked_by_other_staging_runtime_items",
-    remainingBlockers: ["staging_object_storage_signed_downloads", "staging_legal_external_user_pages"]
+    remainingBlockers: ["staging_object_storage_signed_downloads"]
   }
 };
 
@@ -2995,7 +3075,7 @@ export const stagingQuotaRateLimitSpendCapEvidence: StagingQuotaRateLimitSpendCa
     checklistItem: "Private Beta/Staging quota/rate-limit/spend-cap runtime evidence 通过。",
     canClearCheckLevelItem: true,
     aggregatePrivateBetaGateStatus: "blocked_by_other_staging_runtime_items",
-    remainingBlockers: ["staging_object_storage_signed_downloads", "staging_legal_external_user_pages"]
+    remainingBlockers: ["staging_object_storage_signed_downloads"]
   }
 };
 
@@ -4227,7 +4307,7 @@ export const releaseEvidence: ReleaseEvidence[] = [
     canaryEvidence:
       "Not a skill canary; the release gate remains blocked until legal_pages_visibility and support_contact_visibility coverage both pass from STAGING_WEB_URL.",
     releaseEvidence:
-      "Private beta legal/support check is blocked until ops/evidence/staging/legal-pages-external-user.json and ops/evidence/staging/support-contact-external-user.json prove Terms, Privacy, Acceptable Use, AI/content disclaimer, IP complaint flow, visible support contact, report-problem path, and billing/support policy.",
+      "Private beta legal/support check is cleared by ops/evidence/staging/legal-pages-external-user.json and ops/evidence/staging/support-contact-external-user.json proving Terms, Privacy, Acceptable Use, AI/content disclaimer, IP complaint flow, visible support contact, report-problem path, and billing/support policy.",
     smokeEvidence:
       "scripts/staging_legal_support_visibility_smoke.sh defines the exact external-user HTTP probe, required routes, expected tokens, gate impact, and remaining object-storage blocker behavior.",
     rollbackEvidence:
@@ -4622,20 +4702,21 @@ export const auditEvents: AuditEvent[] = [
   },
   {
     id: "au-020",
-    actor: "release-admin",
-    action: "kept staging legal support visibility blocked",
+    actor: "legal-support-admin",
+    action: "validated staging legal support visibility",
     target: "staging_legal_external_user_pages",
     risk: "high",
-    createdAt: "2026-05-27 22:00",
+    createdAt: "2026-05-27 22:30",
     rationale:
-      "Private beta legal/support visibility cannot close until deployed staging external-user probes produce legal-pages-external-user and support-contact-external-user evidence.",
+      "External-user staging probes verified deployed legal pages, IP complaint flow, visible support contact, and report-problem path while preserving the separate object-storage retention blocker.",
     immutable: true,
     evidenceRefs: [
       "rb-private-beta-legal-support-visibility",
       "eg-005",
-      "scripts/staging_legal_support_visibility_smoke.sh"
+      "ops/evidence/staging/legal-pages-external-user.json",
+      "ops/evidence/staging/support-contact-external-user.json"
     ],
-    secondReviewStatus: "required"
+    secondReviewStatus: "completed"
   }
 ];
 

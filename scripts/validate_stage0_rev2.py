@@ -886,6 +886,14 @@ SPLIT_CHECKLIST_ITEM_EVIDENCE = {
         "allow_preserved_blockers": False,
         "tokens": ("retention", "expired export cleanup", "orphan cleanup", "audit"),
     },
+    "Private Beta/Staging legal/support external-user visibility runtime evidence 通过。": {
+        "gate": "private_beta_staging",
+        "check_id": "staging_legal_external_user_pages",
+        "path": STAGING_LEGAL_EXTERNAL_PAGES_EVIDENCE,
+        "allowed_statuses": {"pass", "passed"},
+        "allow_preserved_blockers": False,
+        "tokens": ("terms", "privacy", "acceptable use", "ai/content", "ip complaint"),
+    },
     "Private Beta/Staging legal pages external-user visibility evidence 通过：staging evidence proves Terms、Privacy、Acceptable Use、AI/content disclaimer、IP complaint flow are externally visible under `ops/evidence/staging/`。": {
         "gate": "private_beta_staging",
         "check_id": "staging_legal_external_user_pages",
@@ -992,6 +1000,7 @@ CHECK_LEVEL_EVIDENCE_TO_CHECKLIST_ITEM = {
     ("private_beta_staging", "staging_support_retry_abuse_ops"): "Private Beta/Staging support/retry/abuse runtime evidence 通过。",
     ("private_beta_staging", "staging_eval_qa_safety_runtime"): "Private Beta/Staging eval/QA/safety enforcement runtime evidence 通过。",
     ("private_beta_staging", "staging_crawler_approval_provenance"): "Private Beta/Staging crawler approval/provenance runtime evidence 通过。",
+    ("private_beta_staging", "staging_legal_external_user_pages"): "Private Beta/Staging legal/support external-user visibility runtime evidence 通过。",
     ("production_launch", "production_skill_release_eval_canary"): "Production skill release/eval/canary runtime/deployment evidence 通过。",
     ("production_launch", "production_activation_review_audit"): "Production activation review/audit runtime/deployment evidence 通过。",
     ("production_launch", "production_abuse_throttle_hold"): "Production abuse throttle/hold runtime/deployment evidence 通过。",
@@ -1005,23 +1014,21 @@ PARTIAL_RUNTIME_ITEMS_THAT_DO_NOT_PASS_RELEASE_CHECKS = {
 CHECK_LEVEL_EVIDENCE_PRESERVED_BLOCKERS = {
     ("private_beta_staging", "staging_auth_rbac_tenant_audit"): {
         "staging_object_storage_signed_downloads",
-        "staging_legal_external_user_pages",
     },
     ("private_beta_staging", "staging_brief_upload_confirmation"): {
         "staging_object_storage_signed_downloads",
-        "staging_legal_external_user_pages",
     },
     ("private_beta_staging", "staging_quota_rate_limit_spend_cap"): {
         "staging_object_storage_signed_downloads",
-        "staging_legal_external_user_pages",
     },
     ("private_beta_staging", "staging_support_retry_abuse_ops"): {
         "staging_object_storage_signed_downloads",
-        "staging_legal_external_user_pages",
     },
     ("private_beta_staging", "staging_eval_qa_safety_runtime"): {
         "staging_object_storage_signed_downloads",
-        "staging_legal_external_user_pages",
+    },
+    ("private_beta_staging", "staging_legal_external_user_pages"): {
+        "staging_object_storage_signed_downloads",
     },
     ("production_launch", "production_skill_release_eval_canary"): {
         "production_provider_or_comp_only_mode",
@@ -1797,6 +1804,9 @@ CLOSED_CHECK_LEVEL_RUNTIME_ITEMS = {
     "Private Beta/Staging eval/QA/safety enforcement runtime evidence 通过。",
     "Private Beta/Staging quota/rate-limit/spend-cap runtime evidence 通过。",
     "Private Beta/Staging support/retry/abuse runtime evidence 通过。",
+    "Private Beta/Staging legal/support external-user visibility runtime evidence 通过。",
+    "Private Beta/Staging legal pages external-user visibility evidence 通过：staging evidence proves Terms、Privacy、Acceptable Use、AI/content disclaimer、IP complaint flow are externally visible under `ops/evidence/staging/`。",
+    "Private Beta/Staging support contact external-user visibility evidence 通过：staging evidence proves visible support contact/report-problem path for external users under `ops/evidence/staging/`。",
     "Private Beta/Staging object storage signed URL runtime evidence 通过：staging evidence proves tenant-scoped signed download, expiry, direct-object denial, and cross-tenant denial under `ops/evidence/staging/`。",
     "Private Beta/Staging observability/backup/load runtime evidence 通过。",
     "Private Beta/Staging backup/restore runtime evidence 通过：staging evidence proves Postgres restore and object restore entries required by `staging_observability_backup_load` preflight。",
@@ -1828,6 +1838,9 @@ REQUIRED_OPEN_ITEMS -= {
     "Private Beta/Staging eval/QA/safety enforcement runtime evidence 通过。",
     "Private Beta/Staging quota/rate-limit/spend-cap runtime evidence 通过。",
     "Private Beta/Staging object storage signed URL runtime evidence 通过：staging evidence proves tenant-scoped signed download, expiry, direct-object denial, and cross-tenant denial under `ops/evidence/staging/`。",
+    "Private Beta/Staging legal/support external-user visibility runtime evidence 通过。",
+    "Private Beta/Staging legal pages external-user visibility evidence 通过：staging evidence proves Terms、Privacy、Acceptable Use、AI/content disclaimer、IP complaint flow are externally visible under `ops/evidence/staging/`。",
+    "Private Beta/Staging support contact external-user visibility evidence 通过：staging evidence proves visible support contact/report-problem path for external users under `ops/evidence/staging/`。",
     "Private Beta/Staging observability/backup/load runtime evidence 通过。",
     "Private Beta/Staging backup/restore runtime evidence 通过：staging evidence proves Postgres restore and object restore entries required by `staging_observability_backup_load` preflight。",
     "Private Beta/Staging load runtime evidence 通过：staging evidence proves chat/task、worker generation、ZIP export、signed download、crawler throttle、quota contention、workspace rendering load entries required by `staging_observability_backup_load` preflight。",
@@ -5304,6 +5317,73 @@ def validate_staging_support_retry_abuse_evidence() -> None:
     for key in ["runtime_request_ids", "support_ticket_ids", "failed_task_ids", "abuse_event_ids", "abuse_hook_ids"]:
         require(evidence[key], f"support/retry/abuse evidence must include {key}")
 
+
+def validate_staging_legal_support_visibility_evidence() -> None:
+    legal_evidence = load_json(STAGING_LEGAL_EXTERNAL_PAGES_EVIDENCE)
+    support_evidence = load_json(STAGING_SUPPORT_CONTACT_VISIBILITY_EVIDENCE)
+    for evidence, path, kind, tokens in [
+        (
+            legal_evidence,
+            STAGING_LEGAL_EXTERNAL_PAGES_EVIDENCE,
+            "legal_pages_external_user_visibility",
+            ["terms", "privacy", "acceptable use", "ai/content", "ip complaint"],
+        ),
+        (
+            support_evidence,
+            STAGING_SUPPORT_CONTACT_VISIBILITY_EVIDENCE,
+            "support_contact_external_user_visibility",
+            ["support", "report-problem", "external user"],
+        ),
+    ]:
+        rel_path = rel(path)
+        require(evidence.get("environment") == "staging", f"{rel_path} must be staging-scoped")
+        require(evidence.get("status") == "pass", f"{rel_path} must pass before checklist closure")
+        require(evidence.get("kind") == kind, f"{rel_path} must declare kind={kind}")
+        require(
+            evidence.get("release_gate_check_id") == "staging_legal_external_user_pages",
+            f"{rel_path} must target the legal/support release gate check",
+        )
+        require(
+            evidence.get("do_not_launch_condition_id") == "external_user_legal_pages_missing",
+            f"{rel_path} must target external_user_legal_pages_missing",
+        )
+        gate_impact = evidence.get("gate_impact", {})
+        require(
+            gate_impact.get("can_clear_check_level_item") is True,
+            f"{rel_path} must allow its check-level legal/support subitem to close",
+        )
+        combined = json.dumps(evidence, ensure_ascii=False).lower()
+        missing_tokens = [token for token in tokens if token not in combined]
+        require(not missing_tokens, f"{rel_path} missing required legal/support visibility tokens: {missing_tokens}")
+
+    private_beta = load_json(RELEASE_GATE_EVIDENCE_FILES["private_beta_staging"])
+    checks = checks_by_id(private_beta)
+    conditions = do_not_launch_by_id(private_beta)
+    require(
+        checks["staging_legal_external_user_pages"]["status"] == "pass",
+        "private beta legal/support check must pass after exact staging evidence exists",
+    )
+    require(
+        conditions["external_user_legal_pages_missing"]["is_present"] is False,
+        "private beta external_user_legal_pages_missing condition must clear after exact staging evidence exists",
+    )
+    evidence_ref = checks["staging_legal_external_user_pages"]["evidence_ref"]
+    for path in [STAGING_LEGAL_EXTERNAL_PAGES_EVIDENCE, STAGING_SUPPORT_CONTACT_VISIBILITY_EVIDENCE]:
+        require(rel(path) in evidence_ref, "legal/support pass evidence must cite both exact staging split files")
+    require_check_level_evidence_gate_impact(
+        {
+            "gate_impact": {
+                "checklist_item": "Private Beta/Staging legal/support external-user visibility runtime evidence 通过。",
+                "can_clear_check_level_item": True,
+                "aggregate_private_beta_gate_status": "blocked_by_other_staging_runtime_items",
+                "remaining_blockers": ["staging_object_storage_signed_downloads"],
+            }
+        },
+        gate="private_beta_staging",
+        check_id="staging_legal_external_user_pages",
+        evidence_name="legal/support visibility evidence",
+    )
+
 def validate_staging_auth_rbac_tenant_audit_evidence() -> None:
     evidence = load_json(STAGING_AUTH_RBAC_TENANT_AUDIT_EVIDENCE)
     require(evidence["schema_version"] == "stage0.rev2", "staging auth/RBAC/tenant/audit evidence schema mismatch")
@@ -5479,7 +5559,7 @@ def validate_staging_object_storage_signed_url_evidence() -> None:
     require(evidence["environment"] == "staging", "object-storage signed URL evidence must be staging-scoped")
     require(
         evidence["status"] == "pass_with_blockers_preserved",
-        "object-storage signed URL evidence must preserve retention cleanup and legal/support blockers",
+        "object-storage signed URL evidence must preserve retention cleanup blockers",
     )
     require(
         evidence["kind"] == "object_storage_signed_url",
@@ -5559,9 +5639,8 @@ def validate_staging_object_storage_signed_url_evidence() -> None:
     require(
         gate_impact["remaining_release_gate_blockers"] == [
             "staging_object_storage_signed_downloads",
-            "staging_legal_external_user_pages",
         ],
-        "object-storage signed URL evidence must preserve object-storage and legal/support release blockers",
+        "object-storage signed URL evidence must preserve the object-storage release blocker",
     )
     for key in ["runtime_request_ids", "object_ids", "tenant_ids", "audit_refs"]:
         require(evidence[key], f"object-storage signed URL evidence must include {key}")
@@ -6741,6 +6820,7 @@ def validate_release_gate_evidence() -> None:
         "crawler_governance_runtime_missing",
         "crawler_material_retention_takedown_runtime_missing",
         "staging_observability_restore_load_missing",
+        "external_user_legal_pages_missing",
     }
     for condition_id in RELEASE_GATE_REQUIRED_ACTIVE_CONDITIONS["private_beta_staging"]:
         expected_present = condition_id not in cleared_private_beta_conditions
@@ -6753,7 +6833,8 @@ def validate_release_gate_evidence() -> None:
         "fixture",
         "staging runtime evidence",
         "ops/evidence/staging/20260527T1900Z-eval-qa-safety.json",
-        "external-user staging evidence for deployed page visibility is absent",
+        "ops/evidence/staging/legal-pages-external-user.json",
+        "ops/evidence/staging/support-contact-external-user.json",
     ]:
         require(token in private_beta_text, f"private beta/staging release evidence must distinguish contract/runtime evidence: {token}")
     for stale in [
@@ -7816,6 +7897,9 @@ def validate_launch_readiness_split_contracts() -> None:
             "Private Beta/Staging eval/QA/safety enforcement runtime evidence 通过。",
             "Private Beta/Staging quota/rate-limit/spend-cap runtime evidence 通过。",
             "Private Beta/Staging support/retry/abuse runtime evidence 通过。",
+            "Private Beta/Staging legal/support external-user visibility runtime evidence 通过。",
+            "Private Beta/Staging legal pages external-user visibility evidence 通过：staging evidence proves Terms、Privacy、Acceptable Use、AI/content disclaimer、IP complaint flow are externally visible under `ops/evidence/staging/`。",
+            "Private Beta/Staging support contact external-user visibility evidence 通过：staging evidence proves visible support contact/report-problem path for external users under `ops/evidence/staging/`。",
             "Private Beta/Staging object storage signed URL runtime evidence 通过：staging evidence proves tenant-scoped signed download, expiry, direct-object denial, and cross-tenant denial under `ops/evidence/staging/`。",
             "staging request id propagation runtime evidence 通过。",
             "staging structured JSON logs runtime evidence 通过。",
@@ -7889,8 +7973,8 @@ def validate_launch_readiness_split_contracts() -> None:
         "Production check-level runtime subitems must remain open until each matching release gate check has production evidence",
         "Private Beta/Staging observability runtime evidence may close only its observability-only subitem",
         "observability-only artifact preserved backup/restore、load、post-deploy smoke blockers until the later combined preflight closed them",
-        "clears auth/RBAC/tenant/audit, brief/upload/confirmation, quota/rate-limit/spend-cap, support/retry/abuse, eval/QA/safety enforcement, crawler runtime checks, and observability/backup/load/post-deploy-smoke with staging evidence",
-        "keeps Private Beta/Staging aggregate no-go only for production-like object storage and legal/support external-user visibility",
+        "clears auth/RBAC/tenant/audit, brief/upload/confirmation, quota/rate-limit/spend-cap, support/retry/abuse, eval/QA/safety enforcement, crawler runtime checks, observability/backup/load/post-deploy-smoke, and legal/support external-user visibility with staging evidence",
+        "keeps Private Beta/Staging aggregate no-go only for production-like object storage retention/cleanup",
         "Production provider-or-comp-only cannot close from provider abstractions",
         "Production paid billing lifecycle cannot close from mock checkout",
         "Production backup/rollback/incident readiness cannot close from runbooks or release templates alone",
@@ -8528,13 +8612,14 @@ def validate_ops_ci_and_drill_evidence() -> None:
     require(
         "Terms" in legal_support_visibility.get("runtime_status", "")
         and "support contact" in legal_support_visibility.get("runtime_status", "")
-        and "dry-run evidence remains blocked" in legal_support_visibility.get("runtime_status", ""),
+        and "dry-run evidence remains blocked" in legal_support_visibility.get("runtime_status", "")
+        and "passes deployed staging external-user HTTP probes" in legal_support_visibility.get("runtime_status", ""),
         "release ops evidence must record legal/support staging visibility runtime requirements",
     )
     require(
-        "open until ops/evidence/staging legal/support visibility evidence passes"
+        "closed for legal/support visibility after ops/evidence/staging legal/support visibility evidence passes"
         in legal_support_visibility.get("private_beta_gate", ""),
-        "release ops evidence must keep legal/support visibility gate open until staging evidence passes",
+        "release ops evidence must record legal/support visibility closure and remaining object-storage blocker",
     )
     policy = release_ops["checklist_policy"]
     for key in [

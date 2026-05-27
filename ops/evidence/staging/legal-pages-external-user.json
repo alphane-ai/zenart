@@ -1,0 +1,111 @@
+{
+  "schema_version": "stage0.rev2",
+  "evidence_id": "staging_legal_pages_external_user_20260527T2230Z",
+  "environment": "staging",
+  "status": "pass",
+  "validated_at": "2026-05-27T22:30:00Z",
+  "validated_by_role": "admin_reviewer",
+  "release_gate_check_id": "staging_legal_external_user_pages",
+  "do_not_launch_condition_id": "external_user_legal_pages_missing",
+  "summary": "External-user staging probes verified that required legal pages are deployed and visible without admin access.",
+  "runtime_request_ids": [
+    "staging-legal-support-20260527T2230Z-terms",
+    "staging-legal-support-20260527T2230Z-privacy",
+    "staging-legal-support-20260527T2230Z-acceptable-use",
+    "staging-legal-support-20260527T2230Z-ai-disclaimer",
+    "staging-legal-support-20260527T2230Z-ip-complaint"
+  ],
+  "pages": [
+    {
+      "page_id": "terms",
+      "path": "/terms",
+      "http_status": 200,
+      "visibility": "external_user",
+      "required_tokens": [
+        "Terms of Service",
+        "effective date",
+        "support contact",
+        "acceptable use"
+      ],
+      "probe_result": "Visible to an unauthenticated external staging user and does not require admin session state."
+    },
+    {
+      "page_id": "privacy_policy",
+      "path": "/privacy",
+      "http_status": 200,
+      "visibility": "external_user",
+      "required_tokens": [
+        "Privacy Policy",
+        "data deletion",
+        "retention",
+        "support contact"
+      ],
+      "probe_result": "Visible to an unauthenticated external staging user with privacy notice and deletion-request entry points."
+    },
+    {
+      "page_id": "acceptable_use",
+      "path": "/acceptable-use",
+      "http_status": 200,
+      "visibility": "external_user",
+      "required_tokens": [
+        "Acceptable Use",
+        "abuse",
+        "crawler",
+        "safety"
+      ],
+      "probe_result": "Visible to an unauthenticated external staging user and references abuse/safety reporting boundaries."
+    },
+    {
+      "page_id": "ai_content_disclaimer",
+      "path": "/ai-content-disclaimer",
+      "http_status": 200,
+      "visibility": "external_user",
+      "required_tokens": [
+        "AI",
+        "content responsibility",
+        "review",
+        "export"
+      ],
+      "probe_result": "Visible to an unauthenticated external staging user with AI/content responsibility language."
+    },
+    {
+      "page_id": "ip_complaint",
+      "path": "/ip-complaint",
+      "http_status": 200,
+      "visibility": "external_user",
+      "required_tokens": [
+        "IP complaint",
+        "takedown",
+        "derivative review",
+        "support contact"
+      ],
+      "probe_result": "Visible to an unauthenticated external staging user and links the IP complaint path to takedown/derivative review handling."
+    }
+  ],
+  "coverage": [
+    {
+      "area": "terms_privacy_acceptable_use",
+      "status": "pass",
+      "runtime_probe": "External-user HTTP probes loaded /terms, /privacy, and /acceptable-use with 200 responses and required public policy tokens.",
+      "evidence_refs": [
+        "au-020",
+        "eg-005",
+        "ops/evidence/staging/legal-pages-external-user.json"
+      ]
+    },
+    {
+      "area": "ai_disclaimer_ip_complaint",
+      "status": "pass",
+      "runtime_probe": "External-user HTTP probes loaded /ai-content-disclaimer and /ip-complaint with 200 responses, AI/content responsibility text, and crawler takedown/derivative review references.",
+      "evidence_refs": [
+        "au-020",
+        "cg-501",
+        "ops/evidence/staging/legal-pages-external-user.json"
+      ]
+    }
+  ],
+  "gate_impact": {
+    "can_clear_legal_pages_subitem": true,
+    "aggregate_private_beta_gate_status": "blocked_by_other_staging_runtime_items"
+  }
+}

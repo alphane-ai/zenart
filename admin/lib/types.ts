@@ -705,6 +705,37 @@ export type StagingSupportRetryAbuseEvidence = {
   };
 };
 
+export type StagingLegalSupportVisibilityCoverage = {
+  area: "legal_pages_visibility" | "support_contact_visibility";
+  status: "pass" | "blocked";
+  runtimeProbe: string;
+  externalUserEvidence: string;
+  policyEvidence: string;
+  linkedAdminArtifacts: string[];
+  evidenceRefs: string[];
+};
+
+export type StagingLegalSupportVisibilityEvidence = {
+  id: string;
+  environment: "staging";
+  status: "pass" | "blocked";
+  validatedAt: string;
+  validatedByRole: AdminRole;
+  releaseGateCheckId: "staging_legal_external_user_pages";
+  doNotLaunchConditionId: "external_user_legal_pages_missing";
+  legalPageEvidencePath: "ops/evidence/staging/legal-pages-external-user.json";
+  supportContactEvidencePath: "ops/evidence/staging/support-contact-external-user.json";
+  runtimeRequestIds: string[];
+  auditRefs: string[];
+  coverage: StagingLegalSupportVisibilityCoverage[];
+  gateImpact: {
+    checklistItems: string[];
+    canClearCheckLevelItem: boolean;
+    aggregatePrivateBetaGateStatus: "blocked_by_other_staging_runtime_items";
+    remainingBlockers: string[];
+  };
+};
+
 export type StagingAuthRbacTenantAuditCoverage = {
   area:
     | "admin_session_boundary"

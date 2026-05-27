@@ -55,6 +55,7 @@ test("admin fixtures cover required operational surfaces", () => {
     "export const abuseControlHooks",
     "export const stagingAuthRbacTenantAuditEvidence",
     "export const stagingSupportRetryAbuseEvidence",
+    "export const stagingLegalSupportVisibilityEvidence",
     "export const stagingQuotaRateLimitSpendCapEvidence",
     "export const productionSkillReleaseEvalCanaryEvidence",
     "export const productionSecurityLaunchCheckEvidence",
@@ -561,7 +562,7 @@ test("admin operations page surfaces production backup rollback incident evidenc
   }
 });
 
-test("admin operations page surfaces legal support visibility blocker evidence", () => {
+test("admin operations page surfaces legal support visibility evidence", () => {
   const operationsPage = readFileSync(
     new URL("../app/operations/page.tsx", import.meta.url),
     "utf8"
@@ -590,6 +591,9 @@ test("admin operations page surfaces legal support visibility blocker evidence",
     "scripts/staging_legal_support_visibility_smoke.sh",
     "ops/evidence/staging/legal-pages-external-user.json",
     "ops/evidence/staging/support-contact-external-user.json",
+    "staging_legal_support_visibility_20260527T2230Z",
+    "legal_pages_visibility",
+    "support_contact_visibility",
     "external_user_legal_pages_missing"
   ]) {
     assert.match(fixtures, new RegExp(token.replaceAll("/", "\\/")));

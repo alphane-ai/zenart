@@ -67,7 +67,7 @@
   "environment": "staging",
   "evidence_id": "20260527T2130Z-object-storage-signed-url",
   "gate_impact": {
-    "aggregate_private_beta_gate_status": "blocked_by_object_retention_cleanup_and_legal_support_visibility",
+    "aggregate_private_beta_gate_status": "blocked_by_object_retention_cleanup",
     "can_clear_release_gate_check": false,
     "can_clear_signed_url_checklist_item": true,
     "check_level_item": "Private Beta/Staging object storage signed URL runtime evidence \u901a\u8fc7\uff1astaging evidence proves tenant-scoped signed download, expiry, direct-object denial, and cross-tenant denial under `ops/evidence/staging/`\u3002",
@@ -75,8 +75,7 @@
       "staging object retention/cleanup runtime evidence"
     ],
     "remaining_release_gate_blockers": [
-      "staging_object_storage_signed_downloads",
-      "staging_legal_external_user_pages"
+      "staging_object_storage_signed_downloads"
     ]
   },
   "kind": "object_storage_signed_url",

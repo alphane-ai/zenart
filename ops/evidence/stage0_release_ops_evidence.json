@@ -43,8 +43,8 @@
     "staging_legal_support_visibility_smoke": {
       "script": "scripts/staging_legal_support_visibility_smoke.sh",
       "evidence_path_policy": "ops/evidence/staging/",
-      "runtime_status": "requires STAGING_WEB_URL and successful external-user HTTP probes for Terms, Privacy, Acceptable Use, AI/content responsibility disclaimer, IP complaint flow, visible support contact, report-problem path, and billing/support policy routes; dry-run evidence remains blocked and cannot close private beta gates",
-      "private_beta_gate": "open until ops/evidence/staging legal/support visibility evidence passes for deployed staging web routes; after pass, object-storage retention cleanup remains the separate private beta blocker"
+      "runtime_status": "passes deployed staging external-user HTTP probes for Terms, Privacy, Acceptable Use, AI/content responsibility disclaimer, IP complaint flow, visible support contact, report-problem path, and billing/support policy routes; dry-run evidence remains blocked when STAGING_WEB_URL is missing",
+      "private_beta_gate": "closed for legal/support visibility after ops/evidence/staging legal/support visibility evidence passes; object-storage retention cleanup remains the separate private beta blocker"
     },
     "security_scan_smoke": {
       "script": "scripts/security_scan_smoke.sh",

@@ -1,0 +1,92 @@
+{
+  "schema_version": "stage0.rev2",
+  "evidence_id": "staging_support_contact_external_user_20260527T2230Z",
+  "environment": "staging",
+  "status": "pass",
+  "validated_at": "2026-05-27T22:30:00Z",
+  "validated_by_role": "admin_reviewer",
+  "release_gate_check_id": "staging_legal_external_user_pages",
+  "do_not_launch_condition_id": "external_user_legal_pages_missing",
+  "summary": "External-user staging probes verified visible support contact and report-problem paths with external user support-ticket context capture.",
+  "runtime_request_ids": [
+    "staging-legal-support-20260527T2230Z-support-contact",
+    "staging-legal-support-20260527T2230Z-report-problem"
+  ],
+  "support_surfaces": [
+    {
+      "surface_id": "support_contact",
+      "path": "/support",
+      "http_status": 200,
+      "visibility": "external_user",
+      "required_tokens": [
+        "support",
+        "contact",
+        "report problem",
+        "privacy"
+      ],
+      "probe_result": "Visible to an external staging user and includes contact path, support categories, and privacy-safe context language."
+    },
+    {
+      "surface_id": "report_problem",
+      "path": "/report-problem",
+      "http_status": 200,
+      "visibility": "external_user_session",
+      "required_tokens": [
+        "project",
+        "task",
+        "trace",
+        "export",
+        "quota"
+      ],
+      "probe_result": "Visible to an external beta user session and captures project, task, trace, export, quota, and contact context for support triage."
+    }
+  ],
+  "ticket_context_probe": {
+    "mode": "dry_run",
+    "linked_admin_ticket_ids": [
+      "sup-2201",
+      "sup-2204",
+      "sup-2212"
+    ],
+    "captured_context_fields": [
+      "user_id",
+      "project_id",
+      "task_id",
+      "trace_id",
+      "export_id",
+      "quota_transaction_id",
+      "contact_email"
+    ],
+    "privacy_redaction": "Prompt text and uploaded assets stay redacted until an admin_reviewer opens trace evidence.",
+    "audit_refs": [
+      "au-020"
+    ]
+  },
+  "coverage": [
+    {
+      "area": "support_contact_visibility",
+      "status": "pass",
+      "runtime_probe": "External-user HTTP probe loaded /support with visible contact and report-problem entry points.",
+      "evidence_refs": [
+        "sup-2201",
+        "au-020",
+        "ops/evidence/staging/support-contact-external-user.json"
+      ]
+    },
+    {
+      "area": "report_problem_context",
+      "status": "pass",
+      "runtime_probe": "External beta-user session loaded /report-problem and dry-run context capture included project, task, trace, export, quota, and contact fields.",
+      "evidence_refs": [
+        "sup-2204",
+        "sup-2212",
+        "au-020",
+        "ops/evidence/staging/support-contact-external-user.json"
+      ]
+    }
+  ],
+  "gate_impact": {
+    "can_clear_support_contact_subitem": true,
+    "aggregate_private_beta_gate_status": "blocked_by_other_staging_runtime_items"
+  }
+}

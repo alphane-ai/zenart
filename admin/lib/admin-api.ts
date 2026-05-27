@@ -26,6 +26,7 @@ import {
   productionBackupRollbackIncidentEvidence,
   productionSecurityLaunchCheckEvidence,
   productionSkillReleaseEvalCanaryEvidence,
+  stagingLegalSupportVisibilityEvidence,
   stagingObjectStorageRetentionCleanupEvidence,
   stagingObservabilityBackupLoadPreflightEvidence,
   stagingEvalQaSafetyEvidence,
@@ -162,6 +163,10 @@ export async function getFailedTaskControls() {
 
 export async function getStagingSupportRetryAbuseEvidence() {
   return stagingSupportRetryAbuseEvidence;
+}
+
+export async function getStagingLegalSupportVisibilityEvidence() {
+  return stagingLegalSupportVisibilityEvidence;
 }
 
 export async function getStagingAuthRbacTenantAuditEvidence() {
