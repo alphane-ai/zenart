@@ -332,12 +332,16 @@ func (c Config) Validate() error {
 	default:
 		errs = append(errs, `OBJECT_STORAGE_PROVIDER must be "local" or "s3-compatible"`)
 	}
-	if _, err := url.ParseRequestURI(c.ObjectStorage.Endpoint); err != nil {
-		errs = append(errs, fmt.Sprintf("OBJECT_STORAGE_ENDPOINT must be a URL: %v", err))
+	objectStorageEndpoint, objectStorageEndpointErr := validateObjectStorageEndpoint(c.ObjectStorage.Endpoint, "OBJECT_STORAGE_ENDPOINT")
+	if objectStorageEndpointErr != "" {
+		errs = append(errs, objectStorageEndpointErr)
 	}
+	var objectStoragePublicEndpoint *url.URL
 	if strings.TrimSpace(c.ObjectStorage.PublicEndpoint) != "" {
-		if _, err := url.ParseRequestURI(c.ObjectStorage.PublicEndpoint); err != nil {
-			errs = append(errs, fmt.Sprintf("OBJECT_STORAGE_PUBLIC_ENDPOINT must be a URL: %v", err))
+		var publicEndpointErr string
+		objectStoragePublicEndpoint, publicEndpointErr = validateObjectStorageEndpoint(c.ObjectStorage.PublicEndpoint, "OBJECT_STORAGE_PUBLIC_ENDPOINT")
+		if publicEndpointErr != "" {
+			errs = append(errs, publicEndpointErr)
 		}
 	}
 	if strings.TrimSpace(c.ObjectStorage.Bucket) == "" {
@@ -358,6 +362,14 @@ func (c Config) Validate() error {
 		}
 		if strings.TrimSpace(c.ObjectStorage.SecretKey) == "" {
 			errs = append(errs, "OBJECT_STORAGE_SECRET_KEY must not be empty for S3-compatible object storage")
+		}
+		if !isLocalEnvironment(c.App.Environment) {
+			if objectStorageEndpoint != nil && objectStorageEndpoint.Scheme != "https" {
+				errs = append(errs, "OBJECT_STORAGE_ENDPOINT must use https for S3-compatible object storage outside local")
+			}
+			if objectStoragePublicEndpoint != nil && objectStoragePublicEndpoint.Scheme != "https" {
+				errs = append(errs, "OBJECT_STORAGE_PUBLIC_ENDPOINT must use https for S3-compatible object storage outside local")
+			}
 		}
 	}
 	if c.Observability.MetricsPort <= 0 || c.Observability.MetricsPort > 65535 {
@@ -401,6 +413,29 @@ func (c Config) Validate() error {
 		return errors.New(strings.Join(errs, "; "))
 	}
 	return nil
+}
+
+func validateObjectStorageEndpoint(raw, name string) (*url.URL, string) {
+	parsed, err := url.ParseRequestURI(raw)
+	if err != nil {
+		return nil, fmt.Sprintf("%s must be a URL: %v", name, err)
+	}
+	if parsed.Scheme == "" || parsed.Host == "" {
+		return nil, fmt.Sprintf("%s must include scheme and host", name)
+	}
+	if parsed.User != nil {
+		return nil, fmt.Sprintf("%s must not include credentials", name)
+	}
+	return parsed, ""
+}
+
+func isLocalEnvironment(environment string) bool {
+	switch strings.ToLower(strings.TrimSpace(environment)) {
+	case "", "local":
+		return true
+	default:
+		return false
+	}
 }
 
 func normalizeAddr(addr string) string {

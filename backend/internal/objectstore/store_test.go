@@ -186,6 +186,35 @@ func TestNewStoreSelectsS3CompatibleProvider(t *testing.T) {
 	}
 }
 
+func TestNewS3StoreRejectsCredentialBearingEndpoints(t *testing.T) {
+	_, err := NewS3Store(config.ObjectStorageConfig{
+		Provider:       "s3-compatible",
+		Endpoint:       "https://access:secret@s3.example.test",
+		Region:         "us-east-1",
+		Bucket:         "zenart-test",
+		AccessKey:      "access",
+		SecretKey:      "secret",
+		ForcePathStyle: true,
+	}, nil)
+	if err == nil || !strings.Contains(err.Error(), "must not include credentials") {
+		t.Fatalf("NewS3Store() error = %v, want endpoint credentials rejected", err)
+	}
+
+	_, err = NewS3Store(config.ObjectStorageConfig{
+		Provider:       "s3-compatible",
+		Endpoint:       "https://s3.example.test",
+		PublicEndpoint: "https://access:secret@downloads.example.test",
+		Region:         "us-east-1",
+		Bucket:         "zenart-test",
+		AccessKey:      "access",
+		SecretKey:      "secret",
+		ForcePathStyle: true,
+	}, nil)
+	if err == nil || !strings.Contains(err.Error(), "must not include credentials") {
+		t.Fatalf("NewS3Store() public endpoint error = %v, want endpoint credentials rejected", err)
+	}
+}
+
 func TestS3StoreSignedURLUsesTenantScopedPathStyleKey(t *testing.T) {
 	store, err := NewS3Store(config.ObjectStorageConfig{
 		Provider:       "s3-compatible",

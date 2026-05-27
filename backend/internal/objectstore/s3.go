@@ -483,6 +483,9 @@ func parseS3Endpoint(raw string, useSSL bool) (*url.URL, error) {
 	if parsed.Scheme == "" || parsed.Host == "" {
 		return nil, errors.New("object store endpoint must include scheme and host")
 	}
+	if parsed.User != nil {
+		return nil, errors.New("object store endpoint must not include credentials")
+	}
 	return parsed, nil
 }
 

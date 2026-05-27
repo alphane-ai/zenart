@@ -94,6 +94,53 @@ func TestValidateRequiresS3CompatibleCredentials(t *testing.T) {
 	}
 }
 
+func TestValidateRejectsObjectStorageEndpointCredentials(t *testing.T) {
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+
+	cfg.ObjectStorage.Endpoint = "https://access:secret@s3.example.test"
+	if err := cfg.Validate(); err == nil {
+		t.Fatal("Validate() error = nil, want credential-bearing endpoint error")
+	}
+
+	cfg, err = Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	cfg.ObjectStorage.PublicEndpoint = "https://access:secret@cdn.example.test"
+	if err := cfg.Validate(); err == nil {
+		t.Fatal("Validate() error = nil, want credential-bearing public endpoint error")
+	}
+}
+
+func TestValidateRequiresHTTPSForS3CompatibleStorageOutsideLocal(t *testing.T) {
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+
+	cfg.App.Environment = "staging"
+	cfg.ObjectStorage.Provider = "s3-compatible"
+	cfg.ObjectStorage.Endpoint = "http://s3.example.test"
+	cfg.ObjectStorage.PublicEndpoint = "https://downloads.example.test"
+	if err := cfg.Validate(); err == nil {
+		t.Fatal("Validate() error = nil, want non-HTTPS endpoint error")
+	}
+
+	cfg.ObjectStorage.Endpoint = "https://s3.example.test"
+	cfg.ObjectStorage.PublicEndpoint = "http://downloads.example.test"
+	if err := cfg.Validate(); err == nil {
+		t.Fatal("Validate() error = nil, want non-HTTPS public endpoint error")
+	}
+
+	cfg.ObjectStorage.PublicEndpoint = "https://downloads.example.test"
+	if err := cfg.Validate(); err != nil {
+		t.Fatalf("Validate() error = %v, want HTTPS S3-compatible storage config accepted", err)
+	}
+}
+
 func TestValidateRejectsInvalidDownloadURLTTL(t *testing.T) {
 	cfg, err := Load()
 	if err != nil {
