@@ -582,6 +582,12 @@ RELEASE_GATE_CHECK_CONDITION_EXISTING_PATH_GUARD_CHECKLIST_ITEM = (
     "subitem closure while allowed definition directories remain definition-only。"
 )
 
+GATE_IMPACT_CLOSED_SCHEMA_GUARD_CHECKLIST_ITEM = (
+    "Runtime gate_impact closed-schema guard 通过：`scripts/validate_stage0_rev2.py` rejects unknown "
+    "`gate_impact` keys in runtime evidence, so new launch-clearance metadata cannot bypass validator-owned "
+    "checklist rows, gate ownership, or preserved-blocker policy。"
+)
+
 README_GATE_SNAPSHOT_REQUIREMENTS = {
     "Local Alpha Gate": {
         "expected_status": "go",
@@ -1061,6 +1067,31 @@ GATE_IMPACT_ALLOWED_CLEARANCE_FLAGS = set(GATE_IMPACT_KEY_CHECKLIST_ITEMS) | {
     "can_clear_post_deploy_smoke_slot",
     "can_clear_release_gate_check",
     "can_clear_retention_cleanup_checklist_item",
+}
+
+GATE_IMPACT_ALLOWED_KEYS = GATE_IMPACT_ALLOWED_CLEARANCE_FLAGS | {
+    "aggregate_checklist_item",
+    "aggregate_ci_gate_status",
+    "aggregate_local_alpha_gate_status",
+    "aggregate_private_beta_gate_status",
+    "aggregate_production_gate_status",
+    "blocked_slots",
+    "check_level_item",
+    "check_level_items",
+    "checklist_item",
+    "checklist_items",
+    "closure_blockers",
+    "post_deploy_checklist_item",
+    "preserved_do_not_launch_condition_id",
+    "preserved_do_not_launch_condition_ids",
+    "preserved_release_gate_check_id",
+    "release_gate_check_id",
+    "remaining_blockers",
+    "remaining_object_storage_blockers",
+    "remaining_release_gate_blockers",
+    "remaining_release_gate_blockers_after_pass",
+    "remaining_slots_before_combined_report",
+    "requires_release_gate_fixture_update_after_pass",
 }
 
 PARTIAL_RUNTIME_PASS_EVIDENCE_ALLOWLIST = {
@@ -2688,6 +2719,7 @@ CHECKED_ITEMS = {
     PRODUCTION_BACKUP_ROLLBACK_INCIDENT_ADMIN_CHECKLIST_ITEM,
     PRODUCTION_BACKUP_ROLLBACK_SPLIT_PREFLIGHT_CHECKLIST_ITEM,
     README_LAUNCH_READINESS_CHECKLIST_ITEM,
+    GATE_IMPACT_CLOSED_SCHEMA_GUARD_CHECKLIST_ITEM,
     "Backfill Local Alpha release gate fixture evidence: workflow/eval/crawler/schema/service/runtime-stack checks pass in `fixtures/stage0/rev2/release_gate_evidence.local_alpha.json`。",
     "Backfill CI draft/no-go evidence: ops CI draft coverage passes while installed `.github/workflows` runtime remains blocked in `fixtures/stage0/rev2/release_gate_evidence.ci.json`。",
     "Backfill Private Beta/Staging no-go evidence: contract/fixture evidence is separated from external-user staging runtime blockers in `fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json`。",
@@ -5825,6 +5857,13 @@ def validate_runtime_gate_impact_closure_claims(
             continue
         gate = runtime_evidence_gate_from_path(path, evidence)
         rel_path = rel(path)
+        unknown_gate_impact_keys = sorted(set(gate_impact) - GATE_IMPACT_ALLOWED_KEYS)
+        require(
+            not unknown_gate_impact_keys,
+            f"{rel_path} gate_impact uses unknown key(s); launch-readiness metadata is closed-world "
+            "and must be added to the validator-owned schema before it can affect gate closure: "
+            + json.dumps(unknown_gate_impact_keys, ensure_ascii=False),
+        )
         unknown_clearance_flags = sorted(
             key
             for key in gate_impact
@@ -11357,6 +11396,7 @@ def validate_launch_readiness_split_contracts() -> None:
         CI_BROAD_RUNTIME_EXACT_FILE_GUARD_CHECKLIST_ITEM,
         RELEASE_GATE_BASENAME_EXACT_PATH_GUARD_CHECKLIST_ITEM,
         RELEASE_GATE_CHECK_CONDITION_EXISTING_PATH_GUARD_CHECKLIST_ITEM,
+        GATE_IMPACT_CLOSED_SCHEMA_GUARD_CHECKLIST_ITEM,
     ] + sorted(RELEASE_GATE_BACKFILL_CHECKED_ITEMS):
         require(item in checked_lines, f"blueprint must close definition-only evidence subitem: {item}")
 
@@ -11534,6 +11574,8 @@ def validate_launch_readiness_split_contracts() -> None:
         "A runtime evidence file's `gate_impact` cannot claim another gate's top-level checklist row",
         "Runtime evidence `gate_impact` checklist metadata is validator-owned for launch-readiness rows",
         "`checklist_item`、`check_level_item`、`aggregate_checklist_item`、`post_deploy_checklist_item`、`checklist_items`、and `check_level_items`",
+        GATE_IMPACT_CLOSED_SCHEMA_GUARD_CHECKLIST_ITEM,
+        "rejects unknown `gate_impact` keys in runtime evidence",
         "`gate_impact` true clearance flags such as `can_clear_*` may clear only rows owned by the evidence's own gate",
         "only when the exact blueprint row is already checked",
         "`gate_impact` partial evidence may mention checked check-level rows or definition-only rows",
