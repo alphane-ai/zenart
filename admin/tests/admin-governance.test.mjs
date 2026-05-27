@@ -272,6 +272,8 @@ const parseObjectStorageRuntime = () => {
     .replaceAll(/const endpointByArea: Record<StagingObjectStorageRetentionCleanupCoverage\["area"\], string> =/g, "const endpointByArea =")
     .replaceAll(/function isRequiredArea\(area: string \| undefined\): area is StagingObjectStorageRetentionCleanupCoverage\["area"\]/g, "function isRequiredArea(area)")
     .replaceAll(/function reportIsPassing\(report: RetentionCleanupReport\)/g, "function reportIsPassing(report)")
+    .replaceAll(/function reportKind\(report: RetentionCleanupReport, passable: boolean\)/g, "function reportKind(report, passable)")
+    .replaceAll(/function observedReportPath\(report: RetentionCleanupReport, passable: boolean\)/g, "function observedReportPath(report, passable)")
     .replaceAll(/function buildCoverageFromReport\(\n  base: StagingObjectStorageRetentionCleanupEvidence,\n  report: RetentionCleanupReport,\n  passable: boolean\n\): StagingObjectStorageRetentionCleanupCoverage\[\]/g, "function buildCoverageFromReport(base, report, passable)")
     .replaceAll(/export function buildStagingObjectStorageRetentionCleanupEvidence\(\n  base: StagingObjectStorageRetentionCleanupEvidence,\n  report\?: RetentionCleanupReport \| null\n\): StagingObjectStorageRetentionCleanupEvidence/g, "function buildStagingObjectStorageRetentionCleanupEvidence(base, report)")
     .replaceAll(/ as StagingObjectStorageRetentionCleanupCoverage\["area"\]/g, "");
@@ -4211,8 +4213,12 @@ test("object storage retention cleanup gate stays blocked until exact staging pr
 
   for (const token of [
     "Object Storage Retention Cleanup",
+    "Report Kind",
     "Required Script",
     "Required Artifact",
+    "Canonical Pass Report",
+    "Blocked Probe Report",
+    "Observed Report",
     "Signed URL Evidence",
     "Missing Runtime Inputs",
     "Remaining Blockers",
@@ -4227,6 +4233,31 @@ test("object storage retention cleanup gate stays blocked until exact staging pr
 
   assert.equal(stagingObjectStorageRetentionCleanupEvidence.environment, "staging", "retention cleanup evidence must be staging scoped");
   assert.equal(stagingObjectStorageRetentionCleanupEvidence.status, "missing_runtime", "retention cleanup must remain blocked without a passing staging probe");
+  assert.equal(
+    stagingObjectStorageRetentionCleanupEvidence.reportKind,
+    "missing",
+    "static admin fixture must distinguish missing runtime from a blocked probe"
+  );
+  assert.equal(
+    stagingObjectStorageRetentionCleanupEvidence.canonicalPassReportPath,
+    "ops/evidence/staging/object-storage-retention-cleanup.json",
+    "admin fixture must name the exact canonical pass report"
+  );
+  assert.equal(
+    stagingObjectStorageRetentionCleanupEvidence.canonicalPassResultsPath,
+    "ops/evidence/staging/object-storage-retention-cleanup.ndjson",
+    "admin fixture must name the exact canonical pass results"
+  );
+  assert.equal(
+    stagingObjectStorageRetentionCleanupEvidence.blockedProbeReportPath,
+    "ops/evidence/staging/object-storage-retention-cleanup.blocked.json",
+    "admin fixture must name the blocked probe report separately from the pass report"
+  );
+  assert.equal(
+    stagingObjectStorageRetentionCleanupEvidence.observedReportPath,
+    "none",
+    "static missing fixture cannot claim an observed runtime report"
+  );
   assert.equal(
     stagingObjectStorageRetentionCleanupEvidence.releaseGateCheckId,
     "staging_object_storage_signed_downloads",
@@ -4364,6 +4395,12 @@ test("object storage retention cleanup blocked staging probe is surfaced without
     blockedFile
   );
   assert.equal(fromBlockedProbe.status, "blocked", "admin evidence should expose the blocked probe status");
+  assert.equal(fromBlockedProbe.reportKind, "blocked_probe", "admin evidence must identify blocked probe reports");
+  assert.equal(
+    fromBlockedProbe.observedReportPath,
+    "ops/evidence/staging/object-storage-retention-cleanup.blocked.json",
+    "blocked probe evidence must not look like the canonical pass report"
+  );
   assert.equal(
     fromBlockedProbe.canClearRetentionCleanupChecklistItem,
     false,
@@ -4417,6 +4454,7 @@ test("object storage retention cleanup runtime evaluator flips only on exact pas
   const base = stagingObjectStorageRetentionCleanupEvidence;
   const missing = buildStagingObjectStorageRetentionCleanupEvidence(base, null);
   assert.equal(missing.status, "missing_runtime", "missing evidence must preserve the static blocker");
+  assert.equal(missing.reportKind, "missing", "missing evidence must retain missing report kind");
   assert.equal(missing.canClearRetentionCleanupChecklistItem, false, "missing evidence cannot clear checklist row");
   assert.deepEqual(missing.remainingReleaseGateBlockers, ["staging_object_storage_signed_downloads"]);
 
@@ -4446,6 +4484,12 @@ test("object storage retention cleanup runtime evaluator flips only on exact pas
   };
   const blocked = buildStagingObjectStorageRetentionCleanupEvidence(base, blockedReport);
   assert.equal(blocked.status, "blocked", "non-passing report must stay blocked");
+  assert.equal(blocked.reportKind, "blocked_probe", "blocked reports must be classified separately from pass evidence");
+  assert.equal(
+    blocked.observedReportPath,
+    "ops/evidence/staging/object-storage-retention-cleanup.blocked.json",
+    "blocked reports must surface the blocked probe path"
+  );
   assert.equal(blocked.canClearReleaseGateCheck, false, "blocked report cannot clear release gate");
   assert.ok(
     blocked.missingRuntimeInputs.includes("expired_export_cleanup:unexpected_http_status"),
@@ -4554,6 +4598,12 @@ test("object storage retention cleanup runtime evaluator flips only on exact pas
   const passing = buildStagingObjectStorageRetentionCleanupEvidence(base, passingReport);
   assert.equal(passing.id, "object-storage-retention-cleanup");
   assert.equal(passing.status, "pass", "passing exact report should flip admin evidence to pass");
+  assert.equal(passing.reportKind, "canonical_pass", "passing exact report must identify canonical pass evidence");
+  assert.equal(
+    passing.observedReportPath,
+    "ops/evidence/staging/object-storage-retention-cleanup.json",
+    "passing exact report must surface the canonical pass artifact"
+  );
   assert.equal(passing.canClearRetentionCleanupChecklistItem, true);
   assert.equal(passing.canClearReleaseGateCheck, true);
   assert.deepEqual(passing.remainingReleaseGateBlockers, []);
@@ -4617,6 +4667,12 @@ test("object storage retention cleanup runtime evaluator rejects spoofed pass re
   const rejected = buildStagingObjectStorageRetentionCleanupEvidence(base, spoofedPassReport);
 
   assert.equal(rejected.status, "blocked", "pass-shaped reports without request-id echo must stay blocked");
+  assert.equal(rejected.reportKind, "rejected_report", "spoofed pass reports must be classified as rejected");
+  assert.equal(
+    rejected.observedReportPath,
+    "ops/evidence/staging/object-storage-retention-cleanup.json",
+    "rejected pass-shaped reports must still show the canonical path under review"
+  );
   assert.equal(rejected.canClearRetentionCleanupChecklistItem, false);
   assert.equal(rejected.canClearReleaseGateCheck, false);
   assert.ok(

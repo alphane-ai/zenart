@@ -624,11 +624,16 @@ export type StagingObjectStorageRetentionCleanupEvidence = {
   id: string;
   environment: "staging";
   status: "missing_runtime" | "pass" | "blocked";
+  reportKind: "missing" | "canonical_pass" | "blocked_probe" | "rejected_report";
   releaseGateCheckId: "staging_object_storage_signed_downloads";
   doNotLaunchConditionId: "object_storage_signed_retention_runtime_missing";
   evidencePath: "ops/evidence/staging/object-storage-retention-cleanup.json";
   requiredScript: "scripts/staging_object_storage_retention_cleanup_smoke.sh";
   requiredArtifactPath: "ops/evidence/staging/object-storage-retention-cleanup.json";
+  canonicalPassReportPath: "ops/evidence/staging/object-storage-retention-cleanup.json";
+  canonicalPassResultsPath: "ops/evidence/staging/object-storage-retention-cleanup.ndjson";
+  blockedProbeReportPath: "ops/evidence/staging/object-storage-retention-cleanup.blocked.json";
+  observedReportPath: string;
   signedUrlEvidencePath: "ops/evidence/staging/20260527T2130Z-object-storage-signed-url.json";
   canClearRetentionCleanupChecklistItem: boolean;
   canClearReleaseGateCheck: boolean;

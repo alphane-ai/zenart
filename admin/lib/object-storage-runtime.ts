@@ -111,6 +111,30 @@ function reportIsPassing(report: RetentionCleanupReport) {
   );
 }
 
+function reportKind(report: RetentionCleanupReport, passable: boolean) {
+  if (passable) {
+    return "canonical_pass";
+  }
+
+  if (report.status === "blocked") {
+    return "blocked_probe";
+  }
+
+  return "rejected_report";
+}
+
+function observedReportPath(report: RetentionCleanupReport, passable: boolean) {
+  if (passable || report.status === "pass") {
+    return "ops/evidence/staging/object-storage-retention-cleanup.json";
+  }
+
+  if (report.status === "blocked") {
+    return "ops/evidence/staging/object-storage-retention-cleanup.blocked.json";
+  }
+
+  return "unknown retention cleanup report";
+}
+
 function buildCoverageFromReport(
   base: StagingObjectStorageRetentionCleanupEvidence,
   report: RetentionCleanupReport,
@@ -185,6 +209,8 @@ export function buildStagingObjectStorageRetentionCleanupEvidence(
     ...base,
     id: report.evidence_id ?? base.id,
     status: passable ? "pass" : "blocked",
+    reportKind: reportKind(report, passable),
+    observedReportPath: observedReportPath(report, passable),
     canClearRetentionCleanupChecklistItem:
       passable && report.gate_impact?.can_clear_retention_cleanup_checklist_item === true,
     canClearReleaseGateCheck: passable && report.gate_impact?.can_clear_release_gate_check === true,
