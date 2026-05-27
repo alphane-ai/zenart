@@ -406,9 +406,10 @@ func RedactValue(value any) any {
 		return RedactStringSliceMap(typed)
 	case map[string][]any:
 		out := make(map[string][]any, len(typed))
+		signedURLContext := hasSignedURLContextKeys(mapKeys(typed))
 		for key, values := range typed {
 			redactedValues := make([]any, len(values))
-			if IsSensitiveKey(key) || isStructuredSignedURLSecretKey(key) {
+			if IsSensitiveKey(key) || shouldRedactStructuredSignedURLKey(key, signedURLContext) {
 				for i := range values {
 					redactedValues[i] = Redacted
 				}
@@ -550,8 +551,9 @@ func redactSlogValue(key string, value slog.Value) slog.Value {
 
 func RedactMap(input map[string]any) map[string]any {
 	out := make(map[string]any, len(input))
+	signedURLContext := hasSignedURLContextKeys(mapKeys(input))
 	for key, value := range input {
-		if IsSensitiveKey(key) || isStructuredSignedURLSecretKey(key) {
+		if IsSensitiveKey(key) || shouldRedactStructuredSignedURLKey(key, signedURLContext) {
 			out[key] = Redacted
 			continue
 		}
@@ -565,8 +567,9 @@ func RedactStringMap(input map[string]string) map[string]string {
 		return nil
 	}
 	out := make(map[string]string, len(input))
+	signedURLContext := hasSignedURLContextKeys(mapKeys(input))
 	for key, val := range input {
-		if IsSensitiveKey(key) || isStructuredSignedURLSecretKey(key) {
+		if IsSensitiveKey(key) || shouldRedactStructuredSignedURLKey(key, signedURLContext) {
 			out[key] = Redacted
 			continue
 		}
@@ -808,15 +811,48 @@ func isSignedURLQueryKey(key string) bool {
 	}
 }
 
+func shouldRedactStructuredSignedURLKey(key string, signedURLContext bool) bool {
+	return isStructuredSignedURLSecretKey(key) || (signedURLContext && isSignedURLQueryKey(key))
+}
+
+func hasSignedURLContextKeys(keys []string) bool {
+	for _, key := range keys {
+		if isSignedURLContextKey(key) {
+			return true
+		}
+	}
+	return false
+}
+
+func isSignedURLContextKey(key string) bool {
+	normalized := strings.ToLower(strings.ReplaceAll(strings.TrimSpace(key), "_", "-"))
+	if strings.HasPrefix(normalized, "x-amz-") ||
+		strings.HasPrefix(normalized, "x-goog-") ||
+		strings.HasPrefix(normalized, "x-oss-") ||
+		strings.HasPrefix(normalized, "x-cos-") ||
+		strings.HasPrefix(normalized, "x-bz-") ||
+		strings.HasPrefix(normalized, "cloudfront-") {
+		return true
+	}
+	switch normalized {
+	case "awsaccesskeyid", "googleaccessid", "ossaccesskeyid", "signature", "sig":
+		return true
+	default:
+		return false
+	}
+}
+
 func isStructuredSignedURLSecretKey(key string) bool {
 	normalized := strings.ToLower(strings.ReplaceAll(strings.TrimSpace(key), "_", "-"))
 	switch normalized {
 	case "x-amz-algorithm", "x-amz-credential", "x-amz-signature", "x-amz-security-token",
+		"x-amz-date", "x-amz-expires", "x-amz-signedheaders",
 		"x-amz-policy", "x-amz-server-side-encryption-customer-key",
 		"x-amz-server-side-encryption-customer-key-md5",
 		"x-amz-copy-source-server-side-encryption-customer-key",
 		"x-amz-copy-source-server-side-encryption-customer-key-md5",
 		"x-goog-algorithm", "x-goog-credential", "x-goog-signature", "x-goog-security-token",
+		"x-goog-date", "x-goog-expires", "x-goog-signedheaders",
 		"googleaccessid", "x-oss-signature", "x-oss-security-token", "ossaccesskeyid",
 		"x-cos-signature", "x-cos-security-token", "x-bz-info-authorization",
 		"awsaccesskeyid", "cloudfront-signature", "cloudfront-policy", "cloudfront-key-pair-id":
@@ -830,24 +866,26 @@ func classifyValueAt(value any, location string) []SecretFinding {
 	var findings []SecretFinding
 	switch typed := value.(type) {
 	case map[string]any:
+		signedURLContext := hasSignedURLContextKeys(mapKeys(typed))
 		for key, val := range typed {
 			childLocation := key
 			if location != "" {
 				childLocation = location + "." + key
 			}
-			for _, finding := range ClassifyKey(key) {
+			for _, finding := range classifyStructuredKey(key, signedURLContext) {
 				finding.Location = childLocation
 				findings = append(findings, finding)
 			}
 			findings = append(findings, classifyValueAt(val, childLocation)...)
 		}
 	case map[string]string:
+		signedURLContext := hasSignedURLContextKeys(mapKeys(typed))
 		for key, val := range typed {
 			childLocation := key
 			if location != "" {
 				childLocation = location + "." + key
 			}
-			for _, finding := range ClassifyKey(key) {
+			for _, finding := range classifyStructuredKey(key, signedURLContext) {
 				finding.Location = childLocation
 				findings = append(findings, finding)
 			}
@@ -863,21 +901,19 @@ func classifyValueAt(value any, location string) []SecretFinding {
 	case map[string][]string:
 		findings = append(findings, classifyStringSliceMapAt(typed, location)...)
 	case map[string][]any:
+		signedURLContext := hasSignedURLContextKeys(mapKeys(typed))
 		for key, values := range typed {
 			childLocation := key
 			if location != "" {
 				childLocation = location + "." + key
 			}
-			for _, finding := range ClassifyKey(key) {
+			for _, finding := range classifyStructuredKey(key, signedURLContext) {
 				finding.Location = childLocation
 				findings = append(findings, finding)
 			}
-			if isSignedURLQueryKey(key) {
-				findings = append(findings, SecretFinding{Kind: SecretKindSignedURL, Signal: "url_query_secret", Location: childLocation})
-			}
 			for i, item := range values {
 				valueLocation := fmt.Sprintf("%s[%d]", childLocation, i)
-				if isSignedURLQueryKey(key) {
+				if shouldRedactStructuredSignedURLKey(key, signedURLContext) {
 					findings = append(findings, SecretFinding{Kind: SecretKindSignedURL, Signal: "url_query_secret", Location: valueLocation})
 				}
 				findings = append(findings, classifyValueAt(item, valueLocation)...)
@@ -996,10 +1032,11 @@ func redactReflectValueAt(value reflect.Value, visited map[uintptr]struct{}, dep
 			return nil, true
 		}
 		out := make(map[string]any, value.Len())
+		signedURLContext := hasReflectSignedURLContextKeys(value)
 		iter := value.MapRange()
 		for iter.Next() {
 			key := stringifyReflectKey(iter.Key())
-			if IsSensitiveKey(key) {
+			if IsSensitiveKey(key) || shouldRedactStructuredSignedURLKey(key, signedURLContext) {
 				out[key] = Redacted
 				continue
 			}
@@ -1082,6 +1119,7 @@ func classifyReflectAt(value reflect.Value, location string, visited map[uintptr
 	var findings []SecretFinding
 	switch value.Kind() {
 	case reflect.Map:
+		signedURLContext := hasReflectSignedURLContextKeys(value)
 		iter := value.MapRange()
 		for iter.Next() {
 			key := stringifyReflectKey(iter.Key())
@@ -1089,7 +1127,7 @@ func classifyReflectAt(value reflect.Value, location string, visited map[uintptr
 			if location != "" {
 				childLocation = location + "." + key
 			}
-			for _, finding := range ClassifyKey(key) {
+			for _, finding := range classifyStructuredKey(key, signedURLContext) {
 				finding.Location = childLocation
 				findings = append(findings, finding)
 			}
@@ -1147,9 +1185,10 @@ func redactKnownInterfaceValue(value reflect.Value) (any, bool) {
 		return RedactStringSliceMap(typed), true
 	case map[string][]any:
 		out := make(map[string][]any, len(typed))
+		signedURLContext := hasSignedURLContextKeys(mapKeys(typed))
 		for key, values := range typed {
 			redactedValues := make([]any, len(values))
-			if IsSensitiveKey(key) {
+			if IsSensitiveKey(key) || shouldRedactStructuredSignedURLKey(key, signedURLContext) {
 				for i := range values {
 					redactedValues[i] = Redacted
 				}
@@ -1331,6 +1370,32 @@ func classifyStringSliceMapAt(input map[string][]string, location string) []Secr
 		}
 	}
 	return findings
+}
+
+func classifyStructuredKey(key string, signedURLContext bool) []SecretFinding {
+	findings := ClassifyKey(key)
+	if shouldRedactStructuredSignedURLKey(key, signedURLContext) {
+		findings = append(findings, SecretFinding{Kind: SecretKindSignedURL, Signal: "url_query_secret"})
+	}
+	return findings
+}
+
+func mapKeys[T any](input map[string]T) []string {
+	keys := make([]string, 0, len(input))
+	for key := range input {
+		keys = append(keys, key)
+	}
+	return keys
+}
+
+func hasReflectSignedURLContextKeys(value reflect.Value) bool {
+	iter := value.MapRange()
+	for iter.Next() {
+		if isSignedURLContextKey(stringifyReflectKey(iter.Key())) {
+			return true
+		}
+	}
+	return false
 }
 
 func joinFindingLocation(parent, child string) string {

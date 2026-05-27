@@ -831,6 +831,124 @@ func TestRedactValueCoversStorageQueryMapsAndKubernetesPullSecrets(t *testing.T)
 	assertFinding(t, findings, SecretKindRegistryAuth, "metadata.dockercfg")
 }
 
+func TestRedactValueCoversStructuredSignedURLMetadataMaps(t *testing.T) {
+	input := map[string]any{
+		"aws": map[string]any{
+			"X-Amz-Algorithm":       "AWS4-HMAC-SHA256",
+			"X-Amz-Credential":      "AKIAIOSFODNN7EXAMPLE/20260527/us-east-1/s3/aws4_request",
+			"X-Amz-Date":            "20260527T120000Z",
+			"X-Amz-Expires":         "900",
+			"X-Amz-SignedHeaders":   "host",
+			"X-Amz-Signature":       "abcdef123456",
+			"response-content-type": "application/zip",
+		},
+		"google": map[string]string{
+			"X-Goog-Algorithm":      "GOOG4-RSA-SHA256",
+			"X-Goog-Credential":     "service@example.iam.gserviceaccount.com",
+			"X-Goog-Date":           "20260527T120000Z",
+			"X-Goog-Expires":        "600",
+			"X-Goog-SignedHeaders":  "host",
+			"X-Goog-Signature":      "googabcdef",
+			"response-content-type": "application/zip",
+		},
+		"azure": map[string][]any{
+			"sv":   []any{"2024-01-01"},
+			"se":   []any{"2026-05-27T13:00:00Z"},
+			"sp":   []any{"r"},
+			"sig":  []any{"azure-signature"},
+			"rsct": []any{"application/zip"},
+		},
+		"public": map[string]any{
+			"expires": "visible-business-expiry",
+			"policy":  "public-export-policy-name",
+		},
+	}
+
+	body, err := json.Marshal(RedactValue(input))
+	if err != nil {
+		t.Fatalf("marshal structured signed URL metadata: %v", err)
+	}
+	for _, leaked := range []string{
+		"AWS4-HMAC-SHA256",
+		"AKIAIOSFODNN7EXAMPLE",
+		"20260527T120000Z",
+		"abcdef123456",
+		"GOOG4-RSA-SHA256",
+		"service@example.iam.gserviceaccount.com",
+		"googabcdef",
+		"2024-01-01",
+		"2026-05-27T13:00:00Z",
+		"azure-signature",
+	} {
+		if strings.Contains(string(body), leaked) {
+			t.Fatalf("redacted structured signed URL metadata = %s, leaked %s", string(body), leaked)
+		}
+	}
+	for _, fragment := range []string{
+		`"response-content-type":"application/zip"`,
+		`"rsct":["application/zip"]`,
+		`"expires":"visible-business-expiry"`,
+		`"policy":"public-export-policy-name"`,
+		Redacted,
+	} {
+		if !strings.Contains(string(body), fragment) {
+			t.Fatalf("redacted structured signed URL metadata = %s, missing %s", string(body), fragment)
+		}
+	}
+
+	findings := ClassifyValue(input)
+	for _, location := range []string{
+		"aws.X-Amz-Date",
+		"aws.X-Amz-Expires",
+		"aws.X-Amz-SignedHeaders",
+		"google.X-Goog-Date",
+		"google.X-Goog-Expires",
+		"google.X-Goog-SignedHeaders",
+		"azure.sv",
+		"azure.se",
+		"azure.sp",
+		"azure.sig",
+	} {
+		assertFinding(t, findings, SecretKindSignedURL, location)
+	}
+}
+
+func TestRedactValueCoversTypedStructuredSignedURLMaps(t *testing.T) {
+	type delivery struct {
+		SignedFields map[string]string `json:"signed_fields"`
+		Public       string            `json:"public"`
+	}
+	value := delivery{
+		SignedFields: map[string]string{
+			"CloudFront-Signature":   "cf-signature",
+			"CloudFront-Policy":      "cf-policy",
+			"CloudFront-Key-Pair-Id": "cf-keypair",
+			"response-content-type":  "application/zip",
+		},
+		Public: "ok",
+	}
+
+	body, err := json.Marshal(RedactValue(value))
+	if err != nil {
+		t.Fatalf("marshal typed delivery: %v", err)
+	}
+	for _, leaked := range []string{"cf-signature", "cf-policy", "cf-keypair"} {
+		if strings.Contains(string(body), leaked) {
+			t.Fatalf("redacted typed delivery = %s, leaked %s", string(body), leaked)
+		}
+	}
+	for _, fragment := range []string{`"public":"ok"`, `"response-content-type":"application/zip"`, Redacted} {
+		if !strings.Contains(string(body), fragment) {
+			t.Fatalf("redacted typed delivery = %s, missing %s", string(body), fragment)
+		}
+	}
+
+	findings := ClassifyValue(value)
+	assertFinding(t, findings, SecretKindSignedURL, "signed_fields.CloudFront-Signature")
+	assertFinding(t, findings, SecretKindSignedURL, "signed_fields.CloudFront-Policy")
+	assertFinding(t, findings, SecretKindSignedURL, "signed_fields.CloudFront-Key-Pair-Id")
+}
+
 func TestClassifyKeyCoversLaunchSecretNames(t *testing.T) {
 	cases := []struct {
 		key  string
