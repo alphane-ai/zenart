@@ -20,6 +20,7 @@ QA_RESULTS = FIXTURE_DIR / "eval" / "qa_results.json"
 SAFETY_RULES = FIXTURE_DIR / "eval" / "safety_rules.json"
 TRACE_COMPLETENESS = FIXTURE_DIR / "eval" / "trace_completeness.json"
 OPENAPI = ROOT / "openapi" / "zenart.v1.yaml"
+LOCAL_ALPHA_EVIDENCE_DIR = ROOT / "ops" / "evidence" / "local_alpha"
 
 WORKFLOWS = {
     "ecommerce_growth_pack",
@@ -128,6 +129,18 @@ WORKFLOW_CHECKLIST_ITEMS = {
     },
 }
 
+WORKFLOW_RUNTIME_CLOSED_ITEMS = {
+    "ecommerce_growth_pack": {
+        "api",
+        "playwright",
+    },
+}
+
+WORKFLOW_RUNTIME_EVIDENCE_KIND = {
+    "api": "api_smoke",
+    "playwright": "playwright_happy_path",
+}
+
 
 class WorkflowAcceptanceContractError(Exception):
     pass
@@ -210,6 +223,31 @@ def openapi_operations(openapi: str) -> dict[str, dict[str, str]]:
 
 def schema_ref(schema_name: str) -> str:
     return f'$ref: "#/components/schemas/{schema_name}"'
+
+
+def runtime_evidence_file(workflow_id: str, item_key: str) -> Path:
+    evidence_kind = WORKFLOW_RUNTIME_EVIDENCE_KIND[item_key]
+    return LOCAL_ALPHA_EVIDENCE_DIR / f"{workflow_id}.{evidence_kind}.json"
+
+
+def validate_closed_runtime_evidence(workflow_id: str, item_key: str) -> None:
+    evidence_kind = WORKFLOW_RUNTIME_EVIDENCE_KIND[item_key]
+    evidence_path = runtime_evidence_file(workflow_id, item_key)
+    require(evidence_path.is_file(), f"{workflow_id} {item_key} runtime evidence file missing: {evidence_path.relative_to(ROOT)}")
+    evidence = load_json(evidence_path)
+    require(
+        evidence.get("schema_version") == "stage0.rev2.local-alpha-runtime-evidence",
+        f"{workflow_id} {item_key} runtime evidence schema mismatch",
+    )
+    require(evidence.get("environment") == "local_alpha", f"{workflow_id} {item_key} must be local_alpha evidence")
+    require(evidence.get("workflow_id") == workflow_id, f"{workflow_id} {item_key} evidence workflow mismatch")
+    require(evidence.get("evidence_kind") == evidence_kind, f"{workflow_id} {item_key} evidence kind mismatch")
+    require(evidence.get("status") == "pass", f"{workflow_id} {item_key} evidence must pass")
+    require(
+        evidence.get("release_gate_check_id") == "local_alpha_e2e_workflow_smoke",
+        f"{workflow_id} {item_key} evidence must target Local Alpha workflow smoke gate",
+    )
+    require(evidence.get("proves_running_local_stack") is True, f"{workflow_id} {item_key} must prove running local stack")
 
 
 def validate_api_smoke_sequence(workflow_id: str, workflow: dict[str, Any], openapi: str, operations: dict[str, dict[str, str]]) -> None:
@@ -391,8 +429,14 @@ def validate_blueprint_split(workflows: dict[str, dict[str, Any]]) -> None:
     for workflow_id in workflows:
         items = WORKFLOW_CHECKLIST_ITEMS[workflow_id]
         require(items["fixture"] in checked, f"{workflow_id} fixture checklist item must be checked")
-        require(items["api"] in unchecked, f"{workflow_id} API smoke checklist item must remain open")
-        require(items["playwright"] in unchecked, f"{workflow_id} Playwright checklist item must remain open")
+        closed_items = WORKFLOW_RUNTIME_CLOSED_ITEMS.get(workflow_id, set())
+        for item_key, label in [("api", "API smoke"), ("playwright", "Playwright")]:
+            if item_key in closed_items:
+                require(items[item_key] in checked, f"{workflow_id} {label} checklist item must be checked")
+                validate_closed_runtime_evidence(workflow_id, item_key)
+            else:
+                require(items[item_key] in unchecked, f"{workflow_id} {label} checklist item must remain open")
+                require(items[item_key] not in checked, f"{workflow_id} {label} must not be checked without runtime evidence")
         workflow = workflows[workflow_id]
         require(
             workflow["api_smoke_contract"]["blueprint_checklist_remains_open"] is True,

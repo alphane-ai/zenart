@@ -67,6 +67,16 @@ REQUIRED_EXPORT_FILES = {
 LOCAL_ALPHA_AGGREGATE_ITEM = (
     "Local Alpha workflow API/Playwright end-to-end smoke evidence 通过并写入 release gate fixture。"
 )
+LOCAL_ALPHA_RUNTIME_CLOSED_WORKFLOWS = {
+    "ecommerce_growth_pack",
+}
+LOCAL_ALPHA_RUNTIME_CLOSED_ITEM_KEYS = {
+    "ecommerce_growth_pack": {
+        "api_smoke",
+        "playwright_happy_path",
+        "release_gate_runtime",
+    },
+}
 
 
 class WorkflowRuntimeEvidenceContractError(Exception):
@@ -110,6 +120,32 @@ def expected_file(workflow_id: str, kind: str) -> str:
         "export_zip": "export_zip",
     }[kind]
     return f"ops/evidence/local_alpha/{workflow_id}.{suffix}.json"
+
+
+def expected_files(workflow_id: str) -> list[str]:
+    return [
+        expected_file(workflow_id, kind)
+        for kind in ["api_smoke", "playwright_happy_path", "export_zip"]
+    ]
+
+
+def validate_closed_runtime_evidence_file(path: str, workflow_id: str, kind: str) -> None:
+    evidence_path = ROOT / path
+    require(evidence_path.is_file(), f"{workflow_id} {kind} closed runtime evidence file is missing: {path}")
+    evidence = load_json(evidence_path)
+    require(
+        evidence.get("schema_version") == "stage0.rev2.local-alpha-runtime-evidence",
+        f"{workflow_id} {kind} runtime evidence schema mismatch",
+    )
+    require(evidence.get("environment") == "local_alpha", f"{workflow_id} {kind} must be local_alpha evidence")
+    require(evidence.get("workflow_id") == workflow_id, f"{workflow_id} {kind} evidence workflow mismatch")
+    require(evidence.get("evidence_kind") == kind, f"{workflow_id} {kind} evidence kind mismatch")
+    require(evidence.get("status") == "pass", f"{workflow_id} {kind} evidence must pass")
+    require(
+        evidence.get("release_gate_check_id") == "local_alpha_e2e_workflow_smoke",
+        f"{workflow_id} {kind} evidence must target Local Alpha workflow smoke gate",
+    )
+    require(evidence.get("proves_running_local_stack") is True, f"{workflow_id} {kind} must prove running local stack")
 
 
 def validate_runner_replay() -> None:
@@ -171,11 +207,21 @@ def validate_blueprint_and_release_gate(contract: dict[str, Any]) -> None:
         "Local Alpha gate must still require runtime evidence",
     )
 
+    evidence_ref = local_alpha_check["evidence_ref"]
     for workflow in contract["workflow_runtime_contracts"]:
+        workflow_id = workflow["workflow_id"]
         items = workflow["checklist_items"]
+        closed_item_keys = LOCAL_ALPHA_RUNTIME_CLOSED_ITEM_KEYS.get(workflow_id, set())
         for item_key in ["api_smoke", "playwright_happy_path", "release_gate_runtime"]:
-            require(items[item_key] in unchecked, f"{workflow['workflow_id']} {item_key} checklist item must remain open")
-            require(items[item_key] not in checked, f"{workflow['workflow_id']} {item_key} must not be checked by dry-run evidence")
+            if item_key in closed_item_keys:
+                require(items[item_key] in checked, f"{workflow_id} {item_key} checklist item must be checked")
+                continue
+            require(items[item_key] in unchecked, f"{workflow_id} {item_key} checklist item must remain open")
+            require(items[item_key] not in checked, f"{workflow_id} {item_key} must not be checked by runtime evidence")
+        if workflow_id in LOCAL_ALPHA_RUNTIME_CLOSED_WORKFLOWS:
+            for kind, path in zip(["api_smoke", "playwright_happy_path", "export_zip"], expected_files(workflow_id), strict=True):
+                require(path in evidence_ref, f"{workflow_id} release gate evidence must cite {path}")
+                validate_closed_runtime_evidence_file(path, workflow_id, kind)
 
 
 def validate_api_evidence_link(contract: dict[str, Any]) -> None:
@@ -207,14 +253,14 @@ def validate_workflow_contracts(contract: dict[str, Any]) -> None:
         workflow = workflows[workflow_id]
         require(runtime_contract["display_name"] == workflow["display_name"], f"{workflow_id} display name mismatch")
         require(runtime_contract["status"] == "planned", f"{workflow_id} runtime contract must remain planned")
-        expected_files = [expected_file(workflow_id, kind) for kind in ["api_smoke", "playwright_happy_path", "export_zip"]]
-        require(runtime_contract["expected_evidence_files"] == expected_files, f"{workflow_id} evidence files mismatch")
+        workflow_expected_files = expected_files(workflow_id)
+        require(runtime_contract["expected_evidence_files"] == workflow_expected_files, f"{workflow_id} evidence files mismatch")
 
         release_gate = runtime_contract["release_gate_check"]
         require(release_gate["gate"] == "local_alpha", f"{workflow_id} release gate must be local_alpha")
         require(release_gate["check_id"] == "local_alpha_e2e_workflow_smoke", f"{workflow_id} release gate check mismatch")
         require(release_gate["status_until_runtime_files_pass"] == "blocked", f"{workflow_id} release gate must remain blocked")
-        require(release_gate["required_evidence_files"] == expected_files, f"{workflow_id} release gate evidence file mismatch")
+        require(release_gate["required_evidence_files"] == workflow_expected_files, f"{workflow_id} release gate evidence file mismatch")
 
         evidence_contracts = {item["evidence_kind"]: item for item in runtime_contract["evidence_contracts"]}
         require(set(evidence_contracts) == EVIDENCE_KINDS, f"{workflow_id} evidence kinds mismatch")

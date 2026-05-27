@@ -17,6 +17,7 @@ FIXTURE_DIR = ROOT / "fixtures" / "stage0" / "rev2"
 WORKFLOW_DIR = FIXTURE_DIR / "workflows"
 EVIDENCE = FIXTURE_DIR / "eval" / "workflow_api_smoke_evidence.json"
 RUNNER = ROOT / "scripts" / "run_workflow_api_smoke.py"
+LOCAL_ALPHA_EVIDENCE_DIR = ROOT / "ops" / "evidence" / "local_alpha"
 
 WORKFLOWS = {
     "ecommerce_growth_pack",
@@ -29,6 +30,9 @@ WORKFLOW_CHECKLIST_ITEMS = {
     "business_visual_doc_pack": "商业视觉文档包 API smoke test 通过。",
     "local_merchant_campaign_pack": "本地商家活动包 API smoke test 通过。",
     "character_ip_concept_pack": "角色/IP 概念包 API smoke test 通过。",
+}
+WORKFLOW_RUNTIME_CLOSED_ITEMS = {
+    "ecommerce_growth_pack",
 }
 RUNTIME_OPERATION_ORDER = [
     "createChatSession",
@@ -127,6 +131,26 @@ def validate_runner_replay() -> None:
     )
 
 
+def validate_closed_api_runtime_evidence(workflow_id: str) -> None:
+    evidence_path = LOCAL_ALPHA_EVIDENCE_DIR / f"{workflow_id}.api_smoke.json"
+    require(evidence_path.is_file(), f"{workflow_id} API runtime evidence file missing: {evidence_path.relative_to(ROOT)}")
+    evidence = load_json(evidence_path)
+    require(
+        evidence.get("schema_version") == "stage0.rev2.local-alpha-runtime-evidence",
+        f"{workflow_id} API runtime evidence schema mismatch",
+    )
+    require(evidence.get("environment") == "local_alpha", f"{workflow_id} API runtime evidence must be local_alpha")
+    require(evidence.get("workflow_id") == workflow_id, f"{workflow_id} API runtime evidence workflow mismatch")
+    require(evidence.get("evidence_kind") == "api_smoke", f"{workflow_id} API runtime evidence kind mismatch")
+    require(evidence.get("status") == "pass", f"{workflow_id} API runtime evidence must pass")
+    require(
+        evidence.get("release_gate_check_id") == "local_alpha_e2e_workflow_smoke",
+        f"{workflow_id} API runtime evidence must target Local Alpha workflow smoke gate",
+    )
+    require(evidence.get("proves_running_local_stack") is True, f"{workflow_id} API runtime evidence must prove running local stack")
+    require(evidence.get("operation_ids") == RUNTIME_OPERATION_ORDER, f"{workflow_id} API runtime operation order mismatch")
+
+
 def validate_evidence_shape(evidence: dict[str, Any]) -> None:
     require(evidence["schema_version"] == "stage0.rev2", "workflow API smoke evidence schema version mismatch")
     require(evidence["blueprint_source"] == "Docs/stage0_blueprint_rev2.md", "workflow API smoke evidence must cite Rev2")
@@ -161,8 +185,12 @@ def validate_workflow_links(evidence: dict[str, Any]) -> None:
         checklist_item = WORKFLOW_CHECKLIST_ITEMS[workflow_id]
 
         require(result["checklist_item"] == checklist_item, f"{workflow_id} checklist item mismatch")
-        require(checklist_item in unchecked, f"{workflow_id} API smoke checklist must remain open for dry-run evidence")
-        require(checklist_item not in checked, f"{workflow_id} API smoke checklist must not be checked by dry-run evidence")
+        if workflow_id in WORKFLOW_RUNTIME_CLOSED_ITEMS:
+            require(checklist_item in checked, f"{workflow_id} API smoke checklist must be checked")
+            validate_closed_api_runtime_evidence(workflow_id)
+        else:
+            require(checklist_item in unchecked, f"{workflow_id} API smoke checklist must remain open for dry-run evidence")
+            require(checklist_item not in checked, f"{workflow_id} API smoke checklist must not be checked by dry-run evidence")
         require(result["status"] == "planned", f"{workflow_id} dry-run result must be planned")
         require(result["operation_ids"] == contract["operation_ids"], f"{workflow_id} operation_ids mismatch")
         require(result["operation_ids"] == RUNTIME_OPERATION_ORDER, f"{workflow_id} operation order mismatch")

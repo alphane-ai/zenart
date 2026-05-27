@@ -1146,6 +1146,10 @@ LOCAL_ALPHA_RELEASE_GATE_WORKFLOW_RUNTIME_OPEN_CHECK_ITEMS = {
     },
 }
 
+LOCAL_ALPHA_RELEASE_GATE_WORKFLOW_RUNTIME_CLOSED_ITEMS = {
+    "Local Alpha 电商增长包 runtime smoke evidence 写入 release gate fixture：`ops/evidence/local_alpha/ecommerce_growth_pack.api_smoke.json`、`ops/evidence/local_alpha/ecommerce_growth_pack.playwright_happy_path.json`、`ops/evidence/local_alpha/ecommerce_growth_pack.export_zip.json` 均证明 running local stack。": "ecommerce_growth_pack",
+}
+
 LOCAL_ALPHA_WORKFLOW_RUNTIME_EVIDENCE_FILES = {
     "ecommerce_growth_pack": {
         "api": ROOT / "ops" / "evidence" / "local_alpha" / "ecommerce_growth_pack.api_smoke.json",
@@ -1651,6 +1655,9 @@ REQUIRED_OPEN_ITEMS -= {
     "Production activation review/audit runtime/deployment evidence 通过。",
     "Production abuse throttle/hold runtime/deployment evidence 通过。",
     "Production security launch-check runtime/deployment evidence 通过。",
+    "电商增长包 API smoke test 通过。",
+    "电商增长包 Playwright happy path 通过。",
+    *LOCAL_ALPHA_RELEASE_GATE_WORKFLOW_RUNTIME_CLOSED_ITEMS.keys(),
 }
 
 CRAWLER_GOVERNANCE_SPLIT_ITEMS = {
@@ -1941,6 +1948,13 @@ WORKFLOW_RUNTIME_EVIDENCE_REQUIREMENTS = {
     },
 }
 
+WORKFLOW_RUNTIME_CLOSED_ITEMS = {
+    "ecommerce_growth_pack": {
+        "api_item",
+        "playwright_item",
+    },
+}
+
 LOCAL_ALPHA_E2E_WORKFLOW_EVIDENCE_REQUIREMENTS = {
     "ecommerce_growth_pack": (
         "ecommerce_growth_pack",
@@ -2081,6 +2095,42 @@ def require_local_alpha_workflow_runtime_files(evidence_ref: str, context: str) 
         for path in workflow_files.values()
     ]
     require_evidence_ref_cites_files(evidence_ref, required_files, context)
+
+
+def require_local_alpha_single_workflow_runtime_files(
+    evidence_ref: str,
+    workflow_id: str,
+    context: str,
+) -> None:
+    require(
+        workflow_id in LOCAL_ALPHA_WORKFLOW_RUNTIME_EVIDENCE_FILES,
+        f"{context} references unknown Local Alpha workflow {workflow_id}",
+    )
+    required_files = list(LOCAL_ALPHA_WORKFLOW_RUNTIME_EVIDENCE_FILES[workflow_id].values())
+    require_evidence_ref_cites_files(evidence_ref, required_files, context)
+    for runtime_path in required_files:
+        evidence = load_json_if_path(rel(runtime_path))
+        require(isinstance(evidence, dict), f"{context} evidence file is not readable JSON: {rel(runtime_path)}")
+        require(
+            evidence.get("environment") in RUNTIME_PASS_FILE_ENVIRONMENTS["local_alpha"],
+            f"{context} evidence file {rel(runtime_path)} must declare local/local_alpha environment",
+        )
+        require(
+            evidence.get("workflow_id") == workflow_id,
+            f"{context} evidence file {rel(runtime_path)} targets workflow_id={evidence.get('workflow_id')!r}",
+        )
+        require(
+            evidence.get("release_gate_check_id") == "local_alpha_e2e_workflow_smoke",
+            f"{context} evidence file {rel(runtime_path)} must target local_alpha_e2e_workflow_smoke",
+        )
+        require(
+            evidence.get("status") in RUNTIME_PASS_EVIDENCE_STATUS_VALUES,
+            f"{context} evidence file {rel(runtime_path)} must itself be passing; got status={evidence.get('status')!r}",
+        )
+        require(
+            evidence.get("proves_running_local_stack") is True,
+            f"{context} evidence file {rel(runtime_path)} must prove the running local stack",
+        )
 
 
 def require_runtime_file_evidence(evidence_ref: str, gate: str, check_id: str) -> None:
@@ -3839,37 +3889,50 @@ def validate_workflow_acceptance_split_contracts() -> None:
                 checklist_item in checked_lines,
                 f"blueprint missing workflow runtime checklist item: {checklist_item}",
             )
-            require(
-                contract["execution_status"] == requirement["required_status"],
-                f"{workflow_id} {requirement['status_label']} checklist item is closed but fixture contract is not executed",
-            )
-            require(
-                contract["blueprint_checklist_remains_open"] is False,
-                f"{workflow_id} {requirement['status_label']} executed contract must allow checklist closure",
-            )
-            require(
-                local_alpha_smoke["status"] == "pass",
-                f"{workflow_id} {requirement['status_label']} cannot close until local_alpha_e2e_workflow_smoke passes",
-            )
-            evidence_ref = local_alpha_smoke["evidence_ref"].lower()
-            missing_terms = [
-                term
-                for term in requirement["required_evidence_terms"]
-                if term not in evidence_ref
-            ]
-            require(
-                not missing_terms,
-                f"{workflow_id} {requirement['status_label']} closure missing Local Alpha evidence terms: {missing_terms}",
-            )
-            require(
-                rel(LOCAL_ALPHA_WORKFLOW_RUNTIME_EVIDENCE_FILES[workflow_id][item_key.split("_")[0]])
-                in local_alpha_smoke["evidence_ref"],
-                f"{workflow_id} {requirement['status_label']} closure must cite exact runtime evidence file",
-            )
-            require_local_alpha_workflow_runtime_files(
-                local_alpha_smoke["evidence_ref"],
-                f"{workflow_id} {requirement['status_label']} Local Alpha aggregate evidence",
-            )
+            if item_key in WORKFLOW_RUNTIME_CLOSED_ITEMS.get(workflow_id, set()):
+                expected_kind = item_key.removesuffix("_item")
+                expected_path = LOCAL_ALPHA_WORKFLOW_RUNTIME_EVIDENCE_FILES[workflow_id][expected_kind]
+                require_local_alpha_single_workflow_runtime_files(
+                    local_alpha_smoke["evidence_ref"],
+                    workflow_id,
+                    f"{workflow_id} {requirement['status_label']} runtime closure",
+                )
+                require(
+                    rel(expected_path) in local_alpha_smoke["evidence_ref"],
+                    f"{workflow_id} {requirement['status_label']} closure must cite exact runtime evidence file",
+                )
+            else:
+                require(
+                    contract["execution_status"] == requirement["required_status"],
+                    f"{workflow_id} {requirement['status_label']} checklist item is closed but fixture contract is not executed",
+                )
+                require(
+                    contract["blueprint_checklist_remains_open"] is False,
+                    f"{workflow_id} {requirement['status_label']} executed contract must allow checklist closure",
+                )
+                require(
+                    local_alpha_smoke["status"] == "pass",
+                    f"{workflow_id} {requirement['status_label']} cannot close until local_alpha_e2e_workflow_smoke passes",
+                )
+                evidence_ref = local_alpha_smoke["evidence_ref"].lower()
+                missing_terms = [
+                    term
+                    for term in requirement["required_evidence_terms"]
+                    if term not in evidence_ref
+                ]
+                require(
+                    not missing_terms,
+                    f"{workflow_id} {requirement['status_label']} closure missing Local Alpha evidence terms: {missing_terms}",
+                )
+                require(
+                    rel(LOCAL_ALPHA_WORKFLOW_RUNTIME_EVIDENCE_FILES[workflow_id][item_key.split("_")[0]])
+                    in local_alpha_smoke["evidence_ref"],
+                    f"{workflow_id} {requirement['status_label']} closure must cite exact runtime evidence file",
+                )
+                require_local_alpha_workflow_runtime_files(
+                    local_alpha_smoke["evidence_ref"],
+                    f"{workflow_id} {requirement['status_label']} Local Alpha aggregate evidence",
+                )
 
     workflow_contract = subprocess.run(
         [sys.executable, str(ROOT / "scripts" / "validate_workflow_acceptance_contract.py")],
@@ -5863,6 +5926,18 @@ def validate_release_gate_evidence() -> None:
         do_not_launch.get("local_alpha_runtime_not_validated") is (not local_alpha_runtime_stack_validated()),
         "release evidence local_alpha_runtime_not_validated must reflect computed runtime validation state",
     )
+    local_alpha_smoke_evidence_ref = checks["local_alpha_e2e_workflow_smoke"]["evidence_ref"]
+    for checklist_item, workflow_id in LOCAL_ALPHA_RELEASE_GATE_WORKFLOW_RUNTIME_CLOSED_ITEMS.items():
+        require(
+            checklist_item in blueprint_checked,
+            "blueprint must close Local Alpha workflow release-gate evidence subitem "
+            f"after exact evidence exists: {checklist_item}",
+        )
+        require_local_alpha_single_workflow_runtime_files(
+            local_alpha_smoke_evidence_ref,
+            workflow_id,
+            f"{workflow_id} Local Alpha release-gate evidence subitem",
+        )
 
     ci = load_json(FIXTURE_DIR / "release_gate_evidence.ci.json")
     require(ci["gate"] == "ci", "CI release gate fixture must target CI")
@@ -6956,6 +7031,7 @@ def validate_launch_readiness_split_contracts() -> None:
             "Production activation review/audit runtime/deployment evidence 通过。",
             "Production abuse throttle/hold runtime/deployment evidence 通过。",
             "Production security launch-check runtime/deployment evidence 通过。",
+            *LOCAL_ALPHA_RELEASE_GATE_WORKFLOW_RUNTIME_CLOSED_ITEMS.keys(),
         }
     ):
         require(item in unchecked_lines, f"blueprint must keep runtime launch-readiness subitem open: {item}")
