@@ -186,6 +186,10 @@ export type CrawlerGovernanceRuntimeDecision = {
   deadlineStatus: "within_window" | "expired" | "not_evaluated";
   blockerCodes: string[];
   operatorAction: string;
+  closureEvidenceChecklist: string[];
+  activationGuardrail: string;
+  reviewEscalation: string;
+  releaseGateEvidence: string;
   auditRef: string;
   requiredEvidenceRefs: string[];
 };

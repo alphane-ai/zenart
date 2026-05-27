@@ -162,6 +162,7 @@ const parseCrawlerRuntime = () => {
     .replaceAll(/: CrawlerGovernanceWorkflow\["requestType"\]/g, "")
     .replaceAll(/new Set<string>/g, "new Set")
     .replaceAll(/: string\[\]/g, "")
+    .replaceAll(/: string \| undefined/g, "")
     .replaceAll(/: string/g, "")
     .replaceAll(/: Date/g, "")
     .replaceAll(/ as const/g, "");
@@ -4511,6 +4512,29 @@ test("crawler governance runtime decisions gate takedown closure and activation"
   assert.equal(takedownDecision.activationDecision, "block_activation", "open takedown must block activation");
   assert.equal(takedownDecision.deletionEvidenceStatus, "pending", "open takedown must expose pending deletion evidence");
   assert.equal(takedownDecision.requesterNoticeStatus, "pending", "open takedown must expose pending requester notice");
+  assert.ok(
+    takedownDecision.closureEvidenceChecklist.includes("deletion:pending"),
+    "open takedown closure checklist must expose pending deletion evidence"
+  );
+  assert.ok(
+    takedownDecision.closureEvidenceChecklist.includes("requester_notice:pending"),
+    "open takedown closure checklist must expose pending requester notice"
+  );
+  assert.match(
+    takedownDecision.activationGuardrail,
+    /Activation remains blocked.*crawler-derived prompt, skill, and fragment changes cannot activate/i,
+    "open takedown needs an activation guardrail that blocks crawler-derived activation"
+  );
+  assert.match(
+    takedownDecision.reviewEscalation,
+    /Second reviewer must complete/i,
+    "open takedown needs second-review escalation guidance"
+  );
+  assert.match(
+    takedownDecision.releaseGateEvidence,
+    /Release gate must keep cg-501 blocked.*takedown, derivative-use, retention, notice, and audit evidence/i,
+    "open takedown needs release-gate blocker evidence"
+  );
   assert.ok(takedownDecision.blockerCodes.includes("deletion_evidence_pending"), "open takedown needs deletion blocker");
   assert.ok(takedownDecision.blockerCodes.includes("requester_notice_pending"), "open takedown needs notice blocker");
   assert.ok(takedownDecision.blockerCodes.includes("second_review_open"), "open takedown needs second-review blocker");
@@ -4525,6 +4549,20 @@ test("crawler governance runtime decisions gate takedown closure and activation"
   assert.equal(derivativeDecision.requiredEvidenceStatus, "complete", "approved derivative review needs complete required evidence");
   assert.deepEqual(derivativeDecision.missingRequiredEvidenceRefs, [], "approved derivative review should not miss required evidence refs");
   assert.equal(derivativeDecision.deadlineStatus, "not_evaluated", "approved derivative review should not create deadline blockers");
+  assert.ok(
+    derivativeDecision.closureEvidenceChecklist.includes("deletion:complete"),
+    "approved derivative review must expose complete deletion or retention evidence"
+  );
+  assert.match(
+    derivativeDecision.activationGuardrail,
+    /Activation can proceed only.*bounded retention.*au-013/i,
+    "approved derivative review needs bounded-retention activation guardrail"
+  );
+  assert.match(
+    derivativeDecision.releaseGateEvidence,
+    /Release gate can cite cg-522.*takedown, derivative-use, retention, provenance, and notice evidence/i,
+    "approved derivative review needs release-gate evidence summary"
+  );
 
   const retentionDecision = decisionsByWorkflow.get("cg-533");
   assert.equal(retentionDecision.closureDecision, "blocked", "pending raw retention delete must block closure");
@@ -4556,6 +4594,11 @@ test("crawler governance runtime decisions gate takedown closure and activation"
   assert.ok(
     rejectedSecondReviewDecision.blockerCodes.includes("second_review_rejected"),
     "rejected second review needs an explicit blocker code"
+  );
+  assert.match(
+    rejectedSecondReviewDecision.reviewEscalation,
+    /Second review rejected/i,
+    "rejected second review needs explicit escalation text"
   );
 
   const staleReadyAttemptDecision = buildCrawlerGovernanceRuntimeDecisions(
@@ -4634,6 +4677,11 @@ test("crawler governance runtime decisions gate takedown closure and activation"
     assert.equal(decision.requiredEvidenceStatus, "complete", `${workflow.id} fixture evidence refs should be complete`);
     assert.deepEqual(decision.missingRequiredEvidenceRefs, [], `${workflow.id} fixture should not miss required evidence refs`);
     assert.ok(decision.operatorAction.length > 80, `${workflow.id} needs executable operator action`);
+    assert.ok(decision.closureEvidenceChecklist.length >= 7, `${workflow.id} needs full closure checklist evidence`);
+    assert.ok(decision.closureEvidenceChecklist.some((item) => item.startsWith("audit:")), `${workflow.id} checklist must include audit status`);
+    assert.ok(decision.activationGuardrail.length > 110, `${workflow.id} needs activation guardrail text`);
+    assert.ok(decision.reviewEscalation.length > 90, `${workflow.id} needs review escalation text`);
+    assert.ok(decision.releaseGateEvidence.length > 150, `${workflow.id} needs release-gate evidence text`);
 
     if (workflow.blockedActivation) {
       assert.equal(decision.activationDecision, "block_activation", `${workflow.id} blocked workflow cannot activate`);

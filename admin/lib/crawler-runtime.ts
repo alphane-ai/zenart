@@ -90,6 +90,29 @@ export function buildCrawlerGovernanceRuntimeDecisions(
         : closureDecision === "review_required"
           ? "Route the crawler workflow to the required second reviewer before any source, derivative, retention, prompt, or skill activation changes."
           : "Keep crawler activation disabled and attach deletion evidence, requester notice, second-review outcome, and audit evidence before closure.";
+    const closureEvidenceChecklist = [
+      `finding:${workflow.findingId}`,
+      `deletion:${deletionEvidenceStatus}`,
+      `requester_notice:${requesterNoticeStatus}`,
+      `second_review:${workflow.secondReviewStatus}`,
+      `audit:${auditStatus}`,
+      `required_evidence:${requiredEvidenceStatus}`,
+      `deadline:${deadlineStatus}`
+    ];
+    const activationGuardrail =
+      activationDecision === "allow_activation"
+        ? `Activation can proceed only for ${workflow.findingId} with provenance, bounded retention, requester notice, reviewer rationale, and audit ${workflow.auditRef} attached to every crawler-derived prompt, skill, and fragment change.`
+        : `Activation remains blocked for ${workflow.findingId}; crawler-derived prompt, skill, and fragment changes cannot activate until closure is ready.`;
+    const reviewEscalation =
+      secondReviewRejected
+        ? "Second review rejected the workflow; keep activation blocked and restart reviewer-owned takedown or derivative review."
+        : secondReviewOpen
+          ? "Second reviewer must complete the high-risk crawler review before closure or activation changes."
+          : "Second review is not blocking; preserve reviewer rationale and audit linkage for release evidence.";
+    const releaseGateEvidence =
+      closureDecision === "ready_to_close"
+        ? `Release gate can cite ${workflow.id}, ${workflow.findingId}, ${workflow.auditRef}, and required evidence refs after preserving takedown, derivative-use, retention, provenance, and notice evidence.`
+        : `Release gate must keep ${workflow.id} blocked with blocker codes ${blockerCodes.join(", ") || "none"} until takedown, derivative-use, retention, notice, and audit evidence are complete.`;
 
     return {
       workflowId: workflow.id,
@@ -106,6 +129,10 @@ export function buildCrawlerGovernanceRuntimeDecisions(
       deadlineStatus,
       blockerCodes,
       operatorAction,
+      closureEvidenceChecklist,
+      activationGuardrail,
+      reviewEscalation,
+      releaseGateEvidence,
       auditRef: workflow.auditRef,
       requiredEvidenceRefs: workflow.requiredEvidenceRefs
     };

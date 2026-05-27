@@ -194,7 +194,11 @@ export default async function CrawlerReviewPage() {
             { key: "missing-required", header: "Missing Required Evidence", render: (row) => (row.missingRequiredEvidenceRefs.length > 0 ? row.missingRequiredEvidenceRefs.join(", ") : "none") },
             { key: "deadline", header: "Deadline", render: (row) => <StatusBadge value={row.deadlineStatus} label={row.deadlineStatus} /> },
             { key: "blockers", header: "Blockers", render: (row) => (row.blockerCodes.length > 0 ? row.blockerCodes.join(", ") : "none") },
+            { key: "closure-checklist", header: "Closure Checklist", render: (row) => row.closureEvidenceChecklist.join(", ") },
+            { key: "guardrail", header: "Activation Guardrail", render: (row) => row.activationGuardrail },
+            { key: "escalation", header: "Review Escalation", render: (row) => row.reviewEscalation },
             { key: "action", header: "Operator Action", render: (row) => row.operatorAction },
+            { key: "release", header: "Release Gate Evidence", render: (row) => row.releaseGateEvidence },
             { key: "evidence", header: "Required Evidence", render: (row) => row.requiredEvidenceRefs.join(", ") },
             { key: "audit", header: "Audit Ref", render: (row) => <span className="mono">{row.auditRef}</span> }
           ]}
