@@ -1,0 +1,366 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zenart.local/schemas/stage0/rev2/eval_runner_manifest_contract.schema.json",
+  "title": "ZenArt Stage 0 Rev2 Eval Runner Manifest Contract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "contract_id",
+    "blueprint_source",
+    "stored_result_ref",
+    "runner_manifest",
+    "input_manifest",
+    "execution_contract",
+    "stale_input_rejection_cases",
+    "openapi_projection_contract",
+    "validator_contract",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "stage0.rev2"
+    },
+    "contract_id": {
+      "const": "eval_runner_manifest_contract_stage0_rev2"
+    },
+    "blueprint_source": {
+      "const": "Docs/stage0_blueprint_rev2.md"
+    },
+    "stored_result_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "result_id",
+        "suite_id",
+        "status",
+        "runner_contract_path"
+      ],
+      "properties": {
+        "path": {
+          "const": "fixtures/stage0/rev2/eval/starter_eval_results.json"
+        },
+        "result_id": {
+          "type": "string",
+          "pattern": "^eval_result_[a-z0-9_]+$"
+        },
+        "suite_id": {
+          "type": "string",
+          "pattern": "^eval_[a-z0-9_]+$"
+        },
+        "status": {
+          "enum": [
+            "pass",
+            "fail",
+            "blocked"
+          ]
+        },
+        "runner_contract_path": {
+          "const": "runner_contract"
+        }
+      }
+    },
+    "runner_manifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "runner",
+        "runner_sha256",
+        "runner_manifest_sha256",
+        "deterministic_replay_command",
+        "write_command",
+        "writes_stored_fixture",
+        "check_mode_compares_exact_json",
+        "normalizes_self_hash_field",
+        "forbids_network_access",
+        "forbids_wall_clock_outputs",
+        "deterministic_completed_at"
+      ],
+      "properties": {
+        "runner": {
+          "const": "scripts/run_stage0_eval.py"
+        },
+        "runner_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "runner_manifest_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "deterministic_replay_command": {
+          "const": "python3 scripts/run_stage0_eval.py --check"
+        },
+        "write_command": {
+          "const": "python3 scripts/run_stage0_eval.py --write"
+        },
+        "writes_stored_fixture": {
+          "const": true
+        },
+        "check_mode_compares_exact_json": {
+          "const": true
+        },
+        "normalizes_self_hash_field": {
+          "const": true
+        },
+        "forbids_network_access": {
+          "const": true
+        },
+        "forbids_wall_clock_outputs": {
+          "const": true
+        },
+        "deterministic_completed_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "input_manifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_fixture_count",
+        "requires_exact_source_fixture_digests",
+        "requires_all_workflow_acceptance_fixtures",
+        "source_fixture_digests"
+      ],
+      "properties": {
+        "source_fixture_count": {
+          "type": "integer",
+          "minimum": 7
+        },
+        "requires_exact_source_fixture_digests": {
+          "const": true
+        },
+        "requires_all_workflow_acceptance_fixtures": {
+          "const": true
+        },
+        "source_fixture_digests": {
+          "$ref": "#/$defs/source_fixture_digests"
+        }
+      }
+    },
+    "execution_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "result_json_is_exact_replay_output",
+        "check_command_must_fail_on_stale_results",
+        "runner_digest_must_match_current_script",
+        "source_digest_must_match_current_files",
+        "stored_result_must_embed_runner_manifest",
+        "stored_result_must_embed_source_digests",
+        "does_not_rerun_for_admin_reads",
+        "activation_uses_stored_result_only_after_manifest_match"
+      ],
+      "properties": {
+        "result_json_is_exact_replay_output": {
+          "const": true
+        },
+        "check_command_must_fail_on_stale_results": {
+          "const": true
+        },
+        "runner_digest_must_match_current_script": {
+          "const": true
+        },
+        "source_digest_must_match_current_files": {
+          "const": true
+        },
+        "stored_result_must_embed_runner_manifest": {
+          "const": true
+        },
+        "stored_result_must_embed_source_digests": {
+          "const": true
+        },
+        "does_not_rerun_for_admin_reads": {
+          "const": true
+        },
+        "activation_uses_stored_result_only_after_manifest_match": {
+          "const": true
+        }
+      }
+    },
+    "stale_input_rejection_cases": {
+      "type": "array",
+      "minItems": 5,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "mutated_input",
+          "expected_error",
+          "activation_allowed",
+          "admin_read_requires_rerun",
+          "reason"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "pattern": "^eval_runner_[a-z0-9_]+$"
+          },
+          "mutated_input": {
+            "enum": [
+              "runner_sha256",
+              "runner_manifest_sha256",
+              "starter_eval_suite_digest",
+              "qa_results_digest",
+              "safety_rules_digest",
+              "workflow_acceptance_digest",
+              "stored_result_json"
+            ]
+          },
+          "expected_error": {
+            "enum": [
+              "runner_digest_mismatch",
+              "runner_manifest_digest_mismatch",
+              "source_fixture_digest_mismatch",
+              "stored_result_stale"
+            ]
+          },
+          "activation_allowed": {
+            "const": false
+          },
+          "admin_read_requires_rerun": {
+            "const": false
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "openapi_projection_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_name",
+        "required_projection_fields",
+        "required_description_tokens"
+      ],
+      "properties": {
+        "schema_name": {
+          "const": "EvalResult"
+        },
+        "required_projection_fields": {
+          "type": "array",
+          "minItems": 6,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "runner",
+              "runner_sha256",
+              "deterministic_replay_command",
+              "writes_stored_fixture",
+              "check_mode_compares_exact_json",
+              "source_fixture_digests"
+            ]
+          }
+        },
+        "required_description_tokens": {
+          "type": "array",
+          "minItems": 3,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "validator_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "validator",
+        "check_command",
+        "wired_into_stage0_validator",
+        "compares_runner_digest",
+        "compares_manifest_digest",
+        "compares_source_fixture_digests",
+        "executes_exact_replay_check",
+        "validates_stale_input_cases"
+      ],
+      "properties": {
+        "validator": {
+          "const": "scripts/validate_eval_runner_manifest_contract.py"
+        },
+        "check_command": {
+          "const": "python3 scripts/validate_eval_runner_manifest_contract.py"
+        },
+        "wired_into_stage0_validator": {
+          "const": true
+        },
+        "compares_runner_digest": {
+          "const": true
+        },
+        "compares_manifest_digest": {
+          "const": true
+        },
+        "compares_source_fixture_digests": {
+          "const": true
+        },
+        "executes_exact_replay_check": {
+          "const": true
+        },
+        "validates_stale_input_cases": {
+          "const": true
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "created_by_lane",
+        "blueprint_sections"
+      ],
+      "properties": {
+        "created_by_lane": {
+          "const": "lane2"
+        },
+        "blueprint_sections": {
+          "type": "array",
+          "minItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "14. Eval Suite",
+              "15. Image QA 和 Safety Policy",
+              "24",
+              "25.11 Eval, QA, Safety"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "source_fixture_digests": {
+      "type": "array",
+      "minItems": 7,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "sha256"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "pattern": "^(fixtures/stage0/rev2/eval/(starter_eval_suite|qa_results|safety_rules)\\.json|fixtures/stage0/rev2/workflows/[a-z0-9_]+\\.json)$"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        }
+      }
+    }
+  }
+}

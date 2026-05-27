@@ -1,0 +1,163 @@
+{
+  "schema_version": "stage0.rev2",
+  "contract_id": "eval_runner_manifest_contract_stage0_rev2",
+  "blueprint_source": "Docs/stage0_blueprint_rev2.md",
+  "stored_result_ref": {
+    "path": "fixtures/stage0/rev2/eval/starter_eval_results.json",
+    "result_id": "eval_result_stage0_rev2_starter_contract",
+    "suite_id": "eval_stage0_rev2_starter",
+    "status": "blocked",
+    "runner_contract_path": "runner_contract"
+  },
+  "runner_manifest": {
+    "runner": "scripts/run_stage0_eval.py",
+    "runner_sha256": "0ddc16f08fd696fba2c878c985c336a867099f7fd223b179ca0b44d652fc0638",
+    "runner_manifest_sha256": "9b73850373bc77c701dda25cca3ea23b4113e83b90cb293782d34baaed67a8d4",
+    "deterministic_replay_command": "python3 scripts/run_stage0_eval.py --check",
+    "write_command": "python3 scripts/run_stage0_eval.py --write",
+    "writes_stored_fixture": true,
+    "check_mode_compares_exact_json": true,
+    "normalizes_self_hash_field": true,
+    "forbids_network_access": true,
+    "forbids_wall_clock_outputs": true,
+    "deterministic_completed_at": "2026-05-26T00:00:00Z"
+  },
+  "input_manifest": {
+    "source_fixture_count": 7,
+    "requires_exact_source_fixture_digests": true,
+    "requires_all_workflow_acceptance_fixtures": true,
+    "source_fixture_digests": [
+      {
+        "path": "fixtures/stage0/rev2/eval/starter_eval_suite.json",
+        "sha256": "3e9cd82e1a91ad4a9817c6f2c82317f700a33829e8a474c7a1394aeb537c0c06"
+      },
+      {
+        "path": "fixtures/stage0/rev2/eval/qa_results.json",
+        "sha256": "a4b671973a08a49a90cc2264fa94f8f8f83ce4593406b3df10374af773633e3f"
+      },
+      {
+        "path": "fixtures/stage0/rev2/eval/safety_rules.json",
+        "sha256": "ad09f820fab84dd482bfe774d62ceab67d7b500e5a50f8aabb5664ff31fedabf"
+      },
+      {
+        "path": "fixtures/stage0/rev2/workflows/business_visual_doc_pack.json",
+        "sha256": "166c4bd018f2ca255b986ed1ab3baccd39e47431e157fd9bf3e33bb56b99cea8"
+      },
+      {
+        "path": "fixtures/stage0/rev2/workflows/character_ip_concept_pack.json",
+        "sha256": "5dd0dac281d3b74865a81917f9939afec005a14c9dc7a557f08473adf9310147"
+      },
+      {
+        "path": "fixtures/stage0/rev2/workflows/ecommerce_growth_pack.json",
+        "sha256": "51c921e805ade21c6dd0aa2b34584625ae4fc46c30fbf783a5cff22cb0617d26"
+      },
+      {
+        "path": "fixtures/stage0/rev2/workflows/local_merchant_campaign_pack.json",
+        "sha256": "97db14ab00b132ca8f7d8b440be67ec7100d64b371918b5e3ab0da82f4754c57"
+      }
+    ]
+  },
+  "execution_contract": {
+    "result_json_is_exact_replay_output": true,
+    "check_command_must_fail_on_stale_results": true,
+    "runner_digest_must_match_current_script": true,
+    "source_digest_must_match_current_files": true,
+    "stored_result_must_embed_runner_manifest": true,
+    "stored_result_must_embed_source_digests": true,
+    "does_not_rerun_for_admin_reads": true,
+    "activation_uses_stored_result_only_after_manifest_match": true
+  },
+  "stale_input_rejection_cases": [
+    {
+      "case_id": "eval_runner_changed_script_rejected",
+      "mutated_input": "runner_sha256",
+      "expected_error": "runner_digest_mismatch",
+      "activation_allowed": false,
+      "admin_read_requires_rerun": false,
+      "reason": "A stored result whose runner hash no longer matches scripts/run_stage0_eval.py cannot activate a skill or prompt."
+    },
+    {
+      "case_id": "eval_runner_manifest_drift_rejected",
+      "mutated_input": "runner_manifest_sha256",
+      "expected_error": "runner_manifest_digest_mismatch",
+      "activation_allowed": false,
+      "admin_read_requires_rerun": false,
+      "reason": "The persisted runner manifest must match the exact runner_contract projected with the stored result."
+    },
+    {
+      "case_id": "eval_runner_suite_fixture_drift_rejected",
+      "mutated_input": "starter_eval_suite_digest",
+      "expected_error": "source_fixture_digest_mismatch",
+      "activation_allowed": false,
+      "admin_read_requires_rerun": false,
+      "reason": "Eval suite fixture drift invalidates the stored activation decision until deterministic replay is rewritten."
+    },
+    {
+      "case_id": "eval_runner_qa_fixture_drift_rejected",
+      "mutated_input": "qa_results_digest",
+      "expected_error": "source_fixture_digest_mismatch",
+      "activation_allowed": false,
+      "admin_read_requires_rerun": false,
+      "reason": "QA result fixture drift invalidates the stored QA coverage and export gate decision."
+    },
+    {
+      "case_id": "eval_runner_safety_fixture_drift_rejected",
+      "mutated_input": "safety_rules_digest",
+      "expected_error": "source_fixture_digest_mismatch",
+      "activation_allowed": false,
+      "admin_read_requires_rerun": false,
+      "reason": "Safety rule fixture drift invalidates the stored safety decision contract."
+    },
+    {
+      "case_id": "eval_runner_workflow_fixture_drift_rejected",
+      "mutated_input": "workflow_acceptance_digest",
+      "expected_error": "source_fixture_digest_mismatch",
+      "activation_allowed": false,
+      "admin_read_requires_rerun": false,
+      "reason": "Workflow acceptance fixture drift invalidates vertical acceptance coverage in stored eval results."
+    },
+    {
+      "case_id": "eval_runner_stored_result_json_drift_rejected",
+      "mutated_input": "stored_result_json",
+      "expected_error": "stored_result_stale",
+      "activation_allowed": false,
+      "admin_read_requires_rerun": false,
+      "reason": "The check command compares exact JSON, so hand-edited stored results are rejected before activation."
+    }
+  ],
+  "openapi_projection_contract": {
+    "schema_name": "EvalResult",
+    "required_projection_fields": [
+      "runner",
+      "runner_sha256",
+      "deterministic_replay_command",
+      "writes_stored_fixture",
+      "check_mode_compares_exact_json",
+      "source_fixture_digests"
+    ],
+    "required_description_tokens": [
+      "runner hash",
+      "source_fixture_digests",
+      "without re-running"
+    ]
+  },
+  "validator_contract": {
+    "validator": "scripts/validate_eval_runner_manifest_contract.py",
+    "check_command": "python3 scripts/validate_eval_runner_manifest_contract.py",
+    "wired_into_stage0_validator": true,
+    "compares_runner_digest": true,
+    "compares_manifest_digest": true,
+    "compares_source_fixture_digests": true,
+    "executes_exact_replay_check": true,
+    "validates_stale_input_cases": true
+  },
+  "provenance": {
+    "created_by_lane": "lane2",
+    "blueprint_sections": [
+      "14. Eval Suite",
+      "15. Image QA 和 Safety Policy",
+      "24",
+      "25.11 Eval, QA, Safety"
+    ]
+  }
+}

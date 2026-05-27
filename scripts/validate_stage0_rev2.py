@@ -2529,6 +2529,11 @@ SCHEMA_FIXTURE_TARGETS = [
         FIXTURE_DIR / "eval" / "eval_result_artifact_contract.json",
         "object",
     ),
+    (
+        "eval_runner_manifest_contract.schema.json",
+        FIXTURE_DIR / "eval" / "eval_runner_manifest_contract.json",
+        "object",
+    ),
     ("workflow_api_smoke_evidence.schema.json", FIXTURE_DIR / "eval" / "workflow_api_smoke_evidence.json", "object"),
     (
         "workflow_runtime_evidence_contract.schema.json",
@@ -2583,6 +2588,7 @@ CHECKED_ITEMS = {
     "实现 eval runner。",
     "存储 eval results。",
     "Eval result retention/redaction/no-public-delete contract 通过：`fixtures/stage0/rev2/eval/eval_storage_contract.json` declares pass/fail/blocked retention, summary/runner hash preservation, no public delete, admin-audited deletion/redaction semantics, and `scripts/run_eval_storage_retention_contract.py --check` validates retention outcomes without rerunning eval。",
+    "Eval runner manifest contract 通过：`fixtures/stage0/rev2/eval/eval_runner_manifest_contract.json` binds exact runner hash、runner manifest hash、source fixture digests、stale-input rejection cases, and `scripts/validate_eval_runner_manifest_contract.py` validates replay without accepting stale eval inputs。",
     "skill canary 前要求 eval pass。",
     "prompt fragment active 前要求 eval pass。",
     "创建四条 workflow golden fixtures。",
@@ -6715,6 +6721,7 @@ def validate_json_files() -> None:
         SCHEMA_DIR / "eval_result.schema.json",
         SCHEMA_DIR / "eval_storage_contract.schema.json",
         SCHEMA_DIR / "eval_result_artifact_contract.schema.json",
+        SCHEMA_DIR / "eval_runner_manifest_contract.schema.json",
         SCHEMA_DIR / "workflow_api_smoke_evidence.schema.json",
         SCHEMA_DIR / "workflow_runtime_evidence_contract.schema.json",
         SCHEMA_DIR / "activation_gate_contract.schema.json",
@@ -6737,6 +6744,7 @@ def validate_json_files() -> None:
         FIXTURE_DIR / "eval" / "starter_eval_results.json",
         FIXTURE_DIR / "eval" / "eval_storage_contract.json",
         FIXTURE_DIR / "eval" / "eval_result_artifact_contract.json",
+        FIXTURE_DIR / "eval" / "eval_runner_manifest_contract.json",
         FIXTURE_DIR / "eval" / "workflow_api_smoke_evidence.json",
         FIXTURE_DIR / "eval" / "workflow_runtime_evidence_contract.json",
         FIXTURE_DIR / "eval" / "activation_gate_contract.json",
@@ -10497,6 +10505,20 @@ def validate_eval_result_artifact_contract() -> None:
     )
 
 
+def validate_eval_runner_manifest_contract() -> None:
+    result = subprocess.run(
+        [sys.executable, str(ROOT / "scripts" / "validate_eval_runner_manifest_contract.py")],
+        cwd=ROOT,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    require(
+        result.returncode == 0,
+        "eval runner manifest contract validation failed: " + (result.stderr or result.stdout).strip(),
+    )
+
+
 def eval_read_fixture_page(rows: list[dict[str, Any]], query: dict[str, Any]) -> tuple[list[dict[str, Any]], str]:
     require("tenant_id" in query, "eval read fixture queries must include tenant_id")
     require("latest_only" in query, "eval read fixture queries must include latest_only")
@@ -12116,6 +12138,7 @@ def main() -> int:
         validate_eval_result_contract,
         validate_eval_storage_contract,
         validate_eval_result_artifact_contract,
+        validate_eval_runner_manifest_contract,
         validate_activation_gate_contract,
         validate_trace_completeness_contract,
         validate_trace_export_gate_matrix_contract,
