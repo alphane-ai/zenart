@@ -285,6 +285,7 @@ export default async function AuditPage() {
             { key: "verdict", header: "Gate Verdict", render: (row) => <StatusBadge value={row.releaseUseAllowed ? "approved" : row.gateVerdict === "missing_evidence" ? "blocked" : "warning"} label={row.gateVerdict} /> },
             { key: "health", header: "Evidence Health", render: (row) => <StatusBadge value={row.evidenceHealth === "complete" ? "approved" : "blocked"} label={row.evidenceHealth} /> },
             { key: "release", header: "Release Use", render: (row) => (row.releaseUseAllowed ? "allowed" : "preserved") },
+            { key: "eligibility", header: "Release Use Eligibility", render: (row) => <StatusBadge value={row.releaseUseAllowed ? "approved" : row.releaseUseEligibility === "missing_evidence" ? "blocked" : "warning"} label={row.releaseUseEligibility} /> },
             { key: "targets", header: "Targets", render: (row) => row.targetCount },
             { key: "roles", header: "Required Roles", render: (row) => row.requiredRoles.join(", ") },
             { key: "runtime", header: "Runtime Outcomes", render: (row) => row.runtimeOutcomes.join(", ") },

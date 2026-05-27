@@ -1765,6 +1765,12 @@ export type AdminRbacOverrideReleaseBundle = {
   temporaryMutationCount: number;
   evidenceHealth: "complete" | "missing_evidence";
   blockerCodes: string[];
+  releaseUseEligibility:
+    | "eligible_temporary_mutation"
+    | "preserved_by_review"
+    | "preserved_by_policy"
+    | "preserved_by_stale_replay"
+    | "missing_evidence";
   releaseUseAllowed: boolean;
   operatorAction: string;
 };

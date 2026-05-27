@@ -1041,6 +1041,35 @@ function bundleGateVerdict(
   return "gate_preserved_by_policy";
 }
 
+function releaseUseEligibility(
+  gateVerdict: AdminRbacOverrideReleaseBundle["gateVerdict"],
+  evidenceHealth: AdminRbacOverrideReleaseBundle["evidenceHealth"],
+  blockerCodes: string[],
+  releaseGateStatus: AdminRbacReleaseReadinessSummary["releaseGateStatus"]
+): AdminRbacOverrideReleaseBundle["releaseUseEligibility"] {
+  if (evidenceHealth !== "complete" || gateVerdict === "missing_evidence") {
+    return "missing_evidence";
+  }
+
+  if (
+    gateVerdict === "release_ready_with_expiry" &&
+    blockerCodes.length === 0 &&
+    releaseGateStatus === "release_use_allowed"
+  ) {
+    return "eligible_temporary_mutation";
+  }
+
+  if (gateVerdict === "gate_preserved_by_review") {
+    return "preserved_by_review";
+  }
+
+  if (gateVerdict === "gate_preserved_by_stale_replay") {
+    return "preserved_by_stale_replay";
+  }
+
+  return "preserved_by_policy";
+}
+
 export function buildAdminRbacOverrideReleaseBundles(
   readinessSummaries: AdminRbacReleaseReadinessSummary[],
   closures: AdminRbacReleaseEvidenceClosure[],
@@ -1071,6 +1100,12 @@ export function buildAdminRbacOverrideReleaseBundles(
         gateVerdict !== "missing_evidence"
           ? "complete"
           : "missing_evidence";
+      const eligibility = releaseUseEligibility(
+        gateVerdict,
+        evidenceHealth,
+        blockerCodes,
+        readiness.releaseGateStatus
+      );
 
       return {
         surface: readiness.surface,
@@ -1094,13 +1129,10 @@ export function buildAdminRbacOverrideReleaseBundles(
         temporaryMutationCount: runtime.filter((decision) => decision.effectiveDecision === "allow_mutation").length,
         evidenceHealth,
         blockerCodes,
-        releaseUseAllowed:
-          gateVerdict === "release_ready_with_expiry" &&
-          evidenceHealth === "complete" &&
-          blockerCodes.length === 0 &&
-          readiness.releaseGateStatus === "release_use_allowed",
+        releaseUseEligibility: eligibility,
+        releaseUseAllowed: eligibility === "eligible_temporary_mutation",
         operatorAction:
-          gateVerdict === "release_ready_with_expiry"
+          eligibility === "eligible_temporary_mutation"
             ? "Allow only the audited temporary mutation in this bundle; keep expiry restoration and rollback evidence attached before release use."
             : `Preserve ${readiness.overrideScope} state for ${readiness.surface}; use this bundle as release evidence only after the gate verdict becomes release_ready_with_expiry or the preserved gate is explicitly cited.`
       };

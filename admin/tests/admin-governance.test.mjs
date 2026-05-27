@@ -155,6 +155,7 @@ const parseRbacRuntime = () => {
     .replaceAll(/: AdminRbacReleaseReadinessSummary\["releaseGateStatus"\]/g, "")
     .replaceAll(/: AdminRbacOverrideReleaseBundle\["gateVerdict"\]/g, "")
     .replaceAll(/: AdminRbacOverrideReleaseBundle\["evidenceHealth"\]/g, "")
+    .replaceAll(/: AdminRbacOverrideReleaseBundle\["releaseUseEligibility"\]/g, "")
     .replaceAll(/: AdminRbacStaleReplayDecision\["surface"\]/g, "")
     .replaceAll(/: AdminRbacStaleReplayDecision\["staleWindowStatus"\]/g, "")
     .replaceAll(/: AdminRbacStaleReplayDecision\["releaseGateStatus"\]/g, "")
@@ -176,6 +177,7 @@ const parseRbacRuntime = () => {
     .replaceAll(/: AdminRbacEvidencePack/g, "")
     .replaceAll(/: AdminRbacReleaseReadinessSummary/g, "")
     .replaceAll(/function bundleGateVerdict\(\n  readiness: AdminRbacReleaseReadinessSummary,\n  closure: AdminRbacReleaseEvidenceClosure\n\)/g, "function bundleGateVerdict(readiness, closure)")
+    .replaceAll(/function releaseUseEligibility\(\n  gateVerdict: AdminRbacOverrideReleaseBundle\["gateVerdict"\],\n  evidenceHealth: AdminRbacOverrideReleaseBundle\["evidenceHealth"\],\n  blockerCodes: string\[\],\n  releaseGateStatus: AdminRbacReleaseReadinessSummary\["releaseGateStatus"\]\n\): AdminRbacOverrideReleaseBundle\["releaseUseEligibility"\]/g, "function releaseUseEligibility(gateVerdict, evidenceHealth, blockerCodes, releaseGateStatus)")
     .replaceAll(/export function buildAdminRbacOverrideReleaseBundles\(\n  readinessSummaries: AdminRbacReleaseReadinessSummary\[\],\n  closures: AdminRbacReleaseEvidenceClosure\[\],\n  runtimeDecisions: AdminRbacRuntimeDecision\[\]\n\)/g, "function buildAdminRbacOverrideReleaseBundles(readinessSummaries, closures, runtimeDecisions)")
     .replaceAll(/: AdminRole\[\]/g, "")
     .replaceAll(/: string\[\]/g, "")
@@ -6115,6 +6117,11 @@ test("admin RBAC override release bundles give every governed surface one releas
     );
     assert.equal(bundle.targetCount, runtime.length, `${surface} bundle target count must match runtime decisions`);
     assert.equal(bundle.evidenceHealth, "complete", `${surface} bundle should be complete for current fixtures`);
+    assert.match(
+      bundle.releaseUseEligibility,
+      /eligible_temporary_mutation|preserved_by_review|preserved_by_policy|preserved_by_stale_replay|missing_evidence/,
+      `${surface} bundle needs explicit release-use eligibility`
+    );
     assert.ok(bundle.requiredRoles.length > 0, `${surface} bundle needs required role evidence`);
     assert.ok(bundle.runtimeOutcomes.length > 0, `${surface} bundle needs runtime outcomes`);
     assert.ok(bundle.attemptOutcomes.length > 0, `${surface} bundle needs attempt outcomes`);
@@ -6157,6 +6164,11 @@ test("admin RBAC override release bundles give every governed surface one releas
     "gate_preserved_by_stale_replay",
     "provider bundle must preserve stale replay evidence"
   );
+  assert.equal(
+    bundleBySurface.get("provider_routing").releaseUseEligibility,
+    "preserved_by_stale_replay",
+    "provider bundle must classify release use as stale-replay preserved"
+  );
   assert.ok(
     bundleBySurface.get("provider_routing").blockerCodes.includes("expired_override_window"),
     "provider bundle must expose expired override blocker"
@@ -6167,14 +6179,29 @@ test("admin RBAC override release bundles give every governed surface one releas
     "quota bundle must preserve support-only policy block"
   );
   assert.equal(
+    bundleBySurface.get("quota_override").releaseUseEligibility,
+    "preserved_by_policy",
+    "quota bundle must classify release use as policy-preserved"
+  );
+  assert.equal(
     bundleBySurface.get("export_override").gateVerdict,
     "gate_preserved_by_policy",
     "export bundle must preserve blocking QA policy"
   );
   assert.equal(
+    bundleBySurface.get("export_override").releaseUseEligibility,
+    "preserved_by_policy",
+    "export bundle must classify release use as policy-preserved"
+  );
+  assert.equal(
     bundleBySurface.get("skill_release").gateVerdict,
     "gate_preserved_by_stale_replay",
     "skill release bundle must preserve stale second-review replay evidence"
+  );
+  assert.equal(
+    bundleBySurface.get("skill_release").releaseUseEligibility,
+    "preserved_by_stale_replay",
+    "skill release bundle must classify release use as stale-replay preserved"
   );
 
   const auditPage = readFileSync(new URL("../app/audit/page.tsx", import.meta.url), "utf8");
@@ -6189,6 +6216,10 @@ test("admin RBAC override release bundles give every governed surface one releas
     "Gate Verdict",
     "Evidence Health",
     "Release Use",
+    "Release Use Eligibility",
+    "releaseUseEligibility",
+    "eligible_temporary_mutation",
+    "preserved_by_review",
     "Expired Replays",
     "gate_preserved_by_stale_replay",
     "gate_preserved_by_policy",
