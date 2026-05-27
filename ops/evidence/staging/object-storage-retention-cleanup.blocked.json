@@ -244,7 +244,7 @@
   ],
   "results_path": "ops/evidence/staging/object-storage-retention-cleanup.blocked.ndjson",
   "runtime_input_requirements": {
-    "blocked_input_reason": "missing STAGING_BASE_URL; set explicit probe URL env vars if routes differ",
+    "blocked_input_reason": "missing STAGING_BASE_URL or explicit probe URL env vars",
     "canonical_pass_report": "ops/evidence/staging/object-storage-retention-cleanup.json",
     "canonical_pass_results": "ops/evidence/staging/object-storage-retention-cleanup.ndjson",
     "pass_file_policy": "canonical pass paths require passing evidence to be written to ops/evidence/staging/object-storage-retention-cleanup.json and ops/evidence/staging/object-storage-retention-cleanup.ndjson; non-canonical paths are validation-only.",

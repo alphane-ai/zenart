@@ -272,6 +272,7 @@ results = [
     for line in results_path.read_text(encoding="utf-8").splitlines()
     if line.strip()
 ]
+probe_urls_ready = all(str(item.get("url", "")).strip() for item in results)
 required = {
     "retention_policy",
     "expired_export_cleanup",
@@ -441,8 +442,8 @@ runtime_input_requirements["pass_file_policy"] = (
     "canonical pass paths require passing evidence to be written to ops/evidence/staging/object-storage-retention-cleanup.json "
     "and ops/evidence/staging/object-storage-retention-cleanup.ndjson; non-canonical paths are validation-only."
 )
-if not base_url:
-    runtime_input_requirements["blocked_input_reason"] = "missing STAGING_BASE_URL; set explicit probe URL env vars if routes differ"
+if not probe_urls_ready:
+    runtime_input_requirements["blocked_input_reason"] = "missing STAGING_BASE_URL or explicit probe URL env vars"
 elif not auth_ready:
     runtime_input_requirements["blocked_input_reason"] = "missing admin auth; set ADMIN_BEARER_TOKEN or ADMIN_SESSION_COOKIE"
 elif not admin_user_id or not admin_tenant_id:
