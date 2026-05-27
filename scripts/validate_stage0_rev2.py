@@ -555,6 +555,66 @@ RUNTIME_PASS_EVIDENCE_FILES = {
     ],
 }
 
+CHECK_LEVEL_EVIDENCE_TO_CHECKLIST_ITEM = {
+    ("private_beta_staging", "staging_auth_rbac_tenant_audit"): "Private Beta/Staging auth/RBAC/tenant/audit runtime evidence 通过。",
+    ("private_beta_staging", "staging_brief_upload_confirmation"): "Private Beta/Staging brief/upload/confirmation runtime evidence 通过。",
+    ("private_beta_staging", "staging_support_retry_abuse_ops"): "Private Beta/Staging support/retry/abuse runtime evidence 通过。",
+    ("private_beta_staging", "staging_crawler_approval_provenance"): "Private Beta/Staging crawler approval/provenance runtime evidence 通过。",
+    ("production_launch", "production_skill_release_eval_canary"): "Production skill release/eval/canary runtime/deployment evidence 通过。",
+    ("production_launch", "production_activation_review_audit"): "Production activation review/audit runtime/deployment evidence 通过。",
+    ("production_launch", "production_abuse_throttle_hold"): "Production abuse throttle/hold runtime/deployment evidence 通过。",
+    ("production_launch", "production_security_launch_checks"): "Production security launch-check runtime/deployment evidence 通过。",
+}
+
+CHECK_LEVEL_EVIDENCE_PRESERVED_BLOCKERS = {
+    ("private_beta_staging", "staging_auth_rbac_tenant_audit"): {
+        "staging_brief_upload_confirmation",
+        "staging_object_storage_signed_downloads",
+        "staging_quota_rate_limit_spend_cap",
+        "staging_eval_qa_safety_runtime",
+        "staging_observability_backup_load",
+        "staging_legal_external_user_pages",
+    },
+    ("private_beta_staging", "staging_brief_upload_confirmation"): {
+        "staging_object_storage_signed_downloads",
+        "staging_quota_rate_limit_spend_cap",
+        "staging_eval_qa_safety_runtime",
+        "staging_observability_backup_load",
+        "staging_legal_external_user_pages",
+    },
+    ("private_beta_staging", "staging_support_retry_abuse_ops"): {
+        "staging_object_storage_signed_downloads",
+        "staging_quota_rate_limit_spend_cap",
+        "staging_eval_qa_safety_runtime",
+        "staging_observability_backup_load",
+        "staging_legal_external_user_pages",
+    },
+    ("production_launch", "production_skill_release_eval_canary"): {
+        "production_provider_or_comp_only_mode",
+        "production_paid_billing_lifecycle",
+        "production_backup_rollback_incident",
+        "production_legal_support_policy",
+    },
+    ("production_launch", "production_activation_review_audit"): {
+        "production_provider_or_comp_only_mode",
+        "production_paid_billing_lifecycle",
+        "production_backup_rollback_incident",
+        "production_legal_support_policy",
+    },
+    ("production_launch", "production_abuse_throttle_hold"): {
+        "production_provider_or_comp_only_mode",
+        "production_paid_billing_lifecycle",
+        "production_backup_rollback_incident",
+        "production_legal_support_policy",
+    },
+    ("production_launch", "production_security_launch_checks"): {
+        "production_provider_or_comp_only_mode",
+        "production_paid_billing_lifecycle",
+        "production_backup_rollback_incident",
+        "production_legal_support_policy",
+    },
+}
+
 ACTIVE_CONDITION_EVIDENCE_REQUIREMENTS = {
     ("local_alpha", "local_alpha_runtime_not_validated"): {
         "path_patterns": (r"docker-compose\.yml", r"\.env\.example", r"ops/evidence/(?:local_alpha|local)/"),
@@ -1720,6 +1780,47 @@ def require_runtime_file_evidence(evidence_ref: str, gate: str, check_id: str) -
                     preserved_check_id == check_id,
                     f"{gate}.{check_id} pass evidence file {runtime_path} preserves mismatched check {preserved_check_id!r}",
                 )
+
+
+def require_check_level_evidence_gate_impact(
+    evidence: dict[str, Any],
+    *,
+    gate: str,
+    check_id: str,
+    evidence_name: str,
+) -> None:
+    checklist_item = CHECK_LEVEL_EVIDENCE_TO_CHECKLIST_ITEM[(gate, check_id)]
+    expected_remaining = CHECK_LEVEL_EVIDENCE_PRESERVED_BLOCKERS[(gate, check_id)]
+    gate_impact = evidence["gate_impact"]
+    actual_checklist_item = gate_impact.get("checklist_item") or gate_impact.get("check_level_item")
+    require(
+        actual_checklist_item == checklist_item,
+        f"{evidence_name} must name the exact check-level checklist item it can clear",
+    )
+    require(
+        gate_impact.get("can_clear_check_level_item") is True,
+        f"{evidence_name} must explicitly allow only check-level closure",
+    )
+    remaining_blockers = set(gate_impact.get("remaining_blockers", []))
+    require(
+        check_id not in remaining_blockers,
+        f"{evidence_name} must not list its own cleared check as a remaining blocker: {check_id}",
+    )
+    require(
+        expected_remaining <= remaining_blockers,
+        f"{evidence_name} must preserve at least the current remaining release-gate blockers: "
+        + json.dumps(sorted(expected_remaining), ensure_ascii=False),
+    )
+    if gate == "private_beta_staging":
+        require(
+            gate_impact.get("aggregate_private_beta_gate_status") == "blocked_by_other_staging_runtime_items",
+            f"{evidence_name} must keep the aggregate private beta gate blocked",
+        )
+    elif gate == "production_launch":
+        require(
+            gate_impact.get("aggregate_production_gate_status") == "blocked_by_other_production_runtime_items",
+            f"{evidence_name} must keep the aggregate production gate blocked",
+        )
 
 
 def missing_repo_paths(paths: list[str]) -> list[str]:
@@ -3553,17 +3654,11 @@ def validate_staging_support_retry_abuse_evidence() -> None:
         evidence["do_not_launch_condition_id"] == "support_abuse_runtime_missing",
         "support/retry/abuse evidence must target the matching Do-Not-Launch condition",
     )
-    require(
-        evidence["gate_impact"]["checklist_item"] == "Private Beta/Staging support/retry/abuse runtime evidence 通过。",
-        "support/retry/abuse evidence must name the checklist item it can close",
-    )
-    require(
-        evidence["gate_impact"]["can_clear_check_level_item"] is True,
-        "support/retry/abuse evidence must explicitly allow check-level closure",
-    )
-    require(
-        evidence["gate_impact"]["aggregate_private_beta_gate_status"] == "blocked_by_other_staging_runtime_items",
-        "support/retry/abuse evidence must keep the aggregate private beta gate blocked",
+    require_check_level_evidence_gate_impact(
+        evidence,
+        gate="private_beta_staging",
+        check_id="staging_support_retry_abuse_ops",
+        evidence_name="support/retry/abuse evidence",
     )
     required_areas = {
         "support_ticket_linkage",
@@ -3597,17 +3692,11 @@ def validate_staging_auth_rbac_tenant_audit_evidence() -> None:
         evidence["do_not_launch_condition_id"] == "tenant_isolation_not_enforced",
         "auth/RBAC/tenant/audit evidence must target the matching Do-Not-Launch condition",
     )
-    require(
-        evidence["gate_impact"]["checklist_item"] == "Private Beta/Staging auth/RBAC/tenant/audit runtime evidence 通过。",
-        "auth/RBAC/tenant/audit evidence must name the checklist item it can close",
-    )
-    require(
-        evidence["gate_impact"]["can_clear_check_level_item"] is True,
-        "auth/RBAC/tenant/audit evidence must explicitly allow check-level closure",
-    )
-    require(
-        evidence["gate_impact"]["aggregate_private_beta_gate_status"] == "blocked_by_other_staging_runtime_items",
-        "auth/RBAC/tenant/audit evidence must keep the aggregate private beta gate blocked",
+    require_check_level_evidence_gate_impact(
+        evidence,
+        gate="private_beta_staging",
+        check_id="staging_auth_rbac_tenant_audit",
+        evidence_name="auth/RBAC/tenant/audit evidence",
     )
     required_areas = {
         "admin_session_boundary",
@@ -3943,17 +4032,11 @@ def validate_production_abuse_throttle_hold_evidence() -> None:
         evidence["do_not_launch_condition_id"] == "abuse_throttle_hold_missing",
         "abuse throttle/hold evidence must target the matching Do-Not-Launch condition",
     )
-    require(
-        evidence["gate_impact"]["checklist_item"] == "Production abuse throttle/hold runtime/deployment evidence 通过。",
-        "abuse throttle/hold evidence must name the checklist item it can close",
-    )
-    require(
-        evidence["gate_impact"]["can_clear_check_level_item"] is True,
-        "abuse throttle/hold evidence must explicitly allow check-level closure",
-    )
-    require(
-        evidence["gate_impact"]["aggregate_production_gate_status"] == "blocked_by_other_production_runtime_items",
-        "abuse throttle/hold evidence must keep the aggregate production gate blocked",
+    require_check_level_evidence_gate_impact(
+        evidence,
+        gate="production_launch",
+        check_id="production_abuse_throttle_hold",
+        evidence_name="abuse throttle/hold evidence",
     )
     required_areas = {
         "account_hold_enforcement",
@@ -3992,26 +4075,12 @@ def validate_production_skill_release_eval_canary_evidence() -> None:
         "skill release evidence must target the matching Do-Not-Launch condition",
     )
     gate_impact = evidence["gate_impact"]
-    require(
-        gate_impact["checklist_item"] == "Production skill release/eval/canary runtime/deployment evidence 通过。",
-        "skill release evidence must name the checklist item it can close",
+    require_check_level_evidence_gate_impact(
+        evidence,
+        gate="production_launch",
+        check_id="production_skill_release_eval_canary",
+        evidence_name="skill release evidence",
     )
-    require(
-        gate_impact["can_clear_check_level_item"] is True,
-        "skill release evidence must explicitly allow check-level closure",
-    )
-    require(
-        gate_impact["aggregate_production_gate_status"] == "blocked_by_other_production_runtime_items",
-        "skill release evidence must keep aggregate production gate blocked",
-    )
-    for blocker in [
-        "production_provider_or_comp_only_mode",
-        "production_paid_billing_lifecycle",
-        "production_security_launch_checks",
-        "production_backup_rollback_incident",
-        "production_legal_support_policy",
-    ]:
-        require(blocker in gate_impact["remaining_blockers"], f"skill release evidence must preserve blocker: {blocker}")
 
     required_areas = {
         "eval_suite_gate",
@@ -4056,26 +4125,12 @@ def validate_production_activation_review_audit_evidence() -> None:
         "activation review evidence must target both activation and high-risk admin Do-Not-Launch conditions",
     )
     gate_impact = evidence["gate_impact"]
-    require(
-        gate_impact["checklist_item"] == "Production activation review/audit runtime/deployment evidence 通过。",
-        "activation review evidence must name the checklist item it can close",
+    require_check_level_evidence_gate_impact(
+        evidence,
+        gate="production_launch",
+        check_id="production_activation_review_audit",
+        evidence_name="activation review evidence",
     )
-    require(
-        gate_impact["can_clear_check_level_item"] is True,
-        "activation review evidence must explicitly allow check-level closure",
-    )
-    require(
-        gate_impact["aggregate_production_gate_status"] == "blocked_by_other_production_runtime_items",
-        "activation review evidence must keep aggregate production gate blocked",
-    )
-    for blocker in [
-        "production_provider_or_comp_only_mode",
-        "production_paid_billing_lifecycle",
-        "production_security_launch_checks",
-        "production_backup_rollback_incident",
-        "production_legal_support_policy",
-    ]:
-        require(blocker in gate_impact["remaining_blockers"], f"activation review evidence must preserve blocker: {blocker}")
 
     required_areas = {
         "skill_release_gate",
@@ -4124,27 +4179,11 @@ def validate_production_security_launch_checks_evidence() -> None:
         "security launch evidence must target both security and secret-exposure Do-Not-Launch conditions",
     )
     gate_impact = evidence["gate_impact"]
-    require(
-        gate_impact["checklist_item"] == "Production security launch-check runtime/deployment evidence 通过。",
-        "security launch evidence must name the checklist item it can close",
-    )
-    require(
-        gate_impact["can_clear_check_level_item"] is True,
-        "security launch evidence must explicitly allow check-level closure",
-    )
-    require(
-        gate_impact["aggregate_production_gate_status"] == "blocked_by_other_production_runtime_items",
-        "security launch evidence must keep aggregate production gate blocked",
-    )
-    require(
-        set(gate_impact["remaining_blockers"])
-        == {
-            "production_provider_or_comp_only_mode",
-            "production_paid_billing_lifecycle",
-            "production_backup_rollback_incident",
-            "production_legal_support_policy",
-        },
-        "security launch evidence must preserve provider, billing, backup, and legal blockers",
+    require_check_level_evidence_gate_impact(
+        evidence,
+        gate="production_launch",
+        check_id="production_security_launch_checks",
+        evidence_name="security launch evidence",
     )
 
     required_areas = {
