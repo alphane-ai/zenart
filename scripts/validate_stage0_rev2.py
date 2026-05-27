@@ -4788,6 +4788,103 @@ def require_evidence_ref_has_no_runtime_closure_blockers(
         )
 
 
+def runtime_evidence_gate_from_path(path: Path, evidence: dict[str, Any]) -> str | None:
+    rel_path = rel(path)
+    environment = evidence.get("environment")
+    if rel_path.startswith("ops/evidence/local_alpha/") or environment in {"local", "local_alpha"}:
+        return "local_alpha"
+    if rel_path.startswith("ops/evidence/ci/") or environment == "ci":
+        return "ci"
+    if rel_path.startswith("ops/evidence/staging/") or environment == "staging":
+        return "private_beta_staging"
+    if rel_path.startswith("ops/evidence/production/") or environment == "production":
+        return "production_launch"
+    return None
+
+
+def gate_impact_top_level_closure_claims(gate_impact: dict[str, Any]) -> set[str]:
+    claims = gate_impact_checklist_values(gate_impact)
+    if gate_impact.get("can_clear_aggregate_production_gate") is True:
+        claims.add(PRODUCTION_AGGREGATE_RUNTIME_ITEM)
+    if gate_impact.get("can_clear_aggregate_private_beta_gate") is True:
+        claims.add(PRIVATE_BETA_STAGING_AGGREGATE_RUNTIME_ITEM)
+    if gate_impact.get("can_clear_global_do_not_launch") is True:
+        claims.add(GLOBAL_DO_NOT_LAUNCH_CHECKLIST_ITEM)
+    for status_key in [
+        "aggregate_private_beta_gate_status",
+        "aggregate_production_gate_status",
+        "aggregate_ci_gate_status",
+        "aggregate_local_alpha_gate_status",
+    ]:
+        value = gate_impact.get(status_key)
+        if not isinstance(value, str):
+            continue
+        value_lower = value.lower()
+        if value_lower in {"go", "passed", "pass", "ready", "clear", "cleared"}:
+            if "private_beta" in status_key:
+                claims.add(PRIVATE_BETA_STAGING_AGGREGATE_RUNTIME_ITEM)
+            elif "production" in status_key:
+                claims.add(PRODUCTION_AGGREGATE_RUNTIME_ITEM)
+            elif "ci" in status_key:
+                claims.add(CI_AGGREGATE_RUNTIME_ITEM)
+            elif "local_alpha" in status_key:
+                claims.add(LOCAL_ALPHA_AGGREGATE_RUNTIME_ITEM)
+    return claims
+
+
+def validate_runtime_gate_impact_closure_claims(
+    evidence_by_gate: dict[str, dict[str, Any]],
+    checked_lines: set[str],
+) -> None:
+    top_level_items = set(GATE_CHECKLIST_ITEMS) | set(RELEASE_GATE_AGGREGATE_ITEMS.values()) | {
+        GLOBAL_DO_NOT_LAUNCH_CHECKLIST_ITEM,
+    }
+    for path in sorted((ROOT / "ops" / "evidence").rglob("*.json")):
+        evidence = load_json_if_path(rel(path))
+        if not isinstance(evidence, dict):
+            continue
+        gate_impact = evidence.get("gate_impact")
+        if not isinstance(gate_impact, dict):
+            continue
+        closure_claims = gate_impact_top_level_closure_claims(gate_impact) & top_level_items
+        if not closure_claims:
+            continue
+        gate = runtime_evidence_gate_from_path(path, evidence)
+        rel_path = rel(path)
+        if GLOBAL_DO_NOT_LAUNCH_CHECKLIST_ITEM in closure_claims:
+            require(
+                GLOBAL_DO_NOT_LAUNCH_CHECKLIST_ITEM in checked_lines,
+                f"{rel_path} gate_impact cannot claim global Do-Not-Launch closure while the blueprint row is open",
+            )
+            require(
+                all(gate_allows_checklist_completion(gate_evidence) for gate_evidence in evidence_by_gate.values()),
+                f"{rel_path} gate_impact cannot claim global Do-Not-Launch closure while any release gate fixture is no-go",
+            )
+        if gate is None:
+            require(
+                closure_claims == {GLOBAL_DO_NOT_LAUNCH_CHECKLIST_ITEM},
+                f"{rel_path} gate_impact has top-level launch closure claims but no resolvable gate: "
+                + json.dumps(sorted(closure_claims), ensure_ascii=False),
+            )
+            continue
+        gate_items = {
+            item
+            for item in closure_claims
+            if item == RELEASE_GATE_AGGREGATE_ITEMS[gate]
+            or GATE_CHECKLIST_ITEMS.get(item) == gate
+        }
+        for item in gate_items:
+            require(
+                item in checked_lines,
+                f"{rel_path} gate_impact cannot claim closure for unchecked launch checklist item: {item}",
+            )
+            require(
+                gate_allows_checklist_completion(evidence_by_gate[gate]),
+                f"{rel_path} gate_impact cannot claim closure for {item} while {gate} fixture still has blockers: "
+                + json.dumps(gate_blockers(evidence_by_gate[gate]), ensure_ascii=False, sort_keys=True),
+            )
+
+
 def validate_closed_gate_items_do_not_cite_preserved_blocker_evidence(
     gate: str,
     data: dict[str, Any],
@@ -8344,6 +8441,10 @@ def validate_release_gate_evidence() -> None:
         blueprint_checked,
         blueprint_unchecked,
     )
+    validate_runtime_gate_impact_closure_claims(
+        evidence,
+        blueprint_checked,
+    )
 
     for gate, gate_evidence in evidence.items():
         validate_release_gate_basics(gate_evidence)
@@ -8678,6 +8779,10 @@ def validate_blueprint_checklist() -> None:
         evidence,
         checked_lines,
         unchecked_lines,
+    )
+    validate_runtime_gate_impact_closure_claims(
+        evidence,
+        checked_lines,
     )
     for item, gate in GATE_CHECKLIST_ITEMS.items():
         gate_item_state_count = int(item in checked_lines) + int(item in unchecked_lines)
@@ -9825,6 +9930,8 @@ def validate_launch_readiness_split_contracts() -> None:
         "staging gates require `environment=staging` evidence under `ops/evidence/staging/`, and production gates require `environment=production` evidence under `ops/evidence/production/`",
         "A top-level gate checklist item may close only after its aggregate runtime checklist item is closed",
         "if those are all true, the gate checklist item must be updated in the same change",
+        "Runtime evidence `gate_impact` metadata cannot claim closure for a top-level Local Alpha、CI、Private Beta/Staging、Production、or global Do-Not-Launch checklist item",
+        "a single `ops/evidence/**/*.json` file cannot override an open aggregate row, active Do-Not-Launch condition, or fixture-level `no_go` decision",
         "Local Alpha closes only when four workflow API/Playwright smokes",
         "Production Launch cannot clear `ci_staging_gates_not_passed` or pass backup/rollback/post-deploy evidence until both",
         "Production backup/rollback/post-deploy pass evidence must cite both upstream gate fixtures",
