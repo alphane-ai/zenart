@@ -1177,6 +1177,12 @@ test("failed task runtime submit gates preserve retry, cancel, hold, RBAC, and a
     assert.equal(decision.auditRef, task.auditRef, `${task.id} must preserve audit ref`);
     assert.equal(decision.idempotencyKey, task.idempotencyKey, `${task.id} must preserve idempotency key`);
     assert.equal(decision.idempotencyStatus, "stable", `${task.id} must preserve stable idempotency`);
+    assert.equal(decision.compatibilityStatus, "compatible", `${task.id} must expose compatible app worker schema evidence`);
+    assert.equal(
+      decision.compatibilityEvidence,
+      `app:${task.appVersion}; worker:${task.workerVersion}; schema:${task.schemaVersion}`,
+      `${task.id} must preserve version compatibility evidence`
+    );
     assert.equal(decision.closureEvidenceStatus, "complete", `${task.id} must have complete closure evidence`);
     assert.equal(decision.userMessageStatus, "ready", `${task.id} must expose user-visible messaging`);
     assert.match(
@@ -1236,6 +1242,24 @@ test("failed task runtime submit gates preserve retry, cancel, hold, RBAC, and a
     exhaustedRetry.submitDisabledReason,
     /retry_budget_exhausted/,
     "exhausted retry budget must be visible in disabled reason"
+  );
+
+  const staleSchemaRetry = buildFailedTaskRuntimeDecisions([
+    {
+      ...failedTaskControls.find((task) => task.id === "task-export-489"),
+      schemaVersion: "task.v0"
+    }
+  ])[0];
+  assert.equal(staleSchemaRetry.compatibilityStatus, "stale", "stale task schema must be detected");
+  assert.match(
+    staleSchemaRetry.compatibilityEvidence,
+    /schema:task\.v0/,
+    "stale schema evidence must include the observed schema version"
+  );
+  assert.equal(staleSchemaRetry.submitDecision, "blocked", "stale task schema must block retry submission");
+  assert.ok(
+    staleSchemaRetry.blockerCodes.includes("version_compatibility_stale"),
+    "stale task schema must expose a compatibility blocker code"
   );
 
   const incompleteClosureCancel = buildFailedTaskRuntimeDecisions([

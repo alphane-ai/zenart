@@ -75,6 +75,8 @@ export default async function QueuesPage() {
             { key: "quota", header: "Quota Settlement", render: (row) => row.quotaSettlement },
             { key: "idempotency-key", header: "Idempotency Key", render: (row) => <span className="mono">{row.idempotencyKey}</span> },
             { key: "idempotency", header: "Idempotency", render: (row) => <StatusBadge value={row.idempotencyStatus} /> },
+            { key: "compatibility", header: "Compatibility", render: (row) => <StatusBadge value={row.compatibilityStatus} /> },
+            { key: "compatibility-evidence", header: "Compatibility Evidence", render: (row) => <span className="mono">{row.compatibilityEvidence}</span> },
             { key: "closure", header: "Closure Evidence", render: (row) => <StatusBadge value={row.closureEvidenceStatus} /> },
             { key: "message", header: "User Message", render: (row) => <StatusBadge value={row.userMessageStatus} /> },
             {

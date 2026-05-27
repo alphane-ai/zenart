@@ -1,6 +1,9 @@
 import type { FailedTaskControl, FailedTaskRuntimeDecision } from "@/lib/types";
 
 const requiredClosureEvidenceCount = 4;
+const supportedAppVersion = "admin-0.0.0";
+const supportedSchemaVersion = "task.v1";
+const supportedWorkerVersions = new Set(["worker-2026.05.26", "crawler-2026.05.26"]);
 
 function idempotencyStatus(task: FailedTaskControl): FailedTaskRuntimeDecision["idempotencyStatus"] {
   const [action, taskId, supportTicketId, reason] = task.idempotencyKey.split(":");
@@ -70,6 +73,14 @@ export function buildFailedTaskRuntimeDecisions(tasks: FailedTaskControl[]): Fai
       task.closureEvidenceRefs.length >= requiredClosureEvidenceCount ? "complete" : "incomplete";
     const userMessageStatus = task.userMessage.trim().length > 0 ? "ready" : "missing";
     const computedIdempotencyStatus = idempotencyStatus(task);
+    const compatibilityStatus =
+      task.appVersion === supportedAppVersion &&
+      task.schemaVersion === supportedSchemaVersion &&
+      supportedWorkerVersions.has(task.workerVersion)
+        ? "compatible"
+        : "stale";
+    const compatibilityEvidence =
+      `app:${task.appVersion}; worker:${task.workerVersion}; schema:${task.schemaVersion}`;
 
     if (task.actionEligibility === "blocked") {
       blockerCodes.push("action_blocked");
@@ -95,13 +106,18 @@ export function buildFailedTaskRuntimeDecisions(tasks: FailedTaskControl[]): Fai
       blockerCodes.push("idempotency_key_unstable");
     }
 
+    if (compatibilityStatus === "stale") {
+      blockerCodes.push("version_compatibility_stale");
+    }
+
     const hardBlockers = new Set([
       "action_blocked",
       "retry_budget_exhausted",
       "rbac_denied",
       "closure_evidence_incomplete",
       "user_message_missing",
-      "idempotency_key_unstable"
+      "idempotency_key_unstable",
+      "version_compatibility_stale"
     ]);
     const submitDecision =
       blockerCodes.some((code) => hardBlockers.has(code))
@@ -140,6 +156,8 @@ export function buildFailedTaskRuntimeDecisions(tasks: FailedTaskControl[]): Fai
       quotaSettlement: task.quotaEffect,
       idempotencyKey: task.idempotencyKey,
       idempotencyStatus: computedIdempotencyStatus,
+      compatibilityStatus,
+      compatibilityEvidence,
       closureEvidenceStatus,
       userMessageStatus,
       blockerCodes,

@@ -724,6 +724,8 @@ export type FailedTaskRuntimeDecision = {
   quotaSettlement: FailedTaskControl["quotaEffect"];
   idempotencyKey: string;
   idempotencyStatus: "stable" | "unstable";
+  compatibilityStatus: "compatible" | "stale";
+  compatibilityEvidence: string;
   closureEvidenceStatus: "complete" | "incomplete";
   userMessageStatus: "ready" | "missing";
   blockerCodes: string[];
