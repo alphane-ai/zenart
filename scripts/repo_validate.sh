@@ -548,6 +548,16 @@ if split_inputs.get("legal_pages_external_user_verified") is not False:
     raise SystemExit("deterministic release bundle must keep missing legal-pages split evidence unverified")
 if split_inputs.get("support_contact_external_user_verified") is not False:
     raise SystemExit("deterministic release bundle must keep missing support-contact split evidence unverified")
+if split_inputs.get("canonical_legal_pages_external_user_verified") is not True:
+    raise SystemExit("deterministic release bundle must recognize canonical legal-pages split evidence")
+if split_inputs.get("canonical_support_contact_external_user_verified") is not True:
+    raise SystemExit("deterministic release bundle must recognize canonical support-contact split evidence")
+if split_inputs.get("legal_support_evidence_source") != "canonical_staging_split_evidence":
+    raise SystemExit("deterministic release bundle must use canonical staging legal/support split evidence")
+if release_bundle.get("legal_support_visibility_verified") is not True:
+    raise SystemExit("deterministic release bundle must verify legal/support from canonical staging split evidence")
+if release_bundle.get("legal_support_split_reports_verified") is not True:
+    raise SystemExit("deterministic release bundle must verify legal/support split reports from canonical staging evidence")
 PY
 
 log "backup/restore drill script syntax"
@@ -763,10 +773,12 @@ if split_evidence.get("signed_url_ready") is not True:
     raise SystemExit("release evidence bundle dry-run must surface signed URL split readiness")
 if split_evidence.get("retention_cleanup_ready") is not False:
     raise SystemExit("release evidence bundle dry-run must keep retention cleanup readiness false")
-if report.get("legal_support_visibility_verified") is not False:
-    raise SystemExit("release evidence bundle dry-run must keep legal/support visibility unverified")
-if report.get("legal_support_split_reports_verified") is not False:
-    raise SystemExit("release evidence bundle dry-run must keep legal/support split reports unverified")
+if report.get("legal_support_visibility_verified") is not True:
+    raise SystemExit("release evidence bundle dry-run must verify legal/support from canonical staging split evidence")
+if report.get("legal_support_split_reports_verified") is not True:
+    raise SystemExit("release evidence bundle dry-run must verify legal/support split reports from canonical staging evidence")
+if report.get("legal_support_evidence_source") != "canonical_staging_split_evidence":
+    raise SystemExit("release evidence bundle dry-run must cite canonical staging legal/support split evidence")
 if report.get("gate_fixtures_clear") is not False:
     raise SystemExit("release evidence bundle dry-run must keep gate fixtures blocked")
 for slot in (
@@ -801,7 +813,6 @@ for reason in (
     "staging_smoke_not_passed",
     "post_deploy_smoke_contract_unverified",
     "object_storage_retention_cleanup_not_passed",
-    "legal_support_external_user_visibility_not_passed",
     "missing_release_evidence:release_sha",
     "missing_release_evidence:observability_evidence",
 ):
@@ -822,6 +833,21 @@ if split_inputs.get("legal_pages_external_user_verified") is not False:
     raise SystemExit("release evidence bundle dry-run must keep legal-pages split evidence unverified")
 if split_inputs.get("support_contact_external_user_verified") is not False:
     raise SystemExit("release evidence bundle dry-run must keep support-contact split evidence unverified")
+if split_inputs.get("canonical_legal_pages_external_user_verified") is not True:
+    raise SystemExit("release evidence bundle dry-run must recognize canonical legal-pages split evidence")
+if split_inputs.get("canonical_support_contact_external_user_verified") is not True:
+    raise SystemExit("release evidence bundle dry-run must recognize canonical support-contact split evidence")
+if split_inputs.get("legal_support_evidence_source") != "canonical_staging_split_evidence":
+    raise SystemExit("release evidence bundle dry-run must report canonical staging legal/support evidence source")
+for field in (
+    "canonical_legal_pages_external_user_probe",
+    "canonical_support_contact_external_user_probe",
+):
+    probe = report.get(field, {})
+    if probe.get("exists") is not True:
+        raise SystemExit(f"{field} canonical evidence must exist")
+    if probe.get("passed") is not True:
+        raise SystemExit(f"{field} canonical evidence must pass")
 for field in (
     "legal_pages_external_user_probe",
     "support_contact_external_user_probe",
@@ -1636,10 +1662,12 @@ if split_evidence.get("signed_url_ready") is not True:
     raise SystemExit("complete-evidence release bundle must surface signed URL split readiness")
 if split_evidence.get("retention_cleanup_ready") is not False:
     raise SystemExit("complete-evidence release bundle must keep retention cleanup readiness false")
-if report.get("legal_support_visibility_verified") is not False:
-    raise SystemExit("complete-evidence release bundle must not verify legal/support visibility from dry-run evidence")
-if report.get("legal_support_split_reports_verified") is not False:
-    raise SystemExit("complete-evidence release bundle must not verify legal/support split reports from dry-run evidence")
+if report.get("legal_support_visibility_verified") is not True:
+    raise SystemExit("complete-evidence release bundle must verify legal/support from canonical staging split evidence")
+if report.get("legal_support_split_reports_verified") is not True:
+    raise SystemExit("complete-evidence release bundle must verify legal/support split reports from canonical staging evidence")
+if report.get("legal_support_evidence_source") != "canonical_staging_split_evidence":
+    raise SystemExit("complete-evidence release bundle must cite canonical staging legal/support split evidence")
 if report.get("gate_fixtures_clear") is not False:
     raise SystemExit("complete-evidence release bundle must keep gate fixtures blocked")
 if report.get("missing_slots"):
@@ -1655,7 +1683,6 @@ for reason in (
     "staging_smoke_not_passed",
     "post_deploy_smoke_contract_unverified",
     "object_storage_retention_cleanup_not_passed",
-    "legal_support_external_user_visibility_not_passed",
 ):
     if reason not in blocking:
         raise SystemExit(f"complete-evidence release bundle missing runtime blocker {reason}: {blocking}")
@@ -1686,6 +1713,12 @@ if split_inputs.get("legal_pages_external_user_verified") is not False:
     raise SystemExit("complete-evidence release bundle must keep legal-pages split evidence unverified")
 if split_inputs.get("support_contact_external_user_verified") is not False:
     raise SystemExit("complete-evidence release bundle must keep support-contact split evidence unverified")
+if split_inputs.get("canonical_legal_pages_external_user_verified") is not True:
+    raise SystemExit("complete-evidence release bundle must recognize canonical legal-pages split evidence")
+if split_inputs.get("canonical_support_contact_external_user_verified") is not True:
+    raise SystemExit("complete-evidence release bundle must recognize canonical support-contact split evidence")
+if split_inputs.get("legal_support_evidence_source") != "canonical_staging_split_evidence":
+    raise SystemExit("complete-evidence release bundle must report canonical staging legal/support evidence source")
 PY
 nested_only_dir="$(mktemp -d)"
 cat >"$nested_only_dir/observability.json" <<EOF

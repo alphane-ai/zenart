@@ -18,6 +18,8 @@ LEGAL_SUPPORT_REPORT_PATH="$OUT_DIR/${RUN_ID}.legal-support-visibility.json"
 LEGAL_SUPPORT_RESULTS_PATH="$OUT_DIR/${RUN_ID}.legal-support-visibility.ndjson"
 LEGAL_PAGES_REPORT_PATH="$OUT_DIR/${RUN_ID}.legal-pages-external-user.json"
 SUPPORT_CONTACT_REPORT_PATH="$OUT_DIR/${RUN_ID}.support-contact-external-user.json"
+CANONICAL_LEGAL_PAGES_REPORT_PATH="${CANONICAL_LEGAL_PAGES_REPORT_PATH:-ops/evidence/staging/legal-pages-external-user.json}"
+CANONICAL_SUPPORT_CONTACT_REPORT_PATH="${CANONICAL_SUPPORT_CONTACT_REPORT_PATH:-ops/evidence/staging/support-contact-external-user.json}"
 
 mkdir -p "$OUT_DIR"
 cleanup() {
@@ -111,14 +113,44 @@ target_report_path.parent.mkdir(parents=True, exist_ok=True)
 report = json.loads(source_report_path.read_text(encoding="utf-8"))
 source_results = Path(str(report.get("results_path", "")))
 if source_results.exists() and source_results.is_file():
-    target_results_path.write_text(source_results.read_text(encoding="utf-8"), encoding="utf-8")
+    rewritten_lines = []
+    for line in source_results.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        item = json.loads(line)
+        if isinstance(item.get("evidence_refs"), list):
+            item["evidence_refs"] = [
+                str(target_results_path) if ref == str(source_results) else ref
+                for ref in item["evidence_refs"]
+            ]
+        rewritten_lines.append(json.dumps(item, sort_keys=True))
+    target_results_path.write_text("\n".join(rewritten_lines) + ("\n" if rewritten_lines else ""), encoding="utf-8")
     report["results_path"] = str(target_results_path)
 
-report["promoted_from_temp_report"] = str(source_report_path)
+if "summary" in report:
+    go_no_go = report.get("summary", {}).get("go_no_go", {})
+    post_deploy = go_no_go.get("post_deploy_smoke_evidence", {})
+    if isinstance(post_deploy, dict) and Path(str(post_deploy.get("report_path", ""))).name == source_report_path.name:
+        post_deploy["report_path"] = str(target_report_path)
+    summary_post_deploy = report.get("summary", {}).get("post_deploy_smoke_evidence", {})
+    if (
+        isinstance(summary_post_deploy, dict)
+        and Path(str(summary_post_deploy.get("report_path", ""))).name == source_report_path.name
+    ):
+        summary_post_deploy["report_path"] = str(target_report_path)
+    local_verification = (
+        report.get("summary", {})
+        .get("release_evidence", {})
+        .get("local_evidence_verification", {})
+    )
+    if isinstance(local_verification, dict):
+        for verifier in local_verification.values():
+            if isinstance(verifier, dict) and Path(str(verifier.get("path", ""))).name == source_report_path.name:
+                verifier["path"] = str(target_report_path)
 target_report_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 PY
 
-python3 - "$REPORT_PATH" "$STAGING_REPORT_PATH" "$status" "$OBJECT_RETENTION_REPORT_PATH" "$object_retention_status" "$LEGAL_SUPPORT_REPORT_PATH" "$legal_support_status" "$LEGAL_PAGES_REPORT_PATH" "$SUPPORT_CONTACT_REPORT_PATH" <<'PY'
+python3 - "$REPORT_PATH" "$STAGING_REPORT_PATH" "$status" "$OBJECT_RETENTION_REPORT_PATH" "$object_retention_status" "$LEGAL_SUPPORT_REPORT_PATH" "$legal_support_status" "$LEGAL_PAGES_REPORT_PATH" "$SUPPORT_CONTACT_REPORT_PATH" "$CANONICAL_LEGAL_PAGES_REPORT_PATH" "$CANONICAL_SUPPORT_CONTACT_REPORT_PATH" <<'PY'
 import json
 import sys
 from pathlib import Path
@@ -132,6 +164,8 @@ legal_support_report_path = Path(sys.argv[6])
 legal_support_exit_code = int(sys.argv[7])
 legal_pages_report_path = Path(sys.argv[8])
 support_contact_report_path = Path(sys.argv[9])
+canonical_legal_pages_report_path = Path(sys.argv[10])
+canonical_support_contact_report_path = Path(sys.argv[11])
 staging = json.loads(staging_report_path.read_text(encoding="utf-8"))
 summary = staging.get("summary", {})
 release_evidence = summary.get("release_evidence", {})
@@ -201,6 +235,46 @@ def load_split_probe(path: Path, *, expected_kind: str, expected_check_id: str) 
     }
 
 
+def load_canonical_split_probe(
+    path: Path,
+    *,
+    expected_check_id: str,
+    expected_token: str,
+) -> dict:
+    if not path.exists():
+        return {
+            "path": str(path),
+            "exists": False,
+            "status": "missing",
+            "passed": False,
+            "environment": None,
+            "release_gate_check_id": None,
+            "canonical": True,
+        }
+    data = json.loads(path.read_text(encoding="utf-8"))
+    probe_status = data.get("status", "unknown")
+    environment = data.get("environment")
+    release_gate_check_id = data.get("release_gate_check_id")
+    searchable = json.dumps(data, sort_keys=True)
+    passed = (
+        probe_status in {"pass", "passed"}
+        and environment == "staging"
+        and release_gate_check_id == expected_check_id
+        and expected_token in searchable
+    )
+    return {
+        "path": str(path),
+        "exists": True,
+        "environment": environment,
+        "release_gate_check_id": release_gate_check_id,
+        "status": probe_status,
+        "passed": passed,
+        "canonical": True,
+        "evidence_id": data.get("evidence_id"),
+        "gate_impact": data.get("gate_impact", {}),
+    }
+
+
 object_retention_probe = load_probe(object_retention_report_path, object_retention_exit_code)
 legal_support_probe = load_probe(legal_support_report_path, legal_support_exit_code)
 legal_pages_probe = load_split_probe(
@@ -213,8 +287,28 @@ support_contact_probe = load_split_probe(
     expected_kind="support_contact_external_user_visibility",
     expected_check_id="staging_legal_external_user_pages",
 )
-legal_support_split_reports_passed = legal_pages_probe["passed"] and support_contact_probe["passed"]
-legal_support_verified = legal_support_probe["passed"] and legal_support_split_reports_passed
+canonical_legal_pages_probe = load_canonical_split_probe(
+    canonical_legal_pages_report_path,
+    expected_check_id="staging_legal_external_user_pages",
+    expected_token="legal",
+)
+canonical_support_contact_probe = load_canonical_split_probe(
+    canonical_support_contact_report_path,
+    expected_check_id="staging_legal_external_user_pages",
+    expected_token="support",
+)
+generated_legal_support_verified = legal_support_probe["passed"] and legal_pages_probe["passed"] and support_contact_probe["passed"]
+canonical_legal_support_verified = canonical_legal_pages_probe["passed"] and canonical_support_contact_probe["passed"]
+legal_support_split_reports_passed = (
+    (legal_pages_probe["passed"] and support_contact_probe["passed"])
+    or canonical_legal_support_verified
+)
+legal_support_verified = generated_legal_support_verified or canonical_legal_support_verified
+legal_support_evidence_source = (
+    "generated_probe" if generated_legal_support_verified else (
+        "canonical_staging_split_evidence" if canonical_legal_support_verified else "missing_or_blocked"
+    )
+)
 
 slots = []
 for slot, required in sorted(release_evidence.get("required_slots", {}).items()):
@@ -254,7 +348,7 @@ report_path.write_text(
         {
             "blueprint_source": "Docs/stage0_blueprint_rev2.md",
             "created_by_lane": "lane5",
-            "created_at": report_path.name.split("-release-evidence-bundle-")[0],
+            "created_at": report_path.stem,
             "run_id": report_path.stem,
             "kind": "release_evidence_bundle",
             "environment": staging.get("environment", "staging"),
@@ -269,6 +363,8 @@ report_path.write_text(
             "source_legal_support_visibility_results": str(legal_support_report_path.with_suffix(".ndjson")),
             "source_legal_pages_external_user_report": str(legal_pages_report_path),
             "source_support_contact_external_user_report": str(support_contact_report_path),
+            "canonical_legal_pages_external_user_report": str(canonical_legal_pages_report_path),
+            "canonical_support_contact_external_user_report": str(canonical_support_contact_report_path),
             "staging_smoke_exit_code": staging_exit_code,
             "object_retention_cleanup_exit_code": object_retention_exit_code,
             "legal_support_visibility_exit_code": legal_support_exit_code,
@@ -284,11 +380,17 @@ report_path.write_text(
                 "legal_support_visibility_verified": legal_support_verified,
                 "legal_pages_external_user_verified": legal_pages_probe["passed"],
                 "support_contact_external_user_verified": support_contact_probe["passed"],
+                "canonical_legal_pages_external_user_verified": canonical_legal_pages_probe["passed"],
+                "canonical_support_contact_external_user_verified": canonical_support_contact_probe["passed"],
+                "legal_support_evidence_source": legal_support_evidence_source,
             },
             "object_retention_cleanup_probe": object_retention_probe,
             "legal_support_visibility_probe": legal_support_probe,
             "legal_pages_external_user_probe": legal_pages_probe,
             "support_contact_external_user_probe": support_contact_probe,
+            "canonical_legal_pages_external_user_probe": canonical_legal_pages_probe,
+            "canonical_support_contact_external_user_probe": canonical_support_contact_probe,
+            "legal_support_evidence_source": legal_support_evidence_source,
             "missing_slots": missing_slots,
             "unverified_slots": unverified_slots,
             "slots": slots,

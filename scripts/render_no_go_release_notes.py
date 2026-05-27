@@ -26,6 +26,9 @@ STAGING_POST_DEPLOY_SMOKE = ROOT / "ops/evidence/staging/20260527T2125Z-post-dep
 STAGING_LEGAL_EXTERNAL_PAGES = ROOT / "ops/evidence/staging/legal-pages-external-user.json"
 STAGING_SUPPORT_CONTACT_VISIBILITY = ROOT / "ops/evidence/staging/support-contact-external-user.json"
 STAGING_OBJECT_RETENTION_BLOCKED = ROOT / "ops/evidence/staging/object-storage-retention-cleanup.blocked.json"
+CURRENT_RELEASE_EVIDENCE_BUNDLE = (
+    ROOT / "ops/evidence/release/staging/stage0-rev2-current-release-evidence-bundle.json"
+)
 RUNTIME_CHECKLIST_GROUPS = {
     "Crawler governance runtime": [
         "crawler fetch/import 强制 source approval runtime gate。",
@@ -276,6 +279,24 @@ def staging_legal_support_visibility_summary() -> str:
     )
 
 
+def release_evidence_bundle_summary() -> str:
+    if not CURRENT_RELEASE_EVIDENCE_BUNDLE.exists():
+        return (
+            "`missing`; run `DRY_RUN=1 RUN_ID=stage0-rev2-current-release-evidence-bundle "
+            "OUT_DIR=ops/evidence/release/staging scripts/release_evidence_bundle_smoke.sh` to write the "
+            "current no-go release bundle without clearing any runtime gate"
+        )
+    evidence = load_json(CURRENT_RELEASE_EVIDENCE_BUNDLE)
+    blockers = evidence.get("blocking_reason_count", len(evidence.get("blocking_reasons", [])))
+    source = evidence.get("legal_support_evidence_source", "missing")
+    path = CURRENT_RELEASE_EVIDENCE_BUNDLE.relative_to(ROOT)
+    return (
+        f"`{evidence.get('status', 'missing')}` / `{evidence.get('decision', 'missing')}` from `{path}` "
+        f"with {blockers} blocking reasons; legal/support source `{source}`; object-retention cleanup "
+        "remains unverified and canonical pass evidence is still required"
+    )
+
+
 def render(release_sha: str, release_tag: str, owner: str, reviewer: str, date: str) -> str:
     private_beta = load_json(PRIVATE_BETA_GATE)
     production = load_json(PRODUCTION_GATE)
@@ -365,6 +386,7 @@ def render(release_sha: str, release_tag: str, owner: str, reviewer: str, date: 
         f"- Object-storage signed URL: {staging_object_storage_signed_url_summary()}; object retention policy, expired export cleanup, orphan cleanup, and audit refs remain required before the object-storage gate can close.",
         f"- Object-storage retention cleanup: {staging_object_storage_retention_cleanup_summary()}.",
         f"- Legal/support external-user visibility: {staging_legal_support_visibility_summary()}.",
+        f"- Release evidence bundle: {release_evidence_bundle_summary()}.",
         "- Rollback drill: `missing`; staging JSON must reference the release SHA, set `environment=staging`, set `kind=rollback`, record status `passed` or `validated`, and include passed/validated evidence refs for image rollback, feature flag rollback, migration compatibility, worker drain, and post-rollback smoke.",
         f"- Security scan: local status `{local_status(runtime, 'security_scan_smoke')}` from `{security_report}`; staging JSON must reference the release SHA, set `environment=staging`, set `kind=security_scan`, record status `passed`, and include passed/validated evidence refs for dependency, image/container, and committed-secret scans before private beta/production decisions.",
         "",
