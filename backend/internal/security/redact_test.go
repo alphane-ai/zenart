@@ -370,6 +370,124 @@ func TestRedactMapCoversLaunchOpsAndCISecretKeys(t *testing.T) {
 	}
 }
 
+func TestRedactStringCoversLaunchObservabilityWebhookSecrets(t *testing.T) {
+	healthchecksURL := "https://hc-ping.com/abcdef12-3456-7890-abcd-ef1234567890"
+	betterUptimeURL := "https://uptime.betterstack.com/api/v1/heartbeat/abc123def456ghi789jkl012"
+	grafanaOncallURL := "https://oncall.example.test/integrations/v1/abc123def456ghi789jkl012"
+	input := strings.Join([]string{
+		"HEALTHCHECKS_PING_URL=" + healthchecksURL,
+		"BETTER_UPTIME_HEARTBEAT_URL=" + betterUptimeURL,
+		"GRAFANA_ONCALL_WEBHOOK_URL=" + grafanaOncallURL,
+		"rollbar_access_token=rollbar-secret-value",
+		"bugsnag_api_key=bugsnag-secret-value",
+		"axiom_api_token=axiom-secret-value",
+		"logz_io_shipping_token=logzio-secret-value",
+	}, " ")
+
+	got := RedactString(input)
+	for _, leaked := range []string{
+		healthchecksURL,
+		betterUptimeURL,
+		grafanaOncallURL,
+		"rollbar-secret-value",
+		"bugsnag-secret-value",
+		"axiom-secret-value",
+		"logzio-secret-value",
+	} {
+		if strings.Contains(got, leaked) {
+			t.Fatalf("RedactString() = %q, leaked %s", got, leaked)
+		}
+	}
+	findings := ClassifyString(input)
+	for _, signal := range []string{
+		"healthchecks_ping_url",
+		"better_uptime_heartbeat_url",
+		"grafana_oncall_webhook_url",
+		"assignment:key_name",
+	} {
+		assertSignal(t, findings, signal)
+	}
+}
+
+func TestRedactMapCoversLaunchObservabilityWebhookMetadataKeys(t *testing.T) {
+	metadata := map[string]any{
+		"monitoring": map[string]string{
+			"betterStackApiKey":      "better-stack-secret",
+			"cronitorPingURL":        "https://cronitor.link/p/abcdef1234567890",
+			"uptimeRobotApiKey":      "uptimerobot-secret",
+			"honeybadgerDeployToken": "honeybadger-secret",
+			"rollbarAccessToken":     "rollbar-secret",
+			"bugsnagBuildApiKey":     "bugsnag-secret",
+			"airbrakeProjectKey":     "airbrake-secret",
+			"scoutApmKey":            "scout-secret",
+			"lightstepAccessToken":   "lightstep-secret",
+			"chronosphereApiToken":   "chronosphere-secret",
+			"signozIngestionKey":     "signoz-secret",
+			"axiomApiToken":          "axiom-secret",
+			"logflareSourceToken":    "logflare-secret",
+			"sematextLogsToken":      "sematext-secret",
+			"logzIoShippingToken":    "logzio-secret",
+			"papertrailApiToken":     "papertrail-secret",
+		},
+		"public": map[string]string{
+			"dashboard_url": "https://status.example.test",
+		},
+	}
+
+	redacted := RedactMap(metadata)
+	body, err := json.Marshal(redacted)
+	if err != nil {
+		t.Fatalf("marshal redacted metadata: %v", err)
+	}
+	for _, leaked := range []string{
+		"better-stack-secret",
+		"https://cronitor.link/p/abcdef1234567890",
+		"uptimerobot-secret",
+		"honeybadger-secret",
+		"rollbar-secret",
+		"bugsnag-secret",
+		"airbrake-secret",
+		"scout-secret",
+		"lightstep-secret",
+		"chronosphere-secret",
+		"signoz-secret",
+		"axiom-secret",
+		"logflare-secret",
+		"sematext-secret",
+		"logzio-secret",
+		"papertrail-secret",
+	} {
+		if strings.Contains(string(body), leaked) {
+			t.Fatalf("redacted metadata = %s, leaked %s", string(body), leaked)
+		}
+	}
+	if !strings.Contains(string(body), `"dashboard_url":"https://status.example.test"`) {
+		t.Fatalf("redacted metadata = %s, want public dashboard URL preserved", string(body))
+	}
+
+	findings := ClassifyValue(metadata)
+	for _, location := range []string{
+		"monitoring.betterStackApiKey",
+		"monitoring.cronitorPingURL",
+		"monitoring.uptimeRobotApiKey",
+		"monitoring.honeybadgerDeployToken",
+		"monitoring.rollbarAccessToken",
+		"monitoring.bugsnagBuildApiKey",
+		"monitoring.airbrakeProjectKey",
+		"monitoring.scoutApmKey",
+		"monitoring.lightstepAccessToken",
+		"monitoring.chronosphereApiToken",
+		"monitoring.signozIngestionKey",
+		"monitoring.axiomApiToken",
+		"monitoring.logflareSourceToken",
+		"monitoring.sematextLogsToken",
+		"monitoring.logzIoShippingToken",
+		"monitoring.papertrailApiToken",
+	} {
+		assertAnyFindingAt(t, findings, location)
+	}
+}
+
 func TestRedactStringCoversLaunchAIEvalProxyTokens(t *testing.T) {
 	input := strings.Join([]string{
 		"LANGFUSE_SECRET_KEY=sk-lf-abcdefghijklmnopqrstuvwxyz123456",
