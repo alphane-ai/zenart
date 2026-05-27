@@ -226,7 +226,7 @@ required_fragments = [
     "- Decision: `no-go`",
     "fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json",
     "fixtures/stage0/rev2/release_gate_evidence.production_launch.json",
-    "Staging smoke: staging status `passed` from `ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json` with 10/10 smoke categories passed; staging post-deploy smoke is validator-visible through combined preflight `passed` from `ops/evidence/staging/20260527T013207Z-staging-observability-backup-load-36222.json` for release `d3b1107c33dc40b8936f28549e06553fbd7b104a` with 4/4 slots verified, but the private beta gate remains `no-go` while object retention/cleanup and legal/support visibility blockers remain.",
+    "Staging smoke: staging status `passed` from `ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json` with 10/10 smoke categories passed; staging post-deploy smoke is validator-visible through combined preflight `passed` from `ops/evidence/staging/20260527T013207Z-staging-observability-backup-load-36222.json` for release `d3b1107c33dc40b8936f28549e06553fbd7b104a` with 4/4 slots verified, but the private beta gate remains `no-go` while object retention/cleanup remains blocked.",
     "Config diff: `missing`; staging JSON must reference the release SHA, set `environment=staging`, set `kind=config_diff`, and record status `passed`, `reviewed`, or `no_diff` before private beta/production decisions.",
     "Observability smoke: local status `passed` from `ops/evidence/observability/local/20260526T192311Z-observability-smoke-7780.json`; staging status `passed` from `ops/evidence/staging/20260527T1830Z-observability-runtime.json` with 6/6 required signals validator-visible; combined preflight `passed` from `ops/evidence/staging/20260527T013207Z-staging-observability-backup-load-36222.json` for release `d3b1107c33dc40b8936f28549e06553fbd7b104a` with 4/4 slots verified.",
     "Backup/restore drill: local status `passed` from `ops/evidence/backup-restore/local/20260526T153126Z/report.json`; staging status `passed` from `ops/evidence/staging/20260527T2115Z-backup-restore.json` with 2/2 restore drills passed; production backup/restore evidence remains separate and required before production decisions.",
@@ -235,8 +235,8 @@ required_fragments = [
     "Security scan: local status `passed` from `ops/evidence/security/local/20260526T142040Z-security-scan-smoke-65314.json`; staging JSON must reference the release SHA, set `environment=staging`, set `kind=security_scan`, record status `passed`, and include passed/validated evidence refs for dependency, image/container, and committed-secret scans before private beta/production decisions.",
     "Object-storage signed URL: staging status `pass_with_blockers_preserved` from `ops/evidence/staging/20260527T2130Z-object-storage-signed-url.json` with 4/4 signed URL probes validator-visible; retention/cleanup evidence still required; object retention policy, expired export cleanup, orphan cleanup, and audit refs remain required before the object-storage gate can close.",
     "Object-storage retention cleanup: `missing`; run `scripts/staging_object_storage_retention_cleanup_smoke.sh` against staging and write `ops/evidence/staging/object-storage-retention-cleanup.json` proving retention policy, expired export cleanup, orphan cleanup, and audit refs before the object-storage gate can close.",
-    "Legal/support external-user visibility: `missing`; run `scripts/staging_legal_support_visibility_smoke.sh` against staging and write `ops/evidence/staging/legal-pages-external-user.json` plus `ops/evidence/staging/support-contact-external-user.json` proving Terms, Privacy, Acceptable Use, AI/content disclaimer, IP complaint flow, visible support contact, report-problem path, and billing/support policy visibility before the legal/support gate can close.",
-    "Operational risks: staging rollback evidence remains absent; staging backup/restore, load, and post-deploy smoke evidence are attached through the combined preflight but do not close object-retention, legal/support, CI, or production gates.",
+    "Legal/support external-user visibility: staging split status `pass,pass` from `ops/evidence/staging/legal-pages-external-user.json` and `ops/evidence/staging/support-contact-external-user.json`; external-user legal/support visibility is validator-visible.",
+    "Operational risks: staging rollback evidence remains absent; staging backup/restore, load, post-deploy smoke, and legal/support visibility evidence are attached, but object-retention, CI, and production gates remain open.",
     "Object-storage risks: signed URL staging evidence is attached, but retention/cleanup runtime evidence still blocks the object-storage release gate.",
     "Conditions: CI, staging smoke, restore/load/rollback evidence, security scans, release owner, and gate fixture blockers must be cleared before any private beta or production decision.",
     "## Open Rev2 Runtime Checklist",
@@ -1638,6 +1638,13 @@ if gate.get("can_clear_retention_cleanup_checklist_item") is not False:
     raise SystemExit("object-storage retention cleanup dry-run must not clear the checklist item")
 if gate.get("can_clear_release_gate_check") is not False:
     raise SystemExit("object-storage retention cleanup dry-run must not clear the release gate check")
+split = report.get("split_evidence", {})
+if split.get("signed_url_ready") is not True:
+    raise SystemExit("object-storage retention cleanup dry-run must recognize existing signed URL split evidence")
+if split.get("retention_cleanup_ready") is not False:
+    raise SystemExit("object-storage retention cleanup dry-run must keep retention cleanup unready")
+if gate.get("remaining_release_gate_blockers_after_pass") != ["staging_object_storage_signed_downloads"]:
+    raise SystemExit("object-storage retention cleanup dry-run must preserve only the object-storage blocker")
 if gate.get("preserved_release_gate_check_id") != "staging_object_storage_signed_downloads":
     raise SystemExit("object-storage retention cleanup dry-run must preserve the object-storage gate")
 if gate.get("preserved_do_not_launch_condition_id") != "object_storage_signed_retention_runtime_missing":

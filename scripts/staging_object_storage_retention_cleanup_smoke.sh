@@ -12,6 +12,7 @@ REPORT_PATH="${REPORT_PATH:-$OUT_DIR/object-storage-retention-cleanup.json}"
 RESULTS_PATH="${RESULTS_PATH:-$OUT_DIR/object-storage-retention-cleanup.ndjson}"
 RUN_ID="${RUN_ID:-object-storage-retention-cleanup}"
 RELEASE_SHA="${RELEASE_SHA:-${GITHUB_SHA:-}}"
+SIGNED_URL_EVIDENCE="${SIGNED_URL_EVIDENCE:-ops/evidence/staging/20260527T2130Z-object-storage-signed-url.json}"
 REQUEST_ID_HEADER="${REQUEST_ID_HEADER:-X-Request-ID}"
 REQUEST_ID_VALUE="${REQUEST_ID_VALUE:-stage0-object-retention-cleanup}"
 
@@ -139,7 +140,7 @@ else
   done
 fi
 
-python3 - "$REPORT_PATH" "$RESULTS_PATH" "$RUN_ID" "$RELEASE_SHA" "$BASE_URL" "$SMOKE_ADMIN_USER_ID" "$SMOKE_ADMIN_TENANT_ID" <<'PY'
+python3 - "$REPORT_PATH" "$RESULTS_PATH" "$RUN_ID" "$RELEASE_SHA" "$BASE_URL" "$SMOKE_ADMIN_USER_ID" "$SMOKE_ADMIN_TENANT_ID" "$SIGNED_URL_EVIDENCE" <<'PY'
 import json
 import sys
 from pathlib import Path
@@ -151,6 +152,7 @@ release_sha = sys.argv[4].strip()
 base_url = sys.argv[5].strip()
 admin_user_id = sys.argv[6].strip()
 admin_tenant_id = sys.argv[7].strip()
+signed_url_evidence = sys.argv[8].strip()
 
 results = [
     json.loads(line)
@@ -170,6 +172,25 @@ blocked_or_failed = [
     if item["status"] != "passed"
 ]
 all_passed = required <= passed and not blocked_or_failed
+signed_url_path = Path(signed_url_evidence) if signed_url_evidence else None
+signed_url_ready = False
+signed_url_reason = "missing_signed_url_evidence_path"
+if signed_url_path is not None and signed_url_path.exists() and signed_url_path.is_file():
+    try:
+        signed_url = json.loads(signed_url_path.read_text(encoding="utf-8"))
+        signed_url_ready = (
+            signed_url.get("environment") == "staging"
+            and signed_url.get("kind") == "object_storage_signed_url"
+            and signed_url.get("release_gate_check_id") == "staging_object_storage_signed_downloads"
+            and signed_url.get("status") in {"pass", "passed", "pass_with_blockers_preserved"}
+        )
+        signed_url_reason = "signed_url_runtime_evidence_ready" if signed_url_ready else "signed_url_runtime_evidence_not_passing"
+    except json.JSONDecodeError:
+        signed_url_reason = "signed_url_evidence_invalid_json"
+elif signed_url_path is not None:
+    signed_url_reason = "signed_url_evidence_missing"
+
+can_clear_release_gate_check = all_passed and signed_url_ready
 
 coverage = []
 for area, tokens in {
@@ -209,22 +230,25 @@ report = {
     "release_gate_check_id": "staging_object_storage_signed_downloads",
     "do_not_launch_condition_id": "object_storage_signed_retention_runtime_missing",
     "results_path": str(results_path),
+    "split_evidence": {
+        "signed_url_evidence": signed_url_evidence,
+        "signed_url_ready": signed_url_ready,
+        "signed_url_reason": signed_url_reason,
+        "retention_cleanup_ready": all_passed,
+    },
     "required_checks": sorted(required),
     "coverage": coverage,
     "blocked_checks": blocked_or_failed,
     "gate_impact": {
         "check_level_item": "Private Beta/Staging object retention/cleanup runtime evidence 通过：staging evidence proves retention policy, expired export cleanup, orphan cleanup, and audit refs under `ops/evidence/staging/`。",
         "can_clear_retention_cleanup_checklist_item": all_passed,
-        "can_clear_release_gate_check": False,
-        "remaining_release_gate_blockers_after_pass": [
-            "staging_legal_external_user_pages",
-        ] if all_passed else [
+        "can_clear_release_gate_check": can_clear_release_gate_check,
+        "remaining_release_gate_blockers_after_pass": [] if can_clear_release_gate_check else [
             "staging_object_storage_signed_downloads",
-            "staging_legal_external_user_pages",
         ],
         "requires_release_gate_fixture_update_after_pass": all_passed,
-        "preserved_release_gate_check_id": None if all_passed else "staging_object_storage_signed_downloads",
-        "preserved_do_not_launch_condition_id": None if all_passed else "object_storage_signed_retention_runtime_missing",
+        "preserved_release_gate_check_id": None if can_clear_release_gate_check else "staging_object_storage_signed_downloads",
+        "preserved_do_not_launch_condition_id": None if can_clear_release_gate_check else "object_storage_signed_retention_runtime_missing",
     },
 }
 report_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
