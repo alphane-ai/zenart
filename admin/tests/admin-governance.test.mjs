@@ -291,7 +291,13 @@ const parseCrawlerRuntime = () => {
     .replaceAll(/: CrawlerGovernanceWorkflow\["requestType"\]/g, "")
     .replaceAll(/: CrawlerGovernanceRuntimeDecision\["escalationEvidenceStatus"\]/g, "")
     .replaceAll(/new Set<string>/g, "new Set")
+    .replaceAll(/: Set<string> \| undefined/g, "")
+    .replaceAll(/: CrawlerGovernanceAdminActionContract\["regressionFixtureInventoryStatus"\]/g, "")
+    .replaceAll(/: CrawlerGovernanceAdminActionContract\["regressionFixtureGate"\]/g, "")
+    .replaceAll(/new Set<string>/g, "new Set")
     .replaceAll(/: string\[\]/g, "")
+    .replaceAll(/regressionFixturePaths\?: string\[\]/g, "regressionFixturePaths")
+    .replaceAll(/regressionFixturePaths\?/g, "regressionFixturePaths")
     .replaceAll(/: string \| undefined/g, "")
     .replaceAll(/: string/g, "")
     .replaceAll(/: Date/g, "")
@@ -7357,7 +7363,8 @@ test("crawler governance closure summaries preserve release blockers before acti
 
 test("crawler admin action contracts bind mutations to governance runtime gates", () => {
   const decisions = buildCrawlerGovernanceRuntimeDecisions(crawlerGovernanceWorkflows, new Date("2026-05-26T18:30:00Z"));
-  const contracts = buildCrawlerGovernanceAdminActionContracts(crawlerGovernanceWorkflows, decisions);
+  const regressionFixturePaths = regressionFixtures.map((fixture) => fixture.fixturePath);
+  const contracts = buildCrawlerGovernanceAdminActionContracts(crawlerGovernanceWorkflows, decisions, regressionFixturePaths);
   const contractsByWorkflow = new Map(contracts.map((contract) => [contract.workflowId, contract]));
   const evidenceContractsByWorkflow = new Map(
     crawlerGovernanceRuntimeEvidence.admin_action_contracts.map((contract) => [contract.workflow_id, contract])
@@ -7394,6 +7401,8 @@ test("crawler admin action contracts bind mutations to governance runtime gates"
   assert.equal(takedownContract.releaseEvidenceDisposition, takedownFixture.runtime_contract.admin_action_release_evidence_disposition);
   assert.equal(takedownEvidence.release_evidence_disposition, takedownContract.releaseEvidenceDisposition);
   assert.deepEqual(takedownEvidence.regression_fixture_refs, takedownContract.regressionFixtureRefs);
+  assert.equal(takedownContract.regressionFixtureInventoryStatus, "declared");
+  assert.equal(takedownContract.regressionFixtureGate, "pass");
   assert.ok(
     takedownContract.regressionFixtureRefs.includes("fixtures/stage0/rev2/regressions/crawler_takedown_sup_2212.json"),
     "takedown action contract must cite the crawler takedown regression fixture"
@@ -7441,6 +7450,8 @@ test("crawler admin action contracts bind mutations to governance runtime gates"
   assert.deepEqual(derivativeContract.regressionFixtureRefs, [
     "fixtures/stage0/rev2/regressions/crawler_derivative_review_cg_522.json"
   ]);
+  assert.equal(derivativeContract.regressionFixtureInventoryStatus, "declared");
+  assert.equal(derivativeContract.regressionFixtureGate, "pass");
   assert.deepEqual(derivativeEvidence.blocker_codes, []);
   assert.match(
     derivativeContract.supportVisibleMessage,
@@ -7462,6 +7473,8 @@ test("crawler admin action contracts bind mutations to governance runtime gates"
   assert.equal(retentionContract.evidenceGate, "missing_required_evidence");
   assert.equal(retentionContract.deadlineGate, "pass");
   assert.equal(retentionContract.releaseEvidenceDisposition, "preserve_blocker");
+  assert.equal(retentionContract.regressionFixtureInventoryStatus, "declared");
+  assert.equal(retentionContract.regressionFixtureGate, "pass");
   assert.deepEqual(retentionEvidence.blocker_codes, retentionContract.blockerCodes);
 
   for (const contract of contracts) {
@@ -7483,6 +7496,12 @@ test("crawler admin action contracts bind mutations to governance runtime gates"
       contract.regressionFixtureRefs.every((ref) => existsSync(new URL(ref, repoRoot))),
       `${contract.workflowId} regression fixture refs must exist`
     );
+    assert.equal(
+      contract.regressionFixtureInventoryStatus,
+      "declared",
+      `${contract.workflowId} regression fixtures must be present in the admin bad-sample inventory`
+    );
+    assert.equal(contract.regressionFixtureGate, "pass", `${contract.workflowId} regression fixture gate must pass`);
 
     if (contract.allowedMutation) {
       assert.equal(decision.closureDecision, "ready_to_close", `${contract.workflowId} allowed mutation needs closure ready`);
@@ -7497,6 +7516,27 @@ test("crawler admin action contracts bind mutations to governance runtime gates"
       assert.ok(contract.blockerCodes.length > 0, `${contract.workflowId} blocked mutation needs blocker codes`);
     }
   }
+
+  const missingInventoryContract = buildCrawlerGovernanceAdminActionContracts(
+    crawlerGovernanceWorkflows.filter((workflow) => workflow.id === "cg-522"),
+    decisions.filter((decision) => decision.workflowId === "cg-522"),
+    regressionFixturePaths.filter((path) => path !== "fixtures/stage0/rev2/regressions/crawler_derivative_review_cg_522.json")
+  )[0];
+  assert.equal(
+    missingInventoryContract.regressionFixtureInventoryStatus,
+    "missing",
+    "otherwise-ready derivative activation must detect missing bad-sample fixture inventory"
+  );
+  assert.equal(
+    missingInventoryContract.regressionFixtureGate,
+    "missing_inventory",
+    "otherwise-ready derivative activation must expose a missing-inventory fixture gate"
+  );
+  assert.equal(
+    missingInventoryContract.allowedMutation,
+    false,
+    "crawler derivative activation cannot proceed when its regression fixture is absent from admin inventory"
+  );
 });
 
 test("staging crawler governance runtime evidence covers every fetch and import control", () => {

@@ -263,17 +263,35 @@ function workflowRegressionFixtureRefs(workflow: CrawlerGovernanceWorkflow) {
 
 export function buildCrawlerGovernanceAdminActionContracts(
   workflows: CrawlerGovernanceWorkflow[],
-  decisions: CrawlerGovernanceRuntimeDecision[]
+  decisions: CrawlerGovernanceRuntimeDecision[],
+  regressionFixturePaths?: string[]
 ): CrawlerGovernanceAdminActionContract[] {
   const decisionByWorkflow = new Map(decisions.map((decision) => [decision.workflowId, decision]));
+  const regressionFixturePathSet = regressionFixturePaths ? new Set(regressionFixturePaths) : undefined;
 
   return workflows.map((workflow) => {
     const decision = decisionByWorkflow.get(workflow.id);
-    const allowedMutation =
+    const regressionFixtureRefs = workflowRegressionFixtureRefs(workflow);
+    const regressionFixtureInventoryStatus =
+      regressionFixturePathSet === undefined
+        ? "unverified"
+        : regressionFixtureRefs.every((ref) => regressionFixturePathSet.has(ref))
+          ? "declared"
+          : "missing";
+    const regressionFixtureGate =
+      regressionFixtureRefs.length === 0
+        ? "missing_regression_fixture"
+        : regressionFixtureInventoryStatus === "declared"
+          ? "pass"
+          : regressionFixtureInventoryStatus === "missing"
+            ? "missing_inventory"
+            : "inventory_unverified";
+    const allowedMutationBase =
       decision !== undefined &&
       decision.closureDecision === "ready_to_close" &&
       decision.activationDecision === "allow_activation" &&
       decision.requiredEvidenceStatus === "complete";
+    const allowedMutation = allowedMutationBase && regressionFixtureGate === "pass";
     const secondReviewGate =
       workflow.secondReviewStatus === "completed"
         ? "pass"
@@ -329,7 +347,9 @@ export function buildCrawlerGovernanceAdminActionContracts(
       deadlineGate,
       activationGate,
       supportVisibleMessage,
-      regressionFixtureRefs: workflowRegressionFixtureRefs(workflow),
+      regressionFixtureRefs,
+      regressionFixtureInventoryStatus,
+      regressionFixtureGate,
       releaseEvidenceDisposition,
       blockerCodes: decision?.blockerCodes ?? ["runtime_decision_missing"],
       auditRef: workflow.auditRef

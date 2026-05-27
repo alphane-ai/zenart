@@ -282,6 +282,8 @@ export default async function CrawlerReviewPage() {
             { key: "deadline", header: "Deadline Gate", render: (row) => <StatusBadge value={row.deadlineGate === "pass" ? "healthy" : "blocked"} label={row.deadlineGate} /> },
             { key: "activation", header: "Activation Gate", render: (row) => <StatusBadge value={row.activationGate === "pass" ? "allowed" : "blocked"} label={row.activationGate} /> },
             { key: "fixtures", header: "Regression Fixtures", render: (row) => row.regressionFixtureRefs.join(", ") },
+            { key: "fixture-inventory", header: "Fixture Inventory", render: (row) => <StatusBadge value={row.regressionFixtureInventoryStatus === "declared" ? "healthy" : "blocked"} label={row.regressionFixtureInventoryStatus} /> },
+            { key: "fixture-gate", header: "Fixture Gate", render: (row) => <StatusBadge value={row.regressionFixtureGate === "pass" ? "healthy" : "blocked"} label={row.regressionFixtureGate} /> },
             { key: "release", header: "Release Evidence", render: (row) => <StatusBadge value={row.releaseEvidenceDisposition === "can_cite_release_evidence" ? "approved" : "blocked"} label={row.releaseEvidenceDisposition} /> },
             { key: "blockers", header: "Blockers", render: (row) => (row.blockerCodes.length > 0 ? row.blockerCodes.join(", ") : "none") },
             { key: "message", header: "Support Message", render: (row) => row.supportVisibleMessage },

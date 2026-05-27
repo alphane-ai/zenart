@@ -242,6 +242,8 @@ export type CrawlerGovernanceAdminActionContract = {
   activationGate: "pass" | "blocked";
   supportVisibleMessage: string;
   regressionFixtureRefs: string[];
+  regressionFixtureInventoryStatus: "declared" | "missing" | "unverified";
+  regressionFixtureGate: "pass" | "missing_regression_fixture" | "missing_inventory" | "inventory_unverified";
   releaseEvidenceDisposition: "can_cite_release_evidence" | "preserve_blocker";
   blockerCodes: string[];
   auditRef: string;

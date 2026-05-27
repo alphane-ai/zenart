@@ -252,7 +252,11 @@ export async function getCrawlerGovernanceClosureSummaries() {
 export async function getCrawlerGovernanceAdminActionContracts() {
   const decisions = buildCrawlerGovernanceRuntimeDecisions(crawlerGovernanceWorkflows, new Date("2026-05-26T18:30:00Z"));
 
-  return buildCrawlerGovernanceAdminActionContracts(crawlerGovernanceWorkflows, decisions);
+  return buildCrawlerGovernanceAdminActionContracts(
+    crawlerGovernanceWorkflows,
+    decisions,
+    regressionFixtures.map((fixture) => fixture.fixturePath)
+  );
 }
 
 export async function getCrawlerStagingRuntimeEvidence() {
