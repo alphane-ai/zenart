@@ -405,6 +405,7 @@ test("export route exposes package metadata, ZIP payload, and download parity br
   await expect(metadataEvidence).toHaveAttribute("data-package-export-workflow-metadata-model", workflowMetadata.model);
   await expect(metadataEvidence).toHaveAttribute("data-package-export-workflow-skill", workflowMetadata.skill);
   await expect(metadataEvidence).toHaveAttribute("data-package-export-workflow-safety", workflowMetadata.safety);
+  expect(aiContentDisclaimer.safety_status).toBe(workflowMetadata.safety);
   await expect(metadataEvidence).toHaveAttribute(
     "data-package-export-workflow-prompt-spec-taxonomy",
     workflowMetadata.prompt_spec.join(",")
@@ -442,5 +443,7 @@ test("export route exposes package metadata, ZIP payload, and download parity br
     expect(payload.prompt_spec).toEqual(workflowMetadata.prompt_spec);
     expect(payload.skill).toBe(workflowMetadata.skill);
   }
+  expect(aiContentDisclaimer.safety_status).toBe(safetyReport.status);
+  expect(aiContentDisclaimer.safety_status).toBe(traceProvenance.safety);
   expect(assetsReadme).toContain("Deterministic local alpha export placeholder");
 });

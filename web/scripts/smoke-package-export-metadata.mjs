@@ -125,6 +125,9 @@ for (const expectedZipToUiParitySnippet of [
   "traceProvenance.package_id",
   "String(aiContentDisclaimer.schema_version === \"stage0.rev2.ai-content-disclaimer\")",
   "String(pptReadyMetadata.slides.length)",
+  "aiContentDisclaimer.safety_status",
+  "aiContentDisclaimer.safety_status).toBe(workflowMetadata.safety",
+  "aiContentDisclaimer.safety_status).toBe(traceProvenance.safety",
   "workflowMetadata.prompt_spec.join(\",\")",
   "String(traceProvenance.workflow_id === workflowMetadata.workflow_id)"
 ]) {

@@ -75,6 +75,9 @@
       "workflowMetadata.package_id",
       "traceProvenance.package_id",
       "safetyReport.enforcementStages.length",
+      "aiContentDisclaimer.safety_status",
+      "aiContentDisclaimer.safety_status).toBe(workflowMetadata.safety",
+      "aiContentDisclaimer.safety_status).toBe(traceProvenance.safety",
       "workflowMetadata.prompt_spec.join(\",\")",
       "traceProvenance.workflow_id === workflowMetadata.workflow_id",
       "downloaded ZIP payload contract digest must match UI evidence"
