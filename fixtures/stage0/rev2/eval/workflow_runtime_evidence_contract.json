@@ -434,25 +434,21 @@
           {
             "evidence_kind": "api_smoke",
             "expected_file": "ops/evidence/local_alpha/local_merchant_campaign_pack.api_smoke.json",
-            "status": "missing"
+            "status": "present_passed"
           },
           {
             "evidence_kind": "playwright_happy_path",
             "expected_file": "ops/evidence/local_alpha/local_merchant_campaign_pack.playwright_happy_path.json",
-            "status": "missing"
+            "status": "present_passed"
           },
           {
             "evidence_kind": "export_zip",
             "expected_file": "ops/evidence/local_alpha/local_merchant_campaign_pack.export_zip.json",
-            "status": "missing"
+            "status": "present_passed"
           }
         ],
-        "missing_runtime_files": [
-          "ops/evidence/local_alpha/local_merchant_campaign_pack.api_smoke.json",
-          "ops/evidence/local_alpha/local_merchant_campaign_pack.playwright_happy_path.json",
-          "ops/evidence/local_alpha/local_merchant_campaign_pack.export_zip.json"
-        ],
-        "workflow_runtime_closed": false
+        "missing_runtime_files": [],
+        "workflow_runtime_closed": true
       },
       "evidence_contracts": [
         {

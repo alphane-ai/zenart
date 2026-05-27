@@ -138,6 +138,10 @@ WORKFLOW_RUNTIME_CLOSED_ITEMS = {
         "api",
         "playwright",
     },
+    "local_merchant_campaign_pack": {
+        "api",
+        "playwright",
+    },
 }
 
 WORKFLOW_RUNTIME_EVIDENCE_KIND = {

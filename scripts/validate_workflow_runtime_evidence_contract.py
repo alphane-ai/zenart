@@ -71,6 +71,7 @@ LOCAL_ALPHA_AGGREGATE_ITEM = (
 LOCAL_ALPHA_RUNTIME_CLOSED_WORKFLOWS = {
     "ecommerce_growth_pack",
     "business_visual_doc_pack",
+    "local_merchant_campaign_pack",
 }
 LOCAL_ALPHA_RUNTIME_CLOSED_ITEM_KEYS = {
     "ecommerce_growth_pack": {
@@ -79,6 +80,11 @@ LOCAL_ALPHA_RUNTIME_CLOSED_ITEM_KEYS = {
         "release_gate_runtime",
     },
     "business_visual_doc_pack": {
+        "api_smoke",
+        "playwright_happy_path",
+        "release_gate_runtime",
+    },
+    "local_merchant_campaign_pack": {
         "api_smoke",
         "playwright_happy_path",
         "release_gate_runtime",
@@ -210,8 +216,9 @@ def validate_blueprint_and_release_gate(contract: dict[str, Any]) -> None:
     require(LOCAL_ALPHA_AGGREGATE_ITEM not in checked, "dry-run contract must not close Local Alpha aggregate runtime item")
     require(local_alpha_check["status"] == "blocked", "Local Alpha workflow smoke gate must remain blocked")
     require(
-        "runtime evidence is absent" in local_alpha_check["evidence_ref"],
-        "Local Alpha gate must still require runtime evidence",
+        "character_ip_concept_pack" in local_alpha_check["evidence_ref"]
+        and "remains absent" in local_alpha_check["evidence_ref"],
+        "Local Alpha gate must still name the exact remaining workflow runtime evidence blocker",
     )
 
     evidence_ref = local_alpha_check["evidence_ref"]

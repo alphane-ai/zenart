@@ -34,6 +34,7 @@ WORKFLOW_CHECKLIST_ITEMS = {
 WORKFLOW_RUNTIME_CLOSED_ITEMS = {
     "ecommerce_growth_pack",
     "business_visual_doc_pack",
+    "local_merchant_campaign_pack",
 }
 RUNTIME_OPERATION_ORDER = [
     "createChatSession",
@@ -174,7 +175,10 @@ def validate_evidence_shape(evidence: dict[str, Any]) -> None:
     require(evidence["mode"] == "dry_run", "stored workflow API smoke evidence must be dry-run evidence")
     require(evidence["status"] == "planned", "stored workflow API smoke evidence must not claim runtime pass")
     policy = evidence["checklist_policy"]
-    require(policy["api_smoke_checklist_remains_open"] is True, "dry-run evidence must keep API smoke checklist open")
+    require(
+        policy["api_smoke_checklist_remains_open"] is True,
+        "dry-run evidence must preserve API smoke rows that lack exact local alpha runtime evidence",
+    )
     require(policy["local_alpha_gate_remains_open"] is True, "dry-run evidence must keep Local Alpha gate open")
     require(policy["runtime_evidence_required_for_closure"] is True, "API smoke closure must require runtime evidence")
 

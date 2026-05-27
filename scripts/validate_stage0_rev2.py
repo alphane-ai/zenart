@@ -877,6 +877,8 @@ GATE_IMPACT_KEY_CHECKLIST_ITEMS = {
     "can_clear_legal_pages_subitem": "Private Beta/Staging legal pages external-user visibility evidence 通过：staging evidence proves Terms、Privacy、Acceptable Use、AI/content disclaimer、IP complaint flow are externally visible under `ops/evidence/staging/`。",
     "can_clear_support_contact_subitem": "Private Beta/Staging support contact external-user visibility evidence 通过：staging evidence proves visible support contact/report-problem path for external users under `ops/evidence/staging/`。",
     "can_clear_signed_url_checklist_item": "Private Beta/Staging object storage signed URL runtime evidence 通过：staging evidence proves tenant-scoped signed download, expiry, direct-object denial, and cross-tenant denial under `ops/evidence/staging/`。",
+    "can_clear_public_legal_subitem": "Production public legal policy deployment evidence 通过：production evidence proves Terms、Privacy、Acceptable Use、AI/content disclaimer、IP complaint flow visibility under `ops/evidence/production/`。",
+    "can_clear_support_billing_policy_subitem": "Production public support/billing policy deployment evidence 通过：production evidence proves support contact and paid billing/cancellation/refund policy visibility under `ops/evidence/production/`。",
 }
 
 PARTIAL_RUNTIME_PASS_EVIDENCE_ALLOWLIST = {
@@ -894,6 +896,8 @@ PARTIAL_RUNTIME_PASS_EVIDENCE_ALLOWLIST = {
     "ops/evidence/production/20260527T1430Z-activation-review-audit.json",
     "ops/evidence/production/20260527T1600Z-skill-release-eval-canary.json",
     "ops/evidence/production/20260527T1700Z-security-launch-checks.json",
+    "ops/evidence/production/public-legal-policy.json",
+    "ops/evidence/production/public-support-billing-policy.json",
 }
 
 RUNTIME_SPLIT_PASS_REQUIREMENTS = {
@@ -1053,7 +1057,7 @@ SPLIT_CHECKLIST_ITEM_EVIDENCE = {
         "check_id": "production_legal_support_policy",
         "path": PRODUCTION_LEGAL_POLICY_EVIDENCE,
         "allowed_statuses": {"pass", "passed"},
-        "allow_preserved_blockers": False,
+        "allow_preserved_blockers": True,
         "tokens": ("terms", "privacy", "acceptable use", "ai/content", "ip complaint"),
     },
     "Production public support/billing policy deployment evidence 通过：production evidence proves support contact and paid billing/cancellation/refund policy visibility under `ops/evidence/production/`。": {
@@ -1061,7 +1065,7 @@ SPLIT_CHECKLIST_ITEM_EVIDENCE = {
         "check_id": "production_legal_support_policy",
         "path": PRODUCTION_SUPPORT_BILLING_POLICY_EVIDENCE,
         "allowed_statuses": {"pass", "passed"},
-        "allow_preserved_blockers": False,
+        "allow_preserved_blockers": True,
         "tokens": ("support", "billing", "cancellation", "refund"),
     },
 }
@@ -1124,25 +1128,21 @@ CHECK_LEVEL_EVIDENCE_PRESERVED_BLOCKERS = {
         "production_provider_or_comp_only_mode",
         "production_paid_billing_lifecycle",
         "production_backup_rollback_incident",
-        "production_legal_support_policy",
     },
     ("production_launch", "production_activation_review_audit"): {
         "production_provider_or_comp_only_mode",
         "production_paid_billing_lifecycle",
         "production_backup_rollback_incident",
-        "production_legal_support_policy",
     },
     ("production_launch", "production_abuse_throttle_hold"): {
         "production_provider_or_comp_only_mode",
         "production_paid_billing_lifecycle",
         "production_backup_rollback_incident",
-        "production_legal_support_policy",
     },
     ("production_launch", "production_security_launch_checks"): {
         "production_provider_or_comp_only_mode",
         "production_paid_billing_lifecycle",
         "production_backup_rollback_incident",
-        "production_legal_support_policy",
     },
 }
 
@@ -1421,6 +1421,7 @@ LOCAL_ALPHA_RELEASE_GATE_WORKFLOW_RUNTIME_OPEN_CHECK_ITEMS = {
 LOCAL_ALPHA_RELEASE_GATE_WORKFLOW_RUNTIME_CLOSED_ITEMS = {
     "Local Alpha 电商增长包 runtime smoke evidence 写入 release gate fixture：`ops/evidence/local_alpha/ecommerce_growth_pack.api_smoke.json`、`ops/evidence/local_alpha/ecommerce_growth_pack.playwright_happy_path.json`、`ops/evidence/local_alpha/ecommerce_growth_pack.export_zip.json` 均证明 running local stack。": "ecommerce_growth_pack",
     "Local Alpha 商业视觉文档包 runtime smoke evidence 写入 release gate fixture：`ops/evidence/local_alpha/business_visual_doc_pack.api_smoke.json`、`ops/evidence/local_alpha/business_visual_doc_pack.playwright_happy_path.json`、`ops/evidence/local_alpha/business_visual_doc_pack.export_zip.json` 均证明 running local stack。": "business_visual_doc_pack",
+    "Local Alpha 本地商家活动包 runtime smoke evidence 写入 release gate fixture：`ops/evidence/local_alpha/local_merchant_campaign_pack.api_smoke.json`、`ops/evidence/local_alpha/local_merchant_campaign_pack.playwright_happy_path.json`、`ops/evidence/local_alpha/local_merchant_campaign_pack.export_zip.json` 均证明 running local stack。": "local_merchant_campaign_pack",
 }
 
 LOCAL_ALPHA_WORKFLOW_RUNTIME_EVIDENCE_FILES = {
@@ -1761,7 +1762,6 @@ RELEASE_GATE_OPEN_ITEM_GUARD_CHECKS = {
         },
         "Private Beta/Staging Gate 全部通过。": {
             "production_backup_rollback_incident",
-            "production_legal_support_policy",
         },
         PRODUCTION_POST_DEPLOY_LAUNCH_CLEARING_CHECKLIST_ITEM: {
             "production_backup_rollback_incident",
@@ -1938,6 +1938,9 @@ CLOSED_CHECK_LEVEL_RUNTIME_ITEMS = {
     "Production activation review/audit runtime/deployment evidence 通过。",
     "Production abuse throttle/hold runtime/deployment evidence 通过。",
     "Production security launch-check runtime/deployment evidence 通过。",
+    "Production legal/support policy deployment evidence 通过。",
+    "Production public legal policy deployment evidence 通过：production evidence proves Terms、Privacy、Acceptable Use、AI/content disclaimer、IP complaint flow visibility under `ops/evidence/production/`。",
+    "Production public support/billing policy deployment evidence 通过：production evidence proves support contact and paid billing/cancellation/refund policy visibility under `ops/evidence/production/`。",
     PRODUCTION_BACKUP_ROLLBACK_INCIDENT_ADMIN_CHECKLIST_ITEM,
 }
 REQUIRED_OPEN_ITEMS |= (
@@ -1977,6 +1980,12 @@ REQUIRED_OPEN_ITEMS -= {
     "商业视觉文档包 API smoke test 通过。",
     "商业视觉文档包 Playwright happy path 通过。",
     "商业视觉文档包 export ZIP evidence 通过：`ops/evidence/local_alpha/business_visual_doc_pack.export_zip.json` proves manifest、QA report、safety report、provenance、metadata、AI disclaimer、trace payloads and four-option taxonomy。",
+    "本地商家活动包 API smoke test 通过。",
+    "本地商家活动包 Playwright happy path 通过。",
+    "本地商家活动包 export ZIP evidence 通过：`ops/evidence/local_alpha/local_merchant_campaign_pack.export_zip.json` proves manifest、QA report、safety report、provenance、metadata、AI disclaimer、trace payloads and four-option taxonomy。",
+    "Production legal/support policy deployment evidence 通过。",
+    "Production public legal policy deployment evidence 通过：production evidence proves Terms、Privacy、Acceptable Use、AI/content disclaimer、IP complaint flow visibility under `ops/evidence/production/`。",
+    "Production public support/billing policy deployment evidence 通过：production evidence proves support contact and paid billing/cancellation/refund policy visibility under `ops/evidence/production/`。",
     *LOCAL_ALPHA_RELEASE_GATE_WORKFLOW_RUNTIME_CLOSED_ITEMS.keys(),
 }
 
@@ -2299,6 +2308,11 @@ WORKFLOW_RUNTIME_CLOSED_ITEMS = {
         "playwright_item",
         "export_item",
     },
+    "local_merchant_campaign_pack": {
+        "api_item",
+        "playwright_item",
+        "export_item",
+    },
 }
 
 LOCAL_ALPHA_E2E_WORKFLOW_EVIDENCE_REQUIREMENTS = {
@@ -2594,11 +2608,15 @@ def validate_local_alpha_workflow_runtime_evidence_file(
         steps = set(evidence.get("interaction_steps", []))
         required_step_groups = {
             "brief": {"brief_confirmed"},
-            "reference": {"reference_uploaded", "source_notes_uploaded"},
-            "four_candidates": {"four_candidates_visible", "four_document_candidates_visible"},
+            "reference": {"reference_uploaded", "source_notes_uploaded", "storefront_reference_uploaded"},
+            "four_candidates": {"four_candidates_visible", "four_document_candidates_visible", "four_local_merchant_candidates_visible"},
             "candidate_selected": {"candidate_selected"},
             "iteration": {"iteration_created"},
-            "taxonomy_packaged": {"all_taxonomy_candidates_packaged", "all_document_taxonomy_candidates_packaged"},
+            "taxonomy_packaged": {
+                "all_taxonomy_candidates_packaged",
+                "all_document_taxonomy_candidates_packaged",
+                "all_local_merchant_taxonomy_candidates_packaged",
+            },
             "zip_export": {"zip_export_created"},
             "download": {"download_handoff_completed"},
         }
@@ -2986,16 +3004,21 @@ def require_split_runtime_pass_evidence(evidence_ref: str, gate: str, check_id: 
             f"{gate}.{check_id} split runtime evidence {rel_path} has wrong environment={evidence.get('environment')!r}",
         )
         evidence_check_id = evidence.get("release_gate_check_id")
-        if evidence_check_id is not None:
-            require(
-                evidence_check_id == check_id,
-                f"{gate}.{check_id} split runtime evidence {rel_path} targets release_gate_check_id={evidence_check_id!r}",
-            )
+        require(
+            evidence_check_id == check_id,
+            f"{gate}.{check_id} split runtime evidence {rel_path} must explicitly target "
+            f"release_gate_check_id={check_id!r}; got {evidence_check_id!r}",
+        )
         require(
             evidence.get("status") in RUNTIME_PASS_EVIDENCE_STATUS_VALUES,
             f"{gate}.{check_id} split runtime evidence {rel_path} must be passing; got status={evidence.get('status')!r}",
         )
         blockers = runtime_evidence_preserved_blockers(evidence)
+        checklist_requirements = split_checklist_items_for_path(gate, check_id, path)
+        allow_preserved_blockers = any(
+            checklist_requirement.get("allow_preserved_blockers") is True
+            for _, checklist_requirement in checklist_requirements
+        )
         if evidence.get("status") == "pass_with_blockers_preserved":
             require(
                 subitem_id == "signed_url",
@@ -3004,6 +3027,11 @@ def require_split_runtime_pass_evidence(evidence_ref: str, gate: str, check_id: 
             require(
                 rel(STAGING_OBJECT_STORAGE_RETENTION_EVIDENCE) in evidence_ref,
                 f"{gate}.{check_id} signed URL evidence may preserve retention blockers only when retention cleanup evidence is also cited",
+            )
+        elif allow_preserved_blockers:
+            require(
+                not any(check_id in blocker for blocker in blockers),
+                f"{gate}.{check_id} split runtime evidence {rel_path} must not preserve its own combined check: {blockers}",
             )
         else:
             require(
@@ -3061,7 +3089,7 @@ def split_runtime_evidence_is_passable(path: Path, requirement: dict[str, Any]) 
     if evidence.get("environment") not in RUNTIME_PASS_FILE_ENVIRONMENTS[requirement["gate"]]:
         return False
     evidence_check_id = evidence.get("release_gate_check_id")
-    if evidence_check_id is not None and evidence_check_id != requirement["check_id"]:
+    if evidence_check_id != requirement["check_id"]:
         return False
     if evidence.get("status") not in requirement["allowed_statuses"]:
         return False
@@ -3242,12 +3270,11 @@ def require_split_runtime_blocked_evidence(evidence_ref: str, gate: str, check_i
                         f"{gate}.{check_id} blocked split evidence {rel_path} has wrong environment={environment!r}",
                     )
                 evidence_check_id = evidence.get("release_gate_check_id")
-                if evidence_check_id is not None:
-                    require(
-                        evidence_check_id == check_id,
-                        f"{gate}.{check_id} blocked split evidence {rel_path} targets "
-                        f"release_gate_check_id={evidence_check_id!r}",
-                    )
+                require(
+                    evidence_check_id == check_id,
+                    f"{gate}.{check_id} blocked split evidence {rel_path} must explicitly target "
+                    f"release_gate_check_id={check_id!r}; got {evidence_check_id!r}",
+                )
                 require(
                     evidence.get("status") in checklist_requirement["allowed_statuses"],
                     f"{gate}.{check_id} blocked split evidence {rel_path} has status={evidence.get('status')!r}; "
@@ -3379,11 +3406,11 @@ def require_ci_blocked_runtime_evidence(evidence_ref: str, check_id: str) -> Non
                     f"ci.{check_id} evidence file {rel_path} must declare environment=ci",
                 )
                 evidence_check_id = evidence.get("release_gate_check_id")
-                if evidence_check_id is not None:
-                    require(
-                        evidence_check_id == check_id,
-                        f"ci.{check_id} evidence file {rel_path} targets release_gate_check_id={evidence_check_id!r}",
-                    )
+                require(
+                    evidence_check_id == check_id,
+                    f"ci.{check_id} evidence file {rel_path} must explicitly target "
+                    f"release_gate_check_id={check_id!r}; got {evidence_check_id!r}",
+                )
                 require(
                     evidence.get("status") in RUNTIME_PASS_EVIDENCE_STATUS_VALUES,
                     f"ci.{check_id} evidence file {rel_path} is not passing: status={evidence.get('status')!r}",
@@ -3434,11 +3461,11 @@ def validate_split_checklist_item_evidence(
             f"{sorted(expected_environments)}; got environment={evidence.get('environment')!r}",
         )
         evidence_check_id = evidence.get("release_gate_check_id")
-        if evidence_check_id is not None:
-            require(
-                evidence_check_id == check_id,
-                f"checked split runtime evidence {rel_path} targets release_gate_check_id={evidence_check_id!r}",
-            )
+        require(
+            evidence_check_id == check_id,
+            f"checked split runtime evidence {rel_path} must explicitly target "
+            f"release_gate_check_id={check_id!r}; got {evidence_check_id!r}",
+        )
         require(
             evidence.get("status") in requirement["allowed_statuses"],
             f"checked split runtime evidence {rel_path} status={evidence.get('status')!r} is not allowed for {item}",
@@ -7225,7 +7252,6 @@ def validate_production_backup_rollback_incident_admin_evidence() -> None:
             "ci_staging_gates_not_passed",
             "production_provider_or_comp_only_mode",
             "production_paid_billing_lifecycle",
-            "production_legal_support_policy",
         },
         "production backup/rollback admin evidence must preserve exact current production blockers",
     )
@@ -7558,6 +7584,7 @@ def validate_release_gate_evidence() -> None:
         "abuse_throttle_hold_missing",
         "security_privacy_legal_incomplete",
         "secret_exposure_runtime_not_verified",
+        "public_legal_support_policy_not_deployed",
     }
     for condition_id in RELEASE_GATE_REQUIRED_ACTIVE_CONDITIONS["production_launch"]:
         expected_present = condition_id not in cleared_production_conditions
@@ -7569,7 +7596,8 @@ def validate_release_gate_evidence() -> None:
     for token in [
         "evidence exists",
         "runtime evidence is absent",
-        "production deployment evidence for policy visibility is absent",
+        "ops/evidence/production/public-legal-policy.json",
+        "ops/evidence/production/public-support-billing-policy.json",
     ]:
         require(token in production_text, f"production release evidence must distinguish artifact/runtime evidence: {token}")
     for stale in [
@@ -8612,9 +8640,13 @@ def validate_launch_readiness_split_contracts() -> None:
             "Production activation review/audit runtime/deployment evidence 通过。",
             "Production abuse throttle/hold runtime/deployment evidence 通过。",
             "Production security launch-check runtime/deployment evidence 通过。",
+            "Production legal/support policy deployment evidence 通过。",
+            "Production public legal policy deployment evidence 通过：production evidence proves Terms、Privacy、Acceptable Use、AI/content disclaimer、IP complaint flow visibility under `ops/evidence/production/`。",
+            "Production public support/billing policy deployment evidence 通过：production evidence proves support contact and paid billing/cancellation/refund policy visibility under `ops/evidence/production/`。",
             PRODUCTION_BACKUP_ROLLBACK_INCIDENT_ADMIN_CHECKLIST_ITEM,
             *LOCAL_ALPHA_RELEASE_GATE_WORKFLOW_RUNTIME_CLOSED_ITEMS.keys(),
         }
+        - LOCAL_ALPHA_WORKFLOW_RUNTIME_ITEMS
     ):
         require(item in unchecked_lines, f"blueprint must keep runtime launch-readiness subitem open: {item}")
 
