@@ -308,6 +308,8 @@ if "SMOKE_ADMIN_TENANT_ID" not in runtime_requirements.get("required_smoke_admin
     raise SystemExit("blocked object-storage retention cleanup evidence must name the smoke admin tenant ID requirement")
 if runtime_requirements.get("canonical_pass_report") != "ops/evidence/staging/object-storage-retention-cleanup.json":
     raise SystemExit("blocked object-storage retention cleanup evidence must name the canonical pass report path")
+if "canonical pass paths" not in runtime_requirements.get("pass_file_policy", ""):
+    raise SystemExit("blocked object-storage retention cleanup evidence must describe canonical pass-file policy")
 probe_routes = runtime_requirements.get("required_probe_routes", {})
 expected_probe_routes = {
     "retention_policy": ("GET", "RETENTION_POLICY_URL", "/api/admin/v1/object-storage/retention-policy"),
@@ -321,6 +323,12 @@ for probe_id, (method, env_var, default_path) in expected_probe_routes.items():
         raise SystemExit(f"blocked object-storage retention cleanup evidence missing route contract for {probe_id}: {route}")
 if any("missing_staging_base_url_or_explicit_probe_urls" not in item for item in blocked_retention.get("blocked_checks", [])):
     raise SystemExit("blocked object-storage retention cleanup evidence must explain the missing staging probe URLs")
+if blocked_retention.get("split_evidence", {}).get("canonical_pass_paths") is not False:
+    raise SystemExit("blocked object-storage retention cleanup evidence must not claim canonical pass paths")
+for item in blocked_retention.get("coverage", []):
+    for key in ("release_sha_bound", "admin_identity_bound", "request_ids", "response_bytes"):
+        if key not in item:
+            raise SystemExit(f"blocked object-storage retention cleanup coverage missing {key}: {item}")
 obsolete_fragments = [
     "Observability runtime: staging request id propagation runtime evidence 通过",
     "staging observability, restore, rollback, load, and post-deploy smoke evidence are absent",
@@ -644,6 +652,8 @@ if "SMOKE_ADMIN_TENANT_ID" not in runtime_requirements.get("required_smoke_admin
     raise SystemExit("object-storage retention cleanup dry-run must name smoke admin tenant input requirement")
 if runtime_requirements.get("canonical_pass_results") != "ops/evidence/staging/object-storage-retention-cleanup.ndjson":
     raise SystemExit("object-storage retention cleanup dry-run must name the canonical pass results path")
+if "canonical pass paths" not in runtime_requirements.get("pass_file_policy", ""):
+    raise SystemExit("object-storage retention cleanup dry-run must describe canonical pass-file policy")
 probe_routes = runtime_requirements.get("required_probe_routes", {})
 expected_probe_routes = {
     "retention_policy": ("GET", "RETENTION_POLICY_URL", "/api/admin/v1/object-storage/retention-policy"),
@@ -662,6 +672,12 @@ if gate_impact.get("can_clear_release_gate_check") is not False:
     raise SystemExit("object-storage retention cleanup dry-run must not clear the object-storage release gate")
 if gate_impact.get("remaining_release_gate_blockers_after_pass") != ["staging_object_storage_signed_downloads"]:
     raise SystemExit("object-storage retention cleanup dry-run must preserve the object-storage blocker")
+if split.get("canonical_pass_paths") is not False:
+    raise SystemExit("object-storage retention cleanup dry-run using validation paths must not claim canonical pass paths")
+for item in coverage.values():
+    for key in ("release_sha_bound", "admin_identity_bound", "request_ids", "response_bytes"):
+        if key not in item:
+            raise SystemExit(f"{item.get('area')} dry-run coverage missing {key}: {item}")
 PY
 set +e
 RUN_ID="stage0-validate-legal-support-visibility" DRY_RUN=1 OUT_DIR="$ops_validate_dir/legal-support" scripts/staging_legal_support_visibility_smoke.sh >/dev/null
@@ -1871,6 +1887,8 @@ if split.get("retention_cleanup_runtime_ready") is not False:
     raise SystemExit("object-storage retention cleanup dry-run must keep retention cleanup runtime unready")
 if split.get("retention_cleanup_ready") is not False:
     raise SystemExit("object-storage retention cleanup dry-run must keep retention cleanup unready")
+if split.get("canonical_pass_paths") is not False:
+    raise SystemExit("object-storage retention cleanup dry-run using validation paths must not claim canonical pass paths")
 if gate.get("remaining_release_gate_blockers_after_pass") != ["staging_object_storage_signed_downloads"]:
     raise SystemExit("object-storage retention cleanup dry-run must preserve only the object-storage blocker")
 if gate.get("preserved_release_gate_check_id") != "staging_object_storage_signed_downloads":
@@ -1878,6 +1896,9 @@ if gate.get("preserved_release_gate_check_id") != "staging_object_storage_signed
 if gate.get("preserved_do_not_launch_condition_id") != "object_storage_signed_retention_runtime_missing":
     raise SystemExit("object-storage retention cleanup dry-run must preserve the matching Do-Not-Launch condition")
 for item in areas.values():
+    for key in ("release_sha_bound", "admin_identity_bound", "request_ids", "response_bytes"):
+        if key not in item:
+            raise SystemExit(f"{item['area']} retention cleanup coverage missing {key}")
     combined = json.dumps(item).lower()
     for token in ("ops/evidence/staging", "retention", "audit"):
         if token not in combined:

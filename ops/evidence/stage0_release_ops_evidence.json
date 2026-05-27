@@ -45,7 +45,7 @@
       "evidence_path_policy": "ops/evidence/staging/",
       "expected_retention_cleanup_evidence": "ops/evidence/staging/object-storage-retention-cleanup.json",
       "latest_blocked_evidence": "ops/evidence/staging/object-storage-retention-cleanup.blocked.json",
-      "runtime_status": "requires real staging admin probes for retention policy, expired export cleanup, orphan cleanup, and audit refs; latest execution wrote blocked evidence because STAGING_BASE_URL or explicit retention/audit probe URLs were missing; passing evidence also requires staging admin auth plus SMOKE_ADMIN_USER_ID and SMOKE_ADMIN_TENANT_ID; dry-run, missing staging URL, missing admin auth, or missing smoke admin IDs remain blocked and cannot close the object-storage gate",
+      "runtime_status": "requires real staging admin probes for retention policy, expired export cleanup, orphan cleanup, and audit refs; latest execution wrote blocked evidence because STAGING_BASE_URL or explicit retention/audit probe URLs were missing; passing evidence also requires staging admin auth plus SMOKE_ADMIN_USER_ID and SMOKE_ADMIN_TENANT_ID, per-probe request IDs, expected-token matches, non-empty response bodies, matching signed URL release SHA, and canonical pass paths; dry-run, missing staging URL, missing admin auth, missing smoke admin IDs, release SHA mismatch, or non-canonical pass reports remain blocked and cannot close the object-storage gate",
       "private_beta_gate": "open until ops/evidence/staging/object-storage-retention-cleanup.json passes with release_gate_check_id=staging_object_storage_signed_downloads and can_clear_release_gate_check=true"
     },
     "staging_legal_support_visibility_smoke": {

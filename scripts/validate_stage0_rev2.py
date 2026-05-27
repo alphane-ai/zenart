@@ -6626,6 +6626,10 @@ def validate_staging_object_storage_retention_cleanup_evidence() -> None:
             "blocked retention cleanup evidence must preserve the passing signed URL split",
         )
         require(
+            blocked_evidence["split_evidence"]["canonical_pass_paths"] is False,
+            "blocked retention cleanup evidence must not claim canonical pass paths",
+        )
+        require(
             blocked_evidence["gate_impact"]["can_clear_release_gate_check"] is False,
             "blocked retention cleanup evidence must not clear the object-storage release gate",
         )
@@ -6639,6 +6643,14 @@ def validate_staging_object_storage_retention_cleanup_evidence() -> None:
             == "object_storage_signed_retention_runtime_missing",
             "blocked retention cleanup evidence must preserve the object-storage Do-Not-Launch condition",
         )
+        for item in blocked_evidence["coverage"]:
+            require(
+                "release_sha_bound" in item
+                and "admin_identity_bound" in item
+                and "request_ids" in item
+                and "response_bytes" in item,
+                "blocked retention cleanup coverage must expose release/admin/request/response evidence fields",
+            )
         return
 
     evidence = load_json(STAGING_OBJECT_STORAGE_RETENTION_EVIDENCE)
@@ -6675,6 +6687,10 @@ def validate_staging_object_storage_retention_cleanup_evidence() -> None:
     require(
         evidence["results_path"] == "ops/evidence/staging/object-storage-retention-cleanup.ndjson",
         "object-storage retention cleanup evidence must cite the canonical staging NDJSON results path",
+    )
+    require(
+        evidence["split_evidence"]["canonical_pass_paths"] is True,
+        "passing object-storage retention cleanup evidence must use canonical pass paths",
     )
     require(
         evidence.get("blocked_checks") == [],
@@ -6717,6 +6733,15 @@ def validate_staging_object_storage_retention_cleanup_evidence() -> None:
             all(result["status"] == "passed" for result in item["source_results"]),
             f"{area} retention cleanup source probes must pass",
         )
+        require(item["release_sha_bound"] is True, f"{area} retention cleanup evidence must be release-SHA-bound")
+        require(item["admin_identity_bound"] is True, f"{area} retention cleanup evidence must bind admin identity")
+        require(item["request_ids"], f"{area} retention cleanup evidence must record request IDs")
+        require(item["response_bytes"] > 0, f"{area} retention cleanup evidence must record non-empty responses")
+        for result in item["source_results"]:
+            require(not result["missing_tokens"], f"{area} retention cleanup source probe has missing tokens")
+            require(result["matched_tokens"], f"{area} retention cleanup source probe must record matched tokens")
+            require(result["request_id"], f"{area} retention cleanup source probe must record request_id")
+            require(result["response_bytes"] > 0, f"{area} retention cleanup source probe must record response bytes")
         combined = json.dumps(item, ensure_ascii=False).lower()
         for token in ["staging", "release-sha-bound", "admin", "audit"]:
             require(token in combined, f"{area} retention cleanup coverage missing {token}")
@@ -9906,7 +9931,12 @@ def validate_ops_ci_and_drill_evidence() -> None:
         and "audit refs" in object_storage_retention.get("runtime_status", "")
         and "staging admin auth" in object_storage_retention.get("runtime_status", "")
         and "SMOKE_ADMIN_USER_ID" in object_storage_retention.get("runtime_status", "")
+        and "per-probe request IDs" in object_storage_retention.get("runtime_status", "")
+        and "expected-token matches" in object_storage_retention.get("runtime_status", "")
+        and "canonical pass paths" in object_storage_retention.get("runtime_status", "")
         and "dry-run, missing staging URL, missing admin auth, or missing smoke admin IDs remain blocked"
+        not in object_storage_retention.get("runtime_status", "")
+        and "dry-run, missing staging URL, missing admin auth, missing smoke admin IDs, release SHA mismatch, or non-canonical pass reports remain blocked"
         in object_storage_retention.get("runtime_status", ""),
         "release ops evidence must record object-storage retention cleanup runtime requirements",
     )

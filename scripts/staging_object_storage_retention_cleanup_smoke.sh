@@ -57,17 +57,44 @@ append_result() {
   local http_status="$6"
   local reason="$7"
   local body_path="$8"
-  python3 - "$RESULTS_PATH" "$check_id" "$method" "$url" "$expected_tokens" "$status" "$http_status" "$reason" "$body_path" <<'PY'
+  local request_id="$9"
+  python3 - "$RESULTS_PATH" "$check_id" "$method" "$url" "$expected_tokens" "$status" "$http_status" "$reason" "$body_path" "$request_id" "$REQUEST_ID_HEADER" <<'PY'
 import json
 import sys
+from pathlib import Path
 
-result_path, check_id, method, url, expected_tokens, status, http_status, reason, body_path = sys.argv[1:]
+(
+    result_path,
+    check_id,
+    method,
+    url,
+    expected_tokens,
+    status,
+    http_status,
+    reason,
+    body_path,
+    request_id,
+    request_id_header,
+) = sys.argv[1:]
+tokens = [token.strip() for token in expected_tokens.split(",") if token.strip()]
+body = ""
+if body_path:
+    path = Path(body_path)
+    if path.exists() and path.is_file():
+        body = path.read_text(encoding="utf-8", errors="replace")
+matched_tokens = [token for token in tokens if token.lower() in body.lower()]
+missing_tokens = [token for token in tokens if token.lower() not in body.lower()]
 with open(result_path, "a", encoding="utf-8") as fh:
     fh.write(json.dumps({
         "check_id": check_id,
         "method": method,
         "url": url,
-        "expected_tokens": [token.strip() for token in expected_tokens.split(",") if token.strip()],
+        "request_id_header": request_id_header,
+        "request_id": request_id,
+        "expected_tokens": tokens,
+        "matched_tokens": matched_tokens,
+        "missing_tokens": missing_tokens,
+        "response_bytes": len(body.encode("utf-8")),
         "status": status,
         "http_status": int(http_status) if http_status.isdigit() else None,
         "reason": reason,
@@ -82,13 +109,14 @@ run_probe() {
   local url="$3"
   local expected_tokens="$4"
   local body_file="$OUT_DIR/$RUN_ID.$check_id.body"
+  local request_id="$REQUEST_ID_VALUE-$check_id"
   local curl_args=(
     --silent
     --show-error
     --location
     --max-time "$TIMEOUT_SECONDS"
     --request "$method"
-    --header "$REQUEST_ID_HEADER: $REQUEST_ID_VALUE-$check_id"
+    --header "$REQUEST_ID_HEADER: $request_id"
     --output "$body_file"
     --write-out "%{http_code}"
   )
@@ -105,7 +133,7 @@ run_probe() {
   local http_status
   http_status="$(curl "${curl_args[@]}" "$url" || true)"
   if [[ "$http_status" != "200" && "$http_status" != "202" ]]; then
-    append_result "$check_id" "$method" "$url" "$expected_tokens" "failed" "$http_status" "unexpected_http_status" "$body_file"
+    append_result "$check_id" "$method" "$url" "$expected_tokens" "failed" "$http_status" "unexpected_http_status" "$body_file" "$request_id"
     return
   fi
 
@@ -118,37 +146,37 @@ run_probe() {
     fi
   done
   if [[ "${#missing[@]}" -gt 0 ]]; then
-    append_result "$check_id" "$method" "$url" "$expected_tokens" "failed" "$http_status" "missing_tokens:${missing[*]}" "$body_file"
+    append_result "$check_id" "$method" "$url" "$expected_tokens" "failed" "$http_status" "missing_tokens:${missing[*]}" "$body_file" "$request_id"
   else
-    append_result "$check_id" "$method" "$url" "$expected_tokens" "passed" "$http_status" "ok" "$body_file"
+    append_result "$check_id" "$method" "$url" "$expected_tokens" "passed" "$http_status" "ok" "$body_file" "$request_id"
   fi
 }
 
 if [[ "$DRY_RUN" == "1" ]]; then
   for check in "${CHECKS[@]}"; do
     IFS='|' read -r check_id method url expected_tokens <<<"$check"
-    append_result "$check_id" "$method" "$url" "$expected_tokens" "planned" "" "dry_run_no_staging_runtime_probe" ""
+    append_result "$check_id" "$method" "$url" "$expected_tokens" "planned" "" "dry_run_no_staging_runtime_probe" "" "$REQUEST_ID_VALUE-$check_id"
   done
 elif [[ -z "$BASE_URL" && -z "$RETENTION_POLICY_URL$EXPIRED_EXPORT_CLEANUP_URL$ORPHAN_CLEANUP_URL$AUDIT_REFS_URL" ]]; then
   for check in "${CHECKS[@]}"; do
     IFS='|' read -r check_id method url expected_tokens <<<"$check"
-    append_result "$check_id" "$method" "$url" "$expected_tokens" "blocked" "" "missing_staging_base_url_or_explicit_probe_urls" ""
+    append_result "$check_id" "$method" "$url" "$expected_tokens" "blocked" "" "missing_staging_base_url_or_explicit_probe_urls" "" "$REQUEST_ID_VALUE-$check_id"
   done
 elif [[ "$AUTH_READY" != "1" ]]; then
   for check in "${CHECKS[@]}"; do
     IFS='|' read -r check_id method url expected_tokens <<<"$check"
-    append_result "$check_id" "$method" "$url" "$expected_tokens" "blocked" "" "missing_admin_auth" ""
+    append_result "$check_id" "$method" "$url" "$expected_tokens" "blocked" "" "missing_admin_auth" "" "$REQUEST_ID_VALUE-$check_id"
   done
 elif [[ -z "$SMOKE_ADMIN_USER_ID" || -z "$SMOKE_ADMIN_TENANT_ID" ]]; then
   for check in "${CHECKS[@]}"; do
     IFS='|' read -r check_id method url expected_tokens <<<"$check"
-    append_result "$check_id" "$method" "$url" "$expected_tokens" "blocked" "" "missing_smoke_admin_user_or_tenant_id" ""
+    append_result "$check_id" "$method" "$url" "$expected_tokens" "blocked" "" "missing_smoke_admin_user_or_tenant_id" "" "$REQUEST_ID_VALUE-$check_id"
   done
 else
   for check in "${CHECKS[@]}"; do
     IFS='|' read -r check_id method url expected_tokens <<<"$check"
     if [[ -z "$url" ]]; then
-      append_result "$check_id" "$method" "$url" "$expected_tokens" "blocked" "" "missing_probe_url" ""
+      append_result "$check_id" "$method" "$url" "$expected_tokens" "blocked" "" "missing_probe_url" "" "$REQUEST_ID_VALUE-$check_id"
     else
       run_probe "$check_id" "$method" "$url" "$expected_tokens"
     fi
@@ -183,11 +211,35 @@ required = {
     "audit_refs",
 }
 passed = {item["check_id"] for item in results if item["status"] == "passed"}
+observed = {item["check_id"] for item in results}
+missing_required_results = sorted(required - observed)
+unexpected_results = sorted(observed - required)
 blocked_or_failed = [
     f"{item['check_id']}:{item['reason']}"
     for item in results
     if item["status"] != "passed"
 ]
+token_blockers = [
+    f"{item['check_id']}:missing_expected_tokens:{','.join(item.get('missing_tokens', []))}"
+    for item in results
+    if item["status"] == "passed" and item.get("missing_tokens")
+]
+empty_response_blockers = [
+    f"{item['check_id']}:empty_runtime_response_body"
+    for item in results
+    if item["status"] == "passed" and int(item.get("response_bytes") or 0) <= 0
+]
+request_id_blockers = [
+    f"{item['check_id']}:missing_request_id"
+    for item in results
+    if item["status"] == "passed" and not item.get("request_id")
+]
+shape_blockers = [f"missing_required_result:{item}" for item in missing_required_results]
+shape_blockers.extend(f"unexpected_result:{item}" for item in unexpected_results)
+blocked_or_failed.extend(token_blockers)
+blocked_or_failed.extend(empty_response_blockers)
+blocked_or_failed.extend(request_id_blockers)
+blocked_or_failed.extend(shape_blockers)
 runtime_checks_passed = required <= passed and not blocked_or_failed
 canonical_report_path = Path("ops/evidence/staging/object-storage-retention-cleanup.json")
 canonical_results_path = Path("ops/evidence/staging/object-storage-retention-cleanup.ndjson")
@@ -228,6 +280,11 @@ blocked_or_failed = blocked_or_failed + release_binding_blockers
 all_passed = runtime_checks_passed and signed_url_ready and release_sha_matches_signed_url
 all_passed = all_passed and auth_ready and bool(admin_user_id) and bool(admin_tenant_id)
 can_clear_release_gate_check = all_passed
+pass_file_policy_ok = report_path == canonical_report_path and results_path == canonical_results_path
+if all_passed and not pass_file_policy_ok:
+    blocked_or_failed.append("canonical_pass_paths_required_for_gate_closure")
+    all_passed = False
+    can_clear_release_gate_check = False
 
 if not all_passed and report_path == canonical_report_path:
     blocked_report_path = report_path.with_name("object-storage-retention-cleanup.blocked.json")
@@ -238,6 +295,7 @@ if not all_passed and report_path == canonical_report_path:
             results_path.unlink()
     report_path = blocked_report_path
     results_path = blocked_results_path
+canonical_pass_paths = all_passed and report_path == canonical_report_path and results_path == canonical_results_path
 
 coverage = []
 for area, tokens in {
@@ -259,6 +317,14 @@ for area, tokens in {
         "evidence_path_policy": "ops/evidence/staging/",
         "evidence_refs": [str(results_path), str(report_path)],
         "expected_tokens": tokens,
+        "release_sha_bound": bool(release_sha_matches_signed_url),
+        "admin_identity_bound": bool(auth_ready and admin_user_id and admin_tenant_id),
+        "request_ids": [
+            item.get("request_id", "")
+            for item in related
+            if item.get("request_id")
+        ],
+        "response_bytes": sum(int(item.get("response_bytes") or 0) for item in related),
         "source_results": related,
     })
 
@@ -294,6 +360,10 @@ runtime_input_requirements = {
     "canonical_pass_report": str(canonical_report_path),
     "canonical_pass_results": str(canonical_results_path),
 }
+runtime_input_requirements["pass_file_policy"] = (
+    "canonical pass paths require passing evidence to be written to ops/evidence/staging/object-storage-retention-cleanup.json "
+    "and ops/evidence/staging/object-storage-retention-cleanup.ndjson; non-canonical paths are validation-only."
+)
 if not base_url:
     runtime_input_requirements["blocked_input_reason"] = "missing STAGING_BASE_URL; set explicit probe URL env vars if routes differ"
 elif not auth_ready:
@@ -328,6 +398,7 @@ report = {
         "release_sha_matches_signed_url": release_sha_matches_signed_url,
         "retention_cleanup_runtime_ready": runtime_checks_passed,
         "retention_cleanup_ready": all_passed,
+        "canonical_pass_paths": canonical_pass_paths,
     },
     "required_checks": sorted(required),
     "runtime_input_requirements": runtime_input_requirements,
