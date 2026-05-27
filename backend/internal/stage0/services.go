@@ -11,6 +11,7 @@ import (
 	"io"
 	"net"
 	"net/url"
+	"regexp"
 	"strings"
 	"time"
 
@@ -43,6 +44,8 @@ var (
 	ErrCrawlerBlocked    = errors.New("crawler runtime policy blocked")
 	ErrMissingRepository = errors.New("stage0 repository missing")
 )
+
+var cleanupTenantIDPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]*$`)
 
 const (
 	SafetyPointBrief            = "brief"
@@ -1011,16 +1014,35 @@ func (o CleanupObject) normalized() (CleanupObject, error) {
 	object := CleanupObject{
 		ID:       strings.TrimSpace(o.ID),
 		TenantID: strings.TrimSpace(o.TenantID),
-		Key:      strings.TrimSpace(o.Key),
+		Key:      strings.Trim(strings.TrimSpace(o.Key), "/"),
 	}
 	if object.ID == "" || object.TenantID == "" || object.Key == "" {
 		return CleanupObject{}, errors.Join(ErrValidation, errors.New("cleanup object id, tenant_id, and object_key are required"))
 	}
-	expectedPrefix := "tenants/" + strings.Trim(object.TenantID, "/") + "/"
+	if object.TenantID != strings.Trim(object.TenantID, "/") ||
+		strings.ContainsAny(object.TenantID, `/\`) ||
+		object.TenantID == "." ||
+		object.TenantID == ".." ||
+		!cleanupTenantIDPattern.MatchString(object.TenantID) {
+		return CleanupObject{}, errors.Join(ErrValidation, errors.New("cleanup tenant_id is invalid"))
+	}
+	if strings.Contains(object.Key, "\\") || cleanupKeyHasUnsafeSegment(object.Key) {
+		return CleanupObject{}, errors.Join(ErrValidation, errors.New("cleanup object key is invalid"))
+	}
+	expectedPrefix := "tenants/" + object.TenantID + "/"
 	if !strings.HasPrefix(object.Key, expectedPrefix) {
 		return CleanupObject{}, errors.Join(ErrValidation, errors.New("cleanup object key must match tenant scope"))
 	}
 	return object, nil
+}
+
+func cleanupKeyHasUnsafeSegment(key string) bool {
+	for _, segment := range strings.Split(key, "/") {
+		if segment == "" || segment == "." || segment == ".." {
+			return true
+		}
+	}
+	return false
 }
 
 func (r Repository) ListCleanupObjects(ctx context.Context, now time.Time, limit int) ([]CleanupObject, error) {

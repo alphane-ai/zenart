@@ -1170,6 +1170,57 @@ func TestListCleanupObjectsRejectsCrossTenantScopedKeys(t *testing.T) {
 	}
 }
 
+func TestListCleanupObjectsRejectsUnsafeScopedKeys(t *testing.T) {
+	now := time.Date(2026, 5, 26, 12, 0, 0, 0, time.UTC)
+	for _, row := range []struct {
+		name     string
+		tenantID string
+		key      string
+	}{
+		{
+			name:     "path traversal",
+			tenantID: "tenant_1",
+			key:      "tenants/tenant_1/exports/../escape.zip",
+		},
+		{
+			name:     "empty segment",
+			tenantID: "tenant_1",
+			key:      "tenants/tenant_1/exports//escape.zip",
+		},
+		{
+			name:     "backslash",
+			tenantID: "tenant_1",
+			key:      `tenants/tenant_1/exports\escape.zip`,
+		},
+		{
+			name:     "unsafe tenant",
+			tenantID: "tenant_1/../tenant_2",
+			key:      "tenants/tenant_1/../tenant_2/exports/escape.zip",
+		},
+		{
+			name:     "space tenant",
+			tenantID: "tenant 1",
+			key:      "tenants/tenant 1/exports/escape.zip",
+		},
+	} {
+		t.Run(row.name, func(t *testing.T) {
+			db := &fakeDB{queryRows: []rowSet{{
+				rows: [][]any{{
+					"object_1",
+					row.tenantID,
+					row.key,
+				}},
+			}}}
+			repo := NewRepository(db)
+
+			_, err := repo.ListCleanupObjects(context.Background(), now, 25)
+			if !errors.Is(err, ErrValidation) {
+				t.Fatalf("ListCleanupObjects() error = %v, want ErrValidation", err)
+			}
+		})
+	}
+}
+
 func TestMarkCleanupObjectsDeleted(t *testing.T) {
 	now := time.Date(2026, 5, 26, 12, 0, 0, 0, time.UTC)
 	db := &fakeDB{execTags: []pgconn.CommandTag{pgconn.NewCommandTag("UPDATE 2")}}
@@ -1233,6 +1284,28 @@ func TestMarkCleanupObjectsDeletedRejectsCrossTenantScopedKeys(t *testing.T) {
 	}
 	if len(db.execs) != 0 {
 		t.Fatalf("invalid cleanup object should not write rows: %#v", db.execs)
+	}
+}
+
+func TestMarkCleanupObjectsDeletedRejectsUnsafeScopedKeys(t *testing.T) {
+	now := time.Date(2026, 5, 26, 12, 0, 0, 0, time.UTC)
+	for _, object := range []CleanupObject{
+		{ID: "object_1", TenantID: "tenant_1", Key: "tenants/tenant_1/exports/../escape.zip"},
+		{ID: "object_1", TenantID: "tenant_1", Key: "tenants/tenant_1/exports//escape.zip"},
+		{ID: "object_1", TenantID: "tenant_1", Key: `tenants/tenant_1/exports\escape.zip`},
+		{ID: "object_1", TenantID: "tenant_1/../tenant_2", Key: "tenants/tenant_1/../tenant_2/exports/escape.zip"},
+		{ID: "object_1", TenantID: "tenant 1", Key: "tenants/tenant 1/exports/escape.zip"},
+	} {
+		db := &fakeDB{}
+		repo := NewRepository(db)
+
+		_, err := repo.MarkCleanupObjectsDeleted(context.Background(), []CleanupObject{object}, now)
+		if !errors.Is(err, ErrValidation) {
+			t.Fatalf("MarkCleanupObjectsDeleted(%#v) error = %v, want ErrValidation", object, err)
+		}
+		if len(db.execs) != 0 {
+			t.Fatalf("invalid cleanup object should not write rows: %#v", db.execs)
+		}
 	}
 }
 
