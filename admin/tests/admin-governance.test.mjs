@@ -1081,6 +1081,65 @@ test("failed task runtime submit gates preserve retry, cancel, hold, RBAC, and a
     unstableRetry[0].blockerCodes.includes("idempotency_key_unstable"),
     "unstable retry idempotency must expose a blocker code"
   );
+
+  const exhaustedRetry = buildFailedTaskRuntimeDecisions([
+    {
+      ...failedTaskControls.find((task) => task.id === "task-export-489"),
+      retryCount: 3,
+      maxRetries: 3
+    }
+  ])[0];
+  assert.equal(exhaustedRetry.retryBudgetStatus, "exhausted", "retry at max attempts must exhaust budget");
+  assert.equal(exhaustedRetry.submitDecision, "blocked", "exhausted retry budget must block submission");
+  assert.ok(
+    exhaustedRetry.blockerCodes.includes("retry_budget_exhausted"),
+    "exhausted retry budget must expose a blocker code"
+  );
+  assert.match(
+    exhaustedRetry.submitDisabledReason,
+    /retry_budget_exhausted/,
+    "exhausted retry budget must be visible in disabled reason"
+  );
+
+  const incompleteClosureCancel = buildFailedTaskRuntimeDecisions([
+    {
+      ...failedTaskControls.find((task) => task.id === "task-crawler-019"),
+      rbacDecision: "allowed",
+      actionEligibility: "eligible",
+      closureEvidenceRefs: ["task-crawler-019", "sup-2212", "au-002"]
+    }
+  ])[0];
+  assert.equal(
+    incompleteClosureCancel.closureEvidenceStatus,
+    "incomplete",
+    "cancel without enough evidence refs must expose incomplete closure evidence"
+  );
+  assert.equal(
+    incompleteClosureCancel.submitDecision,
+    "blocked",
+    "cancel cannot submit without complete closure evidence"
+  );
+  assert.ok(
+    incompleteClosureCancel.blockerCodes.includes("closure_evidence_incomplete"),
+    "incomplete closure evidence must expose a blocker code"
+  );
+
+  const missingUserMessageRetry = buildFailedTaskRuntimeDecisions([
+    {
+      ...failedTaskControls.find((task) => task.id === "task-export-489"),
+      userMessage: "   "
+    }
+  ])[0];
+  assert.equal(missingUserMessageRetry.userMessageStatus, "missing", "blank user message must be detected");
+  assert.equal(
+    missingUserMessageRetry.submitDecision,
+    "blocked",
+    "retry cannot submit without user-visible messaging"
+  );
+  assert.ok(
+    missingUserMessageRetry.blockerCodes.includes("user_message_missing"),
+    "missing user message must expose a blocker code"
+  );
 });
 
 test("staging support retry abuse evidence validates external-user support, retry, hold, and audit paths", () => {

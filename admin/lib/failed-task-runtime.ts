@@ -52,10 +52,16 @@ export function buildFailedTaskRuntimeDecisions(tasks: FailedTaskControl[]): Fai
       blockerCodes.push("idempotency_key_unstable");
     }
 
+    const hardBlockers = new Set([
+      "action_blocked",
+      "retry_budget_exhausted",
+      "rbac_denied",
+      "closure_evidence_incomplete",
+      "user_message_missing",
+      "idempotency_key_unstable"
+    ]);
     const submitDecision =
-      blockerCodes.includes("action_blocked") ||
-      blockerCodes.includes("rbac_denied") ||
-      blockerCodes.includes("idempotency_key_unstable")
+      blockerCodes.some((code) => hardBlockers.has(code))
         ? "blocked"
         : task.actionEligibility === "requires_review" || task.rbacDecision === "second_review_required"
           ? "review_required"
