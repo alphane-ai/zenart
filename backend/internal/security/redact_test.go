@@ -254,10 +254,10 @@ func TestRedactStringCoversEmbeddedSignedURLsAndRegistryTokens(t *testing.T) {
 
 func TestRedactStringCoversS3CompatibleAndCDNSignedURLs(t *testing.T) {
 	input := strings.Join([]string{
-		"https://oss.example.test/export.zip?OSSAccessKeyId=oss-access&X-OSS-Signature=oss-signature&X-OSS-Security-Token=oss-token",
-		"https://cos.example.test/export.zip?X-Cos-Signature=cos-signature&X-Cos-Security-Token=cos-token",
+		"https://oss.example.test/export.zip?OSSAccessKeyId=oss-access&X-OSS-Signature=oss-signature&X-OSS-Security-Token=oss-token&X-OSS-Credential=oss-credential&X-OSS-Date=20260527T120000Z&X-OSS-Expires=900&security-token=oss-security-token",
+		"https://cos.example.test/export.zip?q-sign-algorithm=sha1&q-ak=cos-access-key&q-sign-time=1770000000;1770000900&q-key-time=1770000000;1770000900&q-header-list=host&q-url-param-list=ci-process&q-signature=cos-signature&X-Cos-Security-Token=cos-token",
 		"https://cdn.example.test/export.zip?CloudFront-Signature=cf-signature&CloudFront-Policy=cf-policy&CloudFront-Key-Pair-Id=cf-keypair",
-		"https://b2.example.test/export.zip?X-Bz-Info-Authorization=b2-authorization",
+		"https://b2.example.test/export.zip?X-Bz-Info-Authorization=b2-authorization&Authorization=b2-download-token&AccessKeyId=b2-key-id&X-Bz-Security-Token=b2-security-token",
 	}, " ")
 
 	got := RedactString(input)
@@ -265,12 +265,19 @@ func TestRedactStringCoversS3CompatibleAndCDNSignedURLs(t *testing.T) {
 		"oss-access",
 		"oss-signature",
 		"oss-token",
-		"cos-signature",
+		"oss-credential",
+		"oss-security-token",
+		"cos-access-key",
+		"1770000000;1770000900",
 		"cos-token",
+		"cos-signature",
 		"cf-signature",
 		"cf-policy",
 		"cf-keypair",
 		"b2-authorization",
+		"b2-download-token",
+		"b2-key-id",
+		"b2-security-token",
 	} {
 		if strings.Contains(got, leaked) {
 			t.Fatalf("RedactString() = %q, leaked %s", got, leaked)
@@ -279,9 +286,14 @@ func TestRedactStringCoversS3CompatibleAndCDNSignedURLs(t *testing.T) {
 	for _, fragment := range []string{
 		"OSSAccessKeyId=",
 		"X-OSS-Signature=",
-		"X-Cos-Signature=",
+		"X-OSS-Credential=",
+		"security-token=",
+		"q-ak=",
+		"q-signature=",
 		"CloudFront-Signature=",
 		"X-Bz-Info-Authorization=",
+		"Authorization=",
+		"AccessKeyId=",
 		Redacted,
 	} {
 		if !strings.Contains(got, fragment) {
@@ -852,11 +864,27 @@ func TestRedactValueCoversStructuredSignedURLMetadataMaps(t *testing.T) {
 			"response-content-type": "application/zip",
 		},
 		"azure": map[string][]any{
-			"sv":   []any{"2024-01-01"},
-			"se":   []any{"2026-05-27T13:00:00Z"},
-			"sp":   []any{"r"},
-			"sig":  []any{"azure-signature"},
-			"rsct": []any{"application/zip"},
+			"sv":    []any{"2024-01-01"},
+			"se":    []any{"2026-05-27T13:00:00Z"},
+			"sp":    []any{"r"},
+			"sip":   []any{"203.0.113.10"},
+			"si":    []any{"stored-policy-id"},
+			"ses":   []any{"encryption-scope"},
+			"saoid": []any{"signed-authorized-object-id"},
+			"suoid": []any{"signed-unauthorized-object-id"},
+			"scid":  []any{"signed-correlation-id"},
+			"sig":   []any{"azure-signature"},
+			"rsct":  []any{"application/zip"},
+		},
+		"cos": map[string]string{
+			"q-sign-algorithm":      "sha1",
+			"q-ak":                  "cos-access-key",
+			"q-sign-time":           "1770000000;1770000900",
+			"q-key-time":            "1770000000;1770000900",
+			"q-header-list":         "host",
+			"q-url-param-list":      "ci-process",
+			"q-signature":           "cos-signature",
+			"response-content-type": "application/zip",
 		},
 		"public": map[string]any{
 			"expires": "visible-business-expiry",
@@ -878,7 +906,16 @@ func TestRedactValueCoversStructuredSignedURLMetadataMaps(t *testing.T) {
 		"googabcdef",
 		"2024-01-01",
 		"2026-05-27T13:00:00Z",
+		"203.0.113.10",
+		"stored-policy-id",
+		"encryption-scope",
+		"signed-authorized-object-id",
+		"signed-unauthorized-object-id",
+		"signed-correlation-id",
 		"azure-signature",
+		"cos-access-key",
+		"1770000000;1770000900",
+		"cos-signature",
 	} {
 		if strings.Contains(string(body), leaked) {
 			t.Fatalf("redacted structured signed URL metadata = %s, leaked %s", string(body), leaked)
@@ -907,7 +944,16 @@ func TestRedactValueCoversStructuredSignedURLMetadataMaps(t *testing.T) {
 		"azure.sv",
 		"azure.se",
 		"azure.sp",
+		"azure.sip",
+		"azure.si",
+		"azure.ses",
+		"azure.saoid",
+		"azure.suoid",
+		"azure.scid",
 		"azure.sig",
+		"cos.q-sign-algorithm",
+		"cos.q-ak",
+		"cos.q-signature",
 	} {
 		assertFinding(t, findings, SecretKindSignedURL, location)
 	}

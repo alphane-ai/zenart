@@ -1890,6 +1890,7 @@ main 合并前必须通过：
 - [x] 实现 secret redaction。
 - [x] 扩展 export/support/crawler/audit secret redaction 覆盖 S3-compatible、OSS/COS、CloudFront、B2 signed URL 查询字段。
 - [x] 扩展结构化签名 URL metadata redaction/classification，覆盖 S3/GCS/Azure/CloudFront 分拆字段并保留非签名 public response override 字段。
+- [x] 扩展 launch storage secret redaction 覆盖 OSS V4、Tencent COS `q-*`、B2 authorization/access key、Azure SAS IP/policy/encryption/delegation 字段的字符串和结构化 metadata。
 - [x] 硬化 malware scan 外部边界：scanner request/response metadata redaction、status normalization、unsupported status fail-closed tests。
 - [x] 添加 dependency/image/secret scans。
 - [x] 添加 Privacy notice。

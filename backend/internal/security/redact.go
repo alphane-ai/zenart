@@ -800,11 +800,16 @@ func isSignedURLQueryKey(key string) bool {
 		"x-amz-copy-source-server-side-encryption-customer-key", "x-amz-copy-source-server-side-encryption-customer-key-md5",
 		"x-goog-credential", "x-goog-signature", "x-goog-security-token",
 		"x-goog-algorithm", "x-goog-date", "x-goog-expires", "x-goog-signedheaders",
-		"googleaccessid", "x-oss-signature", "x-oss-security-token", "ossaccesskeyid",
-		"x-cos-signature", "x-cos-security-token", "x-bz-info-authorization",
+		"googleaccessid", "x-oss-signature", "x-oss-security-token", "x-oss-credential",
+		"x-oss-date", "x-oss-expires", "x-oss-signature-version", "x-oss-additional-headers",
+		"ossaccesskeyid", "security-token",
+		"x-cos-signature", "x-cos-security-token", "q-sign-algorithm", "q-ak", "q-sign-time",
+		"q-key-time", "q-header-list", "q-url-param-list", "q-signature",
+		"x-bz-info-authorization", "x-bz-security-token", "authorization", "accesskeyid",
 		"awsaccesskeyid", "signature", "sig", "token", "access-token", "download-token", "oauth-token",
 		"expires", "policy", "key-pair-id", "cloudfront-signature", "cloudfront-policy", "cloudfront-key-pair-id",
-		"se", "sp", "spr", "sr", "sv", "skoid", "sktid", "skt", "ske", "sks", "skv":
+		"se", "sp", "sip", "spr", "sr", "sv", "si", "ses", "sdd", "saoid", "suoid", "scid",
+		"skoid", "sktid", "skt", "ske", "sks", "skv":
 		return true
 	default:
 		return false
@@ -830,12 +835,16 @@ func isSignedURLContextKey(key string) bool {
 		strings.HasPrefix(normalized, "x-goog-") ||
 		strings.HasPrefix(normalized, "x-oss-") ||
 		strings.HasPrefix(normalized, "x-cos-") ||
+		strings.HasPrefix(normalized, "q-") ||
 		strings.HasPrefix(normalized, "x-bz-") ||
 		strings.HasPrefix(normalized, "cloudfront-") {
 		return true
 	}
+	if isAzureSASKey(normalized) {
+		return true
+	}
 	switch normalized {
-	case "awsaccesskeyid", "googleaccessid", "ossaccesskeyid", "signature", "sig":
+	case "awsaccesskeyid", "googleaccessid", "ossaccesskeyid", "signature", "sig", "security-token", "accesskeyid":
 		return true
 	default:
 		return false
@@ -853,9 +862,23 @@ func isStructuredSignedURLSecretKey(key string) bool {
 		"x-amz-copy-source-server-side-encryption-customer-key-md5",
 		"x-goog-algorithm", "x-goog-credential", "x-goog-signature", "x-goog-security-token",
 		"x-goog-date", "x-goog-expires", "x-goog-signedheaders",
-		"googleaccessid", "x-oss-signature", "x-oss-security-token", "ossaccesskeyid",
-		"x-cos-signature", "x-cos-security-token", "x-bz-info-authorization",
+		"googleaccessid", "x-oss-signature", "x-oss-security-token", "x-oss-credential",
+		"x-oss-date", "x-oss-expires", "x-oss-signature-version", "x-oss-additional-headers",
+		"ossaccesskeyid", "security-token",
+		"x-cos-signature", "x-cos-security-token", "q-sign-algorithm", "q-ak", "q-sign-time",
+		"q-key-time", "q-header-list", "q-url-param-list", "q-signature",
+		"x-bz-info-authorization", "x-bz-security-token", "authorization", "accesskeyid",
 		"awsaccesskeyid", "cloudfront-signature", "cloudfront-policy", "cloudfront-key-pair-id":
+		return true
+	default:
+		return isAzureSASKey(normalized)
+	}
+}
+
+func isAzureSASKey(normalized string) bool {
+	switch normalized {
+	case "se", "sp", "sip", "spr", "sr", "sv", "si", "ses", "sdd", "saoid", "suoid", "scid",
+		"skoid", "sktid", "skt", "ske", "sks", "skv":
 		return true
 	default:
 		return false
