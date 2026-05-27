@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -27,7 +29,7 @@ func (s *fakeCleanupService) CleanupExpiredExportsAndOrphanedObjects(_ context.C
 		return stage0.CleanupResult{}, context.Canceled
 	}
 	if s.err != nil {
-		return stage0.CleanupResult{}, s.err
+		return s.result, s.err
 	}
 	return s.result, nil
 }
@@ -112,6 +114,69 @@ func TestRunCleanupOnceRecordsFailureMetric(t *testing.T) {
 		if !strings.Contains(body, fragment) {
 			t.Fatalf("metrics body = %s, missing %s", body, fragment)
 		}
+	}
+}
+
+func TestRunCleanupOnceRecordsPartialFailureEvidence(t *testing.T) {
+	service := &fakeCleanupService{
+		result: stage0.CleanupResult{
+			ExpiredExports:  1,
+			OrphanedObjects: 2,
+			DeletedObjects:  3,
+			FailedObjects:   1,
+			Status:          "partial_failed",
+		},
+		err: errors.New("s3 delete failed token=npm_abcdefghijklmnopqrstuvwxyz123456"),
+	}
+	var logs bytes.Buffer
+	logger := slog.New(slog.NewJSONHandler(&logs, nil))
+	metrics := worker.NewMetrics()
+
+	runCleanupOnce(context.Background(), service, logger, metrics, time.Second, 25)
+
+	body := renderWorkerMetrics(t, metrics)
+	for _, fragment := range []string{
+		"worker_cleanup_runs_total 1",
+		"worker_cleanup_failures_total 1",
+		"worker_cleanup_expired_exports_total 1",
+		"worker_cleanup_orphaned_objects_total 2",
+		"worker_cleanup_deleted_objects_total 3",
+		"worker_cleanup_failed_objects_total 1",
+	} {
+		if !strings.Contains(body, fragment) {
+			t.Fatalf("metrics body = %s, missing %s", body, fragment)
+		}
+	}
+	line := logs.String()
+	for _, fragment := range []string{
+		`"msg":"export object cleanup failed"`,
+		`"expired_exports":1`,
+		`"orphaned_objects":2`,
+		`"deleted_objects":3`,
+		`"failed_objects":1`,
+		`"cleanup_status":"partial_failed"`,
+	} {
+		if !strings.Contains(line, fragment) {
+			t.Fatalf("cleanup log = %s, missing %s", line, fragment)
+		}
+	}
+	if strings.Contains(line, "npm_abcdefghijklmnopqrstuvwxyz123456") {
+		t.Fatalf("cleanup log = %s, leaked secret token", line)
+	}
+	if !strings.Contains(line, "[REDACTED]") {
+		t.Fatalf("cleanup log = %s, want redaction marker", line)
+	}
+}
+
+func TestCleanupStatusFallsBackForErroredRuns(t *testing.T) {
+	if got := cleanupStatus(stage0.CleanupResult{Status: "partial_failed"}); got != "partial_failed" {
+		t.Fatalf("cleanupStatus() = %q, want partial_failed", got)
+	}
+	if got := cleanupStatus(stage0.CleanupResult{FailedObjects: 1}); got != "partial_failed" {
+		t.Fatalf("cleanupStatus() = %q, want partial_failed", got)
+	}
+	if got := cleanupStatus(stage0.CleanupResult{}); got != "failed" {
+		t.Fatalf("cleanupStatus() = %q, want failed", got)
 	}
 }
 

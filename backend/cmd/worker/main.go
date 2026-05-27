@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log/slog"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/alphane-ai/zenart/backend/internal/agent"
@@ -13,6 +14,7 @@ import (
 	"github.com/alphane-ai/zenart/backend/internal/health"
 	"github.com/alphane-ai/zenart/backend/internal/objectstore"
 	"github.com/alphane-ai/zenart/backend/internal/readiness"
+	"github.com/alphane-ai/zenart/backend/internal/security"
 	"github.com/alphane-ai/zenart/backend/internal/stage0"
 	"github.com/alphane-ai/zenart/backend/internal/store"
 	"github.com/alphane-ai/zenart/backend/internal/worker"
@@ -144,9 +146,34 @@ func runCleanupOnce(ctx context.Context, service cleanupService, logger interfac
 	result, err := service.CleanupExpiredExportsAndOrphanedObjects(cleanupCtx, time.Now().UTC(), limit)
 	if err != nil {
 		metrics.ObserveCleanupFailure()
-		logger.Error("export object cleanup failed", "error", err, "batch_limit", limit)
+		if cleanupResultHasEvidence(result) {
+			metrics.ObserveCleanupRun(result.ExpiredExports, result.OrphanedObjects, result.DeletedObjects, result.FailedObjects)
+		}
+		logger.Error("export object cleanup failed",
+			"error", security.RedactString(err.Error()),
+			"expired_exports", result.ExpiredExports,
+			"orphaned_objects", result.OrphanedObjects,
+			"deleted_objects", result.DeletedObjects,
+			"failed_objects", result.FailedObjects,
+			"cleanup_status", cleanupStatus(result),
+			"batch_limit", limit,
+		)
 		return
 	}
 	metrics.ObserveCleanupRun(result.ExpiredExports, result.OrphanedObjects, result.DeletedObjects, result.FailedObjects)
 	logger.Info("export object cleanup completed", "expired_exports", result.ExpiredExports, "orphaned_objects", result.OrphanedObjects, "deleted_objects", result.DeletedObjects, "failed_objects", result.FailedObjects, "cleanup_status", result.Status, "batch_limit", limit)
+}
+
+func cleanupResultHasEvidence(result stage0.CleanupResult) bool {
+	return result.ExpiredExports > 0 || result.OrphanedObjects > 0 || result.DeletedObjects > 0 || result.FailedObjects > 0 || strings.TrimSpace(result.Status) != ""
+}
+
+func cleanupStatus(result stage0.CleanupResult) string {
+	if strings.TrimSpace(result.Status) != "" {
+		return result.Status
+	}
+	if result.FailedObjects > 0 {
+		return "partial_failed"
+	}
+	return "failed"
 }
