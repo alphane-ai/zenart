@@ -46,7 +46,7 @@ type SecretFinding struct {
 	Location string     `json:"location,omitempty"`
 }
 
-var sensitiveKeyPattern = regexp.MustCompile(`(?i)(secret|token|password|passwd|pwd|passphrase|api[_-]?key|x[_-]?api[_-]?key|access[_-]?key|private[_-]?key|private[_-]?token|deploy[_-]?key|credential|signature|session|cookie|authorization|proxy[_-]?authorization|client[_-]?secret|client[_-]?token|client[_-]?assertion|refresh[_-]?token|id[_-]?token|personal[_-]?access[_-]?token|pat|jwt|oauth|webhook[_-]?secret|signing[_-]?key|shared[_-]?access[_-]?signature|sas|stripe|openai|anthropic|provider[_-]?key|database[_-]?url|dsn|connection[_-]?string|connectionstring|service[_-]?account|storage[_-]?key|account[_-]?key|subscription[_-]?key|tenant[_-]?secret|encryption[_-]?customer[_-]?key|customer[_-]?encryption[_-]?key|sse[_-]?customer[_-]?key|docker[_-]?auth|dockerconfigjson|dockercfg|image[_-]?pull[_-]?secret|registry[_-]?(auth|token|password))`)
+var sensitiveKeyPattern = regexp.MustCompile(`(?i)(secret|token|password|passwd|pwd|passphrase|api[_-]?key|x[_-]?api[_-]?key|access[_-]?key|private[_-]?key|private[_-]?token|deploy[_-]?key|credential|signature|session|cookie|authorization|proxy[_-]?authorization|client[_-]?secret|client[_-]?token|client[_-]?assertion|refresh[_-]?token|id[_-]?token|personal[_-]?access[_-]?token|pat|jwt|oauth|webhook[_-]?secret|signing[_-]?key|shared[_-]?access[_-]?signature|sas|stripe|openai|anthropic|deepseek|mistral|cohere|gemini|google[_-]?ai|openrouter|perplexity|xai|fireworks|fal|elevenlabs|provider[_-]?key|database[_-]?url|dsn|connection[_-]?string|connectionstring|service[_-]?account|storage[_-]?key|account[_-]?key|subscription[_-]?key|tenant[_-]?secret|encryption[_-]?customer[_-]?key|customer[_-]?encryption[_-]?key|sse[_-]?customer[_-]?key|docker[_-]?auth|dockerconfigjson|dockercfg|image[_-]?pull[_-]?secret|registry[_-]?(auth|token|password))`)
 
 var secretValuePatterns = []struct {
 	kind    SecretKind
@@ -79,6 +79,11 @@ var secretValuePatterns = []struct {
 	{SecretKindProviderKey, "together_key", regexp.MustCompile(`\btgp_v1_[A-Za-z0-9_-]{20,}\b`)},
 	{SecretKindProviderKey, "pinecone_key", regexp.MustCompile(`\bpcsk_[A-Za-z0-9_-]{20,}\b`)},
 	{SecretKindProviderKey, "openrouter_key", regexp.MustCompile(`\bsk-or-v1-[A-Za-z0-9_-]{20,}\b`)},
+	{SecretKindProviderKey, "perplexity_key", regexp.MustCompile(`\bpplx-[A-Za-z0-9_-]{20,}\b`)},
+	{SecretKindProviderKey, "xai_key", regexp.MustCompile(`\bxai-[A-Za-z0-9_-]{20,}\b`)},
+	{SecretKindProviderKey, "fireworks_key", regexp.MustCompile(`\bfw_[A-Za-z0-9_-]{20,}\b`)},
+	{SecretKindProviderKey, "fal_key", regexp.MustCompile(`\bfal-[A-Za-z0-9_-]{20,}\b`)},
+	{SecretKindProviderKey, "elevenlabs_key", regexp.MustCompile(`\bsk_[A-Za-z0-9_-]{20,}\b`)},
 	{SecretKindProviderKey, "figma_token", regexp.MustCompile(`\bfigd_[A-Za-z0-9_-]{20,}\b`)},
 	{SecretKindProviderKey, "notion_token", regexp.MustCompile(`\bsecret_[A-Za-z0-9]{20,}\b`)},
 	{SecretKindProviderKey, "langsmith_token", regexp.MustCompile(`\blsv2_pt_[A-Za-z0-9_-]{20,}\b`)},
