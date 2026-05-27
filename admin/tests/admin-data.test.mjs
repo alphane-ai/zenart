@@ -998,12 +998,22 @@ test("admin crawler page exposes staging runtime governance evidence", () => {
 
   for (const token of [
     "getCrawlerStagingRuntimeEvidence",
+    "getCrawlerGovernanceClosureSummaries",
     "Staging Crawler Governance Runtime Evidence",
+    "Crawler Release Closure Summary",
     "source approval, robots, SSRF, rate limits, retention, exact-text warnings, provenance, and blocklist controls",
     "Runtime Controls",
     "Evidence Path",
     "Release Gate Check",
-    "Remaining Blockers"
+    "Remaining Blockers",
+    "Release Closure State",
+    "Activation Safety State",
+    "Evidence Completeness",
+    "Takedown Delete Status",
+    "Deadline Escalation Status",
+    "Release Gate Disposition",
+    "Missing Evidence Refs",
+    "Operator Summary"
   ]) {
     assert.match(crawlerPage, new RegExp(token));
   }
@@ -1181,9 +1191,14 @@ test("admin routes surface governance evidence", () => {
   );
   assert.match(crawlerPage, /Takedown and Derivative Review Workflow/);
   assert.match(crawlerPage, /getCrawlerGovernanceRuntimeDecisions/);
+  assert.match(crawlerPage, /getCrawlerGovernanceClosureSummaries/);
   assert.match(crawlerPage, /Crawler Governance Runtime Decisions/);
+  assert.match(crawlerPage, /Crawler Release Closure Summary/);
   assert.match(crawlerPage, /Closure Decision/);
   assert.match(crawlerPage, /Activation Decision/);
+  assert.match(crawlerPage, /Release Closure State/);
+  assert.match(crawlerPage, /Activation Safety State/);
+  assert.match(crawlerPage, /Release Gate Disposition/);
   assert.match(crawlerPage, /Deletion Evidence/);
   assert.match(crawlerPage, /Requester Notice/);
   assert.match(crawlerPage, /Blockers/);

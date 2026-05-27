@@ -6,6 +6,7 @@ import {
   getAdminRbacEvidence,
   getAdminRbacRuntimeDecisions,
   getCrawlerFindings,
+  getCrawlerGovernanceClosureSummaries,
   getCrawlerGovernanceRuntimeDecisions,
   getCrawlerGovernanceWorkflows,
   getCrawlerSourceApprovals,
@@ -14,6 +15,7 @@ import {
 import type {
   AdminRbacEvidence,
   CrawlerFinding,
+  CrawlerGovernanceClosureSummary,
   CrawlerGovernanceRuntimeDecision,
   CrawlerGovernanceWorkflow,
   CrawlerSourceApproval,
@@ -26,6 +28,7 @@ export default async function CrawlerReviewPage() {
     sourceApprovals,
     governanceWorkflows,
     governanceRuntime,
+    governanceClosureSummaries,
     stagingRuntimeEvidence,
     rbacEvidence,
     rbacRuntime
@@ -34,6 +37,7 @@ export default async function CrawlerReviewPage() {
     getCrawlerSourceApprovals(),
     getCrawlerGovernanceWorkflows(),
     getCrawlerGovernanceRuntimeDecisions(),
+    getCrawlerGovernanceClosureSummaries(),
     getCrawlerStagingRuntimeEvidence(),
     getAdminRbacEvidence(),
     getAdminRbacRuntimeDecisions()
@@ -205,6 +209,33 @@ export default async function CrawlerReviewPage() {
             { key: "action", header: "Operator Action", render: (row) => row.operatorAction },
             { key: "release", header: "Release Gate Evidence", render: (row) => row.releaseGateEvidence },
             { key: "evidence", header: "Required Evidence", render: (row) => row.requiredEvidenceRefs.join(", ") },
+            { key: "audit", header: "Audit Ref", render: (row) => <span className="mono">{row.auditRef}</span> }
+          ]}
+        />
+      </section>
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>Crawler Release Closure Summary</h3>
+            <p>Aggregated takedown and derivative-review closure states show which crawler workflows can be cited as release evidence and which must preserve blockers.</p>
+          </div>
+        </div>
+        <DataTable<CrawlerGovernanceClosureSummary>
+          rows={governanceClosureSummaries}
+          columns={[
+            { key: "workflow", header: "Workflow", render: (row) => <span className="mono">{row.workflowId}</span> },
+            { key: "finding", header: "Finding", render: (row) => <span className="mono">{row.findingId}</span> },
+            { key: "request", header: "Request", render: (row) => row.requestType },
+            { key: "closure", header: "Release Closure State", render: (row) => <StatusBadge value={row.releaseClosureState} label={row.releaseClosureState} /> },
+            { key: "activation", header: "Activation Safety State", render: (row) => <StatusBadge value={row.activationSafetyState === "activation_safe" ? "allowed" : "blocked"} label={row.activationSafetyState} /> },
+            { key: "evidence", header: "Evidence Completeness", render: (row) => <StatusBadge value={row.evidenceCompleteness} label={row.evidenceCompleteness} /> },
+            { key: "delete", header: "Takedown Delete Status", render: (row) => <StatusBadge value={row.takedownDeleteStatus} label={row.takedownDeleteStatus} /> },
+            { key: "deadline", header: "Deadline Escalation Status", render: (row) => <StatusBadge value={row.deadlineEscalationStatus} label={row.deadlineEscalationStatus} /> },
+            { key: "second-review", header: "Second Review Gate", render: (row) => <StatusBadge value={row.secondReviewGate} label={row.secondReviewGate} /> },
+            { key: "release", header: "Release Gate Disposition", render: (row) => <StatusBadge value={row.releaseGateDisposition === "can_cite_release_evidence" ? "approved" : "blocked"} label={row.releaseGateDisposition} /> },
+            { key: "missing", header: "Missing Evidence Refs", render: (row) => (row.missingEvidenceRefs.length > 0 ? row.missingEvidenceRefs.join(", ") : "none") },
+            { key: "blockers", header: "Blocker Codes", render: (row) => (row.blockerCodes.length > 0 ? row.blockerCodes.join(", ") : "none") },
+            { key: "summary", header: "Operator Summary", render: (row) => row.operatorSummary },
             { key: "audit", header: "Audit Ref", render: (row) => <span className="mono">{row.auditRef}</span> }
           ]}
         />

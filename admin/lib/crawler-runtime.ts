@@ -1,4 +1,8 @@
-import type { CrawlerGovernanceRuntimeDecision, CrawlerGovernanceWorkflow } from "@/lib/types";
+import type {
+  CrawlerGovernanceClosureSummary,
+  CrawlerGovernanceRuntimeDecision,
+  CrawlerGovernanceWorkflow
+} from "@/lib/types";
 
 function isPendingEvidence(ref: string) {
   return ref === "pending" || ref.startsWith("pending-") || ref.trim().length === 0;
@@ -159,6 +163,60 @@ export function buildCrawlerGovernanceRuntimeDecisions(
       releaseGateEvidence,
       auditRef: workflow.auditRef,
       requiredEvidenceRefs: workflow.requiredEvidenceRefs
+    };
+  });
+}
+
+export function buildCrawlerGovernanceClosureSummaries(
+  decisions: CrawlerGovernanceRuntimeDecision[]
+): CrawlerGovernanceClosureSummary[] {
+  return decisions.map((decision) => {
+    const releaseClosureState =
+      decision.closureDecision === "ready_to_close"
+        ? "closure_ready"
+        : decision.closureDecision === "review_required"
+          ? "review_required"
+          : "blocked";
+    const activationSafetyState =
+      decision.activationDecision === "allow_activation" ? "activation_safe" : "activation_blocked";
+    const secondReviewGate =
+      decision.secondReviewStatus === "completed"
+        ? "complete"
+        : decision.secondReviewStatus === "rejected"
+          ? "rejected"
+          : decision.secondReviewStatus === "required"
+            ? "required"
+            : "not_required";
+    const takedownDeleteStatus =
+      decision.requestType === "source_takedown" || decision.requestType === "raw_retention_delete"
+        ? decision.deletionEvidenceStatus
+        : "not_applicable";
+    const releaseGateDisposition =
+      releaseClosureState === "closure_ready" &&
+      activationSafetyState === "activation_safe" &&
+      decision.requiredEvidenceStatus === "complete"
+        ? "can_cite_release_evidence"
+        : "preserve_blocker";
+    const operatorSummary =
+      releaseGateDisposition === "can_cite_release_evidence"
+        ? `Release evidence may cite ${decision.workflowId} only with audit ${decision.auditRef}, required evidence refs, provenance, retention policy, and activation guardrail preserved.`
+        : `Keep ${decision.workflowId} out of release-clearing evidence until blocker codes ${decision.blockerCodes.join(", ") || "none"} are resolved and crawler-derived activation stays blocked.`;
+
+    return {
+      workflowId: decision.workflowId,
+      findingId: decision.findingId,
+      requestType: decision.requestType,
+      releaseClosureState,
+      activationSafetyState,
+      evidenceCompleteness: decision.requiredEvidenceStatus,
+      takedownDeleteStatus,
+      deadlineEscalationStatus: decision.escalationEvidenceStatus,
+      secondReviewGate,
+      releaseGateDisposition,
+      missingEvidenceRefs: decision.missingRequiredEvidenceRefs,
+      blockerCodes: decision.blockerCodes,
+      operatorSummary,
+      auditRef: decision.auditRef
     };
   });
 }

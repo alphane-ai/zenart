@@ -231,6 +231,12 @@ const parseCrawlerRuntime = () => {
     .replaceAll(/export function (\w+)/g, "function $1")
     .replaceAll(/function isConcreteRequiredEvidence\(ref: string\)/g, "function isConcreteRequiredEvidence(ref)")
     .replaceAll(/: CrawlerGovernanceRuntimeDecision\[\]/g, "")
+    .replaceAll(/: CrawlerGovernanceClosureSummary\[\]/g, "")
+    .replaceAll(/: CrawlerGovernanceClosureSummary\["releaseClosureState"\]/g, "")
+    .replaceAll(/: CrawlerGovernanceClosureSummary\["activationSafetyState"\]/g, "")
+    .replaceAll(/: CrawlerGovernanceClosureSummary\["secondReviewGate"\]/g, "")
+    .replaceAll(/: CrawlerGovernanceClosureSummary\["takedownDeleteStatus"\]/g, "")
+    .replaceAll(/: CrawlerGovernanceClosureSummary\["releaseGateDisposition"\]/g, "")
     .replaceAll(/: CrawlerGovernanceWorkflow\[\]/g, "")
     .replaceAll(/: CrawlerGovernanceWorkflow\["requestType"\]/g, "")
     .replaceAll(/: CrawlerGovernanceRuntimeDecision\["escalationEvidenceStatus"\]/g, "")
@@ -240,7 +246,7 @@ const parseCrawlerRuntime = () => {
     .replaceAll(/: string/g, "")
     .replaceAll(/: Date/g, "")
     .replaceAll(/ as const/g, "");
-  return Function(`${runtimeSource}\nreturn { buildCrawlerGovernanceRuntimeDecisions };`)();
+  return Function(`${runtimeSource}\nreturn { buildCrawlerGovernanceRuntimeDecisions, buildCrawlerGovernanceClosureSummaries };`)();
 };
 
 const parseObjectStorageRuntime = () => {
@@ -395,7 +401,7 @@ const roleOrder = new Map([
 ]);
 const { buildFailedTaskRuntimeDecisions } = parseFailedTaskRuntime();
 const { buildRegressionFixtureRuntimeSummaries } = parseRegressionFixtureRuntime();
-const { buildCrawlerGovernanceRuntimeDecisions } = parseCrawlerRuntime();
+const { buildCrawlerGovernanceRuntimeDecisions, buildCrawlerGovernanceClosureSummaries } = parseCrawlerRuntime();
 const { buildStagingObjectStorageRetentionCleanupEvidence } = parseObjectStorageRuntime();
 
 test("skill release governance defines states, traffic allocation, canary thresholds, and rollback audit", () => {
@@ -6192,6 +6198,74 @@ test("crawler governance runtime decisions gate takedown closure and activation"
     if (workflow.blockedActivation) {
       assert.equal(decision.activationDecision, "block_activation", `${workflow.id} blocked workflow cannot activate`);
       assert.ok(decision.blockerCodes.includes("activation_blocked"), `${workflow.id} needs activation blocker`);
+    }
+  }
+});
+
+test("crawler governance closure summaries preserve release blockers before activation", () => {
+  const decisions = buildCrawlerGovernanceRuntimeDecisions(crawlerGovernanceWorkflows, new Date("2026-05-26T18:30:00Z"));
+  const summaries = buildCrawlerGovernanceClosureSummaries(decisions);
+  const summaryByWorkflow = new Map(summaries.map((summary) => [summary.workflowId, summary]));
+
+  assert.equal(summaries.length, crawlerGovernanceWorkflows.length, "each crawler workflow needs one closure summary");
+
+  const takedownSummary = summaryByWorkflow.get("cg-501");
+  assert.equal(takedownSummary.releaseClosureState, "blocked");
+  assert.equal(takedownSummary.activationSafetyState, "activation_blocked");
+  assert.equal(takedownSummary.evidenceCompleteness, "missing");
+  assert.equal(takedownSummary.takedownDeleteStatus, "pending");
+  assert.equal(takedownSummary.deadlineEscalationStatus, "pending");
+  assert.equal(takedownSummary.secondReviewGate, "required");
+  assert.equal(takedownSummary.releaseGateDisposition, "preserve_blocker");
+  assert.deepEqual(takedownSummary.missingEvidenceRefs, [
+    "pending-raw-derivative-delete-cs-21",
+    "pending-rights-owner-notice-ip-7001",
+    "pending-deadline-escalation-cg-501"
+  ]);
+  assert.ok(takedownSummary.blockerCodes.includes("activation_blocked"));
+  assert.ok(takedownSummary.blockerCodes.includes("required_evidence_missing"));
+  assert.match(
+    takedownSummary.operatorSummary,
+    /Keep cg-501 out of release-clearing evidence.*crawler-derived activation stays blocked/i
+  );
+
+  const derivativeSummary = summaryByWorkflow.get("cg-522");
+  assert.equal(derivativeSummary.releaseClosureState, "closure_ready");
+  assert.equal(derivativeSummary.activationSafetyState, "activation_safe");
+  assert.equal(derivativeSummary.evidenceCompleteness, "complete");
+  assert.equal(derivativeSummary.takedownDeleteStatus, "not_applicable");
+  assert.equal(derivativeSummary.deadlineEscalationStatus, "not_required");
+  assert.equal(derivativeSummary.secondReviewGate, "not_required");
+  assert.equal(derivativeSummary.releaseGateDisposition, "can_cite_release_evidence");
+  assert.deepEqual(derivativeSummary.missingEvidenceRefs, []);
+  assert.deepEqual(derivativeSummary.blockerCodes, []);
+  assert.match(
+    derivativeSummary.operatorSummary,
+    /Release evidence may cite cg-522 only with audit au-013.*retention policy.*activation guardrail preserved/i
+  );
+
+  const retentionSummary = summaryByWorkflow.get("cg-533");
+  assert.equal(retentionSummary.releaseClosureState, "blocked");
+  assert.equal(retentionSummary.activationSafetyState, "activation_blocked");
+  assert.equal(retentionSummary.takedownDeleteStatus, "pending");
+  assert.equal(retentionSummary.deadlineEscalationStatus, "not_required");
+  assert.equal(retentionSummary.releaseGateDisposition, "preserve_blocker");
+
+  for (const summary of summaries) {
+    const workflow = crawlerGovernanceWorkflows.find((entry) => entry.id === summary.workflowId);
+    assert.ok(workflow, `${summary.workflowId} links unknown workflow`);
+    assert.equal(summary.findingId, workflow.findingId, `${summary.workflowId} must preserve finding linkage`);
+    assert.equal(summary.requestType, workflow.requestType, `${summary.workflowId} must preserve request type`);
+    assert.equal(summary.auditRef, workflow.auditRef, `${summary.workflowId} must preserve audit ref`);
+    assert.ok(summary.operatorSummary.length > 120, `${summary.workflowId} needs release operator summary`);
+
+    if (summary.releaseGateDisposition === "can_cite_release_evidence") {
+      assert.equal(summary.releaseClosureState, "closure_ready", `${summary.workflowId} release evidence needs closure ready`);
+      assert.equal(summary.activationSafetyState, "activation_safe", `${summary.workflowId} release evidence needs activation safe`);
+      assert.equal(summary.evidenceCompleteness, "complete", `${summary.workflowId} release evidence needs complete evidence`);
+    } else {
+      assert.ok(summary.blockerCodes.length > 0, `${summary.workflowId} preserved blocker summary needs blocker codes`);
+      assert.equal(summary.activationSafetyState, "activation_blocked", `${summary.workflowId} preserved blocker summary keeps activation blocked`);
     }
   }
 });

@@ -199,6 +199,23 @@ export type CrawlerGovernanceRuntimeDecision = {
   requiredEvidenceRefs: string[];
 };
 
+export type CrawlerGovernanceClosureSummary = {
+  workflowId: string;
+  findingId: string;
+  requestType: CrawlerGovernanceWorkflow["requestType"];
+  releaseClosureState: "closure_ready" | "review_required" | "blocked";
+  activationSafetyState: "activation_safe" | "activation_blocked";
+  evidenceCompleteness: "complete" | "missing";
+  takedownDeleteStatus: "complete" | "pending" | "not_applicable";
+  deadlineEscalationStatus: "complete" | "pending" | "not_required";
+  secondReviewGate: "complete" | "required" | "rejected" | "not_required";
+  releaseGateDisposition: "can_cite_release_evidence" | "preserve_blocker";
+  missingEvidenceRefs: string[];
+  blockerCodes: string[];
+  operatorSummary: string;
+  auditRef: string;
+};
+
 export type CrawlerStagingRuntimeControlName =
   | "source_approval"
   | "robots"
