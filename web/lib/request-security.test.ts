@@ -227,6 +227,24 @@ describe("same-site CSRF request contract", () => {
       csrfHeaderValue: "same-site-origin-check",
       idempotencyHeaderRequired: false
     });
+    expect(evidence.safeRequestContracts).toContainEqual({
+      operationId: "getSession",
+      method: "GET",
+      path: "/session",
+      credentials: "include",
+      csrfHeaderName: "not-required",
+      csrfHeaderValue: "not-required",
+      idempotencyHeaderRequired: false
+    });
+    expect(evidence.safeRequestContracts).toContainEqual({
+      operationId: "getSubscription",
+      method: "GET",
+      path: "/billing/subscription",
+      credentials: "include",
+      csrfHeaderName: "not-required",
+      csrfHeaderValue: "not-required",
+      idempotencyHeaderRequired: false
+    });
   });
 
   it("keeps HEAD and OPTIONS same-site credentialed but outside CSRF unsafe inventory", () => {
@@ -248,6 +266,35 @@ describe("same-site CSRF request contract", () => {
       missingUnsafeOperationIds: [],
       failureReasons: []
     });
+    expect(evidence.safeRequestContracts).toEqual([
+      {
+        operationId: "getSession",
+        method: "GET",
+        path: "/session",
+        credentials: "include",
+        csrfHeaderName: "not-required",
+        csrfHeaderValue: "not-required",
+        idempotencyHeaderRequired: false
+      },
+      {
+        operationId: "headSession",
+        method: "HEAD",
+        path: "/session",
+        credentials: "include",
+        csrfHeaderName: "not-required",
+        csrfHeaderValue: "not-required",
+        idempotencyHeaderRequired: false
+      },
+      {
+        operationId: "optionsSession",
+        method: "OPTIONS",
+        path: "/session",
+        credentials: "include",
+        csrfHeaderName: "not-required",
+        csrfHeaderValue: "not-required",
+        idempotencyHeaderRequired: false
+      }
+    ]);
     expect(buildCsrfRequestHeaders("HEAD")).toEqual({});
     expect(buildCsrfRequestHeaders("OPTIONS")).toEqual({});
   });

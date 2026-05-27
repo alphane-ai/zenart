@@ -244,7 +244,8 @@ describe("generated web API client CSRF contract", () => {
       safeOperationCount: requestContractEvidence.safeOperationCount,
       missingUnsafeOperationCount: requestContractEvidence.missingUnsafeOperationIds.length,
       failureCount: requestContractEvidence.failureReasons.length,
-      unsafeRequestContracts: requestContractEvidence.unsafeRequestContracts
+      unsafeRequestContracts: requestContractEvidence.unsafeRequestContracts,
+      safeRequestContracts: requestContractEvidence.safeRequestContracts
     });
     expect(routeSmokeEvidence).toMatchObject({
       route: "/account",
@@ -271,7 +272,8 @@ describe("generated web API client CSRF contract", () => {
         "data-generated-api-csrf-safe-operations",
         "data-generated-api-csrf-idempotency-required-operations",
         "data-generated-api-csrf-idempotency-exempt-operations",
-        "data-generated-api-csrf-operation-contracts"
+        "data-generated-api-csrf-operation-contracts",
+        "data-generated-api-csrf-safe-operation-contracts"
       ])
     });
     expect(routeSmokeEvidence.browserSmokeRequiredAssertions).toEqual(generatedApiCsrfContract.browserSmoke.requiredAssertions);
@@ -285,10 +287,9 @@ describe("generated web API client CSRF contract", () => {
       generatedApiCsrfContract.browserSmoke.expectedUnsafeRequestContracts
     );
     expect(generatedApiCsrfContract.browserSmoke.expectedSafeRequestContracts).toEqual(
-      safeOperations.map((operationId) => {
-        const operation = apiOperations[operationId as OperationId];
-        return `${operationId}:${operation.method}:${generatedApiCsrfContract.credentialMode}:not-required`;
-      })
+      generatedApiCsrfContract.safeRequestContracts.map(
+        (contract) => `${contract.operationId}:${contract.method}:${contract.credentials}:${contract.csrfHeaderValue}`
+      )
     );
     expect(routeSmokeEvidence.browserSmokeExpectedSafeRequestContracts).toEqual(
       generatedApiCsrfContract.browserSmoke.expectedSafeRequestContracts
@@ -297,6 +298,7 @@ describe("generated web API client CSRF contract", () => {
     expect(generatedApiCsrfContract.safeOperationCount).toBe(safeOperations.length);
     expect(requestContractEvidence.unsafeOperationIds).toEqual(unsafeOperations);
     expect(requestContractEvidence.safeOperationIds).toEqual(safeOperations);
+    expect(requestContractEvidence.safeRequestContracts.map((contract) => contract.operationId)).toEqual(safeOperations);
     expect(requestContractEvidence.unsafeIdempotencyRequiredOperationIds).toEqual(
       generatedApiCsrfContract.unsafeRequestContracts
         .filter((contract) => contract.idempotencyHeaderRequired)

@@ -141,6 +141,12 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(csrfInventory.getAttribute("data-generated-api-csrf-operation-contracts")).toContain(
       "deleteSession:DELETE:include:X-ZenArt-CSRF:false"
     );
+    expect(csrfInventory.getAttribute("data-generated-api-csrf-safe-operation-contracts")).toContain(
+      "getSession:GET:include:not-required:false"
+    );
+    expect(csrfInventory.getAttribute("data-generated-api-csrf-safe-operation-contracts")).toContain(
+      "getSubscription:GET:include:not-required:false"
+    );
     expect(csrfInventory).toHaveTextContent("createUpload");
     expect(csrfInventory).toHaveTextContent("createProject");
     expect(csrfInventory).toHaveTextContent("updateProject");

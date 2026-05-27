@@ -185,6 +185,15 @@ export const buildGeneratedApiCsrfRequestContractEvidence = (
     csrfHeaderValue: contract.headerValue,
     idempotencyHeaderRequired: operation.idempotencyRequired
   }));
+  const safeRequestContracts = safeEntries.map(([operationId, operation]) => ({
+    operationId,
+    method: operation.method,
+    path: operation.path,
+    credentials: contract.credentialMode,
+    csrfHeaderName: "not-required" as const,
+    csrfHeaderValue: "not-required" as const,
+    idempotencyHeaderRequired: false as const
+  }));
   const failureReasons = [
     contract.credentialMode === "include" ? "" : "csrf-credentials",
     contract.headerName === "X-ZenArt-CSRF" ? "" : "csrf-header",
@@ -212,6 +221,7 @@ export const buildGeneratedApiCsrfRequestContractEvidence = (
     unsafeIdempotencyExemptOperationIds,
     missingUnsafeOperationIds,
     unsafeRequestContracts,
+    safeRequestContracts,
     failureReasons
   };
 };

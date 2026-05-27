@@ -96,6 +96,15 @@ export interface GeneratedApiCsrfRequestContractEvidence {
     csrfHeaderValue: SessionContract["csrf"]["headerValue"];
     idempotencyHeaderRequired: boolean;
   }>;
+  safeRequestContracts: Array<{
+    operationId: string;
+    method: string;
+    path: string;
+    credentials: SessionContract["csrf"]["credentialMode"];
+    csrfHeaderName: "not-required";
+    csrfHeaderValue: "not-required";
+    idempotencyHeaderRequired: false;
+  }>;
   failureReasons: string[];
 }
 

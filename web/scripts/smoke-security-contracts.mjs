@@ -99,6 +99,22 @@ const expectedBrowserSafeRequestContracts = safeOperations.map((operationId) => 
   const operation = operationMap.get(operationId);
   return `${operationId}:${operation?.method ?? "missing"}:include:not-required`;
 });
+const expectedSafeRequestContracts = safeOperations.map((operationId) => {
+  const operation = operationMap.get(operationId);
+  return {
+    operationId,
+    method: operation?.method ?? "missing",
+    path: operation?.path ?? "missing",
+    credentials: "include",
+    csrfHeaderName: "not-required",
+    csrfHeaderValue: "not-required",
+    idempotencyHeaderRequired: false
+  };
+});
+const expectedUiSafeRequestContracts = expectedSafeRequestContracts.map(
+  (contract) =>
+    `${contract.operationId}:${contract.method}:${contract.credentials}:${contract.csrfHeaderName}:${contract.idempotencyHeaderRequired}`
+);
 
 if (JSON.stringify(unsafeOperations) !== JSON.stringify(generatedApiCsrfContract.unsafeOperations)) {
   fail("unsafe operation inventory drifted from generated client order");
@@ -123,6 +139,10 @@ for (const contract of generatedApiCsrfContract.unsafeRequestContracts) {
   ) {
     fail(`unsafe request contract drifted for ${contract.operationId}`);
   }
+}
+
+if (JSON.stringify(generatedApiCsrfContract.safeRequestContracts) !== JSON.stringify(expectedSafeRequestContracts)) {
+  fail("generated API CSRF artifact safe request contracts drifted from generated client safe operation inventory");
 }
 
 for (const requiredGeneratedClientSnippet of [
@@ -273,6 +293,7 @@ const requiredSessionAttributes = [
   sessionEvidence.unsafeActionGuard?.missingCsrfOperationCountAttribute,
   sessionEvidence.unsafeActionGuard?.missingCsrfOperationsAttribute,
   sessionEvidence.unsafeActionGuard?.operationContractsAttribute,
+  generatedClientEvidence.safeOperationContractsAttribute,
   sessionEvidence.unsafeActionGuard?.controlAttributes?.guardAttribute,
   sessionEvidence.unsafeActionGuard?.controlAttributes?.labelAttribute,
   sessionEvidence.unsafeActionGuard?.controlAttributes?.statusAttribute,
@@ -490,6 +511,16 @@ if (
   fail("user route smoke canonical CSRF header guard drifted from generated API CSRF artifact");
 }
 
+if (
+  generatedClientEvidence.safeOperationContractsAttribute !== "data-generated-api-csrf-safe-operation-contracts" ||
+  !generatedClientEvidence.requiredAttributes?.includes("data-generated-api-csrf-safe-operation-contracts") ||
+  !generatedApiCsrfContract.assertions?.includes(
+    "Generated web API client exposes per-operation safe request contracts proving GET operations stay credentialed and CSRF-free."
+  )
+) {
+  fail("generated-client route evidence must expose per-operation safe request contracts");
+}
+
 for (const expectedAssertion of [
   "Generated web API client strips caller-supplied CSRF header aliases before applying one canonical X-ZenArt-CSRF header.",
   "Generated web API client strips caller-supplied CSRF header aliases from safe requests."
@@ -573,6 +604,7 @@ for (const requiredControlSnippet of [
   "data-generated-api-csrf-browser-probe-safe-credentialed-request-count",
   "data-generated-api-csrf-browser-probe-safe-no-csrf-header-count",
   "data-generated-api-csrf-browser-probe-safe-operation-contracts",
+  "data-generated-api-csrf-safe-operation-contracts",
   "data-csrf-ux-guard",
   "data-csrf-ux-guard-label",
   "data-csrf-ux-guard-status",
@@ -639,6 +671,7 @@ for (const requiredTestSnippet of [
   "data-csrf-ux-guard-contracts",
   "data-csrf-ux-guard-blocked-reason",
   "data-generated-api-csrf-operation-contracts",
+  "data-generated-api-csrf-safe-operation-contracts",
   "data-generated-api-csrf-browser-probe",
   "Session expired. Refresh or sign in to continue.",
   "Save Settings"
@@ -680,6 +713,7 @@ for (const requiredBrowserSnippet of [
   "data-csrf-ux-guard-blocked-reason",
   "data-generated-api-csrf-unsafe-operations",
   "data-generated-api-csrf-operation-contracts",
+  "data-generated-api-csrf-safe-operation-contracts",
   "data-generated-api-csrf-browser-probe",
   "data-generated-api-csrf-browser-probe-status",
   "data-generated-api-csrf-browser-probe-unsafe-csrf-header",
@@ -721,6 +755,10 @@ if (
   !sessionSecurityPlaywrightSpecSource.includes("data-generated-api-csrf-browser-probe-safe-operation-count\", \"17\"") ||
   !sessionSecurityPlaywrightSpecSource.includes("data-generated-api-csrf-browser-probe-safe-credentialed-request-count\", \"17\"") ||
   !sessionSecurityPlaywrightSpecSource.includes("data-generated-api-csrf-browser-probe-safe-no-csrf-header-count\", \"17\"") ||
+  !workspaceSmokeTestSource.includes(expectedUiSafeRequestContracts[0]) ||
+  !workspaceSmokeTestSource.includes(expectedUiSafeRequestContracts.at(-1)) ||
+  !sessionSecurityPlaywrightSpecSource.includes(expectedUiSafeRequestContracts[0]) ||
+  !sessionSecurityPlaywrightSpecSource.includes(expectedUiSafeRequestContracts.at(-1)) ||
   !sessionSecurityPlaywrightSpecSource.includes("getSubscription:GET:include:not-required") ||
   !sessionSecurityPlaywrightSpecSource.includes("csrf-probe-createSupportTicket") ||
   !workspaceSmokeTestSource.includes("data-session-unsafe-action-blocked-control-count\", \"17\"") ||

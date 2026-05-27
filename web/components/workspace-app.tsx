@@ -835,6 +835,9 @@ function SessionPanel({
         data-generated-api-csrf-operation-contracts={generatedRequestEvidence.unsafeRequestContracts
           .map((contract) => `${contract.operationId}:${contract.method}:${contract.credentials}:${contract.csrfHeaderName}:${contract.idempotencyHeaderRequired}`)
           .join("|")}
+        data-generated-api-csrf-safe-operation-contracts={generatedRequestEvidence.safeRequestContracts
+          .map((contract) => `${contract.operationId}:${contract.method}:${contract.credentials}:${contract.csrfHeaderName}:${contract.idempotencyHeaderRequired}`)
+          .join("|")}
       >
         <strong>{evidence.protectedOperationIds.length} generated web operations require same-site CSRF headers</strong>
         <span>{evidence.protectedOperationIds.join(", ")}</span>

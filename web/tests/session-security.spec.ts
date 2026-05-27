@@ -189,6 +189,14 @@ test("account route exposes secure-cookie, same-site CSRF, unsafe-action guard, 
     "data-generated-api-csrf-operation-contracts",
     /deleteSession:DELETE:include:X-ZenArt-CSRF:false/
   );
+  await expect(generatedInventory).toHaveAttribute(
+    "data-generated-api-csrf-safe-operation-contracts",
+    /getSession:GET:include:not-required:false/
+  );
+  await expect(generatedInventory).toHaveAttribute(
+    "data-generated-api-csrf-safe-operation-contracts",
+    /getSubscription:GET:include:not-required:false/
+  );
 
   const browserProbe = page.getByLabel("Generated API CSRF browser request probe");
   await expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe", "stage0.rev2.generated-api-csrf-browser-probe");

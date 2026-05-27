@@ -330,6 +330,7 @@
         "data-session-unsafe-action-operation-contracts",
         "data-csrf-ux-guard-contracts",
         "data-generated-api-csrf-operation-contracts",
+        "data-generated-api-csrf-safe-operation-contracts",
         "data-generated-api-csrf-browser-probe",
         "data-generated-api-csrf-browser-probe-status",
         "data-generated-api-csrf-browser-probe-unsafe-csrf-header",
@@ -390,6 +391,7 @@
       },
       "unsafeOperationCount": 15,
       "safeOperationCount": 17,
+      "safeOperationContractsAttribute": "data-generated-api-csrf-safe-operation-contracts",
       "missingUnsafeOperationCount": 0,
       "failureCount": 0,
       "requiredAttributes": [
@@ -408,6 +410,7 @@
         "data-generated-api-csrf-missing-unsafe-operation-count",
         "data-generated-api-csrf-failure-count",
         "data-generated-api-csrf-operation-contracts",
+        "data-generated-api-csrf-safe-operation-contracts",
         "data-generated-api-csrf-browser-probe",
         "data-generated-api-csrf-browser-probe-status",
         "data-generated-api-csrf-browser-probe-unsafe-operation",
