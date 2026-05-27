@@ -1073,6 +1073,9 @@ export const crawlerGovernanceWorkflows: CrawlerGovernanceWorkflow[] = [
     requesterNoticeRef: "pending-rights-owner-notice-ip-7001",
     escalationEvidenceRef: "pending-deadline-escalation-cg-501",
     activationGateDecision: "blocked",
+    quarantineStatus: "active",
+    slaStatus: "expired",
+    affectedActivationSurfaces: ["prompt_fragment", "skill_version", "meta_prompt", "provider_route"],
     linkedReview: "rv-crawler-118",
     fixtureCaseId: "crawler_disallowed_source",
     operatorNextAction:
@@ -1103,6 +1106,9 @@ export const crawlerGovernanceWorkflows: CrawlerGovernanceWorkflow[] = [
     requesterNoticeRef: "notice-legal-fixture-reviewer-cg-522",
     escalationEvidenceRef: "not_required_deadline_clear",
     activationGateDecision: "allowed",
+    quarantineStatus: "cleared",
+    slaStatus: "within_window",
+    affectedActivationSurfaces: ["prompt_fragment", "skill_version", "meta_prompt"],
     linkedReview: "rv-crawler-122",
     fixtureCaseId: "crawler_approved_local_test_source",
     operatorNextAction:
@@ -1133,6 +1139,9 @@ export const crawlerGovernanceWorkflows: CrawlerGovernanceWorkflow[] = [
     requesterNoticeRef: "pending-crawler-ops-notice-cg-533",
     escalationEvidenceRef: "not_required_within_window",
     activationGateDecision: "blocked",
+    quarantineStatus: "scheduled",
+    slaStatus: "within_window",
+    affectedActivationSurfaces: ["prompt_fragment", "meta_prompt"],
     linkedReview: "rv-crawler-104",
     fixtureCaseId: "crawler_pending_review_import",
     operatorNextAction:

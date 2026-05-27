@@ -1845,7 +1845,7 @@ main 合并前必须通过：
 - [x] backend/local crawler runtime 强制 provenance links。
 - [x] 定义 source blocklist fixture/contract。
 - [x] backend/local crawler runtime 强制 source blocklist。
-- [x] 实现 takedown/derivative review workflow。
+- [x] 实现 takedown/derivative review workflow，admin evidence 已验证 quarantine status、SLA status、affected activation surfaces、closure evidence、second review、audit 和 activation guardrail。
 - [x] 添加 disallowed source、robots denied、duplicate hash、pending-review import tests。
 - [x] staging crawler fetch/import governance runtime evidence 通过：source approval、robots、SSRF、rate limits、retention、exact-text warning、provenance links、source blocklist 均有 staging evidence。
 

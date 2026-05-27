@@ -159,6 +159,9 @@ export type CrawlerGovernanceWorkflow = {
   requesterNoticeRef: string;
   escalationEvidenceRef: string;
   activationGateDecision: "allowed" | "blocked";
+  quarantineStatus: "active" | "cleared" | "scheduled";
+  slaStatus: "within_window" | "expired" | "not_required";
+  affectedActivationSurfaces: Array<"prompt_fragment" | "skill_version" | "meta_prompt" | "provider_route">;
   linkedReview: string;
   fixtureCaseId: string;
   operatorNextAction: string;

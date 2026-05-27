@@ -5670,6 +5670,15 @@ test("crawler takedown and derivative review workflow blocks unsafe activation",
     assert.notEqual(workflow.dueAt, "pending", `${workflow.id} needs operator due timestamp`);
     assert.ok(workflow.sourceContact.length > 30, `${workflow.id} needs takedown contact process`);
     assert.ok(workflow.sourceContact !== "pending", `${workflow.id} needs concrete source contact process`);
+    assert.match(workflow.quarantineStatus, /active|cleared|scheduled/, `${workflow.id} needs quarantine status`);
+    assert.match(workflow.slaStatus, /within_window|expired|not_required/, `${workflow.id} needs SLA status`);
+    assert.ok(workflow.affectedActivationSurfaces.length >= 2, `${workflow.id} needs affected activation surfaces`);
+    assert.ok(
+      workflow.affectedActivationSurfaces.every((surface) =>
+        ["prompt_fragment", "skill_version", "meta_prompt", "provider_route"].includes(surface)
+      ),
+      `${workflow.id} has unknown affected activation surface`
+    );
     assert.match(workflow.linkedReview, /^rv-crawler-\d+$/, `${workflow.id} needs linked crawler review id`);
     assert.ok(workflow.operatorNextAction.length > 100, `${workflow.id} needs actionable operator next action`);
     assert.ok(workflow.closureCriteria.length > 100, `${workflow.id} needs closure criteria`);
@@ -5729,6 +5738,9 @@ test("crawler takedown and derivative review workflow blocks unsafe activation",
       assert.match(workflow.requesterNoticeRef, /notice/i, `${workflow.id} takedown needs requester notice evidence`);
       assert.equal(workflow.secondReviewRequired, true, `${workflow.id} takedown needs second review`);
       assert.equal(workflow.activationGateDecision, "blocked", `${workflow.id} takedown activation gate must be blocked`);
+      assert.equal(workflow.quarantineStatus, "active", `${workflow.id} takedown must actively quarantine source material`);
+      assert.equal(workflow.slaStatus, "expired", `${workflow.id} overdue takedown must expose expired SLA`);
+      assert.ok(workflow.affectedActivationSurfaces.includes("provider_route"), `${workflow.id} takedown must block provider routes`);
     }
 
     if (workflow.requestType === "derivative_review" && workflow.derivativeUseStatus === "allowed") {
@@ -5741,12 +5753,14 @@ test("crawler takedown and derivative review workflow blocks unsafe activation",
         `${workflow.id} allowed derivative review needs bounded positive raw retention`
       );
       assert.match(workflow.closureCriteria, /provenance/i, `${workflow.id} derivative closure must preserve provenance`);
+      assert.equal(workflow.quarantineStatus, "cleared", `${workflow.id} approved derivative review should clear quarantine`);
     }
 
     if (workflow.derivativeUseStatus === "unknown" || workflow.derivativeUseStatus === "restricted") {
       assert.equal(workflow.blockedActivation, true, `${workflow.id} unresolved derivative status must block activation`);
       assert.match(workflow.operatorNextAction, /prevent crawler-derived prompt activation/i, `${workflow.id} unresolved derivative review must prevent activation`);
       assert.equal(workflow.activationGateDecision, "blocked", `${workflow.id} unresolved derivative review must block activation gate`);
+      assert.notEqual(workflow.quarantineStatus, "cleared", `${workflow.id} unresolved derivative review cannot clear quarantine`);
     }
   }
 });
