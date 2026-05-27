@@ -14,6 +14,8 @@
     "incomplete_closure_evidence_blocks_cancel == true",
     "support_ticket_linkage_required == true",
     "second_review_required_before_cancel_closure == true",
+    "second_review_distinct_reviewer_required == true",
+    "second_review_audit_ref_required == true",
     "crawler_import_state == cancelled",
     "crawler_derived_activation_blocked == true",
     "ownership_and_robots_evidence_pending == true",
@@ -28,6 +30,11 @@
     "requested_action": "cancel",
     "idempotency_key": "cancel:task-crawler-019:sup-2212:ownership-missing",
     "quota_effect": "none",
+    "requested_by_admin_id": "adm-ops-212",
+    "second_review_status": "pending",
+    "second_reviewer_admin_id": "adm-reviewer-317",
+    "second_review_audit_ref": "au-012",
+    "second_review_evidence_refs": ["au-012", "rbac-crawler-001", "cg-501", "cf-118"],
     "signal": "Crawler cancellation must remain in review and block activation until source ownership, robots, takedown, and audit evidence are complete.",
     "admin_label": "failed_task_cancel_second_review"
   },
@@ -40,6 +47,7 @@
     "quota_ledger_effect": "no_quota_mutation",
     "support_notice_status": "ready",
     "audit_write_policy": "write_review_audit_before_cancel_closure",
+    "second_review_evidence_status": "complete",
     "regression_gate_effect": "canary_fixture_blocks_until_review"
   },
   "release_block": {

@@ -118,6 +118,34 @@ function regressionFixtureStatus(
   return regressionFixturePathSet?.has(task.regressionFixtureRef) === false ? "missing" : "declared";
 }
 
+function secondReviewDistinctnessStatus(
+  task: FailedTaskControl
+): FailedTaskRuntimeDecision["secondReviewDistinctnessStatus"] {
+  if (!task.secondReviewRequired) {
+    return "not_required";
+  }
+
+  if (task.secondReviewerAdminId === "none" || task.secondReviewerAdminId.trim().length === 0) {
+    return "missing_reviewer";
+  }
+
+  return task.secondReviewerAdminId === task.requestedByAdminId ? "same_reviewer" : "distinct_reviewer";
+}
+
+function secondReviewEvidenceStatus(
+  task: FailedTaskControl
+): FailedTaskRuntimeDecision["secondReviewEvidenceStatus"] {
+  if (!task.secondReviewRequired) {
+    return "not_required";
+  }
+
+  return task.secondReviewEvidenceRefs.length >= 3 &&
+    task.secondReviewAuditRef !== "none" &&
+    task.secondReviewEvidenceRefs.includes(task.secondReviewAuditRef)
+    ? "complete"
+    : "incomplete";
+}
+
 export function buildFailedTaskRuntimeDecisions(
   tasks: FailedTaskControl[],
   supportTickets: SupportTicket[] = [],
@@ -172,6 +200,12 @@ export function buildFailedTaskRuntimeDecisions(
     const roleAuthorizationStatus =
       roleRank[task.requestedByRole] >= roleRank[task.allowedRole] ? "sufficient" : "insufficient";
     const roleAuthorizationEvidence = `requested:${task.requestedByRole}; required:${task.allowedRole}`;
+    const computedSecondReviewDistinctnessStatus = secondReviewDistinctnessStatus(task);
+    const computedSecondReviewEvidenceStatus = secondReviewEvidenceStatus(task);
+    const secondReviewEvidence =
+      task.secondReviewRequired
+        ? `status:${task.secondReviewStatus}; requester:${task.requestedByAdminId}; reviewer:${task.secondReviewerAdminId}; audit:${task.secondReviewAuditRef}; refs:${task.secondReviewEvidenceRefs.join("|")}`
+        : `status:not_required; requester:${task.requestedByAdminId}; reviewer:none; audit:none; refs:none`;
 
     if (task.actionEligibility === "blocked") {
       blockerCodes.push("action_blocked");
@@ -187,6 +221,28 @@ export function buildFailedTaskRuntimeDecisions(
 
     if (task.rbacDecision === "allowed" && roleAuthorizationStatus === "insufficient") {
       blockerCodes.push("role_authorization_insufficient");
+    }
+
+    if (task.rbacDecision === "second_review_required" && !task.secondReviewRequired) {
+      blockerCodes.push("second_review_contract_missing");
+    }
+
+    if (task.secondReviewRequired && task.secondReviewStatus === "approved") {
+      if (computedSecondReviewDistinctnessStatus !== "distinct_reviewer") {
+        blockerCodes.push("second_review_distinct_reviewer_missing");
+      }
+
+      if (computedSecondReviewEvidenceStatus !== "complete") {
+        blockerCodes.push("second_review_evidence_incomplete");
+      }
+    }
+
+    if (task.secondReviewRequired && task.secondReviewStatus === "rejected") {
+      blockerCodes.push("second_review_rejected");
+    }
+
+    if (task.secondReviewRequired && task.secondReviewStatus === "expired") {
+      blockerCodes.push("second_review_expired");
     }
 
     if (closureEvidenceStatus === "incomplete") {
@@ -248,6 +304,11 @@ export function buildFailedTaskRuntimeDecisions(
       "support_ticket_task_mismatch",
       "support_ticket_user_project_mismatch",
       "support_ticket_trace_mismatch",
+      "second_review_contract_missing",
+      "second_review_distinct_reviewer_missing",
+      "second_review_evidence_incomplete",
+      "second_review_rejected",
+      "second_review_expired",
       "regression_fixture_missing"
     ]);
     const submitDecision =
@@ -325,6 +386,11 @@ export function buildFailedTaskRuntimeDecisions(
       rbacStatus: task.rbacDecision,
       roleAuthorizationStatus,
       roleAuthorizationEvidence,
+      secondReviewStatus: task.secondReviewStatus,
+      secondReviewDistinctnessStatus: computedSecondReviewDistinctnessStatus,
+      secondReviewEvidenceStatus: computedSecondReviewEvidenceStatus,
+      secondReviewEvidence,
+      secondReviewAuditRef: task.secondReviewAuditRef,
       quotaSettlement: task.quotaEffect,
       idempotencyKey: task.idempotencyKey,
       idempotencyStatus: computedIdempotencyStatus,
@@ -396,9 +462,14 @@ export function buildFailedTaskSubmissionContracts(
       decision.supportTicketId,
       decision.queueId,
       decision.auditRef,
+      ...(decision.secondReviewAuditRef === "none" ? [] : [decision.secondReviewAuditRef]),
       ...decision.rbacEvidenceRefs,
       ...(task?.closureEvidenceRefs ?? [])
     ];
+    const secondReviewHeader =
+      decision.secondReviewEvidenceStatus === "not_required"
+        ? "X-Admin-Second-Review: not_required"
+        : `X-Admin-Second-Review: ${decision.secondReviewStatus}; ${decision.secondReviewEvidence}`;
 
     return {
       taskId: decision.taskId,
@@ -421,6 +492,9 @@ export function buildFailedTaskSubmissionContracts(
       quotaLedgerEffect: decision.quotaLedgerEffect,
       releaseGateUse,
       replayProtection,
+      secondReviewStatus: decision.secondReviewStatus,
+      secondReviewEvidenceStatus: decision.secondReviewEvidenceStatus,
+      secondReviewHeader,
       evidenceRefs: [...new Set(evidenceRefs)],
       blockerCodes: decision.blockerCodes,
       operatorAction: decision.operatorAction,

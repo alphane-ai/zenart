@@ -740,7 +740,13 @@ export type FailedTaskControl = {
   actionEligibility: "eligible" | "requires_review" | "blocked";
   allowedRole: "support_operator" | "admin_operator" | "admin_reviewer" | "admin_superadmin";
   requestedByRole: "support_operator" | "admin_operator" | "admin_reviewer" | "admin_superadmin";
+  requestedByAdminId: string;
   rbacDecision: "allowed" | "denied" | "second_review_required";
+  secondReviewRequired: boolean;
+  secondReviewStatus: "not_required" | "pending" | "approved" | "rejected" | "expired";
+  secondReviewerAdminId: string;
+  secondReviewAuditRef: string;
+  secondReviewEvidenceRefs: string[];
   idempotencyKey: string;
   quotaEffect: "none" | "refund_pending" | "refund_on_cancel" | "reserved_credit_released";
   regressionFixtureRef: string;
@@ -778,6 +784,11 @@ export type FailedTaskRuntimeDecision = {
   rbacStatus: "allowed" | "denied" | "second_review_required";
   roleAuthorizationStatus: "sufficient" | "insufficient";
   roleAuthorizationEvidence: string;
+  secondReviewStatus: FailedTaskControl["secondReviewStatus"];
+  secondReviewDistinctnessStatus: "not_required" | "distinct_reviewer" | "same_reviewer" | "missing_reviewer";
+  secondReviewEvidenceStatus: "not_required" | "complete" | "incomplete";
+  secondReviewEvidence: string;
+  secondReviewAuditRef: string;
   quotaSettlement: FailedTaskControl["quotaEffect"];
   idempotencyKey: string;
   idempotencyStatus: "stable" | "unstable";
@@ -842,6 +853,9 @@ export type FailedTaskSubmissionContract = {
   quotaLedgerEffect: FailedTaskRuntimeDecision["quotaLedgerEffect"];
   releaseGateUse: "release_evidence_candidate" | "preserve_eval_gate" | "not_release_evidence";
   replayProtection: "stable_idempotent_precondition" | "blocked_replay_or_unstable_key";
+  secondReviewStatus: FailedTaskRuntimeDecision["secondReviewStatus"];
+  secondReviewEvidenceStatus: FailedTaskRuntimeDecision["secondReviewEvidenceStatus"];
+  secondReviewHeader: string;
   evidenceRefs: string[];
   blockerCodes: string[];
   operatorAction: string;

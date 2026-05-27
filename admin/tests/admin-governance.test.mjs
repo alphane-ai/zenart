@@ -224,6 +224,8 @@ const parseFailedTaskRuntime = () => {
     .replaceAll(/function releaseGateDisposition\(\n  task: FailedTaskControl,\n  submitDecision: FailedTaskRuntimeDecision\["submitDecision"\]\n\): FailedTaskRuntimeDecision\["releaseGateDisposition"\]/g, "function releaseGateDisposition(task, submitDecision)")
     .replaceAll(/function releaseGateDisposition\(\n  task: FailedTaskControl,\n  submitDecision: FailedTaskRuntimeDecision\["submitDecision"\],\n  regressionFixtureStatus: FailedTaskRuntimeDecision\["regressionFixtureStatus"\]\n\): FailedTaskRuntimeDecision\["releaseGateDisposition"\]/g, "function releaseGateDisposition(task, submitDecision, regressionFixtureStatus)")
     .replaceAll(/function regressionFixtureStatus\(\n  task: FailedTaskControl,\n  regressionFixturePathSet: Set<string> \| undefined\n\): FailedTaskRuntimeDecision\["regressionFixtureStatus"\]/g, "function regressionFixtureStatus(task, regressionFixturePathSet)")
+    .replaceAll(/function secondReviewDistinctnessStatus\(\n  task: FailedTaskControl\n\): FailedTaskRuntimeDecision\["secondReviewDistinctnessStatus"\]/g, "function secondReviewDistinctnessStatus(task)")
+    .replaceAll(/function secondReviewEvidenceStatus\(\n  task: FailedTaskControl\n\): FailedTaskRuntimeDecision\["secondReviewEvidenceStatus"\]/g, "function secondReviewEvidenceStatus(task)")
     .replaceAll(/: FailedTaskSubmissionContract\[\]/g, "")
     .replaceAll(/: FailedTaskRuntimeDecision\[\]/g, "")
     .replaceAll(/: FailedTaskControl\[\]/g, "")
@@ -241,6 +243,8 @@ const parseFailedTaskRuntime = () => {
     .replaceAll(/: FailedTaskRuntimeDecision\["apiOutcome"\]/g, "")
     .replaceAll(/: FailedTaskRuntimeDecision\["quotaLedgerEffect"\]/g, "")
     .replaceAll(/: FailedTaskRuntimeDecision\["stateDigestStatus"\]/g, "")
+    .replaceAll(/: FailedTaskRuntimeDecision\["secondReviewDistinctnessStatus"\]/g, "")
+    .replaceAll(/: FailedTaskRuntimeDecision\["secondReviewEvidenceStatus"\]/g, "")
     .replaceAll(/const roleRank: Record<FailedTaskControl\["requestedByRole"\], number> =/g, "const roleRank =")
     .replaceAll(/: SupportTicket\[\]/g, "")
     .replaceAll(/: SupportTicket \| undefined/g, "")
@@ -1248,6 +1252,7 @@ test("queue and failed task controls gate retry and cancel with audit evidence",
     assert.match(task.observedStateDigest, /^sha256:[a-z0-9-]+$/, `${task.id} needs observed state digest`);
     assert.equal(task.preActionStateDigest, task.observedStateDigest, `${task.id} fixture must not start as stale replay evidence`);
     assert.ok(roleOrder.has(task.requestedByRole), `${task.id} needs requesting role`);
+    assert.ok(task.requestedByAdminId.length > 3, `${task.id} needs requesting admin identity`);
     assert.ok(task.idempotencyKey.startsWith(`${task.requestedAction}:${task.id}:`), `${task.id} needs stable action/task idempotency key`);
     assert.ok(task.regressionFixtureRef.length > 10, `${task.id} needs explicit regression fixture state`);
     assert.ok(task.closureEvidenceRefs.length >= 4, `${task.id} needs closure evidence refs`);
@@ -1308,6 +1313,12 @@ test("queue and failed task controls gate retry and cancel with audit evidence",
     if (task.requestedAction === "cancel") {
       assert.notEqual(task.actionEligibility, "blocked", `${task.id} cancel must remain actionable`);
       assert.match(task.rbacDecision, /allowed|second_review_required/, `${task.id} cancel needs RBAC path`);
+      assert.equal(task.secondReviewRequired, true, `${task.id} cancel must declare second review`);
+      assert.match(task.secondReviewStatus, /pending|approved|rejected|expired/, `${task.id} cancel needs explicit second-review state`);
+      assert.notEqual(task.secondReviewerAdminId, task.requestedByAdminId, `${task.id} second reviewer must be distinct`);
+      assert.ok(auditIds.has(task.secondReviewAuditRef), `${task.id} second-review audit ref must link audit evidence`);
+      assert.ok(task.secondReviewEvidenceRefs.includes(task.secondReviewAuditRef), `${task.id} second-review evidence must include audit ref`);
+      assert.ok(task.secondReviewEvidenceRefs.length >= 3, `${task.id} second-review evidence needs audit, RBAC, and workflow refs`);
       assert.ok(
         task.rbacEvidenceRefs.some((ref) => adminRbacEvidenceById.get(ref)?.surface === "crawler_import"),
         `${task.id} cancel must cite crawler import RBAC evidence`
@@ -1322,6 +1333,7 @@ test("queue and failed task controls gate retry and cancel with audit evidence",
 
     if (task.requestedAction === "hold") {
       assert.equal(task.allowedRole, "admin_reviewer", `${task.id} hold needs reviewer role`);
+      assert.equal(task.secondReviewRequired, false, `${task.id} blocked hold must not claim second-review closure`);
       assert.notEqual(task.rbacDecision, "allowed", `${task.id} blocked hold cannot be allowed`);
       assert.ok(
         task.rbacEvidenceRefs.some((ref) => adminRbacEvidenceById.get(ref)?.surface === "safety_rule"),
@@ -1369,6 +1381,11 @@ test("failed task retry and cancel samples are durable regression fixtures", () 
   assert.equal(cancelFixture.bad_sample.idempotency_key, cancelTask.idempotencyKey);
   assert.equal(retryFixture.bad_sample.quota_effect, retryTask.quotaEffect);
   assert.equal(cancelFixture.bad_sample.quota_effect, cancelTask.quotaEffect);
+  assert.equal(cancelFixture.bad_sample.requested_by_admin_id, cancelTask.requestedByAdminId);
+  assert.equal(cancelFixture.bad_sample.second_review_status, cancelTask.secondReviewStatus);
+  assert.equal(cancelFixture.bad_sample.second_reviewer_admin_id, cancelTask.secondReviewerAdminId);
+  assert.equal(cancelFixture.bad_sample.second_review_audit_ref, cancelTask.secondReviewAuditRef);
+  assert.deepEqual(cancelFixture.bad_sample.second_review_evidence_refs, cancelTask.secondReviewEvidenceRefs);
   assert.equal(retryDecision.submitDecision, "submit_ready");
   assert.equal(cancelDecision.submitDecision, "review_required");
   assert.equal(retryFixture.runtime_contract.submit_decision, retryDecision.submitDecision);
@@ -1387,6 +1404,7 @@ test("failed task retry and cancel samples are durable regression fixtures", () 
   assert.equal(cancelDecision.supportNoticeStatus, cancelFixture.runtime_contract.support_notice_status);
   assert.equal(retryDecision.auditWritePolicy, retryFixture.runtime_contract.audit_write_policy);
   assert.equal(cancelDecision.auditWritePolicy, cancelFixture.runtime_contract.audit_write_policy);
+  assert.equal(cancelDecision.secondReviewEvidenceStatus, cancelFixture.runtime_contract.second_review_evidence_status);
   assert.equal(retryDecision.regressionGateEffect, retryFixture.runtime_contract.regression_gate_effect);
   assert.equal(cancelDecision.regressionGateEffect, cancelFixture.runtime_contract.regression_gate_effect);
 
@@ -1437,6 +1455,14 @@ test("failed task retry and cancel samples are durable regression fixtures", () 
   assert.ok(
     cancelFixture.expected_assertions.includes("second_review_required_before_cancel_closure == true"),
     "cancel regression must assert second review"
+  );
+  assert.ok(
+    cancelFixture.expected_assertions.includes("second_review_distinct_reviewer_required == true"),
+    "cancel regression must assert distinct second reviewer"
+  );
+  assert.ok(
+    cancelFixture.expected_assertions.includes("second_review_audit_ref_required == true"),
+    "cancel regression must assert second-review audit evidence"
   );
   assert.ok(
     cancelFixture.expected_assertions.includes("crawler_derived_activation_blocked == true"),
@@ -1540,6 +1566,39 @@ test("failed task runtime submit gates preserve retry, cancel, hold, RBAC, and a
       `requested:${task.requestedByRole}; required:${task.allowedRole}`,
       `${task.id} must expose requested and required role evidence`
     );
+    assert.equal(decision.secondReviewStatus, task.secondReviewStatus, `${task.id} must preserve second-review status`);
+    assert.equal(decision.secondReviewAuditRef, task.secondReviewAuditRef, `${task.id} must preserve second-review audit ref`);
+    assert.ok(
+      decision.secondReviewEvidence.includes(`requester:${task.requestedByAdminId}`),
+      `${task.id} must expose second-review requester identity`
+    );
+    assert.ok(
+      decision.secondReviewEvidence.includes(`reviewer:${task.secondReviewerAdminId}`),
+      `${task.id} must expose second-reviewer identity`
+    );
+    if (task.secondReviewRequired) {
+      assert.equal(
+        decision.secondReviewDistinctnessStatus,
+        "distinct_reviewer",
+        `${task.id} must prove a distinct second reviewer`
+      );
+      assert.equal(
+        decision.secondReviewEvidenceStatus,
+        "complete",
+        `${task.id} must prove second-review audit evidence is complete`
+      );
+    } else {
+      assert.equal(
+        decision.secondReviewDistinctnessStatus,
+        "not_required",
+        `${task.id} must not synthesize second-review distinctness when not required`
+      );
+      assert.equal(
+        decision.secondReviewEvidenceStatus,
+        "not_required",
+        `${task.id} must not synthesize second-review evidence when not required`
+      );
+    }
     assert.equal(decision.quotaSettlement, task.quotaEffect, `${task.id} must preserve quota settlement`);
     assert.equal(decision.auditRef, task.auditRef, `${task.id} must preserve audit ref`);
     assert.equal(decision.idempotencyKey, task.idempotencyKey, `${task.id} must preserve idempotency key`);
@@ -1798,6 +1857,78 @@ test("failed task runtime submit gates preserve retry, cancel, hold, RBAC, and a
     "incomplete closure evidence must expose a blocker code"
   );
 
+  const sameReviewerApprovedCancel = buildFailedTaskRuntimeDecisions(
+    [
+      {
+        ...failedTaskControls.find((task) => task.id === "task-crawler-019"),
+        actionEligibility: "eligible",
+        rbacDecision: "allowed",
+        secondReviewStatus: "approved",
+        secondReviewerAdminId: failedTaskControls.find((task) => task.id === "task-crawler-019").requestedByAdminId
+      }
+    ],
+    supportTickets
+  )[0];
+  assert.equal(
+    sameReviewerApprovedCancel.secondReviewDistinctnessStatus,
+    "same_reviewer",
+    "approved cancel second review must detect same-reviewer evidence"
+  );
+  assert.equal(
+    sameReviewerApprovedCancel.submitDecision,
+    "blocked",
+    "same-reviewer cancel approval must not submit"
+  );
+  assert.ok(
+    sameReviewerApprovedCancel.blockerCodes.includes("second_review_distinct_reviewer_missing"),
+    "same-reviewer cancel approval must expose a second-review blocker"
+  );
+
+  const incompleteSecondReviewApprovedCancel = buildFailedTaskRuntimeDecisions(
+    [
+      {
+        ...failedTaskControls.find((task) => task.id === "task-crawler-019"),
+        actionEligibility: "eligible",
+        rbacDecision: "allowed",
+        secondReviewStatus: "approved",
+        secondReviewAuditRef: "au-012",
+        secondReviewEvidenceRefs: ["rbac-crawler-001"]
+      }
+    ],
+    supportTickets
+  )[0];
+  assert.equal(
+    incompleteSecondReviewApprovedCancel.secondReviewEvidenceStatus,
+    "incomplete",
+    "approved cancel second review must verify audit-backed evidence refs"
+  );
+  assert.equal(
+    incompleteSecondReviewApprovedCancel.submitDecision,
+    "blocked",
+    "approved cancel cannot submit without second-review evidence refs"
+  );
+  assert.ok(
+    incompleteSecondReviewApprovedCancel.blockerCodes.includes("second_review_evidence_incomplete"),
+    "incomplete approved second review must expose a blocker"
+  );
+
+  const rejectedSecondReviewCancel = buildFailedTaskRuntimeDecisions(
+    [
+      {
+        ...failedTaskControls.find((task) => task.id === "task-crawler-019"),
+        actionEligibility: "eligible",
+        rbacDecision: "allowed",
+        secondReviewStatus: "rejected"
+      }
+    ],
+    supportTickets
+  )[0];
+  assert.equal(rejectedSecondReviewCancel.submitDecision, "blocked", "rejected second review must block cancel closure");
+  assert.ok(
+    rejectedSecondReviewCancel.blockerCodes.includes("second_review_rejected"),
+    "rejected second review must expose a blocker"
+  );
+
   const missingUserMessageRetry = buildFailedTaskRuntimeDecisions(
     [
       {
@@ -1986,6 +2117,17 @@ test("failed task submission contracts bind admin API replay protection and rele
     assert.equal(contract.submitDecision, decision.submitDecision, `${task.id} submit decision mismatch`);
     assert.equal(contract.apiOutcome, decision.apiOutcome, `${task.id} API outcome mismatch`);
     assert.equal(contract.quotaLedgerEffect, decision.quotaLedgerEffect, `${task.id} quota ledger mismatch`);
+    assert.equal(contract.secondReviewStatus, decision.secondReviewStatus, `${task.id} second-review status mismatch`);
+    assert.equal(
+      contract.secondReviewEvidenceStatus,
+      decision.secondReviewEvidenceStatus,
+      `${task.id} second-review evidence status mismatch`
+    );
+    assert.match(
+      contract.secondReviewHeader,
+      /X-Admin-Second-Review/,
+      `${task.id} contract must expose second-review header`
+    );
     assert.equal(contract.auditRef, task.auditRef, `${task.id} audit ref mismatch`);
     assert.ok(contract.evidenceRefs.includes(task.id), `${task.id} contract evidence must include task id`);
     assert.ok(contract.evidenceRefs.includes(task.supportTicketId), `${task.id} contract evidence must include support ticket`);
@@ -2078,7 +2220,9 @@ test("failed task submission contracts bind admin API replay protection and rele
     "Precondition Digest",
     "Mutation Order",
     "Replay Protection",
-    "Release Gate Use"
+    "Release Gate Use",
+    "Second Review Header",
+    "secondReviewHeader"
   ]) {
     assert.match(queuesPage + adminApi + failedTaskRuntimeSource + types, new RegExp(token));
   }
