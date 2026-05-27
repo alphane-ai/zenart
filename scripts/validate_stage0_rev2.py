@@ -3802,6 +3802,19 @@ def do_not_launch_by_id(data: dict[str, Any]) -> dict[str, dict[str, Any]]:
 
 def validate_release_gate_basics(data: dict[str, Any]) -> tuple[dict[str, dict[str, Any]], dict[str, dict[str, Any]]]:
     gate = data["gate"]
+    require_field_allowed_keys(
+        data,
+        {
+            "schema_version",
+            "gate",
+            "evidence_id",
+            "checks",
+            "do_not_launch_checks",
+            "gate_decision",
+            "provenance",
+        },
+        f"{gate} release evidence fixture",
+    )
     require(gate in RELEASE_GATE_REQUIRED_CHECKS, f"unexpected release gate evidence target: {gate}")
     require(
         data.get("schema_version") == "stage0.rev2",
@@ -3815,8 +3828,17 @@ def validate_release_gate_basics(data: dict[str, Any]) -> tuple[dict[str, dict[s
         data["provenance"]["created_by_lane"] == "lane6",
         f"{gate} release evidence must be lane6-owned",
     )
+    require_field_allowed_keys(
+        data["provenance"],
+        {
+            "blueprint_sections",
+            "created_by_lane",
+        },
+        f"{gate} release evidence provenance",
+    )
     require(
-        data["provenance"]["blueprint_sections"],
+        isinstance(data["provenance"]["blueprint_sections"], list)
+        and all(isinstance(section, str) and section.strip() for section in data["provenance"]["blueprint_sections"]),
         f"{gate} release evidence must cite blueprint sections",
     )
     validate_gate_decision(data)
@@ -3838,6 +3860,15 @@ def validate_release_gate_basics(data: dict[str, Any]) -> tuple[dict[str, dict[s
         f"{gate} release evidence has unknown Do-Not-Launch condition IDs: {sorted(extra_conditions)}",
     )
     for check_id, check in checks.items():
+        require_field_allowed_keys(
+            check,
+            {
+                "check_id",
+                "status",
+                "evidence_ref",
+            },
+            f"{gate}.{check_id} release evidence check",
+        )
         require(
             check["status"] in CHECK_STATUS_VALUES,
             f"{gate}.{check_id} has unsupported status {check['status']!r}",
@@ -3868,6 +3899,20 @@ def validate_release_gate_basics(data: dict[str, Any]) -> tuple[dict[str, dict[s
             )
 
     for condition_id, condition in conditions.items():
+        require_field_allowed_keys(
+            condition,
+            {
+                "condition_id",
+                "blueprint_condition",
+                "is_present",
+                "evidence_ref",
+            },
+            f"{gate}.{condition_id} Do-Not-Launch condition",
+        )
+        require(
+            isinstance(condition["is_present"], bool),
+            f"{gate}.{condition_id} is_present must be boolean",
+        )
         require(
             condition["evidence_ref"].strip(),
             f"{gate}.{condition_id} must have a non-empty evidence_ref",

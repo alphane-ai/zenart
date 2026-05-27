@@ -17,3 +17,14 @@ Local development target:
 ```bash
 docker compose up --build
 ```
+
+Stage 0 Rev2 launch-readiness validation:
+
+```bash
+python3 scripts/validate_stage0_rev2.py
+```
+
+Current gate posture is intentionally no-go until the authoritative checklist in
+`Docs/stage0_blueprint_rev2.md` has validator-resolvable Local Alpha, CI,
+Private Beta/Staging, Production, and Do-Not-Launch evidence. Do not close
+launch gates from README prose, draft CI files, or fixture-only evidence.
