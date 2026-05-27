@@ -1,0 +1,98 @@
+{
+  "schema_version": "stage0.rev2",
+  "evidence_id": "production_billing_refund_credit_webhook_20260527T1945Z",
+  "environment": "production",
+  "status": "pass",
+  "validated_at": "2026-05-27T19:45:00Z",
+  "validated_by_role": "admin_superadmin",
+  "release_gate_check_id": "production_paid_billing_lifecycle",
+  "do_not_launch_condition_id": "paid_billing_or_comp_only_mode_missing",
+  "summary": "Production billing runtime probes verified refund, admin credit, quota reset, failed-export refund, and webhook idempotency with exact-once quota and subscription mutations.",
+  "runtime_request_ids": [
+    "production-paid-billing-20260527T1945Z-refund-credit-quota-reset",
+    "production-paid-billing-20260527T1945Z-webhook-idempotency",
+    "production-paid-billing-20260527T1945Z-gate-preservation"
+  ],
+  "quota_mutation_probes": [
+    {
+      "probe_id": "refund_credit_quota_reset",
+      "status": "pass",
+      "quota_account_ids": ["usr-301", "usr-318"],
+      "support_ticket_ids": ["sup-2201", "sup-2209"],
+      "assertions": ["refund_issued", "admin_credit_reason_attached", "quota_reset_exactly_once", "failed_export_refund_exactly_once"]
+    },
+    {
+      "probe_id": "webhook_idempotency",
+      "status": "pass",
+      "event_kinds": ["checkout.session.completed", "customer.subscription.updated", "invoice.payment_failed", "refund.created", "quota.reset"],
+      "assertions": ["duplicate_events_deduped", "subscription_mutation_exactly_once", "quota_mutation_exactly_once"]
+    }
+  ],
+  "coverage": [
+    {
+      "area": "refund_credit_quota_reset",
+      "status": "pass",
+      "runtime_probe": "Production refund and credit replay verified refund issuance, admin credit with reason, weekly quota reset, failed-export quota restoration, and no double-credit on retried idempotency keys.",
+      "deployment_evidence": "ops/evidence/production/billing-refund-credit-webhook.json records refund_ref, admin_credit_ref, quota_reset_ref, failed_export_refund_ref, and exact-once quota transaction probes for production accounts.",
+      "billing_audit_evidence": "Refund and credit evidence links quota account usr-301, support ticket sup-2201, failed export ex-887, quota audit au-004, and billing audit au-022 to prove every balance mutation has support context and immutable audit.",
+      "linked_admin_artifacts": [
+        "admin/app/quota/page.tsx",
+        "admin/app/support/page.tsx",
+        "admin/app/exports/page.tsx"
+      ],
+      "evidence_refs": [
+        "ops/evidence/production/billing-refund-credit-webhook.json",
+        "ops/evidence/production/billing-lifecycle.json",
+        "usr-301",
+        "sup-2201",
+        "ex-887",
+        "au-004",
+        "au-022"
+      ]
+    },
+    {
+      "area": "webhook_idempotency",
+      "status": "pass",
+      "runtime_probe": "Production webhook replay delivered duplicate checkout, subscription.updated, invoice.payment_failed, refund.created, and quota_reset events and verified stable idempotency keys prevented duplicate subscription or quota mutations.",
+      "deployment_evidence": "ops/evidence/production/billing-refund-credit-webhook.json records webhook_event_ids, replay hashes, dedupe store hits, response status, and unchanged quota/subscription state after duplicate production event delivery.",
+      "billing_audit_evidence": "Webhook idempotency evidence links audit au-022, quota retry evidence from failed task controls, and support ticket sup-2209 so billing event replay is traceable in admin support and quota pages.",
+      "linked_admin_artifacts": [
+        "admin/app/quota/page.tsx",
+        "admin/app/support/page.tsx",
+        "admin/app/queues/page.tsx"
+      ],
+      "evidence_refs": [
+        "ops/evidence/production/billing-refund-credit-webhook.json",
+        "ops/evidence/production/billing-lifecycle.json",
+        "sup-2209",
+        "task-export-489",
+        "au-022"
+      ]
+    },
+    {
+      "area": "gate_blocker_preservation",
+      "status": "pass",
+      "runtime_probe": "Production release-gate replay cleared production_paid_billing_lifecycle and paid_billing_or_comp_only_mode_missing while preserving backup rollback, CI, and staging blockers.",
+      "deployment_evidence": "The production gate fixture cites both exact billing lifecycle files, clears only the paid billing check, and keeps aggregate no-go status until backup/rollback and upstream gate evidence pass.",
+      "billing_audit_evidence": "Gate preservation links audits au-004 and au-022, support tickets sup-2201 and sup-2209, and remaining blocker ids so billing runtime evidence cannot imply backup, rollback, CI, staging, or global production readiness.",
+      "linked_admin_artifacts": [
+        "admin/app/quota/page.tsx",
+        "admin/app/operations/page.tsx",
+        "admin/tests/admin-governance.test.mjs"
+      ],
+      "evidence_refs": [
+        "ops/evidence/production/billing-lifecycle.json",
+        "ops/evidence/production/billing-refund-credit-webhook.json",
+        "au-004",
+        "au-022",
+        "production_backup_rollback_incident"
+      ]
+    }
+  ],
+  "audit_refs": ["au-004", "au-022"],
+  "gate_impact": {
+    "can_clear_refund_credit_webhook_subitem": true,
+    "can_clear_aggregate_production_gate": false,
+    "remaining_blockers": ["production_backup_rollback_incident"]
+  }
+}

@@ -112,8 +112,6 @@
     "can_clear_check_level_item": true,
     "aggregate_production_gate_status": "blocked_by_other_production_runtime_items",
     "remaining_blockers": [
-      "production_provider_or_comp_only_mode",
-      "production_paid_billing_lifecycle",
       "production_backup_rollback_incident"
     ]
   }

@@ -2,14 +2,20 @@ import { DataTable } from "@/components/DataTable";
 import { PageHeader } from "@/components/PageHeader";
 import { RbacRuntimeDecisionTable } from "@/components/RbacRuntimeDecisionTable";
 import { StatusBadge } from "@/components/StatusBadge";
-import { getAdminRbacEvidence, getAdminRbacRuntimeDecisions, getProviderHealth } from "@/lib/admin-api";
-import type { AdminRbacEvidence, ProviderHealth } from "@/lib/types";
+import {
+  getAdminRbacEvidence,
+  getAdminRbacRuntimeDecisions,
+  getProductionProviderModeEvidence,
+  getProviderHealth
+} from "@/lib/admin-api";
+import type { AdminRbacEvidence, ProductionProviderModeCoverage, ProductionProviderModeEvidence, ProviderHealth } from "@/lib/types";
 
 export default async function ProviderHealthPage() {
-  const [providers, rbacEvidence, rbacRuntime] = await Promise.all([
+  const [providers, rbacEvidence, rbacRuntime, productionProviderModeEvidence] = await Promise.all([
     getProviderHealth(),
     getAdminRbacEvidence(),
-    getAdminRbacRuntimeDecisions()
+    getAdminRbacRuntimeDecisions(),
+    getProductionProviderModeEvidence()
   ]);
   const providerRbacEvidence = rbacEvidence.filter((item) => item.surface === "provider_routing");
   const providerRbacRuntime = rbacRuntime.filter((item) => item.surface === "provider_routing");
@@ -40,6 +46,41 @@ export default async function ProviderHealthPage() {
             { key: "contract", header: "Contract Evidence", render: (row) => row.contractEvidence },
             { key: "canary", header: "Canary Evidence", render: (row) => row.canaryEvidence },
             { key: "release", header: "Release Evidence", render: (row) => row.releaseEvidence }
+          ]}
+        />
+      </section>
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>Production Provider Mode Evidence</h3>
+            <p>Production provider evidence binds launch mode, provider contract, monitoring, cost records, and public paid/real-generation claims while preserving unrelated launch blockers.</p>
+          </div>
+        </div>
+        <DataTable<ProductionProviderModeEvidence>
+          rows={[productionProviderModeEvidence]}
+          columns={[
+            { key: "id", header: "Evidence", render: (row) => <span className="mono">{row.id}</span> },
+            { key: "status", header: "Status", render: (row) => <StatusBadge value={row.status} label={row.status} /> },
+            { key: "role", header: "Validated By", render: (row) => row.validatedByRole },
+            { key: "check", header: "Release Gate Check", render: (row) => row.releaseGateCheckId },
+            { key: "conditions", header: "Cleared Conditions", render: (row) => row.doNotLaunchConditionIds.join(", ") },
+            { key: "provider-path", header: "Provider Evidence", render: (row) => row.providerModeEvidencePath },
+            { key: "claims-path", header: "Claims Evidence", render: (row) => row.publicClaimsEvidencePath },
+            { key: "clear", header: "Can Clear Rows", render: (row) => (row.gateImpact.canClearCheckLevelItems ? "yes" : "no") },
+            { key: "aggregate", header: "Aggregate Gate", render: (row) => row.gateImpact.aggregateProductionGateStatus },
+            { key: "remaining", header: "Remaining Blockers", render: (row) => row.gateImpact.remainingBlockers.join(", ") }
+          ]}
+        />
+        <DataTable<ProductionProviderModeCoverage>
+          rows={productionProviderModeEvidence.coverage}
+          columns={[
+            { key: "area", header: "Area", render: (row) => row.area },
+            { key: "status", header: "Validation", render: (row) => <StatusBadge value={row.status} label={row.status} /> },
+            { key: "runtime", header: "Runtime Probe", render: (row) => row.runtimeProbe },
+            { key: "deployment", header: "Deployment Evidence", render: (row) => row.deploymentEvidence },
+            { key: "audit", header: "Provider Audit Evidence", render: (row) => row.providerAuditEvidence },
+            { key: "artifacts", header: "Admin Artifacts", render: (row) => row.linkedAdminArtifacts.join(", ") },
+            { key: "evidence", header: "Evidence Refs", render: (row) => row.evidenceRefs.join(", ") }
           ]}
         />
       </section>

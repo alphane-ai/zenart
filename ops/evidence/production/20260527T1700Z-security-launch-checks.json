@@ -29,7 +29,7 @@
       "status": "pass",
       "runtime_probe": "Production admin and web session replay rejected non-secure cookies, verified HttpOnly and SameSite attributes on session cookies, and denied dev identity headers while preserving independent admin session boundaries.",
       "deployment_evidence": "The production evidence file records Set-Cookie attribute probes for admin and web sessions, disabled ADMIN_DEV_IDENTITY_HEADERS fallback, TLS-only cookie transport, and no user-session reuse on /api/admin/*.",
-      "security_audit_evidence": "Cookie validation links immutable audits au-015 and au-017 plus admin-auth fixtures, proving secure cookie runtime behavior without weakening remaining provider, billing, backup, legal, CI, or staging blockers.",
+      "security_audit_evidence": "Cookie validation links immutable audits au-015 and au-017 plus admin-auth fixtures, proving secure cookie runtime behavior without weakening remaining backup, CI, or staging blockers.",
       "linked_admin_artifacts": [
         "admin/lib/admin-auth.ts",
         "admin/app/audit/page.tsx",
@@ -107,7 +107,7 @@
     {
       "area": "gate_blocker_preservation",
       "status": "pass",
-      "runtime_probe": "Production release-gate replay cleared production_security_launch_checks while preserving provider-or-comp-only, paid billing lifecycle, backup rollback, legal support, CI, and staging blockers that were still active.",
+      "runtime_probe": "Production release-gate replay cleared production_security_launch_checks while preserving backup rollback plus upstream CI and staging blockers that were still active.",
       "deployment_evidence": "The production gate fixture cites this security evidence path on the security launch check, clears only security and secret-exposure do-not-launch conditions, and preserves aggregate no-go status.",
       "security_audit_evidence": "Gate preservation links release blocker rb-production-admin-security, release evidence eg-002, immutable audits au-008 and au-017, and the production gate fixture without implying production launch readiness.",
       "linked_admin_artifacts": [
@@ -129,8 +129,6 @@
     "can_clear_check_level_item": true,
     "aggregate_production_gate_status": "blocked_by_other_production_runtime_items",
     "remaining_blockers": [
-      "production_provider_or_comp_only_mode",
-      "production_paid_billing_lifecycle",
       "production_backup_rollback_incident"
     ]
   }

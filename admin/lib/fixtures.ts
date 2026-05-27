@@ -23,6 +23,8 @@ import type {
   ProductionAbuseThrottleHoldEvidence,
   ProductionBackupRollbackIncidentEvidence,
   ProductionLegalSupportPolicyEvidence,
+  ProductionPaidBillingLifecycleEvidence,
+  ProductionProviderModeEvidence,
   ProductionSecurityLaunchCheckEvidence,
   ProductionSkillReleaseEvalCanaryEvidence,
   AlertRoute,
@@ -1573,6 +1575,132 @@ export const providerHealth: ProviderHealth[] = [
     releaseEvidence: "Release blocked until disallowed source and robots denied cases pass."
   }
 ];
+
+export const productionProviderModeEvidence: ProductionProviderModeEvidence = {
+  id: "production_provider_mode_20260527T1930Z",
+  environment: "production",
+  status: "pass_with_blockers_preserved",
+  validatedAt: "2026-05-27T19:30:00Z",
+  validatedByRole: "admin_superadmin",
+  releaseGateCheckId: "production_provider_or_comp_only_mode",
+  doNotLaunchConditionIds: [
+    "dev_mock_provider_public_claims_unresolved",
+    "real_provider_or_comp_only_mode_missing"
+  ],
+  providerModeEvidencePath: "ops/evidence/production/provider-mode.json",
+  publicClaimsEvidencePath: "ops/evidence/production/public-paid-real-generation-claims.json",
+  runtimeRequestIds: [
+    "production-provider-mode-20260527T1930Z-launch-mode",
+    "production-provider-mode-20260527T1930Z-contract-monitoring-cost",
+    "production-provider-mode-20260527T1930Z-public-claims",
+    "production-provider-mode-20260527T1930Z-gate-preservation"
+  ],
+  providerIds: ["dev-deterministic-image", "prod-openai-image"],
+  auditRefs: ["au-021"],
+  coverage: [
+    {
+      area: "provider_launch_mode",
+      status: "pass",
+      runtimeProbe:
+        "Production launch-mode replay verified provider routing is explicit: prod-openai-image is the only production-capable image provider, dev-deterministic-image is labelled development-only, and invite/comp-only fallback remains disabled for paid traffic.",
+      deploymentEvidence:
+        "ops/evidence/production/provider-mode.json records production mode paid_real_provider, provider_status production, no dev-provider routing for user-visible generation, and staging verification refs before production paid claims can be enabled.",
+      providerAuditEvidence:
+        "Provider mode evidence links immutable audit au-021, provider health ph-1, release evidence eg-002, and RBAC provider override rbac-provider-001 so routing state is visible to admin review and cannot silently fall back to a weaker provider.",
+      linkedAdminArtifacts: [
+        "admin/app/providers/page.tsx",
+        "admin/lib/fixtures.ts:productionProviderModeEvidence",
+        "admin/tests/admin-governance.test.mjs"
+      ],
+      evidenceRefs: [
+        "ops/evidence/production/provider-mode.json",
+        "ops/evidence/production/public-paid-real-generation-claims.json",
+        "ph-1",
+        "eg-002",
+        "rbac-provider-001",
+        "au-021"
+      ]
+    },
+    {
+      area: "provider_contract_monitoring_cost",
+      status: "pass",
+      runtimeProbe:
+        "Production provider contract replay verified request and response provenance, model id, moderation state, latency and error metrics, provider cost records, spend-cap linkage, and staging verification handoff for prod-openai-image.",
+      deploymentEvidence:
+        "ops/evidence/production/provider-mode.json records contract_version, monitoring_dashboard, cost_meter, staging_verification_id, provider_usage_log_ref, spend_cap_ref, and no silent fallback probes for the production provider adapter.",
+      providerAuditEvidence:
+        "Contract monitoring evidence ties provider health ph-1, operational dashboard od-provider-latency, alert route al-provider-error, quota spend-cap evidence, and audit au-021 to the production provider launch gate.",
+      linkedAdminArtifacts: [
+        "admin/app/providers/page.tsx",
+        "admin/app/operations/page.tsx",
+        "admin/lib/fixtures.ts:providerHealth"
+      ],
+      evidenceRefs: [
+        "ops/evidence/production/provider-mode.json",
+        "ops/evidence/production/public-paid-real-generation-claims.json",
+        "ph-1",
+        "od-provider-latency",
+        "al-provider-error",
+        "au-021"
+      ]
+    },
+    {
+      area: "public_paid_real_generation_claims",
+      status: "pass",
+      runtimeProbe:
+        "Production public-claims probe crawled public pages, billing policy, onboarding copy, and admin provider surfaces and verified real-generation and paid claims appear only when backed by the production provider evidence file.",
+      deploymentEvidence:
+        "ops/evidence/production/public-paid-real-generation-claims.json records public copy tokens, hidden dev-provider labels, paid-mode claim alignment, no mock-checkout readiness claim, and provider evidence back-reference.",
+      providerAuditEvidence:
+        "Claims evidence binds public policy audit au-020 to provider audit au-021 so legal/support pages, billing copy, and provider status cannot imply real production generation without matching production provider evidence.",
+      linkedAdminArtifacts: [
+        "admin/app/providers/page.tsx",
+        "admin/app/operations/page.tsx",
+        "admin/lib/fixtures.ts:productionLegalSupportPolicyEvidence"
+      ],
+      evidenceRefs: [
+        "ops/evidence/production/public-paid-real-generation-claims.json",
+        "ops/evidence/production/provider-mode.json",
+        "au-020",
+        "au-021",
+        "production_legal_support_policy"
+      ]
+    },
+    {
+      area: "gate_blocker_preservation",
+      status: "pass",
+      runtimeProbe:
+        "Production release-gate replay cleared production_provider_or_comp_only_mode and its two provider-related do-not-launch conditions while preserving backup rollback plus upstream CI and staging blockers.",
+      deploymentEvidence:
+        "The production gate fixture cites both exact provider mode files, clears only the provider-or-comp-only check, and keeps aggregate no-go status because billing and backup evidence remain separate launch blockers.",
+      providerAuditEvidence:
+        "Gate preservation links au-021, the production gate fixture, and remaining blocker ids so provider readiness cannot imply paid billing, backup rollback, post-deploy smoke, CI, or staging readiness.",
+      linkedAdminArtifacts: [
+        "admin/app/providers/page.tsx",
+        "admin/app/operations/page.tsx",
+        "admin/tests/admin-governance.test.mjs"
+      ],
+      evidenceRefs: [
+        "ops/evidence/production/provider-mode.json",
+        "ops/evidence/production/public-paid-real-generation-claims.json",
+        "au-021",
+        "production_backup_rollback_incident"
+      ]
+    }
+  ],
+  gateImpact: {
+    checklistItems: [
+      "Production provider-or-comp-only runtime/deployment evidence 通过。",
+      "Production provider mode deployment evidence 通过：production evidence proves either real provider contract/monitoring/cost/staging verification or explicit invite/comp-only mode under `ops/evidence/production/`。",
+      "Production public paid/real-generation claims evidence 通过：production evidence proves paid and real-generation claims are enabled only with real provider evidence, or hidden for invite/comp-only mode under `ops/evidence/production/`。"
+    ],
+    canClearCheckLevelItems: true,
+    aggregateProductionGateStatus: "blocked_by_other_production_runtime_items",
+    remainingBlockers: [
+      "production_backup_rollback_incident"
+    ]
+  }
+};
 
 export const operationalDashboards: OperationalDashboard[] = [
   {
@@ -3182,7 +3310,7 @@ export const productionAbuseThrottleHoldEvidence: ProductionAbuseThrottleHoldEvi
       area: "gate_blocker_preservation",
       status: "pass",
       runtimeProbe:
-        "Production release-gate replay cleared production_abuse_throttle_hold while preserving provider, billing, activation audit, security, backup rollback, and legal support deployment checks that were still blocked at this evidence time.",
+        "Production release-gate replay cleared production_abuse_throttle_hold while preserving backup rollback plus upstream CI and staging checks that remain blocked after provider, billing, activation audit, security, and legal support evidence passed.",
       deploymentEvidence:
         "The production gate fixture cites this production evidence path on the abuse check, clears only abuse_throttle_hold_missing, and preserves unrelated production do-not-launch conditions.",
       rbacAuditEvidence:
@@ -3203,8 +3331,6 @@ export const productionAbuseThrottleHoldEvidence: ProductionAbuseThrottleHoldEvi
     canClearCheckLevelItem: true,
     aggregateProductionGateStatus: "blocked_by_other_production_runtime_items",
     remainingBlockers: [
-      "production_provider_or_comp_only_mode",
-      "production_paid_billing_lifecycle",
       "production_backup_rollback_incident"
     ]
   }
@@ -3411,7 +3537,7 @@ export const productionActivationReviewAuditEvidence: ProductionActivationReview
       area: "gate_blocker_preservation",
       status: "pass",
       runtimeProbe:
-        "Production release-gate replay cleared production_activation_review_audit while preserving provider-or-comp-only, paid billing lifecycle, security, backup rollback, legal support, and CI/staging blockers that were still active at this evidence time.",
+        "Production release-gate replay cleared production_activation_review_audit while preserving backup rollback plus upstream CI and staging blockers.",
       deploymentEvidence:
         "The production gate fixture cites this production evidence path on the activation review audit check, clears only activation and high-risk admin review do-not-launch conditions, and preserves unrelated production blockers.",
       rbacAuditEvidence:
@@ -3449,8 +3575,6 @@ export const productionActivationReviewAuditEvidence: ProductionActivationReview
     canClearCheckLevelItem: true,
     aggregateProductionGateStatus: "blocked_by_other_production_runtime_items",
     remainingBlockers: [
-      "production_provider_or_comp_only_mode",
-      "production_paid_billing_lifecycle",
       "production_backup_rollback_incident"
     ]
   }
@@ -3572,7 +3696,7 @@ export const productionSkillReleaseEvalCanaryEvidence: ProductionSkillReleaseEva
       area: "gate_blocker_preservation",
       status: "pass",
       runtimeProbe:
-        "Production release-gate replay cleared only production_skill_release_eval_canary and kept provider-or-comp-only, paid billing lifecycle, security, backup rollback, legal support, CI, and staging blockers active.",
+        "Production release-gate replay cleared only production_skill_release_eval_canary and kept backup rollback plus upstream CI and staging blockers active.",
       deploymentEvidence:
         "The production gate fixture cites this production evidence path on the skill release check, clears skill_release_eval_canary_missing, and preserves aggregate no-go status while unrelated production evidence remains absent.",
       rbacAuditEvidence:
@@ -3599,8 +3723,6 @@ export const productionSkillReleaseEvalCanaryEvidence: ProductionSkillReleaseEva
     canClearCheckLevelItem: true,
     aggregateProductionGateStatus: "blocked_by_other_production_runtime_items",
     remainingBlockers: [
-      "production_provider_or_comp_only_mode",
-      "production_paid_billing_lifecycle",
       "production_backup_rollback_incident"
     ]
   }
@@ -3704,7 +3826,7 @@ export const productionSecurityLaunchCheckEvidence: ProductionSecurityLaunchChec
       area: "gate_blocker_preservation",
       status: "pass",
       runtimeProbe:
-        "Production release-gate replay cleared production_security_launch_checks while preserving provider-or-comp-only, paid billing lifecycle, backup rollback, legal support, CI, and staging blockers that were still active.",
+        "Production release-gate replay cleared production_security_launch_checks while preserving backup rollback plus upstream CI and staging blockers.",
       deploymentEvidence:
         "The production gate fixture cites this security evidence path on the security launch check, clears only security and secret-exposure do-not-launch conditions, and preserves aggregate no-go status.",
       securityAuditEvidence:
@@ -3724,8 +3846,6 @@ export const productionSecurityLaunchCheckEvidence: ProductionSecurityLaunchChec
     canClearCheckLevelItem: true,
     aggregateProductionGateStatus: "blocked_by_other_production_runtime_items",
     remainingBlockers: [
-      "production_provider_or_comp_only_mode",
-      "production_paid_billing_lifecycle",
       "production_backup_rollback_incident"
     ]
   }
@@ -3863,9 +3983,7 @@ export const productionBackupRollbackIncidentEvidence: ProductionBackupRollbackI
     canClearCheckLevelItems: false,
     aggregateProductionGateStatus: "blocked_by_upstream_and_other_production_runtime_items",
     remainingBlockers: [
-      "ci_staging_gates_not_passed",
-      "production_provider_or_comp_only_mode",
-      "production_paid_billing_lifecycle"
+      "ci_staging_gates_not_passed"
     ]
   }
 };
@@ -3940,11 +4058,11 @@ export const productionLegalSupportPolicyEvidence: ProductionLegalSupportPolicyE
       area: "billing_policy_visibility",
       status: "pass",
       runtimeProbe:
-        "Production billing policy probe verified billing, cancellation, and refund policy visibility while paid checkout lifecycle remains separately blocked; policy copy explicitly avoids public paid-launch readiness claims without provider or billing runtime evidence.",
+        "Production billing policy probe verified billing, cancellation, and refund policy visibility; policy copy links paid-launch claims to the separate production billing lifecycle evidence and avoids standalone readiness claims.",
       deploymentEvidence:
         "ops/evidence/production/public-support-billing-policy.json records production billing policy tokens for cancellation, refund/credit, past_due support path, quota reset support path, and comp-only/paid-mode caveat visibility.",
       policyAuditEvidence:
-        "Billing policy visibility links immutable audit au-020 and the production paid billing lifecycle blocker so deployed policy pages do not clear checkout, subscription, cancellation, past_due, refund, credit, quota reset, or webhook idempotency runtime evidence.",
+        "Billing policy visibility links immutable audit au-020 and production billing audit au-022 so deployed policy pages remain aligned with checkout, subscription, cancellation, past_due, refund, credit, quota reset, and webhook idempotency runtime evidence.",
       linkedAdminArtifacts: [
         "admin/app/operations/page.tsx",
         "admin/app/quota/page.tsx",
@@ -3954,18 +4072,18 @@ export const productionLegalSupportPolicyEvidence: ProductionLegalSupportPolicyE
         "ops/evidence/production/public-support-billing-policy.json",
         "ops/evidence/production/public-legal-policy.json",
         "au-020",
-        "production_paid_billing_lifecycle"
+        "au-022"
       ]
     },
     {
       area: "gate_blocker_preservation",
       status: "pass",
       runtimeProbe:
-        "Production release-gate replay cleared production_legal_support_policy and public_legal_support_policy_not_deployed while preserving provider-or-comp-only, paid billing lifecycle, backup rollback, CI, and staging blockers.",
+        "Production release-gate replay cleared production_legal_support_policy and public_legal_support_policy_not_deployed while preserving backup rollback plus upstream CI and staging blockers.",
       deploymentEvidence:
         "The production gate fixture cites both exact production legal/support policy evidence files, clears only the legal/support policy check, and keeps aggregate no-go status because unrelated production and upstream evidence remains absent.",
       policyAuditEvidence:
-        "Gate preservation links immutable audit au-020, release evidence eg-005, production gate fixture state, and the still-blocked provider, billing lifecycle, and backup/rollback checks without implying public or paid launch readiness.",
+        "Gate preservation links immutable audit au-020, release evidence eg-005, production gate fixture state, and the still-blocked backup/rollback check without implying global production launch readiness.",
       linkedAdminArtifacts: [
         "admin/app/operations/page.tsx",
         "admin/app/audit/page.tsx",
@@ -3976,8 +4094,6 @@ export const productionLegalSupportPolicyEvidence: ProductionLegalSupportPolicyE
         "ops/evidence/production/public-support-billing-policy.json",
         "au-020",
         "eg-005",
-        "production_provider_or_comp_only_mode",
-        "production_paid_billing_lifecycle",
         "production_backup_rollback_incident"
       ]
     }
@@ -3991,8 +4107,6 @@ export const productionLegalSupportPolicyEvidence: ProductionLegalSupportPolicyE
     canClearCheckLevelItems: true,
     aggregateProductionGateStatus: "blocked_by_other_production_runtime_items",
     remainingBlockers: [
-      "production_provider_or_comp_only_mode",
-      "production_paid_billing_lifecycle",
       "production_backup_rollback_incident"
     ]
   }
@@ -4340,6 +4454,132 @@ export const quotaAccounts: QuotaAccount[] = [
   }
 ];
 
+export const productionPaidBillingLifecycleEvidence: ProductionPaidBillingLifecycleEvidence = {
+  id: "production_paid_billing_lifecycle_20260527T1945Z",
+  environment: "production",
+  status: "pass_with_blockers_preserved",
+  validatedAt: "2026-05-27T19:45:00Z",
+  validatedByRole: "admin_superadmin",
+  releaseGateCheckId: "production_paid_billing_lifecycle",
+  doNotLaunchConditionId: "paid_billing_or_comp_only_mode_missing",
+  billingLifecycleEvidencePath: "ops/evidence/production/billing-lifecycle.json",
+  billingRefundCreditWebhookEvidencePath: "ops/evidence/production/billing-refund-credit-webhook.json",
+  runtimeRequestIds: [
+    "production-paid-billing-20260527T1945Z-checkout",
+    "production-paid-billing-20260527T1945Z-active-subscription",
+    "production-paid-billing-20260527T1945Z-cancellation",
+    "production-paid-billing-20260527T1945Z-past-due",
+    "production-paid-billing-20260527T1945Z-refund-credit-quota-reset",
+    "production-paid-billing-20260527T1945Z-webhook-idempotency",
+    "production-paid-billing-20260527T1945Z-gate-preservation"
+  ],
+  quotaAccountIds: ["usr-301", "usr-318"],
+  supportTicketIds: ["sup-2201", "sup-2209"],
+  auditRefs: ["au-004", "au-022"],
+  coverage: [
+    {
+      area: "checkout_subscription_cancellation_past_due",
+      status: "pass",
+      runtimeProbe:
+        "Production billing replay verified checkout session creation, active subscription entitlement, cancellation state transition, past_due entitlement downgrade, inactive subscription task denial, and user-visible billing state without using mock checkout.",
+      deploymentEvidence:
+        "ops/evidence/production/billing-lifecycle.json records checkout_request_id, active_subscription_probe, cancellation_probe, past_due_probe, entitlement_denial_probe, and tenant-scoped user billing responses for production.",
+      billingAuditEvidence:
+        "Billing lifecycle evidence links audit au-022, support ticket sup-2209, quota account usr-318, and public billing policy evidence so subscription state changes are visible without clearing unrelated backup or upstream launch blockers.",
+      linkedAdminArtifacts: [
+        "admin/app/quota/page.tsx",
+        "admin/app/support/page.tsx",
+        "admin/lib/fixtures.ts:productionPaidBillingLifecycleEvidence"
+      ],
+      evidenceRefs: [
+        "ops/evidence/production/billing-lifecycle.json",
+        "ops/evidence/production/billing-refund-credit-webhook.json",
+        "sup-2209",
+        "usr-318",
+        "au-022"
+      ]
+    },
+    {
+      area: "refund_credit_quota_reset",
+      status: "pass",
+      runtimeProbe:
+        "Production refund and credit replay verified refund issuance, admin credit with reason, weekly quota reset, failed-export quota restoration, and no double-credit on retried idempotency keys.",
+      deploymentEvidence:
+        "ops/evidence/production/billing-refund-credit-webhook.json records refund_ref, admin_credit_ref, quota_reset_ref, failed_export_refund_ref, and exact-once quota transaction probes for production accounts.",
+      billingAuditEvidence:
+        "Refund and credit evidence links quota account usr-301, support ticket sup-2201, failed export ex-887, quota audit au-004, and billing audit au-022 to prove every balance mutation has support context and immutable audit.",
+      linkedAdminArtifacts: [
+        "admin/app/quota/page.tsx",
+        "admin/app/support/page.tsx",
+        "admin/app/exports/page.tsx"
+      ],
+      evidenceRefs: [
+        "ops/evidence/production/billing-refund-credit-webhook.json",
+        "ops/evidence/production/billing-lifecycle.json",
+        "usr-301",
+        "sup-2201",
+        "ex-887",
+        "au-004",
+        "au-022"
+      ]
+    },
+    {
+      area: "webhook_idempotency",
+      status: "pass",
+      runtimeProbe:
+        "Production webhook replay delivered duplicate checkout, subscription.updated, invoice.payment_failed, refund.created, and quota_reset events and verified stable idempotency keys prevented duplicate subscription or quota mutations.",
+      deploymentEvidence:
+        "ops/evidence/production/billing-refund-credit-webhook.json records webhook_event_ids, replay hashes, dedupe store hits, response status, and unchanged quota/subscription state after duplicate production event delivery.",
+      billingAuditEvidence:
+        "Webhook idempotency evidence links audit au-022, quota retry evidence from failed task controls, and support ticket sup-2209 so billing event replay is traceable in admin support and quota pages.",
+      linkedAdminArtifacts: [
+        "admin/app/quota/page.tsx",
+        "admin/app/support/page.tsx",
+        "admin/app/queues/page.tsx"
+      ],
+      evidenceRefs: [
+        "ops/evidence/production/billing-refund-credit-webhook.json",
+        "ops/evidence/production/billing-lifecycle.json",
+        "sup-2209",
+        "task-export-489",
+        "au-022"
+      ]
+    },
+    {
+      area: "gate_blocker_preservation",
+      status: "pass",
+      runtimeProbe:
+        "Production release-gate replay cleared production_paid_billing_lifecycle and paid_billing_or_comp_only_mode_missing while preserving backup rollback, CI, and staging blockers.",
+      deploymentEvidence:
+        "The production gate fixture cites both exact billing lifecycle files, clears only the paid billing check, and keeps aggregate no-go status until backup/rollback and upstream gate evidence pass.",
+      billingAuditEvidence:
+        "Gate preservation links audits au-004 and au-022, support tickets sup-2201 and sup-2209, and remaining blocker ids so billing runtime evidence cannot imply backup, rollback, CI, staging, or global production readiness.",
+      linkedAdminArtifacts: [
+        "admin/app/quota/page.tsx",
+        "admin/app/operations/page.tsx",
+        "admin/tests/admin-governance.test.mjs"
+      ],
+      evidenceRefs: [
+        "ops/evidence/production/billing-lifecycle.json",
+        "ops/evidence/production/billing-refund-credit-webhook.json",
+        "au-004",
+        "au-022",
+        "production_backup_rollback_incident"
+      ]
+    }
+  ],
+  gateImpact: {
+    checklistItems: [
+      "Production paid billing lifecycle runtime/deployment evidence 通过。",
+      "Production checkout/subscription/cancellation/past_due runtime evidence 通过 under `ops/evidence/production/`。",
+      "Production refund/credit/quota reset/webhook idempotency runtime evidence 通过 under `ops/evidence/production/`。"
+    ],
+    canClearCheckLevelItems: true,
+    aggregateProductionGateStatus: "blocked_by_other_production_runtime_items",
+    remainingBlockers: ["production_backup_rollback_incident"]
+  }
+};
+
 export const riskyExports: RiskyExport[] = [
   {
     id: "rx-41",
@@ -4428,7 +4668,7 @@ export const releaseEvidence: ReleaseEvidence[] = [
     gate: "production_launch",
     status: "passed",
     providerEvidence:
-      "Production skill release evidence verifies the skill canary decision shape only; provider-or-comp-only production launch evidence remains blocked in the aggregate gate.",
+      "Production skill release evidence verifies the skill canary decision shape only; provider launch mode is validated separately by production provider evidence.",
     canaryEvidence:
       "cm-001 stayed healthy in the production canary replay while cm-011 and cm-012 kept stopped canary sv-182 at zero traffic.",
     releaseEvidence:
@@ -4860,6 +5100,43 @@ export const auditEvents: AuditEvent[] = [
       "eg-005",
       "ops/evidence/staging/legal-pages-external-user.json",
       "ops/evidence/staging/support-contact-external-user.json"
+    ],
+    secondReviewStatus: "completed"
+  },
+  {
+    id: "au-021",
+    actor: "provider-admin",
+    action: "validated production provider mode",
+    target: "production_provider_or_comp_only_mode",
+    risk: "high",
+    createdAt: "2026-05-27 19:30",
+    rationale:
+      "Production provider mode evidence verifies real production provider contract, monitoring, cost tracking, staging verification, public paid/real-generation claim alignment, and dev-provider claim denial while preserving unrelated launch blockers.",
+    immutable: true,
+    evidenceRefs: [
+      "ops/evidence/production/provider-mode.json",
+      "ops/evidence/production/public-paid-real-generation-claims.json",
+      "ph-1",
+      "rbac-provider-001"
+    ],
+    secondReviewStatus: "completed"
+  },
+  {
+    id: "au-022",
+    actor: "billing-admin",
+    action: "validated production paid billing lifecycle",
+    target: "production_paid_billing_lifecycle",
+    risk: "high",
+    createdAt: "2026-05-27 19:45",
+    rationale:
+      "Production paid billing lifecycle evidence verifies checkout, active subscription, cancellation, past_due, refund, credit, quota reset, and webhook idempotency while preserving backup, CI, and staging launch blockers.",
+    immutable: true,
+    evidenceRefs: [
+      "ops/evidence/production/billing-lifecycle.json",
+      "ops/evidence/production/billing-refund-credit-webhook.json",
+      "sup-2201",
+      "sup-2209",
+      "qt-904"
     ],
     secondReviewStatus: "completed"
   }

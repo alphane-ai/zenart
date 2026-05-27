@@ -356,6 +356,42 @@ export type ProviderHealth = {
   releaseEvidence: string;
 };
 
+export type ProductionProviderModeCoverage = {
+  area:
+    | "provider_launch_mode"
+    | "provider_contract_monitoring_cost"
+    | "public_paid_real_generation_claims"
+    | "gate_blocker_preservation";
+  status: "pass" | "blocked";
+  runtimeProbe: string;
+  deploymentEvidence: string;
+  providerAuditEvidence: string;
+  linkedAdminArtifacts: string[];
+  evidenceRefs: string[];
+};
+
+export type ProductionProviderModeEvidence = {
+  id: string;
+  environment: "production";
+  status: "pass_with_blockers_preserved" | "blocked";
+  validatedAt: string;
+  validatedByRole: AdminRole;
+  releaseGateCheckId: "production_provider_or_comp_only_mode";
+  doNotLaunchConditionIds: ["dev_mock_provider_public_claims_unresolved", "real_provider_or_comp_only_mode_missing"];
+  providerModeEvidencePath: "ops/evidence/production/provider-mode.json";
+  publicClaimsEvidencePath: "ops/evidence/production/public-paid-real-generation-claims.json";
+  runtimeRequestIds: string[];
+  providerIds: string[];
+  auditRefs: string[];
+  coverage: ProductionProviderModeCoverage[];
+  gateImpact: {
+    checklistItems: string[];
+    canClearCheckLevelItems: boolean;
+    aggregateProductionGateStatus: "blocked_by_other_production_runtime_items";
+    remainingBlockers: string[];
+  };
+};
+
 export type OperationalDashboard = {
   id: string;
   name:
@@ -1146,6 +1182,43 @@ export type QuotaAccount = {
   monthlyLimit: number;
   anomaly: string;
   lastTransaction: string;
+};
+
+export type ProductionPaidBillingLifecycleCoverage = {
+  area:
+    | "checkout_subscription_cancellation_past_due"
+    | "refund_credit_quota_reset"
+    | "webhook_idempotency"
+    | "gate_blocker_preservation";
+  status: "pass" | "blocked";
+  runtimeProbe: string;
+  deploymentEvidence: string;
+  billingAuditEvidence: string;
+  linkedAdminArtifacts: string[];
+  evidenceRefs: string[];
+};
+
+export type ProductionPaidBillingLifecycleEvidence = {
+  id: string;
+  environment: "production";
+  status: "pass_with_blockers_preserved" | "blocked";
+  validatedAt: string;
+  validatedByRole: AdminRole;
+  releaseGateCheckId: "production_paid_billing_lifecycle";
+  doNotLaunchConditionId: "paid_billing_or_comp_only_mode_missing";
+  billingLifecycleEvidencePath: "ops/evidence/production/billing-lifecycle.json";
+  billingRefundCreditWebhookEvidencePath: "ops/evidence/production/billing-refund-credit-webhook.json";
+  runtimeRequestIds: string[];
+  quotaAccountIds: string[];
+  supportTicketIds: string[];
+  auditRefs: string[];
+  coverage: ProductionPaidBillingLifecycleCoverage[];
+  gateImpact: {
+    checklistItems: string[];
+    canClearCheckLevelItems: boolean;
+    aggregateProductionGateStatus: "blocked_by_other_production_runtime_items";
+    remainingBlockers: string[];
+  };
 };
 
 export type RiskyExport = {

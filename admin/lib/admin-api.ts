@@ -25,6 +25,8 @@ import {
   productionAbuseThrottleHoldEvidence,
   productionBackupRollbackIncidentEvidence,
   productionLegalSupportPolicyEvidence,
+  productionPaidBillingLifecycleEvidence,
+  productionProviderModeEvidence,
   productionSecurityLaunchCheckEvidence,
   productionSkillReleaseEvalCanaryEvidence,
   stagingLegalSupportVisibilityEvidence,
@@ -209,6 +211,14 @@ export async function getStagingQuotaRateLimitSpendCapEvidence() {
 
 export async function getProductionAbuseThrottleHoldEvidence() {
   return productionAbuseThrottleHoldEvidence;
+}
+
+export async function getProductionProviderModeEvidence() {
+  return productionProviderModeEvidence;
+}
+
+export async function getProductionPaidBillingLifecycleEvidence() {
+  return productionPaidBillingLifecycleEvidence;
 }
 
 export async function getProductionActivationReviewAuditEvidence() {

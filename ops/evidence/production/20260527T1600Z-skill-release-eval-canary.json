@@ -83,7 +83,7 @@
       "status": "pass",
       "runtime_probe": "Production release-note replay required SHA, migration list, config diff, feature flags, owner, smoke plan, rollback plan, known risks, go/no-go, eval summary, canary summary, and release notes evidence before clearing the skill row.",
       "deployment_evidence": "The production evidence file links release notes stage0-skill-export-pack-1.8.1 to eg-004, sv-181, audit au-016, and admin release page evidence so the release-gate fixture can clear only the skill canary check.",
-      "rbac_audit_evidence": "Release notes evidence is immutable through au-016 and does not weaken provider, billing, backup, legal, CI, or staging blockers still listed in the production gate fixture.",
+      "rbac_audit_evidence": "Release notes evidence is immutable through au-016 and does not weaken backup, CI, or staging blockers still listed in the production gate fixture.",
       "linked_admin_artifacts": [
         "admin/app/skills/releases/page.tsx",
         "admin/app/operations/page.tsx",
@@ -121,7 +121,7 @@
     {
       "area": "gate_blocker_preservation",
       "status": "pass",
-      "runtime_probe": "Production release-gate replay cleared only production_skill_release_eval_canary and kept provider-or-comp-only, paid billing lifecycle, backup rollback, legal support, CI, and staging blockers active.",
+      "runtime_probe": "Production release-gate replay cleared only production_skill_release_eval_canary and kept backup rollback plus upstream CI and staging blockers active.",
       "deployment_evidence": "The production gate fixture cites this production evidence path on the skill release check, clears skill_release_eval_canary_missing, and preserves aggregate no-go status while unrelated production evidence remains absent.",
       "rbac_audit_evidence": "Gate preservation links release evidence eg-004, skill versions sv-181 and sv-182, canary metrics cm-001, cm-011, cm-012, and immutable audits au-003, au-009, au-010, and au-016 without implying production launch readiness.",
       "linked_admin_artifacts": [
@@ -146,8 +146,6 @@
     "can_clear_check_level_item": true,
     "aggregate_production_gate_status": "blocked_by_other_production_runtime_items",
     "remaining_blockers": [
-      "production_provider_or_comp_only_mode",
-      "production_paid_billing_lifecycle",
       "production_backup_rollback_incident"
     ]
   }

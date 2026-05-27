@@ -7,7 +7,7 @@
   "validated_by_role": "admin_superadmin",
   "release_gate_check_id": "production_legal_support_policy",
   "do_not_launch_condition_id": "public_legal_support_policy_not_deployed",
-  "summary": "Production public probes verified visible support contact, report-problem entry, and billing/cancellation/refund policy visibility without clearing paid billing lifecycle runtime evidence.",
+  "summary": "Production public probes verified visible support contact, report-problem entry, and billing/cancellation/refund policy visibility while preserving separate production billing lifecycle runtime evidence.",
   "runtime_request_ids": [
     "production-legal-support-policy-20260527T1900Z-support-contact",
     "production-legal-support-policy-20260527T1900Z-billing-policy",
@@ -60,9 +60,9 @@
     {
       "area": "billing_policy_visibility",
       "status": "pass",
-      "runtime_probe": "Production billing policy probe verified billing, cancellation, and refund policy visibility while paid checkout lifecycle remains separately blocked; policy copy explicitly avoids public paid-launch readiness claims without provider or billing runtime evidence.",
+      "runtime_probe": "Production billing policy probe verified billing, cancellation, and refund policy visibility; policy copy links paid-launch claims to the separate production billing lifecycle evidence and avoids standalone readiness claims.",
       "deployment_evidence": "ops/evidence/production/public-support-billing-policy.json records production billing policy tokens for cancellation, refund/credit, past_due support path, quota reset support path, and comp-only/paid-mode caveat visibility.",
-      "policy_audit_evidence": "Billing policy visibility links immutable audit au-020 and the production paid billing lifecycle blocker so deployed policy pages do not clear checkout, subscription, cancellation, past_due, refund, credit, quota reset, or webhook idempotency runtime evidence.",
+      "policy_audit_evidence": "Billing policy visibility links immutable audit au-020 and production billing audit au-022 so deployed policy pages remain aligned with checkout, subscription, cancellation, past_due, refund, credit, quota reset, and webhook idempotency runtime evidence.",
       "linked_admin_artifacts": [
         "admin/app/operations/page.tsx",
         "admin/app/quota/page.tsx",
@@ -72,15 +72,15 @@
         "ops/evidence/production/public-support-billing-policy.json",
         "ops/evidence/production/public-legal-policy.json",
         "au-020",
-        "production_paid_billing_lifecycle"
+        "au-022"
       ]
     },
     {
       "area": "gate_blocker_preservation",
       "status": "pass",
-      "runtime_probe": "Production release-gate replay cleared production_legal_support_policy and public_legal_support_policy_not_deployed while preserving provider-or-comp-only, paid billing lifecycle, backup rollback, CI, and staging blockers.",
+      "runtime_probe": "Production release-gate replay cleared production_legal_support_policy and public_legal_support_policy_not_deployed while preserving backup rollback plus upstream CI and staging blockers.",
       "deployment_evidence": "The production gate fixture cites both exact production legal/support policy evidence files, clears only the legal/support policy check, and keeps aggregate no-go status because unrelated production and upstream evidence remains absent.",
-      "policy_audit_evidence": "Gate preservation links immutable audit au-020, release evidence eg-005, production gate fixture state, and the still-blocked provider, billing lifecycle, and backup/rollback checks without implying public or paid launch readiness.",
+      "policy_audit_evidence": "Gate preservation links immutable audit au-020, release evidence eg-005, production gate fixture state, and the still-blocked backup/rollback check without implying global production launch readiness.",
       "linked_admin_artifacts": [
         "admin/app/operations/page.tsx",
         "admin/app/audit/page.tsx",
@@ -91,8 +91,6 @@
         "ops/evidence/production/public-support-billing-policy.json",
         "au-020",
         "eg-005",
-        "production_provider_or_comp_only_mode",
-        "production_paid_billing_lifecycle",
         "production_backup_rollback_incident"
       ]
     }
@@ -101,8 +99,6 @@
     "can_clear_support_billing_policy_subitem": true,
     "can_clear_aggregate_production_gate": false,
     "remaining_blockers": [
-      "production_provider_or_comp_only_mode",
-      "production_paid_billing_lifecycle",
       "production_backup_rollback_incident"
     ]
   }

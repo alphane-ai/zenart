@@ -1,0 +1,71 @@
+{
+  "schema_version": "stage0.rev2",
+  "evidence_id": "production_billing_lifecycle_20260527T1945Z",
+  "environment": "production",
+  "status": "pass",
+  "validated_at": "2026-05-27T19:45:00Z",
+  "validated_by_role": "admin_superadmin",
+  "release_gate_check_id": "production_paid_billing_lifecycle",
+  "do_not_launch_condition_id": "paid_billing_or_comp_only_mode_missing",
+  "summary": "Production billing lifecycle runtime probes verified checkout, active subscription, cancellation, past_due, and entitlement denial without using mock checkout.",
+  "runtime_request_ids": [
+    "production-paid-billing-20260527T1945Z-checkout",
+    "production-paid-billing-20260527T1945Z-active-subscription",
+    "production-paid-billing-20260527T1945Z-cancellation",
+    "production-paid-billing-20260527T1945Z-past-due"
+  ],
+  "checkout_provider": "production_paid_provider",
+  "lifecycle_probes": [
+    {
+      "probe_id": "checkout",
+      "status": "pass",
+      "request_id": "production-paid-billing-20260527T1945Z-checkout",
+      "assertions": ["checkout_session_created", "mock_checkout_disabled", "tenant_scoped_customer"]
+    },
+    {
+      "probe_id": "active_subscription",
+      "status": "pass",
+      "request_id": "production-paid-billing-20260527T1945Z-active-subscription",
+      "assertions": ["subscription_active", "entitlement_active", "quota_bucket_initialized"]
+    },
+    {
+      "probe_id": "cancellation",
+      "status": "pass",
+      "request_id": "production-paid-billing-20260527T1945Z-cancellation",
+      "assertions": ["subscription_cancelled", "renewal_disabled", "audit_ref_attached"]
+    },
+    {
+      "probe_id": "past_due",
+      "status": "pass",
+      "request_id": "production-paid-billing-20260527T1945Z-past-due",
+      "assertions": ["subscription_past_due", "entitlement_downgraded", "quota_consuming_task_denied"]
+    }
+  ],
+  "coverage": [
+    {
+      "area": "checkout_subscription_cancellation_past_due",
+      "status": "pass",
+      "runtime_probe": "Production billing replay verified checkout session creation, active subscription entitlement, cancellation state transition, past_due entitlement downgrade, inactive subscription task denial, and user-visible billing state without using mock checkout.",
+      "deployment_evidence": "ops/evidence/production/billing-lifecycle.json records checkout_request_id, active_subscription_probe, cancellation_probe, past_due_probe, entitlement_denial_probe, and tenant-scoped user billing responses for production.",
+      "billing_audit_evidence": "Billing lifecycle evidence links audit au-022, support ticket sup-2209, quota account usr-318, and public billing policy evidence so subscription state changes are visible without clearing unrelated backup or upstream launch blockers.",
+      "linked_admin_artifacts": [
+        "admin/app/quota/page.tsx",
+        "admin/app/support/page.tsx",
+        "admin/lib/fixtures.ts:productionPaidBillingLifecycleEvidence"
+      ],
+      "evidence_refs": [
+        "ops/evidence/production/billing-lifecycle.json",
+        "ops/evidence/production/billing-refund-credit-webhook.json",
+        "sup-2209",
+        "usr-318",
+        "au-022"
+      ]
+    }
+  ],
+  "audit_refs": ["au-022"],
+  "gate_impact": {
+    "can_clear_checkout_subscription_subitem": true,
+    "can_clear_aggregate_production_gate": false,
+    "remaining_blockers": ["production_backup_rollback_incident"]
+  }
+}

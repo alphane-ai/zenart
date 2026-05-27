@@ -16,7 +16,7 @@ const parseFixtures = () => {
   const moduleSource = source
     .replace(/^import type[\s\S]*?from "@\/lib\/types";\n\n/, "")
     .replaceAll(/export const (\w+)[^=]*=/g, "const $1 =");
-  return Function(`${moduleSource}\nreturn { skillVersions, skillReleaseStateDefinitions, skillCanaryMetrics, releaseEvidence, releaseBlockers, supportTickets, supportEscalationRunbooks, supportUsers, riskyExports, abuseEvents, abuseControlHooks, stagingAuthRbacTenantAuditEvidence, stagingEvalQaSafetyEvidence, stagingQuotaRateLimitSpendCapEvidence, stagingSupportRetryAbuseEvidence, stagingLegalSupportVisibilityEvidence, productionAbuseThrottleHoldEvidence, productionActivationReviewAuditEvidence, productionSkillReleaseEvalCanaryEvidence, productionSecurityLaunchCheckEvidence, productionBackupRollbackIncidentEvidence, productionLegalSupportPolicyEvidence, adminReviewDecisions, auditEvents, exportJobs, traces, quotaAccounts, feedbackItems, regressionFixtures, analyticsReports, queueHealth, failedTaskControls, crawlerFindings, crawlerSourceApprovals, crawlerGovernanceWorkflows, crawlerStagingRuntimeEvidence, adminRbacEvidence, operationalDashboards, operationalDashboardRuntimeEvidence, alertRoutes, alertRouteRuntimeEvidence, backendMetricsRuntimeEvidence, observabilityTelemetryRuntimeEvidence, stagingObservabilityBackupLoadPreflightEvidence, stagingObjectStorageRetentionCleanupEvidence };`)();
+  return Function(`${moduleSource}\nreturn { skillVersions, skillReleaseStateDefinitions, skillCanaryMetrics, releaseEvidence, releaseBlockers, supportTickets, supportEscalationRunbooks, supportUsers, riskyExports, abuseEvents, abuseControlHooks, stagingAuthRbacTenantAuditEvidence, stagingEvalQaSafetyEvidence, stagingQuotaRateLimitSpendCapEvidence, stagingSupportRetryAbuseEvidence, stagingLegalSupportVisibilityEvidence, productionAbuseThrottleHoldEvidence, productionActivationReviewAuditEvidence, productionSkillReleaseEvalCanaryEvidence, productionSecurityLaunchCheckEvidence, productionBackupRollbackIncidentEvidence, productionLegalSupportPolicyEvidence, productionProviderModeEvidence, productionPaidBillingLifecycleEvidence, adminReviewDecisions, auditEvents, exportJobs, traces, quotaAccounts, feedbackItems, regressionFixtures, analyticsReports, queueHealth, failedTaskControls, crawlerFindings, crawlerSourceApprovals, crawlerGovernanceWorkflows, crawlerStagingRuntimeEvidence, adminRbacEvidence, operationalDashboards, operationalDashboardRuntimeEvidence, alertRoutes, alertRouteRuntimeEvidence, backendMetricsRuntimeEvidence, observabilityTelemetryRuntimeEvidence, stagingObservabilityBackupLoadPreflightEvidence, stagingObjectStorageRetentionCleanupEvidence };`)();
 };
 
 const crawlerGovernanceCases = JSON.parse(
@@ -46,6 +46,8 @@ const {
   productionSecurityLaunchCheckEvidence,
   productionBackupRollbackIncidentEvidence,
   productionLegalSupportPolicyEvidence,
+  productionProviderModeEvidence,
+  productionPaidBillingLifecycleEvidence,
   adminReviewDecisions,
   auditEvents,
   exportJobs,
@@ -295,6 +297,22 @@ const productionPublicLegalPolicyPath = new URL(
 );
 const productionPublicSupportBillingPolicyPath = new URL(
   "../../ops/evidence/production/public-support-billing-policy.json",
+  import.meta.url
+);
+const productionProviderModePath = new URL(
+  "../../ops/evidence/production/provider-mode.json",
+  import.meta.url
+);
+const productionPublicPaidRealGenerationClaimsPath = new URL(
+  "../../ops/evidence/production/public-paid-real-generation-claims.json",
+  import.meta.url
+);
+const productionBillingLifecyclePath = new URL(
+  "../../ops/evidence/production/billing-lifecycle.json",
+  import.meta.url
+);
+const productionBillingRefundCreditWebhookPath = new URL(
+  "../../ops/evidence/production/billing-refund-credit-webhook.json",
   import.meta.url
 );
 
@@ -4933,11 +4951,7 @@ test("production legal support policy evidence clears only the legal/support pro
     assert.equal(check.status, "blocked", `${blocker} must stay blocked after legal/support policy clears`);
   }
 
-  assert.deepEqual(gateFixture.gate_decision.blocked_by_checks, [
-    "production_provider_or_comp_only_mode",
-    "production_paid_billing_lifecycle",
-    "production_backup_rollback_incident"
-  ]);
+  assert.deepEqual(gateFixture.gate_decision.blocked_by_checks, ["production_backup_rollback_incident"]);
   assert.equal(
     gateFixture.gate_decision.active_do_not_launch_conditions.includes("public_legal_support_policy_not_deployed"),
     false,
@@ -4946,5 +4960,293 @@ test("production legal support policy evidence clears only the legal/support pro
   assert.ok(
     gateFixture.do_not_launch_checks.some((condition) => condition.is_present === true),
     "aggregate production gate must remain blocked by unrelated launch conditions"
+  );
+});
+
+test("production provider mode evidence clears provider and claims checks only", () => {
+  assert.ok(existsSync(productionProviderModePath), "production provider mode evidence file is missing");
+  assert.ok(
+    existsSync(productionPublicPaidRealGenerationClaimsPath),
+    "production public paid/real-generation claims evidence file is missing"
+  );
+  assert.ok(existsSync(productionGatePath), "production launch gate evidence fixture is missing");
+
+  const providerFile = JSON.parse(readFileSync(productionProviderModePath, "utf8"));
+  const claimsFile = JSON.parse(readFileSync(productionPublicPaidRealGenerationClaimsPath, "utf8"));
+  const gateFixture = JSON.parse(readFileSync(productionGatePath, "utf8"));
+
+  assert.equal(productionProviderModeEvidence.environment, "production");
+  assert.equal(productionProviderModeEvidence.status, "pass_with_blockers_preserved");
+  assert.equal(productionProviderModeEvidence.releaseGateCheckId, "production_provider_or_comp_only_mode");
+  assert.deepEqual(productionProviderModeEvidence.doNotLaunchConditionIds, [
+    "dev_mock_provider_public_claims_unresolved",
+    "real_provider_or_comp_only_mode_missing"
+  ]);
+  assert.equal(productionProviderModeEvidence.providerModeEvidencePath, "ops/evidence/production/provider-mode.json");
+  assert.equal(
+    productionProviderModeEvidence.publicClaimsEvidencePath,
+    "ops/evidence/production/public-paid-real-generation-claims.json"
+  );
+  assert.equal(
+    productionProviderModeEvidence.gateImpact.aggregateProductionGateStatus,
+    "blocked_by_other_production_runtime_items",
+    "provider evidence cannot close the aggregate production gate"
+  );
+
+  for (const evidenceFile of [providerFile, claimsFile]) {
+    assert.equal(evidenceFile.environment, "production");
+    assert.equal(evidenceFile.status, "pass");
+    assert.equal(evidenceFile.release_gate_check_id, "production_provider_or_comp_only_mode");
+    assert.deepEqual(evidenceFile.do_not_launch_condition_ids, productionProviderModeEvidence.doNotLaunchConditionIds);
+    assert.equal(evidenceFile.gate_impact.can_clear_aggregate_production_gate, false);
+  }
+
+  assert.deepEqual(
+    [...providerFile.runtime_request_ids, ...claimsFile.runtime_request_ids].toSorted(),
+    productionProviderModeEvidence.runtimeRequestIds.toSorted(),
+    "split provider evidence files must cover the admin fixture runtime probe ids"
+  );
+
+  for (const requestId of productionProviderModeEvidence.runtimeRequestIds) {
+    assert.match(
+      requestId,
+      /^production-provider-mode-\d{8}T\d{4}Z-/,
+      `${requestId} must be a production provider runtime probe`
+    );
+  }
+
+  assert.equal(providerFile.provider_mode.dev_provider_public_routing, false);
+  assert.equal(providerFile.provider_mode.silent_fallback_enabled, false);
+  assert.equal(providerFile.provider_contract.status, "production");
+  assert.ok(providerFile.monitoring_cost.dashboard_id.length > 0);
+  assert.ok(claimsFile.public_claim_probes.every((probe) => probe.http_status === 200));
+  assert.ok(
+    claimsFile.public_claim_probes.some((probe) => probe.claim_status === "dev_provider_marked_development_only"),
+    "public claims evidence must prove dev provider is not represented as production"
+  );
+
+  for (const auditRef of productionProviderModeEvidence.auditRefs) {
+    assert.ok(auditIds.has(auditRef), `${auditRef} must link immutable audit evidence`);
+  }
+
+  const requiredAreas = new Set([
+    "provider_launch_mode",
+    "provider_contract_monitoring_cost",
+    "public_paid_real_generation_claims",
+    "gate_blocker_preservation"
+  ]);
+  const providerFileAreas = new Set(providerFile.coverage.map((coverage) => coverage.area));
+  const claimsFileAreas = new Set(claimsFile.coverage.map((coverage) => coverage.area));
+
+  for (const coverage of productionProviderModeEvidence.coverage) {
+    requiredAreas.delete(coverage.area);
+    assert.equal(coverage.status, "pass", `${coverage.area} must pass`);
+    assert.ok(coverage.runtimeProbe.toLowerCase().includes("production"), `${coverage.area} must describe production runtime`);
+    assert.match(
+      coverage.runtimeProbe,
+      /provider|claims|launch|real-generation|paid|release-gate/i,
+      `${coverage.area} must cover production provider mode`
+    );
+    assert.ok(coverage.deploymentEvidence.length > 110, `${coverage.area} needs deployment evidence`);
+    assert.ok(coverage.providerAuditEvidence.length > 110, `${coverage.area} needs provider audit evidence`);
+    assert.ok(coverage.linkedAdminArtifacts.some((ref) => ref.startsWith("admin/")), `${coverage.area} needs admin artifacts`);
+    assert.ok(
+      coverage.evidenceRefs.includes(productionProviderModeEvidence.providerModeEvidencePath) &&
+        coverage.evidenceRefs.includes(productionProviderModeEvidence.publicClaimsEvidencePath),
+      `${coverage.area} must cite both exact production provider evidence files`
+    );
+    assert.ok(
+      coverage.evidenceRefs.some(
+        (ref) =>
+          auditIds.has(ref) ||
+          releaseEvidenceIds.has(ref) ||
+          operationalDashboardIds.has(ref) ||
+          alertRouteIds.has(ref) ||
+          ref.startsWith("rbac-") ||
+          ref.startsWith("ph-") ||
+          ref.startsWith("production_")
+      ),
+      `${coverage.area} needs validator-resolvable audit, release, dashboard, alert, RBAC, provider, or blocker refs`
+    );
+
+    if (coverage.area === "public_paid_real_generation_claims" || coverage.area === "gate_blocker_preservation") {
+      assert.ok(claimsFileAreas.has(coverage.area), `${coverage.area} must be present in public claims evidence`);
+    } else {
+      assert.ok(providerFileAreas.has(coverage.area), `${coverage.area} must be present in provider mode evidence`);
+    }
+  }
+  assert.deepEqual([...requiredAreas], [], "production provider mode evidence is missing coverage areas");
+
+  const providerCheck = gateFixture.checks.find((check) => check.check_id === "production_provider_or_comp_only_mode");
+  assert.ok(providerCheck, "production gate needs provider mode check");
+  assert.equal(providerCheck.status, "pass");
+  assert.ok(providerCheck.evidence_ref.includes(productionProviderModeEvidence.providerModeEvidencePath));
+  assert.ok(providerCheck.evidence_ref.includes(productionProviderModeEvidence.publicClaimsEvidencePath));
+
+  for (const conditionId of productionProviderModeEvidence.doNotLaunchConditionIds) {
+    const condition = gateFixture.do_not_launch_checks.find((entry) => entry.condition_id === conditionId);
+    assert.ok(condition, `production gate needs ${conditionId}`);
+    assert.equal(condition.is_present, false, `${conditionId} should be cleared by provider evidence`);
+  }
+
+  for (const blocker of productionProviderModeEvidence.gateImpact.remainingBlockers) {
+    const check = gateFixture.checks.find((entry) => entry.check_id === blocker);
+    assert.ok(check, `${blocker} must remain represented in the production gate fixture`);
+  }
+  assert.deepEqual(gateFixture.gate_decision.blocked_by_checks, ["production_backup_rollback_incident"]);
+  assert.equal(
+    gateFixture.gate_decision.active_do_not_launch_conditions.includes("dev_mock_provider_public_claims_unresolved"),
+    false
+  );
+  assert.equal(
+    gateFixture.gate_decision.active_do_not_launch_conditions.includes("real_provider_or_comp_only_mode_missing"),
+    false
+  );
+});
+
+test("production paid billing lifecycle evidence clears billing lifecycle only", () => {
+  assert.ok(existsSync(productionBillingLifecyclePath), "production billing lifecycle evidence file is missing");
+  assert.ok(
+    existsSync(productionBillingRefundCreditWebhookPath),
+    "production billing refund/credit/webhook evidence file is missing"
+  );
+  assert.ok(existsSync(productionGatePath), "production launch gate evidence fixture is missing");
+
+  const lifecycleFile = JSON.parse(readFileSync(productionBillingLifecyclePath, "utf8"));
+  const refundWebhookFile = JSON.parse(readFileSync(productionBillingRefundCreditWebhookPath, "utf8"));
+  const gateFixture = JSON.parse(readFileSync(productionGatePath, "utf8"));
+
+  assert.equal(productionPaidBillingLifecycleEvidence.environment, "production");
+  assert.equal(productionPaidBillingLifecycleEvidence.status, "pass_with_blockers_preserved");
+  assert.equal(productionPaidBillingLifecycleEvidence.releaseGateCheckId, "production_paid_billing_lifecycle");
+  assert.equal(productionPaidBillingLifecycleEvidence.doNotLaunchConditionId, "paid_billing_or_comp_only_mode_missing");
+  assert.equal(productionPaidBillingLifecycleEvidence.billingLifecycleEvidencePath, "ops/evidence/production/billing-lifecycle.json");
+  assert.equal(
+    productionPaidBillingLifecycleEvidence.billingRefundCreditWebhookEvidencePath,
+    "ops/evidence/production/billing-refund-credit-webhook.json"
+  );
+  assert.equal(
+    productionPaidBillingLifecycleEvidence.gateImpact.aggregateProductionGateStatus,
+    "blocked_by_other_production_runtime_items",
+    "billing evidence cannot close the aggregate production gate"
+  );
+
+  for (const evidenceFile of [lifecycleFile, refundWebhookFile]) {
+    assert.equal(evidenceFile.environment, "production");
+    assert.equal(evidenceFile.status, "pass");
+    assert.equal(evidenceFile.release_gate_check_id, "production_paid_billing_lifecycle");
+    assert.equal(evidenceFile.do_not_launch_condition_id, "paid_billing_or_comp_only_mode_missing");
+    assert.equal(evidenceFile.gate_impact.can_clear_aggregate_production_gate, false);
+  }
+
+  assert.deepEqual(
+    [...lifecycleFile.runtime_request_ids, ...refundWebhookFile.runtime_request_ids].toSorted(),
+    productionPaidBillingLifecycleEvidence.runtimeRequestIds.toSorted(),
+    "split billing evidence files must cover the admin fixture runtime probe ids"
+  );
+
+  for (const requestId of productionPaidBillingLifecycleEvidence.runtimeRequestIds) {
+    assert.match(
+      requestId,
+      /^production-paid-billing-\d{8}T\d{4}Z-/,
+      `${requestId} must be a production paid billing runtime probe`
+    );
+  }
+
+  assert.equal(lifecycleFile.checkout_provider, "production_paid_provider");
+  assert.ok(
+    lifecycleFile.lifecycle_probes.some((probe) => probe.probe_id === "past_due" && probe.assertions.includes("quota_consuming_task_denied")),
+    "billing lifecycle evidence must prove past_due task denial"
+  );
+  assert.ok(
+    refundWebhookFile.quota_mutation_probes.some(
+      (probe) =>
+        probe.probe_id === "webhook_idempotency" &&
+        probe.assertions.includes("duplicate_events_deduped") &&
+        probe.assertions.includes("quota_mutation_exactly_once")
+    ),
+    "billing refund/webhook evidence must prove webhook idempotency"
+  );
+
+  for (const auditRef of productionPaidBillingLifecycleEvidence.auditRefs) {
+    assert.ok(auditIds.has(auditRef), `${auditRef} must link immutable audit evidence`);
+  }
+  for (const userId of productionPaidBillingLifecycleEvidence.quotaAccountIds) {
+    assert.ok(quotaUserIds.has(userId), `${userId} must link a quota account`);
+  }
+  for (const ticketId of productionPaidBillingLifecycleEvidence.supportTicketIds) {
+    assert.ok(supportTicketIds.has(ticketId), `${ticketId} must link a support ticket`);
+  }
+
+  const requiredAreas = new Set([
+    "checkout_subscription_cancellation_past_due",
+    "refund_credit_quota_reset",
+    "webhook_idempotency",
+    "gate_blocker_preservation"
+  ]);
+  const lifecycleFileAreas = new Set(lifecycleFile.coverage.map((coverage) => coverage.area));
+  const refundWebhookFileAreas = new Set(refundWebhookFile.coverage.map((coverage) => coverage.area));
+
+  for (const coverage of productionPaidBillingLifecycleEvidence.coverage) {
+    requiredAreas.delete(coverage.area);
+    assert.equal(coverage.status, "pass", `${coverage.area} must pass`);
+    assert.ok(coverage.runtimeProbe.toLowerCase().includes("production"), `${coverage.area} must describe production runtime`);
+    assert.match(
+      coverage.runtimeProbe,
+      /checkout|subscription|cancellation|past_due|refund|credit|quota|webhook|release-gate/i,
+      `${coverage.area} must cover production billing lifecycle`
+    );
+    assert.ok(coverage.deploymentEvidence.length > 110, `${coverage.area} needs deployment evidence`);
+    assert.ok(coverage.billingAuditEvidence.length > 110, `${coverage.area} needs billing audit evidence`);
+    assert.ok(coverage.linkedAdminArtifacts.some((ref) => ref.startsWith("admin/")), `${coverage.area} needs admin artifacts`);
+    assert.ok(
+      coverage.evidenceRefs.includes(productionPaidBillingLifecycleEvidence.billingLifecycleEvidencePath) &&
+        coverage.evidenceRefs.includes(productionPaidBillingLifecycleEvidence.billingRefundCreditWebhookEvidencePath),
+      `${coverage.area} must cite both exact production billing evidence files`
+    );
+    assert.ok(
+      coverage.evidenceRefs.some(
+        (ref) =>
+          auditIds.has(ref) ||
+          supportTicketIds.has(ref) ||
+          exportIds.has(ref) ||
+          taskIds.has(ref) ||
+          quotaUserIds.has(ref) ||
+          ref.startsWith("production_")
+      ),
+      `${coverage.area} needs validator-resolvable audit, support, export, task, quota, or blocker refs`
+    );
+
+    if (coverage.area === "checkout_subscription_cancellation_past_due") {
+      assert.ok(lifecycleFileAreas.has(coverage.area), `${coverage.area} must be present in billing lifecycle evidence`);
+    } else {
+      assert.ok(refundWebhookFileAreas.has(coverage.area), `${coverage.area} must be present in refund/webhook evidence`);
+    }
+  }
+  assert.deepEqual([...requiredAreas], [], "production paid billing evidence is missing coverage areas");
+
+  const billingCheck = gateFixture.checks.find((check) => check.check_id === "production_paid_billing_lifecycle");
+  assert.ok(billingCheck, "production gate needs paid billing lifecycle check");
+  assert.equal(billingCheck.status, "pass");
+  assert.ok(billingCheck.evidence_ref.includes(productionPaidBillingLifecycleEvidence.billingLifecycleEvidencePath));
+  assert.ok(billingCheck.evidence_ref.includes(productionPaidBillingLifecycleEvidence.billingRefundCreditWebhookEvidencePath));
+
+  const billingCondition = gateFixture.do_not_launch_checks.find(
+    (condition) => condition.condition_id === productionPaidBillingLifecycleEvidence.doNotLaunchConditionId
+  );
+  assert.ok(billingCondition, "production do-not-launch fixture needs billing condition");
+  assert.equal(billingCondition.is_present, false, "billing condition should be cleared by runtime evidence");
+
+  for (const blocker of productionPaidBillingLifecycleEvidence.gateImpact.remainingBlockers) {
+    const check = gateFixture.checks.find((entry) => entry.check_id === blocker);
+    assert.ok(check, `${blocker} must remain represented in the production gate fixture`);
+    assert.equal(check.status, "blocked", `${blocker} must stay blocked after billing lifecycle clears`);
+  }
+
+  assert.deepEqual(gateFixture.gate_decision.blocked_by_checks, ["production_backup_rollback_incident"]);
+  assert.equal(
+    gateFixture.gate_decision.active_do_not_launch_conditions.includes("paid_billing_or_comp_only_mode_missing"),
+    false,
+    "billing condition should be removed from active do-not-launch conditions"
   );
 });

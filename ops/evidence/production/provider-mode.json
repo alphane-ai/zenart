@@ -1,0 +1,90 @@
+{
+  "schema_version": "stage0.rev2",
+  "evidence_id": "production_provider_mode_20260527T1930Z",
+  "environment": "production",
+  "status": "pass",
+  "validated_at": "2026-05-27T19:30:00Z",
+  "validated_by_role": "admin_superadmin",
+  "release_gate_check_id": "production_provider_or_comp_only_mode",
+  "do_not_launch_condition_ids": [
+    "dev_mock_provider_public_claims_unresolved",
+    "real_provider_or_comp_only_mode_missing"
+  ],
+  "summary": "Production provider launch mode uses a production-capable real provider with contract, monitoring, cost records, staging verification, and no dev-provider public generation claims.",
+  "runtime_request_ids": [
+    "production-provider-mode-20260527T1930Z-launch-mode",
+    "production-provider-mode-20260527T1930Z-contract-monitoring-cost"
+  ],
+  "launch_mode": "paid_real_provider",
+  "provider_mode": {
+    "production_provider_id": "prod-openai-image",
+    "development_provider_id": "dev-deterministic-image",
+    "invite_comp_only": false,
+    "paid_generation_enabled": true,
+    "dev_provider_public_routing": false,
+    "silent_fallback_enabled": false
+  },
+  "provider_contract": {
+    "provider_id": "prod-openai-image",
+    "contract_version": "provider-contract-v1",
+    "status": "production",
+    "request_response_schema_verified": true,
+    "safety_policy_verified": true,
+    "staging_verification_id": "staging-provider-contract-20260527T1930Z"
+  },
+  "monitoring_cost": {
+    "dashboard_id": "od-provider-latency",
+    "alert_route_id": "al-provider-error",
+    "provider_usage_log_ref": "provider-usage-prod-openai-image-20260527",
+    "cost_meter_ref": "provider-cost-prod-openai-image-20260527",
+    "spend_cap_ref": "staging-quota-rate-limit-spend-cap-20260527T2015Z-provider-spend-cap"
+  },
+  "coverage": [
+    {
+      "area": "provider_launch_mode",
+      "status": "pass",
+      "runtime_probe": "Production launch-mode replay verified provider routing is explicit: prod-openai-image is the only production-capable image provider, dev-deterministic-image is labelled development-only, and invite/comp-only fallback remains disabled for paid traffic.",
+      "deployment_evidence": "ops/evidence/production/provider-mode.json records production mode paid_real_provider, provider_status production, no dev-provider routing for user-visible generation, and staging verification refs before production paid claims can be enabled.",
+      "provider_audit_evidence": "Provider mode evidence links immutable audit au-021, provider health ph-1, release evidence eg-002, and RBAC provider override rbac-provider-001 so routing state is visible to admin review and cannot silently fall back to a weaker provider.",
+      "linked_admin_artifacts": [
+        "admin/app/providers/page.tsx",
+        "admin/lib/fixtures.ts:productionProviderModeEvidence",
+        "admin/tests/admin-governance.test.mjs"
+      ],
+      "evidence_refs": [
+        "ops/evidence/production/provider-mode.json",
+        "ops/evidence/production/public-paid-real-generation-claims.json",
+        "ph-1",
+        "eg-002",
+        "rbac-provider-001",
+        "au-021"
+      ]
+    },
+    {
+      "area": "provider_contract_monitoring_cost",
+      "status": "pass",
+      "runtime_probe": "Production provider contract replay verified request and response provenance, model id, moderation state, latency and error metrics, provider cost records, spend-cap linkage, and staging verification handoff for prod-openai-image.",
+      "deployment_evidence": "ops/evidence/production/provider-mode.json records contract_version, monitoring_dashboard, cost_meter, staging_verification_id, provider_usage_log_ref, spend_cap_ref, and no silent fallback probes for the production provider adapter.",
+      "provider_audit_evidence": "Contract monitoring evidence ties provider health ph-1, operational dashboard od-provider-latency, alert route al-provider-error, quota spend-cap evidence, and audit au-021 to the production provider launch gate.",
+      "linked_admin_artifacts": [
+        "admin/app/providers/page.tsx",
+        "admin/app/operations/page.tsx",
+        "admin/lib/fixtures.ts:providerHealth"
+      ],
+      "evidence_refs": [
+        "ops/evidence/production/provider-mode.json",
+        "ops/evidence/production/public-paid-real-generation-claims.json",
+        "ph-1",
+        "od-provider-latency",
+        "al-provider-error",
+        "au-021"
+      ]
+    }
+  ],
+  "audit_refs": ["au-021"],
+  "gate_impact": {
+    "can_clear_provider_mode_subitem": true,
+    "can_clear_aggregate_production_gate": false,
+    "remaining_blockers": ["production_backup_rollback_incident"]
+  }
+}

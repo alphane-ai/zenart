@@ -153,9 +153,7 @@
     "can_clear_check_level_items": false,
     "aggregate_production_gate_status": "blocked_by_upstream_and_other_production_runtime_items",
     "remaining_blockers": [
-      "ci_staging_gates_not_passed",
-      "production_provider_or_comp_only_mode",
-      "production_paid_billing_lifecycle"
+      "ci_staging_gates_not_passed"
     ]
   }
 }
