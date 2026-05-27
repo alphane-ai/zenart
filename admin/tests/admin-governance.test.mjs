@@ -138,6 +138,7 @@ const parseFailedTaskRuntime = () => {
   const runtimeSource = failedTaskRuntimeSource
     .replace(/^import type[\s\S]*?from "@\/lib\/types";\n\n/, "")
     .replaceAll(/export function (\w+)/g, "function $1")
+    .replaceAll(/function idempotencyStatus\(task: FailedTaskControl\): FailedTaskRuntimeDecision\["idempotencyStatus"\]/g, "function idempotencyStatus(task)")
     .replaceAll(/: FailedTaskRuntimeDecision\[\]/g, "")
     .replaceAll(/: FailedTaskControl\[\]/g, "")
     .replaceAll(/: string\[\]/g, "")
@@ -862,12 +863,22 @@ test("queue and failed task controls gate retry and cancel with audit evidence",
     if (task.requestedAction === "retry") {
       assert.equal(task.actionEligibility, "eligible", `${task.id} retry must be eligible`);
       assert.notEqual(task.quotaEffect, "none", `${task.id} retry needs explicit quota handling`);
+      assert.match(
+        task.idempotencyKey,
+        new RegExp(`^retry:${task.id}:${task.supportTicketId}:[a-z0-9-]+$`),
+        `${task.id} retry needs an action-scoped idempotency key`
+      );
       assert.ok(fixturePaths.has(task.regressionFixtureRef), `${task.id} retry must link a converted regression fixture`);
     }
 
     if (task.requestedAction === "cancel") {
       assert.notEqual(task.actionEligibility, "blocked", `${task.id} cancel must remain actionable`);
       assert.match(task.rbacDecision, /allowed|second_review_required/, `${task.id} cancel needs RBAC path`);
+      assert.match(
+        task.idempotencyKey,
+        new RegExp(`^cancel:${task.id}:${task.supportTicketId}:[a-z0-9-]+$`),
+        `${task.id} cancel needs an action-scoped idempotency key`
+      );
       assert.ok(fixturePaths.has(task.regressionFixtureRef), `${task.id} cancel must link a converted regression fixture`);
     }
 
@@ -918,6 +929,10 @@ test("failed task retry and cancel samples are durable regression fixtures", () 
   assert.equal(cancelDecision.submitDecision, "review_required");
 
   assert.ok(
+    retryFixture.expected_assertions.includes("action_scoped_idempotency_key == true"),
+    "retry regression must assert action-scoped idempotency"
+  );
+  assert.ok(
     retryFixture.expected_assertions.includes("idempotency_key_reused == true"),
     "retry regression must assert idempotency reuse"
   );
@@ -928,6 +943,10 @@ test("failed task retry and cancel samples are durable regression fixtures", () 
   assert.ok(
     retryFixture.expected_assertions.includes("manifest_and_qa_report_evidence_present == true"),
     "retry regression must assert manifest and QA evidence"
+  );
+  assert.ok(
+    cancelFixture.expected_assertions.includes("action_scoped_idempotency_key == true"),
+    "cancel regression must assert action-scoped idempotency"
   );
   assert.ok(
     cancelFixture.expected_assertions.includes("second_review_required_before_cancel_closure == true"),
@@ -957,6 +976,7 @@ test("failed task runtime submit gates preserve retry, cancel, hold, RBAC, and a
     assert.equal(decision.rbacStatus, task.rbacDecision, `${task.id} must preserve RBAC outcome`);
     assert.equal(decision.quotaSettlement, task.quotaEffect, `${task.id} must preserve quota settlement`);
     assert.equal(decision.auditRef, task.auditRef, `${task.id} must preserve audit ref`);
+    assert.equal(decision.idempotencyKey, task.idempotencyKey, `${task.id} must preserve idempotency key`);
     assert.equal(decision.idempotencyStatus, "stable", `${task.id} must preserve stable idempotency`);
     assert.equal(decision.closureEvidenceStatus, "complete", `${task.id} must have complete closure evidence`);
     assert.equal(decision.userMessageStatus, "ready", `${task.id} must expose user-visible messaging`);
@@ -971,6 +991,19 @@ test("failed task runtime submit gates preserve retry, cancel, hold, RBAC, and a
       assert.match(decision.submitDisabledReason, /action_blocked|rbac_denied/, `${task.id} needs disabled reason`);
     }
   }
+
+  const unstableRetry = buildFailedTaskRuntimeDecisions([
+    {
+      ...failedTaskControls.find((task) => task.id === "task-export-489"),
+      idempotencyKey: "retry:wrong-task:sup-2204:manifest-missing"
+    }
+  ]);
+  assert.equal(unstableRetry[0].idempotencyStatus, "unstable", "mismatched retry idempotency key must be unstable");
+  assert.equal(unstableRetry[0].submitDecision, "blocked", "unstable retry idempotency must block submission");
+  assert.ok(
+    unstableRetry[0].blockerCodes.includes("idempotency_key_unstable"),
+    "unstable retry idempotency must expose a blocker code"
+  );
 });
 
 test("staging support retry abuse evidence validates external-user support, retry, hold, and audit paths", () => {

@@ -2,6 +2,18 @@ import type { FailedTaskControl, FailedTaskRuntimeDecision } from "@/lib/types";
 
 const requiredClosureEvidenceCount = 4;
 
+function idempotencyStatus(task: FailedTaskControl): FailedTaskRuntimeDecision["idempotencyStatus"] {
+  const [action, taskId, supportTicketId, reason] = task.idempotencyKey.split(":");
+
+  return action === task.requestedAction &&
+    taskId === task.id &&
+    supportTicketId === task.supportTicketId &&
+    typeof reason === "string" &&
+    reason.trim().length > 0
+    ? "stable"
+    : "unstable";
+}
+
 export function buildFailedTaskRuntimeDecisions(tasks: FailedTaskControl[]): FailedTaskRuntimeDecision[] {
   return tasks.map((task) => {
     const blockerCodes: string[] = [];
@@ -14,7 +26,7 @@ export function buildFailedTaskRuntimeDecisions(tasks: FailedTaskControl[]): Fai
     const closureEvidenceStatus =
       task.closureEvidenceRefs.length >= requiredClosureEvidenceCount ? "complete" : "incomplete";
     const userMessageStatus = task.userMessage.trim().length > 0 ? "ready" : "missing";
-    const idempotencyStatus = "stable";
+    const computedIdempotencyStatus = idempotencyStatus(task);
 
     if (task.actionEligibility === "blocked") {
       blockerCodes.push("action_blocked");
@@ -36,8 +48,14 @@ export function buildFailedTaskRuntimeDecisions(tasks: FailedTaskControl[]): Fai
       blockerCodes.push("user_message_missing");
     }
 
+    if (computedIdempotencyStatus === "unstable") {
+      blockerCodes.push("idempotency_key_unstable");
+    }
+
     const submitDecision =
-      blockerCodes.includes("action_blocked") || blockerCodes.includes("rbac_denied")
+      blockerCodes.includes("action_blocked") ||
+      blockerCodes.includes("rbac_denied") ||
+      blockerCodes.includes("idempotency_key_unstable")
         ? "blocked"
         : task.actionEligibility === "requires_review" || task.rbacDecision === "second_review_required"
           ? "review_required"
@@ -65,7 +83,8 @@ export function buildFailedTaskRuntimeDecisions(tasks: FailedTaskControl[]): Fai
       retryBudgetStatus,
       rbacStatus: task.rbacDecision,
       quotaSettlement: task.quotaEffect,
-      idempotencyStatus,
+      idempotencyKey: task.idempotencyKey,
+      idempotencyStatus: computedIdempotencyStatus,
       closureEvidenceStatus,
       userMessageStatus,
       blockerCodes,

@@ -9,6 +9,7 @@
   "gate": "skill_canary",
   "expected_assertions": [
     "submit_decision == review_required",
+    "action_scoped_idempotency_key == true",
     "second_review_required_before_cancel_closure == true",
     "crawler_import_state == cancelled",
     "crawler_derived_activation_blocked == true",

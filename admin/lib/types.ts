@@ -659,7 +659,8 @@ export type FailedTaskRuntimeDecision = {
   retryBudgetStatus: "available" | "exhausted" | "not_retry";
   rbacStatus: "allowed" | "denied" | "second_review_required";
   quotaSettlement: FailedTaskControl["quotaEffect"];
-  idempotencyStatus: "stable";
+  idempotencyKey: string;
+  idempotencyStatus: "stable" | "unstable";
   closureEvidenceStatus: "complete" | "incomplete";
   userMessageStatus: "ready" | "missing";
   blockerCodes: string[];

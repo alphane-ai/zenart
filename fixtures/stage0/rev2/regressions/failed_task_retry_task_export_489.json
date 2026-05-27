@@ -9,6 +9,7 @@
   "gate": "skill_canary",
   "expected_assertions": [
     "submit_decision == submit_ready",
+    "action_scoped_idempotency_key == true",
     "idempotency_key_reused == true",
     "reserved_credit_released_exactly_once == true",
     "manifest_and_qa_report_evidence_present == true",

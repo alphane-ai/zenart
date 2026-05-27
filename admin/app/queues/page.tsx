@@ -70,6 +70,7 @@ export default async function QueuesPage() {
             { key: "retry-budget", header: "Retry Budget", render: (row) => <StatusBadge value={row.retryBudgetStatus} /> },
             { key: "rbac", header: "RBAC", render: (row) => <StatusBadge value={row.rbacStatus} /> },
             { key: "quota", header: "Quota Settlement", render: (row) => row.quotaSettlement },
+            { key: "idempotency-key", header: "Idempotency Key", render: (row) => <span className="mono">{row.idempotencyKey}</span> },
             { key: "idempotency", header: "Idempotency", render: (row) => <StatusBadge value={row.idempotencyStatus} /> },
             { key: "closure", header: "Closure Evidence", render: (row) => <StatusBadge value={row.closureEvidenceStatus} /> },
             { key: "message", header: "User Message", render: (row) => <StatusBadge value={row.userMessageStatus} /> },
