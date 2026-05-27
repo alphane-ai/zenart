@@ -827,7 +827,7 @@ func TestAdminRouteRejectsDevIdentityHeadersByDefault(t *testing.T) {
 	}
 }
 
-func TestAdminAuditRequiresSuperadmin(t *testing.T) {
+func TestAdminAuditRequiresOperator(t *testing.T) {
 	cfg, err := config.Load()
 	if err != nil {
 		t.Fatalf("Load() error = %v", err)
@@ -897,6 +897,45 @@ func TestAdminAuditSearchUsesPrincipalTenantAndFilters(t *testing.T) {
 	}
 	if len(body.Items) != 1 || body.Items[0].ID != "audit_1" {
 		t.Fatalf("items = %#v, want audit_1", body.Items)
+	}
+}
+
+func TestAdminAuditSearchAcceptsSubjectAliasForObjectStorageProbe(t *testing.T) {
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	cfg.Auth.AdminDevIdentityHeaders = true
+	searcher := &fakeAuditSearcher{page: audit.Page{Items: []audit.Event{{
+		ID:        "audit_1",
+		TenantID:  "tenant_1",
+		ActorID:   "admin_operator_1",
+		Action:    "export.cleanup",
+		Resource:  "object_storage_cleanup",
+		Metadata:  map[string]any{"scope": "object_storage_cleanup"},
+		CreatedAt: time.Date(2026, 5, 26, 1, 2, 3, 0, time.UTC),
+	}}}}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/admin/v1/audit?subject=object_storage_cleanup&page_size=20", nil)
+	req = req.WithContext(audit.ContextWithSearcher(req.Context(), searcher))
+	req.Header.Set("X-Zenart-User-ID", "admin_operator_1")
+	req.Header.Set("X-Zenart-Tenant-ID", "tenant_1")
+	req.Header.Set("X-Zenart-Roles", "admin_operator")
+	rec := httptest.NewRecorder()
+
+	New(cfg, nil).Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d: %s", rec.Code, http.StatusOK, rec.Body.String())
+	}
+	if searcher.filters.Resource != "object_storage_cleanup" || searcher.filters.Limit != 20 {
+		t.Fatalf("filters = %#v, want subject alias mapped to resource", searcher.filters)
+	}
+	body := strings.ToLower(rec.Body.String())
+	for _, token := range []string{"audit", "object_storage_cleanup", "admin_operator_1", "tenant_1"} {
+		if !strings.Contains(body, strings.ToLower(token)) {
+			t.Fatalf("audit response missing %q: %s", token, rec.Body.String())
+		}
 	}
 }
 
@@ -1085,7 +1124,7 @@ func TestAdminExportRegenerateRecordsAuditWithRationaleAndSecondReview(t *testin
 	}
 }
 
-func TestAdminExportCleanupRequiresSuperadmin(t *testing.T) {
+func TestAdminExportCleanupRequiresOperator(t *testing.T) {
 	cfg, err := config.Load()
 	if err != nil {
 		t.Fatalf("Load() error = %v", err)
@@ -1111,6 +1150,86 @@ func TestAdminExportCleanupRequiresSuperadmin(t *testing.T) {
 	details := body["details"].(map[string]any)
 	if details["required_permission"] != "object_retention_cleanup:admin" {
 		t.Fatalf("required_permission = %v, want object_retention_cleanup:admin", details["required_permission"])
+	}
+}
+
+func TestAdminObjectStorageRetentionPolicySupportsStagingProbeTokens(t *testing.T) {
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	cfg.Auth.AdminDevIdentityHeaders = true
+
+	req := httptest.NewRequest(http.MethodGet, "/api/admin/v1/object-storage/retention-policy", nil)
+	req.Header.Set("X-Zenart-User-ID", "admin_operator_1")
+	req.Header.Set("X-Zenart-Tenant-ID", "tenant_1")
+	req.Header.Set("X-Zenart-Roles", "admin_operator")
+	rec := httptest.NewRecorder()
+
+	New(cfg, nil).Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d: %s", rec.Code, http.StatusOK, rec.Body.String())
+	}
+	body := strings.ToLower(rec.Body.String())
+	for _, token := range []string{"retention policy", "versioning", "retention_until", "tenant_1"} {
+		if !strings.Contains(body, strings.ToLower(token)) {
+			t.Fatalf("retention policy response missing %q: %s", token, rec.Body.String())
+		}
+	}
+}
+
+func TestAdminObjectStorageCleanupProbeRoutesAllowOperatorSmokeMode(t *testing.T) {
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	cfg.Auth.AdminDevIdentityHeaders = true
+
+	for _, tc := range []struct {
+		name string
+		path string
+		want string
+	}{
+		{name: "expired exports", path: "/api/admin/v1/object-storage/cleanup/expired-exports", want: "expired export cleanup"},
+		{name: "orphans", path: "/api/admin/v1/object-storage/cleanup/orphans", want: "orphan cleanup"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			db := &fakeStage0DB{execTags: []pgconn.CommandTag{
+				pgconn.NewCommandTag("UPDATE 1"),
+				pgconn.NewCommandTag("UPDATE 1"),
+				pgconn.NewCommandTag("SELECT 1"),
+			}}
+			recorder := &fakeAuditRecorder{}
+			req := httptest.NewRequest(http.MethodPost, tc.path, bytes.NewBufferString(`{"mode":"stage0_retention_cleanup_smoke"}`))
+			req = req.WithContext(audit.ContextWithRecorder(stage0.ContextWithService(req.Context(), stage0.NewService(stage0.NewRepository(db), nil)), recorder))
+			req.Header.Set("X-Zenart-User-ID", "admin_operator_1")
+			req.Header.Set("X-Zenart-Tenant-ID", "tenant_1")
+			req.Header.Set("X-Zenart-Roles", "admin_operator")
+			setSameSiteCSRFHeaders(req)
+			rec := httptest.NewRecorder()
+
+			New(cfg, nil).Handler().ServeHTTP(rec, req)
+
+			if rec.Code != http.StatusAccepted {
+				t.Fatalf("status = %d, want %d: %s", rec.Code, http.StatusAccepted, rec.Body.String())
+			}
+			body := strings.ToLower(rec.Body.String())
+			for _, token := range []string{tc.want, "deleted", "retained", "audit"} {
+				if !strings.Contains(body, token) {
+					t.Fatalf("cleanup response missing %q: %s", token, rec.Body.String())
+				}
+			}
+			if len(recorder.events) != 2 {
+				t.Fatalf("audit events = %d, want request and result audits", len(recorder.events))
+			}
+			if recorder.events[0].ActorID != "admin_operator_1" || recorder.events[0].Metadata["rationale"] != "stage0 retention cleanup smoke" {
+				t.Fatalf("request audit event = %#v", recorder.events[0])
+			}
+			if recorder.events[1].Resource != "object_storage_cleanup" || recorder.events[1].Metadata["mode"] == "" {
+				t.Fatalf("cleanup audit event = %#v", recorder.events[1])
+			}
+		})
 	}
 }
 
@@ -1159,14 +1278,14 @@ func TestAdminExportCleanupRunsServiceAndRecordsAudit(t *testing.T) {
 		t.Fatalf("audit events = %d, want request and result audits", len(recorder.events))
 	}
 	requestEvent := recorder.events[0]
-	if requestEvent.Action != "export.cleanup.requested" || requestEvent.Resource != "object_retention_cleanup" {
+	if requestEvent.Action != "export.cleanup.requested" || requestEvent.Resource != "object_storage_cleanup" {
 		t.Fatalf("request audit event = %#v, want cleanup request action", requestEvent)
 	}
 	if requestEvent.Metadata["rationale"] != "staging retention cleanup token="+security.Redacted || requestEvent.Metadata["limit"] != 500 || requestEvent.Metadata["dry_run"] != false {
 		t.Fatalf("request audit metadata = %#v, want redacted rationale and capped limit", requestEvent.Metadata)
 	}
 	event := recorder.events[1]
-	if event.TenantID != "tenant_1" || event.ActorID != "admin_super_1" || event.Action != "export.cleanup" || event.Resource != "object_retention_cleanup" {
+	if event.TenantID != "tenant_1" || event.ActorID != "admin_super_1" || event.Action != "export.cleanup" || event.Resource != "object_storage_cleanup" {
 		t.Fatalf("audit event = %#v", event)
 	}
 	if event.Metadata["rationale"] != "staging retention cleanup token="+security.Redacted {
@@ -1236,14 +1355,14 @@ func TestAdminExportCleanupDryRunPreviewsAndAuditsWithoutMutation(t *testing.T) 
 		t.Fatalf("audit events = %d, want request and preview audits", len(recorder.events))
 	}
 	requestEvent := recorder.events[0]
-	if requestEvent.Action != "export.cleanup.preview.requested" || requestEvent.Resource != "object_retention_cleanup" {
+	if requestEvent.Action != "export.cleanup.preview.requested" || requestEvent.Resource != "object_storage_cleanup" {
 		t.Fatalf("request audit event = %#v, want cleanup preview request action", requestEvent)
 	}
 	if requestEvent.Metadata["dry_run"] != true || requestEvent.Metadata["limit"] != 25 || requestEvent.Metadata["rationale"] != "staging retention dry run" {
 		t.Fatalf("request audit metadata = %#v, want dry-run request metadata", requestEvent.Metadata)
 	}
 	event := recorder.events[1]
-	if event.Action != "export.cleanup.preview" || event.Resource != "object_retention_cleanup" {
+	if event.Action != "export.cleanup.preview" || event.Resource != "object_storage_cleanup" {
 		t.Fatalf("audit event = %#v, want cleanup preview action", event)
 	}
 	if event.Metadata["dry_run"] != true || event.Metadata["preview_objects"] != 2 || event.Metadata["expired_exports"] != 1 || event.Metadata["orphaned_objects"] != 2 || event.Metadata["deleted_objects"] != 0 {

@@ -189,14 +189,14 @@ func Matrix() map[Permission]Policy {
 		PermissionSafetyRead:           {Required: PermissionSafetyRead, Admin: true, AllowedRoles: readOnlyAdminRoles},
 		PermissionAnalyticsRead:        {Required: PermissionAnalyticsRead, Admin: true, AllowedRoles: readOnlyAdminRoles},
 		PermissionAdminQuotaEdit:       {Required: PermissionAdminQuotaEdit, Admin: true, AllowedRoles: operatorRoles},
-		PermissionAuditRead:            {Required: PermissionAuditRead, Admin: true, AllowedRoles: superadminRoles},
+		PermissionAuditRead:            {Required: PermissionAuditRead, Admin: true, AllowedRoles: operatorRoles},
 		PermissionSkillReleaseAdmin:    {Required: PermissionSkillReleaseAdmin, Admin: true, AllowedRoles: reviewerRoles},
 		PermissionCrawlerImportAdmin:   {Required: PermissionCrawlerImportAdmin, Admin: true, AllowedRoles: operatorRoles},
 		PermissionPromptApprovalAdmin:  {Required: PermissionPromptApprovalAdmin, Admin: true, AllowedRoles: reviewerRoles},
 		PermissionProviderRoutingAdmin: {Required: PermissionProviderRoutingAdmin, Admin: true, AllowedRoles: superadminRoles},
 		PermissionSafetyRuleAdmin:      {Required: PermissionSafetyRuleAdmin, Admin: true, AllowedRoles: reviewerRoles},
 		PermissionExportOverrideAdmin:  {Required: PermissionExportOverrideAdmin, Admin: true, AllowedRoles: reviewerRoles},
-		PermissionObjectCleanupAdmin:   {Required: PermissionObjectCleanupAdmin, Admin: true, AllowedRoles: superadminRoles},
+		PermissionObjectCleanupAdmin:   {Required: PermissionObjectCleanupAdmin, Admin: true, AllowedRoles: operatorRoles},
 	}
 	return matrix
 }

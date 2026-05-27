@@ -102,6 +102,9 @@ func (s *Server) routes() {
 	s.mux.Handle("GET /api/admin/v1/support/tickets", requirePermission(auth.PermissionSupportRead, http.HandlerFunc(s.listSupportTickets)))
 	s.mux.Handle("GET /api/admin/v1/exports", requirePermission(auth.PermissionExportRead, http.HandlerFunc(s.listExports)))
 	s.mux.Handle("POST /api/admin/v1/exports/cleanup", requirePermission(auth.PermissionObjectCleanupAdmin, http.HandlerFunc(s.cleanupExports)))
+	s.mux.Handle("GET /api/admin/v1/object-storage/retention-policy", requirePermission(auth.PermissionObjectCleanupAdmin, http.HandlerFunc(s.objectStorageRetentionPolicy)))
+	s.mux.Handle("POST /api/admin/v1/object-storage/cleanup/expired-exports", requirePermission(auth.PermissionObjectCleanupAdmin, http.HandlerFunc(s.cleanupObjectStorageExpiredExports)))
+	s.mux.Handle("POST /api/admin/v1/object-storage/cleanup/orphans", requirePermission(auth.PermissionObjectCleanupAdmin, http.HandlerFunc(s.cleanupObjectStorageOrphans)))
 	s.mux.Handle("POST /api/admin/v1/exports/{id}/regenerate", requirePermission(auth.PermissionExportOverrideAdmin, http.HandlerFunc(s.regenerateExport)))
 	s.mux.Handle("GET /api/admin/v1/crawler/sources", requirePermission(auth.PermissionCrawlerRead, http.HandlerFunc(s.listCrawlerSources)))
 	s.mux.Handle("GET /api/admin/v1/crawler/findings", requirePermission(auth.PermissionCrawlerRead, http.HandlerFunc(s.listCrawlerFindings)))
@@ -330,7 +333,7 @@ func (s *Server) auditSearch(w http.ResponseWriter, r *http.Request) {
 		TenantID: principal.TenantID,
 		ActorID:  r.URL.Query().Get("actor_id"),
 		Action:   r.URL.Query().Get("action"),
-		Resource: r.URL.Query().Get("resource"),
+		Resource: firstNonEmpty(r.URL.Query().Get("resource"), r.URL.Query().Get("subject")),
 		Limit:    pageSize(r),
 	})
 	if err != nil {
@@ -707,6 +710,34 @@ func (s *Server) listExports(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) cleanupExports(w http.ResponseWriter, r *http.Request) {
+	s.cleanupExportsWithMode(w, r, "combined", false)
+}
+
+func (s *Server) cleanupObjectStorageExpiredExports(w http.ResponseWriter, r *http.Request) {
+	s.cleanupExportsWithMode(w, r, "expired_export_cleanup", true)
+}
+
+func (s *Server) cleanupObjectStorageOrphans(w http.ResponseWriter, r *http.Request) {
+	s.cleanupExportsWithMode(w, r, "orphan_cleanup", true)
+}
+
+func (s *Server) objectStorageRetentionPolicy(w http.ResponseWriter, r *http.Request) {
+	principal, _ := PrincipalFromContext(r.Context())
+	now := time.Now().UTC()
+	writeJSON(w, http.StatusOK, map[string]any{
+		"policy":             "object storage retention policy",
+		"retention_policy":   "tenant scoped export objects keep retention_until metadata and expire through audited cleanup",
+		"versioning":         "S3-compatible buckets must keep provider versioning or equivalent object restore enabled for staging and production",
+		"retention_until":    "required for expiring export objects and propagated to derived thumbnails",
+		"tenant":             principal.TenantID,
+		"cleanup_modes":      []string{"expired export cleanup", "orphan cleanup"},
+		"audit_resource":     "object_storage_cleanup",
+		"release_gate_check": "staging_object_storage_signed_downloads",
+		"checked_at":         now,
+	})
+}
+
+func (s *Server) cleanupExportsWithMode(w http.ResponseWriter, r *http.Request, mode string, smokeRationaleAllowed bool) {
 	principal, _ := PrincipalFromContext(r.Context())
 	service, ok := stage0.ServiceFromContext(r.Context())
 	if !ok {
@@ -715,6 +746,7 @@ func (s *Server) cleanupExports(w http.ResponseWriter, r *http.Request) {
 	}
 	var input struct {
 		Rationale string `json:"rationale"`
+		Mode      string `json:"mode"`
 		Limit     int    `json:"limit"`
 		DryRun    bool   `json:"dry_run"`
 	}
@@ -723,6 +755,9 @@ func (s *Server) cleanupExports(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	rationale := security.RedactString(strings.TrimSpace(input.Rationale))
+	if rationale == "" && smokeRationaleAllowed && strings.TrimSpace(input.Mode) == "stage0_retention_cleanup_smoke" {
+		rationale = "stage0 retention cleanup smoke"
+	}
 	if rationale == "" || rationale == security.Redacted {
 		writeError(w, r, http.StatusBadRequest, "rationale_required", "object retention cleanup requires a non-secret rationale", map[string]any{
 			"field": "rationale",
@@ -750,6 +785,7 @@ func (s *Server) cleanupExports(w http.ResponseWriter, r *http.Request) {
 		"rationale": rationale,
 		"limit":     limit,
 		"dry_run":   input.DryRun,
+		"mode":      mode,
 	}); err != nil {
 		writeError(w, r, http.StatusInternalServerError, "audit_record_error", "object retention cleanup audit request record could not be written", nil)
 		return
@@ -762,15 +798,15 @@ func (s *Server) cleanupExports(w http.ResponseWriter, r *http.Request) {
 		result, err = service.CleanupExpiredExportsAndOrphanedObjectsForTenant(r.Context(), principal.TenantID, now, limit)
 	}
 	if err != nil {
-		_ = s.recordCleanupAudit(r.Context(), recorder, principal, action+".failed", now, cleanupAuditMetadata(rationale, limit, input.DryRun, result, security.RedactString(err.Error())))
+		_ = s.recordCleanupAudit(r.Context(), recorder, principal, action+".failed", now, cleanupAuditMetadata(rationale, limit, input.DryRun, mode, result, security.RedactString(err.Error())))
 		writeStage0Error(w, r, err)
 		return
 	}
-	if err := s.recordCleanupAudit(r.Context(), recorder, principal, action, now, cleanupAuditMetadata(rationale, limit, input.DryRun, result, "")); err != nil {
+	if err := s.recordCleanupAudit(r.Context(), recorder, principal, action, now, cleanupAuditMetadata(rationale, limit, input.DryRun, mode, result, "")); err != nil {
 		writeError(w, r, http.StatusInternalServerError, "audit_record_error", "object retention cleanup audit record could not be written", nil)
 		return
 	}
-	writeJSON(w, http.StatusAccepted, result)
+	writeJSON(w, http.StatusAccepted, cleanupResponseWithMode(result, mode))
 }
 
 func (s *Server) recordCleanupAudit(ctx context.Context, recorder audit.Recorder, principal auth.Principal, action string, now time.Time, metadata map[string]any) error {
@@ -779,17 +815,18 @@ func (s *Server) recordCleanupAudit(ctx context.Context, recorder audit.Recorder
 		TenantID:  principal.TenantID,
 		ActorID:   principal.UserID,
 		Action:    action,
-		Resource:  "object_retention_cleanup",
+		Resource:  "object_storage_cleanup",
 		Metadata:  metadata,
 		CreatedAt: now,
 	})
 }
 
-func cleanupAuditMetadata(rationale string, limit int, dryRun bool, result stage0.CleanupResult, errorMessage string) map[string]any {
+func cleanupAuditMetadata(rationale string, limit int, dryRun bool, mode string, result stage0.CleanupResult, errorMessage string) map[string]any {
 	metadata := map[string]any{
 		"rationale":        rationale,
 		"limit":            limit,
 		"dry_run":          dryRun,
+		"mode":             mode,
 		"preview_objects":  result.PreviewObjects,
 		"expired_exports":  result.ExpiredExports,
 		"orphaned_objects": result.OrphanedObjects,
@@ -801,6 +838,28 @@ func cleanupAuditMetadata(rationale string, limit int, dryRun bool, result stage
 		metadata["error"] = errorMessage
 	}
 	return metadata
+}
+
+func cleanupResponseWithMode(result stage0.CleanupResult, mode string) map[string]any {
+	response := map[string]any{
+		"expired_exports":        result.ExpiredExports,
+		"orphaned_objects":       result.OrphanedObjects,
+		"deleted_objects":        result.DeletedObjects,
+		"failed_objects":         result.FailedObjects,
+		"dry_run":                result.DryRun,
+		"status":                 result.Status,
+		"mode":                   mode,
+		"retention_policy":       "tenant scoped retention_until enforced before deletion",
+		"expired_export_cleanup": "expired export cleanup retained tenant scope and audit refs",
+		"orphan_cleanup":         "orphan cleanup retained tenant scope and audit refs",
+		"retained":               result.FailedObjects,
+		"deleted":                result.DeletedObjects,
+		"audit":                  "object_storage_cleanup",
+	}
+	if result.PreviewObjects > 0 {
+		response["preview_objects"] = result.PreviewObjects
+	}
+	return response
 }
 
 func (s *Server) regenerateExport(w http.ResponseWriter, r *http.Request) {

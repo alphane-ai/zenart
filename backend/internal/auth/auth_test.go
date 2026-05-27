@@ -50,6 +50,12 @@ func TestPermissionMatrixRequiresSpecificAdminRoles(t *testing.T) {
 	if Authorize(context.Background(), reviewer, Policy{Required: PermissionObjectCleanupAdmin}) {
 		t.Fatal("admin_reviewer should not run object retention cleanup")
 	}
+	if !Authorize(context.Background(), operator, Policy{Required: PermissionObjectCleanupAdmin}) {
+		t.Fatal("admin_operator should run object retention cleanup")
+	}
+	if !Authorize(context.Background(), operator, Policy{Required: PermissionAuditRead}) {
+		t.Fatal("admin_operator should read audit for cleanup smoke probes")
+	}
 	if !Authorize(context.Background(), superadmin, Policy{Required: PermissionAuditRead}) {
 		t.Fatal("admin_superadmin should read audit")
 	}
