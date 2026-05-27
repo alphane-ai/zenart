@@ -36,7 +36,7 @@
     {
       "check_id": "local_alpha_e2e_workflow_smoke",
       "status": "blocked",
-      "evidence_ref": "Local Alpha workflow API, Playwright, and export runtime evidence is absent under ops/evidence/local_alpha/ or ops/evidence/local/; requires four workflow smokes against the running web/admin/backend/dev-provider stack"
+      "evidence_ref": "Local Alpha ecommerce growth runtime evidence is present and passing for 电商增长包 / ecommerce_growth_pack API, Playwright happy path, and export ZIP at ops/evidence/local_alpha/ecommerce_growth_pack.api_smoke.json, ops/evidence/local_alpha/ecommerce_growth_pack.playwright_happy_path.json, and ops/evidence/local_alpha/ecommerce_growth_pack.export_zip.json. Local Alpha workflow API, Playwright, and export runtime evidence is absent for 商业视觉文档包 / business_visual_doc_pack, 本地商家活动包 / local_merchant_campaign_pack, and 角色/IP 概念包 / character_ip_concept_pack; the aggregate check remains blocked until each missing workflow provides API, Playwright, and export ZIP evidence under ops/evidence/local_alpha/ against the running web/admin/backend/dev-provider stack"
     }
   ],
   "do_not_launch_checks": [
@@ -119,7 +119,7 @@
       "local_alpha_e2e_workflow_smoke"
     ],
     "active_do_not_launch_conditions": [],
-    "evidence_ref": "fixtures/stage0/rev2/release_gate_evidence.local_alpha.json remains no-go until local_alpha_e2e_workflow_smoke has per-workflow API, Playwright, and export ZIP runtime evidence"
+    "evidence_ref": "fixtures/stage0/rev2/release_gate_evidence.local_alpha.json remains no-go until local_alpha_e2e_workflow_smoke has per-workflow API, Playwright, and export ZIP runtime evidence; ecommerce_growth_pack is backed by ops/evidence/local_alpha/ecommerce_growth_pack.api_smoke.json, ops/evidence/local_alpha/ecommerce_growth_pack.playwright_happy_path.json, and ops/evidence/local_alpha/ecommerce_growth_pack.export_zip.json, while business_visual_doc_pack, local_merchant_campaign_pack, and character_ip_concept_pack runtime files are still missing"
   },
   "provenance": {
     "blueprint_sections": [

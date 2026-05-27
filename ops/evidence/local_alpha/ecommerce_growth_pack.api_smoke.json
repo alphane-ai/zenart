@@ -1,0 +1,64 @@
+{
+  "schema_version": "stage0.rev2.local-alpha-runtime-evidence",
+  "blueprint_source": "Docs/stage0_blueprint_rev2.md",
+  "blueprint_sections": [
+    "6.1",
+    "15",
+    "23.1",
+    "25"
+  ],
+  "created_by_lane": "lane3",
+  "created_at": "2026-05-27T02:01:03.998Z",
+  "environment": "local_alpha",
+  "workflow_id": "ecommerce_growth_pack",
+  "fixture_id": "fx_ecommerce_growth_golden",
+  "release_gate_check_id": "local_alpha_e2e_workflow_smoke",
+  "release_gate_fixture_ref": "fixtures/stage0/rev2/release_gate_evidence.local_alpha.json",
+  "proves_running_local_stack": true,
+  "local_stack": {
+    "web_base_url": "http://127.0.0.1:3003",
+    "web_server_contract": "web/playwright.config.ts webServer starts npm run dev -- --hostname 127.0.0.1",
+    "user_route": "/workspace",
+    "export_route": "/export",
+    "client_contract": "web deterministic dev client with generated API operation evidence"
+  },
+  "evidence_kind": "api_smoke",
+  "status": "pass",
+  "runner": "web/tests/local-alpha-ecommerce-evidence.spec.ts",
+  "command": "npm run smoke:local-alpha-ecommerce-evidence",
+  "operation_ids": [
+    "createChatSession",
+    "createChatMessage",
+    "createCandidateSet",
+    "listCandidateAssets",
+    "selectDirection",
+    "createPackage",
+    "createExport",
+    "getExport"
+  ],
+  "operation_contracts": [
+    "createChatSession:POST:/projects/{project_id}/chat/sessions:include:X-ZenArt-CSRF:true",
+    "createChatMessage:POST:/chat/sessions/{chat_session_id}/messages:include:X-ZenArt-CSRF:true",
+    "createCandidateSet:POST:/projects/{project_id}/candidate-sets:include:X-ZenArt-CSRF:true",
+    "listCandidateAssets:GET:/candidate-sets/{candidate_set_id}/assets:include:not-required:false",
+    "selectDirection:PUT:/projects/{project_id}/selected-direction:include:X-ZenArt-CSRF:true",
+    "createPackage:POST:/projects/{project_id}/packages:include:X-ZenArt-CSRF:true",
+    "createExport:POST:/packages/{package_id}/exports:include:X-ZenArt-CSRF:true",
+    "getExport:GET:/exports/{export_id}:include:not-required:false"
+  ],
+  "operation_count": 8,
+  "csrf_protected_operation_count": 6,
+  "idempotency_required_operation_count": 6,
+  "scenario": "brief-reference-four-candidates-select-iterate-package-export-zip",
+  "assertions": {
+    "status": "pass",
+    "candidate_count": 4,
+    "taxonomy_count": 4,
+    "packaged_taxonomy_count": 4,
+    "ready_zip_export_count": 1,
+    "missing_output_count": 0,
+    "qa_taxonomy_status": "pass",
+    "safety_status": "pass",
+    "failures": ""
+  }
+}
