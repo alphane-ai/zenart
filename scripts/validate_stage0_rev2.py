@@ -2419,6 +2419,51 @@ def require_split_runtime_pass_evidence(evidence_ref: str, gate: str, check_id: 
         )
 
 
+def require_split_runtime_blocked_evidence(evidence_ref: str, gate: str, check_id: str) -> None:
+    requirement = RUNTIME_SPLIT_PASS_REQUIREMENTS.get((gate, check_id))
+    if requirement is None:
+        return
+
+    evidence_ref_lower = evidence_ref.lower()
+    for subitem_id, path in requirement["subitems"].items():
+        rel_path = rel(path)
+        require(
+            rel_path in evidence_ref,
+            f"{gate}.{check_id} blocked evidence must name exact required split runtime evidence for "
+            f"{subitem_id}: {rel_path}",
+        )
+        missing_tokens = [
+            token
+            for token in requirement["tokens"][subitem_id]
+            if token not in evidence_ref_lower
+        ]
+        require(
+            not missing_tokens,
+            f"{gate}.{check_id} blocked split evidence {rel_path} missing required blocker tokens "
+            f"for {subitem_id}: {missing_tokens}",
+        )
+        if path.exists():
+            evidence = load_json_if_path(rel_path)
+            require(
+                evidence is None or isinstance(evidence, dict),
+                f"{gate}.{check_id} blocked split evidence {rel_path} must be valid JSON when present",
+            )
+            if isinstance(evidence, dict):
+                environment = evidence.get("environment")
+                if environment is not None:
+                    require(
+                        environment in RUNTIME_PASS_FILE_ENVIRONMENTS[gate],
+                        f"{gate}.{check_id} blocked split evidence {rel_path} has wrong environment={environment!r}",
+                    )
+                evidence_check_id = evidence.get("release_gate_check_id")
+                if evidence_check_id is not None:
+                    require(
+                        evidence_check_id == check_id,
+                        f"{gate}.{check_id} blocked split evidence {rel_path} targets "
+                        f"release_gate_check_id={evidence_check_id!r}",
+                    )
+
+
 def require_check_level_evidence_gate_impact(
     evidence: dict[str, Any],
     *,
@@ -3126,6 +3171,7 @@ def validate_runtime_gate_evidence_refs(
                 f"{gate}.{check_id} blocked evidence must cite the missing gate-specific runtime/deployment evidence area: "
                 + json.dumps(requirement["path_patterns"]),
             )
+            require_split_runtime_blocked_evidence(evidence_ref, gate, check_id)
         if check["status"] == "pass":
             require(
                 RUNTIME_EVIDENCE_RE.search(evidence_ref) is not None,
@@ -7122,6 +7168,10 @@ def validate_launch_readiness_split_contracts() -> None:
         "Local Alpha remains open until four workflow API/Playwright smokes",
         "Production Launch cannot clear `ci_staging_gates_not_passed` or pass backup/rollback/post-deploy evidence until both",
         "Production backup/rollback/post-deploy pass evidence must cite both upstream gate fixtures",
+        "Blocked split runtime/deployment checks must name every exact split evidence file still required for closure",
+        "a broad `ops/evidence/staging/` or `ops/evidence/production/` placeholder cannot preserve a launch blocker",
+        "Existing half-split evidence can only close its own concrete subitem",
+        "the combined check remains blocked until every required split file exists",
         "remaining_blockers` must exactly match the current blocked/failing check IDs",
         "Do-Not-Launch Conditions 全部为 false。` remains open while any release-gate evidence fixture has `is_present: true`",
         "Do-Not-Launch Conditions 全部为 false。` may close only when all four release gate fixtures have no active Do-Not-Launch conditions",

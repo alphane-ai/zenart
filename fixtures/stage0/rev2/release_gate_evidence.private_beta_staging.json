@@ -16,7 +16,7 @@
     {
       "check_id": "staging_object_storage_signed_downloads",
       "status": "blocked",
-      "evidence_ref": "Staging object storage signed URL runtime evidence passed in ops/evidence/staging/20260527T2130Z-object-storage-signed-url.json, proving tenant-scoped signed download, expiry, direct-object denial, and cross-tenant denial from ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json, ops/evidence/staging/20260527T2115Z-backup-restore.json, and ops/evidence/staging/20260527T2120Z-load.json; the full object-storage gate remains blocked until ops/evidence/staging/ retention policy, expired export cleanup, orphan cleanup, and audit refs are present"
+      "evidence_ref": "Staging object storage signed URL runtime evidence passed in ops/evidence/staging/20260527T2130Z-object-storage-signed-url.json, proving tenant-scoped signed download, expiry, direct-object denial, and cross-tenant denial from ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json, ops/evidence/staging/20260527T2115Z-backup-restore.json, and ops/evidence/staging/20260527T2120Z-load.json; the full object-storage gate remains blocked until exact retention cleanup runtime evidence exists at ops/evidence/staging/object-storage-retention-cleanup.json proving retention policy, expired export cleanup, orphan cleanup, and audit refs"
     },
     {
       "check_id": "staging_quota_rate_limit_spend_cap",
@@ -46,7 +46,7 @@
     {
       "check_id": "staging_legal_external_user_pages",
       "status": "blocked",
-      "evidence_ref": "Privacy notice, Terms, Privacy Policy, Acceptable Use, AI/content disclaimer, IP complaint flow, billing policy, and visible support contact evidence exists, but external-user staging evidence for deployed page visibility is absent under ops/evidence/staging/ legal/support runtime evidence"
+      "evidence_ref": "Privacy notice, Terms, Privacy Policy, Acceptable Use, AI/content disclaimer, IP complaint flow, billing policy, and visible support contact evidence exists, but external-user staging evidence for deployed page visibility is absent: ops/evidence/staging/legal-pages-external-user.json must prove Terms, Privacy, Acceptable Use, AI/content disclaimer, and IP complaint visibility, and ops/evidence/staging/support-contact-external-user.json must prove support/report-problem external user visibility"
     }
   ],
   "do_not_launch_checks": [
@@ -72,7 +72,7 @@
       "condition_id": "object_storage_signed_retention_runtime_missing",
       "blueprint_condition": "Object storage 缺 tenant-scoped signed access、retention policy、cleanup 或 cross-tenant denial tests。",
       "is_present": true,
-      "evidence_ref": "ops/evidence/staging/20260527T2130Z-object-storage-signed-url.json clears staging signed access and cross-tenant denial runtime evidence, but ops/evidence/staging/ object retention policy, expired export cleanup, orphan cleanup, and audit refs remain missing"
+      "evidence_ref": "ops/evidence/staging/20260527T2130Z-object-storage-signed-url.json clears staging signed access and cross-tenant denial runtime evidence, but exact object retention policy, expired export cleanup, orphan cleanup, and audit refs remain missing at ops/evidence/staging/object-storage-retention-cleanup.json"
     },
     {
       "condition_id": "support_abuse_runtime_missing",
@@ -108,7 +108,7 @@
       "condition_id": "external_user_legal_pages_missing",
       "blueprint_condition": "Public launch 缺 Terms、Privacy、Acceptable Use、support contact、AI/content responsibility disclaimer 或 IP complaint flow。",
       "is_present": true,
-      "evidence_ref": "web legal page artifacts exist, but ops/evidence/staging/ external-user staging visibility evidence remains absent"
+      "evidence_ref": "web legal page artifacts exist, but exact external-user staging visibility evidence remains absent at ops/evidence/staging/legal-pages-external-user.json for legal pages and ops/evidence/staging/support-contact-external-user.json for support contact/report-problem"
     }
   ],
   "gate_decision": {
