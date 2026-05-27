@@ -7,7 +7,15 @@ cd "$ROOT"
 BASE_URL="${BASE_URL:-${STAGING_BASE_URL:-}}"
 TIMEOUT_SECONDS="${TIMEOUT_SECONDS:-8}"
 DRY_RUN="${DRY_RUN:-0}"
-OUT_DIR="${OUT_DIR:-ops/evidence/staging}"
+OUT_DIR_WAS_SET=0
+if [[ -n "${OUT_DIR+x}" || -n "${REPORT_PATH+x}" || -n "${RESULTS_PATH+x}" ]]; then
+  OUT_DIR_WAS_SET=1
+fi
+if [[ "$DRY_RUN" == "1" && "$OUT_DIR_WAS_SET" != "1" ]]; then
+  OUT_DIR="$(mktemp -d "${TMPDIR:-/tmp}/stage0-object-retention-dry-run.XXXXXX")"
+else
+  OUT_DIR="${OUT_DIR:-ops/evidence/staging}"
+fi
 REPORT_PATH="${REPORT_PATH:-$OUT_DIR/object-storage-retention-cleanup.json}"
 RESULTS_PATH="${RESULTS_PATH:-$OUT_DIR/object-storage-retention-cleanup.ndjson}"
 RUN_ID="${RUN_ID:-object-storage-retention-cleanup}"

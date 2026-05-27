@@ -820,6 +820,48 @@ if [[ "$staging_obl_status" -ne 2 ]]; then
   exit 1
 fi
 RUN_ID="stage0-validate-object-storage-signed-url" OUT_DIR="$ops_validate_dir/object-storage" scripts/staging_object_storage_signed_url_smoke.sh >/dev/null
+before_default_retention_sha="$(
+  python3 - <<'PY'
+import hashlib
+from pathlib import Path
+
+paths = [
+    Path("ops/evidence/staging/object-storage-retention-cleanup.blocked.json"),
+    Path("ops/evidence/staging/object-storage-retention-cleanup.blocked.ndjson"),
+]
+digest = hashlib.sha256()
+for path in paths:
+    digest.update(path.read_bytes())
+print(digest.hexdigest())
+PY
+)"
+set +e
+DRY_RUN=1 scripts/staging_object_storage_retention_cleanup_smoke.sh >/dev/null
+default_object_retention_status=$?
+set -e
+if [[ "$default_object_retention_status" -ne 2 ]]; then
+  printf 'default staging object-storage retention cleanup dry-run must exit 2 without runtime evidence, got %s\n' "$default_object_retention_status" >&2
+  exit 1
+fi
+after_default_retention_sha="$(
+  python3 - <<'PY'
+import hashlib
+from pathlib import Path
+
+paths = [
+    Path("ops/evidence/staging/object-storage-retention-cleanup.blocked.json"),
+    Path("ops/evidence/staging/object-storage-retention-cleanup.blocked.ndjson"),
+]
+digest = hashlib.sha256()
+for path in paths:
+    digest.update(path.read_bytes())
+print(digest.hexdigest())
+PY
+)"
+if [[ "$before_default_retention_sha" != "$after_default_retention_sha" ]]; then
+  printf 'default staging object-storage retention cleanup dry-run must not mutate checked-in blocked evidence\n' >&2
+  exit 1
+fi
 set +e
 RUN_ID="stage0-validate-object-storage-retention-cleanup" DRY_RUN=1 OUT_DIR="$ops_validate_dir/object-storage-retention" scripts/staging_object_storage_retention_cleanup_smoke.sh >/dev/null
 object_retention_status=$?
