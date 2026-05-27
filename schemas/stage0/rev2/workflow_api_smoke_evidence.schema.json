@@ -193,6 +193,71 @@
       }
     }
   },
+  "allOf": [
+    {
+      "if": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "const": "dry_run"
+          }
+        },
+        "required": [
+          "mode"
+        ]
+      },
+      "then": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "const": "planned"
+          },
+          "checklist_policy": {
+            "type": "object",
+            "properties": {
+              "api_smoke_checklist_remains_open": {
+                "const": true
+              },
+              "local_alpha_gate_remains_open": {
+                "const": true
+              },
+              "runtime_evidence_required_for_closure": {
+                "const": true
+              }
+            }
+          },
+          "summary": {
+            "type": "object",
+            "properties": {
+              "planned_workflows": {
+                "const": 4
+              },
+              "passed_workflows": {
+                "const": 0
+              },
+              "failed_workflows": {
+                "const": 0
+              },
+              "blocked_workflows": {
+                "const": 0
+              }
+            }
+          },
+          "workflow_results": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "const": "planned"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
   "$defs": {
     "workflow_result": {
       "type": "object",
@@ -285,7 +350,44 @@
             }
           }
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "type": "object",
+            "properties": {
+              "status": {
+                "const": "planned"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "type": "object",
+            "properties": {
+              "request_results": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "actual_status": {
+                      "const": "not_executed"
+                    },
+                    "result": {
+                      "const": "planned"
+                    },
+                    "runtime_assertions": {
+                      "maxItems": 0
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
     },
     "request_result": {
       "type": "object",

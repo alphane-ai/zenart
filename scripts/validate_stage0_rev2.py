@@ -3218,6 +3218,13 @@ def validate_schema_value(schema: dict[str, Any], value: Any, path: str, root_sc
         else:
             if "then" in schema:
                 validate_schema_value(schema["then"], value, f"{path}.then", root_schema)
+    if "not" in schema:
+        try:
+            validate_schema_value(schema["not"], value, f"{path}.not", root_schema)
+        except ValidationError:
+            pass
+        else:
+            require(False, f"{path} must not match forbidden schema")
 
     if "const" in schema:
         require(value == schema["const"], f"{path} must equal {schema['const']!r}")
@@ -3231,6 +3238,14 @@ def validate_schema_value(schema: dict[str, Any], value: Any, path: str, root_sc
         missing = required - set(value)
         require(not missing, f"{path} missing required keys: {sorted(missing)}")
         properties = schema.get("properties", {})
+        dependent_required = schema.get("dependentRequired", {})
+        for key, dependents in dependent_required.items():
+            if key in value:
+                missing_dependents = set(dependents) - set(value)
+                require(
+                    not missing_dependents,
+                    f"{path}.{key} requires sibling keys: {sorted(missing_dependents)}",
+                )
         if schema.get("additionalProperties") is False:
             extra = set(value) - set(properties)
             require(not extra, f"{path} has additional keys: {sorted(extra)}")

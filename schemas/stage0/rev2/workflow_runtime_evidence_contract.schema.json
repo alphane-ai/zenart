@@ -138,6 +138,40 @@
       }
     }
   },
+  "allOf": [
+    {
+      "if": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "const": "dry_run_contract"
+          }
+        },
+        "required": [
+          "mode"
+        ]
+      },
+      "then": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "const": "planned"
+          },
+          "summary": {
+            "type": "object",
+            "properties": {
+              "runtime_evidence_required_for_closure": {
+                "const": true
+              },
+              "local_alpha_e2e_workflow_smoke_remains_blocked": {
+                "const": true
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
   "$defs": {
     "workflow_runtime_contract": {
       "type": "object",
@@ -366,7 +400,89 @@
         "must_remain_open_until_runtime_passes": {
           "const": true
         }
-      }
+      },
+      "dependentRequired": {
+        "start_route": [
+          "completion_route",
+          "required_actions",
+          "required_selectors",
+          "artifact_assertions",
+          "operation_ids"
+        ],
+        "format": [
+          "required_asset_files",
+          "required_manifest_files",
+          "required_assertions"
+        ]
+      },
+      "allOf": [
+        {
+          "if": {
+            "type": "object",
+            "properties": {
+              "evidence_kind": {
+                "const": "api_smoke"
+              }
+            },
+            "required": [
+              "evidence_kind"
+            ]
+          },
+          "then": {
+            "type": "object",
+            "required": [
+              "required_assertions",
+              "operation_ids"
+            ]
+          }
+        },
+        {
+          "if": {
+            "type": "object",
+            "properties": {
+              "evidence_kind": {
+                "const": "playwright_happy_path"
+              }
+            },
+            "required": [
+              "evidence_kind"
+            ]
+          },
+          "then": {
+            "type": "object",
+            "required": [
+              "start_route",
+              "completion_route",
+              "required_actions",
+              "required_selectors",
+              "operation_ids",
+              "artifact_assertions"
+            ]
+          }
+        },
+        {
+          "if": {
+            "type": "object",
+            "properties": {
+              "evidence_kind": {
+                "const": "export_zip"
+              }
+            },
+            "required": [
+              "evidence_kind"
+            ]
+          },
+          "then": {
+            "type": "object",
+            "required": [
+              "format",
+              "required_asset_files",
+              "required_manifest_files",
+              "required_assertions"
+            ]
+          }
+        }
+      ]
     }
   }
 }
