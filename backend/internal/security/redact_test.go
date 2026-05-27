@@ -252,6 +252,47 @@ func TestRedactStringCoversEmbeddedSignedURLsAndRegistryTokens(t *testing.T) {
 	assertSignal(t, findings, "npm_token")
 }
 
+func TestRedactStringCoversS3CompatibleAndCDNSignedURLs(t *testing.T) {
+	input := strings.Join([]string{
+		"https://oss.example.test/export.zip?OSSAccessKeyId=oss-access&X-OSS-Signature=oss-signature&X-OSS-Security-Token=oss-token",
+		"https://cos.example.test/export.zip?X-Cos-Signature=cos-signature&X-Cos-Security-Token=cos-token",
+		"https://cdn.example.test/export.zip?CloudFront-Signature=cf-signature&CloudFront-Policy=cf-policy&CloudFront-Key-Pair-Id=cf-keypair",
+		"https://b2.example.test/export.zip?X-Bz-Info-Authorization=b2-authorization",
+	}, " ")
+
+	got := RedactString(input)
+	for _, leaked := range []string{
+		"oss-access",
+		"oss-signature",
+		"oss-token",
+		"cos-signature",
+		"cos-token",
+		"cf-signature",
+		"cf-policy",
+		"cf-keypair",
+		"b2-authorization",
+	} {
+		if strings.Contains(got, leaked) {
+			t.Fatalf("RedactString() = %q, leaked %s", got, leaked)
+		}
+	}
+	for _, fragment := range []string{
+		"OSSAccessKeyId=",
+		"X-OSS-Signature=",
+		"X-Cos-Signature=",
+		"CloudFront-Signature=",
+		"X-Bz-Info-Authorization=",
+		Redacted,
+	} {
+		if !strings.Contains(got, fragment) {
+			t.Fatalf("RedactString() = %q, missing %s", got, fragment)
+		}
+	}
+
+	findings := ClassifyString(input)
+	assertSignal(t, findings, "url_query_secret")
+}
+
 func TestRedactMapCoversExportAndCrawlerMetadataURLs(t *testing.T) {
 	redacted := RedactMap(map[string]any{
 		"export": map[string]any{

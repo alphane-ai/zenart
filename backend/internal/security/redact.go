@@ -660,8 +660,10 @@ func classifyJSONString(value string) []SecretFinding {
 
 func redactURLSecrets(value string) string {
 	if strings.Contains(value, "://") {
-		if redacted, ok := redactSingleURL(value); ok {
-			return redacted
+		if isStandaloneURL(value) {
+			if redacted, ok := redactSingleURL(value); ok {
+				return redacted
+			}
 		}
 		return embeddedURLPattern.ReplaceAllStringFunc(value, func(raw string) string {
 			redacted, ok := redactSingleURL(raw)
@@ -672,6 +674,15 @@ func redactURLSecrets(value string) string {
 		})
 	}
 	return value
+}
+
+func isStandaloneURL(value string) bool {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" || strings.ContainsAny(trimmed, " \t\r\n") {
+		return false
+	}
+	parsed, err := url.Parse(trimmed)
+	return err == nil && parsed.Scheme != "" && parsed.Host != ""
 }
 
 func redactSingleURL(value string) (string, bool) {
@@ -786,9 +797,10 @@ func isSignedURLQueryKey(key string) bool {
 		"x-amz-copy-source-server-side-encryption-customer-key", "x-amz-copy-source-server-side-encryption-customer-key-md5",
 		"x-goog-credential", "x-goog-signature", "x-goog-security-token",
 		"x-goog-algorithm", "x-goog-date", "x-goog-expires", "x-goog-signedheaders",
-		"googleaccessid", "x-oss-signature", "ossaccesskeyid",
+		"googleaccessid", "x-oss-signature", "x-oss-security-token", "ossaccesskeyid",
+		"x-cos-signature", "x-cos-security-token", "x-bz-info-authorization",
 		"awsaccesskeyid", "signature", "sig", "token", "access-token", "download-token", "oauth-token",
-		"expires", "policy", "key-pair-id",
+		"expires", "policy", "key-pair-id", "cloudfront-signature", "cloudfront-policy", "cloudfront-key-pair-id",
 		"se", "sp", "spr", "sr", "sv", "skoid", "sktid", "skt", "ske", "sks", "skv":
 		return true
 	default:
@@ -805,7 +817,9 @@ func isStructuredSignedURLSecretKey(key string) bool {
 		"x-amz-copy-source-server-side-encryption-customer-key",
 		"x-amz-copy-source-server-side-encryption-customer-key-md5",
 		"x-goog-algorithm", "x-goog-credential", "x-goog-signature", "x-goog-security-token",
-		"googleaccessid", "ossaccesskeyid", "awsaccesskeyid":
+		"googleaccessid", "x-oss-signature", "x-oss-security-token", "ossaccesskeyid",
+		"x-cos-signature", "x-cos-security-token", "x-bz-info-authorization",
+		"awsaccesskeyid", "cloudfront-signature", "cloudfront-policy", "cloudfront-key-pair-id":
 		return true
 	default:
 		return false
