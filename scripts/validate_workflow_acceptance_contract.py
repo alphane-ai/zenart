@@ -208,6 +208,13 @@ RUNTIME_EVIDENCE_KINDS = {
     "export_zip",
 }
 
+NEGATIVE_GUARD_COVERAGE_CHECKLIST_ITEM = (
+    "每条 workflow negative acceptance guard 均有 fixture-backed coverage contract："
+    "`negative_guard_coverage_contract` maps every declared guard to matching eval result、QA checks、"
+    "safety rule IDs、export gate effect, and final export denial, enforced by "
+    "`scripts/validate_workflow_acceptance_contract.py`。"
+)
+
 DOMAIN_ACCEPTANCE_CONTRACTS = {
     "ecommerce_growth_pack": {
         "required_brief_slots": {
@@ -823,6 +830,11 @@ def validate_blueprint_split(workflows: dict[str, dict[str, Any]]) -> None:
                 f"{workflow_id} Playwright contract must keep runtime checklist open",
             )
 
+    require(
+        NEGATIVE_GUARD_COVERAGE_CHECKLIST_ITEM in checked,
+        "negative guard coverage checklist item must be checked after fixture-backed validation",
+    )
+
 
 def validate_openapi_operations(workflows: dict[str, dict[str, Any]]) -> None:
     openapi = OPENAPI.read_text(encoding="utf-8")
@@ -874,6 +886,7 @@ def validate_fixture_links(workflows: dict[str, dict[str, Any]]) -> None:
     qa_by_workflow: dict[str, set[str]] = {}
     for item in qa_results:
         qa_by_workflow.setdefault(item["workflow"], set()).add(item["check_category"])
+    qa_by_id = {item["check_id"]: item for item in qa_results}
 
     safety_fixture_domains: dict[str, set[str]] = {}
     for rule in safety_rules:
@@ -979,13 +992,15 @@ def validate_fixture_links(workflows: dict[str, dict[str, Any]]) -> None:
         missing_domains = set(safety["linked_rule_domains"]) - linked_domains
         require(not missing_domains, f"{workflow_id} safety domains lack rule links: {sorted(missing_domains)}")
 
+        expected_guards = set(workflow["domain_acceptance_contract"]["negative_acceptance_guards"])
+        negative_fixture_guard_refs: set[str] = set()
         for link in workflow["negative_fixture_links"]:
             fixture_id = link["fixture_id"]
             surface = link["enforcement_surface"]
             surface_contract = NEGATIVE_LINK_SURFACE_CONTRACTS[surface]
-            expected_guards = set(workflow["domain_acceptance_contract"]["negative_acceptance_guards"])
             guard_refs = set(link["negative_guard_refs"])
             result_item = result_by_id.get(fixture_id)
+            negative_fixture_guard_refs.update(guard_refs)
 
             require(fixture_id in suite_by_id, f"{workflow_id} links unknown negative fixture {fixture_id}")
             require(fixture_id in result_by_id, f"{workflow_id} negative fixture {fixture_id} missing eval result")
@@ -1039,6 +1054,81 @@ def validate_fixture_links(workflows: dict[str, dict[str, Any]]) -> None:
                 result_item["status"] == "blocked" and gate["final_export_allowed"] is False,
                 f"{fixture_id} negative fixture must block final export",
             )
+
+        coverage_items = workflow["negative_guard_coverage_contract"]
+        covered_guards = {item["guard_ref"] for item in coverage_items}
+        require(
+            covered_guards == expected_guards,
+            f"{workflow_id} negative guard coverage mismatch: {sorted(covered_guards ^ expected_guards)}",
+        )
+        require(
+            len(coverage_items) == len(covered_guards),
+            f"{workflow_id} negative guard coverage contains duplicate guard refs",
+        )
+        safety_rule_ids = {rule["rule_id"] for rule in safety_rules}
+        for coverage_item in coverage_items:
+            fixture_id = coverage_item["fixture_id"]
+            result_item = result_by_id.get(fixture_id)
+            guard_ref = coverage_item["guard_ref"]
+
+            require(fixture_id in suite_by_id, f"{workflow_id} guard coverage links unknown fixture {fixture_id}")
+            require(result_item is not None, f"{workflow_id} guard coverage fixture {fixture_id} missing eval result")
+            require(suite_by_id[fixture_id]["workflow"] == workflow_id, f"{workflow_id} guard coverage fixture {fixture_id} workflow mismatch")
+            require(result_item["workflow"] == workflow_id, f"{workflow_id} guard coverage eval workflow mismatch")
+            require(result_item["status"] == coverage_item["expected_status"], f"{workflow_id} {guard_ref} eval status mismatch")
+            require(
+                result_item["qa_export_gate"]["final_export_allowed"] is coverage_item["expected_final_export_allowed"],
+                f"{workflow_id} {guard_ref} final export gate mismatch",
+            )
+            require(
+                result_item["safety_decision_contract"]["export_gate_effect"] == coverage_item["expected_export_gate_effect"],
+                f"{workflow_id} {guard_ref} safety export gate effect mismatch",
+            )
+            require(
+                coverage_item["validator"] == "scripts/validate_workflow_acceptance_contract.py",
+                f"{workflow_id} {guard_ref} validator mismatch",
+            )
+
+            required_qa = set(coverage_item["required_qa_check_ids"])
+            require(
+                required_qa <= set(result_item["qa_check_ids"]),
+                f"{workflow_id} {guard_ref} missing eval QA checks: {sorted(required_qa - set(result_item['qa_check_ids']))}",
+            )
+            for check_id in required_qa:
+                require(check_id in qa_by_id, f"{workflow_id} {guard_ref} unknown QA check {check_id}")
+                require(qa_by_id[check_id]["workflow"] == workflow_id, f"{workflow_id} {guard_ref} QA check workflow mismatch")
+                require(
+                    qa_by_id[check_id]["evidence"]["fixture_id"] == fixture_id,
+                    f"{workflow_id} {guard_ref} QA check fixture mismatch",
+                )
+
+            required_safety_rules = set(coverage_item["required_safety_rule_ids"])
+            require(
+                required_safety_rules <= safety_rule_ids,
+                f"{workflow_id} {guard_ref} unknown safety rules: {sorted(required_safety_rules - safety_rule_ids)}",
+            )
+            require(
+                required_safety_rules <= set(result_item["safety_decision_contract"]["source_rule_ids"]),
+                f"{workflow_id} {guard_ref} missing safety decision rules: {sorted(required_safety_rules - set(result_item['safety_decision_contract']['source_rule_ids']))}",
+            )
+
+            if coverage_item["evidence_type"] == "negative_fixture":
+                require(
+                    guard_ref in negative_fixture_guard_refs,
+                    f"{workflow_id} {guard_ref} negative fixture coverage must be linked from negative_fixture_links",
+                )
+                require(
+                    result_item["status"] == "blocked" and result_item["qa_export_gate"]["final_export_allowed"] is False,
+                    f"{workflow_id} {guard_ref} negative fixture coverage must block export",
+                )
+            elif coverage_item["evidence_type"] == "qa_result":
+                require(required_qa, f"{workflow_id} {guard_ref} QA coverage must cite QA checks")
+            elif coverage_item["evidence_type"] == "safety_decision":
+                require(required_safety_rules, f"{workflow_id} {guard_ref} safety coverage must cite safety rules")
+                require(
+                    result_item["safety_decision_contract"]["decision_source"] == "linked_safety_rule",
+                    f"{workflow_id} {guard_ref} safety coverage must use linked safety rule evidence",
+                )
 
 
 def validate_workflow_shape(workflows: dict[str, dict[str, Any]]) -> None:

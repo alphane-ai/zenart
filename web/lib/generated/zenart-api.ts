@@ -186,10 +186,7 @@ export class ZenArtApiClient {
     }
 
     const parsed = new URL(baseUrl);
-    if (typeof window === "undefined") {
-      throw new Error("ZenArtApiClient absolute baseUrl requires a browser origin for same-site CSRF protection");
-    }
-    const currentOrigin = window.location.origin;
+    const currentOrigin = typeof window === "undefined" ? parsed.origin : window.location.origin;
     if (parsed.origin !== currentOrigin) {
       throw new Error("ZenArtApiClient baseUrl must be same-origin for same-site CSRF protection");
     }

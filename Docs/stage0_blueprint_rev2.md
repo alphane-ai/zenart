@@ -1830,6 +1830,7 @@ main 合并前必须通过：
 - [x] 每条 workflow 定义 QA/safety/export pass thresholds。
 - [x] 每条 workflow export ZIP evidence contract 通过：`fixtures/stage0/rev2/eval/workflow_export_zip_evidence_contract.json` maps required ZIP payloads、manifest、QA report、safety report、provenance、metadata、AI disclaimer、trace payloads、four-option taxonomy to exact passing local-alpha evidence files。
 - [x] 每条 workflow acceptance fixture runtime evidence contract 通过：`runtime_evidence_contract` in each fixture binds API smoke、Playwright happy path、export ZIP evidence to exact local-alpha files, checked Section 25.12 rows, release gate `local_alpha_e2e_workflow_smoke`, four-candidate taxonomy/package assertions, QA/safety pass, ZIP payload parity, and `scripts/validate_workflow_acceptance_contract.py` enforcement。
+- [x] 每条 workflow negative acceptance guard 均有 fixture-backed coverage contract：`negative_guard_coverage_contract` maps every declared guard to matching eval result、QA checks、safety rule IDs、export gate effect, and final export denial, enforced by `scripts/validate_workflow_acceptance_contract.py`。
 
 ### 25.13 Crawler Governance
 

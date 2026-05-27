@@ -181,6 +181,38 @@
       "expected_export_gate_effect": "block_final_export"
     }
   ],
+  "negative_guard_coverage_contract": [
+    {
+      "guard_ref": "unsupported_roi_or_financial_claim_blocks_export",
+      "fixture_id": "fx_unsafe_financial_claim",
+      "evidence_type": "negative_fixture",
+      "expected_status": "blocked",
+      "expected_final_export_allowed": false,
+      "expected_export_gate_effect": "block_final_export",
+      "required_qa_check_ids": [
+        "qa_forbidden_claims"
+      ],
+      "required_safety_rule_ids": [
+        "safety_financial_guaranteed_returns"
+      ],
+      "validator": "scripts/validate_workflow_acceptance_contract.py"
+    },
+    {
+      "guard_ref": "text_heavy_pages_require_readability_evidence",
+      "fixture_id": "fx_business_visual_doc_golden",
+      "evidence_type": "qa_result",
+      "expected_status": "blocked",
+      "expected_final_export_allowed": false,
+      "expected_export_gate_effect": "allow_with_warning",
+      "required_qa_check_ids": [
+        "qa_text_readability_ocr"
+      ],
+      "required_safety_rule_ids": [
+        "safety_business_claims_review"
+      ],
+      "validator": "scripts/validate_workflow_acceptance_contract.py"
+    }
+  ],
   "contract_evidence": {
     "eval_result_id": "eval_result_stage0_rev2_starter_contract",
     "eval_suite_id": "eval_stage0_rev2_starter",

@@ -226,6 +226,64 @@
       "expected_export_gate_effect": "allow_when_export_contract_complete"
     }
   ],
+  "negative_guard_coverage_contract": [
+    {
+      "guard_ref": "generic_four_card_rendering_rejected",
+      "fixture_id": "fx_negative_generic_rendering",
+      "evidence_type": "negative_fixture",
+      "expected_status": "blocked",
+      "expected_final_export_allowed": false,
+      "expected_export_gate_effect": "allow_when_export_contract_complete",
+      "required_qa_check_ids": [
+        "qa_duplicate_candidate_similarity",
+        "qa_four_option_distinctness"
+      ],
+      "required_safety_rule_ids": [],
+      "validator": "scripts/validate_workflow_acceptance_contract.py"
+    },
+    {
+      "guard_ref": "missing_price_date_phone_address_qr_blocks_export",
+      "fixture_id": "fx_text_heavy_structured_details",
+      "evidence_type": "negative_fixture",
+      "expected_status": "blocked",
+      "expected_final_export_allowed": false,
+      "expected_export_gate_effect": "allow_when_export_contract_complete",
+      "required_qa_check_ids": [
+        "qa_structured_text_fields",
+        "qa_structured_text_missing_phone_block"
+      ],
+      "required_safety_rule_ids": [],
+      "validator": "scripts/validate_workflow_acceptance_contract.py"
+    },
+    {
+      "guard_ref": "false_discount_inventory_certification_claims_blocked",
+      "fixture_id": "fx_text_heavy_structured_details",
+      "evidence_type": "negative_fixture",
+      "expected_status": "blocked",
+      "expected_final_export_allowed": false,
+      "expected_export_gate_effect": "allow_when_export_contract_complete",
+      "required_qa_check_ids": [
+        "qa_structured_text_fields",
+        "qa_structured_text_missing_phone_block"
+      ],
+      "required_safety_rule_ids": [],
+      "validator": "scripts/validate_workflow_acceptance_contract.py"
+    },
+    {
+      "guard_ref": "mobile_crop_and_print_size_must_be_checked",
+      "fixture_id": "fx_local_merchant_campaign_golden",
+      "evidence_type": "qa_result",
+      "expected_status": "blocked",
+      "expected_final_export_allowed": false,
+      "expected_export_gate_effect": "allow_when_export_contract_complete",
+      "required_qa_check_ids": [
+        "qa_dimensions_platform_target",
+        "qa_platform_safe_area"
+      ],
+      "required_safety_rule_ids": [],
+      "validator": "scripts/validate_workflow_acceptance_contract.py"
+    }
+  ],
   "contract_evidence": {
     "eval_result_id": "eval_result_stage0_rev2_starter_contract",
     "eval_suite_id": "eval_stage0_rev2_starter",

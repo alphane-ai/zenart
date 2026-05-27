@@ -18,6 +18,7 @@
     "domain_acceptance_contract",
     "export_targets",
     "negative_fixture_links",
+    "negative_guard_coverage_contract",
     "contract_evidence",
     "api_smoke_contract",
     "playwright_happy_path_contract",
@@ -413,6 +414,80 @@
               "hold_until_admin_review",
               "block_final_export"
             ]
+          }
+        }
+      }
+    },
+    "negative_guard_coverage_contract": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "guard_ref",
+          "fixture_id",
+          "evidence_type",
+          "expected_status",
+          "expected_final_export_allowed",
+          "expected_export_gate_effect",
+          "required_qa_check_ids",
+          "required_safety_rule_ids",
+          "validator"
+        ],
+        "properties": {
+          "guard_ref": {
+            "type": "string",
+            "pattern": "^[a-z0-9_]+$"
+          },
+          "fixture_id": {
+            "type": "string",
+            "pattern": "^fx_[a-z0-9_]+$"
+          },
+          "evidence_type": {
+            "enum": [
+              "negative_fixture",
+              "qa_result",
+              "safety_decision"
+            ]
+          },
+          "expected_status": {
+            "enum": [
+              "pass",
+              "blocked",
+              "fail"
+            ]
+          },
+          "expected_final_export_allowed": {
+            "type": "boolean"
+          },
+          "expected_export_gate_effect": {
+            "enum": [
+              "allow_when_export_contract_complete",
+              "allow_with_warning",
+              "hold_until_user_confirmation",
+              "hold_until_admin_review",
+              "block_final_export"
+            ]
+          },
+          "required_qa_check_ids": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^qa_[a-z0-9_]+$"
+            }
+          },
+          "required_safety_rule_ids": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^safety_[a-z0-9_]+$"
+            }
+          },
+          "validator": {
+            "const": "scripts/validate_workflow_acceptance_contract.py"
           }
         }
       }

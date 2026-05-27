@@ -186,6 +186,34 @@
       "expected_export_gate_effect": "hold_until_admin_review"
     }
   ],
+  "negative_guard_coverage_contract": [
+    {
+      "guard_ref": "missing_product_or_claim_constraints_blocks_generation",
+      "fixture_id": "fx_ambiguous_brief_missing_product",
+      "evidence_type": "negative_fixture",
+      "expected_status": "blocked",
+      "expected_final_export_allowed": false,
+      "expected_export_gate_effect": "allow_when_export_contract_complete",
+      "required_qa_check_ids": [],
+      "required_safety_rule_ids": [],
+      "validator": "scripts/validate_workflow_acceptance_contract.py"
+    },
+    {
+      "guard_ref": "brand_product_preservation_blocks_unauthorized_changes",
+      "fixture_id": "fx_brand_product_preservation",
+      "evidence_type": "negative_fixture",
+      "expected_status": "blocked",
+      "expected_final_export_allowed": false,
+      "expected_export_gate_effect": "hold_until_admin_review",
+      "required_qa_check_ids": [
+        "qa_product_logo_preservation"
+      ],
+      "required_safety_rule_ids": [
+        "safety_ip_brand_similarity"
+      ],
+      "validator": "scripts/validate_workflow_acceptance_contract.py"
+    }
+  ],
   "contract_evidence": {
     "eval_result_id": "eval_result_stage0_rev2_starter_contract",
     "eval_suite_id": "eval_stage0_rev2_starter",
