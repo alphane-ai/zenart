@@ -70,6 +70,14 @@ PRODUCTION_BACKUP_ROLLBACK_INCIDENT_ADMIN_CHECKLIST_ITEM = (
     "`status=blocked_by_upstream_gates`, proves backup、rollback、incident、post-deploy smoke probes, "
     "and cannot close production backup/rollback launch readiness until upstream CI/Staging gates and exact split files pass。"
 )
+PRODUCTION_BACKUP_ROLLBACK_SPLIT_PREFLIGHT_CHECKLIST_ITEM = (
+    "Production backup/rollback split preflight blocked evidence recorded but launch blocker preserved: "
+    "`ops/evidence/production/backup-rollback-split.blocked.json` has `status=blocked_by_upstream_gates`, "
+    "records exact missing split files `ops/evidence/production/backup-restore.json` and "
+    "`ops/evidence/production/rollback-incident-post-deploy-smoke.json`, requires CI and Private Beta/Staging "
+    "gate fixtures to compute `go`, and cannot close production backup/rollback, post-deploy, aggregate "
+    "Production, or Do-Not-Launch readiness。"
+)
 PRODUCTION_POST_DEPLOY_LAUNCH_CLEARING_CHECKLIST_ITEM = (
     "Production post-deploy launch-clearing smoke evidence 通过：exact production split evidence exists at "
     "`ops/evidence/production/rollback-incident-post-deploy-smoke.json`, cites passing CI and Private Beta/Staging "
@@ -2636,6 +2644,7 @@ CHECKED_ITEMS = {
     "定义 release gate evidence schema/fixtures 和 no-go release notes renderer。",
     "定义 post-deploy smoke evidence contract。",
     PRODUCTION_BACKUP_ROLLBACK_INCIDENT_ADMIN_CHECKLIST_ITEM,
+    PRODUCTION_BACKUP_ROLLBACK_SPLIT_PREFLIGHT_CHECKLIST_ITEM,
     README_LAUNCH_READINESS_CHECKLIST_ITEM,
     "Backfill Local Alpha release gate fixture evidence: workflow/eval/crawler/schema/service/runtime-stack checks pass in `fixtures/stage0/rev2/release_gate_evidence.local_alpha.json`。",
     "Backfill CI draft/no-go evidence: ops CI draft coverage passes while installed `.github/workflows` runtime remains blocked in `fixtures/stage0/rev2/release_gate_evidence.ci.json`。",
@@ -9487,6 +9496,18 @@ def validate_production_backup_rollback_incident_admin_evidence() -> None:
 
 def validate_production_backup_rollback_split_preflight_evidence() -> None:
     evidence = load_json(PRODUCTION_BACKUP_ROLLBACK_SPLIT_PREFLIGHT_EVIDENCE)
+    blueprint_text = BLUEPRINT.read_text(encoding="utf-8")
+    require(
+        PRODUCTION_BACKUP_ROLLBACK_SPLIT_PREFLIGHT_CHECKLIST_ITEM in checked_items(blueprint_text),
+        "blueprint must expose the production backup/rollback split preflight as a checked non-closure row",
+    )
+    require(
+        "Production backup/rollback split preflight evidence at `ops/evidence/production/backup-rollback-split.blocked.json`"
+        in blueprint_text
+        and "cannot close `Production backup/restore runtime evidence 通过...`" in blueprint_text
+        and "aggregate Production/Do-Not-Launch readiness" in blueprint_text,
+        "blueprint must document that production split preflight evidence cannot close production launch readiness",
+    )
     require(
         evidence["schema_version"] == "stage0.rev2.production.backup_rollback_split_preflight",
         "production backup/rollback split preflight schema mismatch",
@@ -9514,8 +9535,20 @@ def validate_production_backup_rollback_split_preflight_evidence() -> None:
         "production backup/rollback split preflight must preserve backup, deploy-smoke, and upstream blockers",
     )
     require(
+        set(evidence["blocked_checks"])
+        == {
+            "release_sha_missing_or_not_full_sha",
+            "ci_gate_not_go",
+            "private_beta_staging_gate_not_go",
+            "production_backup_restore_split_not_passed",
+            "production_rollback_incident_post_deploy_split_not_passed",
+        },
+        "production backup/rollback split preflight must keep release SHA, upstream, and exact split blockers visible",
+    )
+    require(
         PRODUCTION_BACKUP_ROLLBACK_INCIDENT_ADMIN_EVIDENCE.exists()
         and evidence["admin_visible_probe"]["path"] == rel(PRODUCTION_BACKUP_ROLLBACK_INCIDENT_ADMIN_EVIDENCE)
+        and evidence["admin_visible_probe"]["ready"] is True
         and evidence["admin_visible_probe"]["required_status"] == "blocked_by_upstream_gates",
         "production backup/rollback split preflight must point at the explicit admin-visible blocked probe",
     )
@@ -9539,6 +9572,14 @@ def validate_production_backup_rollback_split_preflight_evidence() -> None:
         "production backup/rollback split preflight must preserve matching Do-Not-Launch blockers",
     )
     require(
+        gate_impact["check_level_items"]
+        == [
+            "Production backup/restore runtime evidence 通过：production evidence proves backup schedule, Postgres restore, object restore, RPO/RTO, and audit refs under `ops/evidence/production/`。",
+            "Production rollback/incident/post-deploy smoke runtime evidence 通过：production evidence proves rollback drill, incident/alert path, migration compatibility, and post-deploy smoke under `ops/evidence/production/`。",
+        ],
+        "production backup/rollback split preflight must name only the concrete open backup and rollback split rows",
+    )
+    require(
         evidence["split_evidence"]["all_exact_split_files_ready"] is False,
         "production backup/rollback split preflight must not claim all exact split files are ready",
     )
@@ -9556,12 +9597,42 @@ def validate_production_backup_rollback_split_preflight_evidence() -> None:
             repo_path(path).exists() is False,
             f"production split preflight says {path} is missing but the file exists",
         )
+        runtime_requirement = evidence["runtime_input_requirements"]["required_split_evidence"][split_id]
+        require(
+            runtime_requirement["path"] == path,
+            f"production split preflight runtime input {split_id} path mismatch",
+        )
+        require(
+            runtime_requirement["must_prove"] and all(isinstance(item, str) and item for item in runtime_requirement["must_prove"]),
+            f"production split preflight runtime input {split_id} must list concrete proof requirements",
+        )
     upstream = evidence["upstream_gates"]
     require(upstream["ci_and_private_beta_ready"] is False, "production split preflight must keep upstream gates blocked")
     require(
         upstream["ci"]["gate_decision_status"] == "no_go"
         and upstream["private_beta_staging"]["gate_decision_status"] == "no_go",
         "production split preflight must require CI and Private Beta/Staging fixture decisions to be no_go",
+    )
+    for upstream_id, fixture in [
+        ("ci", RELEASE_GATE_EVIDENCE_FILES["ci"]),
+        ("private_beta_staging", RELEASE_GATE_EVIDENCE_FILES["private_beta_staging"]),
+    ]:
+        upstream_gate = upstream[upstream_id]
+        require(upstream_gate["path"] == rel(fixture), f"production split preflight {upstream_id} path mismatch")
+        require(upstream_gate["exists"] is True, f"production split preflight {upstream_id} fixture must exist")
+        require(upstream_gate["ready"] is False, f"production split preflight {upstream_id} must not be ready")
+        expected_fixture = load_json(fixture)
+        require(
+            upstream_gate["gate_decision_status"] == expected_fixture["gate_decision"]["status"],
+            f"production split preflight {upstream_id} gate status must mirror fixture decision",
+        )
+    require(
+        evidence["runtime_input_requirements"]["required_upstream_gates"]
+        == [
+            "fixtures/stage0/rev2/release_gate_evidence.ci.json gate_decision.status=go",
+            "fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json gate_decision.status=go",
+        ],
+        "production split preflight must require exact CI and Private Beta/Staging gate-decision status strings",
     )
 
 
