@@ -1532,6 +1532,7 @@ cat >"$object_retention_canonical_report" <<EOF
   },
   "audit_linkage": {
     "verified": true,
+    "semantic_verified": true,
     "cleanup_audit_refs_by_probe": {
       "expired_export_cleanup": ["au-007"],
       "orphan_cleanup": ["au-015"]
@@ -1545,6 +1546,12 @@ cat >"$object_retention_canonical_report" <<EOF
       "expired_export_cleanup": [],
       "orphan_cleanup": []
     },
+    "audit_endpoint_semantic_cleanup_refs": ["au-007", "au-015"],
+    "audit_endpoint_semantic_cleanup_refs_by_probe": {
+      "expired_export_cleanup": ["au-007"],
+      "orphan_cleanup": ["au-015"]
+    },
+    "audit_endpoint_semantic_missing_cleanup_refs": [],
     "audit_endpoint_refs": ["au-007", "au-015"],
     "missing_cleanup_audit_refs": []
   }
@@ -1667,6 +1674,67 @@ if report.get("object_retention_cleanup_verified") is not False:
 audit_linkage = probe.get("audit_linkage", {})
 if audit_linkage.get("verified") is not False or audit_linkage.get("cleanup_audit_refs") != []:
     raise SystemExit(f"spoofed release bundle must surface failed audit linkage: {audit_linkage}")
+PY
+object_retention_spoof_semantic_report="$object_retention_spoof_dir/object-storage-retention-cleanup.semantic-spoof.json"
+object_retention_spoof_semantic_results="$object_retention_spoof_dir/object-storage-retention-cleanup.semantic-spoof.ndjson"
+cp "$object_retention_canonical_report" "$object_retention_spoof_semantic_report"
+cp "$object_retention_canonical_results" "$object_retention_spoof_semantic_results"
+python3 - "$object_retention_spoof_semantic_report" "$object_retention_spoof_semantic_results" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+report_path = Path(sys.argv[1])
+results_path = Path(sys.argv[2])
+report = json.loads(report_path.read_text(encoding="utf-8"))
+report["results_path"] = str(results_path)
+report["audit_linkage"]["semantic_verified"] = False
+report["audit_linkage"]["audit_endpoint_semantic_cleanup_refs"] = []
+report["audit_linkage"]["audit_endpoint_semantic_cleanup_refs_by_probe"] = {
+    "expired_export_cleanup": [],
+    "orphan_cleanup": [],
+}
+report["audit_linkage"]["audit_endpoint_semantic_missing_cleanup_refs"] = ["au-007", "au-015"]
+report_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+PY
+set +e
+DRY_RUN=1 \
+  OUT_DIR="$object_retention_spoof_dir/release-bundle-semantic-spoof" \
+  CANONICAL_OBJECT_RETENTION_REPORT_PATH="$object_retention_spoof_semantic_report" \
+  scripts/release_evidence_bundle_smoke.sh >/dev/null
+release_bundle_spoof_semantic_status=$?
+set -e
+if [[ "$release_bundle_spoof_semantic_status" -ne 2 ]]; then
+  printf 'release evidence bundle semantic audit spoof must exit 2, got %s\n' "$release_bundle_spoof_semantic_status" >&2
+  exit 1
+fi
+python3 - "$object_retention_spoof_dir/release-bundle-semantic-spoof" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+reports = [
+    path
+    for path in sorted(Path(sys.argv[1]).glob("*.json"))
+    if json.loads(path.read_text(encoding="utf-8")).get("kind") == "release_evidence_bundle"
+]
+if len(reports) != 1:
+    raise SystemExit("semantic spoof release bundle must write exactly one report")
+report = json.loads(reports[0].read_text(encoding="utf-8"))
+probe = report.get("canonical_object_retention_cleanup_probe", {})
+missing = set(probe.get("missing_requirements", []))
+if probe.get("passed") is not False:
+    raise SystemExit("release bundle must reject canonical retention cleanup without semantic audit linkage")
+for expected in (
+    "audit_linkage_semantic_verified",
+    "no_audit_endpoint_semantic_missing_cleanup_refs",
+    "audit_endpoint_semantic_cleanup_refs_by_probe:expired_export_cleanup",
+    "audit_endpoint_semantic_cleanup_refs_by_probe:orphan_cleanup",
+):
+    if expected not in missing:
+        raise SystemExit(f"semantic spoof missing requirement {expected}: {probe}")
+if report.get("object_retention_cleanup_verified") is not False:
+    raise SystemExit("semantic spoof must not verify object-retention cleanup")
 PY
 object_retention_spoof_missing_request_report="$object_retention_spoof_dir/object-storage-retention-cleanup.missing-request-id.json"
 object_retention_spoof_missing_request_results="$object_retention_spoof_dir/object-storage-retention-cleanup.missing-request-id.ndjson"
