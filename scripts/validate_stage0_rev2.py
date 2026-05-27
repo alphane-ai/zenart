@@ -403,6 +403,24 @@ BLOCKED_GATE_EVIDENCE_TERMS = {
     "workflow scope",
 }
 
+NO_GO_FALSE_READY_TERMS = (
+    "launch-ready",
+    "launch ready",
+    "ready for production",
+    "production ready",
+    "ready to launch",
+    "cleared for launch",
+    "cleared launch",
+    "go for production",
+    "safe to launch",
+    "global launch clear",
+    "可以上线",
+    "上线就绪",
+    "生产就绪",
+    "准许上线",
+    "发布就绪",
+)
+
 SPLIT_EVIDENCE_PRESENT_TERMS = (
     "passed",
     "present",
@@ -3232,6 +3250,20 @@ def require_release_gate_evidence_ref_allowed_paths(
     )
 
 
+def require_no_false_launch_ready_terms(evidence_ref: str, context: str) -> None:
+    evidence_ref_lower = evidence_ref.lower()
+    matched_terms = [
+        term
+        for term in NO_GO_FALSE_READY_TERMS
+        if term.lower() in evidence_ref_lower
+    ]
+    require(
+        not matched_terms,
+        f"{context} contains false launch-readiness term(s) while preserving a no-go/blocker state: "
+        + json.dumps(matched_terms, ensure_ascii=False),
+    )
+
+
 def rel(path: Path) -> str:
     return str(path.relative_to(ROOT))
 
@@ -4818,6 +4850,10 @@ def validate_gate_decision(data: dict[str, Any]) -> None:
         f"{gate} gate_decision evidence must name the aggregate runtime checklist item: {aggregate_item}",
     )
     if expected_status == "no_go":
+        require_no_false_launch_ready_terms(
+            evidence_ref,
+            f"{gate} gate_decision no-go evidence",
+        )
         require(
             "no-go" in evidence_ref.lower() or "no_go" in evidence_ref.lower() or "blocked" in evidence_ref.lower(),
             f"{gate} gate_decision no-go evidence must explicitly state the blocked launch decision",
@@ -4978,6 +5014,10 @@ def validate_release_gate_basics(data: dict[str, Any]) -> tuple[dict[str, dict[s
         )
         if check["status"] in {"fail", "blocked"}:
             evidence_ref_lower = check["evidence_ref"].lower()
+            require_no_false_launch_ready_terms(
+                check["evidence_ref"],
+                f"{gate}.{check_id} {check['status']} evidence",
+            )
             require(
                 any(token in evidence_ref_lower for token in BLOCKED_RUNTIME_EVIDENCE_TERMS),
                 f"{gate}.{check_id} is {check['status']} but evidence_ref does not explain the blocker",
@@ -5032,6 +5072,10 @@ def validate_release_gate_basics(data: dict[str, Any]) -> tuple[dict[str, dict[s
             ref_id=condition_id,
         )
         if condition["is_present"]:
+            require_no_false_launch_ready_terms(
+                condition["evidence_ref"],
+                f"{gate}.{condition_id} active Do-Not-Launch evidence",
+            )
             require(
                 any(
                     token in condition["evidence_ref"].lower()
