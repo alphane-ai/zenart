@@ -61,7 +61,7 @@ STAGING_OBSERVABILITY_BACKUP_LOAD_PREFLIGHT_EVIDENCE = (
     / "ops"
     / "evidence"
     / "staging"
-    / "20260527T005809Z-staging-observability-backup-load-20904.json"
+    / "20260527T010604Z-staging-observability-backup-load-46430.json"
 )
 STAGING_QUOTA_RATE_LIMIT_SPEND_CAP_EVIDENCE = (
     ROOT / "ops" / "evidence" / "staging" / "20260527T2015Z-quota-rate-limit-spend-cap.json"
@@ -2000,6 +2000,13 @@ def require_staging_observability_backup_load_pass_evidence(evidence_ref: str) -
             "worker_task",
         },
     }
+    required_summary_entries = {
+        "verified_observability_entries": required_slots["observability_evidence"],
+        "verified_postgres_restore_entries": {"postgres_restore"},
+        "verified_object_restore_entries": {"object_restore"},
+        "verified_load_entries": required_slots["load_evidence"],
+        "verified_post_deploy_smoke_entries": required_slots["post_deploy_smoke_evidence"],
+    }
     for path, evidence in passed_reports:
         require(
             evidence.get("environment") == "staging",
@@ -2017,6 +2024,15 @@ def require_staging_observability_backup_load_pass_evidence(evidence_ref: str) -
             not evidence.get("blocked_slots"),
             f"{path} must not contain blocked_slots when status=passed",
         )
+        require(evidence.get("overall_verified") is True, f"{path} must set overall_verified=true")
+        require(not evidence.get("missing_blockers"), f"{path} must not preserve missing blockers")
+        for field, required_entries in required_summary_entries.items():
+            actual_entries = set(evidence.get(field, []))
+            require(
+                actual_entries == required_entries,
+                f"{path} {field} must exactly match required entries: "
+                + json.dumps(sorted(required_entries), ensure_ascii=False),
+            )
         gate_impact = evidence.get("gate_impact")
         require(isinstance(gate_impact, dict), f"{path} must include gate_impact")
         require(
@@ -4646,6 +4662,39 @@ def validate_staging_observability_backup_load_preflight_evidence() -> None:
         "observability_evidence" not in evidence["blocked_slots"],
         "preflight evidence must not re-block validated observability",
     )
+    require(
+        evidence["verified_observability_entries"]
+        == [
+            "alert_routes",
+            "backend_worker_crawler_metrics",
+            "dashboard_import",
+            "opentelemetry_traces",
+            "request_id_propagation",
+            "structured_json_logs",
+        ],
+        "preflight evidence must summarize verified observability entries",
+    )
+    require(
+        evidence["verified_postgres_restore_entries"] == [],
+        "preflight evidence must not summarize unverified Postgres restore entries",
+    )
+    require(
+        evidence["verified_object_restore_entries"] == [],
+        "preflight evidence must not summarize unverified object restore entries",
+    )
+    require(
+        evidence["verified_load_entries"] == [],
+        "preflight evidence must not summarize unverified load entries",
+    )
+    require(
+        evidence["verified_post_deploy_smoke_entries"] == [],
+        "preflight evidence must not summarize unverified post-deploy smoke entries",
+    )
+    require(
+        evidence["missing_blockers"] == ["staging_observability_restore_load_missing"],
+        "preflight evidence must preserve the staging observability restore/load blocker",
+    )
+    require(evidence["overall_verified"] is False, "blocked preflight evidence must set overall_verified=false")
     for prefix in [
         "unverified_backup_restore_evidence:not_local_file:missing",
         "unverified_load_evidence:not_local_file:missing",

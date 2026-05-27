@@ -348,6 +348,18 @@ for check in checks:
         continue
     blocking_reasons.append(f"unverified_{check['slot']}:{check.get('reason', 'unknown')}")
 
+
+def verified_entries(slot):
+    check = next((item for item in checks if item["slot"] == slot), None)
+    if not check or check["verified"] is not True:
+        return []
+    return sorted(check.get("required_entries", []))
+
+
+missing_blockers = []
+if blocked_slots:
+    missing_blockers.append("staging_observability_restore_load_missing")
+
 report = {
     "blueprint_source": "Docs/stage0_blueprint_rev2.md",
     "created_by_lane": "lane5",
@@ -364,6 +376,21 @@ report = {
     "checks": checks,
     "blocked_slots": blocked_slots,
     "blocking_reasons": blocking_reasons,
+    "verified_observability_entries": verified_entries("observability_evidence"),
+    "verified_postgres_restore_entries": [
+        entry
+        for entry in verified_entries("backup_restore_evidence")
+        if entry == "postgres_restore"
+    ],
+    "verified_object_restore_entries": [
+        entry
+        for entry in verified_entries("backup_restore_evidence")
+        if entry == "object_restore"
+    ],
+    "verified_load_entries": verified_entries("load_evidence"),
+    "verified_post_deploy_smoke_entries": verified_entries("post_deploy_smoke_evidence"),
+    "missing_blockers": missing_blockers,
+    "overall_verified": status == "passed",
     "private_beta_check_id": "staging_observability_backup_load",
     "gate_impact": {
         "aggregate_checklist_item": "Private Beta/Staging observability/backup/load runtime evidence 通过。",

@@ -549,6 +549,20 @@ expected_slots = {
 }
 if set(report.get("blocked_slots", [])) != expected_slots:
     raise SystemExit(f"preflight missing-evidence blocked slots mismatch: {report.get('blocked_slots')}")
+if report.get("verified_observability_entries") != []:
+    raise SystemExit("missing-evidence preflight must not summarize verified observability entries")
+for field in (
+    "verified_postgres_restore_entries",
+    "verified_object_restore_entries",
+    "verified_load_entries",
+    "verified_post_deploy_smoke_entries",
+):
+    if report.get(field) != []:
+        raise SystemExit(f"missing-evidence preflight must leave {field} empty")
+if report.get("missing_blockers") != ["staging_observability_restore_load_missing"]:
+    raise SystemExit("missing-evidence preflight must preserve staging_observability_restore_load_missing")
+if report.get("overall_verified") is not False:
+    raise SystemExit("missing-evidence preflight must set overall_verified=false")
 checks = {check["slot"]: check for check in report.get("checks", [])}
 if set(checks) != expected_slots:
     raise SystemExit(f"preflight checks missing required slots: {checks}")
@@ -598,6 +612,28 @@ if report.get("status") != "blocked":
     raise SystemExit("observability-only preflight must remain blocked")
 if set(report.get("blocked_slots", [])) != {"backup_restore_evidence", "load_evidence", "post_deploy_smoke_evidence"}:
     raise SystemExit(f"observability-only preflight should block restore/load/post-deploy slots: {report.get('blocked_slots')}")
+expected_observability_entries = [
+    "alert_routes",
+    "backend_worker_crawler_metrics",
+    "dashboard_import",
+    "opentelemetry_traces",
+    "request_id_propagation",
+    "structured_json_logs",
+]
+if report.get("verified_observability_entries") != expected_observability_entries:
+    raise SystemExit("observability-only preflight must summarize verified observability entries")
+for field in (
+    "verified_postgres_restore_entries",
+    "verified_object_restore_entries",
+    "verified_load_entries",
+    "verified_post_deploy_smoke_entries",
+):
+    if report.get(field) != []:
+        raise SystemExit(f"observability-only preflight must leave {field} empty")
+if report.get("missing_blockers") != ["staging_observability_restore_load_missing"]:
+    raise SystemExit("observability-only preflight must preserve staging_observability_restore_load_missing")
+if report.get("overall_verified") is not False:
+    raise SystemExit("observability-only preflight must set overall_verified=false")
 checks = {check["slot"]: check for check in report.get("checks", [])}
 if checks["observability_evidence"].get("verified") is not True:
     raise SystemExit(f"staging observability evidence should verify: {checks['observability_evidence']}")
@@ -730,6 +766,46 @@ if report.get("release_sha") != expected_sha:
     raise SystemExit("passing preflight must preserve release SHA")
 if report.get("blocked_slots"):
     raise SystemExit(f"passing preflight must not have blocked slots: {report.get('blocked_slots')}")
+expected_summary_entries = {
+    "verified_observability_entries": [
+        "alert_routes",
+        "backend_worker_crawler_metrics",
+        "dashboard_import",
+        "opentelemetry_traces",
+        "request_id_propagation",
+        "structured_json_logs",
+    ],
+    "verified_postgres_restore_entries": ["postgres_restore"],
+    "verified_object_restore_entries": ["object_restore"],
+    "verified_load_entries": [
+        "chat_task",
+        "crawler_throttle",
+        "quota_contention",
+        "signed_download",
+        "worker_generation",
+        "workspace_rendering",
+        "zip_export",
+    ],
+    "verified_post_deploy_smoke_entries": [
+        "admin",
+        "auth_boundary",
+        "backend_health",
+        "crawler_admin",
+        "export_package",
+        "observability",
+        "quota_rate_limit",
+        "signed_download",
+        "web",
+        "worker_task",
+    ],
+}
+for field, expected in expected_summary_entries.items():
+    if report.get(field) != expected:
+        raise SystemExit(f"passing preflight {field} mismatch: {report.get(field)}")
+if report.get("missing_blockers") != []:
+    raise SystemExit("passing preflight must not preserve missing blockers")
+if report.get("overall_verified") is not True:
+    raise SystemExit("passing preflight must set overall_verified=true")
 for check in report.get("checks", []):
     if check.get("verified") is not True:
         raise SystemExit(f"passing preflight must verify every check: {check}")
