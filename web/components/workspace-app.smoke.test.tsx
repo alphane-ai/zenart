@@ -545,6 +545,10 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(metadataEvidence).toHaveAttribute("data-package-export-ppt-theme-font", "Inter, Arial, sans-serif");
     expect(metadataEvidence).toHaveAttribute("data-package-export-ppt-handoff-checklist-count", "5");
     expect(metadataEvidence).toHaveAttribute("data-package-export-required-zip-payload-count", "7");
+    expect(metadataEvidence).toHaveAttribute(
+      "data-package-export-zip-payload-contract-digest",
+      "export-001::pkg-002::project-001::ecommerce_growth_pack::fx_ecommerce_growth_golden::ai-content-disclaimer.json|assets/README.txt|assets/hero_product_ad.png|assets/marketplace_banner.png|assets/square_social_ad.png|assets/story_variant.png|manifest.json|metadata.json|ppt-ready-metadata.json|provenance.json|qa-report.json|qa_report.json|safety-policy-report.json|trace_provenance.json"
+    );
     expect(metadataEvidence).toHaveAttribute("data-package-export-zip-payload-parity-status", "pass");
     expect(metadataEvidence).toHaveAttribute("data-package-export-zip-payload-parity-ratio", "7/7");
     expect(metadataEvidence).toHaveAttribute("data-package-export-cross-payload-identity-status", "pass");
@@ -626,6 +630,10 @@ describe("WorkspaceApp user route integration smoke", () => {
       "data-export-zip-payload-expected-payloads",
       "manifest.json,qa-report.json,safety-policy-report.json,provenance.json,ai-content-disclaimer.json,ppt-ready-metadata.json,assets/README.txt,assets/hero_product_ad.png,assets/square_social_ad.png,assets/story_variant.png,assets/marketplace_banner.png,metadata.json,qa_report.json,trace_provenance.json"
     );
+    expect(zipPayloadSmoke).toHaveAttribute(
+      "data-export-zip-payload-contract-digest",
+      "export-001::pkg-002::project-001::ecommerce_growth_pack::fx_ecommerce_growth_golden::ai-content-disclaimer.json|assets/README.txt|assets/hero_product_ad.png|assets/marketplace_banner.png|assets/square_social_ad.png|assets/story_variant.png|manifest.json|metadata.json|ppt-ready-metadata.json|provenance.json|qa-report.json|qa_report.json|safety-policy-report.json|trace_provenance.json"
+    );
     expect(zipPayloadSmoke?.getAttribute("data-export-zip-payload-baseline-payloads")).toContain("manifest.json");
     expect(zipPayloadSmoke?.getAttribute("data-export-zip-payload-baseline-payloads")).toContain("ai-content-disclaimer.json");
     expect(zipPayloadSmoke?.getAttribute("data-export-zip-payload-baseline-payloads")).toContain("assets/README.txt");
@@ -651,6 +659,11 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(downloadParity).toHaveAttribute("data-export-download-parity-zip-missing-count", "0");
     expect(downloadParity).toHaveAttribute("data-export-download-parity-required-zip-status", "pass");
     expect(downloadParity).toHaveAttribute("data-export-download-parity-payloads-match", "true");
+    expect(downloadParity).toHaveAttribute(
+      "data-export-download-parity-payload-contract-digest",
+      "export-001::pkg-002::project-001::ecommerce_growth_pack::fx_ecommerce_growth_golden::ai-content-disclaimer.json|assets/README.txt|assets/hero_product_ad.png|assets/marketplace_banner.png|assets/square_social_ad.png|assets/story_variant.png|manifest.json|metadata.json|ppt-ready-metadata.json|provenance.json|qa-report.json|qa_report.json|safety-policy-report.json|trace_provenance.json"
+    );
+    expect(downloadParity).toHaveAttribute("data-export-download-parity-payload-digest-match", "true");
     expect(downloadParity).toHaveAttribute("data-export-download-parity-workflow-metadata-present", "true");
     expect(downloadParity).toHaveAttribute("data-export-download-parity-trace-provenance-present", "true");
     expect(downloadParity).toHaveAttribute("data-export-download-parity-failures", "");
@@ -668,6 +681,10 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(downloadHandoff).toHaveAttribute("data-export-download-manifest-output-count", "14");
     expect(downloadHandoff).toHaveAttribute("data-export-download-zip-payload-status", "pass");
     expect(downloadHandoff).toHaveAttribute("data-export-download-missing-payload-count", "0");
+    expect(downloadHandoff).toHaveAttribute(
+      "data-export-download-payload-contract-digest",
+      "export-001::pkg-002::project-001::ecommerce_growth_pack::fx_ecommerce_growth_golden::ai-content-disclaimer.json|assets/README.txt|assets/hero_product_ad.png|assets/marketplace_banner.png|assets/square_social_ad.png|assets/story_variant.png|manifest.json|metadata.json|ppt-ready-metadata.json|provenance.json|qa-report.json|qa_report.json|safety-policy-report.json|trace_provenance.json"
+    );
     expect(downloadHandoff).toHaveAttribute("data-export-download-metadata-status", "pass");
     expect(downloadHandoff).toHaveAttribute("data-export-download-artifact-status", "pass");
     expect(downloadHandoff).toHaveAttribute("data-export-download-required-payload-parity", "pass");
@@ -1132,6 +1149,7 @@ describe("WorkspaceApp user route integration smoke", () => {
         "data-package-export-ppt-theme-font",
         "data-package-export-ppt-handoff-checklist-count",
         "data-package-export-zip-payload-count",
+        "data-package-export-zip-payload-contract-digest",
         "data-package-export-required-zip-payload-count",
         "data-package-export-zip-payload-parity-status",
         "data-package-export-zip-payload-parity-ratio",
@@ -1199,6 +1217,8 @@ describe("WorkspaceApp user route integration smoke", () => {
         "data-export-download-parity-metadata-payload-count",
         "data-export-download-parity-zip-expected-count",
         "data-export-download-parity-payloads-match",
+        "data-export-download-parity-payload-contract-digest",
+        "data-export-download-parity-payload-digest-match",
         "data-export-download-parity-failures"
       ])
     });
@@ -1218,6 +1238,7 @@ describe("WorkspaceApp user route integration smoke", () => {
           "data-export-download-manifest-output-count",
           "data-export-download-zip-payload-status",
           "data-export-download-zip-payload-count",
+          "data-export-download-payload-contract-digest",
           "data-export-download-missing-payload-count",
           "data-export-download-metadata-status",
           "data-export-download-artifact-status",

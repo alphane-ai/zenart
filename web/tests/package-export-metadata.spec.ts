@@ -55,6 +55,7 @@ test("export route exposes package metadata, ZIP payload, and download parity br
   await expect(metadataEvidence).toHaveAttribute("data-package-export-required-zip-payload-count", "7");
   await expect(metadataEvidence).toHaveAttribute("data-package-export-zip-payload-parity-status", "pass");
   await expect(metadataEvidence).toHaveAttribute("data-package-export-zip-payload-parity-ratio", "7/7");
+  await expect(metadataEvidence).toHaveAttribute("data-package-export-zip-payload-contract-digest", /export-001::pkg-002::project-001::ecommerce_growth_pack/);
   await expect(metadataEvidence).toHaveAttribute("data-package-export-cross-payload-identity-status", "pass");
   await expect(metadataEvidence).toHaveAttribute("data-package-export-cross-payload-identity-count", "5");
   await expect(metadataEvidence).toHaveAttribute("data-package-export-missing-cross-payload-identity-count", "0");
@@ -145,12 +146,36 @@ test("export route exposes package metadata, ZIP payload, and download parity br
 
   const zip = await JSZip.loadAsync(await readFile(downloadPath!));
   const expectedPayloads = (await zipPayloadSmoke.getAttribute("data-export-zip-payload-expected-payloads"))?.split(",") ?? [];
+  const expectedPayloadContractDigest = [
+    "export-001",
+    "pkg-002",
+    "project-001",
+    "ecommerce_growth_pack",
+    "fx_ecommerce_growth_golden",
+    [...expectedPayloads].sort().join("|")
+  ].join("::");
   expect(expectedPayloads).toHaveLength(14);
+  await expect(zipPayloadSmoke).toHaveAttribute("data-export-zip-payload-contract-digest", expectedPayloadContractDigest);
+  await expect(metadataEvidence).toHaveAttribute("data-package-export-zip-payload-contract-digest", expectedPayloadContractDigest);
+  await expect(downloadParity).toHaveAttribute("data-export-download-parity-payload-contract-digest", expectedPayloadContractDigest);
+  await expect(downloadParity).toHaveAttribute("data-export-download-parity-payload-digest-match", "true");
+  await expect(downloadHandoff).toHaveAttribute("data-export-download-payload-contract-digest", expectedPayloadContractDigest);
   for (const payloadName of expectedPayloads) {
     expect(zip.file(payloadName), `downloaded ZIP payload ${payloadName} should exist`).toBeTruthy();
   }
   const actualPayloads = Object.keys(zip.files).filter((payloadName) => !zip.files[payloadName].dir).sort();
   expect(actualPayloads, "downloaded ZIP must not contain extra top-level contract payloads").toEqual([...expectedPayloads].sort());
+  expect(
+    [
+      "export-001",
+      "pkg-002",
+      "project-001",
+      "ecommerce_growth_pack",
+      "fx_ecommerce_growth_golden",
+      actualPayloads.join("|")
+    ].join("::"),
+    "downloaded ZIP payload contract digest must match UI evidence"
+  ).toBe(expectedPayloadContractDigest);
 
   const manifest = JSON.parse(await zip.file("manifest.json")!.async("string")) as {
     package_id: string;

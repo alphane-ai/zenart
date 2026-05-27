@@ -1412,6 +1412,7 @@ function PackagePanel({
                   data-export-download-manifest-output-count={item.manifest.required_outputs.length}
                   data-export-download-zip-payload-status={zipPayloadSmoke.status}
                   data-export-download-zip-payload-count={zipPayloadSmoke.expectedPayloadCount}
+                  data-export-download-payload-contract-digest={zipPayloadSmoke.payloadContractDigest}
                   data-export-download-missing-payload-count={zipPayloadSmoke.missingPayloadNames.length}
                   data-export-download-metadata-status={metadataEvidence.status}
                   data-export-download-artifact-status={metadataEvidence.downloadArtifactStatus}
@@ -1623,6 +1624,7 @@ function ExportView({
                     data-package-export-ppt-handoff-checklist-count={metadataEvidence.handoffChecklistCount}
                     data-package-export-zip-payload-count={metadataEvidence.zipPayloadCount}
                     data-package-export-zip-payloads={metadataEvidence.zipPayloadNames.join(",")}
+                    data-package-export-zip-payload-contract-digest={metadataEvidence.zipPayloadContractDigest}
                     data-package-export-required-zip-payloads={metadataEvidence.requiredZipPayloadNames.join(",")}
                     data-package-export-required-zip-payload-count={metadataEvidence.requiredZipPayloadCount}
                     data-package-export-zip-payload-parity-status={metadataEvidence.zipPayloadParityStatus}
@@ -1717,6 +1719,7 @@ function ExportView({
                     data-export-zip-payload-expected-count={zipPayloadSmoke.expectedPayloadCount}
                     data-export-zip-payload-baseline-payloads={zipPayloadSmoke.requiredBaselinePayloadNames.join(",")}
                     data-export-zip-payload-expected-payloads={zipPayloadSmoke.expectedPayloadNames.join(",")}
+                    data-export-zip-payload-contract-digest={zipPayloadSmoke.payloadContractDigest}
                     data-export-zip-payload-missing-count={zipPayloadSmoke.missingPayloadNames.length}
                     data-export-zip-payload-missing-payloads={zipPayloadSmoke.missingPayloadNames.join(",")}
                     data-export-zip-payload-workflow-payloads={zipPayloadSmoke.workflowPayloadNames.join(",")}
@@ -1762,6 +1765,8 @@ function ExportView({
                     data-export-download-parity-zip-missing-count={downloadParityEvidence.zipMissingPayloadCount}
                     data-export-download-parity-required-zip-status={downloadParityEvidence.requiredZipPayloadParityStatus}
                     data-export-download-parity-payloads-match={String(downloadParityEvidence.metadataPayloadsMatchZipPayloads)}
+                    data-export-download-parity-payload-contract-digest={downloadParityEvidence.payloadContractDigest}
+                    data-export-download-parity-payload-digest-match={String(downloadParityEvidence.metadataPayloadDigestMatchesZipPayloadDigest)}
                     data-export-download-parity-workflow-metadata-present={String(downloadParityEvidence.workflowMetadataPresent)}
                     data-export-download-parity-trace-provenance-present={String(downloadParityEvidence.traceProvenancePresent)}
                     data-export-download-parity-failures={downloadParityEvidence.failures.join(",")}
@@ -1773,6 +1778,7 @@ function ExportView({
                       </span>
                       <span>{downloadParityEvidence.metadataZipPayloadCount}/{downloadParityEvidence.zipExpectedPayloadCount} payload parity</span>
                       <span>{downloadParityEvidence.metadataMissingZipPayloadCount + downloadParityEvidence.zipMissingPayloadCount} missing payloads</span>
+                      <span>{downloadParityEvidence.metadataPayloadDigestMatchesZipPayloadDigest ? "digest match" : "digest drift"}</span>
                       <span>{downloadParityEvidence.downloadHandoffStatus} browser handoff</span>
                     </div>
                     <p>

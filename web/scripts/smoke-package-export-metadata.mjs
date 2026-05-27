@@ -93,12 +93,16 @@ for (const expectedBrowserSnippet of [
   "downloaded ZIP must not contain extra top-level contract payloads",
   "data-package-export-metadata-status",
   "data-package-export-zip-payload-parity-status",
+  "data-package-export-zip-payload-contract-digest",
   "data-package-export-workflow-metadata-payload-present",
   "data-package-export-workflow-taxonomy-count",
   "data-package-export-workflow-required-file-count",
   "data-export-zip-payload-smoke",
   "data-export-download-parity-payloads-match",
+  "data-export-download-parity-payload-contract-digest",
+  "data-export-download-parity-payload-digest-match",
   "data-export-download-handoff",
+  "data-export-download-payload-contract-digest",
   "download.suggestedFilename()"
 ]) {
   if (!packageExportPlaywrightSpecSource.includes(expectedBrowserSnippet)) {
@@ -213,6 +217,7 @@ if (
   zipPayloadSmoke.expectedTraceProvenancePayloadPresent !== routeZipPayloadEvidence.expectedTraceProvenancePayloadPresent ||
   zipPayloadSmoke.expectedAiContentDisclaimerPayloadPresent !== routeZipPayloadEvidence.expectedAiContentDisclaimerPayloadPresent ||
   zipPayloadSmoke.expectedAssetsPayloadPresent !== routeZipPayloadEvidence.expectedAssetsPayloadPresent ||
+  zipPayloadSmoke.expectedPayloadContractDigest !== routeZipPayloadEvidence.expectedPayloadContractDigest ||
   zipPayloadSmoke.sharedPayloadPlanner !== routeZipPayloadEvidence.sharedPayloadPlanner
 ) {
   fail("ZIP payload smoke artifact drifted from user route smoke evidence");
@@ -221,7 +226,8 @@ if (
 if (
   !Array.isArray(zipPayloadSmoke.expectedPayloadNames) ||
   zipPayloadSmoke.expectedPayloadNames.length !== Number(zipPayloadSmoke.expectedPayloadCount) ||
-  JSON.stringify(zipPayloadSmoke.expectedPayloadNames) !== JSON.stringify(evidence.requiredPayloads)
+  JSON.stringify(zipPayloadSmoke.expectedPayloadNames) !== JSON.stringify(evidence.requiredPayloads) ||
+  zipPayloadSmoke.expectedPayloadContractDigest !== evidence.expectedZipPayloadContractDigest
 ) {
   fail("ZIP payload smoke expected payload names must pin the exact package/export metadata payload contract");
 }
@@ -236,6 +242,8 @@ if (
   downloadParity.expectedDownloadHandoffStatus !== routeDownloadParityEvidence.expectedDownloadHandoffStatus ||
   downloadParity.expectedZipMissingCount !== routeDownloadParityEvidence.expectedMissingPayloadCount ||
   downloadParity.expectedPayloadsMatch !== routeDownloadParityEvidence.expectedPayloadsMatch ||
+  downloadParity.expectedPayloadContractDigest !== routeDownloadParityEvidence.expectedPayloadContractDigest ||
+  downloadParity.expectedPayloadDigestMatch !== routeDownloadParityEvidence.expectedPayloadDigestMatch ||
   downloadParity.expectedWorkflowMetadataPresent !== routeDownloadParityEvidence.expectedWorkflowMetadataPresent ||
   downloadParity.expectedTraceProvenancePresent !== routeDownloadParityEvidence.expectedTraceProvenancePresent
 ) {
@@ -287,6 +295,7 @@ for (const requiredSourceSnippet of [
   "export const requiredExportZipPayloadNames",
   "export const toExportZipPayloadName",
   "export const buildDownloadableExportZipPayloadNames",
+  "export const buildExportZipPayloadContractDigest",
   "export const buildExportWorkflowMetadataPayload",
   "export const buildAiContentDisclaimerPayload",
   "export const ecommerceGrowthWorkflowAcceptance",
@@ -294,6 +303,7 @@ for (const requiredSourceSnippet of [
   "export const buildExportZipPayloadSmokeEvidence",
   "export const buildExportDownloadParityEvidence",
   "metadataPayloadsMatchZipPayloads",
+  "metadataPayloadDigestMatchesZipPayloadDigest",
   "workflowMetadataPayloadPresent",
   "workflowTraceProvenancePayloadPresent",
   "aiContentDisclaimerPayloadPresent",
@@ -317,7 +327,9 @@ for (const requiredContractSnippet of [
   "workflowMetadataPayloadPresent",
   "workflowTraceProvenancePayloadPresent",
   "aiContentDisclaimerPayloadPresent",
-  "metadataPayloadsMatchZipPayloads"
+  "metadataPayloadsMatchZipPayloads",
+  "payloadContractDigest",
+  "metadataPayloadDigestMatchesZipPayloadDigest"
 ]) {
   if (!contractsSource.includes(requiredContractSnippet)) {
     fail(`package/export metadata TypeScript contract missing ${requiredContractSnippet}`);
@@ -353,9 +365,12 @@ for (const requiredTestSnippet of [
   "data-package-export-workflow-fixture-id",
   "data-package-export-workflow-metadata-payload-present",
   "data-package-export-ai-content-disclaimer-payload-present",
+  "data-package-export-zip-payload-contract-digest",
   "data-package-export-payload-row",
   "data-export-zip-payload-smoke-status",
+  "data-export-zip-payload-contract-digest",
   "data-export-download-parity-status",
+  "data-export-download-parity-payload-digest-match",
   "data-export-download-handoff-status"
 ]) {
   if (!workspaceSmokeTestSource.includes(requiredTestSnippet)) {
@@ -387,6 +402,7 @@ const expectedDataAttributeValues = new Map([
   ["data-package-export-ppt-theme-font", evidence.expectedPptThemeFont],
   ["data-package-export-ppt-handoff-checklist-count", evidence.expectedPptHandoffChecklistCount],
   ["data-package-export-required-zip-payload-count", evidence.expectedRequiredZipPayloadCount],
+  ["data-package-export-zip-payload-contract-digest", evidence.expectedZipPayloadContractDigest],
   ["data-package-export-zip-payload-parity-status", evidence.expectedZipPayloadParityStatus],
   ["data-package-export-zip-payload-parity-ratio", evidence.expectedZipPayloadParityRatio],
   ["data-package-export-cross-payload-identity-status", evidence.expectedCrossPayloadIdentityStatus],
@@ -418,6 +434,7 @@ const expectedDataAttributeValues = new Map([
   ["data-export-zip-payload-expected-count", zipPayloadSmoke.expectedPayloadCount],
   ["data-export-zip-payload-missing-count", zipPayloadSmoke.expectedMissingPayloadCount],
   ["data-export-zip-payload-expected-payloads", zipPayloadSmoke.expectedPayloadNames.join(",")],
+  ["data-export-zip-payload-contract-digest", zipPayloadSmoke.expectedPayloadContractDigest],
   ["data-export-zip-payload-metadata-present", zipPayloadSmoke.expectedMetadataPayloadPresent],
   ["data-export-zip-payload-trace-provenance-present", zipPayloadSmoke.expectedTraceProvenancePayloadPresent],
   ["data-export-zip-payload-ai-content-disclaimer-present", zipPayloadSmoke.expectedAiContentDisclaimerPayloadPresent],
@@ -436,12 +453,15 @@ const expectedDataAttributeValues = new Map([
   ["data-export-download-parity-zip-missing-count", downloadParity.expectedZipMissingCount],
   ["data-export-download-parity-required-zip-status", downloadParity.expectedRequiredZipStatus],
   ["data-export-download-parity-payloads-match", downloadParity.expectedPayloadsMatch],
+  ["data-export-download-parity-payload-contract-digest", downloadParity.expectedPayloadContractDigest],
+  ["data-export-download-parity-payload-digest-match", downloadParity.expectedPayloadDigestMatch],
   ["data-export-download-parity-workflow-metadata-present", downloadParity.expectedWorkflowMetadataPresent],
   ["data-export-download-parity-trace-provenance-present", downloadParity.expectedTraceProvenancePresent],
   ["data-export-download-handoff", downloadHandoff.schemaVersion],
   ["data-export-download-handoff-status", downloadHandoff.expectedStatus],
   ["data-export-download-file-name", downloadHandoff.expectedFileName],
-  ["data-export-download-format", downloadHandoff.expectedFormat]
+  ["data-export-download-format", downloadHandoff.expectedFormat],
+  ["data-export-download-payload-contract-digest", downloadHandoff.expectedPayloadContractDigest]
 ]);
 
 for (const [attribute, expectedValue] of expectedDataAttributeValues) {
@@ -479,9 +499,11 @@ if (
   browserContracts.packageExportMetadata?.expectedStatus !== evidence.expectedStatus ||
   browserContracts.packageExportMetadata?.expectedMissingOutputCount !== evidence.expectedMissingOutputCount ||
   browserContracts.packageExportMetadata?.expectedZipPayloadParityStatus !== evidence.expectedZipPayloadParityStatus ||
+  browserContracts.packageExportMetadata?.expectedZipPayloadContractDigest !== evidence.expectedZipPayloadContractDigest ||
   browserContracts.downloadParity?.schemaVersion !== downloadParity.schemaVersion ||
   browserContracts.downloadParity?.expectedStatus !== downloadParity.expectedStatus ||
-  browserContracts.downloadParity?.expectedPayloadsMatch !== downloadParity.expectedPayloadsMatch
+  browserContracts.downloadParity?.expectedPayloadsMatch !== downloadParity.expectedPayloadsMatch ||
+  browserContracts.downloadParity?.expectedPayloadDigestMatch !== downloadParity.expectedPayloadDigestMatch
 ) {
   fail("reference export browser smoke artifact drifted from package/export metadata evidence");
 }

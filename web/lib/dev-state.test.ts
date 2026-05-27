@@ -215,6 +215,8 @@ describe("dev workspace contracts", () => {
         "ppt-ready-metadata.json",
         "assets/README.txt"
       ],
+      zipPayloadContractDigest:
+        "export-001::pkg-002::project-001::generic-stage0-export::none::ai-content-disclaimer.json|assets/README.txt|manifest.json|ppt-ready-metadata.json|provenance.json|qa-report.json|safety-policy-report.json",
       requiredZipPayloadNames: [
         "manifest.json",
         "qa-report.json",
@@ -356,6 +358,8 @@ describe("dev workspace contracts", () => {
         "qa_report.json",
         "trace_provenance.json"
       ],
+      payloadContractDigest:
+        "export-zip-001::pkg-004::project-001::ecommerce_growth_pack::fx_ecommerce_growth_golden::ai-content-disclaimer.json|assets/README.txt|assets/hero_product_ad.png|assets/marketplace_banner.png|assets/square_social_ad.png|assets/story_variant.png|manifest.json|metadata.json|ppt-ready-metadata.json|provenance.json|qa-report.json|qa_report.json|safety-policy-report.json|trace_provenance.json",
       missingPayloadNames: [],
       workflowPayloadNames: [
         "manifest.json",
@@ -417,6 +421,9 @@ describe("dev workspace contracts", () => {
       zipMissingPayloadCount: 0,
       requiredZipPayloadParityStatus: "pass",
       metadataPayloadsMatchZipPayloads: true,
+      payloadContractDigest:
+        "export-parity-001::pkg-004::project-001::ecommerce_growth_pack::fx_ecommerce_growth_golden::ai-content-disclaimer.json|assets/README.txt|assets/hero_product_ad.png|assets/marketplace_banner.png|assets/square_social_ad.png|assets/story_variant.png|manifest.json|metadata.json|ppt-ready-metadata.json|provenance.json|qa-report.json|qa_report.json|safety-policy-report.json|trace_provenance.json",
+      metadataPayloadDigestMatchesZipPayloadDigest: true,
       workflowMetadataPresent: true,
       traceProvenancePresent: true,
       failures: []

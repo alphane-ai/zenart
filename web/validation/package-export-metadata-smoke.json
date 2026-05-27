@@ -22,6 +22,7 @@
       "data-package-export-metadata-ui='stage0.rev2.package-export-metadata-ui'",
       "data-package-export-metadata-status",
       "data-package-export-zip-payload-parity-status",
+      "data-package-export-zip-payload-contract-digest",
       "data-package-export-workflow-metadata-payload-present",
       "data-package-export-workflow-taxonomy-count",
       "data-package-export-workflow-required-file-count",
@@ -30,7 +31,10 @@
       "data-export-zip-payload-smoke",
       "data-export-download-parity-status",
       "data-export-download-parity-payloads-match",
+      "data-export-download-parity-payload-contract-digest",
+      "data-export-download-parity-payload-digest-match",
       "data-export-download-handoff",
+      "data-export-download-payload-contract-digest",
       "download.suggestedFilename()",
       "JSZip.loadAsync",
       "downloaded ZIP payload",
@@ -51,7 +55,8 @@
       "traceProvenance.package_id",
       "safetyReport.enforcementStages.length",
       "workflowMetadata.prompt_spec.join(\",\")",
-      "traceProvenance.workflow_id === workflowMetadata.workflow_id"
+      "traceProvenance.workflow_id === workflowMetadata.workflow_id",
+      "downloaded ZIP payload contract digest must match UI evidence"
     ]
   },
   "evidence": {
@@ -87,6 +92,7 @@
     "expectedRequiredZipPayloadCount": "7",
     "expectedZipPayloadParityStatus": "pass",
     "expectedZipPayloadParityRatio": "7/7",
+    "expectedZipPayloadContractDigest": "export-001::pkg-002::project-001::ecommerce_growth_pack::fx_ecommerce_growth_golden::ai-content-disclaimer.json|assets/README.txt|assets/hero_product_ad.png|assets/marketplace_banner.png|assets/square_social_ad.png|assets/story_variant.png|manifest.json|metadata.json|ppt-ready-metadata.json|provenance.json|qa-report.json|qa_report.json|safety-policy-report.json|trace_provenance.json",
     "expectedCrossPayloadIdentityStatus": "pass",
     "expectedCrossPayloadIdentityCount": "5",
     "expectedMissingCrossPayloadIdentityCount": "0",
@@ -120,6 +126,7 @@
       "data-package-export-ppt-handoff-checklist-count",
       "data-package-export-zip-payload-count",
       "data-package-export-zip-payloads",
+      "data-package-export-zip-payload-contract-digest",
       "data-package-export-required-zip-payloads",
       "data-package-export-required-zip-payload-count",
       "data-package-export-zip-payload-parity-status",
@@ -234,6 +241,7 @@
       "qa_report.json",
       "trace_provenance.json"
     ],
+    "expectedPayloadContractDigest": "export-001::pkg-002::project-001::ecommerce_growth_pack::fx_ecommerce_growth_golden::ai-content-disclaimer.json|assets/README.txt|assets/hero_product_ad.png|assets/marketplace_banner.png|assets/square_social_ad.png|assets/story_variant.png|manifest.json|metadata.json|ppt-ready-metadata.json|provenance.json|qa-report.json|qa_report.json|safety-policy-report.json|trace_provenance.json",
     "expectedMissingPayloadCount": "0",
     "expectedMetadataPayloadPresent": "true",
     "expectedTraceProvenancePayloadPresent": "true",
@@ -257,6 +265,8 @@
     "expectedZipMissingCount": "0",
     "expectedRequiredZipStatus": "pass",
     "expectedPayloadsMatch": "true",
+    "expectedPayloadContractDigest": "export-001::pkg-002::project-001::ecommerce_growth_pack::fx_ecommerce_growth_golden::ai-content-disclaimer.json|assets/README.txt|assets/hero_product_ad.png|assets/marketplace_banner.png|assets/square_social_ad.png|assets/story_variant.png|manifest.json|metadata.json|ppt-ready-metadata.json|provenance.json|qa-report.json|qa_report.json|safety-policy-report.json|trace_provenance.json",
+    "expectedPayloadDigestMatch": "true",
     "expectedWorkflowMetadataPresent": "true",
     "expectedTraceProvenancePresent": "true"
   },
@@ -266,6 +276,7 @@
     "statusAttribute": "data-export-download-handoff-status",
     "expectedStatus": "pass",
     "expectedFileName": "zenart-001.zip",
-    "expectedFormat": "zip"
+    "expectedFormat": "zip",
+    "expectedPayloadContractDigest": "export-001::pkg-002::project-001::ecommerce_growth_pack::fx_ecommerce_growth_golden::ai-content-disclaimer.json|assets/README.txt|assets/hero_product_ad.png|assets/marketplace_banner.png|assets/square_social_ad.png|assets/story_variant.png|manifest.json|metadata.json|ppt-ready-metadata.json|provenance.json|qa-report.json|qa_report.json|safety-policy-report.json|trace_provenance.json"
   }
 }

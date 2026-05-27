@@ -484,6 +484,7 @@ export interface PackageExportMetadataEvidence {
   handoffChecklistCount: number;
   zipPayloadCount: number;
   zipPayloadNames: string[];
+  zipPayloadContractDigest: string;
   requiredZipPayloadNames: string[];
   requiredZipPayloadCount: number;
   requiredZipPayloadStatuses: Array<{
@@ -530,6 +531,7 @@ export interface ExportZipPayloadSmokeEvidence {
   expectedPayloadCount: number;
   requiredBaselinePayloadNames: string[];
   expectedPayloadNames: string[];
+  payloadContractDigest: string;
   missingPayloadNames: string[];
   workflowPayloadNames: string[];
   metadataPayloadPresent: boolean;
@@ -564,6 +566,8 @@ export interface ExportDownloadParityEvidence {
   zipMissingPayloadCount: number;
   requiredZipPayloadParityStatus: PackageExportMetadataEvidence["zipPayloadParityStatus"];
   metadataPayloadsMatchZipPayloads: boolean;
+  payloadContractDigest: string;
+  metadataPayloadDigestMatchesZipPayloadDigest: boolean;
   workflowMetadataPresent: boolean;
   traceProvenancePresent: boolean;
   failures: Array<
@@ -579,6 +583,7 @@ export interface ExportDownloadParityEvidence {
     | "missing-payloads"
     | "required-parity"
     | "payload-list"
+    | "payload-digest"
     | "workflow-metadata"
     | "trace-provenance"
   >;

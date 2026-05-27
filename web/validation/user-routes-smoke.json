@@ -615,6 +615,7 @@
       "expectedPptSafeArea": "72/96/72/96",
       "expectedPptThemeFont": "Inter, Arial, sans-serif",
       "expectedPptHandoffChecklistCount": "5",
+      "expectedZipPayloadContractDigest": "export-001::pkg-002::project-001::ecommerce_growth_pack::fx_ecommerce_growth_golden::ai-content-disclaimer.json|assets/README.txt|assets/hero_product_ad.png|assets/marketplace_banner.png|assets/square_social_ad.png|assets/story_variant.png|manifest.json|metadata.json|ppt-ready-metadata.json|provenance.json|qa-report.json|qa_report.json|safety-policy-report.json|trace_provenance.json",
       "expectedCrossPayloadIdentityStatus": "pass",
       "expectedCrossPayloadIdentityCount": "5",
       "expectedMissingCrossPayloadIdentityCount": "0",
@@ -649,6 +650,7 @@
         "data-package-export-ppt-theme-font",
         "data-package-export-ppt-handoff-checklist-count",
         "data-package-export-zip-payload-count",
+        "data-package-export-zip-payload-contract-digest",
         "data-package-export-required-zip-payload-count",
         "data-package-export-zip-payload-parity-status",
         "data-package-export-zip-payload-parity-ratio",
@@ -715,6 +717,7 @@
       "expectedTraceProvenancePayloadPresent": "true",
       "expectedAiContentDisclaimerPayloadPresent": "true",
       "expectedAssetsPayloadPresent": "true",
+      "expectedPayloadContractDigest": "export-001::pkg-002::project-001::ecommerce_growth_pack::fx_ecommerce_growth_golden::ai-content-disclaimer.json|assets/README.txt|assets/hero_product_ad.png|assets/marketplace_banner.png|assets/square_social_ad.png|assets/story_variant.png|manifest.json|metadata.json|ppt-ready-metadata.json|provenance.json|qa-report.json|qa_report.json|safety-policy-report.json|trace_provenance.json",
       "sharedPayloadPlanner": "buildDownloadableExportZipPayloadNames",
       "requiredAttributes": [
         "data-export-zip-payload-smoke",
@@ -759,6 +762,7 @@
           "data-export-download-manifest-output-count",
           "data-export-download-zip-payload-status",
           "data-export-download-zip-payload-count",
+          "data-export-download-payload-contract-digest",
           "data-export-download-missing-payload-count",
           "data-export-download-metadata-status",
           "data-export-download-artifact-status",
@@ -778,6 +782,8 @@
       "expectedDownloadHandoffStatus": "pass",
       "expectedMissingPayloadCount": "0",
       "expectedPayloadsMatch": "true",
+      "expectedPayloadContractDigest": "export-001::pkg-002::project-001::ecommerce_growth_pack::fx_ecommerce_growth_golden::ai-content-disclaimer.json|assets/README.txt|assets/hero_product_ad.png|assets/marketplace_banner.png|assets/square_social_ad.png|assets/story_variant.png|manifest.json|metadata.json|ppt-ready-metadata.json|provenance.json|qa-report.json|qa_report.json|safety-policy-report.json|trace_provenance.json",
+      "expectedPayloadDigestMatch": "true",
       "expectedWorkflowMetadataPresent": "true",
       "expectedTraceProvenancePresent": "true",
       "requiredAttributes": [
@@ -798,6 +804,8 @@
         "data-export-download-parity-zip-missing-count",
         "data-export-download-parity-required-zip-status",
         "data-export-download-parity-payloads-match",
+        "data-export-download-parity-payload-contract-digest",
+        "data-export-download-parity-payload-digest-match",
         "data-export-download-parity-workflow-metadata-present",
         "data-export-download-parity-trace-provenance-present",
         "data-export-download-parity-failures"
@@ -806,6 +814,7 @@
         "ExportDownloadParityEvidence",
         "buildExportDownloadParityEvidence",
         "metadataPayloadsMatchZipPayloads",
+        "metadataPayloadDigestMatchesZipPayloadDigest",
         "workflowMetadataPresent",
         "traceProvenancePresent"
       ]

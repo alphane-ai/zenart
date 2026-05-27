@@ -62,6 +62,16 @@ export const buildDownloadableExportZipPayloadNames = (record: ExportRecord) =>
     ])
   );
 
+export const buildExportZipPayloadContractDigest = (record: ExportRecord, payloadNames = buildDownloadableExportZipPayloadNames(record)) =>
+  [
+    record.id,
+    record.manifest.package_id,
+    record.manifest.project_id,
+    record.manifest.workflow_acceptance?.workflow_id ?? "generic-stage0-export",
+    record.manifest.workflow_acceptance?.fixture_id ?? "none",
+    [...payloadNames].sort().join("|")
+  ].join("::");
+
 export const buildExportWorkflowMetadataPayload = (record: ExportRecord, outputName: string) => ({
   export_id: record.id,
   package_id: record.manifest.package_id,
@@ -863,6 +873,7 @@ export const buildPackageExportMetadataEvidence = (record: ExportRecord): Packag
     (outputName) => !record.manifest.required_outputs.includes(outputName)
   );
   const zipPayloadNames = buildDownloadableExportZipPayloadNames(record);
+  const zipPayloadContractDigest = buildExportZipPayloadContractDigest(record, zipPayloadNames);
   const workflowMetadataPayload = buildExportWorkflowMetadataPayload(record, "metadata.json");
   const crossPayloadIdentityNames = [
     "manifest.json",
@@ -969,6 +980,7 @@ export const buildPackageExportMetadataEvidence = (record: ExportRecord): Packag
     handoffChecklistCount,
     zipPayloadCount: zipPayloadNames.length,
     zipPayloadNames,
+    zipPayloadContractDigest,
     requiredZipPayloadNames,
     requiredZipPayloadCount: requiredZipPayloadNames.length,
     requiredZipPayloadStatuses,
@@ -1005,6 +1017,7 @@ export const buildExportZipPayloadSmokeEvidence = (record: ExportRecord): Export
     new Set(record.manifest.required_outputs.map(toExportZipPayloadName))
   );
   const expectedPayloadNames = buildDownloadableExportZipPayloadNames(record);
+  const payloadContractDigest = buildExportZipPayloadContractDigest(record, expectedPayloadNames);
   const requiredBaselinePayloadNames = [...requiredExportZipPayloadNames];
   const missingPayloadNames = manifestPayloadNames.filter((payloadName) => !expectedPayloadNames.includes(payloadName));
   const missingBaselinePayloadNames = requiredBaselinePayloadNames.filter(
@@ -1048,6 +1061,7 @@ export const buildExportZipPayloadSmokeEvidence = (record: ExportRecord): Export
     expectedPayloadCount: expectedPayloadNames.length,
     requiredBaselinePayloadNames,
     expectedPayloadNames,
+    payloadContractDigest,
     missingPayloadNames: [...missingBaselinePayloadNames, ...missingPayloadNames],
     workflowPayloadNames,
     metadataPayloadPresent,
@@ -1073,6 +1087,10 @@ export const buildExportDownloadParityEvidence = (
   const metadataPayloadsMatchZipPayloads =
     metadataEvidence.zipPayloadNames.length === zipPayloadSmoke.expectedPayloadNames.length &&
     metadataEvidence.zipPayloadNames.every((payloadName) => zipPayloadSmoke.expectedPayloadNames.includes(payloadName));
+  const payloadContractDigest = buildExportZipPayloadContractDigest(record, zipPayloadSmoke.expectedPayloadNames);
+  const metadataPayloadDigestMatchesZipPayloadDigest =
+    metadataEvidence.zipPayloadContractDigest === zipPayloadSmoke.payloadContractDigest &&
+    metadataEvidence.zipPayloadContractDigest === payloadContractDigest;
   const failures: ExportDownloadParityEvidence["failures"] = [];
 
   if (metadataEvidence.exportId !== zipPayloadSmoke.exportId || metadataEvidence.exportId !== record.id) {
@@ -1111,6 +1129,9 @@ export const buildExportDownloadParityEvidence = (
   if (!metadataPayloadsMatchZipPayloads) {
     failures.push("payload-list");
   }
+  if (!metadataPayloadDigestMatchesZipPayloadDigest) {
+    failures.push("payload-digest");
+  }
   if (!metadataEvidence.workflowMetadataPayloadPresent || !zipPayloadSmoke.metadataPayloadPresent) {
     failures.push("workflow-metadata");
   }
@@ -1136,6 +1157,8 @@ export const buildExportDownloadParityEvidence = (
     zipMissingPayloadCount: zipPayloadSmoke.missingPayloadNames.length,
     requiredZipPayloadParityStatus: metadataEvidence.zipPayloadParityStatus,
     metadataPayloadsMatchZipPayloads,
+    payloadContractDigest,
+    metadataPayloadDigestMatchesZipPayloadDigest,
     workflowMetadataPresent: metadataEvidence.workflowMetadataPayloadPresent && zipPayloadSmoke.metadataPayloadPresent,
     traceProvenancePresent: metadataEvidence.workflowTraceProvenancePayloadPresent && zipPayloadSmoke.traceProvenancePayloadPresent,
     failures
