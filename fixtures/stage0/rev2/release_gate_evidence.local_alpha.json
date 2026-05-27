@@ -36,7 +36,7 @@
     {
       "check_id": "local_alpha_e2e_workflow_smoke",
       "status": "blocked",
-      "evidence_ref": "Local Alpha workflow API/Playwright runtime evidence is absent; requires four workflow smokes against the running web/admin/backend/dev-provider stack"
+      "evidence_ref": "Local Alpha workflow API, Playwright, and export runtime evidence is absent under ops/evidence/local_alpha/ or ops/evidence/local/; requires four workflow smokes against the running web/admin/backend/dev-provider stack"
     }
   ],
   "do_not_launch_checks": [

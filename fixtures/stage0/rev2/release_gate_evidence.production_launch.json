@@ -6,12 +6,12 @@
     {
       "check_id": "production_provider_or_comp_only_mode",
       "status": "blocked",
-      "evidence_ref": "Docs/stage0_blueprint_rev2.md requires real production provider evidence or explicit invite/comp-only launch mode in 23.4"
+      "evidence_ref": "Docs/stage0_blueprint_rev2.md requires ops/evidence/production/ real production provider evidence or explicit invite/comp-only launch mode evidence in 23.4"
     },
     {
       "check_id": "production_paid_billing_lifecycle",
       "status": "blocked",
-      "evidence_ref": "Subscription, mock checkout, paid-provider abstraction, entitlement, quota, spend-cap, admin-credit, provider-usage, and billing policy evidence exists, but paid checkout/webhook/subscription lifecycle runtime evidence is absent"
+      "evidence_ref": "Subscription, mock checkout, paid-provider abstraction, entitlement, quota, spend-cap, admin-credit, provider-usage, and billing policy evidence exists, but ops/evidence/production/ production paid billing checkout/webhook/subscription lifecycle runtime evidence is absent"
     },
     {
       "check_id": "production_skill_release_eval_canary",
@@ -36,12 +36,12 @@
     {
       "check_id": "production_backup_rollback_incident",
       "status": "blocked",
-      "evidence_ref": "ops/release/release_notes_template.md, ops/release/staging_deploy.md, and smoke/drill scripts define the release evidence shape, but production restore, rollback, alert, dashboard, and post-deploy smoke evidence is absent"
+      "evidence_ref": "ops/release/release_notes_template.md, ops/release/staging_deploy.md, and smoke/drill scripts define the release evidence shape, but ops/evidence/production/ production backup restore, rollback, alert, dashboard, incident, and post-deploy smoke evidence is absent"
     },
     {
       "check_id": "production_legal_support_policy",
       "status": "blocked",
-      "evidence_ref": "Terms, Privacy, Acceptable Use, AI/content disclaimer, IP complaint flow, visible support contact, and paid billing policy artifacts exist, but production deployment evidence for policy visibility is absent"
+      "evidence_ref": "Terms, Privacy, Acceptable Use, AI/content disclaimer, IP complaint flow, visible support contact, and paid billing policy artifacts exist, but production deployment evidence for policy visibility is absent under ops/evidence/production/ production legal/support evidence"
     }
   ],
   "do_not_launch_checks": [

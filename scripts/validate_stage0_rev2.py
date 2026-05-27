@@ -520,6 +520,65 @@ RUNTIME_PASS_REQUIREMENTS = {
     },
 }
 
+RUNTIME_BLOCKED_EVIDENCE_REQUIREMENTS = {
+    ("local_alpha", "local_alpha_e2e_workflow_smoke"): {
+        "path_patterns": (r"ops/evidence/(?:local_alpha|local)/",),
+        "tokens": ("workflow", "api", "playwright", "export"),
+    },
+    ("ci", "ci_installed_workflow"): {
+        "path_patterns": (re.escape(CI_WORKFLOW_REL),),
+        "tokens": ("workflow",),
+    },
+    ("ci", "ci_gate_runtime_execution"): {
+        "path_patterns": (r"\.github/workflows/", r"ops/evidence/ci/"),
+        "tokens": ("pr/main", "run"),
+    },
+    ("ci", "ci_playwright_smoke"): {
+        "path_patterns": (r"ops/evidence/ci/",),
+        "tokens": ("playwright",),
+    },
+    ("ci", "ci_docker_image_build"): {
+        "path_patterns": (r"ops/evidence/ci/",),
+        "tokens": ("docker",),
+    },
+    ("private_beta_staging", "staging_object_storage_signed_downloads"): {
+        "path_patterns": (r"ops/evidence/staging/",),
+        "tokens": ("staging", "object storage", "signed", "retention"),
+    },
+    ("private_beta_staging", "staging_quota_rate_limit_spend_cap"): {
+        "path_patterns": (r"ops/evidence/staging/",),
+        "tokens": ("staging", "quota", "rate", "spend"),
+    },
+    ("private_beta_staging", "staging_eval_qa_safety_runtime"): {
+        "path_patterns": (r"ops/evidence/staging/",),
+        "tokens": ("staging", "eval", "qa", "safety"),
+    },
+    ("private_beta_staging", "staging_observability_backup_load"): {
+        "path_patterns": (r"ops/evidence/staging/",),
+        "tokens": ("staging", "restore", "load"),
+    },
+    ("private_beta_staging", "staging_legal_external_user_pages"): {
+        "path_patterns": (r"ops/evidence/staging/",),
+        "tokens": ("staging", "external-user", "legal"),
+    },
+    ("production_launch", "production_provider_or_comp_only_mode"): {
+        "path_patterns": (r"ops/evidence/production/",),
+        "tokens": ("production", "provider", "comp-only"),
+    },
+    ("production_launch", "production_paid_billing_lifecycle"): {
+        "path_patterns": (r"ops/evidence/production/",),
+        "tokens": ("production", "billing", "lifecycle"),
+    },
+    ("production_launch", "production_backup_rollback_incident"): {
+        "path_patterns": (r"ops/evidence/production/",),
+        "tokens": ("production", "backup", "rollback", "post-deploy"),
+    },
+    ("production_launch", "production_legal_support_policy"): {
+        "path_patterns": (r"ops/evidence/production/",),
+        "tokens": ("production", "legal", "support"),
+    },
+}
+
 RUNTIME_PASS_FILE_PREFIXES = {
     "local_alpha": ("ops/evidence/local_alpha/", "ops/evidence/local/"),
     "ci": (".github/workflows/", "ops/evidence/ci/"),
@@ -2417,6 +2476,27 @@ def validate_runtime_gate_evidence_refs(
         require(check_id in checks, f"{gate} runtime gate guard references unknown check {check_id}")
         check = checks[check_id]
         evidence_ref = check["evidence_ref"]
+        if check["status"] in {"blocked", "fail"}:
+            requirement = RUNTIME_BLOCKED_EVIDENCE_REQUIREMENTS.get((gate, check_id))
+            require(
+                requirement is not None,
+                f"{gate}.{check_id} has no gate-specific blocked runtime evidence requirement",
+            )
+            evidence_ref_lower = evidence_ref.lower()
+            missing_tokens = [
+                token
+                for token in requirement["tokens"]
+                if token not in evidence_ref_lower
+            ]
+            require(
+                not missing_tokens,
+                f"{gate}.{check_id} blocked evidence missing runtime blocker tokens: {missing_tokens}",
+            )
+            require(
+                any(re.search(pattern, evidence_ref) for pattern in requirement["path_patterns"]),
+                f"{gate}.{check_id} blocked evidence must cite the missing gate-specific runtime/deployment evidence area: "
+                + json.dumps(requirement["path_patterns"]),
+            )
         if check["status"] == "pass":
             require(
                 RUNTIME_EVIDENCE_RE.search(evidence_ref) is not None,

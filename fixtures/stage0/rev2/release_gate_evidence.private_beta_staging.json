@@ -16,12 +16,12 @@
     {
       "check_id": "staging_object_storage_signed_downloads",
       "status": "blocked",
-      "evidence_ref": "Local object storage, S3-compatible config, object metadata, signed URL, cleanup, and integration-test evidence exists, but production-like staging object storage and signed-download runtime evidence is absent"
+      "evidence_ref": "Local object storage, S3-compatible config, object metadata, signed URL, cleanup, and integration-test evidence exists, but ops/evidence/staging/ production-like staging object storage signed-download and retention runtime evidence is absent"
     },
     {
       "check_id": "staging_quota_rate_limit_spend_cap",
       "status": "blocked",
-      "evidence_ref": "Quota reservation/commit/refund/idempotency, spend-cap, and concurrency-test evidence exists, but staging entitlement, rate-limit, and provider spend-cap runtime evidence is absent"
+      "evidence_ref": "Quota reservation/commit/refund/idempotency, spend-cap, and concurrency-test evidence exists, but ops/evidence/staging/ staging quota, rate-limit, and provider spend-cap runtime evidence is absent"
     },
     {
       "check_id": "staging_support_retry_abuse_ops",
@@ -31,7 +31,7 @@
     {
       "check_id": "staging_eval_qa_safety_runtime",
       "status": "blocked",
-      "evidence_ref": "Eval, QA fixture, red-team, and safety contract evidence exists, but staging runtime evidence that safety policy executes at brief/provider request/provider response/QA/export is absent"
+      "evidence_ref": "Eval, QA fixture, red-team, and safety contract evidence exists, but ops/evidence/staging/ staging eval, QA, and safety runtime evidence that policy executes at brief/provider request/provider response/QA/export is absent"
     },
     {
       "check_id": "staging_crawler_approval_provenance",
@@ -41,12 +41,12 @@
     {
       "check_id": "staging_observability_backup_load",
       "status": "blocked",
-      "evidence_ref": "Dashboard, alert route, backend/worker/crawler metrics, request-id propagation, structured JSON logs, and OpenTelemetry traces staging runtime evidence passed in ops/evidence/staging/20260526T1000Z-dashboard-runtime.json, ops/evidence/staging/20260526T1000Z-alert-runtime.json, ops/evidence/staging/20260527T1215Z-backend-worker-crawler-metrics.json, and ops/evidence/staging/20260527T1815Z-observability-telemetry.json, but restore, smoke, and load staging runtime evidence remains absent"
+      "evidence_ref": "Dashboard, alert route, backend/worker/crawler metrics, request-id propagation, structured JSON logs, and OpenTelemetry traces staging runtime evidence passed in ops/evidence/staging/20260526T1000Z-dashboard-runtime.json, ops/evidence/staging/20260526T1000Z-alert-runtime.json, ops/evidence/staging/20260527T1215Z-backend-worker-crawler-metrics.json, and ops/evidence/staging/20260527T1815Z-observability-telemetry.json, but ops/evidence/staging/ restore, smoke, and load staging runtime evidence remains absent"
     },
     {
       "check_id": "staging_legal_external_user_pages",
       "status": "blocked",
-      "evidence_ref": "Privacy notice, Terms, Privacy Policy, Acceptable Use, AI/content disclaimer, IP complaint flow, billing policy, and visible support contact evidence exists, but external-user staging evidence for deployed page visibility is absent"
+      "evidence_ref": "Privacy notice, Terms, Privacy Policy, Acceptable Use, AI/content disclaimer, IP complaint flow, billing policy, and visible support contact evidence exists, but external-user staging evidence for deployed page visibility is absent under ops/evidence/staging/ legal/support runtime evidence"
     }
   ],
   "do_not_launch_checks": [
