@@ -167,7 +167,18 @@
     {
       "fixture_id": "fx_unsafe_financial_claim",
       "category": "unsafe",
-      "expected_status": "blocked"
+      "expected_status": "blocked",
+      "negative_guard_refs": [
+        "unsupported_roi_or_financial_claim_blocks_export"
+      ],
+      "enforcement_surface": "safety",
+      "expected_denial_reasons": [
+        "blocking_qa",
+        "safety_policy_block",
+        "incomplete_export_artifacts",
+        "qa_coverage_incomplete"
+      ],
+      "expected_export_gate_effect": "block_final_export"
     }
   ],
   "contract_evidence": {

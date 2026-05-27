@@ -37,6 +37,48 @@ SAFETY_POINTS = {
     "export",
 }
 
+NEGATIVE_LINK_SURFACE_CONTRACTS = {
+    "clarification": {
+        "categories": {"ambiguous_brief"},
+        "requires_candidates": False,
+        "requires_blocking_qa": False,
+        "allows_blocking_qa": False,
+        "requires_safety_block": False,
+        "requires_incomplete_export": True,
+    },
+    "qa": {
+        "categories": {
+            "brand_product_preservation",
+            "negative",
+            "text_heavy",
+        },
+        "requires_candidates": True,
+        "requires_blocking_qa": True,
+        "allows_blocking_qa": True,
+        "requires_safety_block": False,
+        "requires_incomplete_export": False,
+    },
+    "safety": {
+        "categories": {
+            "unsafe",
+            "red_team",
+        },
+        "requires_candidates": False,
+        "requires_blocking_qa": False,
+        "allows_blocking_qa": True,
+        "requires_safety_block": True,
+        "requires_incomplete_export": True,
+    },
+    "export_completeness": {
+        "categories": {"export_completeness"},
+        "requires_candidates": True,
+        "requires_blocking_qa": True,
+        "allows_blocking_qa": True,
+        "requires_safety_block": False,
+        "requires_incomplete_export": True,
+    },
+}
+
 TRACE_FIELDS = {
     "schema_validation",
     "provenance",
@@ -807,10 +849,64 @@ def validate_fixture_links(workflows: dict[str, dict[str, Any]]) -> None:
 
         for link in workflow["negative_fixture_links"]:
             fixture_id = link["fixture_id"]
+            surface = link["enforcement_surface"]
+            surface_contract = NEGATIVE_LINK_SURFACE_CONTRACTS[surface]
+            expected_guards = set(workflow["domain_acceptance_contract"]["negative_acceptance_guards"])
+            guard_refs = set(link["negative_guard_refs"])
+            result_item = result_by_id.get(fixture_id)
+
             require(fixture_id in suite_by_id, f"{workflow_id} links unknown negative fixture {fixture_id}")
             require(fixture_id in result_by_id, f"{workflow_id} negative fixture {fixture_id} missing eval result")
             require(suite_by_id[fixture_id]["category"] == link["category"], f"{fixture_id} category mismatch")
-            require(result_by_id[fixture_id]["status"] == link["expected_status"], f"{fixture_id} expected status mismatch")
+            require(result_item["status"] == link["expected_status"], f"{fixture_id} expected status mismatch")
+            require(result_item["workflow"] == workflow_id, f"{fixture_id} linked workflow mismatch")
+            require(guard_refs <= expected_guards, f"{fixture_id} guard refs are not declared by workflow: {sorted(guard_refs - expected_guards)}")
+            require(guard_refs, f"{fixture_id} must link at least one negative acceptance guard")
+            require(
+                link["category"] in surface_contract["categories"],
+                f"{fixture_id} category {link['category']} cannot use {surface} enforcement surface",
+            )
+
+            gate = result_item["qa_export_gate"]
+            safety_decision = result_item["safety_decision_contract"]
+            denial_reasons = set(gate["denial_reasons"])
+            expected_denials = set(link["expected_denial_reasons"])
+            require(
+                expected_denials <= denial_reasons,
+                f"{fixture_id} missing expected denial reasons: {sorted(expected_denials - denial_reasons)}",
+            )
+            require(
+                safety_decision["export_gate_effect"] == link["expected_export_gate_effect"],
+                f"{fixture_id} expected export gate effect mismatch",
+            )
+            if surface_contract["requires_candidates"]:
+                require(result_item["candidate_count"] >= 4, f"{fixture_id} {surface} surface must evaluate generated candidates")
+            else:
+                require(result_item["candidate_count"] == 0, f"{fixture_id} {surface} surface must block before candidate generation")
+            if surface_contract["requires_blocking_qa"]:
+                require(gate["blocking_qa_check_ids"], f"{fixture_id} {surface} surface must cite blocking QA checks")
+                require("blocking_qa" in denial_reasons, f"{fixture_id} {surface} surface must deny via blocking QA")
+            elif not surface_contract["allows_blocking_qa"]:
+                require(not gate["blocking_qa_check_ids"], f"{fixture_id} {surface} surface must not depend on blocking QA checks")
+            require(
+                gate["safety_blocks_export"] is surface_contract["requires_safety_block"],
+                f"{fixture_id} {surface} safety block expectation mismatch",
+            )
+            if surface_contract["requires_safety_block"]:
+                require("safety_policy_block" in denial_reasons, f"{fixture_id} safety surface must deny via safety policy block")
+            require(
+                gate["export_artifacts_complete"] is (not surface_contract["requires_incomplete_export"]),
+                f"{fixture_id} {surface} export artifact completeness expectation mismatch",
+            )
+            if surface_contract["requires_incomplete_export"]:
+                require(
+                    "incomplete_export_artifacts" in denial_reasons,
+                    f"{fixture_id} {surface} surface must deny incomplete export artifacts",
+                )
+            require(
+                result_item["status"] == "blocked" and gate["final_export_allowed"] is False,
+                f"{fixture_id} negative fixture must block final export",
+            )
 
 
 def validate_workflow_shape(workflows: dict[str, dict[str, Any]]) -> None:

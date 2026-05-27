@@ -159,12 +159,31 @@
     {
       "fixture_id": "fx_ambiguous_brief_missing_product",
       "category": "ambiguous_brief",
-      "expected_status": "blocked"
+      "expected_status": "blocked",
+      "negative_guard_refs": [
+        "missing_product_or_claim_constraints_blocks_generation"
+      ],
+      "enforcement_surface": "clarification",
+      "expected_denial_reasons": [
+        "incomplete_export_artifacts",
+        "qa_coverage_incomplete"
+      ],
+      "expected_export_gate_effect": "allow_when_export_contract_complete"
     },
     {
       "fixture_id": "fx_brand_product_preservation",
       "category": "brand_product_preservation",
-      "expected_status": "blocked"
+      "expected_status": "blocked",
+      "negative_guard_refs": [
+        "brand_product_preservation_blocks_unauthorized_changes"
+      ],
+      "enforcement_surface": "qa",
+      "expected_denial_reasons": [
+        "blocking_qa",
+        "safety_admin_review_required",
+        "qa_coverage_incomplete"
+      ],
+      "expected_export_gate_effect": "hold_until_admin_review"
     }
   ],
   "contract_evidence": {

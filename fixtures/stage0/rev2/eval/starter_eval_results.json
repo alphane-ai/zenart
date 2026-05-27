@@ -1258,19 +1258,19 @@
         },
         {
           "path": "fixtures/stage0/rev2/workflows/business_visual_doc_pack.json",
-          "sha256": "420711afe1eebed6a287d866b5f16121774772594d90ba67e93c3064bcb40ffd"
+          "sha256": "ac17ddbeae8d02629b51e9625a20900bf88d58d3c8bc7d05ac14ccee6b669878"
         },
         {
           "path": "fixtures/stage0/rev2/workflows/character_ip_concept_pack.json",
-          "sha256": "9867dd798caeb44f2a12650f69d18ff8ed6427538d1793c0106785aad0e53bae"
+          "sha256": "28b5089540f602eb037a782ccbf51a10ad851cc0c8e599f61ce5f4d6bb18fca6"
         },
         {
           "path": "fixtures/stage0/rev2/workflows/ecommerce_growth_pack.json",
-          "sha256": "3a830fdd88572bd78a8e690339522f8d2c0327e4ffff76f89387780fcf5f8dab"
+          "sha256": "c6592176fa7f0ce269fcbd5720407ee486827385f34ed226d3ce9ede014d5119"
         },
         {
           "path": "fixtures/stage0/rev2/workflows/local_merchant_campaign_pack.json",
-          "sha256": "9d08973c23f79485ae536fdb895953982b5719943bcc9d4e1d4a2a84883a82e2"
+          "sha256": "8d7f6cb51c95219e4660e76df45e098310545746901f658b099724df8a025c09"
         }
       ]
     },

@@ -198,12 +198,32 @@
     {
       "fixture_id": "fx_negative_generic_rendering",
       "category": "negative",
-      "expected_status": "blocked"
+      "expected_status": "blocked",
+      "negative_guard_refs": [
+        "generic_four_card_rendering_rejected",
+        "missing_price_date_phone_address_qr_blocks_export"
+      ],
+      "enforcement_surface": "qa",
+      "expected_denial_reasons": [
+        "blocking_qa",
+        "qa_coverage_incomplete"
+      ],
+      "expected_export_gate_effect": "allow_when_export_contract_complete"
     },
     {
       "fixture_id": "fx_text_heavy_structured_details",
       "category": "text_heavy",
-      "expected_status": "blocked"
+      "expected_status": "blocked",
+      "negative_guard_refs": [
+        "false_discount_inventory_certification_claims_blocked",
+        "mobile_crop_and_print_size_must_be_checked"
+      ],
+      "enforcement_surface": "qa",
+      "expected_denial_reasons": [
+        "blocking_qa",
+        "qa_coverage_incomplete"
+      ],
+      "expected_export_gate_effect": "allow_when_export_contract_complete"
     }
   ],
   "contract_evidence": {

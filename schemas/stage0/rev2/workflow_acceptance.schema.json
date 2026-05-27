@@ -343,7 +343,11 @@
         "required": [
           "fixture_id",
           "category",
-          "expected_status"
+          "expected_status",
+          "negative_guard_refs",
+          "enforcement_surface",
+          "expected_denial_reasons",
+          "expected_export_gate_effect"
         ],
         "properties": {
           "fixture_id": {
@@ -366,6 +370,47 @@
               "pass",
               "blocked",
               "fail"
+            ]
+          },
+          "negative_guard_refs": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z0-9_]+$"
+            }
+          },
+          "enforcement_surface": {
+            "enum": [
+              "clarification",
+              "qa",
+              "safety",
+              "export_completeness"
+            ]
+          },
+          "expected_denial_reasons": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "enum": [
+                "blocking_qa",
+                "safety_policy_block",
+                "safety_admin_review_required",
+                "safety_user_confirmation_required",
+                "incomplete_export_artifacts",
+                "qa_coverage_incomplete"
+              ]
+            }
+          },
+          "expected_export_gate_effect": {
+            "enum": [
+              "allow_when_export_contract_complete",
+              "allow_with_warning",
+              "hold_until_user_confirmation",
+              "hold_until_admin_review",
+              "block_final_export"
             ]
           }
         }

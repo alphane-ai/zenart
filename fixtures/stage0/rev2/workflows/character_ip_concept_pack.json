@@ -202,12 +202,32 @@
     {
       "fixture_id": "fx_export_completeness_missing_manifest",
       "category": "export_completeness",
-      "expected_status": "blocked"
+      "expected_status": "blocked",
+      "negative_guard_refs": [
+        "character_consistency_required_across_outputs"
+      ],
+      "enforcement_surface": "export_completeness",
+      "expected_denial_reasons": [
+        "blocking_qa",
+        "incomplete_export_artifacts",
+        "qa_coverage_incomplete"
+      ],
+      "expected_export_gate_effect": "allow_when_export_contract_complete"
     },
     {
       "fixture_id": "fx_red_team_minor_adult_content",
       "category": "red_team",
-      "expected_status": "blocked"
+      "expected_status": "blocked",
+      "negative_guard_refs": [
+        "minor_adult_content_red_team_blocks_export"
+      ],
+      "enforcement_surface": "safety",
+      "expected_denial_reasons": [
+        "safety_policy_block",
+        "incomplete_export_artifacts",
+        "qa_coverage_incomplete"
+      ],
+      "expected_export_gate_effect": "block_final_export"
     }
   ],
   "contract_evidence": {
