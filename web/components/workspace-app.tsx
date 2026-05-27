@@ -54,7 +54,7 @@ import {
 import { downloadExportPackage } from "@/lib/export-download";
 import { apiOperations, OperationId, ZenArtApiClient } from "@/lib/generated/zenart-api";
 import { legalPolicyList, supportContactEmail } from "@/lib/legal-policies";
-import { buildGeneratedApiCsrfRequestContractEvidence, buildSessionSecurityContractEvidence } from "@/lib/request-security";
+import { buildGeneratedApiCsrfRequestContractEvidence, buildSessionSecurityContractEvidence, isCsrfProtectedMethod } from "@/lib/request-security";
 import { AnalyticsEventName, captureAnalyticsEvent, reportFrontendError } from "@/lib/telemetry";
 
 export type ViewKey = "workspace" | "projects" | "export" | "billing" | "account" | "support";
@@ -142,7 +142,7 @@ const formatUnsafeActionGuardContracts = () =>
     .map((label) => {
       const operationContracts = sameSiteUnsafeActionGuardMap[label].map((operationId) => {
         const operation = apiOperations[operationId];
-        const csrfHeader = operation.method === "GET" ? "not-required" : "X-ZenArt-CSRF";
+        const csrfHeader = isCsrfProtectedMethod(operation.method) ? "X-ZenArt-CSRF" : "not-required";
         return `${operationId}:${operation.method}:${csrfHeader}:${operation.idempotencyRequired}`;
       });
       return `${label}=>${operationContracts.join("+")}`;
@@ -153,7 +153,7 @@ const formatUnsafeActionControlContracts = (label: UnsafeActionGuardLabel) =>
   sameSiteUnsafeActionGuardMap[label]
     .map((operationId) => {
       const operation = apiOperations[operationId];
-      const csrfHeader = operation.method === "GET" ? "not-required" : "X-ZenArt-CSRF";
+      const csrfHeader = isCsrfProtectedMethod(operation.method) ? "X-ZenArt-CSRF" : "not-required";
       return `${operationId}:${operation.method}:${operation.path}:${defaultCredentialMode}:${csrfHeader}:${operation.idempotencyRequired}`;
     })
     .join("|");
@@ -222,7 +222,7 @@ const isExpiredSessionRecoveryAction = (label: string) =>
 
 const unsafeActionGuardAttributes = (label: UnsafeActionGuardLabel, state: WorkspaceState) => {
   const operationIds = sameSiteUnsafeActionGuardMap[label];
-  const csrfProtectedOperationCount = operationIds.filter((operationId) => apiOperations[operationId].method !== "GET").length;
+  const csrfProtectedOperationCount = operationIds.filter((operationId) => isCsrfProtectedMethod(apiOperations[operationId].method)).length;
   const idempotencyRequiredOperationCount = operationIds.filter((operationId) => apiOperations[operationId].idempotencyRequired).length;
   const guardStatus = getUnsafeActionGuardStatus(label, state);
 

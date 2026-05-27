@@ -14,6 +14,7 @@ describe("same-site CSRF request contract", () => {
   it("marks only state-changing methods as CSRF protected", () => {
     expect(isCsrfProtectedMethod("GET")).toBe(false);
     expect(isCsrfProtectedMethod("HEAD")).toBe(false);
+    expect(isCsrfProtectedMethod("OPTIONS")).toBe(false);
     expect(isCsrfProtectedMethod("POST")).toBe(true);
     expect(isCsrfProtectedMethod("PUT")).toBe(true);
     expect(isCsrfProtectedMethod("PATCH")).toBe(true);
@@ -22,6 +23,12 @@ describe("same-site CSRF request contract", () => {
 
   it("adds the same-site CSRF header to unsafe requests without replacing caller headers", () => {
     expect(buildCsrfRequestHeaders("GET", { Accept: "application/json" })).toEqual({
+      Accept: "application/json"
+    });
+    expect(buildCsrfRequestHeaders("HEAD", { Accept: "application/json" })).toEqual({
+      Accept: "application/json"
+    });
+    expect(buildCsrfRequestHeaders("OPTIONS", { Accept: "application/json" })).toEqual({
       Accept: "application/json"
     });
     expect(buildCsrfRequestHeaders("POST", { Accept: "application/json" })).toEqual({
@@ -186,6 +193,29 @@ describe("same-site CSRF request contract", () => {
       csrfHeaderValue: "same-site-origin-check",
       idempotencyHeaderRequired: false
     });
+  });
+
+  it("keeps HEAD and OPTIONS same-site credentialed but outside CSRF unsafe inventory", () => {
+    const operations = {
+      getSession: { method: "GET", path: "/session", idempotencyRequired: false },
+      headSession: { method: "HEAD", path: "/session", idempotencyRequired: false },
+      optionsSession: { method: "OPTIONS", path: "/session", idempotencyRequired: false },
+      createUpload: { method: "POST", path: "/uploads", idempotencyRequired: true }
+    } as const;
+
+    const evidence = buildGeneratedApiCsrfRequestContractEvidence(operations);
+
+    expect(evidence).toMatchObject({
+      status: "pass",
+      unsafeOperationIds: ["createUpload"],
+      safeOperationIds: ["getSession", "headSession", "optionsSession"],
+      unsafeOperationCount: 1,
+      safeOperationCount: 3,
+      missingUnsafeOperationIds: [],
+      failureReasons: []
+    });
+    expect(buildCsrfRequestHeaders("HEAD")).toEqual({});
+    expect(buildCsrfRequestHeaders("OPTIONS")).toEqual({});
   });
 
   it("accepts only lax or strict cookies for the same-site CSRF requirement", () => {

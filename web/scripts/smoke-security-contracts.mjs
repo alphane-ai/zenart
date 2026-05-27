@@ -377,6 +377,7 @@ for (const expectedControlContract of sessionEvidence.unsafeActionGuard?.require
 for (const requiredControlSnippet of [
   "unsafeActionGuardAttributes",
   "formatUnsafeActionControlContracts",
+  "isCsrfProtectedMethod(operation.method)",
   "runGeneratedClientCsrfBrowserProbe",
   "new ZenArtApiClient(\"/api/probe\")",
   "data-generated-api-csrf-browser-probe",
@@ -399,6 +400,15 @@ for (const requiredControlSnippet of [
 ]) {
   if (!workspaceAppSource.includes(requiredControlSnippet)) {
     fail(`workspace UI missing control-level CSRF guard snippet ${requiredControlSnippet}`);
+  }
+}
+
+for (const forbiddenUiCsrfShortcut of [
+  "method === \"GET\" ? \"not-required\"",
+  "method !== \"GET\""
+]) {
+  if (workspaceAppSource.includes(forbiddenUiCsrfShortcut)) {
+    fail(`workspace UI must use the shared CSRF method predicate instead of ${forbiddenUiCsrfShortcut}`);
   }
 }
 
