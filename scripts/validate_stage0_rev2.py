@@ -4686,6 +4686,34 @@ def runtime_evidence_preserved_blockers(evidence: dict[str, Any]) -> list[str]:
     return blockers
 
 
+def runtime_artifact_closure_blockers(evidence: dict[str, Any]) -> list[str]:
+    blockers = runtime_evidence_preserved_blockers(evidence)
+    status = evidence.get("status")
+    if status is not None and status not in RUNTIME_PASS_EVIDENCE_STATUS_VALUES:
+        blockers.append(f"status={status!r}")
+    return blockers
+
+
+def require_evidence_ref_has_no_runtime_closure_blockers(
+    evidence_ref: str,
+    *,
+    context: str,
+) -> None:
+    for path in sorted(concrete_evidence_paths(evidence_ref)):
+        evidence = load_json_if_path(path)
+        if not isinstance(evidence, dict):
+            continue
+        is_runtime_evidence = path.startswith("ops/evidence/") or "release_gate_check_id" in evidence
+        if not is_runtime_evidence:
+            continue
+        blockers = runtime_artifact_closure_blockers(evidence)
+        require(
+            not blockers,
+            f"{context} cites runtime artifact {path} that cannot support gate/global closure: "
+            + json.dumps(blockers, ensure_ascii=False),
+        )
+
+
 def validate_closed_gate_items_do_not_cite_preserved_blocker_evidence(
     gate: str,
     data: dict[str, Any],
@@ -4706,6 +4734,10 @@ def validate_closed_gate_items_do_not_cite_preserved_blocker_evidence(
     if not closure_items:
         return
 
+    require_evidence_ref_has_no_runtime_closure_blockers(
+        data["gate_decision"]["evidence_ref"],
+        context=f"{gate} gate_decision for closed gate/global checklist items {sorted(closure_items)}",
+    )
     for check_id, check in checks_by_id(data).items():
         if check["status"] != "pass":
             continue
@@ -4713,7 +4745,7 @@ def validate_closed_gate_items_do_not_cite_preserved_blocker_evidence(
             evidence = load_json_if_path(path)
             if not isinstance(evidence, dict):
                 continue
-            preserved_blockers = runtime_evidence_preserved_blockers(evidence)
+            preserved_blockers = runtime_artifact_closure_blockers(evidence)
             if path in PARTIAL_RUNTIME_PASS_EVIDENCE_ALLOWLIST and RELEASE_GATE_AGGREGATE_ITEMS[gate] not in checked_lines:
                 continue
             require(
@@ -9668,6 +9700,8 @@ def validate_launch_readiness_split_contracts() -> None:
         "A top-level gate checklist item, aggregate runtime checklist item, global Do-Not-Launch item, or fixture-level `go` decision cannot cite runtime evidence that preserves blockers",
         "status=pass_with_blockers_preserved",
         "can_clear_aggregate_item=false",
+        "also cannot cite any runtime JSON with a non-passing `status`, even when that JSON appears only in `gate_decision.evidence_ref`",
+        "blocked probe evidence must remain confined to explicit non-closure probe rows",
         "Passed gate checks and cleared Do-Not-Launch conditions may not mix real and missing concrete artifact paths",
         "Private Beta/Staging check-level runtime subitems must remain open until each matching release gate check has staging evidence",
         "Private Beta/Staging object storage signed download/retention cannot close from local object storage tests",
