@@ -10,8 +10,8 @@
   "created_by_lane": "lane3",
   "created_at": "2026-05-27T05:18:24.852Z",
   "environment": "local_alpha",
-  "workflow_id": "business_visual_doc_pack",
-  "fixture_id": "fx_business_visual_doc_golden",
+  "workflow_id": "local_merchant_campaign_pack",
+  "fixture_id": "fx_local_merchant_campaign_golden",
   "release_gate_check_id": "local_alpha_e2e_workflow_smoke",
   "release_gate_fixture_ref": "fixtures/stage0/rev2/release_gate_evidence.local_alpha.json",
   "proves_running_local_stack": true,
@@ -27,15 +27,15 @@
   "runner": "web/tests/local-alpha-ecommerce-evidence.spec.ts",
   "command": "npm run smoke:local-alpha-ecommerce-evidence",
   "file_name": "zenart-001.zip",
-  "byte_size": 12110,
-  "sha256": "c425016bca59a91dd662a8e24f43e94a5b66fb9cdea01e7114917d3b10d47bff",
+  "byte_size": 12477,
+  "sha256": "6ff27227d11730d961ba8d783320686a09a698fc34c73d5fc4dabb4582831249",
   "payloads": [
     "ai-content-disclaimer.json",
     "assets/README.txt",
-    "assets/cover.png",
-    "assets/data_page.png",
-    "assets/recommendation_page.png",
-    "assets/summary_page.png",
+    "assets/delivery_cover.png",
+    "assets/store_print_poster.pdf",
+    "assets/wechat_moment.png",
+    "assets/xiaohongshu_post.png",
     "manifest.json",
     "metadata.json",
     "ppt-ready-metadata.json",
@@ -53,10 +53,10 @@
     "ai-content-disclaimer.json",
     "ppt-ready-metadata.json",
     "assets/README.txt",
-    "assets/cover.png",
-    "assets/summary_page.png",
-    "assets/data_page.png",
-    "assets/recommendation_page.png",
+    "assets/wechat_moment.png",
+    "assets/xiaohongshu_post.png",
+    "assets/store_print_poster.pdf",
+    "assets/delivery_cover.png",
     "metadata.json",
     "qa_report.json",
     "trace_provenance.json"
@@ -69,20 +69,20 @@
     "required_output_count": 14,
     "workflow_acceptance": {
       "schema_version": "stage0.rev2.workflow-api-smoke",
-      "workflow_id": "business_visual_doc_pack",
-      "fixture_id": "fx_business_visual_doc_golden",
+      "workflow_id": "local_merchant_campaign_pack",
+      "fixture_id": "fx_local_merchant_campaign_golden",
       "strategy_taxonomy": [
-        "executive_brief",
-        "strategy_memo",
-        "sales_leave_behind",
-        "board_update"
+        "wechat_conversion",
+        "xiaohongshu_quality",
+        "store_print",
+        "delivery_platform_cover"
       ],
       "required_files": [
         "manifest.json",
-        "assets/cover.png",
-        "assets/summary_page.png",
-        "assets/data_page.png",
-        "assets/recommendation_page.png",
+        "assets/wechat_moment.png",
+        "assets/xiaohongshu_post.png",
+        "assets/store_print_poster.pdf",
+        "assets/delivery_cover.png",
         "metadata.json",
         "qa_report.json",
         "trace_provenance.json"
@@ -95,8 +95,8 @@
   "qa_report": {
     "finding_count": 4,
     "blocking_count": 0,
-    "business_taxonomy_status": "pass",
-    "readability_status": "pass"
+    "local_merchant_taxonomy_status": "pass",
+    "structured_details_status": "pass"
   },
   "safety_report": {
     "status": "pass",
@@ -112,18 +112,18 @@
   "metadata_payload": {
     "provider": "dev-provider",
     "model": "deterministic-local-alpha",
-    "skill": "business_visual_doc_pack",
+    "skill": "local_merchant_campaign_pack",
     "safety": "pass",
     "prompt_spec": [
-      "executive_brief",
-      "strategy_memo",
-      "sales_leave_behind",
-      "board_update"
+      "wechat_conversion",
+      "xiaohongshu_quality",
+      "store_print",
+      "delivery_platform_cover"
     ]
   },
   "trace_provenance": {
-    "workflow_id": "business_visual_doc_pack",
-    "workflow_fixture_id": "fx_business_visual_doc_golden",
+    "workflow_id": "local_merchant_campaign_pack",
+    "workflow_fixture_id": "fx_local_merchant_campaign_golden",
     "generated_by": "zenart-web-dev-client"
   }
 }

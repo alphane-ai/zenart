@@ -8,7 +8,7 @@
     "25"
   ],
   "created_by_lane": "lane3",
-  "created_at": "2026-05-27T02:17:42.036Z",
+  "created_at": "2026-05-27T05:18:24.852Z",
   "environment": "local_alpha",
   "workflow_id": "ecommerce_growth_pack",
   "fixture_id": "fx_ecommerce_growth_golden",
@@ -51,9 +51,9 @@
       "package-add",
       "export-ready"
     ],
-    "renderElementCount": "26",
+    "renderElementCount": "29",
     "maxRenderElements": "96",
-    "estimatedInteractionMs": "31",
+    "estimatedInteractionMs": "33",
     "maxInteractionMs": "100",
     "failureCount": "0"
   },
@@ -72,5 +72,5 @@
     "aiContentDisclaimerPayloadPresent": "true"
   },
   "downloaded_file_name": "zenart-001.zip",
-  "elapsed_ms": 2191
+  "elapsed_ms": 1367
 }

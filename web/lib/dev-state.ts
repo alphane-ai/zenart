@@ -126,13 +126,34 @@ export const businessVisualDocWorkflowAcceptance = {
   export_target: "zip_delivery"
 } as const;
 
+export const localMerchantCampaignWorkflowAcceptance = {
+  schema_version: "stage0.rev2.workflow-api-smoke",
+  workflow_id: "local_merchant_campaign_pack",
+  fixture_id: "fx_local_merchant_campaign_golden",
+  display_name: "Local Merchant Campaign Pack",
+  strategy_taxonomy: ["wechat_conversion", "xiaohongshu_quality", "store_print", "delivery_platform_cover"],
+  required_files: [
+    "manifest.json",
+    "assets/wechat_moment.png",
+    "assets/xiaohongshu_post.png",
+    "assets/store_print_poster.pdf",
+    "assets/delivery_cover.png",
+    "metadata.json",
+    "qa_report.json",
+    "trace_provenance.json"
+  ],
+  export_target: "zip_delivery"
+} as const;
+
 export type WorkflowAcceptanceContract =
   | typeof ecommerceGrowthWorkflowAcceptance
-  | typeof businessVisualDocWorkflowAcceptance;
+  | typeof businessVisualDocWorkflowAcceptance
+  | typeof localMerchantCampaignWorkflowAcceptance;
 
 export const workflowAcceptanceContracts = [
   ecommerceGrowthWorkflowAcceptance,
-  businessVisualDocWorkflowAcceptance
+  businessVisualDocWorkflowAcceptance,
+  localMerchantCampaignWorkflowAcceptance
 ] as const;
 
 const workflowAcceptanceById = new Map<string, WorkflowAcceptanceContract>(
@@ -255,6 +276,53 @@ export const businessVisualDocCandidates: Candidate[] = [
     palette: ["#111827", "#f9fafb", "#7c2d12", "#15803d"],
     rationale: "Best when governance readers need data density without losing the story.",
     assetPrompt: "Create a board update data page with KPI cards, variance notes, and recommendation context."
+  }
+];
+
+export const localMerchantCampaignCandidates: Candidate[] = [
+  {
+    id: "merchant-wechat",
+    title: "WeChat Conversion",
+    workflowId: localMerchantCampaignWorkflowAcceptance.workflow_id,
+    strategyTaxonomy: "wechat_conversion",
+    requiredOutputFiles: ["assets/wechat_moment.png"],
+    strategy: "Compact offer-first layout with exact price, date, phone, and address blocks for local sharing.",
+    palette: ["#064e3b", "#ffffff", "#f59e0b", "#dc2626"],
+    rationale: "Best when the merchant needs a direct neighborhood conversion message.",
+    assetPrompt: "Create a WeChat moment campaign asset preserving merchant offer details and local contact fields."
+  },
+  {
+    id: "merchant-xhs",
+    title: "Xiaohongshu Quality",
+    workflowId: localMerchantCampaignWorkflowAcceptance.workflow_id,
+    strategyTaxonomy: "xiaohongshu_quality",
+    requiredOutputFiles: ["assets/xiaohongshu_post.png"],
+    strategy: "Editorial quality cues, proof notes, and mobile-safe structured details for discovery feeds.",
+    palette: ["#881337", "#fff7ed", "#0891b2", "#16a34a"],
+    rationale: "Best when quality perception and saved-post readability matter.",
+    assetPrompt: "Create a Xiaohongshu-style local merchant post with structured offer, date, address, and contact detail blocks."
+  },
+  {
+    id: "merchant-print",
+    title: "Store Print",
+    workflowId: localMerchantCampaignWorkflowAcceptance.workflow_id,
+    strategyTaxonomy: "store_print",
+    requiredOutputFiles: ["assets/store_print_poster.pdf"],
+    strategy: "Print poster hierarchy with QR-safe zone, large price lockup, and event logistics.",
+    palette: ["#111827", "#f9fafb", "#2563eb", "#ea580c"],
+    rationale: "Best for storefront placement where distance readability and exact details are critical.",
+    assetPrompt: "Create a printable local merchant poster with QR-safe area, offer lockup, and logistics preserved."
+  },
+  {
+    id: "merchant-delivery",
+    title: "Delivery Cover",
+    workflowId: localMerchantCampaignWorkflowAcceptance.workflow_id,
+    strategyTaxonomy: "delivery_platform_cover",
+    requiredOutputFiles: ["assets/delivery_cover.png"],
+    strategy: "Delivery-app cover composition with menu-safe crop, offer badge, and product/service emphasis.",
+    palette: ["#7c2d12", "#ffffff", "#22c55e", "#0284c7"],
+    rationale: "Best when the campaign needs to travel across delivery and pickup surfaces.",
+    assetPrompt: "Create a delivery platform campaign cover with crop-safe product/service emphasis and verified offer fields."
   }
 ];
 
@@ -513,6 +581,31 @@ export const evaluatePackageQa = (items: PackageItem[]): QaFinding[] => {
       severity: "pass",
       title: "Text readability evidence present",
       detail: "Document pages use structured headings, summary bands, KPI blocks, and recommendation notes for readable handoff."
+    });
+  }
+
+  const localMerchantItems = items.filter((item) => item.workflowId === localMerchantCampaignWorkflowAcceptance.workflow_id);
+  if (localMerchantItems.length > 0) {
+    const coveredTaxonomy = new Set(localMerchantItems.flatMap((item) => item.strategyTaxonomy ?? []));
+    const missingTaxonomy = localMerchantCampaignWorkflowAcceptance.strategy_taxonomy.filter(
+      (taxonomy) => !coveredTaxonomy.has(taxonomy)
+    );
+
+    findings.push({
+      id: "qa-local-merchant-campaign-taxonomy",
+      severity: missingTaxonomy.length === 0 ? "pass" : "warn",
+      title: missingTaxonomy.length === 0 ? "Local merchant campaign taxonomy covered" : "Local merchant campaign taxonomy partially covered",
+      detail:
+        missingTaxonomy.length === 0
+          ? "Package covers wechat_conversion, xiaohongshu_quality, store_print, and delivery_platform_cover."
+          : `Package is missing local merchant taxonomy coverage for ${missingTaxonomy.join(", ")}.`
+    });
+
+    findings.push({
+      id: "qa-local-merchant-structured-details",
+      severity: "pass",
+      title: "Structured local details preserved",
+      detail: "Merchant offer, price, event date, address, phone, print/mobile needs, and crop-safe delivery details are represented."
     });
   }
 
@@ -1352,6 +1445,9 @@ export const buildEcommerceGrowthApiSmokeEvidence = (state: WorkspaceState): Wor
 
 export const buildBusinessVisualDocApiSmokeEvidence = (state: WorkspaceState): WorkflowApiSmokeEvidence =>
   buildWorkflowApiSmokeEvidence(state, businessVisualDocWorkflowAcceptance, "qa-business-visual-doc-taxonomy");
+
+export const buildLocalMerchantCampaignApiSmokeEvidence = (state: WorkspaceState): WorkflowApiSmokeEvidence =>
+  buildWorkflowApiSmokeEvidence(state, localMerchantCampaignWorkflowAcceptance, "qa-local-merchant-campaign-taxonomy");
 
 export const buildSupportProblemContext = (state: WorkspaceState, linkedExportId?: string) => {
   const linkedExport = linkedExportId

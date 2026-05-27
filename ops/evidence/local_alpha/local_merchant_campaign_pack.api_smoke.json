@@ -10,8 +10,8 @@
   "created_by_lane": "lane3",
   "created_at": "2026-05-27T05:18:24.852Z",
   "environment": "local_alpha",
-  "workflow_id": "ecommerce_growth_pack",
-  "fixture_id": "fx_ecommerce_growth_golden",
+  "workflow_id": "local_merchant_campaign_pack",
+  "fixture_id": "fx_local_merchant_campaign_golden",
   "release_gate_check_id": "local_alpha_e2e_workflow_smoke",
   "release_gate_fixture_ref": "fixtures/stage0/rev2/release_gate_evidence.local_alpha.json",
   "proves_running_local_stack": true,
@@ -57,6 +57,7 @@
     "packaged_taxonomy_count": 4,
     "ready_zip_export_count": 1,
     "missing_output_count": 0,
+    "qa_taxonomy_id": "qa-local-merchant-campaign-taxonomy",
     "qa_taxonomy_status": "pass",
     "safety_status": "pass",
     "failures": ""

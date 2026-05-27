@@ -10,8 +10,8 @@
   "created_by_lane": "lane3",
   "created_at": "2026-05-27T05:18:24.852Z",
   "environment": "local_alpha",
-  "workflow_id": "business_visual_doc_pack",
-  "fixture_id": "fx_business_visual_doc_golden",
+  "workflow_id": "local_merchant_campaign_pack",
+  "fixture_id": "fx_local_merchant_campaign_golden",
   "release_gate_check_id": "local_alpha_e2e_workflow_smoke",
   "release_gate_fixture_ref": "fixtures/stage0/rev2/release_gate_evidence.local_alpha.json",
   "proves_running_local_stack": true,
@@ -33,11 +33,11 @@
   ],
   "interaction_steps": [
     "brief_confirmed",
-    "source_notes_uploaded",
-    "four_document_candidates_visible",
+    "storefront_reference_uploaded",
+    "four_local_merchant_candidates_visible",
     "candidate_selected",
     "iteration_created",
-    "all_document_taxonomy_candidates_packaged",
+    "all_local_merchant_taxonomy_candidates_packaged",
     "zip_export_created",
     "download_handoff_completed"
   ],
@@ -72,5 +72,5 @@
     "aiContentDisclaimerPayloadPresent": "true"
   },
   "downloaded_file_name": "zenart-001.zip",
-  "elapsed_ms": 1366
+  "elapsed_ms": 1353
 }

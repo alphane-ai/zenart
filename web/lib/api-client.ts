@@ -24,7 +24,8 @@ import {
   evaluatePackageQa,
   formatExportFileName,
   runSafetyPolicy,
-  businessVisualDocCandidates
+  businessVisualDocCandidates,
+  localMerchantCampaignCandidates
 } from "./dev-state";
 
 export const workspaceStorageKey = "zenart.dev.workspace.v1";
@@ -236,6 +237,20 @@ export class DevZenArtClient implements ZenArtClient {
     const nextCandidates = [
       ...state.candidates.filter((candidate) => !businessVisualDocCandidates.some((item) => item.id === candidate.id)),
       ...businessVisualDocCandidates.filter((candidate) => !existingCandidateIds.has(candidate.id))
+    ] satisfies Candidate[];
+
+    return saveState({
+      ...state,
+      candidates: nextCandidates
+    });
+  }
+
+  async activateLocalMerchantCampaignWorkflow() {
+    const state = loadState();
+    const existingCandidateIds = new Set(state.candidates.map((candidate) => candidate.id));
+    const nextCandidates = [
+      ...state.candidates.filter((candidate) => !localMerchantCampaignCandidates.some((item) => item.id === candidate.id)),
+      ...localMerchantCampaignCandidates.filter((candidate) => !existingCandidateIds.has(candidate.id))
     ] satisfies Candidate[];
 
     return saveState({

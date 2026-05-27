@@ -72,6 +72,26 @@ const businessRequiredZipPayloads = [
   "trace_provenance.json"
 ] as const;
 
+const localMerchantWorkflowId = "local_merchant_campaign_pack";
+const localMerchantFixtureId = "fx_local_merchant_campaign_golden";
+const localMerchantCandidateLabels = ["WeChat Conversion", "Xiaohongshu Quality", "Store Print", "Delivery Cover"] as const;
+const localMerchantRequiredZipPayloads = [
+  "manifest.json",
+  "qa-report.json",
+  "safety-policy-report.json",
+  "provenance.json",
+  "ai-content-disclaimer.json",
+  "ppt-ready-metadata.json",
+  "assets/README.txt",
+  "assets/wechat_moment.png",
+  "assets/xiaohongshu_post.png",
+  "assets/store_print_poster.pdf",
+  "assets/delivery_cover.png",
+  "metadata.json",
+  "qa_report.json",
+  "trace_provenance.json"
+] as const;
+
 test("writes ecommerce growth Local Alpha API, Playwright, and export ZIP runtime evidence", async ({ page, baseURL }) => {
   const startedAt = Date.now();
   await page.addInitScript(() => {
@@ -533,6 +553,256 @@ test("writes business visual document Local Alpha API, Playwright, and export ZI
       blocking_count: qaReport.filter((finding: { severity: string }) => finding.severity === "block").length,
       business_taxonomy_status: qaReport.find((finding: { id: string }) => finding.id === "qa-business-visual-doc-taxonomy")?.severity,
       readability_status: qaReport.find((finding: { id: string }) => finding.id === "qa-business-visual-doc-readability")?.severity
+    },
+    safety_report: {
+      status: safetyReport.status,
+      enforcement_stages: safetyReport.enforcementStages,
+      finding_count: safetyReport.findings.length
+    },
+    metadata_payload: {
+      provider: metadataPayload.provider,
+      model: metadataPayload.model,
+      skill: metadataPayload.skill,
+      safety: metadataPayload.safety,
+      prompt_spec: metadataPayload.prompt_spec
+    },
+    trace_provenance: {
+      workflow_id: traceProvenance.workflow_id,
+      workflow_fixture_id: traceProvenance.workflow_fixture_id,
+      generated_by: traceProvenance.generated_by
+    }
+  });
+});
+
+test("writes local merchant campaign Local Alpha API, Playwright, and export ZIP runtime evidence", async ({ page, baseURL }) => {
+  const startedAt = Date.now();
+  await page.addInitScript(() => {
+    if (!window.sessionStorage.getItem("zenart-local-alpha-local-merchant-evidence-reset")) {
+      window.localStorage.clear();
+      window.sessionStorage.setItem("zenart-local-alpha-local-merchant-evidence-reset", "true");
+    }
+  });
+
+  await page.goto("/workspace");
+  await expect(page.getByRole("heading", { name: "Launch Direction Board" })).toBeVisible();
+
+  await page.getByRole("textbox", { name: "Brief" }).fill(
+    "Local Merchant Campaign Pack: build a neighborhood bakery weekend offer for Maple Street Bakery with 20% pastry bundle, RMB 39 set price, 2026-06-06 event date, 88 Maple Road address, 021-5555-0136 phone, WeChat, Xiaohongshu, storefront print, and delivery platform cover outputs. Preserve price, date, phone, address, and QR-safe print/mobile details exactly."
+  );
+  await page.getByRole("button", { name: "Confirm Brief" }).click();
+  await expect(page.getByText("Brief confirmed. I generated four deterministic strategy candidates for review.")).toBeVisible();
+
+  await page.getByLabel("Reference type").selectOption("image");
+  await page.getByLabel("Reference asset name or URL").fill("maple-bakery-storefront.webp");
+  await page.getByRole("button", { name: "Attach" }).click();
+  await expect(page.getByRole("button", { name: "Add reference maple-bakery-storefront.webp to package" })).toBeVisible();
+
+  for (const taxonomy of ["wechat_conversion", "xiaohongshu_quality", "store_print", "delivery_platform_cover"]) {
+    await expect(page.getByTestId(`candidate-card-${taxonomy}`)).toBeVisible();
+  }
+
+  await page.getByRole("button", { name: "Select WeChat Conversion" }).click();
+  await page.getByLabel("Iteration instruction").fill(
+    "Tighten mobile hierarchy, keep the RMB 39 price and 2026-06-06 date prominent, and preserve phone and address fields."
+  );
+  await page.getByRole("button", { name: "Iterate" }).click();
+  await expect(
+    page.getByText("WeChat Conversion refined with: Tighten mobile hierarchy, keep the RMB 39 price and 2026-06-06 date prominent, and preserve phone and address fields.")
+  ).toBeVisible();
+
+  for (const candidateLabel of localMerchantCandidateLabels) {
+    await page.getByRole("button", { name: `Select ${candidateLabel}` }).click();
+    await expect(page.getByRole("button", { name: `Select ${candidateLabel}` })).toHaveAttribute("aria-pressed", "true");
+    await page.getByTestId("package-add-selected").click();
+  }
+
+  await page.getByTestId("export-download").click();
+  await expect(page.getByText("zenart-001.zip")).toBeVisible();
+
+  const workflowSmoke = page.locator("[data-workflow-api-smoke='stage0.rev2.workflow-api-smoke']");
+  await expect(workflowSmoke).toHaveAttribute("data-workflow-api-smoke-status", "pass");
+  await expect(workflowSmoke).toHaveAttribute("data-workflow-api-smoke-workflow", localMerchantWorkflowId);
+  await expect(workflowSmoke).toHaveAttribute("data-workflow-api-smoke-fixture", localMerchantFixtureId);
+  await expect(workflowSmoke).toHaveAttribute("data-workflow-api-smoke-ready-zip-export-count", "1");
+  await expect(workflowSmoke).toHaveAttribute("data-workflow-api-smoke-missing-output-count", "0");
+  await expect(workflowSmoke).toHaveAttribute("data-workflow-api-smoke-qa-taxonomy-id", "qa-local-merchant-campaign-taxonomy");
+  await expect(workflowSmoke).toHaveAttribute("data-workflow-api-smoke-qa-taxonomy-status", "pass");
+
+  const apiAttributes = await workflowSmoke.evaluate((element) => ({
+    status: element.getAttribute("data-workflow-api-smoke-status"),
+    scenario: element.getAttribute("data-workflow-api-smoke-scenario"),
+    operationCount: element.getAttribute("data-workflow-api-smoke-operation-count"),
+    operationIds: element.getAttribute("data-workflow-api-smoke-operations")?.split(",") ?? [],
+    operationContracts: element.getAttribute("data-workflow-api-smoke-operation-contracts")?.split("|") ?? [],
+    candidateCount: element.getAttribute("data-workflow-api-smoke-candidate-count"),
+    taxonomyCount: element.getAttribute("data-workflow-api-smoke-taxonomy-count"),
+    packagedTaxonomyCount: element.getAttribute("data-workflow-api-smoke-packaged-taxonomy-count"),
+    readyZipExportCount: element.getAttribute("data-workflow-api-smoke-ready-zip-export-count"),
+    missingOutputCount: element.getAttribute("data-workflow-api-smoke-missing-output-count"),
+    csrfProtectedOperationCount: element.getAttribute("data-workflow-api-smoke-csrf-protected-operation-count"),
+    idempotencyRequiredOperationCount: element.getAttribute("data-workflow-api-smoke-idempotency-required-operation-count"),
+    qaTaxonomyId: element.getAttribute("data-workflow-api-smoke-qa-taxonomy-id"),
+    qaTaxonomyStatus: element.getAttribute("data-workflow-api-smoke-qa-taxonomy-status"),
+    safetyStatus: element.getAttribute("data-workflow-api-smoke-safety-status"),
+    failures: element.getAttribute("data-workflow-api-smoke-failures")
+  }));
+
+  const renderingSmoke = page.locator("[data-rendering-smoke='stage0.rev2.workspace-rendering-performance']");
+  await expect(renderingSmoke).toHaveAttribute("data-rendering-status", "pass");
+  await expect(renderingSmoke).toHaveAttribute("data-render-failure-count", "0");
+
+  const renderingAttributes = await renderingSmoke.evaluate((element) => ({
+    status: element.getAttribute("data-rendering-status"),
+    interactionSteps: element.getAttribute("data-render-interaction-steps")?.split(",") ?? [],
+    renderElementCount: element.getAttribute("data-render-element-count"),
+    maxRenderElements: element.getAttribute("data-render-max-elements"),
+    estimatedInteractionMs: element.getAttribute("data-render-estimated-interaction-ms"),
+    maxInteractionMs: element.getAttribute("data-render-max-interaction-ms"),
+    failureCount: element.getAttribute("data-render-failure-count")
+  }));
+
+  await page.goto("/export");
+  await expect(page.getByRole("heading", { name: "Export Preview" })).toBeVisible();
+
+  const exportSmoke = page.locator("[data-workflow-api-smoke-export='stage0.rev2.workflow-api-smoke']");
+  await expect(exportSmoke).toHaveAttribute("data-workflow-api-smoke-export-workflow", localMerchantWorkflowId);
+  await expect(exportSmoke).toHaveAttribute("data-workflow-api-smoke-export-status", "pass");
+  await expect(exportSmoke).toHaveAttribute("data-workflow-api-smoke-export-missing-output-count", "0");
+
+  const metadataEvidence = page.locator("[data-package-export-metadata-ui='stage0.rev2.package-export-metadata-ui']");
+  await expect(metadataEvidence).toHaveAttribute("data-package-export-metadata-status", "pass");
+  await expect(metadataEvidence).toHaveAttribute("data-package-export-workflow-id", localMerchantWorkflowId);
+  await expect(metadataEvidence).toHaveAttribute("data-package-export-workflow-fixture-id", localMerchantFixtureId);
+  await expect(metadataEvidence).toHaveAttribute("data-package-export-missing-output-count", "0");
+  await expect(metadataEvidence).toHaveAttribute("data-package-export-zip-payload-parity-status", "pass");
+
+  const exportMetadata = await metadataEvidence.evaluate((element) => ({
+    status: element.getAttribute("data-package-export-metadata-status"),
+    exportId: element.getAttribute("data-package-export-id"),
+    packageId: element.getAttribute("data-package-export-package-id"),
+    manifestItemCount: element.getAttribute("data-package-export-manifest-item-count"),
+    manifestRequiredOutputCount: element.getAttribute("data-package-export-manifest-required-output-count"),
+    missingOutputCount: element.getAttribute("data-package-export-missing-output-count"),
+    zipPayloadParityStatus: element.getAttribute("data-package-export-zip-payload-parity-status"),
+    workflowMetadataProvider: element.getAttribute("data-package-export-workflow-metadata-provider"),
+    workflowMetadataModel: element.getAttribute("data-package-export-workflow-metadata-model"),
+    workflowMetadataPayloadPresent: element.getAttribute("data-package-export-workflow-metadata-payload-present"),
+    traceProvenancePayloadPresent: element.getAttribute("data-package-export-workflow-trace-provenance-payload-present"),
+    aiContentDisclaimerPayloadPresent: element.getAttribute("data-package-export-ai-content-disclaimer-payload-present")
+  }));
+
+  const downloadPromise = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Download" }).click();
+  const download = await downloadPromise;
+  const downloadPath = await download.path();
+  expect(downloadPath).toBeTruthy();
+  expect(download.suggestedFilename()).toBe("zenart-001.zip");
+
+  const zipBuffer = await readFile(downloadPath as string);
+  const zipHash = createHash("sha256").update(zipBuffer).digest("hex");
+  const zip = await JSZip.loadAsync(zipBuffer);
+  const zipPayloads = Object.keys(zip.files)
+    .filter((name) => !zip.files[name].dir)
+    .sort();
+  const manifest = JSON.parse(await zip.file("manifest.json")!.async("string"));
+  const qaReport = JSON.parse(await zip.file("qa-report.json")!.async("string"));
+  const safetyReport = JSON.parse(await zip.file("safety-policy-report.json")!.async("string"));
+  const metadataPayload = JSON.parse(await zip.file("metadata.json")!.async("string"));
+  const traceProvenance = JSON.parse(await zip.file("trace_provenance.json")!.async("string"));
+  const missingZipPayloads = localMerchantRequiredZipPayloads.filter((payload) => !zipPayloads.includes(payload));
+
+  expect(missingZipPayloads).toEqual([]);
+  expect(manifest.workflow_acceptance.workflow_id).toBe(localMerchantWorkflowId);
+  expect(manifest.workflow_acceptance.fixture_id).toBe(localMerchantFixtureId);
+  expect(qaReport.some((finding: { id: string; severity: string }) => finding.id === "qa-local-merchant-campaign-taxonomy" && finding.severity === "pass")).toBe(true);
+  expect(qaReport.some((finding: { id: string; severity: string }) => finding.id === "qa-local-merchant-structured-details" && finding.severity === "pass")).toBe(true);
+  expect(safetyReport.status).toBe("pass");
+  expect(metadataPayload.provider).toBe("dev-provider");
+  expect(metadataPayload.model).toBe("deterministic-local-alpha");
+
+  const completedAt = Date.now();
+  const common = {
+    ...commonEvidence(baseURL),
+    workflow_id: localMerchantWorkflowId,
+    fixture_id: localMerchantFixtureId
+  };
+
+  await writeEvidence("local_merchant_campaign_pack.api_smoke.json", {
+    ...common,
+    evidence_kind: "api_smoke",
+    status: "pass",
+    runner: "web/tests/local-alpha-ecommerce-evidence.spec.ts",
+    command: "npm run smoke:local-alpha-ecommerce-evidence",
+    operation_ids: apiAttributes.operationIds,
+    operation_contracts: apiAttributes.operationContracts,
+    operation_count: Number(apiAttributes.operationCount),
+    csrf_protected_operation_count: Number(apiAttributes.csrfProtectedOperationCount),
+    idempotency_required_operation_count: Number(apiAttributes.idempotencyRequiredOperationCount),
+    scenario: apiAttributes.scenario,
+    assertions: {
+      status: apiAttributes.status,
+      candidate_count: Number(apiAttributes.candidateCount),
+      taxonomy_count: Number(apiAttributes.taxonomyCount),
+      packaged_taxonomy_count: Number(apiAttributes.packagedTaxonomyCount),
+      ready_zip_export_count: Number(apiAttributes.readyZipExportCount),
+      missing_output_count: Number(apiAttributes.missingOutputCount),
+      qa_taxonomy_id: apiAttributes.qaTaxonomyId,
+      qa_taxonomy_status: apiAttributes.qaTaxonomyStatus,
+      safety_status: apiAttributes.safetyStatus,
+      failures: apiAttributes.failures
+    }
+  });
+
+  await writeEvidence("local_merchant_campaign_pack.playwright_happy_path.json", {
+    ...common,
+    evidence_kind: "playwright_happy_path",
+    status: "pass",
+    runner: "web/tests/local-alpha-ecommerce-evidence.spec.ts",
+    command: "npm run smoke:local-alpha-ecommerce-evidence",
+    browser: "Desktop Chrome",
+    route_assertions: ["/workspace", "/export"],
+    interaction_steps: [
+      "brief_confirmed",
+      "storefront_reference_uploaded",
+      "four_local_merchant_candidates_visible",
+      "candidate_selected",
+      "iteration_created",
+      "all_local_merchant_taxonomy_candidates_packaged",
+      "zip_export_created",
+      "download_handoff_completed"
+    ],
+    rendering_performance: renderingAttributes,
+    export_metadata_ui: exportMetadata,
+    downloaded_file_name: download.suggestedFilename(),
+    elapsed_ms: completedAt - startedAt
+  });
+
+  await writeEvidence("local_merchant_campaign_pack.export_zip.json", {
+    ...common,
+    evidence_kind: "export_zip",
+    status: "pass",
+    runner: "web/tests/local-alpha-ecommerce-evidence.spec.ts",
+    command: "npm run smoke:local-alpha-ecommerce-evidence",
+    file_name: download.suggestedFilename(),
+    byte_size: zipBuffer.byteLength,
+    sha256: zipHash,
+    payloads: zipPayloads,
+    required_payloads: [...localMerchantRequiredZipPayloads],
+    missing_payloads: missingZipPayloads,
+    manifest: {
+      package_id: manifest.package_id,
+      project_id: manifest.project_id,
+      item_count: manifest.items.length,
+      required_output_count: manifest.required_outputs.length,
+      workflow_acceptance: manifest.workflow_acceptance,
+      ppt_ready_metadata_schema: manifest.ppt_ready_metadata.schema_version,
+      ppt_slide_count: manifest.ppt_ready_metadata.slides.length
+    },
+    qa_report: {
+      finding_count: qaReport.length,
+      blocking_count: qaReport.filter((finding: { severity: string }) => finding.severity === "block").length,
+      local_merchant_taxonomy_status: qaReport.find((finding: { id: string }) => finding.id === "qa-local-merchant-campaign-taxonomy")?.severity,
+      structured_details_status: qaReport.find((finding: { id: string }) => finding.id === "qa-local-merchant-structured-details")?.severity
     },
     safety_report: {
       status: safetyReport.status,

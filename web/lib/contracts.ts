@@ -625,6 +625,7 @@ export interface ZenArtClient {
   expireSession(): Promise<WorkspaceState>;
   confirmBrief(prompt: string): Promise<WorkspaceState>;
   activateBusinessVisualDocWorkflow(): Promise<WorkspaceState>;
+  activateLocalMerchantCampaignWorkflow(): Promise<WorkspaceState>;
   createProject(name: string): Promise<WorkspaceState>;
   updateProject(projectId: string, name: string): Promise<WorkspaceState>;
   attachReference(asset: Pick<ReferenceAsset, "name" | "kind">): Promise<WorkspaceState>;
