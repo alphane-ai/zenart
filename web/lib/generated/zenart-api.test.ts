@@ -512,7 +512,85 @@ describe("generated web API client CSRF contract", () => {
         pathParams: { export_id: "https://evil.example/export-001" }
       })
     ).rejects.toThrow("Unsafe path parameter: export_id");
+    await expect(
+      client.request("getWorkspace", {
+        pathParams: { project_id: "project\\admin" }
+      })
+    ).rejects.toThrow("Unsafe path parameter: project_id");
+    await expect(
+      client.request("getTask", {
+        pathParams: { task_id: ".." }
+      })
+    ).rejects.toThrow("Unsafe path parameter: task_id");
+    await expect(client.request("getProject")).rejects.toThrow("Missing path parameter: project_id");
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("records path parameter hardening in the generated CSRF evidence artifact", async () => {
+    const routeSmokeEvidence = generatedApiCsrfContractFromRouteSmoke();
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ id: "project-001" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" }
+      })
+    );
+    const client = new ZenArtApiClient();
+
+    await client.request("getProject", {
+      pathParams: { project_id: "project 001" }
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/projects/project%20001",
+      expect.objectContaining({
+        method: "GET",
+        credentials: defaultSameSiteCsrfContract.credentialMode
+      })
+    );
+    expect(generatedApiCsrfContract.pathParamGuard).toMatchObject({
+      schemaVersion: "stage0.rev2.generated-api-path-param-guard",
+      source: "web/lib/generated/zenart-api.ts",
+      unitTest: "web/lib/generated/zenart-api.test.ts",
+      status: "pass",
+      missingParamRejected: true,
+      slashRejected: true,
+      backslashRejected: true,
+      dotSegmentRejected: true,
+      absoluteUrlParamRejected: true,
+      safeParamEncoded: true,
+      failureCount: 0
+    });
+    expect(routeSmokeEvidence.pathParamGuard).toMatchObject({
+      schemaVersion: generatedApiCsrfContract.pathParamGuard.schemaVersion,
+      expectedStatus: generatedApiCsrfContract.pathParamGuard.status,
+      expectedMissingParamRejected: generatedApiCsrfContract.pathParamGuard.missingParamRejected,
+      expectedSlashRejected: generatedApiCsrfContract.pathParamGuard.slashRejected,
+      expectedBackslashRejected: generatedApiCsrfContract.pathParamGuard.backslashRejected,
+      expectedDotSegmentRejected: generatedApiCsrfContract.pathParamGuard.dotSegmentRejected,
+      expectedAbsoluteUrlParamRejected: generatedApiCsrfContract.pathParamGuard.absoluteUrlParamRejected,
+      expectedSafeParamEncoded: generatedApiCsrfContract.pathParamGuard.safeParamEncoded,
+      expectedFailureCount: generatedApiCsrfContract.pathParamGuard.failureCount
+    });
+    expect(generatedApiCsrfContract.pathParamGuard.rejectedExamples).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ scenario: "slash-traversal", outcome: "reject-before-fetch" }),
+        expect.objectContaining({ scenario: "absolute-url", outcome: "reject-before-fetch" }),
+        expect.objectContaining({ scenario: "backslash-traversal", outcome: "reject-before-fetch" }),
+        expect.objectContaining({ scenario: "dot-segment", outcome: "reject-before-fetch" })
+      ])
+    );
+    expect(generatedApiCsrfContract.pathParamGuard.allowedExamples).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          scenario: "space-encoding",
+          expectedPath: "/projects/project%20001",
+          outcome: "allow-encoded-path-param"
+        })
+      ])
+    );
+    expect(generatedApiCsrfContract.assertions).toEqual(
+      expect.arrayContaining(["Generated web API client rejects unsafe path params before credentialed requests."])
+    );
   });
 });
 

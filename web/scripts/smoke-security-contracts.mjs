@@ -633,6 +633,8 @@ const absoluteBaseUrlGuard = generatedApiCsrfContract.absoluteBaseUrlGuard;
 const routeAbsoluteBaseUrlGuard = generatedClientEvidence.absoluteBaseUrlGuard;
 const canonicalHeaderGuard = generatedApiCsrfContract.canonicalHeaderGuard;
 const routeCanonicalHeaderGuard = generatedClientEvidence.canonicalHeaderGuard;
+const pathParamGuard = generatedApiCsrfContract.pathParamGuard;
+const routePathParamGuard = generatedClientEvidence.pathParamGuard;
 if (
   absoluteBaseUrlGuard?.schemaVersion !== "stage0.rev2.generated-api-same-origin-base-guard" ||
   absoluteBaseUrlGuard?.status !== "pass" ||
@@ -731,6 +733,78 @@ if (
   routeCanonicalHeaderGuard?.generatedClientUnitTest !== canonicalHeaderGuard.generatedClientUnitTest
 ) {
   fail("user route smoke canonical CSRF header guard drifted from generated API CSRF artifact");
+}
+
+if (
+  pathParamGuard?.schemaVersion !== "stage0.rev2.generated-api-path-param-guard" ||
+  pathParamGuard?.status !== "pass" ||
+  pathParamGuard?.missingParamRejected !== true ||
+  pathParamGuard?.slashRejected !== true ||
+  pathParamGuard?.backslashRejected !== true ||
+  pathParamGuard?.dotSegmentRejected !== true ||
+  pathParamGuard?.absoluteUrlParamRejected !== true ||
+  pathParamGuard?.safeParamEncoded !== true ||
+  pathParamGuard?.failureCount !== 0 ||
+  pathParamGuard?.source !== "web/lib/generated/zenart-api.ts" ||
+  pathParamGuard?.unitTest !== "web/lib/generated/zenart-api.test.ts" ||
+  !pathParamGuard?.assertion?.includes("same-site credentialed requests")
+) {
+  fail("generated API CSRF artifact missing path parameter guard evidence");
+}
+
+if (
+  routePathParamGuard?.schemaVersion !== pathParamGuard.schemaVersion ||
+  routePathParamGuard?.expectedStatus !== pathParamGuard.status ||
+  routePathParamGuard?.expectedMissingParamRejected !== pathParamGuard.missingParamRejected ||
+  routePathParamGuard?.expectedSlashRejected !== pathParamGuard.slashRejected ||
+  routePathParamGuard?.expectedBackslashRejected !== pathParamGuard.backslashRejected ||
+  routePathParamGuard?.expectedDotSegmentRejected !== pathParamGuard.dotSegmentRejected ||
+  routePathParamGuard?.expectedAbsoluteUrlParamRejected !== pathParamGuard.absoluteUrlParamRejected ||
+  routePathParamGuard?.expectedSafeParamEncoded !== pathParamGuard.safeParamEncoded ||
+  routePathParamGuard?.expectedFailureCount !== pathParamGuard.failureCount ||
+  routePathParamGuard?.unitTest !== pathParamGuard.unitTest
+) {
+  fail("user route smoke path parameter guard drifted from generated API CSRF artifact");
+}
+
+for (const requiredRejectedScenario of ["slash-traversal", "absolute-url", "backslash-traversal", "dot-segment"]) {
+  if (
+    !pathParamGuard.rejectedExamples?.some(
+      (example) => example.scenario === requiredRejectedScenario && example.outcome === "reject-before-fetch"
+    )
+  ) {
+    fail(`generated API CSRF path parameter guard missing rejected scenario ${requiredRejectedScenario}`);
+  }
+}
+
+if (
+  !pathParamGuard.allowedExamples?.some(
+    (example) =>
+      example.scenario === "space-encoding" &&
+      example.expectedPath === "/projects/project%20001" &&
+      example.outcome === "allow-encoded-path-param"
+  )
+) {
+  fail("generated API CSRF path parameter guard missing safe encoded param example");
+}
+
+for (const requiredPathParamSnippet of [
+  "rejects path parameters that could escape generated API route templates",
+  "records path parameter hardening in the generated CSRF evidence artifact",
+  "Unsafe path parameter: project_id",
+  "Unsafe path parameter: export_id",
+  "Unsafe path parameter: task_id",
+  "Missing path parameter: project_id",
+  "project\\\\admin",
+  "/projects/project%20001",
+  "missingParamRejected: true",
+  "backslashRejected: true",
+  "dotSegmentRejected: true",
+  "safeParamEncoded: true"
+]) {
+  if (!generatedApiTestSource.includes(requiredPathParamSnippet)) {
+    fail(`generated API CSRF unit evidence missing path parameter guard snippet ${requiredPathParamSnippet}`);
+  }
 }
 
 if (

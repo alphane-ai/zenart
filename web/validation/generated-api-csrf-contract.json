@@ -268,6 +268,64 @@
     "rejectedCallerAliases": ["X-ZenArt-CSRF", "x-zenart-csrf"],
     "assertion": "Generated client strips caller-supplied CSRF header aliases before applying one canonical same-site CSRF header, and read-only requests keep all CSRF aliases stripped."
   },
+  "pathParamGuard": {
+    "schemaVersion": "stage0.rev2.generated-api-path-param-guard",
+    "source": "web/lib/generated/zenart-api.ts",
+    "unitTest": "web/lib/generated/zenart-api.test.ts",
+    "status": "pass",
+    "missingParamRejected": true,
+    "slashRejected": true,
+    "backslashRejected": true,
+    "dotSegmentRejected": true,
+    "absoluteUrlParamRejected": true,
+    "safeParamEncoded": true,
+    "failureCount": 0,
+    "rejectedExamples": [
+      {
+        "scenario": "slash-traversal",
+        "operationId": "getProject",
+        "param": "project_id",
+        "example": "../admin/secrets",
+        "outcome": "reject-before-fetch",
+        "reason": "path parameter cannot contain slash or dot traversal material"
+      },
+      {
+        "scenario": "absolute-url",
+        "operationId": "getExport",
+        "param": "export_id",
+        "example": "https://evil.example/export-001",
+        "outcome": "reject-before-fetch",
+        "reason": "path parameter cannot contain slash material from an absolute URL"
+      },
+      {
+        "scenario": "backslash-traversal",
+        "operationId": "getWorkspace",
+        "param": "project_id",
+        "example": "project\\admin",
+        "outcome": "reject-before-fetch",
+        "reason": "path parameter cannot contain backslash path separators"
+      },
+      {
+        "scenario": "dot-segment",
+        "operationId": "getTask",
+        "param": "task_id",
+        "example": "..",
+        "outcome": "reject-before-fetch",
+        "reason": "path parameter cannot be a dot segment"
+      }
+    ],
+    "allowedExamples": [
+      {
+        "scenario": "space-encoding",
+        "operationId": "getProject",
+        "param": "project_id",
+        "example": "project 001",
+        "expectedPath": "/projects/project%20001",
+        "outcome": "allow-encoded-path-param"
+      }
+    ],
+    "assertion": "Generated client rejects missing, slash, backslash, dot-segment, and absolute-URL path parameters before same-site credentialed requests can be made, while safe values are URL encoded inside the route template."
+  },
   "protectedMethods": ["POST", "PUT", "PATCH", "DELETE"],
   "status": "pass",
   "unsafeOperationCount": 15,

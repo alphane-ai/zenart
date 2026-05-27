@@ -524,6 +524,20 @@
         "generatedClientUnitTest": "web/lib/generated/zenart-api.test.ts",
         "assertion": "generated client strips stale caller CSRF aliases before same-site credentialed requests and keeps safe requests alias-free"
       },
+      "pathParamGuard": {
+        "schemaVersion": "stage0.rev2.generated-api-path-param-guard",
+        "source": "web/validation/generated-api-csrf-contract.json",
+        "expectedStatus": "pass",
+        "expectedMissingParamRejected": true,
+        "expectedSlashRejected": true,
+        "expectedBackslashRejected": true,
+        "expectedDotSegmentRejected": true,
+        "expectedAbsoluteUrlParamRejected": true,
+        "expectedSafeParamEncoded": true,
+        "expectedFailureCount": 0,
+        "unitTest": "web/lib/generated/zenart-api.test.ts",
+        "assertion": "generated client rejects unsafe route-template params before same-site credentialed requests and URL-encodes safe params"
+      },
       "unsafeOperationCount": 15,
       "safeOperationCount": 17,
       "safeOperationContractsAttribute": "data-generated-api-csrf-safe-operation-contracts",
