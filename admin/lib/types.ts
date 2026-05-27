@@ -470,6 +470,34 @@ export type ObservabilityTelemetryRuntimeEvidence = {
   remainingBlockers: string[];
 };
 
+export type StagingObservabilityBackupLoadPreflightSlot = {
+  slot: "observability_evidence" | "backup_restore_evidence" | "load_evidence";
+  evidencePath: string;
+  status: "verified" | "blocked";
+  requiredEntries: string[];
+  verifiedEntries: string[];
+  missingEntries: string[];
+  blockingReason: string;
+  releaseGateUse: string;
+  evidenceRefs: string[];
+};
+
+export type StagingObservabilityBackupLoadPreflightEvidence = {
+  id: string;
+  environment: "staging";
+  status: "blocked";
+  releaseSha: string;
+  releaseGateCheckId: "staging_observability_backup_load";
+  evidencePath: string;
+  latestPreflightReport: string;
+  canClearAggregateItem: boolean;
+  preservedDoNotLaunchConditionId: "staging_observability_restore_load_missing";
+  preservedReleaseGateCheckId: "staging_observability_backup_load";
+  slots: StagingObservabilityBackupLoadPreflightSlot[];
+  operatorAction: string;
+  releaseGateUse: string;
+};
+
 export type ReleaseBlocker = {
   id: string;
   gate: "private_beta" | "production_launch";

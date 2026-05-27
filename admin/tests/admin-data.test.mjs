@@ -64,6 +64,7 @@ test("admin fixtures cover required operational surfaces", () => {
     "export const alertRouteRuntimeEvidence",
     "export const backendMetricsRuntimeEvidence",
     "export const observabilityTelemetryRuntimeEvidence",
+    "export const stagingObservabilityBackupLoadPreflightEvidence",
     "export const releaseBlockers",
     "export const auditEvents",
     "export const analyticsReports",
@@ -321,6 +322,38 @@ test("admin operations page exposes observability telemetry runtime evidence", (
     "structured_json_logs",
     "opentelemetry_traces",
     "ops/evidence/staging/20260527T1815Z-observability-telemetry.json"
+  ]) {
+    assert.match(fixtures, new RegExp(token));
+  }
+});
+
+test("admin operations page exposes observability backup load preflight evidence", () => {
+  const operationsPage = readFileSync(
+    new URL("../app/operations/page.tsx", import.meta.url),
+    "utf8"
+  );
+
+  for (const token of [
+    "Observability Backup Load Preflight",
+    "getStagingObservabilityBackupLoadPreflightEvidence",
+    "Can Clear Aggregate",
+    "Preserved Condition",
+    "Preflight Report",
+    "Required Entries",
+    "Missing Entries",
+    "Blocking Reason"
+  ]) {
+    assert.match(operationsPage, new RegExp(token));
+  }
+
+  for (const token of [
+    "stagingObservabilityBackupLoadPreflightEvidence",
+    "obl-preflight-staging-20260527T004121Z",
+    "ops/evidence/staging/20260527T004121Z-staging-observability-backup-load-77078.json",
+    "backup_restore_evidence",
+    "load_evidence",
+    "staging_observability_restore_load_missing",
+    "not_local_file:missing"
   ]) {
     assert.match(fixtures, new RegExp(token));
   }

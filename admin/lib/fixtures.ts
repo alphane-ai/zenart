@@ -27,6 +27,7 @@ import type {
   AlertRouteRuntimeEvidence,
   BackendMetricsRuntimeEvidence,
   ReleaseBlocker,
+  StagingObservabilityBackupLoadPreflightEvidence,
   StagingEvalQaSafetyEvidence,
   StagingQuotaRateLimitSpendCapEvidence,
   PromptFragment,
@@ -1905,6 +1906,92 @@ export const observabilityTelemetryRuntimeEvidence: ObservabilityTelemetryRuntim
     "staging post-deploy smoke tests",
     "staging load evidence"
   ]
+};
+
+export const stagingObservabilityBackupLoadPreflightEvidence: StagingObservabilityBackupLoadPreflightEvidence = {
+  id: "obl-preflight-staging-20260527T004121Z",
+  environment: "staging",
+  status: "blocked",
+  releaseSha: "d3b1107c33dc40b8936f28549e06553fbd7b104a",
+  releaseGateCheckId: "staging_observability_backup_load",
+  evidencePath: "ops/evidence/staging/20260527T004121Z-staging-observability-backup-load-77078.json",
+  latestPreflightReport: "ops/evidence/staging/20260527T004121Z-staging-observability-backup-load-77078.json",
+  canClearAggregateItem: false,
+  preservedDoNotLaunchConditionId: "staging_observability_restore_load_missing",
+  preservedReleaseGateCheckId: "staging_observability_backup_load",
+  slots: [
+    {
+      slot: "observability_evidence",
+      evidencePath: "ops/evidence/staging/20260527T1830Z-observability-runtime.json",
+      status: "verified",
+      requiredEntries: [
+        "alert_routes",
+        "backend_worker_crawler_metrics",
+        "dashboard_import",
+        "opentelemetry_traces",
+        "request_id_propagation",
+        "structured_json_logs"
+      ],
+      verifiedEntries: [
+        "alert_routes",
+        "backend_worker_crawler_metrics",
+        "dashboard_import",
+        "opentelemetry_traces",
+        "request_id_propagation",
+        "structured_json_logs"
+      ],
+      missingEntries: [],
+      blockingReason: "none",
+      releaseGateUse: "The observability slot verifies dashboard import, alert routes, backend/worker/crawler metrics, request-id propagation, structured JSON log redaction, and OpenTelemetry trace linkage for the staging operations gate.",
+      evidenceRefs: [
+        "ops/evidence/staging/20260527T1830Z-observability-runtime.json",
+        "ops/evidence/staging/20260526T1000Z-dashboard-runtime.json",
+        "ops/evidence/staging/20260526T1000Z-alert-runtime.json",
+        "ops/evidence/staging/20260527T1215Z-backend-worker-crawler-metrics.json",
+        "ops/evidence/staging/20260527T1815Z-observability-telemetry.json"
+      ]
+    },
+    {
+      slot: "backup_restore_evidence",
+      evidencePath: "",
+      status: "blocked",
+      requiredEntries: ["object_restore", "postgres_restore"],
+      verifiedEntries: [],
+      missingEntries: ["object_restore", "postgres_restore"],
+      blockingReason: "not_local_file:missing",
+      releaseGateUse: "Private beta remains blocked until staging-scoped Postgres restore and object restore reports are attached with the same release SHA and validator-visible evidence refs.",
+      evidenceRefs: ["obl-preflight-staging-20260527T004121Z", "staging_observability_restore_load_missing"]
+    },
+    {
+      slot: "load_evidence",
+      evidencePath: "",
+      status: "blocked",
+      requiredEntries: [
+        "chat_task",
+        "crawler_throttle",
+        "quota_contention",
+        "signed_download",
+        "worker_generation",
+        "workspace_rendering",
+        "zip_export"
+      ],
+      verifiedEntries: [],
+      missingEntries: [
+        "chat_task",
+        "crawler_throttle",
+        "quota_contention",
+        "signed_download",
+        "worker_generation",
+        "workspace_rendering",
+        "zip_export"
+      ],
+      blockingReason: "not_local_file:missing",
+      releaseGateUse: "Private beta remains blocked until every required load mode has staging runtime evidence for the same release SHA; one aggregate load status cannot close the gate.",
+      evidenceRefs: ["obl-preflight-staging-20260527T004121Z", "staging_observability_restore_load_missing"]
+    }
+  ],
+  operatorAction: "Run scripts/staging_observability_backup_load_smoke.sh with OBSERVABILITY_EVIDENCE, BACKUP_RESTORE_EVIDENCE, LOAD_EVIDENCE, and RELEASE_SHA after staging restore and load artifacts exist; keep the gate blocked while any slot reports missing evidence.",
+  releaseGateUse: "This admin preflight table prevents the operations console from closing Private Beta/Staging observability/backup/load until observability, backup/restore, and load slots are all verified in a single release-SHA-bound staging report."
 };
 
 export const releaseBlockers: ReleaseBlocker[] = [

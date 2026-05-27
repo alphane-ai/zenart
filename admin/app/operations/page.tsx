@@ -10,7 +10,8 @@ import {
   getOperationalDashboardRuntimeEvidence,
   getOperationalDashboards,
   getObservabilityTelemetryRuntimeEvidence,
-  getReleaseBlockers
+  getReleaseBlockers,
+  getStagingObservabilityBackupLoadPreflightEvidence
 } from "@/lib/admin-api";
 import type {
   AlertRoute,
@@ -23,7 +24,9 @@ import type {
   OperationalDashboardRuntimeEvidence,
   ObservabilityTelemetryRuntimeControl,
   ObservabilityTelemetryRuntimeEvidence,
-  ReleaseBlocker
+  ReleaseBlocker,
+  StagingObservabilityBackupLoadPreflightEvidence,
+  StagingObservabilityBackupLoadPreflightSlot
 } from "@/lib/types";
 
 function incidentTone(status: IncidentLog["status"]) {
@@ -43,7 +46,8 @@ export default async function OperationsPage() {
     alerts,
     alertRuntimeEvidence,
     metricsRuntimeEvidence,
-    telemetryRuntimeEvidence
+    telemetryRuntimeEvidence,
+    observabilityBackupLoadPreflight
   ] = await Promise.all([
     getIncidentLogs(),
     getMaintenanceBanners(),
@@ -52,7 +56,8 @@ export default async function OperationsPage() {
     getAlertRoutes(),
     getAlertRouteRuntimeEvidence(),
     getBackendMetricsRuntimeEvidence(),
-    getObservabilityTelemetryRuntimeEvidence()
+    getObservabilityTelemetryRuntimeEvidence(),
+    getStagingObservabilityBackupLoadPreflightEvidence()
   ]);
   const releaseBlockers = await getReleaseBlockers();
 
@@ -121,6 +126,43 @@ export default async function OperationsPage() {
             { key: "trace", header: "Trace Linkage", render: (row) => row.traceLinkageProbe },
             { key: "release", header: "Release Gate Use", render: (row) => row.releaseGateUse },
             { key: "audit", header: "Audit Ref", render: (row) => <span className="mono">{row.auditRef}</span> },
+            { key: "evidence", header: "Evidence Refs", render: (row) => row.evidenceRefs.join(", ") }
+          ]}
+        />
+      </section>
+
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>Observability Backup Load Preflight</h3>
+            <p>Combined staging gate evidence must verify observability, restore, and load slots before the private beta aggregate row can close.</p>
+          </div>
+        </div>
+        <DataTable<StagingObservabilityBackupLoadPreflightEvidence>
+          rows={[observabilityBackupLoadPreflight]}
+          columns={[
+            { key: "id", header: "Evidence", render: (row) => <span className="mono">{row.id}</span> },
+            { key: "status", header: "Status", render: (row) => <StatusBadge value={row.status} label={row.status} /> },
+            { key: "sha", header: "Release SHA", render: (row) => <span className="mono">{row.releaseSha}</span> },
+            { key: "check", header: "Release Gate Check", render: (row) => row.releaseGateCheckId },
+            { key: "clear", header: "Can Clear Aggregate", render: (row) => (row.canClearAggregateItem ? "yes" : "no") },
+            { key: "condition", header: "Preserved Condition", render: (row) => row.preservedDoNotLaunchConditionId },
+            { key: "path", header: "Preflight Report", render: (row) => row.latestPreflightReport },
+            { key: "action", header: "Operator Action", render: (row) => row.operatorAction },
+            { key: "release", header: "Release Gate Use", render: (row) => row.releaseGateUse }
+          ]}
+        />
+        <DataTable<StagingObservabilityBackupLoadPreflightSlot>
+          rows={observabilityBackupLoadPreflight.slots}
+          columns={[
+            { key: "slot", header: "Slot", render: (row) => row.slot },
+            { key: "status", header: "Status", render: (row) => <StatusBadge value={row.status} label={row.status} /> },
+            { key: "path", header: "Evidence Path", render: (row) => row.evidencePath || "missing" },
+            { key: "required", header: "Required Entries", render: (row) => row.requiredEntries.join(", ") },
+            { key: "verified", header: "Verified Entries", render: (row) => row.verifiedEntries.join(", ") || "none" },
+            { key: "missing", header: "Missing Entries", render: (row) => row.missingEntries.join(", ") || "none" },
+            { key: "reason", header: "Blocking Reason", render: (row) => row.blockingReason },
+            { key: "release", header: "Release Gate Use", render: (row) => row.releaseGateUse },
             { key: "evidence", header: "Evidence Refs", render: (row) => row.evidenceRefs.join(", ") }
           ]}
         />

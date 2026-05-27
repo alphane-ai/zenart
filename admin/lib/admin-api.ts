@@ -25,6 +25,7 @@ import {
   productionAbuseThrottleHoldEvidence,
   productionSecurityLaunchCheckEvidence,
   productionSkillReleaseEvalCanaryEvidence,
+  stagingObservabilityBackupLoadPreflightEvidence,
   stagingEvalQaSafetyEvidence,
   stagingQuotaRateLimitSpendCapEvidence,
   promptFragments,
@@ -254,6 +255,10 @@ export async function getBackendMetricsRuntimeEvidence() {
 
 export async function getObservabilityTelemetryRuntimeEvidence() {
   return observabilityTelemetryRuntimeEvidence;
+}
+
+export async function getStagingObservabilityBackupLoadPreflightEvidence() {
+  return stagingObservabilityBackupLoadPreflightEvidence;
 }
 
 export async function getReleaseBlockers() {
