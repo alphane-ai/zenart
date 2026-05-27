@@ -4940,6 +4940,17 @@ def validate_runtime_gate_impact_closure_claims(
                 + json.dumps(sorted(closure_claims), ensure_ascii=False),
             )
             continue
+        cross_gate_claims = {
+            item
+            for item in closure_claims - {GLOBAL_DO_NOT_LAUNCH_CHECKLIST_ITEM}
+            if item != RELEASE_GATE_AGGREGATE_ITEMS[gate]
+            and GATE_CHECKLIST_ITEMS.get(item) != gate
+        }
+        require(
+            not cross_gate_claims,
+            f"{rel_path} gate_impact cannot claim closure for another gate's launch checklist item(s): "
+            + json.dumps(sorted(cross_gate_claims), ensure_ascii=False),
+        )
         gate_items = {
             item
             for item in closure_claims
@@ -10004,6 +10015,7 @@ def validate_launch_readiness_split_contracts() -> None:
         "A top-level gate checklist item may close only after its aggregate runtime checklist item is closed",
         "if those are all true, the gate checklist item must be updated in the same change",
         "Runtime evidence `gate_impact` metadata cannot claim closure for a top-level Local Alpha、CI、Private Beta/Staging、Production、or global Do-Not-Launch checklist item",
+        "A runtime evidence file's `gate_impact` cannot claim another gate's top-level checklist row",
         "a single `ops/evidence/**/*.json` file cannot override an open aggregate row, active Do-Not-Launch condition, or fixture-level `no_go` decision",
         "Local Alpha closes only when four workflow API/Playwright smokes",
         "Production Launch cannot clear `ci_staging_gates_not_passed` or pass backup/rollback/post-deploy evidence until both",
