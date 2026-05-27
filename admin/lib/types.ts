@@ -755,6 +755,26 @@ export type FailedTaskRuntimeDecision = {
   stateDigestEvidence: string;
   compatibilityStatus: "compatible" | "stale";
   compatibilityEvidence: string;
+  apiOutcome:
+    | "post_retry_202_accepted"
+    | "post_cancel_202_review_required"
+    | "post_cancel_202_cancelled"
+    | "disabled_423_hold"
+    | "disabled_409_conflict";
+  quotaLedgerEffect:
+    | "release_reserved_credit_once"
+    | "refund_pending_until_audit"
+    | "refund_on_cancel_after_review"
+    | "no_quota_mutation";
+  supportNoticeStatus: "ready" | "missing";
+  auditWritePolicy:
+    | "write_submit_audit_before_queue_mutation"
+    | "write_review_audit_before_cancel_closure"
+    | "write_blocked_attempt_audit";
+  regressionGateEffect:
+    | "canary_fixture_ready"
+    | "canary_fixture_blocks_until_review"
+    | "no_regression_fixture_blocks_release";
   closureEvidenceStatus: "complete" | "incomplete";
   rbacEvidenceStatus: "complete" | "missing";
   rbacEvidenceRefs: string[];

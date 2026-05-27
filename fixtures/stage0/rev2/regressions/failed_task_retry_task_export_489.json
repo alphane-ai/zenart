@@ -32,7 +32,12 @@
     "submit_decision": "submit_ready",
     "state_transition": "failed_to_retrying_after_submit",
     "closure_outcome": "retry_submits_with_audit",
-    "release_gate_disposition": "converted_regression_fixture"
+    "release_gate_disposition": "converted_regression_fixture",
+    "api_outcome": "post_retry_202_accepted",
+    "quota_ledger_effect": "release_reserved_credit_once",
+    "support_notice_status": "ready",
+    "audit_write_policy": "write_submit_audit_before_queue_mutation",
+    "regression_gate_effect": "canary_fixture_ready"
   },
   "release_block": {
     "canary_metric": "cm-012",

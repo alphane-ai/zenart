@@ -1294,6 +1294,16 @@ test("failed task retry and cancel samples are durable regression fixtures", () 
   assert.equal(cancelDecision.closureOutcome, cancelFixture.runtime_contract.closure_outcome);
   assert.equal(retryDecision.releaseGateDisposition, retryFixture.runtime_contract.release_gate_disposition);
   assert.equal(cancelDecision.releaseGateDisposition, cancelFixture.runtime_contract.release_gate_disposition);
+  assert.equal(retryDecision.apiOutcome, retryFixture.runtime_contract.api_outcome);
+  assert.equal(cancelDecision.apiOutcome, cancelFixture.runtime_contract.api_outcome);
+  assert.equal(retryDecision.quotaLedgerEffect, retryFixture.runtime_contract.quota_ledger_effect);
+  assert.equal(cancelDecision.quotaLedgerEffect, cancelFixture.runtime_contract.quota_ledger_effect);
+  assert.equal(retryDecision.supportNoticeStatus, retryFixture.runtime_contract.support_notice_status);
+  assert.equal(cancelDecision.supportNoticeStatus, cancelFixture.runtime_contract.support_notice_status);
+  assert.equal(retryDecision.auditWritePolicy, retryFixture.runtime_contract.audit_write_policy);
+  assert.equal(cancelDecision.auditWritePolicy, cancelFixture.runtime_contract.audit_write_policy);
+  assert.equal(retryDecision.regressionGateEffect, retryFixture.runtime_contract.regression_gate_effect);
+  assert.equal(cancelDecision.regressionGateEffect, cancelFixture.runtime_contract.regression_gate_effect);
 
   assert.ok(
     retryFixture.expected_assertions.includes("action_scoped_idempotency_key == true"),
@@ -1355,6 +1365,56 @@ test("failed task runtime submit gates preserve retry, cancel, hold, RBAC, and a
     "eval_gate_preserved_by_regression_fixture",
     "crawler cancel regression must preserve the eval gate while second review is open"
   );
+  assert.equal(
+    decisionsByTask.get("task-export-489").apiOutcome,
+    "post_retry_202_accepted",
+    "eligible retry should expose accepted admin API outcome"
+  );
+  assert.equal(
+    decisionsByTask.get("task-export-489").quotaLedgerEffect,
+    "release_reserved_credit_once",
+    "eligible retry must release reserved credit exactly once"
+  );
+  assert.equal(
+    decisionsByTask.get("task-export-489").auditWritePolicy,
+    "write_submit_audit_before_queue_mutation",
+    "eligible retry must write audit before queue mutation"
+  );
+  assert.equal(
+    decisionsByTask.get("task-export-489").regressionGateEffect,
+    "canary_fixture_ready",
+    "eligible retry regression should be canary-ready after conversion"
+  );
+  assert.equal(
+    decisionsByTask.get("task-crawler-019").apiOutcome,
+    "post_cancel_202_review_required",
+    "crawler cancel should return review-required admin API outcome"
+  );
+  assert.equal(
+    decisionsByTask.get("task-crawler-019").auditWritePolicy,
+    "write_review_audit_before_cancel_closure",
+    "crawler cancel must write review audit before closure"
+  );
+  assert.equal(
+    decisionsByTask.get("task-crawler-019").regressionGateEffect,
+    "canary_fixture_blocks_until_review",
+    "crawler cancel regression must keep canary blocked until review closes"
+  );
+  assert.equal(
+    decisionsByTask.get("task-brief-441").apiOutcome,
+    "disabled_423_hold",
+    "blocked safety hold should expose disabled hold outcome"
+  );
+  assert.equal(
+    decisionsByTask.get("task-brief-441").quotaLedgerEffect,
+    "refund_pending_until_audit",
+    "blocked safety hold should preserve pending refund ledger effect"
+  );
+  assert.equal(
+    decisionsByTask.get("task-brief-441").auditWritePolicy,
+    "write_blocked_attempt_audit",
+    "blocked safety hold must write blocked-attempt audit evidence"
+  );
 
   for (const task of failedTaskControls) {
     const decision = decisionsByTask.get(task.id);
@@ -1378,6 +1438,27 @@ test("failed task runtime submit gates preserve retry, cancel, hold, RBAC, and a
       decision.compatibilityEvidence,
       `app:${task.appVersion}; worker:${task.workerVersion}; schema:${task.schemaVersion}`,
       `${task.id} must preserve version compatibility evidence`
+    );
+    assert.match(
+      decision.apiOutcome,
+      /post_retry_202_accepted|post_cancel_202_review_required|post_cancel_202_cancelled|disabled_423_hold|disabled_409_conflict/,
+      `${task.id} needs explicit admin API outcome`
+    );
+    assert.match(
+      decision.quotaLedgerEffect,
+      /release_reserved_credit_once|refund_pending_until_audit|refund_on_cancel_after_review|no_quota_mutation/,
+      `${task.id} needs explicit quota ledger effect`
+    );
+    assert.equal(decision.supportNoticeStatus, decision.userMessageStatus, `${task.id} support notice must mirror user-message readiness`);
+    assert.match(
+      decision.auditWritePolicy,
+      /write_submit_audit_before_queue_mutation|write_review_audit_before_cancel_closure|write_blocked_attempt_audit/,
+      `${task.id} needs explicit audit write policy`
+    );
+    assert.match(
+      decision.regressionGateEffect,
+      /canary_fixture_ready|canary_fixture_blocks_until_review|no_regression_fixture_blocks_release/,
+      `${task.id} needs explicit regression gate effect`
     );
     assert.equal(decision.closureEvidenceStatus, "complete", `${task.id} must have complete closure evidence`);
     assert.equal(decision.userMessageStatus, "ready", `${task.id} must expose user-visible messaging`);

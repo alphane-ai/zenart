@@ -159,6 +159,38 @@ export function buildFailedTaskRuntimeDecisions(tasks: FailedTaskControl[]): Fai
     const computedStateTransition = stateTransition(task, submitDecision);
     const computedClosureOutcome = closureOutcome(task, submitDecision);
     const computedReleaseGateDisposition = releaseGateDisposition(task, submitDecision);
+    const apiOutcome =
+      task.requestedAction === "retry"
+        ? submitDecision === "submit_ready"
+          ? "post_retry_202_accepted"
+          : "disabled_409_conflict"
+        : task.requestedAction === "cancel"
+          ? submitDecision === "submit_ready"
+            ? "post_cancel_202_cancelled"
+            : submitDecision === "review_required"
+              ? "post_cancel_202_review_required"
+              : "disabled_409_conflict"
+          : "disabled_423_hold";
+    const quotaLedgerEffect =
+      task.quotaEffect === "reserved_credit_released"
+        ? "release_reserved_credit_once"
+        : task.quotaEffect === "refund_pending"
+          ? "refund_pending_until_audit"
+          : task.quotaEffect === "refund_on_cancel"
+            ? "refund_on_cancel_after_review"
+            : "no_quota_mutation";
+    const auditWritePolicy =
+      submitDecision === "submit_ready"
+        ? "write_submit_audit_before_queue_mutation"
+        : submitDecision === "review_required"
+          ? "write_review_audit_before_cancel_closure"
+          : "write_blocked_attempt_audit";
+    const regressionGateEffect =
+      computedReleaseGateDisposition === "converted_regression_fixture"
+        ? "canary_fixture_ready"
+        : computedReleaseGateDisposition === "eval_gate_preserved_by_regression_fixture"
+          ? "canary_fixture_blocks_until_review"
+          : "no_regression_fixture_blocks_release";
 
     return {
       taskId: task.id,
@@ -177,6 +209,11 @@ export function buildFailedTaskRuntimeDecisions(tasks: FailedTaskControl[]): Fai
       stateDigestEvidence,
       compatibilityStatus,
       compatibilityEvidence,
+      apiOutcome,
+      quotaLedgerEffect,
+      supportNoticeStatus: userMessageStatus,
+      auditWritePolicy,
+      regressionGateEffect,
       closureEvidenceStatus,
       rbacEvidenceStatus,
       rbacEvidenceRefs: task.rbacEvidenceRefs,
