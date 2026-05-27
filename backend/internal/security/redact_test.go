@@ -485,6 +485,138 @@ func TestRedactMapCoversLaunchAIEvalProxyMetadataKeys(t *testing.T) {
 	}
 }
 
+func TestRedactStringCoversLaunchBackupAndIncidentSecrets(t *testing.T) {
+	ageKey := "AGE-SECRET-KEY-" + strings.Repeat("A", 32)
+	input := strings.Join([]string{
+		"RESTIC_PASSWORD=restic-password-value",
+		"RESTIC_REPOSITORY=s3:s3.example.test/zenart-prod-backups",
+		"KOPIA_SERVER_PASSWORD=kopia-server-password",
+		"BORG_PASSPHRASE=borg-passphrase",
+		"PGBACKREST_REPO1_CIPHER_PASS=pgbackrest-cipher-pass",
+		"WALG_S3_PREFIX=s3://backup-access:backup-secret@bucket/path",
+		"LITESTREAM_REPLICA_URL=s3://litestream-access:litestream-secret@bucket/db",
+		"BACKUP_ENCRYPTION_KEY=backup-encryption-secret",
+		"AGE_SECRET_KEY=" + ageKey,
+		"GPG_PRIVATE_KEY=-----BEGIN PRIVATE KEY-----abc123-----END PRIVATE KEY-----",
+		"ROOTLY_API_KEY=rootly-secret-value",
+		"FIREHYDRANT_TOKEN=firehydrant-secret-value",
+		"STATUSPAGE_API_KEY=statuspage-secret-value",
+		"VICTOROPS_ROUTING_KEY=victorops-routing-secret",
+		"SPLUNK_ON_CALL_API_KEY=splunk-on-call-secret",
+		"SQUADCAST_WEBHOOK_SECRET=squadcast-webhook-secret",
+	}, " ")
+
+	got := RedactString(input)
+	for _, leaked := range []string{
+		"restic-password-value",
+		"s3.example.test/zenart-prod-backups",
+		"kopia-server-password",
+		"borg-passphrase",
+		"pgbackrest-cipher-pass",
+		"backup-access",
+		"backup-secret",
+		"litestream-access",
+		"litestream-secret",
+		"backup-encryption-secret",
+		ageKey,
+		"abc123",
+		"rootly-secret-value",
+		"firehydrant-secret-value",
+		"statuspage-secret-value",
+		"victorops-routing-secret",
+		"splunk-on-call-secret",
+		"squadcast-webhook-secret",
+	} {
+		if strings.Contains(got, leaked) {
+			t.Fatalf("RedactString() = %q, leaked %s", got, leaked)
+		}
+	}
+	if !strings.Contains(got, Redacted) {
+		t.Fatalf("RedactString() = %q, want redaction marker", got)
+	}
+
+	findings := ClassifyString(input)
+	assertSignal(t, findings, "age_secret_key")
+	assertSignal(t, findings, "pem_private_key")
+	assertSignal(t, findings, "assignment:key_name")
+}
+
+func TestRedactMapCoversLaunchBackupAndIncidentMetadataKeys(t *testing.T) {
+	metadata := map[string]any{
+		"backup": map[string]any{
+			"resticPassword":            "restic-password-value",
+			"kopiaRepository":           "s3:s3.example.test/zenart-prod-backups",
+			"borgPassphrase":            "borg-passphrase",
+			"pgbackrestRepo1CipherPass": "pgbackrest-cipher-pass",
+			"walgS3Prefix":              "s3://backup-access:backup-secret@bucket/path",
+			"litestreamReplicaUrl":      "s3://litestream-access:litestream-secret@bucket/db",
+			"backupEncryptionKey":       "backup-encryption-secret",
+			"ageIdentity":               "AGE-SECRET-KEY-" + strings.Repeat("B", 32),
+			"publicRetentionDays":       30,
+		},
+		"incident": map[string]string{
+			"rootlyApiKey":              "rootly-secret-value",
+			"firehydrantToken":          "firehydrant-secret-value",
+			"statuspageApiKey":          "statuspage-secret-value",
+			"victoropsRoutingKey":       "victorops-routing-secret",
+			"splunkOnCallRoutingKey":    "splunk-on-call-secret",
+			"squadcastWebhookSecret":    "squadcast-webhook-secret",
+			"publicStatusPageComponent": "api",
+		},
+		"public": "visible",
+	}
+
+	body, err := json.Marshal(RedactValue(metadata))
+	if err != nil {
+		t.Fatalf("marshal redacted metadata: %v", err)
+	}
+	for _, leaked := range []string{
+		"restic-password-value",
+		"s3.example.test/zenart-prod-backups",
+		"borg-passphrase",
+		"pgbackrest-cipher-pass",
+		"backup-access",
+		"litestream-access",
+		"backup-encryption-secret",
+		"AGE-SECRET-KEY-",
+		"rootly-secret-value",
+		"firehydrant-secret-value",
+		"statuspage-secret-value",
+		"victorops-routing-secret",
+		"splunk-on-call-secret",
+		"squadcast-webhook-secret",
+	} {
+		if strings.Contains(string(body), leaked) {
+			t.Fatalf("redacted metadata = %s, leaked %s", string(body), leaked)
+		}
+	}
+	for _, fragment := range []string{`"public":"visible"`, `"publicRetentionDays":30`, `"publicStatusPageComponent":"api"`, Redacted} {
+		if !strings.Contains(string(body), fragment) {
+			t.Fatalf("redacted metadata = %s, missing %s", string(body), fragment)
+		}
+	}
+
+	findings := ClassifyValue(metadata)
+	for _, location := range []string{
+		"backup.resticPassword",
+		"backup.kopiaRepository",
+		"backup.borgPassphrase",
+		"backup.pgbackrestRepo1CipherPass",
+		"backup.walgS3Prefix",
+		"backup.litestreamReplicaUrl",
+		"backup.backupEncryptionKey",
+		"backup.ageIdentity",
+		"incident.rootlyApiKey",
+		"incident.firehydrantToken",
+		"incident.statuspageApiKey",
+		"incident.victoropsRoutingKey",
+		"incident.splunkOnCallRoutingKey",
+		"incident.squadcastWebhookSecret",
+	} {
+		assertAnyFindingAt(t, findings, location)
+	}
+}
+
 func TestRedactStringCoversLaunchAuthorizationSchemesAndInfraTokens(t *testing.T) {
 	pulumiToken := "pul-" + strings.Repeat("a", 40)
 	databricksToken := "dapi" + strings.Repeat("b", 32)

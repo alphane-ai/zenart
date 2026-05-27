@@ -47,7 +47,7 @@ type SecretFinding struct {
 	Location string     `json:"location,omitempty"`
 }
 
-var sensitiveKeyPattern = regexp.MustCompile(`(?i)(secret|token|password|passwd|pwd|passphrase|api[_-]?key|x[_-]?api[_-]?key|access[_-]?key|private[_-]?key|private[_-]?token|deploy[_-]?key|credential|signature|session|cookie|authorization|proxy[_-]?authorization|client[_-]?secret|client[_-]?token|client[_-]?assertion|refresh[_-]?token|id[_-]?token|personal[_-]?access[_-]?token|license[_-]?key|pat|jwt|oauth|webhook[_-]?secret|signing[_-]?key|routing[_-]?key|integration[_-]?key|shared[_-]?access[_-]?signature|sas|stripe|openai|anthropic|deepseek|mistral|cohere|gemini|google[_-]?ai|openrouter|perplexity|xai|fireworks|fal|elevenlabs|provider[_-]?key|sentry|datadog|honeycomb|new[_-]?relic|splunk|grafana|otel|otlp|posthog|segment|amplitude|mixpanel|launchdarkly|langfuse|braintrust|helicone|openpipe|promptlayer|portkey|wandb|weights[_-]?biases|weave|arize[_-]?phoenix|pagerduty|opsgenie|zendesk|intercom|resend|postmark|mailchimp|clerk|auth0|okta|supabase|firebase|redis[_-]?url|smtp[_-]?url|smtp[_-]?dsn|smtp[_-]?connection|elastic[_-]?cloud[_-]?auth|elasticsearch[_-]?url|opensearch[_-]?url|clickhouse[_-]?url|metabase[_-]?secret[_-]?key|metabase[_-]?api[_-]?key|metabase[_-]?session|terraform|snyk|circleci|buildkite|database[_-]?url|dsn|connection[_-]?string|connectionstring|service[_-]?account|storage[_-]?key|account[_-]?key|subscription[_-]?key|tenant[_-]?secret|object[_-]?storage[_-]?signing[_-]?key|object[_-]?storage[_-]?access[_-]?key|object[_-]?storage[_-]?secret[_-]?key|aws[_-]?secret[_-]?access[_-]?key|aws[_-]?session[_-]?token|s3[_-]?secret[_-]?key|minio[_-]?root[_-]?password|minio[_-]?secret[_-]?key|r2[_-]?(access|secret)|wasabi[_-]?(access|secret)|scw[_-]?(access|secret)|scaleway[_-]?(access|secret)|vultr[_-]?(access|secret)|linode[_-]?(access|secret)|oci[_-]?(access|secret|private)|oracle[_-]?(access|secret|private)|encryption[_-]?customer[_-]?key|customer[_-]?encryption[_-]?key|sse[_-]?customer[_-]?key|docker[_-]?auth|dockerconfigjson|dockercfg|image[_-]?pull[_-]?secret|registry[_-]?(auth|token|password))`)
+var sensitiveKeyPattern = regexp.MustCompile(`(?i)(secret|token|password|passwd|pwd|passphrase|api[_-]?key|x[_-]?api[_-]?key|access[_-]?key|private[_-]?key|private[_-]?token|deploy[_-]?key|credential|signature|session|cookie|authorization|proxy[_-]?authorization|client[_-]?secret|client[_-]?token|client[_-]?assertion|refresh[_-]?token|id[_-]?token|personal[_-]?access[_-]?token|license[_-]?key|pat|jwt|oauth|webhook[_-]?secret|signing[_-]?key|routing[_-]?key|integration[_-]?key|shared[_-]?access[_-]?signature|sas|stripe|openai|anthropic|deepseek|mistral|cohere|gemini|google[_-]?ai|openrouter|perplexity|xai|fireworks|fal|elevenlabs|provider[_-]?key|sentry|datadog|honeycomb|new[_-]?relic|splunk|grafana|otel|otlp|posthog|segment|amplitude|mixpanel|launchdarkly|langfuse|braintrust|helicone|openpipe|promptlayer|portkey|wandb|weights[_-]?biases|weave|arize[_-]?phoenix|pagerduty|opsgenie|zendesk|intercom|resend|postmark|mailchimp|clerk|auth0|okta|supabase|firebase|rootly|firehydrant|statuspage|victorops|splunk[_-]?on[_-]?call|squadcast|redis[_-]?url|smtp[_-]?url|smtp[_-]?dsn|smtp[_-]?connection|elastic[_-]?cloud[_-]?auth|elasticsearch[_-]?url|opensearch[_-]?url|clickhouse[_-]?url|metabase[_-]?secret[_-]?key|metabase[_-]?api[_-]?key|metabase[_-]?session|terraform|snyk|circleci|buildkite|database[_-]?url|dsn|connection[_-]?string|connectionstring|service[_-]?account|storage[_-]?key|account[_-]?key|subscription[_-]?key|tenant[_-]?secret|object[_-]?storage[_-]?signing[_-]?key|object[_-]?storage[_-]?access[_-]?key|object[_-]?storage[_-]?secret[_-]?key|aws[_-]?secret[_-]?access[_-]?key|aws[_-]?session[_-]?token|s3[_-]?secret[_-]?key|minio[_-]?root[_-]?password|minio[_-]?secret[_-]?key|r2[_-]?(access|secret)|wasabi[_-]?(access|secret)|scw[_-]?(access|secret)|scaleway[_-]?(access|secret)|vultr[_-]?(access|secret)|linode[_-]?(access|secret)|oci[_-]?(access|secret|private)|oracle[_-]?(access|secret|private)|restic|kopia|borg|pgbackrest|wal[_-]?g|walg|litestream|backup[_-]?(?:repository|repo|password|passphrase|encryption|signing)|age[_-]?(?:identity|secret)|gpg[_-]?(?:private|passphrase)|pgp[_-]?(?:private|passphrase)|encryption[_-]?customer[_-]?key|customer[_-]?encryption[_-]?key|sse[_-]?customer[_-]?key|docker[_-]?auth|dockerconfigjson|dockercfg|image[_-]?pull[_-]?secret|registry[_-]?(auth|token|password))`)
 
 var secretValuePatterns = []struct {
 	kind    SecretKind
@@ -137,6 +137,7 @@ var secretValuePatterns = []struct {
 	{SecretKindToken, "render_api_key", regexp.MustCompile(`\brnd_[A-Za-z0-9]{20,}\b`)},
 	{SecretKindToken, "doppler_token", regexp.MustCompile(`\bdp\.pt\.[A-Za-z0-9._-]{20,}\b`)},
 	{SecretKindToken, "vault_token", regexp.MustCompile(`\bhvs\.[A-Za-z0-9_-]{20,}\b`)},
+	{SecretKindPrivateKey, "age_secret_key", regexp.MustCompile(`\bAGE-SECRET-KEY-[A-Z0-9]{20,}\b`)},
 	{SecretKindEncryptionKey, "sse_customer_key_assignment", regexp.MustCompile(`(?i)\b(?:x[_-]?amz[_-]?)?(?:server[_-]?side[_-]?encryption[_-]customer[_-]?key|sse[_-]?customer[_-]?key|customer[_-]?provided[_-]?key)\s*[=:]\s*("[A-Za-z0-9+/=]{20,}"|'[A-Za-z0-9+/=]{20,}'|[A-Za-z0-9+/=]{20,})`)},
 	{SecretKindRegistryAuth, "kubernetes_pull_secret", regexp.MustCompile(`(?i)\b(?:image[_-]?pull[_-]?secret|dockerconfigjson|dockercfg)\s*[=:]\s*("[A-Za-z0-9+/=._-]{20,}"|'[A-Za-z0-9+/=._-]{20,}'|[A-Za-z0-9+/=._-]{20,})`)},
 }
@@ -149,6 +150,8 @@ var launchDataSecretKeyPattern = regexp.MustCompile(`(?i)(snowflake[_-]?(?:passw
 var launchDataSecretAssignmentPattern = regexp.MustCompile(`(?i)\b([A-Za-z0-9_.-]*(?:snowflake[_-]?(?:password|private[_-]?key|token|url|uri|dsn|connection|credential|credentials)|bigquery[_-]?(?:service[_-]?account|credentials|private[_-]?key|client[_-]?email|token|key)|google[_-]?application[_-]?credentials|gcp[_-]?(?:service[_-]?account|credentials|private[_-]?key)|databricks[_-]?(?:token|pat|host|url|dsn|client[_-]?secret|client[_-]?id)|dbt[_-]?cloud[_-]?(?:token|api[_-]?key|account[_-]?id)|airbyte[_-]?(?:api[_-]?key|client[_-]?secret|client[_-]?id|refresh[_-]?token)|fivetran[_-]?(?:api[_-]?key|api[_-]?secret|token)|motherduck[_-]?(?:token|url|dsn)|duckdb[_-]?(?:token|url|dsn)|neon[_-]?(?:database[_-]?url|connection[_-]?string|api[_-]?key)|planetscale[_-]?(?:password|token|service[_-]?token|url|dsn)|pscale[_-]?(?:password|token)|turso[_-]?(?:auth[_-]?token|database[_-]?url|url|token)|libsql[_-]?(?:auth[_-]?token|url|token)|aiven[_-]?(?:api[_-]?token|service[_-]?uri|password|url|dsn)|cockroach[_-]?(?:url|dsn|password|connection)|mongodb?[_-]?(?:uri|url|password|connection)|postgres(?:ql)?[_-]?(?:url|dsn|password|connection)|mysql[_-]?(?:url|dsn|password|connection))[A-Za-z0-9_.-]*)\s*([=:])\s*("[^"]*"|'[^']*'|[^\s,;&]+)`)
 var launchPackageRegistrySecretKeyPattern = regexp.MustCompile(`(?i)(node[_-]?auth[_-]?token|npm(?:rc)?[_-]?(?:auth[_-]?token|token|password)|yarn[_-]?npm[_-]?(?:auth[_-]?token|token)|pnpm[_-]?(?:auth[_-]?token|token)|pypi[_-]?(?:token|password|api[_-]?token)|twine[_-]?(?:password|token)|rubygems?[_-]?(?:api[_-]?key|token)|gem[_-]?(?:host[_-]?api[_-]?key|credentials)|cargo[_-]?(?:registry[_-]?token|token)|crates[_-]?io[_-]?token|composer[_-]?(?:auth|github[_-]?oauth|gitlab[_-]?token|http[_-]?basic)|packagist[_-]?(?:token|api[_-]?key)|nuget[_-]?(?:api[_-]?key|token)|maven[_-]?(?:password|token|server[_-]?password)|gradle[_-]?(?:password|token)|jfrog[_-]?(?:access[_-]?token|api[_-]?key|password)|artifactory[_-]?(?:access[_-]?token|api[_-]?key|password)|cloudsmith[_-]?(?:api[_-]?key|token|entitlement[_-]?token)|gitlab[_-]?deploy[_-]?token|gitea[_-]?(?:token|deploy[_-]?key)|bitbucket[_-]?(?:app[_-]?password|token)|sourcegraph[_-]?token|gerrit[_-]?(?:http[_-]?password|token))`)
 var launchPackageRegistrySecretAssignmentPattern = regexp.MustCompile(`(?i)\b([A-Za-z0-9_.-]*(?:node[_-]?auth[_-]?token|npm(?:rc)?[_-]?(?:auth[_-]?token|token|password)|yarn[_-]?npm[_-]?(?:auth[_-]?token|token)|pnpm[_-]?(?:auth[_-]?token|token)|pypi[_-]?(?:token|password|api[_-]?token)|twine[_-]?(?:password|token)|rubygems?[_-]?(?:api[_-]?key|token)|gem[_-]?(?:host[_-]?api[_-]?key|credentials)|cargo[_-]?(?:registry[_-]?token|token)|crates[_-]?io[_-]?token|composer[_-]?(?:auth|github[_-]?oauth|gitlab[_-]?token|http[_-]?basic)|packagist[_-]?(?:token|api[_-]?key)|nuget[_-]?(?:api[_-]?key|token)|maven[_-]?(?:password|token|server[_-]?password)|gradle[_-]?(?:password|token)|jfrog[_-]?(?:access[_-]?token|api[_-]?key|password)|artifactory[_-]?(?:access[_-]?token|api[_-]?key|password)|cloudsmith[_-]?(?:api[_-]?key|token|entitlement[_-]?token)|gitlab[_-]?deploy[_-]?token|gitea[_-]?(?:token|deploy[_-]?key)|bitbucket[_-]?(?:app[_-]?password|token)|sourcegraph[_-]?token|gerrit[_-]?(?:http[_-]?password|token))[A-Za-z0-9_.-]*)\s*([=:])\s*("[^"]*"|'[^']*'|[^\s,;&]+)`)
+var launchBackupIncidentSecretKeyPattern = regexp.MustCompile(`(?i)(restic[_-]?(?:password|repository|repo|key|aws[_-]?access|aws[_-]?secret)|kopia[_-]?(?:password|repo(?:sitory)?|server[_-]?password|tls[_-]?key)|borg[_-]?(?:passphrase|repo(?:sitory)?|key)|pgbackrest[_-]?(?:repo|password|cipher[_-]?pass|s3[_-]?(?:key|secret)|gcs[_-]?key)|wal[_-]?g[_-]?(?:s3[_-]?(?:prefix|access|secret)|gcs[_-]?(?:prefix|key)|azure[_-]?(?:account|key)|compression[_-]?passphrase)|walg[_-]?(?:s3[_-]?(?:prefix|access|secret)|gcs[_-]?(?:prefix|key)|azure[_-]?(?:account|key)|compression[_-]?passphrase)|litestream[_-]?(?:replica[_-]?(?:url|access|secret|key)|s3[_-]?(?:access|secret)|gcs[_-]?key)|backup[_-]?(?:repository|repo|password|passphrase|encryption[_-]?key|signing[_-]?key)|age[_-]?(?:identity|secret[_-]?key)|gpg[_-]?(?:private[_-]?key|passphrase)|pgp[_-]?(?:private[_-]?key|passphrase)|rootly[_-]?(?:api[_-]?key|token)|firehydrant[_-]?(?:api[_-]?key|token)|statuspage[_-]?(?:api[_-]?key|token)|victorops[_-]?(?:api[_-]?key|routing[_-]?key)|splunk[_-]?on[_-]?call[_-]?(?:api[_-]?key|routing[_-]?key)|squadcast[_-]?(?:api[_-]?key|token|webhook[_-]?secret))`)
+var launchBackupIncidentSecretAssignmentPattern = regexp.MustCompile(`(?i)\b([A-Za-z0-9_.-]*(?:restic[_-]?(?:password|repository|repo|key|aws[_-]?access|aws[_-]?secret)|kopia[_-]?(?:password|repo(?:sitory)?|server[_-]?password|tls[_-]?key)|borg[_-]?(?:passphrase|repo(?:sitory)?|key)|pgbackrest[_-]?(?:repo|password|cipher[_-]?pass|s3[_-]?(?:key|secret)|gcs[_-]?key)|wal[_-]?g[_-]?(?:s3[_-]?(?:prefix|access|secret)|gcs[_-]?(?:prefix|key)|azure[_-]?(?:account|key)|compression[_-]?passphrase)|walg[_-]?(?:s3[_-]?(?:prefix|access|secret)|gcs[_-]?(?:prefix|key)|azure[_-]?(?:account|key)|compression[_-]?passphrase)|litestream[_-]?(?:replica[_-]?(?:url|access|secret|key)|s3[_-]?(?:access|secret)|gcs[_-]?key)|backup[_-]?(?:repository|repo|password|passphrase|encryption[_-]?key|signing[_-]?key)|age[_-]?(?:identity|secret[_-]?key)|gpg[_-]?(?:private[_-]?key|passphrase)|pgp[_-]?(?:private[_-]?key|passphrase)|rootly[_-]?(?:api[_-]?key|token)|firehydrant[_-]?(?:api[_-]?key|token)|statuspage[_-]?(?:api[_-]?key|token)|victorops[_-]?(?:api[_-]?key|routing[_-]?key)|splunk[_-]?on[_-]?call[_-]?(?:api[_-]?key|routing[_-]?key)|squadcast[_-]?(?:api[_-]?key|token|webhook[_-]?secret))[A-Za-z0-9_.-]*)\s*([=:])\s*("[^"]*"|'[^']*'|[^\s,;&]+)`)
 var embeddedURLPattern = regexp.MustCompile(`[A-Za-z][A-Za-z0-9+.-]*://[^\s"'<>]+`)
 
 type MalwareScanStatus string
@@ -319,10 +322,14 @@ func ClassifyKey(key string) []SecretFinding {
 	if normalized == "path" {
 		return nil
 	}
+	if isPublicIncidentMetadataKey(normalized) {
+		return nil
+	}
 	if key == "" ||
 		(!sensitiveKeyPattern.MatchString(key) && !sensitiveKeyPattern.MatchString(normalized) &&
 			!launchDataSecretKeyPattern.MatchString(key) && !launchDataSecretKeyPattern.MatchString(normalized) &&
 			!launchPackageRegistrySecretKeyPattern.MatchString(key) && !launchPackageRegistrySecretKeyPattern.MatchString(normalized) &&
+			!launchBackupIncidentSecretKeyPattern.MatchString(key) && !launchBackupIncidentSecretKeyPattern.MatchString(normalized) &&
 			!launchSignedDeliverySecretKeyPattern.MatchString(key) && !launchSignedDeliverySecretKeyPattern.MatchString(normalized)) {
 		return nil
 	}
@@ -416,6 +423,22 @@ func ClassifyKey(key string) []SecretFinding {
 		default:
 			kind = SecretKindToken
 		}
+	case launchBackupIncidentSecretKeyPattern.MatchString(key) || launchBackupIncidentSecretKeyPattern.MatchString(normalized):
+		switch {
+		case strings.Contains(lower, "password") || strings.Contains(lower, "passphrase") || strings.Contains(lower, "cipher_pass"):
+			kind = SecretKindPassword
+		case strings.Contains(lower, "private") || strings.Contains(lower, "identity") || strings.Contains(lower, "encryption_key") || strings.Contains(lower, "signing_key"):
+			kind = SecretKindPrivateKey
+		case strings.Contains(lower, "repository") || strings.Contains(lower, "repo") || strings.Contains(lower, "replica_url") || strings.Contains(lower, "prefix"):
+			kind = SecretKindCredential
+		case strings.Contains(lower, "rootly") || strings.Contains(lower, "firehydrant") || strings.Contains(lower, "statuspage") ||
+			strings.Contains(lower, "victorops") || strings.Contains(lower, "splunk_on_call") || strings.Contains(lower, "squadcast"):
+			kind = SecretKindToken
+		case strings.Contains(lower, "s3") || strings.Contains(lower, "gcs") || strings.Contains(lower, "azure"):
+			kind = SecretKindCloudKey
+		default:
+			kind = SecretKindCredential
+		}
 	case strings.Contains(lower, "sentry") || strings.Contains(lower, "datadog") || strings.Contains(lower, "honeycomb") ||
 		strings.Contains(lower, "new_relic") || strings.Contains(lower, "splunk") || strings.Contains(lower, "grafana") ||
 		strings.Contains(lower, "otel") || strings.Contains(lower, "otlp") ||
@@ -461,6 +484,15 @@ func ClassifyKey(key string) []SecretFinding {
 		kind = SecretKindProviderKey
 	}
 	return []SecretFinding{{Kind: kind, Signal: "key_name"}}
+}
+
+func isPublicIncidentMetadataKey(normalized string) bool {
+	switch normalized {
+	case "public_status_page_component", "public_statuspage_component", "status_page_component", "statuspage_component":
+		return true
+	default:
+		return false
+	}
 }
 
 func normalizeSecretKey(key string) string {
@@ -521,6 +553,12 @@ func ClassifyString(value string) []SecretFinding {
 		}
 	}
 	for _, match := range launchPackageRegistrySecretAssignmentPattern.FindAllStringSubmatch(value, -1) {
+		for _, keyFinding := range ClassifyKey(match[1]) {
+			keyFinding.Signal = "assignment:" + keyFinding.Signal
+			findings = append(findings, keyFinding)
+		}
+	}
+	for _, match := range launchBackupIncidentSecretAssignmentPattern.FindAllStringSubmatch(value, -1) {
 		for _, keyFinding := range ClassifyKey(match[1]) {
 			keyFinding.Signal = "assignment:" + keyFinding.Signal
 			findings = append(findings, keyFinding)
@@ -893,6 +931,7 @@ func redactAssignments(value string) string {
 	value = redactAssignmentMatches(value, launchSecretAssignmentPattern)
 	value = redactAssignmentMatches(value, launchDataSecretAssignmentPattern)
 	value = redactAssignmentMatches(value, launchPackageRegistrySecretAssignmentPattern)
+	value = redactAssignmentMatches(value, launchBackupIncidentSecretAssignmentPattern)
 	return redactAssignmentMatches(value, signedDeliveryAssignmentPattern)
 }
 
