@@ -106,6 +106,7 @@ def validate_gate_shape(contract: dict[str, Any]) -> None:
         require(summary["critical_safety_regressions"] == 0, f"{gate['gate_id']} must require zero critical safety regressions")
         require(summary["trace_complete"] is True, f"{gate['gate_id']} must require trace completeness")
         require(summary["export_contract_complete"] is True, f"{gate['gate_id']} must require export completeness")
+        require(summary["qa_fixture_coverage_complete"] is True, f"{gate['gate_id']} must require QA fixture coverage completeness")
         require(gate["activation_allowed_without_passing_eval"] is False, f"{gate['gate_id']} must deny eval bypass")
 
 
@@ -124,6 +125,8 @@ def validate_decision_cases(contract: dict[str, Any]) -> None:
         "activation_case_failed_eval_denied",
         "activation_case_critical_safety_regression_denied",
         "activation_case_incomplete_contract_denied",
+        "activation_case_incomplete_qa_coverage_denied",
+        "activation_case_incomplete_export_artifacts_denied",
     }
     require(required_cases <= observed_case_ids, f"activation decision cases missing: {sorted(required_cases - observed_case_ids)}")
 
@@ -144,6 +147,7 @@ def validate_decision_cases(contract: dict[str, Any]) -> None:
             and summary["critical_safety_regressions"] == 0
             and summary["trace_complete"] is True
             and summary["export_contract_complete"] is True
+            and summary["qa_fixture_coverage_complete"] is True
         )
 
         if outcome["allowed"]:
@@ -188,6 +192,8 @@ def validate_decision_cases(contract: dict[str, Any]) -> None:
                 )
             elif summary["critical_safety_regressions"] > 0:
                 require(outcome["deny_reason"] == "critical_safety_regression", f"{case['case_id']} must deny critical safety regression")
+            elif summary["qa_fixture_coverage_complete"] is False:
+                require(outcome["deny_reason"] == "qa_fixture_coverage_incomplete", f"{case['case_id']} must deny incomplete QA fixture coverage")
             elif not summary["trace_complete"] or not summary["export_contract_complete"]:
                 require(outcome["deny_reason"] == "eval_contract_incomplete", f"{case['case_id']} must deny incomplete eval contract")
 
@@ -226,6 +232,7 @@ def validate_storage_and_openapi(contract: dict[str, Any]) -> None:
         "critical_safety_regressions",
         "trace_complete",
         "export_contract_complete",
+        "qa_fixture_coverage_complete",
     ]:
         require(token in eval_result, f"OpenAPI EvalResult missing activation token {token}")
     require("eval_suite_id" in skill_version, "OpenAPI SkillVersion must expose eval_suite_id")
@@ -254,6 +261,7 @@ def validate_eval_result_blocks_when_not_passed() -> None:
     require(summary["critical_safety_regressions"] == 0, "activation gate requires zero critical safety regressions")
     require(summary["trace_complete"] is True, "activation gate requires complete traces")
     require(summary["export_contract_complete"] is True, "activation gate requires export completeness")
+    require(summary["qa_fixture_coverage_complete"] is False, "starter eval result must expose incomplete QA coverage while blocked")
     require(summary["blocked_fixtures"] > 0, "blocked starter eval result must include blocked fixtures")
 
 

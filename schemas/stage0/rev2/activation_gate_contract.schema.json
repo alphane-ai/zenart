@@ -104,7 +104,8 @@
                   "golden_passed",
                   "critical_safety_regressions",
                   "trace_complete",
-                  "export_contract_complete"
+                  "export_contract_complete",
+                  "qa_fixture_coverage_complete"
                 ],
                 "properties": {
                   "golden_passed": {
@@ -117,6 +118,9 @@
                     "const": true
                   },
                   "export_contract_complete": {
+                    "const": true
+                  },
+                  "qa_fixture_coverage_complete": {
                     "const": true
                   }
                 }
@@ -203,7 +207,8 @@
               "golden_passed",
               "critical_safety_regressions",
               "trace_complete",
-              "export_contract_complete"
+              "export_contract_complete",
+              "qa_fixture_coverage_complete"
             ],
             "properties": {
               "golden_passed": {
@@ -217,6 +222,9 @@
                 "type": "boolean"
               },
               "export_contract_complete": {
+                "type": "boolean"
+              },
+              "qa_fixture_coverage_complete": {
                 "type": "boolean"
               }
             }
