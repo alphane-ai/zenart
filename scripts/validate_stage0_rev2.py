@@ -2282,6 +2282,7 @@ CONCRETE_EVIDENCE_PATH_RE = re.compile(
     r"scripts(?:/[A-Za-z0-9._{}*,-]+)*|"
     r"web(?:/[A-Za-z0-9._{}*,-]+)*"
     r")"
+    r"(?![A-Za-z0-9_./-])"
 )
 
 FORBIDDEN_RELEASE_GATE_REFERENCE_RE = re.compile(
@@ -3248,6 +3249,91 @@ def require_release_gate_evidence_ref_allowed_paths(
         f"{gate}.{ref_id} {ref_kind} evidence cites paths outside its validator-owned allowlist: "
         + json.dumps(unexpected_paths, ensure_ascii=False),
     )
+
+
+def require_existing_paths_are_passable_for_ref(
+    evidence_ref: str,
+    *,
+    gate: str,
+    ref_kind: str,
+    ref_id: str,
+    ref_state: str,
+) -> None:
+    for path in sorted(concrete_evidence_paths(evidence_ref)):
+        candidate = repo_path(path)
+        if not candidate.exists():
+            continue
+        require(
+            candidate.is_file(),
+            f"{gate}.{ref_id} {ref_kind} evidence cites existing directory {path}; "
+            "launch gate evidence must cite exact files for any present artifact",
+        )
+        allowed_non_closure_contexts = NON_CLOSURE_RUNTIME_EVIDENCE_ALLOWED_CONTEXTS.get(path)
+        if allowed_non_closure_contexts is not None:
+            context = (gate, ref_kind, ref_id, ref_state)
+            require(
+                context in allowed_non_closure_contexts,
+                f"{gate}.{ref_id} {ref_kind} evidence cites non-closure runtime probe {path} "
+                "outside its validator-owned blocked/no-go context",
+            )
+            continue
+        fixture_gate = release_gate_for_evidence_path(candidate)
+        if fixture_gate is not None:
+            fixture = load_json(candidate)
+            status = gate_decision_status(fixture)
+            if fixture_gate in {"ci", "private_beta_staging"} and gate == "production_launch":
+                require(
+                    "gate_decision.status" in evidence_ref,
+                    f"{gate}.{ref_id} {ref_kind} evidence cites upstream fixture {path} without naming "
+                    "gate_decision.status",
+                )
+            if ref_kind == "decision" and status == "no_go":
+                require(
+                    gate == fixture_gate or (
+                        gate == "production_launch"
+                        and fixture_gate in {"ci", "private_beta_staging"}
+                        and ref_id == "gate_decision"
+                    ),
+                    f"{gate}.{ref_id} {ref_kind} evidence cites no-go fixture {path} outside its "
+                    "validator-owned no-go/dependency context",
+                )
+            continue
+        if path == CI_WORKFLOW_REL:
+            workflow_text = candidate.read_text(encoding="utf-8").lower()
+            required_tokens = ("stage0-rev2", "playwright", "docker", "validate_stage0_rev2.py")
+            missing_tokens = [token for token in required_tokens if token not in workflow_text]
+            require(
+                not missing_tokens,
+                f"{gate}.{ref_id} {ref_kind} evidence cites installed CI workflow {path}, but it is "
+                f"not passable for Stage 0 Rev2: missing {missing_tokens}",
+            )
+            continue
+        if not path.endswith(".json"):
+            continue
+        artifact = load_json_if_path(path)
+        if not isinstance(artifact, dict):
+            continue
+        expected_gate = runtime_evidence_gate_from_path(candidate, artifact)
+        require(
+            expected_gate is None or expected_gate == gate,
+            f"{gate}.{ref_id} {ref_kind} evidence cites cross-gate runtime artifact {path}; "
+            f"artifact resolves to {expected_gate}",
+        )
+        status = artifact.get("status")
+        if status is not None:
+            require(
+                status in RUNTIME_PASS_EVIDENCE_STATUS_VALUES,
+                f"{gate}.{ref_id} {ref_kind} evidence cites existing runtime artifact {path} "
+                f"with non-passing status={status!r}",
+            )
+        require(
+            not artifact.get("blocked_slots"),
+            f"{gate}.{ref_id} {ref_kind} evidence cites runtime artifact {path} with blocked_slots",
+        )
+        require(
+            not artifact.get("missing_blockers"),
+            f"{gate}.{ref_id} {ref_kind} evidence cites runtime artifact {path} with missing_blockers",
+        )
 
 
 def require_no_false_launch_ready_terms(evidence_ref: str, context: str) -> None:
@@ -4470,6 +4556,15 @@ def require_gate_decision_exact_blocker_paths(
         after_end = min(after_candidates) if after_candidates else len(evidence_ref_lower)
         path_context = evidence_ref_lower[before_start:after_end]
         if path.exists():
+            if gate == "ci" and path == CI_WORKFLOW:
+                workflow_text = path.read_text(encoding="utf-8").lower()
+                required_tokens = ("stage0-rev2", "playwright", "docker", "validate_stage0_rev2.py")
+                missing_tokens = [token for token in required_tokens if token not in workflow_text]
+                require(
+                    not missing_tokens,
+                    f"{gate} gate_decision evidence {rel_path} exists but is not passable for "
+                    f"Stage 0 Rev2 CI: missing {missing_tokens}",
+                )
             require(
                 any(term in path_context for term in SPLIT_EVIDENCE_PRESENT_TERMS),
                 f"{gate} gate_decision evidence {rel_path} exists but is not described as present/pass",
@@ -5132,6 +5227,13 @@ def validate_release_gate_basics(data: dict[str, Any]) -> tuple[dict[str, dict[s
         gate=gate,
         ref_kind="decision",
         ref_id="gate_decision",
+    )
+    require_existing_paths_are_passable_for_ref(
+        data["gate_decision"]["evidence_ref"],
+        gate=gate,
+        ref_kind="decision",
+        ref_id="gate_decision",
+        ref_state=data["gate_decision"]["status"],
     )
 
     return checks, conditions
