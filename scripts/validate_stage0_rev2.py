@@ -667,6 +667,23 @@ RUNTIME_PASS_EVIDENCE_FILES = {
     ],
 }
 
+FORBIDDEN_RUNTIME_GATE_PATH_PREFIXES = {
+    "private_beta_staging": (
+        "ops/evidence/backup-restore/",
+        "ops/evidence/observability/",
+        "ops/evidence/local/",
+        "ops/evidence/local_alpha/",
+        "ops/evidence/production/",
+    ),
+    "production_launch": (
+        "ops/evidence/backup-restore/",
+        "ops/evidence/observability/",
+        "ops/evidence/local/",
+        "ops/evidence/local_alpha/",
+        "ops/evidence/staging/",
+    ),
+}
+
 CHECK_LEVEL_EVIDENCE_TO_CHECKLIST_ITEM = {
     ("private_beta_staging", "staging_auth_rbac_tenant_audit"): "Private Beta/Staging auth/RBAC/tenant/audit runtime evidence 通过。",
     ("private_beta_staging", "staging_brief_upload_confirmation"): "Private Beta/Staging brief/upload/confirmation runtime evidence 通过。",
@@ -1909,6 +1926,17 @@ def require_runtime_file_evidence(evidence_ref: str, gate: str, check_id: str) -
     allowed_prefixes = RUNTIME_PASS_FILE_PREFIXES.get(gate, ())
     require(allowed_prefixes, f"{gate}.{check_id} has no runtime file evidence prefix contract")
     concrete_paths = concrete_evidence_paths(evidence_ref)
+    forbidden_prefixes = FORBIDDEN_RUNTIME_GATE_PATH_PREFIXES.get(gate, ())
+    forbidden_paths = [
+        path
+        for path in concrete_paths
+        if any(path.startswith(prefix) for prefix in forbidden_prefixes)
+    ]
+    require(
+        not forbidden_paths,
+        f"{gate}.{check_id} pass evidence cites cross-environment runtime evidence paths that cannot close this gate: "
+        + json.dumps(sorted(forbidden_paths), ensure_ascii=False),
+    )
     runtime_paths = [
         path
         for path in concrete_paths
@@ -6462,6 +6490,8 @@ def validate_launch_readiness_split_contracts() -> None:
         "Production legal/support policy cannot close from web page artifacts alone",
         "exact per-workflow API, Playwright, and export ZIP runtime evidence files under `ops/evidence/local_alpha/`",
         "one generic local smoke artifact or directory-level reference cannot close the aggregate Local Alpha runtime check",
+        "Local backup/restore, load, observability, or smoke evidence under `ops/evidence/backup-restore/`, `ops/evidence/observability/`, or other non-staging/non-production paths cannot close Private Beta/Staging or Production launch gates",
+        "staging gates require `environment=staging` evidence under `ops/evidence/staging/`, and production gates require `environment=production` evidence under `ops/evidence/production/`",
         "Local Alpha remains open until four workflow API/Playwright smokes",
         "Production Launch cannot clear `ci_staging_gates_not_passed` or pass backup/rollback/post-deploy evidence until both",
         "Production backup/rollback/post-deploy pass evidence must cite both upstream gate fixtures",
