@@ -685,6 +685,7 @@
     "npm run typecheck",
     "npm run test",
     "npm run build",
+    "npm run smoke:package-export-metadata",
     "npm run smoke:security-contracts",
     "npm run smoke:user-routes"
   ]
