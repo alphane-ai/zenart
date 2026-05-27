@@ -629,21 +629,24 @@ CHECK_LEVEL_EVIDENCE_PRESERVED_BLOCKERS = {
     ("private_beta_staging", "staging_auth_rbac_tenant_audit"): {
         "staging_object_storage_signed_downloads",
         "staging_quota_rate_limit_spend_cap",
-        "staging_eval_qa_safety_runtime",
         "staging_observability_backup_load",
         "staging_legal_external_user_pages",
     },
     ("private_beta_staging", "staging_brief_upload_confirmation"): {
         "staging_object_storage_signed_downloads",
         "staging_quota_rate_limit_spend_cap",
-        "staging_eval_qa_safety_runtime",
         "staging_observability_backup_load",
         "staging_legal_external_user_pages",
     },
     ("private_beta_staging", "staging_support_retry_abuse_ops"): {
         "staging_object_storage_signed_downloads",
         "staging_quota_rate_limit_spend_cap",
-        "staging_eval_qa_safety_runtime",
+        "staging_observability_backup_load",
+        "staging_legal_external_user_pages",
+    },
+    ("private_beta_staging", "staging_eval_qa_safety_runtime"): {
+        "staging_object_storage_signed_downloads",
+        "staging_quota_rate_limit_spend_cap",
         "staging_observability_backup_load",
         "staging_legal_external_user_pages",
     },
@@ -1344,6 +1347,7 @@ REQUIRED_OPEN_ITEMS |= (
         "Private Beta/Staging auth/RBAC/tenant/audit runtime evidence 通过。",
         "Private Beta/Staging brief/upload/confirmation runtime evidence 通过。",
         "Private Beta/Staging crawler approval/provenance runtime evidence 通过。",
+        "Private Beta/Staging eval/QA/safety enforcement runtime evidence 通过。",
         "Private Beta/Staging support/retry/abuse runtime evidence 通过。",
         "staging backend/worker/crawler metrics runtime evidence 通过。",
         "Production skill release/eval/canary runtime/deployment evidence 通过。",
@@ -4675,6 +4679,7 @@ def validate_release_gate_evidence() -> None:
     cleared_private_beta_conditions = {
         "tenant_isolation_not_enforced",
         "staging_brief_upload_confirmation_runtime_missing",
+        "eval_qa_safety_runtime_missing",
         "crawler_governance_runtime_missing",
         "crawler_material_retention_takedown_runtime_missing",
     }
@@ -4688,6 +4693,7 @@ def validate_release_gate_evidence() -> None:
     for token in [
         "fixture",
         "staging runtime evidence",
+        "ops/evidence/staging/20260527T1900Z-eval-qa-safety.json",
         "external-user staging evidence for deployed page visibility is absent",
     ]:
         require(token in private_beta_text, f"private beta/staging release evidence must distinguish contract/runtime evidence: {token}")
@@ -5634,6 +5640,7 @@ def validate_launch_readiness_split_contracts() -> None:
             "Private Beta/Staging auth/RBAC/tenant/audit runtime evidence 通过。",
             "Private Beta/Staging brief/upload/confirmation runtime evidence 通过。",
             "Private Beta/Staging crawler approval/provenance runtime evidence 通过。",
+            "Private Beta/Staging eval/QA/safety enforcement runtime evidence 通过。",
             "Private Beta/Staging support/retry/abuse runtime evidence 通过。",
             "staging request id propagation runtime evidence 通过。",
             "staging structured JSON logs runtime evidence 通过。",
