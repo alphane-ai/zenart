@@ -487,6 +487,16 @@ for (const requiredContractSnippet of [
 
 for (const requiredDownloadSnippet of [
   "buildExportPackageBlob",
+  "buildExportZipPayloadEntries(record)",
+  "downloadExportPackage"
+]) {
+  if (!downloadSource.includes(requiredDownloadSnippet)) {
+    fail(`download planner missing package/export payload contract ${requiredDownloadSnippet}`);
+  }
+}
+
+for (const requiredPayloadBuilderSnippet of [
+  "buildExportZipPayloadEntries",
   "manifest.json",
   "qa-report.json",
   "safety-policy-report.json",
@@ -495,14 +505,13 @@ for (const requiredDownloadSnippet of [
   "provenance.json",
   "assets/README.txt",
   "buildDownloadableExportZipPayloadNames(record)",
-  "assertSafeExportZipPayloadName(requiredPayload)",
-  "assertSafeExportZipPayloadName(outputName)",
   "Unsafe export ZIP payload name",
   "buildExportWorkflowMetadataPayload(record, requiredPayload)",
-  "downloadExportPackage"
+  "buildExportZipPayloadContentDigest",
+  "buildExportZipPayloadContentEntries"
 ]) {
-  if (!downloadSource.includes(requiredDownloadSnippet)) {
-    fail(`download planner missing package/export payload contract ${requiredDownloadSnippet}`);
+  if (!devStateSource.includes(requiredPayloadBuilderSnippet)) {
+    fail(`shared payload builder missing package/export payload contract ${requiredPayloadBuilderSnippet}`);
   }
 }
 

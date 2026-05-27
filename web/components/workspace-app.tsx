@@ -1822,6 +1822,8 @@ function ExportView({
                     data-package-export-zip-payload-count={metadataEvidence.zipPayloadCount}
                     data-package-export-zip-payloads={metadataEvidence.zipPayloadNames.join(",")}
                     data-package-export-zip-payload-contract-digest={metadataEvidence.zipPayloadContractDigest}
+                    data-package-export-payload-content-digest={metadataEvidence.payloadContentDigest}
+                    data-package-export-payload-content-count={metadataEvidence.payloadContentStatuses.length}
                     data-package-export-required-zip-payloads={metadataEvidence.requiredZipPayloadNames.join(",")}
                     data-package-export-required-zip-payload-count={metadataEvidence.requiredZipPayloadCount}
                     data-package-export-zip-payload-parity-status={metadataEvidence.zipPayloadParityStatus}
@@ -1908,6 +1910,15 @@ function ExportView({
                         }))}
                         dataKind="workflow-payload"
                       />
+                      <PayloadStatusList
+                        title="Payload content"
+                        items={metadataEvidence.payloadContentStatuses.map((item) => ({
+                          name: item.name,
+                          detail: `${item.byteSize}:${item.contentDigest}`,
+                          present: item.byteSize > 0
+                        }))}
+                        dataKind="payload-content"
+                      />
                     </div>
                     <div className="payload-status-groups" aria-label="Package export cross-payload identity matrix">
                       <PayloadIdentityStatusList items={metadataEvidence.crossPayloadIdentityStatuses} />
@@ -1990,6 +2001,9 @@ function ExportView({
                     data-export-download-parity-zip-expected-payloads={downloadParityEvidence.zipExpectedPayloadNames.join(",")}
                     data-export-download-parity-payload-contract-digest={downloadParityEvidence.payloadContractDigest}
                     data-export-download-parity-payload-digest-match={String(downloadParityEvidence.metadataPayloadDigestMatchesZipPayloadDigest)}
+                    data-export-download-parity-payload-content-digest={downloadParityEvidence.payloadContentDigest}
+                    data-export-download-parity-payload-content-status={downloadParityEvidence.payloadContentDigestStatus}
+                    data-export-download-parity-payload-content-count={downloadParityEvidence.payloadContentCount}
                     data-export-download-parity-payload-path-safety-status={downloadParityEvidence.payloadPathSafetyStatus}
                     data-export-download-parity-identity-contract-digest={downloadParityEvidence.identityContractDigest}
                     data-export-download-parity-identity-digest-match={String(downloadParityEvidence.metadataIdentityDigestMatchesRecord)}
@@ -2012,6 +2026,7 @@ function ExportView({
                         {downloadParityEvidence.status}
                       </span>
                       <span>{downloadParityEvidence.metadataZipPayloadCount}/{downloadParityEvidence.zipExpectedPayloadCount} payload parity</span>
+                      <span>{downloadParityEvidence.payloadContentDigestStatus} content digest</span>
                       <span>{downloadParityEvidence.metadataMissingZipPayloadCount + downloadParityEvidence.zipMissingPayloadCount} missing payloads</span>
                       <span>{downloadParityEvidence.metadataPayloadDigestMatchesZipPayloadDigest ? "digest match" : "digest drift"}</span>
                       <span>{downloadParityEvidence.payloadPathSafetyStatus} path safety</span>
@@ -2358,7 +2373,7 @@ function PayloadStatusList({
     detail?: string;
     present: boolean;
   }>;
-  dataKind: "manifest-output" | "required-zip-payload" | "workflow-payload";
+  dataKind: "manifest-output" | "required-zip-payload" | "workflow-payload" | "payload-content";
 }) {
   return (
     <div className="payload-status-list" data-payload-status-kind={dataKind}>

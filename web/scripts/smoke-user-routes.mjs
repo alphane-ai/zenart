@@ -1247,13 +1247,7 @@ for (const expectedIntegration of [
 
 for (const expectedDownloadSnippet of [
   "buildExportPackageBlob",
-  "buildDownloadableExportZipPayloadNames",
-  "manifest.json",
-  "qa-report.json",
-  "safety-policy-report.json",
-  "provenance.json",
-  "ppt-ready-metadata.json",
-  "assets/README.txt",
+  "buildExportZipPayloadEntries(record)",
   "application/pdf",
   "URL.createObjectURL",
   "link.download"
@@ -1262,6 +1256,24 @@ for (const expectedDownloadSnippet of [
   const exportDownloadSource = await readFile(exportDownloadPath, "utf8");
   if (!exportDownloadSource.includes(expectedDownloadSnippet)) {
     fail(`export download contract missing ${expectedDownloadSnippet}`);
+  }
+}
+
+const devStateContractSource = await readFile(path.join(root, "lib", "dev-state.ts"), "utf8");
+for (const expectedPayloadBuilderSnippet of [
+  "buildExportZipPayloadEntries",
+  "buildDownloadableExportZipPayloadNames",
+  "manifest.json",
+  "qa-report.json",
+  "safety-policy-report.json",
+  "provenance.json",
+  "ppt-ready-metadata.json",
+  "assets/README.txt",
+  "buildExportZipPayloadContentDigest",
+  "buildExportZipPayloadContentEntries"
+]) {
+  if (!devStateContractSource.includes(expectedPayloadBuilderSnippet)) {
+    fail(`export payload builder contract missing ${expectedPayloadBuilderSnippet}`);
   }
 }
 

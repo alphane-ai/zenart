@@ -282,6 +282,44 @@ describe("dev workspace contracts", () => {
           present: true
         }
       ],
+      payloadContentDigest: expect.stringContaining("manifest.json:"),
+      payloadContentStatuses: [
+        expect.objectContaining({
+          name: "manifest.json",
+          byteSize: expect.any(Number),
+          contentDigest: expect.any(String)
+        }),
+        expect.objectContaining({
+          name: "qa-report.json",
+          byteSize: expect.any(Number),
+          contentDigest: expect.any(String)
+        }),
+        expect.objectContaining({
+          name: "safety-policy-report.json",
+          byteSize: expect.any(Number),
+          contentDigest: expect.any(String)
+        }),
+        expect.objectContaining({
+          name: "provenance.json",
+          byteSize: expect.any(Number),
+          contentDigest: expect.any(String)
+        }),
+        expect.objectContaining({
+          name: "ai-content-disclaimer.json",
+          byteSize: expect.any(Number),
+          contentDigest: expect.any(String)
+        }),
+        expect.objectContaining({
+          name: "ppt-ready-metadata.json",
+          byteSize: expect.any(Number),
+          contentDigest: expect.any(String)
+        }),
+        expect.objectContaining({
+          name: "assets/README.txt",
+          byteSize: expect.any(Number),
+          contentDigest: expect.any(String)
+        })
+      ],
       zipPayloadParityStatus: "pass",
       zipPayloadParityRatio: "7/7",
       missingZipPayloadNames: [],
@@ -527,6 +565,9 @@ describe("dev workspace contracts", () => {
       payloadContractDigest:
         "export-parity-001::pkg-004::project-001::ecommerce_growth_pack::fx_ecommerce_growth_golden::ai-content-disclaimer.json|assets/README.txt|assets/hero_product_ad.png|assets/marketplace_banner.png|assets/square_social_ad.png|assets/story_variant.png|manifest.json|metadata.json|ppt-ready-metadata.json|provenance.json|qa-report.json|qa_report.json|safety-policy-report.json|trace_provenance.json",
       metadataPayloadDigestMatchesZipPayloadDigest: true,
+      payloadContentDigest: expect.stringContaining("manifest.json:"),
+      payloadContentDigestStatus: "pass",
+      payloadContentCount: 14,
       payloadPathSafetyStatus: "pass",
       identityContractDigest:
         "export-parity-001::pkg-004::project-001::ecommerce_growth_pack::fx_ecommerce_growth_golden::dev-provider::deterministic-local-alpha::conversion_offer|social_proof|feature_comparison|retention_bundle::ecommerce_growth_pack::pass",

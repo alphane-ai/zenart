@@ -560,6 +560,12 @@ export interface PackageExportMetadataEvidence {
     name: string;
     present: boolean;
   }>;
+  payloadContentDigest: string;
+  payloadContentStatuses: Array<{
+    name: string;
+    byteSize: number;
+    contentDigest: string;
+  }>;
   zipPayloadParityStatus: "pass" | "fail";
   zipPayloadParityRatio: string;
   missingZipPayloadNames: string[];
@@ -663,6 +669,9 @@ export interface ExportDownloadParityEvidence {
   zipExpectedPayloadNames: string[];
   payloadContractDigest: string;
   metadataPayloadDigestMatchesZipPayloadDigest: boolean;
+  payloadContentDigest: string;
+  payloadContentDigestStatus: "pass" | "fail";
+  payloadContentCount: number;
   payloadPathSafetyStatus: "pass" | "fail";
   identityContractDigest: string;
   metadataIdentityDigestMatchesRecord: boolean;
@@ -694,6 +703,7 @@ export interface ExportDownloadParityEvidence {
     | "required-parity"
     | "payload-list"
     | "payload-digest"
+    | "payload-content-digest"
     | "path-safety"
     | "identity-digest"
     | "identity"

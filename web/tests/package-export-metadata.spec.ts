@@ -270,6 +270,29 @@ test("export route exposes package metadata, ZIP payload, and download parity br
   }
   const actualPayloads = Object.keys(zip.files).filter((payloadName) => !zip.files[payloadName].dir).sort();
   expect(actualPayloads, "downloaded ZIP must not contain extra top-level contract payloads").toEqual([...expectedPayloads].sort());
+  const payloadContentMatrix = page
+    .getByLabel("Package export payload status matrix")
+    .locator("[data-payload-status-kind='payload-content']");
+  await expect(payloadContentMatrix.locator("[data-package-export-payload-row='payload-content']")).toHaveCount(expectedPayloads.length);
+  const downloadedPayloadContentEntries = await Promise.all(
+    actualPayloads.map(async (payloadName) => {
+      const body = await zip.file(payloadName)!.async("string");
+      return `${payloadName}:${new TextEncoder().encode(body).length}:${fnv1aDigest(body)}`;
+    })
+  );
+  const downloadedPayloadContentDigest = downloadedPayloadContentEntries.sort().join("|");
+  await expect(metadataEvidence).toHaveAttribute("data-package-export-payload-content-count", String(expectedPayloads.length));
+  await expect(metadataEvidence).toHaveAttribute("data-package-export-payload-content-digest", downloadedPayloadContentDigest);
+  await expect(downloadParity).toHaveAttribute("data-export-download-parity-payload-content-count", String(expectedPayloads.length));
+  await expect(downloadParity).toHaveAttribute("data-export-download-parity-payload-content-status", "pass");
+  await expect(downloadParity).toHaveAttribute("data-export-download-parity-payload-content-digest", downloadedPayloadContentDigest);
+  for (const entry of downloadedPayloadContentEntries) {
+    const [payloadName, byteSize, contentDigest] = entry.split(":");
+    await expect(payloadContentMatrix.locator(`[data-package-export-payload-name='${payloadName}']`)).toHaveAttribute(
+      "data-package-export-payload-zip-name",
+      `${byteSize}:${contentDigest}`
+    );
+  }
   expect(
     [
       "export-001",
@@ -522,3 +545,14 @@ test("export route exposes package metadata, ZIP payload, and download parity br
   expect(aiContentDisclaimer.safety_status).toBe(traceProvenance.safety);
   expect(assetsReadme).toContain("Deterministic local alpha export placeholder");
 });
+
+const fnv1aDigest = (value: string) => {
+  let hash = 2166136261;
+
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+
+  return (hash >>> 0).toString(16).padStart(8, "0");
+};

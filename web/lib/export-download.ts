@@ -3,18 +3,8 @@
 import JSZip from "jszip";
 import { ExportRecord } from "./contracts";
 import {
-  buildAiContentDisclaimerPayload,
-  buildDownloadableExportZipPayloadNames,
-  buildExportManifestPayload,
-  buildExportWorkflowMetadataPayload,
-  isSafeExportZipPayloadName
+  buildExportZipPayloadEntries
 } from "./dev-state";
-
-const assertSafeExportZipPayloadName = (payloadName: string) => {
-  if (!isSafeExportZipPayloadName(payloadName)) {
-    throw new Error(`Unsafe export ZIP payload name: ${payloadName}`);
-  }
-};
 
 export const buildExportPackageBlob = async (record: ExportRecord) => {
   if (record.format === "pdf-placeholder") {
@@ -38,63 +28,8 @@ export const buildExportPackageBlob = async (record: ExportRecord) => {
   }
 
   const zip = new JSZip();
-  zip.file("manifest.json", JSON.stringify(buildExportManifestPayload(record), null, 2));
-  zip.file("qa-report.json", JSON.stringify(record.qaReport, null, 2));
-  zip.file("safety-policy-report.json", JSON.stringify(record.safetyReport, null, 2));
-  zip.file("ai-content-disclaimer.json", JSON.stringify(buildAiContentDisclaimerPayload(record), null, 2));
-  zip.file("ppt-ready-metadata.json", JSON.stringify(record.manifest.ppt_ready_metadata, null, 2));
-  zip.file(
-    "provenance.json",
-    JSON.stringify(
-      {
-        export_id: record.id,
-        package_id: record.manifest.package_id,
-        project_id: record.manifest.project_id,
-        generated_by: "zenart-web-dev-client",
-        workflow_id: record.manifest.workflow_acceptance?.workflow_id ?? "generic-stage0-export",
-        provider: "dev-provider",
-        model: "deterministic-local-alpha",
-        prompt_spec: record.manifest.workflow_acceptance?.strategy_taxonomy ?? [],
-        skill: record.manifest.workflow_acceptance?.workflow_id ?? "generic-stage0-export",
-        safety: record.safetyReport.status,
-        items: record.manifest.items.map((item) => ({
-          id: item.id,
-          provenance: item.provenance
-        }))
-      },
-      null,
-      2
-    )
-  );
-  zip.file(
-    "assets/README.txt",
-    "Deterministic local alpha export placeholder. Replace with object-storage asset references in backend export builder."
-  );
-  for (const requiredPayload of buildDownloadableExportZipPayloadNames(record)) {
-    assertSafeExportZipPayloadName(requiredPayload);
-    if (!zip.file(requiredPayload)) {
-      zip.file(
-        requiredPayload,
-        JSON.stringify(buildExportWorkflowMetadataPayload(record, requiredPayload), null, 2)
-      );
-    }
-  }
-  for (const outputName of record.manifest.required_outputs) {
-    if (outputName !== "assets/") {
-      assertSafeExportZipPayloadName(outputName);
-    }
-    if (
-      outputName === "assets/" ||
-      zip.file(outputName) ||
-      outputName.endsWith("/")
-    ) {
-      continue;
-    }
-
-    zip.file(
-      outputName,
-      JSON.stringify(buildExportWorkflowMetadataPayload(record, outputName), null, 2)
-    );
+  for (const entry of buildExportZipPayloadEntries(record)) {
+    zip.file(entry.name, entry.body);
   }
 
   return zip.generateAsync({ type: "blob" });

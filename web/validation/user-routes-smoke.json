@@ -930,10 +930,11 @@
         "presentAttribute": "data-package-export-payload-present",
         "zipNameAttribute": "data-package-export-payload-zip-name",
         "requiredKinds": [
-          "manifest-output",
-          "required-zip-payload",
-          "workflow-payload"
-        ],
+        "manifest-output",
+        "required-zip-payload",
+        "workflow-payload",
+        "payload-content"
+      ],
         "expectedPresent": "true"
       },
       "requiredIdentityAttributes": [
@@ -961,6 +962,8 @@
         "data-package-export-ppt-handoff-checklist-count",
         "data-package-export-zip-payload-count",
         "data-package-export-zip-payload-contract-digest",
+        "data-package-export-payload-content-digest",
+        "data-package-export-payload-content-count",
         "data-package-export-required-zip-payload-count",
         "data-package-export-zip-payload-parity-status",
         "data-package-export-zip-payload-parity-ratio",
@@ -1207,6 +1210,9 @@
         "data-export-download-parity-zip-expected-payloads",
         "data-export-download-parity-payload-contract-digest",
         "data-export-download-parity-payload-digest-match",
+        "data-export-download-parity-payload-content-digest",
+        "data-export-download-parity-payload-content-status",
+        "data-export-download-parity-payload-content-count",
         "data-export-download-parity-payload-path-safety-status",
         "data-export-download-parity-identity-contract-digest",
         "data-export-download-parity-identity-digest-match",
@@ -1229,6 +1235,9 @@
         "metadataPayloadsMatchZipPayloads",
         "payloadListStatus",
         "metadataPayloadDigestMatchesZipPayloadDigest",
+        "payloadContentDigest",
+        "payloadContentDigestStatus",
+        "payloadContentCount",
         "payloadPathSafetyStatus",
         "identityContractDigest",
         "metadataIdentityDigestMatchesRecord",

@@ -154,6 +154,94 @@ export const buildAiContentDisclaimerPayload = (record: ExportRecord) => ({
   safety_status: record.safetyReport.status
 });
 
+const buildPayloadBodyDigest = (value: string) => {
+  let hash = 2166136261;
+
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+
+  return (hash >>> 0).toString(16).padStart(8, "0");
+};
+
+export const buildExportZipPayloadContentDigest = (
+  entries: Array<{ name: string; body: string }>
+) =>
+  entries
+    .map((entry) => `${entry.name}:${new TextEncoder().encode(entry.body).length}:${buildPayloadBodyDigest(entry.body)}`)
+    .sort()
+    .join("|");
+
+export const buildExportZipPayloadEntries = (record: ExportRecord) => {
+  const entries = new Map<string, string>();
+  const put = (payloadName: string, body: string) => {
+    if (!isSafeExportZipPayloadName(payloadName)) {
+      throw new Error(`Unsafe export ZIP payload name: ${payloadName}`);
+    }
+    if (!entries.has(payloadName)) {
+      entries.set(payloadName, body);
+    }
+  };
+
+  put("manifest.json", JSON.stringify(buildExportManifestPayload(record), null, 2));
+  put("qa-report.json", JSON.stringify(record.qaReport, null, 2));
+  put("safety-policy-report.json", JSON.stringify(record.safetyReport, null, 2));
+  put("ai-content-disclaimer.json", JSON.stringify(buildAiContentDisclaimerPayload(record), null, 2));
+  put("ppt-ready-metadata.json", JSON.stringify(record.manifest.ppt_ready_metadata, null, 2));
+  put(
+    "provenance.json",
+    JSON.stringify(
+      {
+        export_id: record.id,
+        package_id: record.manifest.package_id,
+        project_id: record.manifest.project_id,
+        generated_by: "zenart-web-dev-client",
+        workflow_id: record.manifest.workflow_acceptance?.workflow_id ?? "generic-stage0-export",
+        provider: "dev-provider",
+        model: "deterministic-local-alpha",
+        prompt_spec: record.manifest.workflow_acceptance?.strategy_taxonomy ?? [],
+        skill: record.manifest.workflow_acceptance?.workflow_id ?? "generic-stage0-export",
+        safety: record.safetyReport.status,
+        items: record.manifest.items.map((item) => ({
+          id: item.id,
+          provenance: item.provenance
+        }))
+      },
+      null,
+      2
+    )
+  );
+  put(
+    "assets/README.txt",
+    "Deterministic local alpha export placeholder. Replace with object-storage asset references in backend export builder."
+  );
+
+  for (const requiredPayload of buildDownloadableExportZipPayloadNames(record)) {
+    put(requiredPayload, JSON.stringify(buildExportWorkflowMetadataPayload(record, requiredPayload), null, 2));
+  }
+  for (const outputName of record.manifest.required_outputs) {
+    if (outputName === "assets/") {
+      continue;
+    }
+    put(outputName, JSON.stringify(buildExportWorkflowMetadataPayload(record, outputName), null, 2));
+  }
+
+  return buildDownloadableExportZipPayloadNames(record)
+    .filter((payloadName) => entries.has(payloadName))
+    .map((name) => ({
+      name,
+      body: entries.get(name) ?? ""
+    }));
+};
+
+export const buildExportZipPayloadContentEntries = (record: ExportRecord) =>
+  buildExportZipPayloadEntries(record).map((entry) => ({
+    name: entry.name,
+    byteSize: new TextEncoder().encode(entry.body).length,
+    contentDigest: buildPayloadBodyDigest(entry.body)
+  }));
+
 export const ecommerceGrowthWorkflowAcceptance = {
   schema_version: "stage0.rev2.workflow-api-smoke",
   workflow_id: "ecommerce_growth_pack",
@@ -1035,6 +1123,10 @@ export const buildPackageExportMetadataEvidence = (record: ExportRecord): Packag
     name: payloadName,
     present: zipPayloadNames.includes(payloadName)
   }));
+  const payloadContentStatuses =
+    zipPayloadPathSafetyStatus === "pass" ? buildExportZipPayloadContentEntries(record) : [];
+  const payloadContentDigest =
+    zipPayloadPathSafetyStatus === "pass" ? buildExportZipPayloadContentDigest(buildExportZipPayloadEntries(record)) : "";
   const workflowPayloadStatuses = record.manifest.workflow_acceptance?.required_files.map((payloadName) => ({
     name: payloadName,
     present: zipPayloadNames.includes(payloadName)
@@ -1153,6 +1245,8 @@ export const buildPackageExportMetadataEvidence = (record: ExportRecord): Packag
     requiredZipPayloadNames,
     requiredZipPayloadCount: requiredZipPayloadNames.length,
     requiredZipPayloadStatuses,
+    payloadContentDigest,
+    payloadContentStatuses,
     zipPayloadParityStatus: missingZipPayloadNames.length === 0 ? "pass" : "fail",
     zipPayloadParityRatio: `${requiredZipPayloadNames.length - missingZipPayloadNames.length}/${requiredZipPayloadNames.length}`,
     missingZipPayloadNames,
@@ -1282,6 +1376,20 @@ export const buildExportDownloadParityEvidence = (
   const metadataPayloadDigestMatchesZipPayloadDigest =
     metadataEvidence.zipPayloadContractDigest === zipPayloadSmoke.payloadContractDigest &&
     metadataEvidence.zipPayloadContractDigest === payloadContractDigest;
+  const contentDigestPathSafe =
+    metadataEvidence.zipPayloadPathSafetyStatus === "pass" &&
+    metadataEvidence.unsafeManifestPayloadNames.length === 0 &&
+    metadataEvidence.unsafeExpectedPayloadNames.length === 0 &&
+    zipPayloadSmoke.pathSafetyStatus === "pass" &&
+    zipPayloadSmoke.unsafeManifestPayloadNames.length === 0 &&
+    zipPayloadSmoke.unsafeExpectedPayloadNames.length === 0;
+  const payloadContentDigest = contentDigestPathSafe ? buildExportZipPayloadContentDigest(buildExportZipPayloadEntries(record)) : "";
+  const payloadContentDigestStatus =
+    contentDigestPathSafe &&
+    metadataEvidence.payloadContentDigest === payloadContentDigest &&
+    metadataEvidence.payloadContentStatuses.length === zipPayloadSmoke.expectedPayloadNames.length
+      ? "pass"
+      : "fail";
   const identityContractDigest = buildExportIdentityContractDigest(record);
   const metadataIdentityDigestMatchesRecord =
     metadataEvidence.identityContractDigest === identityContractDigest &&
@@ -1342,6 +1450,9 @@ export const buildExportDownloadParityEvidence = (
   }
   if (!metadataPayloadDigestMatchesZipPayloadDigest) {
     failures.push("payload-digest");
+  }
+  if (payloadContentDigestStatus !== "pass") {
+    failures.push("payload-content-digest");
   }
   if (
     metadataEvidence.zipPayloadPathSafetyStatus !== "pass" ||
@@ -1425,6 +1536,9 @@ export const buildExportDownloadParityEvidence = (
     zipExpectedPayloadNames: zipPayloadSmoke.expectedPayloadNames,
     payloadContractDigest,
     metadataPayloadDigestMatchesZipPayloadDigest,
+    payloadContentDigest,
+    payloadContentDigestStatus,
+    payloadContentCount: metadataEvidence.payloadContentStatuses.length,
     payloadPathSafetyStatus: failures.includes("path-safety") ? "fail" : "pass",
     identityContractDigest,
     metadataIdentityDigestMatchesRecord,
