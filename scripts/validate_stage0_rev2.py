@@ -8376,7 +8376,11 @@ def validate_staging_object_storage_retention_cleanup_evidence() -> None:
             "audit_endpoint_semantic_cleanup_refs",
             "audit_endpoint_semantic_cleanup_refs_by_probe",
             "audit_endpoint_semantic_missing_cleanup_refs",
+            "audit_endpoint_request_id_cleanup_refs_by_probe",
+            "audit_endpoint_request_id_missing_cleanup_refs_by_probe",
+            "audit_endpoint_request_id_missing_cleanup_refs",
             "semantic_verified",
+            "request_id_verified",
         ]:
             require(
                 key in blocked_audit_linkage,
@@ -8385,6 +8389,10 @@ def validate_staging_object_storage_retention_cleanup_evidence() -> None:
         require(
             blocked_audit_linkage["semantic_verified"] is False,
             "blocked retention cleanup evidence must not claim semantic audit linkage",
+        )
+        require(
+            blocked_audit_linkage["request_id_verified"] is False,
+            "blocked retention cleanup evidence must not claim request-id audit linkage",
         )
         require(
             blocked_evidence["gate_impact"]["can_clear_release_gate_check"] is False,
@@ -8584,6 +8592,10 @@ def validate_staging_object_storage_retention_cleanup_evidence() -> None:
         "passing object-storage retention cleanup evidence must verify cleanup/admin/tenant audit semantics",
     )
     require(
+        audit_linkage.get("request_id_verified") is True,
+        "passing object-storage retention cleanup evidence must verify cleanup request-id audit linkage",
+    )
+    require(
         audit_linkage.get("cleanup_audit_refs"),
         "passing object-storage retention cleanup evidence must record cleanup audit refs",
     )
@@ -8600,6 +8612,15 @@ def validate_staging_object_storage_retention_cleanup_evidence() -> None:
     require(
         all(semantic_by_probe.get(probe_id) for probe_id in ("expired_export_cleanup", "orphan_cleanup")),
         "passing object-storage retention cleanup evidence must semantically link both cleanup probes to audit entries",
+    )
+    request_id_by_probe = audit_linkage.get("audit_endpoint_request_id_cleanup_refs_by_probe", {})
+    require(
+        all(request_id_by_probe.get(probe_id) for probe_id in ("expired_export_cleanup", "orphan_cleanup")),
+        "passing object-storage retention cleanup evidence must link both cleanup probe request IDs to audit entries",
+    )
+    require(
+        audit_linkage.get("audit_endpoint_request_id_missing_cleanup_refs") == [],
+        "passing object-storage retention cleanup evidence must have no cleanup audit refs missing request-id linkage",
     )
     require(
         evidence.get("blocked_checks") == [],
@@ -12292,11 +12313,13 @@ def validate_ops_ci_and_drill_evidence() -> None:
         and "CSRF_ORIGIN" in object_storage_retention.get("runtime_status", "")
         and "CSRF_HEADER_VALUE" in object_storage_retention.get("runtime_status", "")
         and "per-probe request IDs" in object_storage_retention.get("runtime_status", "")
+        and "audit entries that carry the exact expired-export and orphan-cleanup request IDs"
+        in object_storage_retention.get("runtime_status", "")
         and "expected-token matches" in object_storage_retention.get("runtime_status", "")
         and "canonical pass paths" in object_storage_retention.get("runtime_status", "")
         and "dry-run, missing staging URL, missing admin auth, or missing smoke admin IDs remain blocked"
         not in object_storage_retention.get("runtime_status", "")
-        and "dry-run, missing staging URL, missing admin auth, missing smoke admin IDs, missing CSRF origin/header, release SHA mismatch, or non-canonical pass reports remain blocked"
+        and "dry-run, missing staging URL, missing admin auth, missing smoke admin IDs, missing CSRF origin/header, release SHA mismatch, missing audit request-id linkage, or non-canonical pass reports remain blocked"
         in object_storage_retention.get("runtime_status", ""),
         "release ops evidence must record object-storage retention cleanup runtime requirements",
     )

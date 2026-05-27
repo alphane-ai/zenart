@@ -371,7 +371,7 @@ required_fragments = [
     "Production split upstream gates: CI `no_go` blocked by ci_installed_workflow, ci_gate_runtime_execution, ci_playwright_smoke, ci_docker_image_build; Private Beta/Staging `no_go` blocked by staging_object_storage_signed_downloads.",
     "Security scan: local status `passed` from `ops/evidence/security/local/20260526T142040Z-security-scan-smoke-65314.json`; staging JSON must reference the release SHA, set `environment=staging`, set `kind=security_scan`, record status `passed`, and include passed/validated evidence refs for dependency, image/container, and committed-secret scans before private beta/production decisions.",
     "Object-storage signed URL: staging status `pass_with_blockers_preserved` from `ops/evidence/staging/20260527T2130Z-object-storage-signed-url.json` with 4/4 signed URL probes validator-visible; retention/cleanup evidence still required; object retention policy, expired export cleanup, orphan cleanup, and audit refs remain required before the object-storage gate can close.",
-    "Object-storage retention cleanup: `blocked` from `ops/evidence/staging/object-storage-retention-cleanup.blocked.json` with 4/4 probes blocked by missing STAGING_BASE_URL or explicit retention/audit probe URLs; canonical pass evidence is still missing at `ops/evidence/staging/object-storage-retention-cleanup.json`; audit linkage verified `false` with 0 cleanup refs and 0 audit endpoint refs, so the object-storage gate remains open.",
+    "Object-storage retention cleanup: `blocked` from `ops/evidence/staging/object-storage-retention-cleanup.blocked.json` with 4/4 probes blocked by missing STAGING_BASE_URL or explicit retention/audit probe URLs; canonical pass evidence is still missing at `ops/evidence/staging/object-storage-retention-cleanup.json`; audit linkage verified `false` with 0 cleanup refs and 0 audit endpoint refs; request-id audit linkage verified `false`, so the object-storage gate remains open.",
     "Legal/support external-user visibility: staging split status `pass,pass` from `ops/evidence/staging/legal-pages-external-user.json` and `ops/evidence/staging/support-contact-external-user.json`; external-user legal/support visibility is validator-visible.",
     "Object storage changes: staging signed URL evidence is attached; staging retention/cleanup pass evidence remains required before the object-storage gate can close.",
     "Operational risks: staging rollback evidence remains absent; staging backup/restore, load, post-deploy smoke, and legal/support visibility evidence are attached, but object-retention, CI, and production gates remain open.",
@@ -1072,12 +1072,16 @@ class Handler(SimpleHTTPRequestHandler):
     def do_GET(self):
         parsed = urlparse(self.path)
         if parsed.path == "/api/admin/v1/audit":
+            expired_request_id = "stage0-object-retention-cleanup-expired_export_cleanup"
+            orphan_request_id = "stage0-object-retention-cleanup-orphan_cleanup"
             audit_refs = [
-                {"audit_id": "au-007", "kind": "object_retention_cleanup", "actor_id": "admin-ops", "tenant_id": "tenant-alpha"},
-                {"audit_id": "au-015", "kind": "export.cleanup.preview", "actor_id": "admin-ops", "tenant_id": "tenant-alpha"},
+                {"audit_id": "au-007", "kind": "object_retention_cleanup", "actor_id": "admin-ops", "tenant_id": "tenant-alpha", "request_id": expired_request_id},
+                {"audit_id": "au-015", "kind": "export.cleanup.preview", "actor_id": "admin-ops", "tenant_id": "tenant-alpha", "request_id": orphan_request_id},
             ]
             if self.server.omit_orphan_audit_ref:
                 audit_refs = audit_refs[:1]
+            if self.server.omit_orphan_request_id:
+                audit_refs[-1].pop("request_id", None)
             self._json({"audit_refs": audit_refs})
             return
         super().do_GET()
@@ -1094,6 +1098,7 @@ port = int(sys.argv[2])
 server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
 server.omit_orphan_audit_ref = len(sys.argv) > 3 and sys.argv[3] == "omit-orphan-audit-ref"
 server.generic_cleanup_ids = len(sys.argv) > 3 and sys.argv[3] == "generic-cleanup-ids"
+server.omit_orphan_request_id = len(sys.argv) > 3 and sys.argv[3] == "omit-orphan-request-id"
 server.serve_forever()
 PY
 object_retention_port="$(python3 - <<'PY'
@@ -1177,6 +1182,18 @@ if audit_linkage.get("cleanup_audit_refs") != ["au-007", "au-015"]:
     raise SystemExit(f"alias fixture cleanup audit refs mismatch: {audit_linkage}")
 if audit_linkage.get("missing_cleanup_audit_refs") != []:
     raise SystemExit(f"alias fixture must not miss cleanup audit refs: {audit_linkage}")
+if audit_linkage.get("request_id_verified") is not True:
+    raise SystemExit(f"alias fixture must verify cleanup audit request-id linkage: {audit_linkage}")
+if audit_linkage.get("audit_endpoint_request_id_cleanup_refs_by_probe") != {
+    "expired_export_cleanup": ["au-007"],
+    "orphan_cleanup": ["au-015"],
+}:
+    raise SystemExit(f"alias fixture must expose per-probe request-id audit refs: {audit_linkage}")
+if audit_linkage.get("audit_endpoint_request_id_missing_cleanup_refs_by_probe") != {
+    "expired_export_cleanup": [],
+    "orphan_cleanup": [],
+}:
+    raise SystemExit(f"alias fixture must expose empty per-probe missing request-id audit refs: {audit_linkage}")
 if report.get("gate_impact", {}).get("can_clear_release_gate_check") is not False:
     raise SystemExit("alias fixture must not clear object-storage release gate from non-canonical paths")
 if {row.get("status") for row in rows} != {"passed"}:
@@ -1262,6 +1279,8 @@ if audit_linkage.get("audit_endpoint_refs") != ["au-007"]:
     raise SystemExit(f"audit mismatch fixture endpoint refs mismatch: {audit_linkage}")
 if audit_linkage.get("missing_cleanup_audit_refs") != ["au-015"]:
     raise SystemExit(f"audit mismatch fixture missing refs mismatch: {audit_linkage}")
+if audit_linkage.get("request_id_verified") is not False:
+    raise SystemExit(f"audit mismatch fixture must not verify request-id audit linkage: {audit_linkage}")
 if report.get("split_evidence", {}).get("retention_cleanup_runtime_ready") is not False:
     raise SystemExit("audit mismatch fixture must not mark retention cleanup runtime ready")
 PY
@@ -1572,8 +1591,18 @@ cat >"$object_retention_canonical_report" <<EOF
       "orphan_cleanup": ["au-015"]
     },
     "audit_endpoint_semantic_missing_cleanup_refs": [],
+    "audit_endpoint_request_id_cleanup_refs_by_probe": {
+      "expired_export_cleanup": ["au-007"],
+      "orphan_cleanup": ["au-015"]
+    },
+    "audit_endpoint_request_id_missing_cleanup_refs_by_probe": {
+      "expired_export_cleanup": [],
+      "orphan_cleanup": []
+    },
+    "audit_endpoint_request_id_missing_cleanup_refs": [],
     "audit_endpoint_refs": ["au-007", "au-015"],
-    "missing_cleanup_audit_refs": []
+    "missing_cleanup_audit_refs": [],
+    "request_id_verified": true
   }
 }
 EOF
@@ -1614,6 +1643,9 @@ if probe.get("result_count") != 4:
     raise SystemExit(f"complete canonical retention cleanup fixture must inspect four result rows: {probe}")
 if probe.get("input_readiness", {}).get("csrf_ready") is not True:
     raise SystemExit(f"complete canonical retention cleanup fixture must surface CSRF readiness: {probe}")
+audit_linkage = probe.get("audit_linkage", {})
+if audit_linkage.get("request_id_verified") is not True:
+    raise SystemExit(f"complete canonical retention cleanup fixture must verify request-id audit linkage: {audit_linkage}")
 PY
 object_retention_spoof_dir="$(mktemp -d)"
 object_retention_spoof_report="$object_retention_spoof_dir/object-storage-retention-cleanup.json"
@@ -1807,6 +1839,69 @@ if "result_request_id_echo:expired_export_cleanup" not in missing:
     raise SystemExit(f"missing request-id spoof must surface request-id echo requirement: {probe}")
 if report.get("object_retention_cleanup_verified") is not False:
     raise SystemExit("missing request-id spoof must not verify object-retention cleanup")
+PY
+object_retention_spoof_audit_request_report="$object_retention_spoof_dir/object-storage-retention-cleanup.missing-audit-request-id.json"
+object_retention_spoof_audit_request_results="$object_retention_spoof_dir/object-storage-retention-cleanup.missing-audit-request-id.ndjson"
+cp "$object_retention_canonical_report" "$object_retention_spoof_audit_request_report"
+cp "$object_retention_canonical_results" "$object_retention_spoof_audit_request_results"
+python3 - "$object_retention_spoof_audit_request_report" "$object_retention_spoof_audit_request_results" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+report_path = Path(sys.argv[1])
+results_path = Path(sys.argv[2])
+report = json.loads(report_path.read_text(encoding="utf-8"))
+report["results_path"] = str(results_path)
+report["audit_linkage"]["request_id_verified"] = False
+report["audit_linkage"]["audit_endpoint_request_id_cleanup_refs_by_probe"] = {
+    "expired_export_cleanup": ["au-007"],
+    "orphan_cleanup": [],
+}
+report["audit_linkage"]["audit_endpoint_request_id_missing_cleanup_refs_by_probe"] = {
+    "expired_export_cleanup": [],
+    "orphan_cleanup": ["au-015"],
+}
+report["audit_linkage"]["audit_endpoint_request_id_missing_cleanup_refs"] = ["au-015"]
+report_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+PY
+set +e
+DRY_RUN=1 \
+  OUT_DIR="$object_retention_spoof_dir/release-bundle-missing-audit-request-id" \
+  CANONICAL_OBJECT_RETENTION_REPORT_PATH="$object_retention_spoof_audit_request_report" \
+  scripts/release_evidence_bundle_smoke.sh >/dev/null
+release_bundle_spoof_audit_request_status=$?
+set -e
+if [[ "$release_bundle_spoof_audit_request_status" -ne 2 ]]; then
+  printf 'release evidence bundle missing audit request-id spoof must exit 2, got %s\n' "$release_bundle_spoof_audit_request_status" >&2
+  exit 1
+fi
+python3 - "$object_retention_spoof_dir/release-bundle-missing-audit-request-id" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+reports = [
+    path
+    for path in sorted(Path(sys.argv[1]).glob("*.json"))
+    if json.loads(path.read_text(encoding="utf-8")).get("kind") == "release_evidence_bundle"
+]
+if len(reports) != 1:
+    raise SystemExit("missing audit request-id spoof release bundle must write exactly one report")
+report = json.loads(reports[0].read_text(encoding="utf-8"))
+probe = report.get("canonical_object_retention_cleanup_probe", {})
+missing = set(probe.get("missing_requirements", []))
+if probe.get("passed") is not False:
+    raise SystemExit("release bundle must reject canonical retention cleanup without audit request-id linkage")
+for expected in (
+    "audit_linkage_request_id_verified",
+    "no_audit_endpoint_request_id_missing_cleanup_refs:orphan_cleanup",
+    "audit_endpoint_request_id_cleanup_refs_by_probe:orphan_cleanup",
+):
+    if expected not in missing:
+        raise SystemExit(f"missing audit request-id spoof missing requirement {expected}: {probe}")
+if report.get("object_retention_cleanup_verified") is not False:
+    raise SystemExit("missing audit request-id spoof must not verify object-retention cleanup")
 PY
 python3 - "$ops_validate_dir/observability" <<'PY'
 import json

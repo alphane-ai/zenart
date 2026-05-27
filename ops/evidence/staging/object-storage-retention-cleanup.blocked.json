@@ -11,6 +11,15 @@
       "orphan_cleanup": []
     },
     "audit_endpoint_refs": [],
+    "audit_endpoint_request_id_cleanup_refs_by_probe": {
+      "expired_export_cleanup": [],
+      "orphan_cleanup": []
+    },
+    "audit_endpoint_request_id_missing_cleanup_refs": [],
+    "audit_endpoint_request_id_missing_cleanup_refs_by_probe": {
+      "expired_export_cleanup": [],
+      "orphan_cleanup": []
+    },
     "audit_endpoint_semantic_cleanup_refs": [],
     "audit_endpoint_semantic_cleanup_refs_by_probe": {
       "expired_export_cleanup": [],
@@ -23,6 +32,7 @@
       "orphan_cleanup": []
     },
     "missing_cleanup_audit_refs": [],
+    "request_id_verified": false,
     "semantic_verified": false,
     "verified": false
   },

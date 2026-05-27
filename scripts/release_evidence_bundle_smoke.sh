@@ -462,6 +462,8 @@ def load_canonical_object_retention_probe(path: Path) -> dict:
         missing_requirements.append("audit_linkage_verified")
     if audit_linkage.get("semantic_verified") is not True:
         missing_requirements.append("audit_linkage_semantic_verified")
+    if audit_linkage.get("request_id_verified") is not True:
+        missing_requirements.append("audit_linkage_request_id_verified")
     if not audit_linkage.get("cleanup_audit_refs"):
         missing_requirements.append("cleanup_audit_refs")
     if not audit_linkage.get("audit_endpoint_refs"):
@@ -474,6 +476,8 @@ def load_canonical_object_retention_probe(path: Path) -> dict:
     endpoint_covers_refs = audit_linkage.get("audit_endpoint_covers_cleanup_refs", {})
     endpoint_missing_refs = audit_linkage.get("audit_endpoint_missing_cleanup_refs", {})
     semantic_refs_by_probe = audit_linkage.get("audit_endpoint_semantic_cleanup_refs_by_probe", {})
+    request_id_refs_by_probe = audit_linkage.get("audit_endpoint_request_id_cleanup_refs_by_probe", {})
+    request_id_missing_by_probe = audit_linkage.get("audit_endpoint_request_id_missing_cleanup_refs_by_probe", {})
     if not isinstance(cleanup_refs_by_probe, dict):
         missing_requirements.append("cleanup_audit_refs_by_probe")
         cleanup_refs_by_probe = {}
@@ -486,6 +490,12 @@ def load_canonical_object_retention_probe(path: Path) -> dict:
     if not isinstance(semantic_refs_by_probe, dict):
         missing_requirements.append("audit_endpoint_semantic_cleanup_refs_by_probe")
         semantic_refs_by_probe = {}
+    if not isinstance(request_id_refs_by_probe, dict):
+        missing_requirements.append("audit_endpoint_request_id_cleanup_refs_by_probe")
+        request_id_refs_by_probe = {}
+    if not isinstance(request_id_missing_by_probe, dict):
+        missing_requirements.append("audit_endpoint_request_id_missing_cleanup_refs_by_probe")
+        request_id_missing_by_probe = {}
     for probe_id in sorted(expected_cleanup_probes):
         if not cleanup_refs_by_probe.get(probe_id):
             missing_requirements.append(f"cleanup_audit_refs_by_probe:{probe_id}")
@@ -495,6 +505,10 @@ def load_canonical_object_retention_probe(path: Path) -> dict:
             missing_requirements.append(f"no_audit_endpoint_missing_cleanup_refs:{probe_id}")
         if not semantic_refs_by_probe.get(probe_id):
             missing_requirements.append(f"audit_endpoint_semantic_cleanup_refs_by_probe:{probe_id}")
+        if not request_id_refs_by_probe.get(probe_id):
+            missing_requirements.append(f"audit_endpoint_request_id_cleanup_refs_by_probe:{probe_id}")
+        if request_id_missing_by_probe.get(probe_id) not in ([], None):
+            missing_requirements.append(f"no_audit_endpoint_request_id_missing_cleanup_refs:{probe_id}")
     if expected_areas - coverage_areas:
         missing_requirements.append("coverage:" + ",".join(sorted(expected_areas - coverage_areas)))
     results_path = Path(str(data.get("results_path", ""))) if data.get("results_path") else None

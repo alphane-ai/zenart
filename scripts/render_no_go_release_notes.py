@@ -254,6 +254,11 @@ def staging_object_storage_retention_cleanup_summary() -> str:
                 if isinstance(audit_linkage, dict)
                 else []
             )
+            request_id_verified = (
+                audit_linkage.get("request_id_verified")
+                if isinstance(audit_linkage, dict)
+                else False
+            )
             cleanup_ref_count = len(cleanup_refs) if isinstance(cleanup_refs, list) else 0
             audit_ref_count = len(audit_refs) if isinstance(audit_refs, list) else 0
             reason = "missing staging base URL or explicit probe URLs"
@@ -267,12 +272,14 @@ def staging_object_storage_retention_cleanup_summary() -> str:
                 f"{blocked_count}/4 probes blocked by {reason}; canonical pass evidence is still missing at "
                 "`ops/evidence/staging/object-storage-retention-cleanup.json`; audit linkage verified "
                 f"`{str(audit_verified).lower()}` with {cleanup_ref_count} cleanup refs and {audit_ref_count} "
-                "audit endpoint refs, so the object-storage gate remains open"
+                f"audit endpoint refs; request-id audit linkage verified `{str(request_id_verified).lower()}`, "
+                "so the object-storage gate remains open"
             )
         return (
             "`missing`; run `scripts/staging_object_storage_retention_cleanup_smoke.sh` against staging and "
             "write `ops/evidence/staging/object-storage-retention-cleanup.json` proving retention policy, "
-            "expired export cleanup, orphan cleanup, and audit refs before the object-storage gate can close"
+            "expired export cleanup, orphan cleanup, audit refs, and audit request-id linkage before the "
+            "object-storage gate can close"
         )
     evidence = load_json(path)
     status = evidence.get("status", "missing")

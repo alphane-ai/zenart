@@ -425,6 +425,12 @@ def audit_entry_has_cleanup_semantics(entry):
     return has_cleanup_subject and has_admin_actor and has_tenant_scope
 
 
+def audit_entry_contains_request_id(entry, request_id):
+    if not request_id:
+        return False
+    return request_id in json.dumps(entry, sort_keys=True)
+
+
 passed_by_check = {
     item["check_id"]: item
     for item in results
@@ -457,8 +463,11 @@ if cleanup_audit_refs and missing_cleanup_audit_refs:
     )
 semantic_audit_refs = set()
 semantic_audit_refs_by_probe = {}
+request_id_audit_refs_by_probe = {}
 for probe_id, refs in cleanup_audit_refs_by_probe.items():
     semantic_audit_refs_by_probe[probe_id] = []
+    request_id_audit_refs_by_probe[probe_id] = []
+    probe_request_id = str(passed_by_check.get(probe_id, {}).get("request_id", ""))
     for entry in audit_endpoint_entries:
         entry_refs = collect_audit_refs(entry)
         if not entry_refs or not audit_entry_has_cleanup_semantics(entry):
@@ -467,9 +476,15 @@ for probe_id, refs in cleanup_audit_refs_by_probe.items():
             if ref in entry_refs:
                 semantic_audit_refs.add(ref)
                 semantic_audit_refs_by_probe[probe_id].append(ref)
+                if audit_entry_contains_request_id(entry, probe_request_id):
+                    request_id_audit_refs_by_probe[probe_id].append(ref)
 semantic_audit_refs_by_probe = {
     probe_id: sorted(set(refs))
     for probe_id, refs in semantic_audit_refs_by_probe.items()
+}
+request_id_audit_refs_by_probe = {
+    probe_id: sorted(set(refs))
+    for probe_id, refs in request_id_audit_refs_by_probe.items()
 }
 semantic_missing_cleanup_audit_refs = sorted(cleanup_audit_refs - semantic_audit_refs)
 if cleanup_audit_refs and semantic_missing_cleanup_audit_refs:
@@ -477,11 +492,27 @@ if cleanup_audit_refs and semantic_missing_cleanup_audit_refs:
         "audit_refs:missing_cleanup_audit_ref_semantics:"
         + ",".join(semantic_missing_cleanup_audit_refs)
     )
+request_id_missing_by_probe = {
+    probe_id: sorted(set(refs) - set(request_id_audit_refs_by_probe.get(probe_id, [])))
+    for probe_id, refs in cleanup_audit_refs_by_probe.items()
+}
+request_id_missing_cleanup_audit_refs = sorted({
+    ref
+    for refs in request_id_missing_by_probe.values()
+    for ref in refs
+})
+if cleanup_audit_refs and request_id_missing_cleanup_audit_refs:
+    blocked_or_failed.append(
+        "audit_refs:missing_cleanup_audit_request_id_linkage:"
+        + ",".join(request_id_missing_cleanup_audit_refs)
+    )
 audit_linkage_verified = (
     bool(cleanup_audit_refs)
     and not missing_cleanup_audit_refs
     and not semantic_missing_cleanup_audit_refs
+    and not request_id_missing_cleanup_audit_refs
     and all(cleanup_audit_refs_by_probe.get(probe_id) for probe_id in ("expired_export_cleanup", "orphan_cleanup"))
+    and all(request_id_audit_refs_by_probe.get(probe_id) for probe_id in ("expired_export_cleanup", "orphan_cleanup"))
 )
 runtime_checks_passed = required <= passed and not blocked_or_failed
 canonical_report_path = Path("ops/evidence/staging/object-storage-retention-cleanup.json")
@@ -677,10 +708,14 @@ report = {
         "audit_endpoint_semantic_cleanup_refs": sorted(semantic_audit_refs),
         "audit_endpoint_semantic_cleanup_refs_by_probe": semantic_audit_refs_by_probe,
         "audit_endpoint_semantic_missing_cleanup_refs": semantic_missing_cleanup_audit_refs,
+        "audit_endpoint_request_id_cleanup_refs_by_probe": request_id_audit_refs_by_probe,
+        "audit_endpoint_request_id_missing_cleanup_refs_by_probe": request_id_missing_by_probe,
+        "audit_endpoint_request_id_missing_cleanup_refs": request_id_missing_cleanup_audit_refs,
         "audit_endpoint_refs": sorted(audit_endpoint_refs),
         "missing_cleanup_audit_refs": missing_cleanup_audit_refs,
         "verified": audit_linkage_verified,
         "semantic_verified": bool(cleanup_audit_refs) and not semantic_missing_cleanup_audit_refs,
+        "request_id_verified": bool(cleanup_audit_refs) and not request_id_missing_cleanup_audit_refs,
     },
     "required_checks": sorted(required),
     "runtime_input_requirements": runtime_input_requirements,
