@@ -370,6 +370,21 @@
         "unitTest": "web/lib/generated/zenart-api.test.ts",
         "assertion": "generated client rejects unsafe absolute API bases before same-site credentialed requests can be made"
       },
+      "canonicalHeaderGuard": {
+        "schemaVersion": "stage0.rev2.generated-api-canonical-csrf-header-guard",
+        "source": "web/validation/generated-api-csrf-contract.json",
+        "expectedStatus": "pass",
+        "expectedCanonicalHeaderName": "X-ZenArt-CSRF",
+        "expectedCanonicalHeaderValue": "same-site-origin-check",
+        "expectedCallerAliasStripped": true,
+        "expectedSafeRequestAliasesStripped": true,
+        "expectedUnsafeRequestCanonicalHeaderCount": 1,
+        "expectedSafeRequestCanonicalHeaderCount": 0,
+        "expectedFailureCount": 0,
+        "unitTest": "web/lib/request-security.test.ts",
+        "generatedClientUnitTest": "web/lib/generated/zenart-api.test.ts",
+        "assertion": "generated client strips stale caller CSRF aliases before same-site credentialed requests and keeps safe requests alias-free"
+      },
       "unsafeOperationCount": 15,
       "safeOperationCount": 17,
       "missingUnsafeOperationCount": 0,

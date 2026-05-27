@@ -44,17 +44,27 @@ export const serializeSetCookieContract = (cookie: SessionContract["cookie"]) =>
     cookie.domain ? `Domain=${cookie.domain}` : "HostOnly"
   ].join(";");
 
+export const stripCsrfHeaderAliases = (
+  headers: Record<string, string> = {},
+  contract = defaultSameSiteCsrfContract
+) =>
+  Object.fromEntries(
+    Object.entries(headers).filter(([headerName]) => headerName.toLowerCase() !== contract.headerName.toLowerCase())
+  );
+
 export const buildCsrfRequestHeaders = (
   method: HttpMethod,
   headers: Record<string, string> = {},
   contract = defaultSameSiteCsrfContract
 ) => {
+  const sanitizedHeaders = stripCsrfHeaderAliases(headers, contract);
+
   if (!isCsrfProtectedMethod(method)) {
-    return headers;
+    return sanitizedHeaders;
   }
 
   return {
-    ...headers,
+    ...sanitizedHeaders,
     [contract.headerName]: contract.headerValue
   };
 };

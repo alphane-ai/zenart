@@ -73,6 +73,56 @@ describe("generated web API client CSRF contract", () => {
     );
   });
 
+  it("removes caller-supplied CSRF header aliases so fetch receives one canonical same-site header", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(async () =>
+      new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" }
+      })
+    );
+    const client = new ZenArtApiClient();
+
+    await client.request("createProject", {
+      idempotencyKey: "idem-project-001",
+      headers: {
+        "x-zenart-csrf": "lowercase-stale-token",
+        "X-ZenArt-CSRF": "stale-token"
+      },
+      body: { name: "Northstar launch" }
+    });
+
+    const requestHeaders = fetchMock.mock.calls[0][1]?.headers as Record<string, string>;
+    const csrfHeaderNames = Object.keys(requestHeaders).filter((headerName) => headerName.toLowerCase() === "x-zenart-csrf");
+
+    expect(csrfHeaderNames).toEqual(["X-ZenArt-CSRF"]);
+    expect(requestHeaders).toEqual(
+      expect.objectContaining({
+        "X-ZenArt-CSRF": "same-site-origin-check"
+      })
+    );
+  });
+
+  it("removes caller-supplied CSRF aliases from read-only requests", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ id: "session-001" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" }
+      })
+    );
+    const client = new ZenArtApiClient();
+
+    await client.request("getSession", {
+      headers: {
+        "x-zenart-csrf": "lowercase-stale-token",
+        "X-ZenArt-CSRF": "stale-token"
+      }
+    });
+
+    const requestHeaders = fetchMock.mock.calls[0][1]?.headers as Record<string, string>;
+
+    expect(Object.keys(requestHeaders).filter((headerName) => headerName.toLowerCase() === "x-zenart-csrf")).toEqual([]);
+  });
+
   it("keeps read-only requests credentialed without adding the CSRF header", async () => {
     const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(JSON.stringify({ id: "session-001" }), {
@@ -340,6 +390,42 @@ describe("generated web API client CSRF contract", () => {
         expect.objectContaining({ scenario: "credential-material", outcome: "reject-before-fetch" }),
         expect.objectContaining({ scenario: "query-material", outcome: "reject-before-fetch" }),
         expect.objectContaining({ scenario: "fragment-material", outcome: "reject-before-fetch" })
+      ])
+    );
+  });
+
+  it("records canonical CSRF header alias stripping in the generated evidence artifact", () => {
+    const routeSmokeEvidence = generatedApiCsrfContractFromRouteSmoke();
+
+    expect(generatedApiCsrfContract.canonicalHeaderGuard).toMatchObject({
+      schemaVersion: "stage0.rev2.generated-api-canonical-csrf-header-guard",
+      source: "web/lib/request-security.ts",
+      unitTest: "web/lib/request-security.test.ts",
+      generatedClientUnitTest: "web/lib/generated/zenart-api.test.ts",
+      status: "pass",
+      canonicalHeaderName: "X-ZenArt-CSRF",
+      canonicalHeaderValue: "same-site-origin-check",
+      callerAliasStripped: true,
+      safeRequestAliasesStripped: true,
+      unsafeRequestCanonicalHeaderCount: 1,
+      safeRequestCanonicalHeaderCount: 0,
+      failureCount: 0
+    });
+    expect(routeSmokeEvidence.canonicalHeaderGuard).toMatchObject({
+      schemaVersion: generatedApiCsrfContract.canonicalHeaderGuard.schemaVersion,
+      expectedStatus: generatedApiCsrfContract.canonicalHeaderGuard.status,
+      expectedCanonicalHeaderName: generatedApiCsrfContract.canonicalHeaderGuard.canonicalHeaderName,
+      expectedCanonicalHeaderValue: generatedApiCsrfContract.canonicalHeaderGuard.canonicalHeaderValue,
+      expectedCallerAliasStripped: generatedApiCsrfContract.canonicalHeaderGuard.callerAliasStripped,
+      expectedSafeRequestAliasesStripped: generatedApiCsrfContract.canonicalHeaderGuard.safeRequestAliasesStripped,
+      expectedUnsafeRequestCanonicalHeaderCount: generatedApiCsrfContract.canonicalHeaderGuard.unsafeRequestCanonicalHeaderCount,
+      expectedSafeRequestCanonicalHeaderCount: generatedApiCsrfContract.canonicalHeaderGuard.safeRequestCanonicalHeaderCount,
+      expectedFailureCount: generatedApiCsrfContract.canonicalHeaderGuard.failureCount
+    });
+    expect(generatedApiCsrfContract.assertions).toEqual(
+      expect.arrayContaining([
+        "Generated web API client strips caller-supplied CSRF header aliases before applying one canonical X-ZenArt-CSRF header.",
+        "Generated web API client strips caller-supplied CSRF header aliases from safe requests."
       ])
     );
   });

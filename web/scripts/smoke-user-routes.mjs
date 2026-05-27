@@ -1078,6 +1078,8 @@ for (const expectedSecuritySnippet of [
   "PATCH",
   "DELETE",
   "buildCsrfRequestHeaders",
+  "stripCsrfHeaderAliases",
+  "headerName.toLowerCase() !== contract.headerName.toLowerCase()",
   "[contract.headerName]: contract.headerValue"
 ]) {
   if (!requestSecuritySource.includes(expectedSecuritySnippet)) {

@@ -46,6 +46,30 @@ describe("same-site CSRF request contract", () => {
     });
   });
 
+  it("strips caller-supplied CSRF aliases before applying the canonical same-site header", () => {
+    expect(
+      buildCsrfRequestHeaders("GET", {
+        Accept: "application/json",
+        "X-ZenArt-CSRF": "stale-token",
+        "x-zenart-csrf": "lowercase-stale-token"
+      })
+    ).toEqual({
+      Accept: "application/json"
+    });
+    expect(
+      buildCsrfRequestHeaders("POST", {
+        Accept: "application/json",
+        "X-ZenArt-CSRF": "stale-token",
+        "x-zenart-csrf": "lowercase-stale-token",
+        "X-Client-Trace": "trace-001"
+      })
+    ).toEqual({
+      Accept: "application/json",
+      "X-Client-Trace": "trace-001",
+      [defaultSameSiteCsrfContract.headerName]: defaultSameSiteCsrfContract.headerValue
+    });
+  });
+
   it("builds machine-checkable secure-cookie and same-site CSRF evidence for generated operations", () => {
     const evidence = buildSessionSecurityContractEvidence(createSessionContract(), apiOperations);
 

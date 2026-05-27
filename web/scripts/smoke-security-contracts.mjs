@@ -7,6 +7,7 @@ const generatedApiPath = path.join(root, "lib", "generated", "zenart-api.ts");
 const requestSecurityPath = path.join(root, "lib", "request-security.ts");
 const devStatePath = path.join(root, "lib", "dev-state.ts");
 const generatedApiTestPath = path.join(root, "lib", "generated", "zenart-api.test.ts");
+const requestSecurityTestPath = path.join(root, "lib", "request-security.test.ts");
 const workspaceAppPath = path.join(root, "components", "workspace-app.tsx");
 const workspaceSmokeTestPath = path.join(root, "components", "workspace-app.smoke.test.tsx");
 const sessionSecurityPlaywrightSpecPath = path.join(root, "tests", "session-security.spec.ts");
@@ -23,6 +24,7 @@ const [
   requestSecuritySource,
   devStateSource,
   generatedApiTestSource,
+  requestSecurityTestSource,
   workspaceAppSource,
   workspaceSmokeTestSource,
   sessionSecurityPlaywrightSpecSource,
@@ -33,6 +35,7 @@ const [
   readFile(requestSecurityPath, "utf8"),
   readFile(devStatePath, "utf8"),
   readFile(generatedApiTestPath, "utf8"),
+  readFile(requestSecurityTestPath, "utf8"),
   readFile(workspaceAppPath, "utf8"),
   readFile(workspaceSmokeTestPath, "utf8"),
   readFile(sessionSecurityPlaywrightSpecPath, "utf8"),
@@ -150,6 +153,8 @@ for (const requiredRequestSecuritySnippet of [
   "originPolicy: \"same-site-only\"",
   "csrfProtectedMethods",
   "buildCsrfRequestHeaders",
+  "stripCsrfHeaderAliases",
+  "headerName.toLowerCase() !== contract.headerName.toLowerCase()",
   "buildSessionSecurityContractEvidence",
   "buildGeneratedApiCsrfRequestContractEvidence",
   "cookieFailureReasons",
@@ -371,6 +376,8 @@ for (const expectedAssertion of [
 
 const absoluteBaseUrlGuard = generatedApiCsrfContract.absoluteBaseUrlGuard;
 const routeAbsoluteBaseUrlGuard = generatedClientEvidence.absoluteBaseUrlGuard;
+const canonicalHeaderGuard = generatedApiCsrfContract.canonicalHeaderGuard;
+const routeCanonicalHeaderGuard = generatedClientEvidence.canonicalHeaderGuard;
 if (
   absoluteBaseUrlGuard?.schemaVersion !== "stage0.rev2.generated-api-same-origin-base-guard" ||
   absoluteBaseUrlGuard?.status !== "pass" ||
@@ -434,6 +441,73 @@ for (const requiredGeneratedClientTestSnippet of [
 ]) {
   if (!generatedApiTestSource.includes(requiredGeneratedClientTestSnippet)) {
     fail(`generated API CSRF unit evidence missing absolute base guard snippet ${requiredGeneratedClientTestSnippet}`);
+  }
+}
+
+if (
+  canonicalHeaderGuard?.schemaVersion !== "stage0.rev2.generated-api-canonical-csrf-header-guard" ||
+  canonicalHeaderGuard?.status !== "pass" ||
+  canonicalHeaderGuard?.canonicalHeaderName !== generatedApiCsrfContract.csrfHeaderName ||
+  canonicalHeaderGuard?.canonicalHeaderValue !== generatedApiCsrfContract.csrfHeaderValue ||
+  canonicalHeaderGuard?.callerAliasStripped !== true ||
+  canonicalHeaderGuard?.safeRequestAliasesStripped !== true ||
+  canonicalHeaderGuard?.unsafeRequestCanonicalHeaderCount !== 1 ||
+  canonicalHeaderGuard?.safeRequestCanonicalHeaderCount !== 0 ||
+  canonicalHeaderGuard?.failureCount !== 0 ||
+  canonicalHeaderGuard?.unitTest !== "web/lib/request-security.test.ts" ||
+  canonicalHeaderGuard?.generatedClientUnitTest !== "web/lib/generated/zenart-api.test.ts" ||
+  !canonicalHeaderGuard?.rejectedCallerAliases?.includes("x-zenart-csrf") ||
+  !canonicalHeaderGuard?.assertion?.includes("strips caller-supplied CSRF header aliases")
+) {
+  fail("generated API CSRF artifact missing canonical header alias stripping guard evidence");
+}
+
+if (
+  routeCanonicalHeaderGuard?.schemaVersion !== canonicalHeaderGuard.schemaVersion ||
+  routeCanonicalHeaderGuard?.expectedStatus !== canonicalHeaderGuard.status ||
+  routeCanonicalHeaderGuard?.expectedCanonicalHeaderName !== canonicalHeaderGuard.canonicalHeaderName ||
+  routeCanonicalHeaderGuard?.expectedCanonicalHeaderValue !== canonicalHeaderGuard.canonicalHeaderValue ||
+  routeCanonicalHeaderGuard?.expectedCallerAliasStripped !== canonicalHeaderGuard.callerAliasStripped ||
+  routeCanonicalHeaderGuard?.expectedSafeRequestAliasesStripped !== canonicalHeaderGuard.safeRequestAliasesStripped ||
+  routeCanonicalHeaderGuard?.expectedUnsafeRequestCanonicalHeaderCount !== canonicalHeaderGuard.unsafeRequestCanonicalHeaderCount ||
+  routeCanonicalHeaderGuard?.expectedSafeRequestCanonicalHeaderCount !== canonicalHeaderGuard.safeRequestCanonicalHeaderCount ||
+  routeCanonicalHeaderGuard?.expectedFailureCount !== canonicalHeaderGuard.failureCount ||
+  routeCanonicalHeaderGuard?.unitTest !== canonicalHeaderGuard.unitTest ||
+  routeCanonicalHeaderGuard?.generatedClientUnitTest !== canonicalHeaderGuard.generatedClientUnitTest
+) {
+  fail("user route smoke canonical CSRF header guard drifted from generated API CSRF artifact");
+}
+
+for (const expectedAssertion of [
+  "Generated web API client strips caller-supplied CSRF header aliases before applying one canonical X-ZenArt-CSRF header.",
+  "Generated web API client strips caller-supplied CSRF header aliases from safe requests."
+]) {
+  if (!generatedApiCsrfContract.assertions?.includes(expectedAssertion)) {
+    fail(`generated API CSRF artifact missing canonical-header assertion ${expectedAssertion}`);
+  }
+}
+
+for (const requiredCanonicalHeaderSnippet of [
+  "stripCsrfHeaderAliases",
+  "headerName.toLowerCase() !== contract.headerName.toLowerCase()",
+  "const sanitizedHeaders = stripCsrfHeaderAliases(headers, contract)",
+  "...sanitizedHeaders"
+]) {
+  if (!requestSecuritySource.includes(requiredCanonicalHeaderSnippet)) {
+    fail(`request security contract missing canonical CSRF header stripping snippet ${requiredCanonicalHeaderSnippet}`);
+  }
+}
+
+for (const requiredCanonicalHeaderTestSnippet of [
+  "strips caller-supplied CSRF aliases before applying the canonical same-site header",
+  "removes caller-supplied CSRF header aliases so fetch receives one canonical same-site header",
+  "removes caller-supplied CSRF aliases from read-only requests",
+  "records canonical CSRF header alias stripping in the generated evidence artifact",
+  "callerAliasStripped: true",
+  "safeRequestAliasesStripped: true"
+]) {
+  if (!generatedApiTestSource.includes(requiredCanonicalHeaderTestSnippet) && !requestSecurityTestSource.includes(requiredCanonicalHeaderTestSnippet)) {
+    fail(`generated API CSRF unit evidence missing canonical header guard snippet ${requiredCanonicalHeaderTestSnippet}`);
   }
 }
 
