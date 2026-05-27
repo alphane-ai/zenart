@@ -1171,6 +1171,70 @@ func TestAdminExportCleanupRunsServiceAndRecordsAudit(t *testing.T) {
 	}
 }
 
+func TestAdminExportCleanupDryRunPreviewsAndAuditsWithoutMutation(t *testing.T) {
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	cfg.Auth.AdminDevIdentityHeaders = true
+	db := &fakeStage0DB{queryRows: []stage0RowSet{
+		{rows: [][]any{{1, 2}}},
+		{rows: [][]any{{
+			"object_1",
+			"tenant_1",
+			"tenants/tenant_1/exports/export_1.zip",
+		}, {
+			"object_2",
+			"tenant_1",
+			"tenants/tenant_1/thumbnails/export_1.zip.svg",
+		}}},
+	}}
+	recorder := &fakeAuditRecorder{}
+
+	req := httptest.NewRequest(http.MethodPost, "/api/admin/v1/exports/cleanup", bytes.NewBufferString(`{"rationale":"staging retention dry run","limit":25,"dry_run":true}`))
+	req = req.WithContext(audit.ContextWithRecorder(stage0.ContextWithService(req.Context(), stage0.NewService(stage0.NewRepository(db), nil)), recorder))
+	req.Header.Set("X-Zenart-User-ID", "admin_super_1")
+	req.Header.Set("X-Zenart-Tenant-ID", "tenant_1")
+	req.Header.Set("X-Zenart-Roles", "admin_superadmin")
+	setSameSiteCSRFHeaders(req)
+	rec := httptest.NewRecorder()
+
+	New(cfg, nil).Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusAccepted {
+		t.Fatalf("status = %d, want %d: %s", rec.Code, http.StatusAccepted, rec.Body.String())
+	}
+	var result stage0.CleanupResult
+	if err := json.Unmarshal(rec.Body.Bytes(), &result); err != nil {
+		t.Fatalf("response JSON error = %v", err)
+	}
+	if !result.DryRun || result.Status != "preview" || result.ExpiredExports != 1 || result.OrphanedObjects != 2 || result.PreviewObjects != 2 || result.DeletedObjects != 0 {
+		t.Fatalf("cleanup dry-run result = %#v, want preview of 2 objects without deletes", result)
+	}
+	if len(db.execs) != 0 {
+		t.Fatalf("dry-run cleanup should not mutate DB: %#v", db.execs)
+	}
+	if len(db.queries) != 2 {
+		t.Fatalf("dry-run cleanup queries = %d, want counts and object preview queries", len(db.queries))
+	}
+	if db.queries[0].args[1] != "tenant_1" || !strings.Contains(db.queries[0].sql, "expired_exports") {
+		t.Fatalf("dry-run cleanup counts query = %#v / %s, want tenant-scoped counts", db.queries[0].args, db.queries[0].sql)
+	}
+	if db.queries[1].args[2] != "tenant_1" || !strings.Contains(db.queries[1].sql, "cleanup_candidates") {
+		t.Fatalf("dry-run cleanup preview query = %#v / %s, want tenant-scoped preview", db.queries[1].args, db.queries[1].sql)
+	}
+	if len(recorder.events) != 1 {
+		t.Fatalf("audit events = %d, want 1", len(recorder.events))
+	}
+	event := recorder.events[0]
+	if event.Action != "export.cleanup.preview" || event.Resource != "object_retention_cleanup" {
+		t.Fatalf("audit event = %#v, want cleanup preview action", event)
+	}
+	if event.Metadata["dry_run"] != true || event.Metadata["preview_objects"] != 2 || event.Metadata["expired_exports"] != 1 || event.Metadata["orphaned_objects"] != 2 || event.Metadata["deleted_objects"] != 0 {
+		t.Fatalf("audit metadata = %#v, want dry-run preview counts", event.Metadata)
+	}
+}
+
 func TestAdminExportCleanupFailsClosedWithoutAuditRecorder(t *testing.T) {
 	cfg, err := config.Load()
 	if err != nil {
@@ -2355,6 +2419,8 @@ func assignScan(dest any, value any) {
 			return
 		}
 		*ptr = value.([]byte)
+	case *int:
+		*ptr = value.(int)
 	case *int64:
 		*ptr = value.(int64)
 	case *[]string:

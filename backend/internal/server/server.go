@@ -716,6 +716,7 @@ func (s *Server) cleanupExports(w http.ResponseWriter, r *http.Request) {
 	var input struct {
 		Rationale string `json:"rationale"`
 		Limit     int    `json:"limit"`
+		DryRun    bool   `json:"dry_run"`
 	}
 	if err := readOptionalJSON(r, &input); err != nil {
 		writeError(w, r, http.StatusBadRequest, "invalid_json", "request body must be valid JSON", nil)
@@ -741,20 +742,32 @@ func (s *Server) cleanupExports(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	now := time.Now().UTC()
-	result, err := service.CleanupExpiredExportsAndOrphanedObjectsForTenant(r.Context(), principal.TenantID, now, limit)
+	var result stage0.CleanupResult
+	var err error
+	if input.DryRun {
+		result, err = service.PreviewExpiredExportsAndOrphanedObjectsForTenant(r.Context(), principal.TenantID, now, limit)
+	} else {
+		result, err = service.CleanupExpiredExportsAndOrphanedObjectsForTenant(r.Context(), principal.TenantID, now, limit)
+	}
 	if err != nil {
 		writeStage0Error(w, r, err)
 		return
 	}
+	action := "export.cleanup"
+	if input.DryRun {
+		action = "export.cleanup.preview"
+	}
 	if err := recorder.Record(r.Context(), audit.Event{
-		ID:       newAuditID(principal.TenantID, principal.UserID, "export.cleanup", now.Format(time.RFC3339Nano)),
+		ID:       newAuditID(principal.TenantID, principal.UserID, action, now.Format(time.RFC3339Nano)),
 		TenantID: principal.TenantID,
 		ActorID:  principal.UserID,
-		Action:   "export.cleanup",
+		Action:   action,
 		Resource: "object_retention_cleanup",
 		Metadata: map[string]any{
 			"rationale":        rationale,
 			"limit":            limit,
+			"dry_run":          input.DryRun,
+			"preview_objects":  result.PreviewObjects,
 			"expired_exports":  result.ExpiredExports,
 			"orphaned_objects": result.OrphanedObjects,
 			"deleted_objects":  result.DeletedObjects,

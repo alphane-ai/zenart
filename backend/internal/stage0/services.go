@@ -211,6 +211,8 @@ type CleanupResult struct {
 	OrphanedObjects int    `json:"orphaned_objects"`
 	DeletedObjects  int    `json:"deleted_objects"`
 	FailedObjects   int    `json:"failed_objects"`
+	PreviewObjects  int    `json:"preview_objects,omitempty"`
+	DryRun          bool   `json:"dry_run,omitempty"`
 	Status          string `json:"status"`
 }
 
@@ -1131,6 +1133,60 @@ func (r Repository) ListCleanupObjectsForTenant(ctx context.Context, tenantID st
 	return r.listCleanupObjects(ctx, normalizedTenantID, now, limit)
 }
 
+func (r Repository) PreviewCleanupObjectsForTenant(ctx context.Context, tenantID string, now time.Time, limit int) ([]CleanupObject, error) {
+	normalizedTenantID, err := normalizeCleanupTenantID(tenantID)
+	if err != nil {
+		return nil, err
+	}
+	return r.previewCleanupObjects(ctx, normalizedTenantID, now, limit)
+}
+
+func (r Repository) PreviewCleanupCountsForTenant(ctx context.Context, tenantID string, now time.Time) (expiredExports, orphanedObjects int, err error) {
+	normalizedTenantID, err := normalizeCleanupTenantID(tenantID)
+	if err != nil {
+		return 0, 0, err
+	}
+	if now.IsZero() {
+		now = time.Now().UTC()
+	}
+	err = r.db.QueryRow(ctx, `
+WITH expired_exports AS (
+	SELECT e.id
+	FROM exports e
+	JOIN object_metadata o ON o.tenant_id = e.tenant_id AND o.id = e.object_metadata_id
+	WHERE e.status IN ('ready', 'failed', 'pending')
+	  AND e.tenant_id = $2
+	  AND o.retention_until IS NOT NULL
+	  AND o.retention_until <= $1
+),
+orphaned_sources AS (
+	SELECT o.id, o.tenant_id
+	FROM object_metadata o
+	WHERE o.retention_state = 'active'
+	  AND o.asset_type = 'export'
+	  AND o.tenant_id = $2
+	  AND NOT EXISTS (
+	    SELECT 1
+	    FROM exports e
+	    WHERE e.tenant_id = o.tenant_id AND e.object_metadata_id = o.id
+	  )
+),
+orphaned_objects AS (
+	SELECT o.id
+	FROM object_metadata o
+	JOIN orphaned_sources source ON (
+	  (o.id = source.id AND o.tenant_id = source.tenant_id)
+	  OR (o.derived_from_object_id = source.id AND o.tenant_id = source.tenant_id)
+	)
+	WHERE o.retention_state = 'active'
+)
+SELECT (SELECT COUNT(*) FROM expired_exports), (SELECT COUNT(*) FROM orphaned_objects)`,
+		now,
+		normalizedTenantID,
+	).Scan(&expiredExports, &orphanedObjects)
+	return expiredExports, orphanedObjects, err
+}
+
 func (r Repository) listCleanupObjects(ctx context.Context, tenantID string, now time.Time, limit int) ([]CleanupObject, error) {
 	if now.IsZero() {
 		now = time.Now().UTC()
@@ -1148,6 +1204,78 @@ WHERE retention_state IN ('expired', 'orphaned')
     OR retention_until <= $1
   )
 ORDER BY created_at ASC
+LIMIT $2`,
+		now,
+		limit,
+		tenantID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	objects := make([]CleanupObject, 0, limit)
+	for rows.Next() {
+		var object CleanupObject
+		if err := rows.Scan(&object.ID, &object.TenantID, &object.Key); err != nil {
+			return nil, err
+		}
+		normalized, err := object.normalized()
+		if err != nil {
+			return nil, err
+		}
+		objects = append(objects, normalized)
+	}
+	return objects, rows.Err()
+}
+
+func (r Repository) previewCleanupObjects(ctx context.Context, tenantID string, now time.Time, limit int) ([]CleanupObject, error) {
+	if now.IsZero() {
+		now = time.Now().UTC()
+	}
+	if limit <= 0 {
+		limit = 100
+	}
+	rows, err := r.db.Query(ctx, `
+WITH expired_sources AS (
+	SELECT id, tenant_id
+	FROM object_metadata
+	WHERE retention_until IS NOT NULL
+	  AND tenant_id = $3
+	  AND retention_until <= $1
+	  AND retention_state IN ('active', 'expired')
+),
+orphaned_sources AS (
+	SELECT o.id, o.tenant_id
+	FROM object_metadata o
+	WHERE o.retention_state = 'active'
+	  AND o.asset_type = 'export'
+	  AND o.tenant_id = $3
+	  AND NOT EXISTS (
+	    SELECT 1
+	    FROM exports e
+	    WHERE e.tenant_id = o.tenant_id AND e.object_metadata_id = o.id
+	  )
+),
+cleanup_candidates AS (
+	SELECT o.id, o.tenant_id, o.object_key
+	FROM object_metadata o
+	JOIN expired_sources source ON (
+	  (o.id = source.id AND o.tenant_id = source.tenant_id)
+	  OR (o.derived_from_object_id = source.id AND o.tenant_id = source.tenant_id)
+	)
+	WHERE o.retention_state IN ('active', 'expired')
+	UNION
+	SELECT o.id, o.tenant_id, o.object_key
+	FROM object_metadata o
+	JOIN orphaned_sources source ON (
+	  (o.id = source.id AND o.tenant_id = source.tenant_id)
+	  OR (o.derived_from_object_id = source.id AND o.tenant_id = source.tenant_id)
+	)
+	WHERE o.retention_state = 'active'
+)
+SELECT id, tenant_id, object_key
+FROM cleanup_candidates
+ORDER BY id ASC
 LIMIT $2`,
 		now,
 		limit,
@@ -3054,6 +3182,28 @@ func (s Service) CleanupExpiredExportsAndOrphanedObjectsForTenant(ctx context.Co
 	}
 	result, err := s.repo.CleanupExpiredExportsAndOrphanedObjectsForTenant(ctx, normalizedTenantID, now, nil)
 	return s.cleanupExpiredExportsAndOrphanedObjects(ctx, normalizedTenantID, now, limit, result, err)
+}
+
+func (s Service) PreviewExpiredExportsAndOrphanedObjectsForTenant(ctx context.Context, tenantID string, now time.Time, limit int) (CleanupResult, error) {
+	normalizedTenantID, err := normalizeCleanupTenantID(tenantID)
+	if err != nil {
+		return CleanupResult{}, err
+	}
+	expiredExports, orphanedObjects, err := s.repo.PreviewCleanupCountsForTenant(ctx, normalizedTenantID, now)
+	if err != nil {
+		return CleanupResult{}, err
+	}
+	objects, err := s.repo.PreviewCleanupObjectsForTenant(ctx, normalizedTenantID, now, limit)
+	if err != nil {
+		return CleanupResult{}, err
+	}
+	return CleanupResult{
+		ExpiredExports:  expiredExports,
+		OrphanedObjects: orphanedObjects,
+		PreviewObjects:  len(objects),
+		DryRun:          true,
+		Status:          "preview",
+	}, nil
 }
 
 func (s Service) cleanupExpiredExportsAndOrphanedObjects(ctx context.Context, tenantID string, now time.Time, limit int, result CleanupResult, err error) (CleanupResult, error) {

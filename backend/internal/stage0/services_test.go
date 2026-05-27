@@ -1274,6 +1274,84 @@ func TestListCleanupObjectsForTenantAppliesTenantScope(t *testing.T) {
 	}
 }
 
+func TestPreviewCleanupObjectsForTenantSelectsExpiredAndOrphanedWithoutMutation(t *testing.T) {
+	now := time.Date(2026, 5, 26, 12, 0, 0, 0, time.UTC)
+	db := &fakeDB{queryRows: []rowSet{{
+		rows: [][]any{{
+			"object_1",
+			"tenant_1",
+			"tenants/tenant_1/exports/export_1.zip",
+		}, {
+			"object_2",
+			"tenant_1",
+			"tenants/tenant_1/thumbnails/export_1.zip.svg",
+		}},
+	}}}
+	repo := NewRepository(db)
+
+	objects, err := repo.PreviewCleanupObjectsForTenant(context.Background(), "tenant_1", now, 25)
+	if err != nil {
+		t.Fatalf("PreviewCleanupObjectsForTenant() error = %v", err)
+	}
+	if len(objects) != 2 {
+		t.Fatalf("preview object count = %d, want 2", len(objects))
+	}
+	if len(db.execs) != 0 {
+		t.Fatalf("preview should not mutate DB: %#v", db.execs)
+	}
+	query := db.queryRowsUsed[0]
+	for _, fragment := range []string{
+		"WITH expired_sources AS",
+		"orphaned_sources AS",
+		"cleanup_candidates AS",
+		"o.derived_from_object_id = source.id",
+		"tenant_id = $3",
+		"LIMIT $2",
+	} {
+		if !strings.Contains(query.sql, fragment) {
+			t.Fatalf("preview cleanup SQL missing %s: %s", fragment, query.sql)
+		}
+	}
+	if query.args[0] != now || query.args[1] != 25 || query.args[2] != "tenant_1" {
+		t.Fatalf("preview cleanup args = %#v, want now/25/tenant_1", query.args)
+	}
+}
+
+func TestPreviewCleanupCountsForTenantCountsExpiredExportsAndOrphanedObjectsWithoutMutation(t *testing.T) {
+	now := time.Date(2026, 5, 26, 12, 0, 0, 0, time.UTC)
+	db := &fakeDB{queryRows: []rowSet{{
+		rows: [][]any{{3, 2}},
+	}}}
+	repo := NewRepository(db)
+
+	expiredExports, orphanedObjects, err := repo.PreviewCleanupCountsForTenant(context.Background(), "tenant_1", now)
+	if err != nil {
+		t.Fatalf("PreviewCleanupCountsForTenant() error = %v", err)
+	}
+	if expiredExports != 3 || orphanedObjects != 2 {
+		t.Fatalf("preview counts = %d/%d, want 3 expired exports and 2 orphaned objects", expiredExports, orphanedObjects)
+	}
+	if len(db.execs) != 0 {
+		t.Fatalf("preview counts should not mutate DB: %#v", db.execs)
+	}
+	query := db.queryRowsUsed[0]
+	for _, fragment := range []string{
+		"WITH expired_exports AS",
+		"orphaned_sources AS",
+		"orphaned_objects AS",
+		"SELECT (SELECT COUNT(*) FROM expired_exports), (SELECT COUNT(*) FROM orphaned_objects)",
+		"e.tenant_id = $2",
+		"o.tenant_id = $2",
+	} {
+		if !strings.Contains(query.sql, fragment) {
+			t.Fatalf("preview counts SQL missing %s: %s", fragment, query.sql)
+		}
+	}
+	if query.args[0] != now || query.args[1] != "tenant_1" {
+		t.Fatalf("preview counts args = %#v, want now/tenant_1", query.args)
+	}
+}
+
 func TestTenantCleanupEntryPointsRejectUnsafeTenantIDBeforeDB(t *testing.T) {
 	now := time.Date(2026, 5, 26, 12, 0, 0, 0, time.UTC)
 	for _, tenantID := range []string{"../tenant_1", "tenant_1/../../tenant_2", `tenant_1\tenant_2`, "tenant 1", "."} {
@@ -1290,6 +1368,12 @@ func TestTenantCleanupEntryPointsRejectUnsafeTenantIDBeforeDB(t *testing.T) {
 			service := NewService(repo, &recordingObjectStore{})
 			if _, err := service.CleanupExpiredExportsAndOrphanedObjectsForTenant(context.Background(), tenantID, now, 25); !errors.Is(err, ErrValidation) {
 				t.Fatalf("Service CleanupExpiredExportsAndOrphanedObjectsForTenant() error = %v, want ErrValidation", err)
+			}
+			if _, err := service.PreviewExpiredExportsAndOrphanedObjectsForTenant(context.Background(), tenantID, now, 25); !errors.Is(err, ErrValidation) {
+				t.Fatalf("Service PreviewExpiredExportsAndOrphanedObjectsForTenant() error = %v, want ErrValidation", err)
+			}
+			if _, _, err := repo.PreviewCleanupCountsForTenant(context.Background(), tenantID, now); !errors.Is(err, ErrValidation) {
+				t.Fatalf("PreviewCleanupCountsForTenant() error = %v, want ErrValidation", err)
 			}
 			if len(db.execs) != 0 || len(db.queryRowsUsed) != 0 {
 				t.Fatalf("invalid tenant cleanup should not touch DB: execs=%#v queries=%#v", db.execs, db.queryRowsUsed)
@@ -1604,6 +1688,33 @@ func TestTenantScopedServiceCleanupDeletesTenantExpiredMarkers(t *testing.T) {
 	}
 	if !strings.Contains(db.execs[4].sql, "SELECT $7, 0, 0, $4") || !strings.Contains(db.execs[4].sql, "($4 > 0 OR $5 > 0)") {
 		t.Fatalf("cleanup run audit should create scoped marker-only evidence row: %s", db.execs[4].sql)
+	}
+}
+
+func TestServicePreviewCleanupDoesNotDeleteStorageOrMutateRows(t *testing.T) {
+	now := time.Date(2026, 5, 26, 12, 0, 0, 0, time.UTC)
+	db := &fakeDB{queryRows: []rowSet{
+		{rows: [][]any{{1, 2}}},
+		{rows: [][]any{
+			{"object_1", "tenant_1", "tenants/tenant_1/exports/export_1.zip"},
+			{"object_2", "tenant_1", "tenants/tenant_1/thumbnails/export_1.zip.svg"},
+		}},
+	}}
+	objects := &recordingObjectStore{cleanupExpiredForTenantCount: 2}
+	service := NewService(NewRepository(db), objects)
+
+	result, err := service.PreviewExpiredExportsAndOrphanedObjectsForTenant(context.Background(), "tenant_1", now, 50)
+	if err != nil {
+		t.Fatalf("PreviewExpiredExportsAndOrphanedObjectsForTenant() error = %v", err)
+	}
+	if !result.DryRun || result.Status != "preview" || result.ExpiredExports != 1 || result.OrphanedObjects != 2 || result.PreviewObjects != 2 || result.DeletedObjects != 0 || result.FailedObjects != 0 {
+		t.Fatalf("preview result = %#v, want dry-run preview with 2 candidate objects", result)
+	}
+	if len(db.execs) != 0 {
+		t.Fatalf("preview should not mutate repository rows: %#v", db.execs)
+	}
+	if len(objects.deletedKeys) != 0 || objects.cleanupExpiredCalled || objects.cleanupExpiredForTenantCalled {
+		t.Fatalf("preview should not touch object storage deletes/marker cleanup: %#v", objects)
 	}
 }
 
