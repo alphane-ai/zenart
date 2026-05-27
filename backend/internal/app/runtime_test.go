@@ -27,6 +27,28 @@ func TestMalwareScannerFromConfigSelectsHTTPScanner(t *testing.T) {
 	if httpScanner.Endpoint != "http://scanner.local/scan" || httpScanner.APIKey != "secret" || httpScanner.Timeout != 3*time.Second {
 		t.Fatalf("http scanner = %#v", httpScanner)
 	}
+	if httpScanner.DenyLocalEndpoints {
+		t.Fatalf("http scanner DenyLocalEndpoints = true, want false for local environment")
+	}
+}
+
+func TestMalwareScannerFromConfigDeniesLocalEndpointsOutsideLocal(t *testing.T) {
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	cfg.App.Environment = "staging"
+	cfg.Security.MalwareScanProvider = "http"
+	cfg.Security.MalwareScanEndpoint = "https://scanner.example.test/scan"
+
+	scanner := malwareScannerFromConfig(cfg, http.DefaultClient)
+	httpScanner, ok := scanner.(security.HTTPMalwareScanner)
+	if !ok {
+		t.Fatalf("scanner = %T, want HTTPMalwareScanner", scanner)
+	}
+	if !httpScanner.DenyLocalEndpoints {
+		t.Fatalf("http scanner DenyLocalEndpoints = false, want true outside local")
+	}
 }
 
 func TestMalwareScannerFromConfigDefaultsToPlaceholder(t *testing.T) {

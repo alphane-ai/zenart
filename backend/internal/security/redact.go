@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"net"
 	"net/http"
 	"net/url"
 	"reflect"
@@ -188,12 +189,13 @@ type MalwareScanner interface {
 }
 
 type HTTPMalwareScanner struct {
-	Endpoint string
-	APIKey   string
-	Provider string
-	Client   *http.Client
-	Timeout  time.Duration
-	Now      func() time.Time
+	Endpoint           string
+	APIKey             string
+	Provider           string
+	Client             *http.Client
+	Timeout            time.Duration
+	DenyLocalEndpoints bool
+	Now                func() time.Time
 }
 
 func (s HTTPMalwareScanner) Scan(ctx context.Context, target MalwareScanTarget) (MalwareScanResult, error) {
@@ -201,7 +203,7 @@ func (s HTTPMalwareScanner) Scan(ctx context.Context, target MalwareScanTarget) 
 	if endpoint == "" {
 		return MalwareScanResult{}, errors.New("malware scan endpoint is required")
 	}
-	if err := validateMalwareScanEndpoint(endpoint); err != nil {
+	if err := validateMalwareScanEndpoint(endpoint, s.DenyLocalEndpoints); err != nil {
 		return MalwareScanResult{}, err
 	}
 	if strings.TrimSpace(target.TenantID) == "" || strings.TrimSpace(target.ObjectKey) == "" {
@@ -267,7 +269,7 @@ func (s HTTPMalwareScanner) Scan(ctx context.Context, target MalwareScanTarget) 
 	return result, nil
 }
 
-func validateMalwareScanEndpoint(endpoint string) error {
+func validateMalwareScanEndpoint(endpoint string, denyLocalEndpoints bool) error {
 	parsed, err := url.ParseRequestURI(endpoint)
 	if err != nil {
 		return fmt.Errorf("malware scan endpoint must be a URL: %v", err)
@@ -287,7 +289,23 @@ func validateMalwareScanEndpoint(endpoint string) error {
 	if parsed.Fragment != "" || strings.Contains(endpoint, "#") {
 		return errors.New("malware scan endpoint must not include a fragment")
 	}
+	if denyLocalEndpoints && isLocalServiceHost(parsed.Hostname()) {
+		return errors.New("malware scan endpoint must not target localhost or private IP")
+	}
 	return nil
+}
+
+func isLocalServiceHost(host string) bool {
+	host = strings.Trim(strings.ToLower(strings.TrimSpace(host)), "[]")
+	switch host {
+	case "", "localhost", "localhost.localdomain":
+		return true
+	}
+	ip := net.ParseIP(host)
+	if ip == nil {
+		return false
+	}
+	return ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() || ip.IsUnspecified()
 }
 
 func malwareScanHTTPClient(base *http.Client) *http.Client {

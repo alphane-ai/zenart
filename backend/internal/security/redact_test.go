@@ -2786,6 +2786,29 @@ func TestHTTPMalwareScannerRejectsSecretBearingEndpoints(t *testing.T) {
 	}
 }
 
+func TestHTTPMalwareScannerRejectsLocalEndpointsWhenDenied(t *testing.T) {
+	for _, endpoint := range []string{
+		"http://localhost/scan",
+		"http://127.0.0.1/scan",
+		"http://10.1.2.3/scan",
+		"http://[::1]/scan",
+	} {
+		t.Run(endpoint, func(t *testing.T) {
+			_, err := (HTTPMalwareScanner{
+				Endpoint:           endpoint,
+				Timeout:            time.Second,
+				DenyLocalEndpoints: true,
+			}).Scan(context.Background(), MalwareScanTarget{
+				TenantID:  "tenant_1",
+				ObjectKey: "uploads/file.png",
+			})
+			if err == nil || !strings.Contains(err.Error(), "must not target localhost or private IP") {
+				t.Fatalf("Scan() error = %v, want local endpoint denial", err)
+			}
+		})
+	}
+}
+
 func TestHTTPMalwareScannerDeniesRedirectsWithoutForwardingAuth(t *testing.T) {
 	redirected := false
 	sink := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

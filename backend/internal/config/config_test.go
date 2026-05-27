@@ -479,6 +479,40 @@ func TestValidateRequiresHTTPMalwareScannerFailClosedOutsideLocal(t *testing.T) 
 	}
 }
 
+func TestValidateRejectsHTTPMalwareScannerLocalEndpointsOutsideLocal(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		endpoint string
+	}{
+		{name: "localhost", endpoint: "https://localhost/scan"},
+		{name: "loopback", endpoint: "https://127.0.0.1/scan"},
+		{name: "private ip", endpoint: "https://10.1.2.3/scan"},
+		{name: "link local", endpoint: "https://169.254.10.20/scan"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			cfg, err := Load()
+			if err != nil {
+				t.Fatalf("Load() error = %v", err)
+			}
+			cfg.App.Environment = "staging"
+			cfg.ObjectStorage.Provider = "s3-compatible"
+			cfg.ObjectStorage.Endpoint = "https://s3.example.test"
+			cfg.ObjectStorage.PublicEndpoint = "https://downloads.example.test"
+			cfg.ObjectStorage.AccessKey = "stage0-staging-access"
+			cfg.ObjectStorage.SecretKey = "stage0-staging-secret"
+			cfg.ObjectStorage.SigningKey = "stage0-staging-object-signing-key-32"
+			cfg.Security.MalwareScanProvider = "http"
+			cfg.Security.MalwareScanFailClosed = true
+			cfg.Security.MalwareScanEndpoint = tc.endpoint
+
+			err = cfg.Validate()
+			if err == nil || !strings.Contains(err.Error(), "MALWARE_SCAN_ENDPOINT must not target localhost or private IP outside local") {
+				t.Fatalf("Validate() error = %v, want local endpoint denial", err)
+			}
+		})
+	}
+}
+
 func TestValidateRestrictsDevIdentityHeadersToLocalAccessMode(t *testing.T) {
 	cfg, err := Load()
 	if err != nil {

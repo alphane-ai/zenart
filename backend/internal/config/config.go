@@ -280,6 +280,8 @@ func (c Config) Validate() error {
 			errs = append(errs, endpointErr)
 		} else if !isLocalEnvironment(c.App.Environment) && parsed.Scheme != "https" {
 			errs = append(errs, "MALWARE_SCAN_ENDPOINT must use https outside local")
+		} else if !isLocalEnvironment(c.App.Environment) && isLocalServiceHost(parsed.Hostname()) {
+			errs = append(errs, "MALWARE_SCAN_ENDPOINT must not target localhost or private IP outside local")
 		}
 		if !isLocalEnvironment(c.App.Environment) && !c.Security.MalwareScanFailClosed {
 			errs = append(errs, "MALWARE_SCAN_FAIL_CLOSED must be true when MALWARE_SCAN_PROVIDER=http outside local")

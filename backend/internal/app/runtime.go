@@ -84,15 +84,20 @@ func malwareScannerFromConfig(cfg config.Config, client *http.Client) security.M
 	switch provider {
 	case "http":
 		return security.HTTPMalwareScanner{
-			Endpoint: cfg.Security.MalwareScanEndpoint,
-			APIKey:   cfg.Security.MalwareScanAPIKey,
-			Provider: "http",
-			Client:   client,
-			Timeout:  cfg.Security.MalwareScanTimeout,
+			Endpoint:           cfg.Security.MalwareScanEndpoint,
+			APIKey:             cfg.Security.MalwareScanAPIKey,
+			Provider:           "http",
+			Client:             client,
+			Timeout:            cfg.Security.MalwareScanTimeout,
+			DenyLocalEndpoints: !isLocalEnvironment(cfg.App.Environment),
 		}
 	default:
 		return security.PlaceholderMalwareScanner{Provider: provider}
 	}
+}
+
+func isLocalEnvironment(environment string) bool {
+	return strings.EqualFold(strings.TrimSpace(environment), "") || strings.EqualFold(strings.TrimSpace(environment), "local")
 }
 
 func SignalContext() (context.Context, context.CancelFunc) {
