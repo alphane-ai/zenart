@@ -1,0 +1,345 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zenart.local/schemas/stage0/rev2/export_eligibility_decision_contract.schema.json",
+  "title": "ZenArt Stage 0 Rev2 Export Eligibility Decision Contract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "contract_id",
+    "blueprint_source",
+    "links",
+    "decision_policy",
+    "eligibility_cases",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "stage0.rev2"
+    },
+    "contract_id": {
+      "const": "export_eligibility_decision_contract_stage0_rev2"
+    },
+    "blueprint_source": {
+      "const": "Docs/stage0_blueprint_rev2.md"
+    },
+    "links": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "eval_results",
+        "qa_results",
+        "safety_rules",
+        "trace_completeness",
+        "trace_export_gate_matrix",
+        "eval_package_readiness",
+        "export_override_contract"
+      ],
+      "properties": {
+        "eval_results": {
+          "const": "fixtures/stage0/rev2/eval/starter_eval_results.json"
+        },
+        "qa_results": {
+          "const": "fixtures/stage0/rev2/eval/qa_results.json"
+        },
+        "safety_rules": {
+          "const": "fixtures/stage0/rev2/eval/safety_rules.json"
+        },
+        "trace_completeness": {
+          "const": "fixtures/stage0/rev2/eval/trace_completeness.json"
+        },
+        "trace_export_gate_matrix": {
+          "const": "fixtures/stage0/rev2/eval/trace_export_gate_matrix.json"
+        },
+        "eval_package_readiness": {
+          "const": "fixtures/stage0/rev2/eval/eval_package_readiness_contract.json"
+        },
+        "export_override_contract": {
+          "const": "fixtures/stage0/rev2/eval/export_override_contract.json"
+        }
+      }
+    },
+    "decision_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "download_requires_eval_pass",
+        "download_requires_generated_candidates",
+        "download_requires_complete_qa_coverage",
+        "download_requires_no_blocking_qa",
+        "download_requires_no_safety_hold_or_block",
+        "download_requires_complete_export_artifacts",
+        "download_requires_complete_trace",
+        "download_requires_package_readiness_allow",
+        "admin_override_requires_audit",
+        "admin_override_cannot_clear_policy_block_or_missing_artifacts",
+        "denied_exports_retain_trace_and_reports"
+      ],
+      "properties": {
+        "download_requires_eval_pass": {
+          "const": true
+        },
+        "download_requires_generated_candidates": {
+          "const": true
+        },
+        "download_requires_complete_qa_coverage": {
+          "const": true
+        },
+        "download_requires_no_blocking_qa": {
+          "const": true
+        },
+        "download_requires_no_safety_hold_or_block": {
+          "const": true
+        },
+        "download_requires_complete_export_artifacts": {
+          "const": true
+        },
+        "download_requires_complete_trace": {
+          "const": true
+        },
+        "download_requires_package_readiness_allow": {
+          "const": true
+        },
+        "admin_override_requires_audit": {
+          "const": true
+        },
+        "admin_override_cannot_clear_policy_block_or_missing_artifacts": {
+          "const": true
+        },
+        "denied_exports_retain_trace_and_reports": {
+          "const": true
+        }
+      }
+    },
+    "eligibility_cases": {
+      "type": "array",
+      "minItems": 12,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "fixture_id",
+          "workflow",
+          "trace_id",
+          "package_id",
+          "export_id",
+          "eval_status",
+          "candidate_count",
+          "qa_coverage_complete",
+          "blocking_qa_check_ids",
+          "blocking_qa_override_eligible_ids",
+          "non_overrideable_qa_blocker_ids",
+          "safety_decision",
+          "safety_rule_ids",
+          "export_artifacts_complete",
+          "missing_export_artifacts",
+          "trace_complete",
+          "package_readiness_download_allowed",
+          "final_export_allowed",
+          "download_enabled",
+          "decision",
+          "denial_reasons",
+          "requirements_to_allow",
+          "override_effect",
+          "retained_artifacts_when_blocked"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "pattern": "^export_eligibility_[a-z0-9_]+$"
+          },
+          "fixture_id": {
+            "type": "string",
+            "pattern": "^fx_[a-z0-9_]+$"
+          },
+          "workflow": {
+            "$ref": "#/$defs/workflow"
+          },
+          "trace_id": {
+            "type": "string",
+            "pattern": "^trace_[a-z0-9_]+$"
+          },
+          "package_id": {
+            "type": "string",
+            "pattern": "^package_fx_[a-z0-9_]+$"
+          },
+          "export_id": {
+            "type": "string",
+            "pattern": "^export_fx_[a-z0-9_]+$"
+          },
+          "eval_status": {
+            "enum": [
+              "pass",
+              "fail",
+              "blocked"
+            ]
+          },
+          "candidate_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "qa_coverage_complete": {
+            "type": "boolean"
+          },
+          "blocking_qa_check_ids": {
+            "$ref": "#/$defs/qa_check_ids"
+          },
+          "blocking_qa_override_eligible_ids": {
+            "$ref": "#/$defs/qa_check_ids"
+          },
+          "non_overrideable_qa_blocker_ids": {
+            "$ref": "#/$defs/qa_check_ids"
+          },
+          "safety_decision": {
+            "enum": [
+              "allow",
+              "warn",
+              "require_user_confirmation",
+              "require_admin_review",
+              "block"
+            ]
+          },
+          "safety_rule_ids": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^safety_[a-z0-9_]+$"
+            }
+          },
+          "export_artifacts_complete": {
+            "type": "boolean"
+          },
+          "missing_export_artifacts": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "enum": [
+                "manifest",
+                "metadata",
+                "qa_report",
+                "trace_provenance",
+                "safety_disclaimer_when_applicable"
+              ]
+            }
+          },
+          "trace_complete": {
+            "type": "boolean"
+          },
+          "package_readiness_download_allowed": {
+            "type": "boolean"
+          },
+          "final_export_allowed": {
+            "type": "boolean"
+          },
+          "download_enabled": {
+            "type": "boolean"
+          },
+          "decision": {
+            "enum": [
+              "allow_download",
+              "deny_download"
+            ]
+          },
+          "denial_reasons": {
+            "$ref": "#/$defs/denial_reasons"
+          },
+          "requirements_to_allow": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "enum": [
+                "pass_eval_suite",
+                "generate_candidates",
+                "complete_qa_coverage",
+                "resolve_blocking_qa",
+                "remove_policy_blocked_content",
+                "collect_user_confirmation",
+                "complete_admin_safety_review",
+                "persist_required_export_artifacts",
+                "complete_trace"
+              ]
+            }
+          },
+          "override_effect": {
+            "enum": [
+              "no_source_override_needed_but_download_stays_denied",
+              "source_override_may_clear_blocker_but_download_stays_denied",
+              "admin_review_required_but_download_stays_denied",
+              "user_confirmation_required_but_download_stays_denied",
+              "no_export_override_path",
+              "download_allowed_without_override"
+            ]
+          },
+          "retained_artifacts_when_blocked": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "enum": [
+                "manifest",
+                "metadata",
+                "qa_report",
+                "trace_provenance",
+                "safety_disclaimer"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "blueprint_sections",
+        "created_by_lane"
+      ],
+      "properties": {
+        "blueprint_sections": {
+          "type": "array",
+          "minItems": 4,
+          "items": {
+            "type": "string"
+          }
+        },
+        "created_by_lane": {
+          "const": "lane2"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "workflow": {
+      "enum": [
+        "ecommerce_growth_pack",
+        "business_visual_doc_pack",
+        "local_merchant_campaign_pack",
+        "character_ip_concept_pack"
+      ]
+    },
+    "qa_check_ids": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^qa_[a-z0-9_]+$"
+      }
+    },
+    "denial_reasons": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "blocking_qa",
+          "safety_policy_block",
+          "safety_user_confirmation_required",
+          "safety_admin_review_required",
+          "incomplete_export_artifacts",
+          "qa_coverage_incomplete",
+          "trace_incomplete"
+        ]
+      }
+    }
+  }
+}
