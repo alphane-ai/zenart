@@ -527,6 +527,23 @@ export type ExportJob = {
   operatorRunbook: string;
 };
 
+export type ExportRegenerationRuntimeDecision = {
+  exportId: string;
+  supportTicketId: string;
+  decision: "submit_ready" | "review_required" | "blocked";
+  qaGate: "pass" | "warning_review" | "blocking_denied";
+  auditStatus: "attached" | "pending";
+  closureEvidenceStatus: "complete" | "incomplete";
+  requestedByRole: AdminRole;
+  requiredRole: AdminRole;
+  rbacDecision: ExportJob["rbacDecision"];
+  idempotencyKey: string;
+  quotaSettlement: "no_quota_change" | "refund_pending" | "reserved_credit_released" | "credit_after_audit";
+  blockerCodes: string[];
+  submitDisabledReason: string;
+  operatorAction: string;
+};
+
 export type FailedTaskControl = {
   id: string;
   queueId: string;

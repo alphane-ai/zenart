@@ -1,10 +1,13 @@
 import { KeyValue } from "@/components/KeyValue";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
-import { getExportJob } from "@/lib/admin-api";
+import { getExportJob, getExportRegenerationRuntimeDecision } from "@/lib/admin-api";
 
 export default async function ExportDetailPage({ params }: { params: { id: string } }) {
-  const job = await getExportJob(params.id);
+  const [job, runtimeDecision] = await Promise.all([
+    getExportJob(params.id),
+    getExportRegenerationRuntimeDecision(params.id)
+  ]);
 
   return (
     <>
@@ -52,7 +55,7 @@ export default async function ExportDetailPage({ params }: { params: { id: strin
         <div className="panel span-6">
           <div className="panel-header">
             <div>
-            <h3>Regenerate Request</h3>
+              <h3>Regenerate Request</h3>
               <p>Regeneration requires support linkage, idempotency, RBAC, quota handling, and immutable audit evidence.</p>
             </div>
           </div>
@@ -84,6 +87,28 @@ export default async function ExportDetailPage({ params }: { params: { id: strin
                 </select>
               </div>
             </div>
+          </div>
+        </div>
+        <div className="panel span-12">
+          <div className="panel-header">
+            <div>
+              <h3>Runtime Decision</h3>
+              <p>Operator-visible submit readiness for this export regeneration request.</p>
+            </div>
+            <StatusBadge value={runtimeDecision.decision} label={runtimeDecision.decision} />
+          </div>
+          <div className="panel-body">
+            <KeyValue
+              items={[
+                ["QA gate", <StatusBadge key="qa-gate" value={runtimeDecision.qaGate} label={runtimeDecision.qaGate} />],
+                ["Audit status", <StatusBadge key="audit-status" value={runtimeDecision.auditStatus} label={runtimeDecision.auditStatus} />],
+                ["Closure evidence status", <StatusBadge key="closure-status" value={runtimeDecision.closureEvidenceStatus} label={runtimeDecision.closureEvidenceStatus} />],
+                ["Quota settlement", runtimeDecision.quotaSettlement],
+                ["Blocker codes", runtimeDecision.blockerCodes.length ? runtimeDecision.blockerCodes.join(", ") : "None"],
+                ["Submit disabled reason", runtimeDecision.submitDisabledReason],
+                ["Operator action", runtimeDecision.operatorAction]
+              ]}
+            />
           </div>
         </div>
       </section>

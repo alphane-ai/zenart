@@ -3,12 +3,13 @@ import { DataTable } from "@/components/DataTable";
 import { PageHeader } from "@/components/PageHeader";
 import { RbacRuntimeDecisionTable } from "@/components/RbacRuntimeDecisionTable";
 import { StatusBadge } from "@/components/StatusBadge";
-import { getAdminRbacEvidence, getAdminRbacRuntimeDecisions, getExportJobs } from "@/lib/admin-api";
-import type { AdminRbacEvidence, ExportJob } from "@/lib/types";
+import { getAdminRbacEvidence, getAdminRbacRuntimeDecisions, getExportJobs, getExportRegenerationRuntimeDecisions } from "@/lib/admin-api";
+import type { AdminRbacEvidence, ExportJob, ExportRegenerationRuntimeDecision } from "@/lib/types";
 
 export default async function ExportsPage() {
-  const [jobs, rbacEvidence, rbacRuntime] = await Promise.all([
+  const [jobs, runtimeDecisions, rbacEvidence, rbacRuntime] = await Promise.all([
     getExportJobs(),
+    getExportRegenerationRuntimeDecisions(),
     getAdminRbacEvidence(),
     getAdminRbacRuntimeDecisions()
   ]);
@@ -42,6 +43,31 @@ export default async function ExportsPage() {
             { key: "quota", header: "Quota Effect", render: (row) => row.quotaEffect },
             { key: "audit", header: "Audit Ref", render: (row) => <span className="mono">{row.auditRef}</span> },
             { key: "reason", header: "Reason", render: (row) => row.failureReason }
+          ]}
+        />
+      </section>
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>Regeneration Runtime Decisions</h3>
+            <p>Submit readiness is computed from QA gate, RBAC, support linkage, idempotency, quota settlement, closure evidence, and audit state.</p>
+          </div>
+        </div>
+        <DataTable<ExportRegenerationRuntimeDecision>
+          rows={runtimeDecisions}
+          columns={[
+            { key: "export", header: "Export", render: (row) => <Link className="mono" href={`/exports/${row.exportId}`}>{row.exportId}</Link> },
+            { key: "decision", header: "Decision", render: (row) => <StatusBadge value={row.decision} label={row.decision} /> },
+            { key: "qa", header: "QA Gate", render: (row) => <StatusBadge value={row.qaGate} label={row.qaGate} /> },
+            { key: "audit", header: "Audit Status", render: (row) => <StatusBadge value={row.auditStatus} label={row.auditStatus} /> },
+            { key: "closure", header: "Closure Evidence", render: (row) => <StatusBadge value={row.closureEvidenceStatus} label={row.closureEvidenceStatus} /> },
+            { key: "role", header: "Requested / Required", render: (row) => `${row.requestedByRole} / ${row.requiredRole}` },
+            { key: "rbac", header: "RBAC Decision", render: (row) => <StatusBadge value={row.rbacDecision} label={row.rbacDecision} /> },
+            { key: "quota", header: "Quota Settlement", render: (row) => row.quotaSettlement },
+            { key: "idempotency", header: "Idempotency Key", render: (row) => <span className="mono">{row.idempotencyKey}</span> },
+            { key: "blockers", header: "Blocker Codes", render: (row) => row.blockerCodes.length ? row.blockerCodes.join(", ") : "None" },
+            { key: "reason", header: "Submit Disabled Reason", render: (row) => row.submitDisabledReason },
+            { key: "action", header: "Operator Action", render: (row) => row.operatorAction }
           ]}
         />
       </section>

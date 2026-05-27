@@ -47,6 +47,7 @@ import {
   traces
 } from "@/lib/fixtures";
 import { buildAbuseQueueRuntime, buildAbuseRuntimeDecisions } from "@/lib/abuse-runtime";
+import { buildExportRegenerationRuntimeDecisions } from "@/lib/export-runtime";
 import { buildAdminRbacRuntimeDecisions } from "@/lib/rbac-runtime";
 
 export async function getSkills() {
@@ -171,6 +172,15 @@ export async function getProductionSecurityLaunchCheckEvidence() {
 
 export async function getExportJob(id: string) {
   return exportJobs.find((job) => job.id === id) ?? exportJobs[0];
+}
+
+export async function getExportRegenerationRuntimeDecisions() {
+  return buildExportRegenerationRuntimeDecisions(exportJobs);
+}
+
+export async function getExportRegenerationRuntimeDecision(id: string) {
+  const decisions = await getExportRegenerationRuntimeDecisions();
+  return decisions.find((decision) => decision.exportId === id) ?? decisions[0];
 }
 
 export async function getSupportUsers() {

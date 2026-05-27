@@ -168,7 +168,12 @@ test("admin export pages expose regeneration governance evidence", () => {
     "RBAC Decision",
     "Support Ticket",
     "Quota Effect",
-    "Audit Ref"
+    "Audit Ref",
+    "Regeneration Runtime Decisions",
+    "QA Gate",
+    "Closure Evidence",
+    "Submit Disabled Reason",
+    "Operator Action"
   ]) {
     assert.match(exportsPage, new RegExp(token));
   }
@@ -179,6 +184,12 @@ test("admin export pages expose regeneration governance evidence", () => {
     "Required role",
     "Closure evidence",
     "Operator runbook",
+    "Runtime Decision",
+    "QA gate",
+    "Audit status",
+    "Closure evidence status",
+    "Blocker codes",
+    "Submit disabled reason",
     "regenerationRationale",
     "closureEvidenceRefs",
     "rbacDecision"

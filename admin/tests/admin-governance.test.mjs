@@ -5,6 +5,7 @@ import { test } from "node:test";
 const source = readFileSync(new URL("../lib/fixtures.ts", import.meta.url), "utf8");
 const abuseRuntimeSource = readFileSync(new URL("../lib/abuse-runtime.ts", import.meta.url), "utf8");
 const rbacRuntimeSource = readFileSync(new URL("../lib/rbac-runtime.ts", import.meta.url), "utf8");
+const exportRuntimeSource = readFileSync(new URL("../lib/export-runtime.ts", import.meta.url), "utf8");
 const repoRoot = new URL("../../", import.meta.url);
 const blueprint = readFileSync(new URL("../../Docs/stage0_blueprint_rev2.md", import.meta.url), "utf8");
 
@@ -93,6 +94,24 @@ const parseRbacRuntime = () => {
     .replaceAll(/: Date/g, "")
     .replaceAll(/: boolean/g, "");
   return Function(`${runtimeSource}\nreturn { buildAdminRbacRuntimeDecisions };`)();
+};
+
+const parseExportRuntime = () => {
+  const runtimeSource = exportRuntimeSource
+    .replace(/^import type[\s\S]*?from "@\/lib\/types";\n\n/, "")
+    .replaceAll(/const roleRank: Record<AdminRole, number> =/g, "const roleRank =")
+    .replaceAll(/export function (\w+)/g, "function $1")
+    .replaceAll(/: ExportRegenerationRuntimeDecision\["qaGate"\]/g, "")
+    .replaceAll(/: ExportRegenerationRuntimeDecision\["decision"\]/g, "")
+    .replaceAll(/: ExportRegenerationRuntimeDecision\["quotaSettlement"\]/g, "")
+    .replaceAll(/: ExportRegenerationRuntimeDecision\[\]/g, "")
+    .replaceAll(/: ExportJob\[\]/g, "")
+    .replaceAll(/: ExportJob/g, "")
+    .replaceAll(/: AdminRole/g, "")
+    .replaceAll(/: string\[\]/g, "")
+    .replaceAll(/: string/g, "")
+    .replaceAll(/ as const/g, "");
+  return Function(`${runtimeSource}\nreturn { buildExportRegenerationRuntimeDecisions };`)();
 };
 
 const auditIds = new Set(auditEvents.map((event) => event.id));
@@ -2006,6 +2025,55 @@ test("export regeneration requests require idempotency, support linkage, RBAC, q
     if (job.auditRef === "pending") {
       assert.equal(job.rbacDecision, "second_review_required", `${job.id} pending audit must stay review-gated`);
       assert.equal(job.regenerateEligible, false, `${job.id} pending audit cannot be directly eligible`);
+    }
+  }
+});
+
+test("export regeneration runtime decisions preserve submit, review, and block gates", () => {
+  const { buildExportRegenerationRuntimeDecisions } = parseExportRuntime();
+  const decisions = buildExportRegenerationRuntimeDecisions(exportJobs);
+  const byExport = new Map(decisions.map((decision) => [decision.exportId, decision]));
+
+  assert.equal(decisions.length, exportJobs.length, "every export job needs a runtime decision");
+  assert.ok(decisions.some((decision) => decision.decision === "submit_ready"), "runtime needs a submit-ready export");
+  assert.ok(decisions.some((decision) => decision.decision === "review_required"), "runtime needs a review-gated export");
+  assert.ok(decisions.some((decision) => decision.decision === "blocked"), "runtime needs a blocked export");
+
+  for (const job of exportJobs) {
+    const decision = byExport.get(job.id);
+    assert.ok(decision, `${job.id} is missing runtime decision`);
+    assert.equal(decision.supportTicketId, job.supportTicketId, `${job.id} support ticket mismatch`);
+    assert.equal(decision.idempotencyKey, job.idempotencyKey, `${job.id} idempotency key mismatch`);
+    assert.equal(decision.requestedByRole, job.requestedByRole, `${job.id} requested role mismatch`);
+    assert.equal(decision.requiredRole, job.requiredRole, `${job.id} required role mismatch`);
+    assert.equal(decision.rbacDecision, job.rbacDecision, `${job.id} RBAC decision mismatch`);
+    assert.ok(decision.operatorAction.length > 80, `${job.id} needs actionable operator guidance`);
+    assert.ok(decision.submitDisabledReason.length > 60, `${job.id} needs submit disabled reason`);
+
+    if (job.quotaEffect === "none") {
+      assert.equal(decision.quotaSettlement, "no_quota_change", `${job.id} should normalize no quota change`);
+    } else {
+      assert.equal(decision.quotaSettlement, job.quotaEffect, `${job.id} quota settlement mismatch`);
+    }
+
+    if (job.rbacDecision === "allowed") {
+      assert.equal(decision.decision, "submit_ready", `${job.id} allowed export should be submit-ready`);
+      assert.deepEqual(decision.blockerCodes, [], `${job.id} submit-ready export cannot have blockers`);
+      assert.equal(decision.auditStatus, "attached", `${job.id} submit-ready export needs attached audit`);
+      assert.equal(decision.closureEvidenceStatus, "complete", `${job.id} submit-ready export needs complete closure evidence`);
+    }
+
+    if (job.rbacDecision === "second_review_required") {
+      assert.equal(decision.decision, "review_required", `${job.id} pending second review must stay review-gated`);
+      assert.ok(decision.blockerCodes.includes("SECOND_REVIEW_REQUIRED"), `${job.id} needs second-review blocker`);
+      assert.ok(decision.blockerCodes.includes("PENDING_AUDIT"), `${job.id} needs pending-audit blocker`);
+    }
+
+    if (job.qaSeverity === "blocking") {
+      assert.equal(decision.decision, "blocked", `${job.id} blocking QA must block regeneration`);
+      assert.equal(decision.qaGate, "blocking_denied", `${job.id} blocking QA needs denied QA gate`);
+      assert.ok(decision.blockerCodes.includes("BLOCKING_QA"), `${job.id} needs blocking-QA blocker`);
+      assert.ok(decision.blockerCodes.includes("RBAC_DENIED"), `${job.id} needs RBAC-denied blocker`);
     }
   }
 });
