@@ -1,0 +1,59 @@
+{
+  "id": "reg-failed-task-cancel-task-crawler-122",
+  "source_feedback_id": "task-crawler-122",
+  "source_kind": "failed_task",
+  "workflow_id": "wf-812",
+  "skill_version": "skill-brand-kit@2.4.0",
+  "failure_mode": "failed_task_retry_cancel",
+  "severity": "medium",
+  "gate": "skill_canary",
+  "expected_assertions": [
+    "submit_decision == submit_ready",
+    "action_scoped_idempotency_key == true",
+    "stale_state_digest_blocks_cancel == true",
+    "support_ticket_linkage_required == true",
+    "second_review_required_before_cancel_closure == true",
+    "second_review_approved_before_cancel_submit == true",
+    "second_review_distinct_reviewer_required == true",
+    "second_review_audit_ref_required == true",
+    "crawler_import_state == cancelled",
+    "crawler_derivative_provenance_attached == true",
+    "bounded_raw_retention_days <= 14",
+    "exact_text_import_blocked == true",
+    "immutable_audit_ref == au-013"
+  ],
+  "bad_sample": {
+    "task_id": "task-crawler-122",
+    "queue_id": "q-crawler",
+    "support_ticket_id": "sup-2215",
+    "finding_id": "cf-122",
+    "governance_workflow_id": "cg-522",
+    "requested_action": "cancel",
+    "idempotency_key": "cancel:task-crawler-122:sup-2215:derivative-reviewed",
+    "quota_effect": "none",
+    "requested_by_admin_id": "adm-reviewer-317",
+    "second_review_status": "approved",
+    "second_reviewer_admin_id": "legal-admin",
+    "second_review_audit_ref": "au-013",
+    "second_review_evidence_refs": ["au-013", "rbac-crawler-001", "cg-522", "cf-122"],
+    "signal": "Crawler cancellation can close only after derivative review proves provenance, bounded raw retention, and no exact-text activation.",
+    "admin_label": "failed_task_cancel_second_review_approved"
+  },
+  "runtime_contract": {
+    "submit_decision": "submit_ready",
+    "state_transition": "cancelled_closure_ready",
+    "closure_outcome": "cancel_submits_with_audit",
+    "release_gate_disposition": "converted_regression_fixture",
+    "api_outcome": "post_cancel_202_cancelled",
+    "quota_ledger_effect": "no_quota_mutation",
+    "support_notice_status": "ready",
+    "audit_write_policy": "write_submit_audit_before_queue_mutation",
+    "second_review_evidence_status": "complete",
+    "regression_gate_effect": "canary_fixture_ready"
+  },
+  "release_block": {
+    "canary_metric": "cm-014",
+    "audit_ref": "au-013",
+    "rollback_target": "skill-brand-kit@2.4.1"
+  }
+}

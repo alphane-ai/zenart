@@ -336,6 +336,7 @@ const adminRbacEvidenceById = new Map(adminRbacEvidence.map((item) => [item.id, 
 const adminRbacEvidenceIds = new Set(adminRbacEvidence.map((item) => item.id));
 const crawlerFindingIds = new Set(crawlerFindings.map((finding) => finding.id));
 const crawlerFindingById = new Map(crawlerFindings.map((finding) => [finding.id, finding]));
+const crawlerGovernanceWorkflowIds = new Set(crawlerGovernanceWorkflows.map((workflow) => workflow.id));
 const crawlerGovernanceCaseById = new Map(crawlerGovernanceCases.map((entry) => [entry.fixture_id, entry]));
 const incidentIds = new Set(["none", "inc-20260526-queue", "inc-20260525-crawler"]);
 const operationalDashboardIds = new Set(operationalDashboards.map((dashboard) => dashboard.id));
@@ -842,7 +843,8 @@ test("admin user lookup resolves user evidence without bypassing RBAC or redacti
             abuseEventById.has(ref) ||
             ref.startsWith("qt-") ||
             ref.startsWith("rx-") ||
-            crawlerFindingIds.has(ref),
+            crawlerFindingIds.has(ref) ||
+            crawlerGovernanceWorkflowIds.has(ref),
           `${user.id} ${action.scope} links unknown evidence ref ${ref}`
         );
       }
@@ -1333,7 +1335,9 @@ test("queue and failed task controls gate retry and cancel with audit evidence",
           exportIds.has(ref) ||
           queueIds.has(ref) ||
           auditIds.has(ref) ||
-          abuseEventById.has(ref),
+          abuseEventById.has(ref) ||
+          crawlerFindingIds.has(ref) ||
+          crawlerGovernanceWorkflowIds.has(ref),
         `${task.id} links unknown closure evidence ref ${ref}`
       );
     }
@@ -1416,63 +1420,97 @@ test("failed task retry and cancel samples are durable regression fixtures", () 
 
   const retryTask = failedTaskControls.find((task) => task.id === "task-export-489");
   const cancelTask = failedTaskControls.find((task) => task.id === "task-crawler-019");
+  const approvedCancelTask = failedTaskControls.find((task) => task.id === "task-crawler-122");
   assert.ok(retryTask, "retry task fixture is missing");
   assert.ok(cancelTask, "cancel task fixture is missing");
+  assert.ok(approvedCancelTask, "approved cancel task fixture is missing");
 
   const retryRegression = regressionFixtures.find((fixture) => fixture.sourceFeedbackId === retryTask.id);
   const cancelRegression = regressionFixtures.find((fixture) => fixture.sourceFeedbackId === cancelTask.id);
+  const approvedCancelRegression = regressionFixtures.find((fixture) => fixture.sourceFeedbackId === approvedCancelTask.id);
   assert.ok(retryRegression, "failed export retry must have a regression fixture inventory entry");
   assert.ok(cancelRegression, "crawler cancel must have a regression fixture inventory entry");
+  assert.ok(approvedCancelRegression, "approved crawler cancel must have a regression fixture inventory entry");
 
   assert.equal(retryTask.regressionFixtureRef, retryRegression.fixturePath);
   assert.equal(cancelTask.regressionFixtureRef, cancelRegression.fixturePath);
+  assert.equal(approvedCancelTask.regressionFixtureRef, approvedCancelRegression.fixturePath);
   assert.equal(retryRegression.sourceKind, "failed_task");
   assert.equal(cancelRegression.sourceKind, "failed_task");
+  assert.equal(approvedCancelRegression.sourceKind, "failed_task");
   assert.equal(retryRegression.failureMode, "failed_task_retry_cancel");
   assert.equal(cancelRegression.failureMode, "failed_task_retry_cancel");
+  assert.equal(approvedCancelRegression.failureMode, "failed_task_retry_cancel");
   assert.equal(cancelRegression.status, "eval_blocking", "crawler cancel regression must block canary activation");
+  assert.equal(approvedCancelRegression.status, "converted", "approved crawler cancel regression should be converted release evidence");
 
   const retryFixture = JSON.parse(readFileSync(new URL(retryRegression.fixturePath, repoRoot), "utf8"));
   const cancelFixture = JSON.parse(readFileSync(new URL(cancelRegression.fixturePath, repoRoot), "utf8"));
+  const approvedCancelFixture = JSON.parse(readFileSync(new URL(approvedCancelRegression.fixturePath, repoRoot), "utf8"));
   const retryDecision = decisionsByTask.get(retryTask.id);
   const cancelDecision = decisionsByTask.get(cancelTask.id);
+  const approvedCancelDecision = decisionsByTask.get(approvedCancelTask.id);
 
   assert.equal(retryFixture.source_kind, "failed_task");
   assert.equal(cancelFixture.source_kind, "failed_task");
+  assert.equal(approvedCancelFixture.source_kind, "failed_task");
   assert.equal(retryFixture.bad_sample.task_id, retryTask.id);
   assert.equal(cancelFixture.bad_sample.task_id, cancelTask.id);
+  assert.equal(approvedCancelFixture.bad_sample.task_id, approvedCancelTask.id);
   assert.equal(retryFixture.bad_sample.support_ticket_id, retryTask.supportTicketId);
   assert.equal(cancelFixture.bad_sample.support_ticket_id, cancelTask.supportTicketId);
+  assert.equal(approvedCancelFixture.bad_sample.support_ticket_id, approvedCancelTask.supportTicketId);
   assert.equal(retryFixture.bad_sample.idempotency_key, retryTask.idempotencyKey);
   assert.equal(cancelFixture.bad_sample.idempotency_key, cancelTask.idempotencyKey);
+  assert.equal(approvedCancelFixture.bad_sample.idempotency_key, approvedCancelTask.idempotencyKey);
   assert.equal(retryFixture.bad_sample.quota_effect, retryTask.quotaEffect);
   assert.equal(cancelFixture.bad_sample.quota_effect, cancelTask.quotaEffect);
+  assert.equal(approvedCancelFixture.bad_sample.quota_effect, approvedCancelTask.quotaEffect);
   assert.equal(cancelFixture.bad_sample.requested_by_admin_id, cancelTask.requestedByAdminId);
+  assert.equal(approvedCancelFixture.bad_sample.requested_by_admin_id, approvedCancelTask.requestedByAdminId);
   assert.equal(cancelFixture.bad_sample.second_review_status, cancelTask.secondReviewStatus);
+  assert.equal(approvedCancelFixture.bad_sample.second_review_status, approvedCancelTask.secondReviewStatus);
   assert.equal(cancelFixture.bad_sample.second_reviewer_admin_id, cancelTask.secondReviewerAdminId);
+  assert.equal(approvedCancelFixture.bad_sample.second_reviewer_admin_id, approvedCancelTask.secondReviewerAdminId);
   assert.equal(cancelFixture.bad_sample.second_review_audit_ref, cancelTask.secondReviewAuditRef);
+  assert.equal(approvedCancelFixture.bad_sample.second_review_audit_ref, approvedCancelTask.secondReviewAuditRef);
   assert.deepEqual(cancelFixture.bad_sample.second_review_evidence_refs, cancelTask.secondReviewEvidenceRefs);
+  assert.deepEqual(approvedCancelFixture.bad_sample.second_review_evidence_refs, approvedCancelTask.secondReviewEvidenceRefs);
   assert.equal(retryDecision.submitDecision, "submit_ready");
   assert.equal(cancelDecision.submitDecision, "review_required");
+  assert.equal(approvedCancelDecision.submitDecision, "submit_ready");
   assert.equal(retryFixture.runtime_contract.submit_decision, retryDecision.submitDecision);
   assert.equal(cancelFixture.runtime_contract.submit_decision, cancelDecision.submitDecision);
+  assert.equal(approvedCancelFixture.runtime_contract.submit_decision, approvedCancelDecision.submitDecision);
   assert.equal(retryDecision.stateTransition, retryFixture.runtime_contract.state_transition);
   assert.equal(cancelDecision.stateTransition, cancelFixture.runtime_contract.state_transition);
+  assert.equal(approvedCancelDecision.stateTransition, approvedCancelFixture.runtime_contract.state_transition);
   assert.equal(retryDecision.closureOutcome, retryFixture.runtime_contract.closure_outcome);
   assert.equal(cancelDecision.closureOutcome, cancelFixture.runtime_contract.closure_outcome);
+  assert.equal(approvedCancelDecision.closureOutcome, approvedCancelFixture.runtime_contract.closure_outcome);
   assert.equal(retryDecision.releaseGateDisposition, retryFixture.runtime_contract.release_gate_disposition);
   assert.equal(cancelDecision.releaseGateDisposition, cancelFixture.runtime_contract.release_gate_disposition);
+  assert.equal(approvedCancelDecision.releaseGateDisposition, approvedCancelFixture.runtime_contract.release_gate_disposition);
   assert.equal(retryDecision.apiOutcome, retryFixture.runtime_contract.api_outcome);
   assert.equal(cancelDecision.apiOutcome, cancelFixture.runtime_contract.api_outcome);
+  assert.equal(approvedCancelDecision.apiOutcome, approvedCancelFixture.runtime_contract.api_outcome);
   assert.equal(retryDecision.quotaLedgerEffect, retryFixture.runtime_contract.quota_ledger_effect);
   assert.equal(cancelDecision.quotaLedgerEffect, cancelFixture.runtime_contract.quota_ledger_effect);
+  assert.equal(approvedCancelDecision.quotaLedgerEffect, approvedCancelFixture.runtime_contract.quota_ledger_effect);
   assert.equal(retryDecision.supportNoticeStatus, retryFixture.runtime_contract.support_notice_status);
   assert.equal(cancelDecision.supportNoticeStatus, cancelFixture.runtime_contract.support_notice_status);
+  assert.equal(approvedCancelDecision.supportNoticeStatus, approvedCancelFixture.runtime_contract.support_notice_status);
   assert.equal(retryDecision.auditWritePolicy, retryFixture.runtime_contract.audit_write_policy);
   assert.equal(cancelDecision.auditWritePolicy, cancelFixture.runtime_contract.audit_write_policy);
+  assert.equal(approvedCancelDecision.auditWritePolicy, approvedCancelFixture.runtime_contract.audit_write_policy);
   assert.equal(cancelDecision.secondReviewEvidenceStatus, cancelFixture.runtime_contract.second_review_evidence_status);
+  assert.equal(
+    approvedCancelDecision.secondReviewEvidenceStatus,
+    approvedCancelFixture.runtime_contract.second_review_evidence_status
+  );
   assert.equal(retryDecision.regressionGateEffect, retryFixture.runtime_contract.regression_gate_effect);
   assert.equal(cancelDecision.regressionGateEffect, cancelFixture.runtime_contract.regression_gate_effect);
+  assert.equal(approvedCancelDecision.regressionGateEffect, approvedCancelFixture.runtime_contract.regression_gate_effect);
 
   assert.ok(
     retryFixture.expected_assertions.includes("action_scoped_idempotency_key == true"),
@@ -1531,11 +1569,24 @@ test("failed task retry and cancel samples are durable regression fixtures", () 
     "cancel regression must assert second-review audit evidence"
   );
   assert.ok(
+    approvedCancelFixture.expected_assertions.includes("second_review_approved_before_cancel_submit == true"),
+    "approved cancel regression must assert approval before submit"
+  );
+  assert.ok(
+    approvedCancelFixture.expected_assertions.includes("crawler_derivative_provenance_attached == true"),
+    "approved cancel regression must assert derivative provenance"
+  );
+  assert.ok(
+    approvedCancelFixture.expected_assertions.includes("exact_text_import_blocked == true"),
+    "approved cancel regression must assert exact text stays blocked"
+  );
+  assert.ok(
     cancelFixture.expected_assertions.includes("crawler_derived_activation_blocked == true"),
     "cancel regression must assert crawler activation block"
   );
   assert.equal(retryFixture.release_block.audit_ref, retryTask.auditRef);
   assert.equal(cancelFixture.release_block.audit_ref, cancelTask.auditRef);
+  assert.equal(approvedCancelFixture.release_block.audit_ref, approvedCancelTask.auditRef);
 });
 
 test("failed task runtime submit gates preserve retry, cancel, hold, RBAC, and audit outcomes", () => {
@@ -1545,6 +1596,7 @@ test("failed task runtime submit gates preserve retry, cancel, hold, RBAC, and a
   assert.equal(decisions.length, failedTaskControls.length, "each failed task needs one runtime decision");
   assert.equal(decisionsByTask.get("task-export-489").submitDecision, "submit_ready", "eligible retry should be submittable");
   assert.equal(decisionsByTask.get("task-crawler-019").submitDecision, "review_required", "crawler cancel should require second review");
+  assert.equal(decisionsByTask.get("task-crawler-122").submitDecision, "submit_ready", "approved crawler cancel should be submittable");
   assert.equal(decisionsByTask.get("task-brief-441").submitDecision, "blocked", "safety hold should stay blocked");
   assert.equal(
     decisionsByTask.get("task-export-489").stateTransition,
@@ -1557,6 +1609,11 @@ test("failed task runtime submit gates preserve retry, cancel, hold, RBAC, and a
     "crawler cancel should preserve cancelled state while review is open"
   );
   assert.equal(
+    decisionsByTask.get("task-crawler-122").stateTransition,
+    "cancelled_closure_ready",
+    "approved crawler cancel should expose closure-ready transition"
+  );
+  assert.equal(
     decisionsByTask.get("task-brief-441").stateTransition,
     "blocked_state_preserved",
     "blocked safety hold should preserve blocked task state"
@@ -1565,6 +1622,11 @@ test("failed task runtime submit gates preserve retry, cancel, hold, RBAC, and a
     decisionsByTask.get("task-crawler-019").releaseGateDisposition,
     "eval_gate_preserved_by_regression_fixture",
     "crawler cancel regression must preserve the eval gate while second review is open"
+  );
+  assert.equal(
+    decisionsByTask.get("task-crawler-122").releaseGateDisposition,
+    "converted_regression_fixture",
+    "approved crawler cancel regression should be converted fixture evidence"
   );
   assert.equal(
     decisionsByTask.get("task-export-489").apiOutcome,
@@ -1592,14 +1654,29 @@ test("failed task runtime submit gates preserve retry, cancel, hold, RBAC, and a
     "crawler cancel should return review-required admin API outcome"
   );
   assert.equal(
+    decisionsByTask.get("task-crawler-122").apiOutcome,
+    "post_cancel_202_cancelled",
+    "approved crawler cancel should return cancelled admin API outcome"
+  );
+  assert.equal(
     decisionsByTask.get("task-crawler-019").auditWritePolicy,
     "write_review_audit_before_cancel_closure",
     "crawler cancel must write review audit before closure"
   );
   assert.equal(
+    decisionsByTask.get("task-crawler-122").auditWritePolicy,
+    "write_submit_audit_before_queue_mutation",
+    "approved crawler cancel must write submit audit before queue mutation"
+  );
+  assert.equal(
     decisionsByTask.get("task-crawler-019").regressionGateEffect,
     "canary_fixture_blocks_until_review",
     "crawler cancel regression must keep canary blocked until review closes"
+  );
+  assert.equal(
+    decisionsByTask.get("task-crawler-122").regressionGateEffect,
+    "canary_fixture_ready",
+    "approved crawler cancel regression should be canary-ready after conversion"
   );
   assert.equal(
     decisionsByTask.get("task-brief-441").apiOutcome,
@@ -2225,6 +2302,21 @@ test("failed task submission contracts bind admin API replay protection and rele
     contractByTask.get("task-crawler-019").releaseGateUse,
     "preserve_eval_gate",
     "crawler cancel fixture must preserve eval gate while second review is open"
+  );
+  assert.equal(
+    contractByTask.get("task-crawler-122").submitEnabled,
+    true,
+    "approved crawler cancel should enable submit"
+  );
+  assert.equal(
+    contractByTask.get("task-crawler-122").mutationOrder,
+    "audit_then_queue_mutation",
+    "approved crawler cancel must mutate only after audit"
+  );
+  assert.equal(
+    contractByTask.get("task-crawler-122").releaseGateUse,
+    "release_evidence_candidate",
+    "approved crawler cancel fixture can be cited only as candidate release evidence"
   );
   assert.equal(
     contractByTask.get("task-brief-441").mutationOrder,

@@ -1591,6 +1591,26 @@ export const regressionFixtures: RegressionFixture[] = [
       "The crawler cancel sample is eval-blocking because a support-visible cancellation could otherwise be retried into active crawler-derived prompt material before ownership, robots, and takedown review evidence are complete."
   },
   {
+    id: "reg-failed-task-cancel-task-crawler-122",
+    sourceFeedbackId: "task-crawler-122",
+    sourceKind: "failed_task",
+    fixturePath: "fixtures/stage0/rev2/regressions/failed_task_cancel_task_crawler_122.json",
+    workflowId: "wf-812",
+    skillVersionId: "sv-240",
+    failureMode: "failed_task_retry_cancel",
+    severity: "medium",
+    status: "converted",
+    evalSuiteId: "es-stage0-crawler",
+    requiredGate: "skill_canary",
+    expectedAssertion:
+      "Crawler task cancellation may close only after second review is approved, support-ticket scope matches the cancelled task, crawler derivative provenance remains attached, and queue mutation follows immutable audit evidence.",
+    owner: "legal-admin",
+    linkedCanaryMetric: "cm-014",
+    linkedAuditRef: "au-013",
+    reviewerRationale:
+      "The approved derivative-review cancellation sample is retained as a regression fixture so future admin queue changes must prove closure-ready cancel behavior instead of only preserving pending-review cancels."
+  },
+  {
     id: "reg-crawler-takedown-sup-2212",
     sourceFeedbackId: "sup-2212",
     sourceKind: "support_ticket",
@@ -2955,6 +2975,43 @@ export const failedTaskControls: FailedTaskControl[] = [
     rbacEvidenceRefs: ["rbac-crawler-001"],
     operatorRunbook: "Keep the source import cancelled, request ownership proof, and reopen only after crawler review evidence is attached.",
     auditRef: "au-002"
+  },
+  {
+    id: "task-crawler-122",
+    queueId: "q-crawler",
+    userId: "usr-455",
+    projectId: "proj-812",
+    traceId: "none",
+    supportTicketId: "sup-2215",
+    status: "cancelled",
+    retryCount: 0,
+    maxRetries: 1,
+    timeoutSeconds: 1200,
+    errorCode: "CRAWLER_DERIVATIVE_REVIEW_APPROVED_CANCEL",
+    userMessage: "Crawler import is cancelled and closure-ready after derivative review approved provenance and retention limits.",
+    appVersion: "admin-0.0.0",
+    workerVersion: "crawler-2026.05.26",
+    schemaVersion: "task.v1",
+    preActionStateDigest: "sha256:failed-task-task-crawler-122-cancelled-v1",
+    observedStateDigest: "sha256:failed-task-task-crawler-122-cancelled-v1",
+    requestedAction: "cancel",
+    actionEligibility: "eligible",
+    allowedRole: "admin_reviewer",
+    requestedByRole: "admin_reviewer",
+    requestedByAdminId: "adm-reviewer-317",
+    rbacDecision: "allowed",
+    secondReviewRequired: true,
+    secondReviewStatus: "approved",
+    secondReviewerAdminId: "legal-admin",
+    secondReviewAuditRef: "au-013",
+    secondReviewEvidenceRefs: ["au-013", "rbac-crawler-001", "cg-522", "cf-122"],
+    idempotencyKey: "cancel:task-crawler-122:sup-2215:derivative-reviewed",
+    quotaEffect: "none",
+    regressionFixtureRef: "fixtures/stage0/rev2/regressions/failed_task_cancel_task_crawler_122.json",
+    closureEvidenceRefs: ["task-crawler-122", "sup-2215", "cf-122", "cg-522", "q-crawler", "au-012", "au-013"],
+    rbacEvidenceRefs: ["rbac-crawler-001"],
+    operatorRunbook: "Submit the audited cancel closure once, preserve derivative provenance and retention evidence, and keep exact-text import blocked.",
+    auditRef: "au-013"
   }
 ];
 
@@ -2973,8 +3030,8 @@ export const stagingSupportRetryAbuseEvidence: StagingSupportRetryAbuseEvidence 
     "staging-support-retry-abuse-20260527T1000Z-hold-throttle",
     "staging-support-retry-abuse-20260527T1000Z-audit-rbac"
   ],
-  supportTicketIds: ["sup-2201", "sup-2204", "sup-2209", "sup-2212"],
-  failedTaskIds: ["task-brief-441", "task-export-489", "task-crawler-019"],
+  supportTicketIds: ["sup-2201", "sup-2204", "sup-2209", "sup-2212", "sup-2215"],
+  failedTaskIds: ["task-brief-441", "task-export-489", "task-crawler-019", "task-crawler-122"],
   abuseEventIds: ["ab-300", "ab-304", "ab-309"],
   abuseHookIds: ["hook-ab-300-hold", "hook-ab-304-hold", "hook-ab-309-throttle"],
   coverage: [
@@ -3002,7 +3059,7 @@ export const stagingSupportRetryAbuseEvidence: StagingSupportRetryAbuseEvidence 
       area: "failed_task_retry_cancel",
       status: "pass",
       runtimeProbe:
-        "External-user staging retry probe allowed retry:task-export-489:sup-2204:manifest-missing once with reserved credit release, blocked stale digest, exhausted retry budget, and missing support-ticket replays, kept hold:task-brief-441:sup-2201:au-001 denied, and required second review for cancel:task-crawler-019:sup-2212:ownership-missing.",
+        "External-user staging retry probe allowed retry:task-export-489:sup-2204:manifest-missing once with reserved credit release, allowed approved cancel:task-crawler-122:sup-2215:derivative-reviewed, blocked stale digest, exhausted retry budget, and missing support-ticket replays, kept hold:task-brief-441:sup-2201:au-001 denied, and required second review for cancel:task-crawler-019:sup-2212:ownership-missing.",
       externalUserEvidence:
         "The failed-task queue replay covered retry, cancel, and hold decisions with user-visible messages, stable idempotency keys, state-digest preservation, retry-budget enforcement, support-ticket linkage, and tenant/trace scope checks for support-facing closure.",
       rbacAuditEvidence:
@@ -3013,6 +3070,8 @@ export const stagingSupportRetryAbuseEvidence: StagingSupportRetryAbuseEvidence 
         "task-brief-441",
         "task-export-489",
         "task-crawler-019",
+        "task-crawler-122",
+        "sup-2215",
         "rbac-export-001",
         "rbac-quota-001",
         "rbac-crawler-001",
@@ -4652,6 +4711,21 @@ export const supportTickets: SupportTicket[] = [
     subject: "Crawler source import paused after abuse rate limit.",
     nextAction: "Request source ownership details before any retry or allowlist change.",
     auditRef: "au-002"
+  },
+  {
+    id: "sup-2215",
+    status: "open",
+    priority: "medium",
+    userId: "usr-455",
+    projectId: "proj-812",
+    taskId: "task-crawler-122",
+    traceId: "none",
+    assetId: "none",
+    exportId: "none",
+    quotaTransactionId: "none",
+    subject: "Crawler derivative review cancellation ready for closure.",
+    nextAction: "Close the cancelled crawler task only after second-review audit, provenance, and bounded retention evidence remain attached.",
+    auditRef: "au-013"
   }
 ];
 
@@ -4814,12 +4888,20 @@ export const supportUsers: SupportUser[] = [
     projects: 2,
     projectIds: ["proj-812", "proj-source-011"],
     recentTasks: 7,
-    taskIds: ["task-crawler-019"],
+    taskIds: ["task-crawler-019", "task-crawler-122"],
     traces: [],
     exportIds: [],
-    ticketIds: ["sup-2212"],
+    ticketIds: ["sup-2212", "sup-2215"],
     quotaAccountRef: "none",
-    lookupKeys: ["usr-455", "crawler-owner@example.test", "tenant-crawler", "sup-2212", "task-crawler-019"],
+    lookupKeys: [
+      "usr-455",
+      "crawler-owner@example.test",
+      "tenant-crawler",
+      "sup-2212",
+      "sup-2215",
+      "task-crawler-019",
+      "task-crawler-122"
+    ],
     riskFlags: ["crawler-rate-limit"],
     privacyRedaction: "Show source IDs and crawler status only; raw crawler documents remain hidden until source ownership evidence is approved.",
     auditRefs: ["au-002"],
@@ -4839,6 +4921,14 @@ export const supportUsers: SupportUser[] = [
         evidenceRefs: ["task-crawler-019", "sup-2212", "au-002"],
         auditRef: "au-002",
         rationale: "Crawler import retry is blocked until source ownership and robots evidence are attached."
+      },
+      {
+        scope: "retry_failed_task",
+        requiredRole: "admin_reviewer",
+        decision: "allowed",
+        evidenceRefs: ["task-crawler-122", "sup-2215", "cg-522", "cf-122", "au-013"],
+        auditRef: "au-013",
+        rationale: "Approved derivative review allows a one-time audited cancellation closure while provenance and retention evidence remain attached."
       },
       {
         scope: "temporary_hold",
