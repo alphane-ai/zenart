@@ -1687,10 +1687,15 @@ import json
 import sys
 from pathlib import Path
 
-reports = sorted(Path(sys.argv[1]).glob("*.json"))
-if len(reports) != 1:
-    raise SystemExit("legal/support visibility pass fixture must write exactly one report")
-report = json.loads(reports[0].read_text(encoding="utf-8"))
+out_dir = Path(sys.argv[1])
+reports = sorted(out_dir.glob("*.json"))
+if len(reports) != 3:
+    raise SystemExit(f"legal/support visibility pass fixture must write combined plus two split reports, got {len(reports)}")
+report = next(
+    json.loads(path.read_text(encoding="utf-8"))
+    for path in reports
+    if path.name == "stage0-validate-legal-support-pass.json"
+)
 if report.get("status") != "pass":
     raise SystemExit(f"legal/support visibility pass fixture should pass: {report}")
 if report.get("release_gate_check_id") != "staging_legal_external_user_pages":
@@ -1705,6 +1710,36 @@ if gate.get("remaining_release_gate_blockers_after_pass") != ["staging_object_st
 areas = {item["area"]: item for item in report.get("coverage", [])}
 if any(item.get("status") != "pass" for item in areas.values()):
     raise SystemExit(f"legal/support visibility pass fixture coverage must pass: {areas}")
+split_expectations = {
+    "legal-pages-external-user.json": {
+        "kind": "legal_pages_external_user_visibility",
+        "tokens": ("terms", "privacy", "acceptable use", "ai/content", "ip complaint"),
+    },
+    "support-contact-external-user.json": {
+        "kind": "support_contact_external_user_visibility",
+        "tokens": ("support", "report-problem", "external user"),
+    },
+}
+for name, expectation in split_expectations.items():
+    path = out_dir / name
+    if not path.exists():
+        raise SystemExit(f"legal/support visibility pass fixture missing split report {name}")
+    split = json.loads(path.read_text(encoding="utf-8"))
+    if split.get("environment") != "staging":
+        raise SystemExit(f"{name} must be staging-scoped")
+    if split.get("status") != "pass":
+        raise SystemExit(f"{name} must pass")
+    if split.get("kind") != expectation["kind"]:
+        raise SystemExit(f"{name} kind mismatch: {split.get('kind')}")
+    if split.get("release_gate_check_id") != "staging_legal_external_user_pages":
+        raise SystemExit(f"{name} must target legal/support release check")
+    gate = split.get("gate_impact", {})
+    if gate.get("can_clear_check_level_item") is not True:
+        raise SystemExit(f"{name} must allow its check-level checklist item to clear")
+    combined = json.dumps(split, ensure_ascii=False).lower()
+    missing = [token for token in expectation["tokens"] if token not in combined]
+    if missing:
+        raise SystemExit(f"{name} missing split evidence tokens: {missing}")
 PY
 python3 - "$ops_validate_dir/observability" <<'PY'
 import json
