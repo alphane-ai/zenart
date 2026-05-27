@@ -5956,6 +5956,7 @@ def validate_eval_storage_read_fixture_contract() -> None:
     table = contract["table_contract"]
     retention = contract["retention_contract"]
     rows = fixture["fixture_rows"]
+    empty_cases = fixture["expected_empty_cases"]
     row_ids = [row["id"] for row in rows]
     require(len(row_ids) == len(set(row_ids)), "eval read fixture rows must have unique ids")
     require(fixture["tenant_filter_required"] is True, "eval read fixture must require tenant scope")
@@ -6014,6 +6015,31 @@ def validate_eval_storage_read_fixture_contract() -> None:
     for case in fixture["cases"]:
         actual_ids = [row["id"] for row in eval_read_fixture_page(rows, case["query"])]
         require(actual_ids == case["expected_result_ids"], f"{case['case_id']} expected read results mismatch")
+        require(case["expected_result_ids"], f"{case['case_id']} positive read case must expect at least one row")
+
+    required_empty_case_ids = {
+        "completed_after_is_strict_and_tenant_scoped",
+        "unknown_subject_returns_empty_inside_tenant_scope",
+    }
+    empty_by_id = {case["case_id"]: case for case in empty_cases}
+    require(set(empty_by_id) == required_empty_case_ids, "eval read empty fixture cases mismatch")
+    for case in empty_cases:
+        require(case["expected_result_ids"] == [], f"{case['case_id']} must be an empty read case")
+        actual_ids = [row["id"] for row in eval_read_fixture_page(rows, case["query"])]
+        require(actual_ids == [], f"{case['case_id']} expected empty read results mismatch")
+    strict_case = empty_by_id["completed_after_is_strict_and_tenant_scoped"]
+    require(
+        any(
+            row["tenant_id"] == strict_case["query"]["tenant_id"]
+            and row["eval_suite_id"] == strict_case["query"]["eval_suite_id"]
+            and row["subject_type"] == strict_case["query"]["subject_type"]
+            and row["subject_id"] == strict_case["query"]["subject_id"]
+            and row["status"] == strict_case["query"]["status"]
+            and row["completed_at"] == strict_case["query"]["completed_after"]
+            for row in rows
+        ),
+        "eval read strict completed_after empty case must include an equal timestamp row",
+    )
 
     tenant_case = cases["tenant_isolation_keeps_newer_other_tenant_out_of_acme_reads"]
     require(

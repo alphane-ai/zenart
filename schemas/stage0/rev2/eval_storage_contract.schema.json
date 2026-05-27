@@ -241,6 +241,7 @@
       "required": [
         "idempotency_key_fields",
         "result_digest_fields",
+        "mutation_guards",
         "cases"
       ],
       "properties": {
@@ -271,6 +272,30 @@
               "completed_at",
               "source_fixture_digests"
             ]
+          }
+        },
+        "mutation_guards": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "exact_replay_must_not_update_completed_at",
+            "divergent_replay_must_not_overwrite_existing_row",
+            "tenant_isolation_partitions_idempotency_key",
+            "conflict_row_requires_admin_audit_before_retry"
+          ],
+          "properties": {
+            "exact_replay_must_not_update_completed_at": {
+              "const": true
+            },
+            "divergent_replay_must_not_overwrite_existing_row": {
+              "const": true
+            },
+            "tenant_isolation_partitions_idempotency_key": {
+              "const": true
+            },
+            "conflict_row_requires_admin_audit_before_retry": {
+              "const": true
+            }
           }
         },
         "cases": {
@@ -344,7 +369,8 @@
         "ordering",
         "latest_only_groups_by",
         "fixture_rows",
-        "cases"
+        "cases",
+        "expected_empty_cases"
       ],
       "properties": {
         "tenant_filter_required": {
@@ -387,6 +413,14 @@
         "cases": {
           "type": "array",
           "minItems": 4,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/read_fixture_case"
+          }
+        },
+        "expected_empty_cases": {
+          "type": "array",
+          "minItems": 2,
           "uniqueItems": true,
           "items": {
             "$ref": "#/$defs/read_fixture_case"
@@ -728,7 +762,6 @@
         },
         "expected_result_ids": {
           "type": "array",
-          "minItems": 1,
           "uniqueItems": true,
           "items": {
             "type": "string",

@@ -110,6 +110,12 @@
       "completed_at",
       "source_fixture_digests"
     ],
+    "mutation_guards": {
+      "exact_replay_must_not_update_completed_at": true,
+      "divergent_replay_must_not_overwrite_existing_row": true,
+      "tenant_isolation_partitions_idempotency_key": true,
+      "conflict_row_requires_admin_audit_before_retry": true
+    },
     "cases": [
       {
         "case_id": "exact_replay_returns_existing_row",
@@ -382,6 +388,32 @@
         "expected_result_ids": [
           "eval_result_read_beta_same_subject_newer"
         ]
+      }
+    ],
+    "expected_empty_cases": [
+      {
+        "case_id": "completed_after_is_strict_and_tenant_scoped",
+        "query": {
+          "tenant_id": "tenant_stage0_acme",
+          "eval_suite_id": "eval_stage0_rev2_starter",
+          "subject_type": "vertical_workflow_pack",
+          "subject_id": "stage0_rev2_starter_workflows",
+          "status": "pass",
+          "completed_after": "2026-05-27T00:00:00Z",
+          "latest_only": false
+        },
+        "expected_result_ids": []
+      },
+      {
+        "case_id": "unknown_subject_returns_empty_inside_tenant_scope",
+        "query": {
+          "tenant_id": "tenant_stage0_acme",
+          "eval_suite_id": "eval_stage0_rev2_starter",
+          "subject_type": "vertical_workflow_pack",
+          "subject_id": "stage0_rev2_missing_workflow",
+          "latest_only": true
+        },
+        "expected_result_ids": []
       }
     ]
   },

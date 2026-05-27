@@ -351,12 +351,22 @@ def validate_write_fixture_contract(contract: dict[str, Any]) -> None:
     write = contract["write_contract"]
     key_fields = set(fixture["idempotency_key_fields"])
     digest_fields = set(fixture["result_digest_fields"])
+    mutation_guards = fixture["mutation_guards"]
 
     require(key_fields == IDEMPOTENCY_FIELDS, "eval write fixture idempotency fields mismatch")
     require(key_fields == set(write["idempotency_key_fields"]), "eval write fixture must mirror write idempotency fields")
     require(
         digest_fields == {"status", "summary", "fixture_results", "completed_at", "source_fixture_digests"},
         "eval write fixture result digest fields mismatch",
+    )
+    require(
+        mutation_guards == {
+            "exact_replay_must_not_update_completed_at": True,
+            "divergent_replay_must_not_overwrite_existing_row": True,
+            "tenant_isolation_partitions_idempotency_key": True,
+            "conflict_row_requires_admin_audit_before_retry": True,
+        },
+        "eval write fixture mutation guards mismatch",
     )
 
     required_cases = {
@@ -386,6 +396,10 @@ def validate_write_fixture_contract(contract: dict[str, Any]) -> None:
         },
         "exact replay expected outcome mismatch",
     )
+    require(
+        exact["attempted_write"]["completed_at"] == exact["existing_row"]["completed_at"],
+        "exact replay must preserve the stored completed_at timestamp",
+    )
 
     conflict = cases["same_key_changed_summary_rejects_conflict"]
     require(
@@ -405,6 +419,10 @@ def validate_write_fixture_contract(contract: dict[str, Any]) -> None:
             "reason": "divergent_replay_summary_conflict",
         },
         "divergent replay expected outcome mismatch",
+    )
+    require(
+        conflict["existing_row"]["status"] == "blocked" and conflict["attempted_write"]["status"] == "pass",
+        "divergent replay must prove a stale blocked row cannot be overwritten by a pass result",
     )
 
     cross_tenant = cases["same_subject_other_tenant_inserts_new_row"]
@@ -439,6 +457,7 @@ def validate_read_fixture_contract(contract: dict[str, Any]) -> None:
     read = contract["read_contract"]
     rows = fixture["fixture_rows"]
     cases = fixture["cases"]
+    empty_cases = fixture["expected_empty_cases"]
     latest_group_fields = fixture["latest_only_groups_by"]
 
     require(fixture["tenant_filter_required"] is True, "read fixture must require tenant filtering")
@@ -450,6 +469,9 @@ def validate_read_fixture_contract(contract: dict[str, Any]) -> None:
     require(len(row_ids) == len(set(row_ids)), "read fixture row ids must be unique")
     case_ids = [case["case_id"] for case in cases]
     require(len(case_ids) == len(set(case_ids)), "read fixture case ids must be unique")
+    empty_case_ids = [case["case_id"] for case in empty_cases]
+    require(len(empty_case_ids) == len(set(empty_case_ids)), "read fixture empty case ids must be unique")
+    require(not (set(case_ids) & set(empty_case_ids)), "read fixture positive and empty case ids must not overlap")
     row_by_id = {row["id"]: row for row in rows}
 
     for row in rows:
@@ -480,6 +502,7 @@ def validate_read_fixture_contract(contract: dict[str, Any]) -> None:
             actual_ids == expected_ids,
             f"{case['case_id']} read fixture mismatch: expected {expected_ids}, got {actual_ids}",
         )
+        require(expected_ids, f"{case['case_id']} positive read case must expect at least one row")
 
     required_cases = {
         "tenant_subject_filter_orders_by_completed_then_created",
@@ -488,6 +511,40 @@ def validate_read_fixture_contract(contract: dict[str, Any]) -> None:
         "tenant_isolation_keeps_newer_other_tenant_out_of_acme_reads",
     }
     require(set(case_ids) == required_cases, "eval read fixture cases mismatch")
+
+    required_empty_cases = {
+        "completed_after_is_strict_and_tenant_scoped",
+        "unknown_subject_returns_empty_inside_tenant_scope",
+    }
+    require(set(empty_case_ids) == required_empty_cases, "eval read fixture empty cases mismatch")
+    for case in empty_cases:
+        query = case["query"]
+        require("tenant_id" in query, f"{case['case_id']} must include tenant_id")
+        require("latest_only" in query, f"{case['case_id']} must include latest_only")
+        require(
+            set(query) <= QUERY_FILTERS,
+            f"{case['case_id']} includes unsupported query filters: {sorted(set(query) - QUERY_FILTERS)}",
+        )
+        require(case["expected_result_ids"] == [], f"{case['case_id']} empty case must expect no rows")
+        actual_ids = [
+            row["id"]
+            for row in apply_read_query(rows, query, latest_group_fields)
+        ]
+        require(actual_ids == [], f"{case['case_id']} expected no rows, got {actual_ids}")
+
+    strict_case = next(case for case in empty_cases if case["case_id"] == "completed_after_is_strict_and_tenant_scoped")
+    require(
+        any(
+            row["tenant_id"] == strict_case["query"]["tenant_id"]
+            and row["eval_suite_id"] == strict_case["query"]["eval_suite_id"]
+            and row["subject_type"] == strict_case["query"]["subject_type"]
+            and row["subject_id"] == strict_case["query"]["subject_id"]
+            and row["status"] == strict_case["query"]["status"]
+            and row["completed_at"] == strict_case["query"]["completed_after"]
+            for row in rows
+        ),
+        "strict completed_after empty case must prove equality is excluded, not merely absent",
+    )
 
 
 def validate_write_and_replay_contract(contract: dict[str, Any]) -> None:
