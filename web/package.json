@@ -8,6 +8,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "build": "next build",
+    "smoke:security-contracts": "node scripts/smoke-security-contracts.mjs",
     "smoke:user-routes": "node scripts/smoke-user-routes.mjs"
   },
   "dependencies": {

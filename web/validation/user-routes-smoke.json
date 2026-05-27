@@ -646,5 +646,12 @@
     "analytics taxonomy and client-side UI funnel events persist to local telemetry storage",
     "frontend error reports redact secrets and email addresses before persistence"
   ],
-  "validationCommands": ["npm run lint", "npm run typecheck", "npm run test", "npm run build", "npm run smoke:user-routes"]
+  "validationCommands": [
+    "npm run lint",
+    "npm run typecheck",
+    "npm run test",
+    "npm run build",
+    "npm run smoke:security-contracts",
+    "npm run smoke:user-routes"
+  ]
 }
