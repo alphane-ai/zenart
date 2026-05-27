@@ -388,6 +388,7 @@ def load_canonical_object_retention_probe(path: Path) -> dict:
         "orphan_cleanup",
         "audit_refs",
     }
+    expected_cleanup_probes = {"expired_export_cleanup", "orphan_cleanup"}
     if not path.exists():
         return {
             "path": str(path),
@@ -409,6 +410,8 @@ def load_canonical_object_retention_probe(path: Path) -> dict:
     split_evidence = data.get("split_evidence", {})
     gate_impact = data.get("gate_impact", {})
     audit_linkage = data.get("audit_linkage", {})
+    input_readiness = data.get("input_readiness", {})
+    csrf = data.get("csrf", {})
     missing_requirements = []
     if data.get("environment") != "staging":
         missing_requirements.append("environment_staging")
@@ -420,12 +423,37 @@ def load_canonical_object_retention_probe(path: Path) -> dict:
         missing_requirements.append("passing_status")
     if data.get("blocked_checks") not in ([], None):
         missing_requirements.append("no_blocked_checks")
+    if not data.get("release_sha"):
+        missing_requirements.append("release_sha")
+    if not data.get("admin_user_id"):
+        missing_requirements.append("admin_user_id")
+    if not data.get("admin_tenant_id"):
+        missing_requirements.append("admin_tenant_id")
+    if csrf.get("ready") is not True:
+        missing_requirements.append("csrf_ready")
     if split_evidence.get("canonical_pass_paths") is not True:
         missing_requirements.append("canonical_pass_paths")
     if split_evidence.get("retention_cleanup_ready") is not True:
         missing_requirements.append("retention_cleanup_ready")
+    if split_evidence.get("retention_cleanup_runtime_ready") is not True:
+        missing_requirements.append("retention_cleanup_runtime_ready")
     if split_evidence.get("signed_url_ready") is not True:
         missing_requirements.append("signed_url_ready")
+    if split_evidence.get("release_sha_matches_signed_url") is not True:
+        missing_requirements.append("release_sha_matches_signed_url")
+    for readiness_key in (
+        "probe_urls_ready",
+        "auth_ready",
+        "admin_user_id_ready",
+        "admin_tenant_id_ready",
+        "csrf_ready",
+        "release_sha_provided",
+        "signed_url_evidence_ready",
+        "release_sha_matches_signed_url",
+        "canonical_pass_path",
+    ):
+        if input_readiness.get(readiness_key) is not True:
+            missing_requirements.append(f"input_readiness:{readiness_key}")
     if gate_impact.get("can_clear_release_gate_check") is not True:
         missing_requirements.append("can_clear_release_gate_check")
     if gate_impact.get("preserved_release_gate_check_id") is not None:
@@ -434,10 +462,68 @@ def load_canonical_object_retention_probe(path: Path) -> dict:
         missing_requirements.append("audit_linkage_verified")
     if not audit_linkage.get("cleanup_audit_refs"):
         missing_requirements.append("cleanup_audit_refs")
+    if not audit_linkage.get("audit_endpoint_refs"):
+        missing_requirements.append("audit_endpoint_refs")
     if audit_linkage.get("missing_cleanup_audit_refs") not in ([], None):
         missing_requirements.append("no_missing_cleanup_audit_refs")
+    cleanup_refs_by_probe = audit_linkage.get("cleanup_audit_refs_by_probe", {})
+    endpoint_covers_refs = audit_linkage.get("audit_endpoint_covers_cleanup_refs", {})
+    endpoint_missing_refs = audit_linkage.get("audit_endpoint_missing_cleanup_refs", {})
+    if not isinstance(cleanup_refs_by_probe, dict):
+        missing_requirements.append("cleanup_audit_refs_by_probe")
+        cleanup_refs_by_probe = {}
+    if not isinstance(endpoint_covers_refs, dict):
+        missing_requirements.append("audit_endpoint_covers_cleanup_refs")
+        endpoint_covers_refs = {}
+    if not isinstance(endpoint_missing_refs, dict):
+        missing_requirements.append("audit_endpoint_missing_cleanup_refs")
+        endpoint_missing_refs = {}
+    for probe_id in sorted(expected_cleanup_probes):
+        if not cleanup_refs_by_probe.get(probe_id):
+            missing_requirements.append(f"cleanup_audit_refs_by_probe:{probe_id}")
+        if not endpoint_covers_refs.get(probe_id):
+            missing_requirements.append(f"audit_endpoint_covers_cleanup_refs:{probe_id}")
+        if endpoint_missing_refs.get(probe_id) not in ([], None):
+            missing_requirements.append(f"no_audit_endpoint_missing_cleanup_refs:{probe_id}")
     if expected_areas - coverage_areas:
         missing_requirements.append("coverage:" + ",".join(sorted(expected_areas - coverage_areas)))
+    results_path = Path(str(data.get("results_path", ""))) if data.get("results_path") else None
+    result_rows = []
+    if results_path is None or not results_path.exists() or not results_path.is_file():
+        missing_requirements.append("results_path_exists")
+    else:
+        for line in results_path.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            try:
+                result_rows.append(json.loads(line))
+            except json.JSONDecodeError:
+                missing_requirements.append("results_path_valid_jsonl")
+                break
+        result_ids = {
+            item.get("check_id")
+            for item in result_rows
+            if isinstance(item, dict)
+        }
+        if expected_areas - result_ids:
+            missing_requirements.append("results:" + ",".join(sorted(expected_areas - result_ids)))
+        for item in result_rows:
+            if not isinstance(item, dict):
+                missing_requirements.append("results_row_shape")
+                continue
+            check_id = item.get("check_id", "unknown")
+            if item.get("status") != "passed":
+                missing_requirements.append(f"result_passed:{check_id}")
+            if item.get("request_id_echoed") is not True:
+                missing_requirements.append(f"result_request_id_echo:{check_id}")
+            if not item.get("request_id"):
+                missing_requirements.append(f"result_request_id:{check_id}")
+            if item.get("missing_tokens") not in ([], None):
+                missing_requirements.append(f"result_no_missing_tokens:{check_id}")
+            if not item.get("matched_tokens"):
+                missing_requirements.append(f"result_matched_tokens:{check_id}")
+            if int(item.get("response_bytes") or 0) <= 0:
+                missing_requirements.append(f"result_response_bytes:{check_id}")
     return {
         "path": str(path),
         "exists": True,
@@ -454,6 +540,9 @@ def load_canonical_object_retention_probe(path: Path) -> dict:
         "gate_impact": gate_impact,
         "coverage_areas": sorted(coverage_areas),
         "audit_linkage": data.get("audit_linkage", {}),
+        "input_readiness": input_readiness,
+        "csrf": csrf,
+        "result_count": len(result_rows),
     }
 
 

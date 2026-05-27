@@ -1476,6 +1476,118 @@ if canonical_probe.get("missing_requirements") != ["missing_file"]:
 if canonical_probe.get("audit_linkage") not in ({}, None):
     raise SystemExit("missing canonical object-retention probe must not synthesize audit linkage")
 PY
+object_retention_canonical_dir="$(mktemp -d)"
+object_retention_canonical_report="$object_retention_canonical_dir/object-storage-retention-cleanup.json"
+object_retention_canonical_results="$object_retention_canonical_dir/object-storage-retention-cleanup.ndjson"
+cat >"$object_retention_canonical_results" <<'EOF'
+{"check_id":"retention_policy","status":"passed","matched_tokens":["retention policy","versioning","retention_until","tenant"],"missing_tokens":[],"request_id":"stage0-object-retention-cleanup-retention_policy","request_id_echoed":true,"response_request_id_values":["stage0-object-retention-cleanup-retention_policy"],"response_bytes":128}
+{"check_id":"expired_export_cleanup","status":"passed","matched_tokens":["expired export cleanup","deleted","retained","audit"],"missing_tokens":[],"request_id":"stage0-object-retention-cleanup-expired_export_cleanup","request_id_echoed":true,"response_request_id_values":["stage0-object-retention-cleanup-expired_export_cleanup"],"response_bytes":128}
+{"check_id":"orphan_cleanup","status":"passed","matched_tokens":["orphan cleanup","deleted","retained","audit"],"missing_tokens":[],"request_id":"stage0-object-retention-cleanup-orphan_cleanup","request_id_echoed":true,"response_request_id_values":["stage0-object-retention-cleanup-orphan_cleanup"],"response_bytes":128}
+{"check_id":"audit_refs","status":"passed","matched_tokens":["audit","object_storage_cleanup","admin","tenant"],"missing_tokens":[],"request_id":"stage0-object-retention-cleanup-audit_refs","request_id_echoed":true,"response_request_id_values":["stage0-object-retention-cleanup-audit_refs"],"response_bytes":128}
+EOF
+cat >"$object_retention_canonical_report" <<EOF
+{
+  "schema_version": "stage0.rev2.staging.object_storage_retention_cleanup",
+  "environment": "staging",
+  "kind": "object_storage_retention_cleanup",
+  "status": "pass",
+  "release_sha": "d3b1107c33dc40b8936f28549e06553fbd7b104a",
+  "release_gate_check_id": "staging_object_storage_signed_downloads",
+  "admin_user_id": "admin-ops",
+  "admin_tenant_id": "tenant-alpha",
+  "csrf": {
+    "ready": true,
+    "origin": "https://admin.staging.example.test",
+    "header_name": "X-ZenArt-CSRF"
+  },
+  "results_path": "$object_retention_canonical_results",
+  "blocked_checks": [],
+  "coverage": [
+    {"area":"retention_policy","status":"pass"},
+    {"area":"expired_export_cleanup","status":"pass"},
+    {"area":"orphan_cleanup","status":"pass"},
+    {"area":"audit_refs","status":"pass"}
+  ],
+  "split_evidence": {
+    "canonical_pass_paths": true,
+    "retention_cleanup_runtime_ready": true,
+    "retention_cleanup_ready": true,
+    "signed_url_ready": true,
+    "release_sha_matches_signed_url": true
+  },
+  "input_readiness": {
+    "probe_urls_ready": true,
+    "auth_ready": true,
+    "admin_user_id_ready": true,
+    "admin_tenant_id_ready": true,
+    "csrf_ready": true,
+    "release_sha_provided": true,
+    "signed_url_evidence_ready": true,
+    "release_sha_matches_signed_url": true,
+    "canonical_pass_path": true
+  },
+  "gate_impact": {
+    "can_clear_release_gate_check": true,
+    "preserved_release_gate_check_id": null
+  },
+  "audit_linkage": {
+    "verified": true,
+    "cleanup_audit_refs_by_probe": {
+      "expired_export_cleanup": ["au-007"],
+      "orphan_cleanup": ["au-015"]
+    },
+    "cleanup_audit_refs": ["au-007", "au-015"],
+    "audit_endpoint_covers_cleanup_refs": {
+      "expired_export_cleanup": ["au-007"],
+      "orphan_cleanup": ["au-015"]
+    },
+    "audit_endpoint_missing_cleanup_refs": {
+      "expired_export_cleanup": [],
+      "orphan_cleanup": []
+    },
+    "audit_endpoint_refs": ["au-007", "au-015"],
+    "missing_cleanup_audit_refs": []
+  }
+}
+EOF
+set +e
+DRY_RUN=1 \
+  OUT_DIR="$object_retention_canonical_dir/release-bundle" \
+  CANONICAL_OBJECT_RETENTION_REPORT_PATH="$object_retention_canonical_report" \
+  scripts/release_evidence_bundle_smoke.sh >/dev/null
+release_bundle_canonical_status=$?
+set -e
+if [[ "$release_bundle_canonical_status" -ne 2 ]]; then
+  printf 'release evidence bundle canonical retention fixture must still exit 2 while other release gates are no-go, got %s\n' "$release_bundle_canonical_status" >&2
+  exit 1
+fi
+python3 - "$object_retention_canonical_dir/release-bundle" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+reports = [
+    path
+    for path in sorted(Path(sys.argv[1]).glob("*.json"))
+    if json.loads(path.read_text(encoding="utf-8")).get("kind") == "release_evidence_bundle"
+]
+if len(reports) != 1:
+    raise SystemExit("canonical release bundle fixture must write exactly one report")
+report = json.loads(reports[0].read_text(encoding="utf-8"))
+probe = report.get("canonical_object_retention_cleanup_probe", {})
+if probe.get("passed") is not True:
+    raise SystemExit(f"complete canonical retention cleanup fixture must pass split verification: {probe}")
+if probe.get("missing_requirements") != []:
+    raise SystemExit(f"complete canonical retention cleanup fixture must have no missing requirements: {probe}")
+if report.get("object_retention_cleanup_verified") is not True:
+    raise SystemExit("complete canonical retention cleanup fixture must mark object retention verified")
+if "canonical_object_storage_retention_cleanup_not_passed" in report.get("blocking_reasons", []):
+    raise SystemExit("complete canonical retention cleanup fixture must remove object-retention blocking reason")
+if probe.get("result_count") != 4:
+    raise SystemExit(f"complete canonical retention cleanup fixture must inspect four result rows: {probe}")
+if probe.get("input_readiness", {}).get("csrf_ready") is not True:
+    raise SystemExit(f"complete canonical retention cleanup fixture must surface CSRF readiness: {probe}")
+PY
 object_retention_spoof_dir="$(mktemp -d)"
 object_retention_spoof_report="$object_retention_spoof_dir/object-storage-retention-cleanup.json"
 object_retention_spoof_results="$object_retention_spoof_dir/object-storage-retention-cleanup.ndjson"
@@ -1555,6 +1667,58 @@ if report.get("object_retention_cleanup_verified") is not False:
 audit_linkage = probe.get("audit_linkage", {})
 if audit_linkage.get("verified") is not False or audit_linkage.get("cleanup_audit_refs") != []:
     raise SystemExit(f"spoofed release bundle must surface failed audit linkage: {audit_linkage}")
+PY
+object_retention_spoof_missing_request_report="$object_retention_spoof_dir/object-storage-retention-cleanup.missing-request-id.json"
+object_retention_spoof_missing_request_results="$object_retention_spoof_dir/object-storage-retention-cleanup.missing-request-id.ndjson"
+cp "$object_retention_canonical_report" "$object_retention_spoof_missing_request_report"
+cp "$object_retention_canonical_results" "$object_retention_spoof_missing_request_results"
+python3 - "$object_retention_spoof_missing_request_report" "$object_retention_spoof_missing_request_results" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+report_path = Path(sys.argv[1])
+results_path = Path(sys.argv[2])
+report = json.loads(report_path.read_text(encoding="utf-8"))
+report["results_path"] = str(results_path)
+report_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+rows = [json.loads(line) for line in results_path.read_text(encoding="utf-8").splitlines() if line.strip()]
+rows[1]["request_id_echoed"] = False
+rows[1]["response_request_id_values"] = []
+results_path.write_text("\n".join(json.dumps(row, sort_keys=True) for row in rows) + "\n", encoding="utf-8")
+PY
+set +e
+DRY_RUN=1 \
+  OUT_DIR="$object_retention_spoof_dir/release-bundle-missing-request-id" \
+  CANONICAL_OBJECT_RETENTION_REPORT_PATH="$object_retention_spoof_missing_request_report" \
+  scripts/release_evidence_bundle_smoke.sh >/dev/null
+release_bundle_spoof_request_status=$?
+set -e
+if [[ "$release_bundle_spoof_request_status" -ne 2 ]]; then
+  printf 'release evidence bundle missing request-id spoof must exit 2, got %s\n' "$release_bundle_spoof_request_status" >&2
+  exit 1
+fi
+python3 - "$object_retention_spoof_dir/release-bundle-missing-request-id" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+reports = [
+    path
+    for path in sorted(Path(sys.argv[1]).glob("*.json"))
+    if json.loads(path.read_text(encoding="utf-8")).get("kind") == "release_evidence_bundle"
+]
+if len(reports) != 1:
+    raise SystemExit("missing request-id spoof release bundle must write exactly one report")
+report = json.loads(reports[0].read_text(encoding="utf-8"))
+probe = report.get("canonical_object_retention_cleanup_probe", {})
+missing = set(probe.get("missing_requirements", []))
+if probe.get("passed") is not False:
+    raise SystemExit("release bundle must reject canonical retention cleanup without request-id echo")
+if "result_request_id_echo:expired_export_cleanup" not in missing:
+    raise SystemExit(f"missing request-id spoof must surface request-id echo requirement: {probe}")
+if report.get("object_retention_cleanup_verified") is not False:
+    raise SystemExit("missing request-id spoof must not verify object-retention cleanup")
 PY
 python3 - "$ops_validate_dir/observability" <<'PY'
 import json
