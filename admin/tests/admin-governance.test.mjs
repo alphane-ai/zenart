@@ -2095,6 +2095,163 @@ test("production activation review audit evidence covers every high-risk admin o
   );
 });
 
+test("admin RBAC override evidence is release-grade for every governed override surface", () => {
+  const { buildAdminRbacRuntimeDecisions, buildAdminRbacEvidencePacks } = parseRbacRuntime();
+  const runtimeDecisions = buildAdminRbacRuntimeDecisions(adminRbacEvidence, new Date("2026-05-26T11:00:00Z"));
+  const evidencePacks = buildAdminRbacEvidencePacks(adminRbacEvidence, runtimeDecisions);
+  const decisionByEvidenceId = new Map(runtimeDecisions.map((decision) => [decision.evidenceId, decision]));
+  const packBySurface = new Map(evidencePacks.map((pack) => [pack.surface, pack]));
+  const expectedSurfacePolicy = new Map([
+    [
+      "skill_release",
+      {
+        scope: "release",
+        endpoint: /^PATCH \/api\/admin\/skills\/.+\/releases\/.+\/canary$/,
+        enforcementPoint: "release_gate",
+        evidenceTokens: ["reviewer", "second reviewer", "rollback"],
+        terminalOutcomes: ["queued_second_review"]
+      }
+    ],
+    [
+      "crawler_import",
+      {
+        scope: "crawler",
+        endpoint: /^POST \/api\/admin\/crawler\/findings\/.+\/reactivate$/,
+        enforcementPoint: "crawler_activation",
+        evidenceTokens: ["takedown", "derivative", "raw retention"],
+        terminalOutcomes: ["denied_insufficient_role"]
+      }
+    ],
+    [
+      "prompt_approval",
+      {
+        scope: "prompt",
+        endpoint: /^POST \/api\/admin\/prompt-fragments\/.+\/activate$/,
+        enforcementPoint: "prompt_activation",
+        evidenceTokens: ["eval", "QA", "feedback"],
+        terminalOutcomes: ["denied_insufficient_role"]
+      }
+    ],
+    [
+      "provider_routing",
+      {
+        scope: "provider",
+        endpoint: /^PATCH \/api\/admin\/providers\/.+\/routing-weight$/,
+        enforcementPoint: "provider_router",
+        evidenceTokens: ["provider health", "usage reconciliation", "expiry timestamp"],
+        terminalOutcomes: ["applied", "denied_expired_override"]
+      }
+    ],
+    [
+      "quota_override",
+      {
+        scope: "quota",
+        endpoint: /^POST \/api\/admin\/quota\/.+\/transactions$/,
+        enforcementPoint: "quota_mutation",
+        evidenceTokens: ["support ticket", "quota transaction", "operator audit"],
+        terminalOutcomes: ["denied_insufficient_role"]
+      }
+    ],
+    [
+      "safety_rule",
+      {
+        scope: "safety",
+        endpoint: /^PATCH \/api\/admin\/safety\/rules\/.+$/,
+        enforcementPoint: "safety_policy",
+        evidenceTokens: ["superadmin approval", "second review", "safety fixture pass"],
+        terminalOutcomes: ["denied_insufficient_role"]
+      }
+    ],
+    [
+      "export_override",
+      {
+        scope: "export",
+        endpoint: /^POST \/api\/admin\/exports\/.+\/override-release$/,
+        enforcementPoint: "export_release",
+        evidenceTokens: ["QA result", "safety decision", "non-override eligibility proof"],
+        terminalOutcomes: ["denied_policy_block"]
+      }
+    ]
+  ]);
+
+  assert.equal(adminRbacEvidence.length, runtimeDecisions.length, "every RBAC evidence row needs a runtime decision");
+  assert.equal(evidencePacks.length, expectedSurfacePolicy.size, "RBAC evidence packs must cover every governed surface");
+
+  for (const [surface, policy] of expectedSurfacePolicy) {
+    const surfaceEvidence = adminRbacEvidence.filter((item) => item.surface === surface);
+    const surfaceDecisions = runtimeDecisions.filter((decision) => decision.surface === surface);
+    const pack = packBySurface.get(surface);
+
+    assert.ok(surfaceEvidence.length > 0, `${surface} needs RBAC evidence`);
+    assert.ok(pack, `${surface} needs computed evidence pack`);
+    assert.equal(pack.overrideScope, policy.scope, `${surface} override scope mismatch`);
+    assert.equal(pack.evidenceCompleteness, "complete", `${surface} pack must be complete`);
+    assert.notEqual(pack.expiryEnforcementStatus, "missing_enforcement", `${surface} must encode expiry enforcement policy`);
+    assert.ok(
+      policy.terminalOutcomes.every((outcome) => pack.requestOutcomes.includes(outcome)),
+      `${surface} pack is missing required request outcomes`
+    );
+    assert.ok(
+      pack.operatorChecklist.some((item) => /Verify /.test(item)),
+      `${surface} pack needs release-evidence checklist items`
+    );
+
+    for (const item of surfaceEvidence) {
+      const decision = decisionByEvidenceId.get(item.id);
+      assert.ok(decision, `${item.id} needs runtime decision`);
+      assert.equal(item.overrideScope, policy.scope, `${item.id} override scope must match surface`);
+      assert.equal(item.enforcementPoint, policy.enforcementPoint, `${item.id} enforcement point must match surface`);
+      assert.match(item.apiScope, policy.endpoint, `${item.id} API scope must be a concrete admin override endpoint`);
+      assert.ok(auditIds.has(item.auditRef), `${item.id} must link immutable audit ref`);
+      assert.ok(item.evidenceRefs.includes(item.auditRef) || item.releaseEvidenceRequired.includes("immutable audit"), `${item.id} must carry audit-linked release evidence`);
+      assert.ok(item.releaseGateImpact.length > 100, `${item.id} needs concrete release gate impact`);
+      assert.ok(item.userVisibleOutcome.length > 80, `${item.id} needs user-visible outcome`);
+      assert.ok(item.preOverrideState.length > 100, `${item.id} needs pre-override state`);
+      assert.ok(item.postDecisionControl.length > 100, `${item.id} needs post-decision control`);
+      assert.ok(item.staleOverrideProbe.includes(item.enforcementPoint), `${item.id} stale override probe must name enforcement point`);
+      assert.ok(item.runtimeCheck.includes(item.enforcementPoint), `${item.id} runtime check must name enforcement point`);
+      assert.ok(
+        policy.evidenceTokens.every((token) =>
+          item.releaseEvidenceRequired.some((requiredEvidence) =>
+            requiredEvidence.toLowerCase().includes(token.toLowerCase())
+          )
+        ),
+        `${item.id} release evidence is missing required surface tokens`
+      );
+
+      if (item.overrideDurationPolicy === "non_expiring_policy_block") {
+        assert.equal(item.expiryEnforced, false, `${item.id} policy blocks cannot pretend to have expiry enforcement`);
+        assert.equal(item.overrideStartedAt, "none", `${item.id} policy blocks cannot open temporary windows`);
+        assert.equal(item.overrideExpiresAt, "none", `${item.id} policy blocks cannot expire as temporary windows`);
+        assert.equal(decision.overrideWindow, "policy_block", `${item.id} runtime must preserve policy-block window`);
+        assert.equal(decision.mutationAllowed, false, `${item.id} policy block cannot allow mutation`);
+      } else {
+        assert.equal(item.expiryEnforced, true, `${item.id} temporary or second-review override must enforce expiry`);
+        assert.notEqual(item.overrideStartedAt, "none", `${item.id} temporary override needs start time`);
+        assert.notEqual(item.overrideExpiresAt, "none", `${item.id} temporary override needs expiry time`);
+        assert.match(item.expiryAction, /restore|block|keep|require|preserve/i, `${item.id} expiry action must preserve state`);
+      }
+
+      if (item.decision === "allowed" && decision.requestOutcome === "applied") {
+        assert.equal(item.mutationOutcome, "applied", `${item.id} applied runtime decision must match fixture mutation`);
+        assert.equal(decision.queueAction, "apply_with_expiry", `${item.id} applied override must retain expiry handling`);
+      }
+
+      if (decision.requestOutcome === "denied_expired_override") {
+        assert.equal(decision.releaseGateStatus, "release_gate_preserved", `${item.id} expired override must preserve release gate`);
+        assert.ok(decision.blockerCodes.includes("expired_override_window"), `${item.id} expired override needs blocker code`);
+      }
+
+      if (decision.requestOutcome === "denied_insufficient_role") {
+        assert.equal(decision.releaseGateStatus, "release_gate_preserved", `${item.id} insufficient role must preserve release gate`);
+        assert.ok(decision.blockerCodes.includes("insufficient_role"), `${item.id} insufficient role needs blocker code`);
+      }
+    }
+
+    assert.equal(surfaceDecisions.length, surfaceEvidence.length, `${surface} decision count must match evidence count`);
+  }
+});
+
 test("production skill release eval canary evidence clears only the production skill check", () => {
   assert.ok(existsSync(productionSkillReleaseEvalCanaryPath), "production skill release/eval/canary evidence file is missing");
   assert.ok(existsSync(productionGatePath), "production launch gate evidence fixture is missing");

@@ -575,7 +575,7 @@ export const adminRbacEvidence: AdminRbacEvidence[] = [
     postDecisionControl: "Keep trafficAllocation at 0% public, retain rollback target skill-brand-kit@2.4.1, and require au-005 before any canary resume.",
     rationale: "High-risk skill release cannot enter canary from reviewer intake alone; second-review evidence is required before release traffic changes.",
     auditRef: "au-005",
-    evidenceRefs: ["rv-100", "sv-248", "eg-001"],
+    evidenceRefs: ["rv-100", "sv-248", "eg-001", "au-005"],
     releaseEvidenceRequired: ["reviewer rationale", "second reviewer", "eval pass", "rollback target", "immutable audit"]
   },
   {
@@ -605,7 +605,7 @@ export const adminRbacEvidence: AdminRbacEvidence[] = [
     postDecisionControl: "Leave cf-118 blocked, keep active prompt and skill import disabled, and require au-012 plus reviewer closure before retention changes.",
     rationale: "Crawler takedown and derivative material deletion must be reviewed by an admin reviewer before activation or retention changes.",
     auditRef: "au-012",
-    evidenceRefs: ["cg-501", "cf-118", "ip-7001", "pending-raw-derivative-delete-cs-21", "pending-rights-owner-notice-ip-7001"],
+    evidenceRefs: ["cg-501", "cf-118", "ip-7001", "pending-raw-derivative-delete-cs-21", "pending-rights-owner-notice-ip-7001", "au-012"],
     releaseEvidenceRequired: ["takedown closure", "derivative-use review", "raw retention action", "source contact notice", "immutable audit", "fresh second-review before expired deadline"]
   },
   {
@@ -622,7 +622,8 @@ export const adminRbacEvidence: AdminRbacEvidence[] = [
     decision: "denied",
     secondReviewRequired: false,
     secondReviewStatus: "not_required",
-    releaseGateImpact: "Prompt activation remains blocked until reviewer-owned eval, QA, and audit evidence are attached.",
+    releaseGateImpact:
+      "Prompt activation and production activation-review gates remain blocked until reviewer-owned eval, QA, feedback attribution, and immutable audit evidence prove the support-attached prompt fragment can safely become active.",
     userVisibleOutcome: "Existing prompt routing stays unchanged and the suspect feedback is excluded from learning paths.",
     apiScope: "POST /api/admin/prompt-fragments/pf-044/activate",
     mutationOutcome: "blocked_no_mutation",
@@ -635,7 +636,7 @@ export const adminRbacEvidence: AdminRbacEvidence[] = [
     postDecisionControl: "Keep pf-044 in review, leave feedback fb-222 out of learning weights, and require a new reviewer audit before activation.",
     rationale: "Support operators can attach feedback but cannot approve prompt fragments into active routing without reviewer permission.",
     auditRef: "au-008",
-    evidenceRefs: ["pf-044", "fb-222", "prompt-fragments"],
+    evidenceRefs: ["pf-044", "fb-222", "prompt-fragments", "au-008"],
     releaseEvidenceRequired: ["reviewer-owned eval", "QA evidence", "feedback attribution", "immutable audit"]
   },
   {
@@ -665,7 +666,7 @@ export const adminRbacEvidence: AdminRbacEvidence[] = [
     postDecisionControl: "Preserve degraded provider launch blocker eg-003, keep no silent fallback enabled, and require au-007 for any routing weight diff.",
     rationale: "Provider retry-weight reduction is allowed for an admin operator because safety fallback remains unchanged and evidence is audit-linked.",
     auditRef: "au-007",
-    evidenceRefs: ["rv-101", "ph-1", "eg-003"],
+    evidenceRefs: ["rv-101", "ph-1", "eg-003", "au-007"],
     releaseEvidenceRequired: ["provider health snapshot", "usage reconciliation", "no silent fallback", "expiry timestamp", "immutable audit"]
   },
   {
@@ -695,7 +696,7 @@ export const adminRbacEvidence: AdminRbacEvidence[] = [
     postDecisionControl: "Preserve the last audited provider routing weight, keep degraded provider blocker eg-003 open, and require a fresh au-007-linked operator action before any new routing diff.",
     rationale: "Provider routing overrides are time boxed; a sufficient operator role cannot keep an expired emergency retry-weight change active without a fresh audit-linked request.",
     auditRef: "au-007",
-    evidenceRefs: ["rv-101", "ph-1", "eg-003"],
+    evidenceRefs: ["rv-101", "ph-1", "eg-003", "au-007"],
     releaseEvidenceRequired: ["fresh provider health snapshot", "fresh operator action", "usage reconciliation", "expiry timestamp", "immutable audit"]
   },
   {
@@ -725,7 +726,7 @@ export const adminRbacEvidence: AdminRbacEvidence[] = [
     postDecisionControl: "Do not alter usr-301 balance, keep qt-904 pending operator review, and require au-004 before any credit or debit posts.",
     rationale: "Support can request quota credit, but direct quota mutation requires admin operator permission and immutable support-ticket evidence.",
     auditRef: "au-004",
-    evidenceRefs: ["sup-2201", "qt-904", "ex-887"],
+    evidenceRefs: ["sup-2201", "qt-904", "ex-887", "au-004"],
     releaseEvidenceRequired: ["support ticket", "quota transaction", "export evidence", "operator audit"]
   },
   {
@@ -755,7 +756,7 @@ export const adminRbacEvidence: AdminRbacEvidence[] = [
     postDecisionControl: "Keep rx-41 blocking at export, preserve sv-098 review state, and require superadmin plus second-review audit before policy activation.",
     rationale: "Blocking safety policy changes affect export eligibility and need superadmin ownership plus completed second review before activation.",
     auditRef: "au-006",
-    evidenceRefs: ["rx-41", "sv-098", "eg-002"],
+    evidenceRefs: ["rx-41", "sv-098", "eg-002", "au-006"],
     releaseEvidenceRequired: ["superadmin approval", "second review", "safety fixture pass", "export gate proof", "immutable audit"]
   },
   {
@@ -785,7 +786,7 @@ export const adminRbacEvidence: AdminRbacEvidence[] = [
     postDecisionControl: "Keep ex-887 unavailable, allow only audited quota credit or safe regeneration paths, and preserve tr-1004 QA evidence for review.",
     rationale: "Reviewer role is present, but blocking forbidden-claim export overrides are never eligible; the RBAC result remains denied.",
     auditRef: "au-001",
-    evidenceRefs: ["rv-102", "rx-41", "tr-1004"],
+    evidenceRefs: ["rv-102", "rx-41", "tr-1004", "au-001"],
     releaseEvidenceRequired: ["QA result", "safety decision", "trace provenance", "non-override eligibility proof", "immutable audit"]
   }
 ];
