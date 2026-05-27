@@ -29,6 +29,7 @@ import type {
   ObservabilityTelemetryRuntimeEvidence,
   ProductionBackupRollbackIncidentCoverage,
   ProductionBackupRollbackIncidentEvidence,
+  ProductionBackupRollbackIncidentSplitReadiness,
   ProductionLegalSupportPolicyCoverage,
   ProductionLegalSupportPolicyEvidence,
   ReleaseBlocker,
@@ -139,6 +140,18 @@ export default async function OperationsPage() {
             { key: "audit", header: "Operational Audit Evidence", render: (row) => row.operationalAuditEvidence },
             { key: "artifacts", header: "Admin Artifacts", render: (row) => row.linkedAdminArtifacts.join(", ") },
             { key: "evidence", header: "Evidence Refs", render: (row) => row.evidenceRefs.join(", ") }
+          ]}
+        />
+        <DataTable<ProductionBackupRollbackIncidentSplitReadiness>
+          rows={productionBackupRollbackIncidentEvidence.splitReadiness}
+          columns={[
+            { key: "split", header: "Launch-Clearing Split", render: (row) => row.split },
+            { key: "status", header: "Split Status", render: (row) => <StatusBadge value="blocked" label={row.status} /> },
+            { key: "path", header: "Exact Evidence Path", render: (row) => row.exactEvidencePath },
+            { key: "proof", header: "Required Runtime Proof", render: (row) => row.requiredRuntimeProof.join(", ") },
+            { key: "blockers", header: "Upstream Blockers", render: (row) => row.upstreamBlockers.join(", ") },
+            { key: "surface", header: "Admin Review Surface", render: (row) => row.adminReviewSurface },
+            { key: "checklist", header: "Checklist Row", render: (row) => row.checklistItem }
           ]}
         />
       </section>

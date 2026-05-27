@@ -3086,6 +3086,48 @@ test("production backup rollback incident evidence stays blocked until upstream 
   }
 
   assert.deepEqual([...requiredAreas], [], "production backup rollback evidence is missing coverage areas");
+  assert.equal(
+    productionBackupRollbackIncidentEvidence.splitReadiness.length,
+    2,
+    "production backup rollback evidence must expose both launch-clearing split blockers"
+  );
+  assert.deepEqual(
+    productionBackupRollbackIncidentEvidence.splitReadiness.map((entry) => entry.split).sort(),
+    ["backup_restore", "rollback_incident_smoke"],
+    "production split readiness must separate backup restore from rollback incident smoke"
+  );
+
+  for (const split of productionBackupRollbackIncidentEvidence.splitReadiness) {
+    assert.equal(
+      split.status,
+      "blocked_until_exact_split_file",
+      `${split.split} must remain blocked until exact split evidence exists`
+    );
+    assert.match(
+      split.exactEvidencePath,
+      /^ops\/evidence\/production\/(backup-restore|rollback-incident-post-deploy-smoke)\.json$/,
+      `${split.split} must name the exact launch-clearing production evidence path`
+    );
+    assert.ok(
+      split.requiredRuntimeProof.length >= 5,
+      `${split.split} must enumerate required runtime proof`
+    );
+    assert.ok(
+      split.upstreamBlockers.includes("ci_staging_gates_not_passed"),
+      `${split.split} must preserve upstream CI/staging blocker`
+    );
+    assert.match(
+      split.adminReviewSurface,
+      /Operations page/i,
+      `${split.split} must bind review to the admin operations surface`
+    );
+    assert.match(
+      split.checklistItem,
+      /Production (backup\/restore|rollback\/incident\/post-deploy smoke) runtime evidence/,
+      `${split.split} must map to the exact unchecked Rev2 checklist row`
+    );
+  }
+
   assert.deepEqual(
     evidenceFile.runtime_request_ids,
     productionBackupRollbackIncidentEvidence.runtimeRequestIds,

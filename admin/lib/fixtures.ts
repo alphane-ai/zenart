@@ -4179,6 +4179,50 @@ export const productionBackupRollbackIncidentEvidence: ProductionBackupRollbackI
       ]
     }
   ],
+  splitReadiness: [
+    {
+      split: "backup_restore",
+      exactEvidencePath: "ops/evidence/production/backup-restore.json",
+      status: "blocked_until_exact_split_file",
+      requiredRuntimeProof: [
+        "backup_schedule_active",
+        "postgres_restore_verified",
+        "object_restore_verified",
+        "restore_count_match",
+        "rpo_rto_within_policy",
+        "audit_refs_bound"
+      ],
+      upstreamBlockers: [
+        "exact production backup split file missing",
+        "ci_staging_gates_not_passed"
+      ],
+      adminReviewSurface:
+        "Operations page keeps backup restore probe evidence visible beside incidents, dashboards, alert routes, and immutable audit refs while the launch-clearing split file is absent.",
+      checklistItem:
+        "Production backup/restore runtime evidence 通过：production evidence proves backup schedule, Postgres restore, object restore, RPO/RTO, and audit refs under `ops/evidence/production/`。"
+    },
+    {
+      split: "rollback_incident_smoke",
+      exactEvidencePath: "ops/evidence/production/rollback-incident-post-deploy-smoke.json",
+      status: "blocked_until_exact_split_file",
+      requiredRuntimeProof: [
+        "app_rollback_verified",
+        "feature_flag_rollback_verified",
+        "migration_compatibility_verified",
+        "alert_incident_path_verified",
+        "post_deploy_smoke_verified",
+        "ci_and_staging_gate_refs_bound"
+      ],
+      upstreamBlockers: [
+        "exact production rollback incident smoke split file missing",
+        "ci_staging_gates_not_passed"
+      ],
+      adminReviewSurface:
+        "Operations page separates rollback, incident, and smoke proof from the aggregate probe so admins can see why release remains blocked until the exact split evidence cites passing CI and staging gates.",
+      checklistItem:
+        "Production rollback/incident/post-deploy smoke runtime evidence 通过：production evidence proves rollback drill, incident/alert path, migration compatibility, and post-deploy smoke under `ops/evidence/production/`。"
+    }
+  ],
   gateImpact: {
     checklistItems: [
       "Production backup/rollback/incident/post-deploy smoke runtime/deployment evidence 通过。",

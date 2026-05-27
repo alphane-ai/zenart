@@ -1101,6 +1101,18 @@ export type ProductionBackupRollbackIncidentCoverage = {
   evidenceRefs: string[];
 };
 
+export type ProductionBackupRollbackIncidentSplitReadiness = {
+  split:
+    | "backup_restore"
+    | "rollback_incident_smoke";
+  exactEvidencePath: string;
+  status: "blocked_until_exact_split_file";
+  requiredRuntimeProof: string[];
+  upstreamBlockers: string[];
+  adminReviewSurface: string;
+  checklistItem: string;
+};
+
 export type ProductionBackupRollbackIncidentEvidence = {
   id: string;
   evidencePath: string;
@@ -1116,6 +1128,7 @@ export type ProductionBackupRollbackIncidentEvidence = {
   alertRouteIds: string[];
   auditRefs: string[];
   coverage: ProductionBackupRollbackIncidentCoverage[];
+  splitReadiness: ProductionBackupRollbackIncidentSplitReadiness[];
   gateImpact: {
     checklistItems: string[];
     canClearCheckLevelItems: boolean;

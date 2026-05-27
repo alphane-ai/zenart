@@ -577,6 +577,9 @@ test("admin operations page surfaces production backup rollback incident evidenc
     "Production Backup Rollback Incident Evidence",
     "ProductionBackupRollbackIncidentCoverage",
     "Operational Audit Evidence",
+    "Launch-Clearing Split",
+    "Exact Evidence Path",
+    "Required Runtime Proof",
     "Tracked Conditions",
     "Can Clear Rows",
     "Remaining Blockers",
@@ -595,6 +598,10 @@ test("admin operations page surfaces production backup rollback incident evidenc
     "rollback_drill",
     "incident_alert_path",
     "post_deploy_smoke",
+    "splitReadiness",
+    "ops/evidence/production/backup-restore.json",
+    "ops/evidence/production/rollback-incident-post-deploy-smoke.json",
+    "blocked_until_exact_split_file",
     "blocked_by_upstream_gates",
     "ci_staging_gates_not_passed"
   ]) {

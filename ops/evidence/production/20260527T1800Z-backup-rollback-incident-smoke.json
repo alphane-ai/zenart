@@ -146,6 +146,46 @@
       ]
     }
   ],
+  "split_readiness": [
+    {
+      "split": "backup_restore",
+      "exact_evidence_path": "ops/evidence/production/backup-restore.json",
+      "status": "blocked_until_exact_split_file",
+      "required_runtime_proof": [
+        "backup_schedule_active",
+        "postgres_restore_verified",
+        "object_restore_verified",
+        "restore_count_match",
+        "rpo_rto_within_policy",
+        "audit_refs_bound"
+      ],
+      "upstream_blockers": [
+        "exact production backup split file missing",
+        "ci_staging_gates_not_passed"
+      ],
+      "admin_review_surface": "Operations page keeps backup restore probe evidence visible beside incidents, dashboards, alert routes, and immutable audit refs while the launch-clearing split file is absent.",
+      "checklist_item": "Production backup/restore runtime evidence 通过：production evidence proves backup schedule, Postgres restore, object restore, RPO/RTO, and audit refs under `ops/evidence/production/`。"
+    },
+    {
+      "split": "rollback_incident_smoke",
+      "exact_evidence_path": "ops/evidence/production/rollback-incident-post-deploy-smoke.json",
+      "status": "blocked_until_exact_split_file",
+      "required_runtime_proof": [
+        "app_rollback_verified",
+        "feature_flag_rollback_verified",
+        "migration_compatibility_verified",
+        "alert_incident_path_verified",
+        "post_deploy_smoke_verified",
+        "ci_and_staging_gate_refs_bound"
+      ],
+      "upstream_blockers": [
+        "exact production rollback incident smoke split file missing",
+        "ci_staging_gates_not_passed"
+      ],
+      "admin_review_surface": "Operations page separates rollback, incident, and smoke proof from the aggregate probe so admins can see why release remains blocked until the exact split evidence cites passing CI and staging gates.",
+      "checklist_item": "Production rollback/incident/post-deploy smoke runtime evidence 通过：production evidence proves rollback drill, incident/alert path, migration compatibility, and post-deploy smoke under `ops/evidence/production/`。"
+    }
+  ],
   "gate_impact": {
     "checklist_items": [
       "Production backup/rollback/incident/post-deploy admin-visible probe evidence recorded but launch blocker preserved: `ops/evidence/production/20260527T1800Z-backup-rollback-incident-smoke.json` has `status=blocked_by_upstream_gates`, proves backup、rollback、incident、post-deploy smoke probes, and cannot close production backup/rollback launch readiness until upstream CI/Staging gates and exact split files pass。"
