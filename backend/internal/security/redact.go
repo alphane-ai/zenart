@@ -46,7 +46,7 @@ type SecretFinding struct {
 	Location string     `json:"location,omitempty"`
 }
 
-var sensitiveKeyPattern = regexp.MustCompile(`(?i)(secret|token|password|passwd|pwd|passphrase|api[_-]?key|x[_-]?api[_-]?key|access[_-]?key|private[_-]?key|private[_-]?token|deploy[_-]?key|credential|signature|session|cookie|authorization|proxy[_-]?authorization|client[_-]?secret|client[_-]?token|refresh[_-]?token|id[_-]?token|personal[_-]?access[_-]?token|pat|jwt|oauth|webhook[_-]?secret|signing[_-]?key|shared[_-]?access[_-]?signature|sas|stripe|openai|anthropic|provider[_-]?key|database[_-]?url|dsn|connection[_-]?string|connectionstring|service[_-]?account|storage[_-]?key|encryption[_-]?customer[_-]?key|customer[_-]?encryption[_-]?key|sse[_-]?customer[_-]?key|docker[_-]?auth|dockerconfigjson|dockercfg|image[_-]?pull[_-]?secret|registry[_-]?(auth|token|password))`)
+var sensitiveKeyPattern = regexp.MustCompile(`(?i)(secret|token|password|passwd|pwd|passphrase|api[_-]?key|x[_-]?api[_-]?key|access[_-]?key|private[_-]?key|private[_-]?token|deploy[_-]?key|credential|signature|session|cookie|authorization|proxy[_-]?authorization|client[_-]?secret|client[_-]?token|client[_-]?assertion|refresh[_-]?token|id[_-]?token|personal[_-]?access[_-]?token|pat|jwt|oauth|webhook[_-]?secret|signing[_-]?key|shared[_-]?access[_-]?signature|sas|stripe|openai|anthropic|provider[_-]?key|database[_-]?url|dsn|connection[_-]?string|connectionstring|service[_-]?account|storage[_-]?key|account[_-]?key|subscription[_-]?key|tenant[_-]?secret|encryption[_-]?customer[_-]?key|customer[_-]?encryption[_-]?key|sse[_-]?customer[_-]?key|docker[_-]?auth|dockerconfigjson|dockercfg|image[_-]?pull[_-]?secret|registry[_-]?(auth|token|password))`)
 
 var secretValuePatterns = []struct {
 	kind    SecretKind
@@ -78,6 +78,10 @@ var secretValuePatterns = []struct {
 	{SecretKindProviderKey, "groq_key", regexp.MustCompile(`\bgsk_[A-Za-z0-9]{20,}\b`)},
 	{SecretKindProviderKey, "together_key", regexp.MustCompile(`\btgp_v1_[A-Za-z0-9_-]{20,}\b`)},
 	{SecretKindProviderKey, "pinecone_key", regexp.MustCompile(`\bpcsk_[A-Za-z0-9_-]{20,}\b`)},
+	{SecretKindProviderKey, "openrouter_key", regexp.MustCompile(`\bsk-or-v1-[A-Za-z0-9_-]{20,}\b`)},
+	{SecretKindProviderKey, "figma_token", regexp.MustCompile(`\bfigd_[A-Za-z0-9_-]{20,}\b`)},
+	{SecretKindProviderKey, "notion_token", regexp.MustCompile(`\bsecret_[A-Za-z0-9]{20,}\b`)},
+	{SecretKindProviderKey, "langsmith_token", regexp.MustCompile(`\blsv2_pt_[A-Za-z0-9_-]{20,}\b`)},
 	{SecretKindToken, "supabase_jwt", regexp.MustCompile(`\bsb_[A-Za-z0-9_-]{20,}\b`)},
 	{SecretKindToken, "cloudflare_token", regexp.MustCompile(`\b(?:CFPAT|cfpat)_[A-Za-z0-9_-]{20,}\b`)},
 	{SecretKindToken, "datadog_key", regexp.MustCompile(`\b(?:dd|datadog)_[A-Za-z0-9]{20,}\b`)},
@@ -94,6 +98,10 @@ var secretValuePatterns = []struct {
 	{SecretKindToken, "railway_token", regexp.MustCompile(`\brailway_[A-Za-z0-9]{20,}\b`)},
 	{SecretKindCloudKey, "google_oauth_token", regexp.MustCompile(`\bya29\.[0-9A-Za-z_-]{20,}\b`)},
 	{SecretKindCloudKey, "firebase_server_key", regexp.MustCompile(`\bAAAA[A-Za-z0-9_-]{7,}:APA91b[A-Za-z0-9_-]{20,}\b`)},
+	{SecretKindCloudKey, "azure_devops_pat", regexp.MustCompile(`\bazdpat[A-Za-z0-9]{20,}\b`)},
+	{SecretKindToken, "grafana_service_account_token", regexp.MustCompile(`\bglsa_[A-Za-z0-9_]{20,}\b`)},
+	{SecretKindToken, "pulumi_access_token", regexp.MustCompile(`\bpul-[A-Fa-f0-9]{40}\b`)},
+	{SecretKindToken, "databricks_pat", regexp.MustCompile(`\bdapi[a-f0-9]{32}\b`)},
 	{SecretKindToken, "fly_token", regexp.MustCompile(`\bFlyV1\s+[A-Za-z0-9+/_=:-]{20,}\b`)},
 	{SecretKindRegistryAuth, "docker_auth_token", regexp.MustCompile(`(?i)\b(?:docker|registry|container)[_-]?(?:auth|token|password)\s*[=:]\s*("[A-Za-z0-9+/=._-]{20,}"|'[A-Za-z0-9+/=._-]{20,}'|[A-Za-z0-9+/=._-]{20,})`)},
 	{SecretKindRegistryAuth, "dockerconfigjson_auth", regexp.MustCompile(`(?i)"auth"\s*:\s*"[A-Za-z0-9+/=]{20,}"`)},
@@ -106,7 +114,7 @@ var secretValuePatterns = []struct {
 	{SecretKindRegistryAuth, "kubernetes_pull_secret", regexp.MustCompile(`(?i)\b(?:image[_-]?pull[_-]?secret|dockerconfigjson|dockercfg)\s*[=:]\s*("[A-Za-z0-9+/=._-]{20,}"|'[A-Za-z0-9+/=._-]{20,}'|[A-Za-z0-9+/=._-]{20,})`)},
 }
 
-var assignmentPattern = regexp.MustCompile(`(?i)\b([A-Za-z0-9_.-]*(?:secret|token|password|passwd|pwd|passphrase|api[_-]?key|x[_-]?api[_-]?key|access[_-]?key|private[_-]?key|private[_-]?token|deploy[_-]?key|credential|signature|session|cookie|authorization|proxy[_-]?authorization|client[_-]?secret|client[_-]?token|refresh[_-]?token|personal[_-]?access[_-]?token|webhook[_-]?secret|signing[_-]?key|shared[_-]?access[_-]?signature|database[_-]?url|dsn|connection[_-]?string|connectionstring|service[_-]?account|storage[_-]?key|encryption[_-]?customer[_-]?key|customer[_-]?encryption[_-]?key|sse[_-]?customer[_-]?key|dockerconfigjson|dockercfg|image[_-]?pull[_-]?secret)[A-Za-z0-9_.-]*)\s*([=:])\s*("[^"]*"|'[^']*'|[^\s,;&]+)`)
+var assignmentPattern = regexp.MustCompile(`(?i)\b([A-Za-z0-9_.-]*(?:secret|token|password|passwd|pwd|passphrase|api[_-]?key|x[_-]?api[_-]?key|access[_-]?key|private[_-]?key|private[_-]?token|deploy[_-]?key|credential|signature|session|cookie|authorization|proxy[_-]?authorization|client[_-]?secret|client[_-]?token|client[_-]?assertion|refresh[_-]?token|personal[_-]?access[_-]?token|webhook[_-]?secret|signing[_-]?key|shared[_-]?access[_-]?signature|database[_-]?url|dsn|connection[_-]?string|connectionstring|service[_-]?account|storage[_-]?key|account[_-]?key|subscription[_-]?key|tenant[_-]?secret|encryption[_-]?customer[_-]?key|customer[_-]?encryption[_-]?key|sse[_-]?customer[_-]?key|dockerconfigjson|dockercfg|image[_-]?pull[_-]?secret)[A-Za-z0-9_.-]*)\s*([=:])\s*("[^"]*"|'[^']*'|[^\s,;&]+)`)
 var embeddedURLPattern = regexp.MustCompile(`[A-Za-z][A-Za-z0-9+.-]*://[^\s"'<>]+`)
 
 type MalwareScanStatus string
@@ -296,6 +304,10 @@ func ClassifyKey(key string) []SecretFinding {
 		kind = SecretKindAPIKey
 	case strings.Contains(lower, "access") && strings.Contains(lower, "key"):
 		kind = SecretKindAccessKey
+	case strings.Contains(lower, "account") && strings.Contains(lower, "key"):
+		kind = SecretKindAccessKey
+	case strings.Contains(lower, "subscription") && strings.Contains(lower, "key"):
+		kind = SecretKindAccessKey
 	case strings.Contains(lower, "webhook") || strings.Contains(lower, "signing"):
 		kind = SecretKindWebhookSecret
 	case strings.Contains(lower, "authorization"):
@@ -306,11 +318,16 @@ func ClassifyKey(key string) []SecretFinding {
 		kind = SecretKindServiceAcct
 	case strings.Contains(lower, "client") && (strings.Contains(lower, "secret") || strings.Contains(lower, "token")):
 		kind = SecretKindCredential
+	case strings.Contains(lower, "client") && strings.Contains(lower, "assertion"):
+		kind = SecretKindCredential
 	case strings.Contains(lower, "credential") || strings.Contains(lower, "database") || strings.Contains(lower, "dsn") || strings.Contains(lower, "connection"):
 		kind = SecretKindCredential
 	case strings.Contains(lower, "token") || strings.Contains(lower, "jwt") || strings.Contains(lower, "oauth") || strings.Contains(lower, "session"):
 		kind = SecretKindToken
-	case strings.Contains(lower, "openai") || strings.Contains(lower, "anthropic") || strings.Contains(lower, "stripe") || strings.Contains(lower, "provider"):
+	case strings.Contains(lower, "openai") || strings.Contains(lower, "anthropic") || strings.Contains(lower, "openrouter") ||
+		strings.Contains(lower, "deepseek") || strings.Contains(lower, "mistral") || strings.Contains(lower, "cohere") ||
+		strings.Contains(lower, "gemini") || strings.Contains(lower, "figma") || strings.Contains(lower, "notion") ||
+		strings.Contains(lower, "langsmith") || strings.Contains(lower, "stripe") || strings.Contains(lower, "provider"):
 		kind = SecretKindProviderKey
 	}
 	return []SecretFinding{{Kind: kind, Signal: "key_name"}}
@@ -583,6 +600,7 @@ func RedactString(value string) string {
 	value = redactJSONString(value)
 	value = redactURLSecrets(value)
 	value = redactAuthorization(value)
+	value = redactAuthorizationAssignments(value)
 	value = redactKnownSecretValues(value)
 	value = redactAssignments(value)
 	return value
@@ -678,14 +696,34 @@ func redactAuthorization(value string) string {
 	return regexp.MustCompile(`(?i)\b(Bearer|Basic)\s+[A-Za-z0-9._~+/\-=]{3,}`).ReplaceAllString(value, "$1 "+Redacted)
 }
 
+func redactAuthorizationAssignments(value string) string {
+	return regexp.MustCompile(`(?i)\b(Authorization|Proxy-Authorization)\s*:\s*(ApiKey|Token|Digest|Negotiate|AWS4-HMAC-SHA256|SharedKey|SharedKeyLite)\s+[^\s,;&]+`).ReplaceAllString(value, "$1: $2 "+Redacted)
+}
+
 func redactAssignments(value string) string {
 	return assignmentPattern.ReplaceAllStringFunc(value, func(match string) string {
 		parts := assignmentPattern.FindStringSubmatch(match)
 		if len(parts) < 3 {
 			return match
 		}
+		if isAuthorizationSchemeAssignment(parts[1], strings.Trim(parts[3], `"'`)) {
+			return match
+		}
 		return fmt.Sprintf("%s%s%s", strings.TrimSpace(parts[1]), parts[2], Redacted)
 	})
+}
+
+func isAuthorizationSchemeAssignment(key, value string) bool {
+	normalizedKey := strings.ToLower(strings.ReplaceAll(strings.TrimSpace(key), "_", "-"))
+	if normalizedKey != "authorization" && normalizedKey != "proxy-authorization" {
+		return false
+	}
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "apikey", "token", "digest", "negotiate", "aws4-hmac-sha256", "sharedkey", "sharedkeylite":
+		return true
+	default:
+		return false
+	}
 }
 
 func redactKnownSecretValues(value string) string {

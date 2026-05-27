@@ -98,10 +98,15 @@ func TestRedactStringCoversAIStorageAndObservabilityTokens(t *testing.T) {
 		"groq=gsk_abcdefghijklmnopqrstuvwxyz123456",
 		"together=tgp_v1_abcdefghijklmnopqrstuvwxyz123456",
 		"pinecone=pcsk_abcdefghijklmnopqrstuvwxyz123456",
+		"openrouter=sk-or-v1-abcdefghijklmnopqrstuvwxyz123456",
+		"figma=figd_abcdefghijklmnopqrstuvwxyz123456",
+		"notion=secret_abcdefghijklmnopqrstuvwxyz123456",
+		"langsmith=lsv2_pt_abcdefghijklmnopqrstuvwxyz123456",
 		"supabase=sb_abcdefghijklmnopqrstuvwxyz123456",
 		"cloudflare=CFPAT_abcdefghijklmnopqrstuvwxyz123456",
 		"datadog=dd_abcdefghijklmnopqrstuvwxyz123456",
 		"sentry=sntrys_abcdefghijklmnopqrstuvwxyz123456",
+		"grafana=glsa_abcdefghijklmnopqrstuvwxyz123456",
 	}, " ")
 	got := RedactString(input)
 	for _, leaked := range []string{
@@ -111,10 +116,15 @@ func TestRedactStringCoversAIStorageAndObservabilityTokens(t *testing.T) {
 		"gsk_abcdefghijklmnopqrstuvwxyz123456",
 		"tgp_v1_abcdefghijklmnopqrstuvwxyz123456",
 		"pcsk_abcdefghijklmnopqrstuvwxyz123456",
+		"sk-or-v1-abcdefghijklmnopqrstuvwxyz123456",
+		"figd_abcdefghijklmnopqrstuvwxyz123456",
+		"secret_abcdefghijklmnopqrstuvwxyz123456",
+		"lsv2_pt_abcdefghijklmnopqrstuvwxyz123456",
 		"sb_abcdefghijklmnopqrstuvwxyz123456",
 		"CFPAT_abcdefghijklmnopqrstuvwxyz123456",
 		"dd_abcdefghijklmnopqrstuvwxyz123456",
 		"sntrys_abcdefghijklmnopqrstuvwxyz123456",
+		"glsa_abcdefghijklmnopqrstuvwxyz123456",
 	} {
 		if strings.Contains(got, leaked) {
 			t.Fatalf("RedactString() = %q, leaked %s", got, leaked)
@@ -128,10 +138,58 @@ func TestRedactStringCoversAIStorageAndObservabilityTokens(t *testing.T) {
 		"groq_key",
 		"together_key",
 		"pinecone_key",
+		"openrouter_key",
+		"figma_token",
+		"notion_token",
+		"langsmith_token",
 		"supabase_jwt",
 		"cloudflare_token",
 		"datadog_key",
 		"sentry_auth_token",
+		"grafana_service_account_token",
+	} {
+		assertSignal(t, findings, signal)
+	}
+}
+
+func TestRedactStringCoversLaunchAuthorizationSchemesAndInfraTokens(t *testing.T) {
+	pulumiToken := "pul-" + strings.Repeat("a", 40)
+	databricksToken := "dapi" + strings.Repeat("b", 32)
+	input := strings.Join([]string{
+		"Authorization: ApiKey provider-secret-value",
+		"Proxy-Authorization: SharedKey storage-account:signature-value",
+		"client_assertion=eyJabcdefghijklmnopqrstuvwxyz.eyJabcdefghijklmnopqrstuvwxyz.abcdefghijklmnopqrst",
+		"azure=azdpat" + strings.Repeat("A", 24),
+		"pulumi=" + pulumiToken,
+		"databricks=" + databricksToken,
+	}, " ")
+
+	got := RedactString(input)
+	for _, leaked := range []string{
+		"provider-secret-value",
+		"storage-account:signature-value",
+		"eyJabcdefghijklmnopqrstuvwxyz.eyJabcdefghijklmnopqrstuvwxyz.abcdefghijklmnopqrst",
+		"azdpat" + strings.Repeat("A", 24),
+		pulumiToken,
+		databricksToken,
+	} {
+		if strings.Contains(got, leaked) {
+			t.Fatalf("RedactString() = %q, leaked %s", got, leaked)
+		}
+	}
+	for _, fragment := range []string{"Authorization: ApiKey " + Redacted, "Proxy-Authorization: SharedKey " + Redacted, Redacted} {
+		if !strings.Contains(got, fragment) {
+			t.Fatalf("RedactString() = %q, missing %s", got, fragment)
+		}
+	}
+
+	findings := ClassifyString(input)
+	for _, signal := range []string{
+		"assignment:key_name",
+		"jwt",
+		"azure_devops_pat",
+		"pulumi_access_token",
+		"databricks_pat",
 	} {
 		assertSignal(t, findings, signal)
 	}
@@ -732,11 +790,17 @@ func TestClassifyKeyCoversLaunchSecretNames(t *testing.T) {
 		{key: "dockerconfigjson", kind: SecretKindRegistryAuth},
 		{key: "registry_password", kind: SecretKindRegistryAuth},
 		{key: "clientSecret", kind: SecretKindCredential},
+		{key: "clientAssertion", kind: SecretKindCredential},
 		{key: "accessToken", kind: SecretKindToken},
 		{key: "refreshToken", kind: SecretKindToken},
 		{key: "idToken", kind: SecretKindToken},
 		{key: "authToken", kind: SecretKindToken},
 		{key: "secretKey", kind: SecretKindSensitiveKey},
+		{key: "subscriptionKey", kind: SecretKindAccessKey},
+		{key: "storageAccountKey", kind: SecretKindAccessKey},
+		{key: "openRouterApiKey", kind: SecretKindAPIKey},
+		{key: "figmaAccessToken", kind: SecretKindToken},
+		{key: "langsmithApiKey", kind: SecretKindAPIKey},
 		{key: "databaseUrl", kind: SecretKindCredential},
 		{key: "serviceAccountJSON", kind: SecretKindServiceAcct},
 		{key: "registryPassword", kind: SecretKindRegistryAuth},
