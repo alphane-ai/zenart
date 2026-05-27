@@ -285,6 +285,7 @@
       "eval_suite_id",
       "subject_type",
       "subject_id",
+      "subject_version",
       "status",
       "completed_after",
       "latest_only"
@@ -360,6 +361,18 @@
         "created_at": "2026-05-27T01:00:30Z"
       },
       {
+        "id": "eval_result_read_acme_new_subject_version",
+        "tenant_id": "tenant_stage0_acme",
+        "eval_suite_id": "eval_stage0_rev2_starter",
+        "subject_type": "vertical_workflow_pack",
+        "subject_id": "stage0_rev2_starter_workflows",
+        "subject_version": "rev2.fixture-contract.2",
+        "runner_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "status": "pass",
+        "completed_at": "2026-05-27T02:00:00Z",
+        "created_at": "2026-05-27T02:00:30Z"
+      },
+      {
         "id": "eval_result_read_beta_same_subject_newer",
         "tenant_id": "tenant_stage0_beta",
         "eval_suite_id": "eval_stage0_rev2_starter",
@@ -395,6 +408,7 @@
           "latest_only": false
         },
         "expected_result_ids": [
+          "eval_result_read_acme_new_subject_version",
           "eval_result_read_acme_other_runner",
           "eval_result_read_acme_same_completed_newer_created",
           "eval_result_read_acme_same_completed_older_created",
@@ -410,7 +424,8 @@
           "latest_only": false
         },
         "expected_result_ids": [
-          "eval_result_read_acme_other_subject"
+          "eval_result_read_acme_other_subject",
+          "eval_result_read_acme_new_subject_version"
         ]
       },
       {
@@ -420,6 +435,22 @@
           "eval_suite_id": "eval_stage0_rev2_starter",
           "subject_type": "vertical_workflow_pack",
           "subject_id": "stage0_rev2_starter_workflows",
+          "latest_only": true
+        },
+        "expected_result_ids": [
+          "eval_result_read_acme_new_subject_version",
+          "eval_result_read_acme_other_runner",
+          "eval_result_read_acme_same_completed_newer_created"
+        ]
+      },
+      {
+        "case_id": "subject_version_filter_keeps_old_version_addressable",
+        "query": {
+          "tenant_id": "tenant_stage0_acme",
+          "eval_suite_id": "eval_stage0_rev2_starter",
+          "subject_type": "vertical_workflow_pack",
+          "subject_id": "stage0_rev2_starter_workflows",
+          "subject_version": "rev2.fixture-contract.1",
           "latest_only": true
         },
         "expected_result_ids": [
@@ -449,6 +480,7 @@
           "eval_suite_id": "eval_stage0_rev2_starter",
           "subject_type": "vertical_workflow_pack",
           "subject_id": "stage0_rev2_starter_workflows",
+          "subject_version": "rev2.fixture-contract.1",
           "latest_only": false,
           "page_size": 2
         },
@@ -465,6 +497,7 @@
           "eval_suite_id": "eval_stage0_rev2_starter",
           "subject_type": "vertical_workflow_pack",
           "subject_id": "stage0_rev2_starter_workflows",
+          "subject_version": "rev2.fixture-contract.1",
           "latest_only": false,
           "page_token": "after:eval_result_read_acme_same_completed_newer_created",
           "page_size": 2
@@ -484,9 +517,22 @@
           "eval_suite_id": "eval_stage0_rev2_starter",
           "subject_type": "vertical_workflow_pack",
           "subject_id": "stage0_rev2_starter_workflows",
+          "subject_version": "rev2.fixture-contract.1",
           "status": "pass",
           "completed_after": "2026-05-27T00:00:00Z",
           "latest_only": false
+        },
+        "expected_result_ids": []
+      },
+      {
+        "case_id": "subject_version_filter_excludes_other_versions",
+        "query": {
+          "tenant_id": "tenant_stage0_acme",
+          "eval_suite_id": "eval_stage0_rev2_starter",
+          "subject_type": "vertical_workflow_pack",
+          "subject_id": "stage0_rev2_starter_workflows",
+          "subject_version": "rev2.fixture-contract.missing",
+          "latest_only": true
         },
         "expected_result_ids": []
       },
@@ -544,6 +590,7 @@
       "EvalSuiteIdFilter",
       "EvalSubjectTypeFilter",
       "SubjectIdFilter",
+      "SubjectVersionFilter",
       "CompletedAfterFilter",
       "EvalLatestOnlyFilter"
     ]

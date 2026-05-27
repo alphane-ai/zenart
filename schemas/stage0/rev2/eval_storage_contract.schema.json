@@ -385,7 +385,7 @@
         },
         "required_query_filters": {
           "type": "array",
-          "minItems": 6,
+          "minItems": 8,
           "uniqueItems": true,
           "items": {
             "enum": [
@@ -393,6 +393,7 @@
               "eval_suite_id",
               "subject_type",
               "subject_id",
+              "subject_version",
               "status",
               "completed_after",
               "latest_only"
@@ -619,8 +620,8 @@
         },
         "required_parameters": {
           "type": "array",
-          "minItems": 9,
-          "maxItems": 9,
+          "minItems": 10,
+          "maxItems": 10,
           "uniqueItems": true,
           "items": {
             "enum": [
@@ -631,6 +632,7 @@
               "EvalSuiteIdFilter",
               "EvalSubjectTypeFilter",
               "SubjectIdFilter",
+              "SubjectVersionFilter",
               "CompletedAfterFilter",
               "EvalLatestOnlyFilter"
             ]
@@ -811,6 +813,10 @@
               ]
             },
             "subject_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "subject_version": {
               "type": "string",
               "minLength": 1
             },

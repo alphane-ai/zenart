@@ -1040,6 +1040,7 @@ paths:
         - $ref: "#/components/parameters/EvalSuiteIdFilter"
         - $ref: "#/components/parameters/EvalSubjectTypeFilter"
         - $ref: "#/components/parameters/SubjectIdFilter"
+        - $ref: "#/components/parameters/SubjectVersionFilter"
         - $ref: "#/components/parameters/CompletedAfterFilter"
         - $ref: "#/components/parameters/EvalLatestOnlyFilter"
         - $ref: "#/components/parameters/Search"
@@ -1178,6 +1179,12 @@ components:
       schema:
         type: string
       description: Filter eval results by evaluated subject id.
+    SubjectVersionFilter:
+      name: subject_version
+      in: query
+      schema:
+        type: string
+      description: Filter eval results by evaluated subject version before latest-only grouping.
     CompletedAfterFilter:
       name: completed_after
       in: query
@@ -3115,7 +3122,7 @@ components:
               uniqueItems: true
               items:
                 type: string
-                enum: [tenant_id, eval_suite_id, subject_type, subject_id, status, completed_after, latest_only]
+                enum: [tenant_id, eval_suite_id, subject_type, subject_id, subject_version, status, completed_after, latest_only]
             tenant_scoped:
               type: boolean
               const: true

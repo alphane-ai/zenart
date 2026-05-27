@@ -579,6 +579,7 @@ def run_eval() -> dict[str, Any]:
                 "eval_suite_id",
                 "subject_type",
                 "subject_id",
+                "subject_version",
                 "status",
                 "completed_after",
                 "latest_only",

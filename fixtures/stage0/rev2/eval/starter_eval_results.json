@@ -1186,7 +1186,7 @@
     ],
     "runner_contract": {
       "runner": "scripts/run_stage0_eval.py",
-      "runner_sha256": "d190cf9c1a3328673bc09013f473bcb347dfc00dc95d1e3463a88a85015f0938",
+      "runner_sha256": "4a4c72014e402b537c8c5d5fb14bd9a97655f4ead27de18d3e0d9dbe861b504c",
       "deterministic_replay_command": "python3 scripts/run_stage0_eval.py --check",
       "writes_stored_fixture": true,
       "check_mode_compares_exact_json": true,
@@ -1246,6 +1246,7 @@
         "eval_suite_id",
         "subject_type",
         "subject_id",
+        "subject_version",
         "status",
         "completed_after",
         "latest_only"

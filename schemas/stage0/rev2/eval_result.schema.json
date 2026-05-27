@@ -341,7 +341,7 @@
         },
         "required_query_filters": {
           "type": "array",
-          "minItems": 4,
+          "minItems": 8,
           "uniqueItems": true,
           "items": {
             "enum": [
@@ -349,6 +349,7 @@
               "eval_suite_id",
               "subject_type",
               "subject_id",
+              "subject_version",
               "status",
               "completed_after",
               "latest_only"

@@ -49,6 +49,7 @@ QUERY_FILTERS = {
     "eval_suite_id",
     "subject_type",
     "subject_id",
+    "subject_version",
     "status",
     "completed_after",
     "latest_only",
@@ -85,6 +86,7 @@ OPENAPI_PARAMETERS = {
     "EvalSuiteIdFilter",
     "EvalSubjectTypeFilter",
     "SubjectIdFilter",
+    "SubjectVersionFilter",
     "CompletedAfterFilter",
     "EvalLatestOnlyFilter",
 }
@@ -330,7 +332,7 @@ def apply_read_query(
         for row in rows
         if row["tenant_id"] == query["tenant_id"]
     ]
-    for field in ["eval_suite_id", "subject_type", "subject_id", "status"]:
+    for field in ["eval_suite_id", "subject_type", "subject_id", "subject_version", "status"]:
         if field in query:
             filtered = [row for row in filtered if row[field] == query[field]]
     if "completed_after" in query:
@@ -575,6 +577,7 @@ def validate_read_fixture_contract(contract: dict[str, Any]) -> None:
         "apply_read_query",
         "completed_after",
         "latest_group_fields",
+        "subject_version",
         "tenant_id",
         "created_at",
         "page_token",
@@ -636,6 +639,7 @@ def validate_read_fixture_contract(contract: dict[str, Any]) -> None:
         "tenant_subject_filter_orders_by_completed_then_created",
         "status_and_completed_after_are_applied_after_tenant_scope",
         "latest_only_uses_runner_hash_scope_and_created_at_tiebreak",
+        "subject_version_filter_keeps_old_version_addressable",
         "tenant_isolation_keeps_newer_other_tenant_out_of_acme_reads",
     }
     require(set(case_ids) == required_cases, "eval read fixture cases mismatch")
@@ -683,6 +687,7 @@ def validate_read_fixture_contract(contract: dict[str, Any]) -> None:
 
     required_empty_cases = {
         "completed_after_is_strict_and_tenant_scoped",
+        "subject_version_filter_excludes_other_versions",
         "unknown_subject_returns_empty_inside_tenant_scope",
     }
     require(set(empty_case_ids) == required_empty_cases, "eval read fixture empty cases mismatch")

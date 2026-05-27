@@ -19,6 +19,7 @@ QUERY_FILTERS = {
     "eval_suite_id",
     "subject_type",
     "subject_id",
+    "subject_version",
     "status",
     "completed_after",
     "latest_only",
@@ -70,7 +71,7 @@ def apply_read_query(
     )
 
     filtered = [row for row in rows if row["tenant_id"] == query["tenant_id"]]
-    for field in ["eval_suite_id", "subject_type", "subject_id", "status"]:
+    for field in ["eval_suite_id", "subject_type", "subject_id", "subject_version", "status"]:
         if field in query:
             filtered = [row for row in filtered if row[field] == query[field]]
 

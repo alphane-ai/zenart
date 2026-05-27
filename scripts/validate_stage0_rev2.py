@@ -250,6 +250,7 @@ EVAL_READ_QUERY_FILTERS = {
     "eval_suite_id",
     "subject_type",
     "subject_id",
+    "subject_version",
     "status",
     "completed_after",
     "latest_only",
@@ -7272,6 +7273,8 @@ def eval_read_fixture_page(rows: list[dict[str, Any]], query: dict[str, Any]) ->
             continue
         if "subject_id" in query and row["subject_id"] != query["subject_id"]:
             continue
+        if "subject_version" in query and row["subject_version"] != query["subject_version"]:
+            continue
         if "status" in query and row["status"] != query["status"]:
             continue
         if "completed_after" in query and row["completed_at"] <= query["completed_after"]:
@@ -7379,6 +7382,7 @@ def validate_eval_storage_read_fixture_contract() -> None:
         "tenant_subject_filter_orders_by_completed_then_created",
         "status_and_completed_after_are_applied_after_tenant_scope",
         "latest_only_uses_runner_hash_scope_and_created_at_tiebreak",
+        "subject_version_filter_keeps_old_version_addressable",
         "tenant_isolation_keeps_newer_other_tenant_out_of_acme_reads",
     }
     cases = {case["case_id"]: case for case in fixture["cases"]}
@@ -7423,6 +7427,7 @@ def validate_eval_storage_read_fixture_contract() -> None:
 
     required_empty_case_ids = {
         "completed_after_is_strict_and_tenant_scoped",
+        "subject_version_filter_excludes_other_versions",
         "unknown_subject_returns_empty_inside_tenant_scope",
     }
     empty_by_id = {case["case_id"]: case for case in empty_cases}
@@ -7462,6 +7467,7 @@ def validate_eval_storage_read_fixture_contract() -> None:
     require("PageToken" in eval_path.group("body"), "OpenAPI /eval/results must expose PageToken")
     require("PageSize" in eval_path.group("body"), "OpenAPI /eval/results must expose PageSize")
     require("TenantIdFilter" in eval_path.group("body"), "OpenAPI /eval/results must require tenant_id filter")
+    require("SubjectVersionFilter" in eval_path.group("body"), "OpenAPI /eval/results must expose subject_version filter")
     tenant_filter = re.search(r"^    TenantIdFilter:\n(?P<body>.*?)(?=^    [A-Za-z0-9]+:|\Z)", openapi, flags=re.MULTILINE | re.DOTALL)
     require(tenant_filter is not None, "OpenAPI TenantIdFilter missing")
     require("name: tenant_id" in tenant_filter.group("body"), "TenantIdFilter must filter tenant_id")
