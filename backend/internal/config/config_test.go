@@ -54,8 +54,11 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.Worker.InstanceID != "stage0-local-worker" {
 		t.Fatalf("Worker.InstanceID = %q, want stage0-local-worker", cfg.Worker.InstanceID)
 	}
-	if cfg.Worker.PollInterval <= 0 || cfg.Worker.ClaimTimeout <= 0 || cfg.Worker.DrainGraceTimeout <= 0 {
+	if cfg.Worker.PollInterval <= 0 || cfg.Worker.ClaimTimeout <= 0 || cfg.Worker.DrainGraceTimeout <= 0 || cfg.Worker.CleanupInterval <= 0 || cfg.Worker.CleanupTimeout <= 0 {
 		t.Fatalf("worker durations must have positive defaults: %#v", cfg.Worker)
+	}
+	if cfg.Worker.CleanupBatchLimit != 100 {
+		t.Fatalf("Worker.CleanupBatchLimit = %d, want 100", cfg.Worker.CleanupBatchLimit)
 	}
 }
 
@@ -276,5 +279,25 @@ func TestValidateRestrictsAdminDevIdentityHeadersToLocalAccessMode(t *testing.T)
 	cfg.Auth.AccessMode = "local"
 	if err := cfg.Validate(); err != nil {
 		t.Fatalf("Validate() error = %v, want nil for local admin dev identity headers", err)
+	}
+}
+
+func TestValidateRejectsInvalidWorkerCleanupSettings(t *testing.T) {
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	cfg.Worker.CleanupTimeout = 0
+	if err := cfg.Validate(); err == nil {
+		t.Fatal("Validate() error = nil, want cleanup timeout error")
+	}
+
+	cfg, err = Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	cfg.Worker.CleanupBatchLimit = 0
+	if err := cfg.Validate(); err == nil {
+		t.Fatal("Validate() error = nil, want cleanup batch limit error")
 	}
 }

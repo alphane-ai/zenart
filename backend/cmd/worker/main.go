@@ -72,7 +72,7 @@ func main() {
 			os.Exit(1)
 		}
 		cleanupService := stage0.NewService(stage0.NewRepository(store.NewPoolAdapter(pool)), objects).WithDownloadURLTTL(cfg.ObjectStorage.DownloadURLTTL)
-		go runCleanupLoop(ctx, cleanupService, logger, cfg.Worker.CleanupInterval)
+		go runCleanupLoop(ctx, cleanupService, logger, cfg.Worker.CleanupInterval, cfg.Worker.CleanupTimeout, cfg.Worker.CleanupBatchLimit)
 	}
 
 	select {
@@ -108,16 +108,16 @@ type cleanupService interface {
 func runCleanupLoop(ctx context.Context, service cleanupService, logger interface {
 	Info(string, ...any)
 	Error(string, ...any)
-}, interval time.Duration) {
+}, interval, timeout time.Duration, limit int) {
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
-	runCleanupOnce(ctx, service, logger)
+	runCleanupOnce(ctx, service, logger, timeout, limit)
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			runCleanupOnce(ctx, service, logger)
+			runCleanupOnce(ctx, service, logger, timeout, limit)
 		}
 	}
 }
@@ -132,13 +132,19 @@ var _ slogCleanupLogger = (*slog.Logger)(nil)
 func runCleanupOnce(ctx context.Context, service cleanupService, logger interface {
 	Info(string, ...any)
 	Error(string, ...any)
-}) {
-	cleanupCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+}, timeout time.Duration, limit int) {
+	if timeout <= 0 {
+		timeout = 30 * time.Second
+	}
+	if limit <= 0 {
+		limit = 100
+	}
+	cleanupCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
-	result, err := service.CleanupExpiredExportsAndOrphanedObjects(cleanupCtx, time.Now().UTC(), 100)
+	result, err := service.CleanupExpiredExportsAndOrphanedObjects(cleanupCtx, time.Now().UTC(), limit)
 	if err != nil {
-		logger.Error("export object cleanup failed", "error", err)
+		logger.Error("export object cleanup failed", "error", err, "batch_limit", limit)
 		return
 	}
-	logger.Info("export object cleanup completed", "expired_exports", result.ExpiredExports, "orphaned_objects", result.OrphanedObjects, "deleted_objects", result.DeletedObjects)
+	logger.Info("export object cleanup completed", "expired_exports", result.ExpiredExports, "orphaned_objects", result.OrphanedObjects, "deleted_objects", result.DeletedObjects, "batch_limit", limit)
 }

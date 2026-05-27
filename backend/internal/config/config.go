@@ -127,6 +127,8 @@ type WorkerConfig struct {
 	ClaimTimeout      time.Duration
 	DrainGraceTimeout time.Duration
 	CleanupInterval   time.Duration
+	CleanupTimeout    time.Duration
+	CleanupBatchLimit int
 }
 
 var objectStorageBucketPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$`)
@@ -222,6 +224,8 @@ func Load() (Config, error) {
 			ClaimTimeout:      durationEnv("WORKER_CLAIM_TIMEOUT", 15*time.Minute),
 			DrainGraceTimeout: durationEnv("WORKER_DRAIN_GRACE_TIMEOUT", 10*time.Second),
 			CleanupInterval:   durationEnv("WORKER_CLEANUP_INTERVAL", time.Hour),
+			CleanupTimeout:    durationEnv("WORKER_CLEANUP_TIMEOUT", 30*time.Second),
+			CleanupBatchLimit: intEnv("WORKER_CLEANUP_BATCH_LIMIT", 100),
 		},
 	}
 
@@ -412,6 +416,12 @@ func (c Config) Validate() error {
 	}
 	if c.Worker.CleanupInterval < 0 {
 		errs = append(errs, "WORKER_CLEANUP_INTERVAL must be >= 0")
+	}
+	if c.Worker.CleanupTimeout <= 0 {
+		errs = append(errs, "WORKER_CLEANUP_TIMEOUT must be > 0")
+	}
+	if c.Worker.CleanupBatchLimit <= 0 {
+		errs = append(errs, "WORKER_CLEANUP_BATCH_LIMIT must be > 0")
 	}
 
 	if len(errs) > 0 {
