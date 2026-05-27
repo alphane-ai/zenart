@@ -40,6 +40,47 @@ RUNTIME_OPERATION_ORDER = [
     "createExport",
     "getExport",
 ]
+REQUIRED_RUNTIME_ASSERTIONS = {
+    "createChatSession": {
+        "request_title_includes_workflow_display_name",
+        "response_chat_session_id_present",
+    },
+    "createChatMessage": {
+        "request_body_contains_required_inputs",
+        "request_references_fixture_or_upload",
+    },
+    "createCandidateSet": {
+        "request_workflow_id_matches_fixture",
+        "request_brief_contains_required_inputs",
+        "request_brief_contains_four_option_taxonomy",
+    },
+    "listCandidateAssets": {
+        "response_contains_exactly_four_candidate_assets",
+        "response_assets_cover_four_option_taxonomy",
+        "response_assets_are_expected_workflow_outputs",
+    },
+    "selectDirection": {
+        "request_selects_candidate_asset_id",
+        "response_confirms_selected_candidate",
+    },
+    "createPackage": {
+        "request_package_includes_required_asset_files",
+        "response_package_id_present",
+    },
+    "createExport": {
+        "request_export_format_matches_first_target",
+        "response_export_task_id_present",
+    },
+    "getExport": {
+        "response_export_manifest_present",
+        "response_export_qa_report_present",
+        "response_export_metadata_present",
+        "response_export_trace_provenance_present",
+        "response_export_required_files_complete",
+        "response_export_download_url_signed",
+        "response_export_download_url_expires",
+    },
+}
 
 
 class WorkflowAPISmokeEvidenceError(Exception):
@@ -144,6 +185,7 @@ def validate_workflow_links(evidence: dict[str, Any]) -> None:
             require(observed["actual_status"] == "not_executed", f"{workflow_id} dry-run must not record runtime status")
             require(observed["result"] == "planned", f"{workflow_id} dry-run request must be planned")
             require(observed["body_assertions"] == expected["body_assertions"], f"{workflow_id} body assertions mismatch")
+            require(observed["runtime_assertions"] == [], f"{workflow_id} dry-run must not record runtime assertion results")
             require(observed["resolved_path"].startswith("/"), f"{workflow_id} resolved path must be API-relative")
             require("{" not in observed["resolved_path"], f"{workflow_id} resolved path has unresolved parameter")
 
@@ -162,10 +204,37 @@ def validate_workflow_links(evidence: dict[str, Any]) -> None:
         require(not missing_export_files, f"{workflow_id} export target missing evidence files: {sorted(missing_export_files)}")
 
 
+def validate_live_runtime_assertions(evidence: dict[str, Any]) -> None:
+    if evidence["mode"] != "live":
+        return
+
+    for result in evidence["workflow_results"]:
+        workflow_id = result["workflow_id"]
+        for step in result["request_results"]:
+            operation_id = step["operation_id"]
+            assertion_results = step["runtime_assertions"]
+            assertion_ids = {item["assertion_id"] for item in assertion_results}
+            required = REQUIRED_RUNTIME_ASSERTIONS[operation_id]
+            if step["result"] == "passed":
+                require(required <= assertion_ids, f"{workflow_id} {operation_id} missing runtime assertions: {sorted(required - assertion_ids)}")
+                failed = [
+                    item["assertion_id"]
+                    for item in assertion_results
+                    if item["passed"] is not True
+                ]
+                require(not failed, f"{workflow_id} {operation_id} passed with failed runtime assertions: {failed}")
+            elif assertion_results:
+                require(
+                    any(item["passed"] is False for item in assertion_results),
+                    f"{workflow_id} {operation_id} non-passed runtime assertion block must include a failed assertion",
+                )
+
+
 def validate_workflow_api_smoke_evidence() -> None:
     evidence = load_json(EVIDENCE)
     validate_evidence_shape(evidence)
     validate_workflow_links(evidence)
+    validate_live_runtime_assertions(evidence)
     validate_runner_replay()
 
 

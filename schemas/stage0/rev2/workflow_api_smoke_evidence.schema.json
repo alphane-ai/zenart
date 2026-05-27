@@ -302,7 +302,8 @@
         "actual_status",
         "result",
         "requires_idempotency_key",
-        "body_assertions"
+        "body_assertions",
+        "runtime_assertions"
       ],
       "properties": {
         "step": {
@@ -364,6 +365,33 @@
             "type": "string",
             "minLength": 1
           }
+        },
+        "runtime_assertions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/runtime_assertion"
+          }
+        }
+      }
+    },
+    "runtime_assertion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "assertion_id",
+        "expected",
+        "observed",
+        "passed"
+      ],
+      "properties": {
+        "assertion_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9_]+$"
+        },
+        "expected": true,
+        "observed": true,
+        "passed": {
+          "type": "boolean"
         }
       }
     }

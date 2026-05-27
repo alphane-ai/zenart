@@ -1577,7 +1577,7 @@ components:
                 $ref: "#/components/schemas/CandidateSet"
     CandidateAsset:
       type: object
-      required: [id, candidate_set_id, asset_kind, status, provenance, qa_status]
+      required: [id, candidate_set_id, asset_kind, status, strategy_taxonomy, file_name, provenance, qa_status]
       properties:
         id:
           type: string
@@ -1587,6 +1587,12 @@ components:
           type: string
         status:
           type: string
+        strategy_taxonomy:
+          type: string
+          description: Rev2 four-option taxonomy value covered by this candidate.
+        file_name:
+          type: string
+          description: Deterministic package/export file name for workflow smoke assertions.
         provenance:
           type: object
           additionalProperties: true

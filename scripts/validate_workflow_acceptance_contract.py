@@ -386,6 +386,8 @@ def validate_blueprint_split(workflows: dict[str, dict[str, Any]]) -> None:
 def validate_openapi_operations(workflows: dict[str, dict[str, Any]]) -> None:
     openapi = OPENAPI.read_text(encoding="utf-8")
     operations = openapi_operations(openapi)
+    require("strategy_taxonomy" in openapi, "CandidateAsset schema must expose strategy_taxonomy for workflow smoke assertions")
+    require("file_name" in openapi, "CandidateAsset schema must expose file_name for package/export smoke assertions")
     for operation_id in RUNTIME_OPERATION_IDS:
         require(operation_id in operations, f"OpenAPI missing workflow smoke operation {operation_id}")
 

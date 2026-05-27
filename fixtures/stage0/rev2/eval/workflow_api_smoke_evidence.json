@@ -56,7 +56,8 @@
           "requires_idempotency_key": true,
           "body_assertions": [
             "title includes Ecommerce Growth Pack"
-          ]
+          ],
+          "runtime_assertions": []
         },
         {
           "step": 2,
@@ -74,7 +75,8 @@
             "body contains product_name",
             "body contains target_channel",
             "references includes product_image upload"
-          ]
+          ],
+          "runtime_assertions": []
         },
         {
           "step": 3,
@@ -91,7 +93,8 @@
           "body_assertions": [
             "workflow_id equals ecommerce_growth_pack",
             "brief contains product_name, product_image, target_channel"
-          ]
+          ],
+          "runtime_assertions": []
         },
         {
           "step": 4,
@@ -108,7 +111,8 @@
           "body_assertions": [
             "response contains four candidate assets",
             "assets cover conversion_offer, social_proof, feature_comparison, retention_bundle"
-          ]
+          ],
+          "runtime_assertions": []
         },
         {
           "step": 5,
@@ -124,7 +128,8 @@
           "requires_idempotency_key": true,
           "body_assertions": [
             "candidate_asset_id references selected ecommerce candidate"
-          ]
+          ],
+          "runtime_assertions": []
         },
         {
           "step": 6,
@@ -140,7 +145,8 @@
           "requires_idempotency_key": true,
           "body_assertions": [
             "items include hero_product_ad.png, square_social_ad.png, story_variant.png, marketplace_banner.png"
-          ]
+          ],
+          "runtime_assertions": []
         },
         {
           "step": 7,
@@ -156,7 +162,8 @@
           "requires_idempotency_key": true,
           "body_assertions": [
             "format equals zip"
-          ]
+          ],
+          "runtime_assertions": []
         },
         {
           "step": 8,
@@ -173,7 +180,8 @@
           "body_assertions": [
             "manifest, metadata, qa_report, trace_provenance, and required asset files are present",
             "download_url is short-lived when export is ready"
-          ]
+          ],
+          "runtime_assertions": []
         }
       ],
       "expected_runtime_assertions": [
@@ -220,7 +228,8 @@
           "requires_idempotency_key": true,
           "body_assertions": [
             "title includes Business Visual Document Pack"
-          ]
+          ],
+          "runtime_assertions": []
         },
         {
           "step": 2,
@@ -239,7 +248,8 @@
             "body contains audience",
             "body contains format",
             "references includes source_notes upload"
-          ]
+          ],
+          "runtime_assertions": []
         },
         {
           "step": 3,
@@ -256,7 +266,8 @@
           "body_assertions": [
             "workflow_id equals business_visual_doc_pack",
             "brief contains document_goal, source_notes, audience, format"
-          ]
+          ],
+          "runtime_assertions": []
         },
         {
           "step": 4,
@@ -273,7 +284,8 @@
           "body_assertions": [
             "response contains four candidate assets",
             "assets cover executive_brief, strategy_memo, sales_leave_behind, board_update"
-          ]
+          ],
+          "runtime_assertions": []
         },
         {
           "step": 5,
@@ -289,7 +301,8 @@
           "requires_idempotency_key": true,
           "body_assertions": [
             "candidate_asset_id references selected document candidate"
-          ]
+          ],
+          "runtime_assertions": []
         },
         {
           "step": 6,
@@ -305,7 +318,8 @@
           "requires_idempotency_key": true,
           "body_assertions": [
             "items include cover.png, summary_page.png, data_page.png, recommendation_page.png"
-          ]
+          ],
+          "runtime_assertions": []
         },
         {
           "step": 7,
@@ -321,7 +335,8 @@
           "requires_idempotency_key": true,
           "body_assertions": [
             "format equals zip or pdf"
-          ]
+          ],
+          "runtime_assertions": []
         },
         {
           "step": 8,
@@ -338,7 +353,8 @@
           "body_assertions": [
             "manifest, metadata, qa_report, trace_provenance, and required document pages are present",
             "qa_report contains text readability evidence"
-          ]
+          ],
+          "runtime_assertions": []
         }
       ],
       "expected_runtime_assertions": [
@@ -385,7 +401,8 @@
           "requires_idempotency_key": true,
           "body_assertions": [
             "title includes Local Merchant Campaign Pack"
-          ]
+          ],
+          "runtime_assertions": []
         },
         {
           "step": 2,
@@ -404,7 +421,8 @@
             "body contains event_date",
             "body contains address",
             "body contains promotion when provided"
-          ]
+          ],
+          "runtime_assertions": []
         },
         {
           "step": 3,
@@ -421,7 +439,8 @@
           "body_assertions": [
             "workflow_id equals local_merchant_campaign_pack",
             "brief contains merchant_name, event_date, address, promotion"
-          ]
+          ],
+          "runtime_assertions": []
         },
         {
           "step": 4,
@@ -438,7 +457,8 @@
           "body_assertions": [
             "response contains four candidate assets",
             "assets cover grand_opening, limited_time_offer, community_event, loyalty_push"
-          ]
+          ],
+          "runtime_assertions": []
         },
         {
           "step": 5,
@@ -454,7 +474,8 @@
           "requires_idempotency_key": true,
           "body_assertions": [
             "candidate_asset_id references selected merchant campaign candidate"
-          ]
+          ],
+          "runtime_assertions": []
         },
         {
           "step": 6,
@@ -470,7 +491,8 @@
           "requires_idempotency_key": true,
           "body_assertions": [
             "items include storefront_poster.png, flyer.png, social_square.png, story_panel.png"
-          ]
+          ],
+          "runtime_assertions": []
         },
         {
           "step": 7,
@@ -486,7 +508,8 @@
           "requires_idempotency_key": true,
           "body_assertions": [
             "format equals zip"
-          ]
+          ],
+          "runtime_assertions": []
         },
         {
           "step": 8,
@@ -503,7 +526,8 @@
           "body_assertions": [
             "manifest, metadata, qa_report, trace_provenance, and required campaign assets are present",
             "qa_report contains structured text evidence for date, address, phone, and QR placeholders"
-          ]
+          ],
+          "runtime_assertions": []
         }
       ],
       "expected_runtime_assertions": [
@@ -550,7 +574,8 @@
           "requires_idempotency_key": true,
           "body_assertions": [
             "title includes Character IP Concept Pack"
-          ]
+          ],
+          "runtime_assertions": []
         },
         {
           "step": 2,
@@ -569,7 +594,8 @@
             "body contains target_audience",
             "body contains style_constraints",
             "references includes reference_images when provided"
-          ]
+          ],
+          "runtime_assertions": []
         },
         {
           "step": 3,
@@ -586,7 +612,8 @@
           "body_assertions": [
             "workflow_id equals character_ip_concept_pack",
             "brief contains character_brief, target_audience, style_constraints"
-          ]
+          ],
+          "runtime_assertions": []
         },
         {
           "step": 4,
@@ -603,7 +630,8 @@
           "body_assertions": [
             "response contains four candidate assets",
             "assets cover mascot_ready, narrative_hero, merchandise_icon, animation_turnaround"
-          ]
+          ],
+          "runtime_assertions": []
         },
         {
           "step": 5,
@@ -619,7 +647,8 @@
           "requires_idempotency_key": true,
           "body_assertions": [
             "candidate_asset_id references selected character concept candidate"
-          ]
+          ],
+          "runtime_assertions": []
         },
         {
           "step": 6,
@@ -635,7 +664,8 @@
           "requires_idempotency_key": true,
           "body_assertions": [
             "items include concept_sheet.png, pose_grid.png, expression_sheet.png, style_tile.png"
-          ]
+          ],
+          "runtime_assertions": []
         },
         {
           "step": 7,
@@ -651,7 +681,8 @@
           "requires_idempotency_key": true,
           "body_assertions": [
             "format equals zip"
-          ]
+          ],
+          "runtime_assertions": []
         },
         {
           "step": 8,
@@ -668,7 +699,8 @@
           "body_assertions": [
             "manifest, metadata, qa_report, trace_provenance, and required concept sheets are present",
             "qa_report contains blank output and watermark signature risk evidence"
-          ]
+          ],
+          "runtime_assertions": []
         }
       ],
       "expected_runtime_assertions": [
