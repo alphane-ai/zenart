@@ -660,6 +660,80 @@ func TestCreateUploadRejectsUnsupportedContentTypeAndOversize(t *testing.T) {
 	}
 }
 
+func TestPutUploadedObjectBlocksAndDeletesSuspiciousStoredObject(t *testing.T) {
+	objects := &recordingObjectStore{}
+	scanner := &captureScanner{result: security.MalwareScanResult{
+		Status:    security.MalwareScanStatusSuspicious,
+		Provider:  "stage0-test",
+		Signature: "scanner-v1",
+	}}
+	service := NewService(NewRepository(&fakeDB{}), objects, scanner)
+
+	_, result, err := service.PutUploadedObject(context.Background(), objectstore.Object{
+		TenantID:    "tenant_1",
+		Key:         "uploads/upload_1/logo.png",
+		ContentType: "image/png",
+		ByteSize:    1,
+		Checksum:    "sha256:old",
+	}, strings.NewReader("png-bytes"), false)
+	if !errors.Is(err, ErrMalwareBlocked) {
+		t.Fatalf("PutUploadedObject() error = %v, want ErrMalwareBlocked", err)
+	}
+	if result.Status != security.MalwareScanStatusSuspicious {
+		t.Fatalf("scan status = %q, want suspicious", result.Status)
+	}
+	if len(objects.deletedObjects) != 1 {
+		t.Fatalf("deleted objects = %#v, want one cleanup delete", objects.deletedObjects)
+	}
+	deleted := objects.deletedObjects[0]
+	if deleted.tenantID != "tenant_1" || deleted.key != "uploads/upload_1/logo.png" {
+		t.Fatalf("deleted object = %#v, want tenant-scoped upload key cleanup", deleted)
+	}
+	if scanner.target.Checksum != "sha256:stored" || scanner.target.ByteSize != int64(len("png-bytes")) {
+		t.Fatalf("scanner target = %#v, want stored checksum and byte size", scanner.target)
+	}
+}
+
+func TestPutUploadedObjectFailClosedDeletesUnavailableStoredObject(t *testing.T) {
+	objects := &recordingObjectStore{}
+	scanner := &captureScanner{result: security.MalwareScanResult{
+		Status:    security.MalwareScanStatusUnavailable,
+		Provider:  "stage0-test",
+		Signature: "scanner-v1",
+	}}
+	service := NewService(NewRepository(&fakeDB{}), objects, scanner)
+
+	_, _, err := service.PutUploadedObject(context.Background(), objectstore.Object{
+		TenantID:    "tenant_1",
+		Key:         "uploads/upload_1/logo.png",
+		ContentType: "image/png",
+	}, strings.NewReader("png-bytes"), true)
+	if !errors.Is(err, ErrMalwareBlocked) {
+		t.Fatalf("PutUploadedObject() error = %v, want ErrMalwareBlocked", err)
+	}
+	if len(objects.deletedObjects) != 1 {
+		t.Fatalf("deleted objects = %#v, want one cleanup delete", objects.deletedObjects)
+	}
+}
+
+func TestPutUploadedObjectDeletesStoredObjectOnScannerError(t *testing.T) {
+	objects := &recordingObjectStore{}
+	scanner := &captureScanner{err: errors.New("scanner failed with Bearer abcdefghijklmnop")}
+	service := NewService(NewRepository(&fakeDB{}), objects, scanner)
+
+	_, _, err := service.PutUploadedObject(context.Background(), objectstore.Object{
+		TenantID:    "tenant_1",
+		Key:         "uploads/upload_1/logo.png",
+		ContentType: "image/png",
+	}, strings.NewReader("png-bytes"), false)
+	if err == nil {
+		t.Fatal("PutUploadedObject() error = nil, want scanner error")
+	}
+	if len(objects.deletedObjects) != 1 {
+		t.Fatalf("deleted objects = %#v, want one cleanup delete", objects.deletedObjects)
+	}
+}
+
 func TestRecordExportArtifactPersistsObjectMetadataAndDeliveryDescriptors(t *testing.T) {
 	now := time.Now().UTC()
 	db := &fakeDB{
@@ -3390,6 +3464,10 @@ type deletedObject struct {
 }
 
 func (s *recordingObjectStore) Put(_ context.Context, object objectstore.Object, _ io.Reader) (objectstore.Object, error) {
+	object.ByteSize = int64(len("png-bytes"))
+	if object.Checksum == "" || object.Checksum == "sha256:old" {
+		object.Checksum = "sha256:stored"
+	}
 	return object, nil
 }
 

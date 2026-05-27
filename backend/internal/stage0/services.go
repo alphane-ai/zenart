@@ -3238,6 +3238,35 @@ func (s Service) PutObject(ctx context.Context, object objectstore.Object, body 
 	return s.objects.Put(ctx, object, body)
 }
 
+func (s Service) PutUploadedObject(ctx context.Context, object objectstore.Object, body io.Reader, failClosed bool) (objectstore.Object, security.MalwareScanResult, error) {
+	stored, err := s.PutObject(ctx, object, body)
+	if err != nil {
+		return objectstore.Object{}, security.MalwareScanResult{}, err
+	}
+	result, scanErr := scanUpload(ctx, s.scanner, security.MalwareScanTarget{
+		TenantID:    stored.TenantID,
+		ObjectKey:   stored.Key,
+		ContentType: stored.ContentType,
+		ByteSize:    stored.ByteSize,
+		Checksum:    stored.Checksum,
+		Metadata: map[string]string{
+			"source": "signed_upload_put",
+		},
+	})
+	if scanErr != nil {
+		_ = s.objects.Delete(ctx, stored.TenantID, stored.Key)
+		if failClosed {
+			return objectstore.Object{}, security.MalwareScanResult{}, ErrMalwareBlocked
+		}
+		return objectstore.Object{}, security.MalwareScanResult{}, scanErr
+	}
+	if result.Status == security.MalwareScanStatusSuspicious || (failClosed && result.Status != security.MalwareScanStatusClean) {
+		_ = s.objects.Delete(ctx, stored.TenantID, stored.Key)
+		return objectstore.Object{}, result, ErrMalwareBlocked
+	}
+	return stored, result, nil
+}
+
 func (s Service) GetObject(ctx context.Context, tenantID, key string) (objectstore.Reader, error) {
 	reader, _, err := s.GetDownloadableObject(ctx, tenantID, key)
 	return reader, err

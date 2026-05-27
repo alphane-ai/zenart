@@ -466,6 +466,110 @@ func TestSignedUploadEndpointStoresTenantScopedObject(t *testing.T) {
 	}
 }
 
+func TestSignedUploadEndpointScansStoredObjectAndRedactsResult(t *testing.T) {
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	cfg.ObjectStorage.LocalRoot = t.TempDir()
+	cfg.ObjectStorage.Bucket = "signed-upload-test"
+	cfg.ObjectStorage.SigningKey = "signed-upload-test-secret"
+	objects, err := objectstore.NewStore(cfg.ObjectStorage, nil)
+	if err != nil {
+		t.Fatalf("NewStore() error = %v", err)
+	}
+	hfToken := "hf_" + "abcdefghijklmnopqrstuvwxyz123456"
+	anthropicToken := "sk-ant-" + "abcdefghijklmnopqrstuvwxyz123456"
+	bearerToken := "abcdefghijkl" + "mnop"
+	signedURLToken := "abc" + "def"
+	scanner := &serverCaptureScanner{result: security.MalwareScanResult{
+		Status:    security.MalwareScanStatusClean,
+		Provider:  "scanner " + hfToken,
+		Signature: "sig " + anthropicToken,
+		Rationale: "clean via Bearer " + bearerToken,
+		Metadata: map[string]string{
+			"note": "https://storage.local/file.zip?X-Amz-Signature=" + signedURLToken,
+		},
+	}}
+	srv := New(cfg, nil, WithMalwareScanner(scanner))
+	uploadURL, _ := srv.signUploadURL("tenant_1", "uploads/upload_1/logo.png", time.Minute)
+
+	req := httptest.NewRequest(http.MethodPut, uploadURL, strings.NewReader("png-bytes"))
+	req = req.WithContext(stage0.ContextWithService(req.Context(), stage0.NewService(stage0.NewRepository(noExecDB{}), objects, scanner)))
+	req.Header.Set("X-Zenart-User-ID", "user_1")
+	req.Header.Set("X-Zenart-Tenant-ID", "tenant_1")
+	req.Header.Set("Content-Type", "image/png")
+	setSameSiteCSRFHeaders(req)
+	rec := httptest.NewRecorder()
+
+	srv.Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status = %d, want %d: %s", rec.Code, http.StatusCreated, rec.Body.String())
+	}
+	if scanner.calls != 1 {
+		t.Fatalf("scanner calls = %d, want 1", scanner.calls)
+	}
+	if scanner.target.Checksum == "" || scanner.target.ByteSize != int64(len("png-bytes")) {
+		t.Fatalf("scanner target = %#v, want stored checksum and byte size", scanner.target)
+	}
+	if scanner.target.Metadata["source"] != "signed_upload_put" {
+		t.Fatalf("scanner target metadata = %#v, want signed upload source", scanner.target.Metadata)
+	}
+	body := rec.Body.String()
+	for _, leaked := range []string{hfToken, anthropicToken, bearerToken, signedURLToken} {
+		if strings.Contains(body, leaked) {
+			t.Fatalf("response body leaked scanner secret %q: %s", leaked, body)
+		}
+	}
+	var response map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &response); err != nil {
+		t.Fatalf("response JSON error = %v", err)
+	}
+	scan, ok := response["malware_scan"].(map[string]any)
+	if !ok || scan["status"] != string(security.MalwareScanStatusClean) {
+		t.Fatalf("response body = %s, want clean malware_scan metadata", body)
+	}
+}
+
+func TestSignedUploadEndpointDeletesSuspiciousStoredObject(t *testing.T) {
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	cfg.ObjectStorage.LocalRoot = t.TempDir()
+	cfg.ObjectStorage.Bucket = "signed-upload-test"
+	cfg.ObjectStorage.SigningKey = "signed-upload-test-secret"
+	objects, err := objectstore.NewStore(cfg.ObjectStorage, nil)
+	if err != nil {
+		t.Fatalf("NewStore() error = %v", err)
+	}
+	scanner := &serverCaptureScanner{result: security.MalwareScanResult{
+		Status:    security.MalwareScanStatusSuspicious,
+		Provider:  "stage0-test",
+		Signature: "scanner-v1",
+	}}
+	srv := New(cfg, nil, WithMalwareScanner(scanner))
+	uploadURL, _ := srv.signUploadURL("tenant_1", "uploads/upload_1/logo.png", time.Minute)
+
+	req := httptest.NewRequest(http.MethodPut, uploadURL, strings.NewReader("png-bytes"))
+	req = req.WithContext(stage0.ContextWithService(req.Context(), stage0.NewService(stage0.NewRepository(noExecDB{}), objects, scanner)))
+	req.Header.Set("X-Zenart-User-ID", "user_1")
+	req.Header.Set("X-Zenart-Tenant-ID", "tenant_1")
+	req.Header.Set("Content-Type", "image/png")
+	setSameSiteCSRFHeaders(req)
+	rec := httptest.NewRecorder()
+
+	srv.Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusConflict {
+		t.Fatalf("status = %d, want malware conflict: %s", rec.Code, rec.Body.String())
+	}
+	if _, err := objects.Get(context.Background(), "tenant_1", "uploads/upload_1/logo.png"); !errors.Is(err, objectstore.ErrNotFound) {
+		t.Fatalf("stored object Get() error = %v, want deleted object not found", err)
+	}
+}
+
 func TestSignedUploadEndpointRejectsCrossTenantSignature(t *testing.T) {
 	cfg, err := config.Load()
 	if err != nil {

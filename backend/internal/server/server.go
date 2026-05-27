@@ -422,14 +422,14 @@ func (s *Server) putSignedUploadObject(w http.ResponseWriter, r *http.Request) {
 	if s.cfg.Security.MaxUploadBytes > 0 {
 		reader = http.MaxBytesReader(w, r.Body, s.cfg.Security.MaxUploadBytes)
 	}
-	stored, err := service.PutObject(r.Context(), objectstore.Object{
+	stored, scanResult, err := service.PutUploadedObject(r.Context(), objectstore.Object{
 		TenantID:    principal.TenantID,
 		Bucket:      s.cfg.ObjectStorage.Bucket,
 		Key:         key,
 		ContentType: contentType,
-	}, reader)
+	}, reader, s.cfg.Security.MalwareScanFailClosed)
 	if err != nil {
-		writeObjectStoreError(w, r, err)
+		writeUploadObjectError(w, r, err)
 		return
 	}
 	writeJSON(w, http.StatusCreated, map[string]any{
@@ -440,6 +440,7 @@ func (s *Server) putSignedUploadObject(w http.ResponseWriter, r *http.Request) {
 		"byte_size":    stored.ByteSize,
 		"checksum":     stored.Checksum,
 		"created_at":   stored.CreatedAt.Format(time.RFC3339),
+		"malware_scan": malwareScanResponse(scanResult),
 	})
 }
 
@@ -564,6 +565,20 @@ func downloadFilenameFromKey(key string) string {
 		return "download.bin"
 	}
 	return filename
+}
+
+func malwareScanResponse(result security.MalwareScanResult) map[string]any {
+	value := map[string]any{
+		"status":     string(result.Status),
+		"provider":   result.Provider,
+		"definition": result.Signature,
+		"rationale":  result.Rationale,
+		"scanned_at": result.ScannedAt.UTC().Format(time.RFC3339),
+	}
+	if len(result.Metadata) > 0 {
+		value["metadata"] = result.Metadata
+	}
+	return security.RedactMap(value)
 }
 
 func signedObjectParams(r *http.Request) (string, int64, string, bool) {
@@ -1228,6 +1243,14 @@ func writeObjectStoreError(w http.ResponseWriter, r *http.Request, err error) {
 	default:
 		writeError(w, r, http.StatusInternalServerError, "object_store_error", "object storage operation failed", nil)
 	}
+}
+
+func writeUploadObjectError(w http.ResponseWriter, r *http.Request, err error) {
+	if errors.Is(err, stage0.ErrMalwareBlocked) {
+		writeStage0Error(w, r, err)
+		return
+	}
+	writeObjectStoreError(w, r, err)
 }
 
 func writeDownloadObjectError(w http.ResponseWriter, r *http.Request, err error) {
