@@ -501,7 +501,7 @@ func (r Repository) CreateUpload(ctx context.Context, opts UploadOptions) (Uploa
 	uploadID := id.New("upload")
 	objectID := id.New("object")
 	objectKey := "uploads/" + uploadID + "/" + filename
-	metadata := security.RedactMap(opts.Input.Metadata)
+	metadata := sanitizeUploadMetadata(opts.Input.Metadata)
 	scanResult, err := scanUpload(ctx, opts.MalwareScanner, security.MalwareScanTarget{
 		TenantID:    opts.TenantID,
 		ObjectKey:   objectKey,
@@ -2577,28 +2577,68 @@ func scanUpload(ctx context.Context, scanner security.MalwareScanner, target sec
 	return result, nil
 }
 
+var malwareScanMetadataAllowlist = map[string]struct{}{
+	"asset_role":     {},
+	"reference_role": {},
+	"slot":           {},
+	"source":         {},
+	"workflow_id":    {},
+}
+
+var uploadReservedMalwareMetadataKeys = map[string]struct{}{
+	"definition":                  {},
+	"malware_scan":                {},
+	"provider":                    {},
+	"scan_status":                 {},
+	"stage0_force_malware_status": {},
+	"status":                      {},
+}
+
+func sanitizeUploadMetadata(input map[string]any) map[string]any {
+	metadata := security.RedactMap(input)
+	for key := range metadata {
+		if _, reserved := uploadReservedMalwareMetadataKeys[strings.ToLower(strings.TrimSpace(key))]; reserved {
+			delete(metadata, key)
+		}
+	}
+	return metadata
+}
+
 func malwareScanMetadata(input map[string]any) map[string]string {
 	if len(input) == 0 {
 		return nil
 	}
-	out := make(map[string]string, len(input))
+	out := make(map[string]string, len(malwareScanMetadataAllowlist))
 	for key, value := range input {
-		if stringValue, ok := value.(string); ok {
-			out[key] = security.RedactString(stringValue)
+		key = strings.ToLower(strings.TrimSpace(key))
+		if _, ok := malwareScanMetadataAllowlist[key]; !ok {
+			continue
 		}
+		if stringValue, ok := value.(string); ok {
+			redacted := security.RedactString(strings.TrimSpace(stringValue))
+			if redacted != "" && redacted != security.Redacted {
+				out[key] = redacted
+			}
+		}
+	}
+	if len(out) == 0 {
+		return nil
 	}
 	return out
 }
 
 func malwareScanMetadataValue(result security.MalwareScanResult) map[string]any {
-	return security.RedactMap(map[string]any{
+	value := map[string]any{
 		"status":     string(result.Status),
 		"provider":   result.Provider,
 		"definition": result.Signature,
 		"rationale":  result.Rationale,
 		"scanned_at": result.ScannedAt.UTC().Format(time.RFC3339),
-		"metadata":   result.Metadata,
-	})
+	}
+	if len(result.Metadata) > 0 {
+		value["metadata"] = result.Metadata
+	}
+	return security.RedactMap(value)
 }
 
 type packageContext struct {

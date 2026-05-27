@@ -421,12 +421,11 @@ func TestCreateUploadValidatesAndPersistsMetadata(t *testing.T) {
 	}
 }
 
-func TestCreateUploadBlocksSuspiciousMalwareScan(t *testing.T) {
+func TestCreateUploadDoesNotLetUserMetadataForcePlaceholderMalwareStatus(t *testing.T) {
 	db := &fakeDB{}
 	repo := NewRepository(db)
-	signed := false
 
-	_, err := repo.CreateUpload(context.Background(), UploadOptions{
+	upload, err := repo.CreateUpload(context.Background(), UploadOptions{
 		TenantID:            "tenant_1",
 		UserID:              "user_1",
 		AllowedContentTypes: []string{"image/png"},
@@ -439,19 +438,22 @@ func TestCreateUploadBlocksSuspiciousMalwareScan(t *testing.T) {
 			Metadata:    map[string]any{"stage0_force_malware_status": "suspicious", "api_key": "secret"},
 		},
 		SignURL: func(_ string, objectKey string, _ time.Duration) (string, time.Time) {
-			signed = true
 			return "/signed/" + objectKey, time.Now().UTC().Add(5 * time.Minute)
 		},
 		MalwareScanner: security.PlaceholderMalwareScanner{Provider: "stage0-test"},
 	})
-	if !errors.Is(err, ErrMalwareBlocked) {
-		t.Fatalf("CreateUpload() error = %v, want ErrMalwareBlocked", err)
+	if err != nil {
+		t.Fatalf("CreateUpload() error = %v", err)
 	}
-	if len(db.execs) != 0 {
-		t.Fatalf("suspicious upload should not write rows: %#v", db.execs)
+	scanMetadata, ok := upload.Metadata["malware_scan"].(map[string]any)
+	if !ok {
+		t.Fatalf("upload metadata missing malware_scan result: %#v", upload.Metadata)
 	}
-	if signed {
-		t.Fatal("suspicious upload should not issue a signed upload URL")
+	if scanMetadata["status"] != string(security.MalwareScanStatusUnavailable) {
+		t.Fatalf("malware scan status = %#v, want unavailable placeholder", scanMetadata["status"])
+	}
+	if _, ok := scanMetadata["metadata"]; ok {
+		t.Fatalf("malware scan metadata = %#v, user-supplied scanner control should not be persisted", scanMetadata)
 	}
 }
 
@@ -482,8 +484,13 @@ func TestCreateUploadRedactsMalwareScannerBoundary(t *testing.T) {
 			ContentType: "image/png",
 			ByteSize:    512,
 			Metadata: map[string]any{
-				"slot":    "reference",
-				"api_key": "secret",
+				"slot":                        "reference",
+				"api_key":                     "secret",
+				"stage0_force_malware_status": "suspicious",
+				"provider":                    "fake-clean-scanner",
+				"definition":                  "forged-definition",
+				"scan_status":                 "clean",
+				"workflow_id":                 "workflow_1",
 			},
 		},
 		SignURL: func(_ string, objectKey string, _ time.Duration) (string, time.Time) {
@@ -494,8 +501,13 @@ func TestCreateUploadRedactsMalwareScannerBoundary(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateUpload() error = %v", err)
 	}
-	if scanner.target.Metadata["api_key"] != security.Redacted {
-		t.Fatalf("scanner target metadata = %#v, want redacted external scanner input", scanner.target.Metadata)
+	if scanner.target.Metadata["slot"] != "reference" || scanner.target.Metadata["workflow_id"] != "workflow_1" {
+		t.Fatalf("scanner target metadata = %#v, want allowlisted context", scanner.target.Metadata)
+	}
+	for _, blocked := range []string{"api_key", "stage0_force_malware_status", "provider", "definition", "scan_status"} {
+		if _, ok := scanner.target.Metadata[blocked]; ok {
+			t.Fatalf("scanner target metadata = %#v, want blocked user-controlled key %q removed", scanner.target.Metadata, blocked)
+		}
 	}
 	body, err := json.Marshal(upload.Metadata["malware_scan"])
 	if err != nil {
@@ -507,6 +519,8 @@ func TestCreateUploadRedactsMalwareScannerBoundary(t *testing.T) {
 		"abcdefghijklmnop",
 		"secret",
 		"abcdef",
+		"fake-clean-scanner",
+		"forged-definition",
 	} {
 		if strings.Contains(string(body), leaked) {
 			t.Fatalf("malware metadata = %s, leaked %s", string(body), leaked)

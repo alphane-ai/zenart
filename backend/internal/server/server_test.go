@@ -292,14 +292,15 @@ func TestUploadCreateRejectsUnsupportedContentType(t *testing.T) {
 	}
 }
 
-func TestUploadCreateReturnsConflictForSuspiciousMalwareScan(t *testing.T) {
+func TestUploadCreateIgnoresUserSuppliedPlaceholderMalwareOverride(t *testing.T) {
 	cfg, err := config.Load()
 	if err != nil {
 		t.Fatalf("Load() error = %v", err)
 	}
+	db := &fakeStage0DB{}
 	body := bytes.NewBufferString(`{"filename":"logo.png","content_type":"image/png","byte_size":100,"metadata":{"stage0_force_malware_status":"suspicious"}}`)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/uploads", body)
-	req = req.WithContext(stage0.ContextWithService(req.Context(), stage0.NewService(stage0.NewRepository(noExecDB{}), nil, security.PlaceholderMalwareScanner{Provider: "stage0-test"})))
+	req = req.WithContext(stage0.ContextWithService(req.Context(), stage0.NewService(stage0.NewRepository(db), nil, security.PlaceholderMalwareScanner{Provider: "stage0-test"})))
 	req.Header.Set("X-Zenart-User-ID", "user_1")
 	req.Header.Set("X-Zenart-Tenant-ID", "tenant_1")
 	setSameSiteCSRFHeaders(req)
@@ -307,15 +308,22 @@ func TestUploadCreateReturnsConflictForSuspiciousMalwareScan(t *testing.T) {
 
 	New(cfg, nil).Handler().ServeHTTP(rec, req)
 
-	if rec.Code != http.StatusConflict {
-		t.Fatalf("status = %d, want conflict: %s", rec.Code, rec.Body.String())
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status = %d, want created because user metadata cannot force scanner result: %s", rec.Code, rec.Body.String())
 	}
 	var bodyJSON map[string]any
 	if err := json.Unmarshal(rec.Body.Bytes(), &bodyJSON); err != nil {
 		t.Fatalf("response JSON error = %v", err)
 	}
-	if bodyJSON["code"] != "malware_blocked" {
-		t.Fatalf("code = %v, want malware_blocked", bodyJSON["code"])
+	if bodyJSON["status"] != "pending" {
+		t.Fatalf("status body = %v, want pending upload", bodyJSON["status"])
+	}
+	objectMetadataJSON, ok := db.execs[1].args[12].([]byte)
+	if !ok {
+		t.Fatalf("object metadata arg type = %T, want []byte", db.execs[1].args[12])
+	}
+	if strings.Contains(string(objectMetadataJSON), "stage0_force_malware_status") || !strings.Contains(string(objectMetadataJSON), `"status":"unavailable"`) {
+		t.Fatalf("object metadata JSON = %s, want unavailable scan without user override key", string(objectMetadataJSON))
 	}
 }
 
@@ -353,8 +361,11 @@ func TestUploadCreateUsesConfiguredMalwareScanner(t *testing.T) {
 	if scanner.target.TenantID != "tenant_1" || scanner.target.ObjectKey == "" || scanner.target.ContentType != "image/png" || scanner.target.ByteSize != 100 {
 		t.Fatalf("scanner target = %#v, want tenant/object/content metadata", scanner.target)
 	}
-	if scanner.target.Metadata["api_key"] != security.Redacted {
-		t.Fatalf("scanner metadata = %#v, want redacted api_key", scanner.target.Metadata)
+	if scanner.target.Metadata["slot"] != "reference" {
+		t.Fatalf("scanner metadata = %#v, want allowlisted slot context", scanner.target.Metadata)
+	}
+	if _, ok := scanner.target.Metadata["api_key"]; ok {
+		t.Fatalf("scanner metadata = %#v, want secret-bearing api_key removed", scanner.target.Metadata)
 	}
 	if len(db.execs) != 3 {
 		t.Fatalf("exec count = %d, want upload/object metadata/analytics rows", len(db.execs))
