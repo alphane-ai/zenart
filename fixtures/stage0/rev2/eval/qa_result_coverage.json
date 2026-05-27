@@ -296,6 +296,87 @@
       "source_artifacts_required": true
     }
   ],
+  "workflow_required_coverage": [
+    {
+      "workflow_id": "ecommerce_growth_pack",
+      "required_qa_checks": [
+        "file_integrity",
+        "aspect_ratio",
+        "duplicate_similarity",
+        "four_option_distinctness",
+        "product_logo_preservation"
+      ],
+      "covered_qa_checks": [
+        "file_integrity",
+        "aspect_ratio",
+        "duplicate_similarity",
+        "four_option_distinctness",
+        "product_logo_preservation"
+      ],
+      "source_fixture_ids": [
+        "fx_ecommerce_growth_golden",
+        "fx_brand_product_preservation"
+      ],
+      "coverage_complete": true
+    },
+    {
+      "workflow_id": "business_visual_doc_pack",
+      "required_qa_checks": [
+        "text_readability",
+        "forbidden_claims"
+      ],
+      "covered_qa_checks": [
+        "text_readability",
+        "forbidden_claims"
+      ],
+      "source_fixture_ids": [
+        "fx_business_visual_doc_golden",
+        "fx_unsafe_financial_claim"
+      ],
+      "coverage_complete": true
+    },
+    {
+      "workflow_id": "local_merchant_campaign_pack",
+      "required_qa_checks": [
+        "dimensions",
+        "safe_area",
+        "duplicate_similarity",
+        "four_option_distinctness",
+        "structured_text"
+      ],
+      "covered_qa_checks": [
+        "dimensions",
+        "safe_area",
+        "duplicate_similarity",
+        "four_option_distinctness",
+        "structured_text"
+      ],
+      "source_fixture_ids": [
+        "fx_local_merchant_campaign_golden",
+        "fx_negative_generic_rendering",
+        "fx_text_heavy_structured_details"
+      ],
+      "coverage_complete": true
+    },
+    {
+      "workflow_id": "character_ip_concept_pack",
+      "required_qa_checks": [
+        "blank_output",
+        "watermark_signature_risk",
+        "export_completeness"
+      ],
+      "covered_qa_checks": [
+        "blank_output",
+        "watermark_signature_risk",
+        "export_completeness"
+      ],
+      "source_fixture_ids": [
+        "fx_character_ip_concept_golden",
+        "fx_export_completeness_missing_manifest"
+      ],
+      "coverage_complete": true
+    }
+  ],
   "outcome_examples": [
     {
       "outcome": "pass",

@@ -15,6 +15,7 @@ CONTRACT = FIXTURE_DIR / "qa_result_coverage.json"
 QA_RESULTS = FIXTURE_DIR / "qa_results.json"
 EVAL_RESULTS = FIXTURE_DIR / "starter_eval_results.json"
 TRACE_COMPLETENESS = FIXTURE_DIR / "trace_completeness.json"
+WORKFLOW_DIR = ROOT / "fixtures" / "stage0" / "rev2" / "workflows"
 
 QA_CATEGORY_ORDER = [
     "file_integrity",
@@ -72,6 +73,10 @@ def validate_contract() -> None:
     qa_results = load_json(QA_RESULTS)
     eval_results = load_json(EVAL_RESULTS)
     trace_contract = load_json(TRACE_COMPLETENESS)
+    workflows = {
+        path.stem: load_json(path)
+        for path in sorted(WORKFLOW_DIR.glob("*.json"))
+    }
 
     require(contract["blueprint_source"] == "Docs/stage0_blueprint_rev2.md", "QA coverage contract must cite Rev2")
     require(contract["qa_fixture"]["path"] == "fixtures/stage0/rev2/eval/qa_results.json", "QA fixture path mismatch")
@@ -89,6 +94,7 @@ def validate_contract() -> None:
     qa_by_id = {item["check_id"]: item for item in qa_results}
     categories_seen = {item["check_category"] for item in qa_results}
     require(categories_seen == set(QA_CATEGORY_ORDER), "QA result fixtures must cover every required category")
+    require(len(workflows) == 4, "QA coverage must validate all four workflow acceptance fixtures")
 
     require(isinstance(eval_results, list) and len(eval_results) == 1, "starter eval results must contain one result")
     fixture_results = eval_results[0]["fixture_results"]
@@ -129,6 +135,26 @@ def validate_contract() -> None:
 
     summary_categories = set(eval_results[0]["summary"]["qa_categories_covered"])
     require(summary_categories == set(contract["required_categories"]), "eval result QA summary categories must match coverage contract")
+
+    workflow_contracts = {item["workflow_id"]: item for item in contract["workflow_required_coverage"]}
+    require(set(workflow_contracts) == set(workflows), "workflow QA coverage contract must cover every workflow fixture")
+    require(len(workflow_contracts) == len(contract["workflow_required_coverage"]), "duplicate workflow QA coverage entries")
+    qa_by_workflow: dict[str, list[dict[str, Any]]] = {}
+    for item in qa_results:
+        qa_by_workflow.setdefault(item["workflow"], []).append(item)
+    for workflow_id, workflow in workflows.items():
+        contract_item = workflow_contracts[workflow_id]
+        required = set(workflow["required_qa_checks"])
+        covered_items = qa_by_workflow.get(workflow_id, [])
+        covered = {item["check_category"] for item in covered_items}
+        source_fixtures = {item["evidence"]["fixture_id"] for item in covered_items}
+        contract_sources = set(contract_item["source_fixture_ids"])
+        require(set(contract_item["required_qa_checks"]) == required, f"{workflow_id} required QA checks mismatch")
+        require(set(contract_item["covered_qa_checks"]) == required, f"{workflow_id} covered QA checks must equal required checks")
+        require(required <= covered, f"{workflow_id} missing QA result coverage for {sorted(required - covered)}")
+        require(contract_sources, f"{workflow_id} must cite QA source fixtures")
+        require(contract_sources <= source_fixtures, f"{workflow_id} cites source fixtures without QA results")
+        require(contract_item["coverage_complete"] is True, f"{workflow_id} workflow QA coverage must be complete")
 
     outcomes_seen = {fixture_result_outcome(item) for item in fixture_results}
     outcomes_seen.update(qa_result_outcome(item) for item in qa_results)
