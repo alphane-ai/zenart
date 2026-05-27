@@ -458,6 +458,11 @@
         "requires_generated_asset_match",
         "requires_trace_export_links",
         "requires_eval_gate_match",
+        "requires_dedicated_runner",
+        "dedicated_runner",
+        "requires_per_check_resolution_report",
+        "required_artifact_resolution_fields",
+        "required_resolver_coverage",
         "logical_artifact_resolvers"
       ],
       "properties": {
@@ -478,6 +483,48 @@
         },
         "requires_eval_gate_match": {
           "const": true
+        },
+        "requires_dedicated_runner": {
+          "const": true
+        },
+        "dedicated_runner": {
+          "const": "scripts/run_qa_source_artifact_contract.py"
+        },
+        "requires_per_check_resolution_report": {
+          "const": true
+        },
+        "required_artifact_resolution_fields": {
+          "type": "array",
+          "minItems": 5,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "check_id",
+              "artifact",
+              "resolver",
+              "resolved",
+              "evidence_ref"
+            ]
+          }
+        },
+        "required_resolver_coverage": {
+          "type": "array",
+          "minItems": 10,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "workflow_acceptance_fixture",
+              "workflow_export_target",
+              "workflow_generated_asset",
+              "eval_qa_export_gate",
+              "trace_export_reference",
+              "trace_artifact_link",
+              "qa_observed_field",
+              "qa_expected_field",
+              "qa_fixture_source_material",
+              "safety_decision_trace_event"
+            ]
+          }
         },
         "logical_artifact_resolvers": {
           "type": "array",

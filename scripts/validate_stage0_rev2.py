@@ -8946,6 +8946,18 @@ def validate_qa_result_coverage_contract() -> None:
         result.returncode == 0,
         "QA result coverage validation failed: " + (result.stderr or result.stdout).strip(),
     )
+    source_artifact_result = subprocess.run(
+        [sys.executable, str(ROOT / "scripts" / "run_qa_source_artifact_contract.py")],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    require(
+        source_artifact_result.returncode == 0,
+        "QA source artifact validation failed: "
+        + (source_artifact_result.stderr or source_artifact_result.stdout).strip(),
+    )
 
 
 def validate_qa_enforcement_matrix_contract() -> None:

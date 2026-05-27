@@ -1624,6 +1624,28 @@
     "requires_generated_asset_match": true,
     "requires_trace_export_links": true,
     "requires_eval_gate_match": true,
+    "requires_dedicated_runner": true,
+    "dedicated_runner": "scripts/run_qa_source_artifact_contract.py",
+    "requires_per_check_resolution_report": true,
+    "required_artifact_resolution_fields": [
+      "check_id",
+      "artifact",
+      "resolver",
+      "resolved",
+      "evidence_ref"
+    ],
+    "required_resolver_coverage": [
+      "workflow_acceptance_fixture",
+      "workflow_export_target",
+      "workflow_generated_asset",
+      "eval_qa_export_gate",
+      "trace_export_reference",
+      "trace_artifact_link",
+      "qa_observed_field",
+      "qa_expected_field",
+      "qa_fixture_source_material",
+      "safety_decision_trace_event"
+    ],
     "logical_artifact_resolvers": [
       "workflow_acceptance_fixture",
       "workflow_export_target",
