@@ -12,6 +12,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -26,6 +27,8 @@ import (
 	"github.com/alphane-ai/zenart/backend/internal/stage0"
 	"github.com/alphane-ai/zenart/backend/internal/task"
 )
+
+var scopedObjectTenantIDPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]*$`)
 
 type Server struct {
 	cfg            config.Config
@@ -563,10 +566,22 @@ func tenantIDFromScopedObjectKey(key string) (string, error) {
 	if len(parts) != 3 || parts[0] != "tenants" || parts[1] == "" || parts[2] == "" {
 		return "", errors.New("object key is missing tenant scope")
 	}
-	if strings.ContainsAny(parts[1], `/\`) || parts[1] == "." || parts[1] == ".." {
+	if strings.ContainsAny(parts[1], `/\`) || parts[1] == "." || parts[1] == ".." || !scopedObjectTenantIDPattern.MatchString(parts[1]) {
 		return "", errors.New("tenant_id is invalid")
 	}
+	if strings.Contains(parts[2], "\\") || hasUnsafeObjectKeySegment(parts[2]) {
+		return "", errors.New("object key is invalid")
+	}
 	return parts[1], nil
+}
+
+func hasUnsafeObjectKeySegment(key string) bool {
+	for _, segment := range strings.Split(key, "/") {
+		if segment == "" || segment == "." || segment == ".." {
+			return true
+		}
+	}
+	return false
 }
 
 func contentTypeAllowed(contentType string, allowed []string) bool {

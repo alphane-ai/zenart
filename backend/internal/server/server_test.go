@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -710,6 +711,64 @@ func TestSignedDownloadEndpointRejectsTamperedTenantKey(t *testing.T) {
 	}
 	if body["code"] != "signed_url_invalid" {
 		t.Fatalf("code = %v, want signed_url_invalid", body["code"])
+	}
+}
+
+func TestSignedDownloadEndpointRejectsInvalidTenantScopeBeforeStorage(t *testing.T) {
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	cfg.ObjectStorage.SigningKey = "signed-download-test-secret"
+	srv := New(cfg, nil)
+	expires := time.Now().UTC().Add(time.Minute).Unix()
+	key := "tenants/tenant 1/exports/export_1.zip"
+	sig := srv.signDownloadObjectKey(key, expires)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/objects/download?key="+url.QueryEscape(key)+"&expires="+strconv.FormatInt(expires, 10)+"&sig="+sig, nil)
+	req = req.WithContext(stage0.ContextWithService(req.Context(), stage0.NewService(stage0.NewRepository(noExecDB{}), nil)))
+	req = req.WithContext(audit.ContextWithRecorder(req.Context(), &fakeAuditRecorder{}))
+	rec := httptest.NewRecorder()
+
+	srv.Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want %d: %s", rec.Code, http.StatusBadRequest, rec.Body.String())
+	}
+	var body map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("response JSON error = %v", err)
+	}
+	if body["code"] != "invalid_object_key" {
+		t.Fatalf("code = %v, want invalid_object_key", body["code"])
+	}
+}
+
+func TestSignedDownloadEndpointRejectsUnsafeObjectKeyBeforeStorage(t *testing.T) {
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	cfg.ObjectStorage.SigningKey = "signed-download-test-secret"
+	srv := New(cfg, nil)
+	expires := time.Now().UTC().Add(time.Minute).Unix()
+	key := "tenants/tenant_1/exports/../export_1.zip"
+	sig := srv.signDownloadObjectKey(key, expires)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/objects/download?key="+url.QueryEscape(key)+"&expires="+strconv.FormatInt(expires, 10)+"&sig="+sig, nil)
+	req = req.WithContext(stage0.ContextWithService(req.Context(), stage0.NewService(stage0.NewRepository(noExecDB{}), nil)))
+	req = req.WithContext(audit.ContextWithRecorder(req.Context(), &fakeAuditRecorder{}))
+	rec := httptest.NewRecorder()
+
+	srv.Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want %d: %s", rec.Code, http.StatusBadRequest, rec.Body.String())
+	}
+	var body map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("response JSON error = %v", err)
+	}
+	if body["code"] != "invalid_object_key" {
+		t.Fatalf("code = %v, want invalid_object_key", body["code"])
 	}
 }
 
