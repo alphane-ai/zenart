@@ -910,6 +910,7 @@
     "fixture_link_cases_replayed": 4,
     "fixture_link_point_decision_refs_replayed": 20,
     "decision_redaction_cases_replayed": 5,
+    "export_artifact_prevention_cases_replayed": 4,
     "transition_points_replayed": true,
     "decision_priority_order_validated": true,
     "decision_rationale_sources_validated": true,
@@ -920,6 +921,108 @@
     "trace_status_required_for_all_transitions": true,
     "persisted_decision_required_for_all_actions": true,
     "trace_decision_refs_replayed": true
+  },
+  "export_artifact_prevention_contract": {
+    "policy": "held_or_blocked_safety_or_incomplete_export_contract_prevents_downloadable_artifact",
+    "artifact_recording_transition": "export_artifact_recording",
+    "required_eval_gate_fields": [
+      "final_export_allowed",
+      "safety_blocks_export",
+      "export_artifacts_complete",
+      "denial_reasons",
+      "override_requires_audit"
+    ],
+    "required_trace_export_refs": [
+      "manifest",
+      "qa_report",
+      "metadata",
+      "trace_provenance",
+      "safety_disclaimer_when_applicable"
+    ],
+    "prevention_cases": [
+      {
+        "case_id": "safety_prevent_artifact_when_blocking_export_rule",
+        "fixture_id": "fx_red_team_minor_adult_content",
+        "trace_id": "trace_red_team_minor_adult_content",
+        "effective_decision": "block",
+        "expected_error": "ErrSafetyBlocked",
+        "expected_denial_reasons": [
+          "safety_policy_block",
+          "incomplete_export_artifacts",
+          "qa_coverage_incomplete"
+        ],
+        "missing_export_artifacts": [
+          "manifest",
+          "metadata"
+        ],
+        "downloadable_artifact_recorded": false,
+        "object_metadata_created": false,
+        "tenant_signed_download_created": false,
+        "override_requires_audit": true,
+        "trace_export_references_required": true
+      },
+      {
+        "case_id": "safety_prevent_artifact_when_user_confirmation_missing",
+        "fixture_id": "fx_confirmation_sensitive_claim",
+        "trace_id": "trace_confirmation_sensitive_claim",
+        "effective_decision": "require_user_confirmation",
+        "expected_error": "ErrSafetyReviewHold",
+        "expected_denial_reasons": [
+          "safety_user_confirmation_required",
+          "incomplete_export_artifacts",
+          "qa_coverage_incomplete"
+        ],
+        "missing_export_artifacts": [
+          "manifest",
+          "metadata"
+        ],
+        "downloadable_artifact_recorded": false,
+        "object_metadata_created": false,
+        "tenant_signed_download_created": false,
+        "override_requires_audit": true,
+        "trace_export_references_required": true
+      },
+      {
+        "case_id": "safety_prevent_artifact_when_admin_review_missing",
+        "fixture_id": "fx_brand_product_preservation",
+        "trace_id": "trace_fx_brand_product_preservation_integrity",
+        "effective_decision": "require_admin_review",
+        "expected_error": "ErrSafetyReviewHold",
+        "expected_denial_reasons": [
+          "blocking_qa",
+          "safety_admin_review_required",
+          "qa_coverage_incomplete"
+        ],
+        "missing_export_artifacts": [],
+        "downloadable_artifact_recorded": false,
+        "object_metadata_created": false,
+        "tenant_signed_download_created": false,
+        "override_requires_audit": true,
+        "trace_export_references_required": true
+      },
+      {
+        "case_id": "safety_prevent_artifact_when_claim_block_and_export_incomplete",
+        "fixture_id": "fx_unsafe_financial_claim",
+        "trace_id": "trace_fx_unsafe_financial_claim",
+        "effective_decision": "block",
+        "expected_error": "ErrSafetyBlocked",
+        "expected_denial_reasons": [
+          "blocking_qa",
+          "safety_policy_block",
+          "incomplete_export_artifacts",
+          "qa_coverage_incomplete"
+        ],
+        "missing_export_artifacts": [
+          "manifest",
+          "metadata"
+        ],
+        "downloadable_artifact_recorded": false,
+        "object_metadata_created": false,
+        "tenant_signed_download_created": false,
+        "override_requires_audit": true,
+        "trace_export_references_required": true
+      }
+    ]
   },
   "fixture_links": [
     {

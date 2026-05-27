@@ -40,6 +40,14 @@ ACTION_ERRORS = {
     "block": "ErrSafetyBlocked",
 }
 
+REQUIRED_EXPORT_REFS = {
+    "manifest",
+    "qa_report",
+    "metadata",
+    "trace_provenance",
+    "safety_disclaimer_when_applicable",
+}
+
 ACTION_EXPORT_GATES = {
     "allow": "allow_when_export_contract_complete",
     "warn": "allow_with_warning",
@@ -515,6 +523,81 @@ def replay_decision_redaction_cases(contract: dict[str, Any]) -> list[dict[str, 
     return cases
 
 
+def replay_export_artifact_prevention_cases(
+    contract: dict[str, Any],
+    eval_by_fixture: dict[str, dict[str, Any]],
+    trace_by_fixture: dict[str, dict[str, Any]],
+) -> list[dict[str, Any]]:
+    prevention = contract["export_artifact_prevention_contract"]
+    require(
+        prevention["policy"] == "held_or_blocked_safety_or_incomplete_export_contract_prevents_downloadable_artifact",
+        "export artifact prevention policy mismatch",
+    )
+    require(prevention["artifact_recording_transition"] == "export_artifact_recording", "artifact prevention transition mismatch")
+    require(set(prevention["required_trace_export_refs"]) == REQUIRED_EXPORT_REFS, "artifact prevention trace refs mismatch")
+
+    cases = []
+    seen_ids: set[str] = set()
+    seen_decisions: set[str] = set()
+    for case in prevention["prevention_cases"]:
+        case_id = case["case_id"]
+        fixture_id = case["fixture_id"]
+        seen_ids.add(case_id)
+        seen_decisions.add(case["effective_decision"])
+        require(fixture_id in eval_by_fixture, f"{case_id} references unknown eval fixture {fixture_id}")
+        require(fixture_id in trace_by_fixture, f"{case_id} references unknown trace fixture {fixture_id}")
+        result = eval_by_fixture[fixture_id]
+        trace = trace_by_fixture[fixture_id]
+        gate = result["qa_export_gate"]
+        export_contract = result["export_contract"]
+
+        require(trace["trace_id"] == case["trace_id"], f"{case_id} trace id mismatch")
+        require(result["safety_decision_contract"]["decision"] == case["effective_decision"], f"{case_id} effective decision mismatch")
+        require(case["expected_error"] == ACTION_ERRORS[case["effective_decision"]], f"{case_id} expected error mismatch")
+        require(gate["final_export_allowed"] is False, f"{case_id} must deny final export")
+        require(set(case["expected_denial_reasons"]) == set(gate["denial_reasons"]), f"{case_id} denial reasons mismatch")
+        require(gate["override_requires_audit"] is True, f"{case_id} must require audit before override")
+        require(case["override_requires_audit"] is True, f"{case_id} prevention case must require audit")
+        require(export_contract["blocks_when_incomplete"] is True, f"{case_id} export contract must block when incomplete")
+        missing = [
+            name
+            for name in prevention["required_trace_export_refs"]
+            if export_contract[name] is False
+        ]
+        require(missing == case["missing_export_artifacts"], f"{case_id} missing export artifacts mismatch")
+        for ref_name in prevention["required_trace_export_refs"]:
+            require(
+                trace["export_references"][ref_name] == export_contract[ref_name],
+                f"{case_id} trace export reference {ref_name} must match eval export contract",
+            )
+        for field in ["downloadable_artifact_recorded", "object_metadata_created", "tenant_signed_download_created"]:
+            require(case[field] is False, f"{case_id} must not record {field}")
+
+        cases.append(
+            {
+                "case_id": case_id,
+                "fixture_id": fixture_id,
+                "trace_id": trace["trace_id"],
+                "effective_decision": case["effective_decision"],
+                "expected_error": case["expected_error"],
+                "final_export_allowed": False,
+                "denial_reasons": gate["denial_reasons"],
+                "missing_export_artifacts": missing,
+                "downloadable_artifact_recorded": False,
+                "object_metadata_created": False,
+                "tenant_signed_download_created": False,
+                "result": "passed",
+            }
+        )
+
+    require(len(seen_ids) == len(cases), "export artifact prevention case IDs must be unique")
+    require(
+        {"require_user_confirmation", "require_admin_review", "block"} <= seen_decisions,
+        "artifact prevention must cover user-confirmation, admin-review, and block decisions",
+    )
+    return cases
+
+
 def validate_declared_replay_contract(contract: dict[str, Any], summary: dict[str, Any]) -> None:
     declared = contract["runtime_replay_contract"]
     require(declared["runner"] == RUNNER, "runtime replay contract runner mismatch")
@@ -537,6 +620,10 @@ def validate_declared_replay_contract(contract: dict[str, Any], summary: dict[st
     require(
         declared["decision_redaction_cases_replayed"] == summary["decision_redaction_cases"],
         "decision redaction replay count mismatch",
+    )
+    require(
+        declared["export_artifact_prevention_cases_replayed"] == summary["export_artifact_prevention_cases"],
+        "export artifact prevention replay count mismatch",
     )
     require(declared["transition_points_replayed"] == summary["transition_points_replayed"], "transition point replay mismatch")
     require(declared["decision_priority_order_validated"] == summary["decision_priority_order_validated"], "decision priority replay mismatch")
@@ -574,6 +661,7 @@ def run() -> dict[str, Any]:
     effective_precedence = replay_effective_decision_precedence_cases(contract)
     fixture_links = replay_fixture_links(contract, eval_by_fixture, trace_by_fixture)
     decision_redaction = replay_decision_redaction_cases(contract)
+    artifact_prevention = replay_export_artifact_prevention_cases(contract, eval_by_fixture, trace_by_fixture)
 
     blocked_or_held = [
         item for item in decisions
@@ -589,6 +677,7 @@ def run() -> dict[str, Any]:
         "fixture_link_cases": len(fixture_links),
         "fixture_link_point_decision_refs": sum(len(item["per_point_decision_refs"]) for item in fixture_links),
         "decision_redaction_cases": len(decision_redaction),
+        "export_artifact_prevention_cases": len(artifact_prevention),
         "transition_points_replayed": {item["enforcement_point"] for item in transitions} == SAFETY_POINTS,
         "decision_priority_order_validated": all(
             [item["decision_priority"] for item in decisions if item["enforcement_point"] == point]
@@ -634,6 +723,7 @@ def run() -> dict[str, Any]:
         "effective_decision_precedence_results": effective_precedence,
         "decision_redaction_results": decision_redaction,
         "fixture_link_results": fixture_links,
+        "export_artifact_prevention_results": artifact_prevention,
     }
 
 
@@ -659,7 +749,8 @@ def main() -> int:
             f"{summary['bypass_prevention_cases']} bypass cases, "
             f"{summary['override_downgrade_cases']} override downgrade cases, "
             f"{summary['effective_decision_precedence_cases']} effective-decision cases, "
-            f"{summary['decision_redaction_cases']} redaction cases)"
+            f"{summary['decision_redaction_cases']} redaction cases, "
+            f"{summary['export_artifact_prevention_cases']} artifact prevention cases)"
         )
     return 0
 

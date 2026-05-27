@@ -66,6 +66,14 @@ SAFETY_ORDER = [
     "export",
 ]
 
+REQUIRED_EXPORT_REFS = {
+    "manifest",
+    "qa_report",
+    "metadata",
+    "trace_provenance",
+    "safety_disclaimer_when_applicable",
+}
+
 TRANSITION_SEQUENCE = [
     ("brief_completion", "brief", "brief_confirmed", {"tenant_id", "project_id"}, "deny_generation"),
     ("provider_request_dispatch", "provider_request", "provider_call", {"tenant_id", "task_id"}, "deny_provider_call"),
@@ -721,6 +729,11 @@ def validate_runtime_replay_contract(contract: dict[str, Any]) -> None:
         replay["decision_redaction_cases_replayed"] == len(contract["decision_redaction_contract"]["runtime_replay_cases"]),
         "decision redaction replay count mismatch",
     )
+    require(
+        replay["export_artifact_prevention_cases_replayed"]
+        == len(contract["export_artifact_prevention_contract"]["prevention_cases"]),
+        "export artifact prevention replay count mismatch",
+    )
     require(replay["transition_points_replayed"] is True, "runtime replay must validate transition enforcement points")
     require(replay["decision_priority_order_validated"] is True, "runtime replay must validate decision priority order")
     require(replay["decision_rationale_sources_validated"] is True, "runtime replay must validate fixed rationale sources")
@@ -834,6 +847,102 @@ def validate_decision_redaction_contract(contract: dict[str, Any]) -> None:
             require(fragment not in serialized_outputs, f"{case_id} leaks forbidden output fragment {fragment!r}")
         require(case["expected_result"] == "redacted_or_not_persisted", f"{case_id} expected result mismatch")
     require(seen_surfaces == SAFETY_POINTS, f"decision redaction replay missing surfaces: {sorted(SAFETY_POINTS - seen_surfaces)}")
+
+
+def validate_export_artifact_prevention_contract(contract: dict[str, Any]) -> None:
+    prevention = contract["export_artifact_prevention_contract"]
+    results = load_json(EVAL_RESULTS)
+    traces = load_json(TRACE_COMPLETENESS)
+    service = STAGE0_SERVICE.read_text(encoding="utf-8")
+    tests = STAGE0_TEST.read_text(encoding="utf-8")
+
+    require(
+        prevention["policy"] == "held_or_blocked_safety_or_incomplete_export_contract_prevents_downloadable_artifact",
+        "export artifact prevention policy mismatch",
+    )
+    require(prevention["artifact_recording_transition"] == "export_artifact_recording", "artifact prevention transition mismatch")
+    require(
+        set(prevention["required_eval_gate_fields"])
+        == {"final_export_allowed", "safety_blocks_export", "export_artifacts_complete", "denial_reasons", "override_requires_audit"},
+        "artifact prevention required eval gate fields mismatch",
+    )
+    require(set(prevention["required_trace_export_refs"]) == REQUIRED_EXPORT_REFS, "artifact prevention trace refs mismatch")
+
+    require(isinstance(results, list) and len(results) == 1, "starter eval results must contain one result")
+    result_by_fixture = {
+        item["fixture_id"]: item
+        for item in results[0]["fixture_results"]
+    }
+    trace_by_fixture = {
+        trace["fixture_id"]: trace
+        for trace in traces["traces"]
+    }
+    cases = prevention["prevention_cases"]
+    require(len(cases) >= 4, "artifact prevention must cover block, confirmation hold, admin hold, and incomplete export")
+
+    seen_cases: set[str] = set()
+    seen_decisions: set[str] = set()
+    for case in cases:
+        case_id = case["case_id"]
+        fixture_id = case["fixture_id"]
+        require(case_id not in seen_cases, f"duplicate artifact prevention case {case_id}")
+        seen_cases.add(case_id)
+        require(fixture_id in result_by_fixture, f"{case_id} references unknown eval fixture")
+        require(fixture_id in trace_by_fixture, f"{case_id} references unknown trace fixture")
+        result = result_by_fixture[fixture_id]
+        trace = trace_by_fixture[fixture_id]
+        gate = result["qa_export_gate"]
+        export_contract = result["export_contract"]
+        decision = result["safety_decision_contract"]["decision"]
+        seen_decisions.add(case["effective_decision"])
+
+        require(trace["trace_id"] == case["trace_id"], f"{case_id} trace id mismatch")
+        require(decision == case["effective_decision"], f"{case_id} effective decision mismatch")
+        require(case["expected_error"] in {"ErrSafetyBlocked", "ErrSafetyReviewHold"}, f"{case_id} expected error mismatch")
+        if case["effective_decision"] == "block":
+            require(case["expected_error"] == "ErrSafetyBlocked", f"{case_id} block must map to ErrSafetyBlocked")
+            require(gate["safety_blocks_export"] is True, f"{case_id} block decision must safety-block export")
+        else:
+            require(case["expected_error"] == "ErrSafetyReviewHold", f"{case_id} held decision must map to ErrSafetyReviewHold")
+
+        require(gate["final_export_allowed"] is False, f"{case_id} must deny final export")
+        require(set(case["expected_denial_reasons"]) == set(gate["denial_reasons"]), f"{case_id} denial reasons mismatch")
+        require(case["override_requires_audit"] is True and gate["override_requires_audit"] is True, f"{case_id} must require audit")
+        require(export_contract["blocks_when_incomplete"] is True, f"{case_id} export contract must block when incomplete")
+        missing = [
+            ref_name
+            for ref_name in prevention["required_trace_export_refs"]
+            if export_contract[ref_name] is False
+        ]
+        require(missing == case["missing_export_artifacts"], f"{case_id} missing export artifacts mismatch")
+        for ref_name in prevention["required_trace_export_refs"]:
+            require(
+                trace["export_references"][ref_name] == export_contract[ref_name],
+                f"{case_id} trace export reference {ref_name} must match eval export contract",
+            )
+        require(case["trace_export_references_required"] is True, f"{case_id} must require trace export refs")
+        for field in ["downloadable_artifact_recorded", "object_metadata_created", "tenant_signed_download_created"]:
+            require(case[field] is False, f"{case_id} must prevent {field}")
+
+    require(
+        {"require_user_confirmation", "require_admin_review", "block"} <= seen_decisions,
+        "artifact prevention cases must cover user-confirmation, admin-review, and block decisions",
+    )
+    for token in [
+        "func (r Repository) CreateExport",
+        "func (r Repository) RecordExportArtifact",
+        "RunRuntimeSafetyPolicy(ctx, RuntimeSafetyPolicyInput{",
+        "INSERT INTO agent_tasks",
+        "UPDATE exports",
+    ]:
+        require(token in service, f"artifact prevention backend implementation evidence missing {token}")
+    for token in [
+        "TestCreateExportBlocksWhenExportSafetyRuleBlocks",
+        "TestRecordExportArtifactBlocksWhenExportSafetyRuleBlocks",
+        "blocked export should not create task",
+        "want runtime safety decisions and analytics only",
+    ]:
+        require(token in tests, f"artifact prevention backend test evidence missing {token}")
 
 
 def validate_override_downgrade_cases(pipeline: dict[str, Any]) -> None:
@@ -1040,6 +1149,7 @@ def main() -> int:
         validate_pipeline_sequence_contract(contract)
         validate_runtime_replay_contract(contract)
         validate_decision_redaction_contract(contract)
+        validate_export_artifact_prevention_contract(contract)
         validate_fixture_links(contract)
         validate_openapi_and_storage_contract(contract)
         validate_release_policy(contract)

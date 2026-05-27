@@ -14,6 +14,7 @@
     "runtime_contracts",
     "pipeline_sequence_contract",
     "runtime_replay_contract",
+    "export_artifact_prevention_contract",
     "decision_matrix",
     "fixture_links",
     "release_gate_policy",
@@ -816,6 +817,7 @@
         "fixture_link_cases_replayed",
         "fixture_link_point_decision_refs_replayed",
         "decision_redaction_cases_replayed",
+        "export_artifact_prevention_cases_replayed",
         "transition_points_replayed",
         "decision_priority_order_validated",
         "decision_rationale_sources_validated",
@@ -873,6 +875,10 @@
           "type": "integer",
           "minimum": 4
         },
+        "export_artifact_prevention_cases_replayed": {
+          "type": "integer",
+          "minimum": 4
+        },
         "transition_points_replayed": {
           "const": true
         },
@@ -902,6 +908,143 @@
         },
         "trace_decision_refs_replayed": {
           "const": true
+        }
+      }
+    },
+    "export_artifact_prevention_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "policy",
+        "artifact_recording_transition",
+        "required_eval_gate_fields",
+        "required_trace_export_refs",
+        "prevention_cases"
+      ],
+      "properties": {
+        "policy": {
+          "const": "held_or_blocked_safety_or_incomplete_export_contract_prevents_downloadable_artifact"
+        },
+        "artifact_recording_transition": {
+          "const": "export_artifact_recording"
+        },
+        "required_eval_gate_fields": {
+          "type": "array",
+          "minItems": 5,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "final_export_allowed",
+              "safety_blocks_export",
+              "export_artifacts_complete",
+              "denial_reasons",
+              "override_requires_audit"
+            ]
+          }
+        },
+        "required_trace_export_refs": {
+          "type": "array",
+          "minItems": 5,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "manifest",
+              "qa_report",
+              "metadata",
+              "trace_provenance",
+              "safety_disclaimer_when_applicable"
+            ]
+          }
+        },
+        "prevention_cases": {
+          "type": "array",
+          "minItems": 4,
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "case_id",
+              "fixture_id",
+              "trace_id",
+              "effective_decision",
+              "expected_error",
+              "expected_denial_reasons",
+              "missing_export_artifacts",
+              "downloadable_artifact_recorded",
+              "object_metadata_created",
+              "tenant_signed_download_created",
+              "override_requires_audit",
+              "trace_export_references_required"
+            ],
+            "properties": {
+              "case_id": {
+                "type": "string",
+                "pattern": "^safety_prevent_artifact_when_[a-z0-9_]+$"
+              },
+              "fixture_id": {
+                "type": "string",
+                "pattern": "^fx_[a-z0-9_]+$"
+              },
+              "trace_id": {
+                "type": "string",
+                "pattern": "^trace_[a-z0-9_]+$"
+              },
+              "effective_decision": {
+                "enum": [
+                  "require_user_confirmation",
+                  "require_admin_review",
+                  "block"
+                ]
+              },
+              "expected_error": {
+                "enum": [
+                  "ErrSafetyBlocked",
+                  "ErrSafetyReviewHold"
+                ]
+              },
+              "expected_denial_reasons": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": {
+                  "enum": [
+                    "blocking_qa",
+                    "safety_policy_block",
+                    "safety_user_confirmation_required",
+                    "safety_admin_review_required",
+                    "incomplete_export_artifacts",
+                    "qa_coverage_incomplete"
+                  ]
+                }
+              },
+              "missing_export_artifacts": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {
+                  "enum": [
+                    "manifest",
+                    "metadata"
+                  ]
+                }
+              },
+              "downloadable_artifact_recorded": {
+                "const": false
+              },
+              "object_metadata_created": {
+                "const": false
+              },
+              "tenant_signed_download_created": {
+                "const": false
+              },
+              "override_requires_audit": {
+                "const": true
+              },
+              "trace_export_references_required": {
+                "const": true
+              }
+            }
+          }
         }
       }
     },
