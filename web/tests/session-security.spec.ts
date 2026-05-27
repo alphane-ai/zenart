@@ -148,6 +148,18 @@ test("account route exposes secure-cookie, same-site CSRF, unsafe-action guard, 
   await expect(sessionContract).toHaveAttribute("data-session-unsafe-action-guard-coverage-status", "pass");
   await expect(sessionContract).toHaveAttribute("data-session-unsafe-action-missing-csrf-operation-count", "0");
   await expect(sessionContract).toHaveAttribute("data-session-unsafe-action-missing-csrf-operations", "");
+  await expect(sessionContract).toHaveAttribute("data-session-ux-state-matrix", "stage0.rev2.csrf-same-site-session-state-ux-matrix");
+  await expect(sessionContract).toHaveAttribute("data-session-ux-state-matrix-status", "pass");
+  await expect(sessionContract).toHaveAttribute("data-session-ux-state-matrix-states", "authenticated,expired,signed_out");
+  await expect(sessionContract).toHaveAttribute(
+    "data-session-ux-state-matrix-contract",
+    "authenticated:enabled=19:blocked=0:recovery=none:alert=none|expired:enabled=1:blocked=18:recovery=Refresh Session:alert=Session expired. Refresh or sign in to continue.|signed_out:enabled=0:blocked=19:recovery=none:alert=Signed out. Sign in to continue."
+  );
+  await expect(sessionContract).toHaveAttribute("data-session-ux-state-current", "authenticated");
+  await expect(sessionContract).toHaveAttribute("data-session-ux-state-current-enabled-count", "19");
+  await expect(sessionContract).toHaveAttribute("data-session-ux-state-current-blocked-count", "0");
+  await expect(sessionContract).toHaveAttribute("data-session-ux-state-current-recovery-labels", "");
+  await expect(sessionContract).toHaveAttribute("data-session-ux-state-current-alert", "none");
   const guardedUnsafeOperations = await sessionContract.getAttribute("data-session-unsafe-action-generated-unsafe-operations");
   expect(guardedUnsafeOperations?.split(",")).toEqual(unsafeOperationIds);
   await expect(sessionContract).toHaveAttribute(
@@ -292,6 +304,11 @@ test("account route exposes secure-cookie, same-site CSRF, unsafe-action guard, 
     "Confirm Brief|Attach|Create Project|Rename Project|Package Reference|Select Candidate|Iterate|Restore Version|Add Selection|Export ZIP|Export PDF|Request Share|Mock Checkout|Billing Scenario|Save Settings|Submit Ticket|Expire Session|Log Out"
   );
   await expect(sessionContract).toHaveAttribute("data-session-unsafe-action-blocked-reason", "authenticated-session-required");
+  await expect(sessionContract).toHaveAttribute("data-session-ux-state-current", "expired");
+  await expect(sessionContract).toHaveAttribute("data-session-ux-state-current-enabled-count", "1");
+  await expect(sessionContract).toHaveAttribute("data-session-ux-state-current-blocked-count", "18");
+  await expect(sessionContract).toHaveAttribute("data-session-ux-state-current-recovery-labels", "Refresh Session");
+  await expect(sessionContract).toHaveAttribute("data-session-ux-state-current-alert", "Session expired. Refresh or sign in to continue.");
   await expect(page.getByRole("button", { name: "Refresh Session" })).toBeEnabled();
   await expect(page.getByRole("button", { name: "Refresh Session" })).toHaveAttribute("data-csrf-ux-guard-status", "enabled");
   await expect(page.getByRole("button", { name: "Refresh Session" })).toHaveAttribute("data-csrf-ux-guard-blocked-reason", "");
@@ -307,6 +324,9 @@ test("account route exposes secure-cookie, same-site CSRF, unsafe-action guard, 
   await page.getByRole("button", { name: "Refresh Session" }).click();
   await expect(sessionContract).toHaveAttribute("data-session-unsafe-action-status", "enabled");
   await expect(sessionContract).toHaveAttribute("data-session-unsafe-action-blocked-control-count", "0");
+  await expect(sessionContract).toHaveAttribute("data-session-ux-state-current", "authenticated");
+  await expect(sessionContract).toHaveAttribute("data-session-ux-state-current-enabled-count", "19");
+  await expect(sessionContract).toHaveAttribute("data-session-ux-state-current-blocked-count", "0");
   await expect(page.getByText("Session expired. Refresh or sign in to continue.")).not.toBeVisible();
   await expect(page.getByRole("button", { name: "Save Settings" })).toBeEnabled();
 
@@ -318,8 +338,21 @@ test("account route exposes secure-cookie, same-site CSRF, unsafe-action guard, 
   await expect(sessionContract).toHaveAttribute("data-session-security-status", "pass");
   await expect(sessionContract).toHaveAttribute("data-session-unsafe-action-status", "enabled");
   await expect(sessionContract).toHaveAttribute("data-session-unsafe-action-blocked-control-count", "0");
+  await expect(sessionContract).toHaveAttribute("data-session-ux-state-current", "authenticated");
   await expect(page.getByText("Session expired. Refresh or sign in to continue.")).not.toBeVisible();
   await expect(page.getByRole("button", { name: "Save Settings" })).toBeEnabled();
   await expect(page.getByRole("button", { name: "Save Settings" })).toHaveAttribute("data-csrf-ux-guard-status", "enabled");
   await expect(page.getByRole("button", { name: "Save Settings" })).toHaveAttribute("data-csrf-ux-guard-blocked-reason", "");
+
+  await page.getByRole("button", { name: "Log Out" }).click();
+  await expect(page.getByText("Signed out. Sign in to continue.")).toBeVisible();
+  await expect(sessionContract).toHaveAttribute("data-session-unsafe-action-status", "blocked");
+  await expect(sessionContract).toHaveAttribute("data-session-unsafe-action-blocked-control-count", "19");
+  await expect(sessionContract).toHaveAttribute("data-session-ux-state-current", "signed_out");
+  await expect(sessionContract).toHaveAttribute("data-session-ux-state-current-enabled-count", "0");
+  await expect(sessionContract).toHaveAttribute("data-session-ux-state-current-blocked-count", "19");
+  await expect(sessionContract).toHaveAttribute("data-session-ux-state-current-recovery-labels", "");
+  await expect(sessionContract).toHaveAttribute("data-session-ux-state-current-alert", "Signed out. Sign in to continue.");
+  await expect(page.getByRole("button", { name: "Refresh Session" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Save Settings" })).toBeDisabled();
 });

@@ -30,6 +30,11 @@
       "data-session-backend-cookie-failure-count",
       "data-session-backend-csrf-failure-count",
       "data-session-unsafe-action-operation-contracts",
+      "data-session-ux-state-matrix",
+      "data-session-ux-state-matrix-status",
+      "data-session-ux-state-matrix-contract",
+      "data-session-ux-state-current",
+      "data-session-ux-state-current-blocked-count",
       "data-csrf-ux-guard-contracts",
       "data-generated-api-csrf-operation-contracts",
       "data-generated-api-csrf-safe-operation-contracts",
@@ -50,6 +55,7 @@
       "data-generated-api-csrf-browser-probe-safe-no-csrf-header-count",
       "data-generated-api-csrf-browser-probe-safe-operation-contracts",
       "Session expired. Refresh or sign in to continue.",
+      "Signed out. Sign in to continue.",
       "Save Settings",
       "Sign In",
       "Log Out"
@@ -294,6 +300,7 @@
     "Generated web API client rejects unsafe path params before credentialed requests.",
     "Account route exposes secure __Host cookie and same-site CSRF UX evidence.",
     "Account route proves every generated unsafe operation is represented by the authenticated same-site UX guard.",
+    "Account route exposes a session-state UX matrix proving authenticated actions are enabled, expired sessions allow only Refresh Session, and signed-out sessions block all guarded controls.",
     "Account route browser smoke invokes the generated client against local probe responses and proves every unsafe request sends include credentials and X-ZenArt-CSRF, every idempotent unsafe request sends Idempotency-Key, and every safe generated request stays credentialed without CSRF headers."
   ]
 }

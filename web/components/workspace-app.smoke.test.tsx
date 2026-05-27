@@ -54,6 +54,18 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(sessionContract).toHaveAttribute("data-session-unsafe-action-guard-coverage-status", "pass");
     expect(sessionContract).toHaveAttribute("data-session-unsafe-action-missing-csrf-operation-count", "0");
     expect(sessionContract).toHaveAttribute("data-session-unsafe-action-missing-csrf-operations", "");
+    expect(sessionContract).toHaveAttribute("data-session-ux-state-matrix", "stage0.rev2.csrf-same-site-session-state-ux-matrix");
+    expect(sessionContract).toHaveAttribute("data-session-ux-state-matrix-status", "pass");
+    expect(sessionContract).toHaveAttribute("data-session-ux-state-matrix-states", "authenticated,expired,signed_out");
+    expect(sessionContract).toHaveAttribute(
+      "data-session-ux-state-matrix-contract",
+      "authenticated:enabled=19:blocked=0:recovery=none:alert=none|expired:enabled=1:blocked=18:recovery=Refresh Session:alert=Session expired. Refresh or sign in to continue.|signed_out:enabled=0:blocked=19:recovery=none:alert=Signed out. Sign in to continue."
+    );
+    expect(sessionContract).toHaveAttribute("data-session-ux-state-current", "authenticated");
+    expect(sessionContract).toHaveAttribute("data-session-ux-state-current-enabled-count", "19");
+    expect(sessionContract).toHaveAttribute("data-session-ux-state-current-blocked-count", "0");
+    expect(sessionContract).toHaveAttribute("data-session-ux-state-current-recovery-labels", "");
+    expect(sessionContract).toHaveAttribute("data-session-ux-state-current-alert", "none");
     expect(sessionContract.getAttribute("data-session-unsafe-action-operation-contracts")).toContain(
       "Confirm Brief=>createChatSession:POST:X-ZenArt-CSRF:true+createChatMessage:POST:X-ZenArt-CSRF:true+createCandidateSet:POST:X-ZenArt-CSRF:true"
     );
@@ -233,6 +245,14 @@ describe("WorkspaceApp user route integration smoke", () => {
       "data-session-unsafe-action-blocked-reason",
       "authenticated-session-required"
     );
+    expect(screen.getByLabelText("Auth and session status")).toHaveAttribute("data-session-ux-state-current", "expired");
+    expect(screen.getByLabelText("Auth and session status")).toHaveAttribute("data-session-ux-state-current-enabled-count", "1");
+    expect(screen.getByLabelText("Auth and session status")).toHaveAttribute("data-session-ux-state-current-blocked-count", "18");
+    expect(screen.getByLabelText("Auth and session status")).toHaveAttribute("data-session-ux-state-current-recovery-labels", "Refresh Session");
+    expect(screen.getByLabelText("Auth and session status")).toHaveAttribute(
+      "data-session-ux-state-current-alert",
+      "Session expired. Refresh or sign in to continue."
+    );
     expect(screen.getByRole("button", { name: "Refresh Session" })).not.toBeDisabled();
     expect(screen.getByRole("button", { name: "Refresh Session" })).toHaveAttribute("data-csrf-ux-guard-status", "enabled");
     expect(screen.getByRole("button", { name: "Refresh Session" })).toHaveAttribute("data-csrf-ux-guard-blocked-reason", "");
@@ -252,6 +272,9 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(screen.queryByText("Session expired. Refresh or sign in to continue.")).not.toBeInTheDocument();
     expect(screen.getByLabelText("Auth and session status")).toHaveAttribute("data-session-unsafe-action-status", "enabled");
     expect(screen.getByLabelText("Auth and session status")).toHaveAttribute("data-session-unsafe-action-blocked-control-count", "0");
+    expect(screen.getByLabelText("Auth and session status")).toHaveAttribute("data-session-ux-state-current", "authenticated");
+    expect(screen.getByLabelText("Auth and session status")).toHaveAttribute("data-session-ux-state-current-enabled-count", "19");
+    expect(screen.getByLabelText("Auth and session status")).toHaveAttribute("data-session-ux-state-current-blocked-count", "0");
     expect(screen.getByRole("button", { name: "Save Settings" })).not.toBeDisabled();
 
     fireEvent.click(screen.getByRole("button", { name: "Expire" }));
@@ -267,7 +290,23 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(screen.getByRole("button", { name: "Save Settings" })).not.toBeDisabled();
     expect(screen.getByRole("button", { name: "Save Settings" })).toHaveAttribute("data-csrf-ux-guard-status", "enabled");
     expect(screen.getByLabelText("Auth and session status")).toHaveAttribute("data-session-unsafe-action-blocked-control-count", "0");
+    expect(screen.getByLabelText("Auth and session status")).toHaveAttribute("data-session-ux-state-current", "authenticated");
     expect(screen.getByRole("button", { name: "Save Settings" })).toHaveAttribute("data-csrf-ux-guard-blocked-reason", "");
+
+    fireEvent.click(screen.getByRole("button", { name: "Log Out" }));
+    await screen.findByText("Signed out. Sign in to continue.");
+    expect(screen.getByLabelText("Auth and session status")).toHaveAttribute("data-session-unsafe-action-status", "blocked");
+    expect(screen.getByLabelText("Auth and session status")).toHaveAttribute("data-session-unsafe-action-blocked-control-count", "19");
+    expect(screen.getByLabelText("Auth and session status")).toHaveAttribute("data-session-ux-state-current", "signed_out");
+    expect(screen.getByLabelText("Auth and session status")).toHaveAttribute("data-session-ux-state-current-enabled-count", "0");
+    expect(screen.getByLabelText("Auth and session status")).toHaveAttribute("data-session-ux-state-current-blocked-count", "19");
+    expect(screen.getByLabelText("Auth and session status")).toHaveAttribute("data-session-ux-state-current-recovery-labels", "");
+    expect(screen.getByLabelText("Auth and session status")).toHaveAttribute(
+      "data-session-ux-state-current-alert",
+      "Signed out. Sign in to continue."
+    );
+    expect(screen.getByRole("button", { name: "Refresh Session" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Save Settings" })).toBeDisabled();
   });
 
   it("guards project create and rename actions with the same-site session contract", async () => {

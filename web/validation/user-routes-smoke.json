@@ -227,6 +227,7 @@
         "expectedAuthenticatedBlockedControlCount": "0",
         "expectedExpiredBlockedControlCount": "18",
         "expectedExpiredRecoveryLabels": "Refresh Session",
+        "expectedSignedOutBlockedControlCount": "19",
         "expectedBlockedReason": "authenticated-session-required",
         "expectedSafeLabels": "load,login",
         "expectedProtectedMethods": "POST,PUT,PATCH,DELETE",
@@ -298,7 +299,32 @@
           "Refresh Session=>getSession:GET:/session:include:not-required:false",
           "Expire Session=>deleteSession:DELETE:/session:include:X-ZenArt-CSRF:false",
           "Log Out=>deleteSession:DELETE:/session:include:X-ZenArt-CSRF:false"
-        ]
+        ],
+        "sessionStateMatrix": {
+          "schemaVersion": "stage0.rev2.csrf-same-site-session-state-ux-matrix",
+          "matrixAttribute": "data-session-ux-state-matrix",
+          "statusAttribute": "data-session-ux-state-matrix-status",
+          "statesAttribute": "data-session-ux-state-matrix-states",
+          "contractAttribute": "data-session-ux-state-matrix-contract",
+          "currentStateAttribute": "data-session-ux-state-current",
+          "currentEnabledCountAttribute": "data-session-ux-state-current-enabled-count",
+          "currentBlockedCountAttribute": "data-session-ux-state-current-blocked-count",
+          "currentRecoveryLabelsAttribute": "data-session-ux-state-current-recovery-labels",
+          "currentAlertAttribute": "data-session-ux-state-current-alert",
+          "expectedStatus": "pass",
+          "expectedStates": "authenticated,expired,signed_out",
+          "expectedContract": "authenticated:enabled=19:blocked=0:recovery=none:alert=none|expired:enabled=1:blocked=18:recovery=Refresh Session:alert=Session expired. Refresh or sign in to continue.|signed_out:enabled=0:blocked=19:recovery=none:alert=Signed out. Sign in to continue.",
+          "expectedAuthenticatedEnabledCount": "19",
+          "expectedAuthenticatedBlockedCount": "0",
+          "expectedExpiredEnabledCount": "1",
+          "expectedExpiredBlockedCount": "18",
+          "expectedExpiredRecoveryLabels": "Refresh Session",
+          "expectedExpiredAlert": "Session expired. Refresh or sign in to continue.",
+          "expectedSignedOutEnabledCount": "0",
+          "expectedSignedOutBlockedCount": "19",
+          "expectedSignedOutRecoveryLabels": "",
+          "expectedSignedOutAlert": "Signed out. Sign in to continue."
+        }
       }
     },
     {
@@ -331,6 +357,11 @@
         "data-session-backend-cookie-failure-count",
         "data-session-backend-csrf-failure-count",
         "data-session-unsafe-action-operation-contracts",
+        "data-session-ux-state-matrix",
+        "data-session-ux-state-matrix-status",
+        "data-session-ux-state-matrix-contract",
+        "data-session-ux-state-current",
+        "data-session-ux-state-current-blocked-count",
         "data-csrf-ux-guard-contracts",
         "data-generated-api-csrf-operation-contracts",
         "data-generated-api-csrf-safe-operation-contracts",
@@ -351,6 +382,7 @@
         "data-generated-api-csrf-browser-probe-safe-no-csrf-header-count",
         "data-generated-api-csrf-browser-probe-safe-operation-contracts",
         "Session expired. Refresh or sign in to continue.",
+        "Signed out. Sign in to continue.",
         "Save Settings",
         "Sign In",
         "Log Out"

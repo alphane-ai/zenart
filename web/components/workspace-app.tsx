@@ -226,15 +226,56 @@ const initialBrowserCsrfProbeResult: BrowserCsrfProbeResult = {
   failureReason: ""
 };
 
-const getUnsafeActionGuardStatus = (label: UnsafeActionGuardLabel, state: WorkspaceState) => {
-  if (state.sessionContract.status === "authenticated") {
+type SessionGuardMatrixState = "authenticated" | "expired" | "signed_out";
+
+const sessionGuardMatrixStates = ["authenticated", "expired", "signed_out"] as const satisfies readonly SessionGuardMatrixState[];
+
+const getUnsafeActionGuardStatusForSession = (label: UnsafeActionGuardLabel, sessionStatus: SessionGuardMatrixState) => {
+  if (sessionStatus === "authenticated") {
     return { status: "enabled", blockedReason: "" };
   }
-  if (state.sessionContract.status === "expired" && expiredSessionRecoveryActionLabels.has(label)) {
+  if (sessionStatus === "expired" && expiredSessionRecoveryActionLabels.has(label)) {
     return { status: "enabled", blockedReason: "" };
   }
   return { status: "blocked", blockedReason: "authenticated-session-required" };
 };
+
+const getUnsafeActionGuardStatus = (label: UnsafeActionGuardLabel, state: WorkspaceState) => {
+  return getUnsafeActionGuardStatusForSession(label, state.sessionContract.status);
+};
+
+const buildSessionGuardMatrixEntry = (sessionStatus: SessionGuardMatrixState) => {
+  const enabledLabels = sameSiteUnsafeActionGuardLabels.filter(
+    (label) => getUnsafeActionGuardStatusForSession(label, sessionStatus).status === "enabled"
+  );
+  const blockedLabels = sameSiteUnsafeActionGuardLabels.filter(
+    (label) => getUnsafeActionGuardStatusForSession(label, sessionStatus).status === "blocked"
+  );
+  const recoveryLabels =
+    sessionStatus === "expired" ? Array.from(expiredSessionRecoveryActionLabels).filter((label) => enabledLabels.includes(label)) : [];
+  const alert =
+    sessionStatus === "expired" ? "Session expired. Refresh or sign in to continue." : sessionStatus === "signed_out" ? "Signed out. Sign in to continue." : "none";
+
+  return {
+    sessionStatus,
+    enabledLabels,
+    blockedLabels,
+    recoveryLabels,
+    alert,
+    serialized: `${sessionStatus}:enabled=${enabledLabels.length}:blocked=${blockedLabels.length}:recovery=${recoveryLabels.join("+") || "none"}:alert=${alert}`
+  };
+};
+
+const sessionGuardMatrixEntries = sessionGuardMatrixStates.map(buildSessionGuardMatrixEntry);
+const sessionGuardMatrixContract = sessionGuardMatrixEntries.map((entry) => entry.serialized).join("|");
+const sessionGuardMatrixStatus =
+  sessionGuardMatrixEntries.find((entry) => entry.sessionStatus === "authenticated")?.blockedLabels.length === 0 &&
+  sessionGuardMatrixEntries.find((entry) => entry.sessionStatus === "expired")?.enabledLabels.join(",") === "Refresh Session" &&
+  sessionGuardMatrixEntries.find((entry) => entry.sessionStatus === "expired")?.blockedLabels.length === 18 &&
+  sessionGuardMatrixEntries.find((entry) => entry.sessionStatus === "signed_out")?.enabledLabels.length === 0 &&
+  sessionGuardMatrixEntries.find((entry) => entry.sessionStatus === "signed_out")?.blockedLabels.length === 19
+    ? "pass"
+    : "fail";
 
 const isExpiredSessionRecoveryAction = (label: string) =>
   label === "session-refresh" || label === "Refresh Session";
@@ -700,6 +741,7 @@ function SessionPanel({
   const blockedUnsafeActionGuardLabels = sameSiteUnsafeActionGuardLabels.filter(
     (label) => getUnsafeActionGuardStatus(label, state).status === "blocked"
   );
+  const currentSessionGuardMatrixEntry = buildSessionGuardMatrixEntry(state.sessionContract.status);
   const unsafeActionCsrfProtectedOperationCount = guardedOperationIds.filter((operationId) =>
     state.sessionContract.csrf.protectedMethods.includes(
       apiOperations[operationId].method as (typeof state.sessionContract.csrf.protectedMethods)[number]
@@ -768,6 +810,15 @@ function SessionPanel({
       data-session-unsafe-action-guard-coverage-status={unsafeActionGuardCoverageStatus}
       data-session-unsafe-action-missing-csrf-operation-count={missingGuardedUnsafeOperationIds.length}
       data-session-unsafe-action-missing-csrf-operations={missingGuardedUnsafeOperationIds.join(",")}
+      data-session-ux-state-matrix="stage0.rev2.csrf-same-site-session-state-ux-matrix"
+      data-session-ux-state-matrix-status={sessionGuardMatrixStatus}
+      data-session-ux-state-matrix-states={sessionGuardMatrixStates.join(",")}
+      data-session-ux-state-matrix-contract={sessionGuardMatrixContract}
+      data-session-ux-state-current={currentSessionGuardMatrixEntry.sessionStatus}
+      data-session-ux-state-current-enabled-count={currentSessionGuardMatrixEntry.enabledLabels.length}
+      data-session-ux-state-current-blocked-count={currentSessionGuardMatrixEntry.blockedLabels.length}
+      data-session-ux-state-current-recovery-labels={currentSessionGuardMatrixEntry.recoveryLabels.join(",")}
+      data-session-ux-state-current-alert={currentSessionGuardMatrixEntry.alert}
     >
       <div className="session-contract-main">
         <ShieldCheck size={18} aria-hidden="true" />

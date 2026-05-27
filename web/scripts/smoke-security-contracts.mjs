@@ -634,6 +634,27 @@ if (
   fail("unsafe-action guard coverage must prove every generated unsafe operation is represented");
 }
 
+const sessionStateMatrix = sessionEvidence.unsafeActionGuard?.sessionStateMatrix;
+if (
+  sessionStateMatrix?.schemaVersion !== "stage0.rev2.csrf-same-site-session-state-ux-matrix" ||
+  sessionStateMatrix?.expectedStatus !== "pass" ||
+  sessionStateMatrix?.expectedStates !== "authenticated,expired,signed_out" ||
+  sessionStateMatrix?.expectedContract !==
+    "authenticated:enabled=19:blocked=0:recovery=none:alert=none|expired:enabled=1:blocked=18:recovery=Refresh Session:alert=Session expired. Refresh or sign in to continue.|signed_out:enabled=0:blocked=19:recovery=none:alert=Signed out. Sign in to continue." ||
+  sessionStateMatrix?.expectedAuthenticatedEnabledCount !== "19" ||
+  sessionStateMatrix?.expectedAuthenticatedBlockedCount !== "0" ||
+  sessionStateMatrix?.expectedExpiredEnabledCount !== "1" ||
+  sessionStateMatrix?.expectedExpiredBlockedCount !== "18" ||
+  sessionStateMatrix?.expectedExpiredRecoveryLabels !== "Refresh Session" ||
+  sessionStateMatrix?.expectedExpiredAlert !== "Session expired. Refresh or sign in to continue." ||
+  sessionStateMatrix?.expectedSignedOutEnabledCount !== "0" ||
+  sessionStateMatrix?.expectedSignedOutBlockedCount !== "19" ||
+  sessionStateMatrix?.expectedSignedOutRecoveryLabels !== "" ||
+  sessionStateMatrix?.expectedSignedOutAlert !== "Signed out. Sign in to continue."
+) {
+  fail("session UX matrix evidence must cover authenticated, expired, and signed-out same-site guard states");
+}
+
 if (
   sessionEvidence.cookie?.expectedSameSiteAcceptedValues !== "lax,strict" ||
   sessionEvidence.cookie?.expectedSameSiteRejectedValues !== "none" ||
@@ -668,12 +689,18 @@ for (const requiredTestSnippet of [
   "data-session-unsafe-action-blocked-reason",
   "data-session-unsafe-action-missing-csrf-operation-count",
   "data-session-unsafe-action-operation-contracts",
+  "data-session-ux-state-matrix",
+  "data-session-ux-state-matrix-status",
+  "data-session-ux-state-matrix-contract",
+  "data-session-ux-state-current",
+  "data-session-ux-state-current-blocked-count",
   "data-csrf-ux-guard-contracts",
   "data-csrf-ux-guard-blocked-reason",
   "data-generated-api-csrf-operation-contracts",
   "data-generated-api-csrf-safe-operation-contracts",
   "data-generated-api-csrf-browser-probe",
   "Session expired. Refresh or sign in to continue.",
+  "Signed out. Sign in to continue.",
   "Save Settings",
   "Log Out"
 ]) {
@@ -708,6 +735,11 @@ for (const requiredBrowserSnippet of [
   "data-session-unsafe-action-blocked-control-labels",
   "data-session-unsafe-action-blocked-reason",
   "data-session-unsafe-action-missing-csrf-operation-count",
+  "data-session-ux-state-matrix",
+  "data-session-ux-state-matrix-status",
+  "data-session-ux-state-matrix-contract",
+  "data-session-ux-state-current",
+  "data-session-ux-state-current-blocked-count",
   "data-csrf-ux-guard-contracts",
   "data-csrf-ux-guard-status",
   "data-csrf-ux-guard-required-session-status",
@@ -732,6 +764,7 @@ for (const requiredBrowserSnippet of [
   "data-generated-api-csrf-browser-probe-safe-no-csrf-header-count",
   "data-generated-api-csrf-browser-probe-safe-operation-contracts",
   "Session expired. Refresh or sign in to continue.",
+  "Signed out. Sign in to continue.",
   "Refresh Session",
   "Save Settings",
   "Sign In",
@@ -764,13 +797,21 @@ if (
   !sessionSecurityPlaywrightSpecSource.includes("getSubscription:GET:include:not-required") ||
   !sessionSecurityPlaywrightSpecSource.includes("csrf-probe-createSupportTicket") ||
   !workspaceSmokeTestSource.includes("data-session-unsafe-action-blocked-control-count\", \"18\"") ||
+  !workspaceSmokeTestSource.includes("data-session-unsafe-action-blocked-control-count\", \"19\"") ||
+  !workspaceSmokeTestSource.includes("data-session-ux-state-matrix-contract") ||
+  !workspaceSmokeTestSource.includes("data-session-ux-state-current\", \"signed_out\"") ||
   !workspaceSmokeTestSource.includes("expect(screen.getByRole(\"button\", { name: \"Refresh Session\" })).not.toBeDisabled()") ||
+  !workspaceSmokeTestSource.includes("expect(screen.getByRole(\"button\", { name: \"Refresh Session\" })).toBeDisabled()") ||
   !workspaceSmokeTestSource.includes("expect(screen.getByRole(\"button\", { name: \"Log Out\" })).toBeDisabled()") ||
   !sessionSecurityPlaywrightSpecSource.includes("data-session-unsafe-action-blocked-control-count\", \"18\"") ||
+  !sessionSecurityPlaywrightSpecSource.includes("data-session-unsafe-action-blocked-control-count\", \"19\"") ||
+  !sessionSecurityPlaywrightSpecSource.includes("data-session-ux-state-matrix-contract") ||
+  !sessionSecurityPlaywrightSpecSource.includes("data-session-ux-state-current\", \"signed_out\"") ||
   !sessionSecurityPlaywrightSpecSource.includes("await expect(page.getByRole(\"button\", { name: \"Refresh Session\" })).toBeEnabled()") ||
+  !sessionSecurityPlaywrightSpecSource.includes("await expect(page.getByRole(\"button\", { name: \"Refresh Session\" })).toBeDisabled()") ||
   !sessionSecurityPlaywrightSpecSource.includes("await expect(page.getByRole(\"button\", { name: \"Log Out\" })).toBeDisabled()")
 ) {
-  fail("same-site UX contract must allow Refresh Session as the expired-session recovery action while blocking other unsafe controls");
+  fail("same-site UX contract must allow Refresh Session only for expired recovery and block every guarded control when signed out");
 }
 
 console.log(

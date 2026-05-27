@@ -1910,6 +1910,7 @@ main 合并前必须通过：
 - [x] 后端设置并验证 secure/HttpOnly/SameSite session cookies。
 - [x] 配置 CORS。
 - [x] 配置 Web/generated client CSRF same-site request contract。
+- [x] Web CSRF/same-site session-state UX matrix 通过：`web/components/workspace-app.tsx` exposes authenticated/expired/signed_out guard evidence, `web/validation/user-routes-smoke.json` and `web/validation/generated-api-csrf-contract.json` pin the contract, and Vitest/Playwright/security smoke validate that expired sessions allow only Refresh Session while signed-out sessions block all guarded controls。
 - [x] 后端/API runtime 验证 CSRF 或 same-site strategy。
 - [x] 配置 security headers。
 - [x] 实现 upload validation。
