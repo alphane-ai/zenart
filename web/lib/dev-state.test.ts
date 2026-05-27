@@ -43,6 +43,7 @@ describe("dev workspace contracts", () => {
       "qa-report.json",
       "safety-policy-report.json",
       "provenance.json",
+      "ai-content-disclaimer.json",
       "ppt-ready-metadata.json",
       "assets/"
     ]);
@@ -147,8 +148,8 @@ describe("dev workspace contracts", () => {
       downloadArtifactFormat: "zip",
       manifestCreatedAt: manifest.created_at,
       manifestItemCount: 2,
-      manifestRequiredOutputCount: 6,
-      requiredOutputCount: 6,
+      manifestRequiredOutputCount: 7,
+      requiredOutputCount: 7,
       missingRequiredOutputs: [],
       manifestOutputStatuses: [
         {
@@ -169,6 +170,11 @@ describe("dev workspace contracts", () => {
         {
           name: "provenance.json",
           zipPayloadName: "provenance.json",
+          present: true
+        },
+        {
+          name: "ai-content-disclaimer.json",
+          zipPayloadName: "ai-content-disclaimer.json",
           present: true
         },
         {
@@ -196,12 +202,13 @@ describe("dev workspace contracts", () => {
       pptSafeArea: "72/96/72/96",
       pptThemeFont: "Inter, Arial, sans-serif",
       handoffChecklistCount: 5,
-      zipPayloadCount: 6,
+      zipPayloadCount: 7,
       zipPayloadNames: [
         "manifest.json",
         "qa-report.json",
         "safety-policy-report.json",
         "provenance.json",
+        "ai-content-disclaimer.json",
         "ppt-ready-metadata.json",
         "assets/README.txt"
       ],
@@ -210,10 +217,11 @@ describe("dev workspace contracts", () => {
         "qa-report.json",
         "safety-policy-report.json",
         "provenance.json",
+        "ai-content-disclaimer.json",
         "ppt-ready-metadata.json",
         "assets/README.txt"
       ],
-      requiredZipPayloadCount: 6,
+      requiredZipPayloadCount: 7,
       requiredZipPayloadStatuses: [
         {
           name: "manifest.json",
@@ -232,6 +240,10 @@ describe("dev workspace contracts", () => {
           present: true
         },
         {
+          name: "ai-content-disclaimer.json",
+          present: true
+        },
+        {
           name: "ppt-ready-metadata.json",
           present: true
         },
@@ -241,7 +253,7 @@ describe("dev workspace contracts", () => {
         }
       ],
       zipPayloadParityStatus: "pass",
-      zipPayloadParityRatio: "6/6",
+      zipPayloadParityRatio: "7/7",
       missingZipPayloadNames: [],
       workflowId: "generic-stage0-export",
       workflowFixtureId: "none",
@@ -251,6 +263,7 @@ describe("dev workspace contracts", () => {
       workflowPayloadStatuses: [],
       workflowMetadataPayloadPresent: false,
       workflowTraceProvenancePayloadPresent: false,
+      aiContentDisclaimerPayloadPresent: true,
       workflowProviderMetadataPresent: false,
       workflowPromptSpecMetadataPresent: false,
       workflowSkillMetadataPresent: false,
@@ -293,6 +306,7 @@ describe("dev workspace contracts", () => {
       "qa-report.json",
       "safety-policy-report.json",
       "provenance.json",
+      "ai-content-disclaimer.json",
       "ppt-ready-metadata.json",
       "assets/README.txt",
       "assets/hero_product_ad.png",
@@ -309,13 +323,14 @@ describe("dev workspace contracts", () => {
       scenario: "manifest-required-output-to-downloadable-zip-payloads",
       exportId: "export-zip-001",
       packageId: "pkg-004",
-      manifestRequiredOutputCount: 13,
-      expectedPayloadCount: 13,
+      manifestRequiredOutputCount: 14,
+      expectedPayloadCount: 14,
       requiredBaselinePayloadNames: [
         "manifest.json",
         "qa-report.json",
         "safety-policy-report.json",
         "provenance.json",
+        "ai-content-disclaimer.json",
         "ppt-ready-metadata.json",
         "assets/README.txt"
       ],
@@ -324,6 +339,7 @@ describe("dev workspace contracts", () => {
         "qa-report.json",
         "safety-policy-report.json",
         "provenance.json",
+        "ai-content-disclaimer.json",
         "ppt-ready-metadata.json",
         "assets/README.txt",
         "assets/hero_product_ad.png",
@@ -347,6 +363,7 @@ describe("dev workspace contracts", () => {
       ],
       metadataPayloadPresent: true,
       traceProvenancePayloadPresent: true,
+      aiContentDisclaimerPayloadPresent: true,
       assetsPayloadPresent: true,
       failures: []
     });
@@ -387,9 +404,9 @@ describe("dev workspace contracts", () => {
       metadataStatus: "pass",
       zipPayloadStatus: "pass",
       downloadHandoffStatus: "pass",
-      manifestRequiredOutputCount: 13,
-      metadataZipPayloadCount: 13,
-      zipExpectedPayloadCount: 13,
+      manifestRequiredOutputCount: 14,
+      metadataZipPayloadCount: 14,
+      zipExpectedPayloadCount: 14,
       metadataMissingZipPayloadCount: 0,
       zipMissingPayloadCount: 0,
       requiredZipPayloadParityStatus: "pass",
@@ -419,7 +436,7 @@ describe("dev workspace contracts", () => {
     expect(buildPackageExportMetadataEvidence(record)).toMatchObject({
       status: "fail",
       downloadArtifactStatus: "fail",
-      missingRequiredOutputs: ["qa-report.json", "safety-policy-report.json", "provenance.json", "ppt-ready-metadata.json", "assets/"],
+      missingRequiredOutputs: ["qa-report.json", "safety-policy-report.json", "provenance.json", "ai-content-disclaimer.json", "ppt-ready-metadata.json", "assets/"],
       missingZipPayloadNames: [],
       itemCount: 0,
       provenanceCount: 0,
@@ -943,7 +960,7 @@ describe("dev workspace contracts", () => {
       taxonomyCount: 4,
       packagedTaxonomyCount: 4,
       readyZipExportCount: 1,
-      requiredOutputCount: 13,
+      requiredOutputCount: 14,
       missingRequiredOutputs: [],
       qaTaxonomyStatus: "pass",
       safetyStatus: "pass",

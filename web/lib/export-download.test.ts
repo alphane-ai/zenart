@@ -105,6 +105,15 @@ describe("reference upload and export download integration", () => {
     const manifest = JSON.parse(await zip.file("manifest.json")!.async("string")) as ExportRecord["manifest"];
     const qaReport = JSON.parse(await zip.file("qa-report.json")!.async("string")) as ExportRecord["qaReport"];
     const safetyReport = JSON.parse(await zip.file("safety-policy-report.json")!.async("string")) as ExportRecord["safetyReport"];
+    const aiContentDisclaimer = JSON.parse(await zip.file("ai-content-disclaimer.json")!.async("string")) as {
+      schema_version: string;
+      export_id: string;
+      package_id: string;
+      generation_mode: string;
+      responsibility_notice: string;
+      policy_routes: string[];
+      safety_status: string;
+    };
     const pptReadyMetadata = JSON.parse(await zip.file("ppt-ready-metadata.json")!.async("string")) as ExportRecord["manifest"]["ppt_ready_metadata"];
     const provenance = JSON.parse(await zip.file("provenance.json")!.async("string")) as {
       export_id: string;
@@ -183,6 +192,15 @@ describe("reference upload and export download integration", () => {
       status: "pass",
       enforcementStages: ["brief", "provider_request", "provider_response", "qa", "export"],
       findings: []
+    });
+    expect(aiContentDisclaimer).toMatchObject({
+      schema_version: "stage0.rev2.ai-content-disclaimer",
+      export_id: record.id,
+      package_id: record.manifest.package_id,
+      generation_mode: "deterministic-local-alpha",
+      responsibility_notice: expect.stringContaining("Review rights, claims, likeness, and brand usage"),
+      policy_routes: ["/legal/terms", "/legal/acceptable-use", "/legal/ip-complaints"],
+      safety_status: "pass"
     });
     expect(pptReadyMetadata).toMatchObject({
       schema_version: "stage0.rev2.ppt-ready-metadata",

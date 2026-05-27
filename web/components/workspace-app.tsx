@@ -1104,6 +1104,7 @@ function ExportView({
                     data-package-export-workflow-zip-payload-count={metadataEvidence.workflowZipPayloadCount}
                     data-package-export-workflow-metadata-payload-present={String(metadataEvidence.workflowMetadataPayloadPresent)}
                     data-package-export-workflow-trace-provenance-payload-present={String(metadataEvidence.workflowTraceProvenancePayloadPresent)}
+                    data-package-export-ai-content-disclaimer-payload-present={String(metadataEvidence.aiContentDisclaimerPayloadPresent)}
                     data-package-export-workflow-provider-metadata-present={String(metadataEvidence.workflowProviderMetadataPresent)}
                     data-package-export-workflow-prompt-spec-metadata-present={String(metadataEvidence.workflowPromptSpecMetadataPresent)}
                     data-package-export-workflow-skill-metadata-present={String(metadataEvidence.workflowSkillMetadataPresent)}
@@ -1130,6 +1131,7 @@ function ExportView({
                       <span>{metadataEvidence.workflowZipPayloadCount}/{metadataEvidence.workflowRequiredFileCount} workflow payloads</span>
                       <span>{metadataEvidence.workflowMetadataProvider} provider metadata</span>
                       <span>{metadataEvidence.workflowMetadataModel} model metadata</span>
+                      <span>{metadataEvidence.aiContentDisclaimerPayloadPresent ? "AI disclaimer present" : "AI disclaimer missing"}</span>
                     </div>
                     <p>
                       ZIP payload contract: {metadataEvidence.zipPayloadNames.join(", ")}.
@@ -1184,6 +1186,7 @@ function ExportView({
                     data-export-zip-payload-workflow-payloads={zipPayloadSmoke.workflowPayloadNames.join(",")}
                     data-export-zip-payload-metadata-present={String(zipPayloadSmoke.metadataPayloadPresent)}
                     data-export-zip-payload-trace-provenance-present={String(zipPayloadSmoke.traceProvenancePayloadPresent)}
+                    data-export-zip-payload-ai-content-disclaimer-present={String(zipPayloadSmoke.aiContentDisclaimerPayloadPresent)}
                     data-export-zip-payload-assets-present={String(zipPayloadSmoke.assetsPayloadPresent)}
                     data-export-zip-payload-failures={zipPayloadSmoke.failures.join(",")}
                   >

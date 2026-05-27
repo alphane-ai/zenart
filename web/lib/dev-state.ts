@@ -40,6 +40,7 @@ export const requiredExportPackageOutputs = [
   "qa-report.json",
   "safety-policy-report.json",
   "provenance.json",
+  "ai-content-disclaimer.json",
   "ppt-ready-metadata.json",
   "assets/"
 ] as const;
@@ -72,6 +73,19 @@ export const buildExportWorkflowMetadataPayload = (record: ExportRecord, outputN
   prompt_spec: record.manifest.workflow_acceptance?.strategy_taxonomy ?? [],
   skill: record.manifest.workflow_acceptance?.workflow_id ?? "generic-stage0-export",
   safety: record.safetyReport.status
+});
+
+export const buildAiContentDisclaimerPayload = (record: ExportRecord) => ({
+  schema_version: "stage0.rev2.ai-content-disclaimer",
+  export_id: record.id,
+  package_id: record.manifest.package_id,
+  generated_by: "zenart-web-dev-client",
+  generation_mode: "deterministic-local-alpha",
+  applies_to: "export-package",
+  responsibility_notice:
+    "Local alpha previews use deterministic generation evidence unless a real provider is explicitly configured. Review rights, claims, likeness, and brand usage before sharing exported assets.",
+  policy_routes: ["/legal/terms", "/legal/acceptable-use", "/legal/ip-complaints"],
+  safety_status: record.safetyReport.status
 });
 
 export const ecommerceGrowthWorkflowAcceptance = {
@@ -567,6 +581,7 @@ export const buildPackageExportMetadataEvidence = (record: ExportRecord): Packag
   ).length ?? 0;
   const workflowMetadataPayloadPresent = zipPayloadNames.includes("metadata.json");
   const workflowTraceProvenancePayloadPresent = zipPayloadNames.includes("trace_provenance.json");
+  const aiContentDisclaimerPayloadPresent = zipPayloadNames.includes("ai-content-disclaimer.json");
   const workflowProviderMetadataPresent = workflowMetadataPayloadPresent && Boolean(record.manifest.workflow_acceptance?.workflow_id);
   const workflowPromptSpecMetadataPresent =
     workflowMetadataPayloadPresent && (record.manifest.workflow_acceptance?.strategy_taxonomy.length ?? 0) > 0;
@@ -588,6 +603,7 @@ export const buildPackageExportMetadataEvidence = (record: ExportRecord): Packag
     zipPayloadNames.includes("qa-report.json") &&
     zipPayloadNames.includes("safety-policy-report.json") &&
     zipPayloadNames.includes("provenance.json") &&
+    aiContentDisclaimerPayloadPresent &&
     zipPayloadNames.includes("ppt-ready-metadata.json") &&
     zipPayloadNames.includes("assets/README.txt")
       ? "pass"
@@ -653,6 +669,7 @@ export const buildPackageExportMetadataEvidence = (record: ExportRecord): Packag
     workflowPayloadStatuses,
     workflowMetadataPayloadPresent,
     workflowTraceProvenancePayloadPresent,
+    aiContentDisclaimerPayloadPresent,
     workflowProviderMetadataPresent,
     workflowPromptSpecMetadataPresent,
     workflowSkillMetadataPresent,
@@ -681,6 +698,7 @@ export const buildExportZipPayloadSmokeEvidence = (record: ExportRecord): Export
   ) ?? [];
   const metadataPayloadPresent = expectedPayloadNames.includes("metadata.json");
   const traceProvenancePayloadPresent = expectedPayloadNames.includes("trace_provenance.json");
+  const aiContentDisclaimerPayloadPresent = expectedPayloadNames.includes("ai-content-disclaimer.json");
   const assetsPayloadPresent = expectedPayloadNames.includes("assets/README.txt");
   const failures: ExportZipPayloadSmokeEvidence["failures"] = [];
 
@@ -699,6 +717,9 @@ export const buildExportZipPayloadSmokeEvidence = (record: ExportRecord): Export
   if (!assetsPayloadPresent) {
     failures.push("assets-readme");
   }
+  if (!aiContentDisclaimerPayloadPresent) {
+    failures.push("ai-content-disclaimer");
+  }
 
   return {
     schema_version: "stage0.rev2.export-zip-payload-smoke",
@@ -714,6 +735,7 @@ export const buildExportZipPayloadSmokeEvidence = (record: ExportRecord): Export
     workflowPayloadNames,
     metadataPayloadPresent,
     traceProvenancePayloadPresent,
+    aiContentDisclaimerPayloadPresent,
     assetsPayloadPresent,
     failures
   };

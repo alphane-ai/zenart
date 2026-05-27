@@ -429,8 +429,8 @@ if (packageExportEvidence.expectedDownloadArtifactStatus !== "pass") {
 if (packageExportEvidence.expectedMissingZipPayloadCount !== "0") {
   fail("package/export metadata evidence must assert zero missing ZIP payloads");
 }
-if (packageExportEvidence.minimumZipPayloadCount !== "6") {
-  fail("package/export metadata evidence must assert at least the six required ZIP payloads");
+if (packageExportEvidence.minimumZipPayloadCount !== "7") {
+  fail("package/export metadata evidence must assert at least the seven required ZIP payloads");
 }
 if (
   packageExportEvidence.expectedWorkflowMetadata?.generatedBy !== "zenart-web-dev-client" ||
@@ -467,6 +467,7 @@ if (
   exportZipPayloadEvidence.expectedMissingPayloadCount !== "0" ||
   exportZipPayloadEvidence.expectedMetadataPayloadPresent !== "true" ||
   exportZipPayloadEvidence.expectedTraceProvenancePayloadPresent !== "true" ||
+  exportZipPayloadEvidence.expectedAiContentDisclaimerPayloadPresent !== "true" ||
   exportZipPayloadEvidence.expectedAssetsPayloadPresent !== "true" ||
   exportZipPayloadEvidence.sharedPayloadPlanner !== "buildDownloadableExportZipPayloadNames" ||
   exportZipPayloadEvidence.scenario !== "manifest-required-output-to-downloadable-zip-payloads"
@@ -507,6 +508,7 @@ for (const expectedSnippet of [
   "manifest-required-output-to-downloadable-zip-payloads",
   "metadataPayloadPresent",
   "traceProvenancePayloadPresent",
+  "aiContentDisclaimerPayloadPresent",
   "assetsPayloadPresent"
 ]) {
   if (!devStateSource.includes(expectedSnippet) && !componentSource.includes(expectedSnippet)) {
@@ -659,6 +661,7 @@ for (const requiredSnippet of [
   "data-package-export-workflow-zip-payload-count",
   "data-package-export-workflow-metadata-payload-present",
   "data-package-export-workflow-trace-provenance-payload-present",
+  "data-package-export-ai-content-disclaimer-payload-present",
   "data-package-export-workflow-provider-metadata-present",
   "data-package-export-workflow-prompt-spec-metadata-present",
   "data-package-export-workflow-skill-metadata-present",

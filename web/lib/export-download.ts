@@ -2,7 +2,11 @@
 
 import JSZip from "jszip";
 import { ExportRecord } from "./contracts";
-import { buildDownloadableExportZipPayloadNames, buildExportWorkflowMetadataPayload } from "./dev-state";
+import {
+  buildAiContentDisclaimerPayload,
+  buildDownloadableExportZipPayloadNames,
+  buildExportWorkflowMetadataPayload
+} from "./dev-state";
 
 export const buildExportPackageBlob = async (record: ExportRecord) => {
   if (record.format === "pdf-placeholder") {
@@ -29,6 +33,7 @@ export const buildExportPackageBlob = async (record: ExportRecord) => {
   zip.file("manifest.json", JSON.stringify(record.manifest, null, 2));
   zip.file("qa-report.json", JSON.stringify(record.qaReport, null, 2));
   zip.file("safety-policy-report.json", JSON.stringify(record.safetyReport, null, 2));
+  zip.file("ai-content-disclaimer.json", JSON.stringify(buildAiContentDisclaimerPayload(record), null, 2));
   zip.file("ppt-ready-metadata.json", JSON.stringify(record.manifest.ppt_ready_metadata, null, 2));
   zip.file(
     "provenance.json",

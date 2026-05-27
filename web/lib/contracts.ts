@@ -458,6 +458,7 @@ export interface PackageExportMetadataEvidence {
   }>;
   workflowMetadataPayloadPresent: boolean;
   workflowTraceProvenancePayloadPresent: boolean;
+  aiContentDisclaimerPayloadPresent: boolean;
   workflowProviderMetadataPresent: boolean;
   workflowPromptSpecMetadataPresent: boolean;
   workflowSkillMetadataPresent: boolean;
@@ -484,12 +485,14 @@ export interface ExportZipPayloadSmokeEvidence {
   workflowPayloadNames: string[];
   metadataPayloadPresent: boolean;
   traceProvenancePayloadPresent: boolean;
+  aiContentDisclaimerPayloadPresent: boolean;
   assetsPayloadPresent: boolean;
   failures: Array<
     | "baseline-payloads"
     | "manifest-required-payloads"
     | "workflow-metadata"
     | "trace-provenance"
+    | "ai-content-disclaimer"
     | "assets-readme"
   >;
 }
