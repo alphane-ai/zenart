@@ -1,0 +1,35 @@
+{
+  "id": "reg-failed-task-retry-task-export-489",
+  "source_feedback_id": "task-export-489",
+  "source_kind": "failed_task",
+  "workflow_id": "wf-790",
+  "skill_version": "skill-export-pack@1.8.2",
+  "failure_mode": "failed_task_retry_cancel",
+  "severity": "medium",
+  "gate": "skill_canary",
+  "expected_assertions": [
+    "submit_decision == submit_ready",
+    "idempotency_key_reused == true",
+    "reserved_credit_released_exactly_once == true",
+    "manifest_and_qa_report_evidence_present == true",
+    "original_failed_export_immutable == true",
+    "immutable_audit_ref == au-011"
+  ],
+  "bad_sample": {
+    "task_id": "task-export-489",
+    "queue_id": "q-export",
+    "support_ticket_id": "sup-2204",
+    "trace_id": "tr-1019",
+    "export_id": "ex-901",
+    "requested_action": "retry",
+    "idempotency_key": "retry:task-export-489:sup-2204:manifest-missing",
+    "quota_effect": "reserved_credit_released",
+    "signal": "Support-authorized export retry must not create duplicate quota settlement or close without manifest and QA-report evidence.",
+    "admin_label": "failed_task_retry_idempotency"
+  },
+  "release_block": {
+    "canary_metric": "cm-012",
+    "audit_ref": "au-011",
+    "rollback_target": "skill-export-pack@1.8.0"
+  }
+}

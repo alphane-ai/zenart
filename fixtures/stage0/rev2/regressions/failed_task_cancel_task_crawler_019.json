@@ -1,0 +1,35 @@
+{
+  "id": "reg-failed-task-cancel-task-crawler-019",
+  "source_feedback_id": "task-crawler-019",
+  "source_kind": "failed_task",
+  "workflow_id": "wf-812",
+  "skill_version": "skill-brand-kit@2.4.0",
+  "failure_mode": "failed_task_retry_cancel",
+  "severity": "high",
+  "gate": "skill_canary",
+  "expected_assertions": [
+    "submit_decision == review_required",
+    "second_review_required_before_cancel_closure == true",
+    "crawler_import_state == cancelled",
+    "crawler_derived_activation_blocked == true",
+    "ownership_and_robots_evidence_pending == true",
+    "immutable_audit_ref == au-002"
+  ],
+  "bad_sample": {
+    "task_id": "task-crawler-019",
+    "queue_id": "q-crawler",
+    "support_ticket_id": "sup-2212",
+    "finding_id": "cf-118",
+    "governance_workflow_id": "cg-501",
+    "requested_action": "cancel",
+    "idempotency_key": "cancel:task-crawler-019:sup-2212:ownership-missing",
+    "quota_effect": "none",
+    "signal": "Crawler cancellation must remain in review and block activation until source ownership, robots, takedown, and audit evidence are complete.",
+    "admin_label": "failed_task_cancel_second_review"
+  },
+  "release_block": {
+    "canary_metric": "cm-014",
+    "audit_ref": "au-002",
+    "rollback_target": "skill-brand-kit@2.4.1"
+  }
+}

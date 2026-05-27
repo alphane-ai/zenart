@@ -110,6 +110,7 @@ export default async function QueuesPage() {
             { key: "rbac", header: "RBAC Decision", render: (row) => <StatusBadge value={row.rbacDecision === "allowed" ? "approved" : "blocked"} label={row.rbacDecision} /> },
             { key: "idempotency", header: "Idempotency Key", render: (row) => <span className="mono">{row.idempotencyKey}</span> },
             { key: "quota", header: "Quota Effect", render: (row) => row.quotaEffect },
+            { key: "regression", header: "Regression Fixture", render: (row) => row.regressionFixtureRef },
             { key: "closure", header: "Closure Evidence", render: (row) => row.closureEvidenceRefs.join(", ") },
             { key: "ticket", header: "Support Ticket", render: (row) => <span className="mono">{row.supportTicketId}</span> },
             { key: "trace", header: "Trace", render: (row) => <span className="mono">{row.traceId}</span> },

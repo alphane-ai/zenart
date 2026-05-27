@@ -292,7 +292,7 @@ export type RegressionFixtureStatus =
 export type RegressionFixture = {
   id: string;
   sourceFeedbackId: string;
-  sourceKind: "admin_bad_sample" | "support_ticket" | "qa_warning" | "export_failure";
+  sourceKind: "admin_bad_sample" | "support_ticket" | "qa_warning" | "export_failure" | "failed_task";
   fixturePath: string;
   workflowId: string;
   skillVersionId: string;
@@ -301,6 +301,7 @@ export type RegressionFixture = {
     | "structured_text_readability"
     | "export_manifest_completeness"
     | "crawler_takedown_activation"
+    | "failed_task_retry_cancel"
     | "safety_policy_miss";
   severity: RiskLevel;
   status: RegressionFixtureStatus;
@@ -612,6 +613,7 @@ export type FailedTaskControl = {
   rbacDecision: "allowed" | "denied" | "second_review_required";
   idempotencyKey: string;
   quotaEffect: "none" | "refund_pending" | "refund_on_cancel" | "reserved_credit_released";
+  regressionFixtureRef: string;
   closureEvidenceRefs: string[];
   operatorRunbook: string;
   auditRef: string;

@@ -1316,6 +1316,46 @@ export const regressionFixtures: RegressionFixture[] = [
       "A support-linked export failure became a regression fixture so future release gates cannot pass on visual output alone."
   },
   {
+    id: "reg-failed-task-retry-task-export-489",
+    sourceFeedbackId: "task-export-489",
+    sourceKind: "failed_task",
+    fixturePath: "fixtures/stage0/rev2/regressions/failed_task_retry_task_export_489.json",
+    workflowId: "wf-790",
+    skillVersionId: "sv-182",
+    failureMode: "failed_task_retry_cancel",
+    severity: "medium",
+    status: "converted",
+    evalSuiteId: "es-stage0-export",
+    requiredGate: "skill_canary",
+    expectedAssertion:
+      "Failed export task retries must reuse the support-linked idempotency key, attach manifest and QA evidence, release reserved credit exactly once, and keep the original failed export immutable.",
+    owner: "ops-admin",
+    linkedCanaryMetric: "cm-012",
+    linkedAuditRef: "au-011",
+    reviewerRationale:
+      "The retry path was promoted from admin dead-letter evidence into a regression fixture so future export-pack canaries cannot reintroduce duplicate quota settlement or missing QA-report closure."
+  },
+  {
+    id: "reg-failed-task-cancel-task-crawler-019",
+    sourceFeedbackId: "task-crawler-019",
+    sourceKind: "failed_task",
+    fixturePath: "fixtures/stage0/rev2/regressions/failed_task_cancel_task_crawler_019.json",
+    workflowId: "wf-812",
+    skillVersionId: "sv-240",
+    failureMode: "failed_task_retry_cancel",
+    severity: "high",
+    status: "eval_blocking",
+    evalSuiteId: "es-stage0-crawler",
+    requiredGate: "skill_canary",
+    expectedAssertion:
+      "Crawler task cancellation must require second review, preserve the cancelled import state, block crawler-derived activation, and keep source ownership evidence pending until support and audit refs are complete.",
+    owner: "trust-admin",
+    linkedCanaryMetric: "cm-014",
+    linkedAuditRef: "au-002",
+    reviewerRationale:
+      "The crawler cancel sample is eval-blocking because a support-visible cancellation could otherwise be retried into active crawler-derived prompt material before ownership, robots, and takedown review evidence are complete."
+  },
+  {
     id: "reg-crawler-takedown-sup-2212",
     sourceFeedbackId: "sup-2212",
     sourceKind: "support_ticket",
@@ -2200,6 +2240,7 @@ export const failedTaskControls: FailedTaskControl[] = [
     rbacDecision: "denied",
     idempotencyKey: "hold:task-brief-441:sup-2201:au-001",
     quotaEffect: "refund_pending",
+    regressionFixtureRef: "none-safety-hold",
     closureEvidenceRefs: ["sup-2201", "tr-1004", "ex-887", "au-001", "au-004"],
     operatorRunbook: "Do not retry. Keep the task blocked, preserve the QA report, and apply audited quota credit only after support review.",
     auditRef: "au-001"
@@ -2210,7 +2251,7 @@ export const failedTaskControls: FailedTaskControl[] = [
     userId: "usr-318",
     projectId: "proj-790",
     traceId: "tr-1019",
-    supportTicketId: "sup-2209",
+    supportTicketId: "sup-2204",
     status: "failed",
     retryCount: 1,
     maxRetries: 3,
@@ -2227,6 +2268,7 @@ export const failedTaskControls: FailedTaskControl[] = [
     rbacDecision: "allowed",
     idempotencyKey: "retry:task-export-489:sup-2204:manifest-missing",
     quotaEffect: "reserved_credit_released",
+    regressionFixtureRef: "fixtures/stage0/rev2/regressions/failed_task_retry_task_export_489.json",
     closureEvidenceRefs: ["task-export-489", "sup-2204", "tr-1019", "ex-901", "au-011"],
     operatorRunbook: "Attach ticket sup-2204, verify QA warning evidence, retry once, and write the resulting audit ref before closure.",
     auditRef: "au-011"
@@ -2254,6 +2296,7 @@ export const failedTaskControls: FailedTaskControl[] = [
     rbacDecision: "second_review_required",
     idempotencyKey: "cancel:task-crawler-019:sup-2212:ownership-missing",
     quotaEffect: "none",
+    regressionFixtureRef: "fixtures/stage0/rev2/regressions/failed_task_cancel_task_crawler_019.json",
     closureEvidenceRefs: ["task-crawler-019", "sup-2212", "ab-309", "q-crawler", "au-002"],
     operatorRunbook: "Keep the source import cancelled, request ownership proof, and reopen only after crawler review evidence is attached.",
     auditRef: "au-002"

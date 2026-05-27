@@ -138,6 +138,7 @@ test("admin queue fixtures expose retry idempotency, RBAC, and quota effects", (
     "RBAC Decision",
     "Idempotency Key",
     "Quota Effect",
+    "Regression Fixture",
     "Closure Evidence"
   ]) {
     assert.match(queuesPage, new RegExp(token));
@@ -150,6 +151,7 @@ test("admin queue fixtures expose retry idempotency, RBAC, and quota effects", (
     "rbacDecision",
     "idempotencyKey",
     "quotaEffect",
+    "regressionFixtureRef",
     "closureEvidenceRefs"
   ]) {
     assert.match(fixtures, new RegExp(token));
@@ -445,7 +447,10 @@ test("admin feedback page surfaces bad samples converted to regression fixtures"
     "brand_similarity_fb_203",
     "mobile_readability_fb_211",
     "export_manifest_sup_2204",
+    "failed_task_retry_task_export_489",
+    "failed_task_cancel_task_crawler_019",
     "admin_bad_sample",
+    "failed_task",
     "requiredGate",
     "linkedCanaryMetric",
     "reviewerRationale"

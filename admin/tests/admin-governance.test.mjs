@@ -666,7 +666,8 @@ test("admin bad samples convert into regression fixtures before release gates pa
   const sourceIds = new Set([
     ...feedbackItems.map((item) => item.id),
     ...supportTickets.map((ticket) => ticket.id),
-    ...exportJobs.map((job) => job.id)
+    ...exportJobs.map((job) => job.id),
+    ...failedTaskControls.map((task) => task.id)
   ]);
   const statuses = new Set(regressionFixtures.map((fixture) => fixture.status));
   const fixturePaths = new Set(regressionFixtures.map((fixture) => fixture.fixturePath));
@@ -680,6 +681,10 @@ test("admin bad samples convert into regression fixtures before release gates pa
   assert.ok(
     regressionFixtures.some((fixture) => fixture.requiredGate === "skill_canary"),
     "regression fixtures must gate skill canary advancement"
+  );
+  assert.ok(
+    regressionFixtures.some((fixture) => fixture.sourceKind === "failed_task"),
+    "failed task retry/cancel bad samples must be represented as regression fixtures"
   );
 
   for (const fixture of regressionFixtures) {
@@ -781,6 +786,7 @@ test("analytics reports cover product funnel and operational go/no-go metrics", 
 test("queue and failed task controls gate retry and cancel with audit evidence", () => {
   assert.ok(queueHealth.length > 0, "queue dashboard needs queue fixtures");
   assert.ok(failedTaskControls.length > 0, "failed task retry/cancel needs fixtures");
+  const fixturePaths = new Set(regressionFixtures.map((fixture) => fixture.fixturePath));
 
   for (const queue of queueHealth) {
     assert.ok(queue.retryPolicy.length > 40, `${queue.id} needs retry policy`);
@@ -811,6 +817,7 @@ test("queue and failed task controls gate retry and cancel with audit evidence",
     assert.ok(task.schemaVersion.length > 0, `${task.id} needs schema version`);
     assert.ok(roleOrder.has(task.requestedByRole), `${task.id} needs requesting role`);
     assert.ok(task.idempotencyKey.startsWith(`${task.requestedAction}:${task.id}:`), `${task.id} needs stable action/task idempotency key`);
+    assert.ok(task.regressionFixtureRef.length > 10, `${task.id} needs explicit regression fixture state`);
     assert.ok(task.closureEvidenceRefs.length >= 4, `${task.id} needs closure evidence refs`);
     assert.ok(task.operatorRunbook.length > 60, `${task.id} needs operator runbook`);
 
@@ -838,11 +845,13 @@ test("queue and failed task controls gate retry and cancel with audit evidence",
     if (task.requestedAction === "retry") {
       assert.equal(task.actionEligibility, "eligible", `${task.id} retry must be eligible`);
       assert.notEqual(task.quotaEffect, "none", `${task.id} retry needs explicit quota handling`);
+      assert.ok(fixturePaths.has(task.regressionFixtureRef), `${task.id} retry must link a converted regression fixture`);
     }
 
     if (task.requestedAction === "cancel") {
       assert.notEqual(task.actionEligibility, "blocked", `${task.id} cancel must remain actionable`);
       assert.match(task.rbacDecision, /allowed|second_review_required/, `${task.id} cancel needs RBAC path`);
+      assert.ok(fixturePaths.has(task.regressionFixtureRef), `${task.id} cancel must link a converted regression fixture`);
     }
 
     if (task.requestedAction === "hold") {
@@ -850,6 +859,69 @@ test("queue and failed task controls gate retry and cancel with audit evidence",
       assert.notEqual(task.rbacDecision, "allowed", `${task.id} blocked hold cannot be allowed`);
     }
   }
+});
+
+test("failed task retry and cancel samples are durable regression fixtures", () => {
+  const decisionsByTask = new Map(buildFailedTaskRuntimeDecisions(failedTaskControls).map((decision) => [decision.taskId, decision]));
+
+  const retryTask = failedTaskControls.find((task) => task.id === "task-export-489");
+  const cancelTask = failedTaskControls.find((task) => task.id === "task-crawler-019");
+  assert.ok(retryTask, "retry task fixture is missing");
+  assert.ok(cancelTask, "cancel task fixture is missing");
+
+  const retryRegression = regressionFixtures.find((fixture) => fixture.sourceFeedbackId === retryTask.id);
+  const cancelRegression = regressionFixtures.find((fixture) => fixture.sourceFeedbackId === cancelTask.id);
+  assert.ok(retryRegression, "failed export retry must have a regression fixture inventory entry");
+  assert.ok(cancelRegression, "crawler cancel must have a regression fixture inventory entry");
+
+  assert.equal(retryTask.regressionFixtureRef, retryRegression.fixturePath);
+  assert.equal(cancelTask.regressionFixtureRef, cancelRegression.fixturePath);
+  assert.equal(retryRegression.sourceKind, "failed_task");
+  assert.equal(cancelRegression.sourceKind, "failed_task");
+  assert.equal(retryRegression.failureMode, "failed_task_retry_cancel");
+  assert.equal(cancelRegression.failureMode, "failed_task_retry_cancel");
+  assert.equal(cancelRegression.status, "eval_blocking", "crawler cancel regression must block canary activation");
+
+  const retryFixture = JSON.parse(readFileSync(new URL(retryRegression.fixturePath, repoRoot), "utf8"));
+  const cancelFixture = JSON.parse(readFileSync(new URL(cancelRegression.fixturePath, repoRoot), "utf8"));
+  const retryDecision = decisionsByTask.get(retryTask.id);
+  const cancelDecision = decisionsByTask.get(cancelTask.id);
+
+  assert.equal(retryFixture.source_kind, "failed_task");
+  assert.equal(cancelFixture.source_kind, "failed_task");
+  assert.equal(retryFixture.bad_sample.task_id, retryTask.id);
+  assert.equal(cancelFixture.bad_sample.task_id, cancelTask.id);
+  assert.equal(retryFixture.bad_sample.support_ticket_id, retryTask.supportTicketId);
+  assert.equal(cancelFixture.bad_sample.support_ticket_id, cancelTask.supportTicketId);
+  assert.equal(retryFixture.bad_sample.idempotency_key, retryTask.idempotencyKey);
+  assert.equal(cancelFixture.bad_sample.idempotency_key, cancelTask.idempotencyKey);
+  assert.equal(retryFixture.bad_sample.quota_effect, retryTask.quotaEffect);
+  assert.equal(cancelFixture.bad_sample.quota_effect, cancelTask.quotaEffect);
+  assert.equal(retryDecision.submitDecision, "submit_ready");
+  assert.equal(cancelDecision.submitDecision, "review_required");
+
+  assert.ok(
+    retryFixture.expected_assertions.includes("idempotency_key_reused == true"),
+    "retry regression must assert idempotency reuse"
+  );
+  assert.ok(
+    retryFixture.expected_assertions.includes("reserved_credit_released_exactly_once == true"),
+    "retry regression must assert one-time quota settlement"
+  );
+  assert.ok(
+    retryFixture.expected_assertions.includes("manifest_and_qa_report_evidence_present == true"),
+    "retry regression must assert manifest and QA evidence"
+  );
+  assert.ok(
+    cancelFixture.expected_assertions.includes("second_review_required_before_cancel_closure == true"),
+    "cancel regression must assert second review"
+  );
+  assert.ok(
+    cancelFixture.expected_assertions.includes("crawler_derived_activation_blocked == true"),
+    "cancel regression must assert crawler activation block"
+  );
+  assert.equal(retryFixture.release_block.audit_ref, retryTask.auditRef);
+  assert.equal(cancelFixture.release_block.audit_ref, cancelTask.auditRef);
 });
 
 test("failed task runtime submit gates preserve retry, cancel, hold, RBAC, and audit outcomes", () => {
