@@ -469,3 +469,111 @@ func TestS3StoreCleanupExpiredListsMarkersAndDeletesExpiredObjects(t *testing.T)
 		}
 	}
 }
+
+func TestHTTPProbeSignsS3CompatiblePathStyleBucketCheck(t *testing.T) {
+	var gotPath string
+	var gotAuth string
+	var gotHash string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotPath = r.URL.Path
+		gotAuth = r.Header.Get("Authorization")
+		gotHash = r.Header.Get("X-Amz-Content-Sha256")
+		if r.Method != http.MethodHead {
+			t.Fatalf("method = %s, want HEAD", r.Method)
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	probe := NewHTTPProbe(server.Client(), config.ObjectStorageConfig{
+		Provider:       "s3-compatible",
+		Endpoint:       server.URL,
+		Region:         "us-east-1",
+		Bucket:         "zenart-test",
+		AccessKey:      "access",
+		SecretKey:      "secret",
+		ForcePathStyle: true,
+	})
+
+	if err := probe.Check(context.Background()); err != nil {
+		t.Fatalf("Check() error = %v", err)
+	}
+	if gotPath != "/zenart-test" {
+		t.Fatalf("bucket probe path = %q, want path-style bucket path", gotPath)
+	}
+	if !strings.Contains(gotAuth, "AWS4-HMAC-SHA256") || !strings.Contains(gotAuth, "Credential=access/") {
+		t.Fatalf("Authorization = %q, want SigV4 credential", gotAuth)
+	}
+	if gotHash == "" {
+		t.Fatal("X-Amz-Content-Sha256 must be set for signed bucket probe")
+	}
+}
+
+func TestHTTPProbeSignsS3CompatibleVirtualHostBucketCheck(t *testing.T) {
+	var gotHost string
+	var gotPath string
+	client := &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+		gotHost = r.Host
+		gotPath = r.URL.Path
+		if !strings.Contains(r.Header.Get("Authorization"), "AWS4-HMAC-SHA256") {
+			t.Fatalf("Authorization = %q, want SigV4 signature", r.Header.Get("Authorization"))
+		}
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Header:     make(http.Header),
+			Body:       io.NopCloser(strings.NewReader("")),
+			Request:    r,
+		}, nil
+	})}
+
+	probe := NewHTTPProbe(client, config.ObjectStorageConfig{
+		Provider:       "s3-compatible",
+		Endpoint:       "http://s3.example.test",
+		Region:         "us-east-1",
+		Bucket:         "zenart-test",
+		AccessKey:      "access",
+		SecretKey:      "secret",
+		ForcePathStyle: false,
+	})
+
+	if err := probe.Check(context.Background()); err != nil {
+		t.Fatalf("Check() error = %v", err)
+	}
+	if !strings.HasPrefix(gotHost, "zenart-test.") {
+		t.Fatalf("bucket probe host = %q, want virtual-host-style bucket host", gotHost)
+	}
+	if gotPath != "/" {
+		t.Fatalf("bucket probe path = %q, want bucket root path", gotPath)
+	}
+}
+
+func TestHTTPProbeFailsClosedWhenS3CredentialsRejected(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") == "" {
+			t.Fatal("S3-compatible probe must send signed request before interpreting auth failures")
+		}
+		w.WriteHeader(http.StatusForbidden)
+	}))
+	defer server.Close()
+
+	probe := NewHTTPProbe(server.Client(), config.ObjectStorageConfig{
+		Provider:       "s3-compatible",
+		Endpoint:       server.URL,
+		Region:         "us-east-1",
+		Bucket:         "zenart-test",
+		AccessKey:      "access",
+		SecretKey:      "secret",
+		ForcePathStyle: true,
+	})
+
+	err := probe.Check(context.Background())
+	if err == nil || !strings.Contains(err.Error(), "credentials rejected") {
+		t.Fatalf("Check() error = %v, want credentials rejected error", err)
+	}
+}
+
+type roundTripFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripFunc) RoundTrip(r *http.Request) (*http.Response, error) {
+	return f(r)
+}

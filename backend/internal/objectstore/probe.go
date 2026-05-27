@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"net/url"
-	"strings"
 
 	"github.com/alphane-ai/zenart/backend/internal/config"
 )
@@ -23,16 +21,27 @@ func NewHTTPProbe(client *http.Client, cfg config.ObjectStorageConfig) HTTPProbe
 }
 
 func (p HTTPProbe) Check(ctx context.Context) error {
-	endpoint, err := url.Parse(p.cfg.Endpoint)
-	if err != nil {
-		return err
+	switch p.cfg.Provider {
+	case "s3-compatible":
+		return p.checkS3Compatible(ctx)
+	default:
+		return fmt.Errorf("unsupported object storage probe provider %q", p.cfg.Provider)
 	}
-	endpoint.Path = strings.TrimRight(endpoint.Path, "/") + "/" + p.cfg.Bucket
+}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodHead, endpoint.String(), nil)
+func (p HTTPProbe) checkS3Compatible(ctx context.Context) error {
+	store, err := NewS3Store(p.cfg, p.client)
 	if err != nil {
 		return err
 	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodHead, store.bucketURL(store.endpoint).String(), nil)
+	if err != nil {
+		return err
+	}
+	emptyHash := hashHex(nil)
+	req.Header.Set("X-Amz-Content-Sha256", emptyHash)
+	store.sign(req, emptyHash, store.clock())
+
 	resp, err := p.client.Do(req)
 	if err != nil {
 		return err
@@ -40,10 +49,12 @@ func (p HTTPProbe) Check(ctx context.Context) error {
 	defer resp.Body.Close()
 
 	switch resp.StatusCode {
-	case http.StatusOK, http.StatusForbidden, http.StatusUnauthorized:
+	case http.StatusOK:
 		return nil
 	case http.StatusNotFound:
 		return fmt.Errorf("bucket %q not found", p.cfg.Bucket)
+	case http.StatusForbidden, http.StatusUnauthorized:
+		return fmt.Errorf("S3-compatible object storage credentials rejected with status %d", resp.StatusCode)
 	default:
 		return fmt.Errorf("unexpected status %d", resp.StatusCode)
 	}
