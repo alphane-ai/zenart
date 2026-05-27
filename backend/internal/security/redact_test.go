@@ -63,7 +63,7 @@ func TestClassifyValueFindsNestedSecrets(t *testing.T) {
 	if len(findings) < 4 {
 		t.Fatalf("findings = %#v, want key and value classifications", findings)
 	}
-	assertFinding(t, findings, SecretKindSensitiveKey, "oauth.client_secret")
+	assertFinding(t, findings, SecretKindCredential, "oauth.client_secret")
 	assertFinding(t, findings, SecretKindAuthorization, "oauth.note")
 	assertFinding(t, findings, SecretKindCredential, "items[0].dsn")
 	assertFinding(t, findings, SecretKindDSN, "items[0].dsn")
@@ -628,6 +628,15 @@ func TestClassifyKeyCoversLaunchSecretNames(t *testing.T) {
 		{key: "personal_access_token", kind: SecretKindToken},
 		{key: "dockerconfigjson", kind: SecretKindRegistryAuth},
 		{key: "registry_password", kind: SecretKindRegistryAuth},
+		{key: "clientSecret", kind: SecretKindCredential},
+		{key: "accessToken", kind: SecretKindToken},
+		{key: "refreshToken", kind: SecretKindToken},
+		{key: "idToken", kind: SecretKindToken},
+		{key: "authToken", kind: SecretKindToken},
+		{key: "secretKey", kind: SecretKindSensitiveKey},
+		{key: "databaseUrl", kind: SecretKindCredential},
+		{key: "serviceAccountJSON", kind: SecretKindServiceAcct},
+		{key: "registryPassword", kind: SecretKindRegistryAuth},
 	}
 
 	for _, tt := range cases {
@@ -639,6 +648,77 @@ func TestClassifyKeyCoversLaunchSecretNames(t *testing.T) {
 			t.Fatalf("ClassifyKey(%q) kind = %s, want %s", tt.key, findings[0].Kind, tt.kind)
 		}
 	}
+}
+
+func TestRedactValueCoversMixedCaseLaunchSecretKeys(t *testing.T) {
+	redacted := RedactValue(map[string]any{
+		"clientSecret":       "client-secret-value",
+		"accessToken":        "access-token-value",
+		"refreshToken":       "refresh-token-value",
+		"idToken":            "id-token-value",
+		"authToken":          "auth-token-value",
+		"secretKey":          "secret-key-value",
+		"databaseUrl":        "postgres://user:pass@example.test:5432/zenart",
+		"serviceAccountJSON": `{"private_key":"-----BEGIN PRIVATE KEY-----\nabc\n-----END PRIVATE KEY-----"}`,
+		"registryPassword":   "registry-password-value",
+		"publicLabel":        "visible",
+	})
+
+	body, err := json.Marshal(redacted)
+	if err != nil {
+		t.Fatalf("marshal redacted value: %v", err)
+	}
+	for _, leaked := range []string{
+		"client-secret-value",
+		"access-token-value",
+		"refresh-token-value",
+		"id-token-value",
+		"auth-token-value",
+		"secret-key-value",
+		"user:pass",
+		"-----BEGIN PRIVATE KEY-----",
+		"registry-password-value",
+	} {
+		if strings.Contains(string(body), leaked) {
+			t.Fatalf("redacted value = %s, leaked %s", string(body), leaked)
+		}
+	}
+	for _, fragment := range []string{`"publicLabel":"visible"`, Redacted} {
+		if !strings.Contains(string(body), fragment) {
+			t.Fatalf("redacted value = %s, missing %s", string(body), fragment)
+		}
+	}
+}
+
+func TestRedactStringCoversMixedCaseRawJSONSecretKeys(t *testing.T) {
+	input := `{"clientSecret":"client-secret-value","accessToken":"access-token-value","refreshToken":"refresh-token-value","idToken":"id-token-value","databaseUrl":"postgres://user:pass@example.test:5432/zenart","serviceAccountJSON":{"private_key":"-----BEGIN PRIVATE KEY-----\nabc\n-----END PRIVATE KEY-----"},"publicLabel":"visible"}`
+	got := RedactString(input)
+
+	for _, leaked := range []string{
+		"client-secret-value",
+		"access-token-value",
+		"refresh-token-value",
+		"id-token-value",
+		"user:pass",
+		"-----BEGIN PRIVATE KEY-----",
+	} {
+		if strings.Contains(got, leaked) {
+			t.Fatalf("RedactString() = %q, leaked %s", got, leaked)
+		}
+	}
+	for _, fragment := range []string{`"publicLabel":"visible"`, Redacted} {
+		if !strings.Contains(got, fragment) {
+			t.Fatalf("RedactString() = %q, missing %s", got, fragment)
+		}
+	}
+
+	findings := ClassifyString(input)
+	assertFinding(t, findings, SecretKindCredential, "clientSecret")
+	assertFinding(t, findings, SecretKindToken, "accessToken")
+	assertFinding(t, findings, SecretKindToken, "refreshToken")
+	assertFinding(t, findings, SecretKindToken, "idToken")
+	assertFinding(t, findings, SecretKindCredential, "databaseUrl")
+	assertFinding(t, findings, SecretKindServiceAcct, "serviceAccountJSON")
 }
 
 func TestRedactingSlogHandlerRedactsMessagesAttrsGroupsAndContextAttrs(t *testing.T) {

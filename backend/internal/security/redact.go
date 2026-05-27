@@ -270,10 +270,11 @@ func (s PlaceholderMalwareScanner) Scan(ctx context.Context, target MalwareScanT
 
 func ClassifyKey(key string) []SecretFinding {
 	key = strings.TrimSpace(key)
-	if key == "" || !sensitiveKeyPattern.MatchString(key) {
+	normalized := normalizeSecretKey(key)
+	if key == "" || (!sensitiveKeyPattern.MatchString(key) && !sensitiveKeyPattern.MatchString(normalized)) {
 		return nil
 	}
-	lower := strings.ToLower(key)
+	lower := strings.ToLower(key) + "_" + normalized
 	kind := SecretKindSensitiveKey
 	switch {
 	case strings.Contains(lower, "docker") || strings.Contains(lower, "registry"):
@@ -296,6 +297,8 @@ func ClassifyKey(key string) []SecretFinding {
 		kind = SecretKindCookie
 	case strings.Contains(lower, "service") && strings.Contains(lower, "account"):
 		kind = SecretKindServiceAcct
+	case strings.Contains(lower, "client") && (strings.Contains(lower, "secret") || strings.Contains(lower, "token")):
+		kind = SecretKindCredential
 	case strings.Contains(lower, "credential") || strings.Contains(lower, "database") || strings.Contains(lower, "dsn") || strings.Contains(lower, "connection"):
 		kind = SecretKindCredential
 	case strings.Contains(lower, "token") || strings.Contains(lower, "jwt") || strings.Contains(lower, "oauth") || strings.Contains(lower, "session"):
@@ -304,6 +307,31 @@ func ClassifyKey(key string) []SecretFinding {
 		kind = SecretKindProviderKey
 	}
 	return []SecretFinding{{Kind: kind, Signal: "key_name"}}
+}
+
+func normalizeSecretKey(key string) string {
+	var builder strings.Builder
+	var previous rune
+	for _, current := range strings.TrimSpace(key) {
+		if current >= 'A' && current <= 'Z' {
+			if builder.Len() > 0 && previous != '_' && previous != '-' && previous != '.' && previous != ' ' {
+				builder.WriteByte('_')
+			}
+			current += 'a' - 'A'
+		}
+		switch current {
+		case '-', '.', ' ', '/', ':':
+			if builder.Len() > 0 && previous != '_' {
+				builder.WriteByte('_')
+				previous = '_'
+			}
+			continue
+		default:
+			builder.WriteRune(current)
+			previous = current
+		}
+	}
+	return strings.Trim(builder.String(), "_")
 }
 
 func ClassifyString(value string) []SecretFinding {
