@@ -445,12 +445,39 @@ func (s *Server) getSignedDownloadObject(w http.ResponseWriter, r *http.Request)
 		writeError(w, r, http.StatusForbidden, "signed_url_invalid", "signed download URL is not valid", nil)
 		return
 	}
+	recorder, ok := audit.RecorderFromContext(r.Context())
+	if !ok {
+		writeError(w, r, http.StatusNotImplemented, "download_audit_not_connected", "signed download audit logging is not connected yet", nil)
+		return
+	}
 	reader, err := service.GetObject(r.Context(), tenantID, key)
 	if err != nil {
 		writeDownloadObjectError(w, r, err)
 		return
 	}
 	defer reader.Body.Close()
+	if err := recorder.Record(r.Context(), audit.Event{
+		ID:       newAuditID(tenantID, "signed_download", key),
+		TenantID: tenantID,
+		ActorID:  signedDownloadActorID(r),
+		Action:   "object.download",
+		Resource: "objects/" + key,
+		Metadata: map[string]any{
+			"object_key":    key,
+			"bucket":        reader.Object.Bucket,
+			"content_type":  reader.Object.ContentType,
+			"byte_size":     reader.Object.ByteSize,
+			"expires_at":    time.Unix(expires, 0).UTC().Format(time.RFC3339),
+			"request_id":    requestIDFrom(r.Context()),
+			"remote_addr":   r.RemoteAddr,
+			"user_agent":    r.UserAgent(),
+			"signed_access": true,
+		},
+		CreatedAt: time.Now().UTC(),
+	}); err != nil {
+		writeError(w, r, http.StatusInternalServerError, "download_audit_record_error", "signed download audit log could not be written", nil)
+		return
+	}
 	if reader.Object.ContentType != "" {
 		w.Header().Set("Content-Type", reader.Object.ContentType)
 	} else {
@@ -464,6 +491,13 @@ func (s *Server) getSignedDownloadObject(w http.ResponseWriter, r *http.Request)
 	}
 	w.WriteHeader(http.StatusOK)
 	_, _ = io.Copy(w, reader.Body)
+}
+
+func signedDownloadActorID(r *http.Request) string {
+	if principal, ok := principalFromRequest(r); ok && strings.TrimSpace(principal.UserID) != "" {
+		return principal.UserID
+	}
+	return "signed-url"
 }
 
 func downloadFilenameFromKey(key string) string {

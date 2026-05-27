@@ -424,8 +424,10 @@ func TestSignedDownloadEndpointServesTenantScopedLocalObject(t *testing.T) {
 	}
 
 	db := &downloadGuardDB{found: true}
+	auditRecorder := &fakeAuditRecorder{}
 	req := httptest.NewRequest(http.MethodGet, downloadURL, nil)
 	req = req.WithContext(stage0.ContextWithService(req.Context(), stage0.NewService(stage0.NewRepository(db), objects)))
+	req = req.WithContext(audit.ContextWithRecorder(req.Context(), auditRecorder))
 	rec := httptest.NewRecorder()
 
 	New(cfg, nil).Handler().ServeHTTP(rec, req)
@@ -450,6 +452,65 @@ func TestSignedDownloadEndpointServesTenantScopedLocalObject(t *testing.T) {
 	}
 	if db.query.sql == "" || !strings.Contains(db.query.sql, "retention_state = 'active'") {
 		t.Fatalf("download guard query = %s, want active retention guard", db.query.sql)
+	}
+	if len(auditRecorder.events) != 1 {
+		t.Fatalf("audit events = %d, want 1", len(auditRecorder.events))
+	}
+	event := auditRecorder.events[0]
+	if event.TenantID != "tenant_1" || event.Action != "object.download" || event.Resource != "objects/"+stored.Key {
+		t.Fatalf("audit event = %#v, want tenant-scoped object download", event)
+	}
+	if event.ActorID != "signed-url" {
+		t.Fatalf("audit actor = %q, want signed-url", event.ActorID)
+	}
+	if event.Metadata["object_key"] != stored.Key || event.Metadata["signed_access"] != true {
+		t.Fatalf("audit metadata = %#v, want signed object key/access", event.Metadata)
+	}
+	if strings.Contains(mustJSON(t, event.Metadata), downloadURL) {
+		t.Fatalf("audit metadata leaked signed URL: %#v", event.Metadata)
+	}
+}
+
+func TestSignedDownloadEndpointRequiresAuditRecorder(t *testing.T) {
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	cfg.ObjectStorage.LocalRoot = t.TempDir()
+	cfg.ObjectStorage.Bucket = "signed-download-test"
+	cfg.ObjectStorage.SigningKey = "signed-download-test-secret"
+	objects, err := objectstore.NewStore(cfg.ObjectStorage, nil)
+	if err != nil {
+		t.Fatalf("NewStore() error = %v", err)
+	}
+	stored, err := objects.Put(context.Background(), objectstore.Object{
+		TenantID:    "tenant_1",
+		Key:         "exports/export_1.zip",
+		ContentType: "application/zip",
+	}, strings.NewReader("zip-bytes"))
+	if err != nil {
+		t.Fatalf("Put() error = %v", err)
+	}
+	downloadURL, err := objects.SignGetURL(context.Background(), "tenant_1", stored.Key, time.Minute)
+	if err != nil {
+		t.Fatalf("SignGetURL() error = %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, downloadURL, nil)
+	req = req.WithContext(stage0.ContextWithService(req.Context(), stage0.NewService(stage0.NewRepository(&downloadGuardDB{found: true}), objects)))
+	rec := httptest.NewRecorder()
+
+	New(cfg, nil).Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNotImplemented {
+		t.Fatalf("status = %d, want %d: %s", rec.Code, http.StatusNotImplemented, rec.Body.String())
+	}
+	var body map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("response JSON error = %v", err)
+	}
+	if body["code"] != "download_audit_not_connected" {
+		t.Fatalf("code = %v, want download_audit_not_connected", body["code"])
 	}
 }
 
@@ -496,6 +557,7 @@ func TestSignedDownloadEndpointRejectsExpiredObjectMetadata(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodGet, downloadURL, nil)
 	req = req.WithContext(stage0.ContextWithService(req.Context(), stage0.NewService(stage0.NewRepository(db), objects)))
+	req = req.WithContext(audit.ContextWithRecorder(req.Context(), &fakeAuditRecorder{}))
 	rec := httptest.NewRecorder()
 
 	New(cfg, nil).Handler().ServeHTTP(rec, req)
@@ -1691,6 +1753,15 @@ func findCookie(cookies []*http.Cookie, name string) *http.Cookie {
 		}
 	}
 	return nil
+}
+
+func mustJSON(t *testing.T, value any) string {
+	t.Helper()
+	data, err := json.Marshal(value)
+	if err != nil {
+		t.Fatalf("marshal JSON: %v", err)
+	}
+	return string(data)
 }
 
 func (noExecDB) QueryRow(context.Context, string, ...any) store.Row {
