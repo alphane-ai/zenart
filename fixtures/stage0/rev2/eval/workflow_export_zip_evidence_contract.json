@@ -1,0 +1,304 @@
+{
+  "schema_version": "stage0.rev2",
+  "contract_id": "workflow_export_zip_evidence_contract_stage0_rev2",
+  "blueprint_source": "Docs/stage0_blueprint_rev2.md",
+  "created_by_lane": "lane2",
+  "blueprint_sections": [
+    "6.1",
+    "8.3",
+    "15.1",
+    "15.3",
+    "25.12"
+  ],
+  "validator": "scripts/validate_workflow_export_zip_evidence_contract.py",
+  "workflow_acceptance_ref": "fixtures/stage0/rev2/workflows",
+  "runtime_evidence_directory": "ops/evidence/local_alpha",
+  "required_export_evidence_assertions": [
+    "manifest",
+    "qa_report",
+    "safety_report",
+    "provenance",
+    "metadata",
+    "ai_disclaimer",
+    "trace_payloads",
+    "four_option_taxonomy",
+    "workflow_required_assets",
+    "running_local_stack"
+  ],
+  "workflow_export_contracts": [
+    {
+      "workflow_id": "ecommerce_growth_pack",
+      "fixture_id": "fx_ecommerce_growth_golden",
+      "checklist_item_id": "ecommerce_growth_pack_export_zip",
+      "expected_evidence_file": "ops/evidence/local_alpha/ecommerce_growth_pack.export_zip.json",
+      "expected_runtime_status": "present_passed",
+      "blueprint_checklist_state": "checked",
+      "required_export_target_id": "zip_delivery",
+      "required_zip_payloads": [
+        "ai-content-disclaimer.json",
+        "assets/hero_product_ad.png",
+        "assets/marketplace_banner.png",
+        "assets/square_social_ad.png",
+        "assets/story_variant.png",
+        "manifest.json",
+        "metadata.json",
+        "ppt-ready-metadata.json",
+        "provenance.json",
+        "qa-report.json",
+        "qa_report.json",
+        "safety-policy-report.json",
+        "trace_provenance.json"
+      ],
+      "required_asset_payloads": [
+        "assets/hero_product_ad.png",
+        "assets/square_social_ad.png",
+        "assets/story_variant.png",
+        "assets/marketplace_banner.png"
+      ],
+      "required_manifest_payloads": [
+        "manifest.json",
+        "metadata.json",
+        "qa_report.json",
+        "trace_provenance.json"
+      ],
+      "required_report_payloads": [
+        "qa-report.json",
+        "qa_report.json",
+        "safety-policy-report.json"
+      ],
+      "required_metadata_payloads": [
+        "metadata.json",
+        "ppt-ready-metadata.json",
+        "provenance.json",
+        "ai-content-disclaimer.json",
+        "trace_provenance.json"
+      ],
+      "required_strategy_taxonomy": [
+        "conversion_offer",
+        "social_proof",
+        "feature_comparison",
+        "retention_bundle"
+      ],
+      "closure_contract": {
+        "release_gate_check_id": "local_alpha_e2e_workflow_smoke",
+        "requires_running_local_stack": true,
+        "requires_pass_status": true,
+        "missing_file_keeps_checklist_open": true
+      }
+    },
+    {
+      "workflow_id": "business_visual_doc_pack",
+      "fixture_id": "fx_business_visual_doc_golden",
+      "checklist_item_id": "business_visual_doc_pack_export_zip",
+      "expected_evidence_file": "ops/evidence/local_alpha/business_visual_doc_pack.export_zip.json",
+      "expected_runtime_status": "present_passed",
+      "blueprint_checklist_state": "checked",
+      "required_export_target_id": "zip_delivery",
+      "required_zip_payloads": [
+        "ai-content-disclaimer.json",
+        "assets/cover.png",
+        "assets/data_page.png",
+        "assets/recommendation_page.png",
+        "assets/summary_page.png",
+        "manifest.json",
+        "metadata.json",
+        "ppt-ready-metadata.json",
+        "provenance.json",
+        "qa-report.json",
+        "qa_report.json",
+        "safety-policy-report.json",
+        "trace_provenance.json"
+      ],
+      "required_asset_payloads": [
+        "assets/cover.png",
+        "assets/summary_page.png",
+        "assets/data_page.png",
+        "assets/recommendation_page.png"
+      ],
+      "required_manifest_payloads": [
+        "manifest.json",
+        "metadata.json",
+        "qa_report.json",
+        "trace_provenance.json"
+      ],
+      "required_report_payloads": [
+        "qa-report.json",
+        "qa_report.json",
+        "safety-policy-report.json"
+      ],
+      "required_metadata_payloads": [
+        "metadata.json",
+        "ppt-ready-metadata.json",
+        "provenance.json",
+        "ai-content-disclaimer.json",
+        "trace_provenance.json"
+      ],
+      "required_strategy_taxonomy": [
+        "executive_brief",
+        "strategy_memo",
+        "sales_leave_behind",
+        "board_update"
+      ],
+      "closure_contract": {
+        "release_gate_check_id": "local_alpha_e2e_workflow_smoke",
+        "requires_running_local_stack": true,
+        "requires_pass_status": true,
+        "missing_file_keeps_checklist_open": true
+      }
+    },
+    {
+      "workflow_id": "local_merchant_campaign_pack",
+      "fixture_id": "fx_local_merchant_campaign_golden",
+      "checklist_item_id": "local_merchant_campaign_pack_export_zip",
+      "expected_evidence_file": "ops/evidence/local_alpha/local_merchant_campaign_pack.export_zip.json",
+      "expected_runtime_status": "present_passed",
+      "blueprint_checklist_state": "checked",
+      "required_export_target_id": "zip_delivery",
+      "required_zip_payloads": [
+        "ai-content-disclaimer.json",
+        "assets/delivery_cover.png",
+        "assets/store_print_poster.pdf",
+        "assets/wechat_moment.png",
+        "assets/xiaohongshu_post.png",
+        "manifest.json",
+        "metadata.json",
+        "ppt-ready-metadata.json",
+        "provenance.json",
+        "qa-report.json",
+        "qa_report.json",
+        "safety-policy-report.json",
+        "trace_provenance.json"
+      ],
+      "required_asset_payloads": [
+        "assets/wechat_moment.png",
+        "assets/xiaohongshu_post.png",
+        "assets/store_print_poster.pdf",
+        "assets/delivery_cover.png"
+      ],
+      "required_manifest_payloads": [
+        "manifest.json",
+        "metadata.json",
+        "qa_report.json",
+        "trace_provenance.json"
+      ],
+      "required_report_payloads": [
+        "qa-report.json",
+        "qa_report.json",
+        "safety-policy-report.json"
+      ],
+      "required_metadata_payloads": [
+        "metadata.json",
+        "ppt-ready-metadata.json",
+        "provenance.json",
+        "ai-content-disclaimer.json",
+        "trace_provenance.json"
+      ],
+      "required_strategy_taxonomy": [
+        "wechat_conversion",
+        "xiaohongshu_quality",
+        "store_print",
+        "delivery_platform_cover"
+      ],
+      "closure_contract": {
+        "release_gate_check_id": "local_alpha_e2e_workflow_smoke",
+        "requires_running_local_stack": true,
+        "requires_pass_status": true,
+        "missing_file_keeps_checklist_open": true
+      }
+    },
+    {
+      "workflow_id": "character_ip_concept_pack",
+      "fixture_id": "fx_character_ip_concept_golden",
+      "checklist_item_id": "character_ip_concept_pack_export_zip",
+      "expected_evidence_file": "ops/evidence/local_alpha/character_ip_concept_pack.export_zip.json",
+      "expected_runtime_status": "missing_runtime_evidence",
+      "blueprint_checklist_state": "open",
+      "required_export_target_id": "zip_delivery",
+      "required_zip_payloads": [
+        "ai-content-disclaimer.json",
+        "assets/avatar.png",
+        "assets/character_bible.json",
+        "assets/costume_prop_variants.png",
+        "assets/expression_sheet.png",
+        "assets/half_body.png",
+        "assets/promo_key_art.png",
+        "manifest.json",
+        "metadata.json",
+        "ppt-ready-metadata.json",
+        "provenance.json",
+        "qa-report.json",
+        "qa_report.json",
+        "safety-policy-report.json",
+        "trace_provenance.json"
+      ],
+      "required_asset_payloads": [
+        "assets/avatar.png",
+        "assets/half_body.png",
+        "assets/costume_prop_variants.png",
+        "assets/expression_sheet.png",
+        "assets/promo_key_art.png",
+        "assets/character_bible.json"
+      ],
+      "required_manifest_payloads": [
+        "manifest.json",
+        "metadata.json",
+        "qa_report.json",
+        "trace_provenance.json"
+      ],
+      "required_report_payloads": [
+        "qa-report.json",
+        "qa_report.json",
+        "safety-policy-report.json"
+      ],
+      "required_metadata_payloads": [
+        "metadata.json",
+        "ppt-ready-metadata.json",
+        "provenance.json",
+        "ai-content-disclaimer.json",
+        "trace_provenance.json"
+      ],
+      "required_strategy_taxonomy": [
+        "cute",
+        "heroic",
+        "dark",
+        "ornate"
+      ],
+      "closure_contract": {
+        "release_gate_check_id": "local_alpha_e2e_workflow_smoke",
+        "requires_running_local_stack": true,
+        "requires_pass_status": true,
+        "missing_file_keeps_checklist_open": true
+      }
+    }
+  ],
+  "summary": {
+    "workflow_count": 4,
+    "closed_export_evidence_count": 3,
+    "open_export_evidence_count": 1,
+    "runtime_file_required_for_checklist_closure": true,
+    "open_workflows_remain_blocked": [
+      "character_ip_concept_pack"
+    ]
+  },
+  "provenance": {
+    "blueprint_sections": [
+      "6.1",
+      "8.3",
+      "15.1",
+      "15.3",
+      "25.12"
+    ],
+    "source_fixtures": [
+      "fixtures/stage0/rev2/workflows/ecommerce_growth_pack.json",
+      "fixtures/stage0/rev2/workflows/business_visual_doc_pack.json",
+      "fixtures/stage0/rev2/workflows/local_merchant_campaign_pack.json",
+      "fixtures/stage0/rev2/workflows/character_ip_concept_pack.json"
+    ],
+    "runtime_evidence_refs": [
+      "ops/evidence/local_alpha/ecommerce_growth_pack.export_zip.json",
+      "ops/evidence/local_alpha/business_visual_doc_pack.export_zip.json",
+      "ops/evidence/local_alpha/local_merchant_campaign_pack.export_zip.json",
+      "ops/evidence/local_alpha/character_ip_concept_pack.export_zip.json"
+    ]
+  }
+}

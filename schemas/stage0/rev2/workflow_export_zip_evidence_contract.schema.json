@@ -1,0 +1,327 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zenart.local/schemas/stage0/rev2/workflow_export_zip_evidence_contract.schema.json",
+  "title": "ZenArt Stage 0 Rev2 Workflow Export ZIP Evidence Contract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "contract_id",
+    "blueprint_source",
+    "created_by_lane",
+    "blueprint_sections",
+    "validator",
+    "workflow_acceptance_ref",
+    "runtime_evidence_directory",
+    "required_export_evidence_assertions",
+    "workflow_export_contracts",
+    "summary",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "stage0.rev2"
+    },
+    "contract_id": {
+      "const": "workflow_export_zip_evidence_contract_stage0_rev2"
+    },
+    "blueprint_source": {
+      "const": "Docs/stage0_blueprint_rev2.md"
+    },
+    "created_by_lane": {
+      "const": "lane2"
+    },
+    "blueprint_sections": {
+      "type": "array",
+      "minItems": 2,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "6.1",
+          "8.3",
+          "15.1",
+          "15.3",
+          "25.12"
+        ]
+      }
+    },
+    "validator": {
+      "const": "scripts/validate_workflow_export_zip_evidence_contract.py"
+    },
+    "workflow_acceptance_ref": {
+      "const": "fixtures/stage0/rev2/workflows"
+    },
+    "runtime_evidence_directory": {
+      "const": "ops/evidence/local_alpha"
+    },
+    "required_export_evidence_assertions": {
+      "type": "array",
+      "minItems": 8,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "manifest",
+          "qa_report",
+          "safety_report",
+          "provenance",
+          "metadata",
+          "ai_disclaimer",
+          "trace_payloads",
+          "four_option_taxonomy",
+          "workflow_required_assets",
+          "running_local_stack"
+        ]
+      }
+    },
+    "workflow_export_contracts": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": {
+        "$ref": "#/$defs/workflow_export_contract"
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "workflow_count",
+        "closed_export_evidence_count",
+        "open_export_evidence_count",
+        "runtime_file_required_for_checklist_closure",
+        "open_workflows_remain_blocked"
+      ],
+      "properties": {
+        "workflow_count": {
+          "const": 4
+        },
+        "closed_export_evidence_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4
+        },
+        "open_export_evidence_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4
+        },
+        "runtime_file_required_for_checklist_closure": {
+          "const": true
+        },
+        "open_workflows_remain_blocked": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "ecommerce_growth_pack",
+              "business_visual_doc_pack",
+              "local_merchant_campaign_pack",
+              "character_ip_concept_pack"
+            ]
+          }
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "blueprint_sections",
+        "source_fixtures",
+        "runtime_evidence_refs"
+      ],
+      "properties": {
+        "blueprint_sections": {
+          "type": "array",
+          "minItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "6.1",
+              "8.3",
+              "15.1",
+              "15.3",
+              "25.12"
+            ]
+          }
+        },
+        "source_fixtures": {
+          "type": "array",
+          "minItems": 4,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^fixtures/stage0/rev2/workflows/[a-z0-9_]+\\.json$"
+          }
+        },
+        "runtime_evidence_refs": {
+          "type": "array",
+          "minItems": 4,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^ops/evidence/local_alpha/[a-z0-9_]+\\.export_zip\\.json$"
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "workflow_id": {
+      "enum": [
+        "ecommerce_growth_pack",
+        "business_visual_doc_pack",
+        "local_merchant_campaign_pack",
+        "character_ip_concept_pack"
+      ]
+    },
+    "workflow_export_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "workflow_id",
+        "fixture_id",
+        "checklist_item_id",
+        "expected_evidence_file",
+        "expected_runtime_status",
+        "blueprint_checklist_state",
+        "required_export_target_id",
+        "required_zip_payloads",
+        "required_asset_payloads",
+        "required_manifest_payloads",
+        "required_report_payloads",
+        "required_metadata_payloads",
+        "required_strategy_taxonomy",
+        "closure_contract"
+      ],
+      "properties": {
+        "workflow_id": {
+          "enum": [
+            "ecommerce_growth_pack",
+            "business_visual_doc_pack",
+            "local_merchant_campaign_pack",
+            "character_ip_concept_pack"
+          ]
+        },
+        "fixture_id": {
+          "type": "string",
+          "pattern": "^fx_[a-z0-9_]+$"
+        },
+        "checklist_item_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9_]+_export_zip$"
+        },
+        "expected_evidence_file": {
+          "type": "string",
+          "pattern": "^ops/evidence/local_alpha/[a-z0-9_]+\\.export_zip\\.json$"
+        },
+        "expected_runtime_status": {
+          "enum": [
+            "present_passed",
+            "missing_runtime_evidence"
+          ]
+        },
+        "blueprint_checklist_state": {
+          "enum": [
+            "checked",
+            "open"
+          ]
+        },
+        "required_export_target_id": {
+          "const": "zip_delivery"
+        },
+        "required_zip_payloads": {
+          "type": "array",
+          "minItems": 8,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required_asset_payloads": {
+          "type": "array",
+          "minItems": 4,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^assets/.+"
+          }
+        },
+        "required_manifest_payloads": {
+          "type": "array",
+          "minItems": 4,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "manifest.json",
+              "metadata.json",
+              "qa_report.json",
+              "trace_provenance.json"
+            ]
+          }
+        },
+        "required_report_payloads": {
+          "type": "array",
+          "minItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "qa-report.json",
+              "qa_report.json",
+              "safety-policy-report.json"
+            ]
+          }
+        },
+        "required_metadata_payloads": {
+          "type": "array",
+          "minItems": 5,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "metadata.json",
+              "ppt-ready-metadata.json",
+              "provenance.json",
+              "ai-content-disclaimer.json",
+              "trace_provenance.json"
+            ]
+          }
+        },
+        "required_strategy_taxonomy": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "closure_contract": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "release_gate_check_id",
+            "requires_running_local_stack",
+            "requires_pass_status",
+            "missing_file_keeps_checklist_open"
+          ],
+          "properties": {
+            "release_gate_check_id": {
+              "const": "local_alpha_e2e_workflow_smoke"
+            },
+            "requires_running_local_stack": {
+              "const": true
+            },
+            "requires_pass_status": {
+              "const": true
+            },
+            "missing_file_keeps_checklist_open": {
+              "const": true
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1815,6 +1815,7 @@ main 合并前必须通过：
 - [x] 每条 workflow 定义 4-option taxonomy。
 - [x] 每条 workflow 定义 required package outputs。
 - [x] 每条 workflow 定义 QA/safety/export pass thresholds。
+- [x] 每条 workflow export ZIP evidence contract 通过：`fixtures/stage0/rev2/eval/workflow_export_zip_evidence_contract.json` maps required ZIP payloads、manifest、QA report、safety report、provenance、metadata、AI disclaimer、trace payloads、four-option taxonomy to exact local-alpha evidence files, and `scripts/validate_workflow_export_zip_evidence_contract.py` keeps the missing character/IP runtime evidence row open。
 
 ### 25.13 Crawler Governance
 
