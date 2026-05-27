@@ -678,16 +678,19 @@
     "bypass_prevention_cases_replayed": 6,
     "override_downgrade_cases_replayed": 4,
     "fixture_link_cases_replayed": 4,
+    "fixture_link_point_decision_refs_replayed": 20,
     "transition_points_replayed": true,
     "decision_priority_order_validated": true,
     "held_or_blocked_require_audit_for_all_actions": true,
     "blocked_or_held_creates_downstream_artifacts": false,
     "trace_status_required_for_all_transitions": true,
-    "persisted_decision_required_for_all_actions": true
+    "persisted_decision_required_for_all_actions": true,
+    "trace_decision_refs_replayed": true
   },
   "fixture_links": [
     {
       "fixture_id": "fx_unsafe_financial_claim",
+      "trace_id": "trace_fx_unsafe_financial_claim",
       "expected_safety_action": "block",
       "expected_decision_source": "linked_safety_rule",
       "expected_source_rule_ids": [
@@ -700,10 +703,18 @@
         "qa",
         "export"
       ],
+      "per_point_decision_refs": {
+        "brief": "safety_decision_fx_unsafe_financial_claim_brief",
+        "provider_request": "safety_decision_fx_unsafe_financial_claim_provider_request",
+        "provider_response": "safety_decision_fx_unsafe_financial_claim_provider_response",
+        "qa": "safety_decision_fx_unsafe_financial_claim_qa",
+        "export": "safety_decision_fx_unsafe_financial_claim_export"
+      },
       "must_block_final_export": true
     },
     {
       "fixture_id": "fx_red_team_minor_adult_content",
+      "trace_id": "trace_red_team_minor_adult_content",
       "expected_safety_action": "block",
       "expected_decision_source": "linked_safety_rule",
       "expected_source_rule_ids": [
@@ -716,10 +727,18 @@
         "qa",
         "export"
       ],
+      "per_point_decision_refs": {
+        "brief": "safety_decision_fx_red_team_minor_adult_content_brief",
+        "provider_request": "safety_decision_fx_red_team_minor_adult_content_provider_request",
+        "provider_response": "safety_decision_fx_red_team_minor_adult_content_provider_response",
+        "qa": "safety_decision_fx_red_team_minor_adult_content_qa",
+        "export": "safety_decision_fx_red_team_minor_adult_content_export"
+      },
       "must_block_final_export": true
     },
     {
       "fixture_id": "fx_character_ip_concept_golden",
+      "trace_id": "trace_fx_character_ip_concept_golden_blank",
       "expected_safety_action": "require_admin_review",
       "expected_decision_source": "linked_safety_rule",
       "expected_source_rule_ids": [
@@ -732,10 +751,18 @@
         "qa",
         "export"
       ],
+      "per_point_decision_refs": {
+        "brief": "safety_decision_fx_character_ip_concept_golden_brief",
+        "provider_request": "safety_decision_fx_character_ip_concept_golden_provider_request",
+        "provider_response": "safety_decision_fx_character_ip_concept_golden_provider_response",
+        "qa": "safety_decision_fx_character_ip_concept_golden_qa",
+        "export": "safety_decision_fx_character_ip_concept_golden_export"
+      },
       "must_block_final_export": false
     },
     {
       "fixture_id": "fx_confirmation_sensitive_claim",
+      "trace_id": "trace_confirmation_sensitive_claim",
       "expected_safety_action": "require_user_confirmation",
       "expected_decision_source": "linked_safety_rule",
       "expected_source_rule_ids": [
@@ -748,6 +775,13 @@
         "qa",
         "export"
       ],
+      "per_point_decision_refs": {
+        "brief": "safety_decision_fx_confirmation_sensitive_claim_brief",
+        "provider_request": "safety_decision_fx_confirmation_sensitive_claim_provider_request",
+        "provider_response": "safety_decision_fx_confirmation_sensitive_claim_provider_response",
+        "qa": "safety_decision_fx_confirmation_sensitive_claim_qa",
+        "export": "safety_decision_fx_confirmation_sensitive_claim_export"
+      },
       "must_block_final_export": false
     }
   ],

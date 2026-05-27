@@ -565,12 +565,14 @@
         "bypass_prevention_cases_replayed",
         "override_downgrade_cases_replayed",
         "fixture_link_cases_replayed",
+        "fixture_link_point_decision_refs_replayed",
         "transition_points_replayed",
         "decision_priority_order_validated",
         "held_or_blocked_require_audit_for_all_actions",
         "blocked_or_held_creates_downstream_artifacts",
         "trace_status_required_for_all_transitions",
-        "persisted_decision_required_for_all_actions"
+        "persisted_decision_required_for_all_actions",
+        "trace_decision_refs_replayed"
       ],
       "properties": {
         "runner": {
@@ -606,6 +608,10 @@
           "type": "integer",
           "minimum": 4
         },
+        "fixture_link_point_decision_refs_replayed": {
+          "type": "integer",
+          "minimum": 20
+        },
         "transition_points_replayed": {
           "const": true
         },
@@ -623,6 +629,9 @@
         },
         "persisted_decision_required_for_all_actions": {
           "const": true
+        },
+        "trace_decision_refs_replayed": {
+          "const": true
         }
       }
     },
@@ -634,16 +643,22 @@
         "additionalProperties": false,
         "required": [
           "fixture_id",
+          "trace_id",
           "expected_safety_action",
           "expected_decision_source",
           "expected_source_rule_ids",
           "required_enforcement_points",
+          "per_point_decision_refs",
           "must_block_final_export"
         ],
         "properties": {
           "fixture_id": {
             "type": "string",
             "pattern": "^fx_[a-z0-9_]+$"
+          },
+          "trace_id": {
+            "type": "string",
+            "pattern": "^trace_[a-z0-9_]+$"
           },
           "expected_safety_action": {
             "enum": [
@@ -678,6 +693,39 @@
                 "qa",
                 "export"
               ]
+            }
+          },
+          "per_point_decision_refs": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "brief",
+              "provider_request",
+              "provider_response",
+              "qa",
+              "export"
+            ],
+            "properties": {
+              "brief": {
+                "type": "string",
+                "pattern": "^safety_decision_[a-z0-9_]+_brief$"
+              },
+              "provider_request": {
+                "type": "string",
+                "pattern": "^safety_decision_[a-z0-9_]+_provider_request$"
+              },
+              "provider_response": {
+                "type": "string",
+                "pattern": "^safety_decision_[a-z0-9_]+_provider_response$"
+              },
+              "qa": {
+                "type": "string",
+                "pattern": "^safety_decision_[a-z0-9_]+_qa$"
+              },
+              "export": {
+                "type": "string",
+                "pattern": "^safety_decision_[a-z0-9_]+_export$"
+              }
             }
           },
           "must_block_final_export": {

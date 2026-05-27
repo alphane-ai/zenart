@@ -13,6 +13,7 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT = ROOT / "fixtures" / "stage0" / "rev2" / "eval" / "safety_enforcement_contract.json"
 EVAL_RESULTS = ROOT / "fixtures" / "stage0" / "rev2" / "eval" / "starter_eval_results.json"
+TRACE_COMPLETENESS = ROOT / "fixtures" / "stage0" / "rev2" / "eval" / "trace_completeness.json"
 RUNNER = "scripts/run_safety_policy_runtime_contract.py"
 
 SAFETY_POINTS = {
@@ -85,6 +86,14 @@ def build_eval_result_index() -> dict[str, dict[str, Any]]:
     return {
         item["fixture_id"]: item
         for item in results[0]["fixture_results"]
+    }
+
+
+def build_trace_index() -> dict[str, dict[str, Any]]:
+    traces = load_json(TRACE_COMPLETENESS)
+    return {
+        trace["fixture_id"]: trace
+        for trace in traces["traces"]
     }
 
 
@@ -297,25 +306,77 @@ def replay_override_downgrade_cases(
     return cases
 
 
-def replay_fixture_links(contract: dict[str, Any], eval_by_fixture: dict[str, dict[str, Any]]) -> list[dict[str, Any]]:
+def replay_fixture_links(
+    contract: dict[str, Any],
+    eval_by_fixture: dict[str, dict[str, Any]],
+    trace_by_fixture: dict[str, dict[str, Any]],
+) -> list[dict[str, Any]]:
     links = []
     for link in contract["fixture_links"]:
         fixture_id = link["fixture_id"]
         require(fixture_id in eval_by_fixture, f"fixture link missing eval result: {fixture_id}")
+        require(fixture_id in trace_by_fixture, f"fixture link missing trace completeness result: {fixture_id}")
         result = eval_by_fixture[fixture_id]
+        trace = trace_by_fixture[fixture_id]
         decision = result["safety_decision_contract"]["decision"]
+        decision_refs = link["per_point_decision_refs"]
         require(decision == link["expected_safety_action"], f"{fixture_id} safety action mismatch")
+        require(trace["trace_id"] == link["trace_id"], f"{fixture_id} trace id mismatch")
+        require(trace["safety_status"]["present"] is True, f"{fixture_id} trace safety status must be present")
         require(set(link["required_enforcement_points"]) == SAFETY_POINTS, f"{fixture_id} must cover all safety points")
+        require(set(trace["covered_steps"]) == SAFETY_POINTS, f"{fixture_id} trace must cover all safety points")
+        require(set(decision_refs) == SAFETY_POINTS, f"{fixture_id} decision refs must cover all safety points")
+        events_by_step = {
+            event["step_name"]: event
+            for event in trace["step_events"]
+        }
+        require(set(events_by_step) >= SAFETY_POINTS, f"{fixture_id} trace events must cover all safety points")
+        per_point_results = []
+        for point in link["required_enforcement_points"]:
+            event = events_by_step[point]
+            decision_ref = event["safety_decision_ref"]
+            expected_decision_id = decision_refs[point]
+            require(event["safety_status"]["present"] is True, f"{fixture_id} {point} must have trace safety status")
+            require(decision_ref["decision_id"] == expected_decision_id, f"{fixture_id} {point} decision ref mismatch")
+            require(decision_ref["table"] == "safety_decisions", f"{fixture_id} {point} must persist to safety_decisions")
+            require(decision_ref["enforcement_point"] == point, f"{fixture_id} {point} enforcement point mismatch")
+            require(decision_ref["decision"] == decision, f"{fixture_id} {point} decision mismatch")
+            require(
+                decision_ref["decision_source"] == link["expected_decision_source"],
+                f"{fixture_id} {point} decision source mismatch",
+            )
+            require(
+                decision_ref["source_rule_ids"] == link["expected_source_rule_ids"],
+                f"{fixture_id} {point} source rules mismatch",
+            )
+            require(
+                decision_ref["audit_required"] is (decision != "allow"),
+                f"{fixture_id} {point} audit requirement mismatch",
+            )
+            per_point_results.append(
+                {
+                    "enforcement_point": point,
+                    "trace_id": trace["trace_id"],
+                    "decision_id": expected_decision_id,
+                    "decision": decision,
+                    "decision_source": decision_ref["decision_source"],
+                    "source_rule_ids": decision_ref["source_rule_ids"],
+                    "audit_required": decision_ref["audit_required"],
+                    "result": "passed",
+                }
+            )
         if link["must_block_final_export"]:
             require(result["qa_export_gate"]["final_export_allowed"] is False, f"{fixture_id} must not allow final export")
             require(result["qa_export_gate"]["safety_blocks_export"] is True, f"{fixture_id} must safety-block final export")
         links.append(
             {
                 "fixture_id": fixture_id,
+                "trace_id": trace["trace_id"],
                 "expected_safety_action": link["expected_safety_action"],
                 "observed_safety_action": decision,
                 "final_export_allowed": result["qa_export_gate"]["final_export_allowed"],
                 "must_block_final_export": link["must_block_final_export"],
+                "per_point_decision_refs": per_point_results,
                 "result": "passed",
             }
         )
@@ -333,6 +394,10 @@ def validate_declared_replay_contract(contract: dict[str, Any], summary: dict[st
     require(declared["bypass_prevention_cases_replayed"] == summary["bypass_prevention_cases"], "bypass replay count mismatch")
     require(declared["override_downgrade_cases_replayed"] == summary["override_downgrade_cases"], "override downgrade replay count mismatch")
     require(declared["fixture_link_cases_replayed"] == summary["fixture_link_cases"], "fixture link replay count mismatch")
+    require(
+        declared["fixture_link_point_decision_refs_replayed"] == summary["fixture_link_point_decision_refs"],
+        "fixture link point decision ref replay count mismatch",
+    )
     require(declared["transition_points_replayed"] == summary["transition_points_replayed"], "transition point replay mismatch")
     require(declared["decision_priority_order_validated"] == summary["decision_priority_order_validated"], "decision priority replay mismatch")
     require(
@@ -342,17 +407,19 @@ def validate_declared_replay_contract(contract: dict[str, Any], summary: dict[st
     require(declared["blocked_or_held_creates_downstream_artifacts"] is False, "blocked/held replay must be fail-closed")
     require(declared["trace_status_required_for_all_transitions"] is True, "all transitions must require trace status")
     require(declared["persisted_decision_required_for_all_actions"] is True, "all actions must require persisted decisions")
+    require(declared["trace_decision_refs_replayed"] == summary["trace_decision_refs_replayed"], "trace decision ref replay mismatch")
 
 
 def run() -> dict[str, Any]:
     contract = load_json(CONTRACT)
     eval_by_fixture = build_eval_result_index()
+    trace_by_fixture = build_trace_index()
     decisions = replay_decision_matrix(contract, eval_by_fixture)
     transitions = replay_transition_gates(contract)
     fail_closed = replay_fail_closed_cases(contract)
     bypass = replay_bypass_cases(contract)
     override_downgrades = replay_override_downgrade_cases(contract, eval_by_fixture)
-    fixture_links = replay_fixture_links(contract, eval_by_fixture)
+    fixture_links = replay_fixture_links(contract, eval_by_fixture, trace_by_fixture)
 
     blocked_or_held = [
         item for item in decisions
@@ -365,6 +432,7 @@ def run() -> dict[str, Any]:
         "bypass_prevention_cases": len(bypass),
         "override_downgrade_cases": len(override_downgrades),
         "fixture_link_cases": len(fixture_links),
+        "fixture_link_point_decision_refs": sum(len(item["per_point_decision_refs"]) for item in fixture_links),
         "transition_points_replayed": {item["enforcement_point"] for item in transitions} == SAFETY_POINTS,
         "decision_priority_order_validated": all(
             [item["decision_priority"] for item in decisions if item["enforcement_point"] == point]
@@ -379,6 +447,11 @@ def run() -> dict[str, Any]:
         "blocked_or_held_creates_downstream_artifacts": any(item["creates_downstream_artifacts"] for item in blocked_or_held),
         "trace_status_required_for_all_transitions": all(item["trace_status_required"] for item in transitions + bypass),
         "persisted_decision_required_for_all_actions": all(item["persisted_decision_required"] for item in decisions),
+        "trace_decision_refs_replayed": all(
+            len(item["per_point_decision_refs"]) == len(SAFETY_POINTS)
+            and {ref["enforcement_point"] for ref in item["per_point_decision_refs"]} == SAFETY_POINTS
+            for item in fixture_links
+        ),
     }
     validate_declared_replay_contract(contract, summary)
     return {
