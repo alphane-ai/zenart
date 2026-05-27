@@ -1226,7 +1226,12 @@ export type AdminRbacRuntimeDecision = {
   surface: AdminReviewSurface;
   overrideScope: AdminRbacEvidence["overrideScope"];
   target: string;
+  requestedAction: string;
   enforcementPoint: AdminRbacEvidence["enforcementPoint"];
+  requiredRole: AdminRole;
+  attemptedRole: AdminRole;
+  roleGateStatus: "sufficient" | "insufficient";
+  secondReviewStatus: AdminRbacEvidence["secondReviewStatus"];
   expiryPolicyStatus:
     | "valid_temporary_window"
     | "expired_temporary_window"
@@ -1242,6 +1247,7 @@ export type AdminRbacRuntimeDecision = {
   preOverrideState: string;
   expiryAction: string;
   staleOverrideProbe: string;
+  blockerCodes: string[];
   auditRef: string;
   evidenceRefs: string[];
   rationale: string;

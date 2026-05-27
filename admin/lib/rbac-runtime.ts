@@ -46,6 +46,28 @@ function overrideWindow(item: AdminRbacEvidence, expired: boolean) {
   return expired ? "expired" : "active";
 }
 
+function buildBlockerCodes(item: AdminRbacEvidence, sufficientRole: boolean, expired: boolean, secondReviewOpen: boolean) {
+  const blockerCodes: string[] = [];
+
+  if (expired && item.expiryEnforced) {
+    blockerCodes.push("expired_override_window");
+  }
+
+  if (!sufficientRole) {
+    blockerCodes.push("insufficient_role");
+  }
+
+  if (secondReviewOpen) {
+    blockerCodes.push("second_review_open");
+  }
+
+  if (item.decision === "denied" || item.mutationOutcome === "blocked_no_mutation") {
+    blockerCodes.push("policy_or_gate_denied");
+  }
+
+  return blockerCodes;
+}
+
 export function buildAdminRbacRuntimeDecisions(
   evidence: AdminRbacEvidence[],
   now: Date
@@ -59,6 +81,8 @@ export function buildAdminRbacRuntimeDecisions(
     const secondReviewOpen =
       item.secondReviewRequired &&
       (item.secondReviewStatus === "required" || item.secondReviewStatus === "blocked");
+    const roleGateStatus = sufficientRole ? "sufficient" : "insufficient";
+    const blockerCodes = buildBlockerCodes(item, sufficientRole, expired, secondReviewOpen);
 
     if (expired && item.expiryEnforced) {
       return {
@@ -66,7 +90,12 @@ export function buildAdminRbacRuntimeDecisions(
         surface: item.surface,
         overrideScope: item.overrideScope,
         target: item.target,
+        requestedAction: item.requestedAction,
         enforcementPoint: item.enforcementPoint,
+        requiredRole: item.requiredRole,
+        attemptedRole: item.attemptedRole,
+        roleGateStatus,
+        secondReviewStatus: item.secondReviewStatus,
         expiryPolicyStatus: policyStatus,
         overrideWindow: windowStatus,
         effectiveDecision: "deny_mutation",
@@ -78,6 +107,7 @@ export function buildAdminRbacRuntimeDecisions(
         preOverrideState: item.preOverrideState,
         expiryAction: item.expiryAction,
         staleOverrideProbe: item.staleOverrideProbe,
+        blockerCodes,
         auditRef: item.auditRef,
         evidenceRefs: item.evidenceRefs,
         rationale: `${item.enforcementPoint} denied ${item.requestedAction} because the temporary override expired at ${item.overrideExpiresAt}; ${item.expiryAction} ${item.postDecisionControl}`
@@ -90,7 +120,12 @@ export function buildAdminRbacRuntimeDecisions(
         surface: item.surface,
         overrideScope: item.overrideScope,
         target: item.target,
+        requestedAction: item.requestedAction,
         enforcementPoint: item.enforcementPoint,
+        requiredRole: item.requiredRole,
+        attemptedRole: item.attemptedRole,
+        roleGateStatus,
+        secondReviewStatus: item.secondReviewStatus,
         expiryPolicyStatus: policyStatus,
         overrideWindow: windowStatus,
         effectiveDecision: "deny_mutation",
@@ -102,6 +137,7 @@ export function buildAdminRbacRuntimeDecisions(
         preOverrideState: item.preOverrideState,
         expiryAction: item.expiryAction,
         staleOverrideProbe: item.staleOverrideProbe,
+        blockerCodes,
         auditRef: item.auditRef,
         evidenceRefs: item.evidenceRefs,
         rationale: `${item.enforcementPoint} denied ${item.requestedAction} because ${item.attemptedRole} is below ${item.requiredRole}; ${item.postDecisionControl}`
@@ -114,7 +150,12 @@ export function buildAdminRbacRuntimeDecisions(
         surface: item.surface,
         overrideScope: item.overrideScope,
         target: item.target,
+        requestedAction: item.requestedAction,
         enforcementPoint: item.enforcementPoint,
+        requiredRole: item.requiredRole,
+        attemptedRole: item.attemptedRole,
+        roleGateStatus,
+        secondReviewStatus: item.secondReviewStatus,
         expiryPolicyStatus: policyStatus,
         overrideWindow: windowStatus,
         effectiveDecision: "queue_for_review",
@@ -126,6 +167,7 @@ export function buildAdminRbacRuntimeDecisions(
         preOverrideState: item.preOverrideState,
         expiryAction: item.expiryAction,
         staleOverrideProbe: item.staleOverrideProbe,
+        blockerCodes,
         auditRef: item.auditRef,
         evidenceRefs: item.evidenceRefs,
         rationale: `${item.enforcementPoint} queued ${item.requestedAction} for second review; ${item.releaseGateImpact} ${item.postDecisionControl}`
@@ -138,7 +180,12 @@ export function buildAdminRbacRuntimeDecisions(
         surface: item.surface,
         overrideScope: item.overrideScope,
         target: item.target,
+        requestedAction: item.requestedAction,
         enforcementPoint: item.enforcementPoint,
+        requiredRole: item.requiredRole,
+        attemptedRole: item.attemptedRole,
+        roleGateStatus,
+        secondReviewStatus: item.secondReviewStatus,
         expiryPolicyStatus: policyStatus,
         overrideWindow: windowStatus,
         effectiveDecision: "deny_mutation",
@@ -150,6 +197,7 @@ export function buildAdminRbacRuntimeDecisions(
         preOverrideState: item.preOverrideState,
         expiryAction: item.expiryAction,
         staleOverrideProbe: item.staleOverrideProbe,
+        blockerCodes,
         auditRef: item.auditRef,
         evidenceRefs: item.evidenceRefs,
         rationale: `${item.enforcementPoint} preserved the block for ${item.requestedAction}; ${item.rationale} ${item.postDecisionControl}`
@@ -161,7 +209,12 @@ export function buildAdminRbacRuntimeDecisions(
       surface: item.surface,
       overrideScope: item.overrideScope,
       target: item.target,
+      requestedAction: item.requestedAction,
       enforcementPoint: item.enforcementPoint,
+      requiredRole: item.requiredRole,
+      attemptedRole: item.attemptedRole,
+      roleGateStatus,
+      secondReviewStatus: item.secondReviewStatus,
       expiryPolicyStatus: policyStatus,
       overrideWindow: windowStatus,
       effectiveDecision: "allow_mutation",
@@ -173,6 +226,7 @@ export function buildAdminRbacRuntimeDecisions(
       preOverrideState: item.preOverrideState,
       expiryAction: item.expiryAction,
       staleOverrideProbe: item.staleOverrideProbe,
+      blockerCodes,
       auditRef: item.auditRef,
       evidenceRefs: item.evidenceRefs,
       rationale: `${item.enforcementPoint} applied ${item.requestedAction} with expiry ${item.overrideExpiresAt}; ${item.runtimeCheck} ${item.expiryAction}`

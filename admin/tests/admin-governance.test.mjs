@@ -101,6 +101,7 @@ const parseRbacRuntime = () => {
     .replaceAll(/new Map<AdminRbacEvidence\["surface"\], AdminRbacEvidence\[\]>/g, "new Map")
     .replaceAll(/new Map<AdminRbacRuntimeDecision\["surface"\], AdminRbacRuntimeDecision\[\]>/g, "new Map")
     .replaceAll(/: AdminRbacEvidence/g, "")
+    .replaceAll(/: string\[\]/g, "")
     .replaceAll(/: string/g, "")
     .replaceAll(/: Date/g, "")
     .replaceAll(/: boolean/g, "");
@@ -3405,13 +3406,31 @@ test("admin RBAC runtime decisions enforce high-risk override outcomes", () => {
     assert.equal(decision.surface, item.surface, `${decision.evidenceId} surface mismatch`);
     assert.equal(decision.overrideScope, item.overrideScope, `${decision.evidenceId} override scope mismatch`);
     assert.equal(decision.target, item.target, `${decision.evidenceId} target mismatch`);
+    assert.equal(decision.requestedAction, item.requestedAction, `${decision.evidenceId} requested action mismatch`);
     assert.equal(decision.enforcementPoint, item.enforcementPoint, `${decision.evidenceId} enforcement mismatch`);
+    assert.equal(decision.requiredRole, item.requiredRole, `${decision.evidenceId} required role mismatch`);
+    assert.equal(decision.attemptedRole, item.attemptedRole, `${decision.evidenceId} attempted role mismatch`);
+    assert.equal(
+      decision.roleGateStatus,
+      roleOrder.get(item.attemptedRole) >= roleOrder.get(item.requiredRole) ? "sufficient" : "insufficient",
+      `${decision.evidenceId} role gate status must reflect attempted and required roles`
+    );
+    assert.equal(
+      decision.secondReviewStatus,
+      item.secondReviewStatus,
+      `${decision.evidenceId} second-review status must be preserved`
+    );
     assert.equal(decision.preOverrideState, item.preOverrideState, `${decision.evidenceId} pre-override state must be preserved`);
     assert.equal(decision.expiryAction, item.expiryAction, `${decision.evidenceId} expiry action must be preserved`);
     assert.equal(decision.staleOverrideProbe, item.staleOverrideProbe, `${decision.evidenceId} stale override probe must be preserved`);
     assert.match(decision.evaluatedAt, /^2026-05-26T11:00:00\.000Z$/, `${decision.evidenceId} needs deterministic evaluated timestamp`);
     assert.ok(auditIds.has(decision.auditRef), `${decision.evidenceId} links unknown audit ${decision.auditRef}`);
     assert.deepEqual(decision.evidenceRefs, item.evidenceRefs, `${decision.evidenceId} evidence refs must be preserved`);
+    assert.deepEqual(
+      [...new Set(decision.blockerCodes)],
+      decision.blockerCodes,
+      `${decision.evidenceId} blocker codes must be unique and ordered by gate evaluation`
+    );
     assert.ok(decision.rationale.length > 120, `${decision.evidenceId} needs runtime rationale`);
     assert.match(
       decision.rationale,
@@ -3451,6 +3470,7 @@ test("admin RBAC runtime decisions enforce high-risk override outcomes", () => {
       assert.equal(decision.effectiveDecision, "allow_mutation", `${decision.evidenceId} mutation allowed only for allow decisions`);
       assert.equal(decision.queueAction, "apply_with_expiry", `${decision.evidenceId} allowed mutation needs expiry action`);
       assert.equal(decision.releaseGateStatus, "runtime_override_applied_with_expiry", `${decision.evidenceId} allowed mutation needs runtime gate status`);
+      assert.deepEqual(decision.blockerCodes, [], `${decision.evidenceId} allowed mutation cannot expose blockers`);
     } else {
       assert.notEqual(decision.effectiveDecision, "allow_mutation", `${decision.evidenceId} denied or queued decision cannot allow mutation`);
       assert.match(
@@ -3458,6 +3478,7 @@ test("admin RBAC runtime decisions enforce high-risk override outcomes", () => {
         /hold_for_second_review|block_and_preserve_state/,
         `${decision.evidenceId} denied or queued decision needs restrictive queue action`
       );
+      assert.ok(decision.blockerCodes.length > 0, `${decision.evidenceId} denied or queued decision needs blocker codes`);
     }
 
     if (decision.requestOutcome === "denied_expired_override") {
@@ -3466,8 +3487,22 @@ test("admin RBAC runtime decisions enforce high-risk override outcomes", () => {
       assert.equal(decision.releaseGateStatus, "release_gate_preserved", `${decision.evidenceId} expired override must preserve release gate`);
       assert.equal(decision.expiryPolicyStatus, "expired_temporary_window", `${decision.evidenceId} expired override needs expired policy status`);
       assert.equal(decision.overrideWindow, "expired", `${decision.evidenceId} expired override needs expired window`);
+      assert.ok(decision.blockerCodes.includes("expired_override_window"), `${decision.evidenceId} expired override needs blocker code`);
       assert.match(decision.rationale, /expired/i, `${decision.evidenceId} expired override rationale must name expiry`);
       assert.match(decision.rationale, new RegExp(item.expiryAction.slice(0, 18)), `${decision.evidenceId} expired rationale must include expiry action`);
+    }
+
+    if (decision.requestOutcome === "denied_insufficient_role") {
+      assert.equal(decision.roleGateStatus, "insufficient", `${decision.evidenceId} insufficient-role denial needs role gate evidence`);
+      assert.ok(decision.blockerCodes.includes("insufficient_role"), `${decision.evidenceId} insufficient-role denial needs blocker code`);
+    }
+
+    if (decision.requestOutcome === "queued_second_review") {
+      assert.ok(decision.blockerCodes.includes("second_review_open"), `${decision.evidenceId} second-review hold needs blocker code`);
+    }
+
+    if (decision.requestOutcome === "denied_policy_block") {
+      assert.ok(decision.blockerCodes.includes("policy_or_gate_denied"), `${decision.evidenceId} policy denial needs blocker code`);
     }
 
     if (item.surface === "export_override") {
