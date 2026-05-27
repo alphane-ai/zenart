@@ -166,4 +166,4 @@ scripts/staging_observability_backup_load_smoke.sh
 
 The script requires top-level `environment=staging`, the deploy `release_sha`, and the expected `kind` on each JSON file. Observability must include request-id propagation, structured JSON logs, OpenTelemetry traces, backend/worker/crawler metrics, dashboard import, and alert routes. Restore must include Postgres restore and object restore. Load must include `chat_task`, `worker_generation`, `zip_export`, `signed_download`, `crawler_throttle`, `quota_contention`, and `workspace_rendering`.
 
-If any slot is missing or incomplete, the script exits 2 and writes a blocked report under `ops/evidence/staging-observability-backup-load/`. That blocked report is useful operational evidence, but it does not close private beta or production gates.
+If any slot is missing or incomplete, the script exits 2 and writes a blocked report under `ops/evidence/staging/` with `release_gate_check_id=staging_observability_backup_load`. That blocked report is useful operational evidence, but it does not close private beta or production gates.

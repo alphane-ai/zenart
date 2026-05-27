@@ -508,6 +508,10 @@ if report.get("status") != "blocked":
     raise SystemExit("preflight with missing evidence must remain blocked")
 if report.get("private_beta_check_id") != "staging_observability_backup_load":
     raise SystemExit("preflight must map to the private beta observability/backup/load check")
+if report.get("release_gate_check_id") != "staging_observability_backup_load":
+    raise SystemExit("preflight must preserve the staging observability/backup/load release gate check id")
+if report.get("evidence_path_policy") != "ops/evidence/staging/":
+    raise SystemExit("preflight must declare the staging runtime evidence path policy")
 expected_slots = {
     "observability_evidence",
     "backup_restore_evidence",

@@ -64,6 +64,7 @@
   },
   "staging_observability_backup_load_preflight": {
     "script": "scripts/staging_observability_backup_load_smoke.sh",
+    "evidence_path_policy": "ops/evidence/staging/",
     "required_evidence_slots": [
       "OBSERVABILITY_EVIDENCE",
       "BACKUP_RESTORE_EVIDENCE",

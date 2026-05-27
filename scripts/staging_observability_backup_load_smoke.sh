@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-OUT_DIR="${OUT_DIR:-ops/evidence/staging-observability-backup-load}"
+OUT_DIR="${OUT_DIR:-ops/evidence/staging}"
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 RUN_ID="${STAMP}-staging-observability-backup-load-$$"
 REPORT_PATH="$OUT_DIR/${RUN_ID}.json"
@@ -289,11 +289,21 @@ report = {
     "environment": environment,
     "release_sha": release_sha,
     "status": status,
+    "evidence_path_policy": "ops/evidence/staging/",
+    "release_gate_check_id": "staging_observability_backup_load",
+    "blueprint_checklist_item": "Private Beta/Staging observability/backup/load runtime evidence 通过。",
     "inputs": inputs,
     "checks": checks,
     "blocked_slots": blocked_slots,
     "blocking_reasons": blocking_reasons,
     "private_beta_check_id": "staging_observability_backup_load",
+    "gate_impact": {
+        "aggregate_checklist_item": "Private Beta/Staging observability/backup/load runtime evidence 通过。",
+        "can_clear_aggregate_item": status == "passed",
+        "preserved_do_not_launch_condition_id": None if status == "passed" else "staging_observability_restore_load_missing",
+        "preserved_release_gate_check_id": None if status == "passed" else "staging_observability_backup_load",
+        "blocked_slots": blocked_slots,
+    },
     "private_beta_gate": "open_until_this_preflight_passes_with_real_staging_evidence_and_release_gate_fixture_is_updated",
     "production_gate": "open_until_ci_private_beta_and_production_backup_rollback_post_deploy_evidence_pass",
 }
