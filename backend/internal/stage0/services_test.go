@@ -1769,6 +1769,54 @@ func TestServiceCleanupTreatsMissingMetadataAckAsPartialFailure(t *testing.T) {
 	}
 }
 
+func TestServiceCleanupAuditsMetadataAckWriteFailure(t *testing.T) {
+	now := time.Date(2026, 5, 26, 12, 0, 0, 0, time.UTC)
+	db := &fakeDB{
+		execTags: []pgconn.CommandTag{
+			pgconn.NewCommandTag("UPDATE 0"),
+			pgconn.NewCommandTag("UPDATE 0"),
+			pgconn.NewCommandTag("SELECT 1"),
+		},
+		execErrs: []error{
+			nil,
+			nil,
+			nil,
+			errors.New("metadata ack write failed"),
+		},
+		queryRows: []rowSet{{
+			rows: [][]any{
+				{"object_1", "tenant_1", "tenants/tenant_1/exports/export_1.zip"},
+				{"object_2", "tenant_1", "tenants/tenant_1/thumbnails/export_1.zip.svg"},
+			},
+		}},
+	}
+	objects := &recordingObjectStore{}
+	service := NewService(NewRepository(db), objects)
+
+	result, err := service.CleanupExpiredExportsAndOrphanedObjects(context.Background(), now, 50)
+	if err == nil || !strings.Contains(err.Error(), "metadata ack write failed") {
+		t.Fatalf("CleanupExpiredExportsAndOrphanedObjects() error = %v, want metadata ack write failure", err)
+	}
+	if result.DeletedObjects != 0 || result.FailedObjects != 2 || result.Status != "partial_failed" {
+		t.Fatalf("cleanup result = %#v, want no acked deletes and two failed objects", result)
+	}
+	if len(objects.deletedKeys) != 2 {
+		t.Fatalf("deleted key attempts = %#v, want both cleanup objects attempted", objects.deletedKeys)
+	}
+	if len(db.execs) != 6 {
+		t.Fatalf("exec count = %d, want lifecycle, failed mark, cleanup run analytics, cleanup audit refs", len(db.execs))
+	}
+	if !strings.Contains(db.execs[3].sql, "retention_state = 'deleted'") {
+		t.Fatalf("fourth exec should attempt metadata delete acknowledgement: %s", db.execs[3].sql)
+	}
+	if !strings.Contains(db.execs[4].sql, "'export_object_cleanup_run'") || db.execs[4].args[3] != result.DeletedObjects || db.execs[4].args[4] != result.FailedObjects || db.execs[4].args[5] != "partial_failed" {
+		t.Fatalf("cleanup run analytics args/sql = %#v / %s, want partial ack-write failure", db.execs[4].args, db.execs[4].sql)
+	}
+	if !strings.Contains(db.execs[5].sql, "INSERT INTO audit_logs") || db.execs[5].args[3] != result.DeletedObjects || db.execs[5].args[4] != result.FailedObjects || db.execs[5].args[5] != "partial_failed" {
+		t.Fatalf("cleanup run audit args/sql = %#v / %s, want partial ack-write failure", db.execs[5].args, db.execs[5].sql)
+	}
+}
+
 func TestEnforceSafetyRecordsBlockDecisionForActiveRule(t *testing.T) {
 	now := time.Now().UTC()
 	db := &fakeDB{queryRows: []rowSet{{
@@ -2697,6 +2745,7 @@ func (s *captureScanner) Scan(_ context.Context, target security.MalwareScanTarg
 type fakeDB struct {
 	execs         []execCall
 	execTags      []pgconn.CommandTag
+	execErrs      []error
 	queryRows     []rowSet
 	queryRowsUsed []queryCall
 	queryErr      error
@@ -2714,12 +2763,17 @@ type queryCall struct {
 
 func (f *fakeDB) Exec(_ context.Context, sql string, arguments ...any) (pgconn.CommandTag, error) {
 	f.execs = append(f.execs, execCall{sql: sql, args: arguments})
+	var err error
+	if len(f.execErrs) > 0 {
+		err = f.execErrs[0]
+		f.execErrs = f.execErrs[1:]
+	}
 	if len(f.execTags) == 0 {
-		return pgconn.CommandTag{}, nil
+		return pgconn.CommandTag{}, err
 	}
 	tag := f.execTags[0]
 	f.execTags = f.execTags[1:]
-	return tag, nil
+	return tag, err
 }
 
 func (f *fakeDB) Query(_ context.Context, sql string, args ...any) (store.Rows, error) {

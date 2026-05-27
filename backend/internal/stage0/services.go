@@ -3067,7 +3067,11 @@ func (s Service) cleanupExpiredExportsAndOrphanedObjects(ctx context.Context, te
 	}
 	deleted, err := s.repo.MarkCleanupObjectsDeleted(ctx, deletedObjects, now)
 	if err != nil {
-		return CleanupResult{}, err
+		result.FailedObjects += len(deletedObjects)
+		result.Status = cleanupResultStatus(result, err)
+		analyticsErr := s.repo.recordCleanupRunAnalyticsForTenant(ctx, now, tenantID, result)
+		auditErr := s.repo.recordCleanupRunAuditRefsForTenant(ctx, now, tenantID, result)
+		return result, errors.Join(err, analyticsErr, auditErr)
 	}
 	result.DeletedObjects = deleted
 	if deleted < len(deletedObjects) {
