@@ -327,6 +327,9 @@
         "list_operation_id",
         "read_runner",
         "check_command",
+        "pagination_parameters",
+        "cursor_token_format",
+        "page_size_bounds",
         "required_query_filters",
         "admin_rbac_required",
         "tenant_filter_required",
@@ -344,6 +347,41 @@
         },
         "check_command": {
           "const": "python3 scripts/run_eval_storage_read_contract.py --check"
+        },
+        "pagination_parameters": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "PageToken",
+              "PageSize"
+            ]
+          }
+        },
+        "cursor_token_format": {
+          "const": "after_result_id"
+        },
+        "page_size_bounds": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "minimum",
+            "maximum",
+            "default"
+          ],
+          "properties": {
+            "minimum": {
+              "const": 1
+            },
+            "maximum": {
+              "const": 100
+            },
+            "default": {
+              "const": 25
+            }
+          }
         },
         "required_query_filters": {
           "type": "array",
@@ -390,6 +428,7 @@
         "latest_only_groups_by",
         "fixture_rows",
         "cases",
+        "pagination_cases",
         "expected_empty_cases"
       ],
       "properties": {
@@ -433,6 +472,14 @@
         "cases": {
           "type": "array",
           "minItems": 4,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/read_fixture_case"
+          }
+        },
+        "pagination_cases": {
+          "type": "array",
+          "minItems": 2,
           "uniqueItems": true,
           "items": {
             "$ref": "#/$defs/read_fixture_case"
@@ -572,11 +619,13 @@
         },
         "required_parameters": {
           "type": "array",
-          "minItems": 7,
-          "maxItems": 7,
+          "minItems": 9,
+          "maxItems": 9,
           "uniqueItems": true,
           "items": {
             "enum": [
+              "PageToken",
+              "PageSize",
               "TenantIdFilter",
               "StatusFilter",
               "EvalSuiteIdFilter",
@@ -778,6 +827,15 @@
             },
             "latest_only": {
               "type": "boolean"
+            },
+            "page_token": {
+              "type": "string",
+              "pattern": "^after:eval_result_[a-z0-9_]+$"
+            },
+            "page_size": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
             }
           }
         },
@@ -788,6 +846,9 @@
             "type": "string",
             "pattern": "^eval_result_[a-z0-9_]+$"
           }
+        },
+        "expected_next_page_token": {
+          "type": "string"
         }
       }
     },

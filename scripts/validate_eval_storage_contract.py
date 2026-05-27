@@ -54,6 +54,11 @@ QUERY_FILTERS = {
     "latest_only",
 }
 
+QUERY_FIELDS = QUERY_FILTERS | {
+    "page_token",
+    "page_size",
+}
+
 IDEMPOTENCY_FIELDS = {
     "tenant_id",
     "eval_suite_id",
@@ -73,6 +78,8 @@ LATEST_ONLY_GROUP_FIELDS = {
 }
 
 OPENAPI_PARAMETERS = {
+    "PageToken",
+    "PageSize",
     "TenantIdFilter",
     "StatusFilter",
     "EvalSuiteIdFilter",
@@ -317,7 +324,7 @@ def apply_read_query(
     rows: list[dict[str, Any]],
     query: dict[str, Any],
     latest_group_fields: list[str],
-) -> list[dict[str, Any]]:
+) -> tuple[list[dict[str, Any]], str]:
     filtered = [
         row
         for row in rows
@@ -336,17 +343,35 @@ def apply_read_query(
 
     ordered = sorted(filtered, key=row_sort_key, reverse=True)
     if not query["latest_only"]:
-        return ordered
+        filtered_ordered = ordered
+    else:
+        filtered_ordered: list[dict[str, Any]] = []
+        seen_groups: set[tuple[str, ...]] = set()
+        for row in ordered:
+            group = tuple(row[field] for field in latest_group_fields)
+            if group in seen_groups:
+                continue
+            seen_groups.add(group)
+            filtered_ordered.append(row)
 
-    latest_rows: list[dict[str, Any]] = []
-    seen_groups: set[tuple[str, ...]] = set()
-    for row in ordered:
-        group = tuple(row[field] for field in latest_group_fields)
-        if group in seen_groups:
-            continue
-        seen_groups.add(group)
-        latest_rows.append(row)
-    return latest_rows
+    page_token = query.get("page_token", "")
+    if page_token:
+        require(isinstance(page_token, str) and page_token.startswith("after:"), "read page_token must use after:<result_id>")
+        after_id = page_token.removeprefix("after:")
+        matching_indexes = [index for index, row in enumerate(filtered_ordered) if row["id"] == after_id]
+        require(matching_indexes, f"read page_token references a result outside the filtered page: {after_id}")
+        filtered_ordered = filtered_ordered[matching_indexes[0] + 1 :]
+
+    page_size = query.get("page_size", 25)
+    require(isinstance(page_size, int), "read page_size must be an integer")
+    require(1 <= page_size <= 100, "read page_size must be between 1 and 100")
+
+    page = filtered_ordered[:page_size]
+    if len(filtered_ordered) > page_size:
+        next_page_token = f"after:{page[-1]['id']}"
+    else:
+        next_page_token = ""
+    return page, next_page_token
 
 
 def validate_write_fixture_contract(contract: dict[str, Any]) -> None:
@@ -526,6 +551,7 @@ def validate_read_fixture_contract(contract: dict[str, Any]) -> None:
     read = contract["read_contract"]
     rows = fixture["fixture_rows"]
     cases = fixture["cases"]
+    pagination_cases = fixture["pagination_cases"]
     empty_cases = fixture["expected_empty_cases"]
     latest_group_fields = fixture["latest_only_groups_by"]
 
@@ -537,6 +563,12 @@ def validate_read_fixture_contract(contract: dict[str, Any]) -> None:
         read["check_command"] == "python3 scripts/run_eval_storage_read_contract.py --check",
         "read contract check command mismatch",
     )
+    require(set(read["pagination_parameters"]) == {"PageToken", "PageSize"}, "read contract pagination parameters mismatch")
+    require(read["cursor_token_format"] == "after_result_id", "read contract cursor token format mismatch")
+    require(
+        read["page_size_bounds"] == {"minimum": 1, "maximum": 100, "default": 25},
+        "read contract page size bounds mismatch",
+    )
     require(READ_RUNNER.exists(), "eval storage read runner missing")
     runner_text = READ_RUNNER.read_text(encoding="utf-8")
     for token in [
@@ -545,6 +577,9 @@ def validate_read_fixture_contract(contract: dict[str, Any]) -> None:
         "latest_group_fields",
         "tenant_id",
         "created_at",
+        "page_token",
+        "page_size",
+        "next_page_token",
     ]:
         require(token in runner_text, f"eval storage read runner missing {token}")
 
@@ -557,9 +592,15 @@ def validate_read_fixture_contract(contract: dict[str, Any]) -> None:
     require(len(row_ids) == len(set(row_ids)), "read fixture row ids must be unique")
     case_ids = [case["case_id"] for case in cases]
     require(len(case_ids) == len(set(case_ids)), "read fixture case ids must be unique")
+    pagination_case_ids = [case["case_id"] for case in pagination_cases]
+    require(len(pagination_case_ids) == len(set(pagination_case_ids)), "read fixture pagination case ids must be unique")
     empty_case_ids = [case["case_id"] for case in empty_cases]
     require(len(empty_case_ids) == len(set(empty_case_ids)), "read fixture empty case ids must be unique")
     require(not (set(case_ids) & set(empty_case_ids)), "read fixture positive and empty case ids must not overlap")
+    require(
+        not (set(case_ids) & set(pagination_case_ids) or set(pagination_case_ids) & set(empty_case_ids)),
+        "read fixture pagination case ids must not overlap other cases",
+    )
     row_by_id = {row["id"]: row for row in rows}
 
     for row in rows:
@@ -572,8 +613,8 @@ def validate_read_fixture_contract(contract: dict[str, Any]) -> None:
         require("tenant_id" in query, f"{case['case_id']} must include tenant_id")
         require("latest_only" in query, f"{case['case_id']} must include latest_only")
         require(
-            set(query) <= QUERY_FILTERS,
-            f"{case['case_id']} includes unsupported query filters: {sorted(set(query) - QUERY_FILTERS)}",
+            set(query) <= QUERY_FIELDS,
+            f"{case['case_id']} includes unsupported query filters: {sorted(set(query) - QUERY_FIELDS)}",
         )
         expected_ids = case["expected_result_ids"]
         require(all(result_id in row_by_id for result_id in expected_ids), f"{case['case_id']} expects unknown rows")
@@ -582,14 +623,13 @@ def validate_read_fixture_contract(contract: dict[str, Any]) -> None:
             expected_tenant_ids == {query["tenant_id"]},
             f"{case['case_id']} expected rows must stay inside the queried tenant",
         )
-        actual_ids = [
-            row["id"]
-            for row in apply_read_query(rows, query, latest_group_fields)
-        ]
+        page, next_page_token = apply_read_query(rows, query, latest_group_fields)
+        actual_ids = [row["id"] for row in page]
         require(
             actual_ids == expected_ids,
             f"{case['case_id']} read fixture mismatch: expected {expected_ids}, got {actual_ids}",
         )
+        require(next_page_token == "", f"{case['case_id']} non-pagination case must not return a next page token")
         require(expected_ids, f"{case['case_id']} positive read case must expect at least one row")
 
     required_cases = {
@@ -599,6 +639,47 @@ def validate_read_fixture_contract(contract: dict[str, Any]) -> None:
         "tenant_isolation_keeps_newer_other_tenant_out_of_acme_reads",
     }
     require(set(case_ids) == required_cases, "eval read fixture cases mismatch")
+
+    required_pagination_cases = {
+        "page_size_limits_after_stable_order",
+        "page_token_resumes_after_prior_result_inside_tenant_scope",
+    }
+    require(set(pagination_case_ids) == required_pagination_cases, "eval read fixture pagination cases mismatch")
+    first_page = {case["case_id"]: case for case in pagination_cases}["page_size_limits_after_stable_order"]
+    second_page = {case["case_id"]: case for case in pagination_cases}["page_token_resumes_after_prior_result_inside_tenant_scope"]
+    require(first_page["query"]["page_size"] == 2, "first pagination case must force a short page")
+    require(first_page["expected_next_page_token"], "first pagination case must return a next page token")
+    require(
+        second_page["query"]["page_token"] == first_page["expected_next_page_token"],
+        "second pagination case must resume from first page token",
+    )
+    for case in pagination_cases:
+        query = case["query"]
+        require("tenant_id" in query, f"{case['case_id']} must include tenant_id")
+        require("latest_only" in query, f"{case['case_id']} must include latest_only")
+        require("page_size" in query, f"{case['case_id']} must include page_size")
+        require(
+            set(query) <= QUERY_FIELDS,
+            f"{case['case_id']} includes unsupported query filters: {sorted(set(query) - QUERY_FIELDS)}",
+        )
+        expected_ids = case["expected_result_ids"]
+        require(all(result_id in row_by_id for result_id in expected_ids), f"{case['case_id']} expects unknown rows")
+        page, next_page_token = apply_read_query(rows, query, latest_group_fields)
+        actual_ids = [row["id"] for row in page]
+        require(
+            actual_ids == expected_ids,
+            f"{case['case_id']} pagination read mismatch: expected {expected_ids}, got {actual_ids}",
+        )
+        require(
+            next_page_token == case["expected_next_page_token"],
+            f"{case['case_id']} next page token mismatch: expected {case['expected_next_page_token']}, got {next_page_token}",
+        )
+        require(expected_ids, f"{case['case_id']} pagination case must expect at least one row")
+        expected_tenant_ids = {row_by_id[result_id]["tenant_id"] for result_id in expected_ids}
+        require(
+            expected_tenant_ids == {query["tenant_id"]},
+            f"{case['case_id']} paginated rows must stay inside queried tenant",
+        )
 
     required_empty_cases = {
         "completed_after_is_strict_and_tenant_scoped",
@@ -610,15 +691,14 @@ def validate_read_fixture_contract(contract: dict[str, Any]) -> None:
         require("tenant_id" in query, f"{case['case_id']} must include tenant_id")
         require("latest_only" in query, f"{case['case_id']} must include latest_only")
         require(
-            set(query) <= QUERY_FILTERS,
-            f"{case['case_id']} includes unsupported query filters: {sorted(set(query) - QUERY_FILTERS)}",
+            set(query) <= QUERY_FIELDS,
+            f"{case['case_id']} includes unsupported query filters: {sorted(set(query) - QUERY_FIELDS)}",
         )
         require(case["expected_result_ids"] == [], f"{case['case_id']} empty case must expect no rows")
-        actual_ids = [
-            row["id"]
-            for row in apply_read_query(rows, query, latest_group_fields)
-        ]
+        page, next_page_token = apply_read_query(rows, query, latest_group_fields)
+        actual_ids = [row["id"] for row in page]
         require(actual_ids == [], f"{case['case_id']} expected no rows, got {actual_ids}")
+        require(next_page_token == "", f"{case['case_id']} empty case must not return a next page token")
 
     strict_case = next(case for case in empty_cases if case["case_id"] == "completed_after_is_strict_and_tenant_scoped")
     require(
@@ -709,6 +789,9 @@ def validate_read_and_openapi_contract(contract: dict[str, Any]) -> None:
     )
     require("operationId: listEvalResults" in eval_path, "OpenAPI /eval/results must expose listEvalResults")
     require("x-rbac: admin" in eval_path, "OpenAPI /eval/results must require admin RBAC")
+    require(set(read["pagination_parameters"]) == {"PageToken", "PageSize"}, "eval result read pagination parameter mismatch")
+    require(read["cursor_token_format"] == "after_result_id", "eval result read cursor token format mismatch")
+    require(read["page_size_bounds"] == {"minimum": 1, "maximum": 100, "default": 25}, "eval result read page size bounds mismatch")
     require(read["admin_rbac_required"] is True, "read contract must require admin RBAC")
     require(read["tenant_filter_required"] is True, "read contract must require tenant filtering")
     require(read["latest_result_order"] == "completed_at_desc", "read contract latest order mismatch")

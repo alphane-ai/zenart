@@ -270,6 +270,16 @@
     "list_operation_id": "listEvalResults",
     "read_runner": "scripts/run_eval_storage_read_contract.py",
     "check_command": "python3 scripts/run_eval_storage_read_contract.py --check",
+    "pagination_parameters": [
+      "PageToken",
+      "PageSize"
+    ],
+    "cursor_token_format": "after_result_id",
+    "page_size_bounds": {
+      "minimum": 1,
+      "maximum": 100,
+      "default": 25
+    },
     "required_query_filters": [
       "tenant_id",
       "eval_suite_id",
@@ -431,6 +441,41 @@
         ]
       }
     ],
+    "pagination_cases": [
+      {
+        "case_id": "page_size_limits_after_stable_order",
+        "query": {
+          "tenant_id": "tenant_stage0_acme",
+          "eval_suite_id": "eval_stage0_rev2_starter",
+          "subject_type": "vertical_workflow_pack",
+          "subject_id": "stage0_rev2_starter_workflows",
+          "latest_only": false,
+          "page_size": 2
+        },
+        "expected_result_ids": [
+          "eval_result_read_acme_other_runner",
+          "eval_result_read_acme_same_completed_newer_created"
+        ],
+        "expected_next_page_token": "after:eval_result_read_acme_same_completed_newer_created"
+      },
+      {
+        "case_id": "page_token_resumes_after_prior_result_inside_tenant_scope",
+        "query": {
+          "tenant_id": "tenant_stage0_acme",
+          "eval_suite_id": "eval_stage0_rev2_starter",
+          "subject_type": "vertical_workflow_pack",
+          "subject_id": "stage0_rev2_starter_workflows",
+          "latest_only": false,
+          "page_token": "after:eval_result_read_acme_same_completed_newer_created",
+          "page_size": 2
+        },
+        "expected_result_ids": [
+          "eval_result_read_acme_same_completed_older_created",
+          "eval_result_read_acme_old"
+        ],
+        "expected_next_page_token": ""
+      }
+    ],
     "expected_empty_cases": [
       {
         "case_id": "completed_after_is_strict_and_tenant_scoped",
@@ -492,6 +537,8 @@
     "response_schema": "EvalResultPage",
     "rbac": "admin",
     "required_parameters": [
+      "PageToken",
+      "PageSize",
       "TenantIdFilter",
       "StatusFilter",
       "EvalSuiteIdFilter",

@@ -245,6 +245,18 @@ LATEST_ONLY_GROUP_FIELDS = {
     "runner_sha256",
 }
 
+EVAL_READ_QUERY_FILTERS = {
+    "tenant_id",
+    "eval_suite_id",
+    "subject_type",
+    "subject_id",
+    "status",
+    "completed_after",
+    "latest_only",
+    "page_token",
+    "page_size",
+}
+
 FIXTURE_RESULT_PROJECTION_FIELDS = {
     "fixture_id",
     "category",
@@ -7156,8 +7168,13 @@ def validate_eval_storage_contract() -> None:
     validate_eval_storage_read_fixture_contract()
 
 
-def eval_read_fixture_page(rows: list[dict[str, Any]], query: dict[str, Any]) -> list[dict[str, Any]]:
+def eval_read_fixture_page(rows: list[dict[str, Any]], query: dict[str, Any]) -> tuple[list[dict[str, Any]], str]:
     require("tenant_id" in query, "eval read fixture queries must include tenant_id")
+    require("latest_only" in query, "eval read fixture queries must include latest_only")
+    require(
+        set(query) <= EVAL_READ_QUERY_FILTERS,
+        f"eval read fixture query includes unsupported filters: {sorted(set(query) - EVAL_READ_QUERY_FILTERS)}",
+    )
     filtered = []
     for row in rows:
         if row["tenant_id"] != query["tenant_id"]:
@@ -7192,7 +7209,21 @@ def eval_read_fixture_page(rows: list[dict[str, Any]], query: dict[str, Any]) ->
             seen_groups.add(group)
             latest_rows.append(row)
         filtered = latest_rows
-    return filtered
+
+    page_token = query.get("page_token", "")
+    if page_token:
+        require(isinstance(page_token, str) and page_token.startswith("after:"), "eval read page_token must use after:<result_id>")
+        after_id = page_token.removeprefix("after:")
+        matching_indexes = [index for index, row in enumerate(filtered) if row["id"] == after_id]
+        require(matching_indexes, f"eval read page_token references a result outside the filtered page: {after_id}")
+        filtered = filtered[matching_indexes[0] + 1 :]
+
+    page_size = query.get("page_size", 25)
+    require(isinstance(page_size, int), "eval read page_size must be an integer")
+    require(1 <= page_size <= 100, "eval read page_size must be between 1 and 100")
+    page = filtered[:page_size]
+    next_page_token = f"after:{page[-1]['id']}" if len(filtered) > page_size else ""
+    return page, next_page_token
 
 
 def validate_eval_storage_read_fixture_contract() -> None:
@@ -7201,10 +7232,18 @@ def validate_eval_storage_read_fixture_contract() -> None:
     table = contract["table_contract"]
     retention = contract["retention_contract"]
     rows = fixture["fixture_rows"]
+    pagination_cases = fixture["pagination_cases"]
     empty_cases = fixture["expected_empty_cases"]
     row_ids = [row["id"] for row in rows]
     require(len(row_ids) == len(set(row_ids)), "eval read fixture rows must have unique ids")
     require(fixture["tenant_filter_required"] is True, "eval read fixture must require tenant scope")
+    read_contract = contract["read_contract"]
+    require(set(read_contract["pagination_parameters"]) == {"PageToken", "PageSize"}, "eval read contract pagination parameters mismatch")
+    require(read_contract["cursor_token_format"] == "after_result_id", "eval read contract cursor token format mismatch")
+    require(
+        read_contract["page_size_bounds"] == {"minimum": 1, "maximum": 100, "default": 25},
+        "eval read contract page size bounds mismatch",
+    )
     require(fixture["ordering"] == ["completed_at_desc", "created_at_desc"], "eval read fixture ordering mismatch")
     require(set(fixture["latest_only_groups_by"]) == LATEST_ONLY_GROUP_FIELDS, "eval read latest-only grouping mismatch")
     require(table["retention_contract_ref"] == "retention_contract", "eval storage table must link retention contract")
@@ -7258,9 +7297,42 @@ def validate_eval_storage_read_fixture_contract() -> None:
     cases = {case["case_id"]: case for case in fixture["cases"]}
     require(set(cases) == required_case_ids, "eval read fixture cases mismatch")
     for case in fixture["cases"]:
-        actual_ids = [row["id"] for row in eval_read_fixture_page(rows, case["query"])]
+        page, next_page_token = eval_read_fixture_page(rows, case["query"])
+        actual_ids = [row["id"] for row in page]
         require(actual_ids == case["expected_result_ids"], f"{case['case_id']} expected read results mismatch")
+        require(next_page_token == "", f"{case['case_id']} non-pagination case must not return a next page token")
         require(case["expected_result_ids"], f"{case['case_id']} positive read case must expect at least one row")
+
+    required_pagination_case_ids = {
+        "page_size_limits_after_stable_order",
+        "page_token_resumes_after_prior_result_inside_tenant_scope",
+    }
+    pagination_by_id = {case["case_id"]: case for case in pagination_cases}
+    require(set(pagination_by_id) == required_pagination_case_ids, "eval read pagination fixture cases mismatch")
+    first_page = pagination_by_id["page_size_limits_after_stable_order"]
+    second_page = pagination_by_id["page_token_resumes_after_prior_result_inside_tenant_scope"]
+    require(first_page["query"]["page_size"] == 2, "eval read first pagination case must force a short page")
+    require(first_page["expected_next_page_token"], "eval read first pagination case must emit a next page token")
+    require(
+        second_page["query"]["page_token"] == first_page["expected_next_page_token"],
+        "eval read second pagination case must resume from first page token",
+    )
+    for case in pagination_cases:
+        page, next_page_token = eval_read_fixture_page(rows, case["query"])
+        actual_ids = [row["id"] for row in page]
+        require(actual_ids == case["expected_result_ids"], f"{case['case_id']} expected paginated read results mismatch")
+        require(
+            next_page_token == case["expected_next_page_token"],
+            f"{case['case_id']} expected next page token mismatch",
+        )
+        require(case["expected_result_ids"], f"{case['case_id']} pagination case must expect rows")
+        require(
+            all(
+                next(row for row in rows if row["id"] == result_id)["tenant_id"] == case["query"]["tenant_id"]
+                for result_id in case["expected_result_ids"]
+            ),
+            f"{case['case_id']} returned a row outside query tenant",
+        )
 
     required_empty_case_ids = {
         "completed_after_is_strict_and_tenant_scoped",
@@ -7270,8 +7342,10 @@ def validate_eval_storage_read_fixture_contract() -> None:
     require(set(empty_by_id) == required_empty_case_ids, "eval read empty fixture cases mismatch")
     for case in empty_cases:
         require(case["expected_result_ids"] == [], f"{case['case_id']} must be an empty read case")
-        actual_ids = [row["id"] for row in eval_read_fixture_page(rows, case["query"])]
+        page, next_page_token = eval_read_fixture_page(rows, case["query"])
+        actual_ids = [row["id"] for row in page]
         require(actual_ids == [], f"{case['case_id']} expected empty read results mismatch")
+        require(next_page_token == "", f"{case['case_id']} empty case must not return a next page token")
     strict_case = empty_by_id["completed_after_is_strict_and_tenant_scoped"]
     require(
         any(
@@ -7298,6 +7372,8 @@ def validate_eval_storage_read_fixture_contract() -> None:
     openapi = OPENAPI.read_text(encoding="utf-8")
     eval_path = re.search(r"^  /eval/results:\n(?P<body>.*?)(?=^  /|\Z)", openapi, flags=re.MULTILINE | re.DOTALL)
     require(eval_path is not None, "OpenAPI /eval/results missing")
+    require("PageToken" in eval_path.group("body"), "OpenAPI /eval/results must expose PageToken")
+    require("PageSize" in eval_path.group("body"), "OpenAPI /eval/results must expose PageSize")
     require("TenantIdFilter" in eval_path.group("body"), "OpenAPI /eval/results must require tenant_id filter")
     tenant_filter = re.search(r"^    TenantIdFilter:\n(?P<body>.*?)(?=^    [A-Za-z0-9]+:|\Z)", openapi, flags=re.MULTILINE | re.DOTALL)
     require(tenant_filter is not None, "OpenAPI TenantIdFilter missing")
