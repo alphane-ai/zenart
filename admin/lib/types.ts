@@ -832,6 +832,10 @@ export type FailedTaskRuntimeDecision = {
     | "missing_hook_evidence"
     | "mismatched_hook_user";
   abuseControlEvidence: string;
+  abuseControlReleaseEvidenceStatus: "not_required" | "complete" | "missing";
+  abuseControlReleaseEvidenceRefs: string[];
+  abuseControlMissingReleaseEvidenceRefs: string[];
+  abuseControlReleaseEvidence: string;
   retryBudgetStatus: "available" | "exhausted" | "not_retry";
   rbacStatus: "allowed" | "denied" | "second_review_required";
   roleAuthorizationStatus: "sufficient" | "insufficient";
@@ -909,6 +913,10 @@ export type FailedTaskSubmissionContract = {
   supportTicketId: string;
   abuseControlHeader: string;
   abuseControlStatus: FailedTaskRuntimeDecision["abuseControlStatus"];
+  abuseControlReleaseEvidenceHeader: string;
+  abuseControlReleaseEvidenceStatus: FailedTaskRuntimeDecision["abuseControlReleaseEvidenceStatus"];
+  abuseControlReleaseEvidenceRefs: string[];
+  abuseControlMissingReleaseEvidenceRefs: string[];
   responseContract: string;
   mutationOrder: "audit_then_queue_mutation" | "audit_then_review_hold" | "blocked_attempt_audit_only";
   quotaLedgerEffect: FailedTaskRuntimeDecision["quotaLedgerEffect"];

@@ -311,7 +311,7 @@ const parseFailedTaskRuntime = () => {
     .replaceAll(/function regressionFixtureStatus\(\n  task: FailedTaskControl,\n  regressionFixturePathSet: Set<string> \| undefined\n\): FailedTaskRuntimeDecision\["regressionFixtureStatus"\]/g, "function regressionFixtureStatus(task, regressionFixturePathSet)")
     .replaceAll(/function secondReviewDistinctnessStatus\(\n  task: FailedTaskControl\n\): FailedTaskRuntimeDecision\["secondReviewDistinctnessStatus"\]/g, "function secondReviewDistinctnessStatus(task)")
     .replaceAll(/function secondReviewEvidenceStatus\(\n  task: FailedTaskControl\n\): FailedTaskRuntimeDecision\["secondReviewEvidenceStatus"\]/g, "function secondReviewEvidenceStatus(task)")
-    .replaceAll(/function abuseControlStatus\(\n  task: FailedTaskControl,\n  hooksById: Map<string, AbuseControlHook>\n\): Pick<FailedTaskRuntimeDecision, "abuseControlStatus" \| "abuseControlEvidence">/g, "function abuseControlStatus(task, hooksById)")
+    .replaceAll(/function abuseControlStatus\(\n  task: FailedTaskControl,\n  hooksById: Map<string, AbuseControlHook>\n\): Pick<\n  FailedTaskRuntimeDecision,\n  \| "abuseControlStatus"\n  \| "abuseControlEvidence"\n  \| "abuseControlReleaseEvidenceStatus"\n  \| "abuseControlReleaseEvidenceRefs"\n  \| "abuseControlMissingReleaseEvidenceRefs"\n  \| "abuseControlReleaseEvidence"\n>/g, "function abuseControlStatus(task, hooksById)")
     .replaceAll(/: FailedTaskSubmissionContract\[\]/g, "")
     .replaceAll(/: FailedTaskRuntimeDecision\[\]/g, "")
     .replaceAll(/: FailedTaskControl\[\]/g, "")
@@ -325,6 +325,7 @@ const parseFailedTaskRuntime = () => {
     .replaceAll(/: FailedTaskRuntimeDecision\["idempotencyStatus"\]/g, "")
     .replaceAll(/: FailedTaskRuntimeDecision\["stateDigestStatus"\]/g, "")
     .replaceAll(/: FailedTaskRuntimeDecision\["queueAttemptStatus"\]/g, "")
+    .replaceAll(/: FailedTaskRuntimeDecision\["abuseControlReleaseEvidenceStatus"\]/g, "")
     .replaceAll(/: FailedTaskRuntimeDecision\["appCompatibilityStatus"\]/g, "")
     .replaceAll(/: FailedTaskRuntimeDecision\["workerCompatibilityStatus"\]/g, "")
     .replaceAll(/: FailedTaskRuntimeDecision\["schemaCompatibilityStatus"\]/g, "")
@@ -2564,9 +2565,10 @@ test("failed task submission contracts bind admin API replay protection and rele
         "X-Support-Ticket",
         "X-Queue-Attempt",
         "X-Admin-Audit-Ref",
-        "X-Abuse-Control-Refs"
+        "X-Abuse-Control-Refs",
+        "X-Abuse-Control-Release-Evidence"
       ],
-      `${task.id} must require CSRF, idempotency, digest, support, queue-attempt, audit, and abuse-control headers`
+      `${task.id} must require CSRF, idempotency, digest, support, queue-attempt, audit, abuse-control, and abuse release evidence headers`
     );
     assert.equal(contract.idempotencyKey, task.idempotencyKey, `${task.id} must preserve fixture idempotency key`);
     assert.equal(contract.idempotencyHeaderStatus, decision.idempotencyStatus, `${task.id} idempotency header status mismatch`);
@@ -2576,10 +2578,30 @@ test("failed task submission contracts bind admin API replay protection and rele
     assert.equal(contract.queueAttemptHeader, decision.queueAttemptEvidence, `${task.id} queue-attempt header must expose attempt evidence`);
     assert.equal(contract.supportTicketId, task.supportTicketId, `${task.id} must bind support ticket id`);
     assert.equal(contract.abuseControlStatus, decision.abuseControlStatus, `${task.id} abuse-control status mismatch`);
+    assert.equal(
+      contract.abuseControlReleaseEvidenceStatus,
+      decision.abuseControlReleaseEvidenceStatus,
+      `${task.id} abuse-control release evidence status mismatch`
+    );
+    assert.deepEqual(
+      contract.abuseControlReleaseEvidenceRefs,
+      decision.abuseControlReleaseEvidenceRefs,
+      `${task.id} abuse-control release evidence refs mismatch`
+    );
+    assert.deepEqual(
+      contract.abuseControlMissingReleaseEvidenceRefs,
+      decision.abuseControlMissingReleaseEvidenceRefs,
+      `${task.id} abuse-control missing release evidence refs mismatch`
+    );
     assert.match(
       contract.abuseControlHeader,
       /X-Abuse-Control-Refs/,
       `${task.id} contract must expose abuse-control header`
+    );
+    assert.match(
+      contract.abuseControlReleaseEvidenceHeader,
+      /X-Abuse-Control-Release-Evidence/,
+      `${task.id} contract must expose abuse-control release evidence header`
     );
     assert.equal(contract.submitDecision, decision.submitDecision, `${task.id} submit decision mismatch`);
     assert.equal(contract.apiOutcome, decision.apiOutcome, `${task.id} API outcome mismatch`);
@@ -2656,6 +2678,26 @@ test("failed task submission contracts bind admin API replay protection and rele
     contractByTask.get("task-brief-441").blockerCodes.includes("rbac_denied"),
     "blocked safety hold contract must preserve RBAC blocker"
   );
+  assert.equal(
+    contractByTask.get("task-brief-441").abuseControlReleaseEvidenceStatus,
+    "complete",
+    "blocked safety hold contract must prove active hold release evidence is attached before any retry path"
+  );
+  assert.deepEqual(
+    contractByTask.get("task-brief-441").abuseControlReleaseEvidenceRefs,
+    ["sup-2201", "au-004", "ex-887", "tr-1004"],
+    "blocked safety hold contract must expose exact temporary-hold release refs"
+  );
+  assert.equal(
+    contractByTask.get("task-crawler-019").abuseControlReleaseEvidenceStatus,
+    "complete",
+    "crawler cancel contract must prove throttle release evidence is attached before review closure"
+  );
+  assert.deepEqual(
+    contractByTask.get("task-crawler-019").abuseControlReleaseEvidenceRefs,
+    ["sup-2212", "cf-118", "au-002"],
+    "crawler cancel contract must expose exact throttle release refs"
+  );
 
   const staleReplayDecision = buildFailedTaskRuntimeDecisions(
     [
@@ -2727,6 +2769,40 @@ test("failed task submission contracts bind admin API replay protection and rele
     "stale queue attempt contract must expose queue attempt blocker"
   );
 
+  const missingAbuseReleaseHooks = abuseControlHooks.map((hook) =>
+    hook.id === "hook-ab-309-throttle"
+      ? {
+          ...hook,
+          releaseEvidenceRefs: [...hook.releaseEvidenceRefs, "crawler-ownership-review-missing"]
+        }
+      : hook
+  );
+  const missingAbuseReleaseDecision = buildFailedTaskRuntimeDecisions(
+    [failedTaskControls.find((task) => task.id === "task-crawler-019")],
+    supportTickets,
+    undefined,
+    missingAbuseReleaseHooks
+  );
+  const missingAbuseReleaseContract = buildFailedTaskSubmissionContracts(
+    [failedTaskControls.find((task) => task.id === "task-crawler-019")],
+    missingAbuseReleaseDecision
+  )[0];
+
+  assert.equal(
+    missingAbuseReleaseContract.abuseControlReleaseEvidenceStatus,
+    "missing",
+    "active crawler throttle contract must detect missing release evidence"
+  );
+  assert.deepEqual(
+    missingAbuseReleaseContract.abuseControlMissingReleaseEvidenceRefs,
+    ["crawler-ownership-review-missing"],
+    "active crawler throttle contract must expose missing release evidence refs"
+  );
+  assert.ok(
+    missingAbuseReleaseContract.blockerCodes.includes("abuse_control_release_evidence_missing"),
+    "active crawler throttle contract must preserve missing release evidence blocker"
+  );
+
   const queuesPage = readFileSync(new URL("../app/queues/page.tsx", import.meta.url), "utf8");
   const adminApi = readFileSync(new URL("../lib/admin-api.ts", import.meta.url), "utf8");
   const types = readFileSync(new URL("../lib/types.ts", import.meta.url), "utf8");
@@ -2747,7 +2823,11 @@ test("failed task submission contracts bind admin API replay protection and rele
     "Second Review Header",
     "secondReviewHeader",
     "Abuse Control Header",
-    "abuseControlHeader"
+    "abuseControlHeader",
+    "Abuse Release Header",
+    "abuseControlReleaseEvidenceHeader",
+    "abuseControlReleaseEvidenceStatus",
+    "abuseControlMissingReleaseEvidenceRefs"
   ]) {
     assert.match(queuesPage + adminApi + failedTaskRuntimeSource + types, new RegExp(token));
   }

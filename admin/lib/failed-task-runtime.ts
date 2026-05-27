@@ -154,11 +154,23 @@ function secondReviewEvidenceStatus(
 function abuseControlStatus(
   task: FailedTaskControl,
   hooksById: Map<string, AbuseControlHook>
-): Pick<FailedTaskRuntimeDecision, "abuseControlStatus" | "abuseControlEvidence"> {
+): Pick<
+  FailedTaskRuntimeDecision,
+  | "abuseControlStatus"
+  | "abuseControlEvidence"
+  | "abuseControlReleaseEvidenceStatus"
+  | "abuseControlReleaseEvidenceRefs"
+  | "abuseControlMissingReleaseEvidenceRefs"
+  | "abuseControlReleaseEvidence"
+> {
   if (task.abuseControlHookRefs.length === 0) {
     return {
       abuseControlStatus: "clear",
-      abuseControlEvidence: "hooks:none"
+      abuseControlEvidence: "hooks:none",
+      abuseControlReleaseEvidenceStatus: "not_required",
+      abuseControlReleaseEvidenceRefs: [],
+      abuseControlMissingReleaseEvidenceRefs: [],
+      abuseControlReleaseEvidence: "release:not_required"
     };
   }
 
@@ -176,36 +188,74 @@ function abuseControlStatus(
   if (hookEvidence.some((entry) => entry.endsWith(":missing"))) {
     return {
       abuseControlStatus: "missing_hook_evidence",
-      abuseControlEvidence: hookEvidence.join("; ")
+      abuseControlEvidence: hookEvidence.join("; "),
+      abuseControlReleaseEvidenceStatus: "missing",
+      abuseControlReleaseEvidenceRefs: [],
+      abuseControlMissingReleaseEvidenceRefs: task.abuseControlHookRefs,
+      abuseControlReleaseEvidence: "release:missing_hook_evidence"
     };
   }
 
   if (hookEvidence.some((entry) => entry.endsWith(":mismatched_user"))) {
     return {
       abuseControlStatus: "mismatched_hook_user",
-      abuseControlEvidence: hookEvidence.join("; ")
+      abuseControlEvidence: hookEvidence.join("; "),
+      abuseControlReleaseEvidenceStatus: "missing",
+      abuseControlReleaseEvidenceRefs: [],
+      abuseControlMissingReleaseEvidenceRefs: task.abuseControlHookRefs,
+      abuseControlReleaseEvidence: "release:mismatched_hook_user"
     };
   }
 
   const hooks = task.abuseControlHookRefs.map((hookRef) => hooksById.get(hookRef)).filter(Boolean) as AbuseControlHook[];
+  const requiredReleaseEvidenceRefs = [...new Set(hooks.flatMap((hook) => hook.releaseEvidenceRefs))];
+  const availableEvidenceRefs = new Set([
+    task.id,
+    task.supportTicketId,
+    task.auditRef,
+    task.traceId,
+    ...task.closureEvidenceRefs,
+    ...task.rbacEvidenceRefs,
+    ...hooks.flatMap((hook) => [hook.id, hook.abuseEventId, hook.auditRef, hook.supportTicketId, ...hook.evidenceRefs])
+  ]);
+  const missingReleaseEvidenceRefs = requiredReleaseEvidenceRefs.filter((ref) => !availableEvidenceRefs.has(ref));
+  const releaseEvidenceStatus: FailedTaskRuntimeDecision["abuseControlReleaseEvidenceStatus"] =
+    requiredReleaseEvidenceRefs.length === 0
+      ? "not_required"
+      : missingReleaseEvidenceRefs.length === 0
+        ? "complete"
+        : "missing";
+  const releaseEvidence =
+    requiredReleaseEvidenceRefs.length === 0
+      ? "release:not_required"
+      : `release:required:${requiredReleaseEvidenceRefs.join("|")}; missing:${missingReleaseEvidenceRefs.join("|") || "none"}`;
+  const releaseEvidenceFields = {
+    abuseControlReleaseEvidenceStatus: releaseEvidenceStatus,
+    abuseControlReleaseEvidenceRefs: requiredReleaseEvidenceRefs,
+    abuseControlMissingReleaseEvidenceRefs: missingReleaseEvidenceRefs,
+    abuseControlReleaseEvidence: releaseEvidence
+  };
 
   if (hooks.some((hook) => hook.state === "active" && hook.executionMode === "enforced")) {
     return {
       abuseControlStatus: "active_enforced",
-      abuseControlEvidence: hookEvidence.join("; ")
+      abuseControlEvidence: hookEvidence.join("; "),
+      ...releaseEvidenceFields
     };
   }
 
   if (hooks.some((hook) => hook.executionMode === "dry_run" || hook.state === "armed")) {
     return {
       abuseControlStatus: "dry_run_only",
-      abuseControlEvidence: hookEvidence.join("; ")
+      abuseControlEvidence: hookEvidence.join("; "),
+      ...releaseEvidenceFields
     };
   }
 
   return {
     abuseControlStatus: "expired_or_released",
-    abuseControlEvidence: hookEvidence.join("; ")
+    abuseControlEvidence: hookEvidence.join("; "),
+    ...releaseEvidenceFields
   };
 }
 
@@ -385,6 +435,13 @@ export function buildFailedTaskRuntimeDecisions(
       blockerCodes.push("abuse_control_user_mismatch");
     }
 
+    if (
+      computedAbuseControl.abuseControlStatus === "active_enforced" &&
+      computedAbuseControl.abuseControlReleaseEvidenceStatus === "missing"
+    ) {
+      blockerCodes.push("abuse_control_release_evidence_missing");
+    }
+
     if (task.requestedAction === "retry" && computedAbuseControl.abuseControlStatus === "active_enforced") {
       blockerCodes.push("active_abuse_control_blocks_retry");
     }
@@ -425,6 +482,7 @@ export function buildFailedTaskRuntimeDecisions(
       "regression_fixture_missing",
       "abuse_control_hook_missing",
       "abuse_control_user_mismatch",
+      "abuse_control_release_evidence_missing",
       "active_abuse_control_blocks_retry",
       "active_abuse_control_blocks_cancel"
     ]);
@@ -501,6 +559,10 @@ export function buildFailedTaskRuntimeDecisions(
       regressionFixtureEvidence,
       abuseControlStatus: computedAbuseControl.abuseControlStatus,
       abuseControlEvidence: computedAbuseControl.abuseControlEvidence,
+      abuseControlReleaseEvidenceStatus: computedAbuseControl.abuseControlReleaseEvidenceStatus,
+      abuseControlReleaseEvidenceRefs: computedAbuseControl.abuseControlReleaseEvidenceRefs,
+      abuseControlMissingReleaseEvidenceRefs: computedAbuseControl.abuseControlMissingReleaseEvidenceRefs,
+      abuseControlReleaseEvidence: computedAbuseControl.abuseControlReleaseEvidence,
       retryBudgetStatus,
       rbacStatus: task.rbacDecision,
       roleAuthorizationStatus,
@@ -563,7 +625,8 @@ export function buildFailedTaskSubmissionContracts(
       "X-Support-Ticket",
       "X-Queue-Attempt",
       "X-Admin-Audit-Ref",
-      "X-Abuse-Control-Refs"
+      "X-Abuse-Control-Refs",
+      "X-Abuse-Control-Release-Evidence"
     ];
     const mutationOrder = submitEnabled
       ? "audit_then_queue_mutation"
@@ -618,6 +681,10 @@ export function buildFailedTaskSubmissionContracts(
       supportTicketId: decision.supportTicketId,
       abuseControlHeader: `X-Abuse-Control-Refs: ${(task?.abuseControlHookRefs ?? []).join(",") || "none"}; ${decision.abuseControlStatus}; ${decision.abuseControlEvidence}`,
       abuseControlStatus: decision.abuseControlStatus,
+      abuseControlReleaseEvidenceHeader: `X-Abuse-Control-Release-Evidence: status:${decision.abuseControlReleaseEvidenceStatus}; refs:${decision.abuseControlReleaseEvidenceRefs.join(",") || "none"}; missing:${decision.abuseControlMissingReleaseEvidenceRefs.join(",") || "none"}`,
+      abuseControlReleaseEvidenceStatus: decision.abuseControlReleaseEvidenceStatus,
+      abuseControlReleaseEvidenceRefs: decision.abuseControlReleaseEvidenceRefs,
+      abuseControlMissingReleaseEvidenceRefs: decision.abuseControlMissingReleaseEvidenceRefs,
       responseContract: `${decision.apiOutcome}; ${decision.stateTransition}; ${decision.closureOutcome}`,
       mutationOrder,
       quotaLedgerEffect: decision.quotaLedgerEffect,
