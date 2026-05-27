@@ -3038,6 +3038,162 @@ func TestRedactMapCoversDeployPlatformAndSecretManagerMetadata(t *testing.T) {
 	assertFinding(t, findings, SecretKindCredential, "cloudflareTurnstileSecret")
 }
 
+func TestRedactStringCoversMalwareScannerProviderSecrets(t *testing.T) {
+	input := strings.Join([]string{
+		"MALWARE_SCAN_API_KEY=malware-scan-api-key-value",
+		"MALWARE_SCANNER_HMAC_SECRET=malware-scanner-hmac-secret",
+		"ANTIVIRUS_LICENSE_KEY=av-license-key-value",
+		"CLAMAV_AUTH=clamav-auth-secret",
+		"ICAP_PASSWORD=icap-password-secret",
+		"YARA_SIGNING_KEY=yara-signing-key-secret",
+		"VIRUSTOTAL_KEY=virustotal-key-secret",
+		"VT_API_KEY=vt-api-key-secret",
+		"GOOGLE_SAFE_BROWSING_KEY=safe-browsing-key-secret",
+		"OPSWAT_KEY=opswat-key-secret",
+		"METADEFENDER_KEY=metadefender-key-secret",
+		"CROWDSTRIKE_CLIENT_SECRET=crowdstrike-client-secret",
+		"SENTINELONE_API_TOKEN=sentinelone-api-token",
+		"SOPHOS_CLIENT_SECRET=sophos-client-secret",
+		"MICROSOFT_DEFENDER_CLIENT_SECRET=defender-client-secret",
+	}, " ")
+
+	got := RedactString(input)
+	for _, leaked := range []string{
+		"malware-scan-api-key-value",
+		"malware-scanner-hmac-secret",
+		"av-license-key-value",
+		"clamav-auth-secret",
+		"icap-password-secret",
+		"yara-signing-key-secret",
+		"virustotal-key-secret",
+		"vt-api-key-secret",
+		"safe-browsing-key-secret",
+		"opswat-key-secret",
+		"metadefender-key-secret",
+		"crowdstrike-client-secret",
+		"sentinelone-api-token",
+		"sophos-client-secret",
+		"defender-client-secret",
+	} {
+		if strings.Contains(got, leaked) {
+			t.Fatalf("RedactString() = %q, leaked %s", got, leaked)
+		}
+	}
+	if strings.Count(got, Redacted) < 15 {
+		t.Fatalf("RedactString() = %q, want malware scanner secrets redacted", got)
+	}
+
+	findings := ClassifyString(input)
+	for _, kind := range []SecretKind{
+		SecretKindAPIKey,
+		SecretKindWebhookSecret,
+		SecretKindAuthorization,
+		SecretKindPassword,
+		SecretKindPrivateKey,
+		SecretKindCredential,
+		SecretKindToken,
+	} {
+		assertFinding(t, findings, kind, "")
+	}
+	assertSignal(t, findings, "assignment:key_name")
+}
+
+func TestRedactValueCoversMalwareScannerStructuredMetadata(t *testing.T) {
+	redacted := RedactValue(map[string]any{
+		"scanner": map[string]any{
+			"virustotalKey":           "virustotal-key-secret",
+			"safeBrowsingKey":         "safe-browsing-key-secret",
+			"opswatKey":               "opswat-key-secret",
+			"metadefenderKey":         "metadefender-key-secret",
+			"crowdstrikeClientSecret": "crowdstrike-client-secret",
+			"sentineloneApiToken":     "sentinelone-api-token",
+			"publicEngine":            "clamav",
+		},
+		"scan_headers": http.Header{
+			"Clamav-Auth": []string{"clamav-auth-secret"},
+		},
+		"scanner_results": []map[string]string{
+			{
+				"yaraSigningKey": "yara-signing-key-secret",
+				"publicRuleSet":  "stage0-upload-scan",
+			},
+		},
+	})
+	body, err := json.Marshal(redacted)
+	if err != nil {
+		t.Fatalf("marshal redacted malware scanner metadata: %v", err)
+	}
+	for _, leaked := range []string{
+		"virustotal-key-secret",
+		"safe-browsing-key-secret",
+		"opswat-key-secret",
+		"metadefender-key-secret",
+		"crowdstrike-client-secret",
+		"sentinelone-api-token",
+		"clamav-auth-secret",
+		"yara-signing-key-secret",
+	} {
+		if strings.Contains(string(body), leaked) {
+			t.Fatalf("redacted malware scanner metadata = %s, leaked %s", string(body), leaked)
+		}
+	}
+	for _, fragment := range []string{`"publicEngine":"clamav"`, `"publicRuleSet":"stage0-upload-scan"`, Redacted} {
+		if !strings.Contains(string(body), fragment) {
+			t.Fatalf("redacted malware scanner metadata = %s, missing %s", string(body), fragment)
+		}
+	}
+
+	findings := ClassifyValue(map[string]any{
+		"scanner": map[string]any{
+			"virustotalKey":           "virustotal-key-secret",
+			"safeBrowsingKey":         "safe-browsing-key-secret",
+			"clamavAuth":              "clamav-auth-secret",
+			"yaraSigningKey":          "yara-signing-key-secret",
+			"crowdstrikeClientSecret": "crowdstrike-client-secret",
+			"sentineloneApiToken":     "sentinelone-api-token",
+		},
+	})
+	assertFinding(t, findings, SecretKindAPIKey, "scanner.virustotalKey")
+	assertFinding(t, findings, SecretKindAPIKey, "scanner.safeBrowsingKey")
+	assertFinding(t, findings, SecretKindAuthorization, "scanner.clamavAuth")
+	assertFinding(t, findings, SecretKindPrivateKey, "scanner.yaraSigningKey")
+	assertFinding(t, findings, SecretKindCredential, "scanner.crowdstrikeClientSecret")
+	assertFinding(t, findings, SecretKindToken, "scanner.sentineloneApiToken")
+}
+
+func TestRedactingSlogHandlerRedactsMalwareScannerProviderSecrets(t *testing.T) {
+	var logs bytes.Buffer
+	logger := slog.New(NewRedactingSlogHandler(slog.NewJSONHandler(&logs, nil)))
+	logger.Warn(
+		"malware scan failed VIRUSTOTAL_KEY=virustotal-key-secret",
+		"scanner_metadata", map[string]any{
+			"metadefenderKey":     "metadefender-key-secret",
+			"safeBrowsingKey":     "safe-browsing-key-secret",
+			"publicScannerStatus": "unavailable",
+		},
+		"scan_headers", http.Header{
+			"Clamav-Auth": []string{"clamav-auth-secret"},
+		},
+	)
+
+	line := logs.String()
+	for _, leaked := range []string{
+		"virustotal-key-secret",
+		"metadefender-key-secret",
+		"safe-browsing-key-secret",
+		"clamav-auth-secret",
+	} {
+		if strings.Contains(line, leaked) {
+			t.Fatalf("redacted slog line = %s, leaked %s", line, leaked)
+		}
+	}
+	for _, fragment := range []string{Redacted, `"publicScannerStatus":"unavailable"`} {
+		if !strings.Contains(line, fragment) {
+			t.Fatalf("redacted slog line = %s, missing %s", line, fragment)
+		}
+	}
+}
+
 func TestRedactValueCoversMixedCaseLaunchSecretKeys(t *testing.T) {
 	redacted := RedactValue(map[string]any{
 		"clientSecret":       "client-secret-value",

@@ -166,6 +166,8 @@ var launchDeployPlatformSecretKeyPattern = regexp.MustCompile(`(?i)(vercel[_-]?(
 var launchDeployPlatformSecretAssignmentPattern = regexp.MustCompile(`(?i)\b([A-Za-z0-9_.-]*(?:vercel[_-]?(?:token|auth[_-]?token|access[_-]?token|team[_-]?token|deploy[_-]?hook|project[_-]?protection[_-]?bypass|deployment[_-]?protection[_-]?bypass|automation[_-]?bypass[_-]?secret)|netlify[_-]?(?:auth[_-]?token|access[_-]?token|deploy[_-]?hook|build[_-]?hook|hook[_-]?url|site[_-]?deploy[_-]?key)|render[_-]?(?:api[_-]?key|deploy[_-]?hook|deploy[_-]?hook[_-]?url|service[_-]?token)|railway[_-]?(?:token|api[_-]?token|project[_-]?token)|fly(?:io)?[_-]?(?:token|access[_-]?token|deploy[_-]?token)|cloudflare[_-]?(?:api[_-]?token|global[_-]?api[_-]?key|tunnel[_-]?token|access[_-]?client[_-]?secret|turnstile[_-]?secret(?:[_-]?key)?|pages[_-]?deploy[_-]?hook)|cf[_-]?(?:api[_-]?token|tunnel[_-]?token|turnstile[_-]?secret)|recaptcha[_-]?(?:secret|secret[_-]?key)|hcaptcha[_-]?(?:secret|secret[_-]?key)|doppler[_-]?(?:token|service[_-]?token|project[_-]?token)|infisical[_-]?(?:token|service[_-]?token|client[_-]?secret|universal[_-]?auth[_-]?secret)|onepassword[_-]?(?:service[_-]?account[_-]?token|connect[_-]?token)|op[_-]?(?:service[_-]?account[_-]?token|connect[_-]?token)|vault[_-]?(?:token|approle[_-]?secret[_-]?id|transit[_-]?key)|sops[_-]?(?:age[_-]?key|pgp[_-]?key|kms[_-]?key|key[_-]?file))[A-Za-z0-9_.-]*)\s*([=:])\s*("[^"]*"|'[^']*'|[^\s,;&]+)`)
 var launchBackupIncidentSecretKeyPattern = regexp.MustCompile(`(?i)(restic[_-]?(?:password|repository|repo|key|aws[_-]?access|aws[_-]?secret)|kopia[_-]?(?:password|repo(?:sitory)?|server[_-]?password|tls[_-]?key)|borg[_-]?(?:passphrase|repo(?:sitory)?|key)|pgbackrest[_-]?(?:repo|password|cipher[_-]?pass|s3[_-]?(?:key|secret)|gcs[_-]?key)|wal[_-]?g[_-]?(?:s3[_-]?(?:prefix|access|secret)|gcs[_-]?(?:prefix|key)|azure[_-]?(?:account|key)|compression[_-]?passphrase)|walg[_-]?(?:s3[_-]?(?:prefix|access|secret)|gcs[_-]?(?:prefix|key)|azure[_-]?(?:account|key)|compression[_-]?passphrase)|litestream[_-]?(?:replica[_-]?(?:url|access|secret|key)|s3[_-]?(?:access|secret)|gcs[_-]?key)|backup[_-]?(?:repository|repo|password|passphrase|encryption[_-]?key|signing[_-]?key)|age[_-]?(?:identity|secret[_-]?key)|gpg[_-]?(?:private[_-]?key|passphrase)|pgp[_-]?(?:private[_-]?key|passphrase)|rootly[_-]?(?:api[_-]?key|token)|firehydrant[_-]?(?:api[_-]?key|token)|statuspage[_-]?(?:api[_-]?key|token)|victorops[_-]?(?:api[_-]?key|routing[_-]?key)|splunk[_-]?on[_-]?call[_-]?(?:api[_-]?key|routing[_-]?key)|squadcast[_-]?(?:api[_-]?key|token|webhook[_-]?secret))`)
 var launchBackupIncidentSecretAssignmentPattern = regexp.MustCompile(`(?i)\b([A-Za-z0-9_.-]*(?:restic[_-]?(?:password|repository|repo|key|aws[_-]?access|aws[_-]?secret)|kopia[_-]?(?:password|repo(?:sitory)?|server[_-]?password|tls[_-]?key)|borg[_-]?(?:passphrase|repo(?:sitory)?|key)|pgbackrest[_-]?(?:repo|password|cipher[_-]?pass|s3[_-]?(?:key|secret)|gcs[_-]?key)|wal[_-]?g[_-]?(?:s3[_-]?(?:prefix|access|secret)|gcs[_-]?(?:prefix|key)|azure[_-]?(?:account|key)|compression[_-]?passphrase)|walg[_-]?(?:s3[_-]?(?:prefix|access|secret)|gcs[_-]?(?:prefix|key)|azure[_-]?(?:account|key)|compression[_-]?passphrase)|litestream[_-]?(?:replica[_-]?(?:url|access|secret|key)|s3[_-]?(?:access|secret)|gcs[_-]?key)|backup[_-]?(?:repository|repo|password|passphrase|encryption[_-]?key|signing[_-]?key)|age[_-]?(?:identity|secret[_-]?key)|gpg[_-]?(?:private[_-]?key|passphrase)|pgp[_-]?(?:private[_-]?key|passphrase)|rootly[_-]?(?:api[_-]?key|token)|firehydrant[_-]?(?:api[_-]?key|token)|statuspage[_-]?(?:api[_-]?key|token)|victorops[_-]?(?:api[_-]?key|routing[_-]?key)|splunk[_-]?on[_-]?call[_-]?(?:api[_-]?key|routing[_-]?key)|squadcast[_-]?(?:api[_-]?key|token|webhook[_-]?secret))[A-Za-z0-9_.-]*)\s*([=:])\s*("[^"]*"|'[^']*'|[^\s,;&]+)`)
+var launchMalwareScannerSecretKeyPattern = regexp.MustCompile(`(?i)(malware[_-]?(?:scan|scanner)?[_-]?(?:api[_-]?key|key|token|secret|webhook[_-]?secret|hmac[_-]?secret|client[_-]?secret|auth|authorization)|antivirus[_-]?(?:api[_-]?key|key|token|secret|license)|av[_-]?(?:api[_-]?key|token|secret|license[_-]?key)|clamav[_-]?(?:password|token|auth|api[_-]?key|key)|icap[_-]?(?:password|token|auth|api[_-]?key)|yara[_-]?(?:signing[_-]?key|private[_-]?key|token|secret)|virustotal[_-]?(?:api[_-]?key|apikey|key|token)|vt[_-]?(?:api[_-]?key|key|token)|google[_-]?safe[_-]?browsing[_-]?(?:api[_-]?key|key)|safe[_-]?browsing[_-]?(?:api[_-]?key|key)|opswat[_-]?(?:api[_-]?key|key|token)|metadefender[_-]?(?:api[_-]?key|key|token)|crowdstrike[_-]?(?:api[_-]?key|client[_-]?secret|token)|sentinelone[_-]?(?:api[_-]?token|token|secret)|sophos[_-]?(?:client[_-]?secret|api[_-]?key|token)|defender[_-]?(?:client[_-]?secret|api[_-]?key|token)|microsoft[_-]?defender[_-]?(?:client[_-]?secret|api[_-]?key|token))`)
+var launchMalwareScannerSecretAssignmentPattern = regexp.MustCompile(`(?i)\b([A-Za-z0-9_.-]*(?:malware[_-]?(?:scan|scanner)?[_-]?(?:api[_-]?key|key|token|secret|webhook[_-]?secret|hmac[_-]?secret|client[_-]?secret|auth|authorization)|antivirus[_-]?(?:api[_-]?key|key|token|secret|license)|av[_-]?(?:api[_-]?key|token|secret|license[_-]?key)|clamav[_-]?(?:password|token|auth|api[_-]?key|key)|icap[_-]?(?:password|token|auth|api[_-]?key)|yara[_-]?(?:signing[_-]?key|private[_-]?key|token|secret)|virustotal[_-]?(?:api[_-]?key|apikey|key|token)|vt[_-]?(?:api[_-]?key|key|token)|google[_-]?safe[_-]?browsing[_-]?(?:api[_-]?key|key)|safe[_-]?browsing[_-]?(?:api[_-]?key|key)|opswat[_-]?(?:api[_-]?key|key|token)|metadefender[_-]?(?:api[_-]?key|key|token)|crowdstrike[_-]?(?:api[_-]?key|client[_-]?secret|token)|sentinelone[_-]?(?:api[_-]?token|token|secret)|sophos[_-]?(?:client[_-]?secret|api[_-]?key|token)|defender[_-]?(?:client[_-]?secret|api[_-]?key|token)|microsoft[_-]?defender[_-]?(?:client[_-]?secret|api[_-]?key|token))[A-Za-z0-9_.-]*)\s*([=:])\s*("[^"]*"|'[^']*'|[^\s,;&]+)`)
 var embeddedURLPattern = regexp.MustCompile(`[A-Za-z][A-Za-z0-9+.-]*://[^\s"'<>]+`)
 
 type MalwareScanStatus string
@@ -403,6 +405,7 @@ func ClassifyKey(key string) []SecretFinding {
 			!launchCrawlerResearchSecretKeyPattern.MatchString(key) && !launchCrawlerResearchSecretKeyPattern.MatchString(normalized) &&
 			!launchDeployPlatformSecretKeyPattern.MatchString(key) && !launchDeployPlatformSecretKeyPattern.MatchString(normalized) &&
 			!launchBackupIncidentSecretKeyPattern.MatchString(key) && !launchBackupIncidentSecretKeyPattern.MatchString(normalized) &&
+			!launchMalwareScannerSecretKeyPattern.MatchString(key) && !launchMalwareScannerSecretKeyPattern.MatchString(normalized) &&
 			!launchSignedDeliverySecretKeyPattern.MatchString(key) && !launchSignedDeliverySecretKeyPattern.MatchString(normalized)) {
 		return nil
 	}
@@ -474,6 +477,25 @@ func ClassifyKey(key string) []SecretFinding {
 		kind = SecretKindAccessKey
 	case strings.Contains(lower, "subscription") && strings.Contains(lower, "key"):
 		kind = SecretKindAccessKey
+	case launchMalwareScannerSecretKeyPattern.MatchString(key) || launchMalwareScannerSecretKeyPattern.MatchString(normalized):
+		switch {
+		case strings.Contains(lower, "password"):
+			kind = SecretKindPassword
+		case strings.Contains(lower, "webhook") || strings.Contains(lower, "hmac"):
+			kind = SecretKindWebhookSecret
+		case strings.Contains(lower, "authorization") || strings.Contains(lower, "auth"):
+			kind = SecretKindAuthorization
+		case strings.Contains(lower, "client_secret"):
+			kind = SecretKindCredential
+		case strings.Contains(lower, "signing_key") || strings.Contains(lower, "private_key"):
+			kind = SecretKindPrivateKey
+		case strings.Contains(lower, "api_key") || strings.Contains(lower, "apikey") || strings.HasSuffix(lower, "_key"):
+			kind = SecretKindAPIKey
+		case strings.Contains(lower, "token"):
+			kind = SecretKindToken
+		default:
+			kind = SecretKindCredential
+		}
 	case strings.Contains(lower, "webhook") || strings.Contains(lower, "signing"):
 		kind = SecretKindWebhookSecret
 	case strings.Contains(lower, "authorization"):
@@ -747,6 +769,12 @@ func ClassifyString(value string) []SecretFinding {
 		}
 	}
 	for _, match := range launchBackupIncidentSecretAssignmentPattern.FindAllStringSubmatch(value, -1) {
+		for _, keyFinding := range ClassifyKey(match[1]) {
+			keyFinding.Signal = "assignment:" + keyFinding.Signal
+			findings = append(findings, keyFinding)
+		}
+	}
+	for _, match := range launchMalwareScannerSecretAssignmentPattern.FindAllStringSubmatch(value, -1) {
 		for _, keyFinding := range ClassifyKey(match[1]) {
 			keyFinding.Signal = "assignment:" + keyFinding.Signal
 			findings = append(findings, keyFinding)
@@ -1125,6 +1153,7 @@ func redactAssignments(value string) string {
 	value = redactAssignmentMatches(value, launchCrawlerResearchSecretAssignmentPattern)
 	value = redactAssignmentMatches(value, launchDeployPlatformSecretAssignmentPattern)
 	value = redactAssignmentMatches(value, launchBackupIncidentSecretAssignmentPattern)
+	value = redactAssignmentMatches(value, launchMalwareScannerSecretAssignmentPattern)
 	return redactAssignmentMatches(value, signedDeliveryAssignmentPattern)
 }
 
