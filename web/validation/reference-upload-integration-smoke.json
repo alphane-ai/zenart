@@ -106,7 +106,10 @@
       "data-render-max-elements",
       "data-render-max-interaction-ms",
       "data-render-failure-count",
-      "data-render-interaction-steps"
+      "data-render-interaction-steps",
+      "data-render-reference-count",
+      "data-render-package-item-count",
+      "data-render-export-history-count"
     ]
   },
   "packageExportMetadata": {
@@ -142,6 +145,9 @@
       "data-reference-upload-integration-failures",
       "data-rendering-smoke='stage0.rev2.workspace-rendering-performance'",
       "data-render-failure-count",
+      "data-render-reference-count",
+      "data-render-package-item-count",
+      "data-render-export-history-count",
       "data-package-export-metadata-ui='stage0.rev2.package-export-metadata-ui'",
       "data-export-download-parity-status",
       "download.suggestedFilename()"

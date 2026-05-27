@@ -856,6 +856,9 @@ function WorkspaceView({
           data-rendering-budget-node-count={renderingSmoke.budgets.maxNodes}
           data-rendering-budget-edge-count={renderingSmoke.budgets.maxEdges}
           data-rendering-budget-version-count={renderingSmoke.budgets.maxVersions}
+          data-rendering-reference-count={renderingSmoke.referenceCount}
+          data-rendering-package-item-count={renderingSmoke.packageItemCount}
+          data-rendering-export-history-count={renderingSmoke.exportHistoryCount}
         >
           <Gauge size={15} aria-hidden="true" />
           <span>
@@ -870,6 +873,11 @@ function WorkspaceView({
           data-rendering-status={renderingSmoke.status}
           data-render-node-count={renderingSmoke.nodeCount}
           data-render-edge-count={renderingSmoke.edgeCount}
+          data-render-version-count={renderingSmoke.versionCount}
+          data-render-candidate-count={renderingSmoke.candidateCount}
+          data-render-package-item-count={renderingSmoke.packageItemCount}
+          data-render-reference-count={renderingSmoke.referenceCount}
+          data-render-export-history-count={renderingSmoke.exportHistoryCount}
           data-render-element-count={renderingSmoke.renderElementCount}
           data-render-estimated-interaction-ms={renderingSmoke.estimatedInteractionMs}
           data-render-interaction-steps={renderingSmoke.interactionSteps.join(",")}

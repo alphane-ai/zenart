@@ -569,6 +569,11 @@ describe("dev workspace contracts", () => {
       nodeCount: 3,
       edgeCount: 2,
       versionCount: 3,
+      candidateCount: 4,
+      packageItemCount: 1,
+      referenceCount: 1,
+      exportHistoryCount: 0,
+      renderElementCount: 14,
       failures: [],
       budgets: {
         maxNodes: 24,
@@ -623,7 +628,11 @@ describe("dev workspace contracts", () => {
       nodeCount: 25,
       edgeCount: 25,
       versionCount: 33,
-      renderElementCount: 99
+      candidateCount: 4,
+      packageItemCount: 12,
+      referenceCount: 1,
+      exportHistoryCount: 0,
+      renderElementCount: 100
     });
     expect(smoke.failures).toEqual(["nodes", "edges", "versions", "render-elements", "interaction"]);
   });

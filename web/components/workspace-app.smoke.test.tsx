@@ -294,6 +294,9 @@ describe("WorkspaceApp user route integration smoke", () => {
 
     const renderingSmoke = container.querySelector("[data-rendering-smoke='stage0.rev2.workspace-rendering-performance']");
     expect(renderingSmoke).toHaveAttribute("data-rendering-status", "pass");
+    expect(renderingSmoke).toHaveAttribute("data-render-reference-count", "2");
+    expect(renderingSmoke).toHaveAttribute("data-render-package-item-count", "2");
+    expect(renderingSmoke).toHaveAttribute("data-render-export-history-count", "1");
     expect(Number(renderingSmoke?.getAttribute("data-render-element-count"))).toBeLessThanOrEqual(
       Number(renderingSmoke?.getAttribute("data-render-max-elements"))
     );
@@ -616,6 +619,7 @@ describe("WorkspaceApp user route integration smoke", () => {
 
       expect(canvas).toHaveAttribute("data-rendering-status", "pass");
       expect(canvas).toHaveAttribute("data-render-failure-count", "0");
+      expect(canvas).toHaveAttribute("data-render-candidate-count", "4");
       expect(Number(canvas?.getAttribute("data-render-element-count"))).toBeLessThanOrEqual(
         Number(canvas?.getAttribute("data-render-max-elements"))
       );
@@ -658,6 +662,10 @@ describe("WorkspaceApp user route integration smoke", () => {
     fireEvent.click(screen.getByRole("button", { name: "Export ZIP" }));
     await screen.findByText("zenart-001.zip");
     assertRenderingBudget(["export-ready"]);
+    expect(container.querySelector("[data-rendering-smoke='stage0.rev2.workspace-rendering-performance']")).toHaveAttribute(
+      "data-render-export-history-count",
+      "1"
+    );
 
     fireEvent.click(screen.getByRole("button", { name: "Initial brief" }));
     await waitFor(() => {

@@ -618,7 +618,9 @@ export const buildWorkspaceRenderingPerformanceSmoke = (
     state.canvas.edges.length +
     state.canvas.versions.length +
     state.candidates.length +
-    state.packageItems.length;
+    state.packageItems.length +
+    state.brief.references.length +
+    state.exports.length;
   const estimatedInteractionMs = Math.min(
     999,
     Math.ceil(renderElementCount * 0.75 + state.canvas.nodes.length * 1.2 + state.canvas.edges.length * 0.8)
@@ -649,6 +651,10 @@ export const buildWorkspaceRenderingPerformanceSmoke = (
     nodeCount: state.canvas.nodes.length,
     edgeCount: state.canvas.edges.length,
     versionCount: state.canvas.versions.length,
+    candidateCount: state.candidates.length,
+    packageItemCount: state.packageItems.length,
+    referenceCount: state.brief.references.length,
+    exportHistoryCount: state.exports.length,
     renderElementCount,
     estimatedInteractionMs,
     failures,

@@ -317,6 +317,10 @@ export interface WorkspaceRenderingPerformanceSmoke {
   nodeCount: number;
   edgeCount: number;
   versionCount: number;
+  candidateCount: number;
+  packageItemCount: number;
+  referenceCount: number;
+  exportHistoryCount: number;
   renderElementCount: number;
   estimatedInteractionMs: number;
   failures: Array<"nodes" | "edges" | "versions" | "render-elements" | "interaction">;

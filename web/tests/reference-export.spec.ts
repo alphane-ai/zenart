@@ -71,6 +71,9 @@ test("reference upload browser smoke reaches ready export metadata and render bu
   const renderingSmoke = page.locator("[data-rendering-smoke='stage0.rev2.workspace-rendering-performance']");
   await expect(renderingSmoke).toHaveAttribute("data-rendering-status", "pass");
   await expect(renderingSmoke).toHaveAttribute("data-render-failure-count", "0");
+  await expect(renderingSmoke).toHaveAttribute("data-render-reference-count", "2");
+  await expect(renderingSmoke).toHaveAttribute("data-render-package-item-count", "2");
+  await expect(renderingSmoke).toHaveAttribute("data-render-export-history-count", "1");
   await expect(renderingSmoke).toHaveAttribute("data-render-interaction-steps", /brief-confirm/);
   await expect(renderingSmoke).toHaveAttribute("data-render-interaction-steps", /candidate-select/);
   await expect(renderingSmoke).toHaveAttribute("data-render-interaction-steps", /package-add/);

@@ -265,7 +265,10 @@
         "data-render-max-elements",
         "data-render-max-interaction-ms",
         "data-render-failure-count",
-        "data-render-interaction-steps"
+        "data-render-interaction-steps",
+        "data-render-reference-count",
+        "data-render-package-item-count",
+        "data-render-export-history-count"
       ],
       "summaryAttributes": [
         "data-rendering-smoke-summary",
@@ -275,7 +278,10 @@
         "data-rendering-estimated-interaction-ms",
         "data-rendering-budget-node-count",
         "data-rendering-budget-edge-count",
-        "data-rendering-budget-version-count"
+        "data-rendering-budget-version-count",
+        "data-rendering-reference-count",
+        "data-rendering-package-item-count",
+        "data-rendering-export-history-count"
       ],
       "expectedBudgets": {
         "maxNodes": "24",
