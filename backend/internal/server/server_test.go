@@ -561,6 +561,15 @@ func TestSignedDownloadEndpointServesTenantScopedLocalObject(t *testing.T) {
 	if strings.Contains(mustJSON(t, event.Metadata), downloadURL) {
 		t.Fatalf("audit metadata leaked signed URL: %#v", event.Metadata)
 	}
+	if len(db.execs) != 1 || !strings.Contains(db.execs[0].sql, "INSERT INTO analytics_events") {
+		t.Fatalf("analytics event not recorded: %#v", db.execs)
+	}
+	if db.execs[0].args[5] != "object_downloaded" || db.execs[0].args[6] != "object_metadata" || db.execs[0].args[7] != stored.Key {
+		t.Fatalf("analytics args = %#v, want object_downloaded for object key", db.execs[0].args)
+	}
+	if strings.Contains(mustJSON(t, db.execs[0].args), downloadURL) {
+		t.Fatalf("analytics event leaked signed URL: %#v", db.execs[0].args)
+	}
 }
 
 func TestSignedDownloadEndpointRequiresAuditRecorder(t *testing.T) {
@@ -1972,11 +1981,13 @@ func (noExecDB) QueryRow(context.Context, string, ...any) store.Row {
 
 type downloadGuardDB struct {
 	query stage0QueryCall
+	execs []stage0QueryCall
 	found bool
 }
 
-func (downloadGuardDB) Exec(context.Context, string, ...any) (pgconn.CommandTag, error) {
-	panic("Exec must not be called for signed download guard")
+func (d *downloadGuardDB) Exec(_ context.Context, sql string, args ...any) (pgconn.CommandTag, error) {
+	d.execs = append(d.execs, stage0QueryCall{sql: sql, args: args})
+	return pgconn.CommandTag{}, nil
 }
 
 func (downloadGuardDB) Query(context.Context, string, ...any) (store.Rows, error) {

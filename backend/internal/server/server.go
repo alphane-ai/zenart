@@ -496,6 +496,25 @@ func (s *Server) getSignedDownloadObject(w http.ResponseWriter, r *http.Request)
 		writeError(w, r, http.StatusInternalServerError, "download_audit_record_error", "signed download audit log could not be written", nil)
 		return
 	}
+	if err := service.Repository().RecordAnalyticsEvent(r.Context(), stage0.AnalyticsEvent{
+		TenantID:    tenantID,
+		EventName:   "object_downloaded",
+		SubjectType: "object_metadata",
+		SubjectID:   key,
+		Properties: map[string]any{
+			"object_key":    key,
+			"bucket":        reader.Object.Bucket,
+			"content_type":  reader.Object.ContentType,
+			"byte_size":     reader.Object.ByteSize,
+			"expires_at":    time.Unix(expires, 0).UTC().Format(time.RFC3339),
+			"request_id":    requestIDFrom(r.Context()),
+			"signed_access": true,
+		},
+		CreatedAt: time.Now().UTC(),
+	}); err != nil {
+		writeError(w, r, http.StatusInternalServerError, "download_analytics_record_error", "signed download analytics event could not be written", nil)
+		return
+	}
 	if reader.Object.ContentType != "" {
 		w.Header().Set("Content-Type", reader.Object.ContentType)
 	} else {
