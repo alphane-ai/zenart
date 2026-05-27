@@ -101,6 +101,7 @@ def validate_contract() -> None:
     eval_by_fixture = {item["fixture_id"]: item for item in fixture_results}
     eval_by_trace = {item["trace_contract"]["trace_id"]: item for item in fixture_results}
     trace_ids = {trace["trace_id"] for trace in trace_contract["traces"]}
+    trace_by_id = {trace["trace_id"]: trace for trace in trace_contract["traces"]}
 
     for item in qa_results:
         contract_item = category_contracts[item["check_category"]]
@@ -164,35 +165,114 @@ def validate_contract() -> None:
     example_outcomes = {item["outcome"] for item in examples}
     require(example_outcomes == REQUIRED_OUTCOMES, "outcome examples must cover pass, warn, and block exactly")
     for example in examples:
-        fixture_id = example["fixture_id"]
-        trace_id = example["trace_id"]
-        require(fixture_id in eval_by_fixture, f"outcome example references unknown fixture {fixture_id}")
-        require(trace_id in eval_by_trace, f"outcome example references unknown trace {trace_id}")
-        result = eval_by_fixture[fixture_id]
-        require(result["workflow"] == example["workflow"], f"{fixture_id} outcome example workflow mismatch")
-        require(result["trace_contract"]["trace_id"] == trace_id, f"{fixture_id} outcome example trace mismatch")
-        if example["source"] == "eval_result_fixture":
-            require(fixture_result_outcome(result) == example["outcome"], f"{fixture_id} eval outcome example mismatch")
-            require(
-                result["qa_export_gate"]["final_export_allowed"] is example["final_export_allowed"],
-                f"{fixture_id} final export allowance mismatch",
-            )
-        else:
-            for check_id in example["check_ids"]:
-                require(check_id in qa_by_id, f"outcome example references unknown check {check_id}")
-                qa_item = qa_by_id[check_id]
-                require(qa_item["evidence"]["fixture_id"] == fixture_id, f"{check_id} example fixture mismatch")
-                require(qa_item["evidence"]["trace_id"] == trace_id, f"{check_id} example trace mismatch")
-                require(qa_result_outcome(qa_item) == example["outcome"], f"{check_id} QA outcome example mismatch")
-            require(
-                result["qa_export_gate"]["final_export_allowed"] is example["final_export_allowed"],
-                f"{fixture_id} final export allowance mismatch",
-            )
+        validate_outcome_example(
+            example,
+            qa_by_id,
+            eval_by_fixture,
+            eval_by_trace,
+            trace_by_id,
+        )
+
+    category_examples = contract["category_outcome_examples"]
+    seen_category_outcomes: dict[str, set[str]] = {category: set() for category in QA_CATEGORY_ORDER}
+    seen_example_keys: set[tuple[str, str, tuple[str, ...]]] = set()
+    for example in category_examples:
+        category = example["check_category"]
+        key = (category, example["outcome"], tuple(example["check_ids"]))
+        require(key not in seen_example_keys, f"duplicate category outcome example {key}")
+        seen_example_keys.add(key)
+        validate_outcome_example(
+            example,
+            qa_by_id,
+            eval_by_fixture,
+            eval_by_trace,
+            trace_by_id,
+            expected_category=category,
+        )
+        seen_category_outcomes[category].add(example["outcome"])
+
+    for category, contract_item in category_contracts.items():
+        require(
+            set(contract_item["expected_outcomes"]) <= seen_category_outcomes[category],
+            f"{category} missing category outcome examples: {sorted(set(contract_item['expected_outcomes']) - seen_category_outcomes[category])}",
+        )
+    require(
+        set(seen_category_outcomes) == set(QA_CATEGORY_ORDER),
+        "category outcome examples must cover every QA category",
+    )
+    require(
+        REQUIRED_OUTCOMES <= set().union(*seen_category_outcomes.values()),
+        "category outcome examples must cover pass, warn, and block",
+    )
 
     policy = contract["export_gate_policy"]
     require(policy["blocking_severity_blocks_final_export"] is True, "blocking export policy must be explicit")
     require(policy["warning_severity_does_not_block_final_export"] is True, "warning export policy must be explicit")
     require(policy["admin_override_requires_audit"] is True, "override audit policy must be explicit")
+
+
+def validate_outcome_example(
+    example: dict[str, Any],
+    qa_by_id: dict[str, dict[str, Any]],
+    eval_by_fixture: dict[str, dict[str, Any]],
+    eval_by_trace: dict[str, dict[str, Any]],
+    trace_by_id: dict[str, dict[str, Any]],
+    expected_category: str | None = None,
+) -> None:
+    fixture_id = example["fixture_id"]
+    trace_id = example["trace_id"]
+    require(fixture_id in eval_by_fixture, f"outcome example references unknown fixture {fixture_id}")
+    require(trace_id in eval_by_trace, f"outcome example references unknown eval trace {trace_id}")
+    require(trace_id in trace_by_id, f"outcome example references unknown trace completeness record {trace_id}")
+
+    result = eval_by_fixture[fixture_id]
+    trace = trace_by_id[trace_id]
+    require(result["workflow"] == example["workflow"], f"{fixture_id} outcome example workflow mismatch")
+    require(result["trace_contract"]["trace_id"] == trace_id, f"{fixture_id} outcome example trace mismatch")
+    require(trace["fixture_id"] == fixture_id, f"{trace_id} outcome example trace fixture mismatch")
+    require(trace["workflow"] == example["workflow"], f"{trace_id} outcome example trace workflow mismatch")
+
+    if example["source"] == "eval_result_fixture":
+        require(fixture_result_outcome(result) == example["outcome"], f"{fixture_id} eval outcome example mismatch")
+    else:
+        require(example["check_ids"], f"{fixture_id} QA outcome example must cite checks")
+        for check_id in example["check_ids"]:
+            require(check_id in qa_by_id, f"outcome example references unknown check {check_id}")
+            qa_item = qa_by_id[check_id]
+            require(qa_item["evidence"]["fixture_id"] == fixture_id, f"{check_id} example fixture mismatch")
+            require(qa_item["evidence"]["trace_id"] == trace_id, f"{check_id} example trace mismatch")
+            require(qa_item["workflow"] == example["workflow"], f"{check_id} example workflow mismatch")
+            require(qa_result_outcome(qa_item) == example["outcome"], f"{check_id} QA outcome example mismatch")
+            require(qa_item["evidence"]["source_artifacts"], f"{check_id} QA outcome example must cite source artifacts")
+            if expected_category is not None:
+                require(
+                    qa_item["check_category"] == expected_category,
+                    f"{check_id} category outcome example must be {expected_category}",
+                )
+                if example["expected_blocks_final_export"]:
+                    require(
+                        check_id in result["qa_export_gate"]["blocking_qa_check_ids"],
+                        f"{check_id} blocking example missing from eval export gate",
+                    )
+                    require(
+                        expected_category in result["qa_export_gate"]["blocking_qa_categories"],
+                        f"{expected_category} blocking category missing from eval export gate",
+                    )
+                else:
+                    require(
+                        check_id not in result["qa_export_gate"]["blocking_qa_check_ids"],
+                        f"{check_id} nonblocking example must not appear in eval blocking checks",
+                    )
+
+    require(
+        result["qa_export_gate"]["final_export_allowed"] is example["final_export_allowed"],
+        f"{fixture_id} final export allowance mismatch",
+    )
+    if "expected_export_artifacts_complete" in example:
+        require(
+            result["qa_export_gate"]["export_artifacts_complete"] is example["expected_export_artifacts_complete"],
+            f"{fixture_id} export artifact completeness mismatch",
+        )
 
 
 def main() -> int:

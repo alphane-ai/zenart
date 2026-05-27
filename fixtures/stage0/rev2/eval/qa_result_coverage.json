@@ -412,6 +412,204 @@
       "final_export_allowed": false
     }
   ],
+  "category_outcome_examples": [
+    {
+      "check_category": "file_integrity",
+      "outcome": "block",
+      "source": "qa_result_fixture",
+      "fixture_id": "fx_brand_product_preservation",
+      "workflow": "ecommerce_growth_pack",
+      "trace_id": "trace_fx_brand_product_preservation_integrity",
+      "check_ids": [
+        "qa_file_integrity_checksum"
+      ],
+      "final_export_allowed": false,
+      "expected_blocks_final_export": true,
+      "expected_export_artifacts_complete": true
+    },
+    {
+      "check_category": "dimensions",
+      "outcome": "block",
+      "source": "qa_result_fixture",
+      "fixture_id": "fx_local_merchant_campaign_golden",
+      "workflow": "local_merchant_campaign_pack",
+      "trace_id": "trace_fx_local_merchant_campaign_golden_dimensions",
+      "check_ids": [
+        "qa_dimensions_platform_target"
+      ],
+      "final_export_allowed": false,
+      "expected_blocks_final_export": true,
+      "expected_export_artifacts_complete": true
+    },
+    {
+      "check_category": "aspect_ratio",
+      "outcome": "pass",
+      "source": "qa_result_fixture",
+      "fixture_id": "fx_ecommerce_growth_golden",
+      "workflow": "ecommerce_growth_pack",
+      "trace_id": "trace_fx_ecommerce_growth_golden_aspect",
+      "check_ids": [
+        "qa_aspect_ratio_square_pass"
+      ],
+      "final_export_allowed": false,
+      "expected_blocks_final_export": false,
+      "expected_export_artifacts_complete": true
+    },
+    {
+      "check_category": "aspect_ratio",
+      "outcome": "warn",
+      "source": "qa_result_fixture",
+      "fixture_id": "fx_ecommerce_growth_golden",
+      "workflow": "ecommerce_growth_pack",
+      "trace_id": "trace_fx_ecommerce_growth_golden_aspect",
+      "check_ids": [
+        "qa_aspect_ratio_channel"
+      ],
+      "final_export_allowed": false,
+      "expected_blocks_final_export": false,
+      "expected_export_artifacts_complete": true
+    },
+    {
+      "check_category": "safe_area",
+      "outcome": "warn",
+      "source": "qa_result_fixture",
+      "fixture_id": "fx_local_merchant_campaign_golden",
+      "workflow": "local_merchant_campaign_pack",
+      "trace_id": "trace_fx_local_merchant_campaign_golden_dimensions",
+      "check_ids": [
+        "qa_platform_safe_area"
+      ],
+      "final_export_allowed": false,
+      "expected_blocks_final_export": false,
+      "expected_export_artifacts_complete": true
+    },
+    {
+      "check_category": "blank_output",
+      "outcome": "block",
+      "source": "qa_result_fixture",
+      "fixture_id": "fx_character_ip_concept_golden",
+      "workflow": "character_ip_concept_pack",
+      "trace_id": "trace_fx_character_ip_concept_golden_blank",
+      "check_ids": [
+        "qa_blank_output"
+      ],
+      "final_export_allowed": false,
+      "expected_blocks_final_export": true,
+      "expected_export_artifacts_complete": true
+    },
+    {
+      "check_category": "duplicate_similarity",
+      "outcome": "block",
+      "source": "qa_result_fixture",
+      "fixture_id": "fx_negative_generic_rendering",
+      "workflow": "local_merchant_campaign_pack",
+      "trace_id": "trace_fx_negative_generic_rendering_similarity",
+      "check_ids": [
+        "qa_duplicate_candidate_similarity"
+      ],
+      "final_export_allowed": false,
+      "expected_blocks_final_export": true,
+      "expected_export_artifacts_complete": true
+    },
+    {
+      "check_category": "four_option_distinctness",
+      "outcome": "block",
+      "source": "qa_result_fixture",
+      "fixture_id": "fx_negative_generic_rendering",
+      "workflow": "local_merchant_campaign_pack",
+      "trace_id": "trace_fx_negative_generic_rendering_similarity",
+      "check_ids": [
+        "qa_four_option_distinctness"
+      ],
+      "final_export_allowed": false,
+      "expected_blocks_final_export": true,
+      "expected_export_artifacts_complete": true
+    },
+    {
+      "check_category": "text_readability",
+      "outcome": "warn",
+      "source": "qa_result_fixture",
+      "fixture_id": "fx_business_visual_doc_golden",
+      "workflow": "business_visual_doc_pack",
+      "trace_id": "trace_fx_business_visual_doc_golden_readability",
+      "check_ids": [
+        "qa_text_readability_ocr"
+      ],
+      "final_export_allowed": false,
+      "expected_blocks_final_export": false,
+      "expected_export_artifacts_complete": true
+    },
+    {
+      "check_category": "structured_text",
+      "outcome": "warn",
+      "source": "qa_result_fixture",
+      "fixture_id": "fx_text_heavy_structured_details",
+      "workflow": "local_merchant_campaign_pack",
+      "trace_id": "trace_fx_text_heavy_structured_details",
+      "check_ids": [
+        "qa_structured_text_fields"
+      ],
+      "final_export_allowed": false,
+      "expected_blocks_final_export": false,
+      "expected_export_artifacts_complete": true
+    },
+    {
+      "check_category": "product_logo_preservation",
+      "outcome": "block",
+      "source": "qa_result_fixture",
+      "fixture_id": "fx_brand_product_preservation",
+      "workflow": "ecommerce_growth_pack",
+      "trace_id": "trace_fx_brand_product_preservation_integrity",
+      "check_ids": [
+        "qa_product_logo_preservation"
+      ],
+      "final_export_allowed": false,
+      "expected_blocks_final_export": true,
+      "expected_export_artifacts_complete": true
+    },
+    {
+      "check_category": "forbidden_claims",
+      "outcome": "block",
+      "source": "qa_result_fixture",
+      "fixture_id": "fx_unsafe_financial_claim",
+      "workflow": "business_visual_doc_pack",
+      "trace_id": "trace_fx_unsafe_financial_claim",
+      "check_ids": [
+        "qa_forbidden_claims"
+      ],
+      "final_export_allowed": false,
+      "expected_blocks_final_export": true,
+      "expected_export_artifacts_complete": false
+    },
+    {
+      "check_category": "watermark_signature_risk",
+      "outcome": "warn",
+      "source": "qa_result_fixture",
+      "fixture_id": "fx_character_ip_concept_golden",
+      "workflow": "character_ip_concept_pack",
+      "trace_id": "trace_fx_character_ip_concept_golden_blank",
+      "check_ids": [
+        "qa_watermark_signature_risk"
+      ],
+      "final_export_allowed": false,
+      "expected_blocks_final_export": false,
+      "expected_export_artifacts_complete": true
+    },
+    {
+      "check_category": "export_completeness",
+      "outcome": "block",
+      "source": "qa_result_fixture",
+      "fixture_id": "fx_export_completeness_missing_manifest",
+      "workflow": "character_ip_concept_pack",
+      "trace_id": "trace_fx_export_completeness_missing_manifest",
+      "check_ids": [
+        "qa_export_completeness"
+      ],
+      "final_export_allowed": false,
+      "expected_blocks_final_export": true,
+      "expected_export_artifacts_complete": false
+    }
+  ],
   "eval_result_link": {
     "path": "fixtures/stage0/rev2/eval/starter_eval_results.json",
     "requires_qa_categories_covered_match": true,
