@@ -263,6 +263,15 @@ for artifact_id, expected_path in expected_ci_artifacts.items():
         raise SystemExit(f"release bundle CI artifact path mismatch for {artifact_id}: {artifact}")
     if artifact.get("required_before_ci_gate_closure") is not True:
         raise SystemExit(f"release bundle must mark {artifact_id} required before CI gate closure")
+expected_ci_blockers = {
+    f"ci_closure_artifact_missing:{artifact_id}"
+    for artifact_id, artifact in ci_artifacts.items()
+    if artifact.get("exists") is not True
+}
+if set(report.get("ci_closure_artifact_blocking_reasons", [])) != expected_ci_blockers:
+    raise SystemExit("release bundle must make missing CI closure artifacts explicit blocking reasons")
+if not expected_ci_blockers.issubset(set(report.get("blocking_reasons", []))):
+    raise SystemExit("release bundle blocking reasons must include missing CI closure artifacts")
 if report.get("ci_closure_artifacts_ready") is not False:
     raise SystemExit("release bundle dry-run must keep CI closure artifact readiness false")
 production_split = report.get("production_backup_rollback_split_preflight", {})
@@ -284,6 +293,17 @@ if backup_split.get("path") != "ops/evidence/production/backup-restore.json":
     raise SystemExit("release bundle production backup split path mismatch")
 if rollback_split.get("path") != "ops/evidence/production/rollback-incident-post-deploy-smoke.json":
     raise SystemExit("release bundle production rollback split path mismatch")
+expected_production_split_blockers = {
+    "production_upstream_ci_gate_not_go",
+    "production_upstream_private_beta_staging_gate_not_go",
+    "production_backup_restore_split_not_passed",
+    "production_rollback_incident_post_deploy_split_not_passed",
+    "production_exact_backup_rollback_split_files_not_ready",
+}
+if set(report.get("production_backup_rollback_split_blocking_reasons", [])) != expected_production_split_blockers:
+    raise SystemExit("release bundle must make production split blockers explicit")
+if not expected_production_split_blockers.issubset(set(report.get("blocking_reasons", []))):
+    raise SystemExit("release bundle blocking reasons must include production split blockers")
 PY
 route_bundle_tmp="$(mktemp -d)"
 if OUT_DIR="$route_bundle_tmp" \

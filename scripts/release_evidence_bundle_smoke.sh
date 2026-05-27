@@ -636,6 +636,24 @@ if not legal_support_verified:
     split_probe_blocking_reasons.append("legal_support_external_user_visibility_not_passed")
 if legal_support_probe["passed"] and not legal_support_split_reports_passed:
     split_probe_blocking_reasons.append("legal_support_split_evidence_not_passed")
+ci_blocking_reasons = [
+    f"ci_closure_artifact_missing:{artifact['artifact_id']}"
+    for artifact in ci_artifacts
+    if artifact.get("exists") is not True
+]
+production_split_blocking_reasons = []
+backup_restore_split = production_split_preflight.get("backup_restore_split", {})
+rollback_split = production_split_preflight.get("rollback_incident_post_deploy_split", {})
+if production_split_preflight.get("upstream_ci_gate_status") != "go":
+    production_split_blocking_reasons.append("production_upstream_ci_gate_not_go")
+if production_split_preflight.get("upstream_private_beta_staging_gate_status") != "go":
+    production_split_blocking_reasons.append("production_upstream_private_beta_staging_gate_not_go")
+if backup_restore_split.get("passed") is not True:
+    production_split_blocking_reasons.append("production_backup_restore_split_not_passed")
+if rollback_split.get("passed") is not True:
+    production_split_blocking_reasons.append("production_rollback_incident_post_deploy_split_not_passed")
+if production_split_preflight.get("exact_split_files_ready") is not True:
+    production_split_blocking_reasons.append("production_exact_backup_rollback_split_files_not_ready")
 status = (
     "passed"
     if staging_exit_code == 0
@@ -645,7 +663,12 @@ status = (
     else "blocked"
 )
 decision_inputs = go_no_go.get("decision_inputs", {})
-blocking_reasons = go_no_go.get("blocking_reasons", []) + split_probe_blocking_reasons
+blocking_reasons = (
+    go_no_go.get("blocking_reasons", [])
+    + split_probe_blocking_reasons
+    + ci_blocking_reasons
+    + production_split_blocking_reasons
+)
 
 report_path.write_text(
     json.dumps(
@@ -697,7 +720,9 @@ report_path.write_text(
             },
             "ci_closure_artifacts": ci_artifacts,
             "ci_closure_artifacts_ready": all(item["exists"] for item in ci_artifacts),
+            "ci_closure_artifact_blocking_reasons": ci_blocking_reasons,
             "production_backup_rollback_split_preflight": production_split_preflight,
+            "production_backup_rollback_split_blocking_reasons": production_split_blocking_reasons,
             "object_retention_cleanup_probe": object_retention_probe,
             "canonical_object_retention_cleanup_probe": canonical_object_retention_probe,
             "legal_support_visibility_probe": legal_support_probe,

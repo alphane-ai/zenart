@@ -1,5 +1,5 @@
 {
-  "blocking_reason_count": 28,
+  "blocking_reason_count": 37,
   "blocking_reasons": [
     "staging_smoke_not_passed",
     "post_deploy_smoke_contract_unverified",
@@ -28,7 +28,16 @@
     "gate_fixture_blocked:production_launch:backup_restore_rollback_smoke_missing",
     "gate_fixture_blocked:production_launch:production_deploy_rollback_smoke_missing",
     "gate_fixture_blocked:production_launch:ci_staging_gates_not_passed",
-    "canonical_object_storage_retention_cleanup_not_passed"
+    "canonical_object_storage_retention_cleanup_not_passed",
+    "ci_closure_artifact_missing:ci_installed_workflow",
+    "ci_closure_artifact_missing:ci_pr_main_run",
+    "ci_closure_artifact_missing:ci_playwright_smoke",
+    "ci_closure_artifact_missing:ci_docker_image_build",
+    "production_upstream_ci_gate_not_go",
+    "production_upstream_private_beta_staging_gate_not_go",
+    "production_backup_restore_split_not_passed",
+    "production_rollback_incident_post_deploy_split_not_passed",
+    "production_exact_backup_rollback_split_files_not_ready"
   ],
   "blueprint_source": "Docs/stage0_blueprint_rev2.md",
   "canonical_legal_pages_external_user_probe": {
@@ -74,6 +83,12 @@
     "status": "pass"
   },
   "canonical_support_contact_external_user_report": "ops/evidence/staging/support-contact-external-user.json",
+  "ci_closure_artifact_blocking_reasons": [
+    "ci_closure_artifact_missing:ci_installed_workflow",
+    "ci_closure_artifact_missing:ci_pr_main_run",
+    "ci_closure_artifact_missing:ci_playwright_smoke",
+    "ci_closure_artifact_missing:ci_docker_image_build"
+  ],
   "ci_closure_artifacts": [
     {
       "artifact_id": "ci_installed_workflow",
@@ -287,6 +302,13 @@
   "object_retention_cleanup_verified": false,
   "post_deploy_smoke_verified": false,
   "private_beta_gate": "open_until_release_evidence_bundle_status_passed_and_private_beta_fixture_clear",
+  "production_backup_rollback_split_blocking_reasons": [
+    "production_upstream_ci_gate_not_go",
+    "production_upstream_private_beta_staging_gate_not_go",
+    "production_backup_restore_split_not_passed",
+    "production_rollback_incident_post_deploy_split_not_passed",
+    "production_exact_backup_rollback_split_files_not_ready"
+  ],
   "production_backup_rollback_split_preflight": {
     "backup_restore_split": {
       "exists": false,
