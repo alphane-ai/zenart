@@ -589,27 +589,37 @@ test("admin operations page surfaces production backup rollback incident evidenc
     "ProductionBackupRollbackIncidentCoverage",
     "Operational Audit Evidence",
     "Launch-Clearing Split",
+    "Split Preflight",
+    "Upstream Gate",
+    "Exact Split File",
     "Exact Evidence Path",
     "Required Runtime Proof",
     "Tracked Conditions",
     "Can Clear Rows",
     "Remaining Blockers",
-    "getProductionBackupRollbackIncidentEvidence"
+    "getProductionBackupRollbackIncidentEvidence",
+    "getProductionBackupRollbackSplitPreflightEvidence"
   ]) {
     assert.match(operationsPage, new RegExp(token));
   }
 
   assert.match(adminApi, /getProductionBackupRollbackIncidentEvidence/);
+  assert.match(adminApi, /getProductionBackupRollbackSplitPreflightEvidence/);
 
   for (const token of [
     "productionBackupRollbackIncidentEvidence",
+    "productionBackupRollbackSplitPreflightEvidence",
     "production_backup_rollback_incident_20260527T1800Z",
     "ops/evidence/production/20260527T1800Z-backup-rollback-incident-smoke.json",
+    "ops/evidence/production/backup-rollback-split.blocked.json",
     "backup_restore",
     "rollback_drill",
     "incident_alert_path",
     "post_deploy_smoke",
     "splitReadiness",
+    "release_sha_missing_or_not_full_sha",
+    "private_beta_staging_gate_not_go",
+    "production_rollback_incident_post_deploy_split_not_passed",
     "ops/evidence/production/backup-restore.json",
     "ops/evidence/production/rollback-incident-post-deploy-smoke.json",
     "blocked_until_exact_split_file",

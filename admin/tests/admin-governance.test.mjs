@@ -17,7 +17,7 @@ const parseFixtures = () => {
   const moduleSource = source
     .replace(/^import type[\s\S]*?from "@\/lib\/types";\n\n/, "")
     .replaceAll(/export const (\w+)[^=]*=/g, "const $1 =");
-  return Function(`${moduleSource}\nreturn { skillVersions, skillReleaseStateDefinitions, skillCanaryMetrics, releaseEvidence, releaseBlockers, supportTickets, supportEscalationRunbooks, supportUsers, riskyExports, abuseEvents, abuseControlHooks, stagingAuthRbacTenantAuditEvidence, stagingEvalQaSafetyEvidence, stagingQuotaRateLimitSpendCapEvidence, stagingSupportRetryAbuseEvidence, stagingLegalSupportVisibilityEvidence, productionAbuseThrottleHoldEvidence, productionActivationReviewAuditEvidence, productionSkillReleaseEvalCanaryEvidence, productionSecurityLaunchCheckEvidence, productionBackupRollbackIncidentEvidence, productionLegalSupportPolicyEvidence, productionProviderModeEvidence, productionPaidBillingLifecycleEvidence, adminReviewDecisions, auditEvents, exportJobs, traces, quotaAccounts, feedbackItems, regressionFixtures, analyticsReports, queueHealth, failedTaskControls, crawlerFindings, crawlerSourceApprovals, crawlerGovernanceWorkflows, crawlerStagingRuntimeEvidence, adminRbacEvidence, adminRbacOverrideAttempts, operationalDashboards, operationalDashboardRuntimeEvidence, alertRoutes, alertRouteRuntimeEvidence, backendMetricsRuntimeEvidence, observabilityTelemetryRuntimeEvidence, stagingObservabilityBackupLoadPreflightEvidence, stagingObjectStorageRetentionCleanupEvidence };`)();
+  return Function(`${moduleSource}\nreturn { skillVersions, skillReleaseStateDefinitions, skillCanaryMetrics, releaseEvidence, releaseBlockers, supportTickets, supportEscalationRunbooks, supportUsers, riskyExports, abuseEvents, abuseControlHooks, stagingAuthRbacTenantAuditEvidence, stagingEvalQaSafetyEvidence, stagingQuotaRateLimitSpendCapEvidence, stagingSupportRetryAbuseEvidence, stagingLegalSupportVisibilityEvidence, productionAbuseThrottleHoldEvidence, productionActivationReviewAuditEvidence, productionSkillReleaseEvalCanaryEvidence, productionSecurityLaunchCheckEvidence, productionBackupRollbackIncidentEvidence, productionBackupRollbackSplitPreflightEvidence, productionLegalSupportPolicyEvidence, productionProviderModeEvidence, productionPaidBillingLifecycleEvidence, adminReviewDecisions, auditEvents, exportJobs, traces, quotaAccounts, feedbackItems, regressionFixtures, analyticsReports, queueHealth, failedTaskControls, crawlerFindings, crawlerSourceApprovals, crawlerGovernanceWorkflows, crawlerStagingRuntimeEvidence, adminRbacEvidence, adminRbacOverrideAttempts, operationalDashboards, operationalDashboardRuntimeEvidence, alertRoutes, alertRouteRuntimeEvidence, backendMetricsRuntimeEvidence, observabilityTelemetryRuntimeEvidence, stagingObservabilityBackupLoadPreflightEvidence, stagingObjectStorageRetentionCleanupEvidence };`)();
 };
 
 const crawlerGovernanceCases = JSON.parse(
@@ -52,6 +52,7 @@ const {
   productionSkillReleaseEvalCanaryEvidence,
   productionSecurityLaunchCheckEvidence,
   productionBackupRollbackIncidentEvidence,
+  productionBackupRollbackSplitPreflightEvidence,
   productionLegalSupportPolicyEvidence,
   productionProviderModeEvidence,
   productionPaidBillingLifecycleEvidence,
@@ -423,6 +424,10 @@ const productionSecurityLaunchCheckPath = new URL(
 );
 const productionBackupRollbackIncidentPath = new URL(
   "../../ops/evidence/production/20260527T1800Z-backup-rollback-incident-smoke.json",
+  import.meta.url
+);
+const productionBackupRollbackSplitPreflightPath = new URL(
+  "../../ops/evidence/production/backup-rollback-split.blocked.json",
   import.meta.url
 );
 const productionPublicLegalPolicyPath = new URL(
@@ -4002,6 +4007,114 @@ test("production backup rollback incident evidence stays blocked until upstream 
     gateFixture.gate_decision.active_do_not_launch_conditions.includes("ci_staging_gates_not_passed"),
     "aggregate gate must preserve upstream CI/staging blocker"
   );
+});
+
+test("production backup rollback split preflight evidence is visible without clearing launch gates", () => {
+  assert.ok(existsSync(productionBackupRollbackSplitPreflightPath), "production backup rollback split preflight evidence file is missing");
+
+  const preflightFile = JSON.parse(readFileSync(productionBackupRollbackSplitPreflightPath, "utf8"));
+  const operationsPage = readFileSync(new URL("../app/operations/page.tsx", import.meta.url), "utf8");
+  const adminApi = readFileSync(new URL("../lib/admin-api.ts", import.meta.url), "utf8");
+  const types = readFileSync(new URL("../lib/types.ts", import.meta.url), "utf8");
+
+  assert.equal(productionBackupRollbackSplitPreflightEvidence.id, preflightFile.evidence_id);
+  assert.equal(productionBackupRollbackSplitPreflightEvidence.environment, "production");
+  assert.equal(productionBackupRollbackSplitPreflightEvidence.status, "blocked_by_upstream_gates");
+  assert.equal(productionBackupRollbackSplitPreflightEvidence.kind, "production_backup_rollback_split_preflight");
+  assert.equal(productionBackupRollbackSplitPreflightEvidence.releaseGateCheckId, "production_backup_rollback_incident");
+  assert.equal(productionBackupRollbackSplitPreflightEvidence.evidencePath, "ops/evidence/production/backup-rollback-split.blocked.json");
+  assert.equal(productionBackupRollbackSplitPreflightEvidence.adminVisibleProbeReady, true);
+  assert.equal(
+    productionBackupRollbackSplitPreflightEvidence.adminVisibleProbePath,
+    productionBackupRollbackIncidentEvidence.evidencePath,
+    "split preflight must point at the current admin-visible backup rollback probe"
+  );
+  assert.equal(productionBackupRollbackSplitPreflightEvidence.canClearReleaseGateCheck, false);
+  assert.equal(productionBackupRollbackSplitPreflightEvidence.canClearCheckLevelItems, false);
+  assert.equal(
+    productionBackupRollbackSplitPreflightEvidence.aggregateProductionGateStatus,
+    "blocked_by_upstream_or_missing_exact_split_evidence"
+  );
+  assert.equal(
+    productionBackupRollbackSplitPreflightEvidence.preservedReleaseGateCheckId,
+    "production_backup_rollback_incident"
+  );
+  assert.deepEqual(
+    productionBackupRollbackSplitPreflightEvidence.preservedDoNotLaunchConditionIds,
+    [
+      "backup_restore_rollback_smoke_missing",
+      "production_deploy_rollback_smoke_missing",
+      "ci_staging_gates_not_passed"
+    ]
+  );
+  assert.deepEqual(
+    productionBackupRollbackSplitPreflightEvidence.blockedChecks,
+    preflightFile.blocked_checks,
+    "admin split preflight fixture must mirror validator-owned blocked checks"
+  );
+  assert.deepEqual(
+    productionBackupRollbackSplitPreflightEvidence.requiredUpstreamGates,
+    preflightFile.runtime_input_requirements.required_upstream_gates,
+    "admin split preflight fixture must mirror required upstream gate strings"
+  );
+
+  const upstreamByGate = new Map(
+    productionBackupRollbackSplitPreflightEvidence.upstreamGates.map((gate) => [gate.gate, gate])
+  );
+  for (const gate of ["ci", "private_beta_staging", "production_launch"]) {
+    const adminGate = upstreamByGate.get(gate);
+    const fileGate = preflightFile.upstream_gates[gate];
+    assert.ok(adminGate, `${gate} upstream gate status is missing from admin fixture`);
+    assert.equal(adminGate.path, fileGate.path, `${gate} upstream path must mirror preflight evidence`);
+    assert.equal(adminGate.exists, fileGate.exists, `${gate} upstream existence must mirror preflight evidence`);
+    assert.equal(adminGate.gateDecisionStatus, fileGate.gate_decision_status, `${gate} decision must mirror preflight evidence`);
+    assert.equal(adminGate.ready, false, `${gate} must remain not ready`);
+    assert.deepEqual(adminGate.blockedByChecks, fileGate.blocked_by_checks, `${gate} blocked checks must mirror preflight evidence`);
+    assert.deepEqual(
+      adminGate.activeDoNotLaunchConditions,
+      fileGate.active_do_not_launch_conditions,
+      `${gate} active conditions must mirror preflight evidence`
+    );
+  }
+
+  const splitById = new Map(
+    productionBackupRollbackSplitPreflightEvidence.exactSplitEvidence.map((split) => [split.splitId, split])
+  );
+  for (const splitId of ["backup_restore", "rollback_incident_post_deploy_smoke"]) {
+    const adminSplit = splitById.get(splitId);
+    const fileSplit = preflightFile.split_evidence[splitId];
+    assert.ok(adminSplit, `${splitId} exact split status is missing from admin fixture`);
+    assert.equal(adminSplit.path, fileSplit.path, `${splitId} path must mirror preflight evidence`);
+    assert.equal(adminSplit.exists, false, `${splitId} exact evidence must remain missing`);
+    assert.equal(adminSplit.status, "missing", `${splitId} status must remain missing`);
+    assert.equal(adminSplit.passed, false, `${splitId} must not pass`);
+    assert.deepEqual(adminSplit.missingRequirements, ["missing_file"], `${splitId} missing requirements must stay explicit`);
+    assert.ok(
+      productionBackupRollbackSplitPreflightEvidence.runtimeInputRequirements.some(
+        (requirement) => requirement.split === splitId && requirement.path === fileSplit.path && requirement.mustProve.length >= 5
+      ),
+      `${splitId} runtime input requirements must bind exact path and concrete proof list`
+    );
+  }
+
+  assert.ok(
+    productionBackupRollbackSplitPreflightEvidence.operatorAction.length > 120,
+    "split preflight needs concrete operator action"
+  );
+
+  for (const token of [
+    "ProductionBackupRollbackSplitPreflightEvidence",
+    "ProductionBackupRollbackUpstreamGateStatus",
+    "ProductionBackupRollbackSplitEvidenceStatus",
+    "getProductionBackupRollbackSplitPreflightEvidence",
+    "Split Preflight",
+    "Upstream Gate",
+    "Exact Split File",
+    "Preserved Conditions",
+    "Release SHA"
+  ]) {
+    assert.match(operationsPage + adminApi + types, new RegExp(token));
+  }
 });
 
 test("export regeneration requests require idempotency, support linkage, RBAC, quota handling, and audit evidence", () => {

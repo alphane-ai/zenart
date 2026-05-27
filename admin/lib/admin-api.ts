@@ -25,6 +25,7 @@ import {
   productionActivationReviewAuditEvidence,
   productionAbuseThrottleHoldEvidence,
   productionBackupRollbackIncidentEvidence,
+  productionBackupRollbackSplitPreflightEvidence,
   productionLegalSupportPolicyEvidence,
   productionPaidBillingLifecycleEvidence,
   productionProviderModeEvidence,
@@ -384,6 +385,10 @@ export async function getProductionSecurityLaunchCheckEvidence() {
 
 export async function getProductionBackupRollbackIncidentEvidence() {
   return productionBackupRollbackIncidentEvidence;
+}
+
+export async function getProductionBackupRollbackSplitPreflightEvidence() {
+  return productionBackupRollbackSplitPreflightEvidence;
 }
 
 export async function getProductionLegalSupportPolicyEvidence() {

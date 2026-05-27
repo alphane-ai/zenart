@@ -23,6 +23,7 @@ import type {
   ProductionActivationReviewAuditEvidence,
   ProductionAbuseThrottleHoldEvidence,
   ProductionBackupRollbackIncidentEvidence,
+  ProductionBackupRollbackSplitPreflightEvidence,
   ProductionLegalSupportPolicyEvidence,
   ProductionPaidBillingLifecycleEvidence,
   ProductionProviderModeEvidence,
@@ -4278,6 +4279,130 @@ export const productionBackupRollbackIncidentEvidence: ProductionBackupRollbackI
       "ci_staging_gates_not_passed"
     ]
   }
+};
+
+export const productionBackupRollbackSplitPreflightEvidence: ProductionBackupRollbackSplitPreflightEvidence = {
+  id: "production-backup-rollback-split",
+  evidencePath: "ops/evidence/production/backup-rollback-split.blocked.json",
+  environment: "production",
+  status: "blocked_by_upstream_gates",
+  releaseGateCheckId: "production_backup_rollback_incident",
+  kind: "production_backup_rollback_split_preflight",
+  releaseShaStatus: "missing_or_not_full_sha",
+  adminVisibleProbePath: "ops/evidence/production/20260527T1800Z-backup-rollback-incident-smoke.json",
+  adminVisibleProbeReady: true,
+  blockedChecks: [
+    "release_sha_missing_or_not_full_sha",
+    "ci_gate_not_go",
+    "private_beta_staging_gate_not_go",
+    "production_backup_restore_split_not_passed",
+    "production_rollback_incident_post_deploy_split_not_passed"
+  ],
+  upstreamGates: [
+    {
+      gate: "ci",
+      path: "fixtures/stage0/rev2/release_gate_evidence.ci.json",
+      exists: true,
+      gateDecisionStatus: "no_go",
+      ready: false,
+      blockedByChecks: [
+        "ci_installed_workflow",
+        "ci_gate_runtime_execution",
+        "ci_playwright_smoke",
+        "ci_docker_image_build"
+      ],
+      activeDoNotLaunchConditions: [
+        "ci_workflow_not_installed",
+        "ci_gate_not_executed_on_main",
+        "ci_playwright_smoke_missing",
+        "ci_docker_image_build_missing"
+      ]
+    },
+    {
+      gate: "private_beta_staging",
+      path: "fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json",
+      exists: true,
+      gateDecisionStatus: "no_go",
+      ready: false,
+      blockedByChecks: ["staging_object_storage_signed_downloads"],
+      activeDoNotLaunchConditions: ["object_storage_signed_retention_runtime_missing"]
+    },
+    {
+      gate: "production_launch",
+      path: "fixtures/stage0/rev2/release_gate_evidence.production_launch.json",
+      exists: true,
+      gateDecisionStatus: "no_go",
+      ready: false,
+      blockedByChecks: ["production_backup_rollback_incident"],
+      activeDoNotLaunchConditions: [
+        "backup_restore_rollback_smoke_missing",
+        "production_deploy_rollback_smoke_missing",
+        "ci_staging_gates_not_passed"
+      ]
+    }
+  ],
+  exactSplitEvidence: [
+    {
+      splitId: "backup_restore",
+      path: "ops/evidence/production/backup-restore.json",
+      exists: false,
+      status: "missing",
+      passed: false,
+      environment: null,
+      releaseGateCheckId: null,
+      missingRequirements: ["missing_file"]
+    },
+    {
+      splitId: "rollback_incident_post_deploy_smoke",
+      path: "ops/evidence/production/rollback-incident-post-deploy-smoke.json",
+      exists: false,
+      status: "missing",
+      passed: false,
+      environment: null,
+      releaseGateCheckId: null,
+      missingRequirements: ["missing_file"]
+    }
+  ],
+  requiredUpstreamGates: [
+    "fixtures/stage0/rev2/release_gate_evidence.ci.json gate_decision.status=go",
+    "fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json gate_decision.status=go"
+  ],
+  canClearReleaseGateCheck: false,
+  canClearCheckLevelItems: false,
+  aggregateProductionGateStatus: "blocked_by_upstream_or_missing_exact_split_evidence",
+  preservedReleaseGateCheckId: "production_backup_rollback_incident",
+  preservedDoNotLaunchConditionIds: [
+    "backup_restore_rollback_smoke_missing",
+    "production_deploy_rollback_smoke_missing",
+    "ci_staging_gates_not_passed"
+  ],
+  runtimeInputRequirements: [
+    {
+      split: "backup_restore",
+      path: "ops/evidence/production/backup-restore.json",
+      mustProve: [
+        "backup schedule",
+        "Postgres restore",
+        "object restore",
+        "RPO/RTO",
+        "audit refs"
+      ]
+    },
+    {
+      split: "rollback_incident_post_deploy_smoke",
+      path: "ops/evidence/production/rollback-incident-post-deploy-smoke.json",
+      mustProve: [
+        "app rollback",
+        "feature flag rollback",
+        "worker drain",
+        "migration compatibility",
+        "incident/alert path",
+        "post-deploy smoke"
+      ]
+    }
+  ],
+  operatorAction:
+    "Keep production backup/rollback launch readiness blocked until a full release SHA, passing CI gate, passing Private Beta/Staging gate, and both exact production split evidence files are present and validator-passable."
 };
 
 export const productionLegalSupportPolicyEvidence: ProductionLegalSupportPolicyEvidence = {

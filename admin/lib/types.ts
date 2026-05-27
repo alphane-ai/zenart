@@ -1249,6 +1249,58 @@ export type ProductionBackupRollbackIncidentSplitReadiness = {
   checklistItem: string;
 };
 
+export type ProductionBackupRollbackSplitEvidenceStatus = {
+  splitId: "backup_restore" | "rollback_incident_post_deploy_smoke";
+  path: string;
+  exists: boolean;
+  status: "missing" | "invalid" | "passed";
+  passed: boolean;
+  environment: "production" | null;
+  releaseGateCheckId: "production_backup_rollback_incident" | null;
+  missingRequirements: string[];
+};
+
+export type ProductionBackupRollbackUpstreamGateStatus = {
+  gate: "ci" | "private_beta_staging" | "production_launch";
+  path: string;
+  exists: boolean;
+  gateDecisionStatus: "go" | "no_go" | "missing";
+  ready: boolean;
+  blockedByChecks: string[];
+  activeDoNotLaunchConditions: string[];
+};
+
+export type ProductionBackupRollbackSplitPreflightEvidence = {
+  id: string;
+  evidencePath: "ops/evidence/production/backup-rollback-split.blocked.json";
+  environment: "production";
+  status: "blocked_by_upstream_gates";
+  releaseGateCheckId: "production_backup_rollback_incident";
+  kind: "production_backup_rollback_split_preflight";
+  releaseShaStatus: "missing_or_not_full_sha" | "bound";
+  adminVisibleProbePath: "ops/evidence/production/20260527T1800Z-backup-rollback-incident-smoke.json";
+  adminVisibleProbeReady: boolean;
+  blockedChecks: string[];
+  upstreamGates: ProductionBackupRollbackUpstreamGateStatus[];
+  exactSplitEvidence: ProductionBackupRollbackSplitEvidenceStatus[];
+  requiredUpstreamGates: string[];
+  canClearReleaseGateCheck: boolean;
+  canClearCheckLevelItems: boolean;
+  aggregateProductionGateStatus: "blocked_by_upstream_or_missing_exact_split_evidence";
+  preservedReleaseGateCheckId: "production_backup_rollback_incident";
+  preservedDoNotLaunchConditionIds: [
+    "backup_restore_rollback_smoke_missing",
+    "production_deploy_rollback_smoke_missing",
+    "ci_staging_gates_not_passed"
+  ];
+  runtimeInputRequirements: Array<{
+    split: "backup_restore" | "rollback_incident_post_deploy_smoke";
+    path: string;
+    mustProve: string[];
+  }>;
+  operatorAction: string;
+};
+
 export type ProductionBackupRollbackIncidentEvidence = {
   id: string;
   evidencePath: string;

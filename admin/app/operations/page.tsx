@@ -11,6 +11,7 @@ import {
   getOperationalDashboards,
   getObservabilityTelemetryRuntimeEvidence,
   getProductionBackupRollbackIncidentEvidence,
+  getProductionBackupRollbackSplitPreflightEvidence,
   getProductionLegalSupportPolicyEvidence,
   getReleaseBlockers,
   getStagingObjectStorageRetentionCleanupEvidence,
@@ -30,6 +31,9 @@ import type {
   ProductionBackupRollbackIncidentCoverage,
   ProductionBackupRollbackIncidentEvidence,
   ProductionBackupRollbackIncidentSplitReadiness,
+  ProductionBackupRollbackSplitEvidenceStatus,
+  ProductionBackupRollbackSplitPreflightEvidence,
+  ProductionBackupRollbackUpstreamGateStatus,
   ProductionLegalSupportPolicyCoverage,
   ProductionLegalSupportPolicyEvidence,
   ReleaseBlocker,
@@ -60,6 +64,7 @@ export default async function OperationsPage() {
     observabilityBackupLoadPreflight,
     objectStorageRetentionCleanupEvidence,
     productionBackupRollbackIncidentEvidence,
+    productionBackupRollbackSplitPreflightEvidence,
     productionLegalSupportPolicyEvidence
   ] = await Promise.all([
     getIncidentLogs(),
@@ -73,6 +78,7 @@ export default async function OperationsPage() {
     getStagingObservabilityBackupLoadPreflightEvidence(),
     getStagingObjectStorageRetentionCleanupEvidence(),
     getProductionBackupRollbackIncidentEvidence(),
+    getProductionBackupRollbackSplitPreflightEvidence(),
     getProductionLegalSupportPolicyEvidence()
   ]);
   const releaseBlockers = await getReleaseBlockers();
@@ -152,6 +158,39 @@ export default async function OperationsPage() {
             { key: "blockers", header: "Upstream Blockers", render: (row) => row.upstreamBlockers.join(", ") },
             { key: "surface", header: "Admin Review Surface", render: (row) => row.adminReviewSurface },
             { key: "checklist", header: "Checklist Row", render: (row) => row.checklistItem }
+          ]}
+        />
+        <DataTable<ProductionBackupRollbackSplitPreflightEvidence>
+          rows={[productionBackupRollbackSplitPreflightEvidence]}
+          columns={[
+            { key: "id", header: "Split Preflight", render: (row) => <span className="mono">{row.id}</span> },
+            { key: "status", header: "Status", render: (row) => <StatusBadge value="blocked" label={row.status} /> },
+            { key: "release", header: "Release SHA", render: (row) => row.releaseShaStatus },
+            { key: "probe", header: "Admin Probe", render: (row) => `${row.adminVisibleProbeReady ? "ready" : "blocked"} / ${row.adminVisibleProbePath}` },
+            { key: "clear", header: "Can Clear Gate", render: (row) => (row.canClearReleaseGateCheck ? "yes" : "no") },
+            { key: "aggregate", header: "Aggregate Gate", render: (row) => row.aggregateProductionGateStatus },
+            { key: "preserved", header: "Preserved Conditions", render: (row) => row.preservedDoNotLaunchConditionIds.join(", ") },
+            { key: "path", header: "Evidence Path", render: (row) => row.evidencePath }
+          ]}
+        />
+        <DataTable<ProductionBackupRollbackUpstreamGateStatus>
+          rows={productionBackupRollbackSplitPreflightEvidence.upstreamGates}
+          columns={[
+            { key: "gate", header: "Upstream Gate", render: (row) => row.gate },
+            { key: "status", header: "Decision", render: (row) => <StatusBadge value={row.ready ? "healthy" : "blocked"} label={row.gateDecisionStatus} /> },
+            { key: "path", header: "Gate Fixture", render: (row) => row.path },
+            { key: "blocked", header: "Blocked Checks", render: (row) => row.blockedByChecks.join(", ") },
+            { key: "conditions", header: "Active Conditions", render: (row) => row.activeDoNotLaunchConditions.join(", ") }
+          ]}
+        />
+        <DataTable<ProductionBackupRollbackSplitEvidenceStatus>
+          rows={productionBackupRollbackSplitPreflightEvidence.exactSplitEvidence}
+          columns={[
+            { key: "split", header: "Exact Split File", render: (row) => row.splitId },
+            { key: "status", header: "File Status", render: (row) => <StatusBadge value={row.passed ? "healthy" : "blocked"} label={row.status} /> },
+            { key: "path", header: "Path", render: (row) => row.path },
+            { key: "check", header: "Release Gate Check", render: (row) => row.releaseGateCheckId ?? "missing" },
+            { key: "missing", header: "Missing Requirements", render: (row) => row.missingRequirements.join(", ") }
           ]}
         />
       </section>
