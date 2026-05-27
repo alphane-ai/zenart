@@ -2154,6 +2154,17 @@ def gate_blockers(data: dict[str, Any]) -> dict[str, list[str]]:
     }
 
 
+def require_unique_ordered_ids(ids: list[Any], context: str) -> None:
+    require(
+        all(isinstance(item, str) and item.strip() for item in ids),
+        f"{context} must contain only non-empty string IDs",
+    )
+    require(
+        len(ids) == len(set(ids)),
+        f"{context} must not contain duplicate IDs",
+    )
+
+
 def current_blocked_release_gate_checks(gate: str) -> set[str]:
     data = load_json(RELEASE_GATE_EVIDENCE_FILES[gate])
     return {
@@ -2169,24 +2180,50 @@ def validate_gate_decision(data: dict[str, Any]) -> None:
     require(isinstance(decision, dict), f"{gate} release evidence missing gate_decision")
 
     blockers = gate_blockers(data)
-    expected_blocked_checks = sorted(blockers["blocked_or_failing_checks"])
-    expected_active_conditions = sorted(blockers["active_do_not_launch_conditions"])
+    expected_blocked_checks = blockers["blocked_or_failing_checks"]
+    expected_active_conditions = blockers["active_do_not_launch_conditions"]
     expected_status = (
         "go"
         if not expected_blocked_checks and not expected_active_conditions
         else "no_go"
+    )
+    decision_blocked_checks = decision.get("blocked_by_checks", [])
+    decision_active_conditions = decision.get("active_do_not_launch_conditions", [])
+    require(
+        isinstance(decision_blocked_checks, list),
+        f"{gate} gate_decision.blocked_by_checks must be a list",
+    )
+    require(
+        isinstance(decision_active_conditions, list),
+        f"{gate} gate_decision.active_do_not_launch_conditions must be a list",
+    )
+    require_unique_ordered_ids(
+        [check.get("check_id") for check in data["checks"]],
+        f"{gate} release evidence checks.check_id",
+    )
+    require_unique_ordered_ids(
+        [condition.get("condition_id") for condition in data["do_not_launch_checks"]],
+        f"{gate} release evidence do_not_launch_checks.condition_id",
+    )
+    require_unique_ordered_ids(
+        decision_blocked_checks,
+        f"{gate} gate_decision.blocked_by_checks",
+    )
+    require_unique_ordered_ids(
+        decision_active_conditions,
+        f"{gate} gate_decision.active_do_not_launch_conditions",
     )
     require(
         decision.get("status") == expected_status,
         f"{gate} gate_decision.status must be {expected_status!r} based on computed blockers",
     )
     require(
-        sorted(decision.get("blocked_by_checks", [])) == expected_blocked_checks,
-        f"{gate} gate_decision.blocked_by_checks must match blocked/failing checks: {expected_blocked_checks}",
+        decision_blocked_checks == expected_blocked_checks,
+        f"{gate} gate_decision.blocked_by_checks must match blocked/failing checks in fixture order: {expected_blocked_checks}",
     )
     require(
-        sorted(decision.get("active_do_not_launch_conditions", [])) == expected_active_conditions,
-        f"{gate} gate_decision.active_do_not_launch_conditions must match active Do-Not-Launch conditions: {expected_active_conditions}",
+        decision_active_conditions == expected_active_conditions,
+        f"{gate} gate_decision.active_do_not_launch_conditions must match active Do-Not-Launch conditions in fixture order: {expected_active_conditions}",
     )
     evidence_ref = decision.get("evidence_ref", "")
     require(
@@ -6152,6 +6189,8 @@ def validate_launch_readiness_split_contracts() -> None:
         "Fixture or contract evidence can never close CI, Private Beta/Staging, Production Launch, or Do-Not-Launch checklist items by itself",
         "Runtime gate checks that pass must cite environment-specific evidence paths",
         "Each release gate fixture must include a `gate_decision` object",
+        "must contain unique non-empty IDs",
+        "must preserve fixture order from the current blocked/failing checks",
         "`gate_decision.status` must also align with the authoritative checklist",
         "each open gate checklist item requires the matching fixture decision to stay `no_go`",
         "each checked gate checklist item requires the matching fixture decision to be `go`",
