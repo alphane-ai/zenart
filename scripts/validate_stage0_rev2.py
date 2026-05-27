@@ -612,6 +612,13 @@ GATE_IMPACT_CHECK_ID_MATCH_GUARD_CHECKLIST_ITEM = (
     "Local Alpha、CI、Private Beta/Staging、Production, or Do-Not-Launch row。"
 )
 
+GATE_IMPACT_FALSE_READY_TERM_GUARD_CHECKLIST_ITEM = (
+    "Runtime gate_impact false-readiness term guard 通过：`scripts/validate_stage0_rev2.py` rejects "
+    "runtime evidence `gate_impact` values containing launch-ready、ready for production、go for production、"
+    "上线就绪、生产就绪、or other no-go false-readiness terms unless the value is an exact validator-owned "
+    "checklist row, so blocked runtime artifacts cannot smuggle launch clearance through prose。"
+)
+
 PRIVATE_BETA_CLEARED_CONDITION_STATE_GUARD_CHECKLIST_ITEM = (
     "Private Beta/Staging cleared-condition state guard 通过：`scripts/validate_stage0_rev2.py` computes "
     "support/retry/abuse and crawler approval/provenance Do-Not-Launch condition states from exact staging "
@@ -2782,6 +2789,7 @@ CHECKED_ITEMS = {
     README_LAUNCH_READINESS_CHECKLIST_ITEM,
     GATE_IMPACT_CLOSED_SCHEMA_GUARD_CHECKLIST_ITEM,
     GATE_IMPACT_CHECK_ID_MATCH_GUARD_CHECKLIST_ITEM,
+    GATE_IMPACT_FALSE_READY_TERM_GUARD_CHECKLIST_ITEM,
     PRIVATE_BETA_CLEARED_CONDITION_STATE_GUARD_CHECKLIST_ITEM,
     RELEASE_GATE_DECISION_STATUS_TOKEN_GUARD_CHECKLIST_ITEM,
     RELEASE_GATE_FIXTURE_DEPENDENCY_STATUS_TOKEN_GUARD_CHECKLIST_ITEM,
@@ -5997,9 +6005,7 @@ def validate_runtime_gate_impact_closure_claims(
             for value in walk_values(gate_impact)
             if isinstance(value, str)
             and (
-                "launch-ready" in value.lower()
-                or "ready for production" in value.lower()
-                or "cleared for launch" in value.lower()
+                any(term.lower() in value.lower() for term in NO_GO_FALSE_READY_TERMS)
                 or "Do-Not-Launch Conditions 全部为 false。" in value
                 or "Production Launch Gate 全部通过。" in value
                 or "Private Beta/Staging Gate 全部通过。" in value
@@ -11583,6 +11589,7 @@ def validate_launch_readiness_split_contracts() -> None:
         RELEASE_GATE_FIXTURE_IDENTITY_GUARD_CHECKLIST_ITEM,
         GATE_IMPACT_CLOSED_SCHEMA_GUARD_CHECKLIST_ITEM,
         GATE_IMPACT_CHECK_ID_MATCH_GUARD_CHECKLIST_ITEM,
+        GATE_IMPACT_FALSE_READY_TERM_GUARD_CHECKLIST_ITEM,
         PRIVATE_BETA_CLEARED_CONDITION_STATE_GUARD_CHECKLIST_ITEM,
         RELEASE_GATE_DECISION_STATUS_TOKEN_GUARD_CHECKLIST_ITEM,
         RELEASE_GATE_FIXTURE_DEPENDENCY_STATUS_TOKEN_GUARD_CHECKLIST_ITEM,
@@ -11765,12 +11772,16 @@ def validate_launch_readiness_split_contracts() -> None:
         "`checklist_item`、`check_level_item`、`aggregate_checklist_item`、`post_deploy_checklist_item`、`checklist_items`、and `check_level_items`",
         GATE_IMPACT_CLOSED_SCHEMA_GUARD_CHECKLIST_ITEM,
         GATE_IMPACT_CHECK_ID_MATCH_GUARD_CHECKLIST_ITEM,
+        GATE_IMPACT_FALSE_READY_TERM_GUARD_CHECKLIST_ITEM,
         PRIVATE_BETA_CLEARED_CONDITION_STATE_GUARD_CHECKLIST_ITEM,
         RELEASE_GATE_DECISION_STATUS_TOKEN_GUARD_CHECKLIST_ITEM,
         RELEASE_GATE_FIXTURE_DEPENDENCY_STATUS_TOKEN_GUARD_CHECKLIST_ITEM,
         "rejects unknown `gate_impact` keys in runtime evidence",
         "nested `gate_impact.release_gate_check_id` must equal the artifact top-level `release_gate_check_id`",
         "copied gate metadata cannot close the wrong Local Alpha、CI、Private Beta/Staging、Production, or Do-Not-Launch row",
+        "Runtime gate_impact false-readiness term guard 通过",
+        "go for production、上线就绪、生产就绪",
+        "blocked runtime artifacts cannot smuggle launch clearance through prose",
         "`gate_impact` true clearance flags such as `can_clear_*` may clear only rows owned by the evidence's own gate",
         "only when the exact blueprint row is already checked",
         "`gate_impact` partial evidence may mention checked check-level rows or definition-only rows",
