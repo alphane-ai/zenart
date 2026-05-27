@@ -284,6 +284,7 @@ GATE_CHECKLIST_ITEMS = {
 GLOBAL_DO_NOT_LAUNCH_CHECKLIST_ITEM = "Do-Not-Launch Conditions 全部为 false。"
 
 CHECK_STATUS_VALUES = {"pass", "fail", "blocked", "not_applicable"}
+RUNTIME_PASS_EVIDENCE_STATUS_VALUES = {"pass", "passed", "pass_with_blockers_preserved"}
 
 BLOCKED_RUNTIME_EVIDENCE_TERMS = {
     "absent",
@@ -1944,6 +1945,11 @@ def require_runtime_file_evidence(evidence_ref: str, gate: str, check_id: str) -
                 evidence_check_id == check_id,
                 f"{gate}.{check_id} pass evidence file {runtime_path} targets release_gate_check_id={evidence_check_id!r}",
             )
+            require(
+                evidence.get("status") in RUNTIME_PASS_EVIDENCE_STATUS_VALUES,
+                f"{gate}.{check_id} pass evidence file {runtime_path} must itself be passing; "
+                f"got status={evidence.get('status')!r}",
+            )
         gate_impact = evidence.get("gate_impact")
         if isinstance(gate_impact, dict):
             preserved_check_id = gate_impact.get("preserved_release_gate_check_id")
@@ -2517,6 +2523,32 @@ def validate_active_condition_evidence_refs(data: dict[str, Any]) -> None:
             f"{gate}.{condition_id} active blocker evidence must cite gate-specific repository evidence paths: "
             + json.dumps(requirement["path_patterns"]),
         )
+
+
+def validate_pass_evidence_does_not_cite_blocked_runtime_artifacts(data: dict[str, Any]) -> None:
+    gate = data["gate"]
+    for check_id, check in checks_by_id(data).items():
+        if check["status"] != "pass":
+            continue
+        for path in sorted(concrete_evidence_paths(check["evidence_ref"])):
+            evidence = load_json_if_path(path)
+            if not isinstance(evidence, dict) or "release_gate_check_id" not in evidence:
+                continue
+            status = evidence.get("status")
+            require(
+                status in RUNTIME_PASS_EVIDENCE_STATUS_VALUES,
+                f"{gate}.{check_id} pass evidence cites non-passing runtime artifact {path} with status={status!r}",
+            )
+            blocked_slots = evidence.get("blocked_slots")
+            require(
+                not blocked_slots,
+                f"{gate}.{check_id} pass evidence cites runtime artifact {path} with blocked_slots={blocked_slots!r}",
+            )
+            missing_blockers = evidence.get("missing_blockers")
+            require(
+                not missing_blockers,
+                f"{gate}.{check_id} pass evidence cites runtime artifact {path} with missing_blockers={missing_blockers!r}",
+            )
 
 
 def validate_check_condition_consistency(data: dict[str, Any]) -> None:
@@ -5244,6 +5276,7 @@ def validate_release_gate_evidence() -> None:
         validate_release_gate_basics(gate_evidence)
         validate_do_not_launch_condition_coverage(gate_evidence)
         validate_active_condition_evidence_refs(gate_evidence)
+        validate_pass_evidence_does_not_cite_blocked_runtime_artifacts(gate_evidence)
         validate_check_condition_consistency(gate_evidence)
         validate_no_go_condition_visibility(gate_evidence)
         validate_gate_cannot_pass_with_open_items(gate, gate_evidence, blueprint_unchecked)
@@ -5536,6 +5569,7 @@ def validate_blueprint_checklist() -> None:
         validate_release_gate_basics(evidence[gate])
         validate_do_not_launch_condition_coverage(evidence[gate])
         validate_active_condition_evidence_refs(evidence[gate])
+        validate_pass_evidence_does_not_cite_blocked_runtime_artifacts(evidence[gate])
         validate_check_condition_consistency(evidence[gate])
         validate_gate_cannot_pass_with_open_items(gate, evidence[gate], unchecked_lines)
         validate_runtime_gate_evidence_refs(gate, evidence[gate], unchecked_lines)
@@ -6411,6 +6445,8 @@ def validate_launch_readiness_split_contracts() -> None:
         "Local Alpha may remain `no_go` with zero active Do-Not-Launch conditions only for local workflow runtime smoke",
         "Passed runtime gate checks must cite exact validator-owned evidence files when the checklist subitem is closed by a named `ops/evidence` artifact",
         "Passed runtime evidence files must declare the expected environment",
+        "must themselves have a passing status",
+        "blocked preflight reports, files with `blocked_slots`, or files with `missing_blockers` cannot be cited as pass evidence",
         "stale or cross-gate evidence cannot close a runtime check",
         "Checked runtime subitems that partially satisfy a larger release gate must have validator-owned file-level checks",
         "Private Beta/Staging checked partial subitems must be backed by named validator constants",
