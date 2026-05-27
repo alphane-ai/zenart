@@ -10,6 +10,24 @@
       "required": true
     },
     {
+      "key": "offer",
+      "label": "Offer",
+      "type": "text",
+      "required": true
+    },
+    {
+      "key": "product_service",
+      "label": "Product or service",
+      "type": "text",
+      "required": true
+    },
+    {
+      "key": "price",
+      "label": "Price",
+      "type": "text",
+      "required": true
+    },
+    {
       "key": "event_date",
       "label": "Event date",
       "type": "date",
@@ -22,10 +40,22 @@
       "required": true
     },
     {
-      "key": "promotion",
-      "label": "Promotion",
+      "key": "contact_phone",
+      "label": "Contact phone",
       "type": "text",
-      "required": false
+      "required": true
+    },
+    {
+      "key": "channels",
+      "label": "Channels",
+      "type": "enum",
+      "required": true
+    },
+    {
+      "key": "print_mobile_needs",
+      "label": "Print and mobile needs",
+      "type": "text",
+      "required": true
     }
   ],
   "clarification_questions": [
@@ -33,48 +63,48 @@
     "Do price, date, phone, address, or QR details need exact preservation?"
   ],
   "four_option_taxonomy": [
-    "grand_opening",
-    "limited_time_offer",
-    "community_event",
-    "loyalty_push"
+    "wechat_conversion",
+    "xiaohongshu_quality",
+    "store_print",
+    "delivery_platform_cover"
   ],
   "required_package_outputs": [
-    "storefront_poster.png",
-    "flyer.png",
-    "social_square.png",
-    "story_panel.png",
+    "wechat_moment.png",
+    "xiaohongshu_post.png",
+    "store_print_poster.pdf",
+    "delivery_cover.png",
     "manifest.json",
     "qa_report.json",
     "trace_provenance.json"
   ],
   "required_generated_assets": [
     {
-      "asset_id": "storefront_poster",
-      "file_name": "storefront_poster.png",
+      "asset_id": "wechat_moment",
+      "file_name": "wechat_moment.png",
       "asset_kind": "image",
-      "strategy_taxonomy": "grand_opening",
-      "export_target": "print_poster"
+      "strategy_taxonomy": "wechat_conversion",
+      "export_target": "wechat_moment"
     },
     {
-      "asset_id": "flyer",
-      "file_name": "flyer.png",
+      "asset_id": "xiaohongshu_post",
+      "file_name": "xiaohongshu_post.png",
       "asset_kind": "image",
-      "strategy_taxonomy": "limited_time_offer",
-      "export_target": "print_flyer"
+      "strategy_taxonomy": "xiaohongshu_quality",
+      "export_target": "xiaohongshu_post"
     },
     {
-      "asset_id": "social_square",
-      "file_name": "social_square.png",
-      "asset_kind": "image",
-      "strategy_taxonomy": "community_event",
-      "export_target": "social_square"
+      "asset_id": "store_print_poster",
+      "file_name": "store_print_poster.pdf",
+      "asset_kind": "document_page",
+      "strategy_taxonomy": "store_print",
+      "export_target": "store_print"
     },
     {
-      "asset_id": "story_panel",
-      "file_name": "story_panel.png",
+      "asset_id": "delivery_cover",
+      "file_name": "delivery_cover.png",
       "asset_kind": "image",
-      "strategy_taxonomy": "loyalty_push",
-      "export_target": "social_story"
+      "strategy_taxonomy": "delivery_platform_cover",
+      "export_target": "delivery_platform_cover"
     }
   ],
   "required_qa_checks": [
@@ -93,10 +123,59 @@
       "export"
     ],
     "linked_rule_domains": [
+      "ecommerce_claims",
       "ip_brand"
     ],
     "linked_eval_fixtures": [
+      "fx_business_visual_doc_golden",
       "fx_brand_product_preservation"
+    ]
+  },
+  "domain_acceptance_contract": {
+    "required_brief_slots": [
+      "merchant_name",
+      "offer",
+      "product_service",
+      "price",
+      "event_date",
+      "address",
+      "contact_phone",
+      "channels",
+      "print_mobile_needs"
+    ],
+    "required_strategy_taxonomy": [
+      "wechat_conversion",
+      "xiaohongshu_quality",
+      "store_print",
+      "delivery_platform_cover"
+    ],
+    "required_package_outputs": [
+      "wechat_moment.png",
+      "xiaohongshu_post.png",
+      "store_print_poster.pdf",
+      "delivery_cover.png"
+    ],
+    "required_qa_checks": [
+      "dimensions",
+      "safe_area",
+      "structured_text",
+      "four_option_distinctness"
+    ],
+    "required_safety_domains": [
+      "ecommerce_claims",
+      "ip_brand"
+    ],
+    "required_export_targets": [
+      "wechat_moment",
+      "xiaohongshu_post",
+      "store_print",
+      "delivery_platform_cover"
+    ],
+    "negative_acceptance_guards": [
+      "generic_four_card_rendering_rejected",
+      "missing_price_date_phone_address_qr_blocks_export",
+      "false_discount_inventory_certification_claims_blocked",
+      "mobile_crop_and_print_size_must_be_checked"
     ]
   },
   "export_targets": [
@@ -105,10 +184,10 @@
       "format": "zip",
       "required_files": [
         "manifest.json",
-        "assets/storefront_poster.png",
-        "assets/flyer.png",
-        "assets/social_square.png",
-        "assets/story_panel.png",
+        "assets/wechat_moment.png",
+        "assets/xiaohongshu_post.png",
+        "assets/store_print_poster.pdf",
+        "assets/delivery_cover.png",
         "metadata.json",
         "qa_report.json",
         "trace_provenance.json"
@@ -215,9 +294,14 @@
         ],
         "body_assertions": [
           "body contains merchant_name",
+          "body contains offer",
+          "body contains product_service",
+          "body contains price",
           "body contains event_date",
           "body contains address",
-          "body contains promotion when provided"
+          "body contains contact_phone",
+          "body contains channels",
+          "body contains print_mobile_needs"
         ]
       },
       {
@@ -234,7 +318,7 @@
         ],
         "body_assertions": [
           "workflow_id equals local_merchant_campaign_pack",
-          "brief contains merchant_name, event_date, address, promotion"
+          "brief contains merchant_name, offer, product_service, price, event_date, address, contact_phone, channels, print_mobile_needs"
         ]
       },
       {
@@ -251,7 +335,7 @@
         ],
         "body_assertions": [
           "response contains four candidate assets",
-          "assets cover grand_opening, limited_time_offer, community_event, loyalty_push"
+          "assets cover wechat_conversion, xiaohongshu_quality, store_print, delivery_platform_cover"
         ]
       },
       {
@@ -283,7 +367,7 @@
           "project_id"
         ],
         "body_assertions": [
-          "items include storefront_poster.png, flyer.png, social_square.png, story_panel.png"
+          "items include wechat_moment.png, xiaohongshu_post.png, store_print_poster.pdf, delivery_cover.png"
         ]
       },
       {
@@ -321,9 +405,10 @@
       }
     ],
     "expected_runtime_assertions": [
-      "brief preserves merchant name, event date, address, promotion, and QR placeholder",
-      "candidate assets cover four local merchant strategy options",
+      "brief preserves merchant name, offer, product_service, price, event date, contact phone, address, channels, print and mobile needs, and QR placeholder",
+      "candidate assets cover four local merchant options: WeChat conversion, Xiaohongshu quality, store print, and delivery platform cover",
       "structured text QA compares price, date, phone, address, and QR fields",
+      "safety policy blocks false discount, inventory, certification, and brand misuse claims",
       "export blocks when required package evidence is incomplete"
     ]
   },
@@ -346,13 +431,18 @@
       "[data-testid=\"project-create\"]",
       "[data-testid=\"workflow-local_merchant_campaign_pack\"]",
       "[data-testid=\"brief-merchant_name\"]",
+      "[data-testid=\"brief-offer\"]",
+      "[data-testid=\"brief-product_service\"]",
+      "[data-testid=\"brief-price\"]",
       "[data-testid=\"brief-event_date\"]",
       "[data-testid=\"brief-address\"]",
-      "[data-testid=\"brief-promotion\"]",
+      "[data-testid=\"brief-contact_phone\"]",
+      "[data-testid=\"brief-channels\"]",
+      "[data-testid=\"brief-print_mobile_needs\"]",
       "[data-testid=\"structured-detail-confirm\"]",
       "[data-testid=\"generate-candidates\"]",
       "[data-testid=\"candidate-grid\"]",
-      "[data-testid=\"candidate-card-grand_opening\"]",
+      "[data-testid=\"candidate-card-wechat_conversion\"]",
       "[data-testid=\"candidate-select\"]",
       "[data-testid=\"iterate-selected-direction\"]",
       "[data-testid=\"package-add-selected\"]",
@@ -376,7 +466,7 @@
         "selector": "[data-testid=\"brief-merchant_name\"]",
         "assertions": [
           "merchant_name is captured in brief",
-          "event_date and address are captured in brief"
+          "offer, product_service, price, event_date, address, contact_phone, channels, and print_mobile_needs are captured in brief"
         ]
       },
       {
@@ -404,14 +494,14 @@
         "selector": "[data-testid=\"candidate-grid\"]",
         "assertions": [
           "candidate grid contains exactly four cards",
-          "cards cover grand_opening, limited_time_offer, community_event, loyalty_push"
+          "cards cover wechat_conversion, xiaohongshu_quality, store_print, delivery_platform_cover"
         ]
       },
       {
         "step": 6,
         "action": "select_candidate",
         "route": "/projects/{project_id}",
-        "selector": "[data-testid=\"candidate-card-grand_opening\"]",
+        "selector": "[data-testid=\"candidate-card-wechat_conversion\"]",
         "assertions": [
           "selected direction references one local merchant candidate"
         ]
@@ -431,7 +521,7 @@
         "route": "/projects/{project_id}",
         "selector": "[data-testid=\"package-add-selected\"]",
         "assertions": [
-          "package contains storefront_poster.png, flyer.png, social_square.png, story_panel.png"
+          "package contains wechat_moment.png, xiaohongshu_post.png, store_print_poster.pdf, delivery_cover.png"
         ]
       },
       {
@@ -504,10 +594,10 @@
       }
     ],
     "artifact_assertions": [
-      "export includes assets/storefront_poster.png",
-      "export includes assets/flyer.png",
-      "export includes assets/social_square.png",
-      "export includes assets/story_panel.png",
+      "export includes assets/wechat_moment.png",
+      "export includes assets/xiaohongshu_post.png",
+      "export includes assets/store_print_poster.pdf",
+      "export includes assets/delivery_cover.png",
       "export includes manifest.json, metadata.json, qa_report.json, trace_provenance.json"
     ]
   },
@@ -537,13 +627,15 @@
   },
   "golden_fixture": {
     "fixture_id": "fx_local_merchant_campaign_golden",
-    "brief": "Create a weekend tasting campaign for North Pier Coffee at 18 Dock Street with exact date, address, and QR placeholder preserved.",
+    "brief": "Create a weekend tasting campaign for North Pier Coffee with offer, pastry product, $12 price, July 18 2026 date, 18 Dock Street address, 415-010-0188 phone, WeChat/Xiaohongshu/print/delivery channels, print/mobile sizing, and QR placeholder preserved.",
     "expected_candidate_count": 4,
     "expected_export_files": [
       "manifest.json",
       "metadata.json",
-      "assets/storefront_poster.png",
-      "assets/flyer.png",
+      "assets/wechat_moment.png",
+      "assets/xiaohongshu_post.png",
+      "assets/store_print_poster.pdf",
+      "assets/delivery_cover.png",
       "qa_report.json",
       "trace_provenance.json"
     ]

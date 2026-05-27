@@ -96,6 +96,43 @@
       "fx_unsafe_financial_claim"
     ]
   },
+  "domain_acceptance_contract": {
+    "required_brief_slots": [
+      "document_goal",
+      "source_notes",
+      "audience",
+      "format"
+    ],
+    "required_strategy_taxonomy": [
+      "executive_brief",
+      "strategy_memo",
+      "sales_leave_behind",
+      "board_update"
+    ],
+    "required_package_outputs": [
+      "cover.png",
+      "summary_page.png",
+      "data_page.png",
+      "recommendation_page.png"
+    ],
+    "required_qa_checks": [
+      "text_readability",
+      "forbidden_claims"
+    ],
+    "required_safety_domains": [
+      "financial"
+    ],
+    "required_export_targets": [
+      "memo_cover",
+      "memo_summary",
+      "memo_data",
+      "memo_recommendations"
+    ],
+    "negative_acceptance_guards": [
+      "unsupported_roi_or_financial_claim_blocks_export",
+      "text_heavy_pages_require_readability_evidence"
+    ]
+  },
   "export_targets": [
     {
       "target_id": "zip_delivery",
@@ -549,6 +586,8 @@
       "metadata.json",
       "assets/cover.png",
       "assets/summary_page.png",
+      "assets/data_page.png",
+      "assets/recommendation_page.png",
       "qa_report.json",
       "trace_provenance.json"
     ]

@@ -749,7 +749,7 @@
     "check_category": "blank_output",
     "severity": "info",
     "workflow": "character_ip_concept_pack",
-    "asset_id": "candidate_nova_spark_concept_sheet",
+    "asset_id": "candidate_nova_spark_avatar",
     "evidence": {
       "observed": {
         "near_blank": false,
@@ -764,7 +764,7 @@
       "trace_id": "trace_fx_export_completeness_missing_manifest",
       "fixture_id": "fx_export_completeness_missing_manifest",
       "source_artifacts": [
-        "assets/concept_sheet.png",
+        "assets/avatar.png",
         "qa_report.json",
         "candidate_asset.preview.png"
       ]

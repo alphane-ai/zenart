@@ -462,9 +462,10 @@
           "checklist_item": "\u672c\u5730\u5546\u5bb6\u6d3b\u52a8\u5305 API smoke test \u901a\u8fc7\u3002",
           "source_contract": "fixtures/stage0/rev2/workflows/local_merchant_campaign_pack.json#/api_smoke_contract",
           "required_assertions": [
-            "brief preserves merchant name, event date, address, promotion, and QR placeholder",
-            "candidate assets cover four local merchant strategy options",
+            "brief preserves merchant name, offer, product_service, price, event date, contact phone, address, channels, print and mobile needs, and QR placeholder",
+            "candidate assets cover four local merchant options: WeChat conversion, Xiaohongshu quality, store print, and delivery platform cover",
             "structured text QA compares price, date, phone, address, and QR fields",
+            "safety policy blocks false discount, inventory, certification, and brand misuse claims",
             "export blocks when required package evidence is incomplete"
           ],
           "operation_ids": [
@@ -479,10 +480,10 @@
           ],
           "required_files": [
             "manifest.json",
-            "assets/storefront_poster.png",
-            "assets/flyer.png",
-            "assets/social_square.png",
-            "assets/story_panel.png",
+            "assets/wechat_moment.png",
+            "assets/xiaohongshu_post.png",
+            "assets/store_print_poster.pdf",
+            "assets/delivery_cover.png",
             "metadata.json",
             "qa_report.json",
             "trace_provenance.json"
@@ -514,13 +515,18 @@
             "[data-testid=\"project-create\"]",
             "[data-testid=\"workflow-local_merchant_campaign_pack\"]",
             "[data-testid=\"brief-merchant_name\"]",
+            "[data-testid=\"brief-offer\"]",
+            "[data-testid=\"brief-product_service\"]",
+            "[data-testid=\"brief-price\"]",
             "[data-testid=\"brief-event_date\"]",
             "[data-testid=\"brief-address\"]",
-            "[data-testid=\"brief-promotion\"]",
+            "[data-testid=\"brief-contact_phone\"]",
+            "[data-testid=\"brief-channels\"]",
+            "[data-testid=\"brief-print_mobile_needs\"]",
             "[data-testid=\"structured-detail-confirm\"]",
             "[data-testid=\"generate-candidates\"]",
             "[data-testid=\"candidate-grid\"]",
-            "[data-testid=\"candidate-card-grand_opening\"]",
+            "[data-testid=\"candidate-card-wechat_conversion\"]",
             "[data-testid=\"candidate-select\"]",
             "[data-testid=\"iterate-selected-direction\"]",
             "[data-testid=\"package-add-selected\"]",
@@ -538,18 +544,18 @@
             "getExport"
           ],
           "artifact_assertions": [
-            "export includes assets/storefront_poster.png",
-            "export includes assets/flyer.png",
-            "export includes assets/social_square.png",
-            "export includes assets/story_panel.png",
+            "export includes assets/wechat_moment.png",
+            "export includes assets/xiaohongshu_post.png",
+            "export includes assets/store_print_poster.pdf",
+            "export includes assets/delivery_cover.png",
             "export includes manifest.json, metadata.json, qa_report.json, trace_provenance.json"
           ],
           "required_files": [
             "manifest.json",
-            "assets/storefront_poster.png",
-            "assets/flyer.png",
-            "assets/social_square.png",
-            "assets/story_panel.png",
+            "assets/wechat_moment.png",
+            "assets/xiaohongshu_post.png",
+            "assets/store_print_poster.pdf",
+            "assets/delivery_cover.png",
             "metadata.json",
             "qa_report.json",
             "trace_provenance.json"
@@ -566,19 +572,19 @@
           "format": "zip",
           "required_files": [
             "manifest.json",
-            "assets/storefront_poster.png",
-            "assets/flyer.png",
-            "assets/social_square.png",
-            "assets/story_panel.png",
+            "assets/wechat_moment.png",
+            "assets/xiaohongshu_post.png",
+            "assets/store_print_poster.pdf",
+            "assets/delivery_cover.png",
             "metadata.json",
             "qa_report.json",
             "trace_provenance.json"
           ],
           "required_asset_files": [
-            "assets/storefront_poster.png",
-            "assets/flyer.png",
-            "assets/social_square.png",
-            "assets/story_panel.png"
+            "assets/wechat_moment.png",
+            "assets/xiaohongshu_post.png",
+            "assets/store_print_poster.pdf",
+            "assets/delivery_cover.png"
           ],
           "required_manifest_files": [
             "manifest.json",
@@ -663,10 +669,10 @@
           "checklist_item": "\u89d2\u8272/IP \u6982\u5ff5\u5305 API smoke test \u901a\u8fc7\u3002",
           "source_contract": "fixtures/stage0/rev2/workflows/character_ip_concept_pack.json#/api_smoke_contract",
           "required_assertions": [
-            "brief requires original character constraints and target audience",
-            "candidate assets cover four IP concept strategy options",
+            "brief requires character premise, genre, use case, originality constraints, style boundary, and consistency constraints",
+            "candidate assets cover four character options: cute, heroic, dark, and ornate",
             "safety policy blocks minor sexualization and third-party character resemblance risks",
-            "export includes concept sheets, metadata, QA report, safety disclaimer when applicable, and trace provenance"
+            "export includes avatar, half body, costume or prop variants, expression sheet, promo key art, character bible metadata, QA report, safety disclaimer when applicable, and trace provenance"
           ],
           "operation_ids": [
             "createChatSession",
@@ -680,10 +686,12 @@
           ],
           "required_files": [
             "manifest.json",
-            "assets/concept_sheet.png",
-            "assets/pose_grid.png",
+            "assets/avatar.png",
+            "assets/half_body.png",
+            "assets/costume_prop_variants.png",
             "assets/expression_sheet.png",
-            "assets/style_tile.png",
+            "assets/promo_key_art.png",
+            "assets/character_bible.json",
             "metadata.json",
             "qa_report.json",
             "trace_provenance.json"
@@ -714,14 +722,17 @@
           "required_selectors": [
             "[data-testid=\"project-create\"]",
             "[data-testid=\"workflow-character_ip_concept_pack\"]",
-            "[data-testid=\"brief-character_brief\"]",
-            "[data-testid=\"brief-target_audience\"]",
-            "[data-testid=\"brief-style_constraints\"]",
+            "[data-testid=\"brief-character_premise\"]",
+            "[data-testid=\"brief-genre\"]",
+            "[data-testid=\"brief-use_case\"]",
+            "[data-testid=\"brief-originality_constraints\"]",
+            "[data-testid=\"brief-style_boundary\"]",
+            "[data-testid=\"brief-consistency_constraints\"]",
             "[data-testid=\"reference-upload-reference_images\"]",
             "[data-testid=\"original-ip-confirm\"]",
             "[data-testid=\"generate-candidates\"]",
             "[data-testid=\"candidate-grid\"]",
-            "[data-testid=\"candidate-card-mascot_ready\"]",
+            "[data-testid=\"candidate-card-cute\"]",
             "[data-testid=\"candidate-select\"]",
             "[data-testid=\"iterate-selected-direction\"]",
             "[data-testid=\"package-add-selected\"]",
@@ -739,18 +750,22 @@
             "getExport"
           ],
           "artifact_assertions": [
-            "export includes assets/concept_sheet.png",
-            "export includes assets/pose_grid.png",
+            "export includes assets/avatar.png",
+            "export includes assets/half_body.png",
+            "export includes assets/costume_prop_variants.png",
             "export includes assets/expression_sheet.png",
-            "export includes assets/style_tile.png",
+            "export includes assets/promo_key_art.png",
+            "export includes assets/character_bible.json",
             "export includes manifest.json, metadata.json, qa_report.json, trace_provenance.json"
           ],
           "required_files": [
             "manifest.json",
-            "assets/concept_sheet.png",
-            "assets/pose_grid.png",
+            "assets/avatar.png",
+            "assets/half_body.png",
+            "assets/costume_prop_variants.png",
             "assets/expression_sheet.png",
-            "assets/style_tile.png",
+            "assets/promo_key_art.png",
+            "assets/character_bible.json",
             "metadata.json",
             "qa_report.json",
             "trace_provenance.json"
@@ -767,19 +782,23 @@
           "format": "zip",
           "required_files": [
             "manifest.json",
-            "assets/concept_sheet.png",
-            "assets/pose_grid.png",
+            "assets/avatar.png",
+            "assets/half_body.png",
+            "assets/costume_prop_variants.png",
             "assets/expression_sheet.png",
-            "assets/style_tile.png",
+            "assets/promo_key_art.png",
+            "assets/character_bible.json",
             "metadata.json",
             "qa_report.json",
             "trace_provenance.json"
           ],
           "required_asset_files": [
-            "assets/concept_sheet.png",
-            "assets/pose_grid.png",
+            "assets/avatar.png",
+            "assets/half_body.png",
+            "assets/costume_prop_variants.png",
             "assets/expression_sheet.png",
-            "assets/style_tile.png"
+            "assets/promo_key_art.png",
+            "assets/character_bible.json"
           ],
           "required_manifest_files": [
             "manifest.json",

@@ -25,7 +25,7 @@
       "key": "offer",
       "label": "Offer",
       "type": "text",
-      "required": false
+      "required": true
     }
   ],
   "clarification_questions": [
@@ -97,6 +97,46 @@
     ],
     "linked_eval_fixtures": [
       "fx_brand_product_preservation"
+    ]
+  },
+  "domain_acceptance_contract": {
+    "required_brief_slots": [
+      "product_name",
+      "product_image",
+      "target_channel",
+      "offer"
+    ],
+    "required_strategy_taxonomy": [
+      "conversion_offer",
+      "social_proof",
+      "feature_comparison",
+      "retention_bundle"
+    ],
+    "required_package_outputs": [
+      "hero_product_ad.png",
+      "square_social_ad.png",
+      "story_variant.png",
+      "marketplace_banner.png"
+    ],
+    "required_qa_checks": [
+      "file_integrity",
+      "aspect_ratio",
+      "duplicate_similarity",
+      "four_option_distinctness",
+      "product_logo_preservation"
+    ],
+    "required_safety_domains": [
+      "ip_brand"
+    ],
+    "required_export_targets": [
+      "web_hero",
+      "social_square",
+      "social_story",
+      "marketplace_banner"
+    ],
+    "negative_acceptance_guards": [
+      "missing_product_or_claim_constraints_blocks_generation",
+      "brand_product_preservation_blocks_unauthorized_changes"
     ]
   },
   "export_targets": [
@@ -542,6 +582,8 @@
       "metadata.json",
       "assets/hero_product_ad.png",
       "assets/square_social_ad.png",
+      "assets/story_variant.png",
+      "assets/marketplace_banner.png",
       "qa_report.json",
       "trace_provenance.json"
     ]

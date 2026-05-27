@@ -145,6 +145,170 @@ WORKFLOW_RUNTIME_EVIDENCE_KIND = {
     "playwright": "playwright_happy_path",
 }
 
+DOMAIN_ACCEPTANCE_CONTRACTS = {
+    "ecommerce_growth_pack": {
+        "required_brief_slots": {
+            "product_name",
+            "product_image",
+            "target_channel",
+            "offer",
+        },
+        "required_strategy_taxonomy": {
+            "conversion_offer",
+            "social_proof",
+            "feature_comparison",
+            "retention_bundle",
+        },
+        "required_package_outputs": {
+            "hero_product_ad.png",
+            "square_social_ad.png",
+            "story_variant.png",
+            "marketplace_banner.png",
+        },
+        "required_qa_checks": {
+            "file_integrity",
+            "aspect_ratio",
+            "duplicate_similarity",
+            "four_option_distinctness",
+            "product_logo_preservation",
+        },
+        "required_safety_domains": {"ip_brand"},
+        "required_export_targets": {
+            "web_hero",
+            "social_square",
+            "social_story",
+            "marketplace_banner",
+        },
+        "negative_acceptance_guards": {
+            "missing_product_or_claim_constraints_blocks_generation",
+            "brand_product_preservation_blocks_unauthorized_changes",
+        },
+    },
+    "business_visual_doc_pack": {
+        "required_brief_slots": {
+            "document_goal",
+            "source_notes",
+            "audience",
+            "format",
+        },
+        "required_strategy_taxonomy": {
+            "executive_brief",
+            "strategy_memo",
+            "sales_leave_behind",
+            "board_update",
+        },
+        "required_package_outputs": {
+            "cover.png",
+            "summary_page.png",
+            "data_page.png",
+            "recommendation_page.png",
+        },
+        "required_qa_checks": {
+            "text_readability",
+            "forbidden_claims",
+        },
+        "required_safety_domains": {"financial"},
+        "required_export_targets": {
+            "memo_cover",
+            "memo_summary",
+            "memo_data",
+            "memo_recommendations",
+        },
+        "negative_acceptance_guards": {
+            "unsupported_roi_or_financial_claim_blocks_export",
+            "text_heavy_pages_require_readability_evidence",
+        },
+    },
+    "local_merchant_campaign_pack": {
+        "required_brief_slots": {
+            "merchant_name",
+            "offer",
+            "product_service",
+            "price",
+            "event_date",
+            "address",
+            "contact_phone",
+            "channels",
+            "print_mobile_needs",
+        },
+        "required_strategy_taxonomy": {
+            "wechat_conversion",
+            "xiaohongshu_quality",
+            "store_print",
+            "delivery_platform_cover",
+        },
+        "required_package_outputs": {
+            "wechat_moment.png",
+            "xiaohongshu_post.png",
+            "store_print_poster.pdf",
+            "delivery_cover.png",
+        },
+        "required_qa_checks": {
+            "dimensions",
+            "safe_area",
+            "structured_text",
+            "four_option_distinctness",
+        },
+        "required_safety_domains": {"ecommerce_claims", "ip_brand"},
+        "required_export_targets": {
+            "wechat_moment",
+            "xiaohongshu_post",
+            "store_print",
+            "delivery_platform_cover",
+        },
+        "negative_acceptance_guards": {
+            "generic_four_card_rendering_rejected",
+            "missing_price_date_phone_address_qr_blocks_export",
+            "false_discount_inventory_certification_claims_blocked",
+            "mobile_crop_and_print_size_must_be_checked",
+        },
+    },
+    "character_ip_concept_pack": {
+        "required_brief_slots": {
+            "character_premise",
+            "genre",
+            "use_case",
+            "originality_constraints",
+            "style_boundary",
+            "consistency_constraints",
+        },
+        "required_strategy_taxonomy": {
+            "cute",
+            "heroic",
+            "dark",
+            "ornate",
+        },
+        "required_package_outputs": {
+            "avatar.png",
+            "half_body.png",
+            "costume_prop_variants.png",
+            "expression_sheet.png",
+            "promo_key_art.png",
+            "character_bible.json",
+        },
+        "required_qa_checks": {
+            "blank_output",
+            "watermark_signature_risk",
+            "export_completeness",
+        },
+        "required_safety_domains": {"adult_minor", "ip_brand"},
+        "required_export_targets": {
+            "avatar",
+            "half_body",
+            "costume_prop_variants",
+            "expression_sheet",
+            "promo_key_art",
+            "character_bible",
+        },
+        "negative_acceptance_guards": {
+            "protected_ip_or_style_request_refused",
+            "existing_character_impersonation_blocked",
+            "minor_adult_content_red_team_blocks_export",
+            "character_consistency_required_across_outputs",
+        },
+    },
+}
+
 
 class WorkflowAcceptanceContractError(Exception):
     pass
@@ -643,11 +807,77 @@ def validate_fixture_links(workflows: dict[str, dict[str, Any]]) -> None:
 
 def validate_workflow_shape(workflows: dict[str, dict[str, Any]]) -> None:
     for workflow_id, workflow in workflows.items():
+        expected_domain = DOMAIN_ACCEPTANCE_CONTRACTS[workflow_id]
+        domain = workflow["domain_acceptance_contract"]
+        required_input_keys = {
+            item["key"]
+            for item in workflow["required_inputs"]
+            if item["required"] is True
+        }
+        all_input_keys = {item["key"] for item in workflow["required_inputs"]}
+        require(
+            set(domain["required_brief_slots"]) == expected_domain["required_brief_slots"],
+            f"{workflow_id} domain brief slots must match Rev2 vertical requirements",
+        )
+        require(
+            set(domain["required_brief_slots"]) <= required_input_keys,
+            f"{workflow_id} required brief slots must be required inputs",
+        )
+        require(
+            expected_domain["required_brief_slots"] <= all_input_keys,
+            f"{workflow_id} fixture missing Rev2 brief slots: {sorted(expected_domain['required_brief_slots'] - all_input_keys)}",
+        )
+        require(
+            set(domain["required_strategy_taxonomy"]) == expected_domain["required_strategy_taxonomy"],
+            f"{workflow_id} domain strategy taxonomy mismatch",
+        )
+        require(
+            set(domain["required_strategy_taxonomy"]) == set(workflow["four_option_taxonomy"]),
+            f"{workflow_id} domain taxonomy must match four-option taxonomy",
+        )
+        require(
+            set(domain["required_package_outputs"]) == expected_domain["required_package_outputs"],
+            f"{workflow_id} domain package outputs mismatch",
+        )
+        require(
+            set(domain["required_package_outputs"]) <= set(workflow["required_package_outputs"]),
+            f"{workflow_id} domain package outputs must be required package outputs",
+        )
+        require(
+            set(domain["required_qa_checks"]) == expected_domain["required_qa_checks"],
+            f"{workflow_id} domain QA checks mismatch",
+        )
+        require(
+            set(domain["required_qa_checks"]) <= set(workflow["required_qa_checks"]),
+            f"{workflow_id} domain QA checks must be covered by workflow required QA checks",
+        )
+        require(
+            set(domain["required_safety_domains"]) == expected_domain["required_safety_domains"],
+            f"{workflow_id} domain safety domains mismatch",
+        )
+        require(
+            set(domain["required_safety_domains"]) <= set(workflow["required_safety_checks"]["linked_rule_domains"]),
+            f"{workflow_id} domain safety domains must be linked to safety rules",
+        )
+        require(
+            set(domain["required_export_targets"]) == expected_domain["required_export_targets"],
+            f"{workflow_id} domain export targets mismatch",
+        )
+        require(
+            set(domain["negative_acceptance_guards"]) == expected_domain["negative_acceptance_guards"],
+            f"{workflow_id} negative acceptance guards mismatch",
+        )
+
         taxonomy = set(workflow["four_option_taxonomy"])
         assets = workflow["required_generated_assets"]
         asset_taxonomy = {asset["strategy_taxonomy"] for asset in assets}
-        require(len(assets) == 4, f"{workflow_id} must define exactly four generated assets")
-        require(asset_taxonomy == taxonomy, f"{workflow_id} generated assets must map one-to-one to taxonomy")
+        require(len(assets) >= 4, f"{workflow_id} must define at least four generated assets")
+        require(asset_taxonomy == taxonomy, f"{workflow_id} generated assets must cover the taxonomy")
+        asset_export_targets = {asset["export_target"] for asset in assets}
+        require(
+            set(domain["required_export_targets"]) <= asset_export_targets,
+            f"{workflow_id} generated assets missing domain export targets",
+        )
 
         output_files = set(workflow["required_package_outputs"])
         asset_files = {asset["file_name"] for asset in assets}
@@ -669,6 +899,37 @@ def validate_workflow_shape(workflows: dict[str, dict[str, Any]]) -> None:
             REQUIRED_EXPORT_FILES <= golden_files,
             f"{workflow_id} golden fixture missing required export evidence files",
         )
+        required_golden_files = set()
+        for file_name in domain["required_package_outputs"]:
+            if file_name in REQUIRED_EXPORT_FILES:
+                required_golden_files.add(file_name)
+            else:
+                required_golden_files.add(f"assets/{file_name}")
+        require(
+            required_golden_files <= golden_files,
+            f"{workflow_id} golden fixture missing domain package output files",
+        )
+        api_contract_text = " ".join(
+            assertion
+            for step in workflow["api_smoke_contract"]["request_sequence"]
+            for assertion in step["body_assertions"]
+        )
+        api_contract_text += " " + " ".join(workflow["api_smoke_contract"]["expected_runtime_assertions"])
+        playwright_contract_text = " ".join(
+            assertion
+            for step in workflow["playwright_happy_path_contract"]["user_journey"]
+            for assertion in step["assertions"]
+        )
+        playwright_contract_text += " " + " ".join(workflow["playwright_happy_path_contract"]["artifact_assertions"])
+        for slot in domain["required_brief_slots"]:
+            require(slot in api_contract_text, f"{workflow_id} API smoke contract missing domain slot {slot}")
+            require(slot in playwright_contract_text, f"{workflow_id} Playwright contract missing domain slot {slot}")
+        for guard in domain["negative_acceptance_guards"]:
+            guard_tokens = [token for token in guard.split("_") if len(token) >= 4]
+            require(
+                any(token in api_contract_text or token in playwright_contract_text for token in guard_tokens),
+                f"{workflow_id} contracts do not assert negative guard {guard}",
+            )
         require(
             set(workflow["pass_thresholds"]["safety"]["required_enforcement_points"]) == SAFETY_POINTS,
             f"{workflow_id} pass threshold must require every safety point",

@@ -1193,11 +1193,11 @@
       "source_fixture_digests": [
         {
           "path": "fixtures/stage0/rev2/eval/starter_eval_suite.json",
-          "sha256": "4ef6b31cee5b826ea9c0e753f7460c712a0cba69659ba0102687fb325f81c41f"
+          "sha256": "3e9cd82e1a91ad4a9817c6f2c82317f700a33829e8a474c7a1394aeb537c0c06"
         },
         {
           "path": "fixtures/stage0/rev2/eval/qa_results.json",
-          "sha256": "d108e6fc925f33f8ed60fdb4e7dd0496d8a74468d3a58f517e17d2cce9d3691c"
+          "sha256": "a4b671973a08a49a90cc2264fa94f8f8f83ce4593406b3df10374af773633e3f"
         },
         {
           "path": "fixtures/stage0/rev2/eval/safety_rules.json",
@@ -1205,19 +1205,19 @@
         },
         {
           "path": "fixtures/stage0/rev2/workflows/business_visual_doc_pack.json",
-          "sha256": "9fc3f4f599ba0cf62d5a9cf0c11c5bbb1129a7d7d9bf6315ec6ffa12bf258ba4"
+          "sha256": "420711afe1eebed6a287d866b5f16121774772594d90ba67e93c3064bcb40ffd"
         },
         {
           "path": "fixtures/stage0/rev2/workflows/character_ip_concept_pack.json",
-          "sha256": "787ee601dffa69ba9568848bfaa1c7d0648b77d895588c84eb552e17c0cfa675"
+          "sha256": "9867dd798caeb44f2a12650f69d18ff8ed6427538d1793c0106785aad0e53bae"
         },
         {
           "path": "fixtures/stage0/rev2/workflows/ecommerce_growth_pack.json",
-          "sha256": "72bbd6d8e16362f5db9205a48fc08c822a38758a74d498b1ed258fc7bc7dfa59"
+          "sha256": "3a830fdd88572bd78a8e690339522f8d2c0327e4ffff76f89387780fcf5f8dab"
         },
         {
           "path": "fixtures/stage0/rev2/workflows/local_merchant_campaign_pack.json",
-          "sha256": "69f624d969543aff8773617d0ea14c7a55969e6af5c60e15f32801ba9565cc63"
+          "sha256": "9d08973c23f79485ae536fdb895953982b5719943bcc9d4e1d4a2a84883a82e2"
         }
       ]
     },

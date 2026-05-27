@@ -418,9 +418,14 @@
           "requires_idempotency_key": true,
           "body_assertions": [
             "body contains merchant_name",
+            "body contains offer",
+            "body contains product_service",
+            "body contains price",
             "body contains event_date",
             "body contains address",
-            "body contains promotion when provided"
+            "body contains contact_phone",
+            "body contains channels",
+            "body contains print_mobile_needs"
           ],
           "runtime_assertions": []
         },
@@ -438,7 +443,7 @@
           "requires_idempotency_key": true,
           "body_assertions": [
             "workflow_id equals local_merchant_campaign_pack",
-            "brief contains merchant_name, event_date, address, promotion"
+            "brief contains merchant_name, offer, product_service, price, event_date, address, contact_phone, channels, print_mobile_needs"
           ],
           "runtime_assertions": []
         },
@@ -456,7 +461,7 @@
           "requires_idempotency_key": false,
           "body_assertions": [
             "response contains four candidate assets",
-            "assets cover grand_opening, limited_time_offer, community_event, loyalty_push"
+            "assets cover wechat_conversion, xiaohongshu_quality, store_print, delivery_platform_cover"
           ],
           "runtime_assertions": []
         },
@@ -490,7 +495,7 @@
           "result": "planned",
           "requires_idempotency_key": true,
           "body_assertions": [
-            "items include storefront_poster.png, flyer.png, social_square.png, story_panel.png"
+            "items include wechat_moment.png, xiaohongshu_post.png, store_print_poster.pdf, delivery_cover.png"
           ],
           "runtime_assertions": []
         },
@@ -531,9 +536,10 @@
         }
       ],
       "expected_runtime_assertions": [
-        "brief preserves merchant name, event date, address, promotion, and QR placeholder",
-        "candidate assets cover four local merchant strategy options",
+        "brief preserves merchant name, offer, product_service, price, event date, contact phone, address, channels, print and mobile needs, and QR placeholder",
+        "candidate assets cover four local merchant options: WeChat conversion, Xiaohongshu quality, store print, and delivery platform cover",
         "structured text QA compares price, date, phone, address, and QR fields",
+        "safety policy blocks false discount, inventory, certification, and brand misuse claims",
         "export blocks when required package evidence is incomplete"
       ],
       "contract_assertions": {
@@ -590,9 +596,12 @@
           "result": "planned",
           "requires_idempotency_key": true,
           "body_assertions": [
-            "body contains character_brief",
-            "body contains target_audience",
-            "body contains style_constraints",
+            "body contains character_premise",
+            "body contains genre",
+            "body contains use_case",
+            "body contains originality_constraints",
+            "body contains style_boundary",
+            "body contains consistency_constraints",
             "references includes reference_images when provided"
           ],
           "runtime_assertions": []
@@ -611,7 +620,7 @@
           "requires_idempotency_key": true,
           "body_assertions": [
             "workflow_id equals character_ip_concept_pack",
-            "brief contains character_brief, target_audience, style_constraints"
+            "brief contains character_premise, genre, use_case, originality_constraints, style_boundary, consistency_constraints"
           ],
           "runtime_assertions": []
         },
@@ -629,7 +638,7 @@
           "requires_idempotency_key": false,
           "body_assertions": [
             "response contains four candidate assets",
-            "assets cover mascot_ready, narrative_hero, merchandise_icon, animation_turnaround"
+            "assets cover cute, heroic, dark, ornate"
           ],
           "runtime_assertions": []
         },
@@ -663,7 +672,7 @@
           "result": "planned",
           "requires_idempotency_key": true,
           "body_assertions": [
-            "items include concept_sheet.png, pose_grid.png, expression_sheet.png, style_tile.png"
+            "items include avatar.png, half_body.png, costume_prop_variants.png, expression_sheet.png, promo_key_art.png, character_bible.json"
           ],
           "runtime_assertions": []
         },
@@ -704,10 +713,10 @@
         }
       ],
       "expected_runtime_assertions": [
-        "brief requires original character constraints and target audience",
-        "candidate assets cover four IP concept strategy options",
+        "brief requires character premise, genre, use case, originality constraints, style boundary, and consistency constraints",
+        "candidate assets cover four character options: cute, heroic, dark, and ornate",
         "safety policy blocks minor sexualization and third-party character resemblance risks",
-        "export includes concept sheets, metadata, QA report, safety disclaimer when applicable, and trace provenance"
+        "export includes avatar, half body, costume or prop variants, expression sheet, promo key art, character bible metadata, QA report, safety disclaimer when applicable, and trace provenance"
       ],
       "contract_assertions": {
         "required_inputs_checked": true,

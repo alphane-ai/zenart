@@ -4,20 +4,38 @@
   "display_name": "Character IP Concept Pack",
   "required_inputs": [
     {
-      "key": "character_brief",
-      "label": "Character brief",
+      "key": "character_premise",
+      "label": "Character premise",
       "type": "text",
       "required": true
     },
     {
-      "key": "target_audience",
-      "label": "Target audience",
+      "key": "genre",
+      "label": "Genre",
       "type": "text",
       "required": true
     },
     {
-      "key": "style_constraints",
-      "label": "Style constraints",
+      "key": "use_case",
+      "label": "Use case",
+      "type": "text",
+      "required": true
+    },
+    {
+      "key": "originality_constraints",
+      "label": "Originality constraints",
+      "type": "text",
+      "required": true
+    },
+    {
+      "key": "style_boundary",
+      "label": "Style boundary",
+      "type": "text",
+      "required": true
+    },
+    {
+      "key": "consistency_constraints",
+      "label": "Consistency constraints",
       "type": "text",
       "required": true
     },
@@ -33,48 +51,64 @@
     "Which traits must remain stable across all four options?"
   ],
   "four_option_taxonomy": [
-    "mascot_ready",
-    "narrative_hero",
-    "merchandise_icon",
-    "animation_turnaround"
+    "cute",
+    "heroic",
+    "dark",
+    "ornate"
   ],
   "required_package_outputs": [
-    "concept_sheet.png",
-    "pose_grid.png",
+    "avatar.png",
+    "half_body.png",
+    "costume_prop_variants.png",
     "expression_sheet.png",
-    "style_tile.png",
+    "promo_key_art.png",
+    "character_bible.json",
     "manifest.json",
     "qa_report.json",
     "trace_provenance.json"
   ],
   "required_generated_assets": [
     {
-      "asset_id": "concept_sheet",
-      "file_name": "concept_sheet.png",
+      "asset_id": "avatar",
+      "file_name": "avatar.png",
       "asset_kind": "concept_sheet",
-      "strategy_taxonomy": "mascot_ready",
-      "export_target": "character_concept"
+      "strategy_taxonomy": "cute",
+      "export_target": "avatar"
     },
     {
-      "asset_id": "pose_grid",
-      "file_name": "pose_grid.png",
+      "asset_id": "half_body",
+      "file_name": "half_body.png",
       "asset_kind": "concept_sheet",
-      "strategy_taxonomy": "animation_turnaround",
-      "export_target": "pose_reference"
+      "strategy_taxonomy": "heroic",
+      "export_target": "half_body"
+    },
+    {
+      "asset_id": "costume_prop_variants",
+      "file_name": "costume_prop_variants.png",
+      "asset_kind": "concept_sheet",
+      "strategy_taxonomy": "dark",
+      "export_target": "costume_prop_variants"
     },
     {
       "asset_id": "expression_sheet",
       "file_name": "expression_sheet.png",
       "asset_kind": "concept_sheet",
-      "strategy_taxonomy": "narrative_hero",
-      "export_target": "expression_reference"
+      "strategy_taxonomy": "ornate",
+      "export_target": "expression_sheet"
     },
     {
-      "asset_id": "style_tile",
-      "file_name": "style_tile.png",
+      "asset_id": "promo_key_art",
+      "file_name": "promo_key_art.png",
       "asset_kind": "concept_sheet",
-      "strategy_taxonomy": "merchandise_icon",
-      "export_target": "style_reference"
+      "strategy_taxonomy": "cute",
+      "export_target": "promo_key_art"
+    },
+    {
+      "asset_id": "character_bible",
+      "file_name": "character_bible.json",
+      "asset_kind": "metadata",
+      "strategy_taxonomy": "heroic",
+      "export_target": "character_bible"
     }
   ],
   "required_qa_checks": [
@@ -99,16 +133,65 @@
       "fx_red_team_minor_adult_content"
     ]
   },
+  "domain_acceptance_contract": {
+    "required_brief_slots": [
+      "character_premise",
+      "genre",
+      "use_case",
+      "originality_constraints",
+      "style_boundary",
+      "consistency_constraints"
+    ],
+    "required_strategy_taxonomy": [
+      "cute",
+      "heroic",
+      "dark",
+      "ornate"
+    ],
+    "required_package_outputs": [
+      "avatar.png",
+      "half_body.png",
+      "costume_prop_variants.png",
+      "expression_sheet.png",
+      "promo_key_art.png",
+      "character_bible.json"
+    ],
+    "required_qa_checks": [
+      "blank_output",
+      "watermark_signature_risk",
+      "export_completeness"
+    ],
+    "required_safety_domains": [
+      "adult_minor",
+      "ip_brand"
+    ],
+    "required_export_targets": [
+      "avatar",
+      "half_body",
+      "costume_prop_variants",
+      "expression_sheet",
+      "promo_key_art",
+      "character_bible"
+    ],
+    "negative_acceptance_guards": [
+      "protected_ip_or_style_request_refused",
+      "existing_character_impersonation_blocked",
+      "minor_adult_content_red_team_blocks_export",
+      "character_consistency_required_across_outputs"
+    ]
+  },
   "export_targets": [
     {
       "target_id": "zip_delivery",
       "format": "zip",
       "required_files": [
         "manifest.json",
-        "assets/concept_sheet.png",
-        "assets/pose_grid.png",
+        "assets/avatar.png",
+        "assets/half_body.png",
+        "assets/costume_prop_variants.png",
         "assets/expression_sheet.png",
-        "assets/style_tile.png",
+        "assets/promo_key_art.png",
+        "assets/character_bible.json",
         "metadata.json",
         "qa_report.json",
         "trace_provenance.json"
@@ -214,9 +297,12 @@
           "chat_session_id"
         ],
         "body_assertions": [
-          "body contains character_brief",
-          "body contains target_audience",
-          "body contains style_constraints",
+          "body contains character_premise",
+          "body contains genre",
+          "body contains use_case",
+          "body contains originality_constraints",
+          "body contains style_boundary",
+          "body contains consistency_constraints",
           "references includes reference_images when provided"
         ]
       },
@@ -234,7 +320,7 @@
         ],
         "body_assertions": [
           "workflow_id equals character_ip_concept_pack",
-          "brief contains character_brief, target_audience, style_constraints"
+          "brief contains character_premise, genre, use_case, originality_constraints, style_boundary, consistency_constraints"
         ]
       },
       {
@@ -251,7 +337,7 @@
         ],
         "body_assertions": [
           "response contains four candidate assets",
-          "assets cover mascot_ready, narrative_hero, merchandise_icon, animation_turnaround"
+          "assets cover cute, heroic, dark, ornate"
         ]
       },
       {
@@ -283,7 +369,7 @@
           "project_id"
         ],
         "body_assertions": [
-          "items include concept_sheet.png, pose_grid.png, expression_sheet.png, style_tile.png"
+          "items include avatar.png, half_body.png, costume_prop_variants.png, expression_sheet.png, promo_key_art.png, character_bible.json"
         ]
       },
       {
@@ -321,10 +407,10 @@
       }
     ],
     "expected_runtime_assertions": [
-      "brief requires original character constraints and target audience",
-      "candidate assets cover four IP concept strategy options",
+      "brief requires character premise, genre, use case, originality constraints, style boundary, and consistency constraints",
+      "candidate assets cover four character options: cute, heroic, dark, and ornate",
       "safety policy blocks minor sexualization and third-party character resemblance risks",
-      "export includes concept sheets, metadata, QA report, safety disclaimer when applicable, and trace provenance"
+      "export includes avatar, half body, costume or prop variants, expression sheet, promo key art, character bible metadata, QA report, safety disclaimer when applicable, and trace provenance"
     ]
   },
   "playwright_happy_path_contract": {
@@ -345,14 +431,17 @@
     "required_selectors": [
       "[data-testid=\"project-create\"]",
       "[data-testid=\"workflow-character_ip_concept_pack\"]",
-      "[data-testid=\"brief-character_brief\"]",
-      "[data-testid=\"brief-target_audience\"]",
-      "[data-testid=\"brief-style_constraints\"]",
+      "[data-testid=\"brief-character_premise\"]",
+      "[data-testid=\"brief-genre\"]",
+      "[data-testid=\"brief-use_case\"]",
+      "[data-testid=\"brief-originality_constraints\"]",
+      "[data-testid=\"brief-style_boundary\"]",
+      "[data-testid=\"brief-consistency_constraints\"]",
       "[data-testid=\"reference-upload-reference_images\"]",
       "[data-testid=\"original-ip-confirm\"]",
       "[data-testid=\"generate-candidates\"]",
       "[data-testid=\"candidate-grid\"]",
-      "[data-testid=\"candidate-card-mascot_ready\"]",
+      "[data-testid=\"candidate-card-cute\"]",
       "[data-testid=\"candidate-select\"]",
       "[data-testid=\"iterate-selected-direction\"]",
       "[data-testid=\"package-add-selected\"]",
@@ -373,10 +462,10 @@
         "step": 2,
         "action": "fill_brief",
         "route": "/projects/{project_id}",
-        "selector": "[data-testid=\"brief-character_brief\"]",
+        "selector": "[data-testid=\"brief-character_premise\"]",
         "assertions": [
-          "character_brief is captured in brief",
-          "target_audience and style_constraints are captured in brief"
+          "character_premise is captured in brief",
+          "genre, use_case, originality_constraints, style_boundary, and consistency_constraints are captured in brief"
         ]
       },
       {
@@ -405,14 +494,14 @@
         "selector": "[data-testid=\"candidate-grid\"]",
         "assertions": [
           "candidate grid contains exactly four cards",
-          "cards cover mascot_ready, narrative_hero, merchandise_icon, animation_turnaround"
+          "cards cover cute, heroic, dark, ornate"
         ]
       },
       {
         "step": 6,
         "action": "select_candidate",
         "route": "/projects/{project_id}",
-        "selector": "[data-testid=\"candidate-card-mascot_ready\"]",
+        "selector": "[data-testid=\"candidate-card-cute\"]",
         "assertions": [
           "selected direction references one character IP candidate"
         ]
@@ -432,7 +521,7 @@
         "route": "/projects/{project_id}",
         "selector": "[data-testid=\"package-add-selected\"]",
         "assertions": [
-          "package contains concept_sheet.png, pose_grid.png, expression_sheet.png, style_tile.png"
+          "package contains avatar.png, half_body.png, costume_prop_variants.png, expression_sheet.png, promo_key_art.png, character_bible.json"
         ]
       },
       {
@@ -505,10 +594,12 @@
       }
     ],
     "artifact_assertions": [
-      "export includes assets/concept_sheet.png",
-      "export includes assets/pose_grid.png",
+      "export includes assets/avatar.png",
+      "export includes assets/half_body.png",
+      "export includes assets/costume_prop_variants.png",
       "export includes assets/expression_sheet.png",
-      "export includes assets/style_tile.png",
+      "export includes assets/promo_key_art.png",
+      "export includes assets/character_bible.json",
       "export includes manifest.json, metadata.json, qa_report.json, trace_provenance.json"
     ]
   },
@@ -538,13 +629,17 @@
   },
   "golden_fixture": {
     "fixture_id": "fx_character_ip_concept_golden",
-    "brief": "Develop an original educational mascot named Nova Spark with consistent colors, no third-party character resemblance, and export-ready concept sheets.",
+    "brief": "Develop Nova Spark as an original educational mascot with character premise, STEM adventure genre, club poster and merch use case, no protected-IP resemblance, geometric-friendly style boundary, and consistent star motif/color constraints.",
     "expected_candidate_count": 4,
     "expected_export_files": [
       "manifest.json",
       "metadata.json",
-      "assets/concept_sheet.png",
-      "assets/pose_grid.png",
+      "assets/avatar.png",
+      "assets/half_body.png",
+      "assets/costume_prop_variants.png",
+      "assets/expression_sheet.png",
+      "assets/promo_key_art.png",
+      "assets/character_bible.json",
       "qa_report.json",
       "trace_provenance.json"
     ]

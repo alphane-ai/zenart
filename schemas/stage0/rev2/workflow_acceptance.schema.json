@@ -15,6 +15,7 @@
     "required_generated_assets",
     "required_qa_checks",
     "required_safety_checks",
+    "domain_acceptance_contract",
     "export_targets",
     "negative_fixture_links",
     "contract_evidence",
@@ -205,6 +206,97 @@
           "items": {
             "type": "string",
             "pattern": "^fx_[a-z0-9_]+$"
+          }
+        }
+      }
+    },
+    "domain_acceptance_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "required_brief_slots",
+        "required_strategy_taxonomy",
+        "required_package_outputs",
+        "required_qa_checks",
+        "required_safety_domains",
+        "required_export_targets",
+        "negative_acceptance_guards"
+      ],
+      "properties": {
+        "required_brief_slots": {
+          "type": "array",
+          "minItems": 3,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9_]+$"
+          }
+        },
+        "required_strategy_taxonomy": {
+          "type": "array",
+          "minItems": 4,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required_package_outputs": {
+          "type": "array",
+          "minItems": 4,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required_qa_checks": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "file_integrity",
+              "dimensions",
+              "aspect_ratio",
+              "safe_area",
+              "blank_output",
+              "duplicate_similarity",
+              "four_option_distinctness",
+              "text_readability",
+              "structured_text",
+              "product_logo_preservation",
+              "forbidden_claims",
+              "watermark_signature_risk",
+              "export_completeness"
+            ]
+          }
+        },
+        "required_safety_domains": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required_export_targets": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9_]+$"
+          }
+        },
+        "negative_acceptance_guards": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
           }
         }
       }
