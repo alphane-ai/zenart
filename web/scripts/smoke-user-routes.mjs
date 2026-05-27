@@ -12,6 +12,7 @@ const componentPath = path.join(root, "components", "workspace-app.tsx");
 const workspaceSmokeTestPath = path.join(root, "components", "workspace-app.smoke.test.tsx");
 const playwrightConfigPath = path.join(root, "playwright.config.ts");
 const ecommercePlaywrightSpecPath = path.join(root, "tests", "ecommerce-growth.spec.ts");
+const sessionSecurityPlaywrightSpecPath = path.join(root, "tests", "session-security.spec.ts");
 const layoutPath = path.join(root, "app", "layout.tsx");
 const legalPoliciesPath = path.join(root, "lib", "legal-policies.ts");
 const telemetryPath = path.join(root, "lib", "telemetry.ts");
@@ -29,6 +30,7 @@ const componentSource = await readFile(componentPath, "utf8");
 const workspaceSmokeTestSource = await readFile(workspaceSmokeTestPath, "utf8");
 const playwrightConfigSource = await readFile(playwrightConfigPath, "utf8");
 const ecommercePlaywrightSpecSource = await readFile(ecommercePlaywrightSpecPath, "utf8");
+const sessionSecurityPlaywrightSpecSource = await readFile(sessionSecurityPlaywrightSpecPath, "utf8");
 const layoutSource = await readFile(layoutPath, "utf8");
 const legalPoliciesSource = await readFile(legalPoliciesPath, "utf8");
 const telemetrySource = await readFile(telemetryPath, "utf8");
@@ -281,6 +283,31 @@ for (const requiredGuardSnippet of [
 ]) {
   if (!componentSource.includes(requiredGuardSnippet)) {
     fail(`same-site CSRF unsafe-action guard missing ${requiredGuardSnippet}`);
+  }
+}
+
+for (const requiredSessionBrowserSnippet of [
+  "account route exposes secure-cookie, same-site CSRF, and unsafe-action guard browser evidence",
+  "data-session-security-evidence",
+  "data-session-cookie-name",
+  "data-session-cookie-http-only",
+  "data-session-cookie-secure",
+  "data-session-cookie-same-site",
+  "data-session-csrf-header",
+  "data-session-csrf-origin-policy",
+  "data-session-unsafe-action-guard",
+  "data-session-unsafe-action-status",
+  "data-session-unsafe-action-operation-contracts",
+  "data-generated-api-csrf-contract",
+  "data-generated-api-csrf-unsafe-operations",
+  "data-generated-api-csrf-operation-contracts",
+  "Session expired. Refresh or sign in to continue.",
+  "Refresh Session",
+  "Save Settings",
+  "Sign In"
+]) {
+  if (!sessionSecurityPlaywrightSpecSource.includes(requiredSessionBrowserSnippet)) {
+    fail(`session security browser smoke missing assertion ${requiredSessionBrowserSnippet}`);
   }
 }
 

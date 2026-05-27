@@ -9,6 +9,7 @@
     "test": "vitest run",
     "build": "next build",
     "smoke:ecommerce-growth-playwright": "playwright test tests/ecommerce-growth.spec.ts",
+    "smoke:session-security-playwright": "playwright test tests/session-security.spec.ts",
     "smoke:security-contracts": "node scripts/smoke-security-contracts.mjs",
     "smoke:user-routes": "node scripts/smoke-user-routes.mjs"
   },

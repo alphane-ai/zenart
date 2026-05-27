@@ -8,6 +8,7 @@ const requestSecurityPath = path.join(root, "lib", "request-security.ts");
 const devStatePath = path.join(root, "lib", "dev-state.ts");
 const workspaceAppPath = path.join(root, "components", "workspace-app.tsx");
 const workspaceSmokeTestPath = path.join(root, "components", "workspace-app.smoke.test.tsx");
+const sessionSecurityPlaywrightSpecPath = path.join(root, "tests", "session-security.spec.ts");
 const userRouteSmokePath = path.join(root, "validation", "user-routes-smoke.json");
 const generatedApiCsrfContractPath = path.join(root, "validation", "generated-api-csrf-contract.json");
 
@@ -22,6 +23,7 @@ const [
   devStateSource,
   workspaceAppSource,
   workspaceSmokeTestSource,
+  sessionSecurityPlaywrightSpecSource,
   userRouteSmoke,
   generatedApiCsrfContract
 ] = await Promise.all([
@@ -30,6 +32,7 @@ const [
   readFile(devStatePath, "utf8"),
   readFile(workspaceAppPath, "utf8"),
   readFile(workspaceSmokeTestPath, "utf8"),
+  readFile(sessionSecurityPlaywrightSpecPath, "utf8"),
   readFile(userRouteSmokePath, "utf8").then(JSON.parse),
   readFile(generatedApiCsrfContractPath, "utf8").then(JSON.parse)
 ]);
@@ -251,6 +254,28 @@ for (const requiredTestSnippet of [
   }
 }
 
+for (const requiredBrowserSnippet of [
+  "account route exposes secure-cookie, same-site CSRF, and unsafe-action guard browser evidence",
+  "data-session-security-evidence",
+  "data-session-cookie-name",
+  "data-session-cookie-http-only",
+  "data-session-cookie-secure",
+  "data-session-cookie-same-site",
+  "data-session-csrf-header",
+  "data-session-csrf-origin-policy",
+  "data-session-unsafe-action-operation-contracts",
+  "data-generated-api-csrf-unsafe-operations",
+  "data-generated-api-csrf-operation-contracts",
+  "Session expired. Refresh or sign in to continue.",
+  "Refresh Session",
+  "Save Settings",
+  "Sign In"
+]) {
+  if (!sessionSecurityPlaywrightSpecSource.includes(requiredBrowserSnippet)) {
+    fail(`session security browser smoke missing assertion ${requiredBrowserSnippet}`);
+  }
+}
+
 console.log(
-  `security contract smoke passed: ${unsafeOperations.length} unsafe operations require ${generatedApiCsrfContract.csrfHeaderName}; ${safeOperations.length} safe operations stay credentialed without CSRF headers; /account exposes secure-cookie same-site UX evidence.`
+  `security contract smoke passed: ${unsafeOperations.length} unsafe operations require ${generatedApiCsrfContract.csrfHeaderName}; ${safeOperations.length} safe operations stay credentialed without CSRF headers; /account exposes secure-cookie same-site UX and browser evidence.`
 );
