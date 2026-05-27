@@ -50,6 +50,78 @@
     "second_review_evidence_status": "complete",
     "regression_gate_effect": "canary_fixture_blocks_until_review"
   },
+  "blocked_replay_samples": [
+    {
+      "id": "cancel_pending_review_stale_state_digest",
+      "mutation": {
+        "observed_state_digest": "sha256:failed-task-task-crawler-019-active-replay-v1"
+      },
+      "expected_runtime_contract": {
+        "state_digest_status": "stale_replay",
+        "submit_decision": "blocked",
+        "api_outcome": "disabled_409_conflict",
+        "audit_write_policy": "write_blocked_attempt_audit",
+        "blocker_codes": ["state_digest_stale_replay"]
+      }
+    },
+    {
+      "id": "cancel_pending_review_missing_support_ticket",
+      "mutation": {
+        "support_ticket_id": "sup-missing",
+        "idempotency_key": "cancel:task-crawler-019:sup-missing:ownership-missing"
+      },
+      "expected_runtime_contract": {
+        "support_ticket_linkage_status": "missing_ticket",
+        "submit_decision": "blocked",
+        "api_outcome": "disabled_409_conflict",
+        "audit_write_policy": "write_blocked_attempt_audit",
+        "blocker_codes": ["support_ticket_missing"]
+      }
+    },
+    {
+      "id": "cancel_pending_review_incomplete_closure_evidence",
+      "mutation": {
+        "rbacDecision": "allowed",
+        "actionEligibility": "eligible",
+        "closure_evidence_refs": ["task-crawler-019", "sup-2212", "au-002"]
+      },
+      "expected_runtime_contract": {
+        "closure_evidence_status": "incomplete",
+        "submit_decision": "blocked",
+        "api_outcome": "disabled_409_conflict",
+        "audit_write_policy": "write_blocked_attempt_audit",
+        "blocker_codes": ["closure_evidence_incomplete"]
+      }
+    },
+    {
+      "id": "cancel_pending_review_rejected_second_review",
+      "mutation": {
+        "rbacDecision": "allowed",
+        "actionEligibility": "eligible",
+        "second_review_status": "rejected"
+      },
+      "expected_runtime_contract": {
+        "submit_decision": "blocked",
+        "api_outcome": "disabled_409_conflict",
+        "audit_write_policy": "write_blocked_attempt_audit",
+        "blocker_codes": ["second_review_rejected"]
+      }
+    },
+    {
+      "id": "cancel_pending_review_stale_crawler_worker",
+      "mutation": {
+        "worker_version": "crawler-2026.05.25"
+      },
+      "expected_runtime_contract": {
+        "worker_compatibility_status": "stale",
+        "compatibility_status": "stale",
+        "submit_decision": "blocked",
+        "api_outcome": "disabled_409_conflict",
+        "audit_write_policy": "write_blocked_attempt_audit",
+        "blocker_codes": ["version_compatibility_stale", "worker_version_stale"]
+      }
+    }
+  ],
   "release_block": {
     "canary_metric": "cm-014",
     "audit_ref": "au-002",

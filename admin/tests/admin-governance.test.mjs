@@ -19,6 +19,8 @@ const failedTaskFixtureMutationMap = {
   max_retries: "maxRetries",
   support_ticket_id: "supportTicketId",
   idempotency_key: "idempotencyKey",
+  closure_evidence_refs: "closureEvidenceRefs",
+  second_review_status: "secondReviewStatus",
   second_reviewer_admin_id: "secondReviewerAdminId",
   second_review_evidence_refs: "secondReviewEvidenceRefs",
   app_version: "appVersion",
@@ -29,6 +31,7 @@ const failedTaskFixtureMutationMap = {
 const failedTaskRuntimeContractMap = {
   state_digest_status: "stateDigestStatus",
   retry_budget_status: "retryBudgetStatus",
+  closure_evidence_status: "closureEvidenceStatus",
   support_ticket_linkage_status: "supportTicketLinkageStatus",
   second_review_distinctness_status: "secondReviewDistinctnessStatus",
   second_review_evidence_status: "secondReviewEvidenceStatus",
@@ -1588,6 +1591,7 @@ test("failed task retry and cancel samples are durable regression fixtures", () 
   assert.equal(cancelDecision.regressionGateEffect, cancelFixture.runtime_contract.regression_gate_effect);
   assert.equal(approvedCancelDecision.regressionGateEffect, approvedCancelFixture.runtime_contract.regression_gate_effect);
   assertFailedTaskBlockedReplaySamples(retryTask, retryFixture, supportTickets);
+  assertFailedTaskBlockedReplaySamples(cancelTask, cancelFixture, supportTickets);
   assertFailedTaskBlockedReplaySamples(approvedCancelTask, approvedCancelFixture, supportTickets);
 
   assert.ok(
