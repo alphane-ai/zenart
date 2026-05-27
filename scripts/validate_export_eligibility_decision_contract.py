@@ -62,6 +62,22 @@ EXPECTED_LINKS = {
     "export_override_contract": "fixtures/stage0/rev2/eval/export_override_contract.json",
 }
 
+REQUIRED_TRACE_STEPS = {
+    "brief",
+    "provider_request",
+    "provider_response",
+    "qa",
+    "export",
+}
+
+POSITIVE_ALLOW_PATH_SOURCE_REFS = {
+    "schemas/stage0/rev2/eval_result.schema.json",
+    "schemas/stage0/rev2/qa_result.schema.json",
+    "schemas/stage0/rev2/trace_completeness.schema.json",
+    "schemas/stage0/rev2/eval_package_readiness_contract.schema.json",
+    "schemas/stage0/rev2/export_eligibility_decision_contract.schema.json",
+}
+
 
 class ExportEligibilityDecisionError(Exception):
     pass
@@ -365,6 +381,67 @@ def validate_contract() -> None:
     require(saw_missing_artifacts, "eligibility contract must include missing export artifact cases")
     require(saw_candidate_gap, "eligibility contract must include candidate generation gap cases")
     require(saw_trace_complete, "eligibility contract must validate complete trace cases")
+    validate_positive_allow_path_cases(contract, readiness, trace_contract)
+
+
+def validate_positive_allow_path_cases(
+    contract: dict[str, Any],
+    readiness: dict[str, Any],
+    trace_contract: dict[str, Any],
+) -> None:
+    cases = contract.get("positive_allow_path_cases")
+    require(isinstance(cases, list) and cases, "eligibility contract must include positive allow-path cases")
+
+    saw_allowed_download = False
+    for case in cases:
+        workflow_id = case["workflow"]
+        workflow_path = ROOT / case["acceptance_fixture"]
+        require(workflow_path.exists(), f"{case['case_id']} acceptance fixture missing")
+        workflow = load_json(workflow_path)
+        require(workflow["workflow_id"] == workflow_id, f"{case['case_id']} workflow fixture mismatch")
+        require(
+            set(case["export_required_files"]) == set(workflow["export_targets"][0]["required_files"]),
+            f"{case['case_id']} export required files must match workflow acceptance fixture",
+        )
+        require(
+            set(case["qa_categories_covered"]) == set(workflow["required_qa_checks"]),
+            f"{case['case_id']} QA categories must satisfy workflow required QA checks",
+        )
+        require(case["candidate_count"] >= len(workflow["four_option_taxonomy"]), f"{case['case_id']} must cover four candidates")
+        require(case["blocking_qa_check_ids"] == [], f"{case['case_id']} allow path cannot contain blocking QA")
+        require(case["safety_decision"] in {"allow", "warn"}, f"{case['case_id']} allow path cannot use safety hold/block")
+        require(case["missing_export_artifacts"] == [], f"{case['case_id']} allow path cannot miss export artifacts")
+        require(case["trace_complete"] is True, f"{case['case_id']} trace must be complete")
+        require(set(case["trace_steps"]) == REQUIRED_TRACE_STEPS, f"{case['case_id']} trace steps mismatch")
+        require(case["package_readiness_download_allowed"] is True, f"{case['case_id']} package readiness must allow download")
+        require(case["final_export_allowed"] is True, f"{case['case_id']} final export must be allowed")
+        require(case["download_enabled"] is True, f"{case['case_id']} download must be enabled")
+        require(case["decision"] == "allow_download", f"{case['case_id']} must allow download")
+        require(case["denial_reasons"] == [], f"{case['case_id']} allow path cannot carry denial reasons")
+        require(case["requirements_to_allow"] == [], f"{case['case_id']} allow path cannot carry unmet requirements")
+        require(case["override_effect"] == "download_allowed_without_override", f"{case['case_id']} allow path must not require override")
+        require(case["retained_artifacts_when_blocked"] == [], f"{case['case_id']} allow path cannot retain blocked artifacts")
+        require(
+            set(case["source_contract_refs"]) == POSITIVE_ALLOW_PATH_SOURCE_REFS,
+            f"{case['case_id']} source contract refs mismatch",
+        )
+        require(
+            set(trace_contract["required_pipeline_steps"]) == REQUIRED_TRACE_STEPS,
+            f"{case['case_id']} must align with trace completeness required steps",
+        )
+        policy = readiness["package_readiness_policy"]
+        for key in [
+            "final_export_requires_eval_pass",
+            "final_export_requires_complete_qa_coverage",
+            "final_export_requires_complete_export_artifacts",
+            "final_export_requires_no_blocking_qa",
+            "final_export_requires_no_safety_hold_or_block",
+        ]:
+            require(policy[key] is True, f"{case['case_id']} readiness policy {key} must be true")
+
+        saw_allowed_download = True
+
+    require(saw_allowed_download, "eligibility contract must prove an allowed download path")
 
 
 def main() -> int:
