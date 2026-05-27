@@ -211,12 +211,17 @@ required_fragments = [
     "Rollback drill: `missing`; staging JSON must reference the release SHA, set `environment=staging`, set `kind=rollback`, record status `passed` or `validated`, and include passed/validated evidence refs for image rollback, feature flag rollback, migration compatibility, worker drain, and post-rollback smoke.",
     "Security scan: local status `passed` from `ops/evidence/security/local/20260526T142040Z-security-scan-smoke-65314.json`; staging JSON must reference the release SHA, set `environment=staging`, set `kind=security_scan`, record status `passed`, and include passed/validated evidence refs for dependency, image/container, and committed-secret scans before private beta/production decisions.",
     "## Open Rev2 Runtime Checklist",
-    "Observability runtime: staging request id propagation runtime evidence 通过",
     "Private Beta/Staging external-user runtime evidence 通过",
 ]
 missing = [fragment for fragment in required_fragments if fragment not in notes]
 if missing:
     raise SystemExit(f"release no-go notes missing required fragments: {missing}")
+obsolete_fragments = [
+    "Observability runtime: staging request id propagation runtime evidence 通过",
+]
+obsolete = [fragment for fragment in obsolete_fragments if fragment in notes]
+if obsolete:
+    raise SystemExit(f"release no-go notes list already-closed runtime fragments as open: {obsolete}")
 if notes.count("- Load evidence:") != 1:
     raise SystemExit("release no-go notes must contain exactly one Load evidence line")
 if notes.count("- Load smoke:") != 1:
