@@ -562,6 +562,22 @@ if report["upstream_gates"]["private_beta_staging"]["gate_decision_status"] != "
     raise SystemExit("production split smoke must surface private beta/staging no-go state")
 if report["admin_visible_probe"]["ready"] is not True:
     raise SystemExit("production split smoke must detect the admin-visible blocked probe evidence")
+admin_semantics = report["admin_visible_probe"].get("semantic_validation", {})
+if admin_semantics.get("ready") is not True:
+    raise SystemExit("production split smoke must semantically validate admin-visible blocked probe evidence")
+if set(admin_semantics.get("required_coverage_areas", [])) != {
+    "backup_restore",
+    "rollback_drill",
+    "incident_alert_path",
+    "post_deploy_smoke",
+}:
+    raise SystemExit("production split smoke must require all admin-visible coverage areas")
+if admin_semantics.get("gate_blocker_preservation") is not True:
+    raise SystemExit("production split smoke must require admin-visible gate blocker preservation")
+if admin_semantics.get("split_readiness_blocked") is not True:
+    raise SystemExit("production split smoke must require admin-visible exact split blockers")
+if admin_semantics.get("gate_impact_preserves_upstream") is not True:
+    raise SystemExit("production split smoke must require admin-visible upstream gate preservation")
 split = report["split_evidence"]
 if split["all_exact_split_files_ready"] is not False:
     raise SystemExit("production split smoke must keep exact split readiness false")
@@ -636,6 +652,65 @@ if not any(item.startswith("no_preserved_blockers:") for item in missing):
     raise SystemExit("production split smoke must reject preserved blocker markers in rollback split evidence")
 if "production_rollback_incident_post_deploy_split_not_passed" not in report["blocked_checks"]:
     raise SystemExit("production split smoke must keep rollback split blocked after preserved blocker rejection")
+PY
+
+admin_probe_guard_tmp="$(mktemp -d)"
+cat >"$admin_probe_guard_tmp/admin-probe.json" <<'JSON'
+{
+  "environment": "production",
+  "status": "blocked_by_upstream_gates",
+  "release_gate_check_id": "production_backup_rollback_incident",
+  "coverage": [
+    {"area": "backup_restore", "status": "pass"},
+    {"area": "rollback_drill", "status": "pass"},
+    {"area": "incident_alert_path", "status": "pass"},
+    {"area": "post_deploy_smoke", "status": "pass"}
+  ],
+  "split_readiness": [
+    {
+      "split": "backup_restore",
+      "exact_evidence_path": "ops/evidence/production/backup-restore.json",
+      "status": "blocked_until_exact_split_file",
+      "required_runtime_proof": ["backup_schedule"]
+    },
+    {
+      "split": "rollback_incident_post_deploy_smoke",
+      "exact_evidence_path": "ops/evidence/production/rollback-incident-post-deploy-smoke.json",
+      "status": "blocked_until_exact_split_file",
+      "required_runtime_proof": ["post_deploy_smoke"]
+    }
+  ],
+  "gate_impact": {
+    "can_clear_check_level_items": true,
+    "remaining_blockers": []
+  }
+}
+JSON
+if ADMIN_VISIBLE_PROBE_EVIDENCE="$admin_probe_guard_tmp/admin-probe.json" \
+  REPORT_PATH="$admin_probe_guard_tmp/backup-rollback-split.blocked.json" \
+  RUN_ID=repo-validate-production-admin-probe-guard \
+  scripts/production_backup_rollback_split_smoke.sh >/tmp/stage0-production-admin-probe-guard.out 2>/tmp/stage0-production-admin-probe-guard.err; then
+  printf 'production backup/rollback split smoke accepted admin probe without blocker preservation\n' >&2
+  cat /tmp/stage0-production-admin-probe-guard.out >&2
+  cat /tmp/stage0-production-admin-probe-guard.err >&2
+  exit 1
+fi
+python3 - "$admin_probe_guard_tmp/backup-rollback-split.blocked.json" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+report = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+admin_probe = report["admin_visible_probe"]
+if admin_probe.get("ready") is not False:
+    raise SystemExit("production split smoke must reject admin probes that do not preserve blockers")
+missing = admin_probe["semantic_validation"].get("missing_requirements", [])
+if "coverage:gate_blocker_preservation:blocked" not in missing:
+    raise SystemExit("production split smoke must require blocked gate preservation coverage")
+if "gate_impact:preserves_ci_staging_gates_not_passed" not in missing:
+    raise SystemExit("production split smoke must require admin probe gate impact to preserve upstream blockers")
+if not any(item.startswith("admin_visible_probe_not_ready:") for item in report["blocked_checks"]):
+    raise SystemExit("production split smoke must keep admin probe readiness as a blocker")
 PY
 
 log "backend Go validation"

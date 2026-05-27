@@ -2,7 +2,38 @@
   "admin_visible_probe": {
     "path": "ops/evidence/production/20260527T1800Z-backup-rollback-incident-smoke.json",
     "ready": true,
-    "required_status": "blocked_by_upstream_gates"
+    "required_status": "blocked_by_upstream_gates",
+    "semantic_validation": {
+      "coverage_areas": [
+        "backup_restore",
+        "gate_blocker_preservation",
+        "incident_alert_path",
+        "post_deploy_smoke",
+        "rollback_drill"
+      ],
+      "coverage_statuses": {
+        "backup_restore": "pass",
+        "gate_blocker_preservation": "blocked",
+        "incident_alert_path": "pass",
+        "post_deploy_smoke": "pass",
+        "rollback_drill": "pass"
+      },
+      "gate_blocker_preservation": true,
+      "gate_impact_preserves_upstream": true,
+      "missing_requirements": [],
+      "ready": true,
+      "required_coverage_areas": [
+        "backup_restore",
+        "incident_alert_path",
+        "post_deploy_smoke",
+        "rollback_drill"
+      ],
+      "split_readiness_blocked": true,
+      "split_readiness_paths": {
+        "backup_restore": "ops/evidence/production/backup-restore.json",
+        "rollback_incident_post_deploy_smoke": "ops/evidence/production/rollback-incident-post-deploy-smoke.json"
+      }
+    }
   },
   "blocked_checks": [
     "release_sha_missing_or_not_full_sha",

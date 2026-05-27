@@ -145,6 +145,118 @@ def gate_status(ref: str) -> dict:
     }
 
 
+def admin_probe_semantics(data: object) -> dict:
+    required_coverage_areas = {
+        "backup_restore",
+        "rollback_drill",
+        "incident_alert_path",
+        "post_deploy_smoke",
+    }
+    required_split_paths = {
+        "backup_restore": "ops/evidence/production/backup-restore.json",
+        "rollback_incident_post_deploy_smoke": "ops/evidence/production/rollback-incident-post-deploy-smoke.json",
+    }
+    split_aliases = {
+        "backup_restore": ("backup_restore",),
+        "rollback_incident_post_deploy_smoke": (
+            "rollback_incident_post_deploy_smoke",
+            "rollback_incident_smoke",
+        ),
+    }
+    result = {
+        "ready": False,
+        "required_coverage_areas": sorted(required_coverage_areas),
+        "coverage_areas": [],
+        "coverage_statuses": {},
+        "gate_blocker_preservation": False,
+        "split_readiness_paths": {},
+        "split_readiness_blocked": False,
+        "gate_impact_preserves_upstream": False,
+        "missing_requirements": [],
+    }
+    if not isinstance(data, dict):
+        result["missing_requirements"].append("admin_probe_json_object")
+        return result
+
+    coverage = data.get("coverage", [])
+    if not isinstance(coverage, list):
+        coverage = []
+    coverage_by_area = {
+        str(item.get("area", "")): item
+        for item in coverage
+        if isinstance(item, dict)
+    }
+    result["coverage_areas"] = sorted(area for area in coverage_by_area if area)
+    result["coverage_statuses"] = {
+        area: coverage_by_area[area].get("status")
+        for area in sorted(coverage_by_area)
+    }
+    for area in sorted(required_coverage_areas):
+        if coverage_by_area.get(area, {}).get("status") != "pass":
+            result["missing_requirements"].append(f"coverage:{area}:status=pass")
+    gate_preservation = coverage_by_area.get("gate_blocker_preservation", {})
+    result["gate_blocker_preservation"] = (
+        isinstance(gate_preservation, dict)
+        and gate_preservation.get("status") == "blocked"
+        and text_contains(gate_preservation, ("production_backup_rollback_incident",))
+    )
+    if not result["gate_blocker_preservation"]:
+        result["missing_requirements"].append("coverage:gate_blocker_preservation:blocked")
+
+    split_readiness = data.get("split_readiness", [])
+    if not isinstance(split_readiness, list):
+        split_readiness = []
+    split_by_id = {
+        str(item.get("split", "")): item
+        for item in split_readiness
+        if isinstance(item, dict)
+    }
+    result["split_readiness_paths"] = {
+        split_id: next(
+            (
+                split_by_id.get(alias, {}).get("exact_evidence_path")
+                for alias in split_aliases[split_id]
+                if alias in split_by_id
+            ),
+            None,
+        )
+        for split_id in sorted(required_split_paths)
+    }
+    split_blockers = []
+    for split_id, path in sorted(required_split_paths.items()):
+        split = next(
+            (
+                split_by_id[alias]
+                for alias in split_aliases[split_id]
+                if alias in split_by_id
+            ),
+            {},
+        )
+        if split.get("exact_evidence_path") != path:
+            split_blockers.append(f"split_readiness:{split_id}:path")
+        if split.get("status") != "blocked_until_exact_split_file":
+            split_blockers.append(f"split_readiness:{split_id}:blocked_until_exact_split_file")
+        proof = split.get("required_runtime_proof", [])
+        if not isinstance(proof, list) or not proof:
+            split_blockers.append(f"split_readiness:{split_id}:required_runtime_proof")
+    result["missing_requirements"].extend(split_blockers)
+    result["split_readiness_blocked"] = not split_blockers
+
+    gate_impact = data.get("gate_impact", {})
+    remaining = gate_impact.get("remaining_blockers", []) if isinstance(gate_impact, dict) else []
+    result["gate_impact_preserves_upstream"] = (
+        isinstance(gate_impact, dict)
+        and gate_impact.get("can_clear_check_level_items") is False
+        and isinstance(remaining, list)
+        and "ci_staging_gates_not_passed" in remaining
+    )
+    if not result["gate_impact_preserves_upstream"]:
+        result["missing_requirements"].append("gate_impact:preserves_ci_staging_gates_not_passed")
+
+    result["ready"] = not result["missing_requirements"]
+    return result
+
+
 def validate_split(
     ref: str,
     *,
@@ -210,11 +322,13 @@ ci_gate = gate_status(ci_gate_ref)
 private_beta_gate = gate_status(private_beta_gate_ref)
 production_gate = gate_status(production_gate_ref)
 admin_probe, admin_probe_error = load_json(admin_probe_ref)
+admin_probe_semantic = admin_probe_semantics(admin_probe)
 admin_probe_ready = (
     isinstance(admin_probe, dict)
     and admin_probe.get("environment") == "production"
     and admin_probe.get("status") == "blocked_by_upstream_gates"
     and admin_probe.get("release_gate_check_id") == "production_backup_rollback_incident"
+    and admin_probe_semantic["ready"]
 )
 
 backup_split = validate_split(
@@ -280,7 +394,13 @@ if environment != "production":
 if not re.fullmatch(r"[0-9a-f]{40}", release_sha or ""):
     blocked_checks.append("release_sha_missing_or_not_full_sha")
 if not admin_probe_ready:
-    blocked_checks.append(f"admin_visible_probe_not_ready:{admin_probe_error or admin_probe_ref}")
+    if admin_probe_error:
+        blocked_checks.append(f"admin_visible_probe_not_ready:{admin_probe_error}")
+    else:
+        blocked_checks.append(
+            "admin_visible_probe_not_ready:"
+            + ",".join(admin_probe_semantic["missing_requirements"])
+        )
 if not ci_gate["ready"]:
     blocked_checks.append("ci_gate_not_go")
 if not private_beta_gate["ready"]:
@@ -312,6 +432,7 @@ report = {
         "path": admin_probe_ref,
         "ready": admin_probe_ready,
         "required_status": "blocked_by_upstream_gates",
+        "semantic_validation": admin_probe_semantic,
     },
     "upstream_gates": {
         "ci": ci_gate,

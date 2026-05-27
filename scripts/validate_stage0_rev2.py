@@ -9793,6 +9793,34 @@ def validate_production_backup_rollback_split_preflight_evidence() -> None:
         and evidence["admin_visible_probe"]["required_status"] == "blocked_by_upstream_gates",
         "production backup/rollback split preflight must point at the explicit admin-visible blocked probe",
     )
+    admin_semantics = evidence["admin_visible_probe"].get("semantic_validation", {})
+    require(
+        admin_semantics.get("ready") is True,
+        "production backup/rollback split preflight must semantically validate admin-visible blocked probe evidence",
+    )
+    require(
+        set(admin_semantics.get("required_coverage_areas", []))
+        == {"backup_restore", "rollback_drill", "incident_alert_path", "post_deploy_smoke"},
+        "production backup/rollback split preflight must require all admin-visible operations coverage areas",
+    )
+    require(
+        {"backup_restore", "rollback_drill", "incident_alert_path", "post_deploy_smoke", "gate_blocker_preservation"}
+        <= set(admin_semantics.get("coverage_areas", [])),
+        "production backup/rollback split preflight must see blocker-preserving admin coverage",
+    )
+    require(
+        admin_semantics.get("gate_blocker_preservation") is True
+        and admin_semantics.get("split_readiness_blocked") is True
+        and admin_semantics.get("gate_impact_preserves_upstream") is True,
+        "production backup/rollback split preflight admin probe must preserve split and upstream blockers",
+    )
+    require(
+        admin_semantics.get("split_readiness_paths", {}).get("backup_restore")
+        == rel(PRODUCTION_BACKUP_RESTORE_EVIDENCE)
+        and admin_semantics.get("split_readiness_paths", {}).get("rollback_incident_post_deploy_smoke")
+        == rel(PRODUCTION_ROLLBACK_INCIDENT_SMOKE_EVIDENCE),
+        "production backup/rollback split preflight admin probe must name exact missing split paths",
+    )
     gate_impact = evidence["gate_impact"]
     require(
         gate_impact["can_clear_release_gate_check"] is False
