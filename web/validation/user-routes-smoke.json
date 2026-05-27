@@ -256,6 +256,24 @@
         "data-render-failure-count",
         "data-render-interaction-steps"
       ],
+      "summaryAttributes": [
+        "data-rendering-smoke-summary",
+        "data-rendering-smoke-status",
+        "data-rendering-smoke-failures",
+        "data-rendering-interaction-steps",
+        "data-rendering-estimated-interaction-ms",
+        "data-rendering-budget-node-count",
+        "data-rendering-budget-edge-count",
+        "data-rendering-budget-version-count"
+      ],
+      "expectedBudgets": {
+        "maxNodes": "24",
+        "maxEdges": "24",
+        "maxVersions": "32",
+        "maxRenderElements": "96",
+        "maxInteractionMs": "100"
+      },
+      "requiredInteractionSteps": ["load", "brief-confirm", "candidate-select", "iteration", "package-add", "export-ready", "version-restore"],
       "expectedFailureCount": "0"
     },
     {
@@ -294,6 +312,11 @@
       "scenario": "reference-upload-to-ready-zip-export",
       "expectedOperationCount": "4",
       "expectedOperations": ["createUpload", "createPackage", "createExport", "getExport"],
+      "expectedLatestPackaged": "true",
+      "expectedLatestProvenancePresent": "true",
+      "expectedLatestPptSlidePresent": "true",
+      "expectedReadyExportCount": "1",
+      "expectedFailureCount": "0",
       "requiredAttributes": [
         "data-reference-upload-integration-operation-count",
         "data-reference-upload-integration-operations",
@@ -347,6 +370,15 @@
       "expectedMissingOutputCount": "0",
       "expectedDownloadArtifactStatus": "pass",
       "expectedMissingZipPayloadCount": "0",
+      "expectedProvenanceCount": "2",
+      "expectedBlockingQaCount": "0",
+      "expectedSafetyStatus": "pass",
+      "expectedSafetyStageCount": "5",
+      "expectedPptAspectRatio": "16:9",
+      "expectedPptCanvasSize": "1920x1080",
+      "expectedPptSafeArea": "72/96/72/96",
+      "expectedPptThemeFont": "Inter, Arial, sans-serif",
+      "expectedPptHandoffChecklistCount": "5",
       "minimumZipPayloadCount": "7",
       "payloadAttribute": "data-package-export-zip-payloads",
       "requiredPayloadAttribute": "data-package-export-required-zip-payloads",
@@ -503,6 +535,8 @@
       "expectedDownloadHandoffStatus": "pass",
       "expectedMissingPayloadCount": "0",
       "expectedPayloadsMatch": "true",
+      "expectedWorkflowMetadataPresent": "true",
+      "expectedTraceProvenancePresent": "true",
       "requiredAttributes": [
         "data-export-download-parity-smoke",
         "data-export-download-parity-status",

@@ -398,6 +398,22 @@ for (const attribute of renderingEvidence.budgetAttributes ?? []) {
     fail(`workspace rendering evidence missing budget attribute ${attribute}`);
   }
 }
+for (const attribute of renderingEvidence.summaryAttributes ?? []) {
+  if (!componentSource.includes(attribute)) {
+    fail(`workspace rendering evidence missing summary attribute ${attribute}`);
+  }
+}
+for (const [budgetName, expectedValue] of Object.entries(renderingEvidence.expectedBudgets ?? {})) {
+  const sourceSnippet = `${budgetName}: ${expectedValue}`;
+  if (!devStateSource.includes(sourceSnippet)) {
+    fail(`workspace rendering evidence budget drifted for ${budgetName}`);
+  }
+}
+for (const step of renderingEvidence.requiredInteractionSteps ?? []) {
+  if (!devStateSource.includes(step) || !workspaceSmokeTestSource.includes(step)) {
+    fail(`workspace rendering evidence missing interactive step ${step}`);
+  }
+}
 if (renderingEvidence.expectedFailureCount !== "0") {
   fail("workspace rendering evidence must assert zero failures");
 }
@@ -443,6 +459,15 @@ if (
 ) {
   fail("reference upload evidence must prove createUpload -> createPackage -> createExport -> getExport operation coverage");
 }
+if (
+  referenceUploadEvidence.expectedLatestPackaged !== "true" ||
+  referenceUploadEvidence.expectedLatestProvenancePresent !== "true" ||
+  referenceUploadEvidence.expectedLatestPptSlidePresent !== "true" ||
+  referenceUploadEvidence.expectedReadyExportCount !== "1" ||
+  referenceUploadEvidence.expectedFailureCount !== "0"
+) {
+  fail("reference upload evidence must assert the latest accepted reference reaches package history, provenance, PPT metadata, and ready export");
+}
 for (const expectedSnippet of [
   "latestAcceptedReferenceId",
   "latestAcceptedReferenceName",
@@ -480,6 +505,19 @@ if (packageExportEvidence.expectedDownloadArtifactStatus !== "pass") {
 }
 if (packageExportEvidence.expectedMissingZipPayloadCount !== "0") {
   fail("package/export metadata evidence must assert zero missing ZIP payloads");
+}
+if (
+  packageExportEvidence.expectedProvenanceCount !== "2" ||
+  packageExportEvidence.expectedBlockingQaCount !== "0" ||
+  packageExportEvidence.expectedSafetyStatus !== "pass" ||
+  packageExportEvidence.expectedSafetyStageCount !== "5" ||
+  packageExportEvidence.expectedPptAspectRatio !== "16:9" ||
+  packageExportEvidence.expectedPptCanvasSize !== "1920x1080" ||
+  packageExportEvidence.expectedPptSafeArea !== "72/96/72/96" ||
+  packageExportEvidence.expectedPptThemeFont !== "Inter, Arial, sans-serif" ||
+  packageExportEvidence.expectedPptHandoffChecklistCount !== "5"
+) {
+  fail("package/export metadata evidence must pin provenance, QA, safety, and PPT-ready metadata values");
 }
 if (packageExportEvidence.minimumZipPayloadCount !== "7") {
   fail("package/export metadata evidence must assert at least the seven required ZIP payloads");
@@ -588,6 +626,12 @@ for (const sourceContract of exportDownloadParityEvidence.requiredSourceContract
   if (!componentSource.includes(sourceContract) && !devStateSource.includes(sourceContract)) {
     fail(`export download parity smoke missing source contract ${sourceContract}`);
   }
+}
+if (
+  exportDownloadParityEvidence.expectedWorkflowMetadataPresent !== "true" ||
+  exportDownloadParityEvidence.expectedTraceProvenancePresent !== "true"
+) {
+  fail("export download parity smoke must assert workflow metadata and trace provenance presence");
 }
 
 for (const route of artifact.routes) {
