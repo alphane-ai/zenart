@@ -317,6 +317,21 @@ legal_support_evidence_source = (
     )
 )
 
+
+def runtime_blocked_reason(probe: dict) -> str:
+    requirements = probe.get("runtime_input_requirements", {})
+    if isinstance(requirements, dict):
+        reason = requirements.get("blocked_input_reason")
+        if isinstance(reason, str) and reason.strip():
+            return reason.strip()
+    blocked_checks = probe.get("blocked_checks", [])
+    if isinstance(blocked_checks, list) and blocked_checks:
+        return "; ".join(str(item) for item in blocked_checks)
+    return str(probe.get("status", "blocked"))
+
+
+object_retention_blocked_reason = runtime_blocked_reason(object_retention_probe)
+
 slots = []
 for slot, required in sorted(release_evidence.get("required_slots", {}).items()):
     verifier = verification.get(slot)
@@ -377,6 +392,7 @@ report_path.write_text(
             "canonical_support_contact_external_user_report": str(canonical_support_contact_report_path),
             "staging_smoke_exit_code": staging_exit_code,
             "object_retention_cleanup_exit_code": object_retention_exit_code,
+            "object_retention_cleanup_blocked_reason": object_retention_blocked_reason,
             "legal_support_visibility_exit_code": legal_support_exit_code,
             "release_evidence_complete": go_no_go.get("release_evidence_complete") is True,
             "post_deploy_smoke_verified": go_no_go.get("post_deploy_smoke_verified") is True,

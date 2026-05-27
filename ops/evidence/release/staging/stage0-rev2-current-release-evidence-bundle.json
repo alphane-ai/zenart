@@ -118,6 +118,7 @@
     "path": "ops/evidence/release/staging/stage0-rev2-current-release-evidence-bundle.legal-support-visibility.json",
     "release_gate_check_id": "staging_legal_external_user_pages",
     "required_checks": [],
+    "results_path": "ops/evidence/release/staging/stage0-rev2-current-release-evidence-bundle.legal-support-visibility.ndjson",
     "runtime_input_requirements": {},
     "split_evidence": {},
     "status": "blocked"
@@ -135,6 +136,7 @@
     "rollback_evidence",
     "security_scan_evidence"
   ],
+  "object_retention_cleanup_blocked_reason": "missing STAGING_BASE_URL or explicit probe URL env vars",
   "object_retention_cleanup_exit_code": 2,
   "object_retention_cleanup_probe": {
     "blocked_checks": [
@@ -167,8 +169,9 @@
       "orphan_cleanup",
       "retention_policy"
     ],
+    "results_path": "ops/evidence/release/staging/stage0-rev2-current-release-evidence-bundle.object-storage-retention-cleanup.ndjson",
     "runtime_input_requirements": {
-      "blocked_input_reason": "missing STAGING_BASE_URL; set explicit probe URL env vars if routes differ",
+      "blocked_input_reason": "missing STAGING_BASE_URL or explicit probe URL env vars",
       "canonical_pass_report": "ops/evidence/staging/object-storage-retention-cleanup.json",
       "canonical_pass_results": "ops/evidence/staging/object-storage-retention-cleanup.ndjson",
       "pass_file_policy": "canonical pass paths require passing evidence to be written to ops/evidence/staging/object-storage-retention-cleanup.json and ops/evidence/staging/object-storage-retention-cleanup.ndjson; non-canonical paths are validation-only.",
