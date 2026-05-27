@@ -904,6 +904,17 @@ class Handler(SimpleHTTPRequestHandler):
     def do_POST(self):
         parsed = urlparse(self.path)
         if parsed.path.endswith("/cleanup/expired-exports"):
+            if self.server.generic_cleanup_ids:
+                self._json({
+                    "expired_exports": {
+                        "id": "expired-export-row-007",
+                        "deleted_objects": 2,
+                        "preview_objects": 1,
+                        "audit_status": "recorded",
+                        "dry_run": True,
+                    }
+                })
+                return
             self._json({
                 "expired_exports": {
                     "deleted_objects": 2,
@@ -914,6 +925,17 @@ class Handler(SimpleHTTPRequestHandler):
             })
             return
         if parsed.path.endswith("/cleanup/orphans"):
+            if self.server.generic_cleanup_ids:
+                self._json({
+                    "orphaned_objects": {
+                        "id": "orphan-row-015",
+                        "deleted_objects": 1,
+                        "preview_objects": 2,
+                        "audit_status": "recorded",
+                        "dry_run": True,
+                    }
+                })
+                return
             self._json({
                 "orphaned_objects": {
                     "deleted_objects": 1,
@@ -949,6 +971,7 @@ class Handler(SimpleHTTPRequestHandler):
 port = int(sys.argv[2])
 server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
 server.omit_orphan_audit_ref = len(sys.argv) > 3 and sys.argv[3] == "omit-orphan-audit-ref"
+server.generic_cleanup_ids = len(sys.argv) > 3 and sys.argv[3] == "generic-cleanup-ids"
 server.serve_forever()
 PY
 object_retention_port="$(python3 - <<'PY'
@@ -981,6 +1004,7 @@ RUN_ID="stage0-validate-object-retention-alias-pass" \
   ADMIN_BEARER_TOKEN="stage0-local-fixture" \
   SMOKE_ADMIN_USER_ID="admin-ops" \
   SMOKE_ADMIN_TENANT_ID="tenant-alpha" \
+  CSRF_ORIGIN="http://127.0.0.1:$object_retention_port" \
   scripts/staging_object_storage_retention_cleanup_smoke.sh >/dev/null
 object_retention_alias_status=$?
 set -e
@@ -1073,6 +1097,7 @@ RUN_ID="stage0-validate-object-retention-audit-mismatch" \
   ADMIN_BEARER_TOKEN="stage0-local-fixture" \
   SMOKE_ADMIN_USER_ID="admin-ops" \
   SMOKE_ADMIN_TENANT_ID="tenant-alpha" \
+  CSRF_ORIGIN="http://127.0.0.1:$object_retention_audit_port" \
   scripts/staging_object_storage_retention_cleanup_smoke.sh >/dev/null
 object_retention_audit_status=$?
 set -e
@@ -1117,6 +1142,68 @@ if audit_linkage.get("missing_cleanup_audit_refs") != ["au-015"]:
     raise SystemExit(f"audit mismatch fixture missing refs mismatch: {audit_linkage}")
 if report.get("split_evidence", {}).get("retention_cleanup_runtime_ready") is not False:
     raise SystemExit("audit mismatch fixture must not mark retention cleanup runtime ready")
+PY
+object_retention_generic_id_port="$(python3 - <<'PY'
+import socket
+
+with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+    sock.bind(("127.0.0.1", 0))
+    print(sock.getsockname()[1])
+PY
+)"
+python3 "$object_retention_pass_dir/server.py" "$object_retention_web_dir" "$object_retention_generic_id_port" generic-cleanup-ids >"$object_retention_pass_dir/server.generic-id.log" 2>&1 &
+object_retention_generic_id_server_pid=$!
+for _ in $(seq 1 50); do
+  if curl --silent --show-error --max-time 1 "http://127.0.0.1:$object_retention_generic_id_port/api/admin/v1/object-storage/retention-policy/" >/dev/null 2>&1; then
+    break
+  fi
+  sleep 0.1
+done
+if ! curl --silent --show-error --max-time 1 "http://127.0.0.1:$object_retention_generic_id_port/api/admin/v1/object-storage/retention-policy/" >/dev/null 2>&1; then
+  kill "$object_retention_generic_id_server_pid" 2>/dev/null || true
+  printf 'failed to start local object-retention generic-id fixture server\n' >&2
+  cat "$object_retention_pass_dir/server.generic-id.log" >&2 || true
+  exit 1
+fi
+set +e
+RUN_ID="stage0-validate-object-retention-generic-id" \
+  OUT_DIR="$object_retention_pass_dir/generic-id-out" \
+  BASE_URL="http://127.0.0.1:$object_retention_generic_id_port" \
+  RELEASE_SHA="d3b1107c33dc40b8936f28549e06553fbd7b104a" \
+  ADMIN_BEARER_TOKEN="stage0-local-fixture" \
+  SMOKE_ADMIN_USER_ID="admin-ops" \
+  SMOKE_ADMIN_TENANT_ID="tenant-alpha" \
+  CSRF_ORIGIN="http://127.0.0.1:$object_retention_generic_id_port" \
+  scripts/staging_object_storage_retention_cleanup_smoke.sh >/dev/null
+object_retention_generic_id_status=$?
+set -e
+kill "$object_retention_generic_id_server_pid" 2>/dev/null || true
+if [[ "$object_retention_generic_id_status" -ne 2 ]]; then
+  printf 'object-retention generic-id fixture must exit 2, got %s\n' "$object_retention_generic_id_status" >&2
+  exit 1
+fi
+python3 - "$object_retention_pass_dir/generic-id-out/object-storage-retention-cleanup.json" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+report = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+if report.get("status") != "blocked":
+    raise SystemExit("generic-id fixture must remain blocked")
+blocked_checks = set(report.get("blocked_checks", []))
+for expected in (
+    "expired_export_cleanup:missing_cleanup_audit_refs",
+    "orphan_cleanup:missing_cleanup_audit_refs",
+):
+    if expected not in blocked_checks:
+        raise SystemExit(f"generic-id fixture must reject non-audit id fields as cleanup refs: {blocked_checks}")
+audit_linkage = report.get("audit_linkage", {})
+if audit_linkage.get("cleanup_audit_refs") != []:
+    raise SystemExit(f"generic-id fixture must not collect generic id fields as cleanup audit refs: {audit_linkage}")
+if audit_linkage.get("verified") is not False:
+    raise SystemExit(f"generic-id fixture must not verify audit linkage: {audit_linkage}")
+if report.get("split_evidence", {}).get("retention_cleanup_runtime_ready") is not False:
+    raise SystemExit("generic-id fixture must not mark retention cleanup runtime ready")
 PY
 set +e
 RUN_ID="stage0-validate-legal-support-visibility" DRY_RUN=1 OUT_DIR="$ops_validate_dir/legal-support" scripts/staging_legal_support_visibility_smoke.sh >/dev/null

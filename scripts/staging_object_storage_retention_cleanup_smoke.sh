@@ -357,7 +357,7 @@ def collect_audit_refs(value):
     if isinstance(value, dict):
         for key, nested in value.items():
             normalized_key = str(key).lower()
-            if normalized_key in {"audit_id", "audit_ref", "audit_reference", "id"} and isinstance(nested, str):
+            if normalized_key in {"audit_id", "audit_ref", "audit_reference"} and isinstance(nested, str):
                 refs.add(nested)
             elif normalized_key in {"audit_refs", "audit_references", "audit_ids"}:
                 if isinstance(nested, list):
