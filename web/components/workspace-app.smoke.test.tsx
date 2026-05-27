@@ -131,6 +131,15 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe", "stage0.rev2.generated-api-csrf-browser-probe");
     expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-status", "idle");
     expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-unsafe-operation", "updateAccount");
+    expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-unsafe-operation-count", "15");
+    expect(browserProbe).toHaveAttribute(
+      "data-generated-api-csrf-browser-probe-unsafe-covered-operations",
+      "deleteSession,updateAccount,createProject,updateProject,createChatSession,createChatMessage,createCandidateSet,selectDirection,createCanvasNode,createCanvasVersion,createUpload,createPackage,createExport,createShareLink,createSupportTicket"
+    );
+    expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-unsafe-credentialed-request-count", "0");
+    expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-unsafe-csrf-header-count", "0");
+    expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-unsafe-idempotency-required-count", "14");
+    expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-unsafe-idempotency-header-count", "0");
     expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-safe-operation", "getSession");
     expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-safe-csrf-header", "missing");
 

@@ -295,6 +295,13 @@ for (const requiredControlSnippet of [
   "data-generated-api-csrf-browser-probe",
   "data-generated-api-csrf-browser-probe-status",
   "data-generated-api-csrf-browser-probe-unsafe-csrf-header",
+  "data-generated-api-csrf-browser-probe-unsafe-operation-count",
+  "data-generated-api-csrf-browser-probe-unsafe-covered-operations",
+  "data-generated-api-csrf-browser-probe-unsafe-credentialed-request-count",
+  "data-generated-api-csrf-browser-probe-unsafe-csrf-header-count",
+  "data-generated-api-csrf-browser-probe-unsafe-idempotency-required-count",
+  "data-generated-api-csrf-browser-probe-unsafe-idempotency-header-count",
+  "data-generated-api-csrf-browser-probe-unsafe-operation-contracts",
   "data-generated-api-csrf-browser-probe-safe-csrf-header",
   "data-csrf-ux-guard",
   "data-csrf-ux-guard-label",
@@ -363,6 +370,13 @@ for (const requiredBrowserSnippet of [
   "data-generated-api-csrf-browser-probe",
   "data-generated-api-csrf-browser-probe-status",
   "data-generated-api-csrf-browser-probe-unsafe-csrf-header",
+  "data-generated-api-csrf-browser-probe-unsafe-operation-count",
+  "data-generated-api-csrf-browser-probe-unsafe-covered-operations",
+  "data-generated-api-csrf-browser-probe-unsafe-credentialed-request-count",
+  "data-generated-api-csrf-browser-probe-unsafe-csrf-header-count",
+  "data-generated-api-csrf-browser-probe-unsafe-idempotency-required-count",
+  "data-generated-api-csrf-browser-probe-unsafe-idempotency-header-count",
+  "data-generated-api-csrf-browser-probe-unsafe-operation-contracts",
   "data-generated-api-csrf-browser-probe-safe-csrf-header",
   "Session expired. Refresh or sign in to continue.",
   "Refresh Session",
@@ -379,6 +393,13 @@ if (
   sessionEvidence.unsafeActionGuard?.expectedExpiredRecoveryLabels !== "Refresh Session" ||
   !workspaceAppSource.includes("expiredSessionRecoveryActionLabels") ||
   !workspaceAppSource.includes("isExpiredSessionRecoveryAction") ||
+  !workspaceAppSource.includes("generatedApiCsrfInventory.unsafeRequestContracts") ||
+  !workspaceSmokeTestSource.includes("data-generated-api-csrf-browser-probe-unsafe-operation-count\", \"15\"") ||
+  !sessionSecurityPlaywrightSpecSource.includes("data-generated-api-csrf-browser-probe-unsafe-operation-count\", \"15\"") ||
+  !sessionSecurityPlaywrightSpecSource.includes("data-generated-api-csrf-browser-probe-unsafe-credentialed-request-count\", \"15\"") ||
+  !sessionSecurityPlaywrightSpecSource.includes("data-generated-api-csrf-browser-probe-unsafe-csrf-header-count\", \"15\"") ||
+  !sessionSecurityPlaywrightSpecSource.includes("data-generated-api-csrf-browser-probe-unsafe-idempotency-header-count\", \"14\"") ||
+  !sessionSecurityPlaywrightSpecSource.includes("csrf-probe-createSupportTicket") ||
   !workspaceSmokeTestSource.includes("data-session-unsafe-action-blocked-control-count\", \"17\"") ||
   !workspaceSmokeTestSource.includes("expect(screen.getByRole(\"button\", { name: \"Refresh Session\" })).not.toBeDisabled()") ||
   !sessionSecurityPlaywrightSpecSource.includes("data-session-unsafe-action-blocked-control-count\", \"17\"") ||

@@ -104,7 +104,24 @@ test("account route exposes secure-cookie, same-site CSRF, unsafe-action guard, 
   await expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-unsafe-method", "PATCH");
   await expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-unsafe-credentials", "include");
   await expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-unsafe-csrf-header", "same-site-origin-check");
-  await expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-unsafe-idempotency-key", "csrf-probe-update-account");
+  await expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-unsafe-idempotency-key", "csrf-probe-updateAccount");
+  await expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-unsafe-operation-count", "15");
+  await expect(browserProbe).toHaveAttribute(
+    "data-generated-api-csrf-browser-probe-unsafe-covered-operations",
+    "deleteSession,updateAccount,createProject,updateProject,createChatSession,createChatMessage,createCandidateSet,selectDirection,createCanvasNode,createCanvasVersion,createUpload,createPackage,createExport,createShareLink,createSupportTicket"
+  );
+  await expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-unsafe-credentialed-request-count", "15");
+  await expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-unsafe-csrf-header-count", "15");
+  await expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-unsafe-idempotency-required-count", "14");
+  await expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-unsafe-idempotency-header-count", "14");
+  await expect(browserProbe).toHaveAttribute(
+    "data-generated-api-csrf-browser-probe-unsafe-operation-contracts",
+    /createUpload:POST:include:same-site-origin-check:csrf-probe-createUpload/
+  );
+  await expect(browserProbe).toHaveAttribute(
+    "data-generated-api-csrf-browser-probe-unsafe-operation-contracts",
+    /createSupportTicket:POST:include:same-site-origin-check:csrf-probe-createSupportTicket/
+  );
   await expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-safe-operation", "getSession");
   await expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-safe-method", "GET");
   await expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-safe-credentials", "include");

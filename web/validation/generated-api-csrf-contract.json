@@ -20,6 +20,13 @@
       "data-generated-api-csrf-browser-probe",
       "data-generated-api-csrf-browser-probe-status",
       "data-generated-api-csrf-browser-probe-unsafe-csrf-header",
+      "data-generated-api-csrf-browser-probe-unsafe-operation-count",
+      "data-generated-api-csrf-browser-probe-unsafe-covered-operations",
+      "data-generated-api-csrf-browser-probe-unsafe-credentialed-request-count",
+      "data-generated-api-csrf-browser-probe-unsafe-csrf-header-count",
+      "data-generated-api-csrf-browser-probe-unsafe-idempotency-required-count",
+      "data-generated-api-csrf-browser-probe-unsafe-idempotency-header-count",
+      "data-generated-api-csrf-browser-probe-unsafe-operation-contracts",
       "data-generated-api-csrf-browser-probe-safe-csrf-header",
       "Session expired. Refresh or sign in to continue.",
       "Save Settings",
@@ -97,6 +104,6 @@
     "Generated web API client rejects unsafe path params before credentialed requests.",
     "Account route exposes secure __Host cookie and same-site CSRF UX evidence.",
     "Account route proves every generated unsafe operation is represented by the authenticated same-site UX guard.",
-    "Account route browser smoke invokes the generated client against local probe responses and proves unsafe requests send include credentials, X-ZenArt-CSRF, and Idempotency-Key while safe requests stay credentialed without CSRF headers."
+    "Account route browser smoke invokes the generated client against local probe responses and proves every unsafe request sends include credentials and X-ZenArt-CSRF, every idempotent unsafe request sends Idempotency-Key, and safe requests stay credentialed without CSRF headers."
   ]
 }

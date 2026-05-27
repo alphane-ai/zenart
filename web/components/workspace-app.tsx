@@ -52,7 +52,7 @@ import {
   localMerchantCampaignCandidates
 } from "@/lib/dev-state";
 import { downloadExportPackage } from "@/lib/export-download";
-import { apiOperations, ZenArtApiClient } from "@/lib/generated/zenart-api";
+import { apiOperations, OperationId, ZenArtApiClient } from "@/lib/generated/zenart-api";
 import { legalPolicyList, supportContactEmail } from "@/lib/legal-policies";
 import { buildGeneratedApiCsrfRequestContractEvidence, buildSessionSecurityContractEvidence } from "@/lib/request-security";
 import { AnalyticsEventName, captureAnalyticsEvent, reportFrontendError } from "@/lib/telemetry";
@@ -170,12 +170,21 @@ type BrowserCsrfProbeResult = {
   unsafeCredentials: string;
   unsafeCsrfHeader: string;
   unsafeIdempotencyKey: string;
+  unsafeOperationCount: number;
+  unsafeCoveredOperations: string;
+  unsafeCredentialedRequestCount: number;
+  unsafeCsrfHeaderCount: number;
+  unsafeIdempotencyRequiredCount: number;
+  unsafeIdempotencyHeaderCount: number;
+  unsafeOperationContracts: string;
   safeOperation: string;
   safeMethod: string;
   safeCredentials: string;
   safeCsrfHeader: string;
   failureReason: string;
 };
+
+const generatedApiCsrfInventory = buildGeneratedApiCsrfRequestContractEvidence(apiOperations);
 
 const initialBrowserCsrfProbeResult: BrowserCsrfProbeResult = {
   status: "idle",
@@ -184,6 +193,13 @@ const initialBrowserCsrfProbeResult: BrowserCsrfProbeResult = {
   unsafeCredentials: "missing",
   unsafeCsrfHeader: "missing",
   unsafeIdempotencyKey: "missing",
+  unsafeOperationCount: generatedApiCsrfInventory.unsafeOperationCount,
+  unsafeCoveredOperations: generatedApiCsrfInventory.unsafeOperationIds.join(","),
+  unsafeCredentialedRequestCount: 0,
+  unsafeCsrfHeaderCount: 0,
+  unsafeIdempotencyRequiredCount: generatedApiCsrfInventory.unsafeIdempotencyRequiredOperationIds.length,
+  unsafeIdempotencyHeaderCount: 0,
+  unsafeOperationContracts: "",
   safeOperation: "getSession",
   safeMethod: "missing",
   safeCredentials: "missing",
@@ -232,15 +248,23 @@ const isSessionBlocked = (state: WorkspaceState) => state.sessionContract.status
 
 const runGeneratedClientCsrfBrowserProbe = async (): Promise<BrowserCsrfProbeResult> => {
   const client = new ZenArtApiClient("/api/probe");
-  const requests: Array<{ operation: string; method: string; credentials: string; csrfHeader: string; idempotencyKey: string }> = [];
+  const requests: Array<{ path: string; method: string; credentials: string; csrfHeader: string; idempotencyKey: string }> = [];
   const originalFetch = window.fetch.bind(window);
+  const unsafeContracts = generatedApiCsrfInventory.unsafeRequestContracts;
+  const pathParams = {
+    project_id: "project-001",
+    chat_session_id: "chat-001",
+    workspace_id: "workspace-001",
+    package_id: "pkg-001",
+    export_id: "export-001"
+  };
 
   window.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
     if (url.startsWith("/api/probe/")) {
       const headers = new Headers(init?.headers);
       requests.push({
-        operation: url.includes("/account") ? "updateAccount" : "getSession",
+        path: url.replace("/api/probe", ""),
         method: init?.method ?? "GET",
         credentials: String(init?.credentials ?? "missing"),
         csrfHeader: headers.get("X-ZenArt-CSRF") ?? "not-required",
@@ -255,22 +279,39 @@ const runGeneratedClientCsrfBrowserProbe = async (): Promise<BrowserCsrfProbeRes
   }) as typeof window.fetch;
 
   try {
-    await client.request("updateAccount", {
-      idempotencyKey: "csrf-probe-update-account",
-      body: { display_name: "CSRF Probe" }
-    });
+    for (const contract of unsafeContracts) {
+      await client.request(contract.operationId as OperationId, {
+        pathParams,
+        idempotencyKey: contract.idempotencyHeaderRequired ? `csrf-probe-${contract.operationId}` : undefined,
+        body: contract.idempotencyHeaderRequired ? { probe: contract.operationId } : undefined
+      });
+    }
     await client.request("getSession");
   } finally {
     window.fetch = originalFetch;
   }
 
-  const unsafeRequest = requests.find((request) => request.operation === "updateAccount");
-  const safeRequest = requests.find((request) => request.operation === "getSession");
+  const unsafeRequests = requests.slice(0, unsafeContracts.length);
+  const unsafeRequest = unsafeRequests.find((request) => request.path === "/account") ?? unsafeRequests[0];
+  const safeRequest = requests.at(-1);
+  const unsafeCredentialedRequestCount = unsafeRequests.filter((request) => request.credentials === "include").length;
+  const unsafeCsrfHeaderCount = unsafeRequests.filter((request) => request.csrfHeader === "same-site-origin-check").length;
+  const unsafeIdempotencyHeaderCount = unsafeRequests.filter((request, index) => {
+    const contract = unsafeContracts[index];
+    return contract?.idempotencyHeaderRequired && request.idempotencyKey === `csrf-probe-${contract.operationId}`;
+  }).length;
+  const unsafeOperationContracts = unsafeContracts
+    .map((contract, index) => {
+      const request = unsafeRequests[index];
+      return `${contract.operationId}:${request?.method ?? "missing"}:${request?.credentials ?? "missing"}:${request?.csrfHeader ?? "missing"}:${request?.idempotencyKey ?? "missing"}`;
+    })
+    .join("|");
   const failures = [
-    unsafeRequest?.method === "PATCH" ? "" : "unsafe-method",
-    unsafeRequest?.credentials === "include" ? "" : "unsafe-credentials",
-    unsafeRequest?.csrfHeader === "same-site-origin-check" ? "" : "unsafe-csrf-header",
-    unsafeRequest?.idempotencyKey === "csrf-probe-update-account" ? "" : "unsafe-idempotency-key",
+    unsafeRequests.length === unsafeContracts.length ? "" : "unsafe-operation-count",
+    unsafeContracts.every((contract, index) => unsafeRequests[index]?.method === contract.method) ? "" : "unsafe-method",
+    unsafeCredentialedRequestCount === unsafeContracts.length ? "" : "unsafe-credentials",
+    unsafeCsrfHeaderCount === unsafeContracts.length ? "" : "unsafe-csrf-header",
+    unsafeIdempotencyHeaderCount === generatedApiCsrfInventory.unsafeIdempotencyRequiredOperationIds.length ? "" : "unsafe-idempotency-key",
     safeRequest?.method === "GET" ? "" : "safe-method",
     safeRequest?.credentials === "include" ? "" : "safe-credentials",
     safeRequest?.csrfHeader === "not-required" ? "" : "safe-csrf-header"
@@ -283,6 +324,13 @@ const runGeneratedClientCsrfBrowserProbe = async (): Promise<BrowserCsrfProbeRes
     unsafeCredentials: unsafeRequest?.credentials ?? "missing",
     unsafeCsrfHeader: unsafeRequest?.csrfHeader ?? "missing",
     unsafeIdempotencyKey: unsafeRequest?.idempotencyKey ?? "missing",
+    unsafeOperationCount: unsafeContracts.length,
+    unsafeCoveredOperations: unsafeContracts.map((contract) => contract.operationId).join(","),
+    unsafeCredentialedRequestCount,
+    unsafeCsrfHeaderCount,
+    unsafeIdempotencyRequiredCount: generatedApiCsrfInventory.unsafeIdempotencyRequiredOperationIds.length,
+    unsafeIdempotencyHeaderCount,
+    unsafeOperationContracts,
     safeOperation: "getSession",
     safeMethod: safeRequest?.method ?? "missing",
     safeCredentials: safeRequest?.credentials ?? "missing",
@@ -2053,6 +2101,13 @@ function AccountView({
         data-generated-api-csrf-browser-probe-unsafe-credentials={browserCsrfProbeResult.unsafeCredentials}
         data-generated-api-csrf-browser-probe-unsafe-csrf-header={browserCsrfProbeResult.unsafeCsrfHeader}
         data-generated-api-csrf-browser-probe-unsafe-idempotency-key={browserCsrfProbeResult.unsafeIdempotencyKey}
+        data-generated-api-csrf-browser-probe-unsafe-operation-count={browserCsrfProbeResult.unsafeOperationCount}
+        data-generated-api-csrf-browser-probe-unsafe-covered-operations={browserCsrfProbeResult.unsafeCoveredOperations}
+        data-generated-api-csrf-browser-probe-unsafe-credentialed-request-count={browserCsrfProbeResult.unsafeCredentialedRequestCount}
+        data-generated-api-csrf-browser-probe-unsafe-csrf-header-count={browserCsrfProbeResult.unsafeCsrfHeaderCount}
+        data-generated-api-csrf-browser-probe-unsafe-idempotency-required-count={browserCsrfProbeResult.unsafeIdempotencyRequiredCount}
+        data-generated-api-csrf-browser-probe-unsafe-idempotency-header-count={browserCsrfProbeResult.unsafeIdempotencyHeaderCount}
+        data-generated-api-csrf-browser-probe-unsafe-operation-contracts={browserCsrfProbeResult.unsafeOperationContracts}
         data-generated-api-csrf-browser-probe-safe-operation={browserCsrfProbeResult.safeOperation}
         data-generated-api-csrf-browser-probe-safe-method={browserCsrfProbeResult.safeMethod}
         data-generated-api-csrf-browser-probe-safe-credentials={browserCsrfProbeResult.safeCredentials}
