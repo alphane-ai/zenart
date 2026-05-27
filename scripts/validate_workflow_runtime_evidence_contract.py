@@ -256,6 +256,7 @@ def validate_workflow_contracts(contract: dict[str, Any]) -> None:
         require(runtime_contract["status"] == "planned", f"{workflow_id} runtime contract must remain planned")
         workflow_expected_files = expected_files(workflow_id)
         require(runtime_contract["expected_evidence_files"] == workflow_expected_files, f"{workflow_id} evidence files mismatch")
+        validate_runtime_closure_contract(workflow_id, runtime_contract["runtime_closure_contract"], workflow_expected_files)
 
         release_gate = runtime_contract["release_gate_check"]
         require(release_gate["gate"] == "local_alpha", f"{workflow_id} release gate must be local_alpha")
@@ -268,6 +269,75 @@ def validate_workflow_contracts(contract: dict[str, Any]) -> None:
         validate_api_contract(workflow_id, evidence_contracts["api_smoke"], workflow)
         validate_playwright_contract(workflow_id, evidence_contracts["playwright_happy_path"], workflow)
         validate_export_zip_contract(workflow_id, evidence_contracts["export_zip"], workflow)
+
+
+def validate_runtime_closure_contract(workflow_id: str, closure: dict[str, Any], workflow_expected_files: list[str]) -> None:
+    require(
+        closure["release_gate_check_id"] == "local_alpha_e2e_workflow_smoke",
+        f"{workflow_id} runtime closure release gate mismatch",
+    )
+    require(
+        closure["pass_file_schema_version"] == "stage0.rev2.local-alpha-runtime-evidence",
+        f"{workflow_id} runtime closure schema version mismatch",
+    )
+    require(closure["pass_file_environment"] == "local_alpha", f"{workflow_id} runtime closure environment mismatch")
+    require(closure["pass_file_status"] == "pass", f"{workflow_id} runtime closure pass status mismatch")
+    require(
+        closure["allowed_closed_without_runtime_evidence"] is False,
+        f"{workflow_id} runtime closure must disallow closure without runtime evidence",
+    )
+    require(
+        closure["missing_runtime_files_keep_checklist_open"] is True,
+        f"{workflow_id} missing runtime files must keep checklist items open",
+    )
+
+    expected_by_kind = {
+        "api_smoke": expected_file(workflow_id, "api_smoke"),
+        "playwright_happy_path": expected_file(workflow_id, "playwright_happy_path"),
+        "export_zip": expected_file(workflow_id, "export_zip"),
+    }
+    runtime_files = {item["evidence_kind"]: item for item in closure["runtime_files"]}
+    require(set(runtime_files) == EVIDENCE_KINDS, f"{workflow_id} runtime closure evidence kind mismatch")
+    require(
+        [runtime_files[kind]["expected_file"] for kind in ["api_smoke", "playwright_happy_path", "export_zip"]]
+        == workflow_expected_files,
+        f"{workflow_id} runtime closure file order mismatch",
+    )
+
+    missing_files: list[str] = []
+    for kind, expected_path in expected_by_kind.items():
+        item = runtime_files[kind]
+        require(item["expected_file"] == expected_path, f"{workflow_id} {kind} closure expected file mismatch")
+        path = ROOT / expected_path
+        if path.is_file():
+            evidence = load_json(path)
+            passes = (
+                evidence.get("schema_version") == closure["pass_file_schema_version"]
+                and evidence.get("environment") == closure["pass_file_environment"]
+                and evidence.get("workflow_id") == workflow_id
+                and evidence.get("evidence_kind") == kind
+                and evidence.get("status") == closure["pass_file_status"]
+                and evidence.get("release_gate_check_id") == closure["release_gate_check_id"]
+                and evidence.get("proves_running_local_stack") is True
+            )
+            expected_status = "present_passed" if passes else "present_failed_contract"
+        else:
+            expected_status = "missing"
+        require(
+            item["status"] == expected_status,
+            f"{workflow_id} {kind} runtime closure status {item['status']} != {expected_status}",
+        )
+        if expected_status != "present_passed":
+            missing_files.append(expected_path)
+
+    require(
+        closure["missing_runtime_files"] == missing_files,
+        f"{workflow_id} runtime closure missing files mismatch",
+    )
+    require(
+        closure["workflow_runtime_closed"] is (len(missing_files) == 0),
+        f"{workflow_id} runtime closure boolean mismatch",
+    )
 
 
 def validate_common_evidence_fields(workflow_id: str, item: dict[str, Any], kind: str, workflow: dict[str, Any]) -> None:

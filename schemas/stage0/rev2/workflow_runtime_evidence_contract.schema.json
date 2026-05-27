@@ -182,6 +182,7 @@
         "status",
         "checklist_items",
         "expected_evidence_files",
+        "runtime_closure_contract",
         "evidence_contracts",
         "release_gate_check"
       ],
@@ -232,6 +233,88 @@
           "items": {
             "type": "string",
             "pattern": "^ops/evidence/local_alpha/.+\\.(api_smoke|playwright_happy_path|export_zip)\\.json$"
+          }
+        },
+        "runtime_closure_contract": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "release_gate_check_id",
+            "pass_file_schema_version",
+            "pass_file_environment",
+            "pass_file_status",
+            "allowed_closed_without_runtime_evidence",
+            "missing_runtime_files_keep_checklist_open",
+            "runtime_files",
+            "missing_runtime_files",
+            "workflow_runtime_closed"
+          ],
+          "properties": {
+            "release_gate_check_id": {
+              "const": "local_alpha_e2e_workflow_smoke"
+            },
+            "pass_file_schema_version": {
+              "const": "stage0.rev2.local-alpha-runtime-evidence"
+            },
+            "pass_file_environment": {
+              "const": "local_alpha"
+            },
+            "pass_file_status": {
+              "const": "pass"
+            },
+            "allowed_closed_without_runtime_evidence": {
+              "const": false
+            },
+            "missing_runtime_files_keep_checklist_open": {
+              "const": true
+            },
+            "runtime_files": {
+              "type": "array",
+              "minItems": 3,
+              "maxItems": 3,
+              "uniqueItems": true,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "evidence_kind",
+                  "expected_file",
+                  "status"
+                ],
+                "properties": {
+                  "evidence_kind": {
+                    "enum": [
+                      "api_smoke",
+                      "playwright_happy_path",
+                      "export_zip"
+                    ]
+                  },
+                  "expected_file": {
+                    "type": "string",
+                    "pattern": "^ops/evidence/local_alpha/.+\\.(api_smoke|playwright_happy_path|export_zip)\\.json$"
+                  },
+                  "status": {
+                    "enum": [
+                      "missing",
+                      "invalid_json",
+                      "present_failed_contract",
+                      "present_passed"
+                    ]
+                  }
+                }
+              }
+            },
+            "missing_runtime_files": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "pattern": "^ops/evidence/local_alpha/.+\\.(api_smoke|playwright_happy_path|export_zip)\\.json$"
+              }
+            },
+            "workflow_runtime_closed": {
+              "type": "boolean"
+            }
           }
         },
         "evidence_contracts": {
