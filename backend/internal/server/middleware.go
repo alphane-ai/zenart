@@ -209,6 +209,9 @@ func principalFromHeaders(r *http.Request) (auth.Principal, bool) {
 	if userID == "" || tenantID == "" {
 		return auth.Principal{}, false
 	}
+	if !auth.ValidTenantID(tenantID) {
+		return auth.Principal{}, false
+	}
 
 	roles := []auth.Role{auth.RoleUser}
 	for _, role := range strings.Split(r.Header.Get("X-Zenart-Roles"), ",") {
@@ -376,7 +379,7 @@ func verifySessionCookie(value, secret string, now time.Time, adminRoute bool) (
 	if err := json.Unmarshal(raw, &payload); err != nil {
 		return sessionCookiePayload{}, false
 	}
-	if payload.UserID == "" || payload.TenantID == "" || payload.ExpiresAt <= now.Unix() {
+	if payload.UserID == "" || !auth.ValidTenantID(payload.TenantID) || payload.ExpiresAt <= now.Unix() {
 		return sessionCookiePayload{}, false
 	}
 	if len(payload.Roles) == 0 {

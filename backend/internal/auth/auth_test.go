@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 )
@@ -86,6 +87,21 @@ func TestLocalSessionServiceCreatesWebUserSession(t *testing.T) {
 	}
 	if !Authorize(context.Background(), session.Principal(), Policy{}) {
 		t.Fatal("session principal was not authorized for user policy")
+	}
+}
+
+func TestLocalSessionServiceRejectsUnsafeTenantIDs(t *testing.T) {
+	for _, tenantID := range []string{
+		"tenant_1/../tenant_2",
+		"tenant 1",
+		"tenant\\one",
+		".",
+		"..",
+	} {
+		_, err := (SessionService{Mode: AccessModeLocal}).CreateLocalSession("user@example.com", tenantID, nil, time.Hour)
+		if err == nil || !strings.Contains(err.Error(), "tenant_id is invalid") {
+			t.Fatalf("CreateLocalSession(%q) error = %v, want invalid tenant_id", tenantID, err)
+		}
 	}
 }
 

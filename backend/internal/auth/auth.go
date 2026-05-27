@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -14,6 +15,8 @@ type AccessMode string
 const (
 	AccessModeLocal AccessMode = "local"
 )
+
+var tenantIDPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]*$`)
 
 type Principal struct {
 	UserID   string
@@ -45,6 +48,9 @@ func (s SessionService) CreateLocalSession(email, tenantID string, roles []Role,
 	tenantID = strings.TrimSpace(tenantID)
 	if email == "" || tenantID == "" {
 		return Session{}, errors.New("email and tenant_id are required")
+	}
+	if !ValidTenantID(tenantID) {
+		return Session{}, errors.New("tenant_id is invalid")
 	}
 	if ttl <= 0 {
 		return Session{}, errors.New("ttl must be positive")
@@ -133,6 +139,16 @@ func Authorize(_ context.Context, principal Principal, policy Policy) bool {
 
 func SameTenant(principal Principal, tenantID string) bool {
 	return principal.TenantID != "" && principal.TenantID == tenantID
+}
+
+func ValidTenantID(tenantID string) bool {
+	tenantID = strings.TrimSpace(tenantID)
+	return tenantID != "" &&
+		tenantID == strings.Trim(tenantID, "/") &&
+		!strings.ContainsAny(tenantID, `/\`) &&
+		tenantID != "." &&
+		tenantID != ".." &&
+		tenantIDPattern.MatchString(tenantID)
 }
 
 func Matrix() map[Permission]Policy {

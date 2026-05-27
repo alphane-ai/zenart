@@ -1590,6 +1590,33 @@ func TestLocalAdminSessionRejectsUserRoles(t *testing.T) {
 	}
 }
 
+func TestLocalSessionRejectsUnsafeTenantID(t *testing.T) {
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/local/session", bytes.NewBufferString(`{"tenant_id":"tenant_1/../tenant_2"}`))
+	setSameSiteCSRFHeaders(req)
+	rec := httptest.NewRecorder()
+
+	New(cfg, nil).Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want bad request: %s", rec.Code, rec.Body.String())
+	}
+	if findCookie(rec.Result().Cookies(), cfg.Auth.SessionCookieName) != nil {
+		t.Fatal("session cookie must not be set for unsafe tenant id")
+	}
+	var body map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("response JSON error = %v", err)
+	}
+	if body["code"] != "session_validation_error" {
+		t.Fatalf("code = %v, want session_validation_error", body["code"])
+	}
+}
+
 func TestSessionCookieAuthenticatesRequest(t *testing.T) {
 	cfg, err := config.Load()
 	if err != nil {
@@ -1760,6 +1787,25 @@ func TestNonLocalRuntimeRejectsDevIdentityHeaders(t *testing.T) {
 	}
 }
 
+func TestDevIdentityHeadersRejectUnsafeTenantID(t *testing.T) {
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	cfg.Auth.DevIdentityHeaders = true
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/tasks/task_123", nil)
+	req.Header.Set("X-Zenart-User-ID", "user_1")
+	req.Header.Set("X-Zenart-Tenant-ID", "tenant_1/../tenant_2")
+	rec := httptest.NewRecorder()
+
+	New(cfg, nil).Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("status = %d, want unauthorized for unsafe header tenant id: %s", rec.Code, rec.Body.String())
+	}
+}
+
 func TestNonLocalRuntimeAcceptsSignedSessionCookie(t *testing.T) {
 	cfg, err := config.Load()
 	if err != nil {
@@ -1799,6 +1845,40 @@ func TestNonLocalRuntimeAcceptsSignedSessionCookie(t *testing.T) {
 	details := body["details"].(map[string]any)
 	if details["tenant_id"] != "tenant_cookie" {
 		t.Fatalf("tenant_id = %v, want tenant_cookie", details["tenant_id"])
+	}
+}
+
+func TestSignedSessionCookieRejectsUnsafeTenantID(t *testing.T) {
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	cfg.Auth.AccessMode = "invite-only"
+	cfg.Auth.DevIdentityHeaders = false
+	expiresAt := time.Now().UTC().Add(time.Hour)
+	cookieValue, err := signSessionCookie(sessionCookiePayload{
+		UserID:    "user_cookie",
+		TenantID:  "tenant_1/../tenant_2",
+		Roles:     []auth.Role{auth.RoleUserOwner},
+		ExpiresAt: expiresAt.Unix(),
+	}, cfg.Auth.SessionSecret)
+	if err != nil {
+		t.Fatalf("signSessionCookie() error = %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/tasks/task_123", nil)
+	req.AddCookie(&http.Cookie{
+		Name:    cfg.Auth.SessionCookieName,
+		Value:   cookieValue,
+		Path:    "/",
+		Expires: expiresAt,
+	})
+	rec := httptest.NewRecorder()
+
+	New(cfg, nil).Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("status = %d, want unauthorized for unsafe cookie tenant id: %s", rec.Code, rec.Body.String())
 	}
 }
 
