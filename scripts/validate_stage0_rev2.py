@@ -575,6 +575,13 @@ RELEASE_GATE_BASENAME_EXACT_PATH_GUARD_CHECKLIST_ITEM = (
     "so sibling artifacts or shorthand filenames cannot imply launch-gate closure。"
 )
 
+RELEASE_GATE_CHECK_CONDITION_EXISTING_PATH_GUARD_CHECKLIST_ITEM = (
+    "Release gate check/condition existing-file guard 通过：`scripts/validate_stage0_rev2.py` validates "
+    "every existing concrete file cited by release-gate check and Do-Not-Launch evidence refs for gate-specific "
+    "environment, passable status, and non-closure probe context, so stale or cross-gate JSON cannot support "
+    "subitem closure while allowed definition directories remain definition-only。"
+)
+
 README_GATE_SNAPSHOT_REQUIREMENTS = {
     "Local Alpha Gate": {
         "expected_status": "go",
@@ -3351,10 +3358,13 @@ def require_existing_paths_are_passable_for_ref(
     ref_kind: str,
     ref_id: str,
     ref_state: str,
+    require_existing_paths_are_files: bool = True,
 ) -> None:
     for path in sorted(concrete_evidence_paths(evidence_ref)):
         candidate = repo_path(path)
         if not candidate.exists():
+            continue
+        if candidate.is_dir() and not require_existing_paths_are_files:
             continue
         require(
             candidate.is_file(),
@@ -5253,6 +5263,14 @@ def validate_release_gate_basics(data: dict[str, Any]) -> tuple[dict[str, dict[s
             ref_id=check_id,
             ref_state=check["status"],
         )
+        require_existing_paths_are_passable_for_ref(
+            check["evidence_ref"],
+            gate=gate,
+            ref_kind="check",
+            ref_id=check_id,
+            ref_state=check["status"],
+            require_existing_paths_are_files=False,
+        )
 
     for condition_id, condition in conditions.items():
         require_field_allowed_keys(
@@ -5333,6 +5351,14 @@ def validate_release_gate_basics(data: dict[str, Any]) -> tuple[dict[str, dict[s
             ref_kind="condition",
             ref_id=condition_id,
             ref_state="active" if condition["is_present"] else "cleared",
+        )
+        require_existing_paths_are_passable_for_ref(
+            condition["evidence_ref"],
+            gate=gate,
+            ref_kind="condition",
+            ref_id=condition_id,
+            ref_state="active" if condition["is_present"] else "cleared",
+            require_existing_paths_are_files=False,
         )
 
     require_non_closure_runtime_evidence_context(
@@ -11330,6 +11356,7 @@ def validate_launch_readiness_split_contracts() -> None:
         RUNTIME_PASS_EXACT_FILE_GUARD_CHECKLIST_ITEM,
         CI_BROAD_RUNTIME_EXACT_FILE_GUARD_CHECKLIST_ITEM,
         RELEASE_GATE_BASENAME_EXACT_PATH_GUARD_CHECKLIST_ITEM,
+        RELEASE_GATE_CHECK_CONDITION_EXISTING_PATH_GUARD_CHECKLIST_ITEM,
     ] + sorted(RELEASE_GATE_BACKFILL_CHECKED_ITEMS):
         require(item in checked_lines, f"blueprint must close definition-only evidence subitem: {item}")
 
@@ -11443,6 +11470,9 @@ def validate_launch_readiness_split_contracts() -> None:
         RELEASE_GATE_BASENAME_EXACT_PATH_GUARD_CHECKLIST_ITEM,
         "validator-owned artifact basenames without the full canonical path",
         "sibling artifacts or shorthand filenames cannot imply launch-gate closure",
+        RELEASE_GATE_CHECK_CONDITION_EXISTING_PATH_GUARD_CHECKLIST_ITEM,
+        "every existing concrete file cited by release-gate check and Do-Not-Launch evidence refs",
+        "stale or cross-gate JSON cannot support subitem closure",
         "each exact `ops/evidence/ci/*.json` runtime file must declare `environment=ci`",
         "ops/evidence/ci/stage0-rev2-pr-main-run.json",
         "ops/evidence/ci/stage0-rev2-playwright-smoke.json",
