@@ -1904,6 +1904,7 @@ main 合并前必须通过：
 - [x] 扩展 launch analytics/support/email/identity secret redaction/classification 覆盖 PostHog、Segment、Amplitude、Mixpanel、LaunchDarkly、PagerDuty、Opsgenie、Zendesk、Intercom、Resend、Postmark、Mailchimp、Clerk、Auth0、Supabase、Firebase metadata keys and token value patterns.
 - [x] 扩展 launch authorization secret redaction 覆盖 `Authorization=Token ...`、`Proxy-Authorization=SharedKeyLite ...` assignment-form metadata，避免 logs/traces/errors/audit/support/export/crawler metadata 泄露 provider/storage authorization tails.
 - [x] 扩展 Kubernetes Secret payload redaction/classification，覆盖 `data`、`stringData`、`binaryData` map 和 typed struct metadata，避免 benign child keys such as username/config/tls.crt 泄露 encoded secret payloads.
+- [x] 扩展 launch AI observability/eval/proxy secret redaction/classification 覆盖 Langfuse、Braintrust、Helicone、OpenPipe、PromptLayer、Portkey、W&B/Weights & Biases、Weave、Arize Phoenix 字符串 token 和结构化 metadata keys，避免 traces/support/audit/export metadata 泄露二级 AI 工具凭据.
 - [x] 硬化 malware scan 外部边界：scanner request/response metadata redaction、status normalization、unsupported status fail-closed tests。
 - [x] 硬化 staging/production malware scan 启动配置：`MALWARE_SCAN_PROVIDER=http` 在非 local 环境必须启用 `MALWARE_SCAN_FAIL_CLOSED=true`，避免外部 scanner outage/error fail-open。
 - [x] 添加 dependency/image/secret scans。

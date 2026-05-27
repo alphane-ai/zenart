@@ -370,6 +370,121 @@ func TestRedactMapCoversLaunchOpsAndCISecretKeys(t *testing.T) {
 	}
 }
 
+func TestRedactStringCoversLaunchAIEvalProxyTokens(t *testing.T) {
+	input := strings.Join([]string{
+		"LANGFUSE_SECRET_KEY=sk-lf-abcdefghijklmnopqrstuvwxyz123456",
+		"LANGFUSE_PUBLIC_KEY=pk-lf-abcdefghijklmnopqrstuvwxyz123456",
+		"BRAINTRUST_API_KEY=braintrust-secret-value",
+		"HELICONE_API_KEY=sk-helicone-abcdefghijklmnopqrstuvwxyz123456",
+		"OPENPIPE_API_KEY=opk_abcdefghijklmnopqrstuvwxyz123456",
+		"PROMPTLAYER_API_KEY=pl_abcdefghijklmnopqrstuvwxyz123456",
+		"PORTKEY_API_KEY=ptk_abcdefghijklmnopqrstuvwxyz123456",
+		"WANDB_API_KEY=wandb-secret-value",
+		"WEIGHTS_BIASES_API_KEY=weights-secret-value",
+		"WEAVE_API_KEY=weave-secret-value",
+		"ARIZE_PHOENIX_API_KEY=phoenix-secret-value",
+	}, " ")
+
+	got := RedactString(input)
+	for _, leaked := range []string{
+		"sk-lf-abcdefghijklmnopqrstuvwxyz123456",
+		"pk-lf-abcdefghijklmnopqrstuvwxyz123456",
+		"braintrust-secret-value",
+		"sk-helicone-abcdefghijklmnopqrstuvwxyz123456",
+		"opk_abcdefghijklmnopqrstuvwxyz123456",
+		"pl_abcdefghijklmnopqrstuvwxyz123456",
+		"ptk_abcdefghijklmnopqrstuvwxyz123456",
+		"wandb-secret-value",
+		"weights-secret-value",
+		"weave-secret-value",
+		"phoenix-secret-value",
+	} {
+		if strings.Contains(got, leaked) {
+			t.Fatalf("RedactString() = %q, leaked %s", got, leaked)
+		}
+	}
+	if !strings.Contains(got, Redacted) {
+		t.Fatalf("RedactString() = %q, want redaction marker", got)
+	}
+
+	findings := ClassifyString(input)
+	for _, signal := range []string{
+		"langfuse_secret_key",
+		"langfuse_public_key",
+		"helicone_key",
+		"openpipe_key",
+		"promptlayer_key",
+		"portkey_key",
+		"assignment:key_name",
+	} {
+		assertSignal(t, findings, signal)
+	}
+}
+
+func TestRedactMapCoversLaunchAIEvalProxyMetadataKeys(t *testing.T) {
+	metadata := map[string]any{
+		"ai_observability": map[string]any{
+			"langfuseSecretKey":     "sk-lf-abcdefghijklmnopqrstuvwxyz123456",
+			"langfusePublicKey":     "pk-lf-abcdefghijklmnopqrstuvwxyz123456",
+			"braintrustApiKey":      "braintrust-secret-value",
+			"heliconeAuthToken":     "sk-helicone-abcdefghijklmnopqrstuvwxyz123456",
+			"openpipeApiKey":        "opk_abcdefghijklmnopqrstuvwxyz123456",
+			"promptlayerApiKey":     "pl_abcdefghijklmnopqrstuvwxyz123456",
+			"portkeyVirtualKey":     "ptk_abcdefghijklmnopqrstuvwxyz123456",
+			"wandbApiKey":           "wandb-secret-value",
+			"weightsBiasesApiKey":   "weights-secret-value",
+			"weaveTraceServerToken": "weave-secret-value",
+			"arizePhoenixApiKey":    "phoenix-secret-value",
+			"publicEndpoint":        "https://eval.example.test",
+		},
+		"public": "visible",
+	}
+
+	body, err := json.Marshal(RedactValue(metadata))
+	if err != nil {
+		t.Fatalf("marshal redacted metadata: %v", err)
+	}
+	for _, leaked := range []string{
+		"sk-lf-abcdefghijklmnopqrstuvwxyz123456",
+		"pk-lf-abcdefghijklmnopqrstuvwxyz123456",
+		"braintrust-secret-value",
+		"sk-helicone-abcdefghijklmnopqrstuvwxyz123456",
+		"opk_abcdefghijklmnopqrstuvwxyz123456",
+		"pl_abcdefghijklmnopqrstuvwxyz123456",
+		"ptk_abcdefghijklmnopqrstuvwxyz123456",
+		"wandb-secret-value",
+		"weights-secret-value",
+		"weave-secret-value",
+		"phoenix-secret-value",
+	} {
+		if strings.Contains(string(body), leaked) {
+			t.Fatalf("redacted metadata = %s, leaked %s", string(body), leaked)
+		}
+	}
+	for _, fragment := range []string{`"public":"visible"`, `"publicEndpoint":"https://eval.example.test"`, Redacted} {
+		if !strings.Contains(string(body), fragment) {
+			t.Fatalf("redacted metadata = %s, missing %s", string(body), fragment)
+		}
+	}
+
+	findings := ClassifyValue(metadata)
+	for _, location := range []string{
+		"ai_observability.langfuseSecretKey",
+		"ai_observability.langfusePublicKey",
+		"ai_observability.braintrustApiKey",
+		"ai_observability.heliconeAuthToken",
+		"ai_observability.openpipeApiKey",
+		"ai_observability.promptlayerApiKey",
+		"ai_observability.portkeyVirtualKey",
+		"ai_observability.wandbApiKey",
+		"ai_observability.weightsBiasesApiKey",
+		"ai_observability.weaveTraceServerToken",
+		"ai_observability.arizePhoenixApiKey",
+	} {
+		assertAnyFindingAt(t, findings, location)
+	}
+}
+
 func TestRedactStringCoversLaunchAuthorizationSchemesAndInfraTokens(t *testing.T) {
 	pulumiToken := "pul-" + strings.Repeat("a", 40)
 	databricksToken := "dapi" + strings.Repeat("b", 32)
