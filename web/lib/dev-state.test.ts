@@ -742,9 +742,14 @@ describe("dev workspace contracts", () => {
         "launch-brief.pdf",
         "https://assets.example.com/reference-pack"
       ],
+      acceptedAttachedCount: 3,
       rejectedSampleNames: ["unsafe-reference.exe", "http://assets.example.com/reference-pack"],
+      rejectedReasons: ["Images must be PNG, JPG, JPEG, or WEBP files.", "Reference URLs must use HTTPS."],
+      rejectedQueuedCount: 2,
+      rejectedPackageActionCount: 0,
       expectedAcceptedKinds: ["image", "document", "url"],
       expectedRejectedCount: 2,
+      expectedRejectedReasons: ["Images must be PNG, JPG, JPEG, or WEBP files.", "Reference URLs must use HTTPS."],
       failures: []
     });
   });

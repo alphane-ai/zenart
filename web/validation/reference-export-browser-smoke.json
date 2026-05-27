@@ -21,6 +21,10 @@
     "requiredAssertions": [
       "reference upload browser smoke reaches ready export metadata and render budget evidence",
       "data-reference-upload-integration-status",
+      "data-reference-upload-validation-rejected-reasons",
+      "data-reference-upload-validation-rejected-package-action-count",
+      "data-reference-upload-rejection-reason",
+      "data-reference-upload-package-action",
       "data-reference-latest-packaged",
       "data-reference-latest-provenance-present",
       "data-reference-latest-ppt-slide-present",
@@ -45,6 +49,17 @@
     ]
   },
   "expectedContracts": {
+    "referenceUploadValidation": {
+      "schemaVersion": "stage0.rev2.reference-upload-validation-matrix",
+      "expectedStatus": "pass",
+      "expectedAcceptedAttachedCount": "3",
+      "expectedRejectedQueuedCount": "2",
+      "expectedRejectedPackageActionCount": "0",
+      "expectedRejectedReasons": [
+        "Images must be PNG, JPG, JPEG, or WEBP files.",
+        "Reference URLs must use HTTPS."
+      ]
+    },
     "referenceUpload": {
       "schemaVersion": "stage0.rev2.reference-upload-integration-smoke",
       "expectedStatus": "pass",

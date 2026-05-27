@@ -101,6 +101,7 @@ if (
 }
 
 const browserReferenceUpload = browserArtifact.expectedContracts?.referenceUpload;
+const browserReferenceUploadValidation = browserArtifact.expectedContracts?.referenceUploadValidation;
 if (
   browserReferenceUpload?.schemaVersion !== referenceUpload.schemaVersion ||
   browserReferenceUpload?.expectedStatus !== referenceUpload.expectedStatus ||
@@ -117,6 +118,56 @@ if (
   browserReferenceUpload?.expectedRejectedReferenceExportedCount !== referenceUpload.expectedRejectedReferenceExportedCount
 ) {
   fail("reference upload artifact drifted from browser smoke artifact");
+}
+
+const referenceUploadValidation = artifact.referenceUploadValidation;
+const routeReferenceUploadValidation = securityEvidenceBySchema.get("stage0.rev2.reference-upload-validation-matrix");
+if (!routeReferenceUploadValidation) {
+  fail("user route smoke must expose reference upload validation matrix evidence");
+}
+if (
+  referenceUploadValidation?.schemaVersion !== routeReferenceUploadValidation.schemaVersion ||
+  referenceUploadValidation?.route !== routeReferenceUploadValidation.route ||
+  referenceUploadValidation?.statusAttribute !== routeReferenceUploadValidation.statusAttribute ||
+  referenceUploadValidation?.expectedStatus !== routeReferenceUploadValidation.expectedStatus ||
+  referenceUploadValidation?.scenario !== routeReferenceUploadValidation.scenario ||
+  JSON.stringify(referenceUploadValidation?.expectedAcceptedKinds) !==
+    JSON.stringify(routeReferenceUploadValidation.expectedAcceptedKinds) ||
+  referenceUploadValidation?.expectedAcceptedAttachedCount !== routeReferenceUploadValidation.expectedAcceptedAttachedCount ||
+  referenceUploadValidation?.expectedRejectedCount !== routeReferenceUploadValidation.expectedRejectedCount ||
+  referenceUploadValidation?.expectedRejectedQueuedCount !== routeReferenceUploadValidation.expectedRejectedQueuedCount ||
+  referenceUploadValidation?.expectedRejectedPackageActionCount !== routeReferenceUploadValidation.expectedRejectedPackageActionCount ||
+  JSON.stringify(referenceUploadValidation?.expectedRejectedReasons) !==
+    JSON.stringify(routeReferenceUploadValidation.expectedRejectedReasons)
+) {
+  fail("reference upload validation artifact drifted from user route smoke evidence");
+}
+if (
+  browserReferenceUploadValidation?.schemaVersion !== referenceUploadValidation.schemaVersion ||
+  browserReferenceUploadValidation?.expectedStatus !== referenceUploadValidation.expectedStatus ||
+  browserReferenceUploadValidation?.expectedAcceptedAttachedCount !== referenceUploadValidation.expectedAcceptedAttachedCount ||
+  browserReferenceUploadValidation?.expectedRejectedQueuedCount !== referenceUploadValidation.expectedRejectedQueuedCount ||
+  browserReferenceUploadValidation?.expectedRejectedPackageActionCount !==
+    referenceUploadValidation.expectedRejectedPackageActionCount ||
+  JSON.stringify(browserReferenceUploadValidation?.expectedRejectedReasons) !==
+    JSON.stringify(referenceUploadValidation.expectedRejectedReasons)
+) {
+  fail("reference upload validation artifact drifted from browser smoke artifact");
+}
+for (const attribute of referenceUploadValidation.requiredAttributes ?? []) {
+  if (!componentSource.includes(attribute) && !workspaceSmokeTestSource.includes(attribute) && !browserSpecSource.includes(attribute)) {
+    fail(`reference upload validation evidence missing attribute ${attribute}`);
+  }
+}
+for (const rejectedSample of referenceUploadValidation.requiredRejectedSamples ?? []) {
+  if (!devStateSource.includes(rejectedSample) && !workspaceSmokeTestSource.includes(rejectedSample) && !browserSpecSource.includes(rejectedSample)) {
+    fail(`reference upload validation evidence missing rejected sample ${rejectedSample}`);
+  }
+}
+for (const rejectedReason of referenceUploadValidation.expectedRejectedReasons ?? []) {
+  if (!devStateSource.includes(rejectedReason) || !workspaceSmokeTestSource.includes(rejectedReason) || !browserSpecSource.includes(rejectedReason)) {
+    fail(`reference upload validation evidence missing rejected reason ${rejectedReason}`);
+  }
 }
 
 const workspaceRendering = artifact.workspaceRendering;

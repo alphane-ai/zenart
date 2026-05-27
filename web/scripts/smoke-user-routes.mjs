@@ -524,10 +524,15 @@ if (renderingEvidence.expectedFailureCount !== "0") {
 if (
   referenceValidationEvidence.expectedStatus !== "pass" ||
   referenceValidationEvidence.scenario !== "safe-image-document-https-url-reject-unsupported" ||
+  referenceValidationEvidence.expectedAcceptedAttachedCount !== "3" ||
   referenceValidationEvidence.expectedRejectedCount !== "2" ||
+  referenceValidationEvidence.expectedRejectedQueuedCount !== "2" ||
+  referenceValidationEvidence.expectedRejectedPackageActionCount !== "0" ||
+  JSON.stringify(referenceValidationEvidence.expectedRejectedReasons) !==
+    JSON.stringify(["Images must be PNG, JPG, JPEG, or WEBP files.", "Reference URLs must use HTTPS."]) ||
   JSON.stringify(referenceValidationEvidence.expectedAcceptedKinds) !== JSON.stringify(["image", "document", "url"])
 ) {
-  fail("reference upload validation matrix must assert safe image, PDF, HTTPS URL acceptance and unsupported input rejection");
+  fail("reference upload validation matrix must assert safe acceptance, exact rejection reasons, queued rejected inputs, and zero rejected package actions");
 }
 for (const attribute of referenceValidationEvidence.requiredAttributes ?? []) {
   if (!componentSource.includes(attribute)) {
@@ -540,6 +545,11 @@ for (const sample of [
 ]) {
   if (!componentSource.includes(sample) && !devStateSource.includes(sample) && !JSON.stringify(artifact).includes(sample)) {
     fail(`reference upload validation matrix missing sample ${sample}`);
+  }
+}
+for (const reason of referenceValidationEvidence.expectedRejectedReasons ?? []) {
+  if (!componentSource.includes(reason) && !devStateSource.includes(reason) && !workspaceSmokeTestSource.includes(reason)) {
+    fail(`reference upload validation matrix missing rejected reason ${reason}`);
   }
 }
 
@@ -1296,7 +1306,14 @@ for (const expectedReferenceValidationSnippet of [
   "data-reference-upload-validation-matrix",
   "data-reference-upload-validation-status",
   "data-reference-upload-validation-accepted-kinds",
+  "data-reference-upload-validation-accepted-attached-count",
   "data-reference-upload-validation-rejected-samples",
+  "data-reference-upload-validation-rejected-reasons",
+  "data-reference-upload-validation-rejected-queued-count",
+  "data-reference-upload-validation-rejected-package-action-count",
+  "data-reference-upload-validation-expected-rejected-reasons",
+  "data-reference-upload-rejection-reason",
+  "data-reference-upload-package-action",
   "data-reference-upload-validation-failures"
 ]) {
   if (!componentSource.includes(expectedReferenceValidationSnippet) && !devStateSource.includes(expectedReferenceValidationSnippet)) {

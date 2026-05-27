@@ -20,7 +20,14 @@ test("reference upload browser smoke reaches ready export metadata and render bu
   );
   await expect(referenceValidation).toHaveAttribute("data-reference-upload-validation-status", "pass");
   await expect(referenceValidation).toHaveAttribute("data-reference-upload-validation-accepted-kinds", "image,document,url");
+  await expect(referenceValidation).toHaveAttribute("data-reference-upload-validation-accepted-attached-count", "3");
   await expect(referenceValidation).toHaveAttribute("data-reference-upload-validation-rejected-count", "2");
+  await expect(referenceValidation).toHaveAttribute("data-reference-upload-validation-rejected-queued-count", "2");
+  await expect(referenceValidation).toHaveAttribute("data-reference-upload-validation-rejected-package-action-count", "0");
+  await expect(referenceValidation).toHaveAttribute(
+    "data-reference-upload-validation-rejected-reasons",
+    "Images must be PNG, JPG, JPEG, or WEBP files.|Reference URLs must use HTTPS."
+  );
 
   await page.getByRole("textbox", { name: "Brief" }).fill(
     "Create an ecommerce reference export smoke package with product image provenance, presentation handoff metadata, and web/social ZIP assets."
@@ -32,6 +39,27 @@ test("reference upload browser smoke reaches ready export metadata and render bu
   await page.getByRole("button", { name: "Attach" }).click();
   await expect(page.getByRole("button", { name: "Add reference campaign-reference.webp to package" })).toBeVisible();
   await page.getByRole("button", { name: "Add reference campaign-reference.webp to package" }).click();
+
+  await page.getByLabel("Reference asset name or URL").fill("unsafe-reference.exe");
+  await page.getByRole("button", { name: "Attach" }).click();
+  const rejectedFileReference = page.locator("[data-reference-upload-item='ref-unsafe-reference-exe']");
+  await expect(rejectedFileReference).toHaveAttribute("data-reference-upload-state", "rejected");
+  await expect(rejectedFileReference).toHaveAttribute(
+    "data-reference-upload-rejection-reason",
+    "Images must be PNG, JPG, JPEG, or WEBP files."
+  );
+  await expect(rejectedFileReference).toHaveAttribute("data-reference-upload-package-action", "blocked");
+  await expect(page.getByRole("button", { name: "Add reference unsafe-reference.exe to package" })).toHaveCount(0);
+
+  await page.getByLabel("Reference type").selectOption("url");
+  await page.getByLabel("Reference asset name or URL").fill("http://assets.example.com/reference-pack");
+  await page.getByRole("button", { name: "Attach" }).click();
+  const rejectedUrlReference = page.locator("[data-reference-upload-item='ref-http-assets-example-com-reference-pack']");
+  await expect(rejectedUrlReference).toHaveAttribute("data-reference-upload-state", "rejected");
+  await expect(rejectedUrlReference).toHaveAttribute("data-reference-upload-rejection-reason", "Reference URLs must use HTTPS.");
+  await expect(rejectedUrlReference).toHaveAttribute("data-reference-upload-package-action", "blocked");
+  await expect(page.getByRole("button", { name: "Add reference http://assets.example.com/reference-pack to package" })).toHaveCount(0);
+  await page.getByLabel("Reference type").selectOption("image");
 
   const referenceSmoke = page.locator("[data-reference-upload-integration-smoke='stage0.rev2.reference-upload-integration-smoke']");
   await expect(referenceSmoke).toHaveAttribute(
@@ -73,7 +101,7 @@ test("reference upload browser smoke reaches ready export metadata and render bu
   const renderingSmoke = page.locator("[data-rendering-smoke='stage0.rev2.workspace-rendering-performance']");
   await expect(renderingSmoke).toHaveAttribute("data-rendering-status", "pass");
   await expect(renderingSmoke).toHaveAttribute("data-render-failure-count", "0");
-  await expect(renderingSmoke).toHaveAttribute("data-render-reference-count", "2");
+  await expect(renderingSmoke).toHaveAttribute("data-render-reference-count", "4");
   await expect(renderingSmoke).toHaveAttribute("data-render-package-item-count", "2");
   await expect(renderingSmoke).toHaveAttribute("data-render-export-history-count", "1");
   await expect(renderingSmoke).toHaveAttribute("data-render-interaction-steps", /brief-confirm/);

@@ -476,16 +476,28 @@
       "expectedStatus": "pass",
       "scenario": "safe-image-document-https-url-reject-unsupported",
       "expectedAcceptedKinds": ["image", "document", "url"],
+      "expectedAcceptedAttachedCount": "3",
       "expectedRejectedCount": "2",
+      "expectedRejectedQueuedCount": "2",
+      "expectedRejectedPackageActionCount": "0",
+      "expectedRejectedReasons": [
+        "Images must be PNG, JPG, JPEG, or WEBP files.",
+        "Reference URLs must use HTTPS."
+      ],
       "requiredAttributes": [
         "data-reference-upload-validation-matrix",
         "data-reference-upload-validation-scenario",
         "data-reference-upload-validation-accepted-kinds",
         "data-reference-upload-validation-expected-kinds",
         "data-reference-upload-validation-accepted-samples",
+        "data-reference-upload-validation-accepted-attached-count",
         "data-reference-upload-validation-rejected-samples",
+        "data-reference-upload-validation-rejected-reasons",
         "data-reference-upload-validation-rejected-count",
+        "data-reference-upload-validation-rejected-queued-count",
+        "data-reference-upload-validation-rejected-package-action-count",
         "data-reference-upload-validation-expected-rejected-count",
+        "data-reference-upload-validation-expected-rejected-reasons",
         "data-reference-upload-validation-failures"
       ],
       "requiredAcceptedSamples": [

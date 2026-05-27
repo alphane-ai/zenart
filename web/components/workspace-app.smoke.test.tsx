@@ -373,8 +373,19 @@ describe("WorkspaceApp user route integration smoke", () => {
     );
     expect(referenceValidationMatrix).toHaveAttribute("data-reference-upload-validation-accepted-kinds", "image,document,url");
     expect(referenceValidationMatrix).toHaveAttribute("data-reference-upload-validation-expected-kinds", "image,document,url");
+    expect(referenceValidationMatrix).toHaveAttribute("data-reference-upload-validation-accepted-attached-count", "3");
     expect(referenceValidationMatrix).toHaveAttribute("data-reference-upload-validation-rejected-count", "2");
+    expect(referenceValidationMatrix).toHaveAttribute("data-reference-upload-validation-rejected-queued-count", "2");
+    expect(referenceValidationMatrix).toHaveAttribute("data-reference-upload-validation-rejected-package-action-count", "0");
     expect(referenceValidationMatrix).toHaveAttribute("data-reference-upload-validation-expected-rejected-count", "2");
+    expect(referenceValidationMatrix).toHaveAttribute(
+      "data-reference-upload-validation-rejected-reasons",
+      "Images must be PNG, JPG, JPEG, or WEBP files.|Reference URLs must use HTTPS."
+    );
+    expect(referenceValidationMatrix).toHaveAttribute(
+      "data-reference-upload-validation-expected-rejected-reasons",
+      "Images must be PNG, JPG, JPEG, or WEBP files.|Reference URLs must use HTTPS."
+    );
     expect(referenceValidationMatrix).toHaveAttribute("data-reference-upload-validation-failures", "");
     expect(referenceValidationMatrix.getAttribute("data-reference-upload-validation-accepted-samples")).toContain(
       "accepted-product-angle.webp"
@@ -389,6 +400,33 @@ describe("WorkspaceApp user route integration smoke", () => {
     );
 
     const referenceName = screen.getByLabelText("Reference asset name or URL");
+    fireEvent.change(referenceName, { target: { value: "unsafe-reference.exe" } });
+    fireEvent.click(screen.getByRole("button", { name: "Attach" }));
+    const rejectedFileReference = await waitFor(() => {
+      const item = container.querySelector("[data-reference-upload-item='ref-unsafe-reference-exe']");
+      expect(item).toHaveAttribute("data-reference-upload-state", "rejected");
+      return item as HTMLElement;
+    });
+    expect(rejectedFileReference).toHaveAttribute(
+      "data-reference-upload-rejection-reason",
+      "Images must be PNG, JPG, JPEG, or WEBP files."
+    );
+    expect(rejectedFileReference).toHaveAttribute("data-reference-upload-package-action", "blocked");
+    expect(screen.queryByRole("button", { name: "Add reference unsafe-reference.exe to package" })).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Reference type"), { target: { value: "url" } });
+    fireEvent.change(referenceName, { target: { value: "http://assets.example.com/reference-pack" } });
+    fireEvent.click(screen.getByRole("button", { name: "Attach" }));
+    const rejectedUrlReference = await waitFor(() => {
+      const item = container.querySelector("[data-reference-upload-item='ref-http-assets-example-com-reference-pack']");
+      expect(item).toHaveAttribute("data-reference-upload-state", "rejected");
+      return item as HTMLElement;
+    });
+    expect(rejectedUrlReference).toHaveAttribute("data-reference-upload-rejection-reason", "Reference URLs must use HTTPS.");
+    expect(rejectedUrlReference).toHaveAttribute("data-reference-upload-package-action", "blocked");
+    expect(screen.queryByRole("button", { name: "Add reference http://assets.example.com/reference-pack to package" })).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Reference type"), { target: { value: "image" } });
     fireEvent.change(referenceName, { target: { value: "campaign-reference.webp" } });
     fireEvent.click(screen.getByRole("button", { name: "Attach" }));
 
@@ -430,7 +468,7 @@ describe("WorkspaceApp user route integration smoke", () => {
       expect(smoke).toHaveAttribute("data-reference-upload-integration-operation-count", "4");
       expect(smoke).toHaveAttribute("data-reference-upload-integration-operations", "createUpload,createPackage,createExport,getExport");
       expect(smoke).toHaveAttribute("data-reference-accepted-kinds", "image");
-      expect(smoke).toHaveAttribute("data-reference-rejected-count", "0");
+      expect(smoke).toHaveAttribute("data-reference-rejected-count", "2");
       expect(smoke).toHaveAttribute("data-reference-latest-accepted-id", "ref-campaign-reference-webp");
       expect(smoke).toHaveAttribute("data-reference-latest-accepted-name", "campaign-reference.webp");
       expect(smoke).toHaveAttribute("data-reference-latest-upload-method", "POST");
@@ -463,7 +501,7 @@ describe("WorkspaceApp user route integration smoke", () => {
 
     const renderingSmoke = container.querySelector("[data-rendering-smoke='stage0.rev2.workspace-rendering-performance']");
     expect(renderingSmoke).toHaveAttribute("data-rendering-status", "pass");
-    expect(renderingSmoke).toHaveAttribute("data-render-reference-count", "2");
+    expect(renderingSmoke).toHaveAttribute("data-render-reference-count", "4");
     expect(renderingSmoke).toHaveAttribute("data-render-package-item-count", "2");
     expect(renderingSmoke).toHaveAttribute("data-render-export-history-count", "1");
     expect(Number(renderingSmoke?.getAttribute("data-render-element-count"))).toBeLessThanOrEqual(

@@ -1051,9 +1051,14 @@ function WorkspaceView({
           data-reference-upload-validation-accepted-kinds={referenceValidationMatrix.acceptedKinds.join(",")}
           data-reference-upload-validation-expected-kinds={referenceValidationMatrix.expectedAcceptedKinds.join(",")}
           data-reference-upload-validation-accepted-samples={referenceValidationMatrix.acceptedSampleNames.join(",")}
+          data-reference-upload-validation-accepted-attached-count={referenceValidationMatrix.acceptedAttachedCount}
           data-reference-upload-validation-rejected-samples={referenceValidationMatrix.rejectedSampleNames.join(",")}
+          data-reference-upload-validation-rejected-reasons={referenceValidationMatrix.rejectedReasons.join("|")}
           data-reference-upload-validation-rejected-count={referenceValidationMatrix.rejectedSampleNames.length}
+          data-reference-upload-validation-rejected-queued-count={referenceValidationMatrix.rejectedQueuedCount}
+          data-reference-upload-validation-rejected-package-action-count={referenceValidationMatrix.rejectedPackageActionCount}
           data-reference-upload-validation-expected-rejected-count={referenceValidationMatrix.expectedRejectedCount}
+          data-reference-upload-validation-expected-rejected-reasons={referenceValidationMatrix.expectedRejectedReasons.join("|")}
           data-reference-upload-validation-failures={referenceValidationMatrix.failures.join(",")}
         >
           <strong>Reference validation</strong>
@@ -1154,6 +1159,8 @@ function WorkspaceView({
               data-reference-upload-idempotency-required={String(reference.upload.idempotencyRequired)}
               data-reference-upload-preview-scope={reference.upload.previewScope}
               data-reference-upload-preview-url={reference.upload.previewUrl}
+              data-reference-upload-rejection-reason={reference.validation.reason ?? ""}
+              data-reference-upload-package-action={reference.validation.state === "accepted" ? "available" : "blocked"}
             >
               <ImagePlus size={14} aria-hidden="true" />
               {reference.name} · {reference.validation.state}

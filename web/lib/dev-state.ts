@@ -1228,6 +1228,9 @@ export const buildReferenceUploadValidationMatrixEvidence = (): ReferenceUploadV
   const rejectedSamples = sampleAssets.filter((asset) => asset.validation.state === "rejected");
   const acceptedKinds = Array.from(new Set(acceptedSamples.map((asset) => asset.kind)));
   const expectedAcceptedKinds: ReferenceAsset["kind"][] = ["image", "document", "url"];
+  const expectedRejectedReasons = ["Images must be PNG, JPG, JPEG, or WEBP files.", "Reference URLs must use HTTPS."];
+  const rejectedReasons = rejectedSamples.map((asset) => asset.validation.reason ?? "");
+  const rejectedPackageActionCount = rejectedSamples.filter((asset) => asset.validation.state === "accepted").length;
   const failures: ReferenceUploadValidationMatrixEvidence["failures"] = [];
 
   if (!acceptedSamples.some((asset) => asset.kind === "image" && asset.name.endsWith(".webp"))) {
@@ -1242,6 +1245,15 @@ export const buildReferenceUploadValidationMatrixEvidence = (): ReferenceUploadV
   if (rejectedSamples.length !== 2) {
     failures.push("unsupported-rejection");
   }
+  if (JSON.stringify(rejectedReasons) !== JSON.stringify(expectedRejectedReasons)) {
+    failures.push("rejection-reason");
+  }
+  if (rejectedSamples.some((asset) => asset.status !== "queued")) {
+    failures.push("rejected-queue-state");
+  }
+  if (rejectedPackageActionCount !== 0) {
+    failures.push("rejected-package-action");
+  }
   if (acceptedSamples.length !== 3 || expectedAcceptedKinds.some((kind) => !acceptedKinds.includes(kind))) {
     failures.push("unexpected-rejection");
   }
@@ -1252,9 +1264,14 @@ export const buildReferenceUploadValidationMatrixEvidence = (): ReferenceUploadV
     scenario: "safe-image-document-https-url-reject-unsupported",
     acceptedKinds,
     acceptedSampleNames: acceptedSamples.map((asset) => asset.name),
+    acceptedAttachedCount: acceptedSamples.filter((asset) => asset.status === "attached").length,
     rejectedSampleNames: rejectedSamples.map((asset) => asset.name),
+    rejectedReasons,
+    rejectedQueuedCount: rejectedSamples.filter((asset) => asset.status === "queued").length,
+    rejectedPackageActionCount,
     expectedAcceptedKinds,
     expectedRejectedCount: 2,
+    expectedRejectedReasons,
     failures
   };
 };

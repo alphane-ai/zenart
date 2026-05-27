@@ -204,14 +204,22 @@ export interface ReferenceUploadValidationMatrixEvidence {
   scenario: "safe-image-document-https-url-reject-unsupported";
   acceptedKinds: ReferenceAsset["kind"][];
   acceptedSampleNames: string[];
+  acceptedAttachedCount: number;
   rejectedSampleNames: string[];
+  rejectedReasons: string[];
+  rejectedQueuedCount: number;
+  rejectedPackageActionCount: number;
   expectedAcceptedKinds: ReferenceAsset["kind"][];
   expectedRejectedCount: number;
+  expectedRejectedReasons: string[];
   failures: Array<
     | "image-acceptance"
     | "document-acceptance"
     | "url-acceptance"
     | "unsupported-rejection"
+    | "rejection-reason"
+    | "rejected-queue-state"
+    | "rejected-package-action"
     | "unexpected-rejection"
   >;
 }
