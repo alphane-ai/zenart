@@ -572,6 +572,23 @@ export type FailedTaskControl = {
   auditRef: string;
 };
 
+export type FailedTaskRuntimeDecision = {
+  taskId: string;
+  queueId: string;
+  requestedAction: FailedTaskControl["requestedAction"];
+  submitDecision: "submit_ready" | "review_required" | "blocked";
+  retryBudgetStatus: "available" | "exhausted" | "not_retry";
+  rbacStatus: "allowed" | "denied" | "second_review_required";
+  quotaSettlement: FailedTaskControl["quotaEffect"];
+  idempotencyStatus: "stable";
+  closureEvidenceStatus: "complete" | "incomplete";
+  userMessageStatus: "ready" | "missing";
+  blockerCodes: string[];
+  submitDisabledReason: string;
+  operatorAction: string;
+  auditRef: string;
+};
+
 export type StagingSupportRetryAbuseCoverage = {
   area:
     | "support_ticket_linkage"

@@ -2,7 +2,8 @@ import { DataTable } from "@/components/DataTable";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { getFailedTaskControls, getQueueHealth } from "@/lib/admin-api";
-import type { FailedTaskControl, QueueHealth } from "@/lib/types";
+import { buildFailedTaskRuntimeDecisions } from "@/lib/failed-task-runtime";
+import type { FailedTaskControl, FailedTaskRuntimeDecision, QueueHealth } from "@/lib/types";
 
 function actionTone(task: FailedTaskControl) {
   if (task.actionEligibility === "blocked") {
@@ -17,6 +18,7 @@ export default async function QueuesPage() {
     getQueueHealth(),
     getFailedTaskControls()
   ]);
+  const failedTaskRuntime = buildFailedTaskRuntimeDecisions(failedTasks);
 
   return (
     <>
@@ -46,6 +48,38 @@ export default async function QueuesPage() {
             { key: "backoff", header: "Retry Backoff", render: (row) => row.retryBackoffPolicy },
             { key: "role", header: "Owner Role", render: (row) => row.ownerRole },
             { key: "incident", header: "Incident", render: (row) => <span className="mono">{row.linkedIncident}</span> },
+            { key: "audit", header: "Audit Ref", render: (row) => <span className="mono">{row.auditRef}</span> }
+          ]}
+        />
+      </section>
+
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>Retry and Cancel Submit Gates</h3>
+            <p>Computed submit decisions keep blocked holds disabled, send second-review cancels to reviewers, and prove retry idempotency before quota settlement.</p>
+          </div>
+        </div>
+        <DataTable<FailedTaskRuntimeDecision>
+          rows={failedTaskRuntime}
+          columns={[
+            { key: "task", header: "Task", render: (row) => <span className="mono">{row.taskId}</span> },
+            { key: "queue", header: "Queue", render: (row) => <span className="mono">{row.queueId}</span> },
+            { key: "action", header: "Action", render: (row) => row.requestedAction },
+            { key: "submit", header: "Submit Gate", render: (row) => <StatusBadge value={row.submitDecision} /> },
+            { key: "retry-budget", header: "Retry Budget", render: (row) => <StatusBadge value={row.retryBudgetStatus} /> },
+            { key: "rbac", header: "RBAC", render: (row) => <StatusBadge value={row.rbacStatus} /> },
+            { key: "quota", header: "Quota Settlement", render: (row) => row.quotaSettlement },
+            { key: "idempotency", header: "Idempotency", render: (row) => <StatusBadge value={row.idempotencyStatus} /> },
+            { key: "closure", header: "Closure Evidence", render: (row) => <StatusBadge value={row.closureEvidenceStatus} /> },
+            { key: "message", header: "User Message", render: (row) => <StatusBadge value={row.userMessageStatus} /> },
+            {
+              key: "blockers",
+              header: "Blockers",
+              render: (row) => (row.blockerCodes.length > 0 ? row.blockerCodes.join(", ") : "none")
+            },
+            { key: "disabled", header: "Disabled Reason", render: (row) => row.submitDisabledReason },
+            { key: "operator", header: "Operator Action", render: (row) => row.operatorAction },
             { key: "audit", header: "Audit Ref", render: (row) => <span className="mono">{row.auditRef}</span> }
           ]}
         />

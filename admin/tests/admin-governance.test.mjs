@@ -6,6 +6,7 @@ const source = readFileSync(new URL("../lib/fixtures.ts", import.meta.url), "utf
 const abuseRuntimeSource = readFileSync(new URL("../lib/abuse-runtime.ts", import.meta.url), "utf8");
 const rbacRuntimeSource = readFileSync(new URL("../lib/rbac-runtime.ts", import.meta.url), "utf8");
 const exportRuntimeSource = readFileSync(new URL("../lib/export-runtime.ts", import.meta.url), "utf8");
+const failedTaskRuntimeSource = readFileSync(new URL("../lib/failed-task-runtime.ts", import.meta.url), "utf8");
 const repoRoot = new URL("../../", import.meta.url);
 const blueprint = readFileSync(new URL("../../Docs/stage0_blueprint_rev2.md", import.meta.url), "utf8");
 
@@ -114,6 +115,22 @@ const parseExportRuntime = () => {
   return Function(`${runtimeSource}\nreturn { buildExportRegenerationRuntimeDecisions };`)();
 };
 
+const parseFailedTaskRuntime = () => {
+  const runtimeSource = failedTaskRuntimeSource
+    .replace(/^import type[\s\S]*?from "@\/lib\/types";\n\n/, "")
+    .replaceAll(/export function (\w+)/g, "function $1")
+    .replaceAll(/: FailedTaskRuntimeDecision\[\]/g, "")
+    .replaceAll(/: FailedTaskControl\[\]/g, "")
+    .replaceAll(/: string\[\]/g, "")
+    .replaceAll(/: FailedTaskRuntimeDecision\["retryBudgetStatus"\]/g, "")
+    .replaceAll(/: FailedTaskRuntimeDecision\["closureEvidenceStatus"\]/g, "")
+    .replaceAll(/: FailedTaskRuntimeDecision\["userMessageStatus"\]/g, "")
+    .replaceAll(/: FailedTaskRuntimeDecision\["idempotencyStatus"\]/g, "")
+    .replaceAll(/: FailedTaskRuntimeDecision\["submitDecision"\]/g, "")
+    .replaceAll(/: string/g, "");
+  return Function(`${runtimeSource}\nreturn { buildFailedTaskRuntimeDecisions };`)();
+};
+
 const auditIds = new Set(auditEvents.map((event) => event.id));
 const supportTicketIds = new Set(supportTickets.map((ticket) => ticket.id));
 const supportTicketById = new Map(supportTickets.map((ticket) => [ticket.id, ticket]));
@@ -213,6 +230,7 @@ const roleOrder = new Map([
   ["admin_reviewer", 3],
   ["admin_superadmin", 4]
 ]);
+const { buildFailedTaskRuntimeDecisions } = parseFailedTaskRuntime();
 
 test("skill release governance defines states, traffic allocation, canary thresholds, and rollback audit", () => {
   const states = new Set(skillReleaseStateDefinitions.map((definition) => definition.state));
@@ -760,6 +778,38 @@ test("queue and failed task controls gate retry and cancel with audit evidence",
     if (task.requestedAction === "hold") {
       assert.equal(task.allowedRole, "admin_reviewer", `${task.id} hold needs reviewer role`);
       assert.notEqual(task.rbacDecision, "allowed", `${task.id} blocked hold cannot be allowed`);
+    }
+  }
+});
+
+test("failed task runtime submit gates preserve retry, cancel, hold, RBAC, and audit outcomes", () => {
+  const decisions = buildFailedTaskRuntimeDecisions(failedTaskControls);
+  const decisionsByTask = new Map(decisions.map((decision) => [decision.taskId, decision]));
+
+  assert.equal(decisions.length, failedTaskControls.length, "each failed task needs one runtime decision");
+  assert.equal(decisionsByTask.get("task-export-489").submitDecision, "submit_ready", "eligible retry should be submittable");
+  assert.equal(decisionsByTask.get("task-crawler-019").submitDecision, "review_required", "crawler cancel should require second review");
+  assert.equal(decisionsByTask.get("task-brief-441").submitDecision, "blocked", "safety hold should stay blocked");
+
+  for (const task of failedTaskControls) {
+    const decision = decisionsByTask.get(task.id);
+    assert.ok(decision, `${task.id} is missing runtime decision`);
+    assert.equal(decision.queueId, task.queueId, `${task.id} must preserve queue linkage`);
+    assert.equal(decision.rbacStatus, task.rbacDecision, `${task.id} must preserve RBAC outcome`);
+    assert.equal(decision.quotaSettlement, task.quotaEffect, `${task.id} must preserve quota settlement`);
+    assert.equal(decision.auditRef, task.auditRef, `${task.id} must preserve audit ref`);
+    assert.equal(decision.idempotencyStatus, "stable", `${task.id} must preserve stable idempotency`);
+    assert.equal(decision.closureEvidenceStatus, "complete", `${task.id} must have complete closure evidence`);
+    assert.equal(decision.userMessageStatus, "ready", `${task.id} must expose user-visible messaging`);
+    assert.ok(decision.operatorAction.length > 40, `${task.id} needs executable operator action`);
+
+    if (task.rbacDecision === "denied") {
+      assert.ok(decision.blockerCodes.includes("rbac_denied"), `${task.id} must expose RBAC blocker`);
+    }
+
+    if (task.actionEligibility === "blocked") {
+      assert.ok(decision.blockerCodes.includes("action_blocked"), `${task.id} must expose action blocker`);
+      assert.match(decision.submitDisabledReason, /action_blocked|rbac_denied/, `${task.id} needs disabled reason`);
     }
   }
 });
