@@ -9206,6 +9206,7 @@ def validate_ops_ci_and_drill_evidence() -> None:
         "observability_smoke": "scripts/observability_smoke.sh",
         "staging_observability_backup_load_smoke": "scripts/staging_observability_backup_load_smoke.sh",
         "staging_object_storage_signed_url_smoke": "scripts/staging_object_storage_signed_url_smoke.sh",
+        "staging_object_storage_retention_cleanup_smoke": "scripts/staging_object_storage_retention_cleanup_smoke.sh",
         "staging_legal_support_visibility_smoke": "scripts/staging_legal_support_visibility_smoke.sh",
         "security_scan_smoke": "scripts/security_scan_smoke.sh",
     }.items():
@@ -9236,6 +9237,26 @@ def validate_ops_ci_and_drill_evidence() -> None:
         "tenant-scoped signed download" in object_storage_signed.get("runtime_status", "")
         and "retention cleanup blockers" in object_storage_signed.get("runtime_status", ""),
         "release ops evidence must preserve object-storage signed URL and retention cleanup split",
+    )
+    object_storage_retention = scripts["staging_object_storage_retention_cleanup_smoke"]
+    require(
+        object_storage_retention.get("expected_retention_cleanup_evidence")
+        == rel(STAGING_OBJECT_STORAGE_RETENTION_EVIDENCE),
+        "release ops evidence must cite the canonical staging object-storage retention cleanup evidence path",
+    )
+    require(
+        "retention policy" in object_storage_retention.get("runtime_status", "")
+        and "expired export cleanup" in object_storage_retention.get("runtime_status", "")
+        and "orphan cleanup" in object_storage_retention.get("runtime_status", "")
+        and "audit refs" in object_storage_retention.get("runtime_status", "")
+        and "dry-run or missing staging URL evidence remains blocked" in object_storage_retention.get("runtime_status", ""),
+        "release ops evidence must record object-storage retention cleanup runtime requirements",
+    )
+    require(
+        "release_gate_check_id=staging_object_storage_signed_downloads"
+        in object_storage_retention.get("private_beta_gate", "")
+        and "can_clear_release_gate_check=true" in object_storage_retention.get("private_beta_gate", ""),
+        "release ops evidence must keep the object-storage retention cleanup gate tied to exact staging pass evidence",
     )
     legal_support_visibility = scripts["staging_legal_support_visibility_smoke"]
     require(

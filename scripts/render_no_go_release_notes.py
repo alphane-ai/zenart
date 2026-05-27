@@ -60,6 +60,8 @@ RUNTIME_CHECKLIST_GROUPS = {
         "Local Alpha workflow API/Playwright end-to-end smoke evidence 通过并写入 release gate fixture。",
         "CI installed workflow runtime evidence 通过：PR/main run、Playwright smoke、Docker image build 均有 validator-resolvable evidence。",
         "Private Beta/Staging external-user runtime evidence 通过：auth/RBAC/tenant、storage、quota/rate limit、support/abuse、safety/QA/crawler、observability/backup/load、legal visibility 均有 staging evidence。",
+        "Private Beta/Staging object storage signed download/retention runtime evidence 通过。",
+        "Private Beta/Staging object retention/cleanup runtime evidence 通过：staging evidence proves retention policy, expired export cleanup, orphan cleanup, and audit refs under `ops/evidence/staging/`。",
         "Production Launch runtime/deployment evidence 通过：provider-or-comp-only、paid lifecycle、skill canary、activation audit、abuse hold、security、backup/rollback/post-deploy smoke、legal/support policy 均有 production evidence。",
         "Staging post-deploy smoke tests 通过。",
         "Production post-deploy smoke tests 通过。",
