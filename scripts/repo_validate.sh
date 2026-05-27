@@ -563,6 +563,11 @@ if report.get("missing_blockers") != ["staging_observability_restore_load_missin
     raise SystemExit("missing-evidence preflight must preserve staging_observability_restore_load_missing")
 if report.get("overall_verified") is not False:
     raise SystemExit("missing-evidence preflight must set overall_verified=false")
+release_gate_fixture = report.get("release_gate_fixture", {})
+if release_gate_fixture.get("verified_for_aggregate_closure") is not False:
+    raise SystemExit("missing-evidence preflight must keep aggregate closure blocked by current gate fixture")
+if "private_beta_gate_fixture_not_updated" not in report.get("closure_blockers", []):
+    raise SystemExit("missing-evidence preflight must name the private beta gate fixture closure blocker")
 checks = {check["slot"]: check for check in report.get("checks", [])}
 if set(checks) != expected_slots:
     raise SystemExit(f"preflight checks missing required slots: {checks}")
@@ -634,6 +639,11 @@ if report.get("missing_blockers") != ["staging_observability_restore_load_missin
     raise SystemExit("observability-only preflight must preserve staging_observability_restore_load_missing")
 if report.get("overall_verified") is not False:
     raise SystemExit("observability-only preflight must set overall_verified=false")
+release_gate_fixture = report.get("release_gate_fixture", {})
+if release_gate_fixture.get("verified_for_aggregate_closure") is not False:
+    raise SystemExit("observability-only preflight must keep aggregate closure blocked by current gate fixture")
+if "private_beta_gate_fixture_not_updated" not in report.get("closure_blockers", []):
+    raise SystemExit("observability-only preflight must name the private beta gate fixture closure blocker")
 checks = {check["slot"]: check for check in report.get("checks", [])}
 if checks["observability_evidence"].get("verified") is not True:
     raise SystemExit(f"staging observability evidence should verify: {checks['observability_evidence']}")
@@ -742,12 +752,30 @@ cat >"$preflight_fixture_dir/post_deploy_smoke.json" <<EOF
   }
 }
 EOF
+cat >"$preflight_fixture_dir/private_beta_gate.json" <<EOF
+{
+  "gate": "private_beta_staging",
+  "checks": [
+    {"check_id": "staging_observability_backup_load", "status": "pass"}
+  ],
+  "do_not_launch_checks": [
+    {"condition_id": "staging_observability_restore_load_missing", "is_present": false}
+  ],
+  "gate_decision": {
+    "status": "no_go",
+    "blocked_by_checks": ["staging_object_storage_signed_downloads", "staging_legal_external_user_pages"],
+    "active_do_not_launch_conditions": ["object_storage_signed_retention_runtime_missing", "external_user_legal_pages_missing"],
+    "evidence_ref": "synthetic validator fixture keeps unrelated private beta blockers open"
+  }
+}
+EOF
 RELEASE_SHA="$preflight_sha" \
   OUT_DIR="$preflight_pass_dir/out" \
   OBSERVABILITY_EVIDENCE="$preflight_fixture_dir/observability.json" \
   BACKUP_RESTORE_EVIDENCE="$preflight_fixture_dir/backup.json" \
   LOAD_EVIDENCE="$preflight_fixture_dir/load.json" \
   POST_DEPLOY_SMOKE_EVIDENCE="$preflight_fixture_dir/post_deploy_smoke.json" \
+  PRIVATE_BETA_GATE_FIXTURE="$preflight_fixture_dir/private_beta_gate.json" \
   scripts/staging_observability_backup_load_smoke.sh >/dev/null
 rm -rf "$preflight_fixture_dir"
 python3 - "$preflight_pass_dir/out" "$preflight_sha" <<'PY'
@@ -806,6 +834,14 @@ if report.get("missing_blockers") != []:
     raise SystemExit("passing preflight must not preserve missing blockers")
 if report.get("overall_verified") is not True:
     raise SystemExit("passing preflight must set overall_verified=true")
+release_gate_fixture = report.get("release_gate_fixture", {})
+if release_gate_fixture.get("verified_for_aggregate_closure") is not True:
+    raise SystemExit(f"passing preflight must verify the supplied gate fixture: {release_gate_fixture}")
+if report.get("closure_blockers") != []:
+    raise SystemExit(f"passing preflight must not preserve closure blockers: {report.get('closure_blockers')}")
+gate_impact = report.get("gate_impact", {})
+if gate_impact.get("can_clear_aggregate_item") is not True:
+    raise SystemExit(f"passing preflight must allow aggregate closure after gate fixture update: {gate_impact}")
 for check in report.get("checks", []):
     if check.get("verified") is not True:
         raise SystemExit(f"passing preflight must verify every check: {check}")

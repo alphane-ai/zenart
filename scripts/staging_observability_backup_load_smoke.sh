@@ -15,6 +15,7 @@ OBSERVABILITY_EVIDENCE="${OBSERVABILITY_EVIDENCE:-}"
 BACKUP_RESTORE_EVIDENCE="${BACKUP_RESTORE_EVIDENCE:-}"
 LOAD_EVIDENCE="${LOAD_EVIDENCE:-}"
 POST_DEPLOY_SMOKE_EVIDENCE="${POST_DEPLOY_SMOKE_EVIDENCE:-}"
+PRIVATE_BETA_GATE_FIXTURE="${PRIVATE_BETA_GATE_FIXTURE:-fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json}"
 
 mkdir -p "$OUT_DIR"
 
@@ -26,7 +27,8 @@ python3 - \
   "$OBSERVABILITY_EVIDENCE" \
   "$BACKUP_RESTORE_EVIDENCE" \
   "$LOAD_EVIDENCE" \
-  "$POST_DEPLOY_SMOKE_EVIDENCE" <<'PY'
+  "$POST_DEPLOY_SMOKE_EVIDENCE" \
+  "$PRIVATE_BETA_GATE_FIXTURE" <<'PY'
 import json
 import sys
 from pathlib import Path
@@ -42,6 +44,7 @@ inputs = {
     "load_evidence": sys.argv[7].strip(),
     "post_deploy_smoke_evidence": sys.argv[8].strip(),
 }
+private_beta_gate_fixture_ref = sys.argv[9].strip()
 root = Path(".").resolve()
 staging_evidence_root = root / "ops" / "evidence" / "staging"
 
@@ -360,6 +363,77 @@ missing_blockers = []
 if blocked_slots:
     missing_blockers.append("staging_observability_restore_load_missing")
 
+
+def validate_private_beta_gate_fixture(value):
+    path = local_path(value)
+    result = {
+        "ref": value,
+        "expected_gate": "private_beta_staging",
+        "expected_check_id": "staging_observability_backup_load",
+        "expected_do_not_launch_condition_id": "staging_observability_restore_load_missing",
+        "verified_for_aggregate_closure": False,
+        "semantic_checks": {
+            "local_json_file": False,
+            "gate_match": False,
+            "check_passed": False,
+            "do_not_launch_condition_cleared": False,
+            "gate_decision_not_blocked_by_check": False,
+            "gate_decision_not_blocked_by_condition": False,
+        },
+        "check_status": None,
+        "do_not_launch_is_present": None,
+    }
+    parsed, read_error = read_json(value)
+    if read_error:
+        result["reason"] = read_error
+        return result
+    checks = {
+        item.get("check_id"): item
+        for item in parsed.get("checks", [])
+        if isinstance(item, dict)
+    }
+    conditions = {
+        item.get("condition_id"): item
+        for item in parsed.get("do_not_launch_checks", [])
+        if isinstance(item, dict)
+    }
+    decision = parsed.get("gate_decision") if isinstance(parsed.get("gate_decision"), dict) else {}
+    check = checks.get("staging_observability_backup_load", {})
+    condition = conditions.get("staging_observability_restore_load_missing", {})
+    check_status = normalize(check.get("status", ""))
+    condition_present = condition.get("is_present")
+    blocked_by_checks = decision.get("blocked_by_checks") if isinstance(decision.get("blocked_by_checks"), list) else []
+    active_conditions = (
+        decision.get("active_do_not_launch_conditions")
+        if isinstance(decision.get("active_do_not_launch_conditions"), list)
+        else []
+    )
+    result.update({
+        "check_status": check.get("status"),
+        "do_not_launch_is_present": condition_present,
+        "semantic_checks": {
+            "local_json_file": path is not None and path.exists() and path.is_file(),
+            "gate_match": parsed.get("gate") == "private_beta_staging",
+            "check_passed": check_status in {"pass", "passed"},
+            "do_not_launch_condition_cleared": condition_present is False,
+            "gate_decision_not_blocked_by_check": "staging_observability_backup_load" not in blocked_by_checks,
+            "gate_decision_not_blocked_by_condition": "staging_observability_restore_load_missing" not in active_conditions,
+        },
+    })
+    result["verified_for_aggregate_closure"] = all(result["semantic_checks"].values())
+    if not result["verified_for_aggregate_closure"]:
+        failed = [key for key, passed in result["semantic_checks"].items() if passed is not True]
+        result["reason"] = "release_gate_fixture_not_ready:" + ",".join(failed)
+    return result
+
+
+release_gate_fixture = validate_private_beta_gate_fixture(private_beta_gate_fixture_ref)
+gate_fixture_ready = release_gate_fixture["verified_for_aggregate_closure"]
+closure_blockers = []
+if not gate_fixture_ready:
+    closure_blockers.append("private_beta_gate_fixture_not_updated")
+can_clear_aggregate_item = status == "passed" and gate_fixture_ready
+
 report = {
     "blueprint_source": "Docs/stage0_blueprint_rev2.md",
     "created_by_lane": "lane5",
@@ -373,9 +447,11 @@ report = {
     "release_gate_check_id": "staging_observability_backup_load",
     "blueprint_checklist_item": "Private Beta/Staging observability/backup/load runtime evidence 通过。",
     "inputs": inputs,
+    "release_gate_fixture": release_gate_fixture,
     "checks": checks,
     "blocked_slots": blocked_slots,
     "blocking_reasons": blocking_reasons,
+    "closure_blockers": closure_blockers,
     "verified_observability_entries": verified_entries("observability_evidence"),
     "verified_postgres_restore_entries": [
         entry
@@ -394,10 +470,11 @@ report = {
     "private_beta_check_id": "staging_observability_backup_load",
     "gate_impact": {
         "aggregate_checklist_item": "Private Beta/Staging observability/backup/load runtime evidence 通过。",
-        "can_clear_aggregate_item": status == "passed",
-        "preserved_do_not_launch_condition_id": None if status == "passed" else "staging_observability_restore_load_missing",
-        "preserved_release_gate_check_id": None if status == "passed" else "staging_observability_backup_load",
+        "can_clear_aggregate_item": can_clear_aggregate_item,
+        "preserved_do_not_launch_condition_id": None if can_clear_aggregate_item else "staging_observability_restore_load_missing",
+        "preserved_release_gate_check_id": None if can_clear_aggregate_item else "staging_observability_backup_load",
         "blocked_slots": blocked_slots,
+        "closure_blockers": closure_blockers,
     },
     "private_beta_gate": "open_until_this_preflight_passes_with_real_staging_evidence_and_release_gate_fixture_is_updated",
     "production_gate": "open_until_ci_private_beta_and_production_backup_rollback_post_deploy_evidence_pass",
