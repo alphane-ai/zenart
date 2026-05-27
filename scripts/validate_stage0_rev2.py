@@ -518,6 +518,22 @@ CI_RUNTIME_OPEN_CHECK_ITEMS = {
     },
 }
 
+CI_RUNTIME_REQUIRED_EVIDENCE_PATHS = {
+    "ci_installed_workflow": [CI_WORKFLOW],
+    "ci_gate_runtime_execution": [
+        CI_WORKFLOW,
+        ROOT / "ops" / "evidence" / "ci" / "stage0-rev2-pr-main-run.json",
+    ],
+    "ci_playwright_smoke": [
+        CI_WORKFLOW,
+        ROOT / "ops" / "evidence" / "ci" / "stage0-rev2-playwright-smoke.json",
+    ],
+    "ci_docker_image_build": [
+        CI_WORKFLOW,
+        ROOT / "ops" / "evidence" / "ci" / "stage0-rev2-docker-image-build.json",
+    ],
+}
+
 RUNTIME_GATE_CHECK_IDS = {
     "local_alpha": {"local_alpha_e2e_workflow_smoke"},
     "ci": {
@@ -1448,6 +1464,13 @@ LOCAL_ALPHA_WORKFLOW_RUNTIME_EVIDENCE_FILES = {
         / "character_ip_concept_pack.playwright_happy_path.json",
         "export": ROOT / "ops" / "evidence" / "local_alpha" / "character_ip_concept_pack.export_zip.json",
     },
+}
+
+LOCAL_ALPHA_WORKFLOW_RUNTIME_ITEM_BY_WORKFLOW = {
+    "ecommerce_growth_pack": "Local Alpha 电商增长包 runtime smoke evidence 写入 release gate fixture：`ops/evidence/local_alpha/ecommerce_growth_pack.api_smoke.json`、`ops/evidence/local_alpha/ecommerce_growth_pack.playwright_happy_path.json`、`ops/evidence/local_alpha/ecommerce_growth_pack.export_zip.json` 均证明 running local stack。",
+    "business_visual_doc_pack": "Local Alpha 商业视觉文档包 runtime smoke evidence 写入 release gate fixture：`ops/evidence/local_alpha/business_visual_doc_pack.api_smoke.json`、`ops/evidence/local_alpha/business_visual_doc_pack.playwright_happy_path.json`、`ops/evidence/local_alpha/business_visual_doc_pack.export_zip.json` 均证明 running local stack。",
+    "local_merchant_campaign_pack": "Local Alpha 本地商家活动包 runtime smoke evidence 写入 release gate fixture：`ops/evidence/local_alpha/local_merchant_campaign_pack.api_smoke.json`、`ops/evidence/local_alpha/local_merchant_campaign_pack.playwright_happy_path.json`、`ops/evidence/local_alpha/local_merchant_campaign_pack.export_zip.json` 均证明 running local stack。",
+    "character_ip_concept_pack": "Local Alpha 角色/IP 概念包 runtime smoke evidence 写入 release gate fixture：`ops/evidence/local_alpha/character_ip_concept_pack.api_smoke.json`、`ops/evidence/local_alpha/character_ip_concept_pack.playwright_happy_path.json`、`ops/evidence/local_alpha/character_ip_concept_pack.export_zip.json` 均证明 running local stack。",
 }
 
 RELEASE_GATE_AGGREGATE_REQUIREMENTS = {
@@ -3265,6 +3288,120 @@ def require_split_runtime_blocked_evidence(evidence_ref: str, gate: str, check_i
             )
 
 
+def require_local_alpha_blocked_workflow_evidence(evidence_ref: str) -> None:
+    evidence_ref_lower = evidence_ref.lower()
+    for workflow_id, files in LOCAL_ALPHA_WORKFLOW_RUNTIME_EVIDENCE_FILES.items():
+        checklist_item = LOCAL_ALPHA_WORKFLOW_RUNTIME_ITEM_BY_WORKFLOW[workflow_id]
+        if checklist_item in LOCAL_ALPHA_RELEASE_GATE_WORKFLOW_RUNTIME_CLOSED_ITEMS:
+            require_local_alpha_single_workflow_runtime_files(
+                evidence_ref,
+                workflow_id,
+                f"{workflow_id} blocked Local Alpha workflow evidence",
+            )
+            continue
+
+        missing_paths = [rel(path) for path in files.values() if not path.exists()]
+        require(
+            missing_paths,
+            f"{workflow_id} Local Alpha workflow row remains open but all exact runtime evidence files exist",
+        )
+        for evidence_kind, path in files.items():
+            rel_path = rel(path)
+            require(
+                rel_path in evidence_ref,
+                f"local_alpha.local_alpha_e2e_workflow_smoke blocked evidence must name exact "
+                f"{workflow_id} {evidence_kind} runtime path: {rel_path}",
+            )
+            path_index = evidence_ref.find(rel_path)
+            require(path_index >= 0, f"blocked Local Alpha evidence missing path {rel_path}")
+            path_window = evidence_ref_lower[
+                max(0, path_index - 180) : min(len(evidence_ref_lower), path_index + len(rel_path) + 180)
+            ]
+            if path.exists():
+                require_local_alpha_single_workflow_runtime_files(
+                    evidence_ref,
+                    workflow_id,
+                    f"{workflow_id} blocked Local Alpha workflow evidence",
+                    evidence_kinds={evidence_kind},
+                )
+                require(
+                    any(term in path_window for term in SPLIT_EVIDENCE_PRESENT_TERMS),
+                    f"local_alpha.local_alpha_e2e_workflow_smoke blocked evidence {rel_path} exists but "
+                    "does not describe that exact workflow artifact as present/pass",
+                )
+                require(
+                    not any(term in path_window for term in SPLIT_EVIDENCE_ABSENT_TERMS),
+                    f"local_alpha.local_alpha_e2e_workflow_smoke blocked evidence {rel_path} exists but "
+                    "stale prose still describes it as missing/absent",
+                )
+            else:
+                require(
+                    any(term in path_window for term in SPLIT_EVIDENCE_ABSENT_TERMS),
+                    f"local_alpha.local_alpha_e2e_workflow_smoke blocked evidence {rel_path} is missing but "
+                    "does not describe that exact workflow artifact as absent/missing",
+                )
+                require(
+                    not any(term in path_window for term in SPLIT_EVIDENCE_PRESENT_TERMS),
+                    f"local_alpha.local_alpha_e2e_workflow_smoke blocked evidence {rel_path} is missing but "
+                    "describes that exact workflow artifact as present/pass",
+                )
+
+
+def require_ci_blocked_runtime_evidence(evidence_ref: str, check_id: str) -> None:
+    required_paths = CI_RUNTIME_REQUIRED_EVIDENCE_PATHS[check_id]
+    evidence_ref_lower = evidence_ref.lower()
+    for path in required_paths:
+        rel_path = rel(path)
+        require(
+            rel_path in evidence_ref,
+            f"ci.{check_id} blocked evidence must name exact required CI runtime artifact: {rel_path}",
+        )
+        path_index = evidence_ref.find(rel_path)
+        require(path_index >= 0, f"ci.{check_id} blocked evidence missing path {rel_path}")
+        path_window = evidence_ref_lower[
+            max(0, path_index - 180) : min(len(evidence_ref_lower), path_index + len(rel_path) + 180)
+        ]
+        if path.exists():
+            require(
+                any(term in path_window for term in SPLIT_EVIDENCE_PRESENT_TERMS),
+                f"ci.{check_id} blocked evidence {rel_path} exists but does not describe it as present/pass",
+            )
+            require(
+                not any(term in path_window for term in SPLIT_EVIDENCE_ABSENT_TERMS),
+                f"ci.{check_id} blocked evidence {rel_path} exists but stale prose describes it as missing/absent",
+            )
+            if rel_path.endswith(".json"):
+                evidence = load_json_if_path(rel_path)
+                require(isinstance(evidence, dict), f"ci.{check_id} evidence file must be valid JSON: {rel_path}")
+                require(
+                    evidence.get("environment") in RUNTIME_PASS_FILE_ENVIRONMENTS["ci"],
+                    f"ci.{check_id} evidence file {rel_path} must declare environment=ci",
+                )
+                evidence_check_id = evidence.get("release_gate_check_id")
+                if evidence_check_id is not None:
+                    require(
+                        evidence_check_id == check_id,
+                        f"ci.{check_id} evidence file {rel_path} targets release_gate_check_id={evidence_check_id!r}",
+                    )
+                require(
+                    evidence.get("status") in RUNTIME_PASS_EVIDENCE_STATUS_VALUES,
+                    f"ci.{check_id} evidence file {rel_path} is not passing: status={evidence.get('status')!r}",
+                )
+                require(
+                    not runtime_evidence_preserved_blockers(evidence),
+                    f"ci.{check_id} evidence file {rel_path} must not preserve blockers",
+                )
+        else:
+            require(
+                any(term in path_window for term in SPLIT_EVIDENCE_ABSENT_TERMS),
+                f"ci.{check_id} blocked evidence {rel_path} is missing but does not describe it as absent/missing",
+            )
+            require(
+                not any(term in path_window for term in SPLIT_EVIDENCE_PRESENT_TERMS),
+                f"ci.{check_id} blocked evidence {rel_path} is missing but describes it as present/pass",
+            )
+
+
 def validate_split_checklist_item_evidence(
     checked_lines: set[str],
     unchecked_lines: set[str],
@@ -4066,6 +4203,10 @@ def validate_runtime_gate_evidence_refs(
                 + json.dumps(requirement["path_patterns"]),
             )
             require_split_runtime_blocked_evidence(evidence_ref, gate, check_id)
+            if (gate, check_id) == ("local_alpha", "local_alpha_e2e_workflow_smoke"):
+                require_local_alpha_blocked_workflow_evidence(evidence_ref)
+            if gate == "ci":
+                require_ci_blocked_runtime_evidence(evidence_ref, check_id)
         if check["status"] == "pass":
             require(
                 RUNTIME_EVIDENCE_RE.search(evidence_ref) is not None,
