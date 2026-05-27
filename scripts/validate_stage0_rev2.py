@@ -804,6 +804,105 @@ RUNTIME_SPLIT_PASS_REQUIREMENTS = {
     },
 }
 
+SPLIT_CHECKLIST_ITEM_EVIDENCE = {
+    "Private Beta/Staging object storage signed URL runtime evidence 通过：staging evidence proves tenant-scoped signed download, expiry, direct-object denial, and cross-tenant denial under `ops/evidence/staging/`。": {
+        "gate": "private_beta_staging",
+        "check_id": "staging_object_storage_signed_downloads",
+        "path": STAGING_OBJECT_STORAGE_SIGNED_URL_EVIDENCE,
+        "allowed_statuses": {"pass_with_blockers_preserved"},
+        "allow_preserved_blockers": True,
+        "tokens": ("signed", "download", "expiry", "direct object", "cross tenant"),
+    },
+    "Private Beta/Staging object retention/cleanup runtime evidence 通过：staging evidence proves retention policy, expired export cleanup, orphan cleanup, and audit refs under `ops/evidence/staging/`。": {
+        "gate": "private_beta_staging",
+        "check_id": "staging_object_storage_signed_downloads",
+        "path": STAGING_OBJECT_STORAGE_RETENTION_EVIDENCE,
+        "allowed_statuses": {"pass", "passed"},
+        "allow_preserved_blockers": False,
+        "tokens": ("retention", "expired export cleanup", "orphan cleanup", "audit"),
+    },
+    "Private Beta/Staging legal pages external-user visibility evidence 通过：staging evidence proves Terms、Privacy、Acceptable Use、AI/content disclaimer、IP complaint flow are externally visible under `ops/evidence/staging/`。": {
+        "gate": "private_beta_staging",
+        "check_id": "staging_legal_external_user_pages",
+        "path": STAGING_LEGAL_EXTERNAL_PAGES_EVIDENCE,
+        "allowed_statuses": {"pass", "passed"},
+        "allow_preserved_blockers": False,
+        "tokens": ("terms", "privacy", "acceptable use", "ai/content", "ip complaint"),
+    },
+    "Private Beta/Staging support contact external-user visibility evidence 通过：staging evidence proves visible support contact/report-problem path for external users under `ops/evidence/staging/`。": {
+        "gate": "private_beta_staging",
+        "check_id": "staging_legal_external_user_pages",
+        "path": STAGING_SUPPORT_CONTACT_VISIBILITY_EVIDENCE,
+        "allowed_statuses": {"pass", "passed"},
+        "allow_preserved_blockers": False,
+        "tokens": ("support", "report-problem", "external user"),
+    },
+    "Production provider mode deployment evidence 通过：production evidence proves either real provider contract/monitoring/cost/staging verification or explicit invite/comp-only mode under `ops/evidence/production/`。": {
+        "gate": "production_launch",
+        "check_id": "production_provider_or_comp_only_mode",
+        "path": PRODUCTION_PROVIDER_MODE_EVIDENCE,
+        "allowed_statuses": {"pass", "passed"},
+        "allow_preserved_blockers": False,
+        "tokens": ("production", "provider", "mode"),
+    },
+    "Production public paid/real-generation claims evidence 通过：production evidence proves paid and real-generation claims are enabled only with real provider evidence, or hidden for invite/comp-only mode under `ops/evidence/production/`。": {
+        "gate": "production_launch",
+        "check_id": "production_provider_or_comp_only_mode",
+        "path": PRODUCTION_CLAIMS_ALIGNMENT_EVIDENCE,
+        "allowed_statuses": {"pass", "passed"},
+        "allow_preserved_blockers": False,
+        "tokens": ("paid", "real-generation", "claims"),
+    },
+    "Production checkout/subscription/cancellation/past_due runtime evidence 通过 under `ops/evidence/production/`。": {
+        "gate": "production_launch",
+        "check_id": "production_paid_billing_lifecycle",
+        "path": PRODUCTION_BILLING_LIFECYCLE_EVIDENCE,
+        "allowed_statuses": {"pass", "passed"},
+        "allow_preserved_blockers": False,
+        "tokens": ("checkout", "subscription", "cancellation", "past_due"),
+    },
+    "Production refund/credit/quota reset/webhook idempotency runtime evidence 通过 under `ops/evidence/production/`。": {
+        "gate": "production_launch",
+        "check_id": "production_paid_billing_lifecycle",
+        "path": PRODUCTION_BILLING_IDEMPOTENCY_EVIDENCE,
+        "allowed_statuses": {"pass", "passed"},
+        "allow_preserved_blockers": False,
+        "tokens": ("refund", "credit", "quota reset", "webhook"),
+    },
+    "Production backup/restore runtime evidence 通过：production evidence proves backup schedule, Postgres restore, object restore, RPO/RTO, and audit refs under `ops/evidence/production/`。": {
+        "gate": "production_launch",
+        "check_id": "production_backup_rollback_incident",
+        "path": PRODUCTION_BACKUP_RESTORE_EVIDENCE,
+        "allowed_statuses": {"pass", "passed"},
+        "allow_preserved_blockers": False,
+        "tokens": ("backup", "postgres restore", "object restore", "rpo", "rto"),
+    },
+    "Production rollback/incident/post-deploy smoke runtime evidence 通过：production evidence proves rollback drill, incident/alert path, migration compatibility, and post-deploy smoke under `ops/evidence/production/`。": {
+        "gate": "production_launch",
+        "check_id": "production_backup_rollback_incident",
+        "path": PRODUCTION_ROLLBACK_INCIDENT_SMOKE_EVIDENCE,
+        "allowed_statuses": {"pass", "passed"},
+        "allow_preserved_blockers": False,
+        "tokens": ("rollback", "incident", "migration compatibility", "post-deploy smoke"),
+    },
+    "Production public legal policy deployment evidence 通过：production evidence proves Terms、Privacy、Acceptable Use、AI/content disclaimer、IP complaint flow visibility under `ops/evidence/production/`。": {
+        "gate": "production_launch",
+        "check_id": "production_legal_support_policy",
+        "path": PRODUCTION_LEGAL_POLICY_EVIDENCE,
+        "allowed_statuses": {"pass", "passed"},
+        "allow_preserved_blockers": False,
+        "tokens": ("terms", "privacy", "acceptable use", "ai/content", "ip complaint"),
+    },
+    "Production public support/billing policy deployment evidence 通过：production evidence proves support contact and paid billing/cancellation/refund policy visibility under `ops/evidence/production/`。": {
+        "gate": "production_launch",
+        "check_id": "production_legal_support_policy",
+        "path": PRODUCTION_SUPPORT_BILLING_POLICY_EVIDENCE,
+        "allowed_statuses": {"pass", "passed"},
+        "allow_preserved_blockers": False,
+        "tokens": ("support", "billing", "cancellation", "refund"),
+    },
+}
+
 FORBIDDEN_RUNTIME_GATE_PATH_PREFIXES = {
     "private_beta_staging": (
         "ops/evidence/backup-restore/",
@@ -2487,6 +2586,64 @@ def require_split_runtime_blocked_evidence(evidence_ref: str, gate: str, check_i
                         f"{gate}.{check_id} blocked split evidence {rel_path} targets "
                         f"release_gate_check_id={evidence_check_id!r}",
                     )
+
+
+def validate_split_checklist_item_evidence(
+    checked_lines: set[str],
+    unchecked_lines: set[str],
+) -> None:
+    for item, requirement in SPLIT_CHECKLIST_ITEM_EVIDENCE.items():
+        item_state_count = int(item in checked_lines) + int(item in unchecked_lines)
+        require(item_state_count == 1, f"split runtime checklist item is missing: {item}")
+        if item in unchecked_lines:
+            continue
+
+        gate = requirement["gate"]
+        check_id = requirement["check_id"]
+        path = requirement["path"]
+        rel_path = rel(path)
+        require(
+            path.exists(),
+            f"checked split runtime checklist item requires exact evidence file {rel_path}: {item}",
+        )
+        evidence = load_json(path)
+        expected_environments = RUNTIME_PASS_FILE_ENVIRONMENTS[gate]
+        require(
+            evidence.get("environment") in expected_environments,
+            f"checked split runtime evidence {rel_path} must declare one of "
+            f"{sorted(expected_environments)}; got environment={evidence.get('environment')!r}",
+        )
+        evidence_check_id = evidence.get("release_gate_check_id")
+        if evidence_check_id is not None:
+            require(
+                evidence_check_id == check_id,
+                f"checked split runtime evidence {rel_path} targets release_gate_check_id={evidence_check_id!r}",
+            )
+        require(
+            evidence.get("status") in requirement["allowed_statuses"],
+            f"checked split runtime evidence {rel_path} status={evidence.get('status')!r} is not allowed for {item}",
+        )
+        preserved_blockers = runtime_evidence_preserved_blockers(evidence)
+        if requirement["allow_preserved_blockers"]:
+            require(
+                preserved_blockers,
+                f"checked partial split runtime evidence {rel_path} must preserve the combined release-gate blocker",
+            )
+        else:
+            require(
+                not preserved_blockers,
+                f"checked split runtime evidence {rel_path} must not preserve blockers: {preserved_blockers}",
+            )
+        combined = json.dumps(evidence, ensure_ascii=False).lower()
+        missing_tokens = [
+            token
+            for token in requirement["tokens"]
+            if token not in combined
+        ]
+        require(
+            not missing_tokens,
+            f"checked split runtime evidence {rel_path} missing required semantics for {item}: {missing_tokens}",
+        )
 
 
 def require_check_level_evidence_gate_impact(
@@ -5931,6 +6088,10 @@ def validate_release_gate_evidence() -> None:
         blueprint_checked,
         blueprint_unchecked,
     )
+    validate_split_checklist_item_evidence(
+        blueprint_checked,
+        blueprint_unchecked,
+    )
     validate_release_gate_checklist_decision_alignment(
         evidence,
         blueprint_checked,
@@ -6235,6 +6396,10 @@ def validate_blueprint_checklist() -> None:
     validate_release_gate_order_dependencies(evidence)
     validate_global_do_not_launch_checklist_item(
         evidence,
+        checked_lines,
+        unchecked_lines,
+    )
+    validate_split_checklist_item_evidence(
         checked_lines,
         unchecked_lines,
     )
@@ -7198,6 +7363,8 @@ def validate_launch_readiness_split_contracts() -> None:
         "a broad `ops/evidence/staging/` or `ops/evidence/production/` placeholder cannot preserve a launch blocker",
         "Existing half-split evidence can only close its own concrete subitem",
         "the combined check remains blocked until every required split file exists",
+        "Checked split evidence checklist rows require their validator-owned exact file to exist",
+        "Checked partial split rows may preserve the combined release-gate blocker only when the row is explicitly partial",
         "remaining_blockers` must exactly match the current blocked/failing check IDs",
         "Do-Not-Launch Conditions 全部为 false。` remains open while any release-gate evidence fixture has `is_present: true`",
         "Do-Not-Launch Conditions 全部为 false。` may close only when all four release gate fixtures have no active Do-Not-Launch conditions",
