@@ -102,6 +102,7 @@ const (
 	PermissionProviderRoutingAdmin Permission = "provider_routing:admin"
 	PermissionSafetyRuleAdmin      Permission = "safety_rule:admin"
 	PermissionExportOverrideAdmin  Permission = "export_override:admin"
+	PermissionObjectCleanupAdmin   Permission = "object_retention_cleanup:admin"
 )
 
 type Policy struct {
@@ -179,6 +180,7 @@ func Matrix() map[Permission]Policy {
 		PermissionProviderRoutingAdmin: {Required: PermissionProviderRoutingAdmin, Admin: true, AllowedRoles: superadminRoles},
 		PermissionSafetyRuleAdmin:      {Required: PermissionSafetyRuleAdmin, Admin: true, AllowedRoles: reviewerRoles},
 		PermissionExportOverrideAdmin:  {Required: PermissionExportOverrideAdmin, Admin: true, AllowedRoles: reviewerRoles},
+		PermissionObjectCleanupAdmin:   {Required: PermissionObjectCleanupAdmin, Admin: true, AllowedRoles: superadminRoles},
 	}
 	return matrix
 }

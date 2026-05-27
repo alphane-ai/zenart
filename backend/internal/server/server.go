@@ -101,6 +101,7 @@ func (s *Server) routes() {
 	s.mux.Handle("POST /api/v1/support/tickets", requirePrincipal(http.HandlerFunc(s.createSupportTicket)))
 	s.mux.Handle("GET /api/admin/v1/support/tickets", requirePermission(auth.PermissionSupportRead, http.HandlerFunc(s.listSupportTickets)))
 	s.mux.Handle("GET /api/admin/v1/exports", requirePermission(auth.PermissionExportRead, http.HandlerFunc(s.listExports)))
+	s.mux.Handle("POST /api/admin/v1/exports/cleanup", requirePermission(auth.PermissionObjectCleanupAdmin, http.HandlerFunc(s.cleanupExports)))
 	s.mux.Handle("POST /api/admin/v1/exports/{id}/regenerate", requirePermission(auth.PermissionExportOverrideAdmin, http.HandlerFunc(s.regenerateExport)))
 	s.mux.Handle("GET /api/admin/v1/crawler/sources", requirePermission(auth.PermissionCrawlerRead, http.HandlerFunc(s.listCrawlerSources)))
 	s.mux.Handle("GET /api/admin/v1/crawler/findings", requirePermission(auth.PermissionCrawlerRead, http.HandlerFunc(s.listCrawlerFindings)))
@@ -696,6 +697,64 @@ func (s *Server) listExports(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, page)
+}
+
+func (s *Server) cleanupExports(w http.ResponseWriter, r *http.Request) {
+	principal, _ := PrincipalFromContext(r.Context())
+	service, ok := stage0.ServiceFromContext(r.Context())
+	if !ok {
+		writeError(w, r, http.StatusNotImplemented, "export_service_not_connected", "export storage is not connected yet", nil)
+		return
+	}
+	var input struct {
+		Rationale string `json:"rationale"`
+		Limit     int    `json:"limit"`
+	}
+	if err := readOptionalJSON(r, &input); err != nil {
+		writeError(w, r, http.StatusBadRequest, "invalid_json", "request body must be valid JSON", nil)
+		return
+	}
+	rationale := security.RedactString(strings.TrimSpace(input.Rationale))
+	if rationale == "" || rationale == security.Redacted {
+		writeError(w, r, http.StatusBadRequest, "rationale_required", "object retention cleanup requires a non-secret rationale", map[string]any{
+			"field": "rationale",
+		})
+		return
+	}
+	limit := input.Limit
+	if limit <= 0 {
+		limit = 100
+	}
+	if limit > 500 {
+		limit = 500
+	}
+	now := time.Now().UTC()
+	result, err := service.CleanupExpiredExportsAndOrphanedObjects(r.Context(), now, limit)
+	if err != nil {
+		writeStage0Error(w, r, err)
+		return
+	}
+	if recorder, ok := audit.RecorderFromContext(r.Context()); ok {
+		if err := recorder.Record(r.Context(), audit.Event{
+			ID:       newAuditID(principal.TenantID, principal.UserID, "export.cleanup", now.Format(time.RFC3339Nano)),
+			TenantID: principal.TenantID,
+			ActorID:  principal.UserID,
+			Action:   "export.cleanup",
+			Resource: "object_retention_cleanup",
+			Metadata: map[string]any{
+				"rationale":        rationale,
+				"limit":            limit,
+				"expired_exports":  result.ExpiredExports,
+				"orphaned_objects": result.OrphanedObjects,
+				"deleted_objects":  result.DeletedObjects,
+			},
+			CreatedAt: now,
+		}); err != nil {
+			writeError(w, r, http.StatusInternalServerError, "audit_record_error", "object retention cleanup audit record could not be written", nil)
+			return
+		}
+	}
+	writeJSON(w, http.StatusAccepted, result)
 }
 
 func (s *Server) regenerateExport(w http.ResponseWriter, r *http.Request) {

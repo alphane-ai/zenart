@@ -1077,6 +1077,86 @@ func TestAdminExportRegenerateRecordsAuditWithRationaleAndSecondReview(t *testin
 	}
 }
 
+func TestAdminExportCleanupRequiresSuperadmin(t *testing.T) {
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	cfg.Auth.AdminDevIdentityHeaders = true
+
+	req := httptest.NewRequest(http.MethodPost, "/api/admin/v1/exports/cleanup", bytes.NewBufferString(`{"rationale":"staging retention validation"}`))
+	req.Header.Set("X-Zenart-User-ID", "admin_reviewer_1")
+	req.Header.Set("X-Zenart-Tenant-ID", "tenant_1")
+	req.Header.Set("X-Zenart-Roles", "admin_reviewer")
+	setSameSiteCSRFHeaders(req)
+	rec := httptest.NewRecorder()
+
+	New(cfg, nil).Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("status = %d, want %d: %s", rec.Code, http.StatusForbidden, rec.Body.String())
+	}
+	var body map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("response JSON error = %v", err)
+	}
+	details := body["details"].(map[string]any)
+	if details["required_permission"] != "object_retention_cleanup:admin" {
+		t.Fatalf("required_permission = %v, want object_retention_cleanup:admin", details["required_permission"])
+	}
+}
+
+func TestAdminExportCleanupRunsServiceAndRecordsAudit(t *testing.T) {
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	cfg.Auth.AdminDevIdentityHeaders = true
+	db := &fakeStage0DB{execTags: []pgconn.CommandTag{
+		pgconn.NewCommandTag("UPDATE 2"),
+		pgconn.NewCommandTag("UPDATE 1"),
+		pgconn.NewCommandTag("SELECT 1"),
+	}}
+	recorder := &fakeAuditRecorder{}
+
+	req := httptest.NewRequest(http.MethodPost, "/api/admin/v1/exports/cleanup", bytes.NewBufferString(`{"rationale":"staging retention cleanup token=npm_abcdefghijklmnopqrstuvwxyz123456","limit":999}`))
+	req = req.WithContext(audit.ContextWithRecorder(stage0.ContextWithService(req.Context(), stage0.NewService(stage0.NewRepository(db), nil)), recorder))
+	req.Header.Set("X-Zenart-User-ID", "admin_super_1")
+	req.Header.Set("X-Zenart-Tenant-ID", "tenant_1")
+	req.Header.Set("X-Zenart-Roles", "admin_superadmin")
+	setSameSiteCSRFHeaders(req)
+	rec := httptest.NewRecorder()
+
+	New(cfg, nil).Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusAccepted {
+		t.Fatalf("status = %d, want %d: %s", rec.Code, http.StatusAccepted, rec.Body.String())
+	}
+	var result stage0.CleanupResult
+	if err := json.Unmarshal(rec.Body.Bytes(), &result); err != nil {
+		t.Fatalf("response JSON error = %v", err)
+	}
+	if result.ExpiredExports != 2 || result.OrphanedObjects != 1 || result.DeletedObjects != 0 {
+		t.Fatalf("cleanup result = %#v, want 2/1/0", result)
+	}
+	if len(db.execs) != 3 {
+		t.Fatalf("exec count = %d, want cleanup lifecycle update and analytics", len(db.execs))
+	}
+	if len(recorder.events) != 1 {
+		t.Fatalf("audit events = %d, want 1", len(recorder.events))
+	}
+	event := recorder.events[0]
+	if event.TenantID != "tenant_1" || event.ActorID != "admin_super_1" || event.Action != "export.cleanup" || event.Resource != "object_retention_cleanup" {
+		t.Fatalf("audit event = %#v", event)
+	}
+	if event.Metadata["rationale"] != "staging retention cleanup token="+security.Redacted {
+		t.Fatalf("audit rationale = %#v, want redacted token", event.Metadata["rationale"])
+	}
+	if event.Metadata["limit"] != 500 || event.Metadata["expired_exports"] != 2 || event.Metadata["orphaned_objects"] != 1 || event.Metadata["deleted_objects"] != 0 {
+		t.Fatalf("audit metadata = %#v, want capped limit and cleanup counts", event.Metadata)
+	}
+}
+
 func TestAdminCrawlerStartRunRequiresOperator(t *testing.T) {
 	cfg, err := config.Load()
 	if err != nil {
@@ -2021,6 +2101,7 @@ type fakeStage0DB struct {
 	queryRows []stage0RowSet
 	queries   []stage0QueryCall
 	execs     []stage0QueryCall
+	execTags  []pgconn.CommandTag
 }
 
 type stage0RowSet struct {
@@ -2034,7 +2115,12 @@ type stage0QueryCall struct {
 
 func (f *fakeStage0DB) Exec(_ context.Context, sql string, args ...any) (pgconn.CommandTag, error) {
 	f.execs = append(f.execs, stage0QueryCall{sql: sql, args: args})
-	return pgconn.CommandTag{}, nil
+	if len(f.execTags) == 0 {
+		return pgconn.CommandTag{}, nil
+	}
+	tag := f.execTags[0]
+	f.execTags = f.execTags[1:]
+	return tag, nil
 }
 
 func (f *fakeStage0DB) Query(_ context.Context, sql string, args ...any) (store.Rows, error) {

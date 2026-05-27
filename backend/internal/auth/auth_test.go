@@ -25,7 +25,7 @@ func TestPermissionMatrixRequiresSpecificAdminRoles(t *testing.T) {
 	reviewer := Principal{UserID: "admin_reviewer", TenantID: "tenant_1", Roles: []Role{RoleAdminReviewer}}
 	superadmin := Principal{UserID: "admin_super", TenantID: "tenant_1", Roles: []Role{RoleAdminSuperadmin}}
 
-	for _, permission := range []Permission{PermissionSupportRead, PermissionExportRead, PermissionCrawlerRead, PermissionSafetyRead, PermissionAdminQuotaEdit, PermissionAuditRead, PermissionSkillReleaseAdmin, PermissionCrawlerImportAdmin, PermissionPromptApprovalAdmin, PermissionProviderRoutingAdmin, PermissionSafetyRuleAdmin, PermissionExportOverrideAdmin} {
+	for _, permission := range []Permission{PermissionSupportRead, PermissionExportRead, PermissionCrawlerRead, PermissionSafetyRead, PermissionAdminQuotaEdit, PermissionAuditRead, PermissionSkillReleaseAdmin, PermissionCrawlerImportAdmin, PermissionPromptApprovalAdmin, PermissionProviderRoutingAdmin, PermissionSafetyRuleAdmin, PermissionExportOverrideAdmin, PermissionObjectCleanupAdmin} {
 		policy := matrix[permission]
 		if !policy.Admin || len(policy.AllowedRoles) == 0 {
 			t.Fatalf("%s should require explicit admin roles: %#v", permission, policy)
@@ -46,8 +46,14 @@ func TestPermissionMatrixRequiresSpecificAdminRoles(t *testing.T) {
 	if !Authorize(context.Background(), reviewer, Policy{Required: PermissionSafetyRuleAdmin}) {
 		t.Fatal("admin_reviewer should administer safety rules")
 	}
+	if Authorize(context.Background(), reviewer, Policy{Required: PermissionObjectCleanupAdmin}) {
+		t.Fatal("admin_reviewer should not run object retention cleanup")
+	}
 	if !Authorize(context.Background(), superadmin, Policy{Required: PermissionAuditRead}) {
 		t.Fatal("admin_superadmin should read audit")
+	}
+	if !Authorize(context.Background(), superadmin, Policy{Required: PermissionObjectCleanupAdmin}) {
+		t.Fatal("admin_superadmin should run object retention cleanup")
 	}
 	if matrix[PermissionTaskRead].Admin {
 		t.Fatal("task read should not require admin")
