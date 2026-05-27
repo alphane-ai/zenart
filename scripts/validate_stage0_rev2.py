@@ -627,7 +627,6 @@ CHECK_LEVEL_EVIDENCE_TO_CHECKLIST_ITEM = {
 
 CHECK_LEVEL_EVIDENCE_PRESERVED_BLOCKERS = {
     ("private_beta_staging", "staging_auth_rbac_tenant_audit"): {
-        "staging_brief_upload_confirmation",
         "staging_object_storage_signed_downloads",
         "staging_quota_rate_limit_spend_cap",
         "staging_eval_qa_safety_runtime",
@@ -1986,7 +1985,8 @@ def require_check_level_evidence_gate_impact(
     evidence_name: str,
 ) -> None:
     checklist_item = CHECK_LEVEL_EVIDENCE_TO_CHECKLIST_ITEM[(gate, check_id)]
-    expected_remaining = CHECK_LEVEL_EVIDENCE_PRESERVED_BLOCKERS[(gate, check_id)]
+    expected_minimum_remaining = CHECK_LEVEL_EVIDENCE_PRESERVED_BLOCKERS[(gate, check_id)]
+    expected_current_remaining = current_blocked_release_gate_checks(gate) - {check_id}
     gate_impact = evidence["gate_impact"]
     actual_checklist_item = gate_impact.get("checklist_item") or gate_impact.get("check_level_item")
     require(
@@ -2003,9 +2003,15 @@ def require_check_level_evidence_gate_impact(
         f"{evidence_name} must not list its own cleared check as a remaining blocker: {check_id}",
     )
     require(
-        expected_remaining <= remaining_blockers,
+        expected_minimum_remaining <= remaining_blockers,
         f"{evidence_name} must preserve at least the current remaining release-gate blockers: "
-        + json.dumps(sorted(expected_remaining), ensure_ascii=False),
+        + json.dumps(sorted(expected_minimum_remaining), ensure_ascii=False),
+    )
+    require(
+        remaining_blockers == expected_current_remaining,
+        f"{evidence_name} remaining_blockers must exactly match current blocked checks in "
+        f"{rel(RELEASE_GATE_EVIDENCE_FILES[gate])}: "
+        + json.dumps(sorted(expected_current_remaining), ensure_ascii=False),
     )
     if gate == "private_beta_staging":
         require(
@@ -2106,6 +2112,15 @@ def gate_blockers(data: dict[str, Any]) -> dict[str, list[str]]:
             for item in data["do_not_launch_checks"]
             if item["is_present"]
         ],
+    }
+
+
+def current_blocked_release_gate_checks(gate: str) -> set[str]:
+    data = load_json(RELEASE_GATE_EVIDENCE_FILES[gate])
+    return {
+        check["check_id"]
+        for check in data["checks"]
+        if check["status"] != "pass"
     }
 
 
@@ -5670,6 +5685,7 @@ def validate_launch_readiness_split_contracts() -> None:
         "Local Alpha remains open until four workflow API/Playwright smokes",
         "Production Launch cannot clear `ci_staging_gates_not_passed` or pass backup/rollback/post-deploy evidence until both",
         "Production backup/rollback/post-deploy pass evidence must cite both upstream gate fixtures",
+        "remaining_blockers` must exactly match the current blocked/failing check IDs",
         "Do-Not-Launch Conditions 全部为 false。` remains open while any release-gate evidence fixture has `is_present: true`",
         "Do-Not-Launch Conditions 全部为 false。` may close only when all four release gate fixtures have no active Do-Not-Launch conditions",
         "Do-Not-Launch Conditions 全部为 false。` also requires all four release gate `gate_decision.status` values to be `go`",
