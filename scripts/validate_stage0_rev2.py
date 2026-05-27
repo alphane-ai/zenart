@@ -54,6 +54,17 @@ STAGING_OBSERVABILITY_RUNTIME_CHECKLIST_ITEM = (
     "observability-only artifact preserved backup/restore、load、post-deploy smoke blockers until the "
     "later combined preflight closed them。"
 )
+PRODUCTION_BACKUP_ROLLBACK_INCIDENT_ADMIN_CHECKLIST_ITEM = (
+    "Production backup/rollback/incident/post-deploy admin-visible probe evidence recorded but launch blocker preserved: "
+    "`ops/evidence/production/20260527T1800Z-backup-rollback-incident-smoke.json` has "
+    "`status=blocked_by_upstream_gates`, proves backup、rollback、incident、post-deploy smoke probes, "
+    "and cannot close production backup/rollback launch readiness until upstream CI/Staging gates and exact split files pass。"
+)
+PRODUCTION_POST_DEPLOY_LAUNCH_CLEARING_CHECKLIST_ITEM = (
+    "Production post-deploy launch-clearing smoke evidence 通过：exact production split evidence exists at "
+    "`ops/evidence/production/rollback-incident-post-deploy-smoke.json`, cites passing CI and Private Beta/Staging "
+    "gate fixtures, and clears `production_deploy_rollback_smoke_missing` without preserved blockers。"
+)
 STAGING_EVAL_QA_SAFETY_EVIDENCE = (
     ROOT / "ops" / "evidence" / "staging" / "20260527T1900Z-eval-qa-safety.json"
 )
@@ -109,6 +120,9 @@ PRODUCTION_BACKUP_RESTORE_EVIDENCE = (
 )
 PRODUCTION_ROLLBACK_INCIDENT_SMOKE_EVIDENCE = (
     ROOT / "ops" / "evidence" / "production" / "rollback-incident-post-deploy-smoke.json"
+)
+PRODUCTION_BACKUP_ROLLBACK_INCIDENT_ADMIN_EVIDENCE = (
+    ROOT / "ops" / "evidence" / "production" / "20260527T1800Z-backup-rollback-incident-smoke.json"
 )
 PRODUCTION_LEGAL_POLICY_EVIDENCE = (
     ROOT / "ops" / "evidence" / "production" / "public-legal-policy.json"
@@ -1181,6 +1195,9 @@ PRODUCTION_RUNTIME_OPEN_CHECK_ITEMS = {
     "Production security launch-check runtime/deployment evidence 通过。": {
         "production_security_launch_checks",
     },
+    PRODUCTION_BACKUP_ROLLBACK_INCIDENT_ADMIN_CHECKLIST_ITEM: {
+        "production_backup_rollback_incident",
+    },
     "Production backup/rollback/incident/post-deploy smoke runtime/deployment evidence 通过。": {
         "production_backup_rollback_incident",
     },
@@ -1188,6 +1205,9 @@ PRODUCTION_RUNTIME_OPEN_CHECK_ITEMS = {
         "production_backup_rollback_incident",
     },
     "Production rollback/incident/post-deploy smoke runtime evidence 通过：production evidence proves rollback drill, incident/alert path, migration compatibility, and post-deploy smoke under `ops/evidence/production/`。": {
+        "production_backup_rollback_incident",
+    },
+    PRODUCTION_POST_DEPLOY_LAUNCH_CLEARING_CHECKLIST_ITEM: {
         "production_backup_rollback_incident",
     },
     "Production legal/support policy deployment evidence 通过。": {
@@ -1495,7 +1515,7 @@ RELEASE_GATE_PASS_BLOCKED_BY_OPEN_ITEMS = {
     "production_launch": {
         "CI Gate 全部通过。",
         "Private Beta/Staging Gate 全部通过。",
-        "Production post-deploy smoke tests 通过。",
+        PRODUCTION_POST_DEPLOY_LAUNCH_CLEARING_CHECKLIST_ITEM,
     },
 }
 
@@ -1567,7 +1587,7 @@ RELEASE_GATE_OPEN_ITEM_GUARD_CHECKS = {
             "production_backup_rollback_incident",
             "production_legal_support_policy",
         },
-        "Production post-deploy smoke tests 通过。": {
+        PRODUCTION_POST_DEPLOY_LAUNCH_CLEARING_CHECKLIST_ITEM: {
             "production_backup_rollback_incident",
         },
     },
@@ -1672,6 +1692,7 @@ CHECKED_ITEMS = {
     "添加 trace completeness tests。",
     "定义 release gate evidence schema/fixtures 和 no-go release notes renderer。",
     "定义 post-deploy smoke evidence contract。",
+    PRODUCTION_BACKUP_ROLLBACK_INCIDENT_ADMIN_CHECKLIST_ITEM,
     "Backfill Local Alpha release gate fixture evidence: workflow/eval/crawler/schema/service/runtime-stack checks pass in `fixtures/stage0/rev2/release_gate_evidence.local_alpha.json`。",
     "Backfill CI draft/no-go evidence: ops CI draft coverage passes while installed `.github/workflows` runtime remains blocked in `fixtures/stage0/rev2/release_gate_evidence.ci.json`。",
     "Backfill Private Beta/Staging no-go evidence: contract/fixture evidence is separated from external-user staging runtime blockers in `fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json`。",
@@ -1689,6 +1710,7 @@ FORBIDDEN_CHECKED_ITEMS = {
     "实现 dashboards。",
     "实现 alerts。",
     "Post-deploy smoke tests 通过。",
+    "Production post-deploy smoke tests 通过。",
 }
 
 REQUIRED_OPEN_ITEMS = {
@@ -1713,7 +1735,7 @@ REQUIRED_OPEN_ITEMS = {
     "执行 staging deploy。",
     "执行 staging smoke tests。",
     "Staging post-deploy smoke tests 通过。",
-    "Production post-deploy smoke tests 通过。",
+    PRODUCTION_POST_DEPLOY_LAUNCH_CLEARING_CHECKLIST_ITEM,
 }
 REQUIRED_OPEN_ITEMS |= set(CI_RUNTIME_OPEN_CHECK_ITEMS)
 CLOSED_CHECK_LEVEL_RUNTIME_ITEMS = {
@@ -1732,6 +1754,7 @@ CLOSED_CHECK_LEVEL_RUNTIME_ITEMS = {
     "Production activation review/audit runtime/deployment evidence 通过。",
     "Production abuse throttle/hold runtime/deployment evidence 通过。",
     "Production security launch-check runtime/deployment evidence 通过。",
+    PRODUCTION_BACKUP_ROLLBACK_INCIDENT_ADMIN_CHECKLIST_ITEM,
 }
 REQUIRED_OPEN_ITEMS |= (
     RELEASE_GATE_CHECK_LEVEL_RUNTIME_OPEN_ITEMS.keys()
@@ -1758,6 +1781,7 @@ REQUIRED_OPEN_ITEMS -= {
     "Production activation review/audit runtime/deployment evidence 通过。",
     "Production abuse throttle/hold runtime/deployment evidence 通过。",
     "Production security launch-check runtime/deployment evidence 通过。",
+    PRODUCTION_BACKUP_ROLLBACK_INCIDENT_ADMIN_CHECKLIST_ITEM,
     "电商增长包 API smoke test 通过。",
     "电商增长包 Playwright happy path 通过。",
     *LOCAL_ALPHA_RELEASE_GATE_WORKFLOW_RUNTIME_CLOSED_ITEMS.keys(),
@@ -6016,6 +6040,75 @@ def validate_production_security_launch_checks_evidence() -> None:
         require(evidence[key], f"security launch evidence must include {key}")
 
 
+def validate_production_backup_rollback_incident_admin_evidence() -> None:
+    evidence = load_json(PRODUCTION_BACKUP_ROLLBACK_INCIDENT_ADMIN_EVIDENCE)
+    require(evidence["schema_version"] == "stage0.rev2", "production backup/rollback admin evidence schema mismatch")
+    require(evidence["environment"] == "production", "production backup/rollback admin evidence must be production-scoped")
+    require(
+        evidence["status"] == "blocked_by_upstream_gates",
+        "production backup/rollback admin evidence must preserve upstream launch blockers",
+    )
+    require(
+        evidence["release_gate_check_id"] == "production_backup_rollback_incident",
+        "production backup/rollback admin evidence must target the production backup release-gate check",
+    )
+    require(
+        set(evidence["do_not_launch_condition_ids"])
+        == {"backup_restore_rollback_smoke_missing", "production_deploy_rollback_smoke_missing"},
+        "production backup/rollback admin evidence must target both backup and deploy-smoke blockers",
+    )
+
+    gate_impact = evidence["gate_impact"]
+    require(
+        "Production post-deploy smoke tests 通过。" in gate_impact["checklist_items"],
+        "production backup/rollback admin evidence must expose the legacy ambiguous source row it is splitting",
+    )
+    require(
+        gate_impact["can_clear_check_level_items"] is False,
+        "production backup/rollback admin evidence cannot clear production launch readiness",
+    )
+    require(
+        gate_impact["aggregate_production_gate_status"]
+        == "blocked_by_upstream_and_other_production_runtime_items",
+        "production backup/rollback admin evidence must keep aggregate production launch blocked",
+    )
+    require(
+        set(gate_impact["remaining_blockers"])
+        == {
+            "ci_staging_gates_not_passed",
+            "production_provider_or_comp_only_mode",
+            "production_paid_billing_lifecycle",
+            "production_legal_support_policy",
+        },
+        "production backup/rollback admin evidence must preserve exact current production blockers",
+    )
+
+    coverage = evidence["coverage"]
+    require(
+        {item["area"] for item in coverage}
+        == {
+            "backup_restore",
+            "rollback_drill",
+            "incident_alert_path",
+            "post_deploy_smoke",
+            "gate_blocker_preservation",
+        },
+        "production backup/rollback admin evidence must cover backup, rollback, incident, smoke, and blocker preservation",
+    )
+    for item in coverage:
+        expected_status = "blocked" if item["area"] == "gate_blocker_preservation" else "pass"
+        require(
+            item["status"] == expected_status,
+            f"{item['area']} production backup/rollback admin evidence has wrong status",
+        )
+        combined = json.dumps(item, ensure_ascii=False).lower()
+        for token in [
+            "production",
+            "ops/evidence/production/20260527t1800z-backup-rollback-incident-smoke.json",
+        ]:
+            require(token in combined, f"{item['area']} production backup/rollback admin evidence missing {token}")
+
+
 def validate_analytics_taxonomy() -> None:
     taxonomy = load_json(FIXTURE_DIR / "analytics" / "event_taxonomy.json")
     require(
@@ -6292,7 +6385,7 @@ def validate_release_gate_evidence() -> None:
     closed_production_runtime_checks = {
         check_id
         for item, check_ids in PRODUCTION_RUNTIME_OPEN_CHECK_ITEMS.items()
-        if item in blueprint_checked
+        if item in blueprint_checked and item != PRODUCTION_BACKUP_ROLLBACK_INCIDENT_ADMIN_CHECKLIST_ITEM
         for check_id in check_ids
     }
     for check_id in RELEASE_GATE_REQUIRED_CHECKS["production_launch"]:
@@ -7265,7 +7358,7 @@ def validate_launch_readiness_split_contracts() -> None:
     for item in [
         "CI 在已安装 PR/main workflow 中运行 Playwright smoke。",
         "CI 在已安装 PR/main workflow 中 build Docker images。",
-        "Production post-deploy smoke tests 通过。",
+        PRODUCTION_POST_DEPLOY_LAUNCH_CLEARING_CHECKLIST_ITEM,
     ] + sorted(CI_RUNTIME_OPEN_CHECK_ITEMS) + sorted(RELEASE_GATE_RUNTIME_OPEN_ITEMS) + sorted(
         set(RELEASE_GATE_CHECK_LEVEL_RUNTIME_OPEN_ITEMS)
         - {
@@ -7288,6 +7381,7 @@ def validate_launch_readiness_split_contracts() -> None:
             "Production activation review/audit runtime/deployment evidence 通过。",
             "Production abuse throttle/hold runtime/deployment evidence 通过。",
             "Production security launch-check runtime/deployment evidence 通过。",
+            PRODUCTION_BACKUP_ROLLBACK_INCIDENT_ADMIN_CHECKLIST_ITEM,
             *LOCAL_ALPHA_RELEASE_GATE_WORKFLOW_RUNTIME_CLOSED_ITEMS.keys(),
         }
     ):
@@ -7308,6 +7402,7 @@ def validate_launch_readiness_split_contracts() -> None:
         "Runtime release gate evidence 通过。",
         "Private Beta/Staging runtime evidence 通过。",
         "Production runtime evidence 通过。",
+        "Production post-deploy smoke tests 通过。",
     ]:
         require(
             ambiguous not in checked_lines and ambiguous not in unchecked_lines,
@@ -8024,6 +8119,7 @@ def main() -> int:
         validate_production_abuse_throttle_hold_evidence,
         validate_production_activation_review_audit_evidence,
         validate_production_security_launch_checks_evidence,
+        validate_production_backup_rollback_incident_admin_evidence,
         validate_analytics_taxonomy,
         validate_local_alpha_presence,
         validate_release_gate_evidence,

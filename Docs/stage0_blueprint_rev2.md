@@ -2022,11 +2022,12 @@ main 合并前必须通过：
 - [ ] Production backup/rollback/incident/post-deploy smoke runtime/deployment evidence 通过。
 - [ ] Production backup/restore runtime evidence 通过：production evidence proves backup schedule, Postgres restore, object restore, RPO/RTO, and audit refs under `ops/evidence/production/`。
 - [ ] Production rollback/incident/post-deploy smoke runtime evidence 通过：production evidence proves rollback drill, incident/alert path, migration compatibility, and post-deploy smoke under `ops/evidence/production/`。
+- [x] Production backup/rollback/incident/post-deploy admin-visible probe evidence recorded but launch blocker preserved: `ops/evidence/production/20260527T1800Z-backup-rollback-incident-smoke.json` has `status=blocked_by_upstream_gates`, proves backup、rollback、incident、post-deploy smoke probes, and cannot close production backup/rollback launch readiness until upstream CI/Staging gates and exact split files pass。
 - [ ] Production legal/support policy deployment evidence 通过。
 - [ ] Production public legal policy deployment evidence 通过：production evidence proves Terms、Privacy、Acceptable Use、AI/content disclaimer、IP complaint flow visibility under `ops/evidence/production/`。
 - [ ] Production public support/billing policy deployment evidence 通过：production evidence proves support contact and paid billing/cancellation/refund policy visibility under `ops/evidence/production/`。
 - [x] Staging post-deploy smoke tests 通过。
-- [ ] Production post-deploy smoke tests 通过。
+- [ ] Production post-deploy launch-clearing smoke evidence 通过：exact production split evidence exists at `ops/evidence/production/rollback-incident-post-deploy-smoke.json`, cites passing CI and Private Beta/Staging gate fixtures, and clears `production_deploy_rollback_smoke_missing` without preserved blockers。
 
 Release gate evidence map:
 
@@ -2095,6 +2096,8 @@ Release gate closure policy:
 - Production Launch cannot clear `ci_staging_gates_not_passed` or pass backup/rollback/post-deploy evidence until both `fixtures/stage0/rev2/release_gate_evidence.ci.json` and `fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json` allow checklist completion.
 - Production backup/rollback/post-deploy pass evidence must cite both upstream gate fixtures and can pass only when CI and Private Beta/Staging are computed ready by the validator.
 - Production check-level evidence for skill/canary, activation review, abuse hold/throttle, or security launch checks may close only its matching subitem when it cites exact `ops/evidence/production/` files and preserves unrelated blockers; those subitems do not clear `ci_staging_gates_not_passed`, backup/rollback/post-deploy, legal/support policy, or aggregate Production Launch readiness.
+- Production admin-visible backup/rollback/incident/post-deploy probe evidence with `status=blocked_by_upstream_gates` may close only the explicit admin-visible probe checklist row; it must not close production backup/rollback launch readiness, production post-deploy launch-clearing smoke, or `production_deploy_rollback_smoke_missing`.
+- The ambiguous checklist item `Production post-deploy smoke tests 通过。` must not appear checked or open; production post-deploy evidence must be split into admin-visible blocked probe evidence and launch-clearing evidence backed by exact split files plus computed-ready upstream CI/Staging gates.
 - Blocked split runtime/deployment checks must name every exact split evidence file still required for closure; a broad `ops/evidence/staging/` or `ops/evidence/production/` placeholder cannot preserve a launch blocker.
 - Existing half-split evidence can only close its own concrete subitem; the combined check remains blocked until every required split file exists, declares the matching environment and release gate check ID when present, has a passing status, and covers its required runtime/deployment semantics.
 - Checked split evidence checklist rows require their validator-owned exact file to exist, declare the matching gate environment, carry an allowed passing status, and cover the row's required semantics; checklist prose or a sibling split file cannot close the row.
