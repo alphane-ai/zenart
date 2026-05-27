@@ -332,8 +332,27 @@ func RedactValue(value any) any {
 		return RedactStringMap(typed)
 	case http.Header:
 		return RedactStringSliceMap(map[string][]string(typed))
+	case url.Values:
+		return RedactStringSliceMap(map[string][]string(typed))
 	case map[string][]string:
 		return RedactStringSliceMap(typed)
+	case map[string][]any:
+		out := make(map[string][]any, len(typed))
+		for key, values := range typed {
+			redactedValues := make([]any, len(values))
+			if IsSensitiveKey(key) {
+				for i := range values {
+					redactedValues[i] = Redacted
+				}
+				out[key] = redactedValues
+				continue
+			}
+			for i, item := range values {
+				redactedValues[i] = RedactValue(item)
+			}
+			out[key] = redactedValues
+		}
+		return out
 	case json.RawMessage:
 		return json.RawMessage(RedactString(string(typed)))
 	case []byte:
@@ -350,6 +369,24 @@ func RedactValue(value any) any {
 			out[i] = RedactString(item)
 		}
 		return out
+	case []map[string]any:
+		out := make([]map[string]any, len(typed))
+		for i, item := range typed {
+			out[i] = RedactMap(item)
+		}
+		return out
+	case []map[string]string:
+		out := make([]map[string]string, len(typed))
+		for i, item := range typed {
+			out[i] = RedactStringMap(item)
+		}
+		return out
+	case []map[string][]string:
+		out := make([]map[string][]string, len(typed))
+		for i, item := range typed {
+			out[i] = RedactStringSliceMap(item)
+		}
+		return out
 	case string:
 		return RedactString(typed)
 	case error:
@@ -361,6 +398,18 @@ func RedactValue(value any) any {
 			return typed
 		}
 		return RedactString(typed.String())
+	case slog.Attr:
+		return redactSlogAttr(typed)
+	case slog.Value:
+		return redactSlogValue("", typed)
+	case slog.LogValuer:
+		return RedactValue(typed.LogValue())
+	case []slog.Attr:
+		out := make([]slog.Attr, len(typed))
+		for i, attr := range typed {
+			out[i] = redactSlogAttr(attr)
+		}
+		return out
 	case fmt.Stringer:
 		return RedactString(typed.String())
 	default:
@@ -685,8 +734,31 @@ func classifyValueAt(value any, location string) []SecretFinding {
 		}
 	case http.Header:
 		findings = append(findings, classifyStringSliceMapAt(map[string][]string(typed), location)...)
+	case url.Values:
+		findings = append(findings, classifyStringSliceMapAt(map[string][]string(typed), location)...)
 	case map[string][]string:
 		findings = append(findings, classifyStringSliceMapAt(typed, location)...)
+	case map[string][]any:
+		for key, values := range typed {
+			childLocation := key
+			if location != "" {
+				childLocation = location + "." + key
+			}
+			for _, finding := range ClassifyKey(key) {
+				finding.Location = childLocation
+				findings = append(findings, finding)
+			}
+			if isSignedURLQueryKey(key) {
+				findings = append(findings, SecretFinding{Kind: SecretKindSignedURL, Signal: "url_query_secret", Location: childLocation})
+			}
+			for i, item := range values {
+				valueLocation := fmt.Sprintf("%s[%d]", childLocation, i)
+				if isSignedURLQueryKey(key) {
+					findings = append(findings, SecretFinding{Kind: SecretKindSignedURL, Signal: "url_query_secret", Location: valueLocation})
+				}
+				findings = append(findings, classifyValueAt(item, valueLocation)...)
+			}
+		}
 	case []any:
 		for i, item := range typed {
 			childLocation := fmt.Sprintf("%s[%d]", location, i)
@@ -699,6 +771,21 @@ func classifyValueAt(value any, location string) []SecretFinding {
 				finding.Location = joinFindingLocation(childLocation, finding.Location)
 				findings = append(findings, finding)
 			}
+		}
+	case []map[string]any:
+		for i, item := range typed {
+			childLocation := fmt.Sprintf("%s[%d]", location, i)
+			findings = append(findings, classifyValueAt(item, childLocation)...)
+		}
+	case []map[string]string:
+		for i, item := range typed {
+			childLocation := fmt.Sprintf("%s[%d]", location, i)
+			findings = append(findings, classifyValueAt(item, childLocation)...)
+		}
+	case []map[string][]string:
+		for i, item := range typed {
+			childLocation := fmt.Sprintf("%s[%d]", location, i)
+			findings = append(findings, classifyValueAt(item, childLocation)...)
 		}
 	case json.RawMessage:
 		for _, finding := range ClassifyString(string(typed)) {
@@ -732,6 +819,16 @@ func classifyValueAt(value any, location string) []SecretFinding {
 				findings = append(findings, finding)
 			}
 		}
+	case slog.Attr:
+		findings = append(findings, classifySlogAttrAt(typed, location)...)
+	case slog.Value:
+		findings = append(findings, classifySlogValueAt("", typed, location)...)
+	case slog.LogValuer:
+		findings = append(findings, classifySlogValueAt("", typed.LogValue(), location)...)
+	case []slog.Attr:
+		for _, attr := range typed {
+			findings = append(findings, classifySlogAttrAt(attr, location)...)
+		}
 	case fmt.Stringer:
 		for _, finding := range ClassifyString(typed.String()) {
 			finding.Location = joinFindingLocation(location, finding.Location)
@@ -739,6 +836,46 @@ func classifyValueAt(value any, location string) []SecretFinding {
 		}
 	}
 	return findings
+}
+
+func classifySlogAttrAt(attr slog.Attr, location string) []SecretFinding {
+	childLocation := attr.Key
+	if location != "" {
+		childLocation = location + "." + attr.Key
+	}
+	var findings []SecretFinding
+	for _, finding := range ClassifyKey(attr.Key) {
+		finding.Location = childLocation
+		findings = append(findings, finding)
+	}
+	findings = append(findings, classifySlogValueAt(attr.Key, attr.Value, childLocation)...)
+	return findings
+}
+
+func classifySlogValueAt(key string, value slog.Value, location string) []SecretFinding {
+	value = value.Resolve()
+	if IsSensitiveKey(key) {
+		return nil
+	}
+	switch value.Kind() {
+	case slog.KindString:
+		var findings []SecretFinding
+		for _, finding := range ClassifyString(value.String()) {
+			finding.Location = joinFindingLocation(location, finding.Location)
+			findings = append(findings, finding)
+		}
+		return findings
+	case slog.KindAny:
+		return classifyValueAt(value.Any(), location)
+	case slog.KindGroup:
+		var findings []SecretFinding
+		for _, attr := range value.Group() {
+			findings = append(findings, classifySlogAttrAt(attr, location)...)
+		}
+		return findings
+	default:
+		return nil
+	}
 }
 
 func classifyStringSliceMapAt(input map[string][]string, location string) []SecretFinding {
@@ -752,8 +889,14 @@ func classifyStringSliceMapAt(input map[string][]string, location string) []Secr
 			finding.Location = childLocation
 			findings = append(findings, finding)
 		}
+		if isSignedURLQueryKey(key) {
+			findings = append(findings, SecretFinding{Kind: SecretKindSignedURL, Signal: "url_query_secret", Location: childLocation})
+		}
 		for i, value := range values {
 			valueLocation := fmt.Sprintf("%s[%d]", childLocation, i)
+			if isSignedURLQueryKey(key) {
+				findings = append(findings, SecretFinding{Kind: SecretKindSignedURL, Signal: "url_query_secret", Location: valueLocation})
+			}
 			for _, finding := range ClassifyString(value) {
 				finding.Location = joinFindingLocation(valueLocation, finding.Location)
 				findings = append(findings, finding)

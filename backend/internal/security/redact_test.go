@@ -234,6 +234,65 @@ func TestRedactValueCoversHeadersAndStringSlices(t *testing.T) {
 	}
 }
 
+func TestRedactValueCoversLaunchMetadataContainers(t *testing.T) {
+	values := url.Values{
+		"X-Amz-Signature": []string{"abcdef"},
+		"public":          []string{"ok"},
+	}
+	redactedValues, ok := RedactValue(values).(map[string][]string)
+	if !ok {
+		t.Fatalf("RedactValue(url.Values) type = %T, want map[string][]string", RedactValue(values))
+	}
+	if redactedValues["X-Amz-Signature"][0] != Redacted || redactedValues["public"][0] != "ok" {
+		t.Fatalf("redacted url values = %#v", redactedValues)
+	}
+
+	metadata := map[string]any{
+		"export_events": []map[string]any{
+			{
+				"download_url": "https://storage.local/export.zip?X-Amz-Signature=abcdef",
+				"status":       "ready",
+			},
+		},
+		"support_context": []map[string]string{
+			{
+				"api_key": "secret",
+				"summary": "user reported export failure",
+			},
+		},
+		"audit_headers": []map[string][]string{
+			{
+				"Authorization": []string{"Bearer abcdefghijklmnop"},
+			},
+		},
+		"crawler_findings": map[string][]any{
+			"source_urls": []any{
+				"https://user:pass@example.test/path?token=secret-token",
+			},
+		},
+	}
+	body, err := json.Marshal(RedactValue(metadata))
+	if err != nil {
+		t.Fatalf("marshal redacted metadata: %v", err)
+	}
+	for _, leaked := range []string{
+		"abcdef",
+		`"api_key":"secret"`,
+		"abcdefghijklmnop",
+		"user:pass",
+		"secret-token",
+	} {
+		if strings.Contains(string(body), leaked) {
+			t.Fatalf("redacted metadata = %s, leaked %s", string(body), leaked)
+		}
+	}
+	for _, fragment := range []string{"ready", "user reported export failure", Redacted} {
+		if !strings.Contains(string(body), fragment) {
+			t.Fatalf("redacted metadata = %s, missing %s", string(body), fragment)
+		}
+	}
+}
+
 func TestRedactValueCoversErrors(t *testing.T) {
 	got := RedactValue(errors.New("provider failed with sk-ant-abcdefghijklmnopqrstuvwxyz123456"))
 	asString, ok := got.(string)
@@ -482,6 +541,64 @@ func TestRedactingSlogHandlerRedactsMessagesAttrsGroupsAndContextAttrs(t *testin
 	}
 }
 
+func TestRedactingSlogHandlerRedactsLogValuerAttrs(t *testing.T) {
+	var logs bytes.Buffer
+	logger := slog.New(NewRedactingSlogHandler(slog.NewJSONHandler(&logs, nil)))
+	logger.Warn(
+		"audit event",
+		"event", secretLogValuer{},
+		"attrs", []slog.Attr{
+			slog.String("signed_url", "https://storage.local/export.zip?X-Amz-Signature=abcdef"),
+		},
+	)
+
+	line := logs.String()
+	for _, leaked := range []string{
+		"sk-ant-abcdefghijklmnopqrstuvwxyz123456",
+		"abcdefghijklmnop",
+		"abcdef",
+	} {
+		if strings.Contains(line, leaked) {
+			t.Fatalf("redacted slog line = %s, leaked %s", line, leaked)
+		}
+	}
+	for _, fragment := range []string{Redacted, `"public":"ok"`} {
+		if !strings.Contains(line, fragment) {
+			t.Fatalf("redacted slog line = %s, missing %s", line, fragment)
+		}
+	}
+}
+
+func TestClassifyValueCoversLaunchMetadataContainers(t *testing.T) {
+	findings := ClassifyValue(map[string]any{
+		"query": url.Values{
+			"X-Goog-Signature": []string{"abcdef"},
+		},
+		"export_events": []map[string]any{
+			{"download_url": "https://storage.local/export.zip?X-Amz-Signature=abcdef"},
+		},
+		"support_context": []map[string]string{
+			{"api_key": "secret"},
+		},
+		"audit_headers": []map[string][]string{
+			{"Authorization": []string{"Bearer abcdefghijklmnop"}},
+		},
+		"crawler_findings": map[string][]any{
+			"source_urls": []any{"https://user:pass@example.test/source"},
+		},
+		"log_value": secretLogValuer{},
+	})
+
+	assertFinding(t, findings, SecretKindSignedURL, "query.X-Goog-Signature")
+	assertFinding(t, findings, SecretKindSignedURL, "query.X-Goog-Signature[0]")
+	assertFinding(t, findings, SecretKindSignedURL, "export_events[0].download_url")
+	assertFinding(t, findings, SecretKindAPIKey, "support_context[0].api_key")
+	assertFinding(t, findings, SecretKindAuthorization, "audit_headers[0].Authorization")
+	assertFinding(t, findings, SecretKindDSN, "crawler_findings.source_urls[0]")
+	assertFinding(t, findings, SecretKindProviderKey, "log_value.provider.provider_key")
+	assertFinding(t, findings, SecretKindAuthorization, "log_value.provider.error")
+}
+
 func TestClassifyValueCoversHeadersAndStringSlices(t *testing.T) {
 	findings := ClassifyValue(map[string]any{
 		"headers": http.Header{
@@ -651,4 +768,16 @@ type stringerValue string
 
 func (s stringerValue) String() string {
 	return string(s)
+}
+
+type secretLogValuer struct{}
+
+func (secretLogValuer) LogValue() slog.Value {
+	return slog.GroupValue(
+		slog.Group("provider",
+			"provider_key", "sk-ant-abcdefghijklmnopqrstuvwxyz123456",
+			"error", "Authorization: Bearer abcdefghijklmnop",
+			"public", "ok",
+		),
+	)
 }
