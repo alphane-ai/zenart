@@ -580,7 +580,7 @@
     },
     "fixture_result_projection_fields": {
       "type": "array",
-      "minItems": 12,
+      "minItems": 13,
       "uniqueItems": true,
       "items": {
         "enum": [
@@ -590,6 +590,7 @@
           "status",
           "expected_safety_action",
           "observed_safety_action",
+          "safety_decision_contract",
           "qa_check_ids",
           "qa_coverage_contract",
           "trace_contract",

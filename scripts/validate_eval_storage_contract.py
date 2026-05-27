@@ -101,6 +101,7 @@ FIXTURE_RESULT_PROJECTION_FIELDS = {
     "status",
     "expected_safety_action",
     "observed_safety_action",
+    "safety_decision_contract",
     "qa_check_ids",
     "qa_coverage_contract",
     "trace_contract",

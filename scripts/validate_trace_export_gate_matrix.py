@@ -166,6 +166,19 @@ def validate_contract() -> None:
 
         safety_rule_ids = linked_safety_rule_ids(fixture_id, safety_rules)
         require(case["safety_rule_ids"] == safety_rule_ids, f"{fixture_id} linked safety rules mismatch")
+        safety_decision = eval_fixture["safety_decision_contract"]
+        require(
+            safety_decision["source_rule_ids"] == safety_rule_ids,
+            f"{fixture_id} safety decision source rules must match gate matrix rules",
+        )
+        require(
+            safety_decision["decision"] == eval_fixture["observed_safety_action"],
+            f"{fixture_id} safety decision must match observed eval action",
+        )
+        require(
+            safety_decision["decision_source"] == ("linked_safety_rule" if safety_rule_ids else "default_no_match"),
+            f"{fixture_id} safety decision source mismatch",
+        )
         linked_rules = [rule for rule in safety_rules if rule["rule_id"] in safety_rule_ids]
         has_blocking_safety_rule = any(rule["action"] == "block" for rule in linked_rules)
         require(

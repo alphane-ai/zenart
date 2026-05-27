@@ -2860,6 +2860,7 @@ components:
               - candidate_count
               - expected_safety_action
               - observed_safety_action
+              - safety_decision_contract
               - qa_check_ids
               - qa_coverage_contract
               - trace_contract
@@ -2885,6 +2886,48 @@ components:
               observed_safety_action:
                 type: string
                 enum: [allow, warn, require_user_confirmation, require_admin_review, block]
+              safety_decision_contract:
+                type: object
+                required:
+                  - decision
+                  - decision_source
+                  - source_rule_ids
+                  - enforcement_points
+                  - trace_status_required
+                  - persisted_decision_required
+                  - audit_required
+                  - export_gate_effect
+                properties:
+                  decision:
+                    type: string
+                    enum: [allow, warn, require_user_confirmation, require_admin_review, block]
+                  decision_source:
+                    type: string
+                    enum: [default_no_match, linked_safety_rule]
+                  source_rule_ids:
+                    type: array
+                    uniqueItems: true
+                    items:
+                      type: string
+                  enforcement_points:
+                    type: array
+                    minItems: 5
+                    maxItems: 5
+                    uniqueItems: true
+                    items:
+                      type: string
+                      enum: [brief, provider_request, provider_response, qa, export]
+                  trace_status_required:
+                    type: boolean
+                    const: true
+                  persisted_decision_required:
+                    type: boolean
+                    const: true
+                  audit_required:
+                    type: boolean
+                  export_gate_effect:
+                    type: string
+                    enum: [allow_when_export_contract_complete, allow_with_warning, hold_until_user_confirmation, hold_until_admin_review, block_final_export]
               qa_check_ids:
                 type: array
                 items:
@@ -3059,7 +3102,7 @@ components:
             summary_projection_fields:
               type: array
               description: Persisted summary fields that admin reads can render without re-running the eval suite.
-              minItems: 12
+              minItems: 13
               uniqueItems: true
               items:
                 type: string
@@ -3090,6 +3133,7 @@ components:
                   - status
                   - expected_safety_action
                   - observed_safety_action
+                  - safety_decision_contract
                   - qa_check_ids
                   - qa_coverage_contract
                   - trace_contract

@@ -200,12 +200,29 @@ FIXTURE_RESULT_PROJECTION_FIELDS = {
     "status",
     "expected_safety_action",
     "observed_safety_action",
+    "safety_decision_contract",
     "qa_check_ids",
     "qa_coverage_contract",
     "trace_contract",
     "export_contract",
     "qa_export_gate",
     "failure_reasons",
+}
+
+SAFETY_ACTION_PRIORITY = {
+    "allow": 0,
+    "warn": 1,
+    "require_user_confirmation": 2,
+    "require_admin_review": 3,
+    "block": 4,
+}
+
+SAFETY_EXPORT_GATE_EFFECT = {
+    "allow": "allow_when_export_contract_complete",
+    "warn": "allow_with_warning",
+    "require_user_confirmation": "hold_until_user_confirmation",
+    "require_admin_review": "hold_until_admin_review",
+    "block": "block_final_export",
 }
 
 LOCAL_ALPHA_SERVICE_PATHS = {
@@ -3487,6 +3504,7 @@ def validate_eval_results() -> None:
     result = results[0]
     suite = load_json(FIXTURE_DIR / "eval" / "starter_eval_suite.json")
     qa_results = load_json(FIXTURE_DIR / "eval" / "qa_results.json")
+    safety_rules = load_json(FIXTURE_DIR / "eval" / "safety_rules.json")
 
     require(result["suite_id"] == suite["suite_id"], "eval result must reference starter eval suite")
     require(result["completed_at"], "eval result must persist completed_at")
@@ -3545,6 +3563,10 @@ def validate_eval_results() -> None:
     require(set(result_by_fixture) == fixture_ids, "eval result must include one fixture result per suite fixture")
 
     qa_by_id = {item["check_id"]: item for item in qa_results}
+    safety_by_fixture: dict[str, list[dict[str, Any]]] = {}
+    for rule in safety_rules:
+        for fixture_id in rule["eval_fixture_links"]:
+            safety_by_fixture.setdefault(fixture_id, []).append(rule)
     qa_categories = {item["check_category"] for item in qa_results}
     require(
         QA_CATEGORIES <= set(result["summary"]["qa_categories_covered"]),
@@ -3584,6 +3606,7 @@ def validate_eval_results() -> None:
             item["expected_safety_action"] == fixture["expected_evidence"]["expected_safety_action"],
             f"{item['fixture_id']} expected safety action mismatch",
         )
+        validate_eval_safety_decision_contract(item, safety_by_fixture.get(item["fixture_id"], []))
         trace = item["trace_contract"]
         require(trace["trace_id"].startswith("trace_"), f"{item['fixture_id']} trace_id must be trace-scoped")
         for key in [
@@ -3658,6 +3681,7 @@ def validate_eval_results() -> None:
             }
         )
         safety_blocks_export = item["observed_safety_action"] == "block"
+        safety_holds_export = item["observed_safety_action"] in {"require_user_confirmation", "require_admin_review"}
         export_artifacts_complete = all(
             item["export_contract"][key]
             for key in [
@@ -3673,6 +3697,7 @@ def validate_eval_results() -> None:
             and coverage["coverage_complete"]
             and not blocking_check_ids
             and not safety_blocks_export
+            and not safety_holds_export
         )
         require(
             qa_gate["blocking_qa_check_ids"] == blocking_check_ids,
@@ -3725,6 +3750,31 @@ def validate_eval_results() -> None:
     require(
         generated.returncode == 0,
         "stored eval results are stale: " + (generated.stderr or generated.stdout).strip(),
+    )
+
+
+def validate_eval_safety_decision_contract(item: dict[str, Any], linked_rules: list[dict[str, Any]]) -> None:
+    fixture_id = item["fixture_id"]
+    contract = item["safety_decision_contract"]
+    rule_ids = [rule["rule_id"] for rule in linked_rules]
+    expected_decision = (
+        max((rule["action"] for rule in linked_rules), key=lambda action: SAFETY_ACTION_PRIORITY[action])
+        if linked_rules
+        else "allow"
+    )
+    expected_source = "linked_safety_rule" if linked_rules else "default_no_match"
+
+    require(contract["decision"] == expected_decision, f"{fixture_id} safety decision must match linked rules")
+    require(item["observed_safety_action"] == contract["decision"], f"{fixture_id} observed safety action must match decision contract")
+    require(contract["decision_source"] == expected_source, f"{fixture_id} safety decision source mismatch")
+    require(contract["source_rule_ids"] == rule_ids, f"{fixture_id} safety decision source rule mismatch")
+    require(set(contract["enforcement_points"]) == SAFETY_POINTS, f"{fixture_id} safety decision must cover all safety points")
+    require(contract["trace_status_required"] is True, f"{fixture_id} safety decision must require trace status")
+    require(contract["persisted_decision_required"] is True, f"{fixture_id} safety decision must require persisted decisions")
+    require(contract["audit_required"] is bool(linked_rules), f"{fixture_id} safety decision audit requirement mismatch")
+    require(
+        contract["export_gate_effect"] == SAFETY_EXPORT_GATE_EFFECT[contract["decision"]],
+        f"{fixture_id} safety decision export gate effect mismatch",
     )
 
 

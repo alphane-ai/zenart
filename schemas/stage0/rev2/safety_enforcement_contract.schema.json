@@ -389,6 +389,8 @@
         "required": [
           "fixture_id",
           "expected_safety_action",
+          "expected_decision_source",
+          "expected_source_rule_ids",
           "required_enforcement_points",
           "must_block_final_export"
         ],
@@ -404,6 +406,18 @@
               "require_admin_review",
               "warn"
             ]
+          },
+          "expected_decision_source": {
+            "const": "linked_safety_rule"
+          },
+          "expected_source_rule_ids": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^safety_[a-z0-9_]+$"
+            }
           },
           "required_enforcement_points": {
             "type": "array",

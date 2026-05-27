@@ -148,16 +148,29 @@ def validate_fixture_links(contract: dict[str, Any]) -> None:
         expected_action = link["expected_safety_action"]
         fixture_action = fixture_by_id[fixture_id]["expected_evidence"]["expected_safety_action"]
         result_action = result_by_fixture[fixture_id]["observed_safety_action"]
-        if expected_action == "require_admin_review":
-            matching_rules = [
-                rule for rule in rules if fixture_id in rule["eval_fixture_links"]
-            ]
+        matching_rules = [
+            rule for rule in rules if fixture_id in rule["eval_fixture_links"]
+        ]
+        require(matching_rules, f"{fixture_id} must link to at least one safety rule")
+        require(
+            any(rule["action"] == expected_action for rule in matching_rules),
+            f"{fixture_id} must link to a {expected_action} safety rule",
+        )
+        decision_contract = result_by_fixture[fixture_id]["safety_decision_contract"]
+        require(
+            link["expected_decision_source"] == decision_contract["decision_source"],
+            f"{fixture_id} safety decision source mismatch",
+        )
+        require(
+            link["expected_source_rule_ids"] == decision_contract["source_rule_ids"],
+            f"{fixture_id} safety decision source rule mismatch",
+        )
+        if fixture_action != expected_action:
             require(
-                any(rule["action"] == "require_admin_review" for rule in matching_rules),
-                f"{fixture_id} must link to a require_admin_review safety rule",
+                decision_contract["decision"] == expected_action,
+                f"{fixture_id} safety decision contract must preserve linked rule decision when suite default differs",
             )
         else:
-            require(fixture_action == expected_action, f"{fixture_id} expected action mismatch in eval suite")
             require(result_action == expected_action, f"{fixture_id} observed action mismatch in eval result")
 
         if link["must_block_final_export"]:
@@ -323,6 +336,12 @@ def validate_cross_contracts(contract: dict[str, Any]) -> None:
     require(summary["critical_safety_regressions"] == 0, "eval result must have no critical safety regressions")
     for result in results[0]["fixture_results"]:
         require(result["trace_contract"]["has_safety_status"] is True, f"{result['fixture_id']} trace must include safety status")
+        decision_contract = result["safety_decision_contract"]
+        require(decision_contract["decision"] == result["observed_safety_action"], f"{result['fixture_id']} safety decision must match eval result")
+        require(set(decision_contract["enforcement_points"]) == SAFETY_POINTS, f"{result['fixture_id']} safety decision must cover every point")
+        for rule_id in decision_contract["source_rule_ids"]:
+            require(rule_id in rule_by_id, f"{result['fixture_id']} safety decision references unknown rule {rule_id}")
+            require(result["fixture_id"] in rule_by_id[rule_id]["eval_fixture_links"], f"{result['fixture_id']} safety decision rule link mismatch")
 
 
 def validate_pipeline_sequence_contract(contract: dict[str, Any]) -> None:

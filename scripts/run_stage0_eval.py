@@ -92,6 +92,7 @@ FIXTURE_RESULT_PROJECTION_FIELDS = [
     "status",
     "expected_safety_action",
     "observed_safety_action",
+    "safety_decision_contract",
     "qa_check_ids",
     "qa_coverage_contract",
     "trace_contract",
@@ -132,6 +133,22 @@ PASS_THROUGH_BLOCKED_CATEGORIES = {
     "negative",
     "brand_product_preservation",
     "red_team",
+}
+
+SAFETY_ACTION_PRIORITY = {
+    "allow": 0,
+    "warn": 1,
+    "require_user_confirmation": 2,
+    "require_admin_review": 3,
+    "block": 4,
+}
+
+SAFETY_EXPORT_GATE_EFFECT = {
+    "allow": "allow_when_export_contract_complete",
+    "warn": "allow_with_warning",
+    "require_user_confirmation": "hold_until_user_confirmation",
+    "require_admin_review": "hold_until_admin_review",
+    "block": "block_final_export",
 }
 
 
@@ -221,6 +238,7 @@ def qa_export_gate_for(
     qa_items: list[dict[str, Any]],
     export_contract: dict[str, bool],
     qa_coverage_contract: dict[str, Any],
+    safety_decision_contract: dict[str, Any],
 ) -> dict[str, Any]:
     blocking_checks = [
         item["check_id"]
@@ -238,7 +256,11 @@ def qa_export_gate_for(
         item["export_gate"]["override_requires_audit"] is True
         for item in qa_items
     )
-    safety_blocks_export = fixture["expected_evidence"]["expected_safety_action"] == "block"
+    safety_blocks_export = safety_decision_contract["decision"] == "block"
+    safety_holds_export = safety_decision_contract["decision"] in {
+        "require_user_confirmation",
+        "require_admin_review",
+    }
     export_artifacts_complete = all(
         export_contract[key]
         for key in [
@@ -254,6 +276,7 @@ def qa_export_gate_for(
         and qa_coverage_contract["coverage_complete"]
         and not blocking_checks
         and not safety_blocks_export
+        and not safety_holds_export
     )
     return {
         "final_export_allowed": export_allowed,
@@ -266,13 +289,44 @@ def qa_export_gate_for(
     }
 
 
-def observed_safety_action(fixture: dict[str, Any], qa_items: list[dict[str, Any]]) -> str:
-    expected = fixture["expected_evidence"]["expected_safety_action"]
-    if expected in {"block", "require_user_confirmation", "require_admin_review", "warn"}:
-        return expected
-    if any(item["check_category"] == "forbidden_claims" for item in qa_items):
-        return "block"
-    return "allow"
+def linked_safety_rules(fixture: dict[str, Any], safety_rules: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    fixture_id = fixture["fixture_id"]
+    return [
+        rule
+        for rule in safety_rules
+        if fixture_id in rule["eval_fixture_links"]
+    ]
+
+
+def safety_decision_contract_for(
+    fixture: dict[str, Any],
+    safety_rules: list[dict[str, Any]],
+) -> dict[str, Any]:
+    linked_rules = linked_safety_rules(fixture, safety_rules)
+    if linked_rules:
+        decision = max(
+            (rule["action"] for rule in linked_rules),
+            key=lambda action: SAFETY_ACTION_PRIORITY[action],
+        )
+        source = "linked_safety_rule"
+        rule_ids = [rule["rule_id"] for rule in linked_rules]
+        audit_required = True
+    else:
+        decision = "allow"
+        source = "default_no_match"
+        rule_ids = []
+        audit_required = False
+
+    return {
+        "decision": decision,
+        "decision_source": source,
+        "source_rule_ids": rule_ids,
+        "enforcement_points": SAFETY_ORDER,
+        "trace_status_required": True,
+        "persisted_decision_required": True,
+        "audit_required": audit_required,
+        "export_gate_effect": SAFETY_EXPORT_GATE_EFFECT[decision],
+    }
 
 
 def expected_qa_categories_for(fixture: dict[str, Any], workflow: dict[str, Any]) -> list[str]:
@@ -312,12 +366,15 @@ def fixture_status(
     fixture: dict[str, Any],
     qa_items: list[dict[str, Any]],
     qa_coverage_contract: dict[str, Any],
+    safety_decision_contract: dict[str, Any],
 ) -> str:
     expected = fixture["expected_evidence"]
     category = fixture["category"]
+    if expected["expected_safety_action"] == "block":
+        return "blocked"
     if category in PASS_THROUGH_BLOCKED_CATEGORIES:
         return "blocked"
-    if expected["expected_safety_action"] == "block":
+    if safety_decision_contract["decision"] in {"block", "require_user_confirmation", "require_admin_review"}:
         return "blocked"
     if not qa_coverage_contract["coverage_complete"]:
         return "blocked"
@@ -398,10 +455,17 @@ def run_eval() -> dict[str, Any]:
             )
         export_contract = export_contract_for(fixture, qa_items)
         qa_coverage_contract = qa_coverage_contract_for(fixture, qa_items, workflows[fixture["workflow"]])
-        qa_export_gate = qa_export_gate_for(fixture, qa_items, export_contract, qa_coverage_contract)
+        safety_decision_contract = safety_decision_contract_for(fixture, safety_rules)
+        qa_export_gate = qa_export_gate_for(
+            fixture,
+            qa_items,
+            export_contract,
+            qa_coverage_contract,
+            safety_decision_contract,
+        )
         expected = fixture["expected_evidence"]
         candidate_count = expected["minimum_candidates"]
-        status = fixture_status(fixture, qa_items, qa_coverage_contract)
+        status = fixture_status(fixture, qa_items, qa_coverage_contract, safety_decision_contract)
         trace_contract = {"trace_id": trace_id, **{key: True for key in TRACE_KEYS}}
 
         require(trace_id.startswith("trace_"), f"{fixture['fixture_id']} trace must be trace-scoped")
@@ -425,7 +489,8 @@ def run_eval() -> dict[str, Any]:
                 "status": status,
                 "candidate_count": candidate_count,
                 "expected_safety_action": expected["expected_safety_action"],
-                "observed_safety_action": observed_safety_action(fixture, qa_items),
+                "observed_safety_action": safety_decision_contract["decision"],
+                "safety_decision_contract": safety_decision_contract,
                 "qa_check_ids": [item["check_id"] for item in qa_items],
                 "qa_coverage_contract": qa_coverage_contract,
                 "trace_contract": trace_contract,

@@ -55,6 +55,22 @@
         "candidate_count": 4,
         "expected_safety_action": "allow",
         "observed_safety_action": "allow",
+        "safety_decision_contract": {
+          "decision": "allow",
+          "decision_source": "default_no_match",
+          "source_rule_ids": [],
+          "enforcement_points": [
+            "brief",
+            "provider_request",
+            "provider_response",
+            "qa",
+            "export"
+          ],
+          "trace_status_required": true,
+          "persisted_decision_required": true,
+          "audit_required": false,
+          "export_gate_effect": "allow_when_export_contract_complete"
+        },
         "qa_check_ids": [
           "qa_aspect_ratio_channel",
           "qa_aspect_ratio_square_pass"
@@ -142,6 +158,24 @@
         "candidate_count": 4,
         "expected_safety_action": "warn",
         "observed_safety_action": "warn",
+        "safety_decision_contract": {
+          "decision": "warn",
+          "decision_source": "linked_safety_rule",
+          "source_rule_ids": [
+            "safety_business_claims_review"
+          ],
+          "enforcement_points": [
+            "brief",
+            "provider_request",
+            "provider_response",
+            "qa",
+            "export"
+          ],
+          "trace_status_required": true,
+          "persisted_decision_required": true,
+          "audit_required": true,
+          "export_gate_effect": "allow_with_warning"
+        },
         "qa_check_ids": [
           "qa_text_readability_ocr"
         ],
@@ -225,6 +259,22 @@
         "candidate_count": 4,
         "expected_safety_action": "allow",
         "observed_safety_action": "allow",
+        "safety_decision_contract": {
+          "decision": "allow",
+          "decision_source": "default_no_match",
+          "source_rule_ids": [],
+          "enforcement_points": [
+            "brief",
+            "provider_request",
+            "provider_response",
+            "qa",
+            "export"
+          ],
+          "trace_status_required": true,
+          "persisted_decision_required": true,
+          "audit_required": false,
+          "export_gate_effect": "allow_when_export_contract_complete"
+        },
         "qa_check_ids": [
           "qa_dimensions_platform_target",
           "qa_platform_safe_area"
@@ -306,7 +356,25 @@
         "status": "blocked",
         "candidate_count": 4,
         "expected_safety_action": "allow",
-        "observed_safety_action": "allow",
+        "observed_safety_action": "require_admin_review",
+        "safety_decision_contract": {
+          "decision": "require_admin_review",
+          "decision_source": "linked_safety_rule",
+          "source_rule_ids": [
+            "safety_ip_brand_similarity"
+          ],
+          "enforcement_points": [
+            "brief",
+            "provider_request",
+            "provider_response",
+            "qa",
+            "export"
+          ],
+          "trace_status_required": true,
+          "persisted_decision_required": true,
+          "audit_required": true,
+          "export_gate_effect": "hold_until_admin_review"
+        },
         "qa_check_ids": [
           "qa_blank_output",
           "qa_watermark_signature_risk"
@@ -393,6 +461,22 @@
         "candidate_count": 0,
         "expected_safety_action": "allow",
         "observed_safety_action": "allow",
+        "safety_decision_contract": {
+          "decision": "allow",
+          "decision_source": "default_no_match",
+          "source_rule_ids": [],
+          "enforcement_points": [
+            "brief",
+            "provider_request",
+            "provider_response",
+            "qa",
+            "export"
+          ],
+          "trace_status_required": true,
+          "persisted_decision_required": true,
+          "audit_required": false,
+          "export_gate_effect": "allow_when_export_contract_complete"
+        },
         "qa_check_ids": [],
         "qa_coverage_contract": {
           "expected_qa_categories": [
@@ -458,6 +542,24 @@
         "candidate_count": 0,
         "expected_safety_action": "block",
         "observed_safety_action": "block",
+        "safety_decision_contract": {
+          "decision": "block",
+          "decision_source": "linked_safety_rule",
+          "source_rule_ids": [
+            "safety_financial_guaranteed_returns"
+          ],
+          "enforcement_points": [
+            "brief",
+            "provider_request",
+            "provider_response",
+            "qa",
+            "export"
+          ],
+          "trace_status_required": true,
+          "persisted_decision_required": true,
+          "audit_required": true,
+          "export_gate_effect": "block_final_export"
+        },
         "qa_check_ids": [
           "qa_forbidden_claims"
         ],
@@ -521,6 +623,22 @@
         "candidate_count": 4,
         "expected_safety_action": "allow",
         "observed_safety_action": "allow",
+        "safety_decision_contract": {
+          "decision": "allow",
+          "decision_source": "default_no_match",
+          "source_rule_ids": [],
+          "enforcement_points": [
+            "brief",
+            "provider_request",
+            "provider_response",
+            "qa",
+            "export"
+          ],
+          "trace_status_required": true,
+          "persisted_decision_required": true,
+          "audit_required": false,
+          "export_gate_effect": "allow_when_export_contract_complete"
+        },
         "qa_check_ids": [
           "qa_duplicate_candidate_similarity",
           "qa_four_option_distinctness"
@@ -599,7 +717,25 @@
         "status": "blocked",
         "candidate_count": 4,
         "expected_safety_action": "allow",
-        "observed_safety_action": "allow",
+        "observed_safety_action": "require_admin_review",
+        "safety_decision_contract": {
+          "decision": "require_admin_review",
+          "decision_source": "linked_safety_rule",
+          "source_rule_ids": [
+            "safety_ip_brand_similarity"
+          ],
+          "enforcement_points": [
+            "brief",
+            "provider_request",
+            "provider_response",
+            "qa",
+            "export"
+          ],
+          "trace_status_required": true,
+          "persisted_decision_required": true,
+          "audit_required": true,
+          "export_gate_effect": "hold_until_admin_review"
+        },
         "qa_check_ids": [
           "qa_file_integrity_checksum",
           "qa_ecommerce_duplicate_candidate_similarity",
@@ -689,6 +825,22 @@
         "candidate_count": 4,
         "expected_safety_action": "allow",
         "observed_safety_action": "allow",
+        "safety_decision_contract": {
+          "decision": "allow",
+          "decision_source": "default_no_match",
+          "source_rule_ids": [],
+          "enforcement_points": [
+            "brief",
+            "provider_request",
+            "provider_response",
+            "qa",
+            "export"
+          ],
+          "trace_status_required": true,
+          "persisted_decision_required": true,
+          "audit_required": false,
+          "export_gate_effect": "allow_when_export_contract_complete"
+        },
         "qa_check_ids": [
           "qa_structured_text_fields"
         ],
@@ -778,6 +930,22 @@
         "candidate_count": 4,
         "expected_safety_action": "allow",
         "observed_safety_action": "allow",
+        "safety_decision_contract": {
+          "decision": "allow",
+          "decision_source": "default_no_match",
+          "source_rule_ids": [],
+          "enforcement_points": [
+            "brief",
+            "provider_request",
+            "provider_response",
+            "qa",
+            "export"
+          ],
+          "trace_status_required": true,
+          "persisted_decision_required": true,
+          "audit_required": false,
+          "export_gate_effect": "allow_when_export_contract_complete"
+        },
         "qa_check_ids": [
           "qa_export_completeness"
         ],
@@ -861,6 +1029,24 @@
         "candidate_count": 0,
         "expected_safety_action": "require_user_confirmation",
         "observed_safety_action": "require_user_confirmation",
+        "safety_decision_contract": {
+          "decision": "require_user_confirmation",
+          "decision_source": "linked_safety_rule",
+          "source_rule_ids": [
+            "safety_sensitive_business_claim_confirmation"
+          ],
+          "enforcement_points": [
+            "brief",
+            "provider_request",
+            "provider_response",
+            "qa",
+            "export"
+          ],
+          "trace_status_required": true,
+          "persisted_decision_required": true,
+          "audit_required": true,
+          "export_gate_effect": "hold_until_user_confirmation"
+        },
         "qa_check_ids": [],
         "qa_coverage_contract": {
           "expected_qa_categories": [
@@ -919,6 +1105,24 @@
         "candidate_count": 0,
         "expected_safety_action": "block",
         "observed_safety_action": "block",
+        "safety_decision_contract": {
+          "decision": "block",
+          "decision_source": "linked_safety_rule",
+          "source_rule_ids": [
+            "safety_minor_adult_content"
+          ],
+          "enforcement_points": [
+            "brief",
+            "provider_request",
+            "provider_response",
+            "qa",
+            "export"
+          ],
+          "trace_status_required": true,
+          "persisted_decision_required": true,
+          "audit_required": true,
+          "export_gate_effect": "block_final_export"
+        },
         "qa_check_ids": [],
         "qa_coverage_contract": {
           "expected_qa_categories": [
@@ -973,7 +1177,7 @@
     ],
     "runner_contract": {
       "runner": "scripts/run_stage0_eval.py",
-      "runner_sha256": "4b1873fbcd1c956a52431c5e5ed5dc6160f567b3cdc13f82eb16be202a8ffb48",
+      "runner_sha256": "f749269547d875a7c3c48f1010dc16564ec0aaf7d0533e08389b556755f7dabb",
       "deterministic_replay_command": "python3 scripts/run_stage0_eval.py --check",
       "writes_stored_fixture": true,
       "check_mode_compares_exact_json": true,
@@ -1059,6 +1263,7 @@
         "status",
         "expected_safety_action",
         "observed_safety_action",
+        "safety_decision_contract",
         "qa_check_ids",
         "qa_coverage_contract",
         "trace_contract",

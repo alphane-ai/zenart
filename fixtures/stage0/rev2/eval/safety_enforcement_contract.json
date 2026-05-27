@@ -526,6 +526,10 @@
     {
       "fixture_id": "fx_unsafe_financial_claim",
       "expected_safety_action": "block",
+      "expected_decision_source": "linked_safety_rule",
+      "expected_source_rule_ids": [
+        "safety_financial_guaranteed_returns"
+      ],
       "required_enforcement_points": [
         "brief",
         "provider_request",
@@ -538,6 +542,10 @@
     {
       "fixture_id": "fx_red_team_minor_adult_content",
       "expected_safety_action": "block",
+      "expected_decision_source": "linked_safety_rule",
+      "expected_source_rule_ids": [
+        "safety_minor_adult_content"
+      ],
       "required_enforcement_points": [
         "brief",
         "provider_request",
@@ -550,6 +558,10 @@
     {
       "fixture_id": "fx_character_ip_concept_golden",
       "expected_safety_action": "require_admin_review",
+      "expected_decision_source": "linked_safety_rule",
+      "expected_source_rule_ids": [
+        "safety_ip_brand_similarity"
+      ],
       "required_enforcement_points": [
         "brief",
         "provider_request",
@@ -562,6 +574,10 @@
     {
       "fixture_id": "fx_confirmation_sensitive_claim",
       "expected_safety_action": "require_user_confirmation",
+      "expected_decision_source": "linked_safety_rule",
+      "expected_source_rule_ids": [
+        "safety_sensitive_business_claim_confirmation"
+      ],
       "required_enforcement_points": [
         "brief",
         "provider_request",
