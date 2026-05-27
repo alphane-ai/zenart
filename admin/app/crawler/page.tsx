@@ -1,9 +1,11 @@
 import { DataTable } from "@/components/DataTable";
 import { PageHeader } from "@/components/PageHeader";
+import { RbacOverrideAttemptDecisionTable } from "@/components/RbacOverrideAttemptDecisionTable";
 import { RbacRuntimeDecisionTable } from "@/components/RbacRuntimeDecisionTable";
 import { StatusBadge } from "@/components/StatusBadge";
 import {
   getAdminRbacEvidence,
+  getAdminRbacOverrideAttemptDecisions,
   getAdminRbacRuntimeDecisions,
   getCrawlerFindings,
   getCrawlerGovernanceClosureSummaries,
@@ -31,7 +33,8 @@ export default async function CrawlerReviewPage() {
     governanceClosureSummaries,
     stagingRuntimeEvidence,
     rbacEvidence,
-    rbacRuntime
+    rbacRuntime,
+    rbacAttemptDecisions
   ] = await Promise.all([
     getCrawlerFindings(),
     getCrawlerSourceApprovals(),
@@ -40,10 +43,12 @@ export default async function CrawlerReviewPage() {
     getCrawlerGovernanceClosureSummaries(),
     getCrawlerStagingRuntimeEvidence(),
     getAdminRbacEvidence(),
-    getAdminRbacRuntimeDecisions()
+    getAdminRbacRuntimeDecisions(),
+    getAdminRbacOverrideAttemptDecisions()
   ]);
   const crawlerRbacEvidence = rbacEvidence.filter((item) => item.surface === "crawler_import");
   const crawlerRbacRuntime = rbacRuntime.filter((item) => item.surface === "crawler_import");
+  const crawlerRbacAttemptDecisions = rbacAttemptDecisions.filter((item) => item.surface === "crawler_import");
 
   return (
     <>
@@ -78,6 +83,15 @@ export default async function CrawlerReviewPage() {
           </div>
         </div>
         <RbacRuntimeDecisionTable rows={crawlerRbacRuntime} />
+      </section>
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>Crawler Import RBAC Override Attempt Evidence</h3>
+            <p>Request-level evidence proves crawler reactivation attempts preserve idempotency, state digest, HTTP outcome, audit, and takedown or derivative-review blockers.</p>
+          </div>
+        </div>
+        <RbacOverrideAttemptDecisionTable rows={crawlerRbacAttemptDecisions} />
       </section>
       <section className="panel">
         <div className="panel-header">

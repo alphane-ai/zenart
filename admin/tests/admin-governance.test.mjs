@@ -5922,10 +5922,24 @@ test("admin RBAC override attempts preserve idempotency, state digests, and rele
     "missing allowed mutation must expose blocker code"
   );
 
+  const attemptTable = readFileSync(
+    new URL("../components/RbacOverrideAttemptDecisionTable.tsx", import.meta.url),
+    "utf8"
+  );
+  const attemptPageBySurface = new Map([
+    ["skill_release", readFileSync(new URL("../app/skills/releases/page.tsx", import.meta.url), "utf8")],
+    ["crawler_import", readFileSync(new URL("../app/crawler/page.tsx", import.meta.url), "utf8")],
+    ["prompt_approval", readFileSync(new URL("../app/prompt-fragments/page.tsx", import.meta.url), "utf8")],
+    ["provider_routing", readFileSync(new URL("../app/providers/page.tsx", import.meta.url), "utf8")],
+    ["quota_override", readFileSync(new URL("../app/quota/page.tsx", import.meta.url), "utf8")],
+    ["safety_rule", readFileSync(new URL("../app/safety/page.tsx", import.meta.url), "utf8")],
+    ["export_override", readFileSync(new URL("../app/exports/page.tsx", import.meta.url), "utf8")]
+  ]);
   const auditPage = readFileSync(new URL("../app/audit/page.tsx", import.meta.url), "utf8");
   const adminApi = readFileSync(new URL("../lib/admin-api.ts", import.meta.url), "utf8");
   for (const token of [
     "RBAC Override Attempt Evidence",
+    "RbacOverrideAttemptDecisionTable",
     "getAdminRbacOverrideAttemptDecisions",
     "State Digest",
     "Expected HTTP",
@@ -5933,7 +5947,28 @@ test("admin RBAC override attempts preserve idempotency, state digests, and rele
     "buildAdminRbacOverrideAttemptDecisions",
     "adminRbacOverrideAttempts"
   ]) {
-    assert.match(auditPage + adminApi + rbacRuntimeSource + source, new RegExp(token));
+    assert.match(auditPage + attemptTable + adminApi + rbacRuntimeSource + source, new RegExp(token));
+  }
+
+  for (const [surface, pageSource] of attemptPageBySurface.entries()) {
+    assert.match(
+      pageSource,
+      /getAdminRbacOverrideAttemptDecisions/,
+      `${surface} console must fetch request-level override attempt evidence`
+    );
+    assert.match(
+      pageSource,
+      /RbacOverrideAttemptDecisionTable/,
+      `${surface} console must render request-level override attempt evidence`
+    );
+    assert.match(
+      pageSource,
+      new RegExp(`item\\.surface === "${surface}"`),
+      `${surface} console must filter override attempts to its governed surface`
+    );
+    assert.match(pageSource, /idempotency/i, `${surface} console must explain idempotency evidence`);
+    assert.match(pageSource, /state digest/i, `${surface} console must explain state digest evidence`);
+    assert.match(pageSource, /HTTP outcome/i, `${surface} console must explain HTTP outcome evidence`);
   }
 });
 

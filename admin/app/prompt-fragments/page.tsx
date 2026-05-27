@@ -1,18 +1,26 @@
 import { DataTable } from "@/components/DataTable";
 import { PageHeader } from "@/components/PageHeader";
+import { RbacOverrideAttemptDecisionTable } from "@/components/RbacOverrideAttemptDecisionTable";
 import { RbacRuntimeDecisionTable } from "@/components/RbacRuntimeDecisionTable";
 import { StatusBadge } from "@/components/StatusBadge";
-import { getAdminRbacEvidence, getAdminRbacRuntimeDecisions, getPromptFragments } from "@/lib/admin-api";
+import {
+  getAdminRbacEvidence,
+  getAdminRbacOverrideAttemptDecisions,
+  getAdminRbacRuntimeDecisions,
+  getPromptFragments
+} from "@/lib/admin-api";
 import type { AdminRbacEvidence, PromptFragment } from "@/lib/types";
 
 export default async function PromptFragmentsPage() {
-  const [fragments, rbacEvidence, rbacRuntime] = await Promise.all([
+  const [fragments, rbacEvidence, rbacRuntime, rbacAttemptDecisions] = await Promise.all([
     getPromptFragments(),
     getAdminRbacEvidence(),
-    getAdminRbacRuntimeDecisions()
+    getAdminRbacRuntimeDecisions(),
+    getAdminRbacOverrideAttemptDecisions()
   ]);
   const promptRbacEvidence = rbacEvidence.filter((item) => item.surface === "prompt_approval");
   const promptRbacRuntime = rbacRuntime.filter((item) => item.surface === "prompt_approval");
+  const promptRbacAttemptDecisions = rbacAttemptDecisions.filter((item) => item.surface === "prompt_approval");
 
   return (
     <>
@@ -81,6 +89,16 @@ export default async function PromptFragmentsPage() {
           </div>
         </div>
         <RbacRuntimeDecisionTable rows={promptRbacRuntime} />
+      </section>
+
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>Prompt Approval RBAC Override Attempt Evidence</h3>
+            <p>Request-level evidence proves prompt activation attempts preserve idempotency, state digest, HTTP outcome, audit, and eval or QA blockers.</p>
+          </div>
+        </div>
+        <RbacOverrideAttemptDecisionTable rows={promptRbacAttemptDecisions} />
       </section>
     </>
   );

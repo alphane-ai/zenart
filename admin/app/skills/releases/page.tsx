@@ -1,9 +1,11 @@
 import { DataTable } from "@/components/DataTable";
 import { PageHeader } from "@/components/PageHeader";
+import { RbacOverrideAttemptDecisionTable } from "@/components/RbacOverrideAttemptDecisionTable";
 import { RbacRuntimeDecisionTable } from "@/components/RbacRuntimeDecisionTable";
 import { StatusBadge } from "@/components/StatusBadge";
 import {
   getAdminRbacEvidence,
+  getAdminRbacOverrideAttemptDecisions,
   getAdminRbacRuntimeDecisions,
   getAdminReviewDecisions,
   getProductionSkillReleaseEvalCanaryEvidence,
@@ -19,16 +21,18 @@ import type {
 } from "@/lib/types";
 
 export default async function SkillReleasesPage() {
-  const [versions, reviews, evidence, rbacEvidence, rbacRuntime, productionSkillEvidence] = await Promise.all([
+  const [versions, reviews, evidence, rbacEvidence, rbacRuntime, rbacAttemptDecisions, productionSkillEvidence] = await Promise.all([
     getSkillVersions(),
     getAdminReviewDecisions(),
     getReleaseEvidence(),
     getAdminRbacEvidence(),
     getAdminRbacRuntimeDecisions(),
+    getAdminRbacOverrideAttemptDecisions(),
     getProductionSkillReleaseEvalCanaryEvidence()
   ]);
   const releaseRbacEvidence = rbacEvidence.filter((item) => item.surface === "skill_release");
   const releaseRbacRuntime = rbacRuntime.filter((item) => item.surface === "skill_release");
+  const releaseRbacAttemptDecisions = rbacAttemptDecisions.filter((item) => item.surface === "skill_release");
 
   return (
     <>
@@ -80,6 +84,16 @@ export default async function SkillReleasesPage() {
           </div>
         </div>
         <RbacRuntimeDecisionTable rows={releaseRbacRuntime} />
+      </section>
+
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>Skill Release RBAC Override Attempt Evidence</h3>
+            <p>Request-level evidence proves release and canary mutations keep idempotency, expected HTTP outcome, state digest, audit, and release-gate blockers attached.</p>
+          </div>
+        </div>
+        <RbacOverrideAttemptDecisionTable rows={releaseRbacAttemptDecisions} />
       </section>
 
       <section className="panel">

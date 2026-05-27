@@ -1,10 +1,12 @@
 import { DataTable } from "@/components/DataTable";
 import { KeyValue } from "@/components/KeyValue";
 import { PageHeader } from "@/components/PageHeader";
+import { RbacOverrideAttemptDecisionTable } from "@/components/RbacOverrideAttemptDecisionTable";
 import { RbacRuntimeDecisionTable } from "@/components/RbacRuntimeDecisionTable";
 import { StatusBadge } from "@/components/StatusBadge";
 import {
   getAdminRbacEvidence,
+  getAdminRbacOverrideAttemptDecisions,
   getAdminRbacRuntimeDecisions,
   getProductionPaidBillingLifecycleEvidence,
   getQuotaAccounts,
@@ -19,15 +21,17 @@ import type {
 } from "@/lib/types";
 
 export default async function QuotaPage() {
-  const [accounts, rbacEvidence, rbacRuntime, stagingEvidence, productionPaidBillingEvidence] = await Promise.all([
+  const [accounts, rbacEvidence, rbacRuntime, rbacAttemptDecisions, stagingEvidence, productionPaidBillingEvidence] = await Promise.all([
     getQuotaAccounts(),
     getAdminRbacEvidence(),
     getAdminRbacRuntimeDecisions(),
+    getAdminRbacOverrideAttemptDecisions(),
     getStagingQuotaRateLimitSpendCapEvidence(),
     getProductionPaidBillingLifecycleEvidence()
   ]);
   const quotaRbacEvidence = rbacEvidence.filter((item) => item.surface === "quota_override");
   const quotaRbacRuntime = rbacRuntime.filter((item) => item.surface === "quota_override");
+  const quotaRbacAttemptDecisions = rbacAttemptDecisions.filter((item) => item.surface === "quota_override");
 
   return (
     <>
@@ -150,6 +154,16 @@ export default async function QuotaPage() {
           </div>
         </div>
         <RbacRuntimeDecisionTable rows={quotaRbacRuntime} />
+      </section>
+
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>Quota Override RBAC Override Attempt Evidence</h3>
+            <p>Request-level evidence proves quota mutations preserve idempotency, state digest, expected HTTP outcome, audit, support-ticket linkage, and transaction blockers.</p>
+          </div>
+        </div>
+        <RbacOverrideAttemptDecisionTable rows={quotaRbacAttemptDecisions} />
       </section>
 
       <section className="panel">

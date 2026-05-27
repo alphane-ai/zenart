@@ -1,20 +1,29 @@
 import Link from "next/link";
 import { DataTable } from "@/components/DataTable";
 import { PageHeader } from "@/components/PageHeader";
+import { RbacOverrideAttemptDecisionTable } from "@/components/RbacOverrideAttemptDecisionTable";
 import { RbacRuntimeDecisionTable } from "@/components/RbacRuntimeDecisionTable";
 import { StatusBadge } from "@/components/StatusBadge";
-import { getAdminRbacEvidence, getAdminRbacRuntimeDecisions, getExportJobs, getExportRegenerationRuntimeDecisions } from "@/lib/admin-api";
+import {
+  getAdminRbacEvidence,
+  getAdminRbacOverrideAttemptDecisions,
+  getAdminRbacRuntimeDecisions,
+  getExportJobs,
+  getExportRegenerationRuntimeDecisions
+} from "@/lib/admin-api";
 import type { AdminRbacEvidence, ExportJob, ExportRegenerationRuntimeDecision } from "@/lib/types";
 
 export default async function ExportsPage() {
-  const [jobs, runtimeDecisions, rbacEvidence, rbacRuntime] = await Promise.all([
+  const [jobs, runtimeDecisions, rbacEvidence, rbacRuntime, rbacAttemptDecisions] = await Promise.all([
     getExportJobs(),
     getExportRegenerationRuntimeDecisions(),
     getAdminRbacEvidence(),
-    getAdminRbacRuntimeDecisions()
+    getAdminRbacRuntimeDecisions(),
+    getAdminRbacOverrideAttemptDecisions()
   ]);
   const exportRbacEvidence = rbacEvidence.filter((item) => item.surface === "export_override");
   const exportRbacRuntime = rbacRuntime.filter((item) => item.surface === "export_override");
+  const exportRbacAttemptDecisions = rbacAttemptDecisions.filter((item) => item.surface === "export_override");
 
   return (
     <>
@@ -115,6 +124,15 @@ export default async function ExportsPage() {
           </div>
         </div>
         <RbacRuntimeDecisionTable rows={exportRbacRuntime} />
+      </section>
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>Export Override RBAC Override Attempt Evidence</h3>
+            <p>Request-level evidence proves final export override attempts preserve idempotency, state digest, expected HTTP outcome, audit, trace, safety, and QA blockers.</p>
+          </div>
+        </div>
+        <RbacOverrideAttemptDecisionTable rows={exportRbacAttemptDecisions} />
       </section>
     </>
   );

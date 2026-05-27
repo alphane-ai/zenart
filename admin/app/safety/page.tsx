@@ -1,19 +1,28 @@
 import { DataTable } from "@/components/DataTable";
 import { PageHeader } from "@/components/PageHeader";
+import { RbacOverrideAttemptDecisionTable } from "@/components/RbacOverrideAttemptDecisionTable";
 import { RbacRuntimeDecisionTable } from "@/components/RbacRuntimeDecisionTable";
 import { StatusBadge } from "@/components/StatusBadge";
-import { getAdminRbacEvidence, getAdminRbacRuntimeDecisions, getRiskyExports, getStagingEvalQaSafetyEvidence } from "@/lib/admin-api";
+import {
+  getAdminRbacEvidence,
+  getAdminRbacOverrideAttemptDecisions,
+  getAdminRbacRuntimeDecisions,
+  getRiskyExports,
+  getStagingEvalQaSafetyEvidence
+} from "@/lib/admin-api";
 import type { AdminRbacEvidence, RiskyExport, StagingEvalQaSafetyCoverage } from "@/lib/types";
 
 export default async function SafetyPage() {
-  const [exports, rbacEvidence, rbacRuntime, stagingEvidence] = await Promise.all([
+  const [exports, rbacEvidence, rbacRuntime, rbacAttemptDecisions, stagingEvidence] = await Promise.all([
     getRiskyExports(),
     getAdminRbacEvidence(),
     getAdminRbacRuntimeDecisions(),
+    getAdminRbacOverrideAttemptDecisions(),
     getStagingEvalQaSafetyEvidence()
   ]);
   const safetyRbacEvidence = rbacEvidence.filter((item) => item.surface === "safety_rule" || item.surface === "export_override");
   const safetyRbacRuntime = rbacRuntime.filter((item) => item.surface === "safety_rule" || item.surface === "export_override");
+  const safetyRbacAttemptDecisions = rbacAttemptDecisions.filter((item) => item.surface === "safety_rule" || item.surface === "export_override");
 
   return (
     <>
@@ -118,6 +127,16 @@ export default async function SafetyPage() {
           </div>
         </div>
         <RbacRuntimeDecisionTable rows={safetyRbacRuntime} />
+      </section>
+
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>Safety and Export Override RBAC Override Attempt Evidence</h3>
+            <p>Request-level evidence proves safety and export override attempts preserve idempotency, state digest, HTTP outcome, audit, and non-overridable QA or policy blockers.</p>
+          </div>
+        </div>
+        <RbacOverrideAttemptDecisionTable rows={safetyRbacAttemptDecisions} />
       </section>
     </>
   );

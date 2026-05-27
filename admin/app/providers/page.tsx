@@ -1,9 +1,11 @@
 import { DataTable } from "@/components/DataTable";
 import { PageHeader } from "@/components/PageHeader";
+import { RbacOverrideAttemptDecisionTable } from "@/components/RbacOverrideAttemptDecisionTable";
 import { RbacRuntimeDecisionTable } from "@/components/RbacRuntimeDecisionTable";
 import { StatusBadge } from "@/components/StatusBadge";
 import {
   getAdminRbacEvidence,
+  getAdminRbacOverrideAttemptDecisions,
   getAdminRbacRuntimeDecisions,
   getProductionProviderModeEvidence,
   getProviderHealth
@@ -11,14 +13,16 @@ import {
 import type { AdminRbacEvidence, ProductionProviderModeCoverage, ProductionProviderModeEvidence, ProviderHealth } from "@/lib/types";
 
 export default async function ProviderHealthPage() {
-  const [providers, rbacEvidence, rbacRuntime, productionProviderModeEvidence] = await Promise.all([
+  const [providers, rbacEvidence, rbacRuntime, rbacAttemptDecisions, productionProviderModeEvidence] = await Promise.all([
     getProviderHealth(),
     getAdminRbacEvidence(),
     getAdminRbacRuntimeDecisions(),
+    getAdminRbacOverrideAttemptDecisions(),
     getProductionProviderModeEvidence()
   ]);
   const providerRbacEvidence = rbacEvidence.filter((item) => item.surface === "provider_routing");
   const providerRbacRuntime = rbacRuntime.filter((item) => item.surface === "provider_routing");
+  const providerRbacAttemptDecisions = rbacAttemptDecisions.filter((item) => item.surface === "provider_routing");
 
   return (
     <>
@@ -126,6 +130,15 @@ export default async function ProviderHealthPage() {
           </div>
         </div>
         <RbacRuntimeDecisionTable rows={providerRbacRuntime} />
+      </section>
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>Provider Routing RBAC Override Attempt Evidence</h3>
+            <p>Request-level evidence proves provider routing mutations preserve idempotency, state digest, expected HTTP outcome, audit, expiry, and no-silent-fallback blockers.</p>
+          </div>
+        </div>
+        <RbacOverrideAttemptDecisionTable rows={providerRbacAttemptDecisions} />
       </section>
     </>
   );
