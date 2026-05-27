@@ -4015,6 +4015,24 @@ def validate_eval_results() -> None:
         "eval result summary must cover every safety enforcement point",
     )
     require(result["summary"]["trace_complete"] is True, "eval result must prove trace completeness")
+    expected_summary_export_complete = all(
+        item["export_contract"]["blocks_when_incomplete"] is True
+        and item["qa_export_gate"]["export_artifacts_complete"] is all(
+            item["export_contract"][key]
+            for key in [
+                "manifest",
+                "qa_report",
+                "metadata",
+                "trace_provenance",
+                "safety_disclaimer_when_applicable",
+            ]
+        )
+        for item in result["fixture_results"]
+    )
+    require(
+        result["summary"]["export_contract_complete"] is expected_summary_export_complete,
+        "eval result export contract completeness summary must match fixture gates",
+    )
     require(result["summary"]["export_contract_complete"] is True, "eval result must prove export contract completeness")
     require(
         result["summary"]["qa_fixture_coverage_complete"]

@@ -382,10 +382,17 @@
       }
     },
     "file_integrity_contract": {
-      "$ref": "#/$defs/blocking_contract",
+      "type": "object",
+      "required": [
+        "export_gate",
+        "evidence"
+      ],
       "properties": {
         "evidence": {
           "$ref": "#/$defs/file_integrity_evidence"
+        },
+        "export_gate": {
+          "$ref": "#/$defs/audited_export_gate"
         }
       }
     },
@@ -439,13 +446,20 @@
       }
     },
     "blank_output_contract": {
-      "$ref": "#/$defs/blocking_contract",
+      "type": "object",
+      "required": [
+        "export_gate",
+        "evidence"
+      ],
       "properties": {
         "auto_fix_available": {
           "const": true
         },
         "evidence": {
           "$ref": "#/$defs/blank_output_evidence"
+        },
+        "export_gate": {
+          "$ref": "#/$defs/audited_export_gate"
         }
       }
     },
@@ -510,24 +524,38 @@
       }
     },
     "product_logo_preservation_contract": {
-      "$ref": "#/$defs/blocking_contract",
+      "type": "object",
+      "required": [
+        "export_gate",
+        "evidence"
+      ],
       "properties": {
         "review_required": {
           "const": true
         },
         "evidence": {
           "$ref": "#/$defs/product_logo_preservation_evidence"
+        },
+        "export_gate": {
+          "$ref": "#/$defs/audited_export_gate"
         }
       }
     },
     "forbidden_claims_contract": {
-      "$ref": "#/$defs/blocking_contract",
+      "type": "object",
+      "required": [
+        "export_gate",
+        "evidence"
+      ],
       "properties": {
         "review_required": {
           "const": true
         },
         "evidence": {
           "$ref": "#/$defs/forbidden_claims_evidence"
+        },
+        "export_gate": {
+          "$ref": "#/$defs/audited_export_gate"
         }
       }
     },
@@ -551,13 +579,20 @@
       }
     },
     "export_completeness_contract": {
-      "$ref": "#/$defs/blocking_contract",
+      "type": "object",
+      "required": [
+        "export_gate",
+        "evidence"
+      ],
       "properties": {
         "review_required": {
           "const": true
         },
         "evidence": {
           "$ref": "#/$defs/export_completeness_evidence"
+        },
+        "export_gate": {
+          "$ref": "#/$defs/audited_export_gate"
         }
       }
     },

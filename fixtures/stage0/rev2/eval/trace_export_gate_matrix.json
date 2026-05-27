@@ -35,7 +35,9 @@
       "export_id": "export_fx_ecommerce_growth_golden",
       "qa_check_ids": [
         "qa_aspect_ratio_channel",
-        "qa_aspect_ratio_square_pass"
+        "qa_aspect_ratio_square_pass",
+        "qa_file_integrity_verified_pass",
+        "qa_product_logo_preservation_pass"
       ],
       "blocking_qa_check_ids": [],
       "blocking_qa_categories": [],
@@ -59,7 +61,8 @@
       "package_id": "package_fx_business_visual_doc_golden",
       "export_id": "export_fx_business_visual_doc_golden",
       "qa_check_ids": [
-        "qa_text_readability_ocr"
+        "qa_text_readability_ocr",
+        "qa_forbidden_claims_cited_pass"
       ],
       "blocking_qa_check_ids": [],
       "blocking_qa_categories": [],
@@ -116,7 +119,8 @@
       "export_id": "export_fx_character_ip_concept_golden",
       "qa_check_ids": [
         "qa_blank_output",
-        "qa_watermark_signature_risk"
+        "qa_watermark_signature_risk",
+        "qa_export_completeness_pass"
       ],
       "blocking_qa_check_ids": [
         "qa_blank_output"
@@ -282,10 +286,15 @@
       "package_id": "package_fx_text_heavy_structured_details",
       "export_id": "export_fx_text_heavy_structured_details",
       "qa_check_ids": [
-        "qa_structured_text_fields"
+        "qa_structured_text_fields",
+        "qa_structured_text_missing_phone_block"
       ],
-      "blocking_qa_check_ids": [],
-      "blocking_qa_categories": [],
+      "blocking_qa_check_ids": [
+        "qa_structured_text_missing_phone_block"
+      ],
+      "blocking_qa_categories": [
+        "structured_text"
+      ],
       "safety_rule_ids": [],
       "safety_blocks_export": false,
       "export_artifacts_complete": true,
@@ -295,6 +304,7 @@
       "admin_override_required_for_export": true,
       "override_requires_audit": true,
       "gate_reasons": [
+        "blocking_qa",
         "qa_coverage_incomplete"
       ]
     },
@@ -306,7 +316,8 @@
       "package_id": "package_fx_export_completeness_missing_manifest",
       "export_id": "export_fx_export_completeness_missing_manifest",
       "qa_check_ids": [
-        "qa_export_completeness"
+        "qa_export_completeness",
+        "qa_blank_output_subject_present_pass"
       ],
       "blocking_qa_check_ids": [
         "qa_export_completeness"
@@ -337,7 +348,9 @@
       "trace_id": "trace_confirmation_sensitive_claim",
       "package_id": "package_fx_confirmation_sensitive_claim",
       "export_id": "export_fx_confirmation_sensitive_claim",
-      "qa_check_ids": [],
+      "qa_check_ids": [
+        "qa_text_readability_clear_pass"
+      ],
       "blocking_qa_check_ids": [],
       "blocking_qa_categories": [],
       "safety_rule_ids": [

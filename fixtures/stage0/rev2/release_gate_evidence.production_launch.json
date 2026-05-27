@@ -103,7 +103,7 @@
       "condition_id": "backup_restore_rollback_smoke_missing",
       "blueprint_condition": "Backups 和 restore drills 未完成。",
       "is_present": true,
-      "evidence_ref": "ops/evidence/production/20260527T1800Z-backup-rollback-incident-smoke.json records production Postgres restore, object restore, backup schedule, RPO/RTO, audit refs, rollback validation, and post-deploy smoke probes, but Rev2 requires CI and Private Beta/Staging gates to pass before production backup/rollback/post-deploy evidence can close"
+      "evidence_ref": "ops/evidence/production/20260527T1800Z-backup-rollback-incident-smoke.json records production Postgres restore, object restore, backup schedule, RPO/RTO, audit refs, rollback validation, and post-deploy smoke probes, but the launch blocker remains active until CI and Private Beta/Staging gates pass per Rev2 closure policy"
     },
     {
       "condition_id": "production_deploy_rollback_smoke_missing",

@@ -34,6 +34,16 @@ QA_CATEGORY_ORDER = [
 
 QA_CATEGORIES = set(QA_CATEGORY_ORDER)
 
+HIGH_RISK_QA_OUTCOME_REQUIREMENTS = {
+    "file_integrity": {"pass", "block"},
+    "blank_output": {"pass", "block"},
+    "text_readability": {"pass", "warn"},
+    "structured_text": {"warn", "block"},
+    "product_logo_preservation": {"pass", "block"},
+    "forbidden_claims": {"pass", "block"},
+    "export_completeness": {"pass", "block"},
+}
+
 DIMENSION_QA_CATEGORIES = {
     "four_option_distinctness": {"four_option_distinctness"},
     "image_qa": {
@@ -83,9 +93,7 @@ CATEGORY_CONTRACTS: dict[str, dict[str, Any]] = {
     "file_integrity": {
         "observed": {"mime_type", "checksum_sha256", "decoder_status", "byte_size"},
         "expected": {"mime_type", "checksum_sha256", "decoder_status", "byte_size_min"},
-        "blocking": True,
-        "review_required": True,
-        "must_block_export": True,
+        "review_required_when_blocking": True,
     },
     "dimensions": {
         "observed": {"width_px", "height_px", "export_target"},
@@ -107,9 +115,7 @@ CATEGORY_CONTRACTS: dict[str, dict[str, Any]] = {
     "blank_output": {
         "observed": {"near_blank", "non_background_pixel_ratio", "detected_subjects"},
         "expected": {"near_blank", "non_background_pixel_ratio_min", "detected_subjects_min"},
-        "blocking": True,
         "auto_fix_available": True,
-        "must_block_export": True,
     },
     "duplicate_similarity": {
         "observed": {"duplicate_similarity", "candidate_pair"},
@@ -139,17 +145,13 @@ CATEGORY_CONTRACTS: dict[str, dict[str, Any]] = {
     "product_logo_preservation": {
         "observed": {"logo_similarity", "product_shape_similarity", "unauthorized_color_change"},
         "expected": {"logo_similarity_min", "product_shape_similarity_min", "unauthorized_color_change"},
-        "blocking": True,
         "review_required": True,
-        "must_block_export": True,
     },
     "forbidden_claims": {
         "observed": {"claim_text", "claim_source", "source_citation_present"},
         "expected": {"claim_text_allowed", "requires_source_citation", "expected_safety_action"},
-        "blocking": True,
         "review_required": True,
-        "must_block_export": True,
-        "must_have_safety_block": True,
+        "must_have_safety_block_when_blocking": True,
     },
     "watermark_signature_risk": {
         "observed": {"watermark_probability", "signature_like_text_detected", "review_region"},
@@ -173,9 +175,7 @@ CATEGORY_CONTRACTS: dict[str, dict[str, Any]] = {
             "trace_provenance_json",
             "deterministic_file_names",
         },
-        "blocking": True,
         "review_required": True,
-        "must_block_export": True,
     },
 }
 
@@ -221,6 +221,8 @@ def validate_category_item(item: dict[str, Any]) -> None:
         require(item["auto_fix_available"] is True, f"{label} must expose auto-fix availability")
     if contract.get("review_required"):
         require(item["review_required"] is True, f"{label} must require review")
+    if contract.get("review_required_when_blocking") and item["severity"] == "blocking":
+        require(item["review_required"] is True, f"{label} blocking result must require review")
     if item["severity"] == "blocking":
         require(
             item["export_gate"]["blocks_final_export"] is True,
@@ -231,16 +233,16 @@ def validate_category_item(item: dict[str, Any]) -> None:
             item["export_gate"]["blocks_final_export"] is False,
             f"{label} non-blocking QA result must not block final export",
         )
-    if contract.get("must_have_manual_review_placeholder"):
+    if contract.get("must_have_manual_review_placeholder") and item["severity"] == "warning":
         require(
             observed["manual_review_placeholder"] is True
             and expected["manual_review_placeholder_allowed"] is True,
-            f"{label} must use an explicit manual-review placeholder",
+            f"{label} warning result must use an explicit manual-review placeholder",
         )
-    if contract.get("must_have_safety_block"):
+    if contract.get("must_have_safety_block_when_blocking") and item["severity"] == "blocking":
         require(
             expected["expected_safety_action"] == "block",
-            f"{label} must expect a safety block",
+            f"{label} blocking result must expect a safety block",
         )
     require(
         item["export_gate"]["override_requires_audit"] is True,
@@ -256,6 +258,31 @@ def validate_category_item(item: dict[str, Any]) -> None:
         item["evidence"]["source_artifacts"],
         f"{label} must cite source artifacts",
     )
+
+
+def qa_result_outcome(item: dict[str, Any]) -> str:
+    if item["export_gate"]["blocks_final_export"] is True:
+        return "block"
+    if item["severity"] == "warning":
+        return "warn"
+    return "pass"
+
+
+def validate_high_risk_outcome_coverage(qa_results: list[dict[str, Any]]) -> None:
+    outcomes_by_category: dict[str, set[str]] = {
+        category: set() for category in HIGH_RISK_QA_OUTCOME_REQUIREMENTS
+    }
+    for item in qa_results:
+        category = item["check_category"]
+        if category in outcomes_by_category:
+            outcomes_by_category[category].add(qa_result_outcome(item))
+
+    for category, required_outcomes in HIGH_RISK_QA_OUTCOME_REQUIREMENTS.items():
+        missing = required_outcomes - outcomes_by_category[category]
+        require(
+            not missing,
+            f"{category} missing high-risk QA outcome examples: {sorted(missing)}",
+        )
 
 
 def validate_fixture_links(qa_results: list[dict[str, Any]]) -> None:
@@ -431,6 +458,7 @@ def validate_qa_contract() -> None:
 
     for item in qa_results:
         validate_category_item(item)
+    validate_high_risk_outcome_coverage(qa_results)
     validate_fixture_links(qa_results)
     validate_workflow_coverage(qa_results)
     validate_eval_fixture_coverage(qa_results)

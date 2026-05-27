@@ -433,6 +433,24 @@ def validate_fixture_result_links() -> None:
     require(set(summary["qa_categories_covered"]) == QA_CATEGORIES, "eval summary must cover every QA category")
     require(set(summary["safety_enforcement_points_covered"]) == SAFETY_POINTS, "eval summary must cover every safety point")
     require(summary["trace_complete"] is True, "eval summary must prove trace completeness")
+    expected_summary_export_complete = all(
+        item["export_contract"]["blocks_when_incomplete"] is True
+        and item["qa_export_gate"]["export_artifacts_complete"] is all(
+            item["export_contract"][key]
+            for key in [
+                "manifest",
+                "qa_report",
+                "metadata",
+                "trace_provenance",
+                "safety_disclaimer_when_applicable",
+            ]
+        )
+        for item in result["fixture_results"]
+    )
+    require(
+        summary["export_contract_complete"] is expected_summary_export_complete,
+        "eval summary export contract completeness must match fixture gates",
+    )
     require(summary["export_contract_complete"] is True, "eval summary must prove export contract completeness")
     require(
         summary["qa_fixture_coverage_complete"]

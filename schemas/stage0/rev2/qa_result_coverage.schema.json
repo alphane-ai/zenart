@@ -48,7 +48,7 @@
         },
         "minimum_fixture_count": {
           "type": "integer",
-          "minimum": 13
+          "minimum": 23
         },
         "check_id_unique": {
           "const": true
@@ -356,7 +356,7 @@
     },
     "category_outcome_examples": {
       "type": "array",
-      "minItems": 13,
+      "minItems": 20,
       "items": {
         "type": "object",
         "additionalProperties": false,
@@ -449,7 +449,7 @@
     },
     "coverage_evidence_links": {
       "type": "array",
-      "minItems": 13,
+      "minItems": 23,
       "uniqueItems": true,
       "items": {
         "type": "object",
@@ -579,7 +579,10 @@
         "blocking_severity_blocks_final_export",
         "warning_severity_does_not_block_final_export",
         "pass_outcome_allows_final_export_when_export_contract_complete",
-        "admin_override_requires_audit"
+        "admin_override_requires_audit",
+        "high_risk_categories_require_pass_and_failure_examples",
+        "high_risk_categories",
+        "category_examples_drive_eval_fixture_links"
       ],
       "properties": {
         "blocking_severity_blocks_final_export": {
@@ -592,6 +595,20 @@
           "const": true
         },
         "admin_override_requires_audit": {
+          "const": true
+        },
+        "high_risk_categories_require_pass_and_failure_examples": {
+          "const": true
+        },
+        "high_risk_categories": {
+          "type": "array",
+          "minItems": 7,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/qa_category"
+          }
+        },
+        "category_examples_drive_eval_fixture_links": {
           "const": true
         }
       }

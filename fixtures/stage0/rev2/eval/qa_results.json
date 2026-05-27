@@ -697,5 +697,322 @@
       ],
       "created_by_lane": "lane2"
     }
+  },
+  {
+    "schema_version": "stage0.rev2",
+    "check_id": "qa_file_integrity_verified_pass",
+    "check_category": "file_integrity",
+    "severity": "info",
+    "workflow": "ecommerce_growth_pack",
+    "asset_id": "asset_aurora_packshot_verified_png",
+    "evidence": {
+      "observed": {
+        "mime_type": "image/png",
+        "checksum_sha256": "matches_object_metadata",
+        "decoder_status": "ok",
+        "byte_size": 284102
+      },
+      "expected": {
+        "mime_type": "image/png",
+        "checksum_sha256": "matches_object_metadata",
+        "decoder_status": "ok",
+        "byte_size_min": 1024
+      },
+      "trace_id": "trace_fx_ecommerce_growth_golden_aspect",
+      "fixture_id": "fx_ecommerce_growth_golden",
+      "source_artifacts": [
+        "fixtures/assets/aurora_bottle_packshot.png",
+        "object_metadata.checksum",
+        "decoder.probe.json"
+      ]
+    },
+    "export_gate": {
+      "blocks_final_export": false,
+      "eligible_admin_override": false,
+      "override_requires_audit": true
+    },
+    "auto_fix_available": false,
+    "review_required": false,
+    "user_visible_message": "The image file was verified for export.",
+    "admin_reason": "Passing integrity evidence proves verified assets can continue to export gating instead of being treated as only blocking cases.",
+    "provenance": {
+      "blueprint_sections": [
+        "15.1",
+        "15.2"
+      ],
+      "created_by_lane": "lane2"
+    }
+  },
+  {
+    "schema_version": "stage0.rev2",
+    "check_id": "qa_blank_output_subject_present_pass",
+    "check_category": "blank_output",
+    "severity": "info",
+    "workflow": "character_ip_concept_pack",
+    "asset_id": "candidate_nova_spark_concept_sheet",
+    "evidence": {
+      "observed": {
+        "near_blank": false,
+        "non_background_pixel_ratio": 0.34,
+        "detected_subjects": 1
+      },
+      "expected": {
+        "near_blank": false,
+        "non_background_pixel_ratio_min": 0.12,
+        "detected_subjects_min": 1
+      },
+      "trace_id": "trace_fx_export_completeness_missing_manifest",
+      "fixture_id": "fx_export_completeness_missing_manifest",
+      "source_artifacts": [
+        "assets/concept_sheet.png",
+        "qa_report.json",
+        "candidate_asset.preview.png"
+      ]
+    },
+    "export_gate": {
+      "blocks_final_export": false,
+      "eligible_admin_override": false,
+      "override_requires_audit": true
+    },
+    "auto_fix_available": true,
+    "review_required": false,
+    "user_visible_message": "The generated option contains visible subject matter.",
+    "admin_reason": "Blank-output QA must distinguish exportable nonblank character concept sheets from near-blank blocking failures.",
+    "provenance": {
+      "blueprint_sections": [
+        "15.1",
+        "15.2"
+      ],
+      "created_by_lane": "lane2"
+    }
+  },
+  {
+    "schema_version": "stage0.rev2",
+    "check_id": "qa_text_readability_clear_pass",
+    "check_category": "text_readability",
+    "severity": "info",
+    "workflow": "business_visual_doc_pack",
+    "asset_id": "asset_retention_memo_summary_page",
+    "evidence": {
+      "observed": {
+        "ocr_confidence": 0.93,
+        "min_font_px": 14,
+        "manual_review_placeholder": false
+      },
+      "expected": {
+        "ocr_confidence_min": 0.85,
+        "min_font_px": 12,
+        "manual_review_placeholder_allowed": true
+      },
+      "trace_id": "trace_confirmation_sensitive_claim",
+      "fixture_id": "fx_confirmation_sensitive_claim",
+      "source_artifacts": [
+        "candidate_asset.ocr.json",
+        "qa_report.json",
+        "assets/summary_page.png"
+      ]
+    },
+    "export_gate": {
+      "blocks_final_export": false,
+      "eligible_admin_override": false,
+      "override_requires_audit": true
+    },
+    "auto_fix_available": true,
+    "review_required": true,
+    "user_visible_message": "The generated text is readable.",
+    "admin_reason": "Readability QA must preserve a pass path for clear text while still allowing manual-review warning placeholders.",
+    "provenance": {
+      "blueprint_sections": [
+        "15.1",
+        "15.2"
+      ],
+      "created_by_lane": "lane2"
+    }
+  },
+  {
+    "schema_version": "stage0.rev2",
+    "check_id": "qa_structured_text_missing_phone_block",
+    "check_category": "structured_text",
+    "severity": "blocking",
+    "workflow": "local_merchant_campaign_pack",
+    "asset_id": "candidate_north_pier_flyer_missing_phone",
+    "evidence": {
+      "observed": {
+        "price": "$12",
+        "date": "July 18 2026",
+        "phone": "",
+        "address": "18 Dock Street",
+        "qr_placeholder": true
+      },
+      "expected": {
+        "price": "$12",
+        "date": "July 18 2026",
+        "phone": "415-010-0188",
+        "address": "18 Dock Street",
+        "qr_placeholder": true
+      },
+      "trace_id": "trace_fx_text_heavy_structured_details",
+      "fixture_id": "fx_text_heavy_structured_details",
+      "source_artifacts": [
+        "brief.inputs",
+        "candidate_asset.ocr.json",
+        "qa_report.json"
+      ]
+    },
+    "export_gate": {
+      "blocks_final_export": true,
+      "eligible_admin_override": true,
+      "override_requires_audit": true
+    },
+    "auto_fix_available": true,
+    "review_required": false,
+    "user_visible_message": "A required phone number is missing from the campaign asset.",
+    "admin_reason": "Structured text QA must block export when required price, date, phone, address, or QR placeholder fields are lost.",
+    "provenance": {
+      "blueprint_sections": [
+        "15.1",
+        "15.2"
+      ],
+      "created_by_lane": "lane2"
+    }
+  },
+  {
+    "schema_version": "stage0.rev2",
+    "check_id": "qa_product_logo_preservation_pass",
+    "check_category": "product_logo_preservation",
+    "severity": "info",
+    "workflow": "ecommerce_growth_pack",
+    "asset_id": "candidate_aurora_logo_preserved",
+    "evidence": {
+      "observed": {
+        "logo_similarity": 0.98,
+        "product_shape_similarity": 0.96,
+        "unauthorized_color_change": false
+      },
+      "expected": {
+        "logo_similarity_min": 0.95,
+        "product_shape_similarity_min": 0.93,
+        "unauthorized_color_change": false
+      },
+      "trace_id": "trace_fx_ecommerce_growth_golden_aspect",
+      "fixture_id": "fx_ecommerce_growth_golden",
+      "source_artifacts": [
+        "fixtures/assets/aurora_logo.svg",
+        "fixtures/assets/aurora_bottle_packshot.png",
+        "candidate_asset.preview.png"
+      ]
+    },
+    "export_gate": {
+      "blocks_final_export": false,
+      "eligible_admin_override": false,
+      "override_requires_audit": true
+    },
+    "auto_fix_available": false,
+    "review_required": true,
+    "user_visible_message": "The product and logo match the supplied references.",
+    "admin_reason": "Product/logo QA needs passing preservation evidence so brand-safe assets can proceed when similarity thresholds are met.",
+    "provenance": {
+      "blueprint_sections": [
+        "6.2",
+        "15.2"
+      ],
+      "created_by_lane": "lane2"
+    }
+  },
+  {
+    "schema_version": "stage0.rev2",
+    "check_id": "qa_forbidden_claims_cited_pass",
+    "check_category": "forbidden_claims",
+    "severity": "info",
+    "workflow": "business_visual_doc_pack",
+    "asset_id": "asset_retention_memo_sourced_claim",
+    "evidence": {
+      "observed": {
+        "claim_text": "retention improved 12 percent in the supplied notes",
+        "claim_source": "fixtures/assets/retention_notes.md",
+        "source_citation_present": true
+      },
+      "expected": {
+        "claim_text_allowed": true,
+        "requires_source_citation": true,
+        "expected_safety_action": "warn"
+      },
+      "trace_id": "trace_fx_business_visual_doc_golden_readability",
+      "fixture_id": "fx_business_visual_doc_golden",
+      "source_artifacts": [
+        "fixtures/assets/retention_notes.md",
+        "candidate_asset.ocr.json",
+        "safety_decision.json"
+      ]
+    },
+    "export_gate": {
+      "blocks_final_export": false,
+      "eligible_admin_override": false,
+      "override_requires_audit": true
+    },
+    "auto_fix_available": false,
+    "review_required": true,
+    "user_visible_message": "Claims are supported by the supplied source material.",
+    "admin_reason": "Forbidden-claims QA must distinguish cited allowed business claims from prohibited unsupported guarantees.",
+    "provenance": {
+      "blueprint_sections": [
+        "6.3",
+        "15.2"
+      ],
+      "created_by_lane": "lane2"
+    }
+  },
+  {
+    "schema_version": "stage0.rev2",
+    "check_id": "qa_export_completeness_pass",
+    "check_category": "export_completeness",
+    "severity": "info",
+    "workflow": "character_ip_concept_pack",
+    "asset_id": "export_nova_spark_complete_package",
+    "evidence": {
+      "observed": {
+        "manifest_json": true,
+        "qa_report_json": true,
+        "metadata_json": true,
+        "safety_disclaimer_when_applicable": true,
+        "trace_provenance_json": true,
+        "deterministic_file_names": true
+      },
+      "expected": {
+        "manifest_json": true,
+        "qa_report_json": true,
+        "metadata_json": true,
+        "safety_disclaimer_when_applicable": true,
+        "trace_provenance_json": true,
+        "deterministic_file_names": true
+      },
+      "trace_id": "trace_fx_character_ip_concept_golden_blank",
+      "fixture_id": "fx_character_ip_concept_golden",
+      "source_artifacts": [
+        "export.zip",
+        "manifest.json",
+        "metadata.json",
+        "qa_report.json",
+        "trace_provenance.json"
+      ]
+    },
+    "export_gate": {
+      "blocks_final_export": false,
+      "eligible_admin_override": false,
+      "override_requires_audit": true
+    },
+    "auto_fix_available": false,
+    "review_required": true,
+    "user_visible_message": "The export package includes all required files.",
+    "admin_reason": "Export completeness QA needs passing evidence for manifest, metadata, QA report, safety disclaimer, provenance, and deterministic filenames.",
+    "provenance": {
+      "blueprint_sections": [
+        "8.4",
+        "8.5",
+        "15.1",
+        "15.2"
+      ],
+      "created_by_lane": "lane2"
+    }
   }
 ]

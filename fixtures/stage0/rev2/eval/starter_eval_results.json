@@ -73,7 +73,9 @@
         },
         "qa_check_ids": [
           "qa_aspect_ratio_channel",
-          "qa_aspect_ratio_square_pass"
+          "qa_aspect_ratio_square_pass",
+          "qa_file_integrity_verified_pass",
+          "qa_product_logo_preservation_pass"
         ],
         "qa_coverage_contract": {
           "expected_qa_categories": [
@@ -89,16 +91,16 @@
             "export_completeness"
           ],
           "observed_qa_categories": [
-            "aspect_ratio"
+            "file_integrity",
+            "aspect_ratio",
+            "product_logo_preservation"
           ],
           "missing_qa_categories": [
-            "file_integrity",
             "dimensions",
             "safe_area",
             "blank_output",
             "duplicate_similarity",
             "four_option_distinctness",
-            "product_logo_preservation",
             "watermark_signature_risk",
             "export_completeness"
           ],
@@ -143,9 +145,7 @@
           "qa_coverage_missing_dimensions",
           "qa_coverage_missing_duplicate_similarity",
           "qa_coverage_missing_export_completeness",
-          "qa_coverage_missing_file_integrity",
           "qa_coverage_missing_four_option_distinctness",
-          "qa_coverage_missing_product_logo_preservation",
           "qa_coverage_missing_safe_area",
           "qa_coverage_missing_watermark_signature_risk"
         ]
@@ -177,7 +177,8 @@
           "export_gate_effect": "allow_with_warning"
         },
         "qa_check_ids": [
-          "qa_text_readability_ocr"
+          "qa_text_readability_ocr",
+          "qa_forbidden_claims_cited_pass"
         ],
         "qa_coverage_contract": {
           "expected_qa_categories": [
@@ -193,7 +194,8 @@
             "export_completeness"
           ],
           "observed_qa_categories": [
-            "text_readability"
+            "text_readability",
+            "forbidden_claims"
           ],
           "missing_qa_categories": [
             "file_integrity",
@@ -202,7 +204,6 @@
             "safe_area",
             "blank_output",
             "duplicate_similarity",
-            "forbidden_claims",
             "watermark_signature_risk",
             "export_completeness"
           ],
@@ -246,7 +247,6 @@
           "qa_coverage_missing_duplicate_similarity",
           "qa_coverage_missing_export_completeness",
           "qa_coverage_missing_file_integrity",
-          "qa_coverage_missing_forbidden_claims",
           "qa_coverage_missing_safe_area",
           "qa_coverage_missing_watermark_signature_risk"
         ]
@@ -377,7 +377,8 @@
         },
         "qa_check_ids": [
           "qa_blank_output",
-          "qa_watermark_signature_risk"
+          "qa_watermark_signature_risk",
+          "qa_export_completeness_pass"
         ],
         "qa_coverage_contract": {
           "expected_qa_categories": [
@@ -393,7 +394,8 @@
           ],
           "observed_qa_categories": [
             "blank_output",
-            "watermark_signature_risk"
+            "watermark_signature_risk",
+            "export_completeness"
           ],
           "missing_qa_categories": [
             "file_integrity",
@@ -401,8 +403,7 @@
             "aspect_ratio",
             "safe_area",
             "duplicate_similarity",
-            "four_option_distinctness",
-            "export_completeness"
+            "four_option_distinctness"
           ],
           "workflow_required_qa_categories": [
             "blank_output",
@@ -447,7 +448,6 @@
           "qa_coverage_missing_aspect_ratio",
           "qa_coverage_missing_dimensions",
           "qa_coverage_missing_duplicate_similarity",
-          "qa_coverage_missing_export_completeness",
           "qa_coverage_missing_file_integrity",
           "qa_coverage_missing_four_option_distinctness",
           "qa_coverage_missing_safe_area"
@@ -842,7 +842,8 @@
           "export_gate_effect": "allow_when_export_contract_complete"
         },
         "qa_check_ids": [
-          "qa_structured_text_fields"
+          "qa_structured_text_fields",
+          "qa_structured_text_missing_phone_block"
         ],
         "qa_coverage_contract": {
           "expected_qa_categories": [
@@ -902,8 +903,12 @@
         },
         "qa_export_gate": {
           "final_export_allowed": false,
-          "blocking_qa_check_ids": [],
-          "blocking_qa_categories": [],
+          "blocking_qa_check_ids": [
+            "qa_structured_text_missing_phone_block"
+          ],
+          "blocking_qa_categories": [
+            "structured_text"
+          ],
           "safety_blocks_export": false,
           "export_artifacts_complete": true,
           "admin_override_required_for_export": true,
@@ -919,7 +924,8 @@
           "qa_coverage_missing_four_option_distinctness",
           "qa_coverage_missing_safe_area",
           "qa_coverage_missing_text_readability",
-          "qa_coverage_missing_watermark_signature_risk"
+          "qa_coverage_missing_watermark_signature_risk",
+          "structured_text_block"
         ]
       },
       {
@@ -947,7 +953,8 @@
           "export_gate_effect": "allow_when_export_contract_complete"
         },
         "qa_check_ids": [
-          "qa_export_completeness"
+          "qa_export_completeness",
+          "qa_blank_output_subject_present_pass"
         ],
         "qa_coverage_contract": {
           "expected_qa_categories": [
@@ -961,6 +968,7 @@
             "export_completeness"
           ],
           "observed_qa_categories": [
+            "blank_output",
             "export_completeness"
           ],
           "missing_qa_categories": [
@@ -968,7 +976,6 @@
             "dimensions",
             "aspect_ratio",
             "safe_area",
-            "blank_output",
             "duplicate_similarity",
             "watermark_signature_risk"
           ],
@@ -1013,7 +1020,6 @@
         "failure_reasons": [
           "export_completeness_block",
           "qa_coverage_missing_aspect_ratio",
-          "qa_coverage_missing_blank_output",
           "qa_coverage_missing_dimensions",
           "qa_coverage_missing_duplicate_similarity",
           "qa_coverage_missing_file_integrity",
@@ -1047,16 +1053,19 @@
           "audit_required": true,
           "export_gate_effect": "hold_until_user_confirmation"
         },
-        "qa_check_ids": [],
+        "qa_check_ids": [
+          "qa_text_readability_clear_pass"
+        ],
         "qa_coverage_contract": {
           "expected_qa_categories": [
             "text_readability",
             "forbidden_claims",
             "export_completeness"
           ],
-          "observed_qa_categories": [],
+          "observed_qa_categories": [
+            "text_readability"
+          ],
           "missing_qa_categories": [
-            "text_readability",
             "forbidden_claims",
             "export_completeness"
           ],
@@ -1177,7 +1186,7 @@
     ],
     "runner_contract": {
       "runner": "scripts/run_stage0_eval.py",
-      "runner_sha256": "f749269547d875a7c3c48f1010dc16564ec0aaf7d0533e08389b556755f7dabb",
+      "runner_sha256": "d190cf9c1a3328673bc09013f473bcb347dfc00dc95d1e3463a88a85015f0938",
       "deterministic_replay_command": "python3 scripts/run_stage0_eval.py --check",
       "writes_stored_fixture": true,
       "check_mode_compares_exact_json": true,
@@ -1188,7 +1197,7 @@
         },
         {
           "path": "fixtures/stage0/rev2/eval/qa_results.json",
-          "sha256": "b5fbb7db872c6f2bd9788ae88065edbb4e471bf37e8e106b24fcb21341dd2f14"
+          "sha256": "d108e6fc925f33f8ed60fdb4e7dd0496d8a74468d3a58f517e17d2cce9d3691c"
         },
         {
           "path": "fixtures/stage0/rev2/eval/safety_rules.json",
