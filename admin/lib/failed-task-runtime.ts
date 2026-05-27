@@ -1,4 +1,4 @@
-import type { FailedTaskControl, FailedTaskRuntimeDecision } from "@/lib/types";
+import type { FailedTaskControl, FailedTaskRuntimeDecision, SupportTicket } from "@/lib/types";
 
 const requiredClosureEvidenceCount = 4;
 const supportedAppVersion = "admin-0.0.0";
@@ -25,6 +25,37 @@ function idempotencyStatus(task: FailedTaskControl): FailedTaskRuntimeDecision["
 
 function stateDigestStatus(task: FailedTaskControl): FailedTaskRuntimeDecision["stateDigestStatus"] {
   return task.preActionStateDigest === task.observedStateDigest ? "stable" : "stale_replay";
+}
+
+function supportTicketLinkageStatus(
+  task: FailedTaskControl,
+  ticket: SupportTicket | undefined
+): FailedTaskRuntimeDecision["supportTicketLinkageStatus"] {
+  if (!ticket) {
+    return "missing_ticket";
+  }
+
+  return ticket.taskId === task.id ? "linked" : "mismatched_ticket";
+}
+
+function tenantScopeStatus(
+  task: FailedTaskControl,
+  ticket: SupportTicket | undefined
+): FailedTaskRuntimeDecision["tenantScopeStatus"] {
+  return ticket && ticket.userId === task.userId && ticket.projectId === task.projectId
+    ? "linked"
+    : "mismatched_tenant_scope";
+}
+
+function traceLinkageStatus(
+  task: FailedTaskControl,
+  ticket: SupportTicket | undefined
+): FailedTaskRuntimeDecision["traceLinkageStatus"] {
+  if (task.traceId === "none" && ticket?.traceId === "none") {
+    return "not_required";
+  }
+
+  return ticket && ticket.traceId === task.traceId ? "linked" : "mismatched_trace";
 }
 
 function stateTransition(
@@ -70,8 +101,14 @@ function releaseGateDisposition(
     : "eval_gate_preserved_by_regression_fixture";
 }
 
-export function buildFailedTaskRuntimeDecisions(tasks: FailedTaskControl[]): FailedTaskRuntimeDecision[] {
+export function buildFailedTaskRuntimeDecisions(
+  tasks: FailedTaskControl[],
+  supportTickets: SupportTicket[] = []
+): FailedTaskRuntimeDecision[] {
+  const supportTicketsById = new Map<string, SupportTicket>(supportTickets.map((ticket) => [ticket.id, ticket]));
+
   return tasks.map((task) => {
+    const linkedSupportTicket = supportTicketsById.get(task.supportTicketId);
     const blockerCodes: string[] = [];
     const retryBudgetStatus =
       task.requestedAction === "retry"
@@ -94,6 +131,18 @@ export function buildFailedTaskRuntimeDecisions(tasks: FailedTaskControl[]): Fai
         : "stale";
     const compatibilityEvidence =
       `app:${task.appVersion}; worker:${task.workerVersion}; schema:${task.schemaVersion}`;
+    const computedSupportTicketLinkageStatus = supportTicketLinkageStatus(task, linkedSupportTicket);
+    const supportTicketLinkageEvidence = linkedSupportTicket
+      ? `ticket:${linkedSupportTicket.id}; task:${linkedSupportTicket.taskId}; expectedTask:${task.id}`
+      : `ticket:${task.supportTicketId}; task:missing; expectedTask:${task.id}`;
+    const computedTenantScopeStatus = tenantScopeStatus(task, linkedSupportTicket);
+    const tenantScopeEvidence = linkedSupportTicket
+      ? `ticketUser:${linkedSupportTicket.userId}; taskUser:${task.userId}; ticketProject:${linkedSupportTicket.projectId}; taskProject:${task.projectId}`
+      : `ticket:missing; taskUser:${task.userId}; taskProject:${task.projectId}`;
+    const computedTraceLinkageStatus = traceLinkageStatus(task, linkedSupportTicket);
+    const traceLinkageEvidence = linkedSupportTicket
+      ? `ticketTrace:${linkedSupportTicket.traceId}; taskTrace:${task.traceId}`
+      : `ticketTrace:missing; taskTrace:${task.traceId}`;
     const roleAuthorizationStatus =
       roleRank[task.requestedByRole] >= roleRank[task.allowedRole] ? "sufficient" : "insufficient";
     const roleAuthorizationEvidence = `requested:${task.requestedByRole}; required:${task.allowedRole}`;
@@ -138,6 +187,22 @@ export function buildFailedTaskRuntimeDecisions(tasks: FailedTaskControl[]): Fai
       blockerCodes.push("version_compatibility_stale");
     }
 
+    if (computedSupportTicketLinkageStatus === "missing_ticket") {
+      blockerCodes.push("support_ticket_missing");
+    }
+
+    if (computedSupportTicketLinkageStatus === "mismatched_ticket") {
+      blockerCodes.push("support_ticket_task_mismatch");
+    }
+
+    if (computedTenantScopeStatus === "mismatched_tenant_scope") {
+      blockerCodes.push("support_ticket_user_project_mismatch");
+    }
+
+    if (computedTraceLinkageStatus === "mismatched_trace") {
+      blockerCodes.push("support_ticket_trace_mismatch");
+    }
+
     const hardBlockers = new Set([
       "action_blocked",
       "retry_budget_exhausted",
@@ -148,7 +213,11 @@ export function buildFailedTaskRuntimeDecisions(tasks: FailedTaskControl[]): Fai
       "user_message_missing",
       "idempotency_key_unstable",
       "state_digest_stale_replay",
-      "version_compatibility_stale"
+      "version_compatibility_stale",
+      "support_ticket_missing",
+      "support_ticket_task_mismatch",
+      "support_ticket_user_project_mismatch",
+      "support_ticket_trace_mismatch"
     ]);
     const submitDecision =
       blockerCodes.some((code) => hardBlockers.has(code))
@@ -225,6 +294,12 @@ export function buildFailedTaskRuntimeDecisions(tasks: FailedTaskControl[]): Fai
       stateDigestEvidence,
       compatibilityStatus,
       compatibilityEvidence,
+      supportTicketLinkageStatus: computedSupportTicketLinkageStatus,
+      supportTicketLinkageEvidence,
+      tenantScopeStatus: computedTenantScopeStatus,
+      tenantScopeEvidence,
+      traceLinkageStatus: computedTraceLinkageStatus,
+      traceLinkageEvidence,
       apiOutcome,
       quotaLedgerEffect,
       supportNoticeStatus: userMessageStatus,

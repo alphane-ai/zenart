@@ -195,6 +195,9 @@ const parseFailedTaskRuntime = () => {
     .replaceAll(/export function (\w+)/g, "function $1")
     .replaceAll(/function idempotencyStatus\(task: FailedTaskControl\): FailedTaskRuntimeDecision\["idempotencyStatus"\]/g, "function idempotencyStatus(task)")
     .replaceAll(/function stateDigestStatus\(task: FailedTaskControl\): FailedTaskRuntimeDecision\["stateDigestStatus"\]/g, "function stateDigestStatus(task)")
+    .replaceAll(/function supportTicketLinkageStatus\(\n  task: FailedTaskControl,\n  ticket: SupportTicket \| undefined\n\): FailedTaskRuntimeDecision\["supportTicketLinkageStatus"\]/g, "function supportTicketLinkageStatus(task, ticket)")
+    .replaceAll(/function tenantScopeStatus\(\n  task: FailedTaskControl,\n  ticket: SupportTicket \| undefined\n\): FailedTaskRuntimeDecision\["tenantScopeStatus"\]/g, "function tenantScopeStatus(task, ticket)")
+    .replaceAll(/function traceLinkageStatus\(\n  task: FailedTaskControl,\n  ticket: SupportTicket \| undefined\n\): FailedTaskRuntimeDecision\["traceLinkageStatus"\]/g, "function traceLinkageStatus(task, ticket)")
     .replaceAll(/function stateTransition\(\n  task: FailedTaskControl,\n  submitDecision: FailedTaskRuntimeDecision\["submitDecision"\]\n\): FailedTaskRuntimeDecision\["stateTransition"\]/g, "function stateTransition(task, submitDecision)")
     .replaceAll(/function closureOutcome\(\n  task: FailedTaskControl,\n  submitDecision: FailedTaskRuntimeDecision\["submitDecision"\]\n\): FailedTaskRuntimeDecision\["closureOutcome"\]/g, "function closureOutcome(task, submitDecision)")
     .replaceAll(/function releaseGateDisposition\(\n  task: FailedTaskControl,\n  submitDecision: FailedTaskRuntimeDecision\["submitDecision"\]\n\): FailedTaskRuntimeDecision\["releaseGateDisposition"\]/g, "function releaseGateDisposition(task, submitDecision)")
@@ -207,7 +210,13 @@ const parseFailedTaskRuntime = () => {
     .replaceAll(/: FailedTaskRuntimeDecision\["idempotencyStatus"\]/g, "")
     .replaceAll(/: FailedTaskRuntimeDecision\["stateDigestStatus"\]/g, "")
     .replaceAll(/: FailedTaskRuntimeDecision\["submitDecision"\]/g, "")
+    .replaceAll(/: FailedTaskRuntimeDecision\["supportTicketLinkageStatus"\]/g, "")
+    .replaceAll(/: FailedTaskRuntimeDecision\["tenantScopeStatus"\]/g, "")
+    .replaceAll(/: FailedTaskRuntimeDecision\["traceLinkageStatus"\]/g, "")
     .replaceAll(/const roleRank: Record<FailedTaskControl\["requestedByRole"\], number> =/g, "const roleRank =")
+    .replaceAll(/: SupportTicket\[\]/g, "")
+    .replaceAll(/: SupportTicket \| undefined/g, "")
+    .replaceAll(/new Map<string, SupportTicket>/g, "new Map")
     .replaceAll(/: string/g, "");
   return Function(`${runtimeSource}\nreturn { buildFailedTaskRuntimeDecisions };`)();
 };
@@ -1274,7 +1283,9 @@ test("queue and failed task controls gate retry and cancel with audit evidence",
 });
 
 test("failed task retry and cancel samples are durable regression fixtures", () => {
-  const decisionsByTask = new Map(buildFailedTaskRuntimeDecisions(failedTaskControls).map((decision) => [decision.taskId, decision]));
+  const decisionsByTask = new Map(
+    buildFailedTaskRuntimeDecisions(failedTaskControls, supportTickets).map((decision) => [decision.taskId, decision])
+  );
 
   const retryTask = failedTaskControls.find((task) => task.id === "task-export-489");
   const cancelTask = failedTaskControls.find((task) => task.id === "task-crawler-019");
@@ -1363,7 +1374,7 @@ test("failed task retry and cancel samples are durable regression fixtures", () 
 });
 
 test("failed task runtime submit gates preserve retry, cancel, hold, RBAC, and audit outcomes", () => {
-  const decisions = buildFailedTaskRuntimeDecisions(failedTaskControls);
+  const decisions = buildFailedTaskRuntimeDecisions(failedTaskControls, supportTickets);
   const decisionsByTask = new Map(decisions.map((decision) => [decision.taskId, decision]));
 
   assert.equal(decisions.length, failedTaskControls.length, "each failed task needs one runtime decision");
@@ -1474,6 +1485,30 @@ test("failed task runtime submit gates preserve retry, cancel, hold, RBAC, and a
       `app:${task.appVersion}; worker:${task.workerVersion}; schema:${task.schemaVersion}`,
       `${task.id} must preserve version compatibility evidence`
     );
+    const supportTicket = supportTicketById.get(task.supportTicketId);
+    assert.ok(supportTicket, `${task.id} must link a support ticket fixture`);
+    assert.equal(decision.supportTicketLinkageStatus, "linked", `${task.id} must link the support ticket to the failed task`);
+    assert.equal(
+      decision.supportTicketLinkageEvidence,
+      `ticket:${supportTicket.id}; task:${supportTicket.taskId}; expectedTask:${task.id}`,
+      `${task.id} must expose support-ticket task linkage evidence`
+    );
+    assert.equal(decision.tenantScopeStatus, "linked", `${task.id} must preserve support-ticket tenant scope`);
+    assert.equal(
+      decision.tenantScopeEvidence,
+      `ticketUser:${supportTicket.userId}; taskUser:${task.userId}; ticketProject:${supportTicket.projectId}; taskProject:${task.projectId}`,
+      `${task.id} must expose support-ticket user/project scope evidence`
+    );
+    assert.equal(
+      decision.traceLinkageStatus,
+      task.traceId === "none" ? "not_required" : "linked",
+      `${task.id} must preserve support-ticket trace linkage`
+    );
+    assert.equal(
+      decision.traceLinkageEvidence,
+      `ticketTrace:${supportTicket.traceId}; taskTrace:${task.traceId}`,
+      `${task.id} must expose support-ticket trace linkage evidence`
+    );
     assert.match(
       decision.apiOutcome,
       /post_retry_202_accepted|post_cancel_202_review_required|post_cancel_202_cancelled|disabled_423_hold|disabled_409_conflict/,
@@ -1524,12 +1559,15 @@ test("failed task runtime submit gates preserve retry, cancel, hold, RBAC, and a
     }
   }
 
-  const unstableRetry = buildFailedTaskRuntimeDecisions([
-    {
-      ...failedTaskControls.find((task) => task.id === "task-export-489"),
-      idempotencyKey: "retry:wrong-task:sup-2204:manifest-missing"
-    }
-  ]);
+  const unstableRetry = buildFailedTaskRuntimeDecisions(
+    [
+      {
+        ...failedTaskControls.find((task) => task.id === "task-export-489"),
+        idempotencyKey: "retry:wrong-task:sup-2204:manifest-missing"
+      }
+    ],
+    supportTickets
+  );
   assert.equal(unstableRetry[0].idempotencyStatus, "unstable", "mismatched retry idempotency key must be unstable");
   assert.equal(unstableRetry[0].submitDecision, "blocked", "unstable retry idempotency must block submission");
   assert.ok(
@@ -1537,13 +1575,16 @@ test("failed task runtime submit gates preserve retry, cancel, hold, RBAC, and a
     "unstable retry idempotency must expose a blocker code"
   );
 
-  const exhaustedRetry = buildFailedTaskRuntimeDecisions([
-    {
-      ...failedTaskControls.find((task) => task.id === "task-export-489"),
-      retryCount: 3,
-      maxRetries: 3
-    }
-  ])[0];
+  const exhaustedRetry = buildFailedTaskRuntimeDecisions(
+    [
+      {
+        ...failedTaskControls.find((task) => task.id === "task-export-489"),
+        retryCount: 3,
+        maxRetries: 3
+      }
+    ],
+    supportTickets
+  )[0];
   assert.equal(exhaustedRetry.retryBudgetStatus, "exhausted", "retry at max attempts must exhaust budget");
   assert.equal(exhaustedRetry.submitDecision, "blocked", "exhausted retry budget must block submission");
   assert.ok(
@@ -1556,12 +1597,15 @@ test("failed task runtime submit gates preserve retry, cancel, hold, RBAC, and a
     "exhausted retry budget must be visible in disabled reason"
   );
 
-  const staleSchemaRetry = buildFailedTaskRuntimeDecisions([
-    {
-      ...failedTaskControls.find((task) => task.id === "task-export-489"),
-      schemaVersion: "task.v0"
-    }
-  ])[0];
+  const staleSchemaRetry = buildFailedTaskRuntimeDecisions(
+    [
+      {
+        ...failedTaskControls.find((task) => task.id === "task-export-489"),
+        schemaVersion: "task.v0"
+      }
+    ],
+    supportTickets
+  )[0];
   assert.equal(staleSchemaRetry.compatibilityStatus, "stale", "stale task schema must be detected");
   assert.match(
     staleSchemaRetry.compatibilityEvidence,
@@ -1574,12 +1618,15 @@ test("failed task runtime submit gates preserve retry, cancel, hold, RBAC, and a
     "stale task schema must expose a compatibility blocker code"
   );
 
-  const staleReplayRetry = buildFailedTaskRuntimeDecisions([
-    {
-      ...failedTaskControls.find((task) => task.id === "task-export-489"),
-      observedStateDigest: "sha256:failed-task-task-export-489-retrying-v2"
-    }
-  ])[0];
+  const staleReplayRetry = buildFailedTaskRuntimeDecisions(
+    [
+      {
+        ...failedTaskControls.find((task) => task.id === "task-export-489"),
+        observedStateDigest: "sha256:failed-task-task-export-489-retrying-v2"
+      }
+    ],
+    supportTickets
+  )[0];
   assert.equal(staleReplayRetry.stateDigestStatus, "stale_replay", "changed observed state digest must be detected");
   assert.match(
     staleReplayRetry.stateDigestEvidence,
@@ -1592,14 +1639,17 @@ test("failed task runtime submit gates preserve retry, cancel, hold, RBAC, and a
     "stale replay must expose a state digest blocker code"
   );
 
-  const incompleteClosureCancel = buildFailedTaskRuntimeDecisions([
-    {
-      ...failedTaskControls.find((task) => task.id === "task-crawler-019"),
-      rbacDecision: "allowed",
-      actionEligibility: "eligible",
-      closureEvidenceRefs: ["task-crawler-019", "sup-2212", "au-002"]
-    }
-  ])[0];
+  const incompleteClosureCancel = buildFailedTaskRuntimeDecisions(
+    [
+      {
+        ...failedTaskControls.find((task) => task.id === "task-crawler-019"),
+        rbacDecision: "allowed",
+        actionEligibility: "eligible",
+        closureEvidenceRefs: ["task-crawler-019", "sup-2212", "au-002"]
+      }
+    ],
+    supportTickets
+  )[0];
   assert.equal(
     incompleteClosureCancel.closureEvidenceStatus,
     "incomplete",
@@ -1615,12 +1665,15 @@ test("failed task runtime submit gates preserve retry, cancel, hold, RBAC, and a
     "incomplete closure evidence must expose a blocker code"
   );
 
-  const missingUserMessageRetry = buildFailedTaskRuntimeDecisions([
-    {
-      ...failedTaskControls.find((task) => task.id === "task-export-489"),
-      userMessage: "   "
-    }
-  ])[0];
+  const missingUserMessageRetry = buildFailedTaskRuntimeDecisions(
+    [
+      {
+        ...failedTaskControls.find((task) => task.id === "task-export-489"),
+        userMessage: "   "
+      }
+    ],
+    supportTickets
+  )[0];
   assert.equal(missingUserMessageRetry.userMessageStatus, "missing", "blank user message must be detected");
   assert.equal(
     missingUserMessageRetry.submitDecision,
@@ -1632,12 +1685,15 @@ test("failed task runtime submit gates preserve retry, cancel, hold, RBAC, and a
     "missing user message must expose a blocker code"
   );
 
-  const missingRbacEvidenceRetry = buildFailedTaskRuntimeDecisions([
-    {
-      ...failedTaskControls.find((task) => task.id === "task-export-489"),
-      rbacEvidenceRefs: []
-    }
-  ])[0];
+  const missingRbacEvidenceRetry = buildFailedTaskRuntimeDecisions(
+    [
+      {
+        ...failedTaskControls.find((task) => task.id === "task-export-489"),
+        rbacEvidenceRefs: []
+      }
+    ],
+    supportTickets
+  )[0];
   assert.equal(missingRbacEvidenceRetry.rbacEvidenceStatus, "missing", "blank RBAC evidence refs must be detected");
   assert.equal(
     missingRbacEvidenceRetry.submitDecision,
@@ -1649,14 +1705,17 @@ test("failed task runtime submit gates preserve retry, cancel, hold, RBAC, and a
     "missing RBAC evidence must expose a blocker code"
   );
 
-  const insufficientRoleAllowedRetry = buildFailedTaskRuntimeDecisions([
-    {
-      ...failedTaskControls.find((task) => task.id === "task-export-489"),
-      allowedRole: "admin_reviewer",
-      requestedByRole: "support_operator",
-      rbacDecision: "allowed"
-    }
-  ])[0];
+  const insufficientRoleAllowedRetry = buildFailedTaskRuntimeDecisions(
+    [
+      {
+        ...failedTaskControls.find((task) => task.id === "task-export-489"),
+        allowedRole: "admin_reviewer",
+        requestedByRole: "support_operator",
+        rbacDecision: "allowed"
+      }
+    ],
+    supportTickets
+  )[0];
   assert.equal(
     insufficientRoleAllowedRetry.roleAuthorizationStatus,
     "insufficient",
@@ -1675,6 +1734,70 @@ test("failed task runtime submit gates preserve retry, cancel, hold, RBAC, and a
     insufficientRoleAllowedRetry.roleAuthorizationEvidence,
     /requested:support_operator; required:admin_reviewer/,
     "insufficient requested role evidence must include requested and required roles"
+  );
+
+  const missingSupportTicketRetry = buildFailedTaskRuntimeDecisions(
+    [
+      {
+        ...failedTaskControls.find((task) => task.id === "task-export-489"),
+        supportTicketId: "sup-missing"
+      }
+    ],
+    supportTickets
+  )[0];
+  assert.equal(missingSupportTicketRetry.supportTicketLinkageStatus, "missing_ticket", "missing support ticket must be detected");
+  assert.equal(missingSupportTicketRetry.submitDecision, "blocked", "retry cannot submit without support ticket evidence");
+  assert.ok(
+    missingSupportTicketRetry.blockerCodes.includes("support_ticket_missing"),
+    "missing support ticket must expose a blocker code"
+  );
+
+  const mismatchedTicketRetry = buildFailedTaskRuntimeDecisions(
+    [
+      {
+        ...failedTaskControls.find((task) => task.id === "task-export-489"),
+        supportTicketId: "sup-2209"
+      }
+    ],
+    supportTickets
+  )[0];
+  assert.equal(mismatchedTicketRetry.supportTicketLinkageStatus, "linked", "alternate ticket for same task can link");
+  assert.equal(
+    mismatchedTicketRetry.traceLinkageStatus,
+    "linked",
+    "alternate same-task support ticket must still preserve trace linkage"
+  );
+  assert.equal(mismatchedTicketRetry.submitDecision, "blocked", "changed ticket must still block through idempotency mismatch");
+  assert.ok(
+    mismatchedTicketRetry.blockerCodes.includes("idempotency_key_unstable"),
+    "changed support ticket must invalidate action-scoped idempotency"
+  );
+
+  const crossTaskTicketRetry = buildFailedTaskRuntimeDecisions(
+    [
+      {
+        ...failedTaskControls.find((task) => task.id === "task-export-489"),
+        supportTicketId: "sup-2201",
+        idempotencyKey: "retry:task-export-489:sup-2201:manifest-missing"
+      }
+    ],
+    supportTickets
+  )[0];
+  assert.equal(crossTaskTicketRetry.supportTicketLinkageStatus, "mismatched_ticket", "cross-task support ticket must be detected");
+  assert.equal(crossTaskTicketRetry.tenantScopeStatus, "mismatched_tenant_scope", "cross-user/project ticket must be detected");
+  assert.equal(crossTaskTicketRetry.traceLinkageStatus, "mismatched_trace", "cross-trace ticket must be detected");
+  assert.equal(crossTaskTicketRetry.submitDecision, "blocked", "cross-linked support ticket must block retry submission");
+  assert.ok(
+    crossTaskTicketRetry.blockerCodes.includes("support_ticket_task_mismatch"),
+    "cross-task ticket must expose task mismatch blocker"
+  );
+  assert.ok(
+    crossTaskTicketRetry.blockerCodes.includes("support_ticket_user_project_mismatch"),
+    "cross-task ticket must expose tenant-scope mismatch blocker"
+  );
+  assert.ok(
+    crossTaskTicketRetry.blockerCodes.includes("support_ticket_trace_mismatch"),
+    "cross-task ticket must expose trace mismatch blocker"
   );
 });
 

@@ -1,7 +1,7 @@
 import { DataTable } from "@/components/DataTable";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
-import { getFailedTaskControls, getQueueHealth } from "@/lib/admin-api";
+import { getFailedTaskControls, getQueueHealth, getSupportTickets } from "@/lib/admin-api";
 import { buildFailedTaskRuntimeDecisions } from "@/lib/failed-task-runtime";
 import type { FailedTaskControl, FailedTaskRuntimeDecision, QueueHealth } from "@/lib/types";
 
@@ -14,11 +14,12 @@ function actionTone(task: FailedTaskControl) {
 }
 
 export default async function QueuesPage() {
-  const [queues, failedTasks] = await Promise.all([
+  const [queues, failedTasks, supportTickets] = await Promise.all([
     getQueueHealth(),
-    getFailedTaskControls()
+    getFailedTaskControls(),
+    getSupportTickets()
   ]);
-  const failedTaskRuntime = buildFailedTaskRuntimeDecisions(failedTasks);
+  const failedTaskRuntime = buildFailedTaskRuntimeDecisions(failedTasks, supportTickets);
 
   return (
     <>
@@ -81,6 +82,12 @@ export default async function QueuesPage() {
             { key: "state-digest-evidence", header: "State Digest Evidence", render: (row) => <span className="mono">{row.stateDigestEvidence}</span> },
             { key: "compatibility", header: "Compatibility", render: (row) => <StatusBadge value={row.compatibilityStatus} /> },
             { key: "compatibility-evidence", header: "Compatibility Evidence", render: (row) => <span className="mono">{row.compatibilityEvidence}</span> },
+            { key: "support-linkage", header: "Support Linkage", render: (row) => <StatusBadge value={row.supportTicketLinkageStatus} label={row.supportTicketLinkageStatus} /> },
+            { key: "support-linkage-evidence", header: "Support Linkage Evidence", render: (row) => <span className="mono">{row.supportTicketLinkageEvidence}</span> },
+            { key: "tenant-scope", header: "Tenant Scope", render: (row) => <StatusBadge value={row.tenantScopeStatus} label={row.tenantScopeStatus} /> },
+            { key: "tenant-scope-evidence", header: "Tenant Scope Evidence", render: (row) => <span className="mono">{row.tenantScopeEvidence}</span> },
+            { key: "trace-linkage", header: "Trace Linkage", render: (row) => <StatusBadge value={row.traceLinkageStatus} label={row.traceLinkageStatus} /> },
+            { key: "trace-linkage-evidence", header: "Trace Linkage Evidence", render: (row) => <span className="mono">{row.traceLinkageEvidence}</span> },
             { key: "api-outcome", header: "API Outcome", render: (row) => <StatusBadge value={row.apiOutcome} label={row.apiOutcome} /> },
             { key: "quota-ledger", header: "Quota Ledger", render: (row) => <StatusBadge value={row.quotaLedgerEffect} label={row.quotaLedgerEffect} /> },
             { key: "support-notice", header: "Support Notice", render: (row) => <StatusBadge value={row.supportNoticeStatus} label={row.supportNoticeStatus} /> },

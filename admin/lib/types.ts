@@ -777,6 +777,12 @@ export type FailedTaskRuntimeDecision = {
   stateDigestEvidence: string;
   compatibilityStatus: "compatible" | "stale";
   compatibilityEvidence: string;
+  supportTicketLinkageStatus: "linked" | "missing_ticket" | "mismatched_ticket";
+  supportTicketLinkageEvidence: string;
+  tenantScopeStatus: "linked" | "mismatched_tenant_scope";
+  tenantScopeEvidence: string;
+  traceLinkageStatus: "linked" | "not_required" | "mismatched_trace";
+  traceLinkageEvidence: string;
   apiOutcome:
     | "post_retry_202_accepted"
     | "post_cancel_202_review_required"
