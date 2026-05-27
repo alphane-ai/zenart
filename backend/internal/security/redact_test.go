@@ -1272,6 +1272,90 @@ func TestRedactValueCoversStorageQueryMapsAndKubernetesPullSecrets(t *testing.T)
 	assertFinding(t, findings, SecretKindRegistryAuth, "metadata.dockercfg")
 }
 
+func TestRedactValueCoversKubernetesSecretPayloadContainers(t *testing.T) {
+	input := map[string]any{
+		"apiVersion": "v1",
+		"kind":       "Secret",
+		"metadata": map[string]any{
+			"name":      "export-worker",
+			"namespace": "staging",
+		},
+		"data": map[string]any{
+			"username":      "YWRtaW4=",
+			"config.json":   "eyJhdXRoIjoiZlhObGNqcHdZWE56In0=",
+			"provider.yaml": "b3BlbmFpOiBzay1wcm9qLWFsZWFr",
+		},
+		"stringData": map[string]string{
+			"password": "plain-password",
+			"token":    "plain-token",
+		},
+	}
+
+	body, err := json.Marshal(RedactValue(input))
+	if err != nil {
+		t.Fatalf("marshal redacted Kubernetes secret: %v", err)
+	}
+	for _, leaked := range []string{
+		"YWRtaW4=",
+		"eyJhdXRoIjoiZlhObGNqcHdZWE56In0=",
+		"b3BlbmFpOiBzay1wcm9qLWFsZWFr",
+		"plain-password",
+		"plain-token",
+	} {
+		if strings.Contains(string(body), leaked) {
+			t.Fatalf("redacted Kubernetes secret = %s, leaked %s", string(body), leaked)
+		}
+	}
+	for _, fragment := range []string{`"kind":"Secret"`, `"name":"export-worker"`, `"username":"[REDACTED]"`, `"password":"[REDACTED]"`} {
+		if !strings.Contains(string(body), fragment) {
+			t.Fatalf("redacted Kubernetes secret = %s, missing %s", string(body), fragment)
+		}
+	}
+
+	findings := ClassifyValue(input)
+	assertFinding(t, findings, SecretKindSecretPayload, "data.username")
+	assertFinding(t, findings, SecretKindSecretPayload, "data.config.json")
+	assertFinding(t, findings, SecretKindSecretPayload, "stringData.password")
+}
+
+func TestRedactValueCoversTypedKubernetesSecretPayloadContainers(t *testing.T) {
+	type kubernetesSecret struct {
+		APIVersion string            `json:"apiVersion"`
+		Kind       string            `json:"kind"`
+		Data       map[string]string `json:"data"`
+		Public     string            `json:"public"`
+	}
+	input := kubernetesSecret{
+		APIVersion: "v1",
+		Kind:       "Secret",
+		Data: map[string]string{
+			"tls.crt": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0t",
+			"tls.key": "LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0t",
+		},
+		Public: "visible",
+	}
+
+	body, err := json.Marshal(RedactValue(input))
+	if err != nil {
+		t.Fatalf("marshal redacted typed Kubernetes secret: %v", err)
+	}
+	for _, leaked := range []string{
+		"LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0t",
+		"LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0t",
+	} {
+		if strings.Contains(string(body), leaked) {
+			t.Fatalf("redacted typed Kubernetes secret = %s, leaked %s", string(body), leaked)
+		}
+	}
+	if !strings.Contains(string(body), `"public":"visible"`) || !strings.Contains(string(body), Redacted) {
+		t.Fatalf("redacted typed Kubernetes secret = %s, want public value and redaction marker", string(body))
+	}
+
+	findings := ClassifyValue(input)
+	assertFinding(t, findings, SecretKindSecretPayload, "data.tls.crt")
+	assertFinding(t, findings, SecretKindSecretPayload, "data.tls.key")
+}
+
 func TestRedactValueCoversStructuredSignedURLMetadataMaps(t *testing.T) {
 	input := map[string]any{
 		"aws": map[string]any{

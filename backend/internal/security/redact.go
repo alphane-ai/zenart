@@ -38,6 +38,7 @@ const (
 	SecretKindServiceAcct   SecretKind = "service_account"
 	SecretKindRegistryAuth  SecretKind = "registry_auth"
 	SecretKindEncryptionKey SecretKind = "encryption_key"
+	SecretKindSecretPayload SecretKind = "secret_payload"
 )
 
 type SecretFinding struct {
@@ -460,8 +461,16 @@ func RedactValue(value any) any {
 	case map[string][]any:
 		out := make(map[string][]any, len(typed))
 		signedURLContext := hasSignedURLContextKeys(mapKeys(typed))
+		kubernetesSecretContext := hasKubernetesSecretContext(typed)
 		for key, values := range typed {
 			redactedValues := make([]any, len(values))
+			if kubernetesSecretContext && isKubernetesSecretPayloadKey(key) {
+				for i := range values {
+					redactedValues[i] = Redacted
+				}
+				out[key] = redactedValues
+				continue
+			}
 			if IsSensitiveKey(key) || shouldRedactStructuredSignedURLKey(key, signedURLContext) {
 				for i := range values {
 					redactedValues[i] = Redacted
@@ -605,7 +614,12 @@ func redactSlogValue(key string, value slog.Value) slog.Value {
 func RedactMap(input map[string]any) map[string]any {
 	out := make(map[string]any, len(input))
 	signedURLContext := hasSignedURLContextKeys(mapKeys(input))
+	kubernetesSecretContext := hasKubernetesSecretContext(input)
 	for key, value := range input {
+		if kubernetesSecretContext && isKubernetesSecretPayloadKey(key) {
+			out[key] = redactSecretPayload(value)
+			continue
+		}
 		if IsSensitiveKey(key) || shouldRedactStructuredSignedURLKey(key, signedURLContext) {
 			out[key] = Redacted
 			continue
@@ -621,7 +635,12 @@ func RedactStringMap(input map[string]string) map[string]string {
 	}
 	out := make(map[string]string, len(input))
 	signedURLContext := hasSignedURLContextKeys(mapKeys(input))
+	kubernetesSecretContext := hasKubernetesSecretContext(input)
 	for key, val := range input {
+		if kubernetesSecretContext && isKubernetesSecretPayloadKey(key) {
+			out[key] = Redacted
+			continue
+		}
 		if IsSensitiveKey(key) || shouldRedactStructuredSignedURLKey(key, signedURLContext) {
 			out[key] = Redacted
 			continue
@@ -947,15 +966,223 @@ func isAzureSASKey(normalized string) bool {
 	}
 }
 
+func hasKubernetesSecretContext[T any](input map[string]T) bool {
+	for key, value := range input {
+		normalizedKey := normalizeSecretKey(key)
+		if normalizedKey == "kind" && strings.EqualFold(strings.TrimSpace(fmt.Sprint(value)), "Secret") {
+			return true
+		}
+		if normalizedKey == "api_version" && strings.HasPrefix(strings.TrimSpace(fmt.Sprint(value)), "v1") {
+			return true
+		}
+	}
+	return false
+}
+
+func hasReflectKubernetesSecretContext(value reflect.Value) bool {
+	if value.Kind() != reflect.Map || value.IsNil() {
+		return false
+	}
+	iter := value.MapRange()
+	for iter.Next() {
+		key := normalizeSecretKey(stringifyReflectKey(iter.Key()))
+		val := strings.TrimSpace(reflectValueString(iter.Value()))
+		if key == "kind" && strings.EqualFold(val, "Secret") {
+			return true
+		}
+		if key == "api_version" && strings.HasPrefix(val, "v1") {
+			return true
+		}
+	}
+	return false
+}
+
+func hasReflectStructKubernetesSecretContext(value reflect.Value) bool {
+	if value.Kind() != reflect.Struct {
+		return false
+	}
+	valueType := value.Type()
+	for i := 0; i < value.NumField(); i++ {
+		fieldType := valueType.Field(i)
+		if fieldType.PkgPath != "" {
+			continue
+		}
+		key, include := redactedStructFieldName(fieldType)
+		if !include {
+			continue
+		}
+		normalizedKey := normalizeSecretKey(key)
+		val := strings.TrimSpace(reflectValueString(value.Field(i)))
+		if normalizedKey == "kind" && strings.EqualFold(val, "Secret") {
+			return true
+		}
+		if normalizedKey == "api_version" && strings.HasPrefix(val, "v1") {
+			return true
+		}
+	}
+	return false
+}
+
+func isKubernetesSecretPayloadKey(key string) bool {
+	switch normalizeSecretKey(key) {
+	case "data", "string_data", "binary_data":
+		return true
+	default:
+		return false
+	}
+}
+
+func redactSecretPayload(value any) any {
+	switch typed := value.(type) {
+	case map[string]any:
+		out := make(map[string]any, len(typed))
+		for key := range typed {
+			out[key] = Redacted
+		}
+		return out
+	case map[string]string:
+		out := make(map[string]string, len(typed))
+		for key := range typed {
+			out[key] = Redacted
+		}
+		return out
+	case map[string][]string:
+		out := make(map[string][]string, len(typed))
+		for key, values := range typed {
+			redactedValues := make([]string, len(values))
+			for i := range redactedValues {
+				redactedValues[i] = Redacted
+			}
+			out[key] = redactedValues
+		}
+		return out
+	case map[string][]any:
+		out := make(map[string][]any, len(typed))
+		for key, values := range typed {
+			redactedValues := make([]any, len(values))
+			for i := range redactedValues {
+				redactedValues[i] = Redacted
+			}
+			out[key] = redactedValues
+		}
+		return out
+	default:
+		return Redacted
+	}
+}
+
+func redactSecretPayloadFromReflect(value reflect.Value) any {
+	if !value.IsValid() {
+		return Redacted
+	}
+	for value.Kind() == reflect.Interface || value.Kind() == reflect.Pointer {
+		if value.IsNil() {
+			return Redacted
+		}
+		value = value.Elem()
+	}
+	if value.Kind() != reflect.Map {
+		return Redacted
+	}
+	out := make(map[string]any, value.Len())
+	iter := value.MapRange()
+	for iter.Next() {
+		out[stringifyReflectKey(iter.Key())] = Redacted
+	}
+	return out
+}
+
+func classifySecretPayloadAt(value any, location string) []SecretFinding {
+	var findings []SecretFinding
+	switch typed := value.(type) {
+	case map[string]any:
+		for key := range typed {
+			findings = append(findings, SecretFinding{Kind: SecretKindSecretPayload, Signal: "kubernetes_secret_payload", Location: joinFindingLocation(location, key)})
+		}
+	case map[string]string:
+		for key := range typed {
+			findings = append(findings, SecretFinding{Kind: SecretKindSecretPayload, Signal: "kubernetes_secret_payload", Location: joinFindingLocation(location, key)})
+		}
+	case map[string][]string:
+		for key, values := range typed {
+			keyLocation := joinFindingLocation(location, key)
+			findings = append(findings, SecretFinding{Kind: SecretKindSecretPayload, Signal: "kubernetes_secret_payload", Location: keyLocation})
+			for i := range values {
+				findings = append(findings, SecretFinding{Kind: SecretKindSecretPayload, Signal: "kubernetes_secret_payload", Location: fmt.Sprintf("%s[%d]", keyLocation, i)})
+			}
+		}
+	case map[string][]any:
+		for key, values := range typed {
+			keyLocation := joinFindingLocation(location, key)
+			findings = append(findings, SecretFinding{Kind: SecretKindSecretPayload, Signal: "kubernetes_secret_payload", Location: keyLocation})
+			for i := range values {
+				findings = append(findings, SecretFinding{Kind: SecretKindSecretPayload, Signal: "kubernetes_secret_payload", Location: fmt.Sprintf("%s[%d]", keyLocation, i)})
+			}
+		}
+	default:
+		findings = append(findings, SecretFinding{Kind: SecretKindSecretPayload, Signal: "kubernetes_secret_payload", Location: location})
+	}
+	return findings
+}
+
+func classifySecretPayloadReflectAt(value reflect.Value, location string) []SecretFinding {
+	if !value.IsValid() {
+		return []SecretFinding{{Kind: SecretKindSecretPayload, Signal: "kubernetes_secret_payload", Location: location}}
+	}
+	for value.Kind() == reflect.Interface || value.Kind() == reflect.Pointer {
+		if value.IsNil() {
+			return []SecretFinding{{Kind: SecretKindSecretPayload, Signal: "kubernetes_secret_payload", Location: location}}
+		}
+		value = value.Elem()
+	}
+	if value.Kind() != reflect.Map {
+		return []SecretFinding{{Kind: SecretKindSecretPayload, Signal: "kubernetes_secret_payload", Location: location}}
+	}
+	var findings []SecretFinding
+	iter := value.MapRange()
+	for iter.Next() {
+		findings = append(findings, SecretFinding{
+			Kind:     SecretKindSecretPayload,
+			Signal:   "kubernetes_secret_payload",
+			Location: joinFindingLocation(location, stringifyReflectKey(iter.Key())),
+		})
+	}
+	return findings
+}
+
+func reflectValueString(value reflect.Value) string {
+	if !value.IsValid() {
+		return ""
+	}
+	for value.Kind() == reflect.Interface || value.Kind() == reflect.Pointer {
+		if value.IsNil() {
+			return ""
+		}
+		value = value.Elem()
+	}
+	if value.Kind() == reflect.String {
+		return value.String()
+	}
+	if value.CanInterface() {
+		return fmt.Sprint(value.Interface())
+	}
+	return fmt.Sprint(value)
+}
+
 func classifyValueAt(value any, location string) []SecretFinding {
 	var findings []SecretFinding
 	switch typed := value.(type) {
 	case map[string]any:
 		signedURLContext := hasSignedURLContextKeys(mapKeys(typed))
+		kubernetesSecretContext := hasKubernetesSecretContext(typed)
 		for key, val := range typed {
 			childLocation := key
 			if location != "" {
 				childLocation = location + "." + key
+			}
+			if kubernetesSecretContext && isKubernetesSecretPayloadKey(key) {
+				findings = append(findings, classifySecretPayloadAt(val, childLocation)...)
+				continue
 			}
 			for _, finding := range classifyStructuredKey(key, signedURLContext) {
 				finding.Location = childLocation
@@ -965,10 +1192,15 @@ func classifyValueAt(value any, location string) []SecretFinding {
 		}
 	case map[string]string:
 		signedURLContext := hasSignedURLContextKeys(mapKeys(typed))
+		kubernetesSecretContext := hasKubernetesSecretContext(typed)
 		for key, val := range typed {
 			childLocation := key
 			if location != "" {
 				childLocation = location + "." + key
+			}
+			if kubernetesSecretContext && isKubernetesSecretPayloadKey(key) {
+				findings = append(findings, SecretFinding{Kind: SecretKindSecretPayload, Signal: "kubernetes_secret_payload", Location: childLocation})
+				continue
 			}
 			for _, finding := range classifyStructuredKey(key, signedURLContext) {
 				finding.Location = childLocation
@@ -987,10 +1219,15 @@ func classifyValueAt(value any, location string) []SecretFinding {
 		findings = append(findings, classifyStringSliceMapAt(typed, location)...)
 	case map[string][]any:
 		signedURLContext := hasSignedURLContextKeys(mapKeys(typed))
+		kubernetesSecretContext := hasKubernetesSecretContext(typed)
 		for key, values := range typed {
 			childLocation := key
 			if location != "" {
 				childLocation = location + "." + key
+			}
+			if kubernetesSecretContext && isKubernetesSecretPayloadKey(key) {
+				findings = append(findings, classifySecretPayloadAt(values, childLocation)...)
+				continue
 			}
 			for _, finding := range classifyStructuredKey(key, signedURLContext) {
 				finding.Location = childLocation
@@ -1118,9 +1355,14 @@ func redactReflectValueAt(value reflect.Value, visited map[uintptr]struct{}, dep
 		}
 		out := make(map[string]any, value.Len())
 		signedURLContext := hasReflectSignedURLContextKeys(value)
+		kubernetesSecretContext := hasReflectKubernetesSecretContext(value)
 		iter := value.MapRange()
 		for iter.Next() {
 			key := stringifyReflectKey(iter.Key())
+			if kubernetesSecretContext && isKubernetesSecretPayloadKey(key) {
+				out[key] = redactSecretPayloadFromReflect(iter.Value())
+				continue
+			}
 			if IsSensitiveKey(key) || shouldRedactStructuredSignedURLKey(key, signedURLContext) {
 				out[key] = Redacted
 				continue
@@ -1135,6 +1377,7 @@ func redactReflectValueAt(value reflect.Value, visited map[uintptr]struct{}, dep
 	case reflect.Struct:
 		out := make(map[string]any, value.NumField())
 		valueType := value.Type()
+		kubernetesSecretContext := hasReflectStructKubernetesSecretContext(value)
 		for i := 0; i < value.NumField(); i++ {
 			field := value.Field(i)
 			fieldType := valueType.Field(i)
@@ -1143,6 +1386,10 @@ func redactReflectValueAt(value reflect.Value, visited map[uintptr]struct{}, dep
 			}
 			key, include := redactedStructFieldName(fieldType)
 			if !include {
+				continue
+			}
+			if kubernetesSecretContext && isKubernetesSecretPayloadKey(key) {
+				out[key] = redactSecretPayloadFromReflect(field)
 				continue
 			}
 			if IsSensitiveKey(key) {
@@ -1205,12 +1452,17 @@ func classifyReflectAt(value reflect.Value, location string, visited map[uintptr
 	switch value.Kind() {
 	case reflect.Map:
 		signedURLContext := hasReflectSignedURLContextKeys(value)
+		kubernetesSecretContext := hasReflectKubernetesSecretContext(value)
 		iter := value.MapRange()
 		for iter.Next() {
 			key := stringifyReflectKey(iter.Key())
 			childLocation := key
 			if location != "" {
 				childLocation = location + "." + key
+			}
+			if kubernetesSecretContext && isKubernetesSecretPayloadKey(key) {
+				findings = append(findings, classifySecretPayloadReflectAt(iter.Value(), childLocation)...)
+				continue
 			}
 			for _, finding := range classifyStructuredKey(key, signedURLContext) {
 				finding.Location = childLocation
@@ -1220,6 +1472,7 @@ func classifyReflectAt(value reflect.Value, location string, visited map[uintptr
 		}
 	case reflect.Struct:
 		valueType := value.Type()
+		kubernetesSecretContext := hasReflectStructKubernetesSecretContext(value)
 		for i := 0; i < value.NumField(); i++ {
 			fieldType := valueType.Field(i)
 			if fieldType.PkgPath != "" {
@@ -1232,6 +1485,10 @@ func classifyReflectAt(value reflect.Value, location string, visited map[uintptr
 			childLocation := key
 			if location != "" {
 				childLocation = location + "." + key
+			}
+			if kubernetesSecretContext && isKubernetesSecretPayloadKey(key) {
+				findings = append(findings, classifySecretPayloadReflectAt(value.Field(i), childLocation)...)
+				continue
 			}
 			for _, finding := range ClassifyKey(key) {
 				finding.Location = childLocation
@@ -1271,8 +1528,16 @@ func redactKnownInterfaceValue(value reflect.Value) (any, bool) {
 	case map[string][]any:
 		out := make(map[string][]any, len(typed))
 		signedURLContext := hasSignedURLContextKeys(mapKeys(typed))
+		kubernetesSecretContext := hasKubernetesSecretContext(typed)
 		for key, values := range typed {
 			redactedValues := make([]any, len(values))
+			if kubernetesSecretContext && isKubernetesSecretPayloadKey(key) {
+				for i := range values {
+					redactedValues[i] = Redacted
+				}
+				out[key] = redactedValues
+				continue
+			}
 			if IsSensitiveKey(key) || shouldRedactStructuredSignedURLKey(key, signedURLContext) {
 				for i := range values {
 					redactedValues[i] = Redacted
