@@ -527,8 +527,12 @@ for slot, check in checks.items():
         raise SystemExit(f"missing {slot} must not verify")
     if check.get("expected_environment") != "staging":
         raise SystemExit(f"{slot} must require staging environment")
+    if check.get("required_evidence_path_prefix") != "ops/evidence/staging/":
+        raise SystemExit(f"{slot} must declare the staging evidence path prefix")
     if check.get("semantic_checks", {}).get("local_json_file") is not False:
         raise SystemExit(f"{slot} must fail local_json_file when missing")
+    if check.get("semantic_checks", {}).get("staging_evidence_path") is not False:
+        raise SystemExit(f"{slot} must fail staging_evidence_path when missing")
 for reason in (
     "unverified_observability_evidence:",
     "unverified_backup_restore_evidence:",
@@ -538,8 +542,11 @@ for reason in (
         raise SystemExit(f"preflight missing blocking reason prefix {reason}")
 PY
 preflight_pass_dir="$(mktemp -d)"
+preflight_fixture_dir="ops/evidence/staging/.repo-validate-preflight-$$"
+rm -rf "$preflight_fixture_dir"
+mkdir -p "$preflight_fixture_dir"
 preflight_sha="abcdef1234567890abcdef1234567890abcdef12"
-cat >"$preflight_pass_dir/observability.json" <<EOF
+cat >"$preflight_fixture_dir/observability.json" <<EOF
 {
   "release_sha": "$preflight_sha",
   "environment": "staging",
@@ -555,7 +562,7 @@ cat >"$preflight_pass_dir/observability.json" <<EOF
   ]
 }
 EOF
-cat >"$preflight_pass_dir/backup.json" <<EOF
+cat >"$preflight_fixture_dir/backup.json" <<EOF
 {
   "release_sha": "$preflight_sha",
   "environment": "staging",
@@ -567,7 +574,7 @@ cat >"$preflight_pass_dir/backup.json" <<EOF
   ]
 }
 EOF
-cat >"$preflight_pass_dir/load.json" <<EOF
+cat >"$preflight_fixture_dir/load.json" <<EOF
 {
   "release_sha": "$preflight_sha",
   "environment": "staging",
@@ -586,10 +593,11 @@ cat >"$preflight_pass_dir/load.json" <<EOF
 EOF
 RELEASE_SHA="$preflight_sha" \
   OUT_DIR="$preflight_pass_dir/out" \
-  OBSERVABILITY_EVIDENCE="$preflight_pass_dir/observability.json" \
-  BACKUP_RESTORE_EVIDENCE="$preflight_pass_dir/backup.json" \
-  LOAD_EVIDENCE="$preflight_pass_dir/load.json" \
+  OBSERVABILITY_EVIDENCE="$preflight_fixture_dir/observability.json" \
+  BACKUP_RESTORE_EVIDENCE="$preflight_fixture_dir/backup.json" \
+  LOAD_EVIDENCE="$preflight_fixture_dir/load.json" \
   scripts/staging_observability_backup_load_smoke.sh >/dev/null
+rm -rf "$preflight_fixture_dir"
 python3 - "$preflight_pass_dir/out" "$preflight_sha" <<'PY'
 import json
 import sys

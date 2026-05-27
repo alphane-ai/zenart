@@ -39,7 +39,8 @@ inputs = {
     "backup_restore_evidence": sys.argv[6].strip(),
     "load_evidence": sys.argv[7].strip(),
 }
-root = Path(".")
+root = Path(".").resolve()
+staging_evidence_root = root / "ops" / "evidence" / "staging"
 
 
 def is_url(value):
@@ -51,7 +52,17 @@ def local_path(value):
     if not value or is_url(value):
         return None
     path = Path(value)
-    return path if path.is_absolute() else root / path
+    return path.resolve() if path.is_absolute() else (root / path).resolve()
+
+
+def path_is_under(path, parent):
+    if path is None:
+        return False
+    try:
+        path.relative_to(parent.resolve())
+        return True
+    except ValueError:
+        return False
 
 
 def read_json(value):
@@ -160,16 +171,19 @@ def entry_passed(entry):
 
 
 def validate_evidence(slot, value, *, expected_kind, required_entries):
+    input_path = local_path(value)
     parsed, read_error = read_json(value)
     result = {
         "slot": slot,
         "ref": value,
         "expected_environment": "staging",
         "expected_kind": expected_kind,
+        "required_evidence_path_prefix": "ops/evidence/staging/",
         "required_entries": sorted(required_entries),
         "verified": False,
         "semantic_checks": {
             "local_json_file": parsed is not None,
+            "staging_evidence_path": path_is_under(input_path, staging_evidence_root),
             "release_sha_present": bool(release_sha),
             "release_sha_match": False,
             "environment_staging": False,
@@ -194,6 +208,7 @@ def validate_evidence(slot, value, *, expected_kind, required_entries):
     entries = collect_entries(parsed)
     result["semantic_checks"].update(
         {
+            "staging_evidence_path": path_is_under(input_path, staging_evidence_root),
             "release_sha_match": bool(release_sha and release_sha in sha_values),
             "environment_staging": normalize(environment) == "staging" and "staging" in environments,
             "kind_match": expected_kind in kinds,
