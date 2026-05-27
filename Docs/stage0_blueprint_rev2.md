@@ -1783,6 +1783,7 @@ main 合并前必须通过：
 - [x] 实现 forbidden claims QA。
 - [x] 实现 export completeness QA。
 - [x] QA result coverage 高风险类别通过 pass/warn/block 语义验证：file integrity、blank output、text readability、structured text、product/logo preservation、forbidden claims、export completeness 均有 fixture、eval result、trace/export gate 链接。
+- [x] QA source artifact resolution contract 通过：`fixtures/stage0/rev2/eval/qa_result_coverage.json` declares source-artifact resolvers, and `scripts/run_qa_source_artifact_contract.py` validates QA source artifacts against workflow acceptance、export bundle、generated asset、eval gate、trace export links、QA observed/expected fields、safety decisions。
 - [x] 实现 safety rule schema。
 - [x] 定义并验证 brief/provider request/provider response/QA/export safety policy contract evidence。
 - [x] 在 brief/provider request/provider response/QA/export 运行 safety policy。

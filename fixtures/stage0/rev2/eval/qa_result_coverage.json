@@ -1613,6 +1613,26 @@
     "requires_qa_export_gate_match": true,
     "requires_trace_contract_match": true
   },
+  "source_artifact_resolution": {
+    "requires_qa_evidence_match": true,
+    "requires_workflow_acceptance_match": true,
+    "requires_export_bundle_match": true,
+    "requires_generated_asset_match": true,
+    "requires_trace_export_links": true,
+    "requires_eval_gate_match": true,
+    "logical_artifact_resolvers": [
+      "workflow_acceptance_fixture",
+      "workflow_export_target",
+      "workflow_generated_asset",
+      "eval_qa_export_gate",
+      "trace_export_reference",
+      "trace_artifact_link",
+      "qa_observed_field",
+      "qa_expected_field",
+      "qa_fixture_source_material",
+      "safety_decision_trace_event"
+    ]
+  },
   "export_gate_policy": {
     "blocking_severity_blocks_final_export": true,
     "warning_severity_does_not_block_final_export": true,

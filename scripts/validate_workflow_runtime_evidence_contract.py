@@ -70,9 +70,15 @@ LOCAL_ALPHA_AGGREGATE_ITEM = (
 )
 LOCAL_ALPHA_RUNTIME_CLOSED_WORKFLOWS = {
     "ecommerce_growth_pack",
+    "business_visual_doc_pack",
 }
 LOCAL_ALPHA_RUNTIME_CLOSED_ITEM_KEYS = {
     "ecommerce_growth_pack": {
+        "api_smoke",
+        "playwright_happy_path",
+        "release_gate_runtime",
+    },
+    "business_visual_doc_pack": {
         "api_smoke",
         "playwright_happy_path",
         "release_gate_runtime",

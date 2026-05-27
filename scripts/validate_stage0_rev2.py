@@ -1285,6 +1285,7 @@ LOCAL_ALPHA_RELEASE_GATE_WORKFLOW_RUNTIME_OPEN_CHECK_ITEMS = {
 
 LOCAL_ALPHA_RELEASE_GATE_WORKFLOW_RUNTIME_CLOSED_ITEMS = {
     "Local Alpha 电商增长包 runtime smoke evidence 写入 release gate fixture：`ops/evidence/local_alpha/ecommerce_growth_pack.api_smoke.json`、`ops/evidence/local_alpha/ecommerce_growth_pack.playwright_happy_path.json`、`ops/evidence/local_alpha/ecommerce_growth_pack.export_zip.json` 均证明 running local stack。": "ecommerce_growth_pack",
+    "Local Alpha 商业视觉文档包 runtime smoke evidence 写入 release gate fixture：`ops/evidence/local_alpha/business_visual_doc_pack.api_smoke.json`、`ops/evidence/local_alpha/business_visual_doc_pack.playwright_happy_path.json`、`ops/evidence/local_alpha/business_visual_doc_pack.export_zip.json` 均证明 running local stack。": "business_visual_doc_pack",
 }
 
 LOCAL_ALPHA_WORKFLOW_RUNTIME_EVIDENCE_FILES = {
@@ -1801,6 +1802,8 @@ REQUIRED_OPEN_ITEMS -= {
     PRODUCTION_BACKUP_ROLLBACK_INCIDENT_ADMIN_CHECKLIST_ITEM,
     "电商增长包 API smoke test 通过。",
     "电商增长包 Playwright happy path 通过。",
+    "商业视觉文档包 API smoke test 通过。",
+    "商业视觉文档包 Playwright happy path 通过。",
     *LOCAL_ALPHA_RELEASE_GATE_WORKFLOW_RUNTIME_CLOSED_ITEMS.keys(),
 }
 
@@ -2097,6 +2100,10 @@ WORKFLOW_RUNTIME_CLOSED_ITEMS = {
         "api_item",
         "playwright_item",
     },
+    "business_visual_doc_pack": {
+        "api_item",
+        "playwright_item",
+    },
 }
 
 LOCAL_ALPHA_E2E_WORKFLOW_EVIDENCE_REQUIREMENTS = {
@@ -2389,19 +2396,24 @@ def validate_local_alpha_workflow_runtime_evidence_file(
         require(assertions.get("safety_status") == "pass", f"{context} {path} must prove safety pass")
     elif evidence_kind == "playwright":
         steps = set(evidence.get("interaction_steps", []))
-        required_steps = {
-            "brief_confirmed",
-            "reference_uploaded",
-            "four_candidates_visible",
-            "candidate_selected",
-            "iteration_created",
-            "all_taxonomy_candidates_packaged",
-            "zip_export_created",
-            "download_handoff_completed",
+        required_step_groups = {
+            "brief": {"brief_confirmed"},
+            "reference": {"reference_uploaded", "source_notes_uploaded"},
+            "four_candidates": {"four_candidates_visible", "four_document_candidates_visible"},
+            "candidate_selected": {"candidate_selected"},
+            "iteration": {"iteration_created"},
+            "taxonomy_packaged": {"all_taxonomy_candidates_packaged", "all_document_taxonomy_candidates_packaged"},
+            "zip_export": {"zip_export_created"},
+            "download": {"download_handoff_completed"},
         }
+        missing_step_groups = [
+            group
+            for group, aliases in required_step_groups.items()
+            if steps.isdisjoint(aliases)
+        ]
         require(
-            required_steps <= steps,
-            f"{context} {path} Playwright evidence missing interaction steps: {sorted(required_steps - steps)}",
+            not missing_step_groups,
+            f"{context} {path} Playwright evidence missing interaction step groups: {missing_step_groups}",
         )
         export_ui = evidence.get("export_metadata_ui")
         require(isinstance(export_ui, dict), f"{context} {path} missing export metadata UI evidence")

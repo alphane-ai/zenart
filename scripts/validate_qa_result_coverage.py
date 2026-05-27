@@ -330,6 +330,13 @@ def validate_coverage_evidence_links(
     link_by_check = {item["check_id"]: item for item in links}
     require(len(link_by_check) == len(links), "coverage evidence links must not duplicate check_id")
     require(set(link_by_check) == set(qa_by_id), "coverage evidence links must cover every QA result check")
+    validate_source_artifact_resolution_contract(
+        contract,
+        qa_by_id,
+        eval_by_fixture,
+        trace_by_id,
+        workflows,
+    )
 
     links_by_workflow: dict[str, list[dict[str, Any]]] = {}
     linked_categories: dict[str, set[str]] = {}
@@ -391,6 +398,14 @@ def validate_coverage_evidence_links(
         require(link["source_artifacts"] == qa_item["evidence"]["source_artifacts"], f"{check_id} source artifact link mismatch")
         require(link["source_artifacts_present"] is True, f"{check_id} source artifacts must be present")
         require(bool(link["source_artifacts"]), f"{check_id} source artifact link must not be empty")
+        validate_source_artifacts_resolve(
+            check_id,
+            link["source_artifacts"],
+            qa_item,
+            result,
+            trace,
+            workflows[link["workflow_id"]],
+        )
         require(link["coverage_complete"] is True, f"{check_id} coverage evidence link must be complete")
         require(
             link["check_category"] in workflows[link["workflow_id"]]["required_qa_checks"],
@@ -432,6 +447,196 @@ def validate_coverage_evidence_links(
             {link["check_id"] for link in links_by_workflow[workflow_id]} == set(vertical_links[workflow_id]["qa_check_ids"]),
             f"{workflow_id} evidence links must match vertical acceptance QA checks",
         )
+
+
+def validate_source_artifact_resolution_contract(
+    contract: dict[str, Any],
+    qa_by_id: dict[str, dict[str, Any]],
+    eval_by_fixture: dict[str, dict[str, Any]],
+    trace_by_id: dict[str, dict[str, Any]],
+    workflows: dict[str, dict[str, Any]],
+) -> None:
+    resolution = contract["source_artifact_resolution"]
+    for flag in [
+        "requires_qa_evidence_match",
+        "requires_workflow_acceptance_match",
+        "requires_export_bundle_match",
+        "requires_generated_asset_match",
+        "requires_trace_export_links",
+        "requires_eval_gate_match",
+    ]:
+        require(resolution[flag] is True, f"source artifact resolution must set {flag}")
+
+    required_resolvers = {
+        "workflow_acceptance_fixture",
+        "workflow_export_target",
+        "workflow_generated_asset",
+        "eval_qa_export_gate",
+        "trace_export_reference",
+        "trace_artifact_link",
+        "qa_observed_field",
+        "qa_expected_field",
+        "qa_fixture_source_material",
+        "safety_decision_trace_event",
+    }
+    require(
+        set(resolution["logical_artifact_resolvers"]) == required_resolvers,
+        "source artifact resolution must declare every logical resolver",
+    )
+
+    for check_id, qa_item in qa_by_id.items():
+        fixture_id = qa_item["evidence"]["fixture_id"]
+        trace_id = qa_item["evidence"]["trace_id"]
+        require(fixture_id in eval_by_fixture, f"{check_id} source resolution references unknown eval fixture")
+        require(trace_id in trace_by_id, f"{check_id} source resolution references unknown trace")
+        require(qa_item["workflow"] in workflows, f"{check_id} source resolution references unknown workflow")
+        validate_source_artifacts_resolve(
+            check_id,
+            qa_item["evidence"]["source_artifacts"],
+            qa_item,
+            eval_by_fixture[fixture_id],
+            trace_by_id[trace_id],
+            workflows[qa_item["workflow"]],
+        )
+
+
+def validate_source_artifacts_resolve(
+    check_id: str,
+    source_artifacts: list[str],
+    qa_item: dict[str, Any],
+    eval_result: dict[str, Any],
+    trace: dict[str, Any],
+    workflow: dict[str, Any],
+) -> None:
+    workflow_id = qa_item["workflow"]
+    export_files = {
+        file_name
+        for target in workflow["export_targets"]
+        for file_name in target["required_files"]
+    }
+    generated_assets = {
+        f"assets/{asset['file_name']}"
+        for asset in workflow["required_generated_assets"]
+    }
+    observed_fields = set(qa_item["evidence"]["observed"])
+    expected_fields = set(qa_item["evidence"]["expected"])
+    trace_steps = {event["step_name"]: event for event in trace["step_events"]}
+
+    require(trace["fixture_id"] == eval_result["fixture_id"], f"{check_id} source resolution trace fixture mismatch")
+    require(trace["workflow"] == workflow_id, f"{check_id} source resolution trace workflow mismatch")
+    require(eval_result["workflow"] == workflow_id, f"{check_id} source resolution eval workflow mismatch")
+
+    for artifact in source_artifacts:
+        require(
+            source_artifact_resolves(
+                artifact,
+                workflow_id,
+                export_files,
+                generated_assets,
+                observed_fields,
+                expected_fields,
+                qa_item,
+                eval_result,
+                trace,
+                trace_steps,
+            ),
+            f"{check_id} source artifact {artifact} does not resolve through workflow/eval/trace/QA evidence",
+        )
+
+
+def source_artifact_resolves(
+    artifact: str,
+    workflow_id: str,
+    export_files: set[str],
+    generated_assets: set[str],
+    observed_fields: set[str],
+    expected_fields: set[str],
+    qa_item: dict[str, Any],
+    eval_result: dict[str, Any],
+    trace: dict[str, Any],
+    trace_steps: dict[str, dict[str, Any]],
+) -> bool:
+    if artifact == f"workflow_acceptance.{workflow_id}.json":
+        return True
+    if artifact in export_files:
+        return True
+    if artifact in generated_assets:
+        return True
+    if artifact == "export.zip":
+        return "export_completeness" in eval_result["qa_coverage_contract"]["observed_qa_categories"]
+    if artifact == "manifest.json":
+        return (
+            eval_result["export_contract"]["manifest"] is True
+            and trace["export_references"]["manifest"] is True
+            and trace["artifact_links"]["manifest_linked"] is True
+        )
+    if artifact == "metadata.json":
+        return eval_result["export_contract"]["metadata"] is True
+    if artifact == "qa_report.json":
+        return (
+            eval_result["export_contract"]["qa_report"] is True
+            and trace["export_references"]["qa_report"] is True
+            and trace["artifact_links"]["qa_report_linked"] is True
+        )
+    if artifact == "trace_provenance.json":
+        return (
+            eval_result["export_contract"]["trace_provenance"] is True
+            and trace["export_references"]["trace_provenance"] is True
+            and trace["artifact_links"]["trace_provenance_linked"] is True
+        )
+    if artifact == "safety_decision.json":
+        return all(
+            step in trace_steps
+            and trace_steps[step]["safety_decision_ref"]["decision_id"]
+            and trace_steps[step]["safety_decision_ref"]["table"] == "safety_decisions"
+            for step in REQUIRED_TRACE_STEPS
+        )
+    if artifact == "object_metadata.checksum":
+        return "checksum_sha256" in observed_fields and "checksum_sha256" in expected_fields
+    if artifact == "decoder.probe.json":
+        return "decoder_status" in observed_fields and "decoder_status" in expected_fields
+    if artifact == "candidate_asset.metadata":
+        return bool({"width_px", "height_px", "export_target"} & observed_fields)
+    if artifact == "candidate_asset.layout.json":
+        return bool({"cta_bottom_margin_px", "safe_area_bottom_min_px", "overlaps_platform_ui"} & observed_fields)
+    if artifact == "candidate_asset.ocr.json":
+        return bool({"ocr_confidence", "claim_text", "price", "date", "phone", "address"} & observed_fields)
+    if artifact == "candidate_asset.preview.png":
+        return bool(generated_assets) and "qa" in trace_steps and bool(trace["artifact_links"]["asset_ids"])
+    if artifact.endswith("_candidate_set.json"):
+        return bool({"candidate_pair", "strategic_options", "taxonomy_coverage"} & observed_fields)
+    if artifact == "brief.inputs":
+        return "brief" in trace_steps and bool(observed_fields & expected_fields)
+    if artifact.startswith("fixtures/assets/"):
+        if any(value == artifact for value in qa_evidence_string_values(qa_item)):
+            return True
+        if qa_item["check_category"] == "file_integrity":
+            return artifact.endswith(".png") and "checksum_sha256" in observed_fields and "decoder_status" in observed_fields
+        if qa_item["check_category"] == "product_logo_preservation":
+            return artifact.endswith((".svg", ".png")) and {
+                "logo_similarity",
+                "product_shape_similarity",
+                "unauthorized_color_change",
+            } <= observed_fields
+    return False
+
+
+def qa_evidence_string_values(qa_item: dict[str, Any]) -> set[str]:
+    values: set[str] = set()
+    stack: list[Any] = [
+        qa_item["evidence"]["observed"],
+        qa_item["evidence"]["expected"],
+        qa_item["admin_reason"],
+    ]
+    while stack:
+        value = stack.pop()
+        if isinstance(value, str):
+            values.add(value)
+        elif isinstance(value, dict):
+            stack.extend(value.values())
+        elif isinstance(value, list):
+            stack.extend(value)
+    return values
 
 
 def validate_outcome_example(

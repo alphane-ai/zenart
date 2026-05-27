@@ -134,6 +134,10 @@ WORKFLOW_RUNTIME_CLOSED_ITEMS = {
         "api",
         "playwright",
     },
+    "business_visual_doc_pack": {
+        "api",
+        "playwright",
+    },
 }
 
 WORKFLOW_RUNTIME_EVIDENCE_KIND = {
@@ -452,14 +456,26 @@ def validate_blueprint_split(workflows: dict[str, dict[str, Any]]) -> None:
                 require(items[item_key] in unchecked, f"{workflow_id} {label} checklist item must remain open")
                 require(items[item_key] not in checked, f"{workflow_id} {label} must not be checked without runtime evidence")
         workflow = workflows[workflow_id]
-        require(
-            workflow["api_smoke_contract"]["blueprint_checklist_remains_open"] is True,
-            f"{workflow_id} API smoke contract must keep runtime checklist open",
-        )
-        require(
-            workflow["playwright_happy_path_contract"]["blueprint_checklist_remains_open"] is True,
-            f"{workflow_id} Playwright contract must keep runtime checklist open",
-        )
+        if "api" in closed_items:
+            require(
+                workflow["api_smoke_contract"]["execution_status"] == "not_executed",
+                f"{workflow_id} API smoke fixture contract must remain a fixture plan even after runtime evidence closes the checklist",
+            )
+        else:
+            require(
+                workflow["api_smoke_contract"]["blueprint_checklist_remains_open"] is True,
+                f"{workflow_id} API smoke contract must keep runtime checklist open",
+            )
+        if "playwright" in closed_items:
+            require(
+                workflow["playwright_happy_path_contract"]["execution_status"] == "not_executed",
+                f"{workflow_id} Playwright fixture contract must remain a fixture plan even after runtime evidence closes the checklist",
+            )
+        else:
+            require(
+                workflow["playwright_happy_path_contract"]["blueprint_checklist_remains_open"] is True,
+                f"{workflow_id} Playwright contract must keep runtime checklist open",
+            )
 
 
 def validate_openapi_operations(workflows: dict[str, dict[str, Any]]) -> None:

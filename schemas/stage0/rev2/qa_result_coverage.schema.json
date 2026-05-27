@@ -17,6 +17,7 @@
     "outcome_examples",
     "category_outcome_examples",
     "coverage_evidence_links",
+    "source_artifact_resolution",
     "eval_result_link",
     "export_gate_policy",
     "provenance"
@@ -444,6 +445,58 @@
         },
         "requires_trace_contract_match": {
           "const": true
+        }
+      }
+    },
+    "source_artifact_resolution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "requires_qa_evidence_match",
+        "requires_workflow_acceptance_match",
+        "requires_export_bundle_match",
+        "requires_generated_asset_match",
+        "requires_trace_export_links",
+        "requires_eval_gate_match",
+        "logical_artifact_resolvers"
+      ],
+      "properties": {
+        "requires_qa_evidence_match": {
+          "const": true
+        },
+        "requires_workflow_acceptance_match": {
+          "const": true
+        },
+        "requires_export_bundle_match": {
+          "const": true
+        },
+        "requires_generated_asset_match": {
+          "const": true
+        },
+        "requires_trace_export_links": {
+          "const": true
+        },
+        "requires_eval_gate_match": {
+          "const": true
+        },
+        "logical_artifact_resolvers": {
+          "type": "array",
+          "minItems": 8,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "workflow_acceptance_fixture",
+              "workflow_export_target",
+              "workflow_generated_asset",
+              "eval_qa_export_gate",
+              "trace_export_reference",
+              "trace_artifact_link",
+              "qa_observed_field",
+              "qa_expected_field",
+              "qa_fixture_source_material",
+              "safety_decision_trace_event"
+            ]
+          }
         }
       }
     },

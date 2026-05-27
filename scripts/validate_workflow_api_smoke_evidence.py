@@ -33,6 +33,7 @@ WORKFLOW_CHECKLIST_ITEMS = {
 }
 WORKFLOW_RUNTIME_CLOSED_ITEMS = {
     "ecommerce_growth_pack",
+    "business_visual_doc_pack",
 }
 RUNTIME_OPERATION_ORDER = [
     "createChatSession",
