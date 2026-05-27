@@ -156,5 +156,21 @@
       "data-workflow-api-smoke-missing-output-count",
       "data-render-interaction-steps"
     ]
+  },
+  "browserEvidence": {
+    "scope": "user-web-local-dev-client-browser",
+    "config": "web/playwright.config.ts",
+    "test": "web/tests/ecommerce-growth.spec.ts",
+    "script": "npm run smoke:ecommerce-growth-playwright",
+    "doesNotCloseChecklistGates": true,
+    "requiredAssertions": [
+      "ecommerce growth pack user-web happy path exposes API, render, export, and download evidence",
+      "data-workflow-api-smoke-status",
+      "data-workflow-api-smoke-packaged-taxonomy-count",
+      "data-rendering-smoke='stage0.rev2.workspace-rendering-performance'",
+      "data-package-export-metadata-ui='stage0.rev2.package-export-metadata-ui'",
+      "data-export-download-parity-status",
+      "download.suggestedFilename()"
+    ]
   }
 }

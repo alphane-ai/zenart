@@ -10,6 +10,8 @@ const ecommerceGrowthWebSmokePath = path.join(root, "validation", "ecommerce-gro
 const appDir = path.join(root, "app");
 const componentPath = path.join(root, "components", "workspace-app.tsx");
 const workspaceSmokeTestPath = path.join(root, "components", "workspace-app.smoke.test.tsx");
+const playwrightConfigPath = path.join(root, "playwright.config.ts");
+const ecommercePlaywrightSpecPath = path.join(root, "tests", "ecommerce-growth.spec.ts");
 const layoutPath = path.join(root, "app", "layout.tsx");
 const legalPoliciesPath = path.join(root, "lib", "legal-policies.ts");
 const telemetryPath = path.join(root, "lib", "telemetry.ts");
@@ -25,6 +27,8 @@ const fail = (message) => {
 const artifact = JSON.parse(await readFile(artifactPath, "utf8"));
 const componentSource = await readFile(componentPath, "utf8");
 const workspaceSmokeTestSource = await readFile(workspaceSmokeTestPath, "utf8");
+const playwrightConfigSource = await readFile(playwrightConfigPath, "utf8");
+const ecommercePlaywrightSpecSource = await readFile(ecommercePlaywrightSpecPath, "utf8");
 const layoutSource = await readFile(layoutPath, "utf8");
 const legalPoliciesSource = await readFile(legalPoliciesPath, "utf8");
 const telemetrySource = await readFile(telemetryPath, "utf8");
@@ -162,6 +166,27 @@ for (const attribute of ecommerceGrowthWebSmoke.uiEvidence?.requiredAttributes ?
 for (const snippet of ecommerceGrowthWebSmoke.uiEvidence?.requiredTestSnippets ?? []) {
   if (!workspaceSmokeTestSource.includes(snippet)) {
     fail(`ecommerce growth web smoke test missing ${snippet}`);
+  }
+}
+
+if (ecommerceGrowthWebSmoke.browserEvidence?.doesNotCloseChecklistGates !== true) {
+  fail("ecommerce growth browser smoke evidence must keep running-stack checklist gates open");
+}
+
+for (const snippet of ecommerceGrowthWebSmoke.browserEvidence?.requiredAssertions ?? []) {
+  if (!ecommercePlaywrightSpecSource.includes(snippet)) {
+    fail(`ecommerce growth browser smoke spec missing ${snippet}`);
+  }
+}
+
+for (const expectedPlaywrightConfigSnippet of [
+  "defineConfig",
+  "webServer",
+  "npm run dev -- --hostname 127.0.0.1",
+  "channel: process.env.PLAYWRIGHT_BROWSER_CHANNEL ?? \"chrome\""
+]) {
+  if (!playwrightConfigSource.includes(expectedPlaywrightConfigSnippet)) {
+    fail(`ecommerce growth browser smoke config missing ${expectedPlaywrightConfigSnippet}`);
   }
 }
 

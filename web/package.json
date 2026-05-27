@@ -8,6 +8,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "build": "next build",
+    "smoke:ecommerce-growth-playwright": "playwright test tests/ecommerce-growth.spec.ts",
     "smoke:security-contracts": "node scripts/smoke-security-contracts.mjs",
     "smoke:user-routes": "node scripts/smoke-user-routes.mjs"
   },
@@ -22,6 +23,7 @@
     "postcss": "^8.5.15"
   },
   "devDependencies": {
+    "@playwright/test": "^1.60.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.0",
     "@types/node": "^20.19.25",
