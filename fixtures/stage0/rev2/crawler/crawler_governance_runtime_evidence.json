@@ -224,6 +224,8 @@
         "fixtures/stage0/rev2/regressions/crawler_takedown_sup_2212.json",
         "fixtures/stage0/rev2/regressions/failed_task_cancel_task_crawler_019.json"
       ],
+      "regression_fixture_inventory_status": "declared",
+      "regression_fixture_gate": "pass",
       "release_evidence_disposition": "preserve_blocker",
       "blocker_codes": [
         "activation_blocked",
@@ -271,6 +273,8 @@
       "regression_fixture_refs": [
         "fixtures/stage0/rev2/regressions/crawler_derivative_review_cg_522.json"
       ],
+      "regression_fixture_inventory_status": "declared",
+      "regression_fixture_gate": "pass",
       "release_evidence_disposition": "can_cite_release_evidence",
       "blocker_codes": [],
       "audit_ref": "au-013"
@@ -311,6 +315,8 @@
       "regression_fixture_refs": [
         "fixtures/stage0/rev2/regressions/failed_task_cancel_task_crawler_019.json"
       ],
+      "regression_fixture_inventory_status": "declared",
+      "regression_fixture_gate": "pass",
       "release_evidence_disposition": "preserve_blocker",
       "blocker_codes": [
         "activation_blocked",

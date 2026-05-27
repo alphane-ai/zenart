@@ -8125,7 +8125,9 @@ test("crawler admin action contracts bind mutations to governance runtime gates"
   assert.equal(takedownEvidence.release_evidence_disposition, takedownContract.releaseEvidenceDisposition);
   assert.deepEqual(takedownEvidence.regression_fixture_refs, takedownContract.regressionFixtureRefs);
   assert.equal(takedownContract.regressionFixtureInventoryStatus, "declared");
+  assert.equal(takedownEvidence.regression_fixture_inventory_status, takedownContract.regressionFixtureInventoryStatus);
   assert.equal(takedownContract.regressionFixtureGate, "pass");
+  assert.equal(takedownEvidence.regression_fixture_gate, takedownContract.regressionFixtureGate);
   assert.ok(
     takedownContract.regressionFixtureRefs.includes("fixtures/stage0/rev2/regressions/crawler_takedown_sup_2212.json"),
     "takedown action contract must cite the crawler takedown regression fixture"
@@ -8184,7 +8186,9 @@ test("crawler admin action contracts bind mutations to governance runtime gates"
     "fixtures/stage0/rev2/regressions/crawler_derivative_review_cg_522.json"
   ]);
   assert.equal(derivativeContract.regressionFixtureInventoryStatus, "declared");
+  assert.equal(derivativeEvidence.regression_fixture_inventory_status, derivativeContract.regressionFixtureInventoryStatus);
   assert.equal(derivativeContract.regressionFixtureGate, "pass");
+  assert.equal(derivativeEvidence.regression_fixture_gate, derivativeContract.regressionFixtureGate);
   assert.deepEqual(derivativeEvidence.blocker_codes, []);
   assert.match(
     derivativeContract.supportVisibleMessage,
@@ -8214,7 +8218,9 @@ test("crawler admin action contracts bind mutations to governance runtime gates"
   assert.equal(retentionEvidence.request_audit_order, retentionContract.requestAuditOrder);
   assert.deepEqual(retentionEvidence.request_evidence_refs, retentionContract.requestEvidenceRefs);
   assert.equal(retentionContract.regressionFixtureInventoryStatus, "declared");
+  assert.equal(retentionEvidence.regression_fixture_inventory_status, retentionContract.regressionFixtureInventoryStatus);
   assert.equal(retentionContract.regressionFixtureGate, "pass");
+  assert.equal(retentionEvidence.regression_fixture_gate, retentionContract.regressionFixtureGate);
   assert.deepEqual(retentionEvidence.blocker_codes, retentionContract.blockerCodes);
 
   for (const contract of contracts) {
@@ -8242,6 +8248,16 @@ test("crawler admin action contracts bind mutations to governance runtime gates"
     assert.equal(evidence.request_state_digest, contract.requestStateDigest, `${contract.workflowId} durable evidence preserves request state digest`);
     assert.equal(evidence.request_audit_order, "validate_session_then_digest_then_audit_then_mutation", `${contract.workflowId} durable evidence preserves audit order`);
     assert.deepEqual(evidence.request_evidence_refs, contract.requestEvidenceRefs, `${contract.workflowId} durable evidence preserves request evidence refs`);
+    assert.equal(
+      evidence.regression_fixture_inventory_status,
+      contract.regressionFixtureInventoryStatus,
+      `${contract.workflowId} durable evidence preserves regression fixture inventory status`
+    );
+    assert.equal(
+      evidence.regression_fixture_gate,
+      contract.regressionFixtureGate,
+      `${contract.workflowId} durable evidence preserves regression fixture gate`
+    );
     assert.ok(contract.requestEvidenceRefs.includes(contract.requestAttemptRef), `${contract.workflowId} request evidence includes attempt ref`);
     assert.ok(contract.requestEvidenceRefs.includes(contract.idempotencyKey), `${contract.workflowId} request evidence includes idempotency key`);
     assert.ok(contract.requestEvidenceRefs.includes(contract.requestStateDigest), `${contract.workflowId} request evidence includes state digest`);
