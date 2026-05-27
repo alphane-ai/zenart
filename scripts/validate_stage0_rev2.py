@@ -2884,6 +2884,22 @@ def split_checklist_requirement_for_path(
     return None, None
 
 
+def split_checklist_items_for_path(
+    gate: str,
+    check_id: str,
+    path: Path,
+) -> list[tuple[str, dict[str, Any]]]:
+    return [
+        (item, requirement)
+        for item, requirement in SPLIT_CHECKLIST_ITEM_EVIDENCE.items()
+        if (
+            requirement["gate"] == gate
+            and requirement["check_id"] == check_id
+            and requirement["path"] == path
+        )
+    ]
+
+
 def split_runtime_evidence_is_passable(path: Path, requirement: dict[str, Any]) -> bool:
     if not path.is_file():
         return False
@@ -2905,6 +2921,101 @@ def split_runtime_evidence_is_passable(path: Path, requirement: dict[str, Any]) 
         return False
     combined = json.dumps(evidence, ensure_ascii=False).lower()
     return all(token in combined for token in requirement["tokens"])
+
+
+def split_release_check_may_remain_blocked_after_exact_evidence(
+    gate: str,
+    check_id: str,
+    evidence_by_gate: dict[str, dict[str, Any]],
+) -> bool:
+    if (gate, check_id) != ("production_launch", "production_backup_rollback_incident"):
+        return False
+    return not (
+        gate_allows_checklist_completion(evidence_by_gate["ci"])
+        and gate_allows_checklist_completion(evidence_by_gate["private_beta_staging"])
+    )
+
+
+def validate_split_release_check_state(
+    evidence_by_gate: dict[str, dict[str, Any]],
+    checked_lines: set[str],
+    unchecked_lines: set[str],
+) -> None:
+    for (gate, check_id), requirement in RUNTIME_SPLIT_PASS_REQUIREMENTS.items():
+        gate_evidence = evidence_by_gate[gate]
+        check = checks_by_id(gate_evidence)[check_id]
+        subitem_states: dict[str, dict[str, Any]] = {}
+        for subitem_id, path in requirement["subitems"].items():
+            checklist_requirements = split_checklist_items_for_path(gate, check_id, path)
+            require(
+                checklist_requirements,
+                f"{gate}.{check_id} split evidence {rel(path)} has no validator-owned checklist row",
+            )
+            passable_by_any_row = any(
+                split_runtime_evidence_is_passable(path, checklist_requirement)
+                for _, checklist_requirement in checklist_requirements
+            )
+            checked_rows = [
+                item
+                for item, _ in checklist_requirements
+                if item in checked_lines
+            ]
+            unchecked_rows = [
+                item
+                for item, _ in checklist_requirements
+                if item in unchecked_lines
+            ]
+            unknown_rows = [
+                item
+                for item, _ in checklist_requirements
+                if item not in checked_lines and item not in unchecked_lines
+            ]
+            require(
+                not unknown_rows,
+                f"{gate}.{check_id} split evidence checklist row is missing from blueprint: {unknown_rows}",
+            )
+            subitem_states[subitem_id] = {
+                "path": rel(path),
+                "passable": passable_by_any_row,
+                "checked_rows": checked_rows,
+                "unchecked_rows": unchecked_rows,
+            }
+
+        all_split_files_passable = all(state["passable"] for state in subitem_states.values())
+        all_owned_rows_checked = all(state["checked_rows"] for state in subitem_states.values())
+
+        if check["status"] == "pass":
+            failing_subitems = {
+                subitem_id: state
+                for subitem_id, state in subitem_states.items()
+                if not state["passable"]
+            }
+            require(
+                not failing_subitems,
+                f"{gate}.{check_id} cannot pass before every exact split evidence file is passable: "
+                + json.dumps(failing_subitems, ensure_ascii=False, sort_keys=True),
+            )
+            open_rows = {
+                subitem_id: state["unchecked_rows"]
+                for subitem_id, state in subitem_states.items()
+                if state["unchecked_rows"]
+            }
+            require(
+                not open_rows,
+                f"{gate}.{check_id} cannot pass while exact split checklist rows remain open: "
+                + json.dumps(open_rows, ensure_ascii=False, sort_keys=True),
+            )
+        else:
+            if all_split_files_passable and all_owned_rows_checked:
+                require(
+                    split_release_check_may_remain_blocked_after_exact_evidence(
+                        gate,
+                        check_id,
+                        evidence_by_gate,
+                    ),
+                    f"{gate}.{check_id} remains {check['status']} even though all exact split evidence files "
+                    "are passable and their checklist rows are closed",
+                )
 
 
 def require_split_runtime_blocked_evidence(evidence_ref: str, gate: str, check_id: str) -> None:
@@ -6718,6 +6829,11 @@ def validate_release_gate_evidence() -> None:
         blueprint_checked,
         blueprint_unchecked,
     )
+    validate_split_release_check_state(
+        evidence,
+        blueprint_checked,
+        blueprint_unchecked,
+    )
     validate_release_gate_checklist_decision_alignment(
         evidence,
         blueprint_checked,
@@ -7028,6 +7144,11 @@ def validate_blueprint_checklist() -> None:
         unchecked_lines,
     )
     validate_split_checklist_item_evidence(
+        checked_lines,
+        unchecked_lines,
+    )
+    validate_split_release_check_state(
+        evidence,
         checked_lines,
         unchecked_lines,
     )
@@ -8081,6 +8202,9 @@ def validate_launch_readiness_split_contracts() -> None:
         "Existing half-split evidence can only close its own concrete subitem",
         "the combined check remains blocked until every required split file exists",
         "Checked split evidence checklist rows require their validator-owned exact file to exist",
+        "A combined split release-gate check cannot pass while any exact split evidence file is missing/non-passable",
+        "A combined split release-gate check cannot remain blocked after every exact split evidence file is passable",
+        "except Production backup/rollback/post-deploy",
         "Checked partial split rows may preserve the combined release-gate blocker only when the row is explicitly partial",
         "remaining_blockers` must exactly match the current blocked/failing check IDs",
         "Do-Not-Launch Conditions 全部为 false。` remains open while any release-gate evidence fixture has `is_present: true`",
