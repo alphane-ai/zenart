@@ -2391,6 +2391,7 @@ export const stagingAuthRbacTenantAuditEvidence: StagingAuthRbacTenantAuditEvide
     "rbac-crawler-001",
     "rbac-prompt-001",
     "rbac-provider-001",
+    "rbac-provider-002",
     "rbac-quota-001",
     "rbac-safety-001",
     "rbac-export-001"
@@ -2439,11 +2440,11 @@ export const stagingAuthRbacTenantAuditEvidence: StagingAuthRbacTenantAuditEvide
       area: "admin_rbac_runtime",
       status: "pass",
       runtimeProbe:
-        "Runtime replay covered release, crawler, prompt, provider, quota, safety, and export override attempts, proving allowed mutations expire, insufficient roles are denied, and second-review mutations queue without applying.",
+        "Runtime replay covered release, crawler, prompt, active provider, expired provider, quota, safety, and export override attempts, proving allowed mutations expire, stale temporary overrides deny, insufficient roles are denied, and second-review mutations queue without applying.",
       externalUserEvidence:
         "No external-user session could trigger governed admin mutations; admin_operator, admin_reviewer, and support_operator attempts matched the effective RBAC decisions shown in the admin audit console.",
       rbacAuditEvidence:
-        "RBAC runtime decisions preserved required role, attempted role, effective decision, mutation outcome, release gate status, evidence refs, and audit refs for all governed override surfaces.",
+        "RBAC runtime decisions preserved required role, attempted role, effective decision, mutation outcome, release gate status, evidence refs, and audit refs for all governed override records, including the expired rbac-provider-002 denial.",
       linkedAdminArtifacts: ["admin/lib/rbac-runtime.ts", "admin/app/audit/page.tsx", "admin/tests/admin-governance.test.mjs"],
       evidenceRefs: [
         "ops/evidence/staging/20260527T1515Z-auth-rbac-tenant-audit.json",
@@ -2451,6 +2452,7 @@ export const stagingAuthRbacTenantAuditEvidence: StagingAuthRbacTenantAuditEvide
         "rbac-crawler-001",
         "rbac-prompt-001",
         "rbac-provider-001",
+        "rbac-provider-002",
         "rbac-quota-001",
         "rbac-safety-001",
         "rbac-export-001",
@@ -3010,7 +3012,7 @@ export const productionActivationReviewAuditEvidence: ProductionActivationReview
       deploymentEvidence:
         "The production gate fixture cites this production evidence path on the activation review audit check, clears only activation and high-risk admin review do-not-launch conditions, and preserves unrelated production blockers.",
       rbacAuditEvidence:
-        "Gate preservation links all seven admin RBAC evidence records, admin review decisions rv-100 through rv-102, and immutable audits au-001, au-004, au-005, au-006, au-007, au-008, and au-012 without implying production launch readiness.",
+        "Gate preservation links all eight admin RBAC evidence records, admin review decisions rv-100 through rv-102, and immutable audits au-001, au-004, au-005, au-006, au-007, au-008, and au-012 without implying production launch readiness.",
       linkedAdminArtifacts: [
         "admin/app/audit/page.tsx",
         "admin/lib/rbac-runtime.ts",
@@ -3022,6 +3024,7 @@ export const productionActivationReviewAuditEvidence: ProductionActivationReview
         "rbac-crawler-001",
         "rbac-prompt-001",
         "rbac-provider-001",
+        "rbac-provider-002",
         "rbac-quota-001",
         "rbac-safety-001",
         "rbac-export-001",

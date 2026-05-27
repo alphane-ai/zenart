@@ -1042,6 +1042,11 @@ test("staging auth rbac tenant audit evidence clears only its private beta check
     "evidence file and admin fixture RBAC ids must match"
   );
   assert.deepEqual(
+    stagingAuthRbacTenantAuditEvidence.adminRbacEvidenceIds.toSorted(),
+    adminRbacEvidence.map((item) => item.id).toSorted(),
+    "staging auth/RBAC evidence must consume every admin RBAC override record, including expired temporary overrides"
+  );
+  assert.deepEqual(
     [...new Set(evidenceFile.admin_rbac_evidence_ids)].sort(),
     evidenceFile.admin_rbac_evidence_ids.toSorted(),
     "staging auth/RBAC evidence file cannot cite duplicate RBAC rows"
@@ -1065,6 +1070,19 @@ test("staging auth rbac tenant audit evidence clears only its private beta check
   ]);
   const rbacIds = new Set(adminRbacEvidence.map((item) => item.id));
   const fileCoverageByArea = new Map(evidenceFile.coverage.map((coverage) => [coverage.area, coverage]));
+  const runtimeCoverage = stagingAuthRbacTenantAuditEvidence.coverage.find(
+    (coverage) => coverage.area === "admin_rbac_runtime"
+  );
+  assert.ok(runtimeCoverage, "staging auth/RBAC evidence needs admin RBAC runtime coverage");
+  assert.ok(
+    runtimeCoverage.evidenceRefs.includes("rbac-provider-002"),
+    "staging admin RBAC runtime evidence must cite expired provider override evidence"
+  );
+  assert.match(
+    runtimeCoverage.runtimeProbe,
+    /expired provider|stale temporary overrides deny/,
+    "staging admin RBAC runtime probe must prove expired temporary provider overrides deny"
+  );
 
   for (const coverage of stagingAuthRbacTenantAuditEvidence.coverage) {
     requiredAreas.delete(coverage.area);
