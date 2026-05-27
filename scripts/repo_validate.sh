@@ -878,12 +878,13 @@ class Handler(SimpleHTTPRequestHandler):
     def do_GET(self):
         parsed = urlparse(self.path)
         if parsed.path == "/api/admin/v1/audit":
-            self._json({
-                "audit_refs": [
-                    {"audit_id": "au-007", "kind": "object_retention_cleanup", "actor_id": "admin-ops", "tenant_id": "tenant-alpha"},
-                    {"audit_id": "au-015", "kind": "export.cleanup.preview", "actor_id": "admin-ops", "tenant_id": "tenant-alpha"},
-                ]
-            })
+            audit_refs = [
+                {"audit_id": "au-007", "kind": "object_retention_cleanup", "actor_id": "admin-ops", "tenant_id": "tenant-alpha"},
+                {"audit_id": "au-015", "kind": "export.cleanup.preview", "actor_id": "admin-ops", "tenant_id": "tenant-alpha"},
+            ]
+            if self.server.omit_orphan_audit_ref:
+                audit_refs = audit_refs[:1]
+            self._json({"audit_refs": audit_refs})
             return
         super().do_GET()
 
@@ -896,7 +897,9 @@ class Handler(SimpleHTTPRequestHandler):
         self.wfile.write(body)
 
 port = int(sys.argv[2])
-ThreadingHTTPServer(("127.0.0.1", port), Handler).serve_forever()
+server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
+server.omit_orphan_audit_ref = len(sys.argv) > 3 and sys.argv[3] == "omit-orphan-audit-ref"
+server.serve_forever()
 PY
 object_retention_port="$(python3 - <<'PY'
 import socket
@@ -956,6 +959,13 @@ if split.get("canonical_pass_paths") is not False:
     raise SystemExit("alias fixture must not claim canonical pass paths")
 if split.get("release_sha_matches_signed_url") is not True:
     raise SystemExit("alias fixture must bind to the signed URL release SHA")
+audit_linkage = report.get("audit_linkage", {})
+if audit_linkage.get("verified") is not True:
+    raise SystemExit(f"alias fixture must verify cleanup audit refs through audit endpoint: {audit_linkage}")
+if audit_linkage.get("cleanup_audit_refs") != ["au-007", "au-015"]:
+    raise SystemExit(f"alias fixture cleanup audit refs mismatch: {audit_linkage}")
+if audit_linkage.get("missing_cleanup_audit_refs") != []:
+    raise SystemExit(f"alias fixture must not miss cleanup audit refs: {audit_linkage}")
 if report.get("gate_impact", {}).get("can_clear_release_gate_check") is not False:
     raise SystemExit("alias fixture must not clear object-storage release gate from non-canonical paths")
 if {row.get("status") for row in rows} != {"passed"}:
@@ -967,6 +977,66 @@ for row in rows:
         raise SystemExit(f"alias fixture must verify request-id echo: {row}")
     if not row.get("matched_tokens"):
         raise SystemExit(f"alias fixture must record matched semantic tokens: {row}")
+PY
+object_retention_audit_port="$(python3 - <<'PY'
+import socket
+
+with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+    sock.bind(("127.0.0.1", 0))
+    print(sock.getsockname()[1])
+PY
+)"
+python3 "$object_retention_pass_dir/server.py" "$object_retention_web_dir" "$object_retention_audit_port" omit-orphan-audit-ref >"$object_retention_pass_dir/server.audit-mismatch.log" 2>&1 &
+object_retention_audit_server_pid=$!
+for _ in $(seq 1 50); do
+  if curl --silent --show-error --max-time 1 "http://127.0.0.1:$object_retention_audit_port/api/admin/v1/object-storage/retention-policy/" >/dev/null 2>&1; then
+    break
+  fi
+  sleep 0.1
+done
+if ! curl --silent --show-error --max-time 1 "http://127.0.0.1:$object_retention_audit_port/api/admin/v1/object-storage/retention-policy/" >/dev/null 2>&1; then
+  kill "$object_retention_audit_server_pid" 2>/dev/null || true
+  printf 'failed to start local object-retention audit mismatch fixture server\n' >&2
+  cat "$object_retention_pass_dir/server.audit-mismatch.log" >&2 || true
+  exit 1
+fi
+set +e
+RUN_ID="stage0-validate-object-retention-audit-mismatch" \
+  OUT_DIR="$object_retention_pass_dir/audit-mismatch-out" \
+  BASE_URL="http://127.0.0.1:$object_retention_audit_port" \
+  RELEASE_SHA="d3b1107c33dc40b8936f28549e06553fbd7b104a" \
+  ADMIN_BEARER_TOKEN="stage0-local-fixture" \
+  SMOKE_ADMIN_USER_ID="admin-ops" \
+  SMOKE_ADMIN_TENANT_ID="tenant-alpha" \
+  scripts/staging_object_storage_retention_cleanup_smoke.sh >/dev/null
+object_retention_audit_status=$?
+set -e
+kill "$object_retention_audit_server_pid" 2>/dev/null || true
+if [[ "$object_retention_audit_status" -ne 2 ]]; then
+  printf 'object-retention audit mismatch fixture must exit 2, got %s\n' "$object_retention_audit_status" >&2
+  exit 1
+fi
+python3 - "$object_retention_pass_dir/audit-mismatch-out/object-storage-retention-cleanup.json" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+report = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+if report.get("status") != "blocked":
+    raise SystemExit("audit mismatch fixture must remain blocked")
+if "audit_refs:missing_cleanup_audit_refs:au-015" not in report.get("blocked_checks", []):
+    raise SystemExit(f"audit mismatch fixture must block on missing cleanup audit ref: {report.get('blocked_checks')}")
+audit_linkage = report.get("audit_linkage", {})
+if audit_linkage.get("verified") is not False:
+    raise SystemExit(f"audit mismatch fixture must not verify audit linkage: {audit_linkage}")
+if audit_linkage.get("cleanup_audit_refs") != ["au-007", "au-015"]:
+    raise SystemExit(f"audit mismatch fixture cleanup audit refs mismatch: {audit_linkage}")
+if audit_linkage.get("audit_endpoint_refs") != ["au-007"]:
+    raise SystemExit(f"audit mismatch fixture endpoint refs mismatch: {audit_linkage}")
+if audit_linkage.get("missing_cleanup_audit_refs") != ["au-015"]:
+    raise SystemExit(f"audit mismatch fixture missing refs mismatch: {audit_linkage}")
+if report.get("split_evidence", {}).get("retention_cleanup_runtime_ready") is not False:
+    raise SystemExit("audit mismatch fixture must not mark retention cleanup runtime ready")
 PY
 set +e
 RUN_ID="stage0-validate-legal-support-visibility" DRY_RUN=1 OUT_DIR="$ops_validate_dir/legal-support" scripts/staging_legal_support_visibility_smoke.sh >/dev/null

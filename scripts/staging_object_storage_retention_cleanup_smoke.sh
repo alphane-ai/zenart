@@ -315,6 +315,64 @@ blocked_or_failed.extend(empty_response_blockers)
 blocked_or_failed.extend(request_id_blockers)
 blocked_or_failed.extend(request_id_echo_blockers)
 blocked_or_failed.extend(shape_blockers)
+def load_result_body(item):
+    body_path = item.get("body_path")
+    if not body_path:
+        return None
+    path = Path(str(body_path))
+    if not path.exists() or not path.is_file():
+        return None
+    try:
+        return json.loads(path.read_text(encoding="utf-8", errors="replace"))
+    except json.JSONDecodeError:
+        return None
+
+
+def collect_audit_refs(value):
+    refs = set()
+    if isinstance(value, dict):
+        for key, nested in value.items():
+            normalized_key = str(key).lower()
+            if normalized_key in {"audit_id", "audit_ref", "audit_reference", "id"} and isinstance(nested, str):
+                refs.add(nested)
+            elif normalized_key in {"audit_refs", "audit_references", "audit_ids"}:
+                if isinstance(nested, list):
+                    for item in nested:
+                        if isinstance(item, str):
+                            refs.add(item)
+                        elif isinstance(item, dict):
+                            refs.update(collect_audit_refs(item))
+                elif isinstance(nested, str):
+                    refs.add(nested)
+                elif isinstance(nested, dict):
+                    refs.update(collect_audit_refs(nested))
+            refs.update(collect_audit_refs(nested))
+    elif isinstance(value, list):
+        for item in value:
+            refs.update(collect_audit_refs(item))
+    return refs
+
+
+passed_by_check = {
+    item["check_id"]: item
+    for item in results
+    if item["status"] == "passed"
+}
+cleanup_audit_refs = set()
+for cleanup_check in ("expired_export_cleanup", "orphan_cleanup"):
+    cleanup_body = load_result_body(passed_by_check.get(cleanup_check, {}))
+    refs = collect_audit_refs(cleanup_body)
+    if cleanup_check in passed_by_check and not refs:
+        blocked_or_failed.append(f"{cleanup_check}:missing_cleanup_audit_refs")
+    cleanup_audit_refs.update(refs)
+audit_refs_body = load_result_body(passed_by_check.get("audit_refs", {}))
+audit_endpoint_refs = collect_audit_refs(audit_refs_body)
+missing_cleanup_audit_refs = sorted(cleanup_audit_refs - audit_endpoint_refs)
+if cleanup_audit_refs and missing_cleanup_audit_refs:
+    blocked_or_failed.append(
+        "audit_refs:missing_cleanup_audit_refs:" + ",".join(missing_cleanup_audit_refs)
+    )
+audit_linkage_verified = bool(cleanup_audit_refs) and not missing_cleanup_audit_refs
 runtime_checks_passed = required <= passed and not blocked_or_failed
 canonical_report_path = Path("ops/evidence/staging/object-storage-retention-cleanup.json")
 canonical_results_path = Path("ops/evidence/staging/object-storage-retention-cleanup.ndjson")
@@ -477,6 +535,12 @@ report = {
         "retention_cleanup_runtime_ready": runtime_checks_passed,
         "retention_cleanup_ready": all_passed,
         "canonical_pass_paths": canonical_pass_paths,
+    },
+    "audit_linkage": {
+        "cleanup_audit_refs": sorted(cleanup_audit_refs),
+        "audit_endpoint_refs": sorted(audit_endpoint_refs),
+        "missing_cleanup_audit_refs": missing_cleanup_audit_refs,
+        "verified": audit_linkage_verified,
     },
     "required_checks": sorted(required),
     "runtime_input_requirements": runtime_input_requirements,
