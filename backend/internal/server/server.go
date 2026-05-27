@@ -659,6 +659,7 @@ func (s *Server) regenerateExport(w http.ResponseWriter, r *http.Request) {
 	var input struct {
 		Rationale             string `json:"rationale"`
 		SecondReviewerID      string `json:"second_reviewer_id"`
+		SecondReviewerRole    string `json:"second_reviewer_role"`
 		SecondReviewRationale string `json:"second_review_rationale"`
 	}
 	if err := readOptionalJSON(r, &input); err != nil {
@@ -677,6 +678,18 @@ func (s *Server) regenerateExport(w http.ResponseWriter, r *http.Request) {
 	if secondReviewerID == "" || secondReviewerID == principal.UserID {
 		writeError(w, r, http.StatusBadRequest, "second_review_required", "admin export regeneration requires a distinct second reviewer", map[string]any{
 			"field": "second_reviewer_id",
+		})
+		return
+	}
+	secondReviewerRole, ok := auth.ParseRole(input.SecondReviewerRole)
+	if !ok || !auth.Authorize(r.Context(), auth.Principal{
+		UserID:   secondReviewerID,
+		TenantID: principal.TenantID,
+		Roles:    []auth.Role{secondReviewerRole},
+	}, auth.Policy{Required: auth.PermissionExportOverrideAdmin}) {
+		writeError(w, r, http.StatusBadRequest, "second_review_required", "admin export regeneration requires a second reviewer with export override permission", map[string]any{
+			"field":               "second_reviewer_role",
+			"required_permission": string(auth.PermissionExportOverrideAdmin),
 		})
 		return
 	}
@@ -702,6 +715,7 @@ func (s *Server) regenerateExport(w http.ResponseWriter, r *http.Request) {
 			Metadata: map[string]any{
 				"rationale":               rationale,
 				"second_reviewer_id":      secondReviewerID,
+				"second_reviewer_role":    string(secondReviewerRole),
 				"second_review_rationale": secondReviewRationale,
 				"export_id":               exportID,
 				"package_id":              export.PackageID,

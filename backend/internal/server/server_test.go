@@ -740,7 +740,7 @@ func TestAdminExportRegenerateRequiresReviewer(t *testing.T) {
 	}
 	cfg.Auth.AdminDevIdentityHeaders = true
 
-	req := httptest.NewRequest(http.MethodPost, "/api/admin/v1/exports/export_1/regenerate", bytes.NewBufferString(`{"rationale":"retry after failed export","second_reviewer_id":"admin_reviewer_2","second_review_rationale":"approved retry"}`))
+	req := httptest.NewRequest(http.MethodPost, "/api/admin/v1/exports/export_1/regenerate", bytes.NewBufferString(`{"rationale":"retry after failed export","second_reviewer_id":"admin_reviewer_2","second_reviewer_role":"admin_reviewer","second_review_rationale":"approved retry"}`))
 	req.Header.Set("X-Zenart-User-ID", "admin_viewer_1")
 	req.Header.Set("X-Zenart-Tenant-ID", "tenant_1")
 	req.Header.Set("X-Zenart-Roles", "admin_viewer")
@@ -798,7 +798,7 @@ func TestAdminExportRegenerateRequiresSecondReview(t *testing.T) {
 	}
 	cfg.Auth.AdminDevIdentityHeaders = true
 
-	req := httptest.NewRequest(http.MethodPost, "/api/admin/v1/exports/export_1/regenerate", bytes.NewBufferString(`{"rationale":"retry after failed export","second_reviewer_id":"admin_reviewer_1","second_review_rationale":"approved retry"}`))
+	req := httptest.NewRequest(http.MethodPost, "/api/admin/v1/exports/export_1/regenerate", bytes.NewBufferString(`{"rationale":"retry after failed export","second_reviewer_id":"admin_reviewer_1","second_reviewer_role":"admin_reviewer","second_review_rationale":"approved retry"}`))
 	req = req.WithContext(stage0.ContextWithService(req.Context(), stage0.NewService(stage0.NewRepository(noExecDB{}), nil)))
 	req.Header.Set("X-Zenart-User-ID", "admin_reviewer_1")
 	req.Header.Set("X-Zenart-Tenant-ID", "tenant_1")
@@ -817,6 +817,39 @@ func TestAdminExportRegenerateRequiresSecondReview(t *testing.T) {
 	}
 	if body["code"] != "second_review_required" {
 		t.Fatalf("code = %v, want second_review_required", body["code"])
+	}
+}
+
+func TestAdminExportRegenerateRequiresSecondReviewerRole(t *testing.T) {
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	cfg.Auth.AdminDevIdentityHeaders = true
+
+	req := httptest.NewRequest(http.MethodPost, "/api/admin/v1/exports/export_1/regenerate", bytes.NewBufferString(`{"rationale":"retry after failed export","second_reviewer_id":"admin_viewer_2","second_reviewer_role":"admin_viewer","second_review_rationale":"approved retry"}`))
+	req = req.WithContext(stage0.ContextWithService(req.Context(), stage0.NewService(stage0.NewRepository(noExecDB{}), nil)))
+	req.Header.Set("X-Zenart-User-ID", "admin_reviewer_1")
+	req.Header.Set("X-Zenart-Tenant-ID", "tenant_1")
+	req.Header.Set("X-Zenart-Roles", "admin_reviewer")
+	setSameSiteCSRFHeaders(req)
+	rec := httptest.NewRecorder()
+
+	New(cfg, nil).Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want %d: %s", rec.Code, http.StatusBadRequest, rec.Body.String())
+	}
+	var body map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("response JSON error = %v", err)
+	}
+	if body["code"] != "second_review_required" {
+		t.Fatalf("code = %v, want second_review_required", body["code"])
+	}
+	details := body["details"].(map[string]any)
+	if details["field"] != "second_reviewer_role" || details["required_permission"] != "export_override:admin" {
+		t.Fatalf("details = %#v, want second reviewer role permission evidence", details)
 	}
 }
 
@@ -848,7 +881,7 @@ func TestAdminExportRegenerateRecordsAuditWithRationaleAndSecondReview(t *testin
 	}, {}, {}, {}}}
 	recorder := &fakeAuditRecorder{}
 
-	req := httptest.NewRequest(http.MethodPost, "/api/admin/v1/exports/export_1/regenerate", bytes.NewBufferString(`{"rationale":"retry after QA fix with token=npm_abcdefghijklmnopqrstuvwxyz123456","second_reviewer_id":"admin_reviewer_2","second_review_rationale":"approved retry after Bearer abcdefghijklmnop"}`))
+	req := httptest.NewRequest(http.MethodPost, "/api/admin/v1/exports/export_1/regenerate", bytes.NewBufferString(`{"rationale":"retry after QA fix with token=npm_abcdefghijklmnopqrstuvwxyz123456","second_reviewer_id":"admin_reviewer_2","second_reviewer_role":"admin_reviewer","second_review_rationale":"approved retry after Bearer abcdefghijklmnop"}`))
 	req = req.WithContext(audit.ContextWithRecorder(stage0.ContextWithService(req.Context(), stage0.NewService(stage0.NewRepository(db), nil)), recorder))
 	req.Header.Set("X-Zenart-User-ID", "admin_reviewer_1")
 	req.Header.Set("X-Zenart-Tenant-ID", "tenant_1")
@@ -873,6 +906,9 @@ func TestAdminExportRegenerateRecordsAuditWithRationaleAndSecondReview(t *testin
 	}
 	if event.Metadata["second_reviewer_id"] != "admin_reviewer_2" {
 		t.Fatalf("second reviewer = %#v, want admin_reviewer_2", event.Metadata["second_reviewer_id"])
+	}
+	if event.Metadata["second_reviewer_role"] != "admin_reviewer" {
+		t.Fatalf("second reviewer role = %#v, want admin_reviewer", event.Metadata["second_reviewer_role"])
 	}
 	if event.Metadata["second_review_rationale"] != "approved retry after Bearer "+security.Redacted {
 		t.Fatalf("second review rationale = %#v, want redacted bearer", event.Metadata["second_review_rationale"])
