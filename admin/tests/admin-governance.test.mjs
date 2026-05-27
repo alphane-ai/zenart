@@ -2475,7 +2475,8 @@ test("operations dashboards and alert routes bind SLOs to release-gate evidence"
     "provider_latency_error",
     "export_failure",
     "crawler_policy_violation",
-    "admin_security"
+    "admin_security",
+    "legal_support_visibility"
   ]);
 
   for (const dashboard of operationalDashboards) {
@@ -2497,6 +2498,7 @@ test("operations dashboards and alert routes bind SLOs to release-gate evidence"
         auditIds.has(ref) ||
           ref.startsWith("eg-") ||
           ref.startsWith("ph-") ||
+          ref.startsWith("rb-") ||
           ref.startsWith("q-") ||
           ref.startsWith("cg-") ||
           ref.startsWith("staging-dashboard-") ||
@@ -3101,6 +3103,17 @@ test("release blocker matrix prevents partial operations evidence from closing b
     releaseBlockers.some((blocker) => blocker.blockerKind === "runtime_evidence" && blocker.status === "mitigating"),
     "runtime evidence blockers need a mitigation state before gate closure"
   );
+  assert.ok(
+    releaseBlockers.some(
+      (blocker) =>
+        blocker.id === "rb-private-beta-legal-support-visibility" &&
+        blocker.status === "open" &&
+        blocker.unblockCriteria.includes("legal_pages_visibility") &&
+        blocker.requiredEvidence.includes("ops/evidence/staging/legal-pages-external-user.json") &&
+        blocker.requiredEvidence.includes("ops/evidence/staging/support-contact-external-user.json")
+    ),
+    "legal/support external-user visibility must stay open until exact staging evidence files pass"
+  );
 });
 
 test("operations runtime evidence closes only the validated dashboard and alert checklist rows", () => {
@@ -3128,7 +3141,8 @@ test("operations runtime evidence closes only the validated dashboard and alert 
     "staging-dashboard-provider-20260526T1000Z",
     "staging-dashboard-export-20260526T1000Z",
     "staging-dashboard-crawler-20260526T1000Z",
-    "staging-dashboard-admin-security-20260526T1030Z"
+    "staging-dashboard-admin-security-20260526T1030Z",
+    "staging-dashboard-legal-support-20260527T2200Z"
   ]) {
     assert.ok(dashboardRuntimeRefs.has(ref), `missing dashboard runtime evidence ref ${ref}`);
   }
@@ -3137,7 +3151,8 @@ test("operations runtime evidence closes only the validated dashboard and alert 
     "staging-alert-provider-20260526T1000Z",
     "staging-alert-export-20260526T1000Z",
     "staging-alert-crawler-20260526T1000Z",
-    "staging-alert-admin-security-20260526T1030Z"
+    "staging-alert-admin-security-20260526T1030Z",
+    "staging-alert-legal-support-20260527T2200Z"
   ]) {
     assert.ok(alertRuntimeRefs.has(ref), `missing alert route runtime evidence ref ${ref}`);
   }
@@ -3181,6 +3196,21 @@ test("operations runtime evidence closes only the validated dashboard and alert 
   ]) {
     assert.ok(observabilityTelemetryRuntimeEvidence.closedChecklistItems.includes(item), `telemetry evidence missing ${item}`);
   }
+  assert.match(
+    blueprint,
+    /- \[ \] Private Beta\/Staging legal\/support external-user visibility runtime evidence 通过。/,
+    "legal/support visibility aggregate row must stay open until external-user staging evidence passes"
+  );
+  assert.match(
+    blueprint,
+    /- \[ \] Private Beta\/Staging legal pages external-user visibility evidence 通过/,
+    "legal page visibility row must stay open until legal-pages-external-user evidence passes"
+  );
+  assert.match(
+    blueprint,
+    /- \[ \] Private Beta\/Staging support contact external-user visibility evidence 通过/,
+    "support contact visibility row must stay open until support-contact-external-user evidence passes"
+  );
 });
 
 test("high-risk audit and release operations are immutable and rollback-linked", () => {

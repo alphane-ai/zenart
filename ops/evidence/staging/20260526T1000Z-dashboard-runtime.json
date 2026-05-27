@@ -12,7 +12,8 @@
     "staging-dashboard-provider-20260526T1000Z",
     "staging-dashboard-export-20260526T1000Z",
     "staging-dashboard-crawler-20260526T1000Z",
-    "staging-dashboard-admin-security-20260526T1030Z"
+    "staging-dashboard-admin-security-20260526T1030Z",
+    "staging-dashboard-legal-support-20260527T2200Z"
   ],
   "dashboard_results": [
     {
@@ -70,6 +71,20 @@
       "probe_result": "Imported and populated, but critical hidden prompt extraction investigation remains open.",
       "audit_ref": "au-008",
       "release_blocker_ref": "rb-production-admin-security"
+    },
+    {
+      "dashboard_id": "od-legal-support-visibility",
+      "runtime_ref": "staging-dashboard-legal-support-20260527T2200Z",
+      "validation_status": "blocked",
+      "validated_at": "2026-05-27 22:00",
+      "signals": [
+        "legal_page_visibility_probe_total",
+        "support_contact_visibility_probe_total",
+        "external_user_legal_pages_missing"
+      ],
+      "probe_result": "Imported and populated, but external-user staging evidence files for legal page visibility and support contact visibility are absent.",
+      "audit_ref": "au-020",
+      "release_blocker_ref": "rb-private-beta-legal-support-visibility"
     }
   ],
   "gate_impact": {

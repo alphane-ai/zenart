@@ -1618,6 +1618,34 @@ export const operationalDashboards: OperationalDashboard[] = [
     runtimeEvidenceRef: "staging-dashboard-admin-security-20260526T1030Z",
     runtimeValidatedAt: "2026-05-26 10:31",
     evidenceRefs: ["ab-304", "au-008", "tr-1004", "staging-dashboard-admin-security-20260526T1030Z"]
+  },
+  {
+    id: "od-legal-support-visibility",
+    name: "legal_support_visibility",
+    ownerRole: "admin_reviewer",
+    status: "blocked",
+    window: "2026-05-27 21:30 to 22:00",
+    currentValue: "0 of 2 required external-user evidence artifacts present",
+    sloThreshold:
+      "Terms, Privacy, Acceptable Use, AI/content disclaimer, IP complaint flow, visible support contact, report-problem path, and billing/support policy must be visible to an external staging user before private beta readiness can advance.",
+    linkedSystems: ["web-legal-pages", "support-contact", "release-gate"],
+    sourceSignals: [
+      "legal_page_visibility_probe_total",
+      "support_contact_visibility_probe_total",
+      "external_user_legal_pages_missing"
+    ],
+    releaseGateUse:
+      "Private Beta/Staging legal/support visibility stays blocked until scripts/staging_legal_support_visibility_smoke.sh writes passing external-user evidence for legal pages and support contact under ops/evidence/staging/.",
+    runtimeEnvironment: "staging",
+    runtimeEvidenceStatus: "blocked",
+    runtimeEvidenceRef: "staging-dashboard-legal-support-20260527T2200Z",
+    runtimeValidatedAt: "2026-05-27 22:00",
+    evidenceRefs: [
+      "rb-private-beta-legal-support-visibility",
+      "eg-005",
+      "au-020",
+      "staging-dashboard-legal-support-20260527T2200Z"
+    ]
   }
 ];
 
@@ -1681,6 +1709,32 @@ export const operationalDashboardRuntimeEvidence: OperationalDashboardRuntimeEvi
     releaseGateUse: "Production launch remains blocked until the security-admin investigation closes with audit, support, trace-redaction, and release evidence refs; staging dashboard import evidence is recorded in ops/evidence/staging/20260526T1000Z-dashboard-runtime.json.",
     auditRef: "au-008",
     evidenceRefs: ["od-admin-security", "rb-production-admin-security", "ab-304", "au-008", "tr-1004", "staging-dashboard-admin-security-20260526T1030Z"]
+  },
+  {
+    id: "odre-legal-support-visibility-20260527T2200Z",
+    dashboardId: "od-legal-support-visibility",
+    environment: "staging",
+    validationStatus: "blocked",
+    validatedAt: "2026-05-27 22:00",
+    validatedByRole: "admin_reviewer",
+    importProbe:
+      "Imported staging-dashboard-legal-support-20260527T2200Z with panels for Terms, Privacy, Acceptable Use, AI/content disclaimer, IP complaint flow, visible support contact, report-problem path, and billing/support policy visibility.",
+    signalProbe:
+      "Signal probe joined legal_page_visibility_probe_total, support_contact_visibility_probe_total, and external_user_legal_pages_missing to the private beta release gate check staging_legal_external_user_pages.",
+    sloProbe:
+      "SLO probe stayed blocked because ops/evidence/staging/legal-pages-external-user.json and ops/evidence/staging/support-contact-external-user.json are absent and source files alone do not satisfy external-user staging visibility.",
+    blockerProbe:
+      "Release blocker rb-private-beta-legal-support-visibility stayed open and linked audit au-020, release evidence eg-005, and the staging legal/support smoke script contract.",
+    releaseGateUse:
+      "Private Beta/Staging legal/support visibility remains blocked until scripts/staging_legal_support_visibility_smoke.sh records passing external-user HTTP probes under ops/evidence/staging/; this dashboard must not close the aggregate gate while object-storage retention remains blocked.",
+    auditRef: "au-020",
+    evidenceRefs: [
+      "od-legal-support-visibility",
+      "rb-private-beta-legal-support-visibility",
+      "eg-005",
+      "au-020",
+      "staging-dashboard-legal-support-20260527T2200Z"
+    ]
   }
 ];
 
@@ -1752,6 +1806,31 @@ export const alertRoutes: AlertRoute[] = [
     incidentRef: "none",
     auditRef: "au-008",
     evidenceRefs: ["od-admin-security", "ab-304", "au-008", "tr-1004", "staging-alert-admin-security-20260526T1030Z"]
+  },
+  {
+    id: "al-legal-support-visibility",
+    dashboardId: "od-legal-support-visibility",
+    severity: "sev2",
+    status: "firing",
+    threshold:
+      "Any missing external-user staging evidence for Terms, Privacy, Acceptable Use, AI/content disclaimer, IP complaint flow, visible support contact, report-problem path, or billing/support policy.",
+    routeTarget: "release-admin and support-admin legal/support visibility queue",
+    escalationRole: "admin_reviewer",
+    runbook:
+      "Run scripts/staging_legal_support_visibility_smoke.sh with STAGING_WEB_URL, attach legal-pages-external-user and support-contact-external-user evidence, keep the private beta gate blocked until both coverage areas pass, and preserve object-storage retention as a separate blocker.",
+    runtimeEnvironment: "staging",
+    runtimeEvidenceStatus: "verified",
+    runtimeEvidenceRef: "staging-alert-legal-support-20260527T2200Z",
+    runtimeValidatedAt: "2026-05-27 22:00",
+    incidentRef: "none",
+    auditRef: "au-020",
+    evidenceRefs: [
+      "od-legal-support-visibility",
+      "rb-private-beta-legal-support-visibility",
+      "eg-005",
+      "au-020",
+      "staging-alert-legal-support-20260527T2200Z"
+    ]
   }
 ];
 
@@ -1827,6 +1906,38 @@ export const alertRouteRuntimeEvidence: AlertRouteRuntimeEvidence[] = [
     auditRef: "au-008",
     releaseGateUse: "Production launch remains blocked until the security-admin investigation closes with audit, support, and release evidence refs; staging alert route evidence is recorded in ops/evidence/staging/20260526T1000Z-alert-runtime.json.",
     evidenceRefs: ["al-admin-security", "od-admin-security", "ab-304", "au-008", "tr-1004", "staging-alert-admin-security-20260526T1030Z"]
+  },
+  {
+    id: "are-legal-support-visibility-20260527T2200Z",
+    alertRouteId: "al-legal-support-visibility",
+    dashboardId: "od-legal-support-visibility",
+    environment: "staging",
+    validationStatus: "verified",
+    validatedAt: "2026-05-27 22:00",
+    validatedByRole: "admin_reviewer",
+    routeBinding:
+      "release-admin and support-admin legal/support visibility queue received the staging-alert-legal-support-20260527T2200Z probe.",
+    deliveryProbe:
+      "Synthetic external_user_legal_pages_missing breach delivered one SEV2 firing event with the exact required evidence paths for legal-pages-external-user and support-contact-external-user.",
+    thresholdProbe:
+      "Threshold matched any missing external-user staging visibility evidence for legal pages, support contact, report-problem path, or billing/support policy.",
+    escalationProbe:
+      "Escalation required admin_reviewer ownership because release operators cannot clear the private beta legal/support check from web artifacts or dry-run evidence.",
+    runbookProbe:
+      "Runbook opened STAGING_WEB_URL smoke instructions, exact ops/evidence/staging artifact requirements, gate-impact preservation, and object-storage retention blocker separation.",
+    incidentLinkage:
+      "No incident opened because the alert validates release-gate visibility routing while rb-private-beta-legal-support-visibility remains the authoritative blocker.",
+    auditRef: "au-020",
+    releaseGateUse:
+      "The alert route proves admin notification and runbook coverage only; it does not close staging_legal_external_user_pages until passing external-user smoke evidence exists.",
+    evidenceRefs: [
+      "al-legal-support-visibility",
+      "od-legal-support-visibility",
+      "rb-private-beta-legal-support-visibility",
+      "eg-005",
+      "au-020",
+      "staging-alert-legal-support-20260527T2200Z"
+    ]
   }
 ];
 
@@ -2194,6 +2305,33 @@ export const releaseBlockers: ReleaseBlocker[] = [
     nextReviewAt: "2026-05-26 13:00",
     auditRef: "au-012",
     evidenceRefs: ["od-crawler-policy", "al-crawler-policy", "eg-002", "cf-118", "cg-501", "au-012", "staging-dashboard-crawler-20260526T1000Z"]
+  },
+  {
+    id: "rb-private-beta-legal-support-visibility",
+    gate: "private_beta",
+    blockerKind: "runtime_evidence",
+    status: "open",
+    severity: "sev2",
+    ownerRole: "admin_reviewer",
+    dashboardId: "od-legal-support-visibility",
+    alertRouteId: "al-legal-support-visibility",
+    runtimeEvidenceRef: "staging-dashboard-legal-support-20260527T2200Z",
+    releaseEvidenceId: "eg-005",
+    blockingSignal:
+      "Private beta external-user legal/support visibility is blocked because exact staging evidence files legal-pages-external-user.json and support-contact-external-user.json are absent.",
+    requiredEvidence:
+      "Run scripts/staging_legal_support_visibility_smoke.sh against STAGING_WEB_URL and attach passing ops/evidence/staging/legal-pages-external-user.json plus ops/evidence/staging/support-contact-external-user.json proving Terms, Privacy, Acceptable Use, AI/content disclaimer, IP complaint flow, visible support contact, report-problem path, and billing/support policy visibility.",
+    unblockCriteria:
+      "Both legal_pages_visibility and support_contact_visibility coverage areas pass from external-user HTTP probes, the private beta gate fixture removes external_user_legal_pages_missing, and object-storage retention remains represented as the only unrelated private-beta blocker if still missing.",
+    nextReviewAt: "2026-05-28 09:00",
+    auditRef: "au-020",
+    evidenceRefs: [
+      "od-legal-support-visibility",
+      "al-legal-support-visibility",
+      "eg-005",
+      "au-020",
+      "staging-dashboard-legal-support-20260527T2200Z"
+    ]
   }
 ];
 
@@ -3990,6 +4128,26 @@ export const releaseEvidence: ReleaseEvidence[] = [
       "The export-pack skill release can clear the production skill canary check because eval, canary thresholds, release notes, rollback, and audit evidence are present while unrelated launch blockers stay open.",
     rollbackTarget: "skill-export-pack@1.8.0",
     auditRef: "au-016"
+  },
+  {
+    id: "eg-005",
+    target: "staging_legal_external_user_pages",
+    gate: "private_beta",
+    status: "blocked",
+    providerEvidence:
+      "External-user legal/support visibility requires deployed staging web probes; source artifacts and dry-run smoke reports cannot satisfy the private beta gate.",
+    canaryEvidence:
+      "Not a skill canary; the release gate remains blocked until legal_pages_visibility and support_contact_visibility coverage both pass from STAGING_WEB_URL.",
+    releaseEvidence:
+      "Private beta legal/support check is blocked until ops/evidence/staging/legal-pages-external-user.json and ops/evidence/staging/support-contact-external-user.json prove Terms, Privacy, Acceptable Use, AI/content disclaimer, IP complaint flow, visible support contact, report-problem path, and billing/support policy.",
+    smokeEvidence:
+      "scripts/staging_legal_support_visibility_smoke.sh defines the exact external-user HTTP probe, required routes, expected tokens, gate impact, and remaining object-storage blocker behavior.",
+    rollbackEvidence:
+      "If a legal/support page regresses, re-mark staging_legal_external_user_pages blocked, restore external_user_legal_pages_missing, and keep public beta expansion disabled.",
+    reviewerRationale:
+      "Legal/support visibility is user-facing launch evidence, so admin reviewers must require deployed external-user proof instead of accepting checked-in page files.",
+    rollbackTarget: "private-beta-no-go",
+    auditRef: "au-020"
   }
 ];
 
@@ -4373,6 +4531,23 @@ export const auditEvents: AuditEvent[] = [
       "qt-904"
     ],
     secondReviewStatus: "completed"
+  },
+  {
+    id: "au-020",
+    actor: "release-admin",
+    action: "kept staging legal support visibility blocked",
+    target: "staging_legal_external_user_pages",
+    risk: "high",
+    createdAt: "2026-05-27 22:00",
+    rationale:
+      "Private beta legal/support visibility cannot close until deployed staging external-user probes produce legal-pages-external-user and support-contact-external-user evidence.",
+    immutable: true,
+    evidenceRefs: [
+      "rb-private-beta-legal-support-visibility",
+      "eg-005",
+      "scripts/staging_legal_support_visibility_smoke.sh"
+    ],
+    secondReviewStatus: "required"
   }
 ];
 

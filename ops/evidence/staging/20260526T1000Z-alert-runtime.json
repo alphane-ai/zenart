@@ -12,7 +12,8 @@
     "staging-alert-provider-20260526T1000Z",
     "staging-alert-export-20260526T1000Z",
     "staging-alert-crawler-20260526T1000Z",
-    "staging-alert-admin-security-20260526T1030Z"
+    "staging-alert-admin-security-20260526T1030Z",
+    "staging-alert-legal-support-20260527T2200Z"
   ],
   "alert_results": [
     {
@@ -54,6 +55,16 @@
       "route_target": "security-admin emergency queue",
       "probe_result": "Synthetic hidden prompt extraction and admin override denial signals delivered one SEV1 firing event.",
       "audit_ref": "au-008"
+    },
+    {
+      "alert_route_id": "al-legal-support-visibility",
+      "dashboard_id": "od-legal-support-visibility",
+      "runtime_ref": "staging-alert-legal-support-20260527T2200Z",
+      "validation_status": "verified",
+      "severity": "sev2",
+      "route_target": "release-admin and support-admin legal/support visibility queue",
+      "probe_result": "Synthetic external-user legal/support visibility breach delivered one SEV2 firing event with exact evidence paths and no duplicate notifications.",
+      "audit_ref": "au-020"
     }
   ],
   "gate_impact": {

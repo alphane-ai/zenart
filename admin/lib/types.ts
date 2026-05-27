@@ -358,7 +358,8 @@ export type OperationalDashboard = {
     | "quota_anomaly"
     | "safety_spike"
     | "crawler_policy_violation"
-    | "admin_security";
+    | "admin_security"
+    | "legal_support_visibility";
   ownerRole: AdminRole;
   status: "healthy" | "watch" | "blocked";
   window: string;

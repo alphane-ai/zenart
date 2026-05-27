@@ -560,6 +560,41 @@ test("admin operations page surfaces production backup rollback incident evidenc
   }
 });
 
+test("admin operations page surfaces legal support visibility blocker evidence", () => {
+  const operationsPage = readFileSync(
+    new URL("../app/operations/page.tsx", import.meta.url),
+    "utf8"
+  );
+
+  for (const token of [
+    "Dashboards",
+    "Alert Routes",
+    "Release Blocker Matrix",
+    "Runtime Evidence",
+    "Required Evidence",
+    "Unblock Criteria"
+  ]) {
+    assert.match(operationsPage, new RegExp(token));
+  }
+
+  for (const token of [
+    "od-legal-support-visibility",
+    "legal_support_visibility",
+    "al-legal-support-visibility",
+    "rb-private-beta-legal-support-visibility",
+    "eg-005",
+    "au-020",
+    "staging-dashboard-legal-support-20260527T2200Z",
+    "staging-alert-legal-support-20260527T2200Z",
+    "scripts/staging_legal_support_visibility_smoke.sh",
+    "ops/evidence/staging/legal-pages-external-user.json",
+    "ops/evidence/staging/support-contact-external-user.json",
+    "external_user_legal_pages_missing"
+  ]) {
+    assert.match(fixtures, new RegExp(token.replaceAll("/", "\\/")));
+  }
+});
+
 test("admin audit page surfaces staging auth rbac tenant audit evidence", () => {
   const auditPage = readFileSync(
     new URL("../app/audit/page.tsx", import.meta.url),
