@@ -239,6 +239,43 @@ for area, tokens in {
         "source_results": related,
     })
 
+probe_routes = {
+    "retention_policy": {
+        "method": "GET",
+        "env_var": "RETENTION_POLICY_URL",
+        "default_path": "/api/admin/v1/object-storage/retention-policy",
+    },
+    "expired_export_cleanup": {
+        "method": "POST",
+        "env_var": "EXPIRED_EXPORT_CLEANUP_URL",
+        "default_path": "/api/admin/v1/object-storage/cleanup/expired-exports",
+    },
+    "orphan_cleanup": {
+        "method": "POST",
+        "env_var": "ORPHAN_CLEANUP_URL",
+        "default_path": "/api/admin/v1/object-storage/cleanup/orphans",
+    },
+    "audit_refs": {
+        "method": "GET",
+        "env_var": "AUDIT_REFS_URL",
+        "default_path": "/api/admin/v1/audit?subject=object_storage_cleanup&limit=20",
+    },
+}
+runtime_input_requirements = {
+    "required_release_sha": signed_url_release_sha or "must match signed URL split evidence release_sha",
+    "required_auth": "ADMIN_BEARER_TOKEN or ADMIN_SESSION_COOKIE with admin_operator access",
+    "required_base_url": "STAGING_BASE_URL or explicit probe URL env vars",
+    "required_probe_routes": probe_routes,
+    "canonical_pass_report": str(canonical_report_path),
+    "canonical_pass_results": str(canonical_results_path),
+}
+if not base_url:
+    runtime_input_requirements["blocked_input_reason"] = "missing STAGING_BASE_URL; set explicit probe URL env vars if routes differ"
+elif runtime_checks_passed and not release_sha_matches_signed_url:
+    runtime_input_requirements["blocked_input_reason"] = "RELEASE_SHA must match signed URL split evidence release_sha"
+else:
+    runtime_input_requirements["blocked_input_reason"] = ""
+
 report = {
     "schema_version": "stage0.rev2.staging.object_storage_retention_cleanup",
     "evidence_id": run_id,
@@ -264,6 +301,7 @@ report = {
         "retention_cleanup_ready": all_passed,
     },
     "required_checks": sorted(required),
+    "runtime_input_requirements": runtime_input_requirements,
     "coverage": coverage,
     "blocked_checks": blocked_or_failed,
     "gate_impact": {

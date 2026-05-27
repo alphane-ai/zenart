@@ -269,6 +269,24 @@ if set(blocked_retention.get("required_checks", [])) != {
     "audit_refs",
 }:
     raise SystemExit("blocked object-storage retention cleanup evidence must retain all required probes")
+runtime_requirements = blocked_retention.get("runtime_input_requirements", {})
+if runtime_requirements.get("required_release_sha") != "d3b1107c33dc40b8936f28549e06553fbd7b104a":
+    raise SystemExit("blocked object-storage retention cleanup evidence must name the signed URL release SHA required for pass evidence")
+if "admin_operator" not in runtime_requirements.get("required_auth", ""):
+    raise SystemExit("blocked object-storage retention cleanup evidence must name admin_operator auth requirement")
+if runtime_requirements.get("canonical_pass_report") != "ops/evidence/staging/object-storage-retention-cleanup.json":
+    raise SystemExit("blocked object-storage retention cleanup evidence must name the canonical pass report path")
+probe_routes = runtime_requirements.get("required_probe_routes", {})
+expected_probe_routes = {
+    "retention_policy": ("GET", "RETENTION_POLICY_URL", "/api/admin/v1/object-storage/retention-policy"),
+    "expired_export_cleanup": ("POST", "EXPIRED_EXPORT_CLEANUP_URL", "/api/admin/v1/object-storage/cleanup/expired-exports"),
+    "orphan_cleanup": ("POST", "ORPHAN_CLEANUP_URL", "/api/admin/v1/object-storage/cleanup/orphans"),
+    "audit_refs": ("GET", "AUDIT_REFS_URL", "/api/admin/v1/audit?subject=object_storage_cleanup&limit=20"),
+}
+for probe_id, (method, env_var, default_path) in expected_probe_routes.items():
+    route = probe_routes.get(probe_id, {})
+    if route.get("method") != method or route.get("env_var") != env_var or route.get("default_path") != default_path:
+        raise SystemExit(f"blocked object-storage retention cleanup evidence missing route contract for {probe_id}: {route}")
 if any("missing_staging_base_url_or_explicit_probe_urls" not in item for item in blocked_retention.get("blocked_checks", [])):
     raise SystemExit("blocked object-storage retention cleanup evidence must explain the missing staging probe URLs")
 obsolete_fragments = [
@@ -581,6 +599,24 @@ if split.get("retention_cleanup_runtime_ready") is not False:
     raise SystemExit("object-storage retention cleanup dry-run must not claim retention cleanup runtime readiness")
 if split.get("retention_cleanup_ready") is not False:
     raise SystemExit("object-storage retention cleanup dry-run must not claim retention cleanup readiness")
+runtime_requirements = report.get("runtime_input_requirements", {})
+if runtime_requirements.get("required_release_sha") != "d3b1107c33dc40b8936f28549e06553fbd7b104a":
+    raise SystemExit("object-storage retention cleanup dry-run must name the signed URL release SHA")
+if runtime_requirements.get("required_base_url") != "STAGING_BASE_URL or explicit probe URL env vars":
+    raise SystemExit("object-storage retention cleanup dry-run must name the staging URL input requirement")
+if runtime_requirements.get("canonical_pass_results") != "ops/evidence/staging/object-storage-retention-cleanup.ndjson":
+    raise SystemExit("object-storage retention cleanup dry-run must name the canonical pass results path")
+probe_routes = runtime_requirements.get("required_probe_routes", {})
+expected_probe_routes = {
+    "retention_policy": ("GET", "RETENTION_POLICY_URL", "/api/admin/v1/object-storage/retention-policy"),
+    "expired_export_cleanup": ("POST", "EXPIRED_EXPORT_CLEANUP_URL", "/api/admin/v1/object-storage/cleanup/expired-exports"),
+    "orphan_cleanup": ("POST", "ORPHAN_CLEANUP_URL", "/api/admin/v1/object-storage/cleanup/orphans"),
+    "audit_refs": ("GET", "AUDIT_REFS_URL", "/api/admin/v1/audit?subject=object_storage_cleanup&limit=20"),
+}
+for probe_id, (method, env_var, default_path) in expected_probe_routes.items():
+    route = probe_routes.get(probe_id, {})
+    if route.get("method") != method or route.get("env_var") != env_var or route.get("default_path") != default_path:
+        raise SystemExit(f"object-storage retention cleanup dry-run missing route contract for {probe_id}: {route}")
 gate_impact = report.get("gate_impact", {})
 if gate_impact.get("can_clear_retention_cleanup_checklist_item") is not False:
     raise SystemExit("object-storage retention cleanup dry-run must not clear the retention checklist item")

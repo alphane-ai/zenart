@@ -167,6 +167,36 @@
     "retention_policy"
   ],
   "results_path": "ops/evidence/staging/object-storage-retention-cleanup.blocked.ndjson",
+  "runtime_input_requirements": {
+    "blocked_input_reason": "missing STAGING_BASE_URL; set explicit probe URL env vars if routes differ",
+    "canonical_pass_report": "ops/evidence/staging/object-storage-retention-cleanup.json",
+    "canonical_pass_results": "ops/evidence/staging/object-storage-retention-cleanup.ndjson",
+    "required_auth": "ADMIN_BEARER_TOKEN or ADMIN_SESSION_COOKIE with admin_operator access",
+    "required_base_url": "STAGING_BASE_URL or explicit probe URL env vars",
+    "required_probe_routes": {
+      "audit_refs": {
+        "default_path": "/api/admin/v1/audit?subject=object_storage_cleanup&limit=20",
+        "env_var": "AUDIT_REFS_URL",
+        "method": "GET"
+      },
+      "expired_export_cleanup": {
+        "default_path": "/api/admin/v1/object-storage/cleanup/expired-exports",
+        "env_var": "EXPIRED_EXPORT_CLEANUP_URL",
+        "method": "POST"
+      },
+      "orphan_cleanup": {
+        "default_path": "/api/admin/v1/object-storage/cleanup/orphans",
+        "env_var": "ORPHAN_CLEANUP_URL",
+        "method": "POST"
+      },
+      "retention_policy": {
+        "default_path": "/api/admin/v1/object-storage/retention-policy",
+        "env_var": "RETENTION_POLICY_URL",
+        "method": "GET"
+      }
+    },
+    "required_release_sha": "d3b1107c33dc40b8936f28549e06553fbd7b104a"
+  },
   "schema_version": "stage0.rev2.staging.object_storage_retention_cleanup",
   "split_evidence": {
     "release_sha_matches_signed_url": false,
