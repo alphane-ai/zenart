@@ -3642,6 +3642,84 @@ def require_ci_blocked_runtime_evidence(evidence_ref: str, check_id: str) -> Non
             )
 
 
+def gate_decision_required_blocker_paths(
+    gate: str,
+    blocked_check_ids: list[str],
+    active_condition_ids: list[str],
+) -> list[Path]:
+    required_paths: dict[str, Path] = {}
+
+    def add_path(path: Path) -> None:
+        required_paths[rel(path)] = path
+
+    for check_id in blocked_check_ids:
+        if gate == "ci":
+            for path in CI_RUNTIME_REQUIRED_EVIDENCE_PATHS.get(check_id, []):
+                add_path(path)
+        split_requirement = RUNTIME_SPLIT_PASS_REQUIREMENTS.get((gate, check_id))
+        if split_requirement is not None:
+            for path in split_requirement["subitems"].values():
+                add_path(path)
+
+    for condition_id in active_condition_ids:
+        split_paths = ACTIVE_CONDITION_SPLIT_EVIDENCE_PATHS.get((gate, condition_id), {})
+        for path in split_paths:
+            add_path(path)
+
+    return [required_paths[key] for key in sorted(required_paths)]
+
+
+def require_gate_decision_exact_blocker_paths(
+    evidence_ref: str,
+    gate: str,
+    blocked_check_ids: list[str],
+    active_condition_ids: list[str],
+) -> None:
+    evidence_ref_lower = evidence_ref.lower()
+    for path in gate_decision_required_blocker_paths(
+        gate,
+        blocked_check_ids,
+        active_condition_ids,
+    ):
+        rel_path = rel(path)
+        require(
+            rel_path in evidence_ref,
+            f"{gate} gate_decision no-go evidence must cite exact blocker artifact path {rel_path}",
+        )
+        path_index = evidence_ref.find(rel_path)
+        require(path_index >= 0, f"{gate} gate_decision evidence missing path {rel_path}")
+        before_start = max(
+            evidence_ref_lower.rfind(separator, 0, path_index)
+            for separator in (".", ";", ":")
+        )
+        before_start = 0 if before_start < 0 else before_start + 1
+        after_candidates = [
+            evidence_ref_lower.find(separator, path_index + len(rel_path))
+            for separator in (".", ";")
+        ]
+        after_candidates = [index for index in after_candidates if index >= 0]
+        after_end = min(after_candidates) if after_candidates else len(evidence_ref_lower)
+        path_context = evidence_ref_lower[before_start:after_end]
+        if path.exists():
+            require(
+                any(term in path_context for term in SPLIT_EVIDENCE_PRESENT_TERMS),
+                f"{gate} gate_decision evidence {rel_path} exists but is not described as present/pass",
+            )
+            require(
+                not any(term in path_context for term in SPLIT_EVIDENCE_ABSENT_TERMS),
+                f"{gate} gate_decision evidence {rel_path} exists but stale prose describes it as absent/missing",
+            )
+            continue
+        require(
+            any(term in path_context for term in SPLIT_EVIDENCE_ABSENT_TERMS),
+            f"{gate} gate_decision evidence {rel_path} is missing but is not described as absent/missing",
+        )
+        require(
+            not any(term in path_context for term in SPLIT_EVIDENCE_PRESENT_TERMS),
+            f"{gate} gate_decision evidence {rel_path} is missing but describes it as present/pass",
+        )
+
+
 def validate_split_checklist_item_evidence(
     checked_lines: set[str],
     unchecked_lines: set[str],
@@ -3980,6 +4058,7 @@ def validate_gate_decision(data: dict[str, Any]) -> None:
     require_concrete_evidence_ref(
         evidence_ref,
         f"{gate} gate_decision evidence",
+        require_all_paths_exist=expected_status == "go",
     )
     require(
         rel(RELEASE_GATE_EVIDENCE_FILES[gate]) in evidence_ref,
@@ -4013,6 +4092,12 @@ def validate_gate_decision(data: dict[str, Any]) -> None:
         require(
             not missing_condition_ids,
             f"{gate} gate_decision no-go evidence must name every active Do-Not-Launch condition ID: {missing_condition_ids}",
+        )
+        require_gate_decision_exact_blocker_paths(
+            evidence_ref,
+            gate,
+            expected_blocked_checks,
+            expected_active_conditions,
         )
     else:
         require(
@@ -9252,6 +9337,8 @@ def validate_launch_readiness_split_contracts() -> None:
         "a fixture-level `go` decision is invalid while any check is blocked/failing or any Do-Not-Launch condition is active",
         "For a `no_go` fixture, `gate_decision.evidence_ref` must name every blocked/failing check ID",
         "and every active Do-Not-Launch condition ID from the same fixture",
+        "gate_decision.evidence_ref` must also cite every exact validator-owned blocker artifact path",
+        "aggregate decision prose cannot rely only on check IDs or broad evidence directories",
         "Every `gate_decision.evidence_ref` must name the aggregate runtime checklist row it governs",
         "decision prose that only names low-level check IDs cannot silently drift away from the visible Local Alpha、CI、Private Beta/Staging、Production checklist state",
         "If a gate checklist item remains open, its release gate fixture must still contain at least one computed blocker",
