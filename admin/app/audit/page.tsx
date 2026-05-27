@@ -7,6 +7,7 @@ import {
   getAdminRbacClosureMatrix,
   getAdminRbacEvidencePacks,
   getAdminRbacOverrideAttemptDecisions,
+  getAdminRbacOverrideReleaseBundles,
   getAdminRbacReleaseEvidenceClosures,
   getAdminRbacReleaseReadinessSummaries,
   getAdminRbacRuntimeDecisions,
@@ -23,6 +24,7 @@ import type {
   AdminRbacClosureMatrixRow,
   AdminRbacEvidencePack,
   AdminRbacOverrideAttemptDecision,
+  AdminRbacOverrideReleaseBundle,
   AdminRbacReleaseEvidenceClosure,
   AdminRbacReleaseReadinessSummary,
   AdminRbacRuntimeDecision,
@@ -48,6 +50,7 @@ export default async function AuditPage() {
     rbacClosureMatrix,
     rbacReleaseEvidenceClosures,
     rbacReleaseReadinessSummaries,
+    rbacOverrideReleaseBundles,
     productionActivationEvidence,
     productionSecurityEvidence,
     stagingAuthRbacTenantAuditEvidence
@@ -63,6 +66,7 @@ export default async function AuditPage() {
     getAdminRbacClosureMatrix(),
     getAdminRbacReleaseEvidenceClosures(),
     getAdminRbacReleaseReadinessSummaries(),
+    getAdminRbacOverrideReleaseBundles(),
     getProductionActivationReviewAuditEvidence(),
     getProductionSecurityLaunchCheckEvidence(),
     getStagingAuthRbacTenantAuditEvidence()
@@ -261,6 +265,41 @@ export default async function AuditPage() {
             { key: "audit", header: "Audit Refs", render: (row) => <span className="mono">{row.auditRefs.join(", ")}</span> },
             { key: "closure-refs", header: "Closure Evidence Refs", render: (row) => row.closureEvidenceRefs.join(", ") },
             { key: "rationale", header: "Readiness Rationale", render: (row) => row.readinessRationale },
+            { key: "operator", header: "Operator Action", render: (row) => row.operatorAction }
+          ]}
+        />
+      </section>
+
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>RBAC Override Release Bundle</h3>
+            <p>Each bundle gives operators one release-facing verdict for release, crawler, prompt, provider, quota, safety, and export override evidence.</p>
+          </div>
+        </div>
+        <DataTable<AdminRbacOverrideReleaseBundle>
+          rows={rbacOverrideReleaseBundles}
+          columns={[
+            { key: "surface", header: "Surface", render: (row) => row.surface },
+            { key: "scope", header: "Override Scope", render: (row) => row.overrideScope },
+            { key: "verdict", header: "Gate Verdict", render: (row) => <StatusBadge value={row.releaseUseAllowed ? "approved" : row.gateVerdict === "missing_evidence" ? "blocked" : "warning"} label={row.gateVerdict} /> },
+            { key: "health", header: "Evidence Health", render: (row) => <StatusBadge value={row.evidenceHealth === "complete" ? "approved" : "blocked"} label={row.evidenceHealth} /> },
+            { key: "release", header: "Release Use", render: (row) => (row.releaseUseAllowed ? "allowed" : "preserved") },
+            { key: "targets", header: "Targets", render: (row) => row.targetCount },
+            { key: "roles", header: "Required Roles", render: (row) => row.requiredRoles.join(", ") },
+            { key: "runtime", header: "Runtime Outcomes", render: (row) => row.runtimeOutcomes.join(", ") },
+            { key: "attempts", header: "Attempt Outcomes", render: (row) => row.attemptOutcomes.join(", ") },
+            { key: "review", header: "Review Holds", render: (row) => row.reviewHoldCount },
+            { key: "denied", header: "Denied Mutations", render: (row) => row.deniedMutationCount },
+            { key: "expired", header: "Expired Replays", render: (row) => row.expiredReplayCount },
+            { key: "temporary", header: "Temporary Mutations", render: (row) => row.temporaryMutationCount },
+            { key: "blockers", header: "Blockers", render: (row) => row.blockerCodes.join(", ") || "none" },
+            { key: "evidence", header: "Evidence IDs", render: (row) => <span className="mono">{row.evidenceIds.join(", ")}</span> },
+            { key: "attempt-ids", header: "Attempt IDs", render: (row) => <span className="mono">{row.attemptIds.join(", ")}</span> },
+            { key: "stale", header: "Stale Replay IDs", render: (row) => row.staleReplayEvidenceIds.join(", ") || "none" },
+            { key: "audit", header: "Audit Refs", render: (row) => <span className="mono">{row.auditRefs.join(", ")}</span> },
+            { key: "required", header: "Release Evidence Required", render: (row) => row.releaseEvidenceRequired.join(" ") },
+            { key: "closure", header: "Closure Evidence Refs", render: (row) => row.closureEvidenceRefs.join(", ") },
             { key: "operator", header: "Operator Action", render: (row) => row.operatorAction }
           ]}
         />

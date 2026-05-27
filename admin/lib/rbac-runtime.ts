@@ -4,6 +4,7 @@ import type {
   AdminRbacEvidencePack,
   AdminRbacOverrideAttempt,
   AdminRbacOverrideAttemptDecision,
+  AdminRbacOverrideReleaseBundle,
   AdminRbacReleaseEvidenceClosure,
   AdminRbacReleaseReadinessSummary,
   AdminRbacRuntimeDecision,
@@ -1012,6 +1013,96 @@ export function buildAdminRbacReleaseReadinessSummaries(
           closure.releaseGateStatus === "release_use_allowed"
             ? "Permit only the audited release mutation shown in this row and keep expiry restoration visible to reviewers."
             : "Keep release/crawler/prompt/provider/quota/safety/export state unchanged until this row shows release_ready with complete evidence."
+      };
+    })
+    .sort((a, b) => a.surface.localeCompare(b.surface));
+}
+
+function bundleGateVerdict(
+  readiness: AdminRbacReleaseReadinessSummary,
+  closure: AdminRbacReleaseEvidenceClosure
+): AdminRbacOverrideReleaseBundle["gateVerdict"] {
+  if (readiness.readyState === "missing_evidence") {
+    return "missing_evidence";
+  }
+
+  if (closure.closureStatus === "release_ready_with_expiry") {
+    return "release_ready_with_expiry";
+  }
+
+  if (closure.closureStatus === "preserved_for_review") {
+    return "gate_preserved_by_review";
+  }
+
+  if (closure.closureStatus === "preserved_by_stale_replay") {
+    return "gate_preserved_by_stale_replay";
+  }
+
+  return "gate_preserved_by_policy";
+}
+
+export function buildAdminRbacOverrideReleaseBundles(
+  readinessSummaries: AdminRbacReleaseReadinessSummary[],
+  closures: AdminRbacReleaseEvidenceClosure[],
+  runtimeDecisions: AdminRbacRuntimeDecision[]
+): AdminRbacOverrideReleaseBundle[] {
+  const closureBySurface = new Map(closures.map((closure) => [closure.surface, closure]));
+  const runtimeBySurface = new Map<AdminRbacRuntimeDecision["surface"], AdminRbacRuntimeDecision[]>();
+
+  for (const decision of runtimeDecisions) {
+    runtimeBySurface.set(decision.surface, [...(runtimeBySurface.get(decision.surface) ?? []), decision]);
+  }
+
+  return readinessSummaries
+    .map((readiness) => {
+      const closure = closureBySurface.get(readiness.surface);
+      const runtime = runtimeBySurface.get(readiness.surface) ?? [];
+      const blockerCodes = uniqueSorted([
+        ...readiness.attemptBlockerCodes,
+        ...runtime.flatMap((decision) => decision.blockerCodes),
+        ...(readiness.readyState === "missing_evidence" ? ["release_bundle_missing_evidence"] : [])
+      ]);
+      const gateVerdict = closure ? bundleGateVerdict(readiness, closure) : "missing_evidence";
+      const evidenceHealth: AdminRbacOverrideReleaseBundle["evidenceHealth"] =
+        readiness.releaseEvidenceStatus === "attached" &&
+        readiness.attemptCoverage === "covered" &&
+        readiness.attemptEvidenceStatus === "valid" &&
+        readiness.staleReplayCoverage !== "missing" &&
+        gateVerdict !== "missing_evidence"
+          ? "complete"
+          : "missing_evidence";
+
+      return {
+        surface: readiness.surface,
+        overrideScope: readiness.overrideScope,
+        targetCount: runtime.length,
+        evidenceIds: readiness.evidenceIds,
+        attemptIds: closure?.attemptIds ?? [],
+        staleReplayEvidenceIds: readiness.staleReplayCoverage === "covered" ? closure?.staleReplayEvidenceIds ?? [] : [],
+        auditRefs: readiness.auditRefs,
+        releaseEvidenceRequired: closure?.releaseEvidenceRequired ?? [],
+        closureEvidenceRefs: readiness.closureEvidenceRefs,
+        requiredRoles: readiness.requiredRoles,
+        effectiveDecisions: uniqueSorted(runtime.map((decision) => decision.effectiveDecision)),
+        runtimeOutcomes: uniqueSorted(runtime.map((decision) => decision.requestOutcome)),
+        attemptOutcomes: closure ? closure.attemptOutcomes : [],
+        gateVerdict,
+        releaseGateStatus: readiness.releaseGateStatus,
+        reviewHoldCount: runtime.filter((decision) => decision.effectiveDecision === "queue_for_review").length,
+        deniedMutationCount: runtime.filter((decision) => decision.effectiveDecision === "deny_mutation").length,
+        expiredReplayCount: runtime.filter((decision) => decision.requestOutcome === "denied_expired_override").length,
+        temporaryMutationCount: runtime.filter((decision) => decision.effectiveDecision === "allow_mutation").length,
+        evidenceHealth,
+        blockerCodes,
+        releaseUseAllowed:
+          gateVerdict === "release_ready_with_expiry" &&
+          evidenceHealth === "complete" &&
+          blockerCodes.length === 0 &&
+          readiness.releaseGateStatus === "release_use_allowed",
+        operatorAction:
+          gateVerdict === "release_ready_with_expiry"
+            ? "Allow only the audited temporary mutation in this bundle; keep expiry restoration and rollback evidence attached before release use."
+            : `Preserve ${readiness.overrideScope} state for ${readiness.surface}; use this bundle as release evidence only after the gate verdict becomes release_ready_with_expiry or the preserved gate is explicitly cited.`
       };
     })
     .sort((a, b) => a.surface.localeCompare(b.surface));

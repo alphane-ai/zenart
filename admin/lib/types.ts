@@ -1730,6 +1730,37 @@ export type AdminRbacReleaseReadinessSummary = {
   operatorAction: string;
 };
 
+export type AdminRbacOverrideReleaseBundle = {
+  surface: AdminReviewSurface;
+  overrideScope: AdminRbacEvidence["overrideScope"];
+  targetCount: number;
+  evidenceIds: string[];
+  attemptIds: string[];
+  staleReplayEvidenceIds: string[];
+  auditRefs: string[];
+  releaseEvidenceRequired: string[];
+  closureEvidenceRefs: string[];
+  requiredRoles: AdminRole[];
+  effectiveDecisions: AdminRbacRuntimeDecision["effectiveDecision"][];
+  runtimeOutcomes: AdminRbacRuntimeDecision["requestOutcome"][];
+  attemptOutcomes: AdminRbacOverrideAttemptDecision["requestOutcome"][];
+  gateVerdict:
+    | "release_ready_with_expiry"
+    | "gate_preserved_by_review"
+    | "gate_preserved_by_policy"
+    | "gate_preserved_by_stale_replay"
+    | "missing_evidence";
+  releaseGateStatus: AdminRbacReleaseReadinessSummary["releaseGateStatus"];
+  reviewHoldCount: number;
+  deniedMutationCount: number;
+  expiredReplayCount: number;
+  temporaryMutationCount: number;
+  evidenceHealth: "complete" | "missing_evidence";
+  blockerCodes: string[];
+  releaseUseAllowed: boolean;
+  operatorAction: string;
+};
+
 export type ReleaseEvidence = {
   id: string;
   target: string;

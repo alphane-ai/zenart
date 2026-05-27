@@ -65,6 +65,7 @@ import {
   buildAdminRbacClosureMatrix,
   buildAdminRbacEvidencePacks,
   buildAdminRbacOverrideAttemptDecisions,
+  buildAdminRbacOverrideReleaseBundles,
   buildAdminRbacReleaseEvidenceClosures,
   buildAdminRbacReleaseReadinessSummaries,
   buildAdminRbacRuntimeDecisions,
@@ -180,6 +181,21 @@ export async function getAdminRbacReleaseReadinessSummaries() {
   const closures = buildAdminRbacReleaseEvidenceClosures(evidencePacks, attemptDecisions, staleReplayDecisions);
 
   return buildAdminRbacReleaseReadinessSummaries(closures, evidencePacks);
+}
+
+export async function getAdminRbacOverrideReleaseBundles() {
+  const runtimeDecisions = buildAdminRbacRuntimeDecisions(adminRbacEvidence, new Date("2026-05-26T11:00:00Z"));
+  const attemptDecisions = buildAdminRbacOverrideAttemptDecisions(adminRbacOverrideAttempts, runtimeDecisions);
+  const staleReplayDecisions = buildAdminRbacStaleReplayDecisions(
+    adminRbacEvidence,
+    runtimeDecisions,
+    new Date("2026-05-26T19:00:00Z")
+  );
+  const evidencePacks = buildAdminRbacEvidencePacks(adminRbacEvidence, runtimeDecisions, staleReplayDecisions);
+  const closures = buildAdminRbacReleaseEvidenceClosures(evidencePacks, attemptDecisions, staleReplayDecisions);
+  const readinessSummaries = buildAdminRbacReleaseReadinessSummaries(closures, evidencePacks);
+
+  return buildAdminRbacOverrideReleaseBundles(readinessSummaries, closures, runtimeDecisions);
 }
 
 export async function getCrawlerFindings() {
