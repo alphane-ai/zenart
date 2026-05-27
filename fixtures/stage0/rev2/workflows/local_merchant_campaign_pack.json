@@ -621,6 +621,74 @@
       "export includes manifest.json, metadata.json, qa_report.json, trace_provenance.json"
     ]
   },
+  "runtime_evidence_contract": {
+    "environment": "local_alpha",
+    "release_gate_check_id": "local_alpha_e2e_workflow_smoke",
+    "release_gate_fixture_ref": "fixtures/stage0/rev2/release_gate_evidence.local_alpha.json",
+    "required_evidence": [
+      {
+        "kind": "api_smoke",
+        "path": "ops/evidence/local_alpha/local_merchant_campaign_pack.api_smoke.json",
+        "status": "pass",
+        "proves_running_local_stack": true
+      },
+      {
+        "kind": "playwright_happy_path",
+        "path": "ops/evidence/local_alpha/local_merchant_campaign_pack.playwright_happy_path.json",
+        "status": "pass",
+        "proves_running_local_stack": true
+      },
+      {
+        "kind": "export_zip",
+        "path": "ops/evidence/local_alpha/local_merchant_campaign_pack.export_zip.json",
+        "status": "pass",
+        "proves_running_local_stack": true
+      }
+    ],
+    "required_runtime_assertions": {
+      "operation_count": 8,
+      "candidate_count": 4,
+      "taxonomy_count": 4,
+      "packaged_taxonomy_count": 4,
+      "ready_zip_export_count": 1,
+      "missing_output_count": 0,
+      "qa_taxonomy_status": "pass",
+      "safety_status": "pass",
+      "interaction_steps": [
+        "brief_confirmed",
+        "storefront_reference_uploaded",
+        "four_local_merchant_candidates_visible",
+        "candidate_selected",
+        "iteration_created",
+        "all_local_merchant_taxonomy_candidates_packaged",
+        "zip_export_created",
+        "download_handoff_completed"
+      ],
+      "zip_payload_parity_status": "pass"
+    },
+    "required_export_payloads": [
+      "manifest.json",
+      "qa-report.json",
+      "safety-policy-report.json",
+      "provenance.json",
+      "ai-content-disclaimer.json",
+      "ppt-ready-metadata.json",
+      "assets/README.txt",
+      "assets/wechat_moment.png",
+      "assets/xiaohongshu_post.png",
+      "assets/store_print_poster.pdf",
+      "assets/delivery_cover.png",
+      "metadata.json",
+      "qa_report.json",
+      "trace_provenance.json"
+    ],
+    "blueprint_checklist_items": [
+      "本地商家活动包 API smoke test 通过。",
+      "本地商家活动包 Playwright happy path 通过。",
+      "本地商家活动包 export ZIP evidence 通过：`ops/evidence/local_alpha/local_merchant_campaign_pack.export_zip.json` proves manifest、QA report、safety report、provenance、metadata、AI disclaimer、trace payloads and four-option taxonomy。"
+    ],
+    "validator": "scripts/validate_workflow_acceptance_contract.py"
+  },
   "pass_thresholds": {
     "qa": {
       "blocking_allowed": false,

@@ -171,6 +171,13 @@ WORKFLOW_CHECKLIST_ITEMS = {
     },
 }
 
+WORKFLOW_EXPORT_ZIP_CHECKLIST_ITEMS = {
+    "ecommerce_growth_pack": "电商增长包 export ZIP evidence 通过：`ops/evidence/local_alpha/ecommerce_growth_pack.export_zip.json` proves manifest、QA report、safety report、provenance、metadata、AI disclaimer、trace payloads and four-option taxonomy。",
+    "business_visual_doc_pack": "商业视觉文档包 export ZIP evidence 通过：`ops/evidence/local_alpha/business_visual_doc_pack.export_zip.json` proves manifest、QA report、safety report、provenance、metadata、AI disclaimer、trace payloads and four-option taxonomy。",
+    "local_merchant_campaign_pack": "本地商家活动包 export ZIP evidence 通过：`ops/evidence/local_alpha/local_merchant_campaign_pack.export_zip.json` proves manifest、QA report、safety report、provenance、metadata、AI disclaimer、trace payloads and four-option taxonomy。",
+    "character_ip_concept_pack": "角色/IP 概念包 export ZIP evidence 通过：`ops/evidence/local_alpha/character_ip_concept_pack.export_zip.json` proves manifest、QA report、safety report、provenance、metadata、AI disclaimer、trace payloads and four-option taxonomy。",
+}
+
 WORKFLOW_RUNTIME_CLOSED_ITEMS = {
     "ecommerce_growth_pack": {
         "api",
@@ -193,6 +200,12 @@ WORKFLOW_RUNTIME_CLOSED_ITEMS = {
 WORKFLOW_RUNTIME_EVIDENCE_KIND = {
     "api": "api_smoke",
     "playwright": "playwright_happy_path",
+}
+
+RUNTIME_EVIDENCE_KINDS = {
+    "api_smoke",
+    "playwright_happy_path",
+    "export_zip",
 }
 
 DOMAIN_ACCEPTANCE_CONTRACTS = {
@@ -482,6 +495,124 @@ def validate_closed_runtime_evidence(workflow_id: str, item_key: str) -> None:
     require(evidence.get("proves_running_local_stack") is True, f"{workflow_id} {item_key} must prove running local stack")
 
 
+def validate_runtime_evidence_contract(workflow_id: str, workflow: dict[str, Any]) -> None:
+    contract = workflow["runtime_evidence_contract"]
+    golden_fixture_id = workflow["golden_fixture"]["fixture_id"]
+    evidence_refs = {item["kind"]: item for item in contract["required_evidence"]}
+
+    require(contract["environment"] == "local_alpha", f"{workflow_id} runtime evidence contract environment mismatch")
+    require(
+        contract["release_gate_check_id"] == "local_alpha_e2e_workflow_smoke",
+        f"{workflow_id} runtime evidence contract gate mismatch",
+    )
+    require(
+        contract["release_gate_fixture_ref"] == "fixtures/stage0/rev2/release_gate_evidence.local_alpha.json",
+        f"{workflow_id} runtime evidence contract release gate fixture mismatch",
+    )
+    require(set(evidence_refs) == RUNTIME_EVIDENCE_KINDS, f"{workflow_id} runtime evidence contract must cite API, Playwright, and export ZIP evidence")
+    require(len(evidence_refs) == len(contract["required_evidence"]), f"{workflow_id} runtime evidence contract duplicates evidence kinds")
+
+    evidence: dict[str, dict[str, Any]] = {}
+    for kind, ref in evidence_refs.items():
+        expected_path = f"ops/evidence/local_alpha/{workflow_id}.{kind}.json"
+        path = ROOT / ref["path"]
+        require(ref["path"] == expected_path, f"{workflow_id} {kind} runtime evidence path mismatch")
+        require(path.is_file(), f"{workflow_id} {kind} runtime evidence missing: {ref['path']}")
+        item = load_json(path)
+        evidence[kind] = item
+        require(item.get("schema_version") == "stage0.rev2.local-alpha-runtime-evidence", f"{workflow_id} {kind} evidence schema mismatch")
+        require(item.get("blueprint_source") == "Docs/stage0_blueprint_rev2.md", f"{workflow_id} {kind} evidence must cite Rev2 blueprint")
+        require(item.get("environment") == contract["environment"], f"{workflow_id} {kind} evidence environment mismatch")
+        require(item.get("workflow_id") == workflow_id, f"{workflow_id} {kind} evidence workflow mismatch")
+        require(item.get("fixture_id") == golden_fixture_id, f"{workflow_id} {kind} evidence fixture mismatch")
+        require(item.get("evidence_kind") == kind, f"{workflow_id} {kind} evidence kind mismatch")
+        require(item.get("status") == ref["status"] == "pass", f"{workflow_id} {kind} evidence must pass")
+        require(
+            item.get("release_gate_check_id") == contract["release_gate_check_id"],
+            f"{workflow_id} {kind} release gate check mismatch",
+        )
+        require(
+            item.get("release_gate_fixture_ref") == contract["release_gate_fixture_ref"],
+            f"{workflow_id} {kind} release gate fixture mismatch",
+        )
+        require(
+            item.get("proves_running_local_stack") is ref["proves_running_local_stack"] is True,
+            f"{workflow_id} {kind} evidence must prove running local stack",
+        )
+
+    runtime = contract["required_runtime_assertions"]
+    api = evidence["api_smoke"]
+    playwright = evidence["playwright_happy_path"]
+    export_zip = evidence["export_zip"]
+    api_assertions = api["assertions"]
+    export_ui = playwright["export_metadata_ui"]
+
+    require(api["operation_ids"] == RUNTIME_OPERATION_ORDER, f"{workflow_id} API runtime evidence operation order mismatch")
+    require(api["operation_count"] == runtime["operation_count"] == len(RUNTIME_OPERATION_ORDER), f"{workflow_id} API operation count mismatch")
+    for key in [
+        "candidate_count",
+        "taxonomy_count",
+        "packaged_taxonomy_count",
+        "ready_zip_export_count",
+        "missing_output_count",
+        "qa_taxonomy_status",
+        "safety_status",
+    ]:
+        require(api_assertions[key] == runtime[key], f"{workflow_id} API runtime assertion {key} mismatch")
+    require(runtime["candidate_count"] == workflow["golden_fixture"]["expected_candidate_count"], f"{workflow_id} runtime candidate count must match golden fixture")
+    require(runtime["taxonomy_count"] == len(workflow["four_option_taxonomy"]), f"{workflow_id} runtime taxonomy count mismatch")
+    require(runtime["packaged_taxonomy_count"] == len(workflow["four_option_taxonomy"]), f"{workflow_id} packaged taxonomy count mismatch")
+
+    require(
+        set(runtime["interaction_steps"]) == set(playwright["interaction_steps"]),
+        f"{workflow_id} Playwright interaction step contract mismatch",
+    )
+    require("brief_confirmed" in runtime["interaction_steps"], f"{workflow_id} runtime evidence must include brief confirmation")
+    require("candidate_selected" in runtime["interaction_steps"], f"{workflow_id} runtime evidence must include candidate selection")
+    require("iteration_created" in runtime["interaction_steps"], f"{workflow_id} runtime evidence must include iteration")
+    require("zip_export_created" in runtime["interaction_steps"], f"{workflow_id} runtime evidence must include ZIP export creation")
+    require("download_handoff_completed" in runtime["interaction_steps"], f"{workflow_id} runtime evidence must include download handoff")
+    require(
+        any("four" in step and "candidates_visible" in step for step in runtime["interaction_steps"]),
+        f"{workflow_id} runtime evidence must include four-candidate visibility",
+    )
+    require(
+        any("taxonomy_candidates_packaged" in step for step in runtime["interaction_steps"]),
+        f"{workflow_id} runtime evidence must include taxonomy package coverage",
+    )
+    require(export_ui["missingOutputCount"] == str(runtime["missing_output_count"]), f"{workflow_id} UI missing output count mismatch")
+    require(export_ui["zipPayloadParityStatus"] == runtime["zip_payload_parity_status"] == "pass", f"{workflow_id} ZIP payload parity mismatch")
+    require(playwright["downloaded_file_name"].endswith(".zip"), f"{workflow_id} Playwright evidence must download a ZIP")
+
+    required_payloads = set(contract["required_export_payloads"])
+    require(required_payloads == set(export_zip["required_payloads"]), f"{workflow_id} export ZIP required payload contract mismatch")
+    require(required_payloads <= set(export_zip["payloads"]), f"{workflow_id} export ZIP evidence missing required payloads")
+    require(export_zip["missing_payloads"] == [], f"{workflow_id} export ZIP evidence must have no missing payloads")
+    require(export_zip["manifest"]["workflow_acceptance"]["workflow_id"] == workflow_id, f"{workflow_id} export manifest workflow mismatch")
+    require(export_zip["manifest"]["workflow_acceptance"]["fixture_id"] == golden_fixture_id, f"{workflow_id} export manifest fixture mismatch")
+    require(
+        export_zip["manifest"]["workflow_acceptance"]["strategy_taxonomy"] == workflow["four_option_taxonomy"],
+        f"{workflow_id} export manifest taxonomy mismatch",
+    )
+    require(
+        set(export_zip["manifest"]["workflow_acceptance"]["required_files"]) == set(workflow["export_targets"][0]["required_files"]),
+        f"{workflow_id} export manifest required files mismatch",
+    )
+    require(export_zip["qa_report"]["blocking_count"] == 0, f"{workflow_id} export ZIP QA report must not contain blocking findings")
+    require(export_zip["safety_report"]["status"] == runtime["safety_status"] == "pass", f"{workflow_id} export ZIP safety status mismatch")
+
+    expected_checklist = {
+        WORKFLOW_CHECKLIST_ITEMS[workflow_id]["api"],
+        WORKFLOW_CHECKLIST_ITEMS[workflow_id]["playwright"],
+        WORKFLOW_EXPORT_ZIP_CHECKLIST_ITEMS[workflow_id],
+    }
+    require(set(contract["blueprint_checklist_items"]) == expected_checklist, f"{workflow_id} runtime evidence checklist labels mismatch")
+    checked = checked_items(BLUEPRINT.read_text(encoding="utf-8"))
+    for item in contract["blueprint_checklist_items"]:
+        require(item in checked, f"{workflow_id} runtime evidence checklist item is not checked in blueprint: {item}")
+    require(contract["validator"] == "scripts/validate_workflow_acceptance_contract.py", f"{workflow_id} runtime evidence validator mismatch")
+
+
 def validate_api_smoke_sequence(workflow_id: str, workflow: dict[str, Any], openapi: str, operations: dict[str, dict[str, str]]) -> None:
     contract = workflow["api_smoke_contract"]
     sequence = contract["request_sequence"]
@@ -670,6 +801,7 @@ def validate_blueprint_split(workflows: dict[str, dict[str, Any]]) -> None:
                 require(items[item_key] in unchecked, f"{workflow_id} {label} checklist item must remain open")
                 require(items[item_key] not in checked, f"{workflow_id} {label} must not be checked without runtime evidence")
         workflow = workflows[workflow_id]
+        validate_runtime_evidence_contract(workflow_id, workflow)
         if "api" in closed_items:
             require(
                 workflow["api_smoke_contract"]["execution_status"] == "not_executed",

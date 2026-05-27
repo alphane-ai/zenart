@@ -21,6 +21,7 @@
     "contract_evidence",
     "api_smoke_contract",
     "playwright_happy_path_contract",
+    "runtime_evidence_contract",
     "pass_thresholds",
     "golden_fixture",
     "provenance"
@@ -817,6 +818,142 @@
             "type": "string",
             "minLength": 1
           }
+        }
+      }
+    },
+    "runtime_evidence_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "environment",
+        "release_gate_check_id",
+        "release_gate_fixture_ref",
+        "required_evidence",
+        "required_runtime_assertions",
+        "required_export_payloads",
+        "blueprint_checklist_items",
+        "validator"
+      ],
+      "properties": {
+        "environment": {
+          "const": "local_alpha"
+        },
+        "release_gate_check_id": {
+          "const": "local_alpha_e2e_workflow_smoke"
+        },
+        "release_gate_fixture_ref": {
+          "const": "fixtures/stage0/rev2/release_gate_evidence.local_alpha.json"
+        },
+        "required_evidence": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "kind",
+              "path",
+              "status",
+              "proves_running_local_stack"
+            ],
+            "properties": {
+              "kind": {
+                "enum": [
+                  "api_smoke",
+                  "playwright_happy_path",
+                  "export_zip"
+                ]
+              },
+              "path": {
+                "type": "string",
+                "pattern": "^ops/evidence/local_alpha/[a-z0-9_]+\\.(api_smoke|playwright_happy_path|export_zip)\\.json$"
+              },
+              "status": {
+                "const": "pass"
+              },
+              "proves_running_local_stack": {
+                "const": true
+              }
+            }
+          }
+        },
+        "required_runtime_assertions": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "operation_count",
+            "candidate_count",
+            "taxonomy_count",
+            "packaged_taxonomy_count",
+            "ready_zip_export_count",
+            "missing_output_count",
+            "qa_taxonomy_status",
+            "safety_status",
+            "interaction_steps",
+            "zip_payload_parity_status"
+          ],
+          "properties": {
+            "operation_count": {
+              "const": 8
+            },
+            "candidate_count": {
+              "const": 4
+            },
+            "taxonomy_count": {
+              "const": 4
+            },
+            "packaged_taxonomy_count": {
+              "const": 4
+            },
+            "ready_zip_export_count": {
+              "const": 1
+            },
+            "missing_output_count": {
+              "const": 0
+            },
+            "qa_taxonomy_status": {
+              "const": "pass"
+            },
+            "safety_status": {
+              "const": "pass"
+            },
+            "interaction_steps": {
+              "type": "array",
+              "minItems": 8,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "zip_payload_parity_status": {
+              "const": "pass"
+            }
+          }
+        },
+        "required_export_payloads": {
+          "type": "array",
+          "minItems": 8,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "blueprint_checklist_items": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "validator": {
+          "const": "scripts/validate_workflow_acceptance_contract.py"
         }
       }
     },
