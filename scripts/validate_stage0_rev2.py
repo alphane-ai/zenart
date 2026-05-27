@@ -618,6 +618,13 @@ PRIVATE_BETA_CLEARED_CONDITION_STATE_GUARD_CHECKLIST_ITEM = (
     "runtime evidence, so cleared fixture rows cannot drift outside the validator-owned launch-condition map。"
 )
 
+RELEASE_GATE_DECISION_STATUS_TOKEN_GUARD_CHECKLIST_ITEM = (
+    "Release gate decision status-token guard 通过：`scripts/validate_stage0_rev2.py` requires every "
+    "`gate_decision.evidence_ref` to include the exact `gate_decision.status=go|no_go` token for its own "
+    "fixture, and production upstream dependency refs must name upstream `gate_decision.status`, so fixture "
+    "existence cannot be misread as Local Alpha、CI、Private Beta/Staging、Production、or Do-Not-Launch clearance。"
+)
+
 README_GATE_SNAPSHOT_REQUIREMENTS = {
     "Local Alpha Gate": {
         "expected_status": "go",
@@ -2769,6 +2776,7 @@ CHECKED_ITEMS = {
     GATE_IMPACT_CLOSED_SCHEMA_GUARD_CHECKLIST_ITEM,
     GATE_IMPACT_CHECK_ID_MATCH_GUARD_CHECKLIST_ITEM,
     PRIVATE_BETA_CLEARED_CONDITION_STATE_GUARD_CHECKLIST_ITEM,
+    RELEASE_GATE_DECISION_STATUS_TOKEN_GUARD_CHECKLIST_ITEM,
     BROAD_RUNTIME_EVIDENCE_DIRECTORY_GUARD_CHECKLIST_ITEM,
     "Backfill Local Alpha release gate fixture evidence: workflow/eval/crawler/schema/service/runtime-stack checks pass in `fixtures/stage0/rev2/release_gate_evidence.local_alpha.json`。",
     "Backfill CI draft/no-go evidence: ops CI draft coverage passes while installed `.github/workflows` runtime remains blocked in `fixtures/stage0/rev2/release_gate_evidence.ci.json`。",
@@ -5157,6 +5165,11 @@ def validate_gate_decision(data: dict[str, Any]) -> None:
     require(
         rel(RELEASE_GATE_EVIDENCE_FILES[gate]) in evidence_ref,
         f"{gate} gate_decision evidence must cite its release gate fixture",
+    )
+    expected_status_token = f"gate_decision.status={expected_status}"
+    require(
+        expected_status_token in evidence_ref,
+        f"{gate} gate_decision evidence must include exact self status token {expected_status_token!r}",
     )
     aggregate_item = RELEASE_GATE_AGGREGATE_ITEMS[gate]
     require(
@@ -11534,7 +11547,9 @@ def validate_launch_readiness_split_contracts() -> None:
         BROAD_RUNTIME_EVIDENCE_DIRECTORY_GUARD_CHECKLIST_ITEM,
         RELEASE_GATE_FIXTURE_IDENTITY_GUARD_CHECKLIST_ITEM,
         GATE_IMPACT_CLOSED_SCHEMA_GUARD_CHECKLIST_ITEM,
+        GATE_IMPACT_CHECK_ID_MATCH_GUARD_CHECKLIST_ITEM,
         PRIVATE_BETA_CLEARED_CONDITION_STATE_GUARD_CHECKLIST_ITEM,
+        RELEASE_GATE_DECISION_STATUS_TOKEN_GUARD_CHECKLIST_ITEM,
     ] + sorted(RELEASE_GATE_BACKFILL_CHECKED_ITEMS):
         require(item in checked_lines, f"blueprint must close definition-only evidence subitem: {item}")
 
@@ -11715,6 +11730,7 @@ def validate_launch_readiness_split_contracts() -> None:
         GATE_IMPACT_CLOSED_SCHEMA_GUARD_CHECKLIST_ITEM,
         GATE_IMPACT_CHECK_ID_MATCH_GUARD_CHECKLIST_ITEM,
         PRIVATE_BETA_CLEARED_CONDITION_STATE_GUARD_CHECKLIST_ITEM,
+        RELEASE_GATE_DECISION_STATUS_TOKEN_GUARD_CHECKLIST_ITEM,
         "rejects unknown `gate_impact` keys in runtime evidence",
         "nested `gate_impact.release_gate_check_id` must equal the artifact top-level `release_gate_check_id`",
         "copied gate metadata cannot close the wrong Local Alpha、CI、Private Beta/Staging、Production, or Do-Not-Launch row",
@@ -11763,6 +11779,8 @@ def validate_launch_readiness_split_contracts() -> None:
         "A release gate evidence ref may not cite another `fixtures/stage0/rev2/release_gate_evidence.*.json` file as direct runtime proof",
         "Production `ci_staging_gates_not_passed`",
         "must name their `gate_decision.status`, not treat their presence as clearance",
+        "Every release gate fixture `gate_decision.evidence_ref` must include the exact self status token `gate_decision.status=go` or `gate_decision.status=no_go`",
+        "so fixture presence cannot be misread as aggregate gate or Do-Not-Launch clearance",
         "Every release gate check, Do-Not-Launch condition, and gate decision has a validator-owned evidence path allowlist",
         "an evidence_ref that cites a concrete repo path outside that check/condition/decision allowlist is invalid",
         "The evidence path allowlist is closed-world per check/condition/decision",
