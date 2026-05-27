@@ -1262,7 +1262,7 @@ func TestAdminObjectStorageCleanupProbeRoutesAllowOperatorSmokeMode(t *testing.T
 				pgconn.NewCommandTag("SELECT 1"),
 			}}
 			recorder := &fakeAuditRecorder{}
-			req := httptest.NewRequest(http.MethodPost, tc.path, bytes.NewBufferString(`{"mode":"stage0_retention_cleanup_smoke"}`))
+			req := httptest.NewRequest(http.MethodPost, tc.path, bytes.NewBufferString(`{"mode":"stage0_retention_cleanup_smoke","second_reviewer_id":"admin_super_2","second_reviewer_role":"admin_superadmin","second_review_rationale":"approved retention cleanup smoke"}`))
 			req = req.WithContext(audit.ContextWithRecorder(stage0.ContextWithService(req.Context(), stage0.NewService(stage0.NewRepository(db), nil)), recorder))
 			req.Header.Set("X-Zenart-User-ID", "admin_operator_1")
 			req.Header.Set("X-Zenart-Tenant-ID", "tenant_1")
@@ -1324,7 +1324,7 @@ func TestAdminExportCleanupRunsServiceAndRecordsAudit(t *testing.T) {
 	}}
 	recorder := &fakeAuditRecorder{}
 
-	req := httptest.NewRequest(http.MethodPost, "/api/admin/v1/exports/cleanup", bytes.NewBufferString(`{"rationale":"staging retention cleanup token=npm_abcdefghijklmnopqrstuvwxyz123456","limit":999}`))
+	req := httptest.NewRequest(http.MethodPost, "/api/admin/v1/exports/cleanup", bytes.NewBufferString(`{"rationale":"staging retention cleanup token=npm_abcdefghijklmnopqrstuvwxyz123456","limit":999,"second_reviewer_id":"admin_operator_2","second_reviewer_role":"admin_operator","second_review_rationale":"approved object retention cleanup after review"}`))
 	req = req.WithContext(audit.ContextWithRecorder(stage0.ContextWithService(req.Context(), stage0.NewService(stage0.NewRepository(db), nil)), recorder))
 	req.Header.Set("X-Zenart-User-ID", "admin_super_1")
 	req.Header.Set("X-Zenart-Tenant-ID", "tenant_1")
@@ -1362,6 +1362,9 @@ func TestAdminExportCleanupRunsServiceAndRecordsAudit(t *testing.T) {
 	if requestEvent.Metadata["rationale"] != "staging retention cleanup token="+security.Redacted || requestEvent.Metadata["limit"] != 500 || requestEvent.Metadata["dry_run"] != false {
 		t.Fatalf("request audit metadata = %#v, want redacted rationale and capped limit", requestEvent.Metadata)
 	}
+	if requestEvent.Metadata["second_reviewer_id"] != "admin_operator_2" || requestEvent.Metadata["second_reviewer_role"] != "admin_operator" || requestEvent.Metadata["second_review_rationale"] != "approved object retention cleanup after review" {
+		t.Fatalf("request audit second review metadata = %#v", requestEvent.Metadata)
+	}
 	event := recorder.events[1]
 	if event.TenantID != "tenant_1" || event.ActorID != "admin_super_1" || event.Action != "export.cleanup" || event.Resource != "object_storage_cleanup" {
 		t.Fatalf("audit event = %#v", event)
@@ -1374,6 +1377,91 @@ func TestAdminExportCleanupRunsServiceAndRecordsAudit(t *testing.T) {
 	}
 	if event.Metadata["failed_objects"] != 0 || event.Metadata["cleanup_status"] != "completed" {
 		t.Fatalf("audit cleanup status metadata = %#v, want completed with no failed objects", event.Metadata)
+	}
+	if event.Metadata["high_risk"] != true || event.Metadata["second_review_required"] != true || event.Metadata["second_reviewer_id"] != "admin_operator_2" {
+		t.Fatalf("audit second review metadata = %#v", event.Metadata)
+	}
+}
+
+func TestAdminExportCleanupRequiresSecondReviewForDestructiveRun(t *testing.T) {
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	cfg.Auth.AdminDevIdentityHeaders = true
+	db := &fakeStage0DB{execTags: []pgconn.CommandTag{
+		pgconn.NewCommandTag("UPDATE 2"),
+		pgconn.NewCommandTag("UPDATE 1"),
+	}}
+	recorder := &fakeAuditRecorder{}
+
+	req := httptest.NewRequest(http.MethodPost, "/api/admin/v1/exports/cleanup", bytes.NewBufferString(`{"rationale":"staging retention cleanup","limit":25}`))
+	req = req.WithContext(audit.ContextWithRecorder(stage0.ContextWithService(req.Context(), stage0.NewService(stage0.NewRepository(db), nil)), recorder))
+	req.Header.Set("X-Zenart-User-ID", "admin_super_1")
+	req.Header.Set("X-Zenart-Tenant-ID", "tenant_1")
+	req.Header.Set("X-Zenart-Roles", "admin_superadmin")
+	setSameSiteCSRFHeaders(req)
+	rec := httptest.NewRecorder()
+
+	New(cfg, nil).Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want %d: %s", rec.Code, http.StatusBadRequest, rec.Body.String())
+	}
+	var body map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("response JSON error = %v", err)
+	}
+	if body["code"] != "second_review_required" {
+		t.Fatalf("code = %v, want second_review_required", body["code"])
+	}
+	details := body["details"].(map[string]any)
+	if details["field"] != "second_reviewer_id" {
+		t.Fatalf("details = %#v, want second_reviewer_id", details)
+	}
+	if len(db.execs) != 0 || len(recorder.events) != 0 {
+		t.Fatalf("cleanup mutated or audited without second review: execs=%#v events=%#v", db.execs, recorder.events)
+	}
+}
+
+func TestAdminExportCleanupRequiresSecondReviewerCleanupPermission(t *testing.T) {
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	cfg.Auth.AdminDevIdentityHeaders = true
+	db := &fakeStage0DB{execTags: []pgconn.CommandTag{
+		pgconn.NewCommandTag("UPDATE 2"),
+		pgconn.NewCommandTag("UPDATE 1"),
+	}}
+	recorder := &fakeAuditRecorder{}
+
+	req := httptest.NewRequest(http.MethodPost, "/api/admin/v1/exports/cleanup", bytes.NewBufferString(`{"rationale":"staging retention cleanup","limit":25,"second_reviewer_id":"admin_viewer_2","second_reviewer_role":"admin_viewer","second_review_rationale":"approved cleanup"}`))
+	req = req.WithContext(audit.ContextWithRecorder(stage0.ContextWithService(req.Context(), stage0.NewService(stage0.NewRepository(db), nil)), recorder))
+	req.Header.Set("X-Zenart-User-ID", "admin_super_1")
+	req.Header.Set("X-Zenart-Tenant-ID", "tenant_1")
+	req.Header.Set("X-Zenart-Roles", "admin_superadmin")
+	setSameSiteCSRFHeaders(req)
+	rec := httptest.NewRecorder()
+
+	New(cfg, nil).Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want %d: %s", rec.Code, http.StatusBadRequest, rec.Body.String())
+	}
+	var body map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("response JSON error = %v", err)
+	}
+	if body["code"] != "second_review_required" {
+		t.Fatalf("code = %v, want second_review_required", body["code"])
+	}
+	details := body["details"].(map[string]any)
+	if details["field"] != "second_reviewer_role" || details["required_permission"] != "object_retention_cleanup:admin" {
+		t.Fatalf("details = %#v, want second reviewer cleanup permission evidence", details)
+	}
+	if len(db.execs) != 0 || len(recorder.events) != 0 {
+		t.Fatalf("cleanup mutated or audited without eligible second reviewer: execs=%#v events=%#v", db.execs, recorder.events)
 	}
 }
 
@@ -1459,7 +1547,7 @@ func TestAdminExportCleanupFailsClosedWithoutAuditRecorder(t *testing.T) {
 		pgconn.NewCommandTag("UPDATE 1"),
 	}}
 
-	req := httptest.NewRequest(http.MethodPost, "/api/admin/v1/exports/cleanup", bytes.NewBufferString(`{"rationale":"staging retention cleanup","limit":25}`))
+	req := httptest.NewRequest(http.MethodPost, "/api/admin/v1/exports/cleanup", bytes.NewBufferString(`{"rationale":"staging retention cleanup","limit":25,"second_reviewer_id":"admin_operator_2","second_reviewer_role":"admin_operator","second_review_rationale":"approved cleanup"}`))
 	req = req.WithContext(stage0.ContextWithService(req.Context(), stage0.NewService(stage0.NewRepository(db), nil)))
 	req.Header.Set("X-Zenart-User-ID", "admin_super_1")
 	req.Header.Set("X-Zenart-Tenant-ID", "tenant_1")
@@ -1496,7 +1584,7 @@ func TestAdminExportCleanupFailsClosedWhenRequestAuditCannotRecord(t *testing.T)
 	}}
 	recorder := &fakeAuditRecorder{err: errors.New("audit unavailable")}
 
-	req := httptest.NewRequest(http.MethodPost, "/api/admin/v1/exports/cleanup", bytes.NewBufferString(`{"rationale":"staging retention cleanup","limit":25}`))
+	req := httptest.NewRequest(http.MethodPost, "/api/admin/v1/exports/cleanup", bytes.NewBufferString(`{"rationale":"staging retention cleanup","limit":25,"second_reviewer_id":"admin_operator_2","second_reviewer_role":"admin_operator","second_review_rationale":"approved cleanup"}`))
 	req = req.WithContext(audit.ContextWithRecorder(stage0.ContextWithService(req.Context(), stage0.NewService(stage0.NewRepository(db), nil)), recorder))
 	req.Header.Set("X-Zenart-User-ID", "admin_super_1")
 	req.Header.Set("X-Zenart-Tenant-ID", "tenant_1")
@@ -1544,7 +1632,7 @@ func TestAdminExportCleanupAuditsFailureResult(t *testing.T) {
 	recorder := &fakeAuditRecorder{}
 	objects := &serverObjectStore{deleteErr: objectstore.ErrTenantDenied}
 
-	req := httptest.NewRequest(http.MethodPost, "/api/admin/v1/exports/cleanup", bytes.NewBufferString(`{"rationale":"staging cleanup token=npm_abcdefghijklmnopqrstuvwxyz123456","limit":25}`))
+	req := httptest.NewRequest(http.MethodPost, "/api/admin/v1/exports/cleanup", bytes.NewBufferString(`{"rationale":"staging cleanup token=npm_abcdefghijklmnopqrstuvwxyz123456","limit":25,"second_reviewer_id":"admin_operator_2","second_reviewer_role":"admin_operator","second_review_rationale":"approved cleanup after Bearer abcdefghijklmnop"}`))
 	req = req.WithContext(audit.ContextWithRecorder(stage0.ContextWithService(req.Context(), stage0.NewService(stage0.NewRepository(db), objects)), recorder))
 	req.Header.Set("X-Zenart-User-ID", "admin_super_1")
 	req.Header.Set("X-Zenart-Tenant-ID", "tenant_1")
@@ -1569,6 +1657,9 @@ func TestAdminExportCleanupAuditsFailureResult(t *testing.T) {
 	}
 	if failed.Metadata["rationale"] != "staging cleanup token="+security.Redacted {
 		t.Fatalf("failed audit rationale = %#v, want redacted token", failed.Metadata["rationale"])
+	}
+	if failed.Metadata["second_review_rationale"] != "approved cleanup after Bearer "+security.Redacted {
+		t.Fatalf("failed audit second review rationale = %#v, want redacted bearer", failed.Metadata["second_review_rationale"])
 	}
 	if errorMessage, _ := failed.Metadata["error"].(string); errorMessage == "" || strings.Contains(errorMessage, "npm_abcdefghijklmnopqrstuvwxyz123456") {
 		t.Fatalf("failed audit error = %#v, want redacted non-empty error", failed.Metadata["error"])

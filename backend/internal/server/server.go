@@ -777,10 +777,13 @@ func (s *Server) cleanupExportsWithMode(w http.ResponseWriter, r *http.Request, 
 		return
 	}
 	var input struct {
-		Rationale string `json:"rationale"`
-		Mode      string `json:"mode"`
-		Limit     int    `json:"limit"`
-		DryRun    bool   `json:"dry_run"`
+		Rationale             string `json:"rationale"`
+		Mode                  string `json:"mode"`
+		Limit                 int    `json:"limit"`
+		DryRun                bool   `json:"dry_run"`
+		SecondReviewerID      string `json:"second_reviewer_id"`
+		SecondReviewerRole    string `json:"second_reviewer_role"`
+		SecondReviewRationale string `json:"second_review_rationale"`
 	}
 	if err := readOptionalJSON(r, &input); err != nil {
 		writeError(w, r, http.StatusBadRequest, "invalid_json", "request body must be valid JSON", nil)
@@ -803,6 +806,15 @@ func (s *Server) cleanupExportsWithMode(w http.ResponseWriter, r *http.Request, 
 	if limit > 500 {
 		limit = 500
 	}
+	secondReview, reviewErr := validateAdminSecondReview(r.Context(), principal, adminSecondReviewInput{
+		ReviewerID: input.SecondReviewerID,
+		Role:       input.SecondReviewerRole,
+		Rationale:  input.SecondReviewRationale,
+	}, auth.PermissionObjectCleanupAdmin, "object retention cleanup")
+	if reviewErr != nil && !input.DryRun {
+		writeError(w, r, http.StatusBadRequest, "second_review_required", reviewErr.Error(), secondReview.Details)
+		return
+	}
 	recorder, ok := audit.RecorderFromContext(r.Context())
 	if !ok {
 		writeError(w, r, http.StatusNotImplemented, "cleanup_audit_not_connected", "object retention cleanup audit logging is not connected yet", nil)
@@ -814,10 +826,15 @@ func (s *Server) cleanupExportsWithMode(w http.ResponseWriter, r *http.Request, 
 		action = "export.cleanup.preview"
 	}
 	if err := s.recordCleanupAudit(r.Context(), recorder, principal, action+".requested", now, map[string]any{
-		"rationale": rationale,
-		"limit":     limit,
-		"dry_run":   input.DryRun,
-		"mode":      mode,
+		"rationale":               rationale,
+		"limit":                   limit,
+		"dry_run":                 input.DryRun,
+		"mode":                    mode,
+		"high_risk":               !input.DryRun,
+		"second_review_required":  !input.DryRun,
+		"second_reviewer_id":      secondReview.ReviewerID,
+		"second_reviewer_role":    string(secondReview.Role),
+		"second_review_rationale": secondReview.Rationale,
 	}); err != nil {
 		writeError(w, r, http.StatusInternalServerError, "audit_record_error", "object retention cleanup audit request record could not be written", nil)
 		return
@@ -830,11 +847,11 @@ func (s *Server) cleanupExportsWithMode(w http.ResponseWriter, r *http.Request, 
 		result, err = service.CleanupExpiredExportsAndOrphanedObjectsForTenantMode(r.Context(), principal.TenantID, now, limit, stage0.CleanupMode(mode))
 	}
 	if err != nil {
-		_ = s.recordCleanupAudit(r.Context(), recorder, principal, action+".failed", now, cleanupAuditMetadata(rationale, limit, input.DryRun, mode, result, security.RedactString(err.Error())))
+		_ = s.recordCleanupAudit(r.Context(), recorder, principal, action+".failed", now, cleanupAuditMetadata(rationale, limit, input.DryRun, mode, result, security.RedactString(err.Error()), secondReview))
 		writeStage0Error(w, r, err)
 		return
 	}
-	if err := s.recordCleanupAudit(r.Context(), recorder, principal, action, now, cleanupAuditMetadata(rationale, limit, input.DryRun, mode, result, "")); err != nil {
+	if err := s.recordCleanupAudit(r.Context(), recorder, principal, action, now, cleanupAuditMetadata(rationale, limit, input.DryRun, mode, result, "", secondReview)); err != nil {
 		writeError(w, r, http.StatusInternalServerError, "audit_record_error", "object retention cleanup audit record could not be written", nil)
 		return
 	}
@@ -853,23 +870,70 @@ func (s *Server) recordCleanupAudit(ctx context.Context, recorder audit.Recorder
 	})
 }
 
-func cleanupAuditMetadata(rationale string, limit int, dryRun bool, mode string, result stage0.CleanupResult, errorMessage string) map[string]any {
+func cleanupAuditMetadata(rationale string, limit int, dryRun bool, mode string, result stage0.CleanupResult, errorMessage string, secondReview adminSecondReview) map[string]any {
 	metadata := map[string]any{
-		"rationale":        rationale,
-		"limit":            limit,
-		"dry_run":          dryRun,
-		"mode":             mode,
-		"preview_objects":  result.PreviewObjects,
-		"expired_exports":  result.ExpiredExports,
-		"orphaned_objects": result.OrphanedObjects,
-		"deleted_objects":  result.DeletedObjects,
-		"failed_objects":   result.FailedObjects,
-		"cleanup_status":   result.Status,
+		"rationale":               rationale,
+		"limit":                   limit,
+		"dry_run":                 dryRun,
+		"mode":                    mode,
+		"high_risk":               !dryRun,
+		"second_review_required":  !dryRun,
+		"second_reviewer_id":      secondReview.ReviewerID,
+		"second_reviewer_role":    string(secondReview.Role),
+		"second_review_rationale": secondReview.Rationale,
+		"preview_objects":         result.PreviewObjects,
+		"expired_exports":         result.ExpiredExports,
+		"orphaned_objects":        result.OrphanedObjects,
+		"deleted_objects":         result.DeletedObjects,
+		"failed_objects":          result.FailedObjects,
+		"cleanup_status":          result.Status,
 	}
 	if errorMessage != "" {
 		metadata["error"] = errorMessage
 	}
 	return metadata
+}
+
+type adminSecondReviewInput struct {
+	ReviewerID string
+	Role       string
+	Rationale  string
+}
+
+type adminSecondReview struct {
+	ReviewerID string
+	Role       auth.Role
+	Rationale  string
+	Details    map[string]any
+}
+
+func validateAdminSecondReview(ctx context.Context, principal auth.Principal, input adminSecondReviewInput, permission auth.Permission, operation string) (adminSecondReview, error) {
+	review := adminSecondReview{
+		ReviewerID: strings.TrimSpace(input.ReviewerID),
+		Rationale:  security.RedactString(strings.TrimSpace(input.Rationale)),
+	}
+	if review.ReviewerID == "" || review.ReviewerID == principal.UserID {
+		review.Details = map[string]any{"field": "second_reviewer_id"}
+		return review, fmt.Errorf("admin %s requires a distinct second reviewer", operation)
+	}
+	role, ok := auth.ParseRole(input.Role)
+	review.Role = role
+	if !ok || !auth.Authorize(ctx, auth.Principal{
+		UserID:   review.ReviewerID,
+		TenantID: principal.TenantID,
+		Roles:    []auth.Role{role},
+	}, auth.Policy{Required: permission}) {
+		review.Details = map[string]any{
+			"field":               "second_reviewer_role",
+			"required_permission": string(permission),
+		}
+		return review, fmt.Errorf("admin %s requires a second reviewer with %s permission", operation, permission)
+	}
+	if review.Rationale == "" || review.Rationale == security.Redacted {
+		review.Details = map[string]any{"field": "second_review_rationale"}
+		return review, fmt.Errorf("admin %s requires a non-secret second-review rationale", operation)
+	}
+	return review, nil
 }
 
 func cleanupResponseWithMode(result stage0.CleanupResult, mode string) map[string]any {
