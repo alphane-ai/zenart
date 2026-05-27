@@ -146,6 +146,7 @@ const formatUnsafeActionGuardContracts = () =>
 const guardedOperationIds = Array.from(
   new Set(sameSiteUnsafeActionGuardLabels.flatMap((label) => sameSiteUnsafeActionGuardMap[label]))
 );
+const guardedOperationIdSet = new Set<keyof typeof apiOperations>(guardedOperationIds);
 
 const requiresAuthenticatedSession = (label: string) => !sessionSafeActionLabels.has(label);
 
@@ -407,6 +408,10 @@ function SessionPanel({
   const csrfProtectedMethods = evidence.protectedMethods.join(", ");
   const sameSiteRequirement = state.sessionContract.csrf.sameSiteRequired;
   const unsafeActionGuardContracts = formatUnsafeActionGuardContracts();
+  const missingGuardedUnsafeOperationIds = generatedRequestEvidence.unsafeOperationIds.filter(
+    (operationId) => !guardedOperationIdSet.has(operationId as keyof typeof apiOperations)
+  );
+  const unsafeActionGuardCoverageStatus = missingGuardedUnsafeOperationIds.length === 0 ? "pass" : "fail";
   const unsafeActionCsrfProtectedOperationCount = guardedOperationIds.filter((operationId) =>
     state.sessionContract.csrf.protectedMethods.includes(
       apiOperations[operationId].method as (typeof state.sessionContract.csrf.protectedMethods)[number]
@@ -447,6 +452,10 @@ function SessionPanel({
       data-session-unsafe-action-operation-count={guardedOperationIds.length}
       data-session-unsafe-action-csrf-protected-operation-count={unsafeActionCsrfProtectedOperationCount}
       data-session-unsafe-action-operation-contracts={unsafeActionGuardContracts}
+      data-session-unsafe-action-generated-unsafe-operations={generatedRequestEvidence.unsafeOperationIds.join(",")}
+      data-session-unsafe-action-guard-coverage-status={unsafeActionGuardCoverageStatus}
+      data-session-unsafe-action-missing-csrf-operation-count={missingGuardedUnsafeOperationIds.length}
+      data-session-unsafe-action-missing-csrf-operations={missingGuardedUnsafeOperationIds.join(",")}
     >
       <div className="session-contract-main">
         <ShieldCheck size={18} aria-hidden="true" />

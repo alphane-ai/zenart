@@ -43,6 +43,13 @@ describe("WorkspaceApp user route integration smoke", () => {
     ]);
     expect(sessionContract).toHaveAttribute("data-session-unsafe-action-operation-count", "18");
     expect(sessionContract).toHaveAttribute("data-session-unsafe-action-csrf-protected-operation-count", "15");
+    expect(sessionContract).toHaveAttribute(
+      "data-session-unsafe-action-generated-unsafe-operations",
+      "deleteSession,updateAccount,createProject,updateProject,createChatSession,createChatMessage,createCandidateSet,selectDirection,createCanvasNode,createCanvasVersion,createUpload,createPackage,createExport,createShareLink,createSupportTicket"
+    );
+    expect(sessionContract).toHaveAttribute("data-session-unsafe-action-guard-coverage-status", "pass");
+    expect(sessionContract).toHaveAttribute("data-session-unsafe-action-missing-csrf-operation-count", "0");
+    expect(sessionContract).toHaveAttribute("data-session-unsafe-action-missing-csrf-operations", "");
     expect(sessionContract.getAttribute("data-session-unsafe-action-operation-contracts")).toContain(
       "Confirm Brief=>createChatSession:POST:X-ZenArt-CSRF:true+createChatMessage:POST:X-ZenArt-CSRF:true+createCandidateSet:POST:X-ZenArt-CSRF:true"
     );

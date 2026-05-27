@@ -46,6 +46,11 @@ test("account route exposes secure-cookie, same-site CSRF, and unsafe-action gua
   await expect(sessionContract).toHaveAttribute("data-session-unsafe-action-guard-count", "18");
   await expect(sessionContract).toHaveAttribute("data-session-unsafe-action-operation-count", "18");
   await expect(sessionContract).toHaveAttribute("data-session-unsafe-action-csrf-protected-operation-count", "15");
+  await expect(sessionContract).toHaveAttribute("data-session-unsafe-action-guard-coverage-status", "pass");
+  await expect(sessionContract).toHaveAttribute("data-session-unsafe-action-missing-csrf-operation-count", "0");
+  await expect(sessionContract).toHaveAttribute("data-session-unsafe-action-missing-csrf-operations", "");
+  const guardedUnsafeOperations = await sessionContract.getAttribute("data-session-unsafe-action-generated-unsafe-operations");
+  expect(guardedUnsafeOperations?.split(",")).toEqual(unsafeOperationIds);
   await expect(sessionContract).toHaveAttribute(
     "data-session-unsafe-action-operation-contracts",
     /Confirm Brief=>createChatSession:POST:X-ZenArt-CSRF:true\+createChatMessage:POST:X-ZenArt-CSRF:true\+createCandidateSet:POST:X-ZenArt-CSRF:true/

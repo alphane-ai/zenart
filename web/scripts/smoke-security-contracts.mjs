@@ -217,6 +217,10 @@ const requiredSessionAttributes = [
   sessionEvidence.unsafeActionGuard?.guardLabelsAttribute,
   sessionEvidence.unsafeActionGuard?.operationCountAttribute,
   sessionEvidence.unsafeActionGuard?.csrfProtectedOperationCountAttribute,
+  sessionEvidence.unsafeActionGuard?.generatedUnsafeOperationsAttribute,
+  sessionEvidence.unsafeActionGuard?.guardCoverageStatusAttribute,
+  sessionEvidence.unsafeActionGuard?.missingCsrfOperationCountAttribute,
+  sessionEvidence.unsafeActionGuard?.missingCsrfOperationsAttribute,
   sessionEvidence.unsafeActionGuard?.operationContractsAttribute,
   ...generatedClientEvidence.requiredAttributes
 ];
@@ -239,11 +243,21 @@ for (const expectedContract of sessionEvidence.unsafeActionGuard?.requiredOperat
   }
 }
 
+if (
+  sessionEvidence.unsafeActionGuard?.expectedGuardCoverageStatus !== "pass" ||
+  sessionEvidence.unsafeActionGuard?.expectedMissingCsrfOperationCount !== "0" ||
+  sessionEvidence.unsafeActionGuard?.expectedMissingCsrfOperations !== ""
+) {
+  fail("unsafe-action guard coverage must prove every generated unsafe operation is represented");
+}
+
 for (const requiredTestSnippet of [
   "renders secure-cookie and same-site CSRF session UX evidence as an interactive client contract",
   "blocks unsafe workspace actions when the same-site session is expired",
   "data-session-security-status",
   "data-session-unsafe-action-status",
+  "data-session-unsafe-action-guard-coverage-status",
+  "data-session-unsafe-action-missing-csrf-operation-count",
   "data-session-unsafe-action-operation-contracts",
   "data-generated-api-csrf-operation-contracts",
   "Session expired. Refresh or sign in to continue.",
@@ -264,6 +278,8 @@ for (const requiredBrowserSnippet of [
   "data-session-csrf-header",
   "data-session-csrf-origin-policy",
   "data-session-unsafe-action-operation-contracts",
+  "data-session-unsafe-action-guard-coverage-status",
+  "data-session-unsafe-action-missing-csrf-operation-count",
   "data-generated-api-csrf-unsafe-operations",
   "data-generated-api-csrf-operation-contracts",
   "Session expired. Refresh or sign in to continue.",
