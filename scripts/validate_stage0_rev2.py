@@ -585,6 +585,13 @@ RELEASE_GATE_CHECK_CONDITION_EXISTING_PATH_GUARD_CHECKLIST_ITEM = (
     "subitem closure while allowed definition directories remain definition-only。"
 )
 
+BROAD_RUNTIME_EVIDENCE_DIRECTORY_GUARD_CHECKLIST_ITEM = (
+    "Release gate broad runtime evidence directory guard 通过：`scripts/validate_stage0_rev2.py` rejects "
+    "release gate evidence refs that cite bare `.github/workflows/`、`ops/evidence/ci/`、"
+    "`ops/evidence/staging/`、or `ops/evidence/production/` directory placeholders, so launch gates require "
+    "exact installed workflow/runtime evidence files instead of broad directory prose。"
+)
+
 RELEASE_GATE_FIXTURE_IDENTITY_GUARD_CHECKLIST_ITEM = (
     "Release gate fixture identity guard 通过：`scripts/validate_stage0_rev2.py` rejects extra or missing "
     "`fixtures/stage0/rev2/release_gate_evidence.*.json` files and requires each canonical file to match its "
@@ -2398,6 +2405,17 @@ CONCRETE_EVIDENCE_PATH_RE = re.compile(
     r"(?![A-Za-z0-9_./-])"
 )
 
+BROAD_RUNTIME_EVIDENCE_DIRECTORY_RE = re.compile(
+    r"(?<![A-Za-z0-9_./-])"
+    r"("
+    r"\.github/workflows/|"
+    r"ops/evidence/ci/|"
+    r"ops/evidence/staging/|"
+    r"ops/evidence/production/"
+    r")"
+    r"(?=$|[`'\"),.;:。\s])"
+)
+
 FORBIDDEN_RELEASE_GATE_REFERENCE_RE = re.compile(
     r"("
     r"README\.md|"
@@ -2751,6 +2769,7 @@ CHECKED_ITEMS = {
     GATE_IMPACT_CLOSED_SCHEMA_GUARD_CHECKLIST_ITEM,
     GATE_IMPACT_CHECK_ID_MATCH_GUARD_CHECKLIST_ITEM,
     PRIVATE_BETA_CLEARED_CONDITION_STATE_GUARD_CHECKLIST_ITEM,
+    BROAD_RUNTIME_EVIDENCE_DIRECTORY_GUARD_CHECKLIST_ITEM,
     "Backfill Local Alpha release gate fixture evidence: workflow/eval/crawler/schema/service/runtime-stack checks pass in `fixtures/stage0/rev2/release_gate_evidence.local_alpha.json`。",
     "Backfill CI draft/no-go evidence: ops CI draft coverage passes while installed `.github/workflows` runtime remains blocked in `fixtures/stage0/rev2/release_gate_evidence.ci.json`。",
     "Backfill Private Beta/Staging no-go evidence: contract/fixture evidence is separated from external-user staging runtime blockers in `fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json`。",
@@ -3383,6 +3402,13 @@ def require_release_gate_evidence_ref_allowed_paths(
         not unexpected_paths,
         f"{gate}.{ref_id} {ref_kind} evidence cites paths outside its validator-owned allowlist: "
         + json.dumps(unexpected_paths, ensure_ascii=False),
+    )
+    broad_directory_refs = sorted(set(BROAD_RUNTIME_EVIDENCE_DIRECTORY_RE.findall(evidence_ref)))
+    require(
+        not broad_directory_refs,
+        f"{gate}.{ref_id} {ref_kind} evidence cites broad runtime evidence directories instead of exact "
+        "validator-owned files: "
+        + json.dumps(broad_directory_refs, ensure_ascii=False),
     )
     require_validator_owned_basenames_are_exact_paths(
         evidence_ref,
@@ -11505,6 +11531,7 @@ def validate_launch_readiness_split_contracts() -> None:
         CI_BROAD_RUNTIME_EXACT_FILE_GUARD_CHECKLIST_ITEM,
         RELEASE_GATE_BASENAME_EXACT_PATH_GUARD_CHECKLIST_ITEM,
         RELEASE_GATE_CHECK_CONDITION_EXISTING_PATH_GUARD_CHECKLIST_ITEM,
+        BROAD_RUNTIME_EVIDENCE_DIRECTORY_GUARD_CHECKLIST_ITEM,
         RELEASE_GATE_FIXTURE_IDENTITY_GUARD_CHECKLIST_ITEM,
         GATE_IMPACT_CLOSED_SCHEMA_GUARD_CHECKLIST_ITEM,
         PRIVATE_BETA_CLEARED_CONDITION_STATE_GUARD_CHECKLIST_ITEM,
@@ -11739,6 +11766,8 @@ def validate_launch_readiness_split_contracts() -> None:
         "Every release gate check, Do-Not-Launch condition, and gate decision has a validator-owned evidence path allowlist",
         "an evidence_ref that cites a concrete repo path outside that check/condition/decision allowlist is invalid",
         "The evidence path allowlist is closed-world per check/condition/decision",
+        BROAD_RUNTIME_EVIDENCE_DIRECTORY_GUARD_CHECKLIST_ITEM,
+        "bare `.github/workflows/`、`ops/evidence/ci/`、`ops/evidence/staging/`、or `ops/evidence/production/` directory placeholders",
         "Release-gate evidence refs that mention a validator-owned artifact basename without its full canonical path are invalid",
         "adding a new runtime/deployment artifact for launch closure requires updating the validator-owned mapping and the corresponding concrete checklist row in the same change",
         "broad `ops/evidence/` path substitution cannot silently close Local Alpha、CI、Private Beta/Staging、Production、or global Do-Not-Launch readiness",
