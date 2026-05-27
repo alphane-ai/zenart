@@ -222,9 +222,12 @@ const parseFailedTaskRuntime = () => {
     .replaceAll(/function stateTransition\(\n  task: FailedTaskControl,\n  submitDecision: FailedTaskRuntimeDecision\["submitDecision"\]\n\): FailedTaskRuntimeDecision\["stateTransition"\]/g, "function stateTransition(task, submitDecision)")
     .replaceAll(/function closureOutcome\(\n  task: FailedTaskControl,\n  submitDecision: FailedTaskRuntimeDecision\["submitDecision"\]\n\): FailedTaskRuntimeDecision\["closureOutcome"\]/g, "function closureOutcome(task, submitDecision)")
     .replaceAll(/function releaseGateDisposition\(\n  task: FailedTaskControl,\n  submitDecision: FailedTaskRuntimeDecision\["submitDecision"\]\n\): FailedTaskRuntimeDecision\["releaseGateDisposition"\]/g, "function releaseGateDisposition(task, submitDecision)")
+    .replaceAll(/function releaseGateDisposition\(\n  task: FailedTaskControl,\n  submitDecision: FailedTaskRuntimeDecision\["submitDecision"\],\n  regressionFixtureStatus: FailedTaskRuntimeDecision\["regressionFixtureStatus"\]\n\): FailedTaskRuntimeDecision\["releaseGateDisposition"\]/g, "function releaseGateDisposition(task, submitDecision, regressionFixtureStatus)")
+    .replaceAll(/function regressionFixtureStatus\(\n  task: FailedTaskControl,\n  regressionFixturePathSet: Set<string> \| undefined\n\): FailedTaskRuntimeDecision\["regressionFixtureStatus"\]/g, "function regressionFixtureStatus(task, regressionFixturePathSet)")
     .replaceAll(/: FailedTaskSubmissionContract\[\]/g, "")
     .replaceAll(/: FailedTaskRuntimeDecision\[\]/g, "")
     .replaceAll(/: FailedTaskControl\[\]/g, "")
+    .replaceAll(/: FailedTaskRuntimeDecision\["regressionFixtureStatus"\]/g, "")
     .replaceAll(/: string\[\]/g, "")
     .replaceAll(/: FailedTaskRuntimeDecision\["retryBudgetStatus"\]/g, "")
     .replaceAll(/: FailedTaskRuntimeDecision\["closureEvidenceStatus"\]/g, "")
@@ -241,6 +244,9 @@ const parseFailedTaskRuntime = () => {
     .replaceAll(/const roleRank: Record<FailedTaskControl\["requestedByRole"\], number> =/g, "const roleRank =")
     .replaceAll(/: SupportTicket\[\]/g, "")
     .replaceAll(/: SupportTicket \| undefined/g, "")
+    .replaceAll(/: Set<string> \| undefined/g, "")
+    .replaceAll(/regressionFixturePaths\?: string\[\]/g, "regressionFixturePaths")
+    .replaceAll(/regressionFixturePaths\?/g, "regressionFixturePaths")
     .replaceAll(/new Map<string, SupportTicket>/g, "new Map")
     .replaceAll(/new Map<string, FailedTaskControl>/g, "new Map")
     .replaceAll(/: string/g, "");
@@ -1614,6 +1620,15 @@ test("failed task runtime submit gates preserve retry, cancel, hold, RBAC, and a
       /converted_regression_fixture|eval_gate_preserved_by_regression_fixture|blocked_not_regression_fixture/,
       `${task.id} needs explicit release gate disposition`
     );
+    assert.match(
+      decision.regressionFixtureStatus,
+      /declared|missing|not_required/,
+      `${task.id} needs explicit regression fixture inventory status`
+    );
+    assert.ok(
+      decision.regressionFixtureEvidence.includes(`fixture:${task.regressionFixtureRef}`),
+      `${task.id} must expose regression fixture inventory evidence`
+    );
     assert.ok(decision.operatorAction.length > 40, `${task.id} needs executable operator action`);
 
     if (task.rbacDecision === "denied") {
@@ -1657,6 +1672,36 @@ test("failed task runtime submit gates preserve retry, cancel, hold, RBAC, and a
   assert.ok(
     exhaustedRetry.blockerCodes.includes("retry_budget_exhausted"),
     "exhausted retry budget must expose a blocker code"
+  );
+
+  const unknownRegressionFixtureRetry = buildFailedTaskRuntimeDecisions(
+    [
+      {
+        ...failedTaskControls.find((task) => task.id === "task-export-489"),
+        regressionFixtureRef: "fixtures/stage0/rev2/regressions/missing_failed_task_retry.json"
+      }
+    ],
+    supportTickets,
+    regressionFixtures.map((fixture) => fixture.fixturePath)
+  )[0];
+  assert.equal(
+    unknownRegressionFixtureRetry.regressionFixtureStatus,
+    "missing",
+    "retry must verify regression fixture ref against admin inventory"
+  );
+  assert.equal(
+    unknownRegressionFixtureRetry.submitDecision,
+    "blocked",
+    "unknown retry regression fixture must block submission"
+  );
+  assert.equal(
+    unknownRegressionFixtureRetry.releaseGateDisposition,
+    "blocked_not_regression_fixture",
+    "unknown retry regression fixture cannot become release evidence"
+  );
+  assert.ok(
+    unknownRegressionFixtureRetry.blockerCodes.includes("regression_fixture_missing"),
+    "unknown retry regression fixture must expose a blocker code"
   );
   assert.match(
     exhaustedRetry.submitDisabledReason,

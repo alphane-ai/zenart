@@ -95,9 +95,10 @@ function closureOutcome(
 
 function releaseGateDisposition(
   task: FailedTaskControl,
-  submitDecision: FailedTaskRuntimeDecision["submitDecision"]
+  submitDecision: FailedTaskRuntimeDecision["submitDecision"],
+  regressionFixtureStatus: FailedTaskRuntimeDecision["regressionFixtureStatus"]
 ): FailedTaskRuntimeDecision["releaseGateDisposition"] {
-  if (!task.regressionFixtureRef.startsWith("fixtures/")) {
+  if (regressionFixtureStatus !== "declared") {
     return "blocked_not_regression_fixture";
   }
 
@@ -106,11 +107,24 @@ function releaseGateDisposition(
     : "eval_gate_preserved_by_regression_fixture";
 }
 
+function regressionFixtureStatus(
+  task: FailedTaskControl,
+  regressionFixturePathSet: Set<string> | undefined
+): FailedTaskRuntimeDecision["regressionFixtureStatus"] {
+  if (!task.regressionFixtureRef.startsWith("fixtures/")) {
+    return "not_required";
+  }
+
+  return regressionFixturePathSet?.has(task.regressionFixtureRef) === false ? "missing" : "declared";
+}
+
 export function buildFailedTaskRuntimeDecisions(
   tasks: FailedTaskControl[],
-  supportTickets: SupportTicket[] = []
+  supportTickets: SupportTicket[] = [],
+  regressionFixturePaths?: string[]
 ): FailedTaskRuntimeDecision[] {
   const supportTicketsById = new Map<string, SupportTicket>(supportTickets.map((ticket) => [ticket.id, ticket]));
+  const regressionFixturePathSet = regressionFixturePaths ? new Set(regressionFixturePaths) : undefined;
 
   return tasks.map((task) => {
     const linkedSupportTicket = supportTicketsById.get(task.supportTicketId);
@@ -148,6 +162,13 @@ export function buildFailedTaskRuntimeDecisions(
     const traceLinkageEvidence = linkedSupportTicket
       ? `ticketTrace:${linkedSupportTicket.traceId}; taskTrace:${task.traceId}`
       : `ticketTrace:missing; taskTrace:${task.traceId}`;
+    const computedRegressionFixtureStatus = regressionFixtureStatus(task, regressionFixturePathSet);
+    const regressionFixtureEvidence =
+      computedRegressionFixtureStatus === "declared"
+        ? `fixture:${task.regressionFixtureRef}; inventory:declared`
+        : computedRegressionFixtureStatus === "missing"
+          ? `fixture:${task.regressionFixtureRef}; inventory:missing`
+          : `fixture:${task.regressionFixtureRef}; inventory:not-required`;
     const roleAuthorizationStatus =
       roleRank[task.requestedByRole] >= roleRank[task.allowedRole] ? "sufficient" : "insufficient";
     const roleAuthorizationEvidence = `requested:${task.requestedByRole}; required:${task.allowedRole}`;
@@ -208,6 +229,10 @@ export function buildFailedTaskRuntimeDecisions(
       blockerCodes.push("support_ticket_trace_mismatch");
     }
 
+    if (computedRegressionFixtureStatus === "missing") {
+      blockerCodes.push("regression_fixture_missing");
+    }
+
     const hardBlockers = new Set([
       "action_blocked",
       "retry_budget_exhausted",
@@ -222,7 +247,8 @@ export function buildFailedTaskRuntimeDecisions(
       "support_ticket_missing",
       "support_ticket_task_mismatch",
       "support_ticket_user_project_mismatch",
-      "support_ticket_trace_mismatch"
+      "support_ticket_trace_mismatch",
+      "regression_fixture_missing"
     ]);
     const submitDecision =
       blockerCodes.some((code) => hardBlockers.has(code))
@@ -246,7 +272,11 @@ export function buildFailedTaskRuntimeDecisions(
           : "Keep submission disabled and resolve the blocking evidence before retry, cancel, or hold.";
     const computedStateTransition = stateTransition(task, submitDecision);
     const computedClosureOutcome = closureOutcome(task, submitDecision);
-    const computedReleaseGateDisposition = releaseGateDisposition(task, submitDecision);
+    const computedReleaseGateDisposition = releaseGateDisposition(
+      task,
+      submitDecision,
+      computedRegressionFixtureStatus
+    );
     const apiOutcome =
       task.requestedAction === "retry"
         ? submitDecision === "submit_ready"
@@ -289,6 +319,8 @@ export function buildFailedTaskRuntimeDecisions(
       stateTransition: computedStateTransition,
       closureOutcome: computedClosureOutcome,
       releaseGateDisposition: computedReleaseGateDisposition,
+      regressionFixtureStatus: computedRegressionFixtureStatus,
+      regressionFixtureEvidence,
       retryBudgetStatus,
       rbacStatus: task.rbacDecision,
       roleAuthorizationStatus,

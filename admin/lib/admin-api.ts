@@ -309,13 +309,21 @@ export async function getFailedTaskControls() {
 }
 
 export async function getFailedTaskRuntimeDecisions() {
-  return buildFailedTaskRuntimeDecisions(failedTaskControls, supportTickets);
+  return buildFailedTaskRuntimeDecisions(
+    failedTaskControls,
+    supportTickets,
+    regressionFixtures.map((fixture) => fixture.fixturePath)
+  );
 }
 
 export async function getFailedTaskSubmissionContracts() {
   return buildFailedTaskSubmissionContracts(
     failedTaskControls,
-    buildFailedTaskRuntimeDecisions(failedTaskControls, supportTickets)
+    buildFailedTaskRuntimeDecisions(
+      failedTaskControls,
+      supportTickets,
+      regressionFixtures.map((fixture) => fixture.fixturePath)
+    )
   );
 }
 

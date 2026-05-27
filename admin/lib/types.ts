@@ -772,6 +772,8 @@ export type FailedTaskRuntimeDecision = {
     | "converted_regression_fixture"
     | "eval_gate_preserved_by_regression_fixture"
     | "blocked_not_regression_fixture";
+  regressionFixtureStatus: "declared" | "missing" | "not_required";
+  regressionFixtureEvidence: string;
   retryBudgetStatus: "available" | "exhausted" | "not_retry";
   rbacStatus: "allowed" | "denied" | "second_review_required";
   roleAuthorizationStatus: "sufficient" | "insufficient";

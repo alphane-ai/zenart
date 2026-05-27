@@ -113,6 +113,8 @@ export default async function QueuesPage() {
             { key: "transition", header: "State Transition", render: (row) => <StatusBadge value={row.stateTransition} label={row.stateTransition} /> },
             { key: "closure-outcome", header: "Closure Outcome", render: (row) => <StatusBadge value={row.closureOutcome} label={row.closureOutcome} /> },
             { key: "release-gate", header: "Release Gate", render: (row) => <StatusBadge value={row.releaseGateDisposition} label={row.releaseGateDisposition} /> },
+            { key: "regression-fixture-status", header: "Regression Fixture Status", render: (row) => <StatusBadge value={row.regressionFixtureStatus} label={row.regressionFixtureStatus} /> },
+            { key: "regression-fixture-evidence", header: "Regression Fixture Evidence", render: (row) => <span className="mono">{row.regressionFixtureEvidence}</span> },
             { key: "retry-budget", header: "Retry Budget", render: (row) => <StatusBadge value={row.retryBudgetStatus} /> },
             { key: "rbac", header: "RBAC", render: (row) => <StatusBadge value={row.rbacStatus} /> },
             { key: "role-authorization", header: "Role Authorization", render: (row) => <StatusBadge value={row.roleAuthorizationStatus} /> },
