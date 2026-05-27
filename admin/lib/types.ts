@@ -694,6 +694,7 @@ export type FailedTaskControl = {
   quotaEffect: "none" | "refund_pending" | "refund_on_cancel" | "reserved_credit_released";
   regressionFixtureRef: string;
   closureEvidenceRefs: string[];
+  rbacEvidenceRefs: string[];
   operatorRunbook: string;
   auditRef: string;
 };
@@ -727,6 +728,8 @@ export type FailedTaskRuntimeDecision = {
   compatibilityStatus: "compatible" | "stale";
   compatibilityEvidence: string;
   closureEvidenceStatus: "complete" | "incomplete";
+  rbacEvidenceStatus: "complete" | "missing";
+  rbacEvidenceRefs: string[];
   userMessageStatus: "ready" | "missing";
   blockerCodes: string[];
   submitDisabledReason: string;

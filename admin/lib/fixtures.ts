@@ -2851,7 +2851,8 @@ export const failedTaskControls: FailedTaskControl[] = [
     idempotencyKey: "hold:task-brief-441:sup-2201:au-001",
     quotaEffect: "refund_pending",
     regressionFixtureRef: "none-safety-hold",
-    closureEvidenceRefs: ["sup-2201", "tr-1004", "ex-887", "au-001", "au-004"],
+    closureEvidenceRefs: ["sup-2201", "tr-1004", "ex-887", "au-001", "au-004", "au-006"],
+    rbacEvidenceRefs: ["rbac-export-001", "rbac-safety-001"],
     operatorRunbook: "Do not retry. Keep the task blocked, preserve the QA report, and apply audited quota credit only after support review.",
     auditRef: "au-001"
   },
@@ -2879,7 +2880,8 @@ export const failedTaskControls: FailedTaskControl[] = [
     idempotencyKey: "retry:task-export-489:sup-2204:manifest-missing",
     quotaEffect: "reserved_credit_released",
     regressionFixtureRef: "fixtures/stage0/rev2/regressions/failed_task_retry_task_export_489.json",
-    closureEvidenceRefs: ["task-export-489", "sup-2204", "tr-1019", "ex-901", "au-011"],
+    closureEvidenceRefs: ["task-export-489", "sup-2204", "tr-1019", "ex-901", "au-011", "au-001", "au-004"],
+    rbacEvidenceRefs: ["rbac-export-001", "rbac-quota-001"],
     operatorRunbook: "Attach ticket sup-2204, verify QA warning evidence, retry once, and write the resulting audit ref before closure.",
     auditRef: "au-011"
   },
@@ -2907,7 +2909,8 @@ export const failedTaskControls: FailedTaskControl[] = [
     idempotencyKey: "cancel:task-crawler-019:sup-2212:ownership-missing",
     quotaEffect: "none",
     regressionFixtureRef: "fixtures/stage0/rev2/regressions/failed_task_cancel_task_crawler_019.json",
-    closureEvidenceRefs: ["task-crawler-019", "sup-2212", "ab-309", "q-crawler", "au-002"],
+    closureEvidenceRefs: ["task-crawler-019", "sup-2212", "ab-309", "q-crawler", "au-002", "au-012"],
+    rbacEvidenceRefs: ["rbac-crawler-001"],
     operatorRunbook: "Keep the source import cancelled, request ownership proof, and reopen only after crawler review evidence is attached.",
     auditRef: "au-002"
   }
@@ -2961,13 +2964,16 @@ export const stagingSupportRetryAbuseEvidence: StagingSupportRetryAbuseEvidence 
       externalUserEvidence:
         "The failed-task queue replay covered retry, cancel, and hold decisions with user-visible messages and stable idempotency keys for support-facing closure.",
       rbacAuditEvidence:
-        "Retry, cancel, and hold outcomes linked to immutable audit refs au-001, au-002, and au-011 with closure evidence refs for support ticket, trace, export, queue, and abuse event records.",
+        "Retry, cancel, and hold outcomes linked to immutable audit refs au-001, au-002, and au-011 plus RBAC evidence rbac-export-001, rbac-quota-001, rbac-safety-001, and rbac-crawler-001 for support ticket, trace, export, queue, abuse, quota, safety, and crawler controls.",
       linkedAdminArtifacts: ["admin/app/queues/page.tsx", "admin/lib/fixtures.ts:failedTaskControls", "admin/tests/admin-governance.test.mjs"],
       evidenceRefs: [
         "ops/evidence/staging/20260527T1000Z-support-retry-abuse.json",
         "task-brief-441",
         "task-export-489",
         "task-crawler-019",
+        "rbac-export-001",
+        "rbac-quota-001",
+        "rbac-crawler-001",
         "q-export",
         "q-crawler",
         "au-011"

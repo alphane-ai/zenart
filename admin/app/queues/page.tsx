@@ -78,6 +78,8 @@ export default async function QueuesPage() {
             { key: "compatibility", header: "Compatibility", render: (row) => <StatusBadge value={row.compatibilityStatus} /> },
             { key: "compatibility-evidence", header: "Compatibility Evidence", render: (row) => <span className="mono">{row.compatibilityEvidence}</span> },
             { key: "closure", header: "Closure Evidence", render: (row) => <StatusBadge value={row.closureEvidenceStatus} /> },
+            { key: "rbac-evidence-status", header: "RBAC Evidence Status", render: (row) => <StatusBadge value={row.rbacEvidenceStatus} /> },
+            { key: "rbac-evidence", header: "RBAC Evidence", render: (row) => row.rbacEvidenceRefs.join(", ") },
             { key: "message", header: "User Message", render: (row) => <StatusBadge value={row.userMessageStatus} /> },
             {
               key: "blockers",
@@ -118,6 +120,7 @@ export default async function QueuesPage() {
             { key: "quota", header: "Quota Effect", render: (row) => row.quotaEffect },
             { key: "regression", header: "Regression Fixture", render: (row) => row.regressionFixtureRef },
             { key: "closure", header: "Closure Evidence", render: (row) => row.closureEvidenceRefs.join(", ") },
+            { key: "rbac-evidence", header: "RBAC Evidence", render: (row) => row.rbacEvidenceRefs.join(", ") },
             { key: "ticket", header: "Support Ticket", render: (row) => <span className="mono">{row.supportTicketId}</span> },
             { key: "trace", header: "Trace", render: (row) => <span className="mono">{row.traceId}</span> },
             { key: "runbook", header: "Operator Runbook", render: (row) => row.operatorRunbook },

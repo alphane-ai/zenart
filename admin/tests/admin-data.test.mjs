@@ -158,7 +158,8 @@ test("admin queue fixtures expose retry idempotency, RBAC, and quota effects", (
     "idempotencyKey",
     "quotaEffect",
     "regressionFixtureRef",
-    "closureEvidenceRefs"
+    "closureEvidenceRefs",
+    "rbacEvidenceRefs"
   ]) {
     assert.match(fixtures, new RegExp(token));
   }

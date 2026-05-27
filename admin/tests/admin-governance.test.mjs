@@ -221,6 +221,8 @@ const adminReviewDecisionIds = new Set(adminReviewDecisions.map((entry) => entry
 const quotaUserIds = new Set(quotaAccounts.map((account) => account.userId));
 const queueIds = new Set(queueHealth.map((queue) => queue.id));
 const taskIds = new Set(failedTaskControls.map((task) => task.id));
+const adminRbacEvidenceById = new Map(adminRbacEvidence.map((item) => [item.id, item]));
+const adminRbacEvidenceIds = new Set(adminRbacEvidence.map((item) => item.id));
 const crawlerFindingIds = new Set(crawlerFindings.map((finding) => finding.id));
 const crawlerFindingById = new Map(crawlerFindings.map((finding) => [finding.id, finding]));
 const crawlerGovernanceCaseById = new Map(crawlerGovernanceCases.map((entry) => [entry.fixture_id, entry]));
@@ -1008,6 +1010,7 @@ test("queue and failed task controls gate retry and cancel with audit evidence",
     assert.ok(task.idempotencyKey.startsWith(`${task.requestedAction}:${task.id}:`), `${task.id} needs stable action/task idempotency key`);
     assert.ok(task.regressionFixtureRef.length > 10, `${task.id} needs explicit regression fixture state`);
     assert.ok(task.closureEvidenceRefs.length >= 4, `${task.id} needs closure evidence refs`);
+    assert.ok(task.rbacEvidenceRefs.length > 0, `${task.id} needs admin RBAC evidence refs`);
     assert.ok(task.operatorRunbook.length > 60, `${task.id} needs operator runbook`);
 
     for (const ref of task.closureEvidenceRefs) {
@@ -1023,6 +1026,17 @@ test("queue and failed task controls gate retry and cancel with audit evidence",
       );
     }
 
+    for (const ref of task.rbacEvidenceRefs) {
+      const rbac = adminRbacEvidenceById.get(ref);
+      assert.ok(rbac, `${task.id} links unknown RBAC evidence ref ${ref}`);
+      assert.ok(auditIds.has(rbac.auditRef), `${task.id} RBAC evidence ${ref} links unknown audit ${rbac.auditRef}`);
+      assert.match(rbac.apiScope, /\/api\/admin\//, `${task.id} RBAC evidence ${ref} must cover an admin API scope`);
+      assert.ok(
+        task.closureEvidenceRefs.includes(rbac.auditRef) || task.auditRef === rbac.auditRef,
+        `${task.id} RBAC evidence ${ref} audit must be part of task closure or submit audit`
+      );
+    }
+
     if (roleOrder.get(task.requestedByRole) >= roleOrder.get(task.allowedRole) && task.actionEligibility === "eligible") {
       assert.equal(task.rbacDecision, "allowed", `${task.id} eligible sufficient role should be allowed`);
     }
@@ -1034,6 +1048,14 @@ test("queue and failed task controls gate retry and cancel with audit evidence",
     if (task.requestedAction === "retry") {
       assert.equal(task.actionEligibility, "eligible", `${task.id} retry must be eligible`);
       assert.notEqual(task.quotaEffect, "none", `${task.id} retry needs explicit quota handling`);
+      assert.ok(
+        task.rbacEvidenceRefs.some((ref) => adminRbacEvidenceById.get(ref)?.surface === "export_override"),
+        `${task.id} retry must cite export override RBAC evidence`
+      );
+      assert.ok(
+        task.rbacEvidenceRefs.some((ref) => adminRbacEvidenceById.get(ref)?.surface === "quota_override"),
+        `${task.id} retry must cite quota override RBAC evidence`
+      );
       assert.match(
         task.idempotencyKey,
         new RegExp(`^retry:${task.id}:${task.supportTicketId}:[a-z0-9-]+$`),
@@ -1045,6 +1067,10 @@ test("queue and failed task controls gate retry and cancel with audit evidence",
     if (task.requestedAction === "cancel") {
       assert.notEqual(task.actionEligibility, "blocked", `${task.id} cancel must remain actionable`);
       assert.match(task.rbacDecision, /allowed|second_review_required/, `${task.id} cancel needs RBAC path`);
+      assert.ok(
+        task.rbacEvidenceRefs.some((ref) => adminRbacEvidenceById.get(ref)?.surface === "crawler_import"),
+        `${task.id} cancel must cite crawler import RBAC evidence`
+      );
       assert.match(
         task.idempotencyKey,
         new RegExp(`^cancel:${task.id}:${task.supportTicketId}:[a-z0-9-]+$`),
@@ -1056,6 +1082,10 @@ test("queue and failed task controls gate retry and cancel with audit evidence",
     if (task.requestedAction === "hold") {
       assert.equal(task.allowedRole, "admin_reviewer", `${task.id} hold needs reviewer role`);
       assert.notEqual(task.rbacDecision, "allowed", `${task.id} blocked hold cannot be allowed`);
+      assert.ok(
+        task.rbacEvidenceRefs.some((ref) => adminRbacEvidenceById.get(ref)?.surface === "safety_rule"),
+        `${task.id} hold must cite safety rule RBAC evidence`
+      );
     }
   }
 });
@@ -1177,6 +1207,8 @@ test("failed task runtime submit gates preserve retry, cancel, hold, RBAC, and a
     assert.equal(decision.auditRef, task.auditRef, `${task.id} must preserve audit ref`);
     assert.equal(decision.idempotencyKey, task.idempotencyKey, `${task.id} must preserve idempotency key`);
     assert.equal(decision.idempotencyStatus, "stable", `${task.id} must preserve stable idempotency`);
+    assert.equal(decision.rbacEvidenceStatus, "complete", `${task.id} must expose complete RBAC evidence`);
+    assert.deepEqual(decision.rbacEvidenceRefs, task.rbacEvidenceRefs, `${task.id} must preserve RBAC evidence refs`);
     assert.equal(decision.compatibilityStatus, "compatible", `${task.id} must expose compatible app worker schema evidence`);
     assert.equal(
       decision.compatibilityEvidence,
@@ -1301,6 +1333,23 @@ test("failed task runtime submit gates preserve retry, cancel, hold, RBAC, and a
     missingUserMessageRetry.blockerCodes.includes("user_message_missing"),
     "missing user message must expose a blocker code"
   );
+
+  const missingRbacEvidenceRetry = buildFailedTaskRuntimeDecisions([
+    {
+      ...failedTaskControls.find((task) => task.id === "task-export-489"),
+      rbacEvidenceRefs: []
+    }
+  ])[0];
+  assert.equal(missingRbacEvidenceRetry.rbacEvidenceStatus, "missing", "blank RBAC evidence refs must be detected");
+  assert.equal(
+    missingRbacEvidenceRetry.submitDecision,
+    "blocked",
+    "retry cannot submit without RBAC evidence refs"
+  );
+  assert.ok(
+    missingRbacEvidenceRetry.blockerCodes.includes("rbac_evidence_missing"),
+    "missing RBAC evidence must expose a blocker code"
+  );
 });
 
 test("staging support retry abuse evidence validates external-user support, retry, hold, and audit paths", () => {
@@ -1391,6 +1440,7 @@ test("staging support retry abuse evidence validates external-user support, retr
           taskIds.has(ref) ||
           abuseEventById.has(ref) ||
           abuseHookIds.has(ref) ||
+          adminRbacEvidenceIds.has(ref) ||
           auditIds.has(ref) ||
           queueIds.has(ref)
       ),

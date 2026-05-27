@@ -71,6 +71,7 @@ export function buildFailedTaskRuntimeDecisions(tasks: FailedTaskControl[]): Fai
         : "not_retry";
     const closureEvidenceStatus =
       task.closureEvidenceRefs.length >= requiredClosureEvidenceCount ? "complete" : "incomplete";
+    const rbacEvidenceStatus = task.rbacEvidenceRefs.length > 0 ? "complete" : "missing";
     const userMessageStatus = task.userMessage.trim().length > 0 ? "ready" : "missing";
     const computedIdempotencyStatus = idempotencyStatus(task);
     const compatibilityStatus =
@@ -98,6 +99,10 @@ export function buildFailedTaskRuntimeDecisions(tasks: FailedTaskControl[]): Fai
       blockerCodes.push("closure_evidence_incomplete");
     }
 
+    if (rbacEvidenceStatus === "missing") {
+      blockerCodes.push("rbac_evidence_missing");
+    }
+
     if (userMessageStatus === "missing") {
       blockerCodes.push("user_message_missing");
     }
@@ -115,6 +120,7 @@ export function buildFailedTaskRuntimeDecisions(tasks: FailedTaskControl[]): Fai
       "retry_budget_exhausted",
       "rbac_denied",
       "closure_evidence_incomplete",
+      "rbac_evidence_missing",
       "user_message_missing",
       "idempotency_key_unstable",
       "version_compatibility_stale"
@@ -159,6 +165,8 @@ export function buildFailedTaskRuntimeDecisions(tasks: FailedTaskControl[]): Fai
       compatibilityStatus,
       compatibilityEvidence,
       closureEvidenceStatus,
+      rbacEvidenceStatus,
+      rbacEvidenceRefs: task.rbacEvidenceRefs,
       userMessageStatus,
       blockerCodes,
       submitDisabledReason,
