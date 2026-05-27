@@ -117,6 +117,20 @@ def unchecked_items(text: str) -> set[str]:
     }
 
 
+def local_alpha_api_evidence_passes(workflow_id: str) -> bool:
+    path = LOCAL_ALPHA_EVIDENCE_DIR / f"{workflow_id}.api_smoke.json"
+    if not path.exists():
+        return False
+    evidence = load_json(path)
+    return (
+        evidence.get("environment") == "local_alpha"
+        and evidence.get("workflow_id") == workflow_id
+        and evidence.get("evidence_kind") == "api_smoke"
+        and evidence.get("status") == "pass"
+        and evidence.get("proves_running_local_stack") is True
+    )
+
+
 def validate_runner_replay() -> None:
     result = subprocess.run(
         [sys.executable, str(RUNNER), "--check-fixture"],
@@ -183,7 +197,6 @@ def validate_workflow_links(evidence: dict[str, Any]) -> None:
         workflow = load_json(WORKFLOW_DIR / f"{workflow_id}.json")
         contract = workflow["api_smoke_contract"]
         checklist_item = WORKFLOW_CHECKLIST_ITEMS[workflow_id]
-
         require(result["checklist_item"] == checklist_item, f"{workflow_id} checklist item mismatch")
         if workflow_id in WORKFLOW_RUNTIME_CLOSED_ITEMS:
             require(checklist_item in checked, f"{workflow_id} API smoke checklist must be checked")

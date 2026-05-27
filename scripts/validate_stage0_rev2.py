@@ -1641,6 +1641,9 @@ REQUIRED_OPEN_ITEMS |= (
 )
 REQUIRED_OPEN_ITEMS |= set(LOCAL_ALPHA_RELEASE_GATE_WORKFLOW_RUNTIME_OPEN_CHECK_ITEMS)
 REQUIRED_OPEN_ITEMS -= {
+    "电商增长包 API smoke test 通过。",
+    "电商增长包 Playwright happy path 通过。",
+    "Local Alpha 电商增长包 runtime smoke evidence 写入 release gate fixture：`ops/evidence/local_alpha/ecommerce_growth_pack.api_smoke.json`、`ops/evidence/local_alpha/ecommerce_growth_pack.playwright_happy_path.json`、`ops/evidence/local_alpha/ecommerce_growth_pack.export_zip.json` 均证明 running local stack。",
     "执行 staging deploy。",
     "执行 staging smoke tests。",
     "Staging post-deploy smoke tests 通过。",
@@ -2089,13 +2092,35 @@ def require_evidence_ref_cites_files(
     require(not missing_files, f"{context} cites missing evidence files: {missing_files}")
 
 
-def require_local_alpha_workflow_runtime_files(evidence_ref: str, context: str) -> None:
+def require_local_alpha_workflow_runtime_files(
+    evidence_ref: str,
+    context: str,
+    workflow_id: str | None = None,
+) -> None:
+    workflow_files = (
+        {workflow_id: LOCAL_ALPHA_WORKFLOW_RUNTIME_EVIDENCE_FILES[workflow_id]}
+        if workflow_id is not None
+        else LOCAL_ALPHA_WORKFLOW_RUNTIME_EVIDENCE_FILES
+    )
     required_files = [
         path
-        for workflow_files in LOCAL_ALPHA_WORKFLOW_RUNTIME_EVIDENCE_FILES.values()
-        for path in workflow_files.values()
+        for files in workflow_files.values()
+        for path in files.values()
     ]
     require_evidence_ref_cites_files(evidence_ref, required_files, context)
+    for path in required_files:
+        evidence = load_json_if_path(rel(path))
+        require(evidence is not None, f"{context} evidence file is not readable JSON: {rel(path)}")
+        require(evidence.get("status") == "pass", f"{context} evidence file must pass: {rel(path)}")
+        require(
+            evidence.get("environment") == "local_alpha",
+            f"{context} evidence file must be local_alpha: {rel(path)}",
+        )
+        if workflow_id is not None:
+            require(
+                evidence.get("workflow_id") == workflow_id,
+                f"{context} evidence file workflow mismatch: {rel(path)}",
+            )
 
 
 def require_local_alpha_single_workflow_runtime_files(
@@ -3990,6 +4015,7 @@ def validate_workflow_acceptance_split_contracts() -> None:
                     local_alpha_smoke["evidence_ref"],
                     f"{workflow_id} {requirement['status_label']} Local Alpha aggregate evidence",
                 )
+
 
     workflow_contract = subprocess.run(
         [sys.executable, str(ROOT / "scripts" / "validate_workflow_acceptance_contract.py")],

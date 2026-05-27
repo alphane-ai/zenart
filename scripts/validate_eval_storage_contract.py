@@ -21,6 +21,7 @@ ACTIVATION = FIXTURE_DIR / "activation_gate_contract.json"
 OPENAPI = ROOT / "openapi" / "zenart.v1.yaml"
 MIGRATION = ROOT / "backend" / "migrations" / "0002_stage0_rev2_domains.sql"
 RUNNER = ROOT / "scripts" / "run_stage0_eval.py"
+READ_RUNNER = ROOT / "scripts" / "run_eval_storage_read_contract.py"
 
 STORAGE_COLUMNS = {
     "id",
@@ -497,6 +498,25 @@ def validate_read_fixture_contract(contract: dict[str, Any]) -> None:
     empty_cases = fixture["expected_empty_cases"]
     latest_group_fields = fixture["latest_only_groups_by"]
 
+    require(
+        read["read_runner"] == "scripts/run_eval_storage_read_contract.py",
+        "read contract runner mismatch",
+    )
+    require(
+        read["check_command"] == "python3 scripts/run_eval_storage_read_contract.py --check",
+        "read contract check command mismatch",
+    )
+    require(READ_RUNNER.exists(), "eval storage read runner missing")
+    runner_text = READ_RUNNER.read_text(encoding="utf-8")
+    for token in [
+        "apply_read_query",
+        "completed_after",
+        "latest_group_fields",
+        "tenant_id",
+        "created_at",
+    ]:
+        require(token in runner_text, f"eval storage read runner missing {token}")
+
     require(fixture["tenant_filter_required"] is True, "read fixture must require tenant filtering")
     require(read["tenant_filter_required"] is True, "read contract must require tenant filtering")
     require(fixture["ordering"] == ["completed_at_desc", "created_at_desc"], "read fixture ordering mismatch")
@@ -583,6 +603,18 @@ def validate_read_fixture_contract(contract: dict[str, Any]) -> None:
         "strict completed_after empty case must prove equality is excluded, not merely absent",
     )
 
+    check = subprocess.run(
+        [sys.executable, str(READ_RUNNER), "--check"],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    require(
+        check.returncode == 0,
+        "eval storage read runner failed: " + (check.stderr or check.stdout).strip(),
+    )
+
 
 def validate_write_and_replay_contract(contract: dict[str, Any]) -> None:
     write = contract["write_contract"]
@@ -634,6 +666,11 @@ def validate_read_and_openapi_contract(contract: dict[str, Any]) -> None:
     result = schema_block(openapi, "EvalResult")
 
     require(read["list_operation_id"] == api["operation_id"] == "listEvalResults", "eval result list operation mismatch")
+    require(read["read_runner"] == "scripts/run_eval_storage_read_contract.py", "eval result read runner mismatch")
+    require(
+        read["check_command"] == "python3 scripts/run_eval_storage_read_contract.py --check",
+        "eval result read check command mismatch",
+    )
     require("operationId: listEvalResults" in eval_path, "OpenAPI /eval/results must expose listEvalResults")
     require("x-rbac: admin" in eval_path, "OpenAPI /eval/results must require admin RBAC")
     require(read["admin_rbac_required"] is True, "read contract must require admin RBAC")

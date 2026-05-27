@@ -19,6 +19,7 @@ CONTRACT = FIXTURE_DIR / "eval" / "workflow_runtime_evidence_contract.json"
 API_EVIDENCE = FIXTURE_DIR / "eval" / "workflow_api_smoke_evidence.json"
 RUNNER = ROOT / "scripts" / "run_workflow_runtime_contract.py"
 LOCAL_ALPHA_GATE = FIXTURE_DIR / "release_gate_evidence.local_alpha.json"
+LOCAL_ALPHA_EVIDENCE_DIR = ROOT / "ops" / "evidence" / "local_alpha"
 
 WORKFLOWS = {
     "ecommerce_growth_pack",

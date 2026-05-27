@@ -172,6 +172,20 @@ def unchecked_items(text: str) -> set[str]:
     }
 
 
+def local_alpha_evidence_passes(workflow_id: str, kind: str) -> bool:
+    path = LOCAL_ALPHA_EVIDENCE_DIR / f"{workflow_id}.{kind}.json"
+    if not path.exists():
+        return False
+    evidence = load_json(path)
+    return (
+        evidence.get("environment") == "local_alpha"
+        and evidence.get("workflow_id") == workflow_id
+        and evidence.get("evidence_kind") == kind
+        and evidence.get("status") == "pass"
+        and evidence.get("proves_running_local_stack") is True
+    )
+
+
 def schema_exists(openapi: str, schema_name: str) -> bool:
     if schema_name == "none":
         return True

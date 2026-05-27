@@ -317,6 +317,8 @@
       "additionalProperties": false,
       "required": [
         "list_operation_id",
+        "read_runner",
+        "check_command",
         "required_query_filters",
         "admin_rbac_required",
         "tenant_filter_required",
@@ -328,6 +330,12 @@
       "properties": {
         "list_operation_id": {
           "const": "listEvalResults"
+        },
+        "read_runner": {
+          "const": "scripts/run_eval_storage_read_contract.py"
+        },
+        "check_command": {
+          "const": "python3 scripts/run_eval_storage_read_contract.py --check"
         },
         "required_query_filters": {
           "type": "array",

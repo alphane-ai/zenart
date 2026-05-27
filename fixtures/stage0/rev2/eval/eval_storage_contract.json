@@ -266,6 +266,8 @@
   },
   "read_contract": {
     "list_operation_id": "listEvalResults",
+    "read_runner": "scripts/run_eval_storage_read_contract.py",
+    "check_command": "python3 scripts/run_eval_storage_read_contract.py --check",
     "required_query_filters": [
       "tenant_id",
       "eval_suite_id",
