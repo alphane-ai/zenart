@@ -274,6 +274,10 @@ if runtime_requirements.get("required_release_sha") != "d3b1107c33dc40b8936f2854
     raise SystemExit("blocked object-storage retention cleanup evidence must name the signed URL release SHA required for pass evidence")
 if "admin_operator" not in runtime_requirements.get("required_auth", ""):
     raise SystemExit("blocked object-storage retention cleanup evidence must name admin_operator auth requirement")
+if "SMOKE_ADMIN_USER_ID" not in runtime_requirements.get("required_smoke_admin_user_id", ""):
+    raise SystemExit("blocked object-storage retention cleanup evidence must name the smoke admin user ID requirement")
+if "SMOKE_ADMIN_TENANT_ID" not in runtime_requirements.get("required_smoke_admin_tenant_id", ""):
+    raise SystemExit("blocked object-storage retention cleanup evidence must name the smoke admin tenant ID requirement")
 if runtime_requirements.get("canonical_pass_report") != "ops/evidence/staging/object-storage-retention-cleanup.json":
     raise SystemExit("blocked object-storage retention cleanup evidence must name the canonical pass report path")
 probe_routes = runtime_requirements.get("required_probe_routes", {})
@@ -582,10 +586,10 @@ for area, item in coverage.items():
     if item.get("evidence_path_policy") != "ops/evidence/staging/":
         raise SystemExit(f"{area} coverage must declare staging evidence path policy")
     source_results = item.get("source_results", [])
-    if len(source_results) != 1 or source_results[0].get("status") != "blocked":
-        raise SystemExit(f"{area} dry-run source probe must be blocked: {source_results}")
-    if source_results[0].get("reason") != "missing_staging_base_url_or_explicit_probe_urls":
-        raise SystemExit(f"{area} dry-run source probe must name missing staging URL: {source_results}")
+    if len(source_results) != 1 or source_results[0].get("status") != "planned":
+        raise SystemExit(f"{area} dry-run source probe must be planned: {source_results}")
+    if source_results[0].get("reason") != "dry_run_no_staging_runtime_probe":
+        raise SystemExit(f"{area} dry-run source probe must name dry-run runtime skip: {source_results}")
 split = report.get("split_evidence", {})
 if split.get("signed_url_evidence") != "ops/evidence/staging/20260527T2130Z-object-storage-signed-url.json":
     raise SystemExit("object-storage retention cleanup must cite exact signed URL split evidence")
@@ -604,6 +608,12 @@ if runtime_requirements.get("required_release_sha") != "d3b1107c33dc40b8936f2854
     raise SystemExit("object-storage retention cleanup dry-run must name the signed URL release SHA")
 if runtime_requirements.get("required_base_url") != "STAGING_BASE_URL or explicit probe URL env vars":
     raise SystemExit("object-storage retention cleanup dry-run must name the staging URL input requirement")
+if "ADMIN_BEARER_TOKEN or ADMIN_SESSION_COOKIE" not in runtime_requirements.get("required_auth", ""):
+    raise SystemExit("object-storage retention cleanup dry-run must name admin auth input requirement")
+if "SMOKE_ADMIN_USER_ID" not in runtime_requirements.get("required_smoke_admin_user_id", ""):
+    raise SystemExit("object-storage retention cleanup dry-run must name smoke admin user input requirement")
+if "SMOKE_ADMIN_TENANT_ID" not in runtime_requirements.get("required_smoke_admin_tenant_id", ""):
+    raise SystemExit("object-storage retention cleanup dry-run must name smoke admin tenant input requirement")
 if runtime_requirements.get("canonical_pass_results") != "ops/evidence/staging/object-storage-retention-cleanup.ndjson":
     raise SystemExit("object-storage retention cleanup dry-run must name the canonical pass results path")
 probe_routes = runtime_requirements.get("required_probe_routes", {})

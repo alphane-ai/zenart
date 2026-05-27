@@ -36,6 +36,11 @@ if [[ -n "$BASE_URL" ]]; then
   AUDIT_REFS_URL="${AUDIT_REFS_URL:-${BASE_URL%/}/api/admin/v1/audit?subject=object_storage_cleanup&limit=20}"
 fi
 
+AUTH_READY="0"
+if [[ -n "$ADMIN_BEARER_TOKEN" || -n "$ADMIN_SESSION_COOKIE" ]]; then
+  AUTH_READY="1"
+fi
+
 CHECKS=(
   "retention_policy|GET|$RETENTION_POLICY_URL|retention policy,versioning,retention_until,tenant"
   "expired_export_cleanup|POST|$EXPIRED_EXPORT_CLEANUP_URL|expired export cleanup,deleted,retained,audit"
@@ -119,15 +124,25 @@ run_probe() {
   fi
 }
 
-if [[ -z "$BASE_URL" && -z "$RETENTION_POLICY_URL$EXPIRED_EXPORT_CLEANUP_URL$ORPHAN_CLEANUP_URL$AUDIT_REFS_URL" ]]; then
+if [[ "$DRY_RUN" == "1" ]]; then
+  for check in "${CHECKS[@]}"; do
+    IFS='|' read -r check_id method url expected_tokens <<<"$check"
+    append_result "$check_id" "$method" "$url" "$expected_tokens" "planned" "" "dry_run_no_staging_runtime_probe" ""
+  done
+elif [[ -z "$BASE_URL" && -z "$RETENTION_POLICY_URL$EXPIRED_EXPORT_CLEANUP_URL$ORPHAN_CLEANUP_URL$AUDIT_REFS_URL" ]]; then
   for check in "${CHECKS[@]}"; do
     IFS='|' read -r check_id method url expected_tokens <<<"$check"
     append_result "$check_id" "$method" "$url" "$expected_tokens" "blocked" "" "missing_staging_base_url_or_explicit_probe_urls" ""
   done
-elif [[ "$DRY_RUN" == "1" ]]; then
+elif [[ "$AUTH_READY" != "1" ]]; then
   for check in "${CHECKS[@]}"; do
     IFS='|' read -r check_id method url expected_tokens <<<"$check"
-    append_result "$check_id" "$method" "$url" "$expected_tokens" "planned" "" "dry_run_no_staging_runtime_probe" ""
+    append_result "$check_id" "$method" "$url" "$expected_tokens" "blocked" "" "missing_admin_auth" ""
+  done
+elif [[ -z "$SMOKE_ADMIN_USER_ID" || -z "$SMOKE_ADMIN_TENANT_ID" ]]; then
+  for check in "${CHECKS[@]}"; do
+    IFS='|' read -r check_id method url expected_tokens <<<"$check"
+    append_result "$check_id" "$method" "$url" "$expected_tokens" "blocked" "" "missing_smoke_admin_user_or_tenant_id" ""
   done
 else
   for check in "${CHECKS[@]}"; do
@@ -141,7 +156,7 @@ else
 fi
 
 actual_report_path="$(
-python3 - "$REPORT_PATH" "$RESULTS_PATH" "$RUN_ID" "$RELEASE_SHA" "$BASE_URL" "$SMOKE_ADMIN_USER_ID" "$SMOKE_ADMIN_TENANT_ID" "$SIGNED_URL_EVIDENCE" <<'PY'
+python3 - "$REPORT_PATH" "$RESULTS_PATH" "$RUN_ID" "$RELEASE_SHA" "$BASE_URL" "$SMOKE_ADMIN_USER_ID" "$SMOKE_ADMIN_TENANT_ID" "$SIGNED_URL_EVIDENCE" "$AUTH_READY" <<'PY'
 import json
 import sys
 from pathlib import Path
@@ -154,6 +169,7 @@ base_url = sys.argv[5].strip()
 admin_user_id = sys.argv[6].strip()
 admin_tenant_id = sys.argv[7].strip()
 signed_url_evidence = sys.argv[8].strip()
+auth_ready = sys.argv[9] == "1"
 
 results = [
     json.loads(line)
@@ -201,9 +217,16 @@ if runtime_checks_passed and not release_sha:
     release_binding_blockers.append("release_sha_missing")
 elif runtime_checks_passed and not release_sha_matches_signed_url:
     release_binding_blockers.append("release_sha_mismatch_with_signed_url_evidence")
+if runtime_checks_passed and not auth_ready:
+    release_binding_blockers.append("admin_auth_missing")
+if runtime_checks_passed and not admin_user_id:
+    release_binding_blockers.append("smoke_admin_user_id_missing")
+if runtime_checks_passed and not admin_tenant_id:
+    release_binding_blockers.append("smoke_admin_tenant_id_missing")
 
 blocked_or_failed = blocked_or_failed + release_binding_blockers
 all_passed = runtime_checks_passed and signed_url_ready and release_sha_matches_signed_url
+all_passed = all_passed and auth_ready and bool(admin_user_id) and bool(admin_tenant_id)
 can_clear_release_gate_check = all_passed
 
 if not all_passed and report_path == canonical_report_path:
@@ -265,12 +288,18 @@ runtime_input_requirements = {
     "required_release_sha": signed_url_release_sha or "must match signed URL split evidence release_sha",
     "required_auth": "ADMIN_BEARER_TOKEN or ADMIN_SESSION_COOKIE with admin_operator access",
     "required_base_url": "STAGING_BASE_URL or explicit probe URL env vars",
+    "required_smoke_admin_user_id": "SMOKE_ADMIN_USER_ID bound to the admin operator executing the cleanup probes",
+    "required_smoke_admin_tenant_id": "SMOKE_ADMIN_TENANT_ID bound to the staging tenant whose objects and audit refs are probed",
     "required_probe_routes": probe_routes,
     "canonical_pass_report": str(canonical_report_path),
     "canonical_pass_results": str(canonical_results_path),
 }
 if not base_url:
     runtime_input_requirements["blocked_input_reason"] = "missing STAGING_BASE_URL; set explicit probe URL env vars if routes differ"
+elif not auth_ready:
+    runtime_input_requirements["blocked_input_reason"] = "missing admin auth; set ADMIN_BEARER_TOKEN or ADMIN_SESSION_COOKIE"
+elif not admin_user_id or not admin_tenant_id:
+    runtime_input_requirements["blocked_input_reason"] = "missing smoke admin identity; set SMOKE_ADMIN_USER_ID and SMOKE_ADMIN_TENANT_ID"
 elif runtime_checks_passed and not release_sha_matches_signed_url:
     runtime_input_requirements["blocked_input_reason"] = "RELEASE_SHA must match signed URL split evidence release_sha"
 else:

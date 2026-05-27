@@ -85,6 +85,9 @@ STAGING_QUOTA_RATE_LIMIT_SPEND_CAP_EVIDENCE = (
 STAGING_OBJECT_STORAGE_RETENTION_EVIDENCE = (
     ROOT / "ops" / "evidence" / "staging" / "object-storage-retention-cleanup.json"
 )
+STAGING_OBJECT_STORAGE_RETENTION_BLOCKED_EVIDENCE = (
+    ROOT / "ops" / "evidence" / "staging" / "object-storage-retention-cleanup.blocked.json"
+)
 STAGING_LEGAL_EXTERNAL_PAGES_EVIDENCE = (
     ROOT / "ops" / "evidence" / "staging" / "legal-pages-external-user.json"
 )
@@ -6359,6 +6362,43 @@ def validate_staging_object_storage_retention_cleanup_evidence() -> None:
                 token in object_storage_check["evidence_ref"] or token in retention_condition["evidence_ref"],
                 f"object-storage blocked evidence must name missing retention cleanup requirement: {token}",
             )
+        require(
+            STAGING_OBJECT_STORAGE_RETENTION_BLOCKED_EVIDENCE.exists(),
+            "blocked retention cleanup evidence must be recorded while the canonical pass artifact is absent",
+        )
+        blocked_evidence = load_json(STAGING_OBJECT_STORAGE_RETENTION_BLOCKED_EVIDENCE)
+        require(
+            blocked_evidence["status"] == "blocked",
+            "blocked retention cleanup evidence must preserve blocked status",
+        )
+        require(
+            blocked_evidence["release_gate_check_id"] == "staging_object_storage_signed_downloads",
+            "blocked retention cleanup evidence must target the object-storage release-gate check",
+        )
+        require(
+            blocked_evidence["do_not_launch_condition_id"] == "object_storage_signed_retention_runtime_missing",
+            "blocked retention cleanup evidence must map to the object-storage Do-Not-Launch condition",
+        )
+        runtime_requirements = blocked_evidence["runtime_input_requirements"]
+        for key, token in {
+            "required_base_url": "STAGING_BASE_URL",
+            "required_auth": "ADMIN_BEARER_TOKEN or ADMIN_SESSION_COOKIE",
+            "required_smoke_admin_user_id": "SMOKE_ADMIN_USER_ID",
+            "required_smoke_admin_tenant_id": "SMOKE_ADMIN_TENANT_ID",
+            "required_release_sha": load_json(STAGING_OBJECT_STORAGE_SIGNED_URL_EVIDENCE)["release_sha"],
+        }.items():
+            require(
+                token in runtime_requirements[key],
+                f"blocked retention cleanup evidence must name runtime input {token}",
+            )
+        require(
+            blocked_evidence["split_evidence"]["signed_url_ready"] is True,
+            "blocked retention cleanup evidence must preserve the passing signed URL split",
+        )
+        require(
+            blocked_evidence["gate_impact"]["can_clear_release_gate_check"] is False,
+            "blocked retention cleanup evidence must not clear the object-storage release gate",
+        )
         return
 
     evidence = load_json(STAGING_OBJECT_STORAGE_RETENTION_EVIDENCE)
@@ -9509,7 +9549,10 @@ def validate_ops_ci_and_drill_evidence() -> None:
         and "expired export cleanup" in object_storage_retention.get("runtime_status", "")
         and "orphan cleanup" in object_storage_retention.get("runtime_status", "")
         and "audit refs" in object_storage_retention.get("runtime_status", "")
-        and "dry-run or missing staging URL evidence remains blocked" in object_storage_retention.get("runtime_status", ""),
+        and "staging admin auth" in object_storage_retention.get("runtime_status", "")
+        and "SMOKE_ADMIN_USER_ID" in object_storage_retention.get("runtime_status", "")
+        and "dry-run, missing staging URL, missing admin auth, or missing smoke admin IDs remain blocked"
+        in object_storage_retention.get("runtime_status", ""),
         "release ops evidence must record object-storage retention cleanup runtime requirements",
     )
     require(

@@ -195,7 +195,9 @@
         "method": "GET"
       }
     },
-    "required_release_sha": "d3b1107c33dc40b8936f28549e06553fbd7b104a"
+    "required_release_sha": "d3b1107c33dc40b8936f28549e06553fbd7b104a",
+    "required_smoke_admin_tenant_id": "SMOKE_ADMIN_TENANT_ID bound to the staging tenant whose objects and audit refs are probed",
+    "required_smoke_admin_user_id": "SMOKE_ADMIN_USER_ID bound to the admin operator executing the cleanup probes"
   },
   "schema_version": "stage0.rev2.staging.object_storage_retention_cleanup",
   "split_evidence": {
