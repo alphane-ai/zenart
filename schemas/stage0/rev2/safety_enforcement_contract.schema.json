@@ -11,6 +11,7 @@
     "required_enforcement_points",
     "decision_storage_contract",
     "runtime_contracts",
+    "pipeline_sequence_contract",
     "decision_matrix",
     "fixture_links",
     "release_gate_policy",
@@ -154,6 +155,142 @@
             "items": {
               "type": "string",
               "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "pipeline_sequence_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ordered_enforcement_points",
+        "transition_gates",
+        "fail_closed_cases"
+      ],
+      "properties": {
+        "ordered_enforcement_points": {
+          "type": "array",
+          "minItems": 5,
+          "maxItems": 5,
+          "items": {
+            "enum": [
+              "brief",
+              "provider_request",
+              "provider_response",
+              "qa",
+              "export"
+            ]
+          }
+        },
+        "transition_gates": {
+          "type": "array",
+          "minItems": 5,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "stage",
+              "must_run_before",
+              "required_subject_fields",
+              "blocked_or_held_effect",
+              "downstream_artifacts_created_on_block",
+              "trace_status_required"
+            ],
+            "properties": {
+              "stage": {
+                "enum": [
+                  "brief_completion",
+                  "provider_request_dispatch",
+                  "provider_response_acceptance",
+                  "qa_completion",
+                  "export_creation",
+                  "export_artifact_recording"
+                ]
+              },
+              "must_run_before": {
+                "enum": [
+                  "brief_confirmed",
+                  "provider_call",
+                  "candidate_asset_acceptance",
+                  "package_export_allowed",
+                  "export_task_created",
+                  "downloadable_artifact_recorded"
+                ]
+              },
+              "required_subject_fields": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": {
+                  "enum": [
+                    "tenant_id",
+                    "project_id",
+                    "task_id",
+                    "qa_subject_type",
+                    "qa_subject_id",
+                    "export_id"
+                  ]
+                }
+              },
+              "blocked_or_held_effect": {
+                "enum": [
+                  "deny_generation",
+                  "deny_provider_call",
+                  "deny_asset_acceptance",
+                  "deny_qa_completion",
+                  "deny_export_task",
+                  "deny_downloadable_artifact"
+                ]
+              },
+              "downstream_artifacts_created_on_block": {
+                "const": false
+              },
+              "trace_status_required": {
+                "const": true
+              }
+            }
+          }
+        },
+        "fail_closed_cases": {
+          "type": "array",
+          "minItems": 3,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "case_id",
+              "input_gap",
+              "expected_error",
+              "creates_downstream_artifacts",
+              "decision_rows_required_before_error"
+            ],
+            "properties": {
+              "case_id": {
+                "type": "string",
+                "pattern": "^safety_[a-z0-9_]+$"
+              },
+              "input_gap": {
+                "enum": [
+                  "missing_tenant_id",
+                  "missing_all_subjects",
+                  "blocked_export_rule",
+                  "held_review_decision"
+                ]
+              },
+              "expected_error": {
+                "enum": [
+                  "ErrValidation",
+                  "ErrSafetyBlocked",
+                  "ErrSafetyReviewHold"
+                ]
+              },
+              "creates_downstream_artifacts": {
+                "const": false
+              },
+              "decision_rows_required_before_error": {
+                "type": "boolean"
+              }
             }
           }
         }

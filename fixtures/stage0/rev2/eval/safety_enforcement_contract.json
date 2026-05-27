@@ -131,6 +131,120 @@
       ]
     }
   ],
+  "pipeline_sequence_contract": {
+    "ordered_enforcement_points": [
+      "brief",
+      "provider_request",
+      "provider_response",
+      "qa",
+      "export"
+    ],
+    "transition_gates": [
+      {
+        "stage": "brief_completion",
+        "must_run_before": "brief_confirmed",
+        "required_subject_fields": [
+          "tenant_id",
+          "project_id"
+        ],
+        "blocked_or_held_effect": "deny_generation",
+        "downstream_artifacts_created_on_block": false,
+        "trace_status_required": true
+      },
+      {
+        "stage": "provider_request_dispatch",
+        "must_run_before": "provider_call",
+        "required_subject_fields": [
+          "tenant_id",
+          "task_id"
+        ],
+        "blocked_or_held_effect": "deny_provider_call",
+        "downstream_artifacts_created_on_block": false,
+        "trace_status_required": true
+      },
+      {
+        "stage": "provider_response_acceptance",
+        "must_run_before": "candidate_asset_acceptance",
+        "required_subject_fields": [
+          "tenant_id",
+          "task_id"
+        ],
+        "blocked_or_held_effect": "deny_asset_acceptance",
+        "downstream_artifacts_created_on_block": false,
+        "trace_status_required": true
+      },
+      {
+        "stage": "qa_completion",
+        "must_run_before": "package_export_allowed",
+        "required_subject_fields": [
+          "tenant_id",
+          "qa_subject_type",
+          "qa_subject_id"
+        ],
+        "blocked_or_held_effect": "deny_qa_completion",
+        "downstream_artifacts_created_on_block": false,
+        "trace_status_required": true
+      },
+      {
+        "stage": "export_creation",
+        "must_run_before": "export_task_created",
+        "required_subject_fields": [
+          "tenant_id",
+          "project_id",
+          "qa_subject_type",
+          "qa_subject_id",
+          "export_id"
+        ],
+        "blocked_or_held_effect": "deny_export_task",
+        "downstream_artifacts_created_on_block": false,
+        "trace_status_required": true
+      },
+      {
+        "stage": "export_artifact_recording",
+        "must_run_before": "downloadable_artifact_recorded",
+        "required_subject_fields": [
+          "tenant_id",
+          "project_id",
+          "qa_subject_type",
+          "qa_subject_id",
+          "export_id"
+        ],
+        "blocked_or_held_effect": "deny_downloadable_artifact",
+        "downstream_artifacts_created_on_block": false,
+        "trace_status_required": true
+      }
+    ],
+    "fail_closed_cases": [
+      {
+        "case_id": "safety_missing_tenant_denies_policy",
+        "input_gap": "missing_tenant_id",
+        "expected_error": "ErrValidation",
+        "creates_downstream_artifacts": false,
+        "decision_rows_required_before_error": false
+      },
+      {
+        "case_id": "safety_missing_subject_denies_policy",
+        "input_gap": "missing_all_subjects",
+        "expected_error": "ErrValidation",
+        "creates_downstream_artifacts": false,
+        "decision_rows_required_before_error": false
+      },
+      {
+        "case_id": "safety_blocked_export_denies_task",
+        "input_gap": "blocked_export_rule",
+        "expected_error": "ErrSafetyBlocked",
+        "creates_downstream_artifacts": false,
+        "decision_rows_required_before_error": true
+      },
+      {
+        "case_id": "safety_review_hold_denies_transition",
+        "input_gap": "held_review_decision",
+        "expected_error": "ErrSafetyReviewHold",
+        "creates_downstream_artifacts": false,
+        "decision_rows_required_before_error": true
+      }
+    ]
+  },
   "decision_matrix": [
     {
       "enforcement_point": "brief",

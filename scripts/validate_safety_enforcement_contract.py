@@ -47,6 +47,40 @@ ACTION_EXPORT_GATES = {
     "block": "block_final_export",
 }
 
+SAFETY_ORDER = [
+    "brief",
+    "provider_request",
+    "provider_response",
+    "qa",
+    "export",
+]
+
+TRANSITION_SEQUENCE = [
+    ("brief_completion", "brief_confirmed", {"tenant_id", "project_id"}, "deny_generation"),
+    ("provider_request_dispatch", "provider_call", {"tenant_id", "task_id"}, "deny_provider_call"),
+    ("provider_response_acceptance", "candidate_asset_acceptance", {"tenant_id", "task_id"}, "deny_asset_acceptance"),
+    ("qa_completion", "package_export_allowed", {"tenant_id", "qa_subject_type", "qa_subject_id"}, "deny_qa_completion"),
+    (
+        "export_creation",
+        "export_task_created",
+        {"tenant_id", "project_id", "qa_subject_type", "qa_subject_id", "export_id"},
+        "deny_export_task",
+    ),
+    (
+        "export_artifact_recording",
+        "downloadable_artifact_recorded",
+        {"tenant_id", "project_id", "qa_subject_type", "qa_subject_id", "export_id"},
+        "deny_downloadable_artifact",
+    ),
+]
+
+FAIL_CLOSED_CASES = {
+    "safety_missing_tenant_denies_policy": ("missing_tenant_id", "ErrValidation", False),
+    "safety_missing_subject_denies_policy": ("missing_all_subjects", "ErrValidation", False),
+    "safety_blocked_export_denies_task": ("blocked_export_rule", "ErrSafetyBlocked", True),
+    "safety_review_hold_denies_transition": ("held_review_decision", "ErrSafetyReviewHold", True),
+}
+
 
 class SafetyContractError(Exception):
     pass
@@ -291,6 +325,78 @@ def validate_cross_contracts(contract: dict[str, Any]) -> None:
         require(result["trace_contract"]["has_safety_status"] is True, f"{result['fixture_id']} trace must include safety status")
 
 
+def validate_pipeline_sequence_contract(contract: dict[str, Any]) -> None:
+    pipeline = contract["pipeline_sequence_contract"]
+    traces = load_json(TRACE_COMPLETENESS)
+    service = STAGE0_SERVICE.read_text(encoding="utf-8")
+    tests = STAGE0_TEST.read_text(encoding="utf-8")
+
+    require(pipeline["ordered_enforcement_points"] == SAFETY_ORDER, "safety pipeline order mismatch")
+    require(
+        traces["required_pipeline_steps"] == SAFETY_ORDER,
+        "trace completeness required pipeline steps must preserve safety order",
+    )
+    for trace in traces["traces"]:
+        require(trace["covered_steps"] == SAFETY_ORDER, f"{trace['trace_id']} covered safety steps must preserve order")
+
+    transitions = pipeline["transition_gates"]
+    require(len(transitions) == len(TRANSITION_SEQUENCE), "safety transition gate count mismatch")
+    for index, (stage, must_run_before, fields, effect) in enumerate(TRANSITION_SEQUENCE):
+        item = transitions[index]
+        require(item["stage"] == stage, f"safety transition {index} stage mismatch")
+        require(item["must_run_before"] == must_run_before, f"{stage} must_run_before mismatch")
+        require(set(item["required_subject_fields"]) == fields, f"{stage} subject field contract mismatch")
+        require(item["blocked_or_held_effect"] == effect, f"{stage} blocked effect mismatch")
+        require(item["downstream_artifacts_created_on_block"] is False, f"{stage} must fail closed")
+        require(item["trace_status_required"] is True, f"{stage} must require trace safety status")
+
+    ordered_service_tokens = [
+        "EnforceBriefSafety(ctx, input.TenantID, input.ProjectID)",
+        "EnforceProviderRequestSafety(ctx, input.TenantID, input.TaskID)",
+        "EnforceProviderResponseSafety(ctx, input.TenantID, input.TaskID)",
+        "EnforceQASafety(ctx, input.TenantID, input.QASubjectType, input.QASubjectID)",
+        "EnforceExportSafety(ctx, input.TenantID, input.ExportID)",
+    ]
+    previous = -1
+    for token in ordered_service_tokens:
+        current = service.find(token)
+        require(current > previous, f"RunRuntimeSafetyPolicy must enforce ordered step {token}")
+        previous = current
+    require("IncludeProvider && input.TaskID != \"\"" in service, "provider safety steps must be gated by explicit provider inclusion")
+
+    create_export_safety = service.find("RunRuntimeSafetyPolicy(ctx, RuntimeSafetyPolicyInput{")
+    create_task = service.find("INSERT INTO agent_tasks", create_export_safety)
+    require(create_export_safety != -1 and create_task != -1 and create_export_safety < create_task, "CreateExport must run safety before creating export task")
+    record_artifact_safety = service.find("RunRuntimeSafetyPolicy(ctx, RuntimeSafetyPolicyInput{", service.find("func (r Repository) RecordExportArtifact"))
+    record_update = service.find("UPDATE exports", record_artifact_safety)
+    require(record_artifact_safety != -1 and record_update != -1 and record_artifact_safety < record_update, "RecordExportArtifact must run safety before recording downloadable artifact")
+
+    fail_cases = {case["case_id"]: case for case in pipeline["fail_closed_cases"]}
+    require(set(fail_cases) == set(FAIL_CLOSED_CASES), "safety fail-closed case ids mismatch")
+    for case_id, (gap, expected_error, decision_required) in FAIL_CLOSED_CASES.items():
+        case = fail_cases[case_id]
+        require(case["input_gap"] == gap, f"{case_id} input gap mismatch")
+        require(case["expected_error"] == expected_error, f"{case_id} expected error mismatch")
+        require(case["creates_downstream_artifacts"] is False, f"{case_id} must not create downstream artifacts")
+        require(
+            case["decision_rows_required_before_error"] is decision_required,
+            f"{case_id} decision-row requirement mismatch",
+        )
+
+    for token in [
+        "TestRunRuntimeSafetyPolicyCoversAllRev2RuntimePoints",
+        "TestRunRuntimeSafetyPolicyRequiresAtLeastOneSubject",
+        "TestCreateExportBlocksWhenExportSafetyRuleBlocks",
+        "TestRecordExportArtifactBlocksWhenExportSafetyRuleBlocks",
+        "TestRequireSafetyAllowedHoldsForConfirmationAndAdminReview",
+        "INSERT INTO agent_tasks",
+        "want ErrSafetyBlocked",
+        "want ErrSafetyReviewHold",
+        "want ErrValidation",
+    ]:
+        require(token in tests, f"safety fail-closed backend test evidence missing {token}")
+
+
 def validate_release_policy(contract: dict[str, Any]) -> None:
     blueprint = BLUEPRINT.read_text(encoding="utf-8")
     checked = checked_items(blueprint)
@@ -322,6 +428,7 @@ def main() -> int:
         contract = load_json(CONTRACT)
         require(contract["blueprint_source"] == "Docs/stage0_blueprint_rev2.md", "contract must cite Rev2 blueprint")
         validate_cross_contracts(contract)
+        validate_pipeline_sequence_contract(contract)
         validate_fixture_links(contract)
         validate_openapi_and_storage_contract(contract)
         validate_release_policy(contract)
