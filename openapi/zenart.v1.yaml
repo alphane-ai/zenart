@@ -1052,6 +1052,23 @@ paths:
                 $ref: "#/components/schemas/EvalResultPage"
         default:
           $ref: "#/components/responses/Error"
+  /eval/results/{result_id}/artifact:
+    get:
+      operationId: getEvalResultArtifact
+      tags: [eval]
+      x-rbac: admin
+      parameters:
+        - $ref: "#/components/parameters/EvalResultId"
+        - $ref: "#/components/parameters/TenantIdFilter"
+      responses:
+        "200":
+          description: Signed admin retrieval metadata for a stored eval result artifact.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EvalResultArtifact"
+        default:
+          $ref: "#/components/responses/Error"
   /analytics/events:
     get:
       operationId: listAnalyticsEvents
@@ -1257,6 +1274,12 @@ components:
         type: string
     TraceId:
       name: trace_id
+      in: path
+      required: true
+      schema:
+        type: string
+    EvalResultId:
+      name: result_id
       in: path
       required: true
       schema:
@@ -3425,6 +3448,95 @@ components:
                   sha256:
                     type: string
                     pattern: "^[a-f0-9]{64}$"
+    EvalResultArtifact:
+      type: object
+      required:
+        - result_id
+        - tenant_id
+        - suite_id
+        - subject
+        - status
+        - completed_at
+        - object_key
+        - content_type
+        - sha256
+        - artifact_links
+        - download_url
+        - expires_at
+        - access_policy
+        - audit_required
+      properties:
+        result_id:
+          type: string
+        tenant_id:
+          type: string
+          description: Required admin tenant scope for eval artifact retrieval.
+        suite_id:
+          type: string
+        subject:
+          type: object
+          required: [subject_type, subject_id, version]
+          properties:
+            subject_type:
+              type: string
+              enum: [skill_version, prompt_fragment, prompt_mutation, meta_prompt, image_spec, vertical_workflow_pack]
+            subject_id:
+              type: string
+            version:
+              type: string
+        status:
+          type: string
+          enum: [pass, fail, blocked]
+        completed_at:
+          type: string
+          format: date-time
+        object_key:
+          type: string
+          description: Tenant-scoped stored eval result JSON artifact key.
+        content_type:
+          type: string
+          const: application/json
+        sha256:
+          type: string
+          pattern: "^[a-f0-9]{64}$"
+        artifact_links:
+          type: array
+          minItems: 5
+          uniqueItems: true
+          items:
+            type: string
+            enum:
+              - eval_result_json
+              - summary_json
+              - fixture_results_json
+              - source_fixture_digests_json
+              - runner_manifest_json
+              - qa_results_json
+              - safety_decisions_json
+              - trace_export_gate_matrix_json
+        download_url:
+          type: string
+          format: uri
+          description: Short-lived signed admin URL; direct object access remains denied.
+        expires_at:
+          type: string
+          format: date-time
+        access_policy:
+          type: object
+          required: [direct_object_access_allowed, audit_access_required, max_expires_in_seconds]
+          properties:
+            direct_object_access_allowed:
+              type: boolean
+              const: false
+            audit_access_required:
+              type: boolean
+              const: true
+            max_expires_in_seconds:
+              type: integer
+              maximum: 900
+        audit_required:
+          type: boolean
+          const: true
     EvalResultPage:
       allOf:
         - $ref: "#/components/schemas/PageInfo"

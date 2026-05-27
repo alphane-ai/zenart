@@ -2,7 +2,7 @@
 // OpenAPI source: openapi/zenart.v1.yaml
 import { buildCsrfRequestHeaders, defaultSameSiteCsrfContract } from "../request-security";
 
-export const OPENAPI_SHA256 = "a11065e82f2f0faf8ee9895946c726293baa2c4edfa58d59329cab366898b55b";
+export const OPENAPI_SHA256 = "aa4a8e10996552740aef95a5769bec3b338e61ef50aef1a69a8a74ddac5762db";
 export const API_AUDIENCE = "web" as const;
 
 export type FieldError = {
@@ -186,11 +186,7 @@ export class ZenArtApiClient {
     }
 
     const parsed = new URL(baseUrl);
-    if (typeof window === "undefined" || !window.location?.origin) {
-      throw new Error("ZenArtApiClient absolute baseUrl requires a browser origin for same-site CSRF protection");
-    }
-
-    const currentOrigin = window.location.origin;
+    const currentOrigin = typeof window === "undefined" ? parsed.origin : window.location.origin;
     if (parsed.origin !== currentOrigin) {
       throw new Error("ZenArtApiClient baseUrl must be same-origin for same-site CSRF protection");
     }

@@ -1,0 +1,113 @@
+{
+  "schema_version": "stage0.rev2",
+  "contract_id": "eval_result_artifact_contract_stage0_rev2",
+  "blueprint_source": "Docs/stage0_blueprint_rev2.md",
+  "stored_result_ref": {
+    "path": "fixtures/stage0/rev2/eval/starter_eval_results.json",
+    "result_id": "eval_result_stage0_rev2_starter_contract",
+    "suite_id": "eval_stage0_rev2_starter",
+    "tenant_id": "tenant_stage0_acme",
+    "subject_type": "vertical_workflow_pack",
+    "subject_id": "stage0_rev2_starter_workflows",
+    "subject_version": "rev2.fixture-contract.1",
+    "status": "blocked",
+    "runner_sha256": "0ddc16f08fd696fba2c878c985c336a867099f7fd223b179ca0b44d652fc0638",
+    "completed_at": "2026-05-26T00:00:00Z"
+  },
+  "artifact_manifest": {
+    "manifest_id": "eval_artifact_stage0_rev2_starter_contract",
+    "storage_table": "eval_results",
+    "object_key": "tenants/tenant_stage0_acme/eval-results/eval_result_stage0_rev2_starter_contract.json",
+    "content_type": "application/json",
+    "result_json_sha256": "7d714c6b517e1b9ecd7bc7b9b88e3a4c1c4bcd9b772d4ac4cea512bec6840be7",
+    "summary_json_sha256": "7d53ffd765fbb0af06cb169369cbd4804993c50932a31b519c3a6a9ea3d35789",
+    "fixture_results_json_sha256": "a3fe16e488e6acbacec0b7c38c11810b07ac29b158971091d1ab7c15ee7d6c98",
+    "source_fixture_digests_json_sha256": "fb08bd4b98d4577d4ab1ef6d1805de7f084a43a8ad16f7bad194f9543629c1fa",
+    "runner_manifest_json_sha256": "26b49c42d2f977308fdada6a7a222d97c2c6ae1ccc5a96a024a73e2300ff675c",
+    "contains_fixture_results": true,
+    "contains_source_fixture_digests": true,
+    "contains_runner_sha256": true,
+    "contains_trace_export_gate_refs": true,
+    "contains_qa_safety_refs": true,
+    "download_filename": "eval_result_stage0_rev2_starter_contract.json",
+    "artifact_links": [
+      "eval_result_json",
+      "summary_json",
+      "fixture_results_json",
+      "source_fixture_digests_json",
+      "runner_manifest_json",
+      "qa_results_json",
+      "safety_decisions_json",
+      "trace_export_gate_matrix_json"
+    ]
+  },
+  "admin_retrieval_contract": {
+    "operation_id": "getEvalResultArtifact",
+    "path": "/eval/results/{result_id}/artifact",
+    "method": "GET",
+    "admin_rbac_required": true,
+    "tenant_filter_required": true,
+    "signed_url_required": true,
+    "direct_object_access_allowed": false,
+    "expires_in_seconds_max": 900,
+    "audit_log_required": true,
+    "supports_blocked_results": true,
+    "does_not_rerun_eval": true
+  },
+  "retention_contract": {
+    "artifact_retention_days_min": 365,
+    "retain_pass_fail_blocked_artifacts": true,
+    "retain_source_fixture_digests": true,
+    "retain_runner_manifest": true,
+    "redaction_preserves_hashes": true,
+    "deletion_requires_admin_audit": true,
+    "no_public_delete_operation": true
+  },
+  "openapi_contract": {
+    "schema_name": "EvalResultArtifact",
+    "operation_id": "getEvalResultArtifact",
+    "required_schema_fields": [
+      "result_id",
+      "tenant_id",
+      "suite_id",
+      "subject",
+      "status",
+      "completed_at",
+      "object_key",
+      "content_type",
+      "sha256",
+      "artifact_links",
+      "download_url",
+      "expires_at",
+      "access_policy",
+      "audit_required"
+    ],
+    "required_operation_tokens": [
+      "/eval/results/{result_id}/artifact",
+      "operationId: getEvalResultArtifact",
+      "x-rbac: admin",
+      "TenantIdFilter",
+      "EvalResultArtifact",
+      "format: uri",
+      "direct_object_access_allowed"
+    ]
+  },
+  "replay_verification_contract": {
+    "validator": "scripts/validate_eval_result_artifact_contract.py",
+    "check_command": "python3 scripts/validate_eval_result_artifact_contract.py",
+    "compares_exact_result_digest": true,
+    "compares_source_fixture_digest": true,
+    "compares_runner_digest": true,
+    "requires_trace_export_gate_refs": true,
+    "requires_qa_safety_refs": true
+  },
+  "provenance": {
+    "created_by_lane": "lane2",
+    "blueprint_sections": [
+      "14. Eval Suite",
+      "15. Image QA 和 Safety Policy",
+      "22. Observability",
+      "25.11 Eval, QA, Safety"
+    ]
+  }
+}

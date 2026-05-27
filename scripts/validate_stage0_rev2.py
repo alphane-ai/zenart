@@ -2021,6 +2021,11 @@ SCHEMA_FIXTURE_TARGETS = [
     ("activation_gate_contract.schema.json", FIXTURE_DIR / "eval" / "activation_gate_contract.json", "object"),
     ("analytics_taxonomy.schema.json", FIXTURE_DIR / "analytics" / "event_taxonomy.json", "object"),
     ("eval_storage_contract.schema.json", FIXTURE_DIR / "eval" / "eval_storage_contract.json", "object"),
+    (
+        "eval_result_artifact_contract.schema.json",
+        FIXTURE_DIR / "eval" / "eval_result_artifact_contract.json",
+        "object",
+    ),
     ("workflow_api_smoke_evidence.schema.json", FIXTURE_DIR / "eval" / "workflow_api_smoke_evidence.json", "object"),
     (
         "workflow_runtime_evidence_contract.schema.json",
@@ -2435,6 +2440,7 @@ OPENAPI_REQUIRED_OPERATION_IDS = {
     "listAnalyticsEvents",
     "listAnalyticsReports",
     "listEvalResults",
+    "getEvalResultArtifact",
 }
 
 OPENAPI_REQUIRED_CONTRACT_TOKENS = {
@@ -2465,6 +2471,7 @@ OPENAPI_REQUIRED_CONTRACT_TOKENS = {
     "AnalyticsEvent:",
     "AnalyticsReport:",
     "EvalResult:",
+    "EvalResultArtifact:",
     "go_no_go_signal:",
     "privacy_classification:",
 }
@@ -5955,6 +5962,7 @@ def validate_json_files() -> None:
         SCHEMA_DIR / "eval_suite.schema.json",
         SCHEMA_DIR / "eval_result.schema.json",
         SCHEMA_DIR / "eval_storage_contract.schema.json",
+        SCHEMA_DIR / "eval_result_artifact_contract.schema.json",
         SCHEMA_DIR / "workflow_api_smoke_evidence.schema.json",
         SCHEMA_DIR / "workflow_runtime_evidence_contract.schema.json",
         SCHEMA_DIR / "activation_gate_contract.schema.json",
@@ -5976,6 +5984,7 @@ def validate_json_files() -> None:
         FIXTURE_DIR / "eval" / "starter_eval_suite.json",
         FIXTURE_DIR / "eval" / "starter_eval_results.json",
         FIXTURE_DIR / "eval" / "eval_storage_contract.json",
+        FIXTURE_DIR / "eval" / "eval_result_artifact_contract.json",
         FIXTURE_DIR / "eval" / "workflow_api_smoke_evidence.json",
         FIXTURE_DIR / "eval" / "workflow_runtime_evidence_contract.json",
         FIXTURE_DIR / "eval" / "activation_gate_contract.json",
@@ -9335,6 +9344,7 @@ def validate_openapi_rev2_domain_contracts() -> None:
         "AnalyticsEvent": ["event_name", "required_context", "success_metric_refs", "privacy_classification"],
         "AnalyticsReport": ["metric_name", "source_events", "required_dimensions", "go_no_go_signal"],
         "EvalResult": ["suite_id", "subject", "status", "summary", "fixture_results", "storage_contract"],
+        "EvalResultArtifact": ["result_id", "tenant_id", "suite_id", "subject", "status", "object_key", "download_url", "access_policy", "audit_required"],
     }
     for schema_name, fields in required_schema_fields.items():
         pattern = rf"^    {schema_name}:\n(?P<body>.*?)(?=^    [A-Za-z0-9]+:|\Z)"
@@ -9511,6 +9521,20 @@ def validate_eval_storage_contract() -> None:
         "eval storage contract validation failed: " + (result.stderr or result.stdout).strip(),
     )
     validate_eval_storage_read_fixture_contract()
+
+
+def validate_eval_result_artifact_contract() -> None:
+    result = subprocess.run(
+        [sys.executable, str(ROOT / "scripts" / "validate_eval_result_artifact_contract.py")],
+        cwd=ROOT,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    require(
+        result.returncode == 0,
+        "eval result artifact contract validation failed: " + (result.stderr or result.stdout).strip(),
+    )
 
 
 def eval_read_fixture_page(rows: list[dict[str, Any]], query: dict[str, Any]) -> tuple[list[dict[str, Any]], str]:
@@ -11112,6 +11136,7 @@ def main() -> int:
         validate_openapi_rev2_domain_contracts,
         validate_eval_result_contract,
         validate_eval_storage_contract,
+        validate_eval_result_artifact_contract,
         validate_activation_gate_contract,
         validate_trace_completeness_contract,
         validate_trace_export_gate_matrix_contract,

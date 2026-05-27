@@ -1,0 +1,400 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zenart.local/schemas/stage0/rev2/eval_result_artifact_contract.schema.json",
+  "title": "ZenArt Stage 0 Rev2 Eval Result Artifact Contract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "contract_id",
+    "blueprint_source",
+    "stored_result_ref",
+    "artifact_manifest",
+    "admin_retrieval_contract",
+    "retention_contract",
+    "openapi_contract",
+    "replay_verification_contract",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "stage0.rev2"
+    },
+    "contract_id": {
+      "const": "eval_result_artifact_contract_stage0_rev2"
+    },
+    "blueprint_source": {
+      "const": "Docs/stage0_blueprint_rev2.md"
+    },
+    "stored_result_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "result_id",
+        "suite_id",
+        "tenant_id",
+        "subject_type",
+        "subject_id",
+        "subject_version",
+        "status",
+        "runner_sha256",
+        "completed_at"
+      ],
+      "properties": {
+        "path": {
+          "const": "fixtures/stage0/rev2/eval/starter_eval_results.json"
+        },
+        "result_id": {
+          "type": "string",
+          "pattern": "^eval_result_[a-z0-9_]+$"
+        },
+        "suite_id": {
+          "type": "string",
+          "pattern": "^eval_[a-z0-9_]+$"
+        },
+        "tenant_id": {
+          "type": "string",
+          "pattern": "^tenant_[a-z0-9_]+$"
+        },
+        "subject_type": {
+          "enum": [
+            "skill_version",
+            "prompt_fragment",
+            "prompt_mutation",
+            "meta_prompt",
+            "image_spec",
+            "vertical_workflow_pack"
+          ]
+        },
+        "subject_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "subject_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "enum": [
+            "pass",
+            "fail",
+            "blocked"
+          ]
+        },
+        "runner_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "completed_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "artifact_manifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "manifest_id",
+        "storage_table",
+        "object_key",
+        "content_type",
+        "result_json_sha256",
+        "summary_json_sha256",
+        "fixture_results_json_sha256",
+        "source_fixture_digests_json_sha256",
+        "runner_manifest_json_sha256",
+        "contains_fixture_results",
+        "contains_source_fixture_digests",
+        "contains_runner_sha256",
+        "contains_trace_export_gate_refs",
+        "contains_qa_safety_refs",
+        "download_filename",
+        "artifact_links"
+      ],
+      "properties": {
+        "manifest_id": {
+          "type": "string",
+          "pattern": "^eval_artifact_[a-z0-9_]+$"
+        },
+        "storage_table": {
+          "const": "eval_results"
+        },
+        "object_key": {
+          "type": "string",
+          "pattern": "^tenants/[a-z0-9_]+/eval-results/eval_result_[a-z0-9_]+\\.json$"
+        },
+        "content_type": {
+          "const": "application/json"
+        },
+        "result_json_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "summary_json_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "fixture_results_json_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "source_fixture_digests_json_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "runner_manifest_json_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "contains_fixture_results": {
+          "const": true
+        },
+        "contains_source_fixture_digests": {
+          "const": true
+        },
+        "contains_runner_sha256": {
+          "const": true
+        },
+        "contains_trace_export_gate_refs": {
+          "const": true
+        },
+        "contains_qa_safety_refs": {
+          "const": true
+        },
+        "download_filename": {
+          "type": "string",
+          "pattern": "^eval_result_[a-z0-9_]+\\.json$"
+        },
+        "artifact_links": {
+          "type": "array",
+          "minItems": 5,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "eval_result_json",
+              "summary_json",
+              "fixture_results_json",
+              "source_fixture_digests_json",
+              "runner_manifest_json",
+              "qa_results_json",
+              "safety_decisions_json",
+              "trace_export_gate_matrix_json"
+            ]
+          }
+        }
+      }
+    },
+    "admin_retrieval_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operation_id",
+        "path",
+        "method",
+        "admin_rbac_required",
+        "tenant_filter_required",
+        "signed_url_required",
+        "direct_object_access_allowed",
+        "expires_in_seconds_max",
+        "audit_log_required",
+        "supports_blocked_results",
+        "does_not_rerun_eval"
+      ],
+      "properties": {
+        "operation_id": {
+          "const": "getEvalResultArtifact"
+        },
+        "path": {
+          "const": "/eval/results/{result_id}/artifact"
+        },
+        "method": {
+          "const": "GET"
+        },
+        "admin_rbac_required": {
+          "const": true
+        },
+        "tenant_filter_required": {
+          "const": true
+        },
+        "signed_url_required": {
+          "const": true
+        },
+        "direct_object_access_allowed": {
+          "const": false
+        },
+        "expires_in_seconds_max": {
+          "type": "integer",
+          "minimum": 60,
+          "maximum": 900
+        },
+        "audit_log_required": {
+          "const": true
+        },
+        "supports_blocked_results": {
+          "const": true
+        },
+        "does_not_rerun_eval": {
+          "const": true
+        }
+      }
+    },
+    "retention_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "artifact_retention_days_min",
+        "retain_pass_fail_blocked_artifacts",
+        "retain_source_fixture_digests",
+        "retain_runner_manifest",
+        "redaction_preserves_hashes",
+        "deletion_requires_admin_audit",
+        "no_public_delete_operation"
+      ],
+      "properties": {
+        "artifact_retention_days_min": {
+          "type": "integer",
+          "minimum": 365
+        },
+        "retain_pass_fail_blocked_artifacts": {
+          "const": true
+        },
+        "retain_source_fixture_digests": {
+          "const": true
+        },
+        "retain_runner_manifest": {
+          "const": true
+        },
+        "redaction_preserves_hashes": {
+          "const": true
+        },
+        "deletion_requires_admin_audit": {
+          "const": true
+        },
+        "no_public_delete_operation": {
+          "const": true
+        }
+      }
+    },
+    "openapi_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_name",
+        "operation_id",
+        "required_schema_fields",
+        "required_operation_tokens"
+      ],
+      "properties": {
+        "schema_name": {
+          "const": "EvalResultArtifact"
+        },
+        "operation_id": {
+          "const": "getEvalResultArtifact"
+        },
+        "required_schema_fields": {
+          "type": "array",
+          "minItems": 12,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "result_id",
+              "tenant_id",
+              "suite_id",
+              "subject",
+              "status",
+              "completed_at",
+              "object_key",
+              "content_type",
+              "sha256",
+              "artifact_links",
+              "download_url",
+              "expires_at",
+              "access_policy",
+              "audit_required"
+            ]
+          }
+        },
+        "required_operation_tokens": {
+          "type": "array",
+          "minItems": 5,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "/eval/results/{result_id}/artifact",
+              "operationId: getEvalResultArtifact",
+              "x-rbac: admin",
+              "TenantIdFilter",
+              "EvalResultArtifact",
+              "format: uri",
+              "direct_object_access_allowed"
+            ]
+          }
+        }
+      }
+    },
+    "replay_verification_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "validator",
+        "check_command",
+        "compares_exact_result_digest",
+        "compares_source_fixture_digest",
+        "compares_runner_digest",
+        "requires_trace_export_gate_refs",
+        "requires_qa_safety_refs"
+      ],
+      "properties": {
+        "validator": {
+          "const": "scripts/validate_eval_result_artifact_contract.py"
+        },
+        "check_command": {
+          "const": "python3 scripts/validate_eval_result_artifact_contract.py"
+        },
+        "compares_exact_result_digest": {
+          "const": true
+        },
+        "compares_source_fixture_digest": {
+          "const": true
+        },
+        "compares_runner_digest": {
+          "const": true
+        },
+        "requires_trace_export_gate_refs": {
+          "const": true
+        },
+        "requires_qa_safety_refs": {
+          "const": true
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "created_by_lane",
+        "blueprint_sections"
+      ],
+      "properties": {
+        "created_by_lane": {
+          "const": "lane2"
+        },
+        "blueprint_sections": {
+          "type": "array",
+          "minItems": 3,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "14. Eval Suite",
+              "15. Image QA 和 Safety Policy",
+              "22. Observability",
+              "25.11 Eval, QA, Safety"
+            ]
+          }
+        }
+      }
+    }
+  }
+}
