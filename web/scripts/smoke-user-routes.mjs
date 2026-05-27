@@ -326,7 +326,9 @@ if (
   sessionEvidence.unsafeActionGuard?.expectedBlockedStatus !== "blocked" ||
   sessionEvidence.unsafeActionGuard?.expectedSafeLabels !== "load,login" ||
   sessionEvidence.unsafeActionGuard?.expectedProtectedMethods !== "POST,PUT,PATCH,DELETE" ||
-  sessionEvidence.unsafeActionGuard?.expectedGuardCount !== "16"
+  sessionEvidence.unsafeActionGuard?.expectedGuardCount !== "18" ||
+  sessionEvidence.unsafeActionGuard?.expectedOperationCount !== "18" ||
+  sessionEvidence.unsafeActionGuard?.expectedCsrfProtectedOperationCount !== String(generatedApiCsrfContract.unsafeOperationCount)
 ) {
   fail("session/CSRF UI evidence does not assert the secure-cookie and same-site contract");
 }

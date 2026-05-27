@@ -19,6 +19,7 @@ import {
   Loader2,
   PackagePlus,
   RefreshCcw,
+  PenLine,
   RotateCcw,
   Save,
   Send,
@@ -57,6 +58,8 @@ export type ViewKey = "workspace" | "projects" | "export" | "billing" | "account
 type UnsafeActionGuardLabel =
   | "Confirm Brief"
   | "Attach"
+  | "Create Project"
+  | "Rename Project"
   | "Package Reference"
   | "Select Candidate"
   | "Iterate"
@@ -109,6 +112,8 @@ const sessionSafeActionLabels = new Set(["load", "login"]);
 const sameSiteUnsafeActionGuardMap = {
   "Confirm Brief": ["createChatSession", "createChatMessage", "createCandidateSet"],
   Attach: ["createUpload"],
+  "Create Project": ["createProject"],
+  "Rename Project": ["updateProject"],
   "Package Reference": ["createPackage"],
   "Select Candidate": ["selectDirection"],
   Iterate: ["createCanvasNode", "createCanvasVersion"],
@@ -339,7 +344,7 @@ export function WorkspaceApp({ initialView = "workspace" }: { initialView?: View
             runAction={runTrackedAction}
           />
         )}
-        {view === "projects" && <ProjectsView state={state} />}
+        {view === "projects" && <ProjectsView state={state} sessionBlocked={isSessionBlocked(state)} runAction={runTrackedAction} />}
         {view === "export" && <ExportView state={state} sessionBlocked={sessionBlocked} runAction={runTrackedAction} />}
         {view === "billing" && <BillingView state={state} busy={busy} sessionBlocked={sessionBlocked} runAction={runTrackedAction} />}
         {view === "account" && <AccountView state={state} sessionBlocked={sessionBlocked} runAction={runTrackedAction} />}
@@ -1052,11 +1057,65 @@ function PackagePanel({
   );
 }
 
-function ProjectsView({ state }: { state: WorkspaceState }) {
+function ProjectsView({
+  state,
+  sessionBlocked,
+  runAction
+}: {
+  state: WorkspaceState;
+  sessionBlocked: boolean;
+  runAction: (label: string, action: () => Promise<WorkspaceState>) => Promise<void>;
+}) {
+  const activeProject = state.projects.find((project) => project.id === state.activeProjectId) ?? state.projects[0];
+  const [newProjectName, setNewProjectName] = useState("Launch landing page package");
+  const [renameProjectName, setRenameProjectName] = useState(activeProject?.name ?? "");
+
+  useEffect(() => {
+    setRenameProjectName(activeProject?.name ?? "");
+  }, [activeProject?.name]);
+
+  const createProject = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    void runAction("project-create", () => zenArtClient.createProject(newProjectName));
+  };
+  const renameProject = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!activeProject) {
+      return;
+    }
+    void runAction("project-rename", () => zenArtClient.updateProject(activeProject.id, renameProjectName));
+  };
+
   return (
     <section className="content-view">
       <div className="section-title">
         <h2>Project Dashboard</h2>
+      </div>
+      <div className="project-actions" aria-label="Project lifecycle actions">
+        <form className="project-action-form" onSubmit={createProject}>
+          <label htmlFor="project-create-name">New project</label>
+          <input
+            id="project-create-name"
+            value={newProjectName}
+            onChange={(event) => setNewProjectName(event.target.value)}
+          />
+          <button className="secondary-button compact" disabled={sessionBlocked || !newProjectName.trim()}>
+            <PackagePlus size={14} aria-hidden="true" />
+            Create Project
+          </button>
+        </form>
+        <form className="project-action-form" onSubmit={renameProject}>
+          <label htmlFor="project-rename-name">Active name</label>
+          <input
+            id="project-rename-name"
+            value={renameProjectName}
+            onChange={(event) => setRenameProjectName(event.target.value)}
+          />
+          <button className="secondary-button compact" disabled={sessionBlocked || !activeProject || !renameProjectName.trim()}>
+            <PenLine size={14} aria-hidden="true" />
+            Rename Project
+          </button>
+        </form>
       </div>
       <div className="project-grid">
         {state.projects.map((project) => (

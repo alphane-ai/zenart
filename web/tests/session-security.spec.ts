@@ -43,12 +43,20 @@ test("account route exposes secure-cookie, same-site CSRF, and unsafe-action gua
   await expect(sessionContract).toHaveAttribute("data-session-unsafe-action-status", "enabled");
   await expect(sessionContract).toHaveAttribute("data-session-unsafe-action-safe-labels", "load,login");
   await expect(sessionContract).toHaveAttribute("data-session-unsafe-action-protected-methods", "POST,PUT,PATCH,DELETE");
-  await expect(sessionContract).toHaveAttribute("data-session-unsafe-action-guard-count", "16");
-  await expect(sessionContract).toHaveAttribute("data-session-unsafe-action-operation-count", "16");
-  await expect(sessionContract).toHaveAttribute("data-session-unsafe-action-csrf-protected-operation-count", "13");
+  await expect(sessionContract).toHaveAttribute("data-session-unsafe-action-guard-count", "18");
+  await expect(sessionContract).toHaveAttribute("data-session-unsafe-action-operation-count", "18");
+  await expect(sessionContract).toHaveAttribute("data-session-unsafe-action-csrf-protected-operation-count", "15");
   await expect(sessionContract).toHaveAttribute(
     "data-session-unsafe-action-operation-contracts",
     /Confirm Brief=>createChatSession:POST:X-ZenArt-CSRF:true\+createChatMessage:POST:X-ZenArt-CSRF:true\+createCandidateSet:POST:X-ZenArt-CSRF:true/
+  );
+  await expect(sessionContract).toHaveAttribute(
+    "data-session-unsafe-action-operation-contracts",
+    /Create Project=>createProject:POST:X-ZenArt-CSRF:true/
+  );
+  await expect(sessionContract).toHaveAttribute(
+    "data-session-unsafe-action-operation-contracts",
+    /Rename Project=>updateProject:PATCH:X-ZenArt-CSRF:true/
   );
   await expect(sessionContract).toHaveAttribute(
     "data-session-unsafe-action-operation-contracts",

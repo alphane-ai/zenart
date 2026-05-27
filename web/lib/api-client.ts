@@ -244,6 +244,47 @@ export class DevZenArtClient implements ZenArtClient {
     });
   }
 
+  async createProject(name: string) {
+    const state = migrateState(loadState());
+    const projectName = name.trim() || `Project ${state.projects.length + 1}`;
+    const createdAt = new Date().toISOString();
+    const project = {
+      id: `project-${String(state.projects.length + 1).padStart(3, "0")}`,
+      name: projectName,
+      updatedAt: createdAt,
+      brief: "New local alpha project ready for brief, references, package, and export.",
+      assetCount: 0,
+      exportCount: 0
+    };
+
+    return saveState({
+      ...state,
+      projects: [project, ...state.projects],
+      activeProjectId: project.id
+    });
+  }
+
+  async updateProject(projectId: string, name: string) {
+    const state = migrateState(loadState());
+    const projectName = name.trim();
+    if (!projectName) {
+      return clone(state);
+    }
+
+    return saveState({
+      ...state,
+      projects: state.projects.map((project) =>
+        project.id === projectId
+          ? {
+              ...project,
+              name: projectName,
+              updatedAt: new Date().toISOString()
+            }
+          : project
+      )
+    });
+  }
+
   async attachReference(asset: { name: string; kind: "image" | "document" | "url" }) {
     const state = loadState();
     const reference = createReferenceAsset(asset.name, asset.kind);

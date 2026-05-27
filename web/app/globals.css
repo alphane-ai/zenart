@@ -855,6 +855,30 @@ textarea {
   gap: 14px;
 }
 
+.project-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(260px, 1fr));
+  gap: 14px;
+}
+
+.project-action-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 8px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: var(--shadow);
+}
+
+.project-action-form label {
+  grid-column: 1 / -1;
+  font-size: 12px;
+  color: #475467;
+}
+
 .project-card,
 .billing-card,
 .export-summary,

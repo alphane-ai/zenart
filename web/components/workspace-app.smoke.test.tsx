@@ -20,10 +20,12 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(sessionContract).toHaveAttribute("data-session-unsafe-action-status", "enabled");
     expect(sessionContract).toHaveAttribute("data-session-unsafe-action-safe-labels", "load,login");
     expect(sessionContract).toHaveAttribute("data-session-unsafe-action-protected-methods", "POST,PUT,PATCH,DELETE");
-    expect(sessionContract).toHaveAttribute("data-session-unsafe-action-guard-count", "16");
+    expect(sessionContract).toHaveAttribute("data-session-unsafe-action-guard-count", "18");
     expect(sessionContract.getAttribute("data-session-unsafe-action-guard-labels")?.split("|")).toEqual([
       "Confirm Brief",
       "Attach",
+      "Create Project",
+      "Rename Project",
       "Package Reference",
       "Select Candidate",
       "Iterate",
@@ -39,13 +41,19 @@ describe("WorkspaceApp user route integration smoke", () => {
       "Refresh Session",
       "Expire Session"
     ]);
-    expect(sessionContract).toHaveAttribute("data-session-unsafe-action-operation-count", "16");
-    expect(sessionContract).toHaveAttribute("data-session-unsafe-action-csrf-protected-operation-count", "13");
+    expect(sessionContract).toHaveAttribute("data-session-unsafe-action-operation-count", "18");
+    expect(sessionContract).toHaveAttribute("data-session-unsafe-action-csrf-protected-operation-count", "15");
     expect(sessionContract.getAttribute("data-session-unsafe-action-operation-contracts")).toContain(
       "Confirm Brief=>createChatSession:POST:X-ZenArt-CSRF:true+createChatMessage:POST:X-ZenArt-CSRF:true+createCandidateSet:POST:X-ZenArt-CSRF:true"
     );
     expect(sessionContract.getAttribute("data-session-unsafe-action-operation-contracts")).toContain(
       "Attach=>createUpload:POST:X-ZenArt-CSRF:true"
+    );
+    expect(sessionContract.getAttribute("data-session-unsafe-action-operation-contracts")).toContain(
+      "Create Project=>createProject:POST:X-ZenArt-CSRF:true"
+    );
+    expect(sessionContract.getAttribute("data-session-unsafe-action-operation-contracts")).toContain(
+      "Rename Project=>updateProject:PATCH:X-ZenArt-CSRF:true"
     );
     expect(sessionContract.getAttribute("data-session-unsafe-action-operation-contracts")).toContain(
       "Save Settings=>updateAccount:PATCH:X-ZenArt-CSRF:true"
@@ -101,6 +109,8 @@ describe("WorkspaceApp user route integration smoke", () => {
       "deleteSession:DELETE:include:X-ZenArt-CSRF:false"
     );
     expect(csrfInventory).toHaveTextContent("createUpload");
+    expect(csrfInventory).toHaveTextContent("createProject");
+    expect(csrfInventory).toHaveTextContent("updateProject");
     expect(csrfInventory).toHaveTextContent("createExport");
     expect(csrfInventory).toHaveTextContent("createSupportTicket");
 
@@ -119,6 +129,35 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(screen.queryByText("Session expired. Refresh or sign in to continue.")).not.toBeInTheDocument();
     expect(container.querySelector(".session-pill")).toHaveTextContent("authenticated");
     expect(screen.getByRole("button", { name: "Save Settings" })).not.toBeDisabled();
+  });
+
+  it("guards project create and rename actions with the same-site session contract", async () => {
+    render(<WorkspaceApp initialView="projects" />);
+
+    await screen.findByRole("heading", { name: "Project Dashboard" });
+
+    const sessionContract = screen.getByLabelText("Auth and session status");
+    expect(sessionContract.getAttribute("data-session-unsafe-action-operation-contracts")).toContain(
+      "Create Project=>createProject:POST:X-ZenArt-CSRF:true"
+    );
+    expect(sessionContract.getAttribute("data-session-unsafe-action-operation-contracts")).toContain(
+      "Rename Project=>updateProject:PATCH:X-ZenArt-CSRF:true"
+    );
+
+    fireEvent.change(screen.getByLabelText("New project"), { target: { value: "Retail launch assets" } });
+    fireEvent.click(screen.getByRole("button", { name: "Create Project" }));
+    await screen.findByRole("heading", { name: "Retail launch assets" });
+    expect(screen.getAllByText("Retail launch assets")).toHaveLength(2);
+
+    fireEvent.change(screen.getByLabelText("Active name"), { target: { value: "Retail launch renamed" } });
+    fireEvent.click(screen.getByRole("button", { name: "Rename Project" }));
+    await screen.findByRole("heading", { name: "Retail launch renamed" });
+    expect(screen.getAllByText("Retail launch renamed")).toHaveLength(2);
+
+    fireEvent.click(screen.getByRole("button", { name: "Expire" }));
+    await screen.findByText("Session expired. Refresh or sign in to continue.");
+    expect(screen.getByRole("button", { name: "Create Project" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Rename Project" })).toBeDisabled();
   });
 
   it("blocks unsafe workspace actions when the same-site session is expired", async () => {
@@ -723,12 +762,14 @@ describe("WorkspaceApp user route integration smoke", () => {
         expectedBlockedStatus: "blocked",
         expectedSafeLabels: "load,login",
         expectedProtectedMethods: "POST,PUT,PATCH,DELETE",
-        expectedGuardCount: "16",
-        expectedOperationCount: "16",
-        expectedCsrfProtectedOperationCount: "13",
+        expectedGuardCount: "18",
+        expectedOperationCount: "18",
+        expectedCsrfProtectedOperationCount: "15",
         expectedGuardLabels: expect.arrayContaining([
           "Confirm Brief",
           "Attach",
+          "Create Project",
+          "Rename Project",
           "Package Reference",
           "Select Candidate",
           "Iterate",
@@ -747,6 +788,8 @@ describe("WorkspaceApp user route integration smoke", () => {
         requiredOperationContracts: expect.arrayContaining([
           "Confirm Brief=>createChatSession:POST:X-ZenArt-CSRF:true+createChatMessage:POST:X-ZenArt-CSRF:true+createCandidateSet:POST:X-ZenArt-CSRF:true",
           "Attach=>createUpload:POST:X-ZenArt-CSRF:true",
+          "Create Project=>createProject:POST:X-ZenArt-CSRF:true",
+          "Rename Project=>updateProject:PATCH:X-ZenArt-CSRF:true",
           "Package Reference=>createPackage:POST:X-ZenArt-CSRF:true",
           "Select Candidate=>selectDirection:PUT:X-ZenArt-CSRF:true",
           "Save Settings=>updateAccount:PATCH:X-ZenArt-CSRF:true",
