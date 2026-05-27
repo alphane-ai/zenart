@@ -61,7 +61,7 @@ function assertFailedTaskBlockedReplaySamples(task, fixture, supportTickets) {
       ...task,
       ...applyFailedTaskFixtureMutation(task, sample.mutation)
     };
-    const decision = buildFailedTaskRuntimeDecisions([mutatedTask], supportTickets)[0];
+    const decision = buildFailedTaskRuntimeDecisions([mutatedTask], supportTickets, undefined, abuseControlHooks)[0];
     const expected = sample.expected_runtime_contract;
 
     for (const [fixtureKey, runtimeKey] of Object.entries(failedTaskRuntimeContractMap)) {
@@ -305,9 +305,12 @@ const parseFailedTaskRuntime = () => {
     .replaceAll(/function regressionFixtureStatus\(\n  task: FailedTaskControl,\n  regressionFixturePathSet: Set<string> \| undefined\n\): FailedTaskRuntimeDecision\["regressionFixtureStatus"\]/g, "function regressionFixtureStatus(task, regressionFixturePathSet)")
     .replaceAll(/function secondReviewDistinctnessStatus\(\n  task: FailedTaskControl\n\): FailedTaskRuntimeDecision\["secondReviewDistinctnessStatus"\]/g, "function secondReviewDistinctnessStatus(task)")
     .replaceAll(/function secondReviewEvidenceStatus\(\n  task: FailedTaskControl\n\): FailedTaskRuntimeDecision\["secondReviewEvidenceStatus"\]/g, "function secondReviewEvidenceStatus(task)")
+    .replaceAll(/function abuseControlStatus\(\n  task: FailedTaskControl,\n  hooksById: Map<string, AbuseControlHook>\n\): Pick<FailedTaskRuntimeDecision, "abuseControlStatus" \| "abuseControlEvidence">/g, "function abuseControlStatus(task, hooksById)")
     .replaceAll(/: FailedTaskSubmissionContract\[\]/g, "")
     .replaceAll(/: FailedTaskRuntimeDecision\[\]/g, "")
     .replaceAll(/: FailedTaskControl\[\]/g, "")
+    .replaceAll(/: AbuseControlHook\[\]/g, "")
+    .replaceAll(/ as AbuseControlHook\[\]/g, "")
     .replaceAll(/: FailedTaskRuntimeDecision\["regressionFixtureStatus"\]/g, "")
     .replaceAll(/: string\[\]/g, "")
     .replaceAll(/: FailedTaskRuntimeDecision\["retryBudgetStatus"\]/g, "")
@@ -331,10 +334,12 @@ const parseFailedTaskRuntime = () => {
     .replaceAll(/: SupportTicket\[\]/g, "")
     .replaceAll(/: SupportTicket \| undefined/g, "")
     .replaceAll(/: Set<string> \| undefined/g, "")
+    .replaceAll(/: Map<string, AbuseControlHook>/g, "")
     .replaceAll(/regressionFixturePaths\?: string\[\]/g, "regressionFixturePaths")
     .replaceAll(/regressionFixturePaths\?/g, "regressionFixturePaths")
     .replaceAll(/new Map<string, SupportTicket>/g, "new Map")
     .replaceAll(/new Map<string, FailedTaskControl>/g, "new Map")
+    .replaceAll(/new Map<string, AbuseControlHook>/g, "new Map")
     .replaceAll(/: string/g, "");
   return Function(`${runtimeSource}\nreturn { buildFailedTaskRuntimeDecisions, buildFailedTaskSubmissionContracts };`)();
 };
@@ -1404,6 +1409,7 @@ test("queue and failed task controls gate retry and cancel with audit evidence",
     assert.ok(task.requestedByAdminId.length > 3, `${task.id} needs requesting admin identity`);
     assert.ok(task.idempotencyKey.startsWith(`${task.requestedAction}:${task.id}:`), `${task.id} needs stable action/task idempotency key`);
     assert.ok(task.regressionFixtureRef.length > 10, `${task.id} needs explicit regression fixture state`);
+    assert.ok(Array.isArray(task.abuseControlHookRefs), `${task.id} needs explicit abuse control hook refs`);
     assert.ok(task.closureEvidenceRefs.length >= 4, `${task.id} needs closure evidence refs`);
     assert.ok(task.rbacEvidenceRefs.length > 0, `${task.id} needs admin RBAC evidence refs`);
     assert.ok(task.operatorRunbook.length > 60, `${task.id} needs operator runbook`);
@@ -1432,6 +1438,10 @@ test("queue and failed task controls gate retry and cancel with audit evidence",
         task.closureEvidenceRefs.includes(rbac.auditRef) || task.auditRef === rbac.auditRef,
         `${task.id} RBAC evidence ${ref} audit must be part of task closure or submit audit`
       );
+    }
+
+    for (const ref of task.abuseControlHookRefs) {
+      assert.ok(abuseHookIds.has(ref), `${task.id} links unknown abuse control hook ${ref}`);
     }
 
     if (roleOrder.get(task.requestedByRole) >= roleOrder.get(task.allowedRole) && task.actionEligibility === "eligible") {
@@ -1496,7 +1506,7 @@ test("queue and failed task controls gate retry and cancel with audit evidence",
 
 test("failed task retry and cancel samples are durable regression fixtures", () => {
   const decisionsByTask = new Map(
-    buildFailedTaskRuntimeDecisions(failedTaskControls, supportTickets).map((decision) => [decision.taskId, decision])
+    buildFailedTaskRuntimeDecisions(failedTaskControls, supportTickets, undefined, abuseControlHooks).map((decision) => [decision.taskId, decision])
   );
 
   const retryTask = failedTaskControls.find((task) => task.id === "task-export-489");
@@ -1674,7 +1684,7 @@ test("failed task retry and cancel samples are durable regression fixtures", () 
 });
 
 test("failed task runtime submit gates preserve retry, cancel, hold, RBAC, and audit outcomes", () => {
-  const decisions = buildFailedTaskRuntimeDecisions(failedTaskControls, supportTickets);
+  const decisions = buildFailedTaskRuntimeDecisions(failedTaskControls, supportTickets, undefined, abuseControlHooks);
   const decisionsByTask = new Map(decisions.map((decision) => [decision.taskId, decision]));
 
   assert.equal(decisions.length, failedTaskControls.length, "each failed task needs one runtime decision");
@@ -1937,7 +1947,9 @@ test("failed task runtime submit gates preserve retry, cancel, hold, RBAC, and a
         idempotencyKey: "retry:wrong-task:sup-2204:manifest-missing"
       }
     ],
-    supportTickets
+    supportTickets,
+    undefined,
+    abuseControlHooks
   );
   assert.equal(unstableRetry[0].idempotencyStatus, "unstable", "mismatched retry idempotency key must be unstable");
   assert.equal(unstableRetry[0].submitDecision, "blocked", "unstable retry idempotency must block submission");
@@ -1954,7 +1966,9 @@ test("failed task runtime submit gates preserve retry, cancel, hold, RBAC, and a
         maxRetries: 3
       }
     ],
-    supportTickets
+    supportTickets,
+    undefined,
+    abuseControlHooks
   )[0];
   assert.equal(exhaustedRetry.retryBudgetStatus, "exhausted", "retry at max attempts must exhaust budget");
   assert.equal(exhaustedRetry.submitDecision, "blocked", "exhausted retry budget must block submission");
@@ -1971,7 +1985,8 @@ test("failed task runtime submit gates preserve retry, cancel, hold, RBAC, and a
       }
     ],
     supportTickets,
-    regressionFixtures.map((fixture) => fixture.fixturePath)
+    regressionFixtures.map((fixture) => fixture.fixturePath),
+    abuseControlHooks
   )[0];
   assert.equal(
     unknownRegressionFixtureRetry.regressionFixtureStatus,
@@ -2005,7 +2020,9 @@ test("failed task runtime submit gates preserve retry, cancel, hold, RBAC, and a
         schemaVersion: "task.v0"
       }
     ],
-    supportTickets
+    supportTickets,
+    undefined,
+    abuseControlHooks
   )[0];
   assert.equal(staleSchemaRetry.compatibilityStatus, "stale", "stale task schema must be detected");
   assert.equal(staleSchemaRetry.appCompatibilityStatus, "compatible", "stale task schema must not mark app stale");
@@ -2033,7 +2050,9 @@ test("failed task runtime submit gates preserve retry, cancel, hold, RBAC, and a
         workerVersion: "worker-2026.05.25"
       }
     ],
-    supportTickets
+    supportTickets,
+    undefined,
+    abuseControlHooks
   )[0];
   assert.equal(staleWorkerRetry.compatibilityStatus, "stale", "stale worker version must be detected");
   assert.equal(staleWorkerRetry.appCompatibilityStatus, "compatible", "stale worker must not mark app stale");
@@ -2057,7 +2076,9 @@ test("failed task runtime submit gates preserve retry, cancel, hold, RBAC, and a
         appVersion: "admin-0.0.0-previous"
       }
     ],
-    supportTickets
+    supportTickets,
+    undefined,
+    abuseControlHooks
   )[0];
   assert.equal(staleAdminAppRetry.compatibilityStatus, "stale", "stale admin app version must be detected");
   assert.equal(staleAdminAppRetry.appCompatibilityStatus, "stale", "stale admin app must expose app-specific gate");
@@ -2081,7 +2102,9 @@ test("failed task runtime submit gates preserve retry, cancel, hold, RBAC, and a
         observedStateDigest: "sha256:failed-task-task-export-489-retrying-v2"
       }
     ],
-    supportTickets
+    supportTickets,
+    undefined,
+    abuseControlHooks
   )[0];
   assert.equal(staleReplayRetry.stateDigestStatus, "stale_replay", "changed observed state digest must be detected");
   assert.match(
@@ -2102,7 +2125,9 @@ test("failed task runtime submit gates preserve retry, cancel, hold, RBAC, and a
         observedStateDigest: "sha256:failed-task-task-crawler-019-active-replay-v1"
       }
     ],
-    supportTickets
+    supportTickets,
+    undefined,
+    abuseControlHooks
   )[0];
   assert.equal(staleReplayCancel.stateDigestStatus, "stale_replay", "changed cancel digest must be detected");
   assert.equal(staleReplayCancel.submitDecision, "blocked", "stale cancel replay must block submission");
@@ -2125,7 +2150,9 @@ test("failed task runtime submit gates preserve retry, cancel, hold, RBAC, and a
         closureEvidenceRefs: ["task-crawler-019", "sup-2212", "au-002"]
       }
     ],
-    supportTickets
+    supportTickets,
+    undefined,
+    abuseControlHooks
   )[0];
   assert.equal(
     incompleteClosureCancel.closureEvidenceStatus,
@@ -2152,7 +2179,9 @@ test("failed task runtime submit gates preserve retry, cancel, hold, RBAC, and a
         secondReviewerAdminId: failedTaskControls.find((task) => task.id === "task-crawler-019").requestedByAdminId
       }
     ],
-    supportTickets
+    supportTickets,
+    undefined,
+    abuseControlHooks
   )[0];
   assert.equal(
     sameReviewerApprovedCancel.secondReviewDistinctnessStatus,
@@ -2180,7 +2209,9 @@ test("failed task runtime submit gates preserve retry, cancel, hold, RBAC, and a
         secondReviewEvidenceRefs: ["rbac-crawler-001"]
       }
     ],
-    supportTickets
+    supportTickets,
+    undefined,
+    abuseControlHooks
   )[0];
   assert.equal(
     incompleteSecondReviewApprovedCancel.secondReviewEvidenceStatus,
@@ -2206,7 +2237,9 @@ test("failed task runtime submit gates preserve retry, cancel, hold, RBAC, and a
         secondReviewStatus: "rejected"
       }
     ],
-    supportTickets
+    supportTickets,
+    undefined,
+    abuseControlHooks
   )[0];
   assert.equal(rejectedSecondReviewCancel.submitDecision, "blocked", "rejected second review must block cancel closure");
   assert.ok(
@@ -2221,7 +2254,9 @@ test("failed task runtime submit gates preserve retry, cancel, hold, RBAC, and a
         userMessage: "   "
       }
     ],
-    supportTickets
+    supportTickets,
+    undefined,
+    abuseControlHooks
   )[0];
   assert.equal(missingUserMessageRetry.userMessageStatus, "missing", "blank user message must be detected");
   assert.equal(
@@ -2241,7 +2276,9 @@ test("failed task runtime submit gates preserve retry, cancel, hold, RBAC, and a
         rbacEvidenceRefs: []
       }
     ],
-    supportTickets
+    supportTickets,
+    undefined,
+    abuseControlHooks
   )[0];
   assert.equal(missingRbacEvidenceRetry.rbacEvidenceStatus, "missing", "blank RBAC evidence refs must be detected");
   assert.equal(
@@ -2263,7 +2300,9 @@ test("failed task runtime submit gates preserve retry, cancel, hold, RBAC, and a
         rbacDecision: "allowed"
       }
     ],
-    supportTickets
+    supportTickets,
+    undefined,
+    abuseControlHooks
   )[0];
   assert.equal(
     insufficientRoleAllowedRetry.roleAuthorizationStatus,
@@ -2292,7 +2331,9 @@ test("failed task runtime submit gates preserve retry, cancel, hold, RBAC, and a
         supportTicketId: "sup-missing"
       }
     ],
-    supportTickets
+    supportTickets,
+    undefined,
+    abuseControlHooks
   )[0];
   assert.equal(missingSupportTicketRetry.supportTicketLinkageStatus, "missing_ticket", "missing support ticket must be detected");
   assert.equal(missingSupportTicketRetry.submitDecision, "blocked", "retry cannot submit without support ticket evidence");
@@ -2309,7 +2350,9 @@ test("failed task runtime submit gates preserve retry, cancel, hold, RBAC, and a
         idempotencyKey: "cancel:task-crawler-019:sup-missing:ownership-missing"
       }
     ],
-    supportTickets
+    supportTickets,
+    undefined,
+    abuseControlHooks
   )[0];
   assert.equal(missingSupportTicketCancel.supportTicketLinkageStatus, "missing_ticket", "missing cancel support ticket must be detected");
   assert.equal(missingSupportTicketCancel.submitDecision, "blocked", "cancel cannot submit without support ticket evidence");
@@ -2330,7 +2373,9 @@ test("failed task runtime submit gates preserve retry, cancel, hold, RBAC, and a
         supportTicketId: "sup-2209"
       }
     ],
-    supportTickets
+    supportTickets,
+    undefined,
+    abuseControlHooks
   )[0];
   assert.equal(mismatchedTicketRetry.supportTicketLinkageStatus, "linked", "alternate ticket for same task can link");
   assert.equal(
@@ -2352,7 +2397,9 @@ test("failed task runtime submit gates preserve retry, cancel, hold, RBAC, and a
         idempotencyKey: "retry:task-export-489:sup-2201:manifest-missing"
       }
     ],
-    supportTickets
+    supportTickets,
+    undefined,
+    abuseControlHooks
   )[0];
   assert.equal(crossTaskTicketRetry.supportTicketLinkageStatus, "mismatched_ticket", "cross-task support ticket must be detected");
   assert.equal(crossTaskTicketRetry.tenantScopeStatus, "mismatched_tenant_scope", "cross-user/project ticket must be detected");
@@ -2370,11 +2417,37 @@ test("failed task runtime submit gates preserve retry, cancel, hold, RBAC, and a
     crossTaskTicketRetry.blockerCodes.includes("support_ticket_trace_mismatch"),
     "cross-task ticket must expose trace mismatch blocker"
   );
+
+  const activeHoldRetry = buildFailedTaskRuntimeDecisions(
+    [
+      {
+        ...failedTaskControls.find((task) => task.id === "task-brief-441"),
+        requestedAction: "retry",
+        actionEligibility: "eligible",
+        allowedRole: "support_operator",
+        requestedByRole: "support_operator",
+        rbacDecision: "allowed",
+        retryCount: 0,
+        maxRetries: 3,
+        idempotencyKey: "retry:task-brief-441:sup-2201:safety-hold",
+        rbacEvidenceRefs: ["rbac-export-001", "rbac-quota-001"]
+      }
+    ],
+    supportTickets,
+    undefined,
+    abuseControlHooks
+  )[0];
+  assert.equal(activeHoldRetry.abuseControlStatus, "active_enforced", "retry must detect active abuse hold evidence");
+  assert.equal(activeHoldRetry.submitDecision, "blocked", "active enforced abuse hold must block otherwise eligible retry");
+  assert.ok(
+    activeHoldRetry.blockerCodes.includes("active_abuse_control_blocks_retry"),
+    "active enforced abuse hold must expose a retry blocker code"
+  );
 });
 
 test("failed task submission contracts bind admin API replay protection and release evidence", () => {
   const { buildFailedTaskRuntimeDecisions, buildFailedTaskSubmissionContracts } = parseFailedTaskRuntime();
-  const decisions = buildFailedTaskRuntimeDecisions(failedTaskControls, supportTickets);
+  const decisions = buildFailedTaskRuntimeDecisions(failedTaskControls, supportTickets, undefined, abuseControlHooks);
   const contracts = buildFailedTaskSubmissionContracts(failedTaskControls, decisions);
   const contractByTask = new Map(contracts.map((contract) => [contract.taskId, contract]));
 
@@ -2391,14 +2464,20 @@ test("failed task submission contracts bind admin API replay protection and rele
     assert.equal(contract.csrfScope, "admin_session_cookie", `${task.id} must stay admin-session scoped`);
     assert.deepEqual(
       contract.requiredHeaders,
-      ["X-Admin-CSRF", "Idempotency-Key", "If-Match", "X-Support-Ticket", "X-Admin-Audit-Ref"],
-      `${task.id} must require CSRF, idempotency, digest, support, and audit headers`
+      ["X-Admin-CSRF", "Idempotency-Key", "If-Match", "X-Support-Ticket", "X-Admin-Audit-Ref", "X-Abuse-Control-Refs"],
+      `${task.id} must require CSRF, idempotency, digest, support, audit, and abuse-control headers`
     );
     assert.equal(contract.idempotencyKey, task.idempotencyKey, `${task.id} must preserve fixture idempotency key`);
     assert.equal(contract.idempotencyHeaderStatus, decision.idempotencyStatus, `${task.id} idempotency header status mismatch`);
     assert.equal(contract.preconditionDigestStatus, decision.stateDigestStatus, `${task.id} precondition digest status mismatch`);
     assert.equal(contract.preconditionHeader, decision.stateDigestEvidence, `${task.id} precondition header must expose digest evidence`);
     assert.equal(contract.supportTicketId, task.supportTicketId, `${task.id} must bind support ticket id`);
+    assert.equal(contract.abuseControlStatus, decision.abuseControlStatus, `${task.id} abuse-control status mismatch`);
+    assert.match(
+      contract.abuseControlHeader,
+      /X-Abuse-Control-Refs/,
+      `${task.id} contract must expose abuse-control header`
+    );
     assert.equal(contract.submitDecision, decision.submitDecision, `${task.id} submit decision mismatch`);
     assert.equal(contract.apiOutcome, decision.apiOutcome, `${task.id} API outcome mismatch`);
     assert.equal(contract.quotaLedgerEffect, decision.quotaLedgerEffect, `${task.id} quota ledger mismatch`);
@@ -2482,7 +2561,9 @@ test("failed task submission contracts bind admin API replay protection and rele
         observedStateDigest: "sha256:failed-task-task-export-489-retrying-v2"
       }
     ],
-    supportTickets
+    supportTickets,
+    undefined,
+    abuseControlHooks
   );
   const staleReplayContract = buildFailedTaskSubmissionContracts(
     [
@@ -2522,7 +2603,9 @@ test("failed task submission contracts bind admin API replay protection and rele
     "Replay Protection",
     "Release Gate Use",
     "Second Review Header",
-    "secondReviewHeader"
+    "secondReviewHeader",
+    "Abuse Control Header",
+    "abuseControlHeader"
   ]) {
     assert.match(queuesPage + adminApi + failedTaskRuntimeSource + types, new RegExp(token));
   }

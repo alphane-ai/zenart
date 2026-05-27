@@ -783,6 +783,7 @@ export type FailedTaskControl = {
   idempotencyKey: string;
   quotaEffect: "none" | "refund_pending" | "refund_on_cancel" | "reserved_credit_released";
   regressionFixtureRef: string;
+  abuseControlHookRefs: string[];
   closureEvidenceRefs: string[];
   rbacEvidenceRefs: string[];
   operatorRunbook: string;
@@ -813,6 +814,14 @@ export type FailedTaskRuntimeDecision = {
     | "blocked_not_regression_fixture";
   regressionFixtureStatus: "declared" | "missing" | "not_required";
   regressionFixtureEvidence: string;
+  abuseControlStatus:
+    | "clear"
+    | "active_enforced"
+    | "dry_run_only"
+    | "expired_or_released"
+    | "missing_hook_evidence"
+    | "mismatched_hook_user";
+  abuseControlEvidence: string;
   retryBudgetStatus: "available" | "exhausted" | "not_retry";
   rbacStatus: "allowed" | "denied" | "second_review_required";
   roleAuthorizationStatus: "sufficient" | "insufficient";
@@ -884,6 +893,8 @@ export type FailedTaskSubmissionContract = {
   preconditionHeader: string;
   preconditionDigestStatus: FailedTaskRuntimeDecision["stateDigestStatus"];
   supportTicketId: string;
+  abuseControlHeader: string;
+  abuseControlStatus: FailedTaskRuntimeDecision["abuseControlStatus"];
   responseContract: string;
   mutationOrder: "audit_then_queue_mutation" | "audit_then_review_hold" | "blocked_attempt_audit_only";
   quotaLedgerEffect: FailedTaskRuntimeDecision["quotaLedgerEffect"];

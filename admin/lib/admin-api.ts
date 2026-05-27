@@ -324,7 +324,8 @@ export async function getFailedTaskRuntimeDecisions() {
   return buildFailedTaskRuntimeDecisions(
     failedTaskControls,
     supportTickets,
-    regressionFixtures.map((fixture) => fixture.fixturePath)
+    regressionFixtures.map((fixture) => fixture.fixturePath),
+    abuseControlHooks
   );
 }
 
@@ -334,7 +335,8 @@ export async function getFailedTaskSubmissionContracts() {
     buildFailedTaskRuntimeDecisions(
       failedTaskControls,
       supportTickets,
-      regressionFixtures.map((fixture) => fixture.fixturePath)
+      regressionFixtures.map((fixture) => fixture.fixturePath),
+      abuseControlHooks
     )
   );
 }

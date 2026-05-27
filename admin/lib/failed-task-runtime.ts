@@ -1,4 +1,5 @@
 import type {
+  AbuseControlHook,
   FailedTaskControl,
   FailedTaskRuntimeDecision,
   FailedTaskSubmissionContract,
@@ -146,13 +147,73 @@ function secondReviewEvidenceStatus(
     : "incomplete";
 }
 
+function abuseControlStatus(
+  task: FailedTaskControl,
+  hooksById: Map<string, AbuseControlHook>
+): Pick<FailedTaskRuntimeDecision, "abuseControlStatus" | "abuseControlEvidence"> {
+  if (task.abuseControlHookRefs.length === 0) {
+    return {
+      abuseControlStatus: "clear",
+      abuseControlEvidence: "hooks:none"
+    };
+  }
+
+  const hookEvidence = task.abuseControlHookRefs.map((hookRef) => {
+    const hook = hooksById.get(hookRef);
+
+    if (!hook) {
+      return `${hookRef}:missing`;
+    }
+
+    const userScope = hook.userId === task.userId ? "same_user" : "mismatched_user";
+    return `${hook.id}:${hook.action}:${hook.state}:${hook.executionMode}:${hook.enforcementPoint}:${userScope}`;
+  });
+
+  if (hookEvidence.some((entry) => entry.endsWith(":missing"))) {
+    return {
+      abuseControlStatus: "missing_hook_evidence",
+      abuseControlEvidence: hookEvidence.join("; ")
+    };
+  }
+
+  if (hookEvidence.some((entry) => entry.endsWith(":mismatched_user"))) {
+    return {
+      abuseControlStatus: "mismatched_hook_user",
+      abuseControlEvidence: hookEvidence.join("; ")
+    };
+  }
+
+  const hooks = task.abuseControlHookRefs.map((hookRef) => hooksById.get(hookRef)).filter(Boolean) as AbuseControlHook[];
+
+  if (hooks.some((hook) => hook.state === "active" && hook.executionMode === "enforced")) {
+    return {
+      abuseControlStatus: "active_enforced",
+      abuseControlEvidence: hookEvidence.join("; ")
+    };
+  }
+
+  if (hooks.some((hook) => hook.executionMode === "dry_run" || hook.state === "armed")) {
+    return {
+      abuseControlStatus: "dry_run_only",
+      abuseControlEvidence: hookEvidence.join("; ")
+    };
+  }
+
+  return {
+    abuseControlStatus: "expired_or_released",
+    abuseControlEvidence: hookEvidence.join("; ")
+  };
+}
+
 export function buildFailedTaskRuntimeDecisions(
   tasks: FailedTaskControl[],
   supportTickets: SupportTicket[] = [],
-  regressionFixturePaths?: string[]
+  regressionFixturePaths?: string[],
+  abuseControlHooks: AbuseControlHook[] = []
 ): FailedTaskRuntimeDecision[] {
   const supportTicketsById = new Map<string, SupportTicket>(supportTickets.map((ticket) => [ticket.id, ticket]));
   const regressionFixturePathSet = regressionFixturePaths ? new Set(regressionFixturePaths) : undefined;
+  const abuseControlHooksById = new Map<string, AbuseControlHook>(abuseControlHooks.map((hook) => [hook.id, hook]));
 
   return tasks.map((task) => {
     const linkedSupportTicket = supportTicketsById.get(task.supportTicketId);
@@ -205,6 +266,7 @@ export function buildFailedTaskRuntimeDecisions(
     const roleAuthorizationEvidence = `requested:${task.requestedByRole}; required:${task.allowedRole}`;
     const computedSecondReviewDistinctnessStatus = secondReviewDistinctnessStatus(task);
     const computedSecondReviewEvidenceStatus = secondReviewEvidenceStatus(task);
+    const computedAbuseControl = abuseControlStatus(task, abuseControlHooksById);
     const secondReviewEvidence =
       task.secondReviewRequired
         ? `status:${task.secondReviewStatus}; requester:${task.requestedByAdminId}; reviewer:${task.secondReviewerAdminId}; audit:${task.secondReviewAuditRef}; refs:${task.secondReviewEvidenceRefs.join("|")}`
@@ -304,6 +366,18 @@ export function buildFailedTaskRuntimeDecisions(
       blockerCodes.push("regression_fixture_missing");
     }
 
+    if (computedAbuseControl.abuseControlStatus === "missing_hook_evidence") {
+      blockerCodes.push("abuse_control_hook_missing");
+    }
+
+    if (computedAbuseControl.abuseControlStatus === "mismatched_hook_user") {
+      blockerCodes.push("abuse_control_user_mismatch");
+    }
+
+    if (task.requestedAction === "retry" && computedAbuseControl.abuseControlStatus === "active_enforced") {
+      blockerCodes.push("active_abuse_control_blocks_retry");
+    }
+
     const hardBlockers = new Set([
       "action_blocked",
       "retry_budget_exhausted",
@@ -327,7 +401,10 @@ export function buildFailedTaskRuntimeDecisions(
       "second_review_evidence_incomplete",
       "second_review_rejected",
       "second_review_expired",
-      "regression_fixture_missing"
+      "regression_fixture_missing",
+      "abuse_control_hook_missing",
+      "abuse_control_user_mismatch",
+      "active_abuse_control_blocks_retry"
     ]);
     const submitDecision =
       blockerCodes.some((code) => hardBlockers.has(code))
@@ -400,6 +477,8 @@ export function buildFailedTaskRuntimeDecisions(
       releaseGateDisposition: computedReleaseGateDisposition,
       regressionFixtureStatus: computedRegressionFixtureStatus,
       regressionFixtureEvidence,
+      abuseControlStatus: computedAbuseControl.abuseControlStatus,
+      abuseControlEvidence: computedAbuseControl.abuseControlEvidence,
       retryBudgetStatus,
       rbacStatus: task.rbacDecision,
       roleAuthorizationStatus,
@@ -458,7 +537,8 @@ export function buildFailedTaskSubmissionContracts(
       "Idempotency-Key",
       "If-Match",
       "X-Support-Ticket",
-      "X-Admin-Audit-Ref"
+      "X-Admin-Audit-Ref",
+      "X-Abuse-Control-Refs"
     ];
     const mutationOrder = submitEnabled
       ? "audit_then_queue_mutation"
@@ -483,6 +563,7 @@ export function buildFailedTaskSubmissionContracts(
       decision.supportTicketId,
       decision.queueId,
       decision.auditRef,
+      ...(task?.abuseControlHookRefs ?? []),
       ...(decision.secondReviewAuditRef === "none" ? [] : [decision.secondReviewAuditRef]),
       ...decision.rbacEvidenceRefs,
       ...(task?.closureEvidenceRefs ?? [])
@@ -508,6 +589,8 @@ export function buildFailedTaskSubmissionContracts(
       preconditionHeader: decision.stateDigestEvidence,
       preconditionDigestStatus: decision.stateDigestStatus,
       supportTicketId: decision.supportTicketId,
+      abuseControlHeader: `X-Abuse-Control-Refs: ${(task?.abuseControlHookRefs ?? []).join(",") || "none"}; ${decision.abuseControlStatus}; ${decision.abuseControlEvidence}`,
+      abuseControlStatus: decision.abuseControlStatus,
       responseContract: `${decision.apiOutcome}; ${decision.stateTransition}; ${decision.closureOutcome}`,
       mutationOrder,
       quotaLedgerEffect: decision.quotaLedgerEffect,
