@@ -2651,6 +2651,11 @@ test("production abuse throttle hold evidence clears only the production abuse c
     productionAbuseThrottleHoldEvidence.runtimeRequestIds,
     "evidence file and admin fixture runtime probe ids must match"
   );
+  assert.deepEqual(
+    evidenceFile.gate_impact.remaining_blockers,
+    productionAbuseThrottleHoldEvidence.gateImpact.remainingBlockers,
+    "production abuse evidence file and admin fixture must agree on preserved release-gate blockers"
+  );
 
   const abuseCheck = gateFixture.checks.find((check) => check.check_id === "production_abuse_throttle_hold");
   assert.ok(abuseCheck, "production gate needs abuse throttle/hold check");
@@ -2679,6 +2684,16 @@ test("production abuse throttle hold evidence clears only the production abuse c
     assert.ok(check, `${blocker} must remain represented in the production gate fixture`);
     assert.equal(check.status, "blocked", `${blocker} must stay blocked after abuse throttle/hold clears`);
   }
+
+  const staleBlockedRefs = gateFixture.checks
+    .filter((check) => check.status === "pass")
+    .map((check) => check.check_id)
+    .filter((checkId) => productionAbuseThrottleHoldEvidence.gateImpact.remainingBlockers.includes(checkId));
+  assert.deepEqual(
+    staleBlockedRefs,
+    [],
+    "production abuse evidence must not preserve release-gate checks that already pass"
+  );
 
   assert.ok(
     gateFixture.do_not_launch_checks.some((condition) => condition.is_present === true),

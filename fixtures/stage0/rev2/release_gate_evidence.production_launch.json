@@ -85,7 +85,7 @@
       "condition_id": "abuse_throttle_hold_missing",
       "blueprint_condition": "Rate limits、provider concurrency limits、spend cap 或 emergency kill switch 缺失。",
       "is_present": false,
-      "evidence_ref": "ops/evidence/production/20260527T1330Z-abuse-throttle-hold.json records production account-level hold/throttle rollout evidence for admin abuse hooks while unrelated provider, billing, security, backup, and legal launch blockers remain active"
+      "evidence_ref": "ops/evidence/production/20260527T1330Z-abuse-throttle-hold.json records production account-level hold/throttle rollout evidence for admin abuse hooks while unrelated backup/restore, rollback/post-deploy, and upstream CI/Staging dependency launch blockers remain active"
     },
     {
       "condition_id": "security_privacy_legal_incomplete",
