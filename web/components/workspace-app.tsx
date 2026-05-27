@@ -54,7 +54,12 @@ import {
 import { downloadExportPackage } from "@/lib/export-download";
 import { apiOperations, OperationId, ZenArtApiClient } from "@/lib/generated/zenart-api";
 import { legalPolicyList, supportContactEmail } from "@/lib/legal-policies";
-import { buildGeneratedApiCsrfRequestContractEvidence, buildSessionSecurityContractEvidence, isCsrfProtectedMethod } from "@/lib/request-security";
+import {
+  buildGeneratedApiCsrfRequestContractEvidence,
+  buildSessionSecurityContractEvidence,
+  isCsrfProtectedMethod,
+  serializeSetCookieContract
+} from "@/lib/request-security";
 import { AnalyticsEventName, captureAnalyticsEvent, reportFrontendError } from "@/lib/telemetry";
 
 export type ViewKey = "workspace" | "projects" | "export" | "billing" | "account" | "support";
@@ -644,13 +649,7 @@ function SessionPanel({
     evidence.status === "pass" && generatedRequestEvidence.status === "pass" && generatedRequestEvidence.missingUnsafeOperationIds.length === 0
       ? "pass"
       : "fail";
-  const backendSetCookieContract = [
-    state.sessionContract.cookie.name,
-    state.sessionContract.cookie.httpOnly ? "HttpOnly" : "client-readable",
-    state.sessionContract.cookie.secure ? "Secure" : "insecure",
-    `SameSite=${state.sessionContract.cookie.sameSite}`,
-    `Path=${state.sessionContract.cookie.path}`
-  ].join(";");
+  const backendSetCookieContract = serializeSetCookieContract(state.sessionContract.cookie);
   const backendCsrfValidationContract = [
     state.sessionContract.csrf.protectedMethods.join(","),
     state.sessionContract.csrf.headerName,
@@ -696,6 +695,7 @@ function SessionPanel({
       data-session-cookie-secure={String(evidence.cookieAttributes.secure)}
       data-session-cookie-same-site={evidence.cookieAttributes.sameSite}
       data-session-cookie-path={evidence.cookieAttributes.path}
+      data-session-cookie-set-cookie-contract={evidence.setCookieContract}
       data-session-cookie-same-site-accepted-values={evidence.acceptedSameSiteValues.join(",")}
       data-session-cookie-same-site-rejected-values={evidence.rejectedSameSiteValues.join(",")}
       data-session-cookie-same-site-acceptance-matrix={sameSiteAcceptanceContracts}

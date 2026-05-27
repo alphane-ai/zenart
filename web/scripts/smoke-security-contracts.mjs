@@ -180,6 +180,7 @@ if (
   sessionEvidence.cookie?.expectedSecure !== "true" ||
   sessionEvidence.cookie?.expectedSameSite !== "lax" ||
   sessionEvidence.cookie?.expectedPath !== "/" ||
+  sessionEvidence.cookie?.expectedSetCookieContract !== "__Host-zenart_session;HttpOnly;Secure;SameSite=lax;Path=/" ||
   sessionEvidence.csrf?.expectedHeader !== "X-ZenArt-CSRF" ||
   sessionEvidence.csrf?.expectedStrategy !== "same-site-origin-check" ||
   sessionEvidence.csrf?.expectedCredentialMode !== "include" ||
@@ -211,6 +212,7 @@ const requiredSessionAttributes = [
   sessionEvidence.cookie?.secureAttribute,
   sessionEvidence.cookie?.sameSiteAttribute,
   sessionEvidence.cookie?.pathAttribute,
+  sessionEvidence.cookie?.setCookieContractAttribute,
   sessionEvidence.cookie?.sameSiteAcceptedValuesAttribute,
   sessionEvidence.cookie?.sameSiteRejectedValuesAttribute,
   sessionEvidence.cookie?.sameSiteAcceptanceMatrixAttribute,
@@ -424,6 +426,8 @@ if (
   sessionEvidence.cookie?.expectedSameSiteAcceptedValues !== "lax,strict" ||
   sessionEvidence.cookie?.expectedSameSiteRejectedValues !== "none" ||
   sessionEvidence.cookie?.expectedSameSiteAcceptanceMatrix !== "lax:pass:none|strict:pass:none|none:fail:cookie-same-site" ||
+  !requestSecuritySource.includes("serializeSetCookieContract") ||
+  !workspaceAppSource.includes("data-session-cookie-set-cookie-contract") ||
   !requestSecuritySource.includes("sameSiteAcceptanceMatrix") ||
   !workspaceAppSource.includes("data-session-cookie-same-site-accepted-values") ||
   !workspaceAppSource.includes("data-session-cookie-same-site-rejected-values") ||
@@ -436,6 +440,7 @@ for (const requiredTestSnippet of [
   "renders secure-cookie and same-site CSRF session UX evidence as an interactive client contract",
   "blocks unsafe workspace actions when the same-site session is expired",
   "data-session-security-status",
+  "data-session-cookie-set-cookie-contract",
   "data-session-cookie-same-site-accepted-values",
   "data-session-cookie-same-site-rejected-values",
   "data-session-cookie-same-site-acceptance-matrix",
@@ -465,6 +470,7 @@ for (const requiredBrowserSnippet of [
   "data-session-cookie-http-only",
   "data-session-cookie-secure",
   "data-session-cookie-same-site",
+  "data-session-cookie-set-cookie-contract",
   "data-session-cookie-same-site-accepted-values",
   "data-session-cookie-same-site-rejected-values",
   "data-session-cookie-same-site-acceptance-matrix",

@@ -133,6 +133,7 @@
         "secureAttribute": "data-session-cookie-secure",
         "sameSiteAttribute": "data-session-cookie-same-site",
         "pathAttribute": "data-session-cookie-path",
+        "setCookieContractAttribute": "data-session-cookie-set-cookie-contract",
         "sameSiteAcceptedValuesAttribute": "data-session-cookie-same-site-accepted-values",
         "sameSiteRejectedValuesAttribute": "data-session-cookie-same-site-rejected-values",
         "sameSiteAcceptanceMatrixAttribute": "data-session-cookie-same-site-acceptance-matrix",
@@ -140,6 +141,7 @@
         "expectedSecure": "true",
         "expectedSameSite": "lax",
         "expectedPath": "/",
+        "expectedSetCookieContract": "__Host-zenart_session;HttpOnly;Secure;SameSite=lax;Path=/",
         "expectedSameSiteAcceptedValues": "lax,strict",
         "expectedSameSiteRejectedValues": "none",
         "expectedSameSiteAcceptanceMatrix": "lax:pass:none|strict:pass:none|none:fail:cookie-same-site"
@@ -301,6 +303,7 @@
       "browserSmokeRequiredAssertions": [
         "account route exposes secure-cookie, same-site CSRF, unsafe-action guard, and generated-client request browser evidence",
         "data-session-security-evidence",
+        "data-session-cookie-set-cookie-contract",
         "data-session-cookie-same-site-accepted-values",
         "data-session-cookie-same-site-rejected-values",
         "data-session-cookie-same-site-acceptance-matrix",

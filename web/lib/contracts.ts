@@ -48,6 +48,7 @@ export interface SessionSecurityContractEvidence {
     sameSite: SessionContract["cookie"]["sameSite"];
     path: string;
   };
+  setCookieContract: string;
   acceptedSameSiteValues: Array<"lax" | "strict">;
   rejectedSameSiteValues: Array<"none">;
   sameSiteAcceptanceMatrix: Array<{

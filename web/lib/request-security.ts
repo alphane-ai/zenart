@@ -34,6 +34,15 @@ const buildSameSiteAcceptanceMatrix = (requirement: SessionContract["csrf"]["sam
     } as const;
   });
 
+export const serializeSetCookieContract = (cookie: SessionContract["cookie"]) =>
+  [
+    cookie.name,
+    cookie.httpOnly ? "HttpOnly" : "client-readable",
+    cookie.secure ? "Secure" : "insecure",
+    `SameSite=${cookie.sameSite}`,
+    `Path=${cookie.path}`
+  ].join(";");
+
 export const buildCsrfRequestHeaders = (
   method: HttpMethod,
   headers: Record<string, string> = {},
@@ -90,6 +99,7 @@ export const buildSessionSecurityContractEvidence = (
       sameSite: sessionContract.cookie.sameSite,
       path: sessionContract.cookie.path
     },
+    setCookieContract: serializeSetCookieContract(sessionContract.cookie),
     acceptedSameSiteValues: sameSiteAcceptanceMatrix
       .filter((entry) => entry.status === "pass")
       .map((entry) => entry.sameSite as "lax" | "strict"),

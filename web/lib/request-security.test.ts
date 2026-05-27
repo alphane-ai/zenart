@@ -53,6 +53,7 @@ describe("same-site CSRF request contract", () => {
         sameSite: "lax",
         path: "/"
       },
+      setCookieContract: "__Host-zenart_session;HttpOnly;Secure;SameSite=lax;Path=/",
       acceptedSameSiteValues: ["lax", "strict"],
       rejectedSameSiteValues: ["none"],
       sameSiteAcceptanceMatrix: [
@@ -264,10 +265,12 @@ describe("same-site CSRF request contract", () => {
         secureAttribute: "data-session-cookie-secure",
         sameSiteAttribute: "data-session-cookie-same-site",
         pathAttribute: "data-session-cookie-path",
+        setCookieContractAttribute: "data-session-cookie-set-cookie-contract",
         expectedHttpOnly: String(runtimeEvidence.cookieAttributes.httpOnly),
         expectedSecure: String(runtimeEvidence.cookieAttributes.secure),
         expectedSameSite: runtimeEvidence.cookieAttributes.sameSite,
-        expectedPath: runtimeEvidence.cookieAttributes.path
+        expectedPath: runtimeEvidence.cookieAttributes.path,
+        expectedSetCookieContract: runtimeEvidence.setCookieContract
       },
       csrf: {
         strategyAttribute: "data-session-csrf-strategy",
