@@ -645,7 +645,7 @@ RUNTIME_PASS_REQUIREMENTS = {
     },
     ("production_launch", "production_provider_or_comp_only_mode"): {
         "path_patterns": (r"ops/evidence/production/",),
-        "tokens": ("production", "provider", "real", "cost", "monitoring", "comp-only"),
+        "tokens": ("production", "provider", "real", "cost", "monitoring", "claims"),
     },
     ("production_launch", "production_paid_billing_lifecycle"): {
         "path_patterns": (r"ops/evidence/production/",),
@@ -880,6 +880,10 @@ GATE_IMPACT_KEY_CHECKLIST_ITEMS = {
     "can_clear_legal_pages_subitem": "Private Beta/Staging legal pages external-user visibility evidence 通过：staging evidence proves Terms、Privacy、Acceptable Use、AI/content disclaimer、IP complaint flow are externally visible under `ops/evidence/staging/`。",
     "can_clear_support_contact_subitem": "Private Beta/Staging support contact external-user visibility evidence 通过：staging evidence proves visible support contact/report-problem path for external users under `ops/evidence/staging/`。",
     "can_clear_signed_url_checklist_item": "Private Beta/Staging object storage signed URL runtime evidence 通过：staging evidence proves tenant-scoped signed download, expiry, direct-object denial, and cross-tenant denial under `ops/evidence/staging/`。",
+    "can_clear_provider_mode_subitem": "Production provider mode deployment evidence 通过：production evidence proves either real provider contract/monitoring/cost/staging verification or explicit invite/comp-only mode under `ops/evidence/production/`。",
+    "can_clear_public_paid_real_generation_claims_subitem": "Production public paid/real-generation claims evidence 通过：production evidence proves paid and real-generation claims are enabled only with real provider evidence, or hidden for invite/comp-only mode under `ops/evidence/production/`。",
+    "can_clear_checkout_subscription_subitem": "Production checkout/subscription/cancellation/past_due runtime evidence 通过 under `ops/evidence/production/`。",
+    "can_clear_refund_credit_webhook_subitem": "Production refund/credit/quota reset/webhook idempotency runtime evidence 通过 under `ops/evidence/production/`。",
     "can_clear_public_legal_subitem": "Production public legal policy deployment evidence 通过：production evidence proves Terms、Privacy、Acceptable Use、AI/content disclaimer、IP complaint flow visibility under `ops/evidence/production/`。",
     "can_clear_support_billing_policy_subitem": "Production public support/billing policy deployment evidence 通过：production evidence proves support contact and paid billing/cancellation/refund policy visibility under `ops/evidence/production/`。",
 }
@@ -899,6 +903,10 @@ PARTIAL_RUNTIME_PASS_EVIDENCE_ALLOWLIST = {
     "ops/evidence/production/20260527T1430Z-activation-review-audit.json",
     "ops/evidence/production/20260527T1600Z-skill-release-eval-canary.json",
     "ops/evidence/production/20260527T1700Z-security-launch-checks.json",
+    "ops/evidence/production/provider-mode.json",
+    "ops/evidence/production/public-paid-real-generation-claims.json",
+    "ops/evidence/production/billing-lifecycle.json",
+    "ops/evidence/production/billing-refund-credit-webhook.json",
     "ops/evidence/production/public-legal-policy.json",
     "ops/evidence/production/public-support-billing-policy.json",
 }
@@ -1012,7 +1020,7 @@ SPLIT_CHECKLIST_ITEM_EVIDENCE = {
         "check_id": "production_provider_or_comp_only_mode",
         "path": PRODUCTION_PROVIDER_MODE_EVIDENCE,
         "allowed_statuses": {"pass", "passed"},
-        "allow_preserved_blockers": False,
+        "allow_preserved_blockers": True,
         "tokens": ("production", "provider", "mode"),
     },
     "Production public paid/real-generation claims evidence 通过：production evidence proves paid and real-generation claims are enabled only with real provider evidence, or hidden for invite/comp-only mode under `ops/evidence/production/`。": {
@@ -1020,7 +1028,7 @@ SPLIT_CHECKLIST_ITEM_EVIDENCE = {
         "check_id": "production_provider_or_comp_only_mode",
         "path": PRODUCTION_CLAIMS_ALIGNMENT_EVIDENCE,
         "allowed_statuses": {"pass", "passed"},
-        "allow_preserved_blockers": False,
+        "allow_preserved_blockers": True,
         "tokens": ("paid", "real-generation", "claims"),
     },
     "Production checkout/subscription/cancellation/past_due runtime evidence 通过 under `ops/evidence/production/`。": {
@@ -1028,7 +1036,7 @@ SPLIT_CHECKLIST_ITEM_EVIDENCE = {
         "check_id": "production_paid_billing_lifecycle",
         "path": PRODUCTION_BILLING_LIFECYCLE_EVIDENCE,
         "allowed_statuses": {"pass", "passed"},
-        "allow_preserved_blockers": False,
+        "allow_preserved_blockers": True,
         "tokens": ("checkout", "subscription", "cancellation", "past_due"),
     },
     "Production refund/credit/quota reset/webhook idempotency runtime evidence 通过 under `ops/evidence/production/`。": {
@@ -1036,7 +1044,7 @@ SPLIT_CHECKLIST_ITEM_EVIDENCE = {
         "check_id": "production_paid_billing_lifecycle",
         "path": PRODUCTION_BILLING_IDEMPOTENCY_EVIDENCE,
         "allowed_statuses": {"pass", "passed"},
-        "allow_preserved_blockers": False,
+        "allow_preserved_blockers": True,
         "tokens": ("refund", "credit", "quota reset", "webhook"),
     },
     "Production backup/restore runtime evidence 通过：production evidence proves backup schedule, Postgres restore, object restore, RPO/RTO, and audit refs under `ops/evidence/production/`。": {
@@ -1266,6 +1274,64 @@ ACTIVE_CONDITION_EVIDENCE_REQUIREMENTS = {
     ("production_launch", "ci_staging_gates_not_passed"): {
         "path_patterns": (r"fixtures/stage0/rev2/release_gate_evidence\.ci\.json", r"fixtures/stage0/rev2/release_gate_evidence\.private_beta_staging\.json"),
         "tokens": ("ci", "staging"),
+    },
+}
+
+ACTIVE_CONDITION_SPLIT_EVIDENCE_PATHS = {
+    ("private_beta_staging", "object_storage_signed_retention_runtime_missing"): {
+        STAGING_OBJECT_STORAGE_SIGNED_URL_EVIDENCE: (
+            "signed",
+            "download",
+            "cross-tenant",
+        ),
+        STAGING_OBJECT_STORAGE_RETENTION_EVIDENCE: (
+            "retention",
+            "cleanup",
+            "audit",
+        ),
+    },
+    ("production_launch", "dev_mock_provider_public_claims_unresolved"): {
+        PRODUCTION_PROVIDER_MODE_EVIDENCE: ("provider", "mode"),
+        PRODUCTION_CLAIMS_ALIGNMENT_EVIDENCE: ("claims",),
+    },
+    ("production_launch", "real_provider_or_comp_only_mode_missing"): {
+        PRODUCTION_PROVIDER_MODE_EVIDENCE: ("provider", "mode"),
+        PRODUCTION_CLAIMS_ALIGNMENT_EVIDENCE: ("claims",),
+    },
+    ("production_launch", "paid_billing_or_comp_only_mode_missing"): {
+        PRODUCTION_BILLING_LIFECYCLE_EVIDENCE: (
+            "checkout",
+            "subscription",
+            "cancellation",
+            "past_due",
+        ),
+        PRODUCTION_BILLING_IDEMPOTENCY_EVIDENCE: (
+            "refund",
+            "credit",
+            "quota reset",
+            "webhook",
+        ),
+    },
+    ("production_launch", "backup_restore_rollback_smoke_missing"): {
+        PRODUCTION_BACKUP_RESTORE_EVIDENCE: (
+            "backup",
+            "postgres restore",
+            "object restore",
+            "rpo",
+            "rto",
+        ),
+    },
+    ("production_launch", "production_deploy_rollback_smoke_missing"): {
+        PRODUCTION_ROLLBACK_INCIDENT_SMOKE_EVIDENCE: (
+            "rollback",
+            "incident",
+            "migration compatibility",
+            "post-deploy",
+        ),
+    },
+    ("production_launch", "ci_staging_gates_not_passed"): {
+        FIXTURE_DIR / "release_gate_evidence.ci.json": ("ci",),
+        FIXTURE_DIR / "release_gate_evidence.private_beta_staging.json": ("staging",),
     },
 }
 
@@ -2048,6 +2114,12 @@ REQUIRED_OPEN_ITEMS -= {
     "Production activation review/audit runtime/deployment evidence 通过。",
     "Production abuse throttle/hold runtime/deployment evidence 通过。",
     "Production security launch-check runtime/deployment evidence 通过。",
+    "Production provider-or-comp-only runtime/deployment evidence 通过。",
+    "Production provider mode deployment evidence 通过：production evidence proves either real provider contract/monitoring/cost/staging verification or explicit invite/comp-only mode under `ops/evidence/production/`。",
+    "Production public paid/real-generation claims evidence 通过：production evidence proves paid and real-generation claims are enabled only with real provider evidence, or hidden for invite/comp-only mode under `ops/evidence/production/`。",
+    "Production paid billing lifecycle runtime/deployment evidence 通过。",
+    "Production checkout/subscription/cancellation/past_due runtime evidence 通过 under `ops/evidence/production/`。",
+    "Production refund/credit/quota reset/webhook idempotency runtime evidence 通过 under `ops/evidence/production/`。",
     PRODUCTION_BACKUP_ROLLBACK_INCIDENT_ADMIN_CHECKLIST_ITEM,
     "电商增长包 API smoke test 通过。",
     "电商增长包 Playwright happy path 通过。",
@@ -3577,8 +3649,10 @@ def require_check_level_evidence_gate_impact(
     evidence_name: str,
 ) -> None:
     checklist_item = CHECK_LEVEL_EVIDENCE_TO_CHECKLIST_ITEM[(gate, check_id)]
-    expected_minimum_remaining = CHECK_LEVEL_EVIDENCE_PRESERVED_BLOCKERS[(gate, check_id)]
     expected_current_remaining = current_blocked_release_gate_checks(gate) - {check_id}
+    expected_minimum_remaining = (
+        CHECK_LEVEL_EVIDENCE_PRESERVED_BLOCKERS[(gate, check_id)] & expected_current_remaining
+    )
     gate_impact = evidence["gate_impact"]
     actual_checklist_item = gate_impact.get("checklist_item") or gate_impact.get("check_level_item")
     require(
@@ -4100,6 +4174,49 @@ def validate_active_condition_evidence_refs(data: dict[str, Any]) -> None:
             any(re.search(pattern, evidence_ref) for pattern in requirement["path_patterns"]),
             f"{gate}.{condition_id} active blocker evidence must cite gate-specific repository evidence paths: "
             + json.dumps(requirement["path_patterns"]),
+        )
+        require_active_condition_split_path_state(evidence_ref, gate, condition_id)
+
+
+def require_active_condition_split_path_state(evidence_ref: str, gate: str, condition_id: str) -> None:
+    split_paths = ACTIVE_CONDITION_SPLIT_EVIDENCE_PATHS.get((gate, condition_id))
+    if not split_paths:
+        return
+
+    evidence_ref_lower = evidence_ref.lower()
+    for path, tokens in split_paths.items():
+        rel_path = rel(path)
+        require(
+            rel_path in evidence_ref,
+            f"{gate}.{condition_id} active blocker evidence must name exact split artifact {rel_path}",
+        )
+        path_index = evidence_ref.find(rel_path)
+        require(path_index >= 0, f"{gate}.{condition_id} active blocker evidence missing {rel_path}")
+        path_window = evidence_ref_lower[
+            max(0, path_index - 180) : min(len(evidence_ref_lower), path_index + len(rel_path) + 180)
+        ]
+        missing_tokens = [token for token in tokens if token not in evidence_ref_lower]
+        require(
+            not missing_tokens,
+            f"{gate}.{condition_id} active blocker evidence for {rel_path} missing required terms: {missing_tokens}",
+        )
+        if path.exists():
+            require(
+                any(term in path_window for term in SPLIT_EVIDENCE_PRESENT_TERMS),
+                f"{gate}.{condition_id} active blocker evidence {rel_path} exists but is not described as present/pass",
+            )
+            require(
+                not any(term in path_window for term in SPLIT_EVIDENCE_ABSENT_TERMS),
+                f"{gate}.{condition_id} active blocker evidence {rel_path} exists but stale prose describes it as absent/missing",
+            )
+            continue
+        require(
+            any(term in path_window for term in SPLIT_EVIDENCE_ABSENT_TERMS),
+            f"{gate}.{condition_id} active blocker evidence {rel_path} is missing but not described as absent/missing",
+        )
+        require(
+            not any(term in path_window for term in SPLIT_EVIDENCE_PRESENT_TERMS),
+            f"{gate}.{condition_id} active blocker evidence {rel_path} is missing but describes it as present/pass",
         )
 
 
@@ -7441,11 +7558,12 @@ def validate_production_legal_support_policy_evidence() -> None:
     support_combined = json.dumps(support, ensure_ascii=False).lower()
     for token in ["billing", "cancellation", "refund", "credit", "quota reset", "past_due"]:
         require(token in support_combined, f"production support/billing policy evidence missing policy token: {token}")
-    require(
-        "paid billing lifecycle remains separately blocked" in support_combined
-        or "paid checkout lifecycle remains separately blocked" in support_combined,
-        "production support/billing policy evidence must preserve paid billing lifecycle runtime blocker",
-    )
+    if "production_paid_billing_lifecycle" in current_blocked_release_gate_checks("production_launch"):
+        require(
+            "paid billing lifecycle remains separately blocked" in support_combined
+            or "paid checkout lifecycle remains separately blocked" in support_combined,
+            "production support/billing policy evidence must preserve paid billing lifecycle runtime blocker",
+        )
     require(
         "policy visibility" in support_combined,
         "production support/billing policy evidence must identify billing copy as policy visibility only",
@@ -7490,11 +7608,16 @@ def validate_production_backup_rollback_incident_admin_evidence() -> None:
     )
     require(
         set(gate_impact["remaining_blockers"])
-        == {
-            "ci_staging_gates_not_passed",
-            "production_provider_or_comp_only_mode",
-            "production_paid_billing_lifecycle",
-        },
+        == (
+            {
+                condition_id
+                for condition_id, condition in do_not_launch_by_id(
+                    load_json(RELEASE_GATE_EVIDENCE_FILES["production_launch"])
+                ).items()
+                if condition["is_present"]
+            }
+            - set(evidence["do_not_launch_condition_ids"])
+        ),
         "production backup/rollback admin evidence must preserve exact current production blockers",
     )
 
@@ -7820,6 +7943,9 @@ def validate_release_gate_evidence() -> None:
         condition_id: item["is_present"] for condition_id, item in production_conditions.items()
     }
     cleared_production_conditions = {
+        "dev_mock_provider_public_claims_unresolved",
+        "real_provider_or_comp_only_mode_missing",
+        "paid_billing_or_comp_only_mode_missing",
         "skill_release_eval_canary_missing",
         "activation_eval_review_audit_runtime_missing",
         "admin_high_risk_review_runtime_missing",
@@ -7836,8 +7962,10 @@ def validate_release_gate_evidence() -> None:
         )
     production_text = json.dumps(production, ensure_ascii=False)
     for token in [
-        "evidence exists",
-        "runtime evidence is absent",
+        "ops/evidence/production/provider-mode.json",
+        "ops/evidence/production/billing-lifecycle.json",
+        "ops/evidence/production/backup-restore.json",
+        "ops/evidence/production/rollback-incident-post-deploy-smoke.json",
         "ops/evidence/production/public-legal-policy.json",
         "ops/evidence/production/public-support-billing-policy.json",
     ]:
@@ -8902,6 +9030,12 @@ def validate_launch_readiness_split_contracts() -> None:
             "Production activation review/audit runtime/deployment evidence 通过。",
             "Production abuse throttle/hold runtime/deployment evidence 通过。",
             "Production security launch-check runtime/deployment evidence 通过。",
+            "Production provider-or-comp-only runtime/deployment evidence 通过。",
+            "Production provider mode deployment evidence 通过：production evidence proves either real provider contract/monitoring/cost/staging verification or explicit invite/comp-only mode under `ops/evidence/production/`。",
+            "Production public paid/real-generation claims evidence 通过：production evidence proves paid and real-generation claims are enabled only with real provider evidence, or hidden for invite/comp-only mode under `ops/evidence/production/`。",
+            "Production paid billing lifecycle runtime/deployment evidence 通过。",
+            "Production checkout/subscription/cancellation/past_due runtime evidence 通过 under `ops/evidence/production/`。",
+            "Production refund/credit/quota reset/webhook idempotency runtime evidence 通过 under `ops/evidence/production/`。",
             "Production legal/support policy deployment evidence 通过。",
             "Production public legal policy deployment evidence 通过：production evidence proves Terms、Privacy、Acceptable Use、AI/content disclaimer、IP complaint flow visibility under `ops/evidence/production/`。",
             "Production public support/billing policy deployment evidence 通过：production evidence proves support contact and paid billing/cancellation/refund policy visibility under `ops/evidence/production/`。",

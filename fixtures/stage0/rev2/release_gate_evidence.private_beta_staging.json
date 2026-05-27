@@ -72,7 +72,7 @@
       "condition_id": "object_storage_signed_retention_runtime_missing",
       "blueprint_condition": "Object storage 缺 tenant-scoped signed access、retention policy、cleanup 或 cross-tenant denial tests。",
       "is_present": true,
-      "evidence_ref": "ops/evidence/staging/20260527T2130Z-object-storage-signed-url.json clears staging signed access and cross-tenant denial runtime evidence, but exact object retention policy, expired export cleanup, orphan cleanup, and audit refs remain missing at ops/evidence/staging/object-storage-retention-cleanup.json"
+      "evidence_ref": "ops/evidence/staging/20260527T2130Z-object-storage-signed-url.json passed and clears staging signed download access and cross-tenant denial runtime evidence, but exact object retention policy, expired export cleanup, orphan cleanup, and audit refs remain missing at ops/evidence/staging/object-storage-retention-cleanup.json"
     },
     {
       "condition_id": "support_abuse_runtime_missing",
