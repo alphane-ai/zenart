@@ -204,6 +204,12 @@ func TestMetricsHandlerExposesWorkerCounters(t *testing.T) {
 		"worker_unsupported_task_claims_total 1",
 		"worker_drain_operations_total 1",
 		"worker_drained_tasks_total 2",
+		"worker_cleanup_runs_total 0",
+		"worker_cleanup_failures_total 0",
+		"worker_cleanup_expired_exports_total 0",
+		"worker_cleanup_orphaned_objects_total 0",
+		"worker_cleanup_deleted_objects_total 0",
+		"worker_cleanup_failed_objects_total 0",
 		`worker_task_claims_by_type_total{task_type="candidate_set_builder"} 1`,
 	} {
 		if !strings.Contains(body, fragment) {
