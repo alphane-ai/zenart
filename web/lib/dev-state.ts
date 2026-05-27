@@ -224,7 +224,11 @@ export const buildExportZipPayloadEntries = (record: ExportRecord) => {
     if (outputName === "assets/") {
       continue;
     }
-    put(outputName, JSON.stringify(buildExportWorkflowMetadataPayload(record, outputName), null, 2));
+    const payloadName = toExportZipPayloadName(outputName);
+    if (!payloadName) {
+      throw new Error(`Unsafe export ZIP payload name: ${outputName}`);
+    }
+    put(payloadName, JSON.stringify(buildExportWorkflowMetadataPayload(record, payloadName), null, 2));
   }
 
   return buildDownloadableExportZipPayloadNames(record)

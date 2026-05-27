@@ -270,6 +270,13 @@ test("export route exposes package metadata, ZIP payload, and download parity br
   }
   const actualPayloads = Object.keys(zip.files).filter((payloadName) => !zip.files[payloadName].dir).sort();
   expect(actualPayloads, "downloaded ZIP must not contain extra top-level contract payloads").toEqual([...expectedPayloads].sort());
+  const unsafeDownloadedPayloads = actualPayloads.filter((payloadName) => !isSafeDownloadedZipPayloadName(payloadName));
+  expect(unsafeDownloadedPayloads, "downloaded ZIP payload names must be relative files without traversal, absolute paths, URLs, or directories").toEqual([]);
+  await expect(metadataEvidence).toHaveAttribute("data-package-export-zip-payload-path-safety-status", "pass");
+  await expect(zipPayloadSmoke).toHaveAttribute("data-export-zip-payload-path-safety-status", "pass");
+  await expect(downloadParity).toHaveAttribute("data-export-download-parity-payload-path-safety-status", "pass");
+  await expect(metadataEvidence).toHaveAttribute("data-package-export-unsafe-manifest-payload-count", "0");
+  await expect(zipPayloadSmoke).toHaveAttribute("data-export-zip-payload-unsafe-manifest-count", "0");
   const payloadContentMatrix = page
     .getByLabel("Package export payload status matrix")
     .locator("[data-payload-status-kind='payload-content']");
@@ -556,3 +563,13 @@ const fnv1aDigest = (value: string) => {
 
   return (hash >>> 0).toString(16).padStart(8, "0");
 };
+
+const isSafeDownloadedZipPayloadName = (payloadName: string) =>
+  payloadName.length > 0 &&
+  payloadName.trim() === payloadName &&
+  !payloadName.endsWith("/") &&
+  !payloadName.startsWith("/") &&
+  !payloadName.startsWith("\\") &&
+  !/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(payloadName) &&
+  !payloadName.includes("\\") &&
+  !payloadName.split("/").some((segment) => segment === "" || segment === "." || segment === "..");

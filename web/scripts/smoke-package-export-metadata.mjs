@@ -94,6 +94,7 @@ for (const expectedBrowserSnippet of [
   "JSZip.loadAsync",
   "downloaded ZIP payload",
   "downloaded ZIP must not contain extra top-level contract payloads",
+  "downloaded ZIP payload names must be relative files without traversal, absolute paths, URLs, or directories",
   "data-package-export-metadata-status",
   "data-package-export-zip-payload-parity-status",
   "data-package-export-zip-payload-contract-digest",
@@ -105,6 +106,7 @@ for (const expectedBrowserSnippet of [
   "data-export-download-parity-payloads-match",
   "data-export-download-parity-payload-contract-digest",
   "data-export-download-parity-payload-digest-match",
+  "data-export-download-parity-payload-path-safety-status",
   "data-export-download-handoff",
   "data-export-download-payload-contract-digest",
   "download.suggestedFilename()"
