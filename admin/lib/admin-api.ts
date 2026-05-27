@@ -57,6 +57,7 @@ import { buildExportRegenerationRuntimeDecisions } from "@/lib/export-runtime";
 import {
   buildAdminRbacEvidencePacks,
   buildAdminRbacRuntimeDecisions,
+  buildAdminRbacStaleReplayDecisions,
   buildAdminRbacSurfaceSummaries
 } from "@/lib/rbac-runtime";
 import { buildStagingObjectStorageRetentionCleanupEvidence } from "@/lib/object-storage-runtime";
@@ -102,6 +103,11 @@ export async function getAdminRbacRuntimeDecisions() {
   return buildAdminRbacRuntimeDecisions(adminRbacEvidence, new Date("2026-05-26T11:00:00Z"));
 }
 
+export async function getAdminRbacStaleReplayDecisions() {
+  const runtimeDecisions = buildAdminRbacRuntimeDecisions(adminRbacEvidence, new Date("2026-05-26T11:00:00Z"));
+  return buildAdminRbacStaleReplayDecisions(adminRbacEvidence, runtimeDecisions, new Date("2026-05-26T19:00:00Z"));
+}
+
 export async function getAdminRbacSurfaceSummaries() {
   const runtimeDecisions = buildAdminRbacRuntimeDecisions(adminRbacEvidence, new Date("2026-05-26T11:00:00Z"));
   return buildAdminRbacSurfaceSummaries(adminRbacEvidence, runtimeDecisions);
@@ -109,7 +115,12 @@ export async function getAdminRbacSurfaceSummaries() {
 
 export async function getAdminRbacEvidencePacks() {
   const runtimeDecisions = buildAdminRbacRuntimeDecisions(adminRbacEvidence, new Date("2026-05-26T11:00:00Z"));
-  return buildAdminRbacEvidencePacks(adminRbacEvidence, runtimeDecisions);
+  const staleReplayDecisions = buildAdminRbacStaleReplayDecisions(
+    adminRbacEvidence,
+    runtimeDecisions,
+    new Date("2026-05-26T19:00:00Z")
+  );
+  return buildAdminRbacEvidencePacks(adminRbacEvidence, runtimeDecisions, staleReplayDecisions);
 }
 
 export async function getCrawlerFindings() {

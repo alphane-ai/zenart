@@ -6,6 +6,7 @@ import {
   getAdminRbacEvidence,
   getAdminRbacEvidencePacks,
   getAdminRbacRuntimeDecisions,
+  getAdminRbacStaleReplayDecisions,
   getAdminRbacSurfaceSummaries,
   getAdminReviewDecisions,
   getAuditEvents,
@@ -17,6 +18,7 @@ import type {
   AdminRbacEvidence,
   AdminRbacEvidencePack,
   AdminRbacRuntimeDecision,
+  AdminRbacStaleReplayDecision,
   AdminRbacSurfaceSummary,
   AdminReviewDecision,
   AuditEvent,
@@ -31,6 +33,7 @@ export default async function AuditPage() {
     reviews,
     rbacEvidence,
     rbacRuntime,
+    rbacStaleReplay,
     rbacSurfaceSummaries,
     rbacEvidencePacks,
     productionActivationEvidence,
@@ -41,6 +44,7 @@ export default async function AuditPage() {
     getAdminReviewDecisions(),
     getAdminRbacEvidence(),
     getAdminRbacRuntimeDecisions(),
+    getAdminRbacStaleReplayDecisions(),
     getAdminRbacSurfaceSummaries(),
     getAdminRbacEvidencePacks(),
     getProductionActivationReviewAuditEvidence(),
@@ -79,6 +83,11 @@ export default async function AuditPage() {
       label: "Timed Overrides",
       value: rbacRuntime.filter((decision) => decision.effectiveDecision === "allow_mutation").length,
       detail: "Allowed admin changes with enforced expiration evidence."
+    },
+    {
+      label: "Stale Replays Blocked",
+      value: rbacStaleReplay.filter((decision) => decision.staleOutcome === "blocked_stale_replay").length,
+      detail: "Expired temporary windows replayed after closure and preserved gates."
     }
   ];
 
@@ -321,9 +330,39 @@ export default async function AuditPage() {
             },
             { key: "expiry-ids", header: "Expiry Enforced IDs", render: (row) => row.expiryEnforcedEvidenceIds.join(", ") || "none" },
             { key: "policy-ids", header: "Policy Block IDs", render: (row) => row.policyBlockEvidenceIds.join(", ") || "none" },
+            { key: "stale-replay", header: "Stale Replay Outcomes", render: (row) => row.staleReplayOutcomes.join(", ") || "none" },
+            { key: "stale-ids", header: "Stale Replay IDs", render: (row) => row.staleReplayEvidenceIds.join(", ") || "none" },
             { key: "second-review", header: "Second Review Statuses", render: (row) => row.secondReviewStatuses.join(", ") },
             { key: "audit", header: "Audit Refs", render: (row) => <span className="mono">{row.auditRefs.join(", ")}</span> },
             { key: "checklist", header: "Operator Checklist", render: (row) => row.operatorChecklist.join(" ") }
+          ]}
+        />
+      </section>
+
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>RBAC Stale Override Replay</h3>
+            <p>Expired temporary windows and standing policy blocks are replayed after closure to prove stale admin overrides cannot mutate release, crawler, prompt, provider, quota, safety, or export state.</p>
+          </div>
+        </div>
+        <DataTable<AdminRbacStaleReplayDecision>
+          rows={rbacStaleReplay}
+          columns={[
+            { key: "evidence", header: "Evidence", render: (row) => <span className="mono">{row.evidenceId}</span> },
+            { key: "surface", header: "Surface", render: (row) => row.surface },
+            { key: "scope", header: "Override Scope", render: (row) => row.overrideScope },
+            { key: "target", header: "Target", render: (row) => <span className="mono">{row.target}</span> },
+            { key: "enforcement", header: "Enforcement Point", render: (row) => row.enforcementPoint },
+            { key: "replay", header: "Replay At", render: (row) => row.staleReplayAt },
+            { key: "original", header: "Original Outcome", render: (row) => row.originalOutcome },
+            { key: "stale", header: "Stale Outcome", render: (row) => <StatusBadge value={row.staleOutcome} label={row.staleOutcome} /> },
+            { key: "window", header: "Window Status", render: (row) => <StatusBadge value={row.staleWindowStatus} label={row.staleWindowStatus} /> },
+            { key: "gate", header: "Release Gate", render: (row) => row.releaseGateStatus },
+            { key: "restore", header: "State Restoration", render: (row) => row.stateRestoration },
+            { key: "operator", header: "Operator Action", render: (row) => row.operatorAction },
+            { key: "audit", header: "Audit Ref", render: (row) => <span className="mono">{row.auditRef}</span> },
+            { key: "evidence-refs", header: "Evidence Refs", render: (row) => row.evidenceRefs.join(", ") }
           ]}
         />
       </section>

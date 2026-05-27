@@ -2,6 +2,7 @@ import type {
   AdminRbacEvidence,
   AdminRbacEvidencePack,
   AdminRbacRuntimeDecision,
+  AdminRbacStaleReplayDecision,
   AdminRbacSurfaceSummary,
   AdminRole
 } from "@/lib/types";
@@ -239,6 +240,54 @@ export function buildAdminRbacRuntimeDecisions(
   });
 }
 
+export function buildAdminRbacStaleReplayDecisions(
+  evidence: AdminRbacEvidence[],
+  runtimeDecisions: AdminRbacRuntimeDecision[],
+  replayAt: Date
+): AdminRbacStaleReplayDecision[] {
+  const decisionByEvidenceId = new Map(runtimeDecisions.map((decision) => [decision.evidenceId, decision]));
+
+  return evidence
+    .filter(
+      (item) =>
+        item.overrideDurationPolicy === "non_expiring_policy_block" ||
+        (item.expiryEnforced && isExpired(item.overrideExpiresAt, replayAt))
+    )
+    .map((item) => {
+      const runtimeDecision = decisionByEvidenceId.get(item.id);
+      const isPolicyBlock = item.overrideDurationPolicy === "non_expiring_policy_block";
+      const staleOutcome: AdminRbacStaleReplayDecision["staleOutcome"] = isPolicyBlock
+        ? "policy_block_preserved"
+        : "blocked_stale_replay";
+      const staleWindowStatus: AdminRbacStaleReplayDecision["staleWindowStatus"] = isPolicyBlock
+        ? "policy_block"
+        : "expired";
+      const releaseGateStatus: AdminRbacStaleReplayDecision["releaseGateStatus"] = "release_gate_preserved";
+
+      return {
+        evidenceId: item.id,
+        surface: item.surface,
+        overrideScope: item.overrideScope,
+        target: item.target,
+        enforcementPoint: item.enforcementPoint,
+        staleReplayAt: replayAt.toISOString(),
+        originalOutcome: runtimeDecision?.requestOutcome ?? "denied_policy_block",
+        staleOutcome,
+        staleWindowStatus,
+        releaseGateStatus,
+        stateRestoration: isPolicyBlock
+          ? `${item.enforcementPoint} keeps ${item.target} in its pre-override state because ${item.overrideDurationPolicy} forbids temporary mutation. ${item.postDecisionControl}`
+          : `${item.enforcementPoint} rejects stale replay for ${item.target}, restores or preserves the pre-override state after ${item.overrideExpiresAt}, and requires a fresh audited request. ${item.expiryAction}`,
+        evidenceRefs: item.evidenceRefs,
+        auditRef: item.auditRef,
+        operatorAction: isPolicyBlock
+          ? "Preserve the policy block and route the operator to the documented safe path."
+          : "Block stale replay, preserve the release gate, and require fresh runtime evidence before retry."
+      };
+    })
+    .sort((a, b) => a.surface.localeCompare(b.surface) || a.evidenceId.localeCompare(b.evidenceId));
+}
+
 function uniqueSorted<T extends string>(values: T[]) {
   return Array.from(new Set<T>(values)).sort();
 }
@@ -407,10 +456,16 @@ function expiryEnforcementStatus(
 
 export function buildAdminRbacEvidencePacks(
   evidence: AdminRbacEvidence[],
-  decisions: AdminRbacRuntimeDecision[]
+  decisions: AdminRbacRuntimeDecision[],
+  staleReplayDecisions: AdminRbacStaleReplayDecision[] = buildAdminRbacStaleReplayDecisions(
+    evidence,
+    decisions,
+    new Date("2026-05-26T19:00:00Z")
+  )
 ): AdminRbacEvidencePack[] {
   const evidenceBySurface = new Map<AdminRbacEvidence["surface"], AdminRbacEvidence[]>();
   const decisionsBySurface = new Map<AdminRbacRuntimeDecision["surface"], AdminRbacRuntimeDecision[]>();
+  const staleReplaysBySurface = new Map<AdminRbacStaleReplayDecision["surface"], AdminRbacStaleReplayDecision[]>();
 
   for (const item of evidence) {
     evidenceBySurface.set(item.surface, [...(evidenceBySurface.get(item.surface) ?? []), item]);
@@ -420,9 +475,17 @@ export function buildAdminRbacEvidencePacks(
     decisionsBySurface.set(decision.surface, [...(decisionsBySurface.get(decision.surface) ?? []), decision]);
   }
 
+  for (const staleReplay of staleReplayDecisions) {
+    staleReplaysBySurface.set(staleReplay.surface, [
+      ...(staleReplaysBySurface.get(staleReplay.surface) ?? []),
+      staleReplay
+    ]);
+  }
+
   return Array.from(evidenceBySurface.entries())
     .map(([surface, surfaceEvidence]) => {
       const surfaceDecisions = decisionsBySurface.get(surface) ?? [];
+      const surfaceStaleReplays = staleReplaysBySurface.get(surface) ?? [];
 
       return {
         surface,
@@ -448,6 +511,8 @@ export function buildAdminRbacEvidencePacks(
         secondReviewStatuses: uniqueSorted(surfaceEvidence.map((item) => item.secondReviewStatus)),
         auditRefs: uniqueSorted(surfaceEvidence.map((item) => item.auditRef)),
         evidenceRefs: uniqueSorted(surfaceEvidence.flatMap((item) => item.evidenceRefs)),
+        staleReplayOutcomes: uniqueSorted(surfaceStaleReplays.map((staleReplay) => staleReplay.staleOutcome)),
+        staleReplayEvidenceIds: uniqueSorted(surfaceStaleReplays.map((staleReplay) => staleReplay.evidenceId)),
         highestRequiredRole: highestRole(surfaceEvidence.map((item) => item.requiredRole)),
         releaseGateDisposition: releaseGateDisposition(surfaceDecisions),
         evidenceCompleteness: evidenceCompleteness(surfaceEvidence, surfaceDecisions),

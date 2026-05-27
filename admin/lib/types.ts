@@ -1358,6 +1358,23 @@ export type AdminRbacRuntimeDecision = {
   rationale: string;
 };
 
+export type AdminRbacStaleReplayDecision = {
+  evidenceId: string;
+  surface: AdminReviewSurface;
+  overrideScope: AdminRbacEvidence["overrideScope"];
+  target: string;
+  enforcementPoint: AdminRbacEvidence["enforcementPoint"];
+  staleReplayAt: string;
+  originalOutcome: AdminRbacRuntimeDecision["requestOutcome"];
+  staleOutcome: "blocked_stale_replay" | "policy_block_preserved";
+  staleWindowStatus: "expired" | "policy_block";
+  releaseGateStatus: "release_gate_preserved";
+  stateRestoration: string;
+  evidenceRefs: string[];
+  auditRef: string;
+  operatorAction: string;
+};
+
 export type AdminRbacSurfaceSummary = {
   surface: AdminReviewSurface;
   overrideScope: AdminRbacEvidence["overrideScope"];
@@ -1391,6 +1408,8 @@ export type AdminRbacEvidencePack = {
   secondReviewStatuses: AdminRbacEvidence["secondReviewStatus"][];
   auditRefs: string[];
   evidenceRefs: string[];
+  staleReplayOutcomes: AdminRbacStaleReplayDecision["staleOutcome"][];
+  staleReplayEvidenceIds: string[];
   highestRequiredRole: AdminRole;
   releaseGateDisposition:
     | "applied_with_expiry"

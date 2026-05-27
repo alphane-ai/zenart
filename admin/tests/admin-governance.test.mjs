@@ -105,17 +105,25 @@ const parseRbacRuntime = () => {
     .replaceAll(/: AdminRbacEvidencePack\["releaseGateDisposition"\]/g, "")
     .replaceAll(/: AdminRbacEvidencePack\["evidenceCompleteness"\]/g, "")
     .replaceAll(/: AdminRbacEvidencePack\["expiryEnforcementStatus"\]/g, "")
+    .replaceAll(/: AdminRbacStaleReplayDecision\[\]/g, "")
+    .replaceAll(/: AdminRbacStaleReplayDecision\["surface"\]/g, "")
+    .replaceAll(/: AdminRbacStaleReplayDecision\["staleWindowStatus"\]/g, "")
+    .replaceAll(/: AdminRbacStaleReplayDecision\["releaseGateStatus"\]/g, "")
+    .replaceAll(/: AdminRbacStaleReplayDecision\["staleOutcome"\]\[\]/g, "")
+    .replaceAll(/: AdminRbacStaleReplayDecision\["staleOutcome"\]/g, "")
     .replaceAll(/: AdminRbacEvidence\["surface"\]/g, "")
     .replaceAll(/: AdminRbacRuntimeDecision\["surface"\]/g, "")
     .replaceAll(/new Map<AdminRbacEvidence\["surface"\], AdminRbacEvidence\[\]>/g, "new Map")
     .replaceAll(/new Map<AdminRbacRuntimeDecision\["surface"\], AdminRbacRuntimeDecision\[\]>/g, "new Map")
+    .replaceAll(/new Map<AdminRbacStaleReplayDecision\["surface"\], AdminRbacStaleReplayDecision\[\]>/g, "new Map")
     .replaceAll(/: AdminRbacEvidence/g, "")
+    .replaceAll(/: AdminRbacRuntimeDecision/g, "")
     .replaceAll(/: AdminRole\[\]/g, "")
     .replaceAll(/: string\[\]/g, "")
     .replaceAll(/: string/g, "")
     .replaceAll(/: Date/g, "")
     .replaceAll(/: boolean/g, "");
-  return Function(`${runtimeSource}\nreturn { buildAdminRbacRuntimeDecisions, buildAdminRbacSurfaceSummaries, buildAdminRbacEvidencePacks };`)();
+  return Function(`${runtimeSource}\nreturn { buildAdminRbacRuntimeDecisions, buildAdminRbacStaleReplayDecisions, buildAdminRbacSurfaceSummaries, buildAdminRbacEvidencePacks };`)();
 };
 
 const parseExportRuntime = () => {
@@ -2165,10 +2173,16 @@ test("production activation review audit evidence covers every high-risk admin o
 });
 
 test("admin RBAC override evidence is release-grade for every governed override surface", () => {
-  const { buildAdminRbacRuntimeDecisions, buildAdminRbacEvidencePacks } = parseRbacRuntime();
+  const { buildAdminRbacRuntimeDecisions, buildAdminRbacStaleReplayDecisions, buildAdminRbacEvidencePacks } = parseRbacRuntime();
   const runtimeDecisions = buildAdminRbacRuntimeDecisions(adminRbacEvidence, new Date("2026-05-26T11:00:00Z"));
-  const evidencePacks = buildAdminRbacEvidencePacks(adminRbacEvidence, runtimeDecisions);
+  const staleReplayDecisions = buildAdminRbacStaleReplayDecisions(
+    adminRbacEvidence,
+    runtimeDecisions,
+    new Date("2026-05-26T19:00:00Z")
+  );
+  const evidencePacks = buildAdminRbacEvidencePacks(adminRbacEvidence, runtimeDecisions, staleReplayDecisions);
   const decisionByEvidenceId = new Map(runtimeDecisions.map((decision) => [decision.evidenceId, decision]));
+  const staleReplayByEvidenceId = new Map(staleReplayDecisions.map((decision) => [decision.evidenceId, decision]));
   const packBySurface = new Map(evidencePacks.map((pack) => [pack.surface, pack]));
   const expectedSurfacePolicy = new Map([
     [
@@ -2245,6 +2259,14 @@ test("admin RBAC override evidence is release-grade for every governed override 
 
   assert.equal(adminRbacEvidence.length, runtimeDecisions.length, "every RBAC evidence row needs a runtime decision");
   assert.equal(evidencePacks.length, expectedSurfacePolicy.size, "RBAC evidence packs must cover every governed surface");
+  assert.ok(
+    staleReplayDecisions.some((decision) => decision.staleOutcome === "blocked_stale_replay"),
+    "stale replay fixture needs expired-window denials"
+  );
+  assert.ok(
+    staleReplayDecisions.some((decision) => decision.staleOutcome === "policy_block_preserved"),
+    "stale replay fixture needs policy-block preservation"
+  );
 
   for (const [surface, policy] of expectedSurfacePolicy) {
     const surfaceEvidence = adminRbacEvidence.filter((item) => item.surface === surface);
@@ -2256,6 +2278,8 @@ test("admin RBAC override evidence is release-grade for every governed override 
     assert.equal(pack.overrideScope, policy.scope, `${surface} override scope mismatch`);
     assert.equal(pack.evidenceCompleteness, "complete", `${surface} pack must be complete`);
     assert.notEqual(pack.expiryEnforcementStatus, "missing_enforcement", `${surface} must encode expiry enforcement policy`);
+    assert.ok(pack.staleReplayEvidenceIds.length > 0, `${surface} pack needs stale replay evidence`);
+    assert.ok(pack.staleReplayOutcomes.length > 0, `${surface} pack needs stale replay outcomes`);
     assert.ok(
       policy.terminalOutcomes.every((outcome) => pack.requestOutcomes.includes(outcome)),
       `${surface} pack is missing required request outcomes`
@@ -2289,12 +2313,24 @@ test("admin RBAC override evidence is release-grade for every governed override 
       );
 
       if (item.overrideDurationPolicy === "non_expiring_policy_block") {
+        const staleReplay = staleReplayByEvidenceId.get(item.id);
+        assert.ok(staleReplay, `${item.id} policy block needs stale replay evidence`);
+        assert.equal(staleReplay.staleOutcome, "policy_block_preserved", `${item.id} must preserve policy block on replay`);
+        assert.equal(staleReplay.staleWindowStatus, "policy_block", `${item.id} must keep policy-block stale window`);
+        assert.equal(staleReplay.releaseGateStatus, "release_gate_preserved", `${item.id} stale replay must preserve gate`);
         assert.equal(item.expiryEnforced, false, `${item.id} policy blocks cannot pretend to have expiry enforcement`);
         assert.equal(item.overrideStartedAt, "none", `${item.id} policy blocks cannot open temporary windows`);
         assert.equal(item.overrideExpiresAt, "none", `${item.id} policy blocks cannot expire as temporary windows`);
         assert.equal(decision.overrideWindow, "policy_block", `${item.id} runtime must preserve policy-block window`);
         assert.equal(decision.mutationAllowed, false, `${item.id} policy block cannot allow mutation`);
       } else {
+        const staleReplay = staleReplayByEvidenceId.get(item.id);
+        assert.ok(staleReplay, `${item.id} temporary override needs stale replay evidence`);
+        assert.equal(staleReplay.staleOutcome, "blocked_stale_replay", `${item.id} stale replay must be blocked`);
+        assert.equal(staleReplay.staleWindowStatus, "expired", `${item.id} stale replay must use expired window`);
+        assert.equal(staleReplay.releaseGateStatus, "release_gate_preserved", `${item.id} stale replay must preserve gate`);
+        assert.ok(staleReplay.stateRestoration.includes(item.enforcementPoint), `${item.id} stale replay restoration must name enforcement point`);
+        assert.ok(staleReplay.evidenceRefs.includes(item.auditRef), `${item.id} stale replay must retain audit-linked evidence refs`);
         assert.equal(item.expiryEnforced, true, `${item.id} temporary or second-review override must enforce expiry`);
         assert.notEqual(item.overrideStartedAt, "none", `${item.id} temporary override needs start time`);
         assert.notEqual(item.overrideExpiresAt, "none", `${item.id} temporary override needs expiry time`);

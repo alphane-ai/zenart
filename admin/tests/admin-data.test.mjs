@@ -160,6 +160,36 @@ test("admin queue fixtures expose retry idempotency, RBAC, and quota effects", (
   }
 });
 
+test("admin audit page exposes RBAC stale override replay evidence", () => {
+  const auditPage = readFileSync(new URL("../app/audit/page.tsx", import.meta.url), "utf8");
+  const rbacRuntime = readFileSync(new URL("../lib/rbac-runtime.ts", import.meta.url), "utf8");
+  const api = readFileSync(new URL("../lib/admin-api.ts", import.meta.url), "utf8");
+  const types = readFileSync(new URL("../lib/types.ts", import.meta.url), "utf8");
+
+  for (const token of [
+    "RBAC Stale Override Replay",
+    "getAdminRbacStaleReplayDecisions",
+    "Stale Replays Blocked",
+    "Stale Outcome",
+    "State Restoration",
+    "Release Gate",
+    "Stale Replay Outcomes",
+    "Stale Replay IDs"
+  ]) {
+    assert.match(auditPage, new RegExp(token));
+  }
+
+  for (const token of [
+    "AdminRbacStaleReplayDecision",
+    "blocked_stale_replay",
+    "policy_block_preserved",
+    "release_gate_preserved",
+    "buildAdminRbacStaleReplayDecisions"
+  ]) {
+    assert.match(rbacRuntime + api + types, new RegExp(token));
+  }
+});
+
 test("admin export pages expose regeneration governance evidence", () => {
   const exportsPage = readFileSync(
     new URL("../app/exports/page.tsx", import.meta.url),
