@@ -488,7 +488,7 @@ def validate_workflow_shape(workflows: dict[str, dict[str, Any]]) -> None:
 
         golden_files = set(workflow["golden_fixture"]["expected_export_files"])
         require(
-            {"manifest.json", "qa_report.json", "trace_provenance.json"} <= golden_files,
+            REQUIRED_EXPORT_FILES <= golden_files,
             f"{workflow_id} golden fixture missing required export evidence files",
         )
         require(

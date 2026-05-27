@@ -992,19 +992,19 @@
         },
         {
           "path": "fixtures/stage0/rev2/workflows/business_visual_doc_pack.json",
-          "sha256": "47be1f9373e59b22e6ef18779e3973a3f2d4df7002e60af4018423dbad46f39d"
+          "sha256": "99c1be5d4c3d6d6971cefff7f726bc23a71d084e655fe33eee7fdf7521f7e8d3"
         },
         {
           "path": "fixtures/stage0/rev2/workflows/character_ip_concept_pack.json",
-          "sha256": "cdc5ad60ce63077e28c56b96476db29a945270b8c9e40a6caabb45756b99d727"
+          "sha256": "52f366ffd791e0034e27a21f162ebc47fc700e767b4ba924987e2c07eb4f3b9e"
         },
         {
           "path": "fixtures/stage0/rev2/workflows/ecommerce_growth_pack.json",
-          "sha256": "a00273619f33128b4b9f81ac325a29a2a1e8c6709ef52fc11c01b086c2064f48"
+          "sha256": "238c7f682cdf224a76865cf9082dd03324fe508d575e064f533a83124f8700ae"
         },
         {
           "path": "fixtures/stage0/rev2/workflows/local_merchant_campaign_pack.json",
-          "sha256": "a93985a56c27e11a61a840cc3056f7803f7a1b30f82cfe9152aa435330edb25c"
+          "sha256": "b02ef2f08fccdd6500556b5032ceb747d52c810184e94be905d292f59ab378dc"
         }
       ]
     },

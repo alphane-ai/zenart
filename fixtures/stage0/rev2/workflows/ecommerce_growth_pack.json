@@ -495,6 +495,7 @@
     "expected_candidate_count": 4,
     "expected_export_files": [
       "manifest.json",
+      "metadata.json",
       "assets/hero_product_ad.png",
       "assets/square_social_ad.png",
       "qa_report.json",

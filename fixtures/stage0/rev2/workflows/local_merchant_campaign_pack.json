@@ -497,6 +497,7 @@
     "expected_candidate_count": 4,
     "expected_export_files": [
       "manifest.json",
+      "metadata.json",
       "assets/storefront_poster.png",
       "assets/flyer.png",
       "qa_report.json",

@@ -655,11 +655,34 @@
         },
         "expected_export_files": {
           "type": "array",
-          "minItems": 4,
+          "minItems": 5,
+          "uniqueItems": true,
           "items": {
             "type": "string",
             "minLength": 1
-          }
+          },
+          "allOf": [
+            {
+              "contains": {
+                "const": "manifest.json"
+              }
+            },
+            {
+              "contains": {
+                "const": "metadata.json"
+              }
+            },
+            {
+              "contains": {
+                "const": "qa_report.json"
+              }
+            },
+            {
+              "contains": {
+                "const": "trace_provenance.json"
+              }
+            }
+          ]
         }
       }
     },
