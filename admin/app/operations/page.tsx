@@ -285,6 +285,10 @@ export default async function OperationsPage() {
             { key: "status", header: "Status", render: (row) => <StatusBadge value={row.status} label={row.status} /> },
             { key: "endpoint", header: "Admin Endpoint", render: (row) => row.adminEndpoint },
             { key: "tokens", header: "Expected Tokens", render: (row) => row.expectedTokens.join(", ") },
+            { key: "sha", header: "Release SHA Bound", render: (row) => (row.releaseShaBound ? "yes" : "no") },
+            { key: "identity", header: "Admin Identity Bound", render: (row) => (row.adminIdentityBound ? "yes" : "no") },
+            { key: "request", header: "Request ID Echo", render: (row) => row.requestIdEchoStatus },
+            { key: "bytes", header: "Response Bytes", render: (row) => row.responseBytes.toLocaleString() },
             { key: "blocker", header: "Blocker", render: (row) => row.blocker },
             { key: "release", header: "Release Gate Use", render: (row) => row.releaseGateUse },
             { key: "evidence", header: "Evidence Refs", render: (row) => row.evidenceRefs.join(", ") }

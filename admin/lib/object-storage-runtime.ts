@@ -6,6 +6,9 @@ import type {
 type ProbeResult = {
   method?: string;
   url?: string;
+  request_id?: string;
+  request_id_echoed?: boolean;
+  response_bytes?: number;
 };
 
 type RetentionCleanupReportCoverage = {
@@ -14,6 +17,9 @@ type RetentionCleanupReportCoverage = {
   runtime_probe?: string;
   evidence_refs?: string[];
   expected_tokens?: string[];
+  release_sha_bound?: boolean;
+  admin_identity_bound?: boolean;
+  response_bytes?: number;
   source_results?: ProbeResult[];
 };
 
@@ -21,11 +27,16 @@ type RetentionCleanupReport = {
   evidence_id?: string;
   environment?: string;
   status?: string;
+  results_path?: string;
+  admin_user_id?: string;
+  admin_tenant_id?: string;
   release_gate_check_id?: string;
   do_not_launch_condition_id?: string;
   split_evidence?: {
     signed_url_ready?: boolean;
+    release_sha_matches_signed_url?: boolean;
     retention_cleanup_ready?: boolean;
+    canonical_pass_paths?: boolean;
   };
   coverage?: RetentionCleanupReportCoverage[];
   blocked_checks?: string[];
@@ -56,19 +67,46 @@ function isRequiredArea(area: string | undefined): area is StagingObjectStorageR
 
 function reportIsPassing(report: RetentionCleanupReport) {
   const coverage = report.coverage ?? [];
-  const passingAreas = new Set(
-    coverage
-      .filter((item) => isRequiredArea(item.area) && item.status === "pass")
-      .map((item) => item.area)
-  );
+  const passingAreas = new Set();
+  for (const item of coverage) {
+    if (!isRequiredArea(item.area) || item.status !== "pass") {
+      continue;
+    }
+
+    const sourceResults = item.source_results ?? [];
+    const hasRuntimeSource = sourceResults.length > 0;
+    const everySourceEchoedRequestId = sourceResults.every(
+      (result) => result.request_id_echoed === true && (result.request_id ?? "").length > 0
+    );
+    const responseBytes =
+      item.response_bytes ??
+      sourceResults.reduce((total, result) => total + (result.response_bytes ?? 0), 0);
+    if (
+      item.release_sha_bound === true &&
+      item.admin_identity_bound === true &&
+      hasRuntimeSource &&
+      everySourceEchoedRequestId &&
+      responseBytes > 0
+    ) {
+      passingAreas.add(item.area);
+    }
+  }
 
   return (
     report.environment === "staging" &&
     report.status === "pass" &&
+    report.evidence_id === "object-storage-retention-cleanup" &&
     report.release_gate_check_id === "staging_object_storage_signed_downloads" &&
     report.do_not_launch_condition_id === "object_storage_signed_retention_runtime_missing" &&
+    report.results_path === "ops/evidence/staging/object-storage-retention-cleanup.ndjson" &&
     report.split_evidence?.signed_url_ready === true &&
+    report.split_evidence.release_sha_matches_signed_url === true &&
     report.split_evidence.retention_cleanup_ready === true &&
+    report.split_evidence.canonical_pass_paths === true &&
+    report.admin_user_id !== undefined &&
+    report.admin_user_id.length > 0 &&
+    report.admin_tenant_id !== undefined &&
+    report.admin_tenant_id.length > 0 &&
     [...requiredAreas].every((area) => passingAreas.has(area))
   );
 }
@@ -92,6 +130,20 @@ function buildCoverageFromReport(
     const firstResult = reportCoverage?.source_results?.[0];
     const method = firstResult?.method ?? endpointByArea[typedArea].split(" ")[0];
     const url = firstResult?.url ?? endpointByArea[typedArea].split(" ").slice(1).join(" ");
+    const responseBytes =
+      reportCoverage?.response_bytes ??
+      (reportCoverage?.source_results ?? []).reduce(
+        (total, result) => total + (result.response_bytes ?? 0),
+        0
+      );
+    const requestIdEchoStatus =
+      reportCoverage?.source_results?.length
+        ? reportCoverage.source_results.every(
+            (result) => result.request_id_echoed === true && (result.request_id ?? "").length > 0
+          )
+          ? "echoed"
+          : "missing"
+        : baseCoverage?.requestIdEchoStatus ?? "not_evaluated";
 
     return {
       area: typedArea,
@@ -99,6 +151,10 @@ function buildCoverageFromReport(
       smokeScript: "scripts/staging_object_storage_retention_cleanup_smoke.sh",
       adminEndpoint: `${method} ${url}`,
       expectedTokens: reportCoverage?.expected_tokens ?? baseCoverage?.expectedTokens ?? [],
+      releaseShaBound: passable && reportCoverage?.release_sha_bound === true,
+      adminIdentityBound: passable && reportCoverage?.admin_identity_bound === true,
+      requestIdEchoStatus,
+      responseBytes,
       blocker: passable
         ? "Staging runtime evidence passed for this retention/cleanup probe with release-SHA-bound admin audit context."
         : (report.blocked_checks ?? []).join(", ") || baseCoverage?.blocker || "Staging runtime evidence is not passing.",

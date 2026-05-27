@@ -3628,7 +3628,11 @@ test("object storage retention cleanup gate stays blocked until exact staging pr
     "Signed URL Evidence",
     "Missing Runtime Inputs",
     "Remaining Blockers",
-    "Expected Tokens"
+    "Expected Tokens",
+    "Release SHA Bound",
+    "Admin Identity Bound",
+    "Request ID Echo",
+    "Response Bytes"
   ]) {
     assert.match(operationsPage, new RegExp(token), `operations page missing ${token}`);
   }
@@ -3688,6 +3692,10 @@ test("object storage retention cleanup gate stays blocked until exact staging pr
     assert.equal(coverage.status, "missing_runtime", `${coverage.area} must remain missing until staging probe passes`);
     assert.equal(coverage.smokeScript, "scripts/staging_object_storage_retention_cleanup_smoke.sh", `${coverage.area} must cite smoke script`);
     assert.ok(coverage.expectedTokens.length >= 4, `${coverage.area} needs concrete expected response tokens`);
+    assert.equal(coverage.releaseShaBound, false, `${coverage.area} cannot be release-SHA-bound without runtime evidence`);
+    assert.equal(coverage.adminIdentityBound, false, `${coverage.area} cannot be admin-identity-bound without runtime evidence`);
+    assert.equal(coverage.requestIdEchoStatus, "not_evaluated", `${coverage.area} cannot have request-id echo before runtime evidence`);
+    assert.equal(coverage.responseBytes, 0, `${coverage.area} cannot have response bytes before runtime evidence`);
     assert.ok(coverage.blocker.length > 80, `${coverage.area} needs concrete blocker text`);
     assert.ok(coverage.releaseGateUse.length > 110, `${coverage.area} needs release-gate use text`);
     assert.ok(
@@ -3756,11 +3764,16 @@ test("object storage retention cleanup runtime evaluator flips only on exact pas
     evidence_id: "object-storage-retention-cleanup",
     environment: "staging",
     status: "pass",
+    results_path: "ops/evidence/staging/object-storage-retention-cleanup.ndjson",
+    admin_user_id: "admin-ops-17",
+    admin_tenant_id: "tenant-alpha",
     release_gate_check_id: "staging_object_storage_signed_downloads",
     do_not_launch_condition_id: "object_storage_signed_retention_runtime_missing",
     split_evidence: {
       signed_url_ready: true,
-      retention_cleanup_ready: true
+      release_sha_matches_signed_url: true,
+      retention_cleanup_ready: true,
+      canonical_pass_paths: true
     },
     coverage: [
       {
@@ -3768,11 +3781,17 @@ test("object storage retention cleanup runtime evaluator flips only on exact pas
         status: "pass",
         runtime_probe: "Staging object storage retention policy probe verified tenant retention policy, versioning, retention_until, and audit context.",
         expected_tokens: ["retention policy", "versioning", "retention_until", "tenant"],
+        release_sha_bound: true,
+        admin_identity_bound: true,
+        response_bytes: 812,
         evidence_refs: ["ops/evidence/staging/object-storage-retention-cleanup.json", "au-007"],
         source_results: [
           {
             method: "GET",
-            url: "https://staging.example.test/api/admin/v1/object-storage/retention-policy"
+            url: "https://staging.example.test/api/admin/v1/object-storage/retention-policy",
+            request_id: "stage0-object-retention-cleanup-retention_policy",
+            request_id_echoed: true,
+            response_bytes: 812
           }
         ]
       },
@@ -3781,11 +3800,17 @@ test("object storage retention cleanup runtime evaluator flips only on exact pas
         status: "pass",
         runtime_probe: "Staging expired export cleanup probe verified deleted and retained object decisions with immutable audit refs.",
         expected_tokens: ["expired export cleanup", "deleted", "retained", "audit"],
+        release_sha_bound: true,
+        admin_identity_bound: true,
+        response_bytes: 1044,
         evidence_refs: ["ops/evidence/staging/object-storage-retention-cleanup.json", "ex-909", "au-007"],
         source_results: [
           {
             method: "POST",
-            url: "https://staging.example.test/api/admin/v1/object-storage/cleanup/expired-exports"
+            url: "https://staging.example.test/api/admin/v1/object-storage/cleanup/expired-exports",
+            request_id: "stage0-object-retention-cleanup-expired_export_cleanup",
+            request_id_echoed: true,
+            response_bytes: 1044
           }
         ]
       },
@@ -3794,11 +3819,17 @@ test("object storage retention cleanup runtime evaluator flips only on exact pas
         status: "pass",
         runtime_probe: "Staging orphan cleanup probe verified deleted and retained orphan decisions with immutable audit refs.",
         expected_tokens: ["orphan cleanup", "deleted", "retained", "audit"],
+        release_sha_bound: true,
+        admin_identity_bound: true,
+        response_bytes: 976,
         evidence_refs: ["ops/evidence/staging/object-storage-retention-cleanup.json", "au-015"],
         source_results: [
           {
             method: "POST",
-            url: "https://staging.example.test/api/admin/v1/object-storage/cleanup/orphans"
+            url: "https://staging.example.test/api/admin/v1/object-storage/cleanup/orphans",
+            request_id: "stage0-object-retention-cleanup-orphan_cleanup",
+            request_id_echoed: true,
+            response_bytes: 976
           }
         ]
       },
@@ -3807,11 +3838,17 @@ test("object storage retention cleanup runtime evaluator flips only on exact pas
         status: "pass",
         runtime_probe: "Staging object_storage_cleanup audit probe verified admin and tenant audit context.",
         expected_tokens: ["audit", "object_storage_cleanup", "admin", "tenant"],
+        release_sha_bound: true,
+        admin_identity_bound: true,
+        response_bytes: 1288,
         evidence_refs: ["ops/evidence/staging/object-storage-retention-cleanup.json", "au-007", "au-015"],
         source_results: [
           {
             method: "GET",
-            url: "https://staging.example.test/api/admin/v1/audit?subject=object_storage_cleanup&limit=20"
+            url: "https://staging.example.test/api/admin/v1/audit?subject=object_storage_cleanup&limit=20",
+            request_id: "stage0-object-retention-cleanup-audit_refs",
+            request_id_echoed: true,
+            response_bytes: 1288
           }
         ]
       }
@@ -3831,11 +3868,72 @@ test("object storage retention cleanup runtime evaluator flips only on exact pas
   assert.deepEqual(passing.missingRuntimeInputs, []);
   assert.equal(new Set(passing.coverage.map((coverage) => coverage.status)).size, 1);
   assert.ok(passing.coverage.every((coverage) => coverage.status === "pass"));
+  assert.ok(passing.coverage.every((coverage) => coverage.releaseShaBound === true));
+  assert.ok(passing.coverage.every((coverage) => coverage.adminIdentityBound === true));
+  assert.ok(passing.coverage.every((coverage) => coverage.requestIdEchoStatus === "echoed"));
+  assert.ok(passing.coverage.every((coverage) => coverage.responseBytes > 0));
   assert.ok(
     passing.coverage.every((coverage) =>
       coverage.evidenceRefs.includes("ops/evidence/staging/object-storage-retention-cleanup.json")
     ),
     "passing coverage must cite exact retention cleanup artifact"
+  );
+});
+
+test("object storage retention cleanup runtime evaluator rejects spoofed pass reports without bound probes", () => {
+  const base = stagingObjectStorageRetentionCleanupEvidence;
+  const spoofedPassReport = {
+    evidence_id: "object-storage-retention-cleanup",
+    environment: "staging",
+    status: "pass",
+    results_path: "ops/evidence/staging/object-storage-retention-cleanup.ndjson",
+    admin_user_id: "admin-ops-17",
+    admin_tenant_id: "tenant-alpha",
+    release_gate_check_id: "staging_object_storage_signed_downloads",
+    do_not_launch_condition_id: "object_storage_signed_retention_runtime_missing",
+    split_evidence: {
+      signed_url_ready: true,
+      release_sha_matches_signed_url: true,
+      retention_cleanup_ready: true,
+      canonical_pass_paths: true
+    },
+    coverage: ["retention_policy", "expired_export_cleanup", "orphan_cleanup", "audit_refs"].map((area) => ({
+      area,
+      status: "pass",
+      runtime_probe: `Spoofed ${area} report with no echoed request id.`,
+      expected_tokens: ["audit", "tenant", "deleted", "retained"],
+      release_sha_bound: true,
+      admin_identity_bound: true,
+      response_bytes: 512,
+      evidence_refs: ["ops/evidence/staging/object-storage-retention-cleanup.json"],
+      source_results: [
+        {
+          method: area === "retention_policy" || area === "audit_refs" ? "GET" : "POST",
+          url: `https://staging.example.test/${area}`,
+          request_id: `stage0-object-retention-cleanup-${area}`,
+          request_id_echoed: false,
+          response_bytes: 512
+        }
+      ]
+    })),
+    gate_impact: {
+      can_clear_retention_cleanup_checklist_item: true,
+      can_clear_release_gate_check: true,
+      remaining_release_gate_blockers_after_pass: []
+    }
+  };
+  const rejected = buildStagingObjectStorageRetentionCleanupEvidence(base, spoofedPassReport);
+
+  assert.equal(rejected.status, "blocked", "pass-shaped reports without request-id echo must stay blocked");
+  assert.equal(rejected.canClearRetentionCleanupChecklistItem, false);
+  assert.equal(rejected.canClearReleaseGateCheck, false);
+  assert.ok(
+    rejected.coverage.every((coverage) => coverage.requestIdEchoStatus === "missing"),
+    "operator evidence must expose missing request-id echoes for spoofed pass reports"
+  );
+  assert.ok(
+    rejected.remainingReleaseGateBlockers.includes("staging_object_storage_signed_downloads"),
+    "spoofed pass reports must preserve the object-storage release blocker"
   );
 });
 

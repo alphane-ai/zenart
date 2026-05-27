@@ -2606,6 +2606,10 @@ export const stagingObjectStorageRetentionCleanupEvidence: StagingObjectStorageR
       smokeScript: "scripts/staging_object_storage_retention_cleanup_smoke.sh",
       adminEndpoint: "GET /api/admin/v1/object-storage/retention-policy",
       expectedTokens: ["retention policy", "versioning", "retention_until", "tenant"],
+      releaseShaBound: false,
+      adminIdentityBound: false,
+      requestIdEchoStatus: "not_evaluated",
+      responseBytes: 0,
       blocker: "Staging base URL or explicit RETENTION_POLICY_URL has not produced a passing retention policy probe.",
       releaseGateUse: "The object-storage release gate must stay blocked until the retention policy probe writes passing staging runtime evidence at ops/evidence/staging/object-storage-retention-cleanup.json.",
       evidenceRefs: [
@@ -2620,6 +2624,10 @@ export const stagingObjectStorageRetentionCleanupEvidence: StagingObjectStorageR
       smokeScript: "scripts/staging_object_storage_retention_cleanup_smoke.sh",
       adminEndpoint: "POST /api/admin/v1/object-storage/cleanup/expired-exports",
       expectedTokens: ["expired export cleanup", "deleted", "retained", "audit"],
+      releaseShaBound: false,
+      adminIdentityBound: false,
+      requestIdEchoStatus: "not_evaluated",
+      responseBytes: 0,
       blocker: "Expired export cleanup has not produced a staging POST probe with deleted, retained, and audit evidence.",
       releaseGateUse: "The retention/cleanup checklist item cannot close until expired exports are cleaned in staging with immutable audit refs.",
       evidenceRefs: [
@@ -2635,6 +2643,10 @@ export const stagingObjectStorageRetentionCleanupEvidence: StagingObjectStorageR
       smokeScript: "scripts/staging_object_storage_retention_cleanup_smoke.sh",
       adminEndpoint: "POST /api/admin/v1/object-storage/cleanup/orphans",
       expectedTokens: ["orphan cleanup", "deleted", "retained", "audit"],
+      releaseShaBound: false,
+      adminIdentityBound: false,
+      requestIdEchoStatus: "not_evaluated",
+      responseBytes: 0,
       blocker: "Orphan object cleanup has not produced a staging POST probe with deleted, retained, and audit evidence.",
       releaseGateUse: "The object-storage release gate cannot close until orphan object cleanup proves deleted and retained object decisions with audit context.",
       evidenceRefs: [
@@ -2650,6 +2662,10 @@ export const stagingObjectStorageRetentionCleanupEvidence: StagingObjectStorageR
       smokeScript: "scripts/staging_object_storage_retention_cleanup_smoke.sh",
       adminEndpoint: "GET /api/admin/v1/audit?subject=object_storage_cleanup&limit=20",
       expectedTokens: ["audit", "object_storage_cleanup", "admin", "tenant"],
+      releaseShaBound: false,
+      adminIdentityBound: false,
+      requestIdEchoStatus: "not_evaluated",
+      responseBytes: 0,
       blocker: "Object-storage cleanup audit query has not produced staging evidence with admin and tenant context.",
       releaseGateUse: "Retention and cleanup probes must be tied to admin audit refs before the private beta object-storage blocker can clear.",
       evidenceRefs: [

@@ -567,6 +567,10 @@ export type StagingObjectStorageRetentionCleanupCoverage = {
   smokeScript: string;
   adminEndpoint: string;
   expectedTokens: string[];
+  releaseShaBound: boolean;
+  adminIdentityBound: boolean;
+  requestIdEchoStatus: "echoed" | "missing" | "not_evaluated";
+  responseBytes: number;
   blocker: string;
   releaseGateUse: string;
   evidenceRefs: string[];
