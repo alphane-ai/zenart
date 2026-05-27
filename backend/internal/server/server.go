@@ -729,7 +729,7 @@ func (s *Server) cleanupExports(w http.ResponseWriter, r *http.Request) {
 		limit = 500
 	}
 	now := time.Now().UTC()
-	result, err := service.CleanupExpiredExportsAndOrphanedObjects(r.Context(), now, limit)
+	result, err := service.CleanupExpiredExportsAndOrphanedObjectsForTenant(r.Context(), principal.TenantID, now, limit)
 	if err != nil {
 		writeStage0Error(w, r, err)
 		return

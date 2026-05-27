@@ -1117,6 +1117,49 @@ func TestCleanupExpiredExportsAndOrphanedObjects(t *testing.T) {
 	}
 }
 
+func TestCleanupExpiredExportsAndOrphanedObjectsForTenantScopesLifecycle(t *testing.T) {
+	db := &fakeDB{
+		execTags: []pgconn.CommandTag{
+			pgconn.NewCommandTag("UPDATE 1"),
+			pgconn.NewCommandTag("UPDATE 2"),
+		},
+	}
+	repo := NewRepository(db)
+	now := time.Date(2026, 5, 26, 12, 0, 0, 0, time.UTC)
+
+	result, err := repo.CleanupExpiredExportsAndOrphanedObjectsForTenant(context.Background(), "tenant_1", now, func(_ context.Context, _ time.Time) (int, error) {
+		return 3, nil
+	})
+	if err != nil {
+		t.Fatalf("CleanupExpiredExportsAndOrphanedObjectsForTenant() error = %v", err)
+	}
+	if result.ExpiredExports != 1 || result.OrphanedObjects != 2 || result.DeletedObjects != 3 {
+		t.Fatalf("cleanup result = %#v, want 1/2/3", result)
+	}
+	if len(db.execs) != 4 {
+		t.Fatalf("exec count = %d, want scoped lifecycle and run analytics", len(db.execs))
+	}
+	for i, call := range db.execs {
+		if call.args[len(call.args)-1] != "tenant_1" {
+			t.Fatalf("exec[%d] args = %#v, want tenant_1 scope as final arg", i, call.args)
+		}
+	}
+	for _, fragment := range []string{"($2 = '' OR e.tenant_id = $2)", "($2 = '' OR tenant_id = $2)"} {
+		if !strings.Contains(db.execs[0].sql, fragment) {
+			t.Fatalf("expired cleanup SQL missing tenant guard %s: %s", fragment, db.execs[0].sql)
+		}
+	}
+	if !strings.Contains(db.execs[1].sql, "($2 = '' OR o.tenant_id = $2)") {
+		t.Fatalf("orphan cleanup SQL missing tenant guard: %s", db.execs[1].sql)
+	}
+	if !strings.Contains(db.execs[2].sql, "($2 = '' OR e.tenant_id = $2)") || !strings.Contains(db.execs[2].sql, "($2 = '' OR o.tenant_id = $2)") {
+		t.Fatalf("cleanup lifecycle analytics missing tenant guard: %s", db.execs[2].sql)
+	}
+	if !strings.Contains(db.execs[3].sql, "($5 = '' OR tenant_id = $5)") {
+		t.Fatalf("cleanup run analytics missing tenant guard: %s", db.execs[3].sql)
+	}
+}
+
 func TestListCleanupObjectsSelectsExpiredAndOrphanedObjects(t *testing.T) {
 	now := time.Date(2026, 5, 26, 12, 0, 0, 0, time.UTC)
 	db := &fakeDB{queryRows: []rowSet{{
@@ -1150,6 +1193,35 @@ func TestListCleanupObjectsSelectsExpiredAndOrphanedObjects(t *testing.T) {
 	}
 	if db.queryRowsUsed[0].args[1] != 25 {
 		t.Fatalf("cleanup limit arg = %#v, want 25", db.queryRowsUsed[0].args[1])
+	}
+	if db.queryRowsUsed[0].args[2] != "" {
+		t.Fatalf("cleanup tenant scope arg = %#v, want global empty scope", db.queryRowsUsed[0].args[2])
+	}
+}
+
+func TestListCleanupObjectsForTenantAppliesTenantScope(t *testing.T) {
+	now := time.Date(2026, 5, 26, 12, 0, 0, 0, time.UTC)
+	db := &fakeDB{queryRows: []rowSet{{
+		rows: [][]any{{
+			"object_1",
+			"tenant_1",
+			"tenants/tenant_1/exports/export_1.zip",
+		}},
+	}}}
+	repo := NewRepository(db)
+
+	objects, err := repo.ListCleanupObjectsForTenant(context.Background(), "tenant_1", now, 25)
+	if err != nil {
+		t.Fatalf("ListCleanupObjectsForTenant() error = %v", err)
+	}
+	if len(objects) != 1 {
+		t.Fatalf("cleanup object count = %d, want 1", len(objects))
+	}
+	if !strings.Contains(db.queryRowsUsed[0].sql, "($3 = '' OR tenant_id = $3)") {
+		t.Fatalf("cleanup selection SQL missing tenant guard: %s", db.queryRowsUsed[0].sql)
+	}
+	if db.queryRowsUsed[0].args[2] != "tenant_1" {
+		t.Fatalf("cleanup tenant scope arg = %#v, want tenant_1", db.queryRowsUsed[0].args[2])
 	}
 }
 

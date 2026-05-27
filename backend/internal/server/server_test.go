@@ -1142,6 +1142,11 @@ func TestAdminExportCleanupRunsServiceAndRecordsAudit(t *testing.T) {
 	if len(db.execs) != 3 {
 		t.Fatalf("exec count = %d, want cleanup lifecycle update and analytics", len(db.execs))
 	}
+	for i, call := range db.execs {
+		if call.args[len(call.args)-1] != "tenant_1" {
+			t.Fatalf("exec[%d] args = %#v, want admin cleanup scoped to tenant_1", i, call.args)
+		}
+	}
 	if len(recorder.events) != 1 {
 		t.Fatalf("audit events = %d, want 1", len(recorder.events))
 	}

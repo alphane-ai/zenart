@@ -915,6 +915,18 @@ WHERE tenant_id = $1`
 }
 
 func (r Repository) CleanupExpiredExportsAndOrphanedObjects(ctx context.Context, now time.Time, objectCleanup func(context.Context, time.Time) (int, error)) (CleanupResult, error) {
+	return r.cleanupExpiredExportsAndOrphanedObjects(ctx, "", now, objectCleanup)
+}
+
+func (r Repository) CleanupExpiredExportsAndOrphanedObjectsForTenant(ctx context.Context, tenantID string, now time.Time, objectCleanup func(context.Context, time.Time) (int, error)) (CleanupResult, error) {
+	tenantID = strings.TrimSpace(tenantID)
+	if tenantID == "" {
+		return CleanupResult{}, errors.Join(ErrValidation, errors.New("tenant_id is required"))
+	}
+	return r.cleanupExpiredExportsAndOrphanedObjects(ctx, tenantID, now, objectCleanup)
+}
+
+func (r Repository) cleanupExpiredExportsAndOrphanedObjects(ctx context.Context, tenantID string, now time.Time, objectCleanup func(context.Context, time.Time) (int, error)) (CleanupResult, error) {
 	if now.IsZero() {
 		now = time.Now().UTC()
 	}
@@ -924,6 +936,7 @@ WITH expired AS (
 	FROM exports e
 	JOIN object_metadata o ON o.tenant_id = e.tenant_id AND o.id = e.object_metadata_id
 	WHERE e.status IN ('ready', 'failed', 'pending')
+	  AND ($2 = '' OR e.tenant_id = $2)
 	  AND o.retention_until IS NOT NULL
 	  AND o.retention_until <= $1
 ),
@@ -931,6 +944,7 @@ expired_sources AS (
 	SELECT id, tenant_id, retention_until
 	FROM object_metadata
 	WHERE retention_until IS NOT NULL
+	  AND ($2 = '' OR tenant_id = $2)
 	  AND retention_until <= $1
 	  AND retention_state IN ('active', 'expired')
 ),
@@ -954,6 +968,7 @@ SET status = 'expired',
 FROM expired
 WHERE e.tenant_id = expired.tenant_id AND e.id = expired.id`,
 		now,
+		tenantID,
 	)
 	if err != nil {
 		return CleanupResult{}, err
@@ -964,6 +979,7 @@ WITH orphaned_sources AS (
 	FROM object_metadata o
 	WHERE o.retention_state = 'active'
 	  AND o.asset_type = 'export'
+	  AND ($2 = '' OR o.tenant_id = $2)
 	  AND NOT EXISTS (
 	    SELECT 1
 	    FROM exports e
@@ -980,6 +996,7 @@ WHERE o.retention_state = 'active'
     OR (o.derived_from_object_id = source.id AND o.tenant_id = source.tenant_id)
   )`,
 		now,
+		tenantID,
 	)
 	if err != nil {
 		return CleanupResult{}, err
@@ -988,7 +1005,7 @@ WHERE o.retention_state = 'active'
 		ExpiredExports:  int(expiredTag.RowsAffected()),
 		OrphanedObjects: int(orphanedTag.RowsAffected()),
 	}
-	if err := r.recordCleanupLifecycleAnalytics(ctx, now); err != nil {
+	if err := r.recordCleanupLifecycleAnalytics(ctx, now, tenantID); err != nil {
 		return CleanupResult{}, err
 	}
 	if objectCleanup != nil {
@@ -997,7 +1014,7 @@ WHERE o.retention_state = 'active'
 			return CleanupResult{}, err
 		}
 		result.DeletedObjects = deleted
-		if err := r.recordCleanupRunAnalytics(ctx, now, result); err != nil {
+		if err := r.recordCleanupRunAnalyticsForTenant(ctx, now, tenantID, result); err != nil {
 			return CleanupResult{}, err
 		}
 	}
@@ -1046,6 +1063,18 @@ func cleanupKeyHasUnsafeSegment(key string) bool {
 }
 
 func (r Repository) ListCleanupObjects(ctx context.Context, now time.Time, limit int) ([]CleanupObject, error) {
+	return r.listCleanupObjects(ctx, "", now, limit)
+}
+
+func (r Repository) ListCleanupObjectsForTenant(ctx context.Context, tenantID string, now time.Time, limit int) ([]CleanupObject, error) {
+	tenantID = strings.TrimSpace(tenantID)
+	if tenantID == "" {
+		return nil, errors.Join(ErrValidation, errors.New("tenant_id is required"))
+	}
+	return r.listCleanupObjects(ctx, tenantID, now, limit)
+}
+
+func (r Repository) listCleanupObjects(ctx context.Context, tenantID string, now time.Time, limit int) ([]CleanupObject, error) {
 	if now.IsZero() {
 		now = time.Now().UTC()
 	}
@@ -1056,6 +1085,7 @@ func (r Repository) ListCleanupObjects(ctx context.Context, now time.Time, limit
 SELECT id, tenant_id, object_key
 FROM object_metadata
 WHERE retention_state IN ('expired', 'orphaned')
+  AND ($3 = '' OR tenant_id = $3)
   AND (
     retention_until IS NULL
     OR retention_until <= $1
@@ -1064,6 +1094,7 @@ ORDER BY created_at ASC
 LIMIT $2`,
 		now,
 		limit,
+		tenantID,
 	)
 	if err != nil {
 		return nil, err
@@ -1133,7 +1164,7 @@ WHERE object_metadata.id = deleted_candidates.id
 	return deleted, nil
 }
 
-func (r Repository) recordCleanupLifecycleAnalytics(ctx context.Context, now time.Time) error {
+func (r Repository) recordCleanupLifecycleAnalytics(ctx context.Context, now time.Time, tenantID string) error {
 	_, err := r.db.Exec(ctx, `
 WITH expired_export_events AS (
 	INSERT INTO analytics_events(id, tenant_id, user_id, project_id, workflow_id, event_name, subject_type, subject_id, properties, created_at)
@@ -1158,6 +1189,7 @@ WITH expired_export_events AS (
 	LEFT JOIN projects pr ON pr.tenant_id = e.tenant_id AND pr.id = e.project_id
 	WHERE e.status = 'expired'
 	  AND e.updated_at = $1
+	  AND ($2 = '' OR e.tenant_id = $2)
 	ON CONFLICT (id) DO NOTHING
 	RETURNING 1
 ),
@@ -1183,10 +1215,11 @@ orphaned_object_events AS (
 	LEFT JOIN projects pr ON pr.tenant_id = o.tenant_id AND pr.id = o.project_id
 	WHERE o.retention_state = 'orphaned'
 	  AND o.updated_at = $1
+	  AND ($2 = '' OR o.tenant_id = $2)
 	ON CONFLICT (id) DO NOTHING
 	RETURNING 1
 )
-SELECT 1`)
+SELECT 1`, now, tenantID)
 	return err
 }
 
@@ -1241,6 +1274,10 @@ ON CONFLICT (id) DO NOTHING`,
 }
 
 func (r Repository) recordCleanupRunAnalytics(ctx context.Context, now time.Time, result CleanupResult) error {
+	return r.recordCleanupRunAnalyticsForTenant(ctx, now, "", result)
+}
+
+func (r Repository) recordCleanupRunAnalyticsForTenant(ctx context.Context, now time.Time, tenantID string, result CleanupResult) error {
 	if result.ExpiredExports == 0 && result.OrphanedObjects == 0 && result.DeletedObjects == 0 {
 		return nil
 	}
@@ -1254,6 +1291,7 @@ WITH cleanup_counts AS (
 	FROM analytics_events
 	WHERE created_at = $1
 	  AND event_name IN ('export_expired', 'object_orphaned', 'object_deleted')
+	  AND ($5 = '' OR tenant_id = $5)
 	GROUP BY tenant_id
 )
 INSERT INTO analytics_events(id, tenant_id, workflow_id, event_name, subject_type, subject_id, properties, created_at)
@@ -1280,6 +1318,7 @@ ON CONFLICT (id) DO NOTHING`,
 		result.ExpiredExports,
 		result.OrphanedObjects,
 		result.DeletedObjects,
+		tenantID,
 	)
 	return err
 }
@@ -2863,13 +2902,27 @@ func downloadTTLForObject(object ObjectMetadata, now time.Time, configuredTTL ti
 
 func (s Service) CleanupExpiredExportsAndOrphanedObjects(ctx context.Context, now time.Time, limit int) (CleanupResult, error) {
 	result, err := s.repo.CleanupExpiredExportsAndOrphanedObjects(ctx, now, nil)
+	return s.cleanupExpiredExportsAndOrphanedObjects(ctx, "", now, limit, result, err)
+}
+
+func (s Service) CleanupExpiredExportsAndOrphanedObjectsForTenant(ctx context.Context, tenantID string, now time.Time, limit int) (CleanupResult, error) {
+	result, err := s.repo.CleanupExpiredExportsAndOrphanedObjectsForTenant(ctx, tenantID, now, nil)
+	return s.cleanupExpiredExportsAndOrphanedObjects(ctx, strings.TrimSpace(tenantID), now, limit, result, err)
+}
+
+func (s Service) cleanupExpiredExportsAndOrphanedObjects(ctx context.Context, tenantID string, now time.Time, limit int, result CleanupResult, err error) (CleanupResult, error) {
 	if err != nil {
 		return CleanupResult{}, err
 	}
 	if s.objects == nil {
 		return result, nil
 	}
-	objects, err := s.repo.ListCleanupObjects(ctx, now, limit)
+	var objects []CleanupObject
+	if tenantID == "" {
+		objects, err = s.repo.ListCleanupObjects(ctx, now, limit)
+	} else {
+		objects, err = s.repo.ListCleanupObjectsForTenant(ctx, tenantID, now, limit)
+	}
 	if err != nil {
 		return CleanupResult{}, err
 	}
@@ -2889,7 +2942,7 @@ func (s Service) CleanupExpiredExportsAndOrphanedObjects(ctx context.Context, no
 		return CleanupResult{}, err
 	}
 	result.DeletedObjects = deleted
-	if err := s.repo.recordCleanupRunAnalytics(ctx, now, result); err != nil {
+	if err := s.repo.recordCleanupRunAnalyticsForTenant(ctx, now, tenantID, result); err != nil {
 		return CleanupResult{}, err
 	}
 	if deleteErr != nil {
