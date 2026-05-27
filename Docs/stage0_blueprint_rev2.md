@@ -1792,6 +1792,7 @@ main 合并前必须通过：
 - [x] 实现 safety rule schema。
 - [x] 定义并验证 brief/provider request/provider response/QA/export safety policy contract evidence。
 - [x] 在 brief/provider request/provider response/QA/export 运行 safety policy。
+- [x] Safety decision rationale/redaction contract 通过：`fixtures/stage0/rev2/eval/safety_enforcement_contract.json` declares fixed system-only rationale sources、forbidden raw payload/secret inputs、minimized analytics properties, and `scripts/run_safety_policy_runtime_contract.py` replays redaction cases for brief、provider request、provider response、QA、export。
 - [x] 实现 red-team fixtures。
 
 ### 25.12 Workflow Acceptance

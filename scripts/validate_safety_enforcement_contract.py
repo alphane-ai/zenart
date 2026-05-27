@@ -23,6 +23,7 @@ OPENAPI = ROOT / "openapi" / "zenart.v1.yaml"
 MIGRATION = ROOT / "backend" / "migrations" / "0002_stage0_rev2_domains.sql"
 STAGE0_SERVICE = ROOT / "backend" / "internal" / "stage0" / "services.go"
 STAGE0_TEST = ROOT / "backend" / "internal" / "stage0" / "services_test.go"
+SECURITY_REDACT_TEST = ROOT / "backend" / "internal" / "security" / "redact_test.go"
 RUNTIME_REPLAY = ROOT / "scripts" / "run_safety_policy_runtime_contract.py"
 
 SAFETY_POINTS = {
@@ -164,6 +165,35 @@ OVERRIDE_DOWNGRADE_CASES = {
 BACKEND_EVIDENCE_FILES = {
     "backend/internal/stage0/services.go": STAGE0_SERVICE,
     "backend/internal/stage0/services_test.go": STAGE0_TEST,
+    "backend/internal/security/redact_test.go": SECURITY_REDACT_TEST,
+}
+
+ALLOWED_RATIONALES = {
+    "no active safety rule matched",
+    "active safety rule matched enforcement point",
+}
+
+ALLOWED_RATIONALE_SOURCE_KEYS = {
+    "no_active_safety_rule_matched",
+    "active_safety_rule_matched_enforcement_point",
+}
+
+FORBIDDEN_DECISION_PAYLOAD_INPUTS = {
+    "brief_text",
+    "provider_request_body",
+    "provider_response_body",
+    "qa_observed_text",
+    "export_manifest",
+    "download_url",
+    "api_key",
+    "session_token",
+    "authorization_header",
+}
+
+ALLOWED_ANALYTICS_PROPERTIES = {
+    "enforcement_point",
+    "decision",
+    "rule_id",
 }
 
 
@@ -341,6 +371,31 @@ def validate_openapi_and_storage_contract(contract: dict[str, Any]) -> None:
         "Rationale",
     ]:
         require(token in service, f"backend safety enforcement implementation missing {token}")
+    for token in [
+        'rationale := "no active safety rule matched"',
+        'rationale = "active safety rule matched enforcement point"',
+        "Rationale:        rationale",
+        '"safety_decision_recorded"',
+        '"enforcement_point": point',
+        '"decision":          decision',
+        '"rule_id":           stringValue(ruleID)',
+    ]:
+        require(token in service, f"backend safety decision redaction/minimized analytics evidence missing {token}")
+    for forbidden in [
+        '"brief_text"',
+        '"provider_request_body"',
+        '"provider_response_body"',
+        '"qa_observed_text"',
+        '"export_manifest"',
+        '"download_url"',
+        '"api_key"',
+        '"session_token"',
+        '"authorization_header"',
+    ]:
+        require(
+            forbidden not in service[service.find("func (r Repository) EnforceSafety"):service.find("func (r Repository) RequireSafetyAllowed")],
+            f"EnforceSafety must not persist raw or secret-bearing payload field {forbidden}",
+        )
     for token in [
         "func (r Repository) CreateExport",
         "func (r Repository) RegenerateExport",
@@ -562,8 +617,14 @@ def validate_runtime_replay_contract(contract: dict[str, Any]) -> None:
         replay["fixture_link_point_decision_refs_replayed"] == len(contract["fixture_links"]) * len(SAFETY_POINTS),
         "fixture-link point decision ref replay count mismatch",
     )
+    require(
+        replay["decision_redaction_cases_replayed"] == len(contract["decision_redaction_contract"]["runtime_replay_cases"]),
+        "decision redaction replay count mismatch",
+    )
     require(replay["transition_points_replayed"] is True, "runtime replay must validate transition enforcement points")
     require(replay["decision_priority_order_validated"] is True, "runtime replay must validate decision priority order")
+    require(replay["decision_rationale_sources_validated"] is True, "runtime replay must validate fixed rationale sources")
+    require(replay["analytics_payload_minimized"] is True, "runtime replay must validate minimized analytics payloads")
     require(
         replay["held_or_blocked_require_audit_for_all_actions"] is True,
         "runtime replay must validate audit requirements for held/blocking actions",
@@ -584,6 +645,91 @@ def validate_runtime_replay_contract(contract: dict[str, Any]) -> None:
         result.returncode == 0,
         "safety policy runtime replay failed: " + (result.stderr or result.stdout).strip(),
     )
+
+
+def validate_decision_redaction_contract(contract: dict[str, Any]) -> None:
+    redaction = contract["decision_redaction_contract"]
+    service = STAGE0_SERVICE.read_text(encoding="utf-8")
+    tests = STAGE0_TEST.read_text(encoding="utf-8")
+    redact_tests = SECURITY_REDACT_TEST.read_text(encoding="utf-8")
+
+    require(
+        redaction["rationale_policy"] == "system_generated_only_no_raw_subject_payload",
+        "safety decision rationale policy mismatch",
+    )
+    require(
+        set(redaction["allowed_rationale_sources"]) == ALLOWED_RATIONALE_SOURCE_KEYS,
+        "safety decision rationale sources must be fixed system sources",
+    )
+    require(
+        set(redaction["forbidden_rationale_inputs"]) == FORBIDDEN_DECISION_PAYLOAD_INPUTS,
+        "safety decision rationale forbidden inputs mismatch",
+    )
+    analytics_policy = redaction["analytics_payload_policy"]
+    require(analytics_policy["event_name"] == "safety_decision_recorded", "safety decision analytics event mismatch")
+    require(
+        set(analytics_policy["allowed_properties"]) == ALLOWED_ANALYTICS_PROPERTIES,
+        "safety decision analytics allowed properties mismatch",
+    )
+    require(
+        set(analytics_policy["forbidden_properties"]) == FORBIDDEN_DECISION_PAYLOAD_INPUTS,
+        "safety decision analytics forbidden properties mismatch",
+    )
+
+    for ref in redaction["redaction_test_evidence"]:
+        path, _, token = ref.partition(":")
+        require(path in BACKEND_EVIDENCE_FILES, f"decision redaction evidence path outside lane scope: {path}")
+        require(token, f"decision redaction evidence must include token after ':': {ref}")
+        content = {
+            "backend/internal/stage0/services.go": service,
+            "backend/internal/stage0/services_test.go": tests,
+            "backend/internal/security/redact_test.go": redact_tests,
+        }[path]
+        require(token in content, f"decision redaction evidence token missing: {ref}")
+
+    enforce_start = service.find("func (r Repository) EnforceSafety")
+    require(enforce_start != -1, "EnforceSafety implementation missing")
+    enforce_end = service.find("func (r Repository) RequireSafetyAllowed", enforce_start)
+    require(enforce_end != -1, "RequireSafetyAllowed implementation missing")
+    enforce_body = service[enforce_start:enforce_end]
+    analytics_start = enforce_body.find('"safety_decision_recorded"')
+    require(analytics_start != -1, "EnforceSafety must record safety_decision_recorded analytics")
+    analytics_body = enforce_body[analytics_start:]
+
+    for rationale in ALLOWED_RATIONALES:
+        require(rationale in enforce_body, f"EnforceSafety missing fixed rationale {rationale!r}")
+    require("Rationale:        rationale" in enforce_body, "EnforceSafety must persist only the fixed rationale variable")
+    for forbidden in FORBIDDEN_DECISION_PAYLOAD_INPUTS:
+        require(forbidden not in enforce_body, f"EnforceSafety body must not reference forbidden payload input {forbidden}")
+        require(forbidden not in analytics_body, f"safety analytics payload must not include forbidden property {forbidden}")
+    for allowed in ALLOWED_ANALYTICS_PROPERTIES:
+        require(f'"{allowed}"' in analytics_body, f"safety analytics payload missing allowed property {allowed}")
+
+    cases = redaction["runtime_replay_cases"]
+    require(len(cases) >= len(SAFETY_POINTS), "decision redaction replay must cover every safety surface")
+    seen_surfaces: set[str] = set()
+    seen_cases: set[str] = set()
+    for case in cases:
+        case_id = case["case_id"]
+        require(case_id not in seen_cases, f"duplicate decision redaction replay case {case_id}")
+        seen_cases.add(case_id)
+        seen_surfaces.add(case["input_surface"])
+        require(case["stored_rationale"] in ALLOWED_RATIONALES, f"{case_id} stores non-system rationale")
+        require(
+            set(case["analytics_properties"]) == ALLOWED_ANALYTICS_PROPERTIES,
+            f"{case_id} analytics properties must stay minimized",
+        )
+        serialized_outputs = json.dumps(
+            {
+                "stored_rationale": case["stored_rationale"],
+                "analytics_properties": sorted(case["analytics_properties"]),
+            },
+            sort_keys=True,
+        )
+        for fragment in case["forbidden_output_fragments"]:
+            require(fragment not in serialized_outputs, f"{case_id} leaks forbidden output fragment {fragment!r}")
+        require(case["expected_result"] == "redacted_or_not_persisted", f"{case_id} expected result mismatch")
+    require(seen_surfaces == SAFETY_POINTS, f"decision redaction replay missing surfaces: {sorted(SAFETY_POINTS - seen_surfaces)}")
 
 
 def validate_override_downgrade_cases(pipeline: dict[str, Any]) -> None:
@@ -740,6 +886,7 @@ def main() -> int:
         validate_cross_contracts(contract)
         validate_pipeline_sequence_contract(contract)
         validate_runtime_replay_contract(contract)
+        validate_decision_redaction_contract(contract)
         validate_fixture_links(contract)
         validate_openapi_and_storage_contract(contract)
         validate_release_policy(contract)

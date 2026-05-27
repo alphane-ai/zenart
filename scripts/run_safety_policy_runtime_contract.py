@@ -56,6 +56,17 @@ ACTION_PRIORITY = {
     "block": 4,
 }
 
+ALLOWED_RATIONALES = {
+    "no active safety rule matched",
+    "active safety rule matched enforcement point",
+}
+
+ALLOWED_ANALYTICS_PROPERTIES = {
+    "enforcement_point",
+    "decision",
+    "rule_id",
+}
+
 INPUT_GAP_ERRORS = {
     "missing_tenant_id": "ErrValidation",
     "missing_all_subjects": "ErrValidation",
@@ -383,6 +394,64 @@ def replay_fixture_links(
     return links
 
 
+def replay_decision_redaction_cases(contract: dict[str, Any]) -> list[dict[str, Any]]:
+    redaction = contract["decision_redaction_contract"]
+    allowed_sources = set(redaction["allowed_rationale_sources"])
+    require(
+        allowed_sources == {"no_active_safety_rule_matched", "active_safety_rule_matched_enforcement_point"},
+        "decision redaction contract must allow only fixed system rationale sources",
+    )
+    require(
+        set(redaction["analytics_payload_policy"]["allowed_properties"]) == ALLOWED_ANALYTICS_PROPERTIES,
+        "safety decision analytics payload must stay minimized",
+    )
+    forbidden_inputs = set(redaction["forbidden_rationale_inputs"])
+    require(
+        {"brief_text", "provider_request_body", "provider_response_body", "qa_observed_text", "export_manifest"}
+        <= forbidden_inputs,
+        "decision redaction contract must forbid raw workflow payload surfaces",
+    )
+    require(
+        {"api_key", "session_token", "authorization_header"} <= forbidden_inputs,
+        "decision redaction contract must forbid secret-bearing rationale inputs",
+    )
+
+    cases = []
+    seen_surfaces: set[str] = set()
+    for case in redaction["runtime_replay_cases"]:
+        seen_surfaces.add(case["input_surface"])
+        rationale = case["stored_rationale"]
+        analytics_properties = set(case["analytics_properties"])
+        require(rationale in ALLOWED_RATIONALES, f"{case['case_id']} stores non-system rationale")
+        require(
+            analytics_properties == ALLOWED_ANALYTICS_PROPERTIES,
+            f"{case['case_id']} analytics payload is not minimized",
+        )
+        serialized_outputs = json.dumps(
+            {
+                "rationale": rationale,
+                "analytics_properties": sorted(analytics_properties),
+            },
+            sort_keys=True,
+        )
+        for fragment in case["forbidden_output_fragments"]:
+            require(fragment not in serialized_outputs, f"{case['case_id']} leaks forbidden fragment {fragment!r}")
+        require(case["expected_result"] == "redacted_or_not_persisted", f"{case['case_id']} expected result mismatch")
+        cases.append(
+            {
+                "case_id": case["case_id"],
+                "input_surface": case["input_surface"],
+                "stored_rationale": rationale,
+                "analytics_properties": sorted(analytics_properties),
+                "forbidden_fragments_absent": True,
+                "result": "passed",
+            }
+        )
+
+    require(seen_surfaces == SAFETY_POINTS, f"decision redaction replay missing surfaces: {sorted(SAFETY_POINTS - seen_surfaces)}")
+    return cases
+
+
 def validate_declared_replay_contract(contract: dict[str, Any], summary: dict[str, Any]) -> None:
     declared = contract["runtime_replay_contract"]
     require(declared["runner"] == RUNNER, "runtime replay contract runner mismatch")
@@ -398,8 +467,20 @@ def validate_declared_replay_contract(contract: dict[str, Any], summary: dict[st
         declared["fixture_link_point_decision_refs_replayed"] == summary["fixture_link_point_decision_refs"],
         "fixture link point decision ref replay count mismatch",
     )
+    require(
+        declared["decision_redaction_cases_replayed"] == summary["decision_redaction_cases"],
+        "decision redaction replay count mismatch",
+    )
     require(declared["transition_points_replayed"] == summary["transition_points_replayed"], "transition point replay mismatch")
     require(declared["decision_priority_order_validated"] == summary["decision_priority_order_validated"], "decision priority replay mismatch")
+    require(
+        declared["decision_rationale_sources_validated"] == summary["decision_rationale_sources_validated"],
+        "decision rationale source replay mismatch",
+    )
+    require(
+        declared["analytics_payload_minimized"] == summary["analytics_payload_minimized"],
+        "analytics payload minimization replay mismatch",
+    )
     require(
         declared["held_or_blocked_require_audit_for_all_actions"] == summary["held_or_blocked_require_audit_for_all_actions"],
         "held/block audit replay mismatch",
@@ -420,6 +501,7 @@ def run() -> dict[str, Any]:
     bypass = replay_bypass_cases(contract)
     override_downgrades = replay_override_downgrade_cases(contract, eval_by_fixture)
     fixture_links = replay_fixture_links(contract, eval_by_fixture, trace_by_fixture)
+    decision_redaction = replay_decision_redaction_cases(contract)
 
     blocked_or_held = [
         item for item in decisions
@@ -433,11 +515,17 @@ def run() -> dict[str, Any]:
         "override_downgrade_cases": len(override_downgrades),
         "fixture_link_cases": len(fixture_links),
         "fixture_link_point_decision_refs": sum(len(item["per_point_decision_refs"]) for item in fixture_links),
+        "decision_redaction_cases": len(decision_redaction),
         "transition_points_replayed": {item["enforcement_point"] for item in transitions} == SAFETY_POINTS,
         "decision_priority_order_validated": all(
             [item["decision_priority"] for item in decisions if item["enforcement_point"] == point]
             == sorted([item["decision_priority"] for item in decisions if item["enforcement_point"] == point])
             for point in SAFETY_POINTS
+        ),
+        "decision_rationale_sources_validated": all(item["stored_rationale"] in ALLOWED_RATIONALES for item in decision_redaction),
+        "analytics_payload_minimized": all(
+            set(item["analytics_properties"]) == ALLOWED_ANALYTICS_PROPERTIES
+            for item in decision_redaction
         ),
         "held_or_blocked_require_audit_for_all_actions": all(
             item["audit_required"]
@@ -464,6 +552,7 @@ def run() -> dict[str, Any]:
         "fail_closed_results": fail_closed,
         "bypass_prevention_results": bypass,
         "override_downgrade_results": override_downgrades,
+        "decision_redaction_results": decision_redaction,
         "fixture_link_results": fixture_links,
     }
 
@@ -488,7 +577,8 @@ def main() -> int:
             f"{summary['decision_matrix_cases']} decisions, "
             f"{summary['fail_closed_cases']} fail-closed cases, "
             f"{summary['bypass_prevention_cases']} bypass cases, "
-            f"{summary['override_downgrade_cases']} override downgrade cases)"
+            f"{summary['override_downgrade_cases']} override downgrade cases, "
+            f"{summary['decision_redaction_cases']} redaction cases)"
         )
     return 0
 

@@ -25,6 +25,131 @@
     "tenant_scoped": true,
     "audit_rationale_required": true
   },
+  "decision_redaction_contract": {
+    "rationale_policy": "system_generated_only_no_raw_subject_payload",
+    "allowed_rationale_sources": [
+      "no_active_safety_rule_matched",
+      "active_safety_rule_matched_enforcement_point"
+    ],
+    "forbidden_rationale_inputs": [
+      "brief_text",
+      "provider_request_body",
+      "provider_response_body",
+      "qa_observed_text",
+      "export_manifest",
+      "download_url",
+      "api_key",
+      "session_token",
+      "authorization_header"
+    ],
+    "analytics_payload_policy": {
+      "event_name": "safety_decision_recorded",
+      "allowed_properties": [
+        "enforcement_point",
+        "decision",
+        "rule_id"
+      ],
+      "forbidden_properties": [
+        "brief_text",
+        "provider_request_body",
+        "provider_response_body",
+        "qa_observed_text",
+        "export_manifest",
+        "download_url",
+        "api_key",
+        "session_token",
+        "authorization_header"
+      ]
+    },
+    "redaction_test_evidence": [
+      "backend/internal/stage0/services.go:Rationale:        rationale",
+      "backend/internal/stage0/services.go:\"safety_decision_recorded\"",
+      "backend/internal/security/redact_test.go:TestRedactStringCoversCloudAndProviderTokens",
+      "backend/internal/security/redact_test.go:TestRedactStringCoversLaunchOpsAndCITokens"
+    ],
+    "runtime_replay_cases": [
+      {
+        "case_id": "safety_decision_redaction_brief_text",
+        "input_surface": "brief",
+        "secret_or_payload_input": "brief includes api_key=sk-proj-abcdefghijklmnopqrstuvwxyz123456 and customer note",
+        "stored_rationale": "no active safety rule matched",
+        "analytics_properties": [
+          "enforcement_point",
+          "decision",
+          "rule_id"
+        ],
+        "forbidden_output_fragments": [
+          "sk-proj-abcdefghijklmnopqrstuvwxyz123456",
+          "customer note"
+        ],
+        "expected_result": "redacted_or_not_persisted"
+      },
+      {
+        "case_id": "safety_decision_redaction_provider_request",
+        "input_surface": "provider_request",
+        "secret_or_payload_input": "Authorization: Bearer provider-request-token",
+        "stored_rationale": "active safety rule matched enforcement point",
+        "analytics_properties": [
+          "enforcement_point",
+          "decision",
+          "rule_id"
+        ],
+        "forbidden_output_fragments": [
+          "provider-request-token",
+          "Authorization"
+        ],
+        "expected_result": "redacted_or_not_persisted"
+      },
+      {
+        "case_id": "safety_decision_redaction_provider_response",
+        "input_surface": "provider_response",
+        "secret_or_payload_input": "provider response body has signed URL https://storage.local/export.zip?X-Amz-Signature=abcdef",
+        "stored_rationale": "active safety rule matched enforcement point",
+        "analytics_properties": [
+          "enforcement_point",
+          "decision",
+          "rule_id"
+        ],
+        "forbidden_output_fragments": [
+          "X-Amz-Signature",
+          "abcdef"
+        ],
+        "expected_result": "redacted_or_not_persisted"
+      },
+      {
+        "case_id": "safety_decision_redaction_qa_observed_text",
+        "input_surface": "qa",
+        "secret_or_payload_input": "qa observed text includes session_token=secret-session-value",
+        "stored_rationale": "active safety rule matched enforcement point",
+        "analytics_properties": [
+          "enforcement_point",
+          "decision",
+          "rule_id"
+        ],
+        "forbidden_output_fragments": [
+          "secret-session-value",
+          "qa observed text"
+        ],
+        "expected_result": "redacted_or_not_persisted"
+      },
+      {
+        "case_id": "safety_decision_redaction_export_manifest",
+        "input_surface": "export",
+        "secret_or_payload_input": "export manifest has download_url=https://storage.local/export.zip?token=secret-token",
+        "stored_rationale": "active safety rule matched enforcement point",
+        "analytics_properties": [
+          "enforcement_point",
+          "decision",
+          "rule_id"
+        ],
+        "forbidden_output_fragments": [
+          "secret-token",
+          "download_url"
+        ],
+        "expected_result": "redacted_or_not_persisted"
+      }
+    ]
+  },
   "runtime_contracts": [
     {
       "enforcement_point": "brief",
@@ -679,8 +804,11 @@
     "override_downgrade_cases_replayed": 4,
     "fixture_link_cases_replayed": 4,
     "fixture_link_point_decision_refs_replayed": 20,
+    "decision_redaction_cases_replayed": 5,
     "transition_points_replayed": true,
     "decision_priority_order_validated": true,
+    "decision_rationale_sources_validated": true,
+    "analytics_payload_minimized": true,
     "held_or_blocked_require_audit_for_all_actions": true,
     "blocked_or_held_creates_downstream_artifacts": false,
     "trace_status_required_for_all_transitions": true,

@@ -10,6 +10,7 @@
     "blueprint_source",
     "required_enforcement_points",
     "decision_storage_contract",
+    "decision_redaction_contract",
     "runtime_contracts",
     "pipeline_sequence_contract",
     "runtime_replay_contract",
@@ -80,6 +81,172 @@
         },
         "audit_rationale_required": {
           "const": true
+        }
+      }
+    },
+    "decision_redaction_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rationale_policy",
+        "allowed_rationale_sources",
+        "forbidden_rationale_inputs",
+        "analytics_payload_policy",
+        "redaction_test_evidence",
+        "runtime_replay_cases"
+      ],
+      "properties": {
+        "rationale_policy": {
+          "const": "system_generated_only_no_raw_subject_payload"
+        },
+        "allowed_rationale_sources": {
+          "type": "array",
+          "minItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "no_active_safety_rule_matched",
+              "active_safety_rule_matched_enforcement_point"
+            ]
+          }
+        },
+        "forbidden_rationale_inputs": {
+          "type": "array",
+          "minItems": 6,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "brief_text",
+              "provider_request_body",
+              "provider_response_body",
+              "qa_observed_text",
+              "export_manifest",
+              "download_url",
+              "api_key",
+              "session_token",
+              "authorization_header"
+            ]
+          }
+        },
+        "analytics_payload_policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "event_name",
+            "allowed_properties",
+            "forbidden_properties"
+          ],
+          "properties": {
+            "event_name": {
+              "const": "safety_decision_recorded"
+            },
+            "allowed_properties": {
+              "type": "array",
+              "minItems": 3,
+              "uniqueItems": true,
+              "items": {
+                "enum": [
+                  "enforcement_point",
+                  "decision",
+                  "rule_id"
+                ]
+              }
+            },
+            "forbidden_properties": {
+              "type": "array",
+              "minItems": 6,
+              "uniqueItems": true,
+              "items": {
+                "enum": [
+                  "brief_text",
+                  "provider_request_body",
+                  "provider_response_body",
+                  "qa_observed_text",
+                  "export_manifest",
+                  "download_url",
+                  "api_key",
+                  "session_token",
+                  "authorization_header"
+                ]
+              }
+            }
+          }
+        },
+        "redaction_test_evidence": {
+          "type": "array",
+          "minItems": 3,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "runtime_replay_cases": {
+          "type": "array",
+          "minItems": 4,
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "case_id",
+              "input_surface",
+              "secret_or_payload_input",
+              "stored_rationale",
+              "analytics_properties",
+              "forbidden_output_fragments",
+              "expected_result"
+            ],
+            "properties": {
+              "case_id": {
+                "type": "string",
+                "pattern": "^safety_decision_redaction_[a-z0-9_]+$"
+              },
+              "input_surface": {
+                "enum": [
+                  "brief",
+                  "provider_request",
+                  "provider_response",
+                  "qa",
+                  "export"
+                ]
+              },
+              "secret_or_payload_input": {
+                "type": "string",
+                "minLength": 1
+              },
+              "stored_rationale": {
+                "enum": [
+                  "no active safety rule matched",
+                  "active safety rule matched enforcement point"
+                ]
+              },
+              "analytics_properties": {
+                "type": "array",
+                "minItems": 3,
+                "uniqueItems": true,
+                "items": {
+                  "enum": [
+                    "enforcement_point",
+                    "decision",
+                    "rule_id"
+                  ]
+                }
+              },
+              "forbidden_output_fragments": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "expected_result": {
+                "const": "redacted_or_not_persisted"
+              }
+            }
+          }
         }
       }
     },
@@ -566,8 +733,11 @@
         "override_downgrade_cases_replayed",
         "fixture_link_cases_replayed",
         "fixture_link_point_decision_refs_replayed",
+        "decision_redaction_cases_replayed",
         "transition_points_replayed",
         "decision_priority_order_validated",
+        "decision_rationale_sources_validated",
+        "analytics_payload_minimized",
         "held_or_blocked_require_audit_for_all_actions",
         "blocked_or_held_creates_downstream_artifacts",
         "trace_status_required_for_all_transitions",
@@ -612,10 +782,20 @@
           "type": "integer",
           "minimum": 20
         },
+        "decision_redaction_cases_replayed": {
+          "type": "integer",
+          "minimum": 4
+        },
         "transition_points_replayed": {
           "const": true
         },
         "decision_priority_order_validated": {
+          "const": true
+        },
+        "decision_rationale_sources_validated": {
+          "const": true
+        },
+        "analytics_payload_minimized": {
           "const": true
         },
         "held_or_blocked_require_audit_for_all_actions": {
