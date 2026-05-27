@@ -126,8 +126,25 @@ test("reference upload browser smoke reaches ready export metadata and render bu
   await expect(page.getByRole("heading", { name: "Export Preview" })).toBeVisible();
 
   const referenceContract = page.getByLabel("Reference upload to ready ZIP export contract");
+  await expect(referenceContract).toHaveAttribute("data-reference-upload-export-contract", "reference-upload-to-ready-zip-export");
+  await expect(referenceContract).toHaveAttribute("data-reference-export-contract-status", "pass");
+  await expect(referenceContract).toHaveAttribute("data-reference-export-contract-scenario", "reference-upload-to-ready-zip-export");
   await expect(referenceContract).toHaveAttribute("data-reference-provenance-count", "1");
+  await expect(referenceContract).toHaveAttribute("data-reference-export-provenance-prefix", "dev-client-reference:");
+  await expect(referenceContract).toHaveAttribute(
+    "data-reference-export-provenances",
+    "dev-client-reference:ref-campaign-reference-webp"
+  );
+  await expect(referenceContract).toHaveAttribute("data-reference-export-ppt-slide-count", "1");
+  await expect(referenceContract).toHaveAttribute("data-reference-export-failures", "");
   await expect(referenceContract).toContainText("dev-client-reference:ref-campaign-reference-webp");
+  const referenceExportItem = referenceContract.locator("[data-reference-export-item='pkg-item-001']");
+  await expect(referenceExportItem).toHaveAttribute("data-reference-export-item-type", "reference");
+  await expect(referenceExportItem).toHaveAttribute(
+    "data-reference-export-item-provenance",
+    "dev-client-reference:ref-campaign-reference-webp"
+  );
+  await expect(referenceExportItem).toHaveAttribute("data-reference-export-item-ppt-slide-present", "true");
 
   const metadataEvidence = page.locator("[data-package-export-metadata-ui='stage0.rev2.package-export-metadata-ui']");
   await expect(metadataEvidence).toHaveAttribute("data-package-export-metadata-status", "pass");
@@ -257,6 +274,13 @@ test("reference upload browser smoke reaches ready export metadata and render bu
   expect(pptReadyMetadata.aspect_ratio).toBe("16:9");
   await expect(metadataEvidence).toHaveAttribute("data-package-export-ppt-aspect-ratio", pptReadyMetadata.aspect_ratio);
   await expect(metadataEvidence).toHaveAttribute("data-package-export-ppt-slide-count", String(pptReadyMetadata.slides.length));
+  await expect(referenceContract).toHaveAttribute(
+    "data-reference-export-ppt-slide-source-item-ids",
+    pptReadyMetadata.slides
+      .filter((slide) => slide.source_item_id === "pkg-item-001")
+      .map((slide) => slide.source_item_id)
+      .join(",")
+  );
   expect(workflowMetadata).toMatchObject({
     workflow_id: "ecommerce_growth_pack",
     workflow_fixture_id: "fx_ecommerce_growth_golden",

@@ -154,6 +154,76 @@ if (
 ) {
   fail("reference upload validation artifact drifted from browser smoke artifact");
 }
+
+const referenceExportContract = artifact.referenceExportContract;
+if (
+  referenceExportContract?.route !== "/export" ||
+  referenceExportContract?.source !== "web/components/workspace-app.tsx" ||
+  referenceExportContract?.unitSmoke !== "web/components/workspace-app.smoke.test.tsx" ||
+  referenceExportContract?.browserSmoke !== "web/tests/reference-export.spec.ts" ||
+  referenceExportContract?.zipDownloadSmoke !== "web/lib/export-download.test.ts" ||
+  referenceExportContract?.ariaLabel !== "Reference upload to ready ZIP export contract" ||
+  referenceExportContract?.contractAttribute !== "data-reference-upload-export-contract" ||
+  referenceExportContract?.expectedContract !== "reference-upload-to-ready-zip-export" ||
+  referenceExportContract?.statusAttribute !== "data-reference-export-contract-status" ||
+  referenceExportContract?.expectedStatus !== "pass" ||
+  referenceExportContract?.scenarioAttribute !== "data-reference-export-contract-scenario" ||
+  referenceExportContract?.expectedScenario !== "reference-upload-to-ready-zip-export" ||
+  referenceExportContract?.provenanceCountAttribute !== "data-reference-provenance-count" ||
+  referenceExportContract?.expectedProvenanceCount !== "1" ||
+  referenceExportContract?.provenancePrefixAttribute !== "data-reference-export-provenance-prefix" ||
+  referenceExportContract?.expectedProvenancePrefix !== "dev-client-reference:" ||
+  referenceExportContract?.provenancesAttribute !== "data-reference-export-provenances" ||
+  referenceExportContract?.expectedProvenance !== `dev-client-reference:${referenceUpload.expectedLatestReferenceId}` ||
+  referenceExportContract?.pptSlideCountAttribute !== "data-reference-export-ppt-slide-count" ||
+  referenceExportContract?.expectedPptSlideCount !== "1" ||
+  referenceExportContract?.pptSlideSourceItemIdsAttribute !== "data-reference-export-ppt-slide-source-item-ids" ||
+  referenceExportContract?.expectedPptSlideSourceItemIds !== "pkg-item-001" ||
+  referenceExportContract?.failuresAttribute !== "data-reference-export-failures" ||
+  referenceExportContract?.expectedFailures !== referenceUpload.expectedFailures
+) {
+  fail("reference export contract must explicitly mirror ready reference provenance and PPT evidence");
+}
+for (const attribute of [
+  referenceExportContract.contractAttribute,
+  referenceExportContract.statusAttribute,
+  referenceExportContract.scenarioAttribute,
+  referenceExportContract.provenanceCountAttribute,
+  referenceExportContract.provenancePrefixAttribute,
+  referenceExportContract.provenancesAttribute,
+  referenceExportContract.pptSlideCountAttribute,
+  referenceExportContract.pptSlideSourceItemIdsAttribute,
+  referenceExportContract.failuresAttribute,
+  ...(referenceExportContract.requiredItemAttributes ?? [])
+]) {
+  if (!componentSource.includes(attribute)) {
+    fail(`workspace UI missing reference export contract attribute ${attribute}`);
+  }
+  if (!workspaceSmokeTestSource.includes(attribute) && !browserSpecSource.includes(attribute)) {
+    fail(`reference export contract tests missing assertion for ${attribute}`);
+  }
+}
+for (const expectedSnippet of [
+  referenceExportContract.expectedContract,
+  referenceExportContract.expectedScenario,
+  referenceExportContract.expectedStatus,
+  referenceExportContract.expectedProvenancePrefix,
+  referenceExportContract.expectedProvenance,
+  referenceExportContract.expectedPptSlideSourceItemIds
+]) {
+  if (!workspaceSmokeTestSource.includes(expectedSnippet) || !browserSpecSource.includes(expectedSnippet)) {
+    fail(`reference export contract tests missing expected value ${expectedSnippet}`);
+  }
+}
+for (const zipAssertion of [
+  referenceExportContract.expectedProvenance,
+  "pptReadyMetadata.slides",
+  referenceExportContract.expectedPptSlideSourceItemIds
+]) {
+  if (!browserSpecSource.includes(zipAssertion)) {
+    fail(`reference export browser smoke missing ZIP parity assertion ${zipAssertion}`);
+  }
+}
 for (const attribute of referenceUploadValidation.requiredAttributes ?? []) {
   if (!componentSource.includes(attribute) && !workspaceSmokeTestSource.includes(attribute) && !browserSpecSource.includes(attribute)) {
     fail(`reference upload validation evidence missing attribute ${attribute}`);

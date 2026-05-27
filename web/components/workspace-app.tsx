@@ -1622,6 +1622,17 @@ function ExportView({
       : businessDocApiSmoke.status === "pass" || state.packageItems.some((item) => item.workflowId === businessDocApiSmoke.workflow_id)
       ? businessDocApiSmoke
       : ecommerceApiSmoke;
+  const referenceExportItems = latestExport?.manifest.items.filter((item) => item.type === "reference") ?? [];
+  const referenceExportItemIds = new Set(referenceExportItems.map((item) => item.id));
+  const referenceExportPptSlideSourceIds =
+    latestExport?.manifest.ppt_ready_metadata.slides
+      .filter((slide) => slide.layout === "asset-grid" && referenceExportItemIds.has(slide.source_item_id))
+      .map((slide) => slide.source_item_id) ?? [];
+  const referenceExportContractFailures = [
+    referenceExportItems.length > 0 ? "" : "reference-item",
+    referenceExportItems.every((item) => item.provenance.startsWith("dev-client-reference:")) ? "" : "reference-provenance",
+    referenceExportPptSlideSourceIds.length >= referenceExportItems.length ? "" : "reference-ppt-slide"
+  ].filter(Boolean);
   return (
     <section className="content-view export-view" data-testid="export-preview">
       <div className="section-title">
@@ -1996,22 +2007,31 @@ function ExportView({
                   className="export-detail-panel reference-upload-export-contract"
                   aria-label="Reference upload to ready ZIP export contract"
                   data-reference-upload-export-contract="reference-upload-to-ready-zip-export"
-                  data-reference-provenance-count={
-                    latestExport.manifest.items.filter((item) => item.type === "reference").length
-                  }
+                  data-reference-export-contract-status={referenceExportContractFailures.length === 0 ? "pass" : "fail"}
+                  data-reference-export-contract-scenario="reference-upload-to-ready-zip-export"
+                  data-reference-provenance-count={referenceExportItems.length}
+                  data-reference-export-provenance-prefix="dev-client-reference:"
+                  data-reference-export-provenances={referenceExportItems.map((item) => item.provenance).join(",")}
+                  data-reference-export-ppt-slide-count={referenceExportPptSlideSourceIds.length}
+                  data-reference-export-ppt-slide-source-item-ids={referenceExportPptSlideSourceIds.join(",")}
+                  data-reference-export-failures={referenceExportContractFailures.join(",")}
                 >
                   <h4>Reference Upload Export Contract</h4>
                   <p>Accepted references enter package history as reference items and emit dev-client-reference provenance in ZIP exports.</p>
-                  {latestExport.manifest.items.some((item) => item.type === "reference") ? (
+                  {referenceExportItems.length > 0 ? (
                     <ul>
-                      {latestExport.manifest.items
-                        .filter((item) => item.type === "reference")
-                        .map((item) => (
-                          <li key={item.id}>
-                            <strong>{item.title}</strong>
-                            <span>{item.provenance}</span>
-                          </li>
-                        ))}
+                      {referenceExportItems.map((item) => (
+                        <li
+                          key={item.id}
+                          data-reference-export-item={item.id}
+                          data-reference-export-item-type={item.type}
+                          data-reference-export-item-provenance={item.provenance}
+                          data-reference-export-item-ppt-slide-present={String(referenceExportPptSlideSourceIds.includes(item.id))}
+                        >
+                          <strong>{item.title}</strong>
+                          <span>{item.provenance}</span>
+                        </li>
+                      ))}
                     </ul>
                   ) : (
                     <p>No reference items are packaged in the latest export.</p>

@@ -120,13 +120,34 @@
   "referenceExportContract": {
     "route": "/export",
     "source": "web/components/workspace-app.tsx",
+    "unitSmoke": "web/components/workspace-app.smoke.test.tsx",
+    "browserSmoke": "web/tests/reference-export.spec.ts",
+    "zipDownloadSmoke": "web/lib/export-download.test.ts",
     "ariaLabel": "Reference upload to ready ZIP export contract",
     "contractAttribute": "data-reference-upload-export-contract",
     "expectedContract": "reference-upload-to-ready-zip-export",
+    "statusAttribute": "data-reference-export-contract-status",
+    "expectedStatus": "pass",
+    "scenarioAttribute": "data-reference-export-contract-scenario",
+    "expectedScenario": "reference-upload-to-ready-zip-export",
     "provenanceCountAttribute": "data-reference-provenance-count",
     "expectedProvenanceCount": "1",
+    "provenancePrefixAttribute": "data-reference-export-provenance-prefix",
     "expectedProvenancePrefix": "dev-client-reference:",
-    "expectedProvenance": "dev-client-reference:ref-campaign-reference-webp"
+    "provenancesAttribute": "data-reference-export-provenances",
+    "expectedProvenance": "dev-client-reference:ref-campaign-reference-webp",
+    "pptSlideCountAttribute": "data-reference-export-ppt-slide-count",
+    "expectedPptSlideCount": "1",
+    "pptSlideSourceItemIdsAttribute": "data-reference-export-ppt-slide-source-item-ids",
+    "expectedPptSlideSourceItemIds": "pkg-item-001",
+    "failuresAttribute": "data-reference-export-failures",
+    "expectedFailures": "",
+    "requiredItemAttributes": [
+      "data-reference-export-item",
+      "data-reference-export-item-type",
+      "data-reference-export-item-provenance",
+      "data-reference-export-item-ppt-slide-present"
+    ]
   },
   "workspaceRendering": {
     "schemaVersion": "stage0.rev2.workspace-rendering-performance",

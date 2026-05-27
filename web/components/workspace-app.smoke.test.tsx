@@ -586,8 +586,19 @@ describe("WorkspaceApp user route integration smoke", () => {
     const referenceContract = container.querySelector(
       "[data-reference-upload-export-contract='reference-upload-to-ready-zip-export']"
     );
+    expect(referenceContract).toHaveAttribute("data-reference-export-contract-status", "pass");
+    expect(referenceContract).toHaveAttribute("data-reference-export-contract-scenario", "reference-upload-to-ready-zip-export");
     expect(referenceContract).toHaveAttribute("data-reference-provenance-count", "1");
+    expect(referenceContract).toHaveAttribute("data-reference-export-provenance-prefix", "dev-client-reference:");
+    expect(referenceContract).toHaveAttribute("data-reference-export-provenances", "dev-client-reference:ref-campaign-reference-webp");
+    expect(referenceContract).toHaveAttribute("data-reference-export-ppt-slide-count", "1");
+    expect(referenceContract).toHaveAttribute("data-reference-export-ppt-slide-source-item-ids", "pkg-item-001");
+    expect(referenceContract).toHaveAttribute("data-reference-export-failures", "");
     expect(within(referenceContract as HTMLElement).getByText("dev-client-reference:ref-campaign-reference-webp")).toBeInTheDocument();
+    const referenceExportItem = container.querySelector("[data-reference-export-item='pkg-item-001']");
+    expect(referenceExportItem).toHaveAttribute("data-reference-export-item-type", "reference");
+    expect(referenceExportItem).toHaveAttribute("data-reference-export-item-provenance", "dev-client-reference:ref-campaign-reference-webp");
+    expect(referenceExportItem).toHaveAttribute("data-reference-export-item-ppt-slide-present", "true");
 
     const metadataEvidence = container.querySelector(
       "[data-package-export-metadata-ui='stage0.rev2.package-export-metadata-ui']"
