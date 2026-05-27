@@ -378,6 +378,15 @@ export function buildFailedTaskRuntimeDecisions(
       blockerCodes.push("active_abuse_control_blocks_retry");
     }
 
+    if (
+      task.requestedAction === "cancel" &&
+      task.actionEligibility === "eligible" &&
+      task.secondReviewStatus === "approved" &&
+      computedAbuseControl.abuseControlStatus === "active_enforced"
+    ) {
+      blockerCodes.push("active_abuse_control_blocks_cancel");
+    }
+
     const hardBlockers = new Set([
       "action_blocked",
       "retry_budget_exhausted",
@@ -404,7 +413,8 @@ export function buildFailedTaskRuntimeDecisions(
       "regression_fixture_missing",
       "abuse_control_hook_missing",
       "abuse_control_user_mismatch",
-      "active_abuse_control_blocks_retry"
+      "active_abuse_control_blocks_retry",
+      "active_abuse_control_blocks_cancel"
     ]);
     const submitDecision =
       blockerCodes.some((code) => hardBlockers.has(code))

@@ -18,6 +18,7 @@
     "second_review_approved_before_cancel_submit == true",
     "second_review_distinct_reviewer_required == true",
     "second_review_audit_ref_required == true",
+    "active_abuse_hold_or_throttle_blocks_cancel_submit == true",
     "crawler_import_state == cancelled",
     "crawler_derivative_provenance_attached == true",
     "bounded_raw_retention_days <= 14",
@@ -123,6 +124,18 @@
         "api_outcome": "disabled_409_conflict",
         "audit_write_policy": "write_blocked_attempt_audit",
         "blocker_codes": ["second_review_evidence_incomplete"]
+      }
+    },
+    {
+      "id": "cancel_active_crawler_throttle_hook",
+      "mutation": {
+        "abuseControlHookRefs": ["hook-ab-309-throttle"]
+      },
+      "expected_runtime_contract": {
+        "submit_decision": "blocked",
+        "api_outcome": "disabled_409_conflict",
+        "audit_write_policy": "write_blocked_attempt_audit",
+        "blocker_codes": ["active_abuse_control_blocks_cancel"]
       }
     }
   ],

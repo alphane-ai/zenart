@@ -2470,6 +2470,32 @@ test("failed task runtime submit gates preserve retry, cancel, hold, RBAC, and a
     activeHoldRetry.blockerCodes.includes("active_abuse_control_blocks_retry"),
     "active enforced abuse hold must expose a retry blocker code"
   );
+
+  const activeThrottleCancel = buildFailedTaskRuntimeDecisions(
+    [
+      {
+        ...failedTaskControls.find((task) => task.id === "task-crawler-122"),
+        abuseControlHookRefs: ["hook-ab-309-throttle"]
+      }
+    ],
+    supportTickets,
+    undefined,
+    abuseControlHooks
+  )[0];
+  assert.equal(
+    activeThrottleCancel.abuseControlStatus,
+    "active_enforced",
+    "cancel must detect active crawler throttle evidence"
+  );
+  assert.equal(
+    activeThrottleCancel.submitDecision,
+    "blocked",
+    "active enforced abuse throttle must block otherwise submit-ready cancel closure"
+  );
+  assert.ok(
+    activeThrottleCancel.blockerCodes.includes("active_abuse_control_blocks_cancel"),
+    "active enforced abuse throttle must expose a cancel blocker code"
+  );
 });
 
 test("failed task submission contracts bind admin API replay protection and release evidence", () => {
