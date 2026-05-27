@@ -166,7 +166,7 @@ export type CrawlerGovernanceWorkflow = {
   blockedActivation: boolean;
   reviewerRole: "admin_operator" | "admin_reviewer" | "admin_superadmin";
   secondReviewRequired: boolean;
-  secondReviewStatus: "not_required" | "required" | "completed";
+  secondReviewStatus: "not_required" | "required" | "completed" | "rejected";
   reviewRationale: string;
   auditRef: string;
 };

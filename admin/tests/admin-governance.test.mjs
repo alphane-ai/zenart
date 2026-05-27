@@ -3850,6 +3850,31 @@ test("crawler governance runtime decisions gate takedown closure and activation"
   assert.ok(retentionDecision.blockerCodes.includes("deletion_evidence_pending"), "pending retention delete needs deletion blocker");
   assert.ok(retentionDecision.blockerCodes.includes("requester_notice_pending"), "pending retention delete needs notice blocker");
 
+  const rejectedSecondReviewDecision = buildCrawlerGovernanceRuntimeDecisions([
+    {
+      ...crawlerGovernanceWorkflows.find((workflow) => workflow.id === "cg-501"),
+      deletionEvidenceRef: "raw-derivative-delete-cs-21-complete",
+      requesterNoticeRef: "rights-owner-notice-ip-7001-complete",
+      blockedActivation: false,
+      activationGateDecision: "allowed",
+      secondReviewStatus: "rejected"
+    }
+  ])[0];
+  assert.equal(
+    rejectedSecondReviewDecision.closureDecision,
+    "blocked",
+    "rejected second review must block crawler workflow closure even when deletion and notice evidence are attached"
+  );
+  assert.equal(
+    rejectedSecondReviewDecision.activationDecision,
+    "block_activation",
+    "rejected second review must block crawler-derived activation"
+  );
+  assert.ok(
+    rejectedSecondReviewDecision.blockerCodes.includes("second_review_rejected"),
+    "rejected second review needs an explicit blocker code"
+  );
+
   for (const workflow of crawlerGovernanceWorkflows) {
     const decision = decisionsByWorkflow.get(workflow.id);
     assert.ok(decision, `${workflow.id} is missing runtime decision`);

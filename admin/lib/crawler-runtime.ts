@@ -15,6 +15,9 @@ export function buildCrawlerGovernanceRuntimeDecisions(
     const secondReviewOpen =
       workflow.secondReviewRequired &&
       workflow.secondReviewStatus === "required";
+    const secondReviewRejected =
+      workflow.secondReviewRequired &&
+      workflow.secondReviewStatus === "rejected";
 
     if (workflow.blockedActivation || workflow.activationGateDecision === "blocked") {
       blockerCodes.push("activation_blocked");
@@ -32,6 +35,10 @@ export function buildCrawlerGovernanceRuntimeDecisions(
       blockerCodes.push("second_review_open");
     }
 
+    if (secondReviewRejected) {
+      blockerCodes.push("second_review_rejected");
+    }
+
     if (auditStatus === "missing") {
       blockerCodes.push("audit_missing");
     }
@@ -39,7 +46,8 @@ export function buildCrawlerGovernanceRuntimeDecisions(
     const closureDecision =
       blockerCodes.includes("deletion_evidence_pending") ||
       blockerCodes.includes("requester_notice_pending") ||
-      blockerCodes.includes("audit_missing")
+      blockerCodes.includes("audit_missing") ||
+      blockerCodes.includes("second_review_rejected")
         ? "blocked"
         : secondReviewOpen
           ? "review_required"
