@@ -308,12 +308,11 @@ export const createInitialWorkspace = (): WorkspaceState => ({
     missingInfo: ["Audience", "Required export surfaces"],
     references: [
       {
+        ...createReferenceAsset("brand-moodboard.png", "image"),
         id: "ref-001",
-        name: "brand-moodboard.png",
-        kind: "image",
-        status: "attached",
-        validation: {
-          state: "accepted"
+        upload: {
+          ...createReferenceAsset("brand-moodboard.png", "image").upload,
+          previewUrl: "/dev-preview/uploads/ref-001"
         }
       }
     ]
@@ -981,12 +980,24 @@ export const validateReferenceAsset = (name: string, kind: ReferenceAsset["kind"
 export const createReferenceAsset = (name: string, kind: ReferenceAsset["kind"]): ReferenceAsset => {
   const trimmed = name.trim();
   const validation = validateReferenceAsset(trimmed, kind);
+  const id = `ref-${trimmed.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
 
   return {
-    id: `ref-${trimmed.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
+    id,
     name: trimmed,
     kind,
     status: validation.state === "accepted" ? "attached" : "queued",
+    upload: {
+      operationId: "createUpload",
+      method: "POST",
+      path: "/uploads",
+      credentialMode: defaultSameSiteCsrfContract.credentialMode,
+      csrfHeaderName: defaultSameSiteCsrfContract.headerName,
+      idempotencyRequired: true,
+      previewUrl: `/dev-preview/uploads/${id}`,
+      previewScope: "tenant-scoped-dev-preview",
+      previewExpiresAt: "2026-05-26T10:30:00.000Z"
+    },
     validation
   };
 };
@@ -1045,15 +1056,32 @@ export const referenceUploadIntegrationOperationIds: ReferenceUploadIntegrationS
 
 export const buildReferenceUploadIntegrationSmoke = (state: WorkspaceState): ReferenceUploadIntegrationSmoke => {
   const acceptedReferences = state.brief.references.filter((reference) => reference.validation.state === "accepted");
+  const rejectedReferenceIds = new Set(
+    state.brief.references.filter((reference) => reference.validation.state === "rejected").map((reference) => reference.id)
+  );
   const latestAcceptedReference = acceptedReferences.at(-1);
   const packagedReferenceIds = new Set(
     state.packageItems.filter((item) => item.type === "reference").map((item) => item.sourceId)
   );
   const latestReadyExport = state.exports.find((record) => record.status === "ready");
+  const readyExportReferenceProvenance = latestReadyExport?.manifest.items
+    .filter((item) => item.provenance.startsWith("dev-client-reference:"))
+    .map((item) => item.provenance.replace("dev-client-reference:", "")) ?? [];
   const referenceProvenanceCount =
-    latestReadyExport?.manifest.items.filter((item) => item.provenance.startsWith("dev-client-reference:")).length ?? 0;
+    readyExportReferenceProvenance.length;
   const pptAssetGridSlideCount =
     latestReadyExport?.manifest.ppt_ready_metadata.slides.filter((slide) => slide.layout === "asset-grid").length ?? 0;
+  const uploadRequestContractCount = acceptedReferences.filter(
+    (reference) =>
+      reference.upload.operationId === "createUpload" &&
+      reference.upload.method === "POST" &&
+      reference.upload.path === "/uploads" &&
+      reference.upload.credentialMode === "include" &&
+      reference.upload.csrfHeaderName === "X-ZenArt-CSRF" &&
+      reference.upload.idempotencyRequired &&
+      reference.upload.previewScope === "tenant-scoped-dev-preview" &&
+      reference.upload.previewUrl === `/dev-preview/uploads/${reference.id}`
+  ).length;
   const latestAcceptedReferencePackaged = latestAcceptedReference ? packagedReferenceIds.has(latestAcceptedReference.id) : false;
   const latestAcceptedReferenceProvenancePresent = latestAcceptedReference
     ? latestReadyExport?.manifest.items.some((item) => item.provenance === `dev-client-reference:${latestAcceptedReference.id}`) ?? false
@@ -1064,10 +1092,15 @@ export const buildReferenceUploadIntegrationSmoke = (state: WorkspaceState): Ref
         return slide.layout === "asset-grid" && sourceItem?.sourceId === latestAcceptedReference.id;
       }) ?? false
     : false;
+  const rejectedReferencePackagedCount = state.packageItems.filter((item) => rejectedReferenceIds.has(item.sourceId)).length;
+  const rejectedReferenceExportedCount = readyExportReferenceProvenance.filter((sourceId) => rejectedReferenceIds.has(sourceId)).length;
   const failures: ReferenceUploadIntegrationSmoke["failures"] = [];
 
   if (acceptedReferences.length === 0) {
     failures.push("accepted-reference");
+  }
+  if (uploadRequestContractCount !== acceptedReferences.length) {
+    failures.push("upload-request-contract");
   }
   if (packagedReferenceIds.size === 0) {
     failures.push("packaged-reference");
@@ -1090,6 +1123,12 @@ export const buildReferenceUploadIntegrationSmoke = (state: WorkspaceState): Ref
   if (latestReadyExport && !latestAcceptedReferencePptSlidePresent) {
     failures.push("latest-reference-ppt-slide");
   }
+  if (rejectedReferencePackagedCount > 0) {
+    failures.push("rejected-reference-packaged");
+  }
+  if (rejectedReferenceExportedCount > 0) {
+    failures.push("rejected-reference-exported");
+  }
 
   return {
     schema_version: "stage0.rev2.reference-upload-integration-smoke",
@@ -1101,14 +1140,22 @@ export const buildReferenceUploadIntegrationSmoke = (state: WorkspaceState): Ref
     rejectedCount: state.brief.references.filter((reference) => reference.validation.state === "rejected").length,
     latestAcceptedReferenceId: latestAcceptedReference?.id ?? "missing",
     latestAcceptedReferenceName: latestAcceptedReference?.name ?? "missing",
+    latestAcceptedReferenceUploadMethod: latestAcceptedReference?.upload.method ?? "missing",
+    latestAcceptedReferenceUploadPath: latestAcceptedReference?.upload.path ?? "missing",
+    latestAcceptedReferenceCsrfHeaderName: latestAcceptedReference?.upload.csrfHeaderName ?? "missing",
+    latestAcceptedReferenceIdempotencyRequired: latestAcceptedReference?.upload.idempotencyRequired ?? false,
+    latestAcceptedReferencePreviewScope: latestAcceptedReference?.upload.previewScope ?? "missing",
     latestAcceptedReferencePackaged,
     latestAcceptedReferenceProvenancePresent,
     latestAcceptedReferencePptSlidePresent,
+    uploadRequestContractCount,
     packagedReferenceCount: packagedReferenceIds.size,
     packageHistoryReferenceCount: state.packageItems.filter((item) => item.type === "reference").length,
     readyExportCount: state.exports.filter((record) => record.status === "ready").length,
     provenanceCount: referenceProvenanceCount,
     pptAssetGridSlideCount,
+    rejectedReferencePackagedCount,
+    rejectedReferenceExportedCount,
     failures
   };
 };

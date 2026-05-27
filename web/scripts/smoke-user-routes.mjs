@@ -211,9 +211,16 @@ if (
   referenceExportContracts.referenceUpload?.schemaVersion !== referenceUploadEvidence.schemaVersion ||
   referenceExportContracts.referenceUpload?.expectedStatus !== referenceUploadEvidence.expectedStatus ||
   JSON.stringify(referenceExportContracts.referenceUpload?.expectedOperations) !== JSON.stringify(referenceUploadEvidence.expectedOperations) ||
+  referenceExportContracts.referenceUpload?.expectedUploadMethod !== referenceUploadEvidence.expectedUploadMethod ||
+  referenceExportContracts.referenceUpload?.expectedUploadPath !== referenceUploadEvidence.expectedUploadPath ||
+  referenceExportContracts.referenceUpload?.expectedUploadCsrfHeader !== referenceUploadEvidence.expectedUploadCsrfHeader ||
+  referenceExportContracts.referenceUpload?.expectedUploadIdempotencyRequired !== referenceUploadEvidence.expectedUploadIdempotencyRequired ||
+  referenceExportContracts.referenceUpload?.expectedPreviewScope !== referenceUploadEvidence.expectedPreviewScope ||
   referenceExportContracts.referenceUpload?.expectedLatestPackaged !== referenceUploadEvidence.expectedLatestPackaged ||
   referenceExportContracts.referenceUpload?.expectedLatestProvenancePresent !== referenceUploadEvidence.expectedLatestProvenancePresent ||
-  referenceExportContracts.referenceUpload?.expectedLatestPptSlidePresent !== referenceUploadEvidence.expectedLatestPptSlidePresent
+  referenceExportContracts.referenceUpload?.expectedLatestPptSlidePresent !== referenceUploadEvidence.expectedLatestPptSlidePresent ||
+  referenceExportContracts.referenceUpload?.expectedRejectedReferencePackagedCount !== referenceUploadEvidence.expectedRejectedReferencePackagedCount ||
+  referenceExportContracts.referenceUpload?.expectedRejectedReferenceExportedCount !== referenceUploadEvidence.expectedRejectedReferenceExportedCount
 ) {
   fail("reference export browser smoke reference-upload contract drifted from user route evidence");
 }
@@ -513,6 +520,11 @@ for (const attribute of referenceUploadEvidence.requiredAttributes ?? []) {
     fail(`reference upload evidence missing attribute ${attribute}`);
   }
 }
+for (const attribute of referenceUploadEvidence.requiredItemAttributes ?? []) {
+  if (!componentSource.includes(attribute)) {
+    fail(`reference upload item evidence missing attribute ${attribute}`);
+  }
+}
 if (referenceUploadEvidence.scenario !== "reference-upload-to-ready-zip-export") {
   fail("reference upload evidence must pin the reference-upload-to-ready-zip-export scenario");
 }
@@ -527,21 +539,42 @@ if (
 ) {
   fail("reference upload evidence must prove createUpload -> createPackage -> createExport -> getExport operation coverage");
 }
+const generatedCreateUpload = generatedOperationMap.get("createUpload");
+if (
+  !generatedCreateUpload ||
+  referenceUploadEvidence.expectedUploadMethod !== generatedCreateUpload.method ||
+  referenceUploadEvidence.expectedUploadPath !== generatedCreateUpload.path ||
+  referenceUploadEvidence.expectedUploadCsrfHeader !== generatedApiCsrfContract.csrfHeaderName ||
+  referenceUploadEvidence.expectedUploadIdempotencyRequired !== String(generatedCreateUpload.idempotencyRequired) ||
+  referenceUploadEvidence.expectedPreviewScope !== "tenant-scoped-dev-preview"
+) {
+  fail("reference upload evidence must match generated createUpload request metadata and preview scope");
+}
 if (
   referenceUploadEvidence.expectedLatestPackaged !== "true" ||
   referenceUploadEvidence.expectedLatestProvenancePresent !== "true" ||
   referenceUploadEvidence.expectedLatestPptSlidePresent !== "true" ||
   referenceUploadEvidence.expectedReadyExportCount !== "1" ||
+  referenceUploadEvidence.expectedRejectedReferencePackagedCount !== "0" ||
+  referenceUploadEvidence.expectedRejectedReferenceExportedCount !== "0" ||
   referenceUploadEvidence.expectedFailureCount !== "0"
 ) {
-  fail("reference upload evidence must assert the latest accepted reference reaches package history, provenance, PPT metadata, and ready export");
+  fail("reference upload evidence must assert the latest accepted reference reaches package history, provenance, PPT metadata, and ready export while rejected references stay out");
 }
 for (const expectedSnippet of [
   "latestAcceptedReferenceId",
   "latestAcceptedReferenceName",
+  "latestAcceptedReferenceUploadMethod",
+  "latestAcceptedReferenceUploadPath",
+  "latestAcceptedReferenceCsrfHeaderName",
+  "latestAcceptedReferenceIdempotencyRequired",
+  "latestAcceptedReferencePreviewScope",
+  "uploadRequestContractCount",
   "latestAcceptedReferencePackaged",
   "latestAcceptedReferenceProvenancePresent",
   "latestAcceptedReferencePptSlidePresent",
+  "rejectedReferencePackagedCount",
+  "rejectedReferenceExportedCount",
   "referenceUploadIntegrationOperationIds"
 ]) {
   if (!devStateSource.includes(expectedSnippet)) {

@@ -239,6 +239,16 @@ describe("dev web client user lifecycle coverage", () => {
     expect(accepted.brief.references.at(-1)).toMatchObject({
       id: "ref-visual-style-pdf",
       status: "attached",
+      upload: {
+        operationId: "createUpload",
+        method: "POST",
+        path: "/uploads",
+        credentialMode: "include",
+        csrfHeaderName: "X-ZenArt-CSRF",
+        idempotencyRequired: true,
+        previewUrl: "/dev-preview/uploads/ref-visual-style-pdf",
+        previewScope: "tenant-scoped-dev-preview"
+      },
       validation: {
         state: "accepted"
       }
@@ -246,6 +256,15 @@ describe("dev web client user lifecycle coverage", () => {
     expect(rejected.brief.references.at(-1)).toMatchObject({
       id: "ref-ftp-example-com-reference",
       status: "queued",
+      upload: {
+        operationId: "createUpload",
+        method: "POST",
+        path: "/uploads",
+        credentialMode: "include",
+        csrfHeaderName: "X-ZenArt-CSRF",
+        idempotencyRequired: true,
+        previewScope: "tenant-scoped-dev-preview"
+      },
       validation: {
         state: "rejected",
         reason: "Reference URLs must use HTTPS."

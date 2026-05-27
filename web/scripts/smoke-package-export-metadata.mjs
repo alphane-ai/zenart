@@ -385,6 +385,18 @@ if (
   fail("reference export browser smoke artifact drifted from package/export metadata evidence");
 }
 
+if (
+  browserContracts.referenceUpload?.expectedUploadMethod !== "POST" ||
+  browserContracts.referenceUpload?.expectedUploadPath !== "/uploads" ||
+  browserContracts.referenceUpload?.expectedUploadCsrfHeader !== "X-ZenArt-CSRF" ||
+  browserContracts.referenceUpload?.expectedUploadIdempotencyRequired !== "true" ||
+  browserContracts.referenceUpload?.expectedPreviewScope !== "tenant-scoped-dev-preview" ||
+  browserContracts.referenceUpload?.expectedRejectedReferencePackagedCount !== "0" ||
+  browserContracts.referenceUpload?.expectedRejectedReferenceExportedCount !== "0"
+) {
+  fail("reference export browser smoke artifact must include upload request metadata and rejected-reference exclusion evidence");
+}
+
 for (const snippet of referenceExportBrowserSmoke.browserEvidence?.requiredAssertions ?? []) {
   if (!referenceExportPlaywrightSpecSource.includes(snippet)) {
     fail(`reference export browser smoke spec missing ${snippet}`);

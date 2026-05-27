@@ -94,6 +94,7 @@ const migrateState = (state: WorkspaceState): WorkspaceState => ({
     ...state.brief,
     references: state.brief.references.map((reference) => ({
       ...reference,
+      upload: reference.upload ?? createReferenceAsset(reference.name, reference.kind).upload,
       validation: reference.validation ?? { state: "accepted" }
     }))
   },

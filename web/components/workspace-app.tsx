@@ -728,6 +728,12 @@ function WorkspaceView({
           data-reference-rejected-count={referenceIntegrationSmoke.rejectedCount}
           data-reference-latest-accepted-id={referenceIntegrationSmoke.latestAcceptedReferenceId}
           data-reference-latest-accepted-name={referenceIntegrationSmoke.latestAcceptedReferenceName}
+          data-reference-latest-upload-method={referenceIntegrationSmoke.latestAcceptedReferenceUploadMethod}
+          data-reference-latest-upload-path={referenceIntegrationSmoke.latestAcceptedReferenceUploadPath}
+          data-reference-latest-upload-csrf-header={referenceIntegrationSmoke.latestAcceptedReferenceCsrfHeaderName}
+          data-reference-latest-upload-idempotency-required={String(referenceIntegrationSmoke.latestAcceptedReferenceIdempotencyRequired)}
+          data-reference-latest-preview-scope={referenceIntegrationSmoke.latestAcceptedReferencePreviewScope}
+          data-reference-upload-request-contract-count={referenceIntegrationSmoke.uploadRequestContractCount}
           data-reference-latest-packaged={String(referenceIntegrationSmoke.latestAcceptedReferencePackaged)}
           data-reference-latest-provenance-present={String(referenceIntegrationSmoke.latestAcceptedReferenceProvenancePresent)}
           data-reference-latest-ppt-slide-present={String(referenceIntegrationSmoke.latestAcceptedReferencePptSlidePresent)}
@@ -736,6 +742,8 @@ function WorkspaceView({
           data-reference-ready-export-count={referenceIntegrationSmoke.readyExportCount}
           data-reference-provenance-count={referenceIntegrationSmoke.provenanceCount}
           data-reference-ppt-asset-grid-slide-count={referenceIntegrationSmoke.pptAssetGridSlideCount}
+          data-reference-rejected-packaged-count={referenceIntegrationSmoke.rejectedReferencePackagedCount}
+          data-reference-rejected-exported-count={referenceIntegrationSmoke.rejectedReferenceExportedCount}
           data-reference-upload-integration-failures={referenceIntegrationSmoke.failures.join(",")}
         >
           <strong>Reference export path</strong>
@@ -787,7 +795,19 @@ function WorkspaceView({
         </div>
         <div className="reference-list">
           {state.brief.references.map((reference) => (
-            <span key={reference.id} className={reference.validation.state === "rejected" ? "rejected-reference" : ""}>
+            <span
+              key={reference.id}
+              className={reference.validation.state === "rejected" ? "rejected-reference" : ""}
+              data-reference-upload-item={reference.id}
+              data-reference-upload-state={reference.validation.state}
+              data-reference-upload-operation={reference.upload.operationId}
+              data-reference-upload-method={reference.upload.method}
+              data-reference-upload-path={reference.upload.path}
+              data-reference-upload-csrf-header={reference.upload.csrfHeaderName}
+              data-reference-upload-idempotency-required={String(reference.upload.idempotencyRequired)}
+              data-reference-upload-preview-scope={reference.upload.previewScope}
+              data-reference-upload-preview-url={reference.upload.previewUrl}
+            >
               <ImagePlus size={14} aria-hidden="true" />
               {reference.name} · {reference.validation.state}
               {reference.validation.state === "accepted" ? (

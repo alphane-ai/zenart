@@ -38,9 +38,16 @@
       "schemaVersion": "stage0.rev2.reference-upload-integration-smoke",
       "expectedStatus": "pass",
       "expectedOperations": ["createUpload", "createPackage", "createExport", "getExport"],
+      "expectedUploadMethod": "POST",
+      "expectedUploadPath": "/uploads",
+      "expectedUploadCsrfHeader": "X-ZenArt-CSRF",
+      "expectedUploadIdempotencyRequired": "true",
+      "expectedPreviewScope": "tenant-scoped-dev-preview",
       "expectedLatestPackaged": "true",
       "expectedLatestProvenancePresent": "true",
-      "expectedLatestPptSlidePresent": "true"
+      "expectedLatestPptSlidePresent": "true",
+      "expectedRejectedReferencePackagedCount": "0",
+      "expectedRejectedReferenceExportedCount": "0"
     },
     "workspaceRendering": {
       "schemaVersion": "stage0.rev2.workspace-rendering-performance",

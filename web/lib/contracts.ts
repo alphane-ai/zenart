@@ -132,6 +132,17 @@ export interface ReferenceAsset {
   name: string;
   kind: "image" | "document" | "url";
   status: "attached" | "queued";
+  upload: {
+    operationId: "createUpload";
+    method: "POST";
+    path: "/uploads";
+    credentialMode: SessionContract["csrf"]["credentialMode"];
+    csrfHeaderName: SessionContract["csrf"]["headerName"];
+    idempotencyRequired: true;
+    previewUrl: string;
+    previewScope: "tenant-scoped-dev-preview";
+    previewExpiresAt: string;
+  };
   validation: {
     state: "accepted" | "rejected";
     reason?: string;
@@ -148,16 +159,25 @@ export interface ReferenceUploadIntegrationSmoke {
   rejectedCount: number;
   latestAcceptedReferenceId: string;
   latestAcceptedReferenceName: string;
+  latestAcceptedReferenceUploadMethod: string;
+  latestAcceptedReferenceUploadPath: string;
+  latestAcceptedReferenceCsrfHeaderName: string;
+  latestAcceptedReferenceIdempotencyRequired: boolean;
+  latestAcceptedReferencePreviewScope: ReferenceAsset["upload"]["previewScope"] | "missing";
   latestAcceptedReferencePackaged: boolean;
   latestAcceptedReferenceProvenancePresent: boolean;
   latestAcceptedReferencePptSlidePresent: boolean;
+  uploadRequestContractCount: number;
   packagedReferenceCount: number;
   packageHistoryReferenceCount: number;
   readyExportCount: number;
   provenanceCount: number;
   pptAssetGridSlideCount: number;
+  rejectedReferencePackagedCount: number;
+  rejectedReferenceExportedCount: number;
   failures: Array<
     | "accepted-reference"
+    | "upload-request-contract"
     | "packaged-reference"
     | "latest-reference-packaged"
     | "ready-export"
@@ -165,6 +185,8 @@ export interface ReferenceUploadIntegrationSmoke {
     | "latest-reference-provenance"
     | "ppt-asset-grid"
     | "latest-reference-ppt-slide"
+    | "rejected-reference-packaged"
+    | "rejected-reference-exported"
   >;
 }
 

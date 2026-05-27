@@ -37,7 +37,21 @@ test("reference upload browser smoke reaches ready export metadata and render bu
     "createUpload,createPackage,createExport,getExport"
   );
   await expect(referenceSmoke).toHaveAttribute("data-reference-latest-accepted-id", "ref-campaign-reference-webp");
+  await expect(referenceSmoke).toHaveAttribute("data-reference-latest-upload-method", "POST");
+  await expect(referenceSmoke).toHaveAttribute("data-reference-latest-upload-path", "/uploads");
+  await expect(referenceSmoke).toHaveAttribute("data-reference-latest-upload-csrf-header", "X-ZenArt-CSRF");
+  await expect(referenceSmoke).toHaveAttribute("data-reference-latest-upload-idempotency-required", "true");
+  await expect(referenceSmoke).toHaveAttribute("data-reference-latest-preview-scope", "tenant-scoped-dev-preview");
   await expect(referenceSmoke).toHaveAttribute("data-reference-latest-packaged", "true");
+
+  const uploadedReference = page.locator("[data-reference-upload-item='ref-campaign-reference-webp']");
+  await expect(uploadedReference).toHaveAttribute("data-reference-upload-state", "accepted");
+  await expect(uploadedReference).toHaveAttribute("data-reference-upload-operation", "createUpload");
+  await expect(uploadedReference).toHaveAttribute("data-reference-upload-method", "POST");
+  await expect(uploadedReference).toHaveAttribute("data-reference-upload-path", "/uploads");
+  await expect(uploadedReference).toHaveAttribute("data-reference-upload-csrf-header", "X-ZenArt-CSRF");
+  await expect(uploadedReference).toHaveAttribute("data-reference-upload-idempotency-required", "true");
+  await expect(uploadedReference).toHaveAttribute("data-reference-upload-preview-scope", "tenant-scoped-dev-preview");
 
   await page.getByRole("button", { name: "Select Studio System" }).click();
   await expect(page.getByRole("button", { name: "Select Studio System" })).toHaveAttribute("aria-pressed", "true");
@@ -49,6 +63,9 @@ test("reference upload browser smoke reaches ready export metadata and render bu
   await expect(referenceSmoke).toHaveAttribute("data-reference-upload-integration-status", "pass");
   await expect(referenceSmoke).toHaveAttribute("data-reference-latest-provenance-present", "true");
   await expect(referenceSmoke).toHaveAttribute("data-reference-latest-ppt-slide-present", "true");
+  await expect(referenceSmoke).toHaveAttribute("data-reference-upload-request-contract-count", "2");
+  await expect(referenceSmoke).toHaveAttribute("data-reference-rejected-packaged-count", "0");
+  await expect(referenceSmoke).toHaveAttribute("data-reference-rejected-exported-count", "0");
   await expect(referenceSmoke).toHaveAttribute("data-reference-upload-integration-failures", "");
 
   const renderingSmoke = page.locator("[data-rendering-smoke='stage0.rev2.workspace-rendering-performance']");

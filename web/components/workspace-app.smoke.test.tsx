@@ -218,6 +218,12 @@ describe("WorkspaceApp user route integration smoke", () => {
       expect(smoke).toHaveAttribute("data-reference-rejected-count", "0");
       expect(smoke).toHaveAttribute("data-reference-latest-accepted-id", "ref-campaign-reference-webp");
       expect(smoke).toHaveAttribute("data-reference-latest-accepted-name", "campaign-reference.webp");
+      expect(smoke).toHaveAttribute("data-reference-latest-upload-method", "POST");
+      expect(smoke).toHaveAttribute("data-reference-latest-upload-path", "/uploads");
+      expect(smoke).toHaveAttribute("data-reference-latest-upload-csrf-header", "X-ZenArt-CSRF");
+      expect(smoke).toHaveAttribute("data-reference-latest-upload-idempotency-required", "true");
+      expect(smoke).toHaveAttribute("data-reference-latest-preview-scope", "tenant-scoped-dev-preview");
+      expect(smoke).toHaveAttribute("data-reference-upload-request-contract-count", "2");
       expect(smoke).toHaveAttribute("data-reference-latest-packaged", "true");
       expect(smoke).toHaveAttribute("data-reference-latest-provenance-present", "true");
       expect(smoke).toHaveAttribute("data-reference-latest-ppt-slide-present", "true");
@@ -225,8 +231,20 @@ describe("WorkspaceApp user route integration smoke", () => {
       expect(smoke).toHaveAttribute("data-reference-ready-export-count", "1");
       expect(smoke).toHaveAttribute("data-reference-provenance-count", "1");
       expect(smoke).toHaveAttribute("data-reference-ppt-asset-grid-slide-count", "1");
+      expect(smoke).toHaveAttribute("data-reference-rejected-packaged-count", "0");
+      expect(smoke).toHaveAttribute("data-reference-rejected-exported-count", "0");
       expect(smoke).toHaveAttribute("data-reference-upload-integration-failures", "");
     });
+
+    const attachedReference = container.querySelector("[data-reference-upload-item='ref-campaign-reference-webp']");
+    expect(attachedReference).toHaveAttribute("data-reference-upload-state", "accepted");
+    expect(attachedReference).toHaveAttribute("data-reference-upload-operation", "createUpload");
+    expect(attachedReference).toHaveAttribute("data-reference-upload-method", "POST");
+    expect(attachedReference).toHaveAttribute("data-reference-upload-path", "/uploads");
+    expect(attachedReference).toHaveAttribute("data-reference-upload-csrf-header", "X-ZenArt-CSRF");
+    expect(attachedReference).toHaveAttribute("data-reference-upload-idempotency-required", "true");
+    expect(attachedReference).toHaveAttribute("data-reference-upload-preview-scope", "tenant-scoped-dev-preview");
+    expect(attachedReference).toHaveAttribute("data-reference-upload-preview-url", "/dev-preview/uploads/ref-campaign-reference-webp");
 
     const renderingSmoke = container.querySelector("[data-rendering-smoke='stage0.rev2.workspace-rendering-performance']");
     expect(renderingSmoke).toHaveAttribute("data-rendering-status", "pass");
