@@ -365,6 +365,7 @@ def validate_write_fixture_contract(contract: dict[str, Any]) -> None:
             "divergent_replay_must_not_overwrite_existing_row": True,
             "tenant_isolation_partitions_idempotency_key": True,
             "conflict_row_requires_admin_audit_before_retry": True,
+            "source_fixture_digest_change_rejected_under_same_key": True,
         },
         "eval write fixture mutation guards mismatch",
     )
@@ -372,6 +373,7 @@ def validate_write_fixture_contract(contract: dict[str, Any]) -> None:
     required_cases = {
         "exact_replay_returns_existing_row",
         "same_key_changed_summary_rejects_conflict",
+        "same_key_changed_source_digest_rejects_conflict",
         "same_subject_other_tenant_inserts_new_row",
     }
     cases = {case["case_id"]: case for case in fixture["cases"]}
@@ -423,6 +425,41 @@ def validate_write_fixture_contract(contract: dict[str, Any]) -> None:
     require(
         conflict["existing_row"]["status"] == "blocked" and conflict["attempted_write"]["status"] == "pass",
         "divergent replay must prove a stale blocked row cannot be overwritten by a pass result",
+    )
+
+    source_conflict = cases["same_key_changed_source_digest_rejects_conflict"]
+    source_conflict_existing = source_conflict["existing_row"]
+    source_conflict_attempted = source_conflict["attempted_write"]
+    require(
+        write_row_key(source_conflict_existing, key_fields)
+        == write_row_key(source_conflict_attempted, key_fields),
+        "source digest replay conflict must use the same idempotency key",
+    )
+    for digest_field in ["status", "summary", "fixture_results", "completed_at"]:
+        require(
+            write_row_digest(source_conflict_existing, {digest_field})
+            == write_row_digest(source_conflict_attempted, {digest_field}),
+            f"source digest conflict must keep {digest_field} unchanged",
+        )
+    require(
+        source_conflict_existing["source_fixture_digests_sha256"]
+        != source_conflict_attempted["source_fixture_digests_sha256"],
+        "source digest conflict must change source_fixture_digests_sha256",
+    )
+    require(
+        write_row_digest(source_conflict_existing, digest_fields)
+        != write_row_digest(source_conflict_attempted, digest_fields),
+        "source digest conflict must change the full result digest",
+    )
+    require(
+        source_conflict["expected_outcome"] == {
+            "action": "reject_conflict",
+            "stored_row_source": "none",
+            "requires_admin_audit": True,
+            "activation_allowed": False,
+            "reason": "source_fixture_digest_conflict",
+        },
+        "source digest replay expected outcome mismatch",
     )
 
     cross_tenant = cases["same_subject_other_tenant_inserts_new_row"]

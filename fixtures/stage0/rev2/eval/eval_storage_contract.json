@@ -114,7 +114,8 @@
       "exact_replay_must_not_update_completed_at": true,
       "divergent_replay_must_not_overwrite_existing_row": true,
       "tenant_isolation_partitions_idempotency_key": true,
-      "conflict_row_requires_admin_audit_before_retry": true
+      "conflict_row_requires_admin_audit_before_retry": true,
+      "source_fixture_digest_change_rejected_under_same_key": true
     },
     "cases": [
       {
@@ -187,6 +188,42 @@
           "requires_admin_audit": true,
           "activation_allowed": false,
           "reason": "divergent_replay_summary_conflict"
+        }
+      },
+      {
+        "case_id": "same_key_changed_source_digest_rejects_conflict",
+        "existing_row": {
+          "tenant_id": "tenant_stage0_acme",
+          "eval_suite_id": "eval_stage0_rev2_starter",
+          "subject_type": "vertical_workflow_pack",
+          "subject_id": "stage0_rev2_starter_workflows",
+          "subject_version": "rev2.fixture-contract.1",
+          "runner_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "status": "blocked",
+          "summary_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "fixture_results_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "completed_at": "2026-05-26T00:00:00Z",
+          "source_fixture_digests_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+        },
+        "attempted_write": {
+          "tenant_id": "tenant_stage0_acme",
+          "eval_suite_id": "eval_stage0_rev2_starter",
+          "subject_type": "vertical_workflow_pack",
+          "subject_id": "stage0_rev2_starter_workflows",
+          "subject_version": "rev2.fixture-contract.1",
+          "runner_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "status": "blocked",
+          "summary_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "fixture_results_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "completed_at": "2026-05-26T00:00:00Z",
+          "source_fixture_digests_sha256": "9999999999999999999999999999999999999999999999999999999999999999"
+        },
+        "expected_outcome": {
+          "action": "reject_conflict",
+          "stored_row_source": "none",
+          "requires_admin_audit": true,
+          "activation_allowed": false,
+          "reason": "source_fixture_digest_conflict"
         }
       },
       {

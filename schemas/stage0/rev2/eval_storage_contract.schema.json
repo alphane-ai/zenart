@@ -281,7 +281,8 @@
             "exact_replay_must_not_update_completed_at",
             "divergent_replay_must_not_overwrite_existing_row",
             "tenant_isolation_partitions_idempotency_key",
-            "conflict_row_requires_admin_audit_before_retry"
+            "conflict_row_requires_admin_audit_before_retry",
+            "source_fixture_digest_change_rejected_under_same_key"
           ],
           "properties": {
             "exact_replay_must_not_update_completed_at": {
@@ -295,12 +296,15 @@
             },
             "conflict_row_requires_admin_audit_before_retry": {
               "const": true
+            },
+            "source_fixture_digest_change_rejected_under_same_key": {
+              "const": true
             }
           }
         },
         "cases": {
           "type": "array",
-          "minItems": 3,
+          "minItems": 4,
           "uniqueItems": true,
           "items": {
             "$ref": "#/$defs/write_fixture_case"
@@ -897,7 +901,8 @@
               "enum": [
                 "exact_idempotent_replay",
                 "cross_tenant_insert_allowed",
-                "divergent_replay_summary_conflict"
+                "divergent_replay_summary_conflict",
+                "source_fixture_digest_conflict"
               ]
             }
           }
