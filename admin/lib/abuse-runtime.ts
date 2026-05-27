@@ -71,6 +71,7 @@ export function buildAbuseRuntimeDecisions(
       expiresAt: hook.expiresAt,
       auditRef: hook.auditRef,
       evidenceRefs: hook.evidenceRefs,
+      releaseEvidenceRefs: hook.releaseEvidenceRefs,
       rationale: event
         ? `${event.reviewRationale} ${hook.releaseCondition}`
         : `Missing abuse event ${hook.abuseEventId}; keep hook non-enforcing until fixture linkage is repaired.`
@@ -148,20 +149,34 @@ export function buildAbuseQueueRuntime(
     const enforced = eventDecisions.filter((decision) => decision.runtimeStatus === "enforced");
     const deniedByRbac = eventDecisions.some((decision) => decision.runtimeStatus === "dry_run_denied");
     const activeHookIds = enforced.map((decision) => decision.hookId);
+    const releaseEvidenceRefs = new Set(eventDecisions.flatMap((decision) => decision.releaseEvidenceRefs));
+    const observedEvidenceRefs = new Set(
+      eventDecisions.flatMap((decision) => [decision.auditRef, ...decision.evidenceRefs])
+    );
+    const missingReleaseEvidenceRefs = [...releaseEvidenceRefs].filter((ref) => !observedEvidenceRefs.has(ref));
+    const releaseEvidenceStatus = missingReleaseEvidenceRefs.length === 0 ? "complete" : "missing";
     const criticalOpen = event.severity === "critical" && event.resolution === "open";
 
-    if (deniedByRbac || criticalOpen) {
+    if (deniedByRbac || criticalOpen || releaseEvidenceStatus === "missing") {
       return {
         abuseEventId: event.id,
         userId: event.userId,
         category: event.category,
         severity: event.severity,
         assignedRole: event.assignedRole,
-        runtimeStatus: deniedByRbac ? "blocked_by_rbac" : "queued_for_review",
+        runtimeStatus: deniedByRbac ? "blocked_by_rbac" : enforced.length > 0 ? "controlled" : "queued_for_review",
         activeHookIds,
+        releaseEvidenceStatus,
+        missingReleaseEvidenceRefs,
         closureAllowed: false,
-        blockingReason: "Queue closure requires the assigned role, immutable audit, release evidence, and second review for critical abuse.",
-        nextAction: "Escalate to the assigned admin role and keep the abuse queue item open until release evidence is attached.",
+        blockingReason:
+          releaseEvidenceStatus === "missing"
+            ? `Queue closure is blocked until release evidence refs are present in runtime evidence: ${missingReleaseEvidenceRefs.join(", ")}.`
+            : "Queue closure requires the assigned role, immutable audit, release evidence, and second review for critical abuse.",
+        nextAction:
+          releaseEvidenceStatus === "missing"
+            ? "Keep the abuse queue item open and attach the missing support, audit, trace, export, or crawler evidence before release."
+            : "Escalate to the assigned admin role and keep the abuse queue item open until release evidence is attached.",
         auditRef: event.auditRef
       };
     }
@@ -175,6 +190,8 @@ export function buildAbuseQueueRuntime(
         assignedRole: event.assignedRole,
         runtimeStatus: "controlled",
         activeHookIds,
+        releaseEvidenceStatus,
+        missingReleaseEvidenceRefs,
         closureAllowed: false,
         blockingReason: "Control is active; closure waits for the hook release condition and support or audit evidence.",
         nextAction: "Hold the queue item in review and preserve the active runtime hook until release evidence passes.",
@@ -190,6 +207,8 @@ export function buildAbuseQueueRuntime(
       assignedRole: event.assignedRole,
       runtimeStatus: "queued_for_review",
       activeHookIds,
+      releaseEvidenceStatus,
+      missingReleaseEvidenceRefs,
       closureAllowed: false,
       blockingReason: "No enforced control is active; operator review must attach a hook or release rationale.",
       nextAction: "Keep the abuse queue item open and require an operator runtime control decision.",

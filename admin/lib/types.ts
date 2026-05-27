@@ -1433,6 +1433,7 @@ export type AbuseRuntimeDecision = {
   expiresAt: string;
   auditRef: string;
   evidenceRefs: string[];
+  releaseEvidenceRefs: string[];
   rationale: string;
 };
 
@@ -1444,6 +1445,8 @@ export type AbuseQueueRuntimeEntry = {
   assignedRole: AbuseEvent["assignedRole"];
   runtimeStatus: "controlled" | "queued_for_review" | "blocked_by_rbac";
   activeHookIds: string[];
+  releaseEvidenceStatus: "complete" | "missing";
+  missingReleaseEvidenceRefs: string[];
   closureAllowed: boolean;
   blockingReason: string;
   nextAction: string;

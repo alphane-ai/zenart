@@ -144,6 +144,8 @@ export default async function AbusePage() {
             { key: "event", header: "Abuse Event", render: (row) => <span className="mono">{row.abuseEventId}</span> },
             { key: "status", header: "Runtime Status", render: (row) => <StatusBadge value={row.runtimeStatus === "controlled" ? "blocked" : "warning"} label={row.runtimeStatus} /> },
             { key: "hooks", header: "Active Hooks", render: (row) => row.activeHookIds.join(", ") || "none" },
+            { key: "release", header: "Release Evidence", render: (row) => <StatusBadge value={row.releaseEvidenceStatus === "complete" ? "approved" : "blocked"} label={row.releaseEvidenceStatus} /> },
+            { key: "missing", header: "Missing Release Evidence", render: (row) => (row.missingReleaseEvidenceRefs.length > 0 ? row.missingReleaseEvidenceRefs.join(", ") : "none") },
             { key: "closure", header: "Closure Allowed", render: (row) => (row.closureAllowed ? "yes" : "no") },
             { key: "reason", header: "Blocking Reason", render: (row) => row.blockingReason },
             { key: "next", header: "Next Action", render: (row) => row.nextAction },

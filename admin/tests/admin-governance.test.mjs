@@ -94,6 +94,7 @@ const parseAbuseRuntime = () => {
     .replaceAll(/: AdminRole/g, "")
     .replaceAll(/: AbuseEvent/g, "")
     .replaceAll(/: AbuseControlHook/g, "")
+    .replaceAll(/new Set<string>/g, "new Set")
     .replaceAll(/: string/g, "")
     .replaceAll(/: Date/g, "")
     .replaceAll(/ as const/g, "");
@@ -641,6 +642,8 @@ test("admin abuse queue runtime enforcement keeps events open until controls and
     assert.ok(event, `${entry.abuseEventId} queue runtime links unknown abuse event`);
     assert.equal(entry.userId, event.userId, `${entry.abuseEventId} queue user must match event`);
     assert.ok(auditIds.has(entry.auditRef), `${entry.abuseEventId} queue runtime links unknown audit`);
+    assert.match(entry.releaseEvidenceStatus, /complete|missing/, `${entry.abuseEventId} needs release evidence status`);
+    assert.ok(Array.isArray(entry.missingReleaseEvidenceRefs), `${entry.abuseEventId} needs missing release evidence refs`);
     assert.equal(entry.closureAllowed, false, `${entry.abuseEventId} cannot close without release evidence`);
     assert.ok(entry.blockingReason.length > 90, `${entry.abuseEventId} needs blocking reason`);
     assert.ok(entry.nextAction.length > 90, `${entry.abuseEventId} needs next action`);
@@ -654,6 +657,19 @@ test("admin abuse queue runtime enforcement keeps events open until controls and
       assert.equal(entry.closureAllowed, false, `${entry.abuseEventId} critical abuse cannot auto-close`);
     }
   }
+
+  const missingReleaseEvidenceQueue = buildAbuseQueueRuntime(abuseEvents, [
+    {
+      ...decisions.find((decision) => decision.hookId === "hook-ab-300-hold"),
+      evidenceRefs: ["ab-300", "au-002"],
+      releaseEvidenceRefs: ["sup-2201", "au-004", "ex-887", "tr-1004"]
+    }
+  ]);
+  const blockedEntry = missingReleaseEvidenceQueue.find((entry) => entry.abuseEventId === "ab-300");
+  assert.ok(blockedEntry, "missing release evidence replay needs queue entry");
+  assert.equal(blockedEntry.releaseEvidenceStatus, "missing");
+  assert.deepEqual(blockedEntry.missingReleaseEvidenceRefs, ["sup-2201", "au-004", "ex-887", "tr-1004"]);
+  assert.match(blockedEntry.blockingReason, /release evidence refs/, "missing release evidence must block queue closure");
 });
 
 test("support tickets link user, trace, export, quota, and audit evidence", () => {
