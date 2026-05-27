@@ -149,6 +149,7 @@
             "required": [
               "manifest",
               "qa_report",
+              "metadata",
               "trace_provenance",
               "safety_disclaimer_when_applicable"
             ],
@@ -157,6 +158,9 @@
                 "type": "boolean"
               },
               "qa_report": {
+                "type": "boolean"
+              },
+              "metadata": {
                 "type": "boolean"
               },
               "trace_provenance": {
@@ -355,7 +359,9 @@
         "export_id",
         "manifest_linked",
         "qa_report_linked",
-        "trace_provenance_linked"
+        "metadata_linked",
+        "trace_provenance_linked",
+        "safety_disclaimer_linked"
       ],
       "properties": {
         "asset_ids": {
@@ -380,7 +386,13 @@
         "qa_report_linked": {
           "type": "boolean"
         },
+        "metadata_linked": {
+          "type": "boolean"
+        },
         "trace_provenance_linked": {
+          "type": "boolean"
+        },
+        "safety_disclaimer_linked": {
           "type": "boolean"
         }
       }

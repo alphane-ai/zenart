@@ -177,7 +177,13 @@ def validate_trace_fixture() -> None:
             )
 
         export_contract = eval_by_trace[trace_id]["export_contract"]
-        for field in ["manifest", "qa_report", "trace_provenance", "safety_disclaimer_when_applicable"]:
+        for field in [
+            "manifest",
+            "qa_report",
+            "metadata",
+            "trace_provenance",
+            "safety_disclaimer_when_applicable",
+        ]:
             require(
                 trace["export_references"][field] == export_contract[field],
                 f"{trace_id} export reference {field} must match eval export contract",
@@ -302,12 +308,24 @@ def validate_artifact_links(trace: dict[str, Any], eval_result: dict[str, Any]) 
         f"{trace_id} QA report artifact link must match export references",
     )
     require(
+        links["metadata_linked"] == eval_result["export_contract"]["metadata"],
+        f"{trace_id} metadata artifact link must match eval export metadata",
+    )
+    require(
         links["trace_provenance_linked"] == trace["export_references"]["trace_provenance"],
         f"{trace_id} trace provenance artifact link must match export references",
     )
     require(
+        links["safety_disclaimer_linked"] == trace["export_references"]["safety_disclaimer_when_applicable"],
+        f"{trace_id} safety disclaimer artifact link must match export references",
+    )
+    require(
         links["trace_provenance_linked"] is True,
         f"{trace_id} must link trace provenance even when manifest or QA report is blocked",
+    )
+    require(
+        links["safety_disclaimer_linked"] is True,
+        f"{trace_id} must link applicable safety disclaimer even when export is blocked",
     )
 
 

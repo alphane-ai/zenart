@@ -20,25 +20,41 @@
       "probe_id": "checkout",
       "status": "pass",
       "request_id": "production-paid-billing-20260527T1945Z-checkout",
-      "assertions": ["checkout_session_created", "mock_checkout_disabled", "tenant_scoped_customer"]
+      "assertions": [
+        "checkout_session_created",
+        "mock_checkout_disabled",
+        "tenant_scoped_customer"
+      ]
     },
     {
       "probe_id": "active_subscription",
       "status": "pass",
       "request_id": "production-paid-billing-20260527T1945Z-active-subscription",
-      "assertions": ["subscription_active", "entitlement_active", "quota_bucket_initialized"]
+      "assertions": [
+        "subscription_active",
+        "entitlement_active",
+        "quota_bucket_initialized"
+      ]
     },
     {
       "probe_id": "cancellation",
       "status": "pass",
       "request_id": "production-paid-billing-20260527T1945Z-cancellation",
-      "assertions": ["subscription_cancelled", "renewal_disabled", "audit_ref_attached"]
+      "assertions": [
+        "subscription_cancelled",
+        "renewal_disabled",
+        "audit_ref_attached"
+      ]
     },
     {
       "probe_id": "past_due",
       "status": "pass",
       "request_id": "production-paid-billing-20260527T1945Z-past-due",
-      "assertions": ["subscription_past_due", "entitlement_downgraded", "quota_consuming_task_denied"]
+      "assertions": [
+        "subscription_past_due",
+        "entitlement_downgraded",
+        "quota_consuming_task_denied"
+      ]
     }
   ],
   "coverage": [
@@ -62,10 +78,16 @@
       ]
     }
   ],
-  "audit_refs": ["au-022"],
+  "audit_refs": [
+    "au-022"
+  ],
   "gate_impact": {
     "can_clear_checkout_subscription_subitem": true,
-    "can_clear_aggregate_production_gate": false,
-    "remaining_blockers": ["production_backup_rollback_incident"]
+    "checklist_items": [
+      "Production checkout/subscription/cancellation/past_due runtime evidence 通过 under `ops/evidence/production/`。"
+    ],
+    "remaining_blockers": [
+      "production_backup_rollback_incident"
+    ]
   }
 }

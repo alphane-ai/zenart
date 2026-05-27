@@ -10,7 +10,7 @@
     "dev_mock_provider_public_claims_unresolved",
     "real_provider_or_comp_only_mode_missing"
   ],
-  "summary": "Production provider launch mode uses a production-capable real provider with contract, monitoring, cost records, staging verification, and no dev-provider public generation claims.",
+  "summary": "Production provider launch mode uses a production-capable real provider with contract, monitoring, cost records, staging verification, and no dev-provider public generation claims. The evidence records invite/comp-only mode as an explicit disabled fallback for this paid real-provider launch.",
   "runtime_request_ids": [
     "production-provider-mode-20260527T1930Z-launch-mode",
     "production-provider-mode-20260527T1930Z-contract-monitoring-cost"
@@ -81,10 +81,16 @@
       ]
     }
   ],
-  "audit_refs": ["au-021"],
+  "audit_refs": [
+    "au-021"
+  ],
   "gate_impact": {
     "can_clear_provider_mode_subitem": true,
-    "can_clear_aggregate_production_gate": false,
-    "remaining_blockers": ["production_backup_rollback_incident"]
+    "checklist_items": [
+      "Production provider mode deployment evidence 通过：production evidence proves either real provider contract/monitoring/cost/staging verification or explicit invite/comp-only mode under `ops/evidence/production/`。"
+    ],
+    "remaining_blockers": [
+      "production_backup_rollback_incident"
+    ]
   }
 }

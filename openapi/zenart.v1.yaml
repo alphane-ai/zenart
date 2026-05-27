@@ -2628,11 +2628,13 @@ components:
               type: string
         export_references:
           type: object
-          required: [manifest, qa_report, trace_provenance, safety_disclaimer_when_applicable]
+          required: [manifest, qa_report, metadata, trace_provenance, safety_disclaimer_when_applicable]
           properties:
             manifest:
               type: boolean
             qa_report:
+              type: boolean
+            metadata:
               type: boolean
             trace_provenance:
               type: boolean
@@ -2640,7 +2642,7 @@ components:
               type: boolean
         artifact_links:
           type: object
-          required: [asset_ids, package_id, export_id, manifest_linked, qa_report_linked, trace_provenance_linked]
+          required: [asset_ids, package_id, export_id, manifest_linked, qa_report_linked, metadata_linked, trace_provenance_linked, safety_disclaimer_linked]
           properties:
             asset_ids:
               type: array
@@ -2655,7 +2657,11 @@ components:
               type: boolean
             qa_report_linked:
               type: boolean
+            metadata_linked:
+              type: boolean
             trace_provenance_linked:
+              type: boolean
+            safety_disclaimer_linked:
               type: boolean
         payload:
           type: object

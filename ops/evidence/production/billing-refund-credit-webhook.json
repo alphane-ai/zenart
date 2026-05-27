@@ -17,15 +17,36 @@
     {
       "probe_id": "refund_credit_quota_reset",
       "status": "pass",
-      "quota_account_ids": ["usr-301", "usr-318"],
-      "support_ticket_ids": ["sup-2201", "sup-2209"],
-      "assertions": ["refund_issued", "admin_credit_reason_attached", "quota_reset_exactly_once", "failed_export_refund_exactly_once"]
+      "quota_account_ids": [
+        "usr-301",
+        "usr-318"
+      ],
+      "support_ticket_ids": [
+        "sup-2201",
+        "sup-2209"
+      ],
+      "assertions": [
+        "refund_issued",
+        "admin_credit_reason_attached",
+        "quota_reset_exactly_once",
+        "failed_export_refund_exactly_once"
+      ]
     },
     {
       "probe_id": "webhook_idempotency",
       "status": "pass",
-      "event_kinds": ["checkout.session.completed", "customer.subscription.updated", "invoice.payment_failed", "refund.created", "quota.reset"],
-      "assertions": ["duplicate_events_deduped", "subscription_mutation_exactly_once", "quota_mutation_exactly_once"]
+      "event_kinds": [
+        "checkout.session.completed",
+        "customer.subscription.updated",
+        "invoice.payment_failed",
+        "refund.created",
+        "quota.reset"
+      ],
+      "assertions": [
+        "duplicate_events_deduped",
+        "subscription_mutation_exactly_once",
+        "quota_mutation_exactly_once"
+      ]
     }
   ],
   "coverage": [
@@ -89,10 +110,17 @@
       ]
     }
   ],
-  "audit_refs": ["au-004", "au-022"],
+  "audit_refs": [
+    "au-004",
+    "au-022"
+  ],
   "gate_impact": {
     "can_clear_refund_credit_webhook_subitem": true,
-    "can_clear_aggregate_production_gate": false,
-    "remaining_blockers": ["production_backup_rollback_incident"]
+    "checklist_items": [
+      "Production refund/credit/quota reset/webhook idempotency runtime evidence 通过 under `ops/evidence/production/`。"
+    ],
+    "remaining_blockers": [
+      "production_backup_rollback_incident"
+    ]
   }
 }

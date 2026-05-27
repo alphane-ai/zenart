@@ -6,7 +6,7 @@
     {
       "check_id": "production_provider_or_comp_only_mode",
       "status": "pass",
-      "evidence_ref": "ops/evidence/production/provider-mode.json proves production launch mode, real provider contract, monitoring, cost records, staging verification, no dev-provider public routing, and no silent fallback; ops/evidence/production/public-paid-real-generation-claims.json proves public paid/real-generation claims align with that production provider mode while preserving paid billing, backup, CI, and staging blockers"
+      "evidence_ref": "ops/evidence/production/provider-mode.json proves production launch mode, real provider contract, monitoring, cost records, staging verification, no dev-provider public routing, and no silent fallback; ops/evidence/production/public-paid-real-generation-claims.json proves public paid/real-generation claims align with that production provider mode while preserving paid billing, backup, CI, and staging blockers; invite/comp-only mode is explicitly disabled for this paid real-provider launch"
     },
     {
       "check_id": "production_paid_billing_lifecycle",

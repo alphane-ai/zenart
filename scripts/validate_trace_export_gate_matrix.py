@@ -132,7 +132,9 @@ def validate_contract() -> None:
         for trace_field, export_field in {
             "manifest_linked": "manifest",
             "qa_report_linked": "qa_report",
+            "metadata_linked": "metadata",
             "trace_provenance_linked": "trace_provenance",
+            "safety_disclaimer_linked": "safety_disclaimer_when_applicable",
         }.items():
             require(
                 trace["artifact_links"][trace_field] is export_contract[export_field],
@@ -142,6 +144,10 @@ def validate_contract() -> None:
         require(
             trace["artifact_links"]["trace_provenance_linked"] is True,
             f"{fixture_id} must keep trace provenance linked even when export is blocked",
+        )
+        require(
+            trace["artifact_links"]["safety_disclaimer_linked"] is True,
+            f"{fixture_id} must keep applicable safety disclaimer linked even when export is blocked",
         )
 
         require(case["qa_check_ids"] == eval_fixture["qa_check_ids"], f"{fixture_id} QA check list mismatch")

@@ -10,7 +10,7 @@
     "dev_mock_provider_public_claims_unresolved",
     "real_provider_or_comp_only_mode_missing"
   ],
-  "summary": "Production public copy and admin provider surfaces align paid and real-generation claims with the production provider-mode evidence and do not present the dev provider as production generation.",
+  "summary": "Production public copy and admin provider surfaces align paid and real-generation claims with the production provider-mode evidence and do not present the dev provider as production generation. Invite/comp-only mode is not used here; if it were used, paid and real-generation claims would be hidden.",
   "runtime_request_ids": [
     "production-provider-mode-20260527T1930Z-public-claims",
     "production-provider-mode-20260527T1930Z-gate-preservation"
@@ -21,21 +21,34 @@
       "path": "/",
       "http_status": 200,
       "claim_status": "aligned_with_production_provider",
-      "required_tokens": ["production provider", "AI content disclaimer", "billing policy"]
+      "required_tokens": [
+        "production provider",
+        "AI content disclaimer",
+        "billing policy"
+      ]
     },
     {
       "surface": "billing_policy",
       "path": "/billing-policy",
       "http_status": 200,
       "claim_status": "aligned_with_production_provider",
-      "required_tokens": ["paid generation", "refund", "past_due", "provider evidence"]
+      "required_tokens": [
+        "paid generation",
+        "refund",
+        "past_due",
+        "provider evidence"
+      ]
     },
     {
       "surface": "admin_provider_health",
       "path": "/admin/providers",
       "http_status": 200,
       "claim_status": "dev_provider_marked_development_only",
-      "required_tokens": ["prod-openai-image", "dev-deterministic-image", "development-only"]
+      "required_tokens": [
+        "prod-openai-image",
+        "dev-deterministic-image",
+        "development-only"
+      ]
     }
   ],
   "coverage": [
@@ -77,10 +90,17 @@
       ]
     }
   ],
-  "audit_refs": ["au-020", "au-021"],
+  "audit_refs": [
+    "au-020",
+    "au-021"
+  ],
   "gate_impact": {
     "can_clear_public_paid_real_generation_claims_subitem": true,
-    "can_clear_aggregate_production_gate": false,
-    "remaining_blockers": ["production_backup_rollback_incident"]
+    "checklist_items": [
+      "Production public paid/real-generation claims evidence 通过：production evidence proves paid and real-generation claims are enabled only with real provider evidence, or hidden for invite/comp-only mode under `ops/evidence/production/`。"
+    ],
+    "remaining_blockers": [
+      "production_backup_rollback_incident"
+    ]
   }
 }
