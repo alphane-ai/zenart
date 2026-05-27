@@ -2244,6 +2244,23 @@ def require_local_alpha_workflow_runtime_files(
                 evidence.get("workflow_id") == workflow_id,
                 f"{context} evidence file workflow mismatch: {rel(path)}",
             )
+        actual_workflow_id = evidence.get("workflow_id")
+        require(
+            actual_workflow_id in workflow_files,
+            f"{context} evidence file {rel(path)} references unexpected workflow_id={actual_workflow_id!r}",
+        )
+        expected_kind = next(
+            evidence_kind
+            for evidence_kind, expected_path in workflow_files[actual_workflow_id].items()
+            if expected_path == path
+        )
+        validate_local_alpha_workflow_runtime_evidence_file(
+            evidence,
+            workflow_id=actual_workflow_id,
+            evidence_kind=expected_kind,
+            path=rel(path),
+            context=context,
+        )
 
 
 def require_local_alpha_single_workflow_runtime_files(
@@ -2279,6 +2296,151 @@ def require_local_alpha_single_workflow_runtime_files(
         require(
             evidence.get("proves_running_local_stack") is True,
             f"{context} evidence file {rel(runtime_path)} must prove the running local stack",
+        )
+        evidence_kind = next(
+            kind
+            for kind, expected_path in LOCAL_ALPHA_WORKFLOW_RUNTIME_EVIDENCE_FILES[workflow_id].items()
+            if expected_path == runtime_path
+        )
+        validate_local_alpha_workflow_runtime_evidence_file(
+            evidence,
+            workflow_id=workflow_id,
+            evidence_kind=evidence_kind,
+            path=rel(runtime_path),
+            context=context,
+        )
+
+
+def validate_local_alpha_workflow_runtime_evidence_file(
+    evidence: dict[str, Any],
+    *,
+    workflow_id: str,
+    evidence_kind: str,
+    path: str,
+    context: str,
+) -> None:
+    expected_evidence_kind = {
+        "api": "api_smoke",
+        "playwright": "playwright_happy_path",
+        "export": "export_zip",
+    }[evidence_kind]
+    require(
+        evidence.get("evidence_kind") == expected_evidence_kind,
+        f"{context} {path} must declare evidence_kind={expected_evidence_kind!r}",
+    )
+    require(
+        evidence.get("workflow_id") == workflow_id,
+        f"{context} {path} must target workflow_id={workflow_id!r}",
+    )
+    require(
+        evidence.get("release_gate_check_id") == "local_alpha_e2e_workflow_smoke",
+        f"{context} {path} must target local_alpha_e2e_workflow_smoke",
+    )
+    require(
+        evidence.get("environment") == "local_alpha",
+        f"{context} {path} must be local_alpha evidence",
+    )
+    require(
+        evidence.get("status") in RUNTIME_PASS_EVIDENCE_STATUS_VALUES,
+        f"{context} {path} must have a passing runtime status",
+    )
+
+    if evidence_kind == "api":
+        operation_ids = set(evidence.get("operation_ids", []))
+        required_operations = {
+            "createChatSession",
+            "createChatMessage",
+            "createCandidateSet",
+            "listCandidateAssets",
+            "selectDirection",
+            "createPackage",
+            "createExport",
+            "getExport",
+        }
+        require(
+            required_operations <= operation_ids,
+            f"{context} {path} API smoke evidence missing operations: {sorted(required_operations - operation_ids)}",
+        )
+        assertions = evidence.get("assertions")
+        require(isinstance(assertions, dict), f"{context} {path} API smoke evidence missing assertions")
+        require(assertions.get("status") == "pass", f"{context} {path} API assertions must pass")
+        require(assertions.get("candidate_count") == 4, f"{context} {path} must prove exactly four candidates")
+        require(assertions.get("taxonomy_count") == 4, f"{context} {path} must prove four distinct taxonomy options")
+        require(assertions.get("ready_zip_export_count", 0) >= 1, f"{context} {path} must prove ready ZIP export")
+        require(assertions.get("missing_output_count") == 0, f"{context} {path} must prove no missing outputs")
+        require(assertions.get("qa_taxonomy_status") == "pass", f"{context} {path} must prove QA taxonomy pass")
+        require(assertions.get("safety_status") == "pass", f"{context} {path} must prove safety pass")
+    elif evidence_kind == "playwright":
+        steps = set(evidence.get("interaction_steps", []))
+        required_steps = {
+            "brief_confirmed",
+            "reference_uploaded",
+            "four_candidates_visible",
+            "candidate_selected",
+            "iteration_created",
+            "all_taxonomy_candidates_packaged",
+            "zip_export_created",
+            "download_handoff_completed",
+        }
+        require(
+            required_steps <= steps,
+            f"{context} {path} Playwright evidence missing interaction steps: {sorted(required_steps - steps)}",
+        )
+        export_ui = evidence.get("export_metadata_ui")
+        require(isinstance(export_ui, dict), f"{context} {path} missing export metadata UI evidence")
+        require(export_ui.get("status") == "pass", f"{context} {path} export metadata UI evidence must pass")
+        require(export_ui.get("zipPayloadParityStatus") == "pass", f"{context} {path} must prove ZIP/UI parity")
+        require(
+            export_ui.get("traceProvenancePayloadPresent") == "true",
+            f"{context} {path} must prove trace provenance payload",
+        )
+        require(
+            export_ui.get("aiContentDisclaimerPayloadPresent") == "true",
+            f"{context} {path} must prove AI disclaimer payload",
+        )
+        require(str(evidence.get("downloaded_file_name", "")).endswith(".zip"), f"{context} {path} must prove ZIP download handoff")
+    elif evidence_kind == "export":
+        payloads = set(evidence.get("payloads", []))
+        required_payloads = {
+            "manifest.json",
+            "qa-report.json",
+            "safety-policy-report.json",
+            "provenance.json",
+            "ai-content-disclaimer.json",
+            "ppt-ready-metadata.json",
+            "metadata.json",
+            "qa_report.json",
+            "trace_provenance.json",
+        }
+        require(
+            required_payloads <= payloads,
+            f"{context} {path} export ZIP evidence missing payloads: {sorted(required_payloads - payloads)}",
+        )
+        require(not evidence.get("missing_payloads"), f"{context} {path} must have no missing ZIP payloads")
+        require(evidence.get("byte_size", 0) > 0, f"{context} {path} must record a non-empty ZIP")
+        manifest = evidence.get("manifest")
+        require(isinstance(manifest, dict), f"{context} {path} must include parsed manifest evidence")
+        require(manifest.get("item_count") == 4, f"{context} {path} manifest must prove four packaged items")
+        require(manifest.get("required_output_count", 0) > 0, f"{context} {path} manifest must prove required outputs")
+        workflow_acceptance = manifest.get("workflow_acceptance")
+        require(isinstance(workflow_acceptance, dict), f"{context} {path} must include workflow acceptance metadata")
+        require(
+            workflow_acceptance.get("workflow_id") == workflow_id,
+            f"{context} {path} workflow acceptance metadata must match workflow_id={workflow_id!r}",
+        )
+        require(
+            len(workflow_acceptance.get("strategy_taxonomy", [])) == 4,
+            f"{context} {path} must prove four-option strategy taxonomy in the export",
+        )
+        qa_report = evidence.get("qa_report")
+        safety_report = evidence.get("safety_report")
+        require(isinstance(qa_report, dict), f"{context} {path} must include QA report evidence")
+        require(qa_report.get("blocking_count") == 0, f"{context} {path} must prove no blocking QA findings")
+        require(isinstance(safety_report, dict), f"{context} {path} must include safety report evidence")
+        require(safety_report.get("status") == "pass", f"{context} {path} must prove safety pass")
+        require(
+            set(safety_report.get("enforcement_stages", [])) == SAFETY_POINTS,
+            f"{context} {path} must prove safety enforcement at every stage",
         )
 
 
@@ -2325,17 +2487,28 @@ def require_runtime_file_evidence(evidence_ref: str, gate: str, check_id: str) -
             f"{gate}.{check_id} pass evidence file {runtime_path} must declare one of "
             f"{sorted(allowed_environments)}; got environment={actual_environment!r}",
         )
+        if "status" in evidence:
+            require(
+                evidence.get("status") in RUNTIME_PASS_EVIDENCE_STATUS_VALUES,
+                f"{gate}.{check_id} pass evidence file {runtime_path} must itself be passing; "
+                f"got status={evidence.get('status')!r}",
+            )
         evidence_check_id = evidence.get("release_gate_check_id")
         if evidence_check_id is not None:
             require(
                 evidence_check_id == check_id,
                 f"{gate}.{check_id} pass evidence file {runtime_path} targets release_gate_check_id={evidence_check_id!r}",
             )
-            require(
-                evidence.get("status") in RUNTIME_PASS_EVIDENCE_STATUS_VALUES,
-                f"{gate}.{check_id} pass evidence file {runtime_path} must itself be passing; "
-                f"got status={evidence.get('status')!r}",
-            )
+        blocked_slots = evidence.get("blocked_slots")
+        require(
+            not blocked_slots,
+            f"{gate}.{check_id} pass evidence file {runtime_path} has blocked_slots={blocked_slots!r}",
+        )
+        missing_blockers = evidence.get("missing_blockers")
+        require(
+            not missing_blockers,
+            f"{gate}.{check_id} pass evidence file {runtime_path} has missing_blockers={missing_blockers!r}",
+        )
         gate_impact = evidence.get("gate_impact")
         if isinstance(gate_impact, dict):
             preserved_check_id = gate_impact.get("preserved_release_gate_check_id")
