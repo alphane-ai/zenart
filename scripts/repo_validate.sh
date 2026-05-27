@@ -208,6 +208,34 @@ if not source_report.exists() or source_report.parent != out_dir:
     raise SystemExit("release bundle must promote nested staging smoke report into OUT_DIR")
 if not source_results.exists() or source_results.parent != out_dir:
     raise SystemExit("release bundle must promote nested staging smoke NDJSON into OUT_DIR")
+object_retention_probe = report.get("object_retention_cleanup_probe", {})
+if object_retention_probe.get("status") != "blocked":
+    raise SystemExit("release bundle dry-run must surface blocked object-retention cleanup status")
+if set(object_retention_probe.get("required_checks", [])) != {
+    "retention_policy",
+    "expired_export_cleanup",
+    "orphan_cleanup",
+    "audit_refs",
+}:
+    raise SystemExit("release bundle dry-run must surface object-retention required checks")
+runtime_requirements = object_retention_probe.get("runtime_input_requirements", {})
+if runtime_requirements.get("required_release_sha") != "d3b1107c33dc40b8936f28549e06553fbd7b104a":
+    raise SystemExit("release bundle dry-run must surface required object-retention release SHA")
+if runtime_requirements.get("required_base_url") != "STAGING_BASE_URL or explicit probe URL env vars":
+    raise SystemExit("release bundle dry-run must surface staging URL requirement for object-retention probe")
+if "ADMIN_BEARER_TOKEN or ADMIN_SESSION_COOKIE" not in runtime_requirements.get("required_auth", ""):
+    raise SystemExit("release bundle dry-run must surface admin auth requirement for object-retention probe")
+if "SMOKE_ADMIN_USER_ID" not in runtime_requirements.get("required_smoke_admin_user_id", ""):
+    raise SystemExit("release bundle dry-run must surface admin user requirement for object-retention probe")
+if "SMOKE_ADMIN_TENANT_ID" not in runtime_requirements.get("required_smoke_admin_tenant_id", ""):
+    raise SystemExit("release bundle dry-run must surface admin tenant requirement for object-retention probe")
+if runtime_requirements.get("canonical_pass_report") != "ops/evidence/staging/object-storage-retention-cleanup.json":
+    raise SystemExit("release bundle dry-run must surface canonical object-retention pass report path")
+split_evidence = object_retention_probe.get("split_evidence", {})
+if split_evidence.get("signed_url_ready") is not True:
+    raise SystemExit("release bundle dry-run must surface signed URL split readiness")
+if split_evidence.get("retention_cleanup_ready") is not False:
+    raise SystemExit("release bundle dry-run must keep retention cleanup readiness false")
 if report.get("blocking_reason_count") != len(report.get("blocking_reasons", [])):
     raise SystemExit("release bundle blocking_reason_count must match blocking_reasons length")
 decision_inputs = report.get("decision_inputs", {})
@@ -680,6 +708,34 @@ if report.get("post_deploy_smoke_verified") is not False:
     raise SystemExit("release evidence bundle dry-run must keep post-deploy smoke unverified")
 if report.get("object_retention_cleanup_verified") is not False:
     raise SystemExit("release evidence bundle dry-run must keep object-retention cleanup unverified")
+object_retention_probe = report.get("object_retention_cleanup_probe", {})
+if object_retention_probe.get("status") != "blocked":
+    raise SystemExit("release evidence bundle dry-run must surface blocked object-retention cleanup status")
+if set(object_retention_probe.get("required_checks", [])) != {
+    "retention_policy",
+    "expired_export_cleanup",
+    "orphan_cleanup",
+    "audit_refs",
+}:
+    raise SystemExit("release evidence bundle dry-run must surface object-retention required checks")
+runtime_requirements = object_retention_probe.get("runtime_input_requirements", {})
+if runtime_requirements.get("required_release_sha") != "d3b1107c33dc40b8936f28549e06553fbd7b104a":
+    raise SystemExit("release evidence bundle dry-run must surface required object-retention release SHA")
+if runtime_requirements.get("required_base_url") != "STAGING_BASE_URL or explicit probe URL env vars":
+    raise SystemExit("release evidence bundle dry-run must surface staging URL requirement for object-retention probe")
+if "ADMIN_BEARER_TOKEN or ADMIN_SESSION_COOKIE" not in runtime_requirements.get("required_auth", ""):
+    raise SystemExit("release evidence bundle dry-run must surface admin auth requirement for object-retention probe")
+if "SMOKE_ADMIN_USER_ID" not in runtime_requirements.get("required_smoke_admin_user_id", ""):
+    raise SystemExit("release evidence bundle dry-run must surface admin user requirement for object-retention probe")
+if "SMOKE_ADMIN_TENANT_ID" not in runtime_requirements.get("required_smoke_admin_tenant_id", ""):
+    raise SystemExit("release evidence bundle dry-run must surface admin tenant requirement for object-retention probe")
+if runtime_requirements.get("canonical_pass_report") != "ops/evidence/staging/object-storage-retention-cleanup.json":
+    raise SystemExit("release evidence bundle dry-run must surface canonical object-retention pass report path")
+split_evidence = object_retention_probe.get("split_evidence", {})
+if split_evidence.get("signed_url_ready") is not True:
+    raise SystemExit("release evidence bundle dry-run must surface signed URL split readiness")
+if split_evidence.get("retention_cleanup_ready") is not False:
+    raise SystemExit("release evidence bundle dry-run must keep retention cleanup readiness false")
 if report.get("legal_support_visibility_verified") is not False:
     raise SystemExit("release evidence bundle dry-run must keep legal/support visibility unverified")
 if report.get("legal_support_split_reports_verified") is not False:
@@ -1523,6 +1579,34 @@ if report.get("post_deploy_smoke_verified") is not False:
     raise SystemExit("complete-evidence release bundle must not verify runtime post-deploy smoke from dry-run evidence")
 if report.get("object_retention_cleanup_verified") is not False:
     raise SystemExit("complete-evidence release bundle must not verify object-retention cleanup from dry-run evidence")
+object_retention_probe = report.get("object_retention_cleanup_probe", {})
+if object_retention_probe.get("status") != "blocked":
+    raise SystemExit("complete-evidence release bundle must surface blocked object-retention cleanup status")
+if set(object_retention_probe.get("required_checks", [])) != {
+    "retention_policy",
+    "expired_export_cleanup",
+    "orphan_cleanup",
+    "audit_refs",
+}:
+    raise SystemExit("complete-evidence release bundle must surface object-retention required checks")
+runtime_requirements = object_retention_probe.get("runtime_input_requirements", {})
+if runtime_requirements.get("required_release_sha") != "d3b1107c33dc40b8936f28549e06553fbd7b104a":
+    raise SystemExit("complete-evidence release bundle must surface required object-retention release SHA")
+if runtime_requirements.get("required_base_url") != "STAGING_BASE_URL or explicit probe URL env vars":
+    raise SystemExit("complete-evidence release bundle must surface staging URL requirement for object-retention probe")
+if "ADMIN_BEARER_TOKEN or ADMIN_SESSION_COOKIE" not in runtime_requirements.get("required_auth", ""):
+    raise SystemExit("complete-evidence release bundle must surface admin auth requirement for object-retention probe")
+if "SMOKE_ADMIN_USER_ID" not in runtime_requirements.get("required_smoke_admin_user_id", ""):
+    raise SystemExit("complete-evidence release bundle must surface admin user requirement for object-retention probe")
+if "SMOKE_ADMIN_TENANT_ID" not in runtime_requirements.get("required_smoke_admin_tenant_id", ""):
+    raise SystemExit("complete-evidence release bundle must surface admin tenant requirement for object-retention probe")
+if runtime_requirements.get("canonical_pass_report") != "ops/evidence/staging/object-storage-retention-cleanup.json":
+    raise SystemExit("complete-evidence release bundle must surface canonical object-retention pass report path")
+split_evidence = object_retention_probe.get("split_evidence", {})
+if split_evidence.get("signed_url_ready") is not True:
+    raise SystemExit("complete-evidence release bundle must surface signed URL split readiness")
+if split_evidence.get("retention_cleanup_ready") is not False:
+    raise SystemExit("complete-evidence release bundle must keep retention cleanup readiness false")
 if report.get("legal_support_visibility_verified") is not False:
     raise SystemExit("complete-evidence release bundle must not verify legal/support visibility from dry-run evidence")
 if report.get("legal_support_split_reports_verified") is not False:

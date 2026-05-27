@@ -161,6 +161,9 @@ def load_probe(path: Path, exit_code: int) -> dict:
         "status": probe_status,
         "passed": exit_code == 0 and probe_status in {"pass", "passed"},
         "blocked_checks": data.get("blocked_checks", []),
+        "required_checks": data.get("required_checks", []),
+        "runtime_input_requirements": data.get("runtime_input_requirements", {}),
+        "split_evidence": data.get("split_evidence", {}),
         "gate_impact": data.get("gate_impact", {}),
     }
 
