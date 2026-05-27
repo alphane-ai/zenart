@@ -287,12 +287,24 @@ test("account route exposes secure-cookie, same-site CSRF, unsafe-action guard, 
     "data-csrf-ux-guard-contracts",
     "updateAccount:PATCH:/account:include:X-ZenArt-CSRF:true"
   );
+  await expect(saveSettings).toHaveAttribute(
+    "data-csrf-ux-guard-session-matrix",
+    "authenticated:enabled:none|expired:blocked:authenticated-session-required|signed_out:blocked:authenticated-session-required"
+  );
+  await expect(saveSettings).toHaveAttribute("data-csrf-ux-guard-session-matrix-status", "pass");
+  await expect(saveSettings).toHaveAttribute("data-csrf-ux-guard-current-session-state", "authenticated");
   await expect(saveSettings).toHaveAttribute("data-csrf-ux-guard-csrf-protected-operation-count", "1");
   await expect(saveSettings).toHaveAttribute("data-csrf-ux-guard-idempotency-required-operation-count", "1");
 
   const refreshSession = page.getByRole("button", { name: "Refresh Session" });
   await expect(refreshSession).toHaveAttribute("data-csrf-ux-guard-label", "Refresh Session");
   await expect(refreshSession).toHaveAttribute("data-csrf-ux-guard-contracts", "getSession:GET:/session:include:not-required:false");
+  await expect(refreshSession).toHaveAttribute(
+    "data-csrf-ux-guard-session-matrix",
+    "authenticated:enabled:none|expired:enabled:none|signed_out:blocked:authenticated-session-required"
+  );
+  await expect(refreshSession).toHaveAttribute("data-csrf-ux-guard-session-matrix-status", "pass");
+  await expect(refreshSession).toHaveAttribute("data-csrf-ux-guard-current-session-state", "authenticated");
   await expect(refreshSession).toHaveAttribute("data-csrf-ux-guard-csrf-protected-operation-count", "0");
 
   const expireSession = page.getByRole("button", { name: "Expire" });
@@ -320,12 +332,16 @@ test("account route exposes secure-cookie, same-site CSRF, unsafe-action guard, 
   await expect(page.getByRole("button", { name: "Refresh Session" })).toBeEnabled();
   await expect(page.getByRole("button", { name: "Refresh Session" })).toHaveAttribute("data-csrf-ux-guard-status", "enabled");
   await expect(page.getByRole("button", { name: "Refresh Session" })).toHaveAttribute("data-csrf-ux-guard-blocked-reason", "");
+  await expect(page.getByRole("button", { name: "Refresh Session" })).toHaveAttribute("data-csrf-ux-guard-session-matrix-status", "pass");
+  await expect(page.getByRole("button", { name: "Refresh Session" })).toHaveAttribute("data-csrf-ux-guard-current-session-state", "expired");
   await expect(page.getByRole("button", { name: "Save Settings" })).toBeDisabled();
   await expect(page.getByRole("button", { name: "Save Settings" })).toHaveAttribute("data-csrf-ux-guard-status", "blocked");
   await expect(page.getByRole("button", { name: "Save Settings" })).toHaveAttribute(
     "data-csrf-ux-guard-blocked-reason",
     "authenticated-session-required"
   );
+  await expect(page.getByRole("button", { name: "Save Settings" })).toHaveAttribute("data-csrf-ux-guard-session-matrix-status", "pass");
+  await expect(page.getByRole("button", { name: "Save Settings" })).toHaveAttribute("data-csrf-ux-guard-current-session-state", "expired");
   await expect(page.getByRole("button", { name: "Log Out" })).toBeDisabled();
   await expect(page.getByRole("button", { name: "Log Out" })).toHaveAttribute("data-csrf-ux-guard-status", "blocked");
 
@@ -362,5 +378,7 @@ test("account route exposes secure-cookie, same-site CSRF, unsafe-action guard, 
   await expect(sessionContract).toHaveAttribute("data-session-ux-state-current-recovery-labels", "");
   await expect(sessionContract).toHaveAttribute("data-session-ux-state-current-alert", "Signed out. Sign in to continue.");
   await expect(page.getByRole("button", { name: "Refresh Session" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Refresh Session" })).toHaveAttribute("data-csrf-ux-guard-current-session-state", "signed_out");
   await expect(page.getByRole("button", { name: "Save Settings" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Save Settings" })).toHaveAttribute("data-csrf-ux-guard-current-session-state", "signed_out");
 });

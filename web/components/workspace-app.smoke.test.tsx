@@ -212,6 +212,12 @@ describe("WorkspaceApp user route integration smoke", () => {
       "data-csrf-ux-guard-contracts",
       "updateAccount:PATCH:/account:include:X-ZenArt-CSRF:true"
     );
+    expect(saveSettings).toHaveAttribute(
+      "data-csrf-ux-guard-session-matrix",
+      "authenticated:enabled:none|expired:blocked:authenticated-session-required|signed_out:blocked:authenticated-session-required"
+    );
+    expect(saveSettings).toHaveAttribute("data-csrf-ux-guard-session-matrix-status", "pass");
+    expect(saveSettings).toHaveAttribute("data-csrf-ux-guard-current-session-state", "authenticated");
     expect(saveSettings).toHaveAttribute("data-csrf-ux-guard-csrf-protected-operation-count", "1");
     expect(saveSettings).toHaveAttribute("data-csrf-ux-guard-idempotency-required-operation-count", "1");
 
@@ -222,6 +228,12 @@ describe("WorkspaceApp user route integration smoke", () => {
       "data-csrf-ux-guard-contracts",
       "getSession:GET:/session:include:not-required:false"
     );
+    expect(refreshSession).toHaveAttribute(
+      "data-csrf-ux-guard-session-matrix",
+      "authenticated:enabled:none|expired:enabled:none|signed_out:blocked:authenticated-session-required"
+    );
+    expect(refreshSession).toHaveAttribute("data-csrf-ux-guard-session-matrix-status", "pass");
+    expect(refreshSession).toHaveAttribute("data-csrf-ux-guard-current-session-state", "authenticated");
     expect(refreshSession).toHaveAttribute("data-csrf-ux-guard-csrf-protected-operation-count", "0");
 
     const expireSession = screen.getByRole("button", { name: "Expire" });
@@ -264,12 +276,16 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(screen.getByRole("button", { name: "Refresh Session" })).not.toBeDisabled();
     expect(screen.getByRole("button", { name: "Refresh Session" })).toHaveAttribute("data-csrf-ux-guard-status", "enabled");
     expect(screen.getByRole("button", { name: "Refresh Session" })).toHaveAttribute("data-csrf-ux-guard-blocked-reason", "");
+    expect(screen.getByRole("button", { name: "Refresh Session" })).toHaveAttribute("data-csrf-ux-guard-session-matrix-status", "pass");
+    expect(screen.getByRole("button", { name: "Refresh Session" })).toHaveAttribute("data-csrf-ux-guard-current-session-state", "expired");
     expect(screen.getByRole("button", { name: "Save Settings" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Save Settings" })).toHaveAttribute("data-csrf-ux-guard-status", "blocked");
     expect(screen.getByRole("button", { name: "Save Settings" })).toHaveAttribute(
       "data-csrf-ux-guard-blocked-reason",
       "authenticated-session-required"
     );
+    expect(screen.getByRole("button", { name: "Save Settings" })).toHaveAttribute("data-csrf-ux-guard-session-matrix-status", "pass");
+    expect(screen.getByRole("button", { name: "Save Settings" })).toHaveAttribute("data-csrf-ux-guard-current-session-state", "expired");
     expect(screen.getByRole("button", { name: "Log Out" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Log Out" })).toHaveAttribute("data-csrf-ux-guard-status", "blocked");
 
@@ -314,7 +330,9 @@ describe("WorkspaceApp user route integration smoke", () => {
       "Signed out. Sign in to continue."
     );
     expect(screen.getByRole("button", { name: "Refresh Session" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Refresh Session" })).toHaveAttribute("data-csrf-ux-guard-current-session-state", "signed_out");
     expect(screen.getByRole("button", { name: "Save Settings" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Save Settings" })).toHaveAttribute("data-csrf-ux-guard-current-session-state", "signed_out");
   });
 
   it("guards project create and rename actions with the same-site session contract", async () => {

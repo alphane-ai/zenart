@@ -618,7 +618,10 @@ for (const requiredControlSnippet of [
   "data-csrf-ux-guard-status",
   "data-csrf-ux-guard-required-session-status",
   "data-csrf-ux-guard-blocked-reason",
-  "data-csrf-ux-guard-contracts"
+  "data-csrf-ux-guard-contracts",
+  "data-csrf-ux-guard-session-matrix",
+  "data-csrf-ux-guard-session-matrix-status",
+  "data-csrf-ux-guard-current-session-state"
 ]) {
   if (!workspaceAppSource.includes(requiredControlSnippet)) {
     fail(`workspace UI missing control-level CSRF guard snippet ${requiredControlSnippet}`);
@@ -637,9 +640,14 @@ for (const forbiddenUiCsrfShortcut of [
 if (
   sessionEvidence.unsafeActionGuard?.expectedGuardCoverageStatus !== "pass" ||
   sessionEvidence.unsafeActionGuard?.expectedMissingCsrfOperationCount !== "0" ||
-  sessionEvidence.unsafeActionGuard?.expectedMissingCsrfOperations !== ""
+  sessionEvidence.unsafeActionGuard?.expectedMissingCsrfOperations !== "" ||
+  sessionEvidence.unsafeActionGuard?.expectedControlSessionMatrixStatus !== "pass" ||
+  sessionEvidence.unsafeActionGuard?.expectedAuthenticatedControlMatrix !== "authenticated:enabled:none" ||
+  sessionEvidence.unsafeActionGuard?.expectedExpiredRefreshControlMatrix !== "expired:enabled:none" ||
+  sessionEvidence.unsafeActionGuard?.expectedExpiredBlockedControlMatrix !== "expired:blocked:authenticated-session-required" ||
+  sessionEvidence.unsafeActionGuard?.expectedSignedOutBlockedControlMatrix !== "signed_out:blocked:authenticated-session-required"
 ) {
-  fail("unsafe-action guard coverage must prove every generated unsafe operation is represented");
+  fail("unsafe-action guard coverage must prove every generated unsafe operation is represented and every guarded control exposes session-state behavior");
 }
 
 const sessionStateMatrix = sessionEvidence.unsafeActionGuard?.sessionStateMatrix;
@@ -722,6 +730,9 @@ for (const requiredTestSnippet of [
   "data-session-ux-state-current",
   "data-session-ux-state-current-blocked-count",
   "data-csrf-ux-guard-contracts",
+  "data-csrf-ux-guard-session-matrix",
+  "data-csrf-ux-guard-session-matrix-status",
+  "data-csrf-ux-guard-current-session-state",
   "data-csrf-ux-guard-blocked-reason",
   "data-generated-api-csrf-operation-contracts",
   "data-generated-api-csrf-safe-operation-contracts",
@@ -778,6 +789,9 @@ for (const requiredBrowserSnippet of [
   "data-csrf-ux-guard-contracts",
   "data-csrf-ux-guard-status",
   "data-csrf-ux-guard-required-session-status",
+  "data-csrf-ux-guard-session-matrix",
+  "data-csrf-ux-guard-session-matrix-status",
+  "data-csrf-ux-guard-current-session-state",
   "data-csrf-ux-guard-blocked-reason",
   "data-generated-api-csrf-unsafe-operations",
   "data-generated-api-csrf-operation-contracts",
@@ -814,6 +828,7 @@ if (
   sessionEvidence.unsafeActionGuard?.expectedExpiredBlockedControlCount !== "18" ||
   sessionEvidence.unsafeActionGuard?.expectedExpiredRecoveryLabels !== "Refresh Session" ||
   !workspaceAppSource.includes("expiredSessionRecoveryActionLabels") ||
+  !workspaceAppSource.includes("buildUnsafeActionControlSessionMatrix") ||
   !workspaceAppSource.includes("isExpiredSessionRecoveryAction") ||
   !workspaceAppSource.includes("generatedApiCsrfInventory.unsafeRequestContracts") ||
   !workspaceSmokeTestSource.includes("data-generated-api-csrf-browser-probe-unsafe-operation-count\", \"15\"") ||
@@ -835,6 +850,11 @@ if (
   !workspaceSmokeTestSource.includes("data-session-unsafe-action-blocked-control-count\", \"19\"") ||
   !workspaceSmokeTestSource.includes("data-session-ux-state-matrix-contract") ||
   !workspaceSmokeTestSource.includes("data-session-ux-state-current\", \"signed_out\"") ||
+  !workspaceSmokeTestSource.includes("authenticated:enabled:none|expired:blocked:authenticated-session-required|signed_out:blocked:authenticated-session-required") ||
+  !workspaceSmokeTestSource.includes("authenticated:enabled:none|expired:enabled:none|signed_out:blocked:authenticated-session-required") ||
+  !workspaceSmokeTestSource.includes("data-csrf-ux-guard-session-matrix-status\", \"pass\"") ||
+  !workspaceSmokeTestSource.includes("data-csrf-ux-guard-current-session-state\", \"expired\"") ||
+  !workspaceSmokeTestSource.includes("data-csrf-ux-guard-current-session-state\", \"signed_out\"") ||
   !workspaceSmokeTestSource.includes("expect(screen.getByRole(\"button\", { name: \"Refresh Session\" })).not.toBeDisabled()") ||
   !workspaceSmokeTestSource.includes("expect(screen.getByRole(\"button\", { name: \"Refresh Session\" })).toBeDisabled()") ||
   !workspaceSmokeTestSource.includes("expect(screen.getByRole(\"button\", { name: \"Log Out\" })).toBeDisabled()") ||
@@ -842,6 +862,11 @@ if (
   !sessionSecurityPlaywrightSpecSource.includes("data-session-unsafe-action-blocked-control-count\", \"19\"") ||
   !sessionSecurityPlaywrightSpecSource.includes("data-session-ux-state-matrix-contract") ||
   !sessionSecurityPlaywrightSpecSource.includes("data-session-ux-state-current\", \"signed_out\"") ||
+  !sessionSecurityPlaywrightSpecSource.includes("authenticated:enabled:none|expired:blocked:authenticated-session-required|signed_out:blocked:authenticated-session-required") ||
+  !sessionSecurityPlaywrightSpecSource.includes("authenticated:enabled:none|expired:enabled:none|signed_out:blocked:authenticated-session-required") ||
+  !sessionSecurityPlaywrightSpecSource.includes("data-csrf-ux-guard-session-matrix-status\", \"pass\"") ||
+  !sessionSecurityPlaywrightSpecSource.includes("data-csrf-ux-guard-current-session-state\", \"expired\"") ||
+  !sessionSecurityPlaywrightSpecSource.includes("data-csrf-ux-guard-current-session-state\", \"signed_out\"") ||
   !sessionSecurityPlaywrightSpecSource.includes("await expect(page.getByRole(\"button\", { name: \"Refresh Session\" })).toBeEnabled()") ||
   !sessionSecurityPlaywrightSpecSource.includes("await expect(page.getByRole(\"button\", { name: \"Refresh Session\" })).toBeDisabled()") ||
   !sessionSecurityPlaywrightSpecSource.includes("await expect(page.getByRole(\"button\", { name: \"Log Out\" })).toBeDisabled()")

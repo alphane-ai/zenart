@@ -280,11 +280,34 @@ const sessionGuardMatrixStatus =
 const isExpiredSessionRecoveryAction = (label: string) =>
   label === "session-refresh" || label === "Refresh Session";
 
+const buildUnsafeActionControlSessionMatrix = (label: UnsafeActionGuardLabel) => {
+  const entries = sessionGuardMatrixStates.map((sessionStatus) => {
+    const guardStatus = getUnsafeActionGuardStatusForSession(label, sessionStatus);
+    return {
+      sessionStatus,
+      status: guardStatus.status,
+      blockedReason: guardStatus.blockedReason || "none",
+      serialized: `${sessionStatus}:${guardStatus.status}:${guardStatus.blockedReason || "none"}`
+    };
+  });
+
+  return {
+    entries,
+    serialized: entries.map((entry) => entry.serialized).join("|")
+  };
+};
+
 const unsafeActionGuardAttributes = (label: UnsafeActionGuardLabel, state: WorkspaceState) => {
   const operationIds = sameSiteUnsafeActionGuardMap[label];
   const csrfProtectedOperationCount = operationIds.filter((operationId) => isCsrfProtectedMethod(apiOperations[operationId].method)).length;
   const idempotencyRequiredOperationCount = operationIds.filter((operationId) => apiOperations[operationId].idempotencyRequired).length;
   const guardStatus = getUnsafeActionGuardStatus(label, state);
+  const controlSessionMatrix = buildUnsafeActionControlSessionMatrix(label);
+  const currentMatrixEntry = controlSessionMatrix.entries.find((entry) => entry.sessionStatus === state.sessionContract.status);
+  const controlSessionMatrixStatus =
+    currentMatrixEntry?.status === guardStatus.status && currentMatrixEntry.blockedReason === (guardStatus.blockedReason || "none")
+      ? "pass"
+      : "fail";
 
   return {
     "data-csrf-ux-guard": "authenticated-same-site-session",
@@ -295,6 +318,9 @@ const unsafeActionGuardAttributes = (label: UnsafeActionGuardLabel, state: Works
     "data-csrf-ux-guard-operation-count": operationIds.length,
     "data-csrf-ux-guard-operations": operationIds.join(","),
     "data-csrf-ux-guard-contracts": formatUnsafeActionControlContracts(label),
+    "data-csrf-ux-guard-session-matrix": controlSessionMatrix.serialized,
+    "data-csrf-ux-guard-session-matrix-status": controlSessionMatrixStatus,
+    "data-csrf-ux-guard-current-session-state": state.sessionContract.status,
     "data-csrf-ux-guard-csrf-protected-operation-count": csrfProtectedOperationCount,
     "data-csrf-ux-guard-idempotency-required-operation-count": idempotencyRequiredOperationCount
   };
