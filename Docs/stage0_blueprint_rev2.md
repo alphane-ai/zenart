@@ -1772,6 +1772,7 @@ main 合并前必须通过：
 - [x] 创建 export completeness fixtures。
 - [x] 实现 eval runner。
 - [x] 存储 eval results。
+- [x] Eval result storage write/idempotency contract 通过：`fixtures/stage0/rev2/eval/eval_storage_contract.json` declares exact replay、same-key divergent replay、source fixture digest conflict、cross-tenant same-subject write cases, and `scripts/run_eval_storage_write_contract.py --check` validates the write conflict outcomes without rerunning eval。
 - [x] skill canary 前要求 eval pass。
 - [x] prompt fragment active 前要求 eval pass。
 - [x] 定义 QA result schema。

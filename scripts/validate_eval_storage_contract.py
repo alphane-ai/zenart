@@ -22,6 +22,7 @@ OPENAPI = ROOT / "openapi" / "zenart.v1.yaml"
 MIGRATION = ROOT / "backend" / "migrations" / "0002_stage0_rev2_domains.sql"
 RUNNER = ROOT / "scripts" / "run_stage0_eval.py"
 READ_RUNNER = ROOT / "scripts" / "run_eval_storage_read_contract.py"
+WRITE_RUNNER = ROOT / "scripts" / "run_eval_storage_write_contract.py"
 
 STORAGE_COLUMNS = {
     "id",
@@ -371,6 +372,24 @@ def validate_write_fixture_contract(contract: dict[str, Any]) -> None:
         },
         "eval write fixture mutation guards mismatch",
     )
+    require(
+        write["write_runner"] == "scripts/run_eval_storage_write_contract.py",
+        "eval write fixture runner mismatch",
+    )
+    require(
+        write["check_command"] == "python3 scripts/run_eval_storage_write_contract.py --check",
+        "eval write fixture check command mismatch",
+    )
+    require(WRITE_RUNNER.exists(), "eval storage write runner missing")
+    runner_text = WRITE_RUNNER.read_text(encoding="utf-8")
+    for token in [
+        "resolve_write_case",
+        "cross_tenant_insert_allowed",
+        "source_fixture_digest_conflict",
+        "divergent_replay_summary_conflict",
+        "exact_idempotent_replay",
+    ]:
+        require(token in runner_text, f"eval storage write runner missing {token}")
 
     required_cases = {
         "exact_replay_returns_existing_row",
@@ -488,6 +507,17 @@ def validate_write_fixture_contract(contract: dict[str, Any]) -> None:
             "reason": "cross_tenant_insert_allowed",
         },
         "cross-tenant write expected outcome mismatch",
+    )
+    check = subprocess.run(
+        [sys.executable, str(WRITE_RUNNER), "--check"],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    require(
+        check.returncode == 0,
+        "eval storage write runner failed: " + (check.stderr or check.stdout).strip(),
     )
 
 
@@ -624,6 +654,11 @@ def validate_write_and_replay_contract(contract: dict[str, Any]) -> None:
 
     require(write["runner"] == "scripts/run_stage0_eval.py", "write contract runner mismatch")
     require(write["write_command"] == "python3 scripts/run_stage0_eval.py --write", "write command mismatch")
+    require(write["write_runner"] == "scripts/run_eval_storage_write_contract.py", "write contract case runner mismatch")
+    require(
+        write["check_command"] == "python3 scripts/run_eval_storage_write_contract.py --check",
+        "write contract check command mismatch",
+    )
     require("--write" in runner_text and "RESULT_PATH.write_text" in runner_text, "runner must implement stored fixture writes")
     require(write["writes_stored_fixture"] is True, "write contract must persist stored fixture")
     require(write["persists_runner_sha256"] is True, "write contract must persist runner hash")

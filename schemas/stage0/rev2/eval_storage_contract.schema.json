@@ -187,6 +187,8 @@
         "runner",
         "write_command",
         "writes_stored_fixture",
+        "write_runner",
+        "check_command",
         "persists_runner_sha256",
         "persists_completed_at",
         "persists_subject_version",
@@ -202,6 +204,12 @@
         },
         "writes_stored_fixture": {
           "const": true
+        },
+        "write_runner": {
+          "const": "scripts/run_eval_storage_write_contract.py"
+        },
+        "check_command": {
+          "const": "python3 scripts/run_eval_storage_write_contract.py --check"
         },
         "persists_runner_sha256": {
           "const": true

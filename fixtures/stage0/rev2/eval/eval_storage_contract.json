@@ -81,6 +81,8 @@
     "runner": "scripts/run_stage0_eval.py",
     "write_command": "python3 scripts/run_stage0_eval.py --write",
     "writes_stored_fixture": true,
+    "write_runner": "scripts/run_eval_storage_write_contract.py",
+    "check_command": "python3 scripts/run_eval_storage_write_contract.py --check",
     "persists_runner_sha256": true,
     "persists_completed_at": true,
     "persists_subject_version": true,
