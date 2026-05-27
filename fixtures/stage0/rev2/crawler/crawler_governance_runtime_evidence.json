@@ -199,6 +199,27 @@
       "evidence_gate": "missing_required_evidence",
       "deadline_gate": "expired_requires_escalation",
       "activation_gate": "blocked",
+      "admin_session_scope": "admin_session_cookie_csrf",
+      "request_attempt_ref": "crawler-action:cg-501:cf-118:au-012",
+      "idempotency_key": "crawler-action:source_takedown:cg-501:cf-118:au-012",
+      "request_state_digest": "cg-501|cf-118|source_takedown|evidence_review|blocked|active|required|pending-raw-derivative-delete-cs-21|pending-rights-owner-notice-ip-7001|pending-deadline-escalation-cg-501|au-012",
+      "stale_replay_outcome": "deny_423_governance_blocked",
+      "request_audit_order": "validate_session_then_digest_then_audit_then_mutation",
+      "request_evidence_refs": [
+        "cf-118",
+        "rv-crawler-118",
+        "au-012",
+        "crawler-action:cg-501:cf-118:au-012",
+        "crawler-action:source_takedown:cg-501:cf-118:au-012",
+        "cg-501|cf-118|source_takedown|evidence_review|blocked|active|required|pending-raw-derivative-delete-cs-21|pending-rights-owner-notice-ip-7001|pending-deadline-escalation-cg-501|au-012",
+        "crawler-source cs-21",
+        "ip-7001",
+        "pending-raw-derivative-delete-cs-21",
+        "pending-rights-owner-notice-ip-7001",
+        "pending-deadline-escalation-cg-501",
+        "fixtures/stage0/rev2/regressions/crawler_takedown_sup_2212.json",
+        "fixtures/stage0/rev2/regressions/failed_task_cancel_task_crawler_019.json"
+      ],
       "regression_fixture_refs": [
         "fixtures/stage0/rev2/regressions/crawler_takedown_sup_2212.json",
         "fixtures/stage0/rev2/regressions/failed_task_cancel_task_crawler_019.json"
@@ -230,6 +251,23 @@
       "evidence_gate": "pass",
       "deadline_gate": "pass",
       "activation_gate": "pass",
+      "admin_session_scope": "admin_session_cookie_csrf",
+      "request_attempt_ref": "crawler-action:cg-522:cf-122:au-013",
+      "idempotency_key": "crawler-action:derivative_review:cg-522:cf-122:au-013",
+      "request_state_digest": "cg-522|cf-122|derivative_review|approved|allowed|cleared|not_required|not_required_retention_limited|notice-legal-fixture-reviewer-cg-522|not_required_deadline_clear|au-013",
+      "stale_replay_outcome": "deny_409_stale_digest",
+      "request_audit_order": "validate_session_then_digest_then_audit_then_mutation",
+      "request_evidence_refs": [
+        "cf-122",
+        "rv-crawler-122",
+        "au-013",
+        "crawler-action:cg-522:cf-122:au-013",
+        "crawler-action:derivative_review:cg-522:cf-122:au-013",
+        "cg-522|cf-122|derivative_review|approved|allowed|cleared|not_required|not_required_retention_limited|notice-legal-fixture-reviewer-cg-522|not_required_deadline_clear|au-013",
+        "crawler-governance/crawler_approved_local_test_source",
+        "notice-legal-fixture-reviewer-cg-522",
+        "fixtures/stage0/rev2/regressions/crawler_derivative_review_cg_522.json"
+      ],
       "regression_fixture_refs": [
         "fixtures/stage0/rev2/regressions/crawler_derivative_review_cg_522.json"
       ],
@@ -252,6 +290,24 @@
       "evidence_gate": "missing_required_evidence",
       "deadline_gate": "pass",
       "activation_gate": "blocked",
+      "admin_session_scope": "admin_session_cookie_csrf",
+      "request_attempt_ref": "crawler-action:cg-533:cf-104:au-014",
+      "idempotency_key": "crawler-action:raw_retention_delete:cg-533:cf-104:au-014",
+      "request_state_digest": "cg-533|cf-104|raw_retention_delete|intake|blocked|scheduled|not_required|pending-raw-delete-cs-18|pending-crawler-ops-notice-cg-533|not_required_within_window|au-014",
+      "stale_replay_outcome": "deny_423_governance_blocked",
+      "request_audit_order": "validate_session_then_digest_then_audit_then_mutation",
+      "request_evidence_refs": [
+        "cf-104",
+        "rv-crawler-104",
+        "au-014",
+        "crawler-action:cg-533:cf-104:au-014",
+        "crawler-action:raw_retention_delete:cg-533:cf-104:au-014",
+        "cg-533|cf-104|raw_retention_delete|intake|blocked|scheduled|not_required|pending-raw-delete-cs-18|pending-crawler-ops-notice-cg-533|not_required_within_window|au-014",
+        "crawler-source cs-18",
+        "pending-raw-delete-cs-18",
+        "pending-crawler-ops-notice-cg-533",
+        "fixtures/stage0/rev2/regressions/failed_task_cancel_task_crawler_019.json"
+      ],
       "regression_fixture_refs": [
         "fixtures/stage0/rev2/regressions/failed_task_cancel_task_crawler_019.json"
       ],

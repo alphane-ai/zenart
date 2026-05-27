@@ -1237,6 +1237,14 @@ test("admin routes surface governance evidence", () => {
   assert.match(crawlerPage, /Operator Next Action/);
   assert.match(crawlerPage, /Closure Criteria/);
   assert.match(crawlerPage, /Review Rationale/);
+  assert.match(crawlerPage, /Crawler Admin Action Contracts/);
+  assert.match(crawlerPage, /Admin Session Scope/);
+  assert.match(crawlerPage, /Request Attempt Ref/);
+  assert.match(crawlerPage, /Idempotency Key/);
+  assert.match(crawlerPage, /Request State Digest/);
+  assert.match(crawlerPage, /Stale Replay Outcome/);
+  assert.match(crawlerPage, /Request Audit Order/);
+  assert.match(crawlerPage, /Request Evidence Refs/);
   assert.match(crawlerPage, /Audit Ref/);
 
   const quotaPage = readFileSync(

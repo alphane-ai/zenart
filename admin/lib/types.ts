@@ -240,6 +240,13 @@ export type CrawlerGovernanceAdminActionContract = {
   evidenceGate: "pass" | "missing_required_evidence";
   deadlineGate: "pass" | "expired_requires_escalation";
   activationGate: "pass" | "blocked";
+  adminSessionScope: "admin_session_cookie_csrf";
+  requestAttemptRef: string;
+  idempotencyKey: string;
+  requestStateDigest: string;
+  staleReplayOutcome: "deny_409_stale_digest" | "deny_423_governance_blocked";
+  requestAuditOrder: "validate_session_then_digest_then_audit_then_mutation";
+  requestEvidenceRefs: string[];
   supportVisibleMessage: string;
   regressionFixtureRefs: string[];
   regressionFixtureInventoryStatus: "declared" | "missing" | "unverified";

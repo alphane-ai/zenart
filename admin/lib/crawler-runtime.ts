@@ -261,6 +261,30 @@ function workflowRegressionFixtureRefs(workflow: CrawlerGovernanceWorkflow) {
   return ["fixtures/stage0/rev2/regressions/failed_task_cancel_task_crawler_019.json"];
 }
 
+function workflowRequestAttemptRef(workflow: CrawlerGovernanceWorkflow) {
+  return `crawler-action:${workflow.id}:${workflow.findingId}:${workflow.auditRef}`;
+}
+
+function workflowIdempotencyKey(workflow: CrawlerGovernanceWorkflow) {
+  return `crawler-action:${workflow.requestType}:${workflow.id}:${workflow.findingId}:${workflow.auditRef}`;
+}
+
+function workflowStateDigest(workflow: CrawlerGovernanceWorkflow) {
+  return [
+    workflow.id,
+    workflow.findingId,
+    workflow.requestType,
+    workflow.status,
+    workflow.activationGateDecision,
+    workflow.quarantineStatus,
+    workflow.secondReviewStatus,
+    workflow.deletionEvidenceRef,
+    workflow.requesterNoticeRef,
+    workflow.escalationEvidenceRef,
+    workflow.auditRef
+  ].join("|");
+}
+
 export function buildCrawlerGovernanceAdminActionContracts(
   workflows: CrawlerGovernanceWorkflow[],
   decisions: CrawlerGovernanceRuntimeDecision[],
@@ -324,8 +348,20 @@ export function buildCrawlerGovernanceAdminActionContracts(
         : workflow.quarantineStatus === "scheduled"
           ? "keep_scheduled"
           : "keep_active";
+    const requestEvidenceRefs = [...new Set([
+      workflow.findingId,
+      workflow.linkedReview,
+      workflow.auditRef,
+      workflowRequestAttemptRef(workflow),
+      workflowIdempotencyKey(workflow),
+      workflowStateDigest(workflow),
+      ...workflow.requiredEvidenceRefs,
+      ...regressionFixtureRefs
+    ])];
     const releaseEvidenceDisposition =
       allowedMutation ? "can_cite_release_evidence" : "preserve_blocker";
+    const staleReplayOutcome =
+      allowedMutation ? "deny_409_stale_digest" : "deny_423_governance_blocked";
     const supportVisibleMessage =
       allowedMutation
         ? `Crawler governance workflow ${workflow.id} is ready for admin mutation after audit ${workflow.auditRef}; preserve provenance, bounded retention, requester notice, and exact-text stripping in any crawler-derived activation.`
@@ -346,6 +382,13 @@ export function buildCrawlerGovernanceAdminActionContracts(
       evidenceGate,
       deadlineGate,
       activationGate,
+      adminSessionScope: "admin_session_cookie_csrf",
+      requestAttemptRef: workflowRequestAttemptRef(workflow),
+      idempotencyKey: workflowIdempotencyKey(workflow),
+      requestStateDigest: workflowStateDigest(workflow),
+      staleReplayOutcome,
+      requestAuditOrder: "validate_session_then_digest_then_audit_then_mutation",
+      requestEvidenceRefs,
       supportVisibleMessage,
       regressionFixtureRefs,
       regressionFixtureInventoryStatus,

@@ -368,6 +368,9 @@ const parseCrawlerRuntime = () => {
     .replaceAll(/function workflowEndpointScope\(workflow: CrawlerGovernanceWorkflow\): CrawlerGovernanceAdminActionContract\["endpointScope"\]/g, "function workflowEndpointScope(workflow)")
     .replaceAll(/function workflowMutation\(workflow: CrawlerGovernanceWorkflow\): CrawlerGovernanceAdminActionContract\["requestedMutation"\]/g, "function workflowMutation(workflow)")
     .replaceAll(/function workflowRegressionFixtureRefs\(workflow: CrawlerGovernanceWorkflow\)/g, "function workflowRegressionFixtureRefs(workflow)")
+    .replaceAll(/function workflowRequestAttemptRef\(workflow: CrawlerGovernanceWorkflow\)/g, "function workflowRequestAttemptRef(workflow)")
+    .replaceAll(/function workflowIdempotencyKey\(workflow: CrawlerGovernanceWorkflow\)/g, "function workflowIdempotencyKey(workflow)")
+    .replaceAll(/function workflowStateDigest\(workflow: CrawlerGovernanceWorkflow\)/g, "function workflowStateDigest(workflow)")
     .replaceAll(/: CrawlerGovernanceRuntimeDecision\[\]/g, "")
     .replaceAll(/: CrawlerGovernanceClosureSummary\[\]/g, "")
     .replaceAll(/: CrawlerGovernanceAdminActionContract\[\]/g, "")
@@ -7991,6 +7994,16 @@ test("crawler admin action contracts bind mutations to governance runtime gates"
   assert.equal(takedownEvidence.deadline_gate, takedownContract.deadlineGate);
   assert.equal(takedownContract.activationGate, "blocked");
   assert.equal(takedownEvidence.activation_gate, takedownContract.activationGate);
+  assert.equal(takedownContract.adminSessionScope, "admin_session_cookie_csrf");
+  assert.equal(takedownEvidence.admin_session_scope, takedownContract.adminSessionScope);
+  assert.equal(takedownEvidence.request_attempt_ref, takedownContract.requestAttemptRef);
+  assert.equal(takedownEvidence.idempotency_key, takedownContract.idempotencyKey);
+  assert.equal(takedownEvidence.request_state_digest, takedownContract.requestStateDigest);
+  assert.equal(takedownEvidence.stale_replay_outcome, "deny_423_governance_blocked");
+  assert.equal(takedownEvidence.stale_replay_outcome, takedownContract.staleReplayOutcome);
+  assert.equal(takedownEvidence.request_audit_order, "validate_session_then_digest_then_audit_then_mutation");
+  assert.equal(takedownEvidence.request_audit_order, takedownContract.requestAuditOrder);
+  assert.deepEqual(takedownEvidence.request_evidence_refs, takedownContract.requestEvidenceRefs);
   assert.equal(takedownContract.releaseEvidenceDisposition, "preserve_blocker");
   assert.equal(takedownContract.releaseEvidenceDisposition, takedownFixture.runtime_contract.admin_action_release_evidence_disposition);
   assert.equal(takedownEvidence.release_evidence_disposition, takedownContract.releaseEvidenceDisposition);
@@ -8037,6 +8050,16 @@ test("crawler admin action contracts bind mutations to governance runtime gates"
   assert.equal(derivativeEvidence.deadline_gate, derivativeContract.deadlineGate);
   assert.equal(derivativeContract.activationGate, "pass");
   assert.equal(derivativeEvidence.activation_gate, derivativeContract.activationGate);
+  assert.equal(derivativeContract.adminSessionScope, "admin_session_cookie_csrf");
+  assert.equal(derivativeEvidence.admin_session_scope, derivativeContract.adminSessionScope);
+  assert.equal(derivativeEvidence.request_attempt_ref, derivativeContract.requestAttemptRef);
+  assert.equal(derivativeEvidence.idempotency_key, derivativeContract.idempotencyKey);
+  assert.equal(derivativeEvidence.request_state_digest, derivativeContract.requestStateDigest);
+  assert.equal(derivativeEvidence.stale_replay_outcome, "deny_409_stale_digest");
+  assert.equal(derivativeEvidence.stale_replay_outcome, derivativeContract.staleReplayOutcome);
+  assert.equal(derivativeEvidence.request_audit_order, "validate_session_then_digest_then_audit_then_mutation");
+  assert.equal(derivativeEvidence.request_audit_order, derivativeContract.requestAuditOrder);
+  assert.deepEqual(derivativeEvidence.request_evidence_refs, derivativeContract.requestEvidenceRefs);
   assert.equal(derivativeContract.releaseEvidenceDisposition, "can_cite_release_evidence");
   assert.equal(derivativeContract.releaseEvidenceDisposition, derivativeFixture.runtime_contract.admin_action_release_evidence_disposition);
   assert.equal(derivativeEvidence.release_evidence_disposition, derivativeContract.releaseEvidenceDisposition);
@@ -8067,6 +8090,13 @@ test("crawler admin action contracts bind mutations to governance runtime gates"
   assert.equal(retentionContract.evidenceGate, "missing_required_evidence");
   assert.equal(retentionContract.deadlineGate, "pass");
   assert.equal(retentionContract.releaseEvidenceDisposition, "preserve_blocker");
+  assert.equal(retentionEvidence.admin_session_scope, retentionContract.adminSessionScope);
+  assert.equal(retentionEvidence.request_attempt_ref, retentionContract.requestAttemptRef);
+  assert.equal(retentionEvidence.idempotency_key, retentionContract.idempotencyKey);
+  assert.equal(retentionEvidence.request_state_digest, retentionContract.requestStateDigest);
+  assert.equal(retentionEvidence.stale_replay_outcome, retentionContract.staleReplayOutcome);
+  assert.equal(retentionEvidence.request_audit_order, retentionContract.requestAuditOrder);
+  assert.deepEqual(retentionEvidence.request_evidence_refs, retentionContract.requestEvidenceRefs);
   assert.equal(retentionContract.regressionFixtureInventoryStatus, "declared");
   assert.equal(retentionContract.regressionFixtureGate, "pass");
   assert.deepEqual(retentionEvidence.blocker_codes, retentionContract.blockerCodes);
@@ -8084,6 +8114,26 @@ test("crawler admin action contracts bind mutations to governance runtime gates"
     assert.equal(contract.auditRef, workflow.auditRef, `${contract.workflowId} preserves audit ref`);
     assert.equal(evidence.audit_ref, contract.auditRef, `${contract.workflowId} durable evidence preserves audit ref`);
     assert.deepEqual(evidence.blocker_codes, contract.blockerCodes, `${contract.workflowId} durable evidence matches blockers`);
+    assert.match(contract.requestAttemptRef, new RegExp(`^crawler-action:${contract.workflowId}:${contract.findingId}:${contract.auditRef}$`), `${contract.workflowId} attempt ref binds workflow, finding, and audit`);
+    assert.match(contract.idempotencyKey, new RegExp(`^crawler-action:${contract.requestType}:${contract.workflowId}:${contract.findingId}:${contract.auditRef}$`), `${contract.workflowId} idempotency key binds request type and audit`);
+    assert.ok(contract.requestStateDigest.includes(contract.workflowId), `${contract.workflowId} state digest binds workflow id`);
+    assert.ok(contract.requestStateDigest.includes(workflow.quarantineStatus), `${contract.workflowId} state digest binds quarantine state`);
+    assert.ok(contract.requestStateDigest.includes(workflow.secondReviewStatus), `${contract.workflowId} state digest binds second review state`);
+    assert.ok(contract.requestStateDigest.includes(workflow.auditRef), `${contract.workflowId} state digest binds audit ref`);
+    assert.equal(evidence.admin_session_scope, "admin_session_cookie_csrf", `${contract.workflowId} durable evidence requires admin session cookie CSRF scope`);
+    assert.equal(evidence.request_attempt_ref, contract.requestAttemptRef, `${contract.workflowId} durable evidence preserves attempt ref`);
+    assert.equal(evidence.idempotency_key, contract.idempotencyKey, `${contract.workflowId} durable evidence preserves idempotency key`);
+    assert.equal(evidence.request_state_digest, contract.requestStateDigest, `${contract.workflowId} durable evidence preserves request state digest`);
+    assert.equal(evidence.request_audit_order, "validate_session_then_digest_then_audit_then_mutation", `${contract.workflowId} durable evidence preserves audit order`);
+    assert.deepEqual(evidence.request_evidence_refs, contract.requestEvidenceRefs, `${contract.workflowId} durable evidence preserves request evidence refs`);
+    assert.ok(contract.requestEvidenceRefs.includes(contract.requestAttemptRef), `${contract.workflowId} request evidence includes attempt ref`);
+    assert.ok(contract.requestEvidenceRefs.includes(contract.idempotencyKey), `${contract.workflowId} request evidence includes idempotency key`);
+    assert.ok(contract.requestEvidenceRefs.includes(contract.requestStateDigest), `${contract.workflowId} request evidence includes state digest`);
+    assert.ok(contract.requestEvidenceRefs.includes(workflow.auditRef), `${contract.workflowId} request evidence includes audit ref`);
+    assert.ok(
+      contract.regressionFixtureRefs.every((ref) => contract.requestEvidenceRefs.includes(ref)),
+      `${contract.workflowId} request evidence includes regression fixture refs`
+    );
     assert.ok(contract.supportVisibleMessage.length > 150, `${contract.workflowId} needs support-visible action message`);
     assert.ok(contract.regressionFixtureRefs.length > 0, `${contract.workflowId} must cite regression fixtures`);
     assert.ok(
@@ -8101,10 +8151,12 @@ test("crawler admin action contracts bind mutations to governance runtime gates"
       assert.equal(decision.closureDecision, "ready_to_close", `${contract.workflowId} allowed mutation needs closure ready`);
       assert.equal(decision.activationDecision, "allow_activation", `${contract.workflowId} allowed mutation needs activation allow`);
       assert.equal(contract.httpOutcome.startsWith("200"), true, `${contract.workflowId} allowed mutation needs 200 outcome`);
+      assert.equal(contract.staleReplayOutcome, "deny_409_stale_digest", `${contract.workflowId} allowed mutation denies stale digest replay`);
       assert.equal(contract.releaseEvidenceDisposition, "can_cite_release_evidence", `${contract.workflowId} allowed mutation may cite release evidence`);
       assert.deepEqual(contract.blockerCodes, [], `${contract.workflowId} allowed mutation cannot preserve blockers`);
     } else {
       assert.equal(contract.httpOutcome, "423_governance_blocked", `${contract.workflowId} blocked mutation needs 423 outcome`);
+      assert.equal(contract.staleReplayOutcome, "deny_423_governance_blocked", `${contract.workflowId} blocked mutation keeps replay blocked with governance status`);
       assert.equal(contract.activationGate, "blocked", `${contract.workflowId} blocked mutation must keep activation blocked`);
       assert.equal(contract.releaseEvidenceDisposition, "preserve_blocker", `${contract.workflowId} blocked mutation preserves release blocker`);
       assert.ok(contract.blockerCodes.length > 0, `${contract.workflowId} blocked mutation needs blocker codes`);
