@@ -141,6 +141,7 @@ var secretValuePatterns = []struct {
 
 var assignmentPattern = regexp.MustCompile(`(?i)\b([A-Za-z0-9_.-]*(?:secret|token|password|passwd|pwd|passphrase|api[_-]?key|x[_-]?api[_-]?key|access[_-]?key|private[_-]?key|private[_-]?token|deploy[_-]?key|credential|signature|session|cookie|authorization|proxy[_-]?authorization|client[_-]?secret|client[_-]?token|client[_-]?assertion|refresh[_-]?token|personal[_-]?access[_-]?token|license[_-]?key|webhook[_-]?secret|signing[_-]?key|shared[_-]?access[_-]?signature|database[_-]?url|redis[_-]?url|smtp[_-]?url|smtp[_-]?dsn|smtp[_-]?connection|elasticsearch[_-]?url|opensearch[_-]?url|elastic[_-]?cloud[_-]?auth|clickhouse[_-]?url|dsn|connection[_-]?string|connectionstring|service[_-]?account|storage[_-]?key|account[_-]?key|subscription[_-]?key|tenant[_-]?secret|object[_-]?storage[_-]?signing[_-]?key|object[_-]?storage[_-]?access[_-]?key|object[_-]?storage[_-]?secret[_-]?key|aws[_-]?secret[_-]?access[_-]?key|aws[_-]?session[_-]?token|s3[_-]?secret[_-]?key|minio[_-]?root[_-]?password|minio[_-]?secret[_-]?key|r2[_-]?access|r2[_-]?secret|wasabi[_-]?access|wasabi[_-]?secret|scw[_-]?access|scw[_-]?secret|scaleway[_-]?access|scaleway[_-]?secret|vultr[_-]?access|vultr[_-]?secret|linode[_-]?access|linode[_-]?secret|oci[_-]?access|oci[_-]?secret|oci[_-]?private|oracle[_-]?access|oracle[_-]?secret|oracle[_-]?private|encryption[_-]?customer[_-]?key|customer[_-]?encryption[_-]?key|sse[_-]?customer[_-]?key|dockerconfigjson|dockercfg|image[_-]?pull[_-]?secret)[A-Za-z0-9_.-]*)\s*([=:])\s*("[^"]*"|'[^']*'|[^\s,;&]+)`)
 var launchSecretAssignmentPattern = regexp.MustCompile(`(?i)\b([A-Za-z0-9_.-]*(?:honeycomb|new[_-]?relic|splunk|grafana|otel|otlp|terraform|snyk|circleci|buildkite|okta|langfuse|braintrust|helicone|openpipe|promptlayer|portkey|wandb|weights[_-]?biases|weave|arize[_-]?phoenix|x[_-]?honeycomb[_-]?team|x[_-]?sf[_-]?token)[A-Za-z0-9_.-]*)\s*([=:])\s*("[^"]*"|'[^']*'|[^\s,;&]+)`)
+var signedDeliveryAssignmentPattern = regexp.MustCompile(`(?i)\b([A-Za-z0-9_.-]*(?:cloudfront[_-]?(?:signature|policy|expires|key[_-]?pair[_-]?id)|key[_-]?pair[_-]?id|edge[_-]?auth|akamai[_-]?signature|hdnts|hdntl|__token__|cloud[_-]?cdn[_-]?(?:signature|policy|expires|key[_-]?name|url[_-]?prefix)|url[_-]?prefix|key[_-]?name|signed[_-]?(?:cookie|policy|signature)|cdn[_-]?(?:policy|signature|token)|cf[_-]?authorization|cloudflare[_-]?access[_-]?jwt[_-]?assertion)[A-Za-z0-9_.-]*)\s*([=:])\s*("[^"]*"|'[^']*'|[^\s,;&]+)`)
 var embeddedURLPattern = regexp.MustCompile(`[A-Za-z][A-Za-z0-9+.-]*://[^\s"'<>]+`)
 
 type MalwareScanStatus string
@@ -456,6 +457,13 @@ func ClassifyString(value string) []SecretFinding {
 		}
 	}
 	for _, match := range launchSecretAssignmentPattern.FindAllStringSubmatch(value, -1) {
+		for _, keyFinding := range ClassifyKey(match[1]) {
+			keyFinding.Signal = "assignment:" + keyFinding.Signal
+			findings = append(findings, keyFinding)
+		}
+	}
+	for _, match := range signedDeliveryAssignmentPattern.FindAllStringSubmatch(value, -1) {
+		findings = append(findings, SecretFinding{Kind: SecretKindSignedURL, Signal: "signed_delivery_assignment"})
 		for _, keyFinding := range ClassifyKey(match[1]) {
 			keyFinding.Signal = "assignment:" + keyFinding.Signal
 			findings = append(findings, keyFinding)
@@ -818,7 +826,8 @@ func redactAuthorizationAssignments(value string) string {
 
 func redactAssignments(value string) string {
 	value = redactAssignmentMatches(value, assignmentPattern)
-	return redactAssignmentMatches(value, launchSecretAssignmentPattern)
+	value = redactAssignmentMatches(value, launchSecretAssignmentPattern)
+	return redactAssignmentMatches(value, signedDeliveryAssignmentPattern)
 }
 
 func redactAssignmentMatches(value string, pattern *regexp.Regexp) string {
@@ -910,6 +919,10 @@ func isSignedURLQueryKey(key string) bool {
 		"x-bz-info-authorization", "x-bz-security-token", "authorization", "accesskeyid",
 		"awsaccesskeyid", "signature", "sig", "token", "access-token", "download-token", "oauth-token",
 		"__token__", "hdnts", "hdntl", "edge-auth", "akamai-signature",
+		"cloud-cdn-signature", "cloud-cdn-policy", "cloud-cdn-expires", "cloud-cdn-key-name",
+		"cloud-cdn-url-prefix", "url-prefix", "urlprefix", "key-name", "keyname", "signed-cookie", "signed-policy",
+		"signed-signature", "cdn-policy", "cdn-signature", "cdn-token", "cf-authorization",
+		"cloudflare-access-jwt-assertion",
 		"expires", "policy", "key-pair-id", "cloudfront-signature", "cloudfront-policy", "cloudfront-key-pair-id",
 		"st", "se", "sp", "sip", "spr", "sr", "sv", "si", "ses", "sdd", "saoid", "suoid", "scid",
 		"skoid", "sktid", "skt", "ske", "sks", "skv":
@@ -948,7 +961,11 @@ func isSignedURLContextKey(key string) bool {
 	}
 	switch normalized {
 	case "awsaccesskeyid", "googleaccessid", "ossaccesskeyid", "signature", "sig", "security-token", "accesskeyid",
-		"__token__", "hdnts", "hdntl", "edge-auth", "akamai-signature":
+		"__token__", "hdnts", "hdntl", "edge-auth", "akamai-signature",
+		"cloud-cdn-signature", "cloud-cdn-policy", "cloud-cdn-expires", "cloud-cdn-key-name",
+		"cloud-cdn-url-prefix", "url-prefix", "urlprefix", "key-name", "keyname", "signed-cookie", "signed-policy",
+		"signed-signature", "cdn-policy", "cdn-signature", "cdn-token", "cf-authorization",
+		"cloudflare-access-jwt-assertion":
 		return true
 	default:
 		return false
@@ -973,7 +990,11 @@ func isStructuredSignedURLSecretKey(key string) bool {
 		"q-key-time", "q-header-list", "q-url-param-list", "q-signature",
 		"x-bz-info-authorization", "x-bz-security-token", "authorization", "accesskeyid",
 		"awsaccesskeyid", "cloudfront-signature", "cloudfront-policy", "cloudfront-key-pair-id",
-		"__token__", "hdnts", "hdntl", "edge-auth", "akamai-signature":
+		"__token__", "hdnts", "hdntl", "edge-auth", "akamai-signature",
+		"cloud-cdn-signature", "cloud-cdn-policy", "cloud-cdn-expires", "cloud-cdn-key-name",
+		"cloud-cdn-url-prefix", "url-prefix", "urlprefix", "key-name", "keyname", "signed-cookie", "signed-policy",
+		"signed-signature", "cdn-policy", "cdn-signature", "cdn-token", "cf-authorization",
+		"cloudflare-access-jwt-assertion":
 		return true
 	default:
 		return isAzureSASKey(normalized)

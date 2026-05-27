@@ -723,6 +723,48 @@ func TestRedactStringCoversS3CompatibleProviderAliasesAndEdgeTokens(t *testing.T
 	assertSignal(t, findings, "assignment:key_name")
 }
 
+func TestRedactStringCoversSignedDeliveryCookieAndHeaderAssignments(t *testing.T) {
+	input := strings.Join([]string{
+		"CloudFront-Signature=cf-cookie-signature",
+		"CloudFront-Policy=cf-cookie-policy",
+		"CloudFront-Key-Pair-Id=cf-cookie-keypair",
+		"Cloud-CDN-Signature=gcp-cdn-signature",
+		"Cloud-CDN-Policy=gcp-cdn-policy",
+		"Cloud-CDN-Key-Name=gcp-key-name",
+		"URLPrefix=gcp-url-prefix",
+		"KeyName=gcp-key-name-legacy",
+		"CDN-Token=generic-cdn-token",
+		"CF-Authorization=cloudflare-signed-token",
+		"Cloudflare-Access-Jwt-Assertion=cf-access-jwt",
+		"response-content-type=application/zip",
+	}, " ")
+
+	got := RedactString(input)
+	for _, leaked := range []string{
+		"cf-cookie-signature",
+		"cf-cookie-policy",
+		"cf-cookie-keypair",
+		"gcp-cdn-signature",
+		"gcp-cdn-policy",
+		"gcp-key-name",
+		"gcp-url-prefix",
+		"gcp-key-name-legacy",
+		"generic-cdn-token",
+		"cloudflare-signed-token",
+		"cf-access-jwt",
+	} {
+		if strings.Contains(got, leaked) {
+			t.Fatalf("RedactString() = %q, leaked %s", got, leaked)
+		}
+	}
+	if !strings.Contains(got, "response-content-type=application/zip") || !strings.Contains(got, Redacted) {
+		t.Fatalf("RedactString() = %q, want public response override preserved and delivery secrets redacted", got)
+	}
+
+	findings := ClassifyString(input)
+	assertSignal(t, findings, "signed_delivery_assignment")
+}
+
 func TestRedactMapCoversS3CompatibleObjectStorageConfigMetadata(t *testing.T) {
 	metadata := map[string]any{
 		"object_storage": map[string]any{
@@ -1514,6 +1556,16 @@ func TestRedactValueCoversStructuredSignedURLMetadataMaps(t *testing.T) {
 			"q-signature":           "cos-signature",
 			"response-content-type": "application/zip",
 		},
+		"edge": map[string]string{
+			"Cloud-CDN-Signature":             "gcp-cdn-signature",
+			"Cloud-CDN-Policy":                "gcp-cdn-policy",
+			"Cloud-CDN-Key-Name":              "gcp-key-name",
+			"URLPrefix":                       "gcp-url-prefix",
+			"CDN-Token":                       "generic-cdn-token",
+			"CF-Authorization":                "cloudflare-signed-token",
+			"Cloudflare-Access-Jwt-Assertion": "cf-access-jwt",
+			"response-content-disposition":    "attachment",
+		},
 		"public": map[string]any{
 			"expires": "visible-business-expiry",
 			"policy":  "public-export-policy-name",
@@ -1544,6 +1596,13 @@ func TestRedactValueCoversStructuredSignedURLMetadataMaps(t *testing.T) {
 		"cos-access-key",
 		"1770000000;1770000900",
 		"cos-signature",
+		"gcp-cdn-signature",
+		"gcp-cdn-policy",
+		"gcp-key-name",
+		"gcp-url-prefix",
+		"generic-cdn-token",
+		"cloudflare-signed-token",
+		"cf-access-jwt",
 	} {
 		if strings.Contains(string(body), leaked) {
 			t.Fatalf("redacted structured signed URL metadata = %s, leaked %s", string(body), leaked)
@@ -1551,6 +1610,7 @@ func TestRedactValueCoversStructuredSignedURLMetadataMaps(t *testing.T) {
 	}
 	for _, fragment := range []string{
 		`"response-content-type":"application/zip"`,
+		`"response-content-disposition":"attachment"`,
 		`"rsct":["application/zip"]`,
 		`"expires":"visible-business-expiry"`,
 		`"policy":"public-export-policy-name"`,
@@ -1582,6 +1642,13 @@ func TestRedactValueCoversStructuredSignedURLMetadataMaps(t *testing.T) {
 		"cos.q-sign-algorithm",
 		"cos.q-ak",
 		"cos.q-signature",
+		"edge.Cloud-CDN-Signature",
+		"edge.Cloud-CDN-Policy",
+		"edge.Cloud-CDN-Key-Name",
+		"edge.URLPrefix",
+		"edge.CDN-Token",
+		"edge.CF-Authorization",
+		"edge.Cloudflare-Access-Jwt-Assertion",
 	} {
 		assertFinding(t, findings, SecretKindSignedURL, location)
 	}
