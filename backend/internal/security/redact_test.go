@@ -1524,6 +1524,117 @@ func TestRedactStringCoversLaunchProviderAndCommerceTokens(t *testing.T) {
 	}
 }
 
+func TestRedactStringCoversLaunchBillingTaxAndAccountingSecrets(t *testing.T) {
+	input := strings.Join([]string{
+		"paddle_api_key=pdl_live_abcdefghijklmnopqrstuvwxyz123456",
+		"paddle_vendor_auth_code=paddle-vendor-auth-secret",
+		"lemonsqueezy_signing_secret=ls-signing-secret",
+		"chargebee_api_key=chargebee-secret-value",
+		"recurly_private_api_key=recurly-secret-value",
+		"braintree_private_key=braintree-private-secret",
+		"paypal_client_secret=paypal-client-secret",
+		"adyen_hmac_key=adyen-hmac-secret",
+		"taxjar_api_key=taxjar-secret-value",
+		"avalara_license_key=avalara-license-secret",
+		"quickbooks_refresh_token=quickbooks-refresh-secret",
+		"xero_access_token=xero-access-secret",
+	}, " ")
+	got := RedactString(input)
+
+	for _, leaked := range []string{
+		"pdl_live_abcdefghijklmnopqrstuvwxyz123456",
+		"paddle-vendor-auth-secret",
+		"ls-signing-secret",
+		"chargebee-secret-value",
+		"recurly-secret-value",
+		"braintree-private-secret",
+		"paypal-client-secret",
+		"adyen-hmac-secret",
+		"taxjar-secret-value",
+		"avalara-license-secret",
+		"quickbooks-refresh-secret",
+		"xero-access-secret",
+	} {
+		if strings.Contains(got, leaked) {
+			t.Fatalf("RedactString() = %q, leaked %s", got, leaked)
+		}
+	}
+
+	findings := ClassifyString(input)
+	for _, kind := range []SecretKind{
+		SecretKindAPIKey,
+		SecretKindToken,
+		SecretKindWebhookSecret,
+		SecretKindPrivateKey,
+		SecretKindCredential,
+	} {
+		assertKind(t, findings, kind)
+	}
+}
+
+func TestRedactMapCoversLaunchBillingTaxAndAccountingMetadataKeys(t *testing.T) {
+	metadata := map[string]any{
+		"billing": map[string]string{
+			"paddle_client_secret":         "paddle-client-secret",
+			"chargebee_webhook_secret":     "chargebee-webhook-secret",
+			"braintree_merchant_account":   "braintree-merchant-account",
+			"paypal_webhook_id":            "paypal-webhook-secret",
+			"lemon_squeezy_webhook_secret": "lemon-webhook-secret",
+		},
+		"tax": map[string]any{
+			"taxjar_token":       "taxjar-token-secret",
+			"avalara_password":   "avalara-password-secret",
+			"avalara_account_id": "avalara-account-secret",
+		},
+		"accounting": map[string]string{
+			"quickbooks_client_secret": "quickbooks-client-secret",
+			"xero_refresh_token":       "xero-refresh-secret",
+		},
+		"public": "ok",
+	}
+
+	redacted := RedactMap(metadata)
+	body, err := json.Marshal(redacted)
+	if err != nil {
+		t.Fatalf("marshal redacted metadata: %v", err)
+	}
+	for _, leaked := range []string{
+		"paddle-client-secret",
+		"chargebee-webhook-secret",
+		"braintree-merchant-account",
+		"paypal-webhook-secret",
+		"lemon-webhook-secret",
+		"taxjar-token-secret",
+		"avalara-password-secret",
+		"avalara-account-secret",
+		"quickbooks-client-secret",
+		"xero-refresh-secret",
+	} {
+		if strings.Contains(string(body), leaked) {
+			t.Fatalf("redacted metadata = %s, leaked %s", string(body), leaked)
+		}
+	}
+	if !strings.Contains(string(body), `"public":"ok"`) || !strings.Contains(string(body), Redacted) {
+		t.Fatalf("redacted metadata = %s, want public field and redaction marker", string(body))
+	}
+
+	findings := ClassifyValue(metadata)
+	for _, location := range []string{
+		"billing.paddle_client_secret",
+		"billing.chargebee_webhook_secret",
+		"billing.braintree_merchant_account",
+		"billing.paypal_webhook_id",
+		"billing.lemon_squeezy_webhook_secret",
+		"tax.taxjar_token",
+		"tax.avalara_password",
+		"tax.avalara_account_id",
+		"accounting.quickbooks_client_secret",
+		"accounting.xero_refresh_token",
+	} {
+		assertAnyFindingAt(t, findings, location)
+	}
+}
+
 func TestRedactStringCoversLaunchDeployCloudAndSignedDeliverySecrets(t *testing.T) {
 	doToken := "dop_v1_" + strings.Repeat("a", 64)
 	input := strings.Join([]string{
@@ -2693,6 +2804,16 @@ func assertAnyFindingAt(t *testing.T, findings []SecretFinding, location string)
 		}
 	}
 	t.Fatalf("missing finding location=%s in %#v", location, findings)
+}
+
+func assertKind(t *testing.T, findings []SecretFinding, kind SecretKind) {
+	t.Helper()
+	for _, finding := range findings {
+		if finding.Kind == kind {
+			return
+		}
+	}
+	t.Fatalf("missing finding kind=%s in %#v", kind, findings)
 }
 
 type stringerValue string
