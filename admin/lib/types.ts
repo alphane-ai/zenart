@@ -1238,6 +1238,21 @@ export type AdminRbacRuntimeDecision = {
   rationale: string;
 };
 
+export type AdminRbacSurfaceSummary = {
+  surface: AdminReviewSurface;
+  overrideScope: AdminRbacEvidence["overrideScope"];
+  totalEvidence: number;
+  allowedMutations: number;
+  queuedSecondReview: number;
+  deniedMutations: number;
+  expiredOverrideDenials: number;
+  releaseGateStatuses: AdminRbacRuntimeDecision["releaseGateStatus"][];
+  auditRefs: string[];
+  releaseEvidenceRequired: string[];
+  decisionSummary: string;
+  operatorAction: string;
+};
+
 export type ReleaseEvidence = {
   id: string;
   target: string;

@@ -5,6 +5,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 import {
   getAdminRbacEvidence,
   getAdminRbacRuntimeDecisions,
+  getAdminRbacSurfaceSummaries,
   getAdminReviewDecisions,
   getAuditEvents,
   getProductionActivationReviewAuditEvidence,
@@ -14,6 +15,7 @@ import {
 import type {
   AdminRbacEvidence,
   AdminRbacRuntimeDecision,
+  AdminRbacSurfaceSummary,
   AdminReviewDecision,
   AuditEvent,
   ProductionActivationReviewAuditCoverage,
@@ -27,6 +29,7 @@ export default async function AuditPage() {
     reviews,
     rbacEvidence,
     rbacRuntime,
+    rbacSurfaceSummaries,
     productionActivationEvidence,
     productionSecurityEvidence,
     stagingAuthRbacTenantAuditEvidence
@@ -35,6 +38,7 @@ export default async function AuditPage() {
     getAdminReviewDecisions(),
     getAdminRbacEvidence(),
     getAdminRbacRuntimeDecisions(),
+    getAdminRbacSurfaceSummaries(),
     getProductionActivationReviewAuditEvidence(),
     getProductionSecurityLaunchCheckEvidence(),
     getStagingAuthRbacTenantAuditEvidence()
@@ -133,6 +137,29 @@ export default async function AuditPage() {
             { key: "second-review", header: "Second Review Status", render: (row) => <StatusBadge value={row.secondReviewStatus} label={row.secondReviewStatus} /> },
             { key: "evidence", header: "Evidence Refs", render: (row) => row.evidenceRefs.join(", ") },
             { key: "rationale", header: "Rationale", render: (row) => row.rationale }
+          ]}
+        />
+      </section>
+
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>RBAC Override Release Summary</h3>
+            <p>Surface-level evidence summarizes which high-risk admin overrides are applied, held for second review, denied by policy, or denied by expired temporary windows.</p>
+          </div>
+        </div>
+        <DataTable<AdminRbacSurfaceSummary>
+          rows={rbacSurfaceSummaries}
+          columns={[
+            { key: "surface", header: "Surface", render: (row) => row.surface },
+            { key: "scope", header: "Override Scope", render: (row) => row.overrideScope },
+            { key: "total", header: "Evidence Items", render: (row) => row.totalEvidence },
+            { key: "summary", header: "Decision Summary", render: (row) => row.decisionSummary },
+            { key: "expired", header: "Expired Denials", render: (row) => row.expiredOverrideDenials },
+            { key: "gate", header: "Release Gate Statuses", render: (row) => row.releaseGateStatuses.join(", ") },
+            { key: "operator", header: "Operator Action", render: (row) => row.operatorAction },
+            { key: "required", header: "Release Evidence Required", render: (row) => row.releaseEvidenceRequired.join(", ") },
+            { key: "audit", header: "Audit Refs", render: (row) => <span className="mono">{row.auditRefs.join(", ")}</span> }
           ]}
         />
       </section>

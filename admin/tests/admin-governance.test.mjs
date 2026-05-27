@@ -91,13 +91,20 @@ const parseRbacRuntime = () => {
     .replace(/^import type[\s\S]*?from "@\/lib\/types";\n\n/, "")
     .replaceAll(/const roleRank: Record<AdminRole, number> =/g, "const roleRank =")
     .replaceAll(/export function (\w+)/g, "function $1")
+    .replaceAll(/function uniqueSorted<T extends string>\(values: T\[\]\)/g, "function uniqueSorted(values)")
+    .replaceAll(/new Set<T>/g, "new Set")
     .replaceAll(/: AdminRbacEvidence\[\]/g, "")
     .replaceAll(/: AdminRbacRuntimeDecision\[\]/g, "")
+    .replaceAll(/: AdminRbacSurfaceSummary\[\]/g, "")
+    .replaceAll(/: AdminRbacEvidence\["surface"\]/g, "")
+    .replaceAll(/: AdminRbacRuntimeDecision\["surface"\]/g, "")
+    .replaceAll(/new Map<AdminRbacEvidence\["surface"\], AdminRbacEvidence\[\]>/g, "new Map")
+    .replaceAll(/new Map<AdminRbacRuntimeDecision\["surface"\], AdminRbacRuntimeDecision\[\]>/g, "new Map")
     .replaceAll(/: AdminRbacEvidence/g, "")
     .replaceAll(/: string/g, "")
     .replaceAll(/: Date/g, "")
     .replaceAll(/: boolean/g, "");
-  return Function(`${runtimeSource}\nreturn { buildAdminRbacRuntimeDecisions };`)();
+  return Function(`${runtimeSource}\nreturn { buildAdminRbacRuntimeDecisions, buildAdminRbacSurfaceSummaries };`)();
 };
 
 const parseExportRuntime = () => {
@@ -3447,6 +3454,68 @@ test("admin RBAC runtime decisions enforce high-risk override outcomes", () => {
       assert.equal(decision.releaseGateStatus, "release_gate_preserved", "safety rule override must preserve the release gate");
     }
   }
+});
+
+test("admin RBAC surface summaries expose release evidence for every governed override surface", () => {
+  const { buildAdminRbacRuntimeDecisions, buildAdminRbacSurfaceSummaries } = parseRbacRuntime();
+  const decisions = buildAdminRbacRuntimeDecisions(adminRbacEvidence, new Date("2026-05-26T11:00:00Z"));
+  const summaries = buildAdminRbacSurfaceSummaries(adminRbacEvidence, decisions);
+  const requiredSurfaces = new Set([
+    "skill_release",
+    "crawler_import",
+    "prompt_approval",
+    "provider_routing",
+    "quota_override",
+    "safety_rule",
+    "export_override"
+  ]);
+  const summaryBySurface = new Map(summaries.map((summary) => [summary.surface, summary]));
+
+  assert.equal(summaries.length, requiredSurfaces.size, "RBAC release summary must cover each governed surface once");
+
+  for (const surface of requiredSurfaces) {
+    const summary = summaryBySurface.get(surface);
+    assert.ok(summary, `missing RBAC summary for ${surface}`);
+    assert.equal(summary.overrideScope, overrideScopeBySurface.get(surface), `${surface} summary scope mismatch`);
+    assert.ok(summary.totalEvidence > 0, `${surface} needs evidence items`);
+    assert.ok(summary.auditRefs.length > 0, `${surface} needs audit refs`);
+    assert.ok(summary.releaseEvidenceRequired.length > 0, `${surface} needs release evidence requirements`);
+    assert.ok(summary.releaseGateStatuses.length > 0, `${surface} needs release gate statuses`);
+    assert.match(
+      summary.decisionSummary,
+      /applied; .*second-review hold; .*denied; .*expired denial/,
+      `${surface} needs compact outcome counts`
+    );
+    assert.ok(summary.operatorAction.length > 60, `${surface} needs actionable operator guidance`);
+
+    for (const auditRef of summary.auditRefs) {
+      assert.ok(auditIds.has(auditRef), `${surface} summary links unknown audit ${auditRef}`);
+    }
+  }
+
+  assert.equal(
+    summaryBySurface.get("provider_routing").expiredOverrideDenials,
+    1,
+    "provider routing summary must expose expired temporary override denial"
+  );
+  assert.equal(
+    summaryBySurface.get("skill_release").queuedSecondReview,
+    1,
+    "skill release summary must expose second-review hold"
+  );
+  assert.equal(
+    summaryBySurface.get("export_override").deniedMutations,
+    1,
+    "export summary must expose denied blocking QA override"
+  );
+  assert.ok(
+    summaryBySurface.get("provider_routing").operatorAction.includes("fresh request"),
+    "expired provider override summary must require a fresh request"
+  );
+  assert.ok(
+    summaryBySurface.get("safety_rule").releaseEvidenceRequired.includes("superadmin approval"),
+    "safety summary must preserve superadmin release evidence"
+  );
 });
 
 test("blocking safety exports cannot be overridden without audit-safe eligibility", () => {

@@ -1,4 +1,9 @@
-import type { AdminRbacEvidence, AdminRbacRuntimeDecision, AdminRole } from "@/lib/types";
+import type {
+  AdminRbacEvidence,
+  AdminRbacRuntimeDecision,
+  AdminRbacSurfaceSummary,
+  AdminRole
+} from "@/lib/types";
 
 const roleRank: Record<AdminRole, number> = {
   support_operator: 1,
@@ -138,4 +143,73 @@ export function buildAdminRbacRuntimeDecisions(
       rationale: `${item.enforcementPoint} applied ${item.requestedAction} with expiry ${item.overrideExpiresAt}; ${item.runtimeCheck}`
     };
   });
+}
+
+function uniqueSorted<T extends string>(values: T[]) {
+  return Array.from(new Set<T>(values)).sort();
+}
+
+export function buildAdminRbacSurfaceSummaries(
+  evidence: AdminRbacEvidence[],
+  decisions: AdminRbacRuntimeDecision[]
+): AdminRbacSurfaceSummary[] {
+  const evidenceBySurface = new Map<AdminRbacEvidence["surface"], AdminRbacEvidence[]>();
+  const decisionsBySurface = new Map<AdminRbacRuntimeDecision["surface"], AdminRbacRuntimeDecision[]>();
+
+  for (const item of evidence) {
+    evidenceBySurface.set(item.surface, [...(evidenceBySurface.get(item.surface) ?? []), item]);
+  }
+
+  for (const decision of decisions) {
+    decisionsBySurface.set(decision.surface, [...(decisionsBySurface.get(decision.surface) ?? []), decision]);
+  }
+
+  return Array.from(evidenceBySurface.entries())
+    .map(([surface, surfaceEvidence]) => {
+      const surfaceDecisions = decisionsBySurface.get(surface) ?? [];
+      const allowedMutations = surfaceDecisions.filter(
+        (decision) => decision.effectiveDecision === "allow_mutation"
+      ).length;
+      const queuedSecondReview = surfaceDecisions.filter(
+        (decision) => decision.effectiveDecision === "queue_for_review"
+      ).length;
+      const deniedMutations = surfaceDecisions.filter(
+        (decision) => decision.effectiveDecision === "deny_mutation"
+      ).length;
+      const expiredOverrideDenials = surfaceDecisions.filter(
+        (decision) => decision.requestOutcome === "denied_expired_override"
+      ).length;
+      const requiredEvidence = uniqueSorted(surfaceEvidence.flatMap((item) => item.releaseEvidenceRequired));
+      const releaseGateStatuses = uniqueSorted(surfaceDecisions.map((decision) => decision.releaseGateStatus));
+
+      let operatorAction = "Apply only inside the audited temporary window and keep expiry visible.";
+      if (expiredOverrideDenials > 0) {
+        operatorAction = "Block stale override, preserve the last audited state, and require a fresh request.";
+      } else if (deniedMutations > 0) {
+        operatorAction = "Preserve the release gate and route the operator to the required evidence path.";
+      } else if (queuedSecondReview > 0) {
+        operatorAction = "Hold mutation until the second reviewer and immutable audit evidence are attached.";
+      }
+
+      return {
+        surface,
+        overrideScope: surfaceEvidence[0].overrideScope,
+        totalEvidence: surfaceEvidence.length,
+        allowedMutations,
+        queuedSecondReview,
+        deniedMutations,
+        expiredOverrideDenials,
+        releaseGateStatuses,
+        auditRefs: uniqueSorted(surfaceEvidence.map((item) => item.auditRef)),
+        releaseEvidenceRequired: requiredEvidence,
+        decisionSummary: [
+          `${allowedMutations} applied`,
+          `${queuedSecondReview} second-review hold`,
+          `${deniedMutations} denied`,
+          `${expiredOverrideDenials} expired denial`
+        ].join("; "),
+        operatorAction
+      };
+    })
+    .sort((a, b) => a.surface.localeCompare(b.surface));
 }

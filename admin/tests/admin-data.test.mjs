@@ -645,10 +645,13 @@ test("admin review and audit pages expose RBAC runtime decisions", () => {
 
   for (const token of [
     "buildAdminRbacRuntimeDecisions",
+    "buildAdminRbacSurfaceSummaries",
     "denied_insufficient_role",
     "denied_policy_block",
     "queued_second_review",
-    "apply_with_expiry"
+    "denied_expired_override",
+    "apply_with_expiry",
+    "operatorAction"
   ]) {
     assert.match(adminApi + rbacRuntime, new RegExp(token));
   }
@@ -679,6 +682,29 @@ test("admin fixtures cover RBAC evidence for governed override surfaces", () => 
   ]) {
     assert.match(fixtures, new RegExp(token));
   }
+});
+
+test("admin review and audit pages expose RBAC override release summaries", () => {
+  const reviewsPage = readFileSync(new URL("../app/reviews/page.tsx", import.meta.url), "utf8");
+  const auditPage = readFileSync(new URL("../app/audit/page.tsx", import.meta.url), "utf8");
+
+  for (const source of [reviewsPage, auditPage]) {
+    for (const token of [
+      "getAdminRbacSurfaceSummaries",
+      "AdminRbacSurfaceSummary",
+      "Override Scope",
+      "Decision Summary",
+      "Release Gate Statuses",
+      "Operator Action",
+      "Release Evidence Required",
+      "Audit Refs"
+    ]) {
+      assert.match(source, new RegExp(token));
+    }
+  }
+
+  assert.match(reviewsPage, /Override Surface Summary/);
+  assert.match(auditPage, /RBAC Override Release Summary/);
 });
 
 test("admin action pages show scoped RBAC evidence at decision points", () => {

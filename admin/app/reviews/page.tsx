@@ -1,14 +1,25 @@
 import { DataTable } from "@/components/DataTable";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
-import { getAdminRbacEvidence, getAdminRbacRuntimeDecisions, getAdminReviewDecisions } from "@/lib/admin-api";
-import type { AdminRbacEvidence, AdminRbacRuntimeDecision, AdminReviewDecision } from "@/lib/types";
+import {
+  getAdminRbacEvidence,
+  getAdminRbacRuntimeDecisions,
+  getAdminRbacSurfaceSummaries,
+  getAdminReviewDecisions
+} from "@/lib/admin-api";
+import type {
+  AdminRbacEvidence,
+  AdminRbacRuntimeDecision,
+  AdminRbacSurfaceSummary,
+  AdminReviewDecision
+} from "@/lib/types";
 
 export default async function ReviewsPage() {
-  const [reviews, rbacEvidence, rbacRuntime] = await Promise.all([
+  const [reviews, rbacEvidence, rbacRuntime, rbacSurfaceSummaries] = await Promise.all([
     getAdminReviewDecisions(),
     getAdminRbacEvidence(),
-    getAdminRbacRuntimeDecisions()
+    getAdminRbacRuntimeDecisions(),
+    getAdminRbacSurfaceSummaries()
   ]);
 
   return (
@@ -74,6 +85,27 @@ export default async function ReviewsPage() {
             { key: "gate", header: "Release Gate Status", render: (row) => row.releaseGateStatus },
             { key: "audit", header: "Audit Ref", render: (row) => <span className="mono">{row.auditRef}</span> },
             { key: "rationale", header: "Runtime Rationale", render: (row) => row.rationale }
+          ]}
+        />
+      </section>
+
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>Override Surface Summary</h3>
+            <p>Release, crawler, prompt, provider, quota, safety, and export override surfaces are grouped by runtime outcome, audit ref, and required release evidence.</p>
+          </div>
+        </div>
+        <DataTable<AdminRbacSurfaceSummary>
+          rows={rbacSurfaceSummaries}
+          columns={[
+            { key: "surface", header: "Surface", render: (row) => row.surface },
+            { key: "scope", header: "Override Scope", render: (row) => row.overrideScope },
+            { key: "summary", header: "Decision Summary", render: (row) => row.decisionSummary },
+            { key: "gates", header: "Release Gate Statuses", render: (row) => row.releaseGateStatuses.join(", ") },
+            { key: "action", header: "Operator Action", render: (row) => row.operatorAction },
+            { key: "evidence", header: "Release Evidence Required", render: (row) => row.releaseEvidenceRequired.join(", ") },
+            { key: "audit", header: "Audit Refs", render: (row) => <span className="mono">{row.auditRefs.join(", ")}</span> }
           ]}
         />
       </section>
