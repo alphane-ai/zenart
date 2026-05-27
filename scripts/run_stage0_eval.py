@@ -275,10 +275,11 @@ def observed_safety_action(fixture: dict[str, Any], qa_items: list[dict[str, Any
     return "allow"
 
 
-def expected_qa_categories_for(fixture: dict[str, Any]) -> list[str]:
+def expected_qa_categories_for(fixture: dict[str, Any], workflow: dict[str, Any]) -> list[str]:
     categories: set[str] = set()
     for dimension in fixture["expected_dimensions"]:
         categories.update(DIMENSION_QA_CATEGORIES.get(dimension, set()))
+    categories.update(workflow["required_qa_checks"])
     return [category for category in QA_CATEGORY_ORDER if category in categories]
 
 
@@ -287,7 +288,7 @@ def qa_coverage_contract_for(
     qa_items: list[dict[str, Any]],
     workflow: dict[str, Any],
 ) -> dict[str, Any]:
-    expected = expected_qa_categories_for(fixture)
+    expected = expected_qa_categories_for(fixture, workflow)
     observed = sorted(
         {item["check_category"] for item in qa_items},
         key=QA_CATEGORY_ORDER.index,

@@ -3428,14 +3428,22 @@ def validate_eval_results() -> None:
             require(item["export_contract"]["trace_provenance"] is True, f"{item['fixture_id']} export must include trace provenance")
         if fixture["expected_evidence"]["must_include_qa_report"]:
             require(item["export_contract"]["qa_report"] is True, f"{item['fixture_id']} export must include QA report")
-        expected_qa_categories = sorted(
-            {
-                category
-                for dimension in fixture["expected_dimensions"]
-                for category in DIMENSION_QA_CATEGORIES.get(dimension, set())
-            },
-            key=QA_CATEGORY_ORDER.index,
-        )
+        workflow = load_json(FIXTURE_DIR / "workflows" / f"{item['workflow']}.json")
+        dimension_qa_categories = {
+            category
+            for dimension in fixture["expected_dimensions"]
+            for category in DIMENSION_QA_CATEGORIES.get(dimension, set())
+        }
+        workflow_required_qa_categories = [
+            category
+            for category in QA_CATEGORY_ORDER
+            if category in set(workflow["required_qa_checks"])
+        ]
+        expected_qa_categories = [
+            category
+            for category in QA_CATEGORY_ORDER
+            if category in dimension_qa_categories or category in set(workflow_required_qa_categories)
+        ]
         observed_qa_categories = sorted(
             {
                 qa_by_id[check_id]["check_category"]

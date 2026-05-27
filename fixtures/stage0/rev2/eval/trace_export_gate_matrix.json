@@ -120,11 +120,11 @@
       "safety_blocks_export": false,
       "export_artifacts_complete": false,
       "missing_export_artifacts": ["manifest", "metadata", "qa_report"],
-      "qa_coverage_complete": true,
+      "qa_coverage_complete": false,
       "final_export_allowed": false,
       "admin_override_required_for_export": true,
       "override_requires_audit": true,
-      "gate_reasons": ["incomplete_export_artifacts"]
+      "gate_reasons": ["incomplete_export_artifacts", "qa_coverage_incomplete"]
     },
     {
       "case_id": "gate_case_unsafe_financial_claim",
@@ -140,11 +140,11 @@
       "safety_blocks_export": true,
       "export_artifacts_complete": false,
       "missing_export_artifacts": ["manifest", "metadata"],
-      "qa_coverage_complete": true,
+      "qa_coverage_complete": false,
       "final_export_allowed": false,
       "admin_override_required_for_export": true,
       "override_requires_audit": true,
-      "gate_reasons": ["blocking_qa", "safety_policy_block", "incomplete_export_artifacts"]
+      "gate_reasons": ["blocking_qa", "safety_policy_block", "incomplete_export_artifacts", "qa_coverage_incomplete"]
     },
     {
       "case_id": "gate_case_negative_generic_rendering",
@@ -260,11 +260,11 @@
       "safety_blocks_export": true,
       "export_artifacts_complete": false,
       "missing_export_artifacts": ["manifest", "metadata"],
-      "qa_coverage_complete": true,
+      "qa_coverage_complete": false,
       "final_export_allowed": false,
       "admin_override_required_for_export": true,
       "override_requires_audit": true,
-      "gate_reasons": ["safety_policy_block", "incomplete_export_artifacts"]
+      "gate_reasons": ["safety_policy_block", "incomplete_export_artifacts", "qa_coverage_incomplete"]
     }
   ],
   "provenance": {

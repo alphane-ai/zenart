@@ -342,10 +342,11 @@ def validate_workflow_coverage(qa_results: list[dict[str, Any]]) -> None:
         require(not unexpected, f"{workflow} has QA categories not declared in required_qa_checks: {sorted(unexpected)}")
 
 
-def expected_qa_categories_for(fixture: dict[str, Any]) -> list[str]:
+def expected_qa_categories_for(fixture: dict[str, Any], workflow: dict[str, Any]) -> list[str]:
     categories: set[str] = set()
     for dimension in fixture["expected_dimensions"]:
         categories.update(DIMENSION_QA_CATEGORIES.get(dimension, set()))
+    categories.update(workflow["required_qa_checks"])
     return [category for category in QA_CATEGORY_ORDER if category in categories]
 
 
@@ -364,7 +365,12 @@ def validate_eval_fixture_coverage(qa_results: list[dict[str, Any]]) -> None:
 
     for fixture in suite["fixtures"]:
         fixture_id = fixture["fixture_id"]
-        expected = expected_qa_categories_for(fixture)
+        workflow_required = [
+            category
+            for category in QA_CATEGORY_ORDER
+            if category in set(workflows[fixture["workflow"]]["required_qa_checks"])
+        ]
+        expected = expected_qa_categories_for(fixture, workflows[fixture["workflow"]])
         observed = sorted(
             {
                 item["check_category"]
@@ -373,11 +379,6 @@ def validate_eval_fixture_coverage(qa_results: list[dict[str, Any]]) -> None:
             key=QA_CATEGORY_ORDER.index,
         )
         missing = [category for category in expected if category not in observed]
-        workflow_required = [
-            category
-            for category in QA_CATEGORY_ORDER
-            if category in set(workflows[fixture["workflow"]]["required_qa_checks"])
-        ]
         result = result_by_fixture[fixture_id]
         coverage = result["qa_coverage_contract"]
         require(

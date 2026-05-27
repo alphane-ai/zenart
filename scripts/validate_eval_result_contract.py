@@ -458,14 +458,21 @@ def validate_fixture_result_links() -> None:
                 f"{item['fixture_id']} references QA check {check_id} from another fixture",
             )
 
-        expected_qa_categories = sorted(
-            {
-                category
-                for dimension in fixture["expected_dimensions"]
-                for category in DIMENSION_QA_CATEGORIES.get(dimension, set())
-            },
-            key=QA_CATEGORY_ORDER.index,
-        )
+        dimension_qa_categories = {
+            category
+            for dimension in fixture["expected_dimensions"]
+            for category in DIMENSION_QA_CATEGORIES.get(dimension, set())
+        }
+        workflow_required_qa_categories = [
+            category
+            for category in QA_CATEGORY_ORDER
+            if category in set(workflows[item["workflow"]]["required_qa_checks"])
+        ]
+        expected_qa_categories = [
+            category
+            for category in QA_CATEGORY_ORDER
+            if category in dimension_qa_categories or category in set(workflow_required_qa_categories)
+        ]
         observed_qa_categories = sorted(
             {
                 qa_by_id[check_id]["check_category"]
@@ -477,11 +484,6 @@ def validate_fixture_result_links() -> None:
             category
             for category in expected_qa_categories
             if category not in observed_qa_categories
-        ]
-        workflow_required_qa_categories = [
-            category
-            for category in QA_CATEGORY_ORDER
-            if category in set(workflows[item["workflow"]]["required_qa_checks"])
         ]
         coverage = item["qa_coverage_contract"]
         require(
