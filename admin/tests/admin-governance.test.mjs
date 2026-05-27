@@ -158,6 +158,7 @@ const parseCrawlerRuntime = () => {
     .replaceAll(/: CrawlerGovernanceRuntimeDecision\[\]/g, "")
     .replaceAll(/: CrawlerGovernanceWorkflow\[\]/g, "")
     .replaceAll(/: CrawlerGovernanceWorkflow\["requestType"\]/g, "")
+    .replaceAll(/new Set<string>/g, "new Set")
     .replaceAll(/: string\[\]/g, "")
     .replaceAll(/: string/g, "")
     .replaceAll(/: Date/g, "")
@@ -4103,6 +4104,8 @@ test("crawler governance runtime decisions gate takedown closure and activation"
   assert.equal(derivativeDecision.activationDecision, "allow_activation", "approved derivative review should allow activation");
   assert.equal(derivativeDecision.blockerCodes.length, 0, "approved derivative review should not expose blockers");
   assert.equal(derivativeDecision.auditStatus, "attached", "approved derivative review needs audit evidence");
+  assert.equal(derivativeDecision.requiredEvidenceStatus, "complete", "approved derivative review needs complete required evidence");
+  assert.deepEqual(derivativeDecision.missingRequiredEvidenceRefs, [], "approved derivative review should not miss required evidence refs");
   assert.equal(derivativeDecision.deadlineStatus, "not_evaluated", "approved derivative review should not create deadline blockers");
 
   const retentionDecision = decisionsByWorkflow.get("cg-533");
@@ -4168,6 +4171,41 @@ test("crawler governance runtime decisions gate takedown closure and activation"
     "crawler RBAC evidence must require a fresh second review after an expired takedown deadline"
   );
 
+  const missingRequiredEvidenceDecision = buildCrawlerGovernanceRuntimeDecisions([
+    {
+      ...crawlerGovernanceWorkflows.find((workflow) => workflow.id === "cg-501"),
+      deletionEvidenceRef: "raw-derivative-delete-cs-21-complete",
+      requesterNoticeRef: "rights-owner-notice-ip-7001-complete",
+      blockedActivation: false,
+      activationGateDecision: "allowed",
+      secondReviewStatus: "completed"
+    }
+  ])[0];
+  assert.equal(
+    missingRequiredEvidenceDecision.closureDecision,
+    "blocked",
+    "crawler takedown cannot close when attached deletion and notice refs are missing from required evidence"
+  );
+  assert.equal(
+    missingRequiredEvidenceDecision.activationDecision,
+    "block_activation",
+    "crawler takedown cannot reactivate when required evidence refs are incomplete"
+  );
+  assert.equal(
+    missingRequiredEvidenceDecision.requiredEvidenceStatus,
+    "missing",
+    "runtime must expose missing required evidence status"
+  );
+  assert.deepEqual(
+    missingRequiredEvidenceDecision.missingRequiredEvidenceRefs,
+    ["raw-derivative-delete-cs-21-complete", "rights-owner-notice-ip-7001-complete"],
+    "runtime must name the missing deletion and requester-notice refs"
+  );
+  assert.ok(
+    missingRequiredEvidenceDecision.blockerCodes.includes("required_evidence_missing"),
+    "missing required evidence needs an explicit blocker code"
+  );
+
   for (const workflow of crawlerGovernanceWorkflows) {
     const decision = decisionsByWorkflow.get(workflow.id);
     assert.ok(decision, `${workflow.id} is missing runtime decision`);
@@ -4175,6 +4213,8 @@ test("crawler governance runtime decisions gate takedown closure and activation"
     assert.equal(decision.requestType, workflow.requestType, `${workflow.id} must preserve request type`);
     assert.equal(decision.auditRef, workflow.auditRef, `${workflow.id} must preserve audit ref`);
     assert.deepEqual(decision.requiredEvidenceRefs, workflow.requiredEvidenceRefs, `${workflow.id} must preserve required evidence refs`);
+    assert.equal(decision.requiredEvidenceStatus, "complete", `${workflow.id} fixture evidence refs should be complete`);
+    assert.deepEqual(decision.missingRequiredEvidenceRefs, [], `${workflow.id} fixture should not miss required evidence refs`);
     assert.ok(decision.operatorAction.length > 80, `${workflow.id} needs executable operator action`);
 
     if (workflow.blockedActivation) {

@@ -13,6 +13,16 @@ export function buildCrawlerGovernanceRuntimeDecisions(
     const deletionEvidenceStatus = isPendingEvidence(workflow.deletionEvidenceRef) ? "pending" : "complete";
     const requesterNoticeStatus = isPendingEvidence(workflow.requesterNoticeRef) ? "pending" : "complete";
     const auditStatus = workflow.auditRef === "pending" || workflow.auditRef.trim().length === 0 ? "missing" : "attached";
+    const expectedEvidenceRefs = new Set([
+      workflow.findingId,
+      workflow.auditRef,
+      workflow.deletionEvidenceRef,
+      workflow.requesterNoticeRef
+    ].filter((ref) => !isPendingEvidence(ref) && !ref.startsWith("not_required")));
+    const missingRequiredEvidenceRefs = [...expectedEvidenceRefs].filter(
+      (ref) => !workflow.requiredEvidenceRefs.includes(ref)
+    );
+    const requiredEvidenceStatus = missingRequiredEvidenceRefs.length === 0 ? "complete" : "missing";
     const dueAt = Date.parse(`${workflow.dueAt.replace(" ", "T")}Z`);
     const deadlineStatus =
       Number.isNaN(dueAt) || workflow.status === "approved" || workflow.status === "deleted"
@@ -51,6 +61,10 @@ export function buildCrawlerGovernanceRuntimeDecisions(
       blockerCodes.push("audit_missing");
     }
 
+    if (requiredEvidenceStatus === "missing") {
+      blockerCodes.push("required_evidence_missing");
+    }
+
     if (deadlineStatus === "expired" && (secondReviewOpen || deletionEvidenceStatus === "pending" || requesterNoticeStatus === "pending")) {
       blockerCodes.push("deadline_expired");
     }
@@ -59,6 +73,7 @@ export function buildCrawlerGovernanceRuntimeDecisions(
       blockerCodes.includes("deletion_evidence_pending") ||
       blockerCodes.includes("requester_notice_pending") ||
       blockerCodes.includes("audit_missing") ||
+      blockerCodes.includes("required_evidence_missing") ||
       blockerCodes.includes("second_review_rejected") ||
       blockerCodes.includes("deadline_expired")
         ? "blocked"
@@ -86,6 +101,8 @@ export function buildCrawlerGovernanceRuntimeDecisions(
       requesterNoticeStatus,
       secondReviewStatus: workflow.secondReviewStatus,
       auditStatus,
+      requiredEvidenceStatus,
+      missingRequiredEvidenceRefs,
       deadlineStatus,
       blockerCodes,
       operatorAction,
