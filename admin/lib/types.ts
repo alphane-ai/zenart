@@ -930,6 +930,44 @@ export type ProductionSecurityLaunchCheckEvidence = {
   };
 };
 
+export type ProductionBackupRollbackIncidentCoverage = {
+  area:
+    | "backup_restore"
+    | "rollback_drill"
+    | "incident_alert_path"
+    | "post_deploy_smoke"
+    | "gate_blocker_preservation";
+  status: "pass" | "blocked";
+  runtimeProbe: string;
+  deploymentEvidence: string;
+  operationalAuditEvidence: string;
+  linkedAdminArtifacts: string[];
+  evidenceRefs: string[];
+};
+
+export type ProductionBackupRollbackIncidentEvidence = {
+  id: string;
+  evidencePath: string;
+  environment: "production";
+  status: "blocked_by_upstream_gates" | "pass_with_blockers_preserved" | "blocked";
+  validatedAt: string;
+  validatedByRole: AdminRole;
+  releaseGateCheckId: "production_backup_rollback_incident";
+  doNotLaunchConditionIds: ["backup_restore_rollback_smoke_missing", "production_deploy_rollback_smoke_missing"];
+  runtimeRequestIds: string[];
+  incidentIds: string[];
+  dashboardIds: string[];
+  alertRouteIds: string[];
+  auditRefs: string[];
+  coverage: ProductionBackupRollbackIncidentCoverage[];
+  gateImpact: {
+    checklistItems: string[];
+    canClearCheckLevelItems: boolean;
+    aggregateProductionGateStatus: "blocked_by_upstream_and_other_production_runtime_items";
+    remainingBlockers: string[];
+  };
+};
+
 export type SupportTicket = {
   id: string;
   status: "open" | "waiting_user" | "resolved" | "escalated";

@@ -58,6 +58,7 @@ test("admin fixtures cover required operational surfaces", () => {
     "export const stagingQuotaRateLimitSpendCapEvidence",
     "export const productionSkillReleaseEvalCanaryEvidence",
     "export const productionSecurityLaunchCheckEvidence",
+    "export const productionBackupRollbackIncidentEvidence",
     "export const operationalDashboards",
     "export const operationalDashboardRuntimeEvidence",
     "export const alertRoutes",
@@ -510,6 +511,45 @@ test("admin audit page surfaces production security launch evidence", () => {
     "admin_surface_privacy",
     "security_privacy_legal_incomplete",
     "secret_exposure_runtime_not_verified"
+  ]) {
+    assert.match(fixtures, new RegExp(token));
+  }
+});
+
+test("admin operations page surfaces production backup rollback incident evidence", () => {
+  const operationsPage = readFileSync(
+    new URL("../app/operations/page.tsx", import.meta.url),
+    "utf8"
+  );
+  const adminApi = readFileSync(
+    new URL("../lib/admin-api.ts", import.meta.url),
+    "utf8"
+  );
+
+  for (const token of [
+    "Production Backup Rollback Incident Evidence",
+    "ProductionBackupRollbackIncidentCoverage",
+    "Operational Audit Evidence",
+    "Tracked Conditions",
+    "Can Clear Rows",
+    "Remaining Blockers",
+    "getProductionBackupRollbackIncidentEvidence"
+  ]) {
+    assert.match(operationsPage, new RegExp(token));
+  }
+
+  assert.match(adminApi, /getProductionBackupRollbackIncidentEvidence/);
+
+  for (const token of [
+    "productionBackupRollbackIncidentEvidence",
+    "production_backup_rollback_incident_20260527T1800Z",
+    "ops/evidence/production/20260527T1800Z-backup-rollback-incident-smoke.json",
+    "backup_restore",
+    "rollback_drill",
+    "incident_alert_path",
+    "post_deploy_smoke",
+    "blocked_by_upstream_gates",
+    "ci_staging_gates_not_passed"
   ]) {
     assert.match(fixtures, new RegExp(token));
   }

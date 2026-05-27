@@ -10,6 +10,7 @@ import {
   getOperationalDashboardRuntimeEvidence,
   getOperationalDashboards,
   getObservabilityTelemetryRuntimeEvidence,
+  getProductionBackupRollbackIncidentEvidence,
   getReleaseBlockers,
   getStagingObservabilityBackupLoadPreflightEvidence
 } from "@/lib/admin-api";
@@ -24,6 +25,8 @@ import type {
   OperationalDashboardRuntimeEvidence,
   ObservabilityTelemetryRuntimeControl,
   ObservabilityTelemetryRuntimeEvidence,
+  ProductionBackupRollbackIncidentCoverage,
+  ProductionBackupRollbackIncidentEvidence,
   ReleaseBlocker,
   StagingObservabilityBackupLoadPreflightEvidence,
   StagingObservabilityBackupLoadPreflightSlot
@@ -47,7 +50,8 @@ export default async function OperationsPage() {
     alertRuntimeEvidence,
     metricsRuntimeEvidence,
     telemetryRuntimeEvidence,
-    observabilityBackupLoadPreflight
+    observabilityBackupLoadPreflight,
+    productionBackupRollbackIncidentEvidence
   ] = await Promise.all([
     getIncidentLogs(),
     getMaintenanceBanners(),
@@ -57,7 +61,8 @@ export default async function OperationsPage() {
     getAlertRouteRuntimeEvidence(),
     getBackendMetricsRuntimeEvidence(),
     getObservabilityTelemetryRuntimeEvidence(),
-    getStagingObservabilityBackupLoadPreflightEvidence()
+    getStagingObservabilityBackupLoadPreflightEvidence(),
+    getProductionBackupRollbackIncidentEvidence()
   ]);
   const releaseBlockers = await getReleaseBlockers();
 
@@ -89,6 +94,41 @@ export default async function OperationsPage() {
             { key: "runtime-status", header: "Runtime Status", render: (row) => <StatusBadge value={row.runtimeEvidenceStatus} label={row.runtimeEvidenceStatus} /> },
             { key: "validated", header: "Validated At", render: (row) => row.runtimeValidatedAt },
             { key: "evidence", header: "Evidence", render: (row) => row.evidenceRefs.join(", ") }
+          ]}
+        />
+      </section>
+
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>Production Backup Rollback Incident Evidence</h3>
+            <p>Production operations evidence validates backup restore, rollback drills, alert incident paths, and post-deploy smoke while preserving unrelated launch blockers.</p>
+          </div>
+        </div>
+        <DataTable<ProductionBackupRollbackIncidentEvidence>
+          rows={[productionBackupRollbackIncidentEvidence]}
+          columns={[
+            { key: "id", header: "Evidence", render: (row) => <span className="mono">{row.id}</span> },
+            { key: "status", header: "Status", render: (row) => <StatusBadge value={row.status} label={row.status} /> },
+            { key: "role", header: "Validated By", render: (row) => row.validatedByRole },
+            { key: "check", header: "Release Gate Check", render: (row) => row.releaseGateCheckId },
+            { key: "conditions", header: "Tracked Conditions", render: (row) => row.doNotLaunchConditionIds.join(", ") },
+            { key: "clear", header: "Can Clear Rows", render: (row) => (row.gateImpact.canClearCheckLevelItems ? "yes" : "no") },
+            { key: "aggregate", header: "Aggregate Gate", render: (row) => row.gateImpact.aggregateProductionGateStatus },
+            { key: "path", header: "Evidence Path", render: (row) => row.evidencePath },
+            { key: "remaining", header: "Remaining Blockers", render: (row) => row.gateImpact.remainingBlockers.join(", ") }
+          ]}
+        />
+        <DataTable<ProductionBackupRollbackIncidentCoverage>
+          rows={productionBackupRollbackIncidentEvidence.coverage}
+          columns={[
+            { key: "area", header: "Area", render: (row) => row.area },
+            { key: "status", header: "Validation", render: (row) => <StatusBadge value={row.status} label={row.status} /> },
+            { key: "runtime", header: "Runtime Probe", render: (row) => row.runtimeProbe },
+            { key: "deployment", header: "Deployment Evidence", render: (row) => row.deploymentEvidence },
+            { key: "audit", header: "Operational Audit Evidence", render: (row) => row.operationalAuditEvidence },
+            { key: "artifacts", header: "Admin Artifacts", render: (row) => row.linkedAdminArtifacts.join(", ") },
+            { key: "evidence", header: "Evidence Refs", render: (row) => row.evidenceRefs.join(", ") }
           ]}
         />
       </section>

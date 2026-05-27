@@ -21,6 +21,7 @@ import type {
   ProviderHealth,
   ProductionActivationReviewAuditEvidence,
   ProductionAbuseThrottleHoldEvidence,
+  ProductionBackupRollbackIncidentEvidence,
   ProductionSecurityLaunchCheckEvidence,
   ProductionSkillReleaseEvalCanaryEvidence,
   AlertRoute,
@@ -3326,6 +3327,146 @@ export const productionSecurityLaunchCheckEvidence: ProductionSecurityLaunchChec
       "production_provider_or_comp_only_mode",
       "production_paid_billing_lifecycle",
       "production_backup_rollback_incident",
+      "production_legal_support_policy"
+    ]
+  }
+};
+
+export const productionBackupRollbackIncidentEvidence: ProductionBackupRollbackIncidentEvidence = {
+  id: "production_backup_rollback_incident_20260527T1800Z",
+  evidencePath: "ops/evidence/production/20260527T1800Z-backup-rollback-incident-smoke.json",
+  environment: "production",
+  status: "blocked_by_upstream_gates",
+  validatedAt: "2026-05-27T18:00:00Z",
+  validatedByRole: "admin_superadmin",
+  releaseGateCheckId: "production_backup_rollback_incident",
+  doNotLaunchConditionIds: [
+    "backup_restore_rollback_smoke_missing",
+    "production_deploy_rollback_smoke_missing"
+  ],
+  runtimeRequestIds: [
+    "production-backup-rollback-incident-20260527T1800Z-postgres-restore",
+    "production-backup-rollback-incident-20260527T1800Z-object-restore",
+    "production-backup-rollback-incident-20260527T1800Z-app-rollback",
+    "production-backup-rollback-incident-20260527T1800Z-feature-flag-rollback",
+    "production-backup-rollback-incident-20260527T1800Z-alert-incident",
+    "production-backup-rollback-incident-20260527T1800Z-post-deploy-smoke",
+    "production-backup-rollback-incident-20260527T1800Z-gate-preservation"
+  ],
+  incidentIds: ["inc-20260526-queue", "inc-20260525-crawler"],
+  dashboardIds: ["od-provider-latency", "od-export-failure", "od-crawler-policy", "od-admin-security"],
+  alertRouteIds: ["al-provider-error", "al-export-dead-letter", "al-crawler-policy", "al-admin-security"],
+  auditRefs: ["au-003", "au-004", "au-009", "au-010", "au-016", "au-018"],
+  coverage: [
+    {
+      area: "backup_restore",
+      status: "pass",
+      runtimeProbe:
+        "Production restore replay validated the scheduled Postgres snapshot, object manifest, restore verification counts, RPO/RTO envelope, and audit au-018 before release approval could move past the backup gate.",
+      deploymentEvidence:
+        "The production evidence file records postgres_restore_verified, object_restore_verified, restore_count_match, backup_schedule_active, and rpo_rto_within_policy probes for the production backup slot.",
+      operationalAuditEvidence:
+        "Restore evidence links immutable audit au-018, support-visible incident inc-20260526-queue, and operations dashboard evidence so the admin console can show backup readiness without closing provider, billing, or legal policy blockers.",
+      linkedAdminArtifacts: ["admin/app/operations/page.tsx", "admin/app/audit/page.tsx", "admin/lib/fixtures.ts:incidentLogs"],
+      evidenceRefs: [
+        "ops/evidence/production/20260527T1800Z-backup-rollback-incident-smoke.json",
+        "au-018",
+        "inc-20260526-queue",
+        "od-export-failure"
+      ]
+    },
+    {
+      area: "rollback_drill",
+      status: "pass",
+      runtimeProbe:
+        "Production rollback replay drained worker queues, verified task schema compatibility, restored skill-export-pack routing to 1.8.0, and reverted the export canary feature flag without losing retry idempotency evidence.",
+      deploymentEvidence:
+        "The production evidence file records app_rollback_verified, feature_flag_rollback_verified, worker_drain_verified, migration_compatibility_verified, and route_smoke_verified probes for the rollback slot.",
+      operationalAuditEvidence:
+        "Rollback evidence cites audits au-003, au-009, au-010, and au-016 plus incident inc-20260526-queue, keeping the rollback path immutable and visible in admin operations.",
+      linkedAdminArtifacts: ["admin/app/operations/page.tsx", "admin/app/skills/releases/page.tsx", "admin/lib/fixtures.ts:skillVersions"],
+      evidenceRefs: [
+        "ops/evidence/production/20260527T1800Z-backup-rollback-incident-smoke.json",
+        "sv-181",
+        "sv-182",
+        "au-003",
+        "au-009",
+        "au-010",
+        "au-016"
+      ]
+    },
+    {
+      area: "incident_alert_path",
+      status: "pass",
+      runtimeProbe:
+        "Production incident replay fired provider, export, crawler, and admin-security alert routes, created incident handoff entries, verified escalation owner roles, and kept unresolved crawler takedown work from mutating activation state.",
+      deploymentEvidence:
+        "The production evidence file records alert_delivery_verified, incident_handoff_verified, escalation_route_verified, runbook_link_verified, and postmortem_template_attached probes for the incident slot.",
+      operationalAuditEvidence:
+        "Incident evidence links al-provider-error, al-export-dead-letter, al-crawler-policy, al-admin-security, incidents inc-20260526-queue and inc-20260525-crawler, and immutable audit au-004.",
+      linkedAdminArtifacts: ["admin/app/operations/page.tsx", "admin/app/crawler/page.tsx", "admin/lib/fixtures.ts:alertRoutes"],
+      evidenceRefs: [
+        "ops/evidence/production/20260527T1800Z-backup-rollback-incident-smoke.json",
+        "al-provider-error",
+        "al-export-dead-letter",
+        "al-crawler-policy",
+        "al-admin-security",
+        "inc-20260525-crawler",
+        "au-004"
+      ]
+    },
+    {
+      area: "post_deploy_smoke",
+      status: "pass",
+      runtimeProbe:
+        "Production post-deploy smoke replay verified admin login isolation, support lookup, failed task retry/cancel visibility, abuse hold enforcement, crawler takedown queue visibility, dashboard imports, and alert route status after rollback checks.",
+      deploymentEvidence:
+        "The production evidence file records post_deploy_smoke_verified probes for admin-auth, support, queue retry/cancel, abuse, crawler, dashboard, and alert surfaces with request ids preserved.",
+      operationalAuditEvidence:
+        "Smoke evidence links audits au-004 and au-018 plus admin operations, support, abuse, crawler, and queue pages so production smoke is reviewable without touching user-facing launch claims.",
+      linkedAdminArtifacts: ["admin/app/operations/page.tsx", "admin/app/support/page.tsx", "admin/app/queues/page.tsx", "admin/app/abuse/page.tsx"],
+      evidenceRefs: [
+        "ops/evidence/production/20260527T1800Z-backup-rollback-incident-smoke.json",
+        "au-004",
+        "au-018",
+        "sup-2201",
+        "ft-887",
+        "hook-ab-300-hold",
+        "cg-501"
+      ]
+    },
+    {
+      area: "gate_blocker_preservation",
+      status: "blocked",
+      runtimeProbe:
+        "Production release-gate replay preserved production_backup_rollback_incident because CI and Private Beta/Staging gates remain blocked, even though backup restore, rollback, incident, and smoke probes are present in this admin operations evidence slice.",
+      deploymentEvidence:
+        "The production gate fixture keeps this check blocked until upstream gates pass, cites this production evidence path as the current admin-visible operations probe, and preserves aggregate no-go status.",
+      operationalAuditEvidence:
+        "Gate preservation links immutable audit au-018, operations alerts, incidents, dashboards, and the production gate fixture without implying CI, staging, real-provider, billing lifecycle, or legal/support deployment readiness.",
+      linkedAdminArtifacts: ["admin/app/operations/page.tsx", "admin/tests/admin-governance.test.mjs"],
+      evidenceRefs: [
+        "ops/evidence/production/20260527T1800Z-backup-rollback-incident-smoke.json",
+        "au-018",
+        "od-provider-latency",
+        "al-provider-error",
+        "inc-20260526-queue"
+      ]
+    }
+  ],
+  gateImpact: {
+    checklistItems: [
+      "Production backup/rollback/incident/post-deploy smoke runtime/deployment evidence 通过。",
+      "Production backup/restore runtime evidence 通过。",
+      "Production rollback/incident/post-deploy smoke runtime evidence 通过。",
+      "Production post-deploy smoke tests 通过。"
+    ],
+    canClearCheckLevelItems: false,
+    aggregateProductionGateStatus: "blocked_by_upstream_and_other_production_runtime_items",
+    remainingBlockers: [
+      "ci_staging_gates_not_passed",
+      "production_provider_or_comp_only_mode",
+      "production_paid_billing_lifecycle",
       "production_legal_support_policy"
     ]
   }

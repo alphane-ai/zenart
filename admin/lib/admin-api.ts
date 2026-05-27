@@ -23,6 +23,7 @@ import {
   operationalDashboards,
   productionActivationReviewAuditEvidence,
   productionAbuseThrottleHoldEvidence,
+  productionBackupRollbackIncidentEvidence,
   productionSecurityLaunchCheckEvidence,
   productionSkillReleaseEvalCanaryEvidence,
   stagingObservabilityBackupLoadPreflightEvidence,
@@ -174,6 +175,10 @@ export async function getProductionSkillReleaseEvalCanaryEvidence() {
 
 export async function getProductionSecurityLaunchCheckEvidence() {
   return productionSecurityLaunchCheckEvidence;
+}
+
+export async function getProductionBackupRollbackIncidentEvidence() {
+  return productionBackupRollbackIncidentEvidence;
 }
 
 export async function getExportJob(id: string) {

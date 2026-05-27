@@ -15,7 +15,7 @@ const parseFixtures = () => {
   const moduleSource = source
     .replace(/^import type[\s\S]*?from "@\/lib\/types";\n\n/, "")
     .replaceAll(/export const (\w+)[^=]*=/g, "const $1 =");
-  return Function(`${moduleSource}\nreturn { skillVersions, skillReleaseStateDefinitions, skillCanaryMetrics, releaseEvidence, releaseBlockers, supportTickets, supportEscalationRunbooks, supportUsers, riskyExports, abuseEvents, abuseControlHooks, stagingAuthRbacTenantAuditEvidence, stagingEvalQaSafetyEvidence, stagingQuotaRateLimitSpendCapEvidence, stagingSupportRetryAbuseEvidence, productionAbuseThrottleHoldEvidence, productionActivationReviewAuditEvidence, productionSkillReleaseEvalCanaryEvidence, productionSecurityLaunchCheckEvidence, adminReviewDecisions, auditEvents, exportJobs, traces, quotaAccounts, feedbackItems, regressionFixtures, analyticsReports, queueHealth, failedTaskControls, crawlerFindings, crawlerSourceApprovals, crawlerGovernanceWorkflows, crawlerStagingRuntimeEvidence, adminRbacEvidence, operationalDashboards, operationalDashboardRuntimeEvidence, alertRoutes, alertRouteRuntimeEvidence, backendMetricsRuntimeEvidence, observabilityTelemetryRuntimeEvidence, stagingObservabilityBackupLoadPreflightEvidence };`)();
+  return Function(`${moduleSource}\nreturn { skillVersions, skillReleaseStateDefinitions, skillCanaryMetrics, releaseEvidence, releaseBlockers, supportTickets, supportEscalationRunbooks, supportUsers, riskyExports, abuseEvents, abuseControlHooks, stagingAuthRbacTenantAuditEvidence, stagingEvalQaSafetyEvidence, stagingQuotaRateLimitSpendCapEvidence, stagingSupportRetryAbuseEvidence, productionAbuseThrottleHoldEvidence, productionActivationReviewAuditEvidence, productionSkillReleaseEvalCanaryEvidence, productionSecurityLaunchCheckEvidence, productionBackupRollbackIncidentEvidence, adminReviewDecisions, auditEvents, exportJobs, traces, quotaAccounts, feedbackItems, regressionFixtures, analyticsReports, queueHealth, failedTaskControls, crawlerFindings, crawlerSourceApprovals, crawlerGovernanceWorkflows, crawlerStagingRuntimeEvidence, adminRbacEvidence, operationalDashboards, operationalDashboardRuntimeEvidence, alertRoutes, alertRouteRuntimeEvidence, backendMetricsRuntimeEvidence, observabilityTelemetryRuntimeEvidence, stagingObservabilityBackupLoadPreflightEvidence };`)();
 };
 
 const crawlerGovernanceCases = JSON.parse(
@@ -42,6 +42,7 @@ const {
   productionActivationReviewAuditEvidence,
   productionSkillReleaseEvalCanaryEvidence,
   productionSecurityLaunchCheckEvidence,
+  productionBackupRollbackIncidentEvidence,
   adminReviewDecisions,
   auditEvents,
   exportJobs,
@@ -239,6 +240,10 @@ const productionSkillReleaseEvalCanaryPath = new URL(
 );
 const productionSecurityLaunchCheckPath = new URL(
   "../../ops/evidence/production/20260527T1700Z-security-launch-checks.json",
+  import.meta.url
+);
+const productionBackupRollbackIncidentPath = new URL(
+  "../../ops/evidence/production/20260527T1800Z-backup-rollback-incident-smoke.json",
   import.meta.url
 );
 
@@ -2109,6 +2114,165 @@ test("production security launch check evidence clears only the production secur
   assert.ok(
     gateFixture.do_not_launch_checks.some((condition) => condition.is_present === true),
     "aggregate production gate must remain blocked by other do-not-launch conditions"
+  );
+});
+
+test("production backup rollback incident evidence stays blocked until upstream gates pass", () => {
+  assert.ok(existsSync(productionBackupRollbackIncidentPath), "production backup rollback incident evidence file is missing");
+  assert.ok(existsSync(productionGatePath), "production launch gate evidence fixture is missing");
+
+  const evidenceFile = JSON.parse(readFileSync(productionBackupRollbackIncidentPath, "utf8"));
+  const gateFixture = JSON.parse(readFileSync(productionGatePath, "utf8"));
+
+  assert.equal(
+    productionBackupRollbackIncidentEvidence.id,
+    evidenceFile.evidence_id,
+    "admin fixture must match production backup rollback incident evidence id"
+  );
+  assert.equal(productionBackupRollbackIncidentEvidence.environment, "production", "evidence must be production scoped");
+  assert.equal(evidenceFile.environment, "production", "evidence file must be production scoped");
+  assert.equal(
+    productionBackupRollbackIncidentEvidence.status,
+    "blocked_by_upstream_gates",
+    "production backup rollback evidence must stay blocked while CI and staging gates are not ready"
+  );
+  assert.equal(
+    productionBackupRollbackIncidentEvidence.releaseGateCheckId,
+    "production_backup_rollback_incident",
+    "evidence must bind the production backup rollback incident check"
+  );
+  assert.deepEqual(
+    productionBackupRollbackIncidentEvidence.doNotLaunchConditionIds,
+    ["backup_restore_rollback_smoke_missing", "production_deploy_rollback_smoke_missing"],
+    "backup rollback evidence must bind only backup and deploy rollback smoke blockers"
+  );
+  assert.equal(
+    productionBackupRollbackIncidentEvidence.gateImpact.canClearCheckLevelItems,
+    false,
+    "Rev2 forbids clearing production backup rollback evidence before upstream gates pass"
+  );
+  assert.equal(
+    productionBackupRollbackIncidentEvidence.gateImpact.aggregateProductionGateStatus,
+    "blocked_by_upstream_and_other_production_runtime_items",
+    "backup rollback evidence must preserve aggregate production no-go state"
+  );
+  assert.ok(
+    productionBackupRollbackIncidentEvidence.gateImpact.remainingBlockers.includes("ci_staging_gates_not_passed"),
+    "backup rollback evidence must preserve the upstream CI/staging blocker"
+  );
+
+  for (const requestId of productionBackupRollbackIncidentEvidence.runtimeRequestIds) {
+    assert.match(
+      requestId,
+      /^production-backup-rollback-incident-\d{8}T\d{4}Z-/,
+      `${requestId} must be a production backup rollback incident runtime probe`
+    );
+  }
+
+  const requiredAreas = new Set([
+    "backup_restore",
+    "rollback_drill",
+    "incident_alert_path",
+    "post_deploy_smoke",
+    "gate_blocker_preservation"
+  ]);
+
+  for (const area of evidenceFile.coverage.map((item) => item.area)) {
+    assert.ok(requiredAreas.has(area), `${area} is not an expected production backup rollback evidence area`);
+  }
+
+  for (const coverage of productionBackupRollbackIncidentEvidence.coverage) {
+    requiredAreas.delete(coverage.area);
+    assert.ok(["pass", "blocked"].includes(coverage.status), `${coverage.area} has invalid status`);
+    assert.ok(coverage.runtimeProbe.toLowerCase().includes("production"), `${coverage.area} must describe production runtime`);
+    assert.match(
+      coverage.runtimeProbe,
+      /restore|rollback|incident|alert|smoke|release-gate|backup|migration/i,
+      `${coverage.area} must cover production operations readiness`
+    );
+    assert.ok(coverage.deploymentEvidence.length > 120, `${coverage.area} needs deployment evidence`);
+    assert.ok(coverage.operationalAuditEvidence.length > 120, `${coverage.area} needs operational audit evidence`);
+    assert.ok(coverage.linkedAdminArtifacts.some((ref) => ref.startsWith("admin/")), `${coverage.area} needs admin artifacts`);
+    assert.ok(
+      coverage.evidenceRefs.includes(productionBackupRollbackIncidentEvidence.evidencePath),
+      `${coverage.area} must cite the production evidence path`
+    );
+    assert.ok(
+      coverage.evidenceRefs.some(
+        (ref) =>
+          auditIds.has(ref) ||
+          incidentIds.has(ref) ||
+          operationalDashboardIds.has(ref) ||
+          alertRouteIds.has(ref) ||
+          supportTicketIds.has(ref) ||
+          taskIds.has(ref) ||
+          abuseHookIds.has(ref) ||
+          ref.startsWith("sv-") ||
+          ref.startsWith("cg-")
+      ),
+      `${coverage.area} needs validator-resolvable operations evidence refs`
+    );
+
+    if (coverage.area === "gate_blocker_preservation") {
+      assert.equal(coverage.status, "blocked", "gate preservation must remain blocked by upstream gate policy");
+      assert.match(
+        coverage.runtimeProbe,
+        /CI and Private Beta\/Staging gates remain blocked/i,
+        "gate preservation must name the upstream blocker"
+      );
+    } else {
+      assert.equal(coverage.status, "pass", `${coverage.area} probe should be present for admin review`);
+    }
+  }
+
+  assert.deepEqual([...requiredAreas], [], "production backup rollback evidence is missing coverage areas");
+  assert.deepEqual(
+    evidenceFile.runtime_request_ids,
+    productionBackupRollbackIncidentEvidence.runtimeRequestIds,
+    "evidence file and admin fixture runtime probe ids must match"
+  );
+
+  for (const auditRef of productionBackupRollbackIncidentEvidence.auditRefs) {
+    assert.ok(auditIds.has(auditRef), `${auditRef} must link immutable audit evidence`);
+  }
+
+  for (const incidentId of productionBackupRollbackIncidentEvidence.incidentIds) {
+    assert.ok(incidentIds.has(incidentId), `${incidentId} must link a known incident`);
+  }
+
+  for (const dashboardId of productionBackupRollbackIncidentEvidence.dashboardIds) {
+    assert.ok(operationalDashboardIds.has(dashboardId), `${dashboardId} must link a known dashboard`);
+  }
+
+  for (const alertRouteId of productionBackupRollbackIncidentEvidence.alertRouteIds) {
+    assert.ok(alertRouteIds.has(alertRouteId), `${alertRouteId} must link a known alert route`);
+  }
+
+  const backupCheck = gateFixture.checks.find((check) => check.check_id === "production_backup_rollback_incident");
+  assert.ok(backupCheck, "production gate needs backup rollback incident check");
+  assert.equal(backupCheck.status, "blocked", "backup rollback incident check must remain blocked until upstream gates pass");
+  assert.ok(
+    backupCheck.evidence_ref.includes(productionBackupRollbackIncidentEvidence.evidencePath),
+    "production backup rollback check must cite the current production operations evidence path"
+  );
+
+  for (const conditionId of productionBackupRollbackIncidentEvidence.doNotLaunchConditionIds) {
+    const condition = gateFixture.do_not_launch_checks.find((entry) => entry.condition_id === conditionId);
+    assert.ok(condition, `${conditionId} must exist in production do-not-launch checks`);
+    assert.equal(condition.is_present, true, `${conditionId} must remain present while upstream gates are blocked`);
+    assert.ok(
+      condition.evidence_ref.includes(productionBackupRollbackIncidentEvidence.evidencePath),
+      `${conditionId} must cite the production operations evidence path`
+    );
+  }
+
+  assert.ok(
+    gateFixture.gate_decision.blocked_by_checks.includes("production_backup_rollback_incident"),
+    "aggregate gate must keep backup rollback check blocked"
+  );
+  assert.ok(
+    gateFixture.gate_decision.active_do_not_launch_conditions.includes("ci_staging_gates_not_passed"),
+    "aggregate gate must preserve upstream CI/staging blocker"
   );
 });
 
