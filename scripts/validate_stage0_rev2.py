@@ -657,9 +657,7 @@ RUNTIME_PASS_EVIDENCE_FILES = {
         ROOT / "ops" / "evidence" / "staging" / "20260527T1100Z-crawler-governance-runtime.json",
     ],
     ("private_beta_staging", "staging_observability_backup_load"): [
-        STAGING_BACKEND_WORKER_CRAWLER_METRICS_EVIDENCE,
-        STAGING_OBSERVABILITY_TELEMETRY_EVIDENCE,
-        STAGING_OBSERVABILITY_RUNTIME_EVIDENCE,
+        STAGING_OBSERVABILITY_BACKUP_LOAD_PREFLIGHT_EVIDENCE,
     ],
     ("production_launch", "production_activation_review_audit"): [
         PRODUCTION_ACTIVATION_REVIEW_AUDIT_EVIDENCE,
