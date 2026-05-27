@@ -335,6 +335,66 @@ def production_backup_rollback_split_summary() -> str:
     )
 
 
+def production_backup_rollback_split_detail_lines() -> list[str]:
+    if not PRODUCTION_BACKUP_ROLLBACK_SPLIT_PREFLIGHT.exists():
+        return [
+            "- Production backup/rollback split blockers: `missing production split preflight`; run "
+            "`scripts/production_backup_rollback_split_smoke.sh` before editing production launch checklist rows."
+        ]
+
+    evidence = load_json(PRODUCTION_BACKUP_ROLLBACK_SPLIT_PREFLIGHT)
+    blocked = evidence.get("blocked_checks", [])
+    blocked_values = [str(item) for item in blocked] if isinstance(blocked, list) else []
+    requirements = evidence.get("runtime_input_requirements", {})
+    split_requirements = requirements.get("required_split_evidence", {})
+    backup_req = split_requirements.get("backup_restore", {}) if isinstance(split_requirements, dict) else {}
+    rollback_req = (
+        split_requirements.get("rollback_incident_post_deploy_smoke", {})
+        if isinstance(split_requirements, dict)
+        else {}
+    )
+    upstream = evidence.get("upstream_gates", {})
+    ci = upstream.get("ci", {}) if isinstance(upstream, dict) else {}
+    private_beta = upstream.get("private_beta_staging", {}) if isinstance(upstream, dict) else {}
+    split = evidence.get("split_evidence", {})
+    backup = split.get("backup_restore", {}) if isinstance(split, dict) else {}
+    rollback = split.get("rollback_incident_post_deploy_smoke", {}) if isinstance(split, dict) else {}
+
+    backup_missing = backup.get("missing_requirements", [])
+    rollback_missing = rollback.get("missing_requirements", [])
+    backup_must_prove = backup_req.get("must_prove", [])
+    rollback_must_prove = rollback_req.get("must_prove", [])
+
+    return [
+        (
+            "- Production backup/rollback split blockers: "
+            f"{comma_or_missing(blocked_values)}; these preserve production no-go and cannot be checklist-cleared "
+            "from admin-visible probe evidence alone."
+        ),
+        (
+            "- Production backup exact split: "
+            f"`{backup.get('path', backup_req.get('path', 'ops/evidence/production/backup-restore.json'))}` "
+            f"status `{backup.get('status', 'missing')}`, missing requirements "
+            f"{comma_or_missing([str(item) for item in backup_missing] if isinstance(backup_missing, list) else [])}; "
+            f"must prove {comma_or_missing([str(item) for item in backup_must_prove] if isinstance(backup_must_prove, list) else [])}."
+        ),
+        (
+            "- Production rollback/incident/post-deploy exact split: "
+            f"`{rollback.get('path', rollback_req.get('path', 'ops/evidence/production/rollback-incident-post-deploy-smoke.json'))}` "
+            f"status `{rollback.get('status', 'missing')}`, missing requirements "
+            f"{comma_or_missing([str(item) for item in rollback_missing] if isinstance(rollback_missing, list) else [])}; "
+            f"must prove {comma_or_missing([str(item) for item in rollback_must_prove] if isinstance(rollback_must_prove, list) else [])}."
+        ),
+        (
+            "- Production split upstream gates: "
+            f"CI `{ci.get('gate_decision_status', 'missing')}` blocked by "
+            f"{comma_or_missing([str(item) for item in ci.get('blocked_by_checks', [])] if isinstance(ci.get('blocked_by_checks', []), list) else [])}; "
+            f"Private Beta/Staging `{private_beta.get('gate_decision_status', 'missing')}` blocked by "
+            f"{comma_or_missing([str(item) for item in private_beta.get('blocked_by_checks', [])] if isinstance(private_beta.get('blocked_by_checks', []), list) else [])}."
+        ),
+    ]
+
+
 def ci_artifact_summary() -> str:
     parts = []
     for path, label in CI_CLOSURE_ARTIFACTS:
@@ -450,6 +510,7 @@ def render(release_sha: str, release_tag: str, owner: str, reviewer: str, date: 
         f"- Release evidence bundle: {release_evidence_bundle_summary()}.",
         "- Rollback drill: `missing`; staging JSON must reference the release SHA, set `environment=staging`, set `kind=rollback`, record status `passed` or `validated`, and include passed/validated evidence refs for image rollback, feature flag rollback, migration compatibility, worker drain, and post-rollback smoke.",
         f"- Production backup/rollback split preflight: {production_backup_rollback_split_summary()}.",
+        *production_backup_rollback_split_detail_lines(),
         f"- Security scan: local status `{local_status(runtime, 'security_scan_smoke')}` from `{security_report}`; staging JSON must reference the release SHA, set `environment=staging`, set `kind=security_scan`, record status `passed`, and include passed/validated evidence refs for dependency, image/container, and committed-secret scans before private beta/production decisions.",
         "",
         "## Rollback Plan",

@@ -263,6 +263,10 @@ required_fragments = [
     "Backup/restore drill: local status `passed` from `ops/evidence/backup-restore/local/20260526T153126Z/report.json`; staging status `passed` from `ops/evidence/staging/20260527T2115Z-backup-restore.json` with 2/2 restore drills passed; production backup/restore evidence remains separate and required before production decisions.",
     "Load evidence: staging status `passed` from `ops/evidence/staging/20260527T2120Z-load.json` with 7/7 load modes passed; production load evidence remains separate and required before production decisions.",
     "Rollback drill: `missing`; staging JSON must reference the release SHA, set `environment=staging`, set `kind=rollback`, record status `passed` or `validated`, and include passed/validated evidence refs for image rollback, feature flag rollback, migration compatibility, worker drain, and post-rollback smoke.",
+    "Production backup/rollback split blockers: release_sha_missing_or_not_full_sha, ci_gate_not_go, private_beta_staging_gate_not_go, production_backup_restore_split_not_passed, production_rollback_incident_post_deploy_split_not_passed; these preserve production no-go and cannot be checklist-cleared from admin-visible probe evidence alone.",
+    "Production backup exact split: `ops/evidence/production/backup-restore.json` status `missing`, missing requirements missing_file; must prove backup schedule, Postgres restore, object restore, RPO/RTO, audit refs.",
+    "Production rollback/incident/post-deploy exact split: `ops/evidence/production/rollback-incident-post-deploy-smoke.json` status `missing`, missing requirements missing_file; must prove app rollback, feature flag rollback, worker drain, migration compatibility, incident/alert path, post-deploy smoke.",
+    "Production split upstream gates: CI `no_go` blocked by ci_installed_workflow, ci_gate_runtime_execution, ci_playwright_smoke, ci_docker_image_build; Private Beta/Staging `no_go` blocked by staging_object_storage_signed_downloads.",
     "Security scan: local status `passed` from `ops/evidence/security/local/20260526T142040Z-security-scan-smoke-65314.json`; staging JSON must reference the release SHA, set `environment=staging`, set `kind=security_scan`, record status `passed`, and include passed/validated evidence refs for dependency, image/container, and committed-secret scans before private beta/production decisions.",
     "Object-storage signed URL: staging status `pass_with_blockers_preserved` from `ops/evidence/staging/20260527T2130Z-object-storage-signed-url.json` with 4/4 signed URL probes validator-visible; retention/cleanup evidence still required; object retention policy, expired export cleanup, orphan cleanup, and audit refs remain required before the object-storage gate can close.",
     "Object-storage retention cleanup: `blocked` from `ops/evidence/staging/object-storage-retention-cleanup.blocked.json` with 4/4 probes blocked by missing STAGING_BASE_URL or explicit retention/audit probe URLs; canonical pass evidence is still missing at `ops/evidence/staging/object-storage-retention-cleanup.json`, so the object-storage gate remains open.",
@@ -404,9 +408,13 @@ if template.count("- Object-storage retention cleanup evidence:") != 1:
     raise SystemExit("release notes template must contain exactly one object-storage retention cleanup evidence slot")
 if template.count("- Legal/support external-user visibility evidence:") != 1:
     raise SystemExit("release notes template must contain exactly one legal/support external-user visibility evidence slot")
+if template.count("- Production split preflight:") != 1:
+    raise SystemExit("release notes template must contain exactly one production split preflight slot")
 for token in (
     "release_gate_check_id=staging_object_storage_signed_downloads",
     "release_gate_check_id=staging_legal_external_user_pages",
+    "scripts/production_backup_rollback_split_smoke.sh",
+    "Admin-visible probe evidence alone must not close production backup/rollback rows",
     "deployed staging routes rather than source files",
 ):
     if token not in template:
