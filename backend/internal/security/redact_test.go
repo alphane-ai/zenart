@@ -614,6 +614,109 @@ func TestRedactStringCoversLaunchRegistryAndSecretManagerTokens(t *testing.T) {
 	}
 }
 
+func TestRedactStringCoversStoragePostPolicyAndCustomerEncryptionSecrets(t *testing.T) {
+	customerKey := strings.Repeat("A", 44)
+	input := strings.Join([]string{
+		"https://bucket.s3.amazonaws.com/export.zip?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAIOSFODNN7EXAMPLE%2F20260527%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Policy=eyJleHBpcmF0aW9uIjoiMjAyNiJ9&X-Amz-Signature=abcdef123456&X-Amz-Security-Token=session-token",
+		"https://storage.googleapis.com/zenart/export.zip?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=service@example.iam.gserviceaccount.com&X-Goog-Signature=googabcdef&GoogleAccessId=service@example.iam.gserviceaccount.com",
+		"x-amz-server-side-encryption-customer-key=" + customerKey,
+	}, " ")
+
+	got := RedactString(input)
+	for _, leaked := range []string{
+		"AKIAIOSFODNN7EXAMPLE",
+		"eyJleHBpcmF0aW9uIjoiMjAyNiJ9",
+		"abcdef123456",
+		"session-token",
+		"GOOG4-RSA-SHA256",
+		"service@example.iam.gserviceaccount.com",
+		"googabcdef",
+		customerKey,
+		"eyJwb2xpY3kiOiJzZWNyZXQifQ==",
+	} {
+		if strings.Contains(got, leaked) {
+			t.Fatalf("RedactString() = %q, leaked %s", got, leaked)
+		}
+	}
+	if !strings.Contains(got, Redacted) {
+		t.Fatalf("RedactString() = %q, want redaction marker", got)
+	}
+
+	jsonInput := `{"fields":{"x-amz-policy":"eyJwb2xpY3kiOiJzZWNyZXQifQ==","x-amz-server-side-encryption-customer-key":"` + customerKey + `","success_action_status":"201"}}`
+	jsonGot := RedactString(jsonInput)
+	for _, leaked := range []string{
+		"eyJwb2xpY3kiOiJzZWNyZXQifQ==",
+		customerKey,
+	} {
+		if strings.Contains(jsonGot, leaked) {
+			t.Fatalf("RedactString(JSON) = %q, leaked %s", jsonGot, leaked)
+		}
+	}
+	if !strings.Contains(jsonGot, "success_action_status") || !strings.Contains(jsonGot, Redacted) {
+		t.Fatalf("RedactString(JSON) = %q, want public POST policy fields and redaction marker", jsonGot)
+	}
+
+	findings := append(ClassifyString(input), ClassifyString(jsonInput)...)
+	assertSignal(t, findings, "url_query_secret")
+	assertSignal(t, findings, "sse_customer_key_assignment")
+}
+
+func TestRedactValueCoversStorageQueryMapsAndKubernetesPullSecrets(t *testing.T) {
+	queryValues := url.Values{
+		"X-Amz-Policy": []string{"eyJwb2xpY3kiOiJzZWNyZXQifQ=="},
+		"X-Amz-Server-Side-Encryption-Customer-Key":             []string{strings.Repeat("A", 44)},
+		"X-Goog-Algorithm":                                      []string{"GOOG4-RSA-SHA256"},
+		"access_token":                                          []string{"ya29.abcdefghijklmnopqrstuvwxyz123456"},
+		"response-content-disposition":                          []string{"attachment; filename=export.zip"},
+		"X-Amz-Copy-Source-Server-Side-Encryption-Customer-Key": []string{strings.Repeat("B", 44)},
+	}
+	redactedQuery, ok := RedactValue(queryValues).(map[string][]string)
+	if !ok {
+		t.Fatalf("RedactValue(url.Values) type = %T, want map[string][]string", RedactValue(queryValues))
+	}
+	for _, key := range []string{
+		"X-Amz-Policy",
+		"X-Amz-Server-Side-Encryption-Customer-Key",
+		"X-Goog-Algorithm",
+		"access_token",
+		"X-Amz-Copy-Source-Server-Side-Encryption-Customer-Key",
+	} {
+		if got := redactedQuery[key][0]; got != Redacted {
+			t.Fatalf("redacted query[%s] = %q, want redacted", key, got)
+		}
+	}
+	if redactedQuery["response-content-disposition"][0] != "attachment; filename=export.zip" {
+		t.Fatalf("public response override redacted unexpectedly: %#v", redactedQuery["response-content-disposition"])
+	}
+
+	metadata := map[string]any{
+		"imagePullSecret": "dXNlcjpwYXNzd29yZC1zdXBlci1zZWNyZXQ=",
+		"dockercfg":       "eyJhdXRocyI6eyJyZWdpc3RyeS5leGFtcGxlLmNvbSI6eyJhdXRoIjoiZFhObGNqcHdZWE56In19fQ==",
+		"public":          "visible",
+	}
+	body, err := json.Marshal(RedactValue(metadata))
+	if err != nil {
+		t.Fatalf("marshal redacted storage metadata: %v", err)
+	}
+	for _, leaked := range []string{
+		"dXNlcjpwYXNzd29yZC1zdXBlci1zZWNyZXQ=",
+		"eyJhdXRocyI6eyJyZWdpc3RyeS5leGFtcGxlLmNvbSI6eyJhdXRoIjoiZFhObGNqcHdZWE56In19fQ==",
+	} {
+		if strings.Contains(string(body), leaked) {
+			t.Fatalf("redacted metadata = %s, leaked %s", string(body), leaked)
+		}
+	}
+	if !strings.Contains(string(body), `"public":"visible"`) || !strings.Contains(string(body), Redacted) {
+		t.Fatalf("redacted metadata = %s, want public value and redaction marker", string(body))
+	}
+
+	findings := ClassifyValue(map[string]any{"query": queryValues, "metadata": metadata})
+	assertFinding(t, findings, SecretKindSignedURL, "query.X-Amz-Policy")
+	assertFinding(t, findings, SecretKindEncryptionKey, "query.X-Amz-Server-Side-Encryption-Customer-Key")
+	assertFinding(t, findings, SecretKindRegistryAuth, "metadata.imagePullSecret")
+	assertFinding(t, findings, SecretKindRegistryAuth, "metadata.dockercfg")
+}
+
 func TestClassifyKeyCoversLaunchSecretNames(t *testing.T) {
 	cases := []struct {
 		key  string
@@ -637,6 +740,10 @@ func TestClassifyKeyCoversLaunchSecretNames(t *testing.T) {
 		{key: "databaseUrl", kind: SecretKindCredential},
 		{key: "serviceAccountJSON", kind: SecretKindServiceAcct},
 		{key: "registryPassword", kind: SecretKindRegistryAuth},
+		{key: "imagePullSecret", kind: SecretKindRegistryAuth},
+		{key: "dockercfg", kind: SecretKindRegistryAuth},
+		{key: "xAmzServerSideEncryptionCustomerKey", kind: SecretKindEncryptionKey},
+		{key: "sseCustomerKey", kind: SecretKindEncryptionKey},
 	}
 
 	for _, tt := range cases {

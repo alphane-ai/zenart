@@ -37,6 +37,7 @@ const (
 	SecretKindSignedURL     SecretKind = "signed_url_secret"
 	SecretKindServiceAcct   SecretKind = "service_account"
 	SecretKindRegistryAuth  SecretKind = "registry_auth"
+	SecretKindEncryptionKey SecretKind = "encryption_key"
 )
 
 type SecretFinding struct {
@@ -45,7 +46,7 @@ type SecretFinding struct {
 	Location string     `json:"location,omitempty"`
 }
 
-var sensitiveKeyPattern = regexp.MustCompile(`(?i)(secret|token|password|passwd|pwd|passphrase|api[_-]?key|x[_-]?api[_-]?key|access[_-]?key|private[_-]?key|private[_-]?token|deploy[_-]?key|credential|signature|session|cookie|authorization|proxy[_-]?authorization|client[_-]?secret|client[_-]?token|refresh[_-]?token|id[_-]?token|personal[_-]?access[_-]?token|pat|jwt|oauth|webhook[_-]?secret|signing[_-]?key|shared[_-]?access[_-]?signature|sas|stripe|openai|anthropic|provider[_-]?key|database[_-]?url|dsn|connection[_-]?string|connectionstring|service[_-]?account|storage[_-]?key|docker[_-]?auth|dockerconfigjson|registry[_-]?(auth|token|password))`)
+var sensitiveKeyPattern = regexp.MustCompile(`(?i)(secret|token|password|passwd|pwd|passphrase|api[_-]?key|x[_-]?api[_-]?key|access[_-]?key|private[_-]?key|private[_-]?token|deploy[_-]?key|credential|signature|session|cookie|authorization|proxy[_-]?authorization|client[_-]?secret|client[_-]?token|refresh[_-]?token|id[_-]?token|personal[_-]?access[_-]?token|pat|jwt|oauth|webhook[_-]?secret|signing[_-]?key|shared[_-]?access[_-]?signature|sas|stripe|openai|anthropic|provider[_-]?key|database[_-]?url|dsn|connection[_-]?string|connectionstring|service[_-]?account|storage[_-]?key|encryption[_-]?customer[_-]?key|customer[_-]?encryption[_-]?key|sse[_-]?customer[_-]?key|docker[_-]?auth|dockerconfigjson|dockercfg|image[_-]?pull[_-]?secret|registry[_-]?(auth|token|password))`)
 
 var secretValuePatterns = []struct {
 	kind    SecretKind
@@ -101,9 +102,11 @@ var secretValuePatterns = []struct {
 	{SecretKindToken, "render_api_key", regexp.MustCompile(`\brnd_[A-Za-z0-9]{20,}\b`)},
 	{SecretKindToken, "doppler_token", regexp.MustCompile(`\bdp\.pt\.[A-Za-z0-9._-]{20,}\b`)},
 	{SecretKindToken, "vault_token", regexp.MustCompile(`\bhvs\.[A-Za-z0-9_-]{20,}\b`)},
+	{SecretKindEncryptionKey, "sse_customer_key_assignment", regexp.MustCompile(`(?i)\b(?:x[_-]?amz[_-]?)?(?:server[_-]?side[_-]?encryption[_-]customer[_-]?key|sse[_-]?customer[_-]?key|customer[_-]?provided[_-]?key)\s*[=:]\s*("[A-Za-z0-9+/=]{20,}"|'[A-Za-z0-9+/=]{20,}'|[A-Za-z0-9+/=]{20,})`)},
+	{SecretKindRegistryAuth, "kubernetes_pull_secret", regexp.MustCompile(`(?i)\b(?:image[_-]?pull[_-]?secret|dockerconfigjson|dockercfg)\s*[=:]\s*("[A-Za-z0-9+/=._-]{20,}"|'[A-Za-z0-9+/=._-]{20,}'|[A-Za-z0-9+/=._-]{20,})`)},
 }
 
-var assignmentPattern = regexp.MustCompile(`(?i)\b([A-Za-z0-9_.-]*(?:secret|token|password|passwd|pwd|passphrase|api[_-]?key|x[_-]?api[_-]?key|access[_-]?key|private[_-]?key|private[_-]?token|deploy[_-]?key|credential|signature|session|cookie|authorization|proxy[_-]?authorization|client[_-]?secret|client[_-]?token|refresh[_-]?token|personal[_-]?access[_-]?token|webhook[_-]?secret|signing[_-]?key|shared[_-]?access[_-]?signature|database[_-]?url|dsn|connection[_-]?string|connectionstring|service[_-]?account|storage[_-]?key)[A-Za-z0-9_.-]*)\s*([=:])\s*("[^"]*"|'[^']*'|[^\s,;&]+)`)
+var assignmentPattern = regexp.MustCompile(`(?i)\b([A-Za-z0-9_.-]*(?:secret|token|password|passwd|pwd|passphrase|api[_-]?key|x[_-]?api[_-]?key|access[_-]?key|private[_-]?key|private[_-]?token|deploy[_-]?key|credential|signature|session|cookie|authorization|proxy[_-]?authorization|client[_-]?secret|client[_-]?token|refresh[_-]?token|personal[_-]?access[_-]?token|webhook[_-]?secret|signing[_-]?key|shared[_-]?access[_-]?signature|database[_-]?url|dsn|connection[_-]?string|connectionstring|service[_-]?account|storage[_-]?key|encryption[_-]?customer[_-]?key|customer[_-]?encryption[_-]?key|sse[_-]?customer[_-]?key|dockerconfigjson|dockercfg|image[_-]?pull[_-]?secret)[A-Za-z0-9_.-]*)\s*([=:])\s*("[^"]*"|'[^']*'|[^\s,;&]+)`)
 var embeddedURLPattern = regexp.MustCompile(`[A-Za-z][A-Za-z0-9+.-]*://[^\s"'<>]+`)
 
 type MalwareScanStatus string
@@ -279,8 +282,12 @@ func ClassifyKey(key string) []SecretFinding {
 	switch {
 	case strings.Contains(lower, "docker") || strings.Contains(lower, "registry"):
 		kind = SecretKindRegistryAuth
+	case strings.Contains(lower, "dockercfg") || strings.Contains(lower, "pull_secret"):
+		kind = SecretKindRegistryAuth
 	case strings.Contains(lower, "password") || strings.Contains(lower, "passwd") || strings.Contains(lower, "pwd"):
 		kind = SecretKindPassword
+	case strings.Contains(lower, "encryption_customer_key") || strings.Contains(lower, "customer_encryption_key") || strings.Contains(lower, "sse_customer_key"):
+		kind = SecretKindEncryptionKey
 	case strings.Contains(lower, "private") && (strings.Contains(lower, "key") || strings.Contains(lower, "token")):
 		kind = SecretKindPrivateKey
 	case strings.Contains(lower, "deploy") && strings.Contains(lower, "key"):
@@ -379,7 +386,7 @@ func RedactValue(value any) any {
 		out := make(map[string][]any, len(typed))
 		for key, values := range typed {
 			redactedValues := make([]any, len(values))
-			if IsSensitiveKey(key) {
+			if IsSensitiveKey(key) || isStructuredSignedURLSecretKey(key) {
 				for i := range values {
 					redactedValues[i] = Redacted
 				}
@@ -522,7 +529,7 @@ func redactSlogValue(key string, value slog.Value) slog.Value {
 func RedactMap(input map[string]any) map[string]any {
 	out := make(map[string]any, len(input))
 	for key, value := range input {
-		if IsSensitiveKey(key) {
+		if IsSensitiveKey(key) || isStructuredSignedURLSecretKey(key) {
 			out[key] = Redacted
 			continue
 		}
@@ -537,7 +544,7 @@ func RedactStringMap(input map[string]string) map[string]string {
 	}
 	out := make(map[string]string, len(input))
 	for key, val := range input {
-		if IsSensitiveKey(key) {
+		if IsSensitiveKey(key) || isStructuredSignedURLSecretKey(key) {
 			out[key] = Redacted
 			continue
 		}
@@ -553,7 +560,7 @@ func RedactStringSliceMap(input map[string][]string) map[string][]string {
 	out := make(map[string][]string, len(input))
 	for key, values := range input {
 		redactedValues := make([]string, len(values))
-		if IsSensitiveKey(key) {
+		if IsSensitiveKey(key) || isSignedURLQueryKey(key) {
 			for i := range values {
 				redactedValues[i] = Redacted
 			}
@@ -731,13 +738,31 @@ func isSignedURLQueryKey(key string) bool {
 	normalized := strings.ToLower(strings.ReplaceAll(strings.TrimSpace(key), "_", "-"))
 	switch normalized {
 	case "x-amz-algorithm", "x-amz-credential", "x-amz-signature", "x-amz-security-token",
-		"x-amz-date", "x-amz-expires", "x-amz-signedheaders",
+		"x-amz-date", "x-amz-expires", "x-amz-signedheaders", "x-amz-policy",
+		"x-amz-server-side-encryption-customer-key", "x-amz-server-side-encryption-customer-key-md5",
+		"x-amz-copy-source-server-side-encryption-customer-key", "x-amz-copy-source-server-side-encryption-customer-key-md5",
 		"x-goog-credential", "x-goog-signature", "x-goog-security-token",
-		"x-goog-date", "x-goog-expires", "x-goog-signedheaders",
+		"x-goog-algorithm", "x-goog-date", "x-goog-expires", "x-goog-signedheaders",
 		"googleaccessid", "x-oss-signature", "ossaccesskeyid",
-		"awsaccesskeyid", "signature", "sig", "token", "access-token", "download-token",
+		"awsaccesskeyid", "signature", "sig", "token", "access-token", "download-token", "oauth-token",
 		"expires", "policy", "key-pair-id",
 		"se", "sp", "spr", "sr", "sv", "skoid", "sktid", "skt", "ske", "sks", "skv":
+		return true
+	default:
+		return false
+	}
+}
+
+func isStructuredSignedURLSecretKey(key string) bool {
+	normalized := strings.ToLower(strings.ReplaceAll(strings.TrimSpace(key), "_", "-"))
+	switch normalized {
+	case "x-amz-algorithm", "x-amz-credential", "x-amz-signature", "x-amz-security-token",
+		"x-amz-policy", "x-amz-server-side-encryption-customer-key",
+		"x-amz-server-side-encryption-customer-key-md5",
+		"x-amz-copy-source-server-side-encryption-customer-key",
+		"x-amz-copy-source-server-side-encryption-customer-key-md5",
+		"x-goog-algorithm", "x-goog-credential", "x-goog-signature", "x-goog-security-token",
+		"googleaccessid", "ossaccesskeyid", "awsaccesskeyid":
 		return true
 	default:
 		return false
