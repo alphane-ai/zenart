@@ -112,6 +112,18 @@ test("account route exposes secure-cookie, same-site CSRF, unsafe-action guard, 
   await expect(sessionContract).toHaveAttribute("data-session-backend-runtime-pairing", "secure-cookie-same-site-csrf-runtime");
   await expect(sessionContract).toHaveAttribute("data-session-backend-runtime-pairing-status", "pass");
   await expect(sessionContract).toHaveAttribute(
+    "data-session-backend-runtime-pairing-digest",
+    /secure-cookie-same-site-csrf-runtime\|\|__Host-zenart_session;HttpOnly;Secure;SameSite=lax;Path=\/;HostOnly\|\|POST,PUT,PATCH,DELETE:X-ZenArt-CSRF:same-site-origin-check:same-site-only:include:lax-or-strict/
+  );
+  await expect(sessionContract).toHaveAttribute(
+    "data-session-backend-runtime-pairing-digest",
+    /createUpload:POST:\/uploads:include:X-ZenArt-CSRF:same-site-origin-check:true/
+  );
+  await expect(sessionContract).toHaveAttribute(
+    "data-session-backend-runtime-pairing-digest",
+    /missing=none\|\|cookie-failures=none\|\|csrf-failures=none/
+  );
+  await expect(sessionContract).toHaveAttribute(
     "data-session-backend-set-cookie-contract",
     "__Host-zenart_session;HttpOnly;Secure;SameSite=lax;Path=/;HostOnly"
   );

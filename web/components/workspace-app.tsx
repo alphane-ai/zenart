@@ -55,9 +55,11 @@ import { downloadExportPackage } from "@/lib/export-download";
 import { apiOperations, OperationId, ZenArtApiClient } from "@/lib/generated/zenart-api";
 import { legalPolicyList, supportContactEmail } from "@/lib/legal-policies";
 import {
+  buildSecureCookieSameSiteRuntimePairingDigest,
   buildGeneratedApiCsrfRequestContractEvidence,
   buildSessionSecurityContractEvidence,
   isCsrfProtectedMethod,
+  serializeBackendCsrfValidationContract,
   serializeSetCookieContract
 } from "@/lib/request-security";
 import { AnalyticsEventName, captureAnalyticsEvent, reportFrontendError } from "@/lib/telemetry";
@@ -680,14 +682,12 @@ function SessionPanel({
       ? "pass"
       : "fail";
   const backendSetCookieContract = serializeSetCookieContract(state.sessionContract.cookie);
-  const backendCsrfValidationContract = [
-    state.sessionContract.csrf.protectedMethods.join(","),
-    state.sessionContract.csrf.headerName,
-    state.sessionContract.csrf.headerValue,
-    state.sessionContract.csrf.originPolicy,
-    state.sessionContract.csrf.credentialMode,
-    state.sessionContract.csrf.sameSiteRequired
-  ].join(":");
+  const backendCsrfValidationContract = serializeBackendCsrfValidationContract(state.sessionContract.csrf);
+  const backendRuntimePairingDigest = buildSecureCookieSameSiteRuntimePairingDigest(
+    state.sessionContract,
+    generatedRequestEvidence,
+    evidence
+  );
   const csrfProtectedMethods = evidence.protectedMethods.join(", ");
   const sameSiteRequirement = state.sessionContract.csrf.sameSiteRequired;
   const unsafeActionGuardContracts = formatUnsafeActionGuardContracts();
@@ -743,6 +743,7 @@ function SessionPanel({
       data-session-csrf-failure-reasons={evidence.csrfFailureReasons.join(",")}
       data-session-backend-runtime-pairing="secure-cookie-same-site-csrf-runtime"
       data-session-backend-runtime-pairing-status={backendRuntimePairingStatus}
+      data-session-backend-runtime-pairing-digest={backendRuntimePairingDigest}
       data-session-backend-set-cookie-contract={backendSetCookieContract}
       data-session-backend-csrf-validation-contract={backendCsrfValidationContract}
       data-session-backend-unsafe-request-contract-count={generatedRequestEvidence.unsafeRequestContracts.length}

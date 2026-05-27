@@ -158,7 +158,9 @@ for (const requiredRequestSecuritySnippet of [
   "buildSessionSecurityContractEvidence",
   "buildGeneratedApiCsrfRequestContractEvidence",
   "cookieFailureReasons",
-  "csrfFailureReasons"
+  "csrfFailureReasons",
+  "buildSecureCookieSameSiteRuntimePairingDigest",
+  "serializeBackendCsrfValidationContract"
 ]) {
   if (!requestSecuritySource.includes(requiredRequestSecuritySnippet)) {
     fail(`request security contract missing ${requiredRequestSecuritySnippet}`);
@@ -248,6 +250,7 @@ const requiredSessionAttributes = [
   sessionEvidence.csrf?.csrfFailureReasonsAttribute,
   sessionEvidence.backendRuntimePairing?.contractAttribute,
   sessionEvidence.backendRuntimePairing?.statusAttribute,
+  sessionEvidence.backendRuntimePairing?.digestAttribute,
   sessionEvidence.backendRuntimePairing?.setCookieContractAttribute,
   sessionEvidence.backendRuntimePairing?.csrfValidationContractAttribute,
   sessionEvidence.backendRuntimePairing?.unsafeRequestContractCountAttribute,
@@ -317,6 +320,7 @@ if (
   generatedApiCsrfContract.backendRuntimePairing?.schemaVersion !== "stage0.rev2.secure-cookie-same-site-csrf-runtime-pairing" ||
   generatedApiCsrfContract.backendRuntimePairing?.expectedContract !== sessionEvidence.backendRuntimePairing?.expectedContract ||
   generatedApiCsrfContract.backendRuntimePairing?.expectedStatus !== sessionEvidence.backendRuntimePairing?.expectedStatus ||
+  generatedApiCsrfContract.backendRuntimePairing?.expectedDigest !== sessionEvidence.backendRuntimePairing?.expectedDigest ||
   generatedApiCsrfContract.backendRuntimePairing?.expectedSetCookieContract !==
     sessionEvidence.backendRuntimePairing?.expectedSetCookieContract ||
   generatedApiCsrfContract.backendRuntimePairing?.expectedCsrfValidationContract !==
@@ -333,6 +337,13 @@ if (
 
 if (
   sessionEvidence.backendRuntimePairing?.expectedStatus !== "pass" ||
+  !sessionEvidence.backendRuntimePairing?.expectedDigest?.startsWith(
+    "secure-cookie-same-site-csrf-runtime||__Host-zenart_session;HttpOnly;Secure;SameSite=lax;Path=/;HostOnly||POST,PUT,PATCH,DELETE:X-ZenArt-CSRF:same-site-origin-check:same-site-only:include:lax-or-strict||"
+  ) ||
+  !sessionEvidence.backendRuntimePairing?.expectedDigest?.includes(
+    "createUpload:POST:/uploads:include:X-ZenArt-CSRF:same-site-origin-check:true"
+  ) ||
+  !sessionEvidence.backendRuntimePairing?.expectedDigest?.endsWith("||missing=none||cookie-failures=none||csrf-failures=none") ||
   sessionEvidence.backendRuntimePairing?.expectedSetCookieContract !== "__Host-zenart_session;HttpOnly;Secure;SameSite=lax;Path=/;HostOnly" ||
   sessionEvidence.backendRuntimePairing?.expectedCsrfValidationContract !==
     "POST,PUT,PATCH,DELETE:X-ZenArt-CSRF:same-site-origin-check:same-site-only:include:lax-or-strict" ||
@@ -351,6 +362,7 @@ if (!generatedApiCsrfContract.backendRuntimePairing?.assertion?.includes("runtim
 for (const requiredRuntimePairingAssertion of [
   "data-session-backend-runtime-pairing",
   "data-session-backend-runtime-pairing-status",
+  "data-session-backend-runtime-pairing-digest",
   "data-session-backend-set-cookie-contract",
   "data-session-backend-csrf-validation-contract",
   "data-session-backend-unsafe-request-contract-count",
@@ -616,6 +628,7 @@ for (const requiredTestSnippet of [
   "data-session-cookie-same-site-accepted-values",
   "data-session-cookie-same-site-rejected-values",
   "data-session-cookie-same-site-acceptance-matrix",
+  "data-session-backend-runtime-pairing-digest",
   "data-session-unsafe-action-status",
   "data-session-unsafe-action-guard-coverage-status",
   "data-session-unsafe-action-blocked-control-count",
@@ -650,6 +663,7 @@ for (const requiredBrowserSnippet of [
   "data-session-cookie-same-site-acceptance-matrix",
   "data-session-backend-runtime-pairing",
   "data-session-backend-runtime-pairing-status",
+  "data-session-backend-runtime-pairing-digest",
   "data-session-backend-set-cookie-contract",
   "data-session-backend-csrf-validation-contract",
   "data-session-csrf-header",

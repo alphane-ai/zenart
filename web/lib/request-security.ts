@@ -44,6 +44,32 @@ export const serializeSetCookieContract = (cookie: SessionContract["cookie"]) =>
     cookie.domain ? `Domain=${cookie.domain}` : "HostOnly"
   ].join(";");
 
+export const serializeBackendCsrfValidationContract = (csrf: SessionContract["csrf"]) =>
+  [csrf.protectedMethods.join(","), csrf.headerName, csrf.headerValue, csrf.originPolicy, csrf.credentialMode, csrf.sameSiteRequired].join(":");
+
+export const buildSecureCookieSameSiteRuntimePairingDigest = (
+  sessionContract: SessionContract,
+  generatedRequestEvidence: Pick<
+    GeneratedApiCsrfRequestContractEvidence,
+    "unsafeRequestContracts" | "missingUnsafeOperationIds"
+  >,
+  sessionEvidence: Pick<SessionSecurityContractEvidence, "cookieFailureReasons" | "csrfFailureReasons">
+) =>
+  [
+    "secure-cookie-same-site-csrf-runtime",
+    serializeSetCookieContract(sessionContract.cookie),
+    serializeBackendCsrfValidationContract(sessionContract.csrf),
+    generatedRequestEvidence.unsafeRequestContracts
+      .map(
+        (contract) =>
+          `${contract.operationId}:${contract.method}:${contract.path}:${contract.credentials}:${contract.csrfHeaderName}:${contract.csrfHeaderValue}:${contract.idempotencyHeaderRequired}`
+      )
+      .join("|"),
+    `missing=${generatedRequestEvidence.missingUnsafeOperationIds.join(",") || "none"}`,
+    `cookie-failures=${sessionEvidence.cookieFailureReasons.join(",") || "none"}`,
+    `csrf-failures=${sessionEvidence.csrfFailureReasons.join(",") || "none"}`
+  ].join("||");
+
 export const stripCsrfHeaderAliases = (
   headers: Record<string, string> = {},
   contract = defaultSameSiteCsrfContract

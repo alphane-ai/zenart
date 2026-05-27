@@ -3,6 +3,7 @@ import userRouteSmoke from "../validation/user-routes-smoke.json";
 import { apiOperations } from "./generated/zenart-api";
 import { createSessionContract } from "./dev-state";
 import {
+  buildSecureCookieSameSiteRuntimePairingDigest,
   buildGeneratedApiCsrfRequestContractEvidence,
   buildCsrfRequestHeaders,
   buildSessionSecurityContractEvidence,
@@ -303,6 +304,12 @@ describe("same-site CSRF request contract", () => {
       (entry) => entry.schemaVersion === "stage0.rev2.session-csrf-client-evidence"
     );
     const runtimeEvidence = buildSessionSecurityContractEvidence(createSessionContract(), apiOperations);
+    const generatedRuntimeEvidence = buildGeneratedApiCsrfRequestContractEvidence(apiOperations);
+    const runtimePairingDigest = buildSecureCookieSameSiteRuntimePairingDigest(
+      createSessionContract(),
+      generatedRuntimeEvidence,
+      runtimeEvidence
+    );
 
     expect(artifactEvidence).toMatchObject({
       route: "/account",
@@ -350,6 +357,7 @@ describe("same-site CSRF request contract", () => {
         schemaVersion: "stage0.rev2.secure-cookie-same-site-csrf-runtime-pairing",
         contractAttribute: "data-session-backend-runtime-pairing",
         statusAttribute: "data-session-backend-runtime-pairing-status",
+        digestAttribute: "data-session-backend-runtime-pairing-digest",
         setCookieContractAttribute: "data-session-backend-set-cookie-contract",
         csrfValidationContractAttribute: "data-session-backend-csrf-validation-contract",
         unsafeRequestContractCountAttribute: "data-session-backend-unsafe-request-contract-count",
@@ -358,6 +366,7 @@ describe("same-site CSRF request contract", () => {
         csrfFailureCountAttribute: "data-session-backend-csrf-failure-count",
         expectedContract: "secure-cookie-same-site-csrf-runtime",
         expectedStatus: "pass",
+        expectedDigest: runtimePairingDigest,
         expectedSetCookieContract: "__Host-zenart_session;HttpOnly;Secure;SameSite=lax;Path=/;HostOnly",
         expectedCsrfValidationContract: "POST,PUT,PATCH,DELETE:X-ZenArt-CSRF:same-site-origin-check:same-site-only:include:lax-or-strict",
         expectedUnsafeRequestContractCount: "15",
