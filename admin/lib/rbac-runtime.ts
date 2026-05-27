@@ -1,5 +1,6 @@
 import type {
   AdminRbacEvidence,
+  AdminRbacEvidencePack,
   AdminRbacRuntimeDecision,
   AdminRbacSurfaceSummary,
   AdminRole
@@ -24,6 +25,10 @@ function isExpired(expiresAt: string, now: Date) {
 
 function hasSufficientRole(item: AdminRbacEvidence) {
   return roleRank[item.attemptedRole] >= roleRank[item.requiredRole];
+}
+
+function highestRole(roles: AdminRole[]) {
+  return roles.reduce((highest, role) => (roleRank[role] > roleRank[highest] ? role : highest), roles[0]);
 }
 
 function expiryPolicyStatus(item: AdminRbacEvidence, expired: boolean) {
@@ -298,6 +303,118 @@ export function buildAdminRbacSurfaceSummaries(
           `${expiredOverrideDenials} expired denial`
         ].join("; "),
         operatorAction
+      };
+    })
+    .sort((a, b) => a.surface.localeCompare(b.surface));
+}
+
+function releaseGateDisposition(decisions: AdminRbacRuntimeDecision[]): AdminRbacEvidencePack["releaseGateDisposition"] {
+  const statuses = new Set(decisions.map((decision) => decision.effectiveDecision));
+
+  if (statuses.size > 1) {
+    return "mixed_preserved";
+  }
+
+  if (statuses.has("allow_mutation")) {
+    return "applied_with_expiry";
+  }
+
+  if (statuses.has("queue_for_review")) {
+    return "held_for_second_review";
+  }
+
+  return "blocked_by_policy_or_role";
+}
+
+function evidenceCompleteness(
+  surfaceEvidence: AdminRbacEvidence[],
+  surfaceDecisions: AdminRbacRuntimeDecision[]
+): AdminRbacEvidencePack["evidenceCompleteness"] {
+  if (surfaceDecisions.length !== surfaceEvidence.length) {
+    return "missing_runtime";
+  }
+
+  if (surfaceEvidence.some((item) => item.auditRef.length === 0 || item.auditRef === "none")) {
+    return "missing_audit";
+  }
+
+  if (surfaceEvidence.some((item) => item.releaseEvidenceRequired.length === 0 || item.evidenceRefs.length === 0)) {
+    return "missing_release_evidence";
+  }
+
+  return "complete";
+}
+
+function operatorChecklist(
+  surfaceEvidence: AdminRbacEvidence[],
+  surfaceDecisions: AdminRbacRuntimeDecision[]
+) {
+  const checklist = new Set<string>();
+
+  if (surfaceDecisions.some((decision) => decision.requestOutcome === "denied_expired_override")) {
+    checklist.add("Reopen with fresh runtime evidence before mutating.");
+  }
+
+  if (surfaceDecisions.some((decision) => decision.requestOutcome === "denied_insufficient_role")) {
+    checklist.add("Escalate to the required admin role before retry.");
+  }
+
+  if (surfaceDecisions.some((decision) => decision.requestOutcome === "queued_second_review")) {
+    checklist.add("Attach second-review rationale and immutable audit before release.");
+  }
+
+  if (surfaceDecisions.some((decision) => decision.requestOutcome === "denied_policy_block")) {
+    checklist.add("Preserve the gate and use the documented safe path.");
+  }
+
+  if (surfaceDecisions.some((decision) => decision.requestOutcome === "applied")) {
+    checklist.add("Track expiry restoration and release-gate blocker preservation.");
+  }
+
+  for (const requiredEvidence of uniqueSorted(surfaceEvidence.flatMap((item) => item.releaseEvidenceRequired))) {
+    checklist.add(`Verify ${requiredEvidence}.`);
+  }
+
+  return Array.from(checklist);
+}
+
+export function buildAdminRbacEvidencePacks(
+  evidence: AdminRbacEvidence[],
+  decisions: AdminRbacRuntimeDecision[]
+): AdminRbacEvidencePack[] {
+  const evidenceBySurface = new Map<AdminRbacEvidence["surface"], AdminRbacEvidence[]>();
+  const decisionsBySurface = new Map<AdminRbacRuntimeDecision["surface"], AdminRbacRuntimeDecision[]>();
+
+  for (const item of evidence) {
+    evidenceBySurface.set(item.surface, [...(evidenceBySurface.get(item.surface) ?? []), item]);
+  }
+
+  for (const decision of decisions) {
+    decisionsBySurface.set(decision.surface, [...(decisionsBySurface.get(decision.surface) ?? []), decision]);
+  }
+
+  return Array.from(evidenceBySurface.entries())
+    .map(([surface, surfaceEvidence]) => {
+      const surfaceDecisions = decisionsBySurface.get(surface) ?? [];
+
+      return {
+        surface,
+        overrideScope: surfaceEvidence[0].overrideScope,
+        evidenceIds: uniqueSorted(surfaceEvidence.map((item) => item.id)),
+        targets: uniqueSorted(surfaceEvidence.map((item) => item.target)),
+        requiredRoles: uniqueSorted(surfaceEvidence.map((item) => item.requiredRole)),
+        attemptedRoles: uniqueSorted(surfaceEvidence.map((item) => item.attemptedRole)),
+        requestOutcomes: uniqueSorted(surfaceDecisions.map((decision) => decision.requestOutcome)),
+        mutationDecisions: uniqueSorted(surfaceDecisions.map((decision) => decision.effectiveDecision)),
+        releaseGateStatuses: uniqueSorted(surfaceDecisions.map((decision) => decision.releaseGateStatus)),
+        expiryStatuses: uniqueSorted(surfaceDecisions.map((decision) => decision.expiryPolicyStatus)),
+        secondReviewStatuses: uniqueSorted(surfaceEvidence.map((item) => item.secondReviewStatus)),
+        auditRefs: uniqueSorted(surfaceEvidence.map((item) => item.auditRef)),
+        evidenceRefs: uniqueSorted(surfaceEvidence.flatMap((item) => item.evidenceRefs)),
+        highestRequiredRole: highestRole(surfaceEvidence.map((item) => item.requiredRole)),
+        releaseGateDisposition: releaseGateDisposition(surfaceDecisions),
+        evidenceCompleteness: evidenceCompleteness(surfaceEvidence, surfaceDecisions),
+        operatorChecklist: operatorChecklist(surfaceEvidence, surfaceDecisions)
       };
     })
     .sort((a, b) => a.surface.localeCompare(b.surface));

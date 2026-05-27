@@ -1268,6 +1268,30 @@ export type AdminRbacSurfaceSummary = {
   operatorAction: string;
 };
 
+export type AdminRbacEvidencePack = {
+  surface: AdminReviewSurface;
+  overrideScope: AdminRbacEvidence["overrideScope"];
+  evidenceIds: string[];
+  targets: string[];
+  requiredRoles: AdminRole[];
+  attemptedRoles: AdminRole[];
+  requestOutcomes: AdminRbacRuntimeDecision["requestOutcome"][];
+  mutationDecisions: AdminRbacRuntimeDecision["effectiveDecision"][];
+  releaseGateStatuses: AdminRbacRuntimeDecision["releaseGateStatus"][];
+  expiryStatuses: AdminRbacRuntimeDecision["expiryPolicyStatus"][];
+  secondReviewStatuses: AdminRbacEvidence["secondReviewStatus"][];
+  auditRefs: string[];
+  evidenceRefs: string[];
+  highestRequiredRole: AdminRole;
+  releaseGateDisposition:
+    | "applied_with_expiry"
+    | "held_for_second_review"
+    | "blocked_by_policy_or_role"
+    | "mixed_preserved";
+  evidenceCompleteness: "complete" | "missing_audit" | "missing_runtime" | "missing_release_evidence";
+  operatorChecklist: string[];
+};
+
 export type ReleaseEvidence = {
   id: string;
   target: string;

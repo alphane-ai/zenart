@@ -93,19 +93,24 @@ const parseRbacRuntime = () => {
     .replaceAll(/export function (\w+)/g, "function $1")
     .replaceAll(/function uniqueSorted<T extends string>\(values: T\[\]\)/g, "function uniqueSorted(values)")
     .replaceAll(/new Set<T>/g, "new Set")
+    .replaceAll(/new Set<string>/g, "new Set")
     .replaceAll(/: AdminRbacEvidence\[\]/g, "")
     .replaceAll(/: AdminRbacRuntimeDecision\[\]/g, "")
     .replaceAll(/: AdminRbacSurfaceSummary\[\]/g, "")
+    .replaceAll(/: AdminRbacEvidencePack\[\]/g, "")
+    .replaceAll(/: AdminRbacEvidencePack\["releaseGateDisposition"\]/g, "")
+    .replaceAll(/: AdminRbacEvidencePack\["evidenceCompleteness"\]/g, "")
     .replaceAll(/: AdminRbacEvidence\["surface"\]/g, "")
     .replaceAll(/: AdminRbacRuntimeDecision\["surface"\]/g, "")
     .replaceAll(/new Map<AdminRbacEvidence\["surface"\], AdminRbacEvidence\[\]>/g, "new Map")
     .replaceAll(/new Map<AdminRbacRuntimeDecision\["surface"\], AdminRbacRuntimeDecision\[\]>/g, "new Map")
     .replaceAll(/: AdminRbacEvidence/g, "")
+    .replaceAll(/: AdminRole\[\]/g, "")
     .replaceAll(/: string\[\]/g, "")
     .replaceAll(/: string/g, "")
     .replaceAll(/: Date/g, "")
     .replaceAll(/: boolean/g, "");
-  return Function(`${runtimeSource}\nreturn { buildAdminRbacRuntimeDecisions, buildAdminRbacSurfaceSummaries };`)();
+  return Function(`${runtimeSource}\nreturn { buildAdminRbacRuntimeDecisions, buildAdminRbacSurfaceSummaries, buildAdminRbacEvidencePacks };`)();
 };
 
 const parseExportRuntime = () => {
@@ -3577,6 +3582,85 @@ test("admin RBAC surface summaries expose release evidence for every governed ov
   assert.ok(
     summaryBySurface.get("safety_rule").releaseEvidenceRequired.includes("superadmin approval"),
     "safety summary must preserve superadmin release evidence"
+  );
+});
+
+test("admin RBAC evidence packs bind each override surface to runtime, audit, and operator evidence", () => {
+  const { buildAdminRbacRuntimeDecisions, buildAdminRbacEvidencePacks } = parseRbacRuntime();
+  const decisions = buildAdminRbacRuntimeDecisions(adminRbacEvidence, new Date("2026-05-26T11:00:00Z"));
+  const packs = buildAdminRbacEvidencePacks(adminRbacEvidence, decisions);
+  const packBySurface = new Map(packs.map((pack) => [pack.surface, pack]));
+  const evidenceBySurface = new Map();
+  const decisionsBySurface = new Map();
+
+  for (const item of adminRbacEvidence) {
+    evidenceBySurface.set(item.surface, [...(evidenceBySurface.get(item.surface) ?? []), item]);
+  }
+
+  for (const decision of decisions) {
+    decisionsBySurface.set(decision.surface, [...(decisionsBySurface.get(decision.surface) ?? []), decision]);
+  }
+
+  assert.equal(packs.length, overrideScopeBySurface.size, "one RBAC evidence pack is required per governed override surface");
+
+  for (const [surface, overrideScope] of overrideScopeBySurface.entries()) {
+    const pack = packBySurface.get(surface);
+    const surfaceEvidence = evidenceBySurface.get(surface) ?? [];
+    const surfaceDecisions = decisionsBySurface.get(surface) ?? [];
+
+    assert.ok(pack, `${surface} needs an RBAC evidence pack`);
+    assert.equal(pack.overrideScope, overrideScope, `${surface} pack must preserve override scope`);
+    assert.deepEqual(pack.evidenceIds.toSorted(), surfaceEvidence.map((item) => item.id).toSorted(), `${surface} pack evidence IDs must match fixtures`);
+    assert.deepEqual(pack.auditRefs.toSorted(), [...new Set(surfaceEvidence.map((item) => item.auditRef))].sort(), `${surface} pack audit refs must match fixtures`);
+    assert.equal(pack.evidenceCompleteness, "complete", `${surface} pack must be complete`);
+    assert.ok(roleOrder.has(pack.highestRequiredRole), `${surface} pack highest required role must be known`);
+    assert.ok(pack.operatorChecklist.length >= surfaceEvidence[0].releaseEvidenceRequired.length, `${surface} pack needs release checklist evidence`);
+    assert.ok(pack.evidenceRefs.length >= surfaceEvidence.length, `${surface} pack needs evidence refs`);
+
+    for (const decision of surfaceDecisions) {
+      assert.ok(pack.requestOutcomes.includes(decision.requestOutcome), `${surface} pack must include ${decision.requestOutcome}`);
+      assert.ok(pack.mutationDecisions.includes(decision.effectiveDecision), `${surface} pack must include ${decision.effectiveDecision}`);
+      assert.ok(pack.releaseGateStatuses.includes(decision.releaseGateStatus), `${surface} pack must include ${decision.releaseGateStatus}`);
+      assert.ok(pack.expiryStatuses.includes(decision.expiryPolicyStatus), `${surface} pack must include ${decision.expiryPolicyStatus}`);
+    }
+
+    for (const item of surfaceEvidence) {
+      assert.ok(pack.targets.includes(item.target), `${surface} pack must include target ${item.target}`);
+      assert.ok(pack.requiredRoles.includes(item.requiredRole), `${surface} pack must include required role ${item.requiredRole}`);
+      assert.ok(pack.attemptedRoles.includes(item.attemptedRole), `${surface} pack must include attempted role ${item.attemptedRole}`);
+      assert.ok(pack.secondReviewStatuses.includes(item.secondReviewStatus), `${surface} pack must include second-review status ${item.secondReviewStatus}`);
+      for (const ref of item.evidenceRefs) {
+        assert.ok(pack.evidenceRefs.includes(ref), `${surface} pack must include evidence ref ${ref}`);
+      }
+    }
+  }
+
+  assert.equal(
+    packBySurface.get("provider_routing").releaseGateDisposition,
+    "mixed_preserved",
+    "provider routing pack must show applied and expired override outcomes together"
+  );
+  assert.equal(
+    packBySurface.get("skill_release").releaseGateDisposition,
+    "held_for_second_review",
+    "skill release pack must remain held for second review"
+  );
+  assert.equal(
+    packBySurface.get("quota_override").releaseGateDisposition,
+    "blocked_by_policy_or_role",
+    "quota pack must preserve support-only mutation block"
+  );
+  assert.ok(
+    packBySurface
+      .get("provider_routing")
+      .operatorChecklist.some((item) => item.includes("fresh runtime evidence")),
+    "expired provider overrides must instruct operators to reopen with fresh runtime evidence"
+  );
+  assert.ok(
+    packBySurface
+      .get("safety_rule")
+      .operatorChecklist.some((item) => item.includes("required admin role")),
+    "safety pack must expose role escalation for superadmin-only changes"
   );
 });
 

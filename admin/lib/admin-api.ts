@@ -51,7 +51,11 @@ import {
 import { buildAbuseQueueRuntime, buildAbuseRuntimeDecisions } from "@/lib/abuse-runtime";
 import { buildCrawlerGovernanceRuntimeDecisions } from "@/lib/crawler-runtime";
 import { buildExportRegenerationRuntimeDecisions } from "@/lib/export-runtime";
-import { buildAdminRbacRuntimeDecisions, buildAdminRbacSurfaceSummaries } from "@/lib/rbac-runtime";
+import {
+  buildAdminRbacEvidencePacks,
+  buildAdminRbacRuntimeDecisions,
+  buildAdminRbacSurfaceSummaries
+} from "@/lib/rbac-runtime";
 
 export async function getSkills() {
   return skills;
@@ -84,6 +88,11 @@ export async function getAdminRbacRuntimeDecisions() {
 export async function getAdminRbacSurfaceSummaries() {
   const runtimeDecisions = buildAdminRbacRuntimeDecisions(adminRbacEvidence, new Date("2026-05-26T11:00:00Z"));
   return buildAdminRbacSurfaceSummaries(adminRbacEvidence, runtimeDecisions);
+}
+
+export async function getAdminRbacEvidencePacks() {
+  const runtimeDecisions = buildAdminRbacRuntimeDecisions(adminRbacEvidence, new Date("2026-05-26T11:00:00Z"));
+  return buildAdminRbacEvidencePacks(adminRbacEvidence, runtimeDecisions);
 }
 
 export async function getCrawlerFindings() {

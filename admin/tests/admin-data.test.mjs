@@ -632,11 +632,17 @@ test("admin review and audit pages expose RBAC runtime decisions", () => {
 
   for (const token of [
     "getAdminRbacRuntimeDecisions",
+    "getAdminRbacEvidencePacks",
     "RBAC Runtime Decisions",
+    "RBAC Override Evidence Pack",
     "Effective Decision",
     "Request Outcome",
     "Queue Action",
     "Release Gate Status",
+    "Release Gate Disposition",
+    "Evidence Completeness",
+    "Highest Required Role",
+    "Operator Checklist",
     "Override Window",
     "Pre-Override State",
     "Expiry Action",
@@ -650,11 +656,14 @@ test("admin review and audit pages expose RBAC runtime decisions", () => {
   for (const token of [
     "buildAdminRbacRuntimeDecisions",
     "buildAdminRbacSurfaceSummaries",
+    "buildAdminRbacEvidencePacks",
     "denied_insufficient_role",
     "denied_policy_block",
     "queued_second_review",
     "denied_expired_override",
     "apply_with_expiry",
+    "held_for_second_review",
+    "blocked_by_policy_or_role",
     "overrideWindow",
     "staleOverrideProbe",
     "operatorAction"
@@ -715,6 +724,48 @@ test("admin review and audit pages expose RBAC override release summaries", () =
 
   assert.match(reviewsPage, /Override Surface Summary/);
   assert.match(auditPage, /RBAC Override Release Summary/);
+});
+
+test("admin review and audit pages expose computed RBAC override evidence packs", () => {
+  const reviewsPage = readFileSync(new URL("../app/reviews/page.tsx", import.meta.url), "utf8");
+  const auditPage = readFileSync(new URL("../app/audit/page.tsx", import.meta.url), "utf8");
+  const adminApi = readFileSync(new URL("../lib/admin-api.ts", import.meta.url), "utf8");
+  const rbacRuntime = readFileSync(new URL("../lib/rbac-runtime.ts", import.meta.url), "utf8");
+  const types = readFileSync(new URL("../lib/types.ts", import.meta.url), "utf8");
+  const statusBadge = readFileSync(new URL("../components/StatusBadge.tsx", import.meta.url), "utf8");
+
+  for (const source of [reviewsPage, auditPage]) {
+    for (const token of [
+      "getAdminRbacEvidencePacks",
+      "AdminRbacEvidencePack",
+      "RBAC Override Evidence Pack",
+      "Release Gate Disposition",
+      "Evidence Completeness",
+      "Highest Required Role",
+      "Request Outcomes",
+      "Expiry Statuses",
+      "Second Review Statuses",
+      "Operator Checklist"
+    ]) {
+      assert.match(source, new RegExp(token));
+    }
+  }
+
+  for (const token of [
+    "buildAdminRbacEvidencePacks",
+    "evidenceCompleteness",
+    "releaseGateDisposition",
+    "operatorChecklist",
+    "applied_with_expiry",
+    "held_for_second_review",
+    "blocked_by_policy_or_role",
+    "mixed_preserved",
+    "missing_audit",
+    "missing_runtime",
+    "missing_release_evidence"
+  ]) {
+    assert.match(adminApi + rbacRuntime + types + statusBadge, new RegExp(token));
+  }
 });
 
 test("admin action pages show scoped RBAC evidence at decision points", () => {

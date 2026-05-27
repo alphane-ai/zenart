@@ -4,6 +4,7 @@ import { StatGrid } from "@/components/StatGrid";
 import { StatusBadge } from "@/components/StatusBadge";
 import {
   getAdminRbacEvidence,
+  getAdminRbacEvidencePacks,
   getAdminRbacRuntimeDecisions,
   getAdminRbacSurfaceSummaries,
   getAdminReviewDecisions,
@@ -14,6 +15,7 @@ import {
 } from "@/lib/admin-api";
 import type {
   AdminRbacEvidence,
+  AdminRbacEvidencePack,
   AdminRbacRuntimeDecision,
   AdminRbacSurfaceSummary,
   AdminReviewDecision,
@@ -30,6 +32,7 @@ export default async function AuditPage() {
     rbacEvidence,
     rbacRuntime,
     rbacSurfaceSummaries,
+    rbacEvidencePacks,
     productionActivationEvidence,
     productionSecurityEvidence,
     stagingAuthRbacTenantAuditEvidence
@@ -39,6 +42,7 @@ export default async function AuditPage() {
     getAdminRbacEvidence(),
     getAdminRbacRuntimeDecisions(),
     getAdminRbacSurfaceSummaries(),
+    getAdminRbacEvidencePacks(),
     getProductionActivationReviewAuditEvidence(),
     getProductionSecurityLaunchCheckEvidence(),
     getStagingAuthRbacTenantAuditEvidence()
@@ -278,6 +282,40 @@ export default async function AuditPage() {
             { key: "stale-probe", header: "Stale Override Probe", render: (row) => row.staleOverrideProbe },
             { key: "audit", header: "Audit Ref", render: (row) => <span className="mono">{row.auditRef}</span> },
             { key: "rationale", header: "Runtime Rationale", render: (row) => row.rationale }
+          ]}
+        />
+      </section>
+
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>RBAC Override Evidence Pack</h3>
+            <p>Audit evidence packs keep release, crawler, prompt, provider, quota, safety, and export overrides tied to runtime disposition, expiry, second review, and immutable audit refs.</p>
+          </div>
+        </div>
+        <DataTable<AdminRbacEvidencePack>
+          rows={rbacEvidencePacks}
+          columns={[
+            { key: "surface", header: "Surface", render: (row) => row.surface },
+            { key: "scope", header: "Override Scope", render: (row) => row.overrideScope },
+            { key: "ids", header: "Evidence IDs", render: (row) => <span className="mono">{row.evidenceIds.join(", ")}</span> },
+            { key: "roles", header: "Highest Required Role", render: (row) => row.highestRequiredRole },
+            { key: "outcomes", header: "Request Outcomes", render: (row) => row.requestOutcomes.join(", ") },
+            { key: "mutations", header: "Mutation Decisions", render: (row) => row.mutationDecisions.join(", ") },
+            {
+              key: "disposition",
+              header: "Release Gate Disposition",
+              render: (row) => <StatusBadge value={row.releaseGateDisposition} label={row.releaseGateDisposition} />
+            },
+            {
+              key: "complete",
+              header: "Evidence Completeness",
+              render: (row) => <StatusBadge value={row.evidenceCompleteness} label={row.evidenceCompleteness} />
+            },
+            { key: "expiry", header: "Expiry Statuses", render: (row) => row.expiryStatuses.join(", ") },
+            { key: "second-review", header: "Second Review Statuses", render: (row) => row.secondReviewStatuses.join(", ") },
+            { key: "audit", header: "Audit Refs", render: (row) => <span className="mono">{row.auditRefs.join(", ")}</span> },
+            { key: "checklist", header: "Operator Checklist", render: (row) => row.operatorChecklist.join(" ") }
           ]}
         />
       </section>
