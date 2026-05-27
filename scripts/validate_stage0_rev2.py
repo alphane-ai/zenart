@@ -1147,6 +1147,11 @@ CHECK_LEVEL_EVIDENCE_PRESERVED_BLOCKERS = {
         "production_paid_billing_lifecycle",
         "production_backup_rollback_incident",
     },
+    ("production_launch", "production_legal_support_policy"): {
+        "production_provider_or_comp_only_mode",
+        "production_paid_billing_lifecycle",
+        "production_backup_rollback_incident",
+    },
 }
 
 ACTIVE_CONDITION_EVIDENCE_REQUIREMENTS = {
@@ -7373,6 +7378,80 @@ def validate_production_security_launch_checks_evidence() -> None:
         require(evidence[key], f"security launch evidence must include {key}")
 
 
+def validate_production_legal_support_policy_evidence() -> None:
+    legal = load_json(PRODUCTION_LEGAL_POLICY_EVIDENCE)
+    support = load_json(PRODUCTION_SUPPORT_BILLING_POLICY_EVIDENCE)
+
+    for evidence, evidence_name, path, clear_key in [
+        (
+            legal,
+            "production public legal policy evidence",
+            PRODUCTION_LEGAL_POLICY_EVIDENCE,
+            "can_clear_public_legal_subitem",
+        ),
+        (
+            support,
+            "production public support/billing policy evidence",
+            PRODUCTION_SUPPORT_BILLING_POLICY_EVIDENCE,
+            "can_clear_support_billing_policy_subitem",
+        ),
+    ]:
+        require(evidence["schema_version"] == "stage0.rev2", f"{evidence_name} schema mismatch")
+        require(evidence["environment"] == "production", f"{evidence_name} must be production-scoped")
+        require(evidence["status"] == "pass", f"{evidence_name} must pass")
+        require(
+            evidence["release_gate_check_id"] == "production_legal_support_policy",
+            f"{evidence_name} must target the production legal/support release-gate check",
+        )
+        require(
+            evidence["do_not_launch_condition_id"] == "public_legal_support_policy_not_deployed",
+            f"{evidence_name} must target the public legal/support Do-Not-Launch condition",
+        )
+        require(evidence.get("runtime_request_ids"), f"{evidence_name} must include runtime request ids")
+        require(evidence.get("audit_refs"), f"{evidence_name} must include audit refs")
+        require(evidence.get("page_probes"), f"{evidence_name} must include public page probes")
+        gate_impact = evidence["gate_impact"]
+        require(
+            gate_impact.get(clear_key) is True,
+            f"{evidence_name} must explicitly clear only its concrete legal/support split item",
+        )
+        require(
+            gate_impact.get("can_clear_aggregate_production_gate") is False,
+            f"{evidence_name} must not clear aggregate Production Launch readiness",
+        )
+        require(
+            set(gate_impact.get("remaining_blockers", []))
+            == current_blocked_release_gate_checks("production_launch") - {"production_legal_support_policy"},
+            f"{evidence_name} must preserve exact current production blockers",
+        )
+        combined = json.dumps(evidence, ensure_ascii=False).lower()
+        for token in ["production", rel(path).lower(), "support"]:
+            require(token in combined, f"{evidence_name} missing required token: {token}")
+
+    legal_pages = {probe["page_id"] for probe in legal["page_probes"]}
+    require(
+        legal_pages == {"terms", "privacy", "acceptable_use", "ai_content_disclaimer", "ip_complaint"},
+        "production public legal policy evidence must cover all public legal pages",
+    )
+    support_pages = {probe["page_id"] for probe in support["page_probes"]}
+    require(
+        support_pages == {"support_contact", "report_problem", "billing_policy"},
+        "production support/billing policy evidence must cover support, report-problem, and billing policy pages",
+    )
+    support_combined = json.dumps(support, ensure_ascii=False).lower()
+    for token in ["billing", "cancellation", "refund", "credit", "quota reset", "past_due"]:
+        require(token in support_combined, f"production support/billing policy evidence missing policy token: {token}")
+    require(
+        "paid billing lifecycle remains separately blocked" in support_combined
+        or "paid checkout lifecycle remains separately blocked" in support_combined,
+        "production support/billing policy evidence must preserve paid billing lifecycle runtime blocker",
+    )
+    require(
+        "policy visibility" in support_combined,
+        "production support/billing policy evidence must identify billing copy as policy visibility only",
+    )
+
+
 def validate_production_backup_rollback_incident_admin_evidence() -> None:
     evidence = load_json(PRODUCTION_BACKUP_ROLLBACK_INCIDENT_ADMIN_EVIDENCE)
     require(evidence["schema_version"] == "stage0.rev2", "production backup/rollback admin evidence schema mismatch")
@@ -8910,6 +8989,9 @@ def validate_launch_readiness_split_contracts() -> None:
         "Production billing pass evidence must cite both checkout/subscription and refund/credit/webhook production files",
         "Production backup/rollback pass evidence must cite both backup/restore and rollback/incident/post-deploy production files",
         "Production legal/support pass evidence must cite both public legal policy and support/billing policy production files",
+        "Production legal/support policy deployment evidence may close only the legal/support policy check",
+        "Production public support/billing policy visibility evidence may mention billing",
+        "it cannot substitute for `ops/evidence/production/billing-lifecycle.json` or `ops/evidence/production/billing-refund-credit-webhook.json` runtime proof",
         "exact per-workflow API, Playwright, and export ZIP runtime evidence files under `ops/evidence/local_alpha/`",
         "one generic local smoke artifact or directory-level reference cannot close the aggregate Local Alpha runtime check",
         "Local backup/restore, load, observability, or smoke evidence under `ops/evidence/backup-restore/`, `ops/evidence/observability/`, or other non-staging/non-production paths cannot close Private Beta/Staging or Production launch gates",
@@ -9631,6 +9713,7 @@ def main() -> int:
         validate_production_abuse_throttle_hold_evidence,
         validate_production_activation_review_audit_evidence,
         validate_production_security_launch_checks_evidence,
+        validate_production_legal_support_policy_evidence,
         validate_production_backup_rollback_incident_admin_evidence,
         validate_analytics_taxonomy,
         validate_local_alpha_presence,
