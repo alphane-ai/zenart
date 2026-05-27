@@ -47,6 +47,9 @@ test("account route exposes secure-cookie, same-site CSRF, unsafe-action guard, 
   await expect(sessionContract).toHaveAttribute("data-session-unsafe-action-safe-labels", "load,login");
   await expect(sessionContract).toHaveAttribute("data-session-unsafe-action-protected-methods", "POST,PUT,PATCH,DELETE");
   await expect(sessionContract).toHaveAttribute("data-session-unsafe-action-guard-count", "18");
+  await expect(sessionContract).toHaveAttribute("data-session-unsafe-action-blocked-control-count", "0");
+  await expect(sessionContract).toHaveAttribute("data-session-unsafe-action-blocked-control-labels", "");
+  await expect(sessionContract).toHaveAttribute("data-session-unsafe-action-blocked-reason", "");
   await expect(sessionContract).toHaveAttribute("data-session-unsafe-action-operation-count", "18");
   await expect(sessionContract).toHaveAttribute("data-session-unsafe-action-csrf-protected-operation-count", "15");
   await expect(sessionContract).toHaveAttribute("data-session-unsafe-action-guard-coverage-status", "pass");
@@ -112,6 +115,8 @@ test("account route exposes secure-cookie, same-site CSRF, unsafe-action guard, 
   await expect(saveSettings).toHaveAttribute("data-csrf-ux-guard", "authenticated-same-site-session");
   await expect(saveSettings).toHaveAttribute("data-csrf-ux-guard-label", "Save Settings");
   await expect(saveSettings).toHaveAttribute("data-csrf-ux-guard-status", "enabled");
+  await expect(saveSettings).toHaveAttribute("data-csrf-ux-guard-required-session-status", "authenticated");
+  await expect(saveSettings).toHaveAttribute("data-csrf-ux-guard-blocked-reason", "");
   await expect(saveSettings).toHaveAttribute("data-csrf-ux-guard-operations", "updateAccount");
   await expect(saveSettings).toHaveAttribute(
     "data-csrf-ux-guard-contracts",
@@ -132,16 +137,32 @@ test("account route exposes secure-cookie, same-site CSRF, unsafe-action guard, 
   await page.getByRole("button", { name: "Expire" }).click();
   await expect(page.getByText("Session expired. Refresh or sign in to continue.")).toBeVisible();
   await expect(sessionContract).toHaveAttribute("data-session-unsafe-action-status", "blocked");
+  await expect(sessionContract).toHaveAttribute("data-session-unsafe-action-blocked-control-count", "18");
+  await expect(sessionContract).toHaveAttribute(
+    "data-session-unsafe-action-blocked-control-labels",
+    "Confirm Brief|Attach|Create Project|Rename Project|Package Reference|Select Candidate|Iterate|Restore Version|Add Selection|Export ZIP|Export PDF|Request Share|Mock Checkout|Billing Scenario|Save Settings|Submit Ticket|Refresh Session|Expire Session"
+  );
+  await expect(sessionContract).toHaveAttribute("data-session-unsafe-action-blocked-reason", "authenticated-session-required");
   await expect(page.getByRole("button", { name: "Refresh Session" })).toBeDisabled();
   await expect(page.getByRole("button", { name: "Refresh Session" })).toHaveAttribute("data-csrf-ux-guard-status", "blocked");
+  await expect(page.getByRole("button", { name: "Refresh Session" })).toHaveAttribute(
+    "data-csrf-ux-guard-blocked-reason",
+    "authenticated-session-required"
+  );
   await expect(page.getByRole("button", { name: "Save Settings" })).toBeDisabled();
   await expect(page.getByRole("button", { name: "Save Settings" })).toHaveAttribute("data-csrf-ux-guard-status", "blocked");
+  await expect(page.getByRole("button", { name: "Save Settings" })).toHaveAttribute(
+    "data-csrf-ux-guard-blocked-reason",
+    "authenticated-session-required"
+  );
 
   await page.getByRole("textbox", { name: "Email" }).fill("dev@zenart.local");
   await page.getByRole("button", { name: "Sign In" }).click();
   await expect(sessionContract).toHaveAttribute("data-session-security-status", "pass");
   await expect(sessionContract).toHaveAttribute("data-session-unsafe-action-status", "enabled");
+  await expect(sessionContract).toHaveAttribute("data-session-unsafe-action-blocked-control-count", "0");
   await expect(page.getByText("Session expired. Refresh or sign in to continue.")).not.toBeVisible();
   await expect(page.getByRole("button", { name: "Save Settings" })).toBeEnabled();
   await expect(page.getByRole("button", { name: "Save Settings" })).toHaveAttribute("data-csrf-ux-guard-status", "enabled");
+  await expect(page.getByRole("button", { name: "Save Settings" })).toHaveAttribute("data-csrf-ux-guard-blocked-reason", "");
 });

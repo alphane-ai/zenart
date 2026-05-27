@@ -41,6 +41,9 @@ describe("WorkspaceApp user route integration smoke", () => {
       "Refresh Session",
       "Expire Session"
     ]);
+    expect(sessionContract).toHaveAttribute("data-session-unsafe-action-blocked-control-count", "0");
+    expect(sessionContract).toHaveAttribute("data-session-unsafe-action-blocked-control-labels", "");
+    expect(sessionContract).toHaveAttribute("data-session-unsafe-action-blocked-reason", "");
     expect(sessionContract).toHaveAttribute("data-session-unsafe-action-operation-count", "18");
     expect(sessionContract).toHaveAttribute("data-session-unsafe-action-csrf-protected-operation-count", "15");
     expect(sessionContract).toHaveAttribute(
@@ -135,6 +138,8 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(saveSettings).toHaveAttribute("data-csrf-ux-guard", "authenticated-same-site-session");
     expect(saveSettings).toHaveAttribute("data-csrf-ux-guard-label", "Save Settings");
     expect(saveSettings).toHaveAttribute("data-csrf-ux-guard-status", "enabled");
+    expect(saveSettings).toHaveAttribute("data-csrf-ux-guard-required-session-status", "authenticated");
+    expect(saveSettings).toHaveAttribute("data-csrf-ux-guard-blocked-reason", "");
     expect(saveSettings).toHaveAttribute("data-csrf-ux-guard-operation-count", "1");
     expect(saveSettings).toHaveAttribute("data-csrf-ux-guard-operations", "updateAccount");
     expect(saveSettings).toHaveAttribute(
@@ -165,10 +170,27 @@ describe("WorkspaceApp user route integration smoke", () => {
     await screen.findByText("Session expired. Refresh or sign in to continue.");
     expect(container.querySelector(".session-pill")).toHaveTextContent("expired");
     expect(screen.getByLabelText("Auth and session status")).toHaveAttribute("data-session-unsafe-action-status", "blocked");
+    expect(screen.getByLabelText("Auth and session status")).toHaveAttribute("data-session-unsafe-action-blocked-control-count", "18");
+    expect(screen.getByLabelText("Auth and session status")).toHaveAttribute(
+      "data-session-unsafe-action-blocked-control-labels",
+      "Confirm Brief|Attach|Create Project|Rename Project|Package Reference|Select Candidate|Iterate|Restore Version|Add Selection|Export ZIP|Export PDF|Request Share|Mock Checkout|Billing Scenario|Save Settings|Submit Ticket|Refresh Session|Expire Session"
+    );
+    expect(screen.getByLabelText("Auth and session status")).toHaveAttribute(
+      "data-session-unsafe-action-blocked-reason",
+      "authenticated-session-required"
+    );
     expect(screen.getByRole("button", { name: "Refresh Session" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Refresh Session" })).toHaveAttribute("data-csrf-ux-guard-status", "blocked");
+    expect(screen.getByRole("button", { name: "Refresh Session" })).toHaveAttribute(
+      "data-csrf-ux-guard-blocked-reason",
+      "authenticated-session-required"
+    );
     expect(screen.getByRole("button", { name: "Save Settings" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Save Settings" })).toHaveAttribute("data-csrf-ux-guard-status", "blocked");
+    expect(screen.getByRole("button", { name: "Save Settings" })).toHaveAttribute(
+      "data-csrf-ux-guard-blocked-reason",
+      "authenticated-session-required"
+    );
 
     fireEvent.change(screen.getByLabelText("Email"), { target: { value: "dev@zenart.local" } });
     fireEvent.click(screen.getByRole("button", { name: "Sign In" }));
@@ -179,6 +201,8 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(container.querySelector(".session-pill")).toHaveTextContent("authenticated");
     expect(screen.getByRole("button", { name: "Save Settings" })).not.toBeDisabled();
     expect(screen.getByRole("button", { name: "Save Settings" })).toHaveAttribute("data-csrf-ux-guard-status", "enabled");
+    expect(screen.getByLabelText("Auth and session status")).toHaveAttribute("data-session-unsafe-action-blocked-control-count", "0");
+    expect(screen.getByRole("button", { name: "Save Settings" })).toHaveAttribute("data-csrf-ux-guard-blocked-reason", "");
   });
 
   it("guards project create and rename actions with the same-site session contract", async () => {

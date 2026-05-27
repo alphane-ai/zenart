@@ -199,6 +199,8 @@ const unsafeActionGuardAttributes = (label: UnsafeActionGuardLabel, sessionBlock
     "data-csrf-ux-guard": "authenticated-same-site-session",
     "data-csrf-ux-guard-label": label,
     "data-csrf-ux-guard-status": sessionBlocked ? "blocked" : "enabled",
+    "data-csrf-ux-guard-required-session-status": "authenticated",
+    "data-csrf-ux-guard-blocked-reason": sessionBlocked ? "authenticated-session-required" : "",
     "data-csrf-ux-guard-operation-count": operationIds.length,
     "data-csrf-ux-guard-operations": operationIds.join(","),
     "data-csrf-ux-guard-contracts": formatUnsafeActionControlContracts(label),
@@ -580,6 +582,7 @@ function SessionPanel({
     (operationId) => !guardedOperationIdSet.has(operationId as keyof typeof apiOperations)
   );
   const unsafeActionGuardCoverageStatus = missingGuardedUnsafeOperationIds.length === 0 ? "pass" : "fail";
+  const blockedUnsafeActionGuardLabels = sessionBlocked ? sameSiteUnsafeActionGuardLabels : [];
   const unsafeActionCsrfProtectedOperationCount = guardedOperationIds.filter((operationId) =>
     state.sessionContract.csrf.protectedMethods.includes(
       apiOperations[operationId].method as (typeof state.sessionContract.csrf.protectedMethods)[number]
@@ -620,6 +623,9 @@ function SessionPanel({
       data-session-unsafe-action-protected-methods={state.sessionContract.csrf.protectedMethods.join(",")}
       data-session-unsafe-action-guard-count={sameSiteUnsafeActionGuardLabels.length}
       data-session-unsafe-action-guard-labels={sameSiteUnsafeActionGuardLabels.join("|")}
+      data-session-unsafe-action-blocked-control-count={blockedUnsafeActionGuardLabels.length}
+      data-session-unsafe-action-blocked-control-labels={blockedUnsafeActionGuardLabels.join("|")}
+      data-session-unsafe-action-blocked-reason={sessionBlocked ? "authenticated-session-required" : ""}
       data-session-unsafe-action-operation-count={guardedOperationIds.length}
       data-session-unsafe-action-csrf-protected-operation-count={unsafeActionCsrfProtectedOperationCount}
       data-session-unsafe-action-operation-contracts={unsafeActionGuardContracts}
