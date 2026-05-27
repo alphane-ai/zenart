@@ -1767,7 +1767,18 @@ RELEASE_GATE_EVIDENCE_REF_ALLOWED_PATHS = {
 RELEASE_GATE_DECISION_ALLOWED_PATHS = {
     "local_alpha": {
         "fixtures/stage0/rev2/release_gate_evidence.local_alpha.json",
-        "ops/evidence/local_alpha",
+        "ops/evidence/local_alpha/business_visual_doc_pack.api_smoke.json",
+        "ops/evidence/local_alpha/business_visual_doc_pack.export_zip.json",
+        "ops/evidence/local_alpha/business_visual_doc_pack.playwright_happy_path.json",
+        "ops/evidence/local_alpha/character_ip_concept_pack.api_smoke.json",
+        "ops/evidence/local_alpha/character_ip_concept_pack.export_zip.json",
+        "ops/evidence/local_alpha/character_ip_concept_pack.playwright_happy_path.json",
+        "ops/evidence/local_alpha/ecommerce_growth_pack.api_smoke.json",
+        "ops/evidence/local_alpha/ecommerce_growth_pack.export_zip.json",
+        "ops/evidence/local_alpha/ecommerce_growth_pack.playwright_happy_path.json",
+        "ops/evidence/local_alpha/local_merchant_campaign_pack.api_smoke.json",
+        "ops/evidence/local_alpha/local_merchant_campaign_pack.export_zip.json",
+        "ops/evidence/local_alpha/local_merchant_campaign_pack.playwright_happy_path.json",
     },
     "ci": {
         ".github/workflows/stage0-rev2-ci.yml",
