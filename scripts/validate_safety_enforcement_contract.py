@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 import re
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any
@@ -22,6 +23,7 @@ OPENAPI = ROOT / "openapi" / "zenart.v1.yaml"
 MIGRATION = ROOT / "backend" / "migrations" / "0002_stage0_rev2_domains.sql"
 STAGE0_SERVICE = ROOT / "backend" / "internal" / "stage0" / "services.go"
 STAGE0_TEST = ROOT / "backend" / "internal" / "stage0" / "services_test.go"
+RUNTIME_REPLAY = ROOT / "scripts" / "run_safety_policy_runtime_contract.py"
 
 SAFETY_POINTS = {
     "brief",
@@ -468,6 +470,36 @@ def validate_pipeline_sequence_contract(contract: dict[str, Any]) -> None:
     validate_bypass_prevention_cases(pipeline, service, tests)
 
 
+def validate_runtime_replay_contract(contract: dict[str, Any]) -> None:
+    replay = contract["runtime_replay_contract"]
+    require(
+        replay["runner"] == "scripts/run_safety_policy_runtime_contract.py",
+        "safety runtime replay runner mismatch",
+    )
+    require(replay["mode"] == "deterministic_fixture_replay", "safety runtime replay mode mismatch")
+    require(replay["status"] == "pass", "safety runtime replay must pass")
+    require(replay["transition_gate_cases_replayed"] == len(TRANSITION_SEQUENCE), "transition replay count mismatch")
+    require(replay["decision_matrix_cases_replayed"] == len(SAFETY_POINTS) * len(SAFETY_ACTIONS), "decision replay count mismatch")
+    require(replay["fail_closed_cases_replayed"] == len(FAIL_CLOSED_CASES), "fail-closed replay count mismatch")
+    require(replay["bypass_prevention_cases_replayed"] == len(BYPASS_PREVENTION_CASES), "bypass replay count mismatch")
+    require(replay["fixture_link_cases_replayed"] == len(contract["fixture_links"]), "fixture-link replay count mismatch")
+    require(replay["blocked_or_held_creates_downstream_artifacts"] is False, "blocked/held replay must fail closed")
+    require(replay["trace_status_required_for_all_transitions"] is True, "runtime replay must require trace status")
+    require(replay["persisted_decision_required_for_all_actions"] is True, "runtime replay must require persisted decisions")
+
+    result = subprocess.run(
+        [sys.executable, str(RUNTIME_REPLAY)],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    require(
+        result.returncode == 0,
+        "safety policy runtime replay failed: " + (result.stderr or result.stdout).strip(),
+    )
+
+
 def validate_bypass_prevention_cases(pipeline: dict[str, Any], service: str, tests: str) -> None:
     transitions_by_stage = {
         transition["stage"]: transition
@@ -571,6 +603,7 @@ def main() -> int:
         require(contract["blueprint_source"] == "Docs/stage0_blueprint_rev2.md", "contract must cite Rev2 blueprint")
         validate_cross_contracts(contract)
         validate_pipeline_sequence_contract(contract)
+        validate_runtime_replay_contract(contract)
         validate_fixture_links(contract)
         validate_openapi_and_storage_contract(contract)
         validate_release_policy(contract)

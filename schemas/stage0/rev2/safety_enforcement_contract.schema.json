@@ -12,6 +12,7 @@
     "decision_storage_contract",
     "runtime_contracts",
     "pipeline_sequence_contract",
+    "runtime_replay_contract",
     "decision_matrix",
     "fixture_links",
     "release_gate_policy",
@@ -464,6 +465,63 @@
               }
             }
           }
+        }
+      }
+    },
+    "runtime_replay_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "runner",
+        "mode",
+        "status",
+        "transition_gate_cases_replayed",
+        "decision_matrix_cases_replayed",
+        "fail_closed_cases_replayed",
+        "bypass_prevention_cases_replayed",
+        "fixture_link_cases_replayed",
+        "blocked_or_held_creates_downstream_artifacts",
+        "trace_status_required_for_all_transitions",
+        "persisted_decision_required_for_all_actions"
+      ],
+      "properties": {
+        "runner": {
+          "const": "scripts/run_safety_policy_runtime_contract.py"
+        },
+        "mode": {
+          "const": "deterministic_fixture_replay"
+        },
+        "status": {
+          "const": "pass"
+        },
+        "transition_gate_cases_replayed": {
+          "type": "integer",
+          "minimum": 6
+        },
+        "decision_matrix_cases_replayed": {
+          "type": "integer",
+          "minimum": 25
+        },
+        "fail_closed_cases_replayed": {
+          "type": "integer",
+          "minimum": 4
+        },
+        "bypass_prevention_cases_replayed": {
+          "type": "integer",
+          "minimum": 6
+        },
+        "fixture_link_cases_replayed": {
+          "type": "integer",
+          "minimum": 4
+        },
+        "blocked_or_held_creates_downstream_artifacts": {
+          "const": false
+        },
+        "trace_status_required_for_all_transitions": {
+          "const": true
+        },
+        "persisted_decision_required_for_all_actions": {
+          "const": true
         }
       }
     },
