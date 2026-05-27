@@ -245,6 +245,48 @@ decision_inputs = report.get("decision_inputs", {})
 if decision_inputs.get("gate_fixtures_clear") is not False:
     raise SystemExit("release bundle dry-run must preserve blocked gate fixture context")
 PY
+route_bundle_tmp="$(mktemp -d)"
+if OUT_DIR="$route_bundle_tmp" \
+  DRY_RUN=1 \
+  RUN_ID=stage0-route-propagation \
+  RELEASE_SHA=d3b1107c33dc40b8936f28549e06553fbd7b104a \
+  RETENTION_POLICY_URL=https://staging.example.invalid/admin/retention \
+  EXPIRED_EXPORT_CLEANUP_URL=https://staging.example.invalid/admin/expired \
+  ORPHAN_CLEANUP_URL=https://staging.example.invalid/admin/orphans \
+  AUDIT_REFS_URL=https://staging.example.invalid/admin/audit \
+  scripts/release_evidence_bundle_smoke.sh >/tmp/stage0-release-bundle-route.out 2>/tmp/stage0-release-bundle-route.err; then
+  printf 'release evidence bundle route dry-run unexpectedly returned go\n' >&2
+  cat /tmp/stage0-release-bundle-route.out >&2
+  cat /tmp/stage0-release-bundle-route.err >&2
+  exit 1
+fi
+python3 - "$route_bundle_tmp" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+out_dir = Path(sys.argv[1])
+report = out_dir / "stage0-route-propagation.object-storage-retention-cleanup.json"
+if not report.exists():
+    raise SystemExit("release bundle route dry-run must write object-retention report")
+data = json.loads(report.read_text(encoding="utf-8"))
+urls = {
+    item["check_id"]: item.get("url")
+    for coverage in data.get("coverage", [])
+    for item in coverage.get("source_results", [])
+}
+expected = {
+    "retention_policy": "https://staging.example.invalid/admin/retention",
+    "expired_export_cleanup": "https://staging.example.invalid/admin/expired",
+    "orphan_cleanup": "https://staging.example.invalid/admin/orphans",
+    "audit_refs": "https://staging.example.invalid/admin/audit",
+}
+if urls != expected:
+    raise SystemExit(f"release bundle must propagate explicit object-retention probe URLs, got {urls!r}")
+if data.get("status") != "blocked":
+    raise SystemExit("release bundle route dry-run must keep object-retention report blocked without admin auth")
+PY
+rm -rf "$route_bundle_tmp"
 python3 - <<'PY'
 import json
 from pathlib import Path
