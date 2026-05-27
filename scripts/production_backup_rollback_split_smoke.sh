@@ -86,6 +86,34 @@ def collect_statuses(value: object) -> set[str]:
     return statuses
 
 
+def collect_blocker_markers(value: object, path: tuple[str, ...] = ()) -> list[str]:
+    markers: list[str] = []
+    marker_keys = {
+        "remaining_blockers",
+        "blocked_slots",
+        "missing_blockers",
+        "closure_blockers",
+        "preserved_release_gate_check_id",
+        "preserved_do_not_launch_condition_id",
+        "preserved_do_not_launch_condition_ids",
+    }
+    if isinstance(value, dict):
+        for key, nested in value.items():
+            nested_path = path + (key,)
+            if key in marker_keys:
+                if nested not in (None, "", [], {}):
+                    markers.append(".".join(nested_path))
+            elif key == "can_clear_aggregate_item" and nested is False:
+                markers.append(".".join(nested_path))
+            elif key in {"can_clear_release_gate_check", "can_clear_check_level_items"} and nested is False:
+                markers.append(".".join(nested_path))
+            markers.extend(collect_blocker_markers(nested, nested_path))
+    elif isinstance(value, list):
+        for index, item in enumerate(value):
+            markers.extend(collect_blocker_markers(item, path + (str(index),)))
+    return markers
+
+
 def text_contains(data: object, tokens: tuple[str, ...]) -> bool:
     text = json.dumps(data, ensure_ascii=False, sort_keys=True).lower()
     return all(token in text for token in tokens)
@@ -123,6 +151,7 @@ def validate_split(
     split_id: str,
     required_tokens: tuple[str, ...],
     required_conditions: tuple[str, ...],
+    required_refs: tuple[str, ...] = (),
 ) -> dict:
     data, error = load_json(ref)
     result = {
@@ -144,6 +173,7 @@ def validate_split(
     result["release_gate_check_id"] = data.get("release_gate_check_id")
     result["release_sha"] = data.get("release_sha")
     statuses = collect_statuses(data)
+    blocker_markers = collect_blocker_markers(data)
     result["status"] = data.get("status", "unknown")
 
     if data.get("environment") != "production":
@@ -156,12 +186,21 @@ def validate_split(
         result["missing_requirements"].append("release_sha_matches_candidate")
     if not (statuses & {"pass", "passed"}):
         result["missing_requirements"].append("status=pass_or_passed")
+    if statuses & {"blocked", "blocked_by_upstream_gates", "fail", "failed"}:
+        result["missing_requirements"].append("no_blocked_or_failed_nested_status")
+    if blocker_markers:
+        result["missing_requirements"].append(
+            "no_preserved_blockers:" + ",".join(sorted(blocker_markers))
+        )
     for token in required_tokens:
         if not text_contains(data, (token,)):
             result["missing_requirements"].append(f"token:{token}")
     for condition in required_conditions:
         if not text_contains(data, (condition,)):
             result["missing_requirements"].append(f"runtime_proof:{condition}")
+    for ref_token in required_refs:
+        if not text_contains(data, (ref_token,)):
+            result["missing_requirements"].append(f"evidence_ref:{ref_token}")
 
     result["passed"] = not result["missing_requirements"]
     return result
@@ -201,6 +240,10 @@ rollback_split = validate_split(
         "migration_compatibility",
         "incident",
         "post_deploy_smoke",
+    ),
+    required_refs=(
+        "fixtures/stage0/rev2/release_gate_evidence.ci.json",
+        "fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json",
     ),
 )
 
@@ -333,6 +376,9 @@ report = {
 }
 
 report_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-print(report_path.relative_to(root))
+try:
+    print(report_path.relative_to(root))
+except ValueError:
+    print(report_path)
 raise SystemExit(0 if all_passed else 2)
 PY

@@ -469,6 +469,64 @@ if "Postgres restore" not in requirements["backup_restore"]["must_prove"]:
 if "post-deploy smoke" not in requirements["rollback_incident_post_deploy_smoke"]["must_prove"]:
     raise SystemExit("production rollback split requirements must include post-deploy smoke")
 PY
+split_guard_tmp="$(mktemp -d)"
+cat >"$split_guard_tmp/backup-restore.json" <<'JSON'
+{
+  "environment": "production",
+  "release_gate_check_id": "production_backup_rollback_incident",
+  "release_sha": "0123456789abcdef0123456789abcdef01234567",
+  "status": "pass",
+  "coverage": [
+    {
+      "status": "pass",
+      "proof": "backup schedule backup_schedule Postgres restore postgres_restore object restore object_restore RPO rpo RTO rto audit refs"
+    }
+  ]
+}
+JSON
+cat >"$split_guard_tmp/rollback-incident-post-deploy-smoke.json" <<'JSON'
+{
+  "environment": "production",
+  "release_gate_check_id": "production_backup_rollback_incident",
+  "release_sha": "0123456789abcdef0123456789abcdef01234567",
+  "status": "pass",
+  "coverage": [
+    {
+      "status": "pass",
+      "proof": "rollback app_rollback feature_flag worker_drain migration compatibility migration_compatibility incident post-deploy smoke post_deploy_smoke fixtures/stage0/rev2/release_gate_evidence.ci.json fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json"
+    }
+  ],
+  "gate_impact": {
+    "remaining_blockers": [
+      "ci_staging_gates_not_passed"
+    ],
+    "can_clear_release_gate_check": false
+  }
+}
+JSON
+if RELEASE_SHA=0123456789abcdef0123456789abcdef01234567 \
+  BACKUP_RESTORE_EVIDENCE="$split_guard_tmp/backup-restore.json" \
+  ROLLBACK_INCIDENT_SMOKE_EVIDENCE="$split_guard_tmp/rollback-incident-post-deploy-smoke.json" \
+  REPORT_PATH="$split_guard_tmp/backup-rollback-split.blocked.json" \
+  RUN_ID=repo-validate-production-preserved-blocker-guard \
+  scripts/production_backup_rollback_split_smoke.sh >/tmp/stage0-production-preserved-blocker.out 2>/tmp/stage0-production-preserved-blocker.err; then
+  printf 'production backup/rollback split smoke accepted preserved-blocker split evidence\n' >&2
+  cat /tmp/stage0-production-preserved-blocker.out >&2
+  cat /tmp/stage0-production-preserved-blocker.err >&2
+  exit 1
+fi
+python3 - "$split_guard_tmp/backup-rollback-split.blocked.json" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+report = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+missing = report["split_evidence"]["rollback_incident_post_deploy_smoke"]["missing_requirements"]
+if not any(item.startswith("no_preserved_blockers:") for item in missing):
+    raise SystemExit("production split smoke must reject preserved blocker markers in rollback split evidence")
+if "production_rollback_incident_post_deploy_split_not_passed" not in report["blocked_checks"]:
+    raise SystemExit("production split smoke must keep rollback split blocked after preserved blocker rejection")
+PY
 
 log "backend Go validation"
 if [[ -d backend ]]; then
