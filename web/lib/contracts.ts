@@ -342,6 +342,13 @@ export interface WorkspaceRenderingPerformanceSmoke {
   exportHistoryCount: number;
   renderElementCount: number;
   estimatedInteractionMs: number;
+  interactionStepBudgets: Array<{
+    step: WorkspaceRenderingPerformanceSmoke["interactionSteps"][number];
+    status: "pass" | "fail";
+    renderElementCount: number;
+    estimatedInteractionMs: number;
+    failureCount: number;
+  }>;
   failures: Array<"nodes" | "edges" | "versions" | "render-elements" | "interaction">;
   budgets: {
     maxNodes: number;

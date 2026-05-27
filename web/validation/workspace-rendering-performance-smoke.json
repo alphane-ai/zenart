@@ -51,6 +51,8 @@
       "data-render-max-interaction-ms",
       "data-render-failure-count",
       "data-render-interaction-steps",
+      "data-render-interaction-step-budget-statuses",
+      "data-render-interaction-step-budget-failure-count",
       "data-render-reference-count",
       "data-render-package-item-count",
       "data-render-export-history-count"
@@ -61,6 +63,8 @@
       "data-rendering-smoke-failures",
       "data-rendering-interaction-steps",
       "data-rendering-estimated-interaction-ms",
+      "data-rendering-step-budget-statuses",
+      "data-rendering-step-budget-failure-count",
       "data-rendering-budget-node-count",
       "data-rendering-budget-edge-count",
       "data-rendering-budget-version-count",
@@ -76,6 +80,8 @@
       "data-render-max-elements",
       "data-render-estimated-interaction-ms",
       "data-render-max-interaction-ms",
+      "data-render-interaction-step-budget-statuses",
+      "data-render-interaction-step-budget-failure-count",
       "data-render-export-history-count",
       "data-rendering-interaction-steps",
       "Confirm Brief",
@@ -99,6 +105,8 @@
       "data-render-package-item-count",
       "data-render-export-history-count",
       "data-render-interaction-steps",
+      "data-render-interaction-step-budget-statuses",
+      "data-render-interaction-step-budget-failure-count",
       "data-render-element-count",
       "data-render-max-elements"
     ]

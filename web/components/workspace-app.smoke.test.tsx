@@ -914,9 +914,13 @@ describe("WorkspaceApp user route integration smoke", () => {
       expect(Number(canvas?.getAttribute("data-render-estimated-interaction-ms"))).toBeLessThanOrEqual(
         Number(canvas?.getAttribute("data-render-max-interaction-ms"))
       );
+      expect(canvas).toHaveAttribute("data-render-interaction-step-budget-failure-count", "0");
+      expect(summary).toHaveAttribute("data-rendering-step-budget-failure-count", "0");
       for (const step of expectedSteps) {
         expect(canvas?.getAttribute("data-render-interaction-steps")).toContain(step);
         expect(summary.getAttribute("data-rendering-interaction-steps")).toContain(step);
+        expect(canvas?.getAttribute("data-render-interaction-step-budget-statuses")).toContain(`${step}:pass:`);
+        expect(summary.getAttribute("data-rendering-step-budget-statuses")).toContain(`${step}:pass:`);
       }
     };
 

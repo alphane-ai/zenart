@@ -1206,6 +1206,13 @@ function WorkspaceView({
           data-rendering-reference-count={renderingSmoke.referenceCount}
           data-rendering-package-item-count={renderingSmoke.packageItemCount}
           data-rendering-export-history-count={renderingSmoke.exportHistoryCount}
+          data-rendering-step-budget-statuses={renderingSmoke.interactionStepBudgets
+            .map((entry) => `${entry.step}:${entry.status}:${entry.renderElementCount}:${entry.estimatedInteractionMs}:${entry.failureCount}`)
+            .join("|")}
+          data-rendering-step-budget-failure-count={renderingSmoke.interactionStepBudgets.reduce(
+            (count, entry) => count + entry.failureCount,
+            0
+          )}
         >
           <Gauge size={15} aria-hidden="true" />
           <span>
@@ -1228,6 +1235,13 @@ function WorkspaceView({
           data-render-element-count={renderingSmoke.renderElementCount}
           data-render-estimated-interaction-ms={renderingSmoke.estimatedInteractionMs}
           data-render-interaction-steps={renderingSmoke.interactionSteps.join(",")}
+          data-render-interaction-step-budget-statuses={renderingSmoke.interactionStepBudgets
+            .map((entry) => `${entry.step}:${entry.status}:${entry.renderElementCount}:${entry.estimatedInteractionMs}:${entry.failureCount}`)
+            .join("|")}
+          data-render-interaction-step-budget-failure-count={renderingSmoke.interactionStepBudgets.reduce(
+            (count, entry) => count + entry.failureCount,
+            0
+          )}
           data-render-failure-count={renderingSmoke.failures.length}
           data-render-max-elements={renderingSmoke.budgets.maxRenderElements}
           data-render-max-interaction-ms={renderingSmoke.budgets.maxInteractionMs}

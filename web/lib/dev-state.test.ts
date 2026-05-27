@@ -656,6 +656,12 @@ describe("dev workspace contracts", () => {
       referenceCount: 1,
       exportHistoryCount: 0,
       renderElementCount: 14,
+      interactionStepBudgets: [
+        { step: "load", status: "pass", renderElementCount: 4, estimatedInteractionMs: 4, failureCount: 0 },
+        { step: "candidate-select", status: "pass", renderElementCount: 7, estimatedInteractionMs: 9, failureCount: 0 },
+        { step: "iteration", status: "pass", renderElementCount: 11, estimatedInteractionMs: 13, failureCount: 0 },
+        { step: "package-add", status: "pass", renderElementCount: 14, estimatedInteractionMs: 16, failureCount: 0 }
+      ],
       failures: [],
       budgets: {
         maxNodes: 24,
@@ -667,6 +673,7 @@ describe("dev workspace contracts", () => {
     });
     expect(smoke.renderElementCount).toBeLessThanOrEqual(smoke.budgets.maxRenderElements);
     expect(smoke.estimatedInteractionMs).toBeLessThanOrEqual(smoke.budgets.maxInteractionMs);
+    expect(smoke.interactionStepBudgets.every((entry) => entry.status === "pass" && entry.failureCount === 0)).toBe(true);
   });
 
   it("fails workspace rendering smoke when local alpha budgets are exceeded", () => {
@@ -717,6 +724,14 @@ describe("dev workspace contracts", () => {
       renderElementCount: 100
     });
     expect(smoke.failures).toEqual(["nodes", "edges", "versions", "render-elements", "interaction"]);
+    expect(smoke.interactionStepBudgets).toContainEqual({
+      step: "package-add",
+      status: "fail",
+      renderElementCount: 100,
+      estimatedInteractionMs: 80,
+      failureCount: 1
+    });
+    expect(smoke.interactionStepBudgets.filter((entry) => entry.status === "fail")).toHaveLength(1);
   });
 
   it("summarizes reference upload integration through package history, provenance, and PPT asset-grid slides", () => {

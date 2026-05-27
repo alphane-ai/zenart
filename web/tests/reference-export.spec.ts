@@ -108,6 +108,11 @@ test("reference upload browser smoke reaches ready export metadata and render bu
   await expect(renderingSmoke).toHaveAttribute("data-render-interaction-steps", /candidate-select/);
   await expect(renderingSmoke).toHaveAttribute("data-render-interaction-steps", /package-add/);
   await expect(renderingSmoke).toHaveAttribute("data-render-interaction-steps", /export-ready/);
+  await expect(renderingSmoke).toHaveAttribute("data-render-interaction-step-budget-failure-count", "0");
+  await expect(renderingSmoke).toHaveAttribute("data-render-interaction-step-budget-statuses", /brief-confirm:pass:/);
+  await expect(renderingSmoke).toHaveAttribute("data-render-interaction-step-budget-statuses", /candidate-select:pass:/);
+  await expect(renderingSmoke).toHaveAttribute("data-render-interaction-step-budget-statuses", /package-add:pass:/);
+  await expect(renderingSmoke).toHaveAttribute("data-render-interaction-step-budget-statuses", /export-ready:pass:/);
   const renderElementCount = Number(await renderingSmoke.getAttribute("data-render-element-count"));
   const renderMaxElements = Number(await renderingSmoke.getAttribute("data-render-max-elements"));
   const renderEstimatedInteractionMs = Number(await renderingSmoke.getAttribute("data-render-estimated-interaction-ms"));

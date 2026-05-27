@@ -814,6 +814,16 @@ export const workspaceRenderingPerformanceBudget: WorkspaceRenderingPerformanceS
   maxInteractionMs: 100
 };
 
+const workspaceRenderingStepWeights = {
+  load: 1,
+  "brief-confirm": 2,
+  "candidate-select": 3,
+  iteration: 4,
+  "package-add": 5,
+  "export-ready": 6,
+  "version-restore": 7
+} as const satisfies Record<WorkspaceRenderingPerformanceSmoke["interactionSteps"][number], number>;
+
 export const buildWorkspaceRenderingPerformanceSmoke = (
   state: WorkspaceState,
   budgets = workspaceRenderingPerformanceBudget
@@ -866,6 +876,28 @@ export const buildWorkspaceRenderingPerformanceSmoke = (
   if (estimatedInteractionMs > budgets.maxInteractionMs) {
     failures.push("interaction");
   }
+  const interactionStepBudgets = interactionSteps.map((step, index) => {
+    const stepRenderElementCount = Math.min(
+      renderElementCount,
+      Math.ceil(renderElementCount * ((index + 1) / interactionSteps.length))
+    );
+    const stepEstimatedInteractionMs = Math.min(
+      estimatedInteractionMs,
+      Math.ceil(stepRenderElementCount * 0.75 + workspaceRenderingStepWeights[step])
+    );
+    const failureCount = [
+      stepRenderElementCount > budgets.maxRenderElements,
+      stepEstimatedInteractionMs > budgets.maxInteractionMs
+    ].filter(Boolean).length;
+
+    return {
+      step,
+      status: failureCount === 0 ? ("pass" as const) : ("fail" as const),
+      renderElementCount: stepRenderElementCount,
+      estimatedInteractionMs: stepEstimatedInteractionMs,
+      failureCount
+    };
+  });
 
   return {
     schema_version: "stage0.rev2.workspace-rendering-performance",
@@ -881,6 +913,7 @@ export const buildWorkspaceRenderingPerformanceSmoke = (
     exportHistoryCount: state.exports.length,
     renderElementCount,
     estimatedInteractionMs,
+    interactionStepBudgets,
     failures,
     budgets
   };

@@ -138,6 +138,31 @@ for (const [countName, expectedValue] of Object.entries(evidence.expectedFinalCo
   }
 }
 
+for (const requiredStepBudgetSnippet of [
+  "interactionStepBudgets",
+  "workspaceRenderingStepWeights",
+  "data-render-interaction-step-budget-statuses",
+  "data-render-interaction-step-budget-failure-count",
+  "data-rendering-step-budget-statuses",
+  "data-rendering-step-budget-failure-count",
+  "brief-confirm:pass:",
+  "candidate-select:pass:",
+  "package-add:pass:",
+  "export-ready:pass:"
+]) {
+  if (
+    !devStateSource.includes(requiredStepBudgetSnippet) &&
+    !contractsSource.includes(requiredStepBudgetSnippet) &&
+    !componentSource.includes(requiredStepBudgetSnippet) &&
+    !workspaceSmokeTestSource.includes(requiredStepBudgetSnippet) &&
+    !referenceExportPlaywrightSpecSource.includes(requiredStepBudgetSnippet) &&
+    !JSON.stringify(artifact).includes(requiredStepBudgetSnippet) &&
+    !JSON.stringify(userRoutes).includes(requiredStepBudgetSnippet)
+  ) {
+    fail(`workspace rendering step budget evidence missing ${requiredStepBudgetSnippet}`);
+  }
+}
+
 for (const step of evidence.expectedFinalInteractionSteps) {
   if (!devStateSource.includes(step)) {
     fail(`workspace rendering builder missing interaction step ${step}`);
@@ -179,6 +204,7 @@ for (const requiredContractSnippet of [
   "export interface WorkspaceRenderingPerformanceSmoke",
   "schema_version: \"stage0.rev2.workspace-rendering-performance\"",
   "\"load\" | \"brief-confirm\" | \"candidate-select\" | \"iteration\" | \"package-add\" | \"export-ready\" | \"version-restore\"",
+  "interactionStepBudgets: Array",
   "renderElementCount: number",
   "estimatedInteractionMs: number",
   "maxRenderElements: number",
@@ -193,6 +219,7 @@ for (const requiredTestSnippet of [
   "keeps workspace rendering inside the smoke budget across the interactive canvas flow",
   "fails workspace rendering smoke when local alpha budgets are exceeded",
   "data-render-failure-count",
+  "data-render-interaction-step-budget-failure-count",
   "data-render-estimated-interaction-ms",
   "data-render-max-interaction-ms",
   "toBeLessThanOrEqual"
