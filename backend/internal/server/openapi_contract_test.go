@@ -97,6 +97,9 @@ func TestOpenAPIAgentTraceRequiresCompletenessContract(t *testing.T) {
 		"artifact_links:",
 		"eval_result_ref:",
 		"qa_result_refs:",
+		"user_trace_projection:",
+		"admin_trace_projection:",
+		"export_retention_projection:",
 		"eval_results",
 		"qa_results",
 		"asset_ids:",
@@ -106,6 +109,16 @@ func TestOpenAPIAgentTraceRequiresCompletenessContract(t *testing.T) {
 		"qa_report_linked:",
 		"trace_provenance:",
 		"safety_disclaimer_when_applicable:",
+		"visible_fields:",
+		"hidden_fields:",
+		"provider_payload",
+		"internal_prompt",
+		"raw_safety_payload",
+		"visible_tables:",
+		"retained_files:",
+		"retained_when_blocked:",
+		"download_enabled:",
+		"denial_reasons:",
 	} {
 		if !strings.Contains(contract, token) {
 			t.Fatalf("AgentTrace completeness contract missing %q", token)

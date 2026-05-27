@@ -1,0 +1,171 @@
+{
+  "schema_version": "stage0.rev2",
+  "contract_id": "trace_visibility_export_retention_stage0_rev2",
+  "blueprint_source": "Docs/stage0_blueprint_rev2.md",
+  "links": {
+    "trace_completeness": "fixtures/stage0/rev2/eval/trace_completeness.json",
+    "trace_export_gate_matrix": "fixtures/stage0/rev2/eval/trace_export_gate_matrix.json",
+    "eval_results": "fixtures/stage0/rev2/eval/starter_eval_results.json",
+    "qa_results": "fixtures/stage0/rev2/eval/qa_results.json"
+  },
+  "required_projection_fields": [
+    "user_trace_projection",
+    "admin_trace_projection",
+    "export_retention_projection",
+    "source_trace_ref",
+    "source_eval_result_ref",
+    "source_gate_case_ref"
+  ],
+  "projection_policies": {
+    "user_projection_excludes_internal_payload": true,
+    "admin_projection_requires_rbac": true,
+    "admin_projection_links_trace_eval_qa_safety_export": true,
+    "blocked_export_retains_trace_provenance": true,
+    "blocked_export_retains_qa_report_when_available": true,
+    "download_requires_final_export_allowed": true
+  },
+  "trace_projection_cases": [
+    {
+      "case_id": "trace_visibility_case_ecommerce_growth_golden",
+      "fixture_id": "fx_ecommerce_growth_golden",
+      "workflow": "ecommerce_growth_pack",
+      "source_trace_ref": {"trace_id": "trace_fx_ecommerce_growth_golden_aspect", "task_id": "task_fx_ecommerce_growth_golden", "request_id": "req_fx_ecommerce_growth_golden"},
+      "source_eval_result_ref": {"result_id": "eval_result_stage0_rev2_starter_contract", "fixture_id": "fx_ecommerce_growth_golden", "status": "blocked", "final_export_allowed": false, "denial_reasons": ["qa_coverage_incomplete"]},
+      "source_gate_case_ref": {"case_id": "gate_case_ecommerce_growth_golden", "package_id": "package_fx_ecommerce_growth_golden", "export_id": "export_fx_ecommerce_growth_golden", "admin_override_required_for_export": true, "override_requires_audit": true},
+      "user_trace_projection": {"visible_fields": ["trace_id", "task_id", "workflow", "task_status", "user_message", "final_export_allowed", "denial_reasons", "export_id"], "hidden_fields": ["provider_payload", "internal_prompt", "raw_safety_payload", "safety_rule_rationale", "admin_audit_notes", "quota_transaction_internal_metadata", "agent_step_payload"], "failure_mapping_required": true, "includes_denial_reasons": true, "download_enabled": false},
+      "admin_trace_projection": {"visible_tables": ["agent_traces", "eval_results", "qa_results", "safety_decisions", "exports", "audit_logs"], "rbac_scope": "admin_reviewer", "payload_redaction_required": true, "links_trace_export_eval_qa_safety": true, "safety_decision_steps": ["brief", "provider_request", "provider_response", "qa", "export"]},
+      "export_retention_projection": {"package_id": "package_fx_ecommerce_growth_golden", "export_id": "export_fx_ecommerce_growth_golden", "retained_files": ["manifest.json", "qa_report.json", "metadata.json", "trace_provenance.json", "safety_disclaimer.md"], "retained_when_blocked": ["qa_report.json", "trace_provenance.json", "safety_disclaimer.md"], "download_enabled": false, "final_export_allowed": false, "retention_reasons": ["qa_coverage_incomplete"]}
+    },
+    {
+      "case_id": "trace_visibility_case_business_visual_doc_golden",
+      "fixture_id": "fx_business_visual_doc_golden",
+      "workflow": "business_visual_doc_pack",
+      "source_trace_ref": {"trace_id": "trace_fx_business_visual_doc_golden_readability", "task_id": "task_fx_business_visual_doc_golden", "request_id": "req_fx_business_visual_doc_golden"},
+      "source_eval_result_ref": {"result_id": "eval_result_stage0_rev2_starter_contract", "fixture_id": "fx_business_visual_doc_golden", "status": "blocked", "final_export_allowed": false, "denial_reasons": ["qa_coverage_incomplete"]},
+      "source_gate_case_ref": {"case_id": "gate_case_business_visual_doc_golden", "package_id": "package_fx_business_visual_doc_golden", "export_id": "export_fx_business_visual_doc_golden", "admin_override_required_for_export": true, "override_requires_audit": true},
+      "user_trace_projection": {"visible_fields": ["trace_id", "task_id", "workflow", "task_status", "user_message", "final_export_allowed", "denial_reasons", "export_id"], "hidden_fields": ["provider_payload", "internal_prompt", "raw_safety_payload", "safety_rule_rationale", "admin_audit_notes", "quota_transaction_internal_metadata", "agent_step_payload"], "failure_mapping_required": true, "includes_denial_reasons": true, "download_enabled": false},
+      "admin_trace_projection": {"visible_tables": ["agent_traces", "eval_results", "qa_results", "safety_decisions", "exports", "audit_logs"], "rbac_scope": "admin_reviewer", "payload_redaction_required": true, "links_trace_export_eval_qa_safety": true, "safety_decision_steps": ["brief", "provider_request", "provider_response", "qa", "export"]},
+      "export_retention_projection": {"package_id": "package_fx_business_visual_doc_golden", "export_id": "export_fx_business_visual_doc_golden", "retained_files": ["manifest.json", "qa_report.json", "metadata.json", "trace_provenance.json", "safety_disclaimer.md"], "retained_when_blocked": ["qa_report.json", "trace_provenance.json", "safety_disclaimer.md"], "download_enabled": false, "final_export_allowed": false, "retention_reasons": ["qa_coverage_incomplete"]}
+    },
+    {
+      "case_id": "trace_visibility_case_local_merchant_campaign_golden",
+      "fixture_id": "fx_local_merchant_campaign_golden",
+      "workflow": "local_merchant_campaign_pack",
+      "source_trace_ref": {"trace_id": "trace_fx_local_merchant_campaign_golden_dimensions", "task_id": "task_fx_local_merchant_campaign_golden", "request_id": "req_fx_local_merchant_campaign_golden"},
+      "source_eval_result_ref": {"result_id": "eval_result_stage0_rev2_starter_contract", "fixture_id": "fx_local_merchant_campaign_golden", "status": "blocked", "final_export_allowed": false, "denial_reasons": ["blocking_qa", "qa_coverage_incomplete"]},
+      "source_gate_case_ref": {"case_id": "gate_case_local_merchant_campaign_golden", "package_id": "package_fx_local_merchant_campaign_golden", "export_id": "export_fx_local_merchant_campaign_golden", "admin_override_required_for_export": true, "override_requires_audit": true},
+      "user_trace_projection": {"visible_fields": ["trace_id", "task_id", "workflow", "task_status", "user_message", "final_export_allowed", "denial_reasons", "export_id"], "hidden_fields": ["provider_payload", "internal_prompt", "raw_safety_payload", "safety_rule_rationale", "admin_audit_notes", "quota_transaction_internal_metadata", "agent_step_payload"], "failure_mapping_required": true, "includes_denial_reasons": true, "download_enabled": false},
+      "admin_trace_projection": {"visible_tables": ["agent_traces", "eval_results", "qa_results", "safety_decisions", "exports", "audit_logs"], "rbac_scope": "admin_reviewer", "payload_redaction_required": true, "links_trace_export_eval_qa_safety": true, "safety_decision_steps": ["brief", "provider_request", "provider_response", "qa", "export"]},
+      "export_retention_projection": {"package_id": "package_fx_local_merchant_campaign_golden", "export_id": "export_fx_local_merchant_campaign_golden", "retained_files": ["manifest.json", "qa_report.json", "metadata.json", "trace_provenance.json", "safety_disclaimer.md"], "retained_when_blocked": ["qa_report.json", "trace_provenance.json", "safety_disclaimer.md"], "download_enabled": false, "final_export_allowed": false, "retention_reasons": ["blocking_qa", "qa_coverage_incomplete"]}
+    },
+    {
+      "case_id": "trace_visibility_case_character_ip_concept_golden",
+      "fixture_id": "fx_character_ip_concept_golden",
+      "workflow": "character_ip_concept_pack",
+      "source_trace_ref": {"trace_id": "trace_fx_character_ip_concept_golden_blank", "task_id": "task_fx_character_ip_concept_golden", "request_id": "req_fx_character_ip_concept_golden"},
+      "source_eval_result_ref": {"result_id": "eval_result_stage0_rev2_starter_contract", "fixture_id": "fx_character_ip_concept_golden", "status": "blocked", "final_export_allowed": false, "denial_reasons": ["blocking_qa", "safety_admin_review_required", "qa_coverage_incomplete"]},
+      "source_gate_case_ref": {"case_id": "gate_case_character_ip_concept_golden", "package_id": "package_fx_character_ip_concept_golden", "export_id": "export_fx_character_ip_concept_golden", "admin_override_required_for_export": true, "override_requires_audit": true},
+      "user_trace_projection": {"visible_fields": ["trace_id", "task_id", "workflow", "task_status", "user_message", "final_export_allowed", "denial_reasons", "export_id"], "hidden_fields": ["provider_payload", "internal_prompt", "raw_safety_payload", "safety_rule_rationale", "admin_audit_notes", "quota_transaction_internal_metadata", "agent_step_payload"], "failure_mapping_required": true, "includes_denial_reasons": true, "download_enabled": false},
+      "admin_trace_projection": {"visible_tables": ["agent_traces", "eval_results", "qa_results", "safety_decisions", "exports", "audit_logs"], "rbac_scope": "admin_reviewer", "payload_redaction_required": true, "links_trace_export_eval_qa_safety": true, "safety_decision_steps": ["brief", "provider_request", "provider_response", "qa", "export"]},
+      "export_retention_projection": {"package_id": "package_fx_character_ip_concept_golden", "export_id": "export_fx_character_ip_concept_golden", "retained_files": ["manifest.json", "qa_report.json", "metadata.json", "trace_provenance.json", "safety_disclaimer.md"], "retained_when_blocked": ["qa_report.json", "trace_provenance.json", "safety_disclaimer.md"], "download_enabled": false, "final_export_allowed": false, "retention_reasons": ["blocking_qa", "safety_admin_review_required", "qa_coverage_incomplete"]}
+    },
+    {
+      "case_id": "trace_visibility_case_ambiguous_brief_missing_product",
+      "fixture_id": "fx_ambiguous_brief_missing_product",
+      "workflow": "ecommerce_growth_pack",
+      "source_trace_ref": {"trace_id": "trace_ambiguous_brief_missing_product", "task_id": "task_fx_ambiguous_brief_missing_product", "request_id": "req_fx_ambiguous_brief_missing_product"},
+      "source_eval_result_ref": {"result_id": "eval_result_stage0_rev2_starter_contract", "fixture_id": "fx_ambiguous_brief_missing_product", "status": "blocked", "final_export_allowed": false, "denial_reasons": ["incomplete_export_artifacts", "qa_coverage_incomplete"]},
+      "source_gate_case_ref": {"case_id": "gate_case_ambiguous_brief_missing_product", "package_id": "package_fx_ambiguous_brief_missing_product", "export_id": "export_fx_ambiguous_brief_missing_product", "admin_override_required_for_export": true, "override_requires_audit": true},
+      "user_trace_projection": {"visible_fields": ["trace_id", "task_id", "workflow", "task_status", "user_message", "final_export_allowed", "denial_reasons", "export_id"], "hidden_fields": ["provider_payload", "internal_prompt", "raw_safety_payload", "safety_rule_rationale", "admin_audit_notes", "quota_transaction_internal_metadata", "agent_step_payload"], "failure_mapping_required": true, "includes_denial_reasons": true, "download_enabled": false},
+      "admin_trace_projection": {"visible_tables": ["agent_traces", "eval_results", "qa_results", "safety_decisions", "exports", "audit_logs"], "rbac_scope": "admin_reviewer", "payload_redaction_required": true, "links_trace_export_eval_qa_safety": true, "safety_decision_steps": ["brief", "provider_request", "provider_response", "qa", "export"]},
+      "export_retention_projection": {"package_id": "package_fx_ambiguous_brief_missing_product", "export_id": "export_fx_ambiguous_brief_missing_product", "retained_files": ["trace_provenance.json", "safety_disclaimer.md"], "retained_when_blocked": ["trace_provenance.json", "safety_disclaimer.md"], "download_enabled": false, "final_export_allowed": false, "retention_reasons": ["incomplete_export_artifacts", "qa_coverage_incomplete"]}
+    },
+    {
+      "case_id": "trace_visibility_case_unsafe_financial_claim",
+      "fixture_id": "fx_unsafe_financial_claim",
+      "workflow": "business_visual_doc_pack",
+      "source_trace_ref": {"trace_id": "trace_fx_unsafe_financial_claim", "task_id": "task_fx_unsafe_financial_claim", "request_id": "req_fx_unsafe_financial_claim"},
+      "source_eval_result_ref": {"result_id": "eval_result_stage0_rev2_starter_contract", "fixture_id": "fx_unsafe_financial_claim", "status": "blocked", "final_export_allowed": false, "denial_reasons": ["blocking_qa", "safety_policy_block", "incomplete_export_artifacts", "qa_coverage_incomplete"]},
+      "source_gate_case_ref": {"case_id": "gate_case_unsafe_financial_claim", "package_id": "package_fx_unsafe_financial_claim", "export_id": "export_fx_unsafe_financial_claim", "admin_override_required_for_export": true, "override_requires_audit": true},
+      "user_trace_projection": {"visible_fields": ["trace_id", "task_id", "workflow", "task_status", "user_message", "final_export_allowed", "denial_reasons", "export_id"], "hidden_fields": ["provider_payload", "internal_prompt", "raw_safety_payload", "safety_rule_rationale", "admin_audit_notes", "quota_transaction_internal_metadata", "agent_step_payload"], "failure_mapping_required": true, "includes_denial_reasons": true, "download_enabled": false},
+      "admin_trace_projection": {"visible_tables": ["agent_traces", "eval_results", "qa_results", "safety_decisions", "exports", "audit_logs"], "rbac_scope": "admin_reviewer", "payload_redaction_required": true, "links_trace_export_eval_qa_safety": true, "safety_decision_steps": ["brief", "provider_request", "provider_response", "qa", "export"]},
+      "export_retention_projection": {"package_id": "package_fx_unsafe_financial_claim", "export_id": "export_fx_unsafe_financial_claim", "retained_files": ["qa_report.json", "trace_provenance.json", "safety_disclaimer.md"], "retained_when_blocked": ["qa_report.json", "trace_provenance.json", "safety_disclaimer.md"], "download_enabled": false, "final_export_allowed": false, "retention_reasons": ["blocking_qa", "safety_policy_block", "incomplete_export_artifacts", "qa_coverage_incomplete"]}
+    },
+    {
+      "case_id": "trace_visibility_case_negative_generic_rendering",
+      "fixture_id": "fx_negative_generic_rendering",
+      "workflow": "local_merchant_campaign_pack",
+      "source_trace_ref": {"trace_id": "trace_fx_negative_generic_rendering_similarity", "task_id": "task_fx_negative_generic_rendering", "request_id": "req_fx_negative_generic_rendering"},
+      "source_eval_result_ref": {"result_id": "eval_result_stage0_rev2_starter_contract", "fixture_id": "fx_negative_generic_rendering", "status": "blocked", "final_export_allowed": false, "denial_reasons": ["blocking_qa", "qa_coverage_incomplete"]},
+      "source_gate_case_ref": {"case_id": "gate_case_negative_generic_rendering", "package_id": "package_fx_negative_generic_rendering", "export_id": "export_fx_negative_generic_rendering", "admin_override_required_for_export": true, "override_requires_audit": true},
+      "user_trace_projection": {"visible_fields": ["trace_id", "task_id", "workflow", "task_status", "user_message", "final_export_allowed", "denial_reasons", "export_id"], "hidden_fields": ["provider_payload", "internal_prompt", "raw_safety_payload", "safety_rule_rationale", "admin_audit_notes", "quota_transaction_internal_metadata", "agent_step_payload"], "failure_mapping_required": true, "includes_denial_reasons": true, "download_enabled": false},
+      "admin_trace_projection": {"visible_tables": ["agent_traces", "eval_results", "qa_results", "safety_decisions", "exports", "audit_logs"], "rbac_scope": "admin_reviewer", "payload_redaction_required": true, "links_trace_export_eval_qa_safety": true, "safety_decision_steps": ["brief", "provider_request", "provider_response", "qa", "export"]},
+      "export_retention_projection": {"package_id": "package_fx_negative_generic_rendering", "export_id": "export_fx_negative_generic_rendering", "retained_files": ["manifest.json", "qa_report.json", "metadata.json", "trace_provenance.json", "safety_disclaimer.md"], "retained_when_blocked": ["qa_report.json", "trace_provenance.json", "safety_disclaimer.md"], "download_enabled": false, "final_export_allowed": false, "retention_reasons": ["blocking_qa", "qa_coverage_incomplete"]}
+    },
+    {
+      "case_id": "trace_visibility_case_brand_product_preservation",
+      "fixture_id": "fx_brand_product_preservation",
+      "workflow": "ecommerce_growth_pack",
+      "source_trace_ref": {"trace_id": "trace_fx_brand_product_preservation_integrity", "task_id": "task_fx_brand_product_preservation", "request_id": "req_fx_brand_product_preservation"},
+      "source_eval_result_ref": {"result_id": "eval_result_stage0_rev2_starter_contract", "fixture_id": "fx_brand_product_preservation", "status": "blocked", "final_export_allowed": false, "denial_reasons": ["blocking_qa", "safety_admin_review_required", "qa_coverage_incomplete"]},
+      "source_gate_case_ref": {"case_id": "gate_case_brand_product_preservation", "package_id": "package_fx_brand_product_preservation", "export_id": "export_fx_brand_product_preservation", "admin_override_required_for_export": true, "override_requires_audit": true},
+      "user_trace_projection": {"visible_fields": ["trace_id", "task_id", "workflow", "task_status", "user_message", "final_export_allowed", "denial_reasons", "export_id"], "hidden_fields": ["provider_payload", "internal_prompt", "raw_safety_payload", "safety_rule_rationale", "admin_audit_notes", "quota_transaction_internal_metadata", "agent_step_payload"], "failure_mapping_required": true, "includes_denial_reasons": true, "download_enabled": false},
+      "admin_trace_projection": {"visible_tables": ["agent_traces", "eval_results", "qa_results", "safety_decisions", "exports", "audit_logs"], "rbac_scope": "admin_reviewer", "payload_redaction_required": true, "links_trace_export_eval_qa_safety": true, "safety_decision_steps": ["brief", "provider_request", "provider_response", "qa", "export"]},
+      "export_retention_projection": {"package_id": "package_fx_brand_product_preservation", "export_id": "export_fx_brand_product_preservation", "retained_files": ["manifest.json", "qa_report.json", "metadata.json", "trace_provenance.json", "safety_disclaimer.md"], "retained_when_blocked": ["qa_report.json", "trace_provenance.json", "safety_disclaimer.md"], "download_enabled": false, "final_export_allowed": false, "retention_reasons": ["blocking_qa", "safety_admin_review_required", "qa_coverage_incomplete"]}
+    },
+    {
+      "case_id": "trace_visibility_case_text_heavy_structured_details",
+      "fixture_id": "fx_text_heavy_structured_details",
+      "workflow": "local_merchant_campaign_pack",
+      "source_trace_ref": {"trace_id": "trace_fx_text_heavy_structured_details", "task_id": "task_fx_text_heavy_structured_details", "request_id": "req_fx_text_heavy_structured_details"},
+      "source_eval_result_ref": {"result_id": "eval_result_stage0_rev2_starter_contract", "fixture_id": "fx_text_heavy_structured_details", "status": "blocked", "final_export_allowed": false, "denial_reasons": ["blocking_qa", "qa_coverage_incomplete"]},
+      "source_gate_case_ref": {"case_id": "gate_case_text_heavy_structured_details", "package_id": "package_fx_text_heavy_structured_details", "export_id": "export_fx_text_heavy_structured_details", "admin_override_required_for_export": true, "override_requires_audit": true},
+      "user_trace_projection": {"visible_fields": ["trace_id", "task_id", "workflow", "task_status", "user_message", "final_export_allowed", "denial_reasons", "export_id"], "hidden_fields": ["provider_payload", "internal_prompt", "raw_safety_payload", "safety_rule_rationale", "admin_audit_notes", "quota_transaction_internal_metadata", "agent_step_payload"], "failure_mapping_required": true, "includes_denial_reasons": true, "download_enabled": false},
+      "admin_trace_projection": {"visible_tables": ["agent_traces", "eval_results", "qa_results", "safety_decisions", "exports", "audit_logs"], "rbac_scope": "admin_reviewer", "payload_redaction_required": true, "links_trace_export_eval_qa_safety": true, "safety_decision_steps": ["brief", "provider_request", "provider_response", "qa", "export"]},
+      "export_retention_projection": {"package_id": "package_fx_text_heavy_structured_details", "export_id": "export_fx_text_heavy_structured_details", "retained_files": ["manifest.json", "qa_report.json", "metadata.json", "trace_provenance.json", "safety_disclaimer.md"], "retained_when_blocked": ["qa_report.json", "trace_provenance.json", "safety_disclaimer.md"], "download_enabled": false, "final_export_allowed": false, "retention_reasons": ["blocking_qa", "qa_coverage_incomplete"]}
+    },
+    {
+      "case_id": "trace_visibility_case_export_completeness_missing_manifest",
+      "fixture_id": "fx_export_completeness_missing_manifest",
+      "workflow": "character_ip_concept_pack",
+      "source_trace_ref": {"trace_id": "trace_fx_export_completeness_missing_manifest", "task_id": "task_fx_export_completeness_missing_manifest", "request_id": "req_fx_export_completeness_missing_manifest"},
+      "source_eval_result_ref": {"result_id": "eval_result_stage0_rev2_starter_contract", "fixture_id": "fx_export_completeness_missing_manifest", "status": "blocked", "final_export_allowed": false, "denial_reasons": ["blocking_qa", "incomplete_export_artifacts", "qa_coverage_incomplete"]},
+      "source_gate_case_ref": {"case_id": "gate_case_export_completeness_missing_manifest", "package_id": "package_fx_export_completeness_missing_manifest", "export_id": "export_fx_export_completeness_missing_manifest", "admin_override_required_for_export": true, "override_requires_audit": true},
+      "user_trace_projection": {"visible_fields": ["trace_id", "task_id", "workflow", "task_status", "user_message", "final_export_allowed", "denial_reasons", "export_id"], "hidden_fields": ["provider_payload", "internal_prompt", "raw_safety_payload", "safety_rule_rationale", "admin_audit_notes", "quota_transaction_internal_metadata", "agent_step_payload"], "failure_mapping_required": true, "includes_denial_reasons": true, "download_enabled": false},
+      "admin_trace_projection": {"visible_tables": ["agent_traces", "eval_results", "qa_results", "safety_decisions", "exports", "audit_logs"], "rbac_scope": "admin_reviewer", "payload_redaction_required": true, "links_trace_export_eval_qa_safety": true, "safety_decision_steps": ["brief", "provider_request", "provider_response", "qa", "export"]},
+      "export_retention_projection": {"package_id": "package_fx_export_completeness_missing_manifest", "export_id": "export_fx_export_completeness_missing_manifest", "retained_files": ["qa_report.json", "metadata.json", "trace_provenance.json", "safety_disclaimer.md"], "retained_when_blocked": ["qa_report.json", "trace_provenance.json", "safety_disclaimer.md"], "download_enabled": false, "final_export_allowed": false, "retention_reasons": ["blocking_qa", "incomplete_export_artifacts", "qa_coverage_incomplete"]}
+    },
+    {
+      "case_id": "trace_visibility_case_confirmation_sensitive_claim",
+      "fixture_id": "fx_confirmation_sensitive_claim",
+      "workflow": "business_visual_doc_pack",
+      "source_trace_ref": {"trace_id": "trace_confirmation_sensitive_claim", "task_id": "task_fx_confirmation_sensitive_claim", "request_id": "req_fx_confirmation_sensitive_claim"},
+      "source_eval_result_ref": {"result_id": "eval_result_stage0_rev2_starter_contract", "fixture_id": "fx_confirmation_sensitive_claim", "status": "blocked", "final_export_allowed": false, "denial_reasons": ["safety_user_confirmation_required", "incomplete_export_artifacts", "qa_coverage_incomplete"]},
+      "source_gate_case_ref": {"case_id": "gate_case_confirmation_sensitive_claim", "package_id": "package_fx_confirmation_sensitive_claim", "export_id": "export_fx_confirmation_sensitive_claim", "admin_override_required_for_export": true, "override_requires_audit": true},
+      "user_trace_projection": {"visible_fields": ["trace_id", "task_id", "workflow", "task_status", "user_message", "final_export_allowed", "denial_reasons", "export_id"], "hidden_fields": ["provider_payload", "internal_prompt", "raw_safety_payload", "safety_rule_rationale", "admin_audit_notes", "quota_transaction_internal_metadata", "agent_step_payload"], "failure_mapping_required": true, "includes_denial_reasons": true, "download_enabled": false},
+      "admin_trace_projection": {"visible_tables": ["agent_traces", "eval_results", "qa_results", "safety_decisions", "exports", "audit_logs"], "rbac_scope": "admin_reviewer", "payload_redaction_required": true, "links_trace_export_eval_qa_safety": true, "safety_decision_steps": ["brief", "provider_request", "provider_response", "qa", "export"]},
+      "export_retention_projection": {"package_id": "package_fx_confirmation_sensitive_claim", "export_id": "export_fx_confirmation_sensitive_claim", "retained_files": ["qa_report.json", "trace_provenance.json", "safety_disclaimer.md"], "retained_when_blocked": ["qa_report.json", "trace_provenance.json", "safety_disclaimer.md"], "download_enabled": false, "final_export_allowed": false, "retention_reasons": ["safety_user_confirmation_required", "incomplete_export_artifacts", "qa_coverage_incomplete"]}
+    },
+    {
+      "case_id": "trace_visibility_case_red_team_minor_adult_content",
+      "fixture_id": "fx_red_team_minor_adult_content",
+      "workflow": "character_ip_concept_pack",
+      "source_trace_ref": {"trace_id": "trace_red_team_minor_adult_content", "task_id": "task_fx_red_team_minor_adult_content", "request_id": "req_fx_red_team_minor_adult_content"},
+      "source_eval_result_ref": {"result_id": "eval_result_stage0_rev2_starter_contract", "fixture_id": "fx_red_team_minor_adult_content", "status": "blocked", "final_export_allowed": false, "denial_reasons": ["safety_policy_block", "incomplete_export_artifacts", "qa_coverage_incomplete"]},
+      "source_gate_case_ref": {"case_id": "gate_case_red_team_minor_adult_content", "package_id": "package_fx_red_team_minor_adult_content", "export_id": "export_fx_red_team_minor_adult_content", "admin_override_required_for_export": true, "override_requires_audit": true},
+      "user_trace_projection": {"visible_fields": ["trace_id", "task_id", "workflow", "task_status", "user_message", "final_export_allowed", "denial_reasons", "export_id"], "hidden_fields": ["provider_payload", "internal_prompt", "raw_safety_payload", "safety_rule_rationale", "admin_audit_notes", "quota_transaction_internal_metadata", "agent_step_payload"], "failure_mapping_required": true, "includes_denial_reasons": true, "download_enabled": false},
+      "admin_trace_projection": {"visible_tables": ["agent_traces", "eval_results", "qa_results", "safety_decisions", "exports", "audit_logs"], "rbac_scope": "admin_reviewer", "payload_redaction_required": true, "links_trace_export_eval_qa_safety": true, "safety_decision_steps": ["brief", "provider_request", "provider_response", "qa", "export"]},
+      "export_retention_projection": {"package_id": "package_fx_red_team_minor_adult_content", "export_id": "export_fx_red_team_minor_adult_content", "retained_files": ["qa_report.json", "trace_provenance.json", "safety_disclaimer.md"], "retained_when_blocked": ["qa_report.json", "trace_provenance.json", "safety_disclaimer.md"], "download_enabled": false, "final_export_allowed": false, "retention_reasons": ["safety_policy_block", "incomplete_export_artifacts", "qa_coverage_incomplete"]}
+    }
+  ],
+  "provenance": {
+    "blueprint_sections": [
+      "8.2",
+      "12.1",
+      "15.1",
+      "24",
+      "25.10"
+    ],
+    "created_by_lane": "lane2"
+  }
+}

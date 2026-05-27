@@ -1,0 +1,450 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zenart.local/schemas/stage0/rev2/trace_visibility_export_retention.schema.json",
+  "title": "ZenArt Stage 0 Rev2 Trace Visibility and Export Retention Projection",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "contract_id",
+    "blueprint_source",
+    "links",
+    "required_projection_fields",
+    "projection_policies",
+    "trace_projection_cases",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "stage0.rev2"
+    },
+    "contract_id": {
+      "const": "trace_visibility_export_retention_stage0_rev2"
+    },
+    "blueprint_source": {
+      "const": "Docs/stage0_blueprint_rev2.md"
+    },
+    "links": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "trace_completeness",
+        "trace_export_gate_matrix",
+        "eval_results",
+        "qa_results"
+      ],
+      "properties": {
+        "trace_completeness": {
+          "const": "fixtures/stage0/rev2/eval/trace_completeness.json"
+        },
+        "trace_export_gate_matrix": {
+          "const": "fixtures/stage0/rev2/eval/trace_export_gate_matrix.json"
+        },
+        "eval_results": {
+          "const": "fixtures/stage0/rev2/eval/starter_eval_results.json"
+        },
+        "qa_results": {
+          "const": "fixtures/stage0/rev2/eval/qa_results.json"
+        }
+      }
+    },
+    "required_projection_fields": {
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 6,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "user_trace_projection",
+          "admin_trace_projection",
+          "export_retention_projection",
+          "source_trace_ref",
+          "source_eval_result_ref",
+          "source_gate_case_ref"
+        ]
+      }
+    },
+    "projection_policies": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "user_projection_excludes_internal_payload",
+        "admin_projection_requires_rbac",
+        "admin_projection_links_trace_eval_qa_safety_export",
+        "blocked_export_retains_trace_provenance",
+        "blocked_export_retains_qa_report_when_available",
+        "download_requires_final_export_allowed"
+      ],
+      "properties": {
+        "user_projection_excludes_internal_payload": {
+          "const": true
+        },
+        "admin_projection_requires_rbac": {
+          "const": true
+        },
+        "admin_projection_links_trace_eval_qa_safety_export": {
+          "const": true
+        },
+        "blocked_export_retains_trace_provenance": {
+          "const": true
+        },
+        "blocked_export_retains_qa_report_when_available": {
+          "const": true
+        },
+        "download_requires_final_export_allowed": {
+          "const": true
+        }
+      }
+    },
+    "trace_projection_cases": {
+      "type": "array",
+      "minItems": 12,
+      "items": {
+        "$ref": "#/$defs/trace_projection_case"
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "blueprint_sections",
+        "created_by_lane"
+      ],
+      "properties": {
+        "blueprint_sections": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "^(8\\.2|12\\.1|15\\.1|24|25\\.10)$"
+          }
+        },
+        "created_by_lane": {
+          "const": "lane2"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "trace_projection_case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "fixture_id",
+        "workflow",
+        "source_trace_ref",
+        "source_eval_result_ref",
+        "source_gate_case_ref",
+        "user_trace_projection",
+        "admin_trace_projection",
+        "export_retention_projection"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "pattern": "^trace_visibility_case_[a-z0-9_]+$"
+        },
+        "fixture_id": {
+          "type": "string",
+          "pattern": "^fx_[a-z0-9_]+$"
+        },
+        "workflow": {
+          "enum": [
+            "ecommerce_growth_pack",
+            "business_visual_doc_pack",
+            "local_merchant_campaign_pack",
+            "character_ip_concept_pack"
+          ]
+        },
+        "source_trace_ref": {
+          "$ref": "#/$defs/source_trace_ref"
+        },
+        "source_eval_result_ref": {
+          "$ref": "#/$defs/source_eval_result_ref"
+        },
+        "source_gate_case_ref": {
+          "$ref": "#/$defs/source_gate_case_ref"
+        },
+        "user_trace_projection": {
+          "$ref": "#/$defs/user_trace_projection"
+        },
+        "admin_trace_projection": {
+          "$ref": "#/$defs/admin_trace_projection"
+        },
+        "export_retention_projection": {
+          "$ref": "#/$defs/export_retention_projection"
+        }
+      }
+    },
+    "source_trace_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "trace_id",
+        "task_id",
+        "request_id"
+      ],
+      "properties": {
+        "trace_id": {
+          "type": "string",
+          "pattern": "^trace_[a-z0-9_]+$"
+        },
+        "task_id": {
+          "type": "string",
+          "pattern": "^task_fx_[a-z0-9_]+$"
+        },
+        "request_id": {
+          "type": "string",
+          "pattern": "^req_fx_[a-z0-9_]+$"
+        }
+      }
+    },
+    "source_eval_result_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "result_id",
+        "fixture_id",
+        "status",
+        "final_export_allowed",
+        "denial_reasons"
+      ],
+      "properties": {
+        "result_id": {
+          "const": "eval_result_stage0_rev2_starter_contract"
+        },
+        "fixture_id": {
+          "type": "string",
+          "pattern": "^fx_[a-z0-9_]+$"
+        },
+        "status": {
+          "enum": [
+            "pass",
+            "blocked",
+            "fail"
+          ]
+        },
+        "final_export_allowed": {
+          "type": "boolean"
+        },
+        "denial_reasons": {
+          "$ref": "#/$defs/gate_reasons"
+        }
+      }
+    },
+    "source_gate_case_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "package_id",
+        "export_id",
+        "admin_override_required_for_export",
+        "override_requires_audit"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "pattern": "^gate_case_[a-z0-9_]+$"
+        },
+        "package_id": {
+          "type": "string",
+          "pattern": "^package_fx_[a-z0-9_]+$"
+        },
+        "export_id": {
+          "type": "string",
+          "pattern": "^export_fx_[a-z0-9_]+$"
+        },
+        "admin_override_required_for_export": {
+          "type": "boolean"
+        },
+        "override_requires_audit": {
+          "type": "boolean"
+        }
+      }
+    },
+    "user_trace_projection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "visible_fields",
+        "hidden_fields",
+        "failure_mapping_required",
+        "includes_denial_reasons",
+        "download_enabled"
+      ],
+      "properties": {
+        "visible_fields": {
+          "type": "array",
+          "minItems": 5,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "trace_id",
+              "task_id",
+              "workflow",
+              "task_status",
+              "user_message",
+              "final_export_allowed",
+              "denial_reasons",
+              "export_id"
+            ]
+          }
+        },
+        "hidden_fields": {
+          "type": "array",
+          "minItems": 5,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "provider_payload",
+              "internal_prompt",
+              "raw_safety_payload",
+              "safety_rule_rationale",
+              "admin_audit_notes",
+              "quota_transaction_internal_metadata",
+              "agent_step_payload"
+            ]
+          }
+        },
+        "failure_mapping_required": {
+          "const": true
+        },
+        "includes_denial_reasons": {
+          "const": true
+        },
+        "download_enabled": {
+          "type": "boolean"
+        }
+      }
+    },
+    "admin_trace_projection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "visible_tables",
+        "rbac_scope",
+        "payload_redaction_required",
+        "links_trace_export_eval_qa_safety",
+        "safety_decision_steps"
+      ],
+      "properties": {
+        "visible_tables": {
+          "type": "array",
+          "minItems": 6,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "agent_traces",
+              "eval_results",
+              "qa_results",
+              "safety_decisions",
+              "exports",
+              "audit_logs"
+            ]
+          }
+        },
+        "rbac_scope": {
+          "enum": [
+            "admin_reviewer",
+            "admin_operator",
+            "admin_superadmin"
+          ]
+        },
+        "payload_redaction_required": {
+          "const": true
+        },
+        "links_trace_export_eval_qa_safety": {
+          "const": true
+        },
+        "safety_decision_steps": {
+          "type": "array",
+          "minItems": 5,
+          "maxItems": 5,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "brief",
+              "provider_request",
+              "provider_response",
+              "qa",
+              "export"
+            ]
+          }
+        }
+      }
+    },
+    "export_retention_projection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "package_id",
+        "export_id",
+        "retained_files",
+        "retained_when_blocked",
+        "download_enabled",
+        "final_export_allowed",
+        "retention_reasons"
+      ],
+      "properties": {
+        "package_id": {
+          "type": "string",
+          "pattern": "^package_fx_[a-z0-9_]+$"
+        },
+        "export_id": {
+          "type": "string",
+          "pattern": "^export_fx_[a-z0-9_]+$"
+        },
+        "retained_files": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "manifest.json",
+              "qa_report.json",
+              "metadata.json",
+              "trace_provenance.json",
+              "safety_disclaimer.md"
+            ]
+          }
+        },
+        "retained_when_blocked": {
+          "type": "array",
+          "minItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "qa_report.json",
+              "trace_provenance.json",
+              "safety_disclaimer.md"
+            ]
+          }
+        },
+        "download_enabled": {
+          "type": "boolean"
+        },
+        "final_export_allowed": {
+          "type": "boolean"
+        },
+        "retention_reasons": {
+          "$ref": "#/$defs/gate_reasons"
+        }
+      }
+    },
+    "gate_reasons": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "blocking_qa",
+          "safety_policy_block",
+          "safety_user_confirmation_required",
+          "safety_admin_review_required",
+          "incomplete_export_artifacts",
+          "qa_coverage_incomplete"
+        ]
+      }
+    }
+  }
+}

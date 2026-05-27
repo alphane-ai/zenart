@@ -2021,6 +2021,11 @@ SCHEMA_FIXTURE_TARGETS = [
     ("eval_result.schema.json", FIXTURE_DIR / "eval" / "starter_eval_results.json", "array_items"),
     ("trace_completeness.schema.json", FIXTURE_DIR / "eval" / "trace_completeness.json", "object"),
     ("trace_export_gate_matrix.schema.json", FIXTURE_DIR / "eval" / "trace_export_gate_matrix.json", "object"),
+    (
+        "trace_visibility_export_retention.schema.json",
+        FIXTURE_DIR / "eval" / "trace_visibility_export_retention.json",
+        "object",
+    ),
     ("safety_enforcement_contract.schema.json", FIXTURE_DIR / "eval" / "safety_enforcement_contract.json", "object"),
     ("qa_result.schema.json", FIXTURE_DIR / "eval" / "qa_results.json", "array_items"),
     ("qa_result_coverage.schema.json", FIXTURE_DIR / "eval" / "qa_result_coverage.json", "object"),
@@ -2106,6 +2111,7 @@ CHECKED_ITEMS = {
     "定义 alerts。",
     "定义 analytics event taxonomy。",
     "添加 trace completeness tests。",
+    "Trace visibility/export retention projection contract 通过：`fixtures/stage0/rev2/eval/trace_visibility_export_retention.json` declares user-safe trace projection、admin RBAC trace/eval/QA/safety/export links、blocked-export retention for QA report/trace provenance/safety disclaimer, and `scripts/validate_trace_visibility_export_retention.py` validates the projections against trace completeness、eval results、QA results、trace export gate matrix、OpenAPI。",
     "定义 release gate evidence schema/fixtures 和 no-go release notes renderer。",
     "定义 post-deploy smoke evidence contract。",
     PRODUCTION_BACKUP_ROLLBACK_INCIDENT_ADMIN_CHECKLIST_ITEM,
@@ -5807,6 +5813,7 @@ def validate_json_files() -> None:
         SCHEMA_DIR / "analytics_taxonomy.schema.json",
         SCHEMA_DIR / "trace_completeness.schema.json",
         SCHEMA_DIR / "trace_export_gate_matrix.schema.json",
+        SCHEMA_DIR / "trace_visibility_export_retention.schema.json",
         SCHEMA_DIR / "safety_enforcement_contract.schema.json",
         SCHEMA_DIR / "qa_result_coverage.schema.json",
         SCHEMA_DIR / "qa_enforcement_matrix.schema.json",
@@ -5819,6 +5826,7 @@ def validate_json_files() -> None:
         FIXTURE_DIR / "eval" / "activation_gate_contract.json",
         FIXTURE_DIR / "eval" / "trace_completeness.json",
         FIXTURE_DIR / "eval" / "trace_export_gate_matrix.json",
+        FIXTURE_DIR / "eval" / "trace_visibility_export_retention.json",
         FIXTURE_DIR / "eval" / "safety_enforcement_contract.json",
         FIXTURE_DIR / "eval" / "qa_result_coverage.json",
         FIXTURE_DIR / "eval" / "qa_enforcement_matrix.json",
@@ -9090,6 +9098,12 @@ def validate_openapi_rev2_domain_contracts() -> None:
         "qa_report_linked:",
         "safety_decision_ref:",
         "safety_decisions",
+        "user_trace_projection:",
+        "admin_trace_projection:",
+        "export_retention_projection:",
+        "visible_fields:",
+        "hidden_fields:",
+        "retained_when_blocked:",
     ]:
         require(token in trace_body, f"AgentTrace completeness schema missing {token}")
 
@@ -9119,6 +9133,20 @@ def validate_trace_export_gate_matrix_contract() -> None:
     require(
         result.returncode == 0,
         "trace export gate matrix validation failed: " + (result.stderr or result.stdout).strip(),
+    )
+
+
+def validate_trace_visibility_export_retention_contract() -> None:
+    result = subprocess.run(
+        [sys.executable, str(ROOT / "scripts" / "validate_trace_visibility_export_retention.py")],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    require(
+        result.returncode == 0,
+        "trace visibility/export retention validation failed: " + (result.stderr or result.stdout).strip(),
     )
 
 
@@ -10761,6 +10789,7 @@ def main() -> int:
         validate_activation_gate_contract,
         validate_trace_completeness_contract,
         validate_trace_export_gate_matrix_contract,
+        validate_trace_visibility_export_retention_contract,
         validate_workflow_export_zip_evidence_contract,
         validate_safety_enforcement_contract,
         validate_qa_result_coverage_contract,

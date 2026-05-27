@@ -2533,6 +2533,9 @@ components:
         - artifact_links
         - eval_result_ref
         - qa_result_refs
+        - user_trace_projection
+        - admin_trace_projection
+        - export_retention_projection
         - payload
         - created_at
       properties:
@@ -2700,6 +2703,85 @@ components:
                 type: string
             coverage_complete:
               type: boolean
+        user_trace_projection:
+          type: object
+          required: [visible_fields, hidden_fields, failure_mapping_required, includes_denial_reasons, download_enabled]
+          properties:
+            visible_fields:
+              type: array
+              uniqueItems: true
+              items:
+                type: string
+                enum: [trace_id, task_id, workflow, task_status, user_message, final_export_allowed, denial_reasons, export_id]
+            hidden_fields:
+              type: array
+              uniqueItems: true
+              items:
+                type: string
+                enum: [provider_payload, internal_prompt, raw_safety_payload, safety_rule_rationale, admin_audit_notes, quota_transaction_internal_metadata, agent_step_payload]
+            failure_mapping_required:
+              type: boolean
+              const: true
+            includes_denial_reasons:
+              type: boolean
+              const: true
+            download_enabled:
+              type: boolean
+        admin_trace_projection:
+          type: object
+          required: [visible_tables, rbac_scope, payload_redaction_required, links_trace_export_eval_qa_safety, safety_decision_steps]
+          properties:
+            visible_tables:
+              type: array
+              uniqueItems: true
+              items:
+                type: string
+                enum: [agent_traces, eval_results, qa_results, safety_decisions, exports, audit_logs]
+            rbac_scope:
+              type: string
+              enum: [admin_reviewer, admin_operator, admin_superadmin]
+            payload_redaction_required:
+              type: boolean
+              const: true
+            links_trace_export_eval_qa_safety:
+              type: boolean
+              const: true
+            safety_decision_steps:
+              type: array
+              uniqueItems: true
+              items:
+                type: string
+                enum: [brief, provider_request, provider_response, qa, export]
+        export_retention_projection:
+          type: object
+          required: [package_id, export_id, retained_files, retained_when_blocked, download_enabled, final_export_allowed, retention_reasons]
+          properties:
+            package_id:
+              type: string
+            export_id:
+              type: string
+            retained_files:
+              type: array
+              uniqueItems: true
+              items:
+                type: string
+                enum: [manifest.json, qa_report.json, metadata.json, trace_provenance.json, safety_disclaimer.md]
+            retained_when_blocked:
+              type: array
+              uniqueItems: true
+              items:
+                type: string
+                enum: [qa_report.json, trace_provenance.json, safety_disclaimer.md]
+            download_enabled:
+              type: boolean
+            final_export_allowed:
+              type: boolean
+            retention_reasons:
+              type: array
+              uniqueItems: true
+              items:
+                type: string
+                enum: [blocking_qa, safety_policy_block, safety_user_confirmation_required, safety_admin_review_required, incomplete_export_artifacts, qa_coverage_incomplete]
         payload:
           type: object
           additionalProperties: true
