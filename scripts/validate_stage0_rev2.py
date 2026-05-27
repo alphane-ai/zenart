@@ -4778,6 +4778,15 @@ def validate_release_gate_basics(data: dict[str, Any]) -> tuple[dict[str, dict[s
         and all(isinstance(section, str) and section.strip() for section in data["provenance"]["blueprint_sections"]),
         f"{gate} release evidence must cite blueprint sections",
     )
+    unexpected_sections = [
+        section
+        for section in data["provenance"]["blueprint_sections"]
+        if not re.match(r"^(23|24)(?:\.|$)", section)
+    ]
+    require(
+        not unexpected_sections,
+        f"{gate} release evidence provenance may cite only release-gate policy sections 23/24: {unexpected_sections}",
+    )
     validate_gate_decision(data)
 
     checks = checks_by_id(data)
