@@ -1678,6 +1678,29 @@ export type AdminRbacReleaseEvidenceClosure = {
   operatorAction: string;
 };
 
+export type AdminRbacReleaseReadinessSummary = {
+  surface: AdminReviewSurface;
+  overrideScope: AdminRbacEvidence["overrideScope"];
+  readyState: "release_ready" | "gate_preserved" | "missing_evidence";
+  mutationMode:
+    | "temporary_mutation"
+    | "second_review_hold"
+    | "policy_block"
+    | "stale_replay_preserved"
+    | "mixed_runtime";
+  evidenceIds: string[];
+  requiredRoles: AdminRole[];
+  auditRefs: string[];
+  closureEvidenceRefs: string[];
+  attemptCoverage: AdminRbacReleaseEvidenceClosure["attemptCoverage"];
+  staleReplayCoverage: AdminRbacReleaseEvidenceClosure["staleReplayCoverage"];
+  releaseEvidenceStatus: AdminRbacReleaseEvidenceClosure["releaseEvidenceStatus"];
+  closureStatus: AdminRbacReleaseEvidenceClosure["closureStatus"];
+  releaseGateStatus: AdminRbacReleaseEvidenceClosure["releaseGateStatus"];
+  readinessRationale: string;
+  operatorAction: string;
+};
+
 export type ReleaseEvidence = {
   id: string;
   target: string;

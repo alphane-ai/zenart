@@ -8,6 +8,7 @@ import {
   getAdminRbacEvidencePacks,
   getAdminRbacOverrideAttemptDecisions,
   getAdminRbacReleaseEvidenceClosures,
+  getAdminRbacReleaseReadinessSummaries,
   getAdminRbacRuntimeDecisions,
   getAdminRbacStaleReplayDecisions,
   getAdminRbacSurfaceSummaries,
@@ -23,6 +24,7 @@ import type {
   AdminRbacEvidencePack,
   AdminRbacOverrideAttemptDecision,
   AdminRbacReleaseEvidenceClosure,
+  AdminRbacReleaseReadinessSummary,
   AdminRbacRuntimeDecision,
   AdminRbacStaleReplayDecision,
   AdminRbacSurfaceSummary,
@@ -45,6 +47,7 @@ export default async function AuditPage() {
     rbacEvidencePacks,
     rbacClosureMatrix,
     rbacReleaseEvidenceClosures,
+    rbacReleaseReadinessSummaries,
     productionActivationEvidence,
     productionSecurityEvidence,
     stagingAuthRbacTenantAuditEvidence
@@ -59,6 +62,7 @@ export default async function AuditPage() {
     getAdminRbacEvidencePacks(),
     getAdminRbacClosureMatrix(),
     getAdminRbacReleaseEvidenceClosures(),
+    getAdminRbacReleaseReadinessSummaries(),
     getProductionActivationReviewAuditEvidence(),
     getProductionSecurityLaunchCheckEvidence(),
     getStagingAuthRbacTenantAuditEvidence()
@@ -222,6 +226,35 @@ export default async function AuditPage() {
             { key: "audit", header: "Audit Refs", render: (row) => <span className="mono">{row.auditRefs.join(", ")}</span> },
             { key: "required", header: "Release Evidence Required", render: (row) => row.releaseEvidenceRequired.join(" ") },
             { key: "closure-refs", header: "Closure Evidence Refs", render: (row) => row.closureEvidenceRefs.join(", ") },
+            { key: "operator", header: "Operator Action", render: (row) => row.operatorAction }
+          ]}
+        />
+      </section>
+
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>RBAC Release Readiness Summary</h3>
+            <p>Each governed override surface gets a compact release-state verdict from request attempts, stale replay probes, audit refs, and closure evidence.</p>
+          </div>
+        </div>
+        <DataTable<AdminRbacReleaseReadinessSummary>
+          rows={rbacReleaseReadinessSummaries}
+          columns={[
+            { key: "surface", header: "Surface", render: (row) => row.surface },
+            { key: "scope", header: "Override Scope", render: (row) => row.overrideScope },
+            { key: "ready", header: "Ready State", render: (row) => <StatusBadge value={row.readyState === "release_ready" ? "approved" : row.readyState === "missing_evidence" ? "blocked" : "warning"} label={row.readyState} /> },
+            { key: "mode", header: "Mutation Mode", render: (row) => row.mutationMode },
+            { key: "evidence", header: "Evidence IDs", render: (row) => <span className="mono">{row.evidenceIds.join(", ")}</span> },
+            { key: "roles", header: "Required Roles", render: (row) => row.requiredRoles.join(", ") },
+            { key: "attempt", header: "Attempt Coverage", render: (row) => <StatusBadge value={row.attemptCoverage === "covered" ? "approved" : "blocked"} label={row.attemptCoverage} /> },
+            { key: "stale", header: "Stale Replay Coverage", render: (row) => <StatusBadge value={row.staleReplayCoverage === "missing" ? "blocked" : "approved"} label={row.staleReplayCoverage} /> },
+            { key: "release-evidence", header: "Release Evidence", render: (row) => <StatusBadge value={row.releaseEvidenceStatus === "attached" ? "approved" : "blocked"} label={row.releaseEvidenceStatus} /> },
+            { key: "closure", header: "Closure Status", render: (row) => row.closureStatus },
+            { key: "gate", header: "Release Gate", render: (row) => row.releaseGateStatus },
+            { key: "audit", header: "Audit Refs", render: (row) => <span className="mono">{row.auditRefs.join(", ")}</span> },
+            { key: "closure-refs", header: "Closure Evidence Refs", render: (row) => row.closureEvidenceRefs.join(", ") },
+            { key: "rationale", header: "Readiness Rationale", render: (row) => row.readinessRationale },
             { key: "operator", header: "Operator Action", render: (row) => row.operatorAction }
           ]}
         />

@@ -5,6 +5,7 @@ import type {
   AdminRbacOverrideAttempt,
   AdminRbacOverrideAttemptDecision,
   AdminRbacReleaseEvidenceClosure,
+  AdminRbacReleaseReadinessSummary,
   AdminRbacRuntimeDecision,
   AdminRbacStaleReplayDecision,
   AdminRbacSurfaceSummary,
@@ -893,6 +894,88 @@ export function buildAdminRbacReleaseEvidenceClosures(
           closureStatus === "release_ready_with_expiry"
             ? "Allow only the audited temporary mutation and keep expiry restoration visible in release evidence."
             : "Preserve the release gate until request attempts, stale replay probes, audit refs, and required evidence stay attached."
+      };
+    })
+    .sort((a, b) => a.surface.localeCompare(b.surface));
+}
+
+function releaseReadinessMutationMode(
+  closure: AdminRbacReleaseEvidenceClosure
+): AdminRbacReleaseReadinessSummary["mutationMode"] {
+  if (closure.closureStatus === "release_ready_with_expiry") {
+    return "temporary_mutation";
+  }
+
+  if (closure.closureStatus === "preserved_by_stale_replay") {
+    return closure.releaseGateDisposition === "mixed_preserved" ? "mixed_runtime" : "stale_replay_preserved";
+  }
+
+  if (closure.closureStatus === "preserved_for_review") {
+    return "second_review_hold";
+  }
+
+  return "policy_block";
+}
+
+function releaseReadinessState(
+  closure: AdminRbacReleaseEvidenceClosure
+): AdminRbacReleaseReadinessSummary["readyState"] {
+  if (closure.closureStatus === "missing_evidence") {
+    return "missing_evidence";
+  }
+
+  return closure.releaseGateStatus === "release_use_allowed" ? "release_ready" : "gate_preserved";
+}
+
+function releaseReadinessRationale(closure: AdminRbacReleaseEvidenceClosure) {
+  if (closure.closureStatus === "release_ready_with_expiry") {
+    return `${closure.surface} has covered request attempts, attached release evidence, immutable audit refs, and only an audited temporary mutation may affect release state.`;
+  }
+
+  if (closure.closureStatus === "preserved_for_review") {
+    return `${closure.surface} keeps release state unchanged because second-review evidence is still required before the requested high-risk mutation can proceed.`;
+  }
+
+  if (closure.closureStatus === "preserved_by_stale_replay") {
+    return `${closure.surface} preserves the release gate because stale replay or expired-window evidence proves the prior override cannot keep mutating state.`;
+  }
+
+  if (closure.closureStatus === "preserved_by_policy") {
+    return `${closure.surface} preserves the release gate because policy, role, or non-override-eligible evidence blocks mutation while audit refs stay attached.`;
+  }
+
+  return `${closure.surface} is missing request attempt, stale replay, audit, or release evidence and cannot be used for release decisions.`;
+}
+
+export function buildAdminRbacReleaseReadinessSummaries(
+  closures: AdminRbacReleaseEvidenceClosure[],
+  evidencePacks: AdminRbacEvidencePack[]
+): AdminRbacReleaseReadinessSummary[] {
+  const packBySurface = new Map(evidencePacks.map((pack) => [pack.surface, pack]));
+
+  return closures
+    .map((closure) => {
+      const pack = packBySurface.get(closure.surface);
+
+      return {
+        surface: closure.surface,
+        overrideScope: closure.overrideScope,
+        readyState: releaseReadinessState(closure),
+        mutationMode: releaseReadinessMutationMode(closure),
+        evidenceIds: closure.evidenceIds,
+        requiredRoles: pack?.requiredRoles ?? [],
+        auditRefs: closure.auditRefs,
+        closureEvidenceRefs: closure.closureEvidenceRefs,
+        attemptCoverage: closure.attemptCoverage,
+        staleReplayCoverage: closure.staleReplayCoverage,
+        releaseEvidenceStatus: closure.releaseEvidenceStatus,
+        closureStatus: closure.closureStatus,
+        releaseGateStatus: closure.releaseGateStatus,
+        readinessRationale: releaseReadinessRationale(closure),
+        operatorAction:
+          closure.releaseGateStatus === "release_use_allowed"
+            ? "Permit only the audited release mutation shown in this row and keep expiry restoration visible to reviewers."
+            : "Keep release/crawler/prompt/provider/quota/safety/export state unchanged until this row shows release_ready with complete evidence."
       };
     })
     .sort((a, b) => a.surface.localeCompare(b.surface));
