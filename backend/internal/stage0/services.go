@@ -1341,8 +1341,8 @@ cleanup_scope AS (
 	SELECT tenant_id, export_expired, object_orphaned, object_deleted
 	FROM cleanup_counts
 	UNION ALL
-	SELECT $7, 0, 0, 0
-	WHERE $5 > 0
+	SELECT $7, 0, 0, $4
+	WHERE ($4 > 0 OR $5 > 0)
 	  AND $7 <> ''
 	  AND NOT EXISTS (SELECT 1 FROM cleanup_counts WHERE tenant_id = $7)
 )
@@ -1401,8 +1401,8 @@ cleanup_scope AS (
 	SELECT tenant_id, export_expired, object_orphaned, object_deleted
 	FROM cleanup_counts
 	UNION ALL
-	SELECT $7, 0, 0, 0
-	WHERE $5 > 0
+	SELECT $7, 0, 0, $4
+	WHERE ($4 > 0 OR $5 > 0)
 	  AND $7 <> ''
 	  AND NOT EXISTS (SELECT 1 FROM cleanup_counts WHERE tenant_id = $7)
 )

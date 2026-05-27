@@ -1572,8 +1572,14 @@ func TestTenantScopedServiceCleanupDeletesTenantExpiredMarkers(t *testing.T) {
 	if !strings.Contains(db.execs[3].sql, "'export_object_cleanup_run'") || db.execs[3].args[3] != result.DeletedObjects {
 		t.Fatalf("cleanup run analytics args/sql = %#v / %s, want scoped marker delete count", db.execs[3].args, db.execs[3].sql)
 	}
+	if !strings.Contains(db.execs[3].sql, "SELECT $7, 0, 0, $4") || !strings.Contains(db.execs[3].sql, "($4 > 0 OR $5 > 0)") {
+		t.Fatalf("cleanup run analytics should create scoped marker-only evidence row: %s", db.execs[3].sql)
+	}
 	if !strings.Contains(db.execs[4].sql, "INSERT INTO audit_logs") || db.execs[4].args[3] != result.DeletedObjects {
 		t.Fatalf("cleanup run audit args/sql = %#v / %s, want scoped marker delete count", db.execs[4].args, db.execs[4].sql)
+	}
+	if !strings.Contains(db.execs[4].sql, "SELECT $7, 0, 0, $4") || !strings.Contains(db.execs[4].sql, "($4 > 0 OR $5 > 0)") {
+		t.Fatalf("cleanup run audit should create scoped marker-only evidence row: %s", db.execs[4].sql)
 	}
 }
 
