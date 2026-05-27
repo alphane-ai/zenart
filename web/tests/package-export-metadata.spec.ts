@@ -1,4 +1,6 @@
 import { expect, test } from "@playwright/test";
+import { readFile } from "node:fs/promises";
+import JSZip from "jszip";
 
 test("export route exposes package metadata, ZIP payload, and download parity browser evidence", async ({ page }) => {
   await page.addInitScript(() => {
@@ -131,4 +133,141 @@ test("export route exposes package metadata, ZIP payload, and download parity br
   await downloadHandoff.click();
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toBe("zenart-001.zip");
+  const downloadPath = await download.path();
+  expect(downloadPath).toBeTruthy();
+
+  const zip = await JSZip.loadAsync(await readFile(downloadPath!));
+  const expectedPayloads = (await zipPayloadSmoke.getAttribute("data-export-zip-payload-expected-payloads"))?.split(",") ?? [];
+  expect(expectedPayloads).toHaveLength(14);
+  for (const payloadName of expectedPayloads) {
+    expect(zip.file(payloadName), `downloaded ZIP payload ${payloadName} should exist`).toBeTruthy();
+  }
+
+  const manifest = JSON.parse(await zip.file("manifest.json")!.async("string")) as {
+    package_id: string;
+    project_id: string;
+    required_outputs: string[];
+    items: Array<{ id: string; type: string; provenance: string }>;
+    workflow_acceptance: {
+      workflow_id: string;
+      fixture_id: string;
+      strategy_taxonomy: string[];
+      required_files: string[];
+    };
+  };
+  const qaReport = JSON.parse(await zip.file("qa-report.json")!.async("string")) as Array<{ severity: string }>;
+  const safetyReport = JSON.parse(await zip.file("safety-policy-report.json")!.async("string")) as {
+    status: string;
+    enforcementStages: string[];
+  };
+  const provenance = JSON.parse(await zip.file("provenance.json")!.async("string")) as {
+    export_id: string;
+    generated_by: string;
+    items: Array<{ provenance: string }>;
+  };
+  const aiContentDisclaimer = JSON.parse(await zip.file("ai-content-disclaimer.json")!.async("string")) as {
+    schema_version: string;
+    generation_mode: string;
+    safety_status: string;
+  };
+  const pptReadyMetadata = JSON.parse(await zip.file("ppt-ready-metadata.json")!.async("string")) as {
+    schema_version: string;
+    aspect_ratio: string;
+    slides: Array<{ source_item_id: string }>;
+  };
+  const workflowMetadata = JSON.parse(await zip.file("metadata.json")!.async("string")) as {
+    workflow_id: string;
+    workflow_fixture_id: string;
+    provider: string;
+    model: string;
+    prompt_spec: string[];
+    skill: string;
+    safety: string;
+  };
+  const traceProvenance = JSON.parse(await zip.file("trace_provenance.json")!.async("string")) as {
+    workflow_id: string;
+    provider: string;
+    model: string;
+    prompt_spec: string[];
+    skill: string;
+    safety: string;
+  };
+  const assetsReadme = await zip.file("assets/README.txt")!.async("string");
+
+  expect(manifest).toMatchObject({
+    package_id: "pkg-002",
+    project_id: "project-001",
+    workflow_acceptance: {
+      workflow_id: "ecommerce_growth_pack",
+      fixture_id: "fx_ecommerce_growth_golden",
+      strategy_taxonomy: ["social_proof"]
+    }
+  });
+  expect(manifest.required_outputs).toEqual(
+    expect.arrayContaining([
+      "manifest.json",
+      "qa-report.json",
+      "safety-policy-report.json",
+      "provenance.json",
+      "ai-content-disclaimer.json",
+      "ppt-ready-metadata.json",
+      "assets/",
+      "metadata.json",
+      "trace_provenance.json"
+    ])
+  );
+  expect(manifest.items).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        type: "reference",
+        provenance: "dev-client-reference:ref-campaign-reference-webp"
+      }),
+      expect.objectContaining({
+        type: "candidate",
+        provenance: "dev-client:cand-studio"
+      })
+    ])
+  );
+  expect(qaReport.every((finding) => finding.severity !== "block")).toBe(true);
+  expect(safetyReport).toMatchObject({
+    status: "pass",
+    enforcementStages: ["brief", "provider_request", "provider_response", "qa", "export"]
+  });
+  expect(provenance).toMatchObject({
+    export_id: "export-001",
+    generated_by: "zenart-web-dev-client"
+  });
+  expect(provenance.items.map((item) => item.provenance)).toEqual(
+    expect.arrayContaining(["dev-client-reference:ref-campaign-reference-webp", "dev-client:cand-studio"])
+  );
+  expect(aiContentDisclaimer).toMatchObject({
+    schema_version: "stage0.rev2.ai-content-disclaimer",
+    generation_mode: "deterministic-local-alpha",
+    safety_status: "pass"
+  });
+  expect(pptReadyMetadata).toMatchObject({
+    schema_version: "stage0.rev2.ppt-ready-metadata",
+    aspect_ratio: "16:9"
+  });
+  expect(pptReadyMetadata.slides.map((slide) => slide.source_item_id)).toEqual(
+    expect.arrayContaining(["pkg-item-001", "pkg-item-002"])
+  );
+  expect(workflowMetadata).toMatchObject({
+    workflow_id: "ecommerce_growth_pack",
+    workflow_fixture_id: "fx_ecommerce_growth_golden",
+    provider: "dev-provider",
+    model: "deterministic-local-alpha",
+    prompt_spec: ["social_proof"],
+    skill: "ecommerce_growth_pack",
+    safety: "pass"
+  });
+  expect(traceProvenance).toMatchObject({
+    workflow_id: "ecommerce_growth_pack",
+    provider: "dev-provider",
+    model: "deterministic-local-alpha",
+    prompt_spec: ["social_proof"],
+    skill: "ecommerce_growth_pack",
+    safety: "pass"
+  });
+  expect(assetsReadme).toContain("Deterministic local alpha export placeholder");
 });

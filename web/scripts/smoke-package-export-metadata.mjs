@@ -88,6 +88,8 @@ for (const assertion of artifact.browserEvidence?.requiredAssertions ?? []) {
 }
 
 for (const expectedBrowserSnippet of [
+  "JSZip.loadAsync",
+  "downloaded ZIP payload",
   "data-package-export-metadata-status",
   "data-package-export-zip-payload-parity-status",
   "data-package-export-workflow-metadata-payload-present",
@@ -98,6 +100,22 @@ for (const expectedBrowserSnippet of [
 ]) {
   if (!packageExportPlaywrightSpecSource.includes(expectedBrowserSnippet)) {
     fail(`package/export metadata browser smoke missing ${expectedBrowserSnippet}`);
+  }
+}
+
+for (const payloadName of [
+  "manifest.json",
+  "qa-report.json",
+  "safety-policy-report.json",
+  "provenance.json",
+  "ai-content-disclaimer.json",
+  "ppt-ready-metadata.json",
+  "metadata.json",
+  "trace_provenance.json",
+  "assets/README.txt"
+]) {
+  if (!packageExportPlaywrightSpecSource.includes(payloadName)) {
+    fail(`package/export metadata browser smoke missing downloaded ZIP payload assertion for ${payloadName}`);
   }
 }
 

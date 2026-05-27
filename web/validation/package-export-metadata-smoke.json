@@ -28,7 +28,18 @@
       "data-export-download-parity-status",
       "data-export-download-parity-payloads-match",
       "data-export-download-handoff",
-      "download.suggestedFilename()"
+      "download.suggestedFilename()",
+      "JSZip.loadAsync",
+      "downloaded ZIP payload",
+      "manifest.json",
+      "qa-report.json",
+      "safety-policy-report.json",
+      "provenance.json",
+      "ai-content-disclaimer.json",
+      "ppt-ready-metadata.json",
+      "metadata.json",
+      "trace_provenance.json",
+      "assets/README.txt"
     ]
   },
   "evidence": {
