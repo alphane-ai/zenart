@@ -61,13 +61,39 @@ const endpointByArea: Record<StagingObjectStorageRetentionCleanupCoverage["area"
   audit_refs: "GET /api/admin/v1/audit?subject=object_storage_cleanup&limit=20"
 };
 
+const canonicalPassReportPath = "ops/evidence/staging/object-storage-retention-cleanup.json";
+const canonicalPassResultsPath = "ops/evidence/staging/object-storage-retention-cleanup.ndjson";
+
 function isRequiredArea(area: string | undefined): area is StagingObjectStorageRetentionCleanupCoverage["area"] {
   return area !== undefined && requiredAreas.has(area);
+}
+
+function probeMatchesEndpoint(
+  area: StagingObjectStorageRetentionCleanupCoverage["area"],
+  result: ProbeResult
+) {
+  const [expectedMethod, expectedUrl] = endpointByArea[area].split(" ");
+  if (result.method !== expectedMethod || result.url === undefined) {
+    return false;
+  }
+
+  try {
+    const parsedUrl = new URL(result.url, "https://staging.invalid");
+    return `${parsedUrl.pathname}${parsedUrl.search}` === expectedUrl;
+  } catch {
+    return false;
+  }
 }
 
 function reportIsPassing(report: RetentionCleanupReport) {
   const coverage = report.coverage ?? [];
   const passingAreas = new Set();
+  const hasNoBlockedChecks = (report.blocked_checks ?? []).length === 0;
+  const canClearGate =
+    report.gate_impact?.can_clear_retention_cleanup_checklist_item === true &&
+    report.gate_impact?.can_clear_release_gate_check === true &&
+    (report.gate_impact.remaining_release_gate_blockers_after_pass ?? []).length === 0;
+
   for (const item of coverage) {
     if (!isRequiredArea(item.area) || item.status !== "pass") {
       continue;
@@ -78,6 +104,10 @@ function reportIsPassing(report: RetentionCleanupReport) {
     const everySourceEchoedRequestId = sourceResults.every(
       (result) => result.request_id_echoed === true && (result.request_id ?? "").length > 0
     );
+    const everySourceMatchesEndpoint = sourceResults.every((result) =>
+      probeMatchesEndpoint(item.area as StagingObjectStorageRetentionCleanupCoverage["area"], result)
+    );
+    const citesCanonicalReport = (item.evidence_refs ?? []).includes(canonicalPassReportPath);
     const responseBytes =
       item.response_bytes ??
       sourceResults.reduce((total, result) => total + (result.response_bytes ?? 0), 0);
@@ -86,6 +116,8 @@ function reportIsPassing(report: RetentionCleanupReport) {
       item.admin_identity_bound === true &&
       hasRuntimeSource &&
       everySourceEchoedRequestId &&
+      everySourceMatchesEndpoint &&
+      citesCanonicalReport &&
       responseBytes > 0
     ) {
       passingAreas.add(item.area);
@@ -98,11 +130,13 @@ function reportIsPassing(report: RetentionCleanupReport) {
     report.evidence_id === "object-storage-retention-cleanup" &&
     report.release_gate_check_id === "staging_object_storage_signed_downloads" &&
     report.do_not_launch_condition_id === "object_storage_signed_retention_runtime_missing" &&
-    report.results_path === "ops/evidence/staging/object-storage-retention-cleanup.ndjson" &&
+    report.results_path === canonicalPassResultsPath &&
     report.split_evidence?.signed_url_ready === true &&
     report.split_evidence.release_sha_matches_signed_url === true &&
     report.split_evidence.retention_cleanup_ready === true &&
     report.split_evidence.canonical_pass_paths === true &&
+    hasNoBlockedChecks &&
+    canClearGate &&
     report.admin_user_id !== undefined &&
     report.admin_user_id.length > 0 &&
     report.admin_tenant_id !== undefined &&

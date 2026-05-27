@@ -391,6 +391,7 @@ const parseObjectStorageRuntime = () => {
     .replaceAll(/type [\s\S]*?;\n\n/g, "")
     .replaceAll(/const endpointByArea: Record<StagingObjectStorageRetentionCleanupCoverage\["area"\], string> =/g, "const endpointByArea =")
     .replaceAll(/function isRequiredArea\(area: string \| undefined\): area is StagingObjectStorageRetentionCleanupCoverage\["area"\]/g, "function isRequiredArea(area)")
+    .replaceAll(/function probeMatchesEndpoint\(\n  area: StagingObjectStorageRetentionCleanupCoverage\["area"\],\n  result: ProbeResult\n\)/g, "function probeMatchesEndpoint(area, result)")
     .replaceAll(/function reportIsPassing\(report: RetentionCleanupReport\)/g, "function reportIsPassing(report)")
     .replaceAll(/function reportKind\(report: RetentionCleanupReport, passable: boolean\)/g, "function reportKind(report, passable)")
     .replaceAll(/function observedReportPath\(report: RetentionCleanupReport, passable: boolean\)/g, "function observedReportPath(report, passable)")
@@ -5527,6 +5528,100 @@ test("object storage retention cleanup runtime evaluator rejects spoofed pass re
     rejected.remainingReleaseGateBlockers.includes("staging_object_storage_signed_downloads"),
     "spoofed pass reports must preserve the object-storage release blocker"
   );
+
+  const wrongEndpointReport = {
+    ...spoofedPassReport,
+    coverage: ["retention_policy", "expired_export_cleanup", "orphan_cleanup", "audit_refs"].map((area) => ({
+      area,
+      status: "pass",
+      runtime_probe: `Spoofed ${area} report with echoed request id but wrong endpoint.`,
+      expected_tokens: ["audit", "tenant", "deleted", "retained"],
+      release_sha_bound: true,
+      admin_identity_bound: true,
+      response_bytes: 512,
+      evidence_refs: ["ops/evidence/staging/object-storage-retention-cleanup.json"],
+      source_results: [
+        {
+          method: area === "retention_policy" || area === "audit_refs" ? "GET" : "POST",
+          url: `https://staging.example.test/api/admin/v1/object-storage/spoofed-${area}`,
+          request_id: `stage0-object-retention-cleanup-${area}`,
+          request_id_echoed: true,
+          response_bytes: 512
+        }
+      ]
+    }))
+  };
+  const wrongEndpoint = buildStagingObjectStorageRetentionCleanupEvidence(base, wrongEndpointReport);
+  assert.equal(wrongEndpoint.status, "blocked", "pass-shaped reports must use the exact admin endpoints");
+  assert.equal(wrongEndpoint.reportKind, "rejected_report");
+
+  const missingCanonicalRefsReport = {
+    ...spoofedPassReport,
+    coverage: ["retention_policy", "expired_export_cleanup", "orphan_cleanup", "audit_refs"].map((area) => ({
+      area,
+      status: "pass",
+      runtime_probe: `Spoofed ${area} report with no canonical evidence ref.`,
+      expected_tokens: ["audit", "tenant", "deleted", "retained"],
+      release_sha_bound: true,
+      admin_identity_bound: true,
+      response_bytes: 512,
+      evidence_refs: ["ops/evidence/staging/object-storage-retention-cleanup.blocked.json"],
+      source_results: [
+        {
+          method: area === "retention_policy" || area === "audit_refs" ? "GET" : "POST",
+          url:
+            area === "retention_policy"
+              ? "https://staging.example.test/api/admin/v1/object-storage/retention-policy"
+              : area === "expired_export_cleanup"
+                ? "https://staging.example.test/api/admin/v1/object-storage/cleanup/expired-exports"
+                : area === "orphan_cleanup"
+                  ? "https://staging.example.test/api/admin/v1/object-storage/cleanup/orphans"
+                  : "https://staging.example.test/api/admin/v1/audit?subject=object_storage_cleanup&limit=20",
+          request_id: `stage0-object-retention-cleanup-${area}`,
+          request_id_echoed: true,
+          response_bytes: 512
+        }
+      ]
+    }))
+  };
+  const missingCanonicalRefs = buildStagingObjectStorageRetentionCleanupEvidence(
+    base,
+    missingCanonicalRefsReport
+  );
+  assert.equal(
+    missingCanonicalRefs.status,
+    "blocked",
+    "pass-shaped reports must cite the exact canonical retention cleanup artifact"
+  );
+  assert.equal(missingCanonicalRefs.reportKind, "rejected_report");
+
+  const blockedCheckReport = {
+    ...missingCanonicalRefsReport,
+    blocked_checks: ["audit_refs:stale_admin_session"],
+    coverage: missingCanonicalRefsReport.coverage.map((item) => ({
+      ...item,
+      evidence_refs: ["ops/evidence/staging/object-storage-retention-cleanup.json"]
+    }))
+  };
+  const blockedCheck = buildStagingObjectStorageRetentionCleanupEvidence(base, blockedCheckReport);
+  assert.equal(blockedCheck.status, "blocked", "reports with blocked checks must not pass");
+  assert.ok(
+    blockedCheck.missingRuntimeInputs.includes("audit_refs:stale_admin_session"),
+    "blocked checks should remain visible to operators"
+  );
+
+  const remainingBlockerReport = {
+    ...blockedCheckReport,
+    blocked_checks: [],
+    gate_impact: {
+      can_clear_retention_cleanup_checklist_item: true,
+      can_clear_release_gate_check: true,
+      remaining_release_gate_blockers_after_pass: ["staging_object_storage_signed_downloads"]
+    }
+  };
+  const remainingBlocker = buildStagingObjectStorageRetentionCleanupEvidence(base, remainingBlockerReport);
+  assert.equal(remainingBlocker.status, "blocked", "reports with remaining release blockers must not pass");
+  assert.equal(remainingBlocker.reportKind, "rejected_report");
 });
 
 test("release blocker matrix prevents partial operations evidence from closing beta and production gates", () => {
