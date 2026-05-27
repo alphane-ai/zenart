@@ -34,6 +34,12 @@ QA_CATEGORY_ORDER = [
 ]
 
 REQUIRED_OUTCOMES = {"pass", "warn", "block"}
+REQUIRED_MANIFEST_FILES = {
+    "manifest.json",
+    "metadata.json",
+    "qa_report.json",
+    "trace_provenance.json",
+}
 
 
 class QACoverageError(Exception):
@@ -157,6 +163,14 @@ def validate_contract() -> None:
         require(contract_sources <= source_fixtures, f"{workflow_id} cites source fixtures without QA results")
         require(contract_item["coverage_complete"] is True, f"{workflow_id} workflow QA coverage must be complete")
 
+    validate_vertical_acceptance_links(
+        contract,
+        qa_by_id,
+        eval_by_fixture,
+        workflows,
+        workflow_contracts,
+    )
+
     outcomes_seen = {fixture_result_outcome(item) for item in fixture_results}
     outcomes_seen.update(qa_result_outcome(item) for item in qa_results)
     require(REQUIRED_OUTCOMES <= outcomes_seen, f"QA coverage missing outcomes: {sorted(REQUIRED_OUTCOMES - outcomes_seen)}")
@@ -209,6 +223,85 @@ def validate_contract() -> None:
     require(policy["blocking_severity_blocks_final_export"] is True, "blocking export policy must be explicit")
     require(policy["warning_severity_does_not_block_final_export"] is True, "warning export policy must be explicit")
     require(policy["admin_override_requires_audit"] is True, "override audit policy must be explicit")
+
+
+def validate_vertical_acceptance_links(
+    contract: dict[str, Any],
+    qa_by_id: dict[str, dict[str, Any]],
+    eval_by_fixture: dict[str, dict[str, Any]],
+    workflows: dict[str, dict[str, Any]],
+    workflow_contracts: dict[str, dict[str, Any]],
+) -> None:
+    links = {item["workflow_id"]: item for item in contract["vertical_acceptance_links"]}
+    require(set(links) == set(workflows), "vertical acceptance links must cover every workflow fixture")
+    require(len(links) == len(contract["vertical_acceptance_links"]), "duplicate vertical acceptance link entries")
+
+    for workflow_id, link in links.items():
+        workflow = workflows[workflow_id]
+        workflow_contract = workflow_contracts[workflow_id]
+        expected_acceptance_fixture = f"fixtures/stage0/rev2/workflows/{workflow_id}.json"
+        required_qa_checks = set(workflow["required_qa_checks"])
+        source_fixture_ids = set(workflow_contract["source_fixture_ids"])
+        eval_fixture_ids = set(link["eval_fixture_ids"])
+        qa_check_ids = set(link["qa_check_ids"])
+        export_required_files = workflow["export_targets"][0]["required_files"]
+        required_asset_files = [
+            f"assets/{asset['file_name']}"
+            for asset in workflow["required_generated_assets"]
+        ]
+
+        require(link["acceptance_fixture"] == expected_acceptance_fixture, f"{workflow_id} acceptance fixture link mismatch")
+        require((ROOT / link["acceptance_fixture"]).exists(), f"{workflow_id} acceptance fixture link missing on disk")
+        require(
+            link["golden_fixture_id"] == workflow["golden_fixture"]["fixture_id"],
+            f"{workflow_id} golden fixture link mismatch",
+        )
+        require(link["golden_fixture_id"] in eval_fixture_ids, f"{workflow_id} golden fixture must be part of linked eval fixtures")
+        require(eval_fixture_ids == source_fixture_ids, f"{workflow_id} vertical eval fixture links must match workflow coverage sources")
+        require(set(link["required_qa_checks"]) == required_qa_checks, f"{workflow_id} vertical required QA checks mismatch")
+        require(set(link["export_required_files"]) == set(export_required_files), f"{workflow_id} export required files mismatch")
+        require(set(link["required_manifest_files"]) == REQUIRED_MANIFEST_FILES, f"{workflow_id} manifest file contract mismatch")
+        require(set(link["required_manifest_files"]) <= set(export_required_files), f"{workflow_id} export files missing manifest bundle")
+        require(set(link["required_asset_files"]) == set(required_asset_files), f"{workflow_id} required asset files mismatch")
+        require(set(link["required_asset_files"]) <= set(export_required_files), f"{workflow_id} export files missing required assets")
+        require(link["coverage_complete"] is True, f"{workflow_id} vertical QA acceptance link must be complete")
+
+        golden_export_files = set(workflow["golden_fixture"]["expected_export_files"])
+        require(
+            golden_export_files <= set(export_required_files),
+            f"{workflow_id} golden fixture expected export files must be a subset of export target files",
+        )
+        require(
+            REQUIRED_MANIFEST_FILES <= golden_export_files,
+            f"{workflow_id} golden fixture must include manifest, metadata, QA report, and trace provenance",
+        )
+
+        linked_categories: set[str] = set()
+        linked_fixture_ids: set[str] = set()
+        for check_id in qa_check_ids:
+            require(check_id in qa_by_id, f"{workflow_id} vertical link references unknown QA check {check_id}")
+            qa_item = qa_by_id[check_id]
+            linked_categories.add(qa_item["check_category"])
+            linked_fixture_ids.add(qa_item["evidence"]["fixture_id"])
+            require(qa_item["workflow"] == workflow_id, f"{check_id} vertical link workflow mismatch")
+            require(
+                qa_item["evidence"]["fixture_id"] in eval_fixture_ids,
+                f"{check_id} vertical link fixture is not in linked eval fixtures",
+            )
+            require(
+                qa_item["check_id"] in eval_by_fixture[qa_item["evidence"]["fixture_id"]]["qa_check_ids"],
+                f"{check_id} vertical link missing from eval result fixture",
+            )
+
+        require(linked_categories == required_qa_checks, f"{workflow_id} vertical link QA categories mismatch")
+        require(
+            source_fixture_ids <= linked_fixture_ids,
+            f"{workflow_id} vertical link must include QA checks from every source fixture",
+        )
+        require(
+            all(eval_by_fixture[fixture_id]["workflow"] == workflow_id for fixture_id in eval_fixture_ids),
+            f"{workflow_id} linked eval fixtures must belong to the workflow",
+        )
 
 
 def validate_outcome_example(
