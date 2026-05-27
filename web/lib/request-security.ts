@@ -114,6 +114,12 @@ export const buildSessionSecurityContractEvidence = (
     sessionContract.cookie.path === "/" ? "" : "cookie-path",
     sessionContract.cookie.domain ? "cookie-domain" : ""
   ].filter(Boolean);
+  const hostPrefixFailureReasons = [
+    sessionContract.cookie.name.startsWith("__Host-") ? "" : "cookie-prefix",
+    sessionContract.cookie.secure ? "" : "cookie-secure",
+    sessionContract.cookie.path === "/" ? "" : "cookie-path",
+    sessionContract.cookie.domain ? "cookie-domain" : ""
+  ].filter(Boolean) as SessionSecurityContractEvidence["hostPrefixInvariant"]["failureReasons"];
   const csrfFailureReasons = [
     sessionContract.csrf.strategy === "same-site-origin-check" ? "" : "csrf-strategy",
     sessionContract.csrf.headerName === "X-ZenArt-CSRF" ? "" : "csrf-header",
@@ -138,6 +144,15 @@ export const buildSessionSecurityContractEvidence = (
       path: sessionContract.cookie.path,
       domain: sessionContract.cookie.domain ?? "",
       hostOnly: !sessionContract.cookie.domain
+    },
+    hostPrefixInvariant: {
+      prefix: "__Host-",
+      prefixPresent: sessionContract.cookie.name.startsWith("__Host-"),
+      secure: sessionContract.cookie.secure,
+      pathRoot: sessionContract.cookie.path === "/",
+      hostOnly: !sessionContract.cookie.domain,
+      status: hostPrefixFailureReasons.length === 0 ? "pass" : "fail",
+      failureReasons: hostPrefixFailureReasons
     },
     setCookieContract: serializeSetCookieContract(sessionContract.cookie),
     acceptedSameSiteValues: sameSiteAcceptanceMatrix

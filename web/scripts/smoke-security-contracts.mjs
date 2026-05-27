@@ -254,6 +254,14 @@ const requiredSessionAttributes = [
   sessionEvidence.cookie?.pathAttribute,
   sessionEvidence.cookie?.domainAttribute,
   sessionEvidence.cookie?.hostOnlyAttribute,
+  sessionEvidence.cookie?.hostPrefixAttribute,
+  sessionEvidence.cookie?.hostPrefixStatusAttribute,
+  sessionEvidence.cookie?.hostPrefixPresentAttribute,
+  sessionEvidence.cookie?.hostPrefixSecureAttribute,
+  sessionEvidence.cookie?.hostPrefixPathRootAttribute,
+  sessionEvidence.cookie?.hostPrefixHostOnlyAttribute,
+  sessionEvidence.cookie?.hostPrefixFailureCountAttribute,
+  sessionEvidence.cookie?.hostPrefixFailureReasonsAttribute,
   sessionEvidence.cookie?.setCookieContractAttribute,
   sessionEvidence.cookie?.sameSiteAcceptedValuesAttribute,
   sessionEvidence.cookie?.sameSiteRejectedValuesAttribute,
@@ -659,7 +667,18 @@ if (
   sessionEvidence.cookie?.expectedSameSiteAcceptedValues !== "lax,strict" ||
   sessionEvidence.cookie?.expectedSameSiteRejectedValues !== "none" ||
   sessionEvidence.cookie?.expectedSameSiteAcceptanceMatrix !== "lax:pass:none|strict:pass:none|none:fail:cookie-same-site" ||
+  sessionEvidence.cookie?.expectedHostPrefix !== "__Host-" ||
+  sessionEvidence.cookie?.expectedHostPrefixStatus !== "pass" ||
+  sessionEvidence.cookie?.expectedHostPrefixPresent !== "true" ||
+  sessionEvidence.cookie?.expectedHostPrefixSecure !== "true" ||
+  sessionEvidence.cookie?.expectedHostPrefixPathRoot !== "true" ||
+  sessionEvidence.cookie?.expectedHostPrefixHostOnly !== "true" ||
+  sessionEvidence.cookie?.expectedHostPrefixFailureCount !== "0" ||
+  sessionEvidence.cookie?.expectedHostPrefixFailureReasons !== "" ||
   !requestSecuritySource.includes("serializeSetCookieContract") ||
+  !requestSecuritySource.includes("hostPrefixInvariant") ||
+  !requestSecuritySource.includes("prefixPresent") ||
+  !workspaceAppSource.includes("data-session-cookie-host-prefix-status") ||
   !workspaceAppSource.includes("data-session-cookie-set-cookie-contract") ||
   !workspaceAppSource.includes("data-session-cookie-domain") ||
   !workspaceAppSource.includes("data-session-cookie-host-only") ||
@@ -678,6 +697,14 @@ for (const requiredTestSnippet of [
   "data-session-cookie-set-cookie-contract",
   "data-session-cookie-domain",
   "data-session-cookie-host-only",
+  "data-session-cookie-host-prefix",
+  "data-session-cookie-host-prefix-status",
+  "data-session-cookie-host-prefix-present",
+  "data-session-cookie-host-prefix-secure",
+  "data-session-cookie-host-prefix-path-root",
+  "data-session-cookie-host-prefix-host-only",
+  "data-session-cookie-host-prefix-failure-count",
+  "data-session-cookie-host-prefix-failure-reasons",
   "data-session-cookie-same-site-accepted-values",
   "data-session-cookie-same-site-rejected-values",
   "data-session-cookie-same-site-acceptance-matrix",
@@ -718,6 +745,14 @@ for (const requiredBrowserSnippet of [
   "data-session-cookie-same-site",
   "data-session-cookie-domain",
   "data-session-cookie-host-only",
+  "data-session-cookie-host-prefix",
+  "data-session-cookie-host-prefix-status",
+  "data-session-cookie-host-prefix-present",
+  "data-session-cookie-host-prefix-secure",
+  "data-session-cookie-host-prefix-path-root",
+  "data-session-cookie-host-prefix-host-only",
+  "data-session-cookie-host-prefix-failure-count",
+  "data-session-cookie-host-prefix-failure-reasons",
   "data-session-cookie-set-cookie-contract",
   "data-session-cookie-same-site-accepted-values",
   "data-session-cookie-same-site-rejected-values",

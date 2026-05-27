@@ -86,6 +86,15 @@ describe("same-site CSRF request contract", () => {
         domain: "",
         hostOnly: true
       },
+      hostPrefixInvariant: {
+        prefix: "__Host-",
+        prefixPresent: true,
+        secure: true,
+        pathRoot: true,
+        hostOnly: true,
+        status: "pass",
+        failureReasons: []
+      },
       setCookieContract: "__Host-zenart_session;HttpOnly;Secure;SameSite=lax;Path=/;HostOnly",
       acceptedSameSiteValues: ["lax", "strict"],
       rejectedSameSiteValues: ["none"],
@@ -341,6 +350,15 @@ describe("same-site CSRF request contract", () => {
         domain: ".zenart.local",
         hostOnly: false
       },
+      hostPrefixInvariant: {
+        prefix: "__Host-",
+        prefixPresent: true,
+        secure: true,
+        pathRoot: true,
+        hostOnly: false,
+        status: "fail",
+        failureReasons: ["cookie-domain"]
+      },
       setCookieContract: "__Host-zenart_session;HttpOnly;Secure;SameSite=lax;Path=/;Domain=.zenart.local",
       cookieFailureReasons: ["cookie-domain"]
     });
@@ -372,13 +390,29 @@ describe("same-site CSRF request contract", () => {
         setCookieContractAttribute: "data-session-cookie-set-cookie-contract",
         domainAttribute: "data-session-cookie-domain",
         hostOnlyAttribute: "data-session-cookie-host-only",
+        hostPrefixAttribute: "data-session-cookie-host-prefix",
+        hostPrefixStatusAttribute: "data-session-cookie-host-prefix-status",
+        hostPrefixPresentAttribute: "data-session-cookie-host-prefix-present",
+        hostPrefixSecureAttribute: "data-session-cookie-host-prefix-secure",
+        hostPrefixPathRootAttribute: "data-session-cookie-host-prefix-path-root",
+        hostPrefixHostOnlyAttribute: "data-session-cookie-host-prefix-host-only",
+        hostPrefixFailureCountAttribute: "data-session-cookie-host-prefix-failure-count",
+        hostPrefixFailureReasonsAttribute: "data-session-cookie-host-prefix-failure-reasons",
         expectedHttpOnly: String(runtimeEvidence.cookieAttributes.httpOnly),
         expectedSecure: String(runtimeEvidence.cookieAttributes.secure),
         expectedSameSite: runtimeEvidence.cookieAttributes.sameSite,
         expectedPath: runtimeEvidence.cookieAttributes.path,
         expectedSetCookieContract: runtimeEvidence.setCookieContract,
         expectedDomain: runtimeEvidence.cookieAttributes.domain,
-        expectedHostOnly: String(runtimeEvidence.cookieAttributes.hostOnly)
+        expectedHostOnly: String(runtimeEvidence.cookieAttributes.hostOnly),
+        expectedHostPrefix: runtimeEvidence.hostPrefixInvariant.prefix,
+        expectedHostPrefixStatus: runtimeEvidence.hostPrefixInvariant.status,
+        expectedHostPrefixPresent: String(runtimeEvidence.hostPrefixInvariant.prefixPresent),
+        expectedHostPrefixSecure: String(runtimeEvidence.hostPrefixInvariant.secure),
+        expectedHostPrefixPathRoot: String(runtimeEvidence.hostPrefixInvariant.pathRoot),
+        expectedHostPrefixHostOnly: String(runtimeEvidence.hostPrefixInvariant.hostOnly),
+        expectedHostPrefixFailureCount: String(runtimeEvidence.hostPrefixInvariant.failureReasons.length),
+        expectedHostPrefixFailureReasons: runtimeEvidence.hostPrefixInvariant.failureReasons.join(",")
       },
       csrf: {
         strategyAttribute: "data-session-csrf-strategy",
@@ -451,6 +485,15 @@ describe("same-site CSRF request contract", () => {
       "cookie-path",
       "cookie-domain"
     ]);
+    expect(evidence.hostPrefixInvariant).toEqual({
+      prefix: "__Host-",
+      prefixPresent: false,
+      secure: false,
+      pathRoot: false,
+      hostOnly: false,
+      status: "fail",
+      failureReasons: ["cookie-prefix", "cookie-secure", "cookie-path", "cookie-domain"]
+    });
     expect(evidence.csrfFailureReasons).toEqual(["csrf-header", "csrf-operation-coverage"]);
     expect(evidence.missingCsrfOperationIds).toEqual([
       "deleteSession",

@@ -771,6 +771,14 @@ function SessionPanel({
       data-session-cookie-path={evidence.cookieAttributes.path}
       data-session-cookie-domain={evidence.cookieAttributes.domain}
       data-session-cookie-host-only={String(evidence.cookieAttributes.hostOnly)}
+      data-session-cookie-host-prefix={evidence.hostPrefixInvariant.prefix}
+      data-session-cookie-host-prefix-status={evidence.hostPrefixInvariant.status}
+      data-session-cookie-host-prefix-present={String(evidence.hostPrefixInvariant.prefixPresent)}
+      data-session-cookie-host-prefix-secure={String(evidence.hostPrefixInvariant.secure)}
+      data-session-cookie-host-prefix-path-root={String(evidence.hostPrefixInvariant.pathRoot)}
+      data-session-cookie-host-prefix-host-only={String(evidence.hostPrefixInvariant.hostOnly)}
+      data-session-cookie-host-prefix-failure-count={evidence.hostPrefixInvariant.failureReasons.length}
+      data-session-cookie-host-prefix-failure-reasons={evidence.hostPrefixInvariant.failureReasons.join(",")}
       data-session-cookie-set-cookie-contract={evidence.setCookieContract}
       data-session-cookie-same-site-accepted-values={evidence.acceptedSameSiteValues.join(",")}
       data-session-cookie-same-site-rejected-values={evidence.rejectedSameSiteValues.join(",")}

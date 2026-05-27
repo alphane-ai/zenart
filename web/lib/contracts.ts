@@ -51,6 +51,15 @@ export interface SessionSecurityContractEvidence {
     domain: string;
     hostOnly: boolean;
   };
+  hostPrefixInvariant: {
+    prefix: "__Host-";
+    prefixPresent: boolean;
+    secure: boolean;
+    pathRoot: boolean;
+    hostOnly: boolean;
+    status: "pass" | "fail";
+    failureReasons: Array<"cookie-prefix" | "cookie-secure" | "cookie-path" | "cookie-domain">;
+  };
   setCookieContract: string;
   acceptedSameSiteValues: Array<"lax" | "strict">;
   rejectedSameSiteValues: Array<"none">;
