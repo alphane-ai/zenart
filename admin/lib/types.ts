@@ -1775,6 +1775,29 @@ export type AdminRbacOverrideReleaseBundle = {
   operatorAction: string;
 };
 
+export type AdminRbacReleaseEvidenceMatrixRow = {
+  surface: AdminReviewSurface;
+  overrideScope: AdminRbacEvidence["overrideScope"];
+  evidenceId: string;
+  attemptId: string;
+  target: string;
+  apiScope: string;
+  csrfScope: AdminRbacOverrideAttempt["csrfScope"];
+  idempotencyStatus: AdminRbacOverrideAttemptDecision["idempotencyStatus"];
+  stateDigestStatus: AdminRbacOverrideAttemptDecision["stateDigestStatus"];
+  expectedHttpStatus: AdminRbacOverrideAttempt["expectedHttpStatus"];
+  runtimeRequestOutcome: AdminRbacOverrideAttemptDecision["runtimeRequestOutcome"];
+  releaseMutationAttemptStatus: AdminRbacReleaseEvidenceClosure["releaseMutationAttemptStatus"];
+  releaseUseEligibility: AdminRbacOverrideReleaseBundle["releaseUseEligibility"];
+  releaseGateStatus: AdminRbacOverrideReleaseBundle["releaseGateStatus"];
+  staleReplayCoverage: AdminRbacReleaseEvidenceClosure["staleReplayCoverage"];
+  releaseEvidenceStatus: AdminRbacReleaseEvidenceClosure["releaseEvidenceStatus"];
+  auditRef: string;
+  closureEvidenceRefs: string[];
+  blockerCodes: string[];
+  operatorAction: string;
+};
+
 export type ReleaseEvidence = {
   id: string;
   target: string;

@@ -5,6 +5,7 @@ import type {
   AdminRbacOverrideAttempt,
   AdminRbacOverrideAttemptDecision,
   AdminRbacOverrideReleaseBundle,
+  AdminRbacReleaseEvidenceMatrixRow,
   AdminRbacReleaseEvidenceClosure,
   AdminRbacReleaseReadinessSummary,
   AdminRbacRuntimeDecision,
@@ -1138,4 +1139,71 @@ export function buildAdminRbacOverrideReleaseBundles(
       };
     })
     .sort((a, b) => a.surface.localeCompare(b.surface));
+}
+
+export function buildAdminRbacReleaseEvidenceMatrix(
+  evidence: AdminRbacEvidence[],
+  attempts: AdminRbacOverrideAttempt[],
+  attemptDecisions: AdminRbacOverrideAttemptDecision[],
+  runtimeDecisions: AdminRbacRuntimeDecision[],
+  closures: AdminRbacReleaseEvidenceClosure[],
+  bundles: AdminRbacOverrideReleaseBundle[]
+): AdminRbacReleaseEvidenceMatrixRow[] {
+  const attemptByEvidenceId = new Map(attempts.map((attempt) => [attempt.evidenceId, attempt]));
+  const attemptDecisionByEvidenceId = new Map(attemptDecisions.map((decision) => [decision.evidenceId, decision]));
+  const runtimeByEvidenceId = new Map(runtimeDecisions.map((decision) => [decision.evidenceId, decision]));
+  const closureBySurface = new Map(closures.map((closure) => [closure.surface, closure]));
+  const bundleBySurface = new Map(bundles.map((bundle) => [bundle.surface, bundle]));
+
+  return evidence
+    .map((item) => {
+      const attempt = attemptByEvidenceId.get(item.id);
+      const attemptDecision = attemptDecisionByEvidenceId.get(item.id);
+      const runtimeDecision = runtimeByEvidenceId.get(item.id);
+      const closure = closureBySurface.get(item.surface);
+      const bundle = bundleBySurface.get(item.surface);
+      const blockerCodes = uniqueSorted([
+        ...(runtimeDecision?.blockerCodes ?? []),
+        ...(attemptDecision?.blockerCodes ?? []),
+        ...(bundle?.blockerCodes ?? []),
+        ...(!attempt ? ["request_attempt_missing"] : []),
+        ...(!attemptDecision ? ["attempt_decision_missing"] : []),
+        ...(!closure ? ["release_closure_missing"] : []),
+        ...(!bundle ? ["release_bundle_missing"] : [])
+      ]);
+      const releaseUseEligibility = bundle?.releaseUseEligibility ?? "missing_evidence";
+      const releaseGateStatus = bundle?.releaseGateStatus ?? "release_gate_preserved";
+      const closureEvidenceRefs = uniqueSorted([
+        ...(closure?.closureEvidenceRefs ?? []),
+        ...(attempt?.evidenceRefs ?? []),
+        ...item.evidenceRefs
+      ]);
+
+      return {
+        surface: item.surface,
+        overrideScope: item.overrideScope,
+        evidenceId: item.id,
+        attemptId: attempt?.id ?? "missing",
+        target: item.target,
+        apiScope: item.apiScope,
+        csrfScope: attempt?.csrfScope ?? "admin_session_cookie",
+        idempotencyStatus: attemptDecision?.idempotencyStatus ?? "unstable",
+        stateDigestStatus: attemptDecision?.stateDigestStatus ?? "unexpected_mutation",
+        expectedHttpStatus: attempt?.expectedHttpStatus ?? 403,
+        runtimeRequestOutcome: attemptDecision?.runtimeRequestOutcome ?? "missing_runtime",
+        releaseMutationAttemptStatus: closure?.releaseMutationAttemptStatus ?? "blocked",
+        releaseUseEligibility,
+        releaseGateStatus,
+        staleReplayCoverage: closure?.staleReplayCoverage ?? "missing",
+        releaseEvidenceStatus: closure?.releaseEvidenceStatus ?? "missing",
+        auditRef: item.auditRef,
+        closureEvidenceRefs,
+        blockerCodes,
+        operatorAction:
+          releaseUseEligibility === "eligible_temporary_mutation" && blockerCodes.length === 0
+            ? "Use the audited temporary mutation only for this exact admin request, preserve expiry restoration, and keep the linked release evidence attached."
+            : "Do not use this override to change release state; preserve the existing admin gate until request, audit, stale replay, and release evidence all pass."
+      };
+    })
+    .sort((a, b) => a.surface.localeCompare(b.surface) || a.evidenceId.localeCompare(b.evidenceId));
 }

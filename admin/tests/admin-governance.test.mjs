@@ -119,6 +119,7 @@ const parseRbacRuntime = () => {
     .replaceAll(/: AdminRbacReleaseEvidenceClosure\[\]/g, "")
     .replaceAll(/: AdminRbacReleaseReadinessSummary\[\]/g, "")
     .replaceAll(/: AdminRbacOverrideReleaseBundle\[\]/g, "")
+    .replaceAll(/: AdminRbacReleaseEvidenceMatrixRow\[\]/g, "")
     .replaceAll(/: AdminRbacRuntimeDecision\[\]/g, "")
     .replaceAll(/: AdminRbacSurfaceSummary\[\]/g, "")
     .replaceAll(/: AdminRbacClosureMatrixRow\[\]/g, "")
@@ -156,6 +157,8 @@ const parseRbacRuntime = () => {
     .replaceAll(/: AdminRbacOverrideReleaseBundle\["gateVerdict"\]/g, "")
     .replaceAll(/: AdminRbacOverrideReleaseBundle\["evidenceHealth"\]/g, "")
     .replaceAll(/: AdminRbacOverrideReleaseBundle\["releaseUseEligibility"\]/g, "")
+    .replaceAll(/: AdminRbacReleaseEvidenceMatrixRow\["releaseUseEligibility"\]/g, "")
+    .replaceAll(/: AdminRbacReleaseEvidenceMatrixRow\["releaseGateStatus"\]/g, "")
     .replaceAll(/: AdminRbacStaleReplayDecision\["surface"\]/g, "")
     .replaceAll(/: AdminRbacStaleReplayDecision\["staleWindowStatus"\]/g, "")
     .replaceAll(/: AdminRbacStaleReplayDecision\["releaseGateStatus"\]/g, "")
@@ -176,15 +179,17 @@ const parseRbacRuntime = () => {
     .replaceAll(/: AdminRbacRuntimeDecision/g, "")
     .replaceAll(/: AdminRbacEvidencePack/g, "")
     .replaceAll(/: AdminRbacReleaseReadinessSummary/g, "")
+    .replaceAll(/: AdminRbacReleaseEvidenceMatrixRow/g, "")
     .replaceAll(/function bundleGateVerdict\(\n  readiness: AdminRbacReleaseReadinessSummary,\n  closure: AdminRbacReleaseEvidenceClosure\n\)/g, "function bundleGateVerdict(readiness, closure)")
     .replaceAll(/function releaseUseEligibility\(\n  gateVerdict: AdminRbacOverrideReleaseBundle\["gateVerdict"\],\n  evidenceHealth: AdminRbacOverrideReleaseBundle\["evidenceHealth"\],\n  blockerCodes: string\[\],\n  releaseGateStatus: AdminRbacReleaseReadinessSummary\["releaseGateStatus"\]\n\): AdminRbacOverrideReleaseBundle\["releaseUseEligibility"\]/g, "function releaseUseEligibility(gateVerdict, evidenceHealth, blockerCodes, releaseGateStatus)")
     .replaceAll(/export function buildAdminRbacOverrideReleaseBundles\(\n  readinessSummaries: AdminRbacReleaseReadinessSummary\[\],\n  closures: AdminRbacReleaseEvidenceClosure\[\],\n  runtimeDecisions: AdminRbacRuntimeDecision\[\]\n\)/g, "function buildAdminRbacOverrideReleaseBundles(readinessSummaries, closures, runtimeDecisions)")
+    .replaceAll(/export function buildAdminRbacReleaseEvidenceMatrix\(\n  evidence: AdminRbacEvidence\[\],\n  attempts: AdminRbacOverrideAttempt\[\],\n  attemptDecisions: AdminRbacOverrideAttemptDecision\[\],\n  runtimeDecisions: AdminRbacRuntimeDecision\[\],\n  closures: AdminRbacReleaseEvidenceClosure\[\],\n  bundles: AdminRbacOverrideReleaseBundle\[\]\n\)/g, "function buildAdminRbacReleaseEvidenceMatrix(evidence, attempts, attemptDecisions, runtimeDecisions, closures, bundles)")
     .replaceAll(/: AdminRole\[\]/g, "")
     .replaceAll(/: string\[\]/g, "")
     .replaceAll(/: string/g, "")
     .replaceAll(/: Date/g, "")
     .replaceAll(/: boolean/g, "");
-  return Function(`${runtimeSource}\nreturn { buildAdminRbacRuntimeDecisions, buildAdminRbacOverrideAttemptDecisions, buildAdminRbacStaleReplayDecisions, buildAdminRbacSurfaceSummaries, buildAdminRbacEvidencePacks, buildAdminRbacClosureMatrix, buildAdminRbacReleaseEvidenceClosures, buildAdminRbacReleaseReadinessSummaries, buildAdminRbacOverrideReleaseBundles };`)();
+  return Function(`${runtimeSource}\nreturn { buildAdminRbacRuntimeDecisions, buildAdminRbacOverrideAttemptDecisions, buildAdminRbacStaleReplayDecisions, buildAdminRbacSurfaceSummaries, buildAdminRbacEvidencePacks, buildAdminRbacClosureMatrix, buildAdminRbacReleaseEvidenceClosures, buildAdminRbacReleaseReadinessSummaries, buildAdminRbacOverrideReleaseBundles, buildAdminRbacReleaseEvidenceMatrix };`)();
 };
 
 const parseExportRuntime = () => {
@@ -6239,6 +6244,132 @@ test("admin RBAC override release bundles give every governed surface one releas
     "gate_preserved_by_stale_replay",
     "gate_preserved_by_policy",
     "release_ready_with_expiry"
+  ]) {
+    assert.match(auditPage + adminApi + rbacRuntimeSource + types, new RegExp(token));
+  }
+});
+
+test("admin RBAC release evidence matrix binds request attempts to release eligibility", () => {
+  const {
+    buildAdminRbacRuntimeDecisions,
+    buildAdminRbacOverrideAttemptDecisions,
+    buildAdminRbacStaleReplayDecisions,
+    buildAdminRbacEvidencePacks,
+    buildAdminRbacReleaseEvidenceClosures,
+    buildAdminRbacReleaseReadinessSummaries,
+    buildAdminRbacOverrideReleaseBundles,
+    buildAdminRbacReleaseEvidenceMatrix
+  } = parseRbacRuntime();
+  const runtimeDecisions = buildAdminRbacRuntimeDecisions(adminRbacEvidence, new Date("2026-05-26T11:00:00Z"));
+  const attemptDecisions = buildAdminRbacOverrideAttemptDecisions(adminRbacOverrideAttempts, runtimeDecisions);
+  const staleReplayDecisions = buildAdminRbacStaleReplayDecisions(
+    adminRbacEvidence,
+    runtimeDecisions,
+    new Date("2026-05-26T19:00:00Z")
+  );
+  const evidencePacks = buildAdminRbacEvidencePacks(adminRbacEvidence, runtimeDecisions, staleReplayDecisions);
+  const closures = buildAdminRbacReleaseEvidenceClosures(evidencePacks, attemptDecisions, staleReplayDecisions);
+  const readinessSummaries = buildAdminRbacReleaseReadinessSummaries(closures, evidencePacks);
+  const bundles = buildAdminRbacOverrideReleaseBundles(readinessSummaries, closures, runtimeDecisions);
+  const matrix = buildAdminRbacReleaseEvidenceMatrix(
+    adminRbacEvidence,
+    adminRbacOverrideAttempts,
+    attemptDecisions,
+    runtimeDecisions,
+    closures,
+    bundles
+  );
+  const matrixByEvidenceId = new Map(matrix.map((row) => [row.evidenceId, row]));
+  const bundleBySurface = new Map(bundles.map((bundle) => [bundle.surface, bundle]));
+  const closureBySurface = new Map(closures.map((closure) => [closure.surface, closure]));
+  const attemptByEvidenceId = new Map(adminRbacOverrideAttempts.map((attempt) => [attempt.evidenceId, attempt]));
+
+  assert.equal(matrix.length, adminRbacEvidence.length, "matrix needs one row per RBAC evidence item");
+
+  for (const evidence of adminRbacEvidence) {
+    const row = matrixByEvidenceId.get(evidence.id);
+    const attempt = attemptByEvidenceId.get(evidence.id);
+    const closure = closureBySurface.get(evidence.surface);
+    const bundle = bundleBySurface.get(evidence.surface);
+
+    assert.ok(row, `${evidence.id} needs a matrix row`);
+    assert.ok(attempt, `${evidence.id} needs request attempt evidence`);
+    assert.ok(closure, `${evidence.id} needs release closure evidence`);
+    assert.ok(bundle, `${evidence.id} needs release bundle evidence`);
+    assert.equal(row.surface, evidence.surface, `${evidence.id} surface mismatch`);
+    assert.equal(row.overrideScope, evidence.overrideScope, `${evidence.id} override scope mismatch`);
+    assert.equal(row.attemptId, attempt.id, `${evidence.id} attempt id mismatch`);
+    assert.equal(row.target, evidence.target, `${evidence.id} target mismatch`);
+    assert.equal(row.apiScope, evidence.apiScope, `${evidence.id} API scope mismatch`);
+    assert.match(row.apiScope, /\/api\/admin\//, `${evidence.id} matrix row must stay admin-scoped`);
+    assert.equal(row.csrfScope, "admin_session_cookie", `${evidence.id} matrix row must bind admin CSRF scope`);
+    assert.equal(row.idempotencyStatus, "stable", `${evidence.id} matrix row needs stable idempotency`);
+    assert.match(
+      row.stateDigestStatus,
+      /mutation_recorded|mutation_preserved/,
+      `${evidence.id} matrix row cannot hide unexpected state mutation`
+    );
+    assert.equal(row.expectedHttpStatus, attempt.expectedHttpStatus, `${evidence.id} expected HTTP mismatch`);
+    assert.equal(
+      row.releaseMutationAttemptStatus,
+      closure.releaseMutationAttemptStatus,
+      `${evidence.id} mutation-attempt status mismatch`
+    );
+    assert.equal(
+      row.releaseUseEligibility,
+      bundle.releaseUseEligibility,
+      `${evidence.id} release-use eligibility mismatch`
+    );
+    assert.equal(row.releaseGateStatus, bundle.releaseGateStatus, `${evidence.id} release gate mismatch`);
+    assert.equal(row.staleReplayCoverage, closure.staleReplayCoverage, `${evidence.id} stale replay coverage mismatch`);
+    assert.equal(row.releaseEvidenceStatus, closure.releaseEvidenceStatus, `${evidence.id} release evidence mismatch`);
+    assert.ok(auditIds.has(row.auditRef), `${evidence.id} links unknown audit ${row.auditRef}`);
+    assert.ok(row.closureEvidenceRefs.includes(evidence.id), `${evidence.id} closure refs must include RBAC evidence`);
+    assert.ok(row.closureEvidenceRefs.includes(evidence.auditRef), `${evidence.id} closure refs must include audit ref`);
+    assert.ok(row.operatorAction.length > 100, `${evidence.id} needs matrix operator action`);
+
+    if (row.releaseUseEligibility === "eligible_temporary_mutation") {
+      assert.equal(row.releaseGateStatus, "release_use_allowed", `${evidence.id} eligible row needs release-use gate`);
+      assert.deepEqual(row.blockerCodes, [], `${evidence.id} eligible row cannot expose blockers`);
+    } else {
+      assert.equal(row.releaseGateStatus, "release_gate_preserved", `${evidence.id} non-eligible row must preserve gate`);
+      assert.notEqual(
+        row.releaseMutationAttemptStatus,
+        "submittable",
+        `${evidence.id} non-eligible row cannot expose a submittable release mutation`
+      );
+    }
+  }
+
+  const missingAttemptMatrix = buildAdminRbacReleaseEvidenceMatrix(
+    adminRbacEvidence,
+    adminRbacOverrideAttempts.filter((attempt) => attempt.evidenceId !== "rbac-export-001"),
+    attemptDecisions.filter((decision) => decision.evidenceId !== "rbac-export-001"),
+    runtimeDecisions,
+    closures,
+    bundles
+  );
+  const missingAttemptRow = missingAttemptMatrix.find((row) => row.evidenceId === "rbac-export-001");
+  assert.ok(missingAttemptRow, "missing attempt replay needs export row");
+  assert.equal(missingAttemptRow.attemptId, "missing");
+  assert.equal(missingAttemptRow.idempotencyStatus, "unstable");
+  assert.ok(missingAttemptRow.blockerCodes.includes("request_attempt_missing"));
+  assert.ok(missingAttemptRow.blockerCodes.includes("attempt_decision_missing"));
+  assert.equal(missingAttemptRow.releaseGateStatus, "release_gate_preserved");
+
+  const auditPage = readFileSync(new URL("../app/audit/page.tsx", import.meta.url), "utf8");
+  const adminApi = readFileSync(new URL("../lib/admin-api.ts", import.meta.url), "utf8");
+  const types = readFileSync(new URL("../lib/types.ts", import.meta.url), "utf8");
+
+  for (const token of [
+    "AdminRbacReleaseEvidenceMatrixRow",
+    "getAdminRbacReleaseEvidenceMatrix",
+    "buildAdminRbacReleaseEvidenceMatrix",
+    "RBAC Release Evidence Matrix",
+    "CSRF Scope",
+    "Release Mutation Attempt",
+    "Release Use Eligibility",
+    "Closure Evidence Refs"
   ]) {
     assert.match(auditPage + adminApi + rbacRuntimeSource + types, new RegExp(token));
   }

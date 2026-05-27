@@ -1698,6 +1698,7 @@ main 合并前必须通过：
 - [x] 添加 cross-tenant denial tests。
 - [x] 添加 non-admin `/api/admin/*` denial tests。
 - [x] 默认禁用 `/api/admin/*` dev identity headers；admin endpoints 默认只接受独立 admin session cookie，local dev header fallback 需显式 `ADMIN_DEV_IDENTITY_HEADERS_ENABLED=true`。
+- [x] Admin RBAC release evidence matrix 通过：`admin/app/audit/page.tsx` exposes per-surface API scope、admin-session CSRF scope、idempotency、expected HTTP、state digest、stale replay、audit refs、release-use eligibility for skill/crawler/prompt/provider/quota/safety/export overrides, and `admin/tests/admin-governance.test.mjs` validates missing request-attempt evidence preserves release gates。
 
 ### 25.8 Billing, Quota, Entitlement
 

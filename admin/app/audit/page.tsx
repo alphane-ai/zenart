@@ -9,6 +9,7 @@ import {
   getAdminRbacEvidencePacks,
   getAdminRbacOverrideAttemptDecisions,
   getAdminRbacOverrideReleaseBundles,
+  getAdminRbacReleaseEvidenceMatrix,
   getAdminRbacReleaseEvidenceClosures,
   getAdminRbacReleaseReadinessSummaries,
   getAdminRbacRuntimeDecisions,
@@ -24,6 +25,7 @@ import type {
   AdminRbacEvidence,
   AdminRbacClosureMatrixRow,
   AdminRbacEvidencePack,
+  AdminRbacReleaseEvidenceMatrixRow,
   AdminRbacOverrideReleaseBundle,
   AdminRbacReleaseEvidenceClosure,
   AdminRbacReleaseReadinessSummary,
@@ -51,6 +53,7 @@ export default async function AuditPage() {
     rbacReleaseEvidenceClosures,
     rbacReleaseReadinessSummaries,
     rbacOverrideReleaseBundles,
+    rbacReleaseEvidenceMatrix,
     productionActivationEvidence,
     productionSecurityEvidence,
     stagingAuthRbacTenantAuditEvidence
@@ -67,6 +70,7 @@ export default async function AuditPage() {
     getAdminRbacReleaseEvidenceClosures(),
     getAdminRbacReleaseReadinessSummaries(),
     getAdminRbacOverrideReleaseBundles(),
+    getAdminRbacReleaseEvidenceMatrix(),
     getProductionActivationReviewAuditEvidence(),
     getProductionSecurityLaunchCheckEvidence(),
     getStagingAuthRbacTenantAuditEvidence()
@@ -170,6 +174,39 @@ export default async function AuditPage() {
             { key: "second-review", header: "Second Review Status", render: (row) => <StatusBadge value={row.secondReviewStatus} label={row.secondReviewStatus} /> },
             { key: "evidence", header: "Evidence Refs", render: (row) => row.evidenceRefs.join(", ") },
             { key: "rationale", header: "Rationale", render: (row) => row.rationale }
+          ]}
+        />
+      </section>
+
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>RBAC Release Evidence Matrix</h3>
+            <p>Per-surface admin override evidence binds API scope, admin-session CSRF scope, idempotency, expected HTTP outcome, state digest preservation, stale replay, audit refs, and release-use eligibility.</p>
+          </div>
+        </div>
+        <DataTable<AdminRbacReleaseEvidenceMatrixRow>
+          rows={rbacReleaseEvidenceMatrix}
+          columns={[
+            { key: "surface", header: "Surface", render: (row) => row.surface },
+            { key: "scope", header: "Override Scope", render: (row) => row.overrideScope },
+            { key: "evidence", header: "Evidence", render: (row) => <span className="mono">{row.evidenceId}</span> },
+            { key: "attempt", header: "Attempt", render: (row) => <span className="mono">{row.attemptId}</span> },
+            { key: "api", header: "API Scope", render: (row) => row.apiScope },
+            { key: "csrf", header: "CSRF Scope", render: (row) => row.csrfScope },
+            { key: "idempotency", header: "Idempotency", render: (row) => <StatusBadge value={row.idempotencyStatus === "stable" ? "approved" : "blocked"} label={row.idempotencyStatus} /> },
+            { key: "state", header: "State Digest", render: (row) => <StatusBadge value={row.stateDigestStatus === "mutation_recorded" || row.stateDigestStatus === "mutation_preserved" ? "approved" : "blocked"} label={row.stateDigestStatus} /> },
+            { key: "http", header: "Expected HTTP", render: (row) => row.expectedHttpStatus },
+            { key: "runtime", header: "Runtime Outcome", render: (row) => row.runtimeRequestOutcome },
+            { key: "mutation", header: "Release Mutation Attempt", render: (row) => <StatusBadge value={row.releaseMutationAttemptStatus === "submittable" ? "approved" : row.releaseMutationAttemptStatus === "blocked" ? "blocked" : "info"} label={row.releaseMutationAttemptStatus} /> },
+            { key: "eligibility", header: "Release Use Eligibility", render: (row) => <StatusBadge value={row.releaseUseEligibility === "eligible_temporary_mutation" ? "approved" : row.releaseUseEligibility === "missing_evidence" ? "blocked" : "warning"} label={row.releaseUseEligibility} /> },
+            { key: "gate", header: "Release Gate", render: (row) => row.releaseGateStatus },
+            { key: "stale", header: "Stale Replay", render: (row) => row.staleReplayCoverage },
+            { key: "release-evidence", header: "Release Evidence", render: (row) => row.releaseEvidenceStatus },
+            { key: "audit", header: "Audit Ref", render: (row) => <span className="mono">{row.auditRef}</span> },
+            { key: "blockers", header: "Blockers", render: (row) => row.blockerCodes.join(", ") || "none" },
+            { key: "closure", header: "Closure Evidence Refs", render: (row) => row.closureEvidenceRefs.join(", ") },
+            { key: "operator", header: "Operator Action", render: (row) => row.operatorAction }
           ]}
         />
       </section>
