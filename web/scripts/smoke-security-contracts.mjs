@@ -221,6 +221,14 @@ const requiredSessionAttributes = [
   sessionEvidence.csrf?.cookieFailureReasonsAttribute,
   sessionEvidence.csrf?.csrfFailureCountAttribute,
   sessionEvidence.csrf?.csrfFailureReasonsAttribute,
+  sessionEvidence.backendRuntimePairing?.contractAttribute,
+  sessionEvidence.backendRuntimePairing?.statusAttribute,
+  sessionEvidence.backendRuntimePairing?.setCookieContractAttribute,
+  sessionEvidence.backendRuntimePairing?.csrfValidationContractAttribute,
+  sessionEvidence.backendRuntimePairing?.unsafeRequestContractCountAttribute,
+  sessionEvidence.backendRuntimePairing?.missingUnsafeOperationCountAttribute,
+  sessionEvidence.backendRuntimePairing?.cookieFailureCountAttribute,
+  sessionEvidence.backendRuntimePairing?.csrfFailureCountAttribute,
   sessionEvidence.unsafeActionGuard?.guardAttribute,
   sessionEvidence.unsafeActionGuard?.statusAttribute,
   sessionEvidence.unsafeActionGuard?.safeLabelsAttribute,
@@ -274,6 +282,56 @@ if (
     JSON.stringify(generatedApiCsrfContract.browserSmoke?.requiredAssertions)
 ) {
   fail("generated API CSRF artifact must pin the account-route browser smoke evidence");
+}
+
+if (
+  generatedApiCsrfContract.backendRuntimePairing?.schemaVersion !== "stage0.rev2.secure-cookie-same-site-csrf-runtime-pairing" ||
+  generatedApiCsrfContract.backendRuntimePairing?.expectedContract !== sessionEvidence.backendRuntimePairing?.expectedContract ||
+  generatedApiCsrfContract.backendRuntimePairing?.expectedStatus !== sessionEvidence.backendRuntimePairing?.expectedStatus ||
+  generatedApiCsrfContract.backendRuntimePairing?.expectedSetCookieContract !==
+    sessionEvidence.backendRuntimePairing?.expectedSetCookieContract ||
+  generatedApiCsrfContract.backendRuntimePairing?.expectedCsrfValidationContract !==
+    sessionEvidence.backendRuntimePairing?.expectedCsrfValidationContract ||
+  generatedApiCsrfContract.backendRuntimePairing?.expectedUnsafeRequestContractCount !==
+    sessionEvidence.backendRuntimePairing?.expectedUnsafeRequestContractCount ||
+  generatedApiCsrfContract.backendRuntimePairing?.expectedMissingUnsafeOperationCount !==
+    sessionEvidence.backendRuntimePairing?.expectedMissingUnsafeOperationCount ||
+  generatedApiCsrfContract.backendRuntimePairing?.expectedCookieFailureCount !== sessionEvidence.backendRuntimePairing?.expectedCookieFailureCount ||
+  generatedApiCsrfContract.backendRuntimePairing?.expectedCsrfFailureCount !== sessionEvidence.backendRuntimePairing?.expectedCsrfFailureCount
+) {
+  fail("generated API CSRF artifact must match the account-route backend runtime pairing evidence");
+}
+
+if (
+  sessionEvidence.backendRuntimePairing?.expectedStatus !== "pass" ||
+  sessionEvidence.backendRuntimePairing?.expectedSetCookieContract !== "__Host-zenart_session;HttpOnly;Secure;SameSite=lax;Path=/" ||
+  sessionEvidence.backendRuntimePairing?.expectedCsrfValidationContract !==
+    "POST,PUT,PATCH,DELETE:X-ZenArt-CSRF:same-site-origin-check:same-site-only:include:lax-or-strict" ||
+  sessionEvidence.backendRuntimePairing?.expectedUnsafeRequestContractCount !== String(generatedApiCsrfContract.unsafeOperationCount) ||
+  sessionEvidence.backendRuntimePairing?.expectedMissingUnsafeOperationCount !== String(generatedApiCsrfContract.missingUnsafeOperationCount) ||
+  sessionEvidence.backendRuntimePairing?.expectedCookieFailureCount !== "0" ||
+  sessionEvidence.backendRuntimePairing?.expectedCsrfFailureCount !== "0"
+) {
+  fail("account route backend runtime pairing evidence does not prove secure-cookie plus same-site CSRF validation");
+}
+
+if (!generatedApiCsrfContract.backendRuntimePairing?.assertion?.includes("runtime cookie or CSRF validation fields drift")) {
+  fail("generated API CSRF artifact missing backend runtime pairing assertion text");
+}
+
+for (const requiredRuntimePairingAssertion of [
+  "data-session-backend-runtime-pairing",
+  "data-session-backend-runtime-pairing-status",
+  "data-session-backend-set-cookie-contract",
+  "data-session-backend-csrf-validation-contract",
+  "data-session-backend-unsafe-request-contract-count",
+  "data-session-backend-missing-unsafe-operation-count",
+  "data-session-backend-cookie-failure-count",
+  "data-session-backend-csrf-failure-count"
+]) {
+  if (!requiredRuntimePairingAssertion || !generatedApiCsrfContract.browserSmoke?.requiredAssertions?.includes(requiredRuntimePairingAssertion)) {
+    fail(`generated API CSRF browser smoke contract missing runtime pairing assertion ${requiredRuntimePairingAssertion}`);
+  }
 }
 
 for (const expectedAssertion of [
@@ -379,6 +437,10 @@ for (const requiredBrowserSnippet of [
   "data-session-cookie-http-only",
   "data-session-cookie-secure",
   "data-session-cookie-same-site",
+  "data-session-backend-runtime-pairing",
+  "data-session-backend-runtime-pairing-status",
+  "data-session-backend-set-cookie-contract",
+  "data-session-backend-csrf-validation-contract",
   "data-session-csrf-header",
   "data-session-csrf-origin-policy",
   "data-session-unsafe-action-operation-contracts",

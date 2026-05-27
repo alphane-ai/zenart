@@ -640,6 +640,25 @@ function SessionPanel({
   const expectedSameSiteRequirement = "lax-or-strict";
   const evidence = buildSessionSecurityContractEvidence(state.sessionContract, apiOperations);
   const generatedRequestEvidence = buildGeneratedApiCsrfRequestContractEvidence(apiOperations, state.sessionContract.csrf);
+  const backendRuntimePairingStatus =
+    evidence.status === "pass" && generatedRequestEvidence.status === "pass" && generatedRequestEvidence.missingUnsafeOperationIds.length === 0
+      ? "pass"
+      : "fail";
+  const backendSetCookieContract = [
+    state.sessionContract.cookie.name,
+    state.sessionContract.cookie.httpOnly ? "HttpOnly" : "client-readable",
+    state.sessionContract.cookie.secure ? "Secure" : "insecure",
+    `SameSite=${state.sessionContract.cookie.sameSite}`,
+    `Path=${state.sessionContract.cookie.path}`
+  ].join(";");
+  const backendCsrfValidationContract = [
+    state.sessionContract.csrf.protectedMethods.join(","),
+    state.sessionContract.csrf.headerName,
+    state.sessionContract.csrf.headerValue,
+    state.sessionContract.csrf.originPolicy,
+    state.sessionContract.csrf.credentialMode,
+    state.sessionContract.csrf.sameSiteRequired
+  ].join(":");
   const csrfProtectedMethods = evidence.protectedMethods.join(", ");
   const sameSiteRequirement = state.sessionContract.csrf.sameSiteRequired;
   const unsafeActionGuardContracts = formatUnsafeActionGuardContracts();
@@ -684,6 +703,14 @@ function SessionPanel({
       data-session-cookie-failure-reasons={evidence.cookieFailureReasons.join(",")}
       data-session-csrf-failure-count={evidence.csrfFailureReasons.length}
       data-session-csrf-failure-reasons={evidence.csrfFailureReasons.join(",")}
+      data-session-backend-runtime-pairing="secure-cookie-same-site-csrf-runtime"
+      data-session-backend-runtime-pairing-status={backendRuntimePairingStatus}
+      data-session-backend-set-cookie-contract={backendSetCookieContract}
+      data-session-backend-csrf-validation-contract={backendCsrfValidationContract}
+      data-session-backend-unsafe-request-contract-count={generatedRequestEvidence.unsafeRequestContracts.length}
+      data-session-backend-missing-unsafe-operation-count={generatedRequestEvidence.missingUnsafeOperationIds.length}
+      data-session-backend-cookie-failure-count={evidence.cookieFailureReasons.length}
+      data-session-backend-csrf-failure-count={evidence.csrfFailureReasons.length}
       data-session-unsafe-action-guard="authenticated-same-site-session"
       data-session-unsafe-action-status={sessionBlocked ? "blocked" : "enabled"}
       data-session-unsafe-action-safe-labels={Array.from(sessionSafeActionLabels).join(",")}

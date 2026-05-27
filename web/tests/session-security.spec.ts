@@ -60,6 +60,20 @@ test("account route exposes secure-cookie, same-site CSRF, unsafe-action guard, 
   await expect(sessionContract).toHaveAttribute("data-session-csrf-missing-operation-count", "0");
   await expect(sessionContract).toHaveAttribute("data-session-cookie-failure-count", "0");
   await expect(sessionContract).toHaveAttribute("data-session-csrf-failure-count", "0");
+  await expect(sessionContract).toHaveAttribute("data-session-backend-runtime-pairing", "secure-cookie-same-site-csrf-runtime");
+  await expect(sessionContract).toHaveAttribute("data-session-backend-runtime-pairing-status", "pass");
+  await expect(sessionContract).toHaveAttribute(
+    "data-session-backend-set-cookie-contract",
+    "__Host-zenart_session;HttpOnly;Secure;SameSite=lax;Path=/"
+  );
+  await expect(sessionContract).toHaveAttribute(
+    "data-session-backend-csrf-validation-contract",
+    "POST,PUT,PATCH,DELETE:X-ZenArt-CSRF:same-site-origin-check:same-site-only:include:lax-or-strict"
+  );
+  await expect(sessionContract).toHaveAttribute("data-session-backend-unsafe-request-contract-count", "15");
+  await expect(sessionContract).toHaveAttribute("data-session-backend-missing-unsafe-operation-count", "0");
+  await expect(sessionContract).toHaveAttribute("data-session-backend-cookie-failure-count", "0");
+  await expect(sessionContract).toHaveAttribute("data-session-backend-csrf-failure-count", "0");
   await expect(sessionContract).toHaveAttribute("data-session-unsafe-action-guard", "authenticated-same-site-session");
   await expect(sessionContract).toHaveAttribute("data-session-unsafe-action-status", "enabled");
   await expect(sessionContract).toHaveAttribute("data-session-unsafe-action-safe-labels", "load,login");

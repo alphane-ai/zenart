@@ -251,6 +251,25 @@ describe("same-site CSRF request contract", () => {
         expectedMissingOperationCount: String(runtimeEvidence.missingCsrfOperationIds.length),
         expectedCookieFailureCount: String(runtimeEvidence.cookieFailureReasons.length),
         expectedCsrfFailureCount: String(runtimeEvidence.csrfFailureReasons.length)
+      },
+      backendRuntimePairing: {
+        schemaVersion: "stage0.rev2.secure-cookie-same-site-csrf-runtime-pairing",
+        contractAttribute: "data-session-backend-runtime-pairing",
+        statusAttribute: "data-session-backend-runtime-pairing-status",
+        setCookieContractAttribute: "data-session-backend-set-cookie-contract",
+        csrfValidationContractAttribute: "data-session-backend-csrf-validation-contract",
+        unsafeRequestContractCountAttribute: "data-session-backend-unsafe-request-contract-count",
+        missingUnsafeOperationCountAttribute: "data-session-backend-missing-unsafe-operation-count",
+        cookieFailureCountAttribute: "data-session-backend-cookie-failure-count",
+        csrfFailureCountAttribute: "data-session-backend-csrf-failure-count",
+        expectedContract: "secure-cookie-same-site-csrf-runtime",
+        expectedStatus: "pass",
+        expectedSetCookieContract: "__Host-zenart_session;HttpOnly;Secure;SameSite=lax;Path=/",
+        expectedCsrfValidationContract: "POST,PUT,PATCH,DELETE:X-ZenArt-CSRF:same-site-origin-check:same-site-only:include:lax-or-strict",
+        expectedUnsafeRequestContractCount: "15",
+        expectedMissingUnsafeOperationCount: String(runtimeEvidence.missingCsrfOperationIds.length),
+        expectedCookieFailureCount: String(runtimeEvidence.cookieFailureReasons.length),
+        expectedCsrfFailureCount: String(runtimeEvidence.csrfFailureReasons.length)
       }
     });
   });
