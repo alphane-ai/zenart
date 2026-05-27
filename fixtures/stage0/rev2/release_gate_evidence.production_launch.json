@@ -6,7 +6,7 @@
     {
       "check_id": "production_provider_or_comp_only_mode",
       "status": "blocked",
-      "evidence_ref": "Docs/stage0_blueprint_rev2.md requires exact production evidence at ops/evidence/production/provider-mode.json proving real provider contract, monitoring, cost, staging verification, or comp-only mode, plus ops/evidence/production/public-paid-real-generation-claims.json proving paid/real-generation claims are hidden or aligned with that comp-only/provider mode before production_provider_or_comp_only_mode can pass; both required production evidence files are absent"
+      "evidence_ref": "Docs/stage0_blueprint_rev2.md requires exact production evidence absent at ops/evidence/production/provider-mode.json proving real provider contract, monitoring, cost, staging verification, or comp-only mode, plus absent at ops/evidence/production/public-paid-real-generation-claims.json proving paid/real-generation claims are hidden or aligned with that comp-only/provider mode before production_provider_or_comp_only_mode can pass"
     },
     {
       "check_id": "production_paid_billing_lifecycle",
@@ -36,7 +36,7 @@
     {
       "check_id": "production_backup_rollback_incident",
       "status": "blocked",
-      "evidence_ref": "ops/evidence/production/20260527T1800Z-backup-rollback-incident-smoke.json records production backup restore, rollback drills, incident/alert paths, migration compatibility, and post-deploy smoke probes, but this production check remains blocked until CI and Private Beta/Staging gates pass per Rev2 closure policy and exact split evidence exists at ops/evidence/production/backup-restore.json for backup, Postgres restore, object restore, RPO, and RTO plus ops/evidence/production/rollback-incident-post-deploy-smoke.json for rollback, incident, migration compatibility, and post-deploy smoke"
+      "evidence_ref": "ops/evidence/production/20260527T1800Z-backup-rollback-incident-smoke.json records production backup restore, rollback drills, incident/alert paths, migration compatibility, and post-deploy smoke probes, but this production check remains blocked until CI and Private Beta/Staging gates pass per Rev2 closure policy and exact split evidence is absent at ops/evidence/production/backup-restore.json for backup, Postgres restore, object restore, RPO, and RTO plus absent at ops/evidence/production/rollback-incident-post-deploy-smoke.json for rollback, incident, migration compatibility, and post-deploy smoke"
     },
     {
       "check_id": "production_legal_support_policy",

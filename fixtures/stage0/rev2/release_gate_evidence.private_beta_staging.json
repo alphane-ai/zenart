@@ -16,7 +16,7 @@
     {
       "check_id": "staging_object_storage_signed_downloads",
       "status": "blocked",
-      "evidence_ref": "Staging object storage signed URL runtime evidence passed in ops/evidence/staging/20260527T2130Z-object-storage-signed-url.json, proving tenant-scoped signed download, expiry, direct-object denial, and cross-tenant denial from ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json, ops/evidence/staging/20260527T2115Z-backup-restore.json, and ops/evidence/staging/20260527T2120Z-load.json; the full object-storage gate remains blocked until exact retention cleanup runtime evidence exists at ops/evidence/staging/object-storage-retention-cleanup.json proving retention policy, expired export cleanup, orphan cleanup, and audit refs"
+      "evidence_ref": "Staging object storage signed URL runtime evidence passed in ops/evidence/staging/20260527T2130Z-object-storage-signed-url.json, proving tenant-scoped signed download, expiry, direct-object denial, and cross-tenant denial from ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json, ops/evidence/staging/20260527T2115Z-backup-restore.json, and ops/evidence/staging/20260527T2120Z-load.json; the full object-storage gate remains blocked because exact retention cleanup runtime evidence is absent at ops/evidence/staging/object-storage-retention-cleanup.json and must prove retention policy, expired export cleanup, orphan cleanup, and audit refs"
     },
     {
       "check_id": "staging_quota_rate_limit_spend_cap",
@@ -46,7 +46,7 @@
     {
       "check_id": "staging_legal_external_user_pages",
       "status": "blocked",
-      "evidence_ref": "Privacy notice, Terms, Privacy Policy, Acceptable Use, AI/content disclaimer, IP complaint flow, billing policy, and visible support contact evidence exists, but external-user staging evidence for deployed page visibility is absent: ops/evidence/staging/legal-pages-external-user.json must prove Terms, Privacy, Acceptable Use, AI/content disclaimer, and IP complaint visibility, and ops/evidence/staging/support-contact-external-user.json must prove support/report-problem external user visibility"
+      "evidence_ref": "Privacy notice, Terms, Privacy Policy, Acceptable Use, AI/content disclaimer, IP complaint flow, billing policy, and visible support contact source artifacts are implemented, but external-user staging evidence for deployed page visibility is absent: ops/evidence/staging/legal-pages-external-user.json must prove Terms, Privacy, Acceptable Use, AI/content disclaimer, and IP complaint visibility, and ops/evidence/staging/support-contact-external-user.json must prove support/report-problem external user visibility"
     }
   ],
   "do_not_launch_checks": [

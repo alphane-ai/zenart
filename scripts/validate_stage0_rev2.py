@@ -365,6 +365,28 @@ BLOCKED_GATE_EVIDENCE_TERMS = {
     "workflow scope",
 }
 
+SPLIT_EVIDENCE_PRESENT_TERMS = (
+    "passed",
+    "present",
+    "validates",
+    "proves",
+    "通过",
+    "存在",
+)
+
+SPLIT_EVIDENCE_ABSENT_TERMS = (
+    "absent",
+    "missing",
+    "not present",
+    "does not exist",
+    "still required",
+    "remains missing",
+    "remains absent",
+    "未",
+    "缺",
+    "缺失",
+)
+
 RELEASE_GATE_REQUIRED_CHECKS = {
     "local_alpha": {
         "workflow_fixture_coverage",
@@ -2794,11 +2816,41 @@ def require_split_runtime_blocked_evidence(evidence_ref: str, gate: str, check_i
             f"{gate}.{check_id} blocked split evidence {rel_path} missing required blocker tokens "
             f"for {subitem_id}: {missing_tokens}",
         )
+        path_index = evidence_ref.find(rel_path)
+        require(
+            path_index >= 0,
+            f"{gate}.{check_id} blocked split evidence must cite exact required path {rel_path}",
+        )
+        before_start = max(
+            evidence_ref_lower.rfind(separator, 0, path_index)
+            for separator in (".", ";", ":")
+        )
+        before_start = 0 if before_start < 0 else before_start + 1
+        after_candidates = [
+            evidence_ref_lower.find(separator, path_index + len(rel_path))
+            for separator in (".", ";")
+        ]
+        after_candidates = [index for index in after_candidates if index >= 0]
+        after_end = min(after_candidates) if after_candidates else len(evidence_ref_lower)
+        path_context = evidence_ref_lower[before_start:after_end]
+        path_window = evidence_ref_lower[
+            max(0, path_index - 180) : min(len(evidence_ref_lower), path_index + len(rel_path) + 180)
+        ]
         if path.exists():
             evidence = load_json_if_path(rel_path)
             require(
                 evidence is None or isinstance(evidence, dict),
                 f"{gate}.{check_id} blocked split evidence {rel_path} must be valid JSON when present",
+            )
+            require(
+                any(term in path_window for term in SPLIT_EVIDENCE_PRESENT_TERMS),
+                f"{gate}.{check_id} blocked split evidence {rel_path} exists but evidence_ref does not mark "
+                f"that split as present/pass; stale missing prose cannot preserve a blocker",
+            )
+            require(
+                not any(term in path_window for term in SPLIT_EVIDENCE_ABSENT_TERMS),
+                f"{gate}.{check_id} blocked split evidence {rel_path} exists but evidence_ref still describes "
+                f"that exact file as missing/absent",
             )
             if isinstance(evidence, dict):
                 environment = evidence.get("environment")
@@ -2814,6 +2866,17 @@ def require_split_runtime_blocked_evidence(evidence_ref: str, gate: str, check_i
                         f"{gate}.{check_id} blocked split evidence {rel_path} targets "
                         f"release_gate_check_id={evidence_check_id!r}",
                     )
+        else:
+            require(
+                any(term in path_window for term in SPLIT_EVIDENCE_ABSENT_TERMS),
+                f"{gate}.{check_id} blocked split evidence {rel_path} is missing but evidence_ref does not "
+                f"describe that exact split file as absent/missing",
+            )
+            require(
+                not any(term in path_context for term in SPLIT_EVIDENCE_PRESENT_TERMS),
+                f"{gate}.{check_id} blocked split evidence {rel_path} is missing but evidence_ref describes "
+                f"that exact file as present/pass",
+            )
 
 
 def validate_split_checklist_item_evidence(
@@ -7693,6 +7756,7 @@ def validate_launch_readiness_split_contracts() -> None:
         "Production Launch cannot clear `ci_staging_gates_not_passed` or pass backup/rollback/post-deploy evidence until both",
         "Production backup/rollback/post-deploy pass evidence must cite both upstream gate fixtures",
         "Blocked split runtime/deployment checks must name every exact split evidence file still required for closure",
+        "must also state whether each exact split evidence file is already present/passed or still absent/missing",
         "a broad `ops/evidence/staging/` or `ops/evidence/production/` placeholder cannot preserve a launch blocker",
         "Existing half-split evidence can only close its own concrete subitem",
         "the combined check remains blocked until every required split file exists",
