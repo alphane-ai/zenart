@@ -2635,7 +2635,7 @@ func scanUpload(ctx context.Context, scanner security.MalwareScanner, target sec
 	}
 	status, ok := security.NormalizeMalwareScanStatus(result.Status)
 	if !ok {
-		return security.MalwareScanResult{}, errors.Join(ErrValidation, errors.New("malware scan returned unsupported status"))
+		return security.MalwareScanResult{}, errors.Join(ErrValidation, fmt.Errorf("malware scan returned unsupported status %q", security.RedactString(string(result.Status))))
 	}
 	result.Status = status
 	if result.ScannedAt.IsZero() {

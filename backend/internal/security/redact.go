@@ -254,7 +254,7 @@ func (s HTTPMalwareScanner) Scan(ctx context.Context, target MalwareScanTarget) 
 	}
 	status, ok := NormalizeMalwareScanStatus(result.Status)
 	if !ok {
-		return MalwareScanResult{}, fmt.Errorf("malware scan endpoint returned unsupported status %q", result.Status)
+		return MalwareScanResult{}, fmt.Errorf("malware scan endpoint returned unsupported status %q", RedactString(string(result.Status)))
 	}
 	result.Status = status
 	result.Provider = RedactString(strings.TrimSpace(result.Provider))

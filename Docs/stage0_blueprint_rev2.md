@@ -1934,6 +1934,7 @@ main 合并前必须通过：
 - [x] 硬化 staging/production malware scan 启动配置：`MALWARE_SCAN_PROVIDER=http` 在非 local 环境必须启用 `MALWARE_SCAN_FAIL_CLOSED=true`，避免外部 scanner outage/error fail-open。
 - [x] 硬化 HTTP malware scanner endpoint 边界：startup/runtime reject credential、query、fragment-bearing scanner endpoints and runtime denies scanner redirects so scanner API keys and redacted upload context cannot be forwarded to another host。
 - [x] 硬化 staging/production HTTP malware scanner endpoint SSRF 边界：startup config validation rejects localhost、loopback、private、link-local scanner endpoints outside local, and runtime scanner construction enables the same local/private endpoint denial for non-local environments。
+- [x] 硬化 malware scan unsupported-status error redaction：HTTP scanner and service-level upload scan redact scanner-supplied unsupported status secrets before returning errors; backend tests cover provider-key injection without persisting upload rows or issuing signed upload URLs。
 - [x] 硬化 signed-upload malware scan evidence：successful signed upload PUT persists the stored-object scan result/checksum/byte size/content type into tenant-scoped `object_metadata`, fails closed and deletes the just-written object when metadata acknowledgement is missing, and tests cover redaction plus cross-tenant denial。
 - [x] 添加 dependency/image/secret scans。
 - [x] 添加 Privacy notice。

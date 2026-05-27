@@ -2972,7 +2972,7 @@ func TestHTTPMalwareScannerPostsTargetAndRedactsMetadata(t *testing.T) {
 
 func TestHTTPMalwareScannerRejectsUnsupportedStatus(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_ = json.NewEncoder(w).Encode(MalwareScanResult{Status: "infected"})
+		_ = json.NewEncoder(w).Encode(MalwareScanResult{Status: "infected sk-ant-abcdefghijklmnopqrstuvwxyz123456"})
 	}))
 	defer server.Close()
 
@@ -2985,6 +2985,12 @@ func TestHTTPMalwareScannerRejectsUnsupportedStatus(t *testing.T) {
 	})
 	if err == nil {
 		t.Fatal("Scan() error = nil, want unsupported status error")
+	}
+	if strings.Contains(err.Error(), "sk-ant-abcdefghijklmnopqrstuvwxyz123456") {
+		t.Fatalf("Scan() error = %q, leaked scanner-supplied unsupported status secret", err.Error())
+	}
+	if !strings.Contains(err.Error(), Redacted) {
+		t.Fatalf("Scan() error = %q, want redaction marker", err.Error())
 	}
 }
 

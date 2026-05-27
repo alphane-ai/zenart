@@ -528,10 +528,11 @@ func TestCreateUploadRedactsMalwareScannerBoundary(t *testing.T) {
 	}
 }
 
-func TestCreateUploadRejectsUnsupportedMalwareStatus(t *testing.T) {
+func TestCreateUploadRejectsUnsupportedMalwareStatusWithRedactedError(t *testing.T) {
 	db := &fakeDB{}
 	repo := NewRepository(db)
 	signed := false
+	secretStatus := "infected sk-ant-abcdefghijklmnopqrstuvwxyz123456"
 
 	_, err := repo.CreateUpload(context.Background(), UploadOptions{
 		TenantID:            "tenant_1",
@@ -548,10 +549,16 @@ func TestCreateUploadRejectsUnsupportedMalwareStatus(t *testing.T) {
 			signed = true
 			return "/signed/" + objectKey, time.Now().UTC().Add(5 * time.Minute)
 		},
-		MalwareScanner: &captureScanner{result: security.MalwareScanResult{Status: "infected"}},
+		MalwareScanner: &captureScanner{result: security.MalwareScanResult{Status: security.MalwareScanStatus(secretStatus)}},
 	})
 	if !errors.Is(err, ErrValidation) {
 		t.Fatalf("CreateUpload() error = %v, want ErrValidation", err)
+	}
+	if strings.Contains(err.Error(), "sk-ant-abcdefghijklmnopqrstuvwxyz123456") || strings.Contains(err.Error(), secretStatus) {
+		t.Fatalf("CreateUpload() error = %q, leaked scanner-supplied unsupported status secret", err.Error())
+	}
+	if !strings.Contains(err.Error(), security.Redacted) {
+		t.Fatalf("CreateUpload() error = %q, want redaction marker", err.Error())
 	}
 	if len(db.execs) != 0 {
 		t.Fatalf("unsupported malware status should not write rows: %#v", db.execs)
