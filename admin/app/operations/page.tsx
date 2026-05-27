@@ -12,6 +12,7 @@ import {
   getObservabilityTelemetryRuntimeEvidence,
   getProductionBackupRollbackIncidentEvidence,
   getReleaseBlockers,
+  getStagingObjectStorageRetentionCleanupEvidence,
   getStagingObservabilityBackupLoadPreflightEvidence
 } from "@/lib/admin-api";
 import type {
@@ -28,6 +29,8 @@ import type {
   ProductionBackupRollbackIncidentCoverage,
   ProductionBackupRollbackIncidentEvidence,
   ReleaseBlocker,
+  StagingObjectStorageRetentionCleanupCoverage,
+  StagingObjectStorageRetentionCleanupEvidence,
   StagingObservabilityBackupLoadPreflightEvidence,
   StagingObservabilityBackupLoadPreflightSlot
 } from "@/lib/types";
@@ -51,6 +54,7 @@ export default async function OperationsPage() {
     metricsRuntimeEvidence,
     telemetryRuntimeEvidence,
     observabilityBackupLoadPreflight,
+    objectStorageRetentionCleanupEvidence,
     productionBackupRollbackIncidentEvidence
   ] = await Promise.all([
     getIncidentLogs(),
@@ -62,6 +66,7 @@ export default async function OperationsPage() {
     getBackendMetricsRuntimeEvidence(),
     getObservabilityTelemetryRuntimeEvidence(),
     getStagingObservabilityBackupLoadPreflightEvidence(),
+    getStagingObjectStorageRetentionCleanupEvidence(),
     getProductionBackupRollbackIncidentEvidence()
   ]);
   const releaseBlockers = await getReleaseBlockers();
@@ -202,6 +207,44 @@ export default async function OperationsPage() {
             { key: "verified", header: "Verified Entries", render: (row) => row.verifiedEntries.join(", ") || "none" },
             { key: "missing", header: "Missing Entries", render: (row) => row.missingEntries.join(", ") || "none" },
             { key: "reason", header: "Blocking Reason", render: (row) => row.blockingReason },
+            { key: "release", header: "Release Gate Use", render: (row) => row.releaseGateUse },
+            { key: "evidence", header: "Evidence Refs", render: (row) => row.evidenceRefs.join(", ") }
+          ]}
+        />
+      </section>
+
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>Object Storage Retention Cleanup</h3>
+            <p>Staging object-storage retention and cleanup must produce exact runtime evidence before the signed-download release gate can close.</p>
+          </div>
+        </div>
+        <DataTable<StagingObjectStorageRetentionCleanupEvidence>
+          rows={[objectStorageRetentionCleanupEvidence]}
+          columns={[
+            { key: "id", header: "Evidence", render: (row) => <span className="mono">{row.id}</span> },
+            { key: "status", header: "Status", render: (row) => <StatusBadge value={row.status} label={row.status} /> },
+            { key: "check", header: "Release Gate Check", render: (row) => row.releaseGateCheckId },
+            { key: "condition", header: "Preserved Condition", render: (row) => row.doNotLaunchConditionId },
+            { key: "script", header: "Required Script", render: (row) => row.requiredScript },
+            { key: "artifact", header: "Required Artifact", render: (row) => row.requiredArtifactPath },
+            { key: "signed", header: "Signed URL Evidence", render: (row) => row.signedUrlEvidencePath },
+            { key: "clear", header: "Can Clear Retention", render: (row) => (row.canClearRetentionCleanupChecklistItem ? "yes" : "no") },
+            { key: "gate", header: "Can Clear Gate", render: (row) => (row.canClearReleaseGateCheck ? "yes" : "no") },
+            { key: "missing", header: "Missing Runtime Inputs", render: (row) => row.missingRuntimeInputs.join(", ") },
+            { key: "remaining", header: "Remaining Blockers", render: (row) => row.remainingReleaseGateBlockers.join(", ") },
+            { key: "action", header: "Operator Action", render: (row) => row.operatorAction }
+          ]}
+        />
+        <DataTable<StagingObjectStorageRetentionCleanupCoverage>
+          rows={objectStorageRetentionCleanupEvidence.coverage}
+          columns={[
+            { key: "area", header: "Area", render: (row) => row.area },
+            { key: "status", header: "Status", render: (row) => <StatusBadge value={row.status} label={row.status} /> },
+            { key: "endpoint", header: "Admin Endpoint", render: (row) => row.adminEndpoint },
+            { key: "tokens", header: "Expected Tokens", render: (row) => row.expectedTokens.join(", ") },
+            { key: "blocker", header: "Blocker", render: (row) => row.blocker },
             { key: "release", header: "Release Gate Use", render: (row) => row.releaseGateUse },
             { key: "evidence", header: "Evidence Refs", render: (row) => row.evidenceRefs.join(", ") }
           ]}

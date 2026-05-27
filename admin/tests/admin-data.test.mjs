@@ -66,6 +66,7 @@ test("admin fixtures cover required operational surfaces", () => {
     "export const backendMetricsRuntimeEvidence",
     "export const observabilityTelemetryRuntimeEvidence",
     "export const stagingObservabilityBackupLoadPreflightEvidence",
+    "export const stagingObjectStorageRetentionCleanupEvidence",
     "export const releaseBlockers",
     "export const auditEvents",
     "export const analyticsReports",

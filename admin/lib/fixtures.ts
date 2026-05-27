@@ -28,6 +28,7 @@ import type {
   AlertRouteRuntimeEvidence,
   BackendMetricsRuntimeEvidence,
   ReleaseBlocker,
+  StagingObjectStorageRetentionCleanupEvidence,
   StagingObservabilityBackupLoadPreflightEvidence,
   StagingEvalQaSafetyEvidence,
   StagingQuotaRateLimitSpendCapEvidence,
@@ -2249,6 +2250,93 @@ export const stagingObservabilityBackupLoadPreflightEvidence: StagingObservabili
   ],
   operatorAction: "Combined staging preflight passed; keep object-storage signed download/retention and legal/support visibility blockers separate until their release-gate checks receive matching staging evidence.",
   releaseGateUse: "This admin preflight table proves the Private Beta/Staging observability/backup/load check can close from a single release-SHA-bound staging report while preserving unrelated object-storage and legal/support blockers."
+};
+
+export const stagingObjectStorageRetentionCleanupEvidence: StagingObjectStorageRetentionCleanupEvidence = {
+  id: "staging-object-storage-retention-cleanup-required",
+  environment: "staging",
+  status: "missing_runtime",
+  releaseGateCheckId: "staging_object_storage_signed_downloads",
+  doNotLaunchConditionId: "object_storage_signed_retention_runtime_missing",
+  evidencePath: "ops/evidence/staging/object-storage-retention-cleanup.json",
+  requiredScript: "scripts/staging_object_storage_retention_cleanup_smoke.sh",
+  requiredArtifactPath: "ops/evidence/staging/object-storage-retention-cleanup.json",
+  signedUrlEvidencePath: "ops/evidence/staging/20260527T2130Z-object-storage-signed-url.json",
+  canClearRetentionCleanupChecklistItem: false,
+  canClearReleaseGateCheck: false,
+  coverage: [
+    {
+      area: "retention_policy",
+      status: "missing_runtime",
+      smokeScript: "scripts/staging_object_storage_retention_cleanup_smoke.sh",
+      adminEndpoint: "GET /api/admin/v1/object-storage/retention-policy",
+      expectedTokens: ["retention policy", "versioning", "retention_until", "tenant"],
+      blocker: "Staging base URL or explicit RETENTION_POLICY_URL has not produced a passing retention policy probe.",
+      releaseGateUse: "The object-storage release gate must stay blocked until the retention policy probe writes passing staging runtime evidence at ops/evidence/staging/object-storage-retention-cleanup.json.",
+      evidenceRefs: [
+        "scripts/staging_object_storage_retention_cleanup_smoke.sh",
+        "ops/evidence/staging/object-storage-retention-cleanup.json",
+        "fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json"
+      ]
+    },
+    {
+      area: "expired_export_cleanup",
+      status: "missing_runtime",
+      smokeScript: "scripts/staging_object_storage_retention_cleanup_smoke.sh",
+      adminEndpoint: "POST /api/admin/v1/object-storage/cleanup/expired-exports",
+      expectedTokens: ["expired export cleanup", "deleted", "retained", "audit"],
+      blocker: "Expired export cleanup has not produced a staging POST probe with deleted, retained, and audit evidence.",
+      releaseGateUse: "The retention/cleanup checklist item cannot close until expired exports are cleaned in staging with immutable audit refs.",
+      evidenceRefs: [
+        "scripts/staging_object_storage_retention_cleanup_smoke.sh",
+        "ops/evidence/staging/object-storage-retention-cleanup.json",
+        "ex-909",
+        "au-007"
+      ]
+    },
+    {
+      area: "orphan_cleanup",
+      status: "missing_runtime",
+      smokeScript: "scripts/staging_object_storage_retention_cleanup_smoke.sh",
+      adminEndpoint: "POST /api/admin/v1/object-storage/cleanup/orphans",
+      expectedTokens: ["orphan cleanup", "deleted", "retained", "audit"],
+      blocker: "Orphan object cleanup has not produced a staging POST probe with deleted, retained, and audit evidence.",
+      releaseGateUse: "The object-storage release gate cannot close until orphan object cleanup proves deleted and retained object decisions with audit context.",
+      evidenceRefs: [
+        "scripts/staging_object_storage_retention_cleanup_smoke.sh",
+        "ops/evidence/staging/object-storage-retention-cleanup.json",
+        "ops/evidence/staging/20260527T2115Z-backup-restore.json",
+        "au-015"
+      ]
+    },
+    {
+      area: "audit_refs",
+      status: "missing_runtime",
+      smokeScript: "scripts/staging_object_storage_retention_cleanup_smoke.sh",
+      adminEndpoint: "GET /api/admin/v1/audit?subject=object_storage_cleanup&limit=20",
+      expectedTokens: ["audit", "object_storage_cleanup", "admin", "tenant"],
+      blocker: "Object-storage cleanup audit query has not produced staging evidence with admin and tenant context.",
+      releaseGateUse: "Retention and cleanup probes must be tied to admin audit refs before the private beta object-storage blocker can clear.",
+      evidenceRefs: [
+        "scripts/staging_object_storage_retention_cleanup_smoke.sh",
+        "ops/evidence/staging/object-storage-retention-cleanup.json",
+        "fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json",
+        "au-007",
+        "au-015"
+      ]
+    }
+  ],
+  missingRuntimeInputs: [
+    "STAGING_BASE_URL or explicit object-storage retention/cleanup probe URLs",
+    "STAGING_ADMIN_BEARER_TOKEN or STAGING_ADMIN_SESSION_COOKIE",
+    "passing ops/evidence/staging/object-storage-retention-cleanup.json with status=pass"
+  ],
+  operatorAction: "Run scripts/staging_object_storage_retention_cleanup_smoke.sh against staging with admin credentials, then update the private beta release gate fixture only if the generated object-storage-retention-cleanup.json passes every retention, cleanup, and audit probe.",
+  releaseGateUse: "This admin evidence row preserves object_storage_signed_retention_runtime_missing after signed URL evidence passes and prevents the combined object-storage release gate from closing without exact retention/cleanup runtime evidence.",
+  remainingReleaseGateBlockers: [
+    "staging_object_storage_signed_downloads",
+    "staging_legal_external_user_pages"
+  ]
 };
 
 export const releaseBlockers: ReleaseBlocker[] = [

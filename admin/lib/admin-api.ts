@@ -26,6 +26,7 @@ import {
   productionBackupRollbackIncidentEvidence,
   productionSecurityLaunchCheckEvidence,
   productionSkillReleaseEvalCanaryEvidence,
+  stagingObjectStorageRetentionCleanupEvidence,
   stagingObservabilityBackupLoadPreflightEvidence,
   stagingEvalQaSafetyEvidence,
   stagingQuotaRateLimitSpendCapEvidence,
@@ -283,6 +284,10 @@ export async function getObservabilityTelemetryRuntimeEvidence() {
 
 export async function getStagingObservabilityBackupLoadPreflightEvidence() {
   return stagingObservabilityBackupLoadPreflightEvidence;
+}
+
+export async function getStagingObjectStorageRetentionCleanupEvidence() {
+  return stagingObjectStorageRetentionCleanupEvidence;
 }
 
 export async function getReleaseBlockers() {

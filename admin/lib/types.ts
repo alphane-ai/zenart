@@ -517,6 +517,36 @@ export type StagingObservabilityBackupLoadPreflightEvidence = {
   releaseGateUse: string;
 };
 
+export type StagingObjectStorageRetentionCleanupCoverage = {
+  area: "retention_policy" | "expired_export_cleanup" | "orphan_cleanup" | "audit_refs";
+  status: "missing_runtime" | "pass" | "blocked";
+  smokeScript: string;
+  adminEndpoint: string;
+  expectedTokens: string[];
+  blocker: string;
+  releaseGateUse: string;
+  evidenceRefs: string[];
+};
+
+export type StagingObjectStorageRetentionCleanupEvidence = {
+  id: string;
+  environment: "staging";
+  status: "missing_runtime" | "pass";
+  releaseGateCheckId: "staging_object_storage_signed_downloads";
+  doNotLaunchConditionId: "object_storage_signed_retention_runtime_missing";
+  evidencePath: "ops/evidence/staging/object-storage-retention-cleanup.json";
+  requiredScript: "scripts/staging_object_storage_retention_cleanup_smoke.sh";
+  requiredArtifactPath: "ops/evidence/staging/object-storage-retention-cleanup.json";
+  signedUrlEvidencePath: "ops/evidence/staging/20260527T2130Z-object-storage-signed-url.json";
+  canClearRetentionCleanupChecklistItem: boolean;
+  canClearReleaseGateCheck: boolean;
+  coverage: StagingObjectStorageRetentionCleanupCoverage[];
+  missingRuntimeInputs: string[];
+  operatorAction: string;
+  releaseGateUse: string;
+  remainingReleaseGateBlockers: string[];
+};
+
 export type ReleaseBlocker = {
   id: string;
   gate: "private_beta" | "production_launch";

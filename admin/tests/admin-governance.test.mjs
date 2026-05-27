@@ -15,7 +15,7 @@ const parseFixtures = () => {
   const moduleSource = source
     .replace(/^import type[\s\S]*?from "@\/lib\/types";\n\n/, "")
     .replaceAll(/export const (\w+)[^=]*=/g, "const $1 =");
-  return Function(`${moduleSource}\nreturn { skillVersions, skillReleaseStateDefinitions, skillCanaryMetrics, releaseEvidence, releaseBlockers, supportTickets, supportEscalationRunbooks, supportUsers, riskyExports, abuseEvents, abuseControlHooks, stagingAuthRbacTenantAuditEvidence, stagingEvalQaSafetyEvidence, stagingQuotaRateLimitSpendCapEvidence, stagingSupportRetryAbuseEvidence, productionAbuseThrottleHoldEvidence, productionActivationReviewAuditEvidence, productionSkillReleaseEvalCanaryEvidence, productionSecurityLaunchCheckEvidence, productionBackupRollbackIncidentEvidence, adminReviewDecisions, auditEvents, exportJobs, traces, quotaAccounts, feedbackItems, regressionFixtures, analyticsReports, queueHealth, failedTaskControls, crawlerFindings, crawlerSourceApprovals, crawlerGovernanceWorkflows, crawlerStagingRuntimeEvidence, adminRbacEvidence, operationalDashboards, operationalDashboardRuntimeEvidence, alertRoutes, alertRouteRuntimeEvidence, backendMetricsRuntimeEvidence, observabilityTelemetryRuntimeEvidence, stagingObservabilityBackupLoadPreflightEvidence };`)();
+  return Function(`${moduleSource}\nreturn { skillVersions, skillReleaseStateDefinitions, skillCanaryMetrics, releaseEvidence, releaseBlockers, supportTickets, supportEscalationRunbooks, supportUsers, riskyExports, abuseEvents, abuseControlHooks, stagingAuthRbacTenantAuditEvidence, stagingEvalQaSafetyEvidence, stagingQuotaRateLimitSpendCapEvidence, stagingSupportRetryAbuseEvidence, productionAbuseThrottleHoldEvidence, productionActivationReviewAuditEvidence, productionSkillReleaseEvalCanaryEvidence, productionSecurityLaunchCheckEvidence, productionBackupRollbackIncidentEvidence, adminReviewDecisions, auditEvents, exportJobs, traces, quotaAccounts, feedbackItems, regressionFixtures, analyticsReports, queueHealth, failedTaskControls, crawlerFindings, crawlerSourceApprovals, crawlerGovernanceWorkflows, crawlerStagingRuntimeEvidence, adminRbacEvidence, operationalDashboards, operationalDashboardRuntimeEvidence, alertRoutes, alertRouteRuntimeEvidence, backendMetricsRuntimeEvidence, observabilityTelemetryRuntimeEvidence, stagingObservabilityBackupLoadPreflightEvidence, stagingObjectStorageRetentionCleanupEvidence };`)();
 };
 
 const crawlerGovernanceCases = JSON.parse(
@@ -64,7 +64,8 @@ const {
   alertRouteRuntimeEvidence,
   backendMetricsRuntimeEvidence,
   observabilityTelemetryRuntimeEvidence,
-  stagingObservabilityBackupLoadPreflightEvidence
+  stagingObservabilityBackupLoadPreflightEvidence,
+  stagingObjectStorageRetentionCleanupEvidence
 } = parseFixtures();
 
 const parseAbuseRuntime = () => {
@@ -3053,6 +3054,104 @@ test("observability backup load preflight exposes verified observability, restor
       .map((slot) => slot.slot),
     [],
     "no observability backup/load slots should block after combined preflight passes"
+  );
+});
+
+test("object storage retention cleanup gate stays blocked until exact staging probe evidence passes", () => {
+  const operationsPage = readFileSync(
+    new URL("../app/operations/page.tsx", import.meta.url),
+    "utf8"
+  );
+
+  for (const token of [
+    "Object Storage Retention Cleanup",
+    "Required Script",
+    "Required Artifact",
+    "Signed URL Evidence",
+    "Missing Runtime Inputs",
+    "Remaining Blockers",
+    "Expected Tokens"
+  ]) {
+    assert.match(operationsPage, new RegExp(token), `operations page missing ${token}`);
+  }
+
+  assert.equal(stagingObjectStorageRetentionCleanupEvidence.environment, "staging", "retention cleanup evidence must be staging scoped");
+  assert.equal(stagingObjectStorageRetentionCleanupEvidence.status, "missing_runtime", "retention cleanup must remain blocked without a passing staging probe");
+  assert.equal(
+    stagingObjectStorageRetentionCleanupEvidence.releaseGateCheckId,
+    "staging_object_storage_signed_downloads",
+    "retention cleanup evidence must bind to the object-storage release gate"
+  );
+  assert.equal(
+    stagingObjectStorageRetentionCleanupEvidence.doNotLaunchConditionId,
+    "object_storage_signed_retention_runtime_missing",
+    "retention cleanup evidence must preserve the object-storage Do-Not-Launch condition"
+  );
+  assert.equal(
+    stagingObjectStorageRetentionCleanupEvidence.requiredScript,
+    "scripts/staging_object_storage_retention_cleanup_smoke.sh",
+    "admin fixture must name the required smoke script"
+  );
+  assert.equal(
+    stagingObjectStorageRetentionCleanupEvidence.requiredArtifactPath,
+    "ops/evidence/staging/object-storage-retention-cleanup.json",
+    "admin fixture must name the exact required runtime artifact"
+  );
+  assert.equal(
+    stagingObjectStorageRetentionCleanupEvidence.canClearRetentionCleanupChecklistItem,
+    false,
+    "missing runtime evidence cannot close the retention/cleanup checklist item"
+  );
+  assert.equal(
+    stagingObjectStorageRetentionCleanupEvidence.canClearReleaseGateCheck,
+    false,
+    "retention cleanup alone must not close the combined object-storage gate while missing"
+  );
+  assert.ok(
+    stagingObjectStorageRetentionCleanupEvidence.remainingReleaseGateBlockers.includes("staging_object_storage_signed_downloads"),
+    "object-storage blocker must remain preserved"
+  );
+  assert.ok(
+    stagingObjectStorageRetentionCleanupEvidence.remainingReleaseGateBlockers.includes("staging_legal_external_user_pages"),
+    "legal/support blocker must remain preserved separately"
+  );
+  assert.ok(
+    stagingObjectStorageRetentionCleanupEvidence.missingRuntimeInputs.some((input) => input.includes("STAGING_BASE_URL")),
+    "admin fixture must explain missing staging URL input"
+  );
+  assert.ok(
+    stagingObjectStorageRetentionCleanupEvidence.missingRuntimeInputs.some((input) => input.includes("STAGING_ADMIN")),
+    "admin fixture must explain missing staging admin credentials"
+  );
+
+  const requiredAreas = new Set(["retention_policy", "expired_export_cleanup", "orphan_cleanup", "audit_refs"]);
+  for (const coverage of stagingObjectStorageRetentionCleanupEvidence.coverage) {
+    requiredAreas.delete(coverage.area);
+    assert.equal(coverage.status, "missing_runtime", `${coverage.area} must remain missing until staging probe passes`);
+    assert.equal(coverage.smokeScript, "scripts/staging_object_storage_retention_cleanup_smoke.sh", `${coverage.area} must cite smoke script`);
+    assert.ok(coverage.expectedTokens.length >= 4, `${coverage.area} needs concrete expected response tokens`);
+    assert.ok(coverage.blocker.length > 80, `${coverage.area} needs concrete blocker text`);
+    assert.ok(coverage.releaseGateUse.length > 110, `${coverage.area} needs release-gate use text`);
+    assert.ok(
+      coverage.evidenceRefs.includes("ops/evidence/staging/object-storage-retention-cleanup.json"),
+      `${coverage.area} must cite the exact missing evidence path`
+    );
+    assert.ok(
+      coverage.evidenceRefs.includes("scripts/staging_object_storage_retention_cleanup_smoke.sh"),
+      `${coverage.area} must cite the required script`
+    );
+  }
+  assert.deepEqual([...requiredAreas], [], "retention cleanup coverage must name all required probe areas");
+
+  assert.match(
+    blueprint,
+    /- \[ \] Private Beta\/Staging object retention\/cleanup runtime evidence 通过：staging evidence proves retention policy, expired export cleanup, orphan cleanup, and audit refs under `ops\/evidence\/staging\/`。/,
+    "retention/cleanup checklist item must stay open until passing staging evidence exists"
+  );
+  assert.match(
+    blueprint,
+    /Private Beta\/Staging object storage pass evidence must cite both signed URL and retention\/cleanup staging files/,
+    "blueprint must preserve split object-storage evidence requirement"
   );
 });
 
