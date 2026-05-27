@@ -1,0 +1,118 @@
+{
+  "schemaVersion": "stage0.rev2.workspace-rendering-performance-static-smoke",
+  "blueprintSource": "Docs/stage0_blueprint_rev2.md",
+  "owner": "lane3",
+  "status": "pass",
+  "scope": "user-web-local-dev-client",
+  "doesNotCloseChecklistGates": true,
+  "checklistPolicy": {
+    "workspaceRenderingPerformanceChecklistAlreadyClosed": true,
+    "localAlphaGateRemainsOpen": true,
+    "privateBetaStagingGateRemainsOpen": true,
+    "productionLaunchGateRemainsOpen": true
+  },
+  "evidence": {
+    "schemaVersion": "stage0.rev2.workspace-rendering-performance",
+    "route": "/workspace",
+    "source": "web/components/workspace-app.tsx",
+    "statusAttribute": "data-rendering-status",
+    "expectedStatus": "pass",
+    "summaryAriaLabel": "Workspace rendering performance smoke",
+    "expectedFailureCount": "0",
+    "expectedFinalInteractionSteps": [
+      "load",
+      "brief-confirm",
+      "candidate-select",
+      "iteration",
+      "package-add",
+      "export-ready",
+      "version-restore"
+    ],
+    "expectedBudgets": {
+      "maxNodes": "24",
+      "maxEdges": "24",
+      "maxVersions": "32",
+      "maxRenderElements": "96",
+      "maxInteractionMs": "100"
+    },
+    "expectedFinalCounts": {
+      "nodeCount": "3",
+      "edgeCount": "2",
+      "versionCount": "3",
+      "candidateCount": "4",
+      "packageItemCount": "1",
+      "referenceCount": "1",
+      "exportHistoryCount": "1",
+      "renderElementCount": "15",
+      "estimatedInteractionMs": "17"
+    },
+    "budgetAttributes": [
+      "data-render-max-elements",
+      "data-render-max-interaction-ms",
+      "data-render-failure-count",
+      "data-render-interaction-steps",
+      "data-render-reference-count",
+      "data-render-package-item-count",
+      "data-render-export-history-count"
+    ],
+    "summaryAttributes": [
+      "data-rendering-smoke-summary",
+      "data-rendering-smoke-status",
+      "data-rendering-smoke-failures",
+      "data-rendering-interaction-steps",
+      "data-rendering-estimated-interaction-ms",
+      "data-rendering-budget-node-count",
+      "data-rendering-budget-edge-count",
+      "data-rendering-budget-version-count",
+      "data-rendering-reference-count",
+      "data-rendering-package-item-count",
+      "data-rendering-export-history-count"
+    ],
+    "finalFlowAssertions": [
+      "data-rendering-status",
+      "data-render-failure-count",
+      "data-render-candidate-count",
+      "data-render-element-count",
+      "data-render-max-elements",
+      "data-render-estimated-interaction-ms",
+      "data-render-max-interaction-ms",
+      "data-render-export-history-count",
+      "data-rendering-interaction-steps",
+      "Confirm Brief",
+      "Select Studio System",
+      "Iterate",
+      "Add Selection",
+      "Export ZIP",
+      "Initial brief"
+    ]
+  },
+  "browserEvidence": {
+    "config": "web/playwright.config.ts",
+    "test": "web/tests/reference-export.spec.ts",
+    "script": "npm run smoke:reference-export-playwright",
+    "route": "/workspace",
+    "requiredAssertions": [
+      "data-rendering-smoke='stage0.rev2.workspace-rendering-performance'",
+      "data-rendering-status",
+      "data-render-failure-count",
+      "data-render-reference-count",
+      "data-render-package-item-count",
+      "data-render-export-history-count",
+      "data-render-interaction-steps",
+      "data-render-element-count",
+      "data-render-max-elements"
+    ]
+  },
+  "staticSmoke": {
+    "script": "npm run smoke:workspace-rendering-performance",
+    "validates": [
+      "Rev2 blueprint citation",
+      "user route smoke evidence parity",
+      "rendering budget constants",
+      "component evidence attributes",
+      "component interaction smoke assertions",
+      "browser smoke assertions",
+      "budget overflow unit test coverage"
+    ]
+  }
+}
