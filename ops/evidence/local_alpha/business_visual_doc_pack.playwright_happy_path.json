@@ -33,11 +33,11 @@
   ],
   "interaction_steps": [
     "brief_confirmed",
-    "source_notes_uploaded",
-    "four_document_candidates_visible",
+    "reference_uploaded",
+    "four_candidates_visible",
     "candidate_selected",
     "iteration_created",
-    "all_document_taxonomy_candidates_packaged",
+    "all_taxonomy_candidates_packaged",
     "zip_export_created",
     "download_handoff_completed"
   ],
