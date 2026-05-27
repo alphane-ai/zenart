@@ -3075,13 +3075,17 @@ func (s Service) cleanupExpiredExportsAndOrphanedObjects(ctx context.Context, te
 		result.FailedObjects += missingAcks
 		deleteErr = errors.Join(deleteErr, fmt.Errorf("cleanup metadata acknowledgement missing for %d object(s)", missingAcks))
 	}
+	var markerDeleted int
+	var markerErr error
 	if tenantID == "" {
-		markerDeleted, markerErr := s.objects.CleanupExpired(ctx, now)
-		result.DeletedObjects += markerDeleted
-		if markerErr != nil {
-			result.FailedObjects++
-			deleteErr = errors.Join(deleteErr, markerErr)
-		}
+		markerDeleted, markerErr = s.objects.CleanupExpired(ctx, now)
+	} else {
+		markerDeleted, markerErr = s.objects.CleanupExpiredForTenant(ctx, tenantID, now)
+	}
+	result.DeletedObjects += markerDeleted
+	if markerErr != nil {
+		result.FailedObjects++
+		deleteErr = errors.Join(deleteErr, markerErr)
 	}
 	result.Status = cleanupResultStatus(result, deleteErr)
 	if err := s.repo.recordCleanupRunAnalyticsForTenant(ctx, now, tenantID, result); err != nil {

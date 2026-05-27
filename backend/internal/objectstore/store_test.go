@@ -191,6 +191,40 @@ func TestLocalStorePutWithoutRetentionRemovesStaleExpiryMarker(t *testing.T) {
 	}
 }
 
+func TestLocalStoreCleanupExpiredForTenantOnlyDeletesTenantMarkers(t *testing.T) {
+	root := t.TempDir()
+	store, err := NewLocalStore(root, "zenart-test", "secret")
+	if err != nil {
+		t.Fatalf("NewLocalStore() error = %v", err)
+	}
+	expired := time.Date(2026, 5, 26, 12, 0, 0, 0, time.UTC)
+	for _, tenantID := range []string{"tenant_1", "tenant_2"} {
+		if _, err := store.Put(context.Background(), Object{
+			TenantID:       tenantID,
+			Key:            "exports/package.zip",
+			RetentionUntil: &expired,
+		}, strings.NewReader("zip bytes")); err != nil {
+			t.Fatalf("Put(%s) error = %v", tenantID, err)
+		}
+	}
+
+	deleted, err := store.CleanupExpiredForTenant(context.Background(), "tenant_1", expired.Add(time.Minute))
+	if err != nil {
+		t.Fatalf("CleanupExpiredForTenant() error = %v", err)
+	}
+	if deleted != 1 {
+		t.Fatalf("deleted = %d, want 1", deleted)
+	}
+	if _, err := store.Get(context.Background(), "tenant_1", "exports/package.zip"); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("tenant_1 object lookup error = %v, want ErrNotFound", err)
+	}
+	reader, err := store.Get(context.Background(), "tenant_2", "exports/package.zip")
+	if err != nil {
+		t.Fatalf("tenant_2 object lookup error = %v", err)
+	}
+	_ = reader.Body.Close()
+}
+
 func TestNewStoreSelectsS3CompatibleProvider(t *testing.T) {
 	store, err := NewStore(config.ObjectStorageConfig{
 		Provider:       "s3-compatible",
@@ -564,6 +598,74 @@ func TestS3StoreCleanupExpiredListsMarkersAndDeletesExpiredObjects(t *testing.T)
 	}
 	if deletedCount != 1 {
 		t.Fatalf("CleanupExpired() deleted = %d, want 1", deletedCount)
+	}
+	wantDeleted := []string{
+		"/zenart-test/tenants/tenant_1/exports/expired.zip",
+		"/zenart-test/tenants/tenant_1/exports/expired.zip.expires",
+	}
+	if len(deleted) != len(wantDeleted) {
+		t.Fatalf("deleted paths = %#v, want %#v", deleted, wantDeleted)
+	}
+	for i := range wantDeleted {
+		if deleted[i] != wantDeleted[i] {
+			t.Fatalf("deleted paths = %#v, want %#v", deleted, wantDeleted)
+		}
+	}
+}
+
+func TestS3StoreCleanupExpiredForTenantListsTenantPrefixOnly(t *testing.T) {
+	expired := time.Date(2026, 5, 26, 12, 0, 0, 0, time.UTC)
+	var listPrefix string
+	var deleted []string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			if r.URL.Query().Get("list-type") == "2" {
+				listPrefix = r.URL.Query().Get("prefix")
+				w.Header().Set("Content-Type", "application/xml")
+				_, _ = w.Write([]byte(`<?xml version="1.0" encoding="UTF-8"?>
+<ListBucketResult>
+  <IsTruncated>false</IsTruncated>
+  <Contents><Key>tenants/tenant_1/exports/expired.zip.expires</Key></Contents>
+</ListBucketResult>`))
+				return
+			}
+			if r.URL.Path != "/zenart-test/tenants/tenant_1/exports/expired.zip.expires" {
+				w.WriteHeader(http.StatusNotFound)
+				return
+			}
+			_, _ = w.Write([]byte(expired.Format(time.RFC3339)))
+		case http.MethodDelete:
+			deleted = append(deleted, r.URL.Path)
+			w.WriteHeader(http.StatusNoContent)
+		default:
+			t.Fatalf("unexpected method %s", r.Method)
+		}
+	}))
+	defer server.Close()
+
+	store, err := NewS3Store(config.ObjectStorageConfig{
+		Provider:       "s3-compatible",
+		Endpoint:       server.URL,
+		Region:         "us-east-1",
+		Bucket:         "zenart-test",
+		AccessKey:      "access",
+		SecretKey:      "secret",
+		ForcePathStyle: true,
+	}, server.Client())
+	if err != nil {
+		t.Fatalf("NewS3Store() error = %v", err)
+	}
+
+	deletedCount, err := store.CleanupExpiredForTenant(context.Background(), "tenant_1", expired.Add(time.Minute))
+	if err != nil {
+		t.Fatalf("CleanupExpiredForTenant() error = %v", err)
+	}
+	if deletedCount != 1 {
+		t.Fatalf("deleted = %d, want 1", deletedCount)
+	}
+	if listPrefix != "tenants/tenant_1/" {
+		t.Fatalf("list prefix = %q, want tenant-scoped prefix", listPrefix)
 	}
 	wantDeleted := []string{
 		"/zenart-test/tenants/tenant_1/exports/expired.zip",

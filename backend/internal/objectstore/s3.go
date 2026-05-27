@@ -225,13 +225,25 @@ func (s S3Store) Delete(ctx context.Context, tenantID, key string) error {
 }
 
 func (s S3Store) CleanupExpired(ctx context.Context, now time.Time) (int, error) {
+	return s.cleanupExpiredWithPrefix(ctx, "tenants/", now)
+}
+
+func (s S3Store) CleanupExpiredForTenant(ctx context.Context, tenantID string, now time.Time) (int, error) {
+	tenantID, err := normalizeTenantID(tenantID)
+	if err != nil {
+		return 0, err
+	}
+	return s.cleanupExpiredWithPrefix(ctx, "tenants/"+tenantID+"/", now)
+}
+
+func (s S3Store) cleanupExpiredWithPrefix(ctx context.Context, prefix string, now time.Time) (int, error) {
 	if err := ctx.Err(); err != nil {
 		return 0, err
 	}
 	deleted := 0
 	token := ""
 	for {
-		keys, nextToken, err := s.listKeys(ctx, "tenants/", token)
+		keys, nextToken, err := s.listKeys(ctx, prefix, token)
 		if err != nil {
 			return deleted, err
 		}

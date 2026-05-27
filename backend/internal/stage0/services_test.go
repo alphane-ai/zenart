@@ -1530,8 +1530,50 @@ func TestTenantScopedServiceCleanupDoesNotSweepGlobalObjectStoreMarkers(t *testi
 	if objects.cleanupExpiredCalled {
 		t.Fatal("tenant-scoped admin cleanup must not run global object-store marker cleanup")
 	}
+	if !objects.cleanupExpiredForTenantCalled || objects.cleanupExpiredTenantID != "tenant_1" {
+		t.Fatalf("tenant cleanup marker sweep = %v/%q, want tenant_1", objects.cleanupExpiredForTenantCalled, objects.cleanupExpiredTenantID)
+	}
 	if len(db.execs) != 3 {
 		t.Fatalf("exec count = %d, want repository mark, orphan mark, cleanup lifecycle analytics only", len(db.execs))
+	}
+}
+
+func TestTenantScopedServiceCleanupDeletesTenantExpiredMarkers(t *testing.T) {
+	now := time.Date(2026, 5, 26, 12, 0, 0, 0, time.UTC)
+	db := &fakeDB{
+		execTags: []pgconn.CommandTag{
+			pgconn.NewCommandTag("UPDATE 0"),
+			pgconn.NewCommandTag("UPDATE 0"),
+			pgconn.NewCommandTag("SELECT 1"),
+			pgconn.NewCommandTag("SELECT 1"),
+			pgconn.NewCommandTag("SELECT 1"),
+		},
+		queryRows: []rowSet{{}},
+	}
+	objects := &recordingObjectStore{cleanupExpiredForTenantCount: 2}
+	service := NewService(NewRepository(db), objects)
+
+	result, err := service.CleanupExpiredExportsAndOrphanedObjectsForTenant(context.Background(), "tenant_1", now, 50)
+	if err != nil {
+		t.Fatalf("CleanupExpiredExportsAndOrphanedObjectsForTenant() error = %v", err)
+	}
+	if result.DeletedObjects != 2 || result.FailedObjects != 0 || result.Status != "completed" {
+		t.Fatalf("tenant cleanup result = %#v, want two scoped marker deletes", result)
+	}
+	if objects.cleanupExpiredCalled {
+		t.Fatal("tenant-scoped admin cleanup must not run global object-store marker cleanup")
+	}
+	if !objects.cleanupExpiredForTenantCalled || objects.cleanupExpiredTenantID != "tenant_1" {
+		t.Fatalf("tenant cleanup marker sweep = %v/%q, want tenant_1", objects.cleanupExpiredForTenantCalled, objects.cleanupExpiredTenantID)
+	}
+	if len(db.execs) != 5 {
+		t.Fatalf("exec count = %d, want lifecycle, cleanup run analytics, cleanup audit refs", len(db.execs))
+	}
+	if !strings.Contains(db.execs[3].sql, "'export_object_cleanup_run'") || db.execs[3].args[3] != result.DeletedObjects {
+		t.Fatalf("cleanup run analytics args/sql = %#v / %s, want scoped marker delete count", db.execs[3].args, db.execs[3].sql)
+	}
+	if !strings.Contains(db.execs[4].sql, "INSERT INTO audit_logs") || db.execs[4].args[3] != result.DeletedObjects {
+		t.Fatalf("cleanup run audit args/sql = %#v / %s, want scoped marker delete count", db.execs[4].args, db.execs[4].sql)
 	}
 }
 
@@ -2702,15 +2744,19 @@ type rowSet struct {
 }
 
 type recordingObjectStore struct {
-	signedURL            string
-	signTenantID         string
-	signKey              string
-	signTTL              time.Duration
-	deleteErrors         map[string]error
-	deletedKeys          []string
-	cleanupExpiredCalled bool
-	cleanupExpiredCount  int
-	cleanupExpiredError  error
+	signedURL                     string
+	signTenantID                  string
+	signKey                       string
+	signTTL                       time.Duration
+	deleteErrors                  map[string]error
+	deletedKeys                   []string
+	cleanupExpiredCalled          bool
+	cleanupExpiredCount           int
+	cleanupExpiredError           error
+	cleanupExpiredForTenantCalled bool
+	cleanupExpiredTenantID        string
+	cleanupExpiredForTenantCount  int
+	cleanupExpiredForTenantError  error
 }
 
 func (s *recordingObjectStore) Put(_ context.Context, object objectstore.Object, _ io.Reader) (objectstore.Object, error) {
@@ -2741,6 +2787,12 @@ func (s *recordingObjectStore) Delete(_ context.Context, _ string, key string) e
 func (s *recordingObjectStore) CleanupExpired(_ context.Context, _ time.Time) (int, error) {
 	s.cleanupExpiredCalled = true
 	return s.cleanupExpiredCount, s.cleanupExpiredError
+}
+
+func (s *recordingObjectStore) CleanupExpiredForTenant(_ context.Context, tenantID string, _ time.Time) (int, error) {
+	s.cleanupExpiredForTenantCalled = true
+	s.cleanupExpiredTenantID = tenantID
+	return s.cleanupExpiredForTenantCount, s.cleanupExpiredForTenantError
 }
 
 type fakeRows struct {

@@ -52,6 +52,7 @@ type Store interface {
 	SignGetURL(ctx context.Context, tenantID, key string, ttl time.Duration) (string, error)
 	Delete(ctx context.Context, tenantID, key string) error
 	CleanupExpired(ctx context.Context, now time.Time) (int, error)
+	CleanupExpiredForTenant(ctx context.Context, tenantID string, now time.Time) (int, error)
 }
 
 func NewStore(cfg config.ObjectStorageConfig, client *http.Client) (Store, error) {
@@ -222,8 +223,19 @@ func (s LocalStore) Delete(ctx context.Context, tenantID, key string) error {
 }
 
 func (s LocalStore) CleanupExpired(ctx context.Context, now time.Time) (int, error) {
+	return s.cleanupExpiredWithRoot(ctx, filepath.Join(s.root, s.bucket), now)
+}
+
+func (s LocalStore) CleanupExpiredForTenant(ctx context.Context, tenantID string, now time.Time) (int, error) {
+	tenantID, err := normalizeTenantID(tenantID)
+	if err != nil {
+		return 0, err
+	}
+	return s.cleanupExpiredWithRoot(ctx, filepath.Join(s.root, s.bucket, "tenants", tenantID), now)
+}
+
+func (s LocalStore) cleanupExpiredWithRoot(ctx context.Context, root string, now time.Time) (int, error) {
 	deleted := 0
-	root := filepath.Join(s.root, s.bucket)
 	err := filepath.WalkDir(root, func(path string, entry os.DirEntry, err error) error {
 		if err != nil {
 			return err
