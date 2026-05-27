@@ -8714,8 +8714,10 @@ def validate_eval_storage_read_fixture_contract() -> None:
     rows = fixture["fixture_rows"]
     pagination_cases = fixture["pagination_cases"]
     empty_cases = fixture["expected_empty_cases"]
+    rejected_cases = fixture["rejected_query_cases"]
     row_ids = [row["id"] for row in rows]
     require(len(row_ids) == len(set(row_ids)), "eval read fixture rows must have unique ids")
+    require(rejected_cases, "eval read fixture must include rejected query cases")
     require(fixture["tenant_filter_required"] is True, "eval read fixture must require tenant scope")
     read_contract = contract["read_contract"]
     require(set(read_contract["pagination_parameters"]) == {"PageToken", "PageSize"}, "eval read contract pagination parameters mismatch")
@@ -8840,6 +8842,46 @@ def validate_eval_storage_read_fixture_contract() -> None:
             for row in rows
         ),
         "eval read strict completed_after empty case must include an equal timestamp row",
+    )
+
+    required_rejected_query_cases = {
+        "missing_tenant_id_rejected": "missing_tenant_id",
+        "missing_latest_only_rejected": "missing_latest_only",
+        "free_text_search_filter_rejected": "unsupported_query_filter",
+        "invalid_page_token_format_rejected": "invalid_page_token_format",
+        "cross_tenant_page_token_rejected": "cross_tenant_page_token",
+        "page_size_above_max_rejected": "invalid_page_size",
+    }
+    rejected_by_id = {case["case_id"]: case for case in rejected_cases}
+    require(set(rejected_by_id) == set(required_rejected_query_cases), "eval read rejected query cases mismatch")
+    for case_id, expected_error in required_rejected_query_cases.items():
+        case = rejected_by_id[case_id]
+        require(case["expected_error"] == expected_error, f"{case_id} rejected query error mismatch")
+        require(case["expected_result_ids"] == [], f"{case_id} must not return rows")
+        require(case["expected_next_page_token"] == "", f"{case_id} must not return a next page token")
+    require(
+        "tenant_id" not in rejected_by_id["missing_tenant_id_rejected"]["query"],
+        "missing tenant rejected query must omit tenant_id",
+    )
+    require(
+        "latest_only" not in rejected_by_id["missing_latest_only_rejected"]["query"],
+        "missing latest_only rejected query must omit latest_only",
+    )
+    require(
+        "search" in rejected_by_id["free_text_search_filter_rejected"]["query"],
+        "free-text rejected query must include forbidden search",
+    )
+    cross_tenant_query = rejected_by_id["cross_tenant_page_token_rejected"]["query"]
+    cross_tenant_token_id = cross_tenant_query["page_token"].removeprefix("after:")
+    row_by_id = {row["id"]: row for row in rows}
+    require(cross_tenant_token_id in row_by_id, "cross-tenant rejected cursor must cite an existing row")
+    require(
+        row_by_id[cross_tenant_token_id]["tenant_id"] != cross_tenant_query["tenant_id"],
+        "cross-tenant rejected cursor must cite a row outside the queried tenant",
+    )
+    require(
+        rejected_by_id["page_size_above_max_rejected"]["query"]["page_size"] > read_contract["page_size_bounds"]["maximum"],
+        "page-size rejected query must exceed the read contract maximum",
     )
 
     tenant_case = cases["tenant_isolation_keeps_newer_other_tenant_out_of_acme_reads"]

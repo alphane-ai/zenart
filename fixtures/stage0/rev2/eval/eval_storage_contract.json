@@ -551,6 +551,74 @@
         },
         "expected_result_ids": []
       }
+    ],
+    "rejected_query_cases": [
+      {
+        "case_id": "missing_tenant_id_rejected",
+        "query": {
+          "eval_suite_id": "eval_stage0_rev2_starter",
+          "latest_only": true
+        },
+        "expected_error": "missing_tenant_id",
+        "expected_result_ids": [],
+        "expected_next_page_token": ""
+      },
+      {
+        "case_id": "missing_latest_only_rejected",
+        "query": {
+          "tenant_id": "tenant_stage0_acme",
+          "eval_suite_id": "eval_stage0_rev2_starter"
+        },
+        "expected_error": "missing_latest_only",
+        "expected_result_ids": [],
+        "expected_next_page_token": ""
+      },
+      {
+        "case_id": "free_text_search_filter_rejected",
+        "query": {
+          "tenant_id": "tenant_stage0_acme",
+          "latest_only": true,
+          "search": "launch claims"
+        },
+        "expected_error": "unsupported_query_filter",
+        "expected_result_ids": [],
+        "expected_next_page_token": ""
+      },
+      {
+        "case_id": "invalid_page_token_format_rejected",
+        "query": {
+          "tenant_id": "tenant_stage0_acme",
+          "latest_only": false,
+          "page_token": "offset:2",
+          "page_size": 2
+        },
+        "expected_error": "invalid_page_token_format",
+        "expected_result_ids": [],
+        "expected_next_page_token": ""
+      },
+      {
+        "case_id": "cross_tenant_page_token_rejected",
+        "query": {
+          "tenant_id": "tenant_stage0_acme",
+          "latest_only": false,
+          "page_token": "after:eval_result_read_beta_same_subject_newer",
+          "page_size": 2
+        },
+        "expected_error": "cross_tenant_page_token",
+        "expected_result_ids": [],
+        "expected_next_page_token": ""
+      },
+      {
+        "case_id": "page_size_above_max_rejected",
+        "query": {
+          "tenant_id": "tenant_stage0_acme",
+          "latest_only": false,
+          "page_size": 101
+        },
+        "expected_error": "invalid_page_size",
+        "expected_result_ids": [],
+        "expected_next_page_token": ""
+      }
     ]
   },
   "replay_contract": {

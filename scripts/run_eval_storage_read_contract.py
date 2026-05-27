@@ -35,6 +35,12 @@ class EvalStorageReadContractError(Exception):
     pass
 
 
+class EvalStorageReadQueryError(EvalStorageReadContractError):
+    def __init__(self, code: str, message: str) -> None:
+        super().__init__(message)
+        self.code = code
+
+
 def load_json(path: Path) -> Any:
     try:
         return json.loads(path.read_text(encoding="utf-8"))
@@ -45,6 +51,11 @@ def load_json(path: Path) -> Any:
 def require(condition: bool, message: str) -> None:
     if not condition:
         raise EvalStorageReadContractError(message)
+
+
+def reject(condition: bool, code: str, message: str) -> None:
+    if not condition:
+        raise EvalStorageReadQueryError(code, message)
 
 
 def parse_rfc3339(value: str) -> datetime:
@@ -63,10 +74,11 @@ def apply_read_query(
     query: dict[str, Any],
     latest_group_fields: list[str],
 ) -> tuple[list[dict[str, Any]], str]:
-    require("tenant_id" in query, "eval result reads must include tenant_id")
-    require("latest_only" in query, "eval result reads must include latest_only")
-    require(
+    reject("tenant_id" in query, "missing_tenant_id", "eval result reads must include tenant_id")
+    reject("latest_only" in query, "missing_latest_only", "eval result reads must include latest_only")
+    reject(
         set(query) <= QUERY_FIELDS,
+        "unsupported_query_filter",
         f"unsupported query filters: {sorted(set(query) - QUERY_FIELDS)}",
     )
 
@@ -98,15 +110,23 @@ def apply_read_query(
 
     page_token = query.get("page_token", "")
     if page_token:
-        require(isinstance(page_token, str) and page_token.startswith("after:"), "page_token must use after:<result_id>")
+        reject(
+            isinstance(page_token, str) and page_token.startswith("after:"),
+            "invalid_page_token_format",
+            "page_token must use after:<result_id>",
+        )
         after_id = page_token.removeprefix("after:")
         matching_indexes = [index for index, row in enumerate(filtered_ordered) if row["id"] == after_id]
-        require(matching_indexes, f"page_token references a result outside the filtered page: {after_id}")
+        reject(
+            bool(matching_indexes),
+            "cross_tenant_page_token",
+            f"page_token references a result outside the filtered page: {after_id}",
+        )
         filtered_ordered = filtered_ordered[matching_indexes[0] + 1 :]
 
     page_size = query.get("page_size", 25)
-    require(isinstance(page_size, int), "page_size must be an integer")
-    require(1 <= page_size <= 100, "page_size must be between 1 and 100")
+    reject(isinstance(page_size, int), "invalid_page_size", "page_size must be an integer")
+    reject(1 <= page_size <= 100, "invalid_page_size", "page_size must be between 1 and 100")
 
     page = filtered_ordered[:page_size]
     if len(filtered_ordered) > page_size:
@@ -196,6 +216,45 @@ def run_read_contract() -> dict[str, Any]:
                     "expected_next_page_token": case.get("expected_next_page_token", ""),
                 }
             )
+
+    rejected_cases = fixture["rejected_query_cases"]
+    rejected_case_ids = [case["case_id"] for case in rejected_cases]
+    require(len(rejected_case_ids) == len(set(rejected_case_ids)), "read fixture rejected query case ids must be unique")
+    required_rejections = {
+        "missing_tenant_id",
+        "missing_latest_only",
+        "unsupported_query_filter",
+        "invalid_page_token_format",
+        "cross_tenant_page_token",
+        "invalid_page_size",
+    }
+    seen_rejections: set[str] = set()
+    for case in rejected_cases:
+        try:
+            apply_read_query(rows, case["query"], latest_group_fields)
+        except EvalStorageReadQueryError as exc:
+            require(
+                exc.code == case["expected_error"],
+                f"{case['case_id']} expected {case['expected_error']} rejection, got {exc.code}",
+            )
+            seen_rejections.add(exc.code)
+            executed_cases.append(
+                {
+                    "case_id": case["case_id"],
+                    "actual_error": exc.code,
+                    "expected_error": case["expected_error"],
+                    "actual_result_ids": [],
+                    "expected_result_ids": case["expected_result_ids"],
+                    "actual_next_page_token": "",
+                    "expected_next_page_token": case["expected_next_page_token"],
+                }
+            )
+        else:
+            raise EvalStorageReadContractError(f"{case['case_id']} should reject the read query")
+    require(
+        seen_rejections == required_rejections,
+        f"read fixture rejected query cases mismatch: {sorted(required_rejections - seen_rejections)}",
+    )
 
     return {
         "schema_version": "stage0.rev2",

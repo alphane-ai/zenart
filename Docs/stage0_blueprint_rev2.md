@@ -1775,6 +1775,7 @@ main 合并前必须通过：
 - [x] 实现 eval runner。
 - [x] 存储 eval results。
 - [x] Eval result storage write/idempotency contract 通过：`fixtures/stage0/rev2/eval/eval_storage_contract.json` declares exact replay、same-key divergent replay、source fixture digest conflict、cross-tenant same-subject write cases, and `scripts/run_eval_storage_write_contract.py --check` validates the write conflict outcomes without rerunning eval。
+- [x] Eval result storage read/query contract 通过：`fixtures/stage0/rev2/eval/eval_storage_contract.json` declares tenant-scoped admin reads、completed_at/created_at ordering、latest-only grouping by tenant/suite/subject/version/runner hash、pagination、empty reads, and fail-closed rejected queries for missing tenant/latest-only、forbidden search、invalid cursor、cross-tenant cursor、page-size overflow; `scripts/run_eval_storage_read_contract.py --check` validates these reads without rerunning eval。
 - [x] Eval result retention/redaction/no-public-delete contract 通过：`fixtures/stage0/rev2/eval/eval_storage_contract.json` declares pass/fail/blocked retention, summary/runner hash preservation, no public delete, admin-audited deletion/redaction semantics, and `scripts/run_eval_storage_retention_contract.py --check` validates retention outcomes without rerunning eval。
 - [x] skill canary 前要求 eval pass。
 - [x] prompt fragment active 前要求 eval pass。

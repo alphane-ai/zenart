@@ -445,7 +445,8 @@
         "fixture_rows",
         "cases",
         "pagination_cases",
-        "expected_empty_cases"
+        "expected_empty_cases",
+        "rejected_query_cases"
       ],
       "properties": {
         "tenant_filter_required": {
@@ -507,6 +508,14 @@
           "uniqueItems": true,
           "items": {
             "$ref": "#/$defs/read_fixture_case"
+          }
+        },
+        "rejected_query_cases": {
+          "type": "array",
+          "minItems": 5,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/read_rejected_query_case"
           }
         }
       }
@@ -900,6 +909,43 @@
         },
         "expected_next_page_token": {
           "type": "string"
+        }
+      }
+    },
+    "read_rejected_query_case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "query",
+        "expected_error",
+        "expected_result_ids",
+        "expected_next_page_token"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9_]+$"
+        },
+        "query": {
+          "type": "object"
+        },
+        "expected_error": {
+          "enum": [
+            "missing_tenant_id",
+            "missing_latest_only",
+            "unsupported_query_filter",
+            "invalid_page_token_format",
+            "cross_tenant_page_token",
+            "invalid_page_size"
+          ]
+        },
+        "expected_result_ids": {
+          "type": "array",
+          "maxItems": 0
+        },
+        "expected_next_page_token": {
+          "const": ""
         }
       }
     },

@@ -556,6 +556,7 @@ def validate_read_fixture_contract(contract: dict[str, Any]) -> None:
     cases = fixture["cases"]
     pagination_cases = fixture["pagination_cases"]
     empty_cases = fixture["expected_empty_cases"]
+    rejected_cases = fixture["rejected_query_cases"]
     latest_group_fields = fixture["latest_only_groups_by"]
 
     require(
@@ -600,10 +601,16 @@ def validate_read_fixture_contract(contract: dict[str, Any]) -> None:
     require(len(pagination_case_ids) == len(set(pagination_case_ids)), "read fixture pagination case ids must be unique")
     empty_case_ids = [case["case_id"] for case in empty_cases]
     require(len(empty_case_ids) == len(set(empty_case_ids)), "read fixture empty case ids must be unique")
+    rejected_case_ids = [case["case_id"] for case in rejected_cases]
+    require(len(rejected_case_ids) == len(set(rejected_case_ids)), "read fixture rejected query case ids must be unique")
     require(not (set(case_ids) & set(empty_case_ids)), "read fixture positive and empty case ids must not overlap")
     require(
         not (set(case_ids) & set(pagination_case_ids) or set(pagination_case_ids) & set(empty_case_ids)),
         "read fixture pagination case ids must not overlap other cases",
+    )
+    require(
+        not (set(rejected_case_ids) & (set(case_ids) | set(pagination_case_ids) | set(empty_case_ids))),
+        "read fixture rejected query case ids must not overlap successful cases",
     )
     row_by_id = {row["id"]: row for row in rows}
 
@@ -718,6 +725,49 @@ def validate_read_fixture_contract(contract: dict[str, Any]) -> None:
             for row in rows
         ),
         "strict completed_after empty case must prove equality is excluded, not merely absent",
+    )
+
+    required_rejected_cases = {
+        "missing_tenant_id_rejected": "missing_tenant_id",
+        "missing_latest_only_rejected": "missing_latest_only",
+        "free_text_search_filter_rejected": "unsupported_query_filter",
+        "invalid_page_token_format_rejected": "invalid_page_token_format",
+        "cross_tenant_page_token_rejected": "cross_tenant_page_token",
+        "page_size_above_max_rejected": "invalid_page_size",
+    }
+    rejected_by_id = {case["case_id"]: case for case in rejected_cases}
+    require(set(rejected_by_id) == set(required_rejected_cases), "eval read rejected query fixture cases mismatch")
+    for case_id, expected_error in required_rejected_cases.items():
+        case = rejected_by_id[case_id]
+        require(case["expected_error"] == expected_error, f"{case_id} expected error mismatch")
+        require(case["expected_result_ids"] == [], f"{case_id} must not return rows")
+        require(case["expected_next_page_token"] == "", f"{case_id} must not return a next page token")
+    require(
+        "tenant_id" not in rejected_by_id["missing_tenant_id_rejected"]["query"],
+        "missing tenant rejection must omit tenant_id",
+    )
+    require(
+        "latest_only" not in rejected_by_id["missing_latest_only_rejected"]["query"],
+        "missing latest_only rejection must omit latest_only",
+    )
+    require(
+        "search" in rejected_by_id["free_text_search_filter_rejected"]["query"],
+        "free-text rejection must include forbidden search filter",
+    )
+    require(
+        not str(rejected_by_id["invalid_page_token_format_rejected"]["query"]["page_token"]).startswith("after:"),
+        "invalid page token rejection must use a non-after token",
+    )
+    cross_tenant_query = rejected_by_id["cross_tenant_page_token_rejected"]["query"]
+    cross_tenant_token_id = cross_tenant_query["page_token"].removeprefix("after:")
+    require(cross_tenant_token_id in row_by_id, "cross-tenant cursor rejection must cite an existing row")
+    require(
+        row_by_id[cross_tenant_token_id]["tenant_id"] != cross_tenant_query["tenant_id"],
+        "cross-tenant cursor rejection must cite a row outside the queried tenant",
+    )
+    require(
+        rejected_by_id["page_size_above_max_rejected"]["query"]["page_size"] > read["page_size_bounds"]["maximum"],
+        "page-size rejection must exceed the read contract maximum",
     )
 
     check = subprocess.run(
