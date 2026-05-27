@@ -58,18 +58,20 @@ SAFETY_ORDER = [
 ]
 
 TRANSITION_SEQUENCE = [
-    ("brief_completion", "brief_confirmed", {"tenant_id", "project_id"}, "deny_generation"),
-    ("provider_request_dispatch", "provider_call", {"tenant_id", "task_id"}, "deny_provider_call"),
-    ("provider_response_acceptance", "candidate_asset_acceptance", {"tenant_id", "task_id"}, "deny_asset_acceptance"),
-    ("qa_completion", "package_export_allowed", {"tenant_id", "qa_subject_type", "qa_subject_id"}, "deny_qa_completion"),
+    ("brief_completion", "brief", "brief_confirmed", {"tenant_id", "project_id"}, "deny_generation"),
+    ("provider_request_dispatch", "provider_request", "provider_call", {"tenant_id", "task_id"}, "deny_provider_call"),
+    ("provider_response_acceptance", "provider_response", "candidate_asset_acceptance", {"tenant_id", "task_id"}, "deny_asset_acceptance"),
+    ("qa_completion", "qa", "package_export_allowed", {"tenant_id", "qa_subject_type", "qa_subject_id"}, "deny_qa_completion"),
     (
         "export_creation",
+        "export",
         "export_task_created",
         {"tenant_id", "project_id", "qa_subject_type", "qa_subject_id", "export_id"},
         "deny_export_task",
     ),
     (
         "export_artifact_recording",
+        "export",
         "downloadable_artifact_recorded",
         {"tenant_id", "project_id", "qa_subject_type", "qa_subject_id", "export_id"},
         "deny_downloadable_artifact",
@@ -356,6 +358,11 @@ def validate_cross_contracts(contract: dict[str, Any]) -> None:
     require(matrix_points == SAFETY_POINTS, f"decision matrix missing points: {sorted(SAFETY_POINTS - matrix_points)}")
     for item in contract["decision_matrix"]:
         actions = item["actions"]
+        decisions_in_order = [action["decision"] for action in actions]
+        require(
+            decisions_in_order == ["allow", "warn", "require_user_confirmation", "require_admin_review", "block"],
+            f"{item['enforcement_point']} decision matrix must preserve allow/warn/hold/block priority order",
+        )
         decisions = {action["decision"] for action in actions}
         require(decisions == SAFETY_ACTIONS, f"{item['enforcement_point']} decision matrix must cover every action")
         for action in actions:
@@ -412,9 +419,10 @@ def validate_pipeline_sequence_contract(contract: dict[str, Any]) -> None:
 
     transitions = pipeline["transition_gates"]
     require(len(transitions) == len(TRANSITION_SEQUENCE), "safety transition gate count mismatch")
-    for index, (stage, must_run_before, fields, effect) in enumerate(TRANSITION_SEQUENCE):
+    for index, (stage, point, must_run_before, fields, effect) in enumerate(TRANSITION_SEQUENCE):
         item = transitions[index]
         require(item["stage"] == stage, f"safety transition {index} stage mismatch")
+        require(item["enforcement_point"] == point, f"{stage} enforcement point mismatch")
         require(item["must_run_before"] == must_run_before, f"{stage} must_run_before mismatch")
         require(set(item["required_subject_fields"]) == fields, f"{stage} subject field contract mismatch")
         require(item["blocked_or_held_effect"] == effect, f"{stage} blocked effect mismatch")
@@ -483,6 +491,12 @@ def validate_runtime_replay_contract(contract: dict[str, Any]) -> None:
     require(replay["fail_closed_cases_replayed"] == len(FAIL_CLOSED_CASES), "fail-closed replay count mismatch")
     require(replay["bypass_prevention_cases_replayed"] == len(BYPASS_PREVENTION_CASES), "bypass replay count mismatch")
     require(replay["fixture_link_cases_replayed"] == len(contract["fixture_links"]), "fixture-link replay count mismatch")
+    require(replay["transition_points_replayed"] is True, "runtime replay must validate transition enforcement points")
+    require(replay["decision_priority_order_validated"] is True, "runtime replay must validate decision priority order")
+    require(
+        replay["held_or_blocked_require_audit_for_all_actions"] is True,
+        "runtime replay must validate audit requirements for held/blocking actions",
+    )
     require(replay["blocked_or_held_creates_downstream_artifacts"] is False, "blocked/held replay must fail closed")
     require(replay["trace_status_required_for_all_transitions"] is True, "runtime replay must require trace status")
     require(replay["persisted_decision_required_for_all_actions"] is True, "runtime replay must require persisted decisions")
@@ -525,6 +539,10 @@ def validate_bypass_prevention_cases(pipeline: dict[str, Any], service: str, tes
         require(case["transition_stage"] == stage, f"{case_id} transition stage mismatch")
         require(case["attempted_bypass"] == attempted_bypass, f"{case_id} bypass attempt mismatch")
         require(case["skipped_enforcement_point"] == skipped_point, f"{case_id} skipped point mismatch")
+        require(
+            case["skipped_enforcement_point"] == transition["enforcement_point"],
+            f"{case_id} skipped point must match transition enforcement point",
+        )
         require(
             case["attempted_downstream_transition"] == downstream_transition,
             f"{case_id} downstream transition mismatch",

@@ -193,6 +193,7 @@
             "additionalProperties": false,
             "required": [
               "stage",
+              "enforcement_point",
               "must_run_before",
               "required_subject_fields",
               "blocked_or_held_effect",
@@ -208,6 +209,15 @@
                   "qa_completion",
                   "export_creation",
                   "export_artifact_recording"
+                ]
+              },
+              "enforcement_point": {
+                "enum": [
+                  "brief",
+                  "provider_request",
+                  "provider_response",
+                  "qa",
+                  "export"
                 ]
               },
               "must_run_before": {
@@ -480,6 +490,9 @@
         "fail_closed_cases_replayed",
         "bypass_prevention_cases_replayed",
         "fixture_link_cases_replayed",
+        "transition_points_replayed",
+        "decision_priority_order_validated",
+        "held_or_blocked_require_audit_for_all_actions",
         "blocked_or_held_creates_downstream_artifacts",
         "trace_status_required_for_all_transitions",
         "persisted_decision_required_for_all_actions"
@@ -513,6 +526,15 @@
         "fixture_link_cases_replayed": {
           "type": "integer",
           "minimum": 4
+        },
+        "transition_points_replayed": {
+          "const": true
+        },
+        "decision_priority_order_validated": {
+          "const": true
+        },
+        "held_or_blocked_require_audit_for_all_actions": {
+          "const": true
         },
         "blocked_or_held_creates_downstream_artifacts": {
           "const": false

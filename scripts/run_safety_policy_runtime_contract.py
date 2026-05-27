@@ -39,6 +39,14 @@ ACTION_ERRORS = {
     "block": "ErrSafetyBlocked",
 }
 
+ACTION_PRIORITY = {
+    "allow": 0,
+    "warn": 1,
+    "require_user_confirmation": 2,
+    "require_admin_review": 3,
+    "block": 4,
+}
+
 INPUT_GAP_ERRORS = {
     "missing_tenant_id": "ErrValidation",
     "missing_all_subjects": "ErrValidation",
@@ -79,6 +87,11 @@ def replay_decision_matrix(contract: dict[str, Any], eval_by_fixture: dict[str, 
     for matrix in contract["decision_matrix"]:
         point = matrix["enforcement_point"]
         seen_points.add(point)
+        decisions_in_order = [action["decision"] for action in matrix["actions"]]
+        require(
+            decisions_in_order == sorted(decisions_in_order, key=lambda decision: ACTION_PRIORITY[decision]),
+            f"{point} decision matrix must preserve allow->warn->hold->block priority order",
+        )
         for action in matrix["actions"]:
             decision = action["decision"]
             outcome, downstream_allowed, requires_audit = ACTION_OUTCOMES[decision]
@@ -104,6 +117,7 @@ def replay_decision_matrix(contract: dict[str, Any], eval_by_fixture: dict[str, 
                 {
                     "enforcement_point": point,
                     "decision": decision,
+                    "decision_priority": ACTION_PRIORITY[decision],
                     "source_fixture_id": fixture_id,
                     "observed_fixture_status": result["status"],
                     "runtime_outcome": outcome,
@@ -124,15 +138,18 @@ def replay_transition_gates(contract: dict[str, Any]) -> list[dict[str, Any]]:
     pipeline = contract["pipeline_sequence_contract"]
     gates = []
     seen_stages: set[str] = set()
+    seen_points: set[str] = set()
 
     for gate in pipeline["transition_gates"]:
         seen_stages.add(gate["stage"])
+        seen_points.add(gate["enforcement_point"])
         require(gate["trace_status_required"] is True, f"{gate['stage']} must require trace safety status")
         require(gate["downstream_artifacts_created_on_block"] is False, f"{gate['stage']} must fail closed")
         require(gate["required_subject_fields"], f"{gate['stage']} must declare required subject fields")
         gates.append(
             {
                 "stage": gate["stage"],
+                "enforcement_point": gate["enforcement_point"],
                 "must_run_before": gate["must_run_before"],
                 "required_subject_fields": gate["required_subject_fields"],
                 "blocked_or_held_effect": gate["blocked_or_held_effect"],
@@ -146,6 +163,7 @@ def replay_transition_gates(contract: dict[str, Any]) -> list[dict[str, Any]]:
         for case in pipeline["bypass_prevention_cases"]
     }
     require(seen_stages == bypass_stages, "bypass prevention cases must replay every transition gate")
+    require(seen_points == SAFETY_POINTS, f"transition gates missing safety points: {sorted(SAFETY_POINTS - seen_points)}")
     return gates
 
 
@@ -181,6 +199,10 @@ def replay_bypass_cases(contract: dict[str, Any]) -> list[dict[str, Any]]:
     for case in pipeline["bypass_prevention_cases"]:
         transition = transitions[case["transition_stage"]]
         seen_points.add(case["skipped_enforcement_point"])
+        require(
+            case["skipped_enforcement_point"] == transition["enforcement_point"],
+            f"{case['case_id']} skipped point must match transition enforcement point",
+        )
         require(case["attempted_downstream_transition"] == transition["must_run_before"], f"{case['case_id']} downstream mismatch")
         require(case["creates_downstream_artifacts"] is False, f"{case['case_id']} must not create downstream artifacts")
         require(case["trace_status_required"] is True, f"{case['case_id']} must require trace status")
@@ -237,6 +259,12 @@ def validate_declared_replay_contract(contract: dict[str, Any], summary: dict[st
     require(declared["fail_closed_cases_replayed"] == summary["fail_closed_cases"], "fail-closed replay count mismatch")
     require(declared["bypass_prevention_cases_replayed"] == summary["bypass_prevention_cases"], "bypass replay count mismatch")
     require(declared["fixture_link_cases_replayed"] == summary["fixture_link_cases"], "fixture link replay count mismatch")
+    require(declared["transition_points_replayed"] == summary["transition_points_replayed"], "transition point replay mismatch")
+    require(declared["decision_priority_order_validated"] == summary["decision_priority_order_validated"], "decision priority replay mismatch")
+    require(
+        declared["held_or_blocked_require_audit_for_all_actions"] == summary["held_or_blocked_require_audit_for_all_actions"],
+        "held/block audit replay mismatch",
+    )
     require(declared["blocked_or_held_creates_downstream_artifacts"] is False, "blocked/held replay must be fail-closed")
     require(declared["trace_status_required_for_all_transitions"] is True, "all transitions must require trace status")
     require(declared["persisted_decision_required_for_all_actions"] is True, "all actions must require persisted decisions")
@@ -261,6 +289,17 @@ def run() -> dict[str, Any]:
         "fail_closed_cases": len(fail_closed),
         "bypass_prevention_cases": len(bypass),
         "fixture_link_cases": len(fixture_links),
+        "transition_points_replayed": {item["enforcement_point"] for item in transitions} == SAFETY_POINTS,
+        "decision_priority_order_validated": all(
+            [item["decision_priority"] for item in decisions if item["enforcement_point"] == point]
+            == sorted([item["decision_priority"] for item in decisions if item["enforcement_point"] == point])
+            for point in SAFETY_POINTS
+        ),
+        "held_or_blocked_require_audit_for_all_actions": all(
+            item["audit_required"]
+            for item in decisions
+            if item["runtime_outcome"] in {"held_for_user_confirmation", "held_for_admin_review", "blocked"}
+        ),
         "blocked_or_held_creates_downstream_artifacts": any(item["creates_downstream_artifacts"] for item in blocked_or_held),
         "trace_status_required_for_all_transitions": all(item["trace_status_required"] for item in transitions + bypass),
         "persisted_decision_required_for_all_actions": all(item["persisted_decision_required"] for item in decisions),
