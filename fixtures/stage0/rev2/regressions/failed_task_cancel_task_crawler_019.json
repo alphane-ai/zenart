@@ -28,6 +28,12 @@
     "signal": "Crawler cancellation must remain in review and block activation until source ownership, robots, takedown, and audit evidence are complete.",
     "admin_label": "failed_task_cancel_second_review"
   },
+  "runtime_contract": {
+    "submit_decision": "review_required",
+    "state_transition": "cancelled_state_preserved_pending_review",
+    "closure_outcome": "cancel_requires_second_review",
+    "release_gate_disposition": "eval_gate_preserved_by_regression_fixture"
+  },
   "release_block": {
     "canary_metric": "cm-014",
     "audit_ref": "au-002",

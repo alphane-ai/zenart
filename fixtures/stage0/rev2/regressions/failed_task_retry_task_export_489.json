@@ -28,6 +28,12 @@
     "signal": "Support-authorized export retry must not create duplicate quota settlement or close without manifest and QA-report evidence.",
     "admin_label": "failed_task_retry_idempotency"
   },
+  "runtime_contract": {
+    "submit_decision": "submit_ready",
+    "state_transition": "failed_to_retrying_after_submit",
+    "closure_outcome": "retry_submits_with_audit",
+    "release_gate_disposition": "converted_regression_fixture"
+  },
   "release_block": {
     "canary_metric": "cm-012",
     "audit_ref": "au-011",

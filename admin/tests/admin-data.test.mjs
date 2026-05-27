@@ -141,6 +141,9 @@ test("admin queue fixtures expose retry idempotency, RBAC, and quota effects", (
     "RBAC Decision",
     "Idempotency Key",
     "Quota Effect",
+    "State Transition",
+    "Closure Outcome",
+    "Release Gate",
     "Regression Fixture",
     "Closure Evidence"
   ]) {

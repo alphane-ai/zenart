@@ -165,6 +165,9 @@ const parseFailedTaskRuntime = () => {
     .replace(/^import type[\s\S]*?from "@\/lib\/types";\n\n/, "")
     .replaceAll(/export function (\w+)/g, "function $1")
     .replaceAll(/function idempotencyStatus\(task: FailedTaskControl\): FailedTaskRuntimeDecision\["idempotencyStatus"\]/g, "function idempotencyStatus(task)")
+    .replaceAll(/function stateTransition\(\n  task: FailedTaskControl,\n  submitDecision: FailedTaskRuntimeDecision\["submitDecision"\]\n\): FailedTaskRuntimeDecision\["stateTransition"\]/g, "function stateTransition(task, submitDecision)")
+    .replaceAll(/function closureOutcome\(\n  task: FailedTaskControl,\n  submitDecision: FailedTaskRuntimeDecision\["submitDecision"\]\n\): FailedTaskRuntimeDecision\["closureOutcome"\]/g, "function closureOutcome(task, submitDecision)")
+    .replaceAll(/function releaseGateDisposition\(\n  task: FailedTaskControl,\n  submitDecision: FailedTaskRuntimeDecision\["submitDecision"\]\n\): FailedTaskRuntimeDecision\["releaseGateDisposition"\]/g, "function releaseGateDisposition(task, submitDecision)")
     .replaceAll(/: FailedTaskRuntimeDecision\[\]/g, "")
     .replaceAll(/: FailedTaskControl\[\]/g, "")
     .replaceAll(/: string\[\]/g, "")
@@ -1045,6 +1048,14 @@ test("failed task retry and cancel samples are durable regression fixtures", () 
   assert.equal(cancelFixture.bad_sample.quota_effect, cancelTask.quotaEffect);
   assert.equal(retryDecision.submitDecision, "submit_ready");
   assert.equal(cancelDecision.submitDecision, "review_required");
+  assert.equal(retryFixture.runtime_contract.submit_decision, retryDecision.submitDecision);
+  assert.equal(cancelFixture.runtime_contract.submit_decision, cancelDecision.submitDecision);
+  assert.equal(retryDecision.stateTransition, retryFixture.runtime_contract.state_transition);
+  assert.equal(cancelDecision.stateTransition, cancelFixture.runtime_contract.state_transition);
+  assert.equal(retryDecision.closureOutcome, retryFixture.runtime_contract.closure_outcome);
+  assert.equal(cancelDecision.closureOutcome, cancelFixture.runtime_contract.closure_outcome);
+  assert.equal(retryDecision.releaseGateDisposition, retryFixture.runtime_contract.release_gate_disposition);
+  assert.equal(cancelDecision.releaseGateDisposition, cancelFixture.runtime_contract.release_gate_disposition);
 
   assert.ok(
     retryFixture.expected_assertions.includes("action_scoped_idempotency_key == true"),
@@ -1086,6 +1097,26 @@ test("failed task runtime submit gates preserve retry, cancel, hold, RBAC, and a
   assert.equal(decisionsByTask.get("task-export-489").submitDecision, "submit_ready", "eligible retry should be submittable");
   assert.equal(decisionsByTask.get("task-crawler-019").submitDecision, "review_required", "crawler cancel should require second review");
   assert.equal(decisionsByTask.get("task-brief-441").submitDecision, "blocked", "safety hold should stay blocked");
+  assert.equal(
+    decisionsByTask.get("task-export-489").stateTransition,
+    "failed_to_retrying_after_submit",
+    "eligible retry should expose its post-submit transition"
+  );
+  assert.equal(
+    decisionsByTask.get("task-crawler-019").stateTransition,
+    "cancelled_state_preserved_pending_review",
+    "crawler cancel should preserve cancelled state while review is open"
+  );
+  assert.equal(
+    decisionsByTask.get("task-brief-441").stateTransition,
+    "blocked_state_preserved",
+    "blocked safety hold should preserve blocked task state"
+  );
+  assert.equal(
+    decisionsByTask.get("task-crawler-019").releaseGateDisposition,
+    "eval_gate_preserved_by_regression_fixture",
+    "crawler cancel regression must preserve the eval gate while second review is open"
+  );
 
   for (const task of failedTaskControls) {
     const decision = decisionsByTask.get(task.id);
@@ -1098,6 +1129,21 @@ test("failed task runtime submit gates preserve retry, cancel, hold, RBAC, and a
     assert.equal(decision.idempotencyStatus, "stable", `${task.id} must preserve stable idempotency`);
     assert.equal(decision.closureEvidenceStatus, "complete", `${task.id} must have complete closure evidence`);
     assert.equal(decision.userMessageStatus, "ready", `${task.id} must expose user-visible messaging`);
+    assert.match(
+      decision.stateTransition,
+      /failed_to_retrying_after_submit|failed_retry_preserved|cancelled_closure_ready|cancelled_state_preserved_pending_review|blocked_state_preserved/,
+      `${task.id} needs explicit runtime state transition`
+    );
+    assert.match(
+      decision.closureOutcome,
+      /retry_submits_with_audit|retry_blocked_until_evidence|cancel_submits_with_audit|cancel_requires_second_review|hold_blocked_until_policy_review/,
+      `${task.id} needs explicit closure outcome`
+    );
+    assert.match(
+      decision.releaseGateDisposition,
+      /converted_regression_fixture|eval_gate_preserved_by_regression_fixture|blocked_not_regression_fixture/,
+      `${task.id} needs explicit release gate disposition`
+    );
     assert.ok(decision.operatorAction.length > 40, `${task.id} needs executable operator action`);
 
     if (task.rbacDecision === "denied") {

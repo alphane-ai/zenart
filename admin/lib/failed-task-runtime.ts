@@ -14,6 +14,49 @@ function idempotencyStatus(task: FailedTaskControl): FailedTaskRuntimeDecision["
     : "unstable";
 }
 
+function stateTransition(
+  task: FailedTaskControl,
+  submitDecision: FailedTaskRuntimeDecision["submitDecision"]
+): FailedTaskRuntimeDecision["stateTransition"] {
+  if (task.requestedAction === "retry") {
+    return submitDecision === "submit_ready" ? "failed_to_retrying_after_submit" : "failed_retry_preserved";
+  }
+
+  if (task.requestedAction === "cancel") {
+    return submitDecision === "submit_ready" ? "cancelled_closure_ready" : "cancelled_state_preserved_pending_review";
+  }
+
+  return "blocked_state_preserved";
+}
+
+function closureOutcome(
+  task: FailedTaskControl,
+  submitDecision: FailedTaskRuntimeDecision["submitDecision"]
+): FailedTaskRuntimeDecision["closureOutcome"] {
+  if (task.requestedAction === "retry") {
+    return submitDecision === "submit_ready" ? "retry_submits_with_audit" : "retry_blocked_until_evidence";
+  }
+
+  if (task.requestedAction === "cancel") {
+    return submitDecision === "submit_ready" ? "cancel_submits_with_audit" : "cancel_requires_second_review";
+  }
+
+  return "hold_blocked_until_policy_review";
+}
+
+function releaseGateDisposition(
+  task: FailedTaskControl,
+  submitDecision: FailedTaskRuntimeDecision["submitDecision"]
+): FailedTaskRuntimeDecision["releaseGateDisposition"] {
+  if (!task.regressionFixtureRef.startsWith("fixtures/")) {
+    return "blocked_not_regression_fixture";
+  }
+
+  return submitDecision === "submit_ready"
+    ? "converted_regression_fixture"
+    : "eval_gate_preserved_by_regression_fixture";
+}
+
 export function buildFailedTaskRuntimeDecisions(tasks: FailedTaskControl[]): FailedTaskRuntimeDecision[] {
   return tasks.map((task) => {
     const blockerCodes: string[] = [];
@@ -80,12 +123,18 @@ export function buildFailedTaskRuntimeDecisions(tasks: FailedTaskControl[]): Fai
         : submitDecision === "review_required"
           ? "Route to the required reviewer, preserve the idempotency key, and keep the user message visible."
           : "Keep submission disabled and resolve the blocking evidence before retry, cancel, or hold.";
+    const computedStateTransition = stateTransition(task, submitDecision);
+    const computedClosureOutcome = closureOutcome(task, submitDecision);
+    const computedReleaseGateDisposition = releaseGateDisposition(task, submitDecision);
 
     return {
       taskId: task.id,
       queueId: task.queueId,
       requestedAction: task.requestedAction,
       submitDecision,
+      stateTransition: computedStateTransition,
+      closureOutcome: computedClosureOutcome,
+      releaseGateDisposition: computedReleaseGateDisposition,
       retryBudgetStatus,
       rbacStatus: task.rbacDecision,
       quotaSettlement: task.quotaEffect,

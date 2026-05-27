@@ -698,6 +698,22 @@ export type FailedTaskRuntimeDecision = {
   queueId: string;
   requestedAction: FailedTaskControl["requestedAction"];
   submitDecision: "submit_ready" | "review_required" | "blocked";
+  stateTransition:
+    | "failed_to_retrying_after_submit"
+    | "failed_retry_preserved"
+    | "cancelled_closure_ready"
+    | "cancelled_state_preserved_pending_review"
+    | "blocked_state_preserved";
+  closureOutcome:
+    | "retry_submits_with_audit"
+    | "retry_blocked_until_evidence"
+    | "cancel_submits_with_audit"
+    | "cancel_requires_second_review"
+    | "hold_blocked_until_policy_review";
+  releaseGateDisposition:
+    | "converted_regression_fixture"
+    | "eval_gate_preserved_by_regression_fixture"
+    | "blocked_not_regression_fixture";
   retryBudgetStatus: "available" | "exhausted" | "not_retry";
   rbacStatus: "allowed" | "denied" | "second_review_required";
   quotaSettlement: FailedTaskControl["quotaEffect"];
