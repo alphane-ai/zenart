@@ -178,7 +178,7 @@ func Load() (Config, error) {
 			UseSSL:         boolEnv("OBJECT_STORAGE_USE_SSL", false),
 			ForcePathStyle: boolEnv("OBJECT_STORAGE_FORCE_PATH_STYLE", true),
 			LocalRoot:      env("OBJECT_STORAGE_LOCAL_ROOT", ".local-objectstore"),
-			SigningKey:     env("OBJECT_STORAGE_SIGNING_KEY", "stage0-local-object-signing"),
+			SigningKey:     env("OBJECT_STORAGE_SIGNING_KEY", "stage0-local-object-signing-key-32"),
 			DownloadURLTTL: durationEnv("OBJECT_STORAGE_DOWNLOAD_URL_TTL", 10*time.Minute),
 			CheckTimeout:   durationEnv("OBJECT_STORAGE_CHECK_TIMEOUT", 2*time.Second),
 		},
@@ -364,6 +364,23 @@ func (c Config) Validate() error {
 	if c.ObjectStorage.DownloadURLTTL <= 0 {
 		errs = append(errs, "OBJECT_STORAGE_DOWNLOAD_URL_TTL must be > 0")
 	}
+	if len(c.ObjectStorage.SigningKey) < 32 {
+		errs = append(errs, "OBJECT_STORAGE_SIGNING_KEY must be at least 32 bytes")
+	}
+	if !isLocalEnvironment(c.App.Environment) {
+		if c.ObjectStorage.Provider != "s3-compatible" {
+			errs = append(errs, "OBJECT_STORAGE_PROVIDER must be s3-compatible outside local")
+		}
+		if objectStorageEndpoint != nil && isLocalServiceHost(objectStorageEndpoint.Hostname()) {
+			errs = append(errs, "OBJECT_STORAGE_ENDPOINT must not target localhost or private IP outside local")
+		}
+		if objectStoragePublicEndpoint != nil && isLocalServiceHost(objectStoragePublicEndpoint.Hostname()) {
+			errs = append(errs, "OBJECT_STORAGE_PUBLIC_ENDPOINT must not target localhost or private IP outside local")
+		}
+		if isDefaultLocalSecret(c.ObjectStorage.SigningKey, "stage0-local-object-signing-key-32") {
+			errs = append(errs, "OBJECT_STORAGE_SIGNING_KEY must not use the local default outside local")
+		}
+	}
 	if c.ObjectStorage.Provider == "s3-compatible" {
 		if strings.TrimSpace(c.ObjectStorage.Region) == "" {
 			errs = append(errs, "OBJECT_STORAGE_REGION must not be empty for S3-compatible object storage")
@@ -380,6 +397,9 @@ func (c Config) Validate() error {
 			}
 			if objectStoragePublicEndpoint != nil && objectStoragePublicEndpoint.Scheme != "https" {
 				errs = append(errs, "OBJECT_STORAGE_PUBLIC_ENDPOINT must use https for S3-compatible object storage outside local")
+			}
+			if isDefaultLocalSecret(c.ObjectStorage.AccessKey, "minioadmin") || isDefaultLocalSecret(c.ObjectStorage.SecretKey, "minioadmin") {
+				errs = append(errs, "OBJECT_STORAGE_ACCESS_KEY and OBJECT_STORAGE_SECRET_KEY must not use local MinIO defaults outside local")
 			}
 		}
 	}
@@ -471,6 +491,23 @@ func isLocalEnvironment(environment string) bool {
 	default:
 		return false
 	}
+}
+
+func isLocalServiceHost(host string) bool {
+	host = strings.Trim(strings.ToLower(strings.TrimSpace(host)), "[]")
+	switch host {
+	case "", "localhost", "localhost.localdomain":
+		return true
+	}
+	ip := net.ParseIP(host)
+	if ip == nil {
+		return false
+	}
+	return ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() || ip.IsUnspecified()
+}
+
+func isDefaultLocalSecret(value, defaultValue string) bool {
+	return strings.TrimSpace(value) == defaultValue
 }
 
 func normalizeAddr(addr string) string {

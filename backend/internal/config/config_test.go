@@ -126,6 +126,9 @@ func TestValidateRequiresHTTPSForS3CompatibleStorageOutsideLocal(t *testing.T) {
 
 	cfg.App.Environment = "staging"
 	cfg.ObjectStorage.Provider = "s3-compatible"
+	cfg.ObjectStorage.AccessKey = "stage0-staging-access"
+	cfg.ObjectStorage.SecretKey = "stage0-staging-secret"
+	cfg.ObjectStorage.SigningKey = "stage0-staging-object-signing-key-32"
 	cfg.ObjectStorage.Endpoint = "http://s3.example.test"
 	cfg.ObjectStorage.PublicEndpoint = "https://downloads.example.test"
 	if err := cfg.Validate(); err == nil {
@@ -144,6 +147,79 @@ func TestValidateRequiresHTTPSForS3CompatibleStorageOutsideLocal(t *testing.T) {
 	}
 }
 
+func TestValidateRejectsLocalObjectStorageOutsideLocal(t *testing.T) {
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+
+	cfg.App.Environment = "staging"
+	cfg.ObjectStorage.Provider = "local"
+	cfg.ObjectStorage.SigningKey = "stage0-staging-object-signing-key-32"
+	if err := cfg.Validate(); err == nil {
+		t.Fatal("Validate() error = nil, want local object storage rejected outside local")
+	}
+}
+
+func TestValidateRejectsLocalObjectStorageEndpointsOutsideLocal(t *testing.T) {
+	for _, endpoint := range []string{
+		"https://localhost:9000",
+		"https://127.0.0.1:9000",
+		"https://10.0.0.5",
+		"https://172.16.0.10",
+		"https://192.168.1.20",
+		"https://169.254.169.254",
+	} {
+		t.Run(endpoint, func(t *testing.T) {
+			cfg, err := Load()
+			if err != nil {
+				t.Fatalf("Load() error = %v", err)
+			}
+			cfg.App.Environment = "staging"
+			cfg.ObjectStorage.Provider = "s3-compatible"
+			cfg.ObjectStorage.Endpoint = endpoint
+			cfg.ObjectStorage.PublicEndpoint = "https://downloads.example.test"
+			cfg.ObjectStorage.AccessKey = "stage0-staging-access"
+			cfg.ObjectStorage.SecretKey = "stage0-staging-secret"
+			cfg.ObjectStorage.SigningKey = "stage0-staging-object-signing-key-32"
+			if err := cfg.Validate(); err == nil {
+				t.Fatal("Validate() error = nil, want local/private object storage endpoint rejected outside local")
+			}
+		})
+	}
+}
+
+func TestValidateRejectsLocalObjectStorageSecretsOutsideLocal(t *testing.T) {
+	cases := []struct {
+		name       string
+		accessKey  string
+		secretKey  string
+		signingKey string
+	}{
+		{name: "default access key", accessKey: "minioadmin", secretKey: "stage0-staging-secret", signingKey: "stage0-staging-object-signing-key-32"},
+		{name: "default secret key", accessKey: "stage0-staging-access", secretKey: "minioadmin", signingKey: "stage0-staging-object-signing-key-32"},
+		{name: "default signing key", accessKey: "stage0-staging-access", secretKey: "stage0-staging-secret", signingKey: "stage0-local-object-signing-key-32"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			cfg, err := Load()
+			if err != nil {
+				t.Fatalf("Load() error = %v", err)
+			}
+			cfg.App.Environment = "staging"
+			cfg.ObjectStorage.Provider = "s3-compatible"
+			cfg.ObjectStorage.Endpoint = "https://s3.example.test"
+			cfg.ObjectStorage.PublicEndpoint = "https://downloads.example.test"
+			cfg.ObjectStorage.AccessKey = tc.accessKey
+			cfg.ObjectStorage.SecretKey = tc.secretKey
+			cfg.ObjectStorage.SigningKey = tc.signingKey
+			if err := cfg.Validate(); err == nil {
+				t.Fatal("Validate() error = nil, want local object storage secret rejected outside local")
+			}
+		})
+	}
+}
+
 func TestValidateRejectsInvalidDownloadURLTTL(t *testing.T) {
 	cfg, err := Load()
 	if err != nil {
@@ -153,6 +229,15 @@ func TestValidateRejectsInvalidDownloadURLTTL(t *testing.T) {
 	cfg.ObjectStorage.DownloadURLTTL = 0
 	if err := cfg.Validate(); err == nil {
 		t.Fatal("Validate() error = nil, want invalid download URL TTL error")
+	}
+
+	cfg, err = Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	cfg.ObjectStorage.SigningKey = "short"
+	if err := cfg.Validate(); err == nil {
+		t.Fatal("Validate() error = nil, want short signing key error")
 	}
 }
 
@@ -265,6 +350,12 @@ func TestValidateRequiresHTTPSForHTTPMalwareScannerOutsideLocal(t *testing.T) {
 	}
 
 	cfg.App.Environment = "staging"
+	cfg.ObjectStorage.Provider = "s3-compatible"
+	cfg.ObjectStorage.Endpoint = "https://s3.example.test"
+	cfg.ObjectStorage.PublicEndpoint = "https://downloads.example.test"
+	cfg.ObjectStorage.AccessKey = "stage0-staging-access"
+	cfg.ObjectStorage.SecretKey = "stage0-staging-secret"
+	cfg.ObjectStorage.SigningKey = "stage0-staging-object-signing-key-32"
 	cfg.Security.MalwareScanProvider = "http"
 	cfg.Security.MalwareScanEndpoint = "http://scanner.example.test/scan"
 	if err := cfg.Validate(); err == nil {

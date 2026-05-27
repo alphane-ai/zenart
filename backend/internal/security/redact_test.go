@@ -508,6 +508,96 @@ func TestRedactStringCoversS3CompatibleAndCDNSignedURLs(t *testing.T) {
 	assertSignal(t, findings, "url_query_secret")
 }
 
+func TestRedactStringCoversS3CompatibleHeaderAndEnvSecrets(t *testing.T) {
+	input := strings.Join([]string{
+		"Authorization: AWS4-HMAC-SHA256 Credential=AKIAIOSFODNN7EXAMPLE/20260527/us-east-1/s3/aws4_request, SignedHeaders=host;x-amz-date, Signature=abcdef1234567890",
+		"OBJECT_STORAGE_ACCESS_KEY=stage0-staging-access-key",
+		"OBJECT_STORAGE_SECRET_KEY=stage0-staging-secret-key",
+		"OBJECT_STORAGE_SIGNING_KEY=stage0-staging-object-signing-secret",
+		"AWS_SESSION_TOKEN=stage0-session-token",
+		"MINIO_ROOT_PASSWORD=minio-root-password",
+	}, " ")
+
+	got := RedactString(input)
+	for _, leaked := range []string{
+		"AKIAIOSFODNN7EXAMPLE",
+		"abcdef1234567890",
+		"stage0-staging-access-key",
+		"stage0-staging-secret-key",
+		"stage0-staging-object-signing-secret",
+		"stage0-session-token",
+		"minio-root-password",
+	} {
+		if strings.Contains(got, leaked) {
+			t.Fatalf("RedactString() = %q, leaked %s", got, leaked)
+		}
+	}
+	if !strings.Contains(got, Redacted) {
+		t.Fatalf("RedactString() = %q, want redaction marker", got)
+	}
+
+	findings := ClassifyString(input)
+	for _, signal := range []string{
+		"aws_sigv4_authorization",
+		"s3_access_key_id",
+		"s3_secret_access_key",
+		"aws_session_token",
+		"assignment:key_name",
+	} {
+		assertSignal(t, findings, signal)
+	}
+}
+
+func TestRedactMapCoversS3CompatibleObjectStorageConfigMetadata(t *testing.T) {
+	metadata := map[string]any{
+		"object_storage": map[string]any{
+			"provider":                 "s3-compatible",
+			"objectStorageAccessKey":   "stage0-staging-access-key",
+			"objectStorageSecretKey":   "stage0-staging-secret-key",
+			"objectStorageSigningKey":  "stage0-staging-object-signing-secret",
+			"awsSessionToken":          "stage0-session-token",
+			"minioRootPassword":        "minio-root-password",
+			"public_download_endpoint": "https://downloads.example.test",
+		},
+	}
+
+	body, err := json.Marshal(RedactMap(metadata))
+	if err != nil {
+		t.Fatalf("marshal redacted metadata: %v", err)
+	}
+	for _, leaked := range []string{
+		"stage0-staging-access-key",
+		"stage0-staging-secret-key",
+		"stage0-staging-object-signing-secret",
+		"stage0-session-token",
+		"minio-root-password",
+	} {
+		if strings.Contains(string(body), leaked) {
+			t.Fatalf("redacted metadata = %s, leaked %s", string(body), leaked)
+		}
+	}
+	for _, fragment := range []string{
+		`"provider":"s3-compatible"`,
+		`"public_download_endpoint":"https://downloads.example.test"`,
+		Redacted,
+	} {
+		if !strings.Contains(string(body), fragment) {
+			t.Fatalf("redacted metadata = %s, missing %s", string(body), fragment)
+		}
+	}
+
+	findings := ClassifyValue(metadata)
+	for _, location := range []string{
+		"object_storage.objectStorageAccessKey",
+		"object_storage.objectStorageSecretKey",
+		"object_storage.objectStorageSigningKey",
+		"object_storage.awsSessionToken",
+		"object_storage.minioRootPassword",
+	} {
+		assertAnyFindingAt(t, findings, location)
+	}
+}
+
 func TestRedactMapCoversExportAndCrawlerMetadataURLs(t *testing.T) {
 	redacted := RedactMap(map[string]any{
 		"export": map[string]any{
