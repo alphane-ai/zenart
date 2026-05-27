@@ -55,7 +55,7 @@ export const buildCsrfRequestHeaders = (
 
   return {
     ...headers,
-    [contract.headerName]: headers[contract.headerName] ?? contract.headerValue
+    [contract.headerName]: contract.headerValue
   };
 };
 

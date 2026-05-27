@@ -37,6 +37,42 @@ describe("generated web API client CSRF contract", () => {
     );
   });
 
+  it("pins unsafe request CSRF headers to the same-site contract value even when callers pass a stale value", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(async () =>
+      new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" }
+      })
+    );
+    const client = new ZenArtApiClient();
+
+    await client.request("createUpload", {
+      idempotencyKey: "idem-upload-001",
+      headers: {
+        "X-ZenArt-CSRF": "stale-client-token",
+        "X-Client-Trace": "trace-upload-001"
+      },
+      body: {
+        name: "product-reference.png",
+        kind: "image"
+      }
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/uploads",
+      expect.objectContaining({
+        method: "POST",
+        credentials: "include",
+        headers: expect.objectContaining({
+          "Content-Type": "application/json",
+          "Idempotency-Key": "idem-upload-001",
+          "X-Client-Trace": "trace-upload-001",
+          "X-ZenArt-CSRF": "same-site-origin-check"
+        })
+      })
+    );
+  });
+
   it("keeps read-only requests credentialed without adding the CSRF header", async () => {
     const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(JSON.stringify({ id: "session-001" }), {

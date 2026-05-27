@@ -1078,7 +1078,7 @@ for (const expectedSecuritySnippet of [
   "PATCH",
   "DELETE",
   "buildCsrfRequestHeaders",
-  "headers[contract.headerName] ?? contract.headerValue"
+  "[contract.headerName]: contract.headerValue"
 ]) {
   if (!requestSecuritySource.includes(expectedSecuritySnippet)) {
     fail(`same-site CSRF request contract missing ${expectedSecuritySnippet}`);

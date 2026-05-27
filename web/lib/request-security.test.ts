@@ -21,7 +21,7 @@ describe("same-site CSRF request contract", () => {
     expect(isCsrfProtectedMethod("DELETE")).toBe(true);
   });
 
-  it("adds the same-site CSRF header to unsafe requests without replacing caller headers", () => {
+  it("adds the same-site CSRF header to unsafe requests while preserving unrelated caller headers", () => {
     expect(buildCsrfRequestHeaders("GET", { Accept: "application/json" })).toEqual({
       Accept: "application/json"
     });
@@ -35,8 +35,14 @@ describe("same-site CSRF request contract", () => {
       Accept: "application/json",
       [defaultSameSiteCsrfContract.headerName]: defaultSameSiteCsrfContract.headerValue
     });
-    expect(buildCsrfRequestHeaders("PATCH", { [defaultSameSiteCsrfContract.headerName]: "caller-token" })).toEqual({
-      [defaultSameSiteCsrfContract.headerName]: "caller-token"
+    expect(
+      buildCsrfRequestHeaders("PATCH", {
+        Accept: "application/json",
+        [defaultSameSiteCsrfContract.headerName]: "caller-token"
+      })
+    ).toEqual({
+      Accept: "application/json",
+      [defaultSameSiteCsrfContract.headerName]: defaultSameSiteCsrfContract.headerValue
     });
   });
 
