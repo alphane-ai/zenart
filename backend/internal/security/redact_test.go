@@ -377,6 +377,80 @@ func TestRedactStringCoversLaunchProviderAndCommerceTokens(t *testing.T) {
 	}
 }
 
+func TestRedactStringCoversLaunchDeployCloudAndSignedDeliverySecrets(t *testing.T) {
+	doToken := "dop_v1_" + strings.Repeat("a", 64)
+	input := strings.Join([]string{
+		"digitalocean=" + doToken,
+		"netlify=nfp_abcdefghijklmnopqrstuvwxyz123456",
+		"railway=railway_abcdefghijklmnopqrstuvwxyz123456",
+		"google_oauth=ya29.abcdefghijklmnopqrstuvwxyz123456",
+		"firebase=AAAAabc1234:APA91babcdefghijklmnopqrstuvwxyz123456",
+		"fly=FlyV1 fm2_lJPECAAAAAAACfEjR0Q1JKSkZFSFlYWTM0NTY3ODkw",
+		"postgresql://db_user:db_pass@db.example.com:5432/zenart",
+		"https://cdn.example.com/export.zip?Expires=1770000000&Policy=abcdef&Key-Pair-Id=K1234567890",
+		"https://storage.googleapis.com/zenart/export.zip?GoogleAccessId=service@example.iam.gserviceaccount.com&X-Goog-Signature=abcdef",
+		"service_account_json={\"private_key\":\"-----BEGIN PRIVATE KEY-----\\nabc\\n-----END PRIVATE KEY-----\"}",
+	}, " ")
+
+	got := RedactString(input)
+	for _, leaked := range []string{
+		doToken,
+		"nfp_abcdefghijklmnopqrstuvwxyz123456",
+		"railway_abcdefghijklmnopqrstuvwxyz123456",
+		"ya29.abcdefghijklmnopqrstuvwxyz123456",
+		"AAAAabc1234:APA91babcdefghijklmnopqrstuvwxyz123456",
+		"FlyV1 fm2_lJPECAAAAAAACfEjR0Q1JKSkZFSFlYWTM0NTY3ODkw",
+		"db_user:db_pass",
+		"1770000000",
+		"service@example.iam.gserviceaccount.com",
+		"-----BEGIN PRIVATE KEY-----",
+	} {
+		if strings.Contains(got, leaked) {
+			t.Fatalf("RedactString() = %q, leaked %s", got, leaked)
+		}
+	}
+
+	findings := ClassifyString(input)
+	for _, signal := range []string{
+		"digitalocean_token",
+		"netlify_token",
+		"railway_token",
+		"google_oauth_token",
+		"firebase_server_key",
+		"fly_token",
+		"url_credentials",
+		"url_query_secret",
+		"assignment:key_name",
+	} {
+		assertSignal(t, findings, signal)
+	}
+}
+
+func TestClassifyKeyCoversLaunchSecretNames(t *testing.T) {
+	cases := []struct {
+		key  string
+		kind SecretKind
+	}{
+		{key: "x_api_key", kind: SecretKindAPIKey},
+		{key: "private_token", kind: SecretKindPrivateKey},
+		{key: "deploy_key", kind: SecretKindPrivateKey},
+		{key: "proxy_authorization", kind: SecretKindAuthorization},
+		{key: "service_account_json", kind: SecretKindServiceAcct},
+		{key: "CONNECTION_STRING", kind: SecretKindCredential},
+		{key: "personal_access_token", kind: SecretKindToken},
+	}
+
+	for _, tt := range cases {
+		findings := ClassifyKey(tt.key)
+		if len(findings) == 0 {
+			t.Fatalf("ClassifyKey(%q) returned no findings", tt.key)
+		}
+		if findings[0].Kind != tt.kind {
+			t.Fatalf("ClassifyKey(%q) kind = %s, want %s", tt.key, findings[0].Kind, tt.kind)
+		}
+	}
+}
+
 func TestRedactingSlogHandlerRedactsMessagesAttrsGroupsAndContextAttrs(t *testing.T) {
 	var logs bytes.Buffer
 	logger := slog.New(NewRedactingSlogHandler(slog.NewJSONHandler(&logs, nil))).With(

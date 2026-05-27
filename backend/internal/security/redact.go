@@ -34,6 +34,7 @@ const (
 	SecretKindProviderKey   SecretKind = "provider_key"
 	SecretKindCloudKey      SecretKind = "cloud_key"
 	SecretKindSignedURL     SecretKind = "signed_url_secret"
+	SecretKindServiceAcct   SecretKind = "service_account"
 )
 
 type SecretFinding struct {
@@ -42,7 +43,7 @@ type SecretFinding struct {
 	Location string     `json:"location,omitempty"`
 }
 
-var sensitiveKeyPattern = regexp.MustCompile(`(?i)(secret|token|password|passwd|pwd|passphrase|api[_-]?key|access[_-]?key|private[_-]?key|credential|signature|session|cookie|authorization|client[_-]?secret|refresh[_-]?token|id[_-]?token|jwt|oauth|webhook[_-]?secret|signing[_-]?key|shared[_-]?access[_-]?signature|sas|stripe|openai|anthropic|provider[_-]?key|database[_-]?url|dsn)`)
+var sensitiveKeyPattern = regexp.MustCompile(`(?i)(secret|token|password|passwd|pwd|passphrase|api[_-]?key|x[_-]?api[_-]?key|access[_-]?key|private[_-]?key|private[_-]?token|deploy[_-]?key|credential|signature|session|cookie|authorization|proxy[_-]?authorization|client[_-]?secret|client[_-]?token|refresh[_-]?token|id[_-]?token|personal[_-]?access[_-]?token|pat|jwt|oauth|webhook[_-]?secret|signing[_-]?key|shared[_-]?access[_-]?signature|sas|stripe|openai|anthropic|provider[_-]?key|database[_-]?url|dsn|connection[_-]?string|connectionstring|service[_-]?account|storage[_-]?key)`)
 
 var secretValuePatterns = []struct {
 	kind    SecretKind
@@ -85,10 +86,16 @@ var secretValuePatterns = []struct {
 	{SecretKindAccessKey, "aws_secret_access_key_assignment", regexp.MustCompile(`(?i)\b(?:aws[_-]?)?secret[_-]?access[_-]?key\s*[=:]\s*("[A-Za-z0-9/+=]{32,}"|'[A-Za-z0-9/+=]{32,}'|[A-Za-z0-9/+=]{32,})`)},
 	{SecretKindToken, "twilio_key", regexp.MustCompile(`\bSK[0-9a-fA-F]{32}\b`)},
 	{SecretKindToken, "square_token", regexp.MustCompile(`\bEAAA[A-Za-z0-9_-]{20,}\b`)},
+	{SecretKindCloudKey, "digitalocean_token", regexp.MustCompile(`\bdop_v1_[0-9a-f]{64}\b`)},
+	{SecretKindToken, "netlify_token", regexp.MustCompile(`\bnfp_[A-Za-z0-9]{20,}\b`)},
+	{SecretKindToken, "railway_token", regexp.MustCompile(`\brailway_[A-Za-z0-9]{20,}\b`)},
+	{SecretKindCloudKey, "google_oauth_token", regexp.MustCompile(`\bya29\.[0-9A-Za-z_-]{20,}\b`)},
+	{SecretKindCloudKey, "firebase_server_key", regexp.MustCompile(`\bAAAA[A-Za-z0-9_-]{7,}:APA91b[A-Za-z0-9_-]{20,}\b`)},
+	{SecretKindToken, "fly_token", regexp.MustCompile(`\bFlyV1\s+[A-Za-z0-9+/_=:-]{20,}\b`)},
 }
 
-var assignmentPattern = regexp.MustCompile(`(?i)\b([A-Za-z0-9_.-]*(?:secret|token|password|passwd|pwd|passphrase|api[_-]?key|access[_-]?key|private[_-]?key|credential|signature|session|cookie|authorization|client[_-]?secret|refresh[_-]?token|webhook[_-]?secret|signing[_-]?key|shared[_-]?access[_-]?signature|database[_-]?url|dsn)[A-Za-z0-9_.-]*)\s*([=:])\s*("[^"]*"|'[^']*'|[^\s,;&]+)`)
-var embeddedURLPattern = regexp.MustCompile(`https?://[^\s"'<>]+`)
+var assignmentPattern = regexp.MustCompile(`(?i)\b([A-Za-z0-9_.-]*(?:secret|token|password|passwd|pwd|passphrase|api[_-]?key|x[_-]?api[_-]?key|access[_-]?key|private[_-]?key|private[_-]?token|deploy[_-]?key|credential|signature|session|cookie|authorization|proxy[_-]?authorization|client[_-]?secret|client[_-]?token|refresh[_-]?token|personal[_-]?access[_-]?token|webhook[_-]?secret|signing[_-]?key|shared[_-]?access[_-]?signature|database[_-]?url|dsn|connection[_-]?string|connectionstring|service[_-]?account|storage[_-]?key)[A-Za-z0-9_.-]*)\s*([=:])\s*("[^"]*"|'[^']*'|[^\s,;&]+)`)
+var embeddedURLPattern = regexp.MustCompile(`[A-Za-z][A-Za-z0-9+.-]*://[^\s"'<>]+`)
 
 type MalwareScanStatus string
 
@@ -262,19 +269,23 @@ func ClassifyKey(key string) []SecretFinding {
 	switch {
 	case strings.Contains(lower, "password") || strings.Contains(lower, "passwd") || strings.Contains(lower, "pwd"):
 		kind = SecretKindPassword
+	case strings.Contains(lower, "private") && (strings.Contains(lower, "key") || strings.Contains(lower, "token")):
+		kind = SecretKindPrivateKey
+	case strings.Contains(lower, "deploy") && strings.Contains(lower, "key"):
+		kind = SecretKindPrivateKey
 	case strings.Contains(lower, "api") && strings.Contains(lower, "key"):
 		kind = SecretKindAPIKey
 	case strings.Contains(lower, "access") && strings.Contains(lower, "key"):
 		kind = SecretKindAccessKey
-	case strings.Contains(lower, "private") && strings.Contains(lower, "key"):
-		kind = SecretKindPrivateKey
 	case strings.Contains(lower, "webhook") || strings.Contains(lower, "signing"):
 		kind = SecretKindWebhookSecret
 	case strings.Contains(lower, "authorization"):
 		kind = SecretKindAuthorization
 	case strings.Contains(lower, "cookie"):
 		kind = SecretKindCookie
-	case strings.Contains(lower, "credential") || strings.Contains(lower, "database") || strings.Contains(lower, "dsn"):
+	case strings.Contains(lower, "service") && strings.Contains(lower, "account"):
+		kind = SecretKindServiceAcct
+	case strings.Contains(lower, "credential") || strings.Contains(lower, "database") || strings.Contains(lower, "dsn") || strings.Contains(lower, "connection"):
 		kind = SecretKindCredential
 	case strings.Contains(lower, "token") || strings.Contains(lower, "jwt") || strings.Contains(lower, "oauth") || strings.Contains(lower, "session"):
 		kind = SecretKindToken
@@ -629,8 +640,12 @@ func isSignedURLQueryKey(key string) bool {
 	normalized := strings.ToLower(strings.ReplaceAll(strings.TrimSpace(key), "_", "-"))
 	switch normalized {
 	case "x-amz-algorithm", "x-amz-credential", "x-amz-signature", "x-amz-security-token",
+		"x-amz-date", "x-amz-expires", "x-amz-signedheaders",
 		"x-goog-credential", "x-goog-signature", "x-goog-security-token",
+		"x-goog-date", "x-goog-expires", "x-goog-signedheaders",
+		"googleaccessid", "x-oss-signature", "ossaccesskeyid",
 		"awsaccesskeyid", "signature", "sig", "token", "access-token", "download-token",
+		"expires", "policy", "key-pair-id",
 		"se", "sp", "spr", "sr", "sv", "skoid", "sktid", "skt", "ske", "sks", "skv":
 		return true
 	default:
