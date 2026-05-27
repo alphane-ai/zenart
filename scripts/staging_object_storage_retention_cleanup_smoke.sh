@@ -140,6 +140,7 @@ else
   done
 fi
 
+actual_report_path="$(
 python3 - "$REPORT_PATH" "$RESULTS_PATH" "$RUN_ID" "$RELEASE_SHA" "$BASE_URL" "$SMOKE_ADMIN_USER_ID" "$SMOKE_ADMIN_TENANT_ID" "$SIGNED_URL_EVIDENCE" <<'PY'
 import json
 import sys
@@ -172,6 +173,17 @@ blocked_or_failed = [
     if item["status"] != "passed"
 ]
 all_passed = required <= passed and not blocked_or_failed
+canonical_report_path = Path("ops/evidence/staging/object-storage-retention-cleanup.json")
+canonical_results_path = Path("ops/evidence/staging/object-storage-retention-cleanup.ndjson")
+if not all_passed and report_path == canonical_report_path:
+    blocked_report_path = report_path.with_name("object-storage-retention-cleanup.blocked.json")
+    blocked_results_path = results_path.with_name("object-storage-retention-cleanup.blocked.ndjson")
+    if results_path.exists():
+        blocked_results_path.write_text(results_path.read_text(encoding="utf-8"), encoding="utf-8")
+        if results_path == canonical_results_path:
+            results_path.unlink()
+    report_path = blocked_report_path
+    results_path = blocked_results_path
 signed_url_path = Path(signed_url_evidence) if signed_url_evidence else None
 signed_url_ready = False
 signed_url_reason = "missing_signed_url_evidence_path"
@@ -253,12 +265,14 @@ report = {
 }
 report_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 if all_passed:
-    print(f"staging object-storage retention cleanup passed; evidence written to {report_path}")
+    print(f"staging object-storage retention cleanup passed; evidence written to {report_path}", file=sys.stderr)
 else:
-    print(f"staging object-storage retention cleanup blocked; evidence written to {report_path}")
+    print(f"staging object-storage retention cleanup blocked; evidence written to {report_path}", file=sys.stderr)
+print(report_path)
 PY
+)"
 
-python3 - "$REPORT_PATH" <<'PY'
+python3 - "$actual_report_path" <<'PY'
 import json
 import sys
 from pathlib import Path
