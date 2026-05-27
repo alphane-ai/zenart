@@ -374,6 +374,12 @@ required_fragments = [
     "Object-storage retention cleanup: `blocked` from `ops/evidence/staging/object-storage-retention-cleanup.blocked.json` with 4/4 probes blocked by missing STAGING_BASE_URL or explicit retention/audit probe URLs; canonical pass evidence is still missing at `ops/evidence/staging/object-storage-retention-cleanup.json`; audit linkage verified `false` with 0 cleanup refs and 0 audit endpoint refs; request-id audit linkage verified `false`, so the object-storage gate remains open.",
     "Legal/support external-user visibility: staging split status `pass,pass` from `ops/evidence/staging/legal-pages-external-user.json` and `ops/evidence/staging/support-contact-external-user.json`; external-user legal/support visibility is validator-visible.",
     "Object storage changes: staging signed URL evidence is attached; staging retention/cleanup pass evidence remains required before the object-storage gate can close.",
+    "## Gate Snapshot",
+    "Local Alpha gate: `go` from `fixtures/stage0/rev2/release_gate_evidence.local_alpha.json`; blocked checks: none recorded; active do-not-launch conditions: none recorded;",
+    "CI gate: `no_go` from `fixtures/stage0/rev2/release_gate_evidence.ci.json`; blocked checks: ci_installed_workflow, ci_gate_runtime_execution, ci_playwright_smoke, ci_docker_image_build; active do-not-launch conditions: ci_workflow_not_installed, ci_gate_not_executed_on_main, ci_playwright_smoke_missing, ci_docker_image_build_missing;",
+    "Private Beta/Staging gate: `no_go` from `fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json`; blocked checks: staging_object_storage_signed_downloads; active do-not-launch conditions: object_storage_signed_retention_runtime_missing;",
+    "Production Launch gate: `no_go` from `fixtures/stage0/rev2/release_gate_evidence.production_launch.json`; blocked checks: production_backup_rollback_incident; active do-not-launch conditions: backup_restore_rollback_smoke_missing, production_deploy_rollback_smoke_missing, ci_staging_gates_not_passed;",
+    "Release posture: Local Alpha is the only closed gate; CI, Private Beta/Staging, Production Launch, and global Do-Not-Launch remain open until their exact fixture blockers above are cleared by runtime evidence.",
     "Operational risks: staging rollback evidence remains absent; staging backup/restore, load, post-deploy smoke, and legal/support visibility evidence are attached, but object-retention, CI, and production gates remain open.",
     "Object-storage risks: signed URL staging evidence is attached, but retention/cleanup runtime evidence still blocks the object-storage release gate.",
     "Conditions: CI installed workflow evidence, object retention cleanup evidence, staging migration/config/rollback/security evidence, production deployment evidence, release owner, and gate fixture blockers must be cleared before any private beta or production decision.",
@@ -480,6 +486,19 @@ def assert_condition_line_matches(label, values):
     if expected not in notes:
         raise SystemExit(f"release no-go notes drifted from fixture decision; expected line: {expected}")
 
+def assert_gate_snapshot_line_matches(label, path, gate):
+    blockers = fixture_blockers(gate)
+    dnl = present_do_not_launch(gate)
+    decision = gate.get("gate_decision", {})
+    expected = (
+        f"- {label}: `{decision.get('status', 'missing')}` from `{path}`; "
+        f"blocked checks: {', '.join(blockers) if blockers else 'none recorded'}; "
+        f"active do-not-launch conditions: {', '.join(dnl) if dnl else 'none recorded'}; "
+        f"decision evidence: {decision.get('evidence_ref', 'missing')}"
+    )
+    if expected not in notes:
+        raise SystemExit(f"release no-go notes gate snapshot drifted from fixture decision; expected line: {expected}")
+
 assert_line_matches(
     "Open private beta blockers",
     "fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json",
@@ -498,6 +517,28 @@ assert_condition_line_matches(
     "Production do-not-launch conditions present",
     present_do_not_launch(production),
 )
+local_alpha = json.loads(Path("fixtures/stage0/rev2/release_gate_evidence.local_alpha.json").read_text(encoding="utf-8"))
+ci = json.loads(Path("fixtures/stage0/rev2/release_gate_evidence.ci.json").read_text(encoding="utf-8"))
+assert_gate_snapshot_line_matches(
+    "Local Alpha gate",
+    "fixtures/stage0/rev2/release_gate_evidence.local_alpha.json",
+    local_alpha,
+)
+assert_gate_snapshot_line_matches(
+    "CI gate",
+    "fixtures/stage0/rev2/release_gate_evidence.ci.json",
+    ci,
+)
+assert_gate_snapshot_line_matches(
+    "Private Beta/Staging gate",
+    "fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json",
+    private_beta,
+)
+assert_gate_snapshot_line_matches(
+    "Production Launch gate",
+    "fixtures/stage0/rev2/release_gate_evidence.production_launch.json",
+    production,
+)
 
 template = Path("ops/release/release_notes_template.md").read_text(encoding="utf-8")
 if template.count("- Load evidence:") != 1:
@@ -512,6 +553,16 @@ if template.count("- Legal/support external-user visibility evidence:") != 1:
     raise SystemExit("release notes template must contain exactly one legal/support external-user visibility evidence slot")
 if template.count("- Production split preflight:") != 1:
     raise SystemExit("release notes template must contain exactly one production split preflight slot")
+if template.count("## Gate Snapshot") != 1:
+    raise SystemExit("release notes template must contain exactly one Gate Snapshot section")
+for gate_name in (
+    "Local Alpha gate:",
+    "CI gate:",
+    "Private Beta/Staging gate:",
+    "Production Launch gate:",
+):
+    if gate_name not in template:
+        raise SystemExit(f"release notes template missing gate snapshot slot: {gate_name}")
 for token in (
     "release_gate_check_id=staging_object_storage_signed_downloads",
     "release_gate_check_id=staging_legal_external_user_pages",

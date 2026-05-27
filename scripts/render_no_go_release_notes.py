@@ -13,6 +13,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 BLUEPRINT = ROOT / "Docs/stage0_blueprint_rev2.md"
 OUTPUT_PATH = ROOT / "ops/release/stage0_rev2_current_no_go_release_notes.md"
+LOCAL_ALPHA_GATE = ROOT / "fixtures/stage0/rev2/release_gate_evidence.local_alpha.json"
 PRIVATE_BETA_GATE = ROOT / "fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json"
 PRODUCTION_GATE = ROOT / "fixtures/stage0/rev2/release_gate_evidence.production_launch.json"
 CI_GATE = ROOT / "fixtures/stage0/rev2/release_gate_evidence.ci.json"
@@ -106,6 +107,17 @@ def present_do_not_launch(gate: dict) -> list[str]:
         for check in gate.get("do_not_launch_checks", [])
         if check.get("is_present") is True
     ]
+
+
+def gate_snapshot_line(label: str, path: Path, gate: dict) -> str:
+    decision = gate.get("gate_decision", {})
+    blockers = comma_or_missing(gate_blockers(gate))
+    dnl = comma_or_missing(present_do_not_launch(gate))
+    return (
+        f"- {label}: `{decision.get('status', 'missing')}` from `{path.relative_to(ROOT)}`; "
+        f"blocked checks: {blockers}; active do-not-launch conditions: {dnl}; "
+        f"decision evidence: {decision.get('evidence_ref', 'missing')}"
+    )
 
 
 def comma_or_missing(values: list[str]) -> str:
@@ -442,6 +454,7 @@ def ci_gate_summary(ci_gate: dict) -> str:
 
 
 def render(release_sha: str, release_tag: str, owner: str, reviewer: str, date: str) -> str:
+    local_alpha = load_json(LOCAL_ALPHA_GATE)
     ci_gate = load_json(CI_GATE)
     private_beta = load_json(PRIVATE_BETA_GATE)
     production = load_json(PRODUCTION_GATE)
@@ -539,6 +552,14 @@ def render(release_sha: str, release_tag: str, owner: str, reviewer: str, date: 
         f"- Production backup/rollback split preflight: {production_backup_rollback_split_summary()}.",
         *production_backup_rollback_split_detail_lines(),
         f"- Security scan: local status `{local_status(runtime, 'security_scan_smoke')}` from `{security_report}`; staging JSON must reference the release SHA, set `environment=staging`, set `kind=security_scan`, record status `passed`, and include passed/validated evidence refs for dependency, image/container, and committed-secret scans before private beta/production decisions.",
+        "",
+        "## Gate Snapshot",
+        "",
+        gate_snapshot_line("Local Alpha gate", LOCAL_ALPHA_GATE, local_alpha),
+        gate_snapshot_line("CI gate", CI_GATE, ci_gate),
+        gate_snapshot_line("Private Beta/Staging gate", PRIVATE_BETA_GATE, private_beta),
+        gate_snapshot_line("Production Launch gate", PRODUCTION_GATE, production),
+        "- Release posture: Local Alpha is the only closed gate; CI, Private Beta/Staging, Production Launch, and global Do-Not-Launch remain open until their exact fixture blockers above are cleared by runtime evidence.",
         "",
         "## Rollback Plan",
         "",

@@ -73,6 +73,14 @@ Release gate status: `no-go` until every required evidence slot below is filled 
 - Production split preflight: `scripts/production_backup_rollback_split_smoke.sh` must write `ops/evidence/production/backup-rollback-split.blocked.json` or a newer report that lists blocked checks, exact split file status, missing requirements, upstream CI/Private Beta gate states, and preserved Do-Not-Launch conditions. Admin-visible probe evidence alone must not close production backup/rollback rows.
 - Security scan: `<local JSON path/url>`; local JSON must reference the release SHA, set `environment=staging`, set `kind=security_scan`, record status `passed`, and include passed/validated entries with evidence refs for dependency, image/container, and committed-secret scans before private beta/production decisions.
 
+## Gate Snapshot
+
+- Local Alpha gate: `<fixtures/stage0/rev2/release_gate_evidence.local_alpha.json status, blocked checks, active do-not-launch conditions, and decision evidence>`.
+- CI gate: `<fixtures/stage0/rev2/release_gate_evidence.ci.json status, blocked checks, active do-not-launch conditions, and decision evidence>`.
+- Private Beta/Staging gate: `<fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json status, blocked checks, active do-not-launch conditions, and decision evidence>`.
+- Production Launch gate: `<fixtures/stage0/rev2/release_gate_evidence.production_launch.json status, blocked checks, active do-not-launch conditions, and decision evidence>`.
+- Release posture: `<which gates are closed/open and which fixture blockers prevent private beta or production>`.
+
 ## Rollback Plan
 
 - Previous SHA: `<sha>`
