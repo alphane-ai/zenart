@@ -1699,6 +1699,11 @@ function ExportView({
                     data-package-export-missing-output-count={metadataEvidence.missingRequiredOutputs.length}
                     data-package-export-item-types={metadataEvidence.itemTypes.join(",")}
                     data-package-export-provenance-count={metadataEvidence.provenanceCount}
+                    data-package-export-item-provenance-parity-status={metadataEvidence.itemProvenanceParityStatus}
+                    data-package-export-item-provenance-parity-count={metadataEvidence.itemProvenanceParityCount}
+                    data-package-export-missing-item-provenance-parity-count={metadataEvidence.missingItemProvenanceParityCount}
+                    data-package-export-reference-provenance-count={metadataEvidence.referenceProvenanceCount}
+                    data-package-export-candidate-provenance-count={metadataEvidence.candidateProvenanceCount}
                     data-package-export-blocking-qa-count={metadataEvidence.blockingQaCount}
                     data-package-export-safety-status={metadataEvidence.safetyStatus}
                     data-package-export-safety-stage-count={metadataEvidence.safetyStageCount}
@@ -1747,6 +1752,7 @@ function ExportView({
                       </span>
                       <span>{metadataEvidence.requiredOutputCount} required outputs</span>
                       <span>{metadataEvidence.provenanceCount}/{metadataEvidence.itemCount} provenance entries</span>
+                      <span>{metadataEvidence.itemProvenanceParityStatus} item provenance parity</span>
                       <span>{metadataEvidence.qaFindingCount} QA findings</span>
                       <span>{metadataEvidence.pptSlideCount} PPT slides</span>
                       <span>{metadataEvidence.downloadArtifactStatus} ZIP payload contract</span>
@@ -1793,6 +1799,9 @@ function ExportView({
                     </div>
                     <div className="payload-status-groups" aria-label="Package export cross-payload identity matrix">
                       <PayloadIdentityStatusList items={metadataEvidence.crossPayloadIdentityStatuses} />
+                    </div>
+                    <div className="payload-status-groups" aria-label="Package export item provenance parity matrix">
+                      <ItemProvenanceStatusList items={metadataEvidence.itemProvenanceStatuses} />
                     </div>
                   </section>
                 ) : null}
@@ -1864,6 +1873,9 @@ function ExportView({
                     data-export-download-parity-payload-contract-digest={downloadParityEvidence.payloadContractDigest}
                     data-export-download-parity-payload-digest-match={String(downloadParityEvidence.metadataPayloadDigestMatchesZipPayloadDigest)}
                     data-export-download-parity-identity-status={downloadParityEvidence.identityStatus}
+                    data-export-download-parity-item-provenance-status={downloadParityEvidence.itemProvenanceParityStatus}
+                    data-export-download-parity-item-provenance-count={downloadParityEvidence.itemProvenanceParityCount}
+                    data-export-download-parity-missing-item-provenance-count={downloadParityEvidence.missingItemProvenanceParityCount}
                     data-export-download-parity-provider={downloadParityEvidence.provider}
                     data-export-download-parity-model={downloadParityEvidence.model}
                     data-export-download-parity-prompt-spec-taxonomy={downloadParityEvidence.promptSpecTaxonomy.join(",")}
@@ -1882,6 +1894,7 @@ function ExportView({
                       <span>{downloadParityEvidence.metadataMissingZipPayloadCount + downloadParityEvidence.zipMissingPayloadCount} missing payloads</span>
                       <span>{downloadParityEvidence.metadataPayloadDigestMatchesZipPayloadDigest ? "digest match" : "digest drift"}</span>
                       <span>{downloadParityEvidence.identityStatus} identity</span>
+                      <span>{downloadParityEvidence.itemProvenanceParityStatus} item provenance</span>
                       <span>{downloadParityEvidence.downloadHandoffStatus} browser handoff</span>
                     </div>
                     <p>
@@ -2127,6 +2140,48 @@ function PayloadIdentityStatusList({
             <small>
               export {item.exportId}, package {item.packageId}, project {item.projectId}, workflow {item.workflowId}, provider{" "}
               {item.provider}, model {item.model}, prompt {item.promptSpec}, skill {item.skill}, safety {item.safety}
+            </small>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function ItemProvenanceStatusList({
+  items
+}: {
+  items: Array<{
+    itemId: string;
+    title: string;
+    type: "candidate" | "canvas-frame" | "reference";
+    provenance: string;
+    expectedPrefix: "dev-client-reference:" | "dev-client:" | "dev-client-canvas:";
+    provenanceStatus: "pass" | "missing";
+    pptSlideStatus: "pass" | "missing";
+  }>;
+}) {
+  return (
+    <div className="payload-status-list item-provenance-status-list" data-payload-status-kind="item-provenance-parity">
+      <strong>Item provenance parity</strong>
+      <ul>
+        {items.map((item) => (
+          <li
+            key={`item-provenance-${item.itemId}`}
+            data-package-export-item-provenance-row="item-provenance-parity"
+            data-package-export-item-provenance-id={item.itemId}
+            data-package-export-item-provenance-type={item.type}
+            data-package-export-item-provenance-value={item.provenance}
+            data-package-export-item-provenance-prefix={item.expectedPrefix}
+            data-package-export-item-provenance-status={item.provenanceStatus}
+            data-package-export-item-ppt-slide-status={item.pptSlideStatus}
+          >
+            <span className={item.provenanceStatus === "pass" && item.pptSlideStatus === "pass" ? "qa-pass" : "qa-block"}>
+              {item.provenanceStatus === "pass" && item.pptSlideStatus === "pass" ? "matched" : "missing"}
+            </span>
+            <span>{item.title}</span>
+            <small>
+              {item.type} · {item.provenance} · PPT slide {item.pptSlideStatus}
             </small>
           </li>
         ))}

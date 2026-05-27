@@ -42,6 +42,11 @@ test("export route exposes package metadata, ZIP payload, and download parity br
   await expect(metadataEvidence).toHaveAttribute("data-package-export-missing-output-count", "0");
   await expect(metadataEvidence).toHaveAttribute("data-package-export-missing-zip-payload-count", "0");
   await expect(metadataEvidence).toHaveAttribute("data-package-export-provenance-count", "2");
+  await expect(metadataEvidence).toHaveAttribute("data-package-export-item-provenance-parity-status", "pass");
+  await expect(metadataEvidence).toHaveAttribute("data-package-export-item-provenance-parity-count", "2");
+  await expect(metadataEvidence).toHaveAttribute("data-package-export-missing-item-provenance-parity-count", "0");
+  await expect(metadataEvidence).toHaveAttribute("data-package-export-reference-provenance-count", "1");
+  await expect(metadataEvidence).toHaveAttribute("data-package-export-candidate-provenance-count", "1");
   await expect(metadataEvidence).toHaveAttribute("data-package-export-blocking-qa-count", "0");
   await expect(metadataEvidence).toHaveAttribute("data-package-export-safety-status", "pass");
   await expect(metadataEvidence).toHaveAttribute("data-package-export-safety-stage-count", "5");
@@ -88,6 +93,48 @@ test("export route exposes package metadata, ZIP payload, and download parity br
     await expect(row).toHaveAttribute("data-package-export-identity-skill", "pass");
     await expect(row).toHaveAttribute("data-package-export-identity-safety", "pass");
   }
+  const itemProvenanceMatrix = page.getByLabel("Package export item provenance parity matrix");
+  await expect(itemProvenanceMatrix.locator("[data-package-export-item-provenance-row='item-provenance-parity']")).toHaveCount(2);
+  await expect(itemProvenanceMatrix.locator("[data-package-export-item-provenance-id='pkg-item-001']")).toHaveAttribute(
+    "data-package-export-item-provenance-type",
+    "reference"
+  );
+  await expect(itemProvenanceMatrix.locator("[data-package-export-item-provenance-id='pkg-item-001']")).toHaveAttribute(
+    "data-package-export-item-provenance-value",
+    "dev-client-reference:ref-campaign-reference-webp"
+  );
+  await expect(itemProvenanceMatrix.locator("[data-package-export-item-provenance-id='pkg-item-001']")).toHaveAttribute(
+    "data-package-export-item-provenance-prefix",
+    "dev-client-reference:"
+  );
+  await expect(itemProvenanceMatrix.locator("[data-package-export-item-provenance-id='pkg-item-001']")).toHaveAttribute(
+    "data-package-export-item-provenance-status",
+    "pass"
+  );
+  await expect(itemProvenanceMatrix.locator("[data-package-export-item-provenance-id='pkg-item-001']")).toHaveAttribute(
+    "data-package-export-item-ppt-slide-status",
+    "pass"
+  );
+  await expect(itemProvenanceMatrix.locator("[data-package-export-item-provenance-id='pkg-item-002']")).toHaveAttribute(
+    "data-package-export-item-provenance-type",
+    "candidate"
+  );
+  await expect(itemProvenanceMatrix.locator("[data-package-export-item-provenance-id='pkg-item-002']")).toHaveAttribute(
+    "data-package-export-item-provenance-value",
+    "dev-client:cand-studio"
+  );
+  await expect(itemProvenanceMatrix.locator("[data-package-export-item-provenance-id='pkg-item-002']")).toHaveAttribute(
+    "data-package-export-item-provenance-prefix",
+    "dev-client:"
+  );
+  await expect(itemProvenanceMatrix.locator("[data-package-export-item-provenance-id='pkg-item-002']")).toHaveAttribute(
+    "data-package-export-item-provenance-status",
+    "pass"
+  );
+  await expect(itemProvenanceMatrix.locator("[data-package-export-item-provenance-id='pkg-item-002']")).toHaveAttribute(
+    "data-package-export-item-ppt-slide-status",
+    "pass"
+  );
   await expect(metadataEvidence).toHaveAttribute("data-package-export-workflow-id", "ecommerce_growth_pack");
   await expect(metadataEvidence).toHaveAttribute("data-package-export-workflow-fixture-id", "fx_ecommerce_growth_golden");
   await expect(metadataEvidence).toHaveAttribute("data-package-export-workflow-metadata-payload-present", "true");
@@ -197,6 +244,9 @@ test("export route exposes package metadata, ZIP payload, and download parity br
   await expect(downloadParity).toHaveAttribute("data-export-download-parity-payload-contract-digest", expectedPayloadContractDigest);
   await expect(downloadParity).toHaveAttribute("data-export-download-parity-payload-digest-match", "true");
   await expect(downloadHandoff).toHaveAttribute("data-export-download-payload-contract-digest", expectedPayloadContractDigest);
+  await expect(downloadParity).toHaveAttribute("data-export-download-parity-item-provenance-status", "pass");
+  await expect(downloadParity).toHaveAttribute("data-export-download-parity-item-provenance-count", "2");
+  await expect(downloadParity).toHaveAttribute("data-export-download-parity-missing-item-provenance-count", "0");
   for (const payloadName of expectedPayloads) {
     expect(zip.file(payloadName), `downloaded ZIP payload ${payloadName} should exist`).toBeTruthy();
   }
@@ -333,6 +383,7 @@ test("export route exposes package metadata, ZIP payload, and download parity br
       })
     ])
   );
+  await expect(metadataEvidence).toHaveAttribute("data-package-export-item-provenance-parity-count", String(manifest.items.length));
   expect(qaReport.every((finding) => finding.severity !== "block")).toBe(true);
   await expect(metadataEvidence).toHaveAttribute(
     "data-package-export-blocking-qa-count",
@@ -362,6 +413,12 @@ test("export route exposes package metadata, ZIP payload, and download parity br
   expect(provenance.items.map((item) => item.provenance)).toEqual(
     expect.arrayContaining(["dev-client-reference:ref-campaign-reference-webp", "dev-client:cand-studio"])
   );
+  for (const item of manifest.items) {
+    const itemRow = itemProvenanceMatrix.locator(`[data-package-export-item-provenance-id='${item.id}']`);
+    await expect(itemRow).toHaveAttribute("data-package-export-item-provenance-value", item.provenance);
+    await expect(itemRow).toHaveAttribute("data-package-export-item-provenance-status", "pass");
+    await expect(itemRow).toHaveAttribute("data-package-export-item-ppt-slide-status", "pass");
+  }
   await expect(metadataEvidence).toHaveAttribute("data-package-export-provenance-count", String(provenance.items.length));
   expect(aiContentDisclaimer).toMatchObject({
     schema_version: "stage0.rev2.ai-content-disclaimer",

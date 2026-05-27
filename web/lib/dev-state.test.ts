@@ -194,6 +194,31 @@ describe("dev workspace contracts", () => {
       itemCount: 2,
       itemTypes: ["candidate", "reference"],
       provenanceCount: 2,
+      itemProvenanceParityStatus: "pass",
+      itemProvenanceParityCount: 2,
+      missingItemProvenanceParityCount: 0,
+      referenceProvenanceCount: 1,
+      candidateProvenanceCount: 1,
+      itemProvenanceStatuses: [
+        {
+          itemId: "pkg-item-001",
+          title: "Studio System",
+          type: "candidate",
+          provenance: "dev-client:cand-studio",
+          expectedPrefix: "dev-client:",
+          provenanceStatus: "pass",
+          pptSlideStatus: "pass"
+        },
+        {
+          itemId: "pkg-item-002",
+          title: "brand-moodboard.png",
+          type: "reference",
+          provenance: "dev-client-reference:ref-001",
+          expectedPrefix: "dev-client-reference:",
+          provenanceStatus: "pass",
+          pptSlideStatus: "pass"
+        }
+      ],
       qaFindingCount: 2,
       blockingQaCount: 0,
       safetyStatus: "pass",
@@ -491,6 +516,9 @@ describe("dev workspace contracts", () => {
         "export-parity-001::pkg-004::project-001::ecommerce_growth_pack::fx_ecommerce_growth_golden::ai-content-disclaimer.json|assets/README.txt|assets/hero_product_ad.png|assets/marketplace_banner.png|assets/square_social_ad.png|assets/story_variant.png|manifest.json|metadata.json|ppt-ready-metadata.json|provenance.json|qa-report.json|qa_report.json|safety-policy-report.json|trace_provenance.json",
       metadataPayloadDigestMatchesZipPayloadDigest: true,
       identityStatus: "pass",
+      itemProvenanceParityStatus: "pass",
+      itemProvenanceParityCount: 4,
+      missingItemProvenanceParityCount: 0,
       provider: "dev-provider",
       model: "deterministic-local-alpha",
       promptSpecTaxonomy: ["conversion_offer", "social_proof", "feature_comparison", "retention_bundle"],

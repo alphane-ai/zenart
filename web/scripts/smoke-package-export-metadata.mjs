@@ -100,6 +100,7 @@ for (const expectedBrowserSnippet of [
   "data-package-export-workflow-metadata-payload-present",
   "data-package-export-workflow-taxonomy-count",
   "data-package-export-workflow-required-file-count",
+  "data-package-export-item-provenance-parity-status",
   "data-export-zip-payload-smoke",
   "data-export-download-parity-payloads-match",
   "data-export-download-parity-payload-contract-digest",
@@ -129,7 +130,12 @@ for (const expectedZipToUiParitySnippet of [
   "aiContentDisclaimer.safety_status).toBe(workflowMetadata.safety",
   "aiContentDisclaimer.safety_status).toBe(traceProvenance.safety",
   "workflowMetadata.prompt_spec.join(\",\")",
-  "String(traceProvenance.workflow_id === workflowMetadata.workflow_id)"
+  "String(traceProvenance.workflow_id === workflowMetadata.workflow_id)",
+  "Package export item provenance parity matrix",
+  "data-package-export-item-provenance-id='pkg-item-001'",
+  "data-package-export-item-provenance-value",
+  "data-package-export-item-ppt-slide-status",
+  "data-export-download-parity-item-provenance-status"
 ]) {
   if (!packageExportPlaywrightSpecSource.includes(expectedZipToUiParitySnippet)) {
     fail(`package/export metadata browser smoke missing ZIP-to-UI parity assertion ${expectedZipToUiParitySnippet}`);
@@ -178,6 +184,11 @@ if (
   evidence.expectedDownloadArtifactStatus !== routePackageExportEvidence.expectedDownloadArtifactStatus ||
   evidence.expectedMissingZipPayloadCount !== routePackageExportEvidence.expectedMissingZipPayloadCount ||
   evidence.expectedProvenanceCount !== routePackageExportEvidence.expectedProvenanceCount ||
+  evidence.expectedItemProvenanceParityStatus !== routePackageExportEvidence.expectedItemProvenanceParityStatus ||
+  evidence.expectedItemProvenanceParityCount !== routePackageExportEvidence.expectedItemProvenanceParityCount ||
+  evidence.expectedMissingItemProvenanceParityCount !== routePackageExportEvidence.expectedMissingItemProvenanceParityCount ||
+  evidence.expectedReferenceProvenanceCount !== routePackageExportEvidence.expectedReferenceProvenanceCount ||
+  evidence.expectedCandidateProvenanceCount !== routePackageExportEvidence.expectedCandidateProvenanceCount ||
   evidence.expectedBlockingQaCount !== routePackageExportEvidence.expectedBlockingQaCount ||
   evidence.expectedSafetyStatus !== routePackageExportEvidence.expectedSafetyStatus ||
   evidence.expectedPptAspectRatio !== routePackageExportEvidence.expectedPptAspectRatio ||
@@ -252,6 +263,9 @@ if (
   downloadParity.expectedPayloadContractDigest !== routeDownloadParityEvidence.expectedPayloadContractDigest ||
   downloadParity.expectedPayloadDigestMatch !== routeDownloadParityEvidence.expectedPayloadDigestMatch ||
   downloadParity.expectedIdentityStatus !== routeDownloadParityEvidence.expectedIdentityStatus ||
+  downloadParity.expectedItemProvenanceParityStatus !== routeDownloadParityEvidence.expectedItemProvenanceParityStatus ||
+  downloadParity.expectedItemProvenanceParityCount !== routeDownloadParityEvidence.expectedItemProvenanceParityCount ||
+  downloadParity.expectedMissingItemProvenanceParityCount !== routeDownloadParityEvidence.expectedMissingItemProvenanceParityCount ||
   downloadParity.expectedProvider !== routeDownloadParityEvidence.expectedProvider ||
   downloadParity.expectedModel !== routeDownloadParityEvidence.expectedModel ||
   downloadParity.expectedPromptSpecTaxonomy !== routeDownloadParityEvidence.expectedPromptSpecTaxonomy ||
@@ -324,6 +338,27 @@ for (const payload of evidence.crossPayloadIdentityMatrix.expectedPayloads ?? []
   }
 }
 
+if (
+  evidence.itemProvenanceParityMatrix.groupSelector !== "[aria-label=\"Package export item provenance parity matrix\"]" ||
+  !componentSource.includes("Package export item provenance parity matrix")
+) {
+  fail("package/export item provenance parity matrix missing aria-label selector contract");
+}
+
+for (const attribute of [
+  evidence.itemProvenanceParityMatrix.rowAttribute,
+  evidence.itemProvenanceParityMatrix.idAttribute,
+  evidence.itemProvenanceParityMatrix.typeAttribute,
+  evidence.itemProvenanceParityMatrix.valueAttribute,
+  evidence.itemProvenanceParityMatrix.prefixAttribute,
+  evidence.itemProvenanceParityMatrix.statusAttribute,
+  evidence.itemProvenanceParityMatrix.pptSlideStatusAttribute
+]) {
+  if (!componentSource.includes(attribute) && !workspaceSmokeTestSource.includes(attribute) && !packageExportPlaywrightSpecSource.includes(attribute)) {
+    fail(`package/export item provenance parity matrix missing ${attribute}`);
+  }
+}
+
 for (const payload of evidence.requiredPayloads) {
   if (
     !devStateSource.includes(payload) &&
@@ -375,6 +410,12 @@ for (const requiredSourceSnippet of [
   "workflowSkillMetadataPresent",
   "workflowSafetyMetadataPresent",
   "crossPayloadIdentityStatuses",
+  "itemProvenanceParityStatus",
+  "itemProvenanceParityCount",
+  "missingItemProvenanceParityCount",
+  "referenceProvenanceCount",
+  "candidateProvenanceCount",
+  "itemProvenanceStatuses",
   "exportId: hasRuntimeIdentity ? status : \"not-applicable\"",
   "packageId: status",
   "projectId: status"
@@ -403,7 +444,12 @@ for (const requiredContractSnippet of [
   "unsafeManifestPayloadNames",
   "unsafeExpectedPayloadNames",
   "identityStatus",
-  "crossPayloadIdentityStatuses"
+  "crossPayloadIdentityStatuses",
+  "itemProvenanceParityStatus",
+  "itemProvenanceParityCount",
+  "missingItemProvenanceParityCount",
+  "itemProvenanceStatuses",
+  "item-provenance"
 ]) {
   if (!contractsSource.includes(requiredContractSnippet)) {
     fail(`package/export metadata TypeScript contract missing ${requiredContractSnippet}`);
@@ -480,12 +526,19 @@ for (const requiredTestSnippet of [
   "data-package-export-zip-payload-contract-digest",
   "data-package-export-payload-row",
   "data-package-export-identity-row",
+  "data-package-export-item-provenance-parity-status",
+  "data-package-export-item-provenance-parity-count",
+  "data-package-export-item-provenance-row",
+  "data-package-export-item-provenance-id",
+  "data-package-export-item-provenance-value",
+  "data-package-export-item-ppt-slide-status",
   "data-export-zip-payload-smoke-status",
   "data-export-zip-payload-contract-digest",
   "data-export-download-parity-status",
   "data-export-download-parity-payload-list-status",
   "data-export-download-parity-payload-digest-match",
   "data-export-download-parity-identity-status",
+  "data-export-download-parity-item-provenance-status",
   "data-export-download-handoff-status"
 ]) {
   if (!workspaceSmokeTestSource.includes(requiredTestSnippet)) {
@@ -506,6 +559,11 @@ const expectedDataAttributeValues = new Map([
   ["data-package-export-missing-output-count", evidence.expectedMissingOutputCount],
   ["data-package-export-missing-zip-payload-count", evidence.expectedMissingZipPayloadCount],
   ["data-package-export-provenance-count", evidence.expectedProvenanceCount],
+  ["data-package-export-item-provenance-parity-status", evidence.expectedItemProvenanceParityStatus],
+  ["data-package-export-item-provenance-parity-count", evidence.expectedItemProvenanceParityCount],
+  ["data-package-export-missing-item-provenance-parity-count", evidence.expectedMissingItemProvenanceParityCount],
+  ["data-package-export-reference-provenance-count", evidence.expectedReferenceProvenanceCount],
+  ["data-package-export-candidate-provenance-count", evidence.expectedCandidateProvenanceCount],
   ["data-package-export-blocking-qa-count", evidence.expectedBlockingQaCount],
   ["data-package-export-safety-status", evidence.expectedSafetyStatus],
   ["data-package-export-safety-stage-count", evidence.expectedSafetyStageCount],
@@ -574,6 +632,9 @@ const expectedDataAttributeValues = new Map([
   ["data-export-download-parity-payload-contract-digest", downloadParity.expectedPayloadContractDigest],
   ["data-export-download-parity-payload-digest-match", downloadParity.expectedPayloadDigestMatch],
   ["data-export-download-parity-identity-status", downloadParity.expectedIdentityStatus],
+  ["data-export-download-parity-item-provenance-status", downloadParity.expectedItemProvenanceParityStatus],
+  ["data-export-download-parity-item-provenance-count", downloadParity.expectedItemProvenanceParityCount],
+  ["data-export-download-parity-missing-item-provenance-count", downloadParity.expectedMissingItemProvenanceParityCount],
   ["data-export-download-parity-provider", downloadParity.expectedProvider],
   ["data-export-download-parity-model", downloadParity.expectedModel],
   ["data-export-download-parity-prompt-spec-taxonomy", downloadParity.expectedPromptSpecTaxonomy],
@@ -613,6 +674,14 @@ if (!packageExportPlaywrightSpecSource.includes("Package export cross-payload id
   fail("browser smoke test must inspect the package export cross-payload identity matrix");
 }
 
+if (!workspaceSmokeTestSource.includes("Package export item provenance parity matrix")) {
+  fail("workspace smoke test must inspect the package export item provenance parity matrix");
+}
+
+if (!packageExportPlaywrightSpecSource.includes("Package export item provenance parity matrix")) {
+  fail("browser smoke test must inspect the package export item provenance parity matrix");
+}
+
 if (!workspaceSmokeTestSource.includes("Package export payload status matrix")) {
   fail("workspace smoke test must inspect the package export payload status matrix");
 }
@@ -623,6 +692,10 @@ if (!componentSource.includes("function PayloadStatusList") || !componentSource.
 
 if (!componentSource.includes("function PayloadIdentityStatusList") || !componentSource.includes("payload-identity-status-list")) {
   fail("workspace export UI must render cross-payload identity rows");
+}
+
+if (!componentSource.includes("function ItemProvenanceStatusList") || !componentSource.includes("item-provenance-status-list")) {
+  fail("workspace export UI must render item provenance parity rows");
 }
 
 if (!componentSource.includes("downloadExportPackage(item)")) {

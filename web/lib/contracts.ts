@@ -487,6 +487,20 @@ export interface PackageExportMetadataEvidence {
   itemCount: number;
   itemTypes: PackageItem["type"][];
   provenanceCount: number;
+  itemProvenanceParityStatus: "pass" | "fail";
+  itemProvenanceParityCount: number;
+  missingItemProvenanceParityCount: number;
+  referenceProvenanceCount: number;
+  candidateProvenanceCount: number;
+  itemProvenanceStatuses: Array<{
+    itemId: string;
+    title: string;
+    type: PackageItem["type"];
+    provenance: string;
+    expectedPrefix: "dev-client-reference:" | "dev-client:" | "dev-client-canvas:";
+    provenanceStatus: "pass" | "missing";
+    pptSlideStatus: "pass" | "missing";
+  }>;
   qaFindingCount: number;
   blockingQaCount: number;
   safetyStatus: SafetyPolicyReport["status"];
@@ -606,6 +620,9 @@ export interface ExportDownloadParityEvidence {
   payloadContractDigest: string;
   metadataPayloadDigestMatchesZipPayloadDigest: boolean;
   identityStatus: "pass" | "fail";
+  itemProvenanceParityStatus: PackageExportMetadataEvidence["itemProvenanceParityStatus"];
+  itemProvenanceParityCount: number;
+  missingItemProvenanceParityCount: number;
   provider: string;
   model: string;
   promptSpecTaxonomy: string[];
@@ -631,6 +648,7 @@ export interface ExportDownloadParityEvidence {
     | "payload-list"
     | "payload-digest"
     | "identity"
+    | "item-provenance"
     | "provider"
     | "model"
     | "prompt-spec"

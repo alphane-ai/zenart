@@ -615,6 +615,11 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(metadataEvidence).toHaveAttribute("data-package-export-missing-output-count", "0");
     expect(metadataEvidence).toHaveAttribute("data-package-export-missing-zip-payload-count", "0");
     expect(metadataEvidence).toHaveAttribute("data-package-export-provenance-count", "2");
+    expect(metadataEvidence).toHaveAttribute("data-package-export-item-provenance-parity-status", "pass");
+    expect(metadataEvidence).toHaveAttribute("data-package-export-item-provenance-parity-count", "2");
+    expect(metadataEvidence).toHaveAttribute("data-package-export-missing-item-provenance-parity-count", "0");
+    expect(metadataEvidence).toHaveAttribute("data-package-export-reference-provenance-count", "1");
+    expect(metadataEvidence).toHaveAttribute("data-package-export-candidate-provenance-count", "1");
     expect(metadataEvidence).toHaveAttribute("data-package-export-blocking-qa-count", "0");
     expect(metadataEvidence).toHaveAttribute("data-package-export-safety-status", "pass");
     expect(metadataEvidence).toHaveAttribute("data-package-export-safety-stage-count", "5");
@@ -658,6 +663,30 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(identityRow("metadata.json")).toHaveAttribute("data-package-export-identity-workflow-id", "pass");
     expect(identityRow("metadata.json")).toHaveAttribute("data-package-export-identity-skill", "pass");
     expect(identityRow("trace_provenance.json")).toHaveAttribute("data-package-export-identity-safety", "pass");
+    const itemProvenanceMatrix = screen.getByLabelText("Package export item provenance parity matrix");
+    expect(itemProvenanceMatrix).toBeInTheDocument();
+    const itemProvenanceRows = within(itemProvenanceMatrix).getAllByRole("listitem");
+    const itemProvenanceRow = (itemId: string) =>
+      itemProvenanceRows.find((row) => row.getAttribute("data-package-export-item-provenance-id") === itemId);
+    expect(itemProvenanceRows).toHaveLength(2);
+    expect(itemProvenanceRow("pkg-item-001")).toHaveAttribute("data-package-export-item-provenance-row", "item-provenance-parity");
+    expect(itemProvenanceRow("pkg-item-001")).toHaveAttribute("data-package-export-item-provenance-type", "reference");
+    expect(itemProvenanceRow("pkg-item-001")).toHaveAttribute(
+      "data-package-export-item-provenance-value",
+      "dev-client-reference:ref-campaign-reference-webp"
+    );
+    expect(itemProvenanceRow("pkg-item-001")).toHaveAttribute(
+      "data-package-export-item-provenance-prefix",
+      "dev-client-reference:"
+    );
+    expect(itemProvenanceRow("pkg-item-001")).toHaveAttribute("data-package-export-item-provenance-status", "pass");
+    expect(itemProvenanceRow("pkg-item-001")).toHaveAttribute("data-package-export-item-ppt-slide-status", "pass");
+    expect(itemProvenanceRow("pkg-item-002")).toHaveAttribute("data-package-export-item-provenance-row", "item-provenance-parity");
+    expect(itemProvenanceRow("pkg-item-002")).toHaveAttribute("data-package-export-item-provenance-type", "candidate");
+    expect(itemProvenanceRow("pkg-item-002")).toHaveAttribute("data-package-export-item-provenance-value", "dev-client:cand-studio");
+    expect(itemProvenanceRow("pkg-item-002")).toHaveAttribute("data-package-export-item-provenance-prefix", "dev-client:");
+    expect(itemProvenanceRow("pkg-item-002")).toHaveAttribute("data-package-export-item-provenance-status", "pass");
+    expect(itemProvenanceRow("pkg-item-002")).toHaveAttribute("data-package-export-item-ppt-slide-status", "pass");
     expect(metadataEvidence).toHaveAttribute("data-package-export-workflow-id", "ecommerce_growth_pack");
     expect(metadataEvidence).toHaveAttribute("data-package-export-workflow-fixture-id", "fx_ecommerce_growth_golden");
     expect(metadataEvidence).toHaveAttribute("data-package-export-workflow-taxonomy-count", "1");
@@ -779,6 +808,9 @@ describe("WorkspaceApp user route integration smoke", () => {
     );
     expect(downloadParity).toHaveAttribute("data-export-download-parity-payload-digest-match", "true");
     expect(downloadParity).toHaveAttribute("data-export-download-parity-identity-status", "pass");
+    expect(downloadParity).toHaveAttribute("data-export-download-parity-item-provenance-status", "pass");
+    expect(downloadParity).toHaveAttribute("data-export-download-parity-item-provenance-count", "2");
+    expect(downloadParity).toHaveAttribute("data-export-download-parity-missing-item-provenance-count", "0");
     expect(downloadParity).toHaveAttribute("data-export-download-parity-provider", "dev-provider");
     expect(downloadParity).toHaveAttribute("data-export-download-parity-model", "deterministic-local-alpha");
     expect(downloadParity).toHaveAttribute(

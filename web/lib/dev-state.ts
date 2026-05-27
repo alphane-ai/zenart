@@ -987,6 +987,26 @@ export const buildPackageExportMetadataEvidence = (record: ExportRecord): Packag
     workflowTraceProvenancePayloadPresent &&
     record.safetyReport.enforcementStages.every((stage) => safetyPolicyEnforcementStages.includes(stage));
   const provenanceCount = record.manifest.items.filter((item) => item.provenance.trim().length > 0).length;
+  const pptSlideSourceIds = new Set(record.manifest.ppt_ready_metadata.slides.map((slide) => slide.source_item_id));
+  const itemProvenanceStatuses = record.manifest.items.map((item) => {
+    const expectedPrefix =
+      item.type === "reference" ? "dev-client-reference:" : item.type === "candidate" ? "dev-client:" : "dev-client-canvas:";
+    const provenanceStatus = item.provenance.startsWith(expectedPrefix) ? "pass" : "missing";
+    const pptSlideStatus = pptSlideSourceIds.has(item.id) ? "pass" : "missing";
+
+    return {
+      itemId: item.id,
+      title: item.title,
+      type: item.type,
+      provenance: item.provenance,
+      expectedPrefix,
+      provenanceStatus,
+      pptSlideStatus
+    } as const;
+  });
+  const missingItemProvenanceParityCount = itemProvenanceStatuses.filter(
+    (item) => item.provenanceStatus !== "pass" || item.pptSlideStatus !== "pass"
+  ).length;
   const blockingQaCount = record.qaReport.filter((finding) => finding.severity === "block").length;
   const pptSlideCount = record.manifest.ppt_ready_metadata.slides.length;
   const handoffChecklistCount = record.manifest.ppt_ready_metadata.handoff_checklist.length;
@@ -1033,6 +1053,16 @@ export const buildPackageExportMetadataEvidence = (record: ExportRecord): Packag
     itemCount: record.manifest.items.length,
     itemTypes: Array.from(new Set(record.manifest.items.map((item) => item.type))),
     provenanceCount,
+    itemProvenanceParityStatus: missingItemProvenanceParityCount === 0 ? "pass" : "fail",
+    itemProvenanceParityCount: itemProvenanceStatuses.length - missingItemProvenanceParityCount,
+    missingItemProvenanceParityCount,
+    referenceProvenanceCount: itemProvenanceStatuses.filter(
+      (item) => item.type === "reference" && item.provenanceStatus === "pass"
+    ).length,
+    candidateProvenanceCount: itemProvenanceStatuses.filter(
+      (item) => item.type === "candidate" && item.provenanceStatus === "pass"
+    ).length,
+    itemProvenanceStatuses,
     qaFindingCount: record.qaReport.length,
     blockingQaCount,
     safetyStatus: record.safetyReport.status,
@@ -1238,6 +1268,13 @@ export const buildExportDownloadParityEvidence = (
   ) {
     failures.push("identity");
   }
+  if (
+    metadataEvidence.itemProvenanceParityStatus !== "pass" ||
+    metadataEvidence.itemProvenanceParityCount !== record.manifest.items.length ||
+    metadataEvidence.missingItemProvenanceParityCount !== 0
+  ) {
+    failures.push("item-provenance");
+  }
   if (metadataEvidence.workflowMetadataProvider !== "dev-provider") {
     failures.push("provider");
   }
@@ -1290,6 +1327,9 @@ export const buildExportDownloadParityEvidence = (
     payloadContractDigest,
     metadataPayloadDigestMatchesZipPayloadDigest,
     identityStatus: failures.includes("identity") ? "fail" : "pass",
+    itemProvenanceParityStatus: metadataEvidence.itemProvenanceParityStatus,
+    itemProvenanceParityCount: metadataEvidence.itemProvenanceParityCount,
+    missingItemProvenanceParityCount: metadataEvidence.missingItemProvenanceParityCount,
     provider: metadataEvidence.workflowMetadataProvider,
     model: metadataEvidence.workflowMetadataModel,
     promptSpecTaxonomy: metadataEvidence.workflowPromptSpecTaxonomy,
