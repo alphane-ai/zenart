@@ -2744,6 +2744,65 @@ func TestRecordAnalyticsEventRedactsProperties(t *testing.T) {
 	}
 }
 
+func TestRecordAnalyticsEventNormalizesTaxonomyAndRejectsUnknownEvents(t *testing.T) {
+	db := &fakeDB{}
+	repo := NewRepository(db)
+
+	err := repo.RecordAnalyticsEvent(context.Background(), AnalyticsEvent{
+		ID:          "analytics_1",
+		TenantID:    "tenant_1",
+		UserID:      " user_1 ",
+		ProjectID:   " project_1 ",
+		WorkflowID:  " workflow_1 ",
+		EventName:   " Export_Completed ",
+		SubjectType: " Export ",
+		SubjectID:   " export_1 ",
+		Properties:  map[string]any{"format": "zip"},
+	})
+	if err != nil {
+		t.Fatalf("RecordAnalyticsEvent() error = %v", err)
+	}
+	if len(db.execs) != 1 {
+		t.Fatalf("exec count = %d, want normalized analytics insert", len(db.execs))
+	}
+	if db.execs[0].args[3] != "project_1" || db.execs[0].args[4] != "workflow_1" || db.execs[0].args[5] != "export_completed" || db.execs[0].args[6] != "export" || db.execs[0].args[7] != "export_1" {
+		t.Fatalf("analytics args = %#v, want normalized taxonomy/scope", db.execs[0].args)
+	}
+
+	beforeUnknown := len(db.execs)
+	err = repo.RecordAnalyticsEvent(context.Background(), AnalyticsEvent{
+		TenantID:    "tenant_1",
+		EventName:   "secret_event",
+		SubjectType: "export",
+		SubjectID:   "export_1",
+	})
+	if !errors.Is(err, ErrValidation) {
+		t.Fatalf("RecordAnalyticsEvent() error = %v, want ErrValidation for unknown event", err)
+	}
+	if len(db.execs) != beforeUnknown {
+		t.Fatalf("unknown analytics event should not write rows: %#v", db.execs)
+	}
+}
+
+func TestRecordAnalyticsEventRejectsUnsafeScopeReferences(t *testing.T) {
+	db := &fakeDB{}
+	repo := NewRepository(db)
+
+	err := repo.RecordAnalyticsEvent(context.Background(), AnalyticsEvent{
+		TenantID:    "tenant_1",
+		WorkflowID:  "../tenant_2/workflow",
+		EventName:   "export_completed",
+		SubjectType: "export",
+		SubjectID:   "export_1",
+	})
+	if !errors.Is(err, ErrValidation) {
+		t.Fatalf("RecordAnalyticsEvent() error = %v, want ErrValidation for unsafe workflow_id", err)
+	}
+	if len(db.execs) != 0 {
+		t.Fatalf("unsafe analytics scope should not write rows: %#v", db.execs)
+	}
+}
+
 func TestListAnalyticsEventsUsesTenantScopedFiltersAndRedactsProperties(t *testing.T) {
 	now := time.Date(2026, 5, 27, 8, 0, 0, 0, time.UTC)
 	db := &fakeDB{queryRows: []rowSet{{rows: [][]any{{
@@ -2791,6 +2850,39 @@ func TestListAnalyticsEventsUsesTenantScopedFiltersAndRedactsProperties(t *testi
 		if query.args[i] != want {
 			t.Fatalf("query args[%d] = %#v, want %#v", i, query.args[i], want)
 		}
+	}
+}
+
+func TestListAnalyticsEventsRejectsUnsupportedFiltersBeforeQuery(t *testing.T) {
+	db := &fakeDB{}
+	repo := NewRepository(db)
+
+	_, err := repo.ListAnalyticsEvents(context.Background(), AnalyticsEventFilters{
+		TenantID:    "tenant_1",
+		EventName:   "unknown_event",
+		SubjectType: "export",
+		SubjectID:   "export_1",
+		Limit:       25,
+	})
+	if !errors.Is(err, ErrValidation) {
+		t.Fatalf("ListAnalyticsEvents() error = %v, want ErrValidation", err)
+	}
+	if len(db.queryRowsUsed) != 0 {
+		t.Fatalf("unsupported analytics filter should not query storage: %#v", db.queryRowsUsed)
+	}
+
+	_, err = repo.ListAnalyticsEvents(context.Background(), AnalyticsEventFilters{
+		TenantID:    "tenant_1",
+		EventName:   "export_completed",
+		SubjectType: "export/../../tenant_2",
+		SubjectID:   "export_1",
+		Limit:       25,
+	})
+	if !errors.Is(err, ErrValidation) {
+		t.Fatalf("ListAnalyticsEvents() unsafe subject_type error = %v, want ErrValidation", err)
+	}
+	if len(db.queryRowsUsed) != 0 {
+		t.Fatalf("unsafe analytics filter should not query storage: %#v", db.queryRowsUsed)
 	}
 }
 

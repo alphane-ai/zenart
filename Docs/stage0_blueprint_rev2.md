@@ -2011,6 +2011,7 @@ main 合并前必须通过：
 
 - [x] 定义 analytics event taxonomy。
 - [x] 实现 server-side core workflow event capture。
+- [x] 后端 analytics storage/query boundary 强制闭合 taxonomy：写入端规范化 event/subject/scope，未知 event/subject 或 unsafe scope/filter 在查询存储前 fail-closed，admin analytics 仍只使用 principal tenant，覆盖 backend service/server tests。
 - [x] 实现 client-side onboarding/UI funnel capture。
 - [x] 实现 admin report：first prompt to four candidates。
 - [x] 实现 admin report：selection rate。

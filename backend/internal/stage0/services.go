@@ -48,6 +48,61 @@ var (
 )
 
 var cleanupTenantIDPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]*$`)
+var analyticsReferencePattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$`)
+
+var analyticsEventTaxonomy = map[string]struct{}{
+	"signup":                    {},
+	"onboarding_completed":      {},
+	"project_created":           {},
+	"first_chat":                {},
+	"workflow_started":          {},
+	"candidate_set_created":     {},
+	"four_candidates_ready":     {},
+	"candidate_selected":        {},
+	"direction_selected":        {},
+	"iteration_requested":       {},
+	"package_item_added":        {},
+	"export_started":            {},
+	"export_completed":          {},
+	"export_failed":             {},
+	"qa_warning_block":          {},
+	"billing_viewed":            {},
+	"subscription_started":      {},
+	"subscription_cancelled":    {},
+	"support_ticket_opened":     {},
+	"support_ticket_created":    {},
+	"safety_block":              {},
+	"safety_decision_recorded":  {},
+	"upload_created":            {},
+	"object_downloaded":         {},
+	"export_regenerated":        {},
+	"export_expired":            {},
+	"object_orphaned":           {},
+	"object_deleted":            {},
+	"export_object_cleanup_run": {},
+}
+
+var analyticsSubjectTypeTaxonomy = map[string]struct{}{
+	"account":         {},
+	"agent_task":      {},
+	"asset":           {},
+	"billing":         {},
+	"candidate":       {},
+	"candidate_set":   {},
+	"export":          {},
+	"object_metadata": {},
+	"package":         {},
+	"package_item":    {},
+	"project":         {},
+	"quota_bucket":    {},
+	"safety_decision": {},
+	"subscription":    {},
+	"support_ticket":  {},
+	"tenant":          {},
+	"upload":          {},
+	"user":            {},
+	"workflow":        {},
+}
 
 const (
 	SafetyPointBrief            = "brief"
@@ -2299,13 +2354,11 @@ func (r Repository) RunRuntimeSafetyPolicy(ctx context.Context, input RuntimeSaf
 }
 
 func (r Repository) RecordAnalyticsEvent(ctx context.Context, event AnalyticsEvent) error {
-	event.TenantID = strings.TrimSpace(event.TenantID)
-	event.UserID = strings.TrimSpace(event.UserID)
-	event.ProjectID = strings.TrimSpace(event.ProjectID)
-	event.WorkflowID = strings.TrimSpace(event.WorkflowID)
-	event.EventName = strings.TrimSpace(event.EventName)
-	event.SubjectType = strings.TrimSpace(event.SubjectType)
-	event.SubjectID = strings.TrimSpace(event.SubjectID)
+	var err error
+	event.TenantID, event.UserID, event.ProjectID, event.WorkflowID, event.EventName, event.SubjectType, event.SubjectID, err = normalizeAnalyticsEventScope(event)
+	if err != nil {
+		return err
+	}
 	if event.TenantID == "" || event.EventName == "" || event.SubjectType == "" || event.SubjectID == "" {
 		return errors.Join(ErrValidation, errors.New("tenant_id, event_name, subject_type, and subject_id are required"))
 	}
@@ -2319,7 +2372,7 @@ func (r Repository) RecordAnalyticsEvent(ctx context.Context, event AnalyticsEve
 	if properties == nil {
 		properties = map[string]any{}
 	}
-	_, err := r.db.Exec(ctx, `
+	_, err = r.db.Exec(ctx, `
 INSERT INTO analytics_events(id, tenant_id, user_id, project_id, workflow_id, event_name, subject_type, subject_id, properties, created_at)
 VALUES($1, $2, NULLIF($3, ''), NULLIF($4, ''), $5, $6, $7, $8, $9, $10)`,
 		event.ID,
@@ -2340,6 +2393,23 @@ func (r Repository) ListAnalyticsEvents(ctx context.Context, filters AnalyticsEv
 	filters.TenantID = strings.TrimSpace(filters.TenantID)
 	if filters.TenantID == "" {
 		return Page[AnalyticsEvent]{}, errors.Join(ErrValidation, errors.New("tenant_id is required"))
+	}
+	var err error
+	filters.EventName, err = normalizeAnalyticsTaxonomyValue("event_name", filters.EventName, analyticsEventTaxonomy, true)
+	if err != nil {
+		return Page[AnalyticsEvent]{}, err
+	}
+	filters.SubjectType, err = normalizeAnalyticsTaxonomyValue("subject_type", filters.SubjectType, analyticsSubjectTypeTaxonomy, true)
+	if err != nil {
+		return Page[AnalyticsEvent]{}, err
+	}
+	filters.WorkflowID, err = normalizeAnalyticsReferenceValue("workflow_id", filters.WorkflowID, true)
+	if err != nil {
+		return Page[AnalyticsEvent]{}, err
+	}
+	filters.SubjectID, err = normalizeAnalyticsReferenceValue("subject_id", filters.SubjectID, true)
+	if err != nil {
+		return Page[AnalyticsEvent]{}, err
 	}
 	if filters.Limit <= 0 || filters.Limit > 100 {
 		filters.Limit = 50
@@ -2380,6 +2450,63 @@ WHERE tenant_id = $1`
 		page.Items = append(page.Items, event)
 	}
 	return page, rows.Err()
+}
+
+func normalizeAnalyticsEventScope(event AnalyticsEvent) (tenantID, userID, projectID, workflowID, eventName, subjectType, subjectID string, err error) {
+	tenantID = strings.TrimSpace(event.TenantID)
+	userID, err = normalizeAnalyticsReferenceValue("user_id", event.UserID, true)
+	if err != nil {
+		return "", "", "", "", "", "", "", err
+	}
+	projectID, err = normalizeAnalyticsReferenceValue("project_id", event.ProjectID, true)
+	if err != nil {
+		return "", "", "", "", "", "", "", err
+	}
+	workflowID, err = normalizeAnalyticsReferenceValue("workflow_id", event.WorkflowID, true)
+	if err != nil {
+		return "", "", "", "", "", "", "", err
+	}
+	eventName, err = normalizeAnalyticsTaxonomyValue("event_name", event.EventName, analyticsEventTaxonomy, false)
+	if err != nil {
+		return "", "", "", "", "", "", "", err
+	}
+	subjectType, err = normalizeAnalyticsTaxonomyValue("subject_type", event.SubjectType, analyticsSubjectTypeTaxonomy, false)
+	if err != nil {
+		return "", "", "", "", "", "", "", err
+	}
+	subjectID, err = normalizeAnalyticsReferenceValue("subject_id", event.SubjectID, false)
+	if err != nil {
+		return "", "", "", "", "", "", "", err
+	}
+	return tenantID, userID, projectID, workflowID, eventName, subjectType, subjectID, nil
+}
+
+func normalizeAnalyticsTaxonomyValue(field, value string, allowed map[string]struct{}, optional bool) (string, error) {
+	normalized := strings.ToLower(strings.TrimSpace(value))
+	if normalized == "" {
+		if optional {
+			return "", nil
+		}
+		return "", errors.Join(ErrValidation, fmt.Errorf("%s is required", field))
+	}
+	if _, ok := allowed[normalized]; !ok {
+		return "", errors.Join(ErrValidation, fmt.Errorf("unsupported analytics %s %q", field, security.RedactString(normalized)))
+	}
+	return normalized, nil
+}
+
+func normalizeAnalyticsReferenceValue(field, value string, optional bool) (string, error) {
+	normalized := strings.TrimSpace(value)
+	if normalized == "" {
+		if optional {
+			return "", nil
+		}
+		return "", errors.Join(ErrValidation, fmt.Errorf("%s is required", field))
+	}
+	if !analyticsReferencePattern.MatchString(normalized) || strings.ContainsAny(normalized, `/\`) || strings.Contains(normalized, "..") {
+		return "", errors.Join(ErrValidation, fmt.Errorf("analytics %s is invalid", field))
+	}
+	return normalized, nil
 }
 
 func (r Repository) ListAnalyticsReports(ctx context.Context, tenantID string, limit int, now time.Time) (Page[AnalyticsReport], error) {

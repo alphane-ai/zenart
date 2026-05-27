@@ -2048,6 +2048,38 @@ func TestAdminAnalyticsEventsUsesPrincipalTenantAndFilters(t *testing.T) {
 	}
 }
 
+func TestAdminAnalyticsEventsRejectsUnsupportedFiltersBeforeQuery(t *testing.T) {
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	cfg.Auth.AdminDevIdentityHeaders = true
+	db := &fakeStage0DB{}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/admin/v1/analytics/events?event_name=tenant_2_secret_probe&workflow_id=workflow_1&page_size=25", nil)
+	req = req.WithContext(stage0.ContextWithService(req.Context(), stage0.NewService(stage0.NewRepository(db), nil)))
+	req.Header.Set("X-Zenart-User-ID", "admin_viewer_1")
+	req.Header.Set("X-Zenart-Tenant-ID", "tenant_1")
+	req.Header.Set("X-Zenart-Roles", "admin_viewer")
+	rec := httptest.NewRecorder()
+
+	New(cfg, nil).Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want %d: %s", rec.Code, http.StatusBadRequest, rec.Body.String())
+	}
+	if len(db.queries) != 0 {
+		t.Fatalf("unsupported analytics filter should fail before storage query: %#v", db.queries)
+	}
+	var body map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("response JSON error = %v", err)
+	}
+	if body["code"] != "validation_error" {
+		t.Fatalf("code = %v, want validation_error", body["code"])
+	}
+}
+
 func TestAdminAnalyticsReportsUsesPrincipalTenant(t *testing.T) {
 	cfg, err := config.Load()
 	if err != nil {
