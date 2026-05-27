@@ -1459,17 +1459,28 @@ func TestServiceCleanupDeletesMarkedObjectsAndMarksRowsDeleted(t *testing.T) {
 			t.Fatalf("Put(%s) error = %v", key, err)
 		}
 	}
+	markerOnlyExpiry := now.Add(-time.Minute)
+	if _, err := objects.Put(context.Background(), objectstore.Object{
+		TenantID:       "tenant_1",
+		Key:            "exports/stale-marker-only.zip",
+		RetentionUntil: &markerOnlyExpiry,
+	}, strings.NewReader("stale data")); err != nil {
+		t.Fatalf("Put(stale marker-only object) error = %v", err)
+	}
 	service := NewService(NewRepository(db), objects)
 
 	result, err := service.CleanupExpiredExportsAndOrphanedObjects(context.Background(), now, 50)
 	if err != nil {
 		t.Fatalf("CleanupExpiredExportsAndOrphanedObjects() error = %v", err)
 	}
-	if result.ExpiredExports != 1 || result.OrphanedObjects != 1 || result.DeletedObjects != 2 {
-		t.Fatalf("cleanup result = %#v, want 1/1/2", result)
+	if result.ExpiredExports != 1 || result.OrphanedObjects != 1 || result.DeletedObjects != 3 {
+		t.Fatalf("cleanup result = %#v, want 1/1/3", result)
 	}
 	if result.Status != "completed" || result.FailedObjects != 0 {
 		t.Fatalf("cleanup status = %q failed_objects = %d, want completed/0", result.Status, result.FailedObjects)
+	}
+	if _, err := objects.Get(context.Background(), "tenant_1", "exports/stale-marker-only.zip"); !errors.Is(err, objectstore.ErrNotFound) {
+		t.Fatalf("stale marker-only object lookup error = %v, want ErrNotFound", err)
 	}
 	if len(db.execs) != 7 {
 		t.Fatalf("exec count = %d, want repository mark, orphan mark, cleanup analytics, deleted mark, deletion analytics, cleanup run analytics, cleanup audit refs", len(db.execs))
@@ -1491,6 +1502,36 @@ func TestServiceCleanupDeletesMarkedObjectsAndMarksRowsDeleted(t *testing.T) {
 	}
 	if !strings.Contains(db.execs[6].sql, "INSERT INTO audit_logs") || !strings.Contains(db.execs[6].sql, "'cleanup_ack_scope'") || !strings.Contains(db.execs[6].sql, "'cleanup_status'") || !strings.Contains(db.execs[6].sql, "'failed_objects'") {
 		t.Fatalf("seventh exec should emit cleanup audit refs: %s", db.execs[6].sql)
+	}
+}
+
+func TestTenantScopedServiceCleanupDoesNotSweepGlobalObjectStoreMarkers(t *testing.T) {
+	now := time.Date(2026, 5, 26, 12, 0, 0, 0, time.UTC)
+	db := &fakeDB{
+		execTags: []pgconn.CommandTag{
+			pgconn.NewCommandTag("UPDATE 0"),
+			pgconn.NewCommandTag("UPDATE 0"),
+			pgconn.NewCommandTag("SELECT 1"),
+			pgconn.NewCommandTag("UPDATE 0"),
+			pgconn.NewCommandTag("SELECT 1"),
+		},
+		queryRows: []rowSet{{}},
+	}
+	objects := &recordingObjectStore{}
+	service := NewService(NewRepository(db), objects)
+
+	result, err := service.CleanupExpiredExportsAndOrphanedObjectsForTenant(context.Background(), "tenant_1", now, 50)
+	if err != nil {
+		t.Fatalf("CleanupExpiredExportsAndOrphanedObjectsForTenant() error = %v", err)
+	}
+	if result.DeletedObjects != 0 || result.FailedObjects != 0 || result.Status != "completed" {
+		t.Fatalf("tenant cleanup result = %#v, want empty completed result", result)
+	}
+	if objects.cleanupExpiredCalled {
+		t.Fatal("tenant-scoped admin cleanup must not run global object-store marker cleanup")
+	}
+	if len(db.execs) != 3 {
+		t.Fatalf("exec count = %d, want repository mark, orphan mark, cleanup lifecycle analytics only", len(db.execs))
 	}
 }
 
@@ -2661,12 +2702,15 @@ type rowSet struct {
 }
 
 type recordingObjectStore struct {
-	signedURL    string
-	signTenantID string
-	signKey      string
-	signTTL      time.Duration
-	deleteErrors map[string]error
-	deletedKeys  []string
+	signedURL            string
+	signTenantID         string
+	signKey              string
+	signTTL              time.Duration
+	deleteErrors         map[string]error
+	deletedKeys          []string
+	cleanupExpiredCalled bool
+	cleanupExpiredCount  int
+	cleanupExpiredError  error
 }
 
 func (s *recordingObjectStore) Put(_ context.Context, object objectstore.Object, _ io.Reader) (objectstore.Object, error) {
@@ -2695,7 +2739,8 @@ func (s *recordingObjectStore) Delete(_ context.Context, _ string, key string) e
 }
 
 func (s *recordingObjectStore) CleanupExpired(_ context.Context, _ time.Time) (int, error) {
-	return 0, nil
+	s.cleanupExpiredCalled = true
+	return s.cleanupExpiredCount, s.cleanupExpiredError
 }
 
 type fakeRows struct {
