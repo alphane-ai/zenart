@@ -157,6 +157,7 @@ export type CrawlerGovernanceWorkflow = {
   rawRetentionAction: "retain_with_limit" | "delete_raw" | "delete_raw_and_derivatives";
   deletionEvidenceRef: string;
   requesterNoticeRef: string;
+  escalationEvidenceRef: string;
   activationGateDecision: "allowed" | "blocked";
   linkedReview: string;
   fixtureCaseId: string;
@@ -179,6 +180,7 @@ export type CrawlerGovernanceRuntimeDecision = {
   activationDecision: "allow_activation" | "block_activation";
   deletionEvidenceStatus: "complete" | "pending";
   requesterNoticeStatus: "complete" | "pending";
+  escalationEvidenceStatus: "complete" | "pending" | "not_required";
   secondReviewStatus: CrawlerGovernanceWorkflow["secondReviewStatus"];
   auditStatus: "attached" | "missing";
   requiredEvidenceStatus: "complete" | "missing";

@@ -202,6 +202,7 @@ const parseCrawlerRuntime = () => {
     .replaceAll(/: CrawlerGovernanceRuntimeDecision\[\]/g, "")
     .replaceAll(/: CrawlerGovernanceWorkflow\[\]/g, "")
     .replaceAll(/: CrawlerGovernanceWorkflow\["requestType"\]/g, "")
+    .replaceAll(/: CrawlerGovernanceRuntimeDecision\["escalationEvidenceStatus"\]/g, "")
     .replaceAll(/new Set<string>/g, "new Set")
     .replaceAll(/: string\[\]/g, "")
     .replaceAll(/: string \| undefined/g, "")
@@ -5271,6 +5272,7 @@ test("crawler takedown and derivative review workflow blocks unsafe activation",
     assert.ok(workflow.requiredEvidenceRefs.length >= 3, `${workflow.id} needs evidence refs`);
     assert.notEqual(workflow.deletionEvidenceRef, "pending", `${workflow.id} needs deletion or retention evidence ref`);
     assert.notEqual(workflow.requesterNoticeRef, "pending", `${workflow.id} needs requester notice evidence ref`);
+    assert.notEqual(workflow.escalationEvidenceRef, "pending", `${workflow.id} needs escalation evidence ref or explicit not-required marker`);
     assert.ok(
       workflow.requiredEvidenceRefs.includes(workflow.deletionEvidenceRef) || workflow.deletionEvidenceRef.startsWith("not_required"),
       `${workflow.id} deletion evidence must be either required or explicitly not required`
@@ -5278,6 +5280,10 @@ test("crawler takedown and derivative review workflow blocks unsafe activation",
     assert.ok(
       workflow.requiredEvidenceRefs.includes(workflow.requesterNoticeRef),
       `${workflow.id} requester notice evidence must be required for closure`
+    );
+    assert.ok(
+      workflow.requiredEvidenceRefs.includes(workflow.escalationEvidenceRef) || workflow.escalationEvidenceRef.startsWith("not_required"),
+      `${workflow.id} escalation evidence must be either required or explicitly not required`
     );
     assert.ok(workflow.reviewRationale.length > 60, `${workflow.id} needs reviewer rationale`);
     assert.ok(auditIds.has(workflow.auditRef), `${workflow.id} links unknown audit ${workflow.auditRef}`);
@@ -5382,7 +5388,7 @@ test("crawler governance runtime decisions gate takedown closure and activation"
   );
   assert.match(
     takedownDecision.releaseGateEvidence,
-    /Release gate must keep cg-501 blocked.*takedown, derivative-use, retention, notice, and audit evidence/i,
+    /Release gate must keep cg-501 blocked.*takedown, derivative-use, retention, notice, deadline escalation, and audit evidence/i,
     "open takedown needs release-gate blocker evidence"
   );
   assert.ok(takedownDecision.blockerCodes.includes("deletion_evidence_pending"), "open takedown needs deletion blocker");
@@ -5394,8 +5400,8 @@ test("crawler governance runtime decisions gate takedown closure and activation"
   );
   assert.deepEqual(
     takedownDecision.missingRequiredEvidenceRefs,
-    ["pending-raw-derivative-delete-cs-21", "pending-rights-owner-notice-ip-7001"],
-    "open takedown must expose unresolved deletion and requester-notice placeholders as missing evidence"
+    ["pending-raw-derivative-delete-cs-21", "pending-rights-owner-notice-ip-7001", "pending-deadline-escalation-cg-501"],
+    "open takedown must expose unresolved deletion, requester-notice, and deadline escalation placeholders as missing evidence"
   );
   assert.ok(
     takedownDecision.blockerCodes.includes("required_evidence_missing"),
@@ -5404,6 +5410,12 @@ test("crawler governance runtime decisions gate takedown closure and activation"
   assert.ok(takedownDecision.blockerCodes.includes("second_review_open"), "open takedown needs second-review blocker");
   assert.equal(takedownDecision.deadlineStatus, "expired", "open takedown past due must expose expired deadline status");
   assert.ok(takedownDecision.blockerCodes.includes("deadline_expired"), "open takedown past due needs deadline blocker");
+  assert.equal(takedownDecision.escalationEvidenceStatus, "pending", "open expired takedown must expose pending escalation evidence");
+  assert.ok(takedownDecision.blockerCodes.includes("deadline_escalation_pending"), "open expired takedown needs escalation evidence blocker");
+  assert.ok(
+    takedownDecision.closureEvidenceChecklist.includes("deadline_escalation:pending"),
+    "open expired takedown closure checklist must expose pending escalation evidence"
+  );
 
   const derivativeDecision = decisionsByWorkflow.get("cg-522");
   const derivativeFixture = JSON.parse(readFileSync(new URL("fixtures/stage0/rev2/regressions/crawler_derivative_review_cg_522.json", repoRoot), "utf8"));
@@ -5414,6 +5426,7 @@ test("crawler governance runtime decisions gate takedown closure and activation"
   assert.equal(derivativeFixture.runtime_contract.required_evidence_status, derivativeDecision.requiredEvidenceStatus);
   assert.equal(derivativeFixture.runtime_contract.deletion_evidence_status, derivativeDecision.deletionEvidenceStatus);
   assert.equal(derivativeFixture.runtime_contract.requester_notice_status, derivativeDecision.requesterNoticeStatus);
+  assert.equal(derivativeDecision.escalationEvidenceStatus, "not_required", "approved derivative review should not require escalation evidence");
   assert.equal(derivativeDecision.blockerCodes.length, 0, "approved derivative review should not expose blockers");
   assert.equal(derivativeDecision.auditStatus, "attached", "approved derivative review needs audit evidence");
   assert.equal(derivativeDecision.requiredEvidenceStatus, "complete", "approved derivative review needs complete required evidence");
@@ -5438,7 +5451,7 @@ test("crawler governance runtime decisions gate takedown closure and activation"
   );
   assert.match(
     derivativeDecision.releaseGateEvidence,
-    /Release gate can cite cg-522.*takedown, derivative-use, retention, provenance, and notice evidence/i,
+    /Release gate can cite cg-522.*takedown, derivative-use, retention, provenance, deadline escalation, and notice evidence/i,
     "approved derivative review needs release-gate evidence summary"
   );
 
@@ -5454,12 +5467,14 @@ test("crawler governance runtime decisions gate takedown closure and activation"
     "pending retention delete must name unresolved deletion and notice placeholder refs"
   );
   assert.equal(retentionDecision.deadlineStatus, "within_window", "pending retention delete should expose active deadline window");
+  assert.equal(retentionDecision.escalationEvidenceStatus, "not_required", "within-window retention delete should not require escalation evidence");
 
   const rejectedSecondReviewDecision = buildCrawlerGovernanceRuntimeDecisions([
     {
       ...crawlerGovernanceWorkflows.find((workflow) => workflow.id === "cg-501"),
       deletionEvidenceRef: "raw-derivative-delete-cs-21-complete",
       requesterNoticeRef: "rights-owner-notice-ip-7001-complete",
+      escalationEvidenceRef: "deadline-escalation-cg-501-complete",
       blockedActivation: false,
       activationGateDecision: "allowed",
       secondReviewStatus: "rejected"
@@ -5491,6 +5506,16 @@ test("crawler governance runtime decisions gate takedown closure and activation"
         ...crawlerGovernanceWorkflows.find((workflow) => workflow.id === "cg-501"),
         deletionEvidenceRef: "raw-derivative-delete-cs-21-complete",
         requesterNoticeRef: "rights-owner-notice-ip-7001-complete",
+        escalationEvidenceRef: "deadline-escalation-cg-501-complete",
+        requiredEvidenceRefs: [
+          "cf-118",
+          "crawler-source cs-21",
+          "ip-7001",
+          "raw-derivative-delete-cs-21-complete",
+          "rights-owner-notice-ip-7001-complete",
+          "deadline-escalation-cg-501-complete",
+          "au-012"
+        ],
         blockedActivation: false,
         activationGateDecision: "allowed",
         secondReviewStatus: "required"
@@ -5506,6 +5531,7 @@ test("crawler governance runtime decisions gate takedown closure and activation"
   assert.equal(staleReadyAttemptDecision.activationDecision, "block_activation", "expired takedown cannot reactivate crawler material");
   assert.equal(staleReadyAttemptDecision.deletionEvidenceStatus, "complete", "stale attempt should still record attached deletion evidence");
   assert.equal(staleReadyAttemptDecision.requesterNoticeStatus, "complete", "stale attempt should still record attached requester notice");
+  assert.equal(staleReadyAttemptDecision.escalationEvidenceStatus, "complete", "stale attempt should record attached escalation evidence");
   assert.equal(staleReadyAttemptDecision.deadlineStatus, "expired", "stale attempt needs expired deadline status");
   assert.ok(staleReadyAttemptDecision.blockerCodes.includes("second_review_open"), "stale attempt needs second-review blocker");
   assert.ok(staleReadyAttemptDecision.blockerCodes.includes("deadline_expired"), "stale attempt needs deadline blocker");
@@ -5521,6 +5547,7 @@ test("crawler governance runtime decisions gate takedown closure and activation"
       ...crawlerGovernanceWorkflows.find((workflow) => workflow.id === "cg-501"),
       deletionEvidenceRef: "raw-derivative-delete-cs-21-complete",
       requesterNoticeRef: "rights-owner-notice-ip-7001-complete",
+      escalationEvidenceRef: "deadline-escalation-cg-501-complete",
       blockedActivation: false,
       activationGateDecision: "allowed",
       secondReviewStatus: "completed"
@@ -5546,10 +5573,12 @@ test("crawler governance runtime decisions gate takedown closure and activation"
     [
       "pending-raw-derivative-delete-cs-21",
       "pending-rights-owner-notice-ip-7001",
+      "pending-deadline-escalation-cg-501",
       "raw-derivative-delete-cs-21-complete",
-      "rights-owner-notice-ip-7001-complete"
+      "rights-owner-notice-ip-7001-complete",
+      "deadline-escalation-cg-501-complete"
     ],
-    "runtime must name stale pending placeholders and the newly attached refs missing from required evidence"
+    "runtime must name stale pending placeholders and the newly attached deletion, notice, and escalation refs missing from required evidence"
   );
   assert.ok(
     missingRequiredEvidenceDecision.blockerCodes.includes("required_evidence_missing"),

@@ -12,6 +12,7 @@
     "raw_and_derivative_delete_evidence_present == true",
     "requester_notice_evidence_present == true",
     "pending_placeholder_refs_do_not_satisfy_required_evidence == true",
+    "deadline_escalation_evidence_present_before_closure == true",
     "second_review_completed_before_activation == true",
     "immutable_audit_ref == au-012"
   ],
@@ -29,14 +30,16 @@
     "required_evidence_status": "missing",
     "missing_required_evidence_refs": [
       "pending-raw-derivative-delete-cs-21",
-      "pending-rights-owner-notice-ip-7001"
+      "pending-rights-owner-notice-ip-7001",
+      "pending-deadline-escalation-cg-501"
     ],
     "blocker_codes": [
       "deletion_evidence_pending",
       "requester_notice_pending",
       "required_evidence_missing",
       "second_review_open",
-      "deadline_expired"
+      "deadline_expired",
+      "deadline_escalation_pending"
     ]
   },
   "release_block": {

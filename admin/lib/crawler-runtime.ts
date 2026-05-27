@@ -21,7 +21,8 @@ export function buildCrawlerGovernanceRuntimeDecisions(
       workflow.findingId,
       workflow.auditRef,
       workflow.deletionEvidenceRef,
-      workflow.requesterNoticeRef
+      workflow.requesterNoticeRef,
+      workflow.escalationEvidenceRef
     ].filter(isConcreteRequiredEvidence));
     const missingConcreteEvidenceRefs = [...expectedEvidenceRefs].filter(
       (ref) => !workflow.requiredEvidenceRefs.includes(ref)
@@ -39,6 +40,13 @@ export function buildCrawlerGovernanceRuntimeDecisions(
         : dueAt < now.getTime()
           ? "expired"
           : "within_window";
+    const escalationEvidenceRequired = deadlineStatus === "expired" || workflow.escalationEvidenceRef.startsWith("required-");
+    const escalationEvidenceStatus =
+      escalationEvidenceRequired
+        ? isPendingEvidence(workflow.escalationEvidenceRef) || workflow.escalationEvidenceRef.startsWith("required-")
+          ? "pending"
+          : "complete"
+        : "not_required";
     const secondReviewOpen =
       workflow.secondReviewRequired &&
       workflow.secondReviewStatus === "required";
@@ -78,9 +86,14 @@ export function buildCrawlerGovernanceRuntimeDecisions(
       blockerCodes.push("deadline_expired");
     }
 
+    if (escalationEvidenceStatus === "pending") {
+      blockerCodes.push("deadline_escalation_pending");
+    }
+
     const closureDecision =
       blockerCodes.includes("deletion_evidence_pending") ||
       blockerCodes.includes("requester_notice_pending") ||
+      blockerCodes.includes("deadline_escalation_pending") ||
       blockerCodes.includes("audit_missing") ||
       blockerCodes.includes("required_evidence_missing") ||
       blockerCodes.includes("second_review_rejected") ||
@@ -98,11 +111,12 @@ export function buildCrawlerGovernanceRuntimeDecisions(
         ? `Close ${workflow.id} with audit ${workflow.auditRef}, preserve source provenance, and keep the approved retention policy visible.`
         : closureDecision === "review_required"
           ? "Route the crawler workflow to the required second reviewer before any source, derivative, retention, prompt, or skill activation changes."
-          : "Keep crawler activation disabled and attach deletion evidence, requester notice, second-review outcome, and audit evidence before closure.";
+          : "Keep crawler activation disabled and attach deletion evidence, requester notice, deadline escalation, second-review outcome, and audit evidence before closure.";
     const closureEvidenceChecklist = [
       `finding:${workflow.findingId}`,
       `deletion:${deletionEvidenceStatus}`,
       `requester_notice:${requesterNoticeStatus}`,
+      `deadline_escalation:${escalationEvidenceStatus}`,
       `second_review:${workflow.secondReviewStatus}`,
       `audit:${auditStatus}`,
       `required_evidence:${requiredEvidenceStatus}`,
@@ -120,8 +134,8 @@ export function buildCrawlerGovernanceRuntimeDecisions(
           : "Second review is not blocking; preserve reviewer rationale and audit linkage for release evidence.";
     const releaseGateEvidence =
       closureDecision === "ready_to_close"
-        ? `Release gate can cite ${workflow.id}, ${workflow.findingId}, ${workflow.auditRef}, and required evidence refs after preserving takedown, derivative-use, retention, provenance, and notice evidence.`
-        : `Release gate must keep ${workflow.id} blocked with blocker codes ${blockerCodes.join(", ") || "none"} until takedown, derivative-use, retention, notice, and audit evidence are complete.`;
+        ? `Release gate can cite ${workflow.id}, ${workflow.findingId}, ${workflow.auditRef}, and required evidence refs after preserving takedown, derivative-use, retention, provenance, deadline escalation, and notice evidence.`
+        : `Release gate must keep ${workflow.id} blocked with blocker codes ${blockerCodes.join(", ") || "none"} until takedown, derivative-use, retention, notice, deadline escalation, and audit evidence are complete.`;
 
     return {
       workflowId: workflow.id,
@@ -131,6 +145,7 @@ export function buildCrawlerGovernanceRuntimeDecisions(
       activationDecision,
       deletionEvidenceStatus,
       requesterNoticeStatus,
+      escalationEvidenceStatus,
       secondReviewStatus: workflow.secondReviewStatus,
       auditStatus,
       requiredEvidenceStatus,
