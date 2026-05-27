@@ -50,6 +50,13 @@ STAGING_OBSERVABILITY_RUNTIME_EVIDENCE = (
 STAGING_EVAL_QA_SAFETY_EVIDENCE = (
     ROOT / "ops" / "evidence" / "staging" / "20260527T1900Z-eval-qa-safety.json"
 )
+STAGING_OBSERVABILITY_BACKUP_LOAD_PREFLIGHT_EVIDENCE = (
+    ROOT
+    / "ops"
+    / "evidence"
+    / "staging"
+    / "20260527T004121Z-staging-observability-backup-load-77078.json"
+)
 PRODUCTION_ABUSE_THROTTLE_HOLD_EVIDENCE = (
     ROOT / "ops" / "evidence" / "production" / "20260527T1330Z-abuse-throttle-hold.json"
 )
@@ -4368,6 +4375,154 @@ def validate_staging_observability_runtime_evidence() -> None:
         )
 
 
+def validate_staging_observability_backup_load_preflight_evidence() -> None:
+    evidence = load_json(STAGING_OBSERVABILITY_BACKUP_LOAD_PREFLIGHT_EVIDENCE)
+    require(
+        evidence["blueprint_source"] == "Docs/stage0_blueprint_rev2.md",
+        "staging observability/backup/load preflight must cite Rev2",
+    )
+    require(
+        evidence["created_by_lane"] == "lane5",
+        "staging observability/backup/load preflight must be lane5-owned",
+    )
+    require(evidence["environment"] == "staging", "preflight evidence must be staging-scoped")
+    require(
+        evidence["kind"] == "staging_observability_backup_load_preflight",
+        "preflight evidence must use the observability/backup/load preflight kind",
+    )
+    require(evidence["status"] == "blocked", "preflight evidence must remain blocked without restore/load evidence")
+    require(
+        evidence["release_sha"] == load_json(STAGING_OBSERVABILITY_RUNTIME_EVIDENCE)["release_sha"],
+        "preflight evidence must use the validated staging observability release SHA",
+    )
+    require(
+        evidence["release_gate_check_id"] == "staging_observability_backup_load",
+        "preflight evidence must preserve the staging observability/backup/load gate check",
+    )
+    require(
+        evidence["private_beta_check_id"] == "staging_observability_backup_load",
+        "preflight evidence must preserve the private beta staging observability/backup/load check",
+    )
+    require(
+        evidence["evidence_path_policy"] == "ops/evidence/staging/",
+        "preflight evidence must require staging-scoped runtime evidence paths",
+    )
+    require(
+        evidence["inputs"]["observability_evidence"] == rel(STAGING_OBSERVABILITY_RUNTIME_EVIDENCE),
+        "preflight evidence must cite the verified staging observability runtime input",
+    )
+    require(
+        evidence["inputs"]["backup_restore_evidence"] == "",
+        "preflight evidence must not fabricate backup/restore input",
+    )
+    require(
+        evidence["inputs"]["load_evidence"] == "",
+        "preflight evidence must not fabricate load input",
+    )
+    require(
+        set(evidence["blocked_slots"]) == {"backup_restore_evidence", "load_evidence"},
+        "preflight evidence must block only backup/restore and load after observability verifies",
+    )
+    require(
+        "observability_evidence" not in evidence["blocked_slots"],
+        "preflight evidence must not re-block validated observability",
+    )
+    for prefix in [
+        "unverified_backup_restore_evidence:not_local_file:missing",
+        "unverified_load_evidence:not_local_file:missing",
+    ]:
+        require(prefix in evidence["blocking_reasons"], f"preflight evidence missing blocker {prefix}")
+    require(
+        not any(str(reason).startswith("unverified_observability_evidence") for reason in evidence["blocking_reasons"]),
+        "preflight evidence must not list observability as unverified",
+    )
+    checks = {check["slot"]: check for check in evidence["checks"]}
+    require(
+        set(checks) == {"observability_evidence", "backup_restore_evidence", "load_evidence"},
+        "preflight evidence must contain all three evidence-slot checks",
+    )
+    observability = checks["observability_evidence"]
+    require(observability["verified"] is True, "preflight evidence must verify staging observability")
+    require(
+        observability["ref"] == rel(STAGING_OBSERVABILITY_RUNTIME_EVIDENCE),
+        "preflight observability slot must cite staging observability runtime evidence",
+    )
+    require(
+        observability["semantic_checks"] == {
+            "environment_staging": True,
+            "kind_match": True,
+            "local_json_file": True,
+            "release_sha_match": True,
+            "release_sha_present": True,
+            "required_entries_have_evidence_refs": True,
+            "required_entries_passed": True,
+            "required_entries_present": True,
+            "staging_evidence_path": True,
+            "status_passed": True,
+        },
+        "preflight observability slot must pass every semantic check",
+    )
+    require(
+        not observability["missing_entries"]
+        and not observability["not_passed_entries"]
+        and not observability["entries_missing_evidence_refs"],
+        "preflight observability slot must have complete entries and refs",
+    )
+    required_observability_entries = {
+        "request_id_propagation",
+        "structured_json_logs",
+        "opentelemetry_traces",
+        "backend_worker_crawler_metrics",
+        "dashboard_import",
+        "alert_routes",
+    }
+    require(
+        set(observability["entry_evidence_refs"]) == required_observability_entries,
+        "preflight observability slot must expose every required entry ref",
+    )
+    for entry_id, refs in observability["entry_evidence_refs"].items():
+        require(refs, f"preflight observability entry {entry_id} must cite evidence refs")
+        require(
+            any(str(ref).startswith("ops/evidence/staging/") for ref in refs),
+            f"preflight observability entry {entry_id} must cite staging evidence",
+        )
+    for slot in ["backup_restore_evidence", "load_evidence"]:
+        check = checks[slot]
+        require(check["verified"] is False, f"preflight {slot} must remain unverified")
+        require(check["ref"] == "", f"preflight {slot} must have no input ref")
+        require(
+            check["reason"] == "not_local_file:missing",
+            f"preflight {slot} must record the missing input reason",
+        )
+        require(
+            check["required_evidence_path_prefix"] == "ops/evidence/staging/",
+            f"preflight {slot} must require staging evidence path prefix",
+        )
+        semantic = check["semantic_checks"]
+        require(semantic["release_sha_present"] is True, f"preflight {slot} must preserve release SHA context")
+        for key, value in semantic.items():
+            if key == "release_sha_present":
+                continue
+            require(value is False, f"preflight {slot} semantic check {key} must fail while input is missing")
+    gate_impact = evidence["gate_impact"]
+    require(
+        gate_impact["can_clear_aggregate_item"] is False,
+        "preflight evidence must not clear the aggregate observability/backup/load item",
+    )
+    require(
+        gate_impact["preserved_release_gate_check_id"] == "staging_observability_backup_load",
+        "preflight evidence must preserve the staging observability/backup/load release gate",
+    )
+    require(
+        gate_impact["preserved_do_not_launch_condition_id"] == "staging_observability_restore_load_missing",
+        "preflight evidence must preserve the restore/load Do-Not-Launch condition",
+    )
+    require(
+        set(gate_impact["blocked_slots"]) == {"backup_restore_evidence", "load_evidence"},
+        "preflight gate impact must block only backup/restore and load",
+    )
+
+
 def validate_staging_dashboard_runtime_evidence() -> None:
     evidence = load_json(STAGING_DASHBOARD_RUNTIME_EVIDENCE)
     require(
@@ -6258,6 +6413,16 @@ def validate_ops_ci_and_drill_evidence() -> None:
         "staging observability/backup/load preflight must keep private beta gate open",
     )
     require(
+        staging_obl.get("latest_preflight_evidence")
+        == rel(STAGING_OBSERVABILITY_BACKUP_LOAD_PREFLIGHT_EVIDENCE),
+        "drill plan must cite the latest staging observability/backup/load preflight evidence",
+    )
+    require(
+        "observability input verifies" in staging_obl.get("runtime_status", "")
+        and "backup/restore and load inputs are absent" in staging_obl.get("runtime_status", ""),
+        "drill plan must record the latest partial preflight state without closing the gate",
+    )
+    require(
         "actual temporary database restore verifies restored table count" in drill["backup_restore"]["checks"],
         "drill plan must require actual temporary Postgres restore verification",
     )
@@ -6429,6 +6594,17 @@ def validate_ops_ci_and_drill_evidence() -> None:
         require(key in scripts, f"release ops evidence missing {key}")
         require(scripts[key]["script"] == script_path, f"release ops evidence {key} must cite {script_path}")
         require(repo_path(script_path).exists(), f"release ops evidence script missing: {script_path}")
+    staging_obl = scripts["staging_observability_backup_load_smoke"]
+    require(
+        staging_obl.get("latest_preflight_evidence")
+        == rel(STAGING_OBSERVABILITY_BACKUP_LOAD_PREFLIGHT_EVIDENCE),
+        "release ops evidence must cite the latest staging observability/backup/load preflight evidence",
+    )
+    require(
+        "latest preflight verifies staging observability" in staging_obl.get("runtime_status", "")
+        and "blocked on missing backup/restore and load evidence" in staging_obl.get("runtime_status", ""),
+        "release ops evidence must preserve the partial preflight blocker split",
+    )
     policy = release_ops["checklist_policy"]
     for key in [
         "ci_playwright_smoke_remains_open",
@@ -6478,6 +6654,7 @@ def main() -> int:
         validate_staging_backend_worker_crawler_metrics_evidence,
         validate_staging_observability_telemetry_evidence,
         validate_staging_observability_runtime_evidence,
+        validate_staging_observability_backup_load_preflight_evidence,
         validate_production_skill_release_eval_canary_evidence,
         validate_production_abuse_throttle_hold_evidence,
         validate_production_activation_review_audit_evidence,

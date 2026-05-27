@@ -77,8 +77,8 @@ Release gate status: `no-go`.
 
 ## Known Risks
 
-- Open private beta blockers: `fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json`: staging_object_storage_signed_downloads, staging_quota_rate_limit_spend_cap, staging_observability_backup_load, staging_legal_external_user_pages.
-- Private beta do-not-launch conditions present: rate_limit_spend_cap_runtime_missing, object_storage_signed_retention_runtime_missing, staging_observability_restore_load_missing, external_user_legal_pages_missing.
+- Open private beta blockers: `fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json`: staging_object_storage_signed_downloads, staging_observability_backup_load, staging_legal_external_user_pages.
+- Private beta do-not-launch conditions present: object_storage_signed_retention_runtime_missing, staging_observability_restore_load_missing, external_user_legal_pages_missing.
 - Open production blockers: `fixtures/stage0/rev2/release_gate_evidence.production_launch.json`: production_provider_or_comp_only_mode, production_paid_billing_lifecycle, production_backup_rollback_incident, production_legal_support_policy.
 - Production do-not-launch conditions present: dev_mock_provider_public_claims_unresolved, real_provider_or_comp_only_mode_missing, paid_billing_or_comp_only_mode_missing, backup_restore_rollback_smoke_missing, production_deploy_rollback_smoke_missing, public_legal_support_policy_not_deployed, ci_staging_gates_not_passed.
 - Operational risks: staging backup/restore, rollback, load, and post-deploy smoke evidence are absent; staging observability runtime evidence is attached but does not close the combined restore/load gate.
