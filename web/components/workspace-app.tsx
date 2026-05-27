@@ -1579,6 +1579,10 @@ function ExportView({
                     data-package-export-zip-payload-parity-status={metadataEvidence.zipPayloadParityStatus}
                     data-package-export-zip-payload-parity-ratio={metadataEvidence.zipPayloadParityRatio}
                     data-package-export-missing-zip-payload-count={metadataEvidence.missingZipPayloadNames.length}
+                    data-package-export-cross-payload-identity-status={metadataEvidence.crossPayloadIdentityStatus}
+                    data-package-export-cross-payload-identity-count={metadataEvidence.crossPayloadIdentityNames.length}
+                    data-package-export-cross-payload-identities={metadataEvidence.crossPayloadIdentityNames.join(",")}
+                    data-package-export-missing-cross-payload-identity-count={metadataEvidence.missingCrossPayloadIdentityNames.length}
                     data-package-export-workflow-id={metadataEvidence.workflowId}
                     data-package-export-workflow-fixture-id={metadataEvidence.workflowFixtureId}
                     data-package-export-workflow-taxonomy-count={metadataEvidence.workflowStrategyTaxonomyCount}
@@ -1610,6 +1614,7 @@ function ExportView({
                       <span>{metadataEvidence.downloadArtifactStatus} ZIP payload contract</span>
                       <span>{metadataEvidence.zipPayloadParityStatus} required ZIP parity</span>
                       <span>{metadataEvidence.zipPayloadParityRatio} required payloads present</span>
+                      <span>{metadataEvidence.crossPayloadIdentityStatus} cross-payload identity</span>
                       <span>{metadataEvidence.workflowZipPayloadCount}/{metadataEvidence.workflowRequiredFileCount} workflow payloads</span>
                       <span>{metadataEvidence.workflowMetadataProvider} provider metadata</span>
                       <span>{metadataEvidence.workflowMetadataModel} model metadata</span>

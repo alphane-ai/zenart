@@ -112,6 +112,10 @@ for (const expectedZipToUiParitySnippet of [
   "String(qaReport.filter((finding) => finding.severity === \"block\").length)",
   "String(safetyReport.enforcementStages.length)",
   "String(provenance.items.length)",
+  "provenance.package_id",
+  "aiContentDisclaimer.project_id",
+  "workflowMetadata.package_id",
+  "traceProvenance.package_id",
   "String(aiContentDisclaimer.schema_version === \"stage0.rev2.ai-content-disclaimer\")",
   "String(pptReadyMetadata.slides.length)",
   "workflowMetadata.prompt_spec.join(\",\")",
@@ -171,6 +175,9 @@ if (
   evidence.expectedPptSafeArea !== routePackageExportEvidence.expectedPptSafeArea ||
   evidence.expectedPptThemeFont !== routePackageExportEvidence.expectedPptThemeFont ||
   evidence.expectedPptHandoffChecklistCount !== routePackageExportEvidence.expectedPptHandoffChecklistCount ||
+  evidence.expectedCrossPayloadIdentityStatus !== routePackageExportEvidence.expectedCrossPayloadIdentityStatus ||
+  evidence.expectedCrossPayloadIdentityCount !== routePackageExportEvidence.expectedCrossPayloadIdentityCount ||
+  evidence.expectedMissingCrossPayloadIdentityCount !== routePackageExportEvidence.expectedMissingCrossPayloadIdentityCount ||
   evidence.payloadAttribute !== routePackageExportEvidence.payloadAttribute ||
   evidence.requiredPayloadAttribute !== routePackageExportEvidence.requiredPayloadAttribute
 ) {
@@ -376,6 +383,9 @@ const expectedDataAttributeValues = new Map([
   ["data-package-export-required-zip-payload-count", evidence.expectedRequiredZipPayloadCount],
   ["data-package-export-zip-payload-parity-status", evidence.expectedZipPayloadParityStatus],
   ["data-package-export-zip-payload-parity-ratio", evidence.expectedZipPayloadParityRatio],
+  ["data-package-export-cross-payload-identity-status", evidence.expectedCrossPayloadIdentityStatus],
+  ["data-package-export-cross-payload-identity-count", evidence.expectedCrossPayloadIdentityCount],
+  ["data-package-export-missing-cross-payload-identity-count", evidence.expectedMissingCrossPayloadIdentityCount],
   ["data-package-export-workflow-id", workflowMetadata.workflowId],
   ["data-package-export-workflow-fixture-id", workflowMetadata.fixtureId],
   ["data-package-export-workflow-taxonomy-count", workflowMetadata.expectedWorkflowTaxonomyCount],
@@ -437,6 +447,12 @@ for (const [attribute, expectedValue] of expectedDataAttributeValues) {
 
 if (!workspaceSmokeTestSource.includes("Number(metadataEvidence?.getAttribute(\"data-package-export-zip-payload-count\"))")) {
   fail("workspace smoke test must assert package/export ZIP payload count numerically");
+}
+
+for (const payload of evidence.crossPayloadIdentityPayloads ?? []) {
+  if (!packageExportPlaywrightSpecSource.includes(payload) || !workspaceSmokeTestSource.includes(payload)) {
+    fail(`package/export identity evidence missing cross-payload assertion for ${payload}`);
+  }
 }
 
 if (!workspaceSmokeTestSource.includes("Package export payload status matrix")) {

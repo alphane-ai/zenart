@@ -64,6 +64,8 @@ export const buildDownloadableExportZipPayloadNames = (record: ExportRecord) =>
 
 export const buildExportWorkflowMetadataPayload = (record: ExportRecord, outputName: string) => ({
   export_id: record.id,
+  package_id: record.manifest.package_id,
+  project_id: record.manifest.project_id,
   output_name: outputName,
   generated_by: "zenart-web-dev-client",
   workflow_id: record.manifest.workflow_acceptance?.workflow_id ?? "generic-stage0-export",
@@ -79,9 +81,15 @@ export const buildAiContentDisclaimerPayload = (record: ExportRecord) => ({
   schema_version: "stage0.rev2.ai-content-disclaimer",
   export_id: record.id,
   package_id: record.manifest.package_id,
+  project_id: record.manifest.project_id,
   generated_by: "zenart-web-dev-client",
   generation_mode: "deterministic-local-alpha",
   applies_to: "export-package",
+  workflow_id: record.manifest.workflow_acceptance?.workflow_id ?? "generic-stage0-export",
+  provider: "dev-provider",
+  model: "deterministic-local-alpha",
+  prompt_spec: record.manifest.workflow_acceptance?.strategy_taxonomy ?? [],
+  skill: record.manifest.workflow_acceptance?.workflow_id ?? "generic-stage0-export",
   responsibility_notice:
     "Local alpha previews use deterministic generation evidence unless a real provider is explicitly configured. Review rights, claims, likeness, and brand usage before sharing exported assets.",
   policy_routes: ["/legal/terms", "/legal/acceptable-use", "/legal/ip-complaints"],
@@ -856,8 +864,15 @@ export const buildPackageExportMetadataEvidence = (record: ExportRecord): Packag
   );
   const zipPayloadNames = buildDownloadableExportZipPayloadNames(record);
   const workflowMetadataPayload = buildExportWorkflowMetadataPayload(record, "metadata.json");
+  const crossPayloadIdentityNames = [
+    "manifest.json",
+    "provenance.json",
+    "ai-content-disclaimer.json",
+    ...(record.manifest.workflow_acceptance ? ["metadata.json", "trace_provenance.json"] : [])
+  ];
   const requiredZipPayloadNames = [...requiredExportZipPayloadNames];
   const missingZipPayloadNames = requiredZipPayloadNames.filter((payloadName) => !zipPayloadNames.includes(payloadName));
+  const missingCrossPayloadIdentityNames = crossPayloadIdentityNames.filter((payloadName) => !zipPayloadNames.includes(payloadName));
   const manifestOutputStatuses = record.manifest.required_outputs.map((outputName) => {
     const zipPayloadName = toExportZipPayloadName(outputName);
 
@@ -960,6 +975,9 @@ export const buildPackageExportMetadataEvidence = (record: ExportRecord): Packag
     zipPayloadParityStatus: missingZipPayloadNames.length === 0 ? "pass" : "fail",
     zipPayloadParityRatio: `${requiredZipPayloadNames.length - missingZipPayloadNames.length}/${requiredZipPayloadNames.length}`,
     missingZipPayloadNames,
+    crossPayloadIdentityStatus: missingCrossPayloadIdentityNames.length === 0 ? "pass" : "fail",
+    crossPayloadIdentityNames,
+    missingCrossPayloadIdentityNames,
     workflowId: record.manifest.workflow_acceptance?.workflow_id ?? "generic-stage0-export",
     workflowFixtureId: record.manifest.workflow_acceptance?.fixture_id ?? "none",
     workflowStrategyTaxonomyCount: record.manifest.workflow_acceptance?.strategy_taxonomy.length ?? 0,

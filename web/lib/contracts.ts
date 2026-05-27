@@ -474,6 +474,9 @@ export interface PackageExportMetadataEvidence {
   zipPayloadParityStatus: "pass" | "fail";
   zipPayloadParityRatio: string;
   missingZipPayloadNames: string[];
+  crossPayloadIdentityStatus: "pass" | "fail";
+  crossPayloadIdentityNames: string[];
+  missingCrossPayloadIdentityNames: string[];
   workflowId: string;
   workflowFixtureId: string;
   workflowStrategyTaxonomyCount: number;

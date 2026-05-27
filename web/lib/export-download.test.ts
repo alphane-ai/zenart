@@ -109,7 +109,13 @@ describe("reference upload and export download integration", () => {
       schema_version: string;
       export_id: string;
       package_id: string;
+      project_id: string;
       generation_mode: string;
+      workflow_id: string;
+      provider: string;
+      model: string;
+      prompt_spec: string[];
+      skill: string;
       responsibility_notice: string;
       policy_routes: string[];
       safety_status: string;
@@ -117,7 +123,15 @@ describe("reference upload and export download integration", () => {
     const pptReadyMetadata = JSON.parse(await zip.file("ppt-ready-metadata.json")!.async("string")) as ExportRecord["manifest"]["ppt_ready_metadata"];
     const provenance = JSON.parse(await zip.file("provenance.json")!.async("string")) as {
       export_id: string;
+      package_id: string;
+      project_id: string;
       generated_by: string;
+      workflow_id: string;
+      provider: string;
+      model: string;
+      prompt_spec: string[];
+      skill: string;
+      safety: string;
       items: Array<{ id: string; provenance: string }>;
     };
     const workflowAsset = JSON.parse(await zip.file("assets/square_social_ad.png")!.async("string")) as {
@@ -125,6 +139,9 @@ describe("reference upload and export download integration", () => {
       workflow_id: string;
     };
     const workflowMetadata = JSON.parse(await zip.file("metadata.json")!.async("string")) as {
+      export_id: string;
+      package_id: string;
+      project_id: string;
       output_name: string;
       workflow_id: string;
       workflow_fixture_id: string;
@@ -135,6 +152,9 @@ describe("reference upload and export download integration", () => {
       safety: string;
     };
     const traceProvenance = JSON.parse(await zip.file("trace_provenance.json")!.async("string")) as {
+      export_id: string;
+      package_id: string;
+      project_id: string;
       output_name: string;
       workflow_id: string;
       provider: string;
@@ -197,7 +217,13 @@ describe("reference upload and export download integration", () => {
       schema_version: "stage0.rev2.ai-content-disclaimer",
       export_id: record.id,
       package_id: record.manifest.package_id,
+      project_id: record.manifest.project_id,
       generation_mode: "deterministic-local-alpha",
+      workflow_id: ecommerceGrowthWorkflowAcceptance.workflow_id,
+      provider: "dev-provider",
+      model: "deterministic-local-alpha",
+      prompt_spec: ["social_proof"],
+      skill: ecommerceGrowthWorkflowAcceptance.workflow_id,
       responsibility_notice: expect.stringContaining("Review rights, claims, likeness, and brand usage"),
       policy_routes: ["/legal/terms", "/legal/acceptable-use", "/legal/ip-complaints"],
       safety_status: "pass"
@@ -247,7 +273,15 @@ describe("reference upload and export download integration", () => {
     });
     expect(provenance).toMatchObject({
       export_id: record.id,
+      package_id: record.manifest.package_id,
+      project_id: record.manifest.project_id,
       generated_by: "zenart-web-dev-client",
+      workflow_id: ecommerceGrowthWorkflowAcceptance.workflow_id,
+      provider: "dev-provider",
+      model: "deterministic-local-alpha",
+      prompt_spec: ["social_proof"],
+      skill: ecommerceGrowthWorkflowAcceptance.workflow_id,
+      safety: "pass",
       items: [
         { id: "pkg-item-001", provenance: "dev-client:cand-studio" },
         { id: "pkg-item-002", provenance: "dev-client-reference:ref-campaign-reference-webp" },
@@ -280,6 +314,17 @@ describe("reference upload and export download integration", () => {
       skill: ecommerceGrowthWorkflowAcceptance.workflow_id,
       safety: "pass"
     });
+    const identityPayloads = [provenance, aiContentDisclaimer, workflowMetadata, traceProvenance];
+    for (const payload of identityPayloads) {
+      expect(payload.export_id).toBe(record.id);
+      expect(payload.package_id).toBe(record.manifest.package_id);
+      expect(payload.project_id).toBe(record.manifest.project_id);
+      expect(payload.workflow_id).toBe(ecommerceGrowthWorkflowAcceptance.workflow_id);
+      expect(payload.provider).toBe("dev-provider");
+      expect(payload.model).toBe("deterministic-local-alpha");
+      expect(payload.prompt_spec).toEqual(["social_proof"]);
+      expect(payload.skill).toBe(ecommerceGrowthWorkflowAcceptance.workflow_id);
+    }
     expect(readme).toContain("Deterministic local alpha export placeholder");
 
     Object.defineProperty(URL, "createObjectURL", {

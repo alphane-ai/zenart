@@ -652,6 +652,13 @@ if (packageExportEvidence.minimumZipPayloadCount !== "7") {
   fail("package/export metadata evidence must assert at least the seven required ZIP payloads");
 }
 if (
+  packageExportEvidence.expectedCrossPayloadIdentityStatus !== "pass" ||
+  packageExportEvidence.expectedCrossPayloadIdentityCount !== "5" ||
+  packageExportEvidence.expectedMissingCrossPayloadIdentityCount !== "0"
+) {
+  fail("package/export metadata evidence must assert cross-payload identity parity for manifest, provenance, disclaimer, metadata, and trace payloads");
+}
+if (
   packageExportEvidence.expectedWorkflowMetadata?.generatedBy !== "zenart-web-dev-client" ||
   packageExportEvidence.expectedWorkflowMetadata?.provider !== "dev-provider" ||
   packageExportEvidence.expectedWorkflowMetadata?.model !== "deterministic-local-alpha" ||

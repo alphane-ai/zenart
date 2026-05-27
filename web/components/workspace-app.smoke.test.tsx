@@ -493,6 +493,11 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(metadataEvidence).toHaveAttribute("data-package-export-required-zip-payload-count", "7");
     expect(metadataEvidence).toHaveAttribute("data-package-export-zip-payload-parity-status", "pass");
     expect(metadataEvidence).toHaveAttribute("data-package-export-zip-payload-parity-ratio", "7/7");
+    expect(metadataEvidence).toHaveAttribute("data-package-export-cross-payload-identity-status", "pass");
+    expect(metadataEvidence).toHaveAttribute("data-package-export-cross-payload-identity-count", "5");
+    expect(metadataEvidence).toHaveAttribute("data-package-export-missing-cross-payload-identity-count", "0");
+    expect(metadataEvidence?.getAttribute("data-package-export-cross-payload-identities")).toContain("metadata.json");
+    expect(metadataEvidence?.getAttribute("data-package-export-cross-payload-identities")).toContain("trace_provenance.json");
     expect(metadataEvidence).toHaveAttribute("data-package-export-workflow-id", "ecommerce_growth_pack");
     expect(metadataEvidence).toHaveAttribute("data-package-export-workflow-fixture-id", "fx_ecommerce_growth_golden");
     expect(metadataEvidence).toHaveAttribute("data-package-export-workflow-taxonomy-count", "1");
@@ -1076,6 +1081,10 @@ describe("WorkspaceApp user route integration smoke", () => {
         "data-package-export-required-zip-payload-count",
         "data-package-export-zip-payload-parity-status",
         "data-package-export-zip-payload-parity-ratio",
+        "data-package-export-cross-payload-identity-status",
+        "data-package-export-cross-payload-identity-count",
+        "data-package-export-cross-payload-identities",
+        "data-package-export-missing-cross-payload-identity-count",
         "data-package-export-workflow-id",
         "data-package-export-workflow-fixture-id",
         "data-package-export-workflow-taxonomy-count",

@@ -55,6 +55,13 @@ test("export route exposes package metadata, ZIP payload, and download parity br
   await expect(metadataEvidence).toHaveAttribute("data-package-export-required-zip-payload-count", "7");
   await expect(metadataEvidence).toHaveAttribute("data-package-export-zip-payload-parity-status", "pass");
   await expect(metadataEvidence).toHaveAttribute("data-package-export-zip-payload-parity-ratio", "7/7");
+  await expect(metadataEvidence).toHaveAttribute("data-package-export-cross-payload-identity-status", "pass");
+  await expect(metadataEvidence).toHaveAttribute("data-package-export-cross-payload-identity-count", "5");
+  await expect(metadataEvidence).toHaveAttribute("data-package-export-missing-cross-payload-identity-count", "0");
+  await expect(metadataEvidence).toHaveAttribute("data-package-export-cross-payload-identities", /manifest\.json/);
+  await expect(metadataEvidence).toHaveAttribute("data-package-export-cross-payload-identities", /provenance\.json/);
+  await expect(metadataEvidence).toHaveAttribute("data-package-export-cross-payload-identities", /metadata\.json/);
+  await expect(metadataEvidence).toHaveAttribute("data-package-export-cross-payload-identities", /trace_provenance\.json/);
   await expect(metadataEvidence).toHaveAttribute("data-package-export-workflow-id", "ecommerce_growth_pack");
   await expect(metadataEvidence).toHaveAttribute("data-package-export-workflow-fixture-id", "fx_ecommerce_growth_golden");
   await expect(metadataEvidence).toHaveAttribute("data-package-export-workflow-metadata-payload-present", "true");
@@ -164,12 +171,28 @@ test("export route exposes package metadata, ZIP payload, and download parity br
   };
   const provenance = JSON.parse(await zip.file("provenance.json")!.async("string")) as {
     export_id: string;
+    package_id: string;
+    project_id: string;
     generated_by: string;
+    workflow_id: string;
+    provider: string;
+    model: string;
+    prompt_spec: string[];
+    skill: string;
+    safety: string;
     items: Array<{ provenance: string }>;
   };
   const aiContentDisclaimer = JSON.parse(await zip.file("ai-content-disclaimer.json")!.async("string")) as {
     schema_version: string;
+    export_id: string;
+    package_id: string;
+    project_id: string;
     generation_mode: string;
+    workflow_id: string;
+    provider: string;
+    model: string;
+    prompt_spec: string[];
+    skill: string;
     safety_status: string;
   };
   const pptReadyMetadata = JSON.parse(await zip.file("ppt-ready-metadata.json")!.async("string")) as {
@@ -178,6 +201,9 @@ test("export route exposes package metadata, ZIP payload, and download parity br
     slides: Array<{ source_item_id: string }>;
   };
   const workflowMetadata = JSON.parse(await zip.file("metadata.json")!.async("string")) as {
+    export_id: string;
+    package_id: string;
+    project_id: string;
     workflow_id: string;
     workflow_fixture_id: string;
     provider: string;
@@ -187,6 +213,9 @@ test("export route exposes package metadata, ZIP payload, and download parity br
     safety: string;
   };
   const traceProvenance = JSON.parse(await zip.file("trace_provenance.json")!.async("string")) as {
+    export_id: string;
+    package_id: string;
+    project_id: string;
     workflow_id: string;
     provider: string;
     model: string;
@@ -258,7 +287,15 @@ test("export route exposes package metadata, ZIP payload, and download parity br
   );
   expect(provenance).toMatchObject({
     export_id: "export-001",
-    generated_by: "zenart-web-dev-client"
+    package_id: "pkg-002",
+    project_id: "project-001",
+    generated_by: "zenart-web-dev-client",
+    workflow_id: "ecommerce_growth_pack",
+    provider: "dev-provider",
+    model: "deterministic-local-alpha",
+    prompt_spec: ["social_proof"],
+    skill: "ecommerce_growth_pack",
+    safety: "pass"
   });
   expect(provenance.items.map((item) => item.provenance)).toEqual(
     expect.arrayContaining(["dev-client-reference:ref-campaign-reference-webp", "dev-client:cand-studio"])
@@ -266,7 +303,15 @@ test("export route exposes package metadata, ZIP payload, and download parity br
   await expect(metadataEvidence).toHaveAttribute("data-package-export-provenance-count", String(provenance.items.length));
   expect(aiContentDisclaimer).toMatchObject({
     schema_version: "stage0.rev2.ai-content-disclaimer",
+    export_id: "export-001",
+    package_id: "pkg-002",
+    project_id: "project-001",
     generation_mode: "deterministic-local-alpha",
+    workflow_id: "ecommerce_growth_pack",
+    provider: "dev-provider",
+    model: "deterministic-local-alpha",
+    prompt_spec: ["social_proof"],
+    skill: "ecommerce_growth_pack",
     safety_status: "pass"
   });
   await expect(metadataEvidence).toHaveAttribute(
@@ -283,6 +328,9 @@ test("export route exposes package metadata, ZIP payload, and download parity br
     expect.arrayContaining(["pkg-item-001", "pkg-item-002"])
   );
   expect(workflowMetadata).toMatchObject({
+    export_id: "export-001",
+    package_id: "pkg-002",
+    project_id: "project-001",
     workflow_id: "ecommerce_growth_pack",
     workflow_fixture_id: "fx_ecommerce_growth_golden",
     provider: "dev-provider",
@@ -300,6 +348,9 @@ test("export route exposes package metadata, ZIP payload, and download parity br
     workflowMetadata.prompt_spec.join(",")
   );
   expect(traceProvenance).toMatchObject({
+    export_id: "export-001",
+    package_id: "pkg-002",
+    project_id: "project-001",
     workflow_id: "ecommerce_growth_pack",
     provider: "dev-provider",
     model: "deterministic-local-alpha",
@@ -311,5 +362,23 @@ test("export route exposes package metadata, ZIP payload, and download parity br
     "data-package-export-workflow-trace-provenance-payload-present",
     String(traceProvenance.workflow_id === workflowMetadata.workflow_id)
   );
+  const identityPayloads = [provenance, aiContentDisclaimer, workflowMetadata, traceProvenance];
+  expect(provenance.package_id).toBe(manifest.package_id);
+  expect(provenance.project_id).toBe(manifest.project_id);
+  expect(aiContentDisclaimer.project_id).toBe(manifest.project_id);
+  expect(workflowMetadata.package_id).toBe(manifest.package_id);
+  expect(workflowMetadata.project_id).toBe(manifest.project_id);
+  expect(traceProvenance.package_id).toBe(manifest.package_id);
+  expect(traceProvenance.project_id).toBe(manifest.project_id);
+  for (const payload of identityPayloads) {
+    expect(payload.export_id).toBe("export-001");
+    expect(payload.package_id).toBe(manifest.package_id);
+    expect(payload.project_id).toBe(manifest.project_id);
+    expect(payload.workflow_id).toBe(manifest.workflow_acceptance.workflow_id);
+    expect(payload.provider).toBe(workflowMetadata.provider);
+    expect(payload.model).toBe(workflowMetadata.model);
+    expect(payload.prompt_spec).toEqual(workflowMetadata.prompt_spec);
+    expect(payload.skill).toBe(workflowMetadata.skill);
+  }
   expect(assetsReadme).toContain("Deterministic local alpha export placeholder");
 });
