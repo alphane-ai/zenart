@@ -169,6 +169,7 @@ def validate_closed_runtime_evidence_file(path: str, workflow_id: str, kind: str
     )
     require(evidence.get("proves_running_local_stack") is True, f"{workflow_id} {kind} must prove running local stack")
     validate_local_stack_port(evidence, workflow_id, kind)
+    validate_closed_runtime_evidence_semantics(evidence, workflow_id, kind)
 
 
 def validate_local_stack_port(evidence: dict[str, Any], workflow_id: str, kind: str) -> None:
@@ -192,6 +193,127 @@ def validate_local_stack_port(evidence: dict[str, Any], workflow_id: str, kind: 
         f"{workflow_id} {kind} evidence must record worker_clone_root_rel={LOCAL_ALPHA_WORKER_ROOT_REL!r}",
     )
     require("worker_clone_root" not in local_stack, f"{workflow_id} {kind} evidence must not commit absolute worker_clone_root paths")
+
+
+def validate_closed_runtime_evidence_semantics(evidence: dict[str, Any], workflow_id: str, kind: str) -> None:
+    if kind == "api_smoke":
+        operation_ids = set(evidence.get("operation_ids", []))
+        required_operations = set(RUNTIME_OPERATION_ORDER)
+        require(
+            required_operations <= operation_ids,
+            f"{workflow_id} API runtime evidence missing operations: {sorted(required_operations - operation_ids)}",
+        )
+        assertions = evidence.get("assertions")
+        require(isinstance(assertions, dict), f"{workflow_id} API runtime evidence missing assertions")
+        require(assertions.get("status") == "pass", f"{workflow_id} API runtime assertions must pass")
+        require(assertions.get("candidate_count") == 4, f"{workflow_id} API runtime must prove four candidates")
+        require(assertions.get("taxonomy_count") == 4, f"{workflow_id} API runtime must prove four taxonomy options")
+        require(
+            assertions.get("packaged_taxonomy_count") == 4,
+            f"{workflow_id} API runtime must prove all taxonomy options packaged",
+        )
+        require(assertions.get("ready_zip_export_count", 0) >= 1, f"{workflow_id} API runtime must prove ready ZIP export")
+        require(assertions.get("missing_output_count") == 0, f"{workflow_id} API runtime must prove no missing outputs")
+        require(assertions.get("qa_taxonomy_status") == "pass", f"{workflow_id} API runtime must prove QA taxonomy pass")
+        require(assertions.get("safety_status") == "pass", f"{workflow_id} API runtime must prove safety pass")
+        return
+
+    if kind == "playwright_happy_path":
+        steps = set(evidence.get("interaction_steps", []))
+        required_step_groups = {
+            "brief": {"brief_confirmed"},
+            "reference": {
+                "reference_uploaded",
+                "source_notes_uploaded",
+                "storefront_reference_uploaded",
+                "original_character_reference_uploaded",
+            },
+            "four_candidates": {
+                "four_candidates_visible",
+                "four_document_candidates_visible",
+                "four_local_merchant_candidates_visible",
+                "four_character_ip_candidates_visible",
+            },
+            "candidate_selected": {"candidate_selected"},
+            "iteration": {"iteration_created"},
+            "taxonomy_packaged": {
+                "all_taxonomy_candidates_packaged",
+                "all_document_taxonomy_candidates_packaged",
+                "all_local_merchant_taxonomy_candidates_packaged",
+                "all_character_ip_taxonomy_candidates_packaged",
+            },
+            "zip_export": {"zip_export_created"},
+            "download": {"download_handoff_completed"},
+        }
+        missing_step_groups = [
+            group
+            for group, aliases in required_step_groups.items()
+            if steps.isdisjoint(aliases)
+        ]
+        require(not missing_step_groups, f"{workflow_id} Playwright runtime evidence missing steps: {missing_step_groups}")
+        export_ui = evidence.get("export_metadata_ui")
+        require(isinstance(export_ui, dict), f"{workflow_id} Playwright runtime missing export metadata UI")
+        require(export_ui.get("status") == "pass", f"{workflow_id} Playwright export metadata UI must pass")
+        require(export_ui.get("zipPayloadParityStatus") == "pass", f"{workflow_id} Playwright must prove ZIP/UI parity")
+        require(export_ui.get("traceProvenancePayloadPresent") == "true", f"{workflow_id} Playwright must prove trace provenance")
+        require(export_ui.get("aiContentDisclaimerPayloadPresent") == "true", f"{workflow_id} Playwright must prove AI disclaimer")
+        require(str(evidence.get("downloaded_file_name", "")).endswith(".zip"), f"{workflow_id} Playwright must prove ZIP download")
+        return
+
+    if kind == "export_zip":
+        payloads = set(evidence.get("payloads", []))
+        required_payloads = {
+            "manifest.json",
+            "qa-report.json",
+            "safety-policy-report.json",
+            "provenance.json",
+            "ai-content-disclaimer.json",
+            "ppt-ready-metadata.json",
+            "metadata.json",
+            "qa_report.json",
+            "trace_provenance.json",
+        }
+        require(required_payloads <= payloads, f"{workflow_id} export ZIP missing payloads: {sorted(required_payloads - payloads)}")
+        require(not evidence.get("missing_payloads"), f"{workflow_id} export ZIP must have no missing payloads")
+        require(evidence.get("byte_size", 0) > 0, f"{workflow_id} export ZIP must be non-empty")
+        manifest = evidence.get("manifest")
+        require(isinstance(manifest, dict), f"{workflow_id} export ZIP must include parsed manifest")
+        expected_item_count = expected_export_item_count(workflow_id)
+        require(
+            manifest.get("item_count") == expected_item_count,
+            f"{workflow_id} export ZIP manifest must prove {expected_item_count} packaged items",
+        )
+        require(manifest.get("required_output_count", 0) > 0, f"{workflow_id} export ZIP manifest must prove required outputs")
+        acceptance = manifest.get("workflow_acceptance")
+        require(isinstance(acceptance, dict), f"{workflow_id} export ZIP must include workflow acceptance metadata")
+        require(acceptance.get("workflow_id") == workflow_id, f"{workflow_id} export ZIP workflow acceptance mismatch")
+        require(len(acceptance.get("strategy_taxonomy", [])) == 4, f"{workflow_id} export ZIP must prove four-option taxonomy")
+        qa_report = evidence.get("qa_report")
+        require(isinstance(qa_report, dict), f"{workflow_id} export ZIP must include QA report")
+        require(qa_report.get("blocking_count") == 0, f"{workflow_id} export ZIP QA report must have no blocking findings")
+        safety_report = evidence.get("safety_report")
+        require(isinstance(safety_report, dict), f"{workflow_id} export ZIP must include safety report")
+        require(safety_report.get("status") == "pass", f"{workflow_id} export ZIP safety report must pass")
+        metadata_payload = evidence.get("metadata_payload")
+        require(isinstance(metadata_payload, dict), f"{workflow_id} export ZIP must include metadata payload")
+        require(metadata_payload.get("provider") == "dev-provider", f"{workflow_id} export ZIP must prove dev-provider metadata")
+        trace_provenance = evidence.get("trace_provenance")
+        require(isinstance(trace_provenance, dict), f"{workflow_id} export ZIP must include trace provenance")
+        require(trace_provenance.get("workflow_id") == workflow_id, f"{workflow_id} export ZIP trace provenance mismatch")
+        return
+
+    raise WorkflowRuntimeEvidenceContractError(f"{workflow_id} unsupported runtime evidence kind: {kind}")
+
+
+def expected_export_item_count(workflow_id: str) -> int:
+    contract = load_json(FIXTURE_DIR / "eval" / "workflow_export_zip_evidence_contract.json")
+    export_contracts = {
+        item.get("workflow_id"): item
+        for item in contract.get("workflow_export_contracts", [])
+        if isinstance(item, dict)
+    }
+    required_assets = export_contracts.get(workflow_id, {}).get("required_asset_payloads", [])
+    return len(required_assets) or 4
 
 
 def validate_runner_replay() -> None:
