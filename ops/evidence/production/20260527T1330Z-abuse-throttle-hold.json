@@ -90,8 +90,8 @@
     {
       "area": "gate_blocker_preservation",
       "status": "pass",
-      "runtime_probe": "Production release-gate replay cleared production_abuse_throttle_hold while preserving the production_backup_rollback_incident check and the active backup, rollback, CI, and staging dependency do-not-launch conditions.",
-      "deployment_evidence": "The production gate fixture cites this production evidence path on the abuse check, clears only abuse_throttle_hold_missing, and preserves unrelated production do-not-launch conditions for backup/restore, rollback/post-deploy, and upstream CI/Staging gate dependencies.",
+      "runtime_probe": "Production release-gate replay cleared production_abuse_throttle_hold while preserving production_paid_billing_lifecycle, production_backup_rollback_incident, and the active paid billing, backup, rollback, CI, and staging dependency do-not-launch conditions.",
+      "deployment_evidence": "The production gate fixture cites this production evidence path on the abuse check, clears only abuse_throttle_hold_missing, and preserves unrelated production do-not-launch conditions for paid billing, backup/restore, rollback/post-deploy, and upstream CI/Staging gate dependencies.",
       "rbac_audit_evidence": "Gate preservation links release evidence eg-002 and immutable audit au-008 so verified abuse controls do not imply production launch readiness.",
       "linked_admin_artifacts": [
         "admin/app/abuse/page.tsx",
@@ -112,6 +112,7 @@
     "can_clear_check_level_item": true,
     "aggregate_production_gate_status": "blocked_by_other_production_runtime_items",
     "remaining_blockers": [
+      "production_paid_billing_lifecycle",
       "production_backup_rollback_incident"
     ]
   }

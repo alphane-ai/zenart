@@ -857,7 +857,7 @@ RUNTIME_PASS_REQUIREMENTS = {
     },
     ("production_launch", "production_provider_or_comp_only_mode"): {
         "path_patterns": (r"ops/evidence/production/",),
-        "tokens": ("production", "provider", "real", "cost", "monitoring", "claims"),
+        "tokens": ("production", "provider", "cost", "monitoring", "claims"),
     },
     ("production_launch", "production_paid_billing_lifecycle"): {
         "path_patterns": (r"ops/evidence/production/",),
@@ -1173,6 +1173,8 @@ NON_CLOSURE_RUNTIME_EVIDENCE_FILES = {
     "ops/evidence/release/staging/stage0-rev2-current-release-evidence-bundle.object-storage-retention-cleanup.json",
     "ops/evidence/production/20260527T1800Z-backup-rollback-incident-smoke.json",
     "ops/evidence/production/backup-rollback-split.blocked.json",
+    "ops/evidence/production/billing-lifecycle.json",
+    "ops/evidence/production/billing-refund-credit-webhook.json",
 }
 
 NON_CLOSURE_RUNTIME_EVIDENCE_ALLOWED_CONTEXTS = {
@@ -1204,6 +1206,26 @@ NON_CLOSURE_RUNTIME_EVIDENCE_ALLOWED_CONTEXTS = {
         ("production_launch", "decision", "gate_decision", "no_go"),
     },
     "ops/evidence/production/backup-rollback-split.blocked.json": set(),
+    "ops/evidence/production/billing-lifecycle.json": {
+        ("production_launch", "check", "production_paid_billing_lifecycle", "blocked"),
+        (
+            "production_launch",
+            "condition",
+            "paid_billing_or_comp_only_mode_missing",
+            "active",
+        ),
+        ("production_launch", "decision", "gate_decision", "no_go"),
+    },
+    "ops/evidence/production/billing-refund-credit-webhook.json": {
+        ("production_launch", "check", "production_paid_billing_lifecycle", "blocked"),
+        (
+            "production_launch",
+            "condition",
+            "paid_billing_or_comp_only_mode_missing",
+            "active",
+        ),
+        ("production_launch", "decision", "gate_decision", "no_go"),
+    },
 }
 
 RUNTIME_SPLIT_PASS_REQUIREMENTS = {
@@ -1233,7 +1255,7 @@ RUNTIME_SPLIT_PASS_REQUIREMENTS = {
             "claims_alignment": PRODUCTION_CLAIMS_ALIGNMENT_EVIDENCE,
         },
         "tokens": {
-            "provider_mode": ("real provider", "monitoring", "cost", "staging verification", "comp-only"),
+            "provider_mode": ("provider", "monitoring", "cost", "comp-only"),
             "claims_alignment": ("paid", "real-generation", "claims", "hidden", "comp-only"),
         },
     },
@@ -4557,13 +4579,29 @@ def require_split_runtime_blocked_evidence(evidence_ref: str, gate: str, check_i
                     f"{gate}.{check_id} blocked split evidence {rel_path} must explicitly target "
                     f"release_gate_check_id={check_id!r}; got {evidence_check_id!r}",
                 )
-                require(
-                    evidence.get("status") in checklist_requirement["allowed_statuses"],
-                    f"{gate}.{check_id} blocked split evidence {rel_path} has status={evidence.get('status')!r}; "
-                    f"it cannot be cited as present for {checklist_item}",
+                allowed_non_closure_contexts = NON_CLOSURE_RUNTIME_EVIDENCE_ALLOWED_CONTEXTS.get(rel_path)
+                is_allowed_blocked_non_closure = (
+                    allowed_non_closure_contexts is not None
+                    and (gate, "check", check_id, "blocked") in allowed_non_closure_contexts
                 )
+                if is_allowed_blocked_non_closure:
+                    require(
+                        evidence.get("status") not in RUNTIME_PASS_EVIDENCE_STATUS_VALUES,
+                        f"{gate}.{check_id} blocked non-closure split evidence {rel_path} must not be passing",
+                    )
+                else:
+                    require(
+                        evidence.get("status") in checklist_requirement["allowed_statuses"],
+                        f"{gate}.{check_id} blocked split evidence {rel_path} has status={evidence.get('status')!r}; "
+                        f"it cannot be cited as present for {checklist_item}",
+                    )
                 preserved_blockers = runtime_evidence_preserved_blockers(evidence)
-                if checklist_requirement["allow_preserved_blockers"]:
+                if is_allowed_blocked_non_closure:
+                    require(
+                        preserved_blockers,
+                        f"{gate}.{check_id} blocked non-closure split evidence {rel_path} must preserve blockers",
+                    )
+                elif checklist_requirement["allow_preserved_blockers"]:
                     require(
                         preserved_blockers,
                         f"{gate}.{check_id} blocked split evidence {rel_path} must preserve the combined blocker",
@@ -5700,11 +5738,23 @@ def validate_condition_split_artifact_semantics(
             f"{gate}.{condition_id} split artifact {rel_path} targets release_gate_check_id={evidence_check_id!r}; "
             f"expected one of {sorted(expected_check_ids)}",
         )
-    require(
-        evidence.get("status") in RUNTIME_PASS_EVIDENCE_STATUS_VALUES,
-        f"{gate}.{condition_id} split artifact {rel_path} must have a passing runtime status; "
-        f"got {evidence.get('status')!r}",
+    allowed_non_closure_contexts = NON_CLOSURE_RUNTIME_EVIDENCE_ALLOWED_CONTEXTS.get(rel_path)
+    is_allowed_active_non_closure = (
+        condition_present
+        and allowed_non_closure_contexts is not None
+        and (gate, "condition", condition_id, "active") in allowed_non_closure_contexts
     )
+    if is_allowed_active_non_closure:
+        require(
+            evidence.get("status") not in RUNTIME_PASS_EVIDENCE_STATUS_VALUES,
+            f"{gate}.{condition_id} active non-closure split artifact {rel_path} must not be passing",
+        )
+    else:
+        require(
+            evidence.get("status") in RUNTIME_PASS_EVIDENCE_STATUS_VALUES,
+            f"{gate}.{condition_id} split artifact {rel_path} must have a passing runtime status; "
+            f"got {evidence.get('status')!r}",
+        )
     combined = json.dumps(evidence, ensure_ascii=False).lower()
     missing_tokens = [token for token in expected_tokens if token not in combined]
     require(
@@ -10372,7 +10422,6 @@ def validate_release_gate_evidence() -> None:
     cleared_production_conditions = {
         "dev_mock_provider_public_claims_unresolved",
         "real_provider_or_comp_only_mode_missing",
-        "paid_billing_or_comp_only_mode_missing",
         "skill_release_eval_canary_missing",
         "activation_eval_review_audit_runtime_missing",
         "admin_high_risk_review_runtime_missing",

@@ -6,12 +6,12 @@
     {
       "check_id": "production_provider_or_comp_only_mode",
       "status": "pass",
-      "evidence_ref": "ops/evidence/production/provider-mode.json proves production launch mode, real provider contract, monitoring, cost records, staging verification, no dev-provider public routing, and no silent fallback; ops/evidence/production/public-paid-real-generation-claims.json proves public paid/real-generation claims align with that production provider mode while preserving paid billing, backup, CI, and staging blockers; invite/comp-only mode is explicitly disabled for this paid real-provider launch"
+      "evidence_ref": "ops/evidence/production/provider-mode.json proves production launch mode is explicit invite/comp-only with Stripe/payment provider integration deferred, no paid generation enabled, no dev-provider public routing, comp-only monitoring, cost records, and no silent fallback; ops/evidence/production/public-paid-real-generation-claims.json proves public paid and real-generation claims are hidden for comp-only mode while preserving paid billing, backup, CI, and staging blockers"
     },
     {
       "check_id": "production_paid_billing_lifecycle",
-      "status": "pass",
-      "evidence_ref": "ops/evidence/production/billing-lifecycle.json proves production checkout, active subscription, cancellation, past_due, and entitlement denial without mock checkout; ops/evidence/production/billing-refund-credit-webhook.json proves refund, admin credit, quota reset, failed-export refund, and webhook idempotency while preserving backup, CI, and staging blockers"
+      "status": "blocked",
+      "evidence_ref": "ops/evidence/production/billing-lifecycle.json is present deferred Stripe no-go evidence for checkout, subscription, cancellation, and past_due lifecycle runtime proof; ops/evidence/production/billing-refund-credit-webhook.json is present deferred Stripe no-go evidence for refund, credit, quota reset, and webhook idempotency proof in invite/comp-only mode, so production_paid_billing_lifecycle and paid_billing_or_comp_only_mode_missing remain blocked until real Stripe evidence exists"
     },
     {
       "check_id": "production_skill_release_eval_canary",
@@ -49,19 +49,19 @@
       "condition_id": "dev_mock_provider_public_claims_unresolved",
       "blueprint_condition": "Dev/mock provider 被 UI、docs、marketing 或 billing 暗示为真实生产生成。",
       "is_present": false,
-      "evidence_ref": "ops/evidence/production/public-paid-real-generation-claims.json proves public paid/real-generation claims align with ops/evidence/production/provider-mode.json and do not present dev-deterministic-image as production generation"
+      "evidence_ref": "ops/evidence/production/public-paid-real-generation-claims.json proves public paid/real-generation claims are hidden for invite/comp-only mode in ops/evidence/production/provider-mode.json and do not present dev-deterministic-image as production generation"
     },
     {
       "condition_id": "real_provider_or_comp_only_mode_missing",
       "blueprint_condition": "Dev/mock provider 被 UI、docs、marketing 或 billing 暗示为真实生产生成。",
       "is_present": false,
-      "evidence_ref": "ops/evidence/production/provider-mode.json proves production paid_real_provider mode with prod-openai-image contract, monitoring, cost records, staging verification, and no dev-provider public routing; ops/evidence/production/public-paid-real-generation-claims.json proves public claims match that mode"
+      "evidence_ref": "ops/evidence/production/provider-mode.json proves production invite/comp-only mode with Stripe/payment provider integration deferred, comp-only monitoring, cost records, no paid generation, and no dev-provider public routing; ops/evidence/production/public-paid-real-generation-claims.json proves public paid/real-generation claims are hidden for that mode"
     },
     {
       "condition_id": "paid_billing_or_comp_only_mode_missing",
       "blueprint_condition": "Paid launch 缺 checkout/subscription/cancellation/past_due/quota reset 流程测试，且没有明确 invite/comp-only 模式并隐藏付费声明。",
-      "is_present": false,
-      "evidence_ref": "ops/evidence/production/billing-lifecycle.json proves production checkout, active subscription, cancellation, and past_due; ops/evidence/production/billing-refund-credit-webhook.json proves refund, credit, quota reset, failed-export refund, and webhook idempotency"
+      "is_present": true,
+      "evidence_ref": "ops/evidence/production/billing-lifecycle.json is present deferred Stripe no-go evidence for invite/comp-only mode checkout, subscription, cancellation, and past_due proof; ops/evidence/production/billing-refund-credit-webhook.json is present deferred Stripe no-go evidence for refund, quota reset, and webhook idempotency proof; production checkout, subscription, cancellation, past_due, refund, quota reset, and webhook idempotency remain missing as paid lifecycle runtime proof until real Stripe evidence exists"
     },
     {
       "condition_id": "skill_release_eval_canary_missing",
@@ -127,14 +127,16 @@
   "gate_decision": {
     "status": "no_go",
     "blocked_by_checks": [
+      "production_paid_billing_lifecycle",
       "production_backup_rollback_incident"
     ],
     "active_do_not_launch_conditions": [
+      "paid_billing_or_comp_only_mode_missing",
       "backup_restore_rollback_smoke_missing",
       "production_deploy_rollback_smoke_missing",
       "ci_staging_gates_not_passed"
     ],
-    "evidence_ref": "fixtures/stage0/rev2/release_gate_evidence.production_launch.json gate_decision.status=no_go for checklist item Production Launch runtime/deployment evidence 通过：provider-or-comp-only、paid lifecycle、skill canary、activation audit、abuse hold、security、backup/rollback/post-deploy smoke、legal/support policy 均有 production evidence。 while production_backup_rollback_incident is blocked and backup_restore_rollback_smoke_missing, production_deploy_rollback_smoke_missing, and ci_staging_gates_not_passed remain active; ops/evidence/production/provider-mode.json plus ops/evidence/production/public-paid-real-generation-claims.json clear provider mode, ops/evidence/production/billing-lifecycle.json plus ops/evidence/production/billing-refund-credit-webhook.json clear paid billing lifecycle, and ops/evidence/production/20260527T1800Z-backup-rollback-incident-smoke.json is admin-visible operations evidence but cannot close the backup check before upstream gates pass; exact production backup/restore evidence ops/evidence/production/backup-restore.json is absent; exact production rollback/incident/post-deploy smoke evidence ops/evidence/production/rollback-incident-post-deploy-smoke.json is absent; present upstream CI fixture fixtures/stage0/rev2/release_gate_evidence.ci.json gate_decision.status=no_go; present upstream Private Beta/Staging fixture fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json gate_decision.status=no_go"
+    "evidence_ref": "fixtures/stage0/rev2/release_gate_evidence.production_launch.json gate_decision.status=no_go for checklist item Production Launch runtime/deployment evidence 通过：provider-or-comp-only、paid lifecycle、skill canary、activation audit、abuse hold、security、backup/rollback/post-deploy smoke、legal/support policy 均有 production evidence。 while production_paid_billing_lifecycle and production_backup_rollback_incident are blocked and paid_billing_or_comp_only_mode_missing, backup_restore_rollback_smoke_missing, production_deploy_rollback_smoke_missing, and ci_staging_gates_not_passed remain active; ops/evidence/production/provider-mode.json plus ops/evidence/production/public-paid-real-generation-claims.json clear provider mode through invite/comp-only mode; ops/evidence/production/billing-lifecycle.json is present deferred Stripe no-go evidence for checkout/subscription/cancellation/past_due proof; ops/evidence/production/billing-refund-credit-webhook.json is present deferred Stripe no-go evidence for refund/quota reset/webhook proof; paid lifecycle remains blocked until real Stripe checkout/subscription/cancellation/past_due/refund/quota reset/webhook proof exists; ops/evidence/production/20260527T1800Z-backup-rollback-incident-smoke.json is admin-visible operations evidence but cannot close the backup check before upstream gates pass; exact production backup/restore evidence ops/evidence/production/backup-restore.json is absent; exact production rollback/incident/post-deploy smoke evidence ops/evidence/production/rollback-incident-post-deploy-smoke.json is absent; present upstream CI fixture fixtures/stage0/rev2/release_gate_evidence.ci.json gate_decision.status=no_go; present upstream Private Beta/Staging fixture fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json gate_decision.status=no_go"
   },
   "provenance": {
     "blueprint_sections": [

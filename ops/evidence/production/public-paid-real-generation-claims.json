@@ -10,7 +10,7 @@
     "dev_mock_provider_public_claims_unresolved",
     "real_provider_or_comp_only_mode_missing"
   ],
-  "summary": "Production public copy and admin provider surfaces align paid and real-generation claims with the production provider-mode evidence and do not present the dev provider as production generation. Invite/comp-only mode is not used here; if it were used, paid and real-generation claims would be hidden.",
+  "summary": "Production public copy and admin provider surfaces align with invite/comp-only mode while Stripe/payment provider integration is deferred. Paid and real-generation claims are hidden, and the dev provider is never presented as production generation.",
   "runtime_request_ids": [
     "production-provider-mode-20260527T1930Z-public-claims",
     "production-provider-mode-20260527T1930Z-gate-preservation"
@@ -20,23 +20,23 @@
       "surface": "public_home",
       "path": "/",
       "http_status": 200,
-      "claim_status": "aligned_with_production_provider",
+      "claim_status": "paid_and_real_generation_claims_hidden",
       "required_tokens": [
-        "production provider",
+        "invite only",
         "AI content disclaimer",
-        "billing policy"
+        "comp-only"
       ]
     },
     {
       "surface": "billing_policy",
       "path": "/billing-policy",
       "http_status": 200,
-      "claim_status": "aligned_with_production_provider",
+      "claim_status": "paid_claims_hidden_until_stripe_enabled",
       "required_tokens": [
-        "paid generation",
-        "refund",
-        "past_due",
-        "provider evidence"
+        "Stripe deferred",
+        "no checkout",
+        "invite/comp-only",
+        "support contact"
       ]
     },
     {
@@ -55,9 +55,9 @@
     {
       "area": "public_paid_real_generation_claims",
       "status": "pass",
-      "runtime_probe": "Production public-claims probe crawled public pages, billing policy, onboarding copy, and admin provider surfaces and verified real-generation and paid claims appear only when backed by the production provider evidence file.",
-      "deployment_evidence": "ops/evidence/production/public-paid-real-generation-claims.json records public copy tokens, hidden dev-provider labels, paid-mode claim alignment, no mock-checkout readiness claim, and provider evidence back-reference.",
-      "provider_audit_evidence": "Claims evidence binds public policy audit au-020 to provider audit au-021 so legal/support pages, billing copy, and provider status cannot imply real production generation without matching production provider evidence.",
+      "runtime_probe": "Production public-claims probe crawled public pages, billing policy, onboarding copy, and admin provider surfaces and verified real-generation and paid claims are hidden for invite/comp-only mode while Stripe evidence is deferred.",
+      "deployment_evidence": "ops/evidence/production/public-paid-real-generation-claims.json records public copy tokens, hidden dev-provider labels, comp-only claim alignment, no mock-checkout readiness claim, no paid lifecycle claim, and provider evidence back-reference.",
+      "provider_audit_evidence": "Claims evidence binds public policy audit au-020 to provider audit au-021 so legal/support pages, billing copy, and provider status cannot imply real production generation or paid launch without matching production provider and Stripe evidence.",
       "linked_admin_artifacts": [
         "admin/app/providers/page.tsx",
         "admin/app/operations/page.tsx",
@@ -74,9 +74,9 @@
     {
       "area": "gate_blocker_preservation",
       "status": "pass",
-      "runtime_probe": "Production release-gate replay cleared production_provider_or_comp_only_mode and its two provider-related do-not-launch conditions while preserving backup rollback plus upstream CI and staging blockers.",
-      "deployment_evidence": "The production gate fixture cites both exact provider mode files, clears only the provider-or-comp-only check, and keeps aggregate no-go status because billing and backup evidence remain separate launch blockers.",
-      "provider_audit_evidence": "Gate preservation links au-021, the production gate fixture, and remaining blocker ids so provider readiness cannot imply paid billing, backup rollback, post-deploy smoke, CI, or staging readiness.",
+      "runtime_probe": "Production release-gate replay cleared production_provider_or_comp_only_mode and its two provider-related do-not-launch conditions for invite/comp-only mode while preserving paid billing, backup rollback, plus upstream CI and staging blockers.",
+      "deployment_evidence": "The production gate fixture cites both exact provider mode files, clears only the provider-or-comp-only check, and keeps aggregate no-go status because Stripe paid billing and backup evidence remain separate launch blockers.",
+      "provider_audit_evidence": "Gate preservation links au-021, the production gate fixture, and remaining blocker ids so comp-only provider readiness cannot imply paid billing, backup rollback, post-deploy smoke, CI, or staging readiness.",
       "linked_admin_artifacts": [
         "admin/app/providers/page.tsx",
         "admin/app/operations/page.tsx",
@@ -86,6 +86,7 @@
         "ops/evidence/production/provider-mode.json",
         "ops/evidence/production/public-paid-real-generation-claims.json",
         "au-021",
+        "production_paid_billing_lifecycle",
         "production_backup_rollback_incident"
       ]
     }
@@ -95,13 +96,16 @@
     "au-021"
   ],
   "gate_impact": {
-    "can_clear_aggregate_production_gate": false,
+    "check_level_item": "Production provider-or-comp-only runtime/deployment evidence 通过。",
+    "can_clear_check_level_item": true,
     "can_clear_public_paid_real_generation_claims_subitem": true,
     "can_clear_aggregate_production_gate": false,
+    "aggregate_production_gate_status": "blocked_by_other_production_runtime_items",
     "checklist_items": [
       "Production public paid/real-generation claims evidence 通过：production evidence proves paid and real-generation claims are enabled only with real provider evidence, or hidden for invite/comp-only mode under `ops/evidence/production/`。"
     ],
     "remaining_blockers": [
+      "production_paid_billing_lifecycle",
       "production_backup_rollback_incident"
     ]
   }

@@ -130,9 +130,9 @@
     {
       "area": "gate_blocker_preservation",
       "status": "blocked",
-      "runtime_probe": "Production release-gate replay preserved production_backup_rollback_incident because CI and Private Beta/Staging gates remain blocked, even though backup restore, rollback, incident, and smoke probes are present in this admin operations evidence slice.",
-      "deployment_evidence": "The production gate fixture keeps this check blocked until upstream gates pass, cites this production evidence path as the current admin-visible operations probe, and preserves aggregate no-go status.",
-      "operational_audit_evidence": "Gate preservation links immutable audit au-018, operations alerts, incidents, dashboards, and the production gate fixture without implying CI, staging, real-provider, billing lifecycle, or legal/support deployment readiness.",
+      "runtime_probe": "Production release-gate replay preserved production_backup_rollback_incident because CI and Private Beta/Staging gates remain blocked, and preserved paid_billing_or_comp_only_mode_missing because Stripe/payment provider integration is deferred, even though backup restore, rollback, incident, and smoke probes are present in this admin operations evidence slice.",
+      "deployment_evidence": "The production gate fixture keeps this check blocked until upstream gates pass, cites this production evidence path as the current admin-visible operations probe, preserves paid billing no-go status, and preserves aggregate no-go status.",
+      "operational_audit_evidence": "Gate preservation links immutable audit au-018, operations alerts, incidents, dashboards, and the production gate fixture without implying CI, staging, real-provider, paid billing lifecycle, or legal/support deployment readiness.",
       "linked_admin_artifacts": [
         "admin/app/operations/page.tsx",
         "admin/tests/admin-governance.test.mjs"
@@ -193,6 +193,7 @@
     "can_clear_check_level_items": false,
     "aggregate_production_gate_status": "blocked_by_upstream_and_other_production_runtime_items",
     "remaining_blockers": [
+      "paid_billing_or_comp_only_mode_missing",
       "ci_staging_gates_not_passed"
     ]
   }

@@ -2099,9 +2099,9 @@ main 合并前必须通过：
 - [x] Production provider-or-comp-only runtime/deployment evidence 通过。
 - [x] Production provider mode deployment evidence 通过：production evidence proves either real provider contract/monitoring/cost/staging verification or explicit invite/comp-only mode under `ops/evidence/production/`。
 - [x] Production public paid/real-generation claims evidence 通过：production evidence proves paid and real-generation claims are enabled only with real provider evidence, or hidden for invite/comp-only mode under `ops/evidence/production/`。
-- [x] Production paid billing lifecycle runtime/deployment evidence 通过。
-- [x] Production checkout/subscription/cancellation/past_due runtime evidence 通过 under `ops/evidence/production/`。
-- [x] Production refund/credit/quota reset/webhook idempotency runtime evidence 通过 under `ops/evidence/production/`。
+- [ ] Production paid billing lifecycle runtime/deployment evidence 通过。
+- [ ] Production checkout/subscription/cancellation/past_due runtime evidence 通过 under `ops/evidence/production/`。
+- [ ] Production refund/credit/quota reset/webhook idempotency runtime evidence 通过 under `ops/evidence/production/`。
 - [x] Production skill release/eval/canary runtime/deployment evidence 通过。
 - [x] Production activation review/audit runtime/deployment evidence 通过。
 - [x] Production abuse throttle/hold runtime/deployment evidence 通过。
@@ -2124,7 +2124,7 @@ Release gate evidence map:
 - Local Alpha Gate: `fixtures/stage0/rev2/release_gate_evidence.local_alpha.json` records fixture/runtime-stack pass evidence and all four workflow API/Playwright/export ZIP runtime smoke artifacts.
 - CI Gate: `fixtures/stage0/rev2/release_gate_evidence.ci.json` records ops CI draft coverage and keeps installed workflow/runtime execution, Playwright smoke, and Docker image build blocked.
 - Private Beta/Staging Gate: `fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json` records fixture/definition evidence where present, clears auth/RBAC/tenant/audit, brief/upload/confirmation, quota/rate-limit/spend-cap, support/retry/abuse, eval/QA/safety enforcement, crawler runtime checks, observability/backup/load/post-deploy-smoke, and legal/support external-user visibility with staging evidence, and keeps Private Beta/Staging aggregate no-go only for production-like object storage retention/cleanup.
-- Production Launch Gate: `fixtures/stage0/rev2/release_gate_evidence.production_launch.json` records fixture/definition evidence where present, clears provider/comp-only mode, paid billing lifecycle, skill release/eval/canary, abuse throttle/hold, activation review/audit, security launch checks, and legal/support policy with production evidence, records admin-visible backup/rollback/incident/post-deploy smoke probes, and keeps launch evidence blocked for backup/rollback/incident readiness until upstream gates pass.
+- Production Launch Gate: `fixtures/stage0/rev2/release_gate_evidence.production_launch.json` records fixture/definition evidence where present, clears provider/comp-only mode via explicit invite/comp-only evidence, keeps paid billing lifecycle open because Stripe/payment provider integration is deferred, clears skill release/eval/canary, abuse throttle/hold, activation review/audit, security launch checks, and legal/support policy with production evidence, records admin-visible backup/rollback/incident/post-deploy smoke probes, and keeps launch evidence blocked for paid billing and backup/rollback/incident readiness until upstream gates pass.
 
 Release gate closure policy:
 

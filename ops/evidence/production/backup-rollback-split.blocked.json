@@ -164,14 +164,16 @@
       "ready": false,
       "reason": ""
     },
-    "production_fixture_allows_split_closure": true,
+    "production_fixture_allows_split_closure": false,
     "production_launch": {
       "active_do_not_launch_conditions": [
+        "paid_billing_or_comp_only_mode_missing",
         "backup_restore_rollback_smoke_missing",
         "production_deploy_rollback_smoke_missing",
         "ci_staging_gates_not_passed"
       ],
       "blocked_by_checks": [
+        "production_paid_billing_lifecycle",
         "production_backup_rollback_incident"
       ],
       "exists": true,
@@ -180,7 +182,11 @@
       "ready": false,
       "reason": ""
     },
-    "production_other_active_conditions": [],
-    "production_other_blockers": []
+    "production_other_active_conditions": [
+      "paid_billing_or_comp_only_mode_missing"
+    ],
+    "production_other_blockers": [
+      "production_paid_billing_lifecycle"
+    ]
   }
 }

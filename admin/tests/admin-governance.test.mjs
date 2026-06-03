@@ -8768,7 +8768,10 @@ test("production legal support policy evidence clears only the legal/support pro
     assert.equal(check.status, "blocked", `${blocker} must stay blocked after legal/support policy clears`);
   }
 
-  assert.deepEqual(gateFixture.gate_decision.blocked_by_checks, ["production_backup_rollback_incident"]);
+  assert.deepEqual(gateFixture.gate_decision.blocked_by_checks, [
+    "production_paid_billing_lifecycle",
+    "production_backup_rollback_incident"
+  ]);
   assert.equal(
     gateFixture.gate_decision.active_do_not_launch_conditions.includes("public_legal_support_policy_not_deployed"),
     false,
@@ -8834,12 +8837,19 @@ test("production provider mode evidence clears provider and claims checks only",
 
   assert.equal(providerFile.provider_mode.dev_provider_public_routing, false);
   assert.equal(providerFile.provider_mode.silent_fallback_enabled, false);
-  assert.equal(providerFile.provider_contract.status, "production");
+  assert.equal(providerFile.launch_mode, "invite_comp_only");
+  assert.equal(providerFile.provider_mode.invite_comp_only, true);
+  assert.equal(providerFile.provider_mode.paid_generation_enabled, false);
+  assert.equal(providerFile.provider_contract.status, "deferred");
   assert.ok(providerFile.monitoring_cost.dashboard_id.length > 0);
   assert.ok(claimsFile.public_claim_probes.every((probe) => probe.http_status === 200));
   assert.ok(
     claimsFile.public_claim_probes.some((probe) => probe.claim_status === "dev_provider_marked_development_only"),
     "public claims evidence must prove dev provider is not represented as production"
+  );
+  assert.ok(
+    claimsFile.public_claim_probes.some((probe) => probe.claim_status === "paid_and_real_generation_claims_hidden"),
+    "public claims evidence must prove paid and real-generation claims are hidden for comp-only mode"
   );
 
   for (const auditRef of productionProviderModeEvidence.auditRefs) {
@@ -8910,7 +8920,10 @@ test("production provider mode evidence clears provider and claims checks only",
     const check = gateFixture.checks.find((entry) => entry.check_id === blocker);
     assert.ok(check, `${blocker} must remain represented in the production gate fixture`);
   }
-  assert.deepEqual(gateFixture.gate_decision.blocked_by_checks, ["production_backup_rollback_incident"]);
+  assert.deepEqual(gateFixture.gate_decision.blocked_by_checks, [
+    "production_paid_billing_lifecycle",
+    "production_backup_rollback_incident"
+  ]);
   assert.equal(
     gateFixture.gate_decision.active_do_not_launch_conditions.includes("dev_mock_provider_public_claims_unresolved"),
     false
@@ -8921,7 +8934,7 @@ test("production provider mode evidence clears provider and claims checks only",
   );
 });
 
-test("production paid billing lifecycle evidence clears billing lifecycle only", () => {
+test("production paid billing lifecycle evidence preserves deferred Stripe no-go", () => {
   assert.ok(existsSync(productionBillingLifecyclePath), "production billing lifecycle evidence file is missing");
   assert.ok(
     existsSync(productionBillingRefundCreditWebhookPath),
@@ -8934,7 +8947,7 @@ test("production paid billing lifecycle evidence clears billing lifecycle only",
   const gateFixture = JSON.parse(readFileSync(productionGatePath, "utf8"));
 
   assert.equal(productionPaidBillingLifecycleEvidence.environment, "production");
-  assert.equal(productionPaidBillingLifecycleEvidence.status, "pass_with_blockers_preserved");
+  assert.equal(productionPaidBillingLifecycleEvidence.status, "blocked");
   assert.equal(productionPaidBillingLifecycleEvidence.releaseGateCheckId, "production_paid_billing_lifecycle");
   assert.equal(productionPaidBillingLifecycleEvidence.doNotLaunchConditionId, "paid_billing_or_comp_only_mode_missing");
   assert.equal(productionPaidBillingLifecycleEvidence.billingLifecycleEvidencePath, "ops/evidence/production/billing-lifecycle.json");
@@ -8950,7 +8963,7 @@ test("production paid billing lifecycle evidence clears billing lifecycle only",
 
   for (const evidenceFile of [lifecycleFile, refundWebhookFile]) {
     assert.equal(evidenceFile.environment, "production");
-    assert.equal(evidenceFile.status, "pass");
+    assert.equal(evidenceFile.status, "blocked");
     assert.equal(evidenceFile.release_gate_check_id, "production_paid_billing_lifecycle");
     assert.equal(evidenceFile.do_not_launch_condition_id, "paid_billing_or_comp_only_mode_missing");
     assert.equal(evidenceFile.gate_impact.can_clear_aggregate_production_gate, false);
@@ -8970,19 +8983,19 @@ test("production paid billing lifecycle evidence clears billing lifecycle only",
     );
   }
 
-  assert.equal(lifecycleFile.checkout_provider, "production_paid_provider");
+  assert.equal(lifecycleFile.checkout_provider, "stripe_deferred_comp_only");
   assert.ok(
-    lifecycleFile.lifecycle_probes.some((probe) => probe.probe_id === "past_due" && probe.assertions.includes("quota_consuming_task_denied")),
-    "billing lifecycle evidence must prove past_due task denial"
+    lifecycleFile.lifecycle_probes.some((probe) => probe.probe_id === "past_due" && probe.assertions.includes("past_due_requires_stripe_invoice")),
+    "billing lifecycle evidence must preserve past_due Stripe blocker"
   );
   assert.ok(
     refundWebhookFile.quota_mutation_probes.some(
       (probe) =>
         probe.probe_id === "webhook_idempotency" &&
-        probe.assertions.includes("duplicate_events_deduped") &&
-        probe.assertions.includes("quota_mutation_exactly_once")
+        probe.assertions.includes("stripe_webhook_endpoint_disabled") &&
+        probe.assertions.includes("paid_quota_mutation_deferred")
     ),
-    "billing refund/webhook evidence must prove webhook idempotency"
+    "billing refund/webhook evidence must preserve Stripe webhook blocker"
   );
 
   for (const auditRef of productionPaidBillingLifecycleEvidence.auditRefs) {
@@ -9006,7 +9019,7 @@ test("production paid billing lifecycle evidence clears billing lifecycle only",
 
   for (const coverage of productionPaidBillingLifecycleEvidence.coverage) {
     requiredAreas.delete(coverage.area);
-    assert.equal(coverage.status, "pass", `${coverage.area} must pass`);
+    assert.equal(coverage.status, "blocked", `${coverage.area} must remain blocked while Stripe is deferred`);
     assert.ok(coverage.runtimeProbe.toLowerCase().includes("production"), `${coverage.area} must describe production runtime`);
     assert.match(
       coverage.runtimeProbe,
@@ -9044,7 +9057,7 @@ test("production paid billing lifecycle evidence clears billing lifecycle only",
 
   const billingCheck = gateFixture.checks.find((check) => check.check_id === "production_paid_billing_lifecycle");
   assert.ok(billingCheck, "production gate needs paid billing lifecycle check");
-  assert.equal(billingCheck.status, "pass");
+  assert.equal(billingCheck.status, "blocked");
   assert.ok(billingCheck.evidence_ref.includes(productionPaidBillingLifecycleEvidence.billingLifecycleEvidencePath));
   assert.ok(billingCheck.evidence_ref.includes(productionPaidBillingLifecycleEvidence.billingRefundCreditWebhookEvidencePath));
 
@@ -9052,18 +9065,21 @@ test("production paid billing lifecycle evidence clears billing lifecycle only",
     (condition) => condition.condition_id === productionPaidBillingLifecycleEvidence.doNotLaunchConditionId
   );
   assert.ok(billingCondition, "production do-not-launch fixture needs billing condition");
-  assert.equal(billingCondition.is_present, false, "billing condition should be cleared by runtime evidence");
+  assert.equal(billingCondition.is_present, true, "billing condition must remain active until real Stripe evidence exists");
 
   for (const blocker of productionPaidBillingLifecycleEvidence.gateImpact.remainingBlockers) {
     const check = gateFixture.checks.find((entry) => entry.check_id === blocker);
     assert.ok(check, `${blocker} must remain represented in the production gate fixture`);
-    assert.equal(check.status, "blocked", `${blocker} must stay blocked after billing lifecycle clears`);
+    assert.equal(check.status, "blocked", `${blocker} must stay blocked while Stripe is deferred`);
   }
 
-  assert.deepEqual(gateFixture.gate_decision.blocked_by_checks, ["production_backup_rollback_incident"]);
+  assert.deepEqual(gateFixture.gate_decision.blocked_by_checks, [
+    "production_paid_billing_lifecycle",
+    "production_backup_rollback_incident"
+  ]);
   assert.equal(
     gateFixture.gate_decision.active_do_not_launch_conditions.includes("paid_billing_or_comp_only_mode_missing"),
-    false,
-    "billing condition should be removed from active do-not-launch conditions"
+    true,
+    "billing condition should remain active in do-not-launch conditions"
   );
 });
