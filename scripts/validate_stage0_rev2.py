@@ -2203,6 +2203,8 @@ LOCAL_ALPHA_WORKFLOW_RUNTIME_ITEMS = {
     "角色/IP 概念包 Playwright happy path 通过。",
     "角色/IP 概念包 export ZIP evidence 通过：`ops/evidence/local_alpha/character_ip_concept_pack.export_zip.json` proves manifest、QA report、safety report、provenance、metadata、AI disclaimer、trace payloads and four-option taxonomy。",
 }
+LOCAL_ALPHA_WEB_PORT = 26080
+LOCAL_ALPHA_WORKER_ROOT_REL = "web"
 
 LOCAL_ALPHA_RELEASE_GATE_WORKFLOW_RUNTIME_OPEN_CHECK_ITEMS = {
     "Local Alpha 电商增长包 runtime smoke evidence 写入 release gate fixture：`ops/evidence/local_alpha/ecommerce_growth_pack.api_smoke.json`、`ops/evidence/local_alpha/ecommerce_growth_pack.playwright_happy_path.json`、`ops/evidence/local_alpha/ecommerce_growth_pack.export_zip.json` 均证明 running local stack。": {
@@ -3774,6 +3776,7 @@ def validate_local_alpha_workflow_runtime_evidence_file(
         evidence.get("status") in RUNTIME_PASS_EVIDENCE_STATUS_VALUES,
         f"{context} {path} must have a passing runtime status",
     )
+    validate_local_alpha_stack_port(evidence, path, context)
 
     if evidence_kind == "api":
         operation_ids = set(evidence.get("operation_ids", []))
@@ -3905,6 +3908,35 @@ def validate_local_alpha_workflow_runtime_evidence_file(
             set(safety_report.get("enforcement_stages", [])) == SAFETY_POINTS,
             f"{context} {path} must prove safety enforcement at every stage",
         )
+
+
+def validate_local_alpha_stack_port(evidence: dict[str, Any], path: str, context: str) -> None:
+    local_stack = evidence.get("local_stack")
+    require(isinstance(local_stack, dict), f"{context} {path} must include local_stack evidence")
+    parsed = urlparse(str(local_stack.get("web_base_url", "")))
+    require(parsed.scheme == "http", f"{context} {path} local stack must use http")
+    require(parsed.hostname == "127.0.0.1", f"{context} {path} local stack must bind 127.0.0.1")
+    require(parsed.port == LOCAL_ALPHA_WEB_PORT, f"{context} {path} local stack must use web port {LOCAL_ALPHA_WEB_PORT}")
+    require(
+        local_stack.get("assigned_web_port") == LOCAL_ALPHA_WEB_PORT,
+        f"{context} {path} must record assigned web port {LOCAL_ALPHA_WEB_PORT}",
+    )
+    require(
+        local_stack.get("web_playwright_port_env") == str(LOCAL_ALPHA_WEB_PORT),
+        f"{context} {path} must record WEB_PLAYWRIGHT_PORT={LOCAL_ALPHA_WEB_PORT}",
+    )
+    require(
+        str(LOCAL_ALPHA_WEB_PORT) in str(local_stack.get("web_server_contract", "")),
+        f"{context} {path} web server contract must name port {LOCAL_ALPHA_WEB_PORT}",
+    )
+    require(
+        local_stack.get("worker_clone_root_rel") == LOCAL_ALPHA_WORKER_ROOT_REL,
+        f"{context} {path} must record worker_clone_root_rel={LOCAL_ALPHA_WORKER_ROOT_REL!r}",
+    )
+    require(
+        "worker_clone_root" not in local_stack,
+        f"{context} {path} must not commit absolute worker_clone_root paths",
+    )
 
 
 def require_runtime_file_evidence(evidence_ref: str, gate: str, check_id: str) -> None:

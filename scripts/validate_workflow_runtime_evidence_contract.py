@@ -9,6 +9,7 @@ import subprocess
 import sys
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -20,6 +21,8 @@ API_EVIDENCE = FIXTURE_DIR / "eval" / "workflow_api_smoke_evidence.json"
 RUNNER = ROOT / "scripts" / "run_workflow_runtime_contract.py"
 LOCAL_ALPHA_GATE = FIXTURE_DIR / "release_gate_evidence.local_alpha.json"
 LOCAL_ALPHA_EVIDENCE_DIR = ROOT / "ops" / "evidence" / "local_alpha"
+LOCAL_ALPHA_WEB_PORT = 26080
+LOCAL_ALPHA_WORKER_ROOT_REL = "web"
 
 WORKFLOWS = {
     "ecommerce_growth_pack",
@@ -165,6 +168,30 @@ def validate_closed_runtime_evidence_file(path: str, workflow_id: str, kind: str
         f"{workflow_id} {kind} evidence must target Local Alpha workflow smoke gate",
     )
     require(evidence.get("proves_running_local_stack") is True, f"{workflow_id} {kind} must prove running local stack")
+    validate_local_stack_port(evidence, workflow_id, kind)
+
+
+def validate_local_stack_port(evidence: dict[str, Any], workflow_id: str, kind: str) -> None:
+    local_stack = evidence.get("local_stack")
+    require(isinstance(local_stack, dict), f"{workflow_id} {kind} evidence missing local_stack")
+    parsed = urlparse(str(local_stack.get("web_base_url", "")))
+    require(parsed.scheme == "http", f"{workflow_id} {kind} local stack must use http")
+    require(parsed.hostname == "127.0.0.1", f"{workflow_id} {kind} local stack must bind 127.0.0.1")
+    require(parsed.port == LOCAL_ALPHA_WEB_PORT, f"{workflow_id} {kind} local stack must use web port {LOCAL_ALPHA_WEB_PORT}")
+    require(local_stack.get("assigned_web_port") == LOCAL_ALPHA_WEB_PORT, f"{workflow_id} {kind} evidence must record assigned web port")
+    require(
+        local_stack.get("web_playwright_port_env") == str(LOCAL_ALPHA_WEB_PORT),
+        f"{workflow_id} {kind} evidence must record WEB_PLAYWRIGHT_PORT={LOCAL_ALPHA_WEB_PORT}",
+    )
+    require(
+        str(LOCAL_ALPHA_WEB_PORT) in str(local_stack.get("web_server_contract", "")),
+        f"{workflow_id} {kind} web server contract must name assigned port",
+    )
+    require(
+        local_stack.get("worker_clone_root_rel") == LOCAL_ALPHA_WORKER_ROOT_REL,
+        f"{workflow_id} {kind} evidence must record worker_clone_root_rel={LOCAL_ALPHA_WORKER_ROOT_REL!r}",
+    )
+    require("worker_clone_root" not in local_stack, f"{workflow_id} {kind} evidence must not commit absolute worker_clone_root paths")
 
 
 def validate_runner_replay() -> None:

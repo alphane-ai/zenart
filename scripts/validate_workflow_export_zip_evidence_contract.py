@@ -8,6 +8,7 @@ import re
 import sys
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -78,6 +79,8 @@ REQUIRED_ASSERTIONS = {
     "workflow_required_assets",
     "running_local_stack",
 }
+LOCAL_ALPHA_WEB_PORT = 26080
+LOCAL_ALPHA_WORKER_ROOT_REL = "web"
 
 
 class WorkflowExportZipEvidenceContractError(Exception):
@@ -229,6 +232,7 @@ def validate_runtime_evidence(item: dict[str, Any], workflow: dict[str, Any]) ->
     require(evidence.get("status") == "pass", f"{workflow_id} evidence must pass")
     require(evidence.get("release_gate_check_id") == "local_alpha_e2e_workflow_smoke", f"{workflow_id} gate check mismatch")
     require(evidence.get("proves_running_local_stack") is True, f"{workflow_id} must prove running local stack")
+    validate_local_stack_port(evidence, workflow_id)
     require(evidence.get("byte_size", 0) > 0, f"{workflow_id} must record non-empty ZIP bytes")
     require(not evidence.get("missing_payloads"), f"{workflow_id} evidence must have no missing payloads")
 
@@ -280,6 +284,29 @@ def validate_runtime_evidence(item: dict[str, Any], workflow: dict[str, Any]) ->
     require(isinstance(trace, dict), f"{workflow_id} evidence must include trace provenance")
     require(trace.get("workflow_id") == workflow_id, f"{workflow_id} trace workflow mismatch")
     require(trace.get("workflow_fixture_id") == item["fixture_id"], f"{workflow_id} trace fixture mismatch")
+
+
+def validate_local_stack_port(evidence: dict[str, Any], workflow_id: str) -> None:
+    local_stack = evidence.get("local_stack")
+    require(isinstance(local_stack, dict), f"{workflow_id} evidence missing local_stack")
+    parsed = urlparse(str(local_stack.get("web_base_url", "")))
+    require(parsed.scheme == "http", f"{workflow_id} local stack must use http")
+    require(parsed.hostname == "127.0.0.1", f"{workflow_id} local stack must bind 127.0.0.1")
+    require(parsed.port == LOCAL_ALPHA_WEB_PORT, f"{workflow_id} local stack must use web port {LOCAL_ALPHA_WEB_PORT}")
+    require(local_stack.get("assigned_web_port") == LOCAL_ALPHA_WEB_PORT, f"{workflow_id} evidence must record assigned web port")
+    require(
+        local_stack.get("web_playwright_port_env") == str(LOCAL_ALPHA_WEB_PORT),
+        f"{workflow_id} evidence must record WEB_PLAYWRIGHT_PORT={LOCAL_ALPHA_WEB_PORT}",
+    )
+    require(
+        str(LOCAL_ALPHA_WEB_PORT) in str(local_stack.get("web_server_contract", "")),
+        f"{workflow_id} web server contract must name assigned port",
+    )
+    require(
+        local_stack.get("worker_clone_root_rel") == LOCAL_ALPHA_WORKER_ROOT_REL,
+        f"{workflow_id} evidence must record worker_clone_root_rel={LOCAL_ALPHA_WORKER_ROOT_REL!r}",
+    )
+    require("worker_clone_root" not in local_stack, f"{workflow_id} evidence must not commit absolute worker_clone_root paths")
 
 
 def validate_summary(contract: dict[str, Any]) -> None:

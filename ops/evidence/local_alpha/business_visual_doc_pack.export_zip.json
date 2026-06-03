@@ -3,12 +3,13 @@
   "blueprint_source": "Docs/stage0_blueprint_rev2.md",
   "blueprint_sections": [
     "6.1",
-    "15",
+    "15.3",
     "23.1",
-    "25"
+    "25.12",
+    "25.20"
   ],
-  "created_by_lane": "lane3",
-  "created_at": "2026-05-27T06:18:34.873Z",
+  "created_by_lane": "lane1",
+  "created_at": "2026-06-03T17:11:44.647Z",
   "environment": "local_alpha",
   "workflow_id": "business_visual_doc_pack",
   "fixture_id": "fx_business_visual_doc_golden",
@@ -16,8 +17,11 @@
   "release_gate_fixture_ref": "fixtures/stage0/rev2/release_gate_evidence.local_alpha.json",
   "proves_running_local_stack": true,
   "local_stack": {
-    "web_base_url": "http://127.0.0.1:3000",
-    "web_server_contract": "web/playwright.config.ts webServer starts npm run dev -- --hostname 127.0.0.1",
+    "web_base_url": "http://127.0.0.1:26080",
+    "assigned_web_port": 26080,
+    "web_playwright_port_env": "26080",
+    "web_server_contract": "web/playwright.config.ts webServer starts npm run dev -- --hostname 127.0.0.1 --port 26080",
+    "worker_clone_root_rel": "web",
     "user_route": "/workspace",
     "export_route": "/export",
     "client_contract": "web deterministic dev client with generated API operation evidence"
@@ -25,10 +29,10 @@
   "evidence_kind": "export_zip",
   "status": "pass",
   "runner": "web/tests/local-alpha-ecommerce-evidence.spec.ts",
-  "command": "npm run smoke:local-alpha-ecommerce-evidence",
+  "command": "npm run smoke:local-alpha-workflow-evidence",
   "file_name": "zenart-001.zip",
-  "byte_size": 12110,
-  "sha256": "ee976706b89686c39a5ed59144e6eaafd4fb0e4fed40bcf6455e4bad2a66c783",
+  "byte_size": 13576,
+  "sha256": "75c2efb0515e9595cb91d7434b75164abc46ac129f1e780e9ae9290f664ff8be",
   "payloads": [
     "ai-content-disclaimer.json",
     "assets/README.txt",

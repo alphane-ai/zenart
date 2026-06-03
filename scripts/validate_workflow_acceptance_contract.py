@@ -8,6 +8,7 @@ import re
 import sys
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -21,6 +22,8 @@ SAFETY_RULES = FIXTURE_DIR / "eval" / "safety_rules.json"
 TRACE_COMPLETENESS = FIXTURE_DIR / "eval" / "trace_completeness.json"
 OPENAPI = ROOT / "openapi" / "zenart.v1.yaml"
 LOCAL_ALPHA_EVIDENCE_DIR = ROOT / "ops" / "evidence" / "local_alpha"
+LOCAL_ALPHA_WEB_PORT = 26080
+LOCAL_ALPHA_WORKER_ROOT_REL = "web"
 
 WORKFLOWS = {
     "ecommerce_growth_pack",
@@ -421,6 +424,24 @@ def local_alpha_evidence_passes(workflow_id: str, kind: str) -> bool:
         and evidence.get("evidence_kind") == kind
         and evidence.get("status") == "pass"
         and evidence.get("proves_running_local_stack") is True
+        and local_alpha_stack_port_matches(evidence)
+    )
+
+
+def local_alpha_stack_port_matches(evidence: dict[str, Any]) -> bool:
+    local_stack = evidence.get("local_stack")
+    if not isinstance(local_stack, dict):
+        return False
+    parsed = urlparse(str(local_stack.get("web_base_url", "")))
+    return (
+        parsed.scheme == "http"
+        and parsed.hostname == "127.0.0.1"
+        and parsed.port == LOCAL_ALPHA_WEB_PORT
+        and local_stack.get("assigned_web_port") == LOCAL_ALPHA_WEB_PORT
+        and local_stack.get("web_playwright_port_env") == str(LOCAL_ALPHA_WEB_PORT)
+        and str(LOCAL_ALPHA_WEB_PORT) in str(local_stack.get("web_server_contract", ""))
+        and local_stack.get("worker_clone_root_rel") == LOCAL_ALPHA_WORKER_ROOT_REL
+        and "worker_clone_root" not in local_stack
     )
 
 
@@ -500,6 +521,10 @@ def validate_closed_runtime_evidence(workflow_id: str, item_key: str) -> None:
         f"{workflow_id} {item_key} evidence must target Local Alpha workflow smoke gate",
     )
     require(evidence.get("proves_running_local_stack") is True, f"{workflow_id} {item_key} must prove running local stack")
+    require(
+        local_alpha_stack_port_matches(evidence),
+        f"{workflow_id} {item_key} evidence must prove assigned local web port {LOCAL_ALPHA_WEB_PORT}",
+    )
 
 
 def validate_runtime_evidence_contract(workflow_id: str, workflow: dict[str, Any]) -> None:
@@ -545,6 +570,10 @@ def validate_runtime_evidence_contract(workflow_id: str, workflow: dict[str, Any
         require(
             item.get("proves_running_local_stack") is ref["proves_running_local_stack"] is True,
             f"{workflow_id} {kind} evidence must prove running local stack",
+        )
+        require(
+            local_alpha_stack_port_matches(item),
+            f"{workflow_id} {kind} evidence must prove assigned local web port {LOCAL_ALPHA_WEB_PORT}",
         )
 
     runtime = contract["required_runtime_assertions"]
