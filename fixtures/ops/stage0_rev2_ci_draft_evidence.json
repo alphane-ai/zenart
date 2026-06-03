@@ -9,13 +9,12 @@
     "23.2",
     "25.17"
   ],
-  "installation_status": "token_blocked",
-  "token_blocked_reason": "Current GitHub token lacks workflow scope, so .github/workflows is intentionally not created, modified, or deleted.",
+  "installation_status": "installed",
+  "token_blocked_reason": "Workflow scope blocker cleared for installation; .github/workflows/stage0-rev2-ci.yml is now present and must match the ops/ci draft.",
   "draft_ref": "ops/ci/stage0-rev2-ci.yml",
   "checklist_policy": {
-    "ci_installation_checklist_remains_open": true,
+    "ci_installation_checklist_remains_open": false,
     "blocked_blueprint_items": [
-      "添加 PR/main CI 到 `.github/workflows`。",
       "CI Gate 全部通过。"
     ]
   },
@@ -125,6 +124,6 @@
   ],
   "release_gate_effect": {
     "ci_gate_status": "blocked",
-    "reason": "Draft coverage is validated, but installed GitHub Actions workflow remains token-blocked."
+    "reason": "Draft coverage is validated and the installed GitHub Actions workflow file exists, but CI Gate remains blocked until real PR/main runtime evidence, Playwright smoke evidence, and Docker image build evidence exist under ops/evidence/ci/."
   }
 }

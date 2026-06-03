@@ -1960,7 +1960,7 @@ main 合并前必须通过：
 
 ### 25.17 CI/CD and Environments
 
-- [ ] 添加 PR/main CI 到 `.github/workflows`。（token-blocked：当前 token 缺 workflow scope；draft/evidence 已落在 `ops/ci/` 和 `fixtures/ops/`。）
+- [x] 添加 PR/main CI 到 `.github/workflows`：installed workflow exists at `.github/workflows/stage0-rev2-ci.yml` and matches `ops/ci/stage0-rev2-ci.yml`; runtime PR/main evidence remains open under `ops/evidence/ci/`。
 - [x] 添加 PR/main CI draft/evidence 到 `ops/ci/` 和 `fixtures/ops/`。
 - [x] CI 运行 Web/Admin lint/typecheck/unit/build。
 - [x] CI 运行 backend fmt/lint/vet/unit/integration/build。
@@ -2053,7 +2053,7 @@ main 合并前必须通过：
 - [x] Backfill CI draft/no-go evidence: ops CI draft coverage passes while installed `.github/workflows` runtime remains blocked in `fixtures/stage0/rev2/release_gate_evidence.ci.json`。
 - [x] Tenant-scoped object retention cleanup service guard rejects repository cleanup rows whose `tenant_id` does not match the requested tenant before object-store delete or deleted-row acknowledgement, covered by `backend/internal/stage0/services_test.go`。
 - [ ] CI installed workflow runtime evidence 通过：PR/main run、Playwright smoke、Docker image build 均有 validator-resolvable evidence。
-- [ ] CI installed workflow file evidence 通过：`.github/workflows/stage0-rev2-ci.yml` 存在且被 release gate fixture 引用。
+- [x] CI installed workflow file evidence 通过：`.github/workflows/stage0-rev2-ci.yml` 存在且被 release gate fixture 引用。
 - [ ] CI PR/main workflow run evidence 通过：已安装 workflow 的 PR/main run 结果写入 `ops/evidence/ci/`。
 - [ ] CI PR/main workflow run exact evidence file 通过：`ops/evidence/ci/stage0-rev2-pr-main-run.json` exists, declares `environment=ci`, `release_gate_check_id=ci_gate_runtime_execution`, passing status, PR/main semantics, and no preserved blockers。
 - [ ] CI Playwright smoke runtime evidence 通过：已安装 PR/main workflow 运行 Playwright smoke 并写入 `ops/evidence/ci/`。

@@ -10,66 +10,64 @@
     },
     {
       "check_id": "ci_installed_workflow",
-      "status": "blocked",
-      "evidence_ref": ".github/workflows/stage0-rev2-ci.yml is absent because current token lacks workflow scope"
+      "status": "pass",
+      "evidence_ref": "installed workflow present at .github/workflows/stage0-rev2-ci.yml"
     },
     {
       "check_id": "ci_gate_runtime_execution",
       "status": "blocked",
-      "evidence_ref": "CI Gate cannot pass until installed PR/main workflow file .github/workflows/stage0-rev2-ci.yml is absent and PR/main workflow run runtime evidence is absent at ops/evidence/ci/stage0-rev2-pr-main-run.json"
+      "evidence_ref": "Installed workflow is present at .github/workflows/stage0-rev2-ci.yml. Workflow file evidence only proves repository installation, trigger wiring, job definition, artifact upload wiring, and validator coverage; it does not claim any runtime run result or close CI Gate runtime requirements. PR/main workflow run runtime evidence remains blocked and absent/missing at ops/evidence/ci/stage0-rev2-pr-main-run.json"
     },
     {
       "check_id": "ci_playwright_smoke",
       "status": "blocked",
-      "evidence_ref": "scripts/playwright_smoke.sh and ops/ci/playwright-smoke.spec.ts define draft smoke, but installed PR/main workflow file .github/workflows/stage0-rev2-ci.yml is absent and CI Playwright smoke runtime evidence is absent at ops/evidence/ci/stage0-rev2-playwright-smoke.json"
+      "evidence_ref": "Installed workflow is present at .github/workflows/stage0-rev2-ci.yml. Workflow file evidence only proves repository installation, trigger wiring, job definition, artifact upload wiring, and validator coverage; it does not claim any runtime smoke result or close CI Gate runtime requirements. CI Playwright smoke runtime evidence remains blocked and absent/missing at ops/evidence/ci/stage0-rev2-playwright-smoke.json"
     },
     {
       "check_id": "ci_docker_image_build",
       "status": "blocked",
-      "evidence_ref": "scripts/docker_build_smoke.sh and ops/ci/stage0-rev2-ci.yml define SHA Docker image builds, but installed PR/main workflow file .github/workflows/stage0-rev2-ci.yml is absent and CI Docker image build runtime evidence is absent at ops/evidence/ci/stage0-rev2-docker-image-build.json"
+      "evidence_ref": "Installed workflow is present at .github/workflows/stage0-rev2-ci.yml. Workflow file evidence only proves repository installation, trigger wiring, job definition, artifact upload wiring, and validator coverage; it does not claim any runtime image build result or close CI Gate runtime requirements. CI Docker image build runtime evidence remains blocked and absent/missing at ops/evidence/ci/stage0-rev2-docker-image-build.json"
     }
   ],
   "do_not_launch_checks": [
     {
       "condition_id": "ci_workflow_not_installed",
       "blueprint_condition": "Production deploy 缺 rollback plan、migration compatibility notes、post-deploy smoke test。",
-      "is_present": true,
-      "evidence_ref": "ops/ci/INSTALLATION.md records workflow-scope blocker; exact installed workflow remains absent at .github/workflows/stage0-rev2-ci.yml"
+      "is_present": false,
+      "evidence_ref": "exact installed workflow is present at .github/workflows/stage0-rev2-ci.yml; runtime PR/main evidence remains blocked separately"
     },
     {
       "condition_id": "ci_gate_not_executed_on_main",
       "blueprint_condition": "Production deploy 缺 rollback plan、migration compatibility notes、post-deploy smoke test。",
       "is_present": true,
-      "evidence_ref": "fixtures/ops/stage0_rev2_ci_draft_evidence.json release_gate_effect.ci_gate_status is blocked; installed workflow remains absent at .github/workflows/stage0-rev2-ci.yml and PR/main run runtime evidence remains absent at ops/evidence/ci/stage0-rev2-pr-main-run.json"
+      "evidence_ref": "fixtures/ops/stage0_rev2_ci_draft_evidence.json records CI runtime blocked guard source. Installed workflow is present at .github/workflows/stage0-rev2-ci.yml. Workflow file evidence only proves repository installation, trigger wiring, job definition, artifact upload wiring, and validator coverage; it does not claim any runtime run result or close CI Gate runtime requirements. PR/main run runtime evidence remains blocked and absent/missing at ops/evidence/ci/stage0-rev2-pr-main-run.json"
     },
     {
       "condition_id": "ci_playwright_smoke_missing",
       "blueprint_condition": "Vertical workflows 只通过 generic rendering tests，没有 domain fixtures、four-option taxonomy、required outputs、QA/safety checks、manifest validation。",
       "is_present": true,
-      "evidence_ref": "ops/ci/playwright-smoke.spec.ts and scripts/playwright_smoke.sh exist, but installed workflow remains absent at .github/workflows/stage0-rev2-ci.yml and CI Playwright smoke runtime evidence remains absent at ops/evidence/ci/stage0-rev2-playwright-smoke.json"
+      "evidence_ref": "ops/ci/playwright-smoke.spec.ts records Playwright smoke guard source. Installed workflow is present at .github/workflows/stage0-rev2-ci.yml. Workflow file evidence only proves repository installation, trigger wiring, job definition, artifact upload wiring, and validator coverage; it does not claim any runtime smoke result or close CI Gate runtime requirements. CI Playwright smoke runtime evidence remains blocked and absent/missing at ops/evidence/ci/stage0-rev2-playwright-smoke.json"
     },
     {
       "condition_id": "ci_docker_image_build_missing",
       "blueprint_condition": "Production deploy 缺 rollback plan、migration compatibility notes、post-deploy smoke test。",
       "is_present": true,
-      "evidence_ref": "ops/ci/stage0-rev2-ci.yml and scripts/docker_build_smoke.sh define Docker image build steps, but installed workflow remains absent at .github/workflows/stage0-rev2-ci.yml and CI Docker image build runtime evidence remains absent at ops/evidence/ci/stage0-rev2-docker-image-build.json"
+      "evidence_ref": "scripts/docker_build_smoke.sh records Docker image build guard source. Installed workflow is present at .github/workflows/stage0-rev2-ci.yml. Workflow file evidence only proves repository installation, trigger wiring, job definition, artifact upload wiring, and validator coverage; it does not claim any runtime image build result or close CI Gate runtime requirements. CI Docker image build runtime evidence remains blocked and absent/missing at ops/evidence/ci/stage0-rev2-docker-image-build.json"
     }
   ],
   "gate_decision": {
     "status": "no_go",
     "blocked_by_checks": [
-      "ci_installed_workflow",
       "ci_gate_runtime_execution",
       "ci_playwright_smoke",
       "ci_docker_image_build"
     ],
     "active_do_not_launch_conditions": [
-      "ci_workflow_not_installed",
       "ci_gate_not_executed_on_main",
       "ci_playwright_smoke_missing",
       "ci_docker_image_build_missing"
     ],
-    "evidence_ref": "fixtures/stage0/rev2/release_gate_evidence.ci.json gate_decision.status=no_go for checklist item CI installed workflow runtime evidence 通过：PR/main run、Playwright smoke、Docker image build 均有 validator-resolvable evidence。 because ci_installed_workflow, ci_gate_runtime_execution, ci_playwright_smoke, and ci_docker_image_build are blocked while ci_workflow_not_installed, ci_gate_not_executed_on_main, ci_playwright_smoke_missing, and ci_docker_image_build_missing remain active; exact installed workflow artifact .github/workflows/stage0-rev2-ci.yml is absent, exact PR/main run runtime evidence ops/evidence/ci/stage0-rev2-pr-main-run.json is absent, exact CI Playwright smoke runtime evidence ops/evidence/ci/stage0-rev2-playwright-smoke.json is absent, and exact CI Docker image build runtime evidence ops/evidence/ci/stage0-rev2-docker-image-build.json is absent"
+    "evidence_ref": "fixtures/stage0/rev2/release_gate_evidence.ci.json gate_decision.status=no_go for checklist item CI installed workflow runtime evidence 通过：PR/main run、Playwright smoke、Docker image build 均有 validator-resolvable evidence。 Installed workflow artifact .github/workflows/stage0-rev2-ci.yml passes file evidence. ci_gate_runtime_execution, ci_playwright_smoke, and ci_docker_image_build are blocked while ci_gate_not_executed_on_main, ci_playwright_smoke_missing, and ci_docker_image_build_missing remain active; exact PR/main run runtime evidence remains absent/missing at ops/evidence/ci/stage0-rev2-pr-main-run.json; exact CI Playwright smoke runtime evidence remains absent/missing at ops/evidence/ci/stage0-rev2-playwright-smoke.json; exact CI Docker image build runtime evidence remains absent/missing at ops/evidence/ci/stage0-rev2-docker-image-build.json"
   },
   "provenance": {
     "blueprint_sections": [
