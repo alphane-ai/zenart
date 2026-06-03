@@ -234,6 +234,26 @@ if "X-Request-ID" not in runtime_requirements.get("required_request_id_echo", ""
     raise SystemExit("release bundle dry-run must surface request-id echo requirement for object-retention probe")
 if runtime_requirements.get("canonical_pass_report") != "ops/evidence/staging/object-storage-retention-cleanup.json":
     raise SystemExit("release bundle dry-run must surface canonical object-retention pass report path")
+probe_contract = object_retention_probe.get("probe_contract", {})
+if probe_contract.get("contract_id") != "object_storage_retention_cleanup_runtime_probe":
+    raise SystemExit("release bundle dry-run must surface object-retention runtime probe contract")
+if probe_contract.get("canonical_pass_report") != "ops/evidence/staging/object-storage-retention-cleanup.json":
+    raise SystemExit("release bundle dry-run must surface canonical object-retention pass report in probe contract")
+if probe_contract.get("canonical_pass_results") != "ops/evidence/staging/object-storage-retention-cleanup.ndjson":
+    raise SystemExit("release bundle dry-run must surface canonical object-retention pass results in probe contract")
+if probe_contract.get("blocked_without_runtime_inputs") is not True:
+    raise SystemExit("release bundle dry-run must surface honest blocked object-retention probe contract")
+if probe_contract.get("non_canonical_reports_are_validation_only") is not True:
+    raise SystemExit("release bundle dry-run must surface non-canonical object-retention report policy")
+if set(probe_contract.get("required_checks", [])) != {
+    "retention_policy",
+    "expired_export_cleanup",
+    "orphan_cleanup",
+    "audit_refs",
+}:
+    raise SystemExit("release bundle dry-run must surface object-retention probe contract required checks")
+if probe_contract.get("probe_routes") != runtime_requirements.get("required_probe_routes"):
+    raise SystemExit("release bundle dry-run object-retention probe contract routes must match runtime requirements")
 split_evidence = object_retention_probe.get("split_evidence", {})
 if split_evidence.get("signed_url_ready") is not True:
     raise SystemExit("release bundle dry-run must surface signed URL split readiness")
@@ -440,6 +460,30 @@ for probe_id, (method, env_var, default_path) in expected_probe_routes.items():
     route = probe_routes.get(probe_id, {})
     if route.get("method") != method or route.get("env_var") != env_var or route.get("default_path") != default_path:
         raise SystemExit(f"blocked object-storage retention cleanup evidence missing route contract for {probe_id}: {route}")
+probe_contract = blocked_retention.get("probe_contract", {})
+if probe_contract.get("contract_id") != "object_storage_retention_cleanup_runtime_probe":
+    raise SystemExit("blocked object-storage retention cleanup evidence must expose the runtime probe contract")
+if probe_contract.get("release_gate_check_id") != "staging_object_storage_signed_downloads":
+    raise SystemExit("blocked object-storage retention cleanup probe contract must target staging_object_storage_signed_downloads")
+if probe_contract.get("canonical_pass_report") != "ops/evidence/staging/object-storage-retention-cleanup.json":
+    raise SystemExit("blocked object-storage retention cleanup probe contract must name canonical pass report")
+if probe_contract.get("canonical_pass_results") != "ops/evidence/staging/object-storage-retention-cleanup.ndjson":
+    raise SystemExit("blocked object-storage retention cleanup probe contract must name canonical pass results")
+if probe_contract.get("blocked_without_runtime_inputs") is not True:
+    raise SystemExit("blocked object-storage retention cleanup probe contract must preserve blocked evidence without runtime inputs")
+if probe_contract.get("non_canonical_reports_are_validation_only") is not True:
+    raise SystemExit("blocked object-storage retention cleanup probe contract must mark non-canonical reports validation-only")
+if set(probe_contract.get("required_checks", [])) != {
+    "retention_policy",
+    "expired_export_cleanup",
+    "orphan_cleanup",
+    "audit_refs",
+}:
+    raise SystemExit("blocked object-storage retention cleanup probe contract must list all required checks")
+if probe_contract.get("probe_routes") != runtime_requirements.get("required_probe_routes"):
+    raise SystemExit("blocked object-storage retention cleanup probe contract routes must match runtime requirements")
+if not any("audit endpoint contains" in item for item in probe_contract.get("success_criteria", [])):
+    raise SystemExit("blocked object-storage retention cleanup probe contract must require cleanup audit endpoint linkage")
 if any("missing_staging_base_url_or_explicit_probe_urls" not in item for item in blocked_retention.get("blocked_checks", [])):
     raise SystemExit("blocked object-storage retention cleanup evidence must explain the missing staging probe URLs")
 if blocked_retention.get("split_evidence", {}).get("canonical_pass_paths") is not False:
@@ -1113,6 +1157,25 @@ for probe_id, (method, env_var, default_path) in expected_probe_routes.items():
     route = probe_routes.get(probe_id, {})
     if route.get("method") != method or route.get("env_var") != env_var or route.get("default_path") != default_path:
         raise SystemExit(f"object-storage retention cleanup dry-run missing route contract for {probe_id}: {route}")
+probe_contract = report.get("probe_contract", {})
+if probe_contract.get("contract_id") != "object_storage_retention_cleanup_runtime_probe":
+    raise SystemExit("object-storage retention cleanup dry-run must expose its runtime probe contract")
+if probe_contract.get("release_gate_check_id") != "staging_object_storage_signed_downloads":
+    raise SystemExit("object-storage retention cleanup probe contract must target staging_object_storage_signed_downloads")
+if probe_contract.get("canonical_pass_report") != "ops/evidence/staging/object-storage-retention-cleanup.json":
+    raise SystemExit("object-storage retention cleanup probe contract must name the canonical pass report")
+if probe_contract.get("canonical_pass_results") != "ops/evidence/staging/object-storage-retention-cleanup.ndjson":
+    raise SystemExit("object-storage retention cleanup probe contract must name the canonical pass results")
+if probe_contract.get("blocked_without_runtime_inputs") is not True:
+    raise SystemExit("object-storage retention cleanup probe contract must preserve honest blocked evidence without runtime inputs")
+if probe_contract.get("non_canonical_reports_are_validation_only") is not True:
+    raise SystemExit("object-storage retention cleanup probe contract must mark non-canonical reports validation-only")
+if set(probe_contract.get("required_checks", [])) != expected_checks:
+    raise SystemExit("object-storage retention cleanup probe contract must list all required checks")
+if probe_contract.get("probe_routes") != runtime_requirements.get("required_probe_routes"):
+    raise SystemExit("object-storage retention cleanup probe contract routes must match runtime input route requirements")
+if not any("audit endpoint contains" in item for item in probe_contract.get("success_criteria", [])):
+    raise SystemExit("object-storage retention cleanup probe contract must require cleanup audit endpoint linkage")
 gate_impact = report.get("gate_impact", {})
 if gate_impact.get("can_clear_retention_cleanup_checklist_item") is not False:
     raise SystemExit("object-storage retention cleanup dry-run must not clear the retention checklist item")

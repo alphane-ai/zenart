@@ -8846,6 +8846,46 @@ def validate_staging_object_storage_retention_cleanup_evidence() -> None:
                 release_bundle_evidence["split_evidence"]["retention_cleanup_runtime_ready"] is False,
                 "release-bundle retention cleanup evidence must not claim runtime readiness",
             )
+            release_bundle_probe_contract = release_bundle_evidence.get("probe_contract", {})
+            require(
+                release_bundle_probe_contract.get("contract_id") == "object_storage_retention_cleanup_runtime_probe",
+                "release-bundle retention cleanup evidence must expose object-storage runtime probe contract",
+            )
+            require(
+                release_bundle_probe_contract.get("canonical_pass_report")
+                == rel(STAGING_OBJECT_STORAGE_RETENTION_EVIDENCE),
+                "release-bundle retention cleanup probe contract must name the canonical pass report",
+            )
+            require(
+                release_bundle_probe_contract.get("canonical_pass_results")
+                == "ops/evidence/staging/object-storage-retention-cleanup.ndjson",
+                "release-bundle retention cleanup probe contract must name the canonical pass results",
+            )
+            require(
+                release_bundle_probe_contract.get("blocked_without_runtime_inputs") is True,
+                "release-bundle retention cleanup probe contract must preserve honest blocked behavior without runtime inputs",
+            )
+            require(
+                release_bundle_probe_contract.get("non_canonical_reports_are_validation_only") is True,
+                "release-bundle retention cleanup probe contract must mark non-canonical reports validation-only",
+            )
+            require(
+                set(release_bundle_probe_contract.get("required_checks", []))
+                == {"retention_policy", "expired_export_cleanup", "orphan_cleanup", "audit_refs"},
+                "release-bundle retention cleanup probe contract must list all required checks",
+            )
+            require(
+                release_bundle_probe_contract.get("probe_routes")
+                == blocked_evidence.get("probe_contract", {}).get("probe_routes"),
+                "release-bundle retention cleanup probe contract must preserve the blocked probe route contract",
+            )
+            require(
+                any(
+                    "audit endpoint contains" in criterion
+                    for criterion in release_bundle_probe_contract.get("success_criteria", [])
+                ),
+                "release-bundle retention cleanup probe contract must require audit endpoint linkage",
+            )
             release_bundle = ROOT / "ops" / "evidence" / "release" / "staging" / "stage0-rev2-current-release-evidence-bundle.json"
             require(
                 release_bundle.exists(),

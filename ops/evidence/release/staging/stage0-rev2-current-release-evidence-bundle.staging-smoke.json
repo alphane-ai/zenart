@@ -58,7 +58,9 @@
       "blocked_conditions": [
         "private_beta_staging:staging_object_storage_signed_downloads",
         "private_beta_staging:object_storage_signed_retention_runtime_missing",
+        "production_launch:production_paid_billing_lifecycle",
         "production_launch:production_backup_rollback_incident",
+        "production_launch:paid_billing_or_comp_only_mode_missing",
         "production_launch:backup_restore_rollback_smoke_missing",
         "production_launch:production_deploy_rollback_smoke_missing",
         "production_launch:ci_staging_gates_not_passed"
@@ -87,7 +89,9 @@
         "unverified_release_evidence:security_scan_evidence",
         "gate_fixture_blocked:private_beta_staging:staging_object_storage_signed_downloads",
         "gate_fixture_blocked:private_beta_staging:object_storage_signed_retention_runtime_missing",
+        "gate_fixture_blocked:production_launch:production_paid_billing_lifecycle",
         "gate_fixture_blocked:production_launch:production_backup_rollback_incident",
+        "gate_fixture_blocked:production_launch:paid_billing_or_comp_only_mode_missing",
         "gate_fixture_blocked:production_launch:backup_restore_rollback_smoke_missing",
         "gate_fixture_blocked:production_launch:production_deploy_rollback_smoke_missing",
         "gate_fixture_blocked:production_launch:ci_staging_gates_not_passed"
@@ -453,9 +457,11 @@
       },
       "production_launch": {
         "blocked_checks": [
+          "production_paid_billing_lifecycle",
           "production_backup_rollback_incident"
         ],
         "do_not_launch_present": [
+          "paid_billing_or_comp_only_mode_missing",
           "backup_restore_rollback_smoke_missing",
           "production_deploy_rollback_smoke_missing",
           "ci_staging_gates_not_passed"

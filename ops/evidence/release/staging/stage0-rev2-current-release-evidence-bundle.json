@@ -1,5 +1,5 @@
 {
-  "blocking_reason_count": 37,
+  "blocking_reason_count": 39,
   "blocking_reasons": [
     "staging_smoke_not_passed",
     "post_deploy_smoke_contract_unverified",
@@ -24,7 +24,9 @@
     "unverified_release_evidence:security_scan_evidence",
     "gate_fixture_blocked:private_beta_staging:staging_object_storage_signed_downloads",
     "gate_fixture_blocked:private_beta_staging:object_storage_signed_retention_runtime_missing",
+    "gate_fixture_blocked:production_launch:production_paid_billing_lifecycle",
     "gate_fixture_blocked:production_launch:production_backup_rollback_incident",
+    "gate_fixture_blocked:production_launch:paid_billing_or_comp_only_mode_missing",
     "gate_fixture_blocked:production_launch:backup_restore_rollback_smoke_missing",
     "gate_fixture_blocked:production_launch:production_deploy_rollback_smoke_missing",
     "gate_fixture_blocked:production_launch:ci_staging_gates_not_passed",
@@ -47,6 +49,7 @@
     "exists": true,
     "gate_impact": {
       "aggregate_private_beta_gate_status": "blocked_by_other_staging_runtime_items",
+      "can_clear_check_level_item": true,
       "can_clear_legal_pages_subitem": true
     },
     "passed": true,
@@ -75,6 +78,7 @@
     "exists": true,
     "gate_impact": {
       "aggregate_private_beta_gate_status": "blocked_by_other_staging_runtime_items",
+      "can_clear_check_level_item": true,
       "can_clear_support_contact_subitem": true
     },
     "passed": true,
@@ -172,14 +176,67 @@
         "staging_object_storage_signed_downloads"
       ]
     },
-    "input_readiness": {},
+    "input_readiness": {
+      "dry_run": false,
+      "external_probe_attempted": false,
+      "legal_pages_split_ready": false,
+      "support_contact_split_ready": false,
+      "web_url_ready": false
+    },
     "kind": "legal_support_visibility",
     "passed": false,
     "path": "ops/evidence/release/staging/stage0-rev2-current-release-evidence-bundle.legal-support-visibility.json",
+    "probe_contract": {
+      "blocked_without_runtime_inputs": true,
+      "canonical_legal_pages_report": "ops/evidence/release/staging/stage0-rev2-current-release-evidence-bundle.legal-pages-external-user.json",
+      "canonical_support_contact_report": "ops/evidence/release/staging/stage0-rev2-current-release-evidence-bundle.support-contact-external-user.json",
+      "contract_id": "legal_support_external_user_visibility_runtime_probe",
+      "do_not_launch_condition_id": "external_user_legal_pages_missing",
+      "environment": "staging",
+      "local_blocked_command": "DRY_RUN=1 scripts/staging_legal_support_visibility_smoke.sh || test \"$?\" = 2",
+      "release_gate_check_id": "staging_legal_external_user_pages",
+      "required_env": [
+        "STAGING_WEB_URL or WEB_URL"
+      ],
+      "required_routes": [
+        "/legal/terms",
+        "/legal/privacy",
+        "/legal/acceptable-use",
+        "/legal/ip-complaints",
+        "/support",
+        "/legal/billing-policy"
+      ],
+      "results_path": "ops/evidence/release/staging/stage0-rev2-current-release-evidence-bundle.legal-support-visibility.ndjson",
+      "schema_version": "stage0.rev2.staging.probe_contract",
+      "staging_pass_command": "STAGING_WEB_URL=https://<staging-web> scripts/staging_legal_support_visibility_smoke.sh",
+      "success_criteria": [
+        "all required external-user routes return HTTP 200",
+        "legal pages expose Terms, Privacy, Acceptable Use, AI/content disclaimer, and IP complaint tokens",
+        "support routes expose support contact, report-problem, and billing/support policy tokens",
+        "canonical split reports are written under ops/evidence/staging/"
+      ]
+    },
     "release_gate_check_id": "staging_legal_external_user_pages",
     "required_checks": [],
     "results_path": "ops/evidence/release/staging/stage0-rev2-current-release-evidence-bundle.legal-support-visibility.ndjson",
-    "runtime_input_requirements": {},
+    "runtime_input_requirements": {
+      "required_exact_split_reports": {
+        "legal_pages_external_user": "ops/evidence/release/staging/stage0-rev2-current-release-evidence-bundle.legal-pages-external-user.json",
+        "support_contact_external_user": "ops/evidence/release/staging/stage0-rev2-current-release-evidence-bundle.support-contact-external-user.json"
+      },
+      "required_probe_mode": "external-user HTTP GET probes must load deployed routes; DRY_RUN only records blocked/planned evidence",
+      "required_routes": {
+        "acceptable_use": "/legal/acceptable-use",
+        "ai_content_disclaimer": "/support",
+        "billing_policy": "/legal/billing-policy",
+        "ip_complaint": "/legal/ip-complaints",
+        "privacy": "/legal/privacy",
+        "support_contact": "/support",
+        "terms": "/legal/terms"
+      },
+      "required_web_url": "STAGING_WEB_URL or WEB_URL pointing at the deployed staging web surface",
+      "source_file_policy": "web source files or checked-in policy text alone cannot satisfy staging legal/support visibility; the pass report requires deployed external-user HTTP probe results."
+    },
     "split_evidence": {},
     "status": "blocked"
   },
@@ -233,6 +290,77 @@
     "kind": "object_storage_retention_cleanup",
     "passed": false,
     "path": "ops/evidence/release/staging/stage0-rev2-current-release-evidence-bundle.object-storage-retention-cleanup.json",
+    "probe_contract": {
+      "blocked_report": "ops/evidence/staging/object-storage-retention-cleanup.blocked.json",
+      "blocked_results": "ops/evidence/staging/object-storage-retention-cleanup.blocked.ndjson",
+      "blocked_without_runtime_inputs": true,
+      "canonical_pass_report": "ops/evidence/staging/object-storage-retention-cleanup.json",
+      "canonical_pass_results": "ops/evidence/staging/object-storage-retention-cleanup.ndjson",
+      "contract_id": "object_storage_retention_cleanup_runtime_probe",
+      "do_not_launch_condition_id": "object_storage_signed_retention_runtime_missing",
+      "environment": "staging",
+      "local_blocked_command": "DRY_RUN=1 scripts/staging_object_storage_retention_cleanup_smoke.sh || test \"$?\" = 2",
+      "non_canonical_reports_are_validation_only": true,
+      "probe_routes": {
+        "audit_refs": {
+          "default_path": "/api/admin/v1/audit?subject=object_storage_cleanup&limit=20",
+          "env_var": "AUDIT_REFS_URL",
+          "method": "GET"
+        },
+        "expired_export_cleanup": {
+          "body": {
+            "dry_run": true,
+            "limit": 25,
+            "rationale": "stage0 retention cleanup smoke expired_export_cleanup"
+          },
+          "default_path": "/api/admin/v1/object-storage/cleanup/expired-exports",
+          "env_var": "EXPIRED_EXPORT_CLEANUP_URL",
+          "method": "POST"
+        },
+        "orphan_cleanup": {
+          "body": {
+            "dry_run": true,
+            "limit": 25,
+            "rationale": "stage0 retention cleanup smoke orphan_cleanup"
+          },
+          "default_path": "/api/admin/v1/object-storage/cleanup/orphans",
+          "env_var": "ORPHAN_CLEANUP_URL",
+          "method": "POST"
+        },
+        "retention_policy": {
+          "default_path": "/api/admin/v1/object-storage/retention-policy",
+          "env_var": "RETENTION_POLICY_URL",
+          "method": "GET"
+        }
+      },
+      "release_gate_check_id": "staging_object_storage_signed_downloads",
+      "request_id_header": "X-Request-ID",
+      "required_checks": [
+        "audit_refs",
+        "expired_export_cleanup",
+        "orphan_cleanup",
+        "retention_policy"
+      ],
+      "required_env": [
+        "STAGING_BASE_URL or explicit RETENTION_POLICY_URL/EXPIRED_EXPORT_CLEANUP_URL/ORPHAN_CLEANUP_URL/AUDIT_REFS_URL",
+        "RELEASE_SHA matching signed URL evidence",
+        "ADMIN_BEARER_TOKEN or ADMIN_SESSION_COOKIE",
+        "SMOKE_ADMIN_USER_ID",
+        "SMOKE_ADMIN_TENANT_ID",
+        "CSRF_ORIGIN or STAGING_ADMIN_URL/ADMIN_URL/STAGING_WEB_URL/WEB_URL",
+        "CSRF_HEADER_VALUE"
+      ],
+      "schema_version": "stage0.rev2.staging.probe_contract",
+      "staging_pass_command": "STAGING_BASE_URL=https://<staging-admin-or-api> RELEASE_SHA=<signed-url-release-sha> ADMIN_BEARER_TOKEN=<token> SMOKE_ADMIN_USER_ID=<admin-user> SMOKE_ADMIN_TENANT_ID=<tenant> CSRF_ORIGIN=<allowed-origin> CSRF_HEADER_VALUE=<csrf> scripts/staging_object_storage_retention_cleanup_smoke.sh",
+      "success_criteria": [
+        "retention_policy, expired_export_cleanup, orphan_cleanup, and audit_refs all return 200 or 202",
+        "each response body is non-empty and matches the expected retention/cleanup/audit tokens",
+        "each response echoes the per-probe request ID in the configured request-id header",
+        "expired-export and orphan cleanup responses include cleanup audit refs",
+        "the audit endpoint contains those cleanup audit refs with admin, tenant, cleanup semantics, and the exact cleanup probe request IDs",
+        "the canonical pass report and NDJSON paths under ops/evidence/staging/ are used"
+      ]
+    },
     "release_gate_check_id": "staging_object_storage_signed_downloads",
     "required_checks": [
       "audit_refs",

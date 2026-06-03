@@ -85,7 +85,44 @@
       "staging_object_storage_signed_downloads"
     ]
   },
+  "input_readiness": {
+    "dry_run": false,
+    "external_probe_attempted": false,
+    "legal_pages_split_ready": false,
+    "support_contact_split_ready": false,
+    "web_url_ready": false
+  },
   "kind": "legal_support_visibility",
+  "probe_contract": {
+    "blocked_without_runtime_inputs": true,
+    "canonical_legal_pages_report": "ops/evidence/release/staging/stage0-rev2-current-release-evidence-bundle.legal-pages-external-user.json",
+    "canonical_support_contact_report": "ops/evidence/release/staging/stage0-rev2-current-release-evidence-bundle.support-contact-external-user.json",
+    "contract_id": "legal_support_external_user_visibility_runtime_probe",
+    "do_not_launch_condition_id": "external_user_legal_pages_missing",
+    "environment": "staging",
+    "local_blocked_command": "DRY_RUN=1 scripts/staging_legal_support_visibility_smoke.sh || test \"$?\" = 2",
+    "release_gate_check_id": "staging_legal_external_user_pages",
+    "required_env": [
+      "STAGING_WEB_URL or WEB_URL"
+    ],
+    "required_routes": [
+      "/legal/terms",
+      "/legal/privacy",
+      "/legal/acceptable-use",
+      "/legal/ip-complaints",
+      "/support",
+      "/legal/billing-policy"
+    ],
+    "results_path": "ops/evidence/release/staging/stage0-rev2-current-release-evidence-bundle.legal-support-visibility.ndjson",
+    "schema_version": "stage0.rev2.staging.probe_contract",
+    "staging_pass_command": "STAGING_WEB_URL=https://<staging-web> scripts/staging_legal_support_visibility_smoke.sh",
+    "success_criteria": [
+      "all required external-user routes return HTTP 200",
+      "legal pages expose Terms, Privacy, Acceptable Use, AI/content disclaimer, and IP complaint tokens",
+      "support routes expose support contact, report-problem, and billing/support policy tokens",
+      "canonical split reports are written under ops/evidence/staging/"
+    ]
+  },
   "release_gate_check_id": "staging_legal_external_user_pages",
   "release_sha": "",
   "required_routes": [
@@ -97,6 +134,24 @@
     "/legal/billing-policy"
   ],
   "results_path": "ops/evidence/release/staging/stage0-rev2-current-release-evidence-bundle.legal-support-visibility.ndjson",
+  "runtime_input_requirements": {
+    "required_exact_split_reports": {
+      "legal_pages_external_user": "ops/evidence/release/staging/stage0-rev2-current-release-evidence-bundle.legal-pages-external-user.json",
+      "support_contact_external_user": "ops/evidence/release/staging/stage0-rev2-current-release-evidence-bundle.support-contact-external-user.json"
+    },
+    "required_probe_mode": "external-user HTTP GET probes must load deployed routes; DRY_RUN only records blocked/planned evidence",
+    "required_routes": {
+      "acceptable_use": "/legal/acceptable-use",
+      "ai_content_disclaimer": "/support",
+      "billing_policy": "/legal/billing-policy",
+      "ip_complaint": "/legal/ip-complaints",
+      "privacy": "/legal/privacy",
+      "support_contact": "/support",
+      "terms": "/legal/terms"
+    },
+    "required_web_url": "STAGING_WEB_URL or WEB_URL pointing at the deployed staging web surface",
+    "source_file_policy": "web source files or checked-in policy text alone cannot satisfy staging legal/support visibility; the pass report requires deployed external-user HTTP probe results."
+  },
   "schema_version": "stage0.rev2.staging.legal_support_visibility",
   "status": "blocked",
   "validated_by_role": "external_user_smoke",
