@@ -7,11 +7,19 @@ cd "$ROOT"
 WEB_URL="${WEB_URL:-${STAGING_WEB_URL:-}}"
 TIMEOUT_SECONDS="${TIMEOUT_SECONDS:-8}"
 DRY_RUN="${DRY_RUN:-0}"
-OUT_DIR="${OUT_DIR:-ops/evidence/staging}"
+OUT_DIR_WAS_SET=0
+if [[ -n "${OUT_DIR+x}" || -n "${REPORT_PATH+x}" || -n "${RESULTS_PATH+x}" ]]; then
+  OUT_DIR_WAS_SET=1
+fi
+if [[ "$DRY_RUN" == "1" && "$OUT_DIR_WAS_SET" != "1" ]]; then
+  OUT_DIR="$(mktemp -d "${TMPDIR:-/tmp}/stage0-legal-support-dry-run.XXXXXX")"
+else
+  OUT_DIR="${OUT_DIR:-ops/evidence/staging}"
+fi
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 RUN_ID="${RUN_ID:-${STAMP}-legal-support-visibility-$$}"
-REPORT_PATH="$OUT_DIR/${RUN_ID}.json"
-RESULTS_PATH="$OUT_DIR/${RUN_ID}.ndjson"
+REPORT_PATH="${REPORT_PATH:-$OUT_DIR/${RUN_ID}.json}"
+RESULTS_PATH="${RESULTS_PATH:-$OUT_DIR/${RUN_ID}.ndjson}"
 LEGAL_PAGES_REPORT_PATH="${LEGAL_PAGES_REPORT_PATH:-$OUT_DIR/legal-pages-external-user.json}"
 SUPPORT_CONTACT_REPORT_PATH="${SUPPORT_CONTACT_REPORT_PATH:-$OUT_DIR/support-contact-external-user.json}"
 RELEASE_SHA="${RELEASE_SHA:-${GITHUB_SHA:-}}"
@@ -141,6 +149,36 @@ blocked_or_failed = [
 ]
 all_passed = required_legal | required_support <= passed and not blocked_or_failed
 status = "pass" if all_passed else "blocked"
+probe_contract = {
+    "schema_version": "stage0.rev2.staging.probe_contract",
+    "contract_id": "legal_support_external_user_visibility_runtime_probe",
+    "environment": "staging",
+    "release_gate_check_id": "staging_legal_external_user_pages",
+    "do_not_launch_condition_id": "external_user_legal_pages_missing",
+    "canonical_legal_pages_report": str(legal_pages_report_path),
+    "canonical_support_contact_report": str(support_contact_report_path),
+    "results_path": str(results_path),
+    "blocked_without_runtime_inputs": True,
+    "local_blocked_command": "DRY_RUN=1 scripts/staging_legal_support_visibility_smoke.sh || test \"$?\" = 2",
+    "staging_pass_command": "STAGING_WEB_URL=https://<staging-web> scripts/staging_legal_support_visibility_smoke.sh",
+    "required_env": [
+        "STAGING_WEB_URL or WEB_URL",
+    ],
+    "required_routes": [
+        "/legal/terms",
+        "/legal/privacy",
+        "/legal/acceptable-use",
+        "/legal/ip-complaints",
+        "/support",
+        "/legal/billing-policy",
+    ],
+    "success_criteria": [
+        "all required external-user routes return HTTP 200",
+        "legal pages expose Terms, Privacy, Acceptable Use, AI/content disclaimer, and IP complaint tokens",
+        "support routes expose support contact, report-problem, and billing/support policy tokens",
+        "canonical split reports are written under ops/evidence/staging/",
+    ],
+}
 legal_pages_passed = required_legal <= passed and not [
     item for item in results if item["check_id"] in required_legal and item["status"] != "passed"
 ]
@@ -175,6 +213,7 @@ report = {
     "release_gate_check_id": "staging_legal_external_user_pages",
     "do_not_launch_condition_id": "external_user_legal_pages_missing",
     "results_path": str(results_path),
+    "probe_contract": probe_contract,
     "required_routes": [
         "/legal/terms",
         "/legal/privacy",
@@ -229,6 +268,7 @@ def write_split_report(path: Path, *, split_id: str, kind: str, checklist_item: 
         "do_not_launch_condition_id": "external_user_legal_pages_missing",
         "source_results_path": str(results_path),
         "source_report_path": str(report_path),
+        "probe_contract": probe_contract,
         "coverage": [
             {
                 "area": area,

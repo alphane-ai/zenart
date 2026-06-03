@@ -646,6 +646,46 @@ runtime_input_requirements["pass_file_policy"] = (
     "canonical pass paths require passing evidence to be written to ops/evidence/staging/object-storage-retention-cleanup.json "
     "and ops/evidence/staging/object-storage-retention-cleanup.ndjson; non-canonical paths are validation-only."
 )
+probe_contract = {
+    "schema_version": "stage0.rev2.staging.probe_contract",
+    "contract_id": "object_storage_retention_cleanup_runtime_probe",
+    "environment": "staging",
+    "release_gate_check_id": "staging_object_storage_signed_downloads",
+    "do_not_launch_condition_id": "object_storage_signed_retention_runtime_missing",
+    "canonical_pass_report": str(canonical_report_path),
+    "canonical_pass_results": str(canonical_results_path),
+    "blocked_report": "ops/evidence/staging/object-storage-retention-cleanup.blocked.json",
+    "blocked_results": "ops/evidence/staging/object-storage-retention-cleanup.blocked.ndjson",
+    "blocked_without_runtime_inputs": True,
+    "non_canonical_reports_are_validation_only": True,
+    "local_blocked_command": "DRY_RUN=1 scripts/staging_object_storage_retention_cleanup_smoke.sh || test \"$?\" = 2",
+    "staging_pass_command": (
+        "STAGING_BASE_URL=https://<staging-admin-or-api> RELEASE_SHA=<signed-url-release-sha> "
+        "ADMIN_BEARER_TOKEN=<token> SMOKE_ADMIN_USER_ID=<admin-user> "
+        "SMOKE_ADMIN_TENANT_ID=<tenant> CSRF_ORIGIN=<allowed-origin> "
+        "CSRF_HEADER_VALUE=<csrf> scripts/staging_object_storage_retention_cleanup_smoke.sh"
+    ),
+    "required_env": [
+        "STAGING_BASE_URL or explicit RETENTION_POLICY_URL/EXPIRED_EXPORT_CLEANUP_URL/ORPHAN_CLEANUP_URL/AUDIT_REFS_URL",
+        "RELEASE_SHA matching signed URL evidence",
+        "ADMIN_BEARER_TOKEN or ADMIN_SESSION_COOKIE",
+        "SMOKE_ADMIN_USER_ID",
+        "SMOKE_ADMIN_TENANT_ID",
+        "CSRF_ORIGIN or STAGING_ADMIN_URL/ADMIN_URL/STAGING_WEB_URL/WEB_URL",
+        "CSRF_HEADER_VALUE",
+    ],
+    "request_id_header": request_id_header,
+    "required_checks": sorted(required),
+    "probe_routes": probe_routes,
+    "success_criteria": [
+        "retention_policy, expired_export_cleanup, orphan_cleanup, and audit_refs all return 200 or 202",
+        "each response body is non-empty and matches the expected retention/cleanup/audit tokens",
+        "each response echoes the per-probe request ID in the configured request-id header",
+        "expired-export and orphan cleanup responses include cleanup audit refs",
+        "the audit endpoint contains those cleanup audit refs with admin, tenant, cleanup semantics, and the exact cleanup probe request IDs",
+        "the canonical pass report and NDJSON paths under ops/evidence/staging/ are used",
+    ],
+}
 input_readiness = {
     "probe_urls_ready": probe_urls_ready,
     "auth_ready": auth_ready,
@@ -718,6 +758,7 @@ report = {
         "request_id_verified": bool(cleanup_audit_refs) and not request_id_missing_cleanup_audit_refs,
     },
     "required_checks": sorted(required),
+    "probe_contract": probe_contract,
     "runtime_input_requirements": runtime_input_requirements,
     "input_readiness": input_readiness,
     "coverage": coverage,

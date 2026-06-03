@@ -8038,6 +8038,27 @@ def validate_staging_legal_support_visibility_evidence() -> None:
             gate_impact.get("can_clear_check_level_item") is True,
             f"{rel_path} must allow its check-level legal/support subitem to close",
         )
+        probe_contract = evidence.get("probe_contract", {})
+        require(
+            probe_contract.get("contract_id") == "legal_support_external_user_visibility_runtime_probe",
+            f"{rel_path} must expose legal/support external-user runtime probe contract",
+        )
+        require(
+            probe_contract.get("release_gate_check_id") == "staging_legal_external_user_pages",
+            f"{rel_path} probe contract must target the legal/support release gate",
+        )
+        require(
+            probe_contract.get("blocked_without_runtime_inputs") is True,
+            f"{rel_path} probe contract must preserve blocked evidence without staging URL input",
+        )
+        require(
+            "STAGING_WEB_URL or WEB_URL" in probe_contract.get("required_env", []),
+            f"{rel_path} probe contract must list the required staging web URL input",
+        )
+        require(
+            all(route in probe_contract.get("required_routes", []) for route in ["/support", "/legal/terms"]),
+            f"{rel_path} probe contract must list required legal/support routes",
+        )
         combined = json.dumps(evidence, ensure_ascii=False).lower()
         missing_tokens = [token for token in tokens if token not in combined]
         require(not missing_tokens, f"{rel_path} missing required legal/support visibility tokens: {missing_tokens}")
@@ -8485,6 +8506,38 @@ def validate_staging_object_storage_retention_cleanup_evidence() -> None:
             blocked_evidence["gate_impact"]["can_clear_release_gate_check"] is False,
             "blocked retention cleanup evidence must not clear the object-storage release gate",
         )
+        probe_contract = blocked_evidence.get("probe_contract", {})
+        require(
+            probe_contract.get("contract_id") == "object_storage_retention_cleanup_runtime_probe",
+            "blocked retention cleanup evidence must expose object-storage runtime probe contract",
+        )
+        require(
+            probe_contract.get("canonical_pass_report") == rel(STAGING_OBJECT_STORAGE_RETENTION_EVIDENCE),
+            "blocked retention cleanup probe contract must name the canonical pass report",
+        )
+        require(
+            probe_contract.get("canonical_pass_results") == "ops/evidence/staging/object-storage-retention-cleanup.ndjson",
+            "blocked retention cleanup probe contract must name the canonical pass results",
+        )
+        require(
+            probe_contract.get("blocked_without_runtime_inputs") is True,
+            "blocked retention cleanup probe contract must preserve honest blocked evidence without runtime inputs",
+        )
+        require(
+            probe_contract.get("non_canonical_reports_are_validation_only") is True,
+            "blocked retention cleanup probe contract must mark non-canonical reports validation-only",
+        )
+        require(
+            "STAGING_BASE_URL" in " ".join(probe_contract.get("required_env", []))
+            and "ADMIN_BEARER_TOKEN" in " ".join(probe_contract.get("required_env", []))
+            and "CSRF_HEADER_VALUE" in " ".join(probe_contract.get("required_env", [])),
+            "blocked retention cleanup probe contract must list staging URL, admin auth, and CSRF inputs",
+        )
+        require(
+            set(probe_contract.get("required_checks", []))
+            == {"retention_policy", "expired_export_cleanup", "orphan_cleanup", "audit_refs"},
+            "blocked retention cleanup probe contract must list all retention cleanup checks",
+        )
         require(
             blocked_evidence["gate_impact"]["preserved_release_gate_check_id"]
             == "staging_object_storage_signed_downloads",
@@ -8668,6 +8721,28 @@ def validate_staging_object_storage_retention_cleanup_evidence() -> None:
     require(
         evidence["split_evidence"]["canonical_pass_paths"] is True,
         "passing object-storage retention cleanup evidence must use canonical pass paths",
+    )
+    probe_contract = evidence.get("probe_contract", {})
+    require(
+        probe_contract.get("contract_id") == "object_storage_retention_cleanup_runtime_probe",
+        "passing object-storage retention cleanup evidence must expose runtime probe contract",
+    )
+    require(
+        probe_contract.get("canonical_pass_report") == rel(STAGING_OBJECT_STORAGE_RETENTION_EVIDENCE),
+        "passing object-storage retention cleanup probe contract must name the canonical pass report",
+    )
+    require(
+        probe_contract.get("non_canonical_reports_are_validation_only") is True,
+        "passing object-storage retention cleanup probe contract must reject non-canonical pass evidence",
+    )
+    require(
+        set(probe_contract.get("required_checks", []))
+        == {"retention_policy", "expired_export_cleanup", "orphan_cleanup", "audit_refs"},
+        "passing object-storage retention cleanup probe contract must list all required checks",
+    )
+    require(
+        any("audit endpoint contains" in criterion for criterion in probe_contract.get("success_criteria", [])),
+        "passing object-storage retention cleanup probe contract must require audit endpoint linkage",
     )
     audit_linkage = evidence.get("audit_linkage", {})
     require(
