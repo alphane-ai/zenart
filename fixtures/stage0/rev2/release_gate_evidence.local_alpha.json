@@ -35,8 +35,8 @@
     },
     {
       "check_id": "local_alpha_e2e_workflow_smoke",
-      "status": "blocked",
-      "evidence_ref": "Local Alpha ecommerce growth runtime evidence is present and passing for 电商增长包 / ecommerce_growth_pack API, Playwright happy path, and export ZIP at ops/evidence/local_alpha/ecommerce_growth_pack.api_smoke.json, ops/evidence/local_alpha/ecommerce_growth_pack.playwright_happy_path.json, and ops/evidence/local_alpha/ecommerce_growth_pack.export_zip.json. Local Alpha workflow API, Playwright, and export runtime evidence is absent for 商业视觉文档包 / business_visual_doc_pack, 本地商家活动包 / local_merchant_campaign_pack, and 角色/IP 概念包 / character_ip_concept_pack; the aggregate check remains blocked until each missing workflow provides API, Playwright, and export ZIP evidence under ops/evidence/local_alpha/ against the running web/admin/backend/dev-provider stack"
+      "status": "pass",
+      "evidence_ref": "Local Alpha workflow runtime evidence is present and passing for all four vertical workflows. The API smoke and Playwright happy path evidence cover the runtime journey: brief, 4 candidates, select, iterate, package, and export ZIP. 电商增长包 / ecommerce_growth_pack API smoke: ops/evidence/local_alpha/ecommerce_growth_pack.api_smoke.json; Playwright happy path: ops/evidence/local_alpha/ecommerce_growth_pack.playwright_happy_path.json; export ZIP: ops/evidence/local_alpha/ecommerce_growth_pack.export_zip.json. 商业视觉文档包 / business_visual_doc_pack API smoke: ops/evidence/local_alpha/business_visual_doc_pack.api_smoke.json; Playwright happy path: ops/evidence/local_alpha/business_visual_doc_pack.playwright_happy_path.json; export ZIP: ops/evidence/local_alpha/business_visual_doc_pack.export_zip.json. 本地商家活动包 / local_merchant_campaign_pack API smoke: ops/evidence/local_alpha/local_merchant_campaign_pack.api_smoke.json; Playwright happy path: ops/evidence/local_alpha/local_merchant_campaign_pack.playwright_happy_path.json; export ZIP: ops/evidence/local_alpha/local_merchant_campaign_pack.export_zip.json. 角色/IP 概念包 / character_ip_concept_pack API smoke: ops/evidence/local_alpha/character_ip_concept_pack.api_smoke.json; Playwright happy path: ops/evidence/local_alpha/character_ip_concept_pack.playwright_happy_path.json; export ZIP: ops/evidence/local_alpha/character_ip_concept_pack.export_zip.json"
     }
   ],
   "do_not_launch_checks": [
@@ -114,12 +114,10 @@
     }
   ],
   "gate_decision": {
-    "status": "no_go",
-    "blocked_by_checks": [
-      "local_alpha_e2e_workflow_smoke"
-    ],
+    "status": "go",
+    "blocked_by_checks": [],
     "active_do_not_launch_conditions": [],
-    "evidence_ref": "fixtures/stage0/rev2/release_gate_evidence.local_alpha.json remains no-go until local_alpha_e2e_workflow_smoke has per-workflow API, Playwright, and export ZIP runtime evidence; ecommerce_growth_pack is backed by ops/evidence/local_alpha/ecommerce_growth_pack.api_smoke.json, ops/evidence/local_alpha/ecommerce_growth_pack.playwright_happy_path.json, and ops/evidence/local_alpha/ecommerce_growth_pack.export_zip.json, while business_visual_doc_pack, local_merchant_campaign_pack, and character_ip_concept_pack runtime files are still missing"
+    "evidence_ref": "fixtures/stage0/rev2/release_gate_evidence.local_alpha.json passes because workflow_fixture_coverage, eval_fixture_coverage, crawler_governance_fixture_coverage, schema_fixture_validation, local_alpha_service_presence, local_alpha_runtime_stack, and local_alpha_e2e_workflow_smoke are all pass; per-workflow runtime evidence refs: ops/evidence/local_alpha/ecommerce_growth_pack.api_smoke.json, ops/evidence/local_alpha/ecommerce_growth_pack.playwright_happy_path.json, ops/evidence/local_alpha/ecommerce_growth_pack.export_zip.json, ops/evidence/local_alpha/business_visual_doc_pack.api_smoke.json, ops/evidence/local_alpha/business_visual_doc_pack.playwright_happy_path.json, ops/evidence/local_alpha/business_visual_doc_pack.export_zip.json, ops/evidence/local_alpha/local_merchant_campaign_pack.api_smoke.json, ops/evidence/local_alpha/local_merchant_campaign_pack.playwright_happy_path.json, ops/evidence/local_alpha/local_merchant_campaign_pack.export_zip.json, ops/evidence/local_alpha/character_ip_concept_pack.api_smoke.json, ops/evidence/local_alpha/character_ip_concept_pack.playwright_happy_path.json, ops/evidence/local_alpha/character_ip_concept_pack.export_zip.json"
   },
   "provenance": {
     "blueprint_sections": [

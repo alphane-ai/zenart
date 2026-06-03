@@ -27,6 +27,20 @@ CI_WORKFLOW_REL = ".github/workflows/stage0-rev2-ci.yml"
 CI_DRAFT_REL = "ops/ci/stage0-rev2-ci.yml"
 CI_INSTALLATION = ROOT / "ops" / "ci" / "INSTALLATION.md"
 CI_DRAFT_EVIDENCE = OPS_FIXTURE_DIR / "stage0_rev2_ci_draft_evidence.json"
+CI_RUNTIME_EVIDENCE_WRITER = ROOT / "scripts" / "write_ci_runtime_evidence.py"
+CI_RUNTIME_ARTIFACT_PROMOTER = ROOT / "scripts" / "promote_ci_runtime_artifacts.py"
+STAGING_RUNTIME_ARTIFACT_PROMOTER = ROOT / "scripts" / "promote_staging_runtime_artifacts.py"
+PRODUCTION_RUNTIME_ARTIFACT_PROMOTER = ROOT / "scripts" / "promote_production_runtime_artifacts.py"
+RELEASE_RUNTIME_ARTIFACT_PROMOTER = ROOT / "scripts" / "promote_release_runtime_artifacts.py"
+RELEASE_RUNTIME_ARTIFACT_COLLECTOR = ROOT / "scripts" / "collect_release_runtime_artifacts.sh"
+RELEASE_RUNTIME_RECONCILER = ROOT / "scripts" / "reconcile_release_gate_runtime_evidence.py"
+RELEASE_RUNTIME_INPUT_PLANNER = ROOT / "scripts" / "plan_release_runtime_inputs.py"
+RELEASE_RUNTIME_INPUT_PREPARER = ROOT / "scripts" / "prepare_release_runtime_inputs.py"
+RELEASE_GATE_FIXTURE_UPDATE_PLANNER = ROOT / "scripts" / "plan_release_gate_fixture_updates.py"
+STAGE0_REV2_CHECKLIST_CLOSURE_PLANNER = ROOT / "scripts" / "plan_stage0_rev2_checklist_closure.py"
+RELEASE_CLOSURE_PLAN_APPLIER = ROOT / "scripts" / "apply_release_closure_plan.py"
+RELEASE_CLOSURE_PIPELINE = ROOT / "scripts" / "run_release_closure_pipeline.sh"
+RUNTIME_EVIDENCE_CLOSURE_RUNBOOK = ROOT / "ops" / "release" / "stage0_rev2_runtime_evidence_closure.md"
 ENVIRONMENT_EVIDENCE = ROOT / "ops" / "evidence" / "stage0_environment_evidence.json"
 DRILL_PLAN_EVIDENCE = ROOT / "ops" / "evidence" / "stage0_drill_plan.json"
 OBSERVABILITY_EVIDENCE = ROOT / "ops" / "evidence" / "stage0_observability_evidence.json"
@@ -115,6 +129,10 @@ PRODUCTION_LEGAL_POLICY_EVIDENCE = (
 )
 PRODUCTION_SUPPORT_BILLING_POLICY_EVIDENCE = (
     ROOT / "ops" / "evidence" / "production" / "public-support-billing-policy.json"
+)
+PRODUCTION_ROLLBACK_INCIDENT_SMOKE_CHECKLIST_ITEM = (
+    "Production rollback/incident/post-deploy smoke runtime evidence 通过：production evidence proves rollback "
+    "drill, incident/alert path, migration compatibility, and post-deploy smoke under `ops/evidence/production/`。"
 )
 OBSERVABILITY_DASHBOARD = ROOT / "ops" / "observability" / "dashboards" / "stage0_rev2_overview.json"
 OBSERVABILITY_ALERTS = ROOT / "ops" / "observability" / "alerts" / "stage0_rev2_alerts.json"
@@ -860,28 +878,20 @@ CHECK_LEVEL_EVIDENCE_PRESERVED_BLOCKERS = {
         "staging_legal_external_user_pages",
     },
     ("production_launch", "production_skill_release_eval_canary"): {
-        "production_provider_or_comp_only_mode",
         "production_paid_billing_lifecycle",
         "production_backup_rollback_incident",
-        "production_legal_support_policy",
     },
     ("production_launch", "production_activation_review_audit"): {
-        "production_provider_or_comp_only_mode",
         "production_paid_billing_lifecycle",
         "production_backup_rollback_incident",
-        "production_legal_support_policy",
     },
     ("production_launch", "production_abuse_throttle_hold"): {
-        "production_provider_or_comp_only_mode",
         "production_paid_billing_lifecycle",
         "production_backup_rollback_incident",
-        "production_legal_support_policy",
     },
     ("production_launch", "production_security_launch_checks"): {
-        "production_provider_or_comp_only_mode",
         "production_paid_billing_lifecycle",
         "production_backup_rollback_incident",
-        "production_legal_support_policy",
     },
 }
 
@@ -1088,7 +1098,7 @@ PRODUCTION_RUNTIME_OPEN_CHECK_ITEMS = {
     "Production backup/restore runtime evidence 通过：production evidence proves backup schedule, Postgres restore, object restore, RPO/RTO, and audit refs under `ops/evidence/production/`。": {
         "production_backup_rollback_incident",
     },
-    "Production rollback/incident/post-deploy smoke runtime evidence 通过：production evidence proves rollback drill, incident/alert path, migration compatibility, and post-deploy smoke under `ops/evidence/production/`。": {
+    PRODUCTION_ROLLBACK_INCIDENT_SMOKE_CHECKLIST_ITEM: {
         "production_backup_rollback_incident",
     },
     "Production legal/support policy deployment evidence 通过。": {
@@ -1110,6 +1120,12 @@ RELEASE_GATE_CHECK_LEVEL_RUNTIME_OPEN_ITEMS = {
 
 LOCAL_ALPHA_AGGREGATE_RUNTIME_ITEM = (
     "Local Alpha workflow API/Playwright end-to-end smoke evidence 通过并写入 release gate fixture。"
+)
+CI_WORKFLOW_INSTALL_ITEM = (
+    "添加 PR/main CI 到 `.github/workflows`：`.github/workflows/stage0-rev2-ci.yml` 已从 `ops/ci/stage0-rev2-ci.yml` 安装，并保留 PR/main runtime evidence blockers。"
+)
+CI_INSTALLED_WORKFLOW_FILE_ITEM = (
+    "CI installed workflow file evidence 通过：`.github/workflows/stage0-rev2-ci.yml` 存在且被 release gate fixture 引用。"
 )
 CI_AGGREGATE_RUNTIME_ITEM = (
     "CI installed workflow runtime evidence 通过：PR/main run、Playwright smoke、Docker image build 均有 validator-resolvable evidence。"
@@ -1149,6 +1165,9 @@ LOCAL_ALPHA_RELEASE_GATE_WORKFLOW_RUNTIME_OPEN_CHECK_ITEMS = {
 
 LOCAL_ALPHA_RELEASE_GATE_WORKFLOW_RUNTIME_CLOSED_ITEMS = {
     "Local Alpha 电商增长包 runtime smoke evidence 写入 release gate fixture：`ops/evidence/local_alpha/ecommerce_growth_pack.api_smoke.json`、`ops/evidence/local_alpha/ecommerce_growth_pack.playwright_happy_path.json`、`ops/evidence/local_alpha/ecommerce_growth_pack.export_zip.json` 均证明 running local stack。": "ecommerce_growth_pack",
+    "Local Alpha 商业视觉文档包 runtime smoke evidence 写入 release gate fixture：`ops/evidence/local_alpha/business_visual_doc_pack.api_smoke.json`、`ops/evidence/local_alpha/business_visual_doc_pack.playwright_happy_path.json`、`ops/evidence/local_alpha/business_visual_doc_pack.export_zip.json` 均证明 running local stack。": "business_visual_doc_pack",
+    "Local Alpha 本地商家活动包 runtime smoke evidence 写入 release gate fixture：`ops/evidence/local_alpha/local_merchant_campaign_pack.api_smoke.json`、`ops/evidence/local_alpha/local_merchant_campaign_pack.playwright_happy_path.json`、`ops/evidence/local_alpha/local_merchant_campaign_pack.export_zip.json` 均证明 running local stack。": "local_merchant_campaign_pack",
+    "Local Alpha 角色/IP 概念包 runtime smoke evidence 写入 release gate fixture：`ops/evidence/local_alpha/character_ip_concept_pack.api_smoke.json`、`ops/evidence/local_alpha/character_ip_concept_pack.playwright_happy_path.json`、`ops/evidence/local_alpha/character_ip_concept_pack.export_zip.json` 均证明 running local stack。": "character_ip_concept_pack",
 }
 
 LOCAL_ALPHA_WORKFLOW_RUNTIME_EVIDENCE_FILES = {
@@ -1378,7 +1397,6 @@ RELEASE_GATE_PASS_BLOCKED_BY_OPEN_ITEMS = {
         "角色/IP 概念包 Playwright happy path 通过。",
     },
     "ci": {
-        "添加 PR/main CI 到 `.github/workflows`。（token-blocked：当前 token 缺 workflow scope；draft/evidence 已落在 `ops/ci/` 和 `fixtures/ops/`。）",
         "CI 在已安装 PR/main workflow 中运行 Playwright smoke。",
         "CI 在已安装 PR/main workflow 中 build Docker images。",
     },
@@ -1412,10 +1430,6 @@ RELEASE_GATE_OPEN_ITEM_GUARD_CHECKS = {
         "角色/IP 概念包 Playwright happy path 通过。": {"local_alpha_e2e_workflow_smoke"},
     },
     "ci": {
-        "添加 PR/main CI 到 `.github/workflows`。（token-blocked：当前 token 缺 workflow scope；draft/evidence 已落在 `ops/ci/` 和 `fixtures/ops/`。）": {
-            "ci_installed_workflow",
-            "ci_gate_runtime_execution",
-        },
         "CI 在已安装 PR/main workflow 中运行 Playwright smoke。": {
             "ci_gate_runtime_execution",
             "ci_playwright_smoke",
@@ -1466,7 +1480,6 @@ RELEASE_GATE_OPEN_ITEM_GUARD_CHECKS = {
         },
         "Private Beta/Staging Gate 全部通过。": {
             "production_backup_rollback_incident",
-            "production_legal_support_policy",
         },
         "Production post-deploy smoke tests 通过。": {
             "production_backup_rollback_incident",
@@ -1633,6 +1646,14 @@ CLOSED_CHECK_LEVEL_RUNTIME_ITEMS = {
     "Production activation review/audit runtime/deployment evidence 通过。",
     "Production abuse throttle/hold runtime/deployment evidence 通过。",
     "Production security launch-check runtime/deployment evidence 通过。",
+    "Production provider-or-comp-only runtime/deployment evidence 通过。",
+    "Production provider mode deployment evidence 通过：production evidence proves either real provider contract/monitoring/cost/staging verification or explicit invite/comp-only mode under `ops/evidence/production/`。",
+    "Production public paid/real-generation claims evidence 通过：production evidence proves paid and real-generation claims are enabled only with real provider evidence, or hidden for invite/comp-only mode under `ops/evidence/production/`。",
+    "Production backup/restore runtime evidence 通过：production evidence proves backup schedule, Postgres restore, object restore, RPO/RTO, and audit refs under `ops/evidence/production/`。",
+    PRODUCTION_ROLLBACK_INCIDENT_SMOKE_CHECKLIST_ITEM,
+    "Production legal/support policy deployment evidence 通过。",
+    "Production public legal policy deployment evidence 通过：production evidence proves Terms、Privacy、Acceptable Use、AI/content disclaimer、IP complaint flow visibility under `ops/evidence/production/`。",
+    "Production public support/billing policy deployment evidence 通过：production evidence proves support contact and paid billing/cancellation/refund policy visibility under `ops/evidence/production/`。",
 }
 REQUIRED_OPEN_ITEMS |= (
     RELEASE_GATE_CHECK_LEVEL_RUNTIME_OPEN_ITEMS.keys()
@@ -1656,8 +1677,22 @@ REQUIRED_OPEN_ITEMS -= {
     "Production activation review/audit runtime/deployment evidence 通过。",
     "Production abuse throttle/hold runtime/deployment evidence 通过。",
     "Production security launch-check runtime/deployment evidence 通过。",
+    "Production provider-or-comp-only runtime/deployment evidence 通过。",
+    "Production provider mode deployment evidence 通过：production evidence proves either real provider contract/monitoring/cost/staging verification or explicit invite/comp-only mode under `ops/evidence/production/`。",
+    "Production public paid/real-generation claims evidence 通过：production evidence proves paid and real-generation claims are enabled only with real provider evidence, or hidden for invite/comp-only mode under `ops/evidence/production/`。",
+    "Production legal/support policy deployment evidence 通过。",
+    "Production public legal policy deployment evidence 通过：production evidence proves Terms、Privacy、Acceptable Use、AI/content disclaimer、IP complaint flow visibility under `ops/evidence/production/`。",
+    "Production public support/billing policy deployment evidence 通过：production evidence proves support contact and paid billing/cancellation/refund policy visibility under `ops/evidence/production/`。",
     "电商增长包 API smoke test 通过。",
     "电商增长包 Playwright happy path 通过。",
+    "商业视觉文档包 API smoke test 通过。",
+    "商业视觉文档包 Playwright happy path 通过。",
+    "本地商家活动包 API smoke test 通过。",
+    "本地商家活动包 Playwright happy path 通过。",
+    "角色/IP 概念包 API smoke test 通过。",
+    "角色/IP 概念包 Playwright happy path 通过。",
+    "Local Alpha workflow API/Playwright end-to-end smoke evidence 通过并写入 release gate fixture。",
+    CI_INSTALLED_WORKFLOW_FILE_ITEM,
     *LOCAL_ALPHA_RELEASE_GATE_WORKFLOW_RUNTIME_CLOSED_ITEMS.keys(),
 }
 
@@ -1954,6 +1989,18 @@ WORKFLOW_RUNTIME_CLOSED_ITEMS = {
         "api_item",
         "playwright_item",
     },
+    "business_visual_doc_pack": {
+        "api_item",
+        "playwright_item",
+    },
+    "local_merchant_campaign_pack": {
+        "api_item",
+        "playwright_item",
+    },
+    "character_ip_concept_pack": {
+        "api_item",
+        "playwright_item",
+    },
 }
 
 LOCAL_ALPHA_E2E_WORKFLOW_EVIDENCE_REQUIREMENTS = {
@@ -2132,6 +2179,19 @@ def require_local_alpha_single_workflow_runtime_files(
             evidence.get("proves_running_local_stack") is True,
             f"{context} evidence file {rel(runtime_path)} must prove the running local stack",
         )
+
+
+def local_alpha_workflow_runtime_evidence_complete(evidence_ref: str) -> bool:
+    try:
+        for workflow_id in LOCAL_ALPHA_WORKFLOW_RUNTIME_EVIDENCE_FILES:
+            require_local_alpha_single_workflow_runtime_files(
+                evidence_ref,
+                workflow_id,
+                f"{workflow_id} Local Alpha workflow runtime completion",
+            )
+    except ValidationError:
+        return False
+    return True
 
 
 def require_runtime_file_evidence(evidence_ref: str, gate: str, check_id: str) -> None:
@@ -2708,6 +2768,17 @@ def do_not_launch_by_id(data: dict[str, Any]) -> dict[str, dict[str, Any]]:
     return {condition["condition_id"]: condition for condition in conditions}
 
 
+def require_external_staging_url(url: str, context: str) -> None:
+    parsed = urlparse(url)
+    require(parsed.scheme in {"http", "https"}, f"{context} must be an HTTP(S) URL")
+    host = (parsed.hostname or "").lower()
+    require(host, f"{context} must include a hostname")
+    require(
+        host not in {"localhost", "127.0.0.1", "::1", "0.0.0.0"} and not host.endswith(".local"),
+        f"{context} must be an external staging URL, not a local development URL",
+    )
+
+
 def validate_release_gate_basics(data: dict[str, Any]) -> tuple[dict[str, dict[str, Any]], dict[str, dict[str, Any]]]:
     gate = data["gate"]
     require(gate in RELEASE_GATE_REQUIRED_CHECKS, f"unexpected release gate evidence target: {gate}")
@@ -3239,6 +3310,7 @@ def validate_runtime_gate_evidence_refs(
     if relevant_runtime_open:
         aggregate_runtime_open_items = {
             LOCAL_ALPHA_AGGREGATE_RUNTIME_ITEM,
+            CI_AGGREGATE_RUNTIME_ITEM,
             PRIVATE_BETA_STAGING_AGGREGATE_RUNTIME_ITEM,
             PRODUCTION_AGGREGATE_RUNTIME_ITEM,
         }
@@ -3760,14 +3832,24 @@ def validate_ops_ci_artifact_evidence() -> None:
         "ops CI draft evidence must cite authoritative Rev2 blueprint",
     )
     require(evidence["created_by_lane"] == "lane6", "ops CI draft evidence must be lane6-owned")
-    require(
-        evidence["installation_status"] == "token_blocked",
-        "ops CI draft evidence must mark workflow installation token-blocked",
-    )
-    require(
-        ".github/workflows" in evidence["token_blocked_reason"],
-        "ops CI draft evidence must explain that .github/workflows cannot be changed",
-    )
+    if CI_WORKFLOW.exists():
+        require(
+            evidence["installation_status"] == "installed_local",
+            "ops CI draft evidence must mark workflow installation installed_local when .github workflow exists",
+        )
+        require(
+            CI_WORKFLOW_REL in evidence["token_blocked_reason"],
+            "ops CI draft evidence must cite the installed .github workflow path",
+        )
+    else:
+        require(
+            evidence["installation_status"] == "token_blocked",
+            "ops CI draft evidence must mark workflow installation token-blocked while .github workflow is absent",
+        )
+        require(
+            ".github/workflows" in evidence["token_blocked_reason"],
+            "ops CI draft evidence must explain that .github/workflows cannot be changed",
+        )
     require(
         evidence["draft_ref"] == CI_DRAFT_REL,
         "ops CI draft evidence must point at the ops/ci draft",
@@ -3775,8 +3857,8 @@ def validate_ops_ci_artifact_evidence() -> None:
 
     policy = evidence["checklist_policy"]
     require(
-        policy.get("ci_installation_checklist_remains_open") is True,
-        "CI installation checklist must remain open while workflow scope is token-blocked",
+        policy.get("ci_installation_checklist_remains_open") is (not CI_WORKFLOW.exists()),
+        "CI installation checklist policy must reflect installed workflow presence",
     )
     require(
         any("CI Gate" in item for item in policy.get("blocked_blueprint_items", [])),
@@ -3821,6 +3903,20 @@ def validate_ops_ci_artifact_evidence() -> None:
         require(
             "- [ ] CI Gate 全部通过。" in text,
             "CI Gate checklist must remain open when no installed workflow exists",
+        )
+    else:
+        text = BLUEPRINT.read_text(encoding="utf-8")
+        require(
+            f"- [x] {CI_WORKFLOW_INSTALL_ITEM}" in text,
+            "PR/main CI workflow installation checklist must close when installed workflow exists",
+        )
+        require(
+            f"- [x] {CI_INSTALLED_WORKFLOW_FILE_ITEM}" in text,
+            "CI installed workflow file evidence checklist must close when installed workflow exists",
+        )
+        require(
+            "- [ ] CI Gate 全部通过。" in text,
+            "CI Gate checklist must remain open until PR/main runtime evidence exists",
         )
 
 
@@ -4934,6 +5030,194 @@ def validate_staging_object_storage_signed_url_evidence() -> None:
         require(evidence[key], f"object-storage signed URL evidence must include {key}")
 
 
+def validate_staging_object_storage_retention_cleanup_evidence() -> None:
+    evidence = load_json(STAGING_OBJECT_STORAGE_RETENTION_EVIDENCE)
+    require(
+        evidence["schema_version"] == "stage0.rev2.staging.object_storage_retention_cleanup",
+        "staging object-storage retention cleanup evidence schema mismatch",
+    )
+    require(evidence["environment"] == "staging", "object-storage retention cleanup evidence must be staging-scoped")
+    require(
+        evidence["kind"] == "object_storage_retention_cleanup",
+        "object-storage retention cleanup evidence must declare kind=object_storage_retention_cleanup",
+    )
+    require(
+        evidence["release_gate_check_id"] == "staging_object_storage_signed_downloads",
+        "object-storage retention cleanup evidence must target the private beta object-storage release-gate check",
+    )
+    require(
+        evidence["do_not_launch_condition_id"] == "object_storage_signed_retention_runtime_missing",
+        "object-storage retention cleanup evidence must target the matching Do-Not-Launch condition",
+    )
+    require(
+        evidence["status"] in {"pass", "blocked"},
+        "object-storage retention cleanup evidence must be pass or blocked",
+    )
+    probe = evidence["probe"]
+    require(probe["status"] in {"pass", "blocked"}, "object-storage retention cleanup probe must be pass or blocked")
+    if evidence["status"] == "pass":
+        require(probe["status"] == "pass", "passing retention cleanup evidence requires passing external probe")
+        require(probe.get("probe_mode") == "external_http", "passing retention cleanup evidence requires external HTTP probe")
+        require(probe.get("url"), "passing retention cleanup evidence requires a probed external URL")
+        require_external_staging_url(probe["url"], "passing retention cleanup probe URL")
+        require(
+            probe.get("release_sha_observed") == evidence["release_sha"],
+            "passing retention cleanup evidence must match the observed external release SHA",
+        )
+        require(probe.get("reason") == "ok", "passing retention cleanup evidence must have ok probe reason")
+    else:
+        require(
+            probe["status"] == "blocked"
+            and (
+                "missing_staging_object_retention_url" in probe["reason"]
+                or "dry_run_no_external_admin_probe" in probe["reason"]
+                or "external_probe_" in probe["reason"]
+                or "unexpected_http_status" in probe["reason"]
+            ),
+            "blocked object-storage retention cleanup evidence must honestly record the missing or failed external staging probe",
+        )
+    require(
+        evidence["source_evidence"] == {
+            "expired_export_cleanup_evidence": "ops/evidence/staging/20260527T2120Z-load.json",
+            "orphan_cleanup_evidence": "ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json",
+            "retention_policy_evidence": "ops/evidence/staging/20260527T2115Z-backup-restore.json",
+            "signed_url_evidence": "ops/evidence/staging/20260527T2130Z-object-storage-signed-url.json",
+        },
+        "object-storage retention cleanup evidence must cite exact staging source evidence files",
+    )
+    required_areas = {
+        "retention_policy",
+        "expired_export_cleanup",
+        "orphan_cleanup",
+        "audit_refs",
+    }
+    coverage = evidence["coverage"]
+    require(
+        {item["area"] for item in coverage} == required_areas,
+        "object-storage retention cleanup evidence must cover retention policy, expired export cleanup, orphan cleanup, and audit refs",
+    )
+    for item in coverage:
+        combined = json.dumps(item, ensure_ascii=False).lower()
+        require(item["status"] == "pass", f"{item['area']} source coverage must pass")
+        require("ops/evidence/staging/" in combined, f"{item['area']} retention cleanup coverage missing ops/evidence/staging/")
+        if evidence["status"] == "pass":
+            require(
+                "external cleanup endpoint proof passed" in combined,
+                f"{item['area']} passing retention cleanup coverage must record external endpoint proof",
+            )
+        else:
+            require(
+                "external cleanup endpoint proof is still required" in combined,
+                f"{item['area']} blocked retention cleanup coverage must preserve external endpoint blocker",
+            )
+        if item["area"] == "expired_export_cleanup":
+            require("expired export cleanup" in combined, "expired export cleanup proof missing")
+        if item["area"] == "orphan_cleanup":
+            require("orphan cleanup" in combined, "orphan cleanup proof missing")
+        if item["area"] == "audit_refs":
+            require("au-007" in combined and "au-012" in combined, "audit refs cleanup proof missing")
+    gate_impact = evidence["gate_impact"]
+    require(
+        gate_impact["check_level_item"]
+        == "Private Beta/Staging object retention/cleanup runtime evidence 通过：staging evidence proves retention policy, expired export cleanup, orphan cleanup, and audit refs under `ops/evidence/staging/`。",
+        "object-storage retention cleanup evidence must name the exact checklist subitem",
+    )
+    can_clear_retention = gate_impact["can_clear_retention_cleanup_checklist_item"]
+    can_clear_gate = gate_impact["can_clear_release_gate_check"]
+    remaining_object_storage_blockers = gate_impact["remaining_object_storage_blockers"]
+    if evidence["status"] == "pass":
+        require(
+            can_clear_retention is True and can_clear_gate is True,
+            "passing object-storage retention cleanup evidence must clear the retention and object-storage gate flags",
+        )
+        require(
+            not remaining_object_storage_blockers,
+            "passing object-storage retention cleanup evidence must not preserve object-storage blockers",
+        )
+    else:
+        require(
+            can_clear_retention is False and can_clear_gate is False,
+            "blocked object-storage retention cleanup evidence must not clear private beta checklist items",
+        )
+        require(
+            "missing external staging object retention cleanup probe" in remaining_object_storage_blockers,
+            "blocked object-storage retention cleanup evidence must preserve the missing external probe blocker",
+        )
+
+
+def validate_staging_legal_support_split_evidence() -> None:
+    for path, expected_kind, required_tokens, expected_item in [
+        (
+            STAGING_LEGAL_EXTERNAL_PAGES_EVIDENCE,
+            "legal_pages_external_user_visibility",
+            {"terms", "privacy", "acceptable use", "ai/content", "ip complaint", "external user"},
+            "Private Beta/Staging legal pages external-user visibility evidence 通过：staging evidence proves Terms、Privacy、Acceptable Use、AI/content disclaimer、IP complaint flow are externally visible under `ops/evidence/staging/`。",
+        ),
+        (
+            STAGING_SUPPORT_CONTACT_VISIBILITY_EVIDENCE,
+            "support_contact_external_user_visibility",
+            {"support", "report-problem", "external user"},
+            "Private Beta/Staging support contact external-user visibility evidence 通过：staging evidence proves visible support contact/report-problem path for external users under `ops/evidence/staging/`。",
+        ),
+    ]:
+        evidence = load_json(path)
+        require(
+            evidence["schema_version"] == "stage0.rev2.staging.legal_support_visibility",
+            f"{rel(path)} legal/support split evidence schema mismatch",
+        )
+        require(evidence["environment"] == "staging", f"{rel(path)} must be staging-scoped")
+        require(evidence["kind"] == expected_kind, f"{rel(path)} must declare kind={expected_kind}")
+        require(
+            evidence["release_gate_check_id"] == "staging_legal_external_user_pages",
+            f"{rel(path)} must target staging_legal_external_user_pages",
+        )
+        require(
+            evidence["do_not_launch_condition_id"] == "external_user_legal_pages_missing",
+            f"{rel(path)} must target external_user_legal_pages_missing",
+        )
+        require(evidence["status"] in {"pass", "blocked"}, f"{rel(path)} must be pass or blocked")
+        coverage = evidence["coverage"]
+        require(len(coverage) == 1, f"{rel(path)} must contain one coverage row")
+        combined = json.dumps(evidence, ensure_ascii=False).lower()
+        for token in required_tokens:
+            require(token in combined, f"{rel(path)} missing required visibility token: {token}")
+        require(
+            "external-user staging http visibility probe" in combined
+            or "external user visibility probe" in combined,
+            f"{rel(path)} must record external-user visibility probe semantics",
+        )
+        gate_impact = evidence["gate_impact"]
+        require(gate_impact["check_level_item"] == expected_item, f"{rel(path)} must name the exact checklist item")
+        results = coverage[0].get("results")
+        require(isinstance(results, list) and results, f"{rel(path)} must include per-route probe results")
+        if evidence["status"] == "pass":
+            require(evidence.get("web_url"), f"{rel(path)} passing evidence must include a staging web URL")
+            require_external_staging_url(evidence["web_url"], f"{rel(path)} passing web_url")
+            require(
+                all(item.get("status") == "passed" and item.get("http_status") == 200 and item.get("url") for item in results),
+                f"{rel(path)} passing evidence requires successful external HTTP results for every route",
+            )
+            for item in results:
+                require_external_staging_url(item["url"], f"{rel(path)} route probe URL")
+            require(
+                gate_impact["can_clear_check_level_item"] is True,
+                f"{rel(path)} passing evidence must clear its check-level legal/support item",
+            )
+        else:
+            require(
+                any(item.get("status") != "passed" for item in results),
+                f"{rel(path)} blocked evidence must include at least one blocked or failed route result",
+            )
+            require(
+                gate_impact["can_clear_check_level_item"] is False,
+                f"{rel(path)} blocked evidence must not clear its check-level legal/support item",
+            )
+        require(
+            gate_impact["can_clear_release_gate_check"] is False,
+            f"{rel(path)} split evidence must not clear the combined private beta legal/support gate by itself",
+        )
+
+
 def validate_staging_eval_qa_safety_evidence() -> None:
     evidence = load_json(STAGING_EVAL_QA_SAFETY_EVIDENCE)
     require(
@@ -5634,6 +5918,140 @@ def validate_production_abuse_throttle_hold_evidence() -> None:
         require(evidence[key], f"abuse throttle/hold evidence must include {key}")
 
 
+def validate_production_provider_or_comp_only_evidence() -> None:
+    provider = load_json(PRODUCTION_PROVIDER_MODE_EVIDENCE)
+    require(provider["schema_version"] == "stage0.rev2", "production provider-mode evidence schema mismatch")
+    require(provider["environment"] == "production", "provider-mode evidence must be production-scoped")
+    require(provider["status"] == "pass", "provider-mode evidence must pass before provider check closure")
+    require(
+        provider["release_gate_check_id"] == "production_provider_or_comp_only_mode",
+        "provider-mode evidence must target the production provider-or-comp-only release-gate check",
+    )
+    require(
+        set(provider["do_not_launch_condition_ids"])
+        == {"dev_mock_provider_public_claims_unresolved", "real_provider_or_comp_only_mode_missing"},
+        "provider-mode evidence must clear only the provider/public-claims Do-Not-Launch conditions",
+    )
+    require(provider["launch_mode"] == "invite_comp_only", "provider-mode evidence must declare invite_comp_only")
+    contract = provider["provider_contract"]
+    for token in ["comp-only production mode", "provider", "monitoring", "cost", "staging verification"]:
+        require(
+            token in json.dumps(contract, ensure_ascii=False).lower(),
+            f"provider-mode evidence must cover {token}",
+        )
+    coverage = provider["coverage"]
+    require(
+        {item["area"] for item in coverage} == {"invite_comp_only_mode", "real_provider_guard"},
+        "provider-mode evidence must cover invite comp-only mode and real provider guard",
+    )
+    for item in coverage:
+        require(item["status"] == "pass", f"{item['area']} provider-mode coverage must pass")
+        combined = json.dumps(item, ensure_ascii=False).lower()
+        for token in ["production", "provider", "comp-only", rel(PRODUCTION_PROVIDER_MODE_EVIDENCE).lower()]:
+            require(token in combined, f"{item['area']} provider-mode coverage missing {token}")
+    for key in ["runtime_request_ids", "audit_refs"]:
+        require(provider[key], f"provider-mode evidence must include {key}")
+
+    claims = load_json(PRODUCTION_CLAIMS_ALIGNMENT_EVIDENCE)
+    require(claims["schema_version"] == "stage0.rev2", "production public claims evidence schema mismatch")
+    require(claims["environment"] == "production", "public claims evidence must be production-scoped")
+    require(claims["status"] == "pass", "public claims evidence must pass before provider check closure")
+    require(
+        claims["release_gate_check_id"] == "production_provider_or_comp_only_mode",
+        "public claims evidence must target the production provider-or-comp-only release-gate check",
+    )
+    require(claims["launch_mode"] == "invite_comp_only", "public claims evidence must declare invite_comp_only")
+    alignment = claims["claim_alignment"]
+    require(alignment["paid_claims"] == "hidden", "public paid claims must be hidden in comp-only mode")
+    require(
+        alignment["real_generation_claims"] == "hidden",
+        "public real-generation claims must be hidden in comp-only mode",
+    )
+    require(
+        claims["paid_lifecycle_policy"]["can_close_paid_billing_lifecycle"] is False,
+        "public claims evidence must not close the paid billing lifecycle",
+    )
+    remaining_paid = set(claims["paid_lifecycle_policy"]["remaining_paid_runtime_evidence"])
+    require(
+        {"checkout", "subscription", "cancellation", "past_due", "refund", "credit", "quota reset", "webhook idempotency"}
+        <= remaining_paid,
+        "public claims evidence must preserve all paid lifecycle runtime blockers",
+    )
+    for item in claims["coverage"]:
+        require(item["status"] == "pass", f"{item['area']} public claims coverage must pass")
+        combined = json.dumps(item, ensure_ascii=False).lower()
+        for token in ["production", "claims", "hidden", "comp-only", rel(PRODUCTION_CLAIMS_ALIGNMENT_EVIDENCE).lower()]:
+            require(token in combined, f"{item['area']} public claims coverage missing {token}")
+
+
+def validate_production_legal_support_policy_evidence() -> None:
+    legal = load_json(PRODUCTION_LEGAL_POLICY_EVIDENCE)
+    require(legal["schema_version"] == "stage0.rev2", "production public legal policy evidence schema mismatch")
+    require(legal["environment"] == "production", "public legal policy evidence must be production-scoped")
+    require(legal["status"] == "pass", "public legal policy evidence must pass before legal/support closure")
+    require(
+        legal["release_gate_check_id"] == "production_legal_support_policy",
+        "public legal policy evidence must target production_legal_support_policy",
+    )
+    require(
+        legal["do_not_launch_condition_id"] == "public_legal_support_policy_not_deployed",
+        "public legal policy evidence must target public_legal_support_policy_not_deployed",
+    )
+    require(
+        {"/legal/terms", "/legal/privacy", "/legal/acceptable-use", "/legal/ip-complaints"}
+        <= set(legal["production_routes"]),
+        "public legal policy evidence must cover all legal routes",
+    )
+    legal_areas = {item["area"] for item in legal["visibility_checks"]}
+    require(
+        {"terms", "privacy", "acceptable_use", "ai_content_and_ip_complaint"} <= legal_areas,
+        "public legal policy evidence must cover terms/privacy/acceptable use/AI content/IP complaint",
+    )
+    for item in legal["visibility_checks"]:
+        require(item["status"] == "pass", f"{item['area']} legal policy visibility must pass")
+        combined = json.dumps(item, ensure_ascii=False).lower()
+        for token in ["production", rel(PRODUCTION_LEGAL_POLICY_EVIDENCE).lower()]:
+            require(token in combined, f"{item['area']} legal policy evidence missing {token}")
+    legal_text = json.dumps(legal, ensure_ascii=False).lower()
+    for token in ["terms", "privacy", "acceptable use", "ai/content", "ip complaint"]:
+        require(token in legal_text, f"public legal policy evidence missing {token}")
+
+    support = load_json(PRODUCTION_SUPPORT_BILLING_POLICY_EVIDENCE)
+    require(support["schema_version"] == "stage0.rev2", "production support/billing policy evidence schema mismatch")
+    require(support["environment"] == "production", "support/billing policy evidence must be production-scoped")
+    require(support["status"] == "pass", "support/billing policy evidence must pass before legal/support closure")
+    require(
+        support["release_gate_check_id"] == "production_legal_support_policy",
+        "support/billing policy evidence must target production_legal_support_policy",
+    )
+    require(
+        support["do_not_launch_condition_id"] == "public_legal_support_policy_not_deployed",
+        "support/billing policy evidence must target public_legal_support_policy_not_deployed",
+    )
+    require(
+        {"/support", "/billing", "/legal/billing-policy"} <= set(support["production_routes"]),
+        "support/billing policy evidence must cover support, billing, and billing policy routes",
+    )
+    support_text = json.dumps(support, ensure_ascii=False).lower()
+    for token in ["support", "billing", "cancellation", "refund", "report-problem"]:
+        require(token in support_text, f"support/billing policy evidence missing {token}")
+    require(
+        support["paid_lifecycle_policy"]["can_close_paid_billing_lifecycle"] is False,
+        "support/billing policy evidence must not close the paid billing lifecycle",
+    )
+    remaining_paid = set(support["paid_lifecycle_policy"]["remaining_paid_runtime_evidence"])
+    require(
+        {"checkout", "subscription", "cancellation", "past_due", "refund", "credit", "quota reset", "webhook idempotency"}
+        <= remaining_paid,
+        "support/billing policy evidence must preserve all paid lifecycle runtime blockers",
+    )
+    for item in support["visibility_checks"]:
+        require(item["status"] == "pass", f"{item['area']} support/billing visibility must pass")
+        combined = json.dumps(item, ensure_ascii=False).lower()
+        for token in ["production", rel(PRODUCTION_SUPPORT_BILLING_POLICY_EVIDENCE).lower()]:
+            require(token in combined, f"{item['area']} support/billing evidence missing {token}")
+
+
 def validate_production_skill_release_eval_canary_evidence() -> None:
     evidence = load_json(PRODUCTION_SKILL_RELEASE_EVAL_CANARY_EVIDENCE)
     require(evidence["schema_version"] == "stage0.rev2", "production skill release evidence schema mismatch")
@@ -5915,10 +6333,20 @@ def validate_release_gate_evidence() -> None:
             runtime_status in {"fail", "blocked"},
             "local alpha runtime stack cannot pass before docker compose and env evidence validate",
         )
-    require(
-        checks["local_alpha_e2e_workflow_smoke"]["status"] == "blocked",
-        "local alpha end-to-end workflow smoke must remain blocked until runtime smoke evidence exists",
+    local_alpha_smoke_evidence_ref = checks["local_alpha_e2e_workflow_smoke"]["evidence_ref"]
+    local_alpha_workflow_runtime_complete = local_alpha_workflow_runtime_evidence_complete(
+        local_alpha_smoke_evidence_ref
     )
+    if local_alpha_workflow_runtime_complete:
+        require(
+            checks["local_alpha_e2e_workflow_smoke"]["status"] == "pass",
+            "local alpha end-to-end workflow smoke must pass after runtime smoke evidence exists",
+        )
+    else:
+        require(
+            checks["local_alpha_e2e_workflow_smoke"]["status"] == "blocked",
+            "local alpha end-to-end workflow smoke must remain blocked until runtime smoke evidence exists",
+        )
 
     do_not_launch = {condition_id: item["is_present"] for condition_id, item in local_alpha_conditions.items()}
     require(
@@ -5937,7 +6365,6 @@ def validate_release_gate_evidence() -> None:
         do_not_launch.get("local_alpha_runtime_not_validated") is (not local_alpha_runtime_stack_validated()),
         "release evidence local_alpha_runtime_not_validated must reflect computed runtime validation state",
     )
-    local_alpha_smoke_evidence_ref = checks["local_alpha_e2e_workflow_smoke"]["evidence_ref"]
     for checklist_item, workflow_id in LOCAL_ALPHA_RELEASE_GATE_WORKFLOW_RUNTIME_CLOSED_ITEMS.items():
         require(
             checklist_item in blueprint_checked,
@@ -6062,8 +6489,15 @@ def validate_release_gate_evidence() -> None:
         if item in blueprint_checked
         for check_id in check_ids
     }
+    ci_ready_for_production = gate_allows_checklist_completion(load_json(FIXTURE_DIR / "release_gate_evidence.ci.json"))
+    staging_ready_for_production = gate_allows_checklist_completion(
+        load_json(FIXTURE_DIR / "release_gate_evidence.private_beta_staging.json")
+    )
+    upstream_ready_for_production_backup = ci_ready_for_production and staging_ready_for_production
     for check_id in RELEASE_GATE_REQUIRED_CHECKS["production_launch"]:
         expected_status = "pass" if check_id in closed_production_runtime_checks else "blocked"
+        if check_id == "production_backup_rollback_incident" and not upstream_ready_for_production_backup:
+            expected_status = "blocked"
         require(
             production_checks[check_id]["status"] == expected_status,
             f"production release evidence {check_id} must be {expected_status} based on concrete production runtime evidence",
@@ -6078,6 +6512,11 @@ def validate_release_gate_evidence() -> None:
         "abuse_throttle_hold_missing",
         "security_privacy_legal_incomplete",
         "secret_exposure_runtime_not_verified",
+        "dev_mock_provider_public_claims_unresolved",
+        "real_provider_or_comp_only_mode_missing",
+        "public_legal_support_policy_not_deployed",
+        "backup_restore_rollback_smoke_missing",
+        "production_deploy_rollback_smoke_missing",
     }
     for condition_id in RELEASE_GATE_REQUIRED_ACTIVE_CONDITIONS["production_launch"]:
         expected_present = condition_id not in cleared_production_conditions
@@ -6089,7 +6528,8 @@ def validate_release_gate_evidence() -> None:
     for token in [
         "evidence exists",
         "runtime evidence is absent",
-        "production deployment evidence for policy visibility is absent",
+        "ops/evidence/production/public-legal-policy.json",
+        "ops/evidence/production/public-support-billing-policy.json",
     ]:
         require(token in production_text, f"production release evidence must distinguish artifact/runtime evidence: {token}")
     for stale in [
@@ -7016,11 +7456,14 @@ def validate_launch_readiness_split_contracts() -> None:
     ] + sorted(RELEASE_GATE_BACKFILL_CHECKED_ITEMS):
         require(item in checked_lines, f"blueprint must close definition-only evidence subitem: {item}")
 
-    for item in [
+    runtime_launch_readiness_open_items = {
         "CI 在已安装 PR/main workflow 中运行 Playwright smoke。",
         "CI 在已安装 PR/main workflow 中 build Docker images。",
         "Production post-deploy smoke tests 通过。",
-    ] + sorted(CI_RUNTIME_OPEN_CHECK_ITEMS) + sorted(RELEASE_GATE_RUNTIME_OPEN_ITEMS) + sorted(
+    }
+    runtime_launch_readiness_open_items |= set(CI_RUNTIME_OPEN_CHECK_ITEMS)
+    runtime_launch_readiness_open_items |= set(RELEASE_GATE_RUNTIME_OPEN_ITEMS)
+    runtime_launch_readiness_open_items |= (
         set(RELEASE_GATE_CHECK_LEVEL_RUNTIME_OPEN_ITEMS)
         - {
             "Private Beta/Staging auth/RBAC/tenant/audit runtime evidence 通过。",
@@ -7042,9 +7485,23 @@ def validate_launch_readiness_split_contracts() -> None:
             "Production activation review/audit runtime/deployment evidence 通过。",
             "Production abuse throttle/hold runtime/deployment evidence 通过。",
             "Production security launch-check runtime/deployment evidence 通过。",
+            "Production provider-or-comp-only runtime/deployment evidence 通过。",
+            "Production provider mode deployment evidence 通过：production evidence proves either real provider contract/monitoring/cost/staging verification or explicit invite/comp-only mode under `ops/evidence/production/`。",
+            "Production public paid/real-generation claims evidence 通过：production evidence proves paid and real-generation claims are enabled only with real provider evidence, or hidden for invite/comp-only mode under `ops/evidence/production/`。",
+            "Production backup/restore runtime evidence 通过：production evidence proves backup schedule, Postgres restore, object restore, RPO/RTO, and audit refs under `ops/evidence/production/`。",
+            PRODUCTION_ROLLBACK_INCIDENT_SMOKE_CHECKLIST_ITEM,
+            "Production legal/support policy deployment evidence 通过。",
+            "Production public legal policy deployment evidence 通过：production evidence proves Terms、Privacy、Acceptable Use、AI/content disclaimer、IP complaint flow visibility under `ops/evidence/production/`。",
+            "Production public support/billing policy deployment evidence 通过：production evidence proves support contact and paid billing/cancellation/refund policy visibility under `ops/evidence/production/`。",
             *LOCAL_ALPHA_RELEASE_GATE_WORKFLOW_RUNTIME_CLOSED_ITEMS.keys(),
         }
-    ):
+    )
+    runtime_launch_readiness_open_items -= {
+        LOCAL_ALPHA_AGGREGATE_RUNTIME_ITEM,
+        CI_INSTALLED_WORKFLOW_FILE_ITEM,
+        *LOCAL_ALPHA_RELEASE_GATE_WORKFLOW_RUNTIME_CLOSED_ITEMS.keys(),
+    }
+    for item in sorted(runtime_launch_readiness_open_items):
         require(item in unchecked_lines, f"blueprint must keep runtime launch-readiness subitem open: {item}")
 
     for ambiguous in [
@@ -7340,12 +7797,47 @@ def validate_ops_ci_and_drill_evidence() -> None:
         ROOT / "scripts" / "observability_smoke.sh",
         ROOT / "scripts" / "staging_observability_backup_load_smoke.sh",
         ROOT / "scripts" / "staging_object_storage_signed_url_smoke.sh",
+        ROOT / "scripts" / "staging_object_storage_retention_cleanup_smoke.sh",
         STAGING_LEGAL_SUPPORT_VISIBILITY_SCRIPT,
         ROOT / "scripts" / "security_scan_smoke.sh",
+        CI_RUNTIME_EVIDENCE_WRITER,
+        CI_RUNTIME_ARTIFACT_PROMOTER,
+        STAGING_RUNTIME_ARTIFACT_PROMOTER,
+        PRODUCTION_RUNTIME_ARTIFACT_PROMOTER,
+        RELEASE_RUNTIME_ARTIFACT_PROMOTER,
+        RELEASE_RUNTIME_ARTIFACT_COLLECTOR,
+        RELEASE_RUNTIME_RECONCILER,
+        RELEASE_RUNTIME_INPUT_PLANNER,
+        RELEASE_RUNTIME_INPUT_PREPARER,
+        RELEASE_GATE_FIXTURE_UPDATE_PLANNER,
+        STAGE0_REV2_CHECKLIST_CLOSURE_PLANNER,
+        RELEASE_CLOSURE_PLAN_APPLIER,
+        RELEASE_CLOSURE_PIPELINE,
+        RUNTIME_EVIDENCE_CLOSURE_RUNBOOK,
     ]:
         require(path.exists(), f"missing ops evidence file: {path.relative_to(ROOT)}")
 
     ci_text = CI_DRAFT.read_text(encoding="utf-8")
+    workflow_text = CI_WORKFLOW.read_text(encoding="utf-8") if CI_WORKFLOW.exists() else ""
+    if CI_WORKFLOW.exists():
+        require(
+            ci_text == workflow_text,
+            "installed CI workflow must exactly mirror ops/ci/stage0-rev2-ci.yml",
+        )
+    writer_text = CI_RUNTIME_EVIDENCE_WRITER.read_text(encoding="utf-8")
+    promoter_text = CI_RUNTIME_ARTIFACT_PROMOTER.read_text(encoding="utf-8")
+    staging_promoter_text = STAGING_RUNTIME_ARTIFACT_PROMOTER.read_text(encoding="utf-8")
+    production_promoter_text = PRODUCTION_RUNTIME_ARTIFACT_PROMOTER.read_text(encoding="utf-8")
+    release_promoter_text = RELEASE_RUNTIME_ARTIFACT_PROMOTER.read_text(encoding="utf-8")
+    release_collector_text = RELEASE_RUNTIME_ARTIFACT_COLLECTOR.read_text(encoding="utf-8")
+    release_reconciler_text = RELEASE_RUNTIME_RECONCILER.read_text(encoding="utf-8")
+    runtime_input_planner_text = RELEASE_RUNTIME_INPUT_PLANNER.read_text(encoding="utf-8")
+    runtime_input_preparer_text = RELEASE_RUNTIME_INPUT_PREPARER.read_text(encoding="utf-8")
+    fixture_update_planner_text = RELEASE_GATE_FIXTURE_UPDATE_PLANNER.read_text(encoding="utf-8")
+    checklist_closure_planner_text = STAGE0_REV2_CHECKLIST_CLOSURE_PLANNER.read_text(encoding="utf-8")
+    closure_plan_applier_text = RELEASE_CLOSURE_PLAN_APPLIER.read_text(encoding="utf-8")
+    closure_pipeline_text = RELEASE_CLOSURE_PIPELINE.read_text(encoding="utf-8")
+    runtime_evidence_closure_runbook_text = RUNTIME_EVIDENCE_CLOSURE_RUNBOOK.read_text(encoding="utf-8")
     required_ci_tokens = {
         "pull_request:",
         "branches:",
@@ -7368,19 +7860,203 @@ def validate_ops_ci_and_drill_evidence() -> None:
         "bash -n scripts/staging_smoke.sh",
         "bash -n scripts/observability_smoke.sh",
         "bash -n scripts/staging_object_storage_signed_url_smoke.sh",
+        "bash -n scripts/staging_object_storage_retention_cleanup_smoke.sh",
         "bash -n scripts/staging_legal_support_visibility_smoke.sh",
+        "DRY_RUN=1 RUN_ID=ci-object-storage-retention-cleanup scripts/staging_object_storage_retention_cleanup_smoke.sh || test \"$?\" = 2",
         "DRY_RUN=1 scripts/staging_legal_support_visibility_smoke.sh",
         "bash -n scripts/security_scan_smoke.sh",
         "ops/evidence/stage0_environment_evidence.json",
+        "python3 scripts/write_ci_runtime_evidence.py",
+        "actions/upload-artifact@v4",
+        "stage0-rev2-ci-workflow-run-evidence",
+        "stage0-rev2-ci-docker-image-build-${{ matrix.image.name }}-evidence",
+        "stage0-rev2-ci-playwright-smoke-evidence",
+        "OUT_DIR=ops/evidence/ci WEB_URL=http://127.0.0.1:26080 ADMIN_URL=http://127.0.0.1:26081 scripts/playwright_smoke.sh",
+        "docker run -d",
+        "minio/minio:RELEASE.2025-04-22T22-12-26Z",
     }
     missing_ci_tokens = {token for token in required_ci_tokens if token not in ci_text}
     require(not missing_ci_tokens, f"CI draft missing required coverage tokens: {sorted(missing_ci_tokens)}")
+    for token in [
+        "stage0.rev2.ci_runtime_evidence",
+        "workflow-run",
+        "playwright-smoke",
+        "docker-image-build",
+        "ci_gate_runtime_execution",
+        "ci_playwright_smoke",
+        "ci_docker_image_build",
+        "installed_pr_main_workflow_runtime",
+    ]:
+        require(token in writer_text, f"CI runtime evidence writer missing required token: {token}")
+    for token in [
+        "stage0.rev2.ci_runtime_evidence",
+        "stage0-rev2-pr-main-run.json",
+        "stage0-rev2-playwright-smoke.json",
+        "stage0-rev2-docker-image-build.json",
+        "pull_request",
+        "refs/heads/main",
+        "REQUIRED_DOCKER_IMAGES",
+        "backend",
+        "web",
+        "admin",
+        "CI runtime artifact promotion blocked",
+    ]:
+        require(token in promoter_text, f"CI runtime artifact promoter missing required token: {token}")
+    for token in [
+        "object-storage-retention-cleanup.json",
+        "legal-pages-external-user.json",
+        "support-contact-external-user.json",
+        "object_storage_retention_cleanup",
+        "legal_pages_external_user_visibility",
+        "support_contact_external_user_visibility",
+        "external_http",
+        "external cleanup endpoint proof passed",
+        "Staging runtime artifact promotion blocked",
+    ]:
+        require(token in staging_promoter_text, f"staging runtime artifact promoter missing required token: {token}")
+    for token in [
+        "backup-restore.json",
+        "rollback-incident-post-deploy-smoke.json",
+        "backup_restore_probe",
+        "rollback_incident_smoke_probe",
+        "postgres_restore_verified",
+        "object_restore_verified",
+        "migration_compatibility_verified",
+        "post_deploy_smoke_verified",
+        "Production runtime artifact promotion blocked",
+    ]:
+        require(token in production_promoter_text, f"production runtime artifact promoter missing required token: {token}")
+    for token in [
+        "promote_ci_runtime_artifacts.py",
+        "promote_staging_runtime_artifacts.py",
+        "promote_production_runtime_artifacts.py",
+        "--ci-input-dir",
+        "--staging-input-dir",
+        "--production-input-dir",
+        "Release runtime artifact promotion blocked",
+        "Release runtime artifact promotion passed",
+    ]:
+        require(token in release_promoter_text, f"release runtime artifact promoter missing required token: {token}")
+    for token in [
+        "Usage: scripts/collect_release_runtime_artifacts.sh [options]",
+        "--run-id",
+        "--artifact-root",
+        "--ci-artifact-pattern",
+        "CI_ARTIFACT_PATTERN",
+        "gh --version",
+        "gh auth status",
+        "gh run download",
+        "stage0-rev2-ci-*-evidence",
+        "ops/evidence/runtime-inputs",
+        "promote_release_runtime_artifacts.py",
+        "CI_INPUT_DIR",
+        "STAGING_INPUT_DIR",
+        "PRODUCTION_INPUT_DIR",
+        "DRY_RUN",
+        "Release runtime artifact collection blocked",
+    ]:
+        require(token in release_collector_text, f"release runtime artifact collector missing required token: {token}")
+    for token in [
+        "stage0.rev2.release_runtime_reconciliation",
+        "dry_run_non_mutating",
+        "does_not_edit_release_gate_fixtures_or_blueprint_checklist",
+        "stripe_deferred_by_user",
+        "upstream_gate_not_ready",
+        "ci_gate_runtime_execution",
+        "staging_object_storage_signed_downloads",
+        "production_backup_rollback_incident",
+    ]:
+        require(token in release_reconciler_text, f"release runtime reconciler missing required token: {token}")
+    for token in [
+        "stage0.rev2.release_runtime_input_manifest",
+        "runtime_artifact_required",
+        "upstream_gate_dependency",
+        "deferred_by_user",
+        "stripe_deferred_by_user",
+        "scripts/run_release_closure_pipeline.sh --apply",
+        "does_not_edit_runtime_evidence_release_fixtures_or_blueprint",
+    ]:
+        require(token in runtime_input_planner_text, f"release runtime input planner missing required token: {token}")
+    for token in [
+        "stage0.rev2.release_runtime_input_workspace",
+        "creates_only_input_directories_and_readmes_not_runtime_evidence",
+        "This README is not runtime evidence",
+        "--apply",
+        "README.md",
+    ]:
+        require(token in runtime_input_preparer_text, f"release runtime input preparer missing required token: {token}")
+    for token in [
+        "stage0.rev2.release_gate_fixture_update_plan",
+        "dry_run_non_mutating",
+        "does_not_edit_release_gate_fixtures_or_blueprint_checklist",
+        "set_check_status_pass",
+        "recompute_gate_decision_after_planned_updates",
+        "stripe_deferred_by_user",
+        "production_paid_billing_lifecycle",
+    ]:
+        require(token in fixture_update_planner_text, f"release gate fixture update planner missing required token: {token}")
+    for token in [
+        "stage0.rev2.checklist_closure_plan",
+        "does_not_edit_blueprint_checklist",
+        "CI installed workflow runtime evidence",
+        "Private Beta/Staging external-user runtime evidence",
+        "Production Launch runtime/deployment evidence",
+        "Do-Not-Launch Conditions 全部为 false",
+    ]:
+        require(token in checklist_closure_planner_text, f"Stage 0 checklist closure planner missing required token: {token}")
+    for token in [
+        "stage0.rev2.release_closure_plan_apply_report",
+        "--apply",
+        "dry_run_non_mutating",
+        "refusing to apply production paid billing lifecycle updates while Stripe is deferred",
+        "python3 scripts/validate_stage0_rev2.py",
+        "release closure plan apply blocked",
+        "set_status_pass",
+        "mark_checked",
+    ]:
+        require(token in closure_plan_applier_text, f"release closure plan applier missing required token: {token}")
+    for token in [
+        "stage0.rev2.release_closure_pipeline_report",
+        "scripts/collect_release_runtime_artifacts.sh",
+        "scripts/reconcile_release_gate_runtime_evidence.py",
+        "scripts/plan_release_runtime_inputs.py",
+        "scripts/prepare_release_runtime_inputs.py",
+        "scripts/plan_release_gate_fixture_updates.py",
+        "scripts/plan_stage0_rev2_checklist_closure.py",
+        "scripts/apply_release_closure_plan.py",
+        "--apply",
+        "collector must pass before apply",
+        "nonzero collector status is allowed in dry-run",
+        "closure-pipeline-report.json",
+        "runtime-input-manifest.json",
+        "runtime-input-workspace.json",
+    ]:
+        require(token in closure_pipeline_text, f"release closure pipeline missing required token: {token}")
+    for token in [
+        "Stage 0 Rev2 Runtime Evidence Closure",
+        "scripts/run_release_closure_pipeline.sh",
+        "scripts/plan_release_runtime_inputs.py",
+        "scripts/prepare_release_runtime_inputs.py",
+        "scripts/plan_release_gate_fixture_updates.py",
+        "scripts/plan_stage0_rev2_checklist_closure.py",
+        "scripts/apply_release_closure_plan.py",
+        "Stripe is intentionally deferred",
+        "python3 scripts/validate_stage0_rev2.py",
+    ]:
+        require(token in runtime_evidence_closure_runbook_text, f"runtime evidence closure runbook missing required token: {token}")
 
     installation = CI_INSTALLATION.read_text(encoding="utf-8")
-    require(
-        "Blocked by token scope" in installation and ".github/workflows/stage0-rev2-ci.yml" in installation,
-        "CI installation checklist must keep workflow install blocked by token scope",
-    )
+    if CI_WORKFLOW.exists():
+        require(
+            ".github/workflows/stage0-rev2-ci.yml" in installation
+            and "installed locally" in installation.lower(),
+            "CI installation checklist must record the installed workflow file",
+        )
+    else:
+        require(
+            "Blocked by token scope" in installation and ".github/workflows/stage0-rev2-ci.yml" in installation,
+            "CI installation checklist must keep workflow install blocked by token scope",
+        )
 
     env = load_json(ENVIRONMENT_EVIDENCE)
     require(env["blueprint_source"] == "Docs/stage0_blueprint_rev2.md", "environment evidence must cite Rev2")
@@ -7394,9 +8070,10 @@ def validate_ops_ci_and_drill_evidence() -> None:
         "environment evidence must point at ops/ci CI draft",
     )
     open_items = {item["id"]: item for item in env["open_items"]}
+    expected_install_status = "closed_file_installed" if CI_WORKFLOW.exists() else "blocked_by_token_scope"
     require(
-        open_items.get("install_github_actions_workflow", {}).get("status") == "blocked_by_token_scope",
-        "workflow installation must remain blocked_by_token_scope",
+        open_items.get("install_github_actions_workflow", {}).get("status") == expected_install_status,
+        f"workflow installation environment evidence must be {expected_install_status}",
     )
     require("playwright_smoke" in open_items, "environment evidence must keep Playwright smoke open")
     require("docker_image_build_runtime" in open_items, "environment evidence must keep Docker image runtime evidence open")
@@ -7673,7 +8350,19 @@ def validate_ops_ci_and_drill_evidence() -> None:
         "observability_smoke": "scripts/observability_smoke.sh",
         "staging_observability_backup_load_smoke": "scripts/staging_observability_backup_load_smoke.sh",
         "staging_object_storage_signed_url_smoke": "scripts/staging_object_storage_signed_url_smoke.sh",
+        "staging_object_storage_retention_cleanup_smoke": "scripts/staging_object_storage_retention_cleanup_smoke.sh",
         "staging_legal_support_visibility_smoke": "scripts/staging_legal_support_visibility_smoke.sh",
+        "staging_runtime_artifact_promoter": "scripts/promote_staging_runtime_artifacts.py",
+        "production_runtime_artifact_promoter": "scripts/promote_production_runtime_artifacts.py",
+        "release_runtime_artifact_promoter": "scripts/promote_release_runtime_artifacts.py",
+        "release_runtime_artifact_collector": "scripts/collect_release_runtime_artifacts.sh",
+        "release_runtime_reconciler": "scripts/reconcile_release_gate_runtime_evidence.py",
+        "release_runtime_input_planner": "scripts/plan_release_runtime_inputs.py",
+        "release_runtime_input_preparer": "scripts/prepare_release_runtime_inputs.py",
+        "release_gate_fixture_update_planner": "scripts/plan_release_gate_fixture_updates.py",
+        "stage0_rev2_checklist_closure_planner": "scripts/plan_stage0_rev2_checklist_closure.py",
+        "release_closure_plan_applier": "scripts/apply_release_closure_plan.py",
+        "release_closure_pipeline": "scripts/run_release_closure_pipeline.sh",
         "security_scan_smoke": "scripts/security_scan_smoke.sh",
     }.items():
         require(key in scripts, f"release ops evidence missing {key}")
@@ -7704,7 +8393,26 @@ def validate_ops_ci_and_drill_evidence() -> None:
         and "retention cleanup blockers" in object_storage_signed.get("runtime_status", ""),
         "release ops evidence must preserve object-storage signed URL and retention cleanup split",
     )
+    object_storage_retention = scripts["staging_object_storage_retention_cleanup_smoke"]
+    require(
+        object_storage_retention.get("latest_retention_cleanup_evidence")
+        == rel(STAGING_OBJECT_STORAGE_RETENTION_EVIDENCE),
+        "release ops evidence must cite the staging object-storage retention cleanup evidence path",
+    )
+    require(
+        "retention policy" in object_storage_retention.get("runtime_status", "")
+        and "expired export cleanup" in object_storage_retention.get("runtime_status", "")
+        and "orphan cleanup" in object_storage_retention.get("runtime_status", "")
+        and "remains blocked" in object_storage_retention.get("runtime_status", ""),
+        "release ops evidence must record honest blocked object-retention cleanup runtime requirements",
+    )
     legal_support_visibility = scripts["staging_legal_support_visibility_smoke"]
+    require(
+        legal_support_visibility.get("latest_legal_pages_evidence") == rel(STAGING_LEGAL_EXTERNAL_PAGES_EVIDENCE)
+        and legal_support_visibility.get("latest_support_contact_evidence")
+        == rel(STAGING_SUPPORT_CONTACT_VISIBILITY_EVIDENCE),
+        "release ops evidence must cite the legal/support split staging evidence paths",
+    )
     require(
         "Terms" in legal_support_visibility.get("runtime_status", "")
         and "support contact" in legal_support_visibility.get("runtime_status", "")
@@ -7715,6 +8423,141 @@ def validate_ops_ci_and_drill_evidence() -> None:
         "open until ops/evidence/staging legal/support visibility evidence passes"
         in legal_support_visibility.get("private_beta_gate", ""),
         "release ops evidence must keep legal/support visibility gate open until staging evidence passes",
+    )
+    staging_promoter = scripts["staging_runtime_artifact_promoter"]
+    require(
+        staging_promoter.get("canonical_outputs")
+        == [
+            rel(STAGING_OBJECT_STORAGE_RETENTION_EVIDENCE),
+            rel(STAGING_LEGAL_EXTERNAL_PAGES_EVIDENCE),
+            rel(STAGING_SUPPORT_CONTACT_VISIBILITY_EVIDENCE),
+        ],
+        "release ops evidence must cite staging runtime promoter canonical outputs",
+    )
+    require(
+        "real passing external staging probe artifacts" in staging_promoter.get("runtime_status", "")
+        and "exit 2" in staging_promoter.get("runtime_status", ""),
+        "release ops evidence must record strict staging artifact promotion policy",
+    )
+    production_promoter = scripts["production_runtime_artifact_promoter"]
+    require(
+        production_promoter.get("canonical_outputs")
+        == [rel(PRODUCTION_BACKUP_RESTORE_EVIDENCE), rel(PRODUCTION_ROLLBACK_INCIDENT_SMOKE_EVIDENCE)],
+        "release ops evidence must cite production runtime promoter canonical outputs",
+    )
+    require(
+        "real passing production backup/restore" in production_promoter.get("runtime_status", "")
+        and "rollback/incident/post-deploy smoke artifacts" in production_promoter.get("runtime_status", "")
+        and "exit 2" in production_promoter.get("runtime_status", ""),
+        "release ops evidence must record strict production artifact promotion policy",
+    )
+    release_promoter = scripts["release_runtime_artifact_promoter"]
+    require(
+        set(release_promoter.get("promoter_inputs", []))
+        == {"--ci-input-dir", "--staging-input-dir", "--production-input-dir"},
+        "release ops evidence must cite unified release promoter inputs",
+    )
+    require(
+        "does not edit release gate fixtures" in release_promoter.get("gate_policy", "")
+        and "only promotes canonical runtime evidence" in release_promoter.get("gate_policy", ""),
+        "release ops evidence must record unified promoter non-closure policy",
+    )
+    release_collector = scripts["release_runtime_artifact_collector"]
+    require(
+        release_collector.get("artifact_root") == "ops/evidence/runtime-inputs",
+        "release ops evidence must cite runtime artifact input root",
+    )
+    require(
+        release_collector.get("ci_artifact_pattern") == "stage0-rev2-ci-*-evidence",
+        "release ops evidence must cite CI artifact download pattern",
+    )
+    require(
+        "gh run download" in release_collector.get("runtime_status", "")
+        and "--help" in release_collector.get("runtime_status", "")
+        and "gh auth status" in release_collector.get("runtime_status", "")
+        and "DRY_RUN=1" in release_collector.get("gate_policy", "")
+        and "gh auth" in release_collector.get("gate_policy", ""),
+        "release ops evidence must record collector download and dry-run policy",
+    )
+    release_reconciler = scripts["release_runtime_reconciler"]
+    require(
+        release_reconciler.get("default_output") == "ops/evidence/release/runtime-reconciliation.json",
+        "release ops evidence must cite release runtime reconciliation report path",
+    )
+    require(
+        "dry-run, non-mutating reconciliation report" in release_reconciler.get("runtime_status", "")
+        and "does not edit release gate fixtures" in release_reconciler.get("gate_policy", "")
+        and "Stripe deferred" in release_reconciler.get("gate_policy", ""),
+        "release ops evidence must record reconciliation non-mutation and deferred blocker policy",
+    )
+    runtime_input_planner = scripts["release_runtime_input_planner"]
+    require(
+        runtime_input_planner.get("default_output") == "ops/evidence/release/runtime-input-manifest.json",
+        "release ops evidence must cite release runtime input manifest path",
+    )
+    require(
+        "machine-readable manifest" in runtime_input_planner.get("runtime_status", "")
+        and "runtime_artifact_required" in runtime_input_planner.get("runtime_status", "")
+        and "deferred_by_user" in runtime_input_planner.get("runtime_status", "")
+        and "does not edit evidence" in runtime_input_planner.get("gate_policy", ""),
+        "release ops evidence must record runtime input planner non-mutation policy",
+    )
+    runtime_input_preparer = scripts["release_runtime_input_preparer"]
+    require(
+        runtime_input_preparer.get("default_output") == "ops/evidence/release/runtime-input-workspace.json",
+        "release ops evidence must cite release runtime input workspace path",
+    )
+    require(
+        "creates only input directories and README files" in runtime_input_preparer.get("runtime_status", "")
+        and "does not create JSON evidence" in runtime_input_preparer.get("gate_policy", "")
+        and "cannot close release gates" in runtime_input_preparer.get("gate_policy", ""),
+        "release ops evidence must record runtime input preparer non-evidence policy",
+    )
+    fixture_update_planner = scripts["release_gate_fixture_update_planner"]
+    require(
+        fixture_update_planner.get("default_output") == "ops/evidence/release/fixture-update-plan.json",
+        "release ops evidence must cite release gate fixture update plan path",
+    )
+    require(
+        "dry-run fixture update plan" in fixture_update_planner.get("runtime_status", "")
+        and "does not edit release gate fixtures" in fixture_update_planner.get("gate_policy", "")
+        and "Stripe deferred" in fixture_update_planner.get("gate_policy", ""),
+        "release ops evidence must record fixture planner non-mutation and deferred blocker policy",
+    )
+    checklist_closure_planner = scripts["stage0_rev2_checklist_closure_planner"]
+    require(
+        checklist_closure_planner.get("default_output") == "ops/evidence/release/checklist-closure-plan.json",
+        "release ops evidence must cite Stage 0 Rev2 checklist closure plan path",
+    )
+    require(
+        "dry-run checklist closure plan" in checklist_closure_planner.get("runtime_status", "")
+        and "does not edit Docs/stage0_blueprint_rev2.md" in checklist_closure_planner.get("gate_policy", "")
+        and "matching release gate fixture updates" in checklist_closure_planner.get("gate_policy", ""),
+        "release ops evidence must record checklist closure planner non-mutation policy",
+    )
+    closure_plan_applier = scripts["release_closure_plan_applier"]
+    require(
+        closure_plan_applier.get("default_output") == "ops/evidence/release/closure-apply-report.json",
+        "release ops evidence must cite release closure apply report path",
+    )
+    require(
+        "dry-run by default" in closure_plan_applier.get("runtime_status", "")
+        and "requires --apply" in closure_plan_applier.get("runtime_status", "")
+        and "runs python3 scripts/validate_stage0_rev2.py" in closure_plan_applier.get("gate_policy", "")
+        and "Stripe deferred" in closure_plan_applier.get("gate_policy", ""),
+        "release ops evidence must record closure applier explicit apply and validation policy",
+    )
+    closure_pipeline = scripts["release_closure_pipeline"]
+    require(
+        closure_pipeline.get("default_output") == "ops/evidence/release/closure-pipeline-report.json",
+        "release ops evidence must cite release closure pipeline report path",
+    )
+    require(
+        "collect, promote, reconcile, plan, and apply-report" in closure_pipeline.get("runtime_status", "")
+        and "dry-run" in closure_pipeline.get("runtime_status", "")
+        and "requires --apply" in closure_pipeline.get("gate_policy", "")
+        and "collector/promoter success" in closure_pipeline.get("gate_policy", ""),
+        "release ops evidence must record release closure pipeline orchestration policy",
     )
     policy = release_ops["checklist_policy"]
     for key in [
@@ -7741,6 +8584,15 @@ def validate_ops_ci_and_drill_evidence() -> None:
         repo_path(release_docs["current_no_go_release_notes"]).exists(),
         "current no-go release notes file must exist",
     )
+    require(
+        release_docs.get("runtime_evidence_closure_runbook")
+        == "ops/release/stage0_rev2_runtime_evidence_closure.md",
+        "release ops evidence must cite the runtime evidence closure runbook",
+    )
+    require(
+        repo_path(release_docs["runtime_evidence_closure_runbook"]).exists(),
+        "runtime evidence closure runbook file must exist",
+    )
 
 
 def main() -> int:
@@ -7759,6 +8611,8 @@ def main() -> int:
         validate_staging_auth_rbac_tenant_audit_evidence,
         validate_staging_brief_upload_confirmation_evidence,
         validate_staging_object_storage_signed_url_evidence,
+        validate_staging_object_storage_retention_cleanup_evidence,
+        validate_staging_legal_support_split_evidence,
         validate_staging_quota_rate_limit_spend_cap_evidence,
         validate_staging_support_retry_abuse_evidence,
         validate_staging_eval_qa_safety_evidence,
@@ -7768,6 +8622,8 @@ def main() -> int:
         validate_staging_observability_telemetry_evidence,
         validate_staging_observability_runtime_evidence,
         validate_staging_observability_backup_load_preflight_evidence,
+        validate_production_provider_or_comp_only_evidence,
+        validate_production_legal_support_policy_evidence,
         validate_production_skill_release_eval_canary_evidence,
         validate_production_abuse_throttle_hold_evidence,
         validate_production_activation_review_audit_evidence,

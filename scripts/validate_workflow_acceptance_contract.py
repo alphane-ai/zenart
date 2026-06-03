@@ -134,6 +134,18 @@ WORKFLOW_RUNTIME_CLOSED_ITEMS = {
         "api",
         "playwright",
     },
+    "business_visual_doc_pack": {
+        "api",
+        "playwright",
+    },
+    "local_merchant_campaign_pack": {
+        "api",
+        "playwright",
+    },
+    "character_ip_concept_pack": {
+        "api",
+        "playwright",
+    },
 }
 
 WORKFLOW_RUNTIME_EVIDENCE_KIND = {

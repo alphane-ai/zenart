@@ -12,7 +12,7 @@ RUN_ID="${STAMP}-docker-build-${GIT_SHA}-$$"
 REPORT_PATH="$OUT_DIR/${RUN_ID}.json"
 LOG_PATH="$OUT_DIR/${RUN_ID}.log"
 IMAGE_PREFIX="${IMAGE_PREFIX:-zenart-stage0}"
-IMAGE_SET="${IMAGE_SET:-backend web admin}"
+IMAGE_SET="${IMAGE_SET:-backend web admin manager}"
 
 write_report() {
   local status="$1"
@@ -41,7 +41,7 @@ JSON
 build_image() {
   local name="$1"
   local context="$1"
-  if [[ "$name" != "backend" && "$name" != "web" && "$name" != "admin" ]]; then
+  if [[ "$name" != "backend" && "$name" != "web" && "$name" != "admin" && "$name" != "manager" ]]; then
     printf 'unsupported image name: %s\n' "$name" >&2
     return 64
   fi

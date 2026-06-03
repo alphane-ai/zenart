@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-BASE_URL="${BASE_URL:-http://localhost:8080}"
-WEB_URL="${WEB_URL:-http://localhost:3000}"
-ADMIN_URL="${ADMIN_URL:-http://localhost:3001}"
+BASE_URL="${BASE_URL:-http://localhost:31080}"
+WEB_URL="${WEB_URL:-http://localhost:26080}"
+ADMIN_URL="${ADMIN_URL:-http://localhost:26081}"
 REQUESTS="${REQUESTS:-20}"
 CONCURRENCY="${CONCURRENCY:-4}"
 TIMEOUT_SECONDS="${TIMEOUT_SECONDS:-5}"

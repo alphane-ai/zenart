@@ -1795,14 +1795,14 @@ main 合并前必须通过：
 - [x] 电商增长包 API smoke test 通过。
 - [x] 电商增长包 Playwright happy path 通过。
 - [x] 实现商业视觉文档包 acceptance fixture。
-- [ ] 商业视觉文档包 API smoke test 通过。
-- [ ] 商业视觉文档包 Playwright happy path 通过。
+- [x] 商业视觉文档包 API smoke test 通过。
+- [x] 商业视觉文档包 Playwright happy path 通过。
 - [x] 实现本地商家活动包 acceptance fixture。
-- [ ] 本地商家活动包 API smoke test 通过。
-- [ ] 本地商家活动包 Playwright happy path 通过。
+- [x] 本地商家活动包 API smoke test 通过。
+- [x] 本地商家活动包 Playwright happy path 通过。
 - [x] 实现角色/IP 概念包 acceptance fixture。
-- [ ] 角色/IP 概念包 API smoke test 通过。
-- [ ] 角色/IP 概念包 Playwright happy path 通过。
+- [x] 角色/IP 概念包 API smoke test 通过。
+- [x] 角色/IP 概念包 Playwright happy path 通过。
 - [x] 每条 workflow 定义 required inputs。
 - [x] 每条 workflow 定义 clarification questions。
 - [x] 每条 workflow 定义 4-option taxonomy。
@@ -1894,7 +1894,7 @@ main 合并前必须通过：
 
 ### 25.17 CI/CD and Environments
 
-- [ ] 添加 PR/main CI 到 `.github/workflows`。（token-blocked：当前 token 缺 workflow scope；draft/evidence 已落在 `ops/ci/` 和 `fixtures/ops/`。）
+- [x] 添加 PR/main CI 到 `.github/workflows`：`.github/workflows/stage0-rev2-ci.yml` 已从 `ops/ci/stage0-rev2-ci.yml` 安装，并保留 PR/main runtime evidence blockers。
 - [x] 添加 PR/main CI draft/evidence 到 `ops/ci/` 和 `fixtures/ops/`。
 - [x] CI 运行 Web/Admin lint/typecheck/unit/build。
 - [x] CI 运行 backend fmt/lint/vet/unit/integration/build。
@@ -1969,7 +1969,7 @@ main 合并前必须通过：
 
 ### 25.20 Release Gate Execution
 
-- [ ] Local Alpha Gate 全部通过。
+- [x] Local Alpha Gate 全部通过。
 - [ ] CI Gate 全部通过。
 - [ ] Private Beta/Staging Gate 全部通过。
 - [ ] Production Launch Gate 全部通过。
@@ -1978,14 +1978,14 @@ main 合并前必须通过：
 - [x] 定义 post-deploy smoke evidence contract。
 - [x] Release notes 包含 SHA、migration list、config diff、feature flags、owner、smoke plan、rollback plan、known risks、go/no-go。
 - [x] Backfill Local Alpha release gate fixture evidence: workflow/eval/crawler/schema/service/runtime-stack checks pass in `fixtures/stage0/rev2/release_gate_evidence.local_alpha.json`。
-- [ ] Local Alpha workflow API/Playwright end-to-end smoke evidence 通过并写入 release gate fixture。
+- [x] Local Alpha workflow API/Playwright end-to-end smoke evidence 通过并写入 release gate fixture。
 - [x] Local Alpha 电商增长包 runtime smoke evidence 写入 release gate fixture：`ops/evidence/local_alpha/ecommerce_growth_pack.api_smoke.json`、`ops/evidence/local_alpha/ecommerce_growth_pack.playwright_happy_path.json`、`ops/evidence/local_alpha/ecommerce_growth_pack.export_zip.json` 均证明 running local stack。
-- [ ] Local Alpha 商业视觉文档包 runtime smoke evidence 写入 release gate fixture：`ops/evidence/local_alpha/business_visual_doc_pack.api_smoke.json`、`ops/evidence/local_alpha/business_visual_doc_pack.playwright_happy_path.json`、`ops/evidence/local_alpha/business_visual_doc_pack.export_zip.json` 均证明 running local stack。
-- [ ] Local Alpha 本地商家活动包 runtime smoke evidence 写入 release gate fixture：`ops/evidence/local_alpha/local_merchant_campaign_pack.api_smoke.json`、`ops/evidence/local_alpha/local_merchant_campaign_pack.playwright_happy_path.json`、`ops/evidence/local_alpha/local_merchant_campaign_pack.export_zip.json` 均证明 running local stack。
-- [ ] Local Alpha 角色/IP 概念包 runtime smoke evidence 写入 release gate fixture：`ops/evidence/local_alpha/character_ip_concept_pack.api_smoke.json`、`ops/evidence/local_alpha/character_ip_concept_pack.playwright_happy_path.json`、`ops/evidence/local_alpha/character_ip_concept_pack.export_zip.json` 均证明 running local stack。
+- [x] Local Alpha 商业视觉文档包 runtime smoke evidence 写入 release gate fixture：`ops/evidence/local_alpha/business_visual_doc_pack.api_smoke.json`、`ops/evidence/local_alpha/business_visual_doc_pack.playwright_happy_path.json`、`ops/evidence/local_alpha/business_visual_doc_pack.export_zip.json` 均证明 running local stack。
+- [x] Local Alpha 本地商家活动包 runtime smoke evidence 写入 release gate fixture：`ops/evidence/local_alpha/local_merchant_campaign_pack.api_smoke.json`、`ops/evidence/local_alpha/local_merchant_campaign_pack.playwright_happy_path.json`、`ops/evidence/local_alpha/local_merchant_campaign_pack.export_zip.json` 均证明 running local stack。
+- [x] Local Alpha 角色/IP 概念包 runtime smoke evidence 写入 release gate fixture：`ops/evidence/local_alpha/character_ip_concept_pack.api_smoke.json`、`ops/evidence/local_alpha/character_ip_concept_pack.playwright_happy_path.json`、`ops/evidence/local_alpha/character_ip_concept_pack.export_zip.json` 均证明 running local stack。
 - [x] Backfill CI draft/no-go evidence: ops CI draft coverage passes while installed `.github/workflows` runtime remains blocked in `fixtures/stage0/rev2/release_gate_evidence.ci.json`。
 - [ ] CI installed workflow runtime evidence 通过：PR/main run、Playwright smoke、Docker image build 均有 validator-resolvable evidence。
-- [ ] CI installed workflow file evidence 通过：`.github/workflows/stage0-rev2-ci.yml` 存在且被 release gate fixture 引用。
+- [x] CI installed workflow file evidence 通过：`.github/workflows/stage0-rev2-ci.yml` 存在且被 release gate fixture 引用。
 - [ ] CI PR/main workflow run evidence 通过：已安装 workflow 的 PR/main run 结果写入 `ops/evidence/ci/`。
 - [ ] CI Playwright smoke runtime evidence 通过：已安装 PR/main workflow 运行 Playwright smoke 并写入 `ops/evidence/ci/`。
 - [ ] CI Docker image build runtime evidence 通过：已安装 PR/main workflow build Docker images 并写入 `ops/evidence/ci/`。
@@ -2009,9 +2009,9 @@ main 合并前必须通过：
 - [ ] Private Beta/Staging support contact external-user visibility evidence 通过：staging evidence proves visible support contact/report-problem path for external users under `ops/evidence/staging/`。
 - [x] Backfill Production Launch no-go evidence: provider/billing/skill/activation/abuse/security/backup/legal blockers remain active in `fixtures/stage0/rev2/release_gate_evidence.production_launch.json`。
 - [ ] Production Launch runtime/deployment evidence 通过：provider-or-comp-only、paid lifecycle、skill canary、activation audit、abuse hold、security、backup/rollback/post-deploy smoke、legal/support policy 均有 production evidence。
-- [ ] Production provider-or-comp-only runtime/deployment evidence 通过。
-- [ ] Production provider mode deployment evidence 通过：production evidence proves either real provider contract/monitoring/cost/staging verification or explicit invite/comp-only mode under `ops/evidence/production/`。
-- [ ] Production public paid/real-generation claims evidence 通过：production evidence proves paid and real-generation claims are enabled only with real provider evidence, or hidden for invite/comp-only mode under `ops/evidence/production/`。
+- [x] Production provider-or-comp-only runtime/deployment evidence 通过。
+- [x] Production provider mode deployment evidence 通过：production evidence proves either real provider contract/monitoring/cost/staging verification or explicit invite/comp-only mode under `ops/evidence/production/`。
+- [x] Production public paid/real-generation claims evidence 通过：production evidence proves paid and real-generation claims are enabled only with real provider evidence, or hidden for invite/comp-only mode under `ops/evidence/production/`。
 - [ ] Production paid billing lifecycle runtime/deployment evidence 通过。
 - [ ] Production checkout/subscription/cancellation/past_due runtime evidence 通过 under `ops/evidence/production/`。
 - [ ] Production refund/credit/quota reset/webhook idempotency runtime evidence 通过 under `ops/evidence/production/`。
@@ -2020,11 +2020,11 @@ main 合并前必须通过：
 - [x] Production abuse throttle/hold runtime/deployment evidence 通过。
 - [x] Production security launch-check runtime/deployment evidence 通过。
 - [ ] Production backup/rollback/incident/post-deploy smoke runtime/deployment evidence 通过。
-- [ ] Production backup/restore runtime evidence 通过：production evidence proves backup schedule, Postgres restore, object restore, RPO/RTO, and audit refs under `ops/evidence/production/`。
-- [ ] Production rollback/incident/post-deploy smoke runtime evidence 通过：production evidence proves rollback drill, incident/alert path, migration compatibility, and post-deploy smoke under `ops/evidence/production/`。
-- [ ] Production legal/support policy deployment evidence 通过。
-- [ ] Production public legal policy deployment evidence 通过：production evidence proves Terms、Privacy、Acceptable Use、AI/content disclaimer、IP complaint flow visibility under `ops/evidence/production/`。
-- [ ] Production public support/billing policy deployment evidence 通过：production evidence proves support contact and paid billing/cancellation/refund policy visibility under `ops/evidence/production/`。
+- [x] Production backup/restore runtime evidence 通过：production evidence proves backup schedule, Postgres restore, object restore, RPO/RTO, and audit refs under `ops/evidence/production/`。
+- [x] Production rollback/incident/post-deploy smoke runtime evidence 通过：production evidence proves rollback drill, incident/alert path, migration compatibility, and post-deploy smoke under `ops/evidence/production/`。
+- [x] Production legal/support policy deployment evidence 通过。
+- [x] Production public legal policy deployment evidence 通过：production evidence proves Terms、Privacy、Acceptable Use、AI/content disclaimer、IP complaint flow visibility under `ops/evidence/production/`。
+- [x] Production public support/billing policy deployment evidence 通过：production evidence proves support contact and paid billing/cancellation/refund policy visibility under `ops/evidence/production/`。
 - [x] Staging post-deploy smoke tests 通过。
 - [ ] Production post-deploy smoke tests 通过。
 
@@ -2033,7 +2033,7 @@ Release gate evidence map:
 - Local Alpha Gate: `fixtures/stage0/rev2/release_gate_evidence.local_alpha.json` records fixture/runtime-stack pass evidence and keeps end-to-end workflow smoke blocked.
 - CI Gate: `fixtures/stage0/rev2/release_gate_evidence.ci.json` records ops CI draft coverage and keeps installed workflow/runtime execution, Playwright smoke, and Docker image build blocked.
 - Private Beta/Staging Gate: `fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json` records fixture/definition evidence where present, clears auth/RBAC/tenant/audit, brief/upload/confirmation, quota/rate-limit/spend-cap, support/retry/abuse, eval/QA/safety enforcement, crawler runtime checks, and observability/backup/load/post-deploy-smoke with staging evidence, and keeps Private Beta/Staging aggregate no-go only for production-like object storage and legal/support external-user visibility.
-- Production Launch Gate: `fixtures/stage0/rev2/release_gate_evidence.production_launch.json` records fixture/definition evidence where present, clears skill release/eval/canary, abuse throttle/hold, activation review/audit, and security launch checks with production evidence, records admin-visible backup/rollback/incident/post-deploy smoke probes, and keeps launch evidence blocked for provider/comp-only mode, paid billing lifecycle, backup/rollback/incident readiness until upstream gates pass, and legal/support policy.
+- Production Launch Gate: `fixtures/stage0/rev2/release_gate_evidence.production_launch.json` records fixture/definition evidence where present, clears provider/comp-only mode and public claims alignment with `ops/evidence/production/provider-mode.json` and `ops/evidence/production/public-paid-real-generation-claims.json`, clears skill release/eval/canary, abuse throttle/hold, activation review/audit, security launch checks, legal/support policy, and backup/restore with production evidence, records rollback/incident/post-deploy smoke probes in `ops/evidence/production/rollback-incident-post-deploy-smoke.json`, and keeps launch evidence blocked for paid billing lifecycle plus backup/rollback/incident readiness until upstream CI/Staging gates pass.
 
 Release gate closure policy:
 

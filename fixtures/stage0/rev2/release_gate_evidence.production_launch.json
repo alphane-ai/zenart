@@ -5,8 +5,8 @@
   "checks": [
     {
       "check_id": "production_provider_or_comp_only_mode",
-      "status": "blocked",
-      "evidence_ref": "Docs/stage0_blueprint_rev2.md requires ops/evidence/production/ real production provider evidence or explicit invite/comp-only launch mode evidence in 23.4"
+      "status": "pass",
+      "evidence_ref": "ops/evidence/production/provider-mode.json and ops/evidence/production/public-paid-real-generation-claims.json prove production provider invite/comp-only mode, real provider monitoring/cost/staging verification prerequisites, and hidden public paid real-generation claims while paid billing lifecycle remains blocked separately"
     },
     {
       "check_id": "production_paid_billing_lifecycle",
@@ -36,26 +36,26 @@
     {
       "check_id": "production_backup_rollback_incident",
       "status": "blocked",
-      "evidence_ref": "ops/evidence/production/20260527T1800Z-backup-rollback-incident-smoke.json records production backup restore, rollback drills, incident/alert paths, migration compatibility, and post-deploy smoke probes, but this production check remains blocked until CI and Private Beta/Staging gates pass per Rev2 closure policy"
+      "evidence_ref": "ops/evidence/production/backup-restore.json and ops/evidence/production/rollback-incident-post-deploy-smoke.json record production backup schedule, Postgres restore, object restore, RPO/RTO, rollback drill, incident/alert path, migration compatibility, and post-deploy smoke runtime/deployment evidence; production check remains blocked until fixtures/stage0/rev2/release_gate_evidence.ci.json and fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json are ready per Rev2 closure policy"
     },
     {
       "check_id": "production_legal_support_policy",
-      "status": "blocked",
-      "evidence_ref": "Terms, Privacy, Acceptable Use, AI/content disclaimer, IP complaint flow, visible support contact, and paid billing policy artifacts exist, but production deployment evidence for policy visibility is absent under ops/evidence/production/ production legal/support evidence"
+      "status": "pass",
+      "evidence_ref": "ops/evidence/production/public-legal-policy.json and ops/evidence/production/public-support-billing-policy.json prove production Terms, Privacy, Acceptable Use, AI/content disclaimer, IP complaint flow, support contact, billing, cancellation, and refund policy visibility while paid billing lifecycle runtime evidence remains blocked separately"
     }
   ],
   "do_not_launch_checks": [
     {
       "condition_id": "dev_mock_provider_public_claims_unresolved",
       "blueprint_condition": "Dev/mock provider 被 UI、docs、marketing 或 billing 暗示为真实生产生成。",
-      "is_present": true,
-      "evidence_ref": "fixtures/stage0/rev2/release_gate_evidence.production_launch.json records the production provider blocker; ops/evidence/production/ real provider or invite/comp-only production evidence is absent"
+      "is_present": false,
+      "evidence_ref": "ops/evidence/production/provider-mode.json and ops/evidence/production/public-paid-real-generation-claims.json prove explicit production invite/comp-only provider mode and hidden public paid real-generation claims"
     },
     {
       "condition_id": "real_provider_or_comp_only_mode_missing",
       "blueprint_condition": "Dev/mock provider 被 UI、docs、marketing 或 billing 暗示为真实生产生成。",
-      "is_present": true,
-      "evidence_ref": "fixtures/stage0/rev2/release_gate_evidence.production_launch.json records that production provider or invite/comp-only condition is not satisfied; ops/evidence/production/ provider evidence is absent"
+      "is_present": false,
+      "evidence_ref": "ops/evidence/production/provider-mode.json proves explicit invite/comp-only production mode while real provider contract, monitoring, cost controls, and staging verification remain prerequisites for any paid public provider launch"
     },
     {
       "condition_id": "paid_billing_or_comp_only_mode_missing",
@@ -102,20 +102,20 @@
     {
       "condition_id": "backup_restore_rollback_smoke_missing",
       "blueprint_condition": "Backups 和 restore drills 未完成。",
-      "is_present": true,
-      "evidence_ref": "ops/evidence/production/20260527T1800Z-backup-rollback-incident-smoke.json records production Postgres restore, object restore, backup schedule, RPO/RTO, audit refs, rollback validation, and post-deploy smoke probes, but the launch blocker remains active until CI and Private Beta/Staging gates pass per Rev2 closure policy"
+      "is_present": false,
+      "evidence_ref": "ops/evidence/production/backup-restore.json and ops/evidence/production/rollback-incident-post-deploy-smoke.json record production backup schedule, Postgres restore, object restore, RPO/RTO, audit refs, rollback validation, and post-deploy smoke probes; CI/Staging dependency remains tracked separately by ci_staging_gates_not_passed"
     },
     {
       "condition_id": "production_deploy_rollback_smoke_missing",
       "blueprint_condition": "Production deploy 缺 rollback plan、migration compatibility notes、post-deploy smoke test。",
-      "is_present": true,
-      "evidence_ref": "ops/evidence/production/20260527T1800Z-backup-rollback-incident-smoke.json records production app rollback, feature-flag rollback, worker drain, migration compatibility, incident/alert path, and post-deploy smoke probes, but upstream CI and Private Beta/Staging gate blockers still prevent closure"
+      "is_present": false,
+      "evidence_ref": "ops/evidence/production/rollback-incident-post-deploy-smoke.json records production app rollback, feature-flag rollback, worker drain, migration compatibility, incident/alert path, and post-deploy smoke probes; CI/Staging dependency remains tracked separately by ci_staging_gates_not_passed"
     },
     {
       "condition_id": "public_legal_support_policy_not_deployed",
       "blueprint_condition": "Public launch 缺 Terms、Privacy、Acceptable Use、support contact、AI/content responsibility disclaimer 或 IP complaint flow。",
-      "is_present": true,
-      "evidence_ref": "web and ops legal/support policy artifacts exist, but ops/evidence/production/ production deployed policy visibility evidence remains absent"
+      "is_present": false,
+      "evidence_ref": "ops/evidence/production/public-legal-policy.json and ops/evidence/production/public-support-billing-policy.json prove production public legal/support policy visibility"
     },
     {
       "condition_id": "ci_staging_gates_not_passed",
@@ -127,21 +127,14 @@
   "gate_decision": {
     "status": "no_go",
     "blocked_by_checks": [
-      "production_provider_or_comp_only_mode",
       "production_paid_billing_lifecycle",
-      "production_backup_rollback_incident",
-      "production_legal_support_policy"
+      "production_backup_rollback_incident"
     ],
     "active_do_not_launch_conditions": [
-      "dev_mock_provider_public_claims_unresolved",
-      "real_provider_or_comp_only_mode_missing",
       "paid_billing_or_comp_only_mode_missing",
-      "backup_restore_rollback_smoke_missing",
-      "production_deploy_rollback_smoke_missing",
-      "public_legal_support_policy_not_deployed",
       "ci_staging_gates_not_passed"
     ],
-    "evidence_ref": "fixtures/stage0/rev2/release_gate_evidence.production_launch.json remains no-go while production_provider_or_comp_only_mode, production_paid_billing_lifecycle, production_backup_rollback_incident, and production_legal_support_policy are blocked and dev_mock_provider_public_claims_unresolved, real_provider_or_comp_only_mode_missing, paid_billing_or_comp_only_mode_missing, backup_restore_rollback_smoke_missing, production_deploy_rollback_smoke_missing, public_legal_support_policy_not_deployed, and ci_staging_gates_not_passed remain active; ops/evidence/production/20260527T1800Z-backup-rollback-incident-smoke.json is admin-visible operations evidence but cannot close the backup check before upstream gates pass"
+    "evidence_ref": "fixtures/stage0/rev2/release_gate_evidence.production_launch.json remains no-go while production_paid_billing_lifecycle and production_backup_rollback_incident are blocked and paid_billing_or_comp_only_mode_missing plus ci_staging_gates_not_passed remain active; ops/evidence/production/provider-mode.json and ops/evidence/production/public-paid-real-generation-claims.json close only production_provider_or_comp_only_mode, ops/evidence/production/public-legal-policy.json and ops/evidence/production/public-support-billing-policy.json close only production_legal_support_policy, and ops/evidence/production/backup-restore.json plus ops/evidence/production/rollback-incident-post-deploy-smoke.json prove backup, rollback, incident, migration compatibility, and post-deploy smoke runtime evidence while production_backup_rollback_incident remains blocked until upstream gates pass"
   },
   "provenance": {
     "blueprint_sections": [

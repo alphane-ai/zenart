@@ -40,11 +40,101 @@
       "runtime_status": "validates staging object-storage tenant-scoped signed download, expiry, direct-object denial, and cross-tenant denial from release-SHA-bound staging smoke, backup/restore, and load evidence while preserving retention cleanup blockers",
       "private_beta_gate": "signed URL subitem can close; staging_object_storage_signed_downloads remains blocked until retention policy, expired export cleanup, orphan cleanup, and audit refs pass under ops/evidence/staging/"
     },
+    "staging_object_storage_retention_cleanup_smoke": {
+      "script": "scripts/staging_object_storage_retention_cleanup_smoke.sh",
+      "evidence_path_policy": "ops/evidence/staging/",
+      "latest_retention_cleanup_evidence": "ops/evidence/staging/object-storage-retention-cleanup.json",
+      "runtime_status": "writes honest staging object-storage retention/cleanup evidence for retention policy, expired export cleanup, orphan cleanup, and audit refs; without STAGING_OBJECT_RETENTION_URL the report remains blocked instead of claiming external runtime pass",
+      "private_beta_gate": "open until ops/evidence/staging/object-storage-retention-cleanup.json passes from an external staging retention cleanup probe"
+    },
     "staging_legal_support_visibility_smoke": {
       "script": "scripts/staging_legal_support_visibility_smoke.sh",
       "evidence_path_policy": "ops/evidence/staging/",
-      "runtime_status": "requires STAGING_WEB_URL and successful external-user HTTP probes for Terms, Privacy, Acceptable Use, AI/content responsibility disclaimer, IP complaint flow, visible support contact, report-problem path, and billing/support policy routes; dry-run evidence remains blocked and cannot close private beta gates",
-      "private_beta_gate": "open until ops/evidence/staging legal/support visibility evidence passes for deployed staging web routes; after pass, object-storage retention cleanup remains the separate private beta blocker"
+      "latest_legal_pages_evidence": "ops/evidence/staging/legal-pages-external-user.json",
+      "latest_support_contact_evidence": "ops/evidence/staging/support-contact-external-user.json",
+      "runtime_status": "requires STAGING_WEB_URL and successful external-user HTTP probes for Terms, Privacy, Acceptable Use, AI/content responsibility disclaimer, IP complaint flow, visible support contact, report-problem path, and billing/support policy routes; dry-run evidence remains blocked and cannot close private beta gates; pass reports split into legal-pages-external-user.json and support-contact-external-user.json",
+      "private_beta_gate": "open until ops/evidence/staging legal/support visibility evidence passes for deployed staging web routes and both exact split files are cited; after pass, object-storage retention cleanup remains the separate private beta blocker"
+    },
+    "staging_runtime_artifact_promoter": {
+      "script": "scripts/promote_staging_runtime_artifacts.py",
+      "evidence_path_policy": "ops/evidence/staging/",
+      "canonical_outputs": [
+        "ops/evidence/staging/object-storage-retention-cleanup.json",
+        "ops/evidence/staging/legal-pages-external-user.json",
+        "ops/evidence/staging/support-contact-external-user.json"
+      ],
+      "runtime_status": "promotes only real passing external staging probe artifacts into canonical evidence; blocked, local, localhost, or incomplete artifacts exit 2 and do not close private beta gates",
+      "private_beta_gate": "open until promoted object-retention, legal-pages, and support-contact artifacts all pass and are cited by the release gate fixture"
+    },
+    "production_runtime_artifact_promoter": {
+      "script": "scripts/promote_production_runtime_artifacts.py",
+      "evidence_path_policy": "ops/evidence/production/",
+      "canonical_outputs": [
+        "ops/evidence/production/backup-restore.json",
+        "ops/evidence/production/rollback-incident-post-deploy-smoke.json"
+      ],
+      "runtime_status": "promotes only real passing production backup/restore and rollback/incident/post-deploy smoke artifacts into canonical evidence; blocked, incomplete, or non-production artifacts exit 2 and do not clear upstream CI/Staging gate dependencies",
+      "production_gate": "open until CI and Private Beta/Staging gates pass, production paid lifecycle is intentionally resumed, and promoted production runtime artifacts are cited by the release gate fixture"
+    },
+    "release_runtime_artifact_promoter": {
+      "script": "scripts/promote_release_runtime_artifacts.py",
+      "evidence_path_policy": "ops/evidence/ci/, ops/evidence/staging/, ops/evidence/production/",
+      "promoter_inputs": [
+        "--ci-input-dir",
+        "--staging-input-dir",
+        "--production-input-dir"
+      ],
+      "runtime_status": "runs CI, staging, and production runtime artifact promoters as one strict preflight; any blocked or incomplete input exits 2 and leaves all release gate checklist rows open",
+      "gate_policy": "does not edit release gate fixtures or blueprint checklist rows; it only promotes canonical runtime evidence after all source artifacts pass their gate-specific promoter contracts"
+    },
+    "release_runtime_artifact_collector": {
+      "script": "scripts/collect_release_runtime_artifacts.sh",
+      "artifact_root": "ops/evidence/runtime-inputs",
+      "ci_artifact_pattern": "stage0-rev2-ci-*-evidence",
+      "runtime_status": "prepares CI, staging, and production artifact input directories, exposes --help, optionally downloads CI artifacts with gh run download when RUN_ID is set, and preflights gh --version plus gh auth status before download",
+      "gate_policy": "defaults to DRY_RUN=1 and exits 2 when gh is unavailable, gh auth is missing, source artifacts are missing, or source artifacts are incomplete; it does not edit release gate fixtures or blueprint checklist rows"
+    },
+    "release_runtime_reconciler": {
+      "script": "scripts/reconcile_release_gate_runtime_evidence.py",
+      "default_output": "ops/evidence/release/runtime-reconciliation.json",
+      "runtime_status": "renders a dry-run, non-mutating reconciliation report from canonical CI, staging, and production evidence plus release gate fixtures",
+      "gate_policy": "does not edit release gate fixtures or blueprint checklist rows; preserves Stripe deferred and upstream CI/Staging blockers in the computed report"
+    },
+    "release_runtime_input_planner": {
+      "script": "scripts/plan_release_runtime_inputs.py",
+      "default_output": "ops/evidence/release/runtime-input-manifest.json",
+      "runtime_status": "renders a machine-readable manifest of blocked release checks, classifying runtime_artifact_required, upstream_gate_dependency, and deferred_by_user inputs with operator commands and target input directories",
+      "gate_policy": "does not edit evidence, release gate fixtures, or Docs/stage0_blueprint_rev2.md; it only explains which real runtime artifacts are still required"
+    },
+    "release_runtime_input_preparer": {
+      "script": "scripts/prepare_release_runtime_inputs.py",
+      "default_output": "ops/evidence/release/runtime-input-workspace.json",
+      "runtime_status": "creates only input directories and README files from the runtime input manifest so operators know where to place real CI, staging, and production source artifacts",
+      "gate_policy": "does not create JSON evidence, does not promote artifacts, and cannot close release gates by itself"
+    },
+    "release_gate_fixture_update_planner": {
+      "script": "scripts/plan_release_gate_fixture_updates.py",
+      "default_output": "ops/evidence/release/fixture-update-plan.json",
+      "runtime_status": "renders a dry-run fixture update plan from the release runtime reconciliation report, with exact check status, evidence_ref, Do-Not-Launch condition, and gate_decision recompute suggestions",
+      "gate_policy": "does not edit release gate fixtures or blueprint checklist rows; only pass-ready reconciliation checks can appear as fixture updates, and Stripe deferred checks remain blocked until paid billing resumes"
+    },
+    "stage0_rev2_checklist_closure_planner": {
+      "script": "scripts/plan_stage0_rev2_checklist_closure.py",
+      "default_output": "ops/evidence/release/checklist-closure-plan.json",
+      "runtime_status": "renders a dry-run checklist closure plan from the fixture update plan, mapping pass-ready gate checks to exact Docs/stage0_blueprint_rev2.md checklist rows",
+      "gate_policy": "does not edit Docs/stage0_blueprint_rev2.md; checklist rows close only after matching release gate fixture updates are applied and validation passes"
+    },
+    "release_closure_plan_applier": {
+      "script": "scripts/apply_release_closure_plan.py",
+      "default_output": "ops/evidence/release/closure-apply-report.json",
+      "runtime_status": "dry-run by default; requires --apply to edit release gate fixtures and Docs/stage0_blueprint_rev2.md from planner-produced fixture/checklist closure plans",
+      "gate_policy": "does not synthesize evidence, refuses Stripe deferred paid billing lifecycle updates, and runs python3 scripts/validate_stage0_rev2.py after any --apply mutation"
+    },
+    "release_closure_pipeline": {
+      "script": "scripts/run_release_closure_pipeline.sh",
+      "default_output": "ops/evidence/release/closure-pipeline-report.json",
+      "runtime_status": "runs collect, promote, reconcile, plan, and apply-report steps as one dry-run release closure pipeline while preserving no-go output when runtime artifacts are missing",
+      "gate_policy": "requires --apply plus collector/promoter success before mutating release gate fixtures or Docs/stage0_blueprint_rev2.md; it does not bypass Stripe deferred blockers or validator gates"
     },
     "security_scan_smoke": {
       "script": "scripts/security_scan_smoke.sh",
@@ -62,6 +152,7 @@
     "release_notes_template": "ops/release/release_notes_template.md",
     "current_no_go_release_notes": "ops/release/stage0_rev2_current_no_go_release_notes.md",
     "current_no_go_release_notes_renderer": "scripts/render_no_go_release_notes.py",
+    "runtime_evidence_closure_runbook": "ops/release/stage0_rev2_runtime_evidence_closure.md",
     "dashboard_definition": "ops/observability/dashboards/stage0_rev2_overview.json",
     "alert_definition": "ops/observability/alerts/stage0_rev2_alerts.json"
   },
@@ -212,8 +303,16 @@
     "DRY_RUN=1 scripts/observability_smoke.sh",
     "scripts/staging_observability_backup_load_smoke.sh || test \"$?\" = 2",
     "RUN_ID=stage0-validate-object-storage-signed-url scripts/staging_object_storage_signed_url_smoke.sh",
+    "DRY_RUN=1 RUN_ID=stage0-validate-object-storage-retention-cleanup scripts/staging_object_storage_retention_cleanup_smoke.sh || test \"$?\" = 2",
     "DRY_RUN=1 scripts/staging_legal_support_visibility_smoke.sh || test \"$?\" = 2",
     "DRY_RUN=1 scripts/security_scan_smoke.sh",
+    "python3 scripts/reconcile_release_gate_runtime_evidence.py --out tmp/runtime-reconciliation.json",
+    "python3 scripts/plan_release_runtime_inputs.py --reconciliation tmp/runtime-reconciliation.json --out tmp/runtime-input-manifest.json",
+    "python3 scripts/prepare_release_runtime_inputs.py --manifest tmp/runtime-input-manifest.json --artifact-root tmp/runtime-inputs --out tmp/runtime-input-workspace.json",
+    "python3 scripts/plan_release_gate_fixture_updates.py --reconciliation tmp/runtime-reconciliation.json --out tmp/fixture-update-plan.json",
+    "python3 scripts/plan_stage0_rev2_checklist_closure.py --fixture-plan tmp/fixture-update-plan.json --out tmp/checklist-closure-plan.json",
+    "python3 scripts/apply_release_closure_plan.py --fixture-plan tmp/fixture-update-plan.json --checklist-plan tmp/checklist-closure-plan.json --out tmp/closure-apply-report.json",
+    "scripts/run_release_closure_pipeline.sh --release-out-dir tmp/release-closure-pipeline",
     "scripts/render_no_go_release_notes.py --check",
     "bash scripts/repo_validate.sh"
   ]

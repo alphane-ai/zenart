@@ -15,6 +15,8 @@ WORKFLOW_DIR = ROOT / "fixtures" / "stage0" / "rev2" / "workflows"
 API_EVIDENCE = ROOT / "fixtures" / "stage0" / "rev2" / "eval" / "workflow_api_smoke_evidence.json"
 RESULT_PATH = ROOT / "fixtures" / "stage0" / "rev2" / "eval" / "workflow_runtime_evidence_contract.json"
 DETERMINISTIC_CREATED_AT = "2026-05-26T00:00:00Z"
+LOCAL_ALPHA_WEB_BASE_URL = "http://127.0.0.1:26080"
+LOCAL_ALPHA_WEB_SERVER_CONTRACT = "web/playwright.config.ts webServer starts npm run dev -- --hostname 127.0.0.1 --port 26080"
 
 WORKFLOW_ORDER = [
     "ecommerce_growth_pack",
@@ -54,6 +56,37 @@ def expected_evidence_file(workflow_id: str, evidence_kind: str) -> str:
         "export_zip": "export_zip",
     }
     return f"ops/evidence/local_alpha/{workflow_id}.{suffixes[evidence_kind]}.json"
+
+
+def runtime_file_status(workflow_id: str, evidence_kind: str) -> dict[str, Any]:
+    expected_file = expected_evidence_file(workflow_id, evidence_kind)
+    path = ROOT / expected_file
+    status = "missing"
+    if path.is_file():
+        try:
+            evidence = load_json(path)
+        except WorkflowRuntimeContractError:
+            status = "invalid_json"
+        else:
+            if (
+                evidence.get("schema_version") == "stage0.rev2.local-alpha-runtime-evidence"
+                and evidence.get("environment") == "local_alpha"
+                and evidence.get("workflow_id") == workflow_id
+                and evidence.get("evidence_kind") == evidence_kind
+                and evidence.get("status") == "pass"
+                and evidence.get("release_gate_check_id") == "local_alpha_e2e_workflow_smoke"
+                and evidence.get("proves_running_local_stack") is True
+                and evidence.get("local_stack", {}).get("web_base_url") == LOCAL_ALPHA_WEB_BASE_URL
+                and evidence.get("local_stack", {}).get("web_server_contract") == LOCAL_ALPHA_WEB_SERVER_CONTRACT
+            ):
+                status = "present_passed"
+            else:
+                status = "present_failed_contract"
+    return {
+        "evidence_kind": evidence_kind,
+        "expected_file": expected_file,
+        "status": status,
+    }
 
 
 def checklist_items(workflow_id: str) -> dict[str, str]:
@@ -143,12 +176,33 @@ def workflow_contract(workflow_id: str, workflow: dict[str, Any]) -> dict[str, A
         evidence_contract(workflow_id, "playwright_happy_path", workflow),
         evidence_contract(workflow_id, "export_zip", workflow),
     ]
+    runtime_files = [runtime_file_status(workflow_id, kind) for kind in [
+        "api_smoke",
+        "playwright_happy_path",
+        "export_zip",
+    ]]
+    missing_files = [
+        item["expected_file"]
+        for item in runtime_files
+        if item["status"] != "present_passed"
+    ]
     return {
         "workflow_id": workflow_id,
         "display_name": workflow["display_name"],
         "status": "planned",
         "checklist_items": checklist_items(workflow_id),
         "expected_evidence_files": [item["expected_file"] for item in evidence_items],
+        "runtime_closure_contract": {
+            "release_gate_check_id": "local_alpha_e2e_workflow_smoke",
+            "pass_file_schema_version": "stage0.rev2.local-alpha-runtime-evidence",
+            "pass_file_environment": "local_alpha",
+            "pass_file_status": "pass",
+            "allowed_closed_without_runtime_evidence": False,
+            "missing_runtime_files_keep_checklist_open": True,
+            "runtime_files": runtime_files,
+            "missing_runtime_files": missing_files,
+            "workflow_runtime_closed": not missing_files,
+        },
         "evidence_contracts": evidence_items,
         "release_gate_check": {
             "gate": "local_alpha",
@@ -164,6 +218,7 @@ def build_contract() -> dict[str, Any]:
     require(api_evidence["status"] == "planned", "API smoke evidence must remain dry-run planned")
     workflows = [load_json(WORKFLOW_DIR / f"{workflow_id}.json") for workflow_id in WORKFLOW_ORDER]
     contracts = [workflow_contract(workflow["workflow_id"], workflow) for workflow in workflows]
+    all_runtime_closed = all(contract["runtime_closure_contract"]["workflow_runtime_closed"] for contract in contracts)
     return {
         "schema_version": "stage0.rev2",
         "contract_id": "workflow_runtime_evidence_stage0_rev2_verticals",
@@ -184,7 +239,7 @@ def build_contract() -> dict[str, Any]:
             "playwright_happy_path_contracts": len(contracts),
             "export_zip_contracts": len(contracts),
             "runtime_evidence_required_for_closure": True,
-            "local_alpha_e2e_workflow_smoke_remains_blocked": True,
+            "local_alpha_e2e_workflow_smoke_remains_blocked": not all_runtime_closed,
         },
         "provenance": {
             "blueprint_sections": ["6.1", "15.3", "24.1", "25.12", "25.17"],

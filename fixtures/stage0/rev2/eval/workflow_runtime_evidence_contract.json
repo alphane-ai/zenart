@@ -31,6 +31,33 @@
         "ops/evidence/local_alpha/ecommerce_growth_pack.playwright_happy_path.json",
         "ops/evidence/local_alpha/ecommerce_growth_pack.export_zip.json"
       ],
+      "runtime_closure_contract": {
+        "release_gate_check_id": "local_alpha_e2e_workflow_smoke",
+        "pass_file_schema_version": "stage0.rev2.local-alpha-runtime-evidence",
+        "pass_file_environment": "local_alpha",
+        "pass_file_status": "pass",
+        "allowed_closed_without_runtime_evidence": false,
+        "missing_runtime_files_keep_checklist_open": true,
+        "runtime_files": [
+          {
+            "evidence_kind": "api_smoke",
+            "expected_file": "ops/evidence/local_alpha/ecommerce_growth_pack.api_smoke.json",
+            "status": "present_passed"
+          },
+          {
+            "evidence_kind": "playwright_happy_path",
+            "expected_file": "ops/evidence/local_alpha/ecommerce_growth_pack.playwright_happy_path.json",
+            "status": "present_passed"
+          },
+          {
+            "evidence_kind": "export_zip",
+            "expected_file": "ops/evidence/local_alpha/ecommerce_growth_pack.export_zip.json",
+            "status": "present_passed"
+          }
+        ],
+        "missing_runtime_files": [],
+        "workflow_runtime_closed": true
+      },
       "evidence_contracts": [
         {
           "evidence_kind": "api_smoke",
@@ -200,6 +227,33 @@
         "ops/evidence/local_alpha/business_visual_doc_pack.playwright_happy_path.json",
         "ops/evidence/local_alpha/business_visual_doc_pack.export_zip.json"
       ],
+      "runtime_closure_contract": {
+        "release_gate_check_id": "local_alpha_e2e_workflow_smoke",
+        "pass_file_schema_version": "stage0.rev2.local-alpha-runtime-evidence",
+        "pass_file_environment": "local_alpha",
+        "pass_file_status": "pass",
+        "allowed_closed_without_runtime_evidence": false,
+        "missing_runtime_files_keep_checklist_open": true,
+        "runtime_files": [
+          {
+            "evidence_kind": "api_smoke",
+            "expected_file": "ops/evidence/local_alpha/business_visual_doc_pack.api_smoke.json",
+            "status": "present_passed"
+          },
+          {
+            "evidence_kind": "playwright_happy_path",
+            "expected_file": "ops/evidence/local_alpha/business_visual_doc_pack.playwright_happy_path.json",
+            "status": "present_passed"
+          },
+          {
+            "evidence_kind": "export_zip",
+            "expected_file": "ops/evidence/local_alpha/business_visual_doc_pack.export_zip.json",
+            "status": "present_passed"
+          }
+        ],
+        "missing_runtime_files": [],
+        "workflow_runtime_closed": true
+      },
       "evidence_contracts": [
         {
           "evidence_kind": "api_smoke",
@@ -369,6 +423,33 @@
         "ops/evidence/local_alpha/local_merchant_campaign_pack.playwright_happy_path.json",
         "ops/evidence/local_alpha/local_merchant_campaign_pack.export_zip.json"
       ],
+      "runtime_closure_contract": {
+        "release_gate_check_id": "local_alpha_e2e_workflow_smoke",
+        "pass_file_schema_version": "stage0.rev2.local-alpha-runtime-evidence",
+        "pass_file_environment": "local_alpha",
+        "pass_file_status": "pass",
+        "allowed_closed_without_runtime_evidence": false,
+        "missing_runtime_files_keep_checklist_open": true,
+        "runtime_files": [
+          {
+            "evidence_kind": "api_smoke",
+            "expected_file": "ops/evidence/local_alpha/local_merchant_campaign_pack.api_smoke.json",
+            "status": "present_passed"
+          },
+          {
+            "evidence_kind": "playwright_happy_path",
+            "expected_file": "ops/evidence/local_alpha/local_merchant_campaign_pack.playwright_happy_path.json",
+            "status": "present_passed"
+          },
+          {
+            "evidence_kind": "export_zip",
+            "expected_file": "ops/evidence/local_alpha/local_merchant_campaign_pack.export_zip.json",
+            "status": "present_passed"
+          }
+        ],
+        "missing_runtime_files": [],
+        "workflow_runtime_closed": true
+      },
       "evidence_contracts": [
         {
           "evidence_kind": "api_smoke",
@@ -539,6 +620,33 @@
         "ops/evidence/local_alpha/character_ip_concept_pack.playwright_happy_path.json",
         "ops/evidence/local_alpha/character_ip_concept_pack.export_zip.json"
       ],
+      "runtime_closure_contract": {
+        "release_gate_check_id": "local_alpha_e2e_workflow_smoke",
+        "pass_file_schema_version": "stage0.rev2.local-alpha-runtime-evidence",
+        "pass_file_environment": "local_alpha",
+        "pass_file_status": "pass",
+        "allowed_closed_without_runtime_evidence": false,
+        "missing_runtime_files_keep_checklist_open": true,
+        "runtime_files": [
+          {
+            "evidence_kind": "api_smoke",
+            "expected_file": "ops/evidence/local_alpha/character_ip_concept_pack.api_smoke.json",
+            "status": "present_passed"
+          },
+          {
+            "evidence_kind": "playwright_happy_path",
+            "expected_file": "ops/evidence/local_alpha/character_ip_concept_pack.playwright_happy_path.json",
+            "status": "present_passed"
+          },
+          {
+            "evidence_kind": "export_zip",
+            "expected_file": "ops/evidence/local_alpha/character_ip_concept_pack.export_zip.json",
+            "status": "present_passed"
+          }
+        ],
+        "missing_runtime_files": [],
+        "workflow_runtime_closed": true
+      },
       "evidence_contracts": [
         {
           "evidence_kind": "api_smoke",
@@ -703,7 +811,7 @@
     "playwright_happy_path_contracts": 4,
     "export_zip_contracts": 4,
     "runtime_evidence_required_for_closure": true,
-    "local_alpha_e2e_workflow_smoke_remains_blocked": true
+    "local_alpha_e2e_workflow_smoke_remains_blocked": false
   },
   "provenance": {
     "blueprint_sections": [

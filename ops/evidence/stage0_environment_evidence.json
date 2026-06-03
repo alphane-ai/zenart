@@ -103,9 +103,9 @@
   "open_items": [
     {
       "id": "install_github_actions_workflow",
-      "status": "blocked_by_token_scope",
-      "owner": "maintainer_with_workflow_scope",
-      "evidence": "ops/ci/INSTALLATION.md"
+      "status": "closed_file_installed",
+      "owner": "ops lane",
+      "evidence": ".github/workflows/stage0-rev2-ci.yml is installed locally from ops/ci/stage0-rev2-ci.yml; PR/main runtime artifacts remain tracked by the CI runtime evidence open items"
     },
     {
       "id": "playwright_smoke",

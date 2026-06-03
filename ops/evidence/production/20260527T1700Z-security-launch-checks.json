@@ -125,14 +125,12 @@
     }
   ],
   "gate_impact": {
-    "checklist_item": "Production security launch-check runtime/deployment evidence \u901a\u8fc7\u3002",
+    "checklist_item": "Production security launch-check runtime/deployment evidence 通过。",
     "can_clear_check_level_item": true,
     "aggregate_production_gate_status": "blocked_by_other_production_runtime_items",
     "remaining_blockers": [
-      "production_provider_or_comp_only_mode",
       "production_paid_billing_lifecycle",
-      "production_backup_rollback_incident",
-      "production_legal_support_policy"
+      "production_backup_rollback_incident"
     ]
   }
 }

@@ -157,9 +157,7 @@
     "aggregate_production_gate_status": "blocked_by_upstream_and_other_production_runtime_items",
     "remaining_blockers": [
       "ci_staging_gates_not_passed",
-      "production_provider_or_comp_only_mode",
-      "production_paid_billing_lifecycle",
-      "production_legal_support_policy"
+      "production_paid_billing_lifecycle"
     ]
   }
 }

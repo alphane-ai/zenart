@@ -19,6 +19,9 @@ CONTRACT = FIXTURE_DIR / "eval" / "workflow_runtime_evidence_contract.json"
 API_EVIDENCE = FIXTURE_DIR / "eval" / "workflow_api_smoke_evidence.json"
 RUNNER = ROOT / "scripts" / "run_workflow_runtime_contract.py"
 LOCAL_ALPHA_GATE = FIXTURE_DIR / "release_gate_evidence.local_alpha.json"
+LOCAL_ALPHA_EVIDENCE_DIR = ROOT / "ops" / "evidence" / "local_alpha"
+LOCAL_ALPHA_WEB_BASE_URL = "http://127.0.0.1:26080"
+LOCAL_ALPHA_WEB_SERVER_CONTRACT = "web/playwright.config.ts webServer starts npm run dev -- --hostname 127.0.0.1 --port 26080"
 
 WORKFLOWS = {
     "ecommerce_growth_pack",
@@ -69,9 +72,27 @@ LOCAL_ALPHA_AGGREGATE_ITEM = (
 )
 LOCAL_ALPHA_RUNTIME_CLOSED_WORKFLOWS = {
     "ecommerce_growth_pack",
+    "business_visual_doc_pack",
+    "local_merchant_campaign_pack",
+    "character_ip_concept_pack",
 }
 LOCAL_ALPHA_RUNTIME_CLOSED_ITEM_KEYS = {
     "ecommerce_growth_pack": {
+        "api_smoke",
+        "playwright_happy_path",
+        "release_gate_runtime",
+    },
+    "business_visual_doc_pack": {
+        "api_smoke",
+        "playwright_happy_path",
+        "release_gate_runtime",
+    },
+    "local_merchant_campaign_pack": {
+        "api_smoke",
+        "playwright_happy_path",
+        "release_gate_runtime",
+    },
+    "character_ip_concept_pack": {
         "api_smoke",
         "playwright_happy_path",
         "release_gate_runtime",
@@ -146,6 +167,20 @@ def validate_closed_runtime_evidence_file(path: str, workflow_id: str, kind: str
         f"{workflow_id} {kind} evidence must target Local Alpha workflow smoke gate",
     )
     require(evidence.get("proves_running_local_stack") is True, f"{workflow_id} {kind} must prove running local stack")
+    validate_local_stack(workflow_id, kind, evidence)
+
+
+def validate_local_stack(workflow_id: str, kind: str, evidence: dict[str, Any]) -> None:
+    local_stack = evidence.get("local_stack")
+    require(isinstance(local_stack, dict), f"{workflow_id} {kind} local stack metadata missing")
+    require(
+        local_stack.get("web_base_url") == LOCAL_ALPHA_WEB_BASE_URL,
+        f"{workflow_id} {kind} must prove lane web port {LOCAL_ALPHA_WEB_BASE_URL}",
+    )
+    require(
+        local_stack.get("web_server_contract") == LOCAL_ALPHA_WEB_SERVER_CONTRACT,
+        f"{workflow_id} {kind} must cite the lane web server port contract",
+    )
 
 
 def validate_runner_replay() -> None:
@@ -184,8 +219,8 @@ def validate_top_level(contract: dict[str, Any]) -> None:
     require(summary["export_zip_contracts"] == 4, "runtime contract must cover four export ZIP checks")
     require(summary["runtime_evidence_required_for_closure"] is True, "runtime closure must require evidence")
     require(
-        summary["local_alpha_e2e_workflow_smoke_remains_blocked"] is True,
-        "dry-run contract must keep Local Alpha workflow smoke blocked",
+        summary["local_alpha_e2e_workflow_smoke_remains_blocked"] is False,
+        "runtime contract must not keep Local Alpha workflow smoke blocked after all runtime files pass",
     )
 
 
@@ -199,13 +234,9 @@ def validate_blueprint_and_release_gate(contract: dict[str, Any]) -> None:
         for item in gate["checks"]
     }["local_alpha_e2e_workflow_smoke"]
 
-    require(LOCAL_ALPHA_AGGREGATE_ITEM in unchecked, "Local Alpha aggregate workflow runtime item must remain open")
-    require(LOCAL_ALPHA_AGGREGATE_ITEM not in checked, "dry-run contract must not close Local Alpha aggregate runtime item")
-    require(local_alpha_check["status"] == "blocked", "Local Alpha workflow smoke gate must remain blocked")
-    require(
-        "runtime evidence is absent" in local_alpha_check["evidence_ref"],
-        "Local Alpha gate must still require runtime evidence",
-    )
+    require(LOCAL_ALPHA_AGGREGATE_ITEM in checked, "Local Alpha aggregate workflow runtime item must be checked")
+    require(LOCAL_ALPHA_AGGREGATE_ITEM not in unchecked, "Local Alpha aggregate runtime item cannot remain open")
+    require(local_alpha_check["status"] == "pass", "Local Alpha workflow smoke gate must pass")
 
     evidence_ref = local_alpha_check["evidence_ref"]
     for workflow in contract["workflow_runtime_contracts"]:
@@ -255,6 +286,7 @@ def validate_workflow_contracts(contract: dict[str, Any]) -> None:
         require(runtime_contract["status"] == "planned", f"{workflow_id} runtime contract must remain planned")
         workflow_expected_files = expected_files(workflow_id)
         require(runtime_contract["expected_evidence_files"] == workflow_expected_files, f"{workflow_id} evidence files mismatch")
+        validate_runtime_closure_contract(workflow_id, runtime_contract["runtime_closure_contract"], workflow_expected_files)
 
         release_gate = runtime_contract["release_gate_check"]
         require(release_gate["gate"] == "local_alpha", f"{workflow_id} release gate must be local_alpha")
@@ -267,6 +299,79 @@ def validate_workflow_contracts(contract: dict[str, Any]) -> None:
         validate_api_contract(workflow_id, evidence_contracts["api_smoke"], workflow)
         validate_playwright_contract(workflow_id, evidence_contracts["playwright_happy_path"], workflow)
         validate_export_zip_contract(workflow_id, evidence_contracts["export_zip"], workflow)
+
+
+def validate_runtime_closure_contract(workflow_id: str, closure: dict[str, Any], workflow_expected_files: list[str]) -> None:
+    require(
+        closure["release_gate_check_id"] == "local_alpha_e2e_workflow_smoke",
+        f"{workflow_id} runtime closure release gate mismatch",
+    )
+    require(
+        closure["pass_file_schema_version"] == "stage0.rev2.local-alpha-runtime-evidence",
+        f"{workflow_id} runtime closure schema version mismatch",
+    )
+    require(closure["pass_file_environment"] == "local_alpha", f"{workflow_id} runtime closure environment mismatch")
+    require(closure["pass_file_status"] == "pass", f"{workflow_id} runtime closure pass status mismatch")
+    require(
+        closure["allowed_closed_without_runtime_evidence"] is False,
+        f"{workflow_id} runtime closure must disallow closure without runtime evidence",
+    )
+    require(
+        closure["missing_runtime_files_keep_checklist_open"] is True,
+        f"{workflow_id} missing runtime files must keep checklist items open",
+    )
+
+    expected_by_kind = {
+        "api_smoke": expected_file(workflow_id, "api_smoke"),
+        "playwright_happy_path": expected_file(workflow_id, "playwright_happy_path"),
+        "export_zip": expected_file(workflow_id, "export_zip"),
+    }
+    runtime_files = {item["evidence_kind"]: item for item in closure["runtime_files"]}
+    require(set(runtime_files) == EVIDENCE_KINDS, f"{workflow_id} runtime closure evidence kind mismatch")
+    require(
+        [runtime_files[kind]["expected_file"] for kind in ["api_smoke", "playwright_happy_path", "export_zip"]]
+        == workflow_expected_files,
+        f"{workflow_id} runtime closure file order mismatch",
+    )
+
+    missing_files: list[str] = []
+    for kind, expected_path in expected_by_kind.items():
+        item = runtime_files[kind]
+        require(item["expected_file"] == expected_path, f"{workflow_id} {kind} closure expected file mismatch")
+        path = ROOT / expected_path
+        if path.is_file():
+            evidence = load_json(path)
+            passes = (
+                evidence.get("schema_version") == closure["pass_file_schema_version"]
+                and evidence.get("environment") == closure["pass_file_environment"]
+                and evidence.get("workflow_id") == workflow_id
+                and evidence.get("evidence_kind") == kind
+                and evidence.get("status") == closure["pass_file_status"]
+                and evidence.get("release_gate_check_id") == closure["release_gate_check_id"]
+                and evidence.get("proves_running_local_stack") is True
+                and evidence.get("local_stack", {}).get("web_base_url") == LOCAL_ALPHA_WEB_BASE_URL
+                and evidence.get("local_stack", {}).get("web_server_contract") == LOCAL_ALPHA_WEB_SERVER_CONTRACT
+            )
+            expected_status = "present_passed" if passes else "present_failed_contract"
+        else:
+            expected_status = "missing"
+        require(
+            item["status"] == expected_status,
+            f"{workflow_id} {kind} runtime closure status {item['status']} != {expected_status}",
+        )
+        if expected_status == "present_passed":
+            validate_local_stack(workflow_id, kind, evidence)
+        if expected_status != "present_passed":
+            missing_files.append(expected_path)
+
+    require(
+        closure["missing_runtime_files"] == missing_files,
+        f"{workflow_id} runtime closure missing files mismatch",
+    )
+    require(
+        closure["workflow_runtime_closed"] is (len(missing_files) == 0),
+        f"{workflow_id} runtime closure boolean mismatch",
+    )
 
 
 def validate_common_evidence_fields(workflow_id: str, item: dict[str, Any], kind: str, workflow: dict[str, Any]) -> None:

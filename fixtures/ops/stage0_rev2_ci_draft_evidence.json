@@ -9,13 +9,13 @@
     "23.2",
     "25.17"
   ],
-  "installation_status": "token_blocked",
-  "token_blocked_reason": "Current GitHub token lacks workflow scope, so .github/workflows is intentionally not created, modified, or deleted.",
+  "installation_status": "installed_local",
+  "token_blocked_reason": "Previously token-blocked workflow installation has been resolved locally: .github/workflows/stage0-rev2-ci.yml is installed from ops/ci/stage0-rev2-ci.yml. PR/main runtime execution evidence remains blocked until GitHub Actions run artifacts are written under ops/evidence/ci/.",
   "draft_ref": "ops/ci/stage0-rev2-ci.yml",
   "checklist_policy": {
-    "ci_installation_checklist_remains_open": true,
+    "ci_installation_checklist_remains_open": false,
     "blocked_blueprint_items": [
-      "添加 PR/main CI 到 `.github/workflows`。",
+      "CI installed workflow runtime evidence 通过：PR/main run、Playwright smoke、Docker image build 均有 validator-resolvable evidence。",
       "CI Gate 全部通过。"
     ]
   },
@@ -44,7 +44,10 @@
         "redis:",
         "minio:",
         "python3 scripts/generate_openapi_clients.py --check",
-        "python3 scripts/validate_stage0_rev2.py"
+        "python3 scripts/validate_stage0_rev2.py",
+        "python3 scripts/write_ci_runtime_evidence.py",
+        "actions/upload-artifact@v4",
+        "stage0-rev2-ci-workflow-run-evidence"
       ]
     },
     {
@@ -78,7 +81,8 @@
       ],
       "required_draft_tokens": [
         "playwright-smoke",
-        "DRY_RUN=1 scripts/playwright_smoke.sh"
+        "OUT_DIR=ops/evidence/ci WEB_URL=http://127.0.0.1:26080 ADMIN_URL=http://127.0.0.1:26081 scripts/playwright_smoke.sh",
+        "stage0-rev2-ci-playwright-smoke-evidence"
       ]
     },
     {
@@ -99,6 +103,7 @@
       ],
       "required_draft_tokens": [
         "docker build --tag ghcr.io/alphane-ai/zenart-${{ matrix.image.name }}:${{ github.sha }}",
+        "stage0-rev2-ci-docker-image-build-${{ matrix.image.name }}-evidence",
         "bash -n scripts/docker_build_smoke.sh",
         "bash -n scripts/staging_smoke.sh",
         "bash -n scripts/staging_legal_support_visibility_smoke.sh"
@@ -125,6 +130,6 @@
   ],
   "release_gate_effect": {
     "ci_gate_status": "blocked",
-    "reason": "Draft coverage is validated, but installed GitHub Actions workflow remains token-blocked."
+    "reason": "Installed GitHub Actions workflow file is present, but PR/main workflow run, Playwright smoke runtime, and Docker image build runtime evidence remain blocked."
   }
 }

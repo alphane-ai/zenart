@@ -12,6 +12,8 @@ STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 RUN_ID="${RUN_ID:-${STAMP}-legal-support-visibility-$$}"
 REPORT_PATH="$OUT_DIR/${RUN_ID}.json"
 RESULTS_PATH="$OUT_DIR/${RUN_ID}.ndjson"
+LEGAL_REPORT_PATH="${LEGAL_REPORT_PATH:-$OUT_DIR/legal-pages-external-user.json}"
+SUPPORT_REPORT_PATH="${SUPPORT_REPORT_PATH:-$OUT_DIR/support-contact-external-user.json}"
 RELEASE_SHA="${RELEASE_SHA:-${GITHUB_SHA:-}}"
 
 mkdir -p "$OUT_DIR"
@@ -101,7 +103,7 @@ else
   done
 fi
 
-python3 - "$REPORT_PATH" "$RESULTS_PATH" "$RUN_ID" "$RELEASE_SHA" "$WEB_URL" <<'PY'
+python3 - "$REPORT_PATH" "$RESULTS_PATH" "$RUN_ID" "$RELEASE_SHA" "$WEB_URL" "$LEGAL_REPORT_PATH" "$SUPPORT_REPORT_PATH" <<'PY'
 import json
 import sys
 from pathlib import Path
@@ -111,6 +113,8 @@ results_path = Path(sys.argv[2])
 run_id = sys.argv[3]
 release_sha = sys.argv[4].strip()
 web_url = sys.argv[5].strip()
+legal_report_path = Path(sys.argv[6])
+support_report_path = Path(sys.argv[7])
 
 results = [
     json.loads(line)
@@ -150,6 +154,46 @@ def coverage_item(area, check_ids, summary):
         "evidence_refs": evidence_refs,
         "routes": [item["path"] for item in related],
         "expected_tokens": sorted({token for item in related for token in item["expected_tokens"]}),
+    }
+
+def split_report(evidence_id, kind, check_ids, status, coverage_area, check_level_item, extra_tokens):
+    related = [item for item in results if item["check_id"] in check_ids]
+    return {
+        "schema_version": "stage0.rev2.staging.legal_support_visibility",
+        "evidence_id": evidence_id,
+        "blueprint_source": "Docs/stage0_blueprint_rev2.md",
+        "environment": "staging",
+        "kind": kind,
+        "status": status,
+        "release_sha": release_sha,
+        "web_url": web_url,
+        "validated_by_role": "external_user_smoke",
+        "release_gate_check_id": "staging_legal_external_user_pages",
+        "do_not_launch_condition_id": "external_user_legal_pages_missing",
+        "results_path": str(results_path),
+        "coverage": [
+            {
+                "area": coverage_area,
+                "status": status,
+                "runtime_probe": "External-user staging HTTP visibility probe verified deployed routes and visible copy; web source files alone do not satisfy this check.",
+                "external_user_evidence": "external user visibility probe",
+                "routes": [item["path"] for item in related],
+                "expected_tokens": sorted({token for item in related for token in item["expected_tokens"]} | set(extra_tokens)),
+                "evidence_refs": [str(results_path), str(report_path)],
+                "results": related,
+            }
+        ],
+        "blocked_checks": [
+            f"{item['check_id']}:{item['reason']}"
+            for item in related
+            if item["status"] != "passed"
+        ],
+        "gate_impact": {
+            "check_level_item": check_level_item,
+            "can_clear_check_level_item": status == "pass",
+            "can_clear_release_gate_check": False,
+            "aggregate_private_beta_gate_status": "blocked_until_legal_and_support_split_evidence_are_both_cited",
+        },
     }
 
 report = {
@@ -202,10 +246,32 @@ report = {
     },
 }
 report_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+legal_status = "pass" if required_legal <= passed and not any(item["status"] != "passed" for item in results if item["check_id"] in required_legal) else "blocked"
+support_status = "pass" if required_support <= passed and not any(item["status"] != "passed" for item in results if item["check_id"] in required_support) else "blocked"
+legal_report = split_report(
+    run_id + "-legal-pages",
+    "legal_pages_external_user_visibility",
+    required_legal,
+    legal_status,
+    "legal_pages_visibility",
+    "Private Beta/Staging legal pages external-user visibility evidence 通过：staging evidence proves Terms、Privacy、Acceptable Use、AI/content disclaimer、IP complaint flow are externally visible under `ops/evidence/staging/`。",
+    ["terms", "privacy", "acceptable use", "ai/content", "ip complaint", "external user"],
+)
+support_report = split_report(
+    run_id + "-support-contact",
+    "support_contact_external_user_visibility",
+    required_support,
+    support_status,
+    "support_contact_visibility",
+    "Private Beta/Staging support contact external-user visibility evidence 通过：staging evidence proves visible support contact/report-problem path for external users under `ops/evidence/staging/`。",
+    ["support", "report-problem", "external user"],
+)
+legal_report_path.write_text(json.dumps(legal_report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+support_report_path.write_text(json.dumps(support_report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 if all_passed:
-    print(f"staging legal/support visibility passed; evidence written to {report_path}")
+    print(f"staging legal/support visibility passed; evidence written to {report_path}, {legal_report_path}, {support_report_path}")
 else:
-    print(f"staging legal/support visibility blocked; evidence written to {report_path}")
+    print(f"staging legal/support visibility blocked; evidence written to {report_path}, {legal_report_path}, {support_report_path}")
 PY
 
 python3 - "$REPORT_PATH" <<'PY'

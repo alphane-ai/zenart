@@ -553,7 +553,7 @@ def validate_release_notes_ref(value):
 
 
 def validate_image_refs(refs):
-    required_images = ["backend", "web", "admin"]
+    required_images = ["backend", "web", "admin", "manager"]
     sha_tokens = [release_sha]
     if len(release_sha) >= 12:
         sha_tokens.append(release_sha[:12])

@@ -4,8 +4,8 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-WEB_URL="${WEB_URL:-http://localhost:3000}"
-ADMIN_URL="${ADMIN_URL:-http://localhost:3001}"
+WEB_URL="${WEB_URL:-http://localhost:26080}"
+ADMIN_URL="${ADMIN_URL:-http://localhost:26081}"
 DRY_RUN="${DRY_RUN:-0}"
 OUT_DIR="${OUT_DIR:-ops/evidence/playwright/local}"
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
