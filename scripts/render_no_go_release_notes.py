@@ -109,6 +109,59 @@ def present_do_not_launch(gate: dict) -> list[str]:
     ]
 
 
+def global_do_not_launch_snapshot(gates: dict[str, dict]) -> str:
+    gate_paths = {
+        "local_alpha": LOCAL_ALPHA_GATE,
+        "ci": CI_GATE,
+        "private_beta_staging": PRIVATE_BETA_GATE,
+        "production_launch": PRODUCTION_GATE,
+    }
+    gate_order = [
+        "local_alpha",
+        "ci",
+        "private_beta_staging",
+        "production_launch",
+    ]
+    required_go_decisions = [
+        f"{path.relative_to(ROOT)} gate_decision.status=go"
+        for path in [
+            LOCAL_ALPHA_GATE,
+            CI_GATE,
+            PRIVATE_BETA_GATE,
+            PRODUCTION_GATE,
+        ]
+    ]
+    non_go = [
+        f"{path.relative_to(ROOT)} gate_decision.status={gate.get('gate_decision', {}).get('status', 'missing')}"
+        for path, gate in [
+            (LOCAL_ALPHA_GATE, gates["local_alpha"]),
+            (CI_GATE, gates["ci"]),
+            (PRIVATE_BETA_GATE, gates["private_beta_staging"]),
+            (PRODUCTION_GATE, gates["production_launch"]),
+        ]
+        if gate.get("gate_decision", {}).get("status") != "go"
+    ]
+    active_conditions = [
+        f"{gate_paths[gate_id].relative_to(ROOT)} condition_id={condition} is_present=true"
+        for gate_id in gate_order
+        for gate in [gates[gate_id]]
+        for condition in present_do_not_launch(gate)
+    ]
+    status = "open" if non_go or active_conditions else "closed"
+    checklist_state = (
+        "remains open until"
+        if status == "open"
+        else "may close because"
+    )
+    return (
+        f"- Global Do-Not-Launch Conditions: `{status}`; non-go gate decisions: {comma_or_missing(non_go)}; "
+        f"active conditions: {comma_or_missing(active_conditions)}; required closure decisions: "
+        f"{comma_or_missing(required_go_decisions)}; checklist row "
+        f"`Do-Not-Launch Conditions 全部为 false。` {checklist_state} every release gate fixture computes "
+        "`gate_decision.status=go` and no fixture has `is_present=true` do-not-launch conditions."
+    )
+
+
 def gate_snapshot_line(label: str, path: Path, gate: dict) -> str:
     decision = gate.get("gate_decision", {})
     blockers = comma_or_missing(gate_blockers(gate))
@@ -466,6 +519,12 @@ def render(release_sha: str, release_tag: str, owner: str, reviewer: str, date: 
     private_beta_dnl = present_do_not_launch(private_beta)
     production_blockers = gate_blockers(production)
     production_dnl = present_do_not_launch(production)
+    gates = {
+        "local_alpha": local_alpha,
+        "ci": ci_gate,
+        "private_beta_staging": private_beta,
+        "production_launch": production,
+    }
 
     release_sha_text = release_sha or "not selected; set RELEASE_SHA for a deploy candidate"
     release_tag_text = release_tag or "n/a"
@@ -559,6 +618,7 @@ def render(release_sha: str, release_tag: str, owner: str, reviewer: str, date: 
         gate_snapshot_line("CI gate", CI_GATE, ci_gate),
         gate_snapshot_line("Private Beta/Staging gate", PRIVATE_BETA_GATE, private_beta),
         gate_snapshot_line("Production Launch gate", PRODUCTION_GATE, production),
+        global_do_not_launch_snapshot(gates),
         "- Release posture: Local Alpha is the only closed gate; CI, Private Beta/Staging, Production Launch, and global Do-Not-Launch remain open until their exact fixture blockers above are cleared by runtime evidence.",
         "",
         "## Rollback Plan",

@@ -34,6 +34,7 @@ ENVIRONMENT_EVIDENCE = ROOT / "ops" / "evidence" / "stage0_environment_evidence.
 DRILL_PLAN_EVIDENCE = ROOT / "ops" / "evidence" / "stage0_drill_plan.json"
 OBSERVABILITY_EVIDENCE = ROOT / "ops" / "evidence" / "stage0_observability_evidence.json"
 RELEASE_OPS_EVIDENCE = ROOT / "ops" / "evidence" / "stage0_release_ops_evidence.json"
+CURRENT_NO_GO_RELEASE_NOTES = ROOT / "ops" / "release" / "stage0_rev2_current_no_go_release_notes.md"
 STAGING_SUPPORT_RETRY_ABUSE_EVIDENCE = ROOT / "ops" / "evidence" / "staging" / "20260527T1000Z-support-retry-abuse.json"
 STAGING_AUTH_RBAC_TENANT_AUDIT_EVIDENCE = (
     ROOT / "ops" / "evidence" / "staging" / "20260527T1515Z-auth-rbac-tenant-audit.json"
@@ -6693,13 +6694,149 @@ def validate_release_gate_order_dependencies(evidence: dict[str, dict[str, Any]]
 
 def active_do_not_launch_conditions_by_gate(evidence: dict[str, dict[str, Any]]) -> dict[str, list[str]]:
     return {
-        gate: sorted(
+        gate: [
             item["condition_id"]
             for item in data["do_not_launch_checks"]
             if item["is_present"]
-        )
+        ]
         for gate, data in evidence.items()
     }
+
+
+def validate_current_no_go_release_notes_snapshot(evidence: dict[str, dict[str, Any]]) -> None:
+    require(
+        CURRENT_NO_GO_RELEASE_NOTES.exists(),
+        "current no-go release notes must exist",
+    )
+    result = subprocess.run(
+        [sys.executable, str(ROOT / "scripts" / "render_no_go_release_notes.py"), "--check"],
+        cwd=ROOT,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    require(
+        result.returncode == 0,
+        "current no-go release notes are stale; run scripts/render_no_go_release_notes.py --write\n"
+        + result.stdout
+        + result.stderr,
+    )
+    notes = CURRENT_NO_GO_RELEASE_NOTES.read_text(encoding="utf-8")
+    global_line = next(
+        (
+            line
+            for line in notes.splitlines()
+            if line.startswith("- Global Do-Not-Launch Conditions:")
+        ),
+        "",
+    )
+    require(
+        global_line,
+        "current no-go release notes must include a fixture-derived global Do-Not-Launch snapshot row",
+    )
+
+    active_conditions_by_gate = active_do_not_launch_conditions_by_gate(evidence)
+    active_condition_ids = {
+        condition_id
+        for conditions in active_conditions_by_gate.values()
+        for condition_id in conditions
+    }
+    active_condition_tokens = {
+        f"{rel(RELEASE_GATE_EVIDENCE_FILES[gate])} condition_id={condition_id} is_present=true"
+        for gate, conditions in active_conditions_by_gate.items()
+        for condition_id in conditions
+    }
+    expected_active_condition_token_order = [
+        f"{rel(RELEASE_GATE_EVIDENCE_FILES[gate])} condition_id={condition_id} is_present=true"
+        for gate in RELEASE_GATE_EVIDENCE_FILES
+        for condition_id in active_conditions_by_gate[gate]
+    ]
+    non_go_decisions = {
+        gate: gate_decision_status(data)
+        for gate, data in evidence.items()
+        if gate_decision_status(data) != "go"
+    }
+    expected_status = "open" if active_condition_ids or non_go_decisions else "closed"
+    require(
+        f"`{expected_status}`" in global_line,
+        "current no-go release notes global Do-Not-Launch row must mirror computed fixture state",
+    )
+    for gate, status in non_go_decisions.items():
+        fixture_token = f"{rel(RELEASE_GATE_EVIDENCE_FILES[gate])} gate_decision.status={status}"
+        require(
+            fixture_token in global_line,
+            "current no-go release notes global Do-Not-Launch row missing non-go fixture token: "
+            + fixture_token,
+        )
+    for gate, path in RELEASE_GATE_EVIDENCE_FILES.items():
+        fixture_token = f"{rel(path)} gate_decision.status=go"
+        require(
+            fixture_token in global_line,
+            "current no-go release notes global Do-Not-Launch row missing required closure decision token: "
+            + fixture_token,
+        )
+    for condition_token in active_condition_tokens:
+        require(
+            condition_token in global_line,
+            "current no-go release notes global Do-Not-Launch row missing active condition: "
+            + condition_token,
+        )
+    active_section = global_line.split("; required closure decisions:", 1)[0].split(
+        "active conditions: ",
+        1,
+    )[1]
+    actual_active_condition_token_order = [] if active_section == "none recorded" else active_section.split(", ")
+    require(
+        actual_active_condition_token_order == expected_active_condition_token_order,
+        "current no-go release notes global Do-Not-Launch row must preserve fixture/gate order for active conditions: "
+        + json.dumps(
+            {
+                "expected": expected_active_condition_token_order,
+                "actual": actual_active_condition_token_order,
+            },
+            ensure_ascii=False,
+        ),
+    )
+    inactive_conditions = {
+        (gate, item["condition_id"])
+        for gate, data in evidence.items()
+        for item in data.get("do_not_launch_checks", [])
+        if item["condition_id"] not in active_conditions_by_gate.get(gate, [])
+    }
+    for gate, condition_id in inactive_conditions:
+        condition_token = f"{rel(RELEASE_GATE_EVIDENCE_FILES[gate])} condition_id={condition_id} is_present=true"
+        require(
+            condition_token not in global_line,
+            "current no-go release notes global Do-Not-Launch row includes inactive condition token: "
+            + condition_token,
+        )
+    inactive_condition_ids = {
+        item["condition_id"]
+        for data in evidence.values()
+        for item in data.get("do_not_launch_checks", [])
+        if item["condition_id"] not in active_condition_ids
+    }
+    for condition_id in inactive_condition_ids:
+        require(
+            condition_id not in global_line,
+            "current no-go release notes global Do-Not-Launch row includes inactive condition: "
+            + condition_id,
+        )
+    for token in [
+        GLOBAL_DO_NOT_LAUNCH_CHECKLIST_ITEM,
+        "gate_decision.status=go",
+        "is_present=true",
+    ]:
+        require(
+            token in global_line,
+            "current no-go release notes global Do-Not-Launch row missing closure token: "
+            + token,
+        )
+    require(
+        "README.md" not in global_line and "Docs/stage0_blueprint_rev2.md" not in global_line,
+        "current no-go release notes global Do-Not-Launch row cannot cite prose docs as closure evidence",
+    )
 
 
 def validate_global_do_not_launch_checklist_item(
@@ -10173,6 +10310,7 @@ def validate_release_gate_evidence() -> None:
     evidence = release_evidence_by_gate()
     missing_gates = set(GATE_CHECKLIST_ITEMS.values()) - set(evidence)
     require(not missing_gates, f"release gate evidence missing gates: {sorted(missing_gates)}")
+    validate_current_no_go_release_notes_snapshot(evidence)
     validate_global_do_not_launch_condition_coverage(evidence)
     blueprint_text = BLUEPRINT.read_text(encoding="utf-8")
     blueprint_checked = checked_items(blueprint_text)
