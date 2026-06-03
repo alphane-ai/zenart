@@ -1,0 +1,198 @@
+{
+  "audit_refs": [
+    "au-007",
+    "au-012"
+  ],
+  "blueprint_source": "Docs/stage0_blueprint_rev2.md",
+  "cleanup_results": [
+    {
+      "audit_ref": "au-007",
+      "cleanup_type": "expired export cleanup",
+      "object_id": "ex-909",
+      "runtime_probe": "expired export cleanup retained support-ticket linkage and audit ref while denying stale signed URLs",
+      "status": "pass"
+    },
+    {
+      "audit_ref": "au-012",
+      "cleanup_type": "orphan cleanup",
+      "object_id": "cf-118",
+      "runtime_probe": "orphan cleanup removed crawler-derived raw material after retention deletion while preserving derivative review evidence",
+      "status": "pass"
+    }
+  ],
+  "coverage": [
+    {
+      "area": "retention_policy",
+      "audit_refs": [
+        "au-007"
+      ],
+      "evidence_refs": [
+        "ops/evidence/staging/20260527T2115Z-backup-restore.json",
+        "ops/evidence/staging/20260527T2120Z-load.json",
+        "ops/evidence/staging/20260527T2130Z-object-storage-signed-url.json"
+      ],
+      "external_or_contract_probe": {
+        "git_sha": "1a875f0e963766976c0e69233e0fd2466e686297",
+        "operator_role": "staging_admin_operator",
+        "probe_mode": "local_contract_replay",
+        "reason": "missing_staging_object_retention_url; source staging evidence was replayed for contract coverage, but no external retention cleanup endpoint was probed",
+        "release_sha_observed": "d3b1107c33dc40b8936f28549e06553fbd7b104a",
+        "request_id": "stage0-main-retention-check-local-retention-cleanup",
+        "runtime_ref": "staging-object-retention-cleanup-stage0-main-retention-check",
+        "status": "blocked"
+      },
+      "object_ids": [
+        "ex-909"
+      ],
+      "runtime_probe": "Staging object storage retention policy source evidence preserved retention metadata across object restore and signed download runtime evidence; external cleanup endpoint proof is still required.",
+      "status": "pass",
+      "tenant_ids": [
+        "tenant-alpha"
+      ]
+    },
+    {
+      "area": "expired_export_cleanup",
+      "audit_refs": [
+        "au-007",
+        "sup-2204"
+      ],
+      "evidence_refs": [
+        "ops/evidence/staging/20260527T2120Z-load.json",
+        "ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json",
+        "ops/evidence/staging/20260527T2130Z-object-storage-signed-url.json"
+      ],
+      "external_or_contract_probe": {
+        "git_sha": "1a875f0e963766976c0e69233e0fd2466e686297",
+        "operator_role": "staging_admin_operator",
+        "probe_mode": "local_contract_replay",
+        "reason": "missing_staging_object_retention_url; source staging evidence was replayed for contract coverage, but no external retention cleanup endpoint was probed",
+        "release_sha_observed": "d3b1107c33dc40b8936f28549e06553fbd7b104a",
+        "request_id": "stage0-main-retention-check-local-retention-cleanup",
+        "runtime_ref": "staging-object-retention-cleanup-stage0-main-retention-check",
+        "status": "blocked"
+      },
+      "object_ids": [
+        "ex-909"
+      ],
+      "runtime_probe": "Staging expired export cleanup source evidence proves regenerated export lifecycle, support-ticket linkage, retained audit refs, and signed download expiry enforcement for ex-909; external cleanup endpoint proof is still required.",
+      "status": "pass",
+      "tenant_ids": [
+        "tenant-alpha"
+      ]
+    },
+    {
+      "area": "orphan_cleanup",
+      "audit_refs": [
+        "au-007",
+        "au-012"
+      ],
+      "evidence_refs": [
+        "ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json",
+        "ops/evidence/staging/20260527T2115Z-backup-restore.json",
+        "ops/evidence/staging/20260527T2130Z-object-storage-signed-url.json"
+      ],
+      "external_or_contract_probe": {
+        "git_sha": "1a875f0e963766976c0e69233e0fd2466e686297",
+        "operator_role": "staging_admin_operator",
+        "probe_mode": "local_contract_replay",
+        "reason": "missing_staging_object_retention_url; source staging evidence was replayed for contract coverage, but no external retention cleanup endpoint was probed",
+        "release_sha_observed": "d3b1107c33dc40b8936f28549e06553fbd7b104a",
+        "request_id": "stage0-main-retention-check-local-retention-cleanup",
+        "runtime_ref": "staging-object-retention-cleanup-stage0-main-retention-check",
+        "status": "blocked"
+      },
+      "object_ids": [
+        "ex-909",
+        "cf-118"
+      ],
+      "runtime_probe": "Staging orphan cleanup source evidence proves crawler retention deletion and export-package cleanup paths remain visible in post-deploy smoke without raw object-key exposure; external cleanup endpoint proof is still required.",
+      "status": "pass",
+      "tenant_ids": [
+        "tenant-alpha"
+      ]
+    },
+    {
+      "area": "audit_refs",
+      "audit_refs": [
+        "au-007",
+        "au-012"
+      ],
+      "evidence_refs": [
+        "ops/evidence/staging/20260527T2115Z-backup-restore.json",
+        "ops/evidence/staging/20260527T2120Z-load.json",
+        "ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json",
+        "ops/evidence/staging/20260527T2130Z-object-storage-signed-url.json"
+      ],
+      "external_or_contract_probe": {
+        "git_sha": "1a875f0e963766976c0e69233e0fd2466e686297",
+        "operator_role": "staging_admin_operator",
+        "probe_mode": "local_contract_replay",
+        "reason": "missing_staging_object_retention_url; source staging evidence was replayed for contract coverage, but no external retention cleanup endpoint was probed",
+        "release_sha_observed": "d3b1107c33dc40b8936f28549e06553fbd7b104a",
+        "request_id": "stage0-main-retention-check-local-retention-cleanup",
+        "runtime_ref": "staging-object-retention-cleanup-stage0-main-retention-check",
+        "status": "blocked"
+      },
+      "object_ids": [
+        "ex-909",
+        "cf-118"
+      ],
+      "runtime_probe": "Staging cleanup source evidence links retention policy, expired export cleanup, and orphan cleanup to immutable audit refs au-007 and au-012; external cleanup endpoint proof is still required.",
+      "status": "pass",
+      "tenant_ids": [
+        "tenant-alpha"
+      ]
+    }
+  ],
+  "do_not_launch_condition_id": "object_storage_signed_retention_runtime_missing",
+  "environment": "staging",
+  "evidence_id": "stage0-main-retention-check",
+  "gate_impact": {
+    "can_clear_release_gate_check": false,
+    "can_clear_retention_cleanup_checklist_item": false,
+    "check_level_item": "Private Beta/Staging object retention/cleanup runtime evidence \u901a\u8fc7\uff1astaging evidence proves retention policy, expired export cleanup, orphan cleanup, and audit refs under `ops/evidence/staging/`\u3002",
+    "remaining_object_storage_blockers": [
+      "missing external staging object retention cleanup probe"
+    ],
+    "remaining_release_gate_blockers_after_pass": [
+      "staging_legal_external_user_pages"
+    ]
+  },
+  "kind": "object_storage_retention_cleanup",
+  "object_ids": [
+    "ex-909",
+    "cf-118"
+  ],
+  "probe": {
+    "git_sha": "1a875f0e963766976c0e69233e0fd2466e686297",
+    "operator_role": "staging_admin_operator",
+    "probe_mode": "local_contract_replay",
+    "reason": "missing_staging_object_retention_url; source staging evidence was replayed for contract coverage, but no external retention cleanup endpoint was probed",
+    "release_sha_observed": "d3b1107c33dc40b8936f28549e06553fbd7b104a",
+    "request_id": "stage0-main-retention-check-local-retention-cleanup",
+    "runtime_ref": "staging-object-retention-cleanup-stage0-main-retention-check",
+    "status": "blocked"
+  },
+  "release_gate_check_id": "staging_object_storage_signed_downloads",
+  "release_sha": "d3b1107c33dc40b8936f28549e06553fbd7b104a",
+  "retention_policy": {
+    "audit_refs": [
+      "au-007"
+    ],
+    "policy_ref": "object_metadata.retention_until",
+    "runtime_probe": "retention metadata preserved across object restore and signed download load",
+    "status": "pass"
+  },
+  "schema_version": "stage0.rev2.staging.object_storage_retention_cleanup",
+  "source_evidence": {
+    "expired_export_cleanup_evidence": "ops/evidence/staging/20260527T2120Z-load.json",
+    "orphan_cleanup_evidence": "ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json",
+    "retention_policy_evidence": "ops/evidence/staging/20260527T2115Z-backup-restore.json",
+    "signed_url_evidence": "ops/evidence/staging/20260527T2130Z-object-storage-signed-url.json"
+  },
+  "status": "blocked",
+  "tenant_ids": [
+    "tenant-alpha"
+  ],
+  "validated_by_role": "staging_admin_operator"
+}

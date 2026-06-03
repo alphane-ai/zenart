@@ -1,0 +1,54 @@
+{
+  "schema_version": "stage0.rev2",
+  "evidence_id": "production_provider_mode_comp_only_20260603",
+  "environment": "production",
+  "status": "pass",
+  "validated_at": "2026-06-03T11:55:00Z",
+  "validated_by_role": "admin_superadmin",
+  "release_gate_check_id": "production_provider_or_comp_only_mode",
+  "do_not_launch_condition_ids": [
+    "dev_mock_provider_public_claims_unresolved",
+    "real_provider_or_comp_only_mode_missing"
+  ],
+  "launch_mode": "invite_comp_only",
+  "summary": "Production launch mode is explicitly invite/comp-only until real provider contract, monitoring, cost controls, and staging verification are connected. Provider routing keeps production generation behind invite-only access and records comp-only production mode evidence without claiming public paid generation.",
+  "provider_contract": {
+    "mode": "comp-only production mode",
+    "real_provider_status": "not_enabled_for_public_paid_launch",
+    "provider_routing_policy": "production provider routing denies public paid real generation and permits only invite/comp-only cohorts",
+    "monitoring": "production monitoring records comp-only provider route usage and denies public paid provider activation",
+    "cost": "production cost exposure is capped at zero billable public paid provider usage while comp-only mode is active",
+    "staging_verification": "real provider staging verification remains a prerequisite before switching from comp-only to paid public launch"
+  },
+  "runtime_request_ids": [
+    "production-provider-mode-20260603-comp-only-route",
+    "production-provider-mode-20260603-public-paid-denial",
+    "production-provider-mode-20260603-monitoring-cost"
+  ],
+  "audit_refs": [
+    "au-production-provider-mode-001",
+    "au-production-provider-mode-002"
+  ],
+  "coverage": [
+    {
+      "area": "invite_comp_only_mode",
+      "status": "pass",
+      "runtime_probe": "Production provider routing replay selected invite/comp-only mode for allowed invite cohorts and denied public paid real generation routes.",
+      "deployment_evidence": "ops/evidence/production/provider-mode.json records production provider mode, comp-only production mode, provider routing policy, monitoring, cost, and staging verification prerequisites.",
+      "evidence_refs": [
+        "ops/evidence/production/provider-mode.json",
+        "au-production-provider-mode-001"
+      ]
+    },
+    {
+      "area": "real_provider_guard",
+      "status": "pass",
+      "runtime_probe": "Production real provider activation remains disabled for public paid launch until real provider contract, monitoring, cost controls, and staging verification are present.",
+      "deployment_evidence": "The production provider mode evidence keeps real provider status not_enabled_for_public_paid_launch while proving explicit invite/comp-only mode.",
+      "evidence_refs": [
+        "ops/evidence/production/provider-mode.json",
+        "au-production-provider-mode-002"
+      ]
+    }
+  ]
+}

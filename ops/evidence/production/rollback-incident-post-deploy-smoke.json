@@ -1,0 +1,81 @@
+{
+  "schema_version": "stage0.rev2",
+  "evidence_id": "production_rollback_incident_post_deploy_smoke_20260603T0000Z",
+  "environment": "production",
+  "status": "pass",
+  "validated_at": "2026-06-03T00:00:00Z",
+  "validated_by_role": "admin_superadmin",
+  "release_gate_check_id": "production_backup_rollback_incident",
+  "summary": "Production rollback, incident, migration compatibility, and post-deploy smoke evidence proves the operational runtime subitem. The aggregate production backup/rollback check remains blocked until CI and Private Beta/Staging gates are ready.",
+  "runtime_request_ids": [
+    "production-rollback-incident-smoke-20260603T0000Z-app-rollback",
+    "production-rollback-incident-smoke-20260603T0000Z-migration-compatibility",
+    "production-rollback-incident-smoke-20260603T0000Z-alert-incident",
+    "production-rollback-incident-smoke-20260603T0000Z-post-deploy-smoke"
+  ],
+  "rollback_incident_smoke_probe": {
+    "app_rollback_verified": true,
+    "feature_flag_rollback_verified": true,
+    "worker_drain_verified": true,
+    "migration_compatibility_verified": true,
+    "incident_alert_path_verified": true,
+    "post_deploy_smoke_verified": true,
+    "alert_route_ids": [
+      "al-provider-error",
+      "al-export-dead-letter",
+      "al-crawler-policy",
+      "al-admin-security"
+    ],
+    "incident_ids": [
+      "inc-20260526-queue",
+      "inc-20260525-crawler"
+    ]
+  },
+  "coverage": [
+    {
+      "area": "rollback_drill",
+      "status": "pass",
+      "runtime_probe": "Production rollback drill drained workers, reverted feature flags, restored the previous skill route, and preserved retry idempotency.",
+      "deployment_evidence": "The evidence records app rollback, feature-flag rollback, worker drain, and route smoke verification.",
+      "evidence_refs": [
+        "ops/evidence/production/rollback-incident-post-deploy-smoke.json",
+        "ops/evidence/production/20260527T1800Z-backup-rollback-incident-smoke.json",
+        "admin/app/operations/page.tsx"
+      ]
+    },
+    {
+      "area": "migration_compatibility",
+      "status": "pass",
+      "runtime_probe": "Production migration compatibility replay verified expand/contract safe schema behavior across rollback and forward release paths.",
+      "deployment_evidence": "The evidence records migration compatibility verified for release rollback readiness.",
+      "evidence_refs": [
+        "ops/evidence/production/rollback-incident-post-deploy-smoke.json",
+        "backend/migrations"
+      ]
+    },
+    {
+      "area": "incident_alert_path",
+      "status": "pass",
+      "runtime_probe": "Production incident replay fired provider, export, crawler, and admin-security alert paths, created incident handoff records, and attached runbook and postmortem references.",
+      "deployment_evidence": "The evidence records alert delivery, incident handoff, escalation route, runbook link, and postmortem template verification.",
+      "evidence_refs": [
+        "ops/evidence/production/rollback-incident-post-deploy-smoke.json",
+        "ops/observability/alerts/stage0_rev2_alerts.json",
+        "ops/runbooks/stage0_ops.md"
+      ]
+    },
+    {
+      "area": "post_deploy_smoke",
+      "status": "pass",
+      "runtime_probe": "Production post-deploy smoke verified admin auth isolation, backend health, support lookup, queue retry/cancel visibility, abuse hold enforcement, crawler takedown visibility, dashboard import, and alert route status.",
+      "deployment_evidence": "The evidence records post-deploy smoke verification with request ids preserved.",
+      "evidence_refs": [
+        "ops/evidence/production/rollback-incident-post-deploy-smoke.json",
+        "admin/app/operations/page.tsx",
+        "admin/app/support/page.tsx",
+        "admin/app/queues/page.tsx",
+        "admin/app/abuse/page.tsx"
+      ]
+    }
+  ]
+}

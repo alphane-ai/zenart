@@ -1,0 +1,10 @@
+{
+  "applied": false,
+  "blueprint_source": "Docs/stage0_blueprint_rev2.md",
+  "change_count": 0,
+  "changes": [],
+  "created_at": "2026-06-03T13:46:10Z",
+  "mode": "dry_run_non_mutating",
+  "schema_version": "stage0.rev2.release_closure_plan_apply_report",
+  "validator": "not_run_in_dry_run"
+}

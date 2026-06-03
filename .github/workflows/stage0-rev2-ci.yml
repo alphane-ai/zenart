@@ -1,0 +1,327 @@
+name: Stage 0 Rev2 CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: stage0-rev2-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  ZENART_ENV: CI
+  PROVIDER_MODE: dev
+  CHECKOUT_PROVIDER: mock
+  STAGE0_ACCESS_MODE: local
+  DATABASE_URL: postgres://zenart:zenart@localhost:26432/zenart?sslmode=disable
+  REDIS_ADDR: localhost:26379
+  OBJECT_STORAGE_ENDPOINT: http://localhost:26900
+  OBJECT_STORAGE_PUBLIC_ENDPOINT: http://localhost:26900
+  OBJECT_STORAGE_BUCKET: zenart-ci
+  OBJECT_STORAGE_ACCESS_KEY: minioadmin
+  OBJECT_STORAGE_SECRET_KEY: minioadmin
+
+jobs:
+  repo-contracts:
+    name: Repo contracts and generated artifacts
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: zenart
+          POSTGRES_USER: zenart
+          POSTGRES_PASSWORD: zenart
+        ports:
+          - 26432:5432
+        options: >-
+          --health-cmd "pg_isready -U zenart -d zenart"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 26379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Start MinIO object storage
+        run: |
+          # minio: explicit container startup is used because GitHub service containers cannot pass the required server command.
+          docker run -d \
+            --name zenart-stage0-ci-minio \
+            -p 26900:9000 \
+            -e MINIO_ROOT_USER=minioadmin \
+            -e MINIO_ROOT_PASSWORD=minioadmin \
+            minio/minio:RELEASE.2025-04-22T22-12-26Z \
+            server /data
+          for attempt in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:26900/minio/health/ready >/dev/null; then
+              break
+            fi
+            if [ "$attempt" = 60 ]; then
+              docker logs zenart-stage0-ci-minio >&2 || true
+              exit 1
+            fi
+            sleep 2
+          done
+          docker run --rm --network host \
+            minio/mc:RELEASE.2025-04-16T18-13-26Z \
+            sh -ec 'mc alias set local http://127.0.0.1:26900 minioadmin minioadmin && mc mb --ignore-existing local/zenart-ci'
+
+      - name: Validate compose and CI draft syntax
+        run: |
+          docker compose --env-file .env.example config --quiet
+          test -f .github/workflows/stage0-rev2-ci.yml
+          cmp -s ops/ci/stage0-rev2-ci.yml .github/workflows/stage0-rev2-ci.yml
+          ruby -e "require 'yaml'; YAML.load_file('docker-compose.yml'); YAML.load_file('ops/ci/stage0-rev2-ci.yml'); YAML.load_file('.github/workflows/stage0-rev2-ci.yml')"
+
+      - name: Validate generated OpenAPI clients are current
+        run: python3 scripts/generate_openapi_clients.py --check
+
+      - name: Validate Stage 0 Rev2 contract evidence
+        run: python3 scripts/validate_stage0_rev2.py
+
+      - name: Backend fmt, vet, unit, integration, and build
+        working-directory: backend
+        run: |
+          test -z "$(gofmt -l $(find . -name '*.go' -not -path './vendor/*'))"
+          go test ./...
+          go vet ./...
+          go build ./cmd/server ./cmd/worker ./cmd/crawler ./cmd/migrate
+
+      - name: Web lint, typecheck, unit, and build
+        working-directory: web
+        run: |
+          npm ci
+          npm run lint
+          npm run typecheck
+          npm run test
+          npm run build
+          npm run smoke:user-routes
+
+      - name: Admin lint, typecheck, unit, and build
+        working-directory: admin
+        run: |
+          npm ci
+          npm run lint
+          npm run typecheck
+          npm run test
+          npm run build
+
+      - name: Script syntax validation
+        run: |
+          bash -n scripts/repo_validate.sh
+          bash -n scripts/load_smoke.sh
+          bash -n scripts/backup_restore_drill.sh
+          bash -n scripts/playwright_smoke.sh
+          bash -n scripts/docker_build_smoke.sh
+          bash -n scripts/staging_smoke.sh
+          bash -n scripts/observability_smoke.sh
+          bash -n scripts/staging_observability_backup_load_smoke.sh
+          bash -n scripts/staging_object_storage_signed_url_smoke.sh
+          bash -n scripts/staging_object_storage_retention_cleanup_smoke.sh
+          bash -n scripts/staging_legal_support_visibility_smoke.sh
+          bash -n scripts/security_scan_smoke.sh
+          DRY_RUN=1 scripts/playwright_smoke.sh
+          DRY_RUN=1 scripts/docker_build_smoke.sh
+          DRY_RUN=1 scripts/staging_smoke.sh
+          DRY_RUN=1 scripts/observability_smoke.sh
+          scripts/staging_observability_backup_load_smoke.sh || test "$?" = 2
+          RUN_ID=ci-object-storage-signed-url scripts/staging_object_storage_signed_url_smoke.sh
+          DRY_RUN=1 RUN_ID=ci-object-storage-retention-cleanup scripts/staging_object_storage_retention_cleanup_smoke.sh || test "$?" = 2
+          DRY_RUN=1 scripts/staging_legal_support_visibility_smoke.sh || test "$?" = 2
+          DRY_RUN=1 scripts/security_scan_smoke.sh
+
+      - name: Secret scan smoke
+        run: |
+          ! git grep -nE '(AWS_SECRET_ACCESS_KEY|OPENAI_API_KEY|sk-[A-Za-z0-9_-]{20,}|ghp_[A-Za-z0-9_]{20,})' -- . ':!.env.example' ':!fixtures' ':!schemas' ':!ops/ci/stage0-rev2-ci.yml' ':!scripts/repo_validate.sh'
+
+      - name: Record installed workflow run evidence
+        if: always()
+        run: |
+          python3 scripts/write_ci_runtime_evidence.py \
+            --kind workflow-run \
+            --status "${{ job.status }}" \
+            --job repo-contracts \
+            --step "repo contracts and generated artifacts" \
+            --evidence-ref .github/workflows/stage0-rev2-ci.yml \
+            --evidence-ref ops/ci/stage0-rev2-ci.yml \
+            --evidence-ref fixtures/stage0/rev2/release_gate_evidence.ci.json
+
+      - name: Upload installed workflow run evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage0-rev2-ci-workflow-run-evidence
+          path: ops/evidence/ci/*.json
+
+  docker-images:
+    name: Docker image build
+    runs-on: ubuntu-latest
+    needs: repo-contracts
+    strategy:
+      matrix:
+        image:
+          - name: backend
+            context: backend
+          - name: web
+            context: web
+          - name: admin
+            context: admin
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build SHA-tagged image
+        run: |
+          set +e
+          docker build --tag ghcr.io/alphane-ai/zenart-${{ matrix.image.name }}:${{ github.sha }} ${{ matrix.image.context }}
+          status=$?
+          set -e
+          detail_status="failed"
+          if [ "$status" = 0 ]; then
+            detail_status="passed"
+          fi
+          python3 scripts/write_ci_runtime_evidence.py \
+            --kind docker-image-build \
+            --status "$detail_status" \
+            --job docker-images \
+            --step "docker build ${{ matrix.image.name }}" \
+            --exit-code "$status" \
+            --details "image=ghcr.io/alphane-ai/zenart-${{ matrix.image.name }}:${{ github.sha }}" \
+            --details "context=${{ matrix.image.context }}" \
+            --evidence-ref backend/Dockerfile \
+            --evidence-ref web/Dockerfile \
+            --evidence-ref admin/Dockerfile
+          exit "$status"
+
+      - name: Record Docker image build job fallback evidence
+        if: always()
+        run: |
+          python3 scripts/write_ci_runtime_evidence.py \
+            --kind docker-image-build \
+            --status "${{ job.status }}" \
+            --job docker-images \
+            --step "docker job fallback ${{ matrix.image.name }}" \
+            --details "fallback records job conclusion when build step did not produce command-level evidence" \
+            --details "image=ghcr.io/alphane-ai/zenart-${{ matrix.image.name }}:${{ github.sha }}" \
+            --evidence-ref .github/workflows/stage0-rev2-ci.yml
+
+      - name: Upload Docker image build evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage0-rev2-ci-docker-image-build-${{ matrix.image.name }}-evidence
+          path: ops/evidence/ci/*.json
+
+  playwright-smoke:
+    name: Playwright smoke
+    runs-on: ubuntu-latest
+    needs: repo-contracts
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install web/admin dependencies and Playwright browser
+        run: |
+          (cd web && npm ci)
+          (cd admin && npm ci)
+          npx --yes playwright@1.56.0 install --with-deps chromium
+
+      - name: Start web and admin smoke servers
+        run: |
+          mkdir -p tmp/ci-playwright
+          (cd web && NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:31080 npx next dev --hostname 127.0.0.1 --port 26080 >../tmp/ci-playwright/web.log 2>&1) &
+          echo $! >tmp/ci-playwright/web.pid
+          (cd admin && NEXT_PUBLIC_ADMIN_API_BASE_URL=http://127.0.0.1:31080 npx next dev --hostname 127.0.0.1 --port 26081 >../tmp/ci-playwright/admin.log 2>&1) &
+          echo $! >tmp/ci-playwright/admin.pid
+          for url in http://127.0.0.1:26080 http://127.0.0.1:26081; do
+            for attempt in $(seq 1 60); do
+              if curl -fsS "$url" >/dev/null; then
+                break
+              fi
+              if [ "$attempt" = 60 ]; then
+                printf 'Timed out waiting for %s\n' "$url" >&2
+                cat tmp/ci-playwright/web.log tmp/ci-playwright/admin.log >&2 || true
+                exit 1
+              fi
+              sleep 2
+            done
+          done
+
+      - name: Run Playwright smoke wrapper
+        run: |
+          set +e
+          OUT_DIR=ops/evidence/ci WEB_URL=http://127.0.0.1:26080 ADMIN_URL=http://127.0.0.1:26081 scripts/playwright_smoke.sh
+          status=$?
+          set -e
+          detail_status="failed"
+          if [ "$status" = 0 ]; then
+            detail_status="passed"
+          fi
+          python3 scripts/write_ci_runtime_evidence.py \
+            --kind playwright-smoke \
+            --status "$detail_status" \
+            --job playwright-smoke \
+            --step "scripts/playwright_smoke.sh" \
+            --exit-code "$status" \
+            --details "WEB_URL=http://127.0.0.1:26080" \
+            --details "ADMIN_URL=http://127.0.0.1:26081" \
+            --evidence-ref ops/ci/playwright-smoke.spec.ts \
+            --evidence-ref scripts/playwright_smoke.sh
+          exit "$status"
+
+      - name: Record Playwright smoke job fallback evidence
+        if: always()
+        run: |
+          python3 scripts/write_ci_runtime_evidence.py \
+            --kind playwright-smoke \
+            --status "${{ job.status }}" \
+            --job playwright-smoke \
+            --step "playwright job fallback" \
+            --details "fallback records job conclusion when smoke wrapper did not produce command-level evidence" \
+            --evidence-ref .github/workflows/stage0-rev2-ci.yml \
+            --evidence-ref ops/ci/playwright-smoke.spec.ts \
+            --evidence-ref scripts/playwright_smoke.sh
+
+      - name: Upload Playwright smoke evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage0-rev2-ci-playwright-smoke-evidence
+          path: ops/evidence/ci/*.json
+
+  smoke-placeholders:
+    name: Deferred smoke gates
+    runs-on: ubuntu-latest
+    needs: repo-contracts
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Record installed workflow file and deferred runtime smoke
+        run: |
+          test -f ops/evidence/stage0_environment_evidence.json
+          python3 -c 'import json; from pathlib import Path; data = json.loads(Path("ops/evidence/stage0_environment_evidence.json").read_text()); installed = [item for item in data["open_items"] if item["id"] == "install_github_actions_workflow"]; assert installed and installed[0]["status"] == "closed_file_installed"; deferred = {item["id"] for item in data["open_items"]}; assert "playwright_smoke" in deferred; assert "runtime_load_drills" in deferred'

@@ -1,0 +1,36 @@
+{
+  "applied": false,
+  "blueprint_source": "Docs/stage0_blueprint_rev2.md",
+  "created_at": "2026-06-03T13:46:09Z",
+  "directories": [
+    {
+      "gates": [
+        "ci"
+      ],
+      "input_dir": "ops/evidence/runtime-inputs/ci",
+      "readme": "ops/evidence/runtime-inputs/ci/README.md",
+      "requirement_count": 3
+    },
+    {
+      "gates": [
+        "production_launch"
+      ],
+      "input_dir": "ops/evidence/runtime-inputs/production",
+      "readme": "ops/evidence/runtime-inputs/production/README.md",
+      "requirement_count": 2
+    },
+    {
+      "gates": [
+        "private_beta_staging"
+      ],
+      "input_dir": "ops/evidence/runtime-inputs/staging",
+      "readme": "ops/evidence/runtime-inputs/staging/README.md",
+      "requirement_count": 2
+    }
+  ],
+  "mode": "dry_run_non_mutating",
+  "mutation_policy": "creates_only_input_directories_and_readmes_not_runtime_evidence",
+  "planned_directory_count": 3,
+  "schema_version": "stage0.rev2.release_runtime_input_workspace",
+  "source_manifest": "stage0.rev2.release_runtime_input_manifest"
+}

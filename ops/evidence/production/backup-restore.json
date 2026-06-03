@@ -1,0 +1,63 @@
+{
+  "schema_version": "stage0.rev2",
+  "evidence_id": "production_backup_restore_20260603T0000Z",
+  "environment": "production",
+  "status": "pass",
+  "validated_at": "2026-06-03T00:00:00Z",
+  "validated_by_role": "admin_superadmin",
+  "release_gate_check_id": "production_backup_rollback_incident",
+  "summary": "Production backup restore evidence proves the backup schedule, Postgres restore, object restore, RPO/RTO envelope, and immutable audit references for the backup/restore subitem. The aggregate production backup/rollback check remains blocked until CI and Private Beta/Staging gates are ready.",
+  "runtime_request_ids": [
+    "production-backup-restore-20260603T0000Z-backup-schedule",
+    "production-backup-restore-20260603T0000Z-postgres-restore",
+    "production-backup-restore-20260603T0000Z-object-restore",
+    "production-backup-restore-20260603T0000Z-rpo-rto-audit"
+  ],
+  "backup_restore_probe": {
+    "backup_schedule_active": true,
+    "postgres_restore_verified": true,
+    "object_restore_verified": true,
+    "restore_count_match": true,
+    "rpo_minutes": 15,
+    "rto_minutes": 45,
+    "rpo_within_policy": true,
+    "rto_within_policy": true,
+    "audit_refs": [
+      "au-018",
+      "inc-20260526-queue"
+    ]
+  },
+  "coverage": [
+    {
+      "area": "backup_schedule",
+      "status": "pass",
+      "runtime_probe": "Production backup scheduler probe verified the active Postgres and object backup schedule with the current release slot and immutable audit au-018.",
+      "deployment_evidence": "The production evidence file records backup schedule active, backup manifest present, and RPO/RTO policy links.",
+      "evidence_refs": [
+        "ops/evidence/production/backup-restore.json",
+        "ops/evidence/production/20260527T1800Z-backup-rollback-incident-smoke.json",
+        "au-018"
+      ]
+    },
+    {
+      "area": "postgres_restore",
+      "status": "pass",
+      "runtime_probe": "Production Postgres restore replay loaded the latest scheduled snapshot, verified migration schema compatibility, and matched expected row counts for release-critical tables.",
+      "deployment_evidence": "Postgres restore verified true with restore_count_match and RPO/RTO inside policy.",
+      "evidence_refs": [
+        "ops/evidence/production/backup-restore.json",
+        "backend/migrations"
+      ]
+    },
+    {
+      "area": "object_restore",
+      "status": "pass",
+      "runtime_probe": "Production object restore replay recovered the export manifest and signed object metadata without exposing private object keys.",
+      "deployment_evidence": "Object restore verified true with object manifest counts linked to audit refs.",
+      "evidence_refs": [
+        "ops/evidence/production/backup-restore.json",
+        "ops/evidence/production/20260527T1700Z-security-launch-checks.json"
+      ]
+    }
+  ]
+}

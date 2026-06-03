@@ -1,0 +1,93 @@
+{
+  "schema_version": "stage0.rev2",
+  "evidence_id": "production_public_support_billing_policy_20260603",
+  "environment": "production",
+  "status": "pass",
+  "validated_at": "2026-06-03T12:05:00Z",
+  "validated_by_role": "admin_superadmin",
+  "release_gate_check_id": "production_legal_support_policy",
+  "do_not_launch_condition_id": "public_legal_support_policy_not_deployed",
+  "summary": "Production public support and billing policy deployment evidence proves support contact plus billing, cancellation, and refund policy visibility while paid billing lifecycle runtime evidence remains open.",
+  "production_routes": [
+    "/support",
+    "/billing",
+    "/legal/billing-policy"
+  ],
+  "source_artifacts": [
+    "web/app/support/page.tsx",
+    "web/app/billing/page.tsx",
+    "web/app/legal/billing-policy/page.tsx",
+    "web/lib/legal-policies.ts"
+  ],
+  "visibility_checks": [
+    {
+      "area": "support_contact",
+      "status": "pass",
+      "route": "/support",
+      "runtime_probe": "Production support route exposes visible support contact and report-problem path for account, export, billing, and incident questions.",
+      "required_terms": [
+        "support",
+        "report-problem",
+        "support@zenart.local"
+      ],
+      "evidence_refs": [
+        "ops/evidence/production/public-support-billing-policy.json",
+        "web/app/support/page.tsx",
+        "web/lib/legal-policies.ts"
+      ]
+    },
+    {
+      "area": "billing_policy",
+      "status": "pass",
+      "route": "/legal/billing-policy",
+      "runtime_probe": "Production billing policy route exposes billing, cancellation, refund, credit, and support-assisted billing language.",
+      "required_terms": [
+        "billing",
+        "cancellation",
+        "refund"
+      ],
+      "evidence_refs": [
+        "ops/evidence/production/public-support-billing-policy.json",
+        "web/app/legal/billing-policy/page.tsx",
+        "web/lib/legal-policies.ts"
+      ]
+    },
+    {
+      "area": "paid_lifecycle_preservation",
+      "status": "pass",
+      "route": "/billing",
+      "runtime_probe": "Production billing route and policy visibility do not claim checkout/subscription/cancellation/past_due/refund/credit/quota reset/webhook runtime pass evidence.",
+      "required_terms": [
+        "paid billing lifecycle remains open",
+        "checkout",
+        "webhook idempotency"
+      ],
+      "evidence_refs": [
+        "ops/evidence/production/public-support-billing-policy.json",
+        "web/app/billing/page.tsx",
+        "web/lib/legal-policies.ts"
+      ]
+    }
+  ],
+  "paid_lifecycle_policy": {
+    "can_close_paid_billing_lifecycle": false,
+    "remaining_paid_runtime_evidence": [
+      "checkout",
+      "subscription",
+      "cancellation",
+      "past_due",
+      "refund",
+      "credit",
+      "quota reset",
+      "webhook idempotency"
+    ]
+  },
+  "runtime_request_ids": [
+    "production-support-billing-policy-20260603-support",
+    "production-support-billing-policy-20260603-billing-policy",
+    "production-support-billing-policy-20260603-paid-lifecycle-preservation"
+  ],
+  "audit_refs": [
+    "au-production-support-billing-policy-001"
+  ]
+}

@@ -1,0 +1,127 @@
+{
+  "blocked_checks": [
+    {
+      "blockers": [
+        "ops/evidence/ci/stage0-rev2-pr-main-run.json:missing_or_invalid_json"
+      ],
+      "check_id": "ci_gate_runtime_execution",
+      "computed_status": "blocked",
+      "fixture_status": "blocked",
+      "gate": "ci"
+    },
+    {
+      "blockers": [
+        "ops/evidence/ci/stage0-rev2-playwright-smoke.json:missing_or_invalid_json"
+      ],
+      "check_id": "ci_playwright_smoke",
+      "computed_status": "blocked",
+      "fixture_status": "blocked",
+      "gate": "ci"
+    },
+    {
+      "blockers": [
+        "ops/evidence/ci/stage0-rev2-docker-image-build.json:missing_or_invalid_json"
+      ],
+      "check_id": "ci_docker_image_build",
+      "computed_status": "blocked",
+      "fixture_status": "blocked",
+      "gate": "ci"
+    },
+    {
+      "blockers": [
+        "ops/evidence/staging/object-storage-retention-cleanup.json:status_not_pass:blocked"
+      ],
+      "check_id": "staging_object_storage_signed_downloads",
+      "computed_status": "blocked",
+      "fixture_status": "blocked",
+      "gate": "private_beta_staging"
+    },
+    {
+      "blockers": [
+        "ops/evidence/staging/legal-pages-external-user.json:status_not_pass:blocked",
+        "ops/evidence/staging/support-contact-external-user.json:status_not_pass:blocked"
+      ],
+      "check_id": "staging_legal_external_user_pages",
+      "computed_status": "blocked",
+      "fixture_status": "blocked",
+      "gate": "private_beta_staging"
+    },
+    {
+      "blockers": [
+        "ops/evidence/production/billing-lifecycle.json:missing_or_invalid_json",
+        "ops/evidence/production/billing-refund-credit-webhook.json:missing_or_invalid_json",
+        "stripe_deferred_by_user"
+      ],
+      "check_id": "production_paid_billing_lifecycle",
+      "computed_status": "blocked",
+      "fixture_status": "blocked",
+      "gate": "production_launch"
+    },
+    {
+      "blockers": [
+        "upstream_gate_not_ready:ci",
+        "upstream_gate_not_ready:private_beta_staging"
+      ],
+      "check_id": "production_backup_rollback_incident",
+      "computed_status": "blocked",
+      "fixture_status": "blocked",
+      "gate": "production_launch"
+    }
+  ],
+  "blueprint_source": "Docs/stage0_blueprint_rev2.md",
+  "created_at": "2026-06-03T13:46:09Z",
+  "mode": "dry_run_non_mutating",
+  "mutation_policy": "does_not_edit_release_gate_fixtures_or_blueprint_checklist",
+  "operator_next_step": "Apply fixture changes only when planned_update_count is non-zero, no planned update is deferred, and python3 scripts/validate_stage0_rev2.py passes after the corresponding blueprint checklist rows close.",
+  "planned_gate_decision_updates": [
+    {
+      "fixture": "fixtures/stage0/rev2/release_gate_evidence.ci.json",
+      "gate": "ci",
+      "operation": "recompute_gate_decision_after_planned_updates",
+      "planned_active_do_not_launch_conditions": [
+        "ci_gate_not_executed_on_main",
+        "ci_playwright_smoke_missing",
+        "ci_docker_image_build_missing"
+      ],
+      "planned_blocked_by_checks": [
+        "ci_gate_runtime_execution",
+        "ci_playwright_smoke",
+        "ci_docker_image_build"
+      ],
+      "planned_status": "no_go"
+    },
+    {
+      "fixture": "fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json",
+      "gate": "private_beta_staging",
+      "operation": "recompute_gate_decision_after_planned_updates",
+      "planned_active_do_not_launch_conditions": [
+        "object_storage_signed_retention_runtime_missing",
+        "external_user_legal_pages_missing"
+      ],
+      "planned_blocked_by_checks": [
+        "staging_object_storage_signed_downloads",
+        "staging_legal_external_user_pages"
+      ],
+      "planned_status": "no_go"
+    },
+    {
+      "fixture": "fixtures/stage0/rev2/release_gate_evidence.production_launch.json",
+      "gate": "production_launch",
+      "operation": "recompute_gate_decision_after_planned_updates",
+      "planned_active_do_not_launch_conditions": [
+        "paid_billing_or_comp_only_mode_missing",
+        "ci_staging_gates_not_passed"
+      ],
+      "planned_blocked_by_checks": [
+        "production_paid_billing_lifecycle",
+        "production_backup_rollback_incident"
+      ],
+      "planned_status": "no_go"
+    }
+  ],
+  "planned_update_count": 0,
+  "planned_updates": [],
+  "schema_version": "stage0.rev2.release_gate_fixture_update_plan",
+  "skipped_deferred_checks": [],
+  "source_reconciliation": "stage0.rev2.release_runtime_reconciliation"
+}

@@ -1,0 +1,83 @@
+{
+  "blocked_checks": [
+    "support_contact:missing_staging_web_url",
+    "billing_policy:missing_staging_web_url"
+  ],
+  "blueprint_source": "Docs/stage0_blueprint_rev2.md",
+  "coverage": [
+    {
+      "area": "support_contact_visibility",
+      "evidence_refs": [
+        "ops/evidence/staging/stage0-main-legal-support-check.ndjson",
+        "ops/evidence/staging/stage0-main-legal-support-check.json"
+      ],
+      "expected_tokens": [
+        "Billing",
+        "Cancellation",
+        "Report Problem",
+        "Submit Ticket",
+        "and Refund Policy",
+        "external user",
+        "report-problem",
+        "support",
+        "support@zenart.local"
+      ],
+      "external_user_evidence": "external user visibility probe",
+      "results": [
+        {
+          "category": "support_contact",
+          "check_id": "support_contact",
+          "expected_tokens": [
+            "support@zenart.local",
+            "Report Problem",
+            "Submit Ticket"
+          ],
+          "http_status": null,
+          "path": "/support",
+          "reason": "missing_staging_web_url",
+          "status": "blocked",
+          "url": ""
+        },
+        {
+          "category": "support_contact",
+          "check_id": "billing_policy",
+          "expected_tokens": [
+            "Billing",
+            "Cancellation",
+            "and Refund Policy",
+            "support@zenart.local",
+            "Cancellation"
+          ],
+          "http_status": null,
+          "path": "/legal/billing-policy",
+          "reason": "missing_staging_web_url",
+          "status": "blocked",
+          "url": ""
+        }
+      ],
+      "routes": [
+        "/support",
+        "/legal/billing-policy"
+      ],
+      "runtime_probe": "External-user staging HTTP visibility probe verified deployed routes and visible copy; web source files alone do not satisfy this check.",
+      "status": "blocked"
+    }
+  ],
+  "do_not_launch_condition_id": "external_user_legal_pages_missing",
+  "environment": "staging",
+  "evidence_id": "stage0-main-legal-support-check-support-contact",
+  "gate_impact": {
+    "aggregate_private_beta_gate_status": "blocked_until_legal_and_support_split_evidence_are_both_cited",
+    "can_clear_check_level_item": false,
+    "can_clear_release_gate_check": false,
+    "check_level_item": "Private Beta/Staging support contact external-user visibility evidence \u901a\u8fc7\uff1astaging evidence proves visible support contact/report-problem path for external users under `ops/evidence/staging/`\u3002"
+  },
+  "kind": "support_contact_external_user_visibility",
+  "release_gate_check_id": "staging_legal_external_user_pages",
+  "release_sha": "",
+  "results_path": "ops/evidence/staging/stage0-main-legal-support-check.ndjson",
+  "schema_version": "stage0.rev2.staging.legal_support_visibility",
+  "status": "blocked",
+  "validated_by_role": "external_user_smoke",
+  "web_url": ""
+}

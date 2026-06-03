@@ -1,0 +1,140 @@
+{
+  "blocked_checks": [
+    "terms:missing_staging_web_url",
+    "privacy:missing_staging_web_url",
+    "acceptable_use:missing_staging_web_url",
+    "ip_complaint:missing_staging_web_url",
+    "ai_content_disclaimer:missing_staging_web_url"
+  ],
+  "blueprint_source": "Docs/stage0_blueprint_rev2.md",
+  "coverage": [
+    {
+      "area": "legal_pages_visibility",
+      "evidence_refs": [
+        "ops/evidence/staging/stage0-main-legal-support-check.ndjson",
+        "ops/evidence/staging/stage0-main-legal-support-check.json"
+      ],
+      "expected_tokens": [
+        "AI Content Responsibility",
+        "Acceptable Use Policy",
+        "Enforcement",
+        "IP Complaint Flow",
+        "Local Alpha Generation",
+        "Local alpha previews",
+        "Privacy Policy",
+        "Prohibited Inputs",
+        "Support",
+        "Support Context",
+        "Telemetry",
+        "Terms of Service",
+        "acceptable use",
+        "ai/content",
+        "external user",
+        "ip complaint",
+        "legal@zenart.local",
+        "privacy",
+        "support@zenart.local",
+        "terms"
+      ],
+      "external_user_evidence": "external user visibility probe",
+      "results": [
+        {
+          "category": "legal_page",
+          "check_id": "terms",
+          "expected_tokens": [
+            "Terms of Service",
+            "Support",
+            "Local Alpha Generation"
+          ],
+          "http_status": null,
+          "path": "/legal/terms",
+          "reason": "missing_staging_web_url",
+          "status": "blocked",
+          "url": ""
+        },
+        {
+          "category": "legal_page",
+          "check_id": "privacy",
+          "expected_tokens": [
+            "Privacy Policy",
+            "Support Context",
+            "Telemetry"
+          ],
+          "http_status": null,
+          "path": "/legal/privacy",
+          "reason": "missing_staging_web_url",
+          "status": "blocked",
+          "url": ""
+        },
+        {
+          "category": "legal_page",
+          "check_id": "acceptable_use",
+          "expected_tokens": [
+            "Acceptable Use Policy",
+            "Prohibited Inputs",
+            "Enforcement"
+          ],
+          "http_status": null,
+          "path": "/legal/acceptable-use",
+          "reason": "missing_staging_web_url",
+          "status": "blocked",
+          "url": ""
+        },
+        {
+          "category": "legal_page",
+          "check_id": "ip_complaint",
+          "expected_tokens": [
+            "IP Complaint Flow",
+            "legal@zenart.local",
+            "support@zenart.local"
+          ],
+          "http_status": null,
+          "path": "/legal/ip-complaints",
+          "reason": "missing_staging_web_url",
+          "status": "blocked",
+          "url": ""
+        },
+        {
+          "category": "legal_page",
+          "check_id": "ai_content_disclaimer",
+          "expected_tokens": [
+            "AI Content Responsibility",
+            "Acceptable Use Policy",
+            "Local alpha previews"
+          ],
+          "http_status": null,
+          "path": "/support",
+          "reason": "missing_staging_web_url",
+          "status": "blocked",
+          "url": ""
+        }
+      ],
+      "routes": [
+        "/legal/terms",
+        "/legal/privacy",
+        "/legal/acceptable-use",
+        "/legal/ip-complaints",
+        "/support"
+      ],
+      "runtime_probe": "External-user staging HTTP visibility probe verified deployed routes and visible copy; web source files alone do not satisfy this check.",
+      "status": "blocked"
+    }
+  ],
+  "do_not_launch_condition_id": "external_user_legal_pages_missing",
+  "environment": "staging",
+  "evidence_id": "stage0-main-legal-support-check-legal-pages",
+  "gate_impact": {
+    "aggregate_private_beta_gate_status": "blocked_until_legal_and_support_split_evidence_are_both_cited",
+    "can_clear_check_level_item": false,
+    "can_clear_release_gate_check": false,
+    "check_level_item": "Private Beta/Staging legal pages external-user visibility evidence \u901a\u8fc7\uff1astaging evidence proves Terms\u3001Privacy\u3001Acceptable Use\u3001AI/content disclaimer\u3001IP complaint flow are externally visible under `ops/evidence/staging/`\u3002"
+  },
+  "kind": "legal_pages_external_user_visibility",
+  "release_gate_check_id": "staging_legal_external_user_pages",
+  "release_sha": "",
+  "results_path": "ops/evidence/staging/stage0-main-legal-support-check.ndjson",
+  "schema_version": "stage0.rev2.staging.legal_support_visibility",
+  "status": "blocked",
+  "validated_by_role": "external_user_smoke",
+  "web_url": ""
+}

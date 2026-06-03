@@ -1,0 +1,104 @@
+{
+  "blocked_checks": [
+    "terms:missing_staging_web_url",
+    "privacy:missing_staging_web_url",
+    "acceptable_use:missing_staging_web_url",
+    "ip_complaint:missing_staging_web_url",
+    "ai_content_disclaimer:missing_staging_web_url",
+    "support_contact:missing_staging_web_url",
+    "billing_policy:missing_staging_web_url"
+  ],
+  "blueprint_source": "Docs/stage0_blueprint_rev2.md",
+  "coverage": [
+    {
+      "area": "legal_pages_visibility",
+      "evidence_path_policy": "ops/evidence/staging/",
+      "evidence_refs": [
+        "ops/evidence/staging/legal-support-external-user.ndjson",
+        "ops/evidence/staging/legal-support-external-user.json"
+      ],
+      "expected_tokens": [
+        "AI Content Responsibility",
+        "Acceptable Use Policy",
+        "Enforcement",
+        "IP Complaint Flow",
+        "Local Alpha Generation",
+        "Local alpha previews",
+        "Privacy Policy",
+        "Prohibited Inputs",
+        "Support",
+        "Support Context",
+        "Telemetry",
+        "Terms of Service",
+        "legal@zenart.local",
+        "support@zenart.local"
+      ],
+      "external_user_evidence": "Staging external-user HTTP visibility probe over deployed web routes; source files alone do not satisfy this check.",
+      "routes": [
+        "/legal/terms",
+        "/legal/privacy",
+        "/legal/acceptable-use",
+        "/legal/ip-complaints",
+        "/support"
+      ],
+      "runtime_probe": "External-user staging probe verifies Terms, Privacy, Acceptable Use, AI/content responsibility disclaimer, and IP complaint flow visibility.",
+      "status": "blocked"
+    },
+    {
+      "area": "support_contact_visibility",
+      "evidence_path_policy": "ops/evidence/staging/",
+      "evidence_refs": [
+        "ops/evidence/staging/legal-support-external-user.ndjson",
+        "ops/evidence/staging/legal-support-external-user.json"
+      ],
+      "expected_tokens": [
+        "Billing",
+        "Cancellation",
+        "Report Problem",
+        "Submit Ticket",
+        "and Refund Policy",
+        "support@zenart.local"
+      ],
+      "external_user_evidence": "Staging external-user HTTP visibility probe over deployed web routes; source files alone do not satisfy this check.",
+      "routes": [
+        "/support",
+        "/legal/billing-policy"
+      ],
+      "runtime_probe": "External-user staging probe verifies visible support contact, report-problem path, and support/billing policy visibility.",
+      "status": "blocked"
+    }
+  ],
+  "do_not_launch_condition_id": "external_user_legal_pages_missing",
+  "environment": "staging",
+  "evidence_id": "legal-support-external-user",
+  "gate_impact": {
+    "can_clear_aggregate_item": false,
+    "can_clear_release_gate_check": false,
+    "check_level_items": [
+      "Private Beta/Staging legal/support external-user visibility runtime evidence \u901a\u8fc7\u3002",
+      "Private Beta/Staging legal pages external-user visibility evidence \u901a\u8fc7\uff1astaging evidence proves Terms\u3001Privacy\u3001Acceptable Use\u3001AI/content disclaimer\u3001IP complaint flow are externally visible under `ops/evidence/staging/`\u3002",
+      "Private Beta/Staging support contact external-user visibility evidence \u901a\u8fc7\uff1astaging evidence proves visible support contact/report-problem path for external users under `ops/evidence/staging/`\u3002"
+    ],
+    "preserved_do_not_launch_condition_id": "object_storage_signed_retention_runtime_missing",
+    "preserved_release_gate_check_id": "staging_object_storage_signed_downloads",
+    "remaining_release_gate_blockers_after_pass": [
+      "staging_object_storage_signed_downloads"
+    ]
+  },
+  "kind": "legal_support_visibility",
+  "release_gate_check_id": "staging_legal_external_user_pages",
+  "release_sha": "",
+  "required_routes": [
+    "/legal/terms",
+    "/legal/privacy",
+    "/legal/acceptable-use",
+    "/legal/ip-complaints",
+    "/support",
+    "/legal/billing-policy"
+  ],
+  "results_path": "ops/evidence/staging/legal-support-external-user.ndjson",
+  "schema_version": "stage0.rev2.staging.legal_support_visibility",
+  "status": "blocked",
+  "validated_by_role": "external_user_smoke",
+  "web_url": ""
+}

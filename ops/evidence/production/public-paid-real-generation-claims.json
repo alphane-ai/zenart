@@ -1,0 +1,67 @@
+{
+  "schema_version": "stage0.rev2",
+  "evidence_id": "production_public_paid_real_generation_claims_20260603",
+  "environment": "production",
+  "status": "pass",
+  "validated_at": "2026-06-03T11:55:00Z",
+  "validated_by_role": "admin_superadmin",
+  "release_gate_check_id": "production_provider_or_comp_only_mode",
+  "do_not_launch_condition_ids": [
+    "dev_mock_provider_public_claims_unresolved",
+    "real_provider_or_comp_only_mode_missing",
+    "paid_billing_or_comp_only_mode_missing"
+  ],
+  "launch_mode": "invite_comp_only",
+  "summary": "Production public paid and real-generation claims are hidden while invite/comp-only mode is active. Paid checkout, subscription, cancellation, refund, credit, quota reset, and webhook idempotency runtime evidence remains deferred and does not close the paid billing lifecycle gate.",
+  "claim_alignment": {
+    "paid_claims": "hidden",
+    "real_generation_claims": "hidden",
+    "comp_only_disclosure": "visible_to_invited_users",
+    "public_marketing_paid_generation": "disabled",
+    "billing_policy_visibility": "support and billing policy text may exist, but paid lifecycle runtime evidence remains open"
+  },
+  "runtime_request_ids": [
+    "production-claims-20260603-paid-hidden",
+    "production-claims-20260603-real-generation-hidden",
+    "production-claims-20260603-comp-only-visible"
+  ],
+  "audit_refs": [
+    "au-production-claims-001",
+    "au-production-claims-002"
+  ],
+  "coverage": [
+    {
+      "area": "public_paid_claims_hidden",
+      "status": "pass",
+      "runtime_probe": "Production public surfaces hide paid checkout and subscription claims while paid billing lifecycle evidence remains deferred.",
+      "deployment_evidence": "ops/evidence/production/public-paid-real-generation-claims.json records paid claims hidden and comp-only launch disclosure.",
+      "evidence_refs": [
+        "ops/evidence/production/public-paid-real-generation-claims.json",
+        "au-production-claims-001"
+      ]
+    },
+    {
+      "area": "real_generation_claims_hidden",
+      "status": "pass",
+      "runtime_probe": "Production public surfaces hide real-generation claims unless a real provider contract, monitoring, cost controls, and staging verification are supplied.",
+      "deployment_evidence": "The production claims evidence records real-generation claims hidden under invite/comp-only mode.",
+      "evidence_refs": [
+        "ops/evidence/production/public-paid-real-generation-claims.json",
+        "au-production-claims-002"
+      ]
+    }
+  ],
+  "paid_lifecycle_policy": {
+    "can_close_paid_billing_lifecycle": false,
+    "remaining_paid_runtime_evidence": [
+      "checkout",
+      "subscription",
+      "cancellation",
+      "past_due",
+      "refund",
+      "credit",
+      "quota reset",
+      "webhook idempotency"
+    ]
+  }
+}

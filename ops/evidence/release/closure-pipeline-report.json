@@ -1,0 +1,36 @@
+{
+  "applied": false,
+  "apply_change_count": 0,
+  "blocked_checks": [
+    "ci.ci_gate_runtime_execution",
+    "ci.ci_playwright_smoke",
+    "ci.ci_docker_image_build",
+    "private_beta_staging.staging_object_storage_signed_downloads",
+    "private_beta_staging.staging_legal_external_user_pages",
+    "production_launch.production_paid_billing_lifecycle",
+    "production_launch.production_backup_rollback_incident"
+  ],
+  "blueprint_source": "Docs/stage0_blueprint_rev2.md",
+  "checklist_closure_plan": "ops/evidence/release/checklist-closure-plan.json",
+  "closure_apply_report": "ops/evidence/release/closure-apply-report.json",
+  "collector_policy": "nonzero collector status is allowed in dry-run so reconciliation and closure plans still render",
+  "collector_status": 2,
+  "created_at": "2026-06-03T13:46:10Z",
+  "fixture_update_plan": "ops/evidence/release/fixture-update-plan.json",
+  "mode": "dry_run_non_mutating",
+  "planned_closure_count": 0,
+  "planned_update_count": 0,
+  "ready_checks": [],
+  "runtime_input_manifest": "ops/evidence/release/runtime-input-manifest.json",
+  "runtime_input_summary": {
+    "blocked_check_count": 7,
+    "deferred_by_user_count": 1,
+    "ready_check_count": 0,
+    "runtime_artifact_required_count": 5,
+    "upstream_dependency_count": 1
+  },
+  "runtime_input_workspace": "ops/evidence/release/runtime-input-workspace.json",
+  "runtime_input_workspace_directory_count": 3,
+  "runtime_reconciliation": "ops/evidence/release/runtime-reconciliation.json",
+  "schema_version": "stage0.rev2.release_closure_pipeline_report"
+}

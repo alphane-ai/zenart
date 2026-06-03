@@ -1,0 +1,178 @@
+{
+  "blocked_checks": [
+    "ci.ci_gate_runtime_execution",
+    "ci.ci_playwright_smoke",
+    "ci.ci_docker_image_build",
+    "private_beta_staging.staging_object_storage_signed_downloads",
+    "private_beta_staging.staging_legal_external_user_pages",
+    "production_launch.production_paid_billing_lifecycle",
+    "production_launch.production_backup_rollback_incident"
+  ],
+  "blueprint_source": "Docs/stage0_blueprint_rev2.md",
+  "created_at": "2026-06-03T13:46:09Z",
+  "gate_fixture_decisions": {
+    "ci": "no_go",
+    "private_beta_staging": "no_go",
+    "production_launch": "no_go"
+  },
+  "gates": {
+    "ci": {
+      "checks": [
+        {
+          "blockers": [
+            "ops/evidence/ci/stage0-rev2-pr-main-run.json:missing_or_invalid_json"
+          ],
+          "can_update_fixture_to_pass": false,
+          "check_id": "ci_gate_runtime_execution",
+          "computed_status": "blocked",
+          "evidence": [
+            {
+              "passed": false,
+              "path": "ops/evidence/ci/stage0-rev2-pr-main-run.json",
+              "reason": "missing_or_invalid_json"
+            }
+          ],
+          "fixture_status": "blocked"
+        },
+        {
+          "blockers": [
+            "ops/evidence/ci/stage0-rev2-playwright-smoke.json:missing_or_invalid_json"
+          ],
+          "can_update_fixture_to_pass": false,
+          "check_id": "ci_playwright_smoke",
+          "computed_status": "blocked",
+          "evidence": [
+            {
+              "passed": false,
+              "path": "ops/evidence/ci/stage0-rev2-playwright-smoke.json",
+              "reason": "missing_or_invalid_json"
+            }
+          ],
+          "fixture_status": "blocked"
+        },
+        {
+          "blockers": [
+            "ops/evidence/ci/stage0-rev2-docker-image-build.json:missing_or_invalid_json"
+          ],
+          "can_update_fixture_to_pass": false,
+          "check_id": "ci_docker_image_build",
+          "computed_status": "blocked",
+          "evidence": [
+            {
+              "passed": false,
+              "path": "ops/evidence/ci/stage0-rev2-docker-image-build.json",
+              "reason": "missing_or_invalid_json"
+            }
+          ],
+          "fixture_status": "blocked"
+        }
+      ],
+      "fixture": "fixtures/stage0/rev2/release_gate_evidence.ci.json",
+      "fixture_decision": "no_go"
+    },
+    "private_beta_staging": {
+      "checks": [
+        {
+          "blockers": [
+            "ops/evidence/staging/object-storage-retention-cleanup.json:status_not_pass:blocked"
+          ],
+          "can_update_fixture_to_pass": false,
+          "check_id": "staging_object_storage_signed_downloads",
+          "computed_status": "blocked",
+          "evidence": [
+            {
+              "passed": true,
+              "path": "ops/evidence/staging/20260527T2130Z-object-storage-signed-url.json",
+              "reason": "pass"
+            },
+            {
+              "passed": false,
+              "path": "ops/evidence/staging/object-storage-retention-cleanup.json",
+              "reason": "status_not_pass:blocked"
+            }
+          ],
+          "fixture_status": "blocked"
+        },
+        {
+          "blockers": [
+            "ops/evidence/staging/legal-pages-external-user.json:status_not_pass:blocked",
+            "ops/evidence/staging/support-contact-external-user.json:status_not_pass:blocked"
+          ],
+          "can_update_fixture_to_pass": false,
+          "check_id": "staging_legal_external_user_pages",
+          "computed_status": "blocked",
+          "evidence": [
+            {
+              "passed": false,
+              "path": "ops/evidence/staging/legal-pages-external-user.json",
+              "reason": "status_not_pass:blocked"
+            },
+            {
+              "passed": false,
+              "path": "ops/evidence/staging/support-contact-external-user.json",
+              "reason": "status_not_pass:blocked"
+            }
+          ],
+          "fixture_status": "blocked"
+        }
+      ],
+      "fixture": "fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json",
+      "fixture_decision": "no_go"
+    },
+    "production_launch": {
+      "checks": [
+        {
+          "blockers": [
+            "ops/evidence/production/billing-lifecycle.json:missing_or_invalid_json",
+            "ops/evidence/production/billing-refund-credit-webhook.json:missing_or_invalid_json",
+            "stripe_deferred_by_user"
+          ],
+          "can_update_fixture_to_pass": false,
+          "check_id": "production_paid_billing_lifecycle",
+          "computed_status": "blocked",
+          "evidence": [
+            {
+              "passed": false,
+              "path": "ops/evidence/production/billing-lifecycle.json",
+              "reason": "missing_or_invalid_json"
+            },
+            {
+              "passed": false,
+              "path": "ops/evidence/production/billing-refund-credit-webhook.json",
+              "reason": "missing_or_invalid_json"
+            }
+          ],
+          "fixture_status": "blocked"
+        },
+        {
+          "blockers": [
+            "upstream_gate_not_ready:ci",
+            "upstream_gate_not_ready:private_beta_staging"
+          ],
+          "can_update_fixture_to_pass": false,
+          "check_id": "production_backup_rollback_incident",
+          "computed_status": "blocked",
+          "evidence": [
+            {
+              "passed": true,
+              "path": "ops/evidence/production/backup-restore.json",
+              "reason": "pass"
+            },
+            {
+              "passed": true,
+              "path": "ops/evidence/production/rollback-incident-post-deploy-smoke.json",
+              "reason": "pass"
+            }
+          ],
+          "fixture_status": "blocked"
+        }
+      ],
+      "fixture": "fixtures/stage0/rev2/release_gate_evidence.production_launch.json",
+      "fixture_decision": "no_go"
+    }
+  },
+  "mode": "dry_run_non_mutating",
+  "mutation_policy": "does_not_edit_release_gate_fixtures_or_blueprint_checklist",
+  "ready_checks": [],
+  "schema_version": "stage0.rev2.release_runtime_reconciliation"
+}

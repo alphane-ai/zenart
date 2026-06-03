@@ -1,0 +1,14 @@
+{
+  "blueprint_source": "Docs/stage0_blueprint_rev2.md",
+  "created_by_lane": "lane5",
+  "created_at": "20260603T140431Z",
+  "run_id": "20260603T140431Z-docker-build-1a875f0e9637-69934",
+  "status": "planned",
+  "git_sha": "1a875f0e9637",
+  "image_prefix": "zenart-stage0",
+  "image_set": ["backend", "web", "admin", "manager"],
+  "log_path": "ops/evidence/docker/local/20260603T140431Z-docker-build-1a875f0e9637-69934.log",
+  "exit_code": 0,
+  "ci_gate": "open_until_installed_ci_builds_sha_tagged_images_on_pr_and_main",
+  "staging_gate": "open_until_sha_tagged_images_are_promoted_and_smoked_in_staging"
+}

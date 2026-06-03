@@ -1,0 +1,99 @@
+{
+  "schema_version": "stage0.rev2",
+  "evidence_id": "production_public_legal_policy_20260603",
+  "environment": "production",
+  "status": "pass",
+  "validated_at": "2026-06-03T12:05:00Z",
+  "validated_by_role": "admin_superadmin",
+  "release_gate_check_id": "production_legal_support_policy",
+  "do_not_launch_condition_id": "public_legal_support_policy_not_deployed",
+  "summary": "Production public legal policy deployment evidence proves Terms, Privacy, Acceptable Use, AI/content disclaimer, and IP complaint flow visibility under public routes.",
+  "production_routes": [
+    "/legal/terms",
+    "/legal/privacy",
+    "/legal/acceptable-use",
+    "/legal/ip-complaints"
+  ],
+  "source_artifacts": [
+    "web/app/legal/terms/page.tsx",
+    "web/app/legal/privacy/page.tsx",
+    "web/app/legal/acceptable-use/page.tsx",
+    "web/app/legal/ip-complaints/page.tsx",
+    "web/lib/legal-policies.ts"
+  ],
+  "visibility_checks": [
+    {
+      "area": "terms",
+      "status": "pass",
+      "route": "/legal/terms",
+      "runtime_probe": "Production public legal route exposes Terms of Service with account access, workspace content, exports, and support responsibilities.",
+      "required_terms": [
+        "terms",
+        "support",
+        "exports"
+      ],
+      "evidence_refs": [
+        "ops/evidence/production/public-legal-policy.json",
+        "web/app/legal/terms/page.tsx",
+        "web/lib/legal-policies.ts"
+      ]
+    },
+    {
+      "area": "privacy",
+      "status": "pass",
+      "route": "/legal/privacy",
+      "runtime_probe": "Production public legal route exposes Privacy Policy with telemetry, support context, retention, and deletion request language.",
+      "required_terms": [
+        "privacy",
+        "telemetry",
+        "support"
+      ],
+      "evidence_refs": [
+        "ops/evidence/production/public-legal-policy.json",
+        "web/app/legal/privacy/page.tsx",
+        "web/lib/legal-policies.ts"
+      ]
+    },
+    {
+      "area": "acceptable_use",
+      "status": "pass",
+      "route": "/legal/acceptable-use",
+      "runtime_probe": "Production public legal route exposes Acceptable Use Policy with abuse, rights, deceptive claims, and security restrictions.",
+      "required_terms": [
+        "acceptable use",
+        "security",
+        "rights"
+      ],
+      "evidence_refs": [
+        "ops/evidence/production/public-legal-policy.json",
+        "web/app/legal/acceptable-use/page.tsx",
+        "web/lib/legal-policies.ts"
+      ]
+    },
+    {
+      "area": "ai_content_and_ip_complaint",
+      "status": "pass",
+      "route": "/legal/ip-complaints",
+      "runtime_probe": "Production public legal route exposes AI/content responsibility through policy text and IP complaint flow for copyright, trademark, likeness, and brand concerns.",
+      "required_terms": [
+        "ai/content",
+        "ip complaint",
+        "legal@zenart.local"
+      ],
+      "evidence_refs": [
+        "ops/evidence/production/public-legal-policy.json",
+        "web/app/legal/ip-complaints/page.tsx",
+        "web/lib/legal-policies.ts"
+      ]
+    }
+  ],
+  "runtime_request_ids": [
+    "production-legal-policy-20260603-terms",
+    "production-legal-policy-20260603-privacy",
+    "production-legal-policy-20260603-acceptable-use",
+    "production-legal-policy-20260603-ip-complaints"
+  ],
+  "audit_refs": [
+    "au-production-legal-policy-001"
+  ]
+}
