@@ -4,8 +4,10 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-WEB_URL="${WEB_URL:-http://localhost:3000}"
-ADMIN_URL="${ADMIN_URL:-http://localhost:3001}"
+WEB_PLAYWRIGHT_PORT="${WEB_PLAYWRIGHT_PORT:-26080}"
+ADMIN_PLAYWRIGHT_PORT="${ADMIN_PLAYWRIGHT_PORT:-26081}"
+WEB_URL="${WEB_URL:-http://127.0.0.1:${WEB_PLAYWRIGHT_PORT}}"
+ADMIN_URL="${ADMIN_URL:-http://127.0.0.1:${ADMIN_PLAYWRIGHT_PORT}}"
 DRY_RUN="${DRY_RUN:-0}"
 OUT_DIR="${OUT_DIR:-ops/evidence/playwright/local}"
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
@@ -27,6 +29,8 @@ write_report() {
   "status": "$status",
   "web_url": "$WEB_URL",
   "admin_url": "$ADMIN_URL",
+  "web_playwright_port": "$WEB_PLAYWRIGHT_PORT",
+  "admin_playwright_port": "$ADMIN_PLAYWRIGHT_PORT",
   "spec_path": "$SPEC_PATH",
   "log_path": "$LOG_PATH",
   "exit_code": $exit_code,

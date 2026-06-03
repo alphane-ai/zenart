@@ -14,7 +14,7 @@
   "runner": "scripts/run_workflow_api_smoke.py",
   "mode": "dry_run",
   "status": "planned",
-  "api_base_url": "http://localhost:8080/api/v1",
+  "api_base_url": "http://127.0.0.1:31080/api/v1",
   "checklist_policy": {
     "api_smoke_checklist_remains_open": true,
     "local_alpha_gate_remains_open": true,

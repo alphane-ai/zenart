@@ -451,7 +451,7 @@ def run_workflow(workflow: dict[str, Any], base_url: str, live: bool) -> dict[st
 
 def build_evidence(live: bool, deterministic: bool) -> dict[str, Any]:
     workflows = [load_json(WORKFLOW_DIR / f"{workflow_id}.json") for workflow_id in WORKFLOW_ORDER]
-    base_url = os.environ.get("API_BASE_URL", "http://localhost:8080/api/v1")
+    base_url = os.environ.get("API_BASE_URL", "http://127.0.0.1:31080/api/v1")
     results = [run_workflow(workflow, base_url, live) for workflow in workflows]
     statuses = [result["status"] for result in results]
     status = "passed" if live and all(item == "passed" for item in statuses) else "planned"

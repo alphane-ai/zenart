@@ -1,7 +1,9 @@
 import { expect, test } from "@playwright/test";
 
-const webURL = process.env.WEB_URL ?? "http://localhost:3000";
-const adminURL = process.env.ADMIN_URL ?? "http://localhost:3001";
+const webPort = process.env.WEB_PLAYWRIGHT_PORT ?? "26080";
+const adminPort = process.env.ADMIN_PLAYWRIGHT_PORT ?? "26081";
+const webURL = process.env.WEB_URL ?? `http://127.0.0.1:${webPort}`;
+const adminURL = process.env.ADMIN_URL ?? `http://127.0.0.1:${adminPort}`;
 
 test("web workspace shell renders", async ({ page }) => {
   const response = await page.goto(webURL, { waitUntil: "domcontentloaded" });
