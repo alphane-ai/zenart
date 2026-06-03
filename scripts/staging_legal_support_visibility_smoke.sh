@@ -222,6 +222,31 @@ report = {
         "/support",
         "/legal/billing-policy",
     ],
+    "runtime_input_requirements": {
+        "required_web_url": "STAGING_WEB_URL or WEB_URL pointing at the deployed staging web surface",
+        "required_probe_mode": "external-user HTTP GET probes must load deployed routes; DRY_RUN only records blocked/planned evidence",
+        "required_routes": {
+            "terms": "/legal/terms",
+            "privacy": "/legal/privacy",
+            "acceptable_use": "/legal/acceptable-use",
+            "ip_complaint": "/legal/ip-complaints",
+            "ai_content_disclaimer": "/support",
+            "support_contact": "/support",
+            "billing_policy": "/legal/billing-policy",
+        },
+        "required_exact_split_reports": {
+            "legal_pages_external_user": str(legal_pages_report_path),
+            "support_contact_external_user": str(support_contact_report_path),
+        },
+        "source_file_policy": "web source files or checked-in policy text alone cannot satisfy staging legal/support visibility; the pass report requires deployed external-user HTTP probe results.",
+    },
+    "input_readiness": {
+        "web_url_ready": bool(web_url),
+        "dry_run": any(item["status"] == "planned" for item in results),
+        "external_probe_attempted": bool(web_url) and not any(item["status"] == "planned" for item in results),
+        "legal_pages_split_ready": legal_pages_passed,
+        "support_contact_split_ready": support_contact_passed,
+    },
     "coverage": [
         coverage_item(
             "legal_pages_visibility",
@@ -269,6 +294,11 @@ def write_split_report(path: Path, *, split_id: str, kind: str, checklist_item: 
         "source_results_path": str(results_path),
         "source_report_path": str(report_path),
         "probe_contract": probe_contract,
+        "runtime_input_requirements": {
+            "required_web_url": "STAGING_WEB_URL or WEB_URL pointing at the deployed staging web surface",
+            "source_file_policy": "web source files or checked-in policy text alone cannot satisfy this split; source_results must come from deployed external-user HTTP probes.",
+            "source_results_path": str(results_path),
+        },
         "coverage": [
             {
                 "area": area,

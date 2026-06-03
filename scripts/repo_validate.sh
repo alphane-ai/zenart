@@ -369,6 +369,8 @@ required_fragments = [
     "Production backup exact split: `ops/evidence/production/backup-restore.json` status `missing`, missing requirements missing_file; must prove backup schedule, Postgres restore, object restore, RPO/RTO, audit refs.",
     "Production rollback/incident/post-deploy exact split: `ops/evidence/production/rollback-incident-post-deploy-smoke.json` status `missing`, missing requirements missing_file; must prove app rollback, feature flag rollback, worker drain, migration compatibility, incident/alert path, post-deploy smoke.",
     "Production split upstream gates: CI `no_go` blocked by ci_installed_workflow, ci_gate_runtime_execution, ci_playwright_smoke, ci_docker_image_build; Private Beta/Staging `no_go` blocked by staging_object_storage_signed_downloads.",
+    "present upstream CI fixture fixtures/stage0/rev2/release_gate_evidence.ci.json gate_decision.status=no_go",
+    "present upstream Private Beta/Staging fixture fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json gate_decision.status=no_go",
     "Security scan: local status `passed` from `ops/evidence/security/local/20260526T142040Z-security-scan-smoke-65314.json`; staging JSON must reference the release SHA, set `environment=staging`, set `kind=security_scan`, record status `passed`, and include passed/validated evidence refs for dependency, image/container, and committed-secret scans before private beta/production decisions.",
     "Object-storage signed URL: staging status `pass_with_blockers_preserved` from `ops/evidence/staging/20260527T2130Z-object-storage-signed-url.json` with 4/4 signed URL probes validator-visible; retention/cleanup evidence still required; object retention policy, expired export cleanup, orphan cleanup, and audit refs remain required before the object-storage gate can close.",
     "Object-storage retention cleanup: `blocked` from `ops/evidence/staging/object-storage-retention-cleanup.blocked.json` with 4/4 probes blocked by missing STAGING_BASE_URL or explicit retention/audit probe URLs; canonical pass evidence is still missing at `ops/evidence/staging/object-storage-retention-cleanup.json`; audit linkage verified `false` with 0 cleanup refs and 0 audit endpoint refs; request-id audit linkage verified `false`, so the object-storage gate remains open.",
@@ -539,6 +541,15 @@ assert_gate_snapshot_line_matches(
     "fixtures/stage0/rev2/release_gate_evidence.production_launch.json",
     production,
 )
+production_decision_ref = production.get("gate_decision", {}).get("evidence_ref", "")
+for upstream_token in (
+    "present upstream CI fixture fixtures/stage0/rev2/release_gate_evidence.ci.json gate_decision.status=no_go",
+    "present upstream Private Beta/Staging fixture fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json gate_decision.status=no_go",
+):
+    if upstream_token not in production_decision_ref:
+        raise SystemExit(f"production gate decision must preserve upstream fixture no-go token: {upstream_token}")
+    if upstream_token not in notes:
+        raise SystemExit(f"release no-go notes must preserve upstream fixture no-go token: {upstream_token}")
 
 template = Path("ops/release/release_notes_template.md").read_text(encoding="utf-8")
 if template.count("- Load evidence:") != 1:
@@ -1478,6 +1489,48 @@ legal_support_status=$?
 set -e
 if [[ "$legal_support_status" -ne 2 ]]; then
   printf 'staging legal/support visibility dry-run must exit 2 without external-user runtime evidence, got %s\n' "$legal_support_status" >&2
+  exit 1
+fi
+before_default_legal_support_sha="$(
+  python3 - <<'PY'
+import hashlib
+from pathlib import Path
+
+paths = [
+    Path("ops/evidence/staging/legal-pages-external-user.json"),
+    Path("ops/evidence/staging/support-contact-external-user.json"),
+]
+digest = hashlib.sha256()
+for path in paths:
+    digest.update(path.read_bytes())
+print(digest.hexdigest())
+PY
+)"
+set +e
+DRY_RUN=1 scripts/staging_legal_support_visibility_smoke.sh >/dev/null
+default_legal_support_status=$?
+set -e
+if [[ "$default_legal_support_status" -ne 2 ]]; then
+  printf 'default staging legal/support visibility dry-run must exit 2 without external-user runtime evidence, got %s\n' "$default_legal_support_status" >&2
+  exit 1
+fi
+after_default_legal_support_sha="$(
+  python3 - <<'PY'
+import hashlib
+from pathlib import Path
+
+paths = [
+    Path("ops/evidence/staging/legal-pages-external-user.json"),
+    Path("ops/evidence/staging/support-contact-external-user.json"),
+]
+digest = hashlib.sha256()
+for path in paths:
+    digest.update(path.read_bytes())
+print(digest.hexdigest())
+PY
+)"
+if [[ "$before_default_legal_support_sha" != "$after_default_legal_support_sha" ]]; then
+  printf 'default staging legal/support visibility dry-run must not mutate checked-in pass evidence\n' >&2
   exit 1
 fi
 DRY_RUN=1 OUT_DIR="$ops_validate_dir/security" scripts/security_scan_smoke.sh >/dev/null
@@ -3158,6 +3211,34 @@ required_routes = {
 }
 if set(report.get("required_routes", [])) != required_routes:
     raise SystemExit(f"legal/support visibility required routes mismatch: {report.get('required_routes')}")
+runtime_requirements = report.get("runtime_input_requirements", {})
+if "STAGING_WEB_URL or WEB_URL" not in runtime_requirements.get("required_web_url", ""):
+    raise SystemExit("legal/support visibility dry-run must name the staging web URL input requirement")
+if "external-user HTTP GET" not in runtime_requirements.get("required_probe_mode", ""):
+    raise SystemExit("legal/support visibility dry-run must name the external-user HTTP probe requirement")
+if "source files or checked-in policy text alone cannot satisfy" not in runtime_requirements.get("source_file_policy", ""):
+    raise SystemExit("legal/support visibility dry-run must reject source-file-only evidence")
+expected_route_contract = {
+    "terms": "/legal/terms",
+    "privacy": "/legal/privacy",
+    "acceptable_use": "/legal/acceptable-use",
+    "ip_complaint": "/legal/ip-complaints",
+    "ai_content_disclaimer": "/support",
+    "support_contact": "/support",
+    "billing_policy": "/legal/billing-policy",
+}
+if runtime_requirements.get("required_routes") != expected_route_contract:
+    raise SystemExit(f"legal/support visibility route contract mismatch: {runtime_requirements.get('required_routes')}")
+expected_splits = runtime_requirements.get("required_exact_split_reports", {})
+if expected_splits.get("legal_pages_external_user") != str(Path(sys.argv[1]) / "legal-pages-external-user.json"):
+    raise SystemExit("legal/support visibility dry-run must name the exact legal pages split path")
+if expected_splits.get("support_contact_external_user") != str(Path(sys.argv[1]) / "support-contact-external-user.json"):
+    raise SystemExit("legal/support visibility dry-run must name the exact support contact split path")
+readiness = report.get("input_readiness", {})
+if readiness.get("web_url_ready") is not False or readiness.get("dry_run") is not False:
+    raise SystemExit(f"legal/support visibility missing-URL run must expose blocked input readiness: {readiness}")
+if readiness.get("external_probe_attempted") is not False:
+    raise SystemExit("legal/support visibility missing-URL run must not claim external probe execution")
 if not report.get("blocked_checks"):
     raise SystemExit("legal/support visibility dry-run must record blocked checks")
 gate = report.get("gate_impact", {})
@@ -3264,6 +3345,20 @@ if report.get("release_gate_check_id") != "staging_legal_external_user_pages":
     raise SystemExit("legal/support visibility pass fixture must target legal/support release check")
 if report.get("blocked_checks") != []:
     raise SystemExit(f"legal/support visibility pass fixture must not preserve legal blockers: {report.get('blocked_checks')}")
+runtime_requirements = report.get("runtime_input_requirements", {})
+if "STAGING_WEB_URL or WEB_URL" not in runtime_requirements.get("required_web_url", ""):
+    raise SystemExit("legal/support visibility pass fixture must preserve the staging web URL contract")
+if "external-user HTTP GET" not in runtime_requirements.get("required_probe_mode", ""):
+    raise SystemExit("legal/support visibility pass fixture must preserve the external-user HTTP probe contract")
+if "source files or checked-in policy text alone cannot satisfy" not in runtime_requirements.get("source_file_policy", ""):
+    raise SystemExit("legal/support visibility pass fixture must reject source-file-only evidence")
+readiness = report.get("input_readiness", {})
+if readiness.get("web_url_ready") is not True:
+    raise SystemExit(f"legal/support visibility pass fixture must expose web_url readiness: {readiness}")
+if readiness.get("external_probe_attempted") is not True:
+    raise SystemExit(f"legal/support visibility pass fixture must expose external probe execution: {readiness}")
+if readiness.get("legal_pages_split_ready") is not True or readiness.get("support_contact_split_ready") is not True:
+    raise SystemExit(f"legal/support visibility pass fixture must expose split readiness: {readiness}")
 gate = report.get("gate_impact", {})
 if gate.get("can_clear_release_gate_check") is not True:
     raise SystemExit("legal/support visibility pass fixture must allow the check-level gate to clear")
@@ -3295,6 +3390,13 @@ for name, expectation in split_expectations.items():
         raise SystemExit(f"{name} kind mismatch: {split.get('kind')}")
     if split.get("release_gate_check_id") != "staging_legal_external_user_pages":
         raise SystemExit(f"{name} must target legal/support release check")
+    split_requirements = split.get("runtime_input_requirements", {})
+    if "STAGING_WEB_URL or WEB_URL" not in split_requirements.get("required_web_url", ""):
+        raise SystemExit(f"{name} must preserve the staging web URL contract")
+    if "source files or checked-in policy text alone cannot satisfy" not in split_requirements.get("source_file_policy", ""):
+        raise SystemExit(f"{name} must reject source-file-only evidence")
+    if split_requirements.get("source_results_path") != str(out_dir / "stage0-validate-legal-support-pass.ndjson"):
+        raise SystemExit(f"{name} must cite the exact source probe results path")
     gate = split.get("gate_impact", {})
     if gate.get("can_clear_check_level_item") is not True:
         raise SystemExit(f"{name} must allow its check-level checklist item to clear")
