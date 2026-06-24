@@ -97,7 +97,8 @@
         "bash scripts/repo_validate.sh"
       ],
       "required_draft_tokens": [
-        "docker build --tag ghcr.io/alphane-ai/zenart-${{ matrix.image.name }}:${{ github.sha }}",
+        "IMAGE_PREFIX=ghcr.io/alphane-ai/zenari",
+        "stage0-rev2-docker-image-build",
         "bash -n scripts/docker_build_smoke.sh",
         "bash -n scripts/staging_smoke.sh",
         "bash -n scripts/staging_legal_support_visibility_smoke.sh"

@@ -12223,8 +12223,11 @@ def validate_launch_readiness_split_contracts() -> None:
 
     required_ci_tokens = [
         "playwright-smoke",
+        "stage0-rev2-playwright-smoke",
+        "stage1-ci-exact-evidence-aggregate",
         "DRY_RUN=1 scripts/playwright_smoke.sh",
-        "docker build --tag ghcr.io/alphane-ai/zenart-${{ matrix.image.name }}:${{ github.sha }}",
+        "IMAGE_PREFIX=ghcr.io/alphane-ai/zenari",
+        "stage0-rev2-docker-image-build",
         "DRY_RUN=1 scripts/docker_build_smoke.sh",
     ]
     for token in required_ci_tokens:
@@ -12462,7 +12465,10 @@ def validate_ops_ci_and_drill_evidence() -> None:
         "npm run typecheck",
         "npm run test",
         "npm run build",
-        "docker build --tag ghcr.io/alphane-ai/zenart-${{ matrix.image.name }}:${{ github.sha }}",
+        "IMAGE_PREFIX=ghcr.io/alphane-ai/zenari",
+        "stage0-rev2-docker-image-build",
+        "stage0-rev2-playwright-smoke",
+        "stage1-ci-exact-evidence-aggregate",
         "playwright-smoke",
         "DRY_RUN=1 scripts/playwright_smoke.sh",
         "bash -n scripts/docker_build_smoke.sh",
