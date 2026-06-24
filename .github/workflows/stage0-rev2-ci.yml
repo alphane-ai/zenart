@@ -61,7 +61,7 @@ jobs:
         ports:
           - 9000:9000
         options: >-
-          --health-cmd "mc ready local || exit 1"
+          --health-cmd "curl -fsS http://127.0.0.1:9000/minio/health/live || exit 1"
           --health-interval 5s
           --health-timeout 3s
           --health-retries 20
