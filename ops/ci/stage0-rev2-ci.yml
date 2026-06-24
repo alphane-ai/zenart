@@ -276,7 +276,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: stage0-rev2-ci-playwright-smoke-evidence
-          path: ops/evidence/ci/*.json
+          path: |
+            ops/evidence/ci/*.json
+            ops/evidence/ci/*.log
 
   smoke-placeholders:
     name: Deferred smoke gates

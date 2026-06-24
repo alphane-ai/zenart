@@ -8,7 +8,7 @@ const adminURL = process.env.ADMIN_URL ?? `http://127.0.0.1:${adminPort}`;
 test("web workspace shell renders", async ({ page }) => {
   const response = await page.goto(webURL, { waitUntil: "domcontentloaded" });
   expect(response?.status(), `GET ${webURL}`).toBeLessThan(400);
-  await expect(page.getByRole("main").or(page.locator("body"))).toBeVisible();
+  await expect(page.locator("body")).toBeVisible();
   await expect(page.getByText(/package|export|workspace|candidate/i).first()).toBeVisible();
 });
 

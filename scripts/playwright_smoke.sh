@@ -52,15 +52,25 @@ if [[ ! -f "$SPEC_PATH" ]]; then
   exit 2
 fi
 
-if ! command -v npx >/dev/null 2>&1; then
-  printf 'npx is required for Playwright smoke\n' >&2
-  write_report "blocked_missing_npx" 127
-  exit 127
+PLAYWRIGHT_BIN="${PLAYWRIGHT_BIN:-}"
+if [[ -z "$PLAYWRIGHT_BIN" && -x "web/node_modules/.bin/playwright" ]]; then
+  PLAYWRIGHT_BIN="web/node_modules/.bin/playwright"
+fi
+if [[ -z "$PLAYWRIGHT_BIN" && -x "node_modules/.bin/playwright" ]]; then
+  PLAYWRIGHT_BIN="node_modules/.bin/playwright"
+fi
+if [[ -z "$PLAYWRIGHT_BIN" ]]; then
+  if ! command -v npx >/dev/null 2>&1; then
+    printf 'npx or a local Playwright binary is required for Playwright smoke\n' >&2
+    write_report "blocked_missing_playwright" 127
+    exit 127
+  fi
+  PLAYWRIGHT_BIN="npx --yes @playwright/test@1.56.0"
 fi
 
 mkdir -p "$OUT_DIR"
 set +e
-WEB_URL="$WEB_URL" ADMIN_URL="$ADMIN_URL" npx --yes playwright@1.56.0 test "$SPEC_PATH" --project=chromium --reporter=line >"$LOG_PATH" 2>&1
+NODE_PATH="$ROOT/web/node_modules${NODE_PATH:+:$NODE_PATH}" WEB_URL="$WEB_URL" ADMIN_URL="$ADMIN_URL" $PLAYWRIGHT_BIN test "$SPEC_PATH" --browser=chromium --reporter=line >"$LOG_PATH" 2>&1
 status=$?
 set -e
 
