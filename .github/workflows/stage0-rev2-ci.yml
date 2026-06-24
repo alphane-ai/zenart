@@ -148,71 +148,55 @@ jobs:
       - name: Secret scan smoke
         run: SECRET_SCAN_ONLY=1 scripts/security_scan_smoke.sh
 
-      - name: Record installed workflow run evidence
-        if: always()
+      - name: Write PR/main exact CI evidence
         run: |
-          python3 scripts/write_ci_runtime_evidence.py \
-            --kind workflow-run \
-            --status "${{ job.status }}" \
-            --job repo-contracts \
-            --step "repo contracts and generated artifacts" \
-            --evidence-ref fixtures/stage0/rev2/release_gate_evidence.ci.json
+          python3 scripts/write_stage1_ci_pr_main_evidence.py \
+            --output ops/evidence/ci/stage0-rev2-pr-main-run.json
 
-      - name: Upload installed workflow run evidence
-        if: always()
+      - name: Upload PR/main exact CI evidence
         uses: actions/upload-artifact@v4
         with:
-          name: stage0-rev2-ci-workflow-run-evidence
-          path: ops/evidence/ci/*.json
+          name: stage0-rev2-pr-main-run
+          path: ops/evidence/ci/stage0-rev2-pr-main-run.json
 
   docker-images:
-    name: Docker image build
+    name: Docker image build exact evidence
     runs-on: ubuntu-latest
     needs: repo-contracts
-    strategy:
-      matrix:
-        image:
-          - name: backend
-            context: backend
-          - name: web
-            context: web
-          - name: admin
-            context: admin
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build SHA-tagged image
+      - name: Build SHA-tagged images and write exact CI evidence
         run: |
-          set +e
-          docker build --tag ghcr.io/alphane-ai/zenart-${{ matrix.image.name }}:${{ github.sha }} ${{ matrix.image.context }}
-          status=$?
-          set -e
-          result_status="failed"
-          if [ "$status" = 0 ]; then
-            result_status="passed"
-          fi
-          python3 scripts/write_ci_runtime_evidence.py \
-            --kind docker-image-build \
-            --status "$result_status" \
-            --job docker-images \
-            --step "docker build ${{ matrix.image.name }}" \
-            --exit-code "$status" \
-            --details "image=ghcr.io/alphane-ai/zenart-${{ matrix.image.name }}:${{ github.sha }}" \
-            --details "context=${{ matrix.image.context }}" \
-            --evidence-ref backend/Dockerfile \
-            --evidence-ref web/Dockerfile \
-            --evidence-ref admin/Dockerfile
-          exit "$status"
+          set -euo pipefail
+          rm -rf ops/evidence/ci/docker-image-build-run
+          GIT_SHA="${GITHUB_SHA}" IMAGE_PREFIX=ghcr.io/alphane-ai/zenari OUT_DIR=ops/evidence/ci/docker-image-build-run scripts/docker_build_smoke.sh | tee /tmp/zenari-docker-build.out
+          DOCKER_REPORT="$(awk '/evidence written to / {print $NF}' /tmp/zenari-docker-build.out | tail -n 1)"
+          test -n "$DOCKER_REPORT"
+          python3 scripts/write_stage1_ci_docker_evidence.py \
+            --source "$DOCKER_REPORT" \
+            --output ops/evidence/ci/stage0-rev2-docker-image-build.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
 
-      - name: Upload Docker image build evidence
-        if: always()
+          report = Path("ops/evidence/ci/stage0-rev2-docker-image-build.json")
+          data = json.loads(report.read_text())
+          assert data["schema_version"] == "stage1.ci_docker_image_build.v1"
+          assert set(data["images"]) == {"web", "admin", "backend"}
+          assert all(row["digest"].startswith("sha256:") for row in data["images"].values())
+          PY
+
+      - name: Upload Docker exact CI evidence
         uses: actions/upload-artifact@v4
         with:
-          name: stage0-rev2-ci-docker-image-build-${{ matrix.image.name }}-evidence
-          path: ops/evidence/ci/*.json
+          name: stage0-rev2-docker-image-build
+          path: |
+            ops/evidence/ci/stage0-rev2-docker-image-build.json
+            ops/evidence/ci/docker-image-build-run/
 
   playwright-smoke:
-    name: Playwright smoke
+    name: Playwright smoke exact evidence
     runs-on: ubuntu-latest
     needs: repo-contracts
     steps:
@@ -251,34 +235,90 @@ jobs:
 
       - name: Run Playwright smoke wrapper
         run: |
-          set +e
-          OUT_DIR=ops/evidence/ci WEB_URL=http://127.0.0.1:26080 ADMIN_URL=http://127.0.0.1:26081 scripts/playwright_smoke.sh
-          status=$?
-          set -e
-          result_status="failed"
-          if [ "$status" = 0 ]; then
-            result_status="passed"
-          fi
-          python3 scripts/write_ci_runtime_evidence.py \
-            --kind playwright-smoke \
-            --status "$result_status" \
-            --job playwright-smoke \
-            --step "scripts/playwright_smoke.sh" \
-            --exit-code "$status" \
-            --details "WEB_URL=http://127.0.0.1:26080" \
-            --details "ADMIN_URL=http://127.0.0.1:26081" \
-            --evidence-ref ops/ci/playwright-smoke.spec.ts \
-            --evidence-ref scripts/playwright_smoke.sh
-          exit "$status"
+          set -euo pipefail
+          rm -rf ops/evidence/ci/playwright-smoke-run
+          OUT_DIR=ops/evidence/ci/playwright-smoke-run WEB_URL=http://127.0.0.1:26080 ADMIN_URL=http://127.0.0.1:26081 scripts/playwright_smoke.sh | tee /tmp/zenari-playwright-smoke.out
+          PLAYWRIGHT_REPORT="$(awk '/evidence written to / {print $NF}' /tmp/zenari-playwright-smoke.out | tail -n 1)"
+          test -n "$PLAYWRIGHT_REPORT"
+          python3 scripts/write_stage1_ci_playwright_evidence.py \
+            --source "$PLAYWRIGHT_REPORT" \
+            --output ops/evidence/ci/stage0-rev2-playwright-smoke.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
 
-      - name: Upload Playwright smoke evidence
-        if: always()
+          report = Path("ops/evidence/ci/stage0-rev2-playwright-smoke.json")
+          data = json.loads(report.read_text())
+          assert data["schema_version"] == "stage1.ci_playwright_smoke.v1"
+          assert data["coverage"]["billing"]["status"] == "pass"
+          assert data["coverage"]["workspace"]["status"] == "pass"
+          PY
+
+      - name: Upload Playwright exact CI evidence
         uses: actions/upload-artifact@v4
         with:
-          name: stage0-rev2-ci-playwright-smoke-evidence
+          name: stage0-rev2-playwright-smoke
           path: |
-            ops/evidence/ci/*.json
-            ops/evidence/ci/*.log
+            ops/evidence/ci/stage0-rev2-playwright-smoke.json
+            ops/evidence/ci/playwright-smoke-run/
+
+  ci-exact-evidence:
+    name: CI exact evidence aggregate validation
+    runs-on: ubuntu-latest
+    needs:
+      - repo-contracts
+      - docker-images
+      - playwright-smoke
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: /tmp/zenari-ci-artifacts
+
+      - name: Validate exact CI evidence artifacts together
+        run: |
+          set -euo pipefail
+          mkdir -p ops/evidence/ci
+          copy_artifact() {
+            local artifact="$1"
+            local file="$2"
+            local source
+            source="$(find "/tmp/zenari-ci-artifacts/${artifact}" -type f -name "${file}" | head -n 1)"
+            test -n "${source}"
+            cp "${source}" "ops/evidence/ci/${file}"
+          }
+          copy_artifact stage0-rev2-pr-main-run stage0-rev2-pr-main-run.json
+          copy_artifact stage0-rev2-docker-image-build stage0-rev2-docker-image-build.json
+          copy_artifact stage0-rev2-playwright-smoke stage0-rev2-playwright-smoke.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          expected = {
+              "stage0-rev2-pr-main-run.json": "stage1.ci_pr_main_run.v1",
+              "stage0-rev2-docker-image-build.json": "stage1.ci_docker_image_build.v1",
+              "stage0-rev2-playwright-smoke.json": "stage1.ci_playwright_smoke.v1",
+          }
+          release_shas = set()
+          for filename, schema in expected.items():
+              data = json.loads(Path("ops/evidence/ci", filename).read_text())
+              assert data["schema_version"] == schema
+              assert data["environment"] == "ci"
+              assert data["status"] == "pass"
+              assert data["canonical_pass_path"] is True
+              release_shas.add(data["release_sha"])
+          assert len(release_shas) == 1
+          PY
+
+      - name: Upload CI exact evidence aggregate
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage1-ci-exact-evidence-aggregate
+          path: |
+            ops/evidence/ci/stage0-rev2-pr-main-run.json
+            ops/evidence/ci/stage0-rev2-playwright-smoke.json
+            ops/evidence/ci/stage0-rev2-docker-image-build.json
 
   smoke-placeholders:
     name: Deferred smoke gates
