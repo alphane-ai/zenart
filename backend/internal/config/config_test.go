@@ -7,6 +7,13 @@ import (
 
 func TestLoadDefaults(t *testing.T) {
 	t.Setenv("DATABASE_URL", "")
+	t.Setenv("OBJECT_STORAGE_PROVIDER", "")
+	t.Setenv("OBJECT_STORAGE_ENDPOINT", "")
+	t.Setenv("OBJECT_STORAGE_PUBLIC_ENDPOINT", "")
+	t.Setenv("OBJECT_STORAGE_BUCKET", "")
+	t.Setenv("OBJECT_STORAGE_ACCESS_KEY", "")
+	t.Setenv("OBJECT_STORAGE_SECRET_KEY", "")
+	t.Setenv("OBJECT_STORAGE_SIGNING_KEY", "")
 	cfg, err := Load()
 	if err != nil {
 		t.Fatalf("Load() error = %v", err)

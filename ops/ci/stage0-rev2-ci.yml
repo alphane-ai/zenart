@@ -14,7 +14,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  ZENART_ENV: CI
+  ZENART_ENV: local
   PROVIDER_MODE: dev
   CHECKOUT_PROVIDER: mock
   STAGE0_ACCESS_MODE: local
