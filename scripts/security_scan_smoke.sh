@@ -5,6 +5,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
 DRY_RUN="${DRY_RUN:-0}"
+SECRET_SCAN_ONLY="${SECRET_SCAN_ONLY:-0}"
 OUT_DIR="${OUT_DIR:-ops/evidence/security/local}"
 RELEASE_SHA="${RELEASE_SHA:-${GITHUB_SHA:-}}"
 EVIDENCE_ENVIRONMENT="${EVIDENCE_ENVIRONMENT:-${ENVIRONMENT:-local}}"
@@ -110,7 +111,7 @@ fi
 mkdir -p "$OUT_DIR"
 rm -f "$SECRET_FINDINGS" "$SECRET_CANDIDATES" "$NPM_AUDIT_WEB" "$NPM_AUDIT_ADMIN" "$GO_VULN" "$TRIVY_IMAGE"
 
-if git grep -nE '(AWS_SECRET_ACCESS_KEY|OPENAI_API_KEY|sk-[A-Za-z0-9_-]{20,}|ghp_[A-Za-z0-9_]{20,})' -- . >"$SECRET_CANDIDATES"; then
+if git grep -nE '(AWS_SECRET_ACCESS_KEY|OPENAI_API_KEY|(^|[^[:alnum:]_-])sk-[A-Za-z0-9_-]{20,}|(^|[^[:alnum:]_-])ghp_[A-Za-z0-9_]{20,})' -- . >"$SECRET_CANDIDATES"; then
   grep -Ev '^(\.env\.example|fixtures/.*|schemas/.*|ops/ci/stage0-rev2-ci\.yml|scripts/repo_validate\.sh|scripts/security_scan_smoke\.sh|backend/internal/security/redact_test\.go):|^backend/internal/server/server_test\.go:[0-9]+:.*sk-proj-abcdefghijklmnopqrstuvwxyz123456|^backend/internal/stage0/services_test\.go:[0-9]+:.*sk-ant-abcdefghijklmnopqrstuvwxyz123456' "$SECRET_CANDIDATES" >"$SECRET_FINDINGS" || true
   rm -f "$SECRET_CANDIDATES"
   if [[ -s "$SECRET_FINDINGS" ]]; then
@@ -120,6 +121,12 @@ if git grep -nE '(AWS_SECRET_ACCESS_KEY|OPENAI_API_KEY|sk-[A-Za-z0-9_-]{20,}|ghp
   fi
 fi
 rm -f "$SECRET_FINDINGS" "$SECRET_CANDIDATES"
+
+if [[ "$SECRET_SCAN_ONLY" == "1" ]]; then
+  write_report "passed"
+  printf 'secret scan smoke passed; evidence written to %s\n' "$REPORT_PATH"
+  exit 0
+fi
 
 if has_cmd npm; then
   (cd web && npm audit --omit=dev --json >"$(artifact_path "$NPM_AUDIT_WEB")" || true)

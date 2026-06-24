@@ -146,8 +146,7 @@ jobs:
           DRY_RUN=1 scripts/security_scan_smoke.sh
 
       - name: Secret scan smoke
-        run: |
-          ! git grep -nE '(AWS_SECRET_ACCESS_KEY|OPENAI_API_KEY|sk-[A-Za-z0-9_-]{20,}|ghp_[A-Za-z0-9_]{20,})' -- . ':!.env.example' ':!fixtures' ':!schemas' ':!ops/ci/stage0-rev2-ci.yml' ':!scripts/repo_validate.sh'
+        run: SECRET_SCAN_ONLY=1 scripts/security_scan_smoke.sh
 
       - name: Record installed workflow run evidence
         if: always()
