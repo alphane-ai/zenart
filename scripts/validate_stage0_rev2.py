@@ -701,10 +701,11 @@ RELEASE_GATE_RUNTIME_OPEN_ITEMS = {
     "Production Launch runtime/deployment evidence 通过：provider-or-comp-only、paid lifecycle、skill canary、activation audit、abuse hold、security、backup/rollback/post-deploy smoke、legal/support policy 均有 production evidence。",
 }
 
+CI_INSTALLED_WORKFLOW_FILE_ITEM = (
+    "CI installed workflow file evidence 通过：`.github/workflows/stage0-rev2-ci.yml` 存在且被 release gate fixture 引用。"
+)
+
 CI_RUNTIME_OPEN_CHECK_ITEMS = {
-    "CI installed workflow file evidence 通过：`.github/workflows/stage0-rev2-ci.yml` 存在且被 release gate fixture 引用。": {
-        "ci_installed_workflow",
-    },
     "CI PR/main workflow run evidence 通过：已安装 workflow 的 PR/main run 结果写入 `ops/evidence/ci/`。": {
         "ci_gate_runtime_execution",
     },
@@ -723,6 +724,11 @@ CI_RUNTIME_OPEN_CHECK_ITEMS = {
     "CI Docker image build exact evidence file 通过：`ops/evidence/ci/stage0-rev2-docker-image-build.json` exists, declares `environment=ci`, `release_gate_check_id=ci_docker_image_build`, passing status, Docker image build semantics, and no preserved blockers。": {
         "ci_docker_image_build",
     },
+}
+
+CI_CHECK_ITEMS = {
+    CI_INSTALLED_WORKFLOW_FILE_ITEM: {"ci_installed_workflow"},
+    **CI_RUNTIME_OPEN_CHECK_ITEMS,
 }
 
 CI_BROAD_RUNTIME_TO_EXACT_CHECKLIST_ITEMS = {
@@ -2176,6 +2182,12 @@ RELEASE_GATE_CHECK_LEVEL_RUNTIME_OPEN_ITEMS = {
     **PRODUCTION_RUNTIME_OPEN_CHECK_ITEMS,
 }
 
+RELEASE_GATE_CHECK_LEVEL_ITEMS = {
+    **CI_CHECK_ITEMS,
+    **PRIVATE_BETA_STAGING_RUNTIME_OPEN_CHECK_ITEMS,
+    **PRODUCTION_RUNTIME_OPEN_CHECK_ITEMS,
+}
+
 LOCAL_ALPHA_AGGREGATE_RUNTIME_ITEM = (
     "Local Alpha workflow API/Playwright end-to-end smoke evidence 通过并写入 release gate fixture。"
 )
@@ -2606,8 +2618,8 @@ RELEASE_GATE_OPEN_ITEM_GUARD_CHECKS = {
 
 ACTIVE_CONDITION_CHECKLIST_BLOCKER_ITEMS = {
     ("ci", "ci_workflow_not_installed"): {
-        "添加 PR/main CI 到 `.github/workflows`。（token-blocked：当前 token 缺 workflow scope；draft/evidence 已落在 `ops/ci/` 和 `fixtures/ops/`。）",
-        "CI installed workflow file evidence 通过：`.github/workflows/stage0-rev2-ci.yml` 存在且被 release gate fixture 引用。",
+        "添加 PR/main CI 到 `.github/workflows`：installed workflow exists at `.github/workflows/stage0-rev2-ci.yml` and matches `ops/ci/stage0-rev2-ci.yml`; runtime PR/main evidence remains open under `ops/evidence/ci/`。",
+        CI_INSTALLED_WORKFLOW_FILE_ITEM,
     },
     ("ci", "ci_gate_not_executed_on_main"): {
         "CI installed workflow runtime evidence 通过：PR/main run、Playwright smoke、Docker image build 均有 validator-resolvable evidence。",
@@ -6627,7 +6639,17 @@ def validate_runtime_gate_evidence_refs(
             specific_open_items = [
                 item
                 for item in concrete_runtime_open
-                if check_id in check_level_guard_map.get(item, runtime_check_ids)
+                if check_id
+                in check_level_guard_map.get(
+                    item,
+                    (
+                        {"ci_gate_runtime_execution", "ci_playwright_smoke", "ci_docker_image_build"}
+                        if gate == "ci"
+                        and item
+                        == "CI installed workflow runtime evidence 通过：PR/main run、Playwright smoke、Docker image build 均有 validator-resolvable evidence。"
+                        else runtime_check_ids
+                    ),
+                )
             ]
             if not specific_open_items:
                 continue
@@ -7277,13 +7299,20 @@ def validate_ops_ci_artifact_evidence() -> None:
     )
     require(evidence["created_by_lane"] == "lane6", "ops CI draft evidence must be lane6-owned")
     require(
-        evidence["installation_status"] == "token_blocked",
-        "ops CI draft evidence must mark workflow installation token-blocked",
+        evidence["installation_status"] in {"token_blocked", "installed"},
+        "ops CI draft evidence must declare whether workflow installation is token_blocked or installed",
     )
-    require(
-        ".github/workflows" in evidence["token_blocked_reason"],
-        "ops CI draft evidence must explain that .github/workflows cannot be changed",
-    )
+    if evidence["installation_status"] == "token_blocked":
+        require(
+            ".github/workflows" in evidence["token_blocked_reason"],
+            "ops CI draft evidence must explain that .github/workflows cannot be changed",
+        )
+    else:
+        require(CI_WORKFLOW.exists(), "installed CI evidence requires .github/workflows/stage0-rev2-ci.yml")
+        require(
+            CI_WORKFLOW.read_text(encoding="utf-8") == CI_DRAFT.read_text(encoding="utf-8"),
+            "installed CI workflow must match ops/ci/stage0-rev2-ci.yml",
+        )
     require(
         evidence["draft_ref"] == CI_DRAFT_REL,
         "ops CI draft evidence must point at the ops/ci draft",
@@ -7291,8 +7320,8 @@ def validate_ops_ci_artifact_evidence() -> None:
 
     policy = evidence["checklist_policy"]
     require(
-        policy.get("ci_installation_checklist_remains_open") is True,
-        "CI installation checklist must remain open while workflow scope is token-blocked",
+        policy.get("ci_installation_checklist_remains_open") is (not CI_WORKFLOW.exists()),
+        "CI installation checklist policy must reflect installed workflow presence",
     )
     require(
         any("CI Gate" in item for item in policy.get("blocked_blueprint_items", [])),
@@ -7324,8 +7353,8 @@ def validate_ops_ci_artifact_evidence() -> None:
         "CI gate evidence must remain blocked until the workflow is installed and passing",
     )
 
+    text = BLUEPRINT.read_text(encoding="utf-8")
     if not CI_WORKFLOW.exists():
-        text = BLUEPRINT.read_text(encoding="utf-8")
         require(
             "- [ ] 添加 PR/main CI 到 `.github/workflows`。" in text,
             "PR/main CI workflow installation checklist must remain open when no installed workflow exists",
@@ -7337,6 +7366,19 @@ def validate_ops_ci_artifact_evidence() -> None:
         require(
             "- [ ] CI Gate 全部通过。" in text,
             "CI Gate checklist must remain open when no installed workflow exists",
+        )
+    else:
+        require(
+            "- [x] 添加 PR/main CI 到 `.github/workflows`" in text,
+            "PR/main CI workflow installation checklist must close when installed workflow exists",
+        )
+        require(
+            "- [x] CI installed workflow file evidence 通过：`.github/workflows/stage0-rev2-ci.yml` 存在且被 release gate fixture 引用。" in text,
+            "CI installed workflow file evidence checklist must close when installed workflow exists",
+        )
+        require(
+            "- [ ] CI Gate 全部通过。" in text,
+            "CI Gate checklist must remain open until runtime evidence exists",
         )
 
 
@@ -10513,7 +10555,7 @@ def validate_release_gate_evidence() -> None:
     )
     ci_runtime_checklist_item_by_check = {
         check_id: item
-        for item, check_ids in CI_RUNTIME_OPEN_CHECK_ITEMS.items()
+        for item, check_ids in CI_CHECK_ITEMS.items()
         for check_id in check_ids
     }
     for check_id in [
@@ -12437,9 +12479,19 @@ def validate_ops_ci_and_drill_evidence() -> None:
 
     installation = CI_INSTALLATION.read_text(encoding="utf-8")
     require(
-        "Blocked by token scope" in installation and ".github/workflows/stage0-rev2-ci.yml" in installation,
-        "CI installation checklist must keep workflow install blocked by token scope",
+        ".github/workflows/stage0-rev2-ci.yml" in installation,
+        "CI installation checklist must reference the installed workflow path",
     )
+    if CI_WORKFLOW.exists():
+        require(
+            "installed copy must stay byte-for-byte aligned" in installation,
+            "CI installation checklist must document installed workflow alignment",
+        )
+    else:
+        require(
+            "Blocked by token scope" in installation,
+            "CI installation checklist must keep workflow install blocked by token scope when workflow is absent",
+        )
 
     env = load_json(ENVIRONMENT_EVIDENCE)
     require(env["blueprint_source"] == "Docs/stage0_blueprint_rev2.md", "environment evidence must cite Rev2")
@@ -12453,9 +12505,10 @@ def validate_ops_ci_and_drill_evidence() -> None:
         "environment evidence must point at ops/ci CI draft",
     )
     open_items = {item["id"]: item for item in env["open_items"]}
+    expected_install_status = "installed" if CI_WORKFLOW.exists() else "blocked_by_token_scope"
     require(
-        open_items.get("install_github_actions_workflow", {}).get("status") == "blocked_by_token_scope",
-        "workflow installation must remain blocked_by_token_scope",
+        open_items.get("install_github_actions_workflow", {}).get("status") == expected_install_status,
+        "workflow installation status must reflect installed workflow presence",
     )
     require("playwright_smoke" in open_items, "environment evidence must keep Playwright smoke open")
     require("docker_image_build_runtime" in open_items, "environment evidence must keep Docker image runtime evidence open")
