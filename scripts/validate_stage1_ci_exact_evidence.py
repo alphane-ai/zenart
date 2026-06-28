@@ -329,6 +329,7 @@ def validate_code_anchors() -> None:
         "validate_stage1_next_blockers_summary.py --contract-only",
     )
     require_text(WORKFLOW, ("pull_request", "push", "validate_stage1_production_launch.py --contract-only", "playwright-smoke", "docker-images"))
+    require_text(WORKFLOW, ("Start MinIO object storage", "server /data", "docker exec zenari-ci-minio mc ready local"))
     require_text(WORKFLOW, pre_launch_contract_anchors)
     require_text(
         WORKFLOW,
@@ -352,6 +353,7 @@ def validate_code_anchors() -> None:
     require_text(WORKFLOW, ("write_stage1_ci_playwright_evidence.py", "stage0-rev2-playwright-smoke.json", "validate_stage1_ci_exact_evidence.py", "PLAYWRIGHT_REPORT"))
     require_text(WORKFLOW, ("write_stage1_ci_docker_evidence.py", "stage0-rev2-docker-image-build.json", "DOCKER_REPORT", "scripts/docker_build_smoke.sh"))
     require_text(OPS_CI, ("playwright-smoke", "docker-images", "scripts/docker_build_smoke.sh"))
+    require_text(OPS_CI, ("Start MinIO object storage", "server /data", "docker exec zenari-ci-minio mc ready local"))
     require_text(OPS_CI, pre_launch_contract_anchors)
     require_text(
         OPS_CI,
