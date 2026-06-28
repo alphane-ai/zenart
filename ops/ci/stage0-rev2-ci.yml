@@ -218,7 +218,7 @@ jobs:
           DRY_RUN=1 scripts/staging_smoke.sh
           DRY_RUN=1 scripts/observability_smoke.sh
           scripts/staging_observability_backup_load_smoke.sh || test "$?" = 2
-          RUN_ID=ci-object-storage-signed-url scripts/staging_object_storage_signed_url_smoke.sh
+          RELEASE_SHA=d3b1107c33dc40b8936f28549e06553fbd7b104a RUN_ID=ci-object-storage-signed-url OUT_DIR="$(mktemp -d)" scripts/staging_object_storage_signed_url_smoke.sh
           DRY_RUN=1 OUT_DIR="$(mktemp -d)" scripts/staging_object_storage_retention_cleanup_smoke.sh || test "$?" = 2
           DRY_RUN=1 scripts/staging_legal_support_visibility_smoke.sh || test "$?" = 2
           DRY_RUN=1 scripts/security_scan_smoke.sh
