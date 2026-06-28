@@ -16,6 +16,7 @@ ENV NEXT_PUBLIC_ADMIN_BASE_PATH=$NEXT_PUBLIC_ADMIN_BASE_PATH
 ENV PUBLIC_ADMIN_ORIGIN=$PUBLIC_ADMIN_ORIGIN
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+RUN mkdir -p public
 RUN npm run build
 
 FROM node:24-alpine AS runner

@@ -14,6 +14,7 @@ ENV NEXT_PUBLIC_STAGE0_ACCESS_MODE=$NEXT_PUBLIC_STAGE0_ACCESS_MODE
 ENV NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=$NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+RUN mkdir -p public
 RUN npm run build
 
 FROM node:24-alpine AS runner
