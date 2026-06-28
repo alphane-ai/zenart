@@ -1,0 +1,8 @@
+{
+  "created_at": "2026-06-22T20:23:55Z",
+  "id": "cs_test_a1a7Y7jAz9kQ2xi8M5CsDpfj5OkcXUtMSs2LIsQ9IOmbcLlx1bXtCQxM1y",
+  "provider": "stripe",
+  "redirect_url": "https://checkout.stripe.com/c/pay/cs_test_a1a7Y7jAz9kQ2xi8M5CsDpfj5OkcXUtMSs2LIsQ9IOmbcLlx1bXtCQxM1y#fidnandhYHdWcXxpYCc%2FJ2FgY2RwaXEnKSdicGRmZGhqaWBTZHdsZGtxJz8nZmprcXdqaScpJ2R1bE5gfCc%2FJ3VuWnFgdnFaMDRRbmZkVkJPZnJjPEdoYk0xc0k3b3UyQlVATXxKXzE9SGM8XD1fSXBRVVNcRGtKbG4xaUJ1YWpAdndNaG5mMV9wMGJLamtPfV1HX3VubmJqS0lqZ3dVdnE1NTBOPFxWbTZxJyknY3dqaFZgd3Ngdyc%2FcXdwYCknZ2RmbmJ3anBrYUZqaWp3Jz8nJmNjY2NjYycpJ2lkfGpwcVF8dWAnPyd2bGtiaWBabHFgaCcpJ2BrZGdpYFVpZGZgbWppYWB3dic%2FcXdwYHgl",
+  "tenant_id": "tenant_local",
+  "user_id": "user_local_user"
+}

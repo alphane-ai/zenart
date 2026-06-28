@@ -64,7 +64,7 @@
   ],
   "ci_draft": {
     "path": "ops/ci/stage0-rev2-ci.yml",
-    "not_installed_reason": "current automation token lacks workflow scope; do not create .github/workflows from this lane",
+    "not_installed_reason": "resolved: installed workflow exists; runtime PR/main evidence, Playwright evidence, and Docker image build evidence remain required",
     "installation_checklist": "ops/ci/INSTALLATION.md",
     "required_checks": [
       "web_admin_lint_typecheck_unit_build",
@@ -75,8 +75,12 @@
       "api_agent_contract_tests",
       "security_scan_smoke",
       "docker_image_sha_build",
-      "playwright_smoke_wrapper"
-    ]
+      "playwright_smoke_wrapper",
+      "stage1_prelaunch_contract_validators",
+      "stripe_sandbox_selftest_when_ci_test_secrets_present"
+    ],
+    "entrypoint": ".github/workflows/stage0-rev2-ci.yml installed from ops/ci/stage0-rev2-ci.yml and extended with Stage 1 pre-launch contract validation",
+    "installed_workflow": ".github/workflows/stage0-rev2-ci.yml"
   },
   "feature_flags": [
     {
@@ -102,10 +106,10 @@
   ],
   "open_items": [
     {
-      "id": "install_github_actions_workflow",
-      "status": "blocked_by_token_scope",
-      "owner": "maintainer_with_workflow_scope",
-      "evidence": "ops/ci/INSTALLATION.md"
+      "id": "ci_installed_workflow",
+      "status": "installed_pending_runtime_evidence",
+      "owner": "ci owner",
+      "evidence": ".github/workflows/stage0-rev2-ci.yml"
     },
     {
       "id": "playwright_smoke",

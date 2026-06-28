@@ -1,0 +1,404 @@
+{
+  "authorization_header_persisted": false,
+  "can_clear_stage1_production_launch_gate": false,
+  "can_close_do_not_launch": false,
+  "canonical_pass_path": false,
+  "closure_queue_ref": "ops/evidence/release/staging/stage1-evidence-closure-queue.preflight.json",
+  "closure_summary": {
+    "completed": 6,
+    "completion_percent": 42.9,
+    "open": 8,
+    "open_gates": [
+      "ci_pr_main_run",
+      "ci_playwright_smoke",
+      "ci_docker_image_build",
+      "stage1_production_launch_preflight",
+      "production_paid_billing_lifecycle",
+      "production_security_launch_checks",
+      "production_legal_support_policy",
+      "production_governance_release"
+    ],
+    "release_gate_decision": "no_go",
+    "status": "blocked",
+    "total": 14
+  },
+  "cookie_persisted": false,
+  "environment": "production",
+  "execution_order": {
+    "generate_and_validate_after_sources": [
+      "python3 scripts/generate_stage1_production_billing_evidence.py --source ops/evidence/production/billing-paid-lifecycle-source.json",
+      "python3 scripts/generate_stage1_production_security_launch_evidence.py --source ops/evidence/production/production-security-launch-source.json",
+      "python3 scripts/generate_stage1_production_legal_support_evidence.py --source ops/evidence/production/production-legal-support-source.json",
+      "python3 scripts/generate_stage1_production_governance_release_evidence.py --source ops/evidence/production/production-governance-release-source.json",
+      "python3 scripts/generate_stage1_production_launch_evidence.py",
+      "python3 scripts/validate_stage1_production_launch.py"
+    ],
+    "generate_templates": [
+      "python3 scripts/stage1_billing_live_proof_template.py --output ops/evidence/non_clearing/templates/billing-live-proof.template.json --self-test",
+      "python3 scripts/generate_stage1_production_source_probe_templates.py --output-dir ops/evidence/non_clearing/templates/production-source-probes --self-test",
+      "python3 scripts/validate_stage1_production_source_probe_templates.py --template-dir ops/evidence/non_clearing/templates/production-source-probes"
+    ],
+    "run_one_shot_proof_bundle_preflight": [
+      "python3 scripts/run_stage1_production_proof_bundle.py || test $? -eq 2",
+      "python3 scripts/validate_stage1_production_proof_bundle.py"
+    ],
+    "write_canonical_sources_after_real_inputs": [
+      "python3 scripts/stage1_production_source_probe.py --billing --release-sha $(git rev-parse HEAD) --billing-proof <sanitized-live-billing-proof.json> --write-canonical-source",
+      "python3 scripts/stage1_production_source_probe.py --security --release-sha $(git rev-parse HEAD) --security-proof <sanitized-production-security-proof.json> --write-canonical-source",
+      "python3 scripts/stage1_production_source_probe.py --legal-support --release-sha $(git rev-parse HEAD) --production-web-url https://zenari.ai --write-canonical-source",
+      "python3 scripts/stage1_production_source_probe.py --governance --release-sha $(git rev-parse HEAD) --governance-proof <sanitized-production-governance-proof.json> --write-canonical-source"
+    ]
+  },
+  "gate_impact": {
+    "can_clear_aggregate_production_gate": false,
+    "can_clear_billing": false,
+    "can_clear_governance": false,
+    "can_clear_legal_support": false,
+    "can_clear_security": false,
+    "preserved_do_not_launch_condition": "stage1_production_launch_evidence_incomplete"
+  },
+  "generated_at": "2026-06-28T17:50:44+00:00",
+  "kind": "stage1_production_launch_input_packet",
+  "missing_variables": [
+    "STAGING_DATABASE_URL deployed non-local Postgres endpoint",
+    "GH_TOKEN or GITHUB_TOKEN when GitHub artifact access is private"
+  ],
+  "non_clearing_input_packet": true,
+  "production_dns_readiness": {
+    "dns_split_brain_observed": false,
+    "doh_probe_statuses": {
+      "production_a_cloudflare": "blocked",
+      "production_a_google": "blocked",
+      "production_aaaa_cloudflare": "blocked",
+      "production_aaaa_google": "blocked",
+      "staging_a_cloudflare": "blocked",
+      "staging_a_google": "blocked"
+    },
+    "first_blocker": "system resolver failed for zenari.ai: [Errno 8] nodename nor servname provided, or not known",
+    "path": "ops/evidence/non_clearing/production-dns-readiness.json",
+    "public_production_address_count": 0,
+    "status": "blocked"
+  },
+  "proof_bundle": {
+    "canonical_write_policy": "Use --write-canonical-sources only after production DNS/HTTPS, live Stripe billing, production security, and production governance proofs are real and pass their strict validators.",
+    "operator_commands": {
+      "canonical_after_real_production_inputs_pass": [
+        "python3 scripts/run_stage1_production_proof_bundle.py --write-canonical-sources",
+        "python3 scripts/validate_stage1_production_launch.py"
+      ],
+      "non_clearing_preflight": [
+        "python3 scripts/run_stage1_production_proof_bundle.py || test $? -eq 2",
+        "python3 scripts/validate_stage1_production_proof_bundle.py"
+      ]
+    },
+    "required_env_variable_groups": {
+      "billing": [
+        "STRIPE_MODE=live",
+        "STRIPE_SECRET_KEY or STRIPE_API_KEY with live key shape",
+        "STRIPE_PUBLISHABLE_KEY or NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY with live key shape when set",
+        "STAGE1_PROD_BILLING_CHECKOUT_SESSION_ID",
+        "STAGE1_PROD_BILLING_CHECKOUT_CUSTOMER_ID",
+        "STAGE1_PROD_BILLING_PRICE_ID",
+        "STAGE1_PROD_BILLING_ACTIVE_SUBSCRIPTION_ID",
+        "STAGE1_PROD_BILLING_ACTIVE_CUSTOMER_ID",
+        "STAGE1_PROD_BILLING_ACTIVE_SUBSCRIPTION_STATUS",
+        "STAGE1_PROD_BILLING_PAST_DUE_SUBSCRIPTION_ID",
+        "STAGE1_PROD_BILLING_PAST_DUE_INVOICE_ID",
+        "STAGE1_PROD_BILLING_CANCEL_SUBSCRIPTION_ID",
+        "STAGE1_PROD_BILLING_CANCEL_SUBSCRIPTION_STATUS",
+        "STAGE1_PROD_BILLING_SEAT_QUANTITY",
+        "STAGE1_PROD_BILLING_SYNCED_QUANTITY",
+        "STAGE1_PROD_BILLING_SUBSCRIPTION_ITEM_ID",
+        "STAGE1_PROD_BILLING_PRORATION_BEHAVIOR",
+        "STAGE1_PROD_BILLING_SYNC_IDEMPOTENCY_KEY",
+        "STAGE1_PROD_BILLING_VISIBLE_INVOICE_ID",
+        "STAGE1_PROD_BILLING_REFUND_STATUS",
+        "STAGE1_PROD_BILLING_ADMIN_OPERATION",
+        "STAGE1_PROD_BILLING_REFUND_CHARGE_ID",
+        "STAGE1_PROD_BILLING_REFUND_ID",
+        "STAGE1_PROD_BILLING_QUOTA_RESET_INVOICE_ID",
+        "STAGE1_PROD_BILLING_WEBHOOK_EVENT_IDS",
+        "STAGE1_PROD_BILLING_FIRST_DELIVERY_MUTATIONS",
+        "STAGE1_PROD_BILLING_REPLAY_DELIVERY_MUTATIONS",
+        "STAGE1_PROD_BILLING_DUPLICATE_MUTATION_COUNT",
+        "STAGE1_PROD_BILLING_FAILED_EXPORT_REFUND_ID",
+        "STAGE1_PROD_BILLING_LIVE_TEST_SEPARATION_REF",
+        "STAGE1_PROD_BILLING_PAID_CHECKOUT_REF",
+        "STAGE1_PROD_BILLING_SUBSCRIPTION_ACTIVE_REF",
+        "STAGE1_PROD_BILLING_SUBSCRIPTION_PAST_DUE_REF",
+        "STAGE1_PROD_BILLING_SUBSCRIPTION_CANCEL_REF",
+        "STAGE1_PROD_BILLING_TEAM_SEAT_REF",
+        "STAGE1_PROD_BILLING_INVOICE_VISIBILITY_REF",
+        "STAGE1_PROD_BILLING_LIFECYCLE_AUDIT_REF",
+        "STAGE1_PROD_BILLING_REFUND_CREDIT_REF",
+        "STAGE1_PROD_BILLING_QUOTA_RESET_REF",
+        "STAGE1_PROD_BILLING_WEBHOOK_IDEMPOTENCY_REF",
+        "STAGE1_PROD_BILLING_FAILED_EXPORT_REFUND_REF",
+        "STAGE1_PROD_BILLING_QUOTA_PROJECTION_REF",
+        "STAGE1_PROD_BILLING_REFUND_WEBHOOK_AUDIT_REF"
+      ],
+      "governance": [
+        "STAGE1_PROD_GOVERNANCE_ACTIVATION_RUNTIME_REQUEST_IDS",
+        "STAGE1_PROD_GOVERNANCE_ACTIVATION_AUDIT_REFS",
+        "STAGE1_PROD_GOVERNANCE_ACTIVATION_HIGH_RISK_RBAC_REF",
+        "STAGE1_PROD_GOVERNANCE_ACTIVATION_REVIEWER_RATIONALE_REF",
+        "STAGE1_PROD_GOVERNANCE_ACTIVATION_SECOND_REVIEW_REF",
+        "STAGE1_PROD_GOVERNANCE_ACTIVATION_AUDIT_IMMUTABILITY_REF",
+        "STAGE1_PROD_GOVERNANCE_ACTIVATION_GATES_REF",
+        "STAGE1_PROD_GOVERNANCE_ABUSE_RUNTIME_REQUEST_IDS",
+        "STAGE1_PROD_GOVERNANCE_ABUSE_AUDIT_REFS",
+        "STAGE1_PROD_GOVERNANCE_ABUSE_ACCOUNT_HOLD_REF",
+        "STAGE1_PROD_GOVERNANCE_ABUSE_RATE_LIMIT_REF",
+        "STAGE1_PROD_GOVERNANCE_ABUSE_SPEND_CAP_OR_KILL_SWITCH_REF",
+        "STAGE1_PROD_GOVERNANCE_ABUSE_RBAC_AUDIT_REF",
+        "STAGE1_PROD_GOVERNANCE_SKILL_RUNTIME_REQUEST_IDS",
+        "STAGE1_PROD_GOVERNANCE_SKILL_AUDIT_REFS",
+        "STAGE1_PROD_GOVERNANCE_SKILL_OWNER_ID",
+        "STAGE1_PROD_GOVERNANCE_SKILL_RISK_LEVEL",
+        "STAGE1_PROD_GOVERNANCE_SKILL_SUITE_ID",
+        "STAGE1_PROD_GOVERNANCE_SKILL_ROLLBACK_TARGET_ID",
+        "STAGE1_PROD_GOVERNANCE_SKILL_RELEASE_NOTES_ID",
+        "STAGE1_PROD_GOVERNANCE_SKILL_CANARY_SAMPLE_SIZE",
+        "STAGE1_PROD_GOVERNANCE_SKILL_OWNER_RISK_REF",
+        "STAGE1_PROD_GOVERNANCE_SKILL_EVAL_SUITE_REF",
+        "STAGE1_PROD_GOVERNANCE_SKILL_SAFETY_REFS_REF",
+        "STAGE1_PROD_GOVERNANCE_SKILL_CANARY_METRICS_REF",
+        "STAGE1_PROD_GOVERNANCE_SKILL_ROLLBACK_TARGET_REF",
+        "STAGE1_PROD_GOVERNANCE_SKILL_RELEASE_NOTES_REF"
+      ],
+      "production_dns": [
+        "PRODUCTION_WEB_URL",
+        "PRODUCTION_DNS_TARGET",
+        "CLOUDFLARE_ZONE_ID or CF_ZONE_ID",
+        "CLOUDFLARE_API_TOKEN or CF_API_TOKEN"
+      ],
+      "security": [
+        "STAGE1_PROD_SECURITY_SAME_SITE",
+        "STAGE1_PROD_SECURITY_RAW_SECRET_EXPOSURE_COUNT",
+        "STAGE1_PROD_SECURITY_FRONTEND_SECRET_EXPOSURE_COUNT",
+        "STAGE1_PROD_SECURITY_SECURE_SESSION_COOKIE_REF",
+        "STAGE1_PROD_SECURITY_CSRF_SAME_SITE_REF",
+        "STAGE1_PROD_SECURITY_SECRET_REDACTION_REF",
+        "STAGE1_PROD_SECURITY_ADMIN_SURFACE_PRIVACY_REF",
+        "STAGE1_PROD_SECURITY_PROVIDER_KEY_CONTAINMENT_REF",
+        "STAGE1_PROD_SECURITY_STRIPE_LIVE_TEST_SEPARATION_REF",
+        "STAGE1_PROD_SECURITY_RATE_LIMIT_SPEND_CAP_REF",
+        "STAGE1_PROD_SECURITY_CSP_HEADERS_REF",
+        "STAGE1_PROD_SECURITY_RBAC_TENANT_ISOLATION_REF",
+        "STAGE1_PROD_SECURITY_AUDIT_REF"
+      ]
+    },
+    "runner": "scripts/run_stage1_production_proof_bundle.py",
+    "summary": {
+      "billing_status": "blocked",
+      "canonical_sources_requested": false,
+      "first_blockers": [
+        "billing_proof: stage1 Stripe live billing proof blocked: 20 blocker(s); first: STRIPE_MODE_must_be_live",
+        "security_proof: stage1 production security proof blocked: secure_session_cookie_ref_missing (+9 more)",
+        "governance_proof: stage1 production governance proof blocked: 26 blocker(s); first: activation_runtime_request_ids_missing",
+        "launch_source_pipeline: wrote Stage 1 production launch source pipeline summary to ops/evidence/non_clearing/production-launch-source-pipeline.json"
+      ],
+      "governance_status": "blocked",
+      "input_variable_coverage": {
+        "blocking_input_count": 58,
+        "first_missing_or_invalid_inputs": [
+          "CLOUDFLARE_ZONE_ID or CF_ZONE_ID",
+          "CLOUDFLARE_API_TOKEN or CF_API_TOKEN",
+          "STAGE1_PROD_BILLING_CHECKOUT_SESSION_ID",
+          "STAGE1_PROD_BILLING_CHECKOUT_CUSTOMER_ID",
+          "STAGE1_PROD_BILLING_PRICE_ID",
+          "STAGE1_PROD_BILLING_ACTIVE_SUBSCRIPTION_ID",
+          "STAGE1_PROD_BILLING_ACTIVE_CUSTOMER_ID",
+          "STAGE1_PROD_BILLING_PAST_DUE_SUBSCRIPTION_ID",
+          "STAGE1_PROD_BILLING_PAST_DUE_INVOICE_ID",
+          "STAGE1_PROD_BILLING_CANCEL_SUBSCRIPTION_ID",
+          "STAGE1_PROD_BILLING_SEAT_QUANTITY",
+          "STAGE1_PROD_BILLING_SYNCED_QUANTITY"
+        ],
+        "groups": {
+          "billing": {
+            "required_configured": 0,
+            "required_invalid": 3,
+            "required_missing": 17,
+            "required_total": 20
+          },
+          "governance": {
+            "required_configured": 0,
+            "required_invalid": 0,
+            "required_missing": 26,
+            "required_total": 26
+          },
+          "production_dns": {
+            "required_configured": 2,
+            "required_invalid": 0,
+            "required_missing": 2,
+            "required_total": 4
+          },
+          "security": {
+            "required_configured": 0,
+            "required_invalid": 0,
+            "required_missing": 10,
+            "required_total": 10
+          }
+        },
+        "required_completion_percent": 3.3,
+        "required_configured": 2,
+        "required_invalid": 3,
+        "required_missing": 55,
+        "required_total": 60
+      },
+      "path": "ops/evidence/non_clearing/production-proof-bundle.json",
+      "pipeline_status": "blocked",
+      "release_gate_decision": "no_go",
+      "security_status": "blocked",
+      "status": "blocked"
+    },
+    "validator": "scripts/validate_stage1_production_proof_bundle.py"
+  },
+  "raw_prompt_persisted": false,
+  "raw_provider_payload_persisted": false,
+  "raw_stripe_payload_persisted": false,
+  "raw_support_body_projected": false,
+  "release_gate_decision": "no_go",
+  "release_sha": "7123957dcc3371c6e2d1912b5c2ca418a551b943",
+  "schema_version": "stage1.production_launch_input_packet.v1",
+  "secret_material_persisted": false,
+  "signed_url_persisted": false,
+  "source_inputs": [
+    {
+      "blockers": [
+        "billing_proof_missing"
+      ],
+      "current_blocker": "source_probe_missing: ops/evidence/production/billing-paid-lifecycle-source.json; latest_diagnostic=billing_proof_missing",
+      "diagnostic_path": "ops/evidence/production/source-probe-diagnostics.billing.json",
+      "evidence_generator": "python3 scripts/generate_stage1_production_billing_evidence.py --source ops/evidence/production/billing-paid-lifecycle-source.json",
+      "first_blocker": "billing_proof_missing",
+      "missing_input": "SANITIZED_LIVE_BILLING_PROOF_JSON",
+      "probe_id": "production_paid_billing_lifecycle",
+      "proof_template_ref": "ops/evidence/non_clearing/templates/billing-live-proof.template.json",
+      "source_path": "ops/evidence/production/billing-paid-lifecycle-source.json",
+      "source_probe_command": "python3 scripts/stage1_production_source_probe.py --billing --release-sha $(git rev-parse HEAD) --billing-proof <sanitized-live-billing-proof.json> --write-canonical-source",
+      "source_probe_exists": false,
+      "source_schema_version": "stage1.production_billing_source.v1",
+      "source_template_ref": "ops/evidence/non_clearing/templates/production-source-probes/billing-paid-lifecycle-source.template.json",
+      "status": "missing",
+      "strict_validator": "python3 scripts/validate_stage1_production_billing_evidence.py",
+      "supporting_diagnostics": [
+        "ops/evidence/non_clearing/production-billing-operator-packet.json"
+      ]
+    },
+    {
+      "blockers": [
+        "security_proof_missing"
+      ],
+      "current_blocker": "source_probe_missing: ops/evidence/production/production-security-launch-source.json; latest_diagnostic=security_proof_missing",
+      "diagnostic_path": "ops/evidence/production/source-probe-diagnostics.security.json",
+      "evidence_generator": "python3 scripts/generate_stage1_production_security_launch_evidence.py --source ops/evidence/production/production-security-launch-source.json",
+      "first_blocker": "security_proof_missing",
+      "missing_input": "SANITIZED_PRODUCTION_SECURITY_PROOF_JSON",
+      "probe_id": "production_security_launch_checks",
+      "proof_template_ref": "ops/evidence/non_clearing/templates/production-source-probes/production-security-proof.template.json",
+      "source_path": "ops/evidence/production/production-security-launch-source.json",
+      "source_probe_command": "python3 scripts/stage1_production_source_probe.py --security --release-sha $(git rev-parse HEAD) --security-proof <sanitized-production-security-proof.json> --write-canonical-source",
+      "source_probe_exists": false,
+      "source_schema_version": "stage1.production_security_launch_source.v1",
+      "source_template_ref": "ops/evidence/non_clearing/templates/production-source-probes/production-security-launch-source.template.json",
+      "status": "missing",
+      "strict_validator": "python3 scripts/validate_stage1_production_security_launch_evidence.py",
+      "supporting_diagnostics": [
+        "ops/evidence/non_clearing/production-security-operator-packet.json"
+      ]
+    },
+    {
+      "blockers": [
+        "production web URL host zenari.ai did not resolve via system resolver: [Errno 8] nodename nor servname provided, or not known"
+      ],
+      "current_blocker": "source_probe_missing: ops/evidence/production/production-legal-support-source.json; production_dns=system resolver failed for zenari.ai: [Errno 8] nodename nor servname provided, or not known",
+      "diagnostic_path": "ops/evidence/production/source-probe-diagnostics.legal-support.json",
+      "evidence_generator": "python3 scripts/generate_stage1_production_legal_support_evidence.py --source ops/evidence/production/production-legal-support-source.json",
+      "first_blocker": "system resolver failed for zenari.ai: [Errno 8] nodename nor servname provided, or not known",
+      "missing_input": "PRODUCTION_WEB_URL",
+      "probe_id": "production_legal_support_policy",
+      "proof_template_ref": null,
+      "source_path": "ops/evidence/production/production-legal-support-source.json",
+      "source_probe_command": "python3 scripts/stage1_production_source_probe.py --legal-support --release-sha $(git rev-parse HEAD) --production-web-url https://zenari.ai --write-canonical-source",
+      "source_probe_exists": false,
+      "source_schema_version": "stage1.production_legal_support_source.v1",
+      "source_template_ref": "ops/evidence/non_clearing/templates/production-source-probes/production-legal-support-source.template.json",
+      "status": "missing",
+      "strict_validator": "python3 scripts/validate_stage1_production_legal_support_evidence.py",
+      "supporting_diagnostics": [
+        "ops/evidence/non_clearing/production-dns-readiness.json",
+        "ops/evidence/non_clearing/production-legal-support-operator-packet.json"
+      ]
+    },
+    {
+      "blockers": [
+        "governance_proof_missing"
+      ],
+      "current_blocker": "source_probe_missing: ops/evidence/production/production-governance-release-source.json; latest_diagnostic=governance_proof_missing",
+      "diagnostic_path": "ops/evidence/production/source-probe-diagnostics.governance.json",
+      "evidence_generator": "python3 scripts/generate_stage1_production_governance_release_evidence.py --source ops/evidence/production/production-governance-release-source.json",
+      "first_blocker": "governance_proof_missing",
+      "missing_input": "SANITIZED_PRODUCTION_GOVERNANCE_PROOF_JSON",
+      "probe_id": "production_governance_release",
+      "proof_template_ref": "ops/evidence/non_clearing/templates/production-source-probes/production-governance-proof.template.json",
+      "source_path": "ops/evidence/production/production-governance-release-source.json",
+      "source_probe_command": "python3 scripts/stage1_production_source_probe.py --governance --release-sha $(git rev-parse HEAD) --governance-proof <sanitized-production-governance-proof.json> --write-canonical-source",
+      "source_probe_exists": false,
+      "source_schema_version": "stage1.production_governance_release_source.v1",
+      "source_template_ref": "ops/evidence/non_clearing/templates/production-source-probes/production-governance-release-source.template.json",
+      "status": "missing",
+      "strict_validator": "python3 scripts/validate_stage1_production_governance_release_evidence.py",
+      "supporting_diagnostics": [
+        "ops/evidence/non_clearing/production-governance-operator-packet.json"
+      ]
+    }
+  ],
+  "source_readiness_ref": "ops/evidence/release/staging/stage1-external-resource-readiness.preflight.json",
+  "status": "blocked",
+  "template_refs": {
+    "billing_live_proof_template": {
+      "exists": true,
+      "path": "ops/evidence/non_clearing/templates/billing-live-proof.template.json",
+      "schema_version": "stage1.production_live_billing_proof.template.v1",
+      "template_only": true
+    },
+    "billing_source_template": {
+      "exists": true,
+      "path": "ops/evidence/non_clearing/templates/production-source-probes/billing-paid-lifecycle-source.template.json",
+      "schema_version": "stage1.production_billing_source.v1",
+      "template_only": true
+    },
+    "governance_proof_template": {
+      "exists": true,
+      "path": "ops/evidence/non_clearing/templates/production-source-probes/production-governance-proof.template.json",
+      "schema_version": "stage1.production_governance_proof.template.v1",
+      "template_only": true
+    },
+    "governance_source_template": {
+      "exists": true,
+      "path": "ops/evidence/non_clearing/templates/production-source-probes/production-governance-release-source.template.json",
+      "schema_version": "stage1.production_governance_release_source.v1",
+      "template_only": true
+    },
+    "legal_support_source_template": {
+      "exists": true,
+      "path": "ops/evidence/non_clearing/templates/production-source-probes/production-legal-support-source.template.json",
+      "schema_version": "stage1.production_legal_support_source.v1",
+      "template_only": true
+    },
+    "security_proof_template": {
+      "exists": true,
+      "path": "ops/evidence/non_clearing/templates/production-source-probes/production-security-proof.template.json",
+      "schema_version": "stage1.production_security_proof.template.v1",
+      "template_only": true
+    },
+    "security_source_template": {
+      "exists": true,
+      "path": "ops/evidence/non_clearing/templates/production-source-probes/production-security-launch-source.template.json",
+      "schema_version": "stage1.production_security_launch_source.v1",
+      "template_only": true
+    }
+  }
+}

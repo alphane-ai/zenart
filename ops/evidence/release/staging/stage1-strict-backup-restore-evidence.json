@@ -1,0 +1,43 @@
+{
+  "authorization_header_persisted": false,
+  "cookie_persisted": false,
+  "drills": [
+    {
+      "drill_id": "postgres_restore",
+      "evidence_refs": [
+        "ops/evidence/staging/20260527T2115Z-backup-restore.json",
+        "scripts/backup_restore_drill.sh",
+        "backend/migrations"
+      ],
+      "report_path": "ops/evidence/staging/20260527T2115Z-backup-restore.json",
+      "runtime_probe": "staging schema_migrations count matched repository migration count for current Stage 1 candidate",
+      "status": "passed"
+    },
+    {
+      "drill_id": "object_restore",
+      "evidence_refs": [
+        "ops/evidence/staging/object-storage-retention-cleanup.json",
+        "ops/evidence/staging/stage1-load.json",
+        "scripts/backup_restore_drill.sh"
+      ],
+      "report_path": "ops/evidence/staging/object-storage-retention-cleanup.json",
+      "runtime_probe": "staging object retention and signed-download evidence remains canonical; current candidate keeps object storage routes and cleanup contract",
+      "status": "passed"
+    }
+  ],
+  "environment": "staging",
+  "gate_impact": {
+    "can_clear_stage1_production_launch_gate": false
+  },
+  "generated_at": "2026-06-24T11:33:15+00:00",
+  "kind": "backup_restore",
+  "raw_prompt_persisted": false,
+  "raw_provider_payload_persisted": false,
+  "raw_stripe_payload_persisted": false,
+  "raw_support_body_projected": false,
+  "release_sha": "b885b7ac1c75cad256d774a1fed82008eea4aecf",
+  "schema_version": "stage1.strict_backup_restore_evidence.v1",
+  "secret_material_persisted": false,
+  "signed_url_persisted": false,
+  "status": "passed"
+}

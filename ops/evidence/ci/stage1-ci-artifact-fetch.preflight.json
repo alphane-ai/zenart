@@ -1,0 +1,127 @@
+{
+  "authorization_header_persisted": false,
+  "blockers": [],
+  "can_clear_ci_gate": false,
+  "can_clear_stage1_production_launch_gate": false,
+  "can_close_do_not_launch": false,
+  "canonical_artifacts_written": false,
+  "dry_run": true,
+  "environment": "ci",
+  "generated_at": "2026-06-28T15:33:37+00:00",
+  "github_token_persisted": false,
+  "kind": "stage1_ci_artifact_fetch_preflight",
+  "published_artifacts": [],
+  "raw_artifact_zip_persisted": false,
+  "raw_log_persisted": false,
+  "raw_response_body_persisted": false,
+  "required_artifacts": {
+    "docker_image_build": {
+      "artifact": "stage0-rev2-docker-image-build",
+      "filename": "stage0-rev2-docker-image-build.json",
+      "found": true
+    },
+    "playwright_smoke": {
+      "artifact": "stage0-rev2-playwright-smoke",
+      "filename": "stage0-rev2-playwright-smoke.json",
+      "found": true
+    },
+    "pr_main_run": {
+      "artifact": "stage0-rev2-pr-main-run",
+      "filename": "stage0-rev2-pr-main-run.json",
+      "found": true
+    }
+  },
+  "safe_projection_policy": {
+    "authorization_header_persisted": false,
+    "github_token_persisted": false,
+    "raw_artifact_zip_persisted": false,
+    "raw_log_persisted": false,
+    "raw_response_body_persisted": false,
+    "secret_material_persisted": false
+  },
+  "schema_version": "stage1.ci_artifact_fetch.preflight.v1",
+  "secret_material_persisted": false,
+  "source_metadata": {
+    "artifact_count_relevant": 4,
+    "artifact_count_seen": 4,
+    "artifact_statuses": [
+      {
+        "name": "stage1-ci-exact-evidence-aggregate",
+        "reason": "artifact stage1-ci-exact-evidence-aggregate download failed with HTTP 401",
+        "status": "blocked"
+      },
+      {
+        "name": "stage0-rev2-docker-image-build",
+        "reason": "artifact stage0-rev2-docker-image-build download failed with HTTP 401",
+        "status": "blocked"
+      },
+      {
+        "name": "stage0-rev2-playwright-smoke",
+        "reason": "artifact stage0-rev2-playwright-smoke download failed with HTTP 401",
+        "status": "blocked"
+      },
+      {
+        "name": "stage0-rev2-pr-main-run",
+        "reason": "artifact stage0-rev2-pr-main-run download failed with HTTP 401",
+        "status": "blocked"
+      },
+      {
+        "name": "gh_cli_download_fallback",
+        "raw_download_dir_persisted": false,
+        "required_files_found": [
+          "docker_image_build",
+          "playwright_smoke",
+          "pr_main_run"
+        ],
+        "status": "read"
+      },
+      {
+        "filename": "stage0-rev2-docker-image-build.json",
+        "name": "gh_cli_download:docker_image_build",
+        "status": "read"
+      },
+      {
+        "filename": "stage0-rev2-playwright-smoke.json",
+        "name": "gh_cli_download:playwright_smoke",
+        "status": "read"
+      },
+      {
+        "filename": "stage0-rev2-pr-main-run.json",
+        "name": "gh_cli_download:pr_main_run",
+        "status": "read"
+      },
+      {
+        "gh_cli_download_succeeded": true,
+        "name": "gh_cli_download_metadata",
+        "raw_download_dir_persisted": false,
+        "status": "read"
+      }
+    ],
+    "auth_present": true,
+    "auth_source": "gh_cli",
+    "repository": "alphane-ai/zenart",
+    "run_discovery": {
+      "branch": "main",
+      "event_filter": "",
+      "mode": "latest_successful",
+      "release_sha_filter": "",
+      "selected_run": {
+        "created_at": "2026-06-24T07:57:16Z",
+        "event": "push",
+        "head_branch": "main",
+        "head_sha": "b885b7ac1c75cad256d774a1fed82008eea4aecf",
+        "run_id": "28083965172",
+        "run_url": "https://github.com/alphane-ai/zenart/actions/runs/28083965172",
+        "updated_at": "2026-06-24T08:01:31Z"
+      },
+      "workflow": "stage0-rev2-ci.yml"
+    },
+    "run_id": "28083965172",
+    "run_url": "https://github.com/alphane-ai/zenart/actions/runs/28083965172",
+    "source": "github_actions_api"
+  },
+  "status": "ready",
+  "strict_validator": "python3 scripts/validate_stage1_ci_exact_evidence.py",
+  "strict_validator_output": "stage1 CI exact evidence passed",
+  "strict_validator_passed": true
+}

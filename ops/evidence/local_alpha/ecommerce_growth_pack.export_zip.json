@@ -9,7 +9,7 @@
     "25.20"
   ],
   "created_by_lane": "lane1",
-  "created_at": "2026-06-03T17:11:44.647Z",
+  "created_at": "2026-06-22T11:58:28.429Z",
   "environment": "local_alpha",
   "workflow_id": "ecommerce_growth_pack",
   "fixture_id": "fx_ecommerce_growth_golden",
@@ -30,16 +30,16 @@
   "status": "pass",
   "runner": "web/tests/local-alpha-ecommerce-evidence.spec.ts",
   "command": "npm run smoke:local-alpha-workflow-evidence",
-  "file_name": "zenart-001.zip",
-  "byte_size": 13362,
-  "sha256": "b456b6c43146d0e515ae9c2d8809aac4a6a981544d2959325e348fc3a30bb306",
+  "file_name": "zenari-001.zip",
+  "byte_size": 19104,
+  "sha256": "43ef859d6878c3f8001c7a259219fc8c8eacf8edfb29525e72f723af0c850921",
   "payloads": [
     "ai-content-disclaimer.json",
-    "assets/README.txt",
-    "assets/hero_product_ad.png",
-    "assets/marketplace_banner.png",
-    "assets/square_social_ad.png",
-    "assets/story_variant.png",
+    "assets/local-rendered-asset-manifest.json",
+    "assets/rendered/hero_product_ad-png.svg",
+    "assets/rendered/marketplace_banner-png.svg",
+    "assets/rendered/square_social_ad-png.svg",
+    "assets/rendered/story_variant-png.svg",
     "manifest.json",
     "metadata.json",
     "ppt-ready-metadata.json",
@@ -56,11 +56,11 @@
     "provenance.json",
     "ai-content-disclaimer.json",
     "ppt-ready-metadata.json",
-    "assets/README.txt",
-    "assets/hero_product_ad.png",
-    "assets/square_social_ad.png",
-    "assets/story_variant.png",
-    "assets/marketplace_banner.png",
+    "assets/local-rendered-asset-manifest.json",
+    "assets/rendered/hero_product_ad-png.svg",
+    "assets/rendered/square_social_ad-png.svg",
+    "assets/rendered/story_variant-png.svg",
+    "assets/rendered/marketplace_banner-png.svg",
     "metadata.json",
     "qa_report.json",
     "trace_provenance.json"
@@ -127,6 +127,6 @@
   "trace_provenance": {
     "workflow_id": "ecommerce_growth_pack",
     "workflow_fixture_id": "fx_ecommerce_growth_golden",
-    "generated_by": "zenart-web-dev-client"
+    "generated_by": "zenari-web-dev-client"
   }
 }

@@ -1,6 +1,6 @@
 import JSZip from "jszip";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { DevZenArtClient } from "./api-client";
+import { DevZenariClient } from "./api-client";
 import { ExportRecord } from "./contracts";
 import {
   buildDownloadableExportZipPayloadNames,
@@ -8,13 +8,15 @@ import {
   buildPackageExportMetadataEvidence,
   buildExportZipPayloadSmokeEvidence,
   buildExportWorkflowMetadataPayload,
+  buildRenderedExportAssetEvidence,
   ecommerceGrowthWorkflowAcceptance,
   isSafeExportZipPayloadName,
+  renderedAssetManifestPayloadName,
   requiredExportPackageOutputs
 } from "./dev-state";
 import { buildExportPackageBlob, downloadExportPackage } from "./export-download";
 
-const makeClient = () => new DevZenArtClient();
+const makeClient = () => new DevZenariClient();
 
 const readBlobAsArrayBuffer = (blob: Blob) =>
   new Promise<ArrayBuffer>((resolve, reject) => {
@@ -95,7 +97,7 @@ describe("reference upload and export download integration", () => {
     expect(record).toMatchObject({
       format: "zip",
       status: "ready",
-      fileName: "zenart-001.zip"
+      fileName: "zenari-001.zip"
     });
     expect(record.manifest.required_outputs).toEqual(
       expect.arrayContaining([
@@ -138,10 +140,24 @@ describe("reference upload and export download integration", () => {
       safety: string;
       items: Array<{ id: string; provenance: string }>;
     };
-    const workflowAsset = JSON.parse(await zip.file("assets/square_social_ad.png")!.async("string")) as {
-      output_name: string;
-      workflow_id: string;
+    const renderedAssetManifest = JSON.parse(await zip.file(renderedAssetManifestPayloadName)!.async("string")) as {
+      schema_version: string;
+      export_id: string;
+      package_id: string;
+      project_id: string;
+      render_mode: string;
+      staging_signed_url_evidence: string;
+      object_retention_cleanup_evidence: string;
+      can_clear_stage1_staging_runtime_gate: boolean;
+      assets: Array<{
+        source_output_name: string;
+        payload_name: string;
+        content_type: string;
+        byte_size: number;
+        content_digest: string;
+      }>;
     };
+    const renderedSquareSocialAd = await zip.file("assets/rendered/square_social_ad-png.svg")!.async("string");
     const workflowMetadata = JSON.parse(await zip.file("metadata.json")!.async("string")) as {
       export_id: string;
       package_id: string;
@@ -167,12 +183,13 @@ describe("reference upload and export download integration", () => {
       skill: string;
       safety: string;
     };
-    const readme = await zip.file("assets/README.txt")!.async("string");
     const expectedPayloadNames = buildDownloadableExportZipPayloadNames(record);
+    const renderedAssetEvidence = buildRenderedExportAssetEvidence(record);
 
     for (const payloadName of expectedPayloadNames) {
       expect(zip.file(payloadName), `ZIP payload ${payloadName} should exist`).toBeTruthy();
     }
+    expect(zip.file("assets/README.txt")).toBeNull();
     expect(manifest.items).toEqual([
       {
         id: "pkg-item-001",
@@ -290,7 +307,7 @@ describe("reference upload and export download integration", () => {
       export_id: record.id,
       package_id: record.manifest.package_id,
       project_id: record.manifest.project_id,
-      generated_by: "zenart-web-dev-client",
+      generated_by: "zenari-web-dev-client",
       workflow_id: ecommerceGrowthWorkflowAcceptance.workflow_id,
       provider: "dev-provider",
       model: "deterministic-local-alpha",
@@ -304,9 +321,42 @@ describe("reference upload and export download integration", () => {
         { id: "pkg-item-004", provenance: "dev-client-reference:ref-https-assets-example-com-reference-pack" }
       ]
     });
-    expect(workflowAsset).toMatchObject({
-      output_name: "assets/square_social_ad.png",
-      workflow_id: ecommerceGrowthWorkflowAcceptance.workflow_id
+    expect(renderedAssetManifest).toMatchObject({
+      schema_version: "stage1.rendered-export-asset-local-manifest.v1",
+      export_id: record.id,
+      package_id: record.manifest.package_id,
+      project_id: record.manifest.project_id,
+      render_mode: "deterministic-local-svg-pdf",
+      staging_signed_url_evidence: "open",
+      object_retention_cleanup_evidence: "open",
+      can_clear_stage1_staging_runtime_gate: false,
+      assets: expect.arrayContaining([
+        expect.objectContaining({
+          source_output_name: "assets/square_social_ad.png",
+          payload_name: "assets/rendered/square_social_ad-png.svg",
+          content_type: "image/svg+xml",
+          byte_size: expect.any(Number),
+          content_digest: expect.any(String)
+        })
+      ])
+    });
+    expect(renderedSquareSocialAd).toContain("<svg");
+    expect(renderedSquareSocialAd).toContain("square_social_ad.png");
+    expect(renderedSquareSocialAd).toContain(ecommerceGrowthWorkflowAcceptance.workflow_id);
+    expect(renderedAssetEvidence).toMatchObject({
+      schema_version: "stage1.rendered-export-asset-local-contract.v1",
+      status: "pass",
+      renderMode: "deterministic-local-svg-pdf",
+      renderedAssetManifestPayloadName,
+      manifestAssetOutputCount: 4,
+      renderedAssetPayloadCount: 4,
+      placeholderPayloadCount: 0,
+      signedUrlPersisted: false,
+      stagingSignedUrlEvidence: "open",
+      objectRetentionCleanupEvidence: "open",
+      canClearStage1StagingRuntimeGate: false,
+      canClearStage1ProductionLaunchGate: false,
+      failures: []
     });
     expect(workflowMetadata).toMatchObject({
       ...buildExportWorkflowMetadataPayload(record, "metadata.json"),
@@ -340,11 +390,9 @@ describe("reference upload and export download integration", () => {
       expect(payload.prompt_spec).toEqual(["social_proof"]);
       expect(payload.skill).toBe(ecommerceGrowthWorkflowAcceptance.workflow_id);
     }
-    expect(readme).toContain("Deterministic local alpha export placeholder");
-
     Object.defineProperty(URL, "createObjectURL", {
       configurable: true,
-      value: vi.fn(() => "blob:zenart-export")
+      value: vi.fn(() => "blob:zenari-export")
     });
     Object.defineProperty(URL, "revokeObjectURL", {
       configurable: true,
@@ -358,7 +406,7 @@ describe("reference upload and export download integration", () => {
 
     expect(createObjectUrl).toHaveBeenCalledWith(expect.any(Blob));
     expect(click).toHaveBeenCalledTimes(1);
-    expect(revokeObjectUrl).toHaveBeenCalledWith("blob:zenart-export");
+    expect(revokeObjectUrl).toHaveBeenCalledWith("blob:zenari-export");
   });
 
   it("rejects unsafe manifest ZIP payload paths before browser download generation", async () => {
@@ -410,7 +458,7 @@ describe("reference upload and export download integration", () => {
     await expect(buildExportPackageBlob(record)).rejects.toThrow("Unsafe export ZIP payload name: ../evil.json");
   });
 
-  it("builds the PDF placeholder download contract with a PDF blob and deterministic filename", async () => {
+  it("builds the PDF summary download contract with a PDF blob and deterministic filename", async () => {
     const client = makeClient();
     await client.selectCandidate("cand-utility");
     await client.addPackageItem("cand-utility");
@@ -423,10 +471,10 @@ describe("reference upload and export download integration", () => {
     expect(record).toMatchObject({
       format: "pdf-placeholder",
       status: "ready",
-      fileName: "zenart-001.pdf"
+      fileName: "zenari-001.pdf"
     });
     expect(blob.type).toBe("application/pdf");
     expect(body).toContain("%PDF-1.4");
-    expect(body).toContain("ZenArt PDF placeholder export");
+    expect(body).toContain("zenari.ai PDF summary export");
   });
 });

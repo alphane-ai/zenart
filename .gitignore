@@ -20,4 +20,11 @@ Docs/todos_*.md
 *.zip
 *.tar
 *.tar.gz
+*.tsbuildinfo
+.DS_Store
+.playwright-mcp/
+__pycache__/
+test-results/
+*/test-results/
 ops/evidence/**/postgres.dump
+backend/.local-objectstore/

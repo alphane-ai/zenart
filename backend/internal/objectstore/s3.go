@@ -97,9 +97,9 @@ func (s S3Store) Put(ctx context.Context, object Object, body io.Reader) (Object
 	object.ByteSize = int64(len(payload))
 	object.Checksum = "sha256:" + hex.EncodeToString(sum[:])
 
-	retentionMetadata := map[string]string{"zenart-retention-state": "active"}
+	retentionMetadata := map[string]string{"zenari-retention-state": "active"}
 	if object.RetentionUntil != nil {
-		retentionMetadata["zenart-retention-until"] = object.RetentionUntil.UTC().Format(time.RFC3339)
+		retentionMetadata["zenari-retention-until"] = object.RetentionUntil.UTC().Format(time.RFC3339)
 	}
 	if err := s.putRaw(ctx, key, object.ContentType, payload, retentionMetadata); err != nil {
 		return Object{}, err
@@ -107,8 +107,8 @@ func (s S3Store) Put(ctx context.Context, object Object, body io.Reader) (Object
 	if object.RetentionUntil != nil {
 		marker := []byte(object.RetentionUntil.UTC().Format(time.RFC3339))
 		if err := s.putRaw(ctx, key+".expires", "text/plain; charset=utf-8", marker, map[string]string{
-			"zenart-retention-marker": "true",
-			"zenart-retention-until":  object.RetentionUntil.UTC().Format(time.RFC3339),
+			"zenari-retention-marker": "true",
+			"zenari-retention-until":  object.RetentionUntil.UTC().Format(time.RFC3339),
 		}); err != nil {
 			_ = s.deleteRaw(context.Background(), key)
 			return Object{}, err
@@ -149,8 +149,9 @@ func (s S3Store) Get(ctx context.Context, tenantID, key string) (Reader, error) 
 		return Reader{}, ErrTenantDenied
 	}
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		body := readS3ErrorBody(resp)
 		_ = resp.Body.Close()
-		return Reader{}, fmt.Errorf("s3 get object status %d", resp.StatusCode)
+		return Reader{}, fmt.Errorf("s3 get object failed: %s", s3ErrorSummary(resp, body))
 	}
 	return Reader{
 		Object: Object{
@@ -307,7 +308,8 @@ func (s S3Store) putRaw(ctx context.Context, key, contentType string, payload []
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
-		return fmt.Errorf("s3 put object status %d", resp.StatusCode)
+		body := readS3ErrorBody(resp)
+		return fmt.Errorf("s3 put object failed: %s", s3ErrorSummary(resp, body))
 	}
 	return nil
 }
@@ -345,7 +347,8 @@ func (s S3Store) deleteRaw(ctx context.Context, key string) error {
 		return ErrTenantDenied
 	}
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
-		return fmt.Errorf("s3 delete object status %d", resp.StatusCode)
+		body := readS3ErrorBody(resp)
+		return fmt.Errorf("s3 delete object failed: %s", s3ErrorSummary(resp, body))
 	}
 	return nil
 }
@@ -410,7 +413,8 @@ func (s S3Store) listKeys(ctx context.Context, prefix, continuationToken string)
 		return nil, "", ErrTenantDenied
 	}
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
-		return nil, "", fmt.Errorf("s3 list objects status %d", resp.StatusCode)
+		body := readS3ErrorBody(resp)
+		return nil, "", fmt.Errorf("s3 list objects failed: %s", s3ErrorSummary(resp, body))
 	}
 	var result listBucketResult
 	if err := xml.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&result); err != nil {

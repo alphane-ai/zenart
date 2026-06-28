@@ -1,0 +1,50 @@
+{
+  "schema_version": "stage1.mentions.contract.v1",
+  "fixture_id": "stage1_mentions_local_contract",
+  "kind": "mention_parser_picker_local_contract",
+  "blueprint_items": ["FE-9", "FE-8", "BE-10", "VF-2"],
+  "required_types": ["object", "asset", "brand", "skill", "model"],
+  "syntax": {
+    "bracket_label": "@type[label with spaces or Chinese]",
+    "compact_id": "@type:id",
+    "supported_examples": [
+      "@object[Confirmed Brief]",
+      "@asset[Primary logo reference]",
+      "@brand[Aurora Retail]",
+      "@skill[Ecommerce Growth Pack]",
+      "@model[image-fast-v1]",
+      "@asset[中文 素材]"
+    ]
+  },
+  "required_functions": [
+    "parseMentionTokens",
+    "buildMentionPickerOptions",
+    "resolveMentions",
+    "mentionSummary"
+  ],
+  "required_ui_anchors": [
+    "stage1.mention-parser-picker-local-contract",
+    "data-mention-token-count",
+    "data-mention-unique-count",
+    "data-mention-duplicate-count",
+    "data-mention-unresolved-count",
+    "data-mention-forbidden-model-count",
+    "data-mention-picker-types"
+  ],
+  "safe_projection_policy": {
+    "raw_prompt_persisted": false,
+    "internal_model_allowed": false,
+    "duplicates_projected_once": true,
+    "unresolved_mentions_block_model_projection": true
+  },
+  "focused_tests": [
+    "parses object, asset, brand, skill, and model mentions with Chinese and spaces",
+    "resolves mentions through picker options and deduplicates repeated refs",
+    "keeps unresolved mentions and blocks non-allowed model mentions from projection"
+  ],
+  "non_launch_status": {
+    "local_mention_contract": "pass",
+    "staging_prompt_composer_evidence": "open",
+    "can_clear_stage1_staging_runtime_gate": false
+  }
+}

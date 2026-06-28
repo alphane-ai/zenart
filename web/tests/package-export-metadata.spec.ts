@@ -4,9 +4,9 @@ import JSZip from "jszip";
 
 test("export route exposes package metadata, ZIP payload, and download parity browser evidence", async ({ page }) => {
   await page.addInitScript(() => {
-    if (!window.sessionStorage.getItem("zenart-package-export-metadata-smoke-reset")) {
+    if (!window.sessionStorage.getItem("zenari-package-export-metadata-smoke-reset")) {
       window.localStorage.clear();
-      window.sessionStorage.setItem("zenart-package-export-metadata-smoke-reset", "true");
+      window.sessionStorage.setItem("zenari-package-export-metadata-smoke-reset", "true");
     }
   });
 
@@ -24,7 +24,7 @@ test("export route exposes package metadata, ZIP payload, and download parity br
   await page.getByRole("button", { name: "Select Studio System" }).click();
   await page.getByTestId("package-add-selected").click();
   await page.getByTestId("export-download").click();
-  await expect(page.getByText("zenart-001.zip")).toBeVisible();
+  await expect(page.getByText("zenari-001.zip")).toBeVisible();
 
   await page.goto("/export");
   await expect(page.getByRole("heading", { name: "Export Preview" })).toBeVisible();
@@ -162,7 +162,7 @@ test("export route exposes package metadata, ZIP payload, and download parity br
   await expect(metadataEvidence).toHaveAttribute("data-package-export-zip-payloads", /metadata\.json/);
   await expect(metadataEvidence).toHaveAttribute("data-package-export-zip-payloads", /trace_provenance\.json/);
   await expect(metadataEvidence).toHaveAttribute("data-package-export-zip-payloads", /ai-content-disclaimer\.json/);
-  await expect(metadataEvidence).toHaveAttribute("data-package-export-required-zip-payloads", /assets\/README\.txt/);
+  await expect(metadataEvidence).toHaveAttribute("data-package-export-required-zip-payloads", /assets\/local-rendered-asset-manifest\.json/);
   expect(Number(await metadataEvidence.getAttribute("data-package-export-zip-payload-count"))).toBeGreaterThanOrEqual(14);
 
   const payloadMatrix = page.getByLabel("Package export payload status matrix");
@@ -204,7 +204,7 @@ test("export route exposes package metadata, ZIP payload, and download parity br
   await expect(downloadParity).toHaveAttribute("data-export-download-parity-project-id", "project-001");
   await expect(downloadParity).toHaveAttribute("data-export-download-parity-workflow-id", "ecommerce_growth_pack");
   await expect(downloadParity).toHaveAttribute("data-export-download-parity-workflow-fixture-id", "fx_ecommerce_growth_golden");
-  await expect(downloadParity).toHaveAttribute("data-export-download-parity-file-name", "zenart-001.zip");
+  await expect(downloadParity).toHaveAttribute("data-export-download-parity-file-name", "zenari-001.zip");
   await expect(downloadParity).toHaveAttribute("data-export-download-parity-format", "zip");
   await expect(downloadParity).toHaveAttribute("data-export-download-parity-metadata-status", "pass");
   await expect(downloadParity).toHaveAttribute("data-export-download-parity-zip-payload-status", "pass");
@@ -229,7 +229,7 @@ test("export route exposes package metadata, ZIP payload, and download parity br
   const downloadHandoff = page.getByRole("button", { name: "Download" });
   await expect(downloadHandoff).toHaveAttribute("data-export-download-handoff", "stage0.rev2.package-export-download-handoff");
   await expect(downloadHandoff).toHaveAttribute("data-export-download-handoff-status", "pass");
-  await expect(downloadHandoff).toHaveAttribute("data-export-download-file-name", "zenart-001.zip");
+  await expect(downloadHandoff).toHaveAttribute("data-export-download-file-name", "zenari-001.zip");
   await expect(downloadHandoff).toHaveAttribute("data-export-download-format", "zip");
   await expect(downloadHandoff).toHaveAttribute("data-export-download-zip-payload-status", "pass");
   await expect(downloadHandoff).toHaveAttribute("data-export-download-missing-payload-count", "0");
@@ -237,7 +237,7 @@ test("export route exposes package metadata, ZIP payload, and download parity br
   const downloadPromise = page.waitForEvent("download");
   await downloadHandoff.click();
   const download = await downloadPromise;
-  expect(download.suggestedFilename()).toBe("zenart-001.zip");
+  expect(download.suggestedFilename()).toBe("zenari-001.zip");
   const downloadPath = await download.path();
   expect(downloadPath).toBeTruthy();
 
@@ -383,7 +383,24 @@ test("export route exposes package metadata, ZIP payload, and download parity br
     skill: string;
     safety: string;
   };
-  const assetsReadme = await zip.file("assets/README.txt")!.async("string");
+  const renderedAssetManifest = JSON.parse(await zip.file("assets/local-rendered-asset-manifest.json")!.async("string")) as {
+    schema_version: string;
+    export_id: string;
+    package_id: string;
+    project_id: string;
+    render_mode: string;
+    staging_signed_url_evidence: string;
+    object_retention_cleanup_evidence: string;
+    can_clear_stage1_staging_runtime_gate: boolean;
+    assets: Array<{
+      source_output_name: string;
+      payload_name: string;
+      content_type: string;
+      byte_size: number;
+      content_digest: string;
+    }>;
+  };
+  const renderedSquareSocialAd = await zip.file("assets/rendered/square_social_ad-png.svg")!.async("string");
 
   expect(manifest).toMatchObject({
     package_id: "pkg-002",
@@ -450,7 +467,7 @@ test("export route exposes package metadata, ZIP payload, and download parity br
     export_id: "export-001",
     package_id: "pkg-002",
     project_id: "project-001",
-    generated_by: "zenart-web-dev-client",
+    generated_by: "zenari-web-dev-client",
     workflow_id: "ecommerce_growth_pack",
     provider: "dev-provider",
     model: "deterministic-local-alpha",
@@ -550,7 +567,27 @@ test("export route exposes package metadata, ZIP payload, and download parity br
   }
   expect(aiContentDisclaimer.safety_status).toBe(safetyReport.status);
   expect(aiContentDisclaimer.safety_status).toBe(traceProvenance.safety);
-  expect(assetsReadme).toContain("Deterministic local alpha export placeholder");
+  expect(renderedAssetManifest).toMatchObject({
+    schema_version: "stage1.rendered-export-asset-local-manifest.v1",
+    export_id: "export-001",
+    package_id: manifest.package_id,
+    project_id: manifest.project_id,
+    render_mode: "deterministic-local-svg-pdf",
+    staging_signed_url_evidence: "open",
+    object_retention_cleanup_evidence: "open",
+    can_clear_stage1_staging_runtime_gate: false,
+    assets: expect.arrayContaining([
+      expect.objectContaining({
+        source_output_name: "assets/square_social_ad.png",
+        payload_name: "assets/rendered/square_social_ad-png.svg",
+        content_type: "image/svg+xml",
+        byte_size: expect.any(Number),
+        content_digest: expect.any(String)
+      })
+    ])
+  });
+  expect(renderedSquareSocialAd).toContain("<svg");
+  expect(renderedSquareSocialAd).toContain("square_social_ad.png");
 });
 
 const fnv1aDigest = (value: string) => {

@@ -1,0 +1,79 @@
+{
+  "schema_version": "stage1.canvas_versioning.contract.v1",
+  "kind": "canvas_versioning_local_contract",
+  "blueprint_source": "Docs/Stage1_20260621_blueprint.md",
+  "blueprint_items": ["AS-4", "AS-5", "FE-4"],
+  "source_files": [
+    "backend/internal/canvas/version.go",
+    "backend/internal/canvas/version_test.go",
+    "web/lib/contracts.ts",
+    "web/lib/dev-state.ts",
+    "web/lib/api-client.ts",
+    "web/components/workspace-app.tsx",
+    "web/components/workspace-app.smoke.test.tsx",
+    "web/lib/api-client.test.ts",
+    "web/app/globals.css"
+  ],
+  "backend_version_contract": {
+    "snapshot_type": "CanvasVersionSnapshot",
+    "object_version_type": "CanvasObjectVersion",
+    "diff_type": "CanvasVersionDiff",
+    "restore_plan_type": "CanvasRestorePlan",
+    "functions": [
+      "CreateVersionSnapshot",
+      "DiffVersionSnapshots",
+      "RestoreObjectVersions",
+      "RestoreWorkspaceVersion",
+      "TenantScopedListVersionsSQL",
+      "TenantScopedCreateVersionSQL"
+    ],
+    "restore_preserves_other_objects": true,
+    "tenant_workspace_validation": true,
+    "idempotent_create_sql": "ON CONFLICT (workspace_id, version_number) DO NOTHING"
+  },
+  "frontend_version_history_contract": {
+    "state_fields": ["versionNumber", "snapshot", "diff", "restorePreview"],
+    "component": "CanvasVersionHistory",
+    "ui_marker": "stage1.canvas-version-history",
+    "restore_action": "Restore Version",
+    "operation_contract": "createCanvasVersion:POST:/workspaces/{workspace_id}/canvas/versions:include:X-Zenari-CSRF:true",
+    "required_data_attributes": [
+      "data-canvas-version-history",
+      "data-canvas-version-history-status",
+      "data-canvas-version-active-id",
+      "data-canvas-version-count",
+      "data-canvas-version-preview-node-count",
+      "data-canvas-version-diff-added",
+      "data-canvas-version-diff-removed",
+      "data-canvas-version-diff-changed",
+      "data-canvas-version-diff-unchanged",
+      "data-canvas-version-restore-restores",
+      "data-canvas-version-restore-preserves",
+      "data-canvas-version-restore-conflicts",
+      "data-canvas-version-entry",
+      "data-canvas-version-number",
+      "data-canvas-version-node-count"
+    ]
+  },
+  "focused_tests": {
+    "go": [
+      "TestVersionSnapshotDiffAndRestorePreservesOtherObjects",
+      "TestWorkspaceVersionRestoreCanRecreateSnapshotWithoutDroppingCurrentOnlyConflicts",
+      "TestVersionSnapshotRejectsTenantWorkspaceAndMissingObjectErrors",
+      "TestTenantScopedVersionSQLKeepsTenantWorkspacePredicates"
+    ],
+    "web": [
+      "restores canvas version snapshots while preserving later unversioned objects",
+      "previews and restores Stage 1 canvas version history without dropping later nodes"
+    ]
+  },
+  "non_launch_status": {
+    "local_backend_version_contract": "pass",
+    "local_frontend_version_history": "pass",
+    "staging_playwright_evidence": "open",
+    "real_collaborative_conflict_runtime": "open",
+    "real_editor_library_integration": "open",
+    "can_clear_stage1_staging_runtime_gate": false,
+    "can_clear_stage1_production_security_gate": false
+  }
+}

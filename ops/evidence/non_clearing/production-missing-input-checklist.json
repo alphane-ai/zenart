@@ -1,0 +1,2603 @@
+{
+  "authorization_header_persisted": false,
+  "can_clear_stage1_production_launch_gate": false,
+  "can_close_do_not_launch": false,
+  "canonical_pass_path": false,
+  "cookie_persisted": false,
+  "environment": "production",
+  "gate_impact": {
+    "can_clear_stage1_production_launch_gate": false,
+    "can_close_do_not_launch": false,
+    "non_clearing_evidence_only": true,
+    "preserved_do_not_launch_condition": "stage1_production_launch_evidence_incomplete"
+  },
+  "generated_at": "2026-06-28T17:50:45+00:00",
+  "groups": [
+    {
+      "blocking_input_count": 2,
+      "completion_percent": 50.0,
+      "first_missing_required_inputs": [
+        "CLOUDFLARE_ZONE_ID or CF_ZONE_ID",
+        "CLOUDFLARE_API_TOKEN or CF_API_TOKEN"
+      ],
+      "group_id": "production_dns",
+      "invalid_required_inputs": [],
+      "items": [
+        {
+          "acceptable_evidence_source": "production_https_dns_or_cloudflare_cutover_evidence",
+          "accepted_variable_names": [
+            "CLOUDFLARE_ZONE_ID",
+            "CF_ZONE_ID"
+          ],
+          "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+          "configured_variable_name": null,
+          "disallowed_substitutes": [
+            "local_debug_evidence",
+            "staging_preflight_evidence",
+            "blocked_probe_evidence",
+            "placeholder_values",
+            "staging_domain",
+            "localhost",
+            "raw_dns_plan_without_observed_https_probe"
+          ],
+          "display_name": "CLOUDFLARE_ZONE_ID or CF_ZONE_ID",
+          "group_id": "production_dns",
+          "operator_action": "Set CLOUDFLARE_ZONE_ID or CF_ZONE_ID for production DNS/HTTPS cutover; do not persist credential values.",
+          "requirement_id": "cloudflare_zone_id",
+          "status": "missing"
+        },
+        {
+          "acceptable_evidence_source": "production_https_dns_or_cloudflare_cutover_evidence",
+          "accepted_variable_names": [
+            "CLOUDFLARE_API_TOKEN",
+            "CF_API_TOKEN"
+          ],
+          "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+          "configured_variable_name": null,
+          "disallowed_substitutes": [
+            "local_debug_evidence",
+            "staging_preflight_evidence",
+            "blocked_probe_evidence",
+            "placeholder_values",
+            "staging_domain",
+            "localhost",
+            "raw_dns_plan_without_observed_https_probe"
+          ],
+          "display_name": "CLOUDFLARE_API_TOKEN or CF_API_TOKEN",
+          "group_id": "production_dns",
+          "operator_action": "Set CLOUDFLARE_API_TOKEN or CF_API_TOKEN for production DNS/HTTPS cutover; do not persist credential values.",
+          "requirement_id": "cloudflare_dns_edit_token",
+          "status": "missing"
+        }
+      ],
+      "operator_next_action": "Configure the production DNS/HTTPS input in the production cutover environment; do not persist token values.",
+      "required_configured": 2,
+      "required_invalid": 0,
+      "required_missing": 2,
+      "required_total": 4,
+      "title": "Production DNS and HTTPS"
+    },
+    {
+      "blocking_input_count": 20,
+      "completion_percent": 0.0,
+      "first_missing_required_inputs": [
+        "STAGE1_PROD_BILLING_CHECKOUT_SESSION_ID",
+        "STAGE1_PROD_BILLING_CHECKOUT_CUSTOMER_ID",
+        "STAGE1_PROD_BILLING_PRICE_ID",
+        "STAGE1_PROD_BILLING_ACTIVE_SUBSCRIPTION_ID",
+        "STAGE1_PROD_BILLING_ACTIVE_CUSTOMER_ID",
+        "STAGE1_PROD_BILLING_PAST_DUE_SUBSCRIPTION_ID",
+        "STAGE1_PROD_BILLING_PAST_DUE_INVOICE_ID",
+        "STAGE1_PROD_BILLING_CANCEL_SUBSCRIPTION_ID",
+        "STAGE1_PROD_BILLING_SEAT_QUANTITY",
+        "STAGE1_PROD_BILLING_SYNCED_QUANTITY",
+        "STAGE1_PROD_BILLING_SUBSCRIPTION_ITEM_ID",
+        "STAGE1_PROD_BILLING_VISIBLE_INVOICE_ID"
+      ],
+      "group_id": "billing",
+      "invalid_required_inputs": [
+        "STRIPE_MODE=live",
+        "STRIPE_SECRET_KEY or STRIPE_API_KEY with live key shape",
+        "STRIPE_PUBLISHABLE_KEY or NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY with live key shape"
+      ],
+      "items": [
+        {
+          "acceptable_evidence_source": "live_stripe_production_billing_evidence",
+          "accepted_variable_names": [
+            "STRIPE_MODE"
+          ],
+          "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+          "configured_variable_name": "STRIPE_MODE",
+          "disallowed_substitutes": [
+            "local_debug_evidence",
+            "staging_preflight_evidence",
+            "blocked_probe_evidence",
+            "placeholder_values",
+            "stripe_sandbox_test_mode",
+            "stripe_test_keys"
+          ],
+          "display_name": "STRIPE_MODE=live",
+          "group_id": "billing",
+          "operator_action": "Replace the configured STRIPE_MODE=live input with production-valid evidence; do not persist the value.",
+          "requirement_id": "stripe_mode_live",
+          "status": "invalid"
+        },
+        {
+          "acceptable_evidence_source": "live_stripe_production_billing_evidence",
+          "accepted_variable_names": [
+            "STRIPE_SECRET_KEY",
+            "STRIPE_API_KEY"
+          ],
+          "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+          "configured_variable_name": "STRIPE_SECRET_KEY",
+          "disallowed_substitutes": [
+            "local_debug_evidence",
+            "staging_preflight_evidence",
+            "blocked_probe_evidence",
+            "placeholder_values",
+            "stripe_sandbox_test_mode",
+            "stripe_test_keys"
+          ],
+          "display_name": "STRIPE_SECRET_KEY or STRIPE_API_KEY with live key shape",
+          "group_id": "billing",
+          "operator_action": "Replace the configured STRIPE_SECRET_KEY or STRIPE_API_KEY with live key shape input with production-valid evidence; do not persist the value.",
+          "requirement_id": "stripe_live_secret",
+          "status": "invalid"
+        },
+        {
+          "acceptable_evidence_source": "live_stripe_production_billing_evidence",
+          "accepted_variable_names": [
+            "STRIPE_PUBLISHABLE_KEY",
+            "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY"
+          ],
+          "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+          "configured_variable_name": "STRIPE_PUBLISHABLE_KEY",
+          "disallowed_substitutes": [
+            "local_debug_evidence",
+            "staging_preflight_evidence",
+            "blocked_probe_evidence",
+            "placeholder_values",
+            "stripe_sandbox_test_mode",
+            "stripe_test_keys"
+          ],
+          "display_name": "STRIPE_PUBLISHABLE_KEY or NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY with live key shape",
+          "group_id": "billing",
+          "operator_action": "Replace the configured STRIPE_PUBLISHABLE_KEY or NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY with live key shape input with production-valid evidence; do not persist the value.",
+          "requirement_id": "stripe_live_publishable",
+          "status": "invalid"
+        },
+        {
+          "acceptable_evidence_source": "live_stripe_production_billing_evidence",
+          "accepted_variable_names": [
+            "STAGE1_PROD_BILLING_CHECKOUT_SESSION_ID"
+          ],
+          "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+          "configured_variable_name": null,
+          "disallowed_substitutes": [
+            "local_debug_evidence",
+            "staging_preflight_evidence",
+            "blocked_probe_evidence",
+            "placeholder_values",
+            "stripe_sandbox_test_mode",
+            "stripe_test_keys"
+          ],
+          "display_name": "STAGE1_PROD_BILLING_CHECKOUT_SESSION_ID",
+          "group_id": "billing",
+          "operator_action": "Collect a sanitized live Stripe production proof ref for STAGE1_PROD_BILLING_CHECKOUT_SESSION_ID; do not persist raw Stripe data.",
+          "requirement_id": "checkout_session_id",
+          "status": "missing"
+        },
+        {
+          "acceptable_evidence_source": "live_stripe_production_billing_evidence",
+          "accepted_variable_names": [
+            "STAGE1_PROD_BILLING_CHECKOUT_CUSTOMER_ID"
+          ],
+          "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+          "configured_variable_name": null,
+          "disallowed_substitutes": [
+            "local_debug_evidence",
+            "staging_preflight_evidence",
+            "blocked_probe_evidence",
+            "placeholder_values",
+            "stripe_sandbox_test_mode",
+            "stripe_test_keys"
+          ],
+          "display_name": "STAGE1_PROD_BILLING_CHECKOUT_CUSTOMER_ID",
+          "group_id": "billing",
+          "operator_action": "Collect a sanitized live Stripe production proof ref for STAGE1_PROD_BILLING_CHECKOUT_CUSTOMER_ID; do not persist raw Stripe data.",
+          "requirement_id": "checkout_customer_id",
+          "status": "missing"
+        },
+        {
+          "acceptable_evidence_source": "live_stripe_production_billing_evidence",
+          "accepted_variable_names": [
+            "STAGE1_PROD_BILLING_PRICE_ID"
+          ],
+          "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+          "configured_variable_name": null,
+          "disallowed_substitutes": [
+            "local_debug_evidence",
+            "staging_preflight_evidence",
+            "blocked_probe_evidence",
+            "placeholder_values",
+            "stripe_sandbox_test_mode",
+            "stripe_test_keys"
+          ],
+          "display_name": "STAGE1_PROD_BILLING_PRICE_ID",
+          "group_id": "billing",
+          "operator_action": "Collect a sanitized live Stripe production proof ref for STAGE1_PROD_BILLING_PRICE_ID; do not persist raw Stripe data.",
+          "requirement_id": "price_id",
+          "status": "missing"
+        },
+        {
+          "acceptable_evidence_source": "live_stripe_production_billing_evidence",
+          "accepted_variable_names": [
+            "STAGE1_PROD_BILLING_ACTIVE_SUBSCRIPTION_ID"
+          ],
+          "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+          "configured_variable_name": null,
+          "disallowed_substitutes": [
+            "local_debug_evidence",
+            "staging_preflight_evidence",
+            "blocked_probe_evidence",
+            "placeholder_values",
+            "stripe_sandbox_test_mode",
+            "stripe_test_keys"
+          ],
+          "display_name": "STAGE1_PROD_BILLING_ACTIVE_SUBSCRIPTION_ID",
+          "group_id": "billing",
+          "operator_action": "Collect a sanitized live Stripe production proof ref for STAGE1_PROD_BILLING_ACTIVE_SUBSCRIPTION_ID; do not persist raw Stripe data.",
+          "requirement_id": "active_subscription_id",
+          "status": "missing"
+        },
+        {
+          "acceptable_evidence_source": "live_stripe_production_billing_evidence",
+          "accepted_variable_names": [
+            "STAGE1_PROD_BILLING_ACTIVE_CUSTOMER_ID"
+          ],
+          "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+          "configured_variable_name": null,
+          "disallowed_substitutes": [
+            "local_debug_evidence",
+            "staging_preflight_evidence",
+            "blocked_probe_evidence",
+            "placeholder_values",
+            "stripe_sandbox_test_mode",
+            "stripe_test_keys"
+          ],
+          "display_name": "STAGE1_PROD_BILLING_ACTIVE_CUSTOMER_ID",
+          "group_id": "billing",
+          "operator_action": "Collect a sanitized live Stripe production proof ref for STAGE1_PROD_BILLING_ACTIVE_CUSTOMER_ID; do not persist raw Stripe data.",
+          "requirement_id": "active_customer_id",
+          "status": "missing"
+        },
+        {
+          "acceptable_evidence_source": "live_stripe_production_billing_evidence",
+          "accepted_variable_names": [
+            "STAGE1_PROD_BILLING_PAST_DUE_SUBSCRIPTION_ID"
+          ],
+          "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+          "configured_variable_name": null,
+          "disallowed_substitutes": [
+            "local_debug_evidence",
+            "staging_preflight_evidence",
+            "blocked_probe_evidence",
+            "placeholder_values",
+            "stripe_sandbox_test_mode",
+            "stripe_test_keys"
+          ],
+          "display_name": "STAGE1_PROD_BILLING_PAST_DUE_SUBSCRIPTION_ID",
+          "group_id": "billing",
+          "operator_action": "Collect a sanitized live Stripe production proof ref for STAGE1_PROD_BILLING_PAST_DUE_SUBSCRIPTION_ID; do not persist raw Stripe data.",
+          "requirement_id": "past_due_subscription_id",
+          "status": "missing"
+        },
+        {
+          "acceptable_evidence_source": "live_stripe_production_billing_evidence",
+          "accepted_variable_names": [
+            "STAGE1_PROD_BILLING_PAST_DUE_INVOICE_ID"
+          ],
+          "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+          "configured_variable_name": null,
+          "disallowed_substitutes": [
+            "local_debug_evidence",
+            "staging_preflight_evidence",
+            "blocked_probe_evidence",
+            "placeholder_values",
+            "stripe_sandbox_test_mode",
+            "stripe_test_keys"
+          ],
+          "display_name": "STAGE1_PROD_BILLING_PAST_DUE_INVOICE_ID",
+          "group_id": "billing",
+          "operator_action": "Collect a sanitized live Stripe production proof ref for STAGE1_PROD_BILLING_PAST_DUE_INVOICE_ID; do not persist raw Stripe data.",
+          "requirement_id": "past_due_invoice_id",
+          "status": "missing"
+        },
+        {
+          "acceptable_evidence_source": "live_stripe_production_billing_evidence",
+          "accepted_variable_names": [
+            "STAGE1_PROD_BILLING_CANCEL_SUBSCRIPTION_ID"
+          ],
+          "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+          "configured_variable_name": null,
+          "disallowed_substitutes": [
+            "local_debug_evidence",
+            "staging_preflight_evidence",
+            "blocked_probe_evidence",
+            "placeholder_values",
+            "stripe_sandbox_test_mode",
+            "stripe_test_keys"
+          ],
+          "display_name": "STAGE1_PROD_BILLING_CANCEL_SUBSCRIPTION_ID",
+          "group_id": "billing",
+          "operator_action": "Collect a sanitized live Stripe production proof ref for STAGE1_PROD_BILLING_CANCEL_SUBSCRIPTION_ID; do not persist raw Stripe data.",
+          "requirement_id": "cancel_subscription_id",
+          "status": "missing"
+        },
+        {
+          "acceptable_evidence_source": "live_stripe_production_billing_evidence",
+          "accepted_variable_names": [
+            "STAGE1_PROD_BILLING_SEAT_QUANTITY"
+          ],
+          "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+          "configured_variable_name": null,
+          "disallowed_substitutes": [
+            "local_debug_evidence",
+            "staging_preflight_evidence",
+            "blocked_probe_evidence",
+            "placeholder_values",
+            "stripe_sandbox_test_mode",
+            "stripe_test_keys"
+          ],
+          "display_name": "STAGE1_PROD_BILLING_SEAT_QUANTITY",
+          "group_id": "billing",
+          "operator_action": "Collect a sanitized live Stripe production proof ref for STAGE1_PROD_BILLING_SEAT_QUANTITY; do not persist raw Stripe data.",
+          "requirement_id": "seat_quantity",
+          "status": "missing"
+        },
+        {
+          "acceptable_evidence_source": "live_stripe_production_billing_evidence",
+          "accepted_variable_names": [
+            "STAGE1_PROD_BILLING_SYNCED_QUANTITY"
+          ],
+          "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+          "configured_variable_name": null,
+          "disallowed_substitutes": [
+            "local_debug_evidence",
+            "staging_preflight_evidence",
+            "blocked_probe_evidence",
+            "placeholder_values",
+            "stripe_sandbox_test_mode",
+            "stripe_test_keys"
+          ],
+          "display_name": "STAGE1_PROD_BILLING_SYNCED_QUANTITY",
+          "group_id": "billing",
+          "operator_action": "Collect a sanitized live Stripe production proof ref for STAGE1_PROD_BILLING_SYNCED_QUANTITY; do not persist raw Stripe data.",
+          "requirement_id": "synced_quantity",
+          "status": "missing"
+        },
+        {
+          "acceptable_evidence_source": "live_stripe_production_billing_evidence",
+          "accepted_variable_names": [
+            "STAGE1_PROD_BILLING_SUBSCRIPTION_ITEM_ID"
+          ],
+          "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+          "configured_variable_name": null,
+          "disallowed_substitutes": [
+            "local_debug_evidence",
+            "staging_preflight_evidence",
+            "blocked_probe_evidence",
+            "placeholder_values",
+            "stripe_sandbox_test_mode",
+            "stripe_test_keys"
+          ],
+          "display_name": "STAGE1_PROD_BILLING_SUBSCRIPTION_ITEM_ID",
+          "group_id": "billing",
+          "operator_action": "Collect a sanitized live Stripe production proof ref for STAGE1_PROD_BILLING_SUBSCRIPTION_ITEM_ID; do not persist raw Stripe data.",
+          "requirement_id": "subscription_item_id",
+          "status": "missing"
+        },
+        {
+          "acceptable_evidence_source": "live_stripe_production_billing_evidence",
+          "accepted_variable_names": [
+            "STAGE1_PROD_BILLING_VISIBLE_INVOICE_ID"
+          ],
+          "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+          "configured_variable_name": null,
+          "disallowed_substitutes": [
+            "local_debug_evidence",
+            "staging_preflight_evidence",
+            "blocked_probe_evidence",
+            "placeholder_values",
+            "stripe_sandbox_test_mode",
+            "stripe_test_keys"
+          ],
+          "display_name": "STAGE1_PROD_BILLING_VISIBLE_INVOICE_ID",
+          "group_id": "billing",
+          "operator_action": "Collect a sanitized live Stripe production proof ref for STAGE1_PROD_BILLING_VISIBLE_INVOICE_ID; do not persist raw Stripe data.",
+          "requirement_id": "visible_invoice_id",
+          "status": "missing"
+        },
+        {
+          "acceptable_evidence_source": "live_stripe_production_billing_evidence",
+          "accepted_variable_names": [
+            "STAGE1_PROD_BILLING_REFUND_CHARGE_ID"
+          ],
+          "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+          "configured_variable_name": null,
+          "disallowed_substitutes": [
+            "local_debug_evidence",
+            "staging_preflight_evidence",
+            "blocked_probe_evidence",
+            "placeholder_values",
+            "stripe_sandbox_test_mode",
+            "stripe_test_keys"
+          ],
+          "display_name": "STAGE1_PROD_BILLING_REFUND_CHARGE_ID",
+          "group_id": "billing",
+          "operator_action": "Collect a sanitized live Stripe production proof ref for STAGE1_PROD_BILLING_REFUND_CHARGE_ID; do not persist raw Stripe data.",
+          "requirement_id": "refund_charge_id",
+          "status": "missing"
+        },
+        {
+          "acceptable_evidence_source": "live_stripe_production_billing_evidence",
+          "accepted_variable_names": [
+            "STAGE1_PROD_BILLING_REFUND_ID"
+          ],
+          "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+          "configured_variable_name": null,
+          "disallowed_substitutes": [
+            "local_debug_evidence",
+            "staging_preflight_evidence",
+            "blocked_probe_evidence",
+            "placeholder_values",
+            "stripe_sandbox_test_mode",
+            "stripe_test_keys"
+          ],
+          "display_name": "STAGE1_PROD_BILLING_REFUND_ID",
+          "group_id": "billing",
+          "operator_action": "Collect a sanitized live Stripe production proof ref for STAGE1_PROD_BILLING_REFUND_ID; do not persist raw Stripe data.",
+          "requirement_id": "refund_id",
+          "status": "missing"
+        },
+        {
+          "acceptable_evidence_source": "live_stripe_production_billing_evidence",
+          "accepted_variable_names": [
+            "STAGE1_PROD_BILLING_QUOTA_RESET_INVOICE_ID"
+          ],
+          "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+          "configured_variable_name": null,
+          "disallowed_substitutes": [
+            "local_debug_evidence",
+            "staging_preflight_evidence",
+            "blocked_probe_evidence",
+            "placeholder_values",
+            "stripe_sandbox_test_mode",
+            "stripe_test_keys"
+          ],
+          "display_name": "STAGE1_PROD_BILLING_QUOTA_RESET_INVOICE_ID",
+          "group_id": "billing",
+          "operator_action": "Collect a sanitized live Stripe production proof ref for STAGE1_PROD_BILLING_QUOTA_RESET_INVOICE_ID; do not persist raw Stripe data.",
+          "requirement_id": "quota_reset_invoice_id",
+          "status": "missing"
+        },
+        {
+          "acceptable_evidence_source": "live_stripe_production_billing_evidence",
+          "accepted_variable_names": [
+            "STAGE1_PROD_BILLING_WEBHOOK_EVENT_IDS"
+          ],
+          "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+          "configured_variable_name": null,
+          "disallowed_substitutes": [
+            "local_debug_evidence",
+            "staging_preflight_evidence",
+            "blocked_probe_evidence",
+            "placeholder_values",
+            "stripe_sandbox_test_mode",
+            "stripe_test_keys"
+          ],
+          "display_name": "STAGE1_PROD_BILLING_WEBHOOK_EVENT_IDS",
+          "group_id": "billing",
+          "operator_action": "Collect a sanitized live Stripe production proof ref for STAGE1_PROD_BILLING_WEBHOOK_EVENT_IDS; do not persist raw Stripe data.",
+          "requirement_id": "webhook_event_ids",
+          "status": "missing"
+        },
+        {
+          "acceptable_evidence_source": "live_stripe_production_billing_evidence",
+          "accepted_variable_names": [
+            "STAGE1_PROD_BILLING_FAILED_EXPORT_REFUND_ID"
+          ],
+          "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+          "configured_variable_name": null,
+          "disallowed_substitutes": [
+            "local_debug_evidence",
+            "staging_preflight_evidence",
+            "blocked_probe_evidence",
+            "placeholder_values",
+            "stripe_sandbox_test_mode",
+            "stripe_test_keys"
+          ],
+          "display_name": "STAGE1_PROD_BILLING_FAILED_EXPORT_REFUND_ID",
+          "group_id": "billing",
+          "operator_action": "Collect a sanitized live Stripe production proof ref for STAGE1_PROD_BILLING_FAILED_EXPORT_REFUND_ID; do not persist raw Stripe data.",
+          "requirement_id": "failed_export_refund_id",
+          "status": "missing"
+        }
+      ],
+      "operator_next_action": "Provide sanitized live Stripe production proof refs; do not persist live keys, payloads, or signatures.",
+      "required_configured": 0,
+      "required_invalid": 3,
+      "required_missing": 17,
+      "required_total": 20,
+      "title": "Production paid billing lifecycle"
+    },
+    {
+      "blocking_input_count": 10,
+      "completion_percent": 0.0,
+      "first_missing_required_inputs": [
+        "STAGE1_PROD_SECURITY_SECURE_SESSION_COOKIE_REF",
+        "STAGE1_PROD_SECURITY_CSRF_SAME_SITE_REF",
+        "STAGE1_PROD_SECURITY_SECRET_REDACTION_REF",
+        "STAGE1_PROD_SECURITY_ADMIN_SURFACE_PRIVACY_REF",
+        "STAGE1_PROD_SECURITY_PROVIDER_KEY_CONTAINMENT_REF",
+        "STAGE1_PROD_SECURITY_STRIPE_LIVE_TEST_SEPARATION_REF",
+        "STAGE1_PROD_SECURITY_RATE_LIMIT_SPEND_CAP_REF",
+        "STAGE1_PROD_SECURITY_CSP_HEADERS_REF",
+        "STAGE1_PROD_SECURITY_RBAC_TENANT_ISOLATION_REF",
+        "STAGE1_PROD_SECURITY_AUDIT_REF"
+      ],
+      "group_id": "security",
+      "invalid_required_inputs": [],
+      "items": [
+        {
+          "acceptable_evidence_source": "production_https_runtime_security_evidence",
+          "accepted_variable_names": [
+            "STAGE1_PROD_SECURITY_SECURE_SESSION_COOKIE_REF"
+          ],
+          "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+          "configured_variable_name": null,
+          "disallowed_substitutes": [
+            "local_debug_evidence",
+            "staging_preflight_evidence",
+            "blocked_probe_evidence",
+            "placeholder_values",
+            "staging_security_scan_only",
+            "dependency_scan_without_production_runtime_probe"
+          ],
+          "display_name": "STAGE1_PROD_SECURITY_SECURE_SESSION_COOKIE_REF",
+          "group_id": "security",
+          "operator_action": "Collect a sanitized production security proof ref for STAGE1_PROD_SECURITY_SECURE_SESSION_COOKIE_REF from the HTTPS production surface.",
+          "requirement_id": "secure_session_cookie_ref",
+          "status": "missing"
+        },
+        {
+          "acceptable_evidence_source": "production_https_runtime_security_evidence",
+          "accepted_variable_names": [
+            "STAGE1_PROD_SECURITY_CSRF_SAME_SITE_REF"
+          ],
+          "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+          "configured_variable_name": null,
+          "disallowed_substitutes": [
+            "local_debug_evidence",
+            "staging_preflight_evidence",
+            "blocked_probe_evidence",
+            "placeholder_values",
+            "staging_security_scan_only",
+            "dependency_scan_without_production_runtime_probe"
+          ],
+          "display_name": "STAGE1_PROD_SECURITY_CSRF_SAME_SITE_REF",
+          "group_id": "security",
+          "operator_action": "Collect a sanitized production security proof ref for STAGE1_PROD_SECURITY_CSRF_SAME_SITE_REF from the HTTPS production surface.",
+          "requirement_id": "csrf_same_site_ref",
+          "status": "missing"
+        },
+        {
+          "acceptable_evidence_source": "production_https_runtime_security_evidence",
+          "accepted_variable_names": [
+            "STAGE1_PROD_SECURITY_SECRET_REDACTION_REF"
+          ],
+          "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+          "configured_variable_name": null,
+          "disallowed_substitutes": [
+            "local_debug_evidence",
+            "staging_preflight_evidence",
+            "blocked_probe_evidence",
+            "placeholder_values",
+            "staging_security_scan_only",
+            "dependency_scan_without_production_runtime_probe"
+          ],
+          "display_name": "STAGE1_PROD_SECURITY_SECRET_REDACTION_REF",
+          "group_id": "security",
+          "operator_action": "Collect a sanitized production security proof ref for STAGE1_PROD_SECURITY_SECRET_REDACTION_REF from the HTTPS production surface.",
+          "requirement_id": "secret_redaction_ref",
+          "status": "missing"
+        },
+        {
+          "acceptable_evidence_source": "production_https_runtime_security_evidence",
+          "accepted_variable_names": [
+            "STAGE1_PROD_SECURITY_ADMIN_SURFACE_PRIVACY_REF"
+          ],
+          "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+          "configured_variable_name": null,
+          "disallowed_substitutes": [
+            "local_debug_evidence",
+            "staging_preflight_evidence",
+            "blocked_probe_evidence",
+            "placeholder_values",
+            "staging_security_scan_only",
+            "dependency_scan_without_production_runtime_probe"
+          ],
+          "display_name": "STAGE1_PROD_SECURITY_ADMIN_SURFACE_PRIVACY_REF",
+          "group_id": "security",
+          "operator_action": "Collect a sanitized production security proof ref for STAGE1_PROD_SECURITY_ADMIN_SURFACE_PRIVACY_REF from the HTTPS production surface.",
+          "requirement_id": "admin_surface_privacy_ref",
+          "status": "missing"
+        },
+        {
+          "acceptable_evidence_source": "production_https_runtime_security_evidence",
+          "accepted_variable_names": [
+            "STAGE1_PROD_SECURITY_PROVIDER_KEY_CONTAINMENT_REF"
+          ],
+          "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+          "configured_variable_name": null,
+          "disallowed_substitutes": [
+            "local_debug_evidence",
+            "staging_preflight_evidence",
+            "blocked_probe_evidence",
+            "placeholder_values",
+            "staging_security_scan_only",
+            "dependency_scan_without_production_runtime_probe"
+          ],
+          "display_name": "STAGE1_PROD_SECURITY_PROVIDER_KEY_CONTAINMENT_REF",
+          "group_id": "security",
+          "operator_action": "Collect a sanitized production security proof ref for STAGE1_PROD_SECURITY_PROVIDER_KEY_CONTAINMENT_REF from the HTTPS production surface.",
+          "requirement_id": "provider_key_containment_ref",
+          "status": "missing"
+        },
+        {
+          "acceptable_evidence_source": "production_https_runtime_security_evidence",
+          "accepted_variable_names": [
+            "STAGE1_PROD_SECURITY_STRIPE_LIVE_TEST_SEPARATION_REF"
+          ],
+          "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+          "configured_variable_name": null,
+          "disallowed_substitutes": [
+            "local_debug_evidence",
+            "staging_preflight_evidence",
+            "blocked_probe_evidence",
+            "placeholder_values",
+            "staging_security_scan_only",
+            "dependency_scan_without_production_runtime_probe"
+          ],
+          "display_name": "STAGE1_PROD_SECURITY_STRIPE_LIVE_TEST_SEPARATION_REF",
+          "group_id": "security",
+          "operator_action": "Collect a sanitized production security proof ref for STAGE1_PROD_SECURITY_STRIPE_LIVE_TEST_SEPARATION_REF from the HTTPS production surface.",
+          "requirement_id": "stripe_live_test_separation_ref",
+          "status": "missing"
+        },
+        {
+          "acceptable_evidence_source": "production_https_runtime_security_evidence",
+          "accepted_variable_names": [
+            "STAGE1_PROD_SECURITY_RATE_LIMIT_SPEND_CAP_REF"
+          ],
+          "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+          "configured_variable_name": null,
+          "disallowed_substitutes": [
+            "local_debug_evidence",
+            "staging_preflight_evidence",
+            "blocked_probe_evidence",
+            "placeholder_values",
+            "staging_security_scan_only",
+            "dependency_scan_without_production_runtime_probe"
+          ],
+          "display_name": "STAGE1_PROD_SECURITY_RATE_LIMIT_SPEND_CAP_REF",
+          "group_id": "security",
+          "operator_action": "Collect a sanitized production security proof ref for STAGE1_PROD_SECURITY_RATE_LIMIT_SPEND_CAP_REF from the HTTPS production surface.",
+          "requirement_id": "rate_limit_spend_cap_ref",
+          "status": "missing"
+        },
+        {
+          "acceptable_evidence_source": "production_https_runtime_security_evidence",
+          "accepted_variable_names": [
+            "STAGE1_PROD_SECURITY_CSP_HEADERS_REF"
+          ],
+          "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+          "configured_variable_name": null,
+          "disallowed_substitutes": [
+            "local_debug_evidence",
+            "staging_preflight_evidence",
+            "blocked_probe_evidence",
+            "placeholder_values",
+            "staging_security_scan_only",
+            "dependency_scan_without_production_runtime_probe"
+          ],
+          "display_name": "STAGE1_PROD_SECURITY_CSP_HEADERS_REF",
+          "group_id": "security",
+          "operator_action": "Collect a sanitized production security proof ref for STAGE1_PROD_SECURITY_CSP_HEADERS_REF from the HTTPS production surface.",
+          "requirement_id": "csp_headers_ref",
+          "status": "missing"
+        },
+        {
+          "acceptable_evidence_source": "production_https_runtime_security_evidence",
+          "accepted_variable_names": [
+            "STAGE1_PROD_SECURITY_RBAC_TENANT_ISOLATION_REF"
+          ],
+          "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+          "configured_variable_name": null,
+          "disallowed_substitutes": [
+            "local_debug_evidence",
+            "staging_preflight_evidence",
+            "blocked_probe_evidence",
+            "placeholder_values",
+            "staging_security_scan_only",
+            "dependency_scan_without_production_runtime_probe"
+          ],
+          "display_name": "STAGE1_PROD_SECURITY_RBAC_TENANT_ISOLATION_REF",
+          "group_id": "security",
+          "operator_action": "Collect a sanitized production security proof ref for STAGE1_PROD_SECURITY_RBAC_TENANT_ISOLATION_REF from the HTTPS production surface.",
+          "requirement_id": "rbac_tenant_isolation_ref",
+          "status": "missing"
+        },
+        {
+          "acceptable_evidence_source": "production_https_runtime_security_evidence",
+          "accepted_variable_names": [
+            "STAGE1_PROD_SECURITY_AUDIT_REF"
+          ],
+          "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+          "configured_variable_name": null,
+          "disallowed_substitutes": [
+            "local_debug_evidence",
+            "staging_preflight_evidence",
+            "blocked_probe_evidence",
+            "placeholder_values",
+            "staging_security_scan_only",
+            "dependency_scan_without_production_runtime_probe"
+          ],
+          "display_name": "STAGE1_PROD_SECURITY_AUDIT_REF",
+          "group_id": "security",
+          "operator_action": "Collect a sanitized production security proof ref for STAGE1_PROD_SECURITY_AUDIT_REF from the HTTPS production surface.",
+          "requirement_id": "audit_ref",
+          "status": "missing"
+        }
+      ],
+      "operator_next_action": "Provide sanitized production security proof refs collected from public HTTPS production surfaces.",
+      "required_configured": 0,
+      "required_invalid": 0,
+      "required_missing": 10,
+      "required_total": 10,
+      "title": "Production security launch checks"
+    },
+    {
+      "blocking_input_count": 26,
+      "completion_percent": 0.0,
+      "first_missing_required_inputs": [
+        "STAGE1_PROD_GOVERNANCE_ACTIVATION_RUNTIME_REQUEST_IDS",
+        "STAGE1_PROD_GOVERNANCE_ACTIVATION_AUDIT_REFS",
+        "STAGE1_PROD_GOVERNANCE_ACTIVATION_HIGH_RISK_RBAC_REF",
+        "STAGE1_PROD_GOVERNANCE_ACTIVATION_REVIEWER_RATIONALE_REF",
+        "STAGE1_PROD_GOVERNANCE_ACTIVATION_SECOND_REVIEW_REF",
+        "STAGE1_PROD_GOVERNANCE_ACTIVATION_AUDIT_IMMUTABILITY_REF",
+        "STAGE1_PROD_GOVERNANCE_ACTIVATION_GATES_REF",
+        "STAGE1_PROD_GOVERNANCE_ABUSE_RUNTIME_REQUEST_IDS",
+        "STAGE1_PROD_GOVERNANCE_ABUSE_AUDIT_REFS",
+        "STAGE1_PROD_GOVERNANCE_ABUSE_ACCOUNT_HOLD_REF",
+        "STAGE1_PROD_GOVERNANCE_ABUSE_RATE_LIMIT_REF",
+        "STAGE1_PROD_GOVERNANCE_ABUSE_SPEND_CAP_OR_KILL_SWITCH_REF"
+      ],
+      "group_id": "governance",
+      "invalid_required_inputs": [],
+      "items": [
+        {
+          "acceptable_evidence_source": "production_governance_audit_release_evidence",
+          "accepted_variable_names": [
+            "STAGE1_PROD_GOVERNANCE_ACTIVATION_RUNTIME_REQUEST_IDS"
+          ],
+          "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+          "configured_variable_name": null,
+          "disallowed_substitutes": [
+            "local_debug_evidence",
+            "staging_preflight_evidence",
+            "blocked_probe_evidence",
+            "placeholder_values",
+            "staging_admin_review_only",
+            "draft_release_notes"
+          ],
+          "display_name": "STAGE1_PROD_GOVERNANCE_ACTIVATION_RUNTIME_REQUEST_IDS",
+          "group_id": "governance",
+          "operator_action": "Collect a sanitized production governance proof ref for STAGE1_PROD_GOVERNANCE_ACTIVATION_RUNTIME_REQUEST_IDS.",
+          "requirement_id": "activation_runtime_request_ids",
+          "status": "missing"
+        },
+        {
+          "acceptable_evidence_source": "production_governance_audit_release_evidence",
+          "accepted_variable_names": [
+            "STAGE1_PROD_GOVERNANCE_ACTIVATION_AUDIT_REFS"
+          ],
+          "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+          "configured_variable_name": null,
+          "disallowed_substitutes": [
+            "local_debug_evidence",
+            "staging_preflight_evidence",
+            "blocked_probe_evidence",
+            "placeholder_values",
+            "staging_admin_review_only",
+            "draft_release_notes"
+          ],
+          "display_name": "STAGE1_PROD_GOVERNANCE_ACTIVATION_AUDIT_REFS",
+          "group_id": "governance",
+          "operator_action": "Collect a sanitized production governance proof ref for STAGE1_PROD_GOVERNANCE_ACTIVATION_AUDIT_REFS.",
+          "requirement_id": "activation_audit_refs",
+          "status": "missing"
+        },
+        {
+          "acceptable_evidence_source": "production_governance_audit_release_evidence",
+          "accepted_variable_names": [
+            "STAGE1_PROD_GOVERNANCE_ACTIVATION_HIGH_RISK_RBAC_REF"
+          ],
+          "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+          "configured_variable_name": null,
+          "disallowed_substitutes": [
+            "local_debug_evidence",
+            "staging_preflight_evidence",
+            "blocked_probe_evidence",
+            "placeholder_values",
+            "staging_admin_review_only",
+            "draft_release_notes"
+          ],
+          "display_name": "STAGE1_PROD_GOVERNANCE_ACTIVATION_HIGH_RISK_RBAC_REF",
+          "group_id": "governance",
+          "operator_action": "Collect a sanitized production governance proof ref for STAGE1_PROD_GOVERNANCE_ACTIVATION_HIGH_RISK_RBAC_REF.",
+          "requirement_id": "activation_high_risk_rbac_ref",
+          "status": "missing"
+        },
+        {
+          "acceptable_evidence_source": "production_governance_audit_release_evidence",
+          "accepted_variable_names": [
+            "STAGE1_PROD_GOVERNANCE_ACTIVATION_REVIEWER_RATIONALE_REF"
+          ],
+          "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+          "configured_variable_name": null,
+          "disallowed_substitutes": [
+            "local_debug_evidence",
+            "staging_preflight_evidence",
+            "blocked_probe_evidence",
+            "placeholder_values",
+            "staging_admin_review_only",
+            "draft_release_notes"
+          ],
+          "display_name": "STAGE1_PROD_GOVERNANCE_ACTIVATION_REVIEWER_RATIONALE_REF",
+          "group_id": "governance",
+          "operator_action": "Collect a sanitized production governance proof ref for STAGE1_PROD_GOVERNANCE_ACTIVATION_REVIEWER_RATIONALE_REF.",
+          "requirement_id": "activation_reviewer_rationale_ref",
+          "status": "missing"
+        },
+        {
+          "acceptable_evidence_source": "production_governance_audit_release_evidence",
+          "accepted_variable_names": [
+            "STAGE1_PROD_GOVERNANCE_ACTIVATION_SECOND_REVIEW_REF"
+          ],
+          "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+          "configured_variable_name": null,
+          "disallowed_substitutes": [
+            "local_debug_evidence",
+            "staging_preflight_evidence",
+            "blocked_probe_evidence",
+            "placeholder_values",
+            "staging_admin_review_only",
+            "draft_release_notes"
+          ],
+          "display_name": "STAGE1_PROD_GOVERNANCE_ACTIVATION_SECOND_REVIEW_REF",
+          "group_id": "governance",
+          "operator_action": "Collect a sanitized production governance proof ref for STAGE1_PROD_GOVERNANCE_ACTIVATION_SECOND_REVIEW_REF.",
+          "requirement_id": "activation_second_review_ref",
+          "status": "missing"
+        },
+        {
+          "acceptable_evidence_source": "production_governance_audit_release_evidence",
+          "accepted_variable_names": [
+            "STAGE1_PROD_GOVERNANCE_ACTIVATION_AUDIT_IMMUTABILITY_REF"
+          ],
+          "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+          "configured_variable_name": null,
+          "disallowed_substitutes": [
+            "local_debug_evidence",
+            "staging_preflight_evidence",
+            "blocked_probe_evidence",
+            "placeholder_values",
+            "staging_admin_review_only",
+            "draft_release_notes"
+          ],
+          "display_name": "STAGE1_PROD_GOVERNANCE_ACTIVATION_AUDIT_IMMUTABILITY_REF",
+          "group_id": "governance",
+          "operator_action": "Collect a sanitized production governance proof ref for STAGE1_PROD_GOVERNANCE_ACTIVATION_AUDIT_IMMUTABILITY_REF.",
+          "requirement_id": "activation_audit_immutability_ref",
+          "status": "missing"
+        },
+        {
+          "acceptable_evidence_source": "production_governance_audit_release_evidence",
+          "accepted_variable_names": [
+            "STAGE1_PROD_GOVERNANCE_ACTIVATION_GATES_REF"
+          ],
+          "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+          "configured_variable_name": null,
+          "disallowed_substitutes": [
+            "local_debug_evidence",
+            "staging_preflight_evidence",
+            "blocked_probe_evidence",
+            "placeholder_values",
+            "staging_admin_review_only",
+            "draft_release_notes"
+          ],
+          "display_name": "STAGE1_PROD_GOVERNANCE_ACTIVATION_GATES_REF",
+          "group_id": "governance",
+          "operator_action": "Collect a sanitized production governance proof ref for STAGE1_PROD_GOVERNANCE_ACTIVATION_GATES_REF.",
+          "requirement_id": "activation_gates_ref",
+          "status": "missing"
+        },
+        {
+          "acceptable_evidence_source": "production_governance_audit_release_evidence",
+          "accepted_variable_names": [
+            "STAGE1_PROD_GOVERNANCE_ABUSE_RUNTIME_REQUEST_IDS"
+          ],
+          "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+          "configured_variable_name": null,
+          "disallowed_substitutes": [
+            "local_debug_evidence",
+            "staging_preflight_evidence",
+            "blocked_probe_evidence",
+            "placeholder_values",
+            "staging_admin_review_only",
+            "draft_release_notes"
+          ],
+          "display_name": "STAGE1_PROD_GOVERNANCE_ABUSE_RUNTIME_REQUEST_IDS",
+          "group_id": "governance",
+          "operator_action": "Collect a sanitized production governance proof ref for STAGE1_PROD_GOVERNANCE_ABUSE_RUNTIME_REQUEST_IDS.",
+          "requirement_id": "abuse_runtime_request_ids",
+          "status": "missing"
+        },
+        {
+          "acceptable_evidence_source": "production_governance_audit_release_evidence",
+          "accepted_variable_names": [
+            "STAGE1_PROD_GOVERNANCE_ABUSE_AUDIT_REFS"
+          ],
+          "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+          "configured_variable_name": null,
+          "disallowed_substitutes": [
+            "local_debug_evidence",
+            "staging_preflight_evidence",
+            "blocked_probe_evidence",
+            "placeholder_values",
+            "staging_admin_review_only",
+            "draft_release_notes"
+          ],
+          "display_name": "STAGE1_PROD_GOVERNANCE_ABUSE_AUDIT_REFS",
+          "group_id": "governance",
+          "operator_action": "Collect a sanitized production governance proof ref for STAGE1_PROD_GOVERNANCE_ABUSE_AUDIT_REFS.",
+          "requirement_id": "abuse_audit_refs",
+          "status": "missing"
+        },
+        {
+          "acceptable_evidence_source": "production_governance_audit_release_evidence",
+          "accepted_variable_names": [
+            "STAGE1_PROD_GOVERNANCE_ABUSE_ACCOUNT_HOLD_REF"
+          ],
+          "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+          "configured_variable_name": null,
+          "disallowed_substitutes": [
+            "local_debug_evidence",
+            "staging_preflight_evidence",
+            "blocked_probe_evidence",
+            "placeholder_values",
+            "staging_admin_review_only",
+            "draft_release_notes"
+          ],
+          "display_name": "STAGE1_PROD_GOVERNANCE_ABUSE_ACCOUNT_HOLD_REF",
+          "group_id": "governance",
+          "operator_action": "Collect a sanitized production governance proof ref for STAGE1_PROD_GOVERNANCE_ABUSE_ACCOUNT_HOLD_REF.",
+          "requirement_id": "abuse_account_hold_ref",
+          "status": "missing"
+        },
+        {
+          "acceptable_evidence_source": "production_governance_audit_release_evidence",
+          "accepted_variable_names": [
+            "STAGE1_PROD_GOVERNANCE_ABUSE_RATE_LIMIT_REF"
+          ],
+          "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+          "configured_variable_name": null,
+          "disallowed_substitutes": [
+            "local_debug_evidence",
+            "staging_preflight_evidence",
+            "blocked_probe_evidence",
+            "placeholder_values",
+            "staging_admin_review_only",
+            "draft_release_notes"
+          ],
+          "display_name": "STAGE1_PROD_GOVERNANCE_ABUSE_RATE_LIMIT_REF",
+          "group_id": "governance",
+          "operator_action": "Collect a sanitized production governance proof ref for STAGE1_PROD_GOVERNANCE_ABUSE_RATE_LIMIT_REF.",
+          "requirement_id": "abuse_rate_limit_ref",
+          "status": "missing"
+        },
+        {
+          "acceptable_evidence_source": "production_governance_audit_release_evidence",
+          "accepted_variable_names": [
+            "STAGE1_PROD_GOVERNANCE_ABUSE_SPEND_CAP_OR_KILL_SWITCH_REF"
+          ],
+          "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+          "configured_variable_name": null,
+          "disallowed_substitutes": [
+            "local_debug_evidence",
+            "staging_preflight_evidence",
+            "blocked_probe_evidence",
+            "placeholder_values",
+            "staging_admin_review_only",
+            "draft_release_notes"
+          ],
+          "display_name": "STAGE1_PROD_GOVERNANCE_ABUSE_SPEND_CAP_OR_KILL_SWITCH_REF",
+          "group_id": "governance",
+          "operator_action": "Collect a sanitized production governance proof ref for STAGE1_PROD_GOVERNANCE_ABUSE_SPEND_CAP_OR_KILL_SWITCH_REF.",
+          "requirement_id": "abuse_spend_cap_or_kill_switch_ref",
+          "status": "missing"
+        },
+        {
+          "acceptable_evidence_source": "production_governance_audit_release_evidence",
+          "accepted_variable_names": [
+            "STAGE1_PROD_GOVERNANCE_ABUSE_RBAC_AUDIT_REF"
+          ],
+          "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+          "configured_variable_name": null,
+          "disallowed_substitutes": [
+            "local_debug_evidence",
+            "staging_preflight_evidence",
+            "blocked_probe_evidence",
+            "placeholder_values",
+            "staging_admin_review_only",
+            "draft_release_notes"
+          ],
+          "display_name": "STAGE1_PROD_GOVERNANCE_ABUSE_RBAC_AUDIT_REF",
+          "group_id": "governance",
+          "operator_action": "Collect a sanitized production governance proof ref for STAGE1_PROD_GOVERNANCE_ABUSE_RBAC_AUDIT_REF.",
+          "requirement_id": "abuse_rbac_audit_ref",
+          "status": "missing"
+        },
+        {
+          "acceptable_evidence_source": "production_governance_audit_release_evidence",
+          "accepted_variable_names": [
+            "STAGE1_PROD_GOVERNANCE_SKILL_RUNTIME_REQUEST_IDS"
+          ],
+          "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+          "configured_variable_name": null,
+          "disallowed_substitutes": [
+            "local_debug_evidence",
+            "staging_preflight_evidence",
+            "blocked_probe_evidence",
+            "placeholder_values",
+            "staging_admin_review_only",
+            "draft_release_notes"
+          ],
+          "display_name": "STAGE1_PROD_GOVERNANCE_SKILL_RUNTIME_REQUEST_IDS",
+          "group_id": "governance",
+          "operator_action": "Collect a sanitized production governance proof ref for STAGE1_PROD_GOVERNANCE_SKILL_RUNTIME_REQUEST_IDS.",
+          "requirement_id": "skill_runtime_request_ids",
+          "status": "missing"
+        },
+        {
+          "acceptable_evidence_source": "production_governance_audit_release_evidence",
+          "accepted_variable_names": [
+            "STAGE1_PROD_GOVERNANCE_SKILL_AUDIT_REFS"
+          ],
+          "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+          "configured_variable_name": null,
+          "disallowed_substitutes": [
+            "local_debug_evidence",
+            "staging_preflight_evidence",
+            "blocked_probe_evidence",
+            "placeholder_values",
+            "staging_admin_review_only",
+            "draft_release_notes"
+          ],
+          "display_name": "STAGE1_PROD_GOVERNANCE_SKILL_AUDIT_REFS",
+          "group_id": "governance",
+          "operator_action": "Collect a sanitized production governance proof ref for STAGE1_PROD_GOVERNANCE_SKILL_AUDIT_REFS.",
+          "requirement_id": "skill_audit_refs",
+          "status": "missing"
+        },
+        {
+          "acceptable_evidence_source": "production_governance_audit_release_evidence",
+          "accepted_variable_names": [
+            "STAGE1_PROD_GOVERNANCE_SKILL_OWNER_ID"
+          ],
+          "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+          "configured_variable_name": null,
+          "disallowed_substitutes": [
+            "local_debug_evidence",
+            "staging_preflight_evidence",
+            "blocked_probe_evidence",
+            "placeholder_values",
+            "staging_admin_review_only",
+            "draft_release_notes"
+          ],
+          "display_name": "STAGE1_PROD_GOVERNANCE_SKILL_OWNER_ID",
+          "group_id": "governance",
+          "operator_action": "Collect a sanitized production governance proof ref for STAGE1_PROD_GOVERNANCE_SKILL_OWNER_ID.",
+          "requirement_id": "skill_owner_id",
+          "status": "missing"
+        },
+        {
+          "acceptable_evidence_source": "production_governance_audit_release_evidence",
+          "accepted_variable_names": [
+            "STAGE1_PROD_GOVERNANCE_SKILL_SUITE_ID"
+          ],
+          "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+          "configured_variable_name": null,
+          "disallowed_substitutes": [
+            "local_debug_evidence",
+            "staging_preflight_evidence",
+            "blocked_probe_evidence",
+            "placeholder_values",
+            "staging_admin_review_only",
+            "draft_release_notes"
+          ],
+          "display_name": "STAGE1_PROD_GOVERNANCE_SKILL_SUITE_ID",
+          "group_id": "governance",
+          "operator_action": "Collect a sanitized production governance proof ref for STAGE1_PROD_GOVERNANCE_SKILL_SUITE_ID.",
+          "requirement_id": "skill_suite_id",
+          "status": "missing"
+        },
+        {
+          "acceptable_evidence_source": "production_governance_audit_release_evidence",
+          "accepted_variable_names": [
+            "STAGE1_PROD_GOVERNANCE_SKILL_ROLLBACK_TARGET_ID"
+          ],
+          "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+          "configured_variable_name": null,
+          "disallowed_substitutes": [
+            "local_debug_evidence",
+            "staging_preflight_evidence",
+            "blocked_probe_evidence",
+            "placeholder_values",
+            "staging_admin_review_only",
+            "draft_release_notes"
+          ],
+          "display_name": "STAGE1_PROD_GOVERNANCE_SKILL_ROLLBACK_TARGET_ID",
+          "group_id": "governance",
+          "operator_action": "Collect a sanitized production governance proof ref for STAGE1_PROD_GOVERNANCE_SKILL_ROLLBACK_TARGET_ID.",
+          "requirement_id": "skill_rollback_target_id",
+          "status": "missing"
+        },
+        {
+          "acceptable_evidence_source": "production_governance_audit_release_evidence",
+          "accepted_variable_names": [
+            "STAGE1_PROD_GOVERNANCE_SKILL_RELEASE_NOTES_ID"
+          ],
+          "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+          "configured_variable_name": null,
+          "disallowed_substitutes": [
+            "local_debug_evidence",
+            "staging_preflight_evidence",
+            "blocked_probe_evidence",
+            "placeholder_values",
+            "staging_admin_review_only",
+            "draft_release_notes"
+          ],
+          "display_name": "STAGE1_PROD_GOVERNANCE_SKILL_RELEASE_NOTES_ID",
+          "group_id": "governance",
+          "operator_action": "Collect a sanitized production governance proof ref for STAGE1_PROD_GOVERNANCE_SKILL_RELEASE_NOTES_ID.",
+          "requirement_id": "skill_release_notes_id",
+          "status": "missing"
+        },
+        {
+          "acceptable_evidence_source": "production_governance_audit_release_evidence",
+          "accepted_variable_names": [
+            "STAGE1_PROD_GOVERNANCE_SKILL_CANARY_SAMPLE_SIZE"
+          ],
+          "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+          "configured_variable_name": null,
+          "disallowed_substitutes": [
+            "local_debug_evidence",
+            "staging_preflight_evidence",
+            "blocked_probe_evidence",
+            "placeholder_values",
+            "staging_admin_review_only",
+            "draft_release_notes"
+          ],
+          "display_name": "STAGE1_PROD_GOVERNANCE_SKILL_CANARY_SAMPLE_SIZE",
+          "group_id": "governance",
+          "operator_action": "Collect a sanitized production governance proof ref for STAGE1_PROD_GOVERNANCE_SKILL_CANARY_SAMPLE_SIZE.",
+          "requirement_id": "skill_canary_sample_size",
+          "status": "missing"
+        },
+        {
+          "acceptable_evidence_source": "production_governance_audit_release_evidence",
+          "accepted_variable_names": [
+            "STAGE1_PROD_GOVERNANCE_SKILL_OWNER_RISK_REF"
+          ],
+          "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+          "configured_variable_name": null,
+          "disallowed_substitutes": [
+            "local_debug_evidence",
+            "staging_preflight_evidence",
+            "blocked_probe_evidence",
+            "placeholder_values",
+            "staging_admin_review_only",
+            "draft_release_notes"
+          ],
+          "display_name": "STAGE1_PROD_GOVERNANCE_SKILL_OWNER_RISK_REF",
+          "group_id": "governance",
+          "operator_action": "Collect a sanitized production governance proof ref for STAGE1_PROD_GOVERNANCE_SKILL_OWNER_RISK_REF.",
+          "requirement_id": "skill_owner_risk_ref",
+          "status": "missing"
+        },
+        {
+          "acceptable_evidence_source": "production_governance_audit_release_evidence",
+          "accepted_variable_names": [
+            "STAGE1_PROD_GOVERNANCE_SKILL_EVAL_SUITE_REF"
+          ],
+          "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+          "configured_variable_name": null,
+          "disallowed_substitutes": [
+            "local_debug_evidence",
+            "staging_preflight_evidence",
+            "blocked_probe_evidence",
+            "placeholder_values",
+            "staging_admin_review_only",
+            "draft_release_notes"
+          ],
+          "display_name": "STAGE1_PROD_GOVERNANCE_SKILL_EVAL_SUITE_REF",
+          "group_id": "governance",
+          "operator_action": "Collect a sanitized production governance proof ref for STAGE1_PROD_GOVERNANCE_SKILL_EVAL_SUITE_REF.",
+          "requirement_id": "skill_eval_suite_ref",
+          "status": "missing"
+        },
+        {
+          "acceptable_evidence_source": "production_governance_audit_release_evidence",
+          "accepted_variable_names": [
+            "STAGE1_PROD_GOVERNANCE_SKILL_SAFETY_REFS_REF"
+          ],
+          "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+          "configured_variable_name": null,
+          "disallowed_substitutes": [
+            "local_debug_evidence",
+            "staging_preflight_evidence",
+            "blocked_probe_evidence",
+            "placeholder_values",
+            "staging_admin_review_only",
+            "draft_release_notes"
+          ],
+          "display_name": "STAGE1_PROD_GOVERNANCE_SKILL_SAFETY_REFS_REF",
+          "group_id": "governance",
+          "operator_action": "Collect a sanitized production governance proof ref for STAGE1_PROD_GOVERNANCE_SKILL_SAFETY_REFS_REF.",
+          "requirement_id": "skill_safety_refs_ref",
+          "status": "missing"
+        },
+        {
+          "acceptable_evidence_source": "production_governance_audit_release_evidence",
+          "accepted_variable_names": [
+            "STAGE1_PROD_GOVERNANCE_SKILL_CANARY_METRICS_REF"
+          ],
+          "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+          "configured_variable_name": null,
+          "disallowed_substitutes": [
+            "local_debug_evidence",
+            "staging_preflight_evidence",
+            "blocked_probe_evidence",
+            "placeholder_values",
+            "staging_admin_review_only",
+            "draft_release_notes"
+          ],
+          "display_name": "STAGE1_PROD_GOVERNANCE_SKILL_CANARY_METRICS_REF",
+          "group_id": "governance",
+          "operator_action": "Collect a sanitized production governance proof ref for STAGE1_PROD_GOVERNANCE_SKILL_CANARY_METRICS_REF.",
+          "requirement_id": "skill_canary_metrics_ref",
+          "status": "missing"
+        },
+        {
+          "acceptable_evidence_source": "production_governance_audit_release_evidence",
+          "accepted_variable_names": [
+            "STAGE1_PROD_GOVERNANCE_SKILL_ROLLBACK_TARGET_REF"
+          ],
+          "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+          "configured_variable_name": null,
+          "disallowed_substitutes": [
+            "local_debug_evidence",
+            "staging_preflight_evidence",
+            "blocked_probe_evidence",
+            "placeholder_values",
+            "staging_admin_review_only",
+            "draft_release_notes"
+          ],
+          "display_name": "STAGE1_PROD_GOVERNANCE_SKILL_ROLLBACK_TARGET_REF",
+          "group_id": "governance",
+          "operator_action": "Collect a sanitized production governance proof ref for STAGE1_PROD_GOVERNANCE_SKILL_ROLLBACK_TARGET_REF.",
+          "requirement_id": "skill_rollback_target_ref",
+          "status": "missing"
+        },
+        {
+          "acceptable_evidence_source": "production_governance_audit_release_evidence",
+          "accepted_variable_names": [
+            "STAGE1_PROD_GOVERNANCE_SKILL_RELEASE_NOTES_REF"
+          ],
+          "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+          "configured_variable_name": null,
+          "disallowed_substitutes": [
+            "local_debug_evidence",
+            "staging_preflight_evidence",
+            "blocked_probe_evidence",
+            "placeholder_values",
+            "staging_admin_review_only",
+            "draft_release_notes"
+          ],
+          "display_name": "STAGE1_PROD_GOVERNANCE_SKILL_RELEASE_NOTES_REF",
+          "group_id": "governance",
+          "operator_action": "Collect a sanitized production governance proof ref for STAGE1_PROD_GOVERNANCE_SKILL_RELEASE_NOTES_REF.",
+          "requirement_id": "skill_release_notes_ref",
+          "status": "missing"
+        }
+      ],
+      "operator_next_action": "Provide sanitized production governance request, audit, review, canary, rollback, and release refs.",
+      "required_configured": 0,
+      "required_invalid": 0,
+      "required_missing": 26,
+      "required_total": 26,
+      "title": "Production governance release"
+    }
+  ],
+  "items": [
+    {
+      "acceptable_evidence_source": "production_https_dns_or_cloudflare_cutover_evidence",
+      "accepted_variable_names": [
+        "CLOUDFLARE_ZONE_ID",
+        "CF_ZONE_ID"
+      ],
+      "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+      "configured_variable_name": null,
+      "disallowed_substitutes": [
+        "local_debug_evidence",
+        "staging_preflight_evidence",
+        "blocked_probe_evidence",
+        "placeholder_values",
+        "staging_domain",
+        "localhost",
+        "raw_dns_plan_without_observed_https_probe"
+      ],
+      "display_name": "CLOUDFLARE_ZONE_ID or CF_ZONE_ID",
+      "group_id": "production_dns",
+      "operator_action": "Set CLOUDFLARE_ZONE_ID or CF_ZONE_ID for production DNS/HTTPS cutover; do not persist credential values.",
+      "requirement_id": "cloudflare_zone_id",
+      "status": "missing"
+    },
+    {
+      "acceptable_evidence_source": "production_https_dns_or_cloudflare_cutover_evidence",
+      "accepted_variable_names": [
+        "CLOUDFLARE_API_TOKEN",
+        "CF_API_TOKEN"
+      ],
+      "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+      "configured_variable_name": null,
+      "disallowed_substitutes": [
+        "local_debug_evidence",
+        "staging_preflight_evidence",
+        "blocked_probe_evidence",
+        "placeholder_values",
+        "staging_domain",
+        "localhost",
+        "raw_dns_plan_without_observed_https_probe"
+      ],
+      "display_name": "CLOUDFLARE_API_TOKEN or CF_API_TOKEN",
+      "group_id": "production_dns",
+      "operator_action": "Set CLOUDFLARE_API_TOKEN or CF_API_TOKEN for production DNS/HTTPS cutover; do not persist credential values.",
+      "requirement_id": "cloudflare_dns_edit_token",
+      "status": "missing"
+    },
+    {
+      "acceptable_evidence_source": "live_stripe_production_billing_evidence",
+      "accepted_variable_names": [
+        "STRIPE_MODE"
+      ],
+      "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+      "configured_variable_name": "STRIPE_MODE",
+      "disallowed_substitutes": [
+        "local_debug_evidence",
+        "staging_preflight_evidence",
+        "blocked_probe_evidence",
+        "placeholder_values",
+        "stripe_sandbox_test_mode",
+        "stripe_test_keys"
+      ],
+      "display_name": "STRIPE_MODE=live",
+      "group_id": "billing",
+      "operator_action": "Replace the configured STRIPE_MODE=live input with production-valid evidence; do not persist the value.",
+      "requirement_id": "stripe_mode_live",
+      "status": "invalid"
+    },
+    {
+      "acceptable_evidence_source": "live_stripe_production_billing_evidence",
+      "accepted_variable_names": [
+        "STRIPE_SECRET_KEY",
+        "STRIPE_API_KEY"
+      ],
+      "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+      "configured_variable_name": "STRIPE_SECRET_KEY",
+      "disallowed_substitutes": [
+        "local_debug_evidence",
+        "staging_preflight_evidence",
+        "blocked_probe_evidence",
+        "placeholder_values",
+        "stripe_sandbox_test_mode",
+        "stripe_test_keys"
+      ],
+      "display_name": "STRIPE_SECRET_KEY or STRIPE_API_KEY with live key shape",
+      "group_id": "billing",
+      "operator_action": "Replace the configured STRIPE_SECRET_KEY or STRIPE_API_KEY with live key shape input with production-valid evidence; do not persist the value.",
+      "requirement_id": "stripe_live_secret",
+      "status": "invalid"
+    },
+    {
+      "acceptable_evidence_source": "live_stripe_production_billing_evidence",
+      "accepted_variable_names": [
+        "STRIPE_PUBLISHABLE_KEY",
+        "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY"
+      ],
+      "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+      "configured_variable_name": "STRIPE_PUBLISHABLE_KEY",
+      "disallowed_substitutes": [
+        "local_debug_evidence",
+        "staging_preflight_evidence",
+        "blocked_probe_evidence",
+        "placeholder_values",
+        "stripe_sandbox_test_mode",
+        "stripe_test_keys"
+      ],
+      "display_name": "STRIPE_PUBLISHABLE_KEY or NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY with live key shape",
+      "group_id": "billing",
+      "operator_action": "Replace the configured STRIPE_PUBLISHABLE_KEY or NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY with live key shape input with production-valid evidence; do not persist the value.",
+      "requirement_id": "stripe_live_publishable",
+      "status": "invalid"
+    },
+    {
+      "acceptable_evidence_source": "live_stripe_production_billing_evidence",
+      "accepted_variable_names": [
+        "STAGE1_PROD_BILLING_CHECKOUT_SESSION_ID"
+      ],
+      "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+      "configured_variable_name": null,
+      "disallowed_substitutes": [
+        "local_debug_evidence",
+        "staging_preflight_evidence",
+        "blocked_probe_evidence",
+        "placeholder_values",
+        "stripe_sandbox_test_mode",
+        "stripe_test_keys"
+      ],
+      "display_name": "STAGE1_PROD_BILLING_CHECKOUT_SESSION_ID",
+      "group_id": "billing",
+      "operator_action": "Collect a sanitized live Stripe production proof ref for STAGE1_PROD_BILLING_CHECKOUT_SESSION_ID; do not persist raw Stripe data.",
+      "requirement_id": "checkout_session_id",
+      "status": "missing"
+    },
+    {
+      "acceptable_evidence_source": "live_stripe_production_billing_evidence",
+      "accepted_variable_names": [
+        "STAGE1_PROD_BILLING_CHECKOUT_CUSTOMER_ID"
+      ],
+      "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+      "configured_variable_name": null,
+      "disallowed_substitutes": [
+        "local_debug_evidence",
+        "staging_preflight_evidence",
+        "blocked_probe_evidence",
+        "placeholder_values",
+        "stripe_sandbox_test_mode",
+        "stripe_test_keys"
+      ],
+      "display_name": "STAGE1_PROD_BILLING_CHECKOUT_CUSTOMER_ID",
+      "group_id": "billing",
+      "operator_action": "Collect a sanitized live Stripe production proof ref for STAGE1_PROD_BILLING_CHECKOUT_CUSTOMER_ID; do not persist raw Stripe data.",
+      "requirement_id": "checkout_customer_id",
+      "status": "missing"
+    },
+    {
+      "acceptable_evidence_source": "live_stripe_production_billing_evidence",
+      "accepted_variable_names": [
+        "STAGE1_PROD_BILLING_PRICE_ID"
+      ],
+      "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+      "configured_variable_name": null,
+      "disallowed_substitutes": [
+        "local_debug_evidence",
+        "staging_preflight_evidence",
+        "blocked_probe_evidence",
+        "placeholder_values",
+        "stripe_sandbox_test_mode",
+        "stripe_test_keys"
+      ],
+      "display_name": "STAGE1_PROD_BILLING_PRICE_ID",
+      "group_id": "billing",
+      "operator_action": "Collect a sanitized live Stripe production proof ref for STAGE1_PROD_BILLING_PRICE_ID; do not persist raw Stripe data.",
+      "requirement_id": "price_id",
+      "status": "missing"
+    },
+    {
+      "acceptable_evidence_source": "live_stripe_production_billing_evidence",
+      "accepted_variable_names": [
+        "STAGE1_PROD_BILLING_ACTIVE_SUBSCRIPTION_ID"
+      ],
+      "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+      "configured_variable_name": null,
+      "disallowed_substitutes": [
+        "local_debug_evidence",
+        "staging_preflight_evidence",
+        "blocked_probe_evidence",
+        "placeholder_values",
+        "stripe_sandbox_test_mode",
+        "stripe_test_keys"
+      ],
+      "display_name": "STAGE1_PROD_BILLING_ACTIVE_SUBSCRIPTION_ID",
+      "group_id": "billing",
+      "operator_action": "Collect a sanitized live Stripe production proof ref for STAGE1_PROD_BILLING_ACTIVE_SUBSCRIPTION_ID; do not persist raw Stripe data.",
+      "requirement_id": "active_subscription_id",
+      "status": "missing"
+    },
+    {
+      "acceptable_evidence_source": "live_stripe_production_billing_evidence",
+      "accepted_variable_names": [
+        "STAGE1_PROD_BILLING_ACTIVE_CUSTOMER_ID"
+      ],
+      "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+      "configured_variable_name": null,
+      "disallowed_substitutes": [
+        "local_debug_evidence",
+        "staging_preflight_evidence",
+        "blocked_probe_evidence",
+        "placeholder_values",
+        "stripe_sandbox_test_mode",
+        "stripe_test_keys"
+      ],
+      "display_name": "STAGE1_PROD_BILLING_ACTIVE_CUSTOMER_ID",
+      "group_id": "billing",
+      "operator_action": "Collect a sanitized live Stripe production proof ref for STAGE1_PROD_BILLING_ACTIVE_CUSTOMER_ID; do not persist raw Stripe data.",
+      "requirement_id": "active_customer_id",
+      "status": "missing"
+    },
+    {
+      "acceptable_evidence_source": "live_stripe_production_billing_evidence",
+      "accepted_variable_names": [
+        "STAGE1_PROD_BILLING_PAST_DUE_SUBSCRIPTION_ID"
+      ],
+      "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+      "configured_variable_name": null,
+      "disallowed_substitutes": [
+        "local_debug_evidence",
+        "staging_preflight_evidence",
+        "blocked_probe_evidence",
+        "placeholder_values",
+        "stripe_sandbox_test_mode",
+        "stripe_test_keys"
+      ],
+      "display_name": "STAGE1_PROD_BILLING_PAST_DUE_SUBSCRIPTION_ID",
+      "group_id": "billing",
+      "operator_action": "Collect a sanitized live Stripe production proof ref for STAGE1_PROD_BILLING_PAST_DUE_SUBSCRIPTION_ID; do not persist raw Stripe data.",
+      "requirement_id": "past_due_subscription_id",
+      "status": "missing"
+    },
+    {
+      "acceptable_evidence_source": "live_stripe_production_billing_evidence",
+      "accepted_variable_names": [
+        "STAGE1_PROD_BILLING_PAST_DUE_INVOICE_ID"
+      ],
+      "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+      "configured_variable_name": null,
+      "disallowed_substitutes": [
+        "local_debug_evidence",
+        "staging_preflight_evidence",
+        "blocked_probe_evidence",
+        "placeholder_values",
+        "stripe_sandbox_test_mode",
+        "stripe_test_keys"
+      ],
+      "display_name": "STAGE1_PROD_BILLING_PAST_DUE_INVOICE_ID",
+      "group_id": "billing",
+      "operator_action": "Collect a sanitized live Stripe production proof ref for STAGE1_PROD_BILLING_PAST_DUE_INVOICE_ID; do not persist raw Stripe data.",
+      "requirement_id": "past_due_invoice_id",
+      "status": "missing"
+    },
+    {
+      "acceptable_evidence_source": "live_stripe_production_billing_evidence",
+      "accepted_variable_names": [
+        "STAGE1_PROD_BILLING_CANCEL_SUBSCRIPTION_ID"
+      ],
+      "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+      "configured_variable_name": null,
+      "disallowed_substitutes": [
+        "local_debug_evidence",
+        "staging_preflight_evidence",
+        "blocked_probe_evidence",
+        "placeholder_values",
+        "stripe_sandbox_test_mode",
+        "stripe_test_keys"
+      ],
+      "display_name": "STAGE1_PROD_BILLING_CANCEL_SUBSCRIPTION_ID",
+      "group_id": "billing",
+      "operator_action": "Collect a sanitized live Stripe production proof ref for STAGE1_PROD_BILLING_CANCEL_SUBSCRIPTION_ID; do not persist raw Stripe data.",
+      "requirement_id": "cancel_subscription_id",
+      "status": "missing"
+    },
+    {
+      "acceptable_evidence_source": "live_stripe_production_billing_evidence",
+      "accepted_variable_names": [
+        "STAGE1_PROD_BILLING_SEAT_QUANTITY"
+      ],
+      "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+      "configured_variable_name": null,
+      "disallowed_substitutes": [
+        "local_debug_evidence",
+        "staging_preflight_evidence",
+        "blocked_probe_evidence",
+        "placeholder_values",
+        "stripe_sandbox_test_mode",
+        "stripe_test_keys"
+      ],
+      "display_name": "STAGE1_PROD_BILLING_SEAT_QUANTITY",
+      "group_id": "billing",
+      "operator_action": "Collect a sanitized live Stripe production proof ref for STAGE1_PROD_BILLING_SEAT_QUANTITY; do not persist raw Stripe data.",
+      "requirement_id": "seat_quantity",
+      "status": "missing"
+    },
+    {
+      "acceptable_evidence_source": "live_stripe_production_billing_evidence",
+      "accepted_variable_names": [
+        "STAGE1_PROD_BILLING_SYNCED_QUANTITY"
+      ],
+      "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+      "configured_variable_name": null,
+      "disallowed_substitutes": [
+        "local_debug_evidence",
+        "staging_preflight_evidence",
+        "blocked_probe_evidence",
+        "placeholder_values",
+        "stripe_sandbox_test_mode",
+        "stripe_test_keys"
+      ],
+      "display_name": "STAGE1_PROD_BILLING_SYNCED_QUANTITY",
+      "group_id": "billing",
+      "operator_action": "Collect a sanitized live Stripe production proof ref for STAGE1_PROD_BILLING_SYNCED_QUANTITY; do not persist raw Stripe data.",
+      "requirement_id": "synced_quantity",
+      "status": "missing"
+    },
+    {
+      "acceptable_evidence_source": "live_stripe_production_billing_evidence",
+      "accepted_variable_names": [
+        "STAGE1_PROD_BILLING_SUBSCRIPTION_ITEM_ID"
+      ],
+      "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+      "configured_variable_name": null,
+      "disallowed_substitutes": [
+        "local_debug_evidence",
+        "staging_preflight_evidence",
+        "blocked_probe_evidence",
+        "placeholder_values",
+        "stripe_sandbox_test_mode",
+        "stripe_test_keys"
+      ],
+      "display_name": "STAGE1_PROD_BILLING_SUBSCRIPTION_ITEM_ID",
+      "group_id": "billing",
+      "operator_action": "Collect a sanitized live Stripe production proof ref for STAGE1_PROD_BILLING_SUBSCRIPTION_ITEM_ID; do not persist raw Stripe data.",
+      "requirement_id": "subscription_item_id",
+      "status": "missing"
+    },
+    {
+      "acceptable_evidence_source": "live_stripe_production_billing_evidence",
+      "accepted_variable_names": [
+        "STAGE1_PROD_BILLING_VISIBLE_INVOICE_ID"
+      ],
+      "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+      "configured_variable_name": null,
+      "disallowed_substitutes": [
+        "local_debug_evidence",
+        "staging_preflight_evidence",
+        "blocked_probe_evidence",
+        "placeholder_values",
+        "stripe_sandbox_test_mode",
+        "stripe_test_keys"
+      ],
+      "display_name": "STAGE1_PROD_BILLING_VISIBLE_INVOICE_ID",
+      "group_id": "billing",
+      "operator_action": "Collect a sanitized live Stripe production proof ref for STAGE1_PROD_BILLING_VISIBLE_INVOICE_ID; do not persist raw Stripe data.",
+      "requirement_id": "visible_invoice_id",
+      "status": "missing"
+    },
+    {
+      "acceptable_evidence_source": "live_stripe_production_billing_evidence",
+      "accepted_variable_names": [
+        "STAGE1_PROD_BILLING_REFUND_CHARGE_ID"
+      ],
+      "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+      "configured_variable_name": null,
+      "disallowed_substitutes": [
+        "local_debug_evidence",
+        "staging_preflight_evidence",
+        "blocked_probe_evidence",
+        "placeholder_values",
+        "stripe_sandbox_test_mode",
+        "stripe_test_keys"
+      ],
+      "display_name": "STAGE1_PROD_BILLING_REFUND_CHARGE_ID",
+      "group_id": "billing",
+      "operator_action": "Collect a sanitized live Stripe production proof ref for STAGE1_PROD_BILLING_REFUND_CHARGE_ID; do not persist raw Stripe data.",
+      "requirement_id": "refund_charge_id",
+      "status": "missing"
+    },
+    {
+      "acceptable_evidence_source": "live_stripe_production_billing_evidence",
+      "accepted_variable_names": [
+        "STAGE1_PROD_BILLING_REFUND_ID"
+      ],
+      "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+      "configured_variable_name": null,
+      "disallowed_substitutes": [
+        "local_debug_evidence",
+        "staging_preflight_evidence",
+        "blocked_probe_evidence",
+        "placeholder_values",
+        "stripe_sandbox_test_mode",
+        "stripe_test_keys"
+      ],
+      "display_name": "STAGE1_PROD_BILLING_REFUND_ID",
+      "group_id": "billing",
+      "operator_action": "Collect a sanitized live Stripe production proof ref for STAGE1_PROD_BILLING_REFUND_ID; do not persist raw Stripe data.",
+      "requirement_id": "refund_id",
+      "status": "missing"
+    },
+    {
+      "acceptable_evidence_source": "live_stripe_production_billing_evidence",
+      "accepted_variable_names": [
+        "STAGE1_PROD_BILLING_QUOTA_RESET_INVOICE_ID"
+      ],
+      "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+      "configured_variable_name": null,
+      "disallowed_substitutes": [
+        "local_debug_evidence",
+        "staging_preflight_evidence",
+        "blocked_probe_evidence",
+        "placeholder_values",
+        "stripe_sandbox_test_mode",
+        "stripe_test_keys"
+      ],
+      "display_name": "STAGE1_PROD_BILLING_QUOTA_RESET_INVOICE_ID",
+      "group_id": "billing",
+      "operator_action": "Collect a sanitized live Stripe production proof ref for STAGE1_PROD_BILLING_QUOTA_RESET_INVOICE_ID; do not persist raw Stripe data.",
+      "requirement_id": "quota_reset_invoice_id",
+      "status": "missing"
+    },
+    {
+      "acceptable_evidence_source": "live_stripe_production_billing_evidence",
+      "accepted_variable_names": [
+        "STAGE1_PROD_BILLING_WEBHOOK_EVENT_IDS"
+      ],
+      "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+      "configured_variable_name": null,
+      "disallowed_substitutes": [
+        "local_debug_evidence",
+        "staging_preflight_evidence",
+        "blocked_probe_evidence",
+        "placeholder_values",
+        "stripe_sandbox_test_mode",
+        "stripe_test_keys"
+      ],
+      "display_name": "STAGE1_PROD_BILLING_WEBHOOK_EVENT_IDS",
+      "group_id": "billing",
+      "operator_action": "Collect a sanitized live Stripe production proof ref for STAGE1_PROD_BILLING_WEBHOOK_EVENT_IDS; do not persist raw Stripe data.",
+      "requirement_id": "webhook_event_ids",
+      "status": "missing"
+    },
+    {
+      "acceptable_evidence_source": "live_stripe_production_billing_evidence",
+      "accepted_variable_names": [
+        "STAGE1_PROD_BILLING_FAILED_EXPORT_REFUND_ID"
+      ],
+      "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+      "configured_variable_name": null,
+      "disallowed_substitutes": [
+        "local_debug_evidence",
+        "staging_preflight_evidence",
+        "blocked_probe_evidence",
+        "placeholder_values",
+        "stripe_sandbox_test_mode",
+        "stripe_test_keys"
+      ],
+      "display_name": "STAGE1_PROD_BILLING_FAILED_EXPORT_REFUND_ID",
+      "group_id": "billing",
+      "operator_action": "Collect a sanitized live Stripe production proof ref for STAGE1_PROD_BILLING_FAILED_EXPORT_REFUND_ID; do not persist raw Stripe data.",
+      "requirement_id": "failed_export_refund_id",
+      "status": "missing"
+    },
+    {
+      "acceptable_evidence_source": "production_https_runtime_security_evidence",
+      "accepted_variable_names": [
+        "STAGE1_PROD_SECURITY_SECURE_SESSION_COOKIE_REF"
+      ],
+      "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+      "configured_variable_name": null,
+      "disallowed_substitutes": [
+        "local_debug_evidence",
+        "staging_preflight_evidence",
+        "blocked_probe_evidence",
+        "placeholder_values",
+        "staging_security_scan_only",
+        "dependency_scan_without_production_runtime_probe"
+      ],
+      "display_name": "STAGE1_PROD_SECURITY_SECURE_SESSION_COOKIE_REF",
+      "group_id": "security",
+      "operator_action": "Collect a sanitized production security proof ref for STAGE1_PROD_SECURITY_SECURE_SESSION_COOKIE_REF from the HTTPS production surface.",
+      "requirement_id": "secure_session_cookie_ref",
+      "status": "missing"
+    },
+    {
+      "acceptable_evidence_source": "production_https_runtime_security_evidence",
+      "accepted_variable_names": [
+        "STAGE1_PROD_SECURITY_CSRF_SAME_SITE_REF"
+      ],
+      "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+      "configured_variable_name": null,
+      "disallowed_substitutes": [
+        "local_debug_evidence",
+        "staging_preflight_evidence",
+        "blocked_probe_evidence",
+        "placeholder_values",
+        "staging_security_scan_only",
+        "dependency_scan_without_production_runtime_probe"
+      ],
+      "display_name": "STAGE1_PROD_SECURITY_CSRF_SAME_SITE_REF",
+      "group_id": "security",
+      "operator_action": "Collect a sanitized production security proof ref for STAGE1_PROD_SECURITY_CSRF_SAME_SITE_REF from the HTTPS production surface.",
+      "requirement_id": "csrf_same_site_ref",
+      "status": "missing"
+    },
+    {
+      "acceptable_evidence_source": "production_https_runtime_security_evidence",
+      "accepted_variable_names": [
+        "STAGE1_PROD_SECURITY_SECRET_REDACTION_REF"
+      ],
+      "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+      "configured_variable_name": null,
+      "disallowed_substitutes": [
+        "local_debug_evidence",
+        "staging_preflight_evidence",
+        "blocked_probe_evidence",
+        "placeholder_values",
+        "staging_security_scan_only",
+        "dependency_scan_without_production_runtime_probe"
+      ],
+      "display_name": "STAGE1_PROD_SECURITY_SECRET_REDACTION_REF",
+      "group_id": "security",
+      "operator_action": "Collect a sanitized production security proof ref for STAGE1_PROD_SECURITY_SECRET_REDACTION_REF from the HTTPS production surface.",
+      "requirement_id": "secret_redaction_ref",
+      "status": "missing"
+    },
+    {
+      "acceptable_evidence_source": "production_https_runtime_security_evidence",
+      "accepted_variable_names": [
+        "STAGE1_PROD_SECURITY_ADMIN_SURFACE_PRIVACY_REF"
+      ],
+      "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+      "configured_variable_name": null,
+      "disallowed_substitutes": [
+        "local_debug_evidence",
+        "staging_preflight_evidence",
+        "blocked_probe_evidence",
+        "placeholder_values",
+        "staging_security_scan_only",
+        "dependency_scan_without_production_runtime_probe"
+      ],
+      "display_name": "STAGE1_PROD_SECURITY_ADMIN_SURFACE_PRIVACY_REF",
+      "group_id": "security",
+      "operator_action": "Collect a sanitized production security proof ref for STAGE1_PROD_SECURITY_ADMIN_SURFACE_PRIVACY_REF from the HTTPS production surface.",
+      "requirement_id": "admin_surface_privacy_ref",
+      "status": "missing"
+    },
+    {
+      "acceptable_evidence_source": "production_https_runtime_security_evidence",
+      "accepted_variable_names": [
+        "STAGE1_PROD_SECURITY_PROVIDER_KEY_CONTAINMENT_REF"
+      ],
+      "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+      "configured_variable_name": null,
+      "disallowed_substitutes": [
+        "local_debug_evidence",
+        "staging_preflight_evidence",
+        "blocked_probe_evidence",
+        "placeholder_values",
+        "staging_security_scan_only",
+        "dependency_scan_without_production_runtime_probe"
+      ],
+      "display_name": "STAGE1_PROD_SECURITY_PROVIDER_KEY_CONTAINMENT_REF",
+      "group_id": "security",
+      "operator_action": "Collect a sanitized production security proof ref for STAGE1_PROD_SECURITY_PROVIDER_KEY_CONTAINMENT_REF from the HTTPS production surface.",
+      "requirement_id": "provider_key_containment_ref",
+      "status": "missing"
+    },
+    {
+      "acceptable_evidence_source": "production_https_runtime_security_evidence",
+      "accepted_variable_names": [
+        "STAGE1_PROD_SECURITY_STRIPE_LIVE_TEST_SEPARATION_REF"
+      ],
+      "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+      "configured_variable_name": null,
+      "disallowed_substitutes": [
+        "local_debug_evidence",
+        "staging_preflight_evidence",
+        "blocked_probe_evidence",
+        "placeholder_values",
+        "staging_security_scan_only",
+        "dependency_scan_without_production_runtime_probe"
+      ],
+      "display_name": "STAGE1_PROD_SECURITY_STRIPE_LIVE_TEST_SEPARATION_REF",
+      "group_id": "security",
+      "operator_action": "Collect a sanitized production security proof ref for STAGE1_PROD_SECURITY_STRIPE_LIVE_TEST_SEPARATION_REF from the HTTPS production surface.",
+      "requirement_id": "stripe_live_test_separation_ref",
+      "status": "missing"
+    },
+    {
+      "acceptable_evidence_source": "production_https_runtime_security_evidence",
+      "accepted_variable_names": [
+        "STAGE1_PROD_SECURITY_RATE_LIMIT_SPEND_CAP_REF"
+      ],
+      "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+      "configured_variable_name": null,
+      "disallowed_substitutes": [
+        "local_debug_evidence",
+        "staging_preflight_evidence",
+        "blocked_probe_evidence",
+        "placeholder_values",
+        "staging_security_scan_only",
+        "dependency_scan_without_production_runtime_probe"
+      ],
+      "display_name": "STAGE1_PROD_SECURITY_RATE_LIMIT_SPEND_CAP_REF",
+      "group_id": "security",
+      "operator_action": "Collect a sanitized production security proof ref for STAGE1_PROD_SECURITY_RATE_LIMIT_SPEND_CAP_REF from the HTTPS production surface.",
+      "requirement_id": "rate_limit_spend_cap_ref",
+      "status": "missing"
+    },
+    {
+      "acceptable_evidence_source": "production_https_runtime_security_evidence",
+      "accepted_variable_names": [
+        "STAGE1_PROD_SECURITY_CSP_HEADERS_REF"
+      ],
+      "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+      "configured_variable_name": null,
+      "disallowed_substitutes": [
+        "local_debug_evidence",
+        "staging_preflight_evidence",
+        "blocked_probe_evidence",
+        "placeholder_values",
+        "staging_security_scan_only",
+        "dependency_scan_without_production_runtime_probe"
+      ],
+      "display_name": "STAGE1_PROD_SECURITY_CSP_HEADERS_REF",
+      "group_id": "security",
+      "operator_action": "Collect a sanitized production security proof ref for STAGE1_PROD_SECURITY_CSP_HEADERS_REF from the HTTPS production surface.",
+      "requirement_id": "csp_headers_ref",
+      "status": "missing"
+    },
+    {
+      "acceptable_evidence_source": "production_https_runtime_security_evidence",
+      "accepted_variable_names": [
+        "STAGE1_PROD_SECURITY_RBAC_TENANT_ISOLATION_REF"
+      ],
+      "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+      "configured_variable_name": null,
+      "disallowed_substitutes": [
+        "local_debug_evidence",
+        "staging_preflight_evidence",
+        "blocked_probe_evidence",
+        "placeholder_values",
+        "staging_security_scan_only",
+        "dependency_scan_without_production_runtime_probe"
+      ],
+      "display_name": "STAGE1_PROD_SECURITY_RBAC_TENANT_ISOLATION_REF",
+      "group_id": "security",
+      "operator_action": "Collect a sanitized production security proof ref for STAGE1_PROD_SECURITY_RBAC_TENANT_ISOLATION_REF from the HTTPS production surface.",
+      "requirement_id": "rbac_tenant_isolation_ref",
+      "status": "missing"
+    },
+    {
+      "acceptable_evidence_source": "production_https_runtime_security_evidence",
+      "accepted_variable_names": [
+        "STAGE1_PROD_SECURITY_AUDIT_REF"
+      ],
+      "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+      "configured_variable_name": null,
+      "disallowed_substitutes": [
+        "local_debug_evidence",
+        "staging_preflight_evidence",
+        "blocked_probe_evidence",
+        "placeholder_values",
+        "staging_security_scan_only",
+        "dependency_scan_without_production_runtime_probe"
+      ],
+      "display_name": "STAGE1_PROD_SECURITY_AUDIT_REF",
+      "group_id": "security",
+      "operator_action": "Collect a sanitized production security proof ref for STAGE1_PROD_SECURITY_AUDIT_REF from the HTTPS production surface.",
+      "requirement_id": "audit_ref",
+      "status": "missing"
+    },
+    {
+      "acceptable_evidence_source": "production_governance_audit_release_evidence",
+      "accepted_variable_names": [
+        "STAGE1_PROD_GOVERNANCE_ACTIVATION_RUNTIME_REQUEST_IDS"
+      ],
+      "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+      "configured_variable_name": null,
+      "disallowed_substitutes": [
+        "local_debug_evidence",
+        "staging_preflight_evidence",
+        "blocked_probe_evidence",
+        "placeholder_values",
+        "staging_admin_review_only",
+        "draft_release_notes"
+      ],
+      "display_name": "STAGE1_PROD_GOVERNANCE_ACTIVATION_RUNTIME_REQUEST_IDS",
+      "group_id": "governance",
+      "operator_action": "Collect a sanitized production governance proof ref for STAGE1_PROD_GOVERNANCE_ACTIVATION_RUNTIME_REQUEST_IDS.",
+      "requirement_id": "activation_runtime_request_ids",
+      "status": "missing"
+    },
+    {
+      "acceptable_evidence_source": "production_governance_audit_release_evidence",
+      "accepted_variable_names": [
+        "STAGE1_PROD_GOVERNANCE_ACTIVATION_AUDIT_REFS"
+      ],
+      "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+      "configured_variable_name": null,
+      "disallowed_substitutes": [
+        "local_debug_evidence",
+        "staging_preflight_evidence",
+        "blocked_probe_evidence",
+        "placeholder_values",
+        "staging_admin_review_only",
+        "draft_release_notes"
+      ],
+      "display_name": "STAGE1_PROD_GOVERNANCE_ACTIVATION_AUDIT_REFS",
+      "group_id": "governance",
+      "operator_action": "Collect a sanitized production governance proof ref for STAGE1_PROD_GOVERNANCE_ACTIVATION_AUDIT_REFS.",
+      "requirement_id": "activation_audit_refs",
+      "status": "missing"
+    },
+    {
+      "acceptable_evidence_source": "production_governance_audit_release_evidence",
+      "accepted_variable_names": [
+        "STAGE1_PROD_GOVERNANCE_ACTIVATION_HIGH_RISK_RBAC_REF"
+      ],
+      "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+      "configured_variable_name": null,
+      "disallowed_substitutes": [
+        "local_debug_evidence",
+        "staging_preflight_evidence",
+        "blocked_probe_evidence",
+        "placeholder_values",
+        "staging_admin_review_only",
+        "draft_release_notes"
+      ],
+      "display_name": "STAGE1_PROD_GOVERNANCE_ACTIVATION_HIGH_RISK_RBAC_REF",
+      "group_id": "governance",
+      "operator_action": "Collect a sanitized production governance proof ref for STAGE1_PROD_GOVERNANCE_ACTIVATION_HIGH_RISK_RBAC_REF.",
+      "requirement_id": "activation_high_risk_rbac_ref",
+      "status": "missing"
+    },
+    {
+      "acceptable_evidence_source": "production_governance_audit_release_evidence",
+      "accepted_variable_names": [
+        "STAGE1_PROD_GOVERNANCE_ACTIVATION_REVIEWER_RATIONALE_REF"
+      ],
+      "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+      "configured_variable_name": null,
+      "disallowed_substitutes": [
+        "local_debug_evidence",
+        "staging_preflight_evidence",
+        "blocked_probe_evidence",
+        "placeholder_values",
+        "staging_admin_review_only",
+        "draft_release_notes"
+      ],
+      "display_name": "STAGE1_PROD_GOVERNANCE_ACTIVATION_REVIEWER_RATIONALE_REF",
+      "group_id": "governance",
+      "operator_action": "Collect a sanitized production governance proof ref for STAGE1_PROD_GOVERNANCE_ACTIVATION_REVIEWER_RATIONALE_REF.",
+      "requirement_id": "activation_reviewer_rationale_ref",
+      "status": "missing"
+    },
+    {
+      "acceptable_evidence_source": "production_governance_audit_release_evidence",
+      "accepted_variable_names": [
+        "STAGE1_PROD_GOVERNANCE_ACTIVATION_SECOND_REVIEW_REF"
+      ],
+      "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+      "configured_variable_name": null,
+      "disallowed_substitutes": [
+        "local_debug_evidence",
+        "staging_preflight_evidence",
+        "blocked_probe_evidence",
+        "placeholder_values",
+        "staging_admin_review_only",
+        "draft_release_notes"
+      ],
+      "display_name": "STAGE1_PROD_GOVERNANCE_ACTIVATION_SECOND_REVIEW_REF",
+      "group_id": "governance",
+      "operator_action": "Collect a sanitized production governance proof ref for STAGE1_PROD_GOVERNANCE_ACTIVATION_SECOND_REVIEW_REF.",
+      "requirement_id": "activation_second_review_ref",
+      "status": "missing"
+    },
+    {
+      "acceptable_evidence_source": "production_governance_audit_release_evidence",
+      "accepted_variable_names": [
+        "STAGE1_PROD_GOVERNANCE_ACTIVATION_AUDIT_IMMUTABILITY_REF"
+      ],
+      "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+      "configured_variable_name": null,
+      "disallowed_substitutes": [
+        "local_debug_evidence",
+        "staging_preflight_evidence",
+        "blocked_probe_evidence",
+        "placeholder_values",
+        "staging_admin_review_only",
+        "draft_release_notes"
+      ],
+      "display_name": "STAGE1_PROD_GOVERNANCE_ACTIVATION_AUDIT_IMMUTABILITY_REF",
+      "group_id": "governance",
+      "operator_action": "Collect a sanitized production governance proof ref for STAGE1_PROD_GOVERNANCE_ACTIVATION_AUDIT_IMMUTABILITY_REF.",
+      "requirement_id": "activation_audit_immutability_ref",
+      "status": "missing"
+    },
+    {
+      "acceptable_evidence_source": "production_governance_audit_release_evidence",
+      "accepted_variable_names": [
+        "STAGE1_PROD_GOVERNANCE_ACTIVATION_GATES_REF"
+      ],
+      "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+      "configured_variable_name": null,
+      "disallowed_substitutes": [
+        "local_debug_evidence",
+        "staging_preflight_evidence",
+        "blocked_probe_evidence",
+        "placeholder_values",
+        "staging_admin_review_only",
+        "draft_release_notes"
+      ],
+      "display_name": "STAGE1_PROD_GOVERNANCE_ACTIVATION_GATES_REF",
+      "group_id": "governance",
+      "operator_action": "Collect a sanitized production governance proof ref for STAGE1_PROD_GOVERNANCE_ACTIVATION_GATES_REF.",
+      "requirement_id": "activation_gates_ref",
+      "status": "missing"
+    },
+    {
+      "acceptable_evidence_source": "production_governance_audit_release_evidence",
+      "accepted_variable_names": [
+        "STAGE1_PROD_GOVERNANCE_ABUSE_RUNTIME_REQUEST_IDS"
+      ],
+      "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+      "configured_variable_name": null,
+      "disallowed_substitutes": [
+        "local_debug_evidence",
+        "staging_preflight_evidence",
+        "blocked_probe_evidence",
+        "placeholder_values",
+        "staging_admin_review_only",
+        "draft_release_notes"
+      ],
+      "display_name": "STAGE1_PROD_GOVERNANCE_ABUSE_RUNTIME_REQUEST_IDS",
+      "group_id": "governance",
+      "operator_action": "Collect a sanitized production governance proof ref for STAGE1_PROD_GOVERNANCE_ABUSE_RUNTIME_REQUEST_IDS.",
+      "requirement_id": "abuse_runtime_request_ids",
+      "status": "missing"
+    },
+    {
+      "acceptable_evidence_source": "production_governance_audit_release_evidence",
+      "accepted_variable_names": [
+        "STAGE1_PROD_GOVERNANCE_ABUSE_AUDIT_REFS"
+      ],
+      "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+      "configured_variable_name": null,
+      "disallowed_substitutes": [
+        "local_debug_evidence",
+        "staging_preflight_evidence",
+        "blocked_probe_evidence",
+        "placeholder_values",
+        "staging_admin_review_only",
+        "draft_release_notes"
+      ],
+      "display_name": "STAGE1_PROD_GOVERNANCE_ABUSE_AUDIT_REFS",
+      "group_id": "governance",
+      "operator_action": "Collect a sanitized production governance proof ref for STAGE1_PROD_GOVERNANCE_ABUSE_AUDIT_REFS.",
+      "requirement_id": "abuse_audit_refs",
+      "status": "missing"
+    },
+    {
+      "acceptable_evidence_source": "production_governance_audit_release_evidence",
+      "accepted_variable_names": [
+        "STAGE1_PROD_GOVERNANCE_ABUSE_ACCOUNT_HOLD_REF"
+      ],
+      "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+      "configured_variable_name": null,
+      "disallowed_substitutes": [
+        "local_debug_evidence",
+        "staging_preflight_evidence",
+        "blocked_probe_evidence",
+        "placeholder_values",
+        "staging_admin_review_only",
+        "draft_release_notes"
+      ],
+      "display_name": "STAGE1_PROD_GOVERNANCE_ABUSE_ACCOUNT_HOLD_REF",
+      "group_id": "governance",
+      "operator_action": "Collect a sanitized production governance proof ref for STAGE1_PROD_GOVERNANCE_ABUSE_ACCOUNT_HOLD_REF.",
+      "requirement_id": "abuse_account_hold_ref",
+      "status": "missing"
+    },
+    {
+      "acceptable_evidence_source": "production_governance_audit_release_evidence",
+      "accepted_variable_names": [
+        "STAGE1_PROD_GOVERNANCE_ABUSE_RATE_LIMIT_REF"
+      ],
+      "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+      "configured_variable_name": null,
+      "disallowed_substitutes": [
+        "local_debug_evidence",
+        "staging_preflight_evidence",
+        "blocked_probe_evidence",
+        "placeholder_values",
+        "staging_admin_review_only",
+        "draft_release_notes"
+      ],
+      "display_name": "STAGE1_PROD_GOVERNANCE_ABUSE_RATE_LIMIT_REF",
+      "group_id": "governance",
+      "operator_action": "Collect a sanitized production governance proof ref for STAGE1_PROD_GOVERNANCE_ABUSE_RATE_LIMIT_REF.",
+      "requirement_id": "abuse_rate_limit_ref",
+      "status": "missing"
+    },
+    {
+      "acceptable_evidence_source": "production_governance_audit_release_evidence",
+      "accepted_variable_names": [
+        "STAGE1_PROD_GOVERNANCE_ABUSE_SPEND_CAP_OR_KILL_SWITCH_REF"
+      ],
+      "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+      "configured_variable_name": null,
+      "disallowed_substitutes": [
+        "local_debug_evidence",
+        "staging_preflight_evidence",
+        "blocked_probe_evidence",
+        "placeholder_values",
+        "staging_admin_review_only",
+        "draft_release_notes"
+      ],
+      "display_name": "STAGE1_PROD_GOVERNANCE_ABUSE_SPEND_CAP_OR_KILL_SWITCH_REF",
+      "group_id": "governance",
+      "operator_action": "Collect a sanitized production governance proof ref for STAGE1_PROD_GOVERNANCE_ABUSE_SPEND_CAP_OR_KILL_SWITCH_REF.",
+      "requirement_id": "abuse_spend_cap_or_kill_switch_ref",
+      "status": "missing"
+    },
+    {
+      "acceptable_evidence_source": "production_governance_audit_release_evidence",
+      "accepted_variable_names": [
+        "STAGE1_PROD_GOVERNANCE_ABUSE_RBAC_AUDIT_REF"
+      ],
+      "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+      "configured_variable_name": null,
+      "disallowed_substitutes": [
+        "local_debug_evidence",
+        "staging_preflight_evidence",
+        "blocked_probe_evidence",
+        "placeholder_values",
+        "staging_admin_review_only",
+        "draft_release_notes"
+      ],
+      "display_name": "STAGE1_PROD_GOVERNANCE_ABUSE_RBAC_AUDIT_REF",
+      "group_id": "governance",
+      "operator_action": "Collect a sanitized production governance proof ref for STAGE1_PROD_GOVERNANCE_ABUSE_RBAC_AUDIT_REF.",
+      "requirement_id": "abuse_rbac_audit_ref",
+      "status": "missing"
+    },
+    {
+      "acceptable_evidence_source": "production_governance_audit_release_evidence",
+      "accepted_variable_names": [
+        "STAGE1_PROD_GOVERNANCE_SKILL_RUNTIME_REQUEST_IDS"
+      ],
+      "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+      "configured_variable_name": null,
+      "disallowed_substitutes": [
+        "local_debug_evidence",
+        "staging_preflight_evidence",
+        "blocked_probe_evidence",
+        "placeholder_values",
+        "staging_admin_review_only",
+        "draft_release_notes"
+      ],
+      "display_name": "STAGE1_PROD_GOVERNANCE_SKILL_RUNTIME_REQUEST_IDS",
+      "group_id": "governance",
+      "operator_action": "Collect a sanitized production governance proof ref for STAGE1_PROD_GOVERNANCE_SKILL_RUNTIME_REQUEST_IDS.",
+      "requirement_id": "skill_runtime_request_ids",
+      "status": "missing"
+    },
+    {
+      "acceptable_evidence_source": "production_governance_audit_release_evidence",
+      "accepted_variable_names": [
+        "STAGE1_PROD_GOVERNANCE_SKILL_AUDIT_REFS"
+      ],
+      "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+      "configured_variable_name": null,
+      "disallowed_substitutes": [
+        "local_debug_evidence",
+        "staging_preflight_evidence",
+        "blocked_probe_evidence",
+        "placeholder_values",
+        "staging_admin_review_only",
+        "draft_release_notes"
+      ],
+      "display_name": "STAGE1_PROD_GOVERNANCE_SKILL_AUDIT_REFS",
+      "group_id": "governance",
+      "operator_action": "Collect a sanitized production governance proof ref for STAGE1_PROD_GOVERNANCE_SKILL_AUDIT_REFS.",
+      "requirement_id": "skill_audit_refs",
+      "status": "missing"
+    },
+    {
+      "acceptable_evidence_source": "production_governance_audit_release_evidence",
+      "accepted_variable_names": [
+        "STAGE1_PROD_GOVERNANCE_SKILL_OWNER_ID"
+      ],
+      "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+      "configured_variable_name": null,
+      "disallowed_substitutes": [
+        "local_debug_evidence",
+        "staging_preflight_evidence",
+        "blocked_probe_evidence",
+        "placeholder_values",
+        "staging_admin_review_only",
+        "draft_release_notes"
+      ],
+      "display_name": "STAGE1_PROD_GOVERNANCE_SKILL_OWNER_ID",
+      "group_id": "governance",
+      "operator_action": "Collect a sanitized production governance proof ref for STAGE1_PROD_GOVERNANCE_SKILL_OWNER_ID.",
+      "requirement_id": "skill_owner_id",
+      "status": "missing"
+    },
+    {
+      "acceptable_evidence_source": "production_governance_audit_release_evidence",
+      "accepted_variable_names": [
+        "STAGE1_PROD_GOVERNANCE_SKILL_SUITE_ID"
+      ],
+      "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+      "configured_variable_name": null,
+      "disallowed_substitutes": [
+        "local_debug_evidence",
+        "staging_preflight_evidence",
+        "blocked_probe_evidence",
+        "placeholder_values",
+        "staging_admin_review_only",
+        "draft_release_notes"
+      ],
+      "display_name": "STAGE1_PROD_GOVERNANCE_SKILL_SUITE_ID",
+      "group_id": "governance",
+      "operator_action": "Collect a sanitized production governance proof ref for STAGE1_PROD_GOVERNANCE_SKILL_SUITE_ID.",
+      "requirement_id": "skill_suite_id",
+      "status": "missing"
+    },
+    {
+      "acceptable_evidence_source": "production_governance_audit_release_evidence",
+      "accepted_variable_names": [
+        "STAGE1_PROD_GOVERNANCE_SKILL_ROLLBACK_TARGET_ID"
+      ],
+      "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+      "configured_variable_name": null,
+      "disallowed_substitutes": [
+        "local_debug_evidence",
+        "staging_preflight_evidence",
+        "blocked_probe_evidence",
+        "placeholder_values",
+        "staging_admin_review_only",
+        "draft_release_notes"
+      ],
+      "display_name": "STAGE1_PROD_GOVERNANCE_SKILL_ROLLBACK_TARGET_ID",
+      "group_id": "governance",
+      "operator_action": "Collect a sanitized production governance proof ref for STAGE1_PROD_GOVERNANCE_SKILL_ROLLBACK_TARGET_ID.",
+      "requirement_id": "skill_rollback_target_id",
+      "status": "missing"
+    },
+    {
+      "acceptable_evidence_source": "production_governance_audit_release_evidence",
+      "accepted_variable_names": [
+        "STAGE1_PROD_GOVERNANCE_SKILL_RELEASE_NOTES_ID"
+      ],
+      "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+      "configured_variable_name": null,
+      "disallowed_substitutes": [
+        "local_debug_evidence",
+        "staging_preflight_evidence",
+        "blocked_probe_evidence",
+        "placeholder_values",
+        "staging_admin_review_only",
+        "draft_release_notes"
+      ],
+      "display_name": "STAGE1_PROD_GOVERNANCE_SKILL_RELEASE_NOTES_ID",
+      "group_id": "governance",
+      "operator_action": "Collect a sanitized production governance proof ref for STAGE1_PROD_GOVERNANCE_SKILL_RELEASE_NOTES_ID.",
+      "requirement_id": "skill_release_notes_id",
+      "status": "missing"
+    },
+    {
+      "acceptable_evidence_source": "production_governance_audit_release_evidence",
+      "accepted_variable_names": [
+        "STAGE1_PROD_GOVERNANCE_SKILL_CANARY_SAMPLE_SIZE"
+      ],
+      "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+      "configured_variable_name": null,
+      "disallowed_substitutes": [
+        "local_debug_evidence",
+        "staging_preflight_evidence",
+        "blocked_probe_evidence",
+        "placeholder_values",
+        "staging_admin_review_only",
+        "draft_release_notes"
+      ],
+      "display_name": "STAGE1_PROD_GOVERNANCE_SKILL_CANARY_SAMPLE_SIZE",
+      "group_id": "governance",
+      "operator_action": "Collect a sanitized production governance proof ref for STAGE1_PROD_GOVERNANCE_SKILL_CANARY_SAMPLE_SIZE.",
+      "requirement_id": "skill_canary_sample_size",
+      "status": "missing"
+    },
+    {
+      "acceptable_evidence_source": "production_governance_audit_release_evidence",
+      "accepted_variable_names": [
+        "STAGE1_PROD_GOVERNANCE_SKILL_OWNER_RISK_REF"
+      ],
+      "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+      "configured_variable_name": null,
+      "disallowed_substitutes": [
+        "local_debug_evidence",
+        "staging_preflight_evidence",
+        "blocked_probe_evidence",
+        "placeholder_values",
+        "staging_admin_review_only",
+        "draft_release_notes"
+      ],
+      "display_name": "STAGE1_PROD_GOVERNANCE_SKILL_OWNER_RISK_REF",
+      "group_id": "governance",
+      "operator_action": "Collect a sanitized production governance proof ref for STAGE1_PROD_GOVERNANCE_SKILL_OWNER_RISK_REF.",
+      "requirement_id": "skill_owner_risk_ref",
+      "status": "missing"
+    },
+    {
+      "acceptable_evidence_source": "production_governance_audit_release_evidence",
+      "accepted_variable_names": [
+        "STAGE1_PROD_GOVERNANCE_SKILL_EVAL_SUITE_REF"
+      ],
+      "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+      "configured_variable_name": null,
+      "disallowed_substitutes": [
+        "local_debug_evidence",
+        "staging_preflight_evidence",
+        "blocked_probe_evidence",
+        "placeholder_values",
+        "staging_admin_review_only",
+        "draft_release_notes"
+      ],
+      "display_name": "STAGE1_PROD_GOVERNANCE_SKILL_EVAL_SUITE_REF",
+      "group_id": "governance",
+      "operator_action": "Collect a sanitized production governance proof ref for STAGE1_PROD_GOVERNANCE_SKILL_EVAL_SUITE_REF.",
+      "requirement_id": "skill_eval_suite_ref",
+      "status": "missing"
+    },
+    {
+      "acceptable_evidence_source": "production_governance_audit_release_evidence",
+      "accepted_variable_names": [
+        "STAGE1_PROD_GOVERNANCE_SKILL_SAFETY_REFS_REF"
+      ],
+      "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+      "configured_variable_name": null,
+      "disallowed_substitutes": [
+        "local_debug_evidence",
+        "staging_preflight_evidence",
+        "blocked_probe_evidence",
+        "placeholder_values",
+        "staging_admin_review_only",
+        "draft_release_notes"
+      ],
+      "display_name": "STAGE1_PROD_GOVERNANCE_SKILL_SAFETY_REFS_REF",
+      "group_id": "governance",
+      "operator_action": "Collect a sanitized production governance proof ref for STAGE1_PROD_GOVERNANCE_SKILL_SAFETY_REFS_REF.",
+      "requirement_id": "skill_safety_refs_ref",
+      "status": "missing"
+    },
+    {
+      "acceptable_evidence_source": "production_governance_audit_release_evidence",
+      "accepted_variable_names": [
+        "STAGE1_PROD_GOVERNANCE_SKILL_CANARY_METRICS_REF"
+      ],
+      "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+      "configured_variable_name": null,
+      "disallowed_substitutes": [
+        "local_debug_evidence",
+        "staging_preflight_evidence",
+        "blocked_probe_evidence",
+        "placeholder_values",
+        "staging_admin_review_only",
+        "draft_release_notes"
+      ],
+      "display_name": "STAGE1_PROD_GOVERNANCE_SKILL_CANARY_METRICS_REF",
+      "group_id": "governance",
+      "operator_action": "Collect a sanitized production governance proof ref for STAGE1_PROD_GOVERNANCE_SKILL_CANARY_METRICS_REF.",
+      "requirement_id": "skill_canary_metrics_ref",
+      "status": "missing"
+    },
+    {
+      "acceptable_evidence_source": "production_governance_audit_release_evidence",
+      "accepted_variable_names": [
+        "STAGE1_PROD_GOVERNANCE_SKILL_ROLLBACK_TARGET_REF"
+      ],
+      "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+      "configured_variable_name": null,
+      "disallowed_substitutes": [
+        "local_debug_evidence",
+        "staging_preflight_evidence",
+        "blocked_probe_evidence",
+        "placeholder_values",
+        "staging_admin_review_only",
+        "draft_release_notes"
+      ],
+      "display_name": "STAGE1_PROD_GOVERNANCE_SKILL_ROLLBACK_TARGET_REF",
+      "group_id": "governance",
+      "operator_action": "Collect a sanitized production governance proof ref for STAGE1_PROD_GOVERNANCE_SKILL_ROLLBACK_TARGET_REF.",
+      "requirement_id": "skill_rollback_target_ref",
+      "status": "missing"
+    },
+    {
+      "acceptable_evidence_source": "production_governance_audit_release_evidence",
+      "accepted_variable_names": [
+        "STAGE1_PROD_GOVERNANCE_SKILL_RELEASE_NOTES_REF"
+      ],
+      "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+      "configured_variable_name": null,
+      "disallowed_substitutes": [
+        "local_debug_evidence",
+        "staging_preflight_evidence",
+        "blocked_probe_evidence",
+        "placeholder_values",
+        "staging_admin_review_only",
+        "draft_release_notes"
+      ],
+      "display_name": "STAGE1_PROD_GOVERNANCE_SKILL_RELEASE_NOTES_REF",
+      "group_id": "governance",
+      "operator_action": "Collect a sanitized production governance proof ref for STAGE1_PROD_GOVERNANCE_SKILL_RELEASE_NOTES_REF.",
+      "requirement_id": "skill_release_notes_ref",
+      "status": "missing"
+    }
+  ],
+  "kind": "stage1_production_missing_input_checklist",
+  "non_clearing_checklist": true,
+  "operator_next_actions": [
+    "Keep production launch no_go until all checklist items are replaced by strict production evidence.",
+    "Use production HTTPS surfaces and live production provider resources only for clearing evidence.",
+    "Existing R2, Stripe sandbox, z.ai LLM, local devport, and staging resources cannot satisfy these production-only checklist items.",
+    "Do not use local, staging, sandbox, placeholder, or preflight evidence to clear production gates.",
+    "Do not persist secret values, authorization headers, cookies, signed URLs, raw prompts, or raw provider/Stripe payloads."
+  ],
+  "raw_prompt_persisted": false,
+  "raw_provider_payload_persisted": false,
+  "raw_stripe_payload_persisted": false,
+  "raw_support_body_projected": false,
+  "release_gate_decision": "no_go",
+  "schema_version": "stage1.production_missing_input_checklist.v1",
+  "secret_material_persisted": false,
+  "signed_url_persisted": false,
+  "source_refs": {
+    "production_launch_input_packet": "ops/evidence/non_clearing/production-launch-input-packet.json",
+    "production_launch_operator_brief": "ops/evidence/non_clearing/production-launch-operator-brief.json",
+    "production_proof_bundle": "ops/evidence/non_clearing/production-proof-bundle.json"
+  },
+  "status": "blocked",
+  "summary": {
+    "blocking_input_count": 58,
+    "required_completion_percent": 3.3,
+    "required_configured": 2,
+    "required_invalid": 3,
+    "required_missing": 55,
+    "required_total": 60
+  },
+  "value_redaction": "variable_names_only"
+}

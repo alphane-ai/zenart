@@ -81,8 +81,8 @@ func BaseStepContracts(schemaVersion int) []StepContract {
 		contracts = append(contracts, StepContract{
 			Name:            name,
 			SchemaVersion:   schemaVersion,
-			InputSchemaRef:  "urn:zenart:agent:" + name + ":input:v1",
-			OutputSchemaRef: "urn:zenart:agent:" + name + ":output:v1",
+			InputSchemaRef:  "urn:zenari:agent:" + name + ":input:v1",
+			OutputSchemaRef: "urn:zenari:agent:" + name + ":output:v1",
 			ErrorCategories: []string{"validation", "dependency", "provider", "quota", "safety", "internal"},
 			Retry: RetryPolicy{
 				MaxAttempts: 3,

@@ -2,7 +2,7 @@
   "blueprint_source": "Docs/stage0_blueprint_rev2.md",
   "created_by_lane": "lane5",
   "dashboard_id": "stage0-rev2-overview",
-  "title": "ZenArt Stage 0 Rev2 Operations Overview",
+  "title": "Zenari Stage 0 Rev2 Operations Overview",
   "status": "definition_ready_runtime_evidence_open",
   "refresh_interval_seconds": 60,
   "required_labels": [

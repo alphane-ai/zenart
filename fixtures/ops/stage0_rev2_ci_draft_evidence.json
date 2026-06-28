@@ -9,15 +9,16 @@
     "23.2",
     "25.17"
   ],
-  "installation_status": "token_blocked",
-  "token_blocked_reason": "Current GitHub token lacks workflow scope, so .github/workflows is intentionally not created, modified, or deleted.",
+  "installation_status": "installed_pending_runtime_evidence",
+  "token_blocked_reason": "resolved: installed workflow exists at .github/workflows/stage0-rev2-ci.yml; exact PR/main, Playwright, and Docker runtime evidence is still required.",
   "draft_ref": "ops/ci/stage0-rev2-ci.yml",
   "checklist_policy": {
-    "ci_installation_checklist_remains_open": true,
+    "ci_installation_checklist_remains_open": false,
     "blocked_blueprint_items": [
-      "添加 PR/main CI 到 `.github/workflows`。",
+      "CI installed workflow runtime evidence 通过：PR/main run、Playwright smoke、Docker image build 均有 validator-resolvable evidence。",
       "CI Gate 全部通过。"
-    ]
+    ],
+    "ci_runtime_checklist_remains_open": true
   },
   "artifact_checks": [
     {
@@ -27,7 +28,8 @@
         "ops/ci/stage0-rev2-ci.yml",
         "ops/ci/INSTALLATION.md",
         "scripts/repo_validate.sh",
-        "scripts/validate_stage0_rev2.py"
+        "scripts/validate_stage0_rev2.py",
+        ".github/workflows/stage0-rev2-ci.yml"
       ],
       "validation_commands": [
         "python3 scripts/validate_stage0_rev2.py",
@@ -44,7 +46,9 @@
         "redis:",
         "minio:",
         "python3 scripts/generate_openapi_clients.py --check",
-        "python3 scripts/validate_stage0_rev2.py"
+        "python3 scripts/validate_stage0_rev2.py",
+        "python3 scripts/validate_stage1_blueprint.py Docs/Stage1_20260621_blueprint.md",
+        "scripts/stripe_sandbox_selftest.sh"
       ]
     },
     {
@@ -98,7 +102,9 @@
         "bash scripts/repo_validate.sh"
       ],
       "required_draft_tokens": [
-        "docker build --tag ghcr.io/alphane-ai/zenart-${{ matrix.image.name }}:${{ github.sha }}",
+        "GIT_SHA=\"${GITHUB_SHA}\" IMAGE_PREFIX=ghcr.io/alphane-ai/zenari OUT_DIR=ops/evidence/ci/docker-image-build-run scripts/docker_build_smoke.sh",
+        "python3 scripts/write_stage1_ci_docker_evidence.py",
+        "ops/evidence/ci/stage0-rev2-docker-image-build.json",
         "bash -n scripts/docker_build_smoke.sh",
         "bash -n scripts/staging_smoke.sh",
         "bash -n scripts/staging_legal_support_visibility_smoke.sh"
@@ -125,6 +131,7 @@
   ],
   "release_gate_effect": {
     "ci_gate_status": "blocked",
-    "reason": "Draft coverage is validated, but installed GitHub Actions workflow remains token-blocked."
-  }
+    "reason": "Installed workflow file is present, but exact PR/main run, CI Playwright smoke, and CI Docker image build runtime evidence are still missing."
+  },
+  "installed_workflow_ref": ".github/workflows/stage0-rev2-ci.yml"
 }

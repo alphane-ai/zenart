@@ -1,0 +1,203 @@
+{
+  "authorization_header_persisted": false,
+  "azure_cli_preflight": {
+    "azure_ip": "52.237.80.117",
+    "error_summary": "Azure CLI preflight blocked: az_cli_missing",
+    "exit_code": 2,
+    "reason": "az_cli_missing",
+    "resource_group": "",
+    "status": "blocked",
+    "subscription_id": "",
+    "vm_name": ""
+  },
+  "azure_ip": "52.237.80.117",
+  "blocked_checks": [],
+  "can_clear_stage1_production_launch_gate": false,
+  "can_clear_stage1_staging_runtime_gate": false,
+  "can_close_do_not_launch": false,
+  "canonical_pass_path": false,
+  "cookie_persisted": false,
+  "environment": "staging",
+  "generated_at": "2026-06-28T17:35:10+00:00",
+  "http_probes": [
+    {
+      "body_sample_present": false,
+      "error_summary": "",
+      "failure_category": "none",
+      "final_url_host": "52.237.80.117",
+      "http_status": 308,
+      "method": "HEAD",
+      "network_phase": "http_response_started",
+      "response_bytes": 140,
+      "status": "pass",
+      "url": "http://52.237.80.117/"
+    },
+    {
+      "body_sample_present": false,
+      "error_summary": "",
+      "failure_category": "none",
+      "final_url_host": "52.237.80.117",
+      "http_status": 308,
+      "method": "GET",
+      "network_phase": "http_response_started",
+      "response_bytes": 159,
+      "status": "pass",
+      "url": "http://52.237.80.117/"
+    },
+    {
+      "body_sample_present": false,
+      "error_summary": "SSLError: [SSL: TLSV1_ALERT_INTERNAL_ERROR] tlsv1 alert internal error (_ssl.c:1081)",
+      "failure_category": "tls_error",
+      "final_url_host": "52.237.80.117",
+      "http_status": null,
+      "method": "HEAD",
+      "network_phase": "tls_clienthello_sent",
+      "response_bytes": 0,
+      "status": "blocked",
+      "url": "https://52.237.80.117/"
+    },
+    {
+      "body_sample_present": false,
+      "error_summary": "SSLError: [SSL: TLSV1_ALERT_INTERNAL_ERROR] tlsv1 alert internal error (_ssl.c:1081)",
+      "failure_category": "tls_error",
+      "final_url_host": "52.237.80.117",
+      "http_status": null,
+      "method": "GET",
+      "network_phase": "tls_clienthello_sent",
+      "response_bytes": 0,
+      "status": "blocked",
+      "url": "https://52.237.80.117/"
+    },
+    {
+      "body_sample_present": false,
+      "error_summary": "",
+      "failure_category": "none",
+      "final_url_host": "staging.zenari.ai",
+      "http_status": 200,
+      "method": "HEAD",
+      "network_phase": "http_response_started",
+      "response_bytes": 803,
+      "status": "pass",
+      "url": "https://staging.zenari.ai/"
+    },
+    {
+      "body_sample_present": true,
+      "error_summary": "",
+      "failure_category": "none",
+      "final_url_host": "staging.zenari.ai",
+      "http_status": 200,
+      "method": "GET",
+      "network_phase": "http_response_started",
+      "response_bytes": 1369,
+      "status": "pass",
+      "url": "https://staging.zenari.ai/"
+    }
+  ],
+  "kind": "stage1_azure_origin_readiness",
+  "local_repair_password_configured": true,
+  "local_repair_password_env_key": "STAGING_SSH_PASSWORD",
+  "local_repair_password_required": true,
+  "non_clearing_origin_probe": true,
+  "operator_next_actions": [
+    "Set STAGING_SSH_PASSWORD only in the gitignored local .env, then run scripts/azure_staging_password_key_repair.sh to restore SSH key access without persisting the password.",
+    "Run scripts/azure_staging_ssh_preflight.sh again after the key repair to verify passwordless SSH and sudo before touching origin services.",
+    "Run scripts/azure_staging_origin_repair.sh after SSH works to restart compose, remove legacy manager containers, configure Caddy, and refresh Azure origin readiness evidence.",
+    "Run scripts/azure_staging_origin_diagnostics.sh to inspect compose services, 80/443 listeners, Caddy, and local backend/web/admin origin probes.",
+    "Do not use this staging origin probe to clear production zenari.ai DNS or production launch gates."
+  ],
+  "origin_diagnostics_command": "scripts/azure_staging_origin_diagnostics.sh",
+  "origin_repair_command": "scripts/azure_staging_origin_repair.sh",
+  "origin_repair_commands": [
+    "open ops/evidence/staging/azure-run-command-operator-card.md",
+    "scripts/azure_staging_run_command_payload.sh",
+    "python3 scripts/ingest_azure_run_command_output.py",
+    "python3 scripts/sanitize_azure_run_command_output.py --output ops/evidence/staging/azure-run-command-ssh-repair.output.txt --require-marker",
+    "python3 scripts/classify_azure_run_command_output.py --input ops/evidence/staging/azure-run-command-ssh-repair.output.txt --output ops/evidence/staging/azure-run-command-ssh-repair-diagnosis.json || test $? -eq 2",
+    "scripts/azure_staging_cli_preflight.sh",
+    "RUN_AZURE_STAGING_RUN_COMMAND=1 scripts/azure_staging_run_command_invoke.sh",
+    "scripts/azure_staging_password_key_repair.sh",
+    "scripts/azure_staging_ssh_preflight.sh",
+    "scripts/azure_staging_bootstrap.sh",
+    "scripts/azure_staging_deploy.sh",
+    "scripts/azure_staging_origin_repair.sh",
+    "python3 scripts/stage1_azure_origin_readiness.py --env .env --output ops/evidence/staging/stage1-azure-origin-readiness.json || test $? -eq 2"
+  ],
+  "password_persisted": false,
+  "raw_prompt_persisted": false,
+  "raw_provider_payload_persisted": false,
+  "raw_stripe_payload_persisted": false,
+  "raw_support_body_projected": false,
+  "release_gate_decision": "no_go",
+  "schema_version": "stage1.azure_origin_readiness.v1",
+  "secret_material_persisted": false,
+  "signed_url_persisted": false,
+  "ssh_hard_timeout_seconds": 20,
+  "ssh_key_preflight": {
+    "auth_method": "publickey_batchmode_only",
+    "error_summary": "ssh-auth-ok",
+    "exit_code": 0,
+    "hard_timeout_seconds": 20,
+    "password_attempted": false,
+    "reason": "ssh_key_auth_ok",
+    "ssh_key_path": "/Users/mac/.ssh/id_ed25519_machine_login",
+    "status": "pass",
+    "target_host": "52.237.80.117",
+    "target_user": "sansha"
+  },
+  "staging_dns": {
+    "addresses": [
+      "104.21.62.40",
+      "172.67.219.243",
+      "2606:4700:3033::6815:3e28",
+      "2606:4700:3035::ac43:dbf3"
+    ],
+    "error_summary": "",
+    "host": "staging.zenari.ai",
+    "status": "pass"
+  },
+  "staging_host": "staging.zenari.ai",
+  "staging_web_url": "https://staging.zenari.ai",
+  "status": "pass",
+  "tcp_ports": [
+    {
+      "error_summary": "",
+      "host": "52.237.80.117",
+      "port": 22,
+      "status": "pass"
+    },
+    {
+      "error_summary": "",
+      "host": "52.237.80.117",
+      "port": 80,
+      "status": "pass"
+    },
+    {
+      "error_summary": "",
+      "host": "52.237.80.117",
+      "port": 443,
+      "status": "pass"
+    }
+  ],
+  "transport_diagnosis": {
+    "azure_portal_run_command_required": false,
+    "blocked_reasons": [
+      "local_azure_cli_missing"
+    ],
+    "http_request_sent": true,
+    "http_response_started": true,
+    "http_zero_bytes_after_request": false,
+    "lane": "origin_probe_non_clearing_pass",
+    "next_action": "continue_strict_staging_runtime_evidence",
+    "operator_summary": "Azure origin probes returned at least one usable HTTP response; strict staging gates still require canonical evidence.",
+    "ssh_auth_reached": true,
+    "ssh_banner_received": true,
+    "ssh_password_key_repair_viable": true,
+    "ssh_transport_phase": "auth_reached",
+    "status": "blocked",
+    "tcp_22_reachable": true,
+    "tcp_443_reachable": true,
+    "tcp_80_reachable": true,
+    "tcp_entry_ports_reachable": true,
+    "tls_serverhello_timeout": false
+  }
+}

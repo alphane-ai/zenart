@@ -7,6 +7,7 @@ import {
   buildDownloadableExportZipPayloadNames,
   buildEcommerceGrowthApiSmokeEvidence,
   buildPackageExportMetadataEvidence,
+  buildRenderedExportAssetEvidence,
   buildReferenceUploadIntegrationSmoke,
   buildReferenceUploadValidationMatrixEvidence,
   buildSupportProblemContext,
@@ -15,6 +16,7 @@ import {
   createInitialWorkspace,
   createReferenceAsset,
   createSessionContract,
+  buildExportDownloadAccessBoundaryEvidence,
   buildExportDownloadParityEvidence,
   buildExportZipPayloadSmokeEvidence,
   businessVisualDocCandidates,
@@ -135,7 +137,7 @@ describe("dev workspace contracts", () => {
       format: "zip",
       status: "ready",
       createdAt: "2026-05-26T10:04:00.000Z",
-      fileName: "zenart-001.zip",
+      fileName: "zenari-001.zip",
       manifest,
       qaReport,
       safetyReport: runSafetyPolicy(state, qaReport)
@@ -187,7 +189,7 @@ describe("dev workspace contracts", () => {
         },
         {
           name: "assets/",
-          zipPayloadName: "assets/README.txt",
+          zipPayloadName: "assets/local-rendered-asset-manifest.json",
           present: true
         }
       ],
@@ -238,10 +240,10 @@ describe("dev workspace contracts", () => {
         "provenance.json",
         "ai-content-disclaimer.json",
         "ppt-ready-metadata.json",
-        "assets/README.txt"
+        "assets/local-rendered-asset-manifest.json"
       ],
       zipPayloadContractDigest:
-        "export-001::pkg-002::project-001::generic-stage0-export::none::ai-content-disclaimer.json|assets/README.txt|manifest.json|ppt-ready-metadata.json|provenance.json|qa-report.json|safety-policy-report.json",
+        "export-001::pkg-002::project-001::generic-stage0-export::none::ai-content-disclaimer.json|assets/local-rendered-asset-manifest.json|manifest.json|ppt-ready-metadata.json|provenance.json|qa-report.json|safety-policy-report.json",
       requiredZipPayloadNames: [
         "manifest.json",
         "qa-report.json",
@@ -249,7 +251,7 @@ describe("dev workspace contracts", () => {
         "provenance.json",
         "ai-content-disclaimer.json",
         "ppt-ready-metadata.json",
-        "assets/README.txt"
+        "assets/local-rendered-asset-manifest.json"
       ],
       requiredZipPayloadCount: 7,
       requiredZipPayloadStatuses: [
@@ -278,7 +280,7 @@ describe("dev workspace contracts", () => {
           present: true
         },
         {
-          name: "assets/README.txt",
+          name: "assets/local-rendered-asset-manifest.json",
           present: true
         }
       ],
@@ -315,7 +317,7 @@ describe("dev workspace contracts", () => {
           contentDigest: expect.any(String)
         }),
         expect.objectContaining({
-          name: "assets/README.txt",
+          name: "assets/local-rendered-asset-manifest.json",
           byteSize: expect.any(Number),
           contentDigest: expect.any(String)
         })
@@ -378,7 +380,7 @@ describe("dev workspace contracts", () => {
       workflowPromptSpecMetadataPresent: false,
       workflowSkillMetadataPresent: false,
       workflowSafetyMetadataPresent: false,
-      workflowMetadataGeneratedBy: "zenart-web-dev-client",
+      workflowMetadataGeneratedBy: "zenari-web-dev-client",
       workflowMetadataProvider: "dev-provider",
       workflowMetadataModel: "deterministic-local-alpha",
       workflowPromptSpecTaxonomy: [],
@@ -405,7 +407,7 @@ describe("dev workspace contracts", () => {
       format: "zip",
       status: "ready",
       createdAt: "2026-05-26T10:06:00.000Z",
-      fileName: "zenart-zip-001.zip",
+      fileName: "zenari-zip-001.zip",
       manifest: buildManifest(state.activeProjectId, packageItems),
       qaReport,
       safetyReport: runSafetyPolicy({ ...state, selectedCandidateId: "cand-editorial", packageItems }, qaReport)
@@ -418,11 +420,11 @@ describe("dev workspace contracts", () => {
       "provenance.json",
       "ai-content-disclaimer.json",
       "ppt-ready-metadata.json",
-      "assets/README.txt",
-      "assets/hero_product_ad.png",
-      "assets/square_social_ad.png",
-      "assets/story_variant.png",
-      "assets/marketplace_banner.png",
+      "assets/local-rendered-asset-manifest.json",
+      "assets/rendered/hero_product_ad-png.svg",
+      "assets/rendered/square_social_ad-png.svg",
+      "assets/rendered/story_variant-png.svg",
+      "assets/rendered/marketplace_banner-png.svg",
       "metadata.json",
       "qa_report.json",
       "trace_provenance.json"
@@ -442,7 +444,7 @@ describe("dev workspace contracts", () => {
         "provenance.json",
         "ai-content-disclaimer.json",
         "ppt-ready-metadata.json",
-        "assets/README.txt"
+        "assets/local-rendered-asset-manifest.json"
       ],
       expectedPayloadNames: [
         "manifest.json",
@@ -451,27 +453,27 @@ describe("dev workspace contracts", () => {
         "provenance.json",
         "ai-content-disclaimer.json",
         "ppt-ready-metadata.json",
-        "assets/README.txt",
-        "assets/hero_product_ad.png",
-        "assets/square_social_ad.png",
-        "assets/story_variant.png",
-        "assets/marketplace_banner.png",
+        "assets/local-rendered-asset-manifest.json",
+        "assets/rendered/hero_product_ad-png.svg",
+        "assets/rendered/square_social_ad-png.svg",
+        "assets/rendered/story_variant-png.svg",
+        "assets/rendered/marketplace_banner-png.svg",
         "metadata.json",
         "qa_report.json",
         "trace_provenance.json"
       ],
       payloadContractDigest:
-        "export-zip-001::pkg-004::project-001::ecommerce_growth_pack::fx_ecommerce_growth_golden::ai-content-disclaimer.json|assets/README.txt|assets/hero_product_ad.png|assets/marketplace_banner.png|assets/square_social_ad.png|assets/story_variant.png|manifest.json|metadata.json|ppt-ready-metadata.json|provenance.json|qa-report.json|qa_report.json|safety-policy-report.json|trace_provenance.json",
+        "export-zip-001::pkg-004::project-001::ecommerce_growth_pack::fx_ecommerce_growth_golden::ai-content-disclaimer.json|assets/local-rendered-asset-manifest.json|assets/rendered/hero_product_ad-png.svg|assets/rendered/marketplace_banner-png.svg|assets/rendered/square_social_ad-png.svg|assets/rendered/story_variant-png.svg|manifest.json|metadata.json|ppt-ready-metadata.json|provenance.json|qa-report.json|qa_report.json|safety-policy-report.json|trace_provenance.json",
       missingPayloadNames: [],
       pathSafetyStatus: "pass",
       unsafeManifestPayloadNames: [],
       unsafeExpectedPayloadNames: [],
       workflowPayloadNames: [
         "manifest.json",
-        "assets/hero_product_ad.png",
-        "assets/square_social_ad.png",
-        "assets/story_variant.png",
-        "assets/marketplace_banner.png",
+        "assets/rendered/hero_product_ad-png.svg",
+        "assets/rendered/square_social_ad-png.svg",
+        "assets/rendered/story_variant-png.svg",
+        "assets/rendered/marketplace_banner-png.svg",
         "metadata.json",
         "qa_report.json",
         "trace_provenance.json"
@@ -482,6 +484,70 @@ describe("dev workspace contracts", () => {
       assetsPayloadPresent: true,
       failures: []
     });
+  });
+
+  it("builds rendered export asset local evidence without placeholder payloads", () => {
+    const state = createInitialWorkspace();
+    const packageItems = state.candidates.map((candidate, index) => ({
+      id: `pkg-item-${String(index + 1).padStart(3, "0")}`,
+      sourceId: candidate.id,
+      title: candidate.title,
+      type: "candidate" as const,
+      addedAt: "2026-05-26T10:00:00.000Z",
+      workflowId: candidate.workflowId,
+      strategyTaxonomy: candidate.strategyTaxonomy,
+      requiredOutputFiles: candidate.requiredOutputFiles
+    }));
+    const qaReport = evaluatePackageQa(packageItems);
+    const exportRecord: ExportRecord = {
+      id: "export-rendered-001",
+      format: "zip",
+      status: "ready",
+      createdAt: "2026-05-26T10:06:30.000Z",
+      fileName: "zenari-rendered-001.zip",
+      manifest: buildManifest(state.activeProjectId, packageItems),
+      qaReport,
+      safetyReport: runSafetyPolicy({ ...state, selectedCandidateId: "cand-editorial", packageItems }, qaReport)
+    };
+
+    expect(buildRenderedExportAssetEvidence(exportRecord)).toMatchObject({
+      schema_version: "stage1.rendered-export-asset-local-contract.v1",
+      status: "pass",
+      exportId: "export-rendered-001",
+      packageId: "pkg-004",
+      projectId: "project-001",
+      renderMode: "deterministic-local-svg-pdf",
+      renderedAssetManifestPayloadName: "assets/local-rendered-asset-manifest.json",
+      manifestAssetOutputCount: 4,
+      renderedAssetPayloadCount: 4,
+      renderedAssetPayloadNames: [
+        "assets/rendered/hero_product_ad-png.svg",
+        "assets/rendered/square_social_ad-png.svg",
+        "assets/rendered/story_variant-png.svg",
+        "assets/rendered/marketplace_banner-png.svg"
+      ],
+      renderedAssetOutputNames: [
+        "assets/hero_product_ad.png",
+        "assets/square_social_ad.png",
+        "assets/story_variant.png",
+        "assets/marketplace_banner.png"
+      ],
+      renderedAssetContentTypes: ["image/svg+xml"],
+      placeholderPayloadCount: 0,
+      placeholderPayloadNames: [],
+      unsafePayloadCount: 0,
+      unsafePayloadNames: [],
+      rawProviderPayloadProjected: false,
+      rawSafetyPayloadProjected: false,
+      secretLikeValueProjected: false,
+      signedUrlPersisted: false,
+      stagingSignedUrlEvidence: "open",
+      objectRetentionCleanupEvidence: "open",
+      canClearStage1StagingRuntimeGate: false,
+      canClearStage1ProductionLaunchGate: false,
+      failures: []
+    });
+    expect(buildRenderedExportAssetEvidence(exportRecord).renderedAssetByteCount).toBeGreaterThan(1000);
   });
 
   it("builds download parity evidence across metadata, ZIP smoke, and handoff contracts", () => {
@@ -502,7 +568,7 @@ describe("dev workspace contracts", () => {
       format: "zip",
       status: "ready",
       createdAt: "2026-05-26T10:07:00.000Z",
-      fileName: "zenart-parity-001.zip",
+      fileName: "zenari-parity-001.zip",
       manifest: buildManifest(state.activeProjectId, packageItems),
       qaReport,
       safetyReport: runSafetyPolicy({ ...state, selectedCandidateId: "cand-editorial", packageItems }, qaReport)
@@ -517,7 +583,7 @@ describe("dev workspace contracts", () => {
       projectId: "project-001",
       workflowId: "ecommerce_growth_pack",
       workflowFixtureId: "fx_ecommerce_growth_golden",
-      fileName: "zenart-parity-001.zip",
+      fileName: "zenari-parity-001.zip",
       format: "zip",
       metadataStatus: "pass",
       zipPayloadStatus: "pass",
@@ -537,11 +603,11 @@ describe("dev workspace contracts", () => {
         "provenance.json",
         "ai-content-disclaimer.json",
         "ppt-ready-metadata.json",
-        "assets/README.txt",
-        "assets/hero_product_ad.png",
-        "assets/square_social_ad.png",
-        "assets/story_variant.png",
-        "assets/marketplace_banner.png",
+        "assets/local-rendered-asset-manifest.json",
+        "assets/rendered/hero_product_ad-png.svg",
+        "assets/rendered/square_social_ad-png.svg",
+        "assets/rendered/story_variant-png.svg",
+        "assets/rendered/marketplace_banner-png.svg",
         "metadata.json",
         "qa_report.json",
         "trace_provenance.json"
@@ -553,17 +619,17 @@ describe("dev workspace contracts", () => {
         "provenance.json",
         "ai-content-disclaimer.json",
         "ppt-ready-metadata.json",
-        "assets/README.txt",
-        "assets/hero_product_ad.png",
-        "assets/square_social_ad.png",
-        "assets/story_variant.png",
-        "assets/marketplace_banner.png",
+        "assets/local-rendered-asset-manifest.json",
+        "assets/rendered/hero_product_ad-png.svg",
+        "assets/rendered/square_social_ad-png.svg",
+        "assets/rendered/story_variant-png.svg",
+        "assets/rendered/marketplace_banner-png.svg",
         "metadata.json",
         "qa_report.json",
         "trace_provenance.json"
       ],
       payloadContractDigest:
-        "export-parity-001::pkg-004::project-001::ecommerce_growth_pack::fx_ecommerce_growth_golden::ai-content-disclaimer.json|assets/README.txt|assets/hero_product_ad.png|assets/marketplace_banner.png|assets/square_social_ad.png|assets/story_variant.png|manifest.json|metadata.json|ppt-ready-metadata.json|provenance.json|qa-report.json|qa_report.json|safety-policy-report.json|trace_provenance.json",
+        "export-parity-001::pkg-004::project-001::ecommerce_growth_pack::fx_ecommerce_growth_golden::ai-content-disclaimer.json|assets/local-rendered-asset-manifest.json|assets/rendered/hero_product_ad-png.svg|assets/rendered/marketplace_banner-png.svg|assets/rendered/square_social_ad-png.svg|assets/rendered/story_variant-png.svg|manifest.json|metadata.json|ppt-ready-metadata.json|provenance.json|qa-report.json|qa_report.json|safety-policy-report.json|trace_provenance.json",
       metadataPayloadDigestMatchesZipPayloadDigest: true,
       payloadContentDigest: expect.stringContaining("manifest.json:"),
       payloadContentDigestStatus: "pass",
@@ -585,6 +651,34 @@ describe("dev workspace contracts", () => {
       traceProvenancePresent: true,
       failures: []
     });
+
+    expect(buildExportDownloadAccessBoundaryEvidence(exportRecord)).toEqual({
+      schema_version: "stage1.export-download-access-boundary-local-contract.v1",
+      status: "pass",
+      scenario: "local-browser-zip-does-not-clear-server-signed-url-or-retention-gates",
+      exportId: "export-parity-001",
+      packageId: "pkg-004",
+      fileName: "zenari-parity-001.zip",
+      localBrowserDownloadStatus: "pass",
+      localZipPayloadStatus: "pass",
+      renderedAssetStatus: "pass",
+      productDownloadUrlPolicy: "server-mediated-relative-signed-url",
+      serverDownloadRoute: "GET /api/v1/objects/download",
+      objectStoreDirectSigningUsedForExportDownload: false,
+      signedUrlPersisted: false,
+      signedUrlMaterialProjected: false,
+      downloadResponseDisclosesObjectKeyHeader: false,
+      requiresActiveRetentionMetadata: true,
+      requiresDownloadAudit: true,
+      requiresDownloadAnalytics: true,
+      strictStagingSignedUrlEvidence: "open",
+      strictStagingRetentionCleanupEvidence: "open",
+      productionObjectStorageEvidence: "open",
+      canClearStage1StagingRuntimeGate: false,
+      canClearStage1ProductionLaunchGate: false,
+      canClearObjectStorageDoNotLaunch: false,
+      failures: []
+    });
   });
 
   it("fails package/export metadata UI evidence when manifest or QA are incomplete", () => {
@@ -594,7 +688,7 @@ describe("dev workspace contracts", () => {
       format: "zip",
       status: "blocked",
       createdAt: "2026-05-26T10:04:00.000Z",
-      fileName: "zenart-002.zip",
+      fileName: "zenari-002.zip",
       manifest: {
         ...buildManifest(state.activeProjectId, []),
         required_outputs: ["manifest.json"]
@@ -900,7 +994,7 @@ describe("dev workspace contracts", () => {
       format: "zip",
       status: "ready",
       createdAt: "2026-05-26T10:06:00.000Z",
-      fileName: "zenart-010.zip",
+      fileName: "zenari-010.zip",
       manifest: buildManifest(state.activeProjectId, packageItems),
       qaReport,
       safetyReport: runSafetyPolicy({ ...state, selectedCandidateId: "cand-studio", packageItems }, qaReport)
@@ -929,7 +1023,7 @@ describe("dev workspace contracts", () => {
       latestAcceptedReferenceKind: acceptedUrl.kind,
       latestAcceptedReferenceUploadMethod: "POST",
       latestAcceptedReferenceUploadPath: "/uploads",
-      latestAcceptedReferenceCsrfHeaderName: "X-ZenArt-CSRF",
+      latestAcceptedReferenceCsrfHeaderName: "X-Zenari-CSRF",
       latestAcceptedReferenceIdempotencyRequired: true,
       latestAcceptedReferencePreviewScope: "tenant-scoped-dev-preview",
       latestAcceptedReferencePackageItemId: "pkg-item-004",
@@ -1054,7 +1148,7 @@ describe("dev workspace contracts", () => {
       latestAcceptedReferenceKind: "image",
       latestAcceptedReferenceUploadMethod: "POST",
       latestAcceptedReferenceUploadPath: "/uploads",
-      latestAcceptedReferenceCsrfHeaderName: "X-ZenArt-CSRF",
+      latestAcceptedReferenceCsrfHeaderName: "X-Zenari-CSRF",
       latestAcceptedReferenceIdempotencyRequired: true,
       latestAcceptedReferencePreviewScope: "tenant-scoped-dev-preview",
       latestAcceptedReferencePackageItemId: "missing",
@@ -1093,7 +1187,7 @@ describe("dev workspace contracts", () => {
       format: "zip",
       status: "ready",
       createdAt: "2026-05-26T10:06:00.000Z",
-      fileName: "zenart-011.zip",
+      fileName: "zenari-011.zip",
       manifest: buildManifest(state.activeProjectId, packageItems),
       qaReport,
       safetyReport: runSafetyPolicy({ ...state, selectedCandidateId: "cand-editorial", packageItems }, qaReport)
@@ -1148,7 +1242,7 @@ describe("dev workspace contracts", () => {
           path: "/projects/{project_id}/chat/sessions",
           credentialMode: "include",
           csrfProtected: true,
-          csrfHeaderName: "X-ZenArt-CSRF",
+          csrfHeaderName: "X-Zenari-CSRF",
           idempotencyRequired: true
         },
         {
@@ -1157,7 +1251,7 @@ describe("dev workspace contracts", () => {
           path: "/chat/sessions/{chat_session_id}/messages",
           credentialMode: "include",
           csrfProtected: true,
-          csrfHeaderName: "X-ZenArt-CSRF",
+          csrfHeaderName: "X-Zenari-CSRF",
           idempotencyRequired: true
         },
         {
@@ -1166,7 +1260,7 @@ describe("dev workspace contracts", () => {
           path: "/projects/{project_id}/candidate-sets",
           credentialMode: "include",
           csrfProtected: true,
-          csrfHeaderName: "X-ZenArt-CSRF",
+          csrfHeaderName: "X-Zenari-CSRF",
           idempotencyRequired: true
         },
         {
@@ -1184,7 +1278,7 @@ describe("dev workspace contracts", () => {
           path: "/projects/{project_id}/selected-direction",
           credentialMode: "include",
           csrfProtected: true,
-          csrfHeaderName: "X-ZenArt-CSRF",
+          csrfHeaderName: "X-Zenari-CSRF",
           idempotencyRequired: true
         },
         {
@@ -1193,7 +1287,7 @@ describe("dev workspace contracts", () => {
           path: "/projects/{project_id}/packages",
           credentialMode: "include",
           csrfProtected: true,
-          csrfHeaderName: "X-ZenArt-CSRF",
+          csrfHeaderName: "X-Zenari-CSRF",
           idempotencyRequired: true
         },
         {
@@ -1202,7 +1296,7 @@ describe("dev workspace contracts", () => {
           path: "/packages/{package_id}/exports",
           credentialMode: "include",
           csrfProtected: true,
-          csrfHeaderName: "X-ZenArt-CSRF",
+          csrfHeaderName: "X-Zenari-CSRF",
           idempotencyRequired: true
         },
         {
@@ -1248,7 +1342,7 @@ describe("dev workspace contracts", () => {
       format: "zip",
       status: "ready",
       createdAt: "2026-05-26T10:06:00.000Z",
-      fileName: "zenart-012.zip",
+      fileName: "zenari-012.zip",
       manifest: buildManifest(state.activeProjectId, packageItems),
       qaReport,
       safetyReport: runSafetyPolicy(
@@ -1350,7 +1444,7 @@ describe("dev workspace contracts", () => {
     expect(session).toMatchObject({
       status: "authenticated",
       cookie: {
-        name: "__Host-zenart_session",
+        name: "__Host-zenari_session",
         httpOnly: true,
         secure: true,
         sameSite: "lax",
@@ -1358,7 +1452,7 @@ describe("dev workspace contracts", () => {
       },
       csrf: {
         strategy: "same-site-origin-check",
-        headerName: "X-ZenArt-CSRF",
+        headerName: "X-Zenari-CSRF",
         headerValue: "same-site-origin-check",
         sameSiteRequired: "lax-or-strict",
         credentialMode: "include",
@@ -1378,7 +1472,7 @@ describe("dev workspace contracts", () => {
       format: "zip",
       status: "ready",
       createdAt: "2026-05-26T10:00:00.000Z",
-      fileName: "zenart-009.zip",
+      fileName: "zenari-009.zip",
       manifest: buildManifest(state.activeProjectId, []),
       qaReport: [],
       safetyReport: runSafetyPolicy(state, [])

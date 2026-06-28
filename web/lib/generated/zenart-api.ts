@@ -2,7 +2,7 @@
 // OpenAPI source: openapi/zenart.v1.yaml
 import { buildCsrfRequestHeaders, defaultSameSiteCsrfContract } from "../request-security";
 
-export const OPENAPI_SHA256 = "ff2ee3ebcbb65104568396ad368c9e4ddffbe57b46acd9a35b55b0f8ad86085d";
+export const OPENAPI_SHA256 = "8b218cada83703ebb9b0ca4644b04cc15cbae23bdceef152c343b33fdfa1de6c";
 export const API_AUDIENCE = "web" as const;
 
 export type FieldError = {
@@ -15,6 +15,25 @@ export type ErrorEnvelope = {
   code: string;
   message: string;
   request_id: string;
+  taxonomy: {
+    category:
+      | "validation"
+      | "auth"
+      | "forbidden"
+      | "not_found"
+      | "conflict"
+      | "retryable"
+      | "blocked"
+      | "quota_insufficient"
+      | "provider_unavailable"
+      | "review_required"
+      | "internal";
+    retryable: boolean;
+    blocked: boolean;
+    user_actionable: boolean;
+  };
+  retryable: boolean;
+  blocked: boolean;
   details: Record<string, unknown>;
   field_errors: FieldError[];
 };
@@ -45,7 +64,7 @@ export type TaskStatus = {
   updated_at: string;
 };
 
-export type OperationId = "getSession" | "deleteSession" | "getAccount" | "updateAccount" | "listProjects" | "createProject" | "getProject" | "updateProject" | "getWorkspace" | "createChatSession" | "listChatMessages" | "createChatMessage" | "getTask" | "listCandidateSets" | "createCandidateSet" | "listCandidateAssets" | "selectDirection" | "listCanvasNodes" | "createCanvasNode" | "listCanvasFrames" | "listCanvasVersions" | "createCanvasVersion" | "createUpload" | "listAssets" | "listPackages" | "createPackage" | "createExport" | "getExport" | "createShareLink" | "getQuota" | "getSubscription" | "createSupportTicket";
+export type OperationId = "getSession" | "deleteSession" | "getAccount" | "updateAccount" | "listProjects" | "createProject" | "getProject" | "updateProject" | "getWorkspace" | "createChatSession" | "listChatMessages" | "createChatMessage" | "getTask" | "createBatchGeneration" | "getBatchGeneration" | "listBatchGenerationChildren" | "getBatchGenerationProgress" | "cancelBatchGeneration" | "retryBatchGenerationChild" | "listCandidateSets" | "createCandidateSet" | "listCandidateAssets" | "selectDirection" | "listCanvasNodes" | "createCanvasNode" | "listCanvasFrames" | "listCanvasVersions" | "createCanvasVersion" | "createUpload" | "listAssets" | "listAssetLibrary" | "createAssetLibraryEntry" | "updateAssetLibraryEntry" | "listBrandKits" | "createBrandKit" | "updateBrandKit" | "getProjectDefaultBrandKit" | "setProjectDefaultBrandKit" | "listPackages" | "createPackage" | "createExport" | "getExport" | "createShareLink" | "getQuota" | "getSubscription" | "createCheckoutSession" | "createBillingPortalSession" | "cancelSubscription" | "listBillingInvoices" | "getTeamSeatUsage" | "checkTeamSeatEntitlement" | "acceptTeamInvite" | "createSupportTicket";
 
 export type ApiOperation = {
   method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
@@ -69,6 +88,12 @@ export const apiOperations: Record<OperationId, ApiOperation> = {
   listChatMessages: { method: "GET", path: "/chat/sessions/{chat_session_id}/messages", rbac: "user", idempotencyRequired: false, errorEnvelope: true },
   createChatMessage: { method: "POST", path: "/chat/sessions/{chat_session_id}/messages", rbac: "user", idempotencyRequired: true, errorEnvelope: true },
   getTask: { method: "GET", path: "/tasks/{task_id}", rbac: "user", idempotencyRequired: false, errorEnvelope: true },
+  createBatchGeneration: { method: "POST", path: "/projects/{project_id}/batch-generations", rbac: "user", idempotencyRequired: true, errorEnvelope: true },
+  getBatchGeneration: { method: "GET", path: "/batch-generations/{batch_id}", rbac: "user", idempotencyRequired: false, errorEnvelope: true },
+  listBatchGenerationChildren: { method: "GET", path: "/batch-generations/{batch_id}/children", rbac: "user", idempotencyRequired: false, errorEnvelope: true },
+  getBatchGenerationProgress: { method: "GET", path: "/batch-generations/{batch_id}/progress", rbac: "user", idempotencyRequired: false, errorEnvelope: true },
+  cancelBatchGeneration: { method: "POST", path: "/batch-generations/{batch_id}/cancel", rbac: "user", idempotencyRequired: true, errorEnvelope: true },
+  retryBatchGenerationChild: { method: "POST", path: "/batch-generation-children/{child_id}/retry", rbac: "user", idempotencyRequired: true, errorEnvelope: true },
   listCandidateSets: { method: "GET", path: "/projects/{project_id}/candidate-sets", rbac: "user", idempotencyRequired: false, errorEnvelope: true },
   createCandidateSet: { method: "POST", path: "/projects/{project_id}/candidate-sets", rbac: "user", idempotencyRequired: true, errorEnvelope: true },
   listCandidateAssets: { method: "GET", path: "/candidate-sets/{candidate_set_id}/assets", rbac: "user", idempotencyRequired: false, errorEnvelope: true },
@@ -80,6 +105,14 @@ export const apiOperations: Record<OperationId, ApiOperation> = {
   createCanvasVersion: { method: "POST", path: "/workspaces/{workspace_id}/canvas/versions", rbac: "user", idempotencyRequired: true, errorEnvelope: true },
   createUpload: { method: "POST", path: "/uploads", rbac: "user", idempotencyRequired: true, errorEnvelope: true },
   listAssets: { method: "GET", path: "/assets", rbac: "user", idempotencyRequired: false, errorEnvelope: true },
+  listAssetLibrary: { method: "GET", path: "/assets/library", rbac: "user", idempotencyRequired: false, errorEnvelope: true },
+  createAssetLibraryEntry: { method: "POST", path: "/assets/library", rbac: "user", idempotencyRequired: true, errorEnvelope: true },
+  updateAssetLibraryEntry: { method: "PATCH", path: "/assets/library/{entry_id}", rbac: "user", idempotencyRequired: true, errorEnvelope: true },
+  listBrandKits: { method: "GET", path: "/brand-kits", rbac: "user", idempotencyRequired: false, errorEnvelope: true },
+  createBrandKit: { method: "POST", path: "/brand-kits", rbac: "user", idempotencyRequired: true, errorEnvelope: true },
+  updateBrandKit: { method: "PATCH", path: "/brand-kits/{brand_kit_id}", rbac: "user", idempotencyRequired: true, errorEnvelope: true },
+  getProjectDefaultBrandKit: { method: "GET", path: "/projects/{project_id}/brand-kit-default", rbac: "user", idempotencyRequired: false, errorEnvelope: true },
+  setProjectDefaultBrandKit: { method: "PUT", path: "/projects/{project_id}/brand-kit-default", rbac: "user", idempotencyRequired: true, errorEnvelope: true },
   listPackages: { method: "GET", path: "/projects/{project_id}/packages", rbac: "user", idempotencyRequired: false, errorEnvelope: true },
   createPackage: { method: "POST", path: "/projects/{project_id}/packages", rbac: "user", idempotencyRequired: true, errorEnvelope: true },
   createExport: { method: "POST", path: "/packages/{package_id}/exports", rbac: "user", idempotencyRequired: true, errorEnvelope: true },
@@ -87,6 +120,13 @@ export const apiOperations: Record<OperationId, ApiOperation> = {
   createShareLink: { method: "POST", path: "/exports/{export_id}/share-links", rbac: "user", idempotencyRequired: true, errorEnvelope: true },
   getQuota: { method: "GET", path: "/quota", rbac: "user", idempotencyRequired: false, errorEnvelope: true },
   getSubscription: { method: "GET", path: "/billing/subscription", rbac: "user", idempotencyRequired: false, errorEnvelope: true },
+  createCheckoutSession: { method: "POST", path: "/billing/checkout", rbac: "user", idempotencyRequired: true, errorEnvelope: true },
+  createBillingPortalSession: { method: "POST", path: "/billing/portal", rbac: "user", idempotencyRequired: true, errorEnvelope: true },
+  cancelSubscription: { method: "POST", path: "/billing/subscription/cancel", rbac: "user", idempotencyRequired: true, errorEnvelope: true },
+  listBillingInvoices: { method: "GET", path: "/billing/invoices", rbac: "user", idempotencyRequired: false, errorEnvelope: true },
+  getTeamSeatUsage: { method: "GET", path: "/teams/{team_id}/seat-usage", rbac: "user", idempotencyRequired: false, errorEnvelope: true },
+  checkTeamSeatEntitlement: { method: "GET", path: "/teams/{team_id}/seat-entitlement", rbac: "user", idempotencyRequired: false, errorEnvelope: true },
+  acceptTeamInvite: { method: "POST", path: "/teams/{team_id}/invites/{invite_id}/accept", rbac: "user", idempotencyRequired: true, errorEnvelope: true },
   createSupportTicket: { method: "POST", path: "/support/tickets", rbac: "user", idempotencyRequired: true, errorEnvelope: true }
 };
 
@@ -108,7 +148,7 @@ export class ApiError extends Error {
   }
 }
 
-export class ZenArtApiClient {
+export class ZenariApiClient {
   constructor(
     private readonly baseUrl = "",
     private readonly defaultHeaders: Record<string, string> = {}
@@ -179,7 +219,7 @@ export class ZenArtApiClient {
 
   private assertSameSiteBaseUrl(baseUrl: string) {
     if (baseUrl.startsWith("//")) {
-      throw new Error("ZenArtApiClient baseUrl must not be protocol-relative for same-site CSRF protection");
+      throw new Error("ZenariApiClient baseUrl must not be protocol-relative for same-site CSRF protection");
     }
     if (!baseUrl || baseUrl.startsWith("/")) {
       return;
@@ -187,17 +227,17 @@ export class ZenArtApiClient {
 
     const parsed = new URL(baseUrl);
     if (typeof window === "undefined") {
-      throw new Error("ZenArtApiClient absolute baseUrl requires a browser origin for same-site CSRF protection");
+      throw new Error("ZenariApiClient absolute baseUrl requires a browser origin for same-site CSRF protection");
     }
     if (parsed.username || parsed.password) {
-      throw new Error("ZenArtApiClient baseUrl must not include credentials for same-site CSRF protection");
+      throw new Error("ZenariApiClient baseUrl must not include credentials for same-site CSRF protection");
     }
     if (parsed.search || parsed.hash) {
-      throw new Error("ZenArtApiClient baseUrl must not include query or fragment material for same-site CSRF protection");
+      throw new Error("ZenariApiClient baseUrl must not include query or fragment material for same-site CSRF protection");
     }
     const currentOrigin = window.location.origin;
     if (parsed.origin !== currentOrigin) {
-      throw new Error("ZenArtApiClient baseUrl must be same-origin for same-site CSRF protection");
+      throw new Error("ZenariApiClient baseUrl must be same-origin for same-site CSRF protection");
     }
   }
 

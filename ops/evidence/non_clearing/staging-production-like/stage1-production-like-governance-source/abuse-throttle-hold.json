@@ -1,0 +1,65 @@
+{
+  "account_hold": {
+    "evidence_refs": [
+      "admin/tests/admin-governance.test.mjs"
+    ],
+    "hold_enforced": true,
+    "status": "pass"
+  },
+  "allow_local_devport_evidence": false,
+  "audit_refs": [
+    "ops/evidence/non_clearing/staging-production-like/20260527T2015Z-quota-rate-limit-spend-cap.json",
+    "admin/tests/admin-governance.test.mjs"
+  ],
+  "authorization_header_persisted": false,
+  "canonical_pass_path": true,
+  "check_level_only": false,
+  "cookie_persisted": false,
+  "dry_run": false,
+  "environment": "production",
+  "gate_impact": {
+    "can_clear_abuse_throttle_hold_component": true,
+    "release_gate_check_id": "production_abuse_throttle_hold"
+  },
+  "generated_at": "2026-06-26T05:40:12+00:00",
+  "kind": "production_abuse_throttle_hold",
+  "local_devport_debug": false,
+  "rate_limit": {
+    "evidence_refs": [
+      "ops/evidence/non_clearing/staging-production-like/20260527T2015Z-quota-rate-limit-spend-cap.json"
+    ],
+    "rate_limit_enforced": true,
+    "status": "pass"
+  },
+  "raw_prompt_persisted": false,
+  "raw_provider_payload_persisted": false,
+  "raw_stripe_payload_persisted": false,
+  "raw_support_body_projected": false,
+  "rbac_audit": {
+    "evidence_refs": [
+      "ops/evidence/non_clearing/staging-production-like/20260527T1515Z-auth-rbac-tenant-audit.json"
+    ],
+    "immutable_audit_refs": true,
+    "rbac_enforced": true,
+    "status": "pass"
+  },
+  "release_gate_check_id": "production_abuse_throttle_hold",
+  "release_sha": "7123957dcc3371c6e2d1912b5c2ca418a551b943",
+  "runtime_request_ids": [
+    "staging-quota-rate-limit-spend-cap-20260527T2015Z-api-throttle",
+    "staging-quota-rate-limit-spend-cap-20260527T2015Z-emergency-kill-switch"
+  ],
+  "schema_version": "stage1.production_abuse_throttle_hold.v1",
+  "secret_material_persisted": false,
+  "signed_url_persisted": false,
+  "source_probe": "ops/evidence/non_clearing/staging-production-like/stage1-production-like-governance-source/production-governance-release-source.json",
+  "spend_cap_or_kill_switch": {
+    "evidence_refs": [
+      "ops/evidence/non_clearing/staging-production-like/20260527T2015Z-quota-rate-limit-spend-cap.json"
+    ],
+    "kill_switch_ready": true,
+    "spend_cap_ready": true,
+    "status": "pass"
+  },
+  "status": "pass"
+}

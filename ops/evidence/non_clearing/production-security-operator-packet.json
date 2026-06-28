@@ -1,0 +1,237 @@
+{
+  "authorization_header_persisted": false,
+  "blocked_until": [
+    "production runtime evidence ref proves secure HttpOnly session cookie with SameSite lax/strict",
+    "production runtime evidence ref proves CSRF/same-site mutation denial",
+    "production runtime evidence ref proves zero raw secret exposure",
+    "production runtime evidence ref proves admin privacy projections hide raw private payloads",
+    "production runtime evidence ref proves provider keys are not exposed to frontend/user/export/support surfaces",
+    "production runtime evidence ref proves Stripe live/test separation",
+    "production runtime evidence ref proves rate limit, spend cap, and kill switch readiness",
+    "production runtime evidence ref proves CSP header presence",
+    "production runtime evidence ref proves RBAC tenant isolation cross-tenant denials",
+    "stage1_production_source_probe.py --security writes ops/evidence/production/production-security-launch-source.json",
+    "generate_stage1_production_security_launch_evidence.py writes strict production security evidence",
+    "validate_stage1_production_security_launch_evidence.py passes without --allow-preflight"
+  ],
+  "can_clear_production_security_launch_checks": false,
+  "can_clear_stage1_production_launch_gate": false,
+  "can_close_do_not_launch": false,
+  "canonical_pass_path": false,
+  "cookie_persisted": false,
+  "environment": "production",
+  "evidence_outputs": {
+    "proof_candidate": "ops/evidence/non_clearing/production-security-proof.candidate.json",
+    "proof_diagnostic": "ops/evidence/non_clearing/production-security-proof.blocked.json",
+    "security_launch": "ops/evidence/production/20260527T1700Z-security-launch-checks.json",
+    "source": "ops/evidence/production/production-security-launch-source.json",
+    "source_diagnostic": "ops/evidence/production/source-probe-diagnostics.security.json"
+  },
+  "execution_order": [
+    "python3 scripts/stage1_production_security_proof.py --release-sha $(git rev-parse HEAD) --output ops/evidence/non_clearing/production-security-proof.candidate.json --same-site lax --raw-secret-exposure-count 0 --frontend-secret-exposure-count 0 --secure-session-cookie-ref <production-runtime-or-audit-ref> --csrf-same-site-ref <production-runtime-or-audit-ref> --secret-redaction-ref <production-runtime-or-audit-ref> --admin-surface-privacy-ref <production-runtime-or-audit-ref> --provider-key-containment-ref <production-runtime-or-audit-ref> --stripe-live-test-separation-ref <production-runtime-or-audit-ref> --rate-limit-spend-cap-ref <production-runtime-or-audit-ref> --csp-headers-ref <production-runtime-or-audit-ref> --rbac-tenant-isolation-ref <production-runtime-or-audit-ref> --audit-ref <production-runtime-or-audit-ref>",
+    "python3 scripts/validate_stage1_production_security_proof.py --proof ops/evidence/non_clearing/production-security-proof.candidate.json",
+    "python3 scripts/stage1_production_source_probe.py --security --release-sha $(git rev-parse HEAD) --security-proof ops/evidence/non_clearing/production-security-proof.candidate.json --diagnostic ops/evidence/production/source-probe-diagnostics.security.json --write-canonical-source",
+    "python3 scripts/generate_stage1_production_security_launch_evidence.py --source ops/evidence/production/production-security-launch-source.json",
+    "python3 scripts/validate_stage1_production_security_launch_evidence.py",
+    "python3 scripts/generate_stage1_production_launch_evidence.py",
+    "python3 scripts/validate_stage1_production_launch.py"
+  ],
+  "gate_impact": {
+    "can_clear_aggregate_production_gate": false,
+    "can_clear_security_launch_check": false,
+    "can_clear_stage1_production_launch_gate": false,
+    "preserved_do_not_launch_condition": "stage1_production_launch_evidence_incomplete",
+    "preserved_release_gate_check_id": "production_security_launch_checks"
+  },
+  "generated_at": "2026-06-28T17:50:44+00:00",
+  "kind": "stage1_production_security_operator_packet",
+  "non_clearing_operator_packet": true,
+  "operator_command_packet": [
+    {
+      "command": "python3 scripts/run_stage1_production_proof_bundle.py --env <private-production-env> || test $? -eq 2",
+      "may_write_canonical_source": false,
+      "requires_review": false,
+      "side_effect": "non-clearing proof candidates and blocked diagnostics only",
+      "step_id": "run_private_env_proof_bundle"
+    },
+    {
+      "command": "python3 scripts/validate_stage1_production_security_proof.py --proof ops/evidence/non_clearing/production-security-proof.candidate.json --diagnostic ops/evidence/non_clearing/production-security-proof.blocked.json",
+      "may_write_canonical_source": false,
+      "requires_review": false,
+      "side_effect": "local validation only",
+      "step_id": "validate_security_candidate_or_diagnostic"
+    },
+    {
+      "command": "python3 scripts/stage1_production_source_probe.py --security --release-sha $(git rev-parse HEAD) --security-proof ops/evidence/non_clearing/production-security-proof.candidate.json --diagnostic ops/evidence/production/source-probe-diagnostics.security.json --write-canonical-source",
+      "may_write_canonical_source": true,
+      "requires_review": true,
+      "side_effect": "writes security canonical source only after production security proof passes",
+      "step_id": "run_security_source_probe_after_candidate_passes"
+    },
+    {
+      "command": "python3 scripts/generate_stage1_production_security_launch_evidence.py --source ops/evidence/production/production-security-launch-source.json",
+      "may_write_canonical_source": false,
+      "requires_review": false,
+      "side_effect": "writes strict production security evidence from canonical source",
+      "step_id": "generate_strict_security_evidence"
+    },
+    {
+      "command": "python3 scripts/validate_stage1_production_security_launch_evidence.py",
+      "may_write_canonical_source": false,
+      "requires_review": false,
+      "side_effect": "strict production security validation",
+      "step_id": "validate_strict_security_evidence"
+    },
+    {
+      "command": "python3 scripts/refresh_stage1_production_non_clearing_evidence.py || test $? -eq 2",
+      "may_write_canonical_source": false,
+      "requires_review": false,
+      "side_effect": "non-clearing summary refresh",
+      "step_id": "refresh_non_clearing_summary"
+    }
+  ],
+  "private_env_template": {
+    "allowed_variable_names": [
+      "STAGE1_PROD_SECURITY_SAME_SITE",
+      "STAGE1_PROD_SECURITY_RAW_SECRET_EXPOSURE_COUNT",
+      "STAGE1_PROD_SECURITY_FRONTEND_SECRET_EXPOSURE_COUNT",
+      "STAGE1_PROD_SECURITY_SECURE_SESSION_COOKIE_REF",
+      "STAGE1_PROD_SECURITY_CSRF_SAME_SITE_REF",
+      "STAGE1_PROD_SECURITY_SECRET_REDACTION_REF",
+      "STAGE1_PROD_SECURITY_ADMIN_SURFACE_PRIVACY_REF",
+      "STAGE1_PROD_SECURITY_PROVIDER_KEY_CONTAINMENT_REF",
+      "STAGE1_PROD_SECURITY_STRIPE_LIVE_TEST_SEPARATION_REF",
+      "STAGE1_PROD_SECURITY_RATE_LIMIT_SPEND_CAP_REF",
+      "STAGE1_PROD_SECURITY_CSP_HEADERS_REF",
+      "STAGE1_PROD_SECURITY_RBAC_TENANT_ISOLATION_REF",
+      "STAGE1_PROD_SECURITY_AUDIT_REF"
+    ],
+    "blank_values_only": true,
+    "gitignore_required": true,
+    "path_placeholder": "<private-production-env>",
+    "template_lines": [
+      "STAGE1_PROD_SECURITY_SAME_SITE=",
+      "STAGE1_PROD_SECURITY_RAW_SECRET_EXPOSURE_COUNT=",
+      "STAGE1_PROD_SECURITY_FRONTEND_SECRET_EXPOSURE_COUNT=",
+      "STAGE1_PROD_SECURITY_SECURE_SESSION_COOKIE_REF=",
+      "STAGE1_PROD_SECURITY_CSRF_SAME_SITE_REF=",
+      "STAGE1_PROD_SECURITY_SECRET_REDACTION_REF=",
+      "STAGE1_PROD_SECURITY_ADMIN_SURFACE_PRIVACY_REF=",
+      "STAGE1_PROD_SECURITY_PROVIDER_KEY_CONTAINMENT_REF=",
+      "STAGE1_PROD_SECURITY_STRIPE_LIVE_TEST_SEPARATION_REF=",
+      "STAGE1_PROD_SECURITY_RATE_LIMIT_SPEND_CAP_REF=",
+      "STAGE1_PROD_SECURITY_CSP_HEADERS_REF=",
+      "STAGE1_PROD_SECURITY_RBAC_TENANT_ISOLATION_REF=",
+      "STAGE1_PROD_SECURITY_AUDIT_REF="
+    ]
+  },
+  "proof": {
+    "blocked_diagnostic": {
+      "canonical_source_written": false,
+      "exists": true,
+      "first_blocker": "secure_session_cookie_ref_missing",
+      "path": "ops/evidence/non_clearing/production-security-proof.blocked.json",
+      "status": "blocked"
+    },
+    "candidate_path": "ops/evidence/non_clearing/production-security-proof.candidate.json",
+    "proof_generator_command": "python3 scripts/stage1_production_security_proof.py --release-sha $(git rev-parse HEAD) --output ops/evidence/non_clearing/production-security-proof.candidate.json --same-site lax --raw-secret-exposure-count 0 --frontend-secret-exposure-count 0 --secure-session-cookie-ref <production-runtime-or-audit-ref> --csrf-same-site-ref <production-runtime-or-audit-ref> --secret-redaction-ref <production-runtime-or-audit-ref> --admin-surface-privacy-ref <production-runtime-or-audit-ref> --provider-key-containment-ref <production-runtime-or-audit-ref> --stripe-live-test-separation-ref <production-runtime-or-audit-ref> --rate-limit-spend-cap-ref <production-runtime-or-audit-ref> --csp-headers-ref <production-runtime-or-audit-ref> --rbac-tenant-isolation-ref <production-runtime-or-audit-ref> --audit-ref <production-runtime-or-audit-ref>",
+    "proof_validator_command": "python3 scripts/validate_stage1_production_security_proof.py --proof ops/evidence/non_clearing/production-security-proof.candidate.json"
+  },
+  "raw_prompt_persisted": false,
+  "raw_provider_payload_persisted": false,
+  "raw_stripe_payload_persisted": false,
+  "raw_support_body_projected": false,
+  "release_gate_check_id": "production_security_launch_checks",
+  "release_gate_decision": "no_go",
+  "release_sha": "7123957dcc3371c6e2d1912b5c2ca418a551b943",
+  "required_security_runtime_refs": [
+    {
+      "flag": "--secure-session-cookie-ref",
+      "required_runtime_assertions": {
+        "http_only": true,
+        "same_site": "lax_or_strict",
+        "secure": true
+      },
+      "section": "secure_session_cookie"
+    },
+    {
+      "flag": "--csrf-same-site-ref",
+      "required_runtime_assertions": {
+        "cross_site_mutations_denied": true
+      },
+      "section": "csrf_same_site_enforcement"
+    },
+    {
+      "flag": "--secret-redaction-ref",
+      "required_runtime_assertions": {
+        "raw_secret_exposure_count": 0
+      },
+      "section": "secret_exposure_redaction"
+    },
+    {
+      "flag": "--admin-surface-privacy-ref",
+      "required_runtime_assertions": {
+        "raw_private_payload_visible": false
+      },
+      "section": "admin_surface_privacy"
+    },
+    {
+      "flag": "--provider-key-containment-ref",
+      "required_runtime_assertions": {
+        "frontend_secret_exposure_count": 0
+      },
+      "section": "provider_key_containment"
+    },
+    {
+      "flag": "--stripe-live-test-separation-ref",
+      "required_runtime_assertions": {
+        "live_mode_isolated": true
+      },
+      "section": "stripe_live_test_separation"
+    },
+    {
+      "flag": "--rate-limit-spend-cap-ref",
+      "required_runtime_assertions": {
+        "kill_switch_ready": true
+      },
+      "section": "rate_limit_spend_cap"
+    },
+    {
+      "flag": "--csp-headers-ref",
+      "required_runtime_assertions": {
+        "csp_present": true
+      },
+      "section": "csp_headers"
+    },
+    {
+      "flag": "--rbac-tenant-isolation-ref",
+      "required_runtime_assertions": {
+        "cross_tenant_denials": true
+      },
+      "section": "rbac_tenant_isolation"
+    },
+    {
+      "flag": "--audit-ref",
+      "required_runtime_assertions": {
+        "audit_ref_present": true
+      },
+      "section": "audit_refs"
+    }
+  ],
+  "schema_version": "stage1.production_security_operator_packet.v1",
+  "secret_material_persisted": false,
+  "signed_url_persisted": false,
+  "source_probe": {
+    "canonical_source_exists": false,
+    "canonical_source_path": "ops/evidence/production/production-security-launch-source.json",
+    "source_diagnostic": {
+      "canonical_source_written": false,
+      "exists": true,
+      "first_blocker": "security_proof_missing",
+      "path": "ops/evidence/production/source-probe-diagnostics.security.json",
+      "status": "blocked"
+    },
+    "source_probe_command": "python3 scripts/stage1_production_source_probe.py --security --release-sha $(git rev-parse HEAD) --security-proof ops/evidence/non_clearing/production-security-proof.candidate.json --diagnostic ops/evidence/production/source-probe-diagnostics.security.json --write-canonical-source"
+  },
+  "status": "blocked"
+}

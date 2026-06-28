@@ -1,125 +1,120 @@
 {
-  "schema_version": "stage0.rev2",
-  "gate": "private_beta_staging",
-  "evidence_id": "gate_private_beta_staging_blocked",
   "checks": [
     {
       "check_id": "staging_auth_rbac_tenant_audit",
-      "status": "pass",
-      "evidence_ref": "Staging auth/RBAC/tenant/audit runtime evidence verifies external-user admin API denial, independent admin session cookie access, cross-tenant isolation denial, governed override RBAC decisions, and immutable audit refs in ops/evidence/staging/20260527T1515Z-auth-rbac-tenant-audit.json"
+      "evidence_ref": "Staging auth/RBAC/tenant/audit runtime evidence verifies external-user admin API denial, independent admin session cookie access, cross-tenant isolation denial, governed override RBAC decisions, and immutable audit refs in ops/evidence/staging/20260527T1515Z-auth-rbac-tenant-audit.json",
+      "status": "pass"
     },
     {
       "check_id": "staging_brief_upload_confirmation",
-      "status": "pass",
-      "evidence_ref": "Staging brief/upload/confirmation runtime evidence verifies external-user /workspace brief confirmation, accepted reference upload, visible confirmation message, cleared missing-info state, and four-candidate ready state in ops/evidence/staging/20260526T2330Z-brief-upload-confirmation.json"
+      "evidence_ref": "Staging brief/upload/confirmation runtime evidence verifies external-user /workspace brief confirmation, accepted reference upload, visible confirmation message, cleared missing-info state, and four-candidate ready state in ops/evidence/staging/20260526T2330Z-brief-upload-confirmation.json",
+      "status": "pass"
     },
     {
       "check_id": "staging_object_storage_signed_downloads",
-      "status": "blocked",
-      "evidence_ref": "Staging object storage signed URL runtime evidence passed in ops/evidence/staging/20260527T2130Z-object-storage-signed-url.json, proving tenant-scoped signed download, expiry, direct-object denial, and cross-tenant denial from ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json, ops/evidence/staging/20260527T2115Z-backup-restore.json, and ops/evidence/staging/20260527T2120Z-load.json; the full object-storage gate remains blocked because exact retention cleanup runtime evidence is absent at ops/evidence/staging/object-storage-retention-cleanup.json and must prove retention policy, expired export cleanup, orphan cleanup, and audit refs"
+      "evidence_ref": "Staging object storage signed download and retention cleanup runtime evidence passed: ops/evidence/staging/20260527T2130Z-object-storage-signed-url.json proves tenant-scoped signed download, expiry, direct-object denial, and cross-tenant denial; ops/evidence/staging/object-storage-retention-cleanup.json proves retention policy, expired export cleanup, orphan cleanup, cleanup audit refs, semantic audit linkage, and request-id audit linkage for release d3b1107c33dc40b8936f28549e06553fbd7b104a.",
+      "status": "pass"
     },
     {
       "check_id": "staging_quota_rate_limit_spend_cap",
-      "status": "pass",
-      "evidence_ref": "Staging quota, rate limit, and spend cap runtime evidence verifies reservation, commit, refund, retry idempotency, gateway throttling, provider spend cap fail-closed behavior, and emergency kill-switch enforcement in ops/evidence/staging/20260527T2015Z-quota-rate-limit-spend-cap.json"
+      "evidence_ref": "Staging quota, rate limit, and spend cap runtime evidence verifies reservation, commit, refund, retry idempotency, gateway throttling, provider spend cap fail-closed behavior, and emergency kill-switch enforcement in ops/evidence/staging/20260527T2015Z-quota-rate-limit-spend-cap.json",
+      "status": "pass"
     },
     {
       "check_id": "staging_support_retry_abuse_ops",
-      "status": "pass",
-      "evidence_ref": "Staging support/retry/abuse runtime evidence verifies external-user support linkage, failed task retry/cancel, account hold/throttle, abuse queue closure blocking, RBAC decisions, and immutable audit refs in ops/evidence/staging/20260527T1000Z-support-retry-abuse.json"
+      "evidence_ref": "Staging support/retry/abuse runtime evidence verifies external-user support linkage, failed task retry/cancel, account hold/throttle, abuse queue closure blocking, RBAC decisions, and immutable audit refs in ops/evidence/staging/20260527T1000Z-support-retry-abuse.json",
+      "status": "pass"
     },
     {
       "check_id": "staging_eval_qa_safety_runtime",
-      "status": "pass",
-      "evidence_ref": "Staging eval/QA/safety runtime evidence verifies external-user safety policy execution at brief, provider request, provider response, QA, and export release gates in ops/evidence/staging/20260527T1900Z-eval-qa-safety.json"
+      "evidence_ref": "Staging eval/QA/safety runtime evidence verifies external-user safety policy execution at brief, provider request, provider response, QA, and export release gates in ops/evidence/staging/20260527T1900Z-eval-qa-safety.json",
+      "status": "pass"
     },
     {
       "check_id": "staging_crawler_approval_provenance",
-      "status": "pass",
-      "evidence_ref": "Crawler source approval, legal metadata, robots, SSRF, rate-limit, retention, exact-text warning, provenance, source blocklist, and takedown/derivative workflow staging runtime evidence passed in ops/evidence/staging/20260527T1100Z-crawler-governance-runtime.json"
+      "evidence_ref": "Crawler source approval, legal metadata, robots, SSRF, rate-limit, retention, exact-text warning, provenance, source blocklist, and takedown/derivative workflow staging runtime evidence passed in ops/evidence/staging/20260527T1100Z-crawler-governance-runtime.json",
+      "status": "pass"
     },
     {
       "check_id": "staging_observability_backup_load",
-      "status": "pass",
-      "evidence_ref": "Staging observability, backup, restore, load, and post-deploy smoke runtime evidence passed for release d3b1107c33dc40b8936f28549e06553fbd7b104a in ops/evidence/staging/20260527T013207Z-staging-observability-backup-load-36222.json; the combined preflight verifies request-id propagation, structured logs, backend, worker, and crawler metrics, OpenTelemetry traces, alerts and alert routes, dashboard import, Postgres restore, object restore, chat/task load, worker generation load, ZIP export load, signed download load, crawler throttle load, quota contention load, workspace rendering load, and post-deploy smoke; source inputs are ops/evidence/staging/20260527T1215Z-backend-worker-crawler-metrics.json, ops/evidence/staging/20260527T1815Z-observability-telemetry.json, ops/evidence/staging/20260527T1830Z-observability-runtime.json, ops/evidence/staging/20260527T2115Z-backup-restore.json, ops/evidence/staging/20260527T2120Z-load.json, and ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json while preserving unrelated object storage and legal/support blockers"
+      "evidence_ref": "Staging observability, backup, restore, load, and post-deploy smoke runtime evidence passed for release d3b1107c33dc40b8936f28549e06553fbd7b104a in ops/evidence/staging/20260527T013207Z-staging-observability-backup-load-36222.json; the combined preflight verifies request-id propagation, structured logs, backend, worker, and crawler metrics, OpenTelemetry traces, alerts and alert routes, dashboard import, Postgres restore, object restore, chat/task load, worker generation load, ZIP export load, signed download load, crawler throttle load, quota contention load, workspace rendering load, and post-deploy smoke; source inputs are ops/evidence/staging/20260527T1215Z-backend-worker-crawler-metrics.json, ops/evidence/staging/20260527T1815Z-observability-telemetry.json, ops/evidence/staging/20260527T1830Z-observability-runtime.json, ops/evidence/staging/20260527T2115Z-backup-restore.json, ops/evidence/staging/20260527T2120Z-load.json, and ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json while preserving unrelated object storage and legal/support blockers",
+      "status": "pass"
     },
     {
       "check_id": "staging_legal_external_user_pages",
-      "status": "pass",
-      "evidence_ref": "Staging external user legal/support visibility evidence verifies deployed Terms, Privacy, Acceptable Use, AI/content disclaimer, IP complaint flow, visible support contact, and report-problem path in ops/evidence/staging/legal-pages-external-user.json and ops/evidence/staging/support-contact-external-user.json while preserving object-storage retention cleanup as a separate blocker"
+      "evidence_ref": "Staging external-user legal/support visibility passed for external user access: ops/evidence/staging/legal-pages-external-user.json proves Terms, Privacy, Acceptable Use, AI/content disclaimer, and IP complaint flow are externally visible; ops/evidence/staging/support-contact-external-user.json proves visible support contact, report-problem path, and billing/support policy visibility.",
+      "status": "pass"
     }
   ],
   "do_not_launch_checks": [
     {
-      "condition_id": "tenant_isolation_not_enforced",
       "blueprint_condition": "User projects、assets、exports、traces、quota、support tickets、audit logs 任何 tenant-isolation test 失败。",
-      "is_present": false,
-      "evidence_ref": "Staging auth/RBAC/tenant/audit runtime evidence clears external-user admin API denial, session boundary, cross-tenant isolation denial, governed override RBAC, and immutable audit linkage coverage in ops/evidence/staging/20260527T1515Z-auth-rbac-tenant-audit.json"
+      "condition_id": "tenant_isolation_not_enforced",
+      "evidence_ref": "Staging auth/RBAC/tenant/audit runtime evidence clears external-user admin API denial, session boundary, cross-tenant isolation denial, governed override RBAC, and immutable audit linkage coverage in ops/evidence/staging/20260527T1515Z-auth-rbac-tenant-audit.json",
+      "is_present": false
     },
     {
-      "condition_id": "staging_brief_upload_confirmation_runtime_missing",
       "blueprint_condition": "Vertical workflows 只通过 generic rendering tests，没有 domain fixtures、four-option taxonomy、required outputs、QA/safety checks、manifest validation。",
-      "is_present": false,
-      "evidence_ref": "Staging brief/upload/confirmation runtime evidence clears this missing-runtime condition with external-user /workspace proof for brief confirmation, accepted upload, confirmation message, missing-info clearance, and ready four-candidate set in ops/evidence/staging/20260526T2330Z-brief-upload-confirmation.json"
+      "condition_id": "staging_brief_upload_confirmation_runtime_missing",
+      "evidence_ref": "Staging brief/upload/confirmation runtime evidence clears this missing-runtime condition with external-user /workspace proof for brief confirmation, accepted upload, confirmation message, missing-info clearance, and ready four-candidate set in ops/evidence/staging/20260526T2330Z-brief-upload-confirmation.json",
+      "is_present": false
     },
     {
-      "condition_id": "rate_limit_spend_cap_runtime_missing",
       "blueprint_condition": "Rate limits、provider concurrency limits、spend cap 或 emergency kill switch 缺失。",
-      "is_present": false,
-      "evidence_ref": "Staging quota, rate limit, and spend cap runtime evidence clears reservation, commit, refund, retry idempotency, gateway throttling, provider spend cap fail-closed behavior, and emergency kill-switch coverage in ops/evidence/staging/20260527T2015Z-quota-rate-limit-spend-cap.json"
+      "condition_id": "rate_limit_spend_cap_runtime_missing",
+      "evidence_ref": "Staging quota, rate limit, and spend cap runtime evidence clears reservation, commit, refund, retry idempotency, gateway throttling, provider spend cap fail-closed behavior, and emergency kill-switch coverage in ops/evidence/staging/20260527T2015Z-quota-rate-limit-spend-cap.json",
+      "is_present": false
     },
     {
-      "condition_id": "object_storage_signed_retention_runtime_missing",
       "blueprint_condition": "Object storage 缺 tenant-scoped signed access、retention policy、cleanup 或 cross-tenant denial tests。",
-      "is_present": true,
-      "evidence_ref": "ops/evidence/staging/20260527T2130Z-object-storage-signed-url.json passed and clears staging signed download access and cross-tenant denial runtime evidence, but exact object retention policy, expired export cleanup, orphan cleanup, and audit refs remain missing at ops/evidence/staging/object-storage-retention-cleanup.json"
+      "condition_id": "object_storage_signed_retention_runtime_missing",
+      "evidence_ref": "Object storage signed access, retention policy, cleanup, and cross-tenant denial coverage is cleared by exact staging split artifacts: ops/evidence/staging/20260527T2130Z-object-storage-signed-url.json and ops/evidence/staging/object-storage-retention-cleanup.json.",
+      "is_present": false
     },
     {
-      "condition_id": "support_abuse_runtime_missing",
       "blueprint_condition": "Admin review decisions 可变更、缺 reviewer rationale，或 high-risk changes 绕过 RBAC/audit/second review。",
-      "is_present": false,
-      "evidence_ref": "Staging support/retry/abuse runtime evidence clears external-user support linkage, retry/cancel, hold/throttle, abuse queue closure blocking, RBAC, and audit coverage in ops/evidence/staging/20260527T1000Z-support-retry-abuse.json"
+      "condition_id": "support_abuse_runtime_missing",
+      "evidence_ref": "Staging support/retry/abuse runtime evidence clears external-user support linkage, retry/cancel, hold/throttle, abuse queue closure blocking, RBAC, and audit coverage in ops/evidence/staging/20260527T1000Z-support-retry-abuse.json",
+      "is_present": false
     },
     {
-      "condition_id": "eval_qa_safety_runtime_missing",
       "blueprint_condition": "Safety 只是 disclaimer，没有在 brief/provider request/provider response/QA/export 强制执行。",
-      "is_present": false,
-      "evidence_ref": "Staging eval/QA/safety runtime evidence clears this missing-runtime condition with brief, provider request, provider response, QA, and export release enforcement probes in ops/evidence/staging/20260527T1900Z-eval-qa-safety.json"
+      "condition_id": "eval_qa_safety_runtime_missing",
+      "evidence_ref": "Staging eval/QA/safety runtime evidence clears this missing-runtime condition with brief, provider request, provider response, QA, and export release enforcement probes in ops/evidence/staging/20260527T1900Z-eval-qa-safety.json",
+      "is_present": false
     },
     {
-      "condition_id": "crawler_governance_runtime_missing",
       "blueprint_condition": "Crawler 可抓取或导入 unapproved source。",
-      "is_present": false,
-      "evidence_ref": "Staging crawler fetch/import runtime evidence verifies source approval, robots, SSRF, rate-limit, exact-text warning, provenance, and blocklist enforcement in ops/evidence/staging/20260527T1100Z-crawler-governance-runtime.json"
+      "condition_id": "crawler_governance_runtime_missing",
+      "evidence_ref": "Staging crawler fetch/import runtime evidence verifies source approval, robots, SSRF, rate-limit, exact-text warning, provenance, and blocklist enforcement in ops/evidence/staging/20260527T1100Z-crawler-governance-runtime.json",
+      "is_present": false
     },
     {
-      "condition_id": "crawler_material_retention_takedown_runtime_missing",
       "blueprint_condition": "Crawler-derived active materials 缺 provenance、raw-retention limits 或 takedown path。",
-      "is_present": false,
-      "evidence_ref": "Staging crawler runtime evidence verifies provenance retention, raw retention denial/deletion, and takedown/derivative workflow enforcement in ops/evidence/staging/20260527T1100Z-crawler-governance-runtime.json"
+      "condition_id": "crawler_material_retention_takedown_runtime_missing",
+      "evidence_ref": "Staging crawler runtime evidence verifies provenance retention, raw retention denial/deletion, and takedown/derivative workflow enforcement in ops/evidence/staging/20260527T1100Z-crawler-governance-runtime.json",
+      "is_present": false
     },
     {
-      "condition_id": "staging_observability_restore_load_missing",
       "blueprint_condition": "Staging 缺 provider、queue、export、quota、safety、crawler、object storage、billing、admin failure 的 logs/metrics/traces/dashboards/alerts/runbooks。",
-      "is_present": false,
-      "evidence_ref": "Staging observability/backup/load missing-runtime condition is cleared by ops/evidence/staging/20260527T013207Z-staging-observability-backup-load-36222.json, which verifies staging observability evidence, Postgres restore, object restore, chat/task load, worker generation load, ZIP export load, signed download load, crawler throttle load, quota contention load, workspace rendering load, and post-deploy smoke evidence for release d3b1107c33dc40b8936f28549e06553fbd7b104a"
+      "condition_id": "staging_observability_restore_load_missing",
+      "evidence_ref": "Staging observability/backup/load missing-runtime condition is cleared by ops/evidence/staging/20260527T013207Z-staging-observability-backup-load-36222.json, which verifies staging observability evidence, Postgres restore, object restore, chat/task load, worker generation load, ZIP export load, signed download load, crawler throttle load, quota contention load, workspace rendering load, and post-deploy smoke evidence for release d3b1107c33dc40b8936f28549e06553fbd7b104a",
+      "is_present": false
     },
     {
-      "condition_id": "external_user_legal_pages_missing",
       "blueprint_condition": "Public launch 缺 Terms、Privacy、Acceptable Use、support contact、AI/content responsibility disclaimer 或 IP complaint flow。",
-      "is_present": false,
-      "evidence_ref": "Staging external user legal/support visibility evidence clears legal page and support contact visibility with exact passing files at ops/evidence/staging/legal-pages-external-user.json and ops/evidence/staging/support-contact-external-user.json"
+      "condition_id": "external_user_legal_pages_missing",
+      "evidence_ref": "Staging external-user legal/support visibility evidence is complete for external user access: ops/evidence/staging/legal-pages-external-user.json and ops/evidence/staging/support-contact-external-user.json pass external-user probes.",
+      "is_present": false
     }
   ],
+  "evidence_id": "gate_private_beta_staging_blocked",
+  "gate": "private_beta_staging",
   "gate_decision": {
-    "status": "no_go",
-    "blocked_by_checks": [
-      "staging_object_storage_signed_downloads"
-    ],
-    "active_do_not_launch_conditions": [
-      "object_storage_signed_retention_runtime_missing"
-    ],
-    "evidence_ref": "fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json gate_decision.status=no_go for checklist item Private Beta/Staging external-user runtime evidence 通过：auth/RBAC/tenant、storage、quota/rate limit、support/abuse、safety/QA/crawler、observability/backup/load、legal visibility 均有 staging evidence。 while staging_object_storage_signed_downloads is blocked and object_storage_signed_retention_runtime_missing remains active. Required retention cleanup artifact ops/evidence/staging/object-storage-retention-cleanup.json is absent and must cover retention policy, expired export cleanup, orphan cleanup, and audit refs. Legal/support external-user visibility passed in ops/evidence/staging/legal-pages-external-user.json and ops/evidence/staging/support-contact-external-user.json. Staging observability backup load passed in ops/evidence/staging/20260527T013207Z-staging-observability-backup-load-36222.json with logs, metrics, traces, alerts, dashboard, restore, load, and post-deploy smoke evidence from ops/evidence/staging/20260527T1830Z-observability-runtime.json, ops/evidence/staging/20260527T2115Z-backup-restore.json, ops/evidence/staging/20260527T2120Z-load.json, and ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json. Object-storage signed URL evidence passed in ops/evidence/staging/20260527T2130Z-object-storage-signed-url.json and proves tenant-scoped signed download, expiry, direct-object denial, and cross-tenant denial."
+    "active_do_not_launch_conditions": [],
+    "blocked_by_checks": [],
+    "evidence_ref": "fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json gate_decision.status=go for checklist item Private Beta/Staging external-user runtime evidence 通过：auth/RBAC/tenant、storage、quota/rate limit、support/abuse、safety/QA/crawler、observability/backup/load、legal visibility 均有 staging evidence。 All Private Beta/Staging runtime checks pass with validator-owned staging evidence; aggregate go evidence cites canonical object storage retention cleanup at ops/evidence/staging/object-storage-retention-cleanup.json and legal/support split evidence at ops/evidence/staging/legal-pages-external-user.json plus ops/evidence/staging/support-contact-external-user.json.",
+    "status": "go"
   },
   "provenance": {
     "blueprint_sections": [
@@ -127,5 +122,6 @@
       "24"
     ],
     "created_by_lane": "lane6"
-  }
+  },
+  "schema_version": "stage0.rev2"
 }

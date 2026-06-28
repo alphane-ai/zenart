@@ -1,0 +1,70 @@
+{
+  "schema_version": "stage1.prompt-composer-contract.v1",
+  "fixture_id": "stage1_prompt_composer_local_contract",
+  "kind": "prompt_composer_payload_local_contract",
+  "blueprint_source": "Docs/Stage1_20260621_blueprint.md",
+  "blueprint_items": ["FE-8", "FE-9", "WK-6", "BE-10", "VF-2"],
+  "source_files": [
+    "web/lib/prompt-context.ts",
+    "web/lib/prompt-context.test.ts",
+    "web/lib/contracts.ts",
+    "web/lib/api-client.ts",
+    "web/components/workspace-app.tsx"
+  ],
+  "payload_fields": [
+    "prompt_context.text",
+    "prompt_context.selected_object_ids",
+    "prompt_context.reference_asset_ids",
+    "prompt_context.brand_kit_id",
+    "prompt_context.model_hints",
+    "prompt_context.tool_hint",
+    "requested_count",
+    "aspect_ratio",
+    "quality",
+    "allowed_models"
+  ],
+  "projection_policy": {
+    "selected_object_chips": "visible_canvas_nodes_only",
+    "references": "accepted_upload_refs_or_active_reusable_asset_library_items",
+    "brand_kit": "active_default_or_allowed_brand_mention",
+    "model_hints": "allowed_model_mentions_only",
+    "forbidden_or_unresolved_models_projected": false,
+    "duplicates_projected_once": true,
+    "raw_provider_payload_persisted": false,
+    "raw_hidden_prompt_projected": false,
+    "secret_like_value_projected": false
+  },
+  "required_ui_anchors": [
+    "data-prompt-composer-contract",
+    "data-prompt-composer-status",
+    "data-prompt-composer-requested-count",
+    "data-prompt-composer-aspect-ratio",
+    "data-prompt-composer-quality",
+    "data-prompt-composer-selected-object-count",
+    "data-prompt-composer-reference-asset-count",
+    "data-prompt-composer-brand-kit-id",
+    "data-prompt-composer-model-hints",
+    "data-prompt-composer-allowed-models",
+    "data-prompt-composer-tool-hint",
+    "data-prompt-composer-forbidden-model-count",
+    "data-prompt-composer-redaction-secret-like",
+    "data-batch-generation-prompt-context-selected-object-ids",
+    "data-batch-generation-prompt-context-reference-asset-ids",
+    "data-batch-generation-prompt-context-brand-kit-id",
+    "data-batch-generation-prompt-context-model-hints"
+  ],
+  "focused_tests": [
+    "projects selected objects, accepted references, Brand Kit, allowed model hints, and batch params",
+    "blocks forbidden model mentions and rejected or archived assets from projection",
+    "stores the composer payload on locally created batch generations",
+    "guards batch generation create, cancel, and retry actions with same-site CSRF contracts"
+  ],
+  "non_launch_status": {
+    "local_prompt_composer_contract": "pass",
+    "local_batch_payload_storage": "pass",
+    "staging_prompt_composer_evidence": "open",
+    "deployed_backend_batch_payload_evidence": "open",
+    "real_provider_result_visibility": "open",
+    "can_clear_stage1_staging_runtime_gate": false
+  }
+}

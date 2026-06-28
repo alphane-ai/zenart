@@ -1,0 +1,77 @@
+{
+  "blueprint_source": "Docs/stage0_blueprint_rev2.md",
+  "created_by_lane": "lane5",
+  "created_at": "20260624T062646Z",
+  "run_id": "stage1-load-staging-20260624T062625Z-signed_download",
+  "kind": "load",
+  "environment": "staging",
+  "release_sha": "7123957dcc3371c6e2d1912b5c2ca418a551b943",
+  "mode": "signed_download",
+  "status": "passed",
+  "base_url": "https://staging.zenari.ai",
+  "requests": 20,
+  "concurrency": 4,
+  "paths": ["/readyz", "/api/v1/assets/load-smoke/download"],
+  "expected_statuses": ["/readyz:200", "/api/v1/assets/load-smoke/download:404", "/api/v1/assets/load-smoke/download:501"],
+  "results_path": "ops/evidence/staging/stage1-load-staging-20260624T062625Z-signed_download.ndjson",
+  "summary": {"failure_count": 0, "max_ms": 1053, "p50_ms": 726, "p95_ms": 935, "request_count": 20, "statuses": {"/api/v1/assets/load-smoke/download:404": 10, "/readyz:200": 10}},
+  "checks": [
+    {
+      "check_id": "chat_task",
+      "status": "open",
+      "evidence_refs": [
+        "ops/evidence/staging/stage1-load-staging-20260624T062625Z-signed_download.json",
+        "ops/evidence/staging/stage1-load-staging-20260624T062625Z-signed_download.ndjson"
+      ]
+    },
+    {
+      "check_id": "worker_generation",
+      "status": "open",
+      "evidence_refs": [
+        "ops/evidence/staging/stage1-load-staging-20260624T062625Z-signed_download.json",
+        "ops/evidence/staging/stage1-load-staging-20260624T062625Z-signed_download.ndjson"
+      ]
+    },
+    {
+      "check_id": "zip_export",
+      "status": "open",
+      "evidence_refs": [
+        "ops/evidence/staging/stage1-load-staging-20260624T062625Z-signed_download.json",
+        "ops/evidence/staging/stage1-load-staging-20260624T062625Z-signed_download.ndjson"
+      ]
+    },
+    {
+      "check_id": "signed_download",
+      "status": "passed",
+      "evidence_refs": [
+        "ops/evidence/staging/stage1-load-staging-20260624T062625Z-signed_download.json",
+        "ops/evidence/staging/stage1-load-staging-20260624T062625Z-signed_download.ndjson"
+      ]
+    },
+    {
+      "check_id": "crawler_throttle",
+      "status": "open",
+      "evidence_refs": [
+        "ops/evidence/staging/stage1-load-staging-20260624T062625Z-signed_download.json",
+        "ops/evidence/staging/stage1-load-staging-20260624T062625Z-signed_download.ndjson"
+      ]
+    },
+    {
+      "check_id": "quota_contention",
+      "status": "open",
+      "evidence_refs": [
+        "ops/evidence/staging/stage1-load-staging-20260624T062625Z-signed_download.json",
+        "ops/evidence/staging/stage1-load-staging-20260624T062625Z-signed_download.ndjson"
+      ]
+    },
+    {
+      "check_id": "workspace_rendering",
+      "status": "open",
+      "evidence_refs": [
+        "ops/evidence/staging/stage1-load-staging-20260624T062625Z-signed_download.json",
+        "ops/evidence/staging/stage1-load-staging-20260624T062625Z-signed_download.ndjson"
+      ]
+    }
+  ],
+  "production_gate": "open_until_runtime_thresholds_and_full_staging_load_results_exist"
+}

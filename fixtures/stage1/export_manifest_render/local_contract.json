@@ -1,0 +1,75 @@
+{
+  "schema_version": "stage1.export_manifest_render.contract.v1",
+  "kind": "export_manifest_render_local_contract",
+  "blueprint_source": "Docs/Stage1_20260621_blueprint.md",
+  "blueprint_items": ["AS-10", "AS-11", "QA-4", "FE-16", "AD-10"],
+  "source_files": [
+    "backend/internal/export/manifest.go",
+    "backend/internal/export/manifest_test.go",
+    "fixtures/stage1/export_ops/local_contract.json"
+  ],
+  "manifest_contract": {
+    "package": "backend/internal/export",
+    "go_package": "exportkit",
+    "required_functions": [
+      "ValidateManifest",
+      "ValidateFileEntry",
+      "EvaluateGate",
+      "BuildRenderPlan",
+      "ValidFileRole",
+      "ValidFileFormat",
+      "StableHash"
+    ],
+    "file_roles": [
+      "rendered_asset",
+      "manifest",
+      "qa_report",
+      "metadata",
+      "trace_provenance",
+      "safety_disclaimer",
+      "psd_layer_manifest"
+    ],
+    "file_formats": ["png", "svg", "pdf", "psd_manifest", "json", "md"],
+    "required_zip_entries": [
+      "manifest.json",
+      "qa_report.json",
+      "metadata.json",
+      "trace_provenance.json",
+      "safety_disclaimer.md"
+    ],
+    "retained_when_blocked": [
+      "qa_report.json",
+      "trace_provenance.json",
+      "safety_disclaimer.md"
+    ],
+    "qa_report_required": true,
+    "safety_report_required": true,
+    "trace_provenance_required": true,
+    "license_required": true,
+    "disclaimer_required": true,
+    "fail_closed_when_incomplete": true,
+    "placeholder_rendered_asset_allowed": false,
+    "psd_output_policy": "layer_manifest_only_until_real_psd_renderer",
+    "object_keys_must_not_be_signed_urls": true,
+    "secret_like_manifest_rejection": true,
+    "raw_payload_persisted": false
+  },
+  "focused_tests": {
+    "go": [
+      "TestBuildRenderPlanIncludesManifestQAProvenanceAndDisclaimer",
+      "TestEvaluateGateFailsClosedForMissingQAProvenanceAndSafety",
+      "TestPlaceholderRenderedOutputCannotBePromotedAsFinishedExport",
+      "TestPSDLayerManifestIsAllowedButPlaceholderPSDManifestIsBlocked",
+      "TestValidateManifestRejectsSignedURLAndSecretLikeFields"
+    ]
+  },
+  "non_launch_status": {
+    "local_export_manifest_render_contract": "pass",
+    "real_png_svg_pdf_renderer": "open",
+    "real_psd_renderer": "open",
+    "signed_url_staging_evidence": "open",
+    "object_retention_cleanup_evidence": "open",
+    "can_clear_stage1_staging_runtime_gate": false,
+    "can_clear_stage1_production_launch_gate": false
+  }
+}

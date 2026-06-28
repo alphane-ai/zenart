@@ -1,0 +1,23 @@
+{
+  "id": "task_1fc8984d8f0ec3143a07751b",
+  "tenant_id": "tenant_local",
+  "type": "package_export_builder",
+  "schema_version": 1,
+  "status": "pending",
+  "user_status": "pending",
+  "progress": 0,
+  "retry_count": 0,
+  "timeout_at": null,
+  "user_message": "Export queued",
+  "app_version": "stage0-local",
+  "worker_version": "stage0-local",
+  "metadata": {
+    "export_id": "export_9c5ab6844f52154e5776df02",
+    "format": "zip",
+    "package_id": "package_c1f082b68d41835e1adc8c1d",
+    "project_id": "project_local_ecommerce_growth",
+    "workflow_id": "ecommerce_growth_pack"
+  },
+  "created_at": "2026-06-22T21:08:27.574359Z",
+  "updated_at": "2026-06-22T21:08:27.574359Z"
+}

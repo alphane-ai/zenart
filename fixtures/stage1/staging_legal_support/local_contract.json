@@ -1,0 +1,55 @@
+{
+  "schema_version": "stage1.staging_legal_support.contract.v1",
+  "fixture_id": "stage1_staging_legal_support_exact_contract",
+  "kind": "staging_legal_support_exact_evidence_contract",
+  "canonical_legal_evidence_path": "ops/evidence/staging/legal-pages-external-user.json",
+  "canonical_support_evidence_path": "ops/evidence/staging/support-contact-external-user.json",
+  "local_devport_legal_evidence_path": "ops/evidence/staging/local-devport/legal-pages-external-user.local-devport.json",
+  "local_devport_support_evidence_path": "ops/evidence/staging/local-devport/support-contact-external-user.local-devport.json",
+  "local_devport_can_clear_staging_gate": false,
+  "strict_legal_kind": "legal_pages_external_user_visibility",
+  "strict_support_kind": "support_contact_external_user_visibility",
+  "release_gate_status": "contract_ready_exact_staging_legal_support_evidence_open",
+  "required_environment": "staging",
+  "required_release_gate_check_id": "staging_legal_external_user_pages",
+  "required_do_not_launch_condition_id": "external_user_legal_pages_missing",
+  "required_legal_pages": [
+    "terms",
+    "privacy",
+    "acceptable_use",
+    "ai_content_disclaimer",
+    "ip_complaint"
+  ],
+  "required_support_surfaces": [
+    "support_contact",
+    "report_problem",
+    "billing_policy"
+  ],
+  "safe_projection_policy": {
+    "secret_material_persisted": false,
+    "raw_prompt_persisted": false,
+    "raw_provider_payload_persisted": false,
+    "raw_stripe_payload_persisted": false,
+    "raw_support_body_projected": false,
+    "signed_url_persisted": false,
+    "authorization_header_persisted": false,
+    "cookie_persisted": false
+  },
+  "strict_evidence_policy": {
+    "external_user_probe_required": true,
+    "all_legal_pages_http_200_required": true,
+    "all_support_surfaces_http_200_required": true,
+    "support_ticket_context_required": true,
+    "billing_policy_required": true,
+    "gate_impact_subitems_can_clear_required": true,
+    "allow_blocked_status": false,
+    "allow_local_devport_debug": false,
+    "allow_local_devport_evidence": false,
+    "allow_dry_run_runtime_probe": false,
+    "allow_raw_or_secret_payloads": false
+  },
+  "remaining_staging_evidence": [
+    "canonical support split must include billing_policy external-user visibility",
+    "support-ticket context may record dry-run context capture only when the support visibility split itself passed"
+  ]
+}

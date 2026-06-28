@@ -1,0 +1,58 @@
+{
+  "id": "batch_d8fa054a0da4d6b1bd4d6912",
+  "tenant_id": "tenant_local",
+  "user_id": "local_stage1.provider.user_zenari.ai",
+  "project_id": "project_local_ecommerce_growth",
+  "workspace_id": "ws_stage1_smoke",
+  "prompt_context": {
+    "text": "Zenari provider sandbox smoke: generate a simple launch poster concept.",
+    "model_hints": [
+      "glm-5.2"
+    ],
+    "tool_hint": "image.generate"
+  },
+  "requested_count": 1,
+  "allowed_models": [
+    "glm-5.2"
+  ],
+  "quota_reservation_id": "quota_reservation_7fb4169f3872b74d8183fec9",
+  "quota_estimated_units": 4,
+  "quota_committed_units": 0,
+  "quota_refunded_units": 0,
+  "trace_id": "trace_batch_d4a07f1032c4146019aa5caa",
+  "status": "queued",
+  "children": [
+    {
+      "id": "child_5312d27a80d24e98d38ba30a",
+      "batch_id": "batch_d8fa054a0da4d6b1bd4d6912",
+      "tenant_id": "tenant_local",
+      "status": "queued",
+      "provider_id": "zenari-image-sandbox",
+      "model_id": "glm-5.2",
+      "tool_type": "image.generate",
+      "seed": "batch_d8fa054a0da4d6b1bd4d6912_01",
+      "retry_count": 0,
+      "max_retries": 2,
+      "quota_estimate_units": 4,
+      "quota_committed_units": 0,
+      "quota_refunded_units": 0,
+      "trace_id": "trace_child_e8ad908e0d35ac90c3c0d488",
+      "visible_trace_ref": "trace_projection_e38e3a4a8da93ef96bd28899",
+      "metadata": {
+        "fanout_index": "0",
+        "routing_selection_reason": "strategy_group_unavailable_static_default",
+        "source": "api"
+      },
+      "created_at": "2026-06-28T11:28:08.779593289Z",
+      "updated_at": "2026-06-28T11:28:08.779593289Z"
+    }
+  ],
+  "metadata": {
+    "fanout_stage": "queued_children_created_by_api",
+    "idempotency_fingerprint": "d8ec5a08a93508fc2af6ece7196c4bf3e406a35f58f1389b01fe83322e9ca6e3",
+    "scheduler_note": "worker_policy_fanout_pending",
+    "source": "api"
+  },
+  "created_at": "2026-06-28T11:28:08.779593289Z",
+  "updated_at": "2026-06-28T11:28:08.779593289Z"
+}

@@ -1,0 +1,77 @@
+{
+  "blueprint_source": "Docs/stage0_blueprint_rev2.md",
+  "created_by_lane": "lane5",
+  "created_at": "20260622T203029Z",
+  "run_id": "stage1-load-local-devport-dry-run-crawler_throttle",
+  "kind": "load",
+  "environment": "local",
+  "release_sha": "",
+  "mode": "crawler_throttle",
+  "status": "planned",
+  "base_url": "http://127.0.0.1:31080",
+  "requests": 20,
+  "concurrency": 4,
+  "paths": ["/readyz", "/api/admin/v1/crawler/sources"],
+  "expected_statuses": ["/readyz:200", "/api/admin/v1/crawler/sources:401", "/api/admin/v1/crawler/sources:403", "/api/admin/v1/crawler/sources:404", "/api/admin/v1/crawler/sources:501"],
+  "results_path": "ops/evidence/staging/local-devport/stage1-load-local-devport-dry-run-crawler_throttle.ndjson",
+  "summary": {"request_count": 0, "failure_count": 0, "p50_ms": null, "p95_ms": null, "max_ms": null, "statuses": {}},
+  "checks": [
+    {
+      "check_id": "chat_task",
+      "status": "open",
+      "evidence_refs": [
+        "ops/evidence/staging/local-devport/stage1-load-local-devport-dry-run-crawler_throttle.json",
+        "ops/evidence/staging/local-devport/stage1-load-local-devport-dry-run-crawler_throttle.ndjson"
+      ]
+    },
+    {
+      "check_id": "worker_generation",
+      "status": "open",
+      "evidence_refs": [
+        "ops/evidence/staging/local-devport/stage1-load-local-devport-dry-run-crawler_throttle.json",
+        "ops/evidence/staging/local-devport/stage1-load-local-devport-dry-run-crawler_throttle.ndjson"
+      ]
+    },
+    {
+      "check_id": "zip_export",
+      "status": "open",
+      "evidence_refs": [
+        "ops/evidence/staging/local-devport/stage1-load-local-devport-dry-run-crawler_throttle.json",
+        "ops/evidence/staging/local-devport/stage1-load-local-devport-dry-run-crawler_throttle.ndjson"
+      ]
+    },
+    {
+      "check_id": "signed_download",
+      "status": "open",
+      "evidence_refs": [
+        "ops/evidence/staging/local-devport/stage1-load-local-devport-dry-run-crawler_throttle.json",
+        "ops/evidence/staging/local-devport/stage1-load-local-devport-dry-run-crawler_throttle.ndjson"
+      ]
+    },
+    {
+      "check_id": "crawler_throttle",
+      "status": "open",
+      "evidence_refs": [
+        "ops/evidence/staging/local-devport/stage1-load-local-devport-dry-run-crawler_throttle.json",
+        "ops/evidence/staging/local-devport/stage1-load-local-devport-dry-run-crawler_throttle.ndjson"
+      ]
+    },
+    {
+      "check_id": "quota_contention",
+      "status": "open",
+      "evidence_refs": [
+        "ops/evidence/staging/local-devport/stage1-load-local-devport-dry-run-crawler_throttle.json",
+        "ops/evidence/staging/local-devport/stage1-load-local-devport-dry-run-crawler_throttle.ndjson"
+      ]
+    },
+    {
+      "check_id": "workspace_rendering",
+      "status": "open",
+      "evidence_refs": [
+        "ops/evidence/staging/local-devport/stage1-load-local-devport-dry-run-crawler_throttle.json",
+        "ops/evidence/staging/local-devport/stage1-load-local-devport-dry-run-crawler_throttle.ndjson"
+      ]
+    }
+  ],
+  "production_gate": "open_until_runtime_thresholds_and_full_staging_load_results_exist"
+}

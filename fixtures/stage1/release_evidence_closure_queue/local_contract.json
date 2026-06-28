@@ -1,0 +1,108 @@
+{
+  "schema_version": "stage1.release_evidence_closure_queue.contract.v1",
+  "fixture_id": "stage1_release_evidence_closure_queue_local_contract",
+  "kind": "release_evidence_closure_queue_contract",
+  "blueprint_items": ["AD-14", "VF-6", "VF-7", "VF-8", "OP-14"],
+  "release_gate_status": "contract_ready_evidence_closure_queue_open",
+  "required_environment": "release",
+  "canonical_preflight_path": "ops/evidence/release/staging/stage1-evidence-closure-queue.preflight.json",
+  "source_aggregates": [
+    {
+      "id": "staging_runtime",
+      "path": "ops/evidence/staging/stage1-runtime.json",
+      "required_schema_version": "stage1.staging_runtime.v1",
+      "required_kind": "stage1_staging_runtime",
+      "required_environment": "staging"
+    },
+    {
+      "id": "production_launch",
+      "path": "ops/evidence/production/stage1-production-launch.json",
+      "required_schema_version": "stage1.production_launch.v1",
+      "required_kind": "stage1_production_launch",
+      "required_environment": "production"
+    },
+    {
+      "id": "r2_bucket_readiness",
+      "path": "ops/evidence/release/staging/stage1-r2-bucket-readiness.preflight.json",
+      "required_schema_version": "stage1.r2_bucket_readiness.preflight.v1",
+      "required_kind": "stage1_r2_bucket_readiness_preflight",
+      "required_environment": "release"
+    }
+  ],
+  "required_queue_gates": [
+    "stage1_staging_runtime_preflight",
+    "staging_quota_replay",
+    "stage1_load",
+    "object_retention_cleanup",
+    "ci_pr_main_run",
+    "ci_playwright_smoke",
+    "ci_docker_image_build",
+    "stage1_production_launch_preflight",
+    "production_backup_rollback_split",
+    "production_provider_claims",
+    "production_paid_billing_lifecycle",
+    "production_security_launch_checks",
+    "production_legal_support_policy",
+    "production_governance_release"
+  ],
+    "required_queue_fields": [
+        "priority",
+        "lane",
+        "row_status",
+        "gate",
+        "required_evidence",
+        "validator",
+    "generator",
+    "current_blocker",
+    "dnl_impact"
+  ],
+  "preflight_policy": {
+    "generator_command": "python3 scripts/generate_stage1_release_evidence_closure_queue.py",
+    "validator_command": "python3 scripts/validate_stage1_release_evidence_closure_queue.py --allow-preflight",
+    "accepted_schema_version": "stage1.release_evidence_closure_queue.preflight.v1",
+    "accepted_kind": "stage1_release_evidence_closure_queue_preflight",
+    "accepted_status": "blocked",
+    "canonical_pass_path": false,
+    "can_clear_stage1_staging_runtime_gate": false,
+    "can_clear_stage1_production_launch_gate": false,
+    "can_close_do_not_launch": false,
+    "requires_strict_ci_staging_production_evidence_for_launch": true,
+    "must_preserve_do_not_launch_conditions": [
+      "stage1_staging_runtime_evidence_incomplete",
+      "stage1_production_launch_evidence_incomplete"
+    ],
+    "strict_validator_still_rejects_preflight": true
+  },
+  "safe_projection_policy": {
+    "secret_material_persisted": false,
+    "raw_prompt_persisted": false,
+    "raw_provider_payload_persisted": false,
+    "raw_stripe_payload_persisted": false,
+    "raw_support_body_projected": false,
+    "signed_url_persisted": false,
+    "authorization_header_persisted": false,
+    "cookie_persisted": false
+  },
+  "required_files": [
+    "admin/app/release/page.tsx",
+    "admin/lib/admin-api.ts",
+    "admin/lib/types.ts",
+    "admin/tests/admin-data.test.mjs",
+    "fixtures/stage1/release_evidence_closure_queue/local_contract.json",
+    "fixtures/stage1/release_readiness/local_contract.json",
+    "scripts/generate_stage1_release_evidence_closure_queue.py",
+    "scripts/fetch_stage1_ci_artifacts.py",
+    "scripts/stage1_r2_bucket_readiness.py",
+    "scripts/validate_stage1_r2_bucket_readiness.py",
+    "scripts/validate_stage1_release_evidence_closure_queue.py",
+    "scripts/validate_stage1_release_readiness_contract.py",
+    "scripts/repo_validate.sh"
+  ],
+  "non_launch_status": {
+    "local_contract": "pass",
+    "queue_evidence": "open",
+    "can_clear_stage1_staging_runtime_gate": false,
+    "can_clear_stage1_production_launch_gate": false,
+    "can_close_do_not_launch": false
+  }
+}

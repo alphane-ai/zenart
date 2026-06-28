@@ -121,6 +121,43 @@ def workflow_asset_payloads(workflow: dict[str, Any]) -> list[str]:
     return [f"assets/{asset['file_name']}" for asset in workflow["required_generated_assets"]]
 
 
+def workflow_zip_payloads(workflow: dict[str, Any]) -> list[str]:
+    payloads = workflow["runtime_evidence_contract"].get("required_export_payloads")
+    require(isinstance(payloads, list) and payloads, f"{workflow['workflow_id']} runtime evidence contract must declare required_export_payloads")
+    return payloads
+
+
+def workflow_rendered_asset_payloads(workflow: dict[str, Any]) -> list[str]:
+    rendered_payloads = [
+        payload
+        for payload in workflow_zip_payloads(workflow)
+        if payload.startswith("assets/")
+    ]
+    expected_asset_payloads: list[str] = []
+    require(
+        "assets/local-rendered-asset-manifest.json" in rendered_payloads,
+        f"{workflow['workflow_id']} ZIP payloads must include rendered asset manifest",
+    )
+    for source_payload in workflow_asset_payloads(workflow):
+        source = source_payload.removeprefix("assets/")
+        stem, dot, suffix = source.rpartition(".")
+        require(dot and suffix, f"{workflow['workflow_id']} source asset output must include extension: {source}")
+        if suffix == "json":
+            require(
+                source_payload in rendered_payloads,
+                f"{workflow['workflow_id']} ZIP payloads missing direct JSON asset payload {source_payload}",
+            )
+            expected_asset_payloads.append(source_payload)
+            continue
+        rendered = f"assets/rendered/{stem}-{suffix}.svg"
+        require(
+            rendered in rendered_payloads,
+            f"{workflow['workflow_id']} ZIP payloads missing rendered payload for {source_payload}: {rendered}",
+        )
+        expected_asset_payloads.append(rendered)
+    return expected_asset_payloads
+
+
 def validate_top_level(contract: dict[str, Any]) -> None:
     require(contract["schema_version"] == "stage0.rev2", "contract schema_version mismatch")
     require(
@@ -171,20 +208,34 @@ def validate_workflow_contract_shape(
     require(export_target["target_id"] == "zip_delivery", f"{workflow_id} first export target must be zip_delivery")
     require(export_target["format"] == "zip", f"{workflow_id} export target must be zip")
 
-    expected_assets = workflow_asset_payloads(workflow)
-    require(item["required_asset_payloads"] == expected_assets, f"{workflow_id} asset payload order mismatch")
+    expected_source_assets = workflow_asset_payloads(workflow)
+    expected_rendered_assets = workflow_rendered_asset_payloads(workflow)
+    expected_zip_payloads = workflow_zip_payloads(workflow)
+    require(item["required_asset_payloads"] == expected_rendered_assets, f"{workflow_id} asset payload order mismatch")
     require(set(item["required_manifest_payloads"]) == REQUIRED_MANIFEST_PAYLOADS, f"{workflow_id} manifest payload mismatch")
     require(set(item["required_report_payloads"]) == REQUIRED_REPORT_PAYLOADS, f"{workflow_id} report payload mismatch")
     require(set(item["required_metadata_payloads"]) == REQUIRED_METADATA_PAYLOADS, f"{workflow_id} metadata payload mismatch")
     require(item["required_strategy_taxonomy"] == workflow["four_option_taxonomy"], f"{workflow_id} taxonomy mismatch")
     require(
-        set(item["required_zip_payloads"])
-        == (set(expected_assets) | REQUIRED_MANIFEST_PAYLOADS | REQUIRED_REPORT_PAYLOADS | REQUIRED_METADATA_PAYLOADS),
+        item["required_zip_payloads"] == expected_zip_payloads,
         f"{workflow_id} ZIP payload set mismatch",
     )
+    direct_required_files = {
+        required_file
+        for required_file in export_target["required_files"]
+        if not required_file.startswith("assets/")
+    }
     require(
-        set(export_target["required_files"]) <= set(item["required_zip_payloads"]),
-        f"{workflow_id} ZIP payloads must include export target required files",
+        direct_required_files <= set(item["required_zip_payloads"]),
+        f"{workflow_id} ZIP payloads must include direct export target required files",
+    )
+    require(
+        set(export_target["required_files"]) <= set(workflow["golden_fixture"]["expected_export_files"]),
+        f"{workflow_id} golden fixture must keep source export required files",
+    )
+    require(
+        len(expected_source_assets) == len(workflow["four_option_taxonomy"]) or workflow_id == "character_ip_concept_pack",
+        f"{workflow_id} source asset count should track strategy taxonomy",
     )
 
     closure = item["closure_contract"]
@@ -260,8 +311,8 @@ def validate_runtime_evidence(item: dict[str, Any], workflow: dict[str, Any]) ->
         f"{workflow_id} manifest required files incomplete",
     )
     require(
-        manifest.get("item_count") == len(item["required_asset_payloads"]),
-        f"{workflow_id} manifest item count must match required asset payloads",
+        manifest.get("item_count") == len(workflow["required_generated_assets"]),
+        f"{workflow_id} manifest item count must match required generated assets",
     )
 
     qa_report = evidence.get("qa_report")

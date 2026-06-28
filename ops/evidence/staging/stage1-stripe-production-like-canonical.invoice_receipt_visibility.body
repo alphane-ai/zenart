@@ -1,0 +1,15 @@
+{
+  "items": [
+    {
+      "id": "in_1TlLWxGJcwf9BmgH8JN2Bazi",
+      "provider": "stripe",
+      "status": "paid",
+      "currency": "USD",
+      "amount_due_cents": 2900,
+      "amount_paid_cents": 2900,
+      "invoice_url": "https://invoice.stripe.com/i/acct_1TkcaSGJcwf9BmgH/test_YWNjdF8xVGtjYVNHSmN3ZjlCbWdILF9Va3JGZlpObXVWSDVrRlk2VnRwU0l6ekVUWTh4eTRrLDE3MjcyODIxOQ0200chHbsltC?s=ap",
+      "receipt_url": "https://pay.stripe.com/invoice/acct_1TkcaSGJcwf9BmgH/test_YWNjdF8xVGtjYVNHSmN3ZjlCbWdILF9Va3JGZlpObXVWSDVrRlk2VnRwU0l6ekVUWTh4eTRrLDE3MjcyODIxOQ0200chHbsltC/pdf?s=ap",
+      "created_at": "2026-06-23T04:01:47Z"
+    }
+  ]
+}

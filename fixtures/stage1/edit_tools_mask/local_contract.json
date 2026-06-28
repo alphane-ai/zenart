@@ -1,0 +1,105 @@
+{
+  "schema_version": "stage1.edit_tools_mask.contract.v1",
+  "kind": "edit_tools_mask_local_contract",
+  "blueprint_source": "Docs/Stage1_20260621_blueprint.md",
+  "blueprint_items": ["AS-6", "AS-7", "QA-1", "QA-9"],
+  "source_files": [
+    "backend/internal/edittools/edittools.go",
+    "backend/internal/edittools/edittools_test.go",
+    "web/lib/contracts.ts",
+    "web/lib/dev-state.ts",
+    "web/lib/api-client.ts",
+    "web/components/workspace-app.tsx",
+    "web/components/workspace-app.smoke.test.tsx",
+    "web/lib/api-client.test.ts",
+    "web/app/globals.css"
+  ],
+  "backend_edit_contract": {
+    "package": "backend/internal/edittools",
+    "tool_types": ["crop", "rotate", "flip", "remove_background", "upscale", "erase", "expand"],
+    "mask_kinds": ["brush", "rect", "lasso"],
+    "required_functions": [
+      "ValidateRequest",
+      "ValidateMask",
+      "BuildRevision",
+      "BuildProviderRequest",
+      "ProjectRevisionForUser",
+      "ValidToolType",
+      "ValidMaskKind",
+      "IsAIEditTool",
+      "IsMaskRequired"
+    ],
+    "ai_edit_tools": ["remove_background", "upscale", "erase", "expand"],
+    "mask_required_tools": ["erase", "expand"],
+    "provider_endpoint": "image.edit",
+    "original_asset_retained": true,
+    "derived_asset_revision_required": true,
+    "raw_provider_payload_persisted": false,
+    "secret_like_request_rejection": true,
+    "mask_dimensions_must_match_source": true
+  },
+  "frontend_edit_contract": {
+    "state_types": ["EditToolState", "EditMaskState", "EditToolRevision"],
+    "client_methods": ["setEditTool", "updateEditMask", "applyEditTool"],
+    "ui_marker": "stage1.edit-tools-mask-local-contract",
+    "component": "EditToolsPanel",
+    "apply_action_label": "Apply Edit Tool",
+    "operation_contract": "createUpload:POST:/uploads:include:X-Zenari-CSRF:true|createCanvasNode:POST:/workspaces/{workspace_id}/canvas/nodes:include:X-Zenari-CSRF:true|createCanvasVersion:POST:/workspaces/{workspace_id}/canvas/versions:include:X-Zenari-CSRF:true",
+    "required_data_attributes": [
+      "data-edit-tools-contract",
+      "data-edit-tools-status",
+      "data-edit-tools-active-tool",
+      "data-edit-tools-available-tools",
+      "data-edit-tools-source-asset-id",
+      "data-edit-tools-source-node-id",
+      "data-edit-tools-mask-kind",
+      "data-edit-tools-mask-width",
+      "data-edit-tools-mask-height",
+      "data-edit-tools-source-width",
+      "data-edit-tools-source-height",
+      "data-edit-tools-mask-aligned",
+      "data-edit-tools-mask-coverage",
+      "data-edit-tools-revision-count",
+      "data-edit-tools-last-revision-id",
+      "data-edit-tools-last-action",
+      "data-edit-tools-original-retained",
+      "data-edit-tools-derived-asset-id",
+      "data-edit-tools-derived-node-id",
+      "data-edit-tools-lineage-tool",
+      "data-edit-tools-raw-payload-persisted",
+      "data-edit-tools-provider-request-required",
+      "data-edit-tools-revision",
+      "data-edit-tools-revision-source-asset",
+      "data-edit-tools-revision-derived-asset",
+      "data-edit-tools-revision-derived-node",
+      "data-edit-tools-revision-original-retained",
+      "data-edit-tools-revision-raw-payload-persisted"
+    ],
+    "derived_asset_library_lineage_kind": "edit_tool_revision",
+    "derived_canvas_node_kind": "iteration",
+    "mask_aligned_default": true,
+    "original_asset_retained": true,
+    "raw_payload_persisted": false
+  },
+  "focused_tests": {
+    "go": [
+      "TestBuildRevisionKeepsOriginalAssetForNonDestructiveTransforms",
+      "TestAIEditRevisionRequiresAlignedMaskAndBuildsProviderRequest",
+      "TestEditToolRejectsMismatchedMaskSecretAndRawPayload",
+      "TestRemoveBackgroundAndUpscaleBuildProviderRequestsWithoutMask"
+    ],
+    "web": [
+      "applies local edit tools with aligned masks and derived asset revisions",
+      "exposes local edit tool mask UI and derived revision contract"
+    ]
+  },
+  "non_launch_status": {
+    "local_backend_edit_contract": "pass",
+    "local_frontend_mask_ui": "pass",
+    "real_provider_edit_adapter": "open",
+    "staging_playwright_evidence": "open",
+    "production_security_evidence": "open",
+    "can_clear_stage1_staging_runtime_gate": false,
+    "can_clear_stage1_production_security_gate": false
+  }
+}

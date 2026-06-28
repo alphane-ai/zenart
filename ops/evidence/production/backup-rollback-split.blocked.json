@@ -36,39 +36,45 @@
     }
   },
   "blocked_checks": [
-    "release_sha_missing_or_not_full_sha",
-    "ci_gate_not_go",
-    "private_beta_staging_gate_not_go",
-    "production_backup_restore_split_not_passed",
-    "production_rollback_incident_post_deploy_split_not_passed"
+    "production_gate_fixture_has_unrelated_blockers"
   ],
   "blueprint_source": "Docs/stage0_blueprint_rev2.md",
   "created_by_lane": "lane5",
   "do_not_launch_condition_ids": [
-    "backup_restore_rollback_smoke_missing",
-    "production_deploy_rollback_smoke_missing",
-    "ci_staging_gates_not_passed"
+    "paid_billing_or_comp_only_mode_missing",
+    "skill_release_eval_canary_missing",
+    "activation_eval_review_audit_runtime_missing",
+    "admin_high_risk_review_runtime_missing",
+    "abuse_throttle_hold_missing",
+    "security_privacy_legal_incomplete",
+    "secret_exposure_runtime_not_verified",
+    "public_legal_support_policy_not_deployed"
   ],
   "environment": "production",
   "evidence_id": "production-backup-rollback-split",
   "gate_impact": {
-    "aggregate_production_gate_status": "blocked_by_upstream_or_missing_exact_split_evidence",
-    "can_clear_check_level_items": false,
-    "can_clear_release_gate_check": false,
+    "aggregate_production_gate_status": "blocked_by_other_production_runtime_items",
+    "can_clear_check_level_items": true,
+    "can_clear_release_gate_check": true,
     "check_level_items": [
       "Production backup/restore runtime evidence \u901a\u8fc7\uff1aproduction evidence proves backup schedule, Postgres restore, object restore, RPO/RTO, and audit refs under `ops/evidence/production/`\u3002",
-      "Production rollback/incident/post-deploy smoke runtime evidence \u901a\u8fc7\uff1aproduction evidence proves rollback drill, incident/alert path, migration compatibility, and post-deploy smoke under `ops/evidence/production/`\u3002"
+      "Production rollback/incident/post-deploy smoke runtime evidence \u901a\u8fc7\uff1aproduction evidence proves app rollback, feature flag rollback, backend image runtime-worker rollback (/app/worker), worker drain, incident/alert path, migration compatibility, and post-deploy smoke under `ops/evidence/production/`\u3002"
     ],
     "preserved_do_not_launch_condition_ids": [
-      "backup_restore_rollback_smoke_missing",
-      "production_deploy_rollback_smoke_missing",
-      "ci_staging_gates_not_passed"
+      "paid_billing_or_comp_only_mode_missing",
+      "skill_release_eval_canary_missing",
+      "activation_eval_review_audit_runtime_missing",
+      "admin_high_risk_review_runtime_missing",
+      "abuse_throttle_hold_missing",
+      "security_privacy_legal_incomplete",
+      "secret_exposure_runtime_not_verified",
+      "public_legal_support_policy_not_deployed"
     ],
-    "preserved_release_gate_check_id": "production_backup_rollback_incident"
+    "preserved_release_gate_check_id": null
   },
   "kind": "production_backup_rollback_split_preflight",
   "release_gate_check_id": "production_backup_rollback_incident",
-  "release_sha": "",
+  "release_sha": "b885b7ac1c75cad256d774a1fed82008eea4aecf",
   "runtime_input_requirements": {
     "required_release_sha": "full production release SHA matching both exact split evidence files",
     "required_split_evidence": {
@@ -86,6 +92,10 @@
         "must_prove": [
           "app rollback",
           "feature flag rollback",
+          "backend image runtime-worker rollback",
+          "backend release image",
+          "runtime-worker backend target",
+          "/app/worker entrypoint",
           "worker drain",
           "migration compatibility",
           "incident/alert path",
@@ -101,80 +111,70 @@
   },
   "schema_version": "stage0.rev2.production.backup_rollback_split_preflight",
   "split_evidence": {
-    "all_exact_split_files_ready": false,
+    "all_exact_split_files_ready": true,
     "backup_restore": {
-      "environment": null,
-      "exists": false,
-      "missing_requirements": [
-        "missing_file"
-      ],
-      "passed": false,
+      "environment": "production",
+      "exists": true,
+      "missing_requirements": [],
+      "passed": true,
       "path": "ops/evidence/production/backup-restore.json",
-      "release_gate_check_id": null,
-      "release_sha": null,
+      "release_gate_check_id": "production_backup_rollback_incident",
+      "release_sha": "b885b7ac1c75cad256d774a1fed82008eea4aecf",
       "split_id": "backup_restore",
-      "status": "missing"
+      "status": "pass"
     },
     "rollback_incident_post_deploy_smoke": {
-      "environment": null,
-      "exists": false,
-      "missing_requirements": [
-        "missing_file"
-      ],
-      "passed": false,
+      "environment": "production",
+      "exists": true,
+      "missing_requirements": [],
+      "passed": true,
       "path": "ops/evidence/production/rollback-incident-post-deploy-smoke.json",
-      "release_gate_check_id": null,
-      "release_sha": null,
+      "release_gate_check_id": "production_backup_rollback_incident",
+      "release_sha": "b885b7ac1c75cad256d774a1fed82008eea4aecf",
       "split_id": "rollback_incident_post_deploy_smoke",
-      "status": "missing"
+      "status": "pass"
     }
   },
-  "status": "blocked_by_upstream_gates",
+  "status": "exact_split_ready_blocked_by_other_production_runtime_items",
   "upstream_gates": {
     "ci": {
-      "active_do_not_launch_conditions": [
-        "ci_workflow_not_installed",
-        "ci_gate_not_executed_on_main",
-        "ci_playwright_smoke_missing",
-        "ci_docker_image_build_missing"
-      ],
-      "blocked_by_checks": [
-        "ci_installed_workflow",
-        "ci_gate_runtime_execution",
-        "ci_playwright_smoke",
-        "ci_docker_image_build"
-      ],
+      "active_do_not_launch_conditions": [],
+      "blocked_by_checks": [],
       "exists": true,
-      "gate_decision_status": "no_go",
+      "gate_decision_status": "go",
       "path": "fixtures/stage0/rev2/release_gate_evidence.ci.json",
-      "ready": false,
+      "ready": true,
       "reason": ""
     },
-    "ci_and_private_beta_ready": false,
+    "ci_and_private_beta_ready": true,
     "private_beta_staging": {
-      "active_do_not_launch_conditions": [
-        "object_storage_signed_retention_runtime_missing"
-      ],
-      "blocked_by_checks": [
-        "staging_object_storage_signed_downloads"
-      ],
+      "active_do_not_launch_conditions": [],
+      "blocked_by_checks": [],
       "exists": true,
-      "gate_decision_status": "no_go",
+      "gate_decision_status": "go",
       "path": "fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json",
-      "ready": false,
+      "ready": true,
       "reason": ""
     },
     "production_fixture_allows_split_closure": false,
     "production_launch": {
       "active_do_not_launch_conditions": [
         "paid_billing_or_comp_only_mode_missing",
-        "backup_restore_rollback_smoke_missing",
-        "production_deploy_rollback_smoke_missing",
-        "ci_staging_gates_not_passed"
+        "skill_release_eval_canary_missing",
+        "activation_eval_review_audit_runtime_missing",
+        "admin_high_risk_review_runtime_missing",
+        "abuse_throttle_hold_missing",
+        "security_privacy_legal_incomplete",
+        "secret_exposure_runtime_not_verified",
+        "public_legal_support_policy_not_deployed"
       ],
       "blocked_by_checks": [
         "production_paid_billing_lifecycle",
-        "production_backup_rollback_incident"
+        "production_skill_release_eval_canary",
+        "production_activation_review_audit",
+        "production_abuse_throttle_hold",
+        "production_security_launch_checks",
+        "production_legal_support_policy"
       ],
       "exists": true,
       "gate_decision_status": "no_go",
@@ -183,10 +183,22 @@
       "reason": ""
     },
     "production_other_active_conditions": [
-      "paid_billing_or_comp_only_mode_missing"
+      "paid_billing_or_comp_only_mode_missing",
+      "skill_release_eval_canary_missing",
+      "activation_eval_review_audit_runtime_missing",
+      "admin_high_risk_review_runtime_missing",
+      "abuse_throttle_hold_missing",
+      "security_privacy_legal_incomplete",
+      "secret_exposure_runtime_not_verified",
+      "public_legal_support_policy_not_deployed"
     ],
     "production_other_blockers": [
-      "production_paid_billing_lifecycle"
+      "production_paid_billing_lifecycle",
+      "production_skill_release_eval_canary",
+      "production_activation_review_audit",
+      "production_abuse_throttle_hold",
+      "production_security_launch_checks",
+      "production_legal_support_policy"
     ]
   }
 }

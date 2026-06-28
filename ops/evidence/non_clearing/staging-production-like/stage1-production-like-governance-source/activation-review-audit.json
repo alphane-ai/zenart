@@ -1,0 +1,80 @@
+{
+  "activation_gates": {
+    "crawler": true,
+    "evidence_refs": [
+      "admin/lib/fixtures.ts",
+      "Docs/researches/stage1_gap_inventory.md"
+    ],
+    "export": true,
+    "prompt": true,
+    "provider": true,
+    "quota": true,
+    "safety": true,
+    "skill": true,
+    "status": "pass"
+  },
+  "allow_local_devport_evidence": false,
+  "audit_immutability": {
+    "evidence_refs": [
+      "ops/evidence/non_clearing/staging-production-like/20260527T1515Z-auth-rbac-tenant-audit.json"
+    ],
+    "immutable_audit_refs": true,
+    "status": "pass"
+  },
+  "audit_refs": [
+    "ops/evidence/non_clearing/staging-production-like/20260527T1515Z-auth-rbac-tenant-audit.json",
+    "admin/tests/admin-governance.test.mjs"
+  ],
+  "authorization_header_persisted": false,
+  "canonical_pass_path": true,
+  "check_level_only": false,
+  "cookie_persisted": false,
+  "dry_run": false,
+  "environment": "production",
+  "gate_impact": {
+    "can_clear_activation_review_audit_component": true,
+    "release_gate_check_id": "production_activation_review_audit"
+  },
+  "generated_at": "2026-06-26T05:40:12+00:00",
+  "high_risk_rbac": {
+    "all_high_risk_surfaces_covered": true,
+    "evidence_refs": [
+      "ops/evidence/non_clearing/staging-production-like/20260527T1515Z-auth-rbac-tenant-audit.json"
+    ],
+    "status": "pass"
+  },
+  "kind": "production_activation_review_audit",
+  "local_devport_debug": false,
+  "raw_prompt_persisted": false,
+  "raw_provider_payload_persisted": false,
+  "raw_stripe_payload_persisted": false,
+  "raw_support_body_projected": false,
+  "release_gate_check_id": "production_activation_review_audit",
+  "release_sha": "7123957dcc3371c6e2d1912b5c2ca418a551b943",
+  "reviewer_rationale": {
+    "evidence_refs": [
+      "admin/tests/admin-governance.test.mjs"
+    ],
+    "rationale_captured": true,
+    "rationale_required": true,
+    "status": "pass"
+  },
+  "runtime_request_ids": [
+    "staging-auth-rbac-tenant-audit-20260527T1515Z-rbac-overrides",
+    "staging-auth-rbac-tenant-audit-20260527T1515Z-audit-immutability"
+  ],
+  "schema_version": "stage1.production_activation_review_audit.v1",
+  "second_review": {
+    "distinct_reviewer_enforced": true,
+    "evidence_refs": [
+      "admin/lib/fixtures.ts",
+      "admin/tests/admin-governance.test.mjs"
+    ],
+    "required_for_high_risk": true,
+    "status": "pass"
+  },
+  "secret_material_persisted": false,
+  "signed_url_persisted": false,
+  "source_probe": "ops/evidence/non_clearing/staging-production-like/stage1-production-like-governance-source/production-governance-release-source.json",
+  "status": "pass"
+}

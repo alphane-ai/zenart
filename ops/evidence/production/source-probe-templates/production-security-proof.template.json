@@ -1,0 +1,126 @@
+{
+  "admin_surface_privacy": {
+    "evidence_refs": [
+      "replace_me:production/admin-surface-privacy"
+    ],
+    "raw_private_payload_visible": "replace_me:false",
+    "required_tokens": [
+      "privacy"
+    ],
+    "status": "template_only"
+  },
+  "allow_local_devport_evidence": false,
+  "audit_refs": {
+    "refs": [
+      "replace_me:production/security-launch-audit"
+    ],
+    "required_tokens": [
+      "audit"
+    ],
+    "status": "template_only"
+  },
+  "authorization_header_persisted": false,
+  "cookie_persisted": false,
+  "csp_headers": {
+    "csp_present": "replace_me:true",
+    "evidence_refs": [
+      "replace_me:production/csp-headers"
+    ],
+    "required_tokens": [
+      "Content-Security-Policy"
+    ],
+    "status": "template_only"
+  },
+  "csrf_same_site_enforcement": {
+    "cross_site_mutations_denied": "replace_me:true",
+    "evidence_refs": [
+      "replace_me:production/csrf-same-site-enforcement"
+    ],
+    "required_tokens": [
+      "cross-site mutation denied"
+    ],
+    "status": "template_only"
+  },
+  "dry_run": false,
+  "environment": "production",
+  "generated_at": "2026-06-28T02:27:47+00:00",
+  "kind": "production_security_launch_proof_template",
+  "local_devport_debug": false,
+  "operator_note": "Replace replace_me values with sanitized production security runtime evidence refs and booleans. Set each section status to pass only after the production probe actually ran. This is input for scripts/stage1_production_source_probe.py --security; it is not a canonical production source file.",
+  "provider_key_containment": {
+    "evidence_refs": [
+      "replace_me:production/provider-key-containment"
+    ],
+    "frontend_secret_exposure_count": "replace_me:0",
+    "required_tokens": [
+      "key containment"
+    ],
+    "status": "template_only"
+  },
+  "rate_limit_spend_cap": {
+    "evidence_refs": [
+      "replace_me:production/rate-limit-spend-cap"
+    ],
+    "kill_switch_ready": "replace_me:true",
+    "required_tokens": [
+      "rate limit",
+      "spend cap"
+    ],
+    "status": "template_only"
+  },
+  "raw_prompt_persisted": false,
+  "raw_provider_payload_persisted": false,
+  "raw_stripe_payload_persisted": false,
+  "raw_support_body_projected": false,
+  "rbac_tenant_isolation": {
+    "cross_tenant_denials": "replace_me:true",
+    "evidence_refs": [
+      "replace_me:production/rbac-tenant-isolation"
+    ],
+    "required_tokens": [
+      "tenant isolation"
+    ],
+    "status": "template_only"
+  },
+  "release_sha": "0123456789abcdef0123456789abcdef01234567",
+  "schema_version": "stage1.production_security_proof.template.v1",
+  "secret_exposure_redaction": {
+    "evidence_refs": [
+      "replace_me:production/secret-exposure-redaction"
+    ],
+    "raw_secret_exposure_count": "replace_me:0",
+    "required_tokens": [
+      "redacted"
+    ],
+    "status": "template_only"
+  },
+  "secret_material_persisted": false,
+  "secure_session_cookie": {
+    "evidence_refs": [
+      "replace_me:production/secure-session-cookie"
+    ],
+    "http_only": "replace_me:true",
+    "required_tokens": [
+      "HttpOnly",
+      "Secure",
+      "SameSite"
+    ],
+    "same_site": "replace_me:lax|strict",
+    "secure": "replace_me:true",
+    "status": "template_only"
+  },
+  "signed_url_persisted": false,
+  "status": "template_only",
+  "stripe_live_test_separation": {
+    "evidence_refs": [
+      "replace_me:production/stripe-live-test-separation"
+    ],
+    "live_mode_isolated": "replace_me:true",
+    "required_tokens": [
+      "live",
+      "test isolated"
+    ],
+    "status": "template_only"
+  },
+  "template_only": true
+}

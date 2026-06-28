@@ -1,0 +1,58 @@
+{
+  "schema_version": "stage1.export_ops.contract.v1",
+  "fixture_id": "stage1_export_ops_admin_contract",
+  "kind": "export_ops_admin_contract",
+  "blueprint_items": ["AD-10", "AS-10", "AS-12", "QA-5", "VF-5"],
+  "required_backend_routes": [
+    "GET /api/admin/v1/exports",
+    "POST /api/admin/v1/exports/{export_id}/regenerate",
+    "POST /api/admin/v1/exports/{export_id}/override",
+    "POST /api/admin/v1/exports/cleanup"
+  ],
+  "required_permissions": {
+    "read": "export:read",
+    "regenerate": "export_override:admin",
+    "override": "export_override:admin",
+    "cleanup": "object_cleanup:admin"
+  },
+  "required_controls": [
+    "admin export page prefers live API rows and falls back to fixtures only when backend is unavailable",
+    "list projection includes signed URL presence, retention_until, blocked reasons, manifest, QA report, provenance, and trace",
+    "regenerate export requires Idempotency-Key, same-site CSRF, rationale, second reviewer, and audit",
+    "override decision requires Idempotency-Key, same-site CSRF, non-secret rationale, audit-before-persistence, and idempotency-key storage",
+    "override local contract never directly opens final download access",
+    "cleanup action is explicit, second-review capable, and dry-run safe by default"
+  ],
+  "required_openapi_operations": [
+    "listExports",
+    "regenerateExport",
+    "createExportOverride"
+  ],
+  "required_generated_client_operations": [
+    "listExports",
+    "regenerateExport",
+    "createExportOverride"
+  ],
+  "required_files": [
+    "backend/migrations/0017_stage1_export_override_ops.sql",
+    "backend/internal/stage0/services.go",
+    "backend/internal/stage0/services_test.go",
+    "backend/internal/server/server.go",
+    "backend/internal/server/server_test.go",
+    "openapi/zenart.v1.yaml",
+    "admin/lib/generated/zenart-api.ts",
+    "admin/lib/admin-api.ts",
+    "admin/lib/types.ts",
+    "admin/app/exports/actions.ts",
+    "admin/app/exports/page.tsx",
+    "admin/app/exports/[id]/page.tsx",
+    "admin/tests/admin-data.test.mjs"
+  ],
+  "non_launch_status": {
+    "local_contract": "pass",
+    "staging_evidence": "open",
+    "can_clear_stage1_safety_qa_gate": false,
+    "can_clear_stage1_staging_runtime_gate": false,
+    "can_clear_object_retention_gate": false
+  }
+}

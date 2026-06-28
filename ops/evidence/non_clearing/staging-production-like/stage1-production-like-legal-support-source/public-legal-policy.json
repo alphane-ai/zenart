@@ -1,0 +1,149 @@
+{
+  "allow_local_devport_evidence": false,
+  "audit_refs": [
+    "production-http-probe://legal-support/7123957dcc3371c6e2d1912b5c2ca418a551b943/legal"
+  ],
+  "authorization_header_persisted": false,
+  "canonical_pass_path": true,
+  "check_level_only": false,
+  "cookie_persisted": false,
+  "coverage": [
+    {
+      "area": "public_legal_pages",
+      "evidence_refs": [
+        "a119d706ac48683e-SEA:/legal/terms",
+        "a119d70b1fe5fc2f-SEA:/legal/privacy",
+        "a119d70f8bbe682f-SEA:/legal/acceptable-use",
+        "a119d713dc68a4ad-SEA:/support",
+        "a119d7181b2b76f4-SEA:/legal/ip-complaints"
+      ],
+      "status": "pass"
+    },
+    {
+      "area": "gate_clearance",
+      "evidence_refs": [
+        "a119d706ac48683e-SEA:/legal/terms",
+        "a119d70b1fe5fc2f-SEA:/legal/privacy",
+        "a119d70f8bbe682f-SEA:/legal/acceptable-use",
+        "a119d713dc68a4ad-SEA:/support",
+        "a119d7181b2b76f4-SEA:/legal/ip-complaints"
+      ],
+      "status": "pass"
+    }
+  ],
+  "dry_run": false,
+  "environment": "production",
+  "gate_impact": {
+    "can_clear_public_legal_subitem": true,
+    "release_gate_check_id": "production_legal_support_policy"
+  },
+  "generated_at": "2026-06-26T05:34:00+00:00",
+  "kind": "production_public_legal_policy",
+  "local_devport_debug": false,
+  "page_probes": [
+    {
+      "admin_session_required": false,
+      "evidence_refs": [
+        "a119d706ac48683e-SEA:/legal/terms"
+      ],
+      "external_user_visible": true,
+      "http_status": 200,
+      "page_id": "terms",
+      "path": "/legal/terms",
+      "required_tokens": [
+        "Terms",
+        "support contact",
+        "AI content"
+      ],
+      "status": "pass",
+      "visibility": "public"
+    },
+    {
+      "admin_session_required": false,
+      "evidence_refs": [
+        "a119d70b1fe5fc2f-SEA:/legal/privacy"
+      ],
+      "external_user_visible": true,
+      "http_status": 200,
+      "page_id": "privacy",
+      "path": "/legal/privacy",
+      "required_tokens": [
+        "Privacy",
+        "data deletion",
+        "support contact"
+      ],
+      "status": "pass",
+      "visibility": "public"
+    },
+    {
+      "admin_session_required": false,
+      "evidence_refs": [
+        "a119d70f8bbe682f-SEA:/legal/acceptable-use"
+      ],
+      "external_user_visible": true,
+      "http_status": 200,
+      "page_id": "acceptable_use",
+      "path": "/legal/acceptable-use",
+      "required_tokens": [
+        "Acceptable Use",
+        "abuse",
+        "support contact"
+      ],
+      "status": "pass",
+      "visibility": "public"
+    },
+    {
+      "admin_session_required": false,
+      "evidence_refs": [
+        "a119d713dc68a4ad-SEA:/support"
+      ],
+      "external_user_visible": true,
+      "http_status": 200,
+      "page_id": "ai_content_disclaimer",
+      "path": "/support",
+      "required_tokens": [
+        "AI content",
+        "responsibility",
+        "review"
+      ],
+      "status": "pass",
+      "visibility": "public"
+    },
+    {
+      "admin_session_required": false,
+      "evidence_refs": [
+        "a119d7181b2b76f4-SEA:/legal/ip-complaints"
+      ],
+      "external_user_visible": true,
+      "http_status": 200,
+      "page_id": "ip_complaint",
+      "path": "/legal/ip-complaints",
+      "required_tokens": [
+        "IP complaint",
+        "copyright",
+        "trademark",
+        "takedown"
+      ],
+      "status": "pass",
+      "visibility": "public"
+    }
+  ],
+  "raw_prompt_persisted": false,
+  "raw_provider_payload_persisted": false,
+  "raw_stripe_payload_persisted": false,
+  "raw_support_body_projected": false,
+  "release_gate_check_id": "production_legal_support_policy",
+  "release_sha": "7123957dcc3371c6e2d1912b5c2ca418a551b943",
+  "runtime_request_ids": [
+    "a119d706ac48683e-SEA",
+    "a119d70b1fe5fc2f-SEA",
+    "a119d70f8bbe682f-SEA",
+    "a119d713dc68a4ad-SEA",
+    "a119d7181b2b76f4-SEA"
+  ],
+  "schema_version": "stage1.production_legal_policy.v1",
+  "secret_material_persisted": false,
+  "signed_url_persisted": false,
+  "source_probe": "ops/evidence/non_clearing/staging-production-like/stage1-production-like-legal-support-source/production-legal-support-source.json",
+  "status": "pass"
+}

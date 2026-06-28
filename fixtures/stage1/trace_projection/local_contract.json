@@ -1,0 +1,81 @@
+{
+  "schema_version": "stage1.trace_projection.contract.v1",
+  "kind": "backend_trace_projection_contract",
+  "blueprint_source": "Docs/Stage1_20260621_blueprint.md",
+  "blueprint_items": ["BE-10", "BE-11", "WK-9", "AS-10", "QA-8"],
+  "backend_package": "backend/internal/trace",
+  "openapi_source": "openapi/zenart.v1.yaml",
+  "prompt_context_payload": {
+    "required_fields": ["text", "selected_object_ids", "reference_asset_ids", "brand_kit_id", "model_hints", "tool_hint"],
+    "text_kept_internal_only": true,
+    "user_export_projection_uses_text_sha256": true,
+    "selected_objects_projected": true,
+    "assets_projected": true,
+    "brand_projected": true,
+    "model_hints_projected": true,
+    "tool_hint_projected": true
+  },
+  "trace_projection": {
+    "workflow": "batch_generation",
+    "required_safe_fields": [
+      "trace_id",
+      "visible_trace_ref",
+      "task_id",
+      "workflow",
+      "task_status",
+      "prompt_context.text_sha256",
+      "prompt_context.selected_object_ids",
+      "prompt_context.reference_asset_ids",
+      "prompt_context.brand_kit_id",
+      "prompt_context.model_hints",
+      "prompt_context.tool_hint",
+      "provider_id",
+      "model_id",
+      "tool_type",
+      "provider_response_id",
+      "provider_response_status",
+      "request_hash",
+      "asset_ids",
+      "canvas_object_ids",
+      "user_trace_projection",
+      "admin_trace_projection",
+      "export_retention_projection"
+    ],
+    "user_visible_fields": ["trace_id", "task_id", "workflow", "task_status", "user_message", "final_export_allowed", "denial_reasons", "export_id"],
+    "user_hidden_fields": [
+      "provider_payload",
+      "internal_prompt",
+      "raw_safety_payload",
+      "safety_rule_rationale",
+      "admin_audit_notes",
+      "quota_transaction_internal_metadata",
+      "agent_step_payload"
+    ],
+    "admin_visible_tables": ["agent_traces", "eval_results", "qa_results", "safety_decisions", "exports", "audit_logs"],
+    "retained_files": ["manifest.json", "qa_report.json", "metadata.json", "trace_provenance.json", "safety_disclaimer.md"],
+    "retained_when_blocked": ["qa_report.json", "trace_provenance.json", "safety_disclaimer.md"]
+  },
+  "red_line_policy": {
+    "raw_prompt_projected": false,
+    "raw_provider_payload_saved": false,
+    "raw_safety_payload_projected": false,
+    "provider_payload_field_allowed": false,
+    "internal_prompt_field_allowed": false,
+    "raw_safety_payload_field_allowed": false,
+    "secret_projection_allowed": false
+  },
+  "runtime_wiring": {
+    "batch_result_sink_builder": "backend/internal/task/batchResultTraceProjection",
+    "trace_builder": "backend/internal/trace.BuildTraceProjection",
+    "prompt_builder": "backend/internal/trace.BuildPromptContextPayload",
+    "result_sink_metadata": "trace_projection",
+    "result_sink_storage_state": "object_store_manifest"
+  },
+  "non_launch_status": {
+    "local_contract": "pass",
+    "staging_trace_runtime_evidence": "open",
+    "production_security_evidence": "open",
+    "can_clear_stage1_staging_runtime_gate": false,
+    "can_clear_stage1_production_security_gate": false
+  }
+}

@@ -1,0 +1,158 @@
+{
+  "blocked_checks": [],
+  "blueprint_source": "Docs/stage0_blueprint_rev2.md",
+  "checks": [
+    {
+      "check_id": "chat_task",
+      "evidence_refs": [
+        "ops/evidence/staging/stage1-load-staging-20260624T062450Z-chat_task.ndjson",
+        "ops/evidence/staging/stage1-load-staging-20260624T062450Z-chat_task.json"
+      ],
+      "metrics": {
+        "billing_webhook_failure_rate": 0,
+        "error_rate": 0.0,
+        "export_success_rate": 1.0,
+        "p95_ms": 4494,
+        "provider_fallback_rate": 0,
+        "queue_delay_p95_ms": 0,
+        "request_count": 20
+      },
+      "status": "failed"
+    },
+    {
+      "check_id": "worker_generation",
+      "evidence_refs": [
+        "ops/evidence/staging/stage1-load-staging-20260624T062450Z-worker_generation.ndjson",
+        "ops/evidence/staging/stage1-load-staging-20260624T062450Z-worker_generation.json"
+      ],
+      "metrics": {
+        "billing_webhook_failure_rate": 0,
+        "error_rate": 0.0,
+        "export_success_rate": 1.0,
+        "p95_ms": 834,
+        "provider_fallback_rate": 0,
+        "queue_delay_p95_ms": 0,
+        "request_count": 20
+      },
+      "status": "passed"
+    },
+    {
+      "check_id": "zip_export",
+      "evidence_refs": [
+        "ops/evidence/staging/stage1-load-staging-20260624T062450Z-zip_export.ndjson",
+        "ops/evidence/staging/stage1-load-staging-20260624T062450Z-zip_export.json"
+      ],
+      "metrics": {
+        "billing_webhook_failure_rate": 0,
+        "error_rate": 0.0,
+        "export_success_rate": 1.0,
+        "p95_ms": 1198,
+        "provider_fallback_rate": 0,
+        "queue_delay_p95_ms": 0,
+        "request_count": 20
+      },
+      "status": "passed"
+    },
+    {
+      "check_id": "signed_download",
+      "evidence_refs": [
+        "ops/evidence/staging/stage1-load-staging-20260624T062450Z-signed_download.ndjson",
+        "ops/evidence/staging/stage1-load-staging-20260624T062450Z-signed_download.json"
+      ],
+      "metrics": {
+        "billing_webhook_failure_rate": 0,
+        "error_rate": 0.0,
+        "export_success_rate": 1.0,
+        "p95_ms": 837,
+        "provider_fallback_rate": 0,
+        "queue_delay_p95_ms": 0,
+        "request_count": 20
+      },
+      "status": "passed"
+    },
+    {
+      "check_id": "crawler_throttle",
+      "evidence_refs": [
+        "ops/evidence/staging/stage1-load-staging-20260624T062450Z-crawler_throttle.ndjson",
+        "ops/evidence/staging/stage1-load-staging-20260624T062450Z-crawler_throttle.json"
+      ],
+      "metrics": {
+        "billing_webhook_failure_rate": 0,
+        "error_rate": 0.0,
+        "export_success_rate": 1.0,
+        "p95_ms": 1177,
+        "provider_fallback_rate": 0,
+        "queue_delay_p95_ms": 0,
+        "request_count": 20
+      },
+      "status": "passed"
+    },
+    {
+      "check_id": "quota_contention",
+      "evidence_refs": [
+        "ops/evidence/staging/stage1-load-staging-20260624T062450Z-quota_contention.ndjson",
+        "ops/evidence/staging/stage1-load-staging-20260624T062450Z-quota_contention.json"
+      ],
+      "metrics": {
+        "billing_webhook_failure_rate": 0,
+        "error_rate": 0.0,
+        "export_success_rate": 1.0,
+        "p95_ms": 873,
+        "provider_fallback_rate": 0,
+        "queue_delay_p95_ms": 0,
+        "request_count": 20
+      },
+      "status": "passed"
+    },
+    {
+      "check_id": "workspace_rendering",
+      "evidence_refs": [
+        "ops/evidence/staging/stage1-load-staging-20260624T062450Z-workspace_rendering.ndjson",
+        "ops/evidence/staging/stage1-load-staging-20260624T062450Z-workspace_rendering.json"
+      ],
+      "metrics": {
+        "billing_webhook_failure_rate": 0,
+        "error_rate": 0.0,
+        "export_success_rate": 1.0,
+        "p95_ms": 824,
+        "provider_fallback_rate": 0,
+        "queue_delay_p95_ms": 0,
+        "request_count": 20
+      },
+      "status": "passed"
+    }
+  ],
+  "concurrency": 4,
+  "created_at": "stage1-load-staging-20260624T062450Z.candidate.json",
+  "created_by_lane": "lane5",
+  "environment": "local",
+  "failed_modes": [],
+  "kind": "load",
+  "missing_modes": [],
+  "mode": "all",
+  "mode_reports": [
+    "ops/evidence/staging/stage1-load-staging-20260624T062450Z-chat_task.json",
+    "ops/evidence/staging/stage1-load-staging-20260624T062450Z-worker_generation.json",
+    "ops/evidence/staging/stage1-load-staging-20260624T062450Z-zip_export.json",
+    "ops/evidence/staging/stage1-load-staging-20260624T062450Z-signed_download.json",
+    "ops/evidence/staging/stage1-load-staging-20260624T062450Z-crawler_throttle.json",
+    "ops/evidence/staging/stage1-load-staging-20260624T062450Z-quota_contention.json",
+    "ops/evidence/staging/stage1-load-staging-20260624T062450Z-workspace_rendering.json"
+  ],
+  "private_beta_gate": "open_until_this_all_mode_report_is_generated_from_staging_targets_and_attached_to_post_deploy_smoke",
+  "production_gate": "open_until_runtime_thresholds_and_full_production_load_results_exist",
+  "release_sha": "7123957dcc3371c6e2d1912b5c2ca418a551b943",
+  "requests_per_mode": 20,
+  "run_id": "stage1-load-staging-20260624T062450Z.candidate",
+  "status": "failed",
+  "target_readiness": {
+    "admin_url_ready": true,
+    "api_url_ready": true,
+    "web_url_ready": true
+  },
+  "target_urls": {
+    "admin": "https://staging.zenari.ai/admin",
+    "api": "https://staging.zenari.ai",
+    "web": "https://staging.zenari.ai"
+  }
+}

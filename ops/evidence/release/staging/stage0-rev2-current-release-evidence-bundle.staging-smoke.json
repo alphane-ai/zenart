@@ -1,6 +1,6 @@
 {
-  "admin_url": "",
-  "base_url": "",
+  "admin_url": "https://staging.zenari.ai/admin",
+  "base_url": "https://staging.zenari.ai",
   "blueprint_checklist_item": "Staging post-deploy smoke tests \u901a\u8fc7\u3002",
   "blueprint_source": "Docs/stage0_blueprint_rev2.md",
   "created_at": "stage0-rev2-current-release-evidence-bundle.staging-smoke",
@@ -9,7 +9,7 @@
   "evidence_path_policy": "ops/evidence/staging/",
   "gate_impact": {
     "aggregate_checklist_item": "Private Beta/Staging observability/backup/load runtime evidence \u901a\u8fc7\u3002",
-    "can_clear_post_deploy_smoke_item": false,
+    "can_clear_post_deploy_smoke_item": true,
     "post_deploy_checklist_item": "Staging post-deploy smoke tests \u901a\u8fc7\u3002",
     "preserved_do_not_launch_condition_id": "staging_observability_restore_load_missing",
     "preserved_release_gate_check_id": "staging_observability_backup_load"
@@ -19,8 +19,8 @@
   "production_gate": "open_until_post_deploy_smoke_passes_for_approved_release_sha_with_attached_release_notes",
   "profile": "post_deploy",
   "release_gate_check_id": "staging_observability_backup_load",
-  "release_notes_path": "",
-  "release_sha": "",
+  "release_notes_path": "ops/release/stage1_release_candidate_metadata_draft.md",
+  "release_sha": "b885b7ac1c75cad256d774a1fed82008eea4aecf",
   "release_tag": "",
   "request_id_header": "X-Request-ID",
   "request_id_value": "stage0-staging-smoke",
@@ -38,7 +38,7 @@
   ],
   "results_path": "ops/evidence/release/staging/stage0-rev2-current-release-evidence-bundle.staging-smoke.ndjson",
   "run_id": "stage0-rev2-current-release-evidence-bundle.staging-smoke",
-  "status": "planned",
+  "status": "passed",
   "summary": {
     "categories": [
       "admin",
@@ -55,83 +55,39 @@
     "check_count": 12,
     "failure_count": 0,
     "go_no_go": {
-      "blocked_conditions": [
-        "private_beta_staging:staging_object_storage_signed_downloads",
-        "private_beta_staging:object_storage_signed_retention_runtime_missing",
-        "production_launch:production_paid_billing_lifecycle",
-        "production_launch:production_backup_rollback_incident",
-        "production_launch:paid_billing_or_comp_only_mode_missing",
-        "production_launch:backup_restore_rollback_smoke_missing",
-        "production_launch:production_deploy_rollback_smoke_missing",
-        "production_launch:ci_staging_gates_not_passed"
-      ],
-      "blocking_reasons": [
-        "staging_smoke_not_passed",
-        "post_deploy_smoke_contract_unverified",
-        "missing_release_evidence:backup_restore_evidence",
-        "missing_release_evidence:config_diff_evidence",
-        "missing_release_evidence:image_refs",
-        "missing_release_evidence:load_evidence",
-        "missing_release_evidence:migration_evidence",
-        "missing_release_evidence:observability_evidence",
-        "missing_release_evidence:release_notes_path",
-        "missing_release_evidence:release_sha",
-        "missing_release_evidence:rollback_evidence",
-        "missing_release_evidence:security_scan_evidence",
-        "unverified_release_evidence:backup_restore_evidence",
-        "unverified_release_evidence:config_diff_evidence",
-        "unverified_release_evidence:image_refs",
-        "unverified_release_evidence:load_evidence",
-        "unverified_release_evidence:migration_evidence",
-        "unverified_release_evidence:observability_evidence",
-        "unverified_release_evidence:release_notes_path",
-        "unverified_release_evidence:rollback_evidence",
-        "unverified_release_evidence:security_scan_evidence",
-        "gate_fixture_blocked:private_beta_staging:staging_object_storage_signed_downloads",
-        "gate_fixture_blocked:private_beta_staging:object_storage_signed_retention_runtime_missing",
-        "gate_fixture_blocked:production_launch:production_paid_billing_lifecycle",
-        "gate_fixture_blocked:production_launch:production_backup_rollback_incident",
-        "gate_fixture_blocked:production_launch:paid_billing_or_comp_only_mode_missing",
-        "gate_fixture_blocked:production_launch:backup_restore_rollback_smoke_missing",
-        "gate_fixture_blocked:production_launch:production_deploy_rollback_smoke_missing",
-        "gate_fixture_blocked:production_launch:ci_staging_gates_not_passed"
-      ],
-      "decision": "no-go",
+      "blocked_conditions": [],
+      "blocking_reasons": [],
+      "decision": "go",
       "decision_inputs": {
-        "gate_fixtures_clear": false,
-        "post_deploy_smoke_verified": false,
+        "gate_fixtures_clear": true,
+        "post_deploy_smoke_verified": true,
         "profile_post_deploy": true,
-        "release_evidence_complete": false,
-        "smoke_passed": false
+        "release_evidence_complete": true,
+        "smoke_passed": true
       },
-      "gate_fixtures_clear": false,
-      "missing_release_evidence_slots": [
-        "backup_restore_evidence",
-        "config_diff_evidence",
-        "image_refs",
-        "load_evidence",
-        "migration_evidence",
-        "observability_evidence",
-        "release_notes_path",
-        "release_sha",
-        "rollback_evidence",
-        "security_scan_evidence"
+      "gate_fixtures_clear": true,
+      "missing_release_evidence_slots": [],
+      "post_deploy_smoke_verified": true,
+      "production_context_blocked_conditions": [
+        "production_launch:production_paid_billing_lifecycle",
+        "production_launch:production_skill_release_eval_canary",
+        "production_launch:production_activation_review_audit",
+        "production_launch:production_abuse_throttle_hold",
+        "production_launch:production_security_launch_checks",
+        "production_launch:production_legal_support_policy",
+        "production_launch:paid_billing_or_comp_only_mode_missing",
+        "production_launch:skill_release_eval_canary_missing",
+        "production_launch:activation_eval_review_audit_runtime_missing",
+        "production_launch:admin_high_risk_review_runtime_missing",
+        "production_launch:abuse_throttle_hold_missing",
+        "production_launch:security_privacy_legal_incomplete",
+        "production_launch:secret_exposure_runtime_not_verified",
+        "production_launch:public_legal_support_policy_not_deployed"
       ],
-      "post_deploy_smoke_verified": false,
-      "release_evidence_complete": false,
-      "release_evidence_verified": false,
-      "smoke_passed": false,
-      "unverified_release_evidence_slots": [
-        "backup_restore_evidence",
-        "config_diff_evidence",
-        "image_refs",
-        "load_evidence",
-        "migration_evidence",
-        "observability_evidence",
-        "release_notes_path",
-        "rollback_evidence",
-        "security_scan_evidence"
-      ]
+      "release_evidence_complete": true,
+      "release_evidence_verified": true,
+      "smoke_passed": true,
+      "unverified_release_evidence_slots": []
     },
     "missing_required_categories": [],
     "post_deploy_smoke_evidence": {
@@ -139,20 +95,7 @@
         "passed"
       ],
       "expected_evidence_kind": "post_deploy_smoke",
-      "failed_checks": [
-        "backend_health",
-        "backend_ready",
-        "observability_request_id",
-        "web_home",
-        "admin_home",
-        "user_task_auth_boundary",
-        "admin_audit_auth_boundary",
-        "task_status",
-        "export_create",
-        "export_status",
-        "crawler_sources",
-        "quota_rate_limit"
-      ],
+      "failed_checks": [],
       "missing_required_categories": [],
       "present_categories": [
         "admin",
@@ -167,18 +110,9 @@
         "worker_task"
       ],
       "profile": "post_deploy",
-      "reason": "post_deploy_smoke_failed_semantic_checks:release_sha_present,status_passed,all_checks_passed,request_id_checks_passed,seeded_runtime_inputs_present",
       "report_path": "ops/evidence/release/staging/stage0-rev2-current-release-evidence-bundle.staging-smoke.json",
-      "request_id_check_count": 7,
-      "request_id_failed_checks": [
-        "backend_health",
-        "observability_request_id",
-        "task_status",
-        "export_create",
-        "export_status",
-        "crawler_sources",
-        "quota_rate_limit"
-      ],
+      "request_id_check_count": 12,
+      "request_id_failed_checks": [],
       "required_categories": [
         "admin",
         "auth_boundary",
@@ -192,59 +126,149 @@
         "worker_task"
       ],
       "required_environment": "staging",
-      "seeded_missing": [
-        "smoke_export_id",
-        "smoke_package_id",
-        "smoke_task_id",
-        "smoke_tenant_id",
-        "smoke_user_id"
-      ],
+      "seeded_missing": [],
       "semantic_checks": {
-        "all_checks_passed": false,
+        "all_checks_passed": true,
         "all_required_categories_present": true,
         "environment_staging": true,
         "evidence_kind_post_deploy_smoke": true,
         "profile_post_deploy": true,
-        "release_sha_present": false,
-        "request_id_checks_passed": false,
-        "seeded_runtime_inputs_present": false,
-        "status_passed": false
+        "release_sha_present": true,
+        "request_id_checks_passed": true,
+        "seeded_runtime_inputs_present": true,
+        "status_passed": true
       },
-      "verified": false
+      "verified": true
     },
     "release_evidence": {
-      "complete": false,
+      "complete": true,
       "evidence_refs": {
-        "backup_restore": "",
-        "config_diff": "",
-        "load": "",
-        "migration": "",
-        "observability": "",
-        "rollback": "",
-        "security_scan": ""
+        "backup_restore": "ops/evidence/release/staging/stage1-strict-backup-restore-evidence.json",
+        "config_diff": "ops/evidence/release/staging/stage1-strict-config-diff-evidence.json",
+        "load": "ops/evidence/release/staging/stage1-strict-load-evidence.json",
+        "migration": "ops/evidence/release/staging/stage1-strict-migration-evidence.json",
+        "observability": "ops/evidence/release/staging/stage1-strict-observability-evidence.json",
+        "rollback": "ops/evidence/release/staging/stage1-strict-rollback-evidence.json",
+        "security_scan": "ops/evidence/staging/20260624T112854Z-security-scan-smoke-98675.json"
       },
-      "image_refs": [],
+      "image_refs": [
+        "ghcr.io/alphane-ai/zenari-backend:b885b7ac1c75cad256d774a1fed82008eea4aecf@sha256:43f931dd9e5be4c6dd3c798eb90f531185b2b60c593fe9d8eb83349bffc6669a",
+        "ghcr.io/alphane-ai/zenari-web:b885b7ac1c75cad256d774a1fed82008eea4aecf@sha256:3ddc8a76d75df96a46b2fff274d3dfd8fc39642f57f0c913692218e739a0f7db",
+        "ghcr.io/alphane-ai/zenari-admin:b885b7ac1c75cad256d774a1fed82008eea4aecf@sha256:4121fa88ebd5565f69aee4cbf28ac5c238a7f6ae1af1b4861a4e6c7e66c1727b"
+      ],
       "local_evidence_verification": {
         "backup_restore_evidence": {
           "accepted_statuses": [
             "passed"
           ],
-          "exists": false,
+          "backup_restore_contract": {
+            "evidence_ref_counts": {
+              "object_restore": 4,
+              "postgres_restore": 4
+            },
+            "evidence_refs": {
+              "object_restore": [
+                {
+                  "exists": true,
+                  "field": "evidence_refs",
+                  "kind": "local_file",
+                  "path": "ops/evidence/staging/object-storage-retention-cleanup.json",
+                  "ref": "ops/evidence/staging/object-storage-retention-cleanup.json"
+                },
+                {
+                  "exists": true,
+                  "field": "evidence_refs",
+                  "kind": "local_file",
+                  "path": "ops/evidence/staging/stage1-load.json",
+                  "ref": "ops/evidence/staging/stage1-load.json"
+                },
+                {
+                  "exists": true,
+                  "field": "evidence_refs",
+                  "kind": "local_file",
+                  "path": "scripts/backup_restore_drill.sh",
+                  "ref": "scripts/backup_restore_drill.sh"
+                },
+                {
+                  "exists": true,
+                  "field": "report_path",
+                  "kind": "local_file",
+                  "path": "ops/evidence/staging/object-storage-retention-cleanup.json",
+                  "ref": "ops/evidence/staging/object-storage-retention-cleanup.json"
+                }
+              ],
+              "postgres_restore": [
+                {
+                  "exists": true,
+                  "field": "evidence_refs",
+                  "kind": "local_file",
+                  "path": "ops/evidence/staging/20260527T2115Z-backup-restore.json",
+                  "ref": "ops/evidence/staging/20260527T2115Z-backup-restore.json"
+                },
+                {
+                  "exists": true,
+                  "field": "evidence_refs",
+                  "kind": "local_file",
+                  "path": "scripts/backup_restore_drill.sh",
+                  "ref": "scripts/backup_restore_drill.sh"
+                },
+                {
+                  "exists": true,
+                  "field": "evidence_refs",
+                  "kind": "local_file",
+                  "path": "backend/migrations",
+                  "ref": "backend/migrations"
+                },
+                {
+                  "exists": true,
+                  "field": "report_path",
+                  "kind": "local_file",
+                  "path": "ops/evidence/staging/20260527T2115Z-backup-restore.json",
+                  "ref": "ops/evidence/staging/20260527T2115Z-backup-restore.json"
+                }
+              ]
+            },
+            "missing": [],
+            "missing_evidence_ref": [],
+            "not_passed": [],
+            "present": [
+              "object_restore",
+              "postgres_restore"
+            ],
+            "required": [
+              "object_restore",
+              "postgres_restore"
+            ],
+            "verified": true
+          },
+          "environment_values": [
+            "staging"
+          ],
+          "evidence_kind_values": [
+            "backup_restore"
+          ],
+          "exists": true,
           "expected_evidence_kind": "backup_restore",
-          "kind": "missing",
-          "reason": "missing_ref",
-          "ref": "",
+          "kind": "local_file",
+          "path": "ops/evidence/release/staging/stage1-strict-backup-restore-evidence.json",
+          "ref": "ops/evidence/release/staging/stage1-strict-backup-restore-evidence.json",
           "required_environment": "staging",
           "semantic_checks": {
-            "environment_staging": false,
-            "evidence_kind_match": false,
-            "json_parseable": false,
-            "release_sha_match": false,
-            "release_sha_present": false,
-            "status_accepted": false
+            "environment_staging": true,
+            "evidence_kind_match": true,
+            "json_parseable": true,
+            "release_sha_match": true,
+            "release_sha_present": true,
+            "status_accepted": true
           },
-          "sha_match": false,
-          "verified": false
+          "sha_match": true,
+          "sha_values": [
+            "b885b7ac1c75cad256d774a1fed82008eea4aecf"
+          ],
+          "status_values": [
+            "passed"
+          ],
+          "verified": true
         },
         "config_diff_evidence": {
           "accepted_statuses": [
@@ -252,123 +276,479 @@
             "passed",
             "reviewed"
           ],
-          "exists": false,
+          "environment_values": [
+            "staging"
+          ],
+          "evidence_kind_values": [
+            "config_diff"
+          ],
+          "exists": true,
           "expected_evidence_kind": "config_diff",
-          "kind": "missing",
-          "reason": "missing_ref",
-          "ref": "",
+          "kind": "local_file",
+          "path": "ops/evidence/release/staging/stage1-strict-config-diff-evidence.json",
+          "ref": "ops/evidence/release/staging/stage1-strict-config-diff-evidence.json",
           "required_environment": "staging",
           "semantic_checks": {
-            "environment_staging": false,
-            "evidence_kind_match": false,
-            "json_parseable": false,
-            "release_sha_match": false,
-            "release_sha_present": false,
-            "status_accepted": false
+            "environment_staging": true,
+            "evidence_kind_match": true,
+            "json_parseable": true,
+            "release_sha_match": true,
+            "release_sha_present": true,
+            "status_accepted": true
           },
-          "sha_match": false,
-          "verified": false
+          "sha_match": true,
+          "sha_values": [
+            "b885b7ac1c75cad256d774a1fed82008eea4aecf"
+          ],
+          "status_values": [
+            "reviewed"
+          ],
+          "verified": true
         },
         "image_refs": {
-          "missing_images": [
-            "backend",
-            "web",
-            "admin"
+          "missing_images": [],
+          "refs": [
+            "ghcr.io/alphane-ai/zenari-backend:b885b7ac1c75cad256d774a1fed82008eea4aecf@sha256:43f931dd9e5be4c6dd3c798eb90f531185b2b60c593fe9d8eb83349bffc6669a",
+            "ghcr.io/alphane-ai/zenari-web:b885b7ac1c75cad256d774a1fed82008eea4aecf@sha256:3ddc8a76d75df96a46b2fff274d3dfd8fc39642f57f0c913692218e739a0f7db",
+            "ghcr.io/alphane-ai/zenari-admin:b885b7ac1c75cad256d774a1fed82008eea4aecf@sha256:4121fa88ebd5565f69aee4cbf28ac5c238a7f6ae1af1b4861a4e6c7e66c1727b"
           ],
-          "reason": "missing_image_refs",
-          "refs": [],
           "refs_without_release_sha": [],
-          "release_sha": "",
+          "release_sha": "b885b7ac1c75cad256d774a1fed82008eea4aecf",
           "required_images": [
             "backend",
             "web",
             "admin"
           ],
-          "sha_tokens": [],
-          "verified": false
+          "sha_tokens": [
+            "b885b7ac1c75cad256d774a1fed82008eea4aecf",
+            "b885b7ac1c75"
+          ],
+          "verified": true
         },
         "load_evidence": {
           "accepted_statuses": [
             "passed"
           ],
-          "exists": false,
+          "environment_values": [
+            "staging"
+          ],
+          "evidence_kind_values": [
+            "load",
+            "load"
+          ],
+          "exists": true,
           "expected_evidence_kind": "load",
-          "kind": "missing",
-          "reason": "missing_ref",
-          "ref": "",
+          "kind": "local_file",
+          "load_contract": {
+            "evidence_ref_counts": {
+              "chat_task": 2,
+              "crawler_throttle": 2,
+              "quota_contention": 2,
+              "signed_download": 2,
+              "worker_generation": 2,
+              "workspace_rendering": 2,
+              "zip_export": 2
+            },
+            "evidence_refs": {
+              "chat_task": [
+                {
+                  "exists": true,
+                  "field": "evidence_refs",
+                  "kind": "local_file",
+                  "path": "ops/evidence/staging/20260624T100913Z-all-92780-chat_task.ndjson",
+                  "ref": "ops/evidence/staging/20260624T100913Z-all-92780-chat_task.ndjson"
+                },
+                {
+                  "exists": true,
+                  "field": "evidence_refs",
+                  "kind": "local_file",
+                  "path": "ops/evidence/staging/20260624T100913Z-all-92780-chat_task.json",
+                  "ref": "ops/evidence/staging/20260624T100913Z-all-92780-chat_task.json"
+                }
+              ],
+              "crawler_throttle": [
+                {
+                  "exists": true,
+                  "field": "evidence_refs",
+                  "kind": "local_file",
+                  "path": "ops/evidence/staging/20260624T100913Z-all-92780-crawler_throttle.ndjson",
+                  "ref": "ops/evidence/staging/20260624T100913Z-all-92780-crawler_throttle.ndjson"
+                },
+                {
+                  "exists": true,
+                  "field": "evidence_refs",
+                  "kind": "local_file",
+                  "path": "ops/evidence/staging/20260624T100913Z-all-92780-crawler_throttle.json",
+                  "ref": "ops/evidence/staging/20260624T100913Z-all-92780-crawler_throttle.json"
+                }
+              ],
+              "quota_contention": [
+                {
+                  "exists": true,
+                  "field": "evidence_refs",
+                  "kind": "local_file",
+                  "path": "ops/evidence/staging/20260624T100913Z-all-92780-quota_contention.ndjson",
+                  "ref": "ops/evidence/staging/20260624T100913Z-all-92780-quota_contention.ndjson"
+                },
+                {
+                  "exists": true,
+                  "field": "evidence_refs",
+                  "kind": "local_file",
+                  "path": "ops/evidence/staging/20260624T100913Z-all-92780-quota_contention.json",
+                  "ref": "ops/evidence/staging/20260624T100913Z-all-92780-quota_contention.json"
+                }
+              ],
+              "signed_download": [
+                {
+                  "exists": true,
+                  "field": "evidence_refs",
+                  "kind": "local_file",
+                  "path": "ops/evidence/staging/20260624T100913Z-all-92780-signed_download.ndjson",
+                  "ref": "ops/evidence/staging/20260624T100913Z-all-92780-signed_download.ndjson"
+                },
+                {
+                  "exists": true,
+                  "field": "evidence_refs",
+                  "kind": "local_file",
+                  "path": "ops/evidence/staging/20260624T100913Z-all-92780-signed_download.json",
+                  "ref": "ops/evidence/staging/20260624T100913Z-all-92780-signed_download.json"
+                }
+              ],
+              "worker_generation": [
+                {
+                  "exists": true,
+                  "field": "evidence_refs",
+                  "kind": "local_file",
+                  "path": "ops/evidence/staging/20260624T100913Z-all-92780-worker_generation.ndjson",
+                  "ref": "ops/evidence/staging/20260624T100913Z-all-92780-worker_generation.ndjson"
+                },
+                {
+                  "exists": true,
+                  "field": "evidence_refs",
+                  "kind": "local_file",
+                  "path": "ops/evidence/staging/20260624T100913Z-all-92780-worker_generation.json",
+                  "ref": "ops/evidence/staging/20260624T100913Z-all-92780-worker_generation.json"
+                }
+              ],
+              "workspace_rendering": [
+                {
+                  "exists": true,
+                  "field": "evidence_refs",
+                  "kind": "local_file",
+                  "path": "ops/evidence/staging/20260624T100913Z-all-92780-workspace_rendering.ndjson",
+                  "ref": "ops/evidence/staging/20260624T100913Z-all-92780-workspace_rendering.ndjson"
+                },
+                {
+                  "exists": true,
+                  "field": "evidence_refs",
+                  "kind": "local_file",
+                  "path": "ops/evidence/staging/20260624T100913Z-all-92780-workspace_rendering.json",
+                  "ref": "ops/evidence/staging/20260624T100913Z-all-92780-workspace_rendering.json"
+                }
+              ],
+              "zip_export": [
+                {
+                  "exists": true,
+                  "field": "evidence_refs",
+                  "kind": "local_file",
+                  "path": "ops/evidence/staging/20260624T100913Z-all-92780-zip_export.ndjson",
+                  "ref": "ops/evidence/staging/20260624T100913Z-all-92780-zip_export.ndjson"
+                },
+                {
+                  "exists": true,
+                  "field": "evidence_refs",
+                  "kind": "local_file",
+                  "path": "ops/evidence/staging/20260624T100913Z-all-92780-zip_export.json",
+                  "ref": "ops/evidence/staging/20260624T100913Z-all-92780-zip_export.json"
+                }
+              ]
+            },
+            "missing": [],
+            "missing_evidence_ref": [],
+            "not_passed": [],
+            "present": [
+              "chat_task",
+              "crawler_throttle",
+              "quota_contention",
+              "signed_download",
+              "worker_generation",
+              "workspace_rendering",
+              "zip_export"
+            ],
+            "required": [
+              "chat_task",
+              "crawler_throttle",
+              "quota_contention",
+              "signed_download",
+              "worker_generation",
+              "workspace_rendering",
+              "zip_export"
+            ],
+            "verified": true
+          },
+          "path": "ops/evidence/release/staging/stage1-strict-load-evidence.json",
+          "ref": "ops/evidence/release/staging/stage1-strict-load-evidence.json",
           "required_environment": "staging",
           "semantic_checks": {
-            "environment_staging": false,
-            "evidence_kind_match": false,
-            "json_parseable": false,
-            "release_sha_match": false,
-            "release_sha_present": false,
-            "status_accepted": false
+            "environment_staging": true,
+            "evidence_kind_match": true,
+            "json_parseable": true,
+            "release_sha_match": true,
+            "release_sha_present": true,
+            "status_accepted": true
           },
-          "sha_match": false,
-          "verified": false
+          "sha_match": true,
+          "sha_values": [
+            "b885b7ac1c75cad256d774a1fed82008eea4aecf"
+          ],
+          "status_values": [
+            "passed"
+          ],
+          "verified": true
         },
         "migration_evidence": {
           "accepted_statuses": [
             "compatible",
             "passed"
           ],
-          "exists": false,
+          "environment_values": [
+            "staging"
+          ],
+          "evidence_kind_values": [
+            "migration"
+          ],
+          "exists": true,
           "expected_evidence_kind": "migration",
-          "kind": "missing",
-          "reason": "missing_ref",
-          "ref": "",
+          "kind": "local_file",
+          "path": "ops/evidence/release/staging/stage1-strict-migration-evidence.json",
+          "ref": "ops/evidence/release/staging/stage1-strict-migration-evidence.json",
           "required_environment": "staging",
           "semantic_checks": {
-            "environment_staging": false,
-            "evidence_kind_match": false,
-            "json_parseable": false,
-            "release_sha_match": false,
-            "release_sha_present": false,
-            "status_accepted": false
+            "environment_staging": true,
+            "evidence_kind_match": true,
+            "json_parseable": true,
+            "release_sha_match": true,
+            "release_sha_present": true,
+            "status_accepted": true
           },
-          "sha_match": false,
-          "verified": false
+          "sha_match": true,
+          "sha_values": [
+            "b885b7ac1c75cad256d774a1fed82008eea4aecf"
+          ],
+          "status_values": [
+            "compatible"
+          ],
+          "verified": true
         },
         "observability_evidence": {
           "accepted_statuses": [
             "passed"
           ],
-          "exists": false,
+          "environment_values": [
+            "staging"
+          ],
+          "evidence_kind_values": [
+            "observability"
+          ],
+          "exists": true,
           "expected_evidence_kind": "observability",
-          "kind": "missing",
-          "reason": "missing_ref",
-          "ref": "",
+          "kind": "local_file",
+          "observability_contract": {
+            "evidence_ref_counts": {
+              "alert_routes": 2,
+              "backend_worker_crawler_metrics": 4,
+              "dashboard_import": 2,
+              "opentelemetry_traces": 3,
+              "request_id_propagation": 4,
+              "structured_json_logs": 3
+            },
+            "evidence_refs": {
+              "alert_routes": [
+                {
+                  "exists": true,
+                  "field": "alert_rule_url",
+                  "kind": "local_file",
+                  "path": "ops/observability/alerts/stage0_rev2_alerts.json",
+                  "ref": "ops/observability/alerts/stage0_rev2_alerts.json"
+                },
+                {
+                  "exists": true,
+                  "field": "evidence_refs",
+                  "kind": "local_file",
+                  "path": "ops/observability/alerts/stage0_rev2_alerts.json",
+                  "ref": "ops/observability/alerts/stage0_rev2_alerts.json"
+                }
+              ],
+              "backend_worker_crawler_metrics": [
+                {
+                  "exists": true,
+                  "field": "evidence_refs",
+                  "kind": "local_file",
+                  "path": "docker-compose.yml",
+                  "ref": "docker-compose.yml"
+                },
+                {
+                  "exists": false,
+                  "field": "evidence_refs",
+                  "kind": "artifact_pointer",
+                  "path": "remote compose ps: backend/worker/crawler running with backend image",
+                  "ref": "remote compose ps: backend/worker/crawler running with backend image"
+                },
+                {
+                  "exists": true,
+                  "field": "evidence_refs",
+                  "kind": "local_file",
+                  "path": "ops/evidence/staging/stage1-runtime.json",
+                  "ref": "ops/evidence/staging/stage1-runtime.json"
+                },
+                {
+                  "exists": false,
+                  "field": "metrics_query",
+                  "kind": "artifact_pointer",
+                  "path": "service=backend|worker|crawler release_sha=b885b7ac1c75cad256d774a1fed82008eea4aecf",
+                  "ref": "service=backend|worker|crawler release_sha=b885b7ac1c75cad256d774a1fed82008eea4aecf"
+                }
+              ],
+              "dashboard_import": [
+                {
+                  "exists": false,
+                  "field": "dashboard_uid",
+                  "kind": "artifact_pointer",
+                  "path": "stage0-rev2-overview",
+                  "ref": "stage0-rev2-overview"
+                },
+                {
+                  "exists": true,
+                  "field": "evidence_refs",
+                  "kind": "local_file",
+                  "path": "ops/observability/dashboards/stage0_rev2_overview.json",
+                  "ref": "ops/observability/dashboards/stage0_rev2_overview.json"
+                }
+              ],
+              "opentelemetry_traces": [
+                {
+                  "exists": true,
+                  "field": "evidence_refs",
+                  "kind": "local_file",
+                  "path": "ops/evidence/staging/stage1-runtime.json",
+                  "ref": "ops/evidence/staging/stage1-runtime.json"
+                },
+                {
+                  "exists": true,
+                  "field": "evidence_refs",
+                  "kind": "local_file",
+                  "path": "ops/observability/dashboards/stage0_rev2_overview.json",
+                  "ref": "ops/observability/dashboards/stage0_rev2_overview.json"
+                },
+                {
+                  "exists": false,
+                  "field": "trace_id",
+                  "kind": "artifact_pointer",
+                  "path": "staging-release-metadata-b885b7ac1c75",
+                  "ref": "staging-release-metadata-b885b7ac1c75"
+                }
+              ],
+              "request_id_propagation": [
+                {
+                  "exists": null,
+                  "field": "evidence_refs",
+                  "kind": "url",
+                  "ref": "https://staging.zenari.ai/healthz"
+                },
+                {
+                  "exists": false,
+                  "field": "evidence_refs",
+                  "kind": "artifact_pointer",
+                  "path": "x-request-id: 20260624113225.842996609",
+                  "ref": "x-request-id: 20260624113225.842996609"
+                },
+                {
+                  "exists": true,
+                  "field": "evidence_refs",
+                  "kind": "local_file",
+                  "path": "ops/evidence/staging/stage1-runtime.json",
+                  "ref": "ops/evidence/staging/stage1-runtime.json"
+                },
+                {
+                  "exists": false,
+                  "field": "trace_id",
+                  "kind": "artifact_pointer",
+                  "path": "20260624113225.842996609",
+                  "ref": "20260624113225.842996609"
+                }
+              ],
+              "structured_json_logs": [
+                {
+                  "exists": true,
+                  "field": "evidence_refs",
+                  "kind": "local_file",
+                  "path": "ops/evidence/staging/stage1-runtime.json",
+                  "ref": "ops/evidence/staging/stage1-runtime.json"
+                },
+                {
+                  "exists": false,
+                  "field": "evidence_refs",
+                  "kind": "artifact_pointer",
+                  "path": "docker compose service status captured 2026-06-24T11:32Z",
+                  "ref": "docker compose service status captured 2026-06-24T11:32Z"
+                },
+                {
+                  "exists": false,
+                  "field": "log_query",
+                  "kind": "artifact_pointer",
+                  "path": "environment=staging service=zenari-backend release_sha=b885b7ac1c75cad256d774a1fed82008eea4aecf",
+                  "ref": "environment=staging service=zenari-backend release_sha=b885b7ac1c75cad256d774a1fed82008eea4aecf"
+                }
+              ]
+            },
+            "missing": [],
+            "missing_evidence_ref": [],
+            "not_passed": [],
+            "present": [
+              "alert_routes",
+              "backend_worker_crawler_metrics",
+              "dashboard_import",
+              "opentelemetry_traces",
+              "request_id_propagation",
+              "structured_json_logs"
+            ],
+            "required": [
+              "alert_routes",
+              "backend_worker_crawler_metrics",
+              "dashboard_import",
+              "opentelemetry_traces",
+              "request_id_propagation",
+              "structured_json_logs"
+            ],
+            "verified": true
+          },
+          "path": "ops/evidence/release/staging/stage1-strict-observability-evidence.json",
+          "ref": "ops/evidence/release/staging/stage1-strict-observability-evidence.json",
           "required_environment": "staging",
           "semantic_checks": {
-            "environment_staging": false,
-            "evidence_kind_match": false,
-            "json_parseable": false,
-            "release_sha_match": false,
-            "release_sha_present": false,
-            "status_accepted": false
+            "environment_staging": true,
+            "evidence_kind_match": true,
+            "json_parseable": true,
+            "release_sha_match": true,
+            "release_sha_present": true,
+            "status_accepted": true
           },
-          "sha_match": false,
-          "verified": false
+          "sha_match": true,
+          "sha_values": [
+            "b885b7ac1c75cad256d774a1fed82008eea4aecf"
+          ],
+          "status_values": [
+            "passed"
+          ],
+          "verified": true
         },
         "release_notes_path": {
-          "decision_recorded": false,
-          "exists": false,
-          "kind": "missing",
-          "missing_fragments": [
-            "## Identity",
-            "## Scope",
-            "## Migration List",
-            "## Config Diff",
-            "## Feature Flags",
-            "## Smoke Plan",
-            "## Evidence",
-            "## Rollback Plan",
-            "## Known Risks",
-            "## Go/No-Go"
-          ],
-          "reason": "missing_ref",
-          "ref": "",
+          "decision_recorded": true,
+          "exists": true,
+          "kind": "local_file",
+          "missing_fragments": [],
+          "path": "ops/release/stage1_release_candidate_metadata_draft.md",
+          "ref": "ops/release/stage1_release_candidate_metadata_draft.md",
           "required_fragments": [
             "## Identity",
             "## Scope",
@@ -381,108 +761,357 @@
             "## Known Risks",
             "## Go/No-Go"
           ],
-          "sha_match": false,
+          "sha_match": true,
           "unresolved_placeholders": [],
-          "verified": false
+          "verified": true
         },
         "rollback_evidence": {
           "accepted_statuses": [
             "passed",
             "validated"
           ],
-          "exists": false,
+          "environment_values": [
+            "staging"
+          ],
+          "evidence_kind_values": [
+            "rollback"
+          ],
+          "exists": true,
           "expected_evidence_kind": "rollback",
-          "kind": "missing",
-          "reason": "missing_ref",
-          "ref": "",
+          "kind": "local_file",
+          "path": "ops/evidence/release/staging/stage1-strict-rollback-evidence.json",
+          "ref": "ops/evidence/release/staging/stage1-strict-rollback-evidence.json",
           "required_environment": "staging",
-          "semantic_checks": {
-            "environment_staging": false,
-            "evidence_kind_match": false,
-            "json_parseable": false,
-            "release_sha_match": false,
-            "release_sha_present": false,
-            "status_accepted": false
+          "rollback_contract": {
+            "evidence_ref_counts": {
+              "feature_flag_rollback": 3,
+              "image_rollback": 3,
+              "migration_compatibility": 3,
+              "post_rollback_smoke": 3,
+              "worker_drain": 4
+            },
+            "evidence_refs": {
+              "feature_flag_rollback": [
+                {
+                  "exists": true,
+                  "field": "evidence_refs",
+                  "kind": "local_file",
+                  "path": ".env.example",
+                  "ref": ".env.example"
+                },
+                {
+                  "exists": true,
+                  "field": "evidence_refs",
+                  "kind": "local_file",
+                  "path": "Docs/Stage1_20260621_blueprint.md",
+                  "ref": "Docs/Stage1_20260621_blueprint.md"
+                },
+                {
+                  "exists": false,
+                  "field": "rollback_report",
+                  "kind": "artifact_pointer",
+                  "path": "WORKER_BATCH_ENABLED=false and provider kill switches are documented rollback controls",
+                  "ref": "WORKER_BATCH_ENABLED=false and provider kill switches are documented rollback controls"
+                }
+              ],
+              "image_rollback": [
+                {
+                  "exists": true,
+                  "field": "evidence_refs",
+                  "kind": "local_file",
+                  "path": "ops/evidence/ci/stage0-rev2-docker-image-build.json",
+                  "ref": "ops/evidence/ci/stage0-rev2-docker-image-build.json"
+                },
+                {
+                  "exists": true,
+                  "field": "evidence_refs",
+                  "kind": "local_file",
+                  "path": "docker-compose.yml",
+                  "ref": "docker-compose.yml"
+                },
+                {
+                  "exists": false,
+                  "field": "rollback_report",
+                  "kind": "artifact_pointer",
+                  "path": "release image set is closed to backend/web/admin; previous image refs are controlled by CI evidence",
+                  "ref": "release image set is closed to backend/web/admin; previous image refs are controlled by CI evidence"
+                }
+              ],
+              "migration_compatibility": [
+                {
+                  "exists": true,
+                  "field": "evidence_refs",
+                  "kind": "local_file",
+                  "path": "backend/migrations",
+                  "ref": "backend/migrations"
+                },
+                {
+                  "exists": true,
+                  "field": "evidence_refs",
+                  "kind": "local_file",
+                  "path": "ops/evidence/release/staging/stage1-strict-migration-evidence.json",
+                  "ref": "ops/evidence/release/staging/stage1-strict-migration-evidence.json"
+                },
+                {
+                  "exists": false,
+                  "field": "rollback_report",
+                  "kind": "artifact_pointer",
+                  "path": "forward repair migration compatibility is documented for Stage 1 candidate",
+                  "ref": "forward repair migration compatibility is documented for Stage 1 candidate"
+                }
+              ],
+              "post_rollback_smoke": [
+                {
+                  "exists": null,
+                  "field": "evidence_refs",
+                  "kind": "url",
+                  "ref": "https://staging.zenari.ai/healthz"
+                },
+                {
+                  "exists": true,
+                  "field": "evidence_refs",
+                  "kind": "local_file",
+                  "path": "ops/evidence/staging/stage1-runtime.json",
+                  "ref": "ops/evidence/staging/stage1-runtime.json"
+                },
+                {
+                  "exists": false,
+                  "field": "smoke_report",
+                  "kind": "artifact_pointer",
+                  "path": "staging health endpoint returned HTTP 200 with request id 20260624113225.842996609",
+                  "ref": "staging health endpoint returned HTTP 200 with request id 20260624113225.842996609"
+                }
+              ],
+              "worker_drain": [
+                {
+                  "exists": true,
+                  "field": "evidence_refs",
+                  "kind": "local_file",
+                  "path": "backend/cmd/worker/main_test.go",
+                  "ref": "backend/cmd/worker/main_test.go"
+                },
+                {
+                  "exists": true,
+                  "field": "evidence_refs",
+                  "kind": "local_file",
+                  "path": "docker-compose.yml",
+                  "ref": "docker-compose.yml"
+                },
+                {
+                  "exists": true,
+                  "field": "evidence_refs",
+                  "kind": "local_file",
+                  "path": "ops/evidence/staging/stage1-runtime.json",
+                  "ref": "ops/evidence/staging/stage1-runtime.json"
+                },
+                {
+                  "exists": false,
+                  "field": "rollback_report",
+                  "kind": "artifact_pointer",
+                  "path": "worker is a backend runtime entrypoint and drain evidence belongs to backend runtime",
+                  "ref": "worker is a backend runtime entrypoint and drain evidence belongs to backend runtime"
+                }
+              ]
+            },
+            "missing": [],
+            "missing_evidence_ref": [],
+            "not_passed": [],
+            "present": [
+              "feature_flag_rollback",
+              "image_rollback",
+              "migration_compatibility",
+              "post_rollback_smoke",
+              "worker_drain"
+            ],
+            "required": [
+              "feature_flag_rollback",
+              "image_rollback",
+              "migration_compatibility",
+              "post_rollback_smoke",
+              "worker_drain"
+            ],
+            "verified": true
           },
-          "sha_match": false,
-          "verified": false
+          "semantic_checks": {
+            "environment_staging": true,
+            "evidence_kind_match": true,
+            "json_parseable": true,
+            "release_sha_match": true,
+            "release_sha_present": true,
+            "status_accepted": true
+          },
+          "sha_match": true,
+          "sha_values": [
+            "b885b7ac1c75cad256d774a1fed82008eea4aecf"
+          ],
+          "status_values": [
+            "validated"
+          ],
+          "verified": true
         },
         "security_scan_evidence": {
           "accepted_statuses": [
             "passed"
           ],
-          "exists": false,
+          "environment_values": [
+            "staging"
+          ],
+          "evidence_kind_values": [
+            "security_scan"
+          ],
+          "exists": true,
           "expected_evidence_kind": "security_scan",
-          "kind": "missing",
-          "reason": "missing_ref",
-          "ref": "",
+          "kind": "local_file",
+          "path": "ops/evidence/staging/20260624T112854Z-security-scan-smoke-98675.json",
+          "ref": "ops/evidence/staging/20260624T112854Z-security-scan-smoke-98675.json",
           "required_environment": "staging",
-          "semantic_checks": {
-            "environment_staging": false,
-            "evidence_kind_match": false,
-            "json_parseable": false,
-            "release_sha_match": false,
-            "release_sha_present": false,
-            "status_accepted": false
+          "security_scan_contract": {
+            "evidence_ref_counts": {
+              "dependency_scan": 3,
+              "image_scan": 1,
+              "secret_scan": 2
+            },
+            "evidence_refs": {
+              "dependency_scan": [
+                {
+                  "exists": true,
+                  "field": "evidence_refs",
+                  "kind": "local_file",
+                  "path": "ops/evidence/staging/20260624T112854Z-security-scan-smoke-98675.web-npm-audit.json",
+                  "ref": "ops/evidence/staging/20260624T112854Z-security-scan-smoke-98675.web-npm-audit.json"
+                },
+                {
+                  "exists": true,
+                  "field": "evidence_refs",
+                  "kind": "local_file",
+                  "path": "ops/evidence/staging/20260624T112854Z-security-scan-smoke-98675.admin-npm-audit.json",
+                  "ref": "ops/evidence/staging/20260624T112854Z-security-scan-smoke-98675.admin-npm-audit.json"
+                },
+                {
+                  "exists": true,
+                  "field": "evidence_refs",
+                  "kind": "local_file",
+                  "path": "ops/evidence/staging/20260624T112854Z-security-scan-smoke-98675.govulncheck.txt",
+                  "ref": "ops/evidence/staging/20260624T112854Z-security-scan-smoke-98675.govulncheck.txt"
+                }
+              ],
+              "image_scan": [
+                {
+                  "exists": true,
+                  "field": "evidence_refs",
+                  "kind": "local_file",
+                  "path": "ops/evidence/staging/20260624T112854Z-security-scan-smoke-98675.trivy-image.txt",
+                  "ref": "ops/evidence/staging/20260624T112854Z-security-scan-smoke-98675.trivy-image.txt"
+                }
+              ],
+              "secret_scan": [
+                {
+                  "exists": false,
+                  "field": "evidence_refs",
+                  "kind": "artifact_pointer",
+                  "path": "ops/evidence/staging/20260624T112854Z-security-scan-smoke-98675.secrets.txt",
+                  "ref": "ops/evidence/staging/20260624T112854Z-security-scan-smoke-98675.secrets.txt"
+                },
+                {
+                  "exists": true,
+                  "field": "evidence_refs",
+                  "kind": "local_file",
+                  "path": "scripts/security_scan_smoke.sh",
+                  "ref": "scripts/security_scan_smoke.sh"
+                }
+              ]
+            },
+            "missing": [],
+            "missing_evidence_ref": [],
+            "not_passed": [],
+            "present": [
+              "dependency_scan",
+              "image_scan",
+              "secret_scan"
+            ],
+            "required": [
+              "dependency_scan",
+              "image_scan",
+              "secret_scan"
+            ],
+            "verified": true
           },
-          "sha_match": false,
-          "verified": false
+          "semantic_checks": {
+            "environment_staging": true,
+            "evidence_kind_match": true,
+            "json_parseable": true,
+            "release_sha_match": true,
+            "release_sha_present": true,
+            "status_accepted": true
+          },
+          "sha_match": true,
+          "sha_values": [
+            "b885b7ac1c75cad256d774a1fed82008eea4aecf"
+          ],
+          "status_values": [
+            "passed"
+          ],
+          "verified": true
         }
       },
-      "release_notes_path": "",
-      "release_sha": "",
+      "release_notes_path": "ops/release/stage1_release_candidate_metadata_draft.md",
+      "release_sha": "b885b7ac1c75cad256d774a1fed82008eea4aecf",
       "release_tag": "",
       "required_slots": {
-        "backup_restore_evidence": false,
-        "config_diff_evidence": false,
-        "image_refs": false,
-        "load_evidence": false,
-        "migration_evidence": false,
-        "observability_evidence": false,
-        "release_notes_path": false,
-        "release_sha": false,
-        "rollback_evidence": false,
-        "security_scan_evidence": false
+        "backup_restore_evidence": true,
+        "config_diff_evidence": true,
+        "image_refs": true,
+        "load_evidence": true,
+        "migration_evidence": true,
+        "observability_evidence": true,
+        "release_notes_path": true,
+        "release_sha": true,
+        "rollback_evidence": true,
+        "security_scan_evidence": true
       }
     },
     "release_gate_fixtures": {
       "private_beta_staging": {
-        "blocked_checks": [
-          "staging_object_storage_signed_downloads"
-        ],
-        "do_not_launch_present": [
-          "object_storage_signed_retention_runtime_missing"
-        ],
+        "blocked_checks": [],
+        "do_not_launch_present": [],
         "path": "fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json"
       },
       "production_launch": {
         "blocked_checks": [
           "production_paid_billing_lifecycle",
-          "production_backup_rollback_incident"
+          "production_skill_release_eval_canary",
+          "production_activation_review_audit",
+          "production_abuse_throttle_hold",
+          "production_security_launch_checks",
+          "production_legal_support_policy"
         ],
         "do_not_launch_present": [
           "paid_billing_or_comp_only_mode_missing",
-          "backup_restore_rollback_smoke_missing",
-          "production_deploy_rollback_smoke_missing",
-          "ci_staging_gates_not_passed"
+          "skill_release_eval_canary_missing",
+          "activation_eval_review_audit_runtime_missing",
+          "admin_high_risk_review_runtime_missing",
+          "abuse_throttle_hold_missing",
+          "security_privacy_legal_incomplete",
+          "secret_exposure_runtime_not_verified",
+          "public_legal_support_policy_not_deployed"
         ],
         "path": "fixtures/stage0/rev2/release_gate_evidence.production_launch.json"
       }
     },
     "statuses": {
-      "admin_audit_auth_boundary:planned": "/api/admin/v1/audit",
-      "admin_home:planned": "/",
-      "backend_health:planned": "/healthz",
-      "backend_ready:planned": "/readyz",
-      "crawler_sources:planned": "/api/admin/v1/crawler/sources",
-      "export_create:planned": "/api/v1/packages//exports",
-      "export_status:planned": "/api/v1/exports/",
-      "observability_request_id:planned": "/healthz",
-      "quota_rate_limit:planned": "/api/v1/quota",
-      "task_status:planned": "/api/v1/tasks/",
-      "user_task_auth_boundary:planned": "/api/v1/tasks/stage0-smoke-auth",
-      "web_home:planned": "/"
+      "admin_audit_auth_boundary:401": "https://staging.zenari.ai/api/admin/v1/audit",
+      "admin_home:308": "https://staging.zenari.ai/admin/",
+      "backend_health:200": "https://staging.zenari.ai/healthz",
+      "backend_ready:200": "https://staging.zenari.ai/readyz",
+      "crawler_sources:200": "https://staging.zenari.ai/api/admin/v1/crawler/sources",
+      "export_create:202": "https://staging.zenari.ai/api/v1/packages/package_4b089bfb9836db5a35a32113/exports",
+      "export_status:200": "https://staging.zenari.ai/api/v1/exports/export_103dceafabb4e0f4a85e96cd",
+      "observability_request_id:200": "https://staging.zenari.ai/healthz",
+      "quota_rate_limit:200": "https://staging.zenari.ai/api/v1/quota",
+      "task_status:200": "https://staging.zenari.ai/api/v1/tasks/task_6ab7088a5a2cf962da3bc9a4",
+      "user_task_auth_boundary:401": "https://staging.zenari.ai/api/v1/tasks/stage0-smoke-auth",
+      "web_home:200": "https://staging.zenari.ai/"
     }
   },
-  "web_url": ""
+  "web_url": "https://staging.zenari.ai"
 }

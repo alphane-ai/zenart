@@ -1,0 +1,17 @@
+{
+  "id": "billing_admin_4263c2f1c0a7ceb13c5520a6",
+  "tenant_id": "tenant_1",
+  "actor_id": "local_stage1.stripe.admin_zenari.ai",
+  "target_user_id": "local_stage1.stripe.user_zenari.ai",
+  "operation": "refund_note",
+  "idempotency_key": "stage1-stripe-production-like-canonical-refund_credit",
+  "status": "recorded",
+  "subscription_id": "sub_1TlLYgGJcwf9BmgHTLGYv5Iz",
+  "provider": "stripe",
+  "provider_ref": "refund_test_manual",
+  "rationale": "Stage 1 Stripe test refund credit reconciliation",
+  "note": "Stripe test refund/credit evidence recorded without secrets",
+  "metadata": {},
+  "created_at": "2026-06-23T04:03:38.844451Z",
+  "updated_at": "2026-06-23T04:03:38.844451Z"
+}

@@ -1,0 +1,72 @@
+{
+  "schema_version": "stage1.audit_search_export.contract.v1",
+  "kind": "audit_search_export_admin_contract",
+  "blueprint_items": ["AD-13", "BE-4", "VF-8"],
+  "admin_route": "admin/app/audit/page.tsx",
+  "data_source": "admin audit fixture or future backend audit API projection",
+  "route_marker": "stage1.audit-search-export-local-contract",
+  "required_search_facets": ["actor", "target", "risk", "second_review_status", "evidence_ref"],
+  "required_filter_presets": [
+    "High-risk admin changes",
+    "Support and quota actions",
+    "Release and canary changes",
+    "Provider and routing changes"
+  ],
+  "required_export_manifest_schema": "stage1.audit-search-export-local-contract.v1",
+  "field_allowlist": [
+    "id",
+    "createdAt",
+    "actor",
+    "action",
+    "target",
+    "risk",
+    "rationale",
+    "immutable",
+    "secondReviewStatus",
+    "evidenceRefs"
+  ],
+  "denied_fields": [
+    "raw_payload",
+    "provider_payload",
+    "hidden_prompt",
+    "secret",
+    "api_key",
+    "authorization",
+    "cookie",
+    "signed_url",
+    "stripe_payload",
+    "webhook_signature"
+  ],
+  "required_summary_metrics": [
+    "result_count",
+    "high_risk_count",
+    "second_review_open_count",
+    "immutable_count"
+  ],
+  "required_controls": [
+    "data-audit-search-contract",
+    "data-audit-export-manifest",
+    "data-audit-export-field-allowlist",
+    "data-audit-export-denied-fields",
+    "data-audit-filter-result-count",
+    "data-audit-filter-high-risk-count",
+    "data-audit-filter-second-review-open-count",
+    "data-audit-filter-immutable-count"
+  ],
+  "non_launch_status": {
+    "local_contract": "pass",
+    "staging_evidence": "open",
+    "production_evidence": "open",
+    "can_clear_stage1_staging_runtime_gate": false,
+    "can_clear_stage1_production_launch_gate": false,
+    "can_close_do_not_launch": false
+  },
+  "required_files": [
+    "admin/app/audit/page.tsx",
+    "admin/lib/types.ts",
+    "admin/lib/fixtures.ts",
+    "admin/tests/admin-data.test.mjs",
+    "scripts/validate_stage1_audit_search_export_contract.py",
+    "Docs/researches/stage1_gap_inventory.md"
+  ]
+}

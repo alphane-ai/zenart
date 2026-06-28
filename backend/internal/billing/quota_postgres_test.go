@@ -16,9 +16,12 @@ import (
 )
 
 func TestQuotaReserveConcurrentContentionPostgres(t *testing.T) {
-	dsn := os.Getenv("ZENART_TEST_DATABASE_URL")
+	dsn := os.Getenv("ZENARI_TEST_DATABASE_URL")
 	if dsn == "" {
-		t.Skip("set ZENART_TEST_DATABASE_URL to run postgres quota contention test")
+		dsn = os.Getenv("ZENARI_TEST_DATABASE_URL")
+	}
+	if dsn == "" {
+		t.Skip("set ZENARI_TEST_DATABASE_URL to run postgres quota contention test")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
@@ -107,9 +110,12 @@ WHERE tenant_id = $1
 }
 
 func TestQuotaReserveInsufficientDoesNotPoisonIdempotencyPostgres(t *testing.T) {
-	dsn := os.Getenv("ZENART_TEST_DATABASE_URL")
+	dsn := os.Getenv("ZENARI_TEST_DATABASE_URL")
 	if dsn == "" {
-		t.Skip("set ZENART_TEST_DATABASE_URL to run postgres quota idempotency test")
+		dsn = os.Getenv("ZENARI_TEST_DATABASE_URL")
+	}
+	if dsn == "" {
+		t.Skip("set ZENARI_TEST_DATABASE_URL to run postgres quota idempotency test")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
@@ -173,9 +179,12 @@ WHERE id = $1`, bucketID).Scan(&reserved); err != nil {
 }
 
 func TestProviderUsageReconciliationPostgres(t *testing.T) {
-	dsn := os.Getenv("ZENART_TEST_DATABASE_URL")
+	dsn := os.Getenv("ZENARI_TEST_DATABASE_URL")
 	if dsn == "" {
-		t.Skip("set ZENART_TEST_DATABASE_URL to run postgres provider usage reconciliation test")
+		dsn = os.Getenv("ZENARI_TEST_DATABASE_URL")
+	}
+	if dsn == "" {
+		t.Skip("set ZENARI_TEST_DATABASE_URL to run postgres provider usage reconciliation test")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
@@ -267,10 +276,115 @@ WHERE id = 'usage_provider_reconcile'`).Scan(&usageStatus); err != nil {
 	}
 }
 
+func TestProviderUsageLogAcceptsGenerationChildTaskPostgres(t *testing.T) {
+	dsn := os.Getenv("ZENARI_TEST_DATABASE_URL")
+	if dsn == "" {
+		dsn = os.Getenv("ZENARI_TEST_DATABASE_URL")
+	}
+	if dsn == "" {
+		t.Skip("set ZENARI_TEST_DATABASE_URL to run postgres provider usage child task test")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	pool, err := pgxpool.New(ctx, dsn)
+	if err != nil {
+		t.Fatalf("connect postgres: %v", err)
+	}
+	defer pool.Close()
+
+	tenantID := "tenant_provider_child_usage"
+	userID := "user_provider_child_usage"
+	projectID := "project_provider_child_usage"
+	workspaceID := "workspace_provider_child_usage"
+	bucketID := "bucket_provider_child_usage"
+	batchID := "batch_provider_child_usage"
+	childID := "child_provider_child_usage"
+	now := time.Date(2026, 6, 23, 9, 0, 0, 0, time.UTC)
+
+	setupQuotaFixture(t, ctx, pool, tenantID, userID, bucketID, now)
+	execFixtureSQL(t, ctx, pool, "insert child usage project", `
+INSERT INTO projects(id, tenant_id, owner_id, name, status, created_at, updated_at)
+VALUES($1, $2, $3, 'Provider child usage project', 'active', $4, $4)`, projectID, tenantID, userID, now)
+	execFixtureSQL(t, ctx, pool, "insert child usage workspace", `
+INSERT INTO workspaces(id, tenant_id, project_id, name, created_at, updated_at)
+VALUES($1, $2, $3, 'Provider child usage workspace', $4, $4)`, workspaceID, tenantID, projectID, now)
+	execFixtureSQL(t, ctx, pool, "insert child usage batch", `
+INSERT INTO batch_generation_requests(
+	id, tenant_id, user_id, project_id, workspace_id, prompt_context, requested_count, allowed_models,
+	quota_reservation_id, quota_bucket_id, quota_estimated_units, quota_committed_units, quota_refunded_units,
+	trace_id, status, metadata, created_at, updated_at
+)
+VALUES($1, $2, $3, $4, $5, '{}'::jsonb, 1, ARRAY['dev-echo-v1']::text[], 'reservation_child_usage', $6, 1, 0, 0, 'trace_child_usage', 'running', '{}'::jsonb, $7, $7)`,
+		batchID, tenantID, userID, projectID, workspaceID, bucketID, now)
+	execFixtureSQL(t, ctx, pool, "insert generation child task", `
+INSERT INTO generation_child_tasks(
+	id, batch_id, tenant_id, status, provider_id, model_id, tool_type, seed,
+	retry_count, max_retries, quota_estimate_units, quota_committed_units, quota_refunded_units,
+	trace_id, visible_trace_ref, metadata, created_at, updated_at
+)
+VALUES($1, $2, $3, 'running', 'dev', 'dev-echo-v1', 'image.generate', 'seed_child_usage',
+	0, 1, 1, 0, 0, 'trace_child_usage', 'visible_child_usage', '{}'::jsonb, $4, $4)`,
+		childID, batchID, tenantID, now)
+
+	repo := NewQuotaRepository(store.NewPoolAdapter(pool))
+	if err := repo.RecordProviderUsage(ctx, ProviderUsageLog{
+		ID:              "usage_provider_child_task",
+		TenantID:        tenantID,
+		UserID:          userID,
+		ProjectID:       projectID,
+		TaskID:          childID,
+		TaskRefType:     "generation_child_task",
+		ProviderID:      "dev",
+		ModelID:         "dev-echo-v1",
+		EndpointVersion: "v1",
+		RequestHash:     "hash_child_usage",
+		UsageUnits:      1,
+		CostCents:       0,
+		CreatedAt:       now,
+	}); err != nil {
+		t.Fatalf("RecordProviderUsage(generation_child_task) error = %v", err)
+	}
+
+	var taskRefType string
+	if err := pool.QueryRow(ctx, `
+SELECT task_ref_type
+FROM provider_usage_logs
+WHERE id = 'usage_provider_child_task'`).Scan(&taskRefType); err != nil {
+		t.Fatalf("read child provider usage: %v", err)
+	}
+	if taskRefType != "generation_child_task" {
+		t.Fatalf("task_ref_type = %q, want generation_child_task", taskRefType)
+	}
+
+	err = repo.RecordProviderUsage(ctx, ProviderUsageLog{
+		ID:              "usage_provider_missing_child_task",
+		TenantID:        tenantID,
+		UserID:          userID,
+		ProjectID:       projectID,
+		TaskID:          "missing_child_task",
+		TaskRefType:     "generation_child_task",
+		ProviderID:      "dev",
+		ModelID:         "dev-echo-v1",
+		EndpointVersion: "v1",
+		RequestHash:     "hash_missing_child_usage",
+		UsageUnits:      1,
+		CreatedAt:       now,
+	})
+	if err == nil {
+		t.Fatal("RecordProviderUsage(missing generation_child_task) error = nil, want FK-style trigger error")
+	}
+}
+
 func setupQuotaFixture(t *testing.T, ctx context.Context, pool *pgxpool.Pool, tenantID, userID, bucketID string, now time.Time) {
 	t.Helper()
 
 	execFixtureSQL(t, ctx, pool, "delete provider usage", "DELETE FROM provider_usage_logs WHERE tenant_id = $1", tenantID)
+	execFixtureSQL(t, ctx, pool, "delete generation children", "DELETE FROM generation_child_tasks WHERE tenant_id = $1", tenantID)
+	execFixtureSQL(t, ctx, pool, "delete batch generations", "DELETE FROM batch_generation_requests WHERE tenant_id = $1", tenantID)
+	execFixtureSQL(t, ctx, pool, "delete workspaces", "DELETE FROM workspaces WHERE tenant_id = $1", tenantID)
+	execFixtureSQL(t, ctx, pool, "delete projects", "DELETE FROM projects WHERE tenant_id = $1", tenantID)
 	execFixtureSQL(t, ctx, pool, "delete agent traces", "DELETE FROM agent_traces WHERE tenant_id = $1", tenantID)
 	execFixtureSQL(t, ctx, pool, "delete agent tasks", "DELETE FROM agent_tasks WHERE tenant_id = $1", tenantID)
 	execFixtureSQL(t, ctx, pool, "delete quota transactions", "DELETE FROM quota_transactions WHERE tenant_id = $1", tenantID)

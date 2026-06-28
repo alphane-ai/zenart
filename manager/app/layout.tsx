@@ -1,8 +1,8 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "ZenArt Manager",
-  description: "ZenArt manager console"
+  title: "zenari.ai Manager",
+  description: "zenari.ai manager console"
 };
 
 export default function RootLayout({

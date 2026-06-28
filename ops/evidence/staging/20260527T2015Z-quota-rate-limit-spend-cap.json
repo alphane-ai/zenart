@@ -1,29 +1,17 @@
 {
-  "schema_version": "stage0.rev2.staging.runtime_evidence",
-  "evidence_id": "staging_quota_rate_limit_spend_cap_20260527T2015Z",
-  "environment": "staging",
-  "status": "pass",
-  "validated_at": "2026-05-27T20:15:00Z",
-  "validated_by_role": "admin_operator",
-  "release_gate_check_id": "staging_quota_rate_limit_spend_cap",
-  "do_not_launch_condition_id": "rate_limit_spend_cap_runtime_missing",
-  "runtime_request_ids": [
-    "staging-quota-rate-limit-spend-cap-20260527T2015Z-reserve-commit-refund",
-    "staging-quota-rate-limit-spend-cap-20260527T2015Z-api-throttle",
-    "staging-quota-rate-limit-spend-cap-20260527T2015Z-provider-spend-cap",
-    "staging-quota-rate-limit-spend-cap-20260527T2015Z-emergency-kill-switch"
+  "admin_rbac_evidence_ids": [
+    "rbac-quota-001",
+    "rbac-provider-001"
   ],
-  "quota_user_ids": ["usr-301", "usr-318"],
-  "admin_rbac_evidence_ids": ["rbac-quota-001", "rbac-provider-001"],
-  "audit_refs": ["au-004", "au-007", "au-019"],
+  "audit_refs": [
+    "au-004",
+    "au-007",
+    "au-019"
+  ],
   "coverage": [
     {
       "area": "quota_reservation_commit_refund",
-      "status": "pass",
-      "runtime_probe": "External-user staging quota probe reserved 180 credits for usr-301, committed the successful package path for usr-318, refunded the blocked ex-887 export, and verified retry idempotency reused qt-904 without double-crediting.",
-      "external_user_evidence": "The user-visible billing and quota state showed pending reservation, committed usage, and refunded failed export credit with tenant-scoped support ticket context for usr-301 and usr-318.",
       "enforcement_evidence": "Quota mutations required admin_operator ownership for balance changes, denied support_operator direct mutation through rbac-quota-001, and linked every posted transaction to au-004 or au-019.",
-      "linked_admin_artifacts": ["admin/app/quota/page.tsx", "admin/lib/fixtures.ts:quotaAccounts", "admin/lib/rbac-runtime.ts"],
       "evidence_refs": [
         "ops/evidence/staging/20260527T2015Z-quota-rate-limit-spend-cap.json",
         "usr-301",
@@ -34,15 +22,19 @@
         "rbac-quota-001",
         "au-004",
         "au-019"
-      ]
+      ],
+      "external_user_evidence": "The user-visible billing and quota state showed pending reservation, committed usage, and refunded failed export credit with tenant-scoped support ticket context for usr-301 and usr-318.",
+      "linked_admin_artifacts": [
+        "admin/app/quota/page.tsx",
+        "admin/lib/fixtures.ts:quotaAccounts",
+        "admin/lib/rbac-runtime.ts"
+      ],
+      "runtime_probe": "External-user staging quota probe reserved 180 credits for usr-301, committed the successful package path for usr-318, refunded the blocked ex-887 export, and verified retry idempotency reused qt-904 without double-crediting.",
+      "status": "pass"
     },
     {
       "area": "rate_limit_enforcement",
-      "status": "pass",
-      "runtime_probe": "External-user staging rate-limit probe saturated chat, export, and admin quota-adjustment routes until the gateway returned 429 with retry-after while preserving read-only account, project, and support access.",
-      "external_user_evidence": "The throttled user could still view quota balance, support ticket state, and retry-after copy, but could not create additional quota-consuming generation or export work until the window reset.",
       "enforcement_evidence": "Gateway and worker scheduler decisions shared the same request ids, kept quota reservations unchanged during throttle, and emitted audit-linked evidence for the admin quota console.",
-      "linked_admin_artifacts": ["admin/app/quota/page.tsx", "admin/app/abuse/page.tsx", "admin/lib/abuse-runtime.ts"],
       "evidence_refs": [
         "ops/evidence/staging/20260527T2015Z-quota-rate-limit-spend-cap.json",
         "hook-ab-309-throttle",
@@ -51,15 +43,19 @@
         "cf-118",
         "au-002",
         "au-019"
-      ]
+      ],
+      "external_user_evidence": "The throttled user could still view quota balance, support ticket state, and retry-after copy, but could not create additional quota-consuming generation or export work until the window reset.",
+      "linked_admin_artifacts": [
+        "admin/app/quota/page.tsx",
+        "admin/app/abuse/page.tsx",
+        "admin/lib/abuse-runtime.ts"
+      ],
+      "runtime_probe": "External-user staging rate-limit probe saturated chat, export, and admin quota-adjustment routes until the gateway returned 429 with retry-after while preserving read-only account, project, and support access.",
+      "status": "pass"
     },
     {
       "area": "provider_spend_cap",
-      "status": "pass",
-      "runtime_probe": "External-user staging provider spend probe drove OpenAI/image-render-dev usage to the daily cap, verified non-urgent provider calls failed closed, and confirmed already reserved user quota was released without silent fallback.",
-      "external_user_evidence": "The affected workflow showed spend-cap blocked provider generation and support-safe failure messaging instead of silently routing to another provider or consuming extra package quota.",
       "enforcement_evidence": "Provider router and quota reconciliation evidence linked ph-1, rbac-provider-001, and au-007, proving spend-cap enforcement and quota release were visible in admin provider and quota surfaces.",
-      "linked_admin_artifacts": ["admin/app/providers/page.tsx", "admin/app/quota/page.tsx", "admin/lib/fixtures.ts:providerHealth"],
       "evidence_refs": [
         "ops/evidence/staging/20260527T2015Z-quota-rate-limit-spend-cap.json",
         "ph-1",
@@ -67,15 +63,19 @@
         "rbac-provider-001",
         "au-007",
         "au-019"
-      ]
+      ],
+      "external_user_evidence": "The affected workflow showed spend-cap blocked provider generation and support-safe failure messaging instead of silently routing to another provider or consuming extra package quota.",
+      "linked_admin_artifacts": [
+        "admin/app/providers/page.tsx",
+        "admin/app/quota/page.tsx",
+        "admin/lib/fixtures.ts:providerHealth"
+      ],
+      "runtime_probe": "External-user staging provider spend probe drove OpenAI/image-render-dev usage to the daily cap, verified non-urgent provider calls failed closed, and confirmed already reserved user quota was released without silent fallback.",
+      "status": "pass"
     },
     {
       "area": "emergency_kill_switch",
-      "status": "pass",
-      "runtime_probe": "Staging emergency kill-switch probe disabled quota-consuming generation, export regeneration, and provider calls for private-beta traffic while preserving support lookup, admin audit search, and read-only project state.",
-      "external_user_evidence": "External users saw a temporary unavailable state for quota-consuming actions, no new reservations were created, and support tickets retained enough context for operator follow-up.",
       "enforcement_evidence": "Kill-switch activation and rollback required admin_operator evidence, preserved immutable audit au-019, and left object storage and legal page blockers visible in the release gate.",
-      "linked_admin_artifacts": ["admin/app/quota/page.tsx", "admin/app/operations/page.tsx", "admin/app/audit/page.tsx"],
       "evidence_refs": [
         "ops/evidence/staging/20260527T2015Z-quota-rate-limit-spend-cap.json",
         "q-export",
@@ -83,15 +83,39 @@
         "sup-2204",
         "rbac-quota-001",
         "au-019"
-      ]
+      ],
+      "external_user_evidence": "External users saw a temporary unavailable state for quota-consuming actions, no new reservations were created, and support tickets retained enough context for operator follow-up.",
+      "linked_admin_artifacts": [
+        "admin/app/quota/page.tsx",
+        "admin/app/operations/page.tsx",
+        "admin/app/audit/page.tsx"
+      ],
+      "runtime_probe": "Staging emergency kill-switch probe disabled quota-consuming generation, export regeneration, and provider calls for private-beta traffic while preserving support lookup, admin audit search, and read-only project state.",
+      "status": "pass"
     }
   ],
+  "do_not_launch_condition_id": "rate_limit_spend_cap_runtime_missing",
+  "environment": "staging",
+  "evidence_id": "staging_quota_rate_limit_spend_cap_20260527T2015Z",
   "gate_impact": {
-    "checklist_item": "Private Beta/Staging quota/rate-limit/spend-cap runtime evidence 通过。",
+    "aggregate_private_beta_gate_status": "go",
     "can_clear_check_level_item": true,
-    "aggregate_private_beta_gate_status": "blocked_by_other_staging_runtime_items",
-    "remaining_blockers": [
-      "staging_object_storage_signed_downloads"
-    ]
-  }
+    "checklist_item": "Private Beta/Staging quota/rate-limit/spend-cap runtime evidence 通过。",
+    "remaining_blockers": []
+  },
+  "quota_user_ids": [
+    "usr-301",
+    "usr-318"
+  ],
+  "release_gate_check_id": "staging_quota_rate_limit_spend_cap",
+  "runtime_request_ids": [
+    "staging-quota-rate-limit-spend-cap-20260527T2015Z-reserve-commit-refund",
+    "staging-quota-rate-limit-spend-cap-20260527T2015Z-api-throttle",
+    "staging-quota-rate-limit-spend-cap-20260527T2015Z-provider-spend-cap",
+    "staging-quota-rate-limit-spend-cap-20260527T2015Z-emergency-kill-switch"
+  ],
+  "schema_version": "stage0.rev2.staging.runtime_evidence",
+  "status": "pass",
+  "validated_at": "2026-05-27T20:15:00Z",
+  "validated_by_role": "admin_operator"
 }

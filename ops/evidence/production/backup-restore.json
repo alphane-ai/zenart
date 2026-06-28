@@ -1,0 +1,90 @@
+{
+  "allow_local_devport_evidence": false,
+  "asset_lineage": {
+    "lineage_refs": [
+      "asset_lineage_restore_check",
+      "ops/evidence/production/20260527T1800Z-backup-rollback-incident-smoke.json"
+    ],
+    "status": "pass"
+  },
+  "audit_refs": {
+    "refs": [
+      "au-018",
+      "ops/evidence/production/20260527T1800Z-backup-rollback-incident-smoke.json"
+    ],
+    "status": "pass"
+  },
+  "authorization_header_persisted": false,
+  "backup_schedule": {
+    "evidence_refs": [
+      "ops/evidence/production/20260527T1800Z-backup-rollback-incident-smoke.json",
+      "scripts/generate_stage1_production_backup_rollback_evidence.py",
+      "scripts/validate_stage1_production_backup_rollback_evidence.py",
+      "backup_schedule_active"
+    ],
+    "schedule_ref": "production-postgres-objectstore-daily",
+    "status": "pass",
+    "timezone": "UTC"
+  },
+  "billing_ledger": {
+    "ledger_refs": [
+      "billing_ledger_restore_check",
+      "ops/evidence/production/20260527T1800Z-backup-rollback-incident-smoke.json"
+    ],
+    "status": "pass"
+  },
+  "canonical_pass_path": true,
+  "cookie_persisted": false,
+  "dry_run": false,
+  "environment": "production",
+  "gate_impact": {
+    "can_clear_backup_restore_split": true,
+    "check_level_item": "Production backup/restore runtime evidence \u901a\u8fc7\uff1aproduction evidence proves backup schedule, Postgres restore, object restore, RPO/RTO, and audit refs under `ops/evidence/production/`\u3002",
+    "release_gate_check_id": "production_backup_rollback_incident"
+  },
+  "generated_at": "2026-06-25T17:16:54+00:00",
+  "kind": "production_backup_restore",
+  "local_devport_debug": false,
+  "object_restore": {
+    "evidence_refs": [
+      "ops/evidence/production/20260527T1800Z-backup-rollback-incident-smoke.json",
+      "scripts/generate_stage1_production_backup_rollback_evidence.py",
+      "scripts/validate_stage1_production_backup_rollback_evidence.py",
+      "object_restore_verified",
+      "restore_count_match"
+    ],
+    "restore_id": "prod-object-restore-b885b7ac1c75",
+    "status": "pass"
+  },
+  "postgres_restore": {
+    "evidence_refs": [
+      "ops/evidence/production/20260527T1800Z-backup-rollback-incident-smoke.json",
+      "scripts/generate_stage1_production_backup_rollback_evidence.py",
+      "scripts/validate_stage1_production_backup_rollback_evidence.py",
+      "postgres_restore_verified"
+    ],
+    "restore_id": "prod-postgres-restore-b885b7ac1c75",
+    "status": "pass"
+  },
+  "raw_prompt_persisted": false,
+  "raw_provider_payload_persisted": false,
+  "raw_stripe_payload_persisted": false,
+  "raw_support_body_projected": false,
+  "release_gate_check_id": "production_backup_rollback_incident",
+  "release_sha": "b885b7ac1c75cad256d774a1fed82008eea4aecf",
+  "rpo_rto": {
+    "evidence_refs": [
+      "ops/evidence/production/20260527T1800Z-backup-rollback-incident-smoke.json",
+      "scripts/generate_stage1_production_backup_rollback_evidence.py",
+      "scripts/validate_stage1_production_backup_rollback_evidence.py",
+      "rpo_rto_within_policy"
+    ],
+    "rpo_minutes": 15,
+    "rto_minutes": 30,
+    "status": "pass"
+  },
+  "schema_version": "stage1.production_backup_restore.v1",
+  "secret_material_persisted": false,
+  "signed_url_persisted": false,
+  "status": "pass"
+}

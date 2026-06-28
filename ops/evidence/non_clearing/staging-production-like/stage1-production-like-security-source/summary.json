@@ -1,0 +1,8 @@
+{
+  "does_not_clear_production_gate": true,
+  "environment": "staging_production_like",
+  "evidence": "ops/evidence/non_clearing/staging-production-like/stage1-production-like-security-source/production-security-launch-evidence.json",
+  "proof": "ops/evidence/non_clearing/staging-production-like/stage1-production-like-security-source/security-proof.json",
+  "source": "ops/evidence/non_clearing/staging-production-like/stage1-production-like-security-source/production-security-launch-source.json",
+  "status": "pass"
+}

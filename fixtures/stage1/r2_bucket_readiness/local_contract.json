@@ -1,0 +1,58 @@
+{
+  "schema_version": "stage1.r2_bucket_readiness.contract.v1",
+  "fixture_id": "stage1_r2_bucket_readiness_local_contract",
+  "kind": "r2_bucket_readiness_contract",
+  "blueprint_items": ["R-3", "AS-3", "AS-7", "OP-3", "OP-5", "VF-6"],
+  "release_gate_status": "contract_ready_r2_bucket_access_open",
+  "expected_bucket": "zenari",
+  "required_environment": "release",
+  "canonical_preflight_path": "ops/evidence/release/staging/stage1-r2-bucket-readiness.preflight.json",
+  "required_probe_ids": [
+    "cloudflare_token_verify",
+    "cloudflare_create_bucket",
+    "s3_head_bucket",
+    "s3_put_object",
+    "s3_get_object",
+    "s3_list_prefix",
+    "s3_delete_object",
+    "s3_confirm_deleted"
+  ],
+  "preflight_policy": {
+    "generator_command": "python3 scripts/stage1_r2_bucket_readiness.py",
+    "generator_create_bucket_command": "python3 scripts/stage1_r2_bucket_readiness.py --create-bucket",
+    "validator_command": "python3 scripts/validate_stage1_r2_bucket_readiness.py --allow-preflight",
+    "accepted_schema_version": "stage1.r2_bucket_readiness.preflight.v1",
+    "accepted_kind": "stage1_r2_bucket_readiness_preflight",
+    "accepted_statuses": ["ready", "blocked", "missing"],
+    "canonical_pass_path": false,
+    "can_clear_stage1_staging_runtime_gate": false,
+    "can_clear_object_retention_cleanup": false,
+    "can_close_do_not_launch": false,
+    "strict_validator_still_rejects_preflight": true
+  },
+  "safe_projection_policy": {
+    "secret_material_persisted": false,
+    "authorization_header_persisted": false,
+    "raw_response_body_persisted": false,
+    "raw_endpoint_persisted": false,
+    "access_key_persisted": false,
+    "secret_key_persisted": false
+  },
+  "required_files": [
+    "fixtures/stage1/r2_bucket_readiness/local_contract.json",
+    "fixtures/stage1/external_resource_readiness/local_contract.json",
+    "scripts/stage1_r2_bucket_readiness.py",
+    "scripts/validate_stage1_r2_bucket_readiness.py",
+    "scripts/generate_stage1_external_resource_readiness.py",
+    "scripts/validate_stage1_external_resource_readiness.py",
+    "scripts/repo_validate.sh"
+  ],
+  "non_launch_status": {
+    "local_contract": "pass",
+    "bucket_access_preflight": "open",
+    "strict_staging_object_retention_evidence": "open",
+    "can_clear_stage1_staging_runtime_gate": false,
+    "can_clear_object_retention_cleanup": false,
+    "can_close_do_not_launch": false
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "id": "support_07091f42f3acccebe071b1c5",
+  "tenant_id": "tenant_local",
+  "user_id": "local_user_zenari.ai",
+  "project_id": "project_local_ecommerce_growth",
+  "task_id": "task_6ab7088a5a2cf962da3bc9a4",
+  "batch_id": "batch_dff7458131bbc87ab10ca77b",
+  "trace_id": "trace_child_e4812ea83370c670576ac3c3",
+  "asset_id": "asset_252f710f3120b57c7b6ca6a7aca1aeaa",
+  "category": "quality",
+  "status": "open",
+  "body": "Stage 1 safety QA evidence probe; no secret material.",
+  "linked_export_id": "export_103dceafabb4e0f4a85e96cd",
+  "quota_bucket_id": "quota_tenant_local_local_user_zenari_ai_stage1_provider",
+  "billing_reference_id": "billing:stage1-safety:export_103dceafabb4e0f4a85e96cd",
+  "metadata": {
+    "local_devport_debug": false,
+    "raw_support_body_projected_to_admin_evidence": false
+  },
+  "created_at": "2026-06-24T06:18:57.733745829Z",
+  "updated_at": "2026-06-24T06:18:57.733745829Z"
+}

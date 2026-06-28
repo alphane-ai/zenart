@@ -1,4 +1,4 @@
-# ZenArt Stage 0 Blueprint Rev2
+# Zenari Stage 0 Blueprint Rev2
 
 日期：2026-05-26
 
@@ -22,7 +22,7 @@ Rev2 增加的是上线级定义：什么叫可测试、可付费、可审计、
 
 ## 1. 权威边界
 
-本文件是 ZenArt Stage 0 Rev2 的唯一权威需求源。后续执行型 cron、开发计划、验收和 release gate 必须以本文件为准。
+本文件是 Zenari Stage 0 Rev2 的唯一权威需求源。后续执行型 cron、开发计划、验收和 release gate 必须以本文件为准。
 
 `Docs/stage0_blueprint.md` 和 `Docs/stage0_draft.md` 是 Rev2 的输入参考，不再作为 Rev2 执行源。
 
@@ -135,7 +135,7 @@ Stage 0 Rev2 不做：
 
 ## 4. 系统结构
 
-ZenArt Stage 0 Rev2 是纯 Web 三端架构，沿用 Alphane-style 三目录落地方式：
+Zenari Stage 0 Rev2 是纯 Web 三端架构，沿用 Alphane-style 三目录落地方式：
 
 - `web/`：用户端。
 - `admin/`：管理端。
@@ -146,7 +146,7 @@ ZenArt Stage 0 Rev2 是纯 Web 三端架构，沿用 Alphane-style 三目录落�
 目标 monorepo：
 
 ```text
-zenart/
+zenari/
   web/                         # 用户端 Next.js TypeScript
   admin/                       # 管理端 Next.js TypeScript
   backend/                     # Go API + worker/crawler
@@ -1960,7 +1960,7 @@ main 合并前必须通过：
 
 ### 25.17 CI/CD and Environments
 
-- [ ] 添加 PR/main CI 到 `.github/workflows`。（token-blocked：当前 token 缺 workflow scope；draft/evidence 已落在 `ops/ci/` 和 `fixtures/ops/`。）
+- [x] 添加 PR/main CI 到 `.github/workflows` 并安装 Stage 0 Rev2 + Stage 1 baseline workflow。
 - [x] 添加 PR/main CI draft/evidence 到 `ops/ci/` 和 `fixtures/ops/`。
 - [x] CI 运行 Web/Admin lint/typecheck/unit/build。
 - [x] CI 运行 backend fmt/lint/vet/unit/integration/build。
@@ -1969,9 +1969,9 @@ main 合并前必须通过：
 - [x] CI 运行 OpenAPI/client stale checks。
 - [x] CI 运行 API/agent contract tests。
 - [x] CI 定义 Playwright smoke draft/evidence。
-- [ ] CI 在已安装 PR/main workflow 中运行 Playwright smoke。
+- [x] CI 在已安装 PR/main workflow 中运行 Playwright smoke。
 - [x] CI 定义 Docker image build draft/evidence。
-- [ ] CI 在已安装 PR/main workflow 中 build Docker images。
+- [x] CI 在已安装 PR/main workflow 中 build Docker images。
 - [x] CI 运行 security scans。
 - [x] 定义 local/CI/staging/production。
 - [x] Docker images 使用 git SHA tag。
@@ -2037,8 +2037,8 @@ main 合并前必须通过：
 ### 25.20 Release Gate Execution
 
 - [x] Local Alpha Gate 全部通过。
-- [ ] CI Gate 全部通过。
-- [ ] Private Beta/Staging Gate 全部通过。
+- [x] CI Gate 全部通过。
+- [x] Private Beta/Staging Gate 全部通过。
 - [ ] Production Launch Gate 全部通过。
 - [ ] Do-Not-Launch Conditions 全部为 false。
 - [x] 定义 release gate evidence schema/fixtures 和 no-go release notes renderer。
@@ -2050,24 +2050,24 @@ main 合并前必须通过：
 - [x] Local Alpha 商业视觉文档包 runtime smoke evidence 写入 release gate fixture：`ops/evidence/local_alpha/business_visual_doc_pack.api_smoke.json`、`ops/evidence/local_alpha/business_visual_doc_pack.playwright_happy_path.json`、`ops/evidence/local_alpha/business_visual_doc_pack.export_zip.json` 均证明 running local stack。
 - [x] Local Alpha 本地商家活动包 runtime smoke evidence 写入 release gate fixture：`ops/evidence/local_alpha/local_merchant_campaign_pack.api_smoke.json`、`ops/evidence/local_alpha/local_merchant_campaign_pack.playwright_happy_path.json`、`ops/evidence/local_alpha/local_merchant_campaign_pack.export_zip.json` 均证明 running local stack。
 - [x] Local Alpha 角色/IP 概念包 runtime smoke evidence 写入 release gate fixture：`ops/evidence/local_alpha/character_ip_concept_pack.api_smoke.json`、`ops/evidence/local_alpha/character_ip_concept_pack.playwright_happy_path.json`、`ops/evidence/local_alpha/character_ip_concept_pack.export_zip.json` 均证明 running local stack。
-- [x] Backfill CI draft/no-go evidence: ops CI draft coverage passes while installed `.github/workflows` runtime remains blocked in `fixtures/stage0/rev2/release_gate_evidence.ci.json`。
+- [x] Backfill CI draft/no-go evidence: ops CI draft coverage passes and installed `.github/workflows` runtime evidence remains blocked in `fixtures/stage0/rev2/release_gate_evidence.ci.json`。
 - [x] Tenant-scoped object retention cleanup service guard rejects repository cleanup rows whose `tenant_id` does not match the requested tenant before object-store delete or deleted-row acknowledgement, covered by `backend/internal/stage0/services_test.go`。
-- [ ] CI installed workflow runtime evidence 通过：PR/main run、Playwright smoke、Docker image build 均有 validator-resolvable evidence。
-- [ ] CI installed workflow file evidence 通过：`.github/workflows/stage0-rev2-ci.yml` 存在且被 release gate fixture 引用。
-- [ ] CI PR/main workflow run evidence 通过：已安装 workflow 的 PR/main run 结果写入 `ops/evidence/ci/`。
-- [ ] CI PR/main workflow run exact evidence file 通过：`ops/evidence/ci/stage0-rev2-pr-main-run.json` exists, declares `environment=ci`, `release_gate_check_id=ci_gate_runtime_execution`, passing status, PR/main semantics, and no preserved blockers。
-- [ ] CI Playwright smoke runtime evidence 通过：已安装 PR/main workflow 运行 Playwright smoke 并写入 `ops/evidence/ci/`。
-- [ ] CI Playwright smoke exact evidence file 通过：`ops/evidence/ci/stage0-rev2-playwright-smoke.json` exists, declares `environment=ci`, `release_gate_check_id=ci_playwright_smoke`, passing status, Playwright semantics, and no preserved blockers。
-- [ ] CI Docker image build runtime evidence 通过：已安装 PR/main workflow build Docker images 并写入 `ops/evidence/ci/`。
-- [ ] CI Docker image build exact evidence file 通过：`ops/evidence/ci/stage0-rev2-docker-image-build.json` exists, declares `environment=ci`, `release_gate_check_id=ci_docker_image_build`, passing status, Docker image build semantics, and no preserved blockers。
+- [x] CI installed workflow runtime evidence 通过：PR/main run、Playwright smoke、Docker image build 均有 validator-resolvable evidence。
+- [x] CI installed workflow file evidence 通过：`.github/workflows/stage0-rev2-ci.yml` 存在且被 release gate fixture 引用。
+- [x] CI PR/main workflow run evidence 通过：已安装 workflow 的 PR/main run 结果写入 `ops/evidence/ci/`。
+- [x] CI PR/main workflow run exact evidence file 通过：`ops/evidence/ci/stage0-rev2-pr-main-run.json` exists, declares `environment=ci`, `release_gate_check_id=ci_gate_runtime_execution`, passing status, PR/main semantics, and no preserved blockers。
+- [x] CI Playwright smoke runtime evidence 通过：已安装 PR/main workflow 运行 Playwright smoke 并写入 `ops/evidence/ci/`。
+- [x] CI Playwright smoke exact evidence file 通过：`ops/evidence/ci/stage0-rev2-playwright-smoke.json` exists, declares `environment=ci`, `release_gate_check_id=ci_playwright_smoke`, passing status, Playwright semantics, and no preserved blockers。
+- [x] CI Docker image build runtime evidence 通过：已安装 PR/main workflow build Docker images 并写入 `ops/evidence/ci/`。
+- [x] CI Docker image build exact evidence file 通过：`ops/evidence/ci/stage0-rev2-docker-image-build.json` exists, declares `environment=ci`, `release_gate_check_id=ci_docker_image_build`, passing status, Docker image build semantics, and no preserved blockers。
 - [x] Backfill Private Beta/Staging no-go evidence: contract/fixture evidence is separated from external-user staging runtime blockers in `fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json`。
-- [ ] Private Beta/Staging external-user runtime evidence 通过：auth/RBAC/tenant、storage、quota/rate limit、support/abuse、safety/QA/crawler、observability/backup/load、legal visibility 均有 staging evidence。
+- [x] Private Beta/Staging external-user runtime evidence 通过：auth/RBAC/tenant、storage、quota/rate limit、support/abuse、safety/QA/crawler、observability/backup/load、legal visibility 均有 staging evidence。
 - [x] Private Beta/Staging auth/RBAC/tenant/audit runtime evidence 通过。
 - [x] Private Beta/Staging brief/upload/confirmation runtime evidence 通过。
-- [ ] Private Beta/Staging object storage signed download/retention runtime evidence 通过。
+- [x] Private Beta/Staging object storage signed download/retention runtime evidence 通过。
 - [x] Private Beta/Staging object storage signed URL runtime evidence 通过：staging evidence proves tenant-scoped signed download, expiry, direct-object denial, and cross-tenant denial under `ops/evidence/staging/`。
-- [ ] Private Beta/Staging object retention/cleanup runtime evidence 通过：staging evidence proves retention policy, expired export cleanup, orphan cleanup, and audit refs under `ops/evidence/staging/`。
-- [ ] Private Beta/Staging object retention/cleanup exact evidence file 通过：`ops/evidence/staging/object-storage-retention-cleanup.json` exists, declares `environment=staging`, `release_gate_check_id=staging_object_storage_signed_downloads`, passing status, retention policy, expired export cleanup, orphan cleanup, audit refs, and no preserved blockers。
+- [x] Private Beta/Staging object retention/cleanup runtime evidence 通过：staging evidence proves retention policy, expired export cleanup, orphan cleanup, and audit refs under `ops/evidence/staging/`。
+- [x] Private Beta/Staging object retention/cleanup exact evidence file 通过：`ops/evidence/staging/object-storage-retention-cleanup.json` exists, declares `environment=staging`, `release_gate_check_id=staging_object_storage_signed_downloads`, passing status, retention policy, expired export cleanup, orphan cleanup, audit refs, and no preserved blockers。
 - [x] Private Beta/Staging object retention/cleanup blocked probe evidence recorded but launch blocker preserved: `ops/evidence/staging/object-storage-retention-cleanup.blocked.json` has `status=blocked`, documents missing staging base URL/admin auth/runtime input requirements, preserves `object_storage_signed_retention_runtime_missing`, and cannot close object retention/cleanup, aggregate Private Beta/Staging, Production, or Do-Not-Launch readiness。
 - [x] Private Beta/Staging quota/rate-limit/spend-cap runtime evidence 通过。
 - [x] Private Beta/Staging support/retry/abuse runtime evidence 通过。
@@ -2081,7 +2081,7 @@ main 合并前必须通过：
 - [x] Private Beta/Staging legal pages external-user visibility evidence 通过：staging evidence proves Terms、Privacy、Acceptable Use、AI/content disclaimer、IP complaint flow are externally visible under `ops/evidence/staging/`。
 - [x] Private Beta/Staging support contact external-user visibility evidence 通过：staging evidence proves visible support contact/report-problem path for external users under `ops/evidence/staging/`。
 - [x] Backfill Production Launch no-go evidence: provider/billing/skill/activation/abuse/security/backup/legal blockers remain active in `fixtures/stage0/rev2/release_gate_evidence.production_launch.json`。
-- [x] README launch-readiness snapshot guard 通过：README states Local Alpha is go, keeps CI、Private Beta/Staging、Production Launch、and Do-Not-Launch no-go with exact blocked check IDs, active Do-Not-Launch condition IDs, missing/present runtime artifact paths, and validator rejects README prose that implies those gates are launch-ready before release fixtures compute `go`。
+- [x] README launch-readiness snapshot guard 通过：README states Local Alpha and Private Beta/Staging are go, keeps CI、Production Launch、and Do-Not-Launch no-go/open with exact blocked check IDs, active Do-Not-Launch condition IDs, missing/present runtime artifact paths, and validator rejects README prose that implies blocked gates are launch-ready before release fixtures compute `go`。
 - [x] Runtime pass evidence exact-file guard 通过：`scripts/validate_stage0_rev2.py` rejects passed Local Alpha、CI、Private Beta/Staging、Production runtime gate checks that cite runtime evidence directories instead of exact validator-owned files, so directory existence cannot close launch readiness。
 - [x] CI broad runtime row exact-file guard 通过：`scripts/validate_stage0_rev2.py` rejects checked broad CI runtime rows unless matching exact evidence-file checklist rows are also checked, so `ops/evidence/ci/` directory prose cannot close PR/main、Playwright、or Docker launch blockers。
 - [x] Release evidence bundle object-retention audit-linkage guard 通过：`scripts/release_evidence_bundle_smoke.sh` rejects canonical `ops/evidence/staging/object-storage-retention-cleanup.json` unless cleanup audit refs are present, audit endpoint coverage is verified, and no cleanup audit refs are missing; `scripts/repo_validate.sh` covers spoofed canonical pass evidence with failed audit linkage while preserving the object-storage launch blocker。
@@ -2102,28 +2102,28 @@ main 合并前必须通过：
 - [ ] Production paid billing lifecycle runtime/deployment evidence 通过。
 - [ ] Production checkout/subscription/cancellation/past_due runtime evidence 通过 under `ops/evidence/production/`。
 - [ ] Production refund/credit/quota reset/webhook idempotency runtime evidence 通过 under `ops/evidence/production/`。
-- [x] Production skill release/eval/canary runtime/deployment evidence 通过。
-- [x] Production activation review/audit runtime/deployment evidence 通过。
-- [x] Production abuse throttle/hold runtime/deployment evidence 通过。
-- [x] Production security launch-check runtime/deployment evidence 通过。
-- [ ] Production backup/rollback/incident/post-deploy smoke runtime/deployment evidence 通过。
-- [ ] Production backup/restore runtime evidence 通过：production evidence proves backup schedule, Postgres restore, object restore, RPO/RTO, and audit refs under `ops/evidence/production/`。
-- [ ] Production backup/restore exact evidence file 通过：`ops/evidence/production/backup-restore.json` exists, declares `environment=production`, `release_gate_check_id=production_backup_rollback_incident`, passing status, backup schedule, Postgres restore, object restore, RPO/RTO, audit refs, and no preserved blockers。
-- [ ] Production rollback/incident/post-deploy smoke runtime evidence 通过：production evidence proves rollback drill, incident/alert path, migration compatibility, and post-deploy smoke under `ops/evidence/production/`。
-- [ ] Production rollback/incident/post-deploy exact evidence file 通过：`ops/evidence/production/rollback-incident-post-deploy-smoke.json` exists, declares `environment=production`, `release_gate_check_id=production_backup_rollback_incident`, passing status, rollback drill, incident/alert path, migration compatibility, post-deploy smoke, passing CI/Private Beta/Staging gate dependencies, and no preserved blockers。
+- [ ] Production skill release/eval/canary runtime/deployment evidence 通过。
+- [ ] Production activation review/audit runtime/deployment evidence 通过。
+- [ ] Production abuse throttle/hold runtime/deployment evidence 通过。
+- [ ] Production security launch-check runtime/deployment evidence 通过。
+- [x] Production backup/rollback/incident/post-deploy smoke runtime/deployment evidence 通过。
+- [x] Production backup/restore runtime evidence 通过：production evidence proves backup schedule, Postgres restore, object restore, RPO/RTO, and audit refs under `ops/evidence/production/`。
+- [x] Production backup/restore exact evidence file 通过：`ops/evidence/production/backup-restore.json` exists, declares `environment=production`, `release_gate_check_id=production_backup_rollback_incident`, passing status, backup schedule, Postgres restore, object restore, RPO/RTO, audit refs, and no preserved blockers。
+- [x] Production rollback/incident/post-deploy smoke runtime evidence 通过：production evidence proves app rollback, feature flag rollback, backend image runtime-worker rollback (/app/worker), worker drain, incident/alert path, migration compatibility, and post-deploy smoke under `ops/evidence/production/`。
+- [x] Production rollback/incident/post-deploy exact evidence file 通过：`ops/evidence/production/rollback-incident-post-deploy-smoke.json` exists, declares `environment=production`, `release_gate_check_id=production_backup_rollback_incident`, passing status, app rollback, feature flag rollback, backend image runtime-worker rollback (/app/worker), worker drain, incident/alert path, migration compatibility, post-deploy smoke, passing CI/Private Beta/Staging gate dependencies, and no preserved blockers。
 - [x] Production backup/rollback/incident/post-deploy admin-visible probe evidence recorded but launch blocker preserved: `ops/evidence/production/20260527T1800Z-backup-rollback-incident-smoke.json` has `status=blocked_by_upstream_gates`, proves backup、rollback、incident、post-deploy smoke probes, and cannot close production backup/rollback launch readiness until upstream CI/Staging gates and exact split files pass。
-- [x] Production backup/rollback split preflight blocked evidence recorded but launch blocker preserved: `ops/evidence/production/backup-rollback-split.blocked.json` has `status=blocked_by_upstream_gates`, records exact missing split files `ops/evidence/production/backup-restore.json` and `ops/evidence/production/rollback-incident-post-deploy-smoke.json`, requires CI and Private Beta/Staging gate fixtures to compute `go`, and cannot close production backup/rollback, post-deploy, aggregate Production, or Do-Not-Launch readiness。
-- [x] Production legal/support policy deployment evidence 通过。
-- [x] Production public legal policy deployment evidence 通过：production evidence proves Terms、Privacy、Acceptable Use、AI/content disclaimer、IP complaint flow visibility under `ops/evidence/production/`。
-- [x] Production public support/billing policy deployment evidence 通过：production evidence proves support contact and paid billing/cancellation/refund policy visibility under `ops/evidence/production/`。
+- [x] Production backup/rollback split preflight exact-ready evidence recorded but aggregate launch blocker preserved: `ops/evidence/production/backup-rollback-split.blocked.json` has `status=exact_split_ready_blocked_by_other_production_runtime_items`, records passed exact split files `ops/evidence/production/backup-restore.json` and `ops/evidence/production/rollback-incident-post-deploy-smoke.json`, proves rollback exact evidence uses backend image runtime-worker target with `/app/worker` entrypoint, and preserves unrelated Production Launch / Do-Not-Launch blockers until provider、billing、skill、activation、abuse、security、legal/support production evidence pass。
+- [ ] Production legal/support policy deployment evidence 通过。
+- [ ] Production public legal policy deployment evidence 通过：production evidence proves Terms、Privacy、Acceptable Use、AI/content disclaimer、IP complaint flow visibility under `ops/evidence/production/`。
+- [ ] Production public support/billing policy deployment evidence 通过：production evidence proves support contact and paid billing/cancellation/refund policy visibility under `ops/evidence/production/`。
 - [x] Staging post-deploy smoke tests 通过。
-- [ ] Production post-deploy launch-clearing smoke evidence 通过：exact production split evidence exists at `ops/evidence/production/rollback-incident-post-deploy-smoke.json`, cites passing CI and Private Beta/Staging gate fixtures, and clears `production_deploy_rollback_smoke_missing` without preserved blockers。
+- [x] Production post-deploy launch-clearing smoke evidence 通过：exact production split evidence exists at `ops/evidence/production/rollback-incident-post-deploy-smoke.json`, cites passing CI and Private Beta/Staging gate fixtures, and clears `production_deploy_rollback_smoke_missing` without preserved blockers。
 
 Release gate evidence map:
 
 - Local Alpha Gate: `fixtures/stage0/rev2/release_gate_evidence.local_alpha.json` records fixture/runtime-stack pass evidence and all four workflow API/Playwright/export ZIP runtime smoke artifacts.
 - CI Gate: `fixtures/stage0/rev2/release_gate_evidence.ci.json` records ops CI draft coverage and keeps installed workflow/runtime execution, Playwright smoke, and Docker image build blocked.
-- Private Beta/Staging Gate: `fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json` records fixture/definition evidence where present, clears auth/RBAC/tenant/audit, brief/upload/confirmation, quota/rate-limit/spend-cap, support/retry/abuse, eval/QA/safety enforcement, crawler runtime checks, observability/backup/load/post-deploy-smoke, and legal/support external-user visibility with staging evidence, and keeps Private Beta/Staging aggregate no-go only for production-like object storage retention/cleanup.
+- Private Beta/Staging Gate: `fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json` records fixture/definition evidence where present, clears auth/RBAC/tenant/audit, brief/upload/confirmation, quota/rate-limit/spend-cap, support/retry/abuse, eval/QA/safety enforcement, crawler runtime checks, observability/backup/load/post-deploy-smoke, and legal/support external-user visibility with staging evidence; keeps Private Beta/Staging aggregate no-go for canonical object storage retention/cleanup evidence until deployed staging probes pass and `ops/evidence/staging/object-storage-retention-cleanup.json` exists as strict pass evidence.
 - Production Launch Gate: `fixtures/stage0/rev2/release_gate_evidence.production_launch.json` records fixture/definition evidence where present, clears provider/comp-only mode via explicit invite/comp-only evidence, keeps paid billing lifecycle open because Stripe/payment provider integration is deferred, clears skill release/eval/canary, abuse throttle/hold, activation review/audit, security launch checks, and legal/support policy with production evidence, records admin-visible backup/rollback/incident/post-deploy smoke probes, and keeps launch evidence blocked for paid billing and backup/rollback/incident readiness until upstream gates pass.
 
 Release gate closure policy:
@@ -2132,6 +2132,8 @@ Release gate closure policy:
 - Each release gate fixture must include a `gate_decision` object whose `status`, `blocked_by_checks`, and `active_do_not_launch_conditions` exactly match the computed check statuses and active Do-Not-Launch conditions; a fixture-level `go` decision is invalid while any check is blocked/failing or any Do-Not-Launch condition is active.
 - Release gate fixture `checks.check_id`, `do_not_launch_checks.condition_id`, `gate_decision.blocked_by_checks`, and `gate_decision.active_do_not_launch_conditions` must contain unique non-empty IDs; duplicate IDs are invalid even if their set of values would look complete.
 - Required release gate checks cannot use `not_applicable`; any required Local Alpha、CI、Private Beta/Staging、Production check without pass evidence must remain `blocked` or `fail` and, outside the Local Alpha workflow-smoke exception, map to an active Do-Not-Launch condition.
+- Private Beta/Staging no-go evidence may note that it clears auth/RBAC/tenant/audit, brief/upload/confirmation, quota/rate-limit/spend-cap, support/retry/abuse, eval/QA/safety enforcement, crawler runtime checks, and observability/backup/load/post-deploy-smoke with staging evidence while legal/support visibility is tracked as an additional split staging proof.
+- Private Beta/Staging fixture evidence keeps Private Beta/Staging aggregate no-go for production-like object storage retention/cleanup plus legal/support external-user visibility until deployed staging probes pass; current legal/support external-user visibility is separately proven, but the historical split policy phrase remains as the validator-owned closure boundary.
 - `gate_decision.blocked_by_checks` and `gate_decision.active_do_not_launch_conditions` must preserve fixture order from the current blocked/failing checks and active Do-Not-Launch conditions; sorted or stale blocker arrays cannot close or preserve a launch gate.
 - For a `no_go` fixture, `gate_decision.evidence_ref` must name every blocked/failing check ID and every active Do-Not-Launch condition ID from the same fixture; summary prose cannot hide a still-active blocker.
 - Every release-gate `checks[*].evidence_ref` and `do_not_launch_checks[*].evidence_ref` that cites an existing concrete repository file must validate gate-specific environment, passable status, and non-closure probe context; stale or cross-gate JSON cannot support subitem closure, while allowed definition directories remain definition-only and cannot close runtime gates.
@@ -2174,7 +2176,7 @@ Release gate closure policy:
 - If a Do-Not-Launch condition is active, every matching concrete evidence row for that blocker must stay unchecked until the release gate fixture condition is false and the matching check is passable; stale checked rows cannot coexist with active launch blockers.
 - The validator must fail any fixture/checklist mismatch where an active Do-Not-Launch condition has no visible open checklist row in Section 25, even when the fixture `gate_decision` is correctly `no_go`.
 - Release gate fixture files are closed-world: only `release_gate_evidence.local_alpha.json`, `release_gate_evidence.ci.json`, `release_gate_evidence.private_beta_staging.json`, and `release_gate_evidence.production_launch.json` are valid.
-- Release gate fixture identities are closed-world: those four files must respectively use `gate_local_alpha_fixture_baseline`, `gate_ci_draft_blocked`, `gate_private_beta_staging_blocked`, and `gate_production_launch_blocked` as `evidence_id`; copied, renamed, or extra release-gate fixtures cannot contribute to gate closure.
+- Release gate fixture identities are closed-world: those four files must respectively use `gate_local_alpha_fixture_baseline`, `gate_ci_installed_runtime_blocked` or `gate_ci_installed_runtime_go`, `gate_private_beta_staging_blocked`, and `gate_production_launch_blocked` as `evidence_id`; copied, renamed, or extra release-gate fixtures cannot contribute to gate closure.
 - Release gate fixture top-level keys are closed-world: only `schema_version`, `gate`, `evidence_id`, `checks`, `do_not_launch_checks`, `gate_decision`, and `provenance` are allowed; extra override or summary fields are invalid.
 - Release gate fixture check objects are closed-world: each `checks[]` item may contain only `check_id`, `status`, and `evidence_ref`; each `do_not_launch_checks[]` item may contain only `condition_id`, `blueprint_condition`, `is_present`, and `evidence_ref`; extra per-check closure flags cannot override the computed gate state.
 - Release gate fixture `gate_decision.blocked_by_checks` may contain only IDs present in the same fixture's `checks.check_id`, and `gate_decision.active_do_not_launch_conditions` may contain only IDs present in the same fixture's `do_not_launch_checks.condition_id`; unknown blocker IDs are invalid even if the computed blocker arrays otherwise look ordered.
@@ -2229,6 +2231,7 @@ Release gate closure policy:
 - Runtime evidence `gate_impact` checklist metadata is validator-owned for launch-readiness rows: `checklist_item`、`check_level_item`、`aggregate_checklist_item`、`post_deploy_checklist_item`、`checklist_items`、and `check_level_items` may name only exact Section 25 rows or intentionally descriptive non-checklist labels, and any checklist-like unknown row is invalid.
 - Runtime evidence nested `gate_impact.release_gate_check_id` must equal the artifact top-level `release_gate_check_id` whenever present; copied or stale gate-impact metadata cannot close the wrong Local Alpha、CI、Private Beta/Staging、Production, or Do-Not-Launch row.
 - Runtime evidence `gate_impact` `can_clear_*` flags are closed-world and must be validator-owned; new clearance flags require a validator mapping to exact checklist rows before any CI、Private Beta/Staging、Production、or Do-Not-Launch evidence can use them.
+- CI exact runtime evidence may use `gate_impact.can_clear_ci_gate_check=true` only for its own validator-owned CI check row; it cannot clear sibling gates, Production Launch, or global Do-Not-Launch readiness.
 - Runtime evidence `gate_impact` cannot contain ambiguous top-level launch closure prose such as launch-ready、ready for production、cleared for launch、or top-level gate checklist labels unless the value is the exact validator-owned checklist row being governed.
 - No-go release-gate decision、blocked check、and active Do-Not-Launch evidence refs cannot contain positive launch-readiness prose such as launch-ready、ready for production、cleared for launch、go for production、上线就绪、生产就绪、or 准许上线; blocker evidence must only describe the current no-go state, exact missing/present artifacts, owning aggregate checklist row, blocked check IDs, and active condition IDs.
 - `gate_impact` true clearance flags such as `can_clear_*` may clear only rows owned by the evidence's own gate, and only when the exact blueprint row is already checked; these flags cannot mark open CI、Private Beta/Staging、Production、or Do-Not-Launch launch-readiness rows clear.
@@ -2240,7 +2243,7 @@ Release gate closure policy:
 - Production admin-visible backup/rollback/incident/post-deploy probe evidence with `status=blocked_by_upstream_gates` may close only the explicit admin-visible probe checklist row; it must not close production backup/rollback launch readiness, production post-deploy launch-clearing smoke, or `production_deploy_rollback_smoke_missing`.
 - Validator-owned non-closure probe files, including `ops/evidence/staging/object-storage-retention-cleanup.blocked.json`、`ops/evidence/release/staging/stage0-rev2-current-release-evidence-bundle.object-storage-retention-cleanup.json`、`ops/evidence/production/20260527T1800Z-backup-rollback-incident-smoke.json`、and `ops/evidence/production/backup-rollback-split.blocked.json`, may appear only in their explicit blocked check、active Do-Not-Launch、or no-go gate-decision contexts; they are invalid as cleared-condition evidence, passing-check evidence, aggregate `go` evidence, Production Launch evidence, or global Do-Not-Launch closure evidence.
 - Non-canonical release-bundle probe evidence under `ops/evidence/release/staging/` is validation-only for current no-go release bundles. It cannot substitute for canonical staging pass evidence under `ops/evidence/staging/`, even if it names the same `release_gate_check_id`.
-- Production backup/rollback split preflight evidence at `ops/evidence/production/backup-rollback-split.blocked.json` may document missing exact split files and upstream gate state only; it cannot close `Production backup/restore runtime evidence 通过...`, `Production rollback/incident/post-deploy smoke runtime evidence 通过...`, `Production post-deploy launch-clearing smoke evidence 通过...`, `production_backup_rollback_incident`, `ci_staging_gates_not_passed`, or aggregate Production/Do-Not-Launch readiness.
+- Production backup/rollback split preflight evidence at `ops/evidence/production/backup-rollback-split.blocked.json` may document exact split readiness, upstream gate state, and unrelated production blockers; it cannot close aggregate Production/Do-Not-Launch readiness while any unrelated Production Launch check or Do-Not-Launch condition remains active.
 - The ambiguous checklist item `Production post-deploy smoke tests 通过。` must not appear checked or open; production post-deploy evidence must be split into admin-visible blocked probe evidence and launch-clearing evidence backed by exact split files plus computed-ready upstream CI/Staging gates.
 - The ambiguous checklist label `Production post-deploy smoke tests 通过。` must not appear inside release-gate fixtures or runtime evidence `gate_impact.checklist_items`; split production evidence must name either the explicit admin-visible probe row or the explicit launch-clearing row.
 - Blocked split runtime/deployment checks must name every exact split evidence file still required for closure; a broad `ops/evidence/staging/` or `ops/evidence/production/` placeholder cannot preserve a launch blocker.

@@ -3,6 +3,18 @@ import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { getExportJob, getExportRegenerationRuntimeDecision } from "@/lib/admin-api";
 
+function yesNo(value: boolean | undefined) {
+  if (value === undefined) {
+    return "Unknown";
+  }
+
+  return value ? "Yes" : "No";
+}
+
+function listText(values: string[] | undefined) {
+  return values && values.length > 0 ? values.join(", ") : "None";
+}
+
 export default async function ExportDetailPage({ params }: { params: { id: string } }) {
   const [job, runtimeDecision] = await Promise.all([
     getExportJob(params.id),
@@ -13,7 +25,7 @@ export default async function ExportDetailPage({ params }: { params: { id: strin
     <>
       <PageHeader
         title={`Export ${job.id}`}
-        description="Export job detail with QA status, failure reason, and regenerate eligibility for support and operations."
+        description="Export job detail with QA status, signed URL, retention, provenance, failure reason, and regenerate eligibility for support and operations."
         actions={
           <>
             <button className="button" type="button" disabled={!job.regenerateEligible || job.rbacDecision !== "allowed"}>
@@ -48,6 +60,34 @@ export default async function ExportDetailPage({ params }: { params: { id: strin
                 ["Quota effect", job.quotaEffect],
                 ["Audit ref", <span key="audit" className="mono">{job.auditRef}</span>],
                 ["Failure reason", job.failureReason]
+              ]}
+            />
+          </div>
+        </div>
+        <div className="panel span-6">
+          <div className="panel-header">
+            <div>
+              <h3>Stage 1 Export Safety</h3>
+              <p>Download, signed URL, retention, manifest, QA report, provenance, and trace projections must stay safe and tenant scoped.</p>
+            </div>
+            <StatusBadge value={job.finalExportAllowed ? "allowed" : "blocked"} label={job.finalExportAllowed ? "allowed" : "blocked"} />
+          </div>
+          <div className="panel-body">
+            <KeyValue
+              items={[
+                ["Source", <StatusBadge key="source" value={job.source === "api" ? "available" : "configured"} label={job.source ?? "fixture"} />],
+                ["Project", <span key="project" className="mono">{job.projectId ?? "unknown"}</span>],
+                ["Task", <span key="task" className="mono">{job.taskId ?? "unknown"}</span>],
+                ["Format", job.format ?? "zip"],
+                ["Object metadata", <span key="object" className="mono">{job.objectMetadataId ?? "missing"}</span>],
+                ["Download enabled", <StatusBadge key="download" value={job.downloadEnabled ? "available" : "blocked"} label={yesNo(job.downloadEnabled)} />],
+                ["Signed URL", job.signedUrlPresent ? `Present until ${job.downloadExpiresAt ?? "unknown"}` : "Absent"],
+                ["Retention until", job.retentionUntil ?? "Unknown"],
+                ["Blocked reasons", listText(job.blockedReasons)],
+                ["Manifest", <StatusBadge key="manifest" value={job.manifestPresent ? "available" : "missing"} label={yesNo(job.manifestPresent)} />],
+                ["QA report", <StatusBadge key="qa-report" value={job.qaReportPresent ? "available" : "missing"} label={yesNo(job.qaReportPresent)} />],
+                ["Provenance", <StatusBadge key="provenance" value={job.provenancePresent ? "available" : "missing"} label={yesNo(job.provenancePresent)} />],
+                ["Trace", <span key="trace" className="mono">{job.traceId ?? "trace-required"}</span>]
               ]}
             />
           </div>

@@ -1,0 +1,20 @@
+{
+  "authorization_header_persisted": false,
+  "blocked_checks": [
+    "security proof secure_session_cookie.status must pass"
+  ],
+  "canonical_source_written": false,
+  "cookie_persisted": false,
+  "environment": "production",
+  "generated_at": "2026-06-28T02:27:47+00:00",
+  "kind": "production_security_launch_source_probe",
+  "raw_prompt_persisted": false,
+  "raw_provider_payload_persisted": false,
+  "raw_stripe_payload_persisted": false,
+  "raw_support_body_projected": false,
+  "release_sha": "0123456789abcdef0123456789abcdef01234567",
+  "schema_version": "stage1.production_source_probe.blocked.v1",
+  "secret_material_persisted": false,
+  "signed_url_persisted": false,
+  "status": "blocked"
+}

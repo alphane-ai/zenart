@@ -1,0 +1,93 @@
+{
+  "schema_version": "stage1.operations_incident_runbook.contract.v1",
+  "kind": "operations_incident_runbook_admin_contract",
+  "blueprint_items": ["AD-11", "OP-8", "OP-10", "OP-11", "VF-6", "VF-7"],
+  "admin_route": "admin/app/operations/page.tsx",
+  "data_source": "admin operations fixture or future backend operations API projection",
+  "route_marker": "stage1.operations-incident-runbook-local-contract",
+  "required_incident_fields": [
+    "severity",
+    "status",
+    "customerImpact",
+    "mitigation",
+    "owner",
+    "nextUpdateAt",
+    "linkedQueues",
+    "linkedSupportTickets",
+    "auditRefs",
+    "rollbackPlan"
+  ],
+  "required_alert_route_fields": [
+    "severity",
+    "threshold",
+    "routeTarget",
+    "escalationRole",
+    "runbook",
+    "incidentRef",
+    "auditRef",
+    "runtimeEvidenceRef"
+  ],
+  "required_action_statuses": [
+    "ready_for_review",
+    "blocked_until_evidence",
+    "blocked_by_do_not_launch"
+  ],
+  "required_actions": [
+    "acknowledge",
+    "escalate",
+    "rollback",
+    "maintenance_banner",
+    "support_update"
+  ],
+  "required_source_surfaces": [
+    "incident_log",
+    "alert_route",
+    "release_blocker",
+    "maintenance_banner"
+  ],
+  "required_rollback_evidence_refs": [
+    "ops/evidence/production/backup-restore.json",
+    "ops/evidence/production/rollback-incident-post-deploy-smoke.json",
+    "ops/evidence/production/backup-rollback-split.blocked.json"
+  ],
+  "preserved_do_not_launch_conditions": [
+    "staging_observability_restore_load_missing",
+    "object_storage_signed_retention_runtime_missing",
+    "production_backup_rollback_incident",
+    "production_paid_billing_lifecycle"
+  ],
+  "blocked_gate_checks": [
+    "staging_observability_backup_load",
+    "staging_object_storage_signed_downloads",
+    "production_backup_rollback_incident",
+    "production_paid_billing_lifecycle"
+  ],
+  "required_controls": [
+    "data-ops-incident-runbook-contract",
+    "data-ops-runbook-non-launch-status",
+    "data-ops-runbook-blocked-gate-checks",
+    "data-ops-runbook-preserved-dnl",
+    "data-ops-runbook-required-incident-fields",
+    "data-ops-runbook-required-alert-fields",
+    "data-ops-runbook-required-rollback-evidence",
+    "data-ops-runbook-action-matrix"
+  ],
+  "non_launch_status": {
+    "local_contract": "pass",
+    "staging_evidence": "open",
+    "production_evidence": "open",
+    "can_clear_stage1_staging_runtime_gate": false,
+    "can_clear_stage1_production_launch_gate": false,
+    "can_close_do_not_launch": false,
+    "manual_go_controls_enabled": false
+  },
+  "required_files": [
+    "admin/app/operations/page.tsx",
+    "admin/lib/types.ts",
+    "admin/lib/fixtures.ts",
+    "admin/lib/admin-api.ts",
+    "admin/tests/admin-data.test.mjs",
+    "scripts/validate_stage1_operations_incident_runbook_contract.py",
+    "Docs/researches/stage1_gap_inventory.md"
+  ]
+}

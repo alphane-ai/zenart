@@ -1,0 +1,50 @@
+{
+  "fixture_id": "batch_result_object_storage_refs",
+  "contract_version": 1,
+  "tenant_id": "tenant_1",
+  "batch_id": "batch_1",
+  "child_id": "child_1",
+  "result_sink": "postgres_asset_canvas_object_store",
+  "result_object": {
+    "asset_type": "generated_image",
+    "bucket": "zenari-stage1-results",
+    "object_key": "tenants/tenant_1/batch-results/batch_1/child_1/result-manifest.json",
+    "content_type": "application/vnd.zenari.batch-result+json",
+    "storage_state": "object_store_ref_ready",
+    "raw_provider_payload_saved": false
+  },
+  "thumbnail_object": {
+    "asset_type": "thumbnail",
+    "bucket": "zenari-stage1-results",
+    "object_key": "tenants/tenant_1/thumbnails/batch_1/child_1/thumbnail-manifest.json",
+    "content_type": "application/vnd.zenari.thumbnail+json",
+    "storage_state": "object_store_ref_ready",
+    "derived_from_object_id": "object_result",
+    "placeholder_promoted": false,
+    "raw_provider_payload_saved": false
+  },
+  "asset_projection": {
+    "object_ref_persisted": true,
+    "thumbnail_persisted": true,
+    "lineage_persisted": true,
+    "trace_projection": "object_store_manifest"
+  },
+  "required_code_anchors": [
+    "objectstore.Store",
+    "persistBatchResultObjects",
+    "batchResultStorageManifest",
+    "batchResultThumbnailManifest",
+    "storage_ref",
+    "thumbnail_ref",
+    "raw_provider_payload_saved",
+    "NewPostgresBatchResultSink(store.NewPoolAdapter(pool), batchObjects)"
+  ],
+  "release_gate_status": "contract_ready_real_rendered_asset_staging_evidence_open",
+  "remaining_staging_evidence": [
+    "provider-generated binary image stored in object storage",
+    "rendered thumbnail or poster object stored in object storage",
+    "staging BatchRunner result-sink evidence with persisted asset/canvas ids",
+    "signed URL download and retention cleanup proof for generated batch outputs"
+  ],
+  "release_note": "Local result sink now persists object-store manifest refs and thumbnail refs; real provider image bytes, rendered thumbnails, signed URL, retention, and staging runtime evidence remain required before launch."
+}
