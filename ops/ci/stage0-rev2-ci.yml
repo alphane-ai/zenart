@@ -87,7 +87,7 @@ jobs:
       - name: Validate compose and CI workflow syntax
         run: |
           docker compose --env-file .env.example config --quiet
-          ruby -e "require 'yaml'; YAML.load_file('docker-compose.yml'); YAML.load_file('ops/ci/stage0-rev2-ci.yml'); YAML.load_file('.github/workflows/stage0-rev2-ci.yml')"
+          ruby -e "require 'yaml'; %w[docker-compose.yml ops/ci/stage0-rev2-ci.yml .github/workflows/stage0-rev2-ci.yml].each { |path| YAML.safe_load(File.read(path), aliases: true, filename: path) }"
 
       - name: Validate generated OpenAPI clients are current
         run: python3 scripts/generate_openapi_clients.py --check
